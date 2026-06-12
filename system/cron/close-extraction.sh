@@ -126,13 +126,13 @@ print(json.dumps(entries[0]) if entries else '')")
     PROMPT="$PROMPT Return ONLY a JSON object, no markdown fences, matching exactly:
 {\"learnings\": [{\"type\": \"errata|pattern|field-note\", \"size\": \"SMALL|LARGE\", \"title\": \"...\", \"body\": \"...\", \"confidence\": 0.0}]}
 Rules: SMALL = incremental/known-class insight; LARGE = novel pattern or decision-worthy finding. Only include learnings actually evidenced in the diff (bug fixes, workarounds, API mismatches, reusable patterns). Empty array if nothing notable.
-
---- DIFF ---
-$(cat "$SNAP")"
+The session diff is provided on stdin."
 
     OUT_FILE="/tmp/close-extract-$$-${EID}.json"
     AGY_EXIT=0
-    "$AGY" -p "$PROMPT" > "$OUT_FILE" 2>/dev/null || AGY_EXIT=$?
+    # Diff via stdin, never argv: a single argv string is capped at MAX_ARG_STRLEN
+    # (~128KB) — inlining a large diff makes exec fail E2BIG before agy runs (t-2055/t-2064)
+    "$AGY" -p "$PROMPT" < "$SNAP" > "$OUT_FILE" 2>/dev/null || AGY_EXIT=$?
     if [ "$AGY_EXIT" -ne 0 ]; then
         # $? inside an `if ! cmd` branch reports the negated test (always 0) — capture explicitly (t-2004)
         fail_entry "agy invocation failed (exit $AGY_EXIT)"
