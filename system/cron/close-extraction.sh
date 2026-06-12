@@ -132,8 +132,12 @@ print(json.dumps(entries[0]) if entries else '')")
     DIFF_CONTENT=$(head -c "$MAX_DIFF_BYTES" "$SNAP")
 
     PROMPT="You are extracting learnings from a coding session diff for project '$PROJECT' (branch $BRANCH, commits $RANGE)."
-    [ "$TRUNCATED" = "true" ] && PROMPT="$PROMPT The diff was truncated at 500KB — extract from what is present, do not flag the truncation."
-    [ "$SNAP_BYTES" -gt "$MAX_DIFF_BYTES" ] && PROMPT="$PROMPT Only the first ${MAX_DIFF_BYTES} bytes of the diff are included — extract from what is present, do not flag the truncation."
+    # One truncation note only: the argv cap subsumes the 500KB snapshot note
+    if [ "$SNAP_BYTES" -gt "$MAX_DIFF_BYTES" ]; then
+        PROMPT="$PROMPT Only the first ${MAX_DIFF_BYTES} bytes of the diff are included — extract from what is present, do not flag the truncation."
+    elif [ "$TRUNCATED" = "true" ]; then
+        PROMPT="$PROMPT The diff was truncated at 500KB — extract from what is present, do not flag the truncation."
+    fi
     PROMPT="$PROMPT Return ONLY a JSON object, no markdown fences, matching exactly:
 {\"learnings\": [{\"type\": \"errata|pattern|field-note\", \"size\": \"SMALL|LARGE\", \"title\": \"...\", \"body\": \"...\", \"confidence\": 0.0}]}
 Rules: SMALL = incremental/known-class insight; LARGE = novel pattern or decision-worthy finding. Only include learnings actually evidenced in the diff (bug fixes, workarounds, API mismatches, reusable patterns). Empty array if nothing notable.
