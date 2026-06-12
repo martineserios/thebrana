@@ -129,6 +129,126 @@ pub fn resolve(reg: &ChannelRegistry, explicit: Option<&[String]>, priority: &st
         .collect()
 }
 
+/// Parse a shell-format secrets file (`~/.hub-secrets`) without executing it
+/// (challenger F2): skip comments and non-KEY=VALUE lines, strip an optional
+/// leading `export `, split on the FIRST `=` only (token values contain `=`),
+/// strip surrounding single or double quotes. Anything fancier (subshells,
+/// interpolation) is silently ignored — this is a parser, not a shell.
+pub fn parse_secrets(content: &str) -> BTreeMap<String, String> {
+    let mut out = BTreeMap::new();
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let line = line.strip_prefix("export ").unwrap_or(line);
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        let key = key.trim();
+        if key.is_empty() || key.contains(char::is_whitespace) {
+            continue;
+        }
+        let value = value.trim();
+        let value = value
+            .strip_prefix('\'')
+            .and_then(|v| v.strip_suffix('\''))
+            .or_else(|| value.strip_prefix('"').and_then(|v| v.strip_suffix('"')))
+            .unwrap_or(value);
+        out.insert(key.to_string(), value.to_string());
+    }
+    out
+}
+
+/// Build the notify-send invocation. ALWAYS individual args via
+/// `Command::arg` — never a shell string (challenger F1: reminder text is
+/// user-controlled and may contain shell metacharacters).
+fn desktop_command(message: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new("notify-send");
+    cmd.arg("-u").arg("normal").arg("brana reminder").arg(message);
+    cmd
+}
+
+/// Telegram sendMessage form params. `parse_mode` is deliberately omitted —
+/// plain text only, so Markdown metacharacters in reminder text can neither
+/// fail the send nor restyle it (challenger F2; do not copy
+/// `parse_mode=Markdown` from the firebreak script).
+fn telegram_params<'a>(chat_id: &'a str, message: &'a str) -> Vec<(&'static str, &'a str)> {
+    vec![("chat_id", chat_id), ("text", message)]
+}
+
+fn ntfy_url(server: &str, topic: &str) -> String {
+    format!("{}/{}", server.trim_end_matches('/'), topic)
+}
+
+/// Send one message to one channel. Never panics, never returns `Err` —
+/// every failure mode collapses into `DispatchResult::Failed` so dispatch
+/// can apply ADR-054 §5 partial-failure semantics uniformly.
+pub fn send(channel: &Channel, message: &str) -> DispatchResult {
+    match channel.def.channel_type {
+        ChannelType::Telegram => send_telegram(&channel.def, message),
+        ChannelType::Desktop => send_desktop(message),
+        ChannelType::Ntfy => send_ntfy(&channel.def, message),
+        ChannelType::Unknown => DispatchResult::Failed {
+            reason: format!("channel {:?} has unknown type", channel.name),
+        },
+    }
+}
+
+fn send_telegram(def: &ChannelDef, message: &str) -> DispatchResult {
+    let Some(secrets_file) = def.secrets_file.as_deref() else {
+        return DispatchResult::Failed { reason: "telegram: no secrets_file configured".into() };
+    };
+    let path = crate::util::expand_home(secrets_file);
+    let content = match std::fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(e) => {
+            return DispatchResult::Failed {
+                reason: format!("telegram: cannot read secrets file {}: {e}", path.display()),
+            };
+        }
+    };
+    let secrets = parse_secrets(&content);
+    let (Some(token), Some(chat_id)) =
+        (secrets.get("TELEGRAM_BOT_TOKEN"), secrets.get("OWNER_CHAT_ID"))
+    else {
+        return DispatchResult::Failed {
+            reason: "telegram: TELEGRAM_BOT_TOKEN or OWNER_CHAT_ID missing from secrets".into(),
+        };
+    };
+    let url = format!("https://api.telegram.org/bot{token}/sendMessage");
+    match ureq::post(&url).send_form(telegram_params(chat_id, message)) {
+        Ok(_) => DispatchResult::Sent,
+        Err(e) => DispatchResult::Failed { reason: format!("telegram: {e}") },
+    }
+}
+
+/// Headless safety (ADR-054 §5): absent binary, no session bus, non-zero
+/// exit — all collapse to Failed, never an error. Hooks-never-block contract.
+fn send_desktop(message: &str) -> DispatchResult {
+    match desktop_command(message).output() {
+        Ok(out) if out.status.success() => DispatchResult::Sent,
+        Ok(out) => DispatchResult::Failed {
+            reason: format!(
+                "notify-send exit {}: {}",
+                out.status,
+                String::from_utf8_lossy(&out.stderr).trim()
+            ),
+        },
+        Err(e) => DispatchResult::Failed { reason: format!("notify-send: {e}") },
+    }
+}
+
+fn send_ntfy(def: &ChannelDef, message: &str) -> DispatchResult {
+    let (Some(server), Some(topic)) = (def.server.as_deref(), def.topic.as_deref()) else {
+        return DispatchResult::Failed { reason: "ntfy: server or topic missing".into() };
+    };
+    match ureq::post(&ntfy_url(server, topic)).send(message.as_bytes()) {
+        Ok(_) => DispatchResult::Sent,
+        Err(e) => DispatchResult::Failed { reason: format!("ntfy: {e}") },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -262,6 +382,78 @@ mod tests {
     fn resolve_unlisted_priority_defaults_to_no_channels() {
         let reg: ChannelRegistry = serde_json::from_str(FULL_REGISTRY).unwrap();
         assert!(resolve(&reg, None, "critical").is_empty());
+    }
+
+    // ── t-2061: adapters + secrets parser ──────────────────────────────
+
+    #[test]
+    fn parse_secrets_handles_export_quotes_comments_and_equals() {
+        // fixture keys avoid TOKEN/SECRET words — pre-commit secret scanner
+        // flags realistic names even in obviously-fake test data
+        let content = r#"
+# hub credentials
+export HUB_CRED_A=12345:abc=def==
+HUB_CHAT_ID='987654321'
+QUOTED_DOUBLE="some value"
+this line is not a kv pair
+=orphan
+"#;
+        let secrets = parse_secrets(content);
+        // split on FIRST '=' only — token value keeps its '=' chars (challenger F2)
+        assert_eq!(secrets["HUB_CRED_A"], "12345:abc=def==");
+        // surrounding quotes stripped, leading `export ` stripped
+        assert_eq!(secrets["HUB_CHAT_ID"], "987654321");
+        assert_eq!(secrets["QUOTED_DOUBLE"], "some value");
+        // comments, non-KV lines, and empty keys ignored
+        assert!(!secrets.contains_key("# hub credentials"));
+        assert!(!secrets.contains_key(""));
+        assert_eq!(secrets.len(), 3);
+    }
+
+    #[test]
+    fn desktop_command_passes_metachars_as_single_arg() {
+        // challenger F1: shell metacharacters must arrive literally — one arg,
+        // no shell interpolation anywhere in the construction.
+        let msg = "review '$(rm -rf ~)' && `echo pwned`; *";
+        let cmd = desktop_command(msg);
+        assert_eq!(cmd.get_program(), "notify-send");
+        let args: Vec<&std::ffi::OsStr> = cmd.get_args().collect();
+        assert!(args.contains(&std::ffi::OsStr::new(msg)));
+    }
+
+    #[test]
+    fn telegram_params_plain_text_no_parse_mode() {
+        // challenger F2: plain text — parse_mode omitted so Markdown
+        // metacharacters in reminder text can't break or restyle the send.
+        let msg = "due *now* [link](x) _it_";
+        let params = telegram_params("987", msg);
+        assert!(params.iter().any(|(k, v)| *k == "chat_id" && *v == "987"));
+        assert!(params.iter().any(|(k, v)| *k == "text" && *v == msg));
+        assert!(!params.iter().any(|(k, _)| *k == "parse_mode"));
+    }
+
+    #[test]
+    fn ntfy_url_joins_server_with_and_without_trailing_slash() {
+        assert_eq!(ntfy_url("https://ntfy.sh", "topic1"), "https://ntfy.sh/topic1");
+        assert_eq!(ntfy_url("https://ntfy.sh/", "topic1"), "https://ntfy.sh/topic1");
+    }
+
+    #[test]
+    fn send_unknown_type_fails_without_panicking() {
+        let ch = Channel {
+            name: "future".into(),
+            def: ChannelDef {
+                channel_type: ChannelType::Unknown,
+                secrets_file: None,
+                server: None,
+                topic: None,
+                enabled: true,
+            },
+        };
+        match send(&ch, "hello") {
+            DispatchResult::Failed { .. } => {}
+            DispatchResult::Sent => panic!("unknown channel type must not report Sent"),
+        }
     }
 
     #[test]

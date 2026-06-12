@@ -152,6 +152,15 @@ pub fn home() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap_or_default())
 }
 
+/// Expand a leading `~/` to the user's home directory. Paths without the
+/// prefix pass through unchanged.
+pub fn expand_home(p: &str) -> PathBuf {
+    if let Some(rest) = p.strip_prefix("~/") {
+        return home().join(rest);
+    }
+    PathBuf::from(p)
+}
+
 /// Load scheduler config from `~/.claude/scheduler/scheduler.json`.
 pub fn load_scheduler() -> HashMap<String, serde_json::Value> {
     let path = home().join(".claude/scheduler/scheduler.json");
