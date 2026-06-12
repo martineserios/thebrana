@@ -51787,7 +51787,7 @@
       "github_issue": "1027",
       "id": "t-1979",
       "kind": "fix",
-      "notes": "Assumptions (2026-06-12): dedup key format chose extract:{project}:{type}:{slug} over literal nightly:{type}:{slugify(title)} — keeps project scoping, adds the type discriminator the disposition wanted. Prompt file placed at system/cron/prompts/close-extraction.txt (disposition said system/scheduler/prompts/ but the cron script lives in system/cron/). Item #12 (whole-hunk truncation + omitted file list) split to t-2066 per user decision — needs Rust schema change.",
+      "notes": "Assumptions (2026-06-12): dedup key format chose extract:{project}:{type}:{slug} over literal nightly:{type}:{slugify(title)} — keeps project scoping, adds the type discriminator the disposition wanted. Prompt file placed at system/cron/prompts/close-extraction.txt (disposition said system/scheduler/prompts/ but the cron script lives in system/cron/). Item #12 (whole-hunk truncation + omitted file list) split to t-2066 per user decision — needs Rust schema change.\nEvaluator: PASS (2026-06-12), 3 criteria checked — all MET with file:line evidence (agent a741c4f30a16f45b0).",
       "order": 0,
       "parent": "t-1970",
       "priority": "P1",
@@ -52399,12 +52399,12 @@
         "desktop adapter absent/headless counts Failed, exit 0; no shell interpolation anywhere"
       ],
       "kind": "feature",
-      "notes": null,
+      "notes": "Merged to main e7e64f51. 440 brana-core tests green. ISC: all 3 criteria verified. Evaluator PASS. Challenger PROCEED-WITH-NOTES (LOW: ureq Status errors may embed bot token in error reason — accepted for personal CLI v1). Lenient-parse fix (version serde(default)) applied post-smoke-test.",
       "order": null,
       "parent": null,
       "priority": "P1",
       "started": "2026-06-12",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "feature",
       "subject": "Channel registry + adapters + dispatch (brana remind due --dispatch)",
       "tags": [
