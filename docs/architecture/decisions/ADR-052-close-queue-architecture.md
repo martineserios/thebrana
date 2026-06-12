@@ -37,6 +37,8 @@ The Rust write path owns: sidecar advisory lock (`close-queue.json.lock` — nev
 
 `close-extraction.sh` interacts with the queue **exclusively** through `brana close-queue` subcommands — zero jq reads, zero file writes to the store. Each subcommand locks-and-rewrites atomically; the cron re-reads via `brana close-queue list --unprocessed` per iteration rather than caching the queue in a shell variable across mutations. A session closing mid-cron-run appends safely because `append` and `mark-processed` serialize on the same lock.
 
+**Read-only exception (t-1979, challenger disposition #1):** the session-start hook's close-queue dead-man check reads the store with pure jq. It is deliberately independent of the brana binary — a dead cron, a missing binary, and an unregistered job all manifest as a stale queue, and the monitor must not depend on the thing it monitors. The exclusivity rule above governs *mutation* and *cron-side* access; read-only monitoring from hooks is sanctioned.
+
 ### 3. Entry identity: random id + dedup_key (challenger H5)
 
 Entry `id` is **random** (`q-` + 8 random bytes hex), never content- or time-derived — deterministic `close-{ISO}-{project}` ids collide when parallel sessions close in the same second (the exact mistake reversed in ADR-051). Idempotency is carried by `dedup_key = {project}:{branch}:{git_range}`: `append` with a dedup_key matching an existing **unprocessed** entry is a no-op returning the existing entry (the same work range is already queued); processed/failed entries never absorb appends.
@@ -101,11 +103,13 @@ The nightly worker is `agy -p` (Gemini Flash, Layer A — delegation-routing des
 
 **Routing (v1, challenger H7):** ALL validated learnings route to the reminder store via `write_reminder` — none auto-write to ruflo/memory, because a shell cron has no MCP client. The human routes to memory at review time. Revisit only if a `brana memory write`-from-cron path ships.
 
+**Deferral note (t-1979, challenger disposition #8):** auto-routing extracted learnings to memory is explicitly DEFERRED until the §6 revisit checkpoint (≈2 weeks of daily-summary review) confirms worker quality — human review is the safety property while the worker is unproven. Until then the cron writes a weekly `weekly-learnings-review:{ISO-week}` reminder nudging the human to route pending extraction learnings.
+
 **Provisional clause:** agy is the v1 worker because all output is human-reviewed (quality ceiling is triage-grade, not judgment-grade) and the nightly cost is ~zero. **Revisit trigger:** after ~2 weeks of daily-summary review, if agy demonstrably misses learnings visible in the diffs, swap the worker to `claude -p` (or hybrid: agy nightly + Claude weekly over the week's summaries). The worker invocation is one line in the cron script; the queue plumbing is worker-agnostic by design.
 
 ### 7. Cron contract (design Q3, hardened)
 
-Chronological (oldest first), sequential (one LLM pass at a time), per entry: read snapshot → agy pass → validate output → route to reminders → `mark-processed` with `summary_path`. Then: append (never replace — challenger M9) to `~/.claude/sessions/daily-summary-{date}.md`, `brana close-queue prune`, delete snapshot files of processed entries older than 14 days. Stale-queue self-monitor: any entry unprocessed >3 days → reminder (dedup_key `stale-close-queue` so it counts occurrences instead of spamming).
+Chronological (oldest first), sequential (one LLM pass at a time), per entry: read snapshot → agy pass → validate output → route to reminders → `mark-processed` with `summary_path`. Then: append (never replace — challenger M9) to `~/.claude/sessions/daily-summary-{date}.md`, `brana close-queue prune`, delete snapshot files of processed entries older than 30 days, plus a status-blind `find -mtime +30` sweep over `snap-*.diff` and `daily-summary-*.md` (failed/orphaned files age out too — t-1979 #5/#9). `mark-failed` reasons are categorized: `timeout:` / `rate-limit:` / `agy-error:` / `schema-invalid:` / `snapshot-missing:` (t-1979 #4). Stale-queue self-monitor: any entry unprocessed >3 days → reminder (dedup_key `stale-close-queue` so it counts occurrences instead of spamming).
 
 ### 8. Acceptance gate
 

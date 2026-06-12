@@ -72,16 +72,24 @@ All Gemini output from Layer B lands in `/tmp/agy-{suffix}-{ts_ms}.md` only.
 Layer A scheduled sweeps write to `system/scheduler/outputs/` instead — ephemeral `/tmp/`
 would be lost on reboot before `/brana:close` processes it.
 
+**Exception (t-1979, challenger disposition):** Layer A output consumed *within the same
+cron run* writes to `/tmp/` — e.g. `close-extraction.sh` captures the agy pass to
+`/tmp/close-extract-*.json`, validates, routes, and deletes it before exiting. Routing it
+through `system/scheduler/outputs/` would double-process the learnings via the close
+batch-extract sweep. The `outputs/` rule exists to survive reboots *between* producer and
+consumer; when producer and consumer are the same process, `/tmp/` is correct.
+
 Claude reads from `/tmp/` and applies changes via its own Write/Edit tools. CC hooks fire
 normally on every repo change. No agy output ever lands in the repo without Claude's
 explicit Write/Edit call.
 
-### 4. AGY_PINNED_VERSION = "1.0.1"
+### 4. AGY_PINNED_VERSION = "1.0.7"
 
-`agy_delegate.rs` pins `const AGY_PINNED_VERSION: &str = "1.0.1"`. Version is checked at
-every invocation via `agy --version`. Mismatch → hard error:
+`agy_delegate.rs` pins `const AGY_PINNED_VERSION: &str = "1.0.7"` (1.0.1 → 1.0.4 → 1.0.7;
+1.0.7 spike re-run 2026-06-12, t-1979: clean stdout JSON, no fences, exit 0). Version is
+checked at every invocation via `agy --version`. Mismatch → hard error:
 
-> "agy version mismatch: expected 1.0.1, got {actual} — update AGY_PINNED_VERSION in
+> "agy version mismatch: expected {pinned}, got {actual} — update AGY_PINNED_VERSION in
 > agy_delegate.rs after re-running adversarial spike"
 
 **Upgrade procedure:** bump pin constant → re-run adversarial spike → confirm output contract

@@ -61,7 +61,11 @@ The classification logic lives in `system/scripts/close-classify.sh` — the
 matrix here (a replicated copy rotted silently once — t-1978).
 
 ```bash
-COMMIT_COUNT=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
+# Window anchored on the previous close's session-state written_at (t-1979 #11) —
+# wall-clock windows miss long sessions and double-count short gaps. The 6h
+# window is only the first-session fallback (no prior session state).
+LAST_CLOSE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty' 2>/dev/null)
+COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
 
 CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/system/scripts/close-classify.sh" \
@@ -143,9 +147,9 @@ Zero commits → it exits silently without queueing.
 
 Collect from multiple sources:
 
-1. **Git log + diffs:**
+1. **Git log + diffs** (same `written_at` anchor as Step 0 — reuse `$LAST_CLOSE`):
    ```bash
-   git log --oneline --since="6 hours ago" 2>/dev/null
+   git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null
    git diff --stat HEAD~5..HEAD 2>/dev/null
    ```
 2. **Conversation context** — review for: errors hit, workarounds used, surprises, things that didn't match expectations
