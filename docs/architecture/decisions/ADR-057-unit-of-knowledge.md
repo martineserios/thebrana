@@ -9,7 +9,7 @@ informs:
 status: proposed
 ---
 
-# ADR-056: Unit of Knowledge — One Schema, Three Consumers
+# ADR-057: Unit of Knowledge — One Schema, Three Consumers
 
 **Date:** 2026-06-12
 **Status:** Proposed — acceptance conditional on t-2030 (ontology update) merging before Phase 1 begins: the schema names four types (`claim`, `event`, `source`, `hub`) that brana-ontology.yaml v1.5 does not carry, and validate.sh Check 18 would reject them until the ontology does
