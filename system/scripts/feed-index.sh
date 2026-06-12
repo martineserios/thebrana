@@ -21,12 +21,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FORMAT_ENRICHED="$SCRIPT_DIR/feed-format-enriched.py"
 
 TMP_ENTRIES=$(mktemp)
+TMP_STALE=$(mktemp)
 
-trap 'rm -f "$TMP_ENTRIES"' EXIT
+trap 'rm -f "$TMP_ENTRIES" "$TMP_STALE"' EXIT
 
 # Feeds with full content in the entry (cc-changelog: summary field; claude-code-releases: content field)
 # and feeds needing pre-generated summaries (anthropic-news: feed-summaries.jsonl)
-HIGH_SIGNAL_FEEDS="cc-changelog claude-code-releases anthropic-news"
+HIGH_SIGNAL_FEEDS="cc-changelog claude-code-releases anthropic-news kapso-changelog"
+
+# ── Staleness config (t-2001, ADR-055) ───────────────────────────────────────
+FEEDS_JSON="$HOME/.claude/scheduler/feeds.json"
+DEFAULT_STALE_DAYS=14
+# Scraper-fed sources that are NOT registered in feeds.json (name:threshold_days).
+# These only flag when entries exist and went stale — no "no entries yet" notice,
+# so an undeployed scraper doesn't nag every digest.
+EXTRA_STALE_FEEDS="kapso-changelog:21"
 
 mkdir -p "$(dirname "$WATERMARK")"
 
@@ -50,7 +59,64 @@ else
 fi
 
 NEW_COUNT=$((TOTAL_LINES - START_LINE + 1))
-[ "$NEW_COUNT" -le 0 ] && { echo "[feed-index] No new entries since last run ($TOTAL_LINES total)"; exit 0; }
+
+# ── Staleness pass (t-2001) ───────────────────────────────────────────────────
+# Unconditional: runs even when there are no new entries (a stalled feed is
+# precisely the no-new-entries case). Scans the FULL feed-log.jsonl — this read
+# is intentionally not watermark-gated; the watermark contract is untouched.
+# GNU `date -d` (Linux/systemd only — do not port to BSD `date -j`).
+
+NOW_EPOCH=$(date +%s)
+
+stale_universe() {
+    # Emits "name:threshold:zero_notice" — zero_notice=1 only for registered feeds
+    if [ -f "$FEEDS_JSON" ]; then
+        jq -r --argjson d "$DEFAULT_STALE_DAYS" \
+            '.[] | select(.enabled) | "\(.name):\(.stale_after_days // $d):1"' \
+            "$FEEDS_JSON" 2>/dev/null || true
+    fi
+    for extra in $EXTRA_STALE_FEEDS; do
+        echo "${extra}:0"
+    done
+}
+
+while IFS=: read -r name threshold zero_notice; do
+    [ -z "$name" ] && continue
+    # fromjson? silently skips malformed lines
+    newest=$(jq -rR --arg f "$name" \
+        'fromjson? | select(.feed == $f) | (.published // .polled_at)' \
+        "$FEED_LOG" | sort | tail -1)
+    if [ -z "$newest" ]; then
+        [ "$zero_notice" = "1" ] && echo "- $name — no entries yet" >> "$TMP_STALE"
+        continue
+    fi
+    newest_epoch=$(date -d "$newest" +%s 2>/dev/null) || continue
+    age_days=$(( (NOW_EPOCH - newest_epoch) / 86400 ))
+    if [ "$age_days" -gt "$threshold" ]; then
+        echo "- $name — last entry ${newest%%T*} (${age_days}d ago, threshold ${threshold}d)" >> "$TMP_STALE"
+    fi
+done < <(stale_universe)
+
+STALE_COUNT=$(wc -l < "$TMP_STALE" | tr -d ' ')
+
+if [ "$NEW_COUNT" -le 0 ]; then
+    if [ "$STALE_COUNT" -gt 0 ]; then
+        {
+            echo "# Intelligence Feed Digest — $(date +%Y-%m-%d)"
+            echo ""
+            echo "> No new entries. $STALE_COUNT feed(s) flagged stale. Generated $(date +%H:%M)."
+            echo "> Delete this file when reviewed: \`rm ~/.claude/intelligence-feed-digest.md\`"
+            echo ""
+            echo "## ⚠ Stale feeds ($STALE_COUNT)"
+            echo ""
+            cat "$TMP_STALE"
+        } > "$DIGEST"
+        echo "[feed-index] No new entries; stale-only digest written ($STALE_COUNT flagged)"
+    else
+        echo "[feed-index] No new entries since last run ($TOTAL_LINES total)"
+    fi
+    exit 0
+fi
 
 # ── Extract new entries ───────────────────────────────────────────────────────
 
@@ -105,7 +171,14 @@ FEEDS=$(jq -r '.feed' "$TMP_ENTRIES" | sort -u)
             echo ""
         fi
     done <<< "$FEEDS"
+
+    if [ "$STALE_COUNT" -gt 0 ]; then
+        echo "## ⚠ Stale feeds ($STALE_COUNT)"
+        echo ""
+        cat "$TMP_STALE"
+        echo ""
+    fi
 } > "$DIGEST"
 
 echo "$TOTAL_LINES" > "$WATERMARK"
-echo "[feed-index] Digest written to $DIGEST ($ENTRY_COUNT entries)"
+echo "[feed-index] Digest written to $DIGEST ($ENTRY_COUNT entries, $STALE_COUNT stale)"
