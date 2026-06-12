@@ -88,33 +88,75 @@ The failure mode is a vague task producing confident garbage that passes its own
 - effort S or M — L/XL decomposed first, human-reviewed
 - no pending design ambiguity (no-silent-ambiguity rule, mechanized)
 
-Mechanism: `execution: autonomous` marker (field exists) + `brana backlog lint <id>` check the foreman runs before dispatch. Not ready → skip and flag, never "do your best."
+Mechanism: `execution: autonomous` marker (field exists in schema; `autonomous` value validation = t-1982) + `brana backlog lint <id>` check the foreman runs before dispatch (does not exist yet = t-1981). Not ready → skip and flag, never "do your best." Sequencing per challenger C2 (2026-06-11): both gate the foreman (step 5) only — the step-1 rehearsal uses human curation, and its evidence refines the lint heuristics before t-1981 is built.
 
 ### Hand-raising protocol
 
 Background workflows can't ask interactive questions. On gate / unverifiable AC / failed verify after retry / ambiguity, the workflow:
 
-1. writes question + evidence to the task `context` and a pending-questions store (generalize close-queue plumbing — worker-agnostic by design),
+1. writes question + evidence to the task `context` and a pending-questions store (dedicated schema, designed in t-1993 — close-queue's ADR-052 schema is session-extraction-specific and does not map to questions; per challenger W3, 2026-06-11),
 2. marks the task blocked (foreman skips it; one stuck task never stalls the factory),
 3. pushes a notification.
 
 Human answers in batch; answered tasks become dispatchable. ADR-050 caps apply on top (max 3 auto-advances, machine-verifiable checkpoints, interval rule).
 
-### Roadmap (smallest first, evidence-driven)
+### Foreman prompt contract (draft, pre-rehearsal — resolves challenger W2)
 
-1. **Zero code:** loop recipes on the gateless tier — report-only reconcile @≥20m, post-ship CI babysitter @≤4m, inbox sweep. Plus one manual rehearsal: "ultracode: complete one curated S task per its AC, worktree-isolated, verify each AC."
-2. **t-1974 synergy:** close-extraction drain logic invocable by cron AND `/loop` — same CLI cycle, two triggers.
-3. **ADR-050 suggestion points** implemented in build/close SKILL.md (specified, not yet built) — embeds loops in existing commands per automation-through-usage rule.
-4. **Step-state contract ADR** — every step ends writing `{checkpoint, next_step, gate_pending}`; loops pause at gates instead of forcing them. The real architectural change; challenger pass required.
-5. **Definition-of-ready lint + foreman loop recipe.**
-6. **Generalized work queue + multi-task parallelism** — only after close-queue and single-task dispatch prove out.
+**Rule: foreman bodies contain CLI calls and named-workflow references only — never slash commands.** CC #54086 re-executes any slash command embedded in a wakeup prompt, gates and all. This is the design artifact the foreman recipe (t-1994) refines with rehearsal evidence:
+
+```
+Foreman beat (one iteration):
+1. If a task-crew workflow from a previous beat is still running → do nothing this beat.
+2. Run: brana backlog query --status pending --json
+   → filter execution=="autonomous", order per brana backlog focus.
+3. For the top candidate run: brana backlog lint <id> --json
+   → not ready: skip, note failed checks in task context, try next candidate (max 3).
+4. Ready task found → dispatch the saved workflow "task-crew" with args {task_id}.
+   Never inline a script; never invoke a slash command.
+5. Nothing dispatchable → report "factory idle: N pending, 0 agent-ready" and continue.
+Termination: user stop, session end, or 2 consecutive idle beats with an empty
+autonomous queue.
+```
+
+Every line is machine-verifiable (ADR-050 prompt-content rule); the named `task-crew` workflow in `.claude/workflows/` satisfies the Workflow opt-in via the recipe the user starts (see [workflow-primitive.md](../architecture/workflow-primitive.md)).
+
+### Roadmap (dependency graph — replaces the numbered list per challenger W4, 2026-06-11)
+
+Done prerequisites: **ADR-050 accepted** (2026-06-11) · **step 2** close-extraction drain shipped (t-1974, completed, live systemd timer) · **step 3** ADR-050 suggestion points wired in build/close (t-731, completed — the "specified, not yet built" note above is superseded).
+
+The backlog `blocked_by` DAG is the source of truth (`brana backlog tree t-1994`); this graph mirrors it:
+
+```
+t-1991 rehearsal (unblocked) ──evidence──▶ t-1981 lint heuristics
+                                                │
+t-1981 backlog lint ────────────┐               │
+t-1982 execution:autonomous ────┤  (refined by rehearsal evidence)
+t-1992 step-state contract ADR ─┼──────▶ t-1994 foreman recipe
+t-1993 questions-store ADR ─────┘               │
+                                                ▼
+                                  t-1995 generalized work queue
+                                  (filed blocked-by-design; re-scope
+                                   from t-1994 evidence before decomposing)
+```
+
+| Node | Task | Blockers |
+|---|---|---|
+| Manual rehearsal | t-1991 | none — can run anytime |
+| Definition-of-ready lint | t-1981 | none (deliberately after t-1991 evidence) |
+| `execution: autonomous` validation | t-1982 | none |
+| Step-state contract ADR | t-1992 | none (verify vs ADR-050 §t-517 first — challenger O3) |
+| Pending-questions store ADR | t-1993 | none |
+| Foreman recipe | t-1994 | t-1981, t-1982, t-1992, t-1993 |
+| Generalized work queue | t-1995 | t-1994 |
+
+Zero-code loop recipes from old step 1 (report-only reconcile @≥20m, post-ship CI babysitter @≤4m, inbox sweep) remain available anytime — gateless tier, no task needed.
 
 ### Open questions
 
-1. Step-state contract: lives in session-state.json or a new run-state file? (relates to two-file do-not-clear model)
-2. Foreman: recipe (prompt convention) first, promote to skill suggestion per ADR-050 after evidence.
+1. Step-state contract: lives in session-state.json or a new run-state file? (→ decided inside t-1992)
+2. ~~Foreman: recipe first, promote to skill suggestion after evidence~~ — decided 2026-06-11, encoded in t-1994.
 3. Per-loop/per-task budget caps — revisit with brana-v2 compute model.
-4. AC-gaming: what stops a workflow satisfying the letter of an AC while violating intent? (challenger panel topic for the step-state ADR)
+4. AC-gaming: what stops a workflow satisfying the letter of an AC while violating intent? (challenger panel topic for the step-state ADR, t-1992)
 
 ---
 
