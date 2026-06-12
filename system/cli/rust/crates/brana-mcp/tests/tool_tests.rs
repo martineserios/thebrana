@@ -765,6 +765,9 @@ fn test_mcp_set_execution_null_clears() {
 fn test_mcp_add_execution_autonomous_accepted() {
     // backlog_add: when execution field is validated on add, autonomous must be accepted.
     // validate_execution is the single shared validator; this test uses it directly.
+    // Handler-level coverage (accepted + rejected through tools::backlog_add::build())
+    // lives in src/tools/backlog_add.rs unit tests — brana-mcp is a bin-only crate,
+    // so this integration test file cannot import the handler.
     assert!(brana_core::tasks::validate_execution("autonomous").is_ok());
     assert!(brana_core::tasks::validate_execution("code").is_ok());
     assert!(brana_core::tasks::validate_execution("null").is_ok());
