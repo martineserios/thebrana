@@ -265,6 +265,14 @@ check "invalid gaps output → marked failed" "1" "$(echo "$Q13" | grep -c '"fai
 # ── 14. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"
 
+# ── 15. fail reason echoed to stdout for scheduler logs (t-2076) ──────
+# The queue stores the reason, but it is wiped once a later attempt succeeds —
+# the scheduler log is the only durable place a human can see WHY a run failed.
+H15="$TMPDIR/h15"; mkdir -p "$H15"
+seed_entry "$H15" feat-stdout a..b >/dev/null
+OUT15=$(run_cron "$H15" env FAKE_AGY_EXIT=7 2>&1)
+check "fail reason echoed to stdout" "1" "$(echo "$OUT15" | grep -c 'agy invocation failed (exit 7)')"
+
 
 echo ""
 echo "test-close-extraction: $PASS/$TOTAL passed, $FAIL failed"

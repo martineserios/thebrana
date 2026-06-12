@@ -156,6 +156,52 @@ rm -f "$WATERMARK" "$STUB_SECTIONS"
 output=$(bash "$SCRIPT" 2>&1); rc=$?
 assert_pass "All-malformed window exits 0" "$rc" "$output"
 
+# --- Setup for chunk tests (t-2076): counting/appending stub that can fail on demand ---
+# The default stub overwrites STUB_SECTIONS_OUT per call; chunked runs invoke the
+# indexer once per chunk, so this stub APPENDS and tracks an invocation counter.
+CHUNK_STUB="$TMPDIR/mcp-index-chunk.mjs"
+cat > "$CHUNK_STUB" <<'STUB'
+#!/usr/bin/env node
+import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
+const args = process.argv.slice(2);
+const sectionsFile = args.filter(a => !a.startsWith('--')).pop();
+const cf = process.env.STUB_COUNT_FILE;
+let n = 1;
+if (cf && existsSync(cf)) n = parseInt(readFileSync(cf, 'utf8') || '0', 10) + 1;
+if (cf) writeFileSync(cf, String(n));
+if (process.env.STUB_FAIL_ON && n === parseInt(process.env.STUB_FAIL_ON, 10)) process.exit(1);
+if (sectionsFile && existsSync(sectionsFile)) {
+    appendFileSync(process.env.STUB_SECTIONS_OUT, readFileSync(sectionsFile));
+}
+STUB
+cp "$CHUNK_STUB" "$SCRIPTS_DIR/mcp-index.mjs"
+export STUB_COUNT_FILE="$TMPDIR/stub-count"
+
+five_entries() {
+    for i in 1 2 3 4 5; do
+        printf '{"feed":"cc-changelog","title":"Entry %s","link":"https://example.com/%s","published":"2026-06-12T10:00:00Z","polled_at":"2026-06-12T10:00:00Z"}\n' "$i" "$i"
+    done
+}
+
+# --- Test 7: chunked run indexes everything and advances watermark to total ---
+five_entries > "$FEED_LOG"
+rm -f "$WATERMARK" "$STUB_SECTIONS" "$STUB_COUNT_FILE"
+output=$(FEED_RUFLO_CHUNK=2 bash "$SCRIPT" 2>&1); rc=$?
+assert_pass "Chunked run exits 0" "$rc" "$output"
+assert_contains "All sections indexed across chunks" "$(wc -l < "$STUB_SECTIONS" 2>/dev/null | tr -d ' ')" "^5$"
+assert_contains "Indexer invoked once per chunk" "$(cat "$STUB_COUNT_FILE" 2>/dev/null)" "^3$"
+assert_contains "Watermark reaches total after chunked run" "$(cat "$WATERMARK" 2>/dev/null || echo missing)" "^5$"
+
+# --- Test 8: indexer failure mid-run keeps completed chunks' watermark (t-2076) ---
+# A timeout/crash on chunk 2 must not strand the watermark at the run's start —
+# that is the infinite zero-progress loop this fix removes.
+five_entries > "$FEED_LOG"
+rm -f "$WATERMARK" "$STUB_SECTIONS" "$STUB_COUNT_FILE"
+output=$(FEED_RUFLO_CHUNK=2 STUB_FAIL_ON=2 bash "$SCRIPT" 2>&1); rc=$?
+assert_contains "Failed chunk exits nonzero" "$rc" "^[^0]"
+assert_contains "Watermark holds completed chunk 1 (line 2)" "$(cat "$WATERMARK" 2>/dev/null || echo missing)" "^2$"
+assert_contains "Only chunk 1 sections indexed" "$(wc -l < "$STUB_SECTIONS" 2>/dev/null | tr -d ' ')" "^2$"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"
