@@ -101,7 +101,7 @@ SCRIPT_NAME="$(basename -- "${BASH_SOURCE[0]}")"
 echo "Script location: $SCRIPT_DIR/$SCRIPT_NAME"
 ```
 
-### Pattern 2: Comprehensive Function Templat
+### Pattern 2: Comprehensive Function Template
 
 ```bash
 #!/bin/bash
