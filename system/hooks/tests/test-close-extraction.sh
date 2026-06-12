@@ -173,6 +173,21 @@ Q8=$(HOME="$H8" "$REAL_BRANA" close-queue list)
 check "truncated snapshot processed" "1" "$(echo "$Q8" | grep -c '"processed": true')"
 check "truncated snapshot not failed" "0" "$(echo "$Q8" | grep -c '"failed": true')"
 
+# ── 10. large snapshot (>MAX_ARG_STRLEN) → prompt capped, still processed ──
+# Root cause t-2055: Linux caps a single exec argument at ~128KB. A 300KB
+# snapshot passed inline via `agy -p "$PROMPT"` dies with E2BIG before agy
+# runs ("argument list too long"). The worker must cap the inline diff.
+H10="$TMPDIR/h10"; mkdir -p "$H10/.claude/sessions"
+SNAP10="$H10/.claude/sessions/snap-big.diff"
+{ printf 'diff --git a/big b/big\n+++ b/big\n'; head -c 300000 /dev/zero | tr '\0' 'x'; } > "$SNAP10"
+HOME="$H10" "$REAL_BRANA" close-queue append --project testproj --branch feat-big \
+    --git-root /tmp --git-range b1..b2 --snapshot-path "$SNAP10" --commit-count 1 >/dev/null
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H10" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
+check "large snapshot run exits 0" "0" "$?"
+Q10=$(HOME="$H10" "$REAL_BRANA" close-queue list)
+check "large snapshot processed (no E2BIG)" "1" "$(echo "$Q10" | grep -c '"processed": true')"
+check "large snapshot not failed" "0" "$(echo "$Q10" | grep -c '"failed": true')"
+
 # ── 9. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"
 

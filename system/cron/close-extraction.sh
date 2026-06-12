@@ -121,18 +121,28 @@ print(json.dumps(entries[0]) if entries else '')")
         continue
     fi
 
+    # Inline diff cap (t-2055): Linux MAX_ARG_STRLEN limits a single exec
+    # argument to ~128KB — a snapshot larger than that passed via `agy -p`
+    # dies with E2BIG before agy runs. The disk snapshot keeps the 500KB cap
+    # (ADR-052 §4); only the inline prompt portion is bounded.
+    DIFF_ARG_CAP=100000
+    SNAP_SIZE=$(wc -c < "$SNAP")
+    DIFF_CONTENT=$(head -c "$DIFF_ARG_CAP" "$SNAP")
     PROMPT="You are extracting learnings from a coding session diff for project '$PROJECT' (branch $BRANCH, commits $RANGE)."
-    [ "$TRUNCATED" = "true" ] && PROMPT="$PROMPT The diff was truncated at 500KB — extract from what is present, do not flag the truncation."
+    if [ "$TRUNCATED" = "true" ] || [ "$SNAP_SIZE" -gt "$DIFF_ARG_CAP" ]; then
+        PROMPT="$PROMPT The diff was truncated — extract from what is present, do not flag the truncation."
+    fi
     PROMPT="$PROMPT Return ONLY a JSON object, no markdown fences, matching exactly:
 {\"learnings\": [{\"type\": \"errata|pattern|field-note\", \"size\": \"SMALL|LARGE\", \"title\": \"...\", \"body\": \"...\", \"confidence\": 0.0}]}
 Rules: SMALL = incremental/known-class insight; LARGE = novel pattern or decision-worthy finding. Only include learnings actually evidenced in the diff (bug fixes, workarounds, API mismatches, reusable patterns). Empty array if nothing notable.
 
 --- DIFF ---
-$(cat "$SNAP")"
+$DIFF_CONTENT"
 
     OUT_FILE="/tmp/close-extract-$$-${EID}.json"
     if ! "$AGY" -p "$PROMPT" > "$OUT_FILE" 2>/dev/null; then
-        fail_entry "agy invocation failed (exit $?)"
+        AGY_RC=$?
+        fail_entry "agy invocation failed (exit $AGY_RC)"
         rm -f "$OUT_FILE"
         continue
     fi
