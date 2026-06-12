@@ -50,12 +50,15 @@ MAIN_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 PENDING_IDS=$(brana backlog query --status pending --output json 2>/dev/null \
   | jq -r '.[].id')
 
+# Cache once — avoids N×git-log and eliminates the \b word-boundary false-positive
+# that git log --grep produces (POSIX ERE has no \b; "t-157" matches "t-1570", etc.)
+COMMIT_SUBJECTS=$(git -C "$MAIN_ROOT" log --all --oneline 2>/dev/null)
+
 STALE=()
 for id in $PENDING_IDS; do
-  # Match only fix/feat/merge commits where the ID appears in the scope prefix, not just the body.
+  # Match only fix/feat/merge commits where the ID is the scope: "fix(t-123):" at line start.
   # Precision > recall: "fix(t-123):" matches; "migrate t-123 to..." or "chore(tasks): add t-123" do not.
-  if git -C "$MAIN_ROOT" log --all --oneline -E --grep "\\b$id\\b" 2>/dev/null \
-    | grep -qE "^[0-9a-f]+ (fix|feat|merge)\($id\):"; then
+  if echo "$COMMIT_SUBJECTS" | grep -qE "^[0-9a-f]+ (fix|feat|merge)\($id\):"; then
     STALE+=("$id")
   fi
 done

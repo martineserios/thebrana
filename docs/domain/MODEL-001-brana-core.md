@@ -331,6 +331,31 @@ Deterministic documentation generator from frontmatter metadata. Ported from `ge
 
 ---
 
+### 10. Notify (`core::notify`)
+
+General notification infrastructure — channel registry and message delivery. Defined by [ADR-054](../architecture/decisions/ADR-054-reminder-delivery-channels.md) §1; first consumer is reminder dispatch.
+
+**Aggregate root:** `ChannelRegistry` (owns `~/.claude/notify-channels.json` — hand-edited, read-only to the CLI)
+
+**Entity:** `Channel` — name, type, per-type settings (secrets file path, server, topic), enabled
+
+**Value objects:**
+- `ChannelType` — Telegram | Desktop | Ntfy (non-exhaustive; Calendar is a deferred future type)
+- `DispatchResult` — Sent | Failed { reason }
+- `RoutingRule` — priority → channel names (`defaults` map; `low: []` means never push)
+
+**Operations:**
+- `load_registry(path) -> Option<ChannelRegistry>` (missing file → None, dispatch becomes a no-op)
+- `resolve(registry, explicit_channels, priority) -> Vec<Channel>` (explicit list → named; `["all"]` → broadcast; none/empty → priority defaults)
+- `send(channel, message) -> DispatchResult` (telegram/ntfy via ureq; desktop via notify-send subprocess — absent/headless counts as Failed, never errors)
+
+**State files owned:**
+- `~/.claude/notify-channels.json` (read-only — humans edit it)
+
+**Context boundary:** Reminders consumes Notify via the application layer (dispatch in `brana remind due --dispatch`). Notify never reads or mutates the reminder store. `brana-scheduler-notify.sh` is an explicit non-consumer (brana-independence firebreak, ADR-054 §1).
+
+---
+
 ## Agents (not a core context)
 
 Agent management (spawn, track, kill) is tightly coupled to the CLI's git worktree and tmux operations. It stays in `brana-cli`, not `brana-core`.

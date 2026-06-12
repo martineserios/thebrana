@@ -234,6 +234,104 @@ pub fn due(path: &Path) -> Result<Vec<Reminder>, String> {
         .collect())
 }
 
+/// Outcome of one `dispatch` run (ADR-054 §5).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DispatchReport {
+    /// Entries that were due-eligible at select time.
+    pub selected: usize,
+    /// Entry ids marked `dispatched_at` this run (≥1 channel succeeded).
+    pub dispatched: Vec<String>,
+    /// Entry ids where every resolved channel failed — left unmarked for retry.
+    pub failed: Vec<String>,
+}
+
+fn priority_key(p: &Priority) -> &'static str {
+    match p {
+        Priority::Low => "low",
+        Priority::Medium => "medium",
+        Priority::High => "high",
+    }
+}
+
+fn dispatch_message(r: &Reminder) -> String {
+    match r.action.as_deref() {
+        Some(a) if !a.is_empty() => format!("⏰ {}\n→ {}", r.text, a),
+        _ => format!("⏰ {}", r.text),
+    }
+}
+
+/// Two-phase dispatch (ADR-054 §5) — the lock is never held across I/O:
+/// 1. **Select** (under lock, via [`due`]): due-eligible, undispatched entries.
+/// 2. **Send** (no lock): resolve channels per entry, fire `sender` per channel.
+/// 3. **Commit** (under lock): re-read via `read_store` — NOT `list`/`due`,
+///    those write transitions — and set `dispatched_at` only for entries with
+///    ≥1 successful send whose marker is *still* null (a concurrent run's
+///    mark is left untouched).
+///
+/// Ordering is send-then-mark: a crash between phases yields a duplicate
+/// ping next run, never a silent loss. `sender` is injected for testability;
+/// the CLI passes [`crate::notify::send`].
+pub fn dispatch(
+    path: &Path,
+    reg: &crate::notify::ChannelRegistry,
+    sender: &dyn Fn(&crate::notify::Channel, &str) -> crate::notify::DispatchResult,
+) -> Result<DispatchReport, String> {
+    use crate::notify::DispatchResult;
+
+    // Phase 1 — select (due() locks, settles transitions, releases).
+    let selected = due(path)?;
+    let mut report = DispatchReport {
+        selected: selected.len(),
+        dispatched: Vec::new(),
+        failed: Vec::new(),
+    };
+    if selected.is_empty() {
+        return Ok(report);
+    }
+
+    // Phase 2 — send, no lock held.
+    let mut succeeded: Vec<String> = Vec::new();
+    for r in &selected {
+        let channels =
+            crate::notify::resolve(reg, r.channels.as_deref(), priority_key(&r.priority));
+        if channels.is_empty() {
+            // e.g. low priority: never pushes, stays pull-only — not a failure.
+            continue;
+        }
+        let msg = dispatch_message(r);
+        let mut any_sent = false;
+        for ch in &channels {
+            match sender(ch, &msg) {
+                DispatchResult::Sent => any_sent = true,
+                DispatchResult::Failed { reason } => {
+                    eprintln!("warning: dispatch {} via {:?} failed: {reason}", r.id, ch.name);
+                }
+            }
+        }
+        if any_sent {
+            succeeded.push(r.id.clone());
+        } else {
+            report.failed.push(r.id.clone());
+        }
+    }
+    if succeeded.is_empty() {
+        return Ok(report);
+    }
+
+    // Phase 3 — commit under lock. Send-then-mark: only now record success.
+    let _lock = lock_store(path)?;
+    let mut store = read_store(path)?;
+    let ts = now();
+    for r in &mut store.reminders {
+        if succeeded.contains(&r.id) && r.dispatched_at.is_none() {
+            r.dispatched_at = Some(ts);
+            report.dispatched.push(r.id.clone());
+        }
+    }
+    write_store(path, &store)?;
+    Ok(report)
+}
+
 /// Mark a reminder resolved.
 pub fn resolve(path: &Path, id: &str) -> Result<Reminder, String> {
     let _lock = lock_store(path)?;
@@ -668,6 +766,194 @@ mod tests {
         let raw = std::fs::read_to_string(&path).unwrap();
         assert!(raw.contains("\"pending\""));
         assert!(!raw.contains("snoozed_until"));
+    }
+
+    // ── t-2062: dispatch — two-phase select/send/commit (ADR-054 §5) ───
+
+    use crate::notify::{ChannelRegistry, DispatchResult};
+    use std::cell::RefCell;
+
+    fn dispatch_registry() -> ChannelRegistry {
+        serde_json::from_str(
+            r#"{
+                "version": 1,
+                "channels": {
+                    "telegram": { "type": "telegram" },
+                    "desktop":  { "type": "desktop" }
+                },
+                "defaults": { "high": ["telegram", "desktop"], "medium": ["desktop"], "low": [] }
+            }"#,
+        )
+        .unwrap()
+    }
+
+    fn due_with_priority(
+        text: &str,
+        priority: Priority,
+        channels: Option<Vec<String>>,
+    ) -> NewReminder {
+        NewReminder {
+            text: text.into(),
+            due: Some(now() - Duration::hours(1)),
+            priority: Some(priority),
+            channels,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn dispatch_sends_via_priority_defaults_and_marks_dispatched_at() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let reg = dispatch_registry();
+        let r = write_reminder(&path, due_with_priority("pay rent", Priority::Medium, None))
+            .unwrap();
+        let calls: RefCell<Vec<(String, String)>> = RefCell::new(vec![]);
+        let sender = |c: &crate::notify::Channel, m: &str| {
+            calls.borrow_mut().push((c.name.clone(), m.to_string()));
+            DispatchResult::Sent
+        };
+        let report = dispatch(&path, &reg, &sender).unwrap();
+        assert_eq!(report.selected, 1);
+        assert_eq!(report.dispatched, vec![r.id.clone()]);
+        assert!(report.failed.is_empty());
+        {
+            let sent = calls.borrow();
+            assert_eq!(sent.len(), 1, "medium routes to desktop only");
+            assert_eq!(sent[0].0, "desktop");
+            assert!(sent[0].1.contains("pay rent"));
+        }
+        let stored = list(&path).unwrap().into_iter().find(|x| x.id == r.id).unwrap();
+        assert!(stored.dispatched_at.is_some());
+        // Idempotency: a second run selects nothing and sends nothing.
+        let report2 = dispatch(&path, &reg, &sender).unwrap();
+        assert_eq!(report2.selected, 0);
+        assert_eq!(calls.borrow().len(), 1);
+    }
+
+    #[test]
+    fn dispatch_partial_failure_marks_when_at_least_one_send_succeeds() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let reg = dispatch_registry();
+        let r =
+            write_reminder(&path, due_with_priority("urgent", Priority::High, None)).unwrap();
+        let sender = |c: &crate::notify::Channel, _m: &str| {
+            if c.name == "telegram" {
+                DispatchResult::Failed { reason: "net down".into() }
+            } else {
+                DispatchResult::Sent
+            }
+        };
+        let report = dispatch(&path, &reg, &sender).unwrap();
+        assert_eq!(report.dispatched, vec![r.id.clone()]);
+        let stored = list(&path).unwrap().into_iter().find(|x| x.id == r.id).unwrap();
+        assert!(stored.dispatched_at.is_some(), "1-of-2 success must mark");
+    }
+
+    #[test]
+    fn dispatch_all_channels_failing_leaves_entry_unmarked_for_retry() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let reg = dispatch_registry();
+        let r =
+            write_reminder(&path, due_with_priority("urgent", Priority::High, None)).unwrap();
+        let attempts = RefCell::new(0usize);
+        let sender = |_c: &crate::notify::Channel, _m: &str| {
+            *attempts.borrow_mut() += 1;
+            DispatchResult::Failed { reason: "offline".into() }
+        };
+        let report = dispatch(&path, &reg, &sender).unwrap();
+        assert!(report.dispatched.is_empty());
+        assert_eq!(report.failed, vec![r.id.clone()]);
+        let stored = list(&path).unwrap().into_iter().find(|x| x.id == r.id).unwrap();
+        assert!(stored.dispatched_at.is_none(), "all-fail must leave null for retry");
+        // Next run retries: entry still selected, channels attempted again.
+        dispatch(&path, &reg, &sender).unwrap();
+        assert_eq!(*attempts.borrow(), 4, "2 channels x 2 runs");
+    }
+
+    #[test]
+    fn dispatch_explicit_channels_override_priority_defaults() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let reg = dispatch_registry();
+        write_reminder(
+            &path,
+            due_with_priority("ping", Priority::Medium, Some(vec!["telegram".into()])),
+        )
+        .unwrap();
+        let calls: RefCell<Vec<String>> = RefCell::new(vec![]);
+        let sender = |c: &crate::notify::Channel, _m: &str| {
+            calls.borrow_mut().push(c.name.clone());
+            DispatchResult::Sent
+        };
+        dispatch(&path, &reg, &sender).unwrap();
+        assert_eq!(*calls.borrow(), vec!["telegram".to_string()]);
+    }
+
+    #[test]
+    fn dispatch_broadcast_all_hits_every_channel() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let reg = dispatch_registry();
+        write_reminder(
+            &path,
+            due_with_priority("everywhere", Priority::Low, Some(vec!["all".into()])),
+        )
+        .unwrap();
+        let calls: RefCell<Vec<String>> = RefCell::new(vec![]);
+        let sender = |c: &crate::notify::Channel, _m: &str| {
+            calls.borrow_mut().push(c.name.clone());
+            DispatchResult::Sent
+        };
+        dispatch(&path, &reg, &sender).unwrap();
+        let mut got = calls.borrow().clone();
+        got.sort();
+        assert_eq!(got, vec!["desktop".to_string(), "telegram".to_string()]);
+    }
+
+    #[test]
+    fn dispatch_low_priority_resolves_no_channels_and_does_not_mark() {
+        // ADR-054 §2: low never pushes; entry stays pull-only.
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let reg = dispatch_registry();
+        let r = write_reminder(&path, due_with_priority("quiet", Priority::Low, None)).unwrap();
+        let calls = RefCell::new(0usize);
+        let sender = |_c: &crate::notify::Channel, _m: &str| {
+            *calls.borrow_mut() += 1;
+            DispatchResult::Sent
+        };
+        dispatch(&path, &reg, &sender).unwrap();
+        assert_eq!(*calls.borrow(), 0);
+        let stored = list(&path).unwrap().into_iter().find(|x| x.id == r.id).unwrap();
+        assert!(stored.dispatched_at.is_none());
+    }
+
+    /// Challenger O1: an entry marked by a CONCURRENT run between this run's
+    /// select and commit phases must be left untouched — the commit re-reads
+    /// the store and skips entries whose dispatched_at is no longer null.
+    #[test]
+    fn dispatch_commit_skips_entry_marked_concurrently_mid_run() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let reg = dispatch_registry();
+        let r =
+            write_reminder(&path, due_with_priority("racy", Priority::Medium, None)).unwrap();
+        let sentinel = "2020-06-06T06:06:06Z";
+        let sender = |_c: &crate::notify::Channel, _m: &str| {
+            // Simulate a concurrent dispatch marking the entry during the
+            // unlocked send phase.
+            patch_entry(&path, &r.id, "dispatched_at", serde_json::json!(sentinel));
+            DispatchResult::Sent
+        };
+        dispatch(&path, &reg, &sender).unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            raw.contains(sentinel),
+            "concurrent mark must survive — commit must not overwrite it"
+        );
     }
 
     // ── t-1997: due / channels / dispatched_at (ADR-054 §3) ────────────

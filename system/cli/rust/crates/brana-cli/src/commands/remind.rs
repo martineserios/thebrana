@@ -79,9 +79,23 @@ pub fn cmd_write(
     Ok(())
 }
 
-pub fn cmd_due() -> Result<()> {
-    let reminders = remind::due(&store_path()).map_err(|e| anyhow!(e))?;
-    println!("{}", serde_json::to_string_pretty(&reminders)?);
+pub fn cmd_due(dispatch: bool) -> Result<()> {
+    if !dispatch {
+        let reminders = remind::due(&store_path()).map_err(|e| anyhow!(e))?;
+        println!("{}", serde_json::to_string_pretty(&reminders)?);
+        return Ok(());
+    }
+    let reg_path = super::notify::registry_path();
+    let Some(reg) = brana_core::notify::load_registry(&reg_path) else {
+        // ADR-054 §2: missing registry → silent no-op (one stderr warning),
+        // exit 0. Intentional degradation — store stays pull-based (W4).
+        eprintln!("warning: no notify registry at {} — dispatch skipped", reg_path.display());
+        println!("{{\"selected\":0,\"dispatched\":[],\"failed\":[]}}");
+        return Ok(());
+    };
+    let report = remind::dispatch(&store_path(), &reg, &brana_core::notify::send)
+        .map_err(|e| anyhow!(e))?;
+    println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
 }
 

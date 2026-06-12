@@ -202,6 +202,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: RemindCmd,
     },
+    /// Notification channels — registry + delivery (ADR-054)
+    Notify {
+        #[command(subcommand)]
+        cmd: NotifyCmd,
+    },
     /// Reference doc generation — generate docs/reference/ from source metadata
     Reference {
         #[command(subcommand)]
@@ -1155,7 +1160,11 @@ pub enum RemindCmd {
         status: Option<RemindStatus>,
     },
     /// List dispatch-eligible reminders: pending, past-due, never dispatched
-    Due,
+    Due {
+        /// Resolve channels, send, and mark dispatched (ADR-054 §5)
+        #[arg(long)]
+        dispatch: bool,
+    },
     /// Mark a reminder resolved
     Resolve {
         /// Reminder id (r-…)
@@ -1168,6 +1177,21 @@ pub enum RemindCmd {
         /// Duration: <n>d | <n>w | <n>h
         duration: String,
     },
+}
+
+#[derive(Subcommand)]
+pub enum NotifyCmd {
+    /// Send a message on one registry channel
+    Send {
+        /// Channel name from the registry (e.g. telegram, desktop)
+        #[arg(long)]
+        channel: String,
+        /// Message text (sent as plain text — no markup interpretation)
+        #[arg(long)]
+        message: String,
+    },
+    /// List registry channels and routing defaults
+    Channels,
 }
 
 #[derive(Subcommand)]
@@ -1228,3 +1252,4 @@ pub enum CloseQueueCmd {
     /// Remove processed/failed entries older than 30 days
     Prune,
 }
+
