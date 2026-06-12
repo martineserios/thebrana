@@ -5,14 +5,14 @@
 //! rules. Missing file → dispatch is a no-op; the reminder store stays fully
 //! functional pull-based.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
 
 /// Channel transport type. Unknown values parse as `Unknown` (lenient,
 /// ADR-051 §4) and are skipped at resolve time — a future registry with a
 /// `calendar` channel must not break today's binary.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ChannelType {
     Telegram,
@@ -24,15 +24,15 @@ pub enum ChannelType {
 
 /// One channel definition from the registry. Per-type settings are all
 /// optional — validation happens at send time, not parse time.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChannelDef {
     #[serde(rename = "type")]
     pub channel_type: ChannelType,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets_file: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub topic: Option<String>,
     #[serde(default = "default_enabled")]
     pub enabled: bool,
@@ -46,6 +46,7 @@ fn default_enabled() -> bool {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ChannelRegistry {
     #[allow(dead_code)]
+    #[serde(default)]
     pub version: u32,
     #[serde(default)]
     pub channels: BTreeMap<String, ChannelDef>,
@@ -55,14 +56,15 @@ pub struct ChannelRegistry {
 }
 
 /// A resolved, sendable channel: registry name + definition.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Channel {
     pub name: String,
     pub def: ChannelDef,
 }
 
 /// Outcome of one send attempt on one channel.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum DispatchResult {
     Sent,
     Failed { reason: String },
