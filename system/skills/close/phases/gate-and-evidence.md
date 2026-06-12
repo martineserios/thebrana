@@ -68,6 +68,48 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/syst
     --commit-count "${COMMIT_COUNT:-0}" --arguments "$ARGUMENTS")
 ```
 
+**Orientation flags (ADR-053, t-1980).** `$ARGUMENTS` may carry an orientation — `--continue`, `--finish`, `--patterns`, `--abort` — saying WHY the session is closing. close-classify.sh maps orientation to a forced weight (continue/finish → INSTANT, patterns → LIGHT-INLINE, abort → NANO); the call above already passes `--arguments`, so the orientation reaches the classifier with no extra wiring (programmatic callers can equivalently pass `--mode-override <orientation>` — same mapping, same precedence). Set `ORIENTATION` to the flag name when present, `auto` otherwise.
+
+| Orientation | Weight | Task state (Step 9, session-state.md) | Cleanup (Steps 11b/11d) |
+|---|---|---|---|
+| `--continue` | INSTANT | stays `in_progress` — resumable handoff | skipped |
+| `--finish` | INSTANT | → `completed` | runs |
+| `--patterns` | LIGHT-INLINE | unchanged | skipped |
+| `--abort` | NANO | → `pending` + reason (via close-abort.sh) | script handles branch |
+
+**HARD GUARD — flag given means decision made.** If `$ARGUMENTS` contains ANY orientation or weight flag (`--continue`, `--finish`, `--patterns`, `--abort`, `--light`, `--full`, `--nano`): SKIP the entire "Bare-invocation detection and picker" block below. Do not show a picker, do not run detection — execute the flagged close immediately.
+
+**Bare-invocation detection and picker** (no flag in `$ARGUMENTS` only):
+
+1. Compute hard signals (each individually best-effort — a failed command is "no signal", never a block):
+   ```bash
+   DIRTY=$(git status --porcelain 2>/dev/null | head -1)
+   MERGED=$(git branch --merged main 2>/dev/null | grep -v 'main' | grep -c "$(git branch --show-current)" || true)
+   TASK_STATUS=$(brana backlog query --status in_progress --output json 2>/dev/null | jq -r '.[0].status // empty' 2>/dev/null || true)
+   ```
+2. Candidate set from signals: task in flight or dirty tree → `--continue`; branch merged or task completed → `--finish`; both kinds of signal present (conflict — likely stale task state) → all candidates, NO recommended option. `--patterns` is NEVER an auto-detected candidate (git state cannot signal "discoveries happened") — include it only if the conversation shows pattern-worthy material (a workaround found, a gotcha documented, a reusable approach discussed).
+3. From conversation context, pick the recommended candidate ("done"/"bye" → `--finish`; "break"/"switching"/context pressure → `--continue`; abandoned approach → `--abort`).
+4. Ask — options labeled with their flags (the picker teaches the flags; the user graduates to typing them):
+   ```
+   AskUserQuestion:
+     question: "How should this session close?"
+     header: "Close mode"
+     options:
+       - label: "{Recommended orientation} (--{flag}) (Recommended)"   # omit "(Recommended)" entirely on signal conflict
+         description: "{why the signals point here}"
+       - label: "{next-likely} (--{flag})"
+         description: "..."
+       # 2-4 options; AskUserQuestion's built-in Other covers the rest
+   ```
+5. Treat the chosen flag as if it had been passed in `$ARGUMENTS`: append it to `$ARGUMENTS` and re-run the close-classify.sh line above so `CLOSE_MODE` reflects the choice.
+
+**`--abort` execution:** before anything else, require a reason (free text follows the flag, e.g. `/brana:close --abort "approach invalidated"`; none given → ask). If the tree is dirty, ask: stash / hard reset (show what's lost) / leave. Then run the tested sequence — never inline git commands:
+```bash
+bash "$(git rev-parse --show-toplevel)/system/scripts/close-abort.sh" \
+    --task-id "{active task id}" --reason "{reason}" --dirty "{stash|reset|leave}"
+```
+The script archives the branch as a pushed `aborted/*` tag, lands on main, returns the task to pending. After it succeeds: write the minimal handoff (Step 9, reason only) and skip everything else.
+
 Ambiguous cases (authoritative — do not infer):
 - `.sh` edit → INSTANT (behavioral, high-stakes — cron extracts tonight; `--full` for in-session debrief)
 - `tasks.json` only → NANO (state file, single commit — write handoff and skip Steps 4-8)
@@ -75,9 +117,11 @@ Ambiguous cases (authoritative — do not infer):
 
 **NANO mode:** write handoff note (Step 9) only. Skip Steps 3–8 entirely (no debrief agent, no errata, no patterns, no field notes, no ideation, no drift). NANO sessions have nothing worth extracting — the overhead costs more than the signal. **NANO does not queue** (ADR-052 §5).
 
-Announce: `Close mode: $CLOSE_MODE` before proceeding to Step 1b.
+Announce: `Close mode: $CLOSE_MODE (orientation: $ORIENTATION)` before proceeding to Step 1b. The orientation is REQUIRED in the announcement — `--continue` and `--finish` share the INSTANT weight token, and downstream phases (session-state.md task-state mapping, cleanup.md skip rules) resolve behavior from the orientation, not the weight.
 
-### Step 1b: Snapshot + queue (INSTANT / LIGHT / FULL — never NANO)
+### Step 1b: Snapshot + queue (INSTANT / LIGHT / FULL — never NANO, never LIGHT-INLINE)
+
+LIGHT-INLINE (`--patterns`) is structurally excluded here: extraction runs NOW in Step 3, so queueing the same session for the nightly cron would double-extract — the documented exception to ADR-052 §5 (ADR-053 §3). Skip this step entirely for LIGHT-INLINE.
 
 Queue the session diff for tonight's extraction cron (ADR-052; one line, never blocks):
 
@@ -136,6 +180,8 @@ Agent(subagent_type="debrief-analyst", prompt="Debrief this session. Focus on: w
 1. `git log --oneline -10` — list what was committed
 2. Review conversation for: errors, workarounds, surprises
 3. Classify into the three buckets below
+
+**LIGHT-INLINE mode** (`--patterns` orientation) — the user explicitly asked to extract NOW. Run the same inline scan as LIGHT (steps 1–3 above), then Steps 4–5 (errata + patterns) inline. Skip Steps 6–8 (field notes, ideation, drift), skip Step 1b (no queue — ADR-053 §3), skip Step 9c and Steps 10–11, no task-state change, no cleanup. This mode is extraction and nothing else.
 
 If debrief-analyst is unavailable in FULL mode, fall back to the LIGHT inline scan.
 

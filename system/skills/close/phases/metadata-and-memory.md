@@ -3,6 +3,8 @@
 <!-- ruflo preamble -->
 ToolSearch("select:mcp__brana__memory_index,mcp__ruflo__memory_store")
 
+> **Skip Steps 10–11 entirely** if `$CLOSE_MODE` is `LIGHT-INLINE` (`--patterns` is extraction only — ADR-053).
+
 ### Step 10: Store session metadata
 
 **Via MCP (preferred):**

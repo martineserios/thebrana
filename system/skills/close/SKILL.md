@@ -6,7 +6,7 @@ model: sonnet
 keywords: [session, handoff, debrief, learnings, errata, drift]
 task_strategies: [feature, bug-fix, refactor]
 stream_affinity: [roadmap, tech-debt]
-argument-hint: "[focus-hint]"
+argument-hint: "[--continue|--finish|--patterns|--abort|--full|--light|--nano] [focus-hint]"
 group: session
 allowed-tools:
   - Bash
@@ -39,7 +39,21 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 - User says "done", "bye", "closing", "that's it", or similar
 - End of a long implementation session
 - Before switching to a different project
-- Explicitly: `/brana:close`
+- **Mid-session, on demand** — context relief before `/compact`, switching tasks, capturing a discovery, abandoning an approach
+- Explicitly: `/brana:close [--<orientation>]`
+
+## Orientation modes (ADR-053)
+
+WHY you're closing picks WHAT runs. Flag given → execute immediately, no questions. Bare `/brana:close` → the gate detects the scenario and asks (options labeled with their flags — the picker teaches them).
+
+| Flag | Use when | What happens |
+|---|---|---|
+| `--continue` | pausing to resume — context relief, task switch | snapshot + queue + resumable handoff; task stays `in_progress`; no cleanup |
+| `--finish` | work is done | snapshot + queue + handoff; task → `completed`; cleanup runs; extraction tonight |
+| `--patterns` | a discovery is worth keeping, regardless of task state | inline extraction (Steps 4–5) NOW; no queue, no handoff, no task/git changes |
+| `--abort` | approach proven wrong | reason required; branch archived as pushed `aborted/*` tag via close-abort.sh; task → `pending` |
+
+Deferred (post-v1): `--block`, `--handoff`, `--eod` — see ADR-053.
 
 ## Phase Protocol — how to execute this skill
 
@@ -53,7 +67,7 @@ The procedure body lives in per-phase files under `phases/` (this skill's base d
 | Steps (registry names) | File | Load when |
 |------|------|-----------|
 | GATE, GATHER, EXTRACT, DOC-CHECK (Steps 0–3b) | phases/gate-and-evidence.md | Skill entry — always first |
-| ERRATA, PATTERNS (Steps 4–5) | phases/errata-and-patterns.md | Entering the parallel findings block (`--full` and LIGHT closes only) |
+| ERRATA, PATTERNS (Steps 4–5) | phases/errata-and-patterns.md | Entering the parallel findings block (`--full`, LIGHT, and LIGHT-INLINE closes) |
 | FIELD-NOTES, IDEATE (Steps 6–7) | phases/notes-and-ideation.md | With the parallel findings block |
 | DRIFT (Step 8) | phases/doc-drift.md | With the parallel findings block |
 | HANDOFF, RUFLO-SYNC (Steps 9–9c) | phases/session-state.md | After findings block completes |
@@ -61,7 +75,7 @@ The procedure body lives in per-phase files under `phases/` (this skill's base d
 | WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT (Steps 11b–12 + session close) | phases/cleanup.md | Final phase — always last |
 <!-- /PHASES -->
 
-Steps 4–8 run in parallel: when entering that block, Read all three of `errata-and-patterns.md`, `notes-and-ideation.md`, and `doc-drift.md` before dispatching the parallel work. NANO and INSTANT closes skip them entirely (the gate phase says when). Since Track 1 (ADR-052), the default for code sessions is **INSTANT** — snapshot + `brana close-queue append` + handoff, extraction deferred to the nightly cron; Steps 4–8 run in-session only on explicit `--full` (plus the LIGHT inline scan).
+Steps 4–8 run in parallel: when entering that block, Read all three of `errata-and-patterns.md`, `notes-and-ideation.md`, and `doc-drift.md` before dispatching the parallel work. NANO and INSTANT closes skip them entirely; LIGHT-INLINE (`--patterns`) reads only `errata-and-patterns.md` and runs Steps 4–5 (the gate phase says when). Since Track 1 (ADR-052), the default for code sessions is **INSTANT** — snapshot + `brana close-queue append` + handoff, extraction deferred to the nightly cron; Steps 4–8 run in-session only on explicit `--full` (plus the LIGHT inline scan and the `--patterns` inline extraction).
 
 In the deployed-plugin layout the same relative paths apply: `{base-dir}/phases/{file}`. If a path doesn't resolve, use Glob: `**/skills/close/phases/{file}`.
 

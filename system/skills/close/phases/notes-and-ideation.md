@@ -3,6 +3,8 @@
 <!-- ruflo preamble -->
 ToolSearch("select:mcp__ruflo__memory_store")
 
+> **Skip Steps 6–7 entirely** if `$CLOSE_MODE` is `NANO` or `LIGHT-INLINE` (`--patterns` runs Steps 4–5 only — ADR-053).
+
 ### Step 6: Capture field notes
 
 > Target check: field notes go to `docs/architecture/<topic>.md`, never `docs/reference/` (auto-generated, silently overwritten — see `system/rules/field-note-routing.md`).

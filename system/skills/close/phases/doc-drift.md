@@ -2,6 +2,8 @@
 
 ### Step 8: Detect doc drift
 
+> **Skip entirely** if `$CLOSE_MODE` is `NANO` or `LIGHT-INLINE` (`--patterns` runs Steps 4–5 only — ADR-053).
+
 Check if system files were modified this session:
 
 ```bash
