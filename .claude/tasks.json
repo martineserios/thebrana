@@ -52490,7 +52490,7 @@
       "epic": "harness-core",
       "strategy": "feature",
       "work_type": "implement",
-      "build_step": "specify"
+      "build_step": "decompose"
     },
     {
       "subject": "Skill retrieval: two-axis search (technology + work-type/pattern)",
@@ -52609,6 +52609,231 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2006",
+      "subject": "Write failing staleness tests for feed-index.sh",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "feed",
+        "test",
+        "tdd"
+      ],
+      "description": "TDD red: extend system/hooks/tests/test-feed-index.sh with staleness fixtures (temp feeds.json + feed-log.jsonl): stale feed flagged; fresh feed not flagged; per-feed stale_after_days override respected; zero-entry feed listed as \"no entries yet\"; stale section written even on a no-new-entries day (early-exit bypass); no stale section when all fresh.",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: file system/hooks/tests/test-feed-index.sh contains \"stale\"\nAC: changes to system/hooks/tests/test-feed-index.sh committed\nPer spec Design §Staleness control flow: GNU date -d only; fixture feeds.json must include a stale_after_days override entry.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2007",
+      "subject": "Implement staleness detection pass in feed-index.sh",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "feed",
+        "harness"
+      ],
+      "description": "TDD green for t-2006 tests. Unconditional staleness pass before the NEW_COUNT<=0 early-exit (guard only skips digest-body generation; stale-only digest written when stale feeds exist but no new entries). Feed universe: enabled feeds.json entries (per-feed stale_after_days, default 14) + EXTRA_STALE_FEEDS=\"kapso-changelog:21\" constant. Newest entry per feed via jq over FULL feed-log.jsonl (not watermark-gated; watermark contract untouched). Day delta: $(( ($(date +%s) - $(date -d \"$newest\" +%s)) / 86400 )) — GNU date -d. Zero-entry feeds → \"no entries yet\". Section: \"⚠ Stale feeds\".",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2006"
+      ],
+      "branch": null,
+      "context": "AC: \"bash system/hooks/tests/test-feed-index.sh\" passes\nAC: file system/scripts/feed-index.sh contains \"Stale feeds\"\nSpec: docs/architecture/features/t-2001-feed-tech-stack.md §Staleness control flow.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2008",
+      "subject": "Add malformed-line filter to feed-ruflo-index.sh with test",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "fix",
+      "tags": [
+        "feed",
+        "test",
+        "harness"
+      ],
+      "description": "Challenger finding 7: feed-ruflo-index.sh pipes the watermark window straight to jq — one malformed line (e.g. partial write from a non-Rust appender) exits non-zero under set -euo pipefail, watermark never advances, infinite retry loop. Adopt feed-index.sh's per-line JSON validation loop before the jq pipe. Test first: malformed-line fixture in test-feed-index.sh (or new test-feed-ruflo-index.sh) proving the watermark advances past a bad line.",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: file system/scripts/feed-ruflo-index.sh contains \"jq . >/dev/null\"\nAC: changes to system/scripts/feed-ruflo-index.sh committed",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2009",
+      "subject": "Add stale_after_days to FeedEntry (Rust) + rebuild + deploy",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "feed",
+        "rust",
+        "cli"
+      ],
+      "description": "stale_after_days: Option<u32> on FeedEntry in brana-cli/src/commands/feed.rs with #[serde(skip_serializing_if = \"Option::is_none\", default)]; --stale-after-days flag on brana feed add. TDD: serde round-trip tests (field present + absent) and add-writes-field test FIRST. Then cargo build --release + install/deploy the binary. MUST complete before any feeds.json/template gets stale_after_days values (old binary drops the field on rewrite — challenger finding 6).",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: \"cargo test -p brana-cli feed\" passes\nAC: file system/cli/rust/crates/brana-cli/src/commands/feed.rs contains \"stale_after_days\"\nDeploy ordering is load-bearing: binary before config.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2010",
+      "subject": "Update feed registry — template + live swap and additions",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "ops",
+      "tags": [
+        "feed",
+        "scheduler",
+        "ops"
+      ],
+      "description": "BLOCKED BY the Rust rebuild subtask (deploy ordering). (1) feeds.template.json: add supabase-changelog (github.com/orgs/supabase/discussions/categories/changelog.atom), nextjs-releases (github.com/vercel/next.js/releases.atom), vercel-changelog (vercel.com/atom), rust-releases (github.com/rust-lang/rust/releases.atom, stale_after_days 56); swap anthropic-news URL to Olshansk feed_anthropic_news.xml with stale_after_days 7. (2) Live config via canonical swap procedure: brana feed remove anthropic-news && brana feed add <olshansk-url> --name anthropic-news --stale-after-days 7 (resets last_entry_ids — prevents re-emission flood); brana feed add the 4 new feeds. (3) Run brana feed poll --all once to verify all 5 fetch cleanly.",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2009"
+      ],
+      "branch": null,
+      "context": "AC: file system/scheduler/feeds.template.json contains \"supabase-changelog\"\nAC: jq '[.[].name] | contains([\"supabase-changelog\",\"nextjs-releases\",\"vercel-changelog\",\"rust-releases\"])' /home/martineserios/.claude/scheduler/feeds.json returns \"true\"",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2011",
+      "subject": "Build kapso-changelog-check.sh scraper + scheduler job",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "feed",
+        "scheduler",
+        "kapso"
+      ],
+      "description": "Scraper for docs.kapso.ai/changelog (no RSS exists). Pattern: cc-changelog-check.sh. curl with explicit failure guard (FETCH FAILED → exit 1, state untouched — distinguishes network failure from staleness, challenger finding 4); python3 stdlib HTML parse; state file ~/.claude/scheduler/state/kapso-changelog-scrape.json (intentionally NOT the CLI convention — kapso-changelog is not feeds.json-registered); append FeedLogEntry-shaped JSONL (feed/title/link/published/polled_at/summary/content) to feed-log.jsonl; --dry-run flag. Test first: parse test against saved HTML fixture, no network. Add kapso-changelog to HIGH_SIGNAL_FEEDS in feed-index.sh. Scheduler job daily 18:45 in scheduler.template.json + system/state/scheduler.json. chmod +x the new script.",
+      "effort": "M",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2007"
+      ],
+      "branch": null,
+      "context": "AC: system/scripts/kapso-changelog-check.sh exists\nAC: file system/scripts/feed-index.sh contains \"kapso-changelog\"\nAC: file system/scheduler/scheduler.template.json contains \"kapso-changelog-check\"",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2012",
+      "subject": "Add feed coverage step to onboard and align skills",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "feed",
+        "skills"
+      ],
+      "description": "Adoption mechanism (ADR-055 decision 6): after stack detection in system/skills/onboard/SKILL.md and system/skills/align/SKILL.md (both single-file skills), add a \"Feed coverage check\" step — diff detected technologies against brana feed list, offer brana feed add for uncovered ones via AskUserQuestion (advisory, not enforced). Keep the step short; reference the canonical procedure in the t-2001 tech doc.",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: file system/skills/onboard/SKILL.md contains \"feed coverage\"\nAC: file system/skills/align/SKILL.md contains \"feed coverage\"",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2013",
+      "subject": "Docs — user guide, tech doc shipped, pointers",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "docs",
+      "tags": [
+        "feed",
+        "docs"
+      ],
+      "description": "Documentation Plan from spec: (1) docs/guide/features/brana-feed-inbox.md — staleness section, new feeds table, adoption workflow, swap procedure; (2) docs/architecture/features/t-2001-feed-tech-stack.md — status: shipped + adoption procedure section; (3) docs/architecture/features/brana-feed-inbox.md — pointer to ADR-055; (4) docs/README.md if a new doc was added. Field notes target architecture docs, never docs/reference/ (generated).",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2007",
+        "t-2008",
+        "t-2010",
+        "t-2011",
+        "t-2012"
+      ],
+      "branch": null,
+      "context": "AC: file docs/guide/features/brana-feed-inbox.md contains \"stale\"\nAC: file docs/architecture/features/t-2001-feed-tech-stack.md contains \"shipped\"",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
