@@ -1,7 +1,7 @@
 # Feature: Oriented Close Modes
 
 **Date:** 2026-06-11
-**Status:** specifying
+**Status:** shipped (2026-06-12)
 **Task:** t-1980
 **Decision record:** [ADR-053](../decisions/ADR-053-close-oriented-modes.md) — orientation forces weight, flag wins over classification, `--patterns` no-queue exception, abort script contract, two-layer pre-compact
 

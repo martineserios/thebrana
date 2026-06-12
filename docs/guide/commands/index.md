@@ -8,7 +8,7 @@ All brana commands, grouped by workflow.
 |---------|-------------|
 | `/brana:sitrep` | Situational awareness — where you are, what you were doing, what's next. Run at every session start. |
 | `/brana:build [description]` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
-| `/brana:close` | End session — extract learnings, write handoff, store patterns |
+| `/brana:close [--continue\|--finish\|--patterns\|--abort]` | Close on demand — the orientation flag picks what runs (pause-to-resume, full finish, extract-patterns-only, abort-with-archive). Bare invocation detects the scenario and asks. See [close-oriented-modes](../features/close-oriented-modes.md) |
 | `/brana:challenge` | Adversarial review of a plan or architecture decision |
 | `/brana:docs [guide\|tech\|overview\|all] [task-id]` | Generate and update living documentation — composable building block for CLOSE and other skills |
 | `/brana:reconcile` | Detect and fix spec-vs-implementation drift |
