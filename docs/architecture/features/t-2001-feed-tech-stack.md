@@ -6,7 +6,7 @@ depends_on:
 # Feature: Intelligence feed — tech-stack tracking, staleness detection, adoption hook
 
 **Date:** 2026-06-12
-**Status:** specifying
+**Status:** building
 **Task:** t-2001
 
 ## Problem
