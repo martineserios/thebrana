@@ -217,6 +217,23 @@ pub fn list(path: &Path) -> Result<Vec<Reminder>, String> {
     Ok(store.reminders)
 }
 
+/// List dispatch-eligible reminders (ADR-054 §4): pending, past-due,
+/// never dispatched. Delegates to [`list`] so snooze-expiry and 30-day
+/// expiry transitions settle under the write lock BEFORE filtering —
+/// a snooze-expired entry with a past `due` must appear here.
+pub fn due(path: &Path) -> Result<Vec<Reminder>, String> {
+    let all = list(path)?;
+    let ts = now();
+    Ok(all
+        .into_iter()
+        .filter(|r| {
+            r.status == Status::Pending
+                && r.dispatched_at.is_none()
+                && r.due.is_some_and(|d| d <= ts)
+        })
+        .collect())
+}
+
 /// Mark a reminder resolved.
 pub fn resolve(path: &Path, id: &str) -> Result<Reminder, String> {
     let _lock = lock_store(path)?;
@@ -568,6 +585,89 @@ mod tests {
         for bad in ["", "  ", "25:99", "garbage", "2026-13-40 12:00", "15:00:30:99"] {
             assert!(parse_at(bad, now, off).is_err(), "accepted {bad:?}");
         }
+    }
+
+    // ── t-1997: due() listing (ADR-054 §4) ─────────────────────────────
+
+    fn with_due(text: &str, due: Option<DateTime<Utc>>) -> NewReminder {
+        NewReminder {
+            text: text.into(),
+            due,
+            ..Default::default()
+        }
+    }
+
+    /// Patch one entry's field directly in the store file (simulates state
+    /// only future writers — t-1998 dispatch — or the passage of time create).
+    fn patch_entry(path: &std::path::Path, id: &str, field: &str, value: serde_json::Value) {
+        let mut val: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        for r in val["reminders"].as_array_mut().unwrap() {
+            if r["id"] == id {
+                r[field] = value.clone();
+            }
+        }
+        std::fs::write(path, serde_json::to_string(&val).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn due_returns_only_pending_past_due_undispatched() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let past = now() - Duration::hours(1);
+        let future = now() + Duration::hours(1);
+        let eligible = write_reminder(&path, with_due("eligible", Some(past))).unwrap();
+        write_reminder(&path, with_due("future", Some(future))).unwrap();
+        write_reminder(&path, with_due("no-due", None)).unwrap();
+        let dispatched = write_reminder(&path, with_due("dispatched", Some(past))).unwrap();
+        let resolved = write_reminder(&path, with_due("resolved", Some(past))).unwrap();
+        resolve(&path, &resolved.id).unwrap();
+        patch_entry(
+            &path,
+            &dispatched.id,
+            "dispatched_at",
+            serde_json::json!("2026-06-12T00:00:00Z"),
+        );
+        let out = due(&path).unwrap();
+        let ids: Vec<_> = out.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, vec![eligible.id.as_str()]);
+    }
+
+    #[test]
+    fn due_excludes_entries_expired_by_the_30_day_transition() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let past = now() - Duration::hours(1);
+        let old = write_reminder(&path, with_due("ancient", Some(past))).unwrap();
+        patch_entry(&path, &old.id, "created", serde_json::json!("2020-01-01T00:00:00Z"));
+        assert!(due(&path).unwrap().is_empty());
+        // The transition persisted (due() is a list-path: locked write).
+        assert!(std::fs::read_to_string(&path).unwrap().contains("\"expired\""));
+    }
+
+    /// Challenger F1 (ADR-054 §3): a snoozed reminder whose snooze expired,
+    /// with due in the past and never dispatched, IS eligible — the
+    /// snooze-expiry transition must run BEFORE the due filter.
+    #[test]
+    fn due_includes_snooze_expired_past_due_undispatched() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let past = now() - Duration::hours(1);
+        let a = write_reminder(&path, with_due("was snoozed", Some(past))).unwrap();
+        snooze(&path, &a.id, "1d").unwrap();
+        patch_entry(
+            &path,
+            &a.id,
+            "snoozed_until",
+            serde_json::json!("2020-01-01T00:00:00Z"),
+        );
+        let out = due(&path).unwrap();
+        let ids: Vec<_> = out.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, vec![a.id.as_str()]);
+        // Transition persisted: entry is pending again in the store file.
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(raw.contains("\"pending\""));
+        assert!(!raw.contains("snoozed_until"));
     }
 
     // ── t-1997: due / channels / dispatched_at (ADR-054 §3) ────────────
