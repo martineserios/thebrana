@@ -120,6 +120,21 @@ autonomous queue.
 
 Every line is machine-verifiable (ADR-050 prompt-content rule); the named `task-crew` workflow in `.claude/workflows/` satisfies the Workflow opt-in via the recipe the user starts (see [workflow-primitive.md](../architecture/workflow-primitive.md)).
 
+### Rehearsal results (t-1991, 2026-06-12) — the factory loop ran once, end to end
+
+A two-agent crew (implement → adversarial verify) plus one repair cycle completed t-1982 per its ACs: branch `loop-native/feat/t-1982-execution-enum`, 3 commits, 875 workspace tests green, all 4 ACs verified by exit code, TDD order and no-attribution machine-proven, merge left to the human. Runs: `wf_46d92cbc-9fb`, `wf_6da3db8d-72e`. Findings (full lint-relevant detail in t-1981 context):
+
+1. **Adversarial verify is load-bearing.** First verify FAILED on a real gap — tests green but zero coverage of the `backlog_add` handler rejection path. A single implement-and-self-report agent would have shipped it. The verify prompt's "coverage by assertion, not vibes" clause did the work.
+2. **One bounded repair cycle sufficed** — and the repair agent reported a justified deviation (binary-only crate → `#[cfg(test)]` module per existing precedent) instead of silently restructuring. Worker-judgment quality was high when the prompt demanded honest reporting.
+3. **Ambiguity severity needs a protocol line.** The impl agent justified-interpreted an unstated interface change (adding `execution` to backlog_add's input) rather than hand-raising. Defensible — but the hand-raising protocol (t-1993) and lint (t-1981) need a severity threshold distinguishing "micro-decision, note it" from "interface change, raise it."
+4. **Worktree lifecycle gap:** changed workflow worktrees persist after the run and hold their branch checked out — a second crew on the same branch can't start until someone cleans up. Foreman/crew contract needs an explicit release step (worktrees were removed manually this run). Also observed: a parallel session's cleanup deleted this rehearsal's own session branch — worktree hygiene must be session-scoped.
+5. **Agent stall is real:** 1 of 5 dispatched agents went idle mid-run (no transcript growth, no processes, 18 min) — killed and resumed via the journal (resume worked perfectly; the completed repair agent returned cached). The foreman needs a stall watchdog: no-output-and-no-processes → kill, resume.
+6. **Wall-clock economics:** cold-worktree Rust builds dominated (~6 min per agent before any work). "S" by code size cost ~62 min of agent time across 4 agents. Crew design should consider a shared/warm cargo target dir; lint's effort heuristic must weigh build-cycle cost, not lines of code.
+7. **Machine-env preflight pays:** injecting the OpenSSL/pkg-config field-note env into both prompts prevented a guaranteed stall. Dispatch should attach machine-specific build-env notes automatically.
+8. **Curation is the bottleneck, measured:** a definition-of-ready scan found 2 of ~390 pending tasks agent-ready — both authored for the factory itself. The "work shifts upstream to task authoring" prediction is now a number.
+
+Net: the factory model works at n=1 with a human foreman. The protocol pieces that earned their keep: adversarial verify, bounded repair, schema-validated returns, hand-raise-on-ambiguity (present even when unused). The pieces the rehearsal newly demands: stall watchdog, worktree release step, ambiguity severity line, build-env injection.
+
 ### Roadmap (dependency graph — replaces the numbered list per challenger W4, 2026-06-11)
 
 Done prerequisites: **ADR-050 accepted** (2026-06-11) · **step 2** close-extraction drain shipped (t-1974, completed, live systemd timer) · **step 3** ADR-050 suggestion points wired in build/close (t-731, completed — the "specified, not yet built" note above is superseded).
