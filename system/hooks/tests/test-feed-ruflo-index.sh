@@ -136,6 +136,26 @@ bash "$SCRIPT" >/dev/null 2>&1
 assert_json_key "jq produces key: knowledge:feed:cc-changelog:version-2-1-0-released" \
     "$STUB_SECTIONS" "knowledge:feed:cc-changelog:version-2-1-0-released"
 
+# --- Test 5: Malformed line in the window does not crash; watermark advances (t-2008) ---
+# A partial write (e.g. from a non-Rust appender) must not strand the watermark
+# in an infinite retry loop.
+{
+    echo "$SAMPLE_ENTRY"
+    echo 'NOT_VALID_JSON{truncated'
+    echo "$SAMPLE_ENTRY"
+} > "$FEED_LOG"
+rm -f "$WATERMARK" "$STUB_SECTIONS"
+output=$(bash "$SCRIPT" 2>&1); rc=$?
+assert_pass "Malformed line in window exits 0" "$rc" "$output"
+assert_contains "Valid entries still converted" "$output" "2 sections ready"
+assert_contains "Watermark advances past malformed line" "$(cat "$WATERMARK" 2>/dev/null || echo missing)" "^3$"
+
+# --- Test 6: All-malformed window exits 0 without calling indexer ---
+echo 'garbage-not-json' > "$FEED_LOG"
+rm -f "$WATERMARK" "$STUB_SECTIONS"
+output=$(bash "$SCRIPT" 2>&1); rc=$?
+assert_pass "All-malformed window exits 0" "$rc" "$output"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"

@@ -19,9 +19,10 @@
   },
   {
     "name": "anthropic-news",
-    "url": "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml",
+    "url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
     "action": "log",
-    "enabled": true
+    "enabled": true,
+    "stale_after_days": 7
   },
   {
     "name": "cc-changelog",
@@ -58,5 +59,30 @@
     "url": "https://www.anthropic.com/research.rss",
     "action": "log",
     "enabled": true
+  },
+  {
+    "name": "supabase-changelog",
+    "url": "https://github.com/orgs/supabase/discussions/categories/changelog.atom",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "nextjs-releases",
+    "url": "https://github.com/vercel/next.js/releases.atom",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "vercel-changelog",
+    "url": "https://vercel.com/atom",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "rust-releases",
+    "url": "https://github.com/rust-lang/rust/releases.atom",
+    "action": "log",
+    "enabled": true,
+    "stale_after_days": 56
   }
 ]

@@ -211,6 +211,16 @@
       "captureOutput": true,
       "_comment": "t-1009: poll all registered RSS/Atom feeds 3x daily. Appends new entries to feed-log.jsonl."
     },
+    "kapso-changelog-check": {
+      "type": "command",
+      "command": "./system/scripts/kapso-changelog-check.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 18:45:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "t-2011: Kapso changelog scraper (no RSS exists) - docs.kapso.ai/changelog.md -> feed-log.jsonl, before feed-index (19:00). ADR-055."
+    },
     "feed-index": {
       "type": "command",
       "command": "./system/scripts/feed-index.sh",

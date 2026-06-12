@@ -141,6 +141,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 
 | File | Contents |
 |------|----------|
+| [t-2001-feed-tech-stack.md](architecture/features/t-2001-feed-tech-stack.md) | Intelligence feed: staleness detection, tech-stack changelogs, Kapso scraper, adoption step |
 | [build-loop-redesign.md](architecture/features/build-loop-redesign.md) | Build loop: 42->25 skills, 4-step loop, 7 strategies |
 | [reminder-system.md](architecture/features/reminder-system.md) | Reminder store: Rust-owned writes, two-layer sources, session-start surfacing |
 | [async-close.md](architecture/features/async-close.md) | Async close: instant close, snapshot queue, nightly extraction cron |

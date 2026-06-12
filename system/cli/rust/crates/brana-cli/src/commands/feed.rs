@@ -20,6 +20,10 @@ pub struct FeedEntry {
     pub url: String,
     pub action: String, // "log" | "task"
     pub enabled: bool,
+    /// Days without a new entry before feed-index.sh flags the feed stale
+    /// (ADR-055). None → script default (14).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub stale_after_days: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -120,7 +124,9 @@ fn derive_name(url: &str) -> String {
 
 pub fn cmd_feed(cmd: FeedCmd) -> Result<()> {
     match cmd {
-        FeedCmd::Add { url, name, action } => cmd_add(&url, name, &action),
+        FeedCmd::Add { url, name, action, stale_after_days } => {
+            cmd_add(&url, name, &action, stale_after_days)
+        }
         FeedCmd::List => cmd_list(),
         FeedCmd::Poll { name, all } => cmd_poll(name, all),
         FeedCmd::Remove { name } => cmd_remove(&name),
@@ -128,7 +134,7 @@ pub fn cmd_feed(cmd: FeedCmd) -> Result<()> {
     }
 }
 
-fn cmd_add(url: &str, name: Option<String>, action: &str) -> Result<()> {
+fn cmd_add(url: &str, name: Option<String>, action: &str, stale_after_days: Option<u32>) -> Result<()> {
     let name = name.unwrap_or_else(|| derive_name(url));
     let mut feeds = load_feeds();
 
@@ -140,11 +146,18 @@ fn cmd_add(url: &str, name: Option<String>, action: &str) -> Result<()> {
         anyhow::bail!("action must be 'log' or 'task', got '{action}'");
     }
 
+    // feed-index.sh staleness pass parses "name:threshold" — a colon in the
+    // name would silently corrupt the parse (challenger t-2001 finding 1)
+    if name.contains(':') {
+        anyhow::bail!("feed name must not contain ':' (got '{name}') — use a hyphen-slug");
+    }
+
     feeds.push(FeedEntry {
         name: name.clone(),
         url: url.to_string(),
         action: action.to_string(),
         enabled: true,
+        stale_after_days,
     });
     save_feeds(&feeds)?;
 
@@ -364,6 +377,59 @@ mod tests {
     }
 
     #[test]
+    #[serial]
+    fn test_cmd_add_rejects_colon_in_name() {
+        // feed-index.sh parses "name:threshold:notice" — a colon in a feed
+        // name would silently corrupt the staleness parse (challenger t-2001)
+        let _tmp = with_temp_home();
+        let result = cmd_add("https://example.com/feed.xml", Some("foo:bar".into()), "log", None);
+        assert!(result.is_err());
+        assert!(load_feeds().is_empty());
+    }
+
+    #[test]
+    fn test_feed_entry_stale_after_days_roundtrip() {
+        let json = r#"[{"name":"a","url":"u","action":"log","enabled":true,"stale_after_days":56}]"#;
+        let feeds: Vec<FeedEntry> = serde_json::from_str(json).unwrap();
+        assert_eq!(feeds[0].stale_after_days, Some(56));
+        let out = serde_json::to_string(&feeds).unwrap();
+        assert!(out.contains("\"stale_after_days\":56"));
+    }
+
+    #[test]
+    fn test_feed_entry_stale_after_days_absent_roundtrip() {
+        // Old configs parse unchanged; None is not serialized back
+        let json = r#"[{"name":"a","url":"u","action":"log","enabled":true}]"#;
+        let feeds: Vec<FeedEntry> = serde_json::from_str(json).unwrap();
+        assert_eq!(feeds[0].stale_after_days, None);
+        let out = serde_json::to_string(&feeds).unwrap();
+        assert!(!out.contains("stale_after_days"));
+    }
+
+    #[test]
+    #[serial]
+    fn test_cmd_add_writes_stale_after_days() {
+        let _tmp = with_temp_home();
+        cmd_add("https://example.com/feed.xml", Some("staletest".into()), "log", Some(7)).unwrap();
+        let feeds = load_feeds();
+        assert_eq!(feeds[0].stale_after_days, Some(7));
+    }
+
+    #[test]
+    #[serial]
+    fn test_cmd_add_without_stale_after_days_preserves_other_entries_field() {
+        // Round-trip safety: an add/save cycle must not drop the field from existing entries
+        let _tmp = with_temp_home();
+        cmd_add("https://example.com/a.xml", Some("witha".into()), "log", Some(21)).unwrap();
+        cmd_add("https://example.com/b.xml", Some("withoutb".into()), "log", None).unwrap();
+        let feeds = load_feeds();
+        let a = feeds.iter().find(|f| f.name == "witha").unwrap();
+        assert_eq!(a.stale_after_days, Some(21));
+        let b = feeds.iter().find(|f| f.name == "withoutb").unwrap();
+        assert_eq!(b.stale_after_days, None);
+    }
+
+    #[test]
     fn test_derive_name_https() {
         assert_eq!(derive_name("https://simonwillison.net/atom/everything/"), "simonwillison");
     }
@@ -393,6 +459,7 @@ mod tests {
             url: "https://example.com/rss".into(),
             action: "log".into(),
             enabled: true,
+            stale_after_days: None,
         };
         save_feeds(&[feed.clone()]).unwrap();
 
@@ -504,6 +571,7 @@ mod tests {
             url: "https://example.com/rss".into(),
             action: "log".into(),
             enabled: true,
+            stale_after_days: None,
         };
         save_feeds(&[feed]).unwrap();
 

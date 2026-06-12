@@ -6,7 +6,7 @@ depends_on:
 # Feature: Intelligence feed — tech-stack tracking, staleness detection, adoption hook
 
 **Date:** 2026-06-12
-**Status:** specifying
+**Status:** shipped
 **Task:** t-2001
 
 ## Problem
@@ -46,6 +46,8 @@ The intelligence feed only tracks Claude/AI news, and it fails silently: the ant
 - **Default staleness 14 days**: chose 14 because most selected feeds post at least biweekly; per-feed override handles slow cadences — needs confirmation.
 - **Keep feed name `anthropic-news`** on source swap: chose continuity (feed-log history, HIGH_SIGNAL_FEEDS match) over a rename.
 - **Adoption step is advisory** (offer, not enforce): chose AskUserQuestion offer in onboard/align because feed noise is a cost; no hook-level enforcement.
+- **EXTRA_STALE_FEEDS get no zero-entry notice** (build-time decision): a scraper that has never run would otherwise nag every digest pre-deploy; scraper feeds flag only once entries exist and go stale. Registered feeds.json feeds DO get the "no entries yet" notice.
+- **Scraper appends oldest-first** within a batch (chronological feed-log order, matching poller behavior).
 
 ## Design
 
@@ -103,11 +105,20 @@ The Rust binary must be rebuilt and deployed (`cargo build --release` + install)
 - **E2E:** run `feed-index.sh --force` against real log after changes; verify digest renders.
 - **Mock policy:** network mocked via fixtures only (scraper test); everything else uses real files in mktemp dirs.
 
+## Adoption procedure (canonical)
+
+When a new technology/platform enters the portfolio:
+
+1. **Automatic**: `/brana:onboard` and `/brana:align` run a feed coverage check after stack detection — detected stack vs `brana feed list`, fuzzy name-prefix match (`supabase` covers `supabase-changelog`), single multiSelect offer for uncovered techs. Code projects only; advisory.
+2. **Manual** (between skill runs): `brana feed add <url> --name <tech-slug>-changelog [--stale-after-days N]`. Prefer GitHub `releases.atom`.
+3. **No RSS exists**: check for Mintlify raw markdown (`{docs-url}/changelog.md`); if available, clone the `kapso-changelog-check.sh` pattern (scheduler job → feed-log.jsonl append) and add the feed name to `EXTRA_STALE_FEEDS` in `feed-index.sh` for staleness coverage.
+4. **Source URL changes**: always `brana feed remove` + `brana feed add` (resets `last_entry_ids`; prevents re-emission flood).
+
 ## Documentation Plan
 
-- [ ] **Tech doc** — `docs/architecture/features/t-2001-feed-tech-stack.md` (this file, updated to shipped) + adoption procedure section
-- [ ] **User guide** — `docs/guide/features/brana-feed-inbox.md`: staleness section, new feeds table, adoption workflow
-- [ ] **Existing docs** — `docs/architecture/features/brana-feed-inbox.md` (pointer to [ADR-055](../decisions/ADR-055-tech-stack-feed-tracking.md)), `docs/README.md` if new doc added
+- [x] **Tech doc** — this file (shipped) + adoption procedure section above
+- [x] **User guide** — `docs/guide/features/brana-feed-inbox.md`: staleness section, tech-stack feeds table, adoption workflow, swap procedure
+- [x] **Existing docs** — `docs/architecture/features/brana-feed-inbox.md` (pointer to [ADR-055](../decisions/ADR-055-tech-stack-feed-tracking.md)), `docs/README.md` feature-brief row
 
 ## Challenger findings
 

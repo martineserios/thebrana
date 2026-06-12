@@ -9,6 +9,8 @@ depends_on:
 **Status:** shipped
 **Task:** t-585
 
+> Extended by [ADR-055](../decisions/ADR-055-tech-stack-feed-tracking.md) / [t-2001](t-2001-feed-tech-stack.md) (2026-06-12): staleness detection in the digest, `stale_after_days` on FeedEntry, tech-stack changelog feeds, Kapso scraper job, adoption step in onboard/align.
+
 ## Problem
 
 No unified way to monitor external content sources (RSS, Substack, Medium, blogs, newsletters) or manage email newsletter subscriptions from the brana CLI. Content monitoring is manual — the user checks sources ad-hoc. The scheduler has content-fetching scripts (cc-changelog-check.sh, check-agentdb-integration.sh) but no general-purpose polling framework.
