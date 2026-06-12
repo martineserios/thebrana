@@ -233,6 +233,50 @@ pub fn resolve(path: &Path, id: &str) -> Result<Reminder, String> {
     Ok(out)
 }
 
+/// Parse a `--at` time spec (ADR-054 §4) into a UTC instant.
+///
+/// Accepted forms:
+/// - RFC3339 (`2026-06-12T15:00:00-03:00`)
+/// - `HH:MM` — today on the LOCAL date implied by `local_offset`
+/// - `YYYY-MM-DD HH:MM` — local time in `local_offset`
+///
+/// `now` and `local_offset` are injected for testability; the CLI passes
+/// `Utc::now()` and the machine's local offset. Returns the instant plus
+/// an `is_past` flag — past times are accepted (dispatch on next run),
+/// the caller decides how to warn.
+pub fn parse_at(
+    input: &str,
+    now: DateTime<Utc>,
+    local_offset: chrono::FixedOffset,
+) -> Result<(DateTime<Utc>, bool), String> {
+    use chrono::{NaiveDateTime, NaiveTime, TimeZone};
+    let s = input.trim();
+    if s.is_empty() {
+        return Err("empty --at value — use RFC3339, HH:MM, or \"YYYY-MM-DD HH:MM\"".into());
+    }
+    let at: DateTime<Utc> = if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
+        dt.with_timezone(&Utc)
+    } else if let Ok(t) = NaiveTime::parse_from_str(s, "%H:%M") {
+        let local_today = now.with_timezone(&local_offset).date_naive();
+        local_offset
+            .from_local_datetime(&local_today.and_time(t))
+            .single()
+            .ok_or_else(|| format!("ambiguous local time {s:?}"))?
+            .with_timezone(&Utc)
+    } else if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M") {
+        local_offset
+            .from_local_datetime(&dt)
+            .single()
+            .ok_or_else(|| format!("ambiguous local time {s:?}"))?
+            .with_timezone(&Utc)
+    } else {
+        return Err(format!(
+            "invalid --at value {s:?} — use RFC3339, HH:MM, or \"YYYY-MM-DD HH:MM\""
+        ));
+    };
+    Ok((at, at < now))
+}
+
 /// Parse "1d" / "3d" / "1w" style durations.
 pub fn parse_duration(s: &str) -> Result<Duration, String> {
     let s = s.trim();
@@ -458,6 +502,72 @@ mod tests {
         let out = list(&path).unwrap();
         assert_eq!(out[0].status, Status::Expired);
         assert!(std::fs::read_to_string(&path).unwrap().contains("\"expired\""));
+    }
+
+    // ── t-1997: parse_at (--at forms, ADR-054 §4) ──────────────────────
+
+    use chrono::FixedOffset;
+
+    /// now = 2026-06-12T12:00:00Z; local = UTC-3 (09:00 local, date 2026-06-12).
+    fn at_fixture() -> (DateTime<Utc>, FixedOffset) {
+        (
+            "2026-06-12T12:00:00Z".parse().unwrap(),
+            FixedOffset::west_opt(3 * 3600).unwrap(),
+        )
+    }
+
+    #[test]
+    fn parse_at_rfc3339_converts_to_utc() {
+        let (now, off) = at_fixture();
+        let (at, past) = parse_at("2026-06-12T15:00:00-03:00", now, off).unwrap();
+        assert_eq!(at, "2026-06-12T18:00:00Z".parse::<DateTime<Utc>>().unwrap());
+        assert!(!past);
+    }
+
+    /// Challenger F2: the local→UTC conversion must actually be applied —
+    /// with a non-UTC offset the stored instant differs from naive HH:MM-as-UTC.
+    #[test]
+    fn parse_at_hhmm_is_today_local_converted_to_utc() {
+        let (now, off) = at_fixture();
+        let (at, past) = parse_at("15:00", now, off).unwrap();
+        assert_eq!(at, "2026-06-12T18:00:00Z".parse::<DateTime<Utc>>().unwrap());
+        assert_ne!(at, "2026-06-12T15:00:00Z".parse::<DateTime<Utc>>().unwrap());
+        assert!(!past);
+    }
+
+    #[test]
+    fn parse_at_hhmm_earlier_today_is_past() {
+        let (now, off) = at_fixture();
+        // 08:00 local = 11:00Z < now (12:00Z) — accepted, flagged past.
+        let (at, past) = parse_at("08:00", now, off).unwrap();
+        assert_eq!(at, "2026-06-12T11:00:00Z".parse::<DateTime<Utc>>().unwrap());
+        assert!(past);
+    }
+
+    /// "Today" means the LOCAL date, not the UTC date.
+    #[test]
+    fn parse_at_hhmm_uses_local_date_across_utc_midnight() {
+        let now: DateTime<Utc> = "2026-06-13T01:00:00Z".parse().unwrap(); // local 2026-06-12 22:00
+        let off = FixedOffset::west_opt(3 * 3600).unwrap();
+        let (at, past) = parse_at("23:00", now, off).unwrap();
+        assert_eq!(at, "2026-06-13T02:00:00Z".parse::<DateTime<Utc>>().unwrap());
+        assert!(!past);
+    }
+
+    #[test]
+    fn parse_at_date_time_form_converts_local_to_utc() {
+        let (now, off) = at_fixture();
+        let (at, past) = parse_at("2026-06-13 09:30", now, off).unwrap();
+        assert_eq!(at, "2026-06-13T12:30:00Z".parse::<DateTime<Utc>>().unwrap());
+        assert!(!past);
+    }
+
+    #[test]
+    fn parse_at_rejects_invalid_forms() {
+        let (now, off) = at_fixture();
+        for bad in ["", "  ", "25:99", "garbage", "2026-13-40 12:00", "15:00:30:99"] {
+            assert!(parse_at(bad, now, off).is_err(), "accepted {bad:?}");
+        }
     }
 
     // ── t-1997: due / channels / dispatched_at (ADR-054 §3) ────────────
