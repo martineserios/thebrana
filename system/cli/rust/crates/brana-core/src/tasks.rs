@@ -637,6 +637,17 @@ pub fn validate_kind(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate an execution value (t-1982). Accepted: code, autonomous, null, "".
+/// Shared by CLI set, MCP backlog_set, and MCP backlog_add so they cannot drift.
+pub fn validate_execution(value: &str) -> Result<(), String> {
+    match value {
+        "code" | "autonomous" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid execution {other:?} — must be code/autonomous or null"
+        )),
+    }
+}
+
 /// Rename the `initiative` key to `epic` on a single task object (t-1614 schema migration).
 /// Preserves `level: "initiative"` and `type: "initiative"` values — only the KEY is renamed.
 pub fn migrate_initiative_to_epic(mut task: Value) -> Value {
@@ -772,6 +783,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             if field == "level" {
                 validate_level(value)?;
+            }
+            if field == "execution" {
+                validate_execution(value)?;
             }
             if value == "null" {
                 task[field] = Value::Null;

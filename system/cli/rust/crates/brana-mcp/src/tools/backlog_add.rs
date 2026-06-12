@@ -35,9 +35,14 @@ pub struct Input {
 
     /// Acceptance criteria items
     pub acceptance_criteria: Option<Vec<String>>,
+
+    /// Execution mode: code (default) or autonomous
+    #[serde(default = "default_execution")]
+    pub execution: String,
 }
 
 fn default_type() -> String { "task".into() }
+fn default_execution() -> String { "code".into() }
 
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
     TypedTool::new("backlog_add", |input: Input, _extra| {
@@ -58,6 +63,8 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 brana_core::tasks::validate_kind(k)
                     .map_err(pmcp::Error::validation)?;
             }
+            brana_core::tasks::validate_execution(&input.execution)
+                .map_err(pmcp::Error::validation)?;
             brana_core::tasks::validate_context_for_effort(
                 input.effort.as_deref(),
                 input.context.as_deref(),
@@ -92,7 +99,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "notes": null,
                 "order": 0,
                 "github_issue": null,
-                "execution": "code",
+                "execution": input.execution,
                 "acceptance_criteria": input.acceptance_criteria,
             });
 
