@@ -153,9 +153,15 @@ fn main() {
                 run_or_exit(commands::remind::cmd_write(&text, action, priority, dedup_key, project, tags, at, channels))
             }
             RemindCmd::List { status } => run_or_exit(commands::remind::cmd_list(status)),
-            RemindCmd::Due => run_or_exit(commands::remind::cmd_due()),
+            RemindCmd::Due { dispatch } => run_or_exit(commands::remind::cmd_due(dispatch)),
             RemindCmd::Resolve { id } => run_or_exit(commands::remind::cmd_resolve(&id)),
             RemindCmd::Snooze { id, duration } => run_or_exit(commands::remind::cmd_snooze(&id, &duration)),
+        },
+        Commands::Notify { cmd } => match cmd {
+            NotifyCmd::Send { channel, message } => {
+                run_or_exit(commands::notify::cmd_send(&channel, &message))
+            }
+            NotifyCmd::Channels => run_or_exit(commands::notify::cmd_channels()),
         },
         Commands::Session { cmd } => match cmd {
             SessionCmd::Write { file, minimal } => run_or_exit(commands::session::cmd_session_write(file, minimal)),

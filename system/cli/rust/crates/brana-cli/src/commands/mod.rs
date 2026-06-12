@@ -11,6 +11,7 @@ pub mod knowledge;
 pub mod log;
 pub mod memory;
 pub mod misc;
+pub mod notify;
 pub mod ops;
 pub mod ratings;
 pub mod reference;

@@ -66,6 +66,7 @@ if [ -f "$SECRETS_FILE" ]; then
         msg="⚠️ *Scheduler: ${LOOKUP_NAME} FAILED*
 Unit: \`${FAILED_UNIT}\`
 Time: $(date '+%Y-%m-%d %H:%M:%S')"
+        # DELIBERATE: independent of brana binary — do not migrate to brana notify
         curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${OWNER_CHAT_ID}" \
             -d "text=${msg}" \
