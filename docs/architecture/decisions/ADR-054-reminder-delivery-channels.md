@@ -155,3 +155,4 @@ Encoding channels as `tags: ["ch:telegram"]`. Rejected: stringly-typed routing i
 
 - 2026-06-12: §3 schema (due/channels/dispatched_at) + §4 parse_at/--at/--channels/`brana remind due` shipped (t-1997, 7deb1145). Dispatch (--dispatch, registry, adapters) pending t-1998; scheduler t-1999; docs t-2000.
 - 2026-06-12: §5 amendment (t-1998 challenger): telegram/ntfy adapters use ureq (already a brana-core dependency) rather than subprocess curl — enables injected-sender testing without a curl binary. Desktop stays notify-send via Command::new + per-arg .arg() (no shell). Telegram sends plain text, parse_mode omitted.
+- 2026-06-12: §2-5 shipped (t-1998, e7e64f51): channel registry load + routing resolve, adapters, two-phase dispatch (select/send/commit), `brana remind due --dispatch`, `brana notify send/channels`, scheduler firebreak comment. Pending: t-1999 (scheduler timer), t-2000 (docs).
