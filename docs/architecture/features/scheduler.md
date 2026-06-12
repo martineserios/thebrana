@@ -248,7 +248,8 @@ thebrana/system/skills/scheduler/
 1. Read job name from $1
 2. Parse config with jq: extract type, project, command/skill, model, allowedTools, timeout
 3. Resolve project path (expand ~)
-4. Acquire flock on ~/.claude/scheduler/locks/{project-slug}.lock (skip if locked)
+4. Acquire flock on ~/.claude/scheduler/locks/{project-slug}.lock — wait up to
+   lockWaitSeconds (default 600); SKIPPED exit 0 if still held (t-2004)
 5. cd to project directory
 6. Set up log file: ~/.claude/scheduler/logs/{job}/{YYYY-MM-DD-HHMMSS}.log
 7. Based on type:

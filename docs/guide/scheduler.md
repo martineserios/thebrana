@@ -45,6 +45,7 @@ The scheduler config lives at `~/.claude/scheduler/scheduler.json`. Bootstrap cr
     "timeoutSeconds": 300,
     "maxRetries": 0,
     "retryBackoffSec": 30,
+    "lockWaitSeconds": 600,
     "captureOutput": true
   }
 }
@@ -58,6 +59,7 @@ The scheduler config lives at `~/.claude/scheduler/scheduler.json`. Bootstrap cr
 | `timeoutSeconds` | `300` | Max runtime before timeout (exit code 124) |
 | `maxRetries` | `0` | Retry count on failure (0 = no retries) |
 | `retryBackoffSec` | `30` | Base backoff between retries (doubles each attempt) |
+| `lockWaitSeconds` | `600` | Max wait for the per-project lock before skipping |
 | `captureOutput` | `true` | Store run summary in ruflo memory |
 
 ### Job types
@@ -107,6 +109,7 @@ The scheduler config lives at `~/.claude/scheduler/scheduler.json`. Bootstrap cr
 | `timeoutSeconds` | no | Override default timeout |
 | `maxRetries` | no | Override default retry count |
 | `retryBackoffSec` | no | Override default backoff |
+| `lockWaitSeconds` | no | Override default lock wait |
 | `captureOutput` | no | Override default memory capture |
 | `command_fallback` | no | Alternate command when primary exits 127 (not found). Command-type jobs only. |
 
@@ -217,7 +220,9 @@ brana-scheduler status
 
 ## Concurrency and locking
 
-The runner uses `flock` to prevent two jobs from running simultaneously in the same project. If a job tries to start while another job is already running in the same project directory, it exits with code 75 (SKIPPED) and does not retry.
+The runner uses `flock` to prevent two jobs from running simultaneously in the same project. If a job tries to start while another job is already running in the same project directory, it waits up to `lockWaitSeconds` (default 600) for the lock, then runs. If the lock is still held after the wait window, the job records SKIPPED and exits 0 — graceful, no retry, no systemd OnFailure.
+
+The bounded wait exists for systemd `Persistent=true` catch-up runs: after the machine wakes from sleep, a missed job fires immediately and can collide with regularly scheduled morning jobs. Before t-2004 the runner used non-blocking `flock -n`, which silently dropped whichever run lost the race. Note the lock is held for the entire job execution, so a waiting job can stall up to `lockWaitSeconds` plus the running job's `timeoutSeconds` (see t-2020 for lock-scope follow-up).
 
 Lock files are stored in `~/.claude/scheduler/locks/` and named by project directory basename.
 
@@ -230,7 +235,7 @@ When `maxRetries` is greater than 0, the runner retries failed jobs with exponen
 - Attempt 3: wait `retryBackoffSec * 2` seconds
 - And so on (backoff doubles each attempt)
 
-Timeout (exit code 124) and lock conflicts (exit code 75) do not trigger retries.
+Timeout (exit code 124) and lock-wait expiry (SKIPPED, exit 0) do not trigger retries.
 
 ## Log locations
 

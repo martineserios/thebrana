@@ -173,7 +173,15 @@ Q8=$(HOME="$H8" "$REAL_BRANA" close-queue list)
 check "truncated snapshot processed" "1" "$(echo "$Q8" | grep -c '"processed": true')"
 check "truncated snapshot not failed" "0" "$(echo "$Q8" | grep -c '"failed": true')"
 
-# ── 9. structural: cron never touches the store file directly ─────────
+# ── 9. agy failure reason carries the real exit code, not $? of the ! test (t-2004) ──
+H9="$TMPDIR/h9"; mkdir -p "$H9"
+seed_entry "$H9" feat-exit a..b >/dev/null
+run_cron "$H9" env FAKE_AGY_EXIT=7 >/dev/null 2>&1
+Q9=$(HOME="$H9" "$REAL_BRANA" close-queue list)
+check "agy failure reason carries real exit code" "1" "$(echo "$Q9" | grep -c 'exit 7')"
+check "agy failure reason never reports exit 0" "0" "$(echo "$Q9" | grep -c 'exit 0')"
+
+# ── 10. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"
 
 echo ""
