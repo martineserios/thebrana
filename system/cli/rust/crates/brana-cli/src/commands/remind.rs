@@ -37,7 +37,31 @@ pub fn cmd_write(
     dedup_key: Option<String>,
     project: Option<String>,
     tags: Option<String>,
+    at: Option<String>,
+    channels: Option<String>,
 ) -> Result<()> {
+    let due = match at {
+        Some(spec) => {
+            let now = chrono::Utc::now();
+            let local_offset = *chrono::Local::now().offset();
+            let (instant, is_past) =
+                remind::parse_at(&spec, now, local_offset).map_err(|e| anyhow!(e))?;
+            if is_past {
+                // warn on stderr — stdout stays pure JSON (ADR-054 §4)
+                eprintln!("warning: --at {spec:?} is in the past — dispatches on next due run");
+            }
+            Some(instant)
+        }
+        None => None,
+    };
+    let channels = channels
+        .map(|c| {
+            c.split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+        })
+        .filter(|v| !v.is_empty());
     let new = NewReminder {
         text: text.to_string(),
         action,
@@ -47,9 +71,17 @@ pub fn cmd_write(
         tags: tags
             .map(|t| t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect())
             .unwrap_or_default(),
+        due,
+        channels,
     };
     let r = remind::write_reminder(&store_path(), new).map_err(|e| anyhow!(e))?;
     println!("{}", serde_json::to_string_pretty(&r)?);
+    Ok(())
+}
+
+pub fn cmd_due() -> Result<()> {
+    let reminders = remind::due(&store_path()).map_err(|e| anyhow!(e))?;
+    println!("{}", serde_json::to_string_pretty(&reminders)?);
     Ok(())
 }
 

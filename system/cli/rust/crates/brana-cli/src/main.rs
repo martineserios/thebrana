@@ -149,10 +149,11 @@ fn main() {
             CloseQueueCmd::Prune => run_or_exit(commands::close_queue::cmd_prune()),
         },
         Commands::Remind { cmd } => match cmd {
-            RemindCmd::Write { text, action, priority, dedup_key, project, tags } => {
-                run_or_exit(commands::remind::cmd_write(&text, action, priority, dedup_key, project, tags))
+            RemindCmd::Write { text, action, priority, dedup_key, project, tags, at, channels } => {
+                run_or_exit(commands::remind::cmd_write(&text, action, priority, dedup_key, project, tags, at, channels))
             }
             RemindCmd::List { status } => run_or_exit(commands::remind::cmd_list(status)),
+            RemindCmd::Due => run_or_exit(commands::remind::cmd_due()),
             RemindCmd::Resolve { id } => run_or_exit(commands::remind::cmd_resolve(&id)),
             RemindCmd::Snooze { id, duration } => run_or_exit(commands::remind::cmd_snooze(&id, &duration)),
         },
