@@ -3,13 +3,13 @@ depends_on:
   - docs/architecture/decisions/ADR-056-propagate-close-step.md
   - docs/architecture/decisions/ADR-052-close-queue-architecture.md
   - docs/architecture/decisions/ADR-053-close-oriented-modes.md
-status: building
+status: implemented
 ---
 
 # Feature: PROPAGATE Close Step — Layered Propagation-Debt Audit
 
 **Date:** 2026-06-12
-**Status:** building
+**Status:** implemented
 **Task:** t-2003
 
 ## Problem
@@ -124,9 +124,9 @@ Key files: `system/skills/close/phases/propagate.md` (new), `system/skills/close
 
 ## Documentation Plan
 
-- [ ] **User guide** — `docs/guide/features/propagate-close-step.md`: what closes now check, how to read the gaps report, the layered gate table, how L3 findings surface as reminders.
-- [ ] **Tech doc** — this file, promoted to `implemented` with final file map.
-- [ ] **Existing docs to update** — `system/skills/close/SKILL.md` (step table + weight matrix row), `system/skills/reconcile/SKILL.md` (sibling note, §6 naming), `docs/domain/MODEL-001-brana-core.md` (vocabulary).
+- [x] **User guide** — `docs/guide/features/propagate-close-step.md`: what closes now check, how to read the gaps report, the layered gate table, how L3 findings surface as reminders.
+- [x] **Tech doc** — this file, promoted to `implemented` with final file map.
+- [x] **Existing docs to update** — `system/skills/close/SKILL.md` (step table + weight matrix row), `system/skills/reconcile/SKILL.md` (sibling note, §6 naming), `docs/domain/MODEL-001-brana-core.md` (vocabulary).
 
 ## Challenger findings
 
