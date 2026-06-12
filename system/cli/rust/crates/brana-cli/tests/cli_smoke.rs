@@ -412,3 +412,89 @@ fn session_initiative_subcommand_removed() {
         .assert()
         .failure();
 }
+
+// ── Backlog: lint — definition-of-ready checker (t-1981) ─────────────────
+
+const LINT_FIXTURE: &str = r#"{
+  "version": "1",
+  "project": "test",
+  "tasks": [
+    {"id":"t-010","subject":"ready task","type":"task","status":"pending","effort":"S","tags":[],"blocked_by":[],
+     "description":"A well-curated task with enough detail to dispatch.",
+     "context":"Rich background on scope and constraints.\nAC: `cargo test` passes with lint tests included"},
+    {"id":"t-011","subject":"vague task","type":"task","status":"pending","effort":"XL","tags":[],"blocked_by":[],
+     "description":"A vague task.",
+     "context":"AC: works well"}
+  ]
+}"#;
+
+#[test]
+fn backlog_lint_ready_task_exits_zero() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks.write_str(LINT_FIXTURE).unwrap();
+    brana()
+        .args(["backlog", "lint", "t-010", "--file"])
+        .arg(tasks.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ready"));
+}
+
+#[test]
+fn backlog_lint_not_ready_exits_one_naming_each_failed_check() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks.write_str(LINT_FIXTURE).unwrap();
+    let assert = brana()
+        .args(["backlog", "lint", "t-011", "--file"])
+        .arg(tasks.path())
+        .assert()
+        .code(1);
+    // AC: failing output names each failed check on its own line.
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    let failed = ["machine-verifiable-ac", "rich-context", "effort-s-or-m"];
+    for name in failed {
+        assert!(
+            stdout.lines().any(|l| l.contains(name)),
+            "expected a line naming {name}, got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn backlog_lint_json_emits_ready_and_checks() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks.write_str(LINT_FIXTURE).unwrap();
+    let assert = brana()
+        .args(["backlog", "lint", "t-011", "--json", "--file"])
+        .arg(tasks.path())
+        .assert()
+        .code(1);
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("valid JSON");
+    assert_eq!(v["ready"].as_bool(), Some(false));
+    let checks = v["checks"].as_array().expect("checks array");
+    assert_eq!(checks.len(), 4);
+    for c in checks {
+        assert!(c["name"].is_string() && c["pass"].is_boolean() && c["reason"].is_string());
+    }
+}
+
+#[test]
+fn backlog_lint_unknown_task_fails() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks.write_str(LINT_FIXTURE).unwrap();
+    brana()
+        .args(["backlog", "lint", "t-999", "--file"])
+        .arg(tasks.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found"));
+}

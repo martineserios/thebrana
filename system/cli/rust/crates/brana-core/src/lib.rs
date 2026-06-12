@@ -5,6 +5,7 @@
 
 pub mod files;
 pub mod knowledge_pipeline;
+pub mod lint;
 pub mod memory;
 pub mod queue;
 pub mod remind;

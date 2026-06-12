@@ -68,6 +68,11 @@ fn main() {
             BacklogCmd::Add { json, subject, kind, task_type, tags, description, effort, parent, priority, context, file, epic, work_type, acceptance_criteria } =>
                 run_or_exit(commands::backlog::cmd_add(json, subject, kind, task_type, tags, description, effort, parent, priority, context, file, epic, work_type, acceptance_criteria)),
             BacklogCmd::Get { task_id, field } => run_or_exit(commands::backlog::cmd_get(&task_id, field)),
+            BacklogCmd::Lint { task_id, json, file } => match commands::backlog::cmd_lint(&task_id, json, file) {
+                Ok(true) => {}
+                Ok(false) => std::process::exit(1),
+                Err(e) => { eprintln!("{e:#}"); std::process::exit(1); }
+            },
             BacklogCmd::Stats => run_or_exit(commands::backlog::cmd_stats()),
             BacklogCmd::Tags { filter, any, output } => run_or_exit(commands::backlog::cmd_tags(filter, any, output, &theme)),
             BacklogCmd::Roadmap { json } => run_or_exit(commands::backlog::cmd_roadmap(json, &theme)),

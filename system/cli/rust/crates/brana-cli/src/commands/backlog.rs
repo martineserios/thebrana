@@ -638,6 +638,37 @@ pub fn cmd_get(task_id: &str, field: Option<String>) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Definition-of-ready lint for autonomous dispatch (t-1981).
+/// Returns Ok(ready); the caller maps not-ready to exit code 1.
+pub fn cmd_lint(task_id: &str, json_out: bool, file: Option<PathBuf>) -> anyhow::Result<bool> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id))
+        .ok_or_else(|| anyhow::anyhow!("task {task_id} not found"))?;
+
+    let report = brana_core::lint::lint_task(task, &data.tasks);
+
+    if json_out {
+        println!("{}", serde_json::to_string(&report).unwrap());
+    } else if report.ready {
+        println!("{task_id} ready — all {} checks pass", report.checks.len());
+    } else {
+        println!("{task_id} not ready");
+        for c in report.checks.iter().filter(|c| !c.pass) {
+            println!("  ✗ {}: {}", c.name, c.reason);
+        }
+    }
+    if !json_out {
+        for w in &report.warnings {
+            eprintln!("  ⚠ {w}");
+        }
+    }
+    Ok(report.ready)
+}
+
 pub fn cmd_stats() -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
