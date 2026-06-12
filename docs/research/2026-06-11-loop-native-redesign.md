@@ -34,7 +34,7 @@ Industry pattern (LangGraph, CrewAI Flows, AutoResearch): **skills as pipeline s
 
 Guardrails consensus: max iterations + budget caps + no-progress detection on *observable state* (git diff, test exit codes), never self-asserted progress. Brana's checkpoint rules already comply.
 
-Gaps in the literature: no published prior art for suggest-and-confirm loop protocol, cache-aware polling intervals, or loop-as-pipeline-router. Brana is ahead on all three.
+Gaps in the literature: three web scouts (2026-06-11) found no published prior art for suggest-and-confirm loop protocol, cache-aware polling intervals, or loop-as-pipeline-router. That is a search result, not a world fact — treat all three as **unvalidated novel protocols, not proven advantages** (challenger O1). Novel means nobody's failure knowledge to inherit; each earns its status only through usage evidence: t-731 suggestion-point outcomes, interval economics observed in real loops, and the t-1991 rehearsal.
 
 ### Finding 3 — Two orchestration primitives, not one
 
