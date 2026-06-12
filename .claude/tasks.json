@@ -51818,8 +51818,8 @@
       "started": "2026-06-11",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
-      "context": "2026-06-11: Mode ideas beyond the core three — --block (record blocker, set blocked_by, surface at next session start); --abort (abandon work: task back to pending with reason, branch parked/discarded); --handoff (handoff doc only, for machine/agent switch); --eod (end-of-day: aggregate all of today's sessions into one daily summary); --ship (close then enter ship pipeline); --review (close + queue code-review of the branch). Consider auto-detection as default when no flag given: dirty tree + in_progress task → continue; branch merged → finish. Implementation note: modes should map onto the existing close pipeline stages (snapshot → queue → extract → handoff → task-state → git) as include/exclude masks, not separate code paths — close-classify.sh (t-1978) is the single source of truth to extend.\n2026-06-11 (refinement): Reframe from \"lighter vs fuller closes\" to ORIENTED closes — each mode is a purpose profile, not a weight level. The orientation decides what gets persisted and what state the work is left in. Also: closes are ON DEMAND, scenario-triggered — not only at session end. Scenarios that demand a close mid-session: context budget hitting orange/red zone (orient: continue — snapshot + handoff before /compact or fresh session); hitting a blocker (orient: block); switching to an urgent task (orient: continue on current, then start other); discovery worth keeping regardless of task outcome (orient: patterns); work proven wrong mid-flight (orient: abort). Design implication: the skill needs (a) a scenario→orientation mapping table, (b) flag override for explicit choice, (c) detection heuristics (git state, context %, task status) proposing the orientation when invoked bare. /brana:close becomes \"persist the right things for THIS situation, now\" rather than \"end the session\".\n2026-06-11 (UX): Bare /brana:close (no flag) → NEVER pick silently. Present options via AskUserQuestion: detected/recommended orientation first (from scenario heuristics), then the 2-3 next-most-likely for the current state, plus built-in Other for the full mode list when applicable. Each option labeled with its flag name (e.g. \"Continue (--continue)\") so repeated use teaches the flags — the picker doubles as progressive disclosure; long-run the user types flags directly and skips the prompt. Flag given → no prompt, execute immediately.\n2026-06-11 (brainstorm finalized): Full mode map and design decisions in docs/ideas/close-oriented-modes.md. Key decisions: (1) modes are include/exclude masks on existing pipeline stages, NOT new code paths; (2) new phases/mode-dispatch.md Step 0 reads flag and sets CLOSE_MODE_OVERRIDE + TASK_STATE_TARGET; close-classify.sh stays untouched; (3) detection: bash signals narrow candidates, Claude picks recommended, picker always appears on bare invocation — conflict (signals disagree) → no recommendation; (4) --abort: reason required, always ask about dirty tree (stash/discard/leave), branch archive = tag+delete (git tag aborted/t-NNN-slug HEAD && git branch -D), --patterns offered before aborting if learnings exist; (5) pre-compact hook: ASK before auto-executing --continue (countdown + default, never blocks compact, idempotency guard on commit hash); (6) --continue accumulates as full history in queue (no dedup) — nightly cron extracts from the arc; (7) --eod = manual queue-flush (separate task); cron stays as safety net.",
+      "branch": "async-close/feat/t-1980-close-oriented-modes",
+      "context": "2026-06-11: Mode ideas beyond the core three — --block (record blocker, set blocked_by, surface at next session start); --abort (abandon work: task back to pending with reason, branch parked/discarded); --handoff (handoff doc only, for machine/agent switch); --eod (end-of-day: aggregate all of today's sessions into one daily summary); --ship (close then enter ship pipeline); --review (close + queue code-review of the branch). Consider auto-detection as default when no flag given: dirty tree + in_progress task → continue; branch merged → finish. Implementation note: modes should map onto the existing close pipeline stages (snapshot → queue → extract → handoff → task-state → git) as include/exclude masks, not separate code paths — close-classify.sh (t-1978) is the single source of truth to extend.\n2026-06-11 (refinement): Reframe from \"lighter vs fuller closes\" to ORIENTED closes — each mode is a purpose profile, not a weight level. The orientation decides what gets persisted and what state the work is left in. Also: closes are ON DEMAND, scenario-triggered — not only at session end. Scenarios that demand a close mid-session: context budget hitting orange/red zone (orient: continue — snapshot + handoff before /compact or fresh session); hitting a blocker (orient: block); switching to an urgent task (orient: continue on current, then start other); discovery worth keeping regardless of task outcome (orient: patterns); work proven wrong mid-flight (orient: abort). Design implication: the skill needs (a) a scenario→orientation mapping table, (b) flag override for explicit choice, (c) detection heuristics (git state, context %, task status) proposing the orientation when invoked bare. /brana:close becomes \"persist the right things for THIS situation, now\" rather than \"end the session\".\n2026-06-11 (UX): Bare /brana:close (no flag) → NEVER pick silently. Present options via AskUserQuestion: detected/recommended orientation first (from scenario heuristics), then the 2-3 next-most-likely for the current state, plus built-in Other for the full mode list when applicable. Each option labeled with its flag name (e.g. \"Continue (--continue)\") so repeated use teaches the flags — the picker doubles as progressive disclosure; long-run the user types flags directly and skips the prompt. Flag given → no prompt, execute immediately.\n2026-06-11 (brainstorm finalized): Full mode map and design decisions in docs/ideas/close-oriented-modes.md. Key decisions: (1) modes are include/exclude masks on existing pipeline stages, NOT new code paths; (2) new phases/mode-dispatch.md Step 0 reads flag and sets CLOSE_MODE_OVERRIDE + TASK_STATE_TARGET; close-classify.sh stays untouched; (3) detection: bash signals narrow candidates, Claude picks recommended, picker always appears on bare invocation — conflict (signals disagree) → no recommendation; (4) --abort: reason required, always ask about dirty tree (stash/discard/leave), branch archive = tag+delete (git tag aborted/t-NNN-slug HEAD && git branch -D), --patterns offered before aborting if learnings exist; (5) pre-compact hook: ASK before auto-executing --continue (countdown + default, never blocks compact, idempotency guard on commit hash); (6) --continue accumulates as full history in queue (no dedup) — nightly cron extracts from the arc; (7) --eod = manual queue-flush (separate task); cron stays as safety net.\nSprint contract 2026-06-11 (challenger-revised): Scope: oriented close modes v1 per ADR-053, chain t-1983→{t-1984,t-1986,t-1988}→{t-1985,t-1987}→t-1990→t-1989. ISC: [test-close-weight-adaptive.sh exits 0 incl orientation cases; test-close-abort.sh exits 0 incl stash/hard-reset/leave-dirty branches; a test asserts --patterns performs NO queue append; gate-and-evidence.md forwards --mode-override on the close-classify.sh call line (structural grep); pre-compact.sh calls close-snapshot.sh AND exits 0 when snapshot errors (tested); ADR-053 Status Accepted committed; docs/guide/features/close-oriented-modes.md exists; validate.sh passes + close-abort.sh shellcheck-clean]. Out of scope: --block/--handoff/--eod/--ship/--review, Rust close-queue changes, cron/worker changes.\nNOTE 2026-06-11: the 'brainstorm finalized' entry above is SUPERSEDED by ADR-053 — the mode-dispatch.md/env-var design and 'close-classify.sh untouched' constraint were REJECTED in premortem. ADR-053 + the sprint contract are authoritative.",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -51839,7 +51839,7 @@
         "ADR-052 §6 or sibling ADR written before any code; test-mode-dispatch.sh written before dispatcher",
         "modes documented in close skill doc and docs/guide/commands/index.md"
       ],
-      "build_step": "specify"
+      "build_step": "build"
     },
     {
       "id": "t-1981",
@@ -51896,6 +51896,268 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-1983",
+      "subject": "Accept ADR-053 + add CloseOrientation to domain model",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "docs",
+      "tags": [
+        "close",
+        "async-close",
+        "sdd",
+        "ddd"
+      ],
+      "description": "Flip ADR-053 frontmatter + Status to Accepted (ADR-052 §8 pattern — implementation must not start before acceptance). Add CloseOrientation concept to docs/domain/MODEL-001-brana-core.md: the four v1 orientations, orientation-forces-weight invariant, task-state targets.",
+      "effort": "XS",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "file docs/architecture/decisions/ADR-053-close-oriented-modes.md contains \"Status: Accepted\"",
+        "file docs/domain/MODEL-001-brana-core.md contains \"CloseOrientation\""
+      ]
+    },
+    {
+      "id": "t-1984",
+      "subject": "TDD: orientation→weight matrix cases in test-close-weight-adaptive.sh",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "close",
+        "async-close",
+        "tdd",
+        "test"
+      ],
+      "description": "RED phase. Extend tests/procedures/test-close-weight-adaptive.sh with --mode-override cases: --continue→INSTANT, --finish→INSTANT, --patterns→LIGHT, --abort→NANO; override wins over auto-classification (e.g. --patterns with 5 commits + .rs files still LIGHT); bare invocation fallthrough unchanged (existing cases stay green). Tests must FAIL before t-1985 implements.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1983"
+      ],
+      "branch": null,
+      "context": "AC: a case asserts --patterns triggers NO brana close-queue append (queue-suppression regression — challenger contract review finding 2)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "file tests/procedures/test-close-weight-adaptive.sh contains \"mode-override\"",
+        "new cases fail against unmodified close-classify.sh (red verified)"
+      ]
+    },
+    {
+      "id": "t-1985",
+      "subject": "Implement close-classify.sh --mode-override",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "close",
+        "async-close",
+        "shell"
+      ],
+      "description": "GREEN phase. Add --mode-override <orientation> argument to system/scripts/close-classify.sh, resolved at the TOP of the escape-hatch block (above --light/--full/--nano). Maps orientation→forced weight per ADR-053 §1. Output format extended to carry orientation (e.g. \"CONTINUE:INSTANT\" or separate line — settle in implementation, tests pin it). Update header comment (single-source-of-truth contract note).",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1984"
+      ],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "file system/scripts/close-classify.sh contains \"mode-override\"",
+        "\"bash tests/procedures/test-close-weight-adaptive.sh\" passes"
+      ]
+    },
+    {
+      "id": "t-1986",
+      "subject": "TDD: test-close-abort.sh for the abort sequence",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "close",
+        "async-close",
+        "tdd",
+        "test"
+      ],
+      "description": "RED phase. New tests/procedures/test-close-abort.sh covering ADR-053 §4: timestamped tag created (aborted/{id}-{slug}-{YYYYMMDD}), re-abort same task does not collide, checkout-main-before-branch-D (abort from the branch being aborted works), push failure → warning not abort failure, missing reason → exit non-zero. Real git repos in temp dirs; mock git push via PATH shim.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1983"
+      ],
+      "branch": null,
+      "context": "AC: dirty-tree coverage mandatory — stash, hard-reset, and leave-dirty branches each have a test case (challenger contract review finding 3)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "tests/procedures/test-close-abort.sh exists",
+        "tests fail before close-abort.sh exists (red verified)"
+      ]
+    },
+    {
+      "id": "t-1987",
+      "subject": "Implement close-abort.sh",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "close",
+        "async-close",
+        "shell"
+      ],
+      "description": "GREEN phase. New system/scripts/close-abort.sh implementing ADR-053 §4 sequence: (1) reason required, (2) dirty-tree disposal arg (stash|reset|leave — interactive ask lives in the skill, script takes the decision as arg), (3) timestamped tag, (4) push tag with loud local-only warning on failure, (5) checkout main then branch -D, (6) task → pending + reason via brana backlog set. chmod +x after creation.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1986"
+      ],
+      "branch": null,
+      "context": "AC: close-abort.sh passes shellcheck (challenger contract review finding 5 — validate.sh predates these scripts)",
+      "notes": "shellcheck criterion: tool not installed on this machine — could not run; script follows existing close-snapshot.sh conventions. Re-run when shellcheck available.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "system/scripts/close-abort.sh exists",
+        "\"bash tests/procedures/test-close-abort.sh\" passes"
+      ]
+    },
+    {
+      "id": "t-1988",
+      "subject": "Pre-compact silent snapshot + queue accumulate regression",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "close",
+        "async-close",
+        "hooks",
+        "test"
+      ],
+      "description": "system/hooks/pre-compact.sh: call close-snapshot.sh silently with idempotency guard (skip when snapshot for current HEAD already exists), notice via additionalContext, always exit 0 (test first: two invocations same HEAD → one snapshot). Plus regression test for brana close-queue append accumulate-not-dedup: same branch advancing HEAD → N entries; same HEAD twice → 1 entry (ADR-053 §7).",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1983"
+      ],
+      "branch": null,
+      "context": "2026-06-11: Also owns Layer 1 of ADR-053 §5 — add to system/rules/context-budget.md orange-zone actions: \"task in flight + crossing 70% → offer /brana:close --continue via AskUserQuestion before /compact\". One-line rule edit; the hook is Layer 2.\nAC: test asserts pre-compact.sh exits 0 even when close-snapshot.sh errors (challenger contract review finding 4)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "file system/hooks/pre-compact.sh contains \"close-snapshot.sh\"",
+        "idempotency + accumulate tests pass"
+      ]
+    },
+    {
+      "id": "t-1989",
+      "subject": "Docs: close modes user guide + command index + hooks field note",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "docs",
+      "tags": [
+        "close",
+        "async-close",
+        "docs",
+        "sdd"
+      ],
+      "description": "docs/guide/features/close-oriented-modes.md (the four modes, when to use which, picker behavior, flag learning path); docs/guide/commands/index.md close entry updated; docs/architecture/hooks.md pre-compact field note; feature spec status → shipped.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1990",
+        "t-1988"
+      ],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "docs/guide/features/close-oriented-modes.md exists",
+        "file docs/guide/commands/index.md contains \"--continue\""
+      ]
+    },
+    {
+      "id": "t-1990",
+      "subject": "Wire orientation modes through close skill phases",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "close",
+        "async-close",
+        "skill"
+      ],
+      "description": "gate-and-evidence.md Step 1: parse $ARGUMENTS for orientation flag → pass --mode-override to close-classify.sh; bare invocation → bash signal detection (candidate set) + Claude recommendation + AskUserQuestion picker. session-state.md: orientation→task-state mapping table in own bash block. errata-and-patterns.md: --patterns inline LIGHT extraction, no queue. cleanup.md: cleanup only for --finish/FULL. SKILL.md: argument-hint + mode table.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-1980",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1985",
+        "t-1987"
+      ],
+      "branch": null,
+      "context": "Design contract: ADR-053 §2 (no cross-phase env vars — CLOSE_MODE carries orientation within the gate's bash block; later phases get it as instruction context via the gate announcement) and §6 (picker: flag-labeled options, conflict → no recommendation, --patterns never auto-candidate, flag given → no picker). NO new phase file, NO PHASES registry change (premortem M10). Phase files are LLM procedure docs — instructions must be explicit enough to execute without this session's context.\nPre-edit challenger 2026-06-11 (PROCEED WITH CHANGES) — mandatory fixes: (1) Step 3 dispatcher needs explicit LIGHT-INLINE arm (same inline scan as LIGHT) else falls to INSTANT and silently skips extraction; (2) hard guard line BEFORE picker block: 'if $ARGUMENTS contains any orientation/weight flag, skip detection+picker entirely'; (3) gate announcement must include orientation not just weight: 'Close mode: INSTANT (orientation: --finish)' — session-state.md resolves task-state from orientation, INSTANT token is shared by continue+finish; (4) cleanup.md skip guard goes IN cleanup.md (phase files are step-reads, SKILL.md is entry-read); (5) brana backlog get in detection wrapped || true, missing binary → no task signal, never blocks; (6) Step 9c initiative accumulator + notes-and-ideation.md + doc-drift.md + metadata-and-memory.md need LIGHT-INLINE skip guards (currently gate on NANO only); (7) PHASES registry comment: 'LIGHT, LIGHT-INLINE closes only'.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "file system/skills/close/phases/gate-and-evidence.md contains \"mode-override\"",
+        "file system/skills/close/phases/session-state.md contains \"orientation\"",
+        "file system/skills/close/SKILL.md contains \"--continue\""
+      ]
     }
   ],
   "version": "1"
