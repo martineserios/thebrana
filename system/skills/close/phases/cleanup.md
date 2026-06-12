@@ -1,5 +1,7 @@
 <!-- close phase: Steps 11b-12 + Session Close: worktree reap, task reconcile, stash/loop sweeps, report, follow-up — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
+> **Orientation guard (ADR-053, t-1990):** read the orientation from the gate's Step 1 announcement. Skip Steps 11b and 11d when the orientation is `--continue` or `--patterns` — branch, worktree, and stash state must survive for resumption. They run for `--finish`, FULL, and bare closes. REPORT (Step 12) always runs.
+
 ### Step 11b: Reap merged worktrees
 
 Prune worktrees whose branches are fully merged into main. Prevents orientation cost at next session start.

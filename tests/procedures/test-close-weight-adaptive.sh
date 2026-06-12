@@ -139,6 +139,71 @@ for args in "" "--light" "--nano"; do
     done
 done
 
+# ── Orientation flags force weight (ADR-053 §1, t-1980) ─────────────────────
+# Orientation wins over auto-classification AND over weight escape hatches.
+# --patterns prints LIGHT-INLINE, a weight distinct from LIGHT: the gate's
+# snapshot+queue step (Step 1b) runs for INSTANT/LIGHT/FULL only, so
+# LIGHT-INLINE structurally never queues (ADR-053 §3 — the documented
+# exception to ADR-052 §5). This is the queue-suppression regression.
+
+echo ""
+echo "Orientation flags (ADR-053)"
+MODE=$(classify 1 "docs/note.md" "--continue")
+assert_mode "--continue forces INSTANT (auto would be NANO)" "INSTANT" "$MODE"
+
+MODE=$(classify 1 "docs/note.md" "--finish")
+assert_mode "--finish forces INSTANT (auto would be NANO)" "INSTANT" "$MODE"
+
+MODE=$(classify 5 "src/main.rs" "--patterns")
+assert_mode "--patterns forces LIGHT-INLINE (auto would be INSTANT)" "LIGHT-INLINE" "$MODE"
+
+MODE=$(classify 5 "src/main.rs" "--abort")
+assert_mode "--abort forces NANO (auto would be INSTANT)" "NANO" "$MODE"
+
+MODE=$(classify 1 "src/main.rs" "--continue")
+assert_mode "--continue on code session stays INSTANT" "INSTANT" "$MODE"
+
+echo ""
+echo "Orientation precedence over weight escape hatches"
+MODE=$(classify 1 "docs/note.md" "--full --patterns")
+assert_mode "--patterns beats --full" "LIGHT-INLINE" "$MODE"
+
+MODE=$(classify 1 "docs/note.md" "--continue --light")
+assert_mode "--continue beats --light" "INSTANT" "$MODE"
+
+echo ""
+echo "Explicit --mode-override argument (programmatic callers)"
+MODE=$(echo "docs/note.md" | bash "$CLASSIFY" --commit-count 1 --arguments "" --mode-override patterns)
+assert_mode "--mode-override patterns → LIGHT-INLINE" "LIGHT-INLINE" "$MODE"
+
+MODE=$(echo "src/main.rs" | bash "$CLASSIFY" --commit-count 3 --arguments "" --mode-override continue)
+assert_mode "--mode-override continue → INSTANT" "INSTANT" "$MODE"
+
+MODE=$(echo "x" | bash "$CLASSIFY" --commit-count 1 --arguments "" --mode-override bogus 2>/dev/null)
+RC=$?
+TOTAL=$((TOTAL + 1))
+if [ "$RC" -eq 2 ]; then
+    echo "  PASS: --mode-override bogus → exit 2"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: --mode-override bogus → exit $RC (expected 2)"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
+echo "Queue-suppression invariant: --patterns NEVER returns plain LIGHT"
+for files in "docs/a.md" "src/x.rs" ".claude/settings.json"; do
+    MODE=$(classify 1 "$files" "--patterns")
+    TOTAL=$((TOTAL + 1))
+    if [ "$MODE" = "LIGHT-INLINE" ]; then
+        echo "  PASS: --patterns files=$files → LIGHT-INLINE (not LIGHT)"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: --patterns files=$files → $MODE (queue suppression broken)"
+        FAIL=$((FAIL + 1))
+    fi
+done
+
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="
 

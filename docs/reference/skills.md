@@ -272,7 +272,7 @@ Store a learning — classify type, route to canonical destination. Use after di
 
 End a session — extract learnings, write handoff, store patterns, detect doc drift. Use when ending a work session or when the user says done/bye/closing.
 
-**Arguments:** `[focus-hint]`
+**Arguments:** `[--continue|--finish|--patterns|--abort|--full|--light|--nano] [focus-hint]`
 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__hive-mind_memory, mcp__ruflo__claims_release, mcp__ruflo__claims_list, ToolSearch
 

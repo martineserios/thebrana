@@ -5,6 +5,16 @@ ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__hive-mind_memory,mcp__
 
 ### Step 9: Write session state via CLI
 
+**Orientation → task-state mapping (ADR-053 §1, t-1990).** Read the orientation from the gate's Step 1 announcement (`Close mode: ... (orientation: ...)`) — NOT from the weight token, which `--continue` and `--finish` share. Apply to the session's active task before writing session state:
+
+| Orientation | Active task action |
+|---|---|
+| `--continue` | leave `in_progress` — handoff must be resumable (next[] carries the exact resume point) |
+| `--finish` | `brana backlog set {id} status completed` + completed date |
+| `--patterns` | no task-state change (this step still writes session state only if reached — LIGHT-INLINE normally skips Steps 9c–11, not Step 9) |
+| `--abort` | nothing here — close-abort.sh already set the task to pending with the reason |
+| `auto` (bare) | existing behavior: completion only when the work actually completed |
+
 Build a JSON object from all evidence gathered in previous steps, write it to a temp file, and call `brana session write`. The LLM never writes session files directly — the CLI validates the schema and handles atomic writes + history archival.
 
 **Build the JSON payload:**
@@ -195,7 +205,7 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 ### Step 9c: Initiative accumulator — upsert cross-day state (ADR-044)
 
-> Skip entirely if `$CLOSE_MODE == "NANO"`.
+> Skip entirely if `$CLOSE_MODE` is `NANO` or `LIGHT-INLINE` (ADR-053 — `--patterns` is extraction only).
 
 **Detect active epic (4-tier cascade, run in order, stop at first hit):**
 

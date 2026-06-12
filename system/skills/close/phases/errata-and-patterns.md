@@ -7,6 +7,8 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__memory_store")
 
 **Skip entirely** if `$CLOSE_MODE == "NANO"` — jump directly to Step 9.
 
+**LIGHT-INLINE (`--patterns`, ADR-053):** run Steps 4–5 only (inline, sequential is fine — no agent spawn), then STOP: skip Steps 6–8 and Steps 9c–11 entirely. Extraction is the whole job of this mode; nothing queues, no task state changes.
+
 Steps 4 through 8 (ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT) are independent — each reads from Step 3 output but none depends on another. Execute all five simultaneously using parallel tool calls. Do not wait for one to finish before starting the next.
 
 ### Step 4: Write errata entries (if any)

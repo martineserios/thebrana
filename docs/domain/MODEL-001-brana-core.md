@@ -398,6 +398,8 @@ All other contexts are independent:
 | **Frontmatter** | YAML header block in markdown files containing structured metadata | Reference |
 | **Store** | An aggregate root that owns a state file and all mutations to it | All |
 | **Application layer** | CLI or MCP — the thin adapter that wires contexts together and handles I/O | Architecture |
+| **CloseOrientation** | Why a session is closing: `continue`, `finish`, `patterns`, `abort` (v1). Forces the close weight — flag wins over auto-classification; each orientation pins a task-state target ([ADR-053](../architecture/decisions/ADR-053-close-oriented-modes.md)) | Session workflow |
+| **Close weight** | How much close pipeline runs: NANO, LIGHT, INSTANT, FULL — auto-classified by `close-classify.sh` on bare invocation only ([ADR-052](../architecture/decisions/ADR-052-close-queue-architecture.md) §5) | Session workflow |
 
 ---
 

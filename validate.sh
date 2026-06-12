@@ -1884,7 +1884,8 @@ fi  # should_run 42
 
 # Check 43 — close-mode weight classification single source of truth (ADR-040 §7, t-1802;
 # t-1978 extracted the logic from close.md into close-classify.sh — validate the script,
-# and that the skill defers to it instead of carrying a replicated copy)
+# and that the skill defers to it instead of carrying a replicated copy; t-1980 added
+# orientation weights — LIGHT-INLINE must exist, ADR-053)
 if should_run 43; then
 echo "Check 43: close-classify.sh weight classification..."
 CLASSIFY_SCRIPT="$SCRIPT_DIR/system/scripts/close-classify.sh"
@@ -1896,14 +1897,15 @@ else
     grep -q 'CLOSE_MODE="LIGHT"'   "$CLASSIFY_SCRIPT" || MISSING_MODES+=("LIGHT")
     grep -q 'CLOSE_MODE="NANO"'    "$CLASSIFY_SCRIPT" || MISSING_MODES+=("NANO")
     grep -q 'CLOSE_MODE="INSTANT"' "$CLASSIFY_SCRIPT" || MISSING_MODES+=("INSTANT")
+    grep -q 'LIGHT-INLINE'         "$CLASSIFY_SCRIPT" || MISSING_MODES+=("LIGHT-INLINE")
     CLOSE_BODY=$(effective_body close)
     if [ -n "$CLOSE_BODY" ] && ! grep -q 'close-classify\.sh' <<< "$CLOSE_BODY"; then
         MISSING_MODES+=("skill-reference")
     fi
     if [ ${#MISSING_MODES[@]} -eq 0 ]; then
-        pass "Check 43: close-classify.sh has NANO/LIGHT/INSTANT/FULL and the skill defers to it ✓"
+        pass "Check 43: close-classify.sh has NANO/LIGHT/LIGHT-INLINE/INSTANT/FULL and the skill defers to it ✓"
     else
-        fail "Check 43: close-mode classification gaps: ${MISSING_MODES[*]} (ADR-040 §7 / ADR-052 §5)"
+        fail "Check 43: close-mode classification gaps: ${MISSING_MODES[*]} (ADR-040 §7 / ADR-052 §5 / ADR-053)"
     fi
 fi
 echo ""
