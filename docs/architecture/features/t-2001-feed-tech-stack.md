@@ -46,6 +46,8 @@ The intelligence feed only tracks Claude/AI news, and it fails silently: the ant
 - **Default staleness 14 days**: chose 14 because most selected feeds post at least biweekly; per-feed override handles slow cadences — needs confirmation.
 - **Keep feed name `anthropic-news`** on source swap: chose continuity (feed-log history, HIGH_SIGNAL_FEEDS match) over a rename.
 - **Adoption step is advisory** (offer, not enforce): chose AskUserQuestion offer in onboard/align because feed noise is a cost; no hook-level enforcement.
+- **EXTRA_STALE_FEEDS get no zero-entry notice** (build-time decision): a scraper that has never run would otherwise nag every digest pre-deploy; scraper feeds flag only once entries exist and go stale. Registered feeds.json feeds DO get the "no entries yet" notice.
+- **Scraper appends oldest-first** within a batch (chronological feed-log order, matching poller behavior).
 
 ## Design
 
