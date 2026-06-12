@@ -52376,10 +52376,10 @@
       "blocked_by": [
         "t-1997"
       ],
-      "branch": null,
-      "build_step": null,
+      "branch": "reminders/feat/t-1998-channel-registry-adapters-dispatch",
+      "build_step": "specify",
       "completed": null,
-      "context": "Per ADR-053 (t-1996). Dispatch ownership Rust-side per ADR-051 'one owning binary' rationale; adapters are thin exec wrappers. Extract Telegram send from system/scheduler/brana-scheduler-notify.sh:69 into shared adapter — do not duplicate. Empty channels → priority defaults from registry. Re-run must not re-ping (dispatched marker under write lock).\\nAC: failing tests first (routing resolution, broadcast, idempotency)\\nAC: dispatch fires telegram + desktop adapters\\nAC: notify-send absent/headless → graceful skip, exit 0\n2026-06-12: ADR-053 challenger CORRECTION — do NOT migrate brana-scheduler-notify.sh onto brana notify send. Its Telegram curl duplication is a deliberate firebreak (it reports brana-binary failures, so it cannot depend on the binary). Instead: add '# DELIBERATE: independent of brana binary' comment to the script's curl block. Dispatch must be two-phase (select under lock / send without lock / commit under lock), send-then-mark ordering.\n2026-06-12: ADR renumbered — read ADR-054-reminder-delivery-channels.md (not 053).",
+      "context": "Per ADR-053 (t-1996). Dispatch ownership Rust-side per ADR-051 'one owning binary' rationale; adapters are thin exec wrappers. Extract Telegram send from system/scheduler/brana-scheduler-notify.sh:69 into shared adapter — do not duplicate. Empty channels → priority defaults from registry. Re-run must not re-ping (dispatched marker under write lock).\\nAC: failing tests first (routing resolution, broadcast, idempotency)\\nAC: dispatch fires telegram + desktop adapters\\nAC: notify-send absent/headless → graceful skip, exit 0\n2026-06-12: ADR-053 challenger CORRECTION — do NOT migrate brana-scheduler-notify.sh onto brana notify send. Its Telegram curl duplication is a deliberate firebreak (it reports brana-binary failures, so it cannot depend on the binary). Instead: add '# DELIBERATE: independent of brana binary' comment to the script's curl block. Dispatch must be two-phase (select under lock / send without lock / commit under lock), send-then-mark ordering.\n2026-06-12: ADR renumbered — read ADR-054-reminder-delivery-channels.md (not 053).\n2026-06-12 Sprint contract (draft, pre-challenger): SCOPE = (1) core::notify module in brana-core (notify.rs): ChannelRegistry::load (lenient parse per ADR-051 §4, missing file -> None), ChannelType {Telegram, Desktop, Ntfy} non-exhaustive (unknown type -> channel skipped with stderr warn), resolve(registry, explicit, priority) -> Vec<Channel> (explicit non-empty -> named channels, unknown names skipped+warned; [\"all\"] -> all channels; None/empty -> defaults[priority]; low default []), send(channel, msg) -> DispatchResult — telegram: parse secrets file (TELEGRAM_BOT_TOKEN/OWNER_CHAT_ID) + ureq POST sendMessage; ntfy: ureq POST {server}/{topic}; desktop: notify-send subprocess, absent binary or spawn error -> Failed{reason}, never Err. (2) remind::dispatch(store_path, registry, sender: &dyn Fn(&Channel,&str)->DispatchResult) -> DispatchReport — two-phase per ADR-054 §5: select via due() snapshot (under lock), send without lock, commit under lock (re-read; mark dispatched_at only if >=1 Sent AND still null; concurrent-marked untouched). Send-then-mark. All-fail -> stays null. Sender injected for tests; CLI passes notify::send. (3) CLI: remind due --dispatch flag; notify send --channel --message; notify channels (list registry). Missing registry + --dispatch -> warn stderr once, exit 0, no-op. (4) # DELIBERATE comment on scheduler-notify.sh curl block. (5) MODEL-001 §10 Notify (committed 36a48555). TESTS-FIRST: resolve explicit/all/defaults/low-empty/unknown-name, broadcast, dispatch idempotency (marked not re-selected; commit skips concurrent-marked), partial failure (1-of-2 Sent -> marked; all Failed -> null), missing registry no-op, registry lenient parse + back-compat. OUT OF SCOPE: scheduler timer (t-1999), docs (t-2000), channel-name validation, per-channel retry bookkeeping, calendar, brana-scheduler-notify.sh migration (firebreak). ASSUMPTION: brana notify send/channels CLI is t-1998 scope (ADR-054 §4 defines it; no other task claims it) — needs confirmation.",
       "created": "2026-06-12",
       "description": "Parse reminder-channels.json registry; implement telegram/desktop(notify-send)/ntfy adapters; --dispatch resolves each due reminder's channels (explicit list, 'all' broadcast, or priority defaults), fires adapters, marks dispatched idempotently.",
       "effort": "M",
@@ -52392,9 +52392,9 @@
       "order": null,
       "parent": null,
       "priority": "P1",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-06-12",
+      "status": "in_progress",
+      "strategy": "feature",
       "subject": "Channel registry + adapters + dispatch (brana remind due --dispatch)",
       "tags": [
         "reminders",
