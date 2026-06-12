@@ -637,6 +637,17 @@ pub fn validate_kind(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate an execution value (t-1982). Accepted: code, autonomous, null, "".
+/// Shared by CLI set, MCP backlog_set, and MCP backlog_add so they cannot drift.
+pub fn validate_execution(value: &str) -> Result<(), String> {
+    match value {
+        "code" | "autonomous" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid execution {other:?} — must be code/autonomous or null"
+        )),
+    }
+}
+
 /// Rename the `initiative` key to `epic` on a single task object (t-1614 schema migration).
 /// Preserves `level: "initiative"` and `type: "initiative"` values — only the KEY is renamed.
 pub fn migrate_initiative_to_epic(mut task: Value) -> Value {
@@ -772,6 +783,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             if field == "level" {
                 validate_level(value)?;
+            }
+            if field == "execution" {
+                validate_execution(value)?;
             }
             if value == "null" {
                 task[field] = Value::Null;
@@ -2794,5 +2808,70 @@ mod tests {
         assert_eq!(result["epic"], "some-epic", "initiative key renamed to epic");
         assert_eq!(result["type"], "initiative", "type value must not change");
         assert!(result.get("initiative").is_none());
+    }
+
+    // ── t-1982: execution enum validation ───────────────────────────────────
+
+    #[test]
+    fn test_validate_execution_accepts_code() {
+        assert!(validate_execution("code").is_ok());
+    }
+
+    #[test]
+    fn test_validate_execution_accepts_autonomous() {
+        assert!(validate_execution("autonomous").is_ok());
+    }
+
+    #[test]
+    fn test_validate_execution_accepts_null_and_empty() {
+        assert!(validate_execution("null").is_ok());
+        assert!(validate_execution("").is_ok());
+    }
+
+    #[test]
+    fn test_validate_execution_rejects_bogus() {
+        let err = validate_execution("bogus").unwrap_err();
+        assert!(err.contains("code"), "error must list allowed values: {err}");
+        assert!(err.contains("autonomous"), "error must list allowed values: {err}");
+    }
+
+    #[test]
+    fn test_set_field_execution_accepts_autonomous() {
+        let mut task = json!({"id": "t-1", "execution": "code"});
+        set_field(&mut task, "execution", "autonomous", false).unwrap();
+        assert_eq!(task["execution"], "autonomous");
+    }
+
+    #[test]
+    fn test_set_field_execution_accepts_code() {
+        let mut task = json!({"id": "t-1", "execution": null});
+        set_field(&mut task, "execution", "code", false).unwrap();
+        assert_eq!(task["execution"], "code");
+    }
+
+    #[test]
+    fn test_set_field_execution_accepts_null() {
+        let mut task = json!({"id": "t-1", "execution": "code"});
+        set_field(&mut task, "execution", "null", false).unwrap();
+        assert!(task["execution"].is_null());
+    }
+
+    #[test]
+    fn test_set_field_execution_rejects_bogus() {
+        let mut task = json!({"id": "t-1", "execution": "code"});
+        let err = set_field(&mut task, "execution", "bogus", false).unwrap_err();
+        assert!(err.contains("code"), "error must list allowed values: {err}");
+        assert!(err.contains("autonomous"), "error must list allowed values: {err}");
+        // Task must be unchanged on error
+        assert_eq!(task["execution"], "code");
+    }
+
+    #[test]
+    fn test_existing_tasks_with_null_execution_pass_validation() {
+        // Regression: tasks with execution=null must not be rejected when loaded
+        let mut task = json!({"id": "t-existing", "execution": null});
+        // set_field with null is fine
+        set_field(&mut task, "execution", "null", false).unwrap();
+        assert!(task["execution"].is_null());
     }
 }

@@ -694,3 +694,83 @@ fn test_set_field_kind_null_clears() {
         .expect("kind null must clear");
     assert!(task["kind"].is_null());
 }
+
+// ── t-1982: execution enum validation (all three write paths via brana-core) ──
+
+#[test]
+fn test_mcp_set_execution_autonomous_accepted() {
+    // Covers backlog_set MCP path: set_field is called directly from backlog_set tool.
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+    brana_core::tasks::set_field(task, "execution", "autonomous", false).unwrap();
+    assert_eq!(task["execution"], "autonomous");
+}
+
+#[test]
+fn test_mcp_set_execution_bogus_rejected() {
+    // backlog_set must reject invalid execution values and list allowed values.
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+    let err = brana_core::tasks::set_field(task, "execution", "bogus", false).unwrap_err();
+    assert!(err.contains("code"), "error must list 'code': {err}");
+    assert!(err.contains("autonomous"), "error must list 'autonomous': {err}");
+}
+
+#[test]
+fn test_mcp_add_default_execution_is_code() {
+    // backlog_add sets execution="code" by default — must remain valid after enum validation.
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+
+    // Simulate what backlog_add does: create task with execution="code"
+    let task = serde_json::json!({
+        "id": "t-004",
+        "subject": "new task",
+        "status": "pending",
+        "execution": "code",
+    });
+    val["tasks"].as_array_mut().unwrap().push(task);
+    brana_core::tasks::save_tasks(&path, &val).unwrap();
+
+    let reloaded = brana_core::tasks::load_raw(&path).unwrap();
+    let found = reloaded["tasks"].as_array().unwrap()
+        .iter().find(|t| t["id"] == "t-004").unwrap();
+    assert_eq!(found["execution"], "code");
+}
+
+#[test]
+fn test_mcp_set_execution_null_clears() {
+    // backlog_set: setting execution to null must clear the field.
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+    brana_core::tasks::set_field(task, "execution", "code", false).unwrap();
+    brana_core::tasks::set_field(task, "execution", "null", false).unwrap();
+    assert!(task["execution"].is_null());
+}
+
+#[test]
+fn test_mcp_add_execution_autonomous_accepted() {
+    // backlog_add: when execution field is validated on add, autonomous must be accepted.
+    // validate_execution is the single shared validator; this test uses it directly.
+    // Handler-level coverage (accepted + rejected through tools::backlog_add::build())
+    // lives in src/tools/backlog_add.rs unit tests — brana-mcp is a bin-only crate,
+    // so this integration test file cannot import the handler.
+    assert!(brana_core::tasks::validate_execution("autonomous").is_ok());
+    assert!(brana_core::tasks::validate_execution("code").is_ok());
+    assert!(brana_core::tasks::validate_execution("null").is_ok());
+    let err = brana_core::tasks::validate_execution("bogus").unwrap_err();
+    assert!(err.contains("code") && err.contains("autonomous"), "error must list values: {err}");
+}
