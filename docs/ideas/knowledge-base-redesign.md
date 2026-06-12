@@ -141,3 +141,5 @@ Phase **t-2021** "Knowledge Base Redesign — One Schema, Three Consumers" (epic
 | Cross-phase | t-2048 spec sync · t-2049 tech doc + guide |
 
 Superseded: t-156, t-1253, t-1259, t-1262 (cancelled with pointer notes).
+
+**Phase 0 ADR filed:** [ADR-057](../architecture/decisions/ADR-057-unit-of-knowledge.md) — Unit of Knowledge (2026-06-12, t-2027; renumbered from 056 after a parallel-session number collision).
