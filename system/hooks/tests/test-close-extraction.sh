@@ -31,8 +31,18 @@ make_fake_agy() {
     local path="$1"
     cat > "$path" <<'EOF'
 #!/usr/bin/env bash
-[ -n "${FAKE_AGY_OUTPUT:-}" ] && cat "$FAKE_AGY_OUTPUT"
-exit "${FAKE_AGY_EXIT:-0}"
+# $1=-p $2=prompt — dispatch on prompt content so the propagation pass
+# (ADR-056) gets its own fixture without depending on call order.
+case "${2:-}" in
+    *knowledge-propagation*)
+        [ -n "${FAKE_AGY_PROP_OUTPUT:-}" ] && cat "$FAKE_AGY_PROP_OUTPUT"
+        exit "${FAKE_AGY_PROP_EXIT:-${FAKE_AGY_EXIT:-0}}"
+        ;;
+    *)
+        [ -n "${FAKE_AGY_OUTPUT:-}" ] && cat "$FAKE_AGY_OUTPUT"
+        exit "${FAKE_AGY_EXIT:-0}"
+        ;;
+esac
 EOF
     chmod +x "$path"
 }
@@ -187,6 +197,61 @@ check "large snapshot run exits 0" "0" "$?"
 Q10=$(HOME="$H10" "$REAL_BRANA" close-queue list)
 check "large snapshot processed (no E2BIG)" "1" "$(echo "$Q10" | grep -c '"processed": true')"
 check "large snapshot not failed" "0" "$(echo "$Q10" | grep -c '"failed": true')"
+
+# ── 11. L3 propagation pass (ADR-056): propagate:true → gaps audited ──
+GAPS_OUTPUT="$TMPDIR/gaps.json"
+cat > "$GAPS_OUTPUT" <<'EOF'
+{"gaps": [
+  {"category": "a", "title": "test-strategy pointer never written", "evidence": "Doc Plan unchecked", "proposed_fix": "write docs/test-strategy.md"},
+  {"category": "d", "title": "memory says pending go", "evidence": "MEMORY.md stale", "proposed_fix": "update memory"}
+]}
+EOF
+
+H11="$TMPDIR/h11"; mkdir -p "$H11/.claude/sessions"
+SNAP11="$H11/.claude/sessions/snap-prop.diff"
+printf 'diff --git a/docs/spec.md b/docs/spec.md\n+++ b/docs/spec.md\n+- [ ] pending item\n' > "$SNAP11"
+HOME="$H11" "$REAL_BRANA" close-queue append --project testproj --branch feat-prop \
+    --git-root /tmp --git-range p1..p2 --snapshot-path "$SNAP11" --commit-count 1 \
+    --propagate >/dev/null
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$GAPS_OUTPUT" \
+    run_cron "$H11" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$GAPS_OUTPUT" >/dev/null 2>&1
+check "propagate entry run exits 0" "0" "$?"
+Q11=$(HOME="$H11" "$REAL_BRANA" close-queue list)
+check "propagate entry processed" "1" "$(echo "$Q11" | grep -c '"processed": true')"
+R11=$(HOME="$H11" "$REAL_BRANA" remind list)
+check "two propagation gap reminders written" "2" "$(echo "$R11" | python3 -c "
+import json,sys
+rs=json.load(sys.stdin)
+print(sum(1 for r in rs if r.get('dedup_key','').startswith('prop:')))")"
+check "gap reminder tagged propagation" "1" "$(echo "$R11" | python3 -c "
+import json,sys
+rs=json.load(sys.stdin)
+print(sum(1 for r in rs if 'propagation' in (r.get('tags') or []) and 'test-strategy' in r['text']))")"
+
+# ── 12. propagate:false → no propagation pass, no prop reminders ──────
+H12="$TMPDIR/h12"; mkdir -p "$H12"
+seed_entry "$H12" feat-noprop n1..n2 >/dev/null
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$GAPS_OUTPUT" \
+    run_cron "$H12" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$GAPS_OUTPUT" >/dev/null 2>&1
+R12=$(HOME="$H12" "$REAL_BRANA" remind list)
+check "no propagation reminders for propagate:false" "0" "$(echo "$R12" | python3 -c "
+import json,sys
+rs=json.load(sys.stdin)
+print(sum(1 for r in rs if r.get('dedup_key','').startswith('prop:')))")"
+
+# ── 13. invalid gaps output → entry mark-failed, never partial ────────
+H13="$TMPDIR/h13"; mkdir -p "$H13/.claude/sessions"
+SNAP13="$H13/.claude/sessions/snap-badprop.diff"
+printf 'diff --git a/z b/z\n+++ b/z\n+x\n' > "$SNAP13"
+HOME="$H13" "$REAL_BRANA" close-queue append --project testproj --branch feat-badprop \
+    --git-root /tmp --git-range bp1..bp2 --snapshot-path "$SNAP13" --commit-count 1 \
+    --propagate >/dev/null
+BAD_GAPS="$TMPDIR/badgaps.json"; echo "not json at all" > "$BAD_GAPS"
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$BAD_GAPS" \
+    run_cron "$H13" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$BAD_GAPS" >/dev/null 2>&1
+Q13=$(HOME="$H13" "$REAL_BRANA" close-queue list)
+check "invalid gaps output → not processed" "0" "$(echo "$Q13" | grep -c '"processed": true')"
+check "invalid gaps output → marked failed" "1" "$(echo "$Q13" | grep -c '"failed": true')"
 
 # ── 9. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"

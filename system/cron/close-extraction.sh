@@ -172,6 +172,78 @@ PYEOF
     }
     rm -f "$OUT_FILE"
 
+    # ── L3 propagation pass (ADR-056 §4): entries flagged propagate:true ──
+    # Runs BEFORE any reminder routing so a contract failure marks the entry
+    # failed with zero partial writes. Repo state is read at CRON time, with
+    # post-close commits surfaced so already-resolved gaps are suppressed.
+    PROPAGATE=$(echo "$ENTRY" | python3 -c "import json,sys; print(str(json.load(sys.stdin).get('propagate', False)).lower())")
+    GAPS="[]"
+    if [ "$PROPAGATE" = "true" ]; then
+        GROOT=$(echo "$ENTRY" | python3 -c "import json,sys; print(json.load(sys.stdin)['git_root'])")
+        POST_COMMITS=$(git -C "$GROOT" log --oneline "$RANGE..HEAD" 2>/dev/null | head -20)
+        DOC_STATE=""
+        for f in $(grep -oE '^diff --git a/[^ ]+' "$SNAP" | sed 's|^diff --git a/||' | grep '\.md$' | head -10); do
+            [ -f "$GROOT/$f" ] || continue
+            DOC_STATE="$DOC_STATE
+--- $f (current) ---
+$(grep -m1 -iE '^[*]*status' "$GROOT/$f" 2>/dev/null)
+$(awk '/^#+ Documentation Plan/{flag=1; next} /^#+ /{flag=0} flag' "$GROOT/$f" | head -30)"
+        done
+        MEM_STATE=""
+        MEM_N=0
+        for m in "$GROOT"/.claude/memory/*.md; do
+            [ -f "$m" ] || continue
+            [ "$MEM_N" -ge 5 ] && break
+            MEM_STATE="$MEM_STATE
+--- $(basename "$m") ---
+$(head -40 "$m")"
+            MEM_N=$((MEM_N + 1))
+        done
+        PROP_DIFF=$(printf '%s' "$DIFF_CONTENT" | head -c 60000)
+        PROP_PROMPT="You are auditing knowledge-propagation debt for project '$PROJECT' (branch $BRANCH, commits $RANGE).
+Below: (1) the session diff, (2) CURRENT content of touched specs' Status + Documentation Plan sections, (3) current project memory files, (4) post-close commits ($RANGE..HEAD).
+Detect gaps in categories: (a) unfulfilled committed artifacts ('- [ ]' items, 'al cerrar'/'on close' promises), (b) Status fields contradicting completed work, (c) docs named in 'Existing docs to update' lines not updated, (d) memory claims contradicted by current state. Suppress any gap the current state or post-close commits show as already resolved. Return ONLY JSON, no markdown fences, matching exactly:
+{\"gaps\": [{\"category\": \"a|b|c|d\", \"title\": \"...\", \"evidence\": \"...\", \"proposed_fix\": \"...\"}]}
+Empty array if no gaps.
+
+--- DIFF ---
+$PROP_DIFF
+--- CURRENT DOC STATE ---
+$DOC_STATE
+--- MEMORY ---
+$MEM_STATE
+--- POST-CLOSE COMMITS ---
+$POST_COMMITS"
+        PROP_OUT="/tmp/close-prop-$$-${EID}.json"
+        if ! "$AGY" -p "$PROP_PROMPT" > "$PROP_OUT" 2>/dev/null; then
+            AGY_RC=$?
+            fail_entry "agy propagation pass failed (exit $AGY_RC)"
+            rm -f "$PROP_OUT"
+            continue
+        fi
+        GAPS=$(python3 - "$PROP_OUT" <<'PYEOF'
+import json, sys, re
+raw = open(sys.argv[1]).read().strip()
+raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw)
+try:
+    data = json.loads(raw)
+    gs = data["gaps"]
+    assert isinstance(gs, list)
+    for g in gs:
+        assert g["category"] in ("a", "b", "c", "d")
+        assert g["title"].strip()
+    print(json.dumps(gs))
+except Exception:
+    sys.exit(1)
+PYEOF
+) || {
+            fail_entry "agy propagation output failed contract validation"
+            rm -f "$PROP_OUT"
+            continue
+        }
+        rm -f "$PROP_OUT"
+    fi
+
     # Route every learning to the reminder store (v1: human reviews → memory).
     COUNT=$(echo "$LEARNINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
     i=0
@@ -189,6 +261,24 @@ PYEOF
             --project "$PROJECT" \
             --tags "extraction,$L_TYPE" || true
         i=$((i + 1))
+    done
+
+    # Propagation gaps → reminder store (ADR-056: same v1 human-review routing).
+    GAP_COUNT=$(echo "$GAPS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+    g=0
+    while [ "$g" -lt "$GAP_COUNT" ]; do
+        G_CAT=$(echo "$GAPS" | python3 -c "import json,sys; print(json.load(sys.stdin)[$g]['category'])")
+        G_TITLE=$(echo "$GAPS" | python3 -c "import json,sys; print(json.load(sys.stdin)[$g]['title'])")
+        G_EVID=$(echo "$GAPS" | python3 -c "import json,sys; print(json.load(sys.stdin)[$g].get('evidence',''))")
+        G_FIX=$(echo "$GAPS" | python3 -c "import json,sys; print(json.load(sys.stdin)[$g].get('proposed_fix',''))")
+        G_SLUG=$(echo "$G_TITLE" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | cut -c1-48)
+        write_reminder \
+            --text "[propagation/$G_CAT] $G_TITLE — $G_EVID → $G_FIX" \
+            --priority medium \
+            --dedup-key "prop:$PROJECT:$G_SLUG" \
+            --project "$PROJECT" \
+            --tags "propagation,$G_CAT" || true
+        g=$((g + 1))
     done
 
     # Daily summary: APPEND, never replace (ADR-052, challenger M9).
