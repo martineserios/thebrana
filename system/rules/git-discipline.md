@@ -18,9 +18,12 @@ Every change starts on a branch. Always. No exceptions.
 
 Use `git worktree add ../repo-shortname -b prefix/name` instead of `git checkout`. After merge: `git worktree remove ../path && git branch -d prefix/name`. Never `rm -rf` worktrees. Agents can't write to worktrees — compose in agent, write in main context.
 
+**Always `cd` to the repo root before `git worktree add`** so `../` resolves to the repo's parent directory, not wherever the shell happens to be. After adding, spot-check with `ls` on a known file inside the worktree before doing any work there.
+
 ```bash
 # Start work
 git worktree add ../myapp-auth -b feat/t-015-jwt-auth
+ls ../myapp-auth/README.md  # verify path resolved correctly
 # Done — merge and clean up
 git merge --no-ff feat/t-015-jwt-auth
 git worktree remove ../myapp-auth && git branch -d feat/t-015-jwt-auth

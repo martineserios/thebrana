@@ -4078,6 +4078,22 @@ The `if`/`else` form captures the exit code without triggering `set -e`. This is
 
 ---
 
+### E2026-06-13-3 — `git-discipline.md` worktree path example is CWD-dependent but does not say so
+
+**Severity:** Low
+**Discovery:** 2026-06-13, t-2080 worktree setup (thebrana)
+**Affected files:** `~/.claude/rules/git-discipline.md` (example line using `../`)
+
+**Bug:** The rule shows `git worktree add ../myapp-auth -b feat/t-015-jwt-auth` as a template. The `../` path resolves relative to whatever the current working directory is at invocation time. For thebrana, the correct CWD is `~/enter_thebrana/thebrana/`, making `../` → `~/enter_thebrana/thebrana-{slug}`. If invoked from `~` or any other CWD, the worktree lands in the wrong location (`~/thebrana-{slug}` or similar). The rule is silent on this constraint.
+
+**Impact:** Worktree placed at `~/thebrana-t-2080` instead of `~/enter_thebrana/thebrana-t-2080`. Error caught mid-task when test script's `cp "$REPO_ROOT/validate.sh"` failed because the file wasn't at the resolved path.
+
+**Fix:** Add a one-liner to the rule: "Always `cd` to the repo root before running `git worktree add` so `../` resolves relative to the repo's parent." Or replace the example with an absolute path: `~/enter_thebrana/thebrana-{slug}`.
+
+**Status:** pending
+
+---
+
 ### E2026-06-13-1 — `vi.clearAllMocks()` + `vi.resetModules()` destroys mock factory implementations
 
 **Severity:** Medium
