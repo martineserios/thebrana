@@ -4075,3 +4075,33 @@ fi
 The `if`/`else` form captures the exit code without triggering `set -e`. This is the same fix pattern used for `((N++))` in E2026-04-20-2.
 
 **Status:** code-fix (2026-06-08) — committed `ad6ad16a`.
+
+---
+
+### E2026-06-13-1 — `vi.clearAllMocks()` + `vi.resetModules()` destroys mock factory implementations
+
+**Severity:** Medium
+**Discovery:** 2026-06-13, t-1321 trigger test stabilization (proyecto-anita)
+**Affected files:** `services/anita-api/tests/trigger.test.ts`
+
+**Bug:** `vi.clearAllMocks()` was added to the first `describe` block's `beforeEach` to reset shared mutable state (`eqCalls[]`) between test runs. However, when combined with `vi.resetModules()`, `vi.clearAllMocks()` also clears mock *implementations* — factory functions set via `vi.mock('module', factory)` become non-callable. The `KapsoClient` mock constructor threw `TypeError: () => ({createBroadcast: vi.fn()...}) is not a constructor` on every test re-import.
+
+**Root cause:** `vi.clearAllMocks()` resets all mocks including spy implementations. With `vi.resetModules()` the module is re-imported fresh each `beforeEach`, causing a new instantiation of the mocked class — but the cleared factory no longer provides the constructor.
+
+**Fix:** Removed `vi.clearAllMocks()`. Added targeted reset of the actual shared state: `eqCalls = []` in the first describe's `beforeEach`. The second describe already had this; the first was missing it.
+
+**Status:** code-fix (2026-06-13) — t-1321.
+
+---
+
+### E2026-06-13-2 — E2E seed UUID constants with non-hex characters rejected by PostgreSQL
+
+**Severity:** Medium
+**Discovery:** 2026-06-13, Playwright E2E run against production (proyecto-anita)
+**Affected files:** `services/anita-web/e2e/setup/seed-e2e-tenant.ts`
+
+**Bug:** UUID string constants in the E2E seed used shorthand suffix characters that are not valid hex digits: `e2e00000s001-...` (s=segment), `e2e00000t001-...` (t=template), `e2e00000m001-...` (m=message_schedule), `e2e00000k001-...` (k=broadcast_run). PostgreSQL UUID type validates that all characters are `[0-9a-f]`. All INSERTs targeting these UUIDs failed with `22P02: invalid input syntax for type uuid`.
+
+**Fix:** Replaced non-hex suffix characters with numeric equivalents: `002` for segment, `003` for template, `004` for message_schedule, `005` for broadcast_run. Also discovered `broadcast_runs` INSERT used columns that don't exist (`status`, `messages_sent`) — fixed to actual schema columns (`broadcast_id`, `phone_number_id`, `run_date`, `recipient_count`) after querying via Supabase Management API.
+
+**Status:** code-fix (2026-06-13) — Playwright E2E 69/69 green after fix.

@@ -34,6 +34,11 @@ if [ -z "$GIT_ROOT" ] || [ -z "$BRANCH" ] || [ -z "$PROJECT" ] || [ -z "$COMMIT_
     exit 2
 fi
 
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "close-snapshot: python3 required for hunk-boundary truncation — not found in PATH" >&2
+    exit 2
+fi
+
 # Nothing committed this session — nothing to extract, nothing to queue.
 if [ "$COMMIT_COUNT" -le 0 ] 2>/dev/null; then
     exit 0
@@ -79,14 +84,48 @@ if ! git -C "$GIT_ROOT" diff "$GIT_RANGE" > "$SNAP_FILE" 2>/dev/null; then
     exit 0
 fi
 
-# Cap at 500KB (ADR-052 §4): truncate and flag.
+# Cap at 500KB (ADR-052 §4): cut at the last whole diff --git boundary before
+# the cap so no hunk is split mid-content. Record dropped file names.
 TRUNCATED_FLAG=""
+OMITTED_ARRAY=()
 SNAP_SIZE=$(stat -c %s "$SNAP_FILE" 2>/dev/null || echo 0)
 if [ "$SNAP_SIZE" -gt "$MAX_SNAPSHOT_BYTES" ]; then
-    truncate -s "$MAX_SNAPSHOT_BYTES" "$SNAP_FILE" 2>/dev/null || {
+    # Find byte offset of the last "\ndiff --git " header that starts before the cap.
+    CUT_OFFSET=$(python3 - "$SNAP_FILE" "$MAX_SNAPSHOT_BYTES" <<'PYEOF'
+import sys
+path, cap = sys.argv[1], int(sys.argv[2])
+with open(path, "rb") as f:
+    data = f.read(cap)
+marker = b"\ndiff --git "
+pos = data.rfind(marker)
+print(pos if pos > 0 else cap)
+PYEOF
+)
+    # Collect omitted files: all "diff --git a/FILE b/FILE" headers after CUT_OFFSET.
+    OMITTED=$(python3 - "$SNAP_FILE" "$CUT_OFFSET" <<'PYEOF'
+import sys, re
+path, offset = sys.argv[1], int(sys.argv[2])
+with open(path, "rb") as f:
+    f.seek(offset)
+    tail = f.read().decode("utf-8", errors="replace")
+files = re.findall(r'^diff --git a/.+ b/(.+)$', tail, re.MULTILINE)
+print("\n".join(dict.fromkeys(files)))
+PYEOF
+)
+    # Truncate at the hunk boundary.
+    if [ "${CUT_OFFSET:-0}" -gt 0 ] && [ "$CUT_OFFSET" -lt "$SNAP_SIZE" ]; then
+        head -c "$CUT_OFFSET" "$SNAP_FILE" > "${SNAP_FILE}.tmp" && mv "${SNAP_FILE}.tmp" "$SNAP_FILE"
+    else
         head -c "$MAX_SNAPSHOT_BYTES" "$SNAP_FILE" > "${SNAP_FILE}.tmp" && mv "${SNAP_FILE}.tmp" "$SNAP_FILE"
-    }
+    fi
     TRUNCATED_FLAG="--snapshot-truncated"
+    # Build repeatable --omitted-files flags for the queue append (array to
+    # handle filenames with spaces — word-split-safe).
+    if [ -n "$OMITTED" ]; then
+        while IFS= read -r omf; do
+            [ -n "$omf" ] && OMITTED_ARRAY+=("--omitted-files" "$omf")
+        done <<< "$OMITTED"
+    fi
 fi
 
 # --propagate on EVERY queued close (ADR-056 §4 fail-safe): at snapshot time
@@ -100,7 +139,8 @@ if ! "$BRANA_BIN" close-queue append \
     --snapshot-path "$SNAP_FILE" \
     --commit-count "$COMMIT_COUNT" \
     --propagate \
-    ${TRUNCATED_FLAG:+$TRUNCATED_FLAG} >/dev/null; then
+    ${TRUNCATED_FLAG:+$TRUNCATED_FLAG} \
+    "${OMITTED_ARRAY[@]}" >/dev/null; then
     echo "close-snapshot: queue append failed — snapshot saved at $SNAP_FILE, close continues" >&2
     exit 0
 fi

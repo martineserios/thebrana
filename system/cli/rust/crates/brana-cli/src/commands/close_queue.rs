@@ -19,6 +19,7 @@ pub fn cmd_append(
     snapshot_path: String,
     commit_count: u64,
     snapshot_truncated: bool,
+    omitted_files: Vec<String>,
     session_notes_path: Option<String>,
     propagate: bool,
 ) -> Result<()> {
@@ -32,6 +33,7 @@ pub fn cmd_append(
             snapshot_path,
             commit_count,
             snapshot_truncated,
+            omitted_files: if omitted_files.is_empty() { None } else { Some(omitted_files) },
             session_notes_path,
             propagate,
         },
