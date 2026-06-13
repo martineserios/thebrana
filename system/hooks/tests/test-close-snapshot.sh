@@ -101,6 +101,35 @@ check "missing binary warns" "yes" "$([ -s "$stderr_file" ] && echo yes || echo 
 # ── 6. no jq in the script (queue is Rust-owned) ──────────────────────
 check "no jq calls in script" "0" "$(grep -v '^\s*#' "$SNAP" | grep -c '\bjq\b')"
 
+# ── 7. hunk-boundary cut: truncation never splits a diff --git section ─
+# 3 commits each with ~200KB file → total diff ~810KB, cap at 512KB.
+H5="$TMPDIR/home5"; mkdir -p "$H5"
+R5="$TMPDIR/repo5"; make_repo "$R5" 3 200000
+HOME="$H5" BRANA="$REAL_BRANA" bash "$SNAP" --git-root "$R5" --branch feat/big3 --project testproj --commit-count 3 >/dev/null 2>&1
+SNAPFILE7=$(ls "$H5/.claude/sessions/"snap-*.diff 2>/dev/null | head -1)
+FULL_DIFF_SECTIONS=$(git -C "$R5" diff HEAD~3..HEAD 2>/dev/null | grep -c "^diff --git" || echo 0)
+TRUNC_SECTIONS=$(grep -c "^diff --git" "$SNAPFILE7" 2>/dev/null || echo 0)
+check "hunk-boundary cut drops at least one section" "1" "$([ "${TRUNC_SECTIONS:-0}" -lt "${FULL_DIFF_SECTIONS:-0}" ] && echo 1 || echo 0)"
+# The last section in the truncated file must be complete (has index line).
+LAST_DIFF_LINE=$(grep -n "^diff --git" "$SNAPFILE7" 2>/dev/null | tail -1 | cut -d: -f1)
+if [ -n "$LAST_DIFF_LINE" ]; then
+    HAS_INDEX=$(tail -n +"$LAST_DIFF_LINE" "$SNAPFILE7" | grep -c "^index " || echo 0)
+else
+    HAS_INDEX=0
+fi
+check "last section in truncated file is complete" "1" "$([ "${HAS_INDEX:-0}" -gt 0 ] && echo 1 || echo 0)"
+
+# ── 8. omitted_files populated in queue entry when truncated ───────────
+QJSON7=$(HOME="$H5" "$REAL_BRANA" close-queue list 2>/dev/null || echo "[]")
+OMITTED_COUNT=$(echo "$QJSON7" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+e = data[0] if data else {}
+files = e.get('omitted_files') or []
+print(len(files))
+" 2>/dev/null || echo "0")
+check "omitted_files populated when truncated" "1" "$([ "${OMITTED_COUNT:-0}" -gt 0 ] && echo 1 || echo 0)"
+
 echo ""
 echo "test-close-snapshot: $PASS/$TOTAL passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

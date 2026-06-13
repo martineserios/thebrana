@@ -32,6 +32,9 @@ pub struct Entry {
     pub snapshot_path: String,
     #[serde(default)]
     pub snapshot_truncated: bool,
+    /// Files dropped by the hunk-boundary cap (ADR-052 §4). None when not truncated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub omitted_files: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_notes_path: Option<String>,
     #[serde(default)]
@@ -69,6 +72,8 @@ pub struct NewEntry {
     pub snapshot_path: String,
     pub commit_count: u64,
     pub snapshot_truncated: bool,
+    /// Files dropped by the hunk-boundary cap. None when not truncated.
+    pub omitted_files: Option<Vec<String>>,
     pub session_notes_path: Option<String>,
     pub propagate: bool,
 }
@@ -163,6 +168,7 @@ pub fn append(path: &Path, new: NewEntry) -> Result<AppendResult, String> {
         commit_count: new.commit_count,
         snapshot_path: expand_home(&new.snapshot_path),
         snapshot_truncated: new.snapshot_truncated,
+        omitted_files: new.omitted_files,
         session_notes_path: new.session_notes_path.as_deref().map(expand_home),
         processed: false,
         processed_at: None,
@@ -552,6 +558,34 @@ mod tests {
             h.join().unwrap();
         }
         assert_eq!(list(&path, false).unwrap().len(), n_threads * per_thread);
+    }
+
+    #[test]
+    fn omitted_files_roundtrip() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let e = NewEntry {
+            project: "thebrana".into(),
+            branch: "feat/x".into(),
+            git_root: "/repo".into(),
+            git_range: "a..b".into(),
+            snapshot_path: "/snaps/a.diff".into(),
+            commit_count: 1,
+            snapshot_truncated: true,
+            omitted_files: Some(vec!["foo.rs".into(), "bar.rs".into()]),
+            ..Default::default()
+        };
+        let r = append(&path, e).unwrap();
+        assert_eq!(r.entry.omitted_files, Some(vec!["foo.rs".to_string(), "bar.rs".to_string()]));
+        let listed = list(&path, false).unwrap();
+        assert_eq!(listed[0].omitted_files, Some(vec!["foo.rs".to_string(), "bar.rs".to_string()]));
+    }
+
+    #[test]
+    fn back_compat_parse_without_omitted_files() {
+        let json = r#"{"version":1,"entries":[{"id":"q-001","dedup_key":"p:b:r","timestamp":"2026-01-01T00:00:00Z","branch":"feat/x","project":"p","git_root":"/r","git_range":"a..b","snapshot_path":"/s","snapshot_truncated":true,"processed":false,"failed":false,"retry_count":0,"propagate":false}]}"#;
+        let store: Store = serde_json::from_str(json).unwrap();
+        assert_eq!(store.entries[0].omitted_files, None);
     }
 
     #[test]

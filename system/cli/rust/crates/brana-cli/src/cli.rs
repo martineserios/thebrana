@@ -1215,6 +1215,9 @@ pub enum CloseQueueCmd {
         /// Set when the diff was truncated at the 500KB cap
         #[arg(long)]
         snapshot_truncated: bool,
+        /// Files dropped by the hunk-boundary cap (repeatable: --omitted-files foo.rs --omitted-files bar.rs)
+        #[arg(long)]
+        omitted_files: Vec<String>,
         #[arg(long)]
         session_notes_path: Option<String>,
         /// Queue for the nightly L3 propagation audit (ADR-056 — cleared by
