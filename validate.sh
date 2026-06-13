@@ -2342,6 +2342,36 @@ fi
 echo ""
 fi  # should_run 58
 
+if should_run 59; then
+# Check 59 — git worktrees must live inside $HOME/enter_thebrana/ (t-2081)
+# A stray worktree (e.g. ~/thebrana-t-NNN instead of
+# ~/enter_thebrana/thebrana-t-NNN) creates silently; the error surfaces only
+# at file-copy time. (Field note 2026-06-13 / worktree-wrong-path)
+echo "Check 59: Worktree path convention..."
+C59_WARNS=0
+C59_PREFIX="$HOME/enter_thebrana/"
+C59_SKIP_FIRST=true
+
+while IFS= read -r _c59_line; do
+    if [[ "$_c59_line" == worktree\ * ]]; then
+        _c59_path="${_c59_line#worktree }"
+        if $C59_SKIP_FIRST; then
+            C59_SKIP_FIRST=false
+            continue
+        fi
+        if [[ "$_c59_path" != "$C59_PREFIX"* ]]; then
+            warn "Check 59: worktree '$_c59_path' is outside $C59_PREFIX — use ~/enter_thebrana/<name> per git-discipline.md"
+            C59_WARNS=$((C59_WARNS + 1))
+        fi
+    fi
+done < <(git -C "$SCRIPT_DIR" worktree list --porcelain 2>/dev/null || true)
+
+if [ "$C59_WARNS" -eq 0 ]; then
+    pass "Check 59: All active worktrees inside $C59_PREFIX"
+fi
+echo ""
+fi  # should_run 59
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
