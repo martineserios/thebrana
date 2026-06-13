@@ -1,3 +1,7 @@
+---
+status: accepted
+date: 2026-06-12
+---
 # ADR-055: Tech-Stack Changelog Tracking in the Intelligence Feed
 
 **Status:** Accepted
