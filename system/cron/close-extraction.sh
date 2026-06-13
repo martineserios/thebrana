@@ -113,6 +113,10 @@ print(json.dumps(entries[0]) if entries else '')")
 
     fail_entry() {
         local reason="$1"
+        # Stdout is the only durable record of WHY — the queue's last_error is
+        # wiped once a later attempt succeeds, and the scheduler log only kept
+        # the processed/failed counts (t-2076).
+        echo "close-extraction: entry $EID failed ($PROJECT $BRANCH $RANGE): $reason"
         "$BRANA_BIN" close-queue mark-failed "$EID" --error "$reason" >/dev/null
         FAILED=$((FAILED + 1))
         EXIT_CODE=1

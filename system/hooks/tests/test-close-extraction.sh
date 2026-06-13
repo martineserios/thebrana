@@ -367,6 +367,14 @@ check "cron exports HOME explicitly" "1" "$(grep -c '^export HOME' "$CRON")"
 PROMPT_FILE="$SCRIPT_DIR/../../cron/prompts/close-extraction.txt"
 check "versioned prompt file exists" "yes" "$([ -f "$PROMPT_FILE" ] && echo yes || echo no)"
 check "cron reads the versioned prompt file" "1" "$(grep -v '^\s*#' "$CRON" | grep -c 'prompts/close-extraction.txt')"
+# ── 23. fail reason echoed to stdout for scheduler logs (t-2076) ───────
+# The queue stores the reason, but it is wiped once a later attempt succeeds —
+# the scheduler log is the only durable place a human can see WHY a run failed.
+H_STDOUT="$TMPDIR/h-stdout"; mkdir -p "$H_STDOUT"
+seed_entry "$H_STDOUT" feat-stdout a..b >/dev/null
+OUT_STDOUT=$(run_cron "$H_STDOUT" env FAKE_AGY_EXIT=7 2>&1)
+check "fail reason echoed to stdout" "1" "$(echo "$OUT_STDOUT" | grep -c 'agy invocation failed (exit 7)')"
+
 
 echo ""
 echo "test-close-extraction: $PASS/$TOTAL passed, $FAIL failed"

@@ -221,6 +221,17 @@
       "captureOutput": true,
       "_comment": "t-2011: Kapso changelog scraper (no RSS exists) - docs.kapso.ai/changelog.md -> feed-log.jsonl, before feed-index (19:00). ADR-055."
     },
+    "feed-summarize": {
+      "type": "command",
+      "command": "./system/scripts/feed-summarize.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 18:55:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 900,
+      "captureOutput": true,
+      "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p -> feed-summaries.jsonl (feed-index joins at 19:00). Was missing from template (t-2076)."
+    },
     "feed-index": {
       "type": "command",
       "command": "./system/scripts/feed-index.sh",
@@ -237,7 +248,7 @@
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 19:15:00",
       "enabled": true,
-      "timeoutSeconds": 300,
+      "timeoutSeconds": 1800,
       "captureOutput": true,
       "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Runs 15min after feed-index (19:00). Entries searchable after next session start."
     },

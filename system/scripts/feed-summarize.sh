@@ -25,6 +25,10 @@ CLAUDE_BIN="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
 MAX_CONTENT_CHARS=3000
 FETCH_TIMEOUT=15
 SUMMARIZE_TIMEOUT=45
+# Per-run cap (t-2076): a backlog of unsummarized articles must not turn every
+# run into a job timeout. A capped run exits 0 WITHOUT advancing the watermark —
+# the link-dedup set makes the rescan cheap and later runs drain the rest.
+MAX_PER_RUN="${FEED_SUMMARIZE_MAX:-20}"
 
 # Feeds that require URL fetch + claude -p summarization
 # (feeds with full content/summary already in the entry are handled by feed-index.sh directly)
@@ -160,6 +164,7 @@ PYEOF
 SUMMARIZED=0
 SKIPPED=0
 FAILED=0
+CAPPED=0
 
 while IFS= read -r entry; do
     LINK=$(echo "$entry" | jq -r '.link // empty')
@@ -235,10 +240,18 @@ print(json.dumps({
     # Add to done set to avoid re-processing within this run
     echo "$LINK" >> "$TMP_DONE_LINKS"
 
+    if [ "$SUMMARIZED" -ge "$MAX_PER_RUN" ]; then
+        echo "[feed-summarize] per-run cap reached ($MAX_PER_RUN) — exiting early, watermark unchanged"
+        CAPPED=1
+        break
+    fi
+
 done < "$TMP_FILTERED"
 
-# ── Update watermark ──────────────────────────────────────────────────────────
+# ── Update watermark (skip on capped runs — unchecked entries remain) ─────────
 
-echo "$TOTAL_LINES" > "$WATERMARK"
+if [ "$CAPPED" = "0" ]; then
+    echo "$TOTAL_LINES" > "$WATERMARK"
+fi
 
-echo "[feed-summarize] done — summarized: $SUMMARIZED, already-done: $SKIPPED, failed: $FAILED"
+echo "[feed-summarize] done — summarized: $SUMMARIZED, already-done: $SKIPPED, failed: $FAILED, capped: $CAPPED"
