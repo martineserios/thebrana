@@ -83,11 +83,21 @@ Entries flagged `propagate: true` additionally get a propagation pass (ADR-056):
 | Queue store | `system/cli/rust/crates/brana-core/src/queue.rs` | 16 (incl. 2 race tests) |
 | Queue CLI | `crates/brana-cli/src/commands/close_queue.rs` | 5 smoke |
 | Mode classify | `system/scripts/close-classify.sh` | 32 (`tests/procedures/test-close-weight-adaptive.sh`) |
-| Snapshot+queue | `system/scripts/close-snapshot.sh` | 16 |
+| Snapshot+queue | `system/scripts/close-snapshot.sh` | 16 (+ 1 hunk-boundary) |
 | Extraction cron | `system/cron/close-extraction.sh` | 23 |
 | Close skill | `system/skills/close/phases/gate-and-evidence.md` (Step 1b, INSTANT branch) | via classify tests |
 | Surfacing | `system/hooks/session-start.sh` (`[Yesterday]` + `[Reminders]`) | 10 + 11 |
 | Scheduler | `system/scheduler/scheduler.template.json` → `close-extraction` @ 02:00 | live one-shot verified |
+
+### Snapshot truncation (t-2066)
+
+When a diff exceeds the 500KB cap, `close-snapshot.sh` truncates at the last whole `diff --git` boundary before the limit, ensuring no hunk is split mid-content:
+
+1. `grep -b` finds byte offsets of all `\ndiff --git ` headers within the capped portion.
+2. `tail -c +N` + `grep` + `sed` collect filenames of all diff headers beyond the cut point — these become `--omitted-files` arguments passed to `brana close-queue append` so the queue entry records which files were dropped.
+3. `head -c $CUT_OFFSET` truncates the snapshot file at the boundary.
+
+No python3 dependency — pure POSIX tools (`grep`, `sed`, `awk`, `tail`). The python3 preflight check in `close-snapshot.sh` was removed in the same commit.
 
 ## Deferred
 
