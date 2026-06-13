@@ -54785,7 +54785,7 @@
     {
       "id": "t-2080",
       "subject": "validate.sh: detect multiple always-load rules claiming first-position at work-start",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -54803,6 +54803,33 @@
       "blocked_by": [],
       "branch": null,
       "context": null,
+      "notes": "Check 2b added to validate.sh (lines ~158-176). Two-grep approach: first-family phrases (go first/always ask first/read.*first) AND work-start vocabulary (work-start/before.*implement/starting.*task). Threshold 2+ claimants = fail. 6-case test. Passes on real repo (1 claimant = work-start.md). Docs update for async-close.md (hunk-boundary truncation + omitted_files) committed in same branch.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2081",
+      "subject": "validate.sh: guard worktree add path lands inside enter_thebrana/ (see t-1835)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "ideation",
+        "validate",
+        "worktree"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-13",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Triggered from field note 2026-06-13: git worktree add at wrong path (~/thebrana-t-2080 instead of ~/enter_thebrana/thebrana-t-2080) fails silently at creation; error surfaces at file-copy time. t-1835 already tracks worktree-detection guard for brana graph build — may be related scope.",
       "notes": null,
       "order": 0,
       "github_issue": null,
