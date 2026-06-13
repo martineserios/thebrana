@@ -4088,9 +4088,9 @@ The `if`/`else` form captures the exit code without triggering `set -e`. This is
 
 **Impact:** Worktree placed at `~/thebrana-t-2080` instead of `~/enter_thebrana/thebrana-t-2080`. Error caught mid-task when test script's `cp "$REPO_ROOT/validate.sh"` failed because the file wasn't at the resolved path.
 
-**Fix:** Add a one-liner to the rule: "Always `cd` to the repo root before running `git worktree add` so `../` resolves relative to the repo's parent." Or replace the example with an absolute path: `~/enter_thebrana/thebrana-{slug}`.
+**Fix:** Added explicit `cd`-before-add note and `ls`-after-add spot-check to the Worktrees section of `system/rules/git-discipline.md`. Also added validate.sh Check 59 to detect stray worktrees at scan time (t-2081).
 
-**Status:** pending
+**Status:** doc-fix (2026-06-13) — committed 869d46e7 (rule update) + e9c7d4d7 (Check 59).
 
 ---
 

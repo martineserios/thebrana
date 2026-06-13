@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-13T20:04:21Z",
+  "generated": "2026-06-13T22:57:07Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -598,7 +598,8 @@
         "system/scripts/",
         "system/statusline.sh",
         "system/scripts/git-hooks/pre-commit",
-        "system/scripts/ruflo-mcp.sh"
+        "system/scripts/ruflo-mcp.sh",
+        "system/rules/<file>.md"
       ]
     },
     "docs/architecture/building-methodology.md": {
@@ -2840,7 +2841,6 @@
         "system/rules/",
         "system/rules/README.md",
         "system/rules/always-use-build-framework.md",
-        "system/rules/backlog-start-gate.md",
         "system/rules/brana-cli.md",
         "system/rules/context-budget.md",
         "system/rules/cwd-discipline.md",
@@ -2850,7 +2850,6 @@
         "system/rules/git-discipline.md",
         "system/rules/hard-deny-manifest.md",
         "system/rules/inbox-convention.md",
-        "system/rules/lifecycle-gate-assessment.md",
         "system/rules/m-plus-discipline-enforcement.md",
         "system/rules/no-phantom-dependencies.md",
         "system/rules/parallel-bash.md",
@@ -2860,13 +2859,13 @@
         "system/rules/rules-over-hooks-for-gates.md",
         "system/rules/sdd-tdd.md",
         "system/rules/self-improvement.md",
-        "system/rules/skill-routing.md",
         "system/rules/spec-assumptions.md",
         "system/rules/specify-check-ids.md",
         "system/rules/tactical-context.md",
         "system/rules/task-convention.md",
         "system/rules/universal-quality.md",
-        "system/rules/work-preferences.md"
+        "system/rules/work-preferences.md",
+        "system/rules/work-start.md"
       ]
     },
     "docs/reference/scripts.md": {
