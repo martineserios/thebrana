@@ -93,3 +93,4 @@ Iterative: every stage ships something functional, soaks in production, and gate
 - **SDD:** t-2000 dispatch spec is the Stage 0 deliverable; `docs/architecture/features/reminder-system.md` updated at each stage that changes semantics.
 - **Docs:** tech doc update (reminder-system.md — schema + semantics change: yes); user guide for `brana remind` recur/snooze verbs (yes — new user-facing behavior); `docs/guide/commands/index.md` only if CLI flags change; overview untouched (no system-level pattern shift).
 - **Success criteria:** task deadlines produce correct attention signals end-to-end; recurrence and snooze behave honestly; no new daemon, no new entity, no store migration.
+
