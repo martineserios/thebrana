@@ -2,13 +2,12 @@
 
 # Rules Reference
 
-**29 rules** in `system/rules/`.
+**27 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
 | `README.md` | system/rules/ — Authoring Contract | Task: t-1285. Enforced by `validate.sh` Check 2. |
 | `always-use-build-framework.md` | Always Use Build Framework | Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip the framework to co... |
-| `backlog-start-gate.md` | Backlog Start Gate | When user accepts a task-continuation suggestion ("continue with t-XXX?", "start t-XXX?"), invoke `/... |
 | `brana-cli.md` | Brana CLI | **Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly. |
 | `context-budget.md` | Context Budget | ## Thresholds |
 | `cwd-discipline.md` | CWD Discipline | Always start Claude Code from the project root (e.g., ~/enter_thebrana/thebrana/), never from a pare... |
@@ -18,7 +17,6 @@
 | `git-discipline.md` | Git Discipline | ## One rule |
 | `hard-deny-manifest.md` | Hard Deny Manifest | Canonical list of commands that are **unconditionally blocked** in auto mode via `settings.autoMode.... |
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
-| `lifecycle-gate-assessment.md` | Always Assess Lifecycle Gates Before Starting | Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes. |
 | `m-plus-discipline-enforcement.md` | M+ Discipline Enforcement | Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines: |
 | `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
@@ -28,13 +26,13 @@
 | `rules-over-hooks-for-gates.md` | Rules Over Hooks for Behavioral Gates | Prefer a rule file over a hook for "always do X before Y" behavioral constraints. |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
 | `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. |
-| `skill-routing.md` | Skill Routing | Before starting any implementation, design, or research work — **always ask** which skills to load... |
 | `spec-assumptions.md` | No Silent Ambiguity Fill | If a requirement can be interpreted two ways, **ask — don't pick**. |
 | `specify-check-ids.md` | SPECIFY Phase Must Check Existing Task IDs | Before proposing a task tree in the SPECIFY phase, read tasks.json to find the next available ID. |
 | `tactical-context.md` | Tactical Context | After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do ... |
-| `task-convention.md` | Task Convention | ## Before branching |
+| `task-convention.md` | Task Convention | Work-start ordering (read tasks.json → backlog gate → lifecycle → skills → delegation) is in... |
 | `universal-quality.md` | Quality Standards | - **Test before committing**: run relevant tests before any commit. If no test suite exists, at leas... |
 | `work-preferences.md` | Work Preferences | ## Parallelism |
+| `work-start.md` | Work Start — Ordered Entry Protocol | When starting any task (implementation, design, research) follow these steps **in order**. First mat... |
 
 ## system/rules/ — Authoring Contract
 
@@ -48,13 +46,6 @@ Task: t-1285. Enforced by `validate.sh` Check 2.
 **File:** `system/rules/always-use-build-framework.md`
 
 Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip the framework to code directly.
-
-
-## Backlog Start Gate
-
-**File:** `system/rules/backlog-start-gate.md`
-
-When user accepts a task-continuation suggestion ("continue with t-XXX?", "start t-XXX?"), invoke `/brana:backlog start <id>` via Skill tool BEFORE any implementation.
 
 
 ## Brana CLI
@@ -120,13 +111,6 @@ Canonical list of commands that are **unconditionally blocked** in auto mode via
 `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Organized by topic subfolder. Files are transient — process, then delete or move.
 
 
-## Always Assess Lifecycle Gates Before Starting
-
-**File:** `system/rules/lifecycle-gate-assessment.md`
-
-Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes.
-
-
 ## M+ Discipline Enforcement
 
 **File:** `system/rules/m-plus-discipline-enforcement.md`
@@ -190,13 +174,6 @@ Prefer a rule file over a hook for "always do X before Y" behavioral constraints
 Automatic learning. Runs every session without invocation.
 
 
-## Skill Routing
-
-**File:** `system/rules/skill-routing.md`
-
-Before starting any implementation, design, or research work — **always ask** which skills to load. Never silently route. Excessive asking is correct; silent routing is not.
-
-
 ## No Silent Ambiguity Fill
 
 **File:** `system/rules/spec-assumptions.md`
@@ -222,7 +199,7 @@ After giving actionable advice related to a task (workaround, constraint, deadli
 
 **File:** `system/rules/task-convention.md`
 
-## Before branching
+Work-start ordering (read tasks.json → backlog gate → lifecycle → skills → delegation) is in `work-start.md`.
 
 
 ## Quality Standards
@@ -237,4 +214,11 @@ After giving actionable advice related to a task (workaround, constraint, deadli
 **File:** `system/rules/work-preferences.md`
 
 ## Parallelism
+
+
+## Work Start — Ordered Entry Protocol
+
+**File:** `system/rules/work-start.md`
+
+When starting any task (implementation, design, research) follow these steps **in order**. First match wins; later steps refine the earlier ones.
 

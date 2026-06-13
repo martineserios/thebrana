@@ -38,7 +38,7 @@ Never invoke a skill AND delegate an agent for the same trigger.
 
 | Trigger | Action |
 |---------|--------|
-| Work starting (feat/fix/refactor) | check `tasks.json`, then skill routing (`skill-routing.md`) |
+| Work starting (feat/fix/refactor) | follow `work-start.md` ordered entry protocol |
 | Planning new work | `/brana:backlog add` |
 | Session ending | `/brana:close` |
 | Big decision forming | `/brana:challenge` |

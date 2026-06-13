@@ -3,11 +3,7 @@ always-load: true
 ---
 # Task Convention
 
-## Before branching
-
-1. Read `.claude/tasks.json`. State what you found.
-2. Task exists → use its branch convention, set `in_progress`.
-3. No task → propose one before branching.
+Work-start ordering (read tasks.json → backlog gate → lifecycle → skills → delegation) is in `work-start.md`.
 
 After completing: update task to `completed` with notes.
 
