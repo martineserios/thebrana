@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-12T23:18:16Z",
+  "generated": "2026-06-13T20:04:21Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -963,6 +963,19 @@
         "system/scheduler/feeds.template.json"
       ]
     },
+    "docs/architecture/decisions/ADR-056-propagate-close-step.md": {
+      "title": "ADR-056: PROPAGATE Close Step — Layered Propagation-Debt Audit",
+      "type": "ADR",
+      "impl_files": [
+        "system/scripts/",
+        "system/scripts"
+      ]
+    },
+    "docs/architecture/decisions/ADR-057-unit-of-knowledge.md": {
+      "title": "ADR-057: Unit of Knowledge — One Schema, Three Consumers",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1052,6 +1065,17 @@
         "system/skills/close/phases/gate-and-evidence.md",
         "system/hooks/session-start.sh",
         "system/scheduler/scheduler.template.json"
+      ]
+    },
+    "docs/architecture/features/backlog-lint.md": {
+      "title": "Feature: `brana backlog lint` — Definition-of-Ready Checker",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-core/src/lint.rs",
+        "system/cli/rust/crates/brana-cli/src/commands/backlog.rs",
+        "system/cli/rust/crates/brana-cli/src/cli.rs",
+        "system/cli/rust/crates/brana-cli/src/main.rs",
+        "system/cli/rust/crates/brana-cli/tests/cli_smoke.rs"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
@@ -1305,6 +1329,21 @@
       "title": "Feature: Project-Level Metadata",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/propagate-close-step.md": {
+      "title": "Feature: PROPAGATE Close Step — Layered Propagation-Debt Audit",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/close/phases/propagate.md",
+        "system/skills/close/SKILL.md",
+        "system/skills/close/phases/gate-and-evidence.md",
+        "system/skills/close/phases/cleanup.md",
+        "system/skills/close/phases/session-state.md",
+        "system/scripts/close-snapshot.sh",
+        "system/cron/close-extraction.sh",
+        "system/cli/rust/crates/brana-core/src/queue.rs",
+        "system/skills/reconcile/SKILL.md"
+      ]
     },
     "docs/architecture/features/reminder-system.md": {
       "title": "Feature: Reminder System — Two-Layer Sources, Rust-Owned Store",
@@ -2206,6 +2245,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/backlog-lint.md": {
+      "title": "Backlog Lint — is this task ready for autonomous dispatch?",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/brana-feed-inbox.md": {
       "title": "brana feed + brana inbox",
       "type": "Roadmap",
@@ -2232,6 +2276,11 @@
     },
     "docs/guide/features/close-oriented-modes.md": {
       "title": "Oriented Close Modes",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/guide/features/propagate-close-step.md": {
+      "title": "PROPAGATE — propagation-debt audit at close",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -4080,6 +4129,150 @@
       "computed": true
     },
     {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/ideas/async-close-design.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/ideas/close-oriented-modes.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
       "type": "depends_on",
@@ -4130,6 +4323,12 @@
     {
       "from": "docs/architecture/features/async-close.md",
       "to": "docs/ideas/async-close-design.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-lint.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
       "type": "depends_on",
       "computed": false
     },
@@ -4648,6 +4847,102 @@
       "to": "docs/architecture/features/tasks-portfolio.md",
       "type": "depends_on",
       "computed": false
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/ideas/async-close-design.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/ideas/close-oriented-modes.md",
+      "type": "depends_on",
+      "computed": true
     },
     {
       "from": "docs/architecture/features/reminder-system.md",
@@ -6036,6 +6331,30 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "to": "docs/architecture/features/propagate-close-step.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-038-memory-write-gateway.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "to": "docs/ideas/knowledge-base-redesign.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/acquire-skills.md",
       "to": "docs/architecture/features/acquire-skills-guide.md",
       "type": "informs",
@@ -6050,6 +6369,12 @@
     {
       "from": "docs/architecture/features/async-close.md",
       "to": "docs/ideas/async-first-close.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-lint.md",
+      "to": "docs/architecture/features/lint-heal-deterministic.md",
       "type": "informs",
       "computed": false
     },
@@ -9780,6 +10105,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/backlog-lint.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/brana-cli.md",
       "to": "docs/architecture/guide/cli.md",
       "type": "references",
@@ -9920,6 +10251,12 @@
     {
       "from": "docs/architecture/features/memory-taxonomy-sdd.md",
       "to": "memory-taxonomy-ddd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
       "type": "references",
       "computed": false
     },
@@ -11838,6 +12175,18 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/propagate-close-step.md",
+      "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/propagate-close-step.md",
+      "to": "docs/architecture/features/propagate-close-step.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/reminder-system.md",
       "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
       "type": "references",
@@ -12044,6 +12393,12 @@
     {
       "from": "docs/ideas/inbox-to-dimensions-pipeline.md",
       "to": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/knowledge-base-redesign.md",
+      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
@@ -13357,9 +13712,9 @@
     }
   ],
   "stats": {
-    "nodes": 450,
-    "edges": 1715,
-    "typed_edges": 619,
-    "orphans": 125
+    "nodes": 456,
+    "edges": 1766,
+    "typed_edges": 665,
+    "orphans": 124
   }
 }

@@ -51776,8 +51776,8 @@
       "acceptance_criteria": null,
       "blocked_by": [],
       "branch": "async-close/fix/t-1979-challenger-premortem-fixes",
-      "build_step": "verify",
-      "completed": null,
+      "build_step": null,
+      "completed": "2026-06-12",
       "context": "Full dispositions: t-1974 context (10 items, 2026-06-11 entry) + t-1973 context (2 items) + docs/research/2026-06-11-loop-native-redesign.md Part 3. Highest priority first: (1) stale-queue dead-man check in session-start.sh as pure jq — covers ALL silent-death modes, 3/3 challenger quorum; (2) cron-side dedup_key nightly:{type}:{slugify(title)}; (3) scheduler registration validate.sh check; (4) 6h-window replacement with session-state written_at anchor. Verify each against shipped code first — some may already be in.\nAC: every disposition item either verified-present in shipped code or implemented\nAC: session-start.sh stale-queue jq check exists and fires on a synthetic >3d entry\nAC: validate.sh checks close-extraction job presence in deployed scheduler.json\n2026-06-11: validate.sh on merged main shows 2 real errors to include in this audit — (a) Check 43: close.md missing CLOSE_MODE assignments FULL/LIGHT/NANO (ADR-040 §7) — regression from t-1973 close rework, mode logic likely moved to phases/ files without updating close.md or the check; (b) Check 38: agy version mismatch installed=1.0.7 pinned=1.0.4 — re-run adversarial spike, bump AGY_PINNED_VERSION in agy_delegate.rs. The secrets/50KB FAILs are false positives from the live t-1977 worktree parked INSIDE the repo at system/cli/thebrana-t-1977 — do not delete (in_progress); will clear when that session ends. Worktrees must be created as SIBLINGS (../) not inside the repo.\n2026-06-12 audit verdicts (Explore agent, branch async-close/fix/t-1979): MISSING: (1) session-start stale-queue jq dead-man check [cron-side python3 self-monitor exists at system/cron/close-extraction.sh:62-77]; (5) prune ignores failed entries, 14d not 30d, no -mtime sweep; (6) export HOME; (7) versioned prompt file + confidence<0.5 filter + cap-3 [truncation flag IS injected]; (8) weekly unrouted-learnings reminder; (9) daily-summary 30d prune [counts present]; (11) written_at anchor [6h window at close skill gate-and-evidence.md:64,148]; (12) whole-hunk truncation + omitted file list [needs Rust: snapshot_truncated bool → keep, add omitted_files Option<Vec>]. PARTIAL: (2) dedup_key cron-side ✓ but format extract:{project}:{slug} lacks {type}; (3) job registered ✓, validate.sh presence check missing; (4) mark-failed+continue ✓, error strings not categorized; (10) ADR-052 dedup_key in schema ✓, explicit §6 deferral note missing; ADR-041 §4 /tmp exception note missing + pin text stale (1.0.1 vs code 1.0.4). PRESENT: (13) Check 43 satisfied by system/scripts/close-classify.sh — claimed failure outdated; (14) pin 1.0.4 at agy_delegate.rs:18, installed 1.0.7 → bump after re-spike. Tests: bash harness at system/hooks/tests/ (test-close-extraction.sh, test-close-snapshot.sh, test-session-start.sh). NOTE: script lives at system/cron/close-extraction.sh not system/scheduler/.",
       "created": "2026-06-11",
       "description": "The 2026-06-11 challenger pre-mortem on the close-queue loop produced 12 accepted/refined findings, but t-1973/t-1974 were completed in a parallel session before the dispositions landed — the fixes are likely NOT in the shipped implementation. Audit the implementation against the disposition list and apply the gaps.",
@@ -51787,12 +51787,12 @@
       "github_issue": "1027",
       "id": "t-1979",
       "kind": "fix",
-      "notes": "Assumptions (2026-06-12): dedup key format chose extract:{project}:{type}:{slug} over literal nightly:{type}:{slugify(title)} — keeps project scoping, adds the type discriminator the disposition wanted. Prompt file placed at system/cron/prompts/close-extraction.txt (disposition said system/scheduler/prompts/ but the cron script lives in system/cron/). Item #12 (whole-hunk truncation + omitted file list) split to t-2066 per user decision — needs Rust schema change.\nEvaluator: PASS (2026-06-12), 3 criteria checked — all MET with file:line evidence (agent a741c4f30a16f45b0).",
+      "notes": "Assumptions (2026-06-12): dedup key format chose extract:{project}:{type}:{slug} over literal nightly:{type}:{slugify(title)} — keeps project scoping, adds the type discriminator the disposition wanted. Prompt file placed at system/cron/prompts/close-extraction.txt (disposition said system/scheduler/prompts/ but the cron script lives in system/cron/). Item #12 (whole-hunk truncation + omitted file list) split to t-2066 per user decision — needs Rust schema change.\nEvaluator: PASS (2026-06-12), 3 criteria checked — all MET with file:line evidence (agent a741c4f30a16f45b0).\nChallenger: PROCEED WITH CHANGES (2026-06-12, agent a0ccc1096bd762f10). 4 findings, all sev ≤3, all fixed on branch (1d2bb87a): binary-missing pre-queue clarification + reminder dedup-key note in ADR-052; Check 58 live-path warn + honest pass message; ADR-041 §4 mismatch wording aligned with shipped version_warning behavior (pre-existing drift). validate.sh 0 errors after fixes.",
       "order": 0,
       "parent": "t-1970",
       "priority": "P1",
       "started": "2026-06-12",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "bug-fix",
       "subject": "Apply challenger pre-mortem fixes to shipped async-close loop",
       "tags": [
@@ -54396,7 +54396,7 @@
     {
       "acceptance_criteria": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "async-close/fix/t-2066-close-snapshot-whole-hunk",
       "completed": null,
       "context": "Audit evidence (t-1979, 2026-06-12): close-snapshot.sh:86-89 does a raw byte cut and passes boolean --snapshot-truncated; ADR-052 §4 schema has snapshot_truncated bool. Keep the bool for back-compat, add omitted_files alongside. Tests: system/hooks/tests/test-close-snapshot.sh + cargo tests in brana-core (follow t-1997 Option<T>/serde(default) pattern).\nAC: failing tests first (hunk-boundary cut, omitted_files roundtrip, back-compat parse)\nAC: snapshot cut never splits a hunk\nAC: omitted_files lists every dropped file",
       "created": "2026-06-12",
@@ -54411,7 +54411,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "subject": "close-snapshot: whole-hunk truncation + omitted-file-list in close-queue schema",
       "tags": [
         "async-close",
@@ -54419,7 +54419,9 @@
         "cli",
         "reliability"
       ],
-      "type": "task"
+      "type": "task",
+      "epic": "async-close",
+      "strategy": "bug-fix"
     },
     {
       "acceptance_criteria": null,
@@ -54670,6 +54672,37 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2076",
+      "subject": "Fix failing scheduler jobs: feed-ruflo-index timeout loop, feed-summarize batch cap, close-extraction error logging",
+      "status": "in_progress",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "scheduler",
+        "ops",
+        "feed"
+      ],
+      "description": "Three scheduler jobs failing (2026-06-12). feed-ruflo-index: 1783-entry backlog needs ~20min vs 300s timeout, watermark never advances — infinite zero-progress loop. feed-summarize: ~194-article backlog at ~25s/article vs 300s timeout — partial progress reported as FAILED daily. close-extraction: transient agy failures self-heal but fail_entry() reason is invisible in scheduler logs.",
+      "effort": "M",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-12",
+      "started": "2026-06-12",
+      "completed": null,
+      "blocked_by": [],
+      "branch": "harness-core/fix/t-2076-scheduler-jobs-fix",
+      "context": "Investigation 2026-06-12: (1) feed-ruflo-index — bump timeoutSeconds 300→1800 in system/state/scheduler.json + chunk indexing (e.g. 500/chunk) advancing watermark per chunk in system/scripts/feed-ruflo-index.sh so backlogs degrade gracefully. (2) feed-summarize — add MAX_PER_RUN cap (~20) with exit 0 early-exit (link dedup makes this safe; watermark must NOT advance on early exit) in system/scripts/feed-summarize.sh; bump timeoutSeconds to 900. (3) close-extraction — echo failure reason to stdout in fail_entry() in system/cron/close-extraction.sh. Ruflo indexing rate ~1.5 entries/s. Summaries dedup by link in feed-summaries.jsonl.\nAC: feed-ruflo-index clears 1783-entry backlog without FAILED status (chunked watermark advance verified)\nAC: feed-summarize early-exits cleanly at cap with exit 0 and watermark unchanged\nAC: close-extraction logs per-entry failure reason to stdout\nAC: tests for changed scripts pass (system/hooks/tests/)\nskill_gap_checked: true (step 0.5, user confirmed bash-defensive-patterns, 2026-06-12)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "harness-core",
+      "strategy": "bug-fix",
+      "work_type": "implement",
+      "build_step": "build"
     }
   ],
   "version": "1"

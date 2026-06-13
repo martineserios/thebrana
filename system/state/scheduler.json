@@ -155,9 +155,9 @@
             "schedule": "*-*-* 18:55:00",
             "enabled": true,
             "maxRetries": 1,
-            "timeoutSeconds": 300,
+            "timeoutSeconds": 3600,
             "captureOutput": true,
-            "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p \u2192 feed-summaries.jsonl (feed-index joins at 19:00)"
+            "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p \u2192 feed-summaries.jsonl (feed-index joins at 19:00). Timeout 3600: backfill bulges (2026-06-12: 230 entries \u00d7 ~15s) blow a 300s cap"
         },
         "kapso-changelog-check": {
             "type": "command",
@@ -185,9 +185,9 @@
             "project": "~/enter_thebrana/thebrana",
             "schedule": "*-*-* 19:15:00",
             "enabled": true,
-            "timeoutSeconds": 300,
+            "timeoutSeconds": 3600,
             "captureOutput": true,
-            "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search"
+            "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Timeout 3600: indexing runs ~2 sections/s; backfill bulges (2026-06-12: 1783 sections ≈ 20min) blow a 300s cap"
         },
         "lint-heal": {
             "type": "command",
