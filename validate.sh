@@ -156,6 +156,27 @@ for rule_file in "$SYSTEM_DIR"/rules/*.md; do
 done
 echo ""
 
+# Check 2b: Multiple always-load rules claiming first position at work-start.
+# 1 claimant = work-start.md (expected). 2+ = re-fragmentation (see t-1944).
+echo "Checking work-start first-position conflicts..."
+WS_CLAIMANTS=0
+for rule_file in "$SYSTEM_DIR"/rules/*.md; do
+    [ -f "$rule_file" ] || continue
+    rule_name=$(basename "$rule_file")
+    [ "$rule_name" = "README.md" ] && continue
+    grep -qE '^always-load:[[:space:]]+true' "$rule_file" 2>/dev/null || continue
+    if grep -qiE '(go first|always ask first|read[[:space:]]+tasks.*first|read[[:space:]]+.*first)' "$rule_file" 2>/dev/null && \
+       grep -qiE '(work.?start|before[[:space:]]+.{0,40}implement|starting[[:space:]]+.{0,20}task|start[[:space:]]+.{0,20}work)' "$rule_file" 2>/dev/null; then
+        WS_CLAIMANTS=$((WS_CLAIMANTS + 1))
+    fi
+done
+if [ "$WS_CLAIMANTS" -ge 2 ]; then
+    fail "Check 2b: ${WS_CLAIMANTS} always-load rules claim first position at work-start — consolidate per work-start.md pattern (t-1944)"
+else
+    pass "Check 2b: work-start first-position — no conflicts"
+fi
+echo ""
+
 # Check 3: JSON validity
 echo "Checking JSON files..."
 if [ -f "$SYSTEM_DIR/settings.json" ]; then
