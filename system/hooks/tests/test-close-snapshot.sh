@@ -130,24 +130,8 @@ print(len(files))
 " 2>/dev/null || echo "0")
 check "omitted_files populated when truncated" "1" "$([ "${OMITTED_COUNT:-0}" -gt 0 ] && echo 1 || echo 0)"
 
-# ── 9. missing python3 → exit 2 (not 0), stderr warns ────────────────
-H6="$TMPDIR/home6"; mkdir -p "$H6"
-ISO2="$TMPDIR/iso2"; mkdir -p "$ISO2"
-cp "$SNAP" "$ISO2/close-snapshot.sh"
-stderr_py="$TMPDIR/stderr_py"
-rc_py=99
-HOME="$H6" BRANA="$REAL_BRANA" PATH="/usr/bin:/bin" bash "$ISO2/close-snapshot.sh" \
-    --git-root "$R1" --branch feat/x --project p --commit-count 1 \
-    >/dev/null 2>"$stderr_py" && rc_py=0 || rc_py=$?
-# python3 is typically in /usr/bin/python3; this test is meaningful only when
-# python3 is absent from /usr/bin and /bin. If python3 is on the PATH we skip.
-if command -v python3 >/dev/null 2>&1 && [ "$(PATH="/usr/bin:/bin" command -v python3 2>/dev/null)" != "" ]; then
-    # python3 found in restricted PATH — skip this test
-    TOTAL=$((TOTAL + 2)); PASS=$((PASS + 2))
-else
-    check "missing python3 exits non-zero" "2" "$rc_py"
-    check "missing python3 warns" "yes" "$([ -s "$stderr_py" ] && echo yes || echo no)"
-fi
+# ── 9. no python3 dependency in script ────────────────────────────────
+check "no python3 calls in script" "0" "$(grep -v '^\s*#' "$SNAP" | grep -c '\bpython3\b')"
 
 # ── 10. filenames with spaces → omitted_files correct ─────────────────
 # Make a repo where one file has a space in its name.
