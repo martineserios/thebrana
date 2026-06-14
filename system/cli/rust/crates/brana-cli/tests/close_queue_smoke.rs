@@ -92,6 +92,57 @@ fn full_lifecycle_roundtrip() {
 }
 
 #[test]
+fn reset_retries_by_id_succeeds() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    brana(tmp.path()).args(append_args("feat/x", "a..b")).assert().success();
+    let out = brana(tmp.path()).args(["close-queue", "list"]).output().unwrap();
+    let arr: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let id = arr[0]["id"].as_str().unwrap().to_string();
+
+    // fail it 3 times
+    for _ in 0..3 {
+        brana(tmp.path())
+            .args(["close-queue", "mark-failed", &id, "--error", "agy-empty-output"])
+            .assert().success();
+    }
+
+    // reset by id
+    brana(tmp.path())
+        .args(["close-queue", "reset-retries", &id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"retry_count\": 0"))
+        .stdout(predicate::str::contains("\"failed\": false"));
+}
+
+#[test]
+fn reset_retries_all_requeues_all_failed() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    brana(tmp.path()).args(append_args("feat/a", "a..b")).assert().success();
+    brana(tmp.path()).args(append_args("feat/b", "c..d")).assert().success();
+    let out = brana(tmp.path()).args(["close-queue", "list"]).output().unwrap();
+    let arr: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    for entry in arr.as_array().unwrap() {
+        let id = entry["id"].as_str().unwrap();
+        brana(tmp.path())
+            .args(["close-queue", "mark-failed", id, "--error", "agy regression"])
+            .assert().success();
+    }
+    // reset all (no id argument)
+    brana(tmp.path())
+        .args(["close-queue", "reset-retries"])
+        .assert()
+        .success();
+    // both entries now have retry_count 0
+    let out2 = brana(tmp.path()).args(["close-queue", "list"]).output().unwrap();
+    let arr2: serde_json::Value = serde_json::from_slice(&out2.stdout).unwrap();
+    for entry in arr2.as_array().unwrap() {
+        assert_eq!(entry["retry_count"], 0);
+        assert_eq!(entry["failed"], false);
+    }
+}
+
+#[test]
 fn existing_brana_queue_command_is_untouched() {
     // `brana queue` (task spawn) must still parse — regression guard for the
     // ADR-052 naming amendment.

@@ -1254,5 +1254,10 @@ pub enum CloseQueueCmd {
     },
     /// Remove processed/failed entries older than 30 days
     Prune,
+    /// Reset retry_count and clear failed state — recovery after transient tool regression
+    ResetRetries {
+        /// Reset a specific entry by ID; omit to reset all failed-but-unprocessed entries
+        id: Option<String>,
+    },
 }
 

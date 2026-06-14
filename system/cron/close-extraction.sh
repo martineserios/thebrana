@@ -52,6 +52,16 @@ if [ -z "${AGY:-}" ] || [ ! -x "$AGY" ]; then
     exit 1
 fi
 
+# Version guard: agy_delegate.rs pins the expected version; mismatches mean
+# the installed binary has a known-broken regression. Fail fast so entries
+# don't exhaust retries against a broken binary (t-2082).
+AGY_EXPECTED_VERSION="1.0.7"
+AGY_INSTALLED_VERSION=$("$AGY" --version 2>/dev/null || echo "")
+if [ -n "$AGY_INSTALLED_VERSION" ] && [ "$AGY_INSTALLED_VERSION" != "$AGY_EXPECTED_VERSION" ]; then
+    echo "close-extraction: agy version mismatch — expected $AGY_EXPECTED_VERSION, got $AGY_INSTALLED_VERSION — queue left untouched (downgrade agy or bump AGY_EXPECTED_VERSION)" >&2
+    exit 1
+fi
+
 # Reminder writes go through the shared hook wrapper (marshalling only).
 # write_reminder resolves $BRANA itself; export ours so it matches.
 export BRANA="$BRANA_BIN"
@@ -173,6 +183,13 @@ $DIFF_CONTENT"
         rm -f "$OUT_FILE"
         continue
     fi
+    # agy 1.0.8 regression: exits 0 but produces empty stdout (t-2082).
+    # Detect before schema validation so the error is categorized correctly.
+    if [ ! -s "$OUT_FILE" ]; then
+        fail_entry "agy-empty-output: agy exited 0 but wrote nothing — version regression (installed: $AGY_INSTALLED_VERSION, expected: $AGY_EXPECTED_VERSION)"
+        rm -f "$OUT_FILE"
+        continue
+    fi
 
     # Validate output contract (ADR-052 §6): parseable JSON with .learnings array.
     LEARNINGS=$(python3 - "$OUT_FILE" "$MIN_CONFIDENCE" "$MAX_LEARNINGS_PER_ENTRY" <<'PYEOF'
@@ -265,6 +282,11 @@ $POST_COMMITS"
         if [ "$PROP_AGY_EXIT" -ne 0 ]; then
             # $? inside an `if ! cmd` branch reports the negated test — capture explicitly (t-2004)
             fail_entry "agy propagation pass failed (exit $PROP_AGY_EXIT)"
+            rm -f "$PROP_OUT"
+            continue
+        fi
+        if [ ! -s "$PROP_OUT" ]; then
+            fail_entry "agy-empty-output: propagation pass exited 0 but wrote nothing — version regression (t-2082)"
             rm -f "$PROP_OUT"
             continue
         fi
