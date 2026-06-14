@@ -13,6 +13,9 @@
 #   - agy output missing/empty/unparseable → mark-failed (never partial
 #     writes, never skip-and-mark-processed). 3 strikes → failure reminder.
 #   - agy binary unreachable → exit non-zero so scheduler health surfaces it.
+#   - agy quota exhausted (empty output or 429 rate-limit) → skip entry and
+#     break the loop: preserves retry budget for real failures, retries at the
+#     next nightly run when quota has reset.
 #
 # Env overrides (tests): BRANA, AGY_BIN.
 
@@ -75,6 +78,7 @@ mkdir -p "$HOME/.claude/sessions"
 EXIT_CODE=0
 PROCESSED=0
 FAILED=0
+SKIPPED=0
 
 # ── stale-queue self-monitor FIRST (>3 days unprocessed → reminder) ────
 # Checked before processing so a recovering run still surfaces that the
@@ -140,6 +144,14 @@ print(json.dumps(entries[0]) if entries else '')")
                 --project "$PROJECT" || true
         fi
     }
+    # Quota exhaustion is transient — skip without burning retry budget.
+    # Caller must `break` after calling skip_entry so remaining entries
+    # (which will all fail identically) are deferred to the next run.
+    skip_entry() {
+        local reason="$1"
+        echo "close-extraction: entry $EID skipped ($PROJECT $BRANCH $RANGE): $reason"
+        SKIPPED=$((SKIPPED + 1))
+    }
 
     if [ ! -f "$SNAP" ]; then
         fail_entry "snapshot-missing: $SNAP"
@@ -177,19 +189,21 @@ $DIFF_CONTENT"
         if [ "$AGY_EXIT" -eq 124 ] || [ "$AGY_EXIT" -eq 137 ]; then
             fail_entry "timeout: agy invocation timed out (exit $AGY_EXIT)"
         elif grep -qiE '429|rate.?limit|resource_exhausted' "$OUT_FILE" 2>/dev/null; then
-            fail_entry "rate-limit: agy rate-limited (exit $AGY_EXIT)"
+            skip_entry "quota-exhausted: agy rate-limited (exit $AGY_EXIT) — will retry next run"
+            rm -f "$OUT_FILE"
+            break
         else
             fail_entry "agy-error: agy invocation failed (exit $AGY_EXIT)"
         fi
         rm -f "$OUT_FILE"
         continue
     fi
-    # agy 1.0.8 regression: exits 0 but produces empty stdout (t-2082).
-    # Detect before schema validation so the error is categorized correctly.
+    # agy 1.0.8 regression: exits 0 but produces empty stdout when quota
+    # is exhausted (t-2082). Skip (not fail) — preserves retry budget.
     if [ ! -s "$OUT_FILE" ]; then
-        fail_entry "agy-empty-output: agy exited 0 but wrote nothing — API quota exhausted or empty response (installed: $AGY_INSTALLED_VERSION)"
+        skip_entry "quota-exhausted: agy exited 0 with empty output (installed: $AGY_INSTALLED_VERSION) — will retry next run"
         rm -f "$OUT_FILE"
-        continue
+        break
     fi
 
     # Validate output contract (ADR-052 §6): parseable JSON with .learnings array.
@@ -282,14 +296,19 @@ $POST_COMMITS"
         "$AGY" -p "$PROP_PROMPT" > "$PROP_OUT" 2>/dev/null || PROP_AGY_EXIT=$?
         if [ "$PROP_AGY_EXIT" -ne 0 ]; then
             # $? inside an `if ! cmd` branch reports the negated test — capture explicitly (t-2004)
+            if grep -qiE '429|rate.?limit|resource_exhausted' "$PROP_OUT" 2>/dev/null; then
+                skip_entry "quota-exhausted: propagation pass rate-limited (exit $PROP_AGY_EXIT) — will retry next run"
+                rm -f "$PROP_OUT"
+                break
+            fi
             fail_entry "agy propagation pass failed (exit $PROP_AGY_EXIT)"
             rm -f "$PROP_OUT"
             continue
         fi
         if [ ! -s "$PROP_OUT" ]; then
-            fail_entry "agy-empty-output: propagation pass exited 0 but wrote nothing — API quota exhausted or empty response"
+            skip_entry "quota-exhausted: propagation pass exited 0 with empty output — will retry next run"
             rm -f "$PROP_OUT"
-            continue
+            break
         fi
         GAPS=$(python3 - "$PROP_OUT" <<'PYEOF'
 import json, sys, re
@@ -399,5 +418,5 @@ for e in json.load(sys.stdin):
 find "$HOME/.claude/sessions" -maxdepth 1 -name 'snap-*.diff' -mtime +30 -delete 2>/dev/null || true
 find "$HOME/.claude/sessions" -maxdepth 1 -name 'daily-summary-*.md' -mtime +30 -delete 2>/dev/null || true
 
-echo "close-extraction: processed=$PROCESSED failed=$FAILED stale=$STALE_COUNT"
+echo "close-extraction: processed=$PROCESSED failed=$FAILED skipped=$SKIPPED stale=$STALE_COUNT"
 exit "$EXIT_CODE"

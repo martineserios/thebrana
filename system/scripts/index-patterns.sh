@@ -102,9 +102,10 @@ for filepath in "${FILES[@]}"; do
             confidence=$(printf '%s' "$conf_line" | sed 's/\*\*Confidence:\*\*[[:space:]]*//' | tr -d '[:space:]' | head -1)
             [ -z "$confidence" ] && confidence="quarantine"
             key="pattern:${confidence}:${sec_slug}"
+            key_escaped=$(printf '%s' "$key" | jq -Rs '.')
             value=$(printf '%s' "${sec_body:0:2000}" | jq -Rs '.')
             tags_json="[\"source:patterns-md\",\"type:pattern\",\"confidence:${confidence}\",\"file:patterns.md\"]"
-            echo "{\"key\":\"$key\",\"value\":$value,\"namespace\":\"pattern\",\"tags\":$tags_json}" >> "$JSONL_FILE"
+            echo "{\"key\":$key_escaped,\"value\":$value,\"namespace\":\"pattern\",\"tags\":$tags_json}" >> "$JSONL_FILE"
             TOTAL=$((TOTAL + 1))
         done < <(awk '
             /^## / {
@@ -163,13 +164,14 @@ for filepath in "${FILES[@]}"; do
     value="${body:0:2000}"
 
     # Escape for JSON
+    key_escaped=$(printf '%s' "$key" | jq -Rs '.')
     value=$(printf '%s' "$value" | jq -Rs '.')
     desc_escaped=$(printf '%s' "${description:-$name}" | jq -Rs '.')
 
     # Build tags
     tags_json="[\"source:auto-memory\",\"type:${type}\",\"project:${project_short}\",\"file:${filename}\"]"
 
-    echo "{\"key\":\"$key\",\"value\":$value,\"namespace\":\"pattern\",\"tags\":$tags_json}" >> "$JSONL_FILE"
+    echo "{\"key\":$key_escaped,\"value\":$value,\"namespace\":\"pattern\",\"tags\":$tags_json}" >> "$JSONL_FILE"
     TOTAL=$((TOTAL + 1))
 done
 
