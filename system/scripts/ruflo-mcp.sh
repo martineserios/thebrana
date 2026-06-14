@@ -10,45 +10,28 @@
 # Restart on CC bug #40207 is handled by the user via /mcp reconnect.
 # Use CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) for project root so ruflo's
 # own CWD heuristic resolves correctly; fall back to HOME for ~/.swarm/memory.db.
+#
+# Multiple concurrent sessions: ruflo uses SQLite WAL mode, which serializes
+# concurrent writes safely. The prior flock mutex (c6a66b76) and orphan sweep
+# (41d7a9fc) were removed — the orphan sweep killed live writers and caused the
+# very corruption it was meant to prevent (confirmed June 13 2026 with flock active).
+# SQLite WAL is the correct mechanism for concurrent access (t-2085).
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR:-}" ]; then
     cd "$CLAUDE_PROJECT_DIR"
 else
     cd "$HOME"
 fi
 
-# Hard mutex: only ONE ruflo instance may write to memory.db at a time.
-# SQLite WAL allows concurrent readers but concurrent writers corrupt B-trees —
-# confirmed by two events: 2026-04-06, 2026-06-07. Advisory PID file was
-# insufficient; replaced with flock (c6a66b76). If CC spawns multiple sessions,
-# only the first gets ruflo; later sessions see "failed" in /mcp — run
-# /mcp reconnect to retry after the prior session closes.
-LOCKFILE="$HOME/.swarm/ruflo-mcp.lock"
-PIDFILE="$HOME/.swarm/ruflo-mcp.pid"
 mkdir -p "$HOME/.swarm"
-exec 9>"$LOCKFILE"
-if ! flock -n 9; then
-    existing_pid="$(cat "$PIDFILE" 2>/dev/null || echo unknown)"
-    echo "[ruflo-mcp] Another instance is running (PID: $existing_pid). Exiting to prevent DB corruption." >&2
-    exit 1
-fi
-echo $$ > "$PIDFILE"
-trap 'rm -f "$LOCKFILE" "$PIDFILE"' EXIT
-
-# Orphan sweep (t-1858): kill pre-flock ruflo instances that bypass the mutex.
-# We hold the lock, so any OTHER ruflo process is an orphan with no flock —
-# pre-c6a66b76 instances can corrupt the DB by writing concurrently.
-while IFS= read -r orphan_pid; do
-    [ "$orphan_pid" -eq "$$" ] && continue
-    echo "[ruflo-mcp] Killing pre-flock orphan (PID: $orphan_pid)." >&2
-    kill "$orphan_pid" 2>/dev/null || true
-done < <(pgrep -f 'ruflo mcp start' 2>/dev/null || true)
 
 DB_PATH="$HOME/.swarm/memory.db"
 BACKUP_DIR="$HOME/.swarm/backups"
 mkdir -p "$BACKUP_DIR"
 
-# Integrity check: if DB is malformed, recover from most recent backup.
-if [ -f "$DB_PATH" ]; then
+# Integrity check: skip if another ruflo session has the DB open (WAL active),
+# since concurrent WAL reads appear malformed to external sqlite3 connections.
+# Only run integrity check when we're the sole opener (no .db-wal file present).
+if [ -f "$DB_PATH" ] && [ ! -f "${DB_PATH}-wal" ]; then
     if ! sqlite3 "$DB_PATH" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"; then
         echo "[ruflo-mcp] memory.db integrity check failed — recovering." >&2
         mv "$DB_PATH" "${DB_PATH}.corrupt-$(date +%Y-%m-%d)" 2>/dev/null || true
@@ -63,9 +46,11 @@ if [ -f "$DB_PATH" ]; then
 fi
 
 # Daily backup: snapshot memory.db before ruflo opens it. Keep 14 days.
+# Skip if another session has the DB open (WAL active) — the snapshot would be
+# inconsistent without WAL merge. The backup-memory scheduler job covers this case.
 TODAY="$(date +%Y%m%d)"
 BACKUP_FILE="$BACKUP_DIR/memory_${TODAY}.db"
-if [ -f "$DB_PATH" ] && [ ! -f "$BACKUP_FILE" ]; then
+if [ -f "$DB_PATH" ] && [ ! -f "$BACKUP_FILE" ] && [ ! -f "${DB_PATH}-wal" ]; then
     cp "$DB_PATH" "$BACKUP_FILE" && chmod 600 "$BACKUP_FILE" \
         && echo "[ruflo-mcp] Backup written: $BACKUP_FILE" >&2 \
         || echo "[ruflo-mcp] WARN: daily backup failed" >&2
