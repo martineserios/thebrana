@@ -34,6 +34,9 @@ native-tls = "0.2"
 keyring = { version = "3", features = ["linux-native"] }
 rpassword = "7"
 
+# Embedded SQLite + FTS5 full-text search (bundled = zero-ops, no system libsqlite, FTS5 compiled in)
+rusqlite = { version = "0.32", features = ["bundled"] }
+
 # CLI (brana-cli only)
 clap = { version = "4", features = ["derive"] }
 

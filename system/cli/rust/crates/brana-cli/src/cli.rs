@@ -1107,6 +1107,27 @@ pub enum MemoryCmd {
         #[arg(long, default_value = "project")]
         scope: String,
     },
+    /// Rebuild the embedded SQLite+FTS5 recall index over memory markdown files
+    /// (zero-ops, no ruflo, no embedding model) — replaces the JSONL/bulk-index pipeline
+    Reindex {
+        /// Index DB path (default: ~/.claude/memory/index.db)
+        #[arg(long)]
+        db: Option<String>,
+    },
+    /// Full-text search the embedded recall index
+    Search {
+        /// Query terms
+        query: String,
+        /// Maximum results
+        #[arg(long, default_value = "10")]
+        limit: usize,
+        /// Emit results as JSON
+        #[arg(long)]
+        json: bool,
+        /// Index DB path (default: ~/.claude/memory/index.db)
+        #[arg(long)]
+        db: Option<String>,
+    },
 }
 
 #[derive(Clone, ValueEnum)]

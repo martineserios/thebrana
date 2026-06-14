@@ -133,6 +133,12 @@ fn main() {
             MemoryCmd::Index { scope } => {
                 run_or_exit(commands::memory::cmd_memory_index(&scope))
             }
+            MemoryCmd::Reindex { db } => {
+                run_or_exit(commands::memory::cmd_memory_reindex(db))
+            }
+            MemoryCmd::Search { query, limit, json, db } => {
+                run_or_exit(commands::memory::cmd_memory_search(&query, limit, json, db))
+            }
         },
         Commands::CloseQueue { cmd } => match cmd {
             CloseQueueCmd::Append {
