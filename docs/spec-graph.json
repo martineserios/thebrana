@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-14T15:00:39Z",
+  "generated": "2026-06-14T18:00:19Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -155,6 +155,13 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/45-ai-harness-ecosystem.md": {
+      "title": "45 - AI Harness Ecosystem: gentle-ai, Engram, and the Community Playbook",
+      "type": "Dimension",
+      "impl_files": [
+        "system/"
+      ]
+    },
     "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md": {
       "title": "45 - TurboFlow Agent Orchestration",
       "type": "Dimension",
@@ -165,6 +172,13 @@
       "type": "Dimension",
       "impl_files": [
         "system/MCP/memory"
+      ]
+    },
+    "brana-knowledge/dimensions/46-go-for-brana.md": {
+      "title": "46 - Go for brana: MCP SDK, Cobra, and the Hybrid Architecture",
+      "type": "Dimension",
+      "impl_files": [
+        "system/cli/rust/"
       ]
     },
     "brana-knowledge/dimensions/47-ontology-engineering-ai-systems.md": {
@@ -1500,6 +1514,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/field-notes/fts5-memory-recall.md": {
+      "title": "FTS5 Memory Recall Seam",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/field-notes/t-1773-toolsearch-baseline.md": {
       "title": "Field Note: MCP Tool Search Empirical Baseline",
       "type": "Roadmap",
@@ -1917,6 +1936,13 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/45-ai-harness-ecosystem.md": {
+      "title": "45 - AI Harness Ecosystem: gentle-ai, Engram, and the Community Playbook",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
+    },
     "docs/dimensions/45-turboflow-agent-orchestration.md": {
       "title": "45 - TurboFlow Agent Orchestration",
       "type": "Roadmap",
@@ -1927,6 +1953,13 @@
       "type": "Roadmap",
       "impl_files": [
         "system/MCP/memory"
+      ]
+    },
+    "docs/dimensions/46-go-for-brana.md": {
+      "title": "46 - Go for brana: MCP SDK, Cobra, and the Hybrid Architecture",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/"
       ]
     },
     "docs/dimensions/47-ontology-engineering-ai-systems.md": {
@@ -5803,6 +5836,18 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/45-ai-harness-ecosystem.md",
+      "to": "brana-knowledge/dimensions/46-go-for-brana.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/45-ai-harness-ecosystem.md",
+      "to": "docs/architecture/decisions/ADR-040-delegation-routing.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
       "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
@@ -5811,6 +5856,18 @@
     {
       "from": "brana-knowledge/dimensions/46-cc-harness-ecosystem.md",
       "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/46-go-for-brana.md",
+      "to": "brana-knowledge/dimensions/45-ai-harness-ecosystem.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/46-go-for-brana.md",
+      "to": "docs/architecture/decisions/ADR-040-delegation-routing.md",
       "type": "informs",
       "computed": false
     },
@@ -6745,6 +6802,18 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/45-ai-harness-ecosystem.md",
+      "to": "brana-knowledge/dimensions/46-go-for-brana.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/45-ai-harness-ecosystem.md",
+      "to": "docs/architecture/decisions/ADR-040-delegation-routing.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/45-turboflow-agent-orchestration.md",
       "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
@@ -6753,6 +6822,18 @@
     {
       "from": "docs/dimensions/46-cc-harness-ecosystem.md",
       "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/46-go-for-brana.md",
+      "to": "brana-knowledge/dimensions/45-ai-harness-ecosystem.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/46-go-for-brana.md",
+      "to": "docs/architecture/decisions/ADR-040-delegation-routing.md",
       "type": "informs",
       "computed": false
     },
@@ -10017,6 +10098,12 @@
     {
       "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
       "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "to": "ADR-041-agy-invocation-contract.md",
       "type": "references",
       "computed": false
     },
@@ -13712,9 +13799,9 @@
     }
   ],
   "stats": {
-    "nodes": 456,
-    "edges": 1766,
-    "typed_edges": 665,
-    "orphans": 124
+    "nodes": 461,
+    "edges": 1775,
+    "typed_edges": 673,
+    "orphans": 125
   }
 }
