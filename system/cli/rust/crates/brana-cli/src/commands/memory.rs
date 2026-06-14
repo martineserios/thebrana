@@ -139,6 +139,39 @@ pub fn cmd_memory_index(scope: &str) -> Result<()> {
     Ok(())
 }
 
+/// Rebuild the embedded FTS5 recall index over project + global memory dirs.
+pub fn cmd_memory_reindex(db: Option<String>) -> Result<()> {
+    let root = require_project_root()?;
+    let db_path = db
+        .map(PathBuf::from)
+        .unwrap_or_else(brana_core::memory::fts_index_path);
+    let n = brana_core::memory::reindex_fts(&root, &db_path)?;
+    println!("indexed {n} memory docs → {}", db_path.display());
+    Ok(())
+}
+
+/// Full-text search the embedded recall index.
+pub fn cmd_memory_search(query: &str, limit: usize, json: bool, db: Option<String>) -> Result<()> {
+    let db_path = db
+        .map(PathBuf::from)
+        .unwrap_or_else(brana_core::memory::fts_index_path);
+    let hits = brana_core::memory::search_fts(&db_path, query, limit)?;
+    if json {
+        println!("{}", serde_json::to_string(&hits)?);
+        return Ok(());
+    }
+    if hits.is_empty() {
+        println!("no matches for \"{query}\"");
+        return Ok(());
+    }
+    for h in &hits {
+        let mtype = if h.mtype.is_empty() { "?" } else { &h.mtype };
+        println!("  [{mtype}] {} ({})", h.slug, h.scope);
+        println!("    {}", h.snippet);
+    }
+    Ok(())
+}
+
 fn require_project_root() -> Result<PathBuf> {
     crate::util::find_project_root()
         .context("could not resolve project root (not in git repo and CLAUDE_PROJECT_DIR not set)")

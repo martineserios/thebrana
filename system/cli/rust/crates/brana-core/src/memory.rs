@@ -214,7 +214,7 @@ fn is_timestamp(s: &str) -> bool {
 // (t-2091) later selects between this and the ruflo-backed provider by config.
 
 /// A single full-text search hit from the embedded memory index.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct MemoryHit {
     pub slug: String,
     pub mtype: String,
@@ -228,14 +228,26 @@ pub fn fts_index_path() -> PathBuf {
     home().join(".claude/memory/index.db")
 }
 
-/// Rebuild the FTS5 index from the standard memory scopes (project + global).
-/// Convenience wrapper over [`reindex_fts_dirs`]. Returns the number of
-/// documents indexed.
-pub fn reindex_fts(project_root: &Path, db_path: &Path) -> Result<usize> {
-    let dirs = vec![
-        ("project".to_string(), resolve_memory_dir(project_root)),
-        ("global".to_string(), home().join(".claude/memory")),
+/// Rebuild the FTS5 index from all memory scopes: global + every
+/// `~/.claude/projects/*/memory/` directory. The `project_root` parameter
+/// is accepted for forward-compatibility but not used — we always do a
+/// full cross-project scan so the index mirrors what `index-patterns.sh`
+/// produced.
+pub fn reindex_fts(_project_root: &Path, db_path: &Path) -> Result<usize> {
+    let h = home();
+    let mut dirs: Vec<(String, PathBuf)> = vec![
+        ("global".to_string(), h.join(".claude/memory")),
     ];
+    // Glob all project memory dirs
+    let projects_base = h.join(".claude/projects");
+    if let Ok(entries) = fs::read_dir(&projects_base) {
+        for entry in entries.flatten() {
+            let mem_dir = entry.path().join("memory");
+            if mem_dir.is_dir() {
+                dirs.push(("project".to_string(), mem_dir));
+            }
+        }
+    }
     reindex_fts_dirs(&dirs, db_path)
 }
 
