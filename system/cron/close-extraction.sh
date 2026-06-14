@@ -53,9 +53,10 @@ if [ -z "${AGY:-}" ] || [ ! -x "$AGY" ]; then
 fi
 
 # Version guard: agy_delegate.rs pins the expected version; mismatches mean
-# the installed binary has a known-broken regression. Fail fast so entries
-# don't exhaust retries against a broken binary (t-2082).
-AGY_EXPECTED_VERSION="1.0.7"
+# an unexpected binary is installed. Fail fast so entries don't exhaust
+# retries against an unknown binary (t-2082). Empty-output guard below
+# catches quota exhaustion separately.
+AGY_EXPECTED_VERSION="1.0.8"
 AGY_INSTALLED_VERSION=$("$AGY" --version 2>/dev/null || echo "")
 if [ -n "$AGY_INSTALLED_VERSION" ] && [ "$AGY_INSTALLED_VERSION" != "$AGY_EXPECTED_VERSION" ]; then
     echo "close-extraction: agy version mismatch — expected $AGY_EXPECTED_VERSION, got $AGY_INSTALLED_VERSION — queue left untouched (downgrade agy or bump AGY_EXPECTED_VERSION)" >&2
@@ -186,7 +187,7 @@ $DIFF_CONTENT"
     # agy 1.0.8 regression: exits 0 but produces empty stdout (t-2082).
     # Detect before schema validation so the error is categorized correctly.
     if [ ! -s "$OUT_FILE" ]; then
-        fail_entry "agy-empty-output: agy exited 0 but wrote nothing — version regression (installed: $AGY_INSTALLED_VERSION, expected: $AGY_EXPECTED_VERSION)"
+        fail_entry "agy-empty-output: agy exited 0 but wrote nothing — API quota exhausted or empty response (installed: $AGY_INSTALLED_VERSION)"
         rm -f "$OUT_FILE"
         continue
     fi
@@ -286,7 +287,7 @@ $POST_COMMITS"
             continue
         fi
         if [ ! -s "$PROP_OUT" ]; then
-            fail_entry "agy-empty-output: propagation pass exited 0 but wrote nothing — version regression (t-2082)"
+            fail_entry "agy-empty-output: propagation pass exited 0 but wrote nothing — API quota exhausted or empty response"
             rm -f "$PROP_OUT"
             continue
         fi
