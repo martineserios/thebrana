@@ -1,5 +1,6 @@
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use chrono::Utc;
+use rusqlite::Connection;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs;
@@ -195,4 +196,245 @@ fn is_timestamp(s: &str) -> bool {
         && s.as_bytes().get(10) == Some(&b'T')
         && s.as_bytes().get(13) == Some(&b'-')
         && s.as_bytes().get(16) == Some(&b'-')
+}
+
+// ── Embedded FTS5 recall index (t-2094) ──────────────────────────────────
+//
+// A self-contained, zero-ops full-text index over the markdown memory files.
+// Replaces the brittle JSONL → embed → ruflo pipeline (index-patterns.sh +
+// bulk-index.mjs): no JSONL intermediate, no jq escaping, no embedding model,
+// no ruflo dependency. Content is inserted via bound parameters, so quotes,
+// colons, braces and other markdown junk index without escaping fragility.
+//
+// Schema (FTS5 virtual table, rebuilt wholesale on each reindex):
+//   memory_fts(slug, mtype, scope, path UNINDEXED, content)
+//
+// This is the first concrete slice of the recall seam (t-2091): the ruflo-free
+// counterpart to `brana knowledge search`. The pluggable SearchProvider trait
+// (t-2091) later selects between this and the ruflo-backed provider by config.
+
+/// A single full-text search hit from the embedded memory index.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemoryHit {
+    pub slug: String,
+    pub mtype: String,
+    pub scope: String,
+    pub path: String,
+    pub snippet: String,
+}
+
+/// Canonical path to the embedded FTS5 index database.
+pub fn fts_index_path() -> PathBuf {
+    home().join(".claude/memory/index.db")
+}
+
+/// Rebuild the FTS5 index from the standard memory scopes (project + global).
+/// Convenience wrapper over [`reindex_fts_dirs`]. Returns the number of
+/// documents indexed.
+pub fn reindex_fts(project_root: &Path, db_path: &Path) -> Result<usize> {
+    let dirs = vec![
+        ("project".to_string(), resolve_memory_dir(project_root)),
+        ("global".to_string(), home().join(".claude/memory")),
+    ];
+    reindex_fts_dirs(&dirs, db_path)
+}
+
+/// Rebuild the FTS5 index from an explicit list of `(scope, dir)` pairs.
+///
+/// Extracted from [`reindex_fts`] so tests can point at temp dirs without
+/// touching `$HOME`. Each `*.md` file (excluding `MEMORY.md`) becomes one
+/// document; the slug/type are parsed from the filename, the body is indexed
+/// verbatim. The table is dropped and recreated so the index never drifts from
+/// the filesystem.
+pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<usize> {
+    if let Some(parent) = db_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut conn = Connection::open(db_path)
+        .with_context(|| format!("opening FTS index db: {}", db_path.display()))?;
+
+    conn.execute_batch(
+        "DROP TABLE IF EXISTS memory_fts;
+         CREATE VIRTUAL TABLE memory_fts USING fts5(
+             slug, mtype, scope, path UNINDEXED, content
+         );",
+    )
+    .context("creating memory_fts table")?;
+
+    let mut count = 0usize;
+    let tx = conn.transaction()?;
+    {
+        let mut insert = tx.prepare(
+            "INSERT INTO memory_fts (slug, mtype, scope, path, content)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+        )?;
+
+        for (scope, dir) in dirs {
+            if !dir.exists() {
+                continue;
+            }
+            let mut paths: Vec<PathBuf> = fs::read_dir(dir)?
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .filter(|p| p.extension().map(|e| e == "md").unwrap_or(false))
+                .filter(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true))
+                .collect();
+            paths.sort();
+
+            for path in &paths {
+                let stem = path
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let (mtype, slug) = match stem.split_once('_') {
+                    Some((t, rest)) => (t.to_string(), slug_from_rest(rest).to_string()),
+                    None => (String::new(), stem.clone()),
+                };
+                // Content read verbatim — bound parameter, no escaping needed.
+                let content = fs::read_to_string(path).unwrap_or_default();
+                insert.execute(rusqlite::params![
+                    slug,
+                    mtype,
+                    scope,
+                    path.to_string_lossy(),
+                    content,
+                ])?;
+                count += 1;
+            }
+        }
+    }
+    tx.commit()?;
+    Ok(count)
+}
+
+/// Full-text search the embedded index, returning up to `limit` hits ranked by
+/// FTS5 relevance. The query is tokenized into alphanumeric terms (joined with
+/// implicit AND) so arbitrary user input — colons, quotes, hyphens — never
+/// produces an FTS5 syntax error. An empty/symbol-only query returns no hits.
+pub fn search_fts(db_path: &Path, query: &str, limit: usize) -> Result<Vec<MemoryHit>> {
+    let match_query = sanitize_fts_query(query);
+    if match_query.is_empty() {
+        return Ok(Vec::new());
+    }
+    let conn = Connection::open(db_path)
+        .with_context(|| format!("opening FTS index db: {}", db_path.display()))?;
+
+    let mut stmt = conn.prepare(
+        "SELECT slug, mtype, scope, path,
+                snippet(memory_fts, 4, '[', ']', ' … ', 12) AS snip
+         FROM memory_fts
+         WHERE memory_fts MATCH ?1
+         ORDER BY rank
+         LIMIT ?2",
+    )?;
+
+    let rows = stmt.query_map(rusqlite::params![match_query, limit as i64], |row| {
+        Ok(MemoryHit {
+            slug: row.get(0)?,
+            mtype: row.get(1)?,
+            scope: row.get(2)?,
+            path: row.get(3)?,
+            snippet: row.get(4)?,
+        })
+    })?;
+
+    let mut hits = Vec::new();
+    for r in rows {
+        hits.push(r?);
+    }
+    Ok(hits)
+}
+
+/// Tokenize a free-text query into a safe FTS5 MATCH expression. Splits on
+/// non-alphanumerics, wraps each term as a quoted string token (so FTS5 treats
+/// it literally), and joins with spaces (implicit AND). Returns an empty string
+/// when no usable terms remain.
+fn sanitize_fts_query(q: &str) -> String {
+    q.split(|c: char| !c.is_alphanumeric())
+        .filter(|t| !t.is_empty())
+        .map(|t| format!("\"{t}\""))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[cfg(test)]
+mod fts_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn write(dir: &Path, name: &str, body: &str) {
+        fs::create_dir_all(dir).unwrap();
+        fs::write(dir.join(name), body).unwrap();
+    }
+
+    #[test]
+    fn reindex_and_search_roundtrip() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(&mem, "pattern_jwt-auth.md", "JWT validation middleware for token login");
+        write(&mem, "feedback_redis-cache.md", "Use an in-memory LRU cache, not Redis");
+        let db = tmp.path().join("index.db");
+
+        let n = reindex_fts_dirs(&[("global".into(), mem.clone())], &db).unwrap();
+        assert_eq!(n, 2, "both markdown files indexed");
+
+        let hits = search_fts(&db, "jwt token", 10).unwrap();
+        assert_eq!(hits.len(), 1, "only the jwt doc matches");
+        assert_eq!(hits[0].slug, "jwt-auth");
+        assert_eq!(hits[0].mtype, "pattern");
+        assert_eq!(hits[0].scope, "global");
+    }
+
+    /// Regression for t-2094: the entry that crashed the JSONL/bulk-index
+    /// pipeline — content with unescaped quotes, braces, colons and `**Why:**`.
+    /// With bound-parameter inserts it indexes and is searchable without any
+    /// escaping fragility.
+    #[test]
+    fn malformed_content_indexes_without_crash() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        let nasty = r#"**Why:** mdpdf has no native Mermaid renderer. Ubuntu 23.10+ AppArmor blocks Puppeteer's sandbox, so puppeteer.json must contain `{"args":["--no-sandbox","--disable-setuid-sandbox"]}`. Validated end-to-end 2026-04-14."#;
+        write(&mem, "pattern_mdpdf-mermaid_2026-04-14T10-00-00.md", nasty);
+        let db = tmp.path().join("index.db");
+
+        let n = reindex_fts_dirs(&[("global".into(), mem.clone())], &db).unwrap();
+        assert_eq!(n, 1, "the previously-crashing entry indexes cleanly");
+
+        let hits = search_fts(&db, "mdpdf mermaid puppeteer", 10).unwrap();
+        assert_eq!(hits.len(), 1);
+        // dated suffix stripped → clean slug
+        assert_eq!(hits[0].slug, "mdpdf-mermaid");
+    }
+
+    #[test]
+    fn empty_or_symbol_query_returns_no_hits() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(&mem, "pattern_x.md", "some content here");
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("global".into(), mem)], &db).unwrap();
+
+        assert!(search_fts(&db, "", 10).unwrap().is_empty());
+        assert!(search_fts(&db, "  :::  ", 10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn reindex_is_idempotent_and_drops_stale() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(&mem, "pattern_one.md", "alpha beta gamma");
+        let db = tmp.path().join("index.db");
+
+        reindex_fts_dirs(&[("global".into(), mem.clone())], &db).unwrap();
+        assert_eq!(search_fts(&db, "alpha", 10).unwrap().len(), 1);
+
+        // Remove the file and reindex — stale entry must disappear (full rebuild).
+        fs::remove_file(mem.join("pattern_one.md")).unwrap();
+        write(&mem, "pattern_two.md", "delta epsilon");
+        let n = reindex_fts_dirs(&[("global".into(), mem)], &db).unwrap();
+        assert_eq!(n, 1);
+        assert!(search_fts(&db, "alpha", 10).unwrap().is_empty(), "stale doc gone");
+        assert_eq!(search_fts(&db, "delta", 10).unwrap().len(), 1);
+    }
 }
