@@ -76,3 +76,12 @@ pub fn cmd_prune() -> Result<()> {
     println!("{removed}");
     Ok(())
 }
+
+/// Reset retry_count and failed state on a single entry (`id = Some(...)`) or
+/// all failed-but-unprocessed entries (`id = None`). Recovery path for
+/// transient tool regressions such as an agy version mismatch.
+pub fn cmd_reset_retries(id: Option<&str>) -> Result<()> {
+    let modified = queue::reset_retries(&store_path(), id).map_err(|e| anyhow!(e))?;
+    println!("{}", serde_json::to_string_pretty(&modified)?);
+    Ok(())
+}

@@ -155,6 +155,9 @@ fn main() {
                 run_or_exit(commands::close_queue::cmd_mark_failed(&id, &error))
             }
             CloseQueueCmd::Prune => run_or_exit(commands::close_queue::cmd_prune()),
+            CloseQueueCmd::ResetRetries { id } => {
+                run_or_exit(commands::close_queue::cmd_reset_retries(id.as_deref()))
+            }
         },
         Commands::Remind { cmd } => match cmd {
             RemindCmd::Write { text, action, priority, dedup_key, project, tags, at, channels } => {

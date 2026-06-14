@@ -264,6 +264,48 @@ pub fn mark_propagated(
     Ok(out)
 }
 
+/// Reset retry_count and clear the failed/error state on a specific entry or
+/// on all failed-but-unprocessed entries. Returns the entries modified.
+/// Intended for recovery after a transient tool regression (e.g. agy version
+/// mismatch) so the nightly cron picks them up again.
+pub fn reset_retries(path: &Path, id: Option<&str>) -> Result<Vec<Entry>, String> {
+    let _lock = crate::util::lock_sidecar(path)?;
+    let mut store = read_store(path)?;
+    let mut modified = Vec::new();
+    for e in store.entries.iter_mut() {
+        if e.processed {
+            continue;
+        }
+        let matches = match id {
+            Some(target) => e.id == target,
+            None => e.failed,
+        };
+        if matches {
+            if let Some(target) = id {
+                if e.id != target {
+                    continue;
+                }
+                if e.processed {
+                    return Err(format!("entry {target} is already processed"));
+                }
+            }
+            e.failed = false;
+            e.retry_count = 0;
+            e.error = None;
+            modified.push(e.clone());
+        }
+    }
+    if modified.is_empty() {
+        if let Some(target) = id {
+            return Err(format!("no queue entry with id {target}"));
+        }
+    }
+    if !modified.is_empty() {
+        crate::util::write_json_atomic(path, &store)?;
+    }
+    Ok(modified)
+}
+
 /// Prune processed-or-failed entries older than 30 days. Returns the number
 /// removed. Unprocessed healthy entries are never pruned (the stale-queue
 /// monitor surfaces those instead).
@@ -579,6 +621,66 @@ mod tests {
         assert_eq!(r.entry.omitted_files, Some(vec!["foo.rs".to_string(), "bar.rs".to_string()]));
         let listed = list(&path, false).unwrap();
         assert_eq!(listed[0].omitted_files, Some(vec!["foo.rs".to_string(), "bar.rs".to_string()]));
+    }
+
+    #[test]
+    fn reset_retries_by_id_clears_failed_state() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let r = append(&path, new_entry("feat/x", "a..b")).unwrap();
+        mark_failed(&path, &r.entry.id, "agy-empty-output: regression").unwrap();
+        mark_failed(&path, &r.entry.id, "agy-empty-output: regression").unwrap();
+        let e = mark_failed(&path, &r.entry.id, "agy-empty-output: regression").unwrap();
+        assert_eq!(e.retry_count, 3);
+        let modified = reset_retries(&path, Some(&r.entry.id)).unwrap();
+        assert_eq!(modified.len(), 1);
+        assert_eq!(modified[0].retry_count, 0);
+        assert!(!modified[0].failed);
+        assert!(modified[0].error.is_none());
+        // persisted
+        let listed = list(&path, false).unwrap();
+        assert_eq!(listed[0].retry_count, 0);
+        assert!(!listed[0].failed);
+    }
+
+    #[test]
+    fn reset_retries_all_clears_all_failed_unprocessed() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let r1 = append(&path, new_entry("feat/x", "a..b")).unwrap();
+        let r2 = append(&path, new_entry("feat/y", "c..d")).unwrap();
+        mark_failed(&path, &r1.entry.id, "err1").unwrap();
+        mark_failed(&path, &r2.entry.id, "err2").unwrap();
+        // one processed entry — must not be touched
+        let r3 = append(&path, new_entry("feat/z", "e..f")).unwrap();
+        mark_processed(&path, &r3.entry.id, "/s.md").unwrap();
+        let modified = reset_retries(&path, None).unwrap();
+        assert_eq!(modified.len(), 2);
+        for e in &modified {
+            assert_eq!(e.retry_count, 0);
+            assert!(!e.failed);
+        }
+        // processed entry untouched
+        let all = list(&path, false).unwrap();
+        let proc = all.iter().find(|e| e.id == r3.entry.id).unwrap();
+        assert!(proc.processed);
+    }
+
+    #[test]
+    fn reset_retries_unknown_id_errors() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        append(&path, new_entry("feat/x", "a..b")).unwrap();
+        assert!(reset_retries(&path, Some("q-nope")).is_err());
+    }
+
+    #[test]
+    fn reset_retries_processed_entry_errors() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let r = append(&path, new_entry("feat/x", "a..b")).unwrap();
+        mark_processed(&path, &r.entry.id, "/s.md").unwrap();
+        assert!(reset_retries(&path, Some(&r.entry.id)).is_err());
     }
 
     #[test]
