@@ -54812,7 +54812,7 @@
     {
       "id": "t-2081",
       "subject": "validate.sh: guard worktree add path lands inside enter_thebrana/ (see t-1835)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -54825,16 +54825,49 @@
       "priority": "P3",
       "parent": null,
       "created": "2026-06-13",
-      "started": null,
-      "completed": null,
+      "started": "2026-06-13",
+      "completed": "2026-06-13",
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness/feat/t-2081-validate-worktree-path",
       "context": "Triggered from field note 2026-06-13: git worktree add at wrong path (~/thebrana-t-2080 instead of ~/enter_thebrana/thebrana-t-2080) fails silently at creation; error surfaces at file-copy time. t-1835 already tracks worktree-detection guard for brana graph build — may be related scope.",
-      "notes": null,
+      "notes": "Added Check 59 to validate.sh: scans active worktrees via git worktree list --porcelain, warns for any non-main worktree outside $HOME/enter_thebrana/. 5-case unit test in tests/scripts/test-validate-check59-worktree-path.sh. Merged to main via harness/feat/t-2081-validate-worktree-path.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "build_step": "",
+      "strategy": "feature"
+    },
+    {
+      "subject": "fix close-extraction: agy output fails schema validation (all projects)",
+      "kind": "fix",
+      "type": "task",
+      "tags": [
+        "close-extraction",
+        "agy",
+        "scheduler",
+        "schema"
+      ],
+      "description": "Job close-extraction fails with 'schema-invalid: agy output failed contract validation' for all queued entries across all projects (thebrana, proyecto_anita, tinyhomes, dgrx). Affects extraction of session learnings/patterns. agy_delegate has 33+ failures in recent sessions. Root cause: agy response format doesn't match the schema close-extraction expects.",
+      "effort": "S",
+      "priority": "P1",
+      "id": "t-2082",
+      "status": "in_progress",
+      "execution": "code",
+      "created": "2026-06-14",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": "2026-06-14",
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": "bug-fix",
+      "build_step": null,
+      "epic": "harness-core",
+      "work_type": "implement"
     }
   ],
   "version": "1"

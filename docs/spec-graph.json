@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-13T22:57:07Z",
+  "generated": "2026-06-13T22:58:21Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -548,7 +548,8 @@
         "system/procedures/sitrep.md:122",
         "system/hooks/subagent-context.sh",
         "system/scripts/ruflo-mcp.sh",
-        "system/hooks/no-attribution-commit.sh"
+        "system/hooks/no-attribution-commit.sh",
+        "system/rules/git-discipline.md"
       ]
     },
     "docs/25-self-documentation.md": {
