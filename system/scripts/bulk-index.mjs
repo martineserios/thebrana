@@ -79,7 +79,10 @@ db.pragma('synchronous = NORMAL');
 
 // Read sections
 const lines = readFileSync(jsonlPath, 'utf8').trim().split('\n');
-const sections = lines.map(l => JSON.parse(l));
+const sections = lines.flatMap(l => {
+  try { return [JSON.parse(l)]; }
+  catch (e) { console.warn(`[bulk-index] Skipping malformed JSONL line: ${l.slice(0, 80)}...`); return []; }
+});
 console.log(`Sections to index: ${sections.length}`);
 
 // Prepare insert statement

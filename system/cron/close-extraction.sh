@@ -211,24 +211,34 @@ $DIFF_CONTENT"
 import json, sys, re
 raw = open(sys.argv[1]).read().strip()
 min_conf, cap = float(sys.argv[2]), int(sys.argv[3])
-# tolerate accidental markdown fences
-raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw)
+# tolerate accidental markdown fences at start/end
+raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw.strip()).strip()
+# tolerate preamble text before the JSON object (agy 1.0.8 sometimes adds one)
+if not raw.startswith('{'):
+    m = re.search(r'\{.*\}', raw, re.DOTALL)
+    if m:
+        raw = m.group(0)
 try:
     data = json.loads(raw)
     ls = data["learnings"]
     assert isinstance(ls, list)
     for l in ls:
-        assert l["type"] in ("errata", "pattern", "field-note")
-        assert l["size"] in ("SMALL", "LARGE")
-        assert l["title"].strip()
+        # normalize size to uppercase to tolerate "small"/"large" from agy
+        l["size"] = l.get("size", "SMALL").upper()
+        assert l["type"] in ("errata", "pattern", "field-note"), f"bad type: {l.get('type')}"
+        assert l["size"] in ("SMALL", "LARGE"), f"bad size: {l.get('size')}"
+        assert l.get("title", "").strip(), "empty title"
     # low-confidence filter + per-entry cap (t-1979 #7) — after contract
     # validation so a malformed low-conf item still fails the whole output
     ls = [l for l in ls if float(l.get("confidence", 1.0)) >= min_conf][:cap]
     print(json.dumps(ls))
-except Exception:
+except Exception as e:
+    # diagnostic: print first 300 chars of raw output to stderr so scheduler log captures it
+    print(f"schema-invalid detail: {type(e).__name__}: {e} | raw[:300]={raw[:300]!r}", file=sys.stderr)
     sys.exit(1)
 PYEOF
 ) || {
+        # stderr from the python block above is captured in the scheduler log
         fail_entry "schema-invalid: agy output failed contract validation"
         rm -f "$OUT_FILE"
         continue

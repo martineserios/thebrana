@@ -118,7 +118,7 @@ Configures ruflo as an MCP server in `~/.claude/settings.local.json` (gitignored
 
 `settings.local.json` is per-machine and never committed — safe to edit for local overrides.
 
-**Single-instance enforcement (flock mutex):** `ruflo-mcp.sh` uses `flock -n` to ensure only one ruflo process writes to `~/.swarm/memory.db` at a time. SQLite WAL mode allows concurrent readers but concurrent writers corrupt B-trees — confirmed by two corruption events (April + June 2026) caused by one ruflo process per CC terminal session. When a second CC session starts while ruflo is already running, the wrapper exits immediately and ruflo shows as "failed" in `/mcp`. This is expected — run `/mcp reconnect` in that session once the first session closes, or after the first session's ruflo exits.
+**Concurrent sessions:** Each CC session starts its own ruflo process via stdio MCP. SQLite WAL mode (already enabled by ruflo on `~/.swarm/memory.db`) serializes concurrent writes safely — no external mutex needed. A prior `flock -n` mutex and orphan sweep were removed (t-2085, June 2026) after a third DB corruption event proved the orphan sweep was killing live writers mid-WAL-write. Multiple sessions can now run simultaneously without conflict.
 
 ### Step 7: Plugin auto-registration
 
@@ -182,11 +182,8 @@ Settings.json and MCP server steps are skipped with a `!` warning. Install jq: `
 ```
 ruflo is optional. The system works without it at reduced capability (no cross-session search). To install ruflo, follow `docs/guide/troubleshooting.md`.
 
-**ruflo shows "failed" in /mcp after opening a second CC session:**
-```
-[ruflo-mcp] Another instance is running (PID: 12345). Exiting to prevent DB corruption.
-```
-This is the flock mutex working correctly — only one ruflo instance may write to `memory.db`. Close the first session (or wait for it to close), then run `/mcp reconnect` in the new session to start ruflo there. If the first session's ruflo already exited and you still see this, check for stale lock files: `rm -f ~/.swarm/ruflo-mcp.lock ~/.swarm/ruflo-mcp.pid`.
+**ruflo shows "failed" in /mcp:**
+Each CC session runs its own ruflo process — multiple concurrent sessions are supported. If ruflo fails at startup, check the MCP server logs. Common causes: ruflo not in PATH or nvm default, `~/.swarm/` directory missing, or DB integrity check failure (recovered automatically from backup if present). Run `/mcp reconnect` to retry the connection.
 
 **Plugin not installed (--sync-plugin fails):**
 ```
