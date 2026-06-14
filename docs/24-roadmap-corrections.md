@@ -4121,3 +4121,21 @@ The `if`/`else` form captures the exit code without triggering `set -e`. This is
 **Fix:** Replaced non-hex suffix characters with numeric equivalents: `002` for segment, `003` for template, `004` for message_schedule, `005` for broadcast_run. Also discovered `broadcast_runs` INSERT used columns that don't exist (`status`, `messages_sent`) — fixed to actual schema columns (`broadcast_id`, `phone_number_id`, `run_date`, `recipient_count`) after querying via Supabase Management API.
 
 **Status:** code-fix (2026-06-13) — Playwright E2E 69/69 green after fix.
+
+---
+
+### E2026-06-14-1 — Flock mutex + orphan sweep caused DB corruption it was designed to prevent
+
+**Severity:** High
+**Discovery:** 2026-06-14, t-2085 — investigation of recurring `/mcp` reconnect -32000 error
+**Affected files:** `system/scripts/ruflo-mcp.sh`
+**Corrects:** E2026-06-07 (which marked the flock mutex as "resolved / correct concurrency model")
+
+**Bug:** The June 7 fix added (a) a `flock -n` mutex causing later sessions to exit 1 (-32000 MCP error) and (b) an orphan sweep (`kill $orphan_pid`) meant to terminate "pre-flock" instances. The orphan sweep killed live ruflo processes mid-write — a concurrent write safety violation. The June 13 2026 corruption occurred **with the flock already active**, confirming the sweep was the actual corruption vector. Memory file `project_ruflo-agentdb-status.md` was also updated incorrectly to say "flock mutex is the correct model (not WAL advisory)" — that claim is now retracted.
+
+**Root cause:** The orphan sweep's `kill` is not atomic with ruflo's write path. SQLite does not checkpoint atomically on SIGTERM — a mid-write kill leaves the WAL in an incomplete state. The flock mutex adds latency but does not prevent the kill-induced corruption.
+
+**Fix:** Removed flock mutex (`exit 1` block) and orphan sweep entirely. Added WAL-presence guards to integrity check and daily backup (`[ ! -f "${DB_PATH}-wal" ]`) so they skip when another session has the DB open — prevents false-positive malformation reads. SQLite WAL mode (already set by ruflo) serializes concurrent writes safely without application-level process management.
+
+**Status:** code-fix (2026-06-14) — t-2085 merged to main.
+
