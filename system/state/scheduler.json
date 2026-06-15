@@ -1,297 +1,287 @@
 {
-    "version": 1,
-    "defaults": {
-        "model": "haiku",
-        "allowedTools": "Read,Glob,Grep,WebSearch",
-        "logRetention": 30,
-        "timeoutSeconds": 300
+  "defaults": {
+    "allowedTools": "Read,Glob,Grep,WebSearch",
+    "logRetention": 30,
+    "model": "haiku",
+    "timeoutSeconds": 300
+  },
+  "jobs": {
+    "agentdb-watch": {
+      "_comment": "Daily check: has AgentDB integration shipped?",
+      "captureOutput": true,
+      "command": "./system/scheduler/check-agentdb-integration.sh",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "retryBackoffSec": 60,
+      "schedule": "*-*-* 08:06:00",
+      "type": "command"
     },
-    "jobs": {
-        "backup-memory": {
-            "type": "command",
-            "command": "./system/scripts/backup-memory.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 07:00:00",
-            "enabled": true,
-            "timeoutSeconds": 30,
-            "captureOutput": true,
-            "_comment": "Daily rotating backup of ruflo memory.db (before sync-state push)"
-        },
-        "sync-state": {
-            "type": "command",
-            "command": "./system/scripts/sync-state.sh push --auto-commit",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 08:00:00",
-            "enabled": true,
-            "timeoutSeconds": 60,
-            "captureOutput": true,
-            "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos"
-        },
-        "agentdb-watch": {
-            "type": "command",
-            "command": "./system/scheduler/check-agentdb-integration.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 08:06:00",
-            "enabled": true,
-            "maxRetries": 1,
-            "retryBackoffSec": 60,
-            "captureOutput": true,
-            "_comment": "Daily check: has AgentDB integration shipped?"
-        },
-        "staleness-report": {
-            "type": "command",
-            "command": "./scripts/staleness-report.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Mon *-*-* 08:12:00",
-            "enabled": true,
-            "_comment": "Weekly staleness check on spec docs"
-        },
-        "cc-changelog-review": {
-            "type": "command",
-            "command": "./system/scripts/cc-changelog-check.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Mon *-*-* 08:18:00",
-            "enabled": true,
-            "maxRetries": 1,
-            "timeoutSeconds": 60,
-            "captureOutput": true,
-            "_comment": "Weekly CC changelog diff \u2014 writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
-        },
-        "reindex-knowledge": {
-            "type": "command",
-            "command": "./system/scripts/index-knowledge.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Sun *-*-* 12:00:00",
-            "enabled": true,
-            "maxRetries": 1,
-            "timeoutSeconds": 10800,
-            "captureOutput": true,
-            "_comment": "Weekly full reindex \u2014 runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)"
-        },
-        "knowledge-decay": {
-            "type": "skill",
-            "skill": "/brana:reconcile --scope knowledge",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Sun *-*-* 13:00:00",
-            "model": "sonnet",
-            "allowedTools": "Read,Glob,Grep,Bash",
-            "enabled": true,
-            "maxRetries": 1,
-            "timeoutSeconds": 600,
-            "captureOutput": true,
-            "_comment": "t-936/t-1102: weekly DECAY \u2014 stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
-        },
-        "reindex-patterns": {
-            "type": "command",
-            "command": "./system/scripts/index-patterns.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Sun *-*-* 03:00:00",
-            "enabled": true,
-            "timeoutSeconds": 3600,
-            "captureOutput": true,
-            "_comment": "Weekly pattern namespace reindex \u2014 runs at 3am (after knowledge reindex), ~1h max (t-857)"
-        },
-        "export-patterns": {
-            "type": "command",
-            "command": "./system/scripts/sync-state.sh export --auto-commit",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Sun *-*-* 08:30:00",
-            "enabled": true,
-            "maxRetries": 1,
-            "timeoutSeconds": 120,
-            "captureOutput": true,
-            "_comment": "ADR-015: weekly JSON export of all ruflo namespaces to git"
-        },
-        "knowledge-review": {
-            "type": "skill",
-            "skill": "/brana:memory review",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-01 10:00:00",
-            "model": "sonnet",
-            "allowedTools": "Read,Glob,Grep,WebSearch,WebFetch",
-            "enabled": true,
-            "_comment": "Monthly knowledge health check"
-        },
-        "weekly-review": {
-            "type": "skill",
-            "skill": "/brana:review",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Fri *-*-* 17:00:00",
-            "model": "sonnet",
-            "enabled": true,
-            "_comment": "Friday weekly portfolio review"
-        },
-        "morning-check": {
-            "type": "skill",
-            "skill": "/brana:daily-ops",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Mon..Fri *-*-* 08:48:00",
-            "model": "haiku",
-            "enabled": false,
-            "_comment": "Daily morning focus card \u2014 disabled locally (runs on Oracle for Telegram)"
-        },
-        "link-check": {
-            "type": "command",
-            "command": "lychee --config .lychee.toml *.md",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Mon *-*-* 09:00:00",
-            "enabled": false,
-            "_comment": "Weekly dead link check (enable after lychee is installed)"
-        },
-        "feed-poll": {
-            "type": "command",
-            "command": "brana feed poll --all",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 08,12,18:00:00",
-            "enabled": true,
-            "timeoutSeconds": 120,
-            "captureOutput": true,
-            "_comment": "t-1009: poll all registered RSS/Atom feeds 3x daily"
-        },
-        "feed-summarize": {
-            "type": "command",
-            "command": "./system/scripts/feed-summarize.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 18:55:00",
-            "enabled": true,
-            "maxRetries": 1,
-            "timeoutSeconds": 3600,
-            "captureOutput": true,
-            "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p \u2192 feed-summaries.jsonl (feed-index joins at 19:00). Timeout 3600: backfill bulges (2026-06-12: 230 entries \u00d7 ~15s) blow a 300s cap"
-        },
-        "kapso-changelog-check": {
-            "type": "command",
-            "command": "./system/scripts/kapso-changelog-check.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 18:45:00",
-            "enabled": true,
-            "timeoutSeconds": 60,
-            "captureOutput": true,
-            "_comment": "t-2011: Kapso changelog scraper (no RSS exists) - docs.kapso.ai/changelog.md -> feed-log.jsonl, before feed-index (19:00). ADR-055."
-        },
-        "feed-index": {
-            "type": "command",
-            "command": "./system/scripts/feed-index.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 19:00:00",
-            "enabled": true,
-            "timeoutSeconds": 60,
-            "captureOutput": true,
-            "_comment": "t-1009: daily intelligence digest \u2014 feed-log.jsonl \u2192 ~/.claude/intelligence-feed-digest.md"
-        },
-        "feed-ruflo-index": {
-            "type": "command",
-            "command": "./system/scripts/feed-ruflo-index.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 19:15:00",
-            "enabled": true,
-            "timeoutSeconds": 3600,
-            "captureOutput": true,
-            "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Timeout 3600: indexing runs ~2 sections/s; backfill bulges (2026-06-12: 1783 sections ≈ 20min) blow a 300s cap"
-        },
-        "lint-heal": {
-            "type": "command",
-            "command": "./system/scripts/lint-heal.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Sun *-*-* 15:00:00",
-            "enabled": true,
-            "timeoutSeconds": 300,
-            "captureOutput": true,
-            "_comment": "t-1075: weekly L2 memory lint+heal \u2014 dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00)."
-        },
-        "index-assumptions": {
-            "type": "command",
-            "command": "./system/scripts/index-assumptions.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Sun *-*-* 08:36:00",
-            "enabled": true,
-            "maxRetries": 1,
-            "timeoutSeconds": 300,
-            "captureOutput": true
-        },
-        "second-phase-review": {
-            "type": "command",
-            "command": "./system/scripts/second-phase-check.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Mon *-*-* 08:42:00",
-            "enabled": true,
-            "timeoutSeconds": 60,
-            "captureOutput": true,
-            "_comment": "ADR-021: weekly check for time-gated second-phase tasks"
-        },
-        "statusline-slow-cache": {
-            "type": "command",
-            "command": "./system/scripts/statusline-slow-cache.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* *:00/5:00",
-            "enabled": true,
-            "timeoutSeconds": 30,
-            "captureOutput": true,
-            "_comment": "t-1023: write ruflo health, portfolio pulse, knowledge freshness to statusline slow-cache every 5min"
-        },
-        "knowledge-pipeline-tier1": {
-            "type": "command",
-            "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "0 3 * * *",
-            "enabled": true,
-            "timeoutSeconds": 300,
-            "captureOutput": true,
-            "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only."
-        },
-        "content-harvest": {
-            "type": "skill",
-            "skill": "/brana:harvest 7d --auto",
-            "project": "~/enter_thebrana/ventures/linkedin",
-            "schedule": "Sun *-*-* 22:00:00",
-            "model": "sonnet",
-            "allowedTools": "Read,Glob,Grep,Bash",
-            "enabled": true,
-            "timeoutSeconds": 600,
-            "captureOutput": true,
-            "_comment": "t-680: weekly content harvest. Synced from template 2026-05-25 (t-1680) \u2014 was silently missing from live."
-        },
-        "daily-digest": {
-            "type": "command",
-            "command": "./system/scheduler/brana-scheduler-digest.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 09:30:00",
-            "enabled": false,
-            "timeoutSeconds": 30,
-            "captureOutput": false,
-            "_comment": "t-688: daily Telegram digest summarizing all scheduler runs. Enable on Oracle only (requires ~/.hub-secrets)."
-        },
-        "inbox-poll": {
-            "type": "command",
-            "command": "brana inbox poll",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 09:00:00",
-            "enabled": false,
-            "timeoutSeconds": 60,
-            "captureOutput": true,
-            "_comment": "t-585: poll Gmail for new newsletter emails."
-        },
-        "memory-consolidation": {
-            "type": "command",
-            "command": "./system/scripts/memory-consolidation.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "Mon,Tue,Wed,Thu,Fri,Sat *-*-* 15:30:00",
-            "enabled": true,
-            "timeoutSeconds": 120,
-            "captureOutput": true,
-            "_comment": "t-1834: threshold-triggered L3 consolidation \u2014 debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter)."
-        },
-        "close-extraction": {
-            "type": "command",
-            "command": "./system/cron/close-extraction.sh",
-            "project": "~/enter_thebrana/thebrana",
-            "schedule": "*-*-* 02:00:00",
-            "enabled": true,
-            "timeoutSeconds": 1800,
-            "maxRetries": 1,
-            "retryBackoffSec": 300,
-            "captureOutput": true,
-            "_comment": "ADR-052 Track 2: nightly extraction \u2014 agy pass per queued close snapshot, learnings to reminders, daily summary."
-        }
+    "backup-memory": {
+      "_comment": "Daily rotating backup of ruflo memory.db (before sync-state push)",
+      "captureOutput": true,
+      "command": "./system/scripts/backup-memory.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 07:00:00",
+      "timeoutSeconds": 30,
+      "type": "command"
+    },
+    "cc-changelog-review": {
+      "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)",
+      "captureOutput": true,
+      "command": "./system/scripts/cc-changelog-check.sh",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:18:00",
+      "timeoutSeconds": 60,
+      "type": "command"
+    },
+    "close-extraction": {
+      "_comment": "ADR-052 Track 2: nightly extraction — agy pass per queued close snapshot, learnings to reminders, daily summary.",
+      "captureOutput": true,
+      "command": "./system/cron/close-extraction.sh",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "retryBackoffSec": 300,
+      "schedule": "*-*-* 02:00:00",
+      "timeoutSeconds": 1800,
+      "type": "command"
+    },
+    "content-harvest": {
+      "_comment": "t-680: weekly content harvest. Synced from template 2026-05-25 (t-1680) — was silently missing from live.",
+      "allowedTools": "Read,Glob,Grep,Bash",
+      "captureOutput": true,
+      "enabled": true,
+      "model": "sonnet",
+      "project": "~/enter_thebrana/ventures/linkedin",
+      "schedule": "Sun *-*-* 22:00:00",
+      "skill": "/brana:harvest 7d --auto",
+      "timeoutSeconds": 600,
+      "type": "skill"
+    },
+    "daily-digest": {
+      "_comment": "t-688: daily Telegram digest summarizing all scheduler runs. Enable on Oracle only (requires ~/.hub-secrets).",
+      "captureOutput": false,
+      "command": "./system/scheduler/brana-scheduler-digest.sh",
+      "enabled": false,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:30:00",
+      "timeoutSeconds": 30,
+      "type": "command"
+    },
+    "export-patterns": {
+      "_comment": "ADR-015: weekly JSON export of all ruflo namespaces to git",
+      "captureOutput": true,
+      "command": "./system/scripts/sync-state.sh export --auto-commit",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 08:30:00",
+      "timeoutSeconds": 120,
+      "type": "command"
+    },
+    "feed-index": {
+      "_comment": "t-1009: daily intelligence digest — feed-log.jsonl → ~/.claude/intelligence-feed-digest.md",
+      "captureOutput": true,
+      "command": "./system/scripts/feed-index.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 19:00:00",
+      "timeoutSeconds": 60,
+      "type": "command"
+    },
+    "feed-poll": {
+      "_comment": "t-1009: poll all registered RSS/Atom feeds 3x daily",
+      "captureOutput": true,
+      "command": "brana feed poll --all",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 08,12,18:00:00",
+      "timeoutSeconds": 120,
+      "type": "command"
+    },
+    "feed-ruflo-index": {
+      "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Timeout 3600: indexing runs ~2 sections/s; backfill bulges (2026-06-12: 1783 sections ≈ 20min) blow a 300s cap",
+      "captureOutput": true,
+      "command": "./system/scripts/feed-ruflo-index.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 19:15:00",
+      "timeoutSeconds": 3600,
+      "type": "command"
+    },
+    "feed-summarize": {
+      "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p → feed-summaries.jsonl (feed-index joins at 19:00). Timeout 3600: backfill bulges (2026-06-12: 230 entries × ~15s) blow a 300s cap",
+      "captureOutput": true,
+      "command": "./system/scripts/feed-summarize.sh",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 18:55:00",
+      "timeoutSeconds": 3600,
+      "type": "command"
+    },
+    "inbox-poll": {
+      "_comment": "t-585: poll Gmail for new newsletter emails.",
+      "captureOutput": true,
+      "command": "brana inbox poll",
+      "enabled": false,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:00:00",
+      "timeoutSeconds": 60,
+      "type": "command"
+    },
+    "index-assumptions": {
+      "captureOutput": true,
+      "command": "./system/scripts/index-assumptions.sh",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 08:36:00",
+      "timeoutSeconds": 300,
+      "type": "command"
+    },
+    "knowledge-decay": {
+      "_comment": "t-936/t-1102: weekly DECAY — stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon).",
+      "allowedTools": "Read,Glob,Grep,Bash",
+      "captureOutput": true,
+      "enabled": true,
+      "maxRetries": 1,
+      "model": "sonnet",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 13:00:00",
+      "skill": "/brana:reconcile --scope knowledge",
+      "timeoutSeconds": 600,
+      "type": "skill"
+    },
+    "knowledge-pipeline-tier1": {
+      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only.",
+      "captureOutput": true,
+      "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "0 3 * * *",
+      "timeoutSeconds": 300,
+      "type": "command"
+    },
+    "knowledge-review": {
+      "_comment": "Monthly knowledge health check",
+      "allowedTools": "Read,Glob,Grep,WebSearch,WebFetch",
+      "enabled": true,
+      "model": "sonnet",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-01 10:00:00",
+      "skill": "/brana:memory review",
+      "type": "skill"
+    },
+    "link-check": {
+      "_comment": "Weekly dead link check (enable after lychee is installed)",
+      "command": "lychee --config .lychee.toml *.md",
+      "enabled": false,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 09:00:00",
+      "type": "command"
+    },
+    "lint-heal": {
+      "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00).",
+      "captureOutput": true,
+      "command": "./system/scripts/lint-heal.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 15:00:00",
+      "timeoutSeconds": 300,
+      "type": "command"
+    },
+    "memory-consolidation": {
+      "_comment": "t-1834: threshold-triggered L3 consolidation — debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter).",
+      "captureOutput": true,
+      "command": "./system/scripts/memory-consolidation.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon,Tue,Wed,Thu,Fri,Sat *-*-* 15:30:00",
+      "timeoutSeconds": 120,
+      "type": "command"
+    },
+    "morning-check": {
+      "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram)",
+      "enabled": false,
+      "model": "haiku",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon..Fri *-*-* 08:48:00",
+      "skill": "/brana:daily-ops",
+      "type": "skill"
+    },
+    "reindex-knowledge": {
+      "_comment": "Weekly full reindex — runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)",
+      "captureOutput": true,
+      "command": "./system/scripts/index-knowledge.sh",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 12:00:00",
+      "timeoutSeconds": 10800,
+      "type": "command"
+    },
+    "reindex-patterns": {
+      "_comment": "Weekly pattern namespace reindex — runs at 3am (after knowledge reindex), ~1h max (t-857)",
+      "captureOutput": true,
+      "command": "./system/scripts/index-patterns.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 03:00:00",
+      "timeoutSeconds": 3600,
+      "type": "command"
+    },
+    "second-phase-review": {
+      "_comment": "ADR-021: weekly check for time-gated second-phase tasks",
+      "captureOutput": true,
+      "command": "./system/scripts/second-phase-check.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:42:00",
+      "timeoutSeconds": 60,
+      "type": "command"
+    },
+    "staleness-report": {
+      "_comment": "Weekly staleness check on spec docs",
+      "command": "./scripts/staleness-report.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:12:00",
+      "type": "command"
+    },
+    "statusline-slow-cache": {
+      "_comment": "t-1023: write ruflo health, portfolio pulse, knowledge freshness to statusline slow-cache every 5min",
+      "captureOutput": true,
+      "command": "./system/scripts/statusline-slow-cache.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:00/5:00",
+      "timeoutSeconds": 30,
+      "type": "command"
+    },
+    "sync-state": {
+      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos",
+      "captureOutput": true,
+      "command": "./system/scripts/sync-state.sh push --auto-commit",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 08:00:00",
+      "timeoutSeconds": 60,
+      "type": "command"
+    },
+    "weekly-review": {
+      "_comment": "Friday weekly portfolio review",
+      "enabled": true,
+      "model": "sonnet",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Fri *-*-* 17:00:00",
+      "skill": "/brana:review",
+      "type": "skill"
     }
+  },
+  "version": 1
 }
