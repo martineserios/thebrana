@@ -10,7 +10,7 @@
 | **core** | System foundations | docs, sitrep |
 | **execution** | Development lifecycle | build, onboard, align |
 | **learning** | Knowledge acquisition | challenge, research, memory |
-| **thinking** | Interactive ideation | brainstorm |
+| **thinking** | Reasoning and ideation | brainstorm, decide, pre-mortem, first-principles, inversion, second-order-thinking, six-thinking-hats, systems-thinking, jobs-to-be-done, swot-analysis, decision-matrix, critical-thinking-logical-reasoning |
 | **venture** | Business operations | review, client-retire |
 | **session** | Session lifecycle | close |
 | **capture** | Event capture | log |
@@ -133,6 +133,16 @@ Community skills install with `quarantine: true` in frontmatter and read-only to
 | Skill | Source | Purpose | Installed |
 |-------|--------|---------|-----------|
 | `caveman` | `JuliusBrussee/caveman` | Ultra-compressed output (~50% token reduction on brana prompts). Trigger: `/caveman`. | 2026-04-13 |
+| `pre-mortem` | Gary Klein / community | Prospective hindsight: imagine failure before committing, design preventions. | 2026-06-15 |
+| `first-principles` | Aristotle/Musk/Feynman / community | Strip assumptions, interrogate each, rebuild from fundamentals. | 2026-06-15 |
+| `inversion` | Jacobi/Munger / community | Design failure actively, then build avoidance strategy. | 2026-06-15 |
+| `second-order-thinking` | Howard Marks / community | Trace consequences past the obvious through 3–4 order effects. | 2026-06-15 |
+| `six-thinking-hats` | De Bono / community | 6 parallel perspectives: White/Red/Black/Yellow/Green/Blue. | 2026-06-15 |
+| `systems-thinking` | Meadows / community | Stocks, flows, feedback loops (reinforcing vs balancing), leverage hierarchy. | 2026-06-15 |
+| `jobs-to-be-done` | Christensen/Ulwick / community | Functional/emotional/social job dimensions; what is the customer hiring this for? | 2026-06-15 |
+| `swot-analysis` | Humphrey / community | SW×OT cross-reference matrix → strategic moves. | 2026-06-15 |
+| `decision-matrix` | Pugh / community | Weighted criteria scoring + sensitivity analysis for multi-alternative decisions. | 2026-06-15 |
+| `critical-thinking-logical-reasoning` | Paul/Elder/Kahneman / community | Fallacies, assumptions, evidence quality; 8-step reasoning audit. | 2026-06-15 |
 
 ## Field Notes
 
