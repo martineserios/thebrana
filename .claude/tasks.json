@@ -55240,7 +55240,7 @@
       ],
       "branch": null,
       "completed": null,
-      "context": "User request 2026-06-15: the system should be really aware of its own memory and use it frequently to enrich context — not just at session start but at key moments (task start, skill LOAD step, before implementation). The LOAD step in brana:build already does ruflo memory search, but it could be more aggressive and also pull from FTS5 / the HybridProvider once that exists. Consider: automatic recall injection at task start (hook on backlog start), smarter LOAD step that surfaces ALL relevant memory not just top-3 ruflo results, a `brana recall` command that combines FTS5 + ruflo via HybridProvider (see t-2091 extension for HybridProvider design). AC: skill LOAD steps query hybrid recall (FTS5 + ruflo); session start surfaces relevant memories; the system doesn't need to be told to check memory — it does it proactively. Blocked by t-2091 (SearchProvider seam) for the HybridProvider path.",
+      "context": "User request 2026-06-15: the system should be really aware of its own memory and use it frequently to enrich context — not just at session start but at key moments (task start, skill LOAD step, before implementation). The LOAD step in brana:build already does ruflo memory search, but it could be more aggressive and also pull from FTS5 / the HybridProvider once that exists. Consider: automatic recall injection at task start (hook on backlog start), smarter LOAD step that surfaces ALL relevant memory not just top-3 ruflo results, a `brana recall` command that combines FTS5 + ruflo via HybridProvider (see t-2091 extension for HybridProvider design). AC: skill LOAD steps query hybrid recall (FTS5 + ruflo); session start surfaces relevant memories; the system doesn't need to be told to check memory — it does it proactively. Blocked by t-2091 (SearchProvider seam) for the HybridProvider path.\n2026-06-15: skill LOAD recall calls must fire in parallel (not sequentially). Total wall-clock = max(individual calls), not sum. Finding 1's 2s HybridProvider deadline caps worst-case per-call latency. If serialized, 5 loads × 2s = 10s blocking on session start. Make parallelism explicit in the impl spec.",
       "created": "2026-06-15",
       "description": "The harness should proactively pull from its own memory (FTS5 + ruflo) at key moments — task start, skill LOAD, before implementation — without being told to. Today the LOAD step in brana:build queries ruflo top-3, but this is manual and misses FTS5 results. Goal: automatic context enrichment from memory at the right moments, using the HybridProvider once available.",
       "effort": "M",
@@ -55573,7 +55573,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "completed",
+      "status": "in_progress",
       "subject": "Enhance challenge with inversion flavor + --hats flag (six-thinking-hats as council alternative)",
       "tags": [
         "thinking",
