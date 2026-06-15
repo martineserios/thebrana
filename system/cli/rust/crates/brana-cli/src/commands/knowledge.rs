@@ -166,64 +166,16 @@ pub fn format_results(results: &[SearchResult]) -> String {
     lines.join("\n")
 }
 
-/// Resolve the ruflo/claude-flow binary path (same logic as skills.rs).
-fn which_ruflo() -> Option<String> {
-    let home_str = std::env::var("HOME").unwrap_or_default();
-    let cf_env = format!("{home_str}/.claude/scripts/cf-env.sh");
-    if std::path::Path::new(&cf_env).exists() {
-        if let Ok(output) = std::process::Command::new("bash")
-            .args(["-c", &format!("source '{cf_env}' 2>/dev/null && echo \"$CF\"")])
-            .output()
-        {
-            if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path.is_empty() && std::path::Path::new(&path).exists() {
-                    return Some(path);
-                }
-            }
-        }
-    }
-
-    // Try nvm global bin locations
-    let nvm_dir = std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{home_str}/.nvm"));
-    if let Ok(entries) = std::fs::read_dir(format!("{nvm_dir}/versions/node")) {
-        for entry in entries.flatten() {
-            for name in ["ruflo", "claude-flow"] {
-                let bin = entry.path().join("bin").join(name);
-                if bin.exists() {
-                    return Some(bin.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
-    // Try PATH
-    for name in ["ruflo", "claude-flow"] {
-        if let Ok(output) = std::process::Command::new("which").arg(name).output() {
-            if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path.is_empty() {
-                    return Some(path);
-                }
-            }
-        }
-    }
-    None
-}
-
 /// Call ruflo memory search and return raw JSON output.
 /// Uses a 15-second timeout (ruflo CLI can hang after completion — known issue).
 fn call_ruflo_search(query: &str, namespace: &str, limit: usize) -> Result<String> {
-    let cf = std::env::var("CF")
-        .ok()
-        .filter(|s| !s.is_empty())
-        .or_else(which_ruflo)
+    let ruflo = brana_core::ruflo::resolve_ruflo_binary()
         .ok_or_else(|| anyhow::anyhow!("ruflo not found — run `brana knowledge reindex` first"))?;
 
     let home_str = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
     let limit_str = limit.to_string();
 
-    let mut child = std::process::Command::new(&cf)
+    let mut child = std::process::Command::new(&ruflo)
         .args([
             "memory", "search",
             "-q", query,

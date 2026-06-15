@@ -1054,39 +1054,8 @@ pub fn parse_semantic_dedup_output(output: &str) -> bool {
     })
 }
 
-/// Resolve the ruflo binary path.
-/// Priority: `RUFLO_BIN` env var → NVM node version directories → PATH.
-pub fn resolve_ruflo_binary() -> Option<PathBuf> {
-    if let Ok(v) = std::env::var("RUFLO_BIN") {
-        let p = PathBuf::from(&v);
-        if p.exists() {
-            return Some(p);
-        }
-    }
-    // Scan NVM node version directories (ruflo is not always on PATH in subshells)
-    let nvm_root = std::env::var("NVM_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| home().join(".nvm"));
-    let nvm_versions = nvm_root.join("versions/node");
-    if let Ok(entries) = std::fs::read_dir(&nvm_versions) {
-        for entry in entries.flatten() {
-            let candidate = entry.path().join("bin/ruflo");
-            if candidate.exists() {
-                return Some(candidate);
-            }
-        }
-    }
-    // Fall back to PATH
-    if let Ok(out) = std::process::Command::new("which").arg("ruflo").output() {
-        if out.status.success() {
-            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if !path.is_empty() {
-                return Some(PathBuf::from(path));
-            }
-        }
-    }
-    None
-}
+// resolve_ruflo_binary() lives in crate::ruflo — single source of truth.
+use crate::ruflo::resolve_ruflo_binary;
 
 /// Check if a URL's topic is already well-represented in the knowledge base.
 ///
