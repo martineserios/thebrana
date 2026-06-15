@@ -55403,7 +55403,7 @@
     {
       "id": "t-2102",
       "subject": "Run /brana:reconcile --scope consistency,propagation after t-2095",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -55430,7 +55430,7 @@
     {
       "id": "t-2103",
       "subject": "Review and drop stale stash@{0} — t-2085 pre-branch (tasks.json + spec-graph.json)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -55447,7 +55447,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "2026-06-15: stash@{0} \"On main: t-2085 pre-branch stash\" contains tasks.json (28 lines) + docs/spec-graph.json changes. t-2085 is completed. Likely stale — but verify changes are already committed before dropping. If safe: git stash drop stash@{0}",
-      "notes": null,
+      "notes": "2026-06-15: t-2085 stash was already gone. Current stash@{0} is thinking/feat/t-2104 WIP (10 new skill entries in skills.md) — should NOT be dropped, apply back on thinking branch.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
