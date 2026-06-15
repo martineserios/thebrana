@@ -55479,7 +55479,7 @@
     {
       "id": "t-2105",
       "subject": "Audit and prune MEMORY.md — consolidate superseded feedback entries into topic files",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [],
@@ -55488,16 +55488,17 @@
       "priority": "P3",
       "parent": null,
       "created": "2026-06-15",
-      "started": null,
+      "started": "2026-06-15",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "memory/chore/t-2105-audit-prune-memory-md",
       "context": "MEMORY.md at 224 lines (cap 200, hard limit at 200 truncation). 112 feedback + 85 pattern entries. No dead links. Fix: identify feedback entries now encoded in rules/conventions (can be deleted), consolidate related feedback into topic files (e.g., all git-related feedback → feedback_git-patterns.md). Run mcp__brana__memory_index after deletions to rebuild index. Target: under 175 lines.",
-      "notes": null,
+      "notes": "Consolidated 55 individual feedback_*.md files into 17 topic files. Deleted 3 superseded entries (content encoded in rules). MEMORY.md: 229 → 175 lines.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "memory"
     },
     {
       "id": "t-2106",
