@@ -60,3 +60,13 @@ scheduler config change needed.
 
 `reindex_fts_dirs(dirs, db_path)` takes explicit paths — tests use `tempdir()`
 without `$HOME` manipulation. Four unit tests in `brana-core::memory::fts_tests`.
+
+## Field Notes
+
+### 2026-06-15: brana-core::ruflo — canonical seam for binary resolution + memory search
+t-2095 extracted `resolve_ruflo_binary()` and `ruflo_memory_search_raw()` into `brana-core::ruflo`. Three independent implementations (`knowledge.rs`, `skills.rs`, `knowledge_pipeline.rs`) are now one. The module is the abstraction boundary before the SearchProvider trait (t-2091). Any new ruflo call site must use `ruflo_memory_search_raw()` — not a new shell-out.
+Source: t-2095, 2026-06-15
+
+### 2026-06-15: check_semantic_dedup() gained a 15-second timeout as a refactor side effect
+Before t-2095, `check_semantic_dedup()` used blocking `.output()` with no timeout — a latent hang risk whenever ruflo stalled. Moving to `ruflo_memory_search_raw()` introduced the 15-second timeout as a side effect. The timeout is intentional in the canonical implementation; the old behavior was a bug, not a design choice.
+Source: t-2095, 2026-06-15

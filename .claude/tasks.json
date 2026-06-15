@@ -55107,7 +55107,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "THE architectural unlock. Do NOT replace ruflo — add a seam so two backends coexist, picked by config. Define a MemoryStore trait (recall / store / pattern-search / session-state) with two impls: (1) ruflo impl wrapping current behavior (you, personal — keep depth: vector search, graph, agent pool), (2) SQLite+FTS5 self-contained impl (public distribution — zero ops, Engram pattern). Worst case if public path abandoned: you've gained a clean memory interface = good hygiene regardless. Reference: Engram (github.com/Gentleman-Programming/engram, 4.3k stars, SQLite+FTS5, more stars than gentle-ai itself). Independently valuable. AC: MemoryStore trait defined; ruflo impl passes existing behavior tests; SQLite impl passes same contract tests; backend selectable via config; ruflo not load-bearing for the SQLite path. SDD: apply (architectural seam = ADR). TDD: apply — contract test suite both impls must pass.\n2026-06-14: First slice is t-2094 (replace failing pattern-reindex pipeline with embedded SQLite+FTS5). t-2091 generalizes that into a pluggable SearchProvider (ruflo vs embedded) after t-2094 proves the embedded-index approach. SCOPE CORRECTION (scout 2026-06-14): the store is already self-contained markdown; the seam is over semantic RECALL, not storage. ADR belongs here once t-2094's index schema is validated.",
+      "context": "THE architectural unlock. Do NOT replace ruflo — add a seam so two backends coexist, picked by config. Define a MemoryStore trait (recall / store / pattern-search / session-state) with two impls: (1) ruflo impl wrapping current behavior (you, personal — keep depth: vector search, graph, agent pool), (2) SQLite+FTS5 self-contained impl (public distribution — zero ops, Engram pattern). Worst case if public path abandoned: you've gained a clean memory interface = good hygiene regardless. Reference: Engram (github.com/Gentleman-Programming/engram, 4.3k stars, SQLite+FTS5, more stars than gentle-ai itself). Independently valuable. AC: MemoryStore trait defined; ruflo impl passes existing behavior tests; SQLite impl passes same contract tests; backend selectable via config; ruflo not load-bearing for the SQLite path. SDD: apply (architectural seam = ADR). TDD: apply — contract test suite both impls must pass.\n2026-06-14: First slice is t-2094 (replace failing pattern-reindex pipeline with embedded SQLite+FTS5). t-2091 generalizes that into a pluggable SearchProvider (ruflo vs embedded) after t-2094 proves the embedded-index approach. SCOPE CORRECTION (scout 2026-06-14): the store is already self-contained markdown; the seam is over semantic RECALL, not storage. ADR belongs here once t-2094's index schema is validated.\n2026-06-15: HybridProvider design brainstormed — add as third SearchProvider impl after RufloProvider and FTS5Provider are stable. Architecture: parallel dispatch to both providers, RRF merge (k=20, not k=60 — short recall lists), no dedup (independent stores, overlap = double-high-RRF = intentional signal). Integration: brana recall CLI first, mcp__brana__recall wraps it. No ruflo modification — black box integration only. Future dedup path: include source_file tag when brana writes to ruflo; no dedup code today. Full design: docs/ideas/hybrid-provider-fts5-ruflo-rrf.md. Downstream: t-2096 (proactive memory enrichment) blocked_by this task.",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -55204,7 +55204,7 @@
     {
       "id": "t-2095",
       "subject": "Consolidate triplicated which_ruflo() + ruflo search shell-out into one SearchProvider seam",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -55222,15 +55222,75 @@
       "started": null,
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/refactor/t-2095-consolidate-which-ruflo",
       "context": "2026-06-14 (found while building t-2094). The ruflo coupling in brana-core/cli is DRY-violating: `which_ruflo()` binary resolution is duplicated across crates/brana-cli/src/commands/knowledge.rs:170, crates/brana-cli/src/commands/skills.rs, and crates/brana-core/src/knowledge_pipeline.rs:1059 (resolve_ruflo_binary). Each independently shells out to `ruflo memory search` and parses JSON. This is exactly the surface t-2091's SearchProvider trait should absorb.\n\nImprovement: extract a single ruflo-resolution + `memory search` call site (one module, e.g. brana-core/src/recall.rs or a RufloProvider impl) that all three callers use. Then the FTS5 provider (t-2094) and ruflo provider sit behind the same trait, selectable by config — making ruflo non-load-bearing for distribution. Consolidation first (this task), trait generalization in t-2091.\n\nRelates to: t-2091 (SearchProvider seam — this is the concrete consolidation step), t-2094 (FTS5 provider — the ruflo-free counterpart). AC: which_ruflo()/resolve_ruflo_binary defined once, used by all 3 call sites; ruflo `memory search` invocation + JSON parse centralized; existing knowledge search + skills suggest + semantic-dedup behavior unchanged (tests green); fail-open behavior preserved when ruflo absent. TDD: apply — characterization tests for current behavior before consolidating (replicated-logic-tests-rot risk). SDD: covered by t-2091 ADR.",
-      "notes": null,
+      "notes": "Extracted brana-core::ruflo with resolve_ruflo_binary() + ruflo_memory_search_raw(). Removed which_ruflo() from skills.rs and knowledge.rs, removed local resolve_ruflo_binary() from knowledge_pipeline.rs. 6 characterization tests (serial_test). check_semantic_dedup() gained 15-second timeout as side effect. Challenger finding: cf-env.sh shell interpolation is pre-existing, score 2, does not block.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "epic": "harness-core",
-      "work_type": "implement"
+      "work_type": "implement",
+      "build_step": "close"
+    },
+    {
+      "id": "t-2096",
+      "subject": "Make harness proactively aware of its own memory — enrich context at task start",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "memory",
+        "harness",
+        "recall",
+        "context-engineering"
+      ],
+      "description": "The harness should proactively pull from its own memory (FTS5 + ruflo) at key moments — task start, skill LOAD, before implementation — without being told to. Today the LOAD step in brana:build queries ruflo top-3, but this is manual and misses FTS5 results. Goal: automatic context enrichment from memory at the right moments, using the HybridProvider once available.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2090",
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2091"
+      ],
+      "branch": null,
+      "context": "User request 2026-06-15: the system should be really aware of its own memory and use it frequently to enrich context — not just at session start but at key moments (task start, skill LOAD step, before implementation). The LOAD step in brana:build already does ruflo memory search, but it could be more aggressive and also pull from FTS5 / the HybridProvider once that exists. Consider: automatic recall injection at task start (hook on backlog start), smarter LOAD step that surfaces ALL relevant memory not just top-3 ruflo results, a `brana recall` command that combines FTS5 + ruflo via HybridProvider (see t-2091 extension for HybridProvider design). AC: skill LOAD steps query hybrid recall (FTS5 + ruflo); session start surfaces relevant memories; the system doesn't need to be told to check memory — it does it proactively. Blocked by t-2091 (SearchProvider seam) for the HybridProvider path.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2097",
+      "subject": "Design HybridProvider: Engram (SQLite) L1 cache + ruflo L2 for SearchProvider trait",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "ideation",
+        "memory",
+        "recall",
+        "rust",
+        "architecture"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2091",
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Surfaced during t-2095 session. Engram (SQLite+FTS5 from t-2094) could serve as an L1 cache in front of ruflo's vector search (L2). Pattern: fast keyword match first (FTS5, <5ms, no process spawn), fall through to ruflo semantic search only on miss. This is the HybridProvider concept for the SearchProvider trait defined in t-2091. Design question: what constitutes a cache 'hit' when blending keyword + semantic results? Threshold-based? Score fusion?",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
