@@ -55403,7 +55403,7 @@
     {
       "id": "t-2102",
       "subject": "Run /brana:reconcile --scope consistency,propagation after t-2095",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -55421,7 +55421,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "2026-06-15: system/cli/** changed in t-2095 (new brana-core::ruflo module, removed duplicate which_ruflo() from knowledge.rs and skills.rs). Spec-graph and propagation checks needed to ensure no doc drift. Command: /brana:reconcile --scope consistency,propagation",
-      "notes": null,
+      "notes": "2026-06-15: Clean pass. No drift from t-2095. which_ruflo references only in ideas doc. Spec-graph timestamp refresh only.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
