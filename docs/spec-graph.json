@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-15T23:06:19Z",
+  "generated": "2026-06-15T23:34:33Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1354,6 +1354,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/skills/close/phases/propagate.md",
+        "system/cron/prompts/close-propagation.txt",
         "system/skills/close/SKILL.md",
         "system/skills/close/phases/gate-and-evidence.md",
         "system/skills/close/phases/cleanup.md",
