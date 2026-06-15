@@ -21,7 +21,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 
 | Skill | Group | Description |
 |-------|-------|-------------|
-| `/brana:acquire-skills` | brana | Find and install skills for project tech gaps. Use when entering a project with  |
+| `/brana:acquire-skills` | brana | Find and install skills for what you're doing — tech stack AND thinking/reasonin |
 | `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Auto- |
 | `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
 | `/brana:bash-defensive-patterns` | brana | Master defensive Bash programming techniques for production-grade scripts. Use w |
@@ -60,7 +60,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 
 ### `/brana:acquire-skills`
 
-Find and install skills for project tech gaps. Use when entering a project with unfamiliar tech or when no local skill matches a task context.
+Find and install skills for what you're doing — tech stack AND thinking/reasoning gaps. Analyzes activity type (deciding, strategizing, challenging, analyzing, planning) and tech context to surface relevant skills. Use when entering unfamiliar tech, stuck on a reasoning challenge, or when no local skill covers the current task.
 
 **Allowed tools:** Read, Write, Bash, Glob, Grep, WebSearch, WebFetch, AskUserQuestion, Agent
 
@@ -292,7 +292,7 @@ Interactive idea maturation — explore, research, shape raw ideas into actionab
 
 **Arguments:** `[idea or topic]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, ToolSearch
+**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, mcp__ruflo__hive-mind_shutdown, mcp__ruflo__hive-mind_init, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, ToolSearch
 
 ### `/brana:decide`
 

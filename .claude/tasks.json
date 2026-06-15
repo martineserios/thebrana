@@ -55546,7 +55546,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "completed",
+      "status": "in_progress",
       "subject": "Enhance brainstorm with JTBD lens (Phase 2), pre-mortem round (Phase 3), second-order consequences (Phase 4)",
       "tags": [
         "thinking",
