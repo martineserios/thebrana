@@ -55781,6 +55781,33 @@
         "_shared"
       ],
       "type": "task"
+    },
+    {
+      "id": "t-2116",
+      "subject": "Session-start: surface missed reminders and recommend acting on them; link reminders to tasks",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "reminder",
+        "session-start",
+        "harness"
+      ],
+      "description": "Two capabilities: (1) session-start hook queries `brana remind due` and surfaces any past-due/missed reminders as recommended actions for the new session. For reminders linked to a task, show the task subject as context. (2) `brana remind write` accepts an optional --task-id flag to formally link a reminder to a backlog task — enabling the session-start hook to route to that task's context and suggest `/brana:backlog start <id>`.",
+      "effort": "M",
+      "priority": null,
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: `brana remind write` accepts --task-id <id> to link reminder to a task\nAC: session-start hook (or startup additionalContext) queries `brana remind due` and surfaces past-due reminders with task context\nAC: when a past-due reminder is linked to a task, session-start recommends acting on it (e.g. \"r-XXXX is past due — linked to t-NNN '{subject}': consider /brana:backlog start t-NNN\")",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
