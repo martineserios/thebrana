@@ -240,10 +240,11 @@ pub fn format_results(results: &[SearchResult]) -> String {
 }
 
 /// Call ruflo memory search and return raw output.
-/// Uses a 15-second timeout. Threshold=0.55 suppresses low-quality semantic
-/// matches (probe 2026-06-15: default returns scores as low as 0.32).
+/// Uses a 15-second timeout. No threshold passed — ruflo-cli.sh wrapper injects
+/// threshold=0.55 for namespaceless calls; namespaced calls use ruflo defaults.
+/// TODO(t-2109): calibrate threshold per namespace after empirical k-probe.
 fn call_ruflo_search(query: &str, namespace: &str, limit: usize) -> Result<String> {
-    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, Some(0.55))
+    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, None)
         .ok_or_else(|| anyhow::anyhow!("ruflo not found or timed out — run `brana knowledge reindex` first"))
 }
 
