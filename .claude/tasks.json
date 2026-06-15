@@ -55726,6 +55726,33 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2114",
+      "subject": "Fix agy propagation pass in close-extraction — agy goes agentic on repo-context prompts",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close-extraction",
+        "agy",
+        "scheduler"
+      ],
+      "description": "The L3 propagation pass in close-extraction.sh uses agy to detect knowledge-propagation gaps. agy consistently goes into agentic mode (starts exploring the filesystem) instead of returning structured JSON, because the prompt includes project names, commit ranges, and doc snippets that trigger tool use. All entries with propagate=true fail with \"agy propagation output failed contract validation\". Need to either harden the prompt, detect agentic output early, replace agy with claude -p, or redesign the approach.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-06-15: Propagation pass disabled because agy (Gemini Flash) goes fully agentic when given prompts that mention project names and commit ranges — produces 78 lines of \"I will explore files...\" instead of JSON. Root cause: agy interprets repo-context prompts as \"explore the codebase\" rather than \"analyze this diff\". Options: (1) harden prompt with explicit \"DO NOT use tools\" + agentic-output guard, (2) replace agy with claude -p for propagation pass, (3) redesign propagation to not inline repo context. See field-note_ruflo-http-mode-theater for prior art. Temporarily disabled via PROPAGATION_ENABLED=false in system/cron/close-extraction.sh.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
