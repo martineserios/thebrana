@@ -166,102 +166,11 @@ pub fn format_results(results: &[SearchResult]) -> String {
     lines.join("\n")
 }
 
-/// Resolve the ruflo/claude-flow binary path (same logic as skills.rs).
-fn which_ruflo() -> Option<String> {
-    let home_str = std::env::var("HOME").unwrap_or_default();
-    let cf_env = format!("{home_str}/.claude/scripts/cf-env.sh");
-    if std::path::Path::new(&cf_env).exists() {
-        if let Ok(output) = std::process::Command::new("bash")
-            .args(["-c", &format!("source '{cf_env}' 2>/dev/null && echo \"$CF\"")])
-            .output()
-        {
-            if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path.is_empty() && std::path::Path::new(&path).exists() {
-                    return Some(path);
-                }
-            }
-        }
-    }
-
-    // Try nvm global bin locations
-    let nvm_dir = std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{home_str}/.nvm"));
-    if let Ok(entries) = std::fs::read_dir(format!("{nvm_dir}/versions/node")) {
-        for entry in entries.flatten() {
-            for name in ["ruflo", "claude-flow"] {
-                let bin = entry.path().join("bin").join(name);
-                if bin.exists() {
-                    return Some(bin.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
-    // Try PATH
-    for name in ["ruflo", "claude-flow"] {
-        if let Ok(output) = std::process::Command::new("which").arg(name).output() {
-            if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path.is_empty() {
-                    return Some(path);
-                }
-            }
-        }
-    }
-    None
-}
-
 /// Call ruflo memory search and return raw JSON output.
 /// Uses a 15-second timeout (ruflo CLI can hang after completion — known issue).
 fn call_ruflo_search(query: &str, namespace: &str, limit: usize) -> Result<String> {
-    let cf = std::env::var("CF")
-        .ok()
-        .filter(|s| !s.is_empty())
-        .or_else(which_ruflo)
-        .ok_or_else(|| anyhow::anyhow!("ruflo not found — run `brana knowledge reindex` first"))?;
-
-    let home_str = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
-    let limit_str = limit.to_string();
-
-    let mut child = std::process::Command::new(&cf)
-        .args([
-            "memory", "search",
-            "-q", query,
-            "--namespace", namespace,
-            "--limit", &limit_str,
-        ])
-        .env("HOME", &home_str)
-        .current_dir(&home_str)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| anyhow::anyhow!("failed to spawn ruflo: {e}"))?;
-
-    let timeout = std::time::Duration::from_secs(15);
-    let start = std::time::Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                if !status.success() {
-                    let _ = child.wait();
-                    bail!("ruflo search exited with non-zero status");
-                }
-                break;
-            }
-            Ok(None) => {
-                if start.elapsed() > timeout {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    bail!("ruflo search timed out after 15s");
-                }
-                std::thread::sleep(std::time::Duration::from_millis(50));
-            }
-            Err(e) => bail!("ruflo wait error: {e}"),
-        }
-    }
-
-    let output = child.wait_with_output()?;
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, None)
+        .ok_or_else(|| anyhow::anyhow!("ruflo not found or timed out — run `brana knowledge reindex` first"))
 }
 
 /// `brana knowledge search <query> [--limit N] [--namespace NS] [--json]`

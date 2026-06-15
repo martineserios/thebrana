@@ -1054,39 +1054,8 @@ pub fn parse_semantic_dedup_output(output: &str) -> bool {
     })
 }
 
-/// Resolve the ruflo binary path.
-/// Priority: `RUFLO_BIN` env var → NVM node version directories → PATH.
-pub fn resolve_ruflo_binary() -> Option<PathBuf> {
-    if let Ok(v) = std::env::var("RUFLO_BIN") {
-        let p = PathBuf::from(&v);
-        if p.exists() {
-            return Some(p);
-        }
-    }
-    // Scan NVM node version directories (ruflo is not always on PATH in subshells)
-    let nvm_root = std::env::var("NVM_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| home().join(".nvm"));
-    let nvm_versions = nvm_root.join("versions/node");
-    if let Ok(entries) = std::fs::read_dir(&nvm_versions) {
-        for entry in entries.flatten() {
-            let candidate = entry.path().join("bin/ruflo");
-            if candidate.exists() {
-                return Some(candidate);
-            }
-        }
-    }
-    // Fall back to PATH
-    if let Ok(out) = std::process::Command::new("which").arg("ruflo").output() {
-        if out.status.success() {
-            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if !path.is_empty() {
-                return Some(PathBuf::from(path));
-            }
-        }
-    }
-    None
-}
+// ruflo helpers live in crate::ruflo — single source of truth.
+use crate::ruflo::ruflo_memory_search_raw;
 
 /// Check if a URL's topic is already well-represented in the knowledge base.
 ///
@@ -1098,27 +1067,9 @@ pub fn resolve_ruflo_binary() -> Option<PathBuf> {
 /// Threshold 0.85 calibrated from t-1589: max distinct-pair similarity = 0.59,
 /// gap = 0.26. Only near-exact topic duplicates are caught, not loose overlaps.
 pub fn check_semantic_dedup(title_signal: &str, threshold: f64) -> bool {
-    let Some(ruflo) = resolve_ruflo_binary() else {
-        return false;
-    };
-    let threshold_str = format!("{:.2}", threshold);
-    match std::process::Command::new(&ruflo)
-        .args([
-            "memory", "search",
-            "-q", title_signal,
-            "-n", "knowledge",
-            "-l", "1",
-            "--threshold", &threshold_str,
-        ])
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .output()
-    {
-        Ok(out) if out.status.success() => {
-            parse_semantic_dedup_output(&String::from_utf8_lossy(&out.stdout))
-        }
-        _ => false,
-    }
+    ruflo_memory_search_raw(title_signal, "knowledge", 1, Some(threshold))
+        .map(|raw| parse_semantic_dedup_output(&raw))
+        .unwrap_or(false)
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1971,7 +1922,7 @@ mod tests {
     #[test]
     fn test_resolve_ruflo_binary_does_not_panic() {
         // None is acceptable in environments where ruflo is not installed.
-        let _ = resolve_ruflo_binary();
+        let _ = crate::ruflo::resolve_ruflo_binary();
     }
 
 }

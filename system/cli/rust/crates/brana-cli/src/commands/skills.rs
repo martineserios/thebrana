@@ -480,52 +480,6 @@ fn build_query_string(ctx: &TaskContext) -> String {
     parts.join(" ")
 }
 
-/// Resolve the ruflo/claude-flow binary path.
-/// Checks: $CF env → cf-env.sh → nvm global bins → PATH.
-fn which_ruflo() -> Option<String> {
-    // 1. Try sourcing cf-env.sh (sets $CF)
-    let home = std::env::var("HOME").unwrap_or_default();
-    let cf_env = format!("{home}/.claude/scripts/cf-env.sh");
-    if std::path::Path::new(&cf_env).exists() {
-        if let Ok(output) = std::process::Command::new("bash")
-            .args(["-c", &format!("source '{cf_env}' 2>/dev/null && echo \"$CF\"")])
-            .output()
-        {
-            if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path.is_empty() && std::path::Path::new(&path).exists() {
-                    return Some(path);
-                }
-            }
-        }
-    }
-
-    // 2. Try common nvm global bin locations
-    let nvm_dir = std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{home}/.nvm"));
-    if let Ok(entries) = std::fs::read_dir(format!("{nvm_dir}/versions/node")) {
-        for entry in entries.flatten() {
-            for name in ["ruflo", "claude-flow"] {
-                let bin = entry.path().join("bin").join(name);
-                if bin.exists() {
-                    return Some(bin.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
-    // 3. Try PATH (works when not in nvm)
-    for name in ["ruflo", "claude-flow"] {
-        if let Ok(output) = std::process::Command::new("which").arg(name).output() {
-            if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path.is_empty() {
-                    return Some(path);
-                }
-            }
-        }
-    }
-    None
-}
 
 /// Parse ruflo memory search output into SkillMatch entries.
 fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
@@ -555,52 +509,8 @@ fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
 /// Returns None if ruflo is unavailable or returns no results.
 /// Uses a 15-second timeout because ruflo CLI can hang after completion.
 fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
-    // Resolve ruflo binary: check CF env var, then search PATH
-    let cf = std::env::var("CF")
-        .ok()
-        .filter(|s| !s.is_empty())
-        .or_else(which_ruflo)?;
-
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
-
-    // Spawn the ruflo process (don't use .output() — need timeout control)
-    let mut child = std::process::Command::new(&cf)
-        .args([
-            "memory", "search", "-q", query, "--namespace", "skills", "--limit", "5",
-        ])
-        .env("HOME", &home)
-        .current_dir(&home)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .ok()?;
-
-    // Wait with 15-second timeout (ruflo hangs after completion — known issue)
-    let timeout = std::time::Duration::from_secs(15);
-    let start = std::time::Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                if !status.success() {
-                    return None;
-                }
-                break;
-            }
-            Ok(None) => {
-                if start.elapsed() > timeout {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return None;
-                }
-                std::thread::sleep(std::time::Duration::from_millis(50));
-            }
-            Err(_) => return None,
-        }
-    }
-
-    let output = child.wait_with_output().ok()?;
-    let text = String::from_utf8_lossy(&output.stdout);
-    parse_ruflo_results(&text)
+    let raw = brana_core::ruflo::ruflo_memory_search_raw(query, "skills", 5, None)?;
+    parse_ruflo_results(&raw)
 }
 
 /// `brana skills suggest --task <id>` or `--query <text>`
