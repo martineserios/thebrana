@@ -32,8 +32,9 @@ STALE_DAYS=3
 SNAPSHOT_RETENTION_DAYS=30
 MAX_LEARNINGS_PER_ENTRY=3
 MIN_CONFIDENCE=0.5
-# Propagation pass disabled: agy goes agentic on repo-context prompts (t-2114).
-PROPAGATION_ENABLED=false
+# Propagation pass re-enabled (t-2114): prompt hardened, agentic-output guard added.
+# Override via env for tests: PROPAGATION_ENABLED=false bash close-extraction.sh
+PROPAGATION_ENABLED="${PROPAGATION_ENABLED:-true}"
 # Max diff bytes inlined into the agy prompt — must stay safely under the
 # kernel's per-argv-string cap MAX_ARG_STRLEN (131072 bytes); see t-2055.
 MAX_DIFF_BYTES=100000
@@ -288,21 +289,19 @@ $(head -40 "$m")"
             MEM_N=$((MEM_N + 1))
         done
         PROP_DIFF=$(printf '%s' "$DIFF_CONTENT" | head -c 60000)
-        PROP_PROMPT="You are auditing knowledge-propagation debt for project '$PROJECT' (branch $BRANCH, commits $RANGE).
-Below: (1) the session diff, (2) CURRENT content of touched specs' Status + Documentation Plan sections, (3) current in-progress task state, (4) current project memory files, (5) post-close commits ($RANGE..HEAD).
-Detect gaps in categories: (a) unfulfilled committed artifacts ('- [ ]' items, 'al cerrar'/'on close' promises), (b) Status fields contradicting completed work, (c) docs named in 'Existing docs to update' lines not updated, (d) memory claims contradicted by current state. Suppress any gap the current state or post-close commits show as already resolved. Return ONLY JSON, no markdown fences, matching exactly:
-{\"gaps\": [{\"category\": \"a|b|c|d\", \"title\": \"...\", \"evidence\": \"...\", \"proposed_fix\": \"...\"}]}
-Empty array if no gaps.
+        # Static instructions in a versioned file (t-2114); dynamic sections use neutral
+        # labels to avoid triggering agy's tool-use mode (no "project X", no "CURRENT").
+        PROP_PROMPT="$(cat "$SCRIPT_DIR/prompts/close-propagation.txt")
 
---- DIFF ---
+--- DIFF EXCERPT ---
 $PROP_DIFF
---- CURRENT DOC STATE ---
+--- SPEC EXCERPTS ---
 $DOC_STATE
---- TASK STATE ---
+--- IN-PROGRESS TASKS (snapshot) ---
 $TASK_STATE
---- MEMORY ---
+--- MEMORY EXCERPTS ---
 $MEM_STATE
---- POST-CLOSE COMMITS ---
+--- POST-SESSION COMMITS ---
 $POST_COMMITS"
         PROP_OUT="/tmp/close-prop-$$-${EID}.json"
         PROP_AGY_EXIT=0
@@ -322,6 +321,16 @@ $POST_COMMITS"
             skip_entry "quota-exhausted: propagation pass exited 0 with empty output — will retry next run"
             rm -f "$PROP_OUT"
             break
+        fi
+        # Agentic-output guard (t-2114): if the first few lines have exploration signals
+        # agy went agentic instead of returning JSON. Fail (not skip) so retries exhaust
+        # and surface a human reminder rather than silently looping.
+        AGENTIC_CHECK=$(head -5 "$PROP_OUT" | grep -ciE '(^|\s)(I will|Let me|I'\''ll|I need to|I am going to|examining|exploring)\s' 2>/dev/null || echo 0)
+        if [ "${AGENTIC_CHECK:-0}" -gt 0 ]; then
+            PROP_LINES=$(wc -l < "$PROP_OUT" 2>/dev/null || echo 0)
+            fail_entry "agentic-output: propagation pass went agentic (${PROP_LINES} lines, no JSON returned)"
+            rm -f "$PROP_OUT"
+            continue
         fi
         GAPS=$(python3 - "$PROP_OUT" <<'PYEOF'
 import json, sys, re

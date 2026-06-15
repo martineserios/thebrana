@@ -55744,8 +55744,8 @@
       "order": 0,
       "parent": null,
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-15",
+      "status": "in_progress",
       "subject": "Fix agy propagation pass in close-extraction — agy goes agentic on repo-context prompts",
       "tags": [
         "close-extraction",

@@ -87,21 +87,19 @@ Nightly (L3): close-extraction.sh → entries with propagate:true → agy propag
               → {"gaps":[...]} → reminder store (tags: propagation,{cat})
 ```
 
-L3 prompt template (draft — the `AGY_BIN` test stub must match this contract):
-
-```
-You are auditing knowledge-propagation debt for project '{project}' (branch {branch}, commits {range}).
-Below: (1) the session diff, (2) CURRENT content of touched specs' Documentation Plan sections,
-(3) current task status for {task_id}, (4) current project memory files, (5) post-close commits ({range}..HEAD).
-Detect gaps in categories: (a) unfulfilled committed artifacts ('- [ ]' items, 'al cerrar'/'on close' promises),
-(b) Status fields contradicting task state, (c) docs named in 'Existing docs to update' lines not updated,
-(d) memory claims contradicted by current state. Suppress any gap the current state or post-close commits
-show as already resolved. Return ONLY JSON, no markdown fences, matching exactly:
-{"gaps": [{"category": "a|b|c|d", "title": "...", "evidence": "...", "proposed_fix": "..."}]}
-Empty array if no gaps.
-```
+L3 prompt: versioned file `system/cron/prompts/close-propagation.txt` (t-2114: extracted from
+inline bash to prevent agy's tool-use mode; see field note below). Dynamic sections are appended
+as neutral labels (DIFF EXCERPT, SPEC EXCERPTS, IN-PROGRESS TASKS (snapshot), MEMORY EXCERPTS,
+POST-SESSION COMMITS) — no project-name or "CURRENT" framing that triggers filesystem exploration.
+An agentic-output guard (grep first 5 lines for exploration signals) categorizes tool-exploration
+outputs as `agentic-output` fail entries so they exhaust retries and surface a human reminder.
 
 (Category (e) is absent from L3 by design — challenger findings are session-bounded and unavailable at cron time.)
+
+**Field note (t-2114, 2026-06-15):** agy goes agentic when the propagation prompt includes "project
+'$PROJECT'" or "CURRENT content" — it interprets repo-context framing as an invitation to explore
+the filesystem rather than analyze provided text. Fix: framing-neutral section labels + explicit
+"STATIC TEXT ANALYZER / NO tools" preamble in close-propagation.txt.
 
 Key files: `system/skills/close/phases/propagate.md` (new), `system/skills/close/SKILL.md` (PHASES row + **step registry string: PROPAGATE between DRIFT and HANDOFF**), `system/skills/close/phases/gate-and-evidence.md` (picker `--finish` description discloses L2), `system/skills/close/phases/cleanup.md`, `system/skills/close/phases/session-state.md` (one-line evidence mention), `system/scripts/close-snapshot.sh`, `system/cron/close-extraction.sh`, `system/cli/rust/crates/brana-core/src/queue.rs` + `brana-cli/src/commands/close_queue.rs` (`propagate` field + `mark-propagated` subcommand), `docs/architecture/decisions/ADR-053-close-oriented-modes.md` (frontmatter `amended_by` only), `docs/domain/MODEL-001-brana-core.md`.
 
@@ -151,3 +149,6 @@ Post-spec challenger review (2026-06-12, verdict PROCEED-WITH-CHANGES) — all f
 - HIGH-2 (L3 stale-audit false positives) → cron-time state read + `{range}..HEAD` suppression in the L3 prompt.
 - HIGH-3 (inline fixes uncommitted after snapshot) → immediate `fix(propagate):` commit before Step 9.
 - MEDIUM-1 (.md test convention) → `type: manual-procedure` marker. MEDIUM-2 (undrafted L3 prompt) → template in Design. MEDIUM-3 (python3 loop cost) → noted acceptable for nightly. LOW-1 (ADR-053 pointer) → `amended_by` in Key Files. LOW-2 (registry string) → folded into CRITICAL-3 fix.
+
+## Changelog
+- 2026-06-15: L3 propagation pass re-enabled after agentic-mode regression fix (t-2114). Root cause: inline prompt included project name and commit range, triggering agy tool-use. Fix: static hardened-prompt file (`system/cron/prompts/close-propagation.txt`) with explicit "NO tools, NO filesystem access" header; neutral section labels; agentic-output guard that detects prose-before-JSON and fails the entry with `agentic-output:` category. `PROPAGATION_ENABLED` converted from hard `false` to `${PROPAGATION_ENABLED:-true}` with env override for tests.

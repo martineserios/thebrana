@@ -29,11 +29,17 @@ check() {
 # Fake agy that prints the contents of $FAKE_AGY_OUTPUT (or nothing).
 # FAKE_AGY_STDIN_DUMP copies stdin to a file (diagnostic; stdin is NOT the diff
 # carrier — agy drops large stdin payloads and goes agentic, see t-2055).
+# FAKE_AGY_VERSION overrides the --version response (default: 1.0.8).
 make_fake_agy() {
     local path="$1"
     cat > "$path" <<'EOF'
 #!/usr/bin/env bash
 [ -n "${FAKE_AGY_STDIN_DUMP:-}" ] && cat > "$FAKE_AGY_STDIN_DUMP"
+# Handle --version call from the version guard (t-2082).
+if [ "${1:-}" = "--version" ]; then
+    echo "${FAKE_AGY_VERSION:-1.0.8}"
+    exit 0
+fi
 # $1=-p $2=prompt — dispatch on prompt content so the propagation pass
 # (ADR-056) gets its own fixture without depending on call order.
 case "${2:-}" in
@@ -103,15 +109,17 @@ ID2=$(seed_entry "$H1" feat-b c..d)
 FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H1" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
 check "summary appends on second run" "2" "$(grep -c 'Sidecar locks' "$SUMMARY" 2>/dev/null)"
 
-# ── 2. empty agy output → mark-failed, no reminder, exit nonzero ──────
+# ── 2. empty agy output → quota skip, no reminder, entry untouched ─────
+# agy 1.0.8 exits 0 with empty stdout on quota exhaustion (t-2082).
+# The cron skips (not fails) to preserve the retry budget for the next run.
 H2="$TMPDIR/h2"; mkdir -p "$H2"
 seed_entry "$H2" feat-a a..b >/dev/null
 EMPTY="$TMPDIR/empty.json"; : > "$EMPTY"
 FAKE_AGY_OUTPUT="$EMPTY" run_cron "$H2" env FAKE_AGY_OUTPUT="$EMPTY" >/dev/null 2>&1
 rc=$?
-check "empty output exits nonzero" "1" "$([ "$rc" -ne 0 ] && echo 1 || echo 0)"
+check "empty output: cron exits 0 (quota skip, retry budget preserved)" "0" "$([ "$rc" -ne 0 ] && echo 1 || echo 0)"
 Q2=$(HOME="$H2" "$REAL_BRANA" close-queue list)
-check "empty output marks failed" "1" "$(echo "$Q2" | grep -c '"failed": true')"
+check "empty output: not marked failed (quota skip)" "0" "$(echo "$Q2" | grep -c '"failed": true')"
 check "empty output not processed" "0" "$(echo "$Q2" | grep -c '"processed": true')"
 check "empty output writes no reminders" "0" "$(HOME="$H2" "$REAL_BRANA" remind list | grep -c '"id"')"
 
@@ -294,10 +302,12 @@ print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('
 H12R="$TMPDIR/h12r"; mkdir -p "$H12R"
 seed_entry "$H12R" feat-rate a..b >/dev/null
 RATE_OUT="$TMPDIR/rate.txt"; echo 'Error: 429 RESOURCE_EXHAUSTED rate limit exceeded' > "$RATE_OUT"
-FAKE_AGY_OUTPUT="$RATE_OUT" run_cron "$H12R" env FAKE_AGY_OUTPUT="$RATE_OUT" FAKE_AGY_EXIT=1 >/dev/null 2>&1
-check "429 output categorized rate-limit" "1" "$(HOME="$H12R" "$REAL_BRANA" close-queue list | python3 -c "
+# 429 → quota-exhausted skip (not fail) — preserves retry budget; reason goes to stdout/scheduler-log
+OUT_12R=$(FAKE_AGY_OUTPUT="$RATE_OUT" run_cron "$H12R" env FAKE_AGY_OUTPUT="$RATE_OUT" FAKE_AGY_EXIT=1 2>&1)
+check "429 output handled as quota-exhausted skip (in stdout)" "1" "$(echo "$OUT_12R" | grep -c 'quota-exhausted')"
+check "429 output not marked failed in queue" "0" "$(HOME="$H12R" "$REAL_BRANA" close-queue list | python3 -c "
 import json,sys
-print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('rate-limit')))")"
+print(sum(1 for e in json.load(sys.stdin) if e.get('failed')))")"
 
 H12E="$TMPDIR/h12e"; mkdir -p "$H12E"
 seed_entry "$H12E" feat-err a..b >/dev/null
@@ -307,8 +317,9 @@ import json,sys
 print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('agy-error')))")"
 
 # ── 17. confidence filter + cap 3 (t-1979 #7) ──────────────────────────
-H13="$TMPDIR/h13"; mkdir -p "$H13"
-seed_entry "$H13" feat-many a..b >/dev/null
+# Use H17 (not H13) to avoid collision with test 13's failed feat-badprop entry.
+H17="$TMPDIR/h17"; mkdir -p "$H17"
+seed_entry "$H17" feat-many a..b >/dev/null
 MANY="$TMPDIR/many.json"
 cat > "$MANY" <<'EOF'
 {"learnings": [
@@ -319,16 +330,16 @@ cat > "$MANY" <<'EOF'
   {"type": "pattern", "size": "SMALL", "title": "overflow four", "body": "b5", "confidence": 0.6}
 ]}
 EOF
-FAKE_AGY_OUTPUT="$MANY" run_cron "$H13" env FAKE_AGY_OUTPUT="$MANY" >/dev/null 2>&1
-R13=$(HOME="$H13" "$REAL_BRANA" remind list)
-check "confidence<0.5 learning filtered" "0" "$(echo "$R13" | grep -c 'dropme')"
-check "learnings capped at 3 per entry" "3" "$(echo "$R13" | python3 -c "
+FAKE_AGY_OUTPUT="$MANY" run_cron "$H17" env FAKE_AGY_OUTPUT="$MANY" >/dev/null 2>&1
+R17=$(HOME="$H17" "$REAL_BRANA" remind list)
+check "confidence<0.5 learning filtered" "0" "$(echo "$R17" | grep -c 'dropme')"
+check "learnings capped at 3 per entry" "3" "$(echo "$R17" | python3 -c "
 import json,sys
 rs=json.load(sys.stdin)
 print(sum(1 for r in rs if 'extraction' in r.get('tags',[])))")"
 
 # ── 18. weekly unrouted-learnings reminder (t-1979 #8) ─────────────────
-check "weekly unrouted-learnings reminder written" "1" "$(HOME="$H13" "$REAL_BRANA" remind list | python3 -c "
+check "weekly unrouted-learnings reminder written" "1" "$(HOME="$H17" "$REAL_BRANA" remind list | python3 -c "
 import json,sys
 rs=json.load(sys.stdin)
 print(sum(1 for r in rs if (r.get('dedup_key') or '').startswith('weekly-learnings-review:')))")"
@@ -374,6 +385,39 @@ H_STDOUT="$TMPDIR/h-stdout"; mkdir -p "$H_STDOUT"
 seed_entry "$H_STDOUT" feat-stdout a..b >/dev/null
 OUT_STDOUT=$(run_cron "$H_STDOUT" env FAKE_AGY_EXIT=7 2>&1)
 check "fail reason echoed to stdout" "1" "$(echo "$OUT_STDOUT" | grep -c 'agy invocation failed (exit 7)')"
+
+# ── 24. agentic-output guard: propagation pass goes agentic → categorized fail ──
+# agy returns exploration prose instead of JSON — must be categorized "agentic-output"
+# so operators can distinguish it from structural schema failures (t-2114).
+H24="$TMPDIR/h24"; mkdir -p "$H24/.claude/sessions"
+SNAP24="$H24/.claude/sessions/snap-agentic.diff"
+printf 'diff --git a/docs/spec.md b/docs/spec.md\n+++ b/docs/spec.md\n+x\n' > "$SNAP24"
+HOME="$H24" "$REAL_BRANA" close-queue append --project testproj --branch feat-agentic \
+    --git-root /tmp --git-range ag1..ag2 --snapshot-path "$SNAP24" --commit-count 1 \
+    --propagate >/dev/null
+AGENTIC_OUT="$TMPDIR/agentic.txt"
+printf 'I will explore the repository to find the relevant files.\nLet me look at the docs directory.\nExamining project structure...\n' > "$AGENTIC_OUT"
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$AGENTIC_OUT" \
+    run_cron "$H24" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_PROP_OUTPUT="$AGENTIC_OUT" \
+    PROPAGATION_ENABLED=true >/dev/null 2>&1
+Q24=$(HOME="$H24" "$REAL_BRANA" close-queue list)
+check "agentic propagation output categorized agentic-output" "1" "$(echo "$Q24" | python3 -c "
+import json,sys
+print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('agentic-output')))")"
+check "agentic output does not mark processed" "0" "$(echo "$Q24" | grep -c '"processed": true')"
+
+# ── 25. propagation prompt is a versioned file (t-2114) ─────────────────
+PROP_PROMPT_FILE="$SCRIPT_DIR/../../cron/prompts/close-propagation.txt"
+check "propagation prompt file exists" "yes" "$([ -f "$PROP_PROMPT_FILE" ] && echo yes || echo no)"
+check "cron reads the propagation prompt file" "1" "$(grep -v '^\s*#' "$CRON" | grep -c 'prompts/close-propagation.txt')"
+
+# ── 26. version mismatch exits nonzero, nothing processed (t-2082) ──────
+H26="$TMPDIR/h26"; mkdir -p "$H26"
+seed_entry "$H26" feat-vermis a..b >/dev/null
+FAKE_AGY_VERSION="0.0.1" run_cron "$H26" env FAKE_AGY_VERSION="0.0.1" >/dev/null 2>&1
+rc=$?
+check "version mismatch exits nonzero" "1" "$([ "$rc" -ne 0 ] && echo 1 || echo 0)"
+check "version mismatch processes nothing" "0" "$(HOME="$H26" "$REAL_BRANA" close-queue list | grep -c '"processed": true')"
 
 
 echo ""
