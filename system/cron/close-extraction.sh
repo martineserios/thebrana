@@ -215,11 +215,12 @@ min_conf, cap = float(sys.argv[2]), int(sys.argv[3])
 raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw.strip()).strip()
 # tolerate preamble text before the JSON object (agy 1.0.8 sometimes adds one)
 if not raw.startswith('{'):
-    m = re.search(r'\{.*\}', raw, re.DOTALL)
+    m = re.search(r'\{', raw)
     if m:
-        raw = m.group(0)
+        raw = raw[m.start():]
+# raw_decode handles trailing text after valid JSON (agy 1.0.8 sometimes appends a second object or prose)
 try:
-    data = json.loads(raw)
+    data, _ = json.JSONDecoder().raw_decode(raw)
     ls = data["learnings"]
     assert isinstance(ls, list)
     for l in ls:
@@ -323,9 +324,15 @@ $POST_COMMITS"
         GAPS=$(python3 - "$PROP_OUT" <<'PYEOF'
 import json, sys, re
 raw = open(sys.argv[1]).read().strip()
-raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw)
+raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw.strip()).strip()
+# tolerate preamble text (agy 1.0.8 sometimes adds prose before JSON)
+if not raw.startswith('{'):
+    m = re.search(r'\{', raw)
+    if m:
+        raw = raw[m.start():]
+# raw_decode handles trailing text after valid JSON
 try:
-    data = json.loads(raw)
+    data, _ = json.JSONDecoder().raw_decode(raw)
     gs = data["gaps"]
     assert isinstance(gs, list)
     for g in gs:
