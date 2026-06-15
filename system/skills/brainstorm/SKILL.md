@@ -27,6 +27,8 @@ allowed-tools:
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_store
   - mcp__ruflo__agent_spawn
+  - mcp__ruflo__hive-mind_shutdown
+  - mcp__ruflo__hive-mind_init
   - mcp__ruflo__hive-mind_spawn
   - mcp__ruflo__hive-mind_consensus
   - ToolSearch
@@ -406,16 +408,9 @@ This gate catches brainstorms that identified engineering disciplines in SHAPE b
 otherwise forget to create the corresponding backlog tasks. It's the last checkpoint before
 planning commits the idea to structured execution.
 
-**M+ challenger review** — before backlog planning, run a hive-mind 3-worker challenge on the shaped idea:
-```
-mcp__ruflo__hive-mind_shutdown(force: true)
-mcp__ruflo__hive-mind_init(consensus: "quorum", topology: "hierarchical")
-mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "brainstorm-challenger")
-mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPreset: "majority", type: "brainstorm-findings", value: "{shaped idea summary}")
-```
-Worker roles: convergent (what must hold?), systems (second-order effects?), critical (failure modes?).
+**M+ challenger review** — before backlog planning, run a hive-mind 3-worker challenge on the shaped idea.
+Read `../_shared/adversarial-hive-mind.md` for the full pattern. Caller-specific values: `prefix: "brainstorm-challenger"`, `type: "brainstorm-findings"`, `value: "{shaped idea summary}"`.
 Findings confirmed by ≥2 workers surface as HIGH confidence — present these before the backlog question.
-**Fallback:** If ruflo unavailable, run inline — Claude performs the three roles (convergent, systems, critical) sequentially in main context, self-assesses ≥2-role agreement as HIGH confidence.
 
 ---
 
