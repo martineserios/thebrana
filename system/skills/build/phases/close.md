@@ -107,9 +107,14 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    **Shipped without docs means not shipped.**
 
 7. **Update task** (if entered via `/brana:backlog start`):
-   - Set status → `completed`
-   - Set completed date
-   - Add notes from retrospective
+   ```
+   brana backlog set {task_id} status completed
+   brana backlog set {task_id} completed $(date +%Y-%m-%d)
+   ```
+   Then add notes from retrospective:
+   ```
+   brana backlog set {task_id} notes --append "{retrospective notes}"
+   ```
 
 8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.
