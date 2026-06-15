@@ -509,48 +509,8 @@ fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
 /// Returns None if ruflo is unavailable or returns no results.
 /// Uses a 15-second timeout because ruflo CLI can hang after completion.
 fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
-    let ruflo = brana_core::ruflo::resolve_ruflo_binary()?;
-
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
-
-    // Spawn the ruflo process (don't use .output() — need timeout control)
-    let mut child = std::process::Command::new(&ruflo)
-        .args([
-            "memory", "search", "-q", query, "--namespace", "skills", "--limit", "5",
-        ])
-        .env("HOME", &home)
-        .current_dir(&home)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .ok()?;
-
-    // Wait with 15-second timeout (ruflo hangs after completion — known issue)
-    let timeout = std::time::Duration::from_secs(15);
-    let start = std::time::Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                if !status.success() {
-                    return None;
-                }
-                break;
-            }
-            Ok(None) => {
-                if start.elapsed() > timeout {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return None;
-                }
-                std::thread::sleep(std::time::Duration::from_millis(50));
-            }
-            Err(_) => return None,
-        }
-    }
-
-    let output = child.wait_with_output().ok()?;
-    let text = String::from_utf8_lossy(&output.stdout);
-    parse_ruflo_results(&text)
+    let raw = brana_core::ruflo::ruflo_memory_search_raw(query, "skills", 5, None)?;
+    parse_ruflo_results(&raw)
 }
 
 /// `brana skills suggest --task <id>` or `--query <text>`

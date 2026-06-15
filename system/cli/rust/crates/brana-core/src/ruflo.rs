@@ -85,6 +85,68 @@ pub fn resolve_ruflo_binary() -> Option<PathBuf> {
     None
 }
 
+/// Call `ruflo memory search` and return raw stdout JSON, or `None` on failure.
+///
+/// Resolves the ruflo binary, spawns the process with a 15-second timeout, and
+/// returns the raw JSON string from stdout. Returns `None` when ruflo is absent,
+/// the process exits non-zero, or the timeout is exceeded.
+///
+/// All callers should fail-open on `None`.
+pub fn ruflo_memory_search_raw(
+    query: &str,
+    namespace: &str,
+    limit: usize,
+    threshold: Option<f64>,
+) -> Option<String> {
+    let ruflo = resolve_ruflo_binary()?;
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+    let limit_str = limit.to_string();
+    let threshold_str = threshold.map(|t| format!("{t:.2}"));
+
+    let mut cmd = std::process::Command::new(&ruflo);
+    cmd.args([
+        "memory", "search",
+        "-q", query,
+        "--namespace", namespace,
+        "--limit", &limit_str,
+    ])
+    .env("HOME", &home)
+    .current_dir(&home)
+    .stdout(std::process::Stdio::piped())
+    .stderr(std::process::Stdio::piped());
+
+    if let Some(ref ts) = threshold_str {
+        cmd.args(["--threshold", ts]);
+    }
+
+    let mut child = cmd.spawn().ok()?;
+
+    let timeout = std::time::Duration::from_secs(15);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    return None;
+                }
+                break;
+            }
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(_) => return None,
+        }
+    }
+
+    let output = child.wait_with_output().ok()?;
+    Some(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
