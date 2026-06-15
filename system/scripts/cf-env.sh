@@ -8,7 +8,7 @@
 
 CF=""
 for _cf_candidate in \
-    "$(dirname "${BASH_SOURCE[0]}")/ruflo-cli.sh" \
+    "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ruflo-cli.sh" \
     "$HOME/.claude/scripts/ruflo-cli.sh" \
     "${CLAUDE_PROJECT_DIR:-}/system/scripts/ruflo-cli.sh"; do
     [ -n "$_cf_candidate" ] && [ -x "$_cf_candidate" ] && CF="$_cf_candidate" && break
