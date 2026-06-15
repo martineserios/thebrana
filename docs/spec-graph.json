@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-15T17:24:36Z",
+  "generated": "2026-06-15T19:11:40Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -484,6 +484,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/backlog/SKILL.md",
         "system/procedures/backlog.md",
         "system/procedures/challenge.md",
         "system/procedures/",
@@ -2665,6 +2666,11 @@
         "system/hooks/goal-completion.sh",
         "system/scheduler/scheduler.template.json"
       ]
+    },
+    "docs/ideas/hybrid-provider-fts5-ruflo-rrf.md": {
+      "title": "HybridProvider — Parallel FTS5 + Ruflo Recall with RRF Merge",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/ideas/inbox-to-dimensions-pipeline.md": {
       "title": "Inbox → Dimensions Pipeline — Shape",
@@ -13799,9 +13805,9 @@
     }
   ],
   "stats": {
-    "nodes": 461,
+    "nodes": 462,
     "edges": 1775,
     "typed_edges": 673,
-    "orphans": 125
+    "orphans": 126
   }
 }
