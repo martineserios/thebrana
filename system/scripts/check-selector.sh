@@ -40,8 +40,11 @@ for file in "${files[@]}"; do
         system/skills/reconcile/SKILL.md|system/skills/reconcile/phases/*.md)
             core; checks+=(33 23 36 40 45)           # reconcile effective body (t-1942 phase split)
             ;;
+        system/skills/_shared/*.md)
+            core; checks+=(60)       # _shared/ tool coverage in consumer SKILL.md allowed-tools
+            ;;
         system/skills/*/SKILL.md)
-            core; checks+=(33)       # core(1+5+7+12), SKILL.md keywords
+            core; checks+=(33 60)    # core(1+5+7+12), SKILL.md keywords, _shared/ coverage
             ;;
         system/skills/*)
             core                     # core(1+5+8+12)

@@ -2372,6 +2372,26 @@ fi
 echo ""
 fi  # should_run 59
 
+if should_run 60; then
+# Check 60 — _shared/ tool coverage: every mcp__*/Bash/Read/etc. in _shared/*.md
+# must appear in each consumer skill's SKILL.md allowed-tools list (t-2115)
+echo "Check 60: _shared/ tool coverage in consumer SKILL.md allowed-tools..."
+C60_SCRIPT="$SCRIPT_DIR/system/tests/check-shared-coverage.py"
+if [ ! -f "$C60_SCRIPT" ]; then
+    warn "Check 60: check-shared-coverage.py not found at $C60_SCRIPT — skipping"
+else
+    C60_OUT=$(python3 "$C60_SCRIPT" 2>&1)
+    C60_RC=$?
+    if [ "$C60_RC" -eq 0 ]; then
+        pass "Check 60: _shared/ tool coverage complete"
+    else
+        echo "$C60_OUT" | sed 's/^/  /'
+        fail "Check 60: _shared/ tool coverage gaps found — see output above"
+    fi
+fi
+echo ""
+fi  # should_run 60
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
