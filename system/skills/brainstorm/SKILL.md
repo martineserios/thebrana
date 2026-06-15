@@ -176,6 +176,19 @@ AskUserQuestion (batch up to 4 questions):
       description: "No hard constraints identified yet."
 ```
 
+**2d. JTBD lens** — if the seed is a product, feature, or user-facing change, apply the jobs-to-be-done frame before moving to Phase 3:
+
+Construct a job statement from what the user shared:
+```
+When [situation], I want to [motivation], so I can [outcome].
+```
+Then map the three dimensions inline (no AskUserQuestion — derive from context):
+- **Functional:** what they literally need to do
+- **Emotional:** how they want to feel while doing it
+- **Social:** how they want to be perceived afterward
+
+Present it and probe: "The job as I read it: [job statement]. Does this ring true, or is there a deeper job underneath?" If the user corrects it, update before continuing. Skip this step for purely technical ideas (internal tools, refactors, infra) where there is no end-user job to identify.
+
 ### Phase 3 — Discuss & Challenge
 
 This is the core of the brainstorm — an interactive back-and-forth dialogue.
@@ -242,6 +255,40 @@ Based on the discussion so far, either:
 
 Each round uses AskUserQuestion with contextual options. Keep rounds short — one
 question at a time, real responses, not lectures.
+
+#### Pre-mortem round (run once, after challenges converge)
+
+When Round 1–2 challenges are done and the idea is still standing, run a lightweight pre-mortem before exiting Phase 3. This is not a full `/brana:pre-mortem` — it's a 60-second prospective hindsight pass.
+
+Say: "One more thing before we shape this: imagine it's 6 months from now and this completely failed. What went wrong?"
+
+Rapidly generate 4–6 failure causes across these lenses (silently, don't list them to the user — select the 2 most credible):
+
+| Lens | Failure prompt |
+|------|---------------|
+| Technical | What broke, couldn't scale, or had a hidden dependency? |
+| Assumptions | Which core assumption was wrong? |
+| Market/context | What changed that made this irrelevant or untimely? |
+| Execution | What did we fail to actually ship or follow through on? |
+
+Surface the top 2 as a pair:
+
+```
+AskUserQuestion:
+  question: "Pre-mortem: if this failed in 6 months, the most likely reasons would be [Risk A] or [Risk B]. Which worries you more?"
+  header: "Pre-mortem"
+  options:
+    - label: "[Risk A] — most likely"
+      description: "Acknowledge and discuss a mitigation."
+    - label: "[Risk B] — most likely"
+      description: "Acknowledge and discuss a mitigation."
+    - label: "Neither — here's what I'm actually worried about"
+      description: "Free text — user names the real risk."
+    - label: "Neither — I've addressed both"
+      description: "User has already mitigated these; proceed to shape."
+```
+
+Note the top risk in the idea doc (`docs/ideas/{slug}.md`) under `## Risks` before moving to the Exit.
 
 #### Exit
 
@@ -331,6 +378,25 @@ Synthesize everything into a structured summary. Present it as a preview:
 2. {step 2}
 3. {step 3}
 ```
+
+**4b. Second-order trace** — before presenting the review question, run a quick consequence chain on the top 1–2 next steps in the SHAPE summary above.
+
+For each: "If we do [step], what happens directly? And then what?"
+
+```
+Step → 1st-order effect
+1st-order effect → 2nd-order consequence (behavioral / competitive / resource / systemic / temporal)
+```
+
+Identify the most surprising 2nd-order finding — one that isn't obvious from the step itself. If it's a risk, flag it. If it's an opportunity, name it. Add a `### Second-order effects` section to the idea doc and to the SHAPE summary:
+
+```
+### Second-order effects
+- [Step] → [1st order] → [2nd order surprise — risk or opportunity]
+- [Step] → [1st order] → [2nd order surprise — risk or opportunity]
+```
+
+Skip this step if the top next steps are trivial (e.g., "write a spec", "talk to a user") with no meaningful downstream chain.
 
 Then ask:
 
