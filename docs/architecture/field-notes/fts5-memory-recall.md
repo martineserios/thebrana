@@ -70,3 +70,11 @@ Source: t-2095, 2026-06-15
 ### 2026-06-15: check_semantic_dedup() gained a 15-second timeout as a refactor side effect
 Before t-2095, `check_semantic_dedup()` used blocking `.output()` with no timeout — a latent hang risk whenever ruflo stalled. Moving to `ruflo_memory_search_raw()` introduced the 15-second timeout as a side effect. The timeout is intentional in the canonical implementation; the old behavior was a bug, not a design choice.
 Source: t-2095, 2026-06-15
+
+### 2026-06-15: ruflo MCP memory_store returning "database disk image is malformed"
+`mcp__ruflo__memory_store` failed on all three pattern writes this session with `database disk image is malformed`. All writes fell back to filesystem. The ruflo vector DB is corrupted — run `ruflo db repair` or reinitialize before next session that needs ruflo pattern storage.
+Source: close Step 5, 2026-06-15
+
+### 2026-06-15: Planned third SearchProvider impl — HybridProvider (parallel + RRF)
+The §Recall provider model above lists two providers. A third is planned: HybridProvider — parallel FTS5 + ruflo dispatch, results merged via RRF (k=20). Designed in brainstorm 2026-06-15, captured in `docs/ideas/hybrid-provider-fts5-ruflo-rrf.md`. To be implemented as part of t-2091 extension. (Errata E2026-06-15-3.)
+Source: brainstorm 2026-06-15
