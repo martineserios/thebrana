@@ -6,7 +6,7 @@ effort: high
 keywords: [adversarial, review, stress-test, pre-mortem, simplicity, assumptions, council]
 task_strategies: [feature, refactor, migration, greenfield]
 stream_affinity: [roadmap, tech-debt]
-argument-hint: "[target description] [--council]"
+argument-hint: "[target description] [--council] [--hats]"
 group: learning
 allowed-tools:
   - Task
@@ -31,6 +31,7 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
    - If `$ARGUMENTS` contains `--council`: strip `--council` from the target description, activate **council mode** — step 4a spawns 4 parallel perspective agents instead of one Opus agent. All other steps unchanged.
+   - If `$ARGUMENTS` contains `--hats`: strip `--hats` from the target description, activate **hats mode** — step 4a spawns 4 parallel hat agents (White/Black/Yellow/Green) instead of hive-mind workers. Mutually exclusive with `--council`; if both present, `--hats` wins.
    - If no arguments: **conversation-context inference** — scan recent conversation turns (both user and assistant) to identify the most significant unchalllenged decision, plan, or proposal. Priority order:
      1. A plan or architecture decision being actively discussed
      2. A proposal the user described or asked about
@@ -69,6 +70,7 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    - Implementation plans → **Simplicity challenger**: "Can you achieve the same outcome with half the complexity?"
    - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
+   - High-confidence plans / user seems anchored / "obviously good" decision → **Inversion**: "What would guarantee this fails completely?" Invert the goal, actively design failure, then check if any failure patterns are already present in the plan. Signal: user is very confident, plan has broad consensus, or multiple prior attempts stalled. For all flavors, a brief inversion pass can precede the hive-mind as a warm-up — brief the workers with the top 2 failure patterns found via inversion as additional context.
 
 <!-- ruflo preamble -->
 ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown,mcp__brana__agy_delegate")
@@ -96,6 +98,18 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
    | **Operator** | You will execute this plan as Claude in a future session. What is unclear, ambiguous, or underspecified? What will cause you to make a wrong judgment call at runtime? |
 
    For each: provide the plan/approach + chosen flavor + role brief. Key instruction: "Rate findings CRITICAL / WARNING / OBSERVATION. Be specific, no nitpicking. Suggest concrete alternatives for each concern."
+
+   **Hats mode** (`--hats` flag set in step 1):
+   Spawn 4 agents in parallel using the Agent tool. Each wears a single de Bono thinking hat — no agent sees another's output. Use `subagent_type: "brana:challenger"` for each. Blue (process/synthesis) is handled by Claude in step 5; Red (gut feeling) is brief and added inline by Claude after reading agent output.
+
+   | Hat | Agent brief |
+   |-----|------------|
+   | **⬜ White — Facts** | Enumerate what is factually known, what data is missing, and what is uncertain or assumed. Do not evaluate or judge — report only. |
+   | **⬛ Black — Caution** | Identify every risk, weakness, and way this could go wrong. What assumptions might be false? What has been overlooked? Rate each: CRITICAL / WARNING / OBSERVATION. |
+   | **🟨 Yellow — Value** | Identify what is genuinely valuable, what the best realistic outcome looks like, and what hidden opportunities exist. Be specific — no generic praise. |
+   | **🟩 Green — Alternatives** | Generate alternative approaches that haven't been considered. What if a key constraint were relaxed? What's the unconventional angle? What could be combined differently? |
+
+   For each: provide the plan/approach + chosen flavor + hat brief. Key instruction: "Think only in your hat's mode. Do not mix perspectives. Be specific and concrete."
 
    **4b. Gemini detail retriever** — Query agy (Gemini Flash via brana compute). Runs by default; skip only if the user explicitly opted out in step 2 or if `mcp__brana__agy_delegate` returns an error.
 
@@ -205,6 +219,44 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
    PROCEED / PROCEED WITH CHANGES / RECONSIDER
    ```
 
+   **Hats mode report** (when `--hats` was set):
+
+   ```
+   ## Challenge Report (Six Hats)
+
+   **Target:** [what was challenged]
+   **Mode:** Six Hats — White · Black · Yellow · Green
+   **Flavor:** [pre-mortem / simplicity / assumption / adversarial / inversion]
+
+   ### ⬜ White — Facts & Data
+   Known: [key established facts]
+   Missing / uncertain: [gaps in current knowledge]
+
+   ### ⬛ Black — Risks & Caution
+   - [Risk] — Confidence: HIGH/MEDIUM (CRITICAL / WARNING / OBSERVATION)
+   - [Risk] — Confidence: HIGH/MEDIUM
+
+   ### 🟨 Yellow — Value & Opportunities
+   - [Genuine upside or hidden opportunity]
+   - [What the best realistic outcome looks like]
+
+   ### 🟩 Green — Alternatives
+   - [Alternative approach or option not yet considered]
+   - [What changes if constraint X is relaxed?]
+
+   ### 🟥 Red — Gut Signal (Claude inline)
+   [One sentence: what feels most wrong or most right about this, beyond what the other hats surfaced]
+
+   ### Cross-hat Themes
+   - [Concern or pattern appearing across multiple hats]
+
+   ### Gemini Constraint Retrieval
+   - [Constraints retrieved by Gemini — available for manual verification]
+
+   ### Verdict
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   ```
+
 6. **Let the user decide** which concerns to address. Do not auto-apply changes.
 
 7. **Log findings to decision log** (before storing to memory):
@@ -243,6 +295,10 @@ source "$HOME/.claude/scripts/cf-env.sh"
 - **`--council` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target description. Never include `--council` in the agent brief.
 - **Council agents are isolated.** No agent in a council run sees another's output. Cross-agent synthesis is exclusively Claude's job in step 5.
 - **Council dedup rule.** When 2+ council agents raise the same root concern (even if differently worded), collapse to a single finding tagged `[COUNCIL-AGREEMENT: N/4]`. Agreement is the signal, not the phrasing.
+- **`--hats` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target description. Never include `--hats` in the agent brief.
+- **Hats agents are isolated.** No hat agent sees another's output — synthesis is Claude's job in step 5. Each agent thinks only in its designated mode; do not ask a White-hat agent to evaluate or a Black-hat agent to find upsides.
+- **`--hats` vs `--council` choice signal.** Use `--hats` when the decision needs balanced perspective across facts/risks/value/alternatives (e.g., strategy calls, product trade-offs, "should we do X?"). Use `--council` when pure adversarial stress-testing is needed (e.g., production plans, security review, "what could go wrong?"). The two modes are mutually exclusive — if both flags present, `--hats` wins.
+- **Inversion flavor as warm-up.** When inversion is the chosen flavor OR when the user seems anchored, run a brief inversion pass (invert the goal, list top 3 failure patterns) BEFORE briefing the hive-mind or hat agents. Include the top 2 inversion findings in the agent briefs as additional context.
 - **Gemini runs by default.** Skip only if the user explicitly opted out in step 2 ("skip — no Brana docs apply") or if `mcp__brana__agy_delegate` fails for any reason (see step 4b "On error"). On any failure: skip silently — no mention of Gemini in the report. Proceed without Gemini (standard: Opus-only; council: 4 agents only). Never fail the skill because Gemini is unavailable.
 - **Gemini flow is unchanged in council mode.** 4b runs in parallel with the 4 council agents. Step 5 synthesizes all results together.
 - **Agreement = high confidence.** When multiple models independently flag the same issue, highlight it. Independent architectures agreeing on a problem is a strong signal.
