@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-15T22:15:45Z",
+  "generated": "2026-06-15T22:28:55Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -484,6 +484,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/challenge/SKILL.md",
         "system/skills/backlog/SKILL.md",
         "system/procedures/backlog.md",
         "system/procedures/challenge.md",

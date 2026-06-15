@@ -244,9 +244,9 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 
 Adversarial review — Fable 5 stress-tests reasoning, Gemini checks knowledge. Use before plan or architecture decisions.
 
-**Arguments:** `[target description] [--council]`
+**Arguments:** `[target description] [--council] [--hats]`
 
-**Allowed tools:** Task, Read, Glob, Grep, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, mcp__brana__agy_delegate, AskUserQuestion, ToolSearch
+**Allowed tools:** Task, Read, Glob, Grep, mcp__ruflo__hive-mind_init, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, mcp__brana__agy_delegate, AskUserQuestion, ToolSearch
 
 ### `/brana:memory`
 

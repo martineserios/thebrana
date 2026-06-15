@@ -55753,6 +55753,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2115",
+      "subject": "Add validator for _shared/ procedure tool coverage in consumer SKILL.md allowed-tools",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "skill",
+        "test",
+        "ideation",
+        "_shared"
+      ],
+      "description": "Write a shell or Python script in system/tests/ that: (1) parses _shared/*.md for mcp__* and other tool names, (2) parses each consumer SKILL.md frontmatter for allowed-tools, (3) fails with a list of any shared tool not present in a consumer's allowed-tools list. Root cause of E2026-06-15-4 (challenge missing hive-mind_init after _shared/ extraction). A passing test would have caught this before commit.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Triggered by close session 2026-06-15: pattern shared-procedure-allowed-tools-audit_2026-06-15. See E2026-06-15-4 for the specific bug that motivated this.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
