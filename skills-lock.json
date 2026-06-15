@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "skills": {
+    "critical-thinking-logical-reasoning": {
+      "source": "sammcj/agentic-coding",
+      "sourceType": "github",
+      "skillPath": "Skills/critical-thinking-logical-reasoning/SKILL.md",
+      "computedHash": "6e5b193215ac5ddcc0fe6e0088f4a67374b57cb02463a3c0a64757724981dc04"
+    },
+    "decision-matrix": {
+      "source": "lyndonkl/claude",
+      "sourceType": "github",
+      "skillPath": "skills/decision-matrix/SKILL.md",
+      "computedHash": "e23423fb6b804d05943dc37e1886a6e82198fdca6bc0c622ba49235fca99093d"
+    },
+    "first-principles": {
+      "source": "guia-matthieu/clawfu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/strategy/first-principles/SKILL.md",
+      "computedHash": "2c502541c4fb385194c64a8e45d9d8d5f45b4fd080f0641958ebae19614f06ee"
+    },
+    "inversion": {
+      "source": "guia-matthieu/clawfu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/strategy/inversion/SKILL.md",
+      "computedHash": "56dbd8432fa6fdc9e183d0444146a937c8b66dff71b3a698ceeba7d474549957"
+    },
+    "jobs-to-be-done": {
+      "source": "owl-listener/designer-skills",
+      "sourceType": "github",
+      "skillPath": "design-research/skills/jobs-to-be-done/SKILL.md",
+      "computedHash": "a477497452f84b538285c1517d02da8d9aa85f1a7fe06c76bf1afd10d46bbe24"
+    },
+    "pre-mortem": {
+      "source": "guia-matthieu/clawfu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/strategy/pre-mortem/SKILL.md",
+      "computedHash": "c2ee8ec9bd9f8988cde4ac32cbe6ce0fee0b5834658927f483d4a6b994166e24"
+    },
+    "second-order-thinking": {
+      "source": "guia-matthieu/clawfu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/thinking/second-order-thinking/SKILL.md",
+      "computedHash": "f2f52c90f1b45ab583464e422c8a05274ebadc1a3093cb3914339ad779d532c1"
+    },
+    "six-thinking-hats": {
+      "source": "guia-matthieu/clawfu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/strategy/six-thinking-hats/SKILL.md",
+      "computedHash": "7c63b1415e55fbca49b2ad3dc26ef4103aad3799d417a7e6d2d4c4287c5ec01a"
+    },
+    "swot-analysis": {
+      "source": "phuryn/pm-skills",
+      "sourceType": "github",
+      "skillPath": "pm-product-strategy/skills/swot-analysis/SKILL.md",
+      "computedHash": "e54e0a983dfb825ff3f9008efae0611c895f93d7a13140a53c5331678f2d4ec5"
+    },
+    "systems-thinking": {
+      "source": "refoundai/lenny-skills",
+      "sourceType": "github",
+      "skillPath": "skills/systems-thinking/SKILL.md",
+      "computedHash": "52e35d31292c3954e15bcc306e9162f5b552d7ec84be4c20f73569b0e99d8b0d"
+    }
+  }
+}
