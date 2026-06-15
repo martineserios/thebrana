@@ -32,6 +32,8 @@ STALE_DAYS=3
 SNAPSHOT_RETENTION_DAYS=30
 MAX_LEARNINGS_PER_ENTRY=3
 MIN_CONFIDENCE=0.5
+# Propagation pass disabled: agy goes agentic on repo-context prompts (t-2114).
+PROPAGATION_ENABLED=false
 # Max diff bytes inlined into the agy prompt — must stay safely under the
 # kernel's per-argv-string cap MAX_ARG_STRLEN (131072 bytes); see t-2055.
 MAX_DIFF_BYTES=100000
@@ -252,7 +254,7 @@ PYEOF
     # post-close commits surfaced so already-resolved gaps are suppressed.
     PROPAGATE=$(echo "$ENTRY" | python3 -c "import json,sys; print(str(json.load(sys.stdin).get('propagate', False)).lower())")
     GAPS="[]"
-    if [ "$PROPAGATE" = "true" ]; then
+    if [ "$PROPAGATE" = "true" ] && [ "$PROPAGATION_ENABLED" = "true" ]; then
         GROOT=$(echo "$ENTRY" | python3 -c "import json,sys; print(json.load(sys.stdin)['git_root'])")
         # Repo-state gathering only when git_root still exists (SEC-2: no git/file
         # ops on unvalidated paths). A vanished root is NORMAL — worktree closes
