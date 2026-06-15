@@ -12,7 +12,7 @@ informs:
 # Feature: Task Management System
 
 **Date:** 2026-02-18
-**Status:** building
+**Status:** maintained
 
 ## Goal
 
@@ -115,8 +115,11 @@ Staleness removed — it was rewarding neglect over direction.
 | `implement` | Write code, build features, fix bugs |
 | `research` | Spike, evaluate, audit, investigate |
 | `design` | Architecture, schemas, decisions |
-| `ops` | Deploy, config, setup, run, sync |
+| `infra` | Deploy, config, setup, run, sync |
+| `chore` | Maintenance, migrations, cleanup, tooling |
 | `review` | PR review, audit, feedback |
+
+Note: earlier drafts showed `ops` instead of `infra`/`chore`. The CLI validates `implement/research/design/infra/chore/review`. Legacy tasks with `work_type: ops` are retained but no longer accepted on new writes.
 
 ### Stream taxonomy (11 → 3)
 
