@@ -125,10 +125,83 @@ pub struct SearchResult {
     pub score: f64,
 }
 
-/// Parse a ruflo memory search JSON response into `SearchResult` entries.
-/// The ruflo CLI returns a JSON array of `{key, value, score}` objects.
+/// Parse ruflo memory search output into `SearchResult` entries.
+///
+/// Handles two formats emitted by different ruflo versions:
+/// - **JSON array** (old): `[{"key":"...","value":"...","score":0.8}]`
+/// - **Table** (current): ASCII table with columns Key | Score | Namespace | Preview
+///
+/// Both formats may be preceded by ONNX loading preamble lines on stdout — these
+/// are skipped. Table keys are truncated by ruflo (e.g. `knowledge:feed:re...`);
+/// acceptable for display but unsuitable for exact-key lookups.
 pub fn parse_search_results(text: &str) -> Result<Vec<SearchResult>> {
-    let results: Vec<SearchResult> = serde_json::from_str(text.trim())?;
+    // Table format: look for +--- separator lines
+    if text.lines().any(|l| l.starts_with("+---")) {
+        return parse_table_results(text);
+    }
+
+    // JSON format: skip ONNX preamble and [INFO] log lines.
+    // Find a [ that's followed (ignoring whitespace) by { or ] — a real JSON array.
+    // This correctly skips [INFO] markers where [ is followed by a letter.
+    let json_start = find_json_array_start(text)
+        .ok_or_else(|| anyhow::anyhow!("unrecognized ruflo output format (no table or JSON array found)"))?;
+
+    let json_text = &text[json_start..];
+    let results: Vec<SearchResult> = serde_json::from_str(json_text)?;
+    Ok(results)
+}
+
+/// Find the byte offset of the first `[` that opens a JSON array.
+///
+/// Skips `[INFO]`, `[WARN]`, and similar log markers where `[` is followed
+/// by a letter. Handles both compact (`[{`) and pretty-printed (`[\n  {`) formats.
+fn find_json_array_start(text: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'[' {
+            let mut j = i + 1;
+            while j < bytes.len()
+                && matches!(bytes[j], b' ' | b'\n' | b'\r' | b'\t')
+            {
+                j += 1;
+            }
+            if j < bytes.len() && matches!(bytes[j], b'{' | b']') {
+                return Some(i);
+            }
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Parse ASCII table output from ruflo memory search.
+///
+/// Row format: `| key (possibly truncated) | score | namespace | preview |`
+/// Skips separator rows, preamble lines, and the header row.
+fn parse_table_results(text: &str) -> Result<Vec<SearchResult>> {
+    let mut results = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if !line.starts_with('|') {
+            continue;
+        }
+        let parts: Vec<&str> = line
+            .split('|')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect();
+        if parts.len() < 4 {
+            continue;
+        }
+        if parts[0] == "Key" {
+            continue; // header row
+        }
+        let key = parts[0].to_string();
+        let score: f64 = parts[1].parse().unwrap_or(0.0);
+        let value = parts.get(3).copied().unwrap_or("").to_string();
+        results.push(SearchResult { key, value, score });
+    }
     Ok(results)
 }
 
@@ -166,10 +239,11 @@ pub fn format_results(results: &[SearchResult]) -> String {
     lines.join("\n")
 }
 
-/// Call ruflo memory search and return raw JSON output.
-/// Uses a 15-second timeout (ruflo CLI can hang after completion — known issue).
+/// Call ruflo memory search and return raw output.
+/// Uses a 15-second timeout. Threshold=0.55 suppresses low-quality semantic
+/// matches (probe 2026-06-15: default returns scores as low as 0.32).
 fn call_ruflo_search(query: &str, namespace: &str, limit: usize) -> Result<String> {
-    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, None)
+    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, Some(0.55))
         .ok_or_else(|| anyhow::anyhow!("ruflo not found or timed out — run `brana knowledge reindex` first"))
 }
 
@@ -1326,6 +1400,58 @@ mod tests {
     fn test_parse_invalid_json_returns_error() {
         assert!(parse_search_results("not json").is_err());
         assert!(parse_search_results("{\"key\":\"v\"}").is_err()); // object, not array
+    }
+
+    #[test]
+    fn test_parse_json_with_onnx_preamble() {
+        // ruflo prepends ONNX loading messages before JSON on stdout
+        let text = concat!(
+            "Loading ONNX model: all-MiniLM-L6-v2...\n",
+            "  Disk cache hit: all-MiniLM-L6-v2\n",
+            "ONNX embedder ready: 384d, SIMD: true\n",
+            "[INFO] Searching: \"test\" (semantic)\n\n",
+            "  Search time: 76ms\n\n",
+            "[{\"key\":\"k1\",\"value\":\"v1\",\"score\":0.7}]"
+        );
+        let results = parse_search_results(text).expect("should parse preamble + json");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].key, "k1");
+        assert!((results[0].score - 0.7).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_parse_table_format() {
+        let table = concat!(
+            "Loading ONNX model: all-MiniLM-L6-v2...\n",
+            "ONNX embedder ready: 384d, SIMD: true\n",
+            "[INFO] Searching: \"hook\" (semantic)\n\n",
+            "+----------------------+-------+-----------+-------------------------------------+\n",
+            "| Key                  | Score | Namespace | Preview                             |\n",
+            "+----------------------+-------+-----------+-------------------------------------+\n",
+            "| knowledge:feed:re... |  0.65 | knowledge | 2026-04-30 — TDD and Rules Enfor... |\n",
+            "| field-note:hooks:... |  0.42 | knowledge | Two hooks in sequence reliably c... |\n",
+            "+----------------------+-------+-----------+-------------------------------------+\n",
+            "\n[INFO] Found 2 results\n"
+        );
+        let results = parse_search_results(table).expect("should parse table format");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].key, "knowledge:feed:re...");
+        assert!((results[0].score - 0.65).abs() < 0.001);
+        assert_eq!(results[0].value, "2026-04-30 — TDD and Rules Enfor...");
+        assert_eq!(results[1].key, "field-note:hooks:...");
+        assert!((results[1].score - 0.42).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_parse_empty_table_returns_empty() {
+        let table = concat!(
+            "+-----+-------+-----------+---------+\n",
+            "| Key | Score | Namespace | Preview |\n",
+            "+-----+-------+-----------+---------+\n",
+            "+-----+-------+-----------+---------+\n"
+        );
+        let results = parse_search_results(table).expect("should parse empty table");
+        assert!(results.is_empty());
     }
 
     // ── truncate ─────────────────────────────────────────────────────

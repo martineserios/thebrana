@@ -78,24 +78,9 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
    **4a. Challenger(s)** — Two modes based on step 1 detection:
 
    **Standard mode** (default, no `--council` flag):
-   Spawn a 3-worker hive-mind quorum (convergent + systems + critical perspectives) via ruflo:
-   ```
-   mcp__ruflo__hive-mind_shutdown(force: true)
-   mcp__ruflo__hive-mind_init(consensus: "quorum", topology: "hierarchical")
-   mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "challenger")
-   ```
-   Assign each worker a distinct cognitive lens:
-   - **Worker 1 (convergent):** Synthesize constraints — what is definitely true, what rules must hold?
-   - **Worker 2 (systems):** Map second-order effects — what else breaks, what cascades?
-   - **Worker 3 (critical):** Adversarial — what are the failure modes, hidden debt, worst-case paths?
-
-   After all 3 workers respond, collect findings via quorum consensus:
-   ```
-   mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPreset: "majority", type: "findings", value: "{merged findings}")
-   ```
-   A finding that appears in ≥2 of 3 workers is HIGH confidence. Single-worker findings are OBSERVATION. (`majority` is the working assumption — re-calibrate if ruflo subscription auth becomes available.)
-
-   **Fallback:** If ruflo unavailable, run the challenge inline — Claude performs all three cognitive roles (convergent, systems, critical) sequentially in main context, then self-assesses which findings two roles would have agreed on (HIGH) vs single-role only (OBSERVATION).
+   Read `../_shared/adversarial-hive-mind.md` for the full pattern (setup, worker roles, consensus, fallback).
+   Caller-specific values: `prefix: "challenger"`, `type: "findings"`, `value: "{merged findings}"`.
+   Note: `majority` quorum is the working assumption — re-calibrate if ruflo subscription auth becomes available.
 
    For all workers/fallback — provide: the plan/approach being challenged + relevant code/files + the chosen flavor.
    Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
