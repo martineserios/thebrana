@@ -55580,6 +55580,93 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2109",
+      "subject": "SearchProvider trait + FTS5Provider + RufloProvider impls",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "refactor",
+      "tags": [
+        "memory",
+        "rust",
+        "architecture",
+        "recall"
+      ],
+      "description": null,
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2091",
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "First slice of t-2091 scoped to the recall seam only — unblocks HybridProvider without requiring the full MemoryStore CRUD abstraction. Deliverables: (1) SearchProvider trait (query only), (2) FTS5Provider wrapping existing search_fts(), (3) RufloProvider wrapping ruflo_memory_search_raw(). HybridProvider (parallel dispatch + RRF) is a separate step that blocks on this subtask, not on t-2091 completion. Created from challenger review of docs/ideas/hybrid-provider-fts5-ruflo-rrf.md 2026-06-15.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "SearchProvider trait defined with query(q: &str, top_k: usize) -> Vec<SearchHit>",
+        "FTS5Provider impl passes contract test suite",
+        "RufloProvider impl passes contract test suite",
+        "HybridProvider can be built on top without changes to either impl"
+      ]
+    },
+    {
+      "id": "t-2110",
+      "subject": "acquire-skills: read active task tags from tasks.json for targeted skill suggestions",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "thinking",
+        "skills",
+        "acquire-skills"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "When invoked with no keyword arg, Step 1b currently scans project manifests. Enhancement: also read in_progress tasks from .claude/tasks.json and extract their tags/description to narrow skill suggestions beyond the generic activity-type detection. E.g., in-progress task tagged rust+cli would surface rust-skills even if conversation context doesn't mention it explicitly.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2111",
+      "subject": "decide: auto-classify question complexity from named alternatives count",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "thinking",
+        "skills",
+        "decide"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Step 2 currently asks Claude to classify simple vs complex using heuristics. Enhancement: count named alternatives in the question (e.g., \"A vs B vs C\" = 3 = complex; \"should I do X\" = 1 = simple) to auto-route without relying on the user's phrasing or Claude's judgment. Reduces mis-routing when the question structure is clear.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
