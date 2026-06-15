@@ -79,7 +79,7 @@ See ADR-002 for architecture decision. Key components:
 | Field | Type | Notes |
 |-------|------|-------|
 | `epic` | string (slug) | Optional. Groups tasks by named epic: "cc-alignment", "notebooklm", etc. |
-| `work_type` | enum | Optional. Cognitive mode: `implement` / `research` / `design` / `ops` / `review` |
+| `work_type` | enum | Optional. Cognitive mode: `implement` / `research` / `design` / `infra` / `chore` / `review`. Note: `kind: refactor` tasks use `work_type: implement`. |
 
 ### Fields removed
 
@@ -87,7 +87,7 @@ See ADR-002 for architecture decision. Key components:
 |-------|--------|
 | `build_step` | Null on >95% of tasks. Intent absorbed into `context`. |
 | `strategy` | Null on >95% of tasks. Replaced by `work_type`. |
-| `execution` | Null on >95% of tasks. `execution=manual` → `work_type=ops`. |
+| `execution` | Null on >95% of tasks. Migration mapped `execution=manual` → `work_type=ops` (historical — CLI now uses `infra`/`chore`). |
 
 ### Active epic config
 
