@@ -66,7 +66,7 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
    If no load-bearing decision: skip — the embedded "Decision Record" section in the feature spec is sufficient.
 
-3. **Write feature spec** at `docs/features/{slug}.md` (or `docs/architecture/features/{slug}.md` if the project has the restructured layout):
+3. **Write feature spec** at `docs/architecture/features/{slug}.md`:
    ```markdown
    # Feature: {title}
 
@@ -95,6 +95,16 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    ## Assumptions
    Surface ambiguities before drafting. If a requirement can be interpreted two ways, ask — don't pick.
    - {assumption 1}
+
+   ## Behavior (optional for S-effort)
+   What does this feature do from the user's perspective? Describe the observable behavior.
+   - {sentence 1 — what happens when the happy path runs}
+   - {sentence 2 — what the user sees / what state changes}
+   - {sentence 3 — how success is confirmed}
+
+   ## Edge Cases (optional for S-effort)
+   - {edge case 1 — what happens at the boundary}
+   - {edge case 2 — what happens when inputs are missing/invalid}
 
    ## Design
    {technical approach — components, files, patterns}
