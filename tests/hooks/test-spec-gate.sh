@@ -133,15 +133,18 @@ run_hook() {
 REPO=$(setup_test_repo)
 trap 'rm -rf "$REPO"' EXIT
 
+# Standard PreToolUse hook input — simulates a Write call on an impl file
+HOOK_INPUT='{"tool_name":"Write","tool_input":{"file_path":"/home/test/system/hooks/foo.sh"}}'
+
 # ── Test 1: S-effort branch — gate stays silent ───────────────────────────────
 
 echo "--- T1: S-effort branch — no warning"
 STUB=$(stub_brana "S")
 git -C "$REPO" checkout -q -b "harness-v2/feat/t-9999-some-feature"
 
-OUT=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
+OUT=$(cd "$REPO" && echo "$HOOK_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
 assert_not_contains "S-effort: no advisory" "advisory" "$OUT"
-LAST_EXIT=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" > /dev/null 2>&1; echo $?)
+LAST_EXIT=$(cd "$REPO" && echo "$HOOK_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" > /dev/null 2>&1; echo $?)
 assert "S-effort: exits 0" "0" "$LAST_EXIT"
 rm -rf "$STUB"
 rm -f "$REPO/.git/brana-spec-gate-checked"
@@ -153,9 +156,10 @@ STUB=$(stub_brana "M")
 git -C "$REPO" checkout -q main 2>/dev/null || git -C "$REPO" checkout -q -b main 2>/dev/null || true
 git -C "$REPO" checkout -q -b "harness-v2/feat/t-8888-needs-spec"
 
-OUT=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
+OUT=$(cd "$REPO" && echo "$HOOK_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
 assert_contains "M-effort no spec: advisory emitted" "advisory" "$OUT"
-EXIT=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" > /dev/null 2>&1; echo $? || echo 0)
+rm -f "$REPO/.git/brana-spec-gate-checked"
+EXIT=$(cd "$REPO" && echo "$HOOK_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" > /dev/null 2>&1; echo $? || echo 0)
 assert "M-effort no spec: exits 0 (non-blocking)" "0" "$EXIT"
 rm -rf "$STUB"
 rm -f "$REPO/.git/brana-spec-gate-checked"
@@ -169,7 +173,7 @@ echo "# spec" > "$REPO/docs/architecture/features/t-8888-needs-spec.md"
 git -C "$REPO" add docs/architecture/features/t-8888-needs-spec.md
 git -C "$REPO" commit -q -m "feat: add spec"
 
-OUT=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
+OUT=$(cd "$REPO" && echo "$HOOK_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
 assert_not_contains "M-effort with spec: no advisory" "advisory" "$OUT"
 rm -rf "$STUB"
 rm -f "$REPO/.git/brana-spec-gate-checked"
@@ -178,18 +182,19 @@ rm -f "$REPO/.git/brana-spec-gate-checked"
 
 echo "--- T4: Sentinel — gate fires once, silent on subsequent calls"
 STUB=$(stub_brana "M")
-# Remove spec to trigger warning on first call
+# Branch from main (no spec) to ensure advisory fires on first call
+git -C "$REPO" checkout -q main
 git -C "$REPO" checkout -q -b "harness-v2/feat/t-7777-sentinel-test"
 
 # First call — should warn
-OUT1=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
+OUT1=$(cd "$REPO" && echo "$HOOK_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
 assert_contains "Sentinel T1: first call warns" "advisory" "$OUT1"
 
 # Sentinel should now exist
 assert "Sentinel T2: file created" "0" "$([ -f "$REPO/.git/brana-spec-gate-checked" ] && echo 0 || echo 1)"
 
 # Second call — should be silent
-OUT2=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
+OUT2=$(cd "$REPO" && echo "$HOOK_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
 assert_not_contains "Sentinel T3: second call silent" "advisory" "$OUT2"
 rm -rf "$STUB"
 rm -f "$REPO/.git/brana-spec-gate-checked"
@@ -198,13 +203,15 @@ rm -f "$REPO/.git/brana-spec-gate-checked"
 
 echo "--- T5: No task ID extractable — silent skip"
 STUB=$(stub_brana "M")
+# Isolate HOME so active-goal.json on the real host doesn't leak a task ID
+FAKE_HOME=$(mktemp -d)
 git -C "$REPO" checkout -q -b "hotfix/no-task-id"
 
-OUT=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
+OUT=$(cd "$REPO" && echo "$HOOK_INPUT" | HOME="$FAKE_HOME" PATH="$STUB:$PATH" bash "$HOOK" 2>&1 || true)
 assert_not_contains "No task ID: no advisory (silent skip)" "advisory" "$OUT"
-EXIT=$(cd "$REPO" && PATH="$STUB:$PATH" bash "$HOOK" > /dev/null 2>&1; echo $? || echo 0)
+EXIT=$(cd "$REPO" && echo "$HOOK_INPUT" | HOME="$FAKE_HOME" PATH="$STUB:$PATH" bash "$HOOK" > /dev/null 2>&1; echo $? || echo 0)
 assert "No task ID: exits 0" "0" "$EXIT"
-rm -rf "$STUB"
+rm -rf "$STUB" "$FAKE_HOME"
 rm -f "$REPO/.git/brana-spec-gate-checked"
 
 # ── Results ───────────────────────────────────────────────────────────────────
