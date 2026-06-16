@@ -177,3 +177,8 @@ Both are independent constants. FTS5 slowness does not reduce ruflo's budget.
 - t-2109 — SearchProvider trait + FTS5/Ruflo impls (completed 2026-06-15)
 - t-2096 — Proactive memory enrichment at skill LOAD (blocked by HybridProvider)
 - ADR-046 — ruflo smart:false LOAD default (related: latency budget informs the 2s ruflo deadline)
+
+---
+
+## Changelog
+- 2026-06-16: HybridProvider, `brana recall` CLI, and `mcp__brana__recall` MCP tool shipped (t-2125, commits ada3d5c5, f2aa0f58). 498 tests green. ADR-046 deadline values confirmed accurate against live corpus.
