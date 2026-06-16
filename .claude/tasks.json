@@ -55591,7 +55591,7 @@
       ],
       "blocked_by": [],
       "branch": "memory/refactor/t-2109-search-provider-trait",
-      "completed": null,
+      "completed": "2026-06-15",
       "context": "First slice of t-2091 scoped to the recall seam only — unblocks HybridProvider without requiring the full MemoryStore CRUD abstraction. Deliverables: (1) SearchProvider trait (query only), (2) FTS5Provider wrapping existing search_fts(), (3) RufloProvider wrapping ruflo_memory_search_raw(). HybridProvider (parallel dispatch + RRF) is a separate step that blocks on this subtask, not on t-2091 completion. Created from challenger review of docs/ideas/hybrid-provider-fts5-ruflo-rrf.md 2026-06-15.\nskill_gap_checked: true (step 0.5, pre-detection, 2026-06-15)",
       "created": "2026-06-15",
       "description": null,
@@ -55600,12 +55600,12 @@
       "github_issue": null,
       "id": "t-2109",
       "kind": "refactor",
-      "notes": null,
+      "notes": "SearchProvider trait + FTS5Provider + RufloProvider shipped. ruflo_memory_search_raw gained json: bool param (all callers pass false). 11 new contract tests, 489 total green. Unblocks t-2091 ADR HybridProvider section.",
       "order": 0,
       "parent": "t-2091",
       "priority": "P2",
       "started": "2026-06-15",
-      "status": "in_progress",
+      "status": "completed",
       "subject": "SearchProvider trait + FTS5Provider + RufloProvider impls",
       "tags": [
         "memory",
@@ -55614,7 +55614,7 @@
         "recall"
       ],
       "type": "subtask",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "acceptance_criteria": null,
