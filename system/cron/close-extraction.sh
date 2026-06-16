@@ -360,7 +360,8 @@ $POST_COMMITS"
                 continue
             fi
         fi
-        GAPS=$(python3 - "$PROP_OUT" <<'PYEOF'
+        parse_prop_output() {
+            python3 - "$1" <<'PYEOF'
 import json, sys, re
 raw = open(sys.argv[1]).read().strip()
 raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw.strip()).strip()
@@ -381,10 +382,19 @@ try:
 except Exception:
     sys.exit(1)
 PYEOF
-) || {
-            fail_entry "agy propagation output failed contract validation"
-            rm -f "$PROP_OUT"
-            continue
+        }
+        GAPS=$(parse_prop_output "$PROP_OUT") || {
+            if claude_fallback "$PROP_OUT" "$PROP_PROMPT"; then
+                GAPS=$(parse_prop_output "$PROP_OUT") || {
+                    fail_entry "agy propagation output failed contract validation (claude fallback also invalid)"
+                    rm -f "$PROP_OUT"
+                    continue
+                }
+            else
+                fail_entry "agy propagation output failed contract validation"
+                rm -f "$PROP_OUT"
+                continue
+            fi
         }
         rm -f "$PROP_OUT"
     fi
