@@ -36,7 +36,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
-| `/brana:domain-driven-design` | reference | DDD tactical patterns for complex business modeling including entities, value ob |
+| `/brana:domain-driven-design` | domain | DDD tactical patterns for complex business modeling including entities, value ob |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), v |
 | `/brana:gemini` | execution | Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. U |
@@ -166,6 +166,15 @@ Situational awareness — where am I, what was I doing, what's next. Context rec
 **Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, mcp__ruflo__claims_board, mcp__brana__session_history, ToolSearch
 
 
+## domain
+
+### `/brana:domain-driven-design`
+
+DDD tactical patterns for complex business modeling including entities, value objects, aggregates, domain services, repositories, specifications, and bounded contexts. Python dataclass implementations with TypeScript alternatives. Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
+
+**Allowed tools:** [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
+
+
 ## execution
 
 ### `/brana:align`
@@ -272,15 +281,6 @@ Store a learning — classify type, route to canonical destination. Use after di
 **Arguments:** `[learning text]`
 
 **Allowed tools:** Bash, Read, Write, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search, ToolSearch
-
-
-## reference
-
-### `/brana:domain-driven-design`
-
-DDD tactical patterns for complex business modeling including entities, value objects, aggregates, domain services, repositories, specifications, and bounded contexts. Python dataclass implementations with TypeScript alternatives. Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
-
-**Allowed tools:** [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
 
 
 ## session

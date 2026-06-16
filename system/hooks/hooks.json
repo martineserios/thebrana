@@ -26,6 +26,16 @@
         "hooks": [
           {
             "type": "command",
+            "timeout": 5000,
+            "command": "bash \"$HOME/.claude/hooks/spec-gate.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
             "timeout": 3000,
             "continueOnBlock": true,
             "command": "bash \"$HOME/.claude/hooks/feedback-gate.sh\""
