@@ -93,3 +93,7 @@ Rejected — self-contradictory: the failure mode (lost appends) leaves valid JS
 - Hooks gain a one-line reminder primitive; every future "remind me when X" idea is a hook + one `write_reminder` call, no schema work
 - The store is safe under the user's daily parallel-session reality
 - Track 2 (cron batch sources) builds on a proven store with zero write-path work remaining
+
+## Changelog
+
+- 2026-06-15: Added `task_id` field to Reminder and `--task-id` flag to `brana remind write`; session-start now surfaces past-due task-linked reminders as action recommendations (t-2116, commit e37d2c5b)
