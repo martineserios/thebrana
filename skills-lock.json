@@ -13,6 +13,12 @@
       "skillPath": "skills/decision-matrix/SKILL.md",
       "computedHash": "e23423fb6b804d05943dc37e1886a6e82198fdca6bc0c622ba49235fca99093d"
     },
+    "domain-driven-design": {
+      "source": "yonatangross/orchestkit",
+      "sourceType": "github",
+      "skillPath": "plugins/ork/skills/domain-driven-design/SKILL.md",
+      "computedHash": "60be10b278730b425620775f8b7f430abcfa2276d2739d503a79a7098d6a6152"
+    },
     "first-principles": {
       "source": "guia-matthieu/clawfu-skills",
       "sourceType": "github",

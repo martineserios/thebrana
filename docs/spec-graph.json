@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-15T23:34:33Z",
+  "generated": "2026-06-16T03:11:35Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -995,6 +995,13 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-058-search-provider-hybrid-recall.md": {
+      "title": "ADR-058: SearchProvider Trait + HybridProvider Recall Architecture",
+      "type": "ADR",
+      "impl_files": [
+        "system/cli/rust/crates/brana-core/src/search.rs"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1414,6 +1421,16 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scheduler/"
+      ]
+    },
+    "docs/architecture/features/sdd-spec-gate.md": {
+      "title": "Feature: SDD Spec Gate — Feature Spec Template + Advisory Gate for M+ Tasks",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/build/phases/specify.md",
+        "system/hooks/pre-tool-use/",
+        "system/",
+        "system/hooks/pre-tool-use/spec-gate.sh"
       ]
     },
     "docs/architecture/features/skill-routing-in-backlog-start.md": {
@@ -2633,6 +2650,13 @@
       "type": "Roadmap",
       "impl_files": [
         "system/brana-mcp/"
+      ]
+    },
+    "docs/ideas/ddd-sdd-lifecycle-artifacts.md": {
+      "title": "DDD + SDD Lifecycle Artifacts",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/build/phases/specify.md"
       ]
     },
     "docs/ideas/distribution-strategy.md": {
@@ -5051,6 +5075,48 @@
       "to": "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
       "type": "depends_on",
       "computed": false
+    },
+    {
+      "from": "docs/architecture/features/sdd-spec-gate.md",
+      "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/sdd-spec-gate.md",
+      "to": "docs/architecture/features/t-601-tdd-gate.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/sdd-spec-gate.md",
+      "to": "docs/ideas/ddd-sdd-lifecycle-artifacts.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/sdd-spec-gate.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/sdd-spec-gate.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/sdd-spec-gate.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/sdd-spec-gate.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "depends_on",
+      "computed": true
     },
     {
       "from": "docs/architecture/features/skill-routing-in-backlog-start.md",
@@ -13808,9 +13874,9 @@
     }
   ],
   "stats": {
-    "nodes": 462,
-    "edges": 1775,
-    "typed_edges": 673,
-    "orphans": 126
+    "nodes": 465,
+    "edges": 1782,
+    "typed_edges": 680,
+    "orphans": 127
   }
 }
