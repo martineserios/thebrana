@@ -53338,7 +53338,7 @@
       "parent": "t-2022",
       "priority": "P0",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "brana-ontology.yaml — add C-minimal types from the Phase 0 ADR",
       "tags": [
