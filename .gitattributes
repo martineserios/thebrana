@@ -1,0 +1,6 @@
+# .gitattributes — custom git behaviors for thebrana
+
+# tasks.json uses a custom merge driver that preserves the highest task status.
+# Never let a git merge downgrade a completed task to in_progress. (t-2132)
+# Driver configured by bootstrap.sh → system/scripts/tasks-json-merge.sh
+.claude/tasks.json merge=brana-tasks
