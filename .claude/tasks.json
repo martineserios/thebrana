@@ -55839,6 +55839,191 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2118",
+      "subject": "One-time backfill: extract domain candidates from all 61 existing feature specs",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "sdd",
+        "lifecycle",
+        "ddd",
+        "extraction",
+        "backfill"
+      ],
+      "description": "Single extraction pass on all existing docs/architecture/features/*.md specs using ## Problem + ## Scope as source. Manual review required before any promotion. Defer until after Phase 1 pilot.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2117"
+      ],
+      "branch": null,
+      "context": "AC: all 61 specs processed in one pass\\nAC: candidates in staging, none auto-promoted\\nAC: review pass completed before any MODEL-*.md written\\n2026-06-15: blocked by t-2117 (Phase 1) and t-2118 (extraction cron)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2119",
+      "subject": "Extend nightly cron: scan docs/architecture/features/ and extract domain candidates",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "sdd",
+        "lifecycle",
+        "ddd",
+        "cron",
+        "extraction"
+      ],
+      "description": "Phase 2: nightly cron scans docs/architecture/features/*.md for specs not yet in .extraction-processed.json (or content hash changed). Quality gate: skip if no ## Behavior AND no ## Scope. Extraction prompt scoped to ## Problem, ## Behavior/## Scope, ## Edge Cases/## Constraints only. Candidates to docs/domain/.extraction-staging.json. Watermark at docs/domain/.extraction-processed.json with {path, content_hash, extracted_at}.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2117"
+      ],
+      "branch": null,
+      "context": "AC: cron scans all .md in docs/architecture/features/\\nAC: skips specs without ## Behavior or ## Scope\\nAC: extraction excludes ## Implementation, ## Key Files, ## Code Flow\\nAC: candidates written to docs/domain/.extraction-staging.json\\nAC: watermark at docs/domain/.extraction-processed.json",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2120",
+      "subject": "Session-start hook: surface domain extraction candidate count if staging non-empty",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "sdd",
+        "lifecycle",
+        "ddd",
+        "session-start",
+        "hook"
+      ],
+      "description": "If docs/domain/.extraction-staging.json has pending entries, session-start emits: \"N domain entity candidates pending (oldest: X days) — review? [y/skip]\". y opens guided promotion to docs/domain/MODEL-NNN-*.md. skip leaves candidates intact.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2119"
+      ],
+      "branch": null,
+      "context": "AC: session-start reads .extraction-staging.json\\nAC: emits count line only when entries > 0\\nAC: y opens guided promotion flow\\nAC: skip leaves candidates intact",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2121",
+      "subject": "Extraction queue hygiene: 30-day expiry + 50-candidate cap",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "sdd",
+        "lifecycle",
+        "ddd",
+        "cron",
+        "extraction"
+      ],
+      "description": "Cron cleans .extraction-staging.json each run: remove candidates older than 30 days; pause adding to staging when count >= 50. Re-extraction: if spec content hash changes, re-enters the queue.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2119"
+      ],
+      "branch": null,
+      "context": "AC: candidates older than 30 days removed each cron run\\nAC: extraction pauses when staging >= 50 entries\\nAC: changed spec (hash mismatch) re-queues for extraction",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2122",
+      "subject": "Auto-generate docs/domain/index.md from MODEL-*.md files",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "sdd",
+        "lifecycle",
+        "ddd",
+        "domain-index"
+      ],
+      "description": "Phase 3: generate docs/domain/index.md from all docs/domain/MODEL-*.md files. Each row: model ID, name, one-line summary, source spec path. Regenerated by cron on each run.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2119"
+      ],
+      "branch": null,
+      "context": "AC: docs/domain/index.md generated with one row per MODEL-*.md\\nAC: each row: model ID, name, summary, source spec path\\nAC: regenerated on each nightly cron run",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2123",
+      "subject": "Surface domain model index in /brana:sitrep and session-start hook",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "sdd",
+        "lifecycle",
+        "ddd",
+        "sitrep",
+        "session-start"
+      ],
+      "description": "Surface docs/domain/index.md in /brana:sitrep and session-start context. Show: \"Domain models: N (index at docs/domain/index.md)\".",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2122"
+      ],
+      "branch": null,
+      "context": "AC: /brana:sitrep shows domain model count\\nAC: session-start hook includes domain model count line",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
