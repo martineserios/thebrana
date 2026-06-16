@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-16T03:11:35Z",
+  "generated": "2026-06-16T20:05:21Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1430,7 +1430,7 @@
         "system/skills/build/phases/specify.md",
         "system/hooks/pre-tool-use/",
         "system/",
-        "system/hooks/pre-tool-use/spec-gate.sh"
+        "system/hooks/spec-gate.sh"
       ]
     },
     "docs/architecture/features/skill-routing-in-backlog-start.md": {
