@@ -85,6 +85,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 |------|-------|---------|---------|
 | `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle. Step 3b: unconditionally denies writes to `~/.claude/settings.json` and `settings.local.json` — tool-layer self-modification risk (t-1862) |
 | `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
+| `spec-gate.sh` | PreToolUse | `Write\|Edit` | **Advisory**: warns once per branch when an M+ effort task (t-NNN from active-goal.json or branch name) begins impl writes without a `docs/architecture/features/` spec file. Fires via sentinel `.git/brana-spec-gate-checked`. Never blocks (always exits 0). Spec: docs/architecture/features/sdd-spec-gate.md (t-2117) |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active — **exception**: if the only dirty file is `.claude/tasks.json`, emits a warn (continue:true) instead of deny (t-1320). Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
 | `branch-name-warn.sh` | PreToolUse | `Bash(git *)` | Hard-block: rejects `git switch -c` / `git checkout -b` / `git branch <name>` when the new name doesn't match `{epic-slug}/{work-type}/t-{NNN}-` convention. Skips: main, master, docs/*, hotfix/*. Escape hatch: `--force-name`. Shipped advisory (t-1620), upgraded to block (t-1718). Uses `permissionDecision:deny` (corrected from `continue:false` — E2026-06-04-5). |
@@ -213,6 +214,7 @@ Differentiator: "Does bypassing this gate corrupt an invariant that cannot be re
 |---|---|---|---|---|
 | `pre-tool-use.sh` | Write\|Edit | **Enforcement** | Never | Spec-before-code: impl without a spec cannot be undone in the same session |
 | `tdd-gate.sh` | Write\|Edit | **Enforcement** | Never | Test-before-code: impl without a failing test violates the TDD contract |
+| `spec-gate.sh` | Write\|Edit | **Advisory** | N/A (always exits 0) | Spec-before-impl reminder: M+ effort tasks should have a `docs/architecture/features/` spec; fires once per branch via sentinel |
 | ~~`rust-skills-guard.sh`~~ | ~~Write\|Edit~~ | ~~**Enforcement**~~ | ~~Never~~ | **Deregistered 2026-06-04** — caused stop-and-continue loop on every fresh session; t-1845 tracks SessionStart replacement |
 | `feedback-gate.sh` (Layer 1) | Write\|Edit | **Enforcement** | Never | CLAUDE.md files are human-authored load-bearing docs — LLM writes corrupt authorship |
 | `feedback-gate.sh` (non-L1) | Write\|Edit | **Advisory** | Yes | Feedback memory is LLM-writable; rejection becomes context for retry |
