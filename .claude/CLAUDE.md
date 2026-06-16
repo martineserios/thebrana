@@ -76,6 +76,7 @@ Special branches (no task ID required): `main`, `docs/{topic}` (spec-only, no `s
 - When adding new docs, update `docs/README.md`
 - Ruflo namespaces: query `knowledge` + `pattern` in parallel (use `namespace: "all"` only with `threshold: 0.55` in v3.6 — session records score constant 0.5 and contaminate below that). `specs` namespace is unindexed — skip.
 - Use `.claude/CLAUDE.local.md` (gitignored) for personal/machine-specific overrides — loaded last, wins on conflict. Never commit it.
+- M+ tasks require a feature spec in `docs/architecture/features/` before implementation begins (advisory gate; see `system/hooks/spec-gate.sh`)
 
 <!-- Field Notes archived to ~/.claude/projects/*/memory/ and ruflo patterns. Query via /brana:memory. New gotchas go there, not here. -->
 

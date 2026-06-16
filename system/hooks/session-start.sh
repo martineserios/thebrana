@@ -14,7 +14,7 @@ cd /tmp 2>/dev/null || true
 
 # ── Startup timing (diagnostic) ─────────────────────────
 _TIMING_LOG="/tmp/brana-startup-timing.log"
-_ts() { date +%s%3N 2>/dev/null || echo 0; }
+_ts() { echo $(( $(date +%s) * 1000 )); }
 _mark() { echo "[brana-diag] $1 $(_ts)" >> "$_TIMING_LOG" 2>/dev/null || true; }
 _mark "hook-start"
 
@@ -698,10 +698,10 @@ _mark "phase3-wait-start"
 # costs ~1.5-2s; with the recall job (ONNX load ~1.6s) and flywheel insight
 # running in parallel, 2s killed whichever job didn't overlap phase 2.
 if [ -n "$PIDS" ]; then
-    WAIT_START=$(date +%s%3N 2>/dev/null || echo 0)
+    WAIT_START=$(( $(date +%s) * 1000 ))
     for pid in $PIDS; do
         # Calculate remaining budget
-        NOW_MS=$(date +%s%3N 2>/dev/null || echo 0)
+        NOW_MS=$(( $(date +%s) * 1000 ))
         ELAPSED_MS=$((NOW_MS - WAIT_START))
         REMAINING_MS=$((5000 - ELAPSED_MS))
         if [ "$REMAINING_MS" -le 0 ]; then
