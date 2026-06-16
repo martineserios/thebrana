@@ -7,7 +7,11 @@
 //! A third impl (`HybridProvider`) dispatches both in parallel and merges
 //! results via RRF; it is implemented as a separate step blocked on this one.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::{Arc, mpsc};
+use std::thread;
+use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
 // ── Public types ──────────────────────────────────────────────────────────────
@@ -179,6 +183,113 @@ fn find_json_array_start(text: &str) -> Option<usize> {
     None
 }
 
+// ── HybridProvider ────────────────────────────────────────────────────────────
+
+/// Production deadlines — see ADR-058 §9 for calibration rationale.
+const FTS5_DEADLINE: Duration = Duration::from_millis(500);
+const RUFLO_DEADLINE: Duration = Duration::from_secs(2);
+/// RRF rank-smoothing constant — calibrated for corpus list lengths 3–21 (ADR-058 §6).
+const K: usize = 20;
+/// Minimum candidate pool fetched from each provider before RRF truncation.
+const MIN_CANDIDATE_POOL: usize = 20;
+
+/// Parallel-dispatch recall provider that queries `FTS5Provider` and
+/// `RufloProvider` simultaneously, then merges results with Reciprocal Rank
+/// Fusion (k=20, no dedup — see ADR-058 §5–6).
+///
+/// Degrades gracefully on timeout:
+/// - FTS5 misses its 500ms deadline → ruflo-only results (not empty).
+/// - Ruflo misses its 2s deadline   → FTS5-only results (not empty).
+/// - Both timeout                   → empty vec.
+///
+/// Ruflo's budget is measured from dispatch start, not from when FTS5 returns.
+/// Worst-case wall-clock = `RUFLO_DEADLINE` (2s), not 2.5s.
+pub struct HybridProvider {
+    fts5: Arc<dyn SearchProvider>,
+    ruflo: Arc<dyn SearchProvider>,
+    fts5_deadline: Duration,
+    ruflo_deadline: Duration,
+}
+
+impl HybridProvider {
+    /// Construct with production deadlines (FTS5: 500ms, ruflo: 2s).
+    pub fn new(fts5: Arc<dyn SearchProvider>, ruflo: Arc<dyn SearchProvider>) -> Self {
+        Self { fts5, ruflo, fts5_deadline: FTS5_DEADLINE, ruflo_deadline: RUFLO_DEADLINE }
+    }
+
+    /// Construct with custom deadlines — for testing and configuration.
+    pub fn with_deadlines(
+        fts5: Arc<dyn SearchProvider>,
+        ruflo: Arc<dyn SearchProvider>,
+        fts5_deadline: Duration,
+        ruflo_deadline: Duration,
+    ) -> Self {
+        Self { fts5, ruflo, fts5_deadline, ruflo_deadline }
+    }
+}
+
+impl SearchProvider for HybridProvider {
+    fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
+        let q: Arc<str> = Arc::from(q);
+        let fetch = top_k.max(MIN_CANDIDATE_POOL);
+
+        let fts5        = Arc::clone(&self.fts5);
+        let ruflo       = Arc::clone(&self.ruflo);
+        let q_fts5      = Arc::clone(&q);
+        let q_ruflo     = Arc::clone(&q);
+        let fts5_dl     = self.fts5_deadline;
+        let ruflo_dl    = self.ruflo_deadline;
+
+        let (tx_fts5,  rx_fts5)  = mpsc::channel();
+        let (tx_ruflo, rx_ruflo) = mpsc::channel();
+
+        thread::spawn(move || { let _ = tx_fts5.send(fts5.query(&q_fts5, fetch)); });
+        thread::spawn(move || { let _ = tx_ruflo.send(ruflo.query(&q_ruflo, fetch)); });
+
+        // Ruflo budget starts from dispatch, not from when FTS5 returns.
+        // Worst-case wall-clock = RUFLO_DEADLINE.
+        let start         = Instant::now();
+        let fts5_results  = rx_fts5.recv_timeout(fts5_dl).unwrap_or_default();
+        let ruflo_budget  = ruflo_dl.saturating_sub(start.elapsed());
+        let ruflo_results = rx_ruflo.recv_timeout(ruflo_budget).unwrap_or_default();
+
+        rrf_merge(vec![fts5_results, ruflo_results], K, top_k)
+    }
+}
+
+/// Reciprocal Rank Fusion across multiple ranked lists.
+///
+/// `score(doc) = Σ 1/(k + rank)` where rank is 1-indexed within each list.
+/// Documents appearing in multiple lists accumulate additive score — dual-backend
+/// confirmation is genuine relevance signal (ADR-058 §6, no-dedup rationale).
+fn rrf_merge(lists: Vec<Vec<SearchHit>>, k: usize, top_k: usize) -> Vec<SearchHit> {
+    let mut scores: HashMap<DocRef, (f64, SearchHit)> = HashMap::new();
+    for list in lists {
+        for (i, hit) in list.into_iter().enumerate() {
+            let rank  = i + 1;
+            let score = 1.0 / (k + rank) as f64;
+            scores
+                .entry(hit.doc.clone())
+                .and_modify(|(s, _)| *s += score)
+                .or_insert((score, hit));
+        }
+    }
+    let mut out: Vec<SearchHit> = scores
+        .into_values()
+        .map(|(score, mut hit)| {
+            hit.rrf_score = score;
+            hit
+        })
+        .collect();
+    out.sort_by(|a, b| {
+        b.rrf_score
+            .partial_cmp(&a.rrf_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    out.truncate(top_k);
+    out
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -332,5 +443,183 @@ mod tests {
         assert!(parse_ruflo_json("", "knowledge").is_empty());
         assert!(parse_ruflo_json("not json at all", "knowledge").is_empty());
         assert!(parse_ruflo_json("[INFO] no array follows", "knowledge").is_empty());
+    }
+
+    // ── HybridProvider helpers ────────────────────────────────────────────────
+
+    struct FixedProvider {
+        hits: Vec<SearchHit>,
+        delay: Option<Duration>,
+    }
+
+    impl FixedProvider {
+        fn fixed(hits: Vec<SearchHit>) -> Arc<Self> {
+            Arc::new(Self { hits, delay: None })
+        }
+        fn delayed(hits: Vec<SearchHit>, delay: Duration) -> Arc<Self> {
+            Arc::new(Self { hits, delay: Some(delay) })
+        }
+    }
+
+    impl SearchProvider for FixedProvider {
+        fn query(&self, _q: &str, top_k: usize) -> Vec<SearchHit> {
+            if let Some(d) = self.delay { std::thread::sleep(d); }
+            self.hits.iter().cloned().take(top_k).collect()
+        }
+    }
+
+    fn ke(key: &str) -> DocRef {
+        DocRef::KnowledgeEntry { key: key.to_string(), namespace: "test".to_string() }
+    }
+    fn h(key: &str) -> SearchHit {
+        SearchHit { doc: ke(key), snippet: key.to_string(), rrf_score: 0.0 }
+    }
+
+    // ── HybridProvider contract tests ─────────────────────────────────────────
+
+    #[test]
+    fn hybrid_rrf_dual_signal_doc_ranks_first() {
+        // fts5: [a, b]   ruflo: [b, c]
+        // b appears in both — additive RRF score → must rank above a and c.
+        let fts5  = FixedProvider::fixed(vec![h("a"), h("b")]);
+        let ruflo = FixedProvider::fixed(vec![h("b"), h("c")]);
+        let hits = HybridProvider::new(fts5, ruflo).query("q", 10);
+        assert!(!hits.is_empty());
+        match &hits[0].doc {
+            DocRef::KnowledgeEntry { key, .. } => assert_eq!(key, "b", "dual-signal doc must rank first"),
+            other => panic!("expected KnowledgeEntry, got {other:?}"),
+        }
+        assert!(hits[0].rrf_score > 0.0);
+    }
+
+    #[test]
+    fn hybrid_rrf_score_set_on_every_result() {
+        let fts5  = FixedProvider::fixed(vec![h("x")]);
+        let ruflo = FixedProvider::fixed(vec![h("y")]);
+        for result in HybridProvider::new(fts5, ruflo).query("q", 10) {
+            assert!(result.rrf_score > 0.0, "every result must have rrf_score > 0");
+        }
+    }
+
+    #[test]
+    fn hybrid_empty_ruflo_returns_fts5_results() {
+        let fts5  = FixedProvider::fixed(vec![h("x")]);
+        let ruflo = FixedProvider::fixed(vec![]);
+        let hits = HybridProvider::new(fts5, ruflo).query("q", 10);
+        assert_eq!(hits.len(), 1);
+        match &hits[0].doc {
+            DocRef::KnowledgeEntry { key, .. } => assert_eq!(key, "x"),
+            _ => panic!("wrong docref"),
+        }
+    }
+
+    #[test]
+    fn hybrid_empty_fts5_returns_ruflo_results() {
+        let fts5  = FixedProvider::fixed(vec![]);
+        let ruflo = FixedProvider::fixed(vec![h("y")]);
+        let hits = HybridProvider::new(fts5, ruflo).query("q", 10);
+        assert_eq!(hits.len(), 1);
+        match &hits[0].doc {
+            DocRef::KnowledgeEntry { key, .. } => assert_eq!(key, "y"),
+            _ => panic!("wrong docref"),
+        }
+    }
+
+    #[test]
+    fn hybrid_top_k_truncates_output() {
+        let hits20: Vec<_> = (0..20).map(|i| h(&format!("doc{i}"))).collect();
+        let fts5  = FixedProvider::fixed(hits20.clone());
+        let ruflo = FixedProvider::fixed(hits20);
+        let out = HybridProvider::new(fts5, ruflo).query("q", 3);
+        assert_eq!(out.len(), 3, "top_k=3 must truncate, got {}", out.len());
+    }
+
+    #[test]
+    fn hybrid_fetches_min_candidate_pool_for_small_top_k() {
+        // 20 unique docs per provider (no overlap) → 40 unique entries after RRF.
+        // top_k=5 → must return exactly 5 (not top_k entries from each provider).
+        let fts5_hits:  Vec<_> = (0..20).map(|i| h(&format!("fts5-{i}"))).collect();
+        let ruflo_hits: Vec<_> = (0..20).map(|i| h(&format!("ruflo-{i}"))).collect();
+        let fts5  = FixedProvider::fixed(fts5_hits);
+        let ruflo = FixedProvider::fixed(ruflo_hits);
+        let out = HybridProvider::new(fts5, ruflo).query("q", 5);
+        assert_eq!(out.len(), 5);
+    }
+
+    #[test]
+    fn hybrid_fts5_timeout_degrades_to_ruflo_only() {
+        // fts5 sleeps 150ms > fts5_deadline=50ms → timeout → ruflo-only (not empty).
+        let fts5  = FixedProvider::delayed(vec![h("from-fts5")], Duration::from_millis(150));
+        let ruflo = FixedProvider::fixed(vec![h("from-ruflo")]);
+        let hybrid = HybridProvider::with_deadlines(
+            fts5, ruflo,
+            Duration::from_millis(50),
+            Duration::from_millis(500),
+        );
+        let hits = hybrid.query("q", 10);
+        assert!(!hits.is_empty(), "must degrade to ruflo-only, not empty");
+        assert!(
+            hits.iter().any(|h| matches!(&h.doc, DocRef::KnowledgeEntry { key, .. } if key == "from-ruflo")),
+            "ruflo result must be present"
+        );
+        assert!(
+            !hits.iter().any(|h| matches!(&h.doc, DocRef::KnowledgeEntry { key, .. } if key == "from-fts5")),
+            "fts5 result must be absent (timed out)"
+        );
+    }
+
+    #[test]
+    fn hybrid_ruflo_timeout_degrades_to_fts5_only() {
+        // ruflo sleeps 250ms > ruflo_deadline=100ms → timeout → fts5-only (not empty).
+        let fts5  = FixedProvider::fixed(vec![h("from-fts5")]);
+        let ruflo = FixedProvider::delayed(vec![h("from-ruflo")], Duration::from_millis(250));
+        let hybrid = HybridProvider::with_deadlines(
+            fts5, ruflo,
+            Duration::from_millis(500),
+            Duration::from_millis(100),
+        );
+        let hits = hybrid.query("q", 10);
+        assert!(!hits.is_empty(), "must degrade to fts5-only, not empty");
+        assert!(
+            hits.iter().any(|h| matches!(&h.doc, DocRef::KnowledgeEntry { key, .. } if key == "from-fts5")),
+            "fts5 result must be present"
+        );
+        assert!(
+            !hits.iter().any(|h| matches!(&h.doc, DocRef::KnowledgeEntry { key, .. } if key == "from-ruflo")),
+            "ruflo result must be absent (timed out)"
+        );
+    }
+
+    #[test]
+    fn hybrid_ruflo_budget_from_dispatch_start() {
+        // Proves budget starts from dispatch, not from fts5 return.
+        //
+        // fts5: sleeps 50ms. ruflo: sleeps 130ms. ruflo_deadline: 100ms.
+        //
+        // With dispatch-start budget (correct):
+        //   At t=50 (fts5 returns), elapsed=50ms.
+        //   ruflo_budget = 100-50 = 50ms. Ruflo needs 130-50=80ms more → TIMEOUT.
+        //
+        // With fts5-return budget (incorrect):
+        //   Ruflo would get 100ms from t=50 → absolute deadline t=150.
+        //   Ruflo completes at t=130 < t=150 → would succeed.
+        //
+        // Test passes only if implementation uses dispatch-start budget.
+        let fts5  = FixedProvider::delayed(vec![h("from-fts5")],  Duration::from_millis(50));
+        let ruflo = FixedProvider::delayed(vec![h("from-ruflo")], Duration::from_millis(130));
+        let hybrid = HybridProvider::with_deadlines(
+            fts5, ruflo,
+            Duration::from_millis(500),
+            Duration::from_millis(100),
+        );
+        let hits = hybrid.query("q", 10);
+        assert!(
+            hits.iter().any(|h| matches!(&h.doc, DocRef::KnowledgeEntry { key, .. } if key == "from-fts5")),
+            "fts5 result must be present"
+        );
+        assert!(
+            !hits.iter().any(|h| matches!(&h.doc, DocRef::KnowledgeEntry { key, .. } if key == "from-ruflo")),
+            "ruflo must timeout — budget starts from dispatch, not from fts5 return"
+        );
     }
 }

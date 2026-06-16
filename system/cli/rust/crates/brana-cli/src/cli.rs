@@ -237,6 +237,20 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Hybrid recall — FTS5 + ruflo parallel search, merged via RRF (ADR-058)
+    Recall {
+        /// Query string
+        query: String,
+        /// Maximum results to return
+        #[arg(long, default_value = "10")]
+        top: usize,
+        /// Emit results as JSON
+        #[arg(long)]
+        json: bool,
+        /// FTS5 index DB path (default: ~/.claude/memory/index.db)
+        #[arg(long)]
+        db: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]

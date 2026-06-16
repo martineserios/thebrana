@@ -14,6 +14,7 @@ pub mod misc;
 pub mod notify;
 pub mod ops;
 pub mod ratings;
+pub mod recall;
 pub mod reference;
 pub mod remind;
 pub mod run;
