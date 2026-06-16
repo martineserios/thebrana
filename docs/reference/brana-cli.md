@@ -651,10 +651,10 @@ brana session epic unfocus
 
 ## brana remind
 
-Reminder store (`~/.claude/reminders.json`) — the ONLY mutation path (ADR-051). Sidecar advisory lock, parse-before-write, atomic rename. Hooks write via `system/hooks/lib/remind.sh` (`write_reminder`); session-start surfaces the pending count read-only.
+Reminder store (`~/.claude/reminders.json`) — the ONLY mutation path (ADR-051). Sidecar advisory lock, parse-before-write, atomic rename. Hooks write via `system/hooks/lib/remind.sh` (`write_reminder`); session-start surfaces pending count + past-due task-linked reminders (t-2116).
 
 ```
-brana remind write --text <TEXT> [--action <CMD>] [--priority low|medium|high] [--dedup-key <KEY>] [--project <SLUG>] [--tags <CSV>]
+brana remind write --text <TEXT> [--action <CMD>] [--priority low|medium|high] [--dedup-key <KEY>] [--project <SLUG>] [--tags <CSV>] [--task-id <TASK_ID>]
 brana remind list [--status pending|resolved|snoozed|expired]
 brana remind resolve <ID>
 brana remind snooze <ID> <DURATION>     # 1d, 3d, 1w, 2h
