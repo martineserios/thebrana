@@ -168,7 +168,7 @@ Update `system/skills/build/phases/specify.md` line ~69:
 - [x] **Feature spec** — this file (`docs/architecture/features/sdd-spec-gate.md`)
 - [x] **Template update** — `system/skills/build/phases/specify.md`: add `## Behavior` + `## Edge Cases` to template
 - [x] **Hook** — `system/hooks/spec-gate.sh`: advisory PreToolUse hook (registered in hooks.json)
-- [x] **User-facing note** — one-liner addition to CLAUDE.md: "M+ tasks require a feature spec in `docs/architecture/features/`" (deferred: feedback-gate blocks close-time writes to CLAUDE.md — add via PR)
+- [x] **User-facing note** — one-liner addition to CLAUDE.md: "M+ tasks require a feature spec in `docs/architecture/features/`" (applied 2026-06-16 via session-start edit; feedback-gate blocks LLM writes — human applies directly)
 
 ## Challenger findings
 
