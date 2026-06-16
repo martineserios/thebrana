@@ -56422,7 +56422,7 @@
     {
       "id": "t-2132",
       "subject": "session-end state commit: preserve task completions from earlier in same session",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -56435,17 +56435,19 @@
       "priority": "P2",
       "parent": null,
       "created": "2026-06-16",
-      "started": null,
-      "completed": null,
+      "started": "2026-06-16",
+      "completed": "2026-06-16",
       "blocked_by": [],
-      "branch": null,
+      "branch": "session/fix/t-2132-session-end-state-preserve-completions",
       "context": "Pattern: tasks-json-wip-lost-on-merge-theirs. The chore(state) session-end commit writes tasks.json but can overwrite completions made earlier in the same session (e.g. t-2116 was completed at 6537f736 but then 97cbc65b overwrote it back to in_progress). Fix: session-end-persist.sh should read the on-disk tasks.json before writing, merge any status=completed entries that are currently in_progress in the in-memory snapshot, then commit. Alternatively: brana session write should be a merge-write not a clobber-write for task status fields.",
-      "notes": null,
+      "notes": "Added custom git merge driver for .claude/tasks.json that preserves highest task status during merges. Driver: system/scripts/tasks-json-merge.sh. Wired via .gitattributes + bootstrap.sh Step 4e. 10 unit tests, verified E2E. Merged to main as 0bed9b0a.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "session"
+      "epic": "session",
+      "strategy": "bug-fix",
+      "build_step": "CLOSE"
     }
   ],
   "version": "1"
