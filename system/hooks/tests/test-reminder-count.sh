@@ -151,6 +151,49 @@ OUT=$(run_hook "$REPO" "$H6")
 assert_context_contains "single pending surfaces" "Reminders: 1 pending" "$OUT"
 assert_context_missing "no zero-high suffix" "(0 high)" "$OUT"
 
+# ── t-2116: past-due task-linked surfacing ────────────────────────────────────
+
+# 7. Past-due + task_id + dispatched_at null → surfaces "consider /brana:backlog start"
+H7="$TMPDIR/home7"; make_home "$H7"
+write_store "$H7" '{"version":1,"reminders":[
+  {"id":"r-past1","text":"follow up","priority":"medium","status":"pending",
+   "due":"2020-01-01T00:00:00Z","task_id":"t-999","dispatched_at":null,
+   "occurrences":1,"dedup_key":"test-past1","project":"thebrana","tags":[]}
+]}'
+OUT=$(run_hook "$REPO" "$H7")
+assert_context_contains "past-due task link surfaces" "consider /brana:backlog start t-999" "$OUT"
+assert_context_contains "past-due id surfaces" "r-past1" "$OUT"
+
+# 8. Past-due + dispatched_at set → no task link (already dispatched)
+H8="$TMPDIR/home8"; make_home "$H8"
+write_store "$H8" '{"version":1,"reminders":[
+  {"id":"r-dispatched","text":"follow up","priority":"medium","status":"pending",
+   "due":"2020-01-01T00:00:00Z","task_id":"t-999","dispatched_at":"2020-01-01T01:00:00Z",
+   "occurrences":1,"dedup_key":"test-disp","project":"thebrana","tags":[]}
+]}'
+OUT=$(run_hook "$REPO" "$H8")
+assert_context_missing "dispatched past-due suppressed" "consider /brana:backlog start t-999" "$OUT"
+
+# 9. Future reminder with task_id → no task link (not yet due)
+H9="$TMPDIR/home9"; make_home "$H9"
+write_store "$H9" '{"version":1,"reminders":[
+  {"id":"r-future","text":"future thing","priority":"medium","status":"pending",
+   "due":"2099-01-01T00:00:00Z","task_id":"t-999","dispatched_at":null,
+   "occurrences":1,"dedup_key":"test-future","project":"thebrana","tags":[]}
+]}'
+OUT=$(run_hook "$REPO" "$H9")
+assert_context_missing "future task-linked not surfaced" "consider /brana:backlog start t-999" "$OUT"
+
+# 10. Past-due reminder without task_id → no task-start suggestion
+H10="$TMPDIR/home10"; make_home "$H10"
+write_store "$H10" '{"version":1,"reminders":[
+  {"id":"r-no-task","text":"no task link","priority":"medium","status":"pending",
+   "due":"2020-01-01T00:00:00Z","dispatched_at":null,
+   "occurrences":1,"dedup_key":"test-no-task","project":"thebrana","tags":[]}
+]}'
+OUT=$(run_hook "$REPO" "$H10")
+assert_context_missing "no-task past-due no suggestion" "consider /brana:backlog start" "$OUT"
+
 echo ""
 echo "test-reminder-count: $PASS/$TOTAL passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
