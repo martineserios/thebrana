@@ -56418,6 +56418,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2132",
+      "subject": "session-end state commit: preserve task completions from earlier in same session",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "session-end",
+        "tasks-json",
+        "harness"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-16",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Pattern: tasks-json-wip-lost-on-merge-theirs. The chore(state) session-end commit writes tasks.json but can overwrite completions made earlier in the same session (e.g. t-2116 was completed at 6537f736 but then 97cbc65b overwrote it back to in_progress). Fix: session-end-persist.sh should read the on-disk tasks.json before writing, merge any status=completed entries that are currently in_progress in the in-memory snapshot, then commit. Alternatively: brana session write should be a merge-write not a clobber-write for task status fields.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "session"
     }
   ],
   "version": "1"
