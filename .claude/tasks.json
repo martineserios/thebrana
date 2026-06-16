@@ -55592,7 +55592,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "First slice of t-2091 scoped to the recall seam only — unblocks HybridProvider without requiring the full MemoryStore CRUD abstraction. Deliverables: (1) SearchProvider trait (query only), (2) FTS5Provider wrapping existing search_fts(), (3) RufloProvider wrapping ruflo_memory_search_raw(). HybridProvider (parallel dispatch + RRF) is a separate step that blocks on this subtask, not on t-2091 completion. Created from challenger review of docs/ideas/hybrid-provider-fts5-ruflo-rrf.md 2026-06-15.",
+      "context": "First slice of t-2091 scoped to the recall seam only — unblocks HybridProvider without requiring the full MemoryStore CRUD abstraction. Deliverables: (1) SearchProvider trait (query only), (2) FTS5Provider wrapping existing search_fts(), (3) RufloProvider wrapping ruflo_memory_search_raw(). HybridProvider (parallel dispatch + RRF) is a separate step that blocks on this subtask, not on t-2091 completion. Created from challenger review of docs/ideas/hybrid-provider-fts5-ruflo-rrf.md 2026-06-15.\nskill_gap_checked: true (step 0.5, pre-detection, 2026-06-15)",
       "created": "2026-06-15",
       "description": null,
       "effort": "M",
