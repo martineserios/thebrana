@@ -350,11 +350,11 @@ $POST_COMMITS"
         fi
         # Agentic-output guard (t-2114): if the first few lines have exploration signals
         # agy went agentic instead of returning JSON. Fall back to claude before failing.
-        AGENTIC_CHECK=$(head -5 "$PROP_OUT" | grep -ciE '(^|\s)(I will|Let me|I'\''ll|I need to|I am going to|examining|exploring)\s' 2>/dev/null || echo 0)
-        if [ "${AGENTIC_CHECK:-0}" -gt 0 ]; then
+        # Use -q (quiet) to avoid the grep-exits-1-but-prints-0 || echo-0 double-output bug.
+        if head -5 "$PROP_OUT" | grep -qiE '(^|\s)(I will|Let me|I'\''ll|I need to|I am going to|examining|exploring)\s' 2>/dev/null; then
+            PROP_LINES=$(wc -l < "$PROP_OUT" 2>/dev/null || echo 0)
             rm -f "$PROP_OUT"
             if ! claude_fallback "$PROP_OUT" "$PROP_PROMPT"; then
-                PROP_LINES=$(wc -l < "$PROP_OUT" 2>/dev/null || echo 0)
                 fail_entry "agentic-output: propagation pass went agentic (${PROP_LINES} lines, no JSON returned)"
                 rm -f "$PROP_OUT"
                 continue
