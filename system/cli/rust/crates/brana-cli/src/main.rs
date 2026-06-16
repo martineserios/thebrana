@@ -166,8 +166,8 @@ fn main() {
             }
         },
         Commands::Remind { cmd } => match cmd {
-            RemindCmd::Write { text, action, priority, dedup_key, project, tags, at, channels } => {
-                run_or_exit(commands::remind::cmd_write(&text, action, priority, dedup_key, project, tags, at, channels))
+            RemindCmd::Write { text, action, priority, dedup_key, project, tags, at, channels, task_id } => {
+                run_or_exit(commands::remind::cmd_write(&text, action, priority, dedup_key, project, tags, at, channels, task_id))
             }
             RemindCmd::List { status } => run_or_exit(commands::remind::cmd_list(status)),
             RemindCmd::Due { dispatch } => run_or_exit(commands::remind::cmd_due(dispatch)),

@@ -65,6 +65,9 @@ pub struct Reminder {
     /// Dispatch idempotency marker: non-null → never dispatched again (ADR-054 §3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dispatched_at: Option<DateTime<Utc>>,
+    /// Backlog task linked to this reminder (t-2116). None → unlinked.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -84,6 +87,7 @@ pub struct NewReminder {
     pub tags: Vec<String>,
     pub due: Option<DateTime<Utc>>,
     pub channels: Option<Vec<String>>,
+    pub task_id: Option<String>,
 }
 
 // ── implementation ──────────────────────────────────────────────────────
@@ -179,6 +183,7 @@ pub fn write_reminder(path: &Path, new: NewReminder) -> Result<Reminder, String>
         due: new.due,
         channels: new.channels,
         dispatched_at: None,
+        task_id: new.task_id,
     };
     store.reminders.push(reminder.clone());
     write_store(path, &store)?;
@@ -986,6 +991,43 @@ mod tests {
         assert!(!raw.contains("\"due\""));
         assert!(!raw.contains("\"channels\""));
         assert!(!raw.contains("\"dispatched_at\""));
+    }
+
+    // ── t-2116: task_id field ───────────────────────────────────────────────
+
+    #[test]
+    fn write_with_task_id_roundtrips() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let r = write_reminder(
+            &path,
+            NewReminder { text: "check t-42".into(), task_id: Some("t-42".into()), ..Default::default() },
+        )
+        .unwrap();
+        assert_eq!(r.task_id.as_deref(), Some("t-42"));
+        let stored = list(&path).unwrap();
+        assert_eq!(stored[0].task_id.as_deref(), Some("t-42"));
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(raw.contains("\"task_id\""));
+        assert!(raw.contains("\"t-42\""));
+    }
+
+    #[test]
+    fn write_without_task_id_omits_field_from_json() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        write_reminder(&path, new("no link")).unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(!raw.contains("\"task_id\""));
+    }
+
+    #[test]
+    fn pre_t2116_store_without_task_id_parses_unchanged() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        std::fs::write(&path, PRE_T1997_STORE).unwrap();
+        let out = list(&path).unwrap();
+        assert!(out[0].task_id.is_none());
     }
 
     #[test]

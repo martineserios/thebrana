@@ -1173,6 +1173,9 @@ pub enum RemindCmd {
         /// Comma-separated delivery channels (e.g. telegram,desktop; "all" = broadcast)
         #[arg(long)]
         channels: Option<String>,
+        /// Backlog task ID to link this reminder to (e.g. t-42)
+        #[arg(long)]
+        task_id: Option<String>,
     },
     /// List reminders — the only path that persists state transitions
     List {

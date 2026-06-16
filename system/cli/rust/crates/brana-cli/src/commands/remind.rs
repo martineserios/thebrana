@@ -39,6 +39,7 @@ pub fn cmd_write(
     tags: Option<String>,
     at: Option<String>,
     channels: Option<String>,
+    task_id: Option<String>,
 ) -> Result<()> {
     let due = match at {
         Some(spec) => {
@@ -73,6 +74,7 @@ pub fn cmd_write(
             .unwrap_or_default(),
         due,
         channels,
+        task_id,
     };
     let r = remind::write_reminder(&store_path(), new).map_err(|e| anyhow!(e))?;
     println!("{}", serde_json::to_string_pretty(&r)?);

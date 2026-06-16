@@ -55810,6 +55810,34 @@
       "acceptance_criteria": null,
       "epic": "reminders",
       "strategy": "feature"
+    },
+    {
+      "id": "t-2117",
+      "subject": "Design SDD spec doc template and advisory gate for M+ tasks",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "sdd",
+        "lifecycle",
+        "spec-docs",
+        "ddd"
+      ],
+      "description": "Design and pilot the formal SDD spec doc artifact: template format (docs/specs/t-NNN-slug.md), gate behavior (advisory for M+, skip for S), integration with /brana:build SDD step. Pilot on 3-5 tasks before hardening. See idea doc: docs/ideas/ddd-sdd-lifecycle-artifacts.md",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-15",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: spec doc template exists at docs/specs/_template.md\\nAC: /brana:build SDD step writes a spec doc (not just AC lines)\\nAC: PreToolUse gate warns (advisory) on M+ branches without a spec doc\\nAC: piloted on at least 3 tasks\\n\\n2026-06-16: S-effort tasks exempt from gate. M+ tasks may update an existing spec instead of creating new one. Gate starts advisory — harden only after pilot validates friction level.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
