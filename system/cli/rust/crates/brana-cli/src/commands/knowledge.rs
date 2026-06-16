@@ -244,7 +244,7 @@ pub fn format_results(results: &[SearchResult]) -> String {
 /// threshold=0.55 for namespaceless calls; namespaced calls use ruflo defaults.
 /// TODO(t-2109): calibrate threshold per namespace after empirical k-probe.
 fn call_ruflo_search(query: &str, namespace: &str, limit: usize) -> Result<String> {
-    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, None)
+    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, None, false)
         .ok_or_else(|| anyhow::anyhow!("ruflo not found or timed out — run `brana knowledge reindex` first"))
 }
 

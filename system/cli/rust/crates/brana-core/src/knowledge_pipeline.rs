@@ -1067,7 +1067,7 @@ use crate::ruflo::ruflo_memory_search_raw;
 /// Threshold 0.85 calibrated from t-1589: max distinct-pair similarity = 0.59,
 /// gap = 0.26. Only near-exact topic duplicates are caught, not loose overlaps.
 pub fn check_semantic_dedup(title_signal: &str, threshold: f64) -> bool {
-    ruflo_memory_search_raw(title_signal, "knowledge", 1, Some(threshold))
+    ruflo_memory_search_raw(title_signal, "knowledge", 1, Some(threshold), false)
         .map(|raw| parse_semantic_dedup_output(&raw))
         .unwrap_or(false)
 }

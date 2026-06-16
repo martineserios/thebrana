@@ -9,6 +9,7 @@ pub mod ruflo;
 pub mod lint;
 pub mod memory;
 pub mod notify;
+pub mod search;
 pub mod queue;
 pub mod remind;
 pub mod scheduler;
