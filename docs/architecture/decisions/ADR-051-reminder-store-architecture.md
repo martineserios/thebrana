@@ -11,7 +11,7 @@ status: accepted
 
 **Date:** 2026-06-10
 **Status:** Accepted
-**Tasks:** t-1962 (parent), t-1964 (this ADR), t-1966 (Rust CLI), t-1965 (shell wrapper), t-1967 (session-start surfacing), t-1968 (docs)
+**Tasks:** t-1962 (parent), t-1964 (this ADR), t-1966 (Rust CLI), t-1965 (shell wrapper), t-1967 (session-start surfacing), t-1968 (docs), t-2116 (task_id link + past-due surfacing)
 **Source:** Async-first close brainstorm + t-1961/t-1963 research spikes; challenger review 2026-06-10 (verdict: RECONSIDER → write architecture flipped)
 
 ## Context
@@ -28,7 +28,7 @@ Adversarial review killed that design with three CRITICAL findings sharing one r
 
 `~/.claude/reminders.json` (per-user, cross-project) is mutated **only** by the brana Rust CLI:
 
-- `brana remind write --text … --action … --priority … [--dedup-key …] [--project …] [--tags …]`
+- `brana remind write --text … --action … --priority … [--dedup-key …] [--project …] [--tags …] [--task-id …]`
 - `brana remind list` — the **only** path that computes AND persists state transitions (snooze expiry, 30-day pending→expired), under the write lock
 - `brana remind resolve <id>` / `brana remind snooze <id> <dur>` (1d/3d/1w)
 
@@ -46,6 +46,8 @@ The Rust write path owns:
 
 `session-start.sh` surfaces the pending count with a **pure jq read** guarded by `[ -s file ]` — no Rust invocation (binary startup would blow the <50ms budget; same reason session-start already uses the brana-query fast path), no transition writes. The count may be slightly stale (can include technically-expired reminders) — accepted.
 
+Additionally (t-2116), the session-start hook uses a second jq filter to find past-due pending reminders (`.status == "pending" && .dispatched_at == null && .due <= now && .task_id != null`) and surfaces them as task-linked action recommendations. For each match, one `brana backlog get` binary call looks up the task subject — acceptable because past-due linked reminders are rare (expected 0–3).
+
 ### 4. Schema and evolution rules
 
 Store schema v1 per docs/ideas/async-close-design.md (lifecycle: pending → resolved / snoozed / expired). Binding implementation rules:
@@ -55,6 +57,15 @@ Store schema v1 per docs/ideas/async-close-design.md (lifecycle: pending → res
 - Read path parses `version` from `serde_json::Value` before strict deserialization
 - Reminder `id` is random (short uuid form), never content-derived (md5-of-text collides on same-second identical writes)
 - All timestamps UTC RFC3339
+
+**Post-v1 fields added under these rules:**
+
+| Field | Type | Added | Purpose |
+|-------|------|-------|---------|
+| `due` | `Option<DateTime<Utc>>` | t-1997 | When to dispatch (ADR-054 §3) |
+| `channels` | `Option<Vec<String>>` | t-1997 | Explicit delivery routing |
+| `dispatched_at` | `Option<DateTime<Utc>>` | t-1997 | Idempotency marker |
+| `task_id` | `Option<String>` | t-2116 | Links reminder to a backlog task; enables task-aware session-start surfacing |
 
 ### 5. Two-layer sources
 
