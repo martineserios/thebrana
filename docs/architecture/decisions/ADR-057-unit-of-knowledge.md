@@ -12,7 +12,7 @@ status: accepted
 # ADR-057: Unit of Knowledge — One Schema, Three Consumers
 
 **Date:** 2026-06-12
-**Status:** Accepted (2026-06-12) — condition outstanding: t-2030 (ontology update) must merge before Phase 1 begins; the schema names four types (`claim`, `event`, `source`, `hub`) that brana-ontology.yaml v1.5 does not carry, and validate.sh Check 18 would reject them until the ontology does
+**Status:** Accepted (2026-06-12) — condition resolved: brana-ontology.yaml v1.6 carries Claim, Event, Source, Hub, Decision (t-2030)
 **Tasks:** t-2027 (this ADR), phase t-2021 (Knowledge Base Redesign); consumers: t-2028 (ADR-042 amendment), t-2030 (ontology update), t-2031..t-2035 (enforcement), t-2039 (event promotion)
 **Source:** docs/ideas/knowledge-base-redesign.md (brainstorm + dual challenger review 2026-06-12); 2026-06-11 knowledge-structure audit; corpus-root and migration-mode decisions confirmed by user 2026-06-12
 
