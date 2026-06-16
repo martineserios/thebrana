@@ -246,5 +246,8 @@ fn main() {
             println!("Claude Code loads — which is main.");
         }
         Commands::Ratings { last, json } => run_or_exit(commands::ratings::cmd_ratings(last, json)),
+        Commands::Recall { query, top, json, db } => {
+            run_or_exit(commands::recall::cmd_recall(&query, top, json, db))
+        }
     }
 }
