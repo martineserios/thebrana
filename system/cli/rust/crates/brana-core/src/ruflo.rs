@@ -97,6 +97,7 @@ pub fn ruflo_memory_search_raw(
     namespace: &str,
     limit: usize,
     threshold: Option<f64>,
+    json: bool,
 ) -> Option<String> {
     let ruflo = resolve_ruflo_binary()?;
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
@@ -117,6 +118,9 @@ pub fn ruflo_memory_search_raw(
 
     if let Some(ref ts) = threshold_str {
         cmd.args(["--threshold", ts]);
+    }
+    if json {
+        cmd.arg("--json");
     }
 
     let mut child = cmd.spawn().ok()?;

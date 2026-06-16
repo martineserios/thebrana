@@ -509,7 +509,7 @@ fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
 /// Returns None if ruflo is unavailable or returns no results.
 /// Uses a 15-second timeout because ruflo CLI can hang after completion.
 fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
-    let raw = brana_core::ruflo::ruflo_memory_search_raw(query, "skills", 5, None)?;
+    let raw = brana_core::ruflo::ruflo_memory_search_raw(query, "skills", 5, None, false)?;
     parse_ruflo_results(&raw)
 }
 
