@@ -3,12 +3,12 @@
 # Advisory gate warns when M+ effort branches lack a feature spec.
 # Spec: docs/architecture/features/sdd-spec-gate.md
 #
-# Run: bash tests/hooks/test-spec-gate.sh
+# Run: bash system/hooks/tests/test-spec-gate.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 HOOK="$REPO_ROOT/system/hooks/spec-gate.sh"
 
 PASS=0

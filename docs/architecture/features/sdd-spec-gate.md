@@ -166,8 +166,8 @@ Update `system/skills/build/phases/specify.md` line ~69:
 ## Documentation Plan
 
 - [x] **Feature spec** — this file (`docs/architecture/features/sdd-spec-gate.md`)
-- [ ] **Template update** — `system/skills/build/phases/specify.md`: add `## Behavior` + `## Edge Cases` to template
-- [ ] **Hook** — `system/hooks/pre-tool-use/spec-gate.sh`: new PreToolUse hook
+- [x] **Template update** — `system/skills/build/phases/specify.md`: add `## Behavior` + `## Edge Cases` to template
+- [x] **Hook** — `system/hooks/spec-gate.sh`: advisory PreToolUse hook (registered in hooks.json)
 - [ ] **User-facing note** — one-liner addition to CLAUDE.md: "M+ tasks require a feature spec in `docs/architecture/features/`"
 
 ## Challenger findings
