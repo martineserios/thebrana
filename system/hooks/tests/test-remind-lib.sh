@@ -89,6 +89,18 @@ check "missing binary writes no store" "no" "$([ -f "$FAKE_HOME2/.claude/reminde
 # Comments may mention jq (the prohibition itself does); executable lines may not.
 check "wrapper contains no jq calls" "0" "$(grep -v '^\s*#' "$LIB" | grep -c '\bjq\b')"
 
+# ── 7. --task-id marshaled into store (t-2116) ────────────────────────
+FAKE_HOME7="$TMPDIR/home7"
+mkdir -p "$FAKE_HOME7"
+HOME="$FAKE_HOME7" BRANA="$REAL_BRANA" bash -c "
+    source '$LIB'
+    write_reminder --text 'task-linked reminder' --task-id 't-42' --dedup-key task-link-test
+    echo \"exit:\$?\"
+" >/dev/null 2>&1
+store7="$FAKE_HOME7/.claude/reminders.json"
+check "--task-id store created" "yes" "$([ -f "$store7" ] && echo yes || echo no)"
+check "--task-id marshalled" "1" "$(jq -r '.reminders[]? | select(.task_id == "t-42") | "found"' "$store7" 2>/dev/null | grep -c found || echo 0)"
+
 echo ""
 echo "test-remind-lib: $PASS/$TOTAL passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
