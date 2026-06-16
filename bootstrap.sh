@@ -393,6 +393,29 @@ else
     echo "  — git-hooks/pre-commit template not found in source"
 fi
 
+# --- Step 4e: tasks.json merge driver (t-2132) ---
+# Prevents task status regressions when git merges branches with divergent tasks.json.
+# The .gitattributes file (committed) declares the driver; this step wires
+# the driver path into the repo's local git config.
+echo "tasks.json merge driver:"
+TASKS_DRIVER_SRC="$SYSTEM_DIR/scripts/tasks-json-merge.sh"
+if [ -f "$TASKS_DRIVER_SRC" ]; then
+    if ! $CHECK_ONLY; then
+        git config --local merge.brana-tasks.driver "$SYSTEM_DIR/scripts/tasks-json-merge.sh %O %A %B %P" 2>/dev/null || true
+        git config --local merge.brana-tasks.name "brana tasks.json — preserve highest task status" 2>/dev/null || true
+        echo "  = merge driver configured (merge.brana-tasks.driver)"
+    else
+        CURRENT_DRIVER=$(git config --local --get merge.brana-tasks.driver 2>/dev/null || echo "")
+        if [ -n "$CURRENT_DRIVER" ]; then
+            echo "  = merge driver already configured"
+        else
+            echo "  ! merge driver not configured — run bootstrap.sh to fix"
+        fi
+    fi
+else
+    echo "  — tasks-json-merge.sh not found in $SYSTEM_DIR/scripts/"
+fi
+
 # --- Step 5: Scheduler ---
 echo "Scheduler:"
 SCHED_SRC="$SYSTEM_DIR/scheduler"
