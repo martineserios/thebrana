@@ -204,6 +204,40 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
     PIDS="$PIDS $!"
 fi
 
+# Job 1c: hybrid recall (FTS5 + ruflo via brana recall / HybridProvider, ADR-058)
+# Additive to Job 1 — independent stores (ADR-058 §store-independence-invariant):
+#   FTS5 indexes ~/.claude/memory/*.md; ruflo indexes knowledge entries via vector DB.
+# Does NOT require ruflo ($CF) — degrades to FTS5-only when ruflo is unavailable.
+# Skip on low effort — interactive recall budget is non-critical for quick tasks.
+if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
+    (
+        BRANA_RECALL=""
+        if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -x "${CLAUDE_PLUGIN_DATA}/brana" ]; then
+            BRANA_RECALL="${CLAUDE_PLUGIN_DATA}/brana"
+        fi
+        if [ -z "$BRANA_RECALL" ]; then
+            BRANA_RECALL=$(command -v brana 2>/dev/null || true)
+        fi
+        if [ -n "$BRANA_RECALL" ] && [ -x "$BRANA_RECALL" ]; then
+            RECALL_RAW=$(timeout 3 "$BRANA_RECALL" recall \
+                "$PROJECT build patterns corrections learnings" \
+                --top 5 --json 2>/dev/null) || RECALL_RAW=""
+            if [ -n "$RECALL_RAW" ]; then
+                RECALL_LINES=$(echo "$RECALL_RAW" | jq -r \
+                    '.[] | (.doc.MemoryFile.slug // .doc.KnowledgeEntry.key // "?") as $k |
+                     "- \($k): \(.snippet | gsub("\n"; " ") | .[0:120])"' \
+                    2>/dev/null) || RECALL_LINES=""
+                [ -n "$RECALL_LINES" ] && echo "$RECALL_LINES" > "$TMPDIR_SS/hybrid-recall"
+            fi
+        fi
+    ) &
+    # Not added to PIDS — the PIDS kill loop has a timing issue where
+    # date +%s%3N gives nanoseconds on Linux, making REMAINING_MS always
+    # negative and killing jobs before they write their results. Recall
+    # is waited on separately in Phase 3 with a proper 3s wall-clock guard.
+    RECALL_PID="$!"
+fi
+
 # ══════════════════════════════════════════════════════════
 # PHASE 2: Fast local checks (while parallel jobs run)
 # ══════════════════════════════════════════════════════════
@@ -684,6 +718,17 @@ if [ -n "$PIDS" ]; then
     done
 fi
 
+# Wait for hybrid recall (Job 1c) — separate from PIDS to avoid the kill-loop
+# timing issue (date +%s%3N gives nanoseconds on Linux, not milliseconds).
+# 3-second wall-clock cap matches the timeout inside the subshell.
+if [ -n "${RECALL_PID:-}" ]; then
+    ( sleep 3 && kill "$RECALL_PID" 2>/dev/null ) &
+    _RECALL_KILLER=$!
+    wait "$RECALL_PID" 2>/dev/null || true
+    kill "$_RECALL_KILLER" 2>/dev/null || true
+    wait "$_RECALL_KILLER" 2>/dev/null || true
+fi
+
 # Read results from temp files
 CONTEXT=""
 if [ -f "$TMPDIR_SS/cf-context" ]; then
@@ -717,6 +762,12 @@ if [ -f "$TMPDIR_SS/flywheel-insight" ]; then
     fi
 fi
 
+# Hybrid recall (Job 1c) — FTS5 + ruflo combined results (t-2096)
+HYBRID_RECALL_CONTEXT=""
+if [ -f "$TMPDIR_SS/hybrid-recall" ]; then
+    HYBRID_RECALL_CONTEXT=$(cat "$TMPDIR_SS/hybrid-recall" 2>/dev/null) || true
+fi
+
 # Fallback: grep native auto memory if CF returned nothing
 if [ -z "$CONTEXT" ]; then
     MEMORY_HIT=""
@@ -742,6 +793,11 @@ OUTPUT_PARTS=""
 if [ -n "$CONTEXT" ]; then
     OUTPUT_PARTS="[Recalled patterns — confidence:quarantine means unproven, treat with caution. confidence:proven means validated across 3+ sessions.]
 $CONTEXT"
+fi
+if [ -n "$HYBRID_RECALL_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Hybrid recall]
+$HYBRID_RECALL_CONTEXT"
 fi
 if [ -n "$TASK_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

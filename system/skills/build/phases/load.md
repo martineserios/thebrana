@@ -66,13 +66,16 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    - If zero signals fire in Step A: skip 0.5 silently
 
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
-2. **Primary — ruflo MCP (run both in parallel — `namespace: "all"` only returns session records; `specs` namespace is unindexed):**
+2. **Primary — run all three in one message (two MCP calls + one Bash call, all parallel):**
    ```
    mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 5, threshold: 0.3)
    mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.3)
+   Bash("brana recall '{query}' --top 3 --json 2>/dev/null || true")
    ```
    Use `smart: false` (default). `smart: true` is **not recommended for precision recall** — t-1699 spike (2026-05-28): smart:false 56-95ms / top-sim 0.57-0.64 on-topic; smart:true 275-879ms / top-sim 0.47 off-topic (MMR over-diversifies; Feynman physics surfaced as #1 for "hook enforcement"). MMR runs before limit slice (`afterMmrCount` fixed), so `limit:1` mitigation also fails. MMR diversity param not exposed in ruflo schema (confirmed). ControllerRegistry ESM crash fixed in v3.10.36/Node 22 (2026-06-03) — smart:true is now operational but still degrades precision. Use it only when topic diversity is the explicit goal. Re-evaluate if ruflo exposes `mmr_lambda` or equivalent.
    Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs, reflections — all indexed here), pattern (past session learnings).
+
+   **brana recall** (ADR-058): HybridProvider = FTS5 (`~/.claude/memory/*.md`) + ruflo `knowledge` namespace in parallel with RRF k=20 merge. Adds FTS5 hits (auto-memory not in ruflo) and knowledge results. **Does NOT cover the `pattern` namespace** — the pattern MCP call above remains essential for session learnings and cannot be dropped. Parse the JSON array: `.[] | .snippet` (truncate to 200 chars per entry to stay within token budget).
 2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
    Collect doc paths from knowledge results. Map ruflo key → file path:
    - `knowledge:dimension:{slug}:*` → `brana-knowledge/dimensions/{slug}.md`
@@ -115,7 +118,12 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    - **Cap:** max 3 graph-derived docs total (across all ruflo results). `depends_on` edges checked before `informs`.
    - **Skip if:** spec-graph.json doesn't exist, no knowledge results from ruflo, or graph query returns no neighbors.
    - This is best-effort enrichment — never blocks LOAD.
-3. **Fallback — tag-based grep** (if MCP unavailable):
+3. **Fallback — brana recall then tag grep** (if MCP unavailable):
+   Try `brana recall` first (FTS5 + knowledge ruflo; requires brana binary):
+   ```bash
+   brana recall '{query}' --top 3 --json 2>/dev/null || true
+   ```
+   If brana recall also unavailable, fall back to tag-based grep:
    ```bash
    grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5
    grep -rl "{keywords}" docs/architecture/ docs/reflections/ --include="*.md" | head -5
