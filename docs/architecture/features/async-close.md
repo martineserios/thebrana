@@ -70,11 +70,21 @@ agy (Gemini Flash, Layer A — **provisional**, revisit after ~2 weeks of summar
 
 Entries flagged `propagate: true` additionally get a propagation pass (ADR-056): same validate-or-mark-failed discipline, output contract `{"gaps": [{category, title, evidence, proposed_fix}]}`, repo state read at cron time with post-close commits surfaced for already-resolved-gap suppression. Gaps route to reminders tagged `propagation` (dedup `prop:{project}:{slug}`).
 
+### Quota-skip behavior (t-2085)
+
+agy quota exhaustion is treated as transient, not a failure — it does **not** burn the entry's `retry_count`:
+
+- `skip_entry` increments a separate `SKIPPED` counter and logs `skipped (quota-exhausted: ...)` without calling `mark-failed`.
+- After the first quota-exhausted entry in a run, the cron `break`s out of the loop — all remaining entries are deferred to the next nightly run. This avoids hammering a rate-limited API for every queued entry.
+- Two quota signals are detected: non-zero agy exit (429 / rate-limit) **and** agy exit 0 with empty stdout (agy ≥1.0.8 regression where quota exhaustion produces no output).
+- The propagation pass (ADR-056) applies the same skip/break pattern on quota exhaustion.
+- Recovery: entries auto-retry the next night when the quota resets. Manual recovery: `brana close-queue reset-retries` resets `retry_count` on any entries accidentally marked failed during a regression.
+
 ### Failure surfacing
 
 - Cron exits non-zero on any failure → `brana ops` health
 - Entries unprocessed >3 days → stale-queue reminder (checked **before** processing, so a recovering run still reports the stall)
-- Per-run log line: `close-extraction: processed=N failed=N stale=N`
+- Per-run log line: `close-extraction: processed=N failed=N skipped=N stale=N`
 
 ## Implementation
 
