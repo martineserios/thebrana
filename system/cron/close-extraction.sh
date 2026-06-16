@@ -58,6 +58,8 @@ if [ -z "${AGY:-}" ] || [ ! -x "$AGY" ]; then
     exit 1
 fi
 
+CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude 2>/dev/null)}" || true
+
 # Version guard: agy_delegate.rs pins the expected version; mismatches mean
 # an unexpected binary is installed. Fail fast so entries don't exhaust
 # retries against an unknown binary (t-2082). Empty-output guard below
@@ -156,6 +158,17 @@ print(json.dumps(entries[0]) if entries else '')")
         SKIPPED=$((SKIPPED + 1))
     }
 
+    # Try claude as fallback when agy fails due to quota or agentic output.
+    # Usage: claude_fallback <out_file> <prompt>; returns 0 on success, 1 on failure.
+    claude_fallback() {
+        local out_file="$1" prompt="$2"
+        [ -n "${CLAUDE_BIN:-}" ] || return 1
+        echo "close-extraction: agy failed — falling back to claude for $EID" >&2
+        local fb_exit=0
+        "$CLAUDE_BIN" -p "$prompt" > "$out_file" 2>/dev/null || fb_exit=$?
+        [ "$fb_exit" -eq 0 ] && [ -s "$out_file" ]
+    }
+
     if [ ! -f "$SNAP" ]; then
         fail_entry "snapshot-missing: $SNAP"
         continue
@@ -191,22 +204,29 @@ $DIFF_CONTENT"
         # Categorized reasons (t-1979 #4) so failure analysis can group causes.
         if [ "$AGY_EXIT" -eq 124 ] || [ "$AGY_EXIT" -eq 137 ]; then
             fail_entry "timeout: agy invocation timed out (exit $AGY_EXIT)"
-        elif grep -qiE '429|rate.?limit|resource_exhausted' "$OUT_FILE" 2>/dev/null; then
-            skip_entry "quota-exhausted: agy rate-limited (exit $AGY_EXIT) — will retry next run"
             rm -f "$OUT_FILE"
-            break
+            continue
+        elif grep -qiE '429|rate.?limit|resource_exhausted' "$OUT_FILE" 2>/dev/null; then
+            rm -f "$OUT_FILE"
+            if ! claude_fallback "$OUT_FILE" "$PROMPT"; then
+                skip_entry "quota-exhausted: agy rate-limited, claude fallback failed — will retry next run"
+                rm -f "$OUT_FILE"
+                break
+            fi
         else
             fail_entry "agy-error: agy invocation failed (exit $AGY_EXIT)"
+            rm -f "$OUT_FILE"
+            continue
         fi
-        rm -f "$OUT_FILE"
-        continue
     fi
     # agy 1.0.8 regression: exits 0 but produces empty stdout when quota
-    # is exhausted (t-2082). Skip (not fail) — preserves retry budget.
+    # is exhausted (t-2082). Fall back to claude before skipping.
     if [ ! -s "$OUT_FILE" ]; then
-        skip_entry "quota-exhausted: agy exited 0 with empty output (installed: $AGY_INSTALLED_VERSION) — will retry next run"
-        rm -f "$OUT_FILE"
-        break
+        if ! claude_fallback "$OUT_FILE" "$PROMPT"; then
+            skip_entry "quota-exhausted: agy exited 0 with empty output, claude fallback failed — will retry next run"
+            rm -f "$OUT_FILE"
+            break
+        fi
     fi
 
     # Validate output contract (ADR-052 §6): parseable JSON with .learnings array.
@@ -309,28 +329,36 @@ $POST_COMMITS"
         if [ "$PROP_AGY_EXIT" -ne 0 ]; then
             # $? inside an `if ! cmd` branch reports the negated test — capture explicitly (t-2004)
             if grep -qiE '429|rate.?limit|resource_exhausted' "$PROP_OUT" 2>/dev/null; then
-                skip_entry "quota-exhausted: propagation pass rate-limited (exit $PROP_AGY_EXIT) — will retry next run"
+                rm -f "$PROP_OUT"
+                if ! claude_fallback "$PROP_OUT" "$PROP_PROMPT"; then
+                    skip_entry "quota-exhausted: propagation pass rate-limited, claude fallback failed — will retry next run"
+                    rm -f "$PROP_OUT"
+                    break
+                fi
+            else
+                fail_entry "agy propagation pass failed (exit $PROP_AGY_EXIT)"
+                rm -f "$PROP_OUT"
+                continue
+            fi
+        fi
+        if [ ! -s "$PROP_OUT" ]; then
+            if ! claude_fallback "$PROP_OUT" "$PROP_PROMPT"; then
+                skip_entry "quota-exhausted: propagation pass exited 0 with empty output, claude fallback failed — will retry next run"
                 rm -f "$PROP_OUT"
                 break
             fi
-            fail_entry "agy propagation pass failed (exit $PROP_AGY_EXIT)"
-            rm -f "$PROP_OUT"
-            continue
-        fi
-        if [ ! -s "$PROP_OUT" ]; then
-            skip_entry "quota-exhausted: propagation pass exited 0 with empty output — will retry next run"
-            rm -f "$PROP_OUT"
-            break
         fi
         # Agentic-output guard (t-2114): if the first few lines have exploration signals
-        # agy went agentic instead of returning JSON. Fail (not skip) so retries exhaust
-        # and surface a human reminder rather than silently looping.
+        # agy went agentic instead of returning JSON. Fall back to claude before failing.
         AGENTIC_CHECK=$(head -5 "$PROP_OUT" | grep -ciE '(^|\s)(I will|Let me|I'\''ll|I need to|I am going to|examining|exploring)\s' 2>/dev/null || echo 0)
         if [ "${AGENTIC_CHECK:-0}" -gt 0 ]; then
-            PROP_LINES=$(wc -l < "$PROP_OUT" 2>/dev/null || echo 0)
-            fail_entry "agentic-output: propagation pass went agentic (${PROP_LINES} lines, no JSON returned)"
             rm -f "$PROP_OUT"
-            continue
+            if ! claude_fallback "$PROP_OUT" "$PROP_PROMPT"; then
+                PROP_LINES=$(wc -l < "$PROP_OUT" 2>/dev/null || echo 0)
+                fail_entry "agentic-output: propagation pass went agentic (${PROP_LINES} lines, no JSON returned)"
+                rm -f "$PROP_OUT"
+                continue
+            fi
         fi
         GAPS=$(python3 - "$PROP_OUT" <<'PYEOF'
 import json, sys, re
