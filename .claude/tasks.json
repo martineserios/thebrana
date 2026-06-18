@@ -56509,7 +56509,7 @@
     {
       "id": "t-2135",
       "subject": "Diagnose and fix failing close-extraction scheduled job",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -56527,7 +56527,7 @@
       "blocked_by": [],
       "branch": "harness-core/fix/t-2135-agy-pin-1-0-9",
       "context": "Job failed at 2026-06-18T07:05:04-03:00. Start with: brana ops logs close-extraction",
-      "notes": null,
+      "notes": "Root cause: agy version guard pinned 1.0.8 but 1.0.9 installed (manual, not brana-managed; no 1.0.8 source to downgrade). Spiked 1.0.9 → honors JSON extraction contract. Bumped all 3 pins (close-extraction.sh, agy_delegate.rs, knowledge_pipeline.rs — last was drifted at 1.0.3). Rebuilt + deployed brana binary. validate Check 38 PASS, version-pin tests green, guard now passes live. Merged to main (61ac414f). Pre-existing unrelated: validate Check 30 fails (brana CLI cd-wrapper in system/hooks/).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
