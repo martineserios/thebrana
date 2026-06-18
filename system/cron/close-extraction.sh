@@ -64,7 +64,7 @@ CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude 2>/dev/null)}" || true
 # an unexpected binary is installed. Fail fast so entries don't exhaust
 # retries against an unknown binary (t-2082). Empty-output guard below
 # catches quota exhaustion separately.
-AGY_EXPECTED_VERSION="1.0.8"
+AGY_EXPECTED_VERSION="1.0.9"
 AGY_INSTALLED_VERSION=$("$AGY" --version 2>/dev/null || echo "")
 if [ -n "$AGY_INSTALLED_VERSION" ] && [ "$AGY_INSTALLED_VERSION" != "$AGY_EXPECTED_VERSION" ]; then
     echo "close-extraction: agy version mismatch — expected $AGY_EXPECTED_VERSION, got $AGY_INSTALLED_VERSION — queue left untouched (downgrade agy or bump AGY_EXPECTED_VERSION)" >&2
@@ -219,8 +219,8 @@ $DIFF_CONTENT"
             continue
         fi
     fi
-    # agy 1.0.8 regression: exits 0 but produces empty stdout when quota
-    # is exhausted (t-2082). Fall back to claude before skipping.
+    # agy regression (observed 1.0.8, t-2082): exits 0 but produces empty stdout
+    # when quota is exhausted. Fall back to claude before skipping.
     if [ ! -s "$OUT_FILE" ]; then
         if ! claude_fallback "$OUT_FILE" "$PROMPT"; then
             skip_entry "quota-exhausted: agy exited 0 with empty output, claude fallback failed — will retry next run"
@@ -236,12 +236,12 @@ raw = open(sys.argv[1]).read().strip()
 min_conf, cap = float(sys.argv[2]), int(sys.argv[3])
 # tolerate accidental markdown fences at start/end
 raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw.strip()).strip()
-# tolerate preamble text before the JSON object (agy 1.0.8 sometimes adds one)
+# tolerate preamble text before the JSON object (observed in agy 1.0.8; retained defensively)
 if not raw.startswith('{'):
     m = re.search(r'\{', raw)
     if m:
         raw = raw[m.start():]
-# raw_decode handles trailing text after valid JSON (agy 1.0.8 sometimes appends a second object or prose)
+# raw_decode handles trailing text after valid JSON (observed in agy 1.0.8; retained defensively)
 try:
     data, _ = json.JSONDecoder().raw_decode(raw)
     ls = data["learnings"]
@@ -365,7 +365,7 @@ $POST_COMMITS"
 import json, sys, re
 raw = open(sys.argv[1]).read().strip()
 raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw.strip()).strip()
-# tolerate preamble text (agy 1.0.8 sometimes adds prose before JSON)
+# tolerate preamble text (observed in agy 1.0.8; retained defensively)
 if not raw.startswith('{'):
     m = re.search(r'\{', raw)
     if m:
