@@ -30,7 +30,7 @@ use crate::util::home;
 /// agy version this CLI layer is tested against.
 /// Must match AGY_PINNED_VERSION in brana-mcp/src/tools/agy_delegate.rs.
 /// Upgrade procedure: bump → re-run adversarial spike → confirm JSON contract → commit.
-pub const AGY_CLI_PINNED_VERSION: &str = "1.0.3";
+pub const AGY_CLI_PINNED_VERSION: &str = "1.0.9";
 
 /// Hard ceiling per agy call — matches ADR-041 §5.
 pub const AGY_CLI_TIMEOUT_SECS: u64 = 120;
