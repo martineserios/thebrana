@@ -56448,6 +56448,34 @@
       "epic": "session",
       "strategy": "bug-fix",
       "build_step": "CLOSE"
+    },
+    {
+      "id": "t-2133",
+      "subject": "backlog_add MCP tool ignores task_type when assigning ID prefix",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "backlog",
+        "mcp",
+        "cli",
+        "convention"
+      ],
+      "description": "The MCP backlog_add tool hardcodes the `t-` ID prefix regardless of the `task_type` argument. Milestones come out as `t-NNNN` instead of `ms-NNN`, phases as `t-NNNN` instead of `ph-NNN`. The `task_type` field is stored correctly, so behavior (tree, queries, parent/child) is unaffected — but the ID prefix no longer telegraphs hierarchy, breaking the documented convention (in-/ph-/ms-/t-/st- in task-convention.md). The CLI `brana backlog add` may already honor the prefix; if so, MCP and CLI have diverged on ID generation.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Surfaced 2026-06-18: milestone created via MCP got t-1380 instead of ms-047, phases t-138x instead of ph-. Startup digest shows backlog_add tool-fail x10 — this tool is already a friction point.\n\nDesign decision to settle first (do not patch blindly):\n- Option A (align): MCP tool passes task_type into the same prefix-selecting code the CLI uses, so both paths honor in-/ph-/ms-/t-/st-. Preserves the existing convention. Preferred if CLI and MCP have separate ID generators that should be unified.\n- Option B (retire prefixes): make all IDs `t-`, rely solely on the task_type field, add a display layer that renders the prefix for humans. Bigger change; only if the dual convention keeps causing friction.\n\nInvestigation in flight (scout): confirm whether prefix is purely cosmetic vs. used downstream, whether the numeric counter is global or per-type, and whether CLI honors the prefix today. Fold findings into the chosen option before implementing.\n\nAC: MCP backlog_add and CLI brana backlog add produce identical ID prefixes for the same task_type\nAC: a milestone/phase created via either path gets the convention-correct prefix (or the convention is explicitly retired with a migration note)\nAC: ID generator is a single shared code path (no duplicated prefix logic)\nAC: decision recorded (align vs retire) before implementation\n--- Scout findings 2026-06-18 (mechanism confirmed) ---\nRoot cause is NOT an MCP-vs-CLI divergence. brana-core::tasks::next_id() (system/cli/rust/crates/brana-core/src/tasks.rs:577-585) hardcodes `format!(\"t-{}\", max+1)` and ignores task_type entirely. BOTH paths call it the same way: MCP backlog_add.rs:73 and CLI backlog.rs:583. So the CLI does NOT honor the prefix either — routing typed adds through the CLI would not help.\n\nCounter is a SINGLE GLOBAL counter: next_id scans every id, parses the numeric suffix regardless of prefix, takes global max + 1. So t-10 + ph-003 + ms-005 yields t-11. Existing ph-/ms-/in- IDs (e.g. ph-004, ms-010 in tasks.json) were assigned MANUALLY, not generated.\n\nPrefix is purely cosmetic: not used in filtering, tree, roadmap, or any query — those key off the `type` field and `parent` pointer. Confirmed by test at tasks.rs:2048.\n\nRevised scope: the fix is to make next_id() type-aware (accept task_type, map type->prefix, increment). Single shared fix in brana-core fixes both callers at once. SECONDARY DESIGN FORK to settle: global numeric counter with varied prefix (ph-1381, ms-1380 — no renumber, monotonic) vs per-type counter (ph-005 — matches existing manual IDs but risks collisions with the global sequence and needs a backfill story). Recommend global-counter-varied-prefix: zero migration, ids stay unique and sortable, prefix still telegraphs type.\n\nCorrected AC: the earlier \"MCP and CLI produce identical prefixes\" is moot — they already match (both wrong via shared next_id). Replace with: next_id() honors task_type; milestone/phase via either path gets convention prefix; decide global-vs-per-type counter and record it.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
