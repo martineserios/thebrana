@@ -64,7 +64,7 @@ CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude 2>/dev/null)}" || true
 # an unexpected binary is installed. Fail fast so entries don't exhaust
 # retries against an unknown binary (t-2082). Empty-output guard below
 # catches quota exhaustion separately.
-AGY_EXPECTED_VERSION="1.0.9"
+AGY_EXPECTED_VERSION="1.0.10"
 AGY_INSTALLED_VERSION=$("$AGY" --version 2>/dev/null || echo "")
 if [ -n "$AGY_INSTALLED_VERSION" ] && [ "$AGY_INSTALLED_VERSION" != "$AGY_EXPECTED_VERSION" ]; then
     echo "close-extraction: agy version mismatch — expected $AGY_EXPECTED_VERSION, got $AGY_INSTALLED_VERSION — queue left untouched (downgrade agy or bump AGY_EXPECTED_VERSION)" >&2

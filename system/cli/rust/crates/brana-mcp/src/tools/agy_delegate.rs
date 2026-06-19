@@ -15,7 +15,7 @@ use tokio::process::Command;
 
 // Version is informational — mismatch emits a `version_warning` field but does NOT block delegation.
 // Update when re-running the adversarial spike to validate a new agy version.
-const AGY_PINNED_VERSION: &str = "1.0.9";
+const AGY_PINNED_VERSION: &str = "1.0.10";
 const AGY_TIMEOUT_SECS: u64 = 120;
 
 #[derive(Debug, Deserialize, JsonSchema)]
