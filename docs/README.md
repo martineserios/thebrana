@@ -39,6 +39,7 @@ User-facing documentation. Start here.
 |------|----------|
 | [build.md](guide/workflows/build.md) | The build loop -- 7 strategies, task integration |
 | [research.md](guide/workflows/research.md) | 3-phase research with scout agents |
+| [hive-mind.md](guide/workflows/hive-mind.md) | Multi-agent collective intelligence -- find/verify/synthesize on the subscription |
 | [session.md](guide/workflows/session.md) | Session lifecycle -- start hooks, close, handoffs |
 | [capture.md](guide/workflows/capture.md) | Event logging with /brana:log |
 | [learn.md](guide/workflows/learn.md) | Learning loop -- confidence, recall, cross-project transfer |

@@ -56561,6 +56561,32 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2137",
+      "subject": "Hive-mind workflow template (.claude/workflows/hive-mind.js)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "harness",
+        "workflow"
+      ],
+      "description": "Reusable native hive-mind workflow (find -> adversarial verify -> synthesize) replacing ruflo's fake hive-mind/swarm/consensus MCP tools. Runs on subscription via native Workflow tool. Parameterized via args {question, workers, lenses, model}.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-19",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
