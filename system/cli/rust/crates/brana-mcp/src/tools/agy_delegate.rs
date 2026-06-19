@@ -13,9 +13,11 @@ use std::process::Stdio;
 use std::time::Instant;
 use tokio::process::Command;
 
-// Version is informational — mismatch emits a `version_warning` field but does NOT block delegation.
-// Update when re-running the adversarial spike to validate a new agy version.
-const AGY_PINNED_VERSION: &str = "1.0.10";
+// Minimum validated agy version (floor, not exact). Installed agy >= this floor
+// passes; anything below blocks delegation. Raise the floor only after validating
+// a new agy version against the JSON contract. Should match AGY_CLI_MIN_VERSION
+// in brana-core/src/knowledge_pipeline.rs.
+const AGY_MIN_VERSION: &str = "1.0.10";
 const AGY_TIMEOUT_SECS: u64 = 120;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -133,10 +135,10 @@ async fn check_version_with_bin(bin: &str) -> Result<(), String> {
     }
 
     let version = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if version != AGY_PINNED_VERSION {
+    if !brana_core::util::version_at_least(&version, AGY_MIN_VERSION) {
         return Err(format!(
-            "agy version mismatch: expected {AGY_PINNED_VERSION}, got {version} — \
-             update AGY_PINNED_VERSION in agy_delegate.rs after re-running adversarial spike"
+            "agy version too old: need >= {AGY_MIN_VERSION}, got {version} — \
+             upgrade agy (npm i -g agy) or lower AGY_MIN_VERSION in agy_delegate.rs"
         ));
     }
     Ok(())
@@ -152,7 +154,7 @@ fn check_version_fallback() -> Result<(), String> {
     ] {
         if std::path::Path::new(candidate).exists() {
             return Err(format!(
-                "agy --version flag unavailable — cannot verify version pin {AGY_PINNED_VERSION}. \
+                "agy --version flag unavailable — cannot verify minimum version {AGY_MIN_VERSION}. \
                  Found binary at {candidate}. Add sha2 crate to implement hash pinning."
             ));
         }
@@ -422,23 +424,34 @@ mod tests {
 
     #[cfg(unix)]
     #[tokio::test]
-    async fn check_version_with_bin_accepts_pinned_version() {
-        let bin = write_fake_agy(&format!("echo '{AGY_PINNED_VERSION}'"), "ver-match");
+    async fn check_version_with_bin_accepts_floor_version() {
+        let bin = write_fake_agy(&format!("echo '{AGY_MIN_VERSION}'"), "ver-match");
         let result = check_version_with_bin(bin.to_str().unwrap()).await;
         let _ = std::fs::remove_file(&bin);
-        assert!(result.is_ok(), "pinned version should pass: {:?}", result.err());
+        assert!(result.is_ok(), "floor version should pass: {:?}", result.err());
     }
 
     #[cfg(unix)]
     #[tokio::test]
-    async fn check_version_with_bin_rejects_wrong_version() {
-        let bin = write_fake_agy("echo '2.0.0'", "ver-mismatch");
+    async fn check_version_with_bin_accepts_above_floor() {
+        // Newer agy releases must not block delegation under a floor check.
+        let bin = write_fake_agy("echo '2.0.0'", "ver-newer");
+        let result = check_version_with_bin(bin.to_str().unwrap()).await;
+        let _ = std::fs::remove_file(&bin);
+        assert!(result.is_ok(), "above-floor version should pass: {:?}", result.err());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn check_version_with_bin_rejects_below_floor() {
+        // "1.0.9" > "1.0.10" lexically — the floor check must still reject it.
+        let bin = write_fake_agy("echo '1.0.9'", "ver-old");
         let result = check_version_with_bin(bin.to_str().unwrap()).await;
         let _ = std::fs::remove_file(&bin);
         let err = result.unwrap_err();
-        assert!(err.contains("version mismatch"), "should report mismatch: {err}");
-        assert!(err.contains(AGY_PINNED_VERSION), "should name expected version: {err}");
-        assert!(err.contains("2.0.0"), "should name actual version: {err}");
+        assert!(err.contains("too old"), "should report too old: {err}");
+        assert!(err.contains(AGY_MIN_VERSION), "should name floor: {err}");
+        assert!(err.contains("1.0.9"), "should name actual version: {err}");
     }
 
     // ── invoke_agy_with_bin paths ─────────────────────────────────────────────

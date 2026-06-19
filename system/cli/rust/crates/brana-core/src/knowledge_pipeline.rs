@@ -27,10 +27,12 @@ use crate::util::home;
 // Guarantees NOT enforced here: /tmp/ invariant, structured JSON error types (Layer B only).
 // Callers MUST call check_agy_version() once per batch before spawning concurrent workers.
 
-/// agy version this CLI layer is tested against.
-/// Must match AGY_PINNED_VERSION in brana-mcp/src/tools/agy_delegate.rs.
-/// Upgrade procedure: bump → re-run adversarial spike → confirm JSON contract → commit.
-pub const AGY_CLI_PINNED_VERSION: &str = "1.0.10";
+/// Minimum agy version this CLI layer is validated against (floor, not exact).
+/// Any installed agy >= this floor passes — newer agy releases no longer break
+/// the nightly learning loop. Should match AGY_MIN_VERSION in
+/// brana-mcp/src/tools/agy_delegate.rs.
+/// Upgrade procedure: validate new version → raise floor → confirm JSON contract → commit.
+pub const AGY_CLI_MIN_VERSION: &str = "1.0.10";
 
 /// Hard ceiling per agy call — matches ADR-041 §5.
 pub const AGY_CLI_TIMEOUT_SECS: u64 = 120;
@@ -583,7 +585,7 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
 
 // ── Gemini CLI shell-out (call_gemini_json — ADR-040 Tier1/Tier2 routing) ────
 
-/// Check that the installed agy binary matches [`AGY_CLI_PINNED_VERSION`].
+/// Check that the installed agy binary meets the [`AGY_CLI_MIN_VERSION`] floor.
 /// Call once per batch before spawning concurrent workers to fail fast.
 pub fn check_agy_version() -> Result<()> {
     let bin = resolve_agy_binary().ok_or_else(|| {
@@ -604,16 +606,16 @@ pub fn check_agy_version_with_bin(bin: &str) -> Result<()> {
 
     if !out.status.success() {
         bail!(
-            "agy --version unavailable — cannot verify version pin {AGY_CLI_PINNED_VERSION}. \
+            "agy --version unavailable — cannot verify minimum version {AGY_CLI_MIN_VERSION}. \
              Binary exists but --version flag failed."
         );
     }
 
     let version = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if version != AGY_CLI_PINNED_VERSION {
+    if !crate::util::version_at_least(&version, AGY_CLI_MIN_VERSION) {
         bail!(
-            "agy version mismatch: expected {AGY_CLI_PINNED_VERSION}, got {version} — \
-             update AGY_CLI_PINNED_VERSION in knowledge_pipeline.rs after re-running adversarial spike"
+            "agy version too old: need >= {AGY_CLI_MIN_VERSION}, got {version} — \
+             upgrade agy (npm i -g agy) or lower AGY_CLI_MIN_VERSION in knowledge_pipeline.rs"
         );
     }
     Ok(())
@@ -1410,22 +1412,32 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn test_check_agy_version_accepts_pinned() {
-        let bin = write_fake_agy(&format!("echo '{AGY_CLI_PINNED_VERSION}'"), "ver-ok");
+    fn test_check_agy_version_accepts_floor() {
+        let bin = write_fake_agy(&format!("echo '{AGY_CLI_MIN_VERSION}'"), "ver-ok");
         let result = check_agy_version_with_bin(bin.to_str().unwrap());
         let _ = std::fs::remove_file(&bin);
-        assert!(result.is_ok(), "pinned version should pass: {:?}", result.err());
+        assert!(result.is_ok(), "floor version should pass: {:?}", result.err());
     }
 
     #[cfg(unix)]
     #[test]
-    fn test_check_agy_version_rejects_mismatch() {
+    fn test_check_agy_version_accepts_above_floor() {
+        // A future agy release must not break the loop — anything >= floor passes.
+        let bin = write_fake_agy("echo '1.99.0'", "ver-newer");
+        let result = check_agy_version_with_bin(bin.to_str().unwrap());
+        let _ = std::fs::remove_file(&bin);
+        assert!(result.is_ok(), "above-floor version should pass: {:?}", result.err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_check_agy_version_rejects_below_floor() {
         let bin = write_fake_agy("echo '0.0.0'", "ver-bad");
         let result = check_agy_version_with_bin(bin.to_str().unwrap());
         let _ = std::fs::remove_file(&bin);
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("version mismatch"), "should report mismatch: {err}");
-        assert!(err.contains(AGY_CLI_PINNED_VERSION), "should name expected: {err}");
+        assert!(err.contains("too old"), "should report too old: {err}");
+        assert!(err.contains(AGY_CLI_MIN_VERSION), "should name floor: {err}");
         assert!(err.contains("0.0.0"), "should name actual: {err}");
     }
 

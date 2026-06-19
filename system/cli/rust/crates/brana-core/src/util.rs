@@ -161,6 +161,44 @@ pub fn expand_home(p: &str) -> PathBuf {
     PathBuf::from(p)
 }
 
+/// Compare two dotted numeric version strings (e.g. `"1.0.10"`).
+/// Returns `true` when `installed` is greater than or equal to `floor`.
+///
+/// Each dot-separated component is parsed as its leading run of ASCII digits,
+/// so a trailing suffix (`"1.0.10-rc1"`) compares on its numeric core and a
+/// missing trailing component is treated as `0` (`"1.2"` == `"1.2.0"`). This
+/// avoids the lexical trap where `"1.0.9" > "1.0.10"` as plain strings.
+///
+/// Conservative on garbage: if `installed` does not start with a digit it is
+/// treated as below any floor (returns `false`) — an unrecognizable version
+/// must fail the floor loudly rather than silently pass.
+pub fn version_at_least(installed: &str, floor: &str) -> bool {
+    fn parse(v: &str) -> Vec<u64> {
+        v.split('.')
+            .map(|seg| {
+                seg.chars()
+                    .take_while(|c| c.is_ascii_digit())
+                    .collect::<String>()
+                    .parse::<u64>()
+                    .unwrap_or(0)
+            })
+            .collect()
+    }
+    if !installed.trim_start().starts_with(|c: char| c.is_ascii_digit()) {
+        return false;
+    }
+    let a = parse(installed.trim());
+    let b = parse(floor.trim());
+    for i in 0..a.len().max(b.len()) {
+        let ai = a.get(i).copied().unwrap_or(0);
+        let bi = b.get(i).copied().unwrap_or(0);
+        if ai != bi {
+            return ai > bi;
+        }
+    }
+    true
+}
+
 /// Load scheduler config from `~/.claude/scheduler/scheduler.json`.
 pub fn load_scheduler() -> HashMap<String, serde_json::Value> {
     let path = home().join(".claude/scheduler/scheduler.json");
@@ -384,6 +422,53 @@ mod tests {
             None,
         );
         assert_eq!(result, Some(f));
+    }
+
+    // ── version_at_least (agy version floor) ────────────────────────────────
+
+    #[test]
+    fn version_floor_accepts_equal() {
+        assert!(super::version_at_least("1.0.10", "1.0.10"));
+    }
+
+    #[test]
+    fn version_floor_accepts_higher_patch() {
+        assert!(super::version_at_least("1.0.11", "1.0.10"));
+    }
+
+    #[test]
+    fn version_floor_rejects_lower_patch_lexical_trap() {
+        // "1.0.9" > "1.0.10" as plain strings — must NOT pass the floor.
+        assert!(!super::version_at_least("1.0.9", "1.0.10"));
+    }
+
+    #[test]
+    fn version_floor_accepts_higher_minor_and_major() {
+        assert!(super::version_at_least("1.1.0", "1.0.10"));
+        assert!(super::version_at_least("2.0.0", "1.0.10"));
+    }
+
+    #[test]
+    fn version_floor_rejects_lower_major() {
+        assert!(!super::version_at_least("0.9.99", "1.0.10"));
+    }
+
+    #[test]
+    fn version_floor_treats_missing_component_as_zero() {
+        assert!(super::version_at_least("1.0", "1.0.0"));
+        assert!(super::version_at_least("1.0.10", "1.0"));
+        assert!(!super::version_at_least("1.0", "1.0.1"));
+    }
+
+    #[test]
+    fn version_floor_tolerates_prerelease_suffix() {
+        assert!(super::version_at_least("1.0.10-rc1", "1.0.10"));
+    }
+
+    #[test]
+    fn version_floor_rejects_unparseable_installed() {
+        assert!(!super::version_at_least("unknown", "1.0.10"));
+        assert!(!super::version_at_least("", "1.0.10"));
     }
 
     #[test]

@@ -60,14 +60,17 @@ fi
 
 CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude 2>/dev/null)}" || true
 
-# Version guard: agy_delegate.rs pins the expected version; mismatches mean
-# an unexpected binary is installed. Fail fast so entries don't exhaust
-# retries against an unknown binary (t-2082). Empty-output guard below
-# catches quota exhaustion separately.
-AGY_EXPECTED_VERSION="1.0.10"
+# Version guard: enforce a MINIMUM agy version (floor, not exact). Any installed
+# agy >= AGY_MIN_VERSION passes, so newer agy releases no longer break this loop.
+# Below the floor we fail fast so entries don't exhaust retries against an
+# unvalidated binary (t-2082). Empty-output guard below catches quota separately.
+# Must match AGY_CLI_MIN_VERSION in brana-core/src/knowledge_pipeline.rs.
+AGY_MIN_VERSION="1.0.10"
 AGY_INSTALLED_VERSION=$("$AGY" --version 2>/dev/null || echo "")
-if [ -n "$AGY_INSTALLED_VERSION" ] && [ "$AGY_INSTALLED_VERSION" != "$AGY_EXPECTED_VERSION" ]; then
-    echo "close-extraction: agy version mismatch — expected $AGY_EXPECTED_VERSION, got $AGY_INSTALLED_VERSION — queue left untouched (downgrade agy or bump AGY_EXPECTED_VERSION)" >&2
+# installed >= floor  ⟺  the lower of {floor, installed} under `sort -V` is the floor.
+if [ -n "$AGY_INSTALLED_VERSION" ] && \
+   [ "$(printf '%s\n%s\n' "$AGY_MIN_VERSION" "$AGY_INSTALLED_VERSION" | sort -V | head -n1)" != "$AGY_MIN_VERSION" ]; then
+    echo "close-extraction: agy version too old — need >= $AGY_MIN_VERSION, got $AGY_INSTALLED_VERSION — queue left untouched (upgrade agy or lower AGY_MIN_VERSION)" >&2
     exit 1
 fi
 
