@@ -56759,6 +56759,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2144",
+      "subject": "Serialize autonomous-runner --run-batch with a file lock (concurrency guardrail)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "harness-engineering",
+        "adr-059",
+        "autonomous",
+        "runner"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Source: hive-mind workflow run 2026-06-20 (wf_18dae97e), skeptic lens 0.88 confidence, follow-up from t-2140 Stage 3.\n\nPROBLEM: autonomous-runner.sh --run-batch snapshots eligible tasks at batch start, then mutates tasks.json mid-loop via `brana backlog set` (park notes, RUNNER context appends). Other concurrent writers — the scheduler, CI, a live CC session, `brana backlog add/set` — can mutate tasks.json in the same window. The in-memory snapshot goes stale → (a) a task runs despite becoming blocked after snapshot; (b) a concurrent task deletion makes `brana backlog set` fail mid-run, leaving an orphaned runner/auto/<id> branch with no backing task. Architectural concurrency gap, not a dispatch-quality issue. NOT urgent today: runner is default-deny + scheduler job disabled, so nothing runs concurrently yet — becomes load-bearing the moment the nightly batch is enabled.\n\nFIX: acquire a file-based serialization lock for the whole --run-batch duration. Reuse the existing pattern in system/scheduler/brana-scheduler-runner.sh (flock). Acquire at batch start, hold through the loop, release on exit/failure/signal (trap). Lock path e.g. ~/.claude/scheduler/autonomous-runner.lock. --observe and --run-one need not lock (--run-one is single-shot; observe is read-only). Consider: re-check per-task eligibility against a fresh `brana backlog get <id>` just before run_task as defense-in-depth (snapshot may still pre-date a same-batch change), but the lock is primary.\n\nAC: --run-batch acquires an exclusive lock for its full duration; a second concurrent --run-batch exits cleanly (no double-run)\nAC: lock released on success, failure, and SIGINT/SIGTERM (trap)\nAC: hermetic test asserts two overlapping --run-batch invocations do not both execute the same task\nAC: --observe and --run-one unaffected (no lock regression)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
