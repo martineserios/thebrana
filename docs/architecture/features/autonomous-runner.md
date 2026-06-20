@@ -1,7 +1,7 @@
 # Feature Spec — Autonomous Task Runner
 
 **Task:** t-2140 · **Status:** Stages 1-3 built (Stage 4 = t-2142) · **Date:** 2026-06-20
-**Basis:** ADR-059 (substrate selection) · [substrate-leverage-audit](../../research/substrate-leverage-audit.md) · ADR-050 (autonomy caps)
+**Basis:** ADR-059 (substrate selection) · [substrate-leverage-audit](../../research/substrate-leverage-audit.md) · ADR-050 (autonomy caps) · [ADR-060](../decisions/ADR-060-branch-strategy-autonomous-agents.md) (branch strategy: agents cut from `dev` in ephemeral worktrees, PR to `dev`, human promotes `dev`→`main`)
 
 ## Problem
 

@@ -217,6 +217,8 @@ Sources:
 
 ### Branch Strategy
 
+> **Extended by [ADR-060](architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md)** (2026-06-20): for autonomous agents + a future collaborator, this evolves to a two-tier **`dev` → `main`** model (`main` = production/deployed-via-bootstrap, `dev` = integration line) with worktree-per-actor isolation and a human promotion gate. The GitHub Flow spirit below is the foundation; ADR-060 is the agent-aware refinement.
+
 **Recommended model: GitHub Flow**
 
 One long-lived branch (`main`). All tracked work happens in short-lived feature branches. Every branch goes through a PR. Direct push to main for trivial changes only.
