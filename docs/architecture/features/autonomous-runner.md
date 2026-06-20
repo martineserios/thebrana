@@ -1,6 +1,6 @@
 # Feature Spec — Autonomous Task Runner
 
-**Task:** t-2140 · **Status:** spec (Stage 1 in build) · **Date:** 2026-06-20
+**Task:** t-2140 · **Status:** Stages 1-3 built (Stage 4 = t-2142) · **Date:** 2026-06-20
 **Basis:** ADR-059 (substrate selection) · [substrate-leverage-audit](../../research/substrate-leverage-audit.md) · ADR-050 (autonomy caps)
 
 ## Problem
@@ -30,8 +30,8 @@ brana needs an autonomous tier — "keep working through the backlog until done 
 Stage 0  DESIGN (this spec)
 Stage 1  OBSERVE-ONLY   ← picks eligible tasks, PLANS per task, reports would-run /
                           would-park / excluded. ZERO mutations. You watch its judgment.   ← THIS BUILD
-Stage 2  SINGLE-TASK    ← runs ONE eligible task → PR → stops. Human reviews. (t-TBD)
-Stage 3  BOUNDED BATCH  ← many tasks/run, all bounds + kill-switch, PR-per-task. (t-TBD)
+Stage 2  SINGLE-TASK    ← runs ONE eligible task → PR → stops. Human reviews.   ← BUILT
+Stage 3  BOUNDED BATCH  ← many tasks/run, all bounds + kill-switch, PR-per-task. ← BUILT
 Stage 4  LEARNED        ← graduates task shapes to auto-eligible from track record. (t-2142)
 ```
 
@@ -103,9 +103,40 @@ Runs with `RUNNER_PLAN=0` (no `claude` call) for a hermetic, fast test.
 - validate fails → working tree reverted, no commit, back on base branch
 - would-park task → not executed at all
 
+## Stage 3 — Bounded batch (this build)
+
+`system/scripts/autonomous-runner.sh --run-batch`
+
+**Does:** snapshot the eligible set (same predicate as Stage 1/2), then loop the Stage 2
+executor (`run_task`) over it — each task on its own `runner/auto/<id>` branch, verified
+and committed, base left pristine. Iterates the *snapshot* (not "re-pick first") because
+`run_task` leaves tasks `pending` (human gates completion) — re-picking would re-run the
+same task forever.
+
+**Bounds (all enforced):**
+- **Batch cap** — `RUNNER_MAX_TASKS` (default 5) attempts per run.
+- **Consecutive-failure kill** — stop after `RUNNER_MAX_FAILS` (default 3) failures in a row (ADR-050 cap). Parks and successes reset the counter; only real failures (empty diff, validate fail, dispatch/commit error) count.
+- **Kill-switch** — abort before any work, or between tasks mid-batch, if `RUNNER_KILL_SWITCH` (default `~/.claude/scheduler/runner.stop`) exists. External `touch` halts a running batch cleanly.
+- **Per-task timeout** — inherited from `run_task` (600s dispatch).
+
+**Outcomes per task** (`run_task` return → ledger decision): `ran` / `would-park` / `failed`.
+Failures emit a `failed` ledger row (Stage 2 only echoed) so the batch can count toward the
+kill threshold and the run is auditable. `ALLDONE` is reported when nothing is eligible.
+
+**Question queue (needs-human):** parks write a **high-priority, actionable** reminder
+(`--priority high --action "brana backlog get <id>" --tags runner-question,needs-human`) so
+they surface above the medium-priority noise, plus a `PARKED` note on the task context.
+
+**`brana ops` host:** a disabled, `--observe` scheduler job (`autonomous-runner` in
+`system/scheduler/scheduler.template.json`). Default-deny — the operator sets `enabled=true`
+and switches `--observe`→`--run-batch` to grant autonomy; bounds + kill-switch apply.
+
+**Tests** (`test-autonomous-runner-stage3.sh`, hermetic temp repo + stub claude): batch runs
+N tasks on N branches (base pristine); `RUNNER_MAX_TASKS` cap respected; 3-consecutive-fail
+kill stops the batch (4th never attempted); kill-switch file aborts; `ALLDONE` on empty
+backlog; mid-batch `NEEDSHUMAN` parks without counting as a failure.
+
 ## Follow-ups
 
-- Stage 3 (bounded batch + `brana ops` hosting) — file when Stage 2 trusted.
-- Stage 3 (bounded batch + `brana ops` hosting).
-- t-2142 (learned eligibility).
-- Wire the leverage doctrine into `delegation-routing.md` once the runner exists.
+- t-2142 (learned eligibility) — Stage 4.
+- Wire the leverage doctrine into `delegation-routing.md` (done — ADR-059 rewrite).
