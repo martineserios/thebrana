@@ -1,6 +1,49 @@
 # Agent Interaction Architecture
 
-> Brainstormed 2026-03-26. Status: spike approved.
+> Brainstormed 2026-03-26. Status: spike approved → superseded by brana v2 Compute Model (2026-05-24).
+> See [Current Implementation](#current-implementation-2026-05-24) for the authoritative compute shape.
+
+## Current Implementation (2026-05-24)
+
+The spike (t-649) was superseded by the **brana v2 Compute Model** — the authoritative
+compute shape for brana.
+
+- **Living spec:** [`docs/architecture/features/brana-v2-compute-model.md`](../architecture/features/brana-v2-compute-model.md)
+- **Routing rules:** [`system/rules/delegation-routing.md`](../../system/rules/delegation-routing.md)
+- **ADRs:** ADR-040 (compute hierarchy), ADR-041 (agy invocation contract)
+
+### The Layered Stack
+
+The Planner → Generator → Evaluator pattern proposed here evolved into a three-layer
+compute stack:
+
+| Layer | Component | Role |
+|-------|-----------|------|
+| Orchestrator | **Claude** | Judges, writes to repo, the only entity that touches the brana system |
+| Coordination | **Ruflo** | Claims, hive-mind, memory, sub-agent coordination |
+| Worker | **Gemini** (agy) | Stateless, brana-agnostic tasks, output to `/tmp/` only |
+
+**Gemini replaces the SDK-based generator** for brana-agnostic tasks. The Agent SDK
+evaluator proposed in this doc was not built — hive-mind quorum (3 parallel Claude
+workers) fills the evaluator role instead.
+
+Ruflo and Gemini do not interact directly. Claude always mediates: Ruflo enriches context
+before Gemini executes (ENRICH step); Gemini output is stored back to Ruflo after Claude
+reads and validates it (PERSIST step).
+
+### Routing Hierarchy (short form)
+
+Walk top-to-bottom, first match wins:
+
+1. **brana-system work** (git, hooks, tasks.json, `system/`) → Claude only. Never delegate.
+2. **Atomic + system-isolated + context-enrichable** (4-question test):
+   - Convention-sensitive (boilerplate, ADR drafts, test scaffolding) → ruflo required → Gemini via `/brana:gemini`
+   - Not convention-sensitive, parallel/bulk/token-heavy → Gemini, ENRICH optional
+   - Everything else → Claude inline
+
+See `system/rules/delegation-routing.md` for the full decision tree.
+
+---
 
 ## Problem
 
