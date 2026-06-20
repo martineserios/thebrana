@@ -100,11 +100,15 @@ const verified = await pipeline(
         { label: `verify:${i + 1}.${k + 1}`, phase: 'Verify', schema: VERDICT_SCHEMA },
       ),
     )).then((verdicts) => {
-      const vs = verdicts.filter(Boolean)
+      const vs = verdicts.filter(Boolean)  // throwing verifiers (e.g. StructuredOutput skip) → null → dropped
       const failed = lenses.length - vs.length
+      const allFailed = vs.length === 0
       const holdsCount = vs.filter((v) => v.holds).length
       const holds = vs.length ? holdsCount * 2 > vs.length : false // strict majority; ties refute
-      let adjusted = 'FALSE_POSITIVE'
+      // Distinguish "verified false" from "couldn't verify": if EVERY verifier failed, do NOT
+      // auto-dismiss as FALSE_POSITIVE (that silently drops possibly-real findings). Mark
+      // UNVERIFIED so it surfaces for human attention (t-2149 graceful degradation).
+      let adjusted = allFailed ? 'UNVERIFIED' : 'FALSE_POSITIVE'
       if (holds) {
         adjusted = vs.filter((v) => v.holds)
           .map((v) => v.severity)
@@ -117,9 +121,11 @@ const verified = await pipeline(
         source: f.source || null,
         holds,
         adjusted_severity: adjusted,
-        votes: `${holdsCount}/${vs.length} held`,
+        votes: allFailed ? '0/0 (all verifiers failed)' : `${holdsCount}/${vs.length} held`,
         verifiers_failed: failed,
-        reason: vs.map((v) => v.reason).filter(Boolean).join(' | ') || 'no verdicts returned',
+        reason: allFailed
+          ? `all ${failed} verifier(s) failed to return a verdict — left UNVERIFIED, not auto-dismissed`
+          : (vs.map((v) => v.reason).filter(Boolean).join(' | ') || 'no verdicts returned'),
       }
     })
   },

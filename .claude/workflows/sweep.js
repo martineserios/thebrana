@@ -145,10 +145,17 @@ if (!rawFindings.length) {
 // NOT noise to discard — kept as a confidence multiplier in verify.
 phase('Cluster')
 const numbered = rawFindings.map((f, i) => `${i + 1}. [${f.severity}] (${f.location}) ${f.text}`).join('\n')
-const clusterResult = await agent(
-  `You are de-duplicating discovery findings. ${rawFindings.length} raw findings were surfaced by independent finders. Group findings that describe the SAME underlying issue into one cluster, even when worded differently or located slightly differently. Keep genuinely distinct issues separate. Every raw finding must belong to exactly one cluster.\n\nRAW FINDINGS:\n${numbered}\n\nReturn the clusters with 1-based member_indices into the list above.`,
-  { label: 'cluster', phase: 'Cluster', schema: CLUSTERS_SCHEMA, model },
-)
+// Bare schema-bound agent: a StructuredOutput skip THROWS. Catch it (t-2149) so a single flaky
+// subagent degrades to one-cluster-per-finding via the fallback below — never aborts the sweep.
+let clusterResult = null
+try {
+  clusterResult = await agent(
+    `You are de-duplicating discovery findings. ${rawFindings.length} raw findings were surfaced by independent finders. Group findings that describe the SAME underlying issue into one cluster, even when worded differently or located slightly differently. Keep genuinely distinct issues separate. Every raw finding must belong to exactly one cluster.\n\nRAW FINDINGS:\n${numbered}\n\nReturn the clusters with 1-based member_indices into the list above.`,
+    { label: 'cluster', phase: 'Cluster', schema: CLUSTERS_SCHEMA, model },
+  )
+} catch (e) {
+  log(`⚠ cluster agent failed (${e && e.message ? e.message : 'unknown'}) — treating every finding as its own cluster`)
+}
 
 let clusters = (clusterResult && Array.isArray(clusterResult.clusters)) ? clusterResult.clusters : []
 if (!clusters.length) {
