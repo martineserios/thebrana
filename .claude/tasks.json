@@ -56931,7 +56931,7 @@
     {
       "id": "t-2150",
       "subject": "Runner safety-invariant test suite (one test per property incl. detached-HEAD, concurrent run)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
