@@ -64,6 +64,17 @@ pub fn epic_scoped_state_path(project_root: &Path, branch: &str) -> PathBuf {
     }
 }
 
+/// Resolve the session-state path from a stable UNIT key: the explicit `epic` (the unit the
+/// session belongs to) when present, else the epic parsed from the branch name. This decouples
+/// handoff routing from the volatile current branch — closing from `main` or a sibling epic's
+/// branch no longer mis-files the handoff (ADR-060 / t-2152, t-2154).
+pub fn unit_scoped_state_path(project_root: &Path, epic: Option<&str>, branch: &str) -> PathBuf {
+    if let Some(slug) = epic.map(str::trim).filter(|s| !s.is_empty()) {
+        return resolve_memory_dir(project_root).join(format!("session-state-{slug}.json"));
+    }
+    epic_scoped_state_path(project_root, branch)
+}
+
 fn read_state_at(path: &Path) -> Option<SessionState> {
     fs::read_to_string(path)
         .ok()
@@ -327,7 +338,8 @@ pub fn read_state(project_root: &Path) -> Option<SessionState> {
 /// Non-existent paths in `doc_drift.stale_docs` are silently stripped before write.
 pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
     let branch = state.branch.as_deref().unwrap_or("");
-    let state_path = epic_scoped_state_path(project_root, branch);
+    // Route by the stable unit key (state.epic) first, falling back to branch-derived (t-2152).
+    let state_path = unit_scoped_state_path(project_root, state.epic.as_deref(), branch);
     let history_path = session_history_path(project_root);
 
     // Ensure directory exists

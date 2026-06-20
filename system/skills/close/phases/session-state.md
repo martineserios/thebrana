@@ -5,6 +5,8 @@ ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__hive-mind_memory,mcp__
 
 ### Step 9: Write session state via CLI
 
+> **Routing (ADR-060 / t-2154):** `brana session write` routes the handoff by a stable unit key — the payload `epic` (set in Step 9c) → the initiative/focus marker → the branch. Closing from `main` with no epic no longer silently orphans: the CLI falls back to the marker, or warns. Set the `epic` field (Step 9c) so the handoff lands in its unit bucket.
+
 **Orientation → task-state mapping (ADR-053 §1, t-1990).** Read the orientation from the gate's Step 1 announcement (`Close mode: ... (orientation: ...)`) — NOT from the weight token, which `--continue` and `--finish` share. Apply to the session's active task before writing session state:
 
 | Orientation | Active task action |

@@ -30,7 +30,7 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
     use anyhow::{anyhow, Context};
     let root = require_project_root()?;
 
-    let state = if minimal {
+    let mut state = if minimal {
         SessionState::minimal(current_branch())
     } else if let Some(ref path) = file {
         let content = fs::read_to_string(path)
@@ -49,12 +49,30 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
         return Err(anyhow!("Provide --file <path> or --minimal"));
     };
 
+    // Unit-key routing guard (ADR-060 / t-2154): if the payload carries no epic, fall back to the
+    // session's initiative/focus marker so the handoff lands in its unit bucket instead of
+    // orphaning. If still unresolved AND we're on the production/default branch, warn loudly —
+    // a silent orphan from `main` is exactly the mis-routing this guards against.
+    if state.epic.as_deref().map(str::trim).unwrap_or("").is_empty() {
+        if let Some(slug) = brana_core::session_initiative::read_initiative_marker(&root)
+            .or_else(|| brana_core::session_initiative::read_focus_marker(&root))
+        {
+            state.epic = Some(slug);
+        } else if current_branch().as_deref() == Some("main") {
+            eprintln!(
+                "brana session: WARNING — closing from 'main' with no epic; handoff routes to the \
+                 orphan bucket (session-state.json). Set a focus (`brana session epic ...`) or close \
+                 from an epic branch to route it to its unit. (ADR-060 t-2154)"
+            );
+        }
+    }
+
     write_state(&root, &state)?;
 
     let branch = current_branch().unwrap_or_default();
     println!(
         "{{\"ok\":true,\"path\":\"{}\"}}",
-        epic_scoped_state_path(&root, &branch).display()
+        brana_core::session::unit_scoped_state_path(&root, state.epic.as_deref(), &branch).display()
     );
     Ok(())
 }
