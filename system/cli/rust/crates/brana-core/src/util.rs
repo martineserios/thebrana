@@ -170,6 +170,41 @@ pub fn global_tasks_config_path() -> PathBuf {
     home().join(".claude/tasks-config.json")
 }
 
+/// Keys that belong to exactly one project and must NEVER inherit from the global
+/// config. An epic lives in one repo, so a global `active_epic` is almost always wrong
+/// in a different project — inheriting it is the cross-project bleed bug (t-2158).
+pub const PROJECT_SCOPED_CONFIG_KEYS: &[&str] = &["active_epic", "active_initiative"];
+
+/// Load the resolved tasks-config as a JSON value, applying per-repo scoping:
+///
+/// - A project-local config file is **authoritative** (no merge with global).
+/// - With no project-local file, inherit ONLY non-project-scoped keys from global
+///   (theme, github_sync). `active_epic`/`active_initiative` resolve to absent — they
+///   never bleed across projects.
+///
+/// Shared by brana-cli (`backlog focus`, `set-active`) and brana-mcp (`backlog_focus`)
+/// so the scoping rule lives in exactly one place.
+pub fn load_tasks_config() -> serde_json::Value {
+    let read = |p: &PathBuf| -> serde_json::Value {
+        std::fs::read_to_string(p)
+            .ok()
+            .and_then(|c| serde_json::from_str(&c).ok())
+            .unwrap_or_else(|| serde_json::json!({}))
+    };
+    match find_tasks_config() {
+        Some(local) if local.exists() => read(&local),
+        _ => {
+            let mut global = read(&global_tasks_config_path());
+            if let Some(obj) = global.as_object_mut() {
+                for k in PROJECT_SCOPED_CONFIG_KEYS {
+                    obj.remove(*k);
+                }
+            }
+            global
+        }
+    }
+}
+
 /// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
 fn find_tasks_config_with_hint(
     hint: Option<PathBuf>,

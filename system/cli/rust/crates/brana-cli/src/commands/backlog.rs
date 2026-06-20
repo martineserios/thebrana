@@ -413,23 +413,27 @@ pub fn cmd_context(task_id: &str, theme: &themes::Theme) -> anyhow::Result<()> {
 
 // ── config helpers ──────────────────────────────────────────────────────
 
+/// Resolve the tasks-config.json path to write: project-local when a repo root is
+/// found, else the global `~/.claude/tasks-config.json`.
 fn tasks_config_path() -> std::path::PathBuf {
-    let home = std::env::var("HOME").unwrap_or_default();
-    std::path::PathBuf::from(&home).join(".claude/tasks-config.json")
+    crate::util::find_tasks_config().unwrap_or_else(crate::util::global_tasks_config_path)
 }
 
-/// Load tasks-config.json. Returns a mutable JSON Value; missing file returns empty object.
+/// Load tasks-config with per-repo scoping (delegates to the shared core resolver).
+///
+/// Doubles as seed-on-create: with no project-local file, this returns global minus the
+/// project-scoped keys, so `cmd_set_active` carries theme/github_sync defaults into the new
+/// local file while never inheriting a foreign `active_epic`.
 fn load_tasks_config() -> serde_json::Value {
-    let path = tasks_config_path();
-    std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_else(|| serde_json::json!({}))
+    crate::util::load_tasks_config()
 }
 
-/// Save tasks-config.json atomically.
+/// Save tasks-config to the project-local path, creating `.claude/` if needed.
 fn save_tasks_config(cfg: &serde_json::Value) -> anyhow::Result<()> {
     let path = tasks_config_path();
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).ok();
+    }
     let content = serde_json::to_string_pretty(cfg).unwrap() + "\n";
     std::fs::write(&path, content)
         .with_context(|| format!("failed to write {}", path.display()))

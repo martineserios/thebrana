@@ -126,10 +126,13 @@ pub fn render_task_line(task: &serde_json::Value, status: &str, theme: &Theme, s
     format!("{line}{RESET}")
 }
 
-/// Load theme name from ~/.claude/tasks-config.json.
+/// Load theme name from the per-repo tasks-config.json (project-local if present, else
+/// the global `~/.claude/tasks-config.json`). `theme` is an inheritable key, so a project
+/// with no local config still picks up the global default (t-2158).
 pub fn load_theme_name() -> String {
-    let home = std::env::var("HOME").unwrap_or_default();
-    let config = PathBuf::from(&home).join(".claude/tasks-config.json");
+    let config = crate::util::find_tasks_config()
+        .filter(|p| p.exists())
+        .unwrap_or_else(crate::util::global_tasks_config_path);
     if let Ok(content) = std::fs::read_to_string(&config) {
         if let Ok(cfg) = serde_json::from_str::<HashMap<String, Value>>(&content) {
             if let Some(name) = cfg.get("theme").and_then(|v| v.as_str()) {
