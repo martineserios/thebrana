@@ -56644,10 +56644,10 @@
     },
     {
       "id": "t-2140",
-      "subject": "Spike: autonomous tier — native /loop+claude -p vs ruflo autopilot",
-      "status": "pending",
+      "subject": "Build native /loop-over-backlog autonomous runner",
+      "status": "in_progress",
       "type": "task",
-      "kind": "research",
+      "kind": "feature",
       "tags": [
         "harness-engineering",
         "adr-059",
@@ -56667,7 +56667,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "harness",
+      "strategy": "feature",
+      "work_type": "implement"
     },
     {
       "id": "t-2141",
