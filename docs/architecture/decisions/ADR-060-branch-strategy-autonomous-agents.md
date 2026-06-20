@@ -8,7 +8,6 @@ status: accepted
 **Deciders:** Martín Rios
 **Tags:** branching, agents, autonomous, worktree, git, architecture, substrate
 **Tasks:** t-2145 (this ADR), t-2146 (runner worktree+base), t-2147 (dev branch+protection), t-2150 (invariant tests), t-2144 (run-batch lock), t-2138 (secret gate), t-2148 (reaping), t-2151 (bootstrap guard)
-**Follow-ups:** t-2152 (session-handoff routing aligned to this unit hierarchy — applies Layer-1 invariant #4 to session state; depends on t-2146)
 **Extends:** [doc 19 Branch Strategy](../../19-pm-system-design.md) (GitHub Flow) · [ADR-059](ADR-059-multi-agent-substrate-selection.md) · [autonomous-runner feature spec](../features/autonomous-runner.md)
 **Amends:** [git-discipline.md](../../../system/rules/git-discipline.md) (scopes the "agents can't write to worktrees" rule — see Consequences)
 
@@ -87,7 +86,6 @@ When a person joins, **flip settings on — topology unchanged**: require 1 PR a
 
 1. **Where does `validate` run as the required status check** — local pre-merge or GitHub Actions CI? Needed to gate branch protection. Decide in t-2147.
 2. **Per-project policy schema** — exact `.claude/CLAUDE.md` declaration format (a `> Branch-policy: integration=dev, production=main` marker vs a config block). Settle when t-2146 implements discovery.
-3. **Session-state keying off the unit.** Today `brana session` routes the handoff bucket off raw `git branch --show-current`, so a close from `main` or another epic's branch orphans/mis-files it. The unit hierarchy here (task → branch/worktree → session-state) should drive that routing so sessions continue in one direction per unit and consolidation happens at the integration line. Tracked in **t-2152**; depends on the stable worktree identity from t-2146.
 
 ## Alternatives considered
 
