@@ -56849,7 +56849,7 @@
     {
       "id": "t-2147",
       "subject": "Create dev branch, set as default, branch protection (dev light / main hard)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -56868,7 +56868,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "ADR-060 Phase B. Create dev from main, push to origin, set dev as the repo default branch (gh api). Branch protection: main = hard (no direct push for bot, require `validate` status check, no force-push, no deletion, auto-delete merged head branches); dev = light (PR-per-branch, status check, meant to move fast). Resolve ADR-060 open q #1 (where validate runs as the required check — local vs GH Actions CI) before wiring the status-check requirement.\n\nAC: dev branch exists on origin and is the default branch\nAC: main protected (no direct push, require validate, no force-push)\nAC: dev protected lightly (PR required, status check)\nAC: ADR-060 open q #1 resolved (validate CI source decided)\nAMENDED (ADR-060 v2 + challenger C4): default-branch switch is DESTRUCTIVE, not a toggle. Explicit migration steps: (1) create dev from main HEAD, push; (2) DECIDE whether dev becomes GitHub default — for brana optional; do NOT blanket-switch (retargets open PRs, breaks CI/push triggers, Vercel auto-deploy). dev being the *integration* branch does not require it to be the *default* branch. (3) protect main hard, dev light; (4) resolve open q: where validate runs as required status check (local vs GH Actions CI). For client repos: never switch their default — they declare integration=main + preview/prod env per their own policy.",
-      "notes": null,
+      "notes": "dev created+pushed; main protected (force-push+deletion blocked); default kept as main; validate gate = local for now (ADR-060 open q1 resolved). CLAUDE.md integration= marker not added (Layer-1 human-only file, feedback-gate blocks it) — runner defaults to dev so brana needs no marker; humans add it per-project for non-default repos.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -57113,7 +57113,8 @@
       "acceptance_criteria": null,
       "epic": "backlog-git-alignment",
       "work_type": "implement",
-      "strategy": "feature"
+      "strategy": "feature",
+      "build_step": "classify"
     }
   ],
   "version": "1"
