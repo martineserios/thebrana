@@ -1,94 +1,95 @@
 ---
 status: accepted
 ---
-# ADR-060: Branch Strategy for Autonomous Agents (two-tier dev/main + worktree-per-actor)
+# ADR-060: Branch Strategy for Quality Work at Speed & Scale (universal invariants + per-project policy)
 
-**Status:** Accepted (2026-06-20)
+**Status:** Accepted (2026-06-20; amended same day after challenger review — t-2145)
 **Date:** 2026-06-20
 **Deciders:** Martín Rios
-**Tags:** branching, agents, autonomous, worktree, git, architecture
-**Tasks:** t-2145 (this ADR), t-2140 (autonomous runner), t-2144 (run-batch lock), t-2138 (secret-scan gate)
+**Tags:** branching, agents, autonomous, worktree, git, architecture, substrate
+**Tasks:** t-2145 (this ADR), t-2146 (runner worktree+base), t-2147 (dev branch+protection), t-2150 (invariant tests), t-2144 (run-batch lock), t-2138 (secret gate), t-2148 (reaping), t-2151 (bootstrap guard)
 **Extends:** [doc 19 Branch Strategy](../../19-pm-system-design.md) (GitHub Flow) · [ADR-059](ADR-059-multi-agent-substrate-selection.md) · [autonomous-runner feature spec](../features/autonomous-runner.md)
+**Amends:** [git-discipline.md](../../../system/rules/git-discipline.md) (scopes the "agents can't write to worktrees" rule — see Consequences)
 
 ---
 
 ## Context
 
-The autonomous runner (t-2140) commits code **unattended** with write access to the repo. Doc 19 already chose **GitHub Flow** (one `main`, short-lived feature branches, PR-per-branch) — but that was written for *human* commits, with the explicit note "do NOT require PR approvals (you're solo)." Two facts force a refinement:
+The multi-agent substrate (ADR-059) — subagents, workflows, loops, the autonomous runner — is **one development system for all work**, run across every repo: `thebrana` itself, `clients/*` (each its own git repo), `ventures/*`, `personal/*`. The goal is **quality work at speed and scale**: the *invariants* below buy quality and scale; worktree parallelism + a fast integration line buys speed.
 
-1. **Agent commits need a stricter gate than human commits.** For unattended work, the human review *is* the safety mechanism. A human can direct-push a typo; a robot must never touch the production line.
-2. **The operator works fast and solo and "gets mixed."** Working directly against the branch that is *deployed* feels unsafe. There is a real need for a non-production working line.
+This ADR is the branch strategy for that system. **brana is the first adopter of its own system** — it dogfoods the model it ships. (This session is the proof: brana's own sweep/hive-mind/challenger found real bugs in brana's own freshly-merged code.)
 
-A constraint also shapes the choice: the design must **scale to a future collaborator without re-plumbing** — a person may join later.
+A first draft of this ADR reasoned entirely from one brana-specific fact ("`main` = what `bootstrap.sh` deploys") and prescribed a single topology. A challenger review (t-2145, 2026-06-20) found that fatal for a portfolio-wide substrate: client repos have no `dev` branch, deploy via Vercel/Cloud Run, and define their own environments; libraries ship via release tags; personal repos have no "production" at all. One hardcoded topology is wrong. The fix is to separate **what is universal** from **what each project declares**.
 
-Two grounding realities:
-- **brana's real production boundary is `bootstrap.sh`** — it deploys from `main` into the live `~/.claude/`. So `main` = deployed; anything not yet on `main` = staged. This is a genuine environment distinction, not a metaphor.
-- brana has **no separate staging/prod servers**, so a full `dev/stage/prod` environment-branch model would map branches to environments that do not exist (ceremony).
-
-Research (2026) converges with doc 19: trunk-ish topology targeting one mainline, **git worktree per agent** as the load-bearing isolation primitive, a required human merge gate, and automated stale-branch reaping (the repo carries ~15 orphan branches).
+Two grounding realities the strategy must respect:
+- Different repos have different *production* definitions: brana → `main` (bootstrap-deployed); a client web app → a deploy target (Vercel/Cloud Run); a library → a release tag; personal → none.
+- The runner today does **not** yet implement worktree isolation — it cuts `runner/auto/<id>` from the ambient `git branch --show-current` in the live tree (`autonomous-runner.sh`). The model below is the **decided target**; implementation is tracked in t-2146 and is a precondition for live autonomy.
 
 ## Decision
 
-Adopt a **two-tier `dev` → `main`** model with **worktree-per-actor** isolation and a **human promotion gate**. Treat agent contributions identically to a teammate's.
+### Layer 1 — Universal invariants (every repo, non-negotiable, enforced in the substrate)
 
-### The two branches
+These hold regardless of a project's topology. They are the runner's contract:
 
-| Branch | Role | Protection | Who promotes |
-|--------|------|-----------|--------------|
-| **`main`** | **Production** — what `bootstrap.sh` deploys to live `~/.claude/`. Stable, released. | Hard: no direct push (human or agent), require `validate` status check, no force-push, no deletion. | Human only, deliberately, via PR `dev`→`main` ("ship"). |
-| **`dev`** | **Integration line** — default branch. Where humans *and* agents converge. Nothing here is live. | Light: PR-per-branch, status check; meant to move fast. | Anyone via reviewed PR. |
+1. **An agent never pushes to the project's production/default branch.** It only ever opens a PR into the configured *integration branch*.
+2. **An agent works in an isolated, ephemeral worktree** cut from a stable base (the integration branch), not the live checkout. Removed on every exit path (success/failure/signal).
+3. **A human gates promotion to production.** The agent never merges and never marks a task complete.
+4. **Every unit is isolated and revertable** — one branch + one worktree per task; failure contained to that worktree.
 
-`main` lagging `dev` is **the feature, not the tax** — that lag is the safety buffer. **Merge to `main` = ship** (then run `bootstrap.sh`).
+### Layer 2 — Per-project policy (declared per repo, sane default)
 
-### Flow (uniform for humans and agents)
+What each repo declares (the substrate reads it; never hardcodes):
+
+- **Integration branch** — where agents/humans branch from and PR into. `RUNNER_BASE_BRANCH`, declared in the repo's `.claude/CLAUDE.md`. **Default: `dev`.**
+- **Production/release mechanism** — branch (`main`), deploy target, or release tag. The agent must avoid pushing to it directly.
+- **Staging tier?** — add a `stage` branch only if a real hosted environment exists.
+
+Discovery precedence: `RUNNER_BASE_BRANCH` env (set by the repo's scheduler job) → the repo's `.claude/CLAUDE.md` declaration → **default `dev`, and if `dev` doesn't exist, fall back to the repo default branch with a logged warning** (never silently target production).
+
+### brana's own policy (first adopter — two-tier `dev` → `main`)
+
+| Branch | Role | Protection |
+|--------|------|-----------|
+| **`main`** | Production — what `bootstrap.sh` deploys to live `~/.claude/`. | Hard: no direct push, require `validate`, no force-push/deletion. |
+| **`dev`** | Integration line — where humans + agents converge. Nothing here is live. | Light: PR-per-branch, status check; moves fast. |
+
+`main` lagging `dev` **is the safety buffer** (the feature). **Merge `dev`→`main` = ship** (then `bootstrap.sh`). `dev` is the *integration* branch; whether it is the GitHub *default* branch is a separate, optional, per-repo choice — **do not blanket-switch defaults** (it retargets PRs and breaks CI/deploy triggers; for a client whose deploy fires on `main`, keep `main` as default).
+
+### Flow (uniform for humans and agents, every repo)
 
 ```
-actor (you / teammate / agent) → feature branch in its OWN worktree, cut from dev
-                               → PR → dev   (human-reviewed)
-when dev is stable:  dev → main   (human promotion = ship → bootstrap)
+actor → feature branch in its OWN worktree, cut from <integration branch>
+      → PR → <integration branch>   (human-reviewed)
+human promotes <integration> → <production>   = ship
 ```
-
-- **Agents:** the runner cuts `runner/auto/<id>` from `dev` in an **ephemeral worktree** (off a stable base, never the live checkout), works/verifies/commits there, opens a PR into `dev`, and **removes the worktree on exit** (success/failure/signal). It never merges, never marks the task complete, never sees `main`.
-- **Humans:** same shape — branch off `dev` (worktree encouraged for parallel work), PR into `dev`.
-- Naming unchanged: agents `runner/auto/<id>`; humans `{epic}/{type}/t-{NNN}-{slug}` (doc 19).
-
-### Worktree-per-actor (isolation primitive)
-
-Each branch gets its **own worktree** with its own `.git/index`, cut from a stable base:
-```bash
-git fetch origin
-git worktree add /tmp/brana-runner/<id> -b runner/auto/<id> origin/dev
-#   edits + validate + commit happen ONLY inside the worktree
-git worktree remove --force /tmp/brana-runner/<id>   # always, via trap
-```
-This contains blast radius (the live tree and `main`/`dev` are never modified in place), removes working-tree/index collisions so multiple actors run in parallel, and makes the base explicit (eliminating the detached-HEAD invariant gap — base is `origin/dev`, never an empty `git branch --show-current`).
 
 ### Team mode (designed now, dormant until a collaborator joins)
 
-When a person joins, **flip settings on — do not change topology**:
-- Require **1 PR approval** on `dev` and `main`.
-- Add **CODEOWNERS**.
-- Require **branch up-to-date** before merge.
-- Enable **merge queue** on `main` (and `dev` if concurrent PR volume warrants) — batches + re-tests, replacing any urge to add an integration branch.
-
-Because agent PRs are already treated as a contributor's PRs, a human teammate is just *another actor in the identical flow*. Nothing restructures.
+When a person joins, **flip settings on — topology unchanged**: require 1 PR approval, CODEOWNERS, branch-up-to-date, merge queue. Because agent PRs are *already* treated as a contributor's PRs, a human teammate is just another actor in the identical flow. **Today these are not configured** — `dev`→`main` currently has no automated gate beyond local pre-commit hooks; enforcement is deferred, not active.
 
 ## Consequences
 
-- **The detached-HEAD / empty-BASE bug (sweep finding, 2026-06-20) is resolved by construction** — the runner cuts from `origin/dev` in a worktree, so there is no implicit base to lose.
-- **Safety net composes here:** worktree isolation (this ADR) + `--run-batch` lock (t-2144) + secret-scan pre-commit gate (t-2138) + consecutive-failure kill (t-2140) together gate autonomy. **t-2138 is a precondition** for ever enabling push: an autonomous commit must be secret-scanned (the 2026-06-20 `xoxb` token incident proved the existing scan misses tokens).
-- **One extra step:** the deliberate `dev`→`main` promotion. Accepted — it is the production gate.
-- **`bootstrap.sh` semantics sharpen:** dev = staged, main = deployed. Bootstrap runs on promotion to `main`.
-- **Stale-branch reaping becomes routine** — a weekly job deletes merged `runner/auto/*` and reaps stale branches; the ~15 existing orphans get a one-time sweep.
-- **Doc 19 is amended, not replaced:** GitHub Flow's single-mainline spirit holds; `dev` is the integration tier and the "no required approvals" note now applies only to *human direct pushes on trivial changes*, never to agents.
+- **Portable by construction.** The runner gains `RUNNER_BASE_BRANCH` (per-project, default `dev`); `gh pr create` hardcodes `--base "$RUNNER_BASE_BRANCH"` with a preflight abort if that branch is absent (fixes the bug where `--base "$BASE"` could target `main` directly). Tracked in **t-2146**.
+- **The worktree model is decided, not yet built.** Today the runner cuts from ambient HEAD in the live tree; t-2146 implements `git worktree add … <base>`. Until then, blast-radius containment and the "detached-HEAD resolved by construction" property **do not hold** — the run-batch mode must be triggered manually, never via overlapping scheduler intervals, until t-2146 + **t-2144** (the lock) ship.
+- **Amends `git-discipline.md`.** That rule ("agents can't write to worktrees — compose in agent, write in main context") is scoped to **in-session Claude Code agents** (Task tool, CWD-bound). The autonomous runner uses a **`claude -p` subprocess** `cd`'d into its worktree, which *may* write there. The rule is updated to state this scope.
+- **`bootstrap.sh` needs a from-`main` guard** (it currently deploys from whatever branch is checked out → could ship staged `dev` work). Tracked in **t-2151**.
+- **Migration is a real, risky step, not a toggle.** Creating `dev` + (optionally) changing the GitHub default cascades: PR retargeting, CI triggers, Vercel auto-deploy. Tracked with explicit steps in **t-2147**; the strategy is *accepted* but brana's repo does not yet match it until t-2147 runs.
+- **Safety net composes (in dependency order):** worktree isolation (t-2146) → run-batch lock (t-2144) → secret-scan gate (t-2138, **precondition for any autonomous push**) → consecutive-failure kill (t-2140) → invariant tests (t-2150). None is "in force now" beyond the kill; do not enable live autonomy until A-phase lands.
 
-## Open questions (not decided here)
+## Non-actions (explicitly out of scope)
 
-1. **Where does `validate` run as a required check** — local pre-merge only, or GitHub Actions CI? Branch protection's "require status check" needs a CI run to gate on. Decide when wiring branch protection (may piggyback existing CI).
-2. **Merge queue now or on first collaborator?** Lean: enable when concurrent PR volume (overnight agent batches) actually causes "passed alone, broke together." Until then, sequential review suffices.
+- **Does not mandate two-tier for client/venture/personal repos.** Each declares its own integration/production policy. A Vercel client may set integration=`main` and rely on preview URLs; a library may keep trunk + release tags. Only the Layer-1 invariants are mandatory.
+- **Does not add `stage`/`prod` environment branches** to any repo lacking the corresponding hosted environment.
+- **Does not change any repo's default branch** as a blanket rule — that is a per-repo, opt-in decision.
+
+## Open questions
+
+1. **Where does `validate` run as the required status check** — local pre-merge or GitHub Actions CI? Needed to gate branch protection. Decide in t-2147.
+2. **Per-project policy schema** — exact `.claude/CLAUDE.md` declaration format (a `> Branch-policy: integration=dev, production=main` marker vs a config block). Settle when t-2146 implements discovery.
 
 ## Alternatives considered
 
-- **Stay main-direct (GitHub Flow as-is).** Rejected — gives the operator no non-production working line; "merge to main = ship" with no buffer is risky for fast solo work + unattended agents.
-- **Full `dev/stage/prod` environment branches.** Rejected — brana has no separate staging/prod environments; two of the three branches would map to nothing. A collaborator is not an environment. Slot `stage` in later *if* a hosted environment appears.
-- **Integration via `dev` branch but agents target `main` directly.** Rejected — splits the model (agents on one flow, humans on another); breaks the "uniform contributor" property that makes team-mode a settings flip.
+- **One hardcoded topology (the first draft).** Rejected by challenger — not portable; breaks in client/library/personal repos.
+- **Stay main-direct (GitHub Flow as-is).** Rejected — no non-production working line for fast solo work + unattended agents.
+- **Full `dev/stage/prod` everywhere.** Rejected — maps branches to environments that mostly don't exist; a collaborator is not an environment.
+- **Scope this ADR to brana only + a second substrate ADR.** Rejected — one unified system is the point; brana is its first instance, not a separate regime.

@@ -16,7 +16,7 @@ Every change starts on a branch. Always. No exceptions.
 
 ## Worktrees over checkout
 
-Use `git worktree add ../repo-shortname -b prefix/name` instead of `git checkout`. After merge: `git worktree remove ../path && git branch -d prefix/name`. Never `rm -rf` worktrees. Agents can't write to worktrees — compose in agent, write in main context.
+Use `git worktree add ../repo-shortname -b prefix/name` instead of `git checkout`. After merge: `git worktree remove ../path && git branch -d prefix/name`. Never `rm -rf` worktrees. **In-session** agents (Task tool, CWD-bound) can't write to worktrees — compose in agent, write in main context. (Runner `claude -p` writes in its own worktree — ADR-060.)
 
 **Always `cd` to the repo root before `git worktree add`** so `../` resolves to the repo's parent directory, not wherever the shell happens to be. After adding, spot-check with `ls` on a known file inside the worktree before doing any work there.
 
