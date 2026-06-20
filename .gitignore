@@ -34,3 +34,6 @@ target/
 node_modules/
 .claude/CLAUDE.local.md
 .claude/sessions/
+
+# Auto-generated ruflo memory export — may capture secrets, never track (secret-leak incident 2026-06-20)
+system/state/patterns-export.json
