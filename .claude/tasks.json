@@ -56999,7 +56999,7 @@
         "routing"
       ],
       "description": "Last session, concurrent work mixed worktrees/sessions/branches and session handoffs mis-filed. Root cause: `brana session path` resolves the handoff target file from the CURRENT BRANCH NAME (epic prefix), not from a stable per-unit key. Closing from `main` orphans the handoff (the `(orphan)` bucket); closing while the shared checkout sits on another epic's branch mis-files into that epic. The current mitigation is a discipline-only rule (worktree-per-epic, commit a32befc7 + field note 2026-06-20) — fragile, relies on the operator never closing from the wrong tree.\n\nDirection (per Martin): session handoff should be anchored to a stable HIERARCHY — task -> branch/worktree -> session-state — so sessions continue session-over-session in ONE direction on the same unit, never interleaving, and explicit CONSOLIDATION sessions roll work up at the integration line (dev -> main) instead of mixing. This is the session-state analog of ADR-060's Layer-1 invariant #4 ('every unit is isolated and revertable — one branch + one worktree per task'). Backlog (epic/task) and branch/worktree should be a single coherent key, not two independently-derived ones that can disagree.\n\nScope: (1) DESIGN the session/backlog/branch hierarchy + the routing key (route by epic/task focus marker or worktree identity, not raw `git branch --show-current`); (2) make `brana session` close-routing robust — warn or block close from the production/default branch, and resolve the bucket from the unit key so it can't mis-file; (3) one-shot migration/recovery of existing orphaned + mis-filed handoffs into their correct epic buckets. Extend/relate to ADR-060 (thebrana docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md); coordinate with the worktree-isolation work in t-2146.",
-      "context": "2026-06-20: filed after a session where worktree/session/branch state got mixed and the platform-ui-hardening handoff orphaned to session-state.json (closed from main). Discipline rule already exists (worktree-per-epic) but Martin wants a structural fix: session handoff keyed to a task->branch->session hierarchy so work flows one direction across sessions, with dedicated consolidation sessions at the integration branch. Anchor to ADR-060 (one branch + one worktree per unit; integration->production line) and t-2146 (worktree isolation, the precondition that makes the unit key stable). Start as design (settle the hierarchy + routing-key schema) before implementation.",
+      "context": "2026-06-20: filed after a session where worktree/session/branch state got mixed and the platform-ui-hardening handoff orphaned to session-state.json (closed from main). Discipline rule already exists (worktree-per-epic) but Martin wants a structural fix: session handoff keyed to a task->branch->session hierarchy so work flows one direction across sessions, with dedicated consolidation sessions at the integration branch. Anchor to ADR-060 (one branch + one worktree per unit; integration->production line) and t-2146 (worktree isolation, the precondition that makes the unit key stable). Start as design (settle the hierarchy + routing-key schema) before implementation.\n2026-06-20 (verified): root cause confirmed live — `brana session path` on main resolves to the bare session-state.json (the (orphan) bucket); an (orphan) entry already exists. COORDINATION: the stable unit key depends on worktree-per-unit existing (t-2146) — design half can proceed now, routing-by-unit-key implementation should land with/after t-2146 so the key is real not aspirational. RELATED SYMPTOM to investigate during design: session-start digest flagged mcp__brana__session_write tool-fail x67 — likely shares a root cause with mis-routing; confirm rather than treat separately. QUICK-WIN carved out to t-2153 (block/warn close from production/default branch) — stops new orphans immediately, independent of the full hierarchy redesign.\nCORRECTION: the quick-win guard is t-2154 (not t-2153 — t-2153 is an unrelated decision-log task filed concurrently).",
       "acceptance_criteria": [
         "Design doc / ADR amendment defines the task->branch/worktree->session-state hierarchy and the single routing key derived from it",
         "brana session close-routing resolves the handoff bucket from the unit key (not raw current-branch) and warns/blocks close from the production/default branch",
@@ -57020,6 +57020,69 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "subject": "Capitalize the decision-log ledger (system/state/decisions/*.jsonl) — build a consumer",
+      "kind": "feature",
+      "type": "task",
+      "tags": [
+        "decision-log",
+        "observability",
+        "session-state",
+        "harness"
+      ],
+      "description": "The per-session decision/action ledger (system/state/decisions/{ts}-{pid}-{hash}.jsonl) is currently WRITE-ONLY: session-end hooks + the main loop append records, but nothing reads them back (confirmed 2026-06-20 — no consumer in system/hooks or system/scripts). In proyecto_anita alone: ~267 files / 1.1MB over one month (May 17→Jun 20). Entry shape: {ts, agent, type, content, severity}. Composition observed: decision/main = build-intent ledger ('Built t-1319 (feature): campaign kill switch…', 'Completed t-1247: …') — the valuable signal; action/session-end = session metrics telemetry (corrections/test_writes/…) — low value. Capitalize = build the read side: (1) a 'brana decisions' query command (filter by task-id / epic / date-range / type / severity, grep content); (2) surface recent decisions in sitrep + session resume ('decisions this epic'); (3) feed decision/main into the epic accumulator + retrospective routing — it complements git (git=what changed, ledger=which task & why); (4) optional: index decision/main for ruflo recall (semantic search over past build-intent); (5) decide what to do with action/session-end telemetry — keep, split to a separate stream, or prune/roll-up.",
+      "effort": "M",
+      "priority": "P2",
+      "context": "2026-06-20 — surfaced during a proyecto_anita state tidy. The ledger is genuinely useful (per-task build-intent, complements git diff history) but inert today because no reader exists. decision/main is the high-value subset; action/session-end is noise. Same write pattern exists across all brana projects, so the consumer should be project-agnostic. Files are git-tracked and accumulate ~267/month/project.",
+      "epic": "dx-tooling",
+      "acceptance_criteria": [
+        "A read path (e.g. 'brana decisions') surfaces ledger entries filtered by task-id / epic / date / type",
+        "decision/main entries are consulted in at least one workflow surface (sitrep, session resume, or retrospective)",
+        "An explicit decision is documented on the action/session-end telemetry lines: keep / split / prune-roll-up"
+      ],
+      "id": "t-2153",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-06-20",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-2154",
+      "subject": "Guard: warn/block session close from production/default branch (stop new orphans)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "session-state",
+        "handoff",
+        "adr-060",
+        "routing"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P1",
+      "parent": "t-2152",
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Quick-win carved from t-2152. Today closing a session from main (production/default branch) silently orphans the handoff into the bare session-state.json (verified live 2026-06-20: (orphan) bucket exists). The full hierarchy redesign (t-2152) is M-effort; this is the few-line guard that stops new orphans now, independent of that redesign. On session close (brana session write / the close skill close-routing): if current branch == production/default branch (main, or the repo's configured production per ADR-060), WARN loudly and either block or route to a sensible bucket (e.g. the active epic marker from `brana session epic read-marker`) instead of orphaning. Does NOT fix mis-filing onto a wrong epic branch (that needs the stable unit key in t-2152) — only the production-branch orphan case.\nAC: closing from main warns and does not silently orphan (routes via epic marker or blocks with guidance)\nAC: closing from a normal epic branch is unchanged\nAC: relates to t-2152 (full fix) and ADR-060 (production-branch concept)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
