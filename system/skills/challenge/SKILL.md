@@ -299,7 +299,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 ## Rules
 
-- **Challengers are native subagents, not ruflo.** Standard/council/hats modes all spawn real `brana:challenger` subagents via the Agent tool (subscription, no API key). Never reintroduce `mcp__ruflo__hive-mind_*` — those calls write metadata records and self-votes but never execute workers (verified theater, 2026-06-19; see `field-note_ruflo-agentic-layer-subscription-theater`).
+- **Challengers are native subagents, not ruflo.** Standard/council/hats modes all spawn real `brana:challenger` subagents via the Agent tool (subscription, no API key). Never reintroduce the ruflo hive-mind MCP tools — those calls write metadata records and self-votes but never execute workers (verified theater, 2026-06-19; see `field-note_ruflo-agentic-layer-subscription-theater`).
 - **`--deep` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target. `--deep` adds step 4d (verify) on top of whatever mode is active; it does not change the find mode.
 - **Auto-deep on high-stakes.** Trigger deep verification without the flag when the target is architectural/irreversible, cost-of-being-wrong is expensive/catastrophic, or effort is M+. Announce it in one line; don't ask permission.
 - **Verification downgrades, never deletes, doc-grounded findings.** A compliance finding (4c) refuted in 4d drops a tier but is never removed — a documented constraint that a skeptic argues against still deserves the user's eyes.
