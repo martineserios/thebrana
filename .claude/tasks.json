@@ -33981,7 +33981,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Follow-up from t-463 closure. The backlog procedure (system/procedures/backlog.md) has 8+ narrative steps reading \"Read tasks.json\" inside step bodies (e.g. step 2 of plan, step 2 of complete, step 2 of triage). These are descriptive — the line-72 rule already says \"Every Read tasks.json instruction below → call MCP tool or CLI command\" — so behavior is correct. But cosmetic clarity: replace the narrative phrases with concrete CLI invocations (e.g. \"Read tasks.json, find the task\" → \"brana backlog get <id>\"). Pure docs cleanup, no behavior change. Touch only system/procedures/backlog.md.",
+      "context": "Follow-up from t-463 closure. The backlog procedure (system/procedures/backlog.md) has 8+ narrative steps reading \"Read tasks.json\" inside step bodies (e.g. step 2 of plan, step 2 of complete, step 2 of triage). These are descriptive — the line-72 rule already says \"Every Read tasks.json instruction below → call MCP tool or CLI command\" — so behavior is correct. But cosmetic clarity: replace the narrative phrases with concrete CLI invocations (e.g. \"Read tasks.json, find the task\" → \"brana backlog get <id>\"). Pure docs cleanup, no behavior change. Touch only system/procedures/backlog.md.\nPARKED 2026-06-20: Task targets `system/procedures/backlog.md`, which no longer exists — the procedure was refactored into `system/skills/backlog/SKILL.md` + 6 `phases/*.md` files. Need a decision on (a) re-scoping the \"touch only one file\" constraint to the 6 phase files, and (b) whether replacing all narrative \"Read tasks.json\" phrases (which orphans the governing rule at SKILL.md:142) should also reword/remove that rule. Recommend updating the task to point at `system/skills/backlog/phases/` and confirming the rule-handling before I proceed.",
       "created": "2026-05-04",
       "description": null,
       "effort": "S",
@@ -34005,7 +34005,7 @@
       ],
       "type": "task",
       "work_type": "chore",
-      "execution": "autonomous"
+      "execution": null
     },
     {
       "blocked_by": [],
