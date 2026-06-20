@@ -50,9 +50,13 @@ EOF
 run_one(){ # repo  extra-env...
   local repo="$1"; shift
   FIX "${repo}.fix.json"   # OUTSIDE the repo, so the repo working tree stays clean
+  local base; base="$(cd "$repo" && git branch --show-current)"
+  # No STUB_TARGET: the stub runs cd'd into the ephemeral worktree and writes a RELATIVE
+  # target.txt there (the isolation boundary), not the live tree.
   ( cd "$repo"
     env CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${repo}.fix.json" RUNNER_PLAN=1 \
-        RUNNER_LEDGER="${repo}.ledger.jsonl" STUB_TARGET="${repo}/target.txt" "$@" \
+        RUNNER_LEDGER="${repo}.ledger.jsonl" RUNNER_BASE_BRANCH="$base" \
+        RUNNER_WORKTREE_DIR="${repo}.wt" "$@" \
         bash "$RUNNER_SRC" --run-one >/dev/null 2>&1
   )
 }

@@ -26,6 +26,10 @@
 #   RUNNER_VALIDATE_CMD  verification command (default ./validate.sh); non-zero = task failed
 #   RUNNER_BRANCH_PREFIX per-task branch namespace (default runner/auto)
 #   RUNNER_PUSH          1=open a PR via gh after commit (default 0 = local branch only)
+#   RUNNER_BASE_BRANCH   integration branch to cut from (ADR-060). Default resolution:
+#                        env → .claude/CLAUDE.md "integration=<b>" → "dev" → current HEAD (warn).
+#                        The agent NEVER targets production directly; PRs open against this branch.
+#   RUNNER_WORKTREE_DIR  parent dir for ephemeral per-task worktrees (default /tmp/brana-runner)
 # Env (--run-batch adds):
 #   RUNNER_MAX_FAILS     consecutive-failure kill threshold (default 3, ADR-050 cap)
 #   RUNNER_KILL_SWITCH   abort if this file exists (default ~/.claude/scheduler/runner.stop)
@@ -110,11 +114,24 @@ fi
 GENERATED="${RUNNER_GENERATED_FILES:-docs/spec-graph.json}"
 drop_generated() { local gf; for gf in $GENERATED; do git checkout -- "$gf" 2>/dev/null || true; done; }
 
-revert_to_base() { # branch base — revert work, return to base, drop the branch (no ledger emit)
-  git reset --hard -q 2>/dev/null || true
-  git clean -fdq 2>/dev/null || true
-  [ -n "$2" ] && git checkout -q "$2" 2>/dev/null || true
-  git branch -D "$1" -q 2>/dev/null || true
+# resolve_base_branch — the per-project integration branch (ADR-060 Layer-2 policy).
+# Precedence: RUNNER_BASE_BRANCH env → repo .claude/CLAUDE.md "integration=<b>" declaration → "dev".
+# The concrete ref is resolved later (origin/<b> → local <b> → current HEAD with a loud warning),
+# so the runner NEVER silently targets production.
+resolve_base_branch() {
+  if [ -n "${RUNNER_BASE_BRANCH:-}" ]; then echo "$RUNNER_BASE_BRANCH"; return; fi
+  local decl
+  decl="$(grep -oiE 'integration=[A-Za-z0-9._/-]+' .claude/CLAUDE.md 2>/dev/null | head -1 | cut -d= -f2)"
+  if [ -n "$decl" ]; then echo "$decl"; return; fi
+  echo "dev"
+}
+
+# cleanup_worktree <path> <branch> — remove an ephemeral worktree and its branch. The live
+# working tree and the base branch are NEVER touched (that is the isolation boundary, ADR-060).
+cleanup_worktree() {
+  git worktree remove --force "$1" 2>/dev/null || rm -rf "$1" 2>/dev/null || true
+  git worktree prune 2>/dev/null || true
+  [ -n "$2" ] && git branch -D "$2" -q 2>/dev/null || true
 }
 
 park() { # id subj reason — record a needs-human question and leave the task pending
@@ -128,10 +145,11 @@ park() { # id subj reason — record a needs-human question and leave the task p
   echo "[autonomous-runner] run-task: PARKED $1 — $3"
 }
 
-# run_task <task-json> — isolate, dispatch, verify, commit one task. STOPS (no merge, no
-# completed-mark). Returns: 0=ran, 2=parked (needs human), 1=failed (reverted, base pristine).
+# run_task <task-json> — isolate in an EPHEMERAL WORKTREE off the integration branch, dispatch,
+# verify, commit one task. STOPS (no merge, no completed-mark). The live working tree and the base
+# branch are never touched. Returns: 0=ran, 2=parked (needs human), 1=failed (worktree removed).
 run_task() {
-  local TASK="$1" ID SUBJ DESC CTX DECISION REASON BASE BRANCH CB DPROMPT DOUT REASON_H
+  local TASK="$1" ID SUBJ DESC CTX DECISION REASON BASE_BRANCH BASE_REF FALLBACK WT BRANCH CB DPROMPT DOUT REASON_H gf
   ID="$(echo "$TASK" | jq -r '.id')"; SUBJ="$(echo "$TASK" | jq -r '.subject // ""')"
   DESC="$(echo "$TASK" | jq -r '.description // ""')"; CTX="$(echo "$TASK" | jq -r '.context // ""')"
 
@@ -139,21 +157,33 @@ run_task() {
   read -r DECISION REASON < <(plan_task "$ID" "$SUBJ")
   if [ "$DECISION" = "would-park" ]; then park "$ID" "$SUBJ" "$REASON"; return 2; fi
 
-  # Preflight: working tree clean (modulo generated churn) so we can isolate + revert cleanly.
-  drop_generated
-  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    emit "$ID" "$SUBJ" failed "working tree not clean"
-    echo "[autonomous-runner] run-task: ABORT $ID — working tree not clean"; return 1
+  # Resolve the integration branch (ADR-060) and a concrete base ref. Prefer origin/<b>, then
+  # local <b>; else fall back to current HEAD with a LOUD warning (never silently hit production).
+  BASE_BRANCH="$(resolve_base_branch)"
+  git fetch origin "$BASE_BRANCH" --quiet 2>/dev/null || true
+  if git rev-parse --verify -q "refs/remotes/origin/$BASE_BRANCH" >/dev/null 2>&1; then
+    BASE_REF="origin/$BASE_BRANCH"
+  elif git rev-parse --verify -q "refs/heads/$BASE_BRANCH" >/dev/null 2>&1; then
+    BASE_REF="$BASE_BRANCH"
+  else
+    FALLBACK="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+    echo "[autonomous-runner] WARN: integration branch '$BASE_BRANCH' not found — falling back to '$FALLBACK'. Set RUNNER_BASE_BRANCH or declare 'integration=<branch>' in .claude/CLAUDE.md." >&2
+    BASE_REF="$FALLBACK"; BASE_BRANCH="$FALLBACK"
   fi
-  BASE="$(git branch --show-current 2>/dev/null)"
-  BRANCH="${BRANCH_PREFIX}/${ID}"
 
-  git checkout -b "$BRANCH" -q 2>/dev/null || {
-    emit "$ID" "$SUBJ" failed "could not create branch $BRANCH"
-    echo "[autonomous-runner] run-task: ABORT $ID — could not create branch"; return 1; }
+  BRANCH="${BRANCH_PREFIX}/${ID}"
+  WT="${RUNNER_WORKTREE_DIR:-/tmp/brana-runner}/${ID}"
+  # Stale-state hygiene: drop any leftover worktree/branch from a prior crashed run.
+  cleanup_worktree "$WT" "$BRANCH"
+
+  # Isolated worktree off the base ref — its own .git/index, parallel-safe, base untouched.
+  if ! git worktree add -q "$WT" -b "$BRANCH" "$BASE_REF" 2>/dev/null; then
+    emit "$ID" "$SUBJ" failed "could not create worktree off $BASE_REF"
+    echo "[autonomous-runner] run-task: ABORT $ID — worktree add failed (base $BASE_REF)"; return 1
+  fi
 
   CB="$(resolve_claude)"
-  if [ -z "$CB" ]; then revert_to_base "$BRANCH" "$BASE"; emit "$ID" "$SUBJ" failed "no claude binary"; return 1; fi
+  if [ -z "$CB" ]; then cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "no claude binary"; return 1; fi
   DPROMPT="You are an autonomous worker completing ONE backlog task in a git repo. Follow the repo's conventions and make MINIMAL, focused changes for exactly this task — nothing else.
 
 Task ${ID}: ${SUBJ}
@@ -162,41 +192,43 @@ ${CTX:+Context: $CTX}
 
 If you can complete it, do the edits, then end with one line: DONE: <one-line summary>.
 If it needs a human decision first (ambiguous, risky, owner's choice), make NO changes and end with: NEEDSHUMAN: <what decision is needed>."
-  DOUT="$(printf '%s' "$DPROMPT" | timeout 600 "$CB" -p --allowedTools "Read,Write,Edit,Bash" --output-format text 2>/dev/null)"
+  # Dispatch INSIDE the worktree (the agent's cwd is the isolated checkout).
+  DOUT="$(cd "$WT" && printf '%s' "$DPROMPT" | timeout 600 "$CB" -p --allowedTools "Read,Write,Edit,Bash" --output-format text 2>/dev/null)"
 
-  # Verify gate. NEEDSHUMAN → park (not a failure); empty diff / validate fail → failed.
+  # Verify gate (all checks scoped to the worktree). NEEDSHUMAN → park; empty diff / validate fail → failed.
   if printf '%s' "$DOUT" | grep -q "NEEDSHUMAN:"; then
     REASON_H="$(printf '%s' "$DOUT" | sed -n 's/.*NEEDSHUMAN: *//p' | head -1)"
-    revert_to_base "$BRANCH" "$BASE"; park "$ID" "$SUBJ" "${REASON_H:-needs human decision}"; return 2
+    cleanup_worktree "$WT" "$BRANCH"; park "$ID" "$SUBJ" "${REASON_H:-needs human decision}"; return 2
   fi
-  if git diff --quiet && git diff --cached --quiet; then
-    revert_to_base "$BRANCH" "$BASE"; emit "$ID" "$SUBJ" failed "no changes produced"
-    echo "[autonomous-runner] run-task: FAILED $ID (no changes) — reverted, base '$BASE' pristine"; return 1
+  if [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ]; then
+    cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "no changes produced"
+    echo "[autonomous-runner] run-task: FAILED $ID (no changes) — worktree removed, base '$BASE_BRANCH' pristine"; return 1
   fi
-  if ! ( eval "$VALIDATE_CMD" ) >/dev/null 2>&1; then
-    revert_to_base "$BRANCH" "$BASE"; emit "$ID" "$SUBJ" failed "verification failed ($VALIDATE_CMD)"
-    echo "[autonomous-runner] run-task: FAILED $ID (validate) — reverted, base '$BASE' pristine"; return 1
+  if ! ( cd "$WT" && eval "$VALIDATE_CMD" ) >/dev/null 2>&1; then
+    cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "verification failed ($VALIDATE_CMD)"
+    echo "[autonomous-runner] run-task: FAILED $ID (validate) — worktree removed, base '$BASE_BRANCH' pristine"; return 1
   fi
 
-  # Commit on the task branch — hooks run. Never merge, never mark task completed.
-  drop_generated   # don't fold brana side-effect churn into the task commit
-  git add -A
-  git commit -q -m "feat(auto): ${SUBJ} (${ID})" || {
-    revert_to_base "$BRANCH" "$BASE"; emit "$ID" "$SUBJ" failed "commit rejected (hooks?)"; return 1; }
+  # Commit on the task branch (inside the worktree) — hooks run. Never merge, never mark completed.
+  for gf in $GENERATED; do git -C "$WT" checkout -- "$gf" 2>/dev/null || true; done  # drop brana side-effect churn
+  git -C "$WT" add -A
+  if ! git -C "$WT" commit -q -m "feat(auto): ${SUBJ} (${ID})"; then
+    cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "commit rejected (hooks?)"; return 1
+  fi
   emit "$ID" "$SUBJ" ran "committed on $BRANCH (validate ✓), awaiting human review"
 
   if [ "$PUSH" = "1" ] && command -v gh >/dev/null 2>&1; then
-    git push -u origin "$BRANCH" -q 2>/dev/null && \
-      gh pr create --title "auto: ${SUBJ} (${ID})" --body "Autonomous runner. Task ${ID}. Verified by ${VALIDATE_CMD}. Human review + merge required." --base "$BASE" >/dev/null 2>&1 \
-      && echo "[autonomous-runner] run-task: PR opened for $ID" \
+    git -C "$WT" push -u origin "$BRANCH" -q 2>/dev/null && \
+      gh pr create --title "auto: ${SUBJ} (${ID})" --body "Autonomous runner. Task ${ID}. Verified by ${VALIDATE_CMD}. Human review + merge required." --base "$BASE_BRANCH" >/dev/null 2>&1 \
+      && echo "[autonomous-runner] run-task: PR opened for $ID (base $BASE_BRANCH)" \
       || echo "[autonomous-runner] run-task: committed but PR push failed — branch $BRANCH is local"
   fi
   if [ "$FIXTURE_MODE" = "0" ] && command -v brana >/dev/null 2>&1; then
-    brana backlog set "$ID" context "RUNNER: committed on $BRANCH $(date -u +%F), awaiting human review+merge" --append >/dev/null 2>&1 || true
+    brana backlog set "$ID" context "RUNNER: committed on $BRANCH $(date -u +%F) off $BASE_BRANCH, awaiting human review+merge" --append >/dev/null 2>&1 || true
   fi
-  # Return to base so the loop/caller resumes cleanly; the task branch is left for review.
-  [ -n "$BASE" ] && git checkout -q "$BASE" 2>/dev/null || true
-  echo "[autonomous-runner] run-task: DONE $ID — committed on '$BRANCH', base '$BASE' untouched, NOT merged. Human review required."
+  # Remove the worktree; the branch is left (with its commit) for human review. Base never touched.
+  cleanup_worktree "$WT" ""   # keep the branch, drop only the worktree
+  echo "[autonomous-runner] run-task: DONE $ID — committed on '$BRANCH' (base '$BASE_BRANCH'), worktree removed, NOT merged. Human review required."
   return 0
 }
 
