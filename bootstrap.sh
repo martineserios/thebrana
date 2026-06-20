@@ -88,6 +88,18 @@ case "${1:-}" in
     *)  echo "Unknown option: $1. Use --help for usage."; exit 1 ;;
 esac
 
+# Production guard (ADR-060 / t-2151): bootstrap deploys the working tree to live ~/.claude/,
+# so main IS production for brana. Refuse to deploy from any other branch (would ship staged
+# dev work). --check is read-only and always allowed; BRANA_BOOTSTRAP_FORCE=1 is the escape hatch.
+if ! $CHECK_ONLY && [ "${BRANA_BOOTSTRAP_FORCE:-0}" != "1" ]; then
+    _cur_branch="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    if [ -n "$_cur_branch" ] && [ "$_cur_branch" != "main" ]; then
+        echo "ERROR: bootstrap deploys production (main → live ~/.claude/). You are on '$_cur_branch'."
+        echo "Promote to main first (merge dev → main), or override: BRANA_BOOTSTRAP_FORCE=1 ./bootstrap.sh"
+        exit 1
+    fi
+fi
+
 echo "=== Brana Bootstrap (identity layer) ==="
 echo "Source: $SYSTEM_DIR"
 echo "Target: $TARGET_DIR"
