@@ -56763,7 +56763,7 @@
     {
       "id": "t-2144",
       "subject": "Serialize autonomous-runner --run-batch with a file lock (concurrency guardrail)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
