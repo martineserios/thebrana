@@ -56820,7 +56820,7 @@
     {
       "id": "t-2146",
       "subject": "Runner worktree isolation: cut from dev in ephemeral worktree, trap cleanup",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "refactor",
       "tags": [
