@@ -78,9 +78,34 @@ Each stage is gated by the prior earning trust. Stage 1 proves *judgment* (right
 
 Runs with `RUNNER_PLAN=0` (no `claude` call) for a hermetic, fast test.
 
+## Stage 2 — Single-task supervised (this build)
+
+`system/scripts/autonomous-runner.sh --run-one`
+
+**Does:** select the **first** eligible `would-run` task (cap 1) → isolate on a per-task branch → dispatch `claude -p` (scoped `Read,Write,Edit,Bash`, build-discipline prompt) to do the work → **verify** → commit on the branch → **stop**. Never merges (ADR-050: human-gated). Never marks the task `completed` (human gates that too — runner leaves it for review).
+
+**Verification gate (all must hold to commit):**
+1. dispatch did not return `NEEDSHUMAN:` (else park + abort, no commit),
+2. the working tree actually changed (empty diff = nothing done → abort),
+3. `RUNNER_VALIDATE_CMD` (default `./validate.sh`) passes,
+4. (best-effort) AC check if the task has `AC:` lines.
+
+**Failure invariant (the critical safety property):** on *any* failure — `NEEDSHUMAN`, empty diff, validate fail, dispatch error — the runner **reverts the working tree, returns to the base branch, and deletes the task branch.** No partial commits, base branch always pristine.
+
+**Output:** a commit on `RUNNER_BRANCH_PREFIX/<id>` (default `runner/auto/<id>`). With `RUNNER_PUSH=1` it also opens a PR via `gh`. Default is local-branch-only (no remote needed).
+
+**Env (adds to Stage 1):** `RUNNER_VALIDATE_CMD` · `RUNNER_PUSH` (0/1) · `RUNNER_BRANCH_PREFIX`. brana mutations (remind/set) are skipped when `RUNNER_TASKS_JSON` is set (fixture/test mode) — keeps tests hermetic.
+
+**Tests** (`test-autonomous-runner-stage2.sh`, hermetic temp git repo, stub claude + stub validate):
+- would-run task → change made, validate passes → commit exists on task branch, base branch has no new commit, task not `completed`
+- stub returns `NEEDSHUMAN` → no commit, base branch pristine, branch deleted
+- stub makes no change → no commit, clean abort
+- validate fails → working tree reverted, no commit, back on base branch
+- would-park task → not executed at all
+
 ## Follow-ups
 
-- Stage 2 (single-task supervised, real PR) — file when Stage 1 trusted.
+- Stage 3 (bounded batch + `brana ops` hosting) — file when Stage 2 trusted.
 - Stage 3 (bounded batch + `brana ops` hosting).
 - t-2142 (learned eligibility).
 - Wire the leverage doctrine into `delegation-routing.md` once the runner exists.
