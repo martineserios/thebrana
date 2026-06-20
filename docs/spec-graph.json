@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-18T10:44:24Z",
+  "generated": "2026-06-20T18:40:34Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -285,6 +285,11 @@
     },
     "brana-knowledge/dimensions/brana-etymology-naming.md": {
       "title": "Brana: Etymology and Naming",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/cc-native-orchestration-2026.md": {
+      "title": "CC Native Orchestration — Loops, Workflows & 2026 Features",
       "type": "Dimension",
       "impl_files": []
     },
@@ -1002,6 +1007,11 @@
         "system/cli/rust/crates/brana-core/src/search.rs"
       ]
     },
+    "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md": {
+      "title": "ADR-059: Multi-Agent Substrate Selection (native CC vs ruflo vs agy)",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1091,6 +1101,15 @@
         "system/skills/close/phases/gate-and-evidence.md",
         "system/hooks/session-start.sh",
         "system/scheduler/scheduler.template.json"
+      ]
+    },
+    "docs/architecture/features/autonomous-runner.md": {
+      "title": "Feature Spec — Autonomous Task Runner",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/feed-summarize.sh",
+        "system/scripts/autonomous-runner.sh",
+        "system/scripts/tests/test-autonomous-runner.sh"
       ]
     },
     "docs/architecture/features/backlog-lint.md": {
@@ -2090,6 +2109,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/cc-native-orchestration-2026.md": {
+      "title": "CC Native Orchestration — Loops, Workflows & 2026 Features",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/cc-project-structure-best-practices.md": {
       "title": "Claude Code Project Structure Best Practices",
       "type": "Roadmap",
@@ -2434,6 +2458,11 @@
         "system/scripts/gh-sync.sh"
       ]
     },
+    "docs/guide/workflows/hive-mind.md": {
+      "title": "hive-mind workflow",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/workflows/learn.md": {
       "title": "How Brana Learns",
       "type": "Roadmap",
@@ -2658,6 +2687,11 @@
       "impl_files": [
         "system/skills/build/phases/specify.md"
       ]
+    },
+    "docs/ideas/display-id-from-type.md": {
+      "title": "Display-layer task ID prefixes",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/ideas/distribution-strategy.md": {
       "title": "Brana Distribution Strategy",
@@ -3130,6 +3164,11 @@
     },
     "docs/research/multi-agent-orchestration-investigation.md": {
       "title": "Multi-Agent Orchestration — Investigation Report",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/substrate-leverage-audit.md": {
+      "title": "Substrate Leverage Audit — Native CC vs ruflo vs /loop",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -6007,6 +6046,12 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "thebrana/docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/chatwoot-case-study.md",
       "to": "dimensions/39-kapso-ai-platform.md",
       "type": "informs",
@@ -6973,6 +7018,12 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "thebrana/docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/chatwoot-case-study.md",
       "to": "dimensions/39-kapso-ai-platform.md",
       "type": "informs",
@@ -7209,6 +7260,18 @@
     {
       "from": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
       "to": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+      "to": "cc-native-orchestration-2026.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/06-claude-flow-internals.md",
+      "to": "cc-native-orchestration-2026.md",
       "type": "references",
       "computed": false
     },
@@ -8229,6 +8292,54 @@
     {
       "from": "brana-knowledge/dimensions/automated-quality-gating.md",
       "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "05-claude-flow-v3-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "06-claude-flow-internals.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "09-claude-code-native-features.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "58-claude-code-changelog-2026.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "60-agent-loop-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "thebrana/docs/architecture/workflow-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-native-orchestration-2026.md",
+      "to": "thebrana/docs/research/2026-06-11-loop-native-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -9818,6 +9929,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "guide/workflows/hive-mind.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "guide/workflows/learn.md",
       "type": "references",
       "computed": false
@@ -10183,6 +10300,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "to": "docs/research/substrate-leverage-audit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -10263,6 +10386,12 @@
     {
       "from": "docs/architecture/features/async-close.md",
       "to": "docs/guide/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/research/substrate-leverage-audit.md",
       "type": "references",
       "computed": false
     },
@@ -11018,7 +11147,19 @@
     },
     {
       "from": "docs/dimensions/05-claude-flow-v3-analysis.md",
+      "to": "cc-native-orchestration-2026.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/05-claude-flow-v3-analysis.md",
       "to": "docs/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/06-claude-flow-internals.md",
+      "to": "cc-native-orchestration-2026.md",
       "type": "references",
       "computed": false
     },
@@ -12039,6 +12180,54 @@
     {
       "from": "docs/dimensions/automated-quality-gating.md",
       "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "05-claude-flow-v3-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "06-claude-flow-internals.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "09-claude-code-native-features.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "58-claude-code-changelog-2026.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "60-agent-loop-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "thebrana/docs/architecture/workflow-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-native-orchestration-2026.md",
+      "to": "thebrana/docs/research/2026-06-11-loop-native-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -13874,9 +14063,9 @@
     }
   ],
   "stats": {
-    "nodes": 465,
-    "edges": 1782,
-    "typed_edges": 680,
-    "orphans": 127
+    "nodes": 472,
+    "edges": 1807,
+    "typed_edges": 682,
+    "orphans": 129
   }
 }

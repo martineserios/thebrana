@@ -1,40 +1,30 @@
 ---
 always-load: true
-produced_by: docs/architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md
+produced_by: docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md
+supersedes: ADR-040 (Gemini-first routing, retired 2026-06-19)
 ---
 # Delegation Routing
 
 ## Compute Routing — who runs this? (walk top-to-bottom, first match wins)
 
 ```
-1. brana-system work? (git, hooks, tasks.json, system/, ruflo stores)
-   → Claude only. Never delegate.
-
-2. Atomic, system-isolated, context-enrichable?
-   NO → Claude only (needs session state or multi-step).
-
-3. Convention-sensitive? (boilerplate, test scaffolding, ADR drafts, naming for repo output)
-   Default: treat as convention-sensitive when in doubt.
-   + ruflo available → Gemini (agy_delegate), ENRICH mandatory.
-   + ruflo DOWN     → ABORT. Never fall back to unenriched Gemini.
-
-4. Sub-agent needing cost tracking / ownership?
-   → ruflo agent_spawn.
-
-5. Parallel, bulk, or token-heavy?
-   → Gemini (agy_delegate). ENRICH optional (ruflo down → warn, not abort).
-
-6. Everything else → Claude inline.
+1. brana-system (git, hooks, tasks.json, system/, ruflo stores) → Claude only, never delegate.
+2. In-session multi-agent, structured (find→verify→synthesize, judge-panel) → native WORKFLOW (.claude/workflows/).
+3. In-session quick parallel fan-out → native TASK (Agent tool), many agents per message.
+4. Atomic / detail retrieval, ZERO reasoning → claude -p --model haiku (subscription, no quota).
+5. Cross-model second opinion — CHALLENGER ONLY → agy (Gemini); quota exhausted → Claude challenger lens. The ONLY use of agy.
+6. Autonomous / overnight / "until all done" → native /loop + claude -p over tasks.json, or ruflo autopilot (see ADR-059).
+7. Shared memory/recall across agents or sessions → ruflo memory (brana recall / mcp__brana__recall).
+8. Everything else → Claude inline.
 ```
 
-Gemini output → `/tmp/` only. Claude applies via Write/Edit. See ADR-040.
-Entry point: `/brana:gemini "task"` or `/brana:gemini t-XXXX`.
-Layer A (`agy -p "..."` direct) for scheduled sweeps only.
+**Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` for execution — hollow under subscription (records + self-votes). See `field-note_ruflo-agentic-layer-subscription-theater`, ADR-059.
+
+Headless output (`claude -p`, agy) → `/tmp/` only; Claude applies via Write/Edit (cwd-discipline.md). agy never runs git.
 
 ## Skill Routing — which skill to invoke
 
-Invoke directly — don't suggest. If user declines, don't repeat.
-Never invoke a skill AND delegate an agent for the same trigger.
+Invoke directly, don't suggest; if declined, don't repeat. Never invoke a skill AND delegate for one trigger.
 
 | Trigger | Action |
 |---------|--------|
@@ -42,9 +32,9 @@ Never invoke a skill AND delegate an agent for the same trigger.
 | Planning new work | `/brana:backlog add` |
 | Session ending | `/brana:close` |
 | Big decision forming | `/brana:challenge` |
+| Deep adversarial review (high-stakes) | `/brana:challenge --deep` (native fan-out + verify-findings) |
 | New/unfamiliar codebase | `/brana:onboard` |
 | Research on a new topic | `/brana:research [topic]` |
-| Delegate atomic task to Gemini | `/brana:gemini "task"` or `/brana:gemini t-XXXX` |
 | Business health check | `/brana:review check` |
 | Weekly/monthly review | `/brana:review` / `/brana:review monthly` |
 | Spec changes need impl sync | `/brana:reconcile` |
