@@ -56611,7 +56611,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "2026-06-19: PUSH BLOCKED. Token xoxb-11105107096695-… is in main HEAD (system/state/patterns-export.json) AND 3 leak commits in main history: 3d6dad01, 33093367, 6a7e2770 (all 'sync: export ruflo memory'). Purge commit a86faf2b (deletes file + gitignores) is on feat branches docs/rules/cc-orchestration-breadcrumb and harness/feat/t-2138-secret-scan-hook, NOT merged to main. main is 148 commits ahead of origin/main. Token is rotated/dead → no live exposure, no urgency.\nScrub sequence before ANY origin push: (1) merge a86faf2b effect into main (delete file + gitignore patterns-export.json); (2) git-filter-repo (installed at /usr/bin/git-filter-repo) to strip the token blob from all history — this rewrites commit hashes; (3) force-push main (security override of the no-force-push-to-main rule, per 2026-06-03 proyecto-anita field note precedent). Root cause: sync/export re-introduces secrets from ruflo store into the tracked export file — gitignoring patterns-export.json is the durable fix.\nAC: git log --all -S 'xoxb-' returns nothing (token absent from HEAD and all history)\nAC: patterns-export.json gitignored on main and untracked\nAC: pre-commit hook blocks a staged file containing an xoxb-/token-shaped string (test with a fake token)\nAC: main force-pushed to origin after scrub; origin/main..main reconciled",
+      "context": "2026-06-19: PUSH BLOCKED. Token xoxb-11105107096695-… is in main HEAD (system/state/patterns-export.json) AND 3 leak commits in main history: 3d6dad01, 33093367, 6a7e2770 (all 'sync: export ruflo memory'). Purge commit a86faf2b (deletes file + gitignores) is on feat branches docs/rules/cc-orchestration-breadcrumb and harness/feat/t-2138-secret-scan-hook, NOT merged to main. main is 148 commits ahead of origin/main. Token is rotated/dead → no live exposure, no urgency.\nScrub sequence before ANY origin push: (1) merge a86faf2b effect into main (delete file + gitignore patterns-export.json); (2) git-filter-repo (installed at /usr/bin/git-filter-repo) to strip the token blob from all history — this rewrites commit hashes; (3) force-push main (security override of the no-force-push-to-main rule, per 2026-06-03 proyecto-anita field note precedent). Root cause: sync/export re-introduces secrets from ruflo store into the tracked export file — gitignoring patterns-export.json is the durable fix.\nAC: git log --all -S 'xoxb-' returns nothing (token absent from HEAD and all history)\nAC: patterns-export.json gitignored on main and untracked\nAC: pre-commit hook blocks a staged file containing an xoxb-/token-shaped string (test with a fake token)\nAC: main force-pushed to origin after scrub; origin/main..main reconciled\n2026-06-20: live incident — xoxb- Slack bot token leaked into system/state/patterns-export.json (ruflo export) evaded Check 5 secret scan and was caught only by GitHub push protection on main. Confirmed never published to origin. Fixed: filter-repo scoped to origin/main..main (no force-push), file untracked + gitignored. Scanner must cover xoxb-/xoxp- and auto-generated state exports. Token rotation still pending (user).",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -56673,7 +56673,8 @@
       "acceptance_criteria": null,
       "epic": "harness",
       "strategy": "feature",
-      "work_type": "implement"
+      "work_type": "implement",
+      "build_step": "BUILD (Stage 3: batch loop + ops host + question-queue)"
     },
     {
       "id": "t-2141",
