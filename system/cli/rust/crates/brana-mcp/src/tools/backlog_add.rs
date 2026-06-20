@@ -39,6 +39,10 @@ pub struct Input {
     /// Execution mode: code (default) or autonomous
     #[serde(default = "default_execution")]
     pub execution: String,
+
+    /// Create the task in another project's backlog by portfolio slug (cross-project).
+    /// Resolves via ~/.claude/tasks-portfolio.json. Default: current project.
+    pub project: Option<String>,
 }
 
 fn default_type() -> String { "task".into() }
@@ -47,8 +51,14 @@ fn default_execution() -> String { "code".into() }
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
     TypedTool::new("backlog_add", |input: Input, _extra| {
         Box::pin(async move {
-            let tf = brana_core::util::find_tasks_file()
-                .ok_or_else(|| pmcp::Error::validation("tasks.json not found"))?;
+            // Cross-project: --project slug resolves another repo's tasks.json via the
+            // portfolio; default is the current project (t-2159).
+            let tf = match input.project.as_deref() {
+                Some(slug) => brana_core::util::resolve_project_tasks_file(slug)
+                    .map_err(pmcp::Error::validation)?,
+                None => brana_core::util::find_tasks_file()
+                    .ok_or_else(|| pmcp::Error::validation("tasks.json not found"))?,
+            };
             let mut val = brana_core::tasks::load_raw(&tf)
                 .map_err(|e| pmcp::Error::validation(e))?;
 

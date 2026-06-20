@@ -369,6 +369,97 @@ fn focus_does_not_inherit_global_active_epic() {
 }
 
 #[test]
+fn backlog_add_project_writes_to_resolved_target() {
+    // Cross-project create (t-2159): --project <slug> resolves the target repo's
+    // tasks.json via the portfolio and writes there, leaving the current project untouched.
+    let home = tempfile::tempdir().unwrap();
+    let target = tempfile::tempdir().unwrap();
+    let cwd = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(target.path().join(".claude")).unwrap();
+    std::fs::write(
+        target.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"target","tasks":[]}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(cwd.path().join(".claude")).unwrap();
+    std::fs::write(
+        cwd.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"cur","tasks":[]}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+    let portfolio = format!(
+        r#"{{"projects":[{{"slug":"otherproj","path":"{}"}}]}}"#,
+        target.path().display()
+    );
+    std::fs::write(home.path().join(".claude/tasks-portfolio.json"), portfolio).unwrap();
+
+    brana()
+        .args(["backlog", "add", "--subject", "cross task", "--project", "otherproj"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(cwd.path())
+        .assert()
+        .success();
+
+    let target_tasks: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(target.path().join(".claude/tasks.json")).unwrap(),
+    )
+    .unwrap();
+    let cur_tasks: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(cwd.path().join(".claude/tasks.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        target_tasks["tasks"].as_array().unwrap().len(),
+        1,
+        "task should be written to the target project"
+    );
+    assert_eq!(
+        cur_tasks["tasks"].as_array().unwrap().len(),
+        0,
+        "current project must be untouched"
+    );
+}
+
+#[test]
+fn backlog_add_unknown_project_errors() {
+    let home = tempfile::tempdir().unwrap();
+    let cwd = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(cwd.path().join(".claude")).unwrap();
+    std::fs::write(
+        cwd.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"cur","tasks":[]}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+    std::fs::write(
+        home.path().join(".claude/tasks-portfolio.json"),
+        r#"{"projects":[]}"#,
+    )
+    .unwrap();
+    brana()
+        .args(["backlog", "add", "--subject", "x", "--project", "nope"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(cwd.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found in tasks-portfolio"));
+}
+
+#[test]
+fn backlog_add_project_and_file_conflict() {
+    // --project and --file are mutually exclusive (clap-enforced).
+    brana()
+        .args([
+            "backlog", "add", "--subject", "x", "--project", "p", "--file", "/tmp/x.json",
+        ])
+        .assert()
+        .failure();
+}
+
+#[test]
 fn backlog_add_with_work_type_persists() {
     use assert_fs::prelude::*;
     let tmp = assert_fs::TempDir::new().unwrap();
