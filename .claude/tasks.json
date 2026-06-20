@@ -56959,7 +56959,7 @@
     {
       "id": "t-2151",
       "subject": "bootstrap.sh from-main guard (prevent shipping staged dev work)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
