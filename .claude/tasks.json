@@ -57349,6 +57349,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2165",
+      "subject": "Session handoff epic field: enforce reliable epic assignment at close, not just routing at write",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "session-state",
+        "handoff",
+        "routing",
+        "epic"
+      ],
+      "description": null,
+      "effort": "M",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "UPSTREAM GAP from t-2152/t-2154: the routing fix (unit_scoped_state_path) only routes correctly when state.epic is already set in the session payload. The close skill Step 9c has a 4-tier cascade to detect the active epic, but it is fragile: (a) tier 0 (persistent focus) is global not per-repo (t-2164); (b) tier 1 (initiative marker) is only written by `brana backlog start`, so direct work without a tracked task has no marker; (c) tier 2 (in-progress task lookup) misses if no task is in_progress; (d) tier 3 (branch name parse) fails on main, detached HEAD, or non-epic branches. Result: epics frequently go unset in the payload → orphan buckets even with the routing fix live.\n\nROOT CAUSE: epic assignment is an afterthought at close time (4-tier inference) instead of a first-class maintained state throughout the session.\n\nDIRECTION — make epic a maintained session-level invariant, not a close-time guess:\n1. `brana session epic write-marker <slug>` is already called by `brana backlog start` — extend to also write when `brana session set-focus` is called (t-2164 per-repo focus fix composes here).\n2. Add a WARN gate in the close skill: if all 4 tiers return nothing, block close with \"No epic detected — set one: `brana session epic write-marker <slug>` or `brana backlog set-active <slug>`\" instead of silently orphaning.\n3. The marker should be auto-cleared only on `brana session epic clear-marker`, not on `close` (today it's cleared in Step 9c — this means a two-session epic loses the marker between sessions). OR: carry the epic forward into the next session via the session-state.epic field (already populated) → session-restore hook reads it back.\n\nCONSTRAINT: coordinates with t-2164 (per-repo focus → writes the marker per repo) and t-2152 (routing reads the marker at close time).\n\nAC: closing a session without a detectable epic WARNS and offers resolution, not silently orphans\nAC: working across 2+ sessions on the same epic keeps the marker alive (not cleared after session 1)\nAC: the per-repo focus (t-2164) sets the marker for the current repo's session automatically\nAC: sitrep --all shows zero orphan buckets for normal workflows (single-repo, tracked task)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
