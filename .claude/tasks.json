@@ -57059,7 +57059,7 @@
     {
       "id": "t-2154",
       "subject": "Guard: warn/block session close from production/default branch (stop new orphans)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -57083,6 +57083,37 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2155",
+      "subject": "Scope backlogs cleanly per project/client + allow cross-project task creation",
+      "status": "in_progress",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "backlog",
+        "session",
+        "close",
+        "multi-project"
+      ],
+      "description": "Backlog views/operations bleed across projects. Closing a session inside a client surfaces tasks from thebrana or other clients. Want clear per-project isolation by default, while still allowing deliberate cross-project task creation (e.g. spotting a thebrana system issue while working in a client).",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-20",
+      "started": "2026-06-20",
+      "completed": null,
+      "blocked_by": [],
+      "branch": "backlog-git-alignment/feat/t-2155-scope-backlogs-cross-project",
+      "context": "2026-06-20: Reported symptom — `/brana:close` (and backlog views) inside a client show tasks from thebrana / other clients. Two requirements, partly in tension:\n\n1. ISOLATION (default): backlog queries, focus, next, and close-session summaries should be scoped to the current project/client by default. The session/close flow should not mix backlogs across projects.\n\n2. CROSS-PROJECT CREATE (explicit opt-in): from within client A, be able to file a task against thebrana (or another project) when an issue is detected mid-work. Lower frequency than (1) but desired. Needs an explicit target flag/selector so it's never accidental — default target stays the current project.\n\nInvestigation start points:\n- How backlog resolves \"current project\" today (cwd? active_epic in tasks-config.json? portfolio paths via `brana portfolio`).\n- Whether each project/client has its own tasks.json or there's a shared store being filtered. Session-start banner shows \"Project: thebrana (1400/1854)\" — confirm scoping key.\n- `/brana:close` extraction step: where it picks tasks to summarize.\n\nAC: backlog views + close-session default to current-project scope only\nAC: cross-project task creation supported via explicit target (flag or selector), defaulting to current project\nAC: no accidental cross-project writes — target must be explicit",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "backlog-git-alignment",
+      "work_type": "implement",
+      "strategy": "feature"
     }
   ],
   "version": "1"
