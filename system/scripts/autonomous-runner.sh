@@ -33,6 +33,7 @@
 # Env (--run-batch adds):
 #   RUNNER_MAX_FAILS     consecutive-failure kill threshold (default 3, ADR-050 cap)
 #   RUNNER_KILL_SWITCH   abort if this file exists (default ~/.claude/scheduler/runner.stop)
+#   RUNNER_LOCK_FILE     flock path serializing batch runs (default ~/.claude/scheduler/locks/autonomous-runner.lock)
 #
 # Eligibility: status==pending ∧ execution==autonomous ∧ priority!=P0 ∧ blocked_by empty.
 set -u
@@ -49,6 +50,7 @@ BRANCH_PREFIX="${RUNNER_BRANCH_PREFIX:-runner/auto}"
 PUSH="${RUNNER_PUSH:-0}"
 MAX_FAILS="${RUNNER_MAX_FAILS:-3}"
 KILL_SWITCH="${RUNNER_KILL_SWITCH:-$HOME/.claude/scheduler/runner.stop}"
+RUN_LOCK="${RUNNER_LOCK_FILE:-$HOME/.claude/scheduler/locks/autonomous-runner.lock}"
 FIXTURE_MODE=0; [ -n "${RUNNER_TASKS_JSON:-}" ] && FIXTURE_MODE=1
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
@@ -246,6 +248,14 @@ fi
 # iterate the snapshot rather than re-pick first — avoids re-running the same task forever).
 if [ -f "$KILL_SWITCH" ]; then
   echo "[autonomous-runner] run-batch: kill-switch present ($KILL_SWITCH) — aborting before any work"; exit 0
+fi
+# Concurrency lock (t-2144): a non-blocking flock serializes batch runs — a second overlapping
+# --run-batch exits cleanly rather than double-running a task (run_task leaves tasks pending, so
+# two batches over the same snapshot would otherwise both pick it). Released on process exit.
+mkdir -p "$(dirname "$RUN_LOCK")" 2>/dev/null || true
+exec 9>"$RUN_LOCK" 2>/dev/null || true
+if command -v flock >/dev/null 2>&1 && ! flock -n 9; then
+  echo "[autonomous-runner] run-batch: another batch holds the lock ($RUN_LOCK) — exiting"; exit 0
 fi
 ATTEMPTED=0; RAN=0; PARKED=0; FAILED=0; CONSEC=0
 while IFS= read -r TASK; do
