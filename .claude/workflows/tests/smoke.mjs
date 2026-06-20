@@ -51,11 +51,16 @@ function stubFromSchema(schema, holdMode, prompt) {
 }
 
 // --- Mock runtime ----------------------------------------------------------------------
-function makeRuntime({ holdMode = 'hold', findingsPerFinder = 1 } = {}) {
+function makeRuntime({ holdMode = 'hold', findingsPerFinder = 1, throwOn = null } = {}) {
   const noop = () => {}
   let verdictN = 0 // for holdMode 'split': alternate verdicts to simulate a divided panel
   const agent = async (prompt, opts = {}) => {
     const s = opts.schema
+    // Simulate a subagent that completes WITHOUT calling StructuredOutput (the recurring failure):
+    // agent({schema}) throws. Used to prove graceful degradation (t-2149).
+    if (throwOn === 'clusters' && s && s.properties && s.properties.clusters) {
+      throw new Error('simulated StructuredOutput skip (cluster agent)')
+    }
     if (s && s.properties && s.properties.findings) {
       const findings = Array.from({ length: findingsPerFinder }, (_, j) => ({ location: `a.js:${j + 1}`, text: 'something is off', severity: 'WARNING' }))
       return { findings }
@@ -83,7 +88,7 @@ function makeRuntime({ holdMode = 'hold', findingsPerFinder = 1 } = {}) {
     return v
   }))
   // Nested workflow() runs the named workflow with the SAME runtime — exercises real delegation.
-  const workflow = async (name, childArgs) => runWorkflow(`${name}.js`, childArgs, { holdMode, findingsPerFinder })
+  const workflow = async (name, childArgs) => runWorkflow(`${name}.js`, childArgs, { holdMode, findingsPerFinder, throwOn })
   return { agent, parallel, pipeline, phase: noop, log: noop, workflow, budget: { total: null, spent: () => 0, remaining: () => Infinity } }
 }
 
@@ -154,6 +159,12 @@ async function main() {
     const r = await runWorkflow('sweep.js', { target: 'x' }, { holdMode: 'refute', findingsPerFinder: 1 })
     ok(r.confirmed.length === 0, 'sweep: refute mode => nothing confirmed')
     ok(r.false_positives === r.cluster_count, 'sweep: refute mode => all clusters are false positives')
+  }
+  // sweep: a throwing cluster agent (StructuredOutput skip) must DEGRADE, not abort (t-2149).
+  {
+    const r = await runWorkflow('sweep.js', { target: 'x' }, { holdMode: 'hold', findingsPerFinder: 1, throwOn: 'clusters' })
+    ok(r.raw_count === 4, 'sweep degrade: still surfaced 4 raw findings despite cluster throw')
+    ok(r.cluster_count === 4, 'sweep degrade: cluster throw => one cluster per finding (no data lost)')
   }
   {
     const r = await runWorkflow('sweep.js', 'a bare string target', { holdMode: 'hold' })
