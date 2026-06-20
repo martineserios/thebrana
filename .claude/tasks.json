@@ -56904,7 +56904,7 @@
     {
       "id": "t-2149",
       "subject": "Workflow fault-tolerance: verify-findings degrades on missing StructuredOutput (no crash)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -57115,6 +57115,33 @@
       "work_type": "implement",
       "strategy": "feature",
       "build_step": "classify"
+    },
+    {
+      "id": "t-2156",
+      "subject": "Add @RTK.md to system/CLAUDE.md so RTK reference survives bootstrap",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "harness",
+        "rtk",
+        "bootstrap"
+      ],
+      "description": "rtk init -g added `@RTK.md` to ~/.claude/CLAUDE.md, but bootstrap.sh:223 syncs system/CLAUDE.md over it on next run, wiping the reference. Add `@RTK.md` to the system/CLAUDE.md source so RTK's slim instructions survive bootstrap. One-line append.",
+      "effort": "XS",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
