@@ -304,6 +304,17 @@
       "maxRetries": 0,
       "captureOutput": true,
       "_comment": "t-2140 Stage 3 autonomous runner. DEFAULT-DENY: disabled + --observe (reports would-run/would-park/excluded, ZERO writes). To enable autonomy: set enabled=true and change --observe to --run-batch. Bounds: RUNNER_MAX_TASKS cap, consecutive-failure kill at RUNNER_MAX_FAILS=3 (ADR-050), kill-switch file ~/.claude/scheduler/runner.stop. Only tasks with execution=autonomous (not P0, unblocked) are ever touched; PR-per-task, human merges."
+    },
+    "stale-branches-reap": {
+      "type": "command",
+      "command": "REAP_APPLY=1 ./system/scripts/stale-branches-reap.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 06:00:00",
+      "enabled": false,
+      "maxRetries": 0,
+      "timeoutSeconds": 120,
+      "captureOutput": true,
+      "_comment": "t-2148: weekly reaper of MERGED local branches (safe -d only; never deletes unmerged). DEFAULT-DENY disabled; enable when desired."
     }
   }
 }
