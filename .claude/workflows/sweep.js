@@ -66,7 +66,7 @@ const DEFAULT_ANGLES = [
 const angles = (Array.isArray(opts.angles) && opts.angles.length) ? opts.angles : DEFAULT_ANGLES
 const finders = Math.max(1, Math.min(opts.finders || angles.length, angles.length))
 const activeAngles = angles.slice(0, finders)
-const voters = Math.max(1, Math.min(opts.voters || 2, 4))
+const voters = Math.max(1, Math.min(opts.voters || 3, 4)) // default 3 = odd => verify ties impossible
 const model = opts.model // undefined => inherit session model
 
 const FINDINGS_SCHEMA = {
@@ -110,6 +110,7 @@ const CLUSTERS_SCHEMA = {
   },
 }
 
+// duplicated by necessity from verify-findings.js — Workflow scripts are sandboxed (no shared imports).
 const ORDER = { CRITICAL: 3, WARNING: 2, OBSERVATION: 1, FALSE_POSITIVE: 0 }
 
 // ---- Phase 1: Sweep ---------------------------------------------------------

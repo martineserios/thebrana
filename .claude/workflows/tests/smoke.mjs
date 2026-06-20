@@ -53,12 +53,27 @@ function stubFromSchema(schema, holdMode, prompt) {
 // --- Mock runtime ----------------------------------------------------------------------
 function makeRuntime({ holdMode = 'hold', findingsPerFinder = 1 } = {}) {
   const noop = () => {}
+  let verdictN = 0 // for holdMode 'split': alternate verdicts to simulate a divided panel
   const agent = async (prompt, opts = {}) => {
-    if (opts.schema && opts.schema.properties && opts.schema.properties.findings) {
+    const s = opts.schema
+    if (s && s.properties && s.properties.findings) {
       const findings = Array.from({ length: findingsPerFinder }, (_, j) => ({ location: `a.js:${j + 1}`, text: 'something is off', severity: 'WARNING' }))
       return { findings }
     }
-    if (opts.schema) return stubFromSchema(opts.schema, holdMode, prompt)
+    // Verdict schema (has a `holds`/`holds_up` boolean): control the vote precisely so we can
+    // test the strict-majority tie rule, not just unanimous panels.
+    if (s && s.properties && (s.properties.holds || s.properties.holds_up)) {
+      const key = s.properties.holds ? 'holds' : 'holds_up'
+      const truth = holdMode === 'split' ? (verdictN++ % 2 === 0) : holdMode !== 'refute'
+      const o = {}
+      for (const k of (s.required && s.required.length ? s.required : Object.keys(s.properties))) {
+        if (k === key) o[k] = truth
+        else if (k === 'severity' || k === 'adjusted_severity') o[k] = truth ? 'WARNING' : 'FALSE_POSITIVE'
+        else o[k] = stubFromSchema(s.properties[k], holdMode === 'split' ? 'hold' : holdMode, prompt)
+      }
+      return o
+    }
+    if (s) return stubFromSchema(s, holdMode === 'split' ? 'hold' : holdMode, prompt)
     return 'free-form synthesis text'
   }
   const parallel = async (thunks) => Promise.all(thunks.map((t) => Promise.resolve().then(t).catch(() => null)))
@@ -111,6 +126,17 @@ async function main() {
   {
     const r = await runWorkflow('verify-findings.js', { target: 't', findings: [] })
     ok(r.total === 0 && r.verified.length === 0, 'verify-findings: empty findings => empty result')
+  }
+  {
+    // Default voters must be ODD (3) so ties cannot occur. Locks ADR-059 verdict-rule decision.
+    const r = await runWorkflow('verify-findings.js', { target: 't', findings: [{ text: 'x' }] }, { holdMode: 'hold' })
+    ok(/\/3 held$/.test(r.verified[0].votes), 'verify-findings: default voters === 3 (odd, tie-proof)')
+  }
+  {
+    // Strict majority: an even-voter SPLIT (1 of 2) must REFUTE — no tie survives.
+    const r = await runWorkflow('verify-findings.js', { target: 't', voters: 2, findings: [{ text: 'x' }] }, { holdMode: 'split' })
+    ok(r.verified[0].holds === false, 'verify-findings: 1-of-2 split => refuted (strict majority, ties drop)')
+    ok(r.survived === 0, 'verify-findings: even-voter split => nothing survives')
   }
 
   // sweep: full pipeline incl. nested verify-findings delegation.

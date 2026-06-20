@@ -23,6 +23,12 @@
 //     voters: 2   // optional, skeptics per finding (default 2, capped 4)
 //   }})
 //
+// VERDICT RULE (unambiguous — resolves the prior "skepticism vs majority-refute" spec gap):
+//   A finding HOLDS only with a STRICT MAJORITY of skeptics confirming. Ties and
+//   majority-refute BOTH drop it to FALSE_POSITIVE. The burden of proof is on the finding
+//   to survive, not on skeptics to kill it. `voters` defaults to 3 (ODD → ties are impossible);
+//   the strict-majority test below also keeps even voter counts principled if a caller passes one.
+//
 // CONTRACT (sweep.js depends on these — do not weaken without updating callers):
 //   - output.verified preserves INPUT ORDER and emits exactly one entry per input finding;
 //     a finding whose skeptics all died is kept as holds:false / FALSE_POSITIVE, NEVER dropped.
@@ -32,7 +38,7 @@
 
 export const meta = {
   name: 'verify-findings',
-  description: 'Adversarially verify a list of findings — N diverse-lens skeptics per finding refute or confirm, majority-refute drops to FALSE_POSITIVE, survivors get a calibrated severity. The canonical finding-verifier; reusable judge-panel block.',
+  description: 'Adversarially verify a list of findings — N diverse-lens skeptics per finding; a finding holds only with a strict majority confirming (ties and majority-refute both drop to FALSE_POSITIVE), survivors get a calibrated severity. The canonical finding-verifier; reusable judge-panel block.',
   phases: [
     { title: 'Verify', detail: 'N skeptics stress-test each finding in parallel' },
   ],
@@ -45,7 +51,7 @@ if (typeof input === 'string' && input.trim().startsWith('{')) {
 const opts = (input && typeof input === 'object') ? input : {}
 const target = opts.target || 'the proposal under review'
 const findings = Array.isArray(opts.findings) ? opts.findings : []
-const voters = Math.max(1, Math.min(opts.voters || 2, 4))
+const voters = Math.max(1, Math.min(opts.voters || 3, 4)) // default 3 = odd => ties impossible
 
 if (!findings.length) {
   log('verify-findings: no findings provided (args.findings must be a non-empty array). Nothing to verify.')
@@ -64,6 +70,8 @@ const VERDICT_SCHEMA = {
 
 // Distinct skeptic lenses — diversity catches failure modes that redundant refuters miss.
 // This is THE canonical lens set for finding verification; sweep reuses it via this workflow.
+// NOTE: `voters` is capped at LENSES.length, so the `while (lenses.length < voters)` padding
+// below is currently unreachable — kept as a deliberate guard for if the cap is ever raised.
 const LENSES = [
   'REALITY: Is this a concrete problem you can point to an exact place/line/scenario for, or a plausible-sounding generality? Default to refuted if you cannot make it concrete.',
   'CALIBRATION: Suppose it is real — is the rated severity correct given the target and its constraints? Downgrade over-rated findings; flag if it is actually already handled.',
@@ -71,6 +79,7 @@ const LENSES = [
   'COST: Even if real, would acting on it cost more than the risk it removes? A true-but-not-worth-it finding is an OBSERVATION at most.',
 ]
 
+// duplicated by necessity in sweep.js — Workflow scripts are sandboxed (no shared imports).
 const ORDER = { CRITICAL: 3, WARNING: 2, OBSERVATION: 1, FALSE_POSITIVE: 0 }
 
 phase('Verify')
@@ -94,7 +103,7 @@ const verified = await pipeline(
       const vs = verdicts.filter(Boolean)
       const failed = lenses.length - vs.length
       const holdsCount = vs.filter((v) => v.holds).length
-      const holds = vs.length ? holdsCount >= Math.ceil(vs.length / 2) : false
+      const holds = vs.length ? holdsCount * 2 > vs.length : false // strict majority; ties refute
       let adjusted = 'FALSE_POSITIVE'
       if (holds) {
         adjusted = vs.filter((v) => v.holds)
