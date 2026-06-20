@@ -1,8 +1,9 @@
 # Feature: Per-Project Backlog Scoping + Cross-Project Task Creation
 
 **Date:** 2026-06-20
-**Status:** specifying
-**Task:** t-2155
+**Status:** built
+**Task:** t-2155 (subtasks t-2157..t-2160)
+**User guide:** [docs/guide/features/backlog-project-scoping.md](../../guide/features/backlog-project-scoping.md)
 
 ## Problem
 

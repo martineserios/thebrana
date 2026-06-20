@@ -37,3 +37,7 @@ node_modules/
 
 # Auto-generated ruflo memory export — may capture secrets, never track (secret-leak incident 2026-06-20)
 system/state/patterns-export.json
+
+# Per-repo backlog config (active_epic, theme) — personal, volatile, per-machine
+# working state. Tracking it causes cross-machine clobber + merge conflicts (t-2158/t-2155).
+.claude/tasks-config.json
