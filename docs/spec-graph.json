@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-20T00:31:12Z",
+  "generated": "2026-06-20T17:58:01Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1101,6 +1101,15 @@
         "system/skills/close/phases/gate-and-evidence.md",
         "system/hooks/session-start.sh",
         "system/scheduler/scheduler.template.json"
+      ]
+    },
+    "docs/architecture/features/autonomous-runner.md": {
+      "title": "Feature Spec — Autonomous Task Runner",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/feed-summarize.sh",
+        "system/scripts/autonomous-runner.sh",
+        "system/scripts/tests/test-autonomous-runner.sh"
       ]
     },
     "docs/architecture/features/backlog-lint.md": {
@@ -3155,6 +3164,11 @@
     },
     "docs/research/multi-agent-orchestration-investigation.md": {
       "title": "Multi-Agent Orchestration — Investigation Report",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/substrate-leverage-audit.md": {
+      "title": "Substrate Leverage Audit — Native CC vs ruflo vs /loop",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -10286,6 +10300,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "to": "docs/research/substrate-leverage-audit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -10366,6 +10386,12 @@
     {
       "from": "docs/architecture/features/async-close.md",
       "to": "docs/guide/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/research/substrate-leverage-audit.md",
       "type": "references",
       "computed": false
     },
@@ -14037,9 +14063,9 @@
     }
   ],
   "stats": {
-    "nodes": 470,
-    "edges": 1805,
+    "nodes": 472,
+    "edges": 1807,
     "typed_edges": 682,
-    "orphans": 130
+    "orphans": 129
   }
 }
