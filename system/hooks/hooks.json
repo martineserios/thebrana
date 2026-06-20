@@ -127,6 +127,16 @@
       },
       {
         "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 5000,
+            "command": "bash \"$HOME/.claude/hooks/secret-scan.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
         "if": "Bash(git *)",
         "hooks": [
           {

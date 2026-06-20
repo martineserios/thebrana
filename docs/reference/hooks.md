@@ -18,6 +18,7 @@
 | PreToolUse | `Bash` | `branch-verify.sh` | 5000ms |
 | PreToolUse | `Bash` | `branch-name-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
+| PreToolUse | `Bash` | `secret-scan.sh` | 5000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Bash` | `branch-checkout-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `bash-risk-classifier.sh` | 2000ms |
@@ -228,6 +229,12 @@ preflight-model.sh — UserPromptSubmit hook (advisory, non-blocking)
 ### `rust-skills-guard.sh`
 
 PreToolUse: block *.rs writes until brana:rust-skills is loaded this session (t-1480).
+
+**Gate:** Advisory
+
+### `secret-scan.sh`
+
+secret-scan.sh — block commits that stage high-signal secrets (t-2138)
 
 **Gate:** Advisory
 

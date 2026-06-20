@@ -72,6 +72,17 @@ if [ ${#violations[@]} -gt 0 ]; then
     exit 1
 fi
 
+# --- Secret scan (t-2138) ---
+# Local equivalent of GitHub push protection: block staged credentials at
+# commit time. Prefers the deployed hook, falls back to the in-repo source.
+SECRET_SCAN="$HOME/.claude/hooks/secret-scan.sh"
+if [ ! -x "$SECRET_SCAN" ]; then
+    SECRET_SCAN="$(git rev-parse --show-toplevel 2>/dev/null)/system/hooks/secret-scan.sh"
+fi
+if [ -x "$SECRET_SCAN" ]; then
+    bash "$SECRET_SCAN" --staged || exit 1
+fi
+
 # --- Context budget check (brana repos only) ---
 # Only runs when the current repo has a system/ directory with brana artifacts.
 # Threshold mirrors validate.sh Check 5: 28672 bytes.
