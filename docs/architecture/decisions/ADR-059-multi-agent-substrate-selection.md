@@ -1,9 +1,9 @@
 ---
-status: proposed
+status: accepted
 ---
 # ADR-059: Multi-Agent Substrate Selection (native CC vs ruflo vs agy)
 
-**Status:** Proposed
+**Status:** Accepted (2026-06-20 — validated end-to-end by t-2141 audit + t-2140 runner Stages 1-2)
 **Date:** 2026-06-19
 **Deciders:** Martín Rios
 **Tags:** agents, orchestration, ruflo, workflow, subscription, architecture

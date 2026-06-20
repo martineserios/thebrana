@@ -56730,6 +56730,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2143",
+      "subject": "Native consensus primitive — cross-model quorum voting (Byzantine-inspired)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "harness-engineering",
+        "workflow",
+        "consensus",
+        "adr-059"
+      ],
+      "description": "Generalize the verify-findings majority logic into a reusable native consensus block with configurable strictness and cross-model voting — the Byzantine-inspired upgrade (uncorrelated faults via model diversity, not just prompt diversity).",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "From the ruflo hive-mind 'Byzantine consensus' discussion (2026-06-20). ruflo's version is theater (coordination_consensus runs totalNodes:1 self-vote). The IDEA is sound and predates ruflo (multi-agent debate Du 2023, self-consistency Wang 2022, LLM-as-judge ensembles). We already do the core natively+real (hive-mind spawn->verify->synth; verify-findings strict-majority; >=2/3 agreement tiers). THE UPGRADE: true Byzantine fault tolerance needs UNCORRELATED faults — vote with DIFFERENT MODELS (haiku+sonnet+opus, +Gemini via agy) so one model's blind spot doesn't infect the quorum. Current panels use one model w/ different prompts (correlated errors). DESIGN: consensus(claim, {voters, models:[...], lenses:[...], rule: majority|supermajority|unanimous|weighted, dissent: surface|drop}). Make hive-mind/verify-findings/sweep/challenge thin callers of it. Fuses the dormant agy cross-model role with the verify panel. This is the in-session QUALITY layer (judgment), distinct from the autonomous runner (execution). See docs/research/substrate-leverage-audit.md.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
