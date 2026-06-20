@@ -56641,6 +56641,33 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2140",
+      "subject": "Spike: autonomous tier — native /loop+claude -p vs ruflo autopilot",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "harness-engineering",
+        "adr-059",
+        "autonomous"
+      ],
+      "description": "Resolve ADR-059 open question #1: which substrate runs the autonomous/\"keep working until all done\" tier. Decide with evidence from a controlled spike, not assumption.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-19",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "From ADR-059 (docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md) open q #1.\n\nLEAN (documented, not yet decided): native /loop + claude -p over tasks.json. Rationale: uses `brana backlog next` as the real ranker; autopilot's task selection is heuristic (probe showed confidence hardcoded 0.5, \"learning not available\") and needs a host CC session with stop-hook wired + its own task-source sync. Autopilot's persistence LOOP is real though (probe: enable->check returns real CONTINUE counts).\n\nTRIGGER: do NOT spike speculatively. Run this only when a real overnight/autonomous task exists to spike AGAINST, so the comparison is real not synthetic.\n\nSCORECARD (set up front, 5 axes): setup cost / task-selection quality / robustness (stop-clean, fail, resume) / cost-per-iteration / controllability (bound, inspect, kill).\nPROTOCOL: (1) pick 3 real non-destructive pending tasks (docs/lint/reference-regen kind); (2) run in an isolated worktree so autonomous edits can't pollute main; (3) Arm A native /loop+claude -p; Arm B ruflo autopilot enable + host session; (4) cap at ~3 iterations/arm (autopilot arm is ~40k tokens/boot); (5) fill scorecard, decide against pre-set exit criteria.\nEXIT CRITERIA: native wins unless autopilot is BOTH meaningfully cheaper-to-operate AND its heuristic task-pick produces an order you'd endorse.\n\nNOTE: the .claude/workflows/tests/smoke.mjs harness does NOT cover this tier — it mocks the Workflow runtime. The loop tier is a shell/cron+claude -p driver; it needs its own dry-run/integration test (picks right next task, bounds iterations, marks done, stops cleanly).\nAC: scorecard filled for both arms\nAC: decision recorded in ADR-059 (open q #1 resolved, status updated if ratified)\nAC: chosen tier has a dry-run/integration test",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"

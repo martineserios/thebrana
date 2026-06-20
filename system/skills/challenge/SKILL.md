@@ -6,17 +6,14 @@ effort: high
 keywords: [adversarial, review, stress-test, pre-mortem, simplicity, assumptions, council]
 task_strategies: [feature, refactor, migration, greenfield]
 stream_affinity: [roadmap, tech-debt]
-argument-hint: "[target description] [--council] [--hats]"
+argument-hint: "[target description] [--council] [--hats] [--deep]"
 group: learning
 allowed-tools:
   - Task
+  - Workflow
   - Read
   - Glob
   - Grep
-  - mcp__ruflo__hive-mind_init
-  - mcp__ruflo__hive-mind_spawn
-  - mcp__ruflo__hive-mind_consensus
-  - mcp__ruflo__hive-mind_shutdown
   - mcp__brana__agy_delegate
   - AskUserQuestion
   - ToolSearch
@@ -27,12 +24,16 @@ growth_stage: evergreen
 ---
 # Challenge
 
-Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Gemini retrieves documented constraints — both run independently, Claude merges and judges. **Council (`--council`):** Four parallel perspective agents (devil's advocate, optimist, pragmatist, operator) plus Gemini — Claude synthesizes across all five.
+Adversarial review with two modes. **Standard:** three native challenger subagents (convergent · systems · critical) stress-test reasoning, Gemini retrieves documented constraints — all run independently, Claude merges and judges. **Council (`--council`):** Four parallel perspective agents (devil's advocate, optimist, pragmatist, operator) plus Gemini — Claude synthesizes across all five.
+
+**Deep (`--deep`, or auto on high-stakes):** any mode, plus an adversarial **verification stage** — every merged finding is independently re-attacked by N skeptics (`verify-findings` workflow), so plausible-but-wrong findings are dropped to FALSE_POSITIVE and survivors get a calibrated severity before you see them. All agents are native subagents on the subscription — no ruflo, no API key.
 
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
    - If `$ARGUMENTS` contains `--council`: strip `--council` from the target description, activate **council mode** — step 4a spawns 4 parallel perspective agents instead of one Opus agent. All other steps unchanged.
    - If `$ARGUMENTS` contains `--hats`: strip `--hats` from the target description, activate **hats mode** — step 4a spawns 4 parallel hat agents (White/Black/Yellow/Green) instead of hive-mind workers. Mutually exclusive with `--council`; if both present, `--hats` wins.
+   - If `$ARGUMENTS` contains `--deep`: strip `--deep` from the target description, activate **deep mode** — runs the adversarial verification stage (step 4d) over the merged findings before synthesis. Combinable with any mode (standard / `--council` / `--hats`).
+   - **Auto-deep:** even without `--deep`, activate deep mode automatically when the target is high-stakes — an architectural or irreversible decision, cost-of-being-wrong rated expensive/catastrophic in step 2, or an M+ effort plan. When auto-triggering, tell the user one line: "High-stakes target — running deep verification."
    - If no arguments: **conversation-context inference** — scan recent conversation turns (both user and assistant) to identify the most significant unchalllenged decision, plan, or proposal. Priority order:
      1. A plan or architecture decision being actively discussed
      2. A proposal the user described or asked about
@@ -73,17 +74,12 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
    - High-confidence plans / user seems anchored / "obviously good" decision → **Inversion**: "What would guarantee this fails completely?" Invert the goal, actively design failure, then check if any failure patterns are already present in the plan. Signal: user is very confident, plan has broad consensus, or multiple prior attempts stalled. For all flavors, a brief inversion pass can precede the hive-mind as a warm-up — brief the workers with the top 2 failure patterns found via inversion as additional context.
 
-<!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown,mcp__brana__agy_delegate")
-
 4. **Launch challengers in parallel:**
 
    **4a. Challenger(s)** — Two modes based on step 1 detection:
 
    **Standard mode** (default, no `--council` flag):
-   Read `../_shared/adversarial-hive-mind.md` for the full pattern (setup, worker roles, consensus, fallback).
-   Caller-specific values: `prefix: "challenger"`, `type: "findings"`, `value: "{merged findings}"`.
-   Note: `majority` quorum is the working assumption — re-calibrate if ruflo subscription auth becomes available.
+   Read `../_shared/adversarial-hive-mind.md` for the full pattern — three native `brana:challenger` subagents (convergent · systems · critical) spawned in parallel via the Agent tool, Claude merges. Caller-specific value: `prefix: "challenger"`.
 
    For all workers/fallback — provide: the plan/approach being challenged + relevant code/files + the chosen flavor.
    Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
@@ -145,6 +141,18 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
    - Flag violations as findings with source attribution
    - This is where the adversarial reasoning happens — Claude judges, Gemini retrieves
 
+   **4d. Adversarial verification** (deep mode only — `--deep` flag or auto-deep from step 1):
+   After 4a–4c produce the raw findings, before synthesizing, re-attack each finding to drop plausible-but-wrong ones. Collect the merged findings into a list (one entry per concern, with its provisional severity and source), then dispatch:
+   ```
+   Workflow({ scriptPath: ".claude/workflows/verify-findings.js", args: {
+     target: "{what was challenged}",
+     findings: [ { severity: "CRITICAL", text: "{finding}", source: "{agent/role}" }, ... ],
+     voters: 2
+   }})
+   ```
+   The workflow returns each finding with `holds` / `adjusted_severity` / `reason`. In step 5: drop `FALSE_POSITIVE` findings (list them in a short "Refuted in verification" note so the user sees what was filtered), and present survivors at their `adjusted_severity` rather than the raw one. Gemini compliance findings (4c) are HIGH-confidence by construction — pass them through verification too, but a refutation only downgrades, never deletes, a doc-grounded constraint.
+   If the Workflow tool is unavailable, fall back: Claude re-attacks each CRITICAL/WARNING finding inline (one skeptical pass each) before synthesis.
+
 5. **Merge and present findings with confidence tiers.** Await all agents (and Gemini if running) before synthesizing. Each finding gets a confidence tier based on its source:
 
    | Source | Confidence | Why |
@@ -155,6 +163,7 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
    | Gemini with source citation | **MEDIUM** `[AGY-UNVERIFIED]` | Good retrieval, but citation needs verification |
    | Gemini citing external tools/practices not in docs | **LOW** `[AGY-UNVERIFIED]` | Hallucination risk — Gemini invents plausible references |
    | Compliance check (4c) | **HIGH** | Claude reasoning on Gemini-retrieved constraints |
+   | Survived deep verification (4d) | **+ `[VERIFIED]`** | Re-attacked by N independent skeptics and held; severity recalibrated. Tag added on top of the source tier. |
 
    **Standard mode report:**
    ```
@@ -290,7 +299,10 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 ## Rules
 
-- **No arguments = conversation inference.** Empty `/brana:challenge` scans the conversation for the most significant unchalllenged decision or plan — from either user or assistant. Never ask "what should I challenge?" unless the conversation truly has no decision context (session just started, only greetings).
+- **Challengers are native subagents, not ruflo.** Standard/council/hats modes all spawn real `brana:challenger` subagents via the Agent tool (subscription, no API key). Never reintroduce `mcp__ruflo__hive-mind_*` — those calls write metadata records and self-votes but never execute workers (verified theater, 2026-06-19; see `field-note_ruflo-agentic-layer-subscription-theater`).
+- **`--deep` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target. `--deep` adds step 4d (verify) on top of whatever mode is active; it does not change the find mode.
+- **Auto-deep on high-stakes.** Trigger deep verification without the flag when the target is architectural/irreversible, cost-of-being-wrong is expensive/catastrophic, or effort is M+. Announce it in one line; don't ask permission.
+- **Verification downgrades, never deletes, doc-grounded findings.** A compliance finding (4c) refuted in 4d drops a tier but is never removed — a documented constraint that a skeptic argues against still deserves the user's eyes.
 - **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask.
 - **All challengers run in parallel.** Don't wait for one to finish before starting others. Launch all agents and Gemini simultaneously.
 - **`--council` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target description. Never include `--council` in the agent brief.

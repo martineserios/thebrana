@@ -7,6 +7,11 @@
 //
 // Runs on your Claude subscription via the native Workflow tool. No API key, no ruflo.
 //
+// NOTE (ADR-059): hive-mind's verify stage does NOT use verify-findings.js. That workflow
+// verifies FINDINGS (holds / severity / FALSE_POSITIVE — a judge-panel). Here we verify a
+// free-form ANSWER against its key_claims (holds_up / problems / adjusted_confidence). They
+// are different primitives; severity is meaningless for an answer. Do not merge them.
+//
 // USAGE (user must name the workflow — that satisfies the Workflow opt-in rule):
 //   Workflow({ name: "hive-mind", args: { question: "should we use X or Y?" } })
 //   Workflow({ name: "hive-mind", args: { question: "...", workers: 5 } })
