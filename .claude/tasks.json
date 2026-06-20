@@ -56787,6 +56787,35 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2145",
+      "subject": "ADR-060: two-tier dev/main branch strategy + worktree-per-actor for autonomous agents",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [
+        "harness-engineering",
+        "adr-059",
+        "autonomous",
+        "runner",
+        "branching"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Decision (settled with user 2026-06-20): two-tier dev/main, NOT full env branches. main=production (what bootstrap deploys, hard-protected, deliberate promotion only); dev=default integration line where humans+agents converge. Agents (and humans) branch off dev in ephemeral worktrees, PR back to dev (human-gated), promote dev->main = ship. Forward-compatible: a collaborator joining flips on review gates (required approvals, CODEOWNERS, up-to-date, merge queue) — NO topology change. Treat agent PRs identically to a teammate's PRs so the model is uniform for humans+robots.\n\nGrounds: extends doc 19 GitHub Flow (docs/19-pm-system-design.md Branch Strategy) + ADR-059 substrate + autonomous-runner feature spec. Research 2026: trunk/main target + worktree-per-agent (load-bearing primitive) + human merge gate + stale-branch reaping.\n\nMaps to brana's REAL production boundary: dev=staged (not deployed), main=deployed via bootstrap.sh. Not theater.\n\nAC: ADR-060 written in docs/architecture/decisions/ with the dev/main model, worktree-per-actor isolation, human promotion gate, and a documented team-mode toggle set (dormant until a collaborator joins)\nAC: cross-referenced from doc 19, ADR-059, and the autonomous-runner feature spec\nAC: phased implementation plan filed as child tasks",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
