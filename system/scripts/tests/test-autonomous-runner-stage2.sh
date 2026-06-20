@@ -99,6 +99,16 @@ ok "park: base pristine" '[ "$( cd "$R"; git rev-list --count HEAD )" = "1" ]'
 ok "park: ledger decision=would-park" '[ "$(jq -r "select(.id==\"t-7001\")|.decision" "${R}.ledger.jsonl" 2>/dev/null)" = "would-park" ]'
 rm -rf "$R"
 
+# 6. Generated-file churn (e.g. brana regenerating docs/spec-graph.json) is tolerated by
+#    preflight — it must NOT block the run, since those files are never hand-edited.
+R="$(make_repo)"
+( cd "$R"; mkdir -p docs; echo '{"v":1}' > docs/spec-graph.json; git add -A; git commit -q -m gen )
+( cd "$R"; echo '{"v":2}' > docs/spec-graph.json )   # uncommitted churn in a generated file
+run_one "$R" RUNNER_GENERATED_FILES="docs/spec-graph.json"
+ok "generated churn tolerated: run proceeded (branch created)" '( cd "$R"; git rev-parse --verify "$BRANCH" >/dev/null 2>&1 )'
+ok "generated churn: not folded into task commit" '! ( cd "$R"; git show "$BRANCH" --stat 2>/dev/null | grep -q "spec-graph.json" )'
+rm -rf "$R"
+
 rm -rf "$STUBDIR"
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" = 0 ]

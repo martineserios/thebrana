@@ -113,7 +113,14 @@ park() { # reason — record a parked question and leave the task pending
 read -r DECISION REASON < <(plan_task "$ID" "$SUBJ")
 if [ "$DECISION" = "would-park" ]; then park "$REASON"; exit 0; fi
 
-# Preflight: working tree must be clean so we can isolate + revert cleanly.
+# Auto-generated files churn as a side effect of brana reads/writes (e.g. brana regenerates
+# docs/spec-graph.json on any backlog query). They are never hand-edited, so their uncommitted
+# churn is always safe to discard — do so before the clean check and before committing.
+GENERATED="${RUNNER_GENERATED_FILES:-docs/spec-graph.json}"
+drop_generated() { local gf; for gf in $GENERATED; do git checkout -- "$gf" 2>/dev/null || true; done; }
+
+# Preflight: working tree must be clean (modulo generated files) so we can isolate + revert cleanly.
+drop_generated
 if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
   echo "[autonomous-runner] run-one: ABORT — working tree not clean, refusing to run"; exit 1
 fi
@@ -152,6 +159,7 @@ if git diff --quiet && git diff --cached --quiet; then cleanup_fail "no changes 
 if ! ( eval "$VALIDATE_CMD" ) >/dev/null 2>&1; then cleanup_fail "verification failed ($VALIDATE_CMD)"; exit 1; fi
 
 # Commit on the task branch — hooks run. Never merge, never mark task completed.
+drop_generated   # don't fold brana side-effect churn into the task commit
 git add -A
 git commit -q -m "feat(auto): ${SUBJ} (${ID})" || { cleanup_fail "commit rejected (hooks?)"; exit 1; }
 emit "$ID" "$SUBJ" ran "committed on $BRANCH (validate ✓), awaiting human review"
