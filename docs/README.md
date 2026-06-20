@@ -70,6 +70,10 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
 | [workflow-primitive.md](architecture/workflow-primitive.md) | Verified `Workflow` tool API surface, smoke-test evidence, opt-in rule |
+| [substrate-end-state.md](architecture/substrate-end-state.md) | Autonomous-agent substrate end-state design — tiers, runner stages, safety net, branch strategy |
+| [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
+| [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
+| [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
 
 ### Extending brana
 
