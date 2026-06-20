@@ -56982,6 +56982,44 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "subject": "Align session-handoff routing to ADR-060 unit hierarchy (kill cross-session/worktree/branch mixing)",
+      "type": "task",
+      "kind": "design",
+      "work_type": "design",
+      "effort": "M",
+      "priority": "P1",
+      "epic": "harness",
+      "tags": [
+        "session-state",
+        "worktree",
+        "handoff",
+        "adr-060",
+        "routing"
+      ],
+      "description": "Last session, concurrent work mixed worktrees/sessions/branches and session handoffs mis-filed. Root cause: `brana session path` resolves the handoff target file from the CURRENT BRANCH NAME (epic prefix), not from a stable per-unit key. Closing from `main` orphans the handoff (the `(orphan)` bucket); closing while the shared checkout sits on another epic's branch mis-files into that epic. The current mitigation is a discipline-only rule (worktree-per-epic, commit a32befc7 + field note 2026-06-20) — fragile, relies on the operator never closing from the wrong tree.\n\nDirection (per Martin): session handoff should be anchored to a stable HIERARCHY — task -> branch/worktree -> session-state — so sessions continue session-over-session in ONE direction on the same unit, never interleaving, and explicit CONSOLIDATION sessions roll work up at the integration line (dev -> main) instead of mixing. This is the session-state analog of ADR-060's Layer-1 invariant #4 ('every unit is isolated and revertable — one branch + one worktree per task'). Backlog (epic/task) and branch/worktree should be a single coherent key, not two independently-derived ones that can disagree.\n\nScope: (1) DESIGN the session/backlog/branch hierarchy + the routing key (route by epic/task focus marker or worktree identity, not raw `git branch --show-current`); (2) make `brana session` close-routing robust — warn or block close from the production/default branch, and resolve the bucket from the unit key so it can't mis-file; (3) one-shot migration/recovery of existing orphaned + mis-filed handoffs into their correct epic buckets. Extend/relate to ADR-060 (thebrana docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md); coordinate with the worktree-isolation work in t-2146.",
+      "context": "2026-06-20: filed after a session where worktree/session/branch state got mixed and the platform-ui-hardening handoff orphaned to session-state.json (closed from main). Discipline rule already exists (worktree-per-epic) but Martin wants a structural fix: session handoff keyed to a task->branch->session hierarchy so work flows one direction across sessions, with dedicated consolidation sessions at the integration branch. Anchor to ADR-060 (one branch + one worktree per unit; integration->production line) and t-2146 (worktree isolation, the precondition that makes the unit key stable). Start as design (settle the hierarchy + routing-key schema) before implementation.",
+      "acceptance_criteria": [
+        "Design doc / ADR amendment defines the task->branch/worktree->session-state hierarchy and the single routing key derived from it",
+        "brana session close-routing resolves the handoff bucket from the unit key (not raw current-branch) and warns/blocks close from the production/default branch",
+        "Existing orphaned + mis-filed handoffs migrated into correct epic buckets; sitrep --all shows zero spurious orphans",
+        "Explicitly relates to ADR-060 and coordinates with t-2146 worktree isolation"
+      ],
+      "id": "t-2152",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-06-20",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": "1"
