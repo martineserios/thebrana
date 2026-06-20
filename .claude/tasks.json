@@ -56699,6 +56699,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2142",
+      "subject": "Learned/adaptive eligibility for the autonomous runner",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "harness-engineering",
+        "autonomous",
+        "runner",
+        "learning"
+      ],
+      "description": "Future capability: the autonomous runner learns which task shapes it completes reliably and graduates them from manual opt-in to auto-eligible, instead of static execution:autonomous whitelisting forever.",
+      "effort": "L",
+      "priority": "P2",
+      "parent": "t-2140",
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Builds on t-2140 (static opt-in eligibility = execution:autonomous + never-P0). IDEA (user, 2026-06-20): over time, learn from the runner's own track record which task kinds/efforts/tags it completes successfully + passes verification + gets merged without human edits → propose graduating those shapes to auto-eligible. Inputs: the run ledger (success/fail/parked per task), merge outcomes (did human edit before merge?), verification pass rate. Keep human approval in the loop for graduating a shape (suggest, don't auto-expand reach). Ties into the ADR-050 autonomy caps. Do NOT start until t-2140 runner + run ledger exist.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
