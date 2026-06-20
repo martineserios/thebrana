@@ -1,6 +1,6 @@
 # Feature Spec — Autonomous Task Runner
 
-**Task:** t-2140 · **Status:** Stages 1-3 built (Stage 4 = t-2142) · **Date:** 2026-06-20
+**Task:** t-2140 · **Status:** Stages 1-3 built + worktree isolation (t-2146, ADR-060) · Stage 4 = t-2142 · **Date:** 2026-06-20
 **Basis:** ADR-059 (substrate selection) · [substrate-leverage-audit](../../research/substrate-leverage-audit.md) · ADR-050 (autonomy caps) · [ADR-060](../decisions/ADR-060-branch-strategy-autonomous-agents.md) (branch strategy: agents cut from `dev` in ephemeral worktrees, PR to `dev`, human promotes `dev`→`main`)
 
 ## Problem
@@ -90,7 +90,15 @@ Runs with `RUNNER_PLAN=0` (no `claude` call) for a hermetic, fast test.
 3. `RUNNER_VALIDATE_CMD` (default `./validate.sh`) passes,
 4. (best-effort) AC check if the task has `AC:` lines.
 
-**Failure invariant (the critical safety property):** on *any* failure — `NEEDSHUMAN`, empty diff, validate fail, dispatch error — the runner **reverts the working tree, returns to the base branch, and deletes the task branch.** No partial commits, base branch always pristine.
+**Worktree isolation (t-2146, ADR-060):** `run_task` no longer touches the live working tree. It
+resolves the integration branch (`RUNNER_BASE_BRANCH` → `.claude/CLAUDE.md` `integration=` → `dev` →
+current HEAD with a loud warning), then cuts an **ephemeral worktree** off that base
+(`git worktree add … origin/<base>`), does all dispatch/verify/commit *inside* it, opens the PR with
+`--base <integration>`, and removes the worktree on every exit. This contains blast radius (live tree +
+base never modified), enables parallel agents (separate `.git/index`), and **resolves the detached-HEAD
+bug by construction** — the base is explicit, never derived from `git branch --show-current`.
+
+**Failure invariant (the critical safety property):** on *any* failure — `NEEDSHUMAN`, empty diff, validate fail, dispatch error — the runner **removes the ephemeral worktree and its branch.** No partial commits; the live tree and base branch are never touched.
 
 **Output:** a commit on `RUNNER_BRANCH_PREFIX/<id>` (default `runner/auto/<id>`). With `RUNNER_PUSH=1` it also opens a PR via `gh`. Default is local-branch-only (no remote needed).
 
