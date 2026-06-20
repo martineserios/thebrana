@@ -56791,7 +56791,7 @@
     {
       "id": "t-2145",
       "subject": "ADR-060: two-tier dev/main branch strategy + worktree-per-actor for autonomous agents",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "design",
       "tags": [
