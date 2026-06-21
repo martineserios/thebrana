@@ -58225,7 +58225,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "file docs/architecture/ac-grammar.md exists",
+        "file docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md contains \"docs/architecture/ac-grammar.md\""
+      ],
       "epic": "backlog-schema",
       "strategy": "feature"
     },
@@ -58341,6 +58344,123 @@
       ],
       "branch": null,
       "context": "After plan generates criteria and AC: lines normalize into the field, update docs: plan.md defaults section, build LOAD goal-injection step, and a user-guide note on how criteria drive loop+goal auto-completion. Blocked_by t-2201, t-2202.\nAC: file docs/ideas/loop-goal-native-planning.md exists</context>\n",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2204",
+      "subject": "Harden goal-completion.sh — enforce /goal done-signal immutability + presence interlock",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "goal",
+        "security",
+        "looptrap",
+        "hooks"
+      ],
+      "description": "Implement ADR-061 invariants 1 + 2 in the LIVE goal-completion.sh hook, which today grades by running the test command in the live worktree with no diff-guard, no base-ref pinning, and a live AC read — so a /goal loop can satisfy its AC by editing a fixture, mock, or the AC line itself. This is the BLOCKER precondition before any /goal binding can be trusted (challenger Attack 3 on ADR-061).",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2194",
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-06-21: Precondition for the whole /goal binding line (ADR-061 §4). Derived from challenger BLOCKER: the deployed hook does NOT enforce done-signal immutability.\nScope:\n1. Invariant 2 — grade against a base-ref-pinned copy of grader paths; reject/gate if the iteration mutated any of: *.test.*, tests/ (incl fixtures/, mocks/), __mocks__/, or the AC: lines (pin AC at iteration start, do not read live).\n2. Invariant 1 — presence interlock: auto-advance only in a structurally-verified interactive session (headless → refuse auto-complete).\nAC: goal-completion.sh pins AC lines at iteration start, not live-read\nAC: a mutation to any grader path (*.test.*, tests/, __mocks__/) during the iteration trips a gate instead of auto-completing\nAC: headless/non-interactive invocation refuses auto-advance\nAC: tests cover each: fixture-edit gaming attempt blocked, AC-line-edit blocked, headless refusal\nAC: validate.sh passes",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2205",
+      "subject": "/goal binding — /brana:build TDD loop (Stage 2, first binding)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "goal",
+        "build",
+        "loop-native"
+      ],
+      "description": "Stage 2 of ADR-061: the first /goal binding — /brana:build's red→green TDD span, done when all AC: exit codes == 0. The flagship binding; soak it to produce evidence before Stages 3-4. Must resolve the ADR-061 Open item (challenger Attack 4): decide whether /goal extends to actually iterate (and confirm the per-subtask TDD gate sits at the span boundary, not inside it — else C2 violated) or stays a session anchor.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2194",
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2204"
+      ],
+      "branch": null,
+      "context": "2026-06-21: ADR-061 Stage 2. Span = red→green ONLY (refactor outside, invariant 3). Done = AC: exit codes 0. blocked_by the hook hardening (t-2204) — the binding is not trustworthy until invariant 2 is enforced.\nAC: build's TDD span runs as a /goal binding, stopping AT the per-subtask TDD gate (never through it)\nAC: refactor excluded from the iterate-until span\nAC: the one-shot-anchor vs iterate-loop decision (ADR-061 Open) is made and documented\nAC: emits structured audit output (criterion satisfied by which commit/file) for later t-1981/t-1992 use\nAC: validate.sh passes",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2206",
+      "subject": "/goal bindings — /brana:fix + /brana:reconcile (Stage 3)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "goal",
+        "fix",
+        "reconcile",
+        "loop-native"
+      ],
+      "description": "Stage 3 of ADR-061: the second and third /goal bindings, unlocked once the build TDD binding (Stage 2) has a track record. fix span = reproduce→fix→verify (done = failing test passes); reconcile span = detect→fix→re-validate (done = validate.sh exit 0). Both reuse the hardened hook + the same primitive — declarations, not new engines.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2194",
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2205"
+      ],
+      "branch": null,
+      "context": "2026-06-21: ADR-061 Stage 3. Autonomy earned per binding — only after Stage 2 (t-2205) soak. reconcile must carry the binding-declaration re-audit rule (ADR-061 §3, challenger Attack 1) since it edits live system files and could gain a gate.\nAC: /brana:fix gains a /goal binding (reproduce→fix→verify, done = failing test passes)\nAC: /brana:reconcile gains a /goal binding (detect→fix→re-validate, done = validate.sh exit 0)\nAC: both pass criteria C1/C2/C3 and the security invariants\nAC: validate.sh passes",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2207",
+      "subject": "/goal generalized binding — any gate-free phase declares a /goal (Stage 4)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "goal",
+        "loop-native",
+        "generalization"
+      ],
+      "description": "Stage 4 of ADR-061: the generalized binding — any gate-free, machine-verifiably-terminating skill phase can declare a /goal by stating {span, observable-done-signal}. This is the destination architecture (one primitive, N declarations). The widest autonomy surface, shipped LAST and only after 2-3 concrete bindings have evidence.",
+      "effort": "L",
+      "priority": "P3",
+      "parent": "t-2194",
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2206",
+        "t-1992"
+      ],
+      "branch": null,
+      "context": "2026-06-21: ADR-061 Stage 4. The ONLY binding that needs t-1992 — it must read phase order + gate flags (next_step/gate_pending) from the step-state contract to know which phases are gate-free. blocked_by both t-1992 (step registry) and t-2206 (Stage 3 evidence). Do not start before t-1992 lands and Stages 2-3 have a track record.\nAC: a skill declares a /goal binding via {span, done-signal} read against the t-1992 step registry\nAC: generalized binding subsumes the 3 specific bindings without regressing their behavior\nAC: grep-able binding list maintained (ADR-061 §3)\nAC: validate.sh passes",
       "notes": null,
       "order": 0,
       "github_issue": null,
