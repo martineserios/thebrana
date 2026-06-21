@@ -106,6 +106,16 @@ fn main() {
             OpsCmd::Reindex => run_or_exit(commands::ops::cmd_ops_reindex()),
             OpsCmd::Metrics { session_file } => run_or_exit(commands::ops::cmd_ops_metrics(&session_file)),
         },
+        Commands::Orbit { cmd } => match cmd {
+            OrbitCmd::Observe { max_tasks } => run_or_exit(commands::orbit::cmd_orbit_observe(max_tasks)),
+            OrbitCmd::Run { one, push, max_tasks, max_fails } => {
+                run_or_exit(commands::orbit::cmd_orbit_run(one, push, max_tasks, max_fails))
+            }
+            OrbitCmd::Enable => run_or_exit(commands::orbit::cmd_orbit_toggle(true)),
+            OrbitCmd::Disable => run_or_exit(commands::orbit::cmd_orbit_toggle(false)),
+            OrbitCmd::Stop { clear } => run_or_exit(commands::orbit::cmd_orbit_stop(clear)),
+            OrbitCmd::Status => run_or_exit(commands::orbit::cmd_orbit_status(&theme)),
+        },
         Commands::Feed { cmd } => run_or_exit(commands::feed::cmd_feed(cmd)),
         Commands::Inbox { cmd } => run_or_exit(commands::inbox::cmd_inbox(cmd)),
         Commands::Skills { cmd } => match cmd {
