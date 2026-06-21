@@ -58235,7 +58235,7 @@
     {
       "id": "t-2200",
       "subject": "Tests for criteria heuristic-lint classifier (checkable vs prose)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -58249,7 +58249,7 @@
       "parent": "t-2198",
       "created": "2026-06-21",
       "started": "2026-06-21",
-      "completed": null,
+      "completed": "2026-06-21",
       "blocked_by": [
         "t-2199"
       ],
@@ -58259,7 +58259,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "file system/hooks/tests/test-ac-lint.sh exists",
+        "\"bash system/hooks/tests/test-ac-lint.sh\" passes"
+      ],
       "epic": "backlog-schema",
       "strategy": "feature"
     },
