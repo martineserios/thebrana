@@ -1141,7 +1141,11 @@ pub fn cmd_triage_stale(
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
-    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
+    // NOTE (t-2166): deliberately NOT locked here. cmd_triage_stale runs an
+    // interactive prompt loop (read_line) with incremental saves; holding the
+    // flock across human think-time would block every other session. Needs a
+    // two-phase redesign (collect approvals unlocked → apply under a short
+    // lock) — deferred to the sync/run/triage follow-up task.
     let mut data = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     // Collect display info and matched IDs before taking any mutable borrow.
