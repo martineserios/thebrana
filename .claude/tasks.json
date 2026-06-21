@@ -58368,7 +58368,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "file docs/conventions/ac-criteria.md contains \"ac-grammar.md\"",
+        "file system/skills/backlog/phases/plan.md contains \"acceptance_criteria\""
+      ],
       "epic": "backlog-schema",
       "strategy": "feature",
       "work_type": "design"

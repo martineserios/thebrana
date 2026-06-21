@@ -53,14 +53,14 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 
 Before the Challenger, a separate `build-evaluator` agent grades the implementation against your task's `AC:` lines. This is an objective pass/fail check — did you build what the spec said?
 
-**When it runs:** automatically when `AC:` lines are present in task context. Skipped silently otherwise.
+**When it runs:** automatically when the task has `acceptance_criteria` (the canonical field) or `AC:` lines in context. Skipped silently otherwise. Tasks planned via `/brana:backlog plan` get criteria auto-generated, so this gate usually activates without hand-writing anything.
 
 **Verdicts:**
 - **PASS** — all criteria met; proceeds to Challenger Gate
 - **PASS WITH GAPS** — some criteria partial; warns but proceeds
 - **FAIL** — one or more criteria MISSED; blocks CLOSE (max 2 repair iterations, same pattern as Challenger)
 
-Write `AC:` lines during SPECIFY for this gate to activate. See [AC: syntax](../../conventions/ac-criteria.md) for machine-parseable forms.
+Criteria come from planning (auto-generated) or `AC:` lines written during SPECIFY; `AC:` lines normalize into the `acceptance_criteria` field on first build. See [AC: syntax](../../conventions/ac-criteria.md) for the user-facing forms and [ac-grammar.md](../../architecture/ac-grammar.md) for the canonical heuristic grammar.
 
 ---
 

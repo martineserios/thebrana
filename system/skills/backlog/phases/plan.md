@@ -128,6 +128,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 
 ### Defaults
 - `work_type`: inferred from task kind (implement → feature/fix/refactor, research → research/docs, design → design); ask if ambiguous
+- `acceptance_criteria`: auto-generated for leaf implement/design tasks (step 11b) — template+LLM-fill, linted against [`ac-grammar.md`](../../../../docs/architecture/ac-grammar.md), written to the canonical field
 - `epic`: inherited from phase (set in step 3a); null if skipped
 - Execution: code (if project has .git), manual (otherwise)
 - Priority/effort: null (user provides later if needed)
