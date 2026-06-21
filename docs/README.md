@@ -32,6 +32,7 @@ User-facing documentation. Start here.
 | [concepts.md](guide/concepts.md) | Key terms: skills, rules, hooks, agents, identity layer |
 | [commands/index.md](guide/commands/index.md) | Quick command reference |
 | [python-to-rust-migration.md](guide/python-to-rust-migration.md) | Python→Rust migration guide: 10 concept comparisons with brana examples |
+| [try-new-features.md](guide/try-new-features.md) | Copy-paste prompts to exercise ADR-059/060 features (runner, secret-gate, workflows, branch flow) — t-2167 |
 
 ### Workflow guides (docs/guide/workflows/)
 
