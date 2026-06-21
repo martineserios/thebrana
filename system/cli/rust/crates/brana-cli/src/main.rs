@@ -236,18 +236,16 @@ fn main() {
             run_or_exit(commands::log::cmd_log(&entries, tags.as_deref()))
         }
         Commands::Deploy => {
-            println!("brana deploy = ./bootstrap.sh from dev  (dev-is-live, dev-first model)");
+            println!("brana deploy = ship dev->main, then ./bootstrap.sh from main  (ADR-060)");
             println!();
-            println!("  ./bootstrap.sh            # propagate system/ to ~/.claude (run on dev)");
-            println!();
-            println!("dev is the integration + live branch — what you work on and what bootstrap");
-            println!("deploys. No build step, no container; the system runs locally.");
-            println!();
-            println!("Release a stable snapshot to main (periodic, NOT per-feature):");
             println!("  git checkout main");
-            println!("  git merge --ff-only dev");
+            println!("  git merge --ff-only dev      # promote the integration buffer to production");
+            println!("  ./bootstrap.sh               # deploy production -> live ~/.claude");
             println!("  git push origin main dev");
-            println!("  git checkout dev");
+            println!("  git checkout dev             # back to the integration branch");
+            println!();
+            println!("main is production (what bootstrap deploys); dev is the integration buffer,");
+            println!("not live. main lagging dev is the safety buffer. No build step, no container.");
             println!();
             println!("Never merge a feature branch into main. See docs/guide/workflows/branching.md");
         }

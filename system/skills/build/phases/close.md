@@ -139,10 +139,11 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    git merge --no-ff {branch-name} -m "{type}: {description}"
    git branch -d {branch-name}
    ```
-   Feature branches integrate to `dev` — the integration **and live** branch (dev-is-live:
-   the auto-deploy in step 10c bootstraps your changes into `~/.claude` so you use them
-   immediately). `main` is the **release** branch — it advances only via a deliberate
-   `dev→main` release snapshot (see step 13). **Never merge a feature branch directly to main.**
+   Feature branches integrate to `dev` — the integration branch (ADR-060). **Nothing on
+   `dev` is live**; it is the staging buffer (`main` lagging `dev` is the safety feature).
+   `main` is production — what `bootstrap.sh` deploys to live `~/.claude/`. Deployment
+   happens **only at ship** (`dev→main` + bootstrap from main — step 14), never on
+   integration. **Never merge a feature branch directly to main.**
 
 10b. **Post-merge targeted validate** (t-1485) — after the merge completes, derive which checks apply to the changed files and run only those:
    ```bash
@@ -163,29 +164,11 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    ```
    Present any failures inline. This is advisory (individual check failures surface as warnings, not blocks) — the full `./validate.sh` run at the BUILD→CLOSE gate is the authoritative pass. Skip for spike and investigation strategies.
 
-10c. **Post-merge auto-deploy** (t-1948) — deploy what the merge changed, immediately after the targeted validate. No-op when the merged diff touches neither surface:
-   ```bash
-   # Recompute the merged change set — self-contained, do NOT rely on step 10b's
-   # shell ($CHANGED does not survive across separate bash invocations).
-   # ORIG_HEAD is set by the merge in step 10 (covers --no-ff and ff alike);
-   # HEAD~1 fallback assumes the --no-ff merge this procedure mandates.
-   CHANGED=$(git diff --name-only ORIG_HEAD HEAD 2>/dev/null        || git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
-   if [ -z "$CHANGED" ]; then
-       echo "⚠ Could not derive merged change set (shallow clone / no prior commit) — verify deploys manually: make hooks-deploy, ./bootstrap.sh --sync-plugin"
-   fi
-   # Hooks: deploy when the diff touches system/hooks/ (no-op when it doesn't)
-   if grep -q "^system/hooks/" <<< "$CHANGED"; then
-       make hooks-deploy || { echo "ERROR: make hooks-deploy failed — fix before continuing; a half-deployed merge is worse than a known-undeployed one"; exit 1; }
-       echo "Hooks deployed."
-   fi
-   # Plugin cache: sync when the diff touches system/skills/ or system/procedures/
-   # (ADR-034 deploy requirement — a merge without the sync leaves the deployed
-   # plugin pointing at stale or deleted files)
-   if grep -qE "^system/(skills|procedures)/" <<< "$CHANGED"; then
-       ./bootstrap.sh --sync-plugin || { echo "ERROR: --sync-plugin failed — fix before continuing"; exit 1; }
-   fi
-   ```
-   Run from the main repo root (the checkout where the merge landed), not a worktree. If either deploy ran, remind: sessions in flight still hold the pre-deploy skill/hook state — restart them to pick up the change.
+10c. **No deploy on integration** (ADR-060). `dev` is the staging buffer, not live —
+   `bootstrap.sh` refuses to deploy from any branch but `main` (the from-main guard, t-2151),
+   so there is **nothing to deploy here**. Deployment (`make hooks-deploy` / `bootstrap.sh`)
+   happens only at **ship**, after the `dev→main` promotion — see step 14. Do not attempt to
+   bootstrap from `dev`.
 
 11. **Reconcile check** (post-merge, before docs):
    If `docs/spec-graph.json` exists, check whether merged files appear in any spec-graph node's `impl_files`. If matches found, offer to run `/brana:reconcile`:
@@ -232,24 +215,25 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - {field notes captured, assumptions verified, changelogs updated}
    ```
 
-14. **Release to main** (periodic — NOT every build) — offer, do NOT auto-execute:
-   Work now lives and is deployed on `dev`. `main` is the blessed release snapshot —
-   advance it deliberately when `dev` is stable (end of a work batch, or before stepping
-   away), never per-feature. Offer:
+14. **Ship to main** (human-gated; periodic — NOT every build) — offer, do NOT auto-execute:
+   `dev` is the integration buffer; **shipping promotes it to production and deploys** (ADR-060:
+   "merge `dev`→`main` = ship, then `bootstrap.sh`"). Do this deliberately when `dev` is stable
+   (end of a work batch, or before stepping away), never per-feature. Offer:
    ```
-   question: "dev is ahead of main by {N} commits. Cut a release snapshot to main?"
-   options: ["Yes — release dev→main + push", "Skip — keep accumulating on dev"]
+   question: "dev is ahead of main by {N} commits. Ship dev→main and deploy?"
+   options: ["Yes — ship + deploy", "Skip — keep accumulating on dev"]
    ```
    On yes:
    ```bash
    git checkout main
-   git merge --ff-only dev          # dev-first keeps this a clean fast-forward
-   git push origin main dev         # publish the snapshot + back up dev
-   git checkout dev                 # return to the live/integration branch
+   git merge --ff-only dev          # dev→main stays a clean fast-forward
+   ./bootstrap.sh                   # deploy production from main (the from-main guard passes here)
+   git push origin main dev         # publish the release + back up dev
+   git checkout dev                 # return to the integration branch
    ```
-   If `--ff-only` is rejected (someone committed to main directly — a convention
-   violation), STOP and investigate; do not force. The release is also the natural
-   home for `/brana:ship` if a richer pre-flight/verify gate is wanted.
+   If `--ff-only` is rejected (someone committed to `main` directly — a convention violation),
+   STOP and investigate; do not force. Sessions in flight still hold pre-deploy skill/hook
+   state — remind to restart them. `/brana:ship` is the richer pre-flight/verify alternative.
 
 > **☑ Checkpoint cleanup — CLOSE:** Delete run-state on successful close (M+ builds with task_id):
 > ```bash
