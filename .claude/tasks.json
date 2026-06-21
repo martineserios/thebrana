@@ -58269,7 +58269,7 @@
     {
       "id": "t-2201",
       "subject": "plan.md generates acceptance_criteria per leaf task (template+LLM-fill, lint+warn, atomicity signal)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -58284,13 +58284,13 @@
       "parent": "t-2198",
       "created": "2026-06-21",
       "started": "2026-06-21",
-      "completed": null,
+      "completed": "2026-06-21",
       "blocked_by": [
         "t-2200"
       ],
-      "branch": null,
+      "branch": "backlog-schema/feat/t-2201-plan-generates-criteria",
       "context": "Implements ADR-047 §5 (specified, never built). Add a step to /brana:backlog plan: for each leaf implement/design task, generate acceptance_criteria (the field, not AC: lines) via template+LLM-fill by work_type (implement -> '\"<test cmd>\" passes' + 'validate.sh Check N passes'; design -> 'file <adr>.md exists'); user confirms. Lint each against t-2199 grammar, warn (don't block) when a criterion won't auto-complete. Atomicity: flag leaf tasks with >10 criteria (ADR-047 §1) or M+ effort for split. Write via the acceptance_criteria field (backlog_set/--acceptance-criteria). Blocked_by t-2200 (tests first).\nAC: file system/skills/backlog/phases/plan.md contains \"acceptance_criteria\"\nAC: \"bash system/hooks/tests/test-ac-lint.sh\" passes</context>\n",
-      "notes": null,
+      "notes": "ac-lint.sh (33/33 tests green) + plan.md step 11b criteria generation. No new validate.sh failures (2 pre-existing Check 30/48 unchanged; Check 32 stayed 55 via herestrings).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
