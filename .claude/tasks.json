@@ -57751,6 +57751,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2183",
+      "subject": "brana backlog set tags -&lt;tag&gt; fails — clap parses leading-dash value as a flag",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "cli",
+        "backlog",
+        "dx",
+        "bug"
+      ],
+      "description": "The backlog skill documents `brana backlog set <id> tags -oldtag` to remove a tag, but the CLI rejects it: `error: unexpected argument '-_' found ... tip: to pass '-_' as a value, use '-- -_'`. clap treats the leading-dash VALUE as a flag. The `+tag` add form works; only `-tag` removal is broken from the CLI (the MCP backlog_set path works fine — it doesn't go through clap). Fix options: mark the VALUE arg with `allow_hyphen_values(true)` on the clap definition for `backlog set`, or have the CLI accept the value after `--`. Discovered during t-2166 smoke test 2026-06-20.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: `brana backlog set <id> tags -sometag` removes the tag without a clap parse error\nAC: `+tag` add form still works\nAC: regression test covers the -tag CLI path\n2026-06-20: found during t-2166 deploy smoke test. Workaround: use MCP backlog_set with value \"-tag\", or `brana backlog set <id> tags -- -tag`. brana-system data path — Claude only.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
