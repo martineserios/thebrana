@@ -1,9 +1,9 @@
 ---
-status: proposed
+status: accepted
 ---
 # ADR-061: `/goal` Integration — Three-Primitive Composition (loop · goal · workflow)
 
-**Status:** Proposed (2026-06-21)
+**Status:** Accepted (2026-06-21; after two challenger passes — review + verification, all findings resolved)
 **Date:** 2026-06-21
 **Deciders:** Martín Rios
 **Tags:** loop-native, goal, workflow, autonomy, substrate, security, looptrap
@@ -104,7 +104,7 @@ sandbox), with the same-class principle named:
 | # | Invariant | Defends against | Principle shared with |
 |---|-----------|-----------------|------------------------|
 | 1 | **Presence interlock** — auto-advance requires a *structurally-verified* interactive session (not a convention) | headless auto-complete / silent gate-bypass | §2b binding A/B split (doc-level today) |
-| 2 | **Done-signal immutability** — the loop may not mutate anything the grader reads: `*.test.*`, `tests/` (incl. `fixtures/`, `mocks/`), `__mocks__/`, and the `AC:` lines (which must be **pinned at iteration start**, not read live). Grade against a base-ref-pinned copy of those paths | AC-gaming via test, fixture, mock, or AC-line edits | t-2193 C3, t-2173 (both **pending**) |
+| 2 | **Done-signal immutability** — the loop may not mutate anything the grader reads: `*.test.*`, `tests/` (incl. `fixtures/`, `mocks/`), `__mocks__/`, the `AC:` lines, **and any task-record field a done-heuristic reads** (`tasks.json` `status`/`notes`/`context` — a `brana backlog get` grader can be gamed by editing them). All pinned at iteration start, not read live; grade against a base-ref-pinned copy of those paths | AC-gaming via test, fixture, mock, AC-line, or task-record edits | t-2193 C3, t-2173 (both **pending**) |
 | 3 | **Bounded span** — iterate-until = red→green **only**; refactor is capped/optional, outside the predicate | LoopTrap P7 (refactor-forever) | ADR-050 §t-517 caps |
 
 > **The unifying rule (invariant 2 generalized):** *the thing that checks the agent must
