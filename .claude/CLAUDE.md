@@ -26,6 +26,13 @@ Examples:
 
 Special branches (no task ID required): `main`, `docs/{topic}` (spec-only, no `system/` edits).
 
+**Integration model (ADR-060 two-tier):** feature branches cut from `dev` and merge to
+`dev` (integration buffer — nothing here is live). `main` is production — what
+`bootstrap.sh` deploys to `~/.claude/`. Deploy happens only at **ship**: `git checkout main
+&& git merge --ff-only dev && ./bootstrap.sh && git push origin main dev && git checkout dev`.
+Never commit to `main` or merge a feature branch into it. Session state commits on `dev`.
+Full doc: docs/guide/workflows/branching.md.
+
 ## Inbox
 
 `inbox/` is a processing drop folder (gitignored). Drop files here for Claude to process: audio for transcription, docs for analysis, PDFs for review, data for import. Files are transient — process and delete or move to permanent storage.
