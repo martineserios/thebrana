@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T00:12:18Z",
+  "generated": "2026-06-21T03:11:39Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1134,6 +1134,13 @@
         "system/cli/rust/crates/brana-cli/src/cli.rs",
         "system/cli/rust/crates/brana-cli/src/main.rs",
         "system/cli/rust/crates/brana-cli/tests/cli_smoke.rs"
+      ]
+    },
+    "docs/architecture/features/backlog-project-scoping.md": {
+      "title": "Feature: Per-Project Backlog Scoping + Cross-Project Task Creation",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/backlog/SKILL.md"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
@@ -2360,6 +2367,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/backlog-project-scoping.md": {
+      "title": "Backlog: Per-Project Scoping & Cross-Project Tasks",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/brana-feed-inbox.md": {
       "title": "brana feed + brana inbox",
       "type": "Roadmap",
@@ -3183,6 +3195,14 @@
       "title": "Loop-Native Redesign of thebrana",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/research/2026-06-20-go-for-harness-loop-evaluation.md": {
+      "title": "Go for Harness & Loop Engineering — Evaluation",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/",
+        "system/cli/rust/crates/brana-core/src/tasks.rs"
+      ]
     },
     "docs/research/cc-unreleased-features-tracker.md": {
       "title": "CC Unreleased Features Tracker",
@@ -10509,6 +10529,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/backlog-project-scoping.md",
+      "to": "docs/guide/features/backlog-project-scoping.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/brana-cli.md",
       "to": "docs/architecture/guide/cli.md",
       "type": "references",
@@ -14157,6 +14183,12 @@
       "computed": false
     },
     {
+      "from": "docs/research/2026-06-20-go-for-harness-loop-evaluation.md",
+      "to": "docs/architecture/decisions/ADR-026-full-rust-mcp-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/miessler-pai-deep-dive.md",
       "to": "miessler-pai-comparison.md",
       "type": "references",
@@ -14248,9 +14280,9 @@
     }
   ],
   "stats": {
-    "nodes": 480,
-    "edges": 1830,
+    "nodes": 483,
+    "edges": 1832,
     "typed_edges": 682,
-    "orphans": 131
+    "orphans": 130
   }
 }
