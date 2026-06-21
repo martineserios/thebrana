@@ -1,14 +1,14 @@
 # The Orbit & the Substrate — Index & Reading Map
 
 **Status:** Index / orientation (2026-06-21) · **Owner:** Martín Rios
-**Type:** Roadmap — the entry point for the autonomous-agent doc cluster.
+**Type:** Index — the entry point for the autonomous-agent doc cluster.
 
-This is the front door to the ~20 design docs for brana's autonomous-agent system.
-Read this first; it routes you to everything else.
+This is the front door to brana's autonomous-agent system — the spine docs below,
+in reading order. Read this first; peripheral notes link out from each.
 
 ## Vocabulary
 
-Two words, one model:
+Three words, one model:
 
 - **the Substrate** — the capability/parts layer: primitives (`Workflow`, `Task`,
   `/loop`, ruflo-memory) + composed blocks (`hive-mind`, `sweep`, `verify-findings`).
@@ -16,13 +16,15 @@ Two words, one model:
 - **the Orbit** — the autonomous operation that runs on the Substrate: the runner that
   works its own backlog (loop → build → verify → ship), in supervised and unattended
   tiers, behind a human-merge gate. *What it DOES.*
+- **ground control** — you, the human at the merge gate. Nothing leaves the Orbit
+  without ground control's sign-off. *Who DECIDES.*
 
 > **Tagline:** *the Orbit runs on the Substrate.*
 
 A quick disambiguation test: *"is this a Substrate thing or an Orbit thing?"*
 `hive-mind` is a Substrate block (a part); the sandbox (t-2173) is what makes the Orbit
-safe; "this task is eligible to enter the Orbit" = autonomous-eligible; **ground control**
-= you, the human-merge gate where work leaves the Orbit.
+safe; "this task is eligible to enter the Orbit" = autonomous-eligible; a merged PR is
+work cleared by ground control to leave the Orbit.
 
 ## Reading map
 
@@ -58,7 +60,7 @@ safe; "this task is eligible to enter the Orbit" = autonomous-eligible; **ground
 |-----|--------|
 | [../ideas/runner-capability-isolation.md](../ideas/runner-capability-isolation.md) | Sandbox the Orbit's executor — bwrap capability isolation (idea, t-2173; HARD precondition for unattended runs) |
 
-## How the pieces relate
+## How the spine fits together
 
 ```
   ADR-059 (which substrate)          ← the decision

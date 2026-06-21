@@ -38,7 +38,7 @@ Every layer landed this build except where noted:
 3. **Secret-scan gate** (t-2138) — pre-commit + PreToolUse; an autonomous commit can't leak a token (the `xoxb-` incident is what proved this non-optional).
 4. **Consecutive-failure kill + cost/iteration caps** (t-2140, ADR-050).
 5. **Invariant test suite** (t-2150) — one test per safety property, incl. adversarial edges.
-6. **Human merge gate** (ADR-060) — agents PR into `dev`, never touch production; human promotes `dev → main` = ship.
+6. **Human merge gate** (ADR-060) — **ground control**: agents PR into `dev`, never touch production; nothing leaves the Orbit until the human promotes `dev → main` = ship.
 7. **bootstrap from-main guard** (t-2151) — production deploy only from `main`.
 8. **Session-unit alignment** (t-2152/t-2154) — handoffs route by the same unit key (task→branch→session), so session state obeys ADR-060 invariant #4 too.
 
