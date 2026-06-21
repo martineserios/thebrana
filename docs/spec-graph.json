@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T04:39:56Z",
+  "generated": "2026-06-21T12:57:16Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1702,6 +1702,11 @@
     },
     "docs/architecture/substrate-end-state.md": {
       "title": "Autonomous-Agent Substrate — End-State Design",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/architecture/substrate-primitives.md": {
+      "title": "Agent Substrate — Primitives & Composition",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -9926,6 +9931,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/substrate-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/system-documentation-map.md",
       "type": "references",
       "computed": false
@@ -10941,6 +10952,42 @@
     {
       "from": "docs/architecture/substrate-end-state.md",
       "to": "features/learned-eligibility.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "docs/research/substrate-leverage-audit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "features/autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "features/consensus-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "workflow-primitive.md",
       "type": "references",
       "computed": false
     },
@@ -14294,8 +14341,8 @@
     }
   ],
   "stats": {
-    "nodes": 484,
-    "edges": 1833,
+    "nodes": 485,
+    "edges": 1840,
     "typed_edges": 682,
     "orphans": 130
   }
