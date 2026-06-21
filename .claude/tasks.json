@@ -57954,6 +57954,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2190",
+      "subject": "Step 11b reap: skip worktrees at integration-branch HEAD (zero divergence)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "harness",
+        "close",
+        "worktree",
+        "concurrency"
+      ],
+      "description": "Field note (close/SKILL.md, 2026-06-21) documents Step 11b reaping an ACTIVE concurrent lane's worktree because its tip equalled the integration-branch HEAD (zero divergence) — 'git branch --merged' returns true for any branch whose tip is an ancestor, including a freshly-created lane parked at HEAD. cleanup.md Step 11b currently uses 'git branch --merged dev' (t-2188) without the strict-behind guard. Implement the prescribed rule: only auto-reap a branch when 'rev-list --count <integration>..<branch>' == 0 AND 'rev-list --count <branch>..<integration>' > 0 (strictly behind), AND skip if any in_progress task or recent worktree mtime references the branch.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-06-21: Surfaced while editing cleanup.md Step 11b for t-2188 (main->dev reap target). The at-HEAD reap hazard is pre-existing (same with --merged main); t-2188 did not introduce or fix it. Field note source: proyecto_anita t-1582 lane worktree reaped mid-flight (self-recovered, no data loss).\nAC: Step 11b reap skips branches at integration-branch HEAD (zero divergence)\nAC: reap requires strictly-behind (divergent commits now contained)\nAC: belt-and-suspenders skip when in_progress task references the branch",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
