@@ -123,7 +123,7 @@ Tasks have two new optional fields:
 | Set any field | `brana backlog set <id> <field> <value>` |
 | Set epic | `brana backlog set <id> epic cc-alignment` |
 | Set work type | `brana backlog set <id> work_type implement` |
-| **Set active epic** | `brana backlog set-active <slug>` |
+| **Set active epic** | `brana backlog set-active <slug>` (per-repo — writes project-local `.claude/tasks-config.json`, t-2155) |
 | Set to null | `brana backlog set <id> priority null` |
 | Append to text | `brana backlog set <id> context --append "note"` |
 | Add/remove tag | `brana backlog set <id> tags +newtag` / `tags -oldtag` |
@@ -131,6 +131,7 @@ Tasks have two new optional fields:
 | Create task (JSON) | `brana backlog add --json '{"subject":"...","kind":"feature","type":"task"}'` |
 | Create task (shorthand) | `brana backlog add --subject "..." --kind feature --type task --tags "a,b" --effort S` |
 | Create with epic | `brana backlog add --subject "..." --epic cc-alignment --work-type implement` |
+| Create in another project | `brana backlog add --subject "..." --project <slug>` (cross-project via portfolio; default = current project, t-2155) |
 | Create initiative | `brana backlog add --subject "..." --kind feature --type initiative` |
 | Create task (from file) | `brana backlog add --json @/tmp/task.json` |
 | Create task (stdin) | `echo '{"subject":"..."}' \| brana backlog add --json -` |

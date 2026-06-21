@@ -147,6 +147,150 @@ pub fn find_project_root_from(
     git_root.or(cwd)
 }
 
+/// Find the project-local `tasks-config.json` (active_epic, theme, etc.), scoped per
+/// repo the same way `find_tasks_file()` scopes task data.
+///
+/// Resolution order (mirrors `find_tasks_file()`): git common-dir root → git toplevel →
+/// `CLAUDE_PROJECT_DIR`/CWD fallback (only when `.claude/` already exists there). Returns
+/// the path where the project's config lives or would be created — it does NOT create the
+/// file. Returns `None` when no project root is determinable, signalling the caller to fall
+/// back to the global `~/.claude/tasks-config.json`.
+pub fn find_tasks_config() -> Option<PathBuf> {
+    find_tasks_config_with_hint(
+        std::env::var("CLAUDE_PROJECT_DIR").ok().map(PathBuf::from),
+        git_common_root(),
+        git_toplevel(),
+        std::env::current_dir().ok(),
+    )
+}
+
+/// The global (home-scoped) config path, used as the fallback when no project-local
+/// config is resolved. Always a valid path (may not exist).
+pub fn global_tasks_config_path() -> PathBuf {
+    home().join(".claude/tasks-config.json")
+}
+
+/// Keys that belong to exactly one project and must NEVER inherit from the global
+/// config. An epic lives in one repo, so a global `active_epic` is almost always wrong
+/// in a different project — inheriting it is the cross-project bleed bug (t-2158).
+pub const PROJECT_SCOPED_CONFIG_KEYS: &[&str] = &["active_epic", "active_initiative"];
+
+/// Load the resolved tasks-config as a JSON value, applying per-repo scoping:
+///
+/// - A project-local config file is **authoritative** (no merge with global).
+/// - With no project-local file, inherit ONLY non-project-scoped keys from global
+///   (theme, github_sync). `active_epic`/`active_initiative` resolve to absent — they
+///   never bleed across projects.
+///
+/// Shared by brana-cli (`backlog focus`, `set-active`) and brana-mcp (`backlog_focus`)
+/// so the scoping rule lives in exactly one place.
+pub fn load_tasks_config() -> serde_json::Value {
+    let read = |p: &PathBuf| -> serde_json::Value {
+        std::fs::read_to_string(p)
+            .ok()
+            .and_then(|c| serde_json::from_str(&c).ok())
+            .unwrap_or_else(|| serde_json::json!({}))
+    };
+    match find_tasks_config() {
+        Some(local) if local.exists() => read(&local),
+        _ => {
+            let mut global = read(&global_tasks_config_path());
+            if let Some(obj) = global.as_object_mut() {
+                for k in PROJECT_SCOPED_CONFIG_KEYS {
+                    obj.remove(*k);
+                }
+            }
+            global
+        }
+    }
+}
+
+/// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
+fn find_tasks_config_with_hint(
+    hint: Option<PathBuf>,
+    common_root: Option<PathBuf>,
+    toplevel: Option<PathBuf>,
+    cwd: Option<PathBuf>,
+) -> Option<PathBuf> {
+    let effective_cwd = hint.filter(|p| p.is_dir()).or(cwd);
+    find_tasks_config_from(common_root, toplevel, effective_cwd)
+}
+
+/// Inner function — accepts roots directly for testability. Returns the project-local
+/// config path at the first available root; never creates it. CWD fallback only fires
+/// when `.claude/` already exists (avoids designating config in arbitrary dirs).
+fn find_tasks_config_from(
+    common_root: Option<PathBuf>,
+    toplevel: Option<PathBuf>,
+    cwd: Option<PathBuf>,
+) -> Option<PathBuf> {
+    if let Some(root) = common_root {
+        return Some(root.join(".claude/tasks-config.json"));
+    }
+    if let Some(root) = toplevel {
+        return Some(root.join(".claude/tasks-config.json"));
+    }
+    if let Some(root) = cwd {
+        if root.join(".claude").exists() {
+            return Some(root.join(".claude/tasks-config.json"));
+        }
+    }
+    None
+}
+
+/// Resolve a project's `tasks.json` by portfolio slug, for cross-project task creation.
+/// Reads `~/.claude/tasks-portfolio.json`, finds the matching project, and returns its
+/// `{path}/.claude/tasks.json`. Errors when the portfolio is missing, the slug is unknown,
+/// or the resolved tasks.json does not exist (strict — prevents writing to a stale path).
+pub fn resolve_project_tasks_file(slug: &str) -> Result<PathBuf, String> {
+    let portfolio_path = home().join(".claude/tasks-portfolio.json");
+    let content = std::fs::read_to_string(&portfolio_path)
+        .map_err(|_| "tasks-portfolio.json not found".to_string())?;
+    let portfolio: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("tasks-portfolio.json parse error: {e}"))?;
+    let path_str = find_project_path_in_portfolio(&portfolio, slug)
+        .ok_or_else(|| format!("project '{slug}' not found in tasks-portfolio.json"))?;
+    let tf = expand_home(&path_str).join(".claude/tasks.json");
+    if !tf.exists() {
+        return Err(format!(
+            "project '{slug}' has no tasks.json at {}",
+            tf.display()
+        ));
+    }
+    Ok(tf)
+}
+
+/// Search a parsed portfolio for a project `slug`, returning its `path` string.
+/// Looks in `clients[].projects[]` and top-level `projects[]`. First match wins.
+fn find_project_path_in_portfolio(portfolio: &serde_json::Value, slug: &str) -> Option<String> {
+    let matches = |proj: &serde_json::Value| -> Option<String> {
+        if proj["slug"].as_str() == Some(slug) {
+            proj["path"].as_str().map(|s| s.to_string())
+        } else {
+            None
+        }
+    };
+    if let Some(clients) = portfolio["clients"].as_array() {
+        for client in clients {
+            if let Some(projects) = client["projects"].as_array() {
+                for proj in projects {
+                    if let Some(p) = matches(proj) {
+                        return Some(p);
+                    }
+                }
+            }
+        }
+    }
+    if let Some(projects) = portfolio["projects"].as_array() {
+        for proj in projects {
+            if let Some(p) = matches(proj) {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
 /// Return the user's home directory.
 pub fn home() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap_or_default())
@@ -222,6 +366,7 @@ pub fn load_status() -> HashMap<String, serde_json::Value> {
 #[cfg(test)]
 mod tests {
     use super::{find_project_root_from, find_project_root_with_hint, find_tasks_file_from, find_tasks_file_with_hint};
+    use super::{find_tasks_config_from, find_tasks_config_with_hint, find_project_path_in_portfolio};
     use std::path::PathBuf;
     use std::fs;
     use tempfile::TempDir;
@@ -422,6 +567,120 @@ mod tests {
             None,
         );
         assert_eq!(result, Some(f));
+    }
+
+    // ── find_tasks_config (per-repo config resolution, t-2157) ──────────────
+
+    #[test]
+    fn config_common_root_takes_precedence() {
+        let common = tmp();
+        let top = tmp();
+        let result = find_tasks_config_from(
+            Some(common.path().to_path_buf()),
+            Some(top.path().to_path_buf()),
+            None,
+        );
+        assert_eq!(
+            result,
+            Some(common.path().join(".claude/tasks-config.json"))
+        );
+    }
+
+    #[test]
+    fn config_toplevel_used_when_no_common_root() {
+        let top = tmp();
+        let result = find_tasks_config_from(None, Some(top.path().to_path_buf()), None);
+        assert_eq!(result, Some(top.path().join(".claude/tasks-config.json")));
+    }
+
+    #[test]
+    fn config_does_not_require_file_to_exist() {
+        // Resolution returns a path even when the config file is not yet created.
+        let top = tmp();
+        let result = find_tasks_config_from(None, Some(top.path().to_path_buf()), None);
+        let path = result.expect("should resolve a path");
+        assert!(!path.exists(), "must not create the config file on resolve");
+    }
+
+    #[test]
+    fn config_cwd_fallback_requires_dot_claude() {
+        let dir = tmp();
+        fs::create_dir_all(dir.path().join(".claude")).unwrap();
+        let result = find_tasks_config_from(None, None, Some(dir.path().to_path_buf()));
+        assert_eq!(result, Some(dir.path().join(".claude/tasks-config.json")));
+    }
+
+    #[test]
+    fn config_cwd_without_dot_claude_returns_none() {
+        let dir = tmp();
+        let result = find_tasks_config_from(None, None, Some(dir.path().to_path_buf()));
+        assert_eq!(result, None, "no project root → caller uses global");
+    }
+
+    #[test]
+    fn config_all_roots_absent_returns_none() {
+        assert_eq!(find_tasks_config_from(None, None, None), None);
+    }
+
+    #[test]
+    fn config_git_root_wins_over_hint() {
+        // Mirror find_tasks_file: git common-dir beats CLAUDE_PROJECT_DIR hint.
+        let git_dir = tmp();
+        let hint_dir = tmp();
+        let result = find_tasks_config_with_hint(
+            Some(hint_dir.path().to_path_buf()),
+            Some(git_dir.path().to_path_buf()),
+            None,
+            None,
+        );
+        assert_eq!(
+            result,
+            Some(git_dir.path().join(".claude/tasks-config.json"))
+        );
+    }
+
+    #[test]
+    fn config_hint_used_as_cwd_fallback() {
+        let dir = tmp();
+        fs::create_dir_all(dir.path().join(".claude")).unwrap();
+        let result = find_tasks_config_with_hint(Some(dir.path().to_path_buf()), None, None, None);
+        assert_eq!(result, Some(dir.path().join(".claude/tasks-config.json")));
+    }
+
+    // ── find_project_path_in_portfolio (cross-project resolution, t-2157) ────
+
+    fn portfolio_fixture() -> serde_json::Value {
+        serde_json::json!({
+            "clients": [
+                {"slug": "anita", "projects": [
+                    {"slug": "proyecto_anita", "path": "~/enter_thebrana/clients/proyecto_anita"}
+                ]},
+                {"slug": "somos", "projects": [
+                    {"slug": "somos_mirada", "path": "~/enter_thebrana/clients/somos_mirada"}
+                ]}
+            ],
+            "projects": [
+                {"slug": "thebrana", "path": "~/enter_thebrana/thebrana"}
+            ]
+        })
+    }
+
+    #[test]
+    fn portfolio_finds_nested_project_slug() {
+        let p = find_project_path_in_portfolio(&portfolio_fixture(), "somos_mirada");
+        assert_eq!(p.as_deref(), Some("~/enter_thebrana/clients/somos_mirada"));
+    }
+
+    #[test]
+    fn portfolio_finds_top_level_project_slug() {
+        let p = find_project_path_in_portfolio(&portfolio_fixture(), "thebrana");
+        assert_eq!(p.as_deref(), Some("~/enter_thebrana/thebrana"));
+    }
+
+    #[test]
+    fn portfolio_unknown_slug_returns_none() {
+        let p = find_project_path_in_portfolio(&portfolio_fixture(), "nonexistent");
+        assert_eq!(p, None);
     }
 
     // ── version_at_least (agy version floor) ────────────────────────────────

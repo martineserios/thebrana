@@ -288,19 +288,175 @@ fn backlog_focus_shows_epic_header() {
 }
 
 #[test]
-fn backlog_set_active_updates_config() {
-    let tmp = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+fn backlog_set_active_writes_project_local_not_global() {
+    // Per-repo config (t-2158): set-active writes to the project-local .claude/,
+    // never to the global $HOME/.claude/. HOME and CWD are distinct dirs so the
+    // test can prove which one received the write.
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
     brana()
         .args(["backlog", "set-active", "test-initiative"])
-        .env("HOME", tmp.path())
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
         .assert()
         .success();
-    let cfg_path = tmp.path().join(".claude/tasks-config.json");
-    assert!(cfg_path.exists(), "tasks-config.json should be created");
+    let local = proj.path().join(".claude/tasks-config.json");
+    let global = home.path().join(".claude/tasks-config.json");
+    assert!(local.exists(), "project-local tasks-config.json should be created");
+    assert!(!global.exists(), "global config must NOT be written");
     let cfg: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(&cfg_path).unwrap()).unwrap();
+        serde_json::from_str(&std::fs::read_to_string(&local).unwrap()).unwrap();
     assert_eq!(cfg["active_epic"].as_str(), Some("test-initiative"));
+}
+
+#[test]
+fn config_inherits_theme_but_not_active_epic_from_global() {
+    // On first set-active, theme seeds from global (inheritable) but a foreign
+    // active_epic does NOT bleed in (project-scoped key never inherits).
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+    std::fs::write(
+        home.path().join(".claude/tasks-config.json"),
+        r#"{"active_epic":"foreign-epic","theme":"emoji"}"#,
+    )
+    .unwrap();
+    brana()
+        .args(["backlog", "set-active", "proj-epic"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
+        .assert()
+        .success();
+    let local: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(proj.path().join(".claude/tasks-config.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(local["active_epic"].as_str(), Some("proj-epic"), "local epic set");
+    assert_eq!(local["theme"].as_str(), Some("emoji"), "theme seeded from global");
+}
+
+#[test]
+fn focus_does_not_inherit_global_active_epic() {
+    // THE BLEED FIX: focus in a project with no local config must NOT surface the
+    // global (foreign) active_epic. Reproduces the original bug from a client repo.
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+    std::fs::write(
+        home.path().join(".claude/tasks-config.json"),
+        r#"{"active_epic":"foreign-epic","theme":"emoji"}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"proj","tasks":[]}"#,
+    )
+    .unwrap();
+    brana()
+        .args(["backlog", "focus", "--json"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("foreign-epic").not());
+}
+
+#[test]
+fn backlog_add_project_writes_to_resolved_target() {
+    // Cross-project create (t-2159): --project <slug> resolves the target repo's
+    // tasks.json via the portfolio and writes there, leaving the current project untouched.
+    let home = tempfile::tempdir().unwrap();
+    let target = tempfile::tempdir().unwrap();
+    let cwd = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(target.path().join(".claude")).unwrap();
+    std::fs::write(
+        target.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"target","tasks":[]}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(cwd.path().join(".claude")).unwrap();
+    std::fs::write(
+        cwd.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"cur","tasks":[]}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+    let portfolio = format!(
+        r#"{{"projects":[{{"slug":"otherproj","path":"{}"}}]}}"#,
+        target.path().display()
+    );
+    std::fs::write(home.path().join(".claude/tasks-portfolio.json"), portfolio).unwrap();
+
+    brana()
+        .args(["backlog", "add", "--subject", "cross task", "--project", "otherproj"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(cwd.path())
+        .assert()
+        .success();
+
+    let target_tasks: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(target.path().join(".claude/tasks.json")).unwrap(),
+    )
+    .unwrap();
+    let cur_tasks: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(cwd.path().join(".claude/tasks.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        target_tasks["tasks"].as_array().unwrap().len(),
+        1,
+        "task should be written to the target project"
+    );
+    assert_eq!(
+        cur_tasks["tasks"].as_array().unwrap().len(),
+        0,
+        "current project must be untouched"
+    );
+}
+
+#[test]
+fn backlog_add_unknown_project_errors() {
+    let home = tempfile::tempdir().unwrap();
+    let cwd = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(cwd.path().join(".claude")).unwrap();
+    std::fs::write(
+        cwd.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"cur","tasks":[]}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+    std::fs::write(
+        home.path().join(".claude/tasks-portfolio.json"),
+        r#"{"projects":[]}"#,
+    )
+    .unwrap();
+    brana()
+        .args(["backlog", "add", "--subject", "x", "--project", "nope"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(cwd.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found in tasks-portfolio"));
+}
+
+#[test]
+fn backlog_add_project_and_file_conflict() {
+    // --project and --file are mutually exclusive (clap-enforced).
+    brana()
+        .args([
+            "backlog", "add", "--subject", "x", "--project", "p", "--file", "/tmp/x.json",
+        ])
+        .assert()
+        .failure();
 }
 
 #[test]

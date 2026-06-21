@@ -823,9 +823,13 @@ pub enum BacklogCmd {
         /// Rich context — why the task matters, prior decisions, constraints. Required for M+ effort per memory rule.
         #[arg(long)]
         context: Option<String>,
-        /// Path to tasks.json (auto-detected if omitted)
-        #[arg(long)]
+        /// Path to tasks.json (auto-detected if omitted). Conflicts with --project.
+        #[arg(long, conflicts_with = "project")]
         file: Option<PathBuf>,
+        /// Create the task in another project's backlog by portfolio slug (cross-project).
+        /// Resolves via ~/.claude/tasks-portfolio.json. Default: current project.
+        #[arg(long)]
+        project: Option<String>,
         /// Epic slug (e.g., "cc-alignment", "backlog-schema-v2")
         #[arg(long)]
         epic: Option<String>,

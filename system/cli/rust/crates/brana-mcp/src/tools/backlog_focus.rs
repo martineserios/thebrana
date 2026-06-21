@@ -29,13 +29,12 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let data = brana_core::tasks::load_tasks(&tf)
                 .map_err(|e| pmcp::Error::validation(e))?;
 
-            // Load active_epic from config
-            let home = std::env::var("HOME").unwrap_or_default();
-            let cfg_path = std::path::PathBuf::from(&home).join(".claude/tasks-config.json");
+            // Load active_epic with per-repo scoping (t-2158): a project with no local
+            // config does NOT inherit the global/foreign active_epic.
             let active: Option<String> = input.epic.clone().or_else(|| {
-                std::fs::read_to_string(&cfg_path).ok()
-                    .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
-                    .and_then(|v| v["active_epic"].as_str().map(|s| s.to_string()))
+                brana_core::util::load_tasks_config()["active_epic"]
+                    .as_str()
+                    .map(|s| s.to_string())
             });
 
             let mut scored: Vec<_> = data.tasks.iter()

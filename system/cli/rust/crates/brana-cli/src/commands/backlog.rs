@@ -413,23 +413,27 @@ pub fn cmd_context(task_id: &str, theme: &themes::Theme) -> anyhow::Result<()> {
 
 // ── config helpers ──────────────────────────────────────────────────────
 
+/// Resolve the tasks-config.json path to write: project-local when a repo root is
+/// found, else the global `~/.claude/tasks-config.json`.
 fn tasks_config_path() -> std::path::PathBuf {
-    let home = std::env::var("HOME").unwrap_or_default();
-    std::path::PathBuf::from(&home).join(".claude/tasks-config.json")
+    crate::util::find_tasks_config().unwrap_or_else(crate::util::global_tasks_config_path)
 }
 
-/// Load tasks-config.json. Returns a mutable JSON Value; missing file returns empty object.
+/// Load tasks-config with per-repo scoping (delegates to the shared core resolver).
+///
+/// Doubles as seed-on-create: with no project-local file, this returns global minus the
+/// project-scoped keys, so `cmd_set_active` carries theme/github_sync defaults into the new
+/// local file while never inheriting a foreign `active_epic`.
 fn load_tasks_config() -> serde_json::Value {
-    let path = tasks_config_path();
-    std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_else(|| serde_json::json!({}))
+    crate::util::load_tasks_config()
 }
 
-/// Save tasks-config.json atomically.
+/// Save tasks-config to the project-local path, creating `.claude/` if needed.
 fn save_tasks_config(cfg: &serde_json::Value) -> anyhow::Result<()> {
     let path = tasks_config_path();
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).ok();
+    }
     let content = serde_json::to_string_pretty(cfg).unwrap() + "\n";
     std::fs::write(&path, content)
         .with_context(|| format!("failed to write {}", path.display()))
@@ -487,13 +491,25 @@ pub fn cmd_add(
     priority: Option<String>,
     context: Option<String>,
     file: Option<PathBuf>,
+    project: Option<String>,
     epic: Option<String>,
     work_type: Option<String>,
     acceptance_criteria: Vec<String>,
 ) -> anyhow::Result<()> {
-    let tf = match file {
-        Some(f) => f,
-        None => find_tasks_file().context("tasks.json not found")?,
+    // Target backlog: explicit --file, else --project slug (cross-project via portfolio),
+    // else the current project's tasks.json. --file and --project are mutually exclusive
+    // (enforced by clap); the guard here is defensive.
+    let tf = match (file, project) {
+        (Some(_), Some(_)) => {
+            eprintln!("{{\"ok\":false,\"error\":\"--file and --project are mutually exclusive\"}}");
+            anyhow::bail!("--file and --project are mutually exclusive");
+        }
+        (Some(f), None) => f,
+        (None, Some(slug)) => crate::util::resolve_project_tasks_file(&slug).map_err(|e| {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::anyhow!("{e}")
+        })?,
+        (None, None) => find_tasks_file().context("tasks.json not found")?,
     };
     let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
@@ -1835,7 +1851,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"no priority in json"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None, vec![],
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P3"),
@@ -1848,7 +1864,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"explicit null priority","priority":null}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None, vec![],
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P3"),
@@ -1861,7 +1877,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"explicit priority","priority":"P1"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None, vec![],
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P1"),
@@ -1874,7 +1890,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"urgent","priority":"P0"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None, vec![],
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P0"),
