@@ -58092,7 +58092,7 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "orbit"
+      "epic": "substrate"
     },
     {
       "id": "t-2195",
@@ -58343,7 +58343,7 @@
     {
       "id": "t-2203",
       "subject": "Sync build/plan docs + user guide for criteria generation",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "docs",
       "tags": [
@@ -58357,14 +58357,14 @@
       "parent": "t-2198",
       "created": "2026-06-21",
       "started": "2026-06-21",
-      "completed": null,
+      "completed": "2026-06-21",
       "blocked_by": [
         "t-2201",
         "t-2202"
       ],
-      "branch": null,
+      "branch": "backlog-schema/docs/t-2203-sync-criteria-docs",
       "context": "After plan generates criteria and AC: lines normalize into the field, update docs: plan.md defaults section, build LOAD goal-injection step, and a user-guide note on how criteria drive loop+goal auto-completion. Blocked_by t-2201, t-2202.\nAC: file docs/ideas/loop-goal-native-planning.md exists</context>\n",
-      "notes": null,
+      "notes": "Synced ac-criteria.md (cites ac-grammar.md), plan.md Defaults, build.md AC-gate note, idea doc status->implemented. Check 57 pass.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -58403,7 +58403,7 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "orbit"
+      "epic": "substrate"
     },
     {
       "id": "t-2205",
@@ -58433,7 +58433,7 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "orbit"
+      "epic": "substrate"
     },
     {
       "id": "t-2206",
@@ -58464,7 +58464,7 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "orbit"
+      "epic": "substrate"
     },
     {
       "id": "t-2207",
@@ -58495,7 +58495,7 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "orbit"
+      "epic": "substrate"
     },
     {
       "id": "t-2208",
@@ -58523,7 +58523,7 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "orbit"
+      "epic": "substrate"
     }
   ],
   "version": "1"
