@@ -58035,6 +58035,35 @@
       "strategy": null,
       "subject": "fix: for worktrees, use the exact branch name",
       "tags": []
+    },
+    {
+      "id": "t-2193",
+      "subject": "Runner Stage-3 batch-safety prerequisites (non-sandbox): branch re-pick guard, push-disable, AC gate, plan fail-closed, cost ceiling",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "runner",
+        "autonomy",
+        "safety",
+        "adr-060",
+        "harness-engineering"
+      ],
+      "description": "Two challenge passes (3-lens + /challenge --hats, council-agreement 2/2 on the big ones, all verified vs autonomous-runner.sh) found Stage-3 --run-batch ships before its safety properties. These are the fixes shippable TODAY without the bwrap sandbox (t-2173 covers the sandbox half: C2 unscoped-Bash containment, C3 validate-from-base-ref). Gate brana ops --run-batch scheduling on this task AND t-2173.",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2140",
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Source: 2026-06-21 challenge of t-2140 runner (peer session stored feedback_autonomous-runner-stage3-challenge-2026-06-21). All findings verified against system/scripts/autonomous-runner.sh.\n\nC1 (HIGH, data loss, council 2/2): run_task leaves task `pending` (line 229 context-only). Next scheduled --run-batch re-includes it (eligibility=pending, line 96), line 177 cleanup_worktree runs `git branch -D runner/auto/<id>` (force) → destroys the prior UNREVIEWED commit + re-runs. Violates ADR-060 Invariant 4 (revertable units). Fix: after line 229 `brana backlog set <id> tags +runner-pending-review`; exclude that tag from eligibility predicate. Human clears tag on merge/reject.\n\nC5 (HIGH, council 2/2): worktree shares parent .git via gitdir → `origin` remote reachable → injected task can `git push --force origin main`. Violates ADR-060 Invariant 1. Fix (shippable, no bwrap): `git -C $WT remote set-url origin --push DISABLED` before line-198 dispatch.\n\nC4 (MED): spec autonomous-runner.md:91 step-4 AC check is UNIMPLEMENTED; ~91% of tasks have no AC: lines → validate.sh (structural only) is the sole gate. Fix: require AC: lines for execution:autonomous eligibility (brana backlog lint gate) + wire brana:build-evaluator; until then mark spec step-4 [NOT IMPLEMENTED].\n\nW1 (MED): plan_task (line 80-85) passes only SUBJECT to haiku; wildcard branch defaults to would-run. Fix: default wildcard → would-park; pass description+context (trunc 500); add NEEDSHUMAN few-shots.\n\nW2 (MED): spec lists 'cost ceiling' bound; code has none (only timeout 600/task). Fix: --output-format json to capture tokens, accumulate, bail NEEDSHUMAN over RUNNER_MAX_TASK_COST — or remove from spec.\n\nW4 (LOW/portability): line 257 `command -v flock && ! flock -n 9` fails OPEN if flock absent → lockless batch. Fix: fail closed — `command -v flock || { echo 'flock required'; exit 1; }`.\n\nAC: successful run tags task runner-pending-review and a re-run batch SKIPS it (no branch -D of unreviewed work) — covered by a test\nAC: executor cannot push to origin (remote push disabled before dispatch) — covered by a test\nAC: plan gate defaults inconclusive → would-park (not would-run)\nAC: spec autonomous-runner.md step-4 AC check is either implemented or marked NOT IMPLEMENTED\nAC: flock-absent fails closed (abort), not lockless",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
