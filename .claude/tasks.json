@@ -57409,7 +57409,7 @@
     {
       "id": "t-2167",
       "subject": "Manually verify ADR-059/060 features via docs/guide/try-new-features.md prompts",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -57522,7 +57522,7 @@
     {
       "id": "t-2171",
       "subject": "Research Go language for harness and loop engineering: concurrency features, brana CLI/backlog integration, new feature possibilities",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -57538,7 +57538,7 @@
       "parent": null,
       "created": "2026-06-20",
       "started": "2026-06-20",
-      "completed": null,
+      "completed": "2026-06-20",
       "blocked_by": [],
       "branch": null,
       "context": "2026-06-20: research FEEDS t-2166 (concurrency→locking) and t-1994 (loop→foreman) — runs before them, not blocked by them. Reversed inverted blocked_by.",
