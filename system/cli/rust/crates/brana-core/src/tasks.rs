@@ -501,6 +501,9 @@ pub fn find_rollup_candidates(tasks: &[Value]) -> Vec<String> {
 /// Perform rollup: mark parents as completed, write back to file.
 /// Returns list of completed parent IDs.
 pub fn perform_rollup(path: &Path, dry_run: bool) -> Result<Vec<String>, String> {
+    // Serialize the rollup's read-modify-write against concurrent writers
+    // (t-2166). Sole caller is cmd_rollup, which holds no lock — no nesting.
+    let _lock = lock_tasks(path)?;
     let content =
         std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let mut val: Value =
