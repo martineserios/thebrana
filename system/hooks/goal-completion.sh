@@ -212,11 +212,47 @@ TOTAL=$((PASSED + FAILED + UNKNOWN))
 MSG=""
 
 if [ "$FAILED" -eq 0 ] && [ "$UNKNOWN" -eq 0 ] && [ "$PASSED" -gt 0 ]; then
-    # All criteria passed — auto-complete the task
-    (cd "$WORK_DIR" && "$BRANA" backlog set "$TASK_ID" status completed 2>/dev/null) || true
-    (cd "$WORK_DIR" && "$BRANA" backlog set "$TASK_ID" completed "$(date +%Y-%m-%d)" 2>/dev/null) || true
-    rm -f "$GOAL_FILE" 2>/dev/null || true
-    MSG="Goal complete: all $PASSED/$TOTAL criteria passed. $TASK_ID auto-marked completed."
+    # All criteria green — but `/goal` is an optimizer over the done-signal, so the
+    # grader must live outside the agent's control (ADR-061 §4 invariants 1+2;
+    # tests: tests/test-goal-completion.sh G1-G6). Refuse auto-advance unless:
+    #   (1) PRESENCE INTERLOCK — a fresh (<15m) presence token proves an
+    #       interactive session for this Stop event's session_id, and
+    #   (2) GRADER IMMUTABILITY — base_ref is pinned and nothing the grader reads
+    #       changed since it (*.test.*, tests/**, __mocks__/**, .claude/tasks.json),
+    #       checked as a tracked diff vs base_ref AND as untracked files.
+    GATE_REASON=""
+
+    PRESENCE_TOK="$HOME/.claude/run-state/presence-${SESSION_ID}"
+    if [ -z "$SESSION_ID" ] || [ ! -f "$PRESENCE_TOK" ] || \
+       [ -n "$(find "$PRESENCE_TOK" -mmin +15 2>/dev/null)" ]; then
+        GATE_REASON="no verified interactive session (presence interlock)"
+    fi
+
+    if [ -z "$GATE_REASON" ]; then
+        BASE_REF=$(jq -r '.base_ref // ""' "$GOAL_FILE" 2>/dev/null) || BASE_REF=""
+        if [ -z "$BASE_REF" ]; then
+            GATE_REASON="goal has no pinned base-ref — cannot verify grader integrity"
+        else
+            GRADER_RE='(\.test\.|(^|/)tests/|(^|/)__mocks__/|(^|/)\.claude/tasks\.json$)'
+            CHANGED=$(
+                { git -C "$WORK_DIR" diff --name-only "$BASE_REF" 2>/dev/null
+                  git -C "$WORK_DIR" ls-files --others --exclude-standard 2>/dev/null
+                } | grep -E "$GRADER_RE" | head -5 | tr '\n' ' '
+            )
+            [ -n "$CHANGED" ] && GATE_REASON="grader path changed since goal start ($CHANGED)"
+        fi
+    fi
+
+    if [ -n "$GATE_REASON" ]; then
+        # Gate: do NOT auto-complete, do NOT remove the goal file. Surface for review.
+        MSG="goal blocked: $GATE_REASON — $PASSED/$TOTAL criteria green but $TASK_ID left in_progress. Run /brana:backlog done $TASK_ID after manual review."
+    else
+        # Interlocks satisfied — auto-complete the task
+        (cd "$WORK_DIR" && "$BRANA" backlog set "$TASK_ID" status completed 2>/dev/null) || true
+        (cd "$WORK_DIR" && "$BRANA" backlog set "$TASK_ID" completed "$(date +%Y-%m-%d)" 2>/dev/null) || true
+        rm -f "$GOAL_FILE" 2>/dev/null || true
+        MSG="Goal complete: all $PASSED/$TOTAL criteria passed. $TASK_ID auto-marked completed."
+    fi
 elif [ "$FAILED" -gt 0 ]; then
     # Surface failures; leave task in_progress
     NOTE="goal exit: $PASSED/$TOTAL criteria passed — manual review needed. Failed:$(printf '%b' "$FAILED_LIST")"

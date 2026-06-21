@@ -219,7 +219,7 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
             BRANA_RECALL=$(command -v brana 2>/dev/null || true)
         fi
         if [ -n "$BRANA_RECALL" ] && [ -x "$BRANA_RECALL" ]; then
-            RECALL_RAW=$(timeout 3 "$BRANA_RECALL" recall \
+            RECALL_RAW=$(cd "$GIT_ROOT" && timeout 3 "$BRANA_RECALL" recall \
                 "$PROJECT build patterns corrections learnings" \
                 --top 5 --json 2>/dev/null) || RECALL_RAW=""
             if [ -n "$RECALL_RAW" ]; then
