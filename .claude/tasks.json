@@ -57142,7 +57142,7 @@
     {
       "id": "t-2168",
       "subject": "Harden tasks.json concurrency: flock + git merge driver",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -57157,17 +57157,18 @@
       "priority": "P1",
       "parent": null,
       "created": "2026-06-20",
-      "started": null,
-      "completed": null,
+      "started": "2026-06-21",
+      "completed": "2026-06-21",
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-git-alignment/fix/t-2168-harden-tasks-json-concurrency",
       "context": "2026-06-20: Surfaced by t-2155 build. Root causes: (a) tasks.json status clobbered when another session merges main (pattern_tasks-json-wip-lost-on-merge-theirs); (b) concurrent read-modify-write races (last write wins); (c) ID allocation races. Decision (t-2155 /research): stay file-based at human-paced concurrency. flock(2) = zero-infra fix for races/ID; git merge driver = correct fix for merge clobber (same class as the per-repo config fix in t-2158). NOTE: flock was removed from ruflo (field-note_ruflo-multi-session-flock-removal) for a different reason — a scoped lock on one file's write path is still the right call here. SQLite (WAL, no daemon) is the endgame ONLY if the autonomous runner (ADR-059) makes concurrency machine-paced — file a separate ADR then; do not adopt preemptively. Redis/queue rejected: networked daemon breaks local-first + git-coupled task history.\nAC: flock guards tasks.json read-modify-write in brana-core\nAC: a git merge driver for .claude/tasks.json is registered and tested\nAC: concurrent-write test demonstrates no lost update",
-      "notes": null,
+      "notes": "All ACs pre-satisfied by t-2166 (flock + concurrent test) and t-2132 (merge driver + test). Verified: lock_tasks_serializes_concurrent_appends passes (16 concurrent writers, 0 lost), test-tasks-json-merge.sh 10/10. No new code needed.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "backlog-git-alignment"
+      "epic": "backlog-git-alignment",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-2169",
