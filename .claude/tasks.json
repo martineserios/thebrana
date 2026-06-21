@@ -57504,7 +57504,7 @@
     {
       "id": "t-2174",
       "subject": "Reclaim always-load context budget: fix README miscount + tier situational rules",
-      "status": "pending",
+      "status": "cancelled",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -57588,7 +57588,7 @@
     {
       "id": "t-2177",
       "subject": "Single-source context-budget script + full-envelope reporting",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -57606,7 +57606,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "Move #1 of t-2176. Design for testability: accept SYSTEM_DIR + BUDGET_LIMIT via env/arg so tests point at a fixture (hermetic). Mirror validate.sh's existing exclusions exactly (README by name, type:reference agents, skills/acquired). TDD: test computes a known fixture sum + README exclusion before wiring into the two gates. After: validate.sh + pre-commit must produce identical numbers (that parity is the whole point).\\nAC: one shared script; validate.sh and pre-commit both call it, zero inlined budget math\\nAC: report mode prints per-source breakdown incl MCP/Tool-Search informational lines\\nAC: hermetic test passes (fixture SYSTEM_DIR, asserts sum + README excluded)\\nAC: validate.sh and pre-commit report byte-identical budget totals",
-      "notes": null,
+      "notes": "2026-06-20 DONE (branch context-budget/refactor/t-2177-single-source-budget off dev, commit 60535cd0, unmerged). Extracted system/scripts/context-budget.sh as single source; validate.sh Check 5 + system/scripts/git-hooks/pre-commit both delegate to it (zero inlined budget math). Modes: --report/--check/--total, SYSTEM_DIR+BUDGET_LIMIT env for tests. Report surfaces full envelope: per-source breakdown + informational MCP-servers/Tool-Search/compaction lines (per 31-assurance.md, points to t-2181). Hermetic test system/hooks/tests/test-context-budget.sh 8/8 — covers the t-2174 README-miscount regression (README body always-load example never counted) + scoped/acquired/type:reference exclusions. validate.sh full run: PASS Context budget OK, 0 FAIL. Real total 28552/28672. INSIGHT surfaced by the breakdown: skill descriptions (5875B) are the single largest consumer, > any rule; agent descriptions 2670B — feeds t-2180/t-2181. Deployed hooks restored to main-tracked (consistent live state); fix deploys atomically on merge+bootstrap. Supersedes t-2174.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
