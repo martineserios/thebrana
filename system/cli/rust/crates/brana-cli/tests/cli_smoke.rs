@@ -460,6 +460,76 @@ fn backlog_add_project_and_file_conflict() {
 }
 
 #[test]
+fn backlog_add_without_project_writes_to_current_project() {
+    // Regression guard (challenger finding 5): plain `backlog add` with no --project
+    // must write to the CURRENT project's tasks.json, unchanged from pre-t-2159 behavior.
+    // The riskiest regression surface — if find_tasks_file() in the add path breaks,
+    // unflagged adds silently land in the wrong file.
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"cur","tasks":[]}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+
+    brana()
+        .args(["backlog", "add", "--subject", "local task"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
+        .assert()
+        .success();
+
+    let tasks: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(proj.path().join(".claude/tasks.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        tasks["tasks"].as_array().unwrap().len(),
+        1,
+        "no --project flag → task lands in the current project's tasks.json"
+    );
+}
+
+#[test]
+fn focus_local_config_without_active_epic_shows_no_foreign_epic() {
+    // Challenger finding 1, partial-key path: a project-local config that EXISTS but has
+    // no active_epic key must not fall back to the global active_epic (local is
+    // authoritative wholesale). Distinct code path from the no-file-at-all fallback.
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
+    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+    // Global has a foreign active_epic; local exists with only a theme (no active_epic).
+    std::fs::write(
+        home.path().join(".claude/tasks-config.json"),
+        r#"{"active_epic":"foreign-epic","theme":"emoji"}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks-config.json"),
+        r#"{"theme":"classic"}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"proj","tasks":[]}"#,
+    )
+    .unwrap();
+    brana()
+        .args(["backlog", "focus", "--json"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("foreign-epic").not());
+}
+
+#[test]
 fn backlog_add_with_work_type_persists() {
     use assert_fs::prelude::*;
     let tmp = assert_fs::TempDir::new().unwrap();
