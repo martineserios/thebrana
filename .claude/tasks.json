@@ -57784,7 +57784,7 @@
     {
       "id": "t-2184",
       "subject": "Design the agent substrate: loops, workflows, hive-mind & foundational primitives for the system",
-      "status": "in_progress",
+      "status": "completed",
       "type": "phase",
       "kind": "design",
       "tags": [
@@ -57806,7 +57806,7 @@
       "blocked_by": [],
       "branch": "harness-engineering/docs/t-2184-design-agent-substrate",
       "context": "Continuation of ADR-059 (accepted) + t-2167 verification. Read first: docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md, docs/research/substrate-leverage-audit.md (esp. 'First real-token validation' + 'Compose → synergy' sections), pattern_native-workflow-substrate-calibration. Existing primitives: .claude/workflows/ (hive-mind.js, sweep.js, verify-findings.js) + native Workflow/Task tools + /loop. Design-first (SDD): this likely produces one or more ADRs before implementation. Related/blocking-adjacent: t-2173 (runner sandbox — capability isolation), t-2176 (context governance), t-2181 (MCP/tool-search context lever), t-2140 (autonomous runner = the autonomy tier of the substrate).\\nAC: a written design (ADR or design doc) of the foundational primitive set + composition model\\nAC: open questions from ADR-059 that remain are enumerated and either resolved or scoped into child tasks\\nAC: the design names how loops/workflows/hive-mind plug into the autonomous runner + backlog\\nAC: durability/reliability/security constraints (resume, budget, capability isolation) are addressed explicitly",
-      "notes": null,
+      "notes": "Delivered docs/architecture/substrate-primitives.md — the primitive-library + composition-grammar view, complementing substrate-end-state.md (autonomy/safety) and ADR-059 (selection). All 4 ACs met: (1) primitive set + composition model written; (2) ADR-059 open Qs enumerated (both resolved) + new Qs routed to t-2191/t-2143/t-2173/t-2176/t-2181; (3) plug-points named (runner/backlog/skills/memory/context-gov); (4) durability/trust/security explicit (resume, budget, failure semantics, adversarial-verify trust mechanism, capability isolation). Filed t-2191 (primitive library gaps). Design-doc-only per session scope decision; no new ADR.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
