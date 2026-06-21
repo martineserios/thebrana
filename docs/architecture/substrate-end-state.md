@@ -72,7 +72,7 @@ watch it happen and can interrupt on any turn.
   `/goal` holding the stop condition. No new command; it's composed native primitives.
 - **Completion:** auto-completes (`/goal` + Stop hook) — safe *because you're watching*.
 - **Status:** the three-primitive composition (`/loop` POLL · `/goal` ITERATE ·
-  `Workflow` FAN-OUT) and which skills gain a `/goal` loop is **design-pending** — see t-2194.
+  `Workflow` FAN-OUT) is **designed** — see [ADR-061](decisions/ADR-061-goal-integration-three-primitive.md) (accepted 2026-06-21, t-2194). Build tasks: t-2204 → t-2205 → t-2206 → t-2207.
 
 ### Unattended — you're away (the detached runner)
 
