@@ -22,6 +22,7 @@
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Bash` | `branch-checkout-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `bash-risk-classifier.sh` | 2000ms |
+| PreToolUse | `Bash` | `rtk" hook claude` | 5000ms |
 | PostToolUse | `` | `post-tool-use.sh` | 5000ms |
 | PostToolUse | `Skill` | `skill-sentinel.sh` | 2000ms |
 | PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
