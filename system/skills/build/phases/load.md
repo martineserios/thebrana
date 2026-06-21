@@ -30,7 +30,7 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
      {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["{criterion1}", "{criterion2}"]}
      ```
      This state file is read by the Stop hook (`goal-completion.sh`) to auto-complete the task.
-   - **If no criteria found in either source:** proceed without `/goal` — no regression.
+   - **If no criteria found in either source:** still anchor the session — call `/goal "{task.subject}"` (subject only, no `Done when:` clause). Do **not** write `active-goal.json`: the Stop hook (`goal-completion.sh:40`) exits at zero criteria, so a criteria-less state file does nothing. The session gets a focus anchor; auto-complete stays gated on `AC:` lines.
    - **Skip for:** freeform builds (no task_id), spike strategy, investigation strategy.
 
 0.5. **Tech-stack pre-detection** (task_id present only — skip when no task_id):
@@ -301,7 +301,7 @@ If "Skip — reason required": require free text. Log to task notes and decision
 **Soft warns** — emit inline (no gate, no question):
 ```
 ⚠ {task_id}: effort not set. Consider: `brana backlog set {task_id} effort M`
-⚠ {task_id}: no AC: lines in context. /goal injection will be skipped.
+⚠ {task_id}: no AC: lines in context. Session anchored with /goal "{subject}"; auto-complete disabled (add AC: lines to enable).
 ```
 
 If all checks pass (or only soft warns remain), proceed silently.
