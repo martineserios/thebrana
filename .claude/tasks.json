@@ -58091,7 +58091,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "orbit"
     },
     {
       "id": "t-2195",
@@ -58169,7 +58170,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "orbit"
     },
     {
       "id": "t-2198",
@@ -58341,7 +58343,7 @@
     {
       "id": "t-2203",
       "subject": "Sync build/plan docs + user guide for criteria generation",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "docs",
       "tags": [
@@ -58354,7 +58356,7 @@
       "priority": "P2",
       "parent": "t-2198",
       "created": "2026-06-21",
-      "started": null,
+      "started": "2026-06-21",
       "completed": null,
       "blocked_by": [
         "t-2201",
@@ -58366,7 +58368,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "backlog-schema",
+      "strategy": "feature",
+      "work_type": "design"
     },
     {
       "id": "t-2204",
@@ -58394,7 +58399,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "orbit"
     },
     {
       "id": "t-2205",
@@ -58423,7 +58429,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "orbit"
     },
     {
       "id": "t-2206",
@@ -58453,7 +58460,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "orbit"
     },
     {
       "id": "t-2207",
@@ -58483,7 +58491,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "orbit"
     },
     {
       "id": "t-2208",
@@ -58510,7 +58519,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "orbit"
     }
   ],
   "version": "1"
