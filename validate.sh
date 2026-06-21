@@ -225,53 +225,13 @@ echo ""
 
 # Check 5: Context budget
 echo "Checking context budget..."
-BUDGET=0
-
-# CLAUDE.md (always loaded)
-if [ -f "$SYSTEM_DIR/CLAUDE.md" ]; then
-    SIZE=$(wc -c < "$SYSTEM_DIR/CLAUDE.md")
-    BUDGET=$((BUDGET + SIZE))
-    echo "  CLAUDE.md: ${SIZE} bytes"
-fi
-
-# Rules with always-load: true (counted against the always-loaded budget).
-# Scoped rules (paths:) only load when a matching file is in the working
-# set, so they don't contribute to the baseline budget.
-for rule_file in "$SYSTEM_DIR"/rules/*.md; do
-    [ "$(basename "$rule_file")" = "README.md" ] && continue
-    if grep -qE '^always-load:[[:space:]]+true' "$rule_file" 2>/dev/null; then
-        SIZE=$(wc -c < "$rule_file")
-        BUDGET=$((BUDGET + SIZE))
-        echo "  $(basename "$rule_file"): ${SIZE} bytes (always loaded)"
-    fi
-done
-
-# Skill descriptions (just the description line from frontmatter)
-for skill_dir in "$SYSTEM_DIR"/skills/*/; do
-    [ "$(basename "$skill_dir")" = "acquired" ] && continue
-    skill_file="$skill_dir/SKILL.md"
-    if [ -f "$skill_file" ]; then
-        DESC_SIZE=$(grep '^description:' "$skill_file" | wc -c)
-        BUDGET=$((BUDGET + DESC_SIZE))
-    fi
-done
-
-# Agent descriptions (loaded into context — see 24-roadmap-corrections.md error #7)
-for agent_file in "$SYSTEM_DIR"/agents/*.md; do
-    if [ -f "$agent_file" ]; then
-        AGENT_DESC_SIZE=$(sed -n '/^---$/,/^---$/p' "$agent_file" | grep '^description:' | wc -c)
-        BUDGET=$((BUDGET + AGENT_DESC_SIZE))
-        if [ "$AGENT_DESC_SIZE" -gt 0 ]; then
-            echo "  $(basename "$agent_file") description: ${AGENT_DESC_SIZE} bytes"
-        fi
-    fi
-done
-
-echo "  Total always-loaded: ${BUDGET} bytes"
-if [ "$BUDGET" -gt 28672 ]; then
-    fail "Context budget exceeds 28KB (${BUDGET} bytes > 28672 bytes)"
+# Delegated to the single-source script (t-2177) so validate.sh and the
+# pre-commit hook compute the identical budget and can never drift — that
+# duplication was the root cause of the t-2174 miscount.
+if SYSTEM_DIR="$SYSTEM_DIR" bash "$SYSTEM_DIR/scripts/context-budget.sh" --report; then
+    pass "Context budget OK"
 else
-    pass "Context budget OK (${BUDGET}/28672 bytes)"
+    fail "Context budget exceeds limit (see breakdown above)"
 fi
 
 # Check 5b: Instruction density
