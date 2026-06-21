@@ -78,6 +78,35 @@ Interactive phase planning. Builds the hierarchy conversationally.
    - **If test tasks found:** proceed to step 12.
    - **If all tasks are docs/config/spec only:** gate passes automatically — no code, no test required.
 
+11b. **Acceptance-criteria generation** (ADR-047 §5; implements loop+goal-native planning) — for each **leaf** task with `work_type` `implement` or `design`, generate machine-checkable `acceptance_criteria` so the task can auto-complete under `/goal` (see [`docs/architecture/ac-grammar.md`](../../../../docs/architecture/ac-grammar.md) for the 8 heuristics). Skip phases, milestones, and `research`/`docs`-only tasks.
+
+   **a. Generate (template + LLM-fill by `work_type`):** scaffold 1–3 criteria, then fill specifics from the task subject/description:
+   - `implement` → `"<project test cmd>" passes` (infer: `cargo test` / `pytest` / `bun test` / `bash tests/<file>.sh` from project manifest) **plus** one observable: `file <impl path> contains "<symbol>"` or `validate.sh Check <N> passes`.
+   - `design` → `file docs/architecture/decisions/<adr-slug>.md exists` (or the doc the task produces).
+
+   **b. Lint each (warn, don't block)** — classify every generated criterion:
+   ```bash
+   bash system/scripts/ac-lint.sh "<criterion>"   # exit 0 "checkable" | exit 1 "prose"
+   ```
+   For any that returns `prose`, warn inline — never silently drop or auto-rewrite:
+   ```
+   ⚠ {task_id}: criterion "<text>" won't auto-complete (prose) — loop will need manual sign-off. Keep, or rephrase to a heuristic in ac-grammar.md?
+   ```
+   Keep prose criteria the user confirms (genuine human-judgment checks are allowed).
+
+   **c. Atomicity signal** — if a leaf task would carry **>10 criteria** (ADR-047 §1) or is **effort M+**, flag it:
+   ```
+   ⚠ {task_id} ({effort}, {N} criteria) looks too large for one goal cycle — consider splitting into atomic leaf tasks.
+   ```
+   Suggest a split (loop back to step 6); never force.
+
+   **d. Write at step 14** via the structured field (canonical — not `AC:` lines):
+   ```bash
+   brana backlog set {task_id} acceptance_criteria '["<c1>", "<c2>"]'   # or backlog_add --acceptance-criteria (repeatable)
+   ```
+
+   Skip silently if the phase has no implement/design leaf tasks.
+
 12. **Challenge gate (M+ tasks)** — If any task in the phase has effort M, L, or XL:
     ```
     AskUserQuestion:

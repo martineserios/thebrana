@@ -58294,7 +58294,11 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "file system/skills/backlog/phases/plan.md contains \"acceptance_criteria\"",
+        "\"bash system/hooks/tests/test-ac-lint.sh\" passes",
+        "file system/scripts/ac-lint.sh exists"
+      ],
       "epic": "backlog-schema",
       "strategy": "feature",
       "work_type": "implement"
@@ -58379,7 +58383,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "2026-06-21: Precondition for the whole /goal binding line (ADR-061 §4). Derived from challenger BLOCKER: the deployed hook does NOT enforce done-signal immutability.\nScope:\n1. Invariant 2 — grade against a base-ref-pinned copy of grader paths; reject/gate if the iteration mutated any of: *.test.*, tests/ (incl fixtures/, mocks/), __mocks__/, or the AC: lines (pin AC at iteration start, do not read live).\n2. Invariant 1 — presence interlock: auto-advance only in a structurally-verified interactive session (headless → refuse auto-complete).\nAC: goal-completion.sh pins AC lines at iteration start, not live-read\nAC: a mutation to any grader path (*.test.*, tests/, __mocks__/) during the iteration trips a gate instead of auto-completing\nAC: headless/non-interactive invocation refuses auto-advance\nAC: tests cover each: fixture-edit gaming attempt blocked, AC-line-edit blocked, headless refusal\nAC: validate.sh passes",
+      "context": "2026-06-21: Precondition for the whole /goal binding line (ADR-061 §4). Derived from challenger BLOCKER: the deployed hook does NOT enforce done-signal immutability.\nScope:\n1. Invariant 2 — grade against a base-ref-pinned copy of grader paths; reject/gate if the iteration mutated any of: *.test.*, tests/ (incl fixtures/, mocks/), __mocks__/, or the AC: lines (pin AC at iteration start, do not read live).\n2. Invariant 1 — presence interlock: auto-advance only in a structurally-verified interactive session (headless → refuse auto-complete).\nAC: goal-completion.sh pins AC lines at iteration start, not live-read\nAC: a mutation to any grader path (*.test.*, tests/, __mocks__/) during the iteration trips a gate instead of auto-completing\nAC: headless/non-interactive invocation refuses auto-advance\nAC: tests cover each: fixture-edit gaming attempt blocked, AC-line-edit blocked, headless refusal\nAC: validate.sh passes\n2026-06-21: ADR-061 verification pass residual — invariant 2 grader-path list must ALSO cover task-record fields any done-heuristic reads (tasks.json status/notes/context), not just test files. A `brana backlog get` grader is gameable by editing those fields. Pin them at iteration start like the AC: lines.",
       "notes": null,
       "order": 0,
       "github_issue": null,
