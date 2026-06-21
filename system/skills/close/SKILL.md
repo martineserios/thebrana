@@ -140,6 +140,16 @@ Source: close session 2026-05-19 / brainstorm session-continuity
 **Why this keeps happening:** The procedure says "Do NOT write to `session-handoff.md` (deprecated)" but said nothing about `.claude/sessions/handoff-*.md`. Gap closed by this field note. A future procedure update should add `.claude/sessions/` to the standard gitignore template for all projects.
 Source: 2026-06-03 — proyecto-anita secret leak; history scrubbed same session
 
+### 2026-06-21: Step 11b worktree reap deleted an active concurrent lane that was momentarily at-main
+During a `--finish` close in proyecto_anita (multiple parallel UI lanes, worktree-per-stream), Step 11b reaped worktree `proyecto_anita-t1582` because `git branch --merged main` matched its branch — its tip equalled main HEAD at that instant. But the worktree belonged to an **active** parallel lane that was between commits; seconds later that lane recreated the worktree and committed its real work (Badge variants). No data was lost (the lane re-created + committed, then merged + reaped itself), but close deleted a live lane's worktree mid-flight.
+
+**Root cause:** `git branch --merged main` returns true for any branch whose tip is an ancestor of main — **including a freshly-created lane branch still sitting at main before its first commit**. "Merged" ≠ "done": a lane parked at main HEAD (zero divergence) is indistinguishable by tip alone from a finished-and-merged lane.
+
+**Rule:** Step 11b must not reap a worktree exactly at main HEAD. Only auto-reap worktrees whose branch tip is **strictly behind** main (had divergent commits, now contained in main) — i.e. `git merge-base --is-ancestor <branch> main` AND `<branch> != main HEAD` (`git rev-list --count main..<branch>` is 0 AND `git rev-list --count <branch>..main` > 0). A branch at zero divergence from main is ambiguous → skip it; the owning lane reaps its own worktree when done (as t-1582's lane did). Belt-and-suspenders: also skip if any `in_progress` task or recent worktree mtime references the branch.
+
+**Corollary (acting in a repo with active lanes):** never `git switch`/reap/commit in another lane's checkout. Do field-note/doc edits in a fresh `git worktree add -b` off main (worktree-per-stream), exactly as this note was captured.
+Source: 2026-06-21 — proyecto_anita backlog-triage close; t-1582 lane worktree reaped mid-flight, self-recovered
+
 ---
 
 ## Resume After Compression
