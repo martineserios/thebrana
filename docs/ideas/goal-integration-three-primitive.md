@@ -1,6 +1,6 @@
 ---
 title: /goal integration — three-primitive composition
-status: idea
+status: draft
 created: 2026-06-21
 task: t-2194
 ---
@@ -96,6 +96,15 @@ predicate. "External done-predicate" is necessary but NOT sufficient. Three hard
 - ~~t-1992 a HARD blocker?~~ → No. Gates Stage 4 only; specific bindings are independent.
 - ~~bottom-up vs top-down?~~ → Synthesis: generalized DESIGN now (Stage 1), specific bindings
   BUILT first (Stages 2–3) against their own done-signals, generalization BUILT last (Stage 4).
+
+## Outcome (2026-06-21)
+
+Shaped into **ADR-061** (proposed). Challenger PROCEED-WITH-CHANGES (1 BLOCKER, 2 HIGH,
+2 MEDIUM) — all incorporated. Build tasks decomposed under t-2194:
+- t-2204 — harden goal-completion.sh (invariant 2 + presence interlock) — BLOCKER precondition
+- t-2205 — Stage 2: build TDD binding (blocked_by t-2204)
+- t-2206 — Stage 3: fix + reconcile bindings (blocked_by t-2205)
+- t-2207 — Stage 4: generalized binding (blocked_by t-2206 + t-1992)
 
 ## Relations
 
