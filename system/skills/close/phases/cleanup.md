@@ -4,11 +4,11 @@
 
 ### Step 11b: Reap merged worktrees
 
-Prune worktrees whose branches are fully merged into main. Prevents orientation cost at next session start.
+Prune worktrees whose branches are fully merged into dev (the integration branch; dev is always ≥ main under dev-first, so it's the superset). Prevents orientation cost at next session start.
 
 ```bash
 MAIN_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-MERGED=$(git branch --merged main 2>/dev/null | grep -v '^\*' | sed 's/^[[:space:]]*//')
+MERGED=$(git branch --merged dev 2>/dev/null | grep -v '^\*' | sed 's/^[[:space:]]*//')
 REAPED=0
 SKIPPED=0
 
@@ -43,7 +43,7 @@ done < <(git worktree list --porcelain 2>/dev/null; echo "")
 
 ### Step 11c: Pending-task reconcile
 
-Tasks in `.claude/tasks.json` often lag code state when a previous `/brana:close` was skipped. Before writing the session report, find pending tasks whose IDs already appear in a commit message on main and prompt to mark them `completed`.
+Tasks in `.claude/tasks.json` often lag code state when a previous `/brana:close` was skipped. Before writing the session report, find pending tasks whose IDs already appear in a commit message on dev (the integration branch — work lands there now; dev ⊇ main) and prompt to mark them `completed`.
 
 ```bash
 MAIN_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -52,7 +52,7 @@ PENDING_IDS=$(brana backlog query --status pending --output json 2>/dev/null \
 
 # Cache once — avoids N×git-log and eliminates the \b word-boundary false-positive
 # that git log --grep produces (POSIX ERE has no \b; "t-157" matches "t-1570", etc.)
-COMMIT_SUBJECTS=$(git -C "$MAIN_ROOT" log main --oneline 2>/dev/null)
+COMMIT_SUBJECTS=$(git -C "$MAIN_ROOT" log dev --oneline 2>/dev/null)
 
 STALE=()
 for id in $PENDING_IDS; do

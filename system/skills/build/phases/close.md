@@ -121,7 +121,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - If sync fails: warn "GitHub issue not closed. Close manually: gh issue close #{issue-number}" — do NOT block CLOSE.
 
 9. **Pre-merge doc check** (feature, greenfield, migration only):
-   - Run: `git diff --name-only main...HEAD | grep -E '(docs/architecture/features/|docs/guide/features/)'`
+   - Run: `git diff --name-only dev...HEAD | grep -E '(docs/architecture/features/|docs/guide/features/)'`
    - **If no doc files in diff:** warn clearly:
      ```
      ⚠ No feature docs found in this branch.
@@ -133,12 +133,16 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - **If doc files present:** proceed silently.
    - **Bug fix / refactor branches:** skip this check entirely.
 
-10. **Merge** — present the command, do NOT auto-execute:
+10. **Integrate to dev** — present the command, do NOT auto-execute:
    ```bash
-   git checkout main
-   git merge --no-ff feat/{branch-name} -m "{type}: {description}"
-   git branch -d feat/{branch-name}
+   git checkout dev
+   git merge --no-ff {branch-name} -m "{type}: {description}"
+   git branch -d {branch-name}
    ```
+   Feature branches integrate to `dev` — the integration **and live** branch (dev-is-live:
+   the auto-deploy in step 10c bootstraps your changes into `~/.claude` so you use them
+   immediately). `main` is the **release** branch — it advances only via a deliberate
+   `dev→main` release snapshot (see step 13). **Never merge a feature branch directly to main.**
 
 10b. **Post-merge targeted validate** (t-1485) — after the merge completes, derive which checks apply to the changed files and run only those:
    ```bash
@@ -192,7 +196,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    If the user says yes, invoke `Skill(skill="brana:reconcile")`.
    If no spec-graph hits, skip silently.
 
-12. **Update living docs** (post-merge, on main):
+12. **Update living docs** (post-merge, on dev):
    Invoke `/brana:docs all` to update system-level documentation:
    - `reference` — regenerate catalogs from frontmatter (deterministic)
    - `marketplace` — sync plugin marketplace metadata (counts, version)
@@ -202,7 +206,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
    For **existing shared docs**: show a diff preview before committing.
    For **new per-feature docs**: auto-commit (already handled in step 6).
-   Commit on main: `docs: update living docs after {task-id}`
+   Commit on dev: `docs: update living docs after {task-id}`
 
    Skip silently if no spec-graph hits (not every build touches documented systems).
 
@@ -227,6 +231,25 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    ### Knowledge maintained
    - {field notes captured, assumptions verified, changelogs updated}
    ```
+
+14. **Release to main** (periodic — NOT every build) — offer, do NOT auto-execute:
+   Work now lives and is deployed on `dev`. `main` is the blessed release snapshot —
+   advance it deliberately when `dev` is stable (end of a work batch, or before stepping
+   away), never per-feature. Offer:
+   ```
+   question: "dev is ahead of main by {N} commits. Cut a release snapshot to main?"
+   options: ["Yes — release dev→main + push", "Skip — keep accumulating on dev"]
+   ```
+   On yes:
+   ```bash
+   git checkout main
+   git merge --ff-only dev          # dev-first keeps this a clean fast-forward
+   git push origin main dev         # publish the snapshot + back up dev
+   git checkout dev                 # return to the live/integration branch
+   ```
+   If `--ff-only` is rejected (someone committed to main directly — a convention
+   violation), STOP and investigate; do not force. The release is also the natural
+   home for `/brana:ship` if a richer pre-flight/verify gate is wanted.
 
 > **☑ Checkpoint cleanup — CLOSE:** Delete run-state on successful close (M+ builds with task_id):
 > ```bash
