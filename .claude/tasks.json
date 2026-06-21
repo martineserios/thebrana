@@ -58068,7 +58068,7 @@
     {
       "id": "t-2194",
       "subject": "/goal integration design — three-primitive composition (loop · goal · workflow) in the brana flow",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "design",
       "tags": [
@@ -58087,7 +58087,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "2026-06-21: Filed at user request. Gap: the loop-native redesign (docs/research/2026-06-11-loop-native-redesign.md) and its 5 backlog tasks (t-1992/1993/1994/1995/2014) incorporate /loop (foreman) + Workflow (crew) but NEVER design /goal. The redesign doc only gestures at it (\"iterate-until-done lives in /goal + Workflows\") — never says where it fits in the brana command flow. /goal is the CC-native in-session primitive that keeps the session working turn-after-turn until a CONDITION is met (docs: code.claude.com/docs/en/goal) — distinct from /loop (interval polling) and Workflow (one-shot fan-out in clean contexts). The three-way distinction to formalize: ITERATE-until-condition (/goal) vs POLL-on-interval (/loop) vs FAN-OUT-once (Workflow).\n\nScope = DESIGN ONLY (user chose design-first over direct implementation). Deliverable extends the loop-native body of work; build tasks decompose from it afterward.\n\nRelates-to (reference, not hard blockers — startable now): t-1992 step-state contract — /goal's stop condition is exactly {checkpoint, next_step, gate_pending}; the design must state how /goal reads termination from step-state rather than self-asserting \"done\" (LoopTrap P5/P7 defense, see pattern_looptrap-autonomy-findings). t-1994 foreman — clarify /goal-in-session vs the foreman's /loop heartbeat (do they compose? is the per-subtask build loop a /goal?). ADR-050 — auto-advance caps (max 3, machine-verifiable checkpoint, never cross human gate) apply to /goal iterations too.\n\nKey questions to answer: (1) which brana skills gain a /goal loop — build per-subtask TDD loop? fix reproduce→fix→verify? reconcile? (2) how /goal composes with /loop + Workflow (the redesign doc's Finding 3 mapping table extended to three rows). (3) termination contract — machine-verifiable stop, never self-assessed.\n\nAC: design drafted as an ADR in docs/architecture/decisions/ OR a dated extension section in docs/research/2026-06-11-loop-native-redesign.md\nAC: decision matrix present — /goal vs /loop vs Workflow (when to use each, extends Finding 3 table to 3 rows)\nAC: explicit grep-able list of which brana skills gain a /goal loop, each with rationale\nAC: relation to ADR-050 auto-advance caps AND t-1992 step-state contract stated explicitly\nAC: challenger review run on the draft, dispositions recorded\nAC: validate.sh passes",
-      "notes": null,
+      "notes": "2026-06-21: Design delivered as ADR-061 (proposed). Challenger PROCEED-WITH-CHANGES (1 BLOCKER, 2 HIGH, 2 MEDIUM) all incorporated, dispositions recorded in-ADR. Build decomposed: t-2204 (harden goal-completion.sh, BLOCKER precondition) → t-2205 (Stage 2) → t-2206 (Stage 3) → t-2207 (Stage 4, also blocked_by t-1992). Idea doc: docs/ideas/goal-integration-three-primitive.md. Merged to dev (6a1401ca).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -58269,7 +58269,7 @@
     {
       "id": "t-2201",
       "subject": "plan.md generates acceptance_criteria per leaf task (template+LLM-fill, lint+warn, atomicity signal)",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -58283,7 +58283,7 @@
       "priority": "P1",
       "parent": "t-2198",
       "created": "2026-06-21",
-      "started": null,
+      "started": "2026-06-21",
       "completed": null,
       "blocked_by": [
         "t-2200"
@@ -58294,7 +58294,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "backlog-schema",
+      "strategy": "feature",
+      "work_type": "implement"
     },
     {
       "id": "t-2202",
