@@ -8,13 +8,16 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
 Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.
 
 0. **Goal injection** (task_id known only — skip for freeform builds):
-   Collect acceptance criteria from two sources (merge, deduplicate):
-   - **Source 1 — `acceptance_criteria` field** (preferred; available after t-1778 ships):
+   The **`acceptance_criteria` field is canonical** (ADR-047 §1; t-1778). `AC:` lines in
+   `context` are a human-typing **shorthand** — read them, but normalize them *into* the
+   field so the field is the single source of truth (t-2202), rather than carrying two
+   co-equal stores forever.
+   - **Canonical — `acceptance_criteria` field:**
      ```bash
      brana backlog get {task_id} --field acceptance_criteria 2>/dev/null
      # Returns JSON array or null. Parse with: jq -r '.[]?' if array, skip if null.
      ```
-   - **Source 2 — `AC:` lines in context** (fallback; always available):
+   - **Shorthand — `AC:` lines in context:**
      ```bash
      brana backlog get {task_id} | python3 -c "
      import json, sys
@@ -23,14 +26,22 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
      print('\n'.join(lines))
      "
      ```
-   Merge both sources. If either yields criteria:
+   - **Normalize (fold shorthand into the field):** if any `AC:` line is not already in the
+     field, write the deduplicated union back so the field becomes authoritative:
+     ```bash
+     brana backlog set {task_id} acceptance_criteria '[{merged JSON array}]'
+     ```
+     After this, the field holds every criterion; subsequent reads need only the field.
+     (Leave the `AC:` lines in `context` — harmless once absorbed; they re-normalize idempotently.)
+
+   Take the criteria from the field (post-normalization). If non-empty:
    - **Call** `/goal "{task.subject} — Done when: {criteria joined with ' AND '}"` to anchor the session.
    - **Write** `~/.claude/run-state/active-goal.json`:
      ```json
      {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["{criterion1}", "{criterion2}"]}
      ```
      This state file is read by the Stop hook (`goal-completion.sh`) to auto-complete the task.
-   - **If no criteria found in either source:** still anchor the session — call `/goal "{task.subject}"` (subject only, no `Done when:` clause). Do **not** write `active-goal.json`: the Stop hook (`goal-completion.sh:40`) exits at zero criteria, so a criteria-less state file does nothing. The session gets a focus anchor; auto-complete stays gated on `AC:` lines.
+   - **If the field is empty (no criteria, no `AC:` lines):** still anchor the session — call `/goal "{task.subject}"` (subject only, no `Done when:` clause). Do **not** write `active-goal.json`: the Stop hook (`goal-completion.sh:40`) exits at zero criteria, so a criteria-less state file does nothing. The session gets a focus anchor; auto-complete stays gated on the `acceptance_criteria` field.
    - **Skip for:** freeform builds (no task_id), spike strategy, investigation strategy.
 
 0.5. **Tech-stack pre-detection** (task_id present only — skip when no task_id):
