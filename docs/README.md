@@ -61,6 +61,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [skills.md](architecture/skills.md) | Skills architecture -- 8 groups, design-level overview |
 | [hooks.md](architecture/hooks.md) | Hooks architecture -- plugin/bootstrap split, design principles |
 | [agents.md](architecture/agents.md) | Agents architecture -- groups, routing, hook triggers |
+| [ac-grammar.md](architecture/ac-grammar.md) | AC grammar — the 8 machine-checkable criteria heuristics (loop+goal contract) |
 | [plugin-structure.md](architecture/plugin-structure.md) | Plugin packaging and manifest |
 | [plugin-lifecycle.md](architecture/plugin-lifecycle.md) | Session startup sequence, skill invocation, hook execution flow |
 | [bootstrap.md](architecture/bootstrap.md) | bootstrap.sh reference — steps, flags, troubleshooting |

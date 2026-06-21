@@ -91,15 +91,26 @@ The CC Stop hook fires when `/goal` self-terminates. At that point, `/brana:buil
 5. On full pass: auto-mark task `status: completed`, `completed: today`
 6. On partial pass: report which criteria failed, leave task `in_progress`, do NOT auto-cancel
 
-**Automated check heuristics:**
+**Automated check heuristics** — the canonical, full grammar lives in
+[`docs/architecture/ac-grammar.md`](../ac-grammar.md) (the single source of truth both
+`/brana:backlog plan` lint and `goal-completion.sh` cite). The 8 patterns
+`goal-completion.sh` actually implements:
 
-| Criterion pattern | Automated check |
-|-------------------|-----------------|
-| `brana backlog get ... returns ...` | Run the CLI command, grep output |
-| `validate.sh Check N passes` | Run `./validate.sh --check N` |
-| `file exists at path` | `test -f path` |
-| `command exits 0` | Run command, check exit code |
-| Anything else | Surface to user for manual sign-off |
+| # | Criterion pattern | Automated check |
+|---|-------------------|-----------------|
+| 1 | `file ... exists` (path ends `.sh/.md/.json/.rs/.py/.ts/.js/.toml`) | `test -f path` under the work dir |
+| 2 | `brana backlog get ... returns ...` | Run the CLI command, `grep -F` output |
+| 3 | `validate.sh Check N passes` | Run `./validate.sh --check N` |
+| 4 | `hook {name}.sh exists` | `test -f system/hooks/{name}.sh` |
+| 5 | `file {path} contains "{string}"` | `grep -F` the file (rejects `/` and `..`) |
+| 6 | `jq '{expr}' {file} returns "{value}"` | Run `jq`, string-equal (rejects `/` and `..`) |
+| 7 | `"{command}" passes` | Run command (allowlist: cargo/pytest/bun/npm/yarn test, `bash tests/`, `./tests/`) |
+| 8 | `changes to {path} committed` / `commit message contains "{s}"` | `git log` on path / `--grep` the message |
+| — | Anything else | UNKNOWN → surface to user for manual sign-off |
+
+> Drift note (t-2199): this table previously listed 4 patterns (including a
+> `command exits 0` row the hook never implemented). Reconciled to the 8 the hook
+> actually runs; future changes edit `ac-grammar.md` first.
 
 ---
 
