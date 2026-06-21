@@ -41,3 +41,7 @@ system/state/patterns-export.json
 # Per-repo backlog config (active_epic, theme) — personal, volatile, per-machine
 # working state. Tracking it causes cross-machine clobber + merge conflicts (t-2158/t-2155).
 .claude/tasks-config.json
+
+# Lock sidecars from util::lock_sidecar (<store>.json.lock) — created on every
+# locked write to tasks.json / queue / remind stores. Transient, never tracked (t-2166).
+*.json.lock
