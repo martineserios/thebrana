@@ -55,8 +55,25 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 
 ---
 
+## 2026-06-19
+- Triggers fired: weekly-review
+- New commits from agents (24h): 1 (2e2f73d docs(review): weekly portfolio review 2026-06-19)
+- New review files: weekly-2026-06-19.md (4.7K)
+- Output size: ~4.7K markdown (medium report)
+- This monitor session: n/a (offline period)
+
+## 2026-06-21
+- Triggers fired in last 48h: weekly-review (2026-06-19)
+- Notable: architecture-review-2026-06-10.md (17K), knowledge-structure-audit-2026-06-11.md (9K) also present, unclear trigger source
+- Recent commits: 1 agent commit from 2026-06-19 in docs/reviews/
+- This monitor session: haiku (minimal cost)
+- Status: resuming daily monitoring after gap
+
+---
+
 ### Monitoring Setup
 - **token-monitor**: runs daily to track scheduled agent activity
-- **weekly-review**: expected Friday firings
+- **weekly-review**: expected Friday firings (confirmed 2026-06-19)
 - **knowledge-review**: expected 1st of month firings
 - Log updated: one entry per day, weekly summary after 7 days
+- **Gap note**: baseline not updated 2026-04-27 to 2026-06-21; activity resumed with weekly-review on 2026-06-19
