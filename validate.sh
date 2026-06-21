@@ -2019,7 +2019,7 @@ C48_WARNS=""
 if [ -f "$HJ" ] && [ -f "$HOOKS_MD" ]; then
     # Extract unique PreToolUse script names from hooks.json
     PTU_SCRIPTS=$(jq -r '.hooks.PreToolUse[]?.hooks[]?.command // empty' "$HJ" \
-        | awk '{print $NF}' | tr -d '"'"'"'' | sed 's|.*/||' | sort -u)
+        | awk '{print $NF}' | tr -d '"'"'"'' | sed 's|.*/||' | grep -E '\.sh$' | sort -u)
     # Extract all scripts registered under any event in hooks.json
     ALL_SCRIPTS=$(jq -r '.hooks | to_entries[] | .value[]?.hooks[]?.command // empty' "$HJ" \
         | awk '{print $NF}' | tr -d '"'"'"'' | sed 's|.*/||' | sort -u)
