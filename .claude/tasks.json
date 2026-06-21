@@ -57897,6 +57897,63 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2188",
+      "subject": "Wire dev as integration branch; main becomes release-only (dev-first workflow)",
+      "status": "completed",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "harness",
+        "git",
+        "workflow",
+        "skills",
+        "stabilization"
+      ],
+      "description": "thebrana's build/close skills hardcode main as both integration and deploy target (build/phases/close.md:138 `git checkout main`; feedback_thebrana-deploy-merge-to-main memory). The `dev` branch exists but was never wired into the workflow, so it silently drifted 10 commits behind main. User wants a robust dev-first model: feature branches off dev -> merge to dev (integration); main advances ONLY via deliberate dev->main release/deploy. Reconciliation already done this session (FF dev->main, both pushed, all 4 refs aligned at bf317974).",
+      "effort": "M",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": "harness/fix/t-2188-dev-first-integration",
+      "context": "2026-06-21: Branch reconciliation already complete (dev FF'd to main; origin/dev=origin/main=local dev=local main=bf317974). Remaining work is wiring the skills + docs to the new model.\nAC: build/phases/close.md merges feature branch -> dev (not main); a separate explicit dev->main release/deploy step exists (deploy=merge to main per existing memory, now a deliberate release not every-build)\nAC: feedback_thebrana-deploy-merge-to-main memory updated: integrate to dev; release/deploy = dev->main merge\nAC: project .claude/CLAUDE.md branch convention documents dev-first (dev=integration, main=release-only, never commit directly to main)\nAC: close skill state commits land on dev (follows current branch once sessions run on dev)\nAC: cross-repo rollout (anita/clients/ventures) explicitly deferred to a separate task\nNOTE: scope is thebrana only this session (user decision). Branch off dev per the NEW convention.",
+      "notes": "DONE. Reconciled dev/main (FF dev->main, both pushed, all 4 refs aligned at bf317974). Wired dev-first (dev-is-live) into: build/phases/close.md (integrate to dev, release step dev->main), close/phases/cleanup.md + gate-and-evidence.md (reap/reconcile/merged-check against dev), brana CLI deploy hint (main.rs/cli.rs rebuilt+redeployed), close-abort.sh (return to dev). Canonical doc docs/guide/workflows/branching.md. Updated feedback memory (deploy=bootstrap-from-dev). Validate: no NEW errors vs dev baseline (29/30/48 all pre-existing); incidentally cleared Check 29 via hooks.md regen. CLAUDE.md AC: BLOCKED by Layer-1 feedback-gate (human-authored only) — snippet handed to user for manual paste; branching.md is the source of truth. Cross-repo rollout deferred -> t-2189.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2189",
+      "subject": "Roll out dev-first branch workflow to anita / clients / ventures",
+      "status": "pending",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [
+        "git",
+        "workflow",
+        "cross-repo",
+        "deferred"
+      ],
+      "description": "Deferred from t-2188 (thebrana-only this session, user decision). Audit each repo (proyecto-anita, clients/*, ventures/*) and decide per-repo whether to adopt the dev-first (dev-is-live, main=release) model thebrana now uses. Client repos often follow the client's own workflow — do NOT blanket-impose. Reference implementation + canonical doc: thebrana docs/guide/workflows/branching.md.",
+      "effort": "L",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-06-21: Each repo is its own git repo with its own state and possibly its own external workflow constraints (client process). Per-repo decision, not a uniform mandate. thebrana is the reference.\nAC: each repo audited for current dev/main state and divergence\nAC: per-repo decision recorded (adopt dev-first / keep existing / client-mandated)\nAC: repos adopting dev-first get the branching doc + skill behavior aligned",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"

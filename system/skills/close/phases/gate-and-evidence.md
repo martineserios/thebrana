@@ -90,7 +90,7 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/syst
 1. Compute hard signals (each individually best-effort — a failed command is "no signal", never a block):
    ```bash
    DIRTY=$(git status --porcelain 2>/dev/null | head -1)
-   MERGED=$(git branch --merged main 2>/dev/null | grep -v 'main' | grep -c "$(git branch --show-current)" || true)
+   MERGED=$(git branch --merged dev 2>/dev/null | grep -vE 'main|dev' | grep -c "$(git branch --show-current)" || true)
    TASK_STATUS=$(brana backlog query --status in_progress --output json 2>/dev/null | jq -r '.[0].status // empty' 2>/dev/null || true)
    ```
 2. Candidate set from signals: task in flight or dirty tree → `--continue`; branch merged or task completed → `--finish`; both kinds of signal present (conflict — likely stale task state) → all candidates, NO recommended option. `--patterns` is NEVER an auto-detected candidate (git state cannot signal "discoveries happened") — include it only if the conversation shows pattern-worthy material (a workaround found, a gotcha documented, a reusable approach discussed).

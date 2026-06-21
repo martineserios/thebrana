@@ -236,14 +236,20 @@ fn main() {
             run_or_exit(commands::log::cmd_log(&entries, tags.as_deref()))
         }
         Commands::Deploy => {
-            println!("brana deploy = merge to main");
+            println!("brana deploy = ./bootstrap.sh from dev  (dev-is-live, dev-first model)");
             println!();
+            println!("  ./bootstrap.sh            # propagate system/ to ~/.claude (run on dev)");
+            println!();
+            println!("dev is the integration + live branch — what you work on and what bootstrap");
+            println!("deploys. No build step, no container; the system runs locally.");
+            println!();
+            println!("Release a stable snapshot to main (periodic, NOT per-feature):");
             println!("  git checkout main");
-            println!("  git merge --no-ff feat/<branch>");
-            println!("  git push origin main   # if tracking a remote");
+            println!("  git merge --ff-only dev");
+            println!("  git push origin main dev");
+            println!("  git checkout dev");
             println!();
-            println!("No build step. No container. The system runs locally from the branch");
-            println!("Claude Code loads — which is main.");
+            println!("Never merge a feature branch into main. See docs/guide/workflows/branching.md");
         }
         Commands::Ratings { last, json } => run_or_exit(commands::ratings::cmd_ratings(last, json)),
         Commands::Recall { query, top, json, db } => {
