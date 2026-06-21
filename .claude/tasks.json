@@ -58306,7 +58306,7 @@
     {
       "id": "t-2202",
       "subject": "AC: lines → acceptance_criteria field normalization (field canonical)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -58320,13 +58320,13 @@
       "parent": "t-2198",
       "created": "2026-06-21",
       "started": "2026-06-21",
-      "completed": null,
+      "completed": "2026-06-21",
       "blocked_by": [
         "t-2201"
       ],
-      "branch": null,
+      "branch": "backlog-schema/refactor/t-2202-ac-lines-normalize",
       "context": "Make the acceptance_criteria field the single source of truth. build LOAD currently merges Source 1 (field) + Source 2 (AC: lines). Keep AC: lines as human-typing shorthand but normalize them into the field (fold AC: context lines into acceptance_criteria) rather than treating them as a co-equal parallel store. Decide normalization point: at plan write-time and/or build LOAD. Blocked_by t-2201.\nAC: file system/skills/build/phases/load.md contains \"acceptance_criteria\"</context>\n",
-      "notes": null,
+      "notes": "build LOAD Step 0: field canonical, AC: lines normalize into the field on first build. Check 57 pass; 2 pre-existing validate errors unchanged.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
