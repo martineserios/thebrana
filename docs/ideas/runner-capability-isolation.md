@@ -61,22 +61,60 @@ defenses; Linux sandbox tooling). Convergent consensus:
 - **bubblewrap is the right tool**: no SUID/root, used in production by Flatpak,
   `bwrap`/`systemd-run`/`unshare` already installed on the target box.
 
-## Proposed solution — layered, marathon (build-it-right)
+## ⚠ Challenge corrections (2026-06-21) — the naive command was broken
+
+A 3-lens adversarial review (containment / operability / completeness) found the original
+bwrap command would produce *a sandbox containing a dead, still-escapable executor*. All
+claims verified against the live `autonomous-runner.sh` + this machine. Four flaws:
+
+- **F1 (FATAL) — `--unshare-net` bricks the executor.** `claude -p` IS the network client;
+  it needs `api.anthropic.com`. Block-all-egress → every task fails "no changes" every run.
+  **Fix:** egress *allowlist proxy* (only `api.anthropic.com:443`) + `HTTPS_PROXY` into the
+  sandbox — the Codex/Claude-Code-cloud pattern this doc's own research table cited.
+- **F2 (FATAL) — `--tmpfs /home` destroys claude's own creds** at `~/.claude/.credentials.json`
+  (verified present). Auth fails before the first token. **Fix:** `--ro-bind` claude's auth
+  read-only; keep `~/.config/brana` hidden (those are the *attacker's* target, a different set).
+- **C1 (CRITICAL) — env-borne secrets bypass everything.** No `env -i` → `LINEAR_API_KEY` etc.
+  inherited, readable via `env` / `/proc/self/environ`. **Fix:** `env -i` + explicit allowlist.
+- **C2 (CRITICAL) — worktree write → unsandboxed host execution.** The agent's one writable
+  path is read back and executed on the HOST: line 209 `eval "$VALIDATE_CMD"`, line 216 `git
+  commit` (runs worktree `.git/hooks`). A network-blocked agent still gets host RCE by writing
+  a malicious `validate.sh`/`pre-commit`. Also makes "escape-test in validate.sh" **circular**.
+  **Fix:** run validate from a PINNED base-ref copy (not the worktree's) + `commit --no-verify`.
+
+Process fixes: **spike before ADR** (prove bwrap can run claude -p at all — F1+F2 show why);
+**6-vector escape battery** not one curl (home-read, /proc/environ, write-outside-worktree,
+curl, DNS-exfil, fd-inheritance) + fork-bomb test. Plus: `--rlimit-nproc/as/fsize`, close
+inherited fds, minimal bind list (not `--ro-bind / /` — leaks `~/.aws`/`~/.ssh`), sandbox the
+OBSERVE call (line 80) too, and name the supply-chain class (malicious tracked files passing
+validate → human reviewer is the last gate) in the ADR Consequences.
+
+## Proposed solution — layered, marathon (build-it-right) — CORRECTED
 
 ### Layer 1 — bwrap OS sandbox around the executor dispatch (the real boundary)
 ```bash
-bwrap --unshare-net --unshare-ipc --unshare-pid \
-  --ro-bind / / \
+# Start an egress-allowlist proxy first (only api.anthropic.com:443), e.g. tinyproxy on 127.0.0.1:3128
+bwrap --unshare-ipc --unshare-pid \
+  --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib --ro-bind /lib64 /lib64 \
+  --ro-bind /etc/alternatives /etc/alternatives --ro-bind /etc/ssl /etc/ssl \
+  --ro-bind "$HOME/.claude/.credentials.json" "$HOME/.claude/.credentials.json" \
+  --ro-bind "$HOME/.cargo" "$HOME/.cargo" --ro-bind "$HOME/.gitconfig" "$HOME/.gitconfig" \
   --bind "$WT" /workspace \
-  --tmpfs /tmp --tmpfs /home \
-  --proc /proc --dev /dev \
+  --tmpfs /tmp --proc /proc --dev /dev \
+  --rlimit-nproc 50 --rlimit-fsize 500M \
   --chdir /workspace \
-  env HOME=/tmp \
+  env -i HOME=/tmp PATH=/usr/bin:/bin HTTPS_PROXY=http://127.0.0.1:3128 \
   "$CB" -p --allowedTools "Read,Write,Edit,Bash" --output-format text
 ```
-- `--unshare-net` → all egress blocked (loopback only).
-- `--ro-bind / /` + `--bind "$WT" /workspace` → whole FS read-only except the worktree.
-- `--tmpfs /home` (HOME=/tmp) → secrets in `~/.config` are unreadable.
+- **Egress allowlist proxy** (not `--unshare-net`) → only `api.anthropic.com` reachable; the
+  executor still works, arbitrary IPs blocked at the proxy.
+- **Minimal `--ro-bind` list** (not whole `/`) → `~/.aws`, `~/.ssh`, other users' files unreadable.
+- **`--ro-bind` claude creds + `~/.cargo`/`~/.gitconfig`** → executor authenticates + builds.
+- **`env -i`** → inherited env secrets cleared.
+- **`~/.config/brana` is NOT bound** → brana secrets stay hidden.
+- **rlimits** → fork-bomb / disk-fill contained.
+- **C2 fix (in the runner, not bwrap):** run `validate.sh` from the base-ref copy, not the
+  worktree; `git commit --no-verify`. Sandbox the OBSERVE call (line 80) the same way.
 
 ### Layer 2 — Bash denylist as a TRIPWIRE (defense-in-depth, not the boundary)
 `--disallowedTools "Bash(curl:*) Bash(wget:*) Bash(git push:*) Bash(rm -rf:*)"`.
@@ -117,12 +155,24 @@ call FAILS. This is t-2173 AC#1; without it the sandbox silently degrades over t
 - AC2 (boundary enforced + documented in autonomous-runner.md) → Layers 1–2 + doc update
 - AC3 (spec states capability-isolation model explicitly) → doc update
 
-## Next steps
-1. ADR (DDD): record "sandbox = bwrap; filtering = tripwire only; net off by default".
-2. Test-first (TDD): write the Layer-4 escape test; see it fail against current runner.
-3. Implement: wrap line 198 dispatch in bwrap; add denylist; scrub secret env.
-4. Compatibility pass: run a real rust + a real shell task through the sandbox, fix binds.
-5. Docs (SDD): update `docs/architecture/features/autonomous-runner.md` capability-isolation section.
+## Next steps (CORRECTED build order — spike before ADR)
+0. **SPIKE (NEW, gates everything):** prove `bwrap` + egress-proxy + `--ro-bind` claude creds
+   can run a trivial `claude -p` prompt to completion with auth working. F1/F2 show an
+   unspiked ADR would commit to a config that can't run the executor. Gate ADR on spike pass.
+1. **ADR (DDD):** record "sandbox = bwrap; egress = allowlist proxy (NOT --unshare-net);
+   creds bind-mounted RO; env -i; validate from base-ref; filtering = tripwire only". Name the
+   supply-chain class (malicious tracked files passing validate → human reviewer is last gate)
+   in Consequences. Note Landlock/seccomp deferred + why.
+2. **Test-first (TDD):** write the 6-vector escape battery + fork-bomb test, run from a PINNED
+   path (not the worktree). See it fail against the current runner. Name which validate.sh
+   check number it becomes.
+3. **Implement:** wrap line-198 dispatch (and line-80 OBSERVE) in the corrected bwrap; add
+   `env -i`; run validate from base-ref copy + `commit --no-verify`; close inherited fds.
+4. **Compatibility soak:** run a real rust + real shell + real python task; define PASS
+   criteria up front (all tests green, no bwrap-caused errors, no new failures vs baseline);
+   fix binds until the DEFAULT config "just works" (so nobody loosens it under friction).
+5. **Docs (SDD):** update `docs/architecture/features/autonomous-runner.md` capability-isolation
+   section + add a runner-PR reviewer checklist (scope-creep, new eval/network patterns).
 
 ## Sources
 - Simon Willison — The Lethal Trifecta for AI agents (2025-06)
