@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T13:09:16Z",
+  "generated": "2026-06-21T14:35:14Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2854,6 +2854,11 @@
     },
     "docs/ideas/resilient-pattern-store.md": {
       "title": "Resilient Pattern Store — Hybrid Dual-Write",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/runner-capability-isolation.md": {
+      "title": "Autonomous Runner — Capability Isolation",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -14341,9 +14346,9 @@
     }
   ],
   "stats": {
-    "nodes": 485,
+    "nodes": 486,
     "edges": 1840,
     "typed_edges": 682,
-    "orphans": 130
+    "orphans": 131
   }
 }
