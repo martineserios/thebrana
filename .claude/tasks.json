@@ -58330,7 +58330,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "file system/skills/build/phases/load.md contains \"acceptance_criteria\"",
+        "file system/skills/build/phases/load.md contains \"Normalize\""
+      ],
       "epic": "backlog-schema",
       "strategy": "refactor",
       "work_type": "implement"
@@ -58476,6 +58479,33 @@
       ],
       "branch": null,
       "context": "2026-06-21: ADR-061 Stage 4. The ONLY binding that needs t-1992 — it must read phase order + gate flags (next_step/gate_pending) from the step-state contract to know which phases are gate-free. blocked_by both t-1992 (step registry) and t-2206 (Stage 3 evidence). Do not start before t-1992 lands and Stages 2-3 have a track record.\nAC: a skill declares a /goal binding via {span, done-signal} read against the t-1992 step registry\nAC: generalized binding subsumes the 3 specific bindings without regressing their behavior\nAC: grep-able binding list maintained (ADR-061 §3)\nAC: validate.sh passes",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2208",
+      "subject": "Update hooks.md inventory for goal-completion.sh changes",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "docs",
+        "hooks",
+        "goal"
+      ],
+      "description": "goal-completion.sh was modified during the t-2194/t-2201 sessions (2026-06-21) but docs/architecture/hooks.md was not updated. Update the hook inventory table + gate classification for goal-completion.sh. Will need another pass once t-2204 lands the invariant-2 enforcement (base-ref pinning, tests/ + task-record mutation guard, headless interlock) — those change the hook's behavior materially.",
+      "effort": "XS",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
       "notes": null,
       "order": 0,
       "github_issue": null,
