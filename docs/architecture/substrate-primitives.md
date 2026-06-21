@@ -1,7 +1,8 @@
 # Agent Substrate — Primitives & Composition
 
 **Status:** Design (2026-06-21, t-2184) · **Owner:** Martín Rios
-**Companion to:** [substrate-end-state](substrate-end-state.md) (autonomy tiers + safety net) · [ADR-059](decisions/ADR-059-multi-agent-substrate-selection.md) (substrate selection) · [substrate-leverage-audit](../research/substrate-leverage-audit.md) (empirical calibration) · [workflow-primitive](workflow-primitive.md) (Workflow API surface)
+**Index:** [the-orbit.md](the-orbit.md) (start here — the Orbit/Substrate map)
+**Companion to:** [substrate-end-state](substrate-end-state.md) (the Orbit — autonomy tiers + safety net) · [ADR-059](decisions/ADR-059-multi-agent-substrate-selection.md) (substrate selection) · [substrate-leverage-audit](../research/substrate-leverage-audit.md) (empirical calibration) · [workflow-primitive](workflow-primitive.md) (Workflow API surface)
 
 ## Why this doc exists
 

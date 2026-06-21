@@ -70,8 +70,9 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
+| [the-orbit.md](architecture/the-orbit.md) | **Index & reading map** for the Orbit/Substrate cluster — vocabulary, what to read in what order (start here) |
 | [workflow-primitive.md](architecture/workflow-primitive.md) | Verified `Workflow` tool API surface, smoke-test evidence, opt-in rule |
-| [substrate-end-state.md](architecture/substrate-end-state.md) | Autonomous-agent substrate end-state design — tiers, runner stages, safety net, branch strategy |
+| [substrate-end-state.md](architecture/substrate-end-state.md) | the Orbit capstone (operation) — tiers, runner stages, safety net, branch strategy |
 | [substrate-primitives.md](architecture/substrate-primitives.md) | Agent substrate primitives & composition — primitive set, composed blocks, composition grammar, durability/trust, plug-points |
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |

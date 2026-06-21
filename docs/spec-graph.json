@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T14:35:14Z",
+  "generated": "2026-06-21T14:47:52Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1701,7 +1701,7 @@
       ]
     },
     "docs/architecture/substrate-end-state.md": {
-      "title": "Autonomous-Agent Substrate — End-State Design",
+      "title": "the Orbit — Autonomous-Agent Operation (End-State Design)",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1772,6 +1772,11 @@
         "system/state/schema-removals.json"
       ]
     },
+    "docs/architecture/the-orbit.md": {
+      "title": "The Orbit & the Substrate — Index & Reading Map",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/workflow-primitive.md": {
       "title": "Workflow Primitive — Verified API Surface",
       "type": "Roadmap",
@@ -1841,6 +1846,11 @@
         "system/scripts/decisions.py",
         "system/state/decisions/"
       ]
+    },
+    "docs/archive/session-aware-loop-integration.md": {
+      "title": "Session-Aware Loop Integration for Brana",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/backlog-urls.md": {
       "title": "Backlog URLs — AI Systems & Claude Code Enhancement",
@@ -2859,11 +2869,6 @@
     },
     "docs/ideas/runner-capability-isolation.md": {
       "title": "Autonomous Runner — Capability Isolation",
-      "type": "Roadmap",
-      "impl_files": []
-    },
-    "docs/ideas/session-aware-loop-integration.md": {
-      "title": "Session-Aware Loop Integration for Brana",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -6558,7 +6563,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
-      "to": "docs/ideas/session-aware-loop-integration.md",
+      "to": "docs/archive/session-aware-loop-integration.md",
       "type": "informs",
       "computed": false
     },
@@ -9954,6 +9959,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/the-orbit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/workflow-primitive.md",
       "type": "references",
       "computed": false
@@ -10926,6 +10937,12 @@
     },
     {
       "from": "docs/architecture/substrate-end-state.md",
+      "to": "decisions/ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
       "to": "decisions/ADR-059-multi-agent-substrate-selection.md",
       "type": "references",
       "computed": false
@@ -10961,6 +10978,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "the-orbit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/substrate-primitives.md",
       "to": "decisions/ADR-059-multi-agent-substrate-selection.md",
       "type": "references",
@@ -10987,6 +11010,12 @@
     {
       "from": "docs/architecture/substrate-primitives.md",
       "to": "substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "the-orbit.md",
       "type": "references",
       "computed": false
     },
@@ -11029,6 +11058,78 @@
     {
       "from": "docs/architecture/testing-validation.md",
       "to": "path",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "decisions/ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "docs/ideas/runner-capability-isolation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "docs/research/substrate-leverage-audit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "features/autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "features/consensus-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "features/learned-eligibility.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "substrate-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "workflow-primitive.md",
       "type": "references",
       "computed": false
     },
@@ -11377,6 +11478,18 @@
     {
       "from": "docs/archive/reflections/14-mastermind-architecture.md",
       "to": "docs/archive/reflections/32-lifecycle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/session-aware-loop-integration.md",
+      "to": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/session-aware-loop-integration.md",
+      "to": "docs/ideas/brana-operating-model.md",
       "type": "references",
       "computed": false
     },
@@ -13109,18 +13222,6 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/session-aware-loop-integration.md",
-      "to": "brana-operating-model.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/session-aware-loop-integration.md",
-      "to": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
-      "type": "references",
-      "computed": false
-    },
-    {
       "from": "docs/ideas/session-continuity-multi-session.md",
       "to": "docs/ideas/session-memory-cc-alignment.md",
       "type": "references",
@@ -14346,9 +14447,9 @@
     }
   ],
   "stats": {
-    "nodes": 486,
-    "edges": 1840,
+    "nodes": 487,
+    "edges": 1856,
     "typed_edges": 682,
-    "orphans": 131
+    "orphans": 129
   }
 }
