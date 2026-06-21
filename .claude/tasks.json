@@ -58092,6 +58092,34 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null
+    },
+    {
+      "id": "t-2195",
+      "subject": "Fix 2 pre-existing validate.sh failures: Check 30 (brana CLI cd-wrapper in hooks) + Check 48 (gate-table parity)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "validate",
+        "hooks",
+        "tech-debt",
+        "harness-engineering"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-21",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Surfaced 2026-06-21 during the Orbit/Substrate docs reorg: ./validate.sh reports VALIDATION FAILED with 2 errors (229 warnings). Both are pre-existing tech debt in system/hooks/, unrelated to the docs change that surfaced them. Worth clearing so validate.sh is green again (currently any run looks failed).\n\nCheck 30 (t-1439): 'brana CLI calls without cd GIT_ROOT wrapper found in system/hooks/'. Remediation: wrap each bare `brana ...` invocation in a hook with `(cd \\\"${GIT_ROOT:-/tmp}\\\" && brana ...)` so brana resolves the repo root deterministically (cwd-discipline). Candidate hooks with brana calls: session-end-drift.sh, branch-checkout-warn.sh, bash-risk-classifier.sh, goal-completion.sh, memory-write-gate.sh, post-hooks-json.sh, session-end-persist.sh, session-end.sh, plan-mode-gate.sh, subagent-context.sh. Run `./validate.sh 2>&1 | grep -A3 'Check 30'` or inspect the check body in validate.sh to get the exact offending lines.\n\nCheck 48 (t-1938, promoted WARN->FAIL): 'gate table parity gap(s) found — update hooks.md or hooks.json'. The hook gate table in docs/architecture/hooks.md is out of sync with system/hooks/hooks.json. Remediation: diff the two and reconcile (add/remove rows so the documented gate table matches the actual registered hooks).\n\nAC: ./validate.sh Check 30 passes (no unwrapped brana calls in system/hooks/)\nAC: ./validate.sh Check 48 passes (hooks.md gate table matches hooks.json)\nAC: ./validate.sh Errors: 0 (or only documents remaining unrelated failures)</context>\n</invoke>\n",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
