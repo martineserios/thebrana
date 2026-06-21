@@ -65,7 +65,7 @@ reconciliation.
 
 ## Next steps (task tree)
 
-See backlog phase filed from this idea. Shape:
+Phase **t-2198** filed from this idea (tasks t-2199..t-2203). Shape:
 1. Reconcile ADR-047 §3 ↔ `goal-completion.sh` 8 heuristics; extract shared grammar reference.
 2. `plan` generates `acceptance_criteria` per leaf task (template+LLM-fill, lint+warn).
 3. Atomicity signal — flag leaf tasks >criteria-threshold or M+ effort for split.
