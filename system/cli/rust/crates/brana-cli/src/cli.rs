@@ -226,7 +226,7 @@ pub enum Commands {
         #[arg(long, short = 't')]
         tags: Option<String>,
     },
-    /// How to deploy brana (hint — deploy = merge to main)
+    /// How to deploy brana (hint — deploy = ./bootstrap.sh from dev; dev-is-live)
     Deploy,
     /// Signal ratings dashboard — view ratings.jsonl breakdown and recent signals
     Ratings {

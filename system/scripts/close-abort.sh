@@ -12,8 +12,8 @@
 #                  [--git-root DIR] [--no-task-update]
 #
 # Sequence: validate → dirty-tree disposal → timestamped tag → push tag
-#           (warn LOCAL ONLY on failure) → checkout main → branch -D →
-#           task → pending (unless --no-task-update).
+#           (warn LOCAL ONLY on failure) → checkout dev (feature-branch base;
+#           falls back to main) → branch -D → task → pending (unless --no-task-update).
 #
 # Exit codes: 0 success (push failure still 0 — warned, not fatal)
 #             2 contract violation (no reason, on main, dirty without --dirty)
@@ -48,9 +48,13 @@ if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
     exit 2
 fi
 
-# Default branch to land on after the abort
-DEFAULT_BRANCH="main"
-git -C "$GIT_ROOT" rev-parse --verify -q main >/dev/null || DEFAULT_BRANCH="master"
+# Default branch to land on after the abort. Feature branches are cut off dev
+# (dev-first model), so return there; fall back to main/master if dev is absent.
+DEFAULT_BRANCH="dev"
+if ! git -C "$GIT_ROOT" rev-parse --verify -q dev >/dev/null; then
+    DEFAULT_BRANCH="main"
+    git -C "$GIT_ROOT" rev-parse --verify -q main >/dev/null || DEFAULT_BRANCH="master"
+fi
 
 # ── Dirty-tree disposal — explicit decision required, never a silent default ──
 if [ -n "$(git -C "$GIT_ROOT" status --porcelain)" ]; then
