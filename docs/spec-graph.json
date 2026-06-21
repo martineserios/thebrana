@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T03:11:39Z",
+  "generated": "2026-06-21T04:39:56Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2468,6 +2468,14 @@
       "title": "Managing the Backlog",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/guide/workflows/branching.md": {
+      "title": "Branching — two-tier dev → main (ADR-060)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/build/phases/close.md",
+        "system/skills/close/phases/"
+      ]
     },
     "docs/guide/workflows/build.md": {
       "title": "Building Things",
@@ -12839,6 +12847,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/workflows/branching.md",
+      "to": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/workflows/build.md",
       "to": "docs/architecture/agents/CALIBRATION.md",
       "type": "references",
@@ -14280,8 +14294,8 @@
     }
   ],
   "stats": {
-    "nodes": 483,
-    "edges": 1832,
+    "nodes": 484,
+    "edges": 1833,
     "typed_edges": 682,
     "orphans": 130
   }
