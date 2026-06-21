@@ -59,6 +59,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 None => brana_core::util::find_tasks_file()
                     .ok_or_else(|| pmcp::Error::validation("tasks.json not found"))?,
             };
+            // Serialize the whole read-modify-write so next_id is computed
+            // under the lock and concurrent writers can't clobber (t-2166).
+            let _lock = brana_core::tasks::lock_tasks(&tf)
+                .map_err(|e| pmcp::Error::validation(e))?;
             let mut val = brana_core::tasks::load_raw(&tf)
                 .map_err(|e| pmcp::Error::validation(e))?;
 

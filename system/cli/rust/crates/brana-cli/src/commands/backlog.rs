@@ -455,6 +455,7 @@ pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Opti
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
     let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let idx = val["tasks"].as_array()
@@ -511,6 +512,7 @@ pub fn cmd_add(
         })?,
         (None, None) => find_tasks_file().context("tasks.json not found")?,
     };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
     let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     // Resolve JSON from: --json inline, @file, stdin (-), or shorthand flags
@@ -1029,6 +1031,7 @@ pub fn cmd_delete(task_id: &str, cascade: bool, file: Option<PathBuf>) -> anyhow
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
     let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     match delete_task(&mut val, task_id, cascade) {
@@ -1049,6 +1052,7 @@ pub fn cmd_move(task_id: &str, new_parent: &str, file: Option<PathBuf>) -> anyho
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
     let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     match move_task(&mut val, task_id, new_parent) {
@@ -1072,6 +1076,7 @@ pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) -> anyhow::R
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
     let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     if phase_id.is_none() {
@@ -1136,6 +1141,7 @@ pub fn cmd_triage_stale(
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
     let mut data = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     // Collect display info and matched IDs before taking any mutable borrow.
@@ -1904,6 +1910,7 @@ pub fn cmd_backlog_migrate_epic(dry_run: bool, file: Option<PathBuf>) -> anyhow:
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
     let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let task_arr = val["tasks"].as_array_mut().context("tasks is not an array")?;
     let mut migrated = 0usize;

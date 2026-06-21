@@ -561,6 +561,22 @@ pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
     write_atomic(path, &(content + "\n"))
 }
 
+/// Acquire the exclusive write lock for the tasks store at `path`.
+///
+/// Hold the returned guard across the **entire** read-modify-write —
+/// `lock_tasks` → [`load_raw`] → mutate → [`next_id`] → [`save_tasks`] — so
+/// `next_id` is computed from a fresh, under-lock read and concurrent
+/// processes serialize instead of clobbering each other's writes (t-2166).
+///
+/// The lock is an exclusive advisory `flock(2)` on a `<store>.json.lock`
+/// sidecar (see [`crate::util::lock_sidecar`]); the store inode itself is
+/// replaced by the atomic rename inside [`save_tasks`], so the sidecar — not
+/// the store file — is what serializes writers. Drop the guard (let it fall
+/// out of scope) only after `save_tasks` returns.
+pub fn lock_tasks(path: &Path) -> Result<std::fs::File, String> {
+    crate::util::lock_sidecar(path)
+}
+
 /// Load tasks as raw serde_json::Value (preserves all fields for mutation).
 /// Normalizes bare JSON arrays into `{tasks: [...]}` so callers can always use `val["tasks"]`.
 pub fn load_raw(path: &Path) -> Result<Value, String> {
@@ -2675,6 +2691,86 @@ mod tests {
             .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
             .collect();
         assert!(tmp_files.is_empty(), "save_tasks left tmp files: {:?}", tmp_files);
+    }
+
+    // ── t-2166: tasks.json write locking (concurrent read-modify-write) ──
+
+    #[test]
+    fn lock_tasks_serializes_concurrent_appends() {
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = Arc::new(dir.path().join("tasks.json"));
+        save_tasks(&path, &serde_json::json!({"tasks": []})).unwrap();
+
+        const N: usize = 16;
+        let mut handles = Vec::new();
+        for i in 0..N {
+            let path = Arc::clone(&path);
+            handles.push(std::thread::spawn(move || {
+                // Full read-modify-write under the tasks lock. The window is
+                // deliberately widened (sleep between load and save) so that,
+                // absent real serialization, concurrent writers would read the
+                // same snapshot and clobber each other on save.
+                let _lock = lock_tasks(&path).expect("acquire tasks lock");
+                let mut val = load_raw(&path).unwrap();
+                let id = next_id(val["tasks"].as_array().unwrap());
+                std::thread::sleep(Duration::from_millis(2));
+                val["tasks"].as_array_mut().unwrap().push(serde_json::json!({
+                    "id": id,
+                    "subject": format!("concurrent task {i}"),
+                    "type": "task",
+                }));
+                save_tasks(&path, &val).unwrap();
+            }));
+        }
+        for h in handles {
+            h.join().unwrap();
+        }
+
+        let val = load_raw(&path).unwrap();
+        let tasks = val["tasks"].as_array().unwrap();
+        assert_eq!(tasks.len(), N, "all {N} concurrent appends must persist (no lost writes)");
+        let ids: std::collections::HashSet<&str> =
+            tasks.iter().filter_map(|t| t["id"].as_str()).collect();
+        assert_eq!(ids.len(), N, "every id must be distinct — next_id computed under lock");
+    }
+
+    #[test]
+    fn lock_tasks_excludes_second_writer_until_released() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = Arc::new(dir.path().join("tasks.json"));
+        save_tasks(&path, &serde_json::json!({"tasks": []})).unwrap();
+
+        let held = lock_tasks(&path).expect("first lock");
+        let acquired = Arc::new(AtomicBool::new(false));
+
+        let t = {
+            let path = Arc::clone(&path);
+            let acquired = Arc::clone(&acquired);
+            std::thread::spawn(move || {
+                let _lock = lock_tasks(&path).expect("second lock");
+                acquired.store(true, Ordering::SeqCst);
+            })
+        };
+
+        std::thread::sleep(Duration::from_millis(50));
+        assert!(
+            !acquired.load(Ordering::SeqCst),
+            "second writer must block while the first holds the lock"
+        );
+
+        drop(held);
+        t.join().unwrap();
+        assert!(
+            acquired.load(Ordering::SeqCst),
+            "second writer must acquire the lock once it is released"
+        );
     }
 
     // ── t-1672: spawn / agent_config / agent_result / spawn_strategy ─────
