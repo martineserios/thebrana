@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-20T18:40:34Z",
+  "generated": "2026-06-21T00:12:18Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -936,6 +936,11 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-048-persona-session-state.md": {
+      "title": "ADR-048: Persona modifier persisted in session state, not CLAUDE.local.md",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md": {
       "title": "ADR-049: Mandatory Challenger Gate at BUILD→CLOSE Boundary",
       "type": "ADR",
@@ -1011,6 +1016,13 @@
       "title": "ADR-059: Multi-Agent Substrate Selection (native CC vs ruflo vs agy)",
       "type": "ADR",
       "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md": {
+      "title": "ADR-060: Branch Strategy for Quality Work at Speed & Scale (universal invariants + per-project policy)",
+      "type": "ADR",
+      "impl_files": [
+        "system/rules/git-discipline.md"
+      ]
     },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
@@ -1109,7 +1121,8 @@
       "impl_files": [
         "system/scripts/feed-summarize.sh",
         "system/scripts/autonomous-runner.sh",
-        "system/scripts/tests/test-autonomous-runner.sh"
+        "system/scripts/tests/test-autonomous-runner.sh",
+        "system/scheduler/scheduler.template.json"
       ]
     },
     "docs/architecture/features/backlog-lint.md": {
@@ -1229,6 +1242,11 @@
         "system/hooks/pre-compact.sh"
       ]
     },
+    "docs/architecture/features/consensus-primitive.md": {
+      "title": "Feature Spec — Native Cross-Model Consensus Primitive",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/features/context-budget-real-limits.md": {
       "title": "Feature: Context Budget Real Limits",
       "type": "Roadmap",
@@ -1281,6 +1299,13 @@
       "title": "Knowledge Pipeline — Compute Routing",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/learned-eligibility.md": {
+      "title": "Feature Spec — Learned Eligibility for the Autonomous Runner (Stage 4)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
     },
     "docs/architecture/features/linkedin-content-implementation.md": {
       "title": "LinkedIn Content Pipeline — Implementation Design",
@@ -1667,6 +1692,11 @@
         "system/skills/memory/",
         "system/skills/memory/MEMORY.md"
       ]
+    },
+    "docs/architecture/substrate-end-state.md": {
+      "title": "Autonomous-Agent Substrate — End-State Design",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/system-documentation-map.md": {
       "title": "System Documentation Map",
@@ -2410,6 +2440,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/try-new-features.md": {
+      "title": "Try the New Features — ADR-059 / ADR-060",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/upgrading.md": {
       "title": "Upgrading",
       "type": "Roadmap",
@@ -2523,6 +2558,8 @@
       "title": "Agent Interaction Architecture",
       "type": "Roadmap",
       "impl_files": [
+        "system/rules/delegation-routing.md",
+        "system/",
         "system/scripts/evaluator-spike.py"
       ]
     },
@@ -2777,6 +2814,11 @@
     },
     "docs/ideas/mission-control.md": {
       "title": "Brana Mission Control",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/prompt-patterns-brana-enrichment.md": {
+      "title": "Prompt Patterns → brana Enrichment",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3206,6 +3248,11 @@
       "impl_files": []
     },
     "docs/reviews/weekly-2026-04-17.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/reviews/weekly-2026-06-19.md": {
       "title": "",
       "type": "Roadmap",
       "impl_files": []
@@ -8783,6 +8830,12 @@
     },
     {
       "from": "docs/19-pm-system-design.md",
+      "to": "architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/19-pm-system-design.md",
       "to": "dimensions/03-pm-framework.md",
       "type": "references",
       "computed": false
@@ -9629,6 +9682,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/brana-v2-compute-model.md",
       "type": "references",
       "computed": false
@@ -9653,6 +9712,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/consensus-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/context-budget-real-limits.md",
       "type": "references",
       "computed": false
@@ -9660,6 +9725,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/event-log.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/learned-eligibility.md",
       "type": "references",
       "computed": false
     },
@@ -9821,6 +9892,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/system-documentation-map.md",
       "type": "references",
       "computed": false
@@ -9900,6 +9977,12 @@
     {
       "from": "docs/README.md",
       "to": "guide/troubleshooting.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/try-new-features.md",
       "type": "references",
       "computed": false
     },
@@ -10306,6 +10389,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "to": "ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "to": "docs/19-pm-system-design.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "to": "docs/architecture/features/autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -10391,6 +10492,12 @@
     },
     {
       "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
       "to": "docs/research/substrate-leverage-audit.md",
       "type": "references",
       "computed": false
@@ -10450,6 +10557,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/consensus-primitive.md",
+      "to": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/consensus-primitive.md",
+      "to": "docs/architecture/substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/context-budget-real-limits.md",
       "to": "docs/architecture/dimensions/35-context-engineering-principles.md",
       "type": "references",
@@ -10476,6 +10595,30 @@
     {
       "from": "docs/architecture/features/knowledge-architecture-v2.md",
       "to": "path.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learned-eligibility.md",
+      "to": "autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learned-eligibility.md",
+      "to": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learned-eligibility.md",
+      "to": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learned-eligibility.md",
+      "to": "docs/architecture/substrate-end-state.md",
       "type": "references",
       "computed": false
     },
@@ -10728,6 +10871,42 @@
     {
       "from": "docs/architecture/skills.md",
       "to": "docs/reference/skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "docs/research/substrate-leverage-audit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "features/autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "features/consensus-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "features/learned-eligibility.md",
       "type": "references",
       "computed": false
     },
@@ -12658,6 +12837,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/agent-interaction-architecture.md",
+      "to": "docs/architecture/features/brana-v2-compute-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/agent-observability-learning.md",
       "to": "brana-operating-model.md",
       "type": "references",
@@ -14063,9 +14248,9 @@
     }
   ],
   "stats": {
-    "nodes": 472,
-    "edges": 1807,
+    "nodes": 480,
+    "edges": 1830,
     "typed_edges": 682,
-    "orphans": 129
+    "orphans": 131
   }
 }
