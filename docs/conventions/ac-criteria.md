@@ -1,7 +1,19 @@
 # AC: Criteria — Authoring Guide
 
-AC: lines in task `context` are parsed by `system/hooks/goal-completion.sh` at session end.
-Use the forms below for auto-verification. Any other form falls through to UNKNOWN (manual sign-off required).
+> **Canonical grammar:** [`docs/architecture/ac-grammar.md`](../architecture/ac-grammar.md) is the
+> single source of truth for the 8 heuristics (cited by both `goal-completion.sh` and the
+> `/brana:backlog plan` lint). This page is the user-facing authoring view; keep the two in sync.
+
+Acceptance criteria live in the task's **`acceptance_criteria` field** (canonical, ADR-047 §1).
+`AC:` lines in `context` are a typing shorthand — `/brana:build` LOAD reads them and **normalizes
+them into the field** on first build (t-2202), so the field is the durable store. Both are parsed
+by `system/hooks/goal-completion.sh` at session end. Use the forms below for auto-verification;
+any other form falls through to UNKNOWN (manual sign-off required).
+
+**You usually don't hand-write these.** `/brana:backlog plan` auto-generates `acceptance_criteria`
+for leaf implement/design tasks (template+LLM-fill by `work_type`), lints each via
+`system/scripts/ac-lint.sh`, and warns when a criterion won't auto-complete. Write `AC:` lines by
+hand only when adding criteria to an existing task outside planning.
 
 ## Supported forms
 

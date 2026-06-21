@@ -1,6 +1,8 @@
 # Loop+Goal-Native Backlog Planning
 
-> Brainstormed 2026-06-21. Status: idea → ready to plan.
+> Brainstormed 2026-06-21. Status: **implemented** (phase t-2198 complete, 2026-06-21).
+> Shipped: `docs/architecture/ac-grammar.md`, `system/scripts/ac-lint.sh`, `plan.md` step 11b,
+> build LOAD field-canonical normalization, ADR-047 §3 reconcile.
 
 ## Problem
 
