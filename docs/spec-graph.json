@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T14:53:18Z",
+  "generated": "2026-06-21T21:17:54Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -602,6 +602,16 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/ac-grammar.md": {
+      "title": "AC Grammar — Machine-Checkable Acceptance Criteria",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/goal-completion.sh",
+        "system/hooks/goal-completion.sh:59-206",
+        "system/hooks/",
+        "system/skills/build/phases/load.md"
+      ]
+    },
     "docs/architecture/agents.md": {
       "title": "Agents Architecture",
       "type": "Roadmap",
@@ -929,7 +939,9 @@
     "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md": {
       "title": "ADR-047: acceptance_criteria Schema — Gate for /goal Auto-Loop",
       "type": "ADR",
-      "impl_files": []
+      "impl_files": [
+        "system/hooks/"
+      ]
     },
     "docs/architecture/decisions/ADR-048-memory-consolidation-trigger-model.md": {
       "title": "ADR-048 — Memory Consolidation Trigger Model and Scope Split",
@@ -1022,6 +1034,13 @@
       "type": "ADR",
       "impl_files": [
         "system/rules/git-discipline.md"
+      ]
+    },
+    "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md": {
+      "title": "ADR-061: `/goal` Integration — Three-Primitive Composition (loop · goal · workflow)",
+      "type": "ADR",
+      "impl_files": [
+        "system/hooks/goal-completion.sh"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -1703,7 +1722,9 @@
     "docs/architecture/substrate-end-state.md": {
       "title": "the Orbit — Autonomous-Agent Operation (End-State Design)",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/scripts/autonomous-runner.sh"
+      ]
     },
     "docs/architecture/substrate-primitives.md": {
       "title": "Agent Substrate — Primitives & Composition",
@@ -1872,6 +1893,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/goal-completion.sh",
+        "system/scripts/ac-lint.sh",
         "system/hooks/",
         "system/scheduler/scheduler.template.json"
       ]
@@ -2800,6 +2822,11 @@
         "system/scheduler/scheduler.template.json"
       ]
     },
+    "docs/ideas/goal-integration-three-primitive.md": {
+      "title": "/goal integration — three-primitive composition",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/hybrid-provider-fts5-ruflo-rrf.md": {
       "title": "HybridProvider — Parallel FTS5 + Ruflo Recall with RRF Merge",
       "type": "Roadmap",
@@ -2829,6 +2856,13 @@
       "title": "Layered Input Processing — Batch + Express Pipelines",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/loop-goal-native-planning.md": {
+      "title": "Loop+Goal-Native Backlog Planning",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/ac-lint.sh"
+      ]
     },
     "docs/ideas/memory-consolidation-autodream.md": {
       "title": "Memory Consolidation — Auto Dream Integration",
@@ -9377,6 +9411,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/agents.md",
       "type": "references",
       "computed": false
@@ -10198,6 +10238,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/ac-grammar.md",
+      "to": "decisions/ADR-047-acceptance-criteria-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/agents.md",
       "to": "docs/reference/agents.md",
       "type": "references",
@@ -10414,6 +10460,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md",
+      "to": "docs/architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
       "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
       "type": "references",
@@ -10458,6 +10510,30 @@
     {
       "from": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
       "to": "docs/architecture/features/autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "to": "ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "to": "docs/architecture/substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "to": "docs/architecture/substrate-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -10955,6 +11031,12 @@
     },
     {
       "from": "docs/architecture/substrate-end-state.md",
+      "to": "decisions/ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
       "to": "docs/research/substrate-leverage-audit.md",
       "type": "references",
       "computed": false
@@ -10974,6 +11056,12 @@
     {
       "from": "docs/architecture/substrate-end-state.md",
       "to": "features/learned-eligibility.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "substrate-primitives.md",
       "type": "references",
       "computed": false
     },
@@ -11514,6 +11602,12 @@
     {
       "from": "docs/content/lens.md",
       "to": "brana-knowledge/dimensions/software-engineering-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/conventions/ac-criteria.md",
+      "to": "docs/architecture/ac-grammar.md",
       "type": "references",
       "computed": false
     },
@@ -13019,6 +13113,12 @@
     },
     {
       "from": "docs/guide/workflows/build.md",
+      "to": "docs/architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/build.md",
       "to": "docs/architecture/agents/CALIBRATION.md",
       "type": "references",
       "computed": false
@@ -14447,9 +14547,9 @@
     }
   ],
   "stats": {
-    "nodes": 487,
-    "edges": 1856,
+    "nodes": 491,
+    "edges": 1867,
     "typed_edges": 682,
-    "orphans": 129
+    "orphans": 130
   }
 }
