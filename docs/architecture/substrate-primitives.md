@@ -106,6 +106,51 @@ Persisted as `pattern_native-workflow-substrate-calibration` (auto-recall).
 
 ---
 
+## 2b. Autonomy: two architectures, one definition of done
+
+"Pick a backlog task → work it till done → next → until the list is empty" has **two valid implementations**, and they are not interchangeable. The axis that separates them is **whether a human is present**, not the word "autonomous."
+
+```
+  SAME GOAL: work the backlog until empty
+
+  A — PERSISTENT SESSION LOOP            B — DETACHED RUNNER
+  /loop (self-paced) + /goal + build     autonomous-runner.sh = bash loop
+  + Workflow, in ONE live session        + a fresh `claude -p` PER task
+  → /goal anchors AC: → build →          → isolated process + ephemeral
+    Stop hook AUTO-COMPLETES → next         worktree → verify → commit →
+                                            LEAVE PENDING → next
+  the SUPERVISED tier (human nearby)      the UNATTENDED tier (human absent)
+```
+
+| | A — session loop | B — detached runner |
+|---|---|---|
+| Isolation per task | ❌ shared session | ✅ fresh process + worktree |
+| Survives session end | ❌ | ✅ cron-able, overnight |
+| Context | accumulates → rot/compaction | clean per task (boot-tax cost) |
+| Completion | **auto-completes** (`/goal`) | **leaves pending** (human merge) |
+| Containment story | weak (your live session) | the t-2173/t-2193 sandbox story |
+| Right when… | **you're nearby** (grind this afternoon) | **you're asleep** (trustless, overnight) |
+
+Both are worth having; they share **one backlog** and **one definition of done**.
+
+### Definition of Done — a primitive with tier-specific bindings
+
+"Explicit done-when criteria" is itself a substrate primitive. There is **one definition** — the task's `AC:` lines (machine-readable, author-set in the backlog) — and **two bindings** of it, chosen by human-presence:
+
+```
+  ONE definition (AC: lines)
+    ├─ binding A (supervised loop):  /goal → Stop hook AUTO-COMPLETES   ← human present
+    └─ binding B (detached runner):  AC → validate + build-evaluator → LEAVE PENDING ← human absent
+```
+
+`/goal` is the *interactive* binding — correct for A, an anti-pattern for B (headless `claude -p` runs no interactive Stop hook, and auto-completing unreviewed work on real code while no one watches is exactly the danger B's human-merge gate exists to prevent). Binding B is currently **unbuilt** — the runner's spec promises an AC check but `grep autonomous-runner.sh` for `AC:|evaluator|/goal` returns nothing (tracked as t-2193 C4).
+
+**Security invariant shared by binding B and the sandbox work:** *the thing that checks the agent must live outside the agent's control.* The AC grader (validate + build-evaluator) must run from a **pinned base-ref copy**, never the agent-writable worktree — the same principle as t-2193 C3 (validate from base-ref) and t-2173 (sandbox the executor). One rule, enforced in three places. Default-deny: no `AC:` lines → not autonomous-eligible → routes to a human.
+
+> Don't conflate the tiers: using A's auto-complete in B's unwatched context, or paying for B's per-task isolation when you're really just doing A's supervised grind, are both mistakes. Same backlog, same `AC:`, different binding — picked by presence.
+
+---
+
 ## 3. Durability, reliability & trust
 
 ### Durability (built into Workflow)
