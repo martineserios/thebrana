@@ -58269,7 +58269,7 @@
     {
       "id": "t-2201",
       "subject": "plan.md generates acceptance_criteria per leaf task (template+LLM-fill, lint+warn, atomicity signal)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -58284,17 +58284,21 @@
       "parent": "t-2198",
       "created": "2026-06-21",
       "started": "2026-06-21",
-      "completed": null,
+      "completed": "2026-06-21",
       "blocked_by": [
         "t-2200"
       ],
-      "branch": null,
+      "branch": "backlog-schema/feat/t-2201-plan-generates-criteria",
       "context": "Implements ADR-047 §5 (specified, never built). Add a step to /brana:backlog plan: for each leaf implement/design task, generate acceptance_criteria (the field, not AC: lines) via template+LLM-fill by work_type (implement -> '\"<test cmd>\" passes' + 'validate.sh Check N passes'; design -> 'file <adr>.md exists'); user confirms. Lint each against t-2199 grammar, warn (don't block) when a criterion won't auto-complete. Atomicity: flag leaf tasks with >10 criteria (ADR-047 §1) or M+ effort for split. Write via the acceptance_criteria field (backlog_set/--acceptance-criteria). Blocked_by t-2200 (tests first).\nAC: file system/skills/backlog/phases/plan.md contains \"acceptance_criteria\"\nAC: \"bash system/hooks/tests/test-ac-lint.sh\" passes</context>\n",
-      "notes": null,
+      "notes": "ac-lint.sh (33/33 tests green) + plan.md step 11b criteria generation. No new validate.sh failures (2 pre-existing Check 30/48 unchanged; Check 32 stayed 55 via herestrings).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "file system/skills/backlog/phases/plan.md contains \"acceptance_criteria\"",
+        "\"bash system/hooks/tests/test-ac-lint.sh\" passes",
+        "file system/scripts/ac-lint.sh exists"
+      ],
       "epic": "backlog-schema",
       "strategy": "feature",
       "work_type": "implement"
@@ -58379,7 +58383,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "2026-06-21: Precondition for the whole /goal binding line (ADR-061 §4). Derived from challenger BLOCKER: the deployed hook does NOT enforce done-signal immutability.\nScope:\n1. Invariant 2 — grade against a base-ref-pinned copy of grader paths; reject/gate if the iteration mutated any of: *.test.*, tests/ (incl fixtures/, mocks/), __mocks__/, or the AC: lines (pin AC at iteration start, do not read live).\n2. Invariant 1 — presence interlock: auto-advance only in a structurally-verified interactive session (headless → refuse auto-complete).\nAC: goal-completion.sh pins AC lines at iteration start, not live-read\nAC: a mutation to any grader path (*.test.*, tests/, __mocks__/) during the iteration trips a gate instead of auto-completing\nAC: headless/non-interactive invocation refuses auto-advance\nAC: tests cover each: fixture-edit gaming attempt blocked, AC-line-edit blocked, headless refusal\nAC: validate.sh passes",
+      "context": "2026-06-21: Precondition for the whole /goal binding line (ADR-061 §4). Derived from challenger BLOCKER: the deployed hook does NOT enforce done-signal immutability.\nScope:\n1. Invariant 2 — grade against a base-ref-pinned copy of grader paths; reject/gate if the iteration mutated any of: *.test.*, tests/ (incl fixtures/, mocks/), __mocks__/, or the AC: lines (pin AC at iteration start, do not read live).\n2. Invariant 1 — presence interlock: auto-advance only in a structurally-verified interactive session (headless → refuse auto-complete).\nAC: goal-completion.sh pins AC lines at iteration start, not live-read\nAC: a mutation to any grader path (*.test.*, tests/, __mocks__/) during the iteration trips a gate instead of auto-completing\nAC: headless/non-interactive invocation refuses auto-advance\nAC: tests cover each: fixture-edit gaming attempt blocked, AC-line-edit blocked, headless refusal\nAC: validate.sh passes\n2026-06-21: ADR-061 verification pass residual — invariant 2 grader-path list must ALSO cover task-record fields any done-heuristic reads (tasks.json status/notes/context), not just test files. A `brana backlog get` grader is gameable by editing those fields. Pin them at iteration start like the AC: lines.",
       "notes": null,
       "order": 0,
       "github_issue": null,
