@@ -48,7 +48,7 @@ Gaps in the literature: three web scouts (2026-06-11) found no published prior a
 **Mapping:** wheel-turning, babysitting, queue-watching → `/loop`. Heavy bounded phases (audit sweeps, batch queue drains, challenger panels, migration fan-outs) → `Workflow`. **Composed:** a loop iteration is the trigger ("queue has 14 entries"), a workflow is the muscle ("process all 14 with adversarial verify"), and the loop returns to watching.
 
 Cost cautions:
-- CC issue #54086: wakeup prompts containing full slash commands re-execute the entire command. Loop bodies must be narrow status-check prompts unless re-running the skill is the intent.
+- Re-running a slash command in a loop is **by-design** (`/loop 20m /review-pr 1234` is documented), so the hazard is cost, not malfunction: a recurring loop re-fires the *entire* command — every sub-agent and gate — on each beat. CC issue #54086 (closed 2026-05-30, duplicate+stale) reported this footgun; the proposed `/`-prefix refusal guardrail never shipped, so the discipline lives in the recipe. Loop bodies must be narrow status-check prompts unless re-running the skill is the intent AND it is idempotent / cost-bounded.
 - CC auto-compacts near context ceiling; long-lived loops must recover from state files (sitrep pattern), never accumulated history.
 - CC's master loop has 10 exit paths, 1 success; loop recipes must state termination explicitly.
 
@@ -102,7 +102,7 @@ Human answers in batch; answered tasks become dispatchable. ADR-050 caps apply o
 
 ### Foreman prompt contract (draft, pre-rehearsal — resolves challenger W2)
 
-**Rule: foreman bodies contain CLI calls and named-workflow references only — never slash commands.** CC #54086 re-executes any slash command embedded in a wakeup prompt, gates and all. This is the design artifact the foreman recipe (t-1994) refines with rehearsal evidence:
+**Rule: foreman bodies contain CLI calls and named-workflow references only — never slash commands.** Not because slash-command loops are broken — they aren't; re-execution is by-design — but because each foreman beat must be **idempotent and cost-bounded**: a recurring loop re-fires the *full* embedded command, every sub-agent and gate, on each beat. CC #54086 (closed 2026-05-30, no guardrail shipped) confirms nothing in the harness stops that — the discipline is ours to enforce. Dispatching a named workflow keeps each beat cheap and lets the workflow itself decide whether to spawn a crew. This is the design artifact the foreman recipe (t-1994) refines with rehearsal evidence:
 
 ```
 Foreman beat (one iteration):
