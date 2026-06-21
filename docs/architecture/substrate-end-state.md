@@ -1,7 +1,9 @@
-# Autonomous-Agent Substrate — End-State Design
+# the Orbit — Autonomous-Agent Operation (End-State Design)
 
 **Status:** Design capstone (2026-06-20) · **Owner:** Martín Rios
-**Ties together:** [ADR-059](decisions/ADR-059-multi-agent-substrate-selection.md) (substrate selection) · [ADR-060](decisions/ADR-060-branch-strategy-autonomous-agents.md) (branch strategy) · [ADR-050] (autonomy caps) · [autonomous-runner](features/autonomous-runner.md) · [learned-eligibility](features/learned-eligibility.md) · [consensus-primitive](features/consensus-primitive.md) · [substrate-leverage-audit](../research/substrate-leverage-audit.md)
+> **This is the Orbit capstone** — the autonomous *operation* that runs on the Substrate. The filename (`substrate-end-state`) predates the Substrate/Orbit vocabulary and is kept to preserve inbound links. Start at the index: [the-orbit.md](the-orbit.md).
+
+**Ties together:** [ADR-059](decisions/ADR-059-multi-agent-substrate-selection.md) (substrate selection) · [ADR-060](decisions/ADR-060-branch-strategy-autonomous-agents.md) (branch strategy) · [ADR-050](decisions/ADR-050-loop-request-protocol.md) (autonomy caps) · [autonomous-runner](features/autonomous-runner.md) · [learned-eligibility](features/learned-eligibility.md) · [consensus-primitive](features/consensus-primitive.md) · [substrate-leverage-audit](../research/substrate-leverage-audit.md)
 
 ## One system, for all work
 

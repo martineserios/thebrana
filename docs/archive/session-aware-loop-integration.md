@@ -1,6 +1,6 @@
 # Session-Aware Loop Integration for Brana
 
-> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+> **Superseded by [Brana Operating Model](../ideas/brana-operating-model.md).** This doc is preserved for historical context (archived 2026-06-21).
 
 > **Watcher scope superseded by [ADR-050](../architecture/decisions/ADR-050-loop-request-protocol.md).** The auto-spawn and session-config layers (Phases 1–3 below) were reconsidered in 2026-06 and replaced with a minimal suggest-and-confirm protocol. See ADR-050 for the rationale and the implemented surfaces (build.md + close.md).
 

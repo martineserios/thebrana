@@ -3,7 +3,7 @@ depends_on:
   - docs/architecture/decisions/ADR-027-auto-learning-loop.md
   - docs/ideas/cc-feature-adoption-v2.1.76-81.md
 informs:
-  - docs/ideas/session-aware-loop-integration.md
+  - docs/archive/session-aware-loop-integration.md
 status: accepted
 ---
 
@@ -81,4 +81,4 @@ t-517 remains deferred until someone wants to implement it; these conditions rem
 - `system/procedures/build.md` — BUILD-start suggestion point (L/XL only), step registry non-advancement conditions reference
 - `system/procedures/close.md` — session loop sweep line
 - `docs/ideas/cc-feature-adoption-v2.1.76-81.md` — errata line
-- `docs/ideas/session-aware-loop-integration.md` — supersession pointer update (→ this ADR for the watcher scope)
+- `docs/archive/session-aware-loop-integration.md` — supersession pointer update (→ this ADR for the watcher scope)

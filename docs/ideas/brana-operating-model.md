@@ -610,7 +610,7 @@ This operating model consolidates and supersedes the following earlier idea docs
 | `skill-auto-router.md` | Smart Router (section 5) |
 | `enforcement-vs-injection.md` | Documentation Discipline (section 6) |
 | `resilient-pattern-store.md` | Memory Hierarchy (section 3) + MCP-first ruflo |
-| `session-aware-loop-integration.md` | Auto-learning loop embedded in all thinking-skills |
+| `archive/session-aware-loop-integration.md` | Auto-learning loop embedded in all thinking-skills |
 
 Note: `ruflo-native-integration.md` remains active — it covers ruflo controller details and upstream issues beyond the operating model's scope.
 
