@@ -281,11 +281,9 @@ let tasks_file = if let Some(slug) = &args.project {
 
 ## Documentation Plan
 
-- [ ] **User guide** — `docs/guide/features/backlog-project-scoping.md`: per-project config,
-  `set-active` scope, `--project` flag usage, portfolio setup
-- [ ] **Tech doc** — update this file to `decomposing` status after spec approved
-- [ ] **Existing docs to update** — backlog skill SKILL.md (mention per-project config),
-  tasks-convention.md rule
+- [x] **User guide** — `docs/guide/features/backlog-project-scoping.md`: per-project config, `set-active` scope, `--project` flag usage, worktree `--epic` override, unified `--all` view
+- [x] **Tech doc** — spec status updated to `built`; user guide linked
+- [x] **Existing docs to update** — `system/skills/backlog/SKILL.md` updated (set-active per-repo row + cross-project create row)
 
 ## Challenger findings (2026-06-20)
 
