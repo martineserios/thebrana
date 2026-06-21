@@ -58306,7 +58306,7 @@
     {
       "id": "t-2202",
       "subject": "AC: lines → acceptance_criteria field normalization (field canonical)",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -58319,7 +58319,7 @@
       "priority": "P2",
       "parent": "t-2198",
       "created": "2026-06-21",
-      "started": null,
+      "started": "2026-06-21",
       "completed": null,
       "blocked_by": [
         "t-2201"
@@ -58330,7 +58330,10 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null
+      "acceptance_criteria": null,
+      "epic": "backlog-schema",
+      "strategy": "refactor",
+      "work_type": "implement"
     },
     {
       "id": "t-2203",
