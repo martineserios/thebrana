@@ -137,4 +137,25 @@ Need agents?
 - Add the leverage doctrine (the decision tree above) to `delegation-routing.md` once the runner exists.
 - Document the "outer /loop → inner Workflow" combo as a reusable pattern when first used.
 
+## First real-token validation (2026-06-20, t-2167)
+
+The substrate's first run outside the mocked smoke harness (`.claude/workflows/tests/smoke.mjs` mocks the runtime) — `hive-mind` (one question) + `sweep` (one ~300-LOC script), via t-2167 prompt 6. Confirms it works on subscription, with these calibration numbers:
+
+| Run | Agents | Subagent tokens | Wall | Yield |
+|-----|--------|-----------------|------|-------|
+| hive-mind (3 workers) | 7 | ~0.42M | ~4 min | 1 calibrated answer, 3/3 survived verify |
+| sweep (1 file) | 41 | ~2.13M | ~11 min | 17 raw → 3 confirmed, **9 FPs rejected** |
+
+**When to reach for it (routing heuristic):**
+
+- **Fresh / unreviewed targets only** — new code, undecided designs. On hardened, well-tested code a single reviewer wins: the sweep above burned 2.1M tokens to confirm 3 OBSERVATION nits (zero surviving WARNING/CRITICAL) on an already-40-tests-covered script.
+- **The value is suppression, not volume** — verify-findings rejected 75% of raw findings and downgrades evidence-free severities (a finder's CRITICAL → OBSERVATION, grounded in "0/2057 tasks lack an id"). The verify phase is evidence-anchored, not self-voted — this is what separates it from the hollow ruflo MCP layer.
+- **Cost is real, high-stakes only** — budget ~0.4M tokens per hive-mind question, ~2M per sweep of one file. Never a default pass.
+
+Persisted as `pattern_native-workflow-substrate-calibration` (auto-recall). The substrate also produced its first real architectural finding → **t-2173** (runner executor capability-isolation gap: git-worktree isolation ≠ process isolation).
+
+> The `delegation-routing.md` follow-up above is intentionally **not** done inline: that `always-load: true` rule bundle is at its 28 KB context ceiling, so this situational heuristic lives here (on-demand) + in memory, not in always-load context.
+
+---
+
 > Probe evidence captured live 2026-06-20; raw harness + ruflo-internals notes were in `/tmp/substrate-audit/` (ephemeral). Key numbers are inlined above.
