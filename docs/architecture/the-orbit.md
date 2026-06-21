@@ -42,6 +42,7 @@ work cleared by ground control to leave the Orbit.
 | Doc | Role |
 |-----|------|
 | [substrate-end-state.md](substrate-end-state.md) | **Orbit capstone** — autonomy tiers, staged rollout, safety net, branch strategy. *(The filename predates this vocabulary; this doc IS the Orbit.)* |
+| [substrate-end-state.md#operating-the-orbit](substrate-end-state.md#operating-the-orbit) | **Operating the Orbit** — the two tiers (supervised / unattended): arm / observe / stop |
 | [features/autonomous-runner.md](features/autonomous-runner.md) | The Orbit runner — observe / run-one / run-batch (Stages 1–3 built, t-2140) |
 | [features/learned-eligibility.md](features/learned-eligibility.md) | Orbit Stage 4 — learned/adaptive eligibility (design-only, t-2142) |
 | [decisions/ADR-060-branch-strategy-autonomous-agents.md](decisions/ADR-060-branch-strategy-autonomous-agents.md) | Branch strategy — agent PRs to `dev`, human promotes to `main` |

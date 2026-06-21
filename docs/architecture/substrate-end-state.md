@@ -53,6 +53,65 @@ Every layer landed this build except where noted:
 2. **`dev` as GitHub default** → **no** — `main` stays default; `dev` is the integration branch (avoids retargeting PRs / breaking push automation).
 3. **Per-project policy schema** → an `integration=<branch>` marker in the repo's `.claude/CLAUDE.md` (human-authored Layer 1); the runner falls back to `dev` when absent. (Brana needs no marker — default suffices.)
 
+## Operating the Orbit
+
+The Orbit has **two tiers, split by one question — are you present?** Both work the
+same backlog to the same definition of done (the task's `AC:` lines); they differ only
+in *binding*. The two architectures are formalized in
+[substrate-primitives §2b](substrate-primitives.md#2b-autonomy-two-architectures-one-definition-of-done) —
+this is how you *operate* each.
+
+### Supervised — you're nearby (the session loop)
+
+An in-session grind: native `/loop` (self-paced) + `/goal` + `/brana:build` + `Workflow`,
+all in **one live session**. `/goal` anchors the task's `AC:` and iterates
+build-until-condition; the Stop hook **auto-completes** the task; on to the next. You
+watch it happen and can interrupt on any turn.
+
+- **Front door:** existing surfaces — `/brana:build` under a self-paced `/loop`, with
+  `/goal` holding the stop condition. No new command; it's composed native primitives.
+- **Completion:** auto-completes (`/goal` + Stop hook) — safe *because you're watching*.
+- **Status:** the three-primitive composition (`/loop` POLL · `/goal` ITERATE ·
+  `Workflow` FAN-OUT) and which skills gain a `/goal` loop is **design-pending** — see t-2194.
+
+### Unattended — you're away (the detached runner)
+
+A headless bash loop (`system/scripts/autonomous-runner.sh`) spawning a fresh `claude -p`
+per task in an ephemeral worktree. Three modes of escalating trust:
+
+| Mode | Command | Does | Writes? |
+|------|---------|------|---------|
+| Observe | `autonomous-runner.sh --observe` | pick eligible tasks, plan each, emit `would-run`/`would-park`/`excluded` to a ledger | none — read-only |
+| Run-one | `autonomous-runner.sh --run-one` | run the first eligible task in a worktree → verify → commit on `runner/auto/<id>` → stop | one branch |
+| Run-batch | `autonomous-runner.sh --run-batch` | loop run-one over the eligible snapshot, all bounds + kill-switch active | branch-per-task |
+
+**Eligible** = `execution: autonomous` ∧ not P0 ∧ unblocked ∧ lint-clean. Everything
+else is excluded with a reason.
+
+**Arm it** via the scheduler: a disabled `autonomous-runner` job ships in `brana ops`
+(default-deny). Set `enabled=true` and switch its arg `--observe`→`--run-batch` to grant
+autonomy; the bounds below apply automatically.
+
+**Bounds & stop (always on for a batch):**
+- batch cap — `RUNNER_MAX_TASKS` (default 5)
+- consecutive-failure kill — stops after `RUNNER_MAX_FAILS` (default 3) in a row (ADR-050)
+- per-task timeout — 600s
+- **kill-switch** — `touch ~/.claude/scheduler/runner.stop` halts a running batch cleanly
+  (and blocks a new one from starting)
+
+**Completion:** never self-completes — commits land on `runner/auto/<id>`, tasks stay
+`pending`, and **you merge** (ground control). With `RUNNER_PUSH=1` each task opens a PR
+to `dev` via `gh`. A task hitting a human-only decision is **parked**: a high-priority
+`needs-human` reminder + a `PARKED` note, and the batch moves on.
+
+> **Front-door (planned):** the raw script + env-vars is the engine, not the everyday UX.
+> A thin `brana orbit observe|run|enable|disable|stop|status` wrapper is planned to front
+> the unattended tier (see t-2197). Until then, drive the script directly.
+
+> **Don't cross the tiers:** `/goal`'s auto-complete is correct when you're watching and a
+> footgun when you're not — auto-merging unreviewed work overnight is exactly what the
+> human gate prevents. Same backlog, same `AC:`, different binding — picked by presence.
+
 ## What remains (designed, not built)
 
 - **Stage 4 learned eligibility** (t-2142) — gated on the Stage 1-3 soak producing a track record.
