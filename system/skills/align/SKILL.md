@@ -101,7 +101,7 @@ Spawn the `client-scanner` (code) or `venture-scanner` (venture) agent. If unava
 | Group | Items |
 |-------|-------|
 | Foundation (F1-F5) | Git, CLAUDE.md, rules, conventional commits, inbox |
-| SDD (S1-S5) | docs/decisions/, ADR, PreToolUse hook, /decide, spec-first |
+| SDD (S1-S5) | docs/architecture/decisions/, ADR, PreToolUse hook, /decide, spec-first |
 | DDD (D1-D4) | Glossary, bounded contexts, ubiquitous language, model |
 | TDD (T1-T4) | Test framework, runner, tdd-guard, coverage |
 | Quality (Q1-Q4) | Linter, CI, security, code review |
@@ -194,7 +194,7 @@ Skip if `.claude/settings.local.json` already has both `attribution.commit` and 
 
 ### Code SDD items
 
-**S1:** `mkdir -p docs/decisions`
+**S1:** `mkdir -p docs/architecture/decisions`
 **S2:** Create first ADR pre-populated from DISCOVER answers.
 **S3:** Verify PreToolUse hook is installed (run `deploy.sh` if needed).
 **S4-S5:** Verify skill availability, document convention.
@@ -219,7 +219,7 @@ Skip if `.claude/settings.local.json` already has both `attribution.commit` and 
 
 Goal: CLAUDE.md should be <60 lines after F1. If it exceeds 80 lines, invoke `Skill("brana:claudemd", args="audit .claude/CLAUDE.md")` before proceeding to VERIFY.
 
-**F2 — Decision log:** `mkdir -p docs/decisions`. Create ADR-001 for framework selection.
+**F2 — Decision log:** `mkdir -p docs/architecture/decisions`. Create ADR-001 for framework selection.
 **F3 — Metrics:** `mkdir -p docs/metrics`. Create README with stage-appropriate metric tables.
 **F4 — Cadence:** `mkdir -p docs/meetings`. Create cadence.md with stage-appropriate meeting schedule.
 **F5 — Inbox:** Ensure `inbox/` exists and is gitignored (same as code F5).
