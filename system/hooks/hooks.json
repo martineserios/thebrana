@@ -345,6 +345,16 @@
             "command": "bash \"$HOME/.claude/hooks/signal-capture.sh\""
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "command": "bash \"$HOME/.claude/hooks/presence-refresh.sh\""
+          }
+        ]
       }
     ],
     "SessionStart": [
