@@ -14,20 +14,11 @@ Every change starts on a branch. Always. No exceptions.
 - **Never force-push** to main or master.
 - Branch naming: see task-convention.md. Prefixes: feat/, fix/, docs/, chore/, refactor/, test/, perf/.
 
-## Worktrees over checkout
+## Worktrees, not checkout — HARD RULE
 
-Use `git worktree add ../repo-shortname -b prefix/name` instead of `git checkout`. After merge: `git worktree remove ../path && git branch -d prefix/name`. Never `rm -rf` worktrees. **In-session** agents (Task tool, CWD-bound) can't write to worktrees — compose in agent, write in main context. (Runner `claude -p` writes in its own worktree — ADR-060.)
+**New branches use `git worktree add -b`, never `git checkout -b`** — every time, no size/kind exception, and this **overrides skill-procedure defaults** (if `start.md` shows `git checkout -b`, ignore it). Concurrent sessions share the main checkout's `HEAD` + working tree, so a checkout-cut branch races their commits/merges/`tasks.json` writes (harm: t-2216/t-2206, 2026-06-22).
 
-**Always `cd` to the repo root before `git worktree add`** so `../` resolves to the repo's parent directory, not wherever the shell happens to be. After adding, spot-check with `ls` on a known file inside the worktree before doing any work there.
-
-```bash
-# Start work
-git worktree add ../myapp-auth -b feat/t-015-jwt-auth
-ls ../myapp-auth/README.md  # verify path resolved correctly
-# Done — merge and clean up
-git merge --no-ff feat/t-015-jwt-auth
-git worktree remove ../myapp-auth && git branch -d feat/t-015-jwt-auth
-```
+`cd` to the repo root first (so `../` resolves correctly), `git worktree add ../repo-shortname -b prefix/name`, then `ls` a known file to verify the path before editing. After merge: `git worktree remove ../path && git branch -d prefix/name` — never `rm -rf`. **In-session** Task agents can't write to worktrees (compose in agent, write in main); runner `claude -p` writes in its own worktree (ADR-060).
 
 ## Commits
 

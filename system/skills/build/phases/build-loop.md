@@ -40,9 +40,11 @@ If "Yes": invoke `CronCreate` with `durable: false`, interval ≥20 min (past ca
 
 Skip this step for: S/XS builds, spike/investigation strategies, and any invocation where the loop was already offered this session (check `~/.claude/run-state/loop-offered-{task_id}` sentinel).
 
-1. **Create branch** (if not already on one):
+1. **Create branch as a worktree** (if not already on one) — never `git checkout -b`
+   (git-discipline.md "Worktrees, not checkout — HARD RULE"). Normally `/brana:backlog start`
+   already created the worktree; this is only a fallback for freeform builds:
    ```bash
-   git checkout -b feat/{task-id}-{slug}
+   git worktree add ../<repo>-{task-id} -b {epic}/{work-type}/{task-id}-{slug}
    ```
 
 2. **Create CC Tasks for subtask tracking** (Medium/Large builds only):
