@@ -133,6 +133,40 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__memory_store,mcp__ruflo
 
 ---
 
+## `/goal` binding (ADR-061 §3, Stage 3 — t-2206)
+
+Reconcile may run a `/goal` loop over the **fix-and-revalidate tail** of a fix-applying scope
+(consistency / propagation), iterating until the suite is green.
+
+- **Span:** APPLY → re-validate (→ fix remaining drift → re-validate …). This is the
+  **post-approval tail only.** ORIENT → SCAN → DIFF → **PRESENT (human approval)** all precede
+  the span — the approval is a human gate and stays **outside** the `/goal` span (satisfies
+  **C2** gate-free). Do not start the binding until the drift report has been approved.
+- **Done-signal:** `validate.sh` exit 0 — authored as the `AC:` line **`validate.sh passes`**
+  (heuristic 9 in `goal-completion.sh`, t-2206). **C1** ✓ machine-verifiable; **C3** ✓ the
+  done-signal is external to the drift being fixed (ADR-061 §C3a).
+- **Write** the hardened `active-goal.json` only when APPLY begins (after approval):
+  ```bash
+  base_ref=$(git -C "{git_root}" rev-parse HEAD)
+  cat > ~/.claude/run-state/active-goal.json <<JSON
+  {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "base_ref": "$base_ref", "criteria": ["validate.sh passes"], "tests_required": []}
+  JSON
+  ```
+  Reconcile writes no new tests, so `tests_required[]` stays empty.
+- **Grader-immutability constraint (binding-specific):** the span **MUST NOT modify
+  `validate.sh`** — it is the done-signal's own grader, and editing the thing that grades you is
+  gaming (the unifying rule, ADR-061 §4). `validate.sh` is *not* in `goal-completion.sh`'s
+  `GRADER_RE`, so this is **not** code-enforced today; it holds because the **presence interlock
+  means a human reviews every green** (Stage 3). If a drift fix legitimately requires changing
+  `validate.sh`, this binding does not apply — complete the task manually.
+- **Re-audit rule (ADR-061 §3, challenger Attack 1):** reconcile edits live `system/` files and
+  could gain a new human gate inside the apply→re-validate tail. **Any commit that adds a gate
+  inside this span MUST, in the same commit, re-scope or retire this binding.**
+- Skip the binding entirely for the **security** and **knowledge** scopes (no validate-gated fix
+  loop) and whenever `--no-goal` is passed.
+
+---
+
 ## Resume After Compression
 
 If context was compressed and you've lost track of progress:
