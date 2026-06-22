@@ -144,7 +144,50 @@ N tasks on N branches (base pristine); `RUNNER_MAX_TASKS` cap respected; 3-conse
 kill stops the batch (4th never attempted); kill-switch file aborts; `ALLDONE` on empty
 backlog; mid-batch `NEEDSHUMAN` parks without counting as a failure.
 
+## Capability isolation (the OS boundary) — t-2173, ADR-062
+
+A git worktree isolates *tracked files in a checkout*, not the *OS process*. The executor
+(`claude -p --allowedTools "Read,Write,Edit,Bash"`) has **unscoped Bash**, so any side
+effect that never lands as a tracked file — network egress, `$HOME` writes, reads of
+`~/.config/brana/*.env`, `rm`, `git push` — is invisible to every gate (`git status`,
+`validate.sh`, `git add -A`, human review). With backlog task text flowing into the prompt,
+that is the **Lethal Trifecta** (private data + untrusted input + external comms). Containment
+must live at the **capability layer**, not the git layer. Filtering (denylist/allowlist) is
+bypassable and is kept only as a tripwire — see [ADR-062](../decisions/ADR-062-runner-executor-sandbox.md).
+
+**Mechanism — bubblewrap jail** (`sandbox_claude()` in `autonomous-runner.sh`), wrapping the
+dispatch (spike-validated 2026-06-21):
+
+- **Minimal `--ro-bind` list (never `/`)** → `~/.config/brana/*.env`, `~/.ssh`, `~/.aws`,
+  other users' files are *absent* from the jail.
+- **`env -i`** → inherited env secrets (`LINEAR_API_KEY`, …) cleared.
+- **Writable tmpfs HOME** with claude's creds ro-bound inside → auth works; the worktree is
+  the only writable host path.
+- **rlimits via inner `ulimit`** (bwrap 0.11.1 has no `--rlimit-*` flags) → fork-bomb / disk-fill contained.
+- **`git commit --no-verify`** → the worktree's own `.git/hooks` never execute on the host.
+
+**Controls.** `RUNNER_SANDBOX=1` (default on). Set `RUNNER_SANDBOX=0` only for stub-driven
+orchestration tests or environments without user namespaces — the runner then warns loudly
+and runs unsandboxed. `RUNNER_DISPATCH_TIMEOUT` (default 600) bounds the jailed run.
+
+**The boundary is machine-checked.** `validate.sh` Check 61 runs the escape battery
+(`test-autonomous-runner-sandbox.sh`): a prompt-injected stub attempts secret-read, env-leak,
+and host writes; the test fails LOUDLY if any succeeds. This is the load-bearing mitigation
+for the top risk — an operator loosening the jail under compatibility friction is caught on
+the next validate, not six months later.
+
+**Known gap (tracked).** **Network egress is not yet restricted** — the spike used the shared
+host net namespace, so the executor can still reach arbitrary hosts. The egress allowlist
+(`--unshare-net` + slirp4netns/proxy to `api.anthropic.com:443`, or an nftables filter) is the
+remaining Layer-1 item. **Until it lands, do not run `--run-batch` unattended on untrusted
+tasks** — keep the scheduler job default-deny (`brana orbit` in `observe`). The OBSERVE
+planner (line ~80, tools `Read,Grep,Glob` only — no Bash/network leg) is lower risk and its
+sandboxing is deferred with the egress work.
+
 ## Follow-ups
 
 - t-2142 (learned eligibility) — Stage 4.
 - Wire the leverage doctrine into `delegation-routing.md` (done — ADR-059 rewrite).
+- **t-2173 remaining:** egress allowlist (the open Layer-1 item), validate-from-base-ref copy
+  (ADR-062 C2 — the second half, prevents host exec via a written `validate.sh`), sandbox the
+  OBSERVE planner, and the compatibility soak (real rust/shell/python tasks).

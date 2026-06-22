@@ -2352,6 +2352,33 @@ fi
 echo ""
 fi  # should_run 60
 
+if should_run 61; then
+# Check 61 — autonomous-runner capability-isolation escape battery (t-2173, ADR-062).
+# The sandbox boundary rots silently if nobody checks it. Running the escape test HERE
+# means any loosening (an over-permissive --bind, a dropped env -i) fails LOUDLY on the
+# next validate — the load-bearing mitigation for the ADR's top risk (compatibility erosion
+# → operator loosens the jail). Skips (warn) where bwrap / user namespaces are unavailable.
+echo "Check 61: autonomous-runner sandbox escape battery (ADR-062)..."
+C61_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-sandbox.sh"
+if [ ! -f "$C61_TEST" ]; then
+    warn "Check 61: escape battery not found at $C61_TEST — skipping"
+elif ! command -v bwrap >/dev/null 2>&1; then
+    warn "Check 61: bwrap not installed — runner sandbox unenforced + untestable here (ADR-062)"
+else
+    C61_OUT=$(bash "$C61_TEST" 2>&1)
+    C61_RC=$?
+    echo "$C61_OUT" | tail -3 | sed 's/^/  /'
+    if [ "$C61_RC" -eq 0 ]; then
+        pass "Check 61: runner executor sandbox contains all escape vectors ✓"
+    elif echo "$C61_OUT" | grep -qiE "bwrap:.*(namespace|permission|unshare|operation not permitted)"; then
+        warn "Check 61: bwrap cannot create namespaces in this env (CI/container) — sandbox untestable here"
+    else
+        fail "Check 61: runner sandbox BREACHED — an escape vector succeeded (boundary eroded, ADR-062)"
+    fi
+fi
+echo ""
+fi  # should_run 61
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
