@@ -35,6 +35,7 @@ A leading `AC: ` prefix is stripped before matching.
 | 6 | **jq returns** | `^jq '.+' .+ returns` | run `jq '{expr}' {file}`; string-equal the expected value | `jq '.version' docs/spec-graph.json returns "1"` |
 | 7 | **command passes** | `^"[^"]+" passes$` | run the quoted command (allowlist only); pass on exit 0 | `"cargo test" passes` |
 | 8 | **git log check** | `^changes to .+ committed$` **or** `^commit message contains "` | `git log` for the path / `--grep` the message; pass if a commit matches | `commit message contains "t-2199"` · `changes to load.md committed` |
+| 9 | **validate.sh passes (full)** | `validate\.sh` + `(passes\|exit 0\|exit code 0)` + NOT `check [0-9]` | run `./validate.sh` (whole suite); pass on exit 0 | `validate.sh passes` (the `/brana:reconcile` /goal done-signal, t-2206) |
 
 Anything else → **UNKNOWN** → surfaced for manual sign-off (the task is NOT auto-completed).
 
