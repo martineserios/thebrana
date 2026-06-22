@@ -135,10 +135,13 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__memory_store,mcp__ruflo
 
 ## `/goal` binding (ADR-061 §3, Stage 3 — t-2206)
 
-Reconcile may run a `/goal` loop over the **fix-and-revalidate tail** of a fix-applying scope
-(consistency / propagation), iterating until the suite is green.
+Reconcile may run a `/goal` loop over the **fix-and-revalidate tail** of the **consistency**
+scope, iterating until the suite is green. (Scoped to consistency only — `propagation.md` has
+no APPLY step / re-validate tail, so the binding would be a dead letter there; security and
+knowledge have no validate-gated fix loop.)
 
-- **Span:** APPLY → re-validate (→ fix remaining drift → re-validate …). This is the
+- **Span:** APPLY → re-validate (→ fix remaining drift → re-validate …), **capped at ≤3
+  re-validate cycles** before surfacing for human review (ADR-050 §t-517 C4). This is the
   **post-approval tail only.** ORIENT → SCAN → DIFF → **PRESENT (human approval)** all precede
   the span — the approval is a human gate and stays **outside** the `/goal` span (satisfies
   **C2** gate-free). Do not start the binding until the drift report has been approved.
@@ -153,17 +156,19 @@ Reconcile may run a `/goal` loop over the **fix-and-revalidate tail** of a fix-a
   JSON
   ```
   Reconcile writes no new tests, so `tests_required[]` stays empty.
-- **Grader-immutability constraint (binding-specific):** the span **MUST NOT modify
-  `validate.sh`** — it is the done-signal's own grader, and editing the thing that grades you is
-  gaming (the unifying rule, ADR-061 §4). `validate.sh` is *not* in `goal-completion.sh`'s
-  `GRADER_RE`, so this is **not** code-enforced today; it holds because the **presence interlock
-  means a human reviews every green** (Stage 3). If a drift fix legitimately requires changing
-  `validate.sh`, this binding does not apply — complete the task manually.
+- **Grader-immutability constraint (binding-specific):** the span **MUST NOT modify the
+  done-signal's own grader surface — `validate.sh` *and its transitive helpers*
+  `semantic-checks.sh` and `system/scripts/context-budget.sh`** (both sourced/called by
+  `validate.sh`). Editing the thing that grades you is gaming (the unifying rule, ADR-061 §4).
+  None of these are in `goal-completion.sh`'s `GRADER_RE`, so this is **not** code-enforced today;
+  it holds because the **presence interlock means a human reviews every green** (Stage 3) — a
+  code guard (adding these paths to `GRADER_RE`) is Stage-4 hardening. If a drift fix legitimately
+  requires changing any of them, this binding does not apply — complete the task manually.
 - **Re-audit rule (ADR-061 §3, challenger Attack 1):** reconcile edits live `system/` files and
   could gain a new human gate inside the apply→re-validate tail. **Any commit that adds a gate
   inside this span MUST, in the same commit, re-scope or retire this binding.**
-- Skip the binding entirely for the **security** and **knowledge** scopes (no validate-gated fix
-  loop) and whenever `--no-goal` is passed.
+- Skip the binding entirely for the **security**, **knowledge**, and **propagation** scopes and
+  whenever `--no-goal` is passed.
 
 ---
 

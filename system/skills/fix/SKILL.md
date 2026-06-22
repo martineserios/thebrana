@@ -76,7 +76,7 @@ print('\n'.join(lines))
   JSON
   ```
   `base_ref` anchors the grader-immutability check; the REPRODUCE failing test is committed
-  red in its own commit (Step 3) so the `red-verification` pre-commit hook (t-2216) registers
+  red in its own commit (the REPRODUCE step, Step 1) so the `red-verification` pre-commit hook (t-2216) registers
   it into `tests_required[]` — earning the exemption by observed redness. The Stop hook
   (`goal-completion.sh`) auto-completes the task when all criteria pass, behind the presence +
   immutability interlocks.

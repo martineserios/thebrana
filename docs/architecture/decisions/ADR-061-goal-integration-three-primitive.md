@@ -154,7 +154,7 @@ sandbox), with the same-class principle named:
 ```
 Stage 1  ADR-061 (this) — generalized design + 3 specific bindings   ← needs nothing from t-1992
 Stage 2  BUILD build's TDD binding (stops AT the TDD gate)           ← soak, collect evidence
-Stage 3  BUILD fix + reconcile bindings                             ← after build earns a track record
+Stage 3  BUILD fix + reconcile bindings                             ← shipped t-2206 (declarations; reuse hardened hook + heuristic 9 for reconcile's validate.sh done-signal)
    ───── t-1992 step-state contract lands in parallel, off the critical path ─────
 Stage 4  BUILD generalized "any gate-free phase declares a /goal"   ← NOW needs t-1992
 ```
