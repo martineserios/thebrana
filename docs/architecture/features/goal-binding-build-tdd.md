@@ -48,10 +48,13 @@ collect.
   able to forge presence. Gate on `/dev/tty` availability.
 - `base_ref` must be pinned at `/goal` *start* (build LOAD), captured as `git rev-parse HEAD`
   before any implementation edits, so the grader-immutability diff is meaningful.
-- **Stage-2 gap (accepted):** the `tests_required[]` registration in `build-loop.md` does **not**
-  verify the test was *red* — a developer can register a trivially-passing test. Acceptable for
-  Stage 2 (the presence interlock ensures a human reviews every green); red-verification is a
-  Stage-3 prerequisite (a pre-commit hook, filed separately, blocking t-2206).
+- **Stage-2 gap — CLOSED (t-2216, 2026-06-22):** registration no longer trusts the agent. The
+  `red-verification` pre-commit hook (`system/hooks/red-verification.sh`, wired into the git
+  pre-commit chain) runs each newly-added staged test and registers it in `tests_required[]`
+  **only if its staged blob exits non-zero (red)**. A green stub, an injected fixture, or any
+  un-runnable file is **not** registered → the grader blocks auto-complete (fail-closed) and a
+  human completes manually. `build-loop.md` step 3d1 now commits the failing test in its own red
+  commit instead of hand-appending the path. This unblocks the Stage-3 bindings (t-2206).
 
 ## Scope (v1)
 

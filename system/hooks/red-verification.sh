@@ -49,10 +49,12 @@ mapfile -t ADDED < <(git -C "$ROOT" diff --cached --name-only --diff-filter=A 2>
 # Run the staged blob of $1 (repo-relative). Returns 0 iff it ran RED (exit != 0 and not
 # a timeout). Extracts the blob into the file's own directory under a temp name so the
 # test's own relative `source ../foo` resolves exactly as it will once committed.
+# Only `.sh` tests are runnable here (this repo's test suites are bash); any other type is
+# fail-closed (not registered → grader blocks → human completes manually).
 run_red() {
     local f="$1" dir base tmp rc
     case "$f" in
-        *.sh|*.py) : ;;
+        *.sh) : ;;
         *) return 1 ;;   # un-runnable type → fail-closed (treated as not-red)
     esac
     dir=$(dirname "$ROOT/$f")
@@ -60,10 +62,8 @@ run_red() {
     [ -d "$dir" ] || return 1
     tmp="$dir/.red-verify-$$-$base"
     git -C "$ROOT" show ":$f" > "$tmp" 2>/dev/null || { rm -f "$tmp"; return 1; }
-    case "$f" in
-        *.sh) ( cd "$ROOT" && timeout 60 bash "$tmp" ) >/dev/null 2>&1; rc=$? ;;
-        *.py) ( cd "$ROOT" && timeout 60 python3 "$tmp" ) >/dev/null 2>&1; rc=$? ;;
-    esac
+    ( cd "$ROOT" && timeout 60 bash "$tmp" ) >/dev/null 2>&1
+    rc=$?
     rm -f "$tmp"
     # Timeout (124) is ambiguous, not a clean red → fail-closed.
     [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]
