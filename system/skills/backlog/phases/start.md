@@ -219,18 +219,21 @@ Suggested branch: {epic-slug}/{work-type}/t-{NNN}-{subject-slug}
 # Example: harness-core/feat/t-1621-backlog-start-branch-suggest
 ```
 
+**Always create the branch as a worktree — never `git checkout -b`** (git-discipline.md
+"Worktrees, not checkout — HARD RULE"; concurrent sessions share the main checkout's HEAD and
+working tree, so a checkout-cut branch races other sessions). `cd` to the repo root first so `../`
+resolves correctly, then spot-check the path before working there:
 ```bash
-# Check for existing branch
-git branch --list "*t-{NNN}-*" 2>/dev/null
-# If exists: "Branch already exists. Resume?" -> checkout
-# If not: create new
-git checkout -b {epic-slug}/{work-type}/t-{NNN}-{subject-slug}
+BR={epic-slug}/{work-type}/t-{NNN}-{subject-slug}
+# Resume if the branch already exists, else create a fresh worktree:
+if git branch --list "*t-{NNN}-*" | grep -q .; then
+  git worktree add ../<repo>-t-{NNN} "$BR"      # existing branch → attach worktree
+else
+  git worktree add ../<repo>-t-{NNN} -b "$BR"   # new branch
+fi
+ls ../<repo>-t-{NNN}/README.md   # verify the path resolved before any edits
 ```
-
-Integrate with worktree pattern if on a different branch:
-```bash
-git worktree add ../<repo>-{epic-slug}/{work-type}/t-{NNN}-{subject-slug} -b {epic-slug}/{work-type}/t-{NNN}-{subject-slug}
-```
+After merge, clean up: `git worktree remove ../<repo>-t-{NNN} && git branch -d "$BR"`.
 
 ---
 
