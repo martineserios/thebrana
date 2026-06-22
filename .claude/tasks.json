@@ -58700,7 +58700,7 @@
       "branch": null,
       "build_step": null,
       "completed": null,
-      "context": "2026-06-21: El fix del scaffolder (onboard/align -> docs/architecture/decisions, t-2213) esta en dev pero NO live. Hasta hacer ship, un proyecto nuevo se scaffoldea con el comportamiento viejo (docs/decisions). Accion: git checkout main && git merge --ff-only dev && ./bootstrap.sh && git push origin main dev && git checkout dev. Reiniciar sesiones en vuelo tras el deploy.\\nAC: dev promovido a main (ff-only)\\nAC: bootstrap.sh ejecutado (scaffolder live en ~/.claude)\\nAC: main+dev pusheados\n2026-06-21 (re-eval): DIFERIDO. Al evaluar, dev creció a 83 commits (no solo scaffolder t-2213): ahora incluye t-2173 (sandbox bwrap runner, ADR-062) y t-2197 (orbit CLI) — cambios behavioral sin revisar. Además 8+ sesiones Claude vivas sobre el repo → bootstrap.sh sobreescribiría ~/.claude en caliente y el ff-only correría contra un dev en movimiento (race). PRECONDICIÓN antes de shippear: quiescar/cerrar las otras sesiones y confirmar dev estable. NOTA: substrate/t-1993 (ADR-063 §4) YA está en dev y rama borrada. harness/t-2138 NO está en dev (queda afuera del ship, ok).",
+      "context": "2026-06-21: El fix del scaffolder (onboard/align -> docs/architecture/decisions, t-2213) esta en dev pero NO live. Hasta hacer ship, un proyecto nuevo se scaffoldea con el comportamiento viejo (docs/decisions). Accion: git checkout main && git merge --ff-only dev && ./bootstrap.sh && git push origin main dev && git checkout dev. Reiniciar sesiones en vuelo tras el deploy.\\nAC: dev promovido a main (ff-only)\\nAC: bootstrap.sh ejecutado (scaffolder live en ~/.claude)\\nAC: main+dev pusheados\n2026-06-21 (re-eval): DIFERIDO. Al evaluar, dev creció a 83 commits (no solo scaffolder t-2213): ahora incluye t-2173 (sandbox bwrap runner, ADR-062) y t-2197 (orbit CLI) — cambios behavioral sin revisar. Además 8+ sesiones Claude vivas sobre el repo → bootstrap.sh sobreescribiría ~/.claude en caliente y el ff-only correría contra un dev en movimiento (race). PRECONDICIÓN antes de shippear: quiescar/cerrar las otras sesiones y confirmar dev estable. NOTA: substrate/t-1993 (ADR-063 §4) YA está en dev y rama borrada. harness/t-2138 NO está en dev (queda afuera del ship, ok).\n2026-06-22: validate.sh on dev shows 1 error — `hooks.json references presence-refresh.sh but file not found (~/.claude/hooks/)`. Pre-existing deploy drift from t-2221 (hook tracked in system/hooks/ but not yet bootstrapped). bootstrap.sh in this ship clears it. Not a code defect.",
       "created": "2026-06-21",
       "description": null,
       "effort": "S",
@@ -58754,10 +58754,16 @@
       "type": "task"
     },
     {
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "pre-commit hook runs the staged test file and captures its exit code",
+        "registration into tests_required[] succeeds only when the test exits non-zero (red)",
+        "an always-green (exit 0) new test is NOT registered → grader blocks at auto-complete",
+        "test suite covers red-registered (exempt) vs green-rejected (blocked) paths",
+        "validate.sh passes"
+      ],
       "blocked_by": [],
-      "branch": null,
-      "completed": null,
+      "branch": "substrate/feat/t-2216-red-verification-pre-commit-hook",
+      "completed": "2026-06-22",
       "context": "2026-06-21: Phase 2 of the Option-C reconciliation (deep challenge, 3 lenses, see t-2205 + ADR-061 §4 \"Invariant 2 refinement\"). t-2205 (Stage 2) ships the FORENSIC trail: build-loop registers each new test path in active-goal.json.tests_required[]; goal-completion.sh exempts registered Added/untracked grader-path files. GAP left by Stage 2 (accepted because presence interlock = human reviews every green): registration does NOT verify the test was RED — a trivially-green test can be registered and game the grader. This task closes it: a pre-commit hook runs the staged test and only allows the tests_required[] registration to succeed if it exits non-zero (red). An always-green test self-excludes → grader blocks \"Added test not in tests_required\". Load-bearing for autonomous bindings (Stage 3 /brana:fix + /brana:reconcile, Stage 4). MUST land before Stage 3 is trusted — hence t-2206 blocked_by this.\nAC: pre-commit hook runs the staged test file and captures its exit code\nAC: registration into tests_required[] succeeds only when the test exits non-zero (red)\nAC: an always-green (exit 0) new test is NOT registered → grader blocks at auto-complete\nAC: test suite covers red-registered (exempt) vs green-rejected (blocked) paths\nAC: validate.sh passes</context>\n</invoke>\n",
       "created": "2026-06-21",
       "description": null,
@@ -58767,12 +58773,12 @@
       "github_issue": null,
       "id": "t-2216",
       "kind": "feature",
-      "notes": null,
+      "notes": "Shipped to dev (merge a35c6ba5). red-verification.sh pre-commit hook registers staged tests into tests_required[] only on observed redness (staged blob). 9/9 tests, challenger PROCEED (W1 fixed). Closes ADR-061 §4 Stage-2 gap; build-loop 3d1 retired trusted registration. validate clean except pre-existing presence-refresh.sh deploy drift (t-2221, cleared at bootstrap).",
       "order": 0,
       "parent": null,
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-22",
+      "status": "completed",
       "subject": "Red-verification pre-commit hook — gate tests_required[] registration on exit≠0",
       "tags": [
         "goal",
@@ -58782,7 +58788,8 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "feature"
     },
     {
       "acceptance_criteria": [

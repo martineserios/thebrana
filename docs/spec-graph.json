@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22T01:20:34Z",
+  "generated": "2026-06-22T03:06:15Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1321,6 +1321,17 @@
         "system/hooks/task-sync.py",
         "system/cli/rust/src/sync.rs",
         "system/cli/rust/src/cli.rs"
+      ]
+    },
+    "docs/architecture/features/goal-binding-build-tdd.md": {
+      "title": "Feature: /goal binding — /brana:build TDD loop (ADR-061 Stage 2)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/build/phases/load.md",
+        "system/hooks/tests/test-goal-completion.sh",
+        "system/skills/build/phases/build-loop.md",
+        "system/hooks/goal-completion.sh",
+        "system/hooks/<presence-refresh>.sh"
       ]
     },
     "docs/architecture/features/golden-path-snapshot.md": {
@@ -10844,6 +10855,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/goal-binding-build-tdd.md",
+      "to": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/knowledge-architecture-v2.md",
       "to": "path.md",
       "type": "references",
@@ -14661,8 +14678,8 @@
     }
   ],
   "stats": {
-    "nodes": 494,
-    "edges": 1882,
+    "nodes": 495,
+    "edges": 1883,
     "typed_edges": 682,
     "orphans": 130
   }
