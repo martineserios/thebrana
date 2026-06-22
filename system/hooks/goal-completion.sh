@@ -211,6 +211,26 @@ done
 TOTAL=$((PASSED + FAILED + UNKNOWN))
 MSG=""
 
+# Structured audit (t-2218, AC #4): forensic trail of which criterion got which verdict,
+# plus registered_as_red per declared test (always false in Stage 2 — red-verification is
+# t-2216, blocking Stage 3). One JSONL record per criterion + per registered test.
+AUDIT_FILE="$HOME/.claude/run-state/${TASK_ID}-audit.jsonl"
+mkdir -p "$HOME/.claude/run-state" 2>/dev/null || true
+audit_ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || audit_ts=""
+for ai in $(seq 0 $((CRITERIA_COUNT - 1))); do
+    ac=$(echo "$CRITERIA_JSON" | jq -r ".[$ai]" 2>/dev/null); [ -z "$ac" ] && continue
+    if printf '%b' "$FAILED_LIST" | grep -qF "$ac"; then av="fail"
+    elif printf '%b' "$UNKNOWN_LIST" | grep -qF "$ac"; then av="unknown"
+    else av="pass"; fi
+    printf '{"ts":"%s","task_id":"%s","criterion":%s,"verdict":"%s"}\n' \
+        "$audit_ts" "$TASK_ID" "$(printf '%s' "$ac" | jq -R . 2>/dev/null)" "$av" >> "$AUDIT_FILE" 2>/dev/null || true
+done
+jq -r '.tests_required // [] | .[]' "$GOAL_FILE" 2>/dev/null | while IFS= read -r at; do
+    [ -z "$at" ] && continue
+    printf '{"ts":"%s","task_id":"%s","registered_test":%s,"registered_as_red":false}\n' \
+        "$audit_ts" "$TASK_ID" "$(printf '%s' "$at" | jq -R . 2>/dev/null)" >> "$AUDIT_FILE" 2>/dev/null || true
+done
+
 if [ "$FAILED" -eq 0 ] && [ "$UNKNOWN" -eq 0 ] && [ "$PASSED" -gt 0 ]; then
     # All criteria green — but `/goal` is an optimizer over the done-signal, so the
     # grader must live outside the agent's control (ADR-061 §4 invariants 1+2;

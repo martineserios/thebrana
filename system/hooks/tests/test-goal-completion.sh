@@ -393,6 +393,26 @@ EOF
 assert_gated "registering a pre-existing path can't exempt its modification" "$(make_stop_input "$RG9")" "grader path"
 rm -rf "$RG9"
 
+# ── A1 (Option C audit, t-2218): per-criterion audit jsonl + registered_as_red ─
+echo "Test A1 (audit): goal-completion emits per-criterion audit jsonl + registered_as_red"
+read -r RA1 BR_A1 <<< "$(make_goal_repo)"
+fresh_presence
+rm -f "$TMPDIR_TEST/.claude/run-state/t-999-audit.jsonl"
+echo "test('new', () => {})" > "$RA1/tests/new.test.js"
+git -C "$RA1" add -A >/dev/null 2>&1; git -C "$RA1" commit -q -m "red" 2>/dev/null
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RA1","base_ref":"$BR_A1","criteria":["app.js exists"],"tests_required":["tests/new.test.js"]}
+EOF
+echo "$(make_stop_input "$RA1")" | bash "$HOOK" >/dev/null 2>&1
+AUDIT="$TMPDIR_TEST/.claude/run-state/t-999-audit.jsonl"
+TOTAL=$((TOTAL+1))
+if [ -f "$AUDIT" ] && grep -q '"criterion"' "$AUDIT" && grep -q '"verdict":"pass"' "$AUDIT" && grep -q '"registered_as_red":false' "$AUDIT"; then
+    echo "  PASS: audit jsonl has criterion verdict + registered_as_red"; PASS=$((PASS+1))
+else
+    echo "  FAIL: audit jsonl missing/incomplete — $(cat "$AUDIT" 2>/dev/null)"; FAIL=$((FAIL+1))
+fi
+rm -rf "$RA1"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"
