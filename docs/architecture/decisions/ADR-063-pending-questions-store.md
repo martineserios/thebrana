@@ -1,9 +1,9 @@
 ---
-status: proposed
+status: accepted
 ---
 # ADR-063: Pending-Questions Store — Raised-Hand Queue for Autonomous Workflows
 
-**Status:** Proposed (2026-06-21; two challenger passes — pass 1 RECONSIDER → derive-block-from-store redesign; pass 2 re-challenged that redesign → PROCEED WITH CHANGES, all incorporated. Ready for human ACCEPT)
+**Status:** Accepted (2026-06-21 by Martín Rios; two challenger passes — pass 1 RECONSIDER → derive-block-from-store redesign; pass 2 re-challenged that redesign → PROCEED WITH CHANGES, all incorporated)
 **Date:** 2026-06-21
 **Deciders:** Martín Rios
 **Tags:** loop-native, factory, autonomy, queue, substrate, hand-raising
