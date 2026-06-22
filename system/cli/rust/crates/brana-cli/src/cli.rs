@@ -102,6 +102,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: OpsCmd,
     },
+    /// Orbit — operator front-door for the unattended autonomous runner (t-2197)
+    Orbit {
+        #[command(subcommand)]
+        cmd: OrbitCmd,
+    },
     /// System health check
     Doctor {
         /// Also run validate.sh structural checks
@@ -1013,6 +1018,46 @@ pub enum OpsCmd {
         /// Path to session JSONL file
         session_file: PathBuf,
     },
+}
+
+/// Orbit — thin control surface over system/scripts/autonomous-runner.sh.
+/// Wraps the engine; never reinvents it. Flags map to the runner's RUNNER_*
+/// env contract and are only set when given (script defaults are never duplicated).
+#[derive(Subcommand)]
+pub enum OrbitCmd {
+    /// Observe: select eligible tasks, plan each, emit a ledger. ZERO writes.
+    Observe {
+        /// Batch cap (RUNNER_MAX_TASKS). Omit to use the script default.
+        #[arg(long)]
+        max_tasks: Option<usize>,
+    },
+    /// Run: execute eligible tasks on isolated branches; you merge. (--run-batch)
+    Run {
+        /// Run only the FIRST eligible task, then stop (--run-one).
+        #[arg(long)]
+        one: bool,
+        /// Open a PR per task via gh (RUNNER_PUSH=1).
+        #[arg(long)]
+        push: bool,
+        /// Batch cap (RUNNER_MAX_TASKS).
+        #[arg(long)]
+        max_tasks: Option<usize>,
+        /// Consecutive-failure kill threshold (RUNNER_MAX_FAILS).
+        #[arg(long)]
+        max_fails: Option<usize>,
+    },
+    /// Arm the scheduler job: enabled=true + swap arg --observe → --run-batch.
+    Enable,
+    /// Disarm the scheduler job: enabled=false + swap arg --run-batch → --observe.
+    Disable,
+    /// Halt a running batch and block a new one (touch the kill-switch).
+    Stop {
+        /// Remove the kill-switch instead of creating it (re-arm).
+        #[arg(long)]
+        clear: bool,
+    },
+    /// Show runner state: scheduler job, kill-switch, latest ledger summary.
+    Status,
 }
 
 #[derive(Subcommand)]

@@ -89,24 +89,31 @@ per task in an ephemeral worktree. Three modes of escalating trust:
 else is excluded with a reason.
 
 **Arm it** via the scheduler: a disabled `autonomous-runner` job ships in `brana ops`
-(default-deny). Set `enabled=true` and switch its arg `--observe`→`--run-batch` to grant
-autonomy; the bounds below apply automatically.
+(default-deny). `brana orbit enable` flips `enabled=true` and swaps its arg
+`--observe`→`--run-batch` (or do it by hand); `brana orbit disable` reverses both. The
+bounds below apply automatically.
 
 **Bounds & stop (always on for a batch):**
 - batch cap — `RUNNER_MAX_TASKS` (default 5)
 - consecutive-failure kill — stops after `RUNNER_MAX_FAILS` (default 3) in a row (ADR-050)
 - per-task timeout — 600s
-- **kill-switch** — `touch ~/.claude/scheduler/runner.stop` halts a running batch cleanly
-  (and blocks a new one from starting)
+- **kill-switch** — `brana orbit stop` (or `touch ~/.claude/scheduler/runner.stop`) halts a
+  running batch cleanly and blocks a new one from starting; `brana orbit stop --clear`
+  re-arms
 
 **Completion:** never self-completes — commits land on `runner/auto/<id>`, tasks stay
 `pending`, and **you merge** (ground control). With `RUNNER_PUSH=1` each task opens a PR
 to `dev` via `gh`. A task hitting a human-only decision is **parked**: a high-priority
 `needs-human` reminder + a `PARKED` note, and the batch moves on.
 
-> **Front-door (planned):** the raw script + env-vars is the engine, not the everyday UX.
-> A thin `brana orbit observe|run|enable|disable|stop|status` wrapper is planned to front
-> the unattended tier (see t-2197). Until then, drive the script directly.
+> **Front-door:** `brana orbit observe | run [--one] [--push] [--max-tasks N] | enable |
+> disable | stop [--clear] | status` fronts the unattended tier (t-2197) — a thin control
+> surface, not a reinvention: the script stays the engine, the `brana ops` scheduler stays
+> the host. `observe`/`run` invoke the runner; `enable`/`disable` arm/disarm the scheduler
+> job; `stop [--clear]` toggles the kill-switch; `status` reports job state + kill-switch +
+> the latest ledger summary. The raw script and the `RUNNER_*` env-vars remain available and
+> unchanged underneath — a flag only sets a var when given, so script defaults are never
+> duplicated.
 
 > **Don't cross the tiers:** `/goal`'s auto-complete is correct when you're watching and a
 > footgun when you're not — auto-merging unreviewed work overnight is exactly what the
