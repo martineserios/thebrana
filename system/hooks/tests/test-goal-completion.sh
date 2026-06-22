@@ -406,7 +406,7 @@ EOF
 echo "$(make_stop_input "$RA1")" | bash "$HOOK" >/dev/null 2>&1
 AUDIT="$TMPDIR_TEST/.claude/run-state/t-999-audit.jsonl"
 TOTAL=$((TOTAL+1))
-if [ -f "$AUDIT" ] && grep -q '"criterion"' "$AUDIT" && grep -q '"verdict":"pass"' "$AUDIT" && grep -q '"registered_as_red":false' "$AUDIT"; then
+if [ -f "$AUDIT" ] && grep -q '"criterion"' "$AUDIT" && grep -q '"verdict":"pass"' "$AUDIT" && grep -q '"registered_as_red":true' "$AUDIT"; then
     echo "  PASS: audit jsonl has criterion verdict + registered_as_red"; PASS=$((PASS+1))
 else
     echo "  FAIL: audit jsonl missing/incomplete — $(cat "$AUDIT" 2>/dev/null)"; FAIL=$((FAIL+1))
