@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T21:17:54Z",
+  "generated": "2026-06-22T00:49:12Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1041,6 +1041,23 @@
       "type": "ADR",
       "impl_files": [
         "system/hooks/goal-completion.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-062-step-state-contract.md": {
+      "title": "ADR-062: Step-State Contract — Derive {next_step, gate_pending} from a Static Step Registry + the Run-State Log",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/build/phases/load.md",
+        "system/skills/_shared/guided-execution.md"
+      ]
+    },
+    "docs/architecture/decisions/ADR-063-pending-questions-store.md": {
+      "title": "ADR-063: Pending-Questions Store — Raised-Hand Queue for Autonomous Workflows",
+      "type": "ADR",
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/cli.rs",
+        "system/scripts/autonomous-runner.sh",
+        "system/hooks/session-start.sh"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -10538,6 +10555,66 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-062-step-state-contract.md",
+      "to": "ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-062-step-state-contract.md",
+      "to": "ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-062-step-state-contract.md",
+      "to": "docs/architecture/features/checkpoint-resume.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-062-step-state-contract.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "to": "ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "to": "ADR-051-reminder-store-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "to": "ADR-052-close-queue-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "to": "ADR-054-reminder-delivery-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "to": "ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -14547,8 +14624,8 @@
     }
   ],
   "stats": {
-    "nodes": 491,
-    "edges": 1867,
+    "nodes": 493,
+    "edges": 1877,
     "typed_edges": 682,
     "orphans": 130
   }
