@@ -212,8 +212,9 @@ TOTAL=$((PASSED + FAILED + UNKNOWN))
 MSG=""
 
 # Structured audit (t-2218, AC #4): forensic trail of which criterion got which verdict,
-# plus registered_as_red per declared test (always false in Stage 2 — red-verification is
-# t-2216, blocking Stage 3). One JSONL record per criterion + per registered test.
+# plus registered_as_red per declared test — true by construction since t-2216:
+# red-verification.sh is the sole writer of tests_required[] and registers a path only
+# when its staged blob ran red. One JSONL record per criterion + per registered test.
 AUDIT_FILE="$HOME/.claude/run-state/${TASK_ID}-audit.jsonl"
 mkdir -p "$HOME/.claude/run-state" 2>/dev/null || true
 audit_ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || audit_ts=""
@@ -227,7 +228,7 @@ for ai in $(seq 0 $((CRITERIA_COUNT - 1))); do
 done
 jq -r '.tests_required // [] | .[]' "$GOAL_FILE" 2>/dev/null | while IFS= read -r at; do
     [ -z "$at" ] && continue
-    printf '{"ts":"%s","task_id":"%s","registered_test":%s,"registered_as_red":false}\n' \
+    printf '{"ts":"%s","task_id":"%s","registered_test":%s,"registered_as_red":true}\n' \
         "$audit_ts" "$TASK_ID" "$(printf '%s' "$at" | jq -R . 2>/dev/null)" >> "$AUDIT_FILE" 2>/dev/null || true
 done
 

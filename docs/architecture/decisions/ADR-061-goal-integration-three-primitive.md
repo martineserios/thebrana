@@ -140,6 +140,14 @@ sandbox), with the same-class principle named:
 > hook that registers a test in `tests_required[]` only if it exits non-zero. Stage-3 bindings
 > (t-2206) are `blocked_by` that hook. Missed registration is **fail-closed** (gate blocks, human
 > completes manually).
+>
+> **Update (t-2216, 2026-06-22 — gap CLOSED):** the red-verification hook shipped as
+> `system/hooks/red-verification.sh`, wired into the git pre-commit chain
+> (`system/scripts/git-hooks/pre-commit`). It grades the **staged blob** (not the working tree, so
+> a stage-green/worktree-red swap cannot earn a false exemption) and registers a newly-added test
+> only when it runs red; green stubs, injected fixtures, and un-runnable files stay blocked
+> (fail-closed). `build-loop.md` step 3d1 now commits the failing test in its own red commit
+> instead of hand-appending to `tests_required[]`. t-2206 (Stage 3) is unblocked.
 
 ### 5. Sequencing — evidence-gated, t-1992 off the critical path
 

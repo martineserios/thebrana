@@ -234,6 +234,12 @@ No strict mode — hooks must never fail and block the session.
 
 **Gate:** Advisory
 
+### `red-verification.sh`
+
+red-verification.sh — pre-commit registration gate for /goal TDD (ADR-061 §4, t-2216).
+
+**Gate:** Advisory
+
 ### `rust-skills-guard.sh`
 
 PreToolUse: block *.rs writes until brana:rust-skills is loaded this session (t-1480).

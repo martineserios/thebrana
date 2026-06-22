@@ -111,18 +111,18 @@ Skip this step for: S/XS builds, spike/investigation strategies, and any invocat
       This gate fires once per build (not per subtask). The post-build Challenger Gate (before CLOSE) is separate — both gates run for procedure/skill edits; this pre-edit gate is advisory, the post-build gate has blocking rules. (t-1431)
    c. **State what you'll change** — which files, why, how it maps to acceptance criteria
    d. **Write failing test** — the acceptance criteria become test assertions
-   d1. **Register the test (if a `/goal` binding is active)** — when `~/.claude/run-state/active-goal.json`
-      exists (set by LOAD step 0), append each new test file's repo-root-relative path to its
-      `tests_required[]` array so the grader-immutability gate exempts it (ADR-061 §4 refinement, t-2205):
-      ```bash
-      GOAL=~/.claude/run-state/active-goal.json
-      [ -f "$GOAL" ] && for t in {new test file paths, repo-root-relative}; do
-        tmp=$(mktemp); jq --arg p "$t" '.tests_required += [$p] | .tests_required |= unique' "$GOAL" > "$tmp" && mv "$tmp" "$GOAL"
-      done
-      ```
-      Registration is idempotent (`unique`) and durable on disk (survives compaction). It declares
-      the file as a legitimate TDD artifact; it does **not** verify the test is red (Stage-2 gap —
-      red-verification is t-2216, blocking Stage 3).
+   d1. **Commit the failing test in its own red commit (if a `/goal` binding is active)** — when
+      `~/.claude/run-state/active-goal.json` exists (set by LOAD step 0), commit the new test file
+      **while it is still red** (before writing implementation), e.g. `test(scope): failing test for X`.
+      The `red-verification` pre-commit hook (`system/hooks/red-verification.sh`, wired into the git
+      pre-commit chain) runs the staged test and registers its repo-root-relative path into
+      `active-goal.json.tests_required[]` **only if it exits non-zero (red)** — closing the Stage-2
+      trusted-registration gap (ADR-061 §4, t-2216). Do **not** hand-edit `tests_required[]`: the
+      exemption is earned by observed redness, not declared on trust.
+      - Registration is idempotent (`unique`) and durable on disk (survives compaction).
+      - **Fail-closed:** if the test is committed green (e.g. test + impl in one commit) or is otherwise
+        not provably red, it is **not** registered → the grader (`goal-completion.sh`) blocks
+        auto-complete ("Added test not in tests_required") and a human completes the task manually.
    d2. **Gate: TEST → IMPLEMENT** — Before writing any implementation code, verify test files were created or modified in this subtask. Check `git diff --name-only` and `git diff --cached --name-only` for test file patterns (`*test*`, `*spec*`, `tests/`, `__tests__/`).
       - **If test files found:** proceed to implementation.
       - **If no test files found:** hard block.
