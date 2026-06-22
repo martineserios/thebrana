@@ -9141,7 +9141,7 @@
       ],
       "branch": null,
       "completed": "2026-05-17",
-      "context": "2026-03-14: Phases 8+9 completed today. 2-week soak begins. Earliest start: 2026-03-28. Scheduler second-phase-check.sh will surface when ready.\n2026-04-27: Soak gate passed. Kill cascade commands + archive doc 24 (44 days since dependencies completed).\n2026-05-04: Soak gate passed. Kill cascade commands + archive doc 24 (51 days since dependencies completed).\n2026-05-18: Soak gate passed. Kill cascade commands + archive doc 24 (65 days since dependencies completed).\n2026-06-15: Soak gate passed. Kill cascade commands + archive doc 24 (93 days since dependencies completed).",
+      "context": "2026-03-14: Phases 8+9 completed today. 2-week soak begins. Earliest start: 2026-03-28. Scheduler second-phase-check.sh will surface when ready.\n2026-04-27: Soak gate passed. Kill cascade commands + archive doc 24 (44 days since dependencies completed).\n2026-05-04: Soak gate passed. Kill cascade commands + archive doc 24 (51 days since dependencies completed).\n2026-05-18: Soak gate passed. Kill cascade commands + archive doc 24 (65 days since dependencies completed).\n2026-06-15: Soak gate passed. Kill cascade commands + archive doc 24 (93 days since dependencies completed).\n2026-06-22: Soak gate passed. Kill cascade commands + archive doc 24 (100 days since dependencies completed).",
       "created": "2026-03-14",
       "description": "After phases 8+9 validated for 2+ weeks: remove /brana:apply-errata, /brana:maintain-specs, /brana:re-evaluate-reflections. Replace with /brana:verify-docs (fitness checks). Archive doc 24 errata log. Move old reflections to docs/archive/reflections/ read-only for 30 days.",
       "effort": "L",
