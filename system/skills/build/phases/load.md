@@ -36,11 +36,19 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
 
    Take the criteria from the field (post-normalization). If non-empty:
    - **Call** `/goal "{task.subject} — Done when: {criteria joined with ' AND '}"` to anchor the session.
-   - **Write** `~/.claude/run-state/active-goal.json`:
-     ```json
-     {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["{criterion1}", "{criterion2}"]}
+   - **Write** `~/.claude/run-state/active-goal.json`, pinning `base_ref` = `git rev-parse HEAD`
+     at goal start (single pin — ADR-061 §4 invariant-2 refinement, t-2205) and initializing
+     `tests_required` to an empty array:
+     ```bash
+     base_ref=$(git -C "{git_root}" rev-parse HEAD)
+     cat > ~/.claude/run-state/active-goal.json <<JSON
+     {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "base_ref": "$base_ref", "criteria": ["{criterion1}", "{criterion2}"], "tests_required": []}
+     JSON
      ```
      This state file is read by the Stop hook (`goal-completion.sh`) to auto-complete the task.
+     `base_ref` anchors the grader-immutability check; `tests_required[]` is appended to by the
+     BUILD loop (`build-loop.md` step 3d) as each TDD test file is written, so newly-Added test
+     files are exempt from the immutability gate while Modified pre-existing grader paths are not.
    - **If the field is empty (no criteria, no `AC:` lines):** still anchor the session — call `/goal "{task.subject}"` (subject only, no `Done when:` clause). Do **not** write `active-goal.json`: the Stop hook (`goal-completion.sh:40`) exits at zero criteria, so a criteria-less state file does nothing. The session gets a focus anchor; auto-complete stays gated on the `acceptance_criteria` field.
    - **Skip for:** freeform builds (no task_id), spike strategy, investigation strategy.
 

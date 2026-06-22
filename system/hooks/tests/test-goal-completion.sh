@@ -361,6 +361,58 @@ write_goal "$RG6" "$BR6" "app.js exists"
 assert_completes "clean run still auto-completes (gate is specific)" "$(make_stop_input "$RG6")"
 rm -rf "$RG6"
 
+# ── G7 (Option C): a REGISTERED new test file is exempt → auto-completes ──────
+echo "Test G7 (Option C): registered new test in tests_required[] is exempt → auto-completes"
+read -r RG7 BR7 <<< "$(make_goal_repo)"
+fresh_presence
+echo "test('new', () => {})" > "$RG7/tests/new.test.js"   # build writes a new test...
+git -C "$RG7" add -A >/dev/null 2>&1; git -C "$RG7" commit -q -m "add red test" 2>/dev/null
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG7","base_ref":"$BR7","criteria":["app.js exists"],"tests_required":["tests/new.test.js"]}
+EOF
+assert_completes "registered new test is exempt" "$(make_stop_input "$RG7")"
+rm -rf "$RG7"
+
+# ── G8 (Option C): an UNREGISTERED new test file still blocks (G2-class guard) ─
+echo "Test G8 (Option C): unregistered new test file is NOT exempt → gate"
+read -r RG8 BR8 <<< "$(make_goal_repo)"
+fresh_presence
+write_goal "$RG8" "$BR8" "app.js exists"                  # no tests_required
+echo "test('sneaky', () => {})" > "$RG8/tests/sneaky.test.js"   # new, untracked, unregistered
+assert_gated "unregistered new test trips gate" "$(make_stop_input "$RG8")" "grader path"
+rm -rf "$RG8"
+
+# ── G9 (Option C boundary): registering a PRE-EXISTING path can't launder a modification ──
+echo "Test G9 (Option C boundary): registered pre-existing test still blocks when MODIFIED"
+read -r RG9 BR9 <<< "$(make_goal_repo)"
+fresh_presence
+echo "// gamed" >> "$RG9/app.test.js"                     # modify a pre-existing graded test
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG9","base_ref":"$BR9","criteria":["app.js exists"],"tests_required":["app.test.js"]}
+EOF
+assert_gated "registering a pre-existing path can't exempt its modification" "$(make_stop_input "$RG9")" "grader path"
+rm -rf "$RG9"
+
+# ── A1 (Option C audit, t-2218): per-criterion audit jsonl + registered_as_red ─
+echo "Test A1 (audit): goal-completion emits per-criterion audit jsonl + registered_as_red"
+read -r RA1 BR_A1 <<< "$(make_goal_repo)"
+fresh_presence
+rm -f "$TMPDIR_TEST/.claude/run-state/t-999-audit.jsonl"
+echo "test('new', () => {})" > "$RA1/tests/new.test.js"
+git -C "$RA1" add -A >/dev/null 2>&1; git -C "$RA1" commit -q -m "red" 2>/dev/null
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RA1","base_ref":"$BR_A1","criteria":["app.js exists"],"tests_required":["tests/new.test.js"]}
+EOF
+echo "$(make_stop_input "$RA1")" | bash "$HOOK" >/dev/null 2>&1
+AUDIT="$TMPDIR_TEST/.claude/run-state/t-999-audit.jsonl"
+TOTAL=$((TOTAL+1))
+if [ -f "$AUDIT" ] && grep -q '"criterion"' "$AUDIT" && grep -q '"verdict":"pass"' "$AUDIT" && grep -q '"registered_as_red":false' "$AUDIT"; then
+    echo "  PASS: audit jsonl has criterion verdict + registered_as_red"; PASS=$((PASS+1))
+else
+    echo "  FAIL: audit jsonl missing/incomplete — $(cat "$AUDIT" 2>/dev/null)"; FAIL=$((FAIL+1))
+fi
+rm -rf "$RA1"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"

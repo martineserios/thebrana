@@ -211,6 +211,26 @@ done
 TOTAL=$((PASSED + FAILED + UNKNOWN))
 MSG=""
 
+# Structured audit (t-2218, AC #4): forensic trail of which criterion got which verdict,
+# plus registered_as_red per declared test (always false in Stage 2 — red-verification is
+# t-2216, blocking Stage 3). One JSONL record per criterion + per registered test.
+AUDIT_FILE="$HOME/.claude/run-state/${TASK_ID}-audit.jsonl"
+mkdir -p "$HOME/.claude/run-state" 2>/dev/null || true
+audit_ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || audit_ts=""
+for ai in $(seq 0 $((CRITERIA_COUNT - 1))); do
+    ac=$(echo "$CRITERIA_JSON" | jq -r ".[$ai]" 2>/dev/null); [ -z "$ac" ] && continue
+    if printf '%b' "$FAILED_LIST" | grep -qF "$ac"; then av="fail"
+    elif printf '%b' "$UNKNOWN_LIST" | grep -qF "$ac"; then av="unknown"
+    else av="pass"; fi
+    printf '{"ts":"%s","task_id":"%s","criterion":%s,"verdict":"%s"}\n' \
+        "$audit_ts" "$TASK_ID" "$(printf '%s' "$ac" | jq -R . 2>/dev/null)" "$av" >> "$AUDIT_FILE" 2>/dev/null || true
+done
+jq -r '.tests_required // [] | .[]' "$GOAL_FILE" 2>/dev/null | while IFS= read -r at; do
+    [ -z "$at" ] && continue
+    printf '{"ts":"%s","task_id":"%s","registered_test":%s,"registered_as_red":false}\n' \
+        "$audit_ts" "$TASK_ID" "$(printf '%s' "$at" | jq -R . 2>/dev/null)" >> "$AUDIT_FILE" 2>/dev/null || true
+done
+
 if [ "$FAILED" -eq 0 ] && [ "$UNKNOWN" -eq 0 ] && [ "$PASSED" -gt 0 ]; then
     # All criteria green — but `/goal` is an optimizer over the done-signal, so the
     # grader must live outside the agent's control (ADR-061 §4 invariants 1+2;
@@ -234,11 +254,27 @@ if [ "$FAILED" -eq 0 ] && [ "$UNKNOWN" -eq 0 ] && [ "$PASSED" -gt 0 ]; then
             GATE_REASON="goal has no pinned base-ref — cannot verify grader integrity"
         else
             GRADER_RE='(\.test\.|(^|/)tests/|(^|/)__mocks__/|(^|/)\.claude/tasks\.json$)'
-            CHANGED=$(
-                { git -C "$WORK_DIR" diff --name-only "$BASE_REF" 2>/dev/null
-                  git -C "$WORK_DIR" ls-files --others --exclude-standard 2>/dev/null
-                } | grep -E "$GRADER_RE" | head -5 | tr '\n' ' '
-            )
+            # Option C (t-2205, ADR-061 §4 invariant-2 refinement): TDD writes the test
+            # file DURING the span, so a single base_ref pin must distinguish Modified
+            # (pre-existing grader paths — always the gaming surface) from Added (new files
+            # — exempt IFF the build registered them in active-goal.json.tests_required[]).
+            TESTS_REQ=$(jq -r '.tests_required // [] | .[]' "$GOAL_FILE" 2>/dev/null) || TESTS_REQ=""
+            # Channel 1a — MODIFIED pre-existing grader paths: always blocked.
+            MODIFIED=$(git -C "$WORK_DIR" diff --name-only --diff-filter=M "$BASE_REF" 2>/dev/null | grep -E "$GRADER_RE")
+            # Channel 1b + 2 — ADDED (committed) and untracked new grader paths: blocked
+            # unless registered as a declared TDD test.
+            UNREG=""
+            while IFS= read -r f; do
+                [ -z "$f" ] && continue
+                printf '%s\n' "$TESTS_REQ" | grep -qxF "$f" || UNREG="$UNREG $f"
+            done <<EOF
+$(
+    { git -C "$WORK_DIR" diff --name-only --diff-filter=A "$BASE_REF" 2>/dev/null
+      git -C "$WORK_DIR" ls-files --others --exclude-standard 2>/dev/null
+    } | grep -E "$GRADER_RE"
+)
+EOF
+            CHANGED=$(printf '%s %s' "$MODIFIED" "$UNREG" | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//' | cut -c1-200)
             [ -n "$CHANGED" ] && GATE_REASON="grader path changed since goal start ($CHANGED)"
         fi
     fi
