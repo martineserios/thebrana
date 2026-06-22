@@ -65,6 +65,44 @@ fi
 
 resolve_claude() { local cb="$CLAUDE_BIN"; [ -x "$cb" ] || cb="$(command -v claude 2>/dev/null || true)"; echo "$cb"; }
 
+# sandbox_claude <workdir> -- <claude args...> : run `claude -p` inside a bubblewrap
+# capability jail (ADR-062). The prompt is read from this function's STDIN and forwarded
+# into the jail. Containment (spike-validated 2026-06-21):
+#   - minimal --ro-bind list (NOT /) → ~/.config/brana/*.env, ~/.ssh, ~/.aws are ABSENT
+#   - env -i → inherited env secrets (LINEAR_API_KEY, …) cleared
+#   - writable tmpfs HOME with claude's creds ro-bound inside → auth works, no host writes
+#   - <workdir> bound to /workspace = the ONLY writable host path
+#   - rlimits via inner ulimit (bwrap 0.11.1 has no --rlimit-* flags)
+# Egress is NOT yet restricted (shared netns) — ADR-062 open item. Graceful fallback to an
+# UNSANDBOXED run (loud warning) when bwrap is missing or RUNNER_SANDBOX=0 (e.g. CI without
+# user namespaces, or the orchestration tests that stub `claude`).
+SANDBOX="${RUNNER_SANDBOX:-1}"
+sandbox_claude() {
+  local wd="$1"; shift
+  local cb; cb="$(resolve_claude)"
+  if [ "$SANDBOX" = "0" ] || ! command -v bwrap >/dev/null 2>&1; then
+    [ "$SANDBOX" != "0" ] && echo "[autonomous-runner] WARN: bwrap unavailable — executor running UNSANDBOXED (ADR-062)" >&2
+    ( cd "$wd" && timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" "$cb" "$@" )
+    return $?
+  fi
+  local cbr resolv
+  cbr="$(readlink -f "$cb")"
+  resolv="$(readlink -f /etc/resolv.conf 2>/dev/null)"
+  local -a B=(--unshare-ipc --unshare-pid
+    --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib)
+  [ -e /lib64 ] && B+=(--ro-bind /lib64 /lib64)
+  B+=(--ro-bind /etc /etc)
+  [ -n "$resolv" ] && [ -e "$resolv" ] && B+=(--ro-bind "$resolv" /run/systemd/resolve/stub-resolv.conf)
+  B+=(--ro-bind "$cbr" /opt/claude)
+  [ -e "$HOME/.cargo" ]    && B+=(--ro-bind "$HOME/.cargo" /home/sb/.cargo)
+  [ -e "$HOME/.gitconfig" ] && B+=(--ro-bind "$HOME/.gitconfig" /home/sb/.gitconfig)
+  [ -e "$HOME/.claude/.credentials.json" ] && B+=(--ro-bind "$HOME/.claude/.credentials.json" /home/sb/.claude/.credentials.json)
+  B+=(--bind "$wd" /workspace --tmpfs /home --tmpfs /tmp --proc /proc --dev /dev --chdir /workspace)
+  timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" bwrap "${B[@]}" \
+    env -i HOME=/home/sb PATH=/usr/bin:/bin TERM="${TERM:-dumb}" \
+    bash -c 'ulimit -u 200 2>/dev/null; ulimit -f 1024000 2>/dev/null; exec /opt/claude "$@"' _ "$@"
+}
+
 emit() { # id subject decision reason
   jq -cn --arg id "$1" --arg s "$2" --arg d "$3" --arg r "$4" --arg ts "$TS" \
     '{id:$id,subject:$s,decision:$d,reason:$r,ts:$ts}' >> "$LEDGER"
@@ -194,8 +232,10 @@ ${CTX:+Context: $CTX}
 
 If you can complete it, do the edits, then end with one line: DONE: <one-line summary>.
 If it needs a human decision first (ambiguous, risky, owner's choice), make NO changes and end with: NEEDSHUMAN: <what decision is needed>."
-  # Dispatch INSIDE the worktree (the agent's cwd is the isolated checkout).
-  DOUT="$(cd "$WT" && printf '%s' "$DPROMPT" | timeout 600 "$CB" -p --allowedTools "Read,Write,Edit,Bash" --output-format text 2>/dev/null)"
+  # Dispatch inside a bwrap capability jail (ADR-062): the worktree is the only writable
+  # host path, inherited secrets are cleared (env -i), and ~/.config/brana et al. are absent.
+  # The git worktree isolates tracked files; the jail isolates the OS process.
+  DOUT="$(printf '%s' "$DPROMPT" | sandbox_claude "$WT" -p --allowedTools "Read,Write,Edit,Bash" --output-format text 2>/dev/null)"
 
   # Verify gate (all checks scoped to the worktree). NEEDSHUMAN → park; empty diff / validate fail → failed.
   if printf '%s' "$DOUT" | grep -q "NEEDSHUMAN:"; then
@@ -214,7 +254,9 @@ If it needs a human decision first (ambiguous, risky, owner's choice), make NO c
   # Commit on the task branch (inside the worktree) — hooks run. Never merge, never mark completed.
   for gf in $GENERATED; do git -C "$WT" checkout -- "$gf" 2>/dev/null || true; done  # drop brana side-effect churn
   git -C "$WT" add -A
-  if ! git -C "$WT" commit -q -m "feat(auto): ${SUBJ} (${ID})"; then
+  # --no-verify (ADR-062 C2): never run the worktree's own .git/hooks on the host — a
+  # prompt-injected agent could otherwise plant a malicious pre-commit and get host RCE.
+  if ! git -C "$WT" commit -q --no-verify -m "feat(auto): ${SUBJ} (${ID})"; then
     cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "commit rejected (hooks?)"; return 1
   fi
   emit "$ID" "$SUBJ" ran "committed on $BRANCH (validate ✓), awaiting human review"

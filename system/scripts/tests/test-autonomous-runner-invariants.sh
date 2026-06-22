@@ -43,7 +43,7 @@ FIXN(){ local f="$1" n="$2" i; { printf '['; for i in $(seq 1 "$n"); do [ "$i" -
 # run-one with explicit base branch + isolated worktree/lock/ledger dirs
 run_one(){ local repo="$1"; shift; local base="$1"; shift
   FIX1 "${repo}.fix.json"
-  ( cd "$repo"; env CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${repo}.fix.json" RUNNER_PLAN=1 \
+  ( cd "$repo"; env RUNNER_SANDBOX=0 CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${repo}.fix.json" RUNNER_PLAN=1 \
       RUNNER_LEDGER="${repo}.ledger.jsonl" RUNNER_BASE_BRANCH="$base" \
       RUNNER_WORKTREE_DIR="${repo}.wt" RUNNER_LOCK_FILE="${repo}.lock" "$@" \
       bash "$RUNNER_SRC" --run-one >/dev/null 2>&1 )
@@ -96,7 +96,7 @@ mkfifo "${R}.fifo"
 ( exec 9>"${R}.lock"; flock -n 9 || exit 1; : > "${R}.held"; read -r _ <"${R}.fifo" ) >/dev/null 2>&1 &
 HOLDER=$!
 held=0; for _ in $(seq 1 500); do [ -f "${R}.held" ] && { held=1; break; }; done
-( cd "$R"; env CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${R}.fix.json" RUNNER_PLAN=1 \
+( cd "$R"; env RUNNER_SANDBOX=0 CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${R}.fix.json" RUNNER_PLAN=1 \
     RUNNER_LEDGER="${R}.ledger.jsonl" RUNNER_BASE_BRANCH="$base" RUNNER_WORKTREE_DIR="${R}.wt" \
     RUNNER_LOCK_FILE="${R}.lock" RUNNER_KILL_SWITCH="${R}.stop" \
     bash "$RUNNER_SRC" --run-batch >/dev/null 2>&1 )

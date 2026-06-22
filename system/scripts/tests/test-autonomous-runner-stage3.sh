@@ -52,7 +52,7 @@ run_batch(){ # repo  extra-env...
   local base; base="$(cd "$repo" && git branch --show-current)"
   # No STUB_TARGET: the stub writes a RELATIVE target.txt inside each task's ephemeral worktree.
   ( cd "$repo"
-    env CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${repo}.fix.json" RUNNER_PLAN=1 \
+    env RUNNER_SANDBOX=0 CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${repo}.fix.json" RUNNER_PLAN=1 \
         RUNNER_LEDGER="${repo}.ledger.jsonl" RUNNER_BASE_BRANCH="$base" \
         RUNNER_WORKTREE_DIR="${repo}.wt" \
         RUNNER_KILL_SWITCH="${repo}.stop" RUNNER_LOCK_FILE="${repo}.lock" "$@" \
