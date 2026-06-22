@@ -57293,11 +57293,16 @@
       "type": "task"
     },
     {
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "runner executor cannot make a network call to a non-allowlisted host or write outside its worktree during a --run-one of a task whose description asks it to",
+        "Bash command allowlist or container boundary enforced + documented in docs/architecture/features/autonomous-runner.md",
+        "spec (autonomous-runner.md) updated to state capability-isolation model explicitly"
+      ],
       "blocked_by": [],
       "branch": "orbit/feat/t-2173-sandbox-executor",
+      "build_step": "classify",
       "completed": null,
-      "context": "Source: t-2167 prompt-6 hive-mind verdict (3 workers, all survived adversarial verify). Relationship: this gates Phase C / live unsupervised autonomy the same way t-2138 (secret-scan) did — today's runner is human-supervised (--run-one leaves branch for review), so this is not urgent, but it is a HARD precondition before any unattended --run-batch on real tasks.\\nHigher-probability sub-threat than arbitrary malware (executor is benign-but-fallible claude -p): PROMPT INJECTION via task fields — subject/description/AC lines are backlog-author-controlled and flow into the executor prompt where they can steer the unscoped Bash tool.\\nFix options, by leverage: (1) run executor in an OS sandbox/container with no host-credential mount + network-egress block; (2) scope Bash via command allowlist or disallowedTools for push/rm/curl; (3) (separate, smaller) close the correctness-gate gap — spec calls for validate.sh + AC/build-evaluator check, but the AC half is unimplemented (grep autonomous-runner.sh for AC:|evaluator|/goal returns nothing).\\nAC: runner executor cannot make a network call or write outside its worktree during a --run-one of a task whose description asks it to\\nAC: Bash command allowlist or container boundary enforced + documented in docs/architecture/features/autonomous-runner.md\\nAC: spec (autonomous-runner.md) updated to state capability-isolation model explicitly\n2026-06-21: Brainstormed + researched (web/community). Approach SETTLED — see docs/ideas/runner-capability-isolation.md. Decision: bwrap OS sandbox is the boundary (denylist/allowlist both proven bypassable — Lethal Trifecta framing; Trail of Bits/OWASP). Net OFF by default (--unshare-net, Codex gold std). Installed Claude Code 2.1.185 has NO native --sandbox, so replicate via bwrap. Full 4-layer marathon: (1) bwrap wrap of line-198 dispatch, (2) denylist tripwire, (3) credential scrub, (4) escape-test in validate.sh. TOP RISK: compatibility erosion -> operator loosens sandbox -> silent re-open; mitigate via compat soak + loud in-validate escape test. Build order: ADR -> escape test (fail first) -> impl -> compat soak -> docs.\n2026-06-21 CHALLENGE (3-lens panel, all verified vs code): plan RECONSIDERED, effort M->L. Original bwrap command was broken 4 ways: F1 --unshare-net bricks claude -p (needs api.anthropic.com) -> use egress ALLOWLIST proxy not block-all; F2 --tmpfs /home destroys claude's own creds at ~/.claude/.credentials.json -> --ro-bind them RO; C1 no env -i -> LINEAR_API_KEY leaks via env/proc -> env -i; C2 worktree write -> unsandboxed host exec via line-209 eval validate + line-216 commit hooks -> run validate from base-ref copy + commit --no-verify (also de-circularizes escape test). Process: SPIKE before ADR (prove bwrap runs claude -p); 6-vector escape battery not 1 curl; +rlimits, close fds, minimal bind list, sandbox OBSERVE line 80, name supply-chain class in ADR. Corrected design in docs/ideas/runner-capability-isolation.md.\n2026-06-21: core sandbox merged to dev (e5941947, --no-ff). Remaining open: (1) egress allowlist [AC1 partial, shared netns], (2) validate-from-base-ref [C2 half-2], (3) OBSERVE-planner sandbox, (4) compatibility soak. Keep runner in observe until egress lands.",
+      "context": "Source: t-2167 prompt-6 hive-mind verdict (3 workers, all survived adversarial verify). Relationship: this gates Phase C / live unsupervised autonomy the same way t-2138 (secret-scan) did — today's runner is human-supervised (--run-one leaves branch for review), so this is not urgent, but it is a HARD precondition before any unattended --run-batch on real tasks.\\nHigher-probability sub-threat than arbitrary malware (executor is benign-but-fallible claude -p): PROMPT INJECTION via task fields — subject/description/AC lines are backlog-author-controlled and flow into the executor prompt where they can steer the unscoped Bash tool.\\nFix options, by leverage: (1) run executor in an OS sandbox/container with no host-credential mount + network-egress block; (2) scope Bash via command allowlist or disallowedTools for push/rm/curl; (3) (separate, smaller) close the correctness-gate gap — spec calls for validate.sh + AC/build-evaluator check, but the AC half is unimplemented (grep autonomous-runner.sh for AC:|evaluator|/goal returns nothing).\\nAC: runner executor cannot make a network call or write outside its worktree during a --run-one of a task whose description asks it to\\nAC: Bash command allowlist or container boundary enforced + documented in docs/architecture/features/autonomous-runner.md\\nAC: spec (autonomous-runner.md) updated to state capability-isolation model explicitly\n2026-06-21: Brainstormed + researched (web/community). Approach SETTLED — see docs/ideas/runner-capability-isolation.md. Decision: bwrap OS sandbox is the boundary (denylist/allowlist both proven bypassable — Lethal Trifecta framing; Trail of Bits/OWASP). Net OFF by default (--unshare-net, Codex gold std). Installed Claude Code 2.1.185 has NO native --sandbox, so replicate via bwrap. Full 4-layer marathon: (1) bwrap wrap of line-198 dispatch, (2) denylist tripwire, (3) credential scrub, (4) escape-test in validate.sh. TOP RISK: compatibility erosion -> operator loosens sandbox -> silent re-open; mitigate via compat soak + loud in-validate escape test. Build order: ADR -> escape test (fail first) -> impl -> compat soak -> docs.\n2026-06-21 CHALLENGE (3-lens panel, all verified vs code): plan RECONSIDERED, effort M->L. Original bwrap command was broken 4 ways: F1 --unshare-net bricks claude -p (needs api.anthropic.com) -> use egress ALLOWLIST proxy not block-all; F2 --tmpfs /home destroys claude's own creds at ~/.claude/.credentials.json -> --ro-bind them RO; C1 no env -i -> LINEAR_API_KEY leaks via env/proc -> env -i; C2 worktree write -> unsandboxed host exec via line-209 eval validate + line-216 commit hooks -> run validate from base-ref copy + commit --no-verify (also de-circularizes escape test). Process: SPIKE before ADR (prove bwrap runs claude -p); 6-vector escape battery not 1 curl; +rlimits, close fds, minimal bind list, sandbox OBSERVE line 80, name supply-chain class in ADR. Corrected design in docs/ideas/runner-capability-isolation.md.\n2026-06-21: core sandbox merged to dev (e5941947, --no-ff). Remaining open: (1) egress allowlist [AC1 partial, shared netns], (2) validate-from-base-ref [C2 half-2], (3) OBSERVE-planner sandbox, (4) compatibility soak. Keep runner in observe until egress lands.\n2026-06-21 EGRESS DECISION (slice picked from epic): mechanism = nft egress firewall (Option A), NOT a CONNECT proxy. Rationale: B is strictly A+proxy (a --unshare-net jail still needs slirp+nft to reach any proxy), and a bespoke proxy daemon we own forever feeds the #1 documented risk (compat erosion → operator loosens). A done right (slirp4netns + nft default-DROP, allow only FRESH-resolved api.anthropic.com A-records on :443 + DNS, harden-runner pattern) is kernel-enforced, no daemon we maintain. Weighted matrix ~tie (A 3.95 / B 3.90); A wins on maint-surface, B's only edge is IP-rotation (neutralized by all-A-records + short runs). ESCALATION TRIPWIRE: if spike shows claude -p needs many rotating endpoints nft can't track → switch to B. Build order: SPIKE (prove unshare-net+slirp+nft runs claude to completion + discover real host set) → ADR-062 addendum → promote escape-test V5/V6 to hard asserts (red) → impl sandbox_claude() → soak → docs. Tools confirmed present: slirp4netns, nft, socat, bwrap; tinyproxy/pasta ABSENT.\n2026-06-21 SPIKE RESULT (egress) — BLOCKER FOUND, reassessment required. Host = Ubuntu 26.04 LTS, kernel.apparmor_restrict_unprivileged_userns=1. Empirically proven this session: unprivileged user (uid 1000, init userns, CapEff=0) CANNOT setns into a netns (nsenter into own netns → EPERM), CANNOT create a nested netns, CANNOT run nft — even WITH --cap-add CAP_SYS_ADMIN inside a bwrap userns (CapEff=0x200000 but ops still EPERM). AppArmor neuters netns/setns/nft inside unprivileged userns. sudo -n = password required (no non-interactive privileged setup). CONSEQUENCE: nft egress firewall (Option A) AND slirp4netns/proxy (Option B) are BOTH unimplementable for the unprivileged runner on this host — they all need netns+setns. claude -p egress discovery (strace, unsandboxed): essential endpoint api.anthropic.com=160.79.104.10 (Anthropic /23, stable, NOT cloudflare); telemetry to statsig/sentry/cloudflare/gcp IPs is non-essential (claude -p RC=0 without them). Viable egress mechanisms now REQUIRE either: (1) host-level nft OUTPUT owner-match rule for a DEDICATED runner uid (privileged one-time install, unprivileged run; robust, no netns) — sidesteps AppArmor entirely; (2) AppArmor profile/sysctl change to allow userns (weakens host security); (3) seccomp-notify connect() allowlist supervisor (unprivileged, real boundary, but needs a compiled helper); (4) ACCEPT unprivileged limitation: keep merged write+secret isolation (V1-V4 work) + disallowedTools tripwire + human review, gate unattended --run-batch behind privileged egress install, keep V5/V6 as documented KNOWN GAP. Decision needed from owner (involves root provisioning + security trade-off). Spike scripts: /tmp/spike-egress.sh, /tmp/spike2.sh.\n2026-06-21 SPIKE VERDICT (egress, srt-vs-replicate) → REPLICATE IN-TREE (srt infeasible here). Community answer found: Anthropic open-sources @anthropic-ai/sandbox-runtime (srt) — the layer behind Claude Code /sandbox — using bwrap --unshare-net + socat + bind-mounted unix socket → host HTTP/SOCKS allowlist proxy (allowedDomains). We are NOT first. BUT srt v0.0.56 FAILS on this box: 'apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN)' — srt nests a userns for its seccomp layer; Ubuntu 26.04 apparmor_restrict_unprivileged_userns blocks NESTED unprivileged userns. srt docs confirm: needs sysctl=0 or an apparmor profile (privileged). HOWEVER the underlying TECHNIQUE works with a SINGLE-level bwrap (no nesting): PROVEN this session — inside `bwrap --unshare-net` (single userns, works here) direct curl to 1.1.1.1 BLOCKED (rc=7, only lo), but curl --unix-socket to a bind-mounted unix socket bridged by host socat → http=301 (reached outside). So: single bwrap --unshare-net + bind-mounted unix socket + host-side allowlist proxy = viable UNPRIVILEGED egress boundary on this AppArmor box, sidestepping BOTH netns ops AND nested userns. DECISION: replicate in-tree — keep merged sandbox_claude() bwrap (V1-V4), add --unshare-net + unix-socket bind + socat (jail loopback→unix) + host CONNECT allowlist proxy (api.anthropic.com only; telemetry non-essential, claude -p RC=0 without it). IMPL OPEN DETAILS: (a) host proxy = tiny HTTP CONNECT allowlist (tinyproxy absent; ~40-line python3 or socat hardwired-tunnel to api.anthropic.com:443 — port-443 bind in jail needs CAP_NET_BIND_SERVICE so prefer HTTPS_PROXY+highport+CONNECT proxy); (b) rg must be a real binary on PATH for any srt use — here rg is only a CC shell function (noted, not needed for replicate); (c) fresh-resolve api.anthropic.com each run. Sources: github.com/anthropic-experimental/sandbox-runtime, sambaiz.net/en/article/547. Spike scripts: /tmp/spike-egress.sh, /tmp/spike2.sh, plus inline unix-bridge proof.\n2026-06-21 SPIKE SUCCESS (egress fully proven, /tmp/spike3e.sh). Jailed claude -p → PONG RC=0 with egress allowlist enforced: proxy ALLOW api.anthropic.com (inference), DENY mcp-proxy.anthropic.com + DENY http-intake.logs.us5.datadoghq.com (non-allowlisted, non-fatal), example.com DENY. PROVEN CONFIG (all unprivileged, AppArmor-compatible, single-level userns): (1) bwrap --unshare-net (jail=loopback only, all direct egress blocked); (2) WRITABLE per-run HOME copy with .credentials.json + .claude.json — THIS WAS THE MISSING PIECE: claude REWRITES ~/.claude.json on startup, so RO-bind made it bail 'Not logged in'. Subscription OAuth (no API key); creds file alone suffices (NOT keyring/DBUS — disproven). (3) bind-mounted unix socket → host python CONNECT allowlist proxy (api.anthropic.com only); (4) inside jail: socat TCP-LISTEN:highport→UNIX-CONNECT:/egress.sock + HTTPS_PROXY=http://127.0.0.1:port. SECURITY NUANCE for ADR: writable cred-copy is SAFE *because* egress is restricted — creds readable inside but cannot be exfiltrated (egress boundary + cred-copy reinforce each other). IMPL TODO: (a) copy MINIMAL .claude.json (strip mcpOAuth/history/mcpServers — keep oauthAccount/userID/subscription) to avoid exposing linear/kapso/supabase MCP tokens + to disable MCP egress (mcp-proxy denies are noise); (b) rm -rf the writable HOME copy after each run (holds tokens), mode 700, in /tmp; (c) host CONNECT proxy = ~40-line python3 (committed pattern: /tmp/connect-allowlist-proxy.py) — tinyproxy absent; (d) fresh-resolve not needed (proxy resolves hostname host-side); (e) keep existing V1-V4 binds (minimal-bind secret isolation) — egress is the NET leg added on top. NEXT: ADR-062 addendum (record this proven config) → promote escape-test V5/V6 to hard asserts (real claude or stub that curls) → impl sandbox_claude() → soak → docs.",
       "created": "2026-06-20",
       "description": "The autonomous runner's safety story rests on git-worktree isolation + human review of runner/auto/* branches. A native hive-mind workflow (t-2167 prompt 6) identified the riskiest assumption: a git worktree isolates tracked files in a checkout, NOT the OS process. The runner dispatches `claude -p --allowedTools \"Read,Write,Edit,Bash\"` (autonomous-runner.sh ~line 198) with Bash unscoped — no --sandbox, no disallowedTools, no egress block. Every downstream gate (git status --porcelain, validate, git add -A, human diff review) only inspects the worktree's tracked diff, so any side effect that never lands as a tracked file — network egress, writes to $HOME, reads of ~/.config/brana/*.env secrets, rm, package installs, git push — is invisible to all gates and to the reviewer. Containment must live at the capability layer, not the git layer.",
       "effort": "L",
@@ -58410,12 +58415,19 @@
       "type": "task"
     },
     {
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "build's TDD span runs as a /goal binding, stopping AT the per-subtask TDD gate (never through it)",
+        "refactor excluded from the iterate-until span",
+        "the one-shot-anchor vs iterate-loop decision (ADR-061 Open) is made and documented",
+        "emits structured audit output (criterion satisfied by which commit/file) for later t-1981/t-1992 use",
+        "validate.sh passes"
+      ],
       "blocked_by": [
         "t-2204"
       ],
-      "branch": null,
-      "completed": null,
+      "branch": "substrate/feat/t-2205-goal-binding-build-tdd",
+      "build_step": null,
+      "completed": "2026-06-21",
       "context": "2026-06-21: ADR-061 Stage 2. Span = red→green ONLY (refactor outside, invariant 3). Done = AC: exit codes 0. blocked_by the hook hardening (t-2204) — the binding is not trustworthy until invariant 2 is enforced.\nAC: build's TDD span runs as a /goal binding, stopping AT the per-subtask TDD gate (never through it)\nAC: refactor excluded from the iterate-until span\nAC: the one-shot-anchor vs iterate-loop decision (ADR-061 Open) is made and documented\nAC: emits structured audit output (criterion satisfied by which commit/file) for later t-1981/t-1992 use\nAC: validate.sh passes\n2026-06-21: PREREQUISITE from t-2204 — goal-completion.sh now fail-closed: it only auto-advances when (a) a fresh <15m presence token ~/.claude/run-state/presence-<session_id> exists AND (b) the goal file pins base_ref with no grader-read path changed since it. So the first /goal binding MUST (1) write base_ref (git rev-parse HEAD) into active-goal.json at /goal start, and (2) ensure an interactive-only hook (decided: /dev/tty-gated UserPromptSubmit or SessionStart) writes/refreshes the presence token. Without these, /goal never auto-completes. The per-subtask TDD gate must sit at the span BOUNDARY (C2).",
       "created": "2026-06-21",
       "description": "Stage 2 of ADR-061: the first /goal binding — /brana:build's red→green TDD span, done when all AC: exit codes == 0. The flagship binding; soak it to produce evidence before Stages 3-4. Must resolve the ADR-061 Open item (challenger Attack 4): decide whether /goal extends to actually iterate (and confirm the per-subtask TDD gate sits at the span boundary, not inside it — else C2 violated) or stays a session anchor.",
@@ -58424,13 +58436,17 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-2205",
+      "isc": [
+        "grader-split exempts registered Added tests, blocks unregistered + Modified grader paths; G1-G8 green\nbase_ref+tests_required written by load.md; build-loop registers test paths\npresence-refresh hook writes token interactive-only\nvalidate.sh exit 0"
+      ],
       "kind": "feature",
-      "notes": null,
+      "notes": "Option C (tests_required[] registration). 5 subtasks done (t-2217 grader split+G7/G8/G9, t-2218 audit+A1, t-2219 load.md base_ref+tests_required, t-2220 build-loop registration, t-2221 presence-refresh hook+5 tests). goal-completion suite 25/25. ADR-061 Open(Attack4) resolved + §4 invariant-2 refined. Phase 2 (red-verification) = t-2216 blocking t-2206. validate.sh: 1 residual error (presence-refresh.sh not in ~/.claude/hooks — tracked-vs-deployed drift, clears at bootstrap t-2214).",
       "order": 0,
       "parent": "t-2194",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-21",
+      "status": "completed",
+      "strategy": "feature",
       "subject": "/goal binding — /brana:build TDD loop (Stage 2, first binding)",
       "tags": [
         "goal",
@@ -58442,7 +58458,8 @@
     {
       "acceptance_criteria": null,
       "blocked_by": [
-        "t-2205"
+        "t-2205",
+        "t-2216"
       ],
       "branch": null,
       "completed": null,
@@ -58735,6 +58752,189 @@
         "adr"
       ],
       "type": "task"
+    },
+    {
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "2026-06-21: Phase 2 of the Option-C reconciliation (deep challenge, 3 lenses, see t-2205 + ADR-061 §4 \"Invariant 2 refinement\"). t-2205 (Stage 2) ships the FORENSIC trail: build-loop registers each new test path in active-goal.json.tests_required[]; goal-completion.sh exempts registered Added/untracked grader-path files. GAP left by Stage 2 (accepted because presence interlock = human reviews every green): registration does NOT verify the test was RED — a trivially-green test can be registered and game the grader. This task closes it: a pre-commit hook runs the staged test and only allows the tests_required[] registration to succeed if it exits non-zero (red). An always-green test self-excludes → grader blocks \"Added test not in tests_required\". Load-bearing for autonomous bindings (Stage 3 /brana:fix + /brana:reconcile, Stage 4). MUST land before Stage 3 is trusted — hence t-2206 blocked_by this.\nAC: pre-commit hook runs the staged test file and captures its exit code\nAC: registration into tests_required[] succeeds only when the test exits non-zero (red)\nAC: an always-green (exit 0) new test is NOT registered → grader blocks at auto-complete\nAC: test suite covers red-registered (exempt) vs green-rejected (blocked) paths\nAC: validate.sh passes</context>\n</invoke>\n",
+      "created": "2026-06-21",
+      "description": null,
+      "effort": "M",
+      "epic": "substrate",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2216",
+      "kind": "feature",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "subject": "Red-verification pre-commit hook — gate tests_required[] registration on exit≠0",
+      "tags": [
+        "goal",
+        "loop-native",
+        "security",
+        "adr-061",
+        "tdd"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "acceptance_criteria": [
+        "G7 added to test-goal-completion.sh: registered new test (committed) exempted → auto-completes",
+        "G8 added: unregistered new tests/ fixture still blocked (G2-class preservation)",
+        "G1-G6 pass unchanged",
+        "goal-completion.sh channel 1 uses --diff-filter=M for pre-existing grader paths; Added/untracked grader paths blocked unless in active-goal.json tests_required[]",
+        "\"bash system/hooks/tests/test-goal-completion.sh\" passes"
+      ],
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "TDD core. Write G7/G8 first (red), then implement the channel split at goal-completion.sh L237-242. See ADR-061 §4 invariant-2 refinement + feature spec Design table.",
+      "created": "2026-06-21",
+      "description": null,
+      "effort": "M",
+      "epic": "substrate",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2217",
+      "kind": "feature",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2205",
+      "priority": null,
+      "started": null,
+      "status": "completed",
+      "subject": "goal-completion.sh: grader split (Modified vs Added + tests_required exemption) + G7/G8",
+      "tags": [],
+      "type": "subtask",
+      "work_type": "implement"
+    },
+    {
+      "acceptance_criteria": [
+        "goal-completion.sh emits per-criterion audit {criterion,heuristic,evidence,verdict} to ~/.claude/run-state/{task_id}-audit.jsonl",
+        "per registered test file emits registered_as_red bool",
+        "test asserts audit jsonl shape",
+        "\"bash system/hooks/tests/test-goal-completion.sh\" passes"
+      ],
+      "blocked_by": [
+        "t-2217"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Covers AC #4 (audit output). Same file as the grader-split subtask — do after it.",
+      "created": "2026-06-21",
+      "description": null,
+      "effort": "S",
+      "epic": "substrate",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2218",
+      "kind": "feature",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2205",
+      "priority": null,
+      "started": null,
+      "status": "completed",
+      "subject": "goal-completion.sh: structured audit emission (criterion→evidence + registered_as_red)",
+      "tags": [],
+      "type": "subtask",
+      "work_type": "implement"
+    },
+    {
+      "acceptance_criteria": [
+        "load.md Step 0 active-goal.json write includes base_ref (git rev-parse HEAD) and tests_required: []",
+        "file system/skills/build/phases/load.md contains \"base_ref\"",
+        "file system/skills/build/phases/load.md contains \"tests_required\""
+      ],
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Procedure edit. base_ref single pin at goal start (no re-pin — rejected by deep challenge).",
+      "created": "2026-06-21",
+      "description": null,
+      "effort": "S",
+      "epic": "substrate",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2219",
+      "kind": "feature",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2205",
+      "priority": null,
+      "started": null,
+      "status": "completed",
+      "subject": "load.md: write base_ref (single pin) + init tests_required[] in active-goal.json",
+      "tags": [],
+      "type": "subtask",
+      "work_type": "implement"
+    },
+    {
+      "acceptance_criteria": [
+        "build-loop.md step 3d appends new test file path to active-goal.json tests_required[] via jq",
+        "file system/skills/build/phases/build-loop.md contains \"tests_required\""
+      ],
+      "blocked_by": [
+        "t-2217"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Procedure edit. Registration must match the grader contract (depends on the grader-split subtask).",
+      "created": "2026-06-21",
+      "description": null,
+      "effort": "S",
+      "epic": "substrate",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2220",
+      "kind": "feature",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2205",
+      "priority": null,
+      "started": null,
+      "status": "completed",
+      "subject": "build-loop.md: register each new test path into active-goal.json tests_required[] (step 3d)",
+      "tags": [],
+      "type": "subtask",
+      "work_type": "implement"
+    },
+    {
+      "acceptance_criteria": [
+        "new hook in system/hooks/ touches ~/.claude/run-state/presence-$SESSION_ID, /dev/tty-gated (interactive-only)",
+        "hook wired as UserPromptSubmit in settings",
+        "test: presence written when /dev/tty present, NOT written headless (G5-aligned)",
+        "validate.sh passes"
+      ],
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Closes the presence-interlock writer gap (goal-completion.sh reads presence-SESSION_ID but nothing writes it). Independent of the grader work. Verify $CLAUDE_CODE batch-mode env as extra headless guard (deep-challenge security finding #3).",
+      "created": "2026-06-21",
+      "description": null,
+      "effort": "M",
+      "epic": "substrate",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2221",
+      "kind": "feature",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2205",
+      "priority": null,
+      "started": null,
+      "status": "completed",
+      "subject": "Presence-token refresh hook (UserPromptSubmit, /dev/tty-gated) + settings wiring + test",
+      "tags": [],
+      "type": "subtask",
+      "work_type": "implement"
     }
   ],
   "version": "1"

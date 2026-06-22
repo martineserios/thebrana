@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22T00:49:12Z",
+  "generated": "2026-06-22T01:20:34Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1041,6 +1041,13 @@
       "type": "ADR",
       "impl_files": [
         "system/hooks/goal-completion.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md": {
+      "title": "ADR-062: Sandbox the Autonomous Runner's Executor — Capability Isolation via bubblewrap",
+      "type": "ADR",
+      "impl_files": [
+        "system/scripts/autonomous-runner.sh"
       ]
     },
     "docs/architecture/decisions/ADR-062-step-state-contract.md": {
@@ -10555,6 +10562,30 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
+      "to": "ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
+      "to": "ADR-060-two-tier-integration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
+      "to": "docs/architecture/substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
+      "to": "docs/ideas/runner-capability-isolation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-062-step-state-contract.md",
       "to": "ADR-050-loop-request-protocol.md",
       "type": "references",
@@ -10701,6 +10732,12 @@
     {
       "from": "docs/architecture/features/autonomous-runner.md",
       "to": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
       "type": "references",
       "computed": false
     },
@@ -14624,8 +14661,8 @@
     }
   ],
   "stats": {
-    "nodes": 493,
-    "edges": 1877,
+    "nodes": 494,
+    "edges": 1882,
     "typed_edges": 682,
     "orphans": 130
   }
