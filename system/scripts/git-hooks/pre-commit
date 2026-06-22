@@ -107,4 +107,15 @@ if [ -d "${SYSTEM_DIR}/skills" ] && [ -d "${SYSTEM_DIR}/hooks" ]; then
     fi
 fi
 
+# --- Red-verification: register red TDD tests into active-goal.json (t-2216) ---
+# Best-effort, NEVER blocks the commit. Registers a newly-added staged test into
+# active-goal.json.tests_required[] only when it runs RED, so goal-completion.sh's
+# grader-immutability gate cannot be gamed by a green stub or injected fixture
+# (ADR-061 §4 invariant 2). Prefers the deployed hook, falls back to in-repo source.
+RED_VERIFY="$HOME/.claude/hooks/red-verification.sh"
+if [ ! -f "$RED_VERIFY" ]; then
+    RED_VERIFY="$(git rev-parse --show-toplevel 2>/dev/null)/system/hooks/red-verification.sh"
+fi
+[ -f "$RED_VERIFY" ] && bash "$RED_VERIFY" || true
+
 exit 0
