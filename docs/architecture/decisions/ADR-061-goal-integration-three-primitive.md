@@ -182,12 +182,17 @@ backbone (observe → run-one → batch → learned). The widest surface (Stage 
 - Whether invariant-2 enforcement is a pre-iteration diff-guard or a pinned-grader copy
   (the *requirement* is decided in §4; only the implementation shape is open).
 - Stage-2 evidence thresholds that unlock Stage 3.
-- **`/goal` is a one-shot anchor today, not an iterate loop (challenger Attack 4).** The live
-  primitive sets a session focus and fires `goal-completion.sh` once at Stop — it does not
-  re-enter on a non-green state. The §1 "ITERATE" verb is therefore *design intent*; Stage 2
-  must decide whether the build binding extends `/goal` to actually loop (and, if so, confirm
-  the per-subtask TDD gate sits at the span *boundary*, not inside it — else C2 is violated)
-  or keeps it as an anchor with iteration driven by the human+session. Name this before Stage 2.
+- **~~`/goal` is a one-shot anchor today, not an iterate loop (challenger Attack 4).~~ RESOLVED 2026-06-21 (t-2205) — option (b): keep `/goal` a one-shot session anchor.**
+  The Stage-2 build binding is *not* a hard re-entry loop. It is: (1) the `active-goal.json`
+  declaration (span = build's red→green, done-signal = all `AC:` exit codes == 0) plus
+  (2) `goal-completion.sh` auto-completion at Stop. Iteration is driven by the session's
+  natural Stop → "goal blocked: {criterion}" → continue cycle, **not** by the hook re-injecting
+  a continuation. The §1 "ITERATE" verb stays *design intent* until a later stage proves a hard
+  loop is needed. **C2 holds by construction:** no auto-iterating span exists to contain the
+  per-subtask TDD gate, so the binding never auto-advances *through* the gate — auto-complete
+  fires only when **all** AC are green (i.e. every per-subtask TDD gate was already passed by a
+  human), and even then only behind the presence + base_ref-immutability interlocks (§4).
+  Deferred to Stage 4 (generalized binding): whether to add real hook-driven re-entry.
 
 ## Challenger dispositions (2026-06-21, t-2194 AC)
 
@@ -198,5 +203,5 @@ PROCEED WITH CHANGES — 1 BLOCKER, 2 HIGH, 2 MEDIUM, all incorporated:
 | 1 — gate-free is a snapshot | HIGH | **Fixed** — binding-declaration rule (§3) |
 | 2 — C1+C2 admit unbounded-mutation spans | HIGH | **Fixed** — added hard criterion C3 (§2) |
 | 3 — invariant 2 under-specified + live hook doesn't enforce it; "already enforced" cited pending tasks | BLOCKER | **Fixed** — enumerated grader paths + AC pinning (§4); corrected the false enforcement column; made hardening a required Stage 2 deliverable |
-| 4 — TDD binding: `/goal` is a one-shot anchor, not a loop | MEDIUM | **Acknowledged** — named in Open for Stage 2 |
+| 4 — TDD binding: `/goal` is a one-shot anchor, not a loop | MEDIUM | **Resolved (t-2205, 2026-06-21)** — option (b): keep one-shot anchor; iteration is session-driven, auto-complete only at full-green behind interlocks. See Open §Attack 4 resolution. |
 | 5 — self-feeding-sequence overclaim | MEDIUM | **Fixed** — sharpened Consequences language |
