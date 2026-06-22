@@ -58696,7 +58696,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "Ship dev→main + bootstrap.sh — activar scaffolder alineado (onboard/align ADR path)",
       "tags": [
