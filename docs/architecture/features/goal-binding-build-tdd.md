@@ -48,6 +48,10 @@ collect.
   able to forge presence. Gate on `/dev/tty` availability.
 - `base_ref` must be pinned at `/goal` *start* (build LOAD), captured as `git rev-parse HEAD`
   before any implementation edits, so the grader-immutability diff is meaningful.
+- **Stage-2 gap (accepted):** the `tests_required[]` registration in `build-loop.md` does **not**
+  verify the test was *red* — a developer can register a trivially-passing test. Acceptable for
+  Stage 2 (the presence interlock ensures a human reviews every green); red-verification is a
+  Stage-3 prerequisite (a pre-commit hook, filed separately, blocking t-2206).
 
 ## Scope (v1)
 
@@ -85,14 +89,25 @@ collect.
 - Grader-path changed since base_ref (e.g. a test file edited): immutability gate blocks
   (existing G1–G4 behavior); audit output should still emit, marking the block reason.
 
-## Design
+## Design (Option C — deep challenge 2026-06-21, 3 lenses converged)
 
-| Component | File | Change |
-|-----------|------|--------|
-| Goal declaration | `system/skills/build/phases/load.md` §Step 0 | add `"base_ref": "$(git rev-parse HEAD)"` to the active-goal.json write |
-| Presence writer | `system/hooks/<presence-refresh>.sh` + settings wiring | new UserPromptSubmit hook, `/dev/tty`-gated, `touch ~/.claude/run-state/presence-$SESSION_ID` |
-| Audit emission | `system/hooks/goal-completion.sh` | after each criterion verdict, append `{criterion, heuristic, evidence, verdict}` to audit (additionalContext + `~/.claude/run-state/{task_id}-audit.jsonl`) |
-| Tests | `system/hooks/tests/test-goal-completion.sh` | base_ref-present pass; audit-output assertions |
+The naive "pin base_ref at goal start + plain immutability" is fatally broken for TDD (the
+loop's first step writes the test the grader reads). **Option C** keeps a single goal-start
+pin and distinguishes **Modified** (pre-existing → always blocked) from **Added** (new → exempt
+only if registered in `tests_required[]`). Full rationale: [t-2205 deep-challenge report] and
+ADR-061 §4 "Invariant 2 refinement".
+
+| Component | File | Lines | Change |
+|-----------|------|-------|--------|
+| Goal declaration | `system/skills/build/phases/load.md` | Step 0 (39-43) | add `"base_ref": "$(git rev-parse HEAD)"` (single pin) + init `"tests_required": []` in the active-goal.json write |
+| Test registration | `system/skills/build/phases/build-loop.md` | step 3d (~113) | after the failing test file is created, `jq` append its path to `active-goal.json.tests_required[]` (durable on disk → survives compaction) |
+| Grader split | `system/hooks/goal-completion.sh` | 237-242 | replace single CHANGED block: (a) `--diff-filter=M` + grader regex → BLOCK; (b) `--diff-filter=A` + grader regex, unregistered → BLOCK; (c) `ls-files --others` + grader regex, unregistered → BLOCK |
+| Audit emission | `system/hooks/goal-completion.sh` | new | per criterion: `{criterion, heuristic, evidence (commit/file), verdict}`; per registered file: `registered_as_red: bool` → `~/.claude/run-state/{task_id}-audit.jsonl` + additionalContext |
+| Presence writer | `system/hooks/<presence-refresh>.sh` + settings wiring | new | UserPromptSubmit hook, `/dev/tty`-gated, `touch ~/.claude/run-state/presence-$SESSION_ID` |
+| Tests | `system/hooks/tests/test-goal-completion.sh` | new G7/G8 | G7: registered new test exempted → auto-completes; G8: unregistered new fixture still blocked (G2-class preservation). Verify G1-G6 unchanged. |
+
+**Deferred to Stage 3 (NOT this task):** red-verification pre-commit hook (registers a test in
+`tests_required[]` only if it exits non-zero). Filed as its own task; `t-2206 blocked_by` it.
 
 ## Boundaries
 | Always | Ask First | Never |
@@ -111,4 +126,17 @@ collect.
 - [ ] ADR-061 Open item — done.
 
 ## Challenger findings
-{auto-populated after challenger review}
+
+**Round 1 (single challenger, 2026-06-21):** 2 BLOCKERs. #2 session_id mismatch — **REFUTED by
+probe** (`$BRANA_SESSION_ID` is present in Bash tool calls and equals the CC session UUID).
+#4 base_ref self-sabotage — **CONFIRMED**: base_ref-at-goal-start trips the immutability gate on
+every TDD run (new test file matches grader regex).
+
+**Round 2 (deep challenge, 3 lenses — security / TDD-correctness / simplicity, 2026-06-21):**
+UNANIMOUS verdict **Option C with `tests_required[]`** (above). Rejected: (A) re-pin base_ref —
+clears the window retroactively, fragile across resume, fails build-loop step 3g; (B)
+`--diff-filter=M` alone — no-op for untracked (pre-commit) state, regresses G2 if channel 2
+dropped. The G2/TDD indistinguishability problem (a new test vs an injected fixture are
+structurally identical on the untracked channel) is what forces the `tests_required[]`
+registration. Two-phase split: Phase 1 (forensic trail) = this task; Phase 2 (red-verification
+hook, hard enforcement) = Stage-3-blocking task. Full report: `/tmp/t-2205-deep-challenge-report.md`.

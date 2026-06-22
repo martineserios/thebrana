@@ -122,6 +122,25 @@ sandbox), with the same-class principle named:
 > that lands, the v1 bindings run with invariant 2 unenforced and a human must review every
 > green.
 
+> **Invariant 2 refinement (t-2205, 2026-06-21 — deep challenge, 3 lenses converged):**
+> base-ref pinning *alone* is incompatible with TDD — the loop's first step writes the test
+> file, which the grader reads, so a single pin at goal start trips the gate on every legit
+> run. Resolution — distinguish **Modified** from **Added** grader paths:
+> - **Modified** (`git diff --diff-filter=M base_ref`) pre-existing grader paths → **always
+>   blocked** (editing a test/fixture/AC-line/`tasks.json` that existed at goal start = gaming).
+> - **Added** (`--diff-filter=A`) + **untracked** new grader-path files → blocked **unless**
+>   registered in `active-goal.json.tests_required[]`. The build procedure declares each test it
+>   writes (a path-only filter cannot distinguish a new test from an injected fixture — both are
+>   new files matching `tests/`). `tests_required[]` lives on disk → survives compaction.
+> base_ref stays a **single pin at goal start** (per-subtask re-pin rejected: clears the window
+> retroactively + fragile across resume; also fails build-loop step 3g's post-green boundary tests).
+> **Stage-2 gap (accepted, soak):** registration does *not* verify the test was **red** — a
+> trivially-green test can be registered. Acceptable for Stage 2 because the presence interlock
+> (inv. 1) means a human reviews every green. **Red-verification is a Stage-3 gate:** a pre-commit
+> hook that registers a test in `tests_required[]` only if it exits non-zero. Stage-3 bindings
+> (t-2206) are `blocked_by` that hook. Missed registration is **fail-closed** (gate blocks, human
+> completes manually).
+
 ### 5. Sequencing — evidence-gated, t-1992 off the critical path
 
 ```
