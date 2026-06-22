@@ -3,7 +3,7 @@ status: proposed
 ---
 # ADR-063: Pending-Questions Store — Raised-Hand Queue for Autonomous Workflows
 
-**Status:** Proposed (2026-06-21; one challenger pass — RECONSIDER → blockers F5/F6/F7 structurally resolved by the derive-block-from-store redesign below; not yet re-challenged, verify at build)
+**Status:** Proposed (2026-06-21; two challenger passes — pass 1 RECONSIDER → derive-block-from-store redesign; pass 2 re-challenged that redesign → PROCEED WITH CHANGES, all incorporated. Ready for human ACCEPT)
 **Date:** 2026-06-21
 **Deciders:** Martín Rios
 **Tags:** loop-native, factory, autonomy, queue, substrate, hand-raising
@@ -89,15 +89,21 @@ Transitions are computed and persisted **only under the write lock** (ADR-051 §
 
 ### 4. The block is DERIVED from the store — not a `blocked_by` sentinel (challenger F5/F6 — BLOCKER resolution)
 
-An earlier design injected a synthetic `needs-human:<id>` marker into the task's `blocked_by`. The challenger proved this **structurally inert**: `validate_task_runnable` (`brana-core/src/tasks.rs:1159`) resolves each `blocked_by` id to a task and treats unresolvable ids as *not blocking*, so the sentinel matched nothing and `queue_candidates` (`tasks.rs:1280`) would dispatch the task anyway — while `classify` (`tasks.rs:46`) showed it "blocked" in rollup. A write/display contradiction with a dispatch hole.
+An earlier design injected a synthetic `needs-human:<id>` marker into the task's `blocked_by`. The challenger proved this **structurally inert** (verified at source): `validate_task_runnable` (`brana-core/src/tasks.rs:1150`) does `all.iter().find(|t| t["id"] == dep_id)` per blocker (line 1162) and treats an **unresolvable** id as *not blocking* (the `if let Some(bt)` arm is simply skipped), so a `needs-human:*` sentinel matched nothing and `queue_candidates` (`tasks.rs:1280`, which filters via `validate_task_runnable(...).is_ok()` at 1287) would dispatch the task anyway — while `classify` (`tasks.rs:41`) showed it "blocked" in rollup. A write/display contradiction with a dispatch hole.
 
-**Resolution: the dispatch block is a derived property of the pending-questions store, written once.** A task is "hand-blocked" **iff** the store holds a `pending` entry with that `task_id`. This is enforced in the dispatch path, not mirrored into `tasks.json`:
+**Resolution: the dispatch block is a derived property of the pending-questions store, read at dispatch time — not mirrored into `tasks.json`.** A task is "hand-blocked" **iff** the store holds a `pending` entry with that `task_id`. Enforcing this correctly requires naming **three independent dispatch/recommendation surfaces** (the second challenger, F1–F3 — "every dispatcher" is NOT a single chokepoint):
 
-- **Required pre-Accepted Rust change:** `queue_candidates` (`tasks.rs:1280`) must exclude any task for which `hands::has_pending(task_id)` is true (a cheap read of the hands store). Equivalently, `validate_task_runnable` gains a hand-block check. This makes the block effective for **every** dispatcher — the foreman *and* `brana queue --spawn` — closing the hole the foreman-only sentinel left.
-- **Required TDD:** a test asserting a task with a `pending` hand is absent from `queue_candidates`, and reappears once the entry leaves `pending`.
-- **Rollup consistency:** `classify`/rollup show "blocked (hand raised)" from the same `hands::has_pending` source, so display and dispatch never disagree.
+1. **The Rust CLI path (`queue_candidates` / `validate_task_runnable`).** These are **pure functions over `&[Value]` slices with no I/O** — they cannot read the store as written. The fix injects the hand-block set rather than reading inside: extend the signature (e.g. `queue_candidates(tasks, max, hands_store: Option<&Path>)`; `None` in unit tests preserves every existing fixture), build a `HashSet<String>` of hand-blocked task_ids once at the entry point, and add `.filter(|t| !hand_blocked.contains(id))`. **Callsite sweep required** (grep-call-sites-before-signature-edit): `run.rs:247` (`cmd_queue`), `run.rs:26` (`cmd_run`), and the in-memory tests at `tasks.rs:2321/2333/2344` (pass `None`).
+2. **The autonomous runner (`system/scripts/autonomous-runner.sh`) — the PRIMARY factory dispatch path, and a SEPARATE one (F2, sev4).** It selects tasks with raw jq (`status=="pending" and execution=="autonomous" and (.blocked_by|length)==0`) at the OBSERVE (lines ~95–99), RUN-ONE (~240) and RUN-BATCH (~275) sites — it **never calls the Rust functions**. A new `brana hands is-blocked <task_id>` CLI command (exit 0 = blocked) MUST be added and called in the runner's eligibility filter at **all three** sites before a task counts as eligible. Without this the runner ignores the block entirely.
+3. **`backlog_focus` (recommendation surface, F3).** It filters via `classify(t, tasks) == "pending"` (`backlog_focus.rs:42`); `classify` is pure over `tasks.json`. To avoid recommending a hand-blocked task as top focus, either `classify` gains the same injected hand-block awareness (returning `"blocked"`), or `backlog_focus` post-filters with `has_pending`.
 
-No sentinel, no `blocked_by` overload, no write/display contradiction. The block lives in exactly one place (the store) and is read, not mirrored.
+**Fail-open contract (F6, explicit decision):** a missing/empty `pending-questions.json` is an empty store — `has_pending` returns false, all tasks dispatchable (correct for the common no-hands case, mirrors the ADR-051 load-returns-`vec![]` pattern). An *unparseable* store is surfaced by `brana hands doctor`, not by silently failing dispatch.
+
+**TOCTOU (F4):** the `has_pending` check and the subprocess spawn (`run.rs:263`) are not under one lock, so a hand raised in the gap can let a crew dispatch against an outstanding question. Bounded and acceptable for v1: the crew re-encounters the question and re-raises, deduped by `dedup_key`. Documented, not silently assumed.
+
+**Required TDD:** a task with a `pending` hand is absent from `queue_candidates` **and** rejected by the runner eligibility check, and both reappear once the entry leaves `pending`.
+
+No sentinel, no `blocked_by` overload. The block lives in one place (the store) and is read by each of the three surfaces above.
 
 ### 5. The raise / answer / cancel transactions
 
@@ -112,7 +118,7 @@ Under the lock this: (1) appends the entry (or dedups against an existing `pendi
 
 Each `answer` is an independent locked transaction; a parallel crew raising mid-drain serializes safely (ADR-052 §2). Nothing is auto-answered — answering is a human-only gate (ADR-050).
 
-**Cancel:** `brana hands cancel <id>` → `state=cancelled` (question obsolete). **Doctor:** `brana hands doctor` is a `list`-time consistency check (§6).
+**Cancel:** `brana hands cancel <id>` → `state=cancelled` (question obsolete). **Doctor:** `brana hands doctor` is a `list`-time consistency check (§6) that ALSO performs an **orphan sweep (F5):** for each `pending` entry it verifies the referenced `task_id` exists in `tasks.json` with status `pending`/`in_progress`; if the task is `completed`/`cancelled`/missing, it auto-promotes the entry to `cancelled` (with a note). Without this, a `pending` entry for a cancelled task would block that task id forever (a `pending` entry is not terminal, so `prune` never removes it).
 
 ### 6. Dual-write relationship — task is source of ANSWER, store is the WORK-LIST + the BLOCK
 
@@ -139,7 +145,7 @@ A new (non-dedup) `raise` pushes a notification **through the existing reminder 
 
 ### 9. Acceptance gate
 
-Implementation (the `brana hands` surface, the §4 `queue_candidates` change, and crew/foreman wiring in t-1994) must not start until this ADR is **Accepted** (ADR-052 §8). Acceptance flips the frontmatter `status:` + the Status header. TDD for the implementation MUST include: (a) a **concurrent-raise race test** (two crews raise in the same instant, both survive — the test that encodes why this ADR exists, ADR-051 §6); (b) the **§4 dispatch-exclusion test** (pending hand ⇒ not in `queue_candidates`).
+Implementation (the `brana hands` surface, the §4 changes across **all three** dispatch surfaces, and crew/foreman wiring in t-1994) must not start until this ADR is **Accepted** (ADR-052 §8). Acceptance flips the frontmatter `status:` + the Status header. TDD for the implementation MUST include: (a) a **concurrent-raise race test** (two crews raise in the same instant, both survive — the test that encodes why this ADR exists, ADR-051 §6); (b) the **§4 dispatch-exclusion test**, covering **both** the Rust path (pending hand ⇒ absent from `queue_candidates`) **and** the runner path (pending hand ⇒ rejected by `brana hands is-blocked` in the `autonomous-runner.sh` eligibility filter) — a Rust-only test would be a false gate, since the runner is the primary factory dispatcher (F2); (c) the **orphan-sweep test** (`brana hands doctor` cancels a pending entry whose task is completed/cancelled — F5).
 
 ## Consequences
 
@@ -192,4 +198,16 @@ Verdict: **RECONSIDER** (F5/F6 sev5 blockers). All findings addressed in this re
 | F11 | session-start dead-man check promised but absent from live hook | sev3 | **Fixed** — named as explicit required implementation scope (§8) |
 | F12 | `queue.rs:7` stale "via `brana queue`" doc comment | sev1 | Noted — cosmetic cleanup for the implementation |
 
-> **Note:** the F5/F6/F7 resolution is a structural redesign (derive-block-from-store) of the block mechanism, not a patch. It directly answers the challenger's objection but was **not itself re-challenged** — verify the `queue_candidates`/`has_pending` exclusion and its race behavior at build (the §9 dispatch-exclusion test is the gate).
+### Re-challenge of the block redesign (2026-06-21, pass 2)
+
+The derive-block-from-store redesign was put through a second, dedicated adversarial pass (its premise is now ground-truthed against `tasks.rs`). Verdict: **PROCEED WITH CHANGES** — all incorporated into §4/§5/§9 above.
+
+| # | Attack | Severity | Disposition |
+|---|--------|----------|-------------|
+| R0 | Symbol existence — `validate_task_runnable` (tasks.rs:1150) + `queue_candidates` (tasks.rs:1280) confirmed real; F5/F6 were NOT hallucinated. `hands::has_pending` correctly absent (pre-Accepted change) | sev1 | Confirmed |
+| R1 | `queue_candidates`/`validate_task_runnable` are **pure over `&[Value]`** — cannot read the store inline; needs a signature change + callsite sweep | sev3 | **Fixed** — §4(1): inject `hands_store: Option<&Path>` / a hand-block set; `None` in tests; sweep run.rs:247, run.rs:26, the three test sites |
+| R2 | **"every dispatcher" FALSE** — `autonomous-runner.sh` (the primary factory path) selects via raw jq at lines ~95–99/240/275, never calls the Rust functions; the block was invisible to it | sev4 | **Fixed** — §4(2): add `brana hands is-blocked <id>` and call it in the runner eligibility filter at all three sites; §9 test must cover the runner path |
+| R3 | `backlog_focus` (via pure `classify`) would still recommend a hand-blocked task — the contradiction in a new place | sev3 | **Fixed** — §4(3): `classify`/`backlog_focus` gains the same hand-block awareness |
+| R4 | TOCTOU between `has_pending` and subprocess spawn (run.rs:263) — no spanning lock | sev2 | **Fixed (documented)** — §4: bounded, mitigated by `dedup_key` re-raise |
+| R5 | Orphaned `pending` entry for a completed/cancelled task blocks it forever (not terminal → never pruned) | sev3 | **Fixed** — §5: `brana hands doctor` orphan sweep auto-cancels such entries |
+| R6 | Missing/unreadable store behavior unspecified (fail-open vs fail-closed) | sev2 | **Fixed** — §4: explicit fail-open contract (missing = empty store; corruption surfaced by `doctor`) |
