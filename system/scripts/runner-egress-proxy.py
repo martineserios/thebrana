@@ -18,8 +18,19 @@ import sys
 import socket
 import select
 import threading
+import ctypes
+import signal
 
 ALLOW_PORTS = {443}
+
+
+def _die_with_parent():
+    # PR_SET_PDEATHSIG=SIGTERM (prctl 1): if the spawning shell goes away, the kernel
+    # signals this daemon — a hard backstop so a leaked proxy can never hold a pipe open.
+    try:
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGTERM, 0, 0, 0)
+    except Exception:
+        pass
 
 
 def pump(a, b):
@@ -89,6 +100,15 @@ def main():
     if len(sys.argv) != 3:
         sys.stderr.write("usage: runner-egress-proxy.py <unix-socket> <allowed-hosts-csv>\n")
         sys.exit(2)
+    # Drop every inherited fd >=3. This daemon is spawned from inside a command
+    # substitution (DOUT="$(… | sandbox_claude …)"); if it kept the inherited pipe fd open
+    # it would hang the substitution (and the calling harness) until killed. We need none of
+    # them — only the listen socket created below.
+    try:
+        os.closerange(3, 4096)
+    except OSError:
+        pass
+    _die_with_parent()
     sock_path = sys.argv[1]
     allow = {h.strip().lower() for h in sys.argv[2].split(",") if h.strip()}
     if not allow:
