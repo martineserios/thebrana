@@ -203,6 +203,27 @@ for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
         continue
     fi
 
+    # ── Heuristic 9: validate.sh passes (full run) ───────────────────────────
+    # Reconcile's /goal done-signal (ADR-061 §3, t-2206). Distinct from heuristic 3
+    # (single --check N): runs the whole suite, pass on exit 0. The "check [0-9]" guard
+    # keeps the check-N form on heuristic 3 (which ran first and already continued).
+    if echo "$criterion" | grep -qiE 'validate\.sh' \
+       && echo "$criterion" | grep -qiE '(passes|exit 0|exit code 0)' \
+       && ! echo "$criterion" | grep -qiE 'check [0-9]'; then
+        if [ -f "$WORK_DIR/validate.sh" ]; then
+            if (cd "$WORK_DIR" && ./validate.sh >/dev/null 2>&1); then
+                PASSED=$((PASSED + 1))
+            else
+                FAILED=$((FAILED + 1))
+                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
+            fi
+        else
+            UNKNOWN=$((UNKNOWN + 1))
+            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
+        fi
+        continue
+    fi
+
     # ── Fallback: unknown pattern — cannot auto-validate ─────────────────────
     UNKNOWN=$((UNKNOWN + 1))
     UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"

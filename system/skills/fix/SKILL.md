@@ -67,17 +67,32 @@ print('\n'.join(lines))
   ```
   /goal "fix {task-id} — Done when: {criteria joined with ' AND '}"
   ```
-  Write `~/.claude/run-state/active-goal.json`:
-  ```json
-  {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["{criterion1}", "{criterion2}"]}
+  Pin `base_ref` at goal start and initialize `tests_required[]` empty (hardened form —
+  ADR-061 §4, identical to build's LOAD step 0):
+  ```bash
+  base_ref=$(git -C "{git_root}" rev-parse HEAD)
+  cat > ~/.claude/run-state/active-goal.json <<JSON
+  {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "base_ref": "$base_ref", "criteria": ["{criterion1}", "{criterion2}"], "tests_required": []}
+  JSON
   ```
-  The Stop hook (`goal-completion.sh`) will auto-complete the task when criteria pass.
+  `base_ref` anchors the grader-immutability check; the REPRODUCE failing test is committed
+  red in its own commit (the REPRODUCE step, Step 1) so the `red-verification` pre-commit hook (t-2216) registers
+  it into `tests_required[]` — earning the exemption by observed redness. The Stop hook
+  (`goal-completion.sh`) auto-completes the task when all criteria pass, behind the presence +
+  immutability interlocks.
 
 - **If no AC: criteria (or no task_id):**
   ```
   /goal "fix {task-id}: reproduce → diagnose → fix → verify → commit"
   ```
   No `active-goal.json` write — the narrative goal is for session anchoring only.
+
+> **`/goal` binding declaration (ADR-061 §3, Stage 3 — t-2206).**
+> **Span:** REPRODUCE → DIAGNOSE → FIX → VERIFY (gate-free — no human approval inside it).
+> **Done-signal:** the reproduce failing test now passes (encoded as an `AC:` line, graded by
+> `goal-completion.sh`). **C1** ✓ machine-verifiable (test exit code); **C2** ✓ gate-free span;
+> **C3** ✓ mutation-bounded to the failing path's files + the new test. Re-audit rule: if a
+> human gate is ever added inside this span, the same commit must re-scope or retire this binding.
 
 COMMIT is the natural terminator for single fixes. HARDEN fires only when recurrence is detected — skip it otherwise and self-terminate after COMMIT.
 

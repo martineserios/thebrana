@@ -413,6 +413,40 @@ else
 fi
 rm -rf "$RA1"
 
+# ── H9 (t-2206): "validate.sh passes" full-run heuristic ─────────────────────
+# Reconcile's /goal done-signal is validate.sh exit 0 (full run, not a single check).
+echo "Test H9a: 'validate.sh passes' with green validate.sh → auto-completes"
+read -r RH9 BRH9 <<< "$(make_goal_repo)"
+fresh_presence
+printf '#!/usr/bin/env bash\nexit 0\n' > "$RH9/validate.sh"; chmod +x "$RH9/validate.sh"
+write_goal "$RH9" "$BRH9" "validate.sh passes"
+assert_completes "green validate.sh → criterion passes → auto-complete" "$(make_stop_input "$RH9")"
+rm -rf "$RH9"
+
+echo "Test H9b: 'validate.sh passes' with red validate.sh → NOT complete, surfaces failure"
+read -r RH9B BRH9B <<< "$(make_goal_repo)"
+fresh_presence
+printf '#!/usr/bin/env bash\nexit 1\n' > "$RH9B/validate.sh"; chmod +x "$RH9B/validate.sh"
+write_goal "$RH9B" "$BRH9B" "validate.sh passes"
+TOTAL=$((TOTAL + 1))
+OUT_H9B=$(echo "$(make_stop_input "$RH9B")" | bash "$HOOK" 2>/dev/null) || OUT_H9B=""
+if echo "$OUT_H9B" | grep -qiF "Failed:" && ! echo "$OUT_H9B" | grep -qiE 'Goal complete|auto-marked completed'; then
+    echo "  PASS: red validate.sh → not completed, failure surfaced"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: red validate.sh handling — output: $OUT_H9B"; FAIL=$((FAIL + 1))
+fi
+rm -rf "$RH9B"
+
+echo "Test H9c: 'validate.sh Check 18 passes' still routes to single-check heuristic (no regression)"
+read -r RH9C BRH9C <<< "$(make_goal_repo)"
+fresh_presence
+# A validate.sh that fails the full run but the harness only asks for --check; prove H9 didn't
+# swallow the check-N form. Here validate.sh exits 0 for any args, so check passes.
+printf '#!/usr/bin/env bash\nexit 0\n' > "$RH9C/validate.sh"; chmod +x "$RH9C/validate.sh"
+write_goal "$RH9C" "$BRH9C" "validate.sh Check 18 passes"
+assert_completes "check-N form still grades (heuristic 3 precedence intact)" "$(make_stop_input "$RH9C")"
+rm -rf "$RH9C"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"
