@@ -205,7 +205,7 @@ Skill(skill="brana:align", args="{base_path}/{slug}")
 Align will:
 - Auto-detect type (from CLAUDE.md content or ask)
 - Run its full DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT flow
-- Create type-aware directories (src/, tests/, docs/decisions/, venture dirs, etc.)
+- Create type-aware directories (src/, tests/, docs/architecture/decisions/, venture dirs, etc.)
 - Set up SDD, TDD, rules, settings
 - Generate the alignment report
 
@@ -259,7 +259,7 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 
 ### For all clients
 - Read `.claude/CLAUDE.md` if it exists
-- Check for `docs/decisions/`, `.claude/tasks.json`
+- Check for `docs/architecture/decisions/` (or legacy `docs/decisions/`), `.claude/tasks.json`
 - Check auto memory health: `~/.claude/projects/*/memory/MEMORY.md`
   - Over 200 lines? (warn: truncated at session start)
   - Contains directives ("always", "never", "must")? (belongs in rules/)
@@ -267,7 +267,7 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 
 ### For code projects (additionally)
 - Detect tech stack from manifests
-- Check SDD setup: `docs/decisions/` exists → "SDD enforcement: active"
+- Check SDD setup: `docs/architecture/decisions/` exists (or legacy `docs/decisions/`) → "SDD enforcement: active"
 - Check TDD setup: test framework configured, `tdd-guard` available
 - Scan project structure: entry points, key directories, config files
 
@@ -320,7 +320,7 @@ Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` and `~/.claude/memory/por
 
 **For code projects** — assess against alignment checklist:
 - Foundation (git, CLAUDE.md, rules, commits, attribution)
-- SDD (decisions/, ADR, PreToolUse hook)
+- SDD (architecture/decisions/, ADR, PreToolUse hook)
 - TDD (test framework, runner, coverage)
 
 For attribution: check `cat .claude/settings.local.json 2>/dev/null | uv run python3 -c "import json,sys; s=json.load(sys.stdin); print('ok' if s.get('attribution',{}).get('commit','x')=='' and s.get('attribution',{}).get('pr','x')=='' else 'missing')"`. Flag as **missing** if absent or not empty strings.
