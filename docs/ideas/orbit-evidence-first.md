@@ -93,10 +93,47 @@ V1–V4 + the documented egress gap is a defensible "good enough" resting point 
   nothing like egress (e.g., better task templating, or an AC-as-goal grader), redirecting
   the whole epic away from the security rabbit hole.
 
-## Next steps
+## Evidence run — 2026-06-22 (the experiment, executed)
 
-1. Draft 5–10 `execution:autonomous` S/XS tasks with `AC:` lines (no new code).
-2. `brana orbit run --one` on 3 of them; capture review-effort + mergeability per task.
-3. Decide from evidence: finish egress / fix task-format / park orbit.
-4. Leave `orbit/feat/t-2173-egress-allowlist` unmerged until step 3 says "finish egress".
-5. Consider marking t-2173 "good enough" (V1–V4 + documented egress gap) regardless.
+Ran the pivot the same session. Created 3 genuinely-mechanical `execution:autonomous`
+tasks (t-2224 shell completions, t-2225 clap_mangen, t-2226 reference regen) and dispatched
+the cleanest (t-2224) through `autonomous-runner.sh --run-one`. **Three findings, all
+pointing the same way:**
+
+1. **Corpus is thin.** Of 266 pending S/XS tasks, only ~4 are mechanical code tasks — and
+   all are blocked (t-571 → t-570) or carry design choices (CLI chat mode, self-update).
+   The research tasks need web + judgment (and the egress sandbox would *block* their web
+   access). thebrana's backlog is judgment-heavy by nature. **The runner has no natural queue.**
+
+2. **The shipped V1–V4 sandbox is BROKEN for the real executor.** Sandboxed `--run-one`
+   bailed in **25s with "no changes produced."** This is the exact RO-cred-bind →
+   "Not logged in" subscription-auth bug found earlier the same day. It shipped "working"
+   because the escape battery only ever tested it with a *stub* claude — **no real
+   `claude -p` had ever run through the merged sandbox.** The writable-HOME fix exists only
+   on the unmerged egress branch.
+
+3. **Even unsandboxed, output wasn't mergeable.** With the sandbox off, `claude -p` actually
+   did the work (~2–3 min, real edits) — but the result **failed the runner's `validate.sh`
+   gate** and was discarded (worktree removed, dev pristine). Zero usable output in the best
+   case. (Open question: was the change wrong, or is the full-`validate.sh` gate mis-calibrated
+   as a per-task verifier — e.g. failing on the unrelated stale-binary check?)
+
+**Verdict: yes, this was over-engineered.** We secured a runner that can't authenticate,
+added egress to a jail whose auth was already broken, and there's no corpus of tasks it
+could do anyway. The 10-minute evidence run surfaced what months of infra-building obscured.
+
+## Next steps (revised by the evidence)
+
+1. **Park orbit** as the default. Don't finish egress, don't build t-2142. Revive only when a
+   concrete, recurring, mechanical task stream appears that's painful to do by hand.
+2. **If/when revived, the real blockers are (in order):**
+   a. Merge the writable-HOME subscription-auth fix (egress branch) — the sandbox is
+      non-functional without it.
+   b. Recalibrate the verification gate — full `validate.sh` is likely the wrong per-task
+      verifier; use the task's own `AC:`/`/goal` grader instead.
+   c. Build a real task corpus (or accept the runner doesn't fit a judgment-heavy repo).
+3. **Make the escape battery run a real `claude -p` once**, not only the stub — the stub
+   hid a total auth failure.
+4. Leave `orbit/feat/t-2173-egress-allowlist` unmerged. Egress is moot until a/b/c land.
+5. The 3 evidence tasks (t-2224/25/26) stay pending — they're real small improvements
+   someone can do by hand anytime; they are not orbit-blocking.

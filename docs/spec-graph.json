@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22T03:06:15Z",
+  "generated": "2026-06-22T14:57:47Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1040,7 +1040,9 @@
       "title": "ADR-061: `/goal` Integration — Three-Primitive Composition (loop · goal · workflow)",
       "type": "ADR",
       "impl_files": [
-        "system/hooks/goal-completion.sh"
+        "system/hooks/goal-completion.sh",
+        "system/hooks/red-verification.sh",
+        "system/scripts/git-hooks/pre-commit"
       ]
     },
     "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md": {
@@ -1327,6 +1329,7 @@
       "title": "Feature: /goal binding — /brana:build TDD loop (ADR-061 Stage 2)",
       "type": "Roadmap",
       "impl_files": [
+        "system/hooks/red-verification.sh",
         "system/skills/build/phases/load.md",
         "system/hooks/tests/test-goal-completion.sh",
         "system/skills/build/phases/build-loop.md",
@@ -2921,6 +2924,16 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/open-questions-lifecycle.md": {
+      "title": "Open-Questions Lifecycle",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/orbit-evidence-first.md": {
+      "title": "Orbit — Evidence Before Infrastructure",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/prompt-patterns-brana-enrichment.md": {
       "title": "Prompt Patterns → brana Enrichment",
       "type": "Roadmap",
@@ -2987,6 +3000,11 @@
     },
     "docs/ideas/unified-session-state.md": {
       "title": "Unified Session State",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/universal-doc-graph.md": {
+      "title": "Universal Doc Graph",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -13489,6 +13507,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/universal-doc-graph.md",
+      "to": "wikilinks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/venture-playbook-product-management.md",
       "to": "docs/guide/workflows/venture.md",
       "type": "references",
@@ -14678,9 +14702,9 @@
     }
   ],
   "stats": {
-    "nodes": 495,
-    "edges": 1883,
+    "nodes": 498,
+    "edges": 1884,
     "typed_edges": 682,
-    "orphans": 130
+    "orphans": 132
   }
 }
