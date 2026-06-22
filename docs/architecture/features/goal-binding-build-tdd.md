@@ -110,7 +110,7 @@ ADR-061 §4 "Invariant 2 refinement".
 | Tests | `system/hooks/tests/test-goal-completion.sh` | new G7/G8 | G7: registered new test exempted → auto-completes; G8: unregistered new fixture still blocked (G2-class preservation). Verify G1-G6 unchanged. |
 
 **Deferred to Stage 3 (NOT this task):** red-verification pre-commit hook (registers a test in
-`tests_required[]` only if it exits non-zero). Filed as its own task; `t-2206 blocked_by` it.
+`tests_required[]` only if it exits non-zero). Shipped as t-2216 (2026-06-22); t-2206 (Stage 3) unblocked and also shipped.
 
 ## Boundaries
 | Always | Ask First | Never |
