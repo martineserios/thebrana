@@ -50,6 +50,7 @@
 | UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
 | UserPromptSubmit | `` | `context-inject.sh` | 5000ms |
 | UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
+| UserPromptSubmit | `` | `presence-refresh.sh` | 3000ms |
 
 ## Hook Scripts
 
@@ -224,6 +225,12 @@ No strict mode — hooks must always return valid JSON.
 ### `preflight-model.sh`
 
 preflight-model.sh — UserPromptSubmit hook (advisory, non-blocking)
+
+**Gate:** Advisory
+
+### `presence-refresh.sh`
+
+No strict mode — hooks must never fail and block the session.
 
 **Gate:** Advisory
 
