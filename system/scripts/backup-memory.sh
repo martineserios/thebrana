@@ -5,7 +5,7 @@ set -euo pipefail
 #
 # Usage:
 #   backup-memory.sh              # Backup to ~/.swarm/backups/ (or ~/.claude-flow/backups/)
-#   backup-memory.sh --restore    # Restore latest non-zero backup
+#   backup-memory.sh --restore    # Restore latest backup passing integrity_check
 #   backup-memory.sh --restore --date 20260330  # Restore specific date
 #   backup-memory.sh --list       # List available backups
 #
@@ -26,6 +26,17 @@ MAX_BACKUPS=7
 
 log() { echo "[backup-memory] $*" >&2; }
 
+# A DB is healthy if PRAGMA integrity_check returns "ok". Real corruption is a
+# malformed PAGE in a normal-sized file, so a size check alone misses it (t-2236).
+# Degrade to healthy if sqlite3 is unavailable — never block backup on a missing
+# tool. Callers must skip this when a -wal sidecar is present: a live WAL reader
+# makes an external sqlite3 connection see a transient malformed image (false
+# positive).
+db_is_healthy() {
+    command -v sqlite3 >/dev/null 2>&1 || return 0
+    sqlite3 "$1" "PRAGMA integrity_check;" 2>/dev/null | grep -q '^ok$'
+}
+
 cmd_backup() {
     mkdir -p "$BACKUP_DIR"
 
@@ -38,6 +49,15 @@ cmd_backup() {
     size=$(stat -c%s "$DB_FILE" 2>/dev/null) || size=0
     if [ "$size" -eq 0 ]; then
         log "skip — $DB_FILE is 0 bytes (corrupt). Not overwriting good backups."
+        exit 0
+    fi
+
+    # Page-level corruption is non-zero, so the size check above misses it.
+    # Never copy a corrupt DB into the backup set — that poisons every future
+    # restore (the restore-newest loop, t-2236). Skip the check when a WAL
+    # reader is active (the malformed read would be a false positive).
+    if [ ! -f "${DB_FILE}-wal" ] && ! db_is_healthy "$DB_FILE"; then
+        log "skip — $DB_FILE fails integrity_check (corrupt page). Not overwriting good backups."
         exit 0
     fi
 
@@ -81,19 +101,21 @@ cmd_restore() {
         return
     fi
 
-    # Find latest non-zero backup
+    # Find the latest backup that PASSES integrity_check — not just non-zero.
+    # A corrupt page is non-zero; restoring it re-poisons the live DB and feeds
+    # the corruption loop (t-2236). Walk newest-first, skip any that fail.
     local latest=""
     for f in $(find "$BACKUP_DIR" -name "memory_*.db" -type f 2>/dev/null | sort -r); do
         local size
         size=$(stat -c%s "$f" 2>/dev/null) || size=0
-        if [ "$size" -gt 0 ]; then
+        if [ "$size" -gt 0 ] && db_is_healthy "$f"; then
             latest="$f"
             break
         fi
     done
 
     if [ -z "$latest" ]; then
-        log "error — no non-zero backups available in $BACKUP_DIR"
+        log "error — no healthy backups available in $BACKUP_DIR"
         exit 1
     fi
 

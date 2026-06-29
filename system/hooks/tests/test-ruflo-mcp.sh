@@ -52,8 +52,11 @@ else
         assert_pass "wrapper does NOT use & wait"
     fi
 
-    # Must contain `cd \"\$HOME\"` to fix CWD for ruflo DB path resolution
-    if grep -qE '^cd "\$HOME"' "$WRAPPER"; then
+    # Must `cd "$HOME"` (the fallback when CLAUDE_PROJECT_DIR is unset) so ruflo
+    # resolves ~/.swarm/memory.db. Unanchored: the cd is now an indented else-branch
+    # after the CLAUDE_PROJECT_DIR check, not a top-level statement (t-2236 drive-by:
+    # the old '^cd' anchor went stale when that conditional was added).
+    if grep -qE '[[:space:]]*cd "\$HOME"' "$WRAPPER"; then
         assert_pass "wrapper cds to HOME"
     else
         assert_fail "wrapper cds to HOME" "missing 'cd \"\$HOME\"' — ruflo may read wrong DB"
