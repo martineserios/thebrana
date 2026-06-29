@@ -35,12 +35,24 @@ if [ -f "$DB_PATH" ] && [ ! -f "${DB_PATH}-wal" ]; then
     if ! sqlite3 "$DB_PATH" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"; then
         echo "[ruflo-mcp] memory.db integrity check failed — recovering." >&2
         mv "$DB_PATH" "${DB_PATH}.corrupt-$(date +%Y-%m-%d)" 2>/dev/null || true
-        LATEST_BACKUP="$(ls -t "$BACKUP_DIR"/memory_*.db 2>/dev/null | head -1)"
+        # Restore the newest backup that PASSES integrity_check — not just the
+        # newest. The backups carry corruption forward (the daily snapshot copies
+        # whatever memory.db holds), so "restore newest" re-poisons the DB and
+        # loops the corruption forward indefinitely (t-2236). Walk newest-first,
+        # skipping any backup that is itself malformed.
+        LATEST_BACKUP=""
+        while IFS= read -r cand; do
+            if sqlite3 "$cand" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"; then
+                LATEST_BACKUP="$cand"
+                break
+            fi
+            echo "[ruflo-mcp] skipping corrupt backup: $cand" >&2
+        done < <(ls -t "$BACKUP_DIR"/memory_*.db 2>/dev/null)
         if [ -n "$LATEST_BACKUP" ]; then
             cp "$LATEST_BACKUP" "$DB_PATH" && chmod 600 "$DB_PATH"
             echo "[ruflo-mcp] Restored from backup: $LATEST_BACKUP" >&2
         else
-            echo "[ruflo-mcp] WARN: No backup found — ruflo starts with empty DB." >&2
+            echo "[ruflo-mcp] WARN: No healthy backup found — ruflo starts with empty DB." >&2
         fi
     fi
 fi
