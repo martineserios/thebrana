@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22T14:57:47Z",
+  "generated": "2026-06-29T11:07:35Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2924,8 +2924,8 @@
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/open-questions-lifecycle.md": {
-      "title": "Open-Questions Lifecycle",
+    "docs/ideas/open-threads-lifecycle.md": {
+      "title": "Open Threads Lifecycle",
       "type": "Roadmap",
       "impl_files": []
     },
