@@ -100,7 +100,7 @@ Spawn the `client-scanner` (code) or `venture-scanner` (venture) agent. If unava
 
 | Group | Items |
 |-------|-------|
-| Foundation (F1-F5) | Git, CLAUDE.md, rules, conventional commits, inbox |
+| Foundation (F1-F7) | Git, CLAUDE.md, rules, conventional commits, inbox, attribution, memory seed + MCP |
 | SDD (S1-S5) | docs/architecture/decisions/, ADR, PreToolUse hook, /decide, spec-first |
 | DDD (D1-D4) | Glossary, bounded contexts, ubiquitous language, model |
 | TDD (T1-T4) | Test framework, runner, tdd-guard, coverage |
@@ -191,6 +191,9 @@ import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))
 fi
 ```
 Skip if `.claude/settings.local.json` already has both `attribution.commit` and `attribution.pr` set to `""`.
+**F7 — Memory seed & MCP availability:**
+- Ensure `.claude/memory/MEMORY.md` exists; if missing: `mkdir -p .claude/memory && echo "# Memory Index — {slug}" > .claude/memory/MEMORY.md` (link CLAUDE.md and key docs).
+- Verify brana + ruflo MCP servers load from the project dir: `claude mcp list | grep -E "brana|ruflo"`. They are registered at **user scope** in `~/.claude.json` (bootstrap.sh Step 6b). If missing, re-run `./bootstrap.sh` in thebrana — do **not** add brana/ruflo to a per-client `.mcp.json` (that file is only for client-specific servers, e.g. supabase, playwright, respond-io). Note: `mcpServers` in any `settings.local.json` is silently ignored by Claude Code.
 
 ### Code SDD items
 
@@ -270,7 +273,8 @@ Remaining gaps:
      --upsert
    ```
 2. **Update portfolio.md** with project entry
-3. **Save `.claude/alignment-report.md`** in the project
+3. **Register in `~/.claude/tasks-portfolio.json`** (machine registry consumed by `brana portfolio` / cross-project `backlog_add`). Hand-edit until auto-registration lands (t-2240) — v2 schema: `clients[] → {slug, projects[] → {slug, path, type?, stage?, tech_stack?}}`. Verify with `brana portfolio`.
+4. **Save `.claude/alignment-report.md`** in the project
 
 ---
 

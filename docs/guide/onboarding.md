@@ -30,7 +30,7 @@ brana doctor
 2. Registers the brana plugin in `~/.claude/plugins/installed_plugins.json`
 3. Snapshots `system/` to the plugin cache
 4. Deploys scheduler scripts and git hooks
-5. Configures ruflo MCP server in `settings.local.json`
+5. Registers brana + ruflo MCP servers at user scope in `~/.claude.json` (`mcpServers` key). Note: `mcpServers` in `settings.local.json` is silently ignored by Claude Code — MCP servers only load from `~/.claude.json` (user/local scope) or a project's `.mcp.json`.
 
 Reports `N changes made` at the end — safe to re-run (idempotent).
 
