@@ -538,56 +538,80 @@ else
     echo "  — ruflo not found (Layer 0 fallback)"
 fi
 
-# --- Step 6b: MCP servers in settings.local.json ---
-# Personal infrastructure MCP servers (ruflo) go in settings.local.json
-# (gitignored, per-machine). Project-specific MCP (brana) stays in .mcp.json.
-echo "MCP servers (settings.local.json):"
-SETTINGS_LOCAL="$TARGET_DIR/settings.local.json"
+# --- Step 6b: MCP servers at user scope (~/.claude.json) ---
+# Claude Code loads MCP servers ONLY from ~/.claude.json (user/local scope)
+# or a project's .mcp.json. An mcpServers key in settings.local.json is
+# silently ignored (t-2239 root cause). Personal infrastructure servers
+# (brana, ruflo) register at user scope so every project gets them;
+# per-client .mcp.json is reserved for client-specific servers.
+echo "MCP servers (user scope, ~/.claude.json):"
+CLAUDE_JSON="$HOME/.claude.json"
 
 # Build MCP servers object based on what's installed
 MCP_SERVERS="{}"
+
+# brana (backlog + memory MCP)
+BRANA_MCP="$HOME/.local/bin/brana-mcp"
+if [ -x "$BRANA_MCP" ]; then
+    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$BRANA_MCP" \
+        '.brana = {"type": "stdio", "command": $cmd, "args": [], "alwaysLoad": true, "env": {"MCP_CONNECTION_NONBLOCKING": "1"}}')
+    echo "  + brana → $BRANA_MCP"
+else
+    echo "  — brana-mcp (not found, skip)"
+fi
 
 # ruflo (required — core memory backbone)
 RUFLO_WRAPPER="$SYSTEM_DIR/scripts/ruflo-mcp.sh"
 RUFLO_INSTRUCTIONS="Ruflo is the memory and agent backbone. Namespaces: 'knowledge' (facts, patterns, learnings), 'pattern' (reusable skill patterns), 'session' (ephemeral — threshold 0.55+, never namespace 'all' below 0.55). Core: memory_search, memory_store, agentdb_hierarchical-store/recall, pattern-search/store. Agents: agent_spawn, swarm_init, coordination_orchestrate. Claims: claims_claim/release/mark-stealable. Stubs to avoid: aidefence_*, ruvllm_*, wasm_*, neural_*, daa_*, hive-mind_*, embeddings_rabitq_*."
 if [ -x "$RUFLO_WRAPPER" ] || [ -f "$RUFLO_WRAPPER" ]; then
     MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$RUFLO_WRAPPER" --arg instr "$RUFLO_INSTRUCTIONS" \
-        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "instructions": $instr, "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
+        '.ruflo = {"type": "stdio", "command": $cmd, "args": ["mcp", "start"], "instructions": $instr, "env": {"MCP_CONNECTION_NONBLOCKING": "1"}}')
     echo "  + ruflo → $RUFLO_WRAPPER"
 elif [ -n "$CF_BIN" ]; then
     MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$CF_BIN" --arg instr "$RUFLO_INSTRUCTIONS" \
-        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "instructions": $instr, "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
+        '.ruflo = {"type": "stdio", "command": $cmd, "args": ["mcp", "start"], "instructions": $instr, "env": {"MCP_CONNECTION_NONBLOCKING": "1"}}')
     echo "  + ruflo → $CF_BIN (direct, no PID lock)"
 else
     echo "  — ruflo (not found, skip)"
 fi
 
-# Write settings.local.json if we have any servers
+# Merge into ~/.claude.json per-key: our servers converge to canonical form,
+# all other keys and servers (google-sheets, project histories) untouched.
 if [ "$MCP_SERVERS" != "{}" ] && command -v jq &>/dev/null; then
-    if [ -f "$SETTINGS_LOCAL" ]; then
-        CURRENT_MCP=$(jq '.mcpServers // {}' "$SETTINGS_LOCAL" 2>/dev/null) || CURRENT_MCP="{}"
-    else
-        CURRENT_MCP="{}"
-    fi
+    CURRENT_MCP=$(jq '.mcpServers // {}' "$CLAUDE_JSON" 2>/dev/null) || CURRENT_MCP="{}"
+    MERGED_MCP=$(echo "$CURRENT_MCP" | jq --argjson add "$MCP_SERVERS" '. + $add')
 
-    if [ "$CURRENT_MCP" = "$MCP_SERVERS" ] 2>/dev/null; then
-        echo "  = settings.local.json mcpServers (unchanged)"
+    if [ "$CURRENT_MCP" = "$MERGED_MCP" ] 2>/dev/null; then
+        echo "  = ~/.claude.json mcpServers (unchanged)"
     else
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then
-            echo "  ~ settings.local.json mcpServers (would update)"
+            echo "  ~ ~/.claude.json mcpServers (would update)"
         else
-            if [ -f "$SETTINGS_LOCAL" ]; then
-                jq --argjson mcp "$MCP_SERVERS" '.mcpServers = $mcp' "$SETTINGS_LOCAL" > "$SETTINGS_LOCAL.tmp" \
-                    && mv "$SETTINGS_LOCAL.tmp" "$SETTINGS_LOCAL"
+            if [ -f "$CLAUDE_JSON" ]; then
+                jq --argjson mcp "$MERGED_MCP" '.mcpServers = $mcp' "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp" \
+                    && mv "$CLAUDE_JSON.tmp" "$CLAUDE_JSON"
             else
-                jq -n --argjson mcp "$MCP_SERVERS" '{mcpServers: $mcp}' > "$SETTINGS_LOCAL"
+                jq -n --argjson mcp "$MERGED_MCP" '{mcpServers: $mcp}' > "$CLAUDE_JSON"
             fi
-            echo "  ~ settings.local.json mcpServers (updated)"
+            echo "  ~ ~/.claude.json mcpServers (updated)"
         fi
     fi
 else
     echo "  — no MCP servers to configure"
+fi
+
+# Cleanup: drop the ignored mcpServers key if a previous bootstrap wrote it
+SETTINGS_LOCAL="$TARGET_DIR/settings.local.json"
+if [ -f "$SETTINGS_LOCAL" ] && jq -e '.mcpServers' "$SETTINGS_LOCAL" >/dev/null 2>&1; then
+    CHANGES=$((CHANGES + 1))
+    if $CHECK_ONLY; then
+        echo "  ~ settings.local.json (would remove ignored mcpServers key)"
+    else
+        jq 'del(.mcpServers)' "$SETTINGS_LOCAL" > "$SETTINGS_LOCAL.tmp" \
+            && mv "$SETTINGS_LOCAL.tmp" "$SETTINGS_LOCAL"
+        echo "  ~ settings.local.json (removed ignored mcpServers key)"
+    fi
 fi
 
 # --- Step 7: Plugin auto-registration ---
