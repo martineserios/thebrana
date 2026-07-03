@@ -155,4 +155,4 @@ may hold the lock).
    Tier-1 candidate selection returns them; event-log-only sourcing still
    works (regression).
 
-**Status:** in progress (t-2247)
+**Status:** implemented (t-2247)

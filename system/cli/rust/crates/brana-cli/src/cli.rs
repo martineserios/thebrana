@@ -351,9 +351,11 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         json: bool,
     },
-    /// Run the inbox→dimensions pipeline (Tier 1/2/3 processing)
+    /// Run the inbox→dimensions pipeline (Tier 1/2/3 processing).
+    /// Parallel-safe: concurrent invocations serialize on the pipeline lock
+    /// (~/.swarm/knowledge-pipeline.lock) — waiters block until the active run finishes.
     Process {
-        /// Tier 1: score unprocessed LinkedIn URLs for relevance (batch ≤50)
+        /// Tier 1: score unprocessed URLs for relevance (batch ≤50; state-queued ingests + event-log URLs)
         #[arg(long)]
         tier1: bool,
         /// Tier 2: assign tier1-passed URLs to dimension clusters, produce report
@@ -387,7 +389,8 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         dry_run: bool,
     },
-    /// Queue URLs from files, direct args, or stdin into the pipeline
+    /// Queue URLs from files, direct args, or stdin into the pipeline.
+    /// Parallel-safe: serializes on the pipeline lock.
     Ingest {
         /// Files (WA dump, URL list, any text) or direct https:// URLs; omit to read from stdin
         #[arg(trailing_var_arg = true)]
@@ -401,7 +404,8 @@ pub enum KnowledgeCmd {
     },
     /// Emit the single next pipeline command to run (state-aware, zero LLM calls)
     Next,
-    /// Auto-advance the pipeline: tier1→tier2, stopping at human decision points
+    /// Auto-advance the pipeline: tier1→tier2, stopping at human decision points.
+    /// Parallel-safe: holds the pipeline lock for the whole advance.
     Run,
 }
 
