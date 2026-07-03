@@ -1416,6 +1416,39 @@ mod tests {
     }
 
     #[test]
+    fn test_lock_pipeline_excludes_second_writer_until_released() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let dir = TempDir::new().unwrap();
+        let lock_path = Arc::new(dir.path().join("pipeline.lock"));
+
+        let first = lock_pipeline_at(&lock_path).expect("first writer acquires");
+        let acquired = Arc::new(AtomicBool::new(false));
+        let handle = {
+            let lock_path = Arc::clone(&lock_path);
+            let acquired = Arc::clone(&acquired);
+            std::thread::spawn(move || {
+                let _second =
+                    lock_pipeline_at(&lock_path).expect("second writer eventually acquires");
+                acquired.store(true, Ordering::SeqCst);
+            })
+        };
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(
+            !acquired.load(Ordering::SeqCst),
+            "second writer must block while the first holds the lock"
+        );
+        drop(first);
+        handle.join().unwrap();
+        assert!(
+            acquired.load(Ordering::SeqCst),
+            "second writer must acquire the lock once it is released"
+        );
+    }
+
+    #[test]
     fn test_lock_pipeline_creates_missing_parent_dirs() {
         let dir = TempDir::new().unwrap();
         let lock_path = dir.path().join("no/such/dir/pipeline.lock");
