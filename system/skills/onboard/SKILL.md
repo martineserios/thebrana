@@ -182,6 +182,16 @@ Append to `~/.claude/memory/portfolio.md` under the matching section:
 
 If the slug already has a portfolio entry (detected in GUARD), update it instead of duplicating.
 
+### Machine registry (tasks-portfolio.json)
+
+Also add the project to `~/.claude/tasks-portfolio.json` — the machine registry consumed by `brana portfolio` and cross-project `backlog_add --project`. Hand-edit until auto-registration lands (t-2240). v2 schema, under `clients[]`:
+
+```json
+{ "slug": "{slug}", "projects": [ { "slug": "{slug}", "path": "~/enter_thebrana/{category_dir}/{slug}", "type": "{type}", "tech_stack": [] } ] }
+```
+
+Back up the file first, validate with `python3 -m json.tool`, verify with `brana portfolio`.
+
 ### Project memory directory
 
 ```bash

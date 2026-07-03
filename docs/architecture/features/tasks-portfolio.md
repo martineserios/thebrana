@@ -161,7 +161,7 @@ Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {i
 - Interactive task selection ("start one?")
 - Integration with `/brana:backlog next` (cross-client next)
 - Additional flags (--no-blocked, --completed N) — revisit if defaults don't satisfy
-- Auto-registration via `/brana:onboard` (t-288)
+- Auto-registration via `/brana:onboard` (t-2240 — earlier t-288 pointer was stale; t-288 is an unrelated close-deliverables task)
 
 ## Open questions
 
