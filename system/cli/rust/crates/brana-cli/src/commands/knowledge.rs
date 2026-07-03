@@ -318,6 +318,64 @@ pub fn cmd_status() {
 // ── brana knowledge process ───────────────────────────────────────────────
 
 #[allow(clippy::too_many_arguments)]
+/// Unlocked pipeline core: draft-cap gate + tier1/tier2/draft dispatch.
+///
+/// t-2247: this function must never acquire the pipeline lock — callers
+/// (`cmd_process`, `cmd_run`) hold it for the whole invocation, and
+/// `File::lock()` is not reentrant (same-thread re-acquisition deadlocks).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn process_core(
+    knowledge_root: &std::path::Path,
+    state_path: &std::path::Path,
+    state: &mut kp::PipelineState,
+    tier1: bool,
+    tier2: bool,
+    draft: Option<String>,
+    dry_run: bool,
+    limit: usize,
+) -> Result<()> {
+    // ── draft cap gate (blocks --tier1 and --tier2) ───────────────────
+    if tier1 || tier2 {
+        let draft_count = kp::count_drafts(knowledge_root);
+        if draft_count >= DRAFT_CAP && !state.draft_cap_acknowledged {
+            bail!(
+                "Draft cap hit ({draft_count}/{DRAFT_CAP} drafts in brana-knowledge/drafts/). Review and promote/reject drafts, then run `brana knowledge process --status` to acknowledge."
+            );
+        }
+    }
+
+    // ── --tier1 ───────────────────────────────────────────────────────
+    if tier1 {
+        run_tier1(knowledge_root, state_path, state, dry_run)?;
+    }
+
+    // ── --tier2 ───────────────────────────────────────────────────────
+    if tier2 {
+        run_tier2(knowledge_root, state_path, state, dry_run)?;
+    }
+
+    // ── --draft [topic] ──────────────────────────────────────────────
+    if let Some(topic) = draft {
+        if topic.is_empty() {
+            // Auto-select mode: draft up to `limit` undrafted clusters
+            let undrafted = list_undrafted_clusters(state);
+            if undrafted.is_empty() {
+                println!("  No undrafted clusters found. Run --tier2 first.");
+            } else {
+                let to_draft: Vec<_> = undrafted.into_iter().take(limit).collect();
+                println!("\n  \x1b[1mAuto-drafting {} cluster(s)\x1b[0m", to_draft.len());
+                for t in &to_draft {
+                    run_tier3(t, knowledge_root, state_path, state, dry_run)?;
+                }
+            }
+        } else {
+            run_tier3(&topic, knowledge_root, state_path, state, dry_run)?;
+        }
+    }
+
+    Ok(())
+}
+
 pub fn cmd_process(
     tier1: bool,
     tier2: bool,
@@ -335,10 +393,13 @@ pub fn cmd_process(
              sibling of git root, ~/enter_thebrana/brana-knowledge/"
         ))?;
     let state_path = kp::pipeline_state_path();
-    let mut state = kp::load_state(&state_path)?;
 
     // ── --status ──────────────────────────────────────────────────────
+    // Display reads an unlocked snapshot (atomic rename keeps it consistent);
+    // only the cap-ack write takes the lock — so interactive status never
+    // blocks behind a multi-minute tier1/tier2 batch (t-2247).
     if status {
+        let state = kp::load_state(&state_path)?;
         let counts = count_by_tier(&state);
         let draft_count = kp::count_drafts(&knowledge_root);
         let cap_hit = draft_count >= DRAFT_CAP && !state.draft_cap_acknowledged;
@@ -352,10 +413,13 @@ pub fn cmd_process(
         if cap_hit {
             println!("  \x1b[33m⚠ Draft cap hit — review drafts before pipeline runs again.\x1b[0m");
             println!("  \x1b[33m  Run `brana knowledge process --status` again after reviewing to acknowledge.\x1b[0m");
-            // Acknowledge on explicit --status invocation
-            state.draft_cap_acknowledged = true;
+            // Acknowledge on explicit --status invocation — reload under the
+            // lock so the ack can't clobber a concurrent run's results.
             if !dry_run {
-                kp::save_state(&state_path, &state)?;
+                let _lock = kp::lock_pipeline()?;
+                let mut fresh = kp::load_state(&state_path)?;
+                fresh.draft_cap_acknowledged = true;
+                kp::save_state(&state_path, &fresh)?;
             }
         }
         if let Some(last) = &state.last_tier1_run {
@@ -369,7 +433,10 @@ pub fn cmd_process(
     }
 
     // ── --reset-url ───────────────────────────────────────────────────
+    // Short-lived lock: just this load→modify→save (t-2247).
     if let Some(url) = reset_url {
+        let _lock = kp::lock_pipeline()?;
+        let mut state = kp::load_state(&state_path)?;
         if state.urls.remove(&url).is_some() {
             println!("  Removed '{}' from pipeline state — will reprocess on next run.", url);
             if !dry_run {
@@ -395,46 +462,21 @@ pub fn cmd_process(
         return Ok(());
     }
 
-    // ── draft cap gate (blocks --tier1 and --tier2) ───────────────────
-    if tier1 || tier2 {
-        let draft_count = kp::count_drafts(&knowledge_root);
-        if draft_count >= DRAFT_CAP && !state.draft_cap_acknowledged {
-            bail!(
-                "Draft cap hit ({draft_count}/{DRAFT_CAP} drafts in brana-knowledge/drafts/). Review and promote/reject drafts, then run `brana knowledge process --status` to acknowledge."
-            );
-        }
-    }
-
-    // ── --tier1 ───────────────────────────────────────────────────────
-    if tier1 {
-        run_tier1(&knowledge_root, &state_path, &mut state, dry_run)?;
-    }
-
-    // ── --tier2 ───────────────────────────────────────────────────────
-    if tier2 {
-        run_tier2(&knowledge_root, &state_path, &mut state, dry_run)?;
-    }
-
-    // ── --draft [topic] ──────────────────────────────────────────────
-    if let Some(topic) = draft {
-        if topic.is_empty() {
-            // Auto-select mode: draft up to `limit` undrafted clusters
-            let undrafted = list_undrafted_clusters(&state);
-            if undrafted.is_empty() {
-                println!("  No undrafted clusters found. Run --tier2 first.");
-            } else {
-                let to_draft: Vec<_> = undrafted.into_iter().take(limit).collect();
-                println!("\n  \x1b[1mAuto-drafting {} cluster(s)\x1b[0m", to_draft.len());
-                for t in &to_draft {
-                    run_tier3(t, &knowledge_root, &state_path, &mut state, dry_run)?;
-                }
-            }
-        } else {
-            run_tier3(&topic, &knowledge_root, &state_path, &mut state, dry_run)?;
-        }
-    }
-
-    Ok(())
+    // ── mutating pipeline ops — whole-invocation lock (t-2247) ────────
+    // Batch selection reads state, so the lock must span load→LLM→save;
+    // a write-only lock would still double-score across concurrent runs.
+    let _lock = kp::lock_pipeline()?;
+    let mut state = kp::load_state(&state_path)?;
+    process_core(
+        &knowledge_root,
+        &state_path,
+        &mut state,
+        tier1,
+        tier2,
+        draft,
+        dry_run,
+        limit,
+    )
 }
 
 // ── Tier 1 ────────────────────────────────────────────────────────────────
@@ -587,6 +629,8 @@ fn run_tier1(
                 let icon = if score >= 3 { "✓" } else { "✗" };
                 println!("  {icon} [{score}] {} — {reason}", entry.author);
 
+                // Preserve ingest provenance for state-sourced candidates (t-2247).
+                let source = state.urls.get(&entry.url).and_then(|e| e.source.clone());
                 state.urls.insert(entry.url.clone(), kp::UrlEntry {
                     status,
                     tier1_score: Some(score),
@@ -596,6 +640,7 @@ fn run_tier1(
                     title_signal: Some(entry.title_signal.clone()),
                     tags: entry.tags.clone(),
                     platform: Some(kp::classify_platform(&entry.url).to_string()),
+                    source,
                     ..kp::UrlEntry::new_unprocessed(None)
                 });
                 // Checkpoint: survive mid-batch crashes
@@ -1140,6 +1185,11 @@ pub fn cmd_run() -> Result<()> {
              sibling of git root, ~/enter_thebrana/brana-knowledge/"
         ))?;
     let state_path = kp::pipeline_state_path();
+
+    // t-2247: lock once for the whole auto-advance; the composed tier1/tier2
+    // steps run through the lock-free process_core (calling cmd_process here
+    // would re-acquire and self-deadlock — File::lock() is not reentrant).
+    let _lock = kp::lock_pipeline()?;
     let state = kp::load_state(&state_path)?;
 
     let directive = next_directive(&state, &knowledge_root);
@@ -1153,7 +1203,8 @@ pub fn cmd_run() -> Result<()> {
     // Auto-advance: tier1
     if directive.contains("--tier1") {
         println!("  \x1b[1mbrana knowledge run\x1b[0m — auto-advancing tier1...\n");
-        cmd_process(true, false, None, false, false, None, false, 1)?;
+        let mut s = kp::load_state(&state_path)?;
+        process_core(&knowledge_root, &state_path, &mut s, true, false, None, false, 1)?;
 
         // Reload and check again
         let state2 = kp::load_state(&state_path)?;
@@ -1161,7 +1212,8 @@ pub fn cmd_run() -> Result<()> {
 
         if directive2.contains("--tier2") {
             println!("\n  Auto-advancing tier2...\n");
-            cmd_process(false, true, None, false, false, None, false, 1)?;
+            let mut s = kp::load_state(&state_path)?;
+            process_core(&knowledge_root, &state_path, &mut s, false, true, None, false, 1)?;
 
             // Reload after tier2 and emit gate
             let state3 = kp::load_state(&state_path)?;
@@ -1183,7 +1235,8 @@ pub fn cmd_run() -> Result<()> {
     // Auto-advance: tier2 only
     if directive.contains("--tier2") {
         println!("  \x1b[1mbrana knowledge run\x1b[0m — auto-advancing tier2...\n");
-        cmd_process(false, true, None, false, false, None, false, 1)?;
+        let mut s = kp::load_state(&state_path)?;
+        process_core(&knowledge_root, &state_path, &mut s, false, true, None, false, 1)?;
 
         // Reload after tier2 and emit gate
         let state2 = kp::load_state(&state_path)?;
@@ -1321,6 +1374,8 @@ pub fn cmd_ingest(
     println!("  {} URL(s) extracted\n", extracted.len());
 
     let state_path = kp::pipeline_state_path();
+    // t-2247: dedup-against-state + queue is a load→modify→save — lock it.
+    let _lock = kp::lock_pipeline()?;
     let mut state = kp::load_state(&state_path)?;
     let result = kp::ingest_urls(&extracted, source_tag.as_deref(), &mut state);
 
@@ -1367,6 +1422,63 @@ pub(crate) fn sanitize_topic_slug(topic: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── process_core composition guard (t-2247) ───────────────────────
+
+    #[test]
+    fn test_process_core_completes_while_lock_held() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let lock_path = dir.path().join("pipeline.lock");
+        let state_path = dir.path().join("state.json");
+        let knowledge_root = dir.path().join("bk");
+        std::fs::create_dir_all(knowledge_root.join("drafts")).unwrap();
+        kp::save_state(&state_path, &kp::PipelineState::default()).unwrap();
+
+        // Hold the lock the way cmd_run does, then drive the core: it must
+        // complete without trying to re-acquire (the self-deadlock the
+        // challenger flagged — run → process composition).
+        let _guard = kp::lock_pipeline_at(&lock_path).expect("outer lock");
+        let (tx, rx) = std::sync::mpsc::channel();
+        let sp = state_path.clone();
+        let kr = knowledge_root.clone();
+        std::thread::spawn(move || {
+            let mut state = kp::load_state(&sp).unwrap();
+            let r = process_core(&kr, &sp, &mut state, true, false, None, true, 1);
+            let _ = tx.send(r.is_ok());
+        });
+        let ok = rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("process_core hung while the caller held the pipeline lock");
+        assert!(ok, "process_core (tier1, dry-run) must succeed");
+    }
+
+    #[test]
+    fn test_lock_discipline_source_tripwires() {
+        // Structural guarantees File::lock() can't express: the core must be
+        // lock-free, and cmd_run must compose via the core, not cmd_process
+        // (which acquires). A regression here reintroduces the deadlock.
+        let src = include_str!("knowledge.rs");
+
+        let core_start = src.find("fn process_core").expect("process_core exists");
+        let core_end = src[core_start..]
+            .find("\npub fn cmd_process")
+            .map(|i| core_start + i)
+            .expect("cmd_process follows process_core");
+        assert!(
+            !src[core_start..core_end].contains("lock_pipeline"),
+            "process_core must never acquire the pipeline lock (non-reentrant — deadlocks under run→process composition)"
+        );
+
+        let run_start = src.find("pub fn cmd_run").expect("cmd_run exists");
+        let run_end = src[run_start..]
+            .find("\npub fn ")
+            .map(|i| run_start + i)
+            .unwrap_or(src.len());
+        assert!(
+            !src[run_start..run_end].contains("cmd_process("),
+            "cmd_run must call process_core, not cmd_process — cmd_process acquires the lock cmd_run already holds"
+        );
+    }
 
     // ── parse_search_results ─────────────────────────────────────────
 
