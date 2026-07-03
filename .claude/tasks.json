@@ -59557,6 +59557,32 @@
       ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "id": "t-2243",
+      "subject": "close skill Step 1b: optional --git-range arg collapses into one word, breaks close-snapshot.sh",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close-skill",
+        "shell-bug"
+      ],
+      "description": "gate-and-evidence.md Step 1b documents: `${SESSION_RANGE:+--git-range \"$SESSION_RANGE\"}` as a bare (unquoted-at-the-braces) shell expansion to conditionally pass --git-range. Verified empirically (2026-07-02 close) that bash does NOT split this into two argv words as expected — the nested double-quotes inside the :+ replacement word suppress field-splitting of the entire expansion, so it arrives at close-snapshot.sh as ONE argument: \"--git-range 225c3b9d..ca098777\" (literal embedded space), which the script's case statement rejects as \"unknown argument\". Every close that reaches Step 1b with a non-empty SESSION_RANGE hits this — silently degrades (close-snapshot exits 2, but per its own docs \"close NEVER blocks on the queue\" so the failure is swallowed and the session simply doesn't get queued for nightly extraction).\n\nFix: build an explicit bash array instead of the bare parameter-expansion idiom, e.g.:\nARGS=(--git-root \"$GIT_ROOT\" --branch \"$BRANCH\" --project \"$PROJECT\" --commit-count \"$COMMIT_COUNT\")\n[ -n \"$SESSION_RANGE\" ] && ARGS+=(--git-range \"$SESSION_RANGE\")\nbash close-snapshot.sh \"${ARGS[@]}\"\n\nVerified this array form works correctly (tested live in the 2026-07-02 client-normalization close). Same fix needed anywhere else this idiom is copy-pasted (grep the codebase for `:+--git-range`).",
+      "effort": "XS",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-02",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: gate-and-evidence.md Step 1b uses the array-build form, not the bare :+ idiom\nAC: grep codebase for other instances of the same idiom, fix if found\nAC: tests/procedures/test-close-snapshot-range.sh (added by t-2242) covers the empty-SESSION_RANGE and non-empty cases through the actual documented invocation form, not just the script directly\n2026-07-02: discovered live during /brana:close --finish — the documented Step 1b bash block failed with \"unknown argument\" until rewritten as an array",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
