@@ -151,8 +151,30 @@ pub fn pipeline_lock_path() -> PathBuf {
 /// core) must NOT re-acquire: `File::lock()` is not reentrant, so same-thread
 /// re-acquisition deadlocks.
 pub fn lock_pipeline_at(lock_path: &Path) -> Result<std::fs::File> {
-    let _ = lock_path;
-    todo!("t-2247: acquire exclusive advisory lock")
+    if let Some(dir) = lock_path.parent() {
+        std::fs::create_dir_all(dir)
+            .with_context(|| format!("creating lock dir {}", dir.display()))?;
+    }
+    let f = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(lock_path)
+        .with_context(|| format!("opening pipeline lock {}", lock_path.display()))?;
+    match f.try_lock() {
+        Ok(()) => {}
+        Err(std::fs::TryLockError::WouldBlock) => {
+            eprintln!("  waiting for knowledge-pipeline lock (another run active)…");
+            f.lock()
+                .with_context(|| format!("acquiring pipeline lock {}", lock_path.display()))?;
+        }
+        Err(std::fs::TryLockError::Error(e)) => {
+            return Err(e).with_context(|| {
+                format!("acquiring pipeline lock {}", lock_path.display())
+            });
+        }
+    }
+    Ok(f)
 }
 
 /// Take the pipeline lock at the canonical path.
@@ -436,8 +458,40 @@ pub fn extract_unprocessed_urls_in(
     state: &PipelineState,
     projects_dir: &Path,
 ) -> Result<Vec<UrlEventEntry>> {
-    let _ = (state, projects_dir);
-    todo!("t-2247: union state-queued Unprocessed + event-log parse")
+    let known: std::collections::HashSet<String> = state.urls.keys().cloned().collect();
+
+    let mut queued: Vec<(&String, &UrlEntry)> = state
+        .urls
+        .iter()
+        .filter(|(_, e)| e.status == UrlStatus::Unprocessed)
+        .collect();
+    queued.sort_by(|a, b| a.0.cmp(b.0));
+
+    let mut all: Vec<UrlEventEntry> = queued
+        .into_iter()
+        .map(|(url, e)| {
+            let (author, title_signal) = match (e.author.clone(), e.title_signal.clone()) {
+                (Some(a), Some(t)) => (a, t),
+                _ => parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url)),
+            };
+            UrlEventEntry {
+                url: url.clone(),
+                author,
+                title_signal,
+                tags: e.tags.clone(),
+                logged_date: e.logged_date.clone().unwrap_or_else(|| "unknown".to_string()),
+            }
+        })
+        .collect();
+
+    // Event-log URLs not yet in state (original sourcing — `known` excludes
+    // everything above, so the union is duplicate-free by construction).
+    for log_path in find_event_log_files_in(projects_dir) {
+        let content = std::fs::read_to_string(&log_path)
+            .with_context(|| format!("reading event log {}", log_path.display()))?;
+        all.extend(parse_event_log(&content, &known));
+    }
+    Ok(all)
 }
 
 // ── Path allow-list ──────────────────────────────────────────────────────────
@@ -1359,6 +1413,27 @@ mod tests {
             N,
             "every writer's update must survive — a lost update means the lock failed to serialize load→modify→save"
         );
+    }
+
+    #[test]
+    fn test_lock_pipeline_creates_missing_parent_dirs() {
+        let dir = TempDir::new().unwrap();
+        let lock_path = dir.path().join("no/such/dir/pipeline.lock");
+        let _guard = lock_pipeline_at(&lock_path).expect("must create parents and lock");
+        assert!(lock_path.exists());
+    }
+
+    #[test]
+    fn test_extract_unprocessed_nonexistent_projects_dir_yields_state_only() {
+        let dir = TempDir::new().unwrap();
+        let mut state = PipelineState::default();
+        state
+            .urls
+            .insert("https://example.com/only".into(), UrlEntry::new_unprocessed(None));
+        let out = extract_unprocessed_urls_in(&state, &dir.path().join("missing"))
+            .expect("missing projects dir is not an error");
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].url, "https://example.com/only");
     }
 
     #[test]
