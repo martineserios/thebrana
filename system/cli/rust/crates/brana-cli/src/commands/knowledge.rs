@@ -318,6 +318,26 @@ pub fn cmd_status() {
 // ── brana knowledge process ───────────────────────────────────────────────
 
 #[allow(clippy::too_many_arguments)]
+/// Unlocked pipeline core: draft-cap gate + tier1/tier2/draft dispatch.
+///
+/// t-2247: this function must never acquire the pipeline lock — callers
+/// (`cmd_process`, `cmd_run`) hold it for the whole invocation, and
+/// `File::lock()` is not reentrant (same-thread re-acquisition deadlocks).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn process_core(
+    knowledge_root: &std::path::Path,
+    state_path: &std::path::Path,
+    state: &mut kp::PipelineState,
+    tier1: bool,
+    tier2: bool,
+    draft: Option<String>,
+    dry_run: bool,
+    limit: usize,
+) -> Result<()> {
+    let _ = (knowledge_root, state_path, state, tier1, tier2, draft, dry_run, limit);
+    todo!("t-2247: move tier1/tier2/draft dispatch here, lock-free")
+}
+
 pub fn cmd_process(
     tier1: bool,
     tier2: bool,
@@ -1367,6 +1387,63 @@ pub(crate) fn sanitize_topic_slug(topic: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── process_core composition guard (t-2247) ───────────────────────
+
+    #[test]
+    fn test_process_core_completes_while_lock_held() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let lock_path = dir.path().join("pipeline.lock");
+        let state_path = dir.path().join("state.json");
+        let knowledge_root = dir.path().join("bk");
+        std::fs::create_dir_all(knowledge_root.join("drafts")).unwrap();
+        kp::save_state(&state_path, &kp::PipelineState::default()).unwrap();
+
+        // Hold the lock the way cmd_run does, then drive the core: it must
+        // complete without trying to re-acquire (the self-deadlock the
+        // challenger flagged — run → process composition).
+        let _guard = kp::lock_pipeline_at(&lock_path).expect("outer lock");
+        let (tx, rx) = std::sync::mpsc::channel();
+        let sp = state_path.clone();
+        let kr = knowledge_root.clone();
+        std::thread::spawn(move || {
+            let mut state = kp::load_state(&sp).unwrap();
+            let r = process_core(&kr, &sp, &mut state, true, false, None, true, 1);
+            let _ = tx.send(r.is_ok());
+        });
+        let ok = rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("process_core hung while the caller held the pipeline lock");
+        assert!(ok, "process_core (tier1, dry-run) must succeed");
+    }
+
+    #[test]
+    fn test_lock_discipline_source_tripwires() {
+        // Structural guarantees File::lock() can't express: the core must be
+        // lock-free, and cmd_run must compose via the core, not cmd_process
+        // (which acquires). A regression here reintroduces the deadlock.
+        let src = include_str!("knowledge.rs");
+
+        let core_start = src.find("fn process_core").expect("process_core exists");
+        let core_end = src[core_start..]
+            .find("\npub fn cmd_process")
+            .map(|i| core_start + i)
+            .expect("cmd_process follows process_core");
+        assert!(
+            !src[core_start..core_end].contains("lock_pipeline"),
+            "process_core must never acquire the pipeline lock (non-reentrant — deadlocks under run→process composition)"
+        );
+
+        let run_start = src.find("pub fn cmd_run").expect("cmd_run exists");
+        let run_end = src[run_start..]
+            .find("\npub fn ")
+            .map(|i| run_start + i)
+            .unwrap_or(src.len());
+        assert!(
+            !src[run_start..run_end].contains("cmd_process("),
+            "cmd_run must call process_core, not cmd_process — cmd_process acquires the lock cmd_run already holds"
+        );
+    }
 
     // ── parse_search_results ─────────────────────────────────────────
 

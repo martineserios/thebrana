@@ -135,6 +135,31 @@ pub fn pipeline_state_path() -> PathBuf {
     home().join(".swarm/knowledge-pipeline-state.json")
 }
 
+/// Canonical lock file path: `~/.swarm/knowledge-pipeline.lock` (reserved in the
+/// write allow-list since inception; acquired since t-2247).
+pub fn pipeline_lock_path() -> PathBuf {
+    home().join(".swarm/knowledge-pipeline.lock")
+}
+
+// ── Pipeline lock (t-2247) ───────────────────────────────────────────────────
+
+/// Take the exclusive advisory pipeline lock at `lock_path`. Blocking: on
+/// contention prints a notice and waits. Held until the returned `File` drops
+/// (or the process dies — kernel releases flock, no stale-lock handling).
+///
+/// Acquired exactly once per CLI entry point. Composed calls (`run` → process
+/// core) must NOT re-acquire: `File::lock()` is not reentrant, so same-thread
+/// re-acquisition deadlocks.
+pub fn lock_pipeline_at(lock_path: &Path) -> Result<std::fs::File> {
+    let _ = lock_path;
+    todo!("t-2247: acquire exclusive advisory lock")
+}
+
+/// Take the pipeline lock at the canonical path.
+pub fn lock_pipeline() -> Result<std::fs::File> {
+    lock_pipeline_at(&pipeline_lock_path())
+}
+
 // ── State R/W ────────────────────────────────────────────────────────────────
 
 /// Load pipeline state from disk. Returns an empty state if the file does not exist.
@@ -401,14 +426,18 @@ pub fn list_dimension_slugs(brana_knowledge_root: &Path) -> Vec<String> {
 
 /// Extract all unprocessed LinkedIn URL entries from all event logs.
 pub fn extract_unprocessed_urls(state: &PipelineState) -> Result<Vec<UrlEventEntry>> {
-    let known: std::collections::HashSet<String> = state.urls.keys().cloned().collect();
-    let mut all = Vec::new();
-    for log_path in find_event_log_files() {
-        let content = std::fs::read_to_string(&log_path)
-            .with_context(|| format!("reading event log {}", log_path.display()))?;
-        all.extend(parse_event_log(&content, &known));
-    }
-    Ok(all)
+    extract_unprocessed_urls_in(state, &home().join(".claude/projects"))
+}
+
+/// Tier-1 candidates: union of state-queued `Unprocessed` entries (the `ingest`
+/// path — t-2247 fix: these were previously invisible, making ingest a write-only
+/// queue) and event-log URLs not yet in state. State entries first, sorted by URL.
+pub fn extract_unprocessed_urls_in(
+    state: &PipelineState,
+    projects_dir: &Path,
+) -> Result<Vec<UrlEventEntry>> {
+    let _ = (state, projects_dir);
+    todo!("t-2247: union state-queued Unprocessed + event-log parse")
 }
 
 // ── Path allow-list ──────────────────────────────────────────────────────────
@@ -1292,6 +1321,101 @@ mod tests {
         let state = PipelineState::default();
         save_state(&path, &state).expect("should create dirs and save");
         assert!(path.exists());
+    }
+
+    // ── pipeline lock + candidate sourcing (t-2247) ───────────────────
+
+    #[test]
+    fn test_lock_pipeline_serializes_concurrent_writers() {
+        use std::sync::Arc;
+        let dir = TempDir::new().unwrap();
+        let lock_path = Arc::new(dir.path().join("pipeline.lock"));
+        let state_path = Arc::new(dir.path().join("state.json"));
+        save_state(&state_path, &PipelineState::default()).unwrap();
+
+        const N: usize = 8;
+        let mut handles = Vec::new();
+        for i in 0..N {
+            let lock_path = Arc::clone(&lock_path);
+            let state_path = Arc::clone(&state_path);
+            handles.push(std::thread::spawn(move || {
+                let _guard = lock_pipeline_at(&lock_path).expect("acquire pipeline lock");
+                let mut state = load_state(&state_path).unwrap();
+                state.urls.insert(
+                    format!("https://example.com/post-{i}"),
+                    UrlEntry::new_unprocessed(None),
+                );
+                // widen the load→save window so unserialized writers interleave
+                std::thread::sleep(std::time::Duration::from_millis(10));
+                save_state(&state_path, &state).unwrap();
+            }));
+        }
+        for h in handles {
+            h.join().unwrap();
+        }
+        let final_state = load_state(&state_path).unwrap();
+        assert_eq!(
+            final_state.urls.len(),
+            N,
+            "every writer's update must survive — a lost update means the lock failed to serialize load→modify→save"
+        );
+    }
+
+    #[test]
+    fn test_extract_unprocessed_includes_state_queued() {
+        let dir = TempDir::new().unwrap();
+        let projects = dir.path().join("projects"); // empty — no event logs
+        std::fs::create_dir_all(&projects).unwrap();
+
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://example.com/b".into(),
+            UrlEntry::new_unprocessed(Some("2026-07-02".into())),
+        );
+        state
+            .urls
+            .insert("https://example.com/a".into(), UrlEntry::new_unprocessed(None));
+        let mut scored = UrlEntry::new_unprocessed(None);
+        scored.status = UrlStatus::Tier1Passed;
+        state.urls.insert("https://example.com/done".into(), scored);
+
+        let out = extract_unprocessed_urls_in(&state, &projects).expect("extract");
+        let urls: Vec<&str> = out.iter().map(|e| e.url.as_str()).collect();
+        assert_eq!(
+            urls,
+            vec!["https://example.com/a", "https://example.com/b"],
+            "state-queued Unprocessed entries must be tier1 candidates (sorted), already-scored excluded"
+        );
+    }
+
+    #[test]
+    fn test_extract_unprocessed_unions_event_log_and_state() {
+        let dir = TempDir::new().unwrap();
+        let projects = dir.path().join("projects");
+        let mem = projects.join("-home-user-proj/memory");
+        std::fs::create_dir_all(&mem).unwrap();
+        std::fs::write(
+            mem.join("event-log.md"),
+            "## 2026-07-02\n- 10:00 — https://www.linkedin.com/posts/someone_topic-share-42-XY\n",
+        )
+        .unwrap();
+
+        let mut state = PipelineState::default();
+        state
+            .urls
+            .insert("https://example.com/queued".into(), UrlEntry::new_unprocessed(None));
+
+        let out = extract_unprocessed_urls_in(&state, &projects).expect("extract");
+        let urls: Vec<&str> = out.iter().map(|e| e.url.as_str()).collect();
+        assert!(
+            urls.contains(&"https://example.com/queued"),
+            "state-queued entry missing from candidates"
+        );
+        assert!(
+            urls.iter().any(|u| u.contains("linkedin.com/posts/someone")),
+            "event-log sourcing regressed"
+        );
+        assert_eq!(out.len(), 2, "no duplicates expected in the union");
     }
 
     // ── is_allowed_write_path ─────────────────────────────────────────
