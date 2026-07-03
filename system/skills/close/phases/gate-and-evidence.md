@@ -129,21 +129,39 @@ Announce: `Close mode: $CLOSE_MODE (orientation: $ORIENTATION)` before proceedin
 
 LIGHT-INLINE (`--patterns`) is structurally excluded here: extraction runs NOW in Step 3, so queueing the same session for the nightly cron would double-extract — the documented exception to ADR-052 §5 (ADR-053 §3). Skip this step entirely for LIGHT-INLINE.
 
-Queue the session diff for tonight's extraction cron (ADR-052; one line, never blocks):
+Queue the session diff for tonight's extraction cron (ADR-052; never blocks).
+
+**Compute the range explicitly (t-2242)** — never let the script re-derive it via
+`HEAD~N`: the Step 1 `COMMIT_COUNT` is topological (`git log --oneline` counts
+commits brought in by `--no-ff` merges) while `HEAD~N` walks first-parent only,
+so any merge commit inside the window makes the queued range over-reach and
+swallow a concurrent session's commits (two live hits, proyecto_anita 2026-07-02).
+Anchor on the oldest session commit from the SAME listing that produced
+`COMMIT_COUNT`:
 
 ```bash
+OLDEST=$(git log --format=%H --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | tail -1)
+if [ -n "$OLDEST" ] && git rev-parse -q --verify "${OLDEST}^" >/dev/null 2>&1; then
+    SESSION_RANGE="$(git rev-parse --short "${OLDEST}^")..$(git rev-parse --short HEAD)"
+else
+    SESSION_RANGE=""   # root commit or empty session — let the script fall back
+fi
+
 bash {GIT_ROOT}/system/scripts/close-snapshot.sh \
     --git-root "$(git rev-parse --show-toplevel)" \
     --branch "$(git branch --show-current)" \
     --project "$(basename "$(git rev-parse --show-toplevel)")" \
-    --commit-count "${COMMIT_COUNT:-0}"
+    --commit-count "${COMMIT_COUNT:-0}" \
+    ${SESSION_RANGE:+--git-range "$SESSION_RANGE"}
 ```
 
-The script captures `git diff HEAD~N..HEAD` to `~/.claude/sessions/snap-*.diff`
-(500KB cap), appends a queue entry via `brana close-queue append` (dedup-safe —
-re-running close on the same range is a no-op), and degrades to a stderr warning
-+ exit 0 if the brana binary is missing. Do not gate close on its output.
-Zero commits → it exits silently without queueing.
+The script diffs `--git-range` verbatim (falling back to the known-wrong
+`HEAD~N..HEAD` only when the range is absent), saves it to
+`~/.claude/sessions/snap-*.diff` (500KB cap), appends a queue entry via
+`brana close-queue append` (dedup-safe — re-running close on the same range is
+a no-op), and degrades to a stderr warning + exit 0 if the brana binary is
+missing. Do not gate close on its output. Zero commits → it exits silently
+without queueing.
 
 ### Step 2: Gather evidence
 

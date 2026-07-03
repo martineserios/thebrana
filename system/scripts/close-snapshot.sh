@@ -3,10 +3,17 @@
 # (t-1973, ADR-052). Called by /brana:close for LIGHT and INSTANT closes.
 #
 # Usage:
-#   close-snapshot.sh --git-root DIR --branch NAME --project SLUG --commit-count N
+#   close-snapshot.sh --git-root DIR --branch NAME --project SLUG --commit-count N \
+#                     [--git-range A..B]
 #
 # Behavior:
-#   - git diff HEAD~N..HEAD saved to ~/.claude/sessions/snap-{ts}.diff
+#   - session diff saved to ~/.claude/sessions/snap-{ts}.diff. The range is
+#     --git-range verbatim when given (PREFERRED — t-2242); otherwise derived
+#     as HEAD~N..HEAD. The HEAD~N fallback is WRONG whenever a --no-ff merge
+#     sits inside the window: the caller's commit count is topological while
+#     HEAD~N walks first-parent only, so the range over-reaches and swallows
+#     a concurrent session's commits (two live hits, proyecto_anita 2026-07-02).
+#     Callers should always pass --git-range anchored on real SHAs.
 #   - diff capped at 500KB (ADR-052 §4) — truncation sets --snapshot-truncated
 #   - queue entry via `brana close-queue append` (Rust owns the store; no JSON here)
 #   - degradation: missing brana binary or any capture failure → warn to
@@ -18,13 +25,14 @@ set -uo pipefail
 
 MAX_SNAPSHOT_BYTES=512000  # 500KB cap per ADR-052 §4
 
-GIT_ROOT="" BRANCH="" PROJECT="" COMMIT_COUNT=""
+GIT_ROOT="" BRANCH="" PROJECT="" COMMIT_COUNT="" GIT_RANGE_ARG=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --git-root)     GIT_ROOT="$2"; shift 2 ;;
         --branch)       BRANCH="$2"; shift 2 ;;
         --project)      PROJECT="$2"; shift 2 ;;
         --commit-count) COMMIT_COUNT="$2"; shift 2 ;;
+        --git-range)    GIT_RANGE_ARG="$2"; shift 2 ;;
         *) echo "close-snapshot: unknown argument $1" >&2; exit 2 ;;
     esac
 done
@@ -54,20 +62,37 @@ if [ -z "$BRANA_BIN" ] || [ ! -x "$BRANA_BIN" ]; then
     exit 0
 fi
 
-# Capture the commit range. HEAD~N may not exist (shallow/short history) —
-# fall back to the root commit.
+# Capture the commit range.
 GIT_RANGE=""
-if git -C "$GIT_ROOT" rev-parse "HEAD~${COMMIT_COUNT}" >/dev/null 2>&1; then
-    FROM=$(git -C "$GIT_ROOT" rev-parse --short "HEAD~${COMMIT_COUNT}" 2>/dev/null)
+if [ -n "$GIT_RANGE_ARG" ]; then
+    # Explicit range from the caller (t-2242) — validate both endpoints so an
+    # unresolvable range degrades to a skipped snapshot instead of queueing a
+    # diff that git silently produced against garbage.
+    R_FROM="${GIT_RANGE_ARG%%..*}"
+    R_TO="${GIT_RANGE_ARG##*..}"
+    if ! git -C "$GIT_ROOT" rev-parse -q --verify "${R_FROM}^{commit}" >/dev/null 2>&1 \
+       || ! git -C "$GIT_ROOT" rev-parse -q --verify "${R_TO}^{commit}" >/dev/null 2>&1; then
+        echo "close-snapshot: --git-range '$GIT_RANGE_ARG' does not resolve — snapshot skipped" >&2
+        exit 0
+    fi
+    GIT_RANGE="$GIT_RANGE_ARG"
 else
-    FROM=$(git -C "$GIT_ROOT" rev-list --max-parents=0 HEAD 2>/dev/null | head -1 | cut -c1-7)
+    # Legacy fallback: HEAD~N anchoring. KNOWN-WRONG across --no-ff merges
+    # (first-parent walk vs the caller's topological count) — kept only for
+    # callers that cannot compute a range. HEAD~N may also not exist
+    # (shallow/short history) — fall back to the root commit.
+    if git -C "$GIT_ROOT" rev-parse "HEAD~${COMMIT_COUNT}" >/dev/null 2>&1; then
+        FROM=$(git -C "$GIT_ROOT" rev-parse --short "HEAD~${COMMIT_COUNT}" 2>/dev/null)
+    else
+        FROM=$(git -C "$GIT_ROOT" rev-list --max-parents=0 HEAD 2>/dev/null | head -1 | cut -c1-7)
+    fi
+    TO=$(git -C "$GIT_ROOT" rev-parse --short HEAD 2>/dev/null)
+    if [ -z "$FROM" ] || [ -z "$TO" ]; then
+        echo "close-snapshot: could not resolve commit range — snapshot skipped" >&2
+        exit 0
+    fi
+    GIT_RANGE="${FROM}..${TO}"
 fi
-TO=$(git -C "$GIT_ROOT" rev-parse --short HEAD 2>/dev/null)
-if [ -z "$FROM" ] || [ -z "$TO" ]; then
-    echo "close-snapshot: could not resolve commit range — snapshot skipped" >&2
-    exit 0
-fi
-GIT_RANGE="${FROM}..${TO}"
 
 SESS_DIR="$HOME/.claude/sessions"
 mkdir -p "$SESS_DIR"
