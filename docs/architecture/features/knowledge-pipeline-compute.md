@@ -91,3 +91,40 @@ Phase 2 is a bot integration task, not a pipeline task. The pipeline API is stab
 will not change when the bot is wired.
 
 **Status:** untracked (Phase 2, future)
+
+---
+
+## Concurrency & Locking (t-2247)
+
+**Problem.** `knowledge-pipeline-state.json` is load→modify→save. `save_state()` is
+atomic (tmp+rename) but nothing serializes concurrent invocations: two simultaneous
+`process --tier1` runs read the same unprocessed set, double-score it, and the
+last writer's save silently discards the other's results. The lock path
+`~/.swarm/knowledge-pipeline.lock` has been reserved in `is_allowed_write_path()`
+since the allow-list landed, but no code acquires it.
+
+**Decision (2026-07-02).** Blocking exclusive advisory lock on the reserved
+`~/.swarm/knowledge-pipeline.lock`, mirroring `util::lock_sidecar()` (std
+`File::lock()`, RAII — released on drop or process death; no stale-lock handling
+needed). Dedicated `lock_pipeline()` in `knowledge_pipeline.rs` because the reserved
+path does not follow the `.json.lock` sidecar naming.
+
+- **Scope: whole invocation, not just the write.** Acquired at command entry
+  (before `load_state`) in every state-touching handler: `ingest`, `process`
+  (tier1/tier2/draft/reset-url and `--status`, which writes
+  `draft_cap_acknowledged`), `run`. Batch selection reads state, so a
+  write-only lock would still double-score.
+- **Blocking, not fail-fast.** N concurrent invocations serialize and all make
+  progress — this is what makes fan-out (multiple agents/sessions driving the
+  pipeline) safe. If the lock is not immediately available (`try_lock` first),
+  print `waiting for knowledge-pipeline lock (another run active)…` then block.
+- **Non-actions:** no lock timeout (agy batches legitimately run minutes); no
+  PID-in-lockfile diagnostics (flock dies with the process); no re-scope of
+  `lock_sidecar` (different naming contract).
+
+**Testing.** Contention test mirrors `lock_tasks_serializes_concurrent_appends`
+(tasks.rs): N threads acquire `lock_pipeline()` against a tempdir state file,
+each does read→modify→save; final state must contain all N updates. Tests are
+hermetic — never touch the real `~/.swarm` (a live pipeline run may hold the lock).
+
+**Status:** in progress (t-2247)
