@@ -5,24 +5,92 @@
       "projects": [
         {
           "slug": "proyecto_anita",
-          "path": "~/enter_thebrana/clients/proyecto_anita",
+          "path": "~/enter_thebrana/clients/proyecto-anita",
           "type": "hybrid",
           "stage": "growth",
-          "tech_stack": ["python", "fastapi", "react", "nextjs", "supabase", "gcp"],
+          "tech_stack": [
+            "python",
+            "fastapi",
+            "react",
+            "nextjs",
+            "supabase",
+            "gcp"
+          ],
           "created": "2025-10-01"
         }
       ]
     },
     {
-      "slug": "tinyhomes",
+      "slug": "batrade",
       "projects": [
         {
-          "slug": "tinyhomes",
-          "path": "~/enter_thebrana/clients/tinyhomes",
-          "type": "venture",
-          "stage": "validation",
-          "tech_stack": ["supabase", "expo", "react-native", "mercadopago"],
-          "created": "2025-11-01"
+          "slug": "batrade",
+          "path": "~/enter_thebrana/clients/batrade",
+          "tech_stack": [
+            "nextjs",
+            "typescript"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "bemol",
+      "projects": [
+        {
+          "slug": "bemol",
+          "path": "~/enter_thebrana/clients/bemol",
+          "tech_stack": [
+            "nextjs",
+            "supabase",
+            "rails"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "crea",
+      "projects": [
+        {
+          "slug": "crea",
+          "path": "~/enter_thebrana/clients/crea"
+        }
+      ]
+    },
+    {
+      "slug": "curso-papa-derecho-ia",
+      "projects": [
+        {
+          "slug": "curso-papa-derecho-ia",
+          "path": "~/enter_thebrana/clients/curso-papa-derecho-ia"
+        }
+      ]
+    },
+    {
+      "slug": "mandawa",
+      "projects": [
+        {
+          "slug": "mandawa",
+          "path": "~/enter_thebrana/clients/mandawa"
+        }
+      ]
+    },
+    {
+      "slug": "nexeye",
+      "projects": [
+        {
+          "slug": "eyedetect",
+          "path": "~/enter_thebrana/ventures/nexeye_eyedetect",
+          "type": "hybrid",
+          "stage": "growth",
+          "tech_stack": [
+            "python",
+            "fastapi",
+            "react",
+            "computer-vision",
+            "docker",
+            "supabase"
+          ],
+          "created": "2025-12-01"
         }
       ]
     },
@@ -34,21 +102,43 @@
           "path": "~/enter_thebrana/clients/somos_mirada",
           "type": "venture",
           "stage": "growth",
-          "tech_stack": ["respond-io", "whatsapp", "ai-agents"],
+          "tech_stack": [
+            "respond-io",
+            "whatsapp",
+            "ai-agents"
+          ],
           "created": "2025-09-01"
         }
       ]
     },
     {
-      "slug": "nexeye",
+      "slug": "sunflower",
       "projects": [
         {
-          "slug": "eyedetect",
-          "path": "~/enter_thebrana/clients/nexeye_eyedetect",
-          "type": "hybrid",
-          "stage": "growth",
-          "tech_stack": ["python", "fastapi", "react", "computer-vision", "docker", "supabase"],
-          "created": "2025-12-01"
+          "slug": "sunflower",
+          "path": "~/enter_thebrana/clients/sunflower"
+        }
+      ]
+    },
+    {
+      "slug": "trade_prof_man",
+      "projects": [
+        {
+          "slug": "trade_prof_man",
+          "path": "~/enter_thebrana/clients/trade_prof_man",
+          "tech_stack": [
+            "pinescript",
+            "tradingview"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "unlock",
+      "projects": [
+        {
+          "slug": "unlock",
+          "path": "~/enter_thebrana/clients/unlock"
         }
       ]
     }

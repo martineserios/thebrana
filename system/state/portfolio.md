@@ -180,6 +180,13 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Status:** Production. Tenants: Palco + PDB (cliente amigo de validación). **Delorenzi = primer cliente oficial post-validación** (cerrado 2026-04-23, ARS 1.35M/mes × 3m, 2 ops Gualeguaychú+Paraná, target primer mensaje 2026-06-01). Otros: DGRX (onboarding 2026-04-16), Las Lupes (propuesta enviada 2026-05-08 · esperando respuesta · deal NO cerrado)
 - **Details:** `.claude/CLAUDE.md`, `docs/decisions/`. Per-client engagements viven en `~/enter_thebrana/clients/proyecto-anita/{dgrx,las-lupes,mya,palco}` (repos standalone desde 2026-06-10, t-1950); tenant config (Palco/PDB/Delorenzi) sigue en `tenants/`
 
+### maker-hub
+- **Type:** Venture — STEM education platform (store + LMS + AI assistant + community), Costco-style recurring membership (Gratis/Suscriptor/Colegios), Argentina market
+- **Location:** `~/enter_thebrana/ventures/maker-hub/`
+- **Stack:** Next.js (TS) + Tailwind, Supabase (auth/DB/pgvector), Mercado Pago, Claude API, Vercel
+- **Status:** Discovery/greenfield — aligned 2026-07-01, first MVP task seeded (t-1: age-segmented catalog + pricing engine + real auth)
+- **Details:** `CLAUDE.md.draft` (pending human merge into `CLAUDE.md` — Layer 1 gate), `docs/architecture/decisions/0001-tienda-propia-vs-tiendanube.md`, `docs/open-questions.md`, `.claude/tasks.json`
+
 ### linkedin
 - **Type:** Client acquisition funnel — content pipeline, profile, network, consulting
 - **Location:** `~/enter_thebrana/ventures/linkedin/`
@@ -246,3 +253,8 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Type:** code — Software porting/rebuild project
 - **Location:** `~/enter_thebrana/clients/crea/`
 - **Status:** Awaiting client answer — 2026-05-08
+
+### sunflower (RETIRED 2026-07-02)
+- **Type:** take-home — AI Engineer (Content) application for Sunflower Sober; 20-60s AI-produced video ad
+- **Location:** `~/enter_thebrana/clients/sunflower/` (git-initialized 2026-07-02, dormant)
+- **Status:** Completed 2026-05, retired 2026-07-02. 6 transferable AI-video-production patterns retained active, 1 archived historical (project memory dir)
