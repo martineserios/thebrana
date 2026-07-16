@@ -155,7 +155,11 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
    if [ -n "$CHECKS" ]; then
        echo "Running targeted checks for changed files: $CHECKS"
-       for check in $CHECKS; do
+       # `for check in $CHECKS` — zsh doesn't word-split unquoted scalar
+       # expansions by default (even space-joined ones), collapsing this to
+       # one iteration with $check bound to the entire multi-check string.
+       # Command substitution IS word-split in both bash and zsh, so wrap it:
+       for check in $(echo "$CHECKS"); do
            ./validate.sh --check "$check" || echo "⚠ Check $check failed — review before shipping"
        done
    else

@@ -55,13 +55,17 @@ PENDING_IDS=$(brana backlog query --status pending --output json 2>/dev/null \
 COMMIT_SUBJECTS=$(git -C "$MAIN_ROOT" log dev --oneline 2>/dev/null)
 
 STALE=()
-for id in $PENDING_IDS; do
+# Read-loop, not `for id in $PENDING_IDS` — zsh doesn't word-split unquoted
+# expansions by default, so an unquoted for-loop over this multi-line blob
+# collapses to one iteration with $id bound to the whole newline-joined list.
+while IFS= read -r id; do
+  [ -z "$id" ] && continue
   # Match only fix/feat/merge commits where the ID is the scope: "fix(t-123):" at line start.
   # Precision > recall: "fix(t-123):" matches; "migrate t-123 to..." or "chore(tasks): add t-123" do not.
   if echo "$COMMIT_SUBJECTS" | grep -qE "^[0-9a-f]+ (fix|feat|merge)\($id\):"; then
     STALE+=("$id")
   fi
-done
+done <<< "$PENDING_IDS"
 ```
 
 **If `STALE` is non-empty (up to 10 items):** batch via AskUserQuestion (multiSelect):
