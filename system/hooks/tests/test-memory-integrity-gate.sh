@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
-# Tests for integrity-gated ruflo memory backup/restore (t-2236).
+# Tests for integrity-gated ruflo memory backup/restore (t-2236, t-2260).
 #
-# Bug: backup-memory.sh and ruflo-mcp.sh only treated a 0-BYTE file as corrupt.
-# Real corruption is a malformed PAGE in a normal-sized file, so a corrupt DB
-# sailed through every guard: it got backed up (poisoning the backup set) and
-# restored (the restore-newest logic picked a corrupt backup). The fix gates
-# both backup and restore on `PRAGMA integrity_check`, while skipping the check
-# when a .db-wal file is present (a concurrent WAL reader looks malformed to an
-# external sqlite3 connection — a false positive).
+# Bug (t-2236): backup-memory.sh and ruflo-mcp.sh only treated a 0-BYTE file as
+# corrupt. Real corruption is a malformed PAGE in a normal-sized file, so a
+# corrupt DB sailed through every guard: it got backed up (poisoning the
+# backup set) and restored (the restore-newest logic picked a corrupt
+# backup). The fix gated both backup and restore on `PRAGMA integrity_check`.
+#
+# Bug (t-2260): that gate unconditionally SKIPPED the check whenever a
+# .db-wal sidecar existed, to dodge a false-positive on a live WAL reader.
+# ruflo's MCP server keeps a .db-wal present most of the time, so the gate
+# was skipped on most days — a real corrupt DB got copied into the backup
+# set unchecked for 10 straight days. The fix: when .db-wal is present,
+# checkpoint a COPY of the db+wal pair (never the live files) and integrity
+# check the copy — this still avoids the live-writer false-positive while
+# actually catching real corruption under a live WAL.
 #
 # These tests fail against the pre-fix scripts and pass after the fix.
 
@@ -101,22 +108,65 @@ else
     assert_fail "ruflo-mcp restored a healthy DB" "live DB still corrupt after wrapper ran"
 fi
 
-# --- Test 4: WAL present → integrity check skipped (no false-positive nuke) --
+# --- Test 4: ruflo-mcp.sh catches real corruption even with .db-wal present --
+# t-2260: the OLD gate skipped the check outright whenever .db-wal existed —
+# this fixture is genuinely corrupt (clobbered page) and must now be caught.
 echo ""
-echo "Test 4: .db-wal present suppresses integrity gate"
+echo "Test 4: ruflo-mcp catches real corruption despite a live .db-wal sidecar"
 T4="$TMPROOT/t4"; mkdir -p "$T4/.swarm/backups" "$T4/bin"
-make_corrupt_db "$T4/.swarm/memory.db"                   # 'corrupt' to ext. sqlite3
-touch "$T4/.swarm/memory.db-wal"                          # but a WAL reader is active
-INODE_BEFORE=$(stat -c%i "$T4/.swarm/memory.db")
+make_corrupt_db "$T4/.swarm/memory.db"
+touch "$T4/.swarm/memory.db-wal"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$T4/bin/ruflo"; chmod +x "$T4/bin/ruflo"
 HOME="$T4" PATH="$T4/bin:$PATH" bash "$RUFLO_SH" mcp start >/dev/null 2>&1 || true
-INODE_AFTER=$(stat -c%i "$T4/.swarm/memory.db" 2>/dev/null || echo missing)
-if [ "$INODE_BEFORE" = "$INODE_AFTER" ] && [ ! -e "$T4/.swarm/memory.db.corrupt-$(date +%Y-%m-%d)" ]; then
-    assert_pass "WAL-active DB left untouched (no quarantine)"
+if [ -f "$T4/.swarm/memory.db.corrupt-$(date +%Y-%m-%d)" ]; then
+    assert_pass "corrupt DB quarantined despite live .db-wal sidecar (t-2260 gap closed)"
 else
-    assert_fail "WAL-active DB left untouched (no quarantine)" \
-        "inode changed ($INODE_BEFORE→$INODE_AFTER) or a .corrupt- file was created"
+    assert_fail "corrupt DB quarantined despite live .db-wal sidecar (t-2260 gap closed)" \
+        "corrupt DB was left in place — the WAL-present skip loophole is still open"
 fi
+
+# --- Test 5: backup-memory.sh refuses corruption even with .db-wal present ---
+echo ""
+echo "Test 5: backup-memory.sh refuses corrupt DB despite a live .db-wal sidecar"
+T5="$TMPROOT/t5"; mkdir -p "$T5/swarm/backups"
+make_corrupt_db "$T5/swarm/memory.db"
+touch "$T5/swarm/memory.db-wal"
+HOME="$T5" RUFLO_DATA_DIR="$T5/swarm" bash "$BACKUP_SH" backup >/dev/null 2>&1 || true
+if find "$T5/swarm/backups" -name 'memory_*.db' | grep -q .; then
+    assert_fail "backup refuses corrupt DB despite live .db-wal sidecar" \
+        "a backup was written from a corrupt source DB while .db-wal was present"
+else
+    assert_pass "backup refuses corrupt DB despite live .db-wal sidecar"
+fi
+
+# --- Test 6: genuinely busy WAL with VALID data is still not a false positive
+# Regression guard for the original t-2236 concern: a real concurrent writer
+# holding an uncommitted transaction (real WAL frames, valid underlying data)
+# must not get treated as corrupt just because .db-wal exists.
+echo ""
+echo "Test 6: valid DB with a genuinely busy WAL still backs up (no false positive)"
+T6="$TMPROOT/t6"; mkdir -p "$T6/swarm/backups"
+make_valid_db "$T6/swarm/memory.db"
+sqlite3 "$T6/swarm/memory.db" "PRAGMA journal_mode=WAL;" >/dev/null
+FIFO="$TMPROOT/t6.fifo"
+mkfifo "$FIFO"
+( { printf 'BEGIN;\n'; printf "INSERT INTO t VALUES('pending-uncommitted');\n"; sleep 0.5; printf 'COMMIT;\n'; } > "$FIFO" ) &
+FEEDER_PID=$!
+sqlite3 "$T6/swarm/memory.db" < "$FIFO" >/dev/null 2>&1 &
+SQLITE_PID=$!
+sleep 0.2
+if [ ! -f "$T6/swarm/memory.db-wal" ]; then
+    assert_fail "fixture: busy WAL sidecar exists" "no -wal file appeared after BEGIN+INSERT"
+else
+    HOME="$T6" RUFLO_DATA_DIR="$T6/swarm" bash "$BACKUP_SH" backup >/dev/null 2>&1 || true
+    if find "$T6/swarm/backups" -name 'memory_*.db' | grep -q .; then
+        assert_pass "valid DB with busy WAL still backs up (no false positive)"
+    else
+        assert_fail "valid DB with busy WAL still backs up (no false positive)" \
+            "backup was skipped even though the underlying data is valid"
+    fi
+fi
+wait "$FEEDER_PID" "$SQLITE_PID" 2>/dev/null
 
 # --- Summary ----------------------------------------------------------------
 echo ""

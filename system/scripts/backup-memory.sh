@@ -29,12 +29,30 @@ log() { echo "[backup-memory] $*" >&2; }
 # A DB is healthy if PRAGMA integrity_check returns "ok". Real corruption is a
 # malformed PAGE in a normal-sized file, so a size check alone misses it (t-2236).
 # Degrade to healthy if sqlite3 is unavailable — never block backup on a missing
-# tool. Callers must skip this when a -wal sidecar is present: a live WAL reader
-# makes an external sqlite3 connection see a transient malformed image (false
-# positive).
+# tool. When a live writer holds a -wal sidecar, checking the live file directly
+# false-positives (a mid-transaction read looks malformed to an external
+# connection) — so instead we checkpoint a COPY of the db+wal pair (never the
+# live files) and check that. This still avoids the live-writer false positive
+# while actually catching real corruption under a live WAL — closing the gap
+# that let a corrupt DB ride into the backup set unchecked for 10 days (t-2260).
 db_is_healthy() {
+    local db="$1"
     command -v sqlite3 >/dev/null 2>&1 || return 0
-    sqlite3 "$1" "PRAGMA integrity_check;" 2>/dev/null | grep -q '^ok$'
+
+    if [ -f "${db}-wal" ]; then
+        local tmpdir
+        tmpdir=$(mktemp -d) || return 1
+        cp "$db" "$tmpdir/copy.db" 2>/dev/null || { rm -rf "$tmpdir"; return 1; }
+        cp "${db}-wal" "$tmpdir/copy.db-wal" 2>/dev/null || true
+        [ -f "${db}-shm" ] && cp "${db}-shm" "$tmpdir/copy.db-shm" 2>/dev/null
+        local result
+        result=$(sqlite3 "$tmpdir/copy.db" "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA integrity_check;" 2>/dev/null | tail -1)
+        rm -rf "$tmpdir"
+        [ "$result" = "ok" ]
+        return
+    fi
+
+    sqlite3 "$db" "PRAGMA integrity_check;" 2>/dev/null | grep -q '^ok$'
 }
 
 cmd_backup() {
@@ -54,9 +72,11 @@ cmd_backup() {
 
     # Page-level corruption is non-zero, so the size check above misses it.
     # Never copy a corrupt DB into the backup set — that poisons every future
-    # restore (the restore-newest loop, t-2236). Skip the check when a WAL
-    # reader is active (the malformed read would be a false positive).
-    if [ ! -f "${DB_FILE}-wal" ] && ! db_is_healthy "$DB_FILE"; then
+    # restore (the restore-newest loop, t-2236). db_is_healthy() itself handles
+    # a live -wal sidecar by checkpointing a copy, so it's safe to call
+    # unconditionally (t-2260 — the old skip-on-wal loophole let corruption
+    # through unchecked for 10 days).
+    if ! db_is_healthy "$DB_FILE"; then
         log "skip — $DB_FILE fails integrity_check (corrupt page). Not overwriting good backups."
         exit 0
     fi
