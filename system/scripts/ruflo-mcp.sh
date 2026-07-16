@@ -28,11 +28,31 @@ DB_PATH="$HOME/.swarm/memory.db"
 BACKUP_DIR="$HOME/.swarm/backups"
 mkdir -p "$BACKUP_DIR"
 
-# Integrity check: skip if another ruflo session has the DB open (WAL active),
-# since concurrent WAL reads appear malformed to external sqlite3 connections.
-# Only run integrity check when we're the sole opener (no .db-wal file present).
-if [ -f "$DB_PATH" ] && [ ! -f "${DB_PATH}-wal" ]; then
-    if ! sqlite3 "$DB_PATH" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"; then
+# Integrity check: a live -wal sidecar means another ruflo session may have the
+# DB open, and checking the live file directly would false-positive (a
+# mid-transaction read looks malformed to an external connection). Instead of
+# skipping the check outright (t-2260 — that let real corruption through
+# unchecked for 10 days since a -wal file is present most of the time), we
+# checkpoint a COPY of the db+wal pair — never the live files — and check that.
+ruflo_mcp_db_is_healthy() {
+    local db="$1"
+    if [ -f "${db}-wal" ]; then
+        local tmpdir
+        tmpdir=$(mktemp -d) || return 1
+        cp "$db" "$tmpdir/copy.db" 2>/dev/null || { rm -rf "$tmpdir"; return 1; }
+        cp "${db}-wal" "$tmpdir/copy.db-wal" 2>/dev/null || true
+        [ -f "${db}-shm" ] && cp "${db}-shm" "$tmpdir/copy.db-shm" 2>/dev/null
+        local result
+        result=$(sqlite3 "$tmpdir/copy.db" "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA integrity_check;" 2>/dev/null | tail -1)
+        rm -rf "$tmpdir"
+        [ "$result" = "ok" ]
+        return
+    fi
+    sqlite3 "$db" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"
+}
+
+if [ -f "$DB_PATH" ]; then
+    if ! ruflo_mcp_db_is_healthy "$DB_PATH"; then
         echo "[ruflo-mcp] memory.db integrity check failed — recovering." >&2
         mv "$DB_PATH" "${DB_PATH}.corrupt-$(date +%Y-%m-%d)" 2>/dev/null || true
         # Restore the newest backup that PASSES integrity_check — not just the
