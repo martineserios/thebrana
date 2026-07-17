@@ -60,6 +60,18 @@ The classification logic lives in `system/scripts/close-classify.sh` — the
 `tests/procedures/test-close-weight-adaptive.sh`. Never inline or replicate the
 matrix here (a replicated copy rotted silently once — t-1978).
 
+**Path resolution — `$HOME/.claude/scripts/`, not `$(git-root)/system/scripts/`.**
+`close-classify.sh`/`close-snapshot.sh`/`close-abort.sh` are thebrana-authored
+scripts, but this skill runs inside whatever project the session is closing
+(proyecto_anita, other clients, etc.) — those repos don't vendor a copy under
+`system/scripts/`. `bootstrap.sh` deploys thebrana's `system/scripts/` →
+`~/.claude/scripts/` (identical content, confirmed byte-for-byte) as the one
+location guaranteed to exist regardless of project. Resolve from `$HOME`, matching
+the convention already used elsewhere in this skill (`cf-env.sh`,
+`backup-knowledge.sh` in metadata-and-memory.md / errata-and-patterns.md /
+notes-and-ideation.md) — never `$(git rev-parse --show-toplevel)/system/scripts/`,
+which only happens to resolve when the git-root IS thebrana itself.
+
 ```bash
 # Window anchored on the previous close's session-state written_at (t-1979 #11) —
 # wall-clock windows miss long sessions and double-count short gaps. The 6h
@@ -68,7 +80,7 @@ LAST_CLOSE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty
 COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
 
-CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/system/scripts/close-classify.sh" \
+CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.sh" \
     --commit-count "${COMMIT_COUNT:-0}" --arguments "$ARGUMENTS")
 ```
 
@@ -111,7 +123,7 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/syst
 
 **`--abort` execution:** before anything else, require a reason (free text follows the flag, e.g. `/brana:close --abort "approach invalidated"`; none given → ask). If the tree is dirty, ask: stash / hard reset (show what's lost) / leave. Then run the tested sequence — never inline git commands:
 ```bash
-bash "$(git rev-parse --show-toplevel)/system/scripts/close-abort.sh" \
+bash "$HOME/.claude/scripts/close-abort.sh" \
     --task-id "{active task id}" --reason "{reason}" --dirty "{stash|reset|leave}"
 ```
 The script archives the branch as a pushed `aborted/*` tag, lands on main, returns the task to pending. After it succeeds: write the minimal handoff (Step 9, reason only) and skip everything else.
@@ -147,7 +159,7 @@ else
     SESSION_RANGE=""   # root commit or empty session — let the script fall back
 fi
 
-bash {GIT_ROOT}/system/scripts/close-snapshot.sh \
+bash "$HOME/.claude/scripts/close-snapshot.sh" \
     --git-root "$(git rev-parse --show-toplevel)" \
     --branch "$(git branch --show-current)" \
     --project "$(basename "$(git rev-parse --show-toplevel)")" \
