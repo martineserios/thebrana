@@ -243,7 +243,7 @@ slug belongs to *this* session (see Converge below).
 TIER2B_SLUGS=$(git log --oneline -20 \
   | grep -oE 't-[0-9]+' | sort -u \
   | while read id; do
-      brana backlog get "$id" --json 2>/dev/null | jq -r '.epic // empty'
+      brana backlog get "$id" 2>/dev/null | jq -r '.epic // empty'
     done \
   | sort -u | grep -v '^$')
 ```
