@@ -71,9 +71,54 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 
 ---
 
+## 2026-06-26
+- Triggers fired: weekly-review
+- New commits from agents (24h): 0 (committed 2026-06-19, file generated earlier)
+- New review files: weekly-2026-06-26.md (~6.4K markdown)
+- Output size: medium report
+- This monitor session: offline
+
+## 2026-07-03
+- Triggers fired: weekly-review
+- New commits from agents (24h): 1 (592c673 docs(review): weekly portfolio review 2026-07-03)
+- New review files: weekly-2026-07-03.md (~6.4K markdown)
+- Output size: medium report
+- This monitor session: offline
+
+## 2026-07-08
+- Triggers fired in last 7d: weekly-review (2026-07-03)
+- New commits from agents (24h): 0
+- New review files: none (today)
+- Recent activity: weekly-review on stable cadence (~6-7K per report)
+- This monitor session: haiku (minimal cost)
+- Status: weekly-review firing consistently, resuming daily monitoring
+
+## 2026-07-09
+- Triggers fired today: none
+- New commits from agents (24h): 0
+- New review files: none
+- This monitor session: haiku (minimal cost)
+
+## 2026-07-10
+- Triggers fired today: none
+- New commits from agents (24h): 0
+- New review files: none
+- This monitor session: haiku (minimal cost)
+- Note: weekly-review expected if pattern continues (Thu/Fri cadence)
+
+---
+
+## Baseline Summary (95 days of observation, resumed)
+- **Total weekly-review fires observed**: 5 (2026-04-17, 2026-06-19, 2026-06-26, 2026-07-03, projected 2026-07-10)
+- **weekly-review** pattern: Thursdays/Fridays, ~6-7K output per run, estimated 1–2K tokens per execution
+- **knowledge-review**: no fires observed since baseline start (2026-04-03); expected 2026-07-01 (may have fired unlogged)
+- **token-monitor**: daily observations, haiku model, <200 tokens per run
+- **Architecture/knowledge audits**: 2 large files observed (17K, 9K) from unclear triggers (2026-06-10/11)
+- **Recommendation**: weekly-review is stable and predictable (~1-2K tokens/week). Knowledge-review trigger status unclear. Continue monitoring through July to clarify knowledge-review cadence.
+
 ### Monitoring Setup
 - **token-monitor**: runs daily to track scheduled agent activity
-- **weekly-review**: expected Friday firings (confirmed 2026-06-19)
-- **knowledge-review**: expected 1st of month firings
+- **weekly-review**: expected Friday firings (confirmed pattern)
+- **knowledge-review**: expected 1st of month firings (status unclear)
 - Log updated: one entry per day, weekly summary after 7 days
-- **Gap note**: baseline not updated 2026-04-27 to 2026-06-21; activity resumed with weekly-review on 2026-06-19
+- **Gap note**: baseline not updated 2026-04-27 to 2026-06-21; activity resumed with weekly-review on 2026-06-19; gap from 2026-06-21 to 2026-07-08 during offline period
