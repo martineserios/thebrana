@@ -961,8 +961,15 @@ fn branch_has_active_worktree(project_root: &Path, branch: &str) -> bool {
         return false;
     }
 
+    // Use the fully-qualified ref, not the bare branch name, as the revision arg — a
+    // branch starting with `-` would otherwise be parsed as a git option. (A trailing
+    // `--` would NOT fix this: in `git log`, `--` marks the start of pathspecs, not
+    // "end of options", so it would misinterpret the ref as a path filter instead of a
+    // revision — caught in review after an initial attempt at this fix broke the tests
+    // above, t-2263 challenger finding.)
+    let full_ref = format!("refs/heads/{branch}");
     let log_out = match std::process::Command::new("git")
-        .args(["-C", &root, "log", "-1", "--format=%ct", branch])
+        .args(["-C", &root, "log", "-1", "--format=%ct", &full_ref])
         .output()
     {
         Ok(out) if out.status.success() => out,

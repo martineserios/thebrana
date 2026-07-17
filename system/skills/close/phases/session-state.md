@@ -257,8 +257,10 @@ history — a hit here means a task/commit this session actually touched carries
   use it silently as `$INITIATIVE_SLUG`. Done.
 - Exactly 1 unique non-empty slug but it does **not** appear in `$TIER2B_SLUGS` (i.e. the
   only hit came from Tier 2a alone, with no corroborating task/commit this session
-  touched) → do not accept it silently. Fall through to Tier 2c.
-- 0 or 2+ → fall through to Tier 2c.
+  touched) → **discard it — do not carry it into Tier 2c's signal set.** Fall through to
+  Tier 2c treating the signal set as empty (see t-2263 note below — Tier 2c's own gate and
+  re-converge would otherwise silently re-accept this same uncorroborated slug).
+- 0 or 2+ → fall through to Tier 2c with that signal set unchanged.
 
 **Why the corroboration requirement (t-2263):** Tier 2a alone found the sole slug
 `"orbit"` from an in-progress task in a completely unrelated, concurrently active
@@ -276,7 +278,14 @@ name) instead of being trusted blindly.
 ```bash
 git branch --show-current | sed 's|.*/||'
 ```
-Use result if it matches a known epic slug (non-empty, no special chars) and the 2a+2b signal set was empty. Add to signal set and re-converge: exactly 1 unique → use silently. 0 or 2+ → fall through to Tier 3.
+Use result if it matches a known epic slug (non-empty, no special chars) **and the 2a+2b
+signal set is empty at this point** — which per Converge above now includes the discarded
+uncorroborated-single-hit case, not just a literally-empty union. (t-2263: this gate must
+read the *post-discard* signal set, not the raw 2a∪2b union — otherwise an uncorroborated
+Tier 2a hit like "orbit" would skip the branch-name check here and instead hit the
+re-converge clause below on its own, silently re-accepting the exact slug Converge just
+rejected.) Add the branch-name result to the (now-empty, or still-conflicting) signal set
+and re-converge: exactly 1 unique → use silently. 0 or 2+ → fall through to Tier 3.
 
 **Tier 3 (ask):** If all tiers returned 0 or conflicting results, ask once:
 ```
