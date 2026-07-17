@@ -43,6 +43,12 @@ pub struct Input {
     /// Create the task in another project's backlog by portfolio slug (cross-project).
     /// Resolves via ~/.claude/tasks-portfolio.json. Default: current project.
     pub project: Option<String>,
+
+    /// Epic slug (e.g. "cc-alignment", "backlog-schema-v2")
+    pub epic: Option<String>,
+
+    /// Work type: implement, research, design, infra, chore, review
+    pub work_type: Option<String>,
 }
 
 fn default_type() -> String { "task".into() }
@@ -75,6 +81,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             }
             if let Some(k) = input.kind.as_deref() {
                 brana_core::tasks::validate_kind(k)
+                    .map_err(pmcp::Error::validation)?;
+            }
+            if let Some(wt) = input.work_type.as_deref() {
+                brana_core::tasks::validate_work_type(wt)
                     .map_err(pmcp::Error::validation)?;
             }
             brana_core::tasks::validate_execution(&input.execution)
@@ -115,6 +125,8 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "github_issue": null,
                 "execution": input.execution,
                 "acceptance_criteria": input.acceptance_criteria,
+                "epic": input.epic,
+                "work_type": input.work_type,
             });
 
             val["tasks"].as_array_mut()
@@ -251,5 +263,91 @@ mod tests {
             .find(|t| t["id"] == out["id"])
             .expect("added task must be persisted");
         assert_eq!(task["execution"], "autonomous");
+    }
+
+    // ── t-2263: epic/work_type params were missing from the MCP schema, so
+    // MCP-created tasks (unlike CLI-created ones, which already had --epic /
+    // --work-type) could never carry an epic — the Tier 2b blind spot that fed
+    // t-2263's epic-detection false positive. ──────────────────────────────
+
+    #[tokio::test]
+    async fn test_mcp_add_persists_epic_and_work_type() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({
+                    "subject": "task with epic",
+                    "epic": "harness",
+                    "work_type": "implement"
+                }),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("handler must accept epic and work_type");
+
+        assert_eq!(out["ok"], true);
+        let tasks = h.tasks();
+        let task = tasks["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["id"] == out["id"])
+            .expect("added task must be persisted");
+        assert_eq!(task["epic"], "harness", "epic must be persisted: {task}");
+        assert_eq!(
+            task["work_type"], "implement",
+            "work_type must be persisted: {task}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_mcp_add_bogus_work_type_rejected() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let err = build()
+            .handle(
+                json!({"subject": "bad work_type", "work_type": "bogus"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect_err("handler must reject work_type=\"bogus\"");
+
+        let msg = err.to_string();
+        assert!(msg.contains("implement"), "error must list valid values: {msg}");
+        assert_eq!(
+            h.tasks()["tasks"].as_array().unwrap().len(),
+            0,
+            "rejected add must not persist a task"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_mcp_add_epic_and_work_type_default_absent() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let out = build()
+            .handle(json!({"subject": "task without epic"}), pmcp::RequestHandlerExtra::default())
+            .await
+            .expect("handler must accept omitted epic/work_type");
+
+        let tasks = h.tasks();
+        let task = tasks["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["id"] == out["id"])
+            .expect("added task must be persisted");
+        assert!(
+            task["epic"].is_null(),
+            "epic should default to null, not error: {task}"
+        );
+        assert!(
+            task["work_type"].is_null(),
+            "work_type should default to null, not error: {task}"
+        );
     }
 }
