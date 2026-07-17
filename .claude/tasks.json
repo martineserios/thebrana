@@ -60207,6 +60207,32 @@
       ],
       "type": "task",
       "work_type": "docs"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "2026-07-16: filed as a follow-up from t-2261. Our existing t-2236/t-2260 detection+recovery layer already covers the corruption symptom with zero data loss, so this is low urgency (tracking, not blocking).",
+      "created": "2026-07-17",
+      "description": "t-2261 (2026-07-16 investigation into recurring ~/.swarm/memory.db page corruption) identified the root cause as missing PRAGMA busy_timeout in @claude-flow/memory sqlite-backend.js/memory-initializer.js, compounded by hybrid-backend.js hardcoding dualWrite:true and missing transaction wrapping in the single-entry store() method. This is vendored third-party code (node_modules/@claude-flow/memory inside globally-installed ruflo) — not fixable directly in this repo.\n\nUpstream already has an open, unmerged fix: ruvnet/ruflo#2512 (\"fix(metaharness+autopilot+memory): verify persist, unblock learning, busy_timeout\"), commit 3b768bbc5 sets busy_timeout=5000, citing their own ADR-100 R2a as a P0 fix for exactly this B-tree corruption pattern. Also relevant: closed issue #1257 describes the same HybridBackend dualWrite contention pattern in detail.\n\nAC: periodically check ruvnet/ruflo#2512 for merge status\nAC: once merged and released, run npm update -g ruflo (or equivalent) to pick up the fix\nAC: after upgrading, re-verify busy_timeout is actually set (grep the installed sqlite-backend.js / memory-initializer.js) and confirm no new memory.db corruption recurs over the following weeks\nAC: if #2512 stalls indefinitely, revisit whether a local monkey-patch or alternative memory backend is warranted",
+      "effort": "S",
+      "epic": "harness",
+      "execution": "code",
+      "github_issue": "1028",
+      "id": "t-2266",
+      "kind": "ops",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "Track ruvnet/ruflo#2512 (busy_timeout fix); upgrade ruflo once merged",
+      "tags": "harness,ruflo,memory,corruption",
+      "type": "task",
+      "work_type": "chore"
     }
   ],
   "version": "1"
