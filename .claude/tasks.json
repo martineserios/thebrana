@@ -60178,6 +60178,35 @@
       "tags": "harness,skills,close,session-state,shell-bug",
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Surfaced 2026-07-17 in proyecto_anita session close (t-2006 close, session-state next[] item). Deferred at the time per operator call (kept in next[] only).",
+      "created": "2026-07-17",
+      "description": "gate-and-evidence.md assumes close-classify.sh/close-snapshot.sh/close-abort.sh live at $(git rev-parse --show-toplevel)/system/scripts/. In consumer projects without a vendored system/scripts/ dir (e.g. proyecto_anita), those scripts actually resolve to ~/.claude/scripts/. Document the real resolution path so future close sessions in projects without vendored scripts don't have to rediscover it via find.",
+      "effort": "S",
+      "epic": "close",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2265",
+      "kind": "docs",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "Fix close skill script-path doc (system/scripts vs ~/.claude/scripts)",
+      "tags": [
+        "close-skill",
+        "docs"
+      ],
+      "type": "task",
+      "work_type": "docs"
     }
   ],
   "version": "1"
