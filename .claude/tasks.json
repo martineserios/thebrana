@@ -60053,21 +60053,23 @@
       "acceptance_criteria": null,
       "blocked_by": [],
       "branch": null,
-      "completed": null,
+      "completed": "2026-07-16",
       "context": "2026-07-16: Repaired the 07-06..07-16 corruption with zero data loss (3754/3754 memory_entries rows recovered) and fixed the WAL-skip detection loophole (t-2260, commit 6cf3f147, merged to dev but not yet shipped to ~/.claude/). This task is the follow-up write-path investigation flagged in project_ruflo-memory-corruption-recurring memory — not urgent (data was recoverable this time and backups are now integrity-gated), but the corruption keeps recurring and the actual cause is still unknown.\n\nAC: identify the actual mechanism causing page-level corruption in ~/.swarm/memory.db (not just detect/recover from it)\nAC: either confirm concurrent ruflo mcp processes are safe under WAL and rule that out, or find and fix the unsafe write path\nAC: findings written back to project_ruflo-memory-corruption-recurring memory regardless of outcome",
       "created": "2026-07-16",
       "description": "~/.swarm/memory.db (ruflo's SQLite memory store) has corrupted at the page level 3+ times: 2026-06-07, a 2026-06-16→06-28 cluster (fixed by t-2236's integrity gate), and a 2026-07-06→07-16 recurrence (fixed by t-2260, which closed the WAL-skip loophole in that same gate). Every fix so far has patched the detection/backup layer — integrity-gating backup-memory.sh and ruflo-mcp.sh — not the write path itself. Nothing explains how the pages actually get corrupted in the first place.\n\nLeading suspect: 5 concurrent `ruflo mcp start` processes were observed running simultaneously on 2026-07-16, all writing to the same memory.db. ruflo-mcp.sh relies on SQLite WAL mode to serialize concurrent writers safely, and its own comments (citing t-2085) explicitly reject flock/orphan-sweep as having *caused* corruption previously — so the assumption that WAL mode alone is sufficient under this process topology hasn't been validated, and may be wrong.\n\nInvestigate:\n- Whether concurrent `ruflo mcp start` processes (one per Claude Code session/window) are actually safe under SQLite WAL, or whether stale/orphaned processes are holding locks/partial transactions across crashes\n- Whether ~/.swarm sits on a filesystem with fsync/mmap quirks relevant to SQLite's WAL durability guarantees\n- Whether a specific ruflo memory-write code path (batch store, embeddings write, hive-mind/consolidation jobs) bypasses normal WAL-safe writes\n- Whether corruption timing correlates with session crashes, machine sleep/resume, or specific ruflo commands",
       "effort": "M",
+      "epic": "harness",
       "execution": "code",
       "github_issue": null,
       "id": "t-2261",
       "kind": "research",
-      "notes": null,
+      "notes": "REPORT: root cause identified with high confidence, independently corroborated by upstream (ruvnet/ruflo#2512 open PR citing their own ADR-100 R2a as P0, and #1257 closed issue with matching file:line detail). Missing PRAGMA busy_timeout in @claude-flow/memory's SQLiteBackend + memory-initializer.js, compounded by hybrid-backend.js's hardcoded dualWrite:true (concurrent sqlite+agentdb writes per store() call) and missing transaction wrapping around store()'s 3 statements. Confirmed our live topology: 5 concurrent ruflo mcp start processes, all with live parent claude sessions (not orphaned) -- ruled that hypothesis out. Ruled out filesystem/mmap quirks (plain ext4, zero kernel I/O errors in 30 days) and mixed journal modes (walMode:true always). Cannot fix directly -- defect is in vendored node_modules (third-party npm package), not this repo. Findings written to project_ruflo-memory-corruption-recurring memory per AC3. No follow-up task filed: our existing t-2236/t-2260 detection+recovery layer already covers the symptom with zero data loss; recommended path is tracking upstream #2512 for merge and upgrading ruflo.",
       "order": 0,
       "parent": null,
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-07-16",
+      "status": "completed",
+      "strategy": "investigation",
       "subject": "Investigate root cause of recurring ruflo memory.db page corruption",
       "tags": [
         "ruflo",
@@ -60076,7 +60078,8 @@
         "harness",
         "investigation"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "research"
     },
     {
       "acceptance_criteria": [
