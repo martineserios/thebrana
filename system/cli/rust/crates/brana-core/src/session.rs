@@ -366,6 +366,26 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
         if same_day && same_branch {
             merge_states(&existing, state).sanitize()
         } else {
+            // About to replace a different branch's state outright. Refuse if that
+            // branch's worktree looks still active — this is the same failure class
+            // as the 2026-05-19 "brana session write is replace-not-merge — same-day
+            // parallel close loses data" field note (t-1461, close/SKILL.md), just
+            // triggered via a mismatched epic key instead of the day key (t-2263):
+            // a mis-detected epic can route this session's write into another,
+            // still-live session's file, and an unconditional replace would silently
+            // clobber it.
+            if !same_branch {
+                if let Some(existing_branch) = existing.branch.as_deref() {
+                    if branch_has_active_worktree(project_root, existing_branch) {
+                        anyhow::bail!(
+                            "refusing to overwrite session-state for branch {existing_branch:?} — \
+                             its worktree has a commit within the last {}h, so it looks still \
+                             active. If it's actually stale, remove the worktree first.",
+                            ACTIVE_WORKTREE_WINDOW_SECS / 3600
+                        );
+                    }
+                }
+            }
             state.clone().sanitize()
         }
     } else {
@@ -898,6 +918,68 @@ pub fn current_branch() -> Option<String> {
                 None
             }
         })
+}
+
+/// How recent a branch's last commit must be for its worktree to count as
+/// "still active" (t-2263). 24h, not the tighter 15m used by ADR-061's
+/// interactive-presence interlock — that check answers "is a human at the
+/// keyboard right now", this one answers "is this branch under active
+/// development", and git-discipline.md's own guidance (fixes: hours,
+/// features: days) means a 15m window would false-block routine multi-hour
+/// work. 24h still catches worktrees abandoned by a crash without waiting
+/// as long as stale-branches-reap.sh's much longer cleanup threshold.
+const ACTIVE_WORKTREE_WINDOW_SECS: i64 = 24 * 60 * 60;
+
+/// Best-effort check: does `branch` have a live git worktree with a commit
+/// within `ACTIVE_WORKTREE_WINDOW_SECS`? Fails open (returns `false`, i.e.
+/// "not active") on any git error or non-repo `project_root` — this check is
+/// a safety improvement, not a hard dependency, so callers without a real
+/// git repo (e.g. a bare tempdir in tests) simply skip it.
+///
+/// Existence-of-worktree alone would also be a reasonable signal (this
+/// repo's git-discipline.md hard rule always removes worktrees after
+/// merge), but pairing it with commit recency avoids false positives from
+/// worktrees left behind by a crash and never cleaned up.
+fn branch_has_active_worktree(project_root: &Path, branch: &str) -> bool {
+    if branch.is_empty() {
+        return false;
+    }
+    let root = project_root.to_string_lossy();
+
+    let worktree_list = match std::process::Command::new("git")
+        .args(["-C", &root, "worktree", "list", "--porcelain"])
+        .output()
+    {
+        Ok(out) if out.status.success() => out,
+        _ => return false,
+    };
+    let text = String::from_utf8_lossy(&worktree_list.stdout);
+    let has_worktree = text
+        .lines()
+        .any(|l| l == format!("branch refs/heads/{branch}"));
+    if !has_worktree {
+        return false;
+    }
+
+    // Use the fully-qualified ref, not the bare branch name, as the revision arg — a
+    // branch starting with `-` would otherwise be parsed as a git option. (A trailing
+    // `--` would NOT fix this: in `git log`, `--` marks the start of pathspecs, not
+    // "end of options", so it would misinterpret the ref as a path filter instead of a
+    // revision — caught in review after an initial attempt at this fix broke the tests
+    // above, t-2263 challenger finding.)
+    let full_ref = format!("refs/heads/{branch}");
+    let log_out = match std::process::Command::new("git")
+        .args(["-C", &root, "log", "-1", "--format=%ct", &full_ref])
+        .output()
+    {
+        Ok(out) if out.status.success() => out,
+        _ => return false,
+    };
+    let commit_ts: i64 = match String::from_utf8_lossy(&log_out.stdout).trim().parse() {
+        Ok(ts) => ts,
+        Err(_) => return false,
+    };
+    (Utc::now().timestamp() - commit_ts) < ACTIVE_WORKTREE_WINDOW_SECS
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────
@@ -1810,5 +1892,145 @@ mod tests {
         let loaded_a = read_state_from(root, "memory-arch/feat/t-1-foo").expect("branch A state must exist");
         assert!(loaded_a.accomplished.contains(&"work on A".to_string()));
         assert!(!loaded_a.accomplished.contains(&"work on B".to_string()), "different-branch write must not bleed into branch A state");
+    }
+
+    // ── t-2263: overwrite-safety check (branch_has_active_worktree) ────────
+
+    /// Init a minimal git repo at `root` with one commit, reachable from both
+    /// `main` and `branch_name`, authored `age_secs` seconds ago.
+    fn init_git_repo_with_commit(root: &Path, branch_name: &str, age_secs: i64) {
+        let git = |args: &[&str]| {
+            let ts = (Utc::now().timestamp() - age_secs).to_string();
+            let status = std::process::Command::new("git")
+                .args(args)
+                .current_dir(root)
+                .env("GIT_AUTHOR_NAME", "test")
+                .env("GIT_AUTHOR_EMAIL", "test@test")
+                .env("GIT_COMMITTER_NAME", "test")
+                .env("GIT_COMMITTER_EMAIL", "test@test")
+                .env("GIT_AUTHOR_DATE", format!("{ts} +0000"))
+                .env("GIT_COMMITTER_DATE", format!("{ts} +0000"))
+                .status()
+                .expect("git command must run");
+            assert!(status.success(), "git {args:?} must succeed");
+        };
+        git(&["init", "-q", "-b", "main"]);
+        std::fs::write(root.join("README.md"), "x").unwrap();
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "init"]);
+        if branch_name != "main" {
+            git(&["branch", branch_name]);
+        }
+    }
+
+    #[test]
+    fn write_state_blocks_overwrite_when_target_branch_worktree_active() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let orbit_branch = "orbit/feat/t-2173-thing";
+        init_git_repo_with_commit(root, orbit_branch, 60); // 1 minute old — active
+
+        let wt_dir = tempdir().unwrap();
+        let status = std::process::Command::new("git")
+            .args(["-C", &root.to_string_lossy(), "worktree", "add"])
+            .arg(wt_dir.path())
+            .arg(orbit_branch)
+            .status()
+            .expect("git worktree add must run");
+        assert!(status.success(), "git worktree add must succeed");
+
+        // Orbit's live session state, routed by its own branch.
+        let orbit_state = SessionState {
+            branch: Some(orbit_branch.to_string()),
+            accomplished: vec!["orbit work".to_string()],
+            ..make_state("2026-05-24T10:00:00Z")
+        };
+        write_state(root, &orbit_state).unwrap();
+
+        // This session mis-detects epic "orbit" (t-2263's actual bug) and tries to
+        // write under a completely different branch — must be refused, not clobbered.
+        let misrouted = SessionState {
+            branch: Some("harness/fix/t-2260-thing".to_string()),
+            epic: Some("orbit".to_string()),
+            accomplished: vec!["unrelated work".to_string()],
+            ..make_state("2026-05-25T10:00:00Z")
+        };
+        let result = write_state(root, &misrouted);
+        assert!(
+            result.is_err(),
+            "write must be refused when the target branch's worktree looks active"
+        );
+
+        let loaded = read_state_from(root, orbit_branch).expect("orbit state must survive");
+        assert!(
+            loaded.accomplished.contains(&"orbit work".to_string()),
+            "orbit's live state must NOT be clobbered"
+        );
+        assert!(!loaded.accomplished.contains(&"unrelated work".to_string()));
+    }
+
+    #[test]
+    fn write_state_replaces_when_target_branch_worktree_gone() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let orbit_branch = "orbit/feat/t-2173-thing";
+        init_git_repo_with_commit(root, orbit_branch, 60);
+        // No worktree created for orbit_branch — simulates the normal case where the
+        // branch was already merged and its worktree removed (git-discipline.md).
+
+        let orbit_state = SessionState {
+            branch: Some(orbit_branch.to_string()),
+            accomplished: vec!["orbit work".to_string()],
+            ..make_state("2026-05-24T10:00:00Z")
+        };
+        write_state(root, &orbit_state).unwrap();
+
+        let misrouted = SessionState {
+            branch: Some("harness/fix/t-2260-thing".to_string()),
+            epic: Some("orbit".to_string()),
+            accomplished: vec!["unrelated work".to_string()],
+            ..make_state("2026-05-25T10:00:00Z")
+        };
+        write_state(root, &misrouted).expect("write must proceed when no worktree exists for the target branch");
+
+        let loaded = read_state_from(root, orbit_branch).expect("state must exist after replace");
+        assert!(loaded.accomplished.contains(&"unrelated work".to_string()));
+    }
+
+    #[test]
+    fn write_state_replaces_when_target_branch_worktree_stale() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let orbit_branch = "orbit/feat/t-2173-thing";
+        // Commit is 48h old — outside the 24h active window despite a live worktree.
+        init_git_repo_with_commit(root, orbit_branch, 48 * 60 * 60);
+
+        let wt_dir = tempdir().unwrap();
+        let status = std::process::Command::new("git")
+            .args(["-C", &root.to_string_lossy(), "worktree", "add"])
+            .arg(wt_dir.path())
+            .arg(orbit_branch)
+            .status()
+            .expect("git worktree add must run");
+        assert!(status.success());
+
+        let orbit_state = SessionState {
+            branch: Some(orbit_branch.to_string()),
+            accomplished: vec!["orbit work".to_string()],
+            ..make_state("2026-05-24T10:00:00Z")
+        };
+        write_state(root, &orbit_state).unwrap();
+
+        let misrouted = SessionState {
+            branch: Some("harness/fix/t-2260-thing".to_string()),
+            epic: Some("orbit".to_string()),
+            accomplished: vec!["unrelated work".to_string()],
+            ..make_state("2026-05-25T10:00:00Z")
+        };
+        write_state(root, &misrouted)
+            .expect("write must proceed when the worktree's last commit is outside the active window");
+
+        let loaded = read_state_from(root, orbit_branch).expect("state must exist after replace");
+        assert!(loaded.accomplished.contains(&"unrelated work".to_string()));
     }
 }
