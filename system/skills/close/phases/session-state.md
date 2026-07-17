@@ -230,27 +230,47 @@ If empty, fall through to Tier 2a.
 
 **Tier 2a:** Query in-progress tasks for a common epic:
 ```bash
-brana backlog query --status in_progress --json 2>/dev/null \
-  | jq -r '.[].epic // empty' | sort -u
+TIER2A_SLUGS=$(brana backlog query --status in_progress --json 2>/dev/null \
+  | jq -r '.[].epic // empty' | sort -u)
 ```
-Collect non-empty results into the signal set; continue regardless.
+Collect non-empty results into the signal set; continue regardless. **Caveat:** this
+queries in-progress tasks across the *whole portfolio*, including concurrently active
+worktrees on completely unrelated epics — a hit here is not by itself evidence that the
+slug belongs to *this* session (see Converge below).
 
 **Tier 2b:** Extract task IDs from recent commits and look up their epic fields:
 ```bash
-git log --oneline -20 \
+TIER2B_SLUGS=$(git log --oneline -20 \
   | grep -oE 't-[0-9]+' | sort -u \
   | while read id; do
       brana backlog get "$id" --json 2>/dev/null | jq -r '.epic // empty'
     done \
-  | sort -u | grep -v '^$'
+  | sort -u | grep -v '^$')
 ```
 Add all non-empty results to the signal set. Fixes false Tier 3 prompts when all
 in_progress tasks completed before close but this session's commits reference tasks that
-carry an epic field.
+carry an epic field. Unlike Tier 2a, this is scoped to *this session's own* recent git
+history — a hit here means a task/commit this session actually touched carries that epic.
 
-**Converge 2a + 2b:** Deduplicate the signal set.
-- Exactly 1 unique non-empty slug → use it silently as `$INITIATIVE_SLUG`. Done.
+**Converge 2a + 2b:** Deduplicate the union of `$TIER2A_SLUGS` and `$TIER2B_SLUGS`.
+- Exactly 1 unique non-empty slug **AND that slug also appears in `$TIER2B_SLUGS`** →
+  use it silently as `$INITIATIVE_SLUG`. Done.
+- Exactly 1 unique non-empty slug but it does **not** appear in `$TIER2B_SLUGS` (i.e. the
+  only hit came from Tier 2a alone, with no corroborating task/commit this session
+  touched) → do not accept it silently. Fall through to Tier 2c.
 - 0 or 2+ → fall through to Tier 2c.
+
+**Why the corroboration requirement (t-2263):** Tier 2a alone found the sole slug
+`"orbit"` from an in-progress task in a completely unrelated, concurrently active
+worktree; Tier 2b was empty because the session's own tasks (created via an MCP tool
+that had no `epic` parameter at the time, t-2263 AC1) carried no epic field. The old rule
+accepted "orbit" silently — since it was the only slug found — and `brana session write`
+then routed this session's handoff into `session-state-orbit.json`, clobbering the live
+orbit session's state (the same failure class as the 2026-05-19 "same-day parallel close
+loses data" field note, `close/SKILL.md`, t-1461 — replace-not-merge on shared state,
+just keyed by epic instead of day). Requiring Tier 2b corroboration means a lone Tier 2a
+hit with nothing in this session's own git history now falls through to Tier 2c (branch
+name) instead of being trusted blindly.
 
 **Tier 2c (branch name):** Parse branch name for a slug:
 ```bash
