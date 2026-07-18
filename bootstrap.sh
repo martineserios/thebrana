@@ -279,17 +279,33 @@ fi
 # brana-managed — --delete removes files absent from source.
 echo "Hooks:"
 if [ -d "$SYSTEM_DIR/hooks" ] && command -v rsync &>/dev/null; then
-    HOOK_CHANGES=$(rsync -a --delete --dry-run --itemize-changes "$SYSTEM_DIR/hooks/" "$TARGET_DIR/hooks/" 2>/dev/null | grep -cv '/$' || true)
-    if [ "${HOOK_CHANGES:-0}" -gt 0 ]; then
-        CHANGES=$((CHANGES + HOOK_CHANGES))
-        if $CHECK_ONLY; then
-            echo "  ~ hooks/ ($HOOK_CHANGES files would change)"
+    # Dry-run failure must NOT read as "0 changes" (challenger t-2270 W1):
+    # capture the exit code separately, and on error deploy unguarded
+    # (fail-loud) rather than silently skipping.
+    if DRYRUN_OUT=$(rsync -a --delete --dry-run --itemize-changes "$SYSTEM_DIR/hooks/" "$TARGET_DIR/hooks/" 2>/dev/null); then
+        HOOK_CHANGES=0
+        if [ -n "$DRYRUN_OUT" ]; then
+            HOOK_CHANGES=$(printf '%s\n' "$DRYRUN_OUT" | grep -cv '/$' || true)
+        fi
+        if [ "${HOOK_CHANGES:-0}" -gt 0 ]; then
+            CHANGES=$((CHANGES + HOOK_CHANGES))
+            if $CHECK_ONLY; then
+                echo "  ~ hooks/ ($HOOK_CHANGES files would change)"
+            else
+                rsync -a --delete "$SYSTEM_DIR/hooks/" "$TARGET_DIR/hooks/"
+                echo "  ~ hooks/ ($HOOK_CHANGES files changed)"
+            fi
         else
-            rsync -a --delete "$SYSTEM_DIR/hooks/" "$TARGET_DIR/hooks/"
-            echo "  ~ hooks/ ($HOOK_CHANGES files changed)"
+            echo "  = hooks/ (unchanged)"
         fi
     else
-        echo "  = hooks/ (unchanged)"
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  ! hooks/ dry-run failed — deploy would run unconditionally"
+        else
+            echo "  ! hooks/ dry-run failed — deploying unconditionally"
+            rsync -a --delete "$SYSTEM_DIR/hooks/" "$TARGET_DIR/hooks/"
+        fi
     fi
 elif [ -d "$SYSTEM_DIR/hooks" ]; then
     echo "  ! rsync not found — run 'make hooks-deploy' manually"
