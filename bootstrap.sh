@@ -3,7 +3,8 @@ set -euo pipefail
 
 # bootstrap.sh — Deploy brana identity layer to ~/.claude/
 #
-# The brana plugin (system/) handles: skills, agents, hooks, commands, rules
+# The brana plugin (system/) handles: skills, agents, commands. Rules (t-1946)
+# and hooks (t-2270) deploy to ~/.claude/ here — the plugin cannot serve them.
 # This script handles: CLAUDE.md, scripts, scheduler, claude-flow
 #
 # Usage:
@@ -74,7 +75,7 @@ case "${1:-}" in
         echo "Usage: ./bootstrap.sh [--check|--sync-plugin|--help]"
         echo ""
         echo "Deploy brana identity layer (CLAUDE.md, rules, scripts, scheduler, claude-flow)."
-        echo "The brana plugin handles skills, agents, hooks, and commands."
+        echo "The brana plugin handles skills, agents, and commands."
         echo ""
         echo "Options:"
         echo "  --check        Show what would change without applying"
@@ -265,6 +266,33 @@ if [ -d "$SYSTEM_DIR/scripts" ]; then
     if ! $CHECK_ONLY; then
         chmod +x "$TARGET_DIR/scripts/"*.sh 2>/dev/null || true
     fi
+fi
+
+# --- Step 3b: Hooks ---
+# hooks.json invokes scripts at $HOME/.claude/hooks/ — the plugin does NOT
+# serve the script files (same failure class as rules, t-1946). Ongoing syncs
+# are handled by hooks-auto-deploy.sh, but it only fires on Write/Edit while
+# on main — hooks arriving via merge (ship) bypass it, and the procedural
+# CLOSE 10c deploy (t-1948) is skippable (t-2270: presence-refresh.sh and
+# red-verification.sh shipped undeployed). Recursive rsync, not sync_dir:
+# system/hooks/ has lib/ and tests/ subdirs. ~/.claude/hooks/ is
+# brana-managed — --delete removes files absent from source.
+echo "Hooks:"
+if [ -d "$SYSTEM_DIR/hooks" ] && command -v rsync &>/dev/null; then
+    HOOK_CHANGES=$(rsync -a --delete --dry-run --itemize-changes "$SYSTEM_DIR/hooks/" "$TARGET_DIR/hooks/" 2>/dev/null | grep -cv '/$' || true)
+    if [ "${HOOK_CHANGES:-0}" -gt 0 ]; then
+        CHANGES=$((CHANGES + HOOK_CHANGES))
+        if $CHECK_ONLY; then
+            echo "  ~ hooks/ ($HOOK_CHANGES files would change)"
+        else
+            rsync -a --delete "$SYSTEM_DIR/hooks/" "$TARGET_DIR/hooks/"
+            echo "  ~ hooks/ ($HOOK_CHANGES files changed)"
+        fi
+    else
+        echo "  = hooks/ (unchanged)"
+    fi
+elif [ -d "$SYSTEM_DIR/hooks" ]; then
+    echo "  ! rsync not found — run 'make hooks-deploy' manually"
 fi
 
 # --- Step 4: Statusline ---
