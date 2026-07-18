@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-16T18:14:08Z",
+  "generated": "2026-07-18T01:05:57Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -3388,6 +3388,11 @@
       "impl_files": []
     },
     "docs/reviews/weekly-2026-06-26.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/reviews/weekly-2026-07-03.md": {
       "title": "",
       "type": "Roadmap",
       "impl_files": []
@@ -14707,9 +14712,9 @@
     }
   ],
   "stats": {
-    "nodes": 499,
+    "nodes": 500,
     "edges": 1884,
     "typed_edges": 682,
-    "orphans": 133
+    "orphans": 134
   }
 }
