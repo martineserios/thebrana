@@ -22,6 +22,10 @@ supersedes: ADR-040 (Gemini-first routing, retired 2026-06-19)
 
 Headless output (`claude -p`, agy) → `/tmp/` only; Claude applies via Write/Edit (cwd-discipline.md). agy never runs git.
 
+## Retrieval (ADR-064)
+
+"What calls X"/impact/path queries → `graphify` CLI if `graphify-out/graph.json` exists; open-ended → Explore; decisions → recall. Table: retrieval-routing.md.
+
 ## Skill Routing — which skill to invoke
 
 Invoke directly, don't suggest; if declined, don't repeat. Never invoke a skill AND delegate for one trigger.
