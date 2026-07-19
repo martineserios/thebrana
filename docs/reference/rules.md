@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**27 rules** in `system/rules/`.
+**28 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -22,6 +22,7 @@
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
 | `reconcile-after-convention-change.md` | Run Reconcile After CLAUDE.md Convention Changes | After any change to naming conventions in `.claude/CLAUDE.md` (branch prefixes, slug formats, task I... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
+| `retrieval-routing.md` | Retrieval Routing | Pick the retrieval surface by query shape — walk top-to-bottom, first match wins. (ADR-064, pilot ... |
 | `ruflo-stub-guard.md` | Ruflo Stub Guard | Never use these ruflo commands as authoritative signals. They return hardcoded or unimplemented outp... |
 | `rules-over-hooks-for-gates.md` | Rules Over Hooks for Behavioral Gates | Prefer a rule file over a hook for "always do X before Y" behavioral constraints. |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
@@ -144,6 +145,13 @@ After any change to naming conventions in `.claude/CLAUDE.md` (branch prefixes, 
 **File:** `system/rules/research-discipline.md`
 
 When starting research on any topic:
+
+
+## Retrieval Routing
+
+**File:** `system/rules/retrieval-routing.md`
+
+Pick the retrieval surface by query shape — walk top-to-bottom, first match wins. (ADR-064, pilot t-2271)
 
 
 ## Ruflo Stub Guard
