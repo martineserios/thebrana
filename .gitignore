@@ -45,3 +45,6 @@ system/state/patterns-export.json
 # Lock sidecars from util::lock_sidecar (<store>.json.lock) — created on every
 # locked write to tasks.json / queue / remind stores. Transient, never tracked (t-2166).
 *.json.lock
+
+# graphify graph artifacts — build output, rebuilt locally (ADR-064, t-2275)
+graphify-out/
