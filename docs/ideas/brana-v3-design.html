@@ -1,0 +1,331 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brana v3 — The Graduated Process Loop, Layer by Layer</title>
+<style>
+  :root {
+    --ground: #f3f2f0; --band: #faf9f8; --ink: #26282a; --soft: #6a6f73;
+    --line: #dcdad6; --copper: #b5622f; --teal: #3e7c82;
+    --l1: #7d838a; --l2: #b3862e; --l3: #3d8a55;
+    --del: #bb5346; --depth: 246, 245, 243;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ground: #191817; --band: #201f1d; --ink: #e6e4e1; --soft: #9b9a96;
+      --line: #37352f; --copper: #d98d55; --teal: #6cb2bc;
+      --l1: #8f959c; --l2: #d4a94f; --l3: #6cbf87; --del: #d47f70; --depth: 26, 25, 24; }
+  }
+  :root[data-theme="light"] { --ground: #f3f2f0; --band: #faf9f8; --ink: #26282a; --soft: #6a6f73;
+    --line: #dcdad6; --copper: #b5622f; --teal: #3e7c82; --l1: #7d838a; --l2: #b3862e; --l3: #3d8a55;
+    --del: #bb5346; --depth: 246, 245, 243; }
+  :root[data-theme="dark"] { --ground: #191817; --band: #201f1d; --ink: #e6e4e1; --soft: #9b9a96;
+    --line: #37352f; --copper: #d98d55; --teal: #6cb2bc; --l1: #8f959c; --l2: #d4a94f; --l3: #6cbf87;
+    --del: #d47f70; --depth: 26, 25, 24; }
+
+  body { background: var(--ground); color: var(--ink); margin: 0;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 3rem 1.25rem 5rem; }
+  main { max-width: 960px; margin: 0 auto; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .eyebrow { font: 600 0.72rem/1 ui-monospace, Menlo, monospace; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--copper); margin: 0 0 0.75rem; }
+  h1, h2, .layer-name { font-family: "Iowan Old Style", Georgia, "Times New Roman", serif; }
+  h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; margin: 0 0 1rem; letter-spacing: -0.015em; text-wrap: balance; }
+  h2 { font-size: 1.55rem; margin: 0 0 0.4rem; }
+  .lede { color: var(--soft); max-width: 64ch; font-size: 1.05rem; margin: 0; }
+  .lede b { color: var(--ink); }
+  section { margin-top: 3.5rem; }
+  .sec-note { color: var(--soft); font-size: 0.93rem; max-width: 68ch; margin: 0.3rem 0 1.5rem; }
+
+  /* Ladder */
+  .ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.9rem; }
+  .rung { background: var(--band); border: 1px solid var(--line); border-top: 3px solid var(--rc);
+    border-radius: 8px; padding: 1.1rem 1.2rem; }
+  .rung .lvl { font: 700 0.72rem/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; color: var(--rc); }
+  .rung h3 { margin: 0.45rem 0 0.35rem; font-size: 1.05rem; }
+  .rung p { margin: 0; font-size: 0.88rem; color: var(--soft); }
+  .rung .gate { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px dashed var(--line);
+    font-size: 0.8rem; color: var(--ink); }
+  .rung .gate b { color: var(--rc); }
+
+  /* Tower */
+  .tower { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .layer { display: grid; grid-template-columns: 150px 1fr 280px; gap: 1.25rem;
+    padding: 1.3rem 1.4rem; border-top: 1px solid var(--line);
+    background: rgba(var(--depth), var(--d, 0)); }
+  .layer:first-child { border-top: none; }
+  .layer-id { }
+  .layer-id .num { font: 700 0.7rem/1 ui-monospace, Menlo, monospace; letter-spacing: 0.14em; color: var(--soft); }
+  .layer-name { font-size: 1.2rem; margin: 0.3rem 0 0.2rem; }
+  .layer-id .role { font-size: 0.78rem; color: var(--copper); font-style: italic; }
+  .layer-what { font-size: 0.9rem; color: var(--soft); margin: 0; }
+  .layer-what b { color: var(--ink); font-weight: 600; }
+  .layer-what .prims { display: block; margin-top: 0.5rem; font: 500 0.75rem/1.6 ui-monospace, Menlo, monospace; color: var(--ink); }
+  .layer-v3 { font-size: 0.85rem; margin: 0; }
+  .layer-v3 .delta { display: block; }
+  .layer-v3 .delta b { color: var(--copper); }
+  .wave-chip { display: inline-block; margin-top: 0.55rem; font: 600 0.68rem/1 ui-monospace, Menlo, monospace;
+    letter-spacing: 0.08em; color: var(--teal); border: 1px solid var(--teal); border-radius: 999px;
+    padding: 0.3em 0.7em; }
+  .router-band { padding: 0.7rem 1.4rem; border-top: 1px dashed var(--line); background: transparent;
+    font: 500 0.78rem/1.5 ui-monospace, Menlo, monospace; color: var(--teal); text-align: center; }
+
+  .scroll { overflow-x: auto; padding-bottom: 0.5rem; }
+  pre.mermaid { margin: 0; min-width: 620px; background: transparent; }
+
+  /* Waves */
+  .waves { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.9rem; }
+  .wave { background: var(--band); border: 1px solid var(--line); border-radius: 8px; padding: 1.05rem 1.15rem; }
+  .wave .wnum { font: 700 0.7rem/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; color: var(--teal); }
+  .wave h3 { margin: 0.4rem 0 0.4rem; font-size: 1rem; }
+  .wave p { margin: 0 0 0.6rem; font-size: 0.83rem; color: var(--soft); }
+  .wave .dels { font-size: 0.78rem; color: var(--del); border-top: 1px dashed var(--line); padding-top: 0.55rem; }
+  .wave .dels b { font: 600 0.66rem/1 ui-monospace, Menlo, monospace; letter-spacing: 0.1em; }
+
+  .contract { border-left: 3px solid var(--copper); background: var(--band); border-radius: 0 8px 8px 0;
+    padding: 1.2rem 1.4rem; }
+  .contract ul { margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: 0.92rem; }
+  .contract li { margin-bottom: 0.3rem; }
+  .foot { color: var(--soft); font-size: 0.78rem; text-align: center; margin-top: 3.5rem; }
+  @media (max-width: 760px) { .layer { grid-template-columns: 1fr; gap: 0.6rem; } }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">brana v3 · design draft · 2026-07-19</p>
+    <h1>The Graduated Process Loop</h1>
+    <p class="lede">Brana v3 in one sentence: <b>you stop operating the system and start designing the
+    loop that operates it.</b> The loop parallelizes, judges, challenges, and verifies work — and every
+    process earns its autonomy step by step. Efficiency is the constraint, simplification is the method,
+    the public platform falls out of the boundary we cut.</p>
+  </header>
+
+  <section>
+    <h2>The autonomy ladder</h2>
+    <p class="sec-note">The core decision. No loop is "autonomous" by declaration — each process climbs,
+    and your daily cockpit approvals are the evidence that promotes it. Judgment-heavy work is capped
+    at L2 forever, by design.</p>
+    <div class="ladder">
+      <div class="rung" style="--rc: var(--l1)">
+        <span class="lvl">L1 · REPORT-ONLY</span>
+        <h3>It watches and tells you</h3>
+        <p>Triage summaries, drift reports, extraction digests. No action taken.</p>
+        <div class="gate"><b>Every loop starts here.</b> Zero risk, builds the habit and the data.</div>
+      </div>
+      <div class="rung" style="--rc: var(--l2)">
+        <span class="lvl">L2 · ASSISTED — THE COCKPIT</span>
+        <h3>It prepares, you approve</h3>
+        <p>Candidates generated in parallel, judged, challenged, verified, diffed. Your decision takes seconds.</p>
+        <div class="gate"><b>Where development lives.</b> Each approval is graduation evidence for L3.</div>
+      </div>
+      <div class="rung" style="--rc: var(--l3)">
+        <span class="lvl">L3 · UNATTENDED — EARNED</span>
+        <h3>It acts, you audit receipts</h3>
+        <p>Runs and merges without you — overnight, unattended.</p>
+        <div class="gate"><b>Graduation gate — per task shape, not per task:</b> verifier + encoded stops + the shape clearing a transparent rule table (≥K runs, ≥95% merged-clean, auto-demotion) on real outcome-ledger evidence. First graduate: the LEARN loop.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The stack, top-down</h2>
+    <p class="sec-note">Seven layers. You sit at the top; each layer leverages everything below it.
+    The right column is what v3 changes at that level, and which wave builds it.</p>
+    <div class="tower">
+
+      <div class="layer" style="--d: 0">
+        <div class="layer-id"><span class="num">OPERATOR</span>
+          <div class="layer-name">You</div>
+          <span class="role">loop designer, not operator</span></div>
+        <p class="layer-what">The zoom-out itself: your job moves from driving every session to
+          <b>designing processes, reviewing verified work, and auditing receipts.</b>
+          <span class="prims">cockpit approvals · wave decisions · L2-capped judgment work</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> attention becomes the scarcest budgeted
+          resource — the whole stack exists to spend it only on judgment.</span>
+          <span class="wave-chip">EVERY WAVE</span></p>
+      </div>
+
+      <div class="layer" style="--d: 0.25">
+        <div class="layer-id"><span class="num">L6</span>
+          <div class="layer-name">Adaptation</div>
+          <span class="role">the system learns</span></div>
+        <p class="layer-what">Cross-session learning: extraction, patterns, memory, process improvement.
+          <b>What makes v3 self-evolving.</b>
+          <span class="prims">memory · retrospective · pattern promotion · curation/DECAY</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> LEARN leaves the session — async local worker:
+          <b>agy/Gemini first (free), automatic switch to Claude on quota exhaustion</b> (SDK credits /
+          claude -p) so the queue always drains. Curation gate against noise; native subagent memory.
+          First loop to run unattended.</span>
+          <span class="wave-chip">WAVE 1 · 2</span></p>
+      </div>
+
+      <div class="layer" style="--d: 0.45">
+        <div class="layer-id"><span class="num">L5</span>
+          <div class="layer-name">Time</div>
+          <span class="role">the system recurs</span></div>
+        <p class="layer-what">Loops, schedules, wakeups — work that continues without a prompt.
+          <span class="prims">/loop · ScheduleWakeup · cloud Routines · Monitor</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> every loop gets an <b>independent verifier</b>
+          (never self-graded) extending the shipped build-evaluator, plus encoded stop conditions:
+          AC check, iteration cap, cost budget, escalation. goal-completion.sh migrates guard-by-guard.</span>
+          <span class="wave-chip">WAVE 3</span></p>
+      </div>
+
+      <div class="router-band">ROUTER — cross-cutting: which model, which effort, which primitive, per unit of work · mechanized as per-phase profiles in WAVE 4</div>
+
+      <div class="layer" style="--d: 0.6">
+        <div class="layer-id"><span class="num">L4</span>
+          <div class="layer-name">Orchestration</div>
+          <span class="role">the system structures</span></div>
+        <p class="layer-what">Deterministic composition of many agents: fan-out, judge panels,
+          adversarial verify, migrations.
+          <span class="prims">Workflows · pipeline/parallel · hive-mind · sweep</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> orchestration becomes the cockpit's engine —
+          candidates prepared in parallel on routed cheap models, judged and challenged before you
+          ever see them.</span>
+          <span class="wave-chip">WAVE 3</span></p>
+      </div>
+
+      <div class="layer" style="--d: 0.75">
+        <div class="layer-id"><span class="num">L3</span>
+          <div class="layer-name">Compute</div>
+          <span class="role">the system thinks</span></div>
+        <p class="layer-what">Isolated contexts doing the thinking: focused workers, full-context forks,
+          arguing teammates.
+          <span class="prims">agents · subagents · forks · teams · worktree isolation</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> agents get native persistent memory
+          (fixes 31 read failures); challenger becomes a persistent teammate experiment; decomposition
+          by shared context, never by task type.</span>
+          <span class="wave-chip">WAVE 1 · 4</span></p>
+      </div>
+
+      <div class="layer" style="--d: 0.85">
+        <div class="layer-id"><span class="num">L2</span>
+          <div class="layer-name">Process</div>
+          <span class="role">the way of working</span></div>
+        <p class="layer-what">The designed processes — the 6 Jobs surface. What the loop <b>runs</b>.
+          <span class="prims">build · fix · research · close · backlog · ship</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> processes declare their ladder level and
+          verifier in frontmatter; close shrinks to a 30s handoff (learning is L6's job now).</span>
+          <span class="wave-chip">WAVE 2–4</span></p>
+      </div>
+
+      <div class="layer" style="--d: 0.95">
+        <div class="layer-id"><span class="num">L1</span>
+          <div class="layer-name">Enforcement</div>
+          <span class="role">the rails</span></div>
+        <p class="layer-what">Deterministic gates that <b>cannot be ignored</b> — the only layer with
+          that property. Runs on every tool call.
+          <span class="prims">hooks: branch · TDD · secrets · spec-first · attribution</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> net-negative rule applies hardest here —
+          hooks consolidate into a legible tier model ("what fires when" on one page).</span>
+          <span class="wave-chip">WAVE 5</span></p>
+      </div>
+
+      <div class="layer" style="--d: 1">
+        <div class="layer-id"><span class="num">L0</span>
+          <div class="layer-name">Constitution</div>
+          <span class="role">the invariants</span></div>
+        <p class="layer-what">Always-loaded truths shaping every decision.
+          <span class="prims">CLAUDE.md · rules · conventions</span></p>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> rules that can be enforced move down to L1;
+          rules that can be routed move up to profiles. What remains is genuinely constitutional.</span>
+          <span class="wave-chip">WAVE 5</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>One iteration of the loop</h2>
+    <p class="sec-note">What a single cycle looks like once wave 3 lands. Green exists today,
+    amber is partial, red is being built by the waves.</p>
+    <div class="scroll">
+<pre class="mermaid">
+flowchart TB
+  HB["HEARTBEAT — /loop · Routine"] --> PICK["DECIDE — backlog next"]
+  PICK --> ROUTE["ROUTE — model/effort profile per phase"]
+  ROUTE --> PREP["PREPARE — parallel candidates<br/>on routed cheap models"]
+  PREP --> JUDGE["JUDGE + CHALLENGE — panel scores,<br/>challenger attacks, winner improved"]
+  JUDGE --> VER{"VERIFY — independent small model<br/>AC? · iterations < cap? · cost < budget?"}
+  VER -->|iterate| PREP
+  VER -->|escalate| YOU["YOU — cockpit approval (L2)<br/>or receipt audit (L3, earned)"]
+  VER -->|pass| YOU
+  YOU --> CLOSE["CLOSE — 30s handoff"]
+  CLOSE --> LEARN["LEARN — async worker: agy first,<br/>Claude on quota exhaustion · curation gate"]
+  LEARN -.->|better process| HB
+  RAILS["HOOKS — rails under every step"] -.- PREP
+  RAILS -.- CLOSE
+
+  classDef ok fill:#dcefe2,stroke:#3d8a55,color:#1d3d28;
+  classDef mid fill:#f4ead3,stroke:#b3862e,color:#453413;
+  classDef bad fill:#f6e3e0,stroke:#bb5346,color:#4b211b;
+  classDef you fill:#efd9c8,stroke:#b5622f,color:#4a2a14;
+  class PICK,CLOSE,RAILS ok; class HB,ROUTE,PREP,JUDGE,LEARN mid; class VER bad; class YOU you;
+</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>The four waves</h2>
+    <p class="sec-note">Ordering principle: each wave proves the ladder's next rung while paying for
+    the one after it. ADRs ride inside the wave they gate — there is no spec-only wave.</p>
+    <div class="waves">
+      <div class="wave"><span class="wnum">WAVE 1 · v3.1</span>
+        <h3>Ground truth + Supersession</h3>
+        <p>Diagnose the two claimed failures (stalled extraction queue; stale memory path).
+        Superseding ADR retires the prior autonomous-runner doc cluster — its mechanics are now
+        native to this design. ADR-060 amendment scoped. Native agent memory migration.</p>
+        <div class="dels"><b>DELETES</b> prior runner doc cluster · stale read paths · t-1994/1995</div>
+      </div>
+      <div class="wave"><span class="wnum">WAVE 2 · v3.1</span>
+        <h3>LEARN autonomous</h3>
+        <p>Async local worker: agy/Gemini first (free), automatic engine-switch to Claude on quota
+        exhaustion (SDK credits / claude&nbsp;-p) — the queue always drains, never defers to a reset.
+        Curation gate + run ceiling inside the wave.</p>
+        <div class="dels"><b>DELETES</b> agy skip-and-defer stall path · close FULL sync-extraction weight</div>
+      </div>
+      <div class="wave"><span class="wnum">WAVE 3 · v3.1</span>
+        <h3>Verify — extend, don't replace</h3>
+        <p>Verifier extends build-evaluator + validate.sh. goal-completion.sh migrated guard-by-guard
+        (anti-gaming carry-forwards named, tests ported, 10+ consumers migrated). Outcome ledger as ladder state.</p>
+        <div class="dels"><b>DELETES</b> goal-completion.sh — only after consumer migration</div>
+      </div>
+      <div class="wave"><span class="wnum">WAVE 4 · v3.1</span>
+        <h3>Cockpit + Router</h3>
+        <p>Cost-baseline spike first (N=1 judge-only fallback). Approval = PR merge through the harvested
+        ADR-060 gate chain. Judge = shipped verify-findings workflow. Router profiles built in.</p>
+        <div class="dels"><b>DELETES</b> manual phase invocations · prose routing rules</div>
+      </div>
+      <div class="wave"><span class="wnum">WAVE 5 · v3.1</span>
+        <h3>Graduate + Cut</h3>
+        <p>Shape-based graduation from the outcome ledger — transparent rule table, auto-demotion,
+        gated on a real soak. First qualifying task shape goes L3 (activates the ADR-060 amendment).
+        Core vs process-packs boundary — the public path (t-2090) inherits it.</p>
+        <div class="dels"><b>DELETES</b> v2 remnants retired against the v3 spec</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="contract">
+      <h2>The wave contract</h2>
+      <p class="sec-note" style="margin-bottom:0">Non-negotiable, adopted from the pre-mortem — these two rules kill the two most
+      likely failure modes (spec sprawl, cost blowout):</p>
+      <ul>
+        <li>≤10 tasks per wave · each wave <b>ships into daily use</b> · next wave gated on the previous one shipping</li>
+        <li>Each wave <b>deletes more surface than it adds</b> (hooks + skills + rules net-negative)</li>
+        <li>Per-loop <b>token budgets are stop conditions</b> from wave 1 · LEARN runs on a separate compute budget</li>
+        <li>Graduation to L3 requires verifier + stops + <b>N clean supervised runs</b> — never declaration</li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="foot">brana v3 draft · docs/ideas/brana-v3-redesign.md · foundation: agentic-primitives.md ·
+  research: 2026 gap analysis, loop-engineering, Pi, gentle-ai</p>
+</main>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+</html>
