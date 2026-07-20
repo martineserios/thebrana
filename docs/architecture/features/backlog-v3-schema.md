@@ -179,7 +179,7 @@ The bug case is the cleanest proof the axes are independent: a bug is subject-ho
 
 Per the no-silent-ambiguity rule, each is a documented pick, not a silent choice:
 
-- **D1 — Epic model:** chose *unify into the hierarchy* (epic becomes top node of the single tree, absorbing `initiative`) over a separate epic object. **Confirmed by user 2026-07-20.** ⚠ This **reverses v2's shipped initiative-as-top** design — accept as a deliberate supersession (needs an ADR or a note in the v2 schema doc).
+- **D1 — Epic model:** chose *unify into the hierarchy* (epic becomes top node of the single tree, absorbing `initiative`) over a separate epic object. **Confirmed by user 2026-07-20.** ⚠ This **reverses v2's shipped initiative-as-top** design — formalized in [ADR-065](../decisions/ADR-065-epic-as-hierarchy-top.md), which surfaces the Linear-parity constraint (v2 put initiative on top to map Linear Initiative→Project→Milestone→Issue) as the open question.
 - **D2 — Auto-close:** chose *prompt on empty* ("epic empty; contract met? mark done") over silent auto-close, to avoid premature close when the contract carries criteria beyond "tasks done." **Needs confirmation.**
 - **D3 — Wave storage:** chose *thin stored process object* (selector + contract + gate + status) over pure live query, because v3 waves carry contract/gate/ordering a query can't hold. **Needs confirmation.**
 - **D4 — WIP breach:** chose *warn (advisory)* over hard-block during the pilot, matching the existing spec-gate posture; hard-block later. **Needs confirmation.**
