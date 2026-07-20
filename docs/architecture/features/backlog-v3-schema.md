@@ -12,8 +12,8 @@ relates-to:
   - "[backlog-lint](backlog-lint.md)"
   - "[backlog project-scoping](backlog-project-scoping.md)"
   - "[agentic primitives](../agentic-primitives.md)"
-amends: [ADR-047 (adds ac_state), v2 initiative-as-hierarchy-top]
-supersedes-fields: [epic-tag-flat, stream, level-OR-type-dup, kind-OR-work_type-dup]
+amends: [ADR-047 (adds ac_state), v2 initiative-as-hierarchy-top (ADR-065)]
+supersedes-fields: [epic-tag-flat, stream, level-OR-type-dup, initiative-node]
 ---
 
 # Backlog v3 — Three-Axis Schema
@@ -80,7 +80,7 @@ Reuses all existing fields (`subject`, `description`, `status`, `priority`, `eff
 | `acceptance_criteria` | **exists** (ADR-047, `Option<Vec<String>>`, 233 tasks) | the canonical AC store — the contract a loop verifies. v3 does **not** fork a new representation; the `AC:` context convention (ac-grammar) remains a human-authoring shorthand that lints into this field |
 | `ac_state` | **new — ADR-047 amendment** | `none` → `proposed` (a loop populated `acceptance_criteria`) → `approved` (human OK'd them). Gate for loop-eligibility. Net-new: ADR-047 defined no approval state |
 | `spec` | **new, nullable, structured** | the governing spec/ADR that *authorizes* the task — gates start, drives drift-cascade, is the source its `AC:` lines derive from. `null` = untraced (legit for meta-work/bugs). Inherited from the epic; a task may add a finer ADR. See below. |
-| `shape` | **computed, never stored** | `kind × effort × tags × ac-presence` — the join key that decides *which drainer* may take the task |
+| `shape` | **computed, never stored** | `kind × work_type × effort × tags × ac-presence` — the join key that decides *which drainer* may take the task. `work_type` (implement/research/design/…) is a key eligibility signal: a loop drains `work_type:chore` far sooner than `work_type:design` |
 | `tags` | exists, upgraded | **key:value** (`layer:backend`, `client:acrelec`, `risk:high`) — the orthogonal axis |
 | `context` | exists, extended | already carries `AC:` (lints into `acceptance_criteria`) — v3 adds two net-new conventions: `CHECK:` (soft human reminders) · `ref:` (linked docs/ADRs — self-containment) |
 | `log` | **new** | attributed, typed, append-only thread — see below |
@@ -175,27 +175,59 @@ A loop reads it and knows what "done" means and what's been tried. An agent adds
 
 The bug case is the cleanest proof the axes are independent: a bug is subject-homeless yet fully process-organized, and TDD's "reproduce with a failing test before fixing" makes it *more* loop-ready than most features (verification is objective: red → green).
 
-## Open decisions (assumptions — need confirmation)
+## CLI surface — intents, not columns
+
+**Design principle:** commands map to the **questions people and agents actually ask**, and a flexible **query grammar + intent aliases** translate the many phrasings into schema queries. Field names (`ac_state`, `work_type`) are an implementation detail the user rarely types. A schema is only useful if the CLI lets you *ask it things the way you think.*
+
+Two layers:
+
+1. **A query grammar** — `backlog q <tokens>` where tokens are `key:value` (`layer:backend`, `severity:high`, `status:pending`, `epic:auth`) plus computed predicates (`drainable`, `blocked`, `mine`, `stale`, `untraced`). Composable, orthogonal — this is how the tag axis is reached.
+2. **Intent aliases** — named shortcuts over common queries, so nobody memorizes the grammar for the frequent asks.
+
+| The question someone asks | Command | Resolves to (schema) |
+|---|---|---|
+| *"What do I work on next?"* | `backlog next` | next unblocked task in the **active epic**, respecting WIP |
+| *"What am I building — how's this feature?"* | `backlog epic <slug>` | epic node: tree, % done, contract, empty-progress |
+| *"Which epics are live / on deck?"* | `backlog epic ls` | epics grouped by `status` (active·next·parked·done) |
+| *"How big is this — quote it."* | `backlog estimate <epic>` | roll **effort up** the tree → a number |
+| *"What can a loop drain right now?"* | `backlog drainable [--wave W]` | `shape:mechanical ∧ ac_state:approved ∧ execution:autonomous` |
+| *"Plan a wave / define a queue."* | `backlog wave new --select "<q>"` | stores a wave (selector+contract+gate) |
+| *"Drain this wave."* | `backlog wave drain <id>` | the loop entry point — `while queue.next(): work()` |
+| *"Show me all backend high-sev bugs."* | `backlog q kind:fix layer:backend severity:high` | the orthogonal tag slice |
+| *"What's on my plate / blocked / stale?"* | `backlog mine` · `backlog blocked` · `backlog stale` | aliases over `q` |
+| *"Why does this task exist?"* | `backlog why <id>` | the `spec` chain + the `log` thread |
+| *"What derives from this spec?"* (drift) | `backlog derives <spec>` | `q spec:<doc>` — the reconcile cascade |
+| *"Leave a note / hand this off."* | `backlog log <id> --by <who> --type <t> "…"` | append to the `log` thread |
+| *"Give me the whole self-contained packet."* | `backlog handoff <id>` | renders subject+contract+refs+log |
+| *"What's parked for a human decision?"* | `backlog needs-human` | the NEEDSHUMAN park lane |
+| *"Define/approve done for this task."* | `backlog ac <id> add\|approve` | `acceptance_criteria` + `ac_state` |
+| *"Activate / park / close an epic."* | `backlog epic activate\|park\|done <slug>` | epic lifecycle (+ `active_epic`) |
+
+**Stretch (not required):** an NL front — `backlog ask "what can I drain in auth?"` compiling to `q component:auth drainable`. The core deliverable is the **grammar + aliases**; NL is a thin layer on top if wanted.
+
+This surface is its own build unit — it lands in the **backlog-cli wave** (the `cli-backlog-schema` epic), TDD per command, and every new verb ships with the schema field it exercises.
+
+## Decisions (resolved 2026-07-20)
 
 Per the no-silent-ambiguity rule, each is a documented pick, not a silent choice:
 
-- **D1 — Epic model:** chose *unify into the hierarchy* (epic becomes top node of the single tree, absorbing `initiative`) over a separate epic object. **Confirmed by user 2026-07-20.** ⚠ This **reverses v2's shipped initiative-as-top** design — formalized in [ADR-065](../decisions/ADR-065-epic-as-hierarchy-top.md), which surfaces the Linear-parity constraint (v2 put initiative on top to map Linear Initiative→Project→Milestone→Issue) as the open question.
-- **D2 — Auto-close:** chose *prompt on empty* ("epic empty; contract met? mark done") over silent auto-close, to avoid premature close when the contract carries criteria beyond "tasks done." **Needs confirmation.**
-- **D3 — Wave storage:** chose *thin stored process object* (selector + contract + gate + status) over pure live query, because v3 waves carry contract/gate/ordering a query can't hold. **Needs confirmation.**
-- **D4 — WIP breach:** chose *warn (advisory)* over hard-block during the pilot, matching the existing spec-gate posture; hard-block later. **Needs confirmation.**
-- **D5 — Log vs conventions:** chose *one new `log` field* + `context` conventions (`CHECK:`, `ref:`) over multiple new fields, for simplicity / adopt-don't-build. **Needs confirmation.**
-- **D6 — Node type names:** whether the middle grouping nodes reuse `milestone`/`phase` types verbatim or gain neutral `layer`/`component` semantics. **Open.**
-- **D7 — Spec-gate strictness:** chose *inherited `spec:` from the epic* + *advisory `warn`* on a missing/unapproved governing spec during the pilot (matching `spec-gate.sh`), hard-block later. Also open: does a task *require* a `spec:` to reach `ac_state:approved` (loop-eligibility)? **Needs confirmation.**
-- **D8 — Duplication survivors (net-new cleanup):** which field survives — `level` or `type` (hierarchy)? `kind` or `work_type` (taxonomy)? And: adopt key:value `tags` (net-new; tags are flat string arrays today). These are the "deletes" that make deletes ≥ adds real. **Needs decision.**
+- **D1 — Epic model:** epic becomes the **sole top node** of the single tree; the `initiative` node is **removed**. **Resolved → [ADR-065](../decisions/ADR-065-epic-as-hierarchy-top.md) (Accepted).** Linear link kept possible via an `initiative:` tag → Linear Initiative (sync adopted/refactored later).
+- **D2 — Auto-close:** chose *prompt on empty* ("epic empty; contract met? mark done") over silent auto-close, to avoid premature close when the contract carries criteria beyond "tasks done." **Decided per recommendation, 2026-07-20.**
+- **D3 — Wave storage:** chose *thin stored process object* (selector + contract + gate + status) over pure live query, because v3 waves carry contract/gate/ordering a query can't hold. **Decided per recommendation, 2026-07-20.**
+- **D4 — WIP breach:** chose *warn (advisory)* over hard-block during the pilot, matching the existing spec-gate posture; hard-block later. **Decided per recommendation, 2026-07-20.**
+- **D5 — Log vs conventions:** chose *one new `log` field* + `context` conventions (`CHECK:`, `ref:`) over multiple new fields, for simplicity / adopt-don't-build. **Decided per recommendation, 2026-07-20.**
+- **D6 — Node type names:** **Resolved** — reuse existing `milestone`/`phase` nodes as the layer/component grouping levels (no new node types, no renaming ~165 nodes); effort roll-up preserved.
+- **D7 — Spec-gate strictness:** chose *inherited `spec:` from the epic* + *advisory `warn`* on a missing/unapproved governing spec during the pilot (matching `spec-gate.sh`), hard-block later. Also open: does a task *require* a `spec:` to reach `ac_state:approved` (loop-eligibility)? **Decided per recommendation, 2026-07-20.**
+- **D8 — Duplication survivors:** **Resolved** — hierarchy: keep `type`, drop `level`. Taxonomy: **keep both `kind` and `work_type`** (different axes — change-type vs activity; `work_type` feeds loop `shape`). Tags: **adopt key:value** (net-new). The deletes that keep deletes ≥ adds: `level`, the flat `epic` field, the `initiative` node, `stream`.
 
 ## Relationship to the existing schema
 
 | Today (real fields) | v3 | Migration |
 |---|---|---|
 | `level` **and** `type` both encode hierarchy (task/milestone/phase/subtask/initiative) | **one** hierarchy field | **collapse to one** — pick survivor, backfill, drop the other. The core cleanup. |
-| `kind` **and** `work_type` both taxonomize | **one** taxonomy | collapse to one (D8); map the losing field's values across |
+| `kind` **and** `work_type` — different axes (change-type vs activity) | **keep both** | document the distinction so they stop being used interchangeably; `work_type` feeds loop `shape` |
 | `epic` — flat string field (43), orthogonal to the tree | epic = **top node of the single tree** (~10) | convert ~10 survivors to nodes; re-parent tasks via `parent`; retire the flat field |
-| `initiative` (level/type value, 17) | folds into `epic`'s role | promote |
+| `initiative` (level/type value, 17) | **removed as a node**; Linear-Initiative grouping → `initiative:` tag | drop the level; tag-encode only if Linear is adopted (ADR-065) |
 | `active_epic` pointer (`tasks-config.json`) | **reused** as "the one active epic" | none — adopt as-is |
 | `milestone` (118) / `phase` (47) | optional depth nodes (D6) | keep; stop creating new unless decomposing an app |
 | `acceptance_criteria` (ADR-047, 233 tasks) | **kept** as canonical AC store | add `ac_state` beside it (ADR-047 amendment) — no new AC field |
