@@ -4,9 +4,16 @@ status: draft
 created: 2026-07-20
 relates-to:
   - "[brana-v3 redesign](../../ideas/brana-v3-redesign.md)"
+  - "[brana-backlog-v2 schema](../../ideas/brana-backlog-v2-schema.md)"
+  - "[ADR-002 tasks-as-data-layer](../decisions/ADR-002-tasks-as-data-layer.md)"
+  - "[ADR-003 agent-driven task execution](../decisions/ADR-003-agent-driven-task-execution.md)"
+  - "[ADR-047 acceptance-criteria schema](../decisions/ADR-047-acceptance-criteria-schema.md)"
+  - "[ac-grammar](../ac-grammar.md)"
+  - "[backlog-lint](backlog-lint.md)"
+  - "[backlog project-scoping](backlog-project-scoping.md)"
   - "[agentic primitives](../agentic-primitives.md)"
-  - "[v3 challenge](../../reviews/brana-v3-challenge-2026-07-19.md)"
-supersedes-fields: [epic-tag-flat, stream]
+amends: [ADR-047 (adds ac_state), v2 initiative-as-hierarchy-top]
+supersedes-fields: [epic-tag-flat, stream, level-OR-type-dup, kind-OR-work_type-dup]
 ---
 
 # Backlog v3 — Three-Axis Schema
@@ -26,7 +33,8 @@ Both are the **same** disease seen from two sides: a backlog that is a write-onl
 
 - **Fits two work-shapes with one schema.** Deep, quotable app/client plans (layers → components → tasks) *and* flat loop-drained system work — same primitives, depth chosen per work.
 - **Three orthogonal axes.** Never conflate *what we're building* (subject) with *how we drain it* (process) with *cross-cutting attributes* (tags).
-- **Adopt, don't build.** Reuse existing fields (`status`, `parent`, `blocked_by`, `context`, `execution`); add the minimum. Deletes ≥ adds (v3 wave contract).
+- **Resolve duplication before adding.** The v2 schema already carries redundancy — `level` *and* `type` both encode the hierarchy; `kind` *and* `work_type` both taxonomize; AC lives in *both* a structured `acceptance_criteria` field and an `AC:` context convention. The v3 job is to **pick survivors** first, then add the genuinely net-new (`spec`, `wip_limit`, `shape`, `log`, `ac_state`, key:value tags, wave object). Deletes ≥ adds (v3 wave contract) — and here the deletes are real (collapse two hierarchy fields to one, two taxonomies to one).
+- **Adopt what already exists.** `execution: code|autonomous` is real (746/3 tasks) — reuse it. `active_epic` (in `tasks-config.json`) already names the single active epic — reuse it, don't reinvent "one active at a time." `acceptance_criteria` (ADR-047) is the canonical AC store — extend it, don't fork a third representation.
 - **The task as self-contained handoff.** Anyone — a loop, an agent, a future session — picks up a task and has the contract, the reminders, the relevant docs, and the full attributed history inline.
 
 ## The three axes
@@ -48,11 +56,11 @@ A task has **one home** (subject tree), **many tags** (orthogonal), and **flows 
 
 ### Epic — the top subject node ("what we're building")
 
-Epic **replaces `initiative`** as the top of the existing hierarchy (it is *not* stacked above it — that would add a level while we are deleting surface). The flat `epic:` string tag retires. Below the epic, `layer`/`component` grouping nodes are **optional depth**: an app build goes 4–5 deep for decomposition and quoting; a system chore stays `epic → task`.
+**Reconciliation first (this reverses a shipped v2 decision — call it out).** Today the hierarchy is a *type/level tree* topped by `initiative` (v2 schema), while `epic` is a **separate flat string field** orthogonal to that tree. That's the two-grouping-systems problem in the schema itself. v3 resolves it: **collapse `level` and `type` into one hierarchy field, and make `epic` the top node of that one tree** — so the flat `epic` tag stops being orthogonal and becomes the top of the (now single) hierarchy, absorbing `initiative`'s role. This **supersedes v2's initiative-as-top**; it is a deliberate reversal, not an oversight. Below the epic, grouping nodes (`layer`/`component`, or the retained `milestone`/`phase` — D6) are **optional depth**: an app build goes 4–5 deep for decomposition and quoting; a system chore stays `epic → task`.
 
 | Property | Storage | Notes |
 |---|---|---|
-| status | reuse `status`, +2 values | `active` (one at a time) · `next` · `parked` · `done` · `archived` |
+| status | reuse `status`, +2 values | `active` · `next` · `parked` · `done` · `archived`. "One active at a time" reuses the existing `active_epic` pointer in `tasks-config.json` (project-scoping) — not a new mechanism |
 | WIP cap | **new** `wip_limit` (default 10) | only meaningful on the active epic |
 | gate | reuse `blocked_by` | epic N blocked on epic N−1 shipping |
 | contract | reuse `context` `AC:` lines | definition of "feature done" beyond "no tasks left" |
@@ -69,14 +77,15 @@ Reuses all existing fields (`subject`, `description`, `status`, `priority`, `eff
 | Field | New? | Purpose |
 |---|---|---|
 | `execution` | exists | `code` (human, default-deny) · `autonomous` (a loop may take it) |
-| `ac_state` | **new** | `none` → `proposed` (a loop wrote AC lines) → `approved` (human OK'd them). Gate for loop-eligibility. |
+| `acceptance_criteria` | **exists** (ADR-047, `Option<Vec<String>>`, 233 tasks) | the canonical AC store — the contract a loop verifies. v3 does **not** fork a new representation; the `AC:` context convention (ac-grammar) remains a human-authoring shorthand that lints into this field |
+| `ac_state` | **new — ADR-047 amendment** | `none` → `proposed` (a loop populated `acceptance_criteria`) → `approved` (human OK'd them). Gate for loop-eligibility. Net-new: ADR-047 defined no approval state |
 | `spec` | **new, nullable, structured** | the governing spec/ADR that *authorizes* the task — gates start, drives drift-cascade, is the source its `AC:` lines derive from. `null` = untraced (legit for meta-work/bugs). Inherited from the epic; a task may add a finer ADR. See below. |
 | `shape` | **computed, never stored** | `kind × effort × tags × ac-presence` — the join key that decides *which drainer* may take the task |
 | `tags` | exists, upgraded | **key:value** (`layer:backend`, `client:acrelec`, `risk:high`) — the orthogonal axis |
-| `context` | exists, extended | `AC:` (machine-verified done) · `CHECK:` (soft human reminders) · `ref:` (linked docs/ADRs/tasks — self-containment) |
+| `context` | exists, extended | already carries `AC:` (lints into `acceptance_criteria`) — v3 adds two net-new conventions: `CHECK:` (soft human reminders) · `ref:` (linked docs/ADRs — self-containment) |
 | `log` | **new** | attributed, typed, append-only thread — see below |
 
-`ac_state:proposed → approved` is exactly what makes **"the loop backfills its own contracts"** work: the first loop reads a mechanical `ac_state:none` task, proposes `AC:` lines, sets `proposed`; you approve in the cockpit → `approved` → now it is loop-drainable.
+`ac_state:proposed → approved` is exactly what makes **"the loop backfills its own contracts"** work: the first loop reads a mechanical `ac_state:none` task, **populates its `acceptance_criteria`** (ADR-047's field), sets `proposed`; you approve in the cockpit → `approved` → now it is loop-drainable. No new AC representation — just the missing approval state on the existing field.
 
 ### Spec provenance — the task gates to its spec/ADR
 
@@ -107,7 +116,7 @@ Key-value, many per task. The rule for **node vs tag**:
 - **Tree node** → the dimension you *decompose and quote on* (layer/component; effort rolls up). One home.
 - **Tag** → every *cross-cut* you filter/slice/wave by (client, risk, theme, sprint, external-dep, surface). Many per task.
 
-Same dimension is never both (no double-bookkeeping). Implementation may start as a **string convention** (`key:value`) with query support for `--tag key` and `--tag key:value`, upgrading to a structured map only if needed.
+Same dimension is never both (no double-bookkeeping). **This is a net-new schema change, not adopt-don't-build:** tags are flat string arrays today (`["unknown"]`) and no existing doc proposes key:value. The migration can be gentle — a `key:value` string convention with query support for `--tag key` / `--tag key:value`, bare tags still valid — but it *is* a decision (see D8), not a free convention.
 
 ### Wave = Queue — the process overlay
 
@@ -170,25 +179,35 @@ The bug case is the cleanest proof the axes are independent: a bug is subject-ho
 
 Per the no-silent-ambiguity rule, each is a documented pick, not a silent choice:
 
-- **D1 — Epic model:** chose *unify into the hierarchy* (epic replaces `initiative` as top; optional depth below) over a separate epic object, because it reuses `status`/`parent`/`blocked_by`/`context` and kills the two-grouping-systems problem. **Confirmed by user 2026-07-20.**
+- **D1 — Epic model:** chose *unify into the hierarchy* (epic becomes top node of the single tree, absorbing `initiative`) over a separate epic object. **Confirmed by user 2026-07-20.** ⚠ This **reverses v2's shipped initiative-as-top** design — accept as a deliberate supersession (needs an ADR or a note in the v2 schema doc).
 - **D2 — Auto-close:** chose *prompt on empty* ("epic empty; contract met? mark done") over silent auto-close, to avoid premature close when the contract carries criteria beyond "tasks done." **Needs confirmation.**
 - **D3 — Wave storage:** chose *thin stored process object* (selector + contract + gate + status) over pure live query, because v3 waves carry contract/gate/ordering a query can't hold. **Needs confirmation.**
 - **D4 — WIP breach:** chose *warn (advisory)* over hard-block during the pilot, matching the existing spec-gate posture; hard-block later. **Needs confirmation.**
 - **D5 — Log vs conventions:** chose *one new `log` field* + `context` conventions (`CHECK:`, `ref:`) over multiple new fields, for simplicity / adopt-don't-build. **Needs confirmation.**
 - **D6 — Node type names:** whether the middle grouping nodes reuse `milestone`/`phase` types verbatim or gain neutral `layer`/`component` semantics. **Open.**
 - **D7 — Spec-gate strictness:** chose *inherited `spec:` from the epic* + *advisory `warn`* on a missing/unapproved governing spec during the pilot (matching `spec-gate.sh`), hard-block later. Also open: does a task *require* a `spec:` to reach `ac_state:approved` (loop-eligibility)? **Needs confirmation.**
+- **D8 — Duplication survivors (net-new cleanup):** which field survives — `level` or `type` (hierarchy)? `kind` or `work_type` (taxonomy)? And: adopt key:value `tags` (net-new; tags are flat string arrays today). These are the "deletes" that make deletes ≥ adds real. **Needs decision.**
 
 ## Relationship to the existing schema
 
-| Today | v3 | Migration |
+| Today (real fields) | v3 | Migration |
 |---|---|---|
-| flat `epic:` string tag (43) | epic = top hierarchy node (~10) | convert the ~10 surviving epics to nodes; re-parent their tasks; retire the tag |
-| `initiative` type (17) | folds into `epic` (its role) | rename/promote |
-| `milestone` (118) / `phase` (47) | optional `layer`/`component` depth | keep existing; stop creating new unless decomposing an app (D6) |
-| `stream` (deprecated) | removed | drop |
+| `level` **and** `type` both encode hierarchy (task/milestone/phase/subtask/initiative) | **one** hierarchy field | **collapse to one** — pick survivor, backfill, drop the other. The core cleanup. |
+| `kind` **and** `work_type` both taxonomize | **one** taxonomy | collapse to one (D8); map the losing field's values across |
+| `epic` — flat string field (43), orthogonal to the tree | epic = **top node of the single tree** (~10) | convert ~10 survivors to nodes; re-parent tasks via `parent`; retire the flat field |
+| `initiative` (level/type value, 17) | folds into `epic`'s role | promote |
+| `active_epic` pointer (`tasks-config.json`) | **reused** as "the one active epic" | none — adopt as-is |
+| `milestone` (118) / `phase` (47) | optional depth nodes (D6) | keep; stop creating new unless decomposing an app |
+| `acceptance_criteria` (ADR-047, 233 tasks) | **kept** as canonical AC store | add `ac_state` beside it (ADR-047 amendment) — no new AC field |
+| `AC:` context convention (ac-grammar) | **kept** as authoring shorthand | lints into `acceptance_criteria` (unchanged) |
+| `execution` (code/autonomous, real) | **reused** as loop-eligibility gate | none — already correct |
+| `tags` (flat string array) | `tags` (key:value) — **net-new** (D8) | gentle: `key:value` convention, bare tags still valid |
 | `notes` (freeform blob) | `log` (attributed thread) | migrate content into a `human`/`comment` seed entry |
-| `context` (AC + tactical) | `context` (AC + CHECK + ref) | additive — existing `AC:` lines unaffected |
-| `tags` (flat strings) | `tags` (key:value) | additive convention; bare tags still valid |
+| `context` (AC + tactical) | `context` (+ `CHECK:` + `ref:`) | additive — existing lines unaffected |
+| `order`, `branch`, `github_issue`, `priority`, `blocked_by`, `status` | **unchanged** | none |
+| `stream` (deprecated) | removed | drop |
+| — | `spec`, `wip_limit`, `shape` (computed), `log`, `ac_state`, wave object | net-new (none exist today) |
+| ADR-003 `spawn` / `agent_config` / `agent_result` | related autonomy surface, **distinct** from `execution` | reconcile separately — not folded here |
 
 ## Relationship to the v3 waves
 
