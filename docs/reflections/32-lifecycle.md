@@ -18,13 +18,15 @@ How the mastermind system develops, maintains itself, and evolves over time. Cov
 
 ## The Development Workflow
 
-Three disciplines form concentric layers. The natural order goes from domain understanding to working code:
+Three disciplines form concentric layers, fronted by a **discovery/shaping phase** where a raw idea is matured before any discipline begins. The natural order goes from an idea to working code:
 
 ```
-Domain Model  →  Architecture Spec  →  Tests  →  Code
-    DDD              SDD                TDD      impl
+Discovery   →  Domain Model  →  Architecture Spec  →  Tests  →  Code
+  SHAPE           DDD               SDD               TDD      impl
+(docs/ideas)   (docs/domain)    (docs/decisions)   (test/)
 ```
 
+0. **Discovery / Shaping:** Mature a raw idea — explore, research, discuss, challenge — until its shape is locked. Human-led (via `/brana:brainstorm`); the assistant collaborates and challenges. Answers: "is this the right thing, and what is it?" Persists incrementally to `docs/ideas/{slug}.md`. **Nothing enters the backlog here** — the epic node is born later, at `/brana:backlog plan`, only once the shape is locked.
 1. **DDD (Domain-Driven Design):** Model the problem space — ubiquitous language, bounded contexts, aggregates, domain events. Answers: "what are we building?"
 2. **SDD (Spec-Driven Development):** Decide the approach — ADRs, architectural decisions, API contracts. Answers: "how are we building it?"
 3. **TDD (Test-Driven Development):** Specify behavior — failing tests before implementation, red-green-refactor. Answers: "does it work correctly?"
@@ -32,6 +34,23 @@ Domain Model  →  Architecture Spec  →  Tests  →  Code
 Each discipline builds on the one before it. Domain understanding informs architectural decisions. Architectural decisions shape test scenarios. Tests gate implementation.
 
 **DDD is strategic, SDD is tactical, TDD is mechanical.** DDD requires judgment (what are the bounded contexts?). SDD requires decisions (which approach? what trade-offs?). TDD is algorithmic (red-green-refactor). Enforcement difficulty follows the same gradient — TDD is easiest to enforce deterministically, DDD is hardest.
+
+### Discovery-Before-Domain (Shaping)
+
+**The rule:** Discovery lives in `docs/ideas/`, not in the backlog. An idea is shaped there — across as many sessions as it takes — and graduates into an epic + tasks only when its shape is locked. This keeps half-baked ideas out of the backlog's active view: by the time something is an epic node, it is already shaped and specced.
+
+**Persistence + resume:** `/brana:brainstorm` writes `docs/ideas/{slug}.md` incrementally (section-by-section as the discussion proceeds), so multi-day shaping never loses discussion output to context compression. Re-entering brainstorm on the same slug reloads the doc and resumes.
+
+**Two artifacts, one front door — not two places to remember.** When the shape locks, it graduates into:
+
+- a **feature spec** (`docs/architecture/features/{slug}.md`) — the *living* description of **WHAT** to build (the contract). **This is the front door:** what you and the build/verify tooling read.
+- **ADR(s)** (`docs/architecture/decisions/ADR-NNN.md`) — the *append-only*, numbered log of each hard decision **WHY**, independently supersedable (a new ADR supersedes an old one; the spec is edited in place).
+
+The spec **links its ADRs** in frontmatter (`relates-to` / `amends`), and the doc-graph overlay traverses those edges — so nothing guesses which directory to read: **fetch the spec, follow the links.** The `decisions/` directory is a separate entrance only when you specifically want the decision log.
+
+**Which goes where:** a choice that must survive, be cited, or be superseded on its own — a trade-off, a reversal, something spanning features → **ADR**. A description of what the feature is and does → **spec**. Most shaping produces one spec + a few ADRs it references.
+
+**The graduation boundary:** shape locked → spec + ADR(s) written → `/brana:backlog plan` gives birth to the epic node and its tasks (each with `AC:`, a `spec:` link, tags). Only then does `/brana:build` have anything to consume — `build` never ideates; the SDD spec-gate (below) enforces that implementation cannot start without the spec discovery produced.
 
 ### Domain-Before-Spec (DDD)
 
