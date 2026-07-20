@@ -257,8 +257,16 @@ This spec is **not** separate work from the [v3 epic](../../ideas/brana-v3-redes
 - **Wave = epic** — rejected: conflates process with subject (the correction that produced the three-axis model).
 - **Silent auto-close / hard WIP block** during pilot — see D2/D4.
 
+## Fetch-awareness audit outcomes (2026-07-20)
+
+An audit verified whether consumers read *both* doc locations and follow spec→ADR links. **Verdict: the "one front door, follow the links" model holds end-to-end** — the hard SDD gate (`pre-tool-use.sh`) is dir-agnostic; build SPECIFY/LOAD, recall, `brana graph build`, and doc-graph-overlay all index both dirs and traverse `supersedes`/`depends_on`/`ADR-NNN` edges. No correctness hole, no wrongful gate. Three findings, folded into this epic as tasks:
+
+- **F1 — spec-gate.sh (no change).** Flagged as blind to `decisions/`, but on review it is **correct**: it warns only on M+ *impl* edits lacking a *feature spec*, exactly the front-door contract. Adding `decisions/` would let an ADR substitute for the spec — a regression. **Task: none; record the rationale so it isn't "fixed" later.**
+- **F2 — reconcile superseded-ADR check (build).** reconcile scans both dirs but never queries the `supersedes` edges the graph already extracts, so a doc still citing a superseded ADR (live case: ADR-065 supersedes v2 initiative-as-top) is undetected drift. **Task: add a deterministic `validate.sh` check — superseded-ADR set → grep referrers → report.** TDD: fixture doc referencing a superseded ADR must flag.
+- **F3 — backlog plan reads spec + walks ADR links (build, in this epic).** `plan` currently derives tasks conversationally without reading a spec and following its linked ADRs. It is being reworked here anyway (intent-CLI + epic-node planning) — **fold the spec+ADR read into that rework**, don't patch the old flow.
+
 ## Next steps
 
-1. Confirm open decisions D2–D6.
-2. Plan the schema work as tasks inside the backlog-cli wave (TDD: field-migration tests first).
-3. Sequence: cleanup (wave 1) → schema → AC backfill → loop/cockpit.
+1. Merge this branch (`docs/backlog-v3-schema`) to `dev` — land the verified shape (spec + ADR-065 + lifecycle note).
+2. `/brana:backlog plan` → graduate into the epic node + tasks, sequenced: cleanup (collapse 43→~10, from the family map) → schema + intent-CLI build → AC backfill → loop/cockpit. Fold F2/F3 in as tasks; TDD field-migration tests first.
+3. First epic through the new lifecycle is the backlog itself — dogfood the model on its own creation.
