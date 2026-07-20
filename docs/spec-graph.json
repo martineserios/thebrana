@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-18T01:05:57Z",
+  "generated": "2026-07-19T15:34:26Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -612,6 +612,11 @@
         "system/skills/build/phases/load.md"
       ]
     },
+    "docs/architecture/agentic-primitives.md": {
+      "title": "Agentic Primitives — Taxonomy and the Target Process Loop",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/agents.md": {
       "title": "Agents Architecture",
       "type": "Roadmap",
@@ -1067,6 +1072,13 @@
         "system/cli/rust/crates/brana-cli/src/cli.rs",
         "system/scripts/autonomous-runner.sh",
         "system/hooks/session-start.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-064-retrieval-routing-graphify.md": {
+      "title": "ADR-064: Retrieval Routing — Structural Repo Queries via graphify",
+      "type": "ADR",
+      "impl_files": [
+        "system/rules/retrieval-routing.md"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -2732,6 +2744,13 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/brana-v3-redesign.md": {
+      "title": "Brana v3 — The Graduated Self-Evolving Process Loop",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/CALIBRATION.md"
+      ]
+    },
     "docs/ideas/build-enhancements-from-osmani.md": {
       "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
       "type": "Roadmap",
@@ -3120,6 +3139,7 @@
         "system/rules/parallel-bash.md",
         "system/rules/reconcile-after-convention-change.md",
         "system/rules/research-discipline.md",
+        "system/rules/retrieval-routing.md",
         "system/rules/ruflo-stub-guard.md",
         "system/rules/rules-over-hooks-for-gates.md",
         "system/rules/sdd-tdd.md",
@@ -3314,13 +3334,32 @@
         "system/cli/rust/crates/brana-core/src/tasks.rs"
       ]
     },
+    "docs/research/agentic-engineering-2026-gap-analysis.md": {
+      "title": "Gap Analysis: Agentic Engineering Feb–Jul 2026 vs brana",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
+    },
     "docs/research/cc-unreleased-features-tracker.md": {
       "title": "CC Unreleased Features Tracker",
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/research/gentle-ai-productization-extraction.md": {
+      "title": "Extraction: What gentle-ai Does Well on the Public Path",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
+    },
     "docs/research/knowledge-retrieval-tax.md": {
       "title": "Knowledge Retrieval Tax — Positioning Frame",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/loop-engineering-and-pi.md": {
+      "title": "Research: loop-engineering (Cobus Greyling) + Pi (pi.dev)",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3365,6 +3404,13 @@
         "system/rules/reconcile-after-convention-change.md",
         "system/state/",
         "system/scheduler/"
+      ]
+    },
+    "docs/reviews/brana-v3-challenge-2026-07-19.md": {
+      "title": "Brana v3 — Adversarial Challenge Reports (3-lens quorum)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/CALIBRATION.md"
       ]
     },
     "docs/reviews/knowledge-structure-audit-2026-06-11.md": {
@@ -10307,6 +10353,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/agentic-primitives.md",
+      "to": "docs/research/agentic-engineering-2026-gap-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/agentic-primitives.md",
+      "to": "docs/research/gentle-ai-productization-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/agentic-primitives.md",
+      "to": "docs/research/loop-engineering-and-pi.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/agents.md",
       "to": "docs/reference/agents.md",
       "type": "references",
@@ -13349,6 +13413,48 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "async-first-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "brana-efficiency-without-power-loss.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/architecture/agentic-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/research/agentic-engineering-2026-gap-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/research/gentle-ai-productization-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/research/loop-engineering-and-pi.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/close-oriented-modes.md",
       "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
       "type": "references",
@@ -14621,8 +14727,50 @@
       "computed": false
     },
     {
+      "from": "docs/research/agentic-engineering-2026-gap-analysis.md",
+      "to": "gentle-ai-productization-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/gentle-ai-productization-extraction.md",
+      "to": "docs/architecture/features/user-journey-gap-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/gentle-ai-productization-extraction.md",
+      "to": "t-407-claude-systems-marketplace.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/loop-engineering-and-pi.md",
+      "to": "agentic-engineering-2026-gap-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/loop-engineering-and-pi.md",
+      "to": "gentle-ai-productization-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/miessler-pai-deep-dive.md",
       "to": "miessler-pai-comparison.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/brana-v3-challenge-2026-07-19.md",
+      "to": "docs/architecture/agentic-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/brana-v3-challenge-2026-07-19.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -14712,9 +14860,9 @@
     }
   ],
   "stats": {
-    "nodes": 500,
-    "edges": 1884,
+    "nodes": 507,
+    "edges": 1901,
     "typed_edges": 682,
-    "orphans": 134
+    "orphans": 135
   }
 }
