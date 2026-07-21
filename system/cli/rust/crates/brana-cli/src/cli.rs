@@ -84,6 +84,14 @@ pub enum SortKey {
     Priority,
 }
 
+/// t-2283: v3 forward-only ac_state values. `None` renames to "none".
+#[derive(Clone, ValueEnum)]
+pub enum AcState {
+    None,
+    Proposed,
+    Approved,
+}
+
 /// Convert ValueEnums to the string form used in tasks.json.
 pub fn ve_str<T: ValueEnum>(v: &Option<T>) -> Option<String> {
     v.as_ref().map(|val| {
@@ -716,6 +724,10 @@ pub enum BacklogCmd {
         /// Filter by epic slug
         #[arg(long)]
         epic: Option<String>,
+        /// Filter by ac_state (v3): none, proposed, approved. Matches only tasks
+        /// whose ac_state key is present; legacy tasks never match.
+        #[arg(long = "ac-state", value_enum)]
+        ac_state: Option<AcState>,
         /// Sort output: status (lifecycle) or priority
         #[arg(long, value_enum)]
         sort: Option<SortKey>,
