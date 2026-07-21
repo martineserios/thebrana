@@ -195,6 +195,7 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 |------|----------|
 | [ruflo-native-integration.md](ideas/ruflo-native-integration.md) | Ruflo native integration — controller status, upstream blockers, upgrade path |
 | [skill-auto-router.md](ideas/skill-auto-router.md) | Skill auto-routing with ruflo HNSW + marketplace discovery |
+| [skills-as-loops.md](ideas/skills-as-loops.md) | Skills re-derived as loops (stop condition + verifier + queue), loop composition rules, exit-router pattern — v3 seed, grounded in loop-engineering's 7 patterns |
 
 ## Content (docs/content/)
 
@@ -208,6 +209,8 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 | File | Contents |
 |------|----------|
 | [architecture-review-2026-06-10.md](reviews/architecture-review-2026-06-10.md) | Full-system architecture review — 4-axis layer audit, write-only memory diagnosis, strategic options (close loop → extract public core) |
+| [backlog-v3-schema-challenge-2026-07-20.md](reviews/backlog-v3-schema-challenge-2026-07-20.md) | Six-Hats deep challenge of the backlog v3 schema + ADR-065 — 20-skeptic verification, 9/10 findings held, PROCEED WITH CHANGES (all applied) |
+| [brana-v3-challenge-2026-07-19.md](reviews/brana-v3-challenge-2026-07-19.md) | 3-lens adversarial challenge of the brana-v3 redesign — unanimous RECONSIDER on v3.0; findings integrated into v3.1/v3.2 |
 | [knowledge-structure-audit-2026-06-11.md](reviews/knowledge-structure-audit-2026-06-11.md) | Ontology audit of knowledge structure — disjoint spec/memory TBoxes, missing typed relations, no lifecycle facet on memory; recommendations feed t-156 |
 | [token-baseline.md](reviews/token-baseline.md) | Token cost baseline measurements |
 | [weekly-2026-04-17.md](reviews/weekly-2026-04-17.md) | Weekly review 2026-04-17 |
