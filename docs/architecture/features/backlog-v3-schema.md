@@ -14,6 +14,7 @@ relates-to:
   - "[agentic primitives](../agentic-primitives.md)"
 amends: [ADR-047 (adds ac_state), v2 initiative-as-hierarchy-top (ADR-065)]
 supersedes-fields: [epic-tag-flat, stream, level-OR-type-dup, initiative-node]
+challenged: "[six-hats deep challenge 2026-07-20](../../reviews/backlog-v3-schema-challenge-2026-07-20.md) — PROCEED WITH CHANGES, all applied"
 ---
 
 # Backlog v3 — Three-Axis Schema
@@ -24,8 +25,8 @@ supersedes-fields: [epic-tag-flat, stream, level-OR-type-dup, initiative-node]
 
 Two problems, one root.
 
-1. **The human gets lost.** 43 epics — of which ~19 are already done but never marked, 1 dead, 7 duplicates of a family (`harness` → `harness-v2` → `harness-core`), and one (`dx-tooling`, 492 tasks) 89% drained. 491 "pending" tasks that are really three unrelated piles (mechanical, judgment, a reading list). The felt overwhelm is a **lifecycle failure**, not a volume or depth failure: epics have no status, no WIP cap, and never close.
-2. **Loops have nothing to drain.** v3's autonomy needs the task to be a verifiable contract (`execution:` marker, `AC:` lines). Today AC coverage is ~13% (67 of ~500 pending). A loop is only as verifiable as its contract is authored.
+1. **The human gets lost.** 43 epics — of which 11 are fully resolved but never marked done (17 at ≥80% complete), several name-stem duplicate families (`harness` alone has 4 variants: `harness`, `harness-v2`, `harness-core`, `harness-engineering`; similar clusters exist for `backlog-*`, `session*`, `memory*`), and one (`dx-tooling`, 492 tasks) 89% drained. 563 "pending" tasks that are really three unrelated piles (mechanical, judgment, a reading list — an interpretive read of their content, not a field-backed count). The felt overwhelm is a **lifecycle failure**, not a volume or depth failure: epics have no status, no WIP cap, and never close.
+2. **Loops have nothing to drain.** v3's autonomy needs the task to be a verifiable contract (`execution:` marker, `AC:` lines). Today only **38 of 2,156 tasks carry non-empty `acceptance_criteria`** — 2 of them pending — ≈1.8% coverage (measured 2026-07-20; earlier drafts cited ~11–13%, which no measure reproduces). A loop is only as verifiable as its contract is authored — the starvation is worse than first estimated.
 
 Both are the **same** disease seen from two sides: a backlog that is a write-only log instead of a drainable, contract-bearing work surface fails the human (overwhelm) *and* the loop (nothing to verify). Fix one, fix both.
 
@@ -33,7 +34,7 @@ Both are the **same** disease seen from two sides: a backlog that is a write-onl
 
 - **Fits two work-shapes with one schema.** Deep, quotable app/client plans (layers → components → tasks) *and* flat loop-drained system work — same primitives, depth chosen per work.
 - **Three orthogonal axes.** Never conflate *what we're building* (subject) with *how we drain it* (process) with *cross-cutting attributes* (tags).
-- **Resolve duplication before adding.** The v2 schema already carries redundancy — `level` *and* `type` both encode the hierarchy; `kind` *and* `work_type` both taxonomize; AC lives in *both* a structured `acceptance_criteria` field and an `AC:` context convention. The v3 job is to **pick survivors** first, then add the genuinely net-new (`spec`, `wip_limit`, `shape`, `log`, `ac_state`, key:value tags, wave object). Deletes ≥ adds (v3 wave contract) — and here the deletes are real (collapse two hierarchy fields to one, two taxonomies to one).
+- **Resolve duplication before adding.** The v2 schema already carries redundancy — `level` *and* `type` both encode the hierarchy; `kind` *and* `work_type` both taxonomize; AC lives in *both* a structured `acceptance_criteria` field and an `AC:` context convention. The v3 job is to **pick survivors** first, then add the genuinely net-new (`spec`, `wip_limit`, `shape`, `log`, `ac_state`, key:value tags, wave object). Deletes ≥ adds (v3 wave contract) — and here the deletes are real (collapse two hierarchy fields to one, two taxonomies to one). **Honest accounting caveat (challenge 2026-07-20):** deletes ≥ adds holds for *schema fields*, not *code surface* — the net-new logic (spec gate + inheritance, shape computation, wave lifecycle, log semantics, ~16-verb intent-CLI) has no deleted analog. The wave plan runs the cost-baseline spike against the intent-CLI build before committing, and splits waves rather than forcing this into one ≤10-task wave.
 - **Adopt what already exists.** `execution: code|autonomous` is real (746/3 tasks) — reuse it. `active_epic` (in `tasks-config.json`) already names the single active epic — reuse it, don't reinvent "one active at a time." `acceptance_criteria` (ADR-047) is the canonical AC store — extend it, don't fork a third representation.
 - **The task as self-contained handoff.** Anyone — a loop, an agent, a future session — picks up a task and has the contract, the reminders, the relevant docs, and the full attributed history inline.
 
@@ -60,7 +61,7 @@ A task has **one home** (subject tree), **many tags** (orthogonal), and **flows 
 
 | Property | Storage | Notes |
 |---|---|---|
-| status | reuse `status`, +2 values | `active` · `next` · `parked` · `done` · `archived`. "One active at a time" reuses the existing `active_epic` pointer in `tasks-config.json` (project-scoping) — not a new mechanism |
+| status | reuse `status`, +2 values | `active` · `next` · `parked` · `done` · `archived`. "One active at a time" reuses the existing `active_epic` pointer in `tasks-config.json` (project-scoping) — not a new mechanism. **Fail-loud precondition:** `backlog next` / `drainable` / WIP checks assert the pointer resolves to a real, local epic node and error otherwise — the pointer's two copies are known to diverge (live divergence observed 2026-07-20: global copy named a non-thebrana epic while the project-local copy was absent, making any WIP cap a silent no-op; the t-1883 contamination guard covers sync time only, not runtime resolution) |
 | WIP cap | **new** `wip_limit` (default 10) | only meaningful on the active epic |
 | gate | reuse `blocked_by` | epic N blocked on epic N−1 shipping |
 | contract | reuse `context` `AC:` lines | definition of "feature done" beyond "no tasks left" |
@@ -77,10 +78,10 @@ Reuses all existing fields (`subject`, `description`, `status`, `priority`, `eff
 | Field | New? | Purpose |
 |---|---|---|
 | `execution` | exists | `code` (human, default-deny) · `autonomous` (a loop may take it) |
-| `acceptance_criteria` | **exists** (ADR-047, `Option<Vec<String>>`, 233 tasks) | the canonical AC store — the contract a loop verifies. v3 does **not** fork a new representation; the `AC:` context convention (ac-grammar) remains a human-authoring shorthand that lints into this field |
+| `acceptance_criteria` | **exists** (ADR-047; the key appears on 233 tasks but only **38 are non-empty** — the store is untyped `serde_json::Value`; `Option<Vec<String>>` exists only as the MCP/CLI *input* type, no typed Task struct enforces it) | the canonical AC store — the contract a loop verifies. v3 does **not** fork a new representation; the `AC:` context convention (ac-grammar) remains a human-authoring shorthand that lints into this field |
 | `ac_state` | **new — ADR-047 amendment** | `none` → `proposed` (a loop populated `acceptance_criteria`) → `approved` (human OK'd them). Gate for loop-eligibility. Net-new: ADR-047 defined no approval state |
 | `spec` | **new, nullable, structured** | the governing spec/ADR that *authorizes* the task — gates start, drives drift-cascade, is the source its `AC:` lines derive from. `null` = untraced (legit for meta-work/bugs). Inherited from the epic; a task may add a finer ADR. See below. |
-| `shape` | **computed, never stored** | `kind × work_type × effort × tags × ac-presence` — the join key that decides *which drainer* may take the task. `work_type` (implement/research/design/…) is a key eligibility signal: a loop drains `work_type:chore` far sooner than `work_type:design` |
+| `shape` | **computed, never stored** | `kind × work_type × effort × tags × ac-presence` — the join key that decides *which drainer* may take the task. `work_type` (implement/research/design/…) is a key eligibility signal: a loop drains `work_type:chore` far sooner than `work_type:design`. **Single owner:** one `brana-core` function (`shape(task)`) exposed identically to CLI, MCP, and loop drivers — loops call the CLI/MCP surface, never re-derive shape from raw tasks.json (replicated-logic drift; the `claude -p`-over-tasks.json loop path is the known divergence vector) |
 | `tags` | exists, upgraded | **key:value** (`layer:backend`, `client:acrelec`, `risk:high`) — the orthogonal axis |
 | `context` | exists, extended | already carries `AC:` (lints into `acceptance_criteria`) — v3 adds two net-new conventions: `CHECK:` (soft human reminders) · `ref:` (linked docs/ADRs — self-containment) |
 | `log` | **new** | attributed, typed, append-only thread — see below |
@@ -103,7 +104,7 @@ spec:                                     ← nullable. null = no governing spec
 
 1. **Provenance (always).** Every task traces back to the decision that spawned it. "Why does this task exist?" is one link away — no archaeology.
 2. **Start-gate.** An implementation task whose `spec:` target is missing or not `status: approved` is **blocked from starting** (advisory `warn` during pilot, matching `spec-gate.sh`; hard-block later — D7). This is the existing M+ spec-gate made *per-task and precise* — it knows exactly which spec is missing, not just "some spec."
-3. **Drift-cascade.** When the spec doc changes in git, every task with `spec: <that doc>` is flagged for `/brana:reconcile`. The rule "spec changes push to implementation" stops being manual discipline and becomes a mechanical query: *which open tasks derive from a spec that moved?*
+3. **Drift-cascade (queryable, not automatic).** `backlog derives <spec>` makes *which open tasks derive from a spec that moved?* a mechanical query. The **trigger is explicit build work, not reuse**: nothing watches spec changes today (`/brana:reconcile` is manual and interactive, and pre-v3 reconcile doesn't even query `supersedes` edges — F2). The cascade fires only where a hook or check invokes the query — scoped as its own task in the backlog-cli wave (e.g. the session-end drift check calling `backlog derives` over docs changed since the last run).
 
 **Inheritance:** the **epic** carries the primary `spec:` (its governing feature spec); child tasks inherit it, and a task may add a finer ADR for a local decision. So the whole subtree of a feature is bound to its spec by default, without stamping every task by hand.
 
@@ -116,7 +117,7 @@ Key-value, many per task. The rule for **node vs tag**:
 - **Tree node** → the dimension you *decompose and quote on* (layer/component; effort rolls up). One home.
 - **Tag** → every *cross-cut* you filter/slice/wave by (client, risk, theme, sprint, external-dep, surface). Many per task.
 
-Same dimension is never both (no double-bookkeeping). **This is a net-new schema change, not adopt-don't-build:** tags are flat string arrays today (`["unknown"]`) and no existing doc proposes key:value. The migration can be gentle — a `key:value` string convention with query support for `--tag key` / `--tag key:value`, bare tags still valid — but it *is* a decision (see D8), not a free convention.
+Same dimension is never both (no double-bookkeeping). **This is a net-new schema change, not adopt-don't-build:** no existing doc proposes key:value, and — a correction from the 2026-07-20 challenge — tags are **not** uniformly flat string arrays today: 2,071 tasks store an array, **84 store a comma-joined plain string, 1 stores null** (the CLI's read paths use `.as_array()` and silently skip the string-typed ones already). **Precondition before D8 lands:** a one-pass normalization of the 85 non-array `tags` values plus a `validate.sh` type-homogeneity check, so the key:value parser is never run over a string-typed field. The migration can then be gentle — a `key:value` string convention with query support for `--tag key` / `--tag key:value`, bare tags still valid — but it *is* a decision (see D8), not a free convention.
 
 ### Wave = Queue — the process overlay
 
@@ -150,6 +151,7 @@ ts               by               type       body
 - **Why attribution + type is load-bearing:** in a system where loops and agents write autonomously, a loop's `status: tests green` is a **claim**; a human/verifier `verdict` is **truth**. Attribution keeps the trust boundary visible — you can filter to *only human-confirmed decisions*.
 - **Convergence with v3:** the `verdict` entries **are** v3's outcome-ledger (merged-clean / merged-with-edits / rejected). The communication thread and the graduation-evidence ledger are the same structure — one field, two jobs.
 - **Bloat control:** loops read *recent N + all `decision`/`verdict` rows*. The wave-2 curation/DECAY pass compresses old `comment`/`status` chatter but keeps `verdict`/`decision` forever. (Comprehension debt is a listed v3 risk.)
+- **Write contention (acknowledged):** every `log` append is a whole-file read-modify-write of the single ~2.6MB store under the cooperative sidecar flock. Correctness holds (writers queue, t-2166), but wave-2/-4 loop write volume is a growth trajectory DECAY does not address — a **lock-contention/latency test rides inside wave 2** before unattended loops write concurrently; if it fails, shard `log` into per-task append files merged on read.
 
 ### The fully-assembled self-contained packet
 
@@ -181,7 +183,13 @@ The bug case is the cleanest proof the axes are independent: a bug is subject-ho
 
 Two layers:
 
-1. **A query grammar** — `backlog q <tokens>` where tokens are `key:value` (`layer:backend`, `severity:high`, `status:pending`, `epic:auth`) plus computed predicates (`drainable`, `blocked`, `mine`, `stale`, `untraced`). Composable, orthogonal — this is how the tag axis is reached.
+1. **A query grammar** — `backlog q <tokens>` where tokens are `key:value` (`layer:backend`, `severity:high`, `status:pending`, `epic:auth`) plus computed predicates (`drainable`, `blocked`, `mine`, `stale`, `untraced`). Composable, orthogonal — this is how the tag axis is reached. **There is exactly one grammar** — wave `--select` takes the same string; the `∧` in wave examples is presentation shorthand for whitespace-AND, not a second language:
+
+   ```ebnf
+   query     = clause , { WS , clause } ;        (* conjunction only — no OR/NOT in v1 *)
+   clause    = key , ":" , value | predicate ;
+   predicate = "drainable" | "blocked" | "mine" | "stale" | "untraced" ;
+   ```
 2. **Intent aliases** — named shortcuts over common queries, so nobody memorizes the grammar for the frequent asks.
 
 | The question someone asks | Command | Resolves to (schema) |
@@ -214,10 +222,10 @@ Per the no-silent-ambiguity rule, each is a documented pick, not a silent choice
 - **D1 — Epic model:** epic becomes the **sole top node** of the single tree; the `initiative` node is **removed**. **Resolved → [ADR-065](../decisions/ADR-065-epic-as-hierarchy-top.md) (Accepted).** Linear link kept possible via an `initiative:` tag → Linear Initiative (sync adopted/refactored later).
 - **D2 — Auto-close:** chose *prompt on empty* ("epic empty; contract met? mark done") over silent auto-close, to avoid premature close when the contract carries criteria beyond "tasks done." **Decided per recommendation, 2026-07-20.**
 - **D3 — Wave storage:** chose *thin stored process object* (selector + contract + gate + status) over pure live query, because v3 waves carry contract/gate/ordering a query can't hold. **Decided per recommendation, 2026-07-20.**
-- **D4 — WIP breach:** chose *warn (advisory)* over hard-block during the pilot, matching the existing spec-gate posture; hard-block later. **Decided per recommendation, 2026-07-20.**
+- **D4 — WIP breach:** chose *warn (advisory)* over hard-block during the pilot, matching the existing spec-gate posture. **Promotion criterion (not open-ended):** reviewed alongside the spec-gate pilot (target 2026-07-28) — hard-block by default at review unless the pilot shows false-positive noise. **Decided per recommendation, 2026-07-20.**
 - **D5 — Log vs conventions:** chose *one new `log` field* + `context` conventions (`CHECK:`, `ref:`) over multiple new fields, for simplicity / adopt-don't-build. **Decided per recommendation, 2026-07-20.**
 - **D6 — Node type names:** **Resolved** — reuse existing `milestone`/`phase` nodes as the layer/component grouping levels (no new node types, no renaming ~165 nodes); effort roll-up preserved.
-- **D7 — Spec-gate strictness:** chose *inherited `spec:` from the epic* + *advisory `warn`* on a missing/unapproved governing spec during the pilot (matching `spec-gate.sh`), hard-block later. Also open: does a task *require* a `spec:` to reach `ac_state:approved` (loop-eligibility)? **Decided per recommendation, 2026-07-20.**
+- **D7 — Spec-gate strictness:** chose *inherited `spec:` from the epic* + *advisory `warn`* on a missing/unapproved governing spec during the pilot (matching `spec-gate.sh`). **Promotion criterion:** same review point as D4 (spec-gate pilot target 2026-07-28) — hard-block by default unless the pilot shows false-positive noise. Also open: does a task *require* a `spec:` to reach `ac_state:approved` (loop-eligibility)? **Decided per recommendation, 2026-07-20.**
 - **D8 — Duplication survivors:** **Resolved** — hierarchy: keep `type`, drop `level`. Taxonomy: **keep both `kind` and `work_type`** (different axes — change-type vs activity; `work_type` feeds loop `shape`). Tags: **adopt key:value** (net-new). The deletes that keep deletes ≥ adds: `level`, the flat `epic` field, the `initiative` node, `stream`.
 
 ## Relationship to the existing schema
@@ -237,9 +245,20 @@ Per the no-silent-ambiguity rule, each is a documented pick, not a silent choice
 | `notes` (freeform blob) | `log` (attributed thread) | migrate content into a `human`/`comment` seed entry |
 | `context` (AC + tactical) | `context` (+ `CHECK:` + `ref:`) | additive — existing lines unaffected |
 | `order`, `branch`, `github_issue`, `priority`, `blocked_by`, `status` | **unchanged** | none |
-| `stream` (deprecated) | removed | drop |
+| `stream` (deprecated, **72 tasks still carry a value**) | removed | drop — **and retire its live consumer**: `tasks-config.json` `github_sync.labels.stream: true` still emits stream labels; flip it off in the same change or the sync re-reads a dropped field |
+| `active_initiative` (undocumented key in `tasks-config.json`, currently `"backlog-ui"`) | removed with the `initiative` node (ADR-065) | drop the key; anything reading it migrates to the `initiative:` tag |
 | — | `spec`, `wip_limit`, `shape` (computed), `log`, `ac_state`, wave object | net-new (none exist today) |
 | ADR-003 `spawn` / `agent_config` / `agent_result` | related autonomy surface, **distinct** from `execution` | reconcile separately — not folded here |
+
+## Migration engineering (challenge-verified preconditions, 2026-07-20)
+
+The migration is a JSON-transform over ~2,100 loose `serde_json::Value` objects in a live store — there is no typed Task struct to change. Precedent exists and is reused, not rediscovered: [`system/procedures/migrate.md`](../../../system/procedures/migrate.md) documents exactly this class of change, and `system/scripts/migrate/` holds 7 prior scripts (`remap-streams.py`, `drop-deprecated-fields.py`, `infer-work-type.py`, `assign-initiatives-*.py`).
+
+1. **Named script, dry-run first.** The collapse ships as `system/scripts/migrate/collapse-level-epic-v3.py` following the migrate.md procedure: `--dry-run` prints the full change set (counts per field, per epic) before any write; the store is git-tracked, so the backup/rollback story is *commit before, revert on failure* — the script refuses to run on a dirty tasks.json.
+2. **Write-path sealing (the surviving CRITICAL).** Retiring a field means sealing **every** write path in the same change, per the twice-validated three-write-path pattern (t-1344/t-1345): `set_field` (drop `level`/`epic` from the whitelist, tasks.rs:787-790) + CLI `cmd_add` + MCP `backlog_add` + a `validate.sh` seal that greps for reintroduced fields. The migration table above lists field *fates*; this bundle is the *enforcement* — one explicit task, not implied by "backfill and drop."
+3. **Schema-version gate.** The store already carries `version: 1` but no code value-gates it — and a stale binary both writes `level` and *prefers it on read* (tasks.rs:148). The migration stamps `version: 2`; binaries value-gate on load (unknown-newer version → read-only + upgrade warning, per `pattern_version-guard-exit-early-on-tool-regression`). Wave-1 task, lands *before* the collapse runs.
+4. **Tags normalization** (see the Tags section): 85 non-array `tags` values normalized + `validate.sh` type-homogeneity check, *before* key:value.
+5. **Strategy option, decided at plan time:** big-bang script (default — matches precedent) vs lazy on-touch shim (`type = type ?? level`, upgrade on write). Lazy removes the mass-write risk but leaves two read paths live indefinitely and still needs the epic cleanup separately; pick when carving waves.
 
 ## Relationship to the v3 waves
 
@@ -268,5 +287,9 @@ An audit verified whether consumers read *both* doc locations and follow spec→
 ## Next steps
 
 1. Merge this branch (`docs/backlog-v3-schema`) to `dev` — land the verified shape (spec + ADR-065 + lifecycle note).
-2. `/brana:backlog plan` → graduate into the epic node + tasks, sequenced: cleanup (collapse 43→~10, from the family map) → schema + intent-CLI build → AC backfill → loop/cockpit. Fold F2/F3 in as tasks; TDD field-migration tests first.
+2. `/brana:backlog plan` → graduate into the epic node + tasks, sequenced: cleanup (collapse 43→~10, from the family map) → schema + intent-CLI build → AC backfill → loop/cockpit. Fold F2/F3 in as tasks; TDD field-migration tests first. **Hygiene-first variant to weigh at plan time (challenge, Green/Yellow consensus):** the mark-done epic sweep + AC backfill on existing v2 fields + `ac_state` alone deliver most of the stated win in week 1 with zero data-migration risk — the fuller schema wave (spec field, log, waves, key:value) can follow, informed by that usage. The intent-CLI can also start as 3 verbs (`q` / `act` / `log`) with the alias table as thin wrappers added on demand.
 3. First epic through the new lifecycle is the backlog itself — dogfood the model on its own creation.
+
+## Challenge verdict (Six Hats deep, 2026-07-20)
+
+**PROCEED WITH CHANGES** — all changes applied in this revision. 4 hat agents + 20 verification skeptics; 9/10 findings held, 3 of 4 CRITICALs downgraded on evidence, 1 refuted. The surviving CRITICAL (write-path sealing) and every WARNING mitigation are folded in above (§Migration engineering, §Tags, epic `status` fail-loud note, `shape` owner, drift-cascade rewording, D4/D7 promotion criteria). Full report: [backlog-v3-schema-challenge-2026-07-20.md](../../reviews/backlog-v3-schema-challenge-2026-07-20.md).

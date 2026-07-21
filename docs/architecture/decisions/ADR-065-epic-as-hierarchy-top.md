@@ -20,7 +20,7 @@ A task therefore has two independent answers to "what is this part of." This dup
 
 ## Decision
 
-1. **Collapse `level` and `type` into one hierarchy field** (`type` survives — more populated, 1,825 vs 1,254). One tree, one field.
+1. **Collapse `level` and `type` into one hierarchy field** (`type` survives — more populated: 1,825 vs 1,254 counting the `task` leaf value; 2,123 vs 1,442 counting total non-null population — both comparisons favor `type`. Note the "17 initiatives" cited below is the `type`-field count; `level` carries only 4). One tree, one field.
 
 2. **Promote `epic` to the sole top node** of that single tree, absorbing the flat `epic` string field. Epic gains node semantics: `status` (`active`/`next`/`parked`/`done`/`archived`), `wip_limit`, gate (`blocked_by`), contract, auto-close-on-empty. The flat string field retires.
 
@@ -42,7 +42,8 @@ This **reverses v2's initiative-as-top** in favor of **epic-as-sole-top**, while
 
 - **Linear sync (`sync_linear.rs`)**, when adopted, maps `epic → Project`; the Initiative pass becomes conditional on `initiative:` tags existing. Sync stays possible; nothing about killing the node forecloses it. Expect a refactor/rethink when Linear is actually turned on (operator: "we can refactor or rethink it").
 - **The ~10 surviving epics** (post-cleanup) become epic nodes; tasks re-parent via `parent`; the flat field drops.
-- **`level`/`type` collapse** touches ~2,100 tasks (mechanical backfill, drop `level`).
+- **`level`/`type` collapse** touches ~2,100 tasks (mechanical backfill, drop `level`) — executed under the challenge-verified preconditions in the feature spec's [§Migration engineering](../features/backlog-v3-schema.md#migration-engineering-challenge-verified-preconditions-2026-07-20): named dry-run script, write-path sealing across `set_field`/CLI/MCP, schema-version gate (`version: 2` + value-gated load), tags normalization first.
+- **Config cleanup rides along:** drop the undocumented `active_initiative` key from `tasks-config.json`, and flip `github_sync.labels.stream` off when `stream` drops (it is a live consumer of the retired field).
 - **Navigation simplifies**: default depth `epic → task`; one active epic, WIP-capped.
 - **Reversibility**: data-level (field values + parent links + tags), scriptable and auditable; no history lost. Re-introducing an initiative node later is itself a scriptable promotion of the `initiative:` tag.
 
