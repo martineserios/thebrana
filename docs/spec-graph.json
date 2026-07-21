@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-20T23:56:52Z",
+  "generated": "2026-07-21T15:38:26Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1081,6 +1081,11 @@
         "system/rules/retrieval-routing.md"
       ]
     },
+    "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md": {
+      "title": "ADR-065: Epic as the Sole Hierarchy Top Node (reversing v2 initiative-as-top)",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1198,6 +1203,15 @@
       "type": "Roadmap",
       "impl_files": [
         "system/skills/backlog/SKILL.md"
+      ]
+    },
+    "docs/architecture/features/backlog-v3-schema.md": {
+      "title": "Backlog v3 — Three-Axis Schema",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/migrate.md",
+        "system/scripts/migrate/",
+        "system/scripts/migrate/collapse-level-epic-v3.py"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
@@ -3010,6 +3024,11 @@
         "system/procedures/acquire-skills.md"
       ]
     },
+    "docs/ideas/skills-as-loops.md": {
+      "title": "Skills as Loops",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/statusline-v2-backlog-intelligence.md": {
       "title": "Statusline v2 — Backlog-Aware Intelligence",
       "type": "Roadmap",
@@ -3361,6 +3380,21 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/research/loop-engineering-examples-catalog.md": {
+      "title": "Loop Engineering Repository — Complete Examples Catalog",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/loop-examples-wild-2026-07.md": {
+      "title": "Production Agent-Loop Examples — Wild Catalog",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/loop-framework-landscape-2026-07.md": {
+      "title": "Loop Engineering Similar Repos & Frameworks — Research Catalog",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/research/miessler-pai-comparison.md": {
       "title": "Miessler PAI vs Brana Personal OS — Research & Comparison",
       "type": "Roadmap",
@@ -3375,6 +3409,18 @@
       "title": "Multi-Agent Orchestration — Investigation Report",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/research/primitive-taxonomy-prior-art.md": {
+      "title": "Primitive Taxonomy Research: Agentic Framework Prior Art",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/skills-primitive-audit-preview-2026-07.md": {
+      "title": "Skills-as-Loops — First-Pass Primitive Audit (preview)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/"
+      ]
     },
     "docs/research/substrate-leverage-audit.md": {
       "title": "Substrate Leverage Audit — Native CC vs ruflo vs /loop",
@@ -3404,12 +3450,25 @@
         "system/scheduler/"
       ]
     },
+    "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md": {
+      "title": "Challenge Report — Backlog v3 Schema (Six Hats, Deep) — 2026-07-20",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/migrate.md",
+        "system/scripts/migrate/"
+      ]
+    },
     "docs/reviews/brana-v3-challenge-2026-07-19.md": {
       "title": "Brana v3 — Adversarial Challenge Reports (3-lens quorum)",
       "type": "Roadmap",
       "impl_files": [
         "system/agents/CALIBRATION.md"
       ]
+    },
+    "docs/reviews/brana-v3-challenge-2026-07-21.md": {
+      "title": "Brana v3.2 challenge — fresh adversarial review (2026-07-21)",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/reviews/knowledge-structure-audit-2026-06-11.md": {
       "title": "Knowledge Structure Audit — Ontology Analysis",
@@ -10268,6 +10327,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "ideas/skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "reference/agents.md",
       "type": "references",
       "computed": false
@@ -10323,6 +10388,18 @@
     {
       "from": "docs/README.md",
       "to": "reviews/architecture-review-2026-06-10.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reviews/backlog-v3-schema-challenge-2026-07-20.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reviews/brana-v3-challenge-2026-07-19.md",
       "type": "references",
       "computed": false
     },
@@ -10747,6 +10824,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "to": "docs/ideas/brana-backlog-v2-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -10857,6 +10952,72 @@
     {
       "from": "docs/architecture/features/backlog-project-scoping.md",
       "to": "docs/guide/features/backlog-project-scoping.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "backlog-lint.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "backlog-project-scoping.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/architecture/agentic-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/ideas/brana-backlog-v2-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md",
       "type": "references",
       "computed": false
     },
@@ -13424,6 +13585,18 @@
     },
     {
       "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
       "to": "docs/research/agentic-engineering-2026-gap-analysis.md",
       "type": "references",
       "computed": false
@@ -13443,6 +13616,12 @@
     {
       "from": "docs/ideas/brana-v3-redesign.md",
       "to": "docs/reviews/brana-v3-challenge-2026-07-19.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "skills-as-loops.md",
       "type": "references",
       "computed": false
     },
@@ -13611,6 +13790,60 @@
     {
       "from": "docs/ideas/skill-semantic-validation.md",
       "to": "relative/path.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/research/loop-engineering-and-pi.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/research/loop-engineering-examples-catalog.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/research/loop-examples-wild-2026-07.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/research/loop-framework-landscape-2026-07.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/research/primitive-taxonomy-prior-art.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-as-loops.md",
+      "to": "docs/research/skills-primitive-audit-preview-2026-07.md",
       "type": "references",
       "computed": false
     },
@@ -14755,6 +14988,30 @@
       "computed": false
     },
     {
+      "from": "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md",
+      "to": "brana-v3-challenge-2026-07-19.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md",
+      "to": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/reviews/brana-v3-challenge-2026-07-19.md",
       "to": "docs/architecture/agentic-primitives.md",
       "type": "references",
@@ -14852,8 +15109,8 @@
     }
   ],
   "stats": {
-    "nodes": 507,
-    "edges": 1900,
+    "nodes": 517,
+    "edges": 1933,
     "typed_edges": 682,
     "orphans": 135
   }
