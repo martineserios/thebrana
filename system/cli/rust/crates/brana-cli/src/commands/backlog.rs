@@ -11,28 +11,36 @@ use crate::util::find_tasks_file;
 
 // ── backlog commands ────────────────────────────────────────────────────
 
-pub fn cmd_next(
-    theme: &themes::Theme, tag: Option<String>,
-    kind: Option<String>,
-    limit: usize, priority: Option<String>, task_type: Option<String>,
-    effort: Option<String>, parent: Option<String>, json_out: bool,
-) -> anyhow::Result<()> {
-    let tf = find_tasks_file().context("tasks.json not found")?;
-    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
-
-    let types: Vec<&str> = if let Some(ref tp) = task_type {
-        tp.split(',').collect()
-    } else {
-        vec!["task", "subtask"]
+/// Pure selection core of `cmd_next`: unblocked pending tasks, filtered and
+/// priority-sorted, capped at `limit`. Blocker resolution runs against the
+/// full `all` slice via `classify`, so a task blocked only by a completed
+/// task in another epic correctly counts as ready — scoping the resolution
+/// to an epic subset would mislabel it blocked (t-2279).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn select_next<'a>(
+    all: &'a [serde_json::Value],
+    tag: Option<&str>,
+    kind: Option<&str>,
+    priority: Option<&str>,
+    effort: Option<&str>,
+    task_type: Option<&str>,
+    parent: Option<&str>,
+    epic: Option<&str>,
+    limit: usize,
+) -> Vec<&'a serde_json::Value> {
+    let types: Vec<&str> = match task_type {
+        Some(tp) => tp.split(',').collect(),
+        None => vec!["task", "subtask"],
     };
 
     let mut candidates = tasks::filter_tasks_by(
-        &data.tasks, &data.tasks,
+        all, all,
         &tasks::TaskFilter {
-            tag: tag.as_deref(),
+            tag,
             status: Some("pending"),
-            priority: priority.as_deref(),
-            effort: effort.as_deref(),
+            priority,
+            effort,
+            epic,
             types: types.clone(),
             ..Default::default()
         },
@@ -40,18 +48,40 @@ pub fn cmd_next(
 
     // filter_tasks does raw-status matching (tasks.spec.md). For "next up"
     // we want only classify=="pending" — exclude blocked and parked.
-    candidates.retain(|t| tasks::classify(t, &data.tasks) == "pending");
+    candidates.retain(|t| tasks::classify(t, all) == "pending");
 
-    if let Some(ref k) = kind {
-        candidates.retain(|t| t["kind"].as_str().unwrap_or("") == k.as_str());
+    if let Some(k) = kind {
+        candidates.retain(|t| t["kind"].as_str().unwrap_or("") == k);
     }
-
-    if let Some(ref pid) = parent {
-        candidates.retain(|t| t["parent"].as_str() == Some(pid.as_str()));
+    if let Some(pid) = parent {
+        candidates.retain(|t| t["parent"].as_str() == Some(pid));
     }
 
     tasks::sort_by_priority(&mut candidates);
-    let top: Vec<_> = candidates.into_iter().take(limit).collect();
+    candidates.into_iter().take(limit).collect()
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn cmd_next(
+    theme: &themes::Theme, tag: Option<String>,
+    kind: Option<String>,
+    limit: usize, priority: Option<String>, task_type: Option<String>,
+    effort: Option<String>, parent: Option<String>, epic: Option<String>, json_out: bool,
+) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let top = select_next(
+        &data.tasks,
+        tag.as_deref(),
+        kind.as_deref(),
+        priority.as_deref(),
+        effort.as_deref(),
+        task_type.as_deref(),
+        parent.as_deref(),
+        epic.as_deref(),
+        limit,
+    );
 
     if json_out {
         println!("{}", serde_json::to_string(&top).unwrap());
@@ -81,13 +111,42 @@ pub fn cmd_next(
     Ok(())
 }
 
+/// Sort `results` in place. `priority` = P0→P3 (reuses the `next` ordering);
+/// `status` = lifecycle (active → pending → blocked → parked → done), tie-broken
+/// by priority. `classify` runs against the full `all` slice so blocked/ready is
+/// resolved across epics. Unknown keys are a no-op (t-2279).
+pub(crate) fn sort_query(results: &mut [&serde_json::Value], all: &[serde_json::Value], sort: &str) {
+    match sort {
+        "priority" => tasks::sort_by_priority(results),
+        "status" => {
+            let rank = |t: &serde_json::Value| match tasks::classify(t, all) {
+                "active" => 0,
+                "pending" => 1,
+                "blocked" => 2,
+                "parked" => 3,
+                _ => 4, // done
+            };
+            let pri = |t: &serde_json::Value| match t["priority"].as_str() {
+                Some("P0") => 0,
+                Some("P1") => 1,
+                Some("P2") => 2,
+                Some("P3") => 3,
+                _ => 4,
+            };
+            results.sort_by(|a, b| (rank(a), pri(a)).cmp(&(rank(b), pri(b))));
+        }
+        _ => {}
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn cmd_query(
     tag: Option<String>, status: Option<String>,
     kind: Option<String>,
     priority: Option<String>, effort: Option<String>, search: Option<String>,
     count: bool, output: String, theme: &themes::Theme,
     task_type: Option<String>, parent: Option<String>, branch: Option<String>,
-    work_type: Option<String>, epic: Option<String>,
+    work_type: Option<String>, epic: Option<String>, sort: Option<String>,
 ) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -139,6 +198,11 @@ pub fn cmd_query(
     // Apply branch filter
     if let Some(ref br) = branch {
         results.retain(|t| t["branch"].as_str() == Some(br.as_str()));
+    }
+
+    // Apply sort (default output order is file order)
+    if let Some(ref key) = sort {
+        sort_query(&mut results, &data.tasks, key);
     }
 
     if count {
@@ -1837,6 +1901,71 @@ mod tests {
         let stats = collect_epic_stats(&tasks);
         assert_eq!(stats.len(), 1);
         assert_eq!(stats[0].slug, "foo");
+    }
+
+    // ── t-2279: select_next (next --epic) + sort_query (query --sort) ──
+
+    // Mock exercising the cross-epic blocked_by trap: a task in epic
+    // "env-hardening" blocked only by a *completed* task that lives in
+    // another epic must count as ready. Resolving blockers against an
+    // epic-scoped subset (the ad-hoc-Python bug) would mislabel it blocked.
+    fn next_mock() -> Vec<serde_json::Value> {
+        vec![
+            json!({"id":"t-1","type":"task","subject":"cross-epic completed blocker","epic":"other","status":"completed","priority":"P1","blocked_by":[]}),
+            json!({"id":"t-2","type":"task","subject":"ready — blocked only by completed t-1","epic":"env-hardening","status":"pending","priority":"P1","blocked_by":["t-1"]}),
+            json!({"id":"t-3","type":"task","subject":"blocked — t-9 still open","epic":"env-hardening","status":"pending","priority":"P1","blocked_by":["t-9"]}),
+            json!({"id":"t-9","type":"task","subject":"open blocker","epic":"other","status":"pending","priority":"P2","blocked_by":[]}),
+            json!({"id":"t-4","type":"task","subject":"ready — other epic","epic":"other","status":"pending","priority":"P1","blocked_by":[]}),
+        ]
+    }
+
+    #[test]
+    fn select_next_scopes_to_epic_and_resolves_cross_epic_blockers() {
+        let tasks = next_mock();
+        let got = select_next(&tasks, None, None, None, None, None, None, Some("env-hardening"), 100);
+        let ids: Vec<&str> = got.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        // t-2 ready (blocker completed, other epic); t-3 blocked (t-9 open); t-4 excluded (other epic)
+        assert_eq!(ids, vec!["t-2"]);
+    }
+
+    #[test]
+    fn select_next_without_epic_spans_all_epics() {
+        let tasks = next_mock();
+        let got = select_next(&tasks, None, None, None, None, None, None, None, 100);
+        let ids: std::collections::HashSet<&str> =
+            got.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert!(ids.contains("t-2"));  // ready
+        assert!(ids.contains("t-4"));  // ready, other epic
+        assert!(!ids.contains("t-3")); // blocked
+        assert!(!ids.contains("t-1")); // completed
+    }
+
+    #[test]
+    fn sort_query_by_priority_orders_p0_first() {
+        let tasks = vec![
+            json!({"id":"a","priority":"P2","status":"pending","blocked_by":[]}),
+            json!({"id":"b","priority":"P0","status":"pending","blocked_by":[]}),
+            json!({"id":"c","priority":"P1","status":"pending","blocked_by":[]}),
+        ];
+        let mut refs: Vec<&serde_json::Value> = tasks.iter().collect();
+        sort_query(&mut refs, &tasks, "priority");
+        let ids: Vec<&str> = refs.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, vec!["b", "c", "a"]);
+    }
+
+    #[test]
+    fn sort_query_by_status_groups_lifecycle_then_priority() {
+        let tasks = vec![
+            json!({"id":"done","status":"completed","priority":"P0","blocked_by":[]}),
+            json!({"id":"active","status":"in_progress","priority":"P3","blocked_by":[]}),
+            json!({"id":"ready","status":"pending","priority":"P2","blocked_by":[]}),
+            json!({"id":"blocked","status":"pending","priority":"P1","blocked_by":["missing"]}),
+        ];
+        let mut refs: Vec<&serde_json::Value> = tasks.iter().collect();
+        sort_query(&mut refs, &tasks, "status");
+        let ids: Vec<&str> = refs.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        // active → ready(pending) → blocked → done
+        assert_eq!(ids, vec!["active", "ready", "blocked", "done"]);
     }
 
     // ── t-1544: priority default P3 at write time ────────────────────
