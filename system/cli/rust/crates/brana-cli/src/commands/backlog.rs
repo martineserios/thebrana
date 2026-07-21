@@ -686,7 +686,9 @@ pub fn cmd_add(
     // t-2283: stamp ac_state:none on new tasks (v3 forward-only). Pre-existing
     // tasks loaded from the file keep their absent key — only this new object is
     // touched. An explicit ac_state in the payload (validated above) is preserved.
-    if new_task["ac_state"].is_null() { new_task["ac_state"] = serde_json::Value::String("none".into()); }
+    if new_task["ac_state"].is_null() {
+        new_task["ac_state"] = serde_json::Value::String(tasks::AC_STATE_DEFAULT.into());
+    }
     // Null defaults for optional fields
     for f in &["parent", "order", "priority", "effort", "branch", "github_issue",
                "started", "completed", "notes", "context", "strategy", "build_step", "description"] {

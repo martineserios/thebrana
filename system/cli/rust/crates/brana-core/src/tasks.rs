@@ -239,9 +239,12 @@ pub fn filter_tasks<'a>(
 /// Step-1 dry run 2026-07-21). Legacy tasks (`ac_state` key absent) are never
 /// candidates: only key-present, `none`-valued tasks are under v3 AC management.
 pub fn ac_propose_candidates(tasks: &[Value]) -> Vec<&Value> {
+    // AC#7 phrases the exclusion as "research/audit". There is no `audit`
+    // work_type in the canonical enum (see `validate_work_type`) — "audit" maps
+    // to `review` by convention, so the exclusion set is {research, review}.
     tasks
         .iter()
-        .filter(|t| t["ac_state"].as_str() == Some("none"))
+        .filter(|t| t["ac_state"].as_str() == Some(AC_STATE_DEFAULT))
         .filter(|t| !matches!(t["work_type"].as_str(), Some("research") | Some("review")))
         .collect()
 }
@@ -584,38 +587,51 @@ fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
     })
 }
 
-/// t-2283 (v3 forward-only slice): normalize the tasks-file `version` stamp to 2.
-/// Absent or `1` upgrades to `2` in place; `2` (or any higher value) is left as-is.
-/// Non-breaking by design — existing v1/unversioned files load with content
-/// untouched, gaining only the stamp. This is the "gate load on version:2" rule:
-/// every loaded/saved file carries version:2, without a migration of the ~2,100
-/// legacy tasks (operator decision 2026-07-21: auto-upgrade, not hard-reject).
+/// Read a tasks-file `version` value as an integer, tolerating BOTH the numeric
+/// form (`2`) and the legacy JSON-string form (`"1"`). The live tasks.json ships
+/// `version` as a string, so a numbers-only check silently never matched (t-2283
+/// challenger CRITICAL) — always route version reads through here.
+fn version_as_int(v: &Value) -> Option<i64> {
+    v.as_i64().or_else(|| v.as_str().and_then(|s| s.parse::<i64>().ok()))
+}
+
+/// True when `val` already carries a canonical `version: 2` (a JSON NUMBER ≥ 2).
+/// A legacy string `"2"` deliberately reads as *not* canonical so it gets
+/// rewritten to the numeric form on the next save.
+fn has_canonical_version(val: &Value) -> bool {
+    matches!(val.get("version"), Some(Value::Number(n)) if n.as_i64().map_or(false, |v| v >= 2))
+}
+
+/// t-2283 (v3 forward-only slice): normalize the tasks-file `version` stamp to a
+/// canonical numeric `2`. Absent, non-integer, string `"1"`, or numeric `1`
+/// upgrade to `2`; a value already ≥ 2 is preserved (and coerced to a JSON
+/// number so legacy string stamps stop lying to `as_i64`-based checks).
+/// Non-breaking by design — existing v1/unversioned files load with task content
+/// untouched, gaining only the canonical stamp. This is the "gate load on
+/// version:2" rule: every loaded/saved file carries numeric version ≥ 2, without
+/// a migration of the ~2,100 legacy tasks (operator decision 2026-07-21:
+/// auto-upgrade, not hard-reject).
 fn normalize_version(val: &mut Value) {
+    if has_canonical_version(val) {
+        return;
+    }
     if let Some(obj) = val.as_object_mut() {
-        let bump = match obj.get("version") {
-            None => true,
-            Some(v) => v.as_i64().map_or(false, |n| n < 2),
-        };
-        if bump {
-            obj.insert("version".into(), Value::from(2));
-        }
+        let current = obj.get("version").and_then(version_as_int).unwrap_or(1);
+        obj.insert("version".into(), Value::from(current.max(2)));
     }
 }
 
-/// Save a TasksFile back to disk (pretty-printed, atomic). Guarantees a
-/// `version: 2` stamp (t-2283). The common write path (load_raw → mutate → save)
-/// already carries the stamp from load_raw, so the hot path skips the clone.
+/// Save a TasksFile back to disk (pretty-printed, atomic). Guarantees a canonical
+/// numeric `version: 2` stamp (t-2283). The common write path
+/// (load_raw → mutate → save) already carries the canonical stamp from load_raw,
+/// so the hot path skips the ~2,100-task clone.
 pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
-    let needs_stamp = val
-        .get("version")
-        .and_then(|v| v.as_i64())
-        .map_or(true, |n| n < 2);
-    let content = if needs_stamp {
+    let content = if has_canonical_version(val) {
+        serde_json::to_string_pretty(val)
+    } else {
         let mut stamped = val.clone();
         normalize_version(&mut stamped);
         serde_json::to_string_pretty(&stamped)
-    } else {
-        serde_json::to_string_pretty(val)
     }
     .map_err(|e| format!("serialize failed: {e}"))?;
     write_atomic(path, &(content + "\n"))
@@ -725,6 +741,10 @@ pub fn validate_execution(value: &str) -> Result<(), String> {
         )),
     }
 }
+
+/// t-2283: the value a new task's `ac_state` is stamped with. Shared by every
+/// write path (CLI `cmd_add`, MCP `backlog_add`) so the stamp cannot drift.
+pub const AC_STATE_DEFAULT: &str = "none";
 
 /// Validate an ac_state value (t-2283, v3 forward-only slice). Accepts
 /// none/proposed/approved plus "null"/"" (clear the key). Shared by every write
@@ -3128,6 +3148,65 @@ mod tests {
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(reloaded["version"], 2, "save must stamp version:2");
+    }
+
+    #[test]
+    fn test_load_raw_upgrades_string_version_1_to_numeric_2() {
+        // Challenger CRITICAL: the live tasks.json stores version as a STRING
+        // ("1"), which a numbers-only check silently never upgraded.
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":"1","project":"p","tasks":[]}}"#).unwrap();
+        let val = load_raw(f.path()).unwrap();
+        assert_eq!(val["version"], json!(2), "string \"1\" must upgrade to numeric 2");
+        assert!(val["version"].is_number(), "version must normalize to a JSON number");
+    }
+
+    #[test]
+    fn test_save_tasks_rewrites_string_version_to_numeric_2() {
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let val = json!({"version": "1", "project": "p", "tasks": []});
+        save_tasks(f.path(), &val).unwrap();
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["version"], json!(2));
+        assert!(reloaded["version"].is_number(), "string version must be coerced to a number");
+    }
+
+    #[test]
+    fn test_save_tasks_preserves_higher_version() {
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let val = json!({"version": 3, "project": "p", "tasks": []});
+        save_tasks(f.path(), &val).unwrap();
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["version"], 3, "must not downgrade a higher version");
+    }
+
+    #[test]
+    fn test_perform_rollup_preserves_ac_state() {
+        // Finding #3: perform_rollup writes tasks.json outside the set_field
+        // pipeline — prove it does not drop ac_state on untouched tasks.
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(
+            f,
+            r#"{{"version":2,"project":"p","tasks":[
+                {{"id":"ms-1","subject":"m","status":"pending","type":"milestone","tags":[],"blocked_by":[],"ac_state":"approved"}},
+                {{"id":"t-1","subject":"c","status":"completed","type":"task","parent":"ms-1","tags":[],"blocked_by":[],"ac_state":"proposed"}}
+            ]}}"#
+        )
+        .unwrap();
+        let done = perform_rollup(f.path(), false).unwrap();
+        assert_eq!(done, vec!["ms-1"], "milestone with all-done children should roll up");
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let arr = reloaded["tasks"].as_array().unwrap();
+        let ms = arr.iter().find(|t| t["id"] == "ms-1").unwrap();
+        let t1 = arr.iter().find(|t| t["id"] == "t-1").unwrap();
+        assert_eq!(ms["ac_state"], "approved", "rollup must preserve parent ac_state");
+        assert_eq!(t1["ac_state"], "proposed", "rollup must preserve child ac_state");
+        assert_eq!(ms["status"], "completed");
     }
 
     #[test]

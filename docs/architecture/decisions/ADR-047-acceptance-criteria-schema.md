@@ -192,14 +192,19 @@ Serde `Option::None` (absent) is deliberately distinct from `Some("none")` (pres
 raw JSON key's presence/absence.
 
 **Write-path sealing (precondition).** CLI (`brana backlog set`) and MCP
-(`mcp__brana__backlog_set`) both rewrite `tasks.json`. Verified during build: both share
-`load_raw` → `set_field` → `save_tasks` over a raw `serde_json::Value`, so unknown/new fields
-already round-trip — sealing is structural, guarded by a both-paths regression test rather than
-new plumbing.
+(`mcp__brana__backlog_set`) both rewrite `tasks.json` through the shared
+`load_raw` → `set_field` → `save_tasks` pipeline over a raw `serde_json::Value`, so unknown/new
+fields already round-trip — sealing is structural for these two paths, guarded by a both-paths
+regression test rather than new plumbing. `perform_rollup` writes tasks.json *outside* that
+pipeline (its own read → partial mutation → save); it preserves untouched keys the same way and
+carries its own `ac_state`-preservation regression test.
 
-**Version gate.** `tasks.json` now carries `version: 2`. Load **auto-upgrades** (absent/`1` →
-`2` in memory; non-breaking, operator decision 2026-07-21 — not a hard reject that would break
-the live backlog); save always stamps `version: 2`.
+**Version gate.** `tasks.json` now carries a canonical **numeric** `version: 2`. Load
+**auto-upgrades** (absent / `1` / the legacy JSON-**string** `"1"` the live file actually ships →
+numeric `2` in memory; non-breaking, operator decision 2026-07-21 — not a hard reject that would
+break the live backlog); save always stamps numeric `version: 2`, coercing legacy string stamps
+to a number so integer checks stop silently missing them. Version reads route through
+`version_as_int` (tolerates both number and string forms).
 
 **Stamping.** `backlog add` (CLI + MCP) stamps `ac_state: none` on new tasks. Legacy tasks stay
 key-less until explicitly opted in via `backlog set <id> ac_state none`.

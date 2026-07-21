@@ -128,8 +128,8 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "epic": input.epic,
                 "work_type": input.work_type,
                 // t-2283: stamp ac_state:none on new tasks (v3 forward-only).
-                // Mirrors CLI cmd_add so the two write paths cannot drift.
-                "ac_state": "none",
+                // Shared const with CLI cmd_add so the two write paths cannot drift.
+                "ac_state": brana_core::tasks::AC_STATE_DEFAULT,
             });
 
             val["tasks"].as_array_mut()
