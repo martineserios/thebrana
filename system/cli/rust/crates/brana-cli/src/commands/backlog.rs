@@ -2162,3 +2162,86 @@ pub fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+/// ac-propose loop (t-2288). Without `apply`: emit the drain queue as JSON packets
+/// (id, subject, description, context) for an AC generator. With `apply`: read
+/// proposals and persist `ac_state:proposed` + `proposed_acceptance_criteria` for
+/// current candidates only — the binary stays LLM-free; content comes from the
+/// caller (agy/Claude at the agent layer).
+pub fn cmd_ac_propose(
+    file: Option<PathBuf>,
+    apply: Option<PathBuf>,
+    dry_run: bool,
+) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+
+    match apply {
+        // ── List mode: emit candidate packets (the drain). Read-only. ──
+        None => {
+            let val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!(e))?;
+            let all = val["tasks"].as_array().cloned().unwrap_or_default();
+            let packets: Vec<serde_json::Value> = tasks::ac_propose_candidates(&all)
+                .iter()
+                .map(|t| {
+                    serde_json::json!({
+                        "id": t["id"],
+                        "subject": t["subject"],
+                        "description": t["description"],
+                        "context": t["context"],
+                    })
+                })
+                .collect();
+            println!("{}", serde_json::to_string_pretty(&packets)?);
+        }
+        // ── Apply mode: read proposals, persist scoped mutation. ──
+        Some(src) => {
+            let raw = if src.as_os_str() == "-" {
+                io::read_to_string(io::stdin())?
+            } else {
+                std::fs::read_to_string(&src)
+                    .with_context(|| format!("reading proposals from {}", src.display()))?
+            };
+            let parsed: serde_json::Value =
+                serde_json::from_str(raw.trim()).context("proposals must be valid JSON")?;
+            let entries = parsed
+                .as_array()
+                .context("proposals must be a JSON array of {id, proposed_acceptance_criteria}")?;
+
+            let mut proposals: std::collections::HashMap<String, Vec<String>> =
+                std::collections::HashMap::new();
+            for e in entries {
+                let id = e["id"]
+                    .as_str()
+                    .context("each proposal needs a string `id`")?
+                    .to_string();
+                let crit: Vec<String> = e["proposed_acceptance_criteria"]
+                    .as_array()
+                    .context("each proposal needs `proposed_acceptance_criteria` (array of strings)")?
+                    .iter()
+                    .filter_map(|c| c.as_str().map(str::to_string))
+                    .collect();
+                if crit.is_empty() {
+                    anyhow::bail!("proposal for {id} has no non-empty criteria");
+                }
+                // A duplicate id would silently drop all but the last entry — surface it.
+                if proposals.contains_key(&id) {
+                    anyhow::bail!("duplicate id {id:?} in proposals — each task may appear once");
+                }
+                proposals.insert(id, crit);
+            }
+
+            match tasks::perform_ac_propose(&tf, &proposals, dry_run) {
+                Ok(ids) => {
+                    let action = if dry_run { "would propose" } else { "proposed" };
+                    let json_ids = serde_json::to_string(&ids).unwrap();
+                    println!("{{\"ac_propose\":{json_ids},\"action\":\"{action}\"}}");
+                }
+                Err(e) => anyhow::bail!("ac-propose failed: {e}"),
+            }
+        }
+    }
+    Ok(())
+}
