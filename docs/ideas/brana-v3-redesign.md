@@ -8,6 +8,7 @@ created: 2026-07-19
 
 > Brainstormed + adversarially challenged 2026-07-19. Status: draft v3.2 (integrated).
 > Foundation: [agentic-primitives.md](../architecture/agentic-primitives.md) · [2026 gap analysis](../research/agentic-engineering-2026-gap-analysis.md) · [loop-engineering + Pi](../research/loop-engineering-and-pi.md) · [gentle-ai extraction](../research/gentle-ai-productization-extraction.md) · challenge: [brana-v3-challenge-2026-07-19.md](../reviews/brana-v3-challenge-2026-07-19.md)
+> Elaborations (2026-07-20): [backlog-v3 schema](../architecture/features/backlog-v3-schema.md) + [ADR-065](../architecture/decisions/ADR-065-epic-as-hierarchy-top.md) (the task-contract backbone) · [skills-as-loops](skills-as-loops.md) (waves 4–5 elaboration + deferred pipeline north star, → t-2278)
 
 ## Problem
 
@@ -60,6 +61,10 @@ Ordering principle: *each wave proves the ladder's next rung while paying for th
 | **5 · GRADUATE + CUT** | Shape-based graduation from the outcome ledger (transparent rule table, auto-demotion), gated on the soak (≥50 outcomes / 2 weeks of wave-4 usage). First qualifying shape goes L3 (activates the ADR-060 amendment). Core vs process-packs boundary (→ t-2090). Hook tier-model page. | v2 remnants retired against the v3 spec |
 
 **Wave contract (non-negotiable):** ≤10 tasks/wave · ships into daily use · deletes ≥ adds · next wave gated on previous shipping · tests and docs ride inside waves · a stop-condition ceiling exists from wave 2's first unattended run.
+
+**Elaborations (2026-07-20).** Two docs extend this plan rather than fork it:
+- **[backlog-v3 schema](../architecture/features/backlog-v3-schema.md) + [ADR-065](../architecture/decisions/ADR-065-epic-as-hierarchy-top.md)** — the task-contract backbone: the three-axis task (subject · tags · waves) is the *drainable queue* every wave here needs, and the self-contained packet (spec · AC · `ac_state` · `log`) is the contract loops verify + the graduation ledger wave 5 reads. Lands in the backlog-cli wave; challenged deep 2026-07-20 (all findings applied).
+- **[skills-as-loops](skills-as-loops.md)** — elaborates **wave 4's router** (behaviors re-derived against the primitive palette — skill · workflow · loop · goal; each process ends in a router, not a prose handoff) and **wave 5's core/packs cut** (the audit that finds which behaviors become loops vs stay skills; a real 34-skill pass right-sized it — most stay skills). Its **task-as-workpiece pipeline** is the explicit *final-wave north star*, deferred until single loops prove clean handoffs. Graduation tracked by **t-2278** (blocked on the schema landing).
 
 **Rejected:** clean slate · spec-only wave · cockpit-before-verifier · Routines for stateful jobs (no local state access; same billing pool) · syscall sandboxing as autonomy precondition · deleting goal-completion.sh atomically · "L3 day one" labeling.
 
