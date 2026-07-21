@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-21T15:38:26Z",
+  "generated": "2026-07-21T19:22:24Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1143,6 +1143,11 @@
         "system/plugin.json",
         "system/.claude-plugin/plugin.json"
       ]
+    },
+    "docs/architecture/features/ac-state-forward-slice.md": {
+      "title": "ac_state forward-only slice — v3 schema MVP (wave-0)",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/acquire-skills-guide.md": {
       "title": "Feature: Acquire Skills — User Guide",
@@ -15109,9 +15114,9 @@
     }
   ],
   "stats": {
-    "nodes": 517,
+    "nodes": 518,
     "edges": 1933,
     "typed_edges": 682,
-    "orphans": 135
+    "orphans": 136
   }
 }
