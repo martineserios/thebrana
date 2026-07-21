@@ -195,6 +195,7 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 |------|----------|
 | [ruflo-native-integration.md](ideas/ruflo-native-integration.md) | Ruflo native integration — controller status, upstream blockers, upgrade path |
 | [skill-auto-router.md](ideas/skill-auto-router.md) | Skill auto-routing with ruflo HNSW + marketplace discovery |
+| [skills-as-loops.md](ideas/skills-as-loops.md) | Skills re-derived as loops (stop condition + verifier + queue), loop composition rules, exit-router pattern — v3 seed, grounded in loop-engineering's 7 patterns |
 
 ## Content (docs/content/)
 
