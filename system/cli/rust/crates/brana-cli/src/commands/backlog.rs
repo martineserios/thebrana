@@ -146,7 +146,8 @@ pub fn cmd_query(
     priority: Option<String>, effort: Option<String>, search: Option<String>,
     count: bool, output: String, theme: &themes::Theme,
     task_type: Option<String>, parent: Option<String>, branch: Option<String>,
-    work_type: Option<String>, epic: Option<String>, sort: Option<String>,
+    work_type: Option<String>, epic: Option<String>, ac_state: Option<String>,
+    sort: Option<String>,
 ) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -171,6 +172,7 @@ pub fn cmd_query(
             types: types.clone(),
             epic: epic.as_deref(),
             work_type: work_type.as_deref(),
+            ac_state: ac_state.as_deref(),
             ..Default::default()
         },
     );
@@ -652,6 +654,12 @@ pub fn cmd_add(
             anyhow::bail!("{e}");
         }
     }
+    if let Some(a) = new_task["ac_state"].as_str() {
+        if let Err(e) = tasks::validate_ac_state(a) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
     {
         let effort = new_task["effort"].as_str();
         let context = new_task["context"].as_str();
@@ -675,6 +683,12 @@ pub fn cmd_add(
     if new_task["blocked_by"].is_null() { new_task["blocked_by"] = serde_json::json!([]); }
     // t-1544: null priority is an error state — default to P3 at write time
     if new_task["priority"].is_null() { new_task["priority"] = serde_json::Value::String("P3".into()); }
+    // t-2283: stamp ac_state:none on new tasks (v3 forward-only). Pre-existing
+    // tasks loaded from the file keep their absent key — only this new object is
+    // touched. An explicit ac_state in the payload (validated above) is preserved.
+    if new_task["ac_state"].is_null() {
+        new_task["ac_state"] = serde_json::Value::String(tasks::AC_STATE_DEFAULT.into());
+    }
     // Null defaults for optional fields
     for f in &["parent", "order", "priority", "effort", "branch", "github_issue",
                "started", "completed", "notes", "context", "strategy", "build_step", "description"] {
@@ -2034,6 +2048,72 @@ mod tests {
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P0"),
             "P0 priority should be preserved, got: {}", task["priority"]);
+    }
+
+    // ── t-2283: ac_state forward-only slice (CLI paths) ──────────────────
+
+    fn tasks_file_with(tasks_json: &str) -> tempfile::NamedTempFile {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"test","tasks":{tasks_json}}}"#).unwrap();
+        f.flush().unwrap();
+        f
+    }
+
+    #[test]
+    fn cmd_add_stamps_ac_state_none() {
+        // AC#3: new tasks are stamped ac_state:none.
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"new v3 task"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"].as_str(), Some("none"),
+            "new tasks must be stamped ac_state:none, got: {}", task["ac_state"]);
+    }
+
+    #[test]
+    fn cmd_add_leaves_existing_legacy_task_keyless() {
+        // AC#3 tail: adding a new task must not touch a pre-existing legacy task.
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"legacy","status":"pending","type":"task","tags":[],"blocked_by":[]}]"#,
+        );
+        cmd_add(
+            Some(r#"{"subject":"new one"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let arr = data["tasks"].as_array().unwrap();
+        let legacy = arr.iter().find(|t| t["id"] == "t-1").unwrap();
+        assert!(legacy.get("ac_state").is_none(), "existing legacy task must stay key-less");
+        let new = arr.iter().find(|t| t["subject"] == "new one").unwrap();
+        assert_eq!(new["ac_state"].as_str(), Some("none"));
+    }
+
+    #[test]
+    fn cmd_set_ac_state_opt_in_adds_key_to_legacy() {
+        // AC#5 (CLI path): setting ac_state on a legacy task adds the key.
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"legacy","status":"pending","type":"task","tags":[],"blocked_by":[]}]"#,
+        );
+        cmd_set("t-1", "ac_state", "none", false, Some(f.path().to_path_buf())).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"].as_str(), Some("none"));
+    }
+
+    #[test]
+    fn cmd_set_unrelated_field_preserves_ac_state_cli_path() {
+        // AC#2 (CLI path): an unrelated `set` must not clobber ac_state.
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"proposed"}]"#,
+        );
+        cmd_set("t-1", "priority", "P1", false, Some(f.path().to_path_buf())).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"].as_str(), Some("proposed"), "CLI set clobbered ac_state");
     }
 }
 

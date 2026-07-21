@@ -32,6 +32,10 @@ pub struct Input {
 
     /// Filter by work_type: implement, research, design, ops, review
     pub work_type: Option<String>,
+
+    /// Filter by ac_state (v3): none, proposed, approved. Matches only tasks whose
+    /// ac_state key is present; legacy tasks (key absent) never match.
+    pub ac_state: Option<String>,
 }
 
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
@@ -59,6 +63,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     types: types.clone(),
                     epic: input.epic.as_deref(),
                     work_type: input.work_type.as_deref(),
+                    ac_state: input.ac_state.as_deref(),
                     ..Default::default()
                 },
             );

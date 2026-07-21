@@ -123,6 +123,10 @@ pub struct TaskFilter<'a> {
     pub types: Vec<&'a str>,
     pub epic: Option<&'a str>,
     pub work_type: Option<&'a str>,
+    /// t-2283: filter by `ac_state` (v3 forward-only slice). Matches only tasks
+    /// whose `ac_state` key is PRESENT and equals this value; legacy tasks (key
+    /// absent) never match.
+    pub ac_state: Option<&'a str>,
 }
 
 impl Default for TaskFilter<'_> {
@@ -136,6 +140,7 @@ impl Default for TaskFilter<'_> {
             types: vec!["task", "subtask"],
             epic: None,
             work_type: None,
+            ac_state: None,
         }
     }
 }
@@ -189,6 +194,13 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
                     return false;
                 }
             }
+            if let Some(acs) = filter.ac_state {
+                // t-2283: match only when the ac_state KEY is present and equals
+                // `acs`. A legacy task (key absent) reads as Null → never matches.
+                if t["ac_state"].as_str() != Some(acs) {
+                    return false;
+                }
+            }
             true
         })
         .collect()
@@ -217,7 +229,24 @@ pub fn filter_tasks<'a>(
         types: types.to_vec(),
         epic,
         work_type,
+        ac_state: None,
     })
+}
+
+/// t-2283: ac-propose drain candidates — the queue the ac-propose loop drains.
+/// Candidates = tasks with `ac_state == "none"` MINUS work_type in {research, review}
+/// (research/audit tasks yield only thin disjunctive ACs — route L2-only, per the
+/// Step-1 dry run 2026-07-21). Legacy tasks (`ac_state` key absent) are never
+/// candidates: only key-present, `none`-valued tasks are under v3 AC management.
+pub fn ac_propose_candidates(tasks: &[Value]) -> Vec<&Value> {
+    // AC#7 phrases the exclusion as "research/audit". There is no `audit`
+    // work_type in the canonical enum (see `validate_work_type`) — "audit" maps
+    // to `review` by convention, so the exclusion set is {research, review}.
+    tasks
+        .iter()
+        .filter(|t| t["ac_state"].as_str() == Some(AC_STATE_DEFAULT))
+        .filter(|t| !matches!(t["work_type"].as_str(), Some("research") | Some("review")))
+        .collect()
 }
 
 /// Sort by priority (P0 first), then status (in_progress first), then order.
@@ -558,9 +587,53 @@ fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
     })
 }
 
-/// Save a TasksFile back to disk (pretty-printed, atomic).
+/// Read a tasks-file `version` value as an integer, tolerating BOTH the numeric
+/// form (`2`) and the legacy JSON-string form (`"1"`). The live tasks.json ships
+/// `version` as a string, so a numbers-only check silently never matched (t-2283
+/// challenger CRITICAL) — always route version reads through here.
+fn version_as_int(v: &Value) -> Option<i64> {
+    v.as_i64().or_else(|| v.as_str().and_then(|s| s.parse::<i64>().ok()))
+}
+
+/// True when `val` already carries a canonical `version: 2` (a JSON NUMBER ≥ 2).
+/// A legacy string `"2"` deliberately reads as *not* canonical so it gets
+/// rewritten to the numeric form on the next save.
+fn has_canonical_version(val: &Value) -> bool {
+    matches!(val.get("version"), Some(Value::Number(n)) if n.as_i64().map_or(false, |v| v >= 2))
+}
+
+/// t-2283 (v3 forward-only slice): normalize the tasks-file `version` stamp to a
+/// canonical numeric `2`. Absent, non-integer, string `"1"`, or numeric `1`
+/// upgrade to `2`; a value already ≥ 2 is preserved (and coerced to a JSON
+/// number so legacy string stamps stop lying to `as_i64`-based checks).
+/// Non-breaking by design — existing v1/unversioned files load with task content
+/// untouched, gaining only the canonical stamp. This is the "gate load on
+/// version:2" rule: every loaded/saved file carries numeric version ≥ 2, without
+/// a migration of the ~2,100 legacy tasks (operator decision 2026-07-21:
+/// auto-upgrade, not hard-reject).
+fn normalize_version(val: &mut Value) {
+    if has_canonical_version(val) {
+        return;
+    }
+    if let Some(obj) = val.as_object_mut() {
+        let current = obj.get("version").and_then(version_as_int).unwrap_or(1);
+        obj.insert("version".into(), Value::from(current.max(2)));
+    }
+}
+
+/// Save a TasksFile back to disk (pretty-printed, atomic). Guarantees a canonical
+/// numeric `version: 2` stamp (t-2283). The common write path
+/// (load_raw → mutate → save) already carries the canonical stamp from load_raw,
+/// so the hot path skips the ~2,100-task clone.
 pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
-    let content = serde_json::to_string_pretty(val).map_err(|e| format!("serialize failed: {e}"))?;
+    let content = if has_canonical_version(val) {
+        serde_json::to_string_pretty(val)
+    } else {
+        let mut stamped = val.clone();
+        normalize_version(&mut stamped);
+        serde_json::to_string_pretty(&stamped)
+    }
+    .map_err(|e| format!("serialize failed: {e}"))?;
     write_atomic(path, &(content + "\n"))
 }
 
@@ -586,11 +659,13 @@ pub fn load_raw(path: &Path) -> Result<Value, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("{}: {e}", path.display()))?;
     let val: Value = serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))?;
-    if val.is_array() {
-        Ok(serde_json::json!({"tasks": val}))
+    let mut val = if val.is_array() {
+        serde_json::json!({"tasks": val})
     } else {
-        Ok(val)
-    }
+        val
+    };
+    normalize_version(&mut val);
+    Ok(val)
 }
 
 /// Find the next available task ID (highest numeric suffix + 1).
@@ -663,6 +738,23 @@ pub fn validate_execution(value: &str) -> Result<(), String> {
         "code" | "autonomous" | "null" | "" => Ok(()),
         other => Err(format!(
             "invalid execution {other:?} — must be code/autonomous or null"
+        )),
+    }
+}
+
+/// t-2283: the value a new task's `ac_state` is stamped with. Shared by every
+/// write path (CLI `cmd_add`, MCP `backlog_add`) so the stamp cannot drift.
+pub const AC_STATE_DEFAULT: &str = "none";
+
+/// Validate an ac_state value (t-2283, v3 forward-only slice). Accepts
+/// none/proposed/approved plus "null"/"" (clear the key). Shared by every write
+/// path so CLI and MCP cannot drift. Key *presence* marks a task as v3-managed;
+/// this validator governs only the value once the key is being written.
+pub fn validate_ac_state(value: &str) -> Result<(), String> {
+    match value {
+        "none" | "proposed" | "approved" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid ac_state {other:?} — must be none/proposed/approved or null"
         )),
     }
 }
@@ -787,9 +879,12 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
         "priority" | "effort" | "status" | "type" | "level" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
-        | "epic" | "work_type" | "kind" | "spawn" | "spawn_strategy" => {
+        | "epic" | "work_type" | "kind" | "spawn" | "spawn_strategy" | "ac_state" => {
             if field == "priority" {
                 validate_priority(value)?;
+            }
+            if field == "ac_state" {
+                validate_ac_state(value)?;
             }
             if field == "status" {
                 validate_status(value)?;
@@ -2972,5 +3067,182 @@ mod tests {
         // set_field with null is fine
         set_field(&mut task, "execution", "null", false).unwrap();
         assert!(task["execution"].is_null());
+    }
+
+    // ── t-2283: ac_state forward-only slice ──────────────────────────────
+
+    #[test]
+    fn test_set_field_ac_state_none_adds_key() {
+        // AC#5: opt-in a legacy task by adding the ac_state key.
+        let mut task = json!({"id": "t-1", "subject": "s"});
+        assert!(task.get("ac_state").is_none());
+        set_field(&mut task, "ac_state", "none", false).unwrap();
+        assert_eq!(task["ac_state"], "none");
+    }
+
+    #[test]
+    fn test_set_field_ac_state_valid_values() {
+        for v in ["none", "proposed", "approved"] {
+            let mut task = json!({"id": "t-1"});
+            set_field(&mut task, "ac_state", v, false).unwrap();
+            assert_eq!(task["ac_state"], v);
+        }
+    }
+
+    #[test]
+    fn test_set_field_ac_state_rejects_invalid() {
+        let mut task = json!({"id": "t-1"});
+        let err = set_field(&mut task, "ac_state", "bogus", false).unwrap_err();
+        assert!(err.contains("none"), "err must list valid values: {err}");
+        assert!(task.get("ac_state").is_none(), "task unchanged on validation error");
+    }
+
+    #[test]
+    fn test_set_field_ac_state_clears_with_null() {
+        let mut task = json!({"id": "t-1", "ac_state": "proposed"});
+        set_field(&mut task, "ac_state", "null", false).unwrap();
+        assert!(task["ac_state"].is_null());
+    }
+
+    #[test]
+    fn test_set_field_unrelated_preserves_ac_state() {
+        // AC#2 (core): both write paths share set_field over a raw Value, so an
+        // unrelated field update must not clobber a previously-written ac_state.
+        let mut task = json!({"id": "t-1", "ac_state": "proposed", "priority": "P2"});
+        set_field(&mut task, "priority", "P1", false).unwrap();
+        assert_eq!(task["ac_state"], "proposed", "unrelated set clobbered ac_state");
+    }
+
+    #[test]
+    fn test_load_raw_upgrades_version_1_to_2() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[]}}"#).unwrap();
+        let val = load_raw(f.path()).unwrap();
+        assert_eq!(val["version"], 2, "v1 must upgrade to v2 in memory");
+    }
+
+    #[test]
+    fn test_load_raw_stamps_version_when_absent() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"project":"p","tasks":[]}}"#).unwrap();
+        let val = load_raw(f.path()).unwrap();
+        assert_eq!(val["version"], 2, "absent version must normalize to v2");
+    }
+
+    #[test]
+    fn test_load_raw_keeps_version_2() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":2,"project":"p","tasks":[]}}"#).unwrap();
+        let val = load_raw(f.path()).unwrap();
+        assert_eq!(val["version"], 2);
+    }
+
+    #[test]
+    fn test_save_tasks_stamps_version_2() {
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let val = json!({"project": "p", "tasks": []});
+        save_tasks(f.path(), &val).unwrap();
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["version"], 2, "save must stamp version:2");
+    }
+
+    #[test]
+    fn test_load_raw_upgrades_string_version_1_to_numeric_2() {
+        // Challenger CRITICAL: the live tasks.json stores version as a STRING
+        // ("1"), which a numbers-only check silently never upgraded.
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":"1","project":"p","tasks":[]}}"#).unwrap();
+        let val = load_raw(f.path()).unwrap();
+        assert_eq!(val["version"], json!(2), "string \"1\" must upgrade to numeric 2");
+        assert!(val["version"].is_number(), "version must normalize to a JSON number");
+    }
+
+    #[test]
+    fn test_save_tasks_rewrites_string_version_to_numeric_2() {
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let val = json!({"version": "1", "project": "p", "tasks": []});
+        save_tasks(f.path(), &val).unwrap();
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["version"], json!(2));
+        assert!(reloaded["version"].is_number(), "string version must be coerced to a number");
+    }
+
+    #[test]
+    fn test_save_tasks_preserves_higher_version() {
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let val = json!({"version": 3, "project": "p", "tasks": []});
+        save_tasks(f.path(), &val).unwrap();
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["version"], 3, "must not downgrade a higher version");
+    }
+
+    #[test]
+    fn test_perform_rollup_preserves_ac_state() {
+        // Finding #3: perform_rollup writes tasks.json outside the set_field
+        // pipeline — prove it does not drop ac_state on untouched tasks.
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(
+            f,
+            r#"{{"version":2,"project":"p","tasks":[
+                {{"id":"ms-1","subject":"m","status":"pending","type":"milestone","tags":[],"blocked_by":[],"ac_state":"approved"}},
+                {{"id":"t-1","subject":"c","status":"completed","type":"task","parent":"ms-1","tags":[],"blocked_by":[],"ac_state":"proposed"}}
+            ]}}"#
+        )
+        .unwrap();
+        let done = perform_rollup(f.path(), false).unwrap();
+        assert_eq!(done, vec!["ms-1"], "milestone with all-done children should roll up");
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let arr = reloaded["tasks"].as_array().unwrap();
+        let ms = arr.iter().find(|t| t["id"] == "ms-1").unwrap();
+        let t1 = arr.iter().find(|t| t["id"] == "t-1").unwrap();
+        assert_eq!(ms["ac_state"], "approved", "rollup must preserve parent ac_state");
+        assert_eq!(t1["ac_state"], "proposed", "rollup must preserve child ac_state");
+        assert_eq!(ms["status"], "completed");
+    }
+
+    #[test]
+    fn test_filter_by_ac_state_matches_present_key_only() {
+        // AC#4: only key-present matches; legacy (absent) never appears.
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","ac_state":"none"}),
+            json!({"id":"t-2","type":"task","ac_state":"proposed"}),
+            json!({"id":"t-3","type":"task"}),
+        ];
+        let filter = TaskFilter { ac_state: Some("none"), ..Default::default() };
+        let out = filter_tasks_by(&tasks, &tasks, &filter);
+        let ids: Vec<&str> = out.iter().filter_map(|t| t["id"].as_str()).collect();
+        assert_eq!(ids, vec!["t-1"]);
+    }
+
+    #[test]
+    fn test_filter_ac_state_excludes_legacy_absent() {
+        let tasks = vec![json!({"id":"t-3","type":"task"})];
+        let filter = TaskFilter { ac_state: Some("none"), ..Default::default() };
+        let out = filter_tasks_by(&tasks, &tasks, &filter);
+        assert!(out.is_empty(), "absent-key task must never match --ac-state");
+    }
+
+    #[test]
+    fn test_ac_propose_candidates_excludes_research_and_review() {
+        // AC#7: drain queue = ac_state==none MINUS work_type in {research, review}.
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","ac_state":"none","work_type":"implement"}),
+            json!({"id":"t-2","type":"task","ac_state":"none","work_type":"research"}),
+            json!({"id":"t-3","type":"task","ac_state":"none","work_type":"review"}),
+            json!({"id":"t-4","type":"task","ac_state":"proposed","work_type":"implement"}),
+            json!({"id":"t-5","type":"task","work_type":"implement"}),
+        ];
+        let out = ac_propose_candidates(&tasks);
+        let ids: Vec<&str> = out.iter().filter_map(|t| t["id"].as_str()).collect();
+        assert_eq!(ids, vec!["t-1"], "only ac_state==none, non-research/review");
     }
 }

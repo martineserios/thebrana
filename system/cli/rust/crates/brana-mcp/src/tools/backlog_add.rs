@@ -127,6 +127,9 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "acceptance_criteria": input.acceptance_criteria,
                 "epic": input.epic,
                 "work_type": input.work_type,
+                // t-2283: stamp ac_state:none on new tasks (v3 forward-only).
+                // Shared const with CLI cmd_add so the two write paths cannot drift.
+                "ac_state": brana_core::tasks::AC_STATE_DEFAULT,
             });
 
             val["tasks"].as_array_mut()
@@ -349,5 +352,75 @@ mod tests {
             task["work_type"].is_null(),
             "work_type should default to null, not error: {task}"
         );
+    }
+
+    // ── t-2283: ac_state forward-only slice through the MCP path ─────────────
+
+    #[tokio::test]
+    async fn test_mcp_add_stamps_ac_state_none() {
+        // AC#3 (MCP path): backlog_add stamps ac_state:none.
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({"subject": "v3 task via mcp"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("handler must accept add");
+
+        let tasks = h.tasks();
+        let task = tasks["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["id"] == out["id"])
+            .expect("added task must be persisted");
+        assert_eq!(task["ac_state"], "none", "MCP add must stamp ac_state:none");
+    }
+
+    #[tokio::test]
+    async fn test_mcp_set_unrelated_field_preserves_ac_state() {
+        // AC#2 (MCP path): after an MCP-created task carries ac_state, an
+        // MCP backlog_set on an unrelated field must not clobber it. This is the
+        // MCP half of the both-paths sealing proof.
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({"subject": "sealed via mcp"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("add must succeed");
+        let id = out["id"].as_str().unwrap().to_string();
+
+        // Promote to proposed, then touch an unrelated field — both via MCP set.
+        crate::tools::backlog_set::build()
+            .handle(
+                json!({"task_id": id, "field": "ac_state", "value": "proposed"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("mcp set ac_state must succeed");
+        crate::tools::backlog_set::build()
+            .handle(
+                json!({"task_id": id, "field": "priority", "value": "P1"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("mcp set priority must succeed");
+
+        let tasks = h.tasks();
+        let task = tasks["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["id"] == id.as_str())
+            .unwrap();
+        assert_eq!(task["ac_state"], "proposed", "MCP set clobbered ac_state");
+        assert_eq!(task["priority"], "P1");
     }
 }
