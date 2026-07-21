@@ -209,15 +209,20 @@ to a number so integer checks stop silently missing them. Version reads route th
 **Stamping.** `backlog add` (CLI + MCP) stamps `ac_state: none` on new tasks. Legacy tasks stay
 key-less until explicitly opted in via `backlog set <id> ac_state none`.
 
-**Consumer (out of scope here, unblocked by this slice).** The `ac-propose` loop drains
+**Consumer (built by t-2288, unblocked by this slice).** The `ac-propose` loop drains
 `ac_state == none` **minus** `work_type ∈ {research, review}` (research/audit tasks yield only
-thin disjunctive ACs — route L2-only), writes `ac_state: proposed` + a candidate AC. **Proposed
-ACs are inert** — they gate nothing until a human promotes them to `approved`. This keeps the
-loop's mutation real but non-live. Exposed as `tasks::ac_propose_candidates`.
+thin disjunctive ACs — route L2-only), writes `ac_state: proposed` + a candidate AC into the inert
+`proposed_acceptance_criteria` array. **Proposed ACs are inert** — they gate nothing until a human
+promotes them to `approved` (promotion moves the array into `acceptance_criteria`). This keeps the
+loop's mutation real but non-live. Drain exposed as `tasks::ac_propose_candidates`; scoped persist as
+`tasks::apply_ac_proposals` / `perform_ac_propose`; CLI as `brana backlog ac-propose [--apply]`. The
+binary stays LLM-free — AC content comes from the agent layer (agy-first → Claude). A packaged
+re-invokable loop skill is deferred to the wave-4 cockpit (t-2278).
 
 **Decoupled from `spec` for the MVP** — an AC can be approved without a spec (schema
 open-question D7 deferred; revisit if D7 resolves otherwise).
 
 - t-2283: v3 schema MVP — ac_state forward-only slice (this amendment)
+- t-2288: the `ac-propose` loop — drains candidates, writes inert `proposed_acceptance_criteria` (CLI primitive + agy-driven content)
 - `docs/architecture/features/backlog-v3-schema.md` — full v3 schema (destination map)
 - `docs/reviews/backlog-v3-schema-challenge-2026-07-20.md` — write-path sealing = surviving CRITICAL

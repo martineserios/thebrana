@@ -63,6 +63,7 @@ fn main() {
             BacklogCmd::Diff => run_or_exit(commands::backlog::cmd_diff(&theme)),
             BacklogCmd::Burndown { period } => run_or_exit(commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme)),
             BacklogCmd::Rollup { file, dry_run } => run_or_exit(commands::backlog::cmd_rollup(file, dry_run)),
+            BacklogCmd::AcPropose { file, apply, dry_run } => run_or_exit(commands::backlog::cmd_ac_propose(file, apply, dry_run)),
             BacklogCmd::Set { task_id, field, value, append, file } => run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file)),
             BacklogCmd::SetActive { slug } => run_or_exit(commands::backlog::cmd_set_active(&slug)),
             BacklogCmd::Add { json, subject, kind, task_type, tags, description, effort, parent, priority, context, file, project, epic, work_type, acceptance_criteria } =>

@@ -249,6 +249,79 @@ pub fn ac_propose_candidates(tasks: &[Value]) -> Vec<&Value> {
         .collect()
 }
 
+/// t-2288: the inert field the ac-propose loop writes a candidate criterion into.
+/// Deliberately SEPARATE from `acceptance_criteria` (the live gating field) so a
+/// proposed AC gates nothing until a human promotes it — promotion moves this
+/// array into `acceptance_criteria` and flips `ac_state` to `approved`. Array form
+/// mirrors `acceptance_criteria` so promotion is a lossless move.
+pub const PROPOSED_AC_FIELD: &str = "proposed_acceptance_criteria";
+
+/// t-2288: apply ac-propose proposals in memory. For each `(id, criteria)` whose
+/// task is a CURRENT drain candidate (`ac_propose_candidates`), set
+/// `ac_state = "proposed"` + `proposed_acceptance_criteria = criteria` and mutate
+/// **nothing else**. Returns the ids actually applied.
+///
+/// Forward-only safety (AC#3 scoped mutation, AC#5 legacy untouched): the candidate
+/// set is recomputed from the live `tasks` slice — never trusted from the caller —
+/// so a proposal targeting a non-candidate is a silent no-op. Legacy tasks
+/// (`ac_state` key absent), already-`proposed`/`approved` tasks, and research/review
+/// work_types are never mutated. Proposed ACs are inert (AC#4): this writes only
+/// the holding field, never `acceptance_criteria`.
+pub fn apply_ac_proposals(
+    tasks: &mut [Value],
+    proposals: &HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    // Immutable borrow first (compute the candidate id-set), then mutate — the two
+    // borrows cannot overlap, so materialize owned ids before iterating mutably.
+    let candidates: HashSet<String> = ac_propose_candidates(tasks)
+        .iter()
+        .filter_map(|t| t["id"].as_str().map(str::to_string))
+        .collect();
+
+    let mut applied = Vec::new();
+    for t in tasks.iter_mut() {
+        let id = match t["id"].as_str() {
+            Some(id) => id.to_string(),
+            None => continue,
+        };
+        // Non-candidate → never touched (legacy key-absent / proposed / approved /
+        // research / review). This is the forward-only guard.
+        if !candidates.contains(&id) {
+            continue;
+        }
+        if let Some(criteria) = proposals.get(&id) {
+            t["ac_state"] = Value::String("proposed".into());
+            t[PROPOSED_AC_FIELD] =
+                Value::Array(criteria.iter().map(|c| Value::String(c.clone())).collect());
+            applied.push(id);
+        }
+    }
+    applied
+}
+
+/// t-2288: file-level ac-propose apply — lock, load, apply proposals, save.
+/// Mirrors `perform_rollup`'s read-modify-write over a raw `Value` (unknown fields
+/// round-trip, so the write is sealed). `dry_run` computes the applied set without
+/// writing. Returns the ids applied (or that would be applied under `dry_run`).
+pub fn perform_ac_propose(
+    path: &Path,
+    proposals: &HashMap<String, Vec<String>>,
+    dry_run: bool,
+) -> Result<Vec<String>, String> {
+    let _lock = lock_tasks(path)?;
+    let mut val = load_raw(path)?;
+    let tasks = val["tasks"].as_array_mut().ok_or("tasks is not an array")?;
+    let applied = apply_ac_proposals(tasks, proposals);
+
+    if applied.is_empty() || dry_run {
+        return Ok(applied);
+    }
+
+    val["last_modified"] = Value::String(chrono::Local::now().to_rfc3339());
+    save_tasks(path, &val).map_err(|e| format!("ac-propose write failed: {e}"))?;
+    Ok(applied)
+}
+
 /// Sort by priority (P0 first), then status (in_progress first), then order.
 pub fn sort_by_priority(tasks: &mut [&Value]) {
     tasks.sort_by(|a, b| {
@@ -3244,5 +3317,114 @@ mod tests {
         let out = ac_propose_candidates(&tasks);
         let ids: Vec<&str> = out.iter().filter_map(|t| t["id"].as_str()).collect();
         assert_eq!(ids, vec!["t-1"], "only ac_state==none, non-research/review");
+    }
+
+    #[test]
+    fn test_apply_ac_proposals_mutates_only_ac_state_and_proposed_field() {
+        // AC#3 (scoped mutation) + AC#4 (inert) + AC#5 (legacy untouched): the loop's
+        // write touches ONLY ac_state + proposed_acceptance_criteria, and never a
+        // non-candidate (legacy key-absent / already-proposed / research).
+        let mut tasks = vec![
+            json!({
+                "id":"t-1","subject":"add widget","status":"pending","type":"task",
+                "priority":"P2","effort":"M","tags":["a","b"],"blocked_by":[],
+                "work_type":"implement","kind":"feature","ac_state":"none",
+                "description":"do the thing","context":"AC: something","order":3
+            }),
+            // legacy: NO ac_state key — must stay byte-identical even with a proposal.
+            json!({"id":"t-2","subject":"legacy","type":"task","work_type":"implement","tags":[]}),
+            // already proposed — not a candidate.
+            json!({"id":"t-3","subject":"p","type":"task","ac_state":"proposed","tags":[]}),
+            // research candidate excluded by the helper.
+            json!({"id":"t-4","subject":"spike","type":"task","ac_state":"none","work_type":"research","tags":[]}),
+            // already approved — not a candidate; the human-approved state is terminal.
+            json!({"id":"t-5","subject":"live","type":"task","ac_state":"approved","tags":[]}),
+        ];
+        let before: Vec<Value> = tasks.clone();
+
+        let mut proposals: HashMap<String, Vec<String>> = HashMap::new();
+        proposals.insert("t-1".into(), vec!["Widget renders and is tested".into()]);
+        proposals.insert("t-2".into(), vec!["ignored: legacy".into()]);
+        proposals.insert("t-3".into(), vec!["ignored: already proposed".into()]);
+        proposals.insert("t-4".into(), vec!["ignored: research".into()]);
+        proposals.insert("t-5".into(), vec!["ignored: already approved".into()]);
+        proposals.insert("t-9".into(), vec!["ignored: no such task".into()]);
+
+        let applied = apply_ac_proposals(&mut tasks, &proposals);
+        assert_eq!(applied, vec!["t-1"], "only the eligible candidate is applied");
+
+        // t-1: the two intended fields changed to the intended values...
+        assert_eq!(tasks[0]["ac_state"], "proposed");
+        assert_eq!(
+            tasks[0]["proposed_acceptance_criteria"],
+            json!(["Widget renders and is tested"])
+        );
+        // ...and NOTHING else moved: strip the two mutated keys, compare the rest.
+        let strip = |v: &Value| {
+            let mut o = v.as_object().unwrap().clone();
+            o.remove("ac_state");
+            o.remove("proposed_acceptance_criteria");
+            o
+        };
+        assert_eq!(
+            strip(&tasks[0]),
+            strip(&before[0]),
+            "no field beyond ac_state + proposed_acceptance_criteria may change"
+        );
+        // proposed AC did NOT leak into the live gating field (AC#4 inert).
+        assert!(
+            tasks[0].get("acceptance_criteria").is_none(),
+            "proposed AC must not be written to acceptance_criteria"
+        );
+
+        // legacy / proposed / research: fully identical to before.
+        assert_eq!(tasks[1], before[1], "legacy (key-absent) task untouched");
+        assert!(tasks[1].get("ac_state").is_none(), "legacy must not gain ac_state");
+        assert!(
+            tasks[1].get("proposed_acceptance_criteria").is_none(),
+            "legacy must not gain the proposed field"
+        );
+        assert_eq!(tasks[2], before[2], "already-proposed task untouched");
+        assert_eq!(tasks[3], before[3], "research candidate untouched");
+        assert_eq!(tasks[4], before[4], "already-approved task untouched");
+    }
+
+    #[test]
+    fn test_perform_ac_propose_persists_and_dry_run_is_noop() {
+        use std::io::Write;
+        let body = r#"{"version":2,"project":"p","tasks":[
+            {"id":"t-1","subject":"a","status":"pending","type":"task","tags":[],"blocked_by":[],"work_type":"implement","ac_state":"none"},
+            {"id":"t-2","subject":"legacy","status":"pending","type":"task","tags":[],"blocked_by":[]}
+        ]}"#;
+
+        let mut proposals: HashMap<String, Vec<String>> = HashMap::new();
+        proposals.insert("t-1".into(), vec!["done when green".into()]);
+        proposals.insert("t-2".into(), vec!["ignored: legacy".into()]);
+
+        // dry_run: reports the applied set but writes nothing.
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let applied = perform_ac_propose(f.path(), &proposals, true).unwrap();
+        assert_eq!(applied, vec!["t-1"], "dry_run reports what would apply");
+        let after_dry: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(
+            after_dry["tasks"][0]["ac_state"], "none",
+            "dry_run must not write"
+        );
+
+        // real apply: persists ac_state:proposed + the field, legacy untouched.
+        let mut f2 = tempfile::NamedTempFile::new().unwrap();
+        write!(f2, "{body}").unwrap();
+        let applied = perform_ac_propose(f2.path(), &proposals, false).unwrap();
+        assert_eq!(applied, vec!["t-1"]);
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f2.path()).unwrap()).unwrap();
+        let arr = reloaded["tasks"].as_array().unwrap();
+        let t1 = arr.iter().find(|t| t["id"] == "t-1").unwrap();
+        let t2 = arr.iter().find(|t| t["id"] == "t-2").unwrap();
+        assert_eq!(t1["ac_state"], "proposed");
+        assert_eq!(t1["proposed_acceptance_criteria"], json!(["done when green"]));
+        assert!(t2.get("ac_state").is_none(), "legacy task stays key-less on disk");
     }
 }

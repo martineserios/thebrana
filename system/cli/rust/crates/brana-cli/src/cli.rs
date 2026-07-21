@@ -805,6 +805,23 @@ pub enum BacklogCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// ac-propose loop (t-2288): list drain candidates, or apply proposed ACs.
+    ///
+    /// Without --apply: emits the drain queue (ac_state==none minus research/review,
+    /// legacy tasks never included) as JSON packets for an AC generator to consume.
+    /// With --apply <file|->: reads `[{"id","proposed_acceptance_criteria":[..]}]` and
+    /// writes ac_state:proposed + proposed_acceptance_criteria — ONLY those two fields,
+    /// ONLY for current candidates. Proposed ACs are inert until a human approves.
+    AcPropose {
+        #[arg(long)]
+        file: Option<PathBuf>,
+        /// Apply proposals from this JSON file (`-` for stdin) instead of listing.
+        #[arg(long)]
+        apply: Option<PathBuf>,
+        /// With --apply: compute the applied set without writing.
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Set a field on a task
     Set {
         /// Task ID (e.g. t-463)
