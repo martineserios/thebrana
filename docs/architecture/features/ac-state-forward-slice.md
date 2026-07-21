@@ -1,6 +1,6 @@
 ---
 title: ac_state forward-only slice (v3 schema MVP, wave-0)
-status: draft
+status: implemented
 task: t-2283
 created: 2026-07-21
 related:

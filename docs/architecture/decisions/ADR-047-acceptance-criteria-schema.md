@@ -171,3 +171,48 @@ Mandatory backfill of 1,500+ tasks would be a high-friction migration with low R
 - `docs/ideas/goal-adoption-brana-skills.md` — /goal adoption design and taxonomy
 - `docs/ideas/cc-feature-adoption-v2.1.136-142.md` — acceptance_criteria prerequisite identified
 - ADR-044: Initiative accumulator (related schema extension pattern)
+
+---
+
+## Amendment (t-2283, 2026-07-21): `ac_state` lifecycle field
+
+The v3 forward-only slice (`docs/architecture/features/ac-state-forward-slice.md`) adds a
+per-task lifecycle state to the acceptance criteria a task carries, without a migration of the
+~2,100 legacy tasks.
+
+**Field.** `ac_state` — one of `none` | `proposed` | `approved`. **Key presence is the
+v3-management marker**, not the value:
+
+- **Key absent** → legacy v2 task. Loops ignore it. No rewrite, no migration.
+- **Key present** → task is under v3 AC management. `none` = managed, no AC proposed yet ·
+  `proposed` = the ac-propose loop wrote a candidate AC (inert) · `approved` = human accepted (live).
+
+Serde `Option::None` (absent) is deliberately distinct from `Some("none")` (present, valued
+"none"); the two must not be collapsed. In the current Value-based store this distinction is the
+raw JSON key's presence/absence.
+
+**Write-path sealing (precondition).** CLI (`brana backlog set`) and MCP
+(`mcp__brana__backlog_set`) both rewrite `tasks.json`. Verified during build: both share
+`load_raw` → `set_field` → `save_tasks` over a raw `serde_json::Value`, so unknown/new fields
+already round-trip — sealing is structural, guarded by a both-paths regression test rather than
+new plumbing.
+
+**Version gate.** `tasks.json` now carries `version: 2`. Load **auto-upgrades** (absent/`1` →
+`2` in memory; non-breaking, operator decision 2026-07-21 — not a hard reject that would break
+the live backlog); save always stamps `version: 2`.
+
+**Stamping.** `backlog add` (CLI + MCP) stamps `ac_state: none` on new tasks. Legacy tasks stay
+key-less until explicitly opted in via `backlog set <id> ac_state none`.
+
+**Consumer (out of scope here, unblocked by this slice).** The `ac-propose` loop drains
+`ac_state == none` **minus** `work_type ∈ {research, review}` (research/audit tasks yield only
+thin disjunctive ACs — route L2-only), writes `ac_state: proposed` + a candidate AC. **Proposed
+ACs are inert** — they gate nothing until a human promotes them to `approved`. This keeps the
+loop's mutation real but non-live. Exposed as `tasks::ac_propose_candidates`.
+
+**Decoupled from `spec` for the MVP** — an AC can be approved without a spec (schema
+open-question D7 deferred; revisit if D7 resolves otherwise).
+
+- t-2283: v3 schema MVP — ac_state forward-only slice (this amendment)
+- `docs/architecture/features/backlog-v3-schema.md` — full v3 schema (destination map)
+- `docs/reviews/backlog-v3-schema-challenge-2026-07-20.md` — write-path sealing = surviving CRITICAL
