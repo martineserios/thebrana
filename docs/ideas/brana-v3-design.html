@@ -92,7 +92,7 @@
 
 <main>
   <header>
-    <p class="eyebrow">brana v3 · design draft · 2026-07-19</p>
+    <p class="eyebrow">brana v3 · design draft · 2026-07-20</p>
     <h1>The Graduated Process Loop</h1>
     <p class="lede">Brana v3 in one sentence: <b>you stop operating the system and start designing the
     loop that operates it.</b> The loop parallelizes, judges, challenges, and verifies work — and every
@@ -182,7 +182,8 @@
           <span class="prims">Workflows · pipeline/parallel · hive-mind · sweep</span></p>
         <p class="layer-v3"><span class="delta"><b>v3:</b> orchestration becomes the cockpit's engine —
           candidates prepared in parallel on routed cheap models, judged and challenged before you
-          ever see them.</span>
+          ever see them. The <b>conductor is code</b> (deterministic Workflow), workers are agents, a
+          verifier judges — an LLM orchestrator-agent only when subtasks can't be predetermined.</span>
           <span class="wave-chip">WAVE 3</span></p>
       </div>
 
@@ -205,8 +206,10 @@
           <span class="role">the way of working</span></div>
         <p class="layer-what">The designed processes — the 6 Jobs surface. What the loop <b>runs</b>.
           <span class="prims">build · fix · research · close · backlog · ship</span></p>
-        <p class="layer-v3"><span class="delta"><b>v3:</b> processes declare their ladder level and
-          verifier in frontmatter; close shrinks to a 30s handoff (learning is L6's job now).</span>
+        <p class="layer-v3"><span class="delta"><b>v3:</b> processes re-derived against the primitive
+          palette (skill · workflow · loop · goal) — <b>a recipe is a loop unrolled once</b>; each declares
+          its ladder level + verifier in frontmatter and ends in a router, not a prose handoff. A pipeline
+          of specialized-agent stations (task as workpiece) is the north star.</span>
           <span class="wave-chip">WAVE 2–4</span></p>
       </div>
 
@@ -232,6 +235,42 @@
           rules that can be routed move up to profiles. What remains is genuinely constitutional.</span>
           <span class="wave-chip">WAVE 5</span></p>
       </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the loop drains — the task as contract</h2>
+    <p class="sec-note">A loop is only as verifiable as its contract is authored. v3 reshapes the backlog
+    so a task is both a <b>machine-readable contract</b> a loop drains and a <b>self-contained handoff
+    packet</b> any worker — loop, agent, or you — picks up cold. Three orthogonal axes; specced and
+    adversarially challenged (backlog-v3-schema.md · ADR-065, 2026-07-20).</p>
+    <div class="waves">
+      <div class="wave"><span class="wnum">WHAT · SUBJECT</span>
+        <h3>The plan — one home per task</h3>
+        <p>epic → layer → component → task, depth as the work needs. Effort rolls up for quoting;
+        empty = feature done. Epic is the sole top node (ADR-065) — WIP-capped and closable.</p>
+      </div>
+      <div class="wave"><span class="wnum">CROSS-CUTS · TAGS</span>
+        <h3>The orthogonal index</h3>
+        <p>key:value tags — <span class="mono">client:</span> <span class="mono">layer:</span>
+        <span class="mono">risk:</span> <span class="mono">theme:</span>. Many per task. The axis every
+        wave selects and slices on.</p>
+      </div>
+      <div class="wave"><span class="wnum">HOW · WAVES</span>
+        <h3>Queues a loop drains</h3>
+        <p>A wave = a named selector over tags + attributes. Drained by a loop (mechanical) or you
+        (judgment). <span class="mono">while wave.next(): work()</span> — empty = batch shipped.</p>
+      </div>
+    </div>
+    <div class="contract" style="margin-top:0.9rem">
+      <h2 style="font-size:1.1rem">The self-contained packet</h2>
+      <ul>
+        <li><b>spec</b> — why the task exists; gates start, cascades on drift</li>
+        <li><b>AC + ac_state</b> — the contract a loop verifies (<span class="mono">none → proposed → approved</span>);
+        a loop backfills its own ACs, you approve in the cockpit</li>
+        <li><b>log</b> — attributed, typed thread whose <span class="mono">verdict</span> rows <b>are</b>
+        the graduation ledger the ladder reads</li>
+      </ul>
     </div>
   </section>
 
@@ -320,7 +359,8 @@ flowchart TB
     </div>
   </section>
 
-  <p class="foot">brana v3 draft · docs/ideas/brana-v3-redesign.md · foundation: agentic-primitives.md ·
+  <p class="foot">brana v3 draft · docs/ideas/brana-v3-redesign.md · schema: backlog-v3-schema.md +
+  ADR-065 (challenged 2026-07-20) · direction: skills-as-loops.md · foundation: agentic-primitives.md ·
   research: 2026 gap analysis, loop-engineering, Pi, gentle-ai</p>
 </main>
 
