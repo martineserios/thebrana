@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-19T15:34:26Z",
+  "generated": "2026-07-20T23:56:52Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2747,9 +2747,7 @@
     "docs/ideas/brana-v3-redesign.md": {
       "title": "Brana v3 — The Graduated Self-Evolving Process Loop",
       "type": "Roadmap",
-      "impl_files": [
-        "system/agents/CALIBRATION.md"
-      ]
+      "impl_files": []
     },
     "docs/ideas/build-enhancements-from-osmani.md": {
       "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
@@ -13414,19 +13412,7 @@
     },
     {
       "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "async-first-close.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "brana-efficiency-without-power-loss.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "brana-operating-model.md",
+      "to": "brana-v3-design.html",
       "type": "references",
       "computed": false
     },
@@ -13451,6 +13437,12 @@
     {
       "from": "docs/ideas/brana-v3-redesign.md",
       "to": "docs/research/loop-engineering-and-pi.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/reviews/brana-v3-challenge-2026-07-19.md",
       "type": "references",
       "computed": false
     },
@@ -14861,7 +14853,7 @@
   ],
   "stats": {
     "nodes": 507,
-    "edges": 1901,
+    "edges": 1900,
     "typed_edges": 682,
     "orphans": 135
   }
