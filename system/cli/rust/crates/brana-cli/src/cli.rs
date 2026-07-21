@@ -76,6 +76,14 @@ pub enum BurndownPeriod {
     Month,
 }
 
+#[derive(Clone, ValueEnum)]
+pub enum SortKey {
+    /// Lifecycle order: active → pending → blocked → parked → done, then priority
+    Status,
+    /// Priority order: P0 → P3
+    Priority,
+}
+
 /// Convert ValueEnums to the string form used in tasks.json.
 pub fn ve_str<T: ValueEnum>(v: &Option<T>) -> Option<String> {
     v.as_ref().map(|val| {
@@ -662,6 +670,9 @@ pub enum BacklogCmd {
         /// Filter by parent ID
         #[arg(long)]
         parent: Option<String>,
+        /// Scope to an epic slug
+        #[arg(long)]
+        epic: Option<String>,
         /// Output JSON array instead of themed list
         #[arg(long)]
         json: bool,
@@ -705,6 +716,9 @@ pub enum BacklogCmd {
         /// Filter by epic slug
         #[arg(long)]
         epic: Option<String>,
+        /// Sort output: status (lifecycle) or priority
+        #[arg(long, value_enum)]
+        sort: Option<SortKey>,
     },
     /// Smart daily pick
     Focus {
