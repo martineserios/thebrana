@@ -26,6 +26,12 @@ PROJ_NAME=$(basename "${GIT_ROOT:-$CWD}")
 # ── Branch ───────────────────────────────────────────────
 BRANCH=$(cd "$CWD" 2>/dev/null && git branch --show-current 2>/dev/null)
 
+# ── Current task epic ────────────────────────────────────
+# Task-branch convention: {epic}/{work-type}/t-{NNN}-{slug}. Show the epic
+# (first segment) only for real task branches — never dev/main/docs/*.
+EPIC=""
+[[ "$BRANCH" == */*/t-* ]] && EPIC="${BRANCH%%/*}"
+
 # ── CTX bar ──────────────────────────────────────────────
 COMPACT_THRESHOLD=${BRANA_AUTOCOMPACT_THRESHOLD:-85}
 UNTIL_COMPACT=$(( COMPACT_THRESHOLD - CTX_PCT ))
@@ -49,5 +55,6 @@ fi
 # ── Output ───────────────────────────────────────────────
 printf '%b' "🧠 ${B}${Cw}${MODEL}${R} ${S} 📂 ${Cy}${PROJ_NAME}${R}"
 [ -n "$BRANCH" ] && printf '%b' " ${S} @ ${Cf}${BRANCH}${R}"
+[ -n "$EPIC" ] && printf '%b' " ${S} 🎯 ${Cg}${EPIC}${R}"
 printf '%b' " ${S} ${CTX_SHOW}"
 echo

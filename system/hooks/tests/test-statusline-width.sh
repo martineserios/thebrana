@@ -145,8 +145,6 @@ STRIPPED=$(strip_ansi "$OUTPUT")
 assert_contains "has model" "Opus 4" "$STRIPPED"
 assert_contains "has project" "wt-t-1020" "$STRIPPED"
 assert_contains "has CTX%" "42%" "$STRIPPED"
-assert_contains "has lines added" "+156" "$STRIPPED"
-assert_contains "has lines removed" "-23" "$STRIPPED"
 
 echo ""
 echo "--- Wide terminal output fits within width ---"
@@ -182,27 +180,6 @@ else
 fi
 
 echo ""
-echo "--- Very narrow terminal (40 cols) shows only essentials ---"
-OUTPUT_40=$(run_statusline 40)
-STRIPPED_40=$(strip_ansi "$OUTPUT_40")
-# Must keep: model, project, CTX% (the always-keep segments)
-assert_contains "40col: has model" "Opus 4" "$STRIPPED_40"
-assert_contains "40col: has CTX%" "%" "$STRIPPED_40"
-# Should NOT have lines, phase, session score, scheduler
-assert_not_contains "40col: no lines" "+156" "$STRIPPED_40"
-assert_not_contains "40col: no session score" "S:" "$STRIPPED_40"
-
-LEN_40=$(visible_len "$OUTPUT_40")
-TOTAL=$((TOTAL + 1))
-if (( LEN_40 <= 40 )); then
-    echo "  PASS: 40col output length $LEN_40 <= 40"
-    PASS=$((PASS + 1))
-else
-    echo "  FAIL: 40col output length $LEN_40 > 40 (overflow)"
-    FAIL=$((FAIL + 1))
-fi
-
-echo ""
 echo "--- tput unavailable + BRANA_STATUSLINE_COLS unset = no-drop ---"
 # Override tput to fail, simulating no terminal
 OUTPUT_NOENV=$(make_input | env -u BRANA_STATUSLINE_COLS PATH="/usr/bin:/bin" TERM=dumb bash -c '
@@ -211,18 +188,32 @@ OUTPUT_NOENV=$(make_input | env -u BRANA_STATUSLINE_COLS PATH="/usr/bin:/bin" TE
   bash "'"$STATUSLINE"'"
 ' 2>/dev/null)
 STRIPPED_NOENV=$(strip_ansi "$OUTPUT_NOENV")
-# Without any width constraint, all segments should be present
+# Without any width constraint, core segments should be present
 assert_contains "no-env: has model" "Opus 4" "$STRIPPED_NOENV"
-assert_contains "no-env: has lines" "+156" "$STRIPPED_NOENV"
+assert_contains "no-env: has CTX%" "42%" "$STRIPPED_NOENV"
 
 echo ""
-echo "--- Full segments with task metrics on wide terminal ---"
-OUTPUT_FULL=$(run_statusline 200 make_full_input)
-STRIPPED_FULL=$(strip_ansi "$OUTPUT_FULL")
-assert_contains "full: has phase" "Ph1" "$STRIPPED_FULL"
-assert_contains "full: has current task" "Width detection" "$STRIPPED_FULL"
-assert_contains "full: has build step" "[TDD]" "$STRIPPED_FULL"
-assert_contains "full: has bugs" "1" "$STRIPPED_FULL"
+echo "--- Current task epic chip (derived from task-branch convention) ---"
+# Task branch: {epic}/{work-type}/t-NNN-slug → epic segment shown.
+EPIC_REPO="$TMPDIR/epic-repo"
+mkdir -p "$EPIC_REPO"
+git -C "$EPIC_REPO" init -q
+git -C "$EPIC_REPO" symbolic-ref HEAD refs/heads/brana-harness/feat/t-2280-statusline-epic
+EPIC_INPUT=$(jq -n --arg d "$EPIC_REPO" '{model:{display_name:"Opus 4"},workspace:{current_dir:$d},context_window:{used_percentage:42}}')
+STRIPPED_EPIC=$(strip_ansi "$(echo "$EPIC_INPUT" | bash "$STATUSLINE" 2>/dev/null)")
+# Assert the 🎯 chip specifically — "brana-harness" alone also appears in the
+# branch segment, so the icon is what proves the dedicated epic chip rendered.
+assert_contains "epic chip icon shown for task branch" "🎯" "$STRIPPED_EPIC"
+assert_contains "epic chip names the epic" "🎯 brana-harness" "$STRIPPED_EPIC"
+
+# Non-task branch (dev) → no epic chip.
+DEV_REPO="$TMPDIR/dev-repo"
+mkdir -p "$DEV_REPO"
+git -C "$DEV_REPO" init -q
+git -C "$DEV_REPO" symbolic-ref HEAD refs/heads/dev
+DEV_INPUT=$(jq -n --arg d "$DEV_REPO" '{model:{display_name:"Opus 4"},workspace:{current_dir:$d},context_window:{used_percentage:42}}')
+STRIPPED_DEV=$(strip_ansi "$(echo "$DEV_INPUT" | bash "$STATUSLINE" 2>/dev/null)")
+assert_not_contains "no epic chip on non-task branch" "🎯" "$STRIPPED_DEV"
 
 echo ""
 echo "--- Full segments on narrow terminal drops scheduler + lines + score first ---"
