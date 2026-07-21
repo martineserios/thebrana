@@ -80,6 +80,20 @@ Already swept in [loop-engineering-and-pi.md](../research/loop-engineering-and-p
 
 - **Comprehension debt** stays a first-class risk (already in v3's risk table): every skill-turned-loop keeps its ledger human-readable — the `log` verdict rows are the antidote, not dashboards.
 
+## Example catalogs (2026-07-20 two-scout sweep)
+
+Deep catalogs persisted as research docs — the raw material for the brainstorm:
+
+- **[loop-engineering examples catalog](../research/loop-engineering-examples-catalog.md)** — the repo mined fully: per-pattern stop conditions/verifiers/state/cost profiles, the **4-file loop anatomy** (`LOOP.md` contract · `STATE.md` memory · `loop-budget.md` caps+kill-switch · `loop-run-log.md` audit), the **circuit breaker as reusable machinery** (`loop-guard` + `loop-ledger.json` + pre-retry check), the `loop-audit` readiness rubric (0–100, CI-gateable — a shipped lint for this doc's three loop properties), 10 anti-patterns (several = brana findings independently rediscovered: verifier theater, state rot, shared-state-without-schema, auto-merge-without-allowlist), and **multi-loop coordination by priority ordering + shared state, not mutual invocation**.
+- **[wild production loops catalog](../research/loop-examples-wild-2026-07.md)** — 12 examples beyond the repo. Standouts:
+  - **FlakyGuard (Uber)** — production proof of *nested* loops: 3-level (contexts ×3 → reasoning ×2 → fix ×3 = 18 bounded attempts), 2h wall cap, fix accepted only after 1,000 test reruns. Nesting works when every level has its own cap and feedback flows between levels.
+  - **Ralph loop (Vercel)** — outer verify/retry wrapping inner LLM iteration; ANY-trips stop semantics (iteration ∨ tokens ∨ cost); the rare true L3, made safe purely by resource bounds.
+  - **Triage-before-action** (PR babysitter) — categorize Fix / Dismiss / Escalate with documented reasoning before touching anything; the wild version of defer-don't-halt.
+  - **Confidence + escalation gate** (nightly error sweep) — high-confidence → auto-PR, medium/flagged → issue for human; graduated autonomy per decision, not per loop.
+  - **Plan-as-comment** (Sweep) — post the plan publicly before writing code; transparency as the trust mechanism.
+  - **Reality check: almost no true L3 exists in production** — nearly everything stops at L2 (human approves before merge). Independently validates v3's "L2 cockpit is the center of gravity, permanently."
+  - **What the wild lacks** — cross-loop coordination, crash recovery, queue-overflow handling — is exactly what the v3 wave/log/ledger design already specifies. Brana is ahead precisely where the ecosystem is blank.
+
 ## Graduated migration — NOT a big-bang rewrite
 
 Rewriting 35 skills would vaporize the wave contract (≤10 tasks, deletes ≥ adds). Instead, a skill becomes a loop **when its queue appears**:
