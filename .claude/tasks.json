@@ -5101,7 +5101,7 @@
       "started": "2026-03-12",
       "status": "completed",
       "subject": "Apply background-fork pattern to session-start.sh",
-      "tags": null,
+      "tags": [],
       "type": "task",
       "work_type": "implement"
     },
@@ -15234,7 +15234,12 @@
       "started": null,
       "status": "completed",
       "subject": "Fix jq 1.6 compat: rename $def reserved keyword in scheduler runner",
-      "tags": "scheduler,oracle,jq,compat",
+      "tags": [
+        "scheduler",
+        "oracle",
+        "jq",
+        "compat"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -15260,7 +15265,11 @@
       "started": null,
       "status": "completed",
       "subject": "Deploy scheduler fixes to Oracle VM",
-      "tags": "scheduler,oracle,deploy",
+      "tags": [
+        "scheduler",
+        "oracle",
+        "deploy"
+      ],
       "type": "task",
       "work_type": "infra"
     },
@@ -15284,7 +15293,11 @@
       "started": null,
       "status": "completed",
       "subject": "Make reindex-knowledge tolerate partial errors",
-      "tags": "scheduler,knowledge,reindex",
+      "tags": [
+        "scheduler",
+        "knowledge",
+        "reindex"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -15476,7 +15489,12 @@
       "started": null,
       "status": "completed",
       "subject": "Harvest --auto + cross-project scanning for content pipeline",
-      "tags": "pipeline,harvest,content,linkedin",
+      "tags": [
+        "pipeline",
+        "harvest",
+        "content",
+        "linkedin"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -15500,7 +15518,13 @@
       "started": null,
       "status": "completed",
       "subject": "Add content-harvest scheduler job + daily-ops Monday card",
-      "tags": "pipeline,scheduler,daily-ops,content,linkedin",
+      "tags": [
+        "pipeline",
+        "scheduler",
+        "daily-ops",
+        "content",
+        "linkedin"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -15807,7 +15831,11 @@
       "started": null,
       "status": "pending",
       "subject": "Cloud scheduler: provider-abstracted brana ops",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "phase",
       "work_type": "chore"
     },
@@ -15830,7 +15858,11 @@
       "started": null,
       "status": "completed",
       "subject": "Connect & Validate",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15855,7 +15887,11 @@
       "started": null,
       "status": "pending",
       "subject": "Provider Abstraction Layer",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15878,7 +15914,11 @@
       "started": null,
       "status": "pending",
       "subject": "Job Migration",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15901,7 +15941,11 @@
       "started": null,
       "status": "pending",
       "subject": "Cloud-First Features",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15925,7 +15969,11 @@
       "started": null,
       "status": "completed",
       "subject": "Run /web-setup — connect GitHub credentials for remote agents",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "infra"
     },
@@ -15949,7 +15997,11 @@
       "started": null,
       "status": "completed",
       "subject": "Connect MCP connectors (Sheets, Slack) at claude.ai/settings/connectors",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -15976,7 +16028,11 @@
       "started": null,
       "status": "completed",
       "subject": "Create pilot /schedule trigger — weekly-review",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16003,7 +16059,11 @@
       "started": null,
       "status": "completed",
       "subject": "Create pilot /schedule trigger — knowledge-review",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16030,7 +16090,11 @@
       "started": "2026-03-30",
       "status": "completed",
       "subject": "Monitor token consumption for 1 week, document baseline",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16054,7 +16118,11 @@
       "started": null,
       "status": "completed",
       "subject": "Test /loop — run watch experiment during dev session",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16078,7 +16146,11 @@
       "started": null,
       "status": "pending",
       "subject": "Design provider interface schema for scheduler.json",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16104,7 +16176,11 @@
       "started": null,
       "status": "pending",
       "subject": "Implement remotetrigger provider — RemoteTrigger API wrapper",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16130,7 +16206,11 @@
       "started": null,
       "status": "pending",
       "subject": "Implement loop provider — /loop session wrapper",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16157,7 +16237,12 @@
       "started": null,
       "status": "pending",
       "subject": "Unified brana ops status across 3 tiers (absorbs t-426)",
-      "tags": "scheduler,cloud,infrastructure,dx",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure",
+        "dx"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16184,7 +16269,11 @@
       "started": null,
       "status": "pending",
       "subject": "Unified brana ops health — aggregate across tiers",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16210,7 +16299,12 @@
       "started": null,
       "status": "pending",
       "subject": "Update brana ops add — accept --provider flag for tier selection",
-      "tags": "scheduler,cloud,infrastructure,dx",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure",
+        "dx"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16236,7 +16330,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate weekly-review from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16262,7 +16360,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate knowledge-review from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16288,7 +16390,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate content-harvest from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16314,7 +16420,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate morning-check from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16343,7 +16453,11 @@
       "started": null,
       "status": "pending",
       "subject": "Validation soak — 2 weeks parallel run, compare output quality",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16369,7 +16483,11 @@
       "started": null,
       "status": "pending",
       "subject": "Decommission migrated systemd timers",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16395,7 +16513,11 @@
       "started": null,
       "status": "pending",
       "subject": "Cross-repo portfolio health check via /schedule",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16421,7 +16543,11 @@
       "started": null,
       "status": "pending",
       "subject": "Client production monitor (proyecto_anita) via /schedule",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16447,7 +16573,12 @@
       "started": null,
       "status": "pending",
       "subject": "Evaluate remote MCP for ruflo access",
-      "tags": "scheduler,cloud,infrastructure,ruflo",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure",
+        "ruflo"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16473,7 +16604,11 @@
       "started": null,
       "status": "pending",
       "subject": "Design migration path for remaining local-dependent jobs",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16496,7 +16631,11 @@
       "started": null,
       "status": "cancelled",
       "subject": "Session-Aware Loop Integration",
-      "tags": "session-loops,scheduler,dx",
+      "tags": [
+        "session-loops",
+        "scheduler",
+        "dx"
+      ],
       "type": "phase",
       "work_type": "implement"
     },
@@ -17629,7 +17768,11 @@
       "started": null,
       "status": "completed",
       "subject": "Add few-shot examples to all rules (DeepAgents alignment)",
-      "tags": "deepagents-alignment,rules,prompt-engineering",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "prompt-engineering"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17652,7 +17795,10 @@
       "started": null,
       "status": "completed",
       "subject": "DeepAgents Alignment",
-      "tags": "distribution,deepagents-alignment",
+      "tags": [
+        "distribution",
+        "deepagents-alignment"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -17676,7 +17822,11 @@
       "started": null,
       "status": "completed",
       "subject": "Fix double-loading: bootstrap stops copying rules, plugin is single source",
-      "tags": "deepagents-alignment,rules,bootstrap",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "bootstrap"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17700,7 +17850,11 @@
       "started": null,
       "status": "completed",
       "subject": "Merge dependent rules: memory-framework into self-improvement, pm-awareness into task-convention",
-      "tags": "deepagents-alignment,rules,context-budget",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17726,7 +17880,11 @@
       "started": null,
       "status": "completed",
       "subject": "Add globs: frontmatter to narrow rules (doc-linking, inbox-convention)",
-      "tags": "deepagents-alignment,rules,context-budget",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17752,7 +17910,11 @@
       "started": "2026-03-30",
       "status": "completed",
       "subject": "Auto read-back context file at session start (DeepAgents Gap 4)",
-      "tags": "deepagents-alignment,hooks,context-budget",
+      "tags": [
+        "deepagents-alignment",
+        "hooks",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17778,7 +17940,11 @@
       "started": null,
       "status": "pending",
       "subject": "Write OS conceptual map document (docs/guide/conceptual-map.md)",
-      "tags": "distribution,docs,deepagents-alignment",
+      "tags": [
+        "distribution",
+        "docs",
+        "deepagents-alignment"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -30242,7 +30408,11 @@
       "started": null,
       "status": "completed",
       "subject": "Research: addyosmani/agent-skills GitHub repo",
-      "tags": "agent-skills,github,claude-code",
+      "tags": [
+        "agent-skills",
+        "github",
+        "claude-code"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -33659,7 +33829,11 @@
       "started": null,
       "status": "completed",
       "subject": "MEMORY.md concurrent-write hardening — diff-merge hook for parallel sessions",
-      "tags": "hooks,memory,multi-session",
+      "tags": [
+        "hooks",
+        "memory",
+        "multi-session"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41063,7 +41237,10 @@
       "status": "pending",
       "strategy": null,
       "subject": "Ruflo Multi-Agent Integration",
-      "tags": "ruflo,multi-agent",
+      "tags": [
+        "ruflo",
+        "multi-agent"
+      ],
       "type": "phase"
     },
     {
@@ -41117,7 +41294,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire claims_release into brana:close + verify claims_claim in brana:backlog start",
-      "tags": "ruflo,claims,close,backlog",
+      "tags": [
+        "ruflo",
+        "claims",
+        "close",
+        "backlog"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41143,7 +41325,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Calibrate memory dedup threshold against existing MEMORY.md",
-      "tags": "ruflo,memory,dedup,calibration",
+      "tags": [
+        "ruflo",
+        "memory",
+        "dedup",
+        "calibration"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41171,7 +41358,13 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add memory dedup gate to brana:close + brana:build pattern writes",
-      "tags": "ruflo,memory,dedup,close,build",
+      "tags": [
+        "ruflo",
+        "memory",
+        "dedup",
+        "close",
+        "build"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41197,7 +41390,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Upgrade brana:sitrep — autopilot_predict shadow mode + memory_search_unified",
-      "tags": "ruflo,sitrep,autopilot,memory",
+      "tags": [
+        "ruflo",
+        "sitrep",
+        "autopilot",
+        "memory"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41223,7 +41421,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add claims_board snapshot to brana:sitrep source 7",
-      "tags": "ruflo,claims,sitrep",
+      "tags": [
+        "ruflo",
+        "claims",
+        "sitrep"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41249,7 +41451,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Live two-session claims coordination smoke test",
-      "tags": "ruflo,claims,validation,smoke-test",
+      "tags": [
+        "ruflo",
+        "claims",
+        "validation",
+        "smoke-test"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41306,7 +41513,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Replace Agent() with agent_spawn in brana:brainstorm scout agents",
-      "tags": "ruflo,agent-spawn,brainstorm",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "brainstorm"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41332,7 +41543,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Replace Agent() with agent_spawn in brana:review metrics-collector",
-      "tags": "ruflo,agent-spawn,review",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "review"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41358,7 +41573,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Replace Agent() with agent_spawn in brana:build subtask delegation",
-      "tags": "ruflo,agent-spawn,build",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "build"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41384,7 +41603,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "agent_spawn cost attribution smoke test — verify queryable per-project ledger",
-      "tags": "ruflo,agent-spawn,cost,validation",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "cost",
+        "validation"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41410,7 +41634,11 @@
       "status": "cancelled",
       "strategy": null,
       "subject": "Hive-mind quorum calibration — baseline vs single challenger on 10 real plans",
-      "tags": "ruflo,hive-mind,calibration",
+      "tags": [
+        "ruflo",
+        "hive-mind",
+        "calibration"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41438,7 +41666,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire hive-mind 3-worker quorum into brana:brainstorm M+ governance gate",
-      "tags": "ruflo,hive-mind,brainstorm",
+      "tags": [
+        "ruflo",
+        "hive-mind",
+        "brainstorm"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41466,7 +41698,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire hive-mind 3-worker quorum into brana:challenger",
-      "tags": "ruflo,hive-mind,challenger",
+      "tags": [
+        "ruflo",
+        "hive-mind",
+        "challenger"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41494,7 +41730,10 @@
       "status": "completed",
       "strategy": null,
       "subject": "Phase 3 — Swarm Orchestration",
-      "tags": "ruflo,phase-3",
+      "tags": [
+        "ruflo",
+        "phase-3"
+      ],
       "type": "milestone"
     },
     {
@@ -41522,7 +41761,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire swarm_init + coordination_orchestrate into brana:backlog execute",
-      "tags": "ruflo,swarm,backlog,execute",
+      "tags": [
+        "ruflo",
+        "swarm",
+        "backlog",
+        "execute"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41550,7 +41794,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire claims_* per task in brana:backlog execute waves",
-      "tags": "ruflo,claims,backlog,execute",
+      "tags": [
+        "ruflo",
+        "claims",
+        "backlog",
+        "execute"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41576,7 +41825,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add daa_agent_create persistent roles — anita-architect + brana-challenger",
-      "tags": "ruflo,daa,challenger,memory",
+      "tags": [
+        "ruflo",
+        "daa",
+        "challenger",
+        "memory"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41604,7 +41858,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire autopilot_learn feedback at brana:build CLOSE + brana:fix COMMIT",
-      "tags": "ruflo,autopilot,build,fix",
+      "tags": [
+        "ruflo",
+        "autopilot",
+        "build",
+        "fix"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41632,7 +41891,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add agent_pool check in brana:backlog start for background delegation",
-      "tags": "ruflo,agent-pool,backlog,build",
+      "tags": [
+        "ruflo",
+        "agent-pool",
+        "backlog",
+        "build"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -50144,7 +50408,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "fix(graph): brana graph build should emit full paths for brana-knowledge cross-refs",
-      "tags": "graph,harness-core,rust"
+      "tags": [
+        "graph",
+        "harness-core",
+        "rust"
+      ]
     },
     {
       "blocked_by": [],
@@ -50167,7 +50435,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "fix(hook): add pre-merge gate blocking merges when HIGH errata are pending",
-      "tags": "hook,harness-core,errata"
+      "tags": [
+        "hook",
+        "harness-core",
+        "errata"
+      ]
     },
     {
       "blocked_by": [],
@@ -50571,7 +50843,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Fix ruflo spawn EACCES so feed-ruflo-index scheduler job runs",
-      "tags": "read-loop,ruflo,scheduler",
+      "tags": [
+        "read-loop",
+        "ruflo",
+        "scheduler"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50597,7 +50873,11 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "Create ~/.claude/agent-memory/ and verify memory:true agents write+recall",
-      "tags": "read-loop,agents,memory",
+      "tags": [
+        "read-loop",
+        "agents",
+        "memory"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50623,7 +50903,12 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "Bake session-namespace 0.55 threshold into MCP wrapper/session-start so recall works without caller knowledge",
-      "tags": "read-loop,ruflo,recall,hooks",
+      "tags": [
+        "read-loop",
+        "ruflo",
+        "recall",
+        "hooks"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50649,7 +50934,12 @@
       "status": "completed",
       "strategy": "feature",
       "subject": "Session-start consumes last session flywheel metrics and surfaces one insight",
-      "tags": "read-loop,flywheel,metrics,hooks",
+      "tags": [
+        "read-loop",
+        "flywheel",
+        "metrics",
+        "hooks"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -50675,7 +50965,12 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "Loud failures: unswallow session-end-persist errors, promote load-bearing validate.sh WARNs to FAIL, alert on scheduler job failure",
-      "tags": "read-loop,hooks,validate,reliability",
+      "tags": [
+        "read-loop",
+        "hooks",
+        "validate",
+        "reliability"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50701,7 +50996,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "Decision-log read path: consume system/state/decisions/, inject recent + archive stale",
-      "tags": "read-loop,decisions,state",
+      "tags": [
+        "read-loop",
+        "decisions",
+        "state"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -50752,7 +51051,12 @@
       "status": "completed",
       "strategy": "refactor",
       "subject": "Collapse 1:1 SKILL.md→procedure indirection into SKILL.md bodies",
-      "tags": "skills,refactor,adr-034,context-budget",
+      "tags": [
+        "skills",
+        "refactor",
+        "adr-034",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "refactor"
     },
@@ -50778,7 +51082,12 @@
       "status": "completed",
       "strategy": "refactor",
       "subject": "Phase-split giant procedures (build, close, backlog, reconcile) into per-step sub-files",
-      "tags": "skills,refactor,reliability,procedures",
+      "tags": [
+        "skills",
+        "refactor",
+        "reliability",
+        "procedures"
+      ],
       "type": "task",
       "work_type": "refactor"
     },
@@ -51038,7 +51347,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Migrate proyecto_anita embedded clients to clients/proyecto-anita/ as standalone repos",
-      "tags": "migration,client-onboard,proyecto-anita",
+      "tags": [
+        "migration",
+        "client-onboard",
+        "proyecto-anita"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51064,7 +51377,10 @@
       "status": "pending",
       "strategy": null,
       "subject": "git-init the 5 ungitted top-level clients (bemol, mandawa, nexeye_eyedetect, sunflower)",
-      "tags": "client-onboard,git-hygiene",
+      "tags": [
+        "client-onboard",
+        "git-hygiene"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51090,7 +51406,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "anita-whatsapp vendored-copy divergence watch (dgrx vs venture shared/)",
-      "tags": "proyecto-anita,dgrx,maintenance",
+      "tags": [
+        "proyecto-anita",
+        "dgrx",
+        "maintenance"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51116,7 +51436,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "dgrx Dockerfile: make pyproject authoritative (replace hardcoded pip list with uv-driven install)",
-      "tags": "proyecto-anita,dgrx,docker",
+      "tags": [
+        "proyecto-anita",
+        "dgrx",
+        "docker"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -51142,7 +51466,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "Clean old proyecto_anita client memory dirs after first verified sessions in new locations",
-      "tags": "proyecto-anita,memory,cleanup",
+      "tags": [
+        "proyecto-anita",
+        "memory",
+        "cleanup"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51168,7 +51496,13 @@
       "status": "completed",
       "strategy": "investigation",
       "subject": "Audit per-repo MCP + credentials setup — every client/venture repo gets its own scoped .mcp.json and creds",
-      "tags": "mcp,credentials,client-onboard,proyecto-anita,security",
+      "tags": [
+        "mcp",
+        "credentials",
+        "client-onboard",
+        "proyecto-anita",
+        "security"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -55000,7 +55334,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "ruflo mux daemon: root cause fix for single-session MCP lock",
-      "tags": "harness,ruflo,mcp",
+      "tags": [
+        "harness",
+        "ruflo",
+        "mcp"
+      ],
       "type": "task"
     },
     {
@@ -55025,7 +55363,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "[ops] monitor and prune zombie brana-mcp processes older than N days",
-      "tags": "harness,ops,sessions",
+      "tags": [
+        "harness",
+        "ops",
+        "sessions"
+      ],
       "type": "task"
     },
     {
@@ -60175,7 +60517,13 @@
       "status": "pending",
       "strategy": null,
       "subject": "Fix Tier 2c epic-slug sed bug + hardened branch-arg pattern in run.rs",
-      "tags": "harness,skills,close,session-state,shell-bug",
+      "tags": [
+        "harness",
+        "skills",
+        "close",
+        "session-state",
+        "shell-bug"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -60230,7 +60578,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Track ruvnet/ruflo#2512 (busy_timeout fix); upgrade ruflo once merged",
-      "tags": "harness,ruflo,memory,corruption",
+      "tags": [
+        "harness",
+        "ruflo",
+        "memory",
+        "corruption"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -60256,7 +60609,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "write_state() worktree-liveness guard skipped when existing.branch is None",
-      "tags": "harness,session-state,concurrency,shell-bug",
+      "tags": [
+        "harness",
+        "session-state",
+        "concurrency",
+        "shell-bug"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -60282,7 +60640,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Add validate.sh lint for unquoted zsh for-loop pattern",
-      "tags": "harness,validate,skills,shell-bug",
+      "tags": [
+        "harness",
+        "validate",
+        "skills",
+        "shell-bug"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -61334,7 +61697,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Live model-choice nudge: proactive Sonnet/Opus/Fable/Haiku recommendation during a session",
-      "tags": "dx,model-routing,hooks,efficiency",
+      "tags": [
+        "dx",
+        "model-routing",
+        "hooks",
+        "efficiency"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -61369,7 +61737,11 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "mcp__brana__backlog_* tools hang/timeout at 120s, fall back to background task",
-      "tags": "mcp,backlog,reliability",
+      "tags": [
+        "mcp",
+        "backlog",
+        "reliability"
+      ],
       "type": "task",
       "work_type": "infra"
     },
@@ -61433,7 +61805,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "Backlog skill: automatic CLI fallback when MCP is slow, not just hung",
-      "tags": "mcp,backlog,dx",
+      "tags": [
+        "mcp",
+        "backlog",
+        "dx"
+      ],
       "type": "task",
       "work_type": "implement"
     }
