@@ -57,93 +57,97 @@ fn default_execution() -> String { "code".into() }
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
     TypedTool::new("backlog_add", |input: Input, _extra| {
         Box::pin(async move {
-            // Cross-project: --project slug resolves another repo's tasks.json via the
-            // portfolio; default is the current project (t-2159).
-            let tf = match input.project.as_deref() {
-                Some(slug) => brana_core::util::resolve_project_tasks_file(slug)
-                    .map_err(pmcp::Error::validation)?,
-                None => brana_core::util::find_tasks_file()
-                    .ok_or_else(|| pmcp::Error::validation("tasks.json not found"))?,
-            };
-            // Serialize the whole read-modify-write so next_id is computed
-            // under the lock and concurrent writers can't clobber (t-2166).
-            let _lock = brana_core::tasks::lock_tasks(&tf)
-                .map_err(|e| pmcp::Error::validation(e))?;
-            let mut val = brana_core::tasks::load_raw(&tf)
-                .map_err(|e| pmcp::Error::validation(e))?;
+            // The whole read-modify-write is synchronous std I/O (including the lock
+            // acquire) — run it off the async executor so it can never block the
+            // (fully-serialized, t-2305) stdio dispatch loop while waiting.
+            let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
+                // Cross-project: --project slug resolves another repo's tasks.json via the
+                // portfolio; default is the current project (t-2159).
+                let tf = match input.project.as_deref() {
+                    Some(slug) => brana_core::util::resolve_project_tasks_file(slug)?,
+                    None => brana_core::util::find_tasks_file()
+                        .ok_or_else(|| "tasks.json not found".to_string())?,
+                };
+                // Serialize the whole read-modify-write so next_id is computed
+                // under the lock and concurrent writers can't clobber (t-2166).
+                // Bounded acquire (t-2305): an unbounded flock() here can starve pmcp's
+                // fully-serialized stdio dispatch loop for the rest of the session if
+                // contended by a concurrent writer.
+                let _lock = brana_core::tasks::lock_tasks_timeout(&tf)?;
+                let mut val = brana_core::tasks::load_raw(&tf)?;
 
-            let tasks = val["tasks"].as_array()
-                .ok_or_else(|| pmcp::Error::validation("tasks.json has no tasks array"))?;
+                let tasks = val["tasks"].as_array()
+                    .ok_or_else(|| "tasks.json has no tasks array".to_string())?;
 
-            if let Some(p) = input.priority.as_deref() {
-                brana_core::tasks::validate_priority(p)
-                    .map_err(pmcp::Error::validation)?;
-            }
-            if let Some(k) = input.kind.as_deref() {
-                brana_core::tasks::validate_kind(k)
-                    .map_err(pmcp::Error::validation)?;
-            }
-            if let Some(wt) = input.work_type.as_deref() {
-                brana_core::tasks::validate_work_type(wt)
-                    .map_err(pmcp::Error::validation)?;
-            }
-            brana_core::tasks::validate_execution(&input.execution)
-                .map_err(pmcp::Error::validation)?;
-            brana_core::tasks::validate_context_for_effort(
-                input.effort.as_deref(),
-                input.context.as_deref(),
-            ).map_err(pmcp::Error::validation)?;
+                if let Some(p) = input.priority.as_deref() {
+                    brana_core::tasks::validate_priority(p)?;
+                }
+                if let Some(k) = input.kind.as_deref() {
+                    brana_core::tasks::validate_kind(k)?;
+                }
+                if let Some(wt) = input.work_type.as_deref() {
+                    brana_core::tasks::validate_work_type(wt)?;
+                }
+                brana_core::tasks::validate_execution(&input.execution)?;
+                brana_core::tasks::validate_context_for_effort(
+                    input.effort.as_deref(),
+                    input.context.as_deref(),
+                )?;
 
-            let id = brana_core::tasks::next_id(tasks);
+                let id = brana_core::tasks::next_id(tasks);
 
-            let tags: Vec<serde_json::Value> = input.tags
-                .as_deref()
-                .map(|t| t.split(',').map(|s| serde_json::Value::String(s.trim().to_string())).collect())
-                .unwrap_or_default();
+                let tags: Vec<serde_json::Value> = input.tags
+                    .as_deref()
+                    .map(|t| t.split(',').map(|s| serde_json::Value::String(s.trim().to_string())).collect())
+                    .unwrap_or_default();
 
-            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+                let today = chrono::Local::now().format("%Y-%m-%d").to_string();
 
-            let task = serde_json::json!({
-                "id": id,
-                "subject": input.subject,
-                "status": "pending",
-                "type": input.task_type,
-                "kind": input.kind,
-                "tags": tags,
-                "description": input.description,
-                "effort": input.effort,
-                "priority": input.priority,
-                "parent": input.parent,
-                "created": today,
-                "started": null,
-                "completed": null,
-                "blocked_by": [],
-                "branch": null,
-                "context": input.context,
-                "notes": null,
-                "order": 0,
-                "github_issue": null,
-                "execution": input.execution,
-                "acceptance_criteria": input.acceptance_criteria,
-                "epic": input.epic,
-                "work_type": input.work_type,
-                // t-2283: stamp ac_state:none on new tasks (v3 forward-only).
-                // Shared const with CLI cmd_add so the two write paths cannot drift.
-                "ac_state": brana_core::tasks::AC_STATE_DEFAULT,
-            });
+                let task = serde_json::json!({
+                    "id": id,
+                    "subject": input.subject,
+                    "status": "pending",
+                    "type": input.task_type,
+                    "kind": input.kind,
+                    "tags": tags,
+                    "description": input.description,
+                    "effort": input.effort,
+                    "priority": input.priority,
+                    "parent": input.parent,
+                    "created": today,
+                    "started": null,
+                    "completed": null,
+                    "blocked_by": [],
+                    "branch": null,
+                    "context": input.context,
+                    "notes": null,
+                    "order": 0,
+                    "github_issue": null,
+                    "execution": input.execution,
+                    "acceptance_criteria": input.acceptance_criteria,
+                    "epic": input.epic,
+                    "work_type": input.work_type,
+                    // t-2283: stamp ac_state:none on new tasks (v3 forward-only).
+                    // Shared const with CLI cmd_add so the two write paths cannot drift.
+                    "ac_state": brana_core::tasks::AC_STATE_DEFAULT,
+                });
 
-            val["tasks"].as_array_mut()
-                .ok_or_else(|| pmcp::Error::validation("tasks.json has no tasks array"))?
-                .push(task);
+                val["tasks"].as_array_mut()
+                    .ok_or_else(|| "tasks.json has no tasks array".to_string())?
+                    .push(task);
 
-            brana_core::tasks::save_tasks(&tf, &val)
-                .map_err(|e| pmcp::Error::validation(e))?;
+                brana_core::tasks::save_tasks(&tf, &val)?;
 
-            Ok(serde_json::json!({
-                "ok": true,
-                "id": id,
-                "subject": input.subject,
-            }))
+                Ok(serde_json::json!({
+                    "ok": true,
+                    "id": id,
+                    "subject": input.subject,
+                }))
+            })
+            .await
+            .map_err(|e| pmcp::Error::validation(format!("blocking task panicked: {e}")))?;
+
+            result.map_err(pmcp::Error::validation)
         })
     })
     .with_description("Add a new task to the backlog. Returns the assigned task ID. Context is required for effort M, L, or XL.")
@@ -158,13 +162,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tools::CWD_LOCK;
     use pmcp::ToolHandler;
     use serde_json::json;
     use std::path::PathBuf;
-    use std::sync::Mutex;
-
-    /// Serializes cwd/env mutation across handler tests in this test binary.
-    static CWD_LOCK: Mutex<()> = Mutex::new(());
 
     /// RAII guard: chdir into an isolated non-git tempdir holding a fixture
     /// tasks.json, with CLAUDE_PROJECT_DIR cleared, so the handler's

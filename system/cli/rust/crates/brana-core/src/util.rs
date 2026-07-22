@@ -786,6 +786,62 @@ pub fn lock_sidecar(store_path: &std::path::Path) -> Result<std::fs::File, Strin
     Ok(f)
 }
 
+/// Default bound for [`lock_sidecar_timeout`] — long enough to ride out a normal
+/// short read-modify-write hold (microseconds, per the existing writer classification
+/// for `backlog_add`/`set`/`batch`), short enough that an MCP tool handler fails fast
+/// instead of freezing pmcp's fully-serialized stdio dispatch loop for the rest of the
+/// session (t-2305).
+pub const DEFAULT_LOCK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Poll interval while waiting for a contended lock in [`lock_sidecar_timeout`].
+const LOCK_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
+
+/// Stable, greppable prefix on the error [`lock_sidecar_timeout`] returns when the bound
+/// is reached — callers can `err.starts_with(LOCK_TIMEOUT_PREFIX)` to distinguish "still
+/// contended, safe to retry with backoff" from other lock failures (t-2305).
+pub const LOCK_TIMEOUT_PREFIX: &str = "lock timeout:";
+
+/// Like [`lock_sidecar`], but bounded: polls `try_lock()` instead of blocking forever on
+/// the underlying `flock(2)`. Returns a [`LOCK_TIMEOUT_PREFIX`]-prefixed error if `timeout`
+/// elapses while the lock is still held by another process.
+///
+/// Use this — not [`lock_sidecar`] — from any async context. An unbounded `flock()` inside
+/// an async handler can starve a fully-serialized event loop for its remaining lifetime if
+/// the lock is contended (t-2305: this happened to `brana-mcp`'s stdio dispatch — one stuck
+/// handler froze the server for every subsequent request, including unrelated reads).
+pub fn lock_sidecar_timeout(
+    store_path: &std::path::Path,
+    timeout: std::time::Duration,
+) -> Result<std::fs::File, String> {
+    let lock_path = store_path.with_extension("json.lock");
+    if let Some(dir) = lock_path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("create store dir failed: {e}"))?;
+    }
+    let f = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&lock_path)
+        .map_err(|e| format!("open lock file failed: {e}"))?;
+
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match f.try_lock() {
+            Ok(()) => return Ok(f),
+            Err(std::fs::TryLockError::Error(e)) => return Err(format!("lock failed: {e}")),
+            Err(std::fs::TryLockError::WouldBlock) => {
+                if std::time::Instant::now() >= deadline {
+                    return Err(format!(
+                        "{LOCK_TIMEOUT_PREFIX} {} still held by another process after {timeout:?}",
+                        lock_path.display()
+                    ));
+                }
+                std::thread::sleep(LOCK_POLL_INTERVAL);
+            }
+        }
+    }
+}
+
 /// Serialize `value` and write it to `path` atomically: temp file created
 /// in the store's own directory (same filesystem → rename is atomic),
 /// PID-scoped name, rename over the target.
@@ -807,4 +863,94 @@ pub fn write_json_atomic<T: serde::Serialize>(
         let _ = std::fs::remove_file(&tmp);
         format!("atomic rename failed: {e}")
     })
+}
+
+/// Regression tests for the bounded lock acquire (t-2305). An unbounded `flock()`
+/// contended by another process/thread froze `brana-mcp`'s serialized stdio dispatch
+/// forever; these prove `lock_sidecar_timeout` fails cleanly within its bound instead.
+#[cfg(test)]
+mod lock_timeout_tests {
+    use super::{lock_sidecar_timeout, LOCK_TIMEOUT_PREFIX};
+    use std::time::{Duration, Instant};
+
+    fn tmp_store() -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let store = dir.path().join("store.json");
+        (dir, store)
+    }
+
+    #[test]
+    fn uncontended_acquire_succeeds_immediately() {
+        let (_dir, store) = tmp_store();
+        let start = Instant::now();
+        let guard = lock_sidecar_timeout(&store, Duration::from_secs(5));
+        assert!(guard.is_ok(), "uncontended acquire should succeed: {guard:?}");
+        assert!(
+            start.elapsed() < Duration::from_millis(500),
+            "uncontended acquire should be near-instant, took {:?}",
+            start.elapsed()
+        );
+    }
+
+    #[test]
+    fn contended_lock_released_within_window_then_succeeds() {
+        let (_dir, store) = tmp_store();
+        let store_for_holder = store.clone();
+
+        // Hold the lock from a background thread for 200ms, then release (drop).
+        let holder = std::thread::spawn(move || {
+            let guard = lock_sidecar_timeout(&store_for_holder, Duration::from_secs(5))
+                .expect("holder should acquire immediately");
+            std::thread::sleep(Duration::from_millis(200));
+            drop(guard);
+        });
+        std::thread::sleep(Duration::from_millis(30)); // let the holder acquire first
+
+        let start = Instant::now();
+        let guard = lock_sidecar_timeout(&store, Duration::from_secs(2));
+        assert!(
+            guard.is_ok(),
+            "acquire should succeed once the holder releases: {guard:?}"
+        );
+        assert!(
+            start.elapsed() >= Duration::from_millis(150),
+            "should have waited roughly until release, only waited {:?}",
+            start.elapsed()
+        );
+        holder.join().unwrap();
+    }
+
+    #[test]
+    fn contended_lock_held_past_window_times_out_cleanly() {
+        let (_dir, store) = tmp_store();
+        let store_for_holder = store.clone();
+
+        // Hold the lock for far longer than the waiter's timeout — never released
+        // within the test's timeframe (thread outlives the assertion below).
+        let holder = std::thread::spawn(move || {
+            let _guard = lock_sidecar_timeout(&store_for_holder, Duration::from_secs(5))
+                .expect("holder should acquire immediately");
+            std::thread::sleep(Duration::from_secs(5));
+        });
+        std::thread::sleep(Duration::from_millis(30));
+
+        let start = Instant::now();
+        let timeout = Duration::from_millis(200);
+        let result = lock_sidecar_timeout(&store, timeout);
+        let elapsed = start.elapsed();
+
+        let err = result.expect_err("should time out, not hang, while the lock is held");
+        assert!(
+            err.starts_with(LOCK_TIMEOUT_PREFIX),
+            "error should be identifiable via LOCK_TIMEOUT_PREFIX for backoff, got: {err}"
+        );
+        assert!(
+            elapsed >= timeout && elapsed < timeout + Duration::from_secs(1),
+            "should return promptly after the bound elapses, not hang: waited {elapsed:?} for a {timeout:?} bound"
+        );
+
+        // Cleanup: detach rather than join — the holder thread sleeps 5s total and
+        // isn't needed further; the test process exiting reclaims it either way.
+        drop(holder);
+    }
 }
