@@ -1,7 +1,7 @@
 # Feature: Active-Epic Project Scoping — Cleanup + Enforcement
 
 **Date:** 2026-07-22
-**Status:** building
+**Status:** shipped
 **Task:** t-2281
 
 ## Problem
@@ -59,8 +59,12 @@ See [ADR-066](../decisions/ADR-066-active-epic-project-scoped-only.md) — full 
 
 ## Documentation Plan
 
-- [ ] **Tech doc**: this file, plus ADR-066
-- [ ] **Existing docs to update**: none — no user-facing behavior change (internal scoping enforcement)
+- [x] **Tech doc**: this file, plus ADR-066
+- [x] **Existing docs to update**: none — no user-facing behavior change (internal scoping enforcement). `docs/README.md` and `SKILL.md:64` updated to index/reflect the change.
+
+## Retrospective
+
+What surprised: the task was filed as a design problem needing a fix, but the read/write code was already correct (t-2158/t-2155, a month prior) — the real remaining work was almost entirely in undocumented prose (skill procedure steps) and a deploy-sync script, not Rust. Two separate pre-edit challenger passes each caught a plan revision before implementation: first that the original 3-item scope missed two live bleed vectors, then that my own first fix for one of those (a new CLI subcommand) was unnecessary once an already-shipped MCP tool was actually checked. Pattern worth remembering: "the fix already exists at the code level" doesn't mean the fix is complete — prose (skill/procedure instructions) can bypass a correct resolver just as easily as buggy code can.
 
 ## Challenger findings
 
