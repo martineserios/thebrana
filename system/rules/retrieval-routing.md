@@ -12,7 +12,9 @@ Pick the retrieval surface by query shape — walk top-to-bottom, first match wi
    IF graphify-out/graph.json exists in the repo.
 3. Open-ended — "how does X work", unfamiliar area → Explore agent
    (graphify GRAPH_REPORT.md communities can seed entry points first).
-4. Past decisions, learnings, cross-session knowledge → brana recall.
+4. Past decisions, learnings, curated patterns/feedback, cross-session knowledge → brana recall
+   (NOT mcp__ruflo__memory_search — its `pattern` namespace is error-recurrence hook noise,
+   not curated patterns; those live on the filesystem, indexed only for brana recall — t-2294).
 5. Single known file → Read.
 ```
 
