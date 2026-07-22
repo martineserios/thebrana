@@ -660,6 +660,8 @@ pub enum AgentsCmd {
 pub enum BacklogCmd {
     /// Next unblocked task by priority
     Next {
+        /// Tag filter — bare tag, "key:value" (exact), or "key" (matches
+        /// bare "key" or any "key:*")
         #[arg(long)]
         tag: Option<String>,
         /// Filter by work kind: feature, fix, refactor, research, docs, design, ops
@@ -687,7 +689,9 @@ pub enum BacklogCmd {
     },
     /// Filter tasks (AND logic)
     Query {
-        /// Tag filter (comma-separated for AND: "dx,cli")
+        /// Tag filter (comma-separated for AND: "dx,cli"). Each token may be
+        /// a bare tag, "key:value" (exact match), or "key" (matches bare
+        /// "key" or any "key:*")
         #[arg(short, long)]
         tag: Option<String>,
         #[arg(short, long, value_enum)]

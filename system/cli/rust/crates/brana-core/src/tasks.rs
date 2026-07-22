@@ -83,6 +83,27 @@ pub fn text_match(task: &Value, needle: &str) -> bool {
         })
 }
 
+/// Match a `--tag` query token against a task's tag list. Tags are still
+/// plain strings (`Vec<String>`) — `key:value` is a naming convention, not
+/// a new storage shape (D8, backlog-v3 t-2311).
+///
+/// - Query contains `:` → exact string match only (`"layer:backend"` matches
+///   only the literal tag `"layer:backend"`).
+/// - Query has no `:` → matches the bare tag of that name (backward compat)
+///   OR any tag `"<query>:*"` (any-value-for-key match) — so `--tag backend`
+///   finds both a bare `"backend"` tag and a `"backend:api"` tag.
+///
+/// A stored tag is split on its FIRST `:` only, so a value containing more
+/// colons (e.g. `"url:https://example.com"`) still parses as key=`"url"`.
+pub fn tag_matches(task_tags: &[&str], query: &str) -> bool {
+    if query.contains(':') {
+        return task_tags.contains(&query);
+    }
+    task_tags.iter().any(|t| {
+        *t == query || t.split_once(':').map(|(k, _)| k) == Some(query)
+    })
+}
+
 /// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
 #[derive(Debug, Clone)]
 pub struct TaskFilter<'a> {
@@ -136,7 +157,7 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
                     .as_array()
                     .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
                     .unwrap_or_default();
-                if !tags.contains(&tag) {
+                if !tag_matches(&tags, tag) {
                     return false;
                 }
             }
@@ -2991,6 +3012,84 @@ mod tests {
     fn task_filter_by_tag() {
         let tasks = sample_tasks();
         let f = TaskFilter { tag: Some("scheduler"), types: vec!["task", "subtask"], ..Default::default() };
+        let result = filter_tasks_by(&tasks, &tasks, &f);
+        assert_eq!(result.len(), 2);
+    }
+
+    // ── t-2311: key:value tag matching (backlog-v3 schema, D8) ──────────────
+
+    #[test]
+    fn tag_matches_exact_key_value() {
+        let tags = vec!["layer:backend", "urgent"];
+        assert!(tag_matches(&tags, "layer:backend"));
+        assert!(!tag_matches(&tags, "layer:frontend"));
+    }
+
+    #[test]
+    fn tag_matches_key_only_matches_any_value() {
+        let tags = vec!["layer:backend"];
+        assert!(tag_matches(&tags, "layer"));
+    }
+
+    #[test]
+    fn tag_matches_key_only_still_matches_bare_tag_backward_compat() {
+        // Pre-existing bare tag "backend" (no colon) must keep matching
+        // `--tag backend` exactly as before this feature.
+        let tags = vec!["backend"];
+        assert!(tag_matches(&tags, "backend"));
+    }
+
+    #[test]
+    fn tag_matches_key_only_matches_both_bare_and_keyed_forms() {
+        // --tag backend finds a task tagged bare "backend" AND a task
+        // tagged "backend:api" — the D8 disambiguation decision.
+        assert!(tag_matches(&["backend"], "backend"));
+        assert!(tag_matches(&["backend:api"], "backend"));
+        assert!(!tag_matches(&["backend-legacy"], "backend")); // no substring false-positive
+    }
+
+    #[test]
+    fn tag_matches_colon_value_boundary_splits_on_first_colon_only() {
+        // A tag value containing multiple colons (e.g. a URL) must not
+        // break key-only matching — split on the FIRST ':' only.
+        let tags = vec!["url:https://example.com"];
+        assert!(tag_matches(&tags, "url"));
+        assert!(tag_matches(&tags, "url:https://example.com"));
+        assert!(!tag_matches(&tags, "https"));
+    }
+
+    #[test]
+    fn tag_matches_mixed_and_query_layer_and_urgent() {
+        // Mirrors cmd_query's multi-tag AND composition: each comma-split
+        // token is matched independently via tag_matches, then AND'd.
+        let task_tags = vec!["layer:backend", "urgent"];
+        let query = ["layer:backend", "urgent"];
+        assert!(query.iter().all(|q| tag_matches(&task_tags, q)));
+
+        let query_miss = ["layer:backend", "dx"];
+        assert!(!query_miss.iter().all(|q| tag_matches(&task_tags, q)));
+    }
+
+    #[test]
+    fn task_filter_by_tag_key_value_exact() {
+        let tasks = vec![
+            json!({"id": "t-a", "type": "task", "status": "pending", "tags": ["layer:backend"], "blocked_by": []}),
+            json!({"id": "t-b", "type": "task", "status": "pending", "tags": ["layer:frontend"], "blocked_by": []}),
+        ];
+        let f = TaskFilter { tag: Some("layer:backend"), types: vec!["task", "subtask"], ..Default::default() };
+        let result = filter_tasks_by(&tasks, &tasks, &f);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["id"], "t-a");
+    }
+
+    #[test]
+    fn task_filter_by_tag_key_only_any_value() {
+        let tasks = vec![
+            json!({"id": "t-a", "type": "task", "status": "pending", "tags": ["layer:backend"], "blocked_by": []}),
+            json!({"id": "t-b", "type": "task", "status": "pending", "tags": ["layer:frontend"], "blocked_by": []}),
+            json!({"id": "t-c", "type": "task", "status": "pending", "tags": ["other"], "blocked_by": []}),
+        ];
+        let f = TaskFilter { tag: Some("layer"), types: vec!["task", "subtask"], ..Default::default() };
         let result = filter_tasks_by(&tasks, &tasks, &f);
         assert_eq!(result.len(), 2);
     }

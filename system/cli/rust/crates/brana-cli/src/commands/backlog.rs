@@ -183,7 +183,7 @@ pub fn cmd_query(
             let task_tags: Vec<&str> = t["tags"].as_array()
                 .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
                 .unwrap_or_default();
-            tags.iter().all(|tag| task_tags.contains(tag))
+            tags.iter().all(|tag| tasks::tag_matches(&task_tags, tag))
         });
     }
 
@@ -1963,6 +1963,29 @@ mod tests {
         assert!(ids.contains("t-4"));  // ready, other epic
         assert!(!ids.contains("t-3")); // blocked
         assert!(!ids.contains("t-1")); // completed
+    }
+
+    #[test]
+    fn select_next_matches_key_value_tag() {
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","subject":"backend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:backend"]}),
+            json!({"id":"t-2","type":"task","subject":"frontend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:frontend"]}),
+        ];
+        let got = select_next(&tasks, Some("layer:backend"), None, None, None, None, None, None, 100);
+        let ids: Vec<&str> = got.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, vec!["t-1"]);
+    }
+
+    #[test]
+    fn select_next_matches_key_only_any_value_tag() {
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","subject":"backend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:backend"]}),
+            json!({"id":"t-2","type":"task","subject":"frontend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:frontend"]}),
+        ];
+        let got = select_next(&tasks, Some("layer"), None, None, None, None, None, None, 100);
+        let ids: std::collections::HashSet<&str> = got.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert!(ids.contains("t-1"));
+        assert!(ids.contains("t-2"));
     }
 
     #[test]
