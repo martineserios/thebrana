@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "channels": {
+    "desktop": { "type": "desktop" },
+    "telegram": { "type": "telegram", "secrets_file": "~/.hub-secrets" }
+  },
+  "defaults": {
+    "high": ["telegram", "desktop"],
+    "medium": ["desktop"],
+    "low": []
+  }
+}

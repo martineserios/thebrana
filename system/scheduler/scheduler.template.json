@@ -131,7 +131,19 @@
       "enabled": true,
       "timeoutSeconds": 3600,
       "captureOutput": true,
-      "_comment": "t-857: weekly index of feedback_*.md / project_*.md pattern files across all project memory dirs into ruflo. Runs at 03:00 Sun \u2014 well before reindex-knowledge (12:00) so fresh patterns are available for knowledge-decay (13:00)."
+      "noProjectLock": true,
+      "_comment": "t-857: weekly FTS reindex \u2192 ~/.claude/memory/index.db. noProjectLock (t-2292): writes only its own store, opts out of the shared project lock so a Sun-wake catch-up burst can't starve it into a SKIP."
+    },
+    "reminder-dispatch": {
+      "type": "command",
+      "command": "brana remind due --dispatch",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:00,30:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "noProjectLock": true,
+      "_comment": "t-1999/ADR-054: dispatch due reminders to registered channels (notify-channels.json) every 30 min. noProjectLock: writes only the Rust-locked reminder store (ADR-051), never tasks.json \u2014 must not be starved by the wake catch-up burst (t-2292). Empty-store runs exit fast and silent."
     },
     "second-phase-review": {
       "type": "command",
