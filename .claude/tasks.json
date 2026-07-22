@@ -61379,11 +61379,11 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Idea doc: docs/ideas/telegram-link-capture.md (full design, rejected alternatives, and challenger-review findings preserved there).\n\nNext steps (from idea doc):\n1. Write real tests for URL detection, atomic queue-append, dedup-vs-tasks.json logic (test-first) — personal/test_bot.py currently has only 2 near-tautological tests, don't assume coverage\n2. Extend bot.py's message handler: URL regex → atomic append (tmp+rename) to link-queue.jsonl, additive to existing journal write\n3. Build oracle-hub cron: dedup vs local tasks.json → brana backlog add + event-log.md append → mark processed → commit/push\n4. Add anti-staleness nudge (queue count/age threshold → proactive Telegram message via bot)\n5. Add laptop-local systemd timer: git -C ~/enter_thebrana/personal pull --ff-only, every 15-30 min (confirmed no such job exists today)\n6. Add laptop-local /brana:research extraction timer: capped batch (3-5), --depth quick, every few hours — this is what actually extracts+persists knowledge, not just logs the URL\n7. Update personal/README.md if bot's described behavior changes materially\n\nAC: bot.py detects and queues URLs without breaking existing journal capture\nAC: oracle-hub cron dedupes correctly against tasks.json, no duplicate research tasks\nAC: laptop sees new tasks/event-log entries without manual git pull\nAC: /brana:research runs capped and unattended over pending link tasks, persisting findings",
+      "context": "Idea doc: docs/ideas/telegram-link-capture.md (full design, rejected alternatives, and challenger-review findings preserved there).\n\nNext steps (from idea doc):\n1. Write real tests for URL detection, atomic queue-append, dedup-vs-tasks.json logic (test-first) — personal/test_bot.py currently has only 2 near-tautological tests, don't assume coverage\n2. Extend bot.py's message handler: URL regex → atomic append (tmp+rename) to link-queue.jsonl, additive to existing journal write\n3. Build oracle-hub cron: dedup vs local tasks.json → brana backlog add + event-log.md append → mark processed → commit/push\n4. Add anti-staleness nudge (queue count/age threshold → proactive Telegram message via bot)\n5. Add laptop-local systemd timer: git -C ~/enter_thebrana/personal pull --ff-only, every 15-30 min (confirmed no such job exists today)\n6. Add laptop-local /brana:research extraction timer: capped batch (3-5), --depth quick, every few hours — this is what actually extracts+persists knowledge, not just logs the URL\n7. Update personal/README.md if bot's described behavior changes materially\n\nAC: bot.py detects and queues URLs without breaking existing journal capture\nAC: oracle-hub cron dedupes correctly against tasks.json, no duplicate research tasks\nAC: laptop sees new tasks/event-log entries without manual git pull\nAC: /brana:research runs capped and unattended over pending link tasks, persisting findings\nskill_selected: /brana:log (score 0.7) — reuse its dedup+URL-detection logic as the basis for the unattended capture path",
       "created": "2026-07-22",
       "description": "Add URL-detection to personal/bot.py's existing polling handler so links shared from WhatsApp to TheBranaBot are captured automatically, without a terminal copy-paste. A new oracle-hub cron dedupes against the personal repo's own tasks.json, creates a research task + event-log entry, and commits/pushes. A new laptop-local timer pulls the repo, and a second laptop-local timer runs /brana:research (capped, quick depth) over pending link-tasks to actually extract and persist knowledge, closing the loop.",
       "effort": "S",
-      "epic": null,
+      "epic": "personal-automation",
       "execution": "code",
       "github_issue": null,
       "id": "t-2306",
@@ -61402,7 +61402,8 @@
         "oracle-hub"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "feature"
     },
     {
       "ac_state": "none",
