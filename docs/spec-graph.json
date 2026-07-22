@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-22T17:14:20Z",
+  "generated": "2026-07-22T18:07:28Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -3062,7 +3062,7 @@
       "impl_files": []
     },
     "docs/ideas/telegram-link-capture.md": {
-      "title": "Telegram Link Capture (→ Personal Bot Serverless Migration)",
+      "title": "Telegram Link Capture",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/log/SKILL.md"
@@ -13679,6 +13679,12 @@
     },
     {
       "from": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/reviews/brana-v3-challenge-2026-07-21.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v3-redesign.md",
       "to": "skills-as-loops.md",
       "type": "references",
       "computed": false
@@ -15168,8 +15174,8 @@
   ],
   "stats": {
     "nodes": 522,
-    "edges": 1937,
+    "edges": 1938,
     "typed_edges": 682,
-    "orphans": 138
+    "orphans": 137
   }
 }
