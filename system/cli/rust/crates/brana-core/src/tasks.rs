@@ -660,6 +660,13 @@ fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
     })
 }
 
+/// Canonical tasks-file schema version this binary understands and stamps on
+/// write. t-2283 established the numeric-version convention at floor `2`
+/// (ac_state slice). t-2308 bumps the floor to `3` for t-2284's own schema
+/// slice (level/epic-collapse awareness) — reusing `2` here would be a no-op
+/// since files are already stamped at version 2.
+const CANONICAL_VERSION: i64 = 3;
+
 /// Read a tasks-file `version` value as an integer, tolerating BOTH the numeric
 /// form (`2`) and the legacy JSON-string form (`"1"`). The live tasks.json ships
 /// `version` as a string, so a numbers-only check silently never matched (t-2283
@@ -668,21 +675,40 @@ fn version_as_int(v: &Value) -> Option<i64> {
     v.as_i64().or_else(|| v.as_str().and_then(|s| s.parse::<i64>().ok()))
 }
 
-/// True when `val` already carries a canonical `version: 2` (a JSON NUMBER ≥ 2).
-/// A legacy string `"2"` deliberately reads as *not* canonical so it gets
-/// rewritten to the numeric form on the next save.
+/// True when `val` already carries a canonical version (a JSON NUMBER ≥
+/// `CANONICAL_VERSION`). A legacy string `"3"` deliberately reads as *not*
+/// canonical so it gets rewritten to the numeric form on the next save.
 fn has_canonical_version(val: &Value) -> bool {
-    matches!(val.get("version"), Some(Value::Number(n)) if n.as_i64().map_or(false, |v| v >= 2))
+    matches!(val.get("version"), Some(Value::Number(n)) if n.as_i64().map_or(false, |v| v >= CANONICAL_VERSION))
 }
 
-/// t-2283 (v3 forward-only slice): normalize the tasks-file `version` stamp to a
-/// canonical numeric `2`. Absent, non-integer, string `"1"`, or numeric `1`
-/// upgrade to `2`; a value already ≥ 2 is preserved (and coerced to a JSON
-/// number so legacy string stamps stop lying to `as_i64`-based checks).
+/// t-2308 forward-only guard: true when `val` carries a version NUMBER this
+/// binary was not built to understand (strictly greater than
+/// `CANONICAL_VERSION`). `has_canonical_version` treats "at floor" and
+/// "above floor" the same (both mean "don't rewrite"); this check isolates
+/// the "above floor" case so callers can refuse to write instead of just
+/// skipping the rewrite.
+///
+/// Forward-only: this protects binaries built from t-2308 onward against a
+/// hypothetical future version 4+ file. It CANNOT protect binaries already
+/// compiled before this change — those hardcode `>= 2` (or `>= 1`) and have
+/// no way to learn about version 3 retroactively; only rebuilding/
+/// redeploying the binary closes that gap.
+fn is_unknown_newer_version(val: &Value) -> bool {
+    val.get("version").and_then(version_as_int).map_or(false, |v| v > CANONICAL_VERSION)
+}
+
+/// t-2283 (v3 forward-only slice): normalize the tasks-file `version` stamp to
+/// the canonical numeric floor (`CANONICAL_VERSION`). Absent, non-integer,
+/// string, or numeric values below the floor upgrade to it; a value already
+/// ≥ floor is preserved (and coerced to a JSON number so legacy string stamps
+/// stop lying to `as_i64`-based checks) — this also means a version strictly
+/// ABOVE the floor (unknown-newer, t-2308) is left completely untouched: this
+/// binary does not know that schema shape and must not guess at a downgrade.
 /// Non-breaking by design — existing v1/unversioned files load with task content
 /// untouched, gaining only the canonical stamp. This is the "gate load on
-/// version:2" rule: every loaded/saved file carries numeric version ≥ 2, without
-/// a migration of the ~2,100 legacy tasks (operator decision 2026-07-21:
+/// version:3" rule: every loaded/saved file carries numeric version ≥ 3,
+/// without a migration of legacy tasks (operator decision 2026-07-21:
 /// auto-upgrade, not hard-reject).
 fn normalize_version(val: &mut Value) {
     if has_canonical_version(val) {
@@ -690,15 +716,32 @@ fn normalize_version(val: &mut Value) {
     }
     if let Some(obj) = val.as_object_mut() {
         let current = obj.get("version").and_then(version_as_int).unwrap_or(1);
-        obj.insert("version".into(), Value::from(current.max(2)));
+        obj.insert("version".into(), Value::from(current.max(CANONICAL_VERSION)));
     }
 }
 
-/// Save a TasksFile back to disk (pretty-printed, atomic). Guarantees a canonical
-/// numeric `version: 2` stamp (t-2283). The common write path
-/// (load_raw → mutate → save) already carries the canonical stamp from load_raw,
-/// so the hot path skips the ~2,100-task clone.
+/// Save a TasksFile back to disk (pretty-printed, atomic). Guarantees a
+/// canonical numeric version stamp (`CANONICAL_VERSION`, t-2283/t-2308). The
+/// common write path (load_raw → mutate → save) already carries the
+/// canonical stamp from load_raw, so the hot path skips the ~2,100-task
+/// clone.
+///
+/// Forward-only guard (t-2308): refuses to write when `val` carries a
+/// version this binary does not understand (see `is_unknown_newer_version`)
+/// — read-only + a stderr warning, rather than silently overwriting a future
+/// schema shape with an old binary's serialization of it. This only protects
+/// binaries built from this change onward; it cannot retroactively guard
+/// already-compiled binaries that hardcode an older floor.
 pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
+    if is_unknown_newer_version(val) {
+        eprintln!(
+            "warning: tasks.json version ({:?}) is newer than this binary understands (canonical={CANONICAL_VERSION}) — refusing to write, treating as read-only. Rebuild/upgrade this binary before saving.",
+            val.get("version")
+        );
+        return Err(format!(
+            "refusing to save: tasks.json version is newer than this binary supports (canonical={CANONICAL_VERSION})"
+        ));
+    }
     let content = if has_canonical_version(val) {
         serde_json::to_string_pretty(val)
     } else {
@@ -3198,12 +3241,12 @@ mod tests {
     }
 
     #[test]
-    fn test_load_raw_upgrades_version_1_to_2() {
+    fn test_load_raw_upgrades_version_1_to_3() {
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"version":1,"project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], 2, "v1 must upgrade to v2 in memory");
+        assert_eq!(val["version"], 3, "v1 must upgrade to the canonical floor (3)");
     }
 
     #[test]
@@ -3212,59 +3255,109 @@ mod tests {
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], 2, "absent version must normalize to v2");
+        assert_eq!(val["version"], 3, "absent version must normalize to the canonical floor (3)");
     }
 
     #[test]
-    fn test_load_raw_keeps_version_2() {
+    fn test_load_raw_upgrades_version_2_to_3() {
+        // t-2308: the floor moved from 2 (t-2283's ac_state slice) to 3
+        // (t-2284's level/epic-collapse awareness) — files already at 2 are
+        // no longer canonical and must upgrade on load.
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"version":2,"project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], 2);
+        assert_eq!(val["version"], 3);
     }
 
     #[test]
-    fn test_save_tasks_stamps_version_2() {
+    fn test_load_raw_keeps_version_3() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":3,"project":"p","tasks":[]}}"#).unwrap();
+        let val = load_raw(f.path()).unwrap();
+        assert_eq!(val["version"], 3);
+    }
+
+    #[test]
+    fn test_save_tasks_stamps_version_3() {
         let f = tempfile::NamedTempFile::new().unwrap();
         let val = json!({"project": "p", "tasks": []});
         save_tasks(f.path(), &val).unwrap();
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(reloaded["version"], 2, "save must stamp version:2");
+        assert_eq!(reloaded["version"], 3, "save must stamp the canonical floor (3)");
     }
 
     #[test]
-    fn test_load_raw_upgrades_string_version_1_to_numeric_2() {
+    fn test_load_raw_upgrades_string_version_1_to_numeric_3() {
         // Challenger CRITICAL: the live tasks.json stores version as a STRING
         // ("1"), which a numbers-only check silently never upgraded.
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"version":"1","project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], json!(2), "string \"1\" must upgrade to numeric 2");
+        assert_eq!(val["version"], json!(3), "string \"1\" must upgrade to numeric 3");
         assert!(val["version"].is_number(), "version must normalize to a JSON number");
     }
 
     #[test]
-    fn test_save_tasks_rewrites_string_version_to_numeric_2() {
+    fn test_save_tasks_rewrites_string_version_to_numeric_3() {
         let f = tempfile::NamedTempFile::new().unwrap();
         let val = json!({"version": "1", "project": "p", "tasks": []});
         save_tasks(f.path(), &val).unwrap();
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(reloaded["version"], json!(2));
+        assert_eq!(reloaded["version"], json!(3));
         assert!(reloaded["version"].is_number(), "string version must be coerced to a number");
     }
 
     #[test]
-    fn test_save_tasks_preserves_higher_version() {
+    fn test_save_tasks_preserves_canonical_version() {
+        // Version == CANONICAL_VERSION must round-trip unchanged. Distinct
+        // from unknown-newer (version > CANONICAL_VERSION), which now hits
+        // the forward-only guard instead — see
+        // test_save_tasks_refuses_unknown_newer_version below.
         let f = tempfile::NamedTempFile::new().unwrap();
         let val = json!({"version": 3, "project": "p", "tasks": []});
         save_tasks(f.path(), &val).unwrap();
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(reloaded["version"], 3, "must not downgrade a higher version");
+        assert_eq!(reloaded["version"], 3, "must not touch a value already at the canonical floor");
+    }
+
+    #[test]
+    fn test_normalize_version_leaves_unknown_newer_untouched() {
+        // t-2308 forward-only guard: a version this binary doesn't
+        // understand (here, a hypothetical future 99) must not be
+        // coerced/downgraded.
+        let mut val = json!({"version": 99, "project": "p", "tasks": []});
+        normalize_version(&mut val);
+        assert_eq!(val["version"], json!(99), "unknown-newer version must be left untouched");
+    }
+
+    #[test]
+    fn test_is_unknown_newer_version() {
+        assert!(!is_unknown_newer_version(&json!({"version": 1})));
+        assert!(!is_unknown_newer_version(&json!({"version": 3})));
+        assert!(is_unknown_newer_version(&json!({"version": 99})));
+        assert!(!is_unknown_newer_version(&json!({})), "absent version is not 'newer', just unversioned");
+    }
+
+    #[test]
+    fn test_save_tasks_refuses_unknown_newer_version() {
+        // t-2308 forward-only guard: refuse to write (read-only + warning)
+        // rather than blindly serializing a schema shape this binary
+        // predates. NOTE: this only protects binaries built from this
+        // change onward — an already-compiled binary hardcoding `>= 2` has
+        // no way to learn about this guard after the fact.
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let before = std::fs::read_to_string(f.path()).unwrap_or_default();
+        let val = json!({"version": 99, "project": "p", "tasks": []});
+        let result = save_tasks(f.path(), &val);
+        assert!(result.is_err(), "must refuse to save an unknown-newer version");
+        let after = std::fs::read_to_string(f.path()).unwrap_or_default();
+        assert_eq!(before, after, "refused save must not modify the file on disk");
     }
 
     #[test]
