@@ -1,7 +1,8 @@
 ---
 title: Telegram Link Capture
-status: draft
+status: shipped
 created: 2026-07-22
+shipped: 2026-07-22
 ---
 # Telegram Link Capture
 

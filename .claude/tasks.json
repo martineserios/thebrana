@@ -5101,7 +5101,7 @@
       "started": "2026-03-12",
       "status": "completed",
       "subject": "Apply background-fork pattern to session-start.sh",
-      "tags": null,
+      "tags": [],
       "type": "task",
       "work_type": "implement"
     },
@@ -15234,7 +15234,12 @@
       "started": null,
       "status": "completed",
       "subject": "Fix jq 1.6 compat: rename $def reserved keyword in scheduler runner",
-      "tags": "scheduler,oracle,jq,compat",
+      "tags": [
+        "scheduler",
+        "oracle",
+        "jq",
+        "compat"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -15260,7 +15265,11 @@
       "started": null,
       "status": "completed",
       "subject": "Deploy scheduler fixes to Oracle VM",
-      "tags": "scheduler,oracle,deploy",
+      "tags": [
+        "scheduler",
+        "oracle",
+        "deploy"
+      ],
       "type": "task",
       "work_type": "infra"
     },
@@ -15284,7 +15293,11 @@
       "started": null,
       "status": "completed",
       "subject": "Make reindex-knowledge tolerate partial errors",
-      "tags": "scheduler,knowledge,reindex",
+      "tags": [
+        "scheduler",
+        "knowledge",
+        "reindex"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -15476,7 +15489,12 @@
       "started": null,
       "status": "completed",
       "subject": "Harvest --auto + cross-project scanning for content pipeline",
-      "tags": "pipeline,harvest,content,linkedin",
+      "tags": [
+        "pipeline",
+        "harvest",
+        "content",
+        "linkedin"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -15500,7 +15518,13 @@
       "started": null,
       "status": "completed",
       "subject": "Add content-harvest scheduler job + daily-ops Monday card",
-      "tags": "pipeline,scheduler,daily-ops,content,linkedin",
+      "tags": [
+        "pipeline",
+        "scheduler",
+        "daily-ops",
+        "content",
+        "linkedin"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -15807,7 +15831,11 @@
       "started": null,
       "status": "pending",
       "subject": "Cloud scheduler: provider-abstracted brana ops",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "phase",
       "work_type": "chore"
     },
@@ -15830,7 +15858,11 @@
       "started": null,
       "status": "completed",
       "subject": "Connect & Validate",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15855,7 +15887,11 @@
       "started": null,
       "status": "pending",
       "subject": "Provider Abstraction Layer",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15878,7 +15914,11 @@
       "started": null,
       "status": "pending",
       "subject": "Job Migration",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15901,7 +15941,11 @@
       "started": null,
       "status": "pending",
       "subject": "Cloud-First Features",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -15925,7 +15969,11 @@
       "started": null,
       "status": "completed",
       "subject": "Run /web-setup — connect GitHub credentials for remote agents",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "infra"
     },
@@ -15949,7 +15997,11 @@
       "started": null,
       "status": "completed",
       "subject": "Connect MCP connectors (Sheets, Slack) at claude.ai/settings/connectors",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -15976,7 +16028,11 @@
       "started": null,
       "status": "completed",
       "subject": "Create pilot /schedule trigger — weekly-review",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16003,7 +16059,11 @@
       "started": null,
       "status": "completed",
       "subject": "Create pilot /schedule trigger — knowledge-review",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16030,7 +16090,11 @@
       "started": "2026-03-30",
       "status": "completed",
       "subject": "Monitor token consumption for 1 week, document baseline",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16054,7 +16118,11 @@
       "started": null,
       "status": "completed",
       "subject": "Test /loop — run watch experiment during dev session",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16078,7 +16146,11 @@
       "started": null,
       "status": "pending",
       "subject": "Design provider interface schema for scheduler.json",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16104,7 +16176,11 @@
       "started": null,
       "status": "pending",
       "subject": "Implement remotetrigger provider — RemoteTrigger API wrapper",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16130,7 +16206,11 @@
       "started": null,
       "status": "pending",
       "subject": "Implement loop provider — /loop session wrapper",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16157,7 +16237,12 @@
       "started": null,
       "status": "pending",
       "subject": "Unified brana ops status across 3 tiers (absorbs t-426)",
-      "tags": "scheduler,cloud,infrastructure,dx",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure",
+        "dx"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16184,7 +16269,11 @@
       "started": null,
       "status": "pending",
       "subject": "Unified brana ops health — aggregate across tiers",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16210,7 +16299,12 @@
       "started": null,
       "status": "pending",
       "subject": "Update brana ops add — accept --provider flag for tier selection",
-      "tags": "scheduler,cloud,infrastructure,dx",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure",
+        "dx"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16236,7 +16330,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate weekly-review from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16262,7 +16360,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate knowledge-review from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16288,7 +16390,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate content-harvest from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16314,7 +16420,11 @@
       "started": null,
       "status": "pending",
       "subject": "Migrate morning-check from systemd to remotetrigger",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16343,7 +16453,11 @@
       "started": null,
       "status": "pending",
       "subject": "Validation soak — 2 weeks parallel run, compare output quality",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16369,7 +16483,11 @@
       "started": null,
       "status": "pending",
       "subject": "Decommission migrated systemd timers",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16395,7 +16513,11 @@
       "started": null,
       "status": "pending",
       "subject": "Cross-repo portfolio health check via /schedule",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16421,7 +16543,11 @@
       "started": null,
       "status": "pending",
       "subject": "Client production monitor (proyecto_anita) via /schedule",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -16447,7 +16573,12 @@
       "started": null,
       "status": "pending",
       "subject": "Evaluate remote MCP for ruflo access",
-      "tags": "scheduler,cloud,infrastructure,ruflo",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure",
+        "ruflo"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -16473,7 +16604,11 @@
       "started": null,
       "status": "pending",
       "subject": "Design migration path for remaining local-dependent jobs",
-      "tags": "scheduler,cloud,infrastructure",
+      "tags": [
+        "scheduler",
+        "cloud",
+        "infrastructure"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -16496,7 +16631,11 @@
       "started": null,
       "status": "cancelled",
       "subject": "Session-Aware Loop Integration",
-      "tags": "session-loops,scheduler,dx",
+      "tags": [
+        "session-loops",
+        "scheduler",
+        "dx"
+      ],
       "type": "phase",
       "work_type": "implement"
     },
@@ -17629,7 +17768,11 @@
       "started": null,
       "status": "completed",
       "subject": "Add few-shot examples to all rules (DeepAgents alignment)",
-      "tags": "deepagents-alignment,rules,prompt-engineering",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "prompt-engineering"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17652,7 +17795,10 @@
       "started": null,
       "status": "completed",
       "subject": "DeepAgents Alignment",
-      "tags": "distribution,deepagents-alignment",
+      "tags": [
+        "distribution",
+        "deepagents-alignment"
+      ],
       "type": "milestone",
       "work_type": "implement"
     },
@@ -17676,7 +17822,11 @@
       "started": null,
       "status": "completed",
       "subject": "Fix double-loading: bootstrap stops copying rules, plugin is single source",
-      "tags": "deepagents-alignment,rules,bootstrap",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "bootstrap"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17700,7 +17850,11 @@
       "started": null,
       "status": "completed",
       "subject": "Merge dependent rules: memory-framework into self-improvement, pm-awareness into task-convention",
-      "tags": "deepagents-alignment,rules,context-budget",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17726,7 +17880,11 @@
       "started": null,
       "status": "completed",
       "subject": "Add globs: frontmatter to narrow rules (doc-linking, inbox-convention)",
-      "tags": "deepagents-alignment,rules,context-budget",
+      "tags": [
+        "deepagents-alignment",
+        "rules",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17752,7 +17910,11 @@
       "started": "2026-03-30",
       "status": "completed",
       "subject": "Auto read-back context file at session start (DeepAgents Gap 4)",
-      "tags": "deepagents-alignment,hooks,context-budget",
+      "tags": [
+        "deepagents-alignment",
+        "hooks",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -17778,7 +17940,11 @@
       "started": null,
       "status": "pending",
       "subject": "Write OS conceptual map document (docs/guide/conceptual-map.md)",
-      "tags": "distribution,docs,deepagents-alignment",
+      "tags": [
+        "distribution",
+        "docs",
+        "deepagents-alignment"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -30242,7 +30408,11 @@
       "started": null,
       "status": "completed",
       "subject": "Research: addyosmani/agent-skills GitHub repo",
-      "tags": "agent-skills,github,claude-code",
+      "tags": [
+        "agent-skills",
+        "github",
+        "claude-code"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -33659,7 +33829,11 @@
       "started": null,
       "status": "completed",
       "subject": "MEMORY.md concurrent-write hardening — diff-merge hook for parallel sessions",
-      "tags": "hooks,memory,multi-session",
+      "tags": [
+        "hooks",
+        "memory",
+        "multi-session"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41063,7 +41237,10 @@
       "status": "pending",
       "strategy": null,
       "subject": "Ruflo Multi-Agent Integration",
-      "tags": "ruflo,multi-agent",
+      "tags": [
+        "ruflo",
+        "multi-agent"
+      ],
       "type": "phase"
     },
     {
@@ -41117,7 +41294,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire claims_release into brana:close + verify claims_claim in brana:backlog start",
-      "tags": "ruflo,claims,close,backlog",
+      "tags": [
+        "ruflo",
+        "claims",
+        "close",
+        "backlog"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41143,7 +41325,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Calibrate memory dedup threshold against existing MEMORY.md",
-      "tags": "ruflo,memory,dedup,calibration",
+      "tags": [
+        "ruflo",
+        "memory",
+        "dedup",
+        "calibration"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41171,7 +41358,13 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add memory dedup gate to brana:close + brana:build pattern writes",
-      "tags": "ruflo,memory,dedup,close,build",
+      "tags": [
+        "ruflo",
+        "memory",
+        "dedup",
+        "close",
+        "build"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41197,7 +41390,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Upgrade brana:sitrep — autopilot_predict shadow mode + memory_search_unified",
-      "tags": "ruflo,sitrep,autopilot,memory",
+      "tags": [
+        "ruflo",
+        "sitrep",
+        "autopilot",
+        "memory"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41223,7 +41421,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add claims_board snapshot to brana:sitrep source 7",
-      "tags": "ruflo,claims,sitrep",
+      "tags": [
+        "ruflo",
+        "claims",
+        "sitrep"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41249,7 +41451,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Live two-session claims coordination smoke test",
-      "tags": "ruflo,claims,validation,smoke-test",
+      "tags": [
+        "ruflo",
+        "claims",
+        "validation",
+        "smoke-test"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41306,7 +41513,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Replace Agent() with agent_spawn in brana:brainstorm scout agents",
-      "tags": "ruflo,agent-spawn,brainstorm",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "brainstorm"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41332,7 +41543,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Replace Agent() with agent_spawn in brana:review metrics-collector",
-      "tags": "ruflo,agent-spawn,review",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "review"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41358,7 +41573,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Replace Agent() with agent_spawn in brana:build subtask delegation",
-      "tags": "ruflo,agent-spawn,build",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "build"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41384,7 +41603,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "agent_spawn cost attribution smoke test — verify queryable per-project ledger",
-      "tags": "ruflo,agent-spawn,cost,validation",
+      "tags": [
+        "ruflo",
+        "agent-spawn",
+        "cost",
+        "validation"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41410,7 +41634,11 @@
       "status": "cancelled",
       "strategy": null,
       "subject": "Hive-mind quorum calibration — baseline vs single challenger on 10 real plans",
-      "tags": "ruflo,hive-mind,calibration",
+      "tags": [
+        "ruflo",
+        "hive-mind",
+        "calibration"
+      ],
       "type": "task",
       "work_type": "research"
     },
@@ -41438,7 +41666,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire hive-mind 3-worker quorum into brana:brainstorm M+ governance gate",
-      "tags": "ruflo,hive-mind,brainstorm",
+      "tags": [
+        "ruflo",
+        "hive-mind",
+        "brainstorm"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41466,7 +41698,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire hive-mind 3-worker quorum into brana:challenger",
-      "tags": "ruflo,hive-mind,challenger",
+      "tags": [
+        "ruflo",
+        "hive-mind",
+        "challenger"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41494,7 +41730,10 @@
       "status": "completed",
       "strategy": null,
       "subject": "Phase 3 — Swarm Orchestration",
-      "tags": "ruflo,phase-3",
+      "tags": [
+        "ruflo",
+        "phase-3"
+      ],
       "type": "milestone"
     },
     {
@@ -41522,7 +41761,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire swarm_init + coordination_orchestrate into brana:backlog execute",
-      "tags": "ruflo,swarm,backlog,execute",
+      "tags": [
+        "ruflo",
+        "swarm",
+        "backlog",
+        "execute"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41550,7 +41794,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire claims_* per task in brana:backlog execute waves",
-      "tags": "ruflo,claims,backlog,execute",
+      "tags": [
+        "ruflo",
+        "claims",
+        "backlog",
+        "execute"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41576,7 +41825,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add daa_agent_create persistent roles — anita-architect + brana-challenger",
-      "tags": "ruflo,daa,challenger,memory",
+      "tags": [
+        "ruflo",
+        "daa",
+        "challenger",
+        "memory"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41604,7 +41858,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Wire autopilot_learn feedback at brana:build CLOSE + brana:fix COMMIT",
-      "tags": "ruflo,autopilot,build,fix",
+      "tags": [
+        "ruflo",
+        "autopilot",
+        "build",
+        "fix"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -41632,7 +41891,12 @@
       "status": "completed",
       "strategy": null,
       "subject": "Add agent_pool check in brana:backlog start for background delegation",
-      "tags": "ruflo,agent-pool,backlog,build",
+      "tags": [
+        "ruflo",
+        "agent-pool",
+        "backlog",
+        "build"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -50144,7 +50408,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "fix(graph): brana graph build should emit full paths for brana-knowledge cross-refs",
-      "tags": "graph,harness-core,rust"
+      "tags": [
+        "graph",
+        "harness-core",
+        "rust"
+      ]
     },
     {
       "blocked_by": [],
@@ -50167,7 +50435,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "fix(hook): add pre-merge gate blocking merges when HIGH errata are pending",
-      "tags": "hook,harness-core,errata"
+      "tags": [
+        "hook",
+        "harness-core",
+        "errata"
+      ]
     },
     {
       "blocked_by": [],
@@ -50571,7 +50843,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Fix ruflo spawn EACCES so feed-ruflo-index scheduler job runs",
-      "tags": "read-loop,ruflo,scheduler",
+      "tags": [
+        "read-loop",
+        "ruflo",
+        "scheduler"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50597,7 +50873,11 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "Create ~/.claude/agent-memory/ and verify memory:true agents write+recall",
-      "tags": "read-loop,agents,memory",
+      "tags": [
+        "read-loop",
+        "agents",
+        "memory"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50623,7 +50903,12 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "Bake session-namespace 0.55 threshold into MCP wrapper/session-start so recall works without caller knowledge",
-      "tags": "read-loop,ruflo,recall,hooks",
+      "tags": [
+        "read-loop",
+        "ruflo",
+        "recall",
+        "hooks"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50649,7 +50934,12 @@
       "status": "completed",
       "strategy": "feature",
       "subject": "Session-start consumes last session flywheel metrics and surfaces one insight",
-      "tags": "read-loop,flywheel,metrics,hooks",
+      "tags": [
+        "read-loop",
+        "flywheel",
+        "metrics",
+        "hooks"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -50675,7 +50965,12 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "Loud failures: unswallow session-end-persist errors, promote load-bearing validate.sh WARNs to FAIL, alert on scheduler job failure",
-      "tags": "read-loop,hooks,validate,reliability",
+      "tags": [
+        "read-loop",
+        "hooks",
+        "validate",
+        "reliability"
+      ],
       "type": "task",
       "work_type": "fix"
     },
@@ -50701,7 +50996,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "Decision-log read path: consume system/state/decisions/, inject recent + archive stale",
-      "tags": "read-loop,decisions,state",
+      "tags": [
+        "read-loop",
+        "decisions",
+        "state"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -50752,7 +51051,12 @@
       "status": "completed",
       "strategy": "refactor",
       "subject": "Collapse 1:1 SKILL.md→procedure indirection into SKILL.md bodies",
-      "tags": "skills,refactor,adr-034,context-budget",
+      "tags": [
+        "skills",
+        "refactor",
+        "adr-034",
+        "context-budget"
+      ],
       "type": "task",
       "work_type": "refactor"
     },
@@ -50778,7 +51082,12 @@
       "status": "completed",
       "strategy": "refactor",
       "subject": "Phase-split giant procedures (build, close, backlog, reconcile) into per-step sub-files",
-      "tags": "skills,refactor,reliability,procedures",
+      "tags": [
+        "skills",
+        "refactor",
+        "reliability",
+        "procedures"
+      ],
       "type": "task",
       "work_type": "refactor"
     },
@@ -51038,7 +51347,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "Migrate proyecto_anita embedded clients to clients/proyecto-anita/ as standalone repos",
-      "tags": "migration,client-onboard,proyecto-anita",
+      "tags": [
+        "migration",
+        "client-onboard",
+        "proyecto-anita"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51064,7 +51377,10 @@
       "status": "pending",
       "strategy": null,
       "subject": "git-init the 5 ungitted top-level clients (bemol, mandawa, nexeye_eyedetect, sunflower)",
-      "tags": "client-onboard,git-hygiene",
+      "tags": [
+        "client-onboard",
+        "git-hygiene"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51090,7 +51406,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "anita-whatsapp vendored-copy divergence watch (dgrx vs venture shared/)",
-      "tags": "proyecto-anita,dgrx,maintenance",
+      "tags": [
+        "proyecto-anita",
+        "dgrx",
+        "maintenance"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51116,7 +51436,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "dgrx Dockerfile: make pyproject authoritative (replace hardcoded pip list with uv-driven install)",
-      "tags": "proyecto-anita,dgrx,docker",
+      "tags": [
+        "proyecto-anita",
+        "dgrx",
+        "docker"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -51142,7 +51466,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "Clean old proyecto_anita client memory dirs after first verified sessions in new locations",
-      "tags": "proyecto-anita,memory,cleanup",
+      "tags": [
+        "proyecto-anita",
+        "memory",
+        "cleanup"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -51168,7 +51496,13 @@
       "status": "completed",
       "strategy": "investigation",
       "subject": "Audit per-repo MCP + credentials setup — every client/venture repo gets its own scoped .mcp.json and creds",
-      "tags": "mcp,credentials,client-onboard,proyecto-anita,security",
+      "tags": [
+        "mcp",
+        "credentials",
+        "client-onboard",
+        "proyecto-anita",
+        "security"
+      ],
       "type": "task",
       "work_type": "ops"
     },
@@ -55000,7 +55334,11 @@
       "status": "completed",
       "strategy": null,
       "subject": "ruflo mux daemon: root cause fix for single-session MCP lock",
-      "tags": "harness,ruflo,mcp",
+      "tags": [
+        "harness",
+        "ruflo",
+        "mcp"
+      ],
       "type": "task"
     },
     {
@@ -55025,7 +55363,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "[ops] monitor and prune zombie brana-mcp processes older than N days",
-      "tags": "harness,ops,sessions",
+      "tags": [
+        "harness",
+        "ops",
+        "sessions"
+      ],
       "type": "task"
     },
     {
@@ -60175,7 +60517,13 @@
       "status": "pending",
       "strategy": null,
       "subject": "Fix Tier 2c epic-slug sed bug + hardened branch-arg pattern in run.rs",
-      "tags": "harness,skills,close,session-state,shell-bug",
+      "tags": [
+        "harness",
+        "skills",
+        "close",
+        "session-state",
+        "shell-bug"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -60230,7 +60578,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Track ruvnet/ruflo#2512 (busy_timeout fix); upgrade ruflo once merged",
-      "tags": "harness,ruflo,memory,corruption",
+      "tags": [
+        "harness",
+        "ruflo",
+        "memory",
+        "corruption"
+      ],
       "type": "task",
       "work_type": "chore"
     },
@@ -60256,7 +60609,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "write_state() worktree-liveness guard skipped when existing.branch is None",
-      "tags": "harness,session-state,concurrency,shell-bug",
+      "tags": [
+        "harness",
+        "session-state",
+        "concurrency",
+        "shell-bug"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -60282,7 +60640,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Add validate.sh lint for unquoted zsh for-loop pattern",
-      "tags": "harness,validate,skills,shell-bug",
+      "tags": [
+        "harness",
+        "validate",
+        "skills",
+        "shell-bug"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -60731,14 +61094,22 @@
     },
     {
       "acceptance_criteria": [
-        "active_epic resolver fix (t-2281) landed before epic-as-top migration runs",
-        "epic-as-top migration is dry-runnable and reversible per ADR-065"
+        "Version floor bumped to 3 (forward-only protection); has_canonical_version/normalize_version extended (tasks.rs:670-711)",
+        "Tags normalized to arrays (re-measured at build time); validate.sh type-homogeneity check is blocking",
+        "Write-path sealing bundle: set_field whitelist, cmd_add (shorthand+JSON/file/stdin), inherit_initiative() removed/gated, MCP backlog_add epic field, validate.sh reintroduction check — all sealed together; migration deletes level+epic exhaustively; filter_tasks_by reads only type",
+        "Migration script collapse-level-epic-v3.py: named, dry-runnable, refuses on dirty tasks.json, git-revert reversible; test asserts zero tasks carry level or epic post-migration",
+        "~10 epics converted to nodes: status/wip_limit(10)/blocked_by gate; tasks re-parented; flat epic field retired",
+        "active_epic fail-loud assertion wired into cmd_focus + MCP backlog_focus + new WIP-cap check (blocked by epic-node conversion)",
+        "key:value tag parser with --tag key / --tag key:value query support; bare tags remain valid",
+        "wave object: thin stored {selector, contract, gate, status} + minimal CRUD (not intent-CLI surface)",
+        "Config cleanup in both tasks-config.json copies: active_initiative dropped, github_sync.labels.stream off",
+        "User guide + tech doc + domain glossary (MODEL-001-brana-core.md) updated for epic as domain entity"
       ],
       "blocked_by": [],
       "branch": "cli-backlog-schema/feat/t-2284-land-backlog-v3-schema",
-      "build_step": "decompose",
+      "build_step": "build",
       "completed": null,
-      "context": "The full backlog-v3 schema landing (ADR-065 epic-as-sole-top + migration engineering) — the \"schema wave\" deferred from t-2283 (which does ONLY the ac_state forward-only slice). This is where epic-as-top, deletes (level/initiative/stream), wave object, key:value tags + tags-normalization land.\n\nBLOCKED BY t-2281 per v3 review finding #6 (2026-07-21): ADR-065 elevates `epic` to the sole hierarchy top and adds active_epic pointer semantics. t-2281 documents that the active_epic resolver LEAKS CROSS-PROJECT (global value applies to foreign projects). The settled fail-loud assertion catches divergence but does NOT fix the scoping bug. Landing epic-as-top on a known-leaky resolver = every epic operation in v3 runs broken. Fix t-2281 first.\n\nRead: docs/architecture/features/backlog-v3-schema.md, docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md, docs/reviews/brana-v3-challenge-2026-07-21.md (finding #6). May fold into a future /brana:backlog plan of the v3 epic.\nAC: active_epic resolver fix (t-2281) landed before epic-as-top migration runs\nAC: epic-as-top migration is dry-runnable and reversible per ADR-065\n2026-07-22: Scope decision confirmed with operator — this task lands the L2 cockpit slice only (epic-as-top, deletes, wave object, key:value tags + normalization, migration engineering per existing ACs). skills-as-loops/autonomous pipeline (t-2278) is explicitly OUT of scope here and stays blocked until this lands.",
+      "context": "The full backlog-v3 schema landing (ADR-065 epic-as-sole-top + migration engineering) — the \"schema wave\" deferred from t-2283 (which does ONLY the ac_state forward-only slice). This is where epic-as-top, deletes (level/initiative/stream), wave object, key:value tags + tags-normalization land.\n\nBLOCKED BY t-2281 per v3 review finding #6 (2026-07-21): ADR-065 elevates `epic` to the sole hierarchy top and adds active_epic pointer semantics. t-2281 documents that the active_epic resolver LEAKS CROSS-PROJECT (global value applies to foreign projects). The settled fail-loud assertion catches divergence but does NOT fix the scoping bug. Landing epic-as-top on a known-leaky resolver = every epic operation in v3 runs broken. Fix t-2281 first.\n\nRead: docs/architecture/features/backlog-v3-schema.md, docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md, docs/reviews/brana-v3-challenge-2026-07-21.md (finding #6). May fold into a future /brana:backlog plan of the v3 epic.\nAC: active_epic resolver fix (t-2281) landed before epic-as-top migration runs\nAC: epic-as-top migration is dry-runnable and reversible per ADR-065\n2026-07-22: Scope decision confirmed with operator — this task lands the L2 cockpit slice only (epic-as-top, deletes, wave object, key:value tags + normalization, migration engineering per existing ACs). skills-as-loops/autonomous pipeline (t-2278) is explicitly OUT of scope here and stays blocked until this lands.\nSprint contract t-2284 (2026-07-22, rev 3 — locked after 2 challenger iterations, both grounded in direct code/data verification):\n\nScope: schema portion of backlog-v3 (ADR-065 + backlog-v3-schema.md) — wave-1 epic collapse (level->type, epic-as-sole-top, retire initiative/stream) + schema half of backlog-cli wave (key:value tags, wave object). Excludes intent-CLI verb surface, AC backfill, skills-as-loops/t-2278, Linear sync.\n\nISC (final):\n1. Version gate: bump canonical floor to 3 (not 2 -- t-2283 already claimed 2). Reframe as FORWARD-ONLY protection (iteration-2 finding: no runtime mechanism can retroactively gate already-compiled stale binaries) -- write-path sealing (ISC 3) is the actual defense against stale-binary field resurrection.\n2. Tags normalization: re-measure at build time (88 = 87 string + 1 null as of 2026-07-22, drifted from spec's 85). validate.sh type-homogeneity check is BLOCKING.\n3. Write-path sealing bundle -- 4 named surfaces + read-path + dead-code cleanup:\n   a. set_field (tasks.rs:963-966) drops level/epic from whitelist\n   b. cmd_add: BOTH shorthand-flag path AND --json/@file/stdin ingestion (single interception at new_task parse, backlog.rs:644)\n   c. inherit_initiative() (brana-core/tasks.rs:88-113) -- REMOVE or explicitly gate off. Iteration-2 CRITICAL finding: fires precisely when caller supplied no epic (early-returns only if already set), bypasses set_field's whitelist via direct Value mutation, CLI-only (MCP backlog_add.rs passes input.epic straight through, no chain-walk) -- silently resurrects flat epic via --parent chains even after a,b,d are sealed.\n   d. MCP backlog_add's epic field\n   e. validate.sh blocking grep-check for reintroduced level/epic\n   Plus: migration script exhaustively deletes BOTH level AND epic keys (not just level) from every task -- test asserts zero tasks carry either post-migration. filter_tasks_by (tasks.rs:153) changed to read only `type`. Dead-code cleanup folded in: task_level read (backlog.rs:715) and validate_level() (tasks.rs:983) removed once level drops from the whitelist.\n4. Migration script collapse-level-epic-v3.py: named, dry-runnable, refuses on dirty tasks.json, git-revert reversible.\n5. Epic-as-node conversion: status/wip_limit(default 10)/blocked_by gate; tasks re-parent; flat epic field retires. THIS is where wip_limit enforcement is actually built (greenfield -- confirmed no wip_limit code exists today).\n6. active_epic fail-loud assertion, rescoped to confirmed-only consumers: cmd_focus (backlog.rs:228-269) + MCP backlog_focus.rs (the only 2 live consumers -- a memory.rs hit is a test fixture, not a consumer) + the new WIP-cap check from ISC 5. Explicit edge: 5 blocks 6 (WIP-cap code must exist before its active_epic assertion is added).\n7. key:value tag parser + query support (--tag key / --tag key:value), bare tags stay valid.\n8. wave object: thin stored process object {selector, contract, gate, status} + minimal CRUD only -- not the intent-CLI surface.\n9. Config cleanup, both copies named: project-local system/state/tasks-config.json has active_initiative:\"backlog-ui\" + github_sync.labels.stream:true; global ~/.claude/tasks-config.json has NO active_initiative today (confirmed fresh, corrects iteration-1's claim) but DOES have github_sync.labels.stream:true. Drop active_initiative wherever present (no-op where absent); flip github_sync.labels.stream off in both.\n10. User guide + tech doc + domain glossary (docs/domain/MODEL-001-brana-core.md) updated to reflect epic as a domain entity with lifecycle.\n11. Ordering enforced via DECOMPOSE blocked_by graph: {1,2} block {3,4}; {3,4} block {5-9}; 5 blocks 6 (explicit, closes iteration-2 finding).\n\nScope-load mitigation (iteration-1 WARNING, accepted not resolved): ~10-11 subtasks, each with own AC/TDD/commit/mini-debrief -- bounds review granularity even though parent task stays L-effort single task.\n\nChallenger verdicts: iter1 RECONSIDER (2 CRITICAL: version-gate no-op vs t-2283, drainable cited out-of-scope) -- both fixed. iter2 RECONSIDER (1 finding scored 4: inherit_initiative 4th write path) -- fixed inline per this contract; 2 minor non-blocking reword items also applied (criterion 1 forward-only framing, criterion 11 explicit 5-blocks-6 edge). Per decompose.md 2-iteration cap, locking here -- residual risk is the inherent one of any un-re-verified fix (not re-challenged a 3rd time), judged acceptable given both fixes are narrow, additive, and independently grep-confirmed.",
       "created": "2026-07-21",
       "description": "Land the L2-cockpit slice of the backlog-v3 schema (ADR-065): elevate epic to the sole hierarchy top, delete the level/initiative/stream fields, add the wave object, and migrate tags to key:value with normalization. Includes dry-runnable, reversible migration tooling. Excludes skills-as-loops/autonomous pipeline groundwork (t-2278), which stays out of scope and blocked until this lands.",
       "effort": "L",
@@ -61337,7 +61708,12 @@
       "status": "pending",
       "strategy": null,
       "subject": "Live model-choice nudge: proactive Sonnet/Opus/Fable/Haiku recommendation during a session",
-      "tags": "dx,model-routing,hooks,efficiency",
+      "tags": [
+        "dx",
+        "model-routing",
+        "hooks",
+        "efficiency"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -61372,7 +61748,11 @@
       "status": "completed",
       "strategy": "bug-fix",
       "subject": "mcp__brana__backlog_* tools hang/timeout at 120s, fall back to background task",
-      "tags": "mcp,backlog,reliability",
+      "tags": [
+        "mcp",
+        "backlog",
+        "reliability"
+      ],
       "type": "task",
       "work_type": "infra"
     },
@@ -61384,11 +61764,13 @@
         "laptop sees new tasks/event-log entries without manual git pull",
         "/brana:research runs capped and unattended over pending link tasks, persisting findings"
       ],
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2318"
+      ],
       "branch": "personal-automation/feat/t-2306-telegram-link-capture",
-      "build_step": "build",
-      "completed": null,
-      "context": "Idea doc: docs/ideas/telegram-link-capture.md (full design, rejected alternatives, and challenger-review findings preserved there).\n\nNext steps (from idea doc):\n1. Write real tests for URL detection, atomic queue-append, dedup-vs-tasks.json logic (test-first) — personal/test_bot.py currently has only 2 near-tautological tests, don't assume coverage\n2. Extend bot.py's message handler: URL regex → atomic append (tmp+rename) to link-queue.jsonl, additive to existing journal write\n3. Build oracle-hub cron: dedup vs local tasks.json → brana backlog add + event-log.md append → mark processed → commit/push\n4. Add anti-staleness nudge (queue count/age threshold → proactive Telegram message via bot)\n5. Add laptop-local systemd timer: git -C ~/enter_thebrana/personal pull --ff-only, every 15-30 min (confirmed no such job exists today)\n6. Add laptop-local /brana:research extraction timer: capped batch (3-5), --depth quick, every few hours — this is what actually extracts+persists knowledge, not just logs the URL\n7. Update personal/README.md if bot's described behavior changes materially\n\nAC: bot.py detects and queues URLs without breaking existing journal capture\nAC: oracle-hub cron dedupes correctly against tasks.json, no duplicate research tasks\nAC: laptop sees new tasks/event-log entries without manual git pull\nAC: /brana:research runs capped and unattended over pending link tasks, persisting findings\nskill_selected: /brana:log (score 0.7) — reuse its dedup+URL-detection logic as the basis for the unattended capture path",
+      "build_step": "",
+      "completed": "2026-07-22",
+      "context": "Idea doc: docs/ideas/telegram-link-capture.md (full design, rejected alternatives, and challenger-review findings preserved there).\n\nNext steps (from idea doc):\n1. Write real tests for URL detection, atomic queue-append, dedup-vs-tasks.json logic (test-first) — personal/test_bot.py currently has only 2 near-tautological tests, don't assume coverage\n2. Extend bot.py's message handler: URL regex → atomic append (tmp+rename) to link-queue.jsonl, additive to existing journal write\n3. Build oracle-hub cron: dedup vs local tasks.json → brana backlog add + event-log.md append → mark processed → commit/push\n4. Add anti-staleness nudge (queue count/age threshold → proactive Telegram message via bot)\n5. Add laptop-local systemd timer: git -C ~/enter_thebrana/personal pull --ff-only, every 15-30 min (confirmed no such job exists today)\n6. Add laptop-local /brana:research extraction timer: capped batch (3-5), --depth quick, every few hours — this is what actually extracts+persists knowledge, not just logs the URL\n7. Update personal/README.md if bot's described behavior changes materially\n\nAC: bot.py detects and queues URLs without breaking existing journal capture\nAC: oracle-hub cron dedupes correctly against tasks.json, no duplicate research tasks\nAC: laptop sees new tasks/event-log entries without manual git pull\nAC: /brana:research runs capped and unattended over pending link tasks, persisting findings\nskill_selected: /brana:log (score 0.7) — reuse its dedup+URL-detection logic as the basis for the unattended capture path\n2026-07-22: All 7 plan steps implemented, tested, and merged to personal's main (pushed to GitHub). Laptop-local scheduler jobs (personal-repo-pull every 15min, link-research-extraction every 4h) deployed and enabled via brana-scheduler. Oracle-hub: bot.py restarted there with URL-detection live (queues to link-queue.jsonl works today). BLOCKED: process-link-queue.sh cron not wired on oracle-hub — brana CLI isn't installed there (see t-2318), so link-queue.jsonl entries won't yet become backlog tasks, which means research-extraction.sh has nothing to process either. Capture works end-to-end to the queue file; queue-drain -> task creation -> research extraction is blocked until t-2318 resolves.\nChallenger finding (iteration 1, 2026-07-22): RECONSIDER, severity 4, OWASP A01 broken access control. handle_text/handle_voice/handle_photo/handle_document have no OWNER_CHAT_ID check (only /start checks it). Pre-existing gap, but this build escalates consequence: an unauthenticated sender can now trigger a git commit+push and an unattended /brana:research fetch of an attacker-chosen URL, not just a private-journal write. The idea doc's claim that \"whatever auth gate already protects it keeps protecting it, unchanged\" was asserted without verifying the actual code — false. Fix: add an owner-check gate to message handlers before any capture/queue action.",
       "created": "2026-07-22",
       "description": "Add URL-detection to personal/bot.py's existing polling handler so links shared from WhatsApp to TheBranaBot are captured automatically, without a terminal copy-paste. A new oracle-hub cron dedupes against the personal repo's own tasks.json, creates a research task + event-log entry, and commits/pushes. A new laptop-local timer pulls the repo, and a second laptop-local timer runs /brana:research (capped, quick depth) over pending link-tasks to actually extract and persist knowledge, closing the loop.",
       "effort": "S",
@@ -61397,12 +61779,12 @@
       "github_issue": "1030",
       "id": "t-2306",
       "kind": "feature",
-      "notes": null,
+      "notes": "Assumptions made during BUILD:\n- Dedup uses exact normalized-URL match (strip trailing slash only) — no fuzzy matching, no LLM. Acceptable given personal-use volume.\n- /brana:research has no direct URL-target mode (topic/doc-number/creator/leads/registry only); passed the URL as the topic argument rather than integrating with the more idiomatic `leads` (research-leads namespace) mechanism, to avoid reworking the already-built capture script. Documented as a known limitation in process-pending-link-research.sh — revisit if imprecise in practice.\n- Staleness is measured on pending backlog tasks (tag: link), not the raw queue file — the queue drains into tasks within one cron cycle, so it's rarely the actual bottleneck.\n- Deployment to oracle-hub itself (scp'ing process-link-queue.sh, registering it as a cron there) is NOT done as part of this build — no SSH access exercised this session; the script is written and tested locally, deployment is a manual follow-up.\n- conftest.py fixes a pre-existing test-suite bug (missing TELEGRAM_BOT_TOKEN env var) unrelated to this task's scope but required to run any tests importing bot.py.\nEvaluator: PASS (2026-07-22), 4/4 criteria MET — bot.py URL detection+journal preserved, oracle-hub dedup verified atomic-rotate+search, personal-repo-pull job confirmed well-formed (15min, no prior equivalent), link-research-extraction job confirmed cap+success-only-completion behavior. Cross-checked against actual test runs this session (27/27 green: 11 bot.py + 10 process-link-queue.sh + 6 research-extraction.sh).\nChallenger gate: 1 iteration, RESOLVED. Iteration 1 severity-4 (OWASP A01, missing OWNER_CHAT_ID gate) fixed via branch fix/t-2306-owner-auth-gate — added _is_owner() check to handle_text/handle_voice/handle_photo/handle_document, verified correct on both failure modes (no owner set, owner mismatch), no regressions (17/17 tests). Iteration 2 verdict: RESOLVED.",
       "order": 0,
       "parent": null,
       "priority": "P2",
       "started": "2026-07-22",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "feature",
       "subject": "Telegram link capture — automate WhatsApp link → brana knowledge pipeline",
       "tags": [
@@ -61442,9 +61824,416 @@
       "status": "pending",
       "strategy": null,
       "subject": "Backlog skill: automatic CLI fallback when MCP is slow, not just hung",
-      "tags": "mcp,backlog,dx",
+      "tags": [
+        "mcp",
+        "backlog",
+        "dx"
+      ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "id": "t-2308",
+      "subject": "Version-gate: bump canonical floor to 3, forward-only value-gate on has_canonical_version/normalize_version",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "version-gate"
+      ],
+      "description": "Extend has_canonical_version()/normalize_version() (brana-core/tasks.rs:670-711) so the canonical version floor for level/epic-collapse awareness is 3, not 2 (t-2283 already claimed 2 for ac_state). Add forward-only protection: a binary shipping this task's collapse code refuses to write when it encounters a version it doesn't understand (per pattern_version-guard-exit-early-on-tool-regression). This does NOT retroactively gate already-deployed pre-collapse binaries — write-path sealing is the actual defense against those.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": "2026-07-22",
+      "completed": "2026-07-22",
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": "Delegated to parallel agent for composition. Landed: CANONICAL_VERSION=3 const, is_unknown_newer_version() forward-only guard, save_tasks() refuses to write on unknown-newer version (read-only+warning). Updated 7 existing hardcoded-version-2 tests to version-3 (required companion edit, not scope creep — they were acceptance tests for the constant being changed) + 4 new tests (unknown-newer guard, refuse-to-save). All 555 brana-core + 525 brana-cli/mcp tests pass, zero regressions. Grepped repo for other version-literal callers — confirmed isolated to tasks.rs (notify.rs/remind.rs/queue.rs/session.rs have independent, unrelated version schemes). Committed c21bf5a9. Mini-debrief: forward-only framing is the key nuance — the guard protects future binaries against a version 4+ file, but CANNOT retroactively protect already-deployed pre-t-2308 binaries (those hardcode >=2 in compiled code); write-path sealing (t-2310) is the actual defense against stale binaries resurrecting retired fields, not this version bump.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "version floor bumped to 3 in has_canonical_version/normalize_version (tasks.rs:670-711)",
+        "forward-only value-gate added per pattern_version-guard-exit-early-on-tool-regression",
+        "unit test: file stamped version 2 is upgraded to 3 without error; file stamped version 4+ (future) triggers read-only+warning"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2309",
+      "subject": "Tags normalization: fix non-array tags values + blocking validate.sh type-homogeneity check",
+      "status": "completed",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "tags-migration"
+      ],
+      "description": "Normalize all non-array `tags` values (comma-joined strings + nulls — re-measure at build time; 88 as of 2026-07-22, was 85 at spec time) to arrays. Add a validate.sh check that BLOCKS (nonzero exit) on any non-array tags value going forward. Must land before key:value tag parsing (ST-G) is built on top of it.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": "2026-07-22",
+      "completed": "2026-07-22",
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": "Delegated to parallel agent for composition (rescoped from its portfolio-wide draft to thebrana-only before applying — blast-radius fix). Landed: system/scripts/migrate/normalize-tags.py, system/scripts/tests/test_normalize_tags.py (7 tests, all pass), validate.sh Check 62 (blocking). Ran --write against live thebrana tasks.json: 88 tasks normalized (87 comma-string + 1 null), verified 0 non-array tags remain. Committed 4ee42e1e on cli-backlog-schema/feat/t-2284-land-backlog-v3-schema. Mini-debrief: surprising find — validate_schema() in Rust already enforces tags-must-be-array but was only wired to the manual `brana ... validate` subcommand, never the blocking validate.sh gate; that gap is what Check 62 closes at the shell level. Reusable pattern: audit-orphaned-active-epic.py (t-2298/ADR-066) is the current canonical migrate/ script style (argparse --write, dry-run default, pure function, atomic tmp+replace) — cite it directly for future migrate scripts instead of the older no-flag scripts.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "re-measured non-array tags count normalized to arrays across tasks.json",
+        "validate.sh gains a blocking type-homogeneity check for tags",
+        "test: fixture with comma-joined-string and null tags values normalizes correctly"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2310",
+      "subject": "Write-path sealing bundle: seal level/epic across set_field, cmd_add, inherit_initiative, MCP backlog_add",
+      "status": "in_progress",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "write-path-sealing"
+      ],
+      "description": "The surviving CRITICAL from the 2026-07-20 challenge, expanded after 2 iteration-2 verification: 4 write surfaces, not 3. (a) set_field (tasks.rs:963-966) drops level/epic from whitelist. (b) cmd_add: seal BOTH the shorthand-flag path AND the --json/@file/stdin ingestion branch (single interception point at new_task parse, backlog.rs:644) — the JSON path has zero level/epic validation today. (c) inherit_initiative() (brana-core/tasks.rs:88-113) — REMOVE or explicitly gate off. It silently copies a parent's stale epic value onto new tasks (fires exactly when caller supplied no epic), bypasses set_field's whitelist via direct Value mutation, is CLI-only. (d) MCP backlog_add's epic field. Plus: validate.sh blocking grep-check for reintroduced level/epic. Plus cleanup: filter_tasks_by (tasks.rs:153) changed to read only `type` (level fallback removed); task_level read (backlog.rs:715) and validate_level() (tasks.rs:983) removed as dead code.",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Part of t-2284 sprint contract ISC 3, rev 3 (2026-07-22, locked after 2 challenger iterations). Precedent: twice-validated three-write-path pattern (t-1344/t-1345). See t-2284 context for full contract.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "set_field rejects level/epic writes",
+        "cmd_add rejects level/epic via both shorthand and JSON/file/stdin paths",
+        "inherit_initiative() removed or gated off, no longer writes epic",
+        "MCP backlog_add no longer accepts epic field",
+        "validate.sh fails (nonzero exit) if level or epic is reintroduced anywhere in the whitelist/schema",
+        "filter_tasks_by reads only type; validate_level() and task_level dead-code removed",
+        "tests: each of the 4 write surfaces has a test proving level/epic is rejected/ignored"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2311",
+      "subject": "key:value tag parser + query support (--tag key / --tag key:value)",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "key-value-tags"
+      ],
+      "description": "Net-new schema change (D8): key:value tags (layer:backend, client:acrelec, risk:high). Bare tags remain valid — no forced migration. Query support: --tag key matches any value for that key; --tag key:value matches exact pair.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Part of t-2284 sprint contract ISC 7, rev 3 (2026-07-22). Net-new per ADR-065/backlog-v3-schema.md D8. See t-2284 context for full contract.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "--tag key:value query returns exact-pair matches",
+        "--tag key query returns any-value matches for that key",
+        "bare (non key:value) tags still queryable as before — no breaking change",
+        "tests cover key:value parsing, bare-tag backward compat, and mixed queries"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2312",
+      "subject": "Migration script: collapse-level-epic-v3.py (dry-run, reversible, exhaustive level+epic deletion)",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "migration-script"
+      ],
+      "description": "Named migration script per system/procedures/migrate.md precedent (7 prior scripts exist). --dry-run prints full change set (counts per field, per epic) before any write. Refuses to run on a dirty tasks.json. Reversible via git revert (store is git-tracked). Exhaustively deletes BOTH level AND epic keys from every task (not just level — closes the iteration-2 finding that only level had an exhaustive-deletion guarantee).",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Part of t-2284 sprint contract ISC 4, rev 3 (2026-07-22). Precedent: system/scripts/migrate/ (remap-streams.py, drop-deprecated-fields.py, etc). See t-2284 context for full contract.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "collapse-level-epic-v3.py exists in system/scripts/migrate/",
+        "--dry-run prints full change set with zero writes",
+        "script refuses to run on dirty tasks.json",
+        "test asserts zero tasks carry level or epic key post-migration",
+        "rollback verified via git revert on a test run"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2313",
+      "subject": "Epic-as-node conversion: status/wip_limit/blocked_by gate, re-parent tasks, retire flat epic field",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "epic-as-node"
+      ],
+      "description": "Convert ~10 surviving epics into node semantics per ADR-065: status (active/next/parked/done/archived), wip_limit (default 10), gate via blocked_by, children via parent. Tasks re-parent to their epic node. Flat epic string field retires (already sealed by write-path bundle; this task performs the actual conversion). This is where wip_limit enforcement is built — greenfield, no wip_limit code exists today.",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Part of t-2284 sprint contract ISC 5, rev 3 (2026-07-22). ADR-065 Decision items 2-4. See t-2284 context for full contract. Note: t-2312 is the migration-script task id — verify against actual created id before use.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "~10 surviving epics exist as nodes with status/wip_limit/blocked_by",
+        "tasks re-parented to their epic node via parent field",
+        "flat epic string field retired from schema",
+        "WIP cap enforced: adding an 11th open task to a wip_limit:10 epic is blocked/warned",
+        "tests cover epic node creation, re-parenting, and WIP cap enforcement"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2314",
+      "subject": "active_epic fail-loud assertion: cmd_focus, MCP backlog_focus, new WIP-cap check",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "active-epic"
+      ],
+      "description": "Wire a fail-loud assertion into the confirmed live active_epic consumers only: cmd_focus (CLI, backlog.rs:228-269) and MCP backlog_focus.rs, plus the new WIP-cap check from t-2313. Assert the active_epic pointer resolves to a real, local epic node — error instead of silently no-op on divergence. Explicitly NOT next/drainable (drainable doesn't exist; next doesn't consult active_epic today — out of scope per iteration-1 challenger finding).",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "cmd_focus errors loudly (not silent no-op) if active_epic doesn't resolve to a real local epic node",
+        "MCP backlog_focus has the same assertion",
+        "WIP-cap check (t-2313) also asserts active_epic resolution before applying the cap",
+        "test: divergent global-vs-project-local active_epic triggers the fail-loud path"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2315",
+      "subject": "wave object: thin stored process object + minimal CRUD",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "wave-object"
+      ],
+      "description": "Stored process object {selector, contract (ship criteria), gate (prev wave), status: queued→draining→shipped} per D3. Minimal CRUD only — create/read/update a wave record. Explicitly NOT the full intent-CLI surface (q/drainable/mine/blocked/stale/why/derives/handoff/needs-human/ac/epic-lifecycle verbs) — that's a separate build unit per the spec's own accounting.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Part of t-2284 sprint contract ISC 8, rev 3 (2026-07-22). Storage only, per D3 decision in backlog-v3-schema.md. See t-2284 context for full contract.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "wave object stores selector/contract/gate/status fields",
+        "minimal CRUD (create/read/update) implemented",
+        "no intent-CLI verbs (q, drainable, etc.) implemented as part of this task",
+        "tests cover wave object CRUD"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2316",
+      "subject": "Config cleanup: drop active_initiative, flip github_sync.labels.stream off in both tasks-config.json copies",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "config-cleanup"
+      ],
+      "description": "Drop the undocumented active_initiative key from tasks-config.json wherever present (confirmed: project-local system/state/tasks-config.json has it set to \"backlog-ui\"; global ~/.claude/tasks-config.json does NOT have it today — dropping is a no-op there). Flip github_sync.labels.stream off in BOTH copies (confirmed present in both) — it's a live consumer of the retired stream field and must not keep emitting stream labels.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "active_initiative key absent from both tasks-config.json copies",
+        "github_sync.labels.stream is false/absent in both copies",
+        "no code path reads active_initiative or emits stream labels afterward"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2317",
+      "subject": "Docs: user guide + tech doc + domain glossary update for epic-as-entity",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "docs",
+      "tags": [
+        "schema-v3",
+        "docs"
+      ],
+      "description": "User guide (docs/guide/features/backlog-v3-schema.md): what changed for users — epic lifecycle, key:value tags, wave object. Tech doc (docs/architecture/features/backlog-v3-schema.md): update status from draft to shipped, document actual implementation vs plan deltas. Domain glossary (docs/domain/MODEL-001-brana-core.md): reflect epic as a domain entity with lifecycle (status/wip_limit/gate), matching the DDD gate assessed at CLASSIFY.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2284",
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "docs/guide/features/backlog-v3-schema.md exists and covers epic lifecycle, key:value tags, wave object",
+        "docs/architecture/features/backlog-v3-schema.md status updated from draft to shipped with implementation deltas noted",
+        "docs/domain/MODEL-001-brana-core.md updated to reflect epic as a domain entity with lifecycle"
+      ],
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2318",
+      "subject": "oracle-hub: brana CLI missing + git divergence breaking scheduled automation",
+      "status": "in_progress",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "oracle-hub",
+        "infra",
+        "scheduler",
+        "brana-cli"
+      ],
+      "description": "Discovered while deploying t-2306 (telegram link-capture): oracle-hub VM has no `brana` binary on PATH at all (checked login and non-login shells), and both its personal and thebrana repo clones had 100+ locally-committed-but-unpushed commits due to missing git credentials (fixed for `personal` this session by storing a gh token in ~/.git-credentials, but push is now blocked by a pre-push hook scoping oracle-hub to system/state/, .claude/tasks.json, event-log.md only). thebrana's own clone there still fails its daily sync-state cron with \"fatal: Not possible to fast-forward\" (same divergence pattern, not yet fixed). Net effect: oracle-hub's local brana-sched-* jobs may be silently failing/no-op'ing for months, and any process depending on the `brana` CLI there (e.g. process-link-queue.sh from t-2306) can't run yet.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-22",
+      "started": "2026-07-22",
+      "completed": null,
+      "blocked_by": [],
+      "branch": "oracle-hub-infra/chore/t-2318-brana-cli-missing",
+      "context": "Discovered 2026-07-22 during t-2306 deployment.\nAC: brana CLI installed and resolvable on oracle-hub (login + non-login shell)\nAC: thebrana repo clone on oracle-hub reconciled with origin/main (merge or reset, decide which), sync-state cron succeeds\nAC: personal repo clone on oracle-hub: decide whether to keep the widened push scope (merge commit now sitting unpushed locally) or reset to match the pre-push hook's allowlist\nAC: confirm which of oracle-hub's other brana-sched-* jobs (agentdb-watch, morning-check, daily-digest, etc.) actually depend on the missing brana CLI vs. plain git/shell commands\nBlocks: t-2306's process-link-queue.sh cron cannot be wired up on oracle-hub until this is resolved.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "oracle-hub-infra",
+      "work_type": "infra",
+      "ac_state": "none",
+      "strategy": "feature"
+    },
+    {
+      "id": "t-2319",
+      "subject": "Investigate docs/domain/ for personal repo (currently opt-in-skipped, but real business rules exist undocumented)",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [
+        "ddd",
+        "domain-docs",
+        "personal"
+      ],
+      "description": "The build lifecycle gate skips DDD for the personal repo every time because docs/domain/ doesn't exist there (opt-in, absent). But the repo does encode real rules worth documenting explicitly rather than leaving implicit in code — e.g. the bot's owner-auth model, the capture-vs-extraction split (mechanical vs LLM-reasoning steps), journal capture semantics, what \"additive not replacing\" means for new bot behaviors. Scope: decide whether/how to adopt docs/domain/ for personal (glossary + key entities), and whether this pattern should extend to other opt-in-DDD projects that currently skip the gate the same way.",
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Raised mid-build during t-2306's Lifecycle gate assessment, where DDD was skipped (\"no docs/domain/ in the personal repo, opt-in, not present\"). User flagged that this shouldn't just be silently skipped forever — the personal repo has real business/operating rules worth writing down.",
+      "notes": null,
+      "order": 0,
+      "github_issue": "1031",
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "personal-automation",
+      "work_type": "design",
+      "ac_state": "none"
     }
   ],
   "version": 2

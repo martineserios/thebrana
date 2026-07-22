@@ -1,6 +1,6 @@
 ---
 title: Backlog v3 — Three-Axis Schema (Subject · Tags · Waves)
-status: draft
+status: building
 created: 2026-07-20
 relates-to:
   - "[brana-v3 redesign](../../ideas/brana-v3-redesign.md)"
