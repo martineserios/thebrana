@@ -61764,9 +61764,7 @@
         "laptop sees new tasks/event-log entries without manual git pull",
         "/brana:research runs capped and unattended over pending link tasks, persisting findings"
       ],
-      "blocked_by": [
-        "t-2318"
-      ],
+      "blocked_by": [],
       "branch": "personal-automation/feat/t-2306-telegram-link-capture",
       "build_step": "",
       "completed": "2026-07-22",
@@ -61779,7 +61777,7 @@
       "github_issue": "1030",
       "id": "t-2306",
       "kind": "feature",
-      "notes": "Assumptions made during BUILD:\n- Dedup uses exact normalized-URL match (strip trailing slash only) — no fuzzy matching, no LLM. Acceptable given personal-use volume.\n- /brana:research has no direct URL-target mode (topic/doc-number/creator/leads/registry only); passed the URL as the topic argument rather than integrating with the more idiomatic `leads` (research-leads namespace) mechanism, to avoid reworking the already-built capture script. Documented as a known limitation in process-pending-link-research.sh — revisit if imprecise in practice.\n- Staleness is measured on pending backlog tasks (tag: link), not the raw queue file — the queue drains into tasks within one cron cycle, so it's rarely the actual bottleneck.\n- Deployment to oracle-hub itself (scp'ing process-link-queue.sh, registering it as a cron there) is NOT done as part of this build — no SSH access exercised this session; the script is written and tested locally, deployment is a manual follow-up.\n- conftest.py fixes a pre-existing test-suite bug (missing TELEGRAM_BOT_TOKEN env var) unrelated to this task's scope but required to run any tests importing bot.py.\nEvaluator: PASS (2026-07-22), 4/4 criteria MET — bot.py URL detection+journal preserved, oracle-hub dedup verified atomic-rotate+search, personal-repo-pull job confirmed well-formed (15min, no prior equivalent), link-research-extraction job confirmed cap+success-only-completion behavior. Cross-checked against actual test runs this session (27/27 green: 11 bot.py + 10 process-link-queue.sh + 6 research-extraction.sh).\nChallenger gate: 1 iteration, RESOLVED. Iteration 1 severity-4 (OWASP A01, missing OWNER_CHAT_ID gate) fixed via branch fix/t-2306-owner-auth-gate — added _is_owner() check to handle_text/handle_voice/handle_photo/handle_document, verified correct on both failure modes (no owner set, owner mismatch), no regressions (17/17 tests). Iteration 2 verdict: RESOLVED.",
+      "notes": "t-2318 resolved same session: brana CLI now works on oracle-hub, process-link-queue.sh cron wired via crontab (every 15 min, verified clean manual run — no pending links yet since queue is empty in production). Full pipeline is live end-to-end: bot.py URL detection -> link-queue.jsonl -> process-link-queue.sh -> backlog task + event-log -> laptop pull timer -> research-extraction timer. Not yet observed with a real captured link in production, but all components independently verified (36 total test cases green, manual dry-runs clean on both oracle-hub and laptop).",
       "order": 0,
       "parent": null,
       "priority": "P2",
@@ -62176,7 +62174,7 @@
     {
       "id": "t-2318",
       "subject": "oracle-hub: brana CLI missing + git divergence breaking scheduled automation",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -62191,11 +62189,11 @@
       "parent": null,
       "created": "2026-07-22",
       "started": "2026-07-22",
-      "completed": null,
+      "completed": "2026-07-22",
       "blocked_by": [],
       "branch": "oracle-hub-infra/chore/t-2318-brana-cli-missing",
       "context": "Discovered 2026-07-22 during t-2306 deployment.\nAC: brana CLI installed and resolvable on oracle-hub (login + non-login shell)\nAC: thebrana repo clone on oracle-hub reconciled with origin/main (merge or reset, decide which), sync-state cron succeeds\nAC: personal repo clone on oracle-hub: decide whether to keep the widened push scope (merge commit now sitting unpushed locally) or reset to match the pre-push hook's allowlist\nAC: confirm which of oracle-hub's other brana-sched-* jobs (agentdb-watch, morning-check, daily-digest, etc.) actually depend on the missing brana CLI vs. plain git/shell commands\nBlocks: t-2306's process-link-queue.sh cron cannot be wired up on oracle-hub until this is resolved.",
-      "notes": null,
+      "notes": "All 4 ACs met: (1) brana CLI cross-compiled as a static musl binary (vendored OpenSSL fix for native-tls), installed at ~/.local/bin + /usr/local/bin symlink + project-relative system/cli/rust/target/release/ path on oracle-hub; (2) thebrana clone reset to origin/main (was 2307 behind/16 ahead, local commits were regenerable state snapshots), sync-state + reindex-knowledge both verified succeeding; (3) personal clone reset to origin/main (124 stuck commits were systemd-backup files outside the pre-push hook's intentional allowlist, confirmed via hook source — not reconciled/pushed); (4) audited scheduler.json — only reindex-knowledge and sync-state depend on the brana binary, both fixed; rest are plain shell or claude-CLI/skill jobs, unaffected. Merged to dev (7e590dda), pushed. Runbook documented in docs/architecture/features/scheduler.md.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
