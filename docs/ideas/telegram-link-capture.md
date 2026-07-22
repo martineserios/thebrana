@@ -123,3 +123,7 @@ All of this is real, useful design work — it's just scoped to a different, big
 5. Add the laptop-local systemd timer: `git -C ~/enter_thebrana/personal pull --ff-only`, every 15-30 min
 6. Add the laptop-local `/brana:research` extraction timer: capped batch (3-5), `--depth quick`, every few hours
 7. Update `personal/README.md` if the bot's described behavior changes materially
+
+## Changelog
+
+- 2026-07-22 (t-2321/t-2324): drain step verified end-to-end on oracle-hub post t-2318 (brana CLI cross-compile). Found and fixed a dedup false-positive in `process-link-queue.sh`: `brana backlog search "$norm" | grep -qF "$norm"` always matched because the CLI's non-`--json` "no results" message echoes the query text back — every captured link was silently skipped as "already tracked" since this shipped, no task/event-log entry ever created. Fixed by switching the dedup check to `--json` + non-empty-array. No historical links were actually lost (queue was empty on oracle-hub — no real links had been captured yet).
