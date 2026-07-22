@@ -14,7 +14,7 @@ supersedes: ADR-040 (Gemini-first routing, retired 2026-06-19)
 4. Atomic / detail retrieval, ZERO reasoning → claude -p --model haiku (subscription, no quota).
 5. Cross-model second opinion — CHALLENGER ONLY → agy (Gemini); quota exhausted → Claude challenger lens. The ONLY use of agy.
 6. Autonomous / overnight / "until all done" → native /loop + claude -p over tasks.json, or ruflo autopilot (see ADR-059).
-7. Cross-session recall of curated memories (patterns, feedback, decisions) → `brana recall` / `mcp__brana__recall` (FTS over filesystem memory). NOT `mcp__ruflo__memory_search` — its `pattern` namespace is `error-recurrence:*` hook noise, not curated patterns; ruflo semantic search is feed/`knowledge`-only (t-2294).
+7. Cross-session recall → `brana recall` / `mcp__brana__recall`, NOT `mcp__ruflo__memory_search` (t-2294).
 8. Everything else → Claude inline.
 ```
 
