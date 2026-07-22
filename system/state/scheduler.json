@@ -226,10 +226,11 @@
       "type": "command"
     },
     "reindex-patterns": {
-      "_comment": "Weekly pattern namespace reindex — runs at 3am (after knowledge reindex), ~1h max (t-857)",
+      "_comment": "Weekly FTS reindex → ~/.claude/memory/index.db (t-857). noProjectLock: rebuilds only its own dedicated store, so it opts out of the shared project lock — a Sun-wake catch-up burst that pins the lock can't starve it into a SKIP (t-2292).",
       "captureOutput": true,
       "command": "./system/scripts/index-patterns.sh",
       "enabled": true,
+      "noProjectLock": true,
       "project": "~/enter_thebrana/thebrana",
       "schedule": "Sun *-*-* 03:00:00",
       "timeoutSeconds": 3600,

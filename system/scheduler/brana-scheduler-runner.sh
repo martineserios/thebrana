@@ -79,6 +79,12 @@ MAX_RETRIES=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_RETRIES" '.maxRetries //
 RETRY_BACKOFF=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_BACKOFF" '.retryBackoffSec // $dflt')
 LOCK_WAIT_SECS=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_LOCK_WAIT" '.lockWaitSeconds // $dflt')
 
+# noProjectLock: opt out of the shared per-project lock (default false). For pure-local
+# jobs that write only their own dedicated store (e.g. reindex → ~/.claude/memory/index.db)
+# and never touch tasks.json or ruflo memory — they need not serialize behind slow skill
+# jobs, so a catch-up burst that pins the lock can't starve them into a SKIP (t-2292).
+NO_PROJECT_LOCK=$(echo "$JOB" | jq -r 'if has("noProjectLock") then .noProjectLock else false end')
+
 # captureOutput: store run summary in ruflo memory (default true)
 # Use has() pattern — jq '//' treats false as falsy
 DEFAULTS_CAPTURE=$(jq -r 'if .defaults | has("captureOutput") then .defaults.captureOutput else true end' "$CONFIG")
@@ -133,12 +139,15 @@ fi
 
 for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
     # Acquire project lock (bounded wait — t-2004: flock -n silently dropped
-    # Persistent=true catch-up runs that collided with morning jobs at wake)
-    exec 9>"$LOCKFILE"
-    if ! flock -w "$LOCK_WAIT_SECS" 9; then
-        echo "SKIPPED: lock still held after ${LOCK_WAIT_SECS}s by another job in $PROJECT_SLUG" >> "$LOGFILE"
-        write_status "SKIPPED" 0
-        exit 0  # Graceful skip — not a failure (prevents systemd OnFailure)
+    # Persistent=true catch-up runs that collided with morning jobs at wake).
+    # noProjectLock jobs skip it entirely — they contend on no shared state (t-2292).
+    if [ "$NO_PROJECT_LOCK" != "true" ]; then
+        exec 9>"$LOCKFILE"
+        if ! flock -w "$LOCK_WAIT_SECS" 9; then
+            echo "SKIPPED: lock still held after ${LOCK_WAIT_SECS}s by another job in $PROJECT_SLUG" >> "$LOGFILE"
+            write_status "SKIPPED" 0
+            exit 0  # Graceful skip — not a failure (prevents systemd OnFailure)
+        fi
     fi
 
     if [ "$ATTEMPT" -gt 1 ]; then
@@ -184,8 +193,9 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
     # Capture last output line for memory (before retry messages)
     JOB_SUMMARY=$(tail -1 "$LOGFILE")
 
-    # Release lock between attempts (prevents blocking other jobs)
-    flock -u 9
+    # Release lock between attempts (prevents blocking other jobs).
+    # Skip for noProjectLock jobs — fd 9 was never opened (t-2292).
+    [ "$NO_PROJECT_LOCK" != "true" ] && flock -u 9
 
     # Success — stop retrying
     if [ "$EXIT_CODE" -eq 0 ]; then

@@ -27,12 +27,13 @@ check() {
 if [ ! -f "$RUNNER" ]; then echo "FAIL: $RUNNER does not exist"; exit 1; fi
 
 # Isolated HOME with a command-type job and a given lock wait window.
+# Optional 3rd arg (true/false) sets the job's noProjectLock flag.
 make_home() {
-    local home="$1" lock_wait="$2"
+    local home="$1" lock_wait="$2" no_lock="${3:-false}"
     mkdir -p "$home/.claude/scheduler" "$home/project"
-    jq -n --arg proj "$home/project" --argjson wait "$lock_wait" '{
+    jq -n --arg proj "$home/project" --argjson wait "$lock_wait" --argjson nolock "$no_lock" '{
         defaults: {timeoutSeconds: 30, captureOutput: false, lockWaitSeconds: $wait},
-        jobs: {testjob: {type: "command", project: $proj, command: "echo ran"}}
+        jobs: {testjob: {type: "command", project: $proj, command: "echo ran", noProjectLock: $nolock}}
     }' > "$home/.claude/scheduler/scheduler.json"
 }
 
@@ -73,6 +74,17 @@ HOME="$H3" bash "$RUNNER" testjob >/dev/null 2>&1
 rc=$?
 check "uncontended: runs" "SUCCESS" "$(status_of "$H3")"
 check "uncontended: exit 0" "0" "$rc"
+
+# ── 4. noProjectLock job → runs even when lock held past the wait window (t-2292) ──
+# A pure-local job (writes only its own store) opts out of the shared project lock,
+# so a catch-up burst that pins the lock cannot starve it into a SKIP.
+H4="$TMPDIR/h4"; make_home "$H4" 1 true   # wait window 1s, but lock held 5s
+hold_lock "$H4" 5
+HOME="$H4" bash "$RUNNER" testjob >/dev/null 2>&1
+rc=$?
+check "noProjectLock: runs despite held lock (not SKIPPED)" "SUCCESS" "$(status_of "$H4")"
+check "noProjectLock: exit 0" "0" "$rc"
+wait "$HOLDER_PID" 2>/dev/null
 
 echo ""
 echo "test-scheduler-runner-lock: $PASS/$TOTAL passed, $FAIL failed"
