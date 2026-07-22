@@ -28,7 +28,7 @@ feed-rs = "2"
 # Track: https://github.com/jonhoo/rust-imap/releases
 imap = "2"
 mailparse = "0.15"
-native-tls = "0.2"
+native-tls = { version = "0.2", features = ["vendored"] }
 
 # System
 keyring = { version = "3", features = ["linux-native"] }
