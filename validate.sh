@@ -2395,6 +2395,22 @@ fi
 echo ""
 fi  # should_run 62
 
+if should_run 63; then
+# Check 63 — tasks.json must not carry retired level/epic keys (t-2310, ADR-065 backlog v3 schema migration).
+echo "Checking tasks.json for retired level/epic fields..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_LEVEL_EPIC_IDS=$(jq -r '[.tasks[] | select(has("level") or has("epic")) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_LEVEL_EPIC_IDS" ]; then
+    fail "Check 63: tasks.json has retired level/epic keys (tasks: $BAD_LEVEL_EPIC_IDS) — run system/scripts/migrate/collapse-level-epic-v3.py --write"
+  else
+    pass "Check 63: tasks.json — no level/epic keys present"
+  fi
+else
+  warn "Check 63: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+fi  # should_run 63
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

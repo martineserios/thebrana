@@ -83,35 +83,6 @@ pub fn text_match(task: &Value, needle: &str) -> bool {
         })
 }
 
-/// Walk task's parent chain and inherit `epic` from the first ancestor
-/// that has one. Does nothing if the task already has an epic set.
-pub fn inherit_initiative(task: &mut Value, all: &[Value]) {
-    // Don't override explicit epic
-    if task["epic"].as_str().map(|s| !s.is_empty()).unwrap_or(false) {
-        return;
-    }
-    // Walk up parent chain
-    let mut current_id = task["parent"].as_str().map(|s| s.to_string());
-    let mut depth = 0;
-    while let Some(pid) = current_id {
-        depth += 1;
-        if depth > 10 { break; } // guard against cycles
-        let parent = all.iter().find(|t| t["id"].as_str() == Some(pid.as_str()));
-        match parent {
-            None => break,
-            Some(p) => {
-                if let Some(init) = p["epic"].as_str() {
-                    if !init.is_empty() {
-                        task["epic"] = Value::String(init.to_string());
-                        return;
-                    }
-                }
-                current_id = p["parent"].as_str().map(|s| s.to_string());
-            }
-        }
-    }
-}
-
 /// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
 #[derive(Debug, Clone)]
 pub struct TaskFilter<'a> {
@@ -150,7 +121,7 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
     tasks
         .iter()
         .filter(|t| {
-            let tt = t["level"].as_str().unwrap_or_else(|| t["type"].as_str().unwrap_or("task"));
+            let tt = t["type"].as_str().unwrap_or("task");
             if !filter.types.contains(&tt) {
                 return false;
             }
@@ -828,16 +799,6 @@ pub fn validate_status(value: &str) -> Result<(), String> {
     }
 }
 
-/// Validate a level value. Accepts initiative/phase/milestone/task/subtask plus "null"/"" (clear).
-pub fn validate_level(value: &str) -> Result<(), String> {
-    match value {
-        "initiative" | "phase" | "milestone" | "task" | "subtask" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid level {other:?} — must be initiative/phase/milestone/task/subtask or null"
-        )),
-    }
-}
-
 pub fn validate_work_type(value: &str) -> Result<(), String> {
     match value {
         "implement" | "research" | "design" | "infra" | "chore" | "review" | "null" | "" => Ok(()),
@@ -1003,10 +964,10 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             Ok(())
         }
-        "priority" | "effort" | "status" | "type" | "level" | "strategy"
+        "priority" | "effort" | "status" | "type" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
-        | "epic" | "work_type" | "kind" | "spawn" | "spawn_strategy" | "ac_state" => {
+        | "work_type" | "kind" | "spawn" | "spawn_strategy" | "ac_state" => {
             if field == "priority" {
                 validate_priority(value)?;
             }
@@ -1021,9 +982,6 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             if field == "kind" {
                 validate_kind(value)?;
-            }
-            if field == "level" {
-                validate_level(value)?;
             }
             if field == "execution" {
                 validate_execution(value)?;
@@ -1800,74 +1758,25 @@ mod tests {
         }
     }
 
-    // ── t-1543: initiative inheritance tests ────────────────────────────
+    // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
+    // inherit_initiative() and validate_level() are removed outright — level
+    // collapses into type, epic becomes a hierarchy node instead of something
+    // flat-copied down a parent chain. See cmd_add_parent_does_not_inherit_epic
+    // (backlog.rs) for the write-path replacement of the old inherit_initiative
+    // unit tests below.
 
     #[test]
-    fn test_inherit_initiative_from_parent() {
-        let parent = json!({"id": "ph-001", "epic": "cc-alignment", "type": "phase"});
-        let all = vec![parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001"});
-        inherit_initiative(&mut task, &all);
-        assert_eq!(task["epic"].as_str(), Some("cc-alignment"));
-    }
-
-    #[test]
-    fn test_inherit_initiative_does_not_override_explicit() {
-        let parent = json!({"id": "ph-001", "epic": "cc-alignment", "type": "phase"});
-        let all = vec![parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001", "epic": "memory-arch"});
-        inherit_initiative(&mut task, &all);
-        assert_eq!(task["epic"].as_str(), Some("memory-arch"), "explicit epic must not be overridden");
-    }
-
-    #[test]
-    fn test_inherit_initiative_no_parent_initiative() {
-        let parent = json!({"id": "ph-001", "type": "phase"});
-        let all = vec![parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001"});
-        inherit_initiative(&mut task, &all);
-        assert!(task["epic"].is_null() || task.get("epic").is_none(),
-            "no inheritance when parent has no epic");
-    }
-
-    #[test]
-    fn test_inherit_initiative_grandparent() {
-        let grandparent = json!({"id": "in-001", "epic": "rust-cli", "type": "initiative"});
-        let parent = json!({"id": "ph-001", "parent": "in-001", "type": "phase"});
-        let all = vec![grandparent.clone(), parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001"});
-        inherit_initiative(&mut task, &all);
-        assert_eq!(task["epic"].as_str(), Some("rust-cli"),
-            "should inherit from grandparent when parent has no epic");
-    }
-
-    // ── t-1542: level field tests ────────────────────────────────────────
-
-    #[test]
-    fn test_validate_level_valid() {
-        for v in &["initiative", "phase", "milestone", "task", "subtask", "null", ""] {
-            assert!(validate_level(v).is_ok(), "expected Ok for {v:?}");
-        }
-    }
-
-    #[test]
-    fn test_validate_level_invalid() {
-        for v in &["project", "sprint", "epic", "feature", "story"] {
-            assert!(validate_level(v).is_err(), "expected Err for {v:?}");
-        }
-    }
-
-    #[test]
-    fn test_filter_tasks_uses_level_when_set() {
-        // A task with level="task" but type="phase" should match type filter "task"
-        // because level takes priority over type in filtering.
+    fn test_filter_tasks_ignores_stale_level() {
+        // A task carrying a stale `level` value (pre-ADR-065 data) must classify
+        // purely by `type` — level is no longer read for filtering at all.
         let tasks = vec![
             json!({"id": "t-1", "type": "phase", "level": "task", "status": "pending", "tags": [], "blocked_by": []}),
             json!({"id": "ph-1", "type": "phase", "level": "phase", "status": "pending", "tags": [], "blocked_by": []}),
         ];
         let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task"], None, None);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0]["id"], "t-1");
+        assert_eq!(result.len(), 0, "stale level=\"task\" must not override type=\"phase\"");
+        let result_phase = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["phase"], None, None);
+        assert_eq!(result_phase.len(), 2, "both tasks classify as phase by type, regardless of stale level");
     }
 
     #[test]
@@ -2039,6 +1948,25 @@ mod tests {
     fn test_set_field_unknown() {
         let mut task = json!({"id": "t-1"});
         assert!(set_field(&mut task, "nonexistent", "val", false).is_err());
+    }
+
+    #[test]
+    fn test_set_field_rejects_level() {
+        // ADR-065: level is retired — collapses into type. set_field must
+        // reject it, not silently no-op (t-2310).
+        let mut task = json!({"id": "t-1", "type": "task"});
+        assert!(set_field(&mut task, "level", "phase", false).is_err());
+        assert_eq!(task["type"], "task", "rejected write must not mutate the task");
+        assert!(task.get("level").is_none(), "level must not be written");
+    }
+
+    #[test]
+    fn test_set_field_rejects_epic() {
+        // ADR-065: epic is retired as a flat field — becomes a hierarchy node.
+        // set_field must reject it (t-2310).
+        let mut task = json!({"id": "t-1"});
+        assert!(set_field(&mut task, "epic", "harness", false).is_err());
+        assert!(task.get("epic").is_none(), "epic must not be written");
     }
 
     // ── t-252: isc field ────────────────────────────────────────────────

@@ -3,6 +3,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 #[schemars(deny_unknown_fields)]
 pub struct Input {
     /// Task subject/title
@@ -43,9 +44,6 @@ pub struct Input {
     /// Create the task in another project's backlog by portfolio slug (cross-project).
     /// Resolves via ~/.claude/tasks-portfolio.json. Default: current project.
     pub project: Option<String>,
-
-    /// Epic slug (e.g. "cc-alignment", "backlog-schema-v2")
-    pub epic: Option<String>,
 
     /// Work type: implement, research, design, infra, chore, review
     pub work_type: Option<String>,
@@ -125,7 +123,6 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     "github_issue": null,
                     "execution": input.execution,
                     "acceptance_criteria": input.acceptance_criteria,
-                    "epic": input.epic,
                     "work_type": input.work_type,
                     // t-2283: stamp ac_state:none on new tasks (v3 forward-only).
                     // Shared const with CLI cmd_add so the two write paths cannot drift.
@@ -269,27 +266,46 @@ mod tests {
         assert_eq!(task["execution"], "autonomous");
     }
 
-    // ── t-2263: epic/work_type params were missing from the MCP schema, so
-    // MCP-created tasks (unlike CLI-created ones, which already had --epic /
-    // --work-type) could never carry an epic — the Tier 2b blind spot that fed
-    // t-2263's epic-detection false positive. ──────────────────────────────
+    // ── t-2310 (ADR-065): epic is retired as a flat field on MCP backlog_add —
+    // it becomes a hierarchy node, not something a new task carries directly.
+    // #[serde(deny_unknown_fields)] on Input makes submitting "epic" a hard
+    // reject, matching the CLI JSON-ingestion path. work_type is unaffected.
+    // ─────────────────────────────────────────────────────────────────────────
 
     #[tokio::test]
-    async fn test_mcp_add_persists_epic_and_work_type() {
+    async fn test_mcp_add_rejects_epic_field() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let err = build()
+            .handle(
+                json!({"subject": "task with epic", "epic": "harness"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect_err("handler must reject the retired epic field");
+
+        let msg = err.to_string();
+        assert!(msg.contains("epic"), "error must name the rejected field: {msg}");
+        assert_eq!(
+            h.tasks()["tasks"].as_array().unwrap().len(),
+            0,
+            "rejected add must not persist a task"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_mcp_add_persists_work_type() {
         let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let h = Hermetic::new();
 
         let out = build()
             .handle(
-                json!({
-                    "subject": "task with epic",
-                    "epic": "harness",
-                    "work_type": "implement"
-                }),
+                json!({"subject": "task with work_type", "work_type": "implement"}),
                 pmcp::RequestHandlerExtra::default(),
             )
             .await
-            .expect("handler must accept epic and work_type");
+            .expect("handler must accept work_type");
 
         assert_eq!(out["ok"], true);
         let tasks = h.tasks();
@@ -299,7 +315,6 @@ mod tests {
             .iter()
             .find(|t| t["id"] == out["id"])
             .expect("added task must be persisted");
-        assert_eq!(task["epic"], "harness", "epic must be persisted: {task}");
         assert_eq!(
             task["work_type"], "implement",
             "work_type must be persisted: {task}"
@@ -329,14 +344,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_mcp_add_epic_and_work_type_default_absent() {
+    async fn test_mcp_add_work_type_default_absent() {
         let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let h = Hermetic::new();
 
         let out = build()
-            .handle(json!({"subject": "task without epic"}), pmcp::RequestHandlerExtra::default())
+            .handle(json!({"subject": "task without work_type"}), pmcp::RequestHandlerExtra::default())
             .await
-            .expect("handler must accept omitted epic/work_type");
+            .expect("handler must accept omitted work_type");
 
         let tasks = h.tasks();
         let task = tasks["tasks"]
@@ -345,10 +360,6 @@ mod tests {
             .iter()
             .find(|t| t["id"] == out["id"])
             .expect("added task must be persisted");
-        assert!(
-            task["epic"].is_null(),
-            "epic should default to null, not error: {task}"
-        );
         assert!(
             task["work_type"].is_null(),
             "work_type should default to null, not error: {task}"

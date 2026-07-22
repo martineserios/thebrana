@@ -627,7 +627,9 @@ pub fn cmd_add(
         if let Some(ref p) = parent { obj.insert("parent".into(), serde_json::Value::String(p.clone())); }
         if let Some(ref pr) = priority { obj.insert("priority".into(), serde_json::Value::String(pr.clone())); }
         if let Some(ref c) = context { obj.insert("context".into(), serde_json::Value::String(c.clone())); }
-        if let Some(ref i) = epic { obj.insert("epic".into(), serde_json::Value::String(i.clone())); }
+        if epic.is_some() {
+            eprintln!("  ⚠ --epic is deprecated and ignored (ADR-065: epic is now a hierarchy node, not a flat field) — link via --parent instead");
+        }
         if let Some(ref wt) = work_type { obj.insert("work_type".into(), serde_json::Value::String(wt.clone())); }
         if !acceptance_criteria.is_empty() {
             let ac_arr: Vec<serde_json::Value> = acceptance_criteria.iter()
@@ -645,6 +647,14 @@ pub fn cmd_add(
         eprintln!("{{\"ok\":false,\"error\":\"invalid JSON: {e}\"}}");
         anyhow::anyhow!("invalid JSON: {e}")
     })?;
+
+    // t-2310 (ADR-065): level/epic are retired write-surface fields — level
+    // collapses into type, epic becomes a hierarchy node (not a flat value a
+    // new task can carry). Reject the whole add rather than silently drop them.
+    if new_task.as_object().map_or(false, |o| o.contains_key("level") || o.contains_key("epic")) {
+        eprintln!("{{\"ok\":false,\"error\":\"level/epic fields are retired (ADR-065) — level collapses into type, epic is now a hierarchy node; use --parent for hierarchy\"}}");
+        anyhow::bail!("level/epic fields are retired (ADR-065) — level collapses into type, epic is now a hierarchy node; use --parent for hierarchy");
+    }
 
     if let Some(p) = new_task["priority"].as_str() {
         if let Err(e) = tasks::validate_priority(p) {
@@ -708,12 +718,7 @@ pub fn cmd_add(
         }
     }
 
-    // t-1543: inherit epic from parent chain if not explicitly set
-    tasks::inherit_initiative(&mut new_task, &tasks_arr);
-
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
-    let task_level = new_task["level"].as_str().unwrap_or("task").to_string();
-    let has_epic = new_task["epic"].as_str().map(|s| !s.is_empty()).unwrap_or(false);
 
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
@@ -723,11 +728,6 @@ pub fn cmd_add(
         .push(new_task);
     tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("{}", serde_json::json!({"ok": true, "id": id, "subject": subject}));
-
-    // t-1543: suggest epic when adding phase/milestone without one
-    if matches!(task_level.as_str(), "phase" | "milestone") && !has_epic {
-        eprintln!("  Tip: link to an epic — `brana backlog set {id} epic <slug>`");
-    }
     Ok(())
 }
 
@@ -2103,6 +2103,72 @@ mod tests {
         assert!(legacy.get("ac_state").is_none(), "existing legacy task must stay key-less");
         let new = arr.iter().find(|t| t["subject"] == "new one").unwrap();
         assert_eq!(new["ac_state"].as_str(), Some("none"));
+    }
+
+    // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
+
+    #[test]
+    fn cmd_add_shorthand_epic_flag_is_noop() {
+        let f = empty_tasks_file();
+        cmd_add(
+            None, Some("shorthand with epic".into()), None, None, None, None,
+            None, None, None, None, Some(f.path().to_path_buf()), None,
+            Some("cc-alignment".into()), None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert!(task.get("epic").is_none() || task["epic"].is_null(),
+            "--epic must be a no-op, got: {}", task["epic"]);
+    }
+
+    #[test]
+    fn cmd_add_json_payload_rejects_level_key() {
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"has level","level":"phase"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(err.to_string().contains("level"), "error must name the field: {err}");
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task");
+    }
+
+    #[test]
+    fn cmd_add_json_payload_rejects_epic_key() {
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"has epic","epic":"cc-alignment"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(err.to_string().contains("epic"), "error must name the field: {err}");
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task");
+    }
+
+    #[test]
+    fn cmd_add_parent_does_not_inherit_epic() {
+        // Pre-t-2310: inherit_initiative() copied a parent's flat epic onto new
+        // children. ADR-065 retires that — epic becomes a real hierarchy node
+        // with real children, not something to flat-copy.
+        let f = tasks_file_with(
+            r#"[{"id":"ph-1","subject":"parent phase","status":"pending","type":"phase","tags":[],"blocked_by":[],"epic":"cc-alignment"}]"#,
+        );
+        cmd_add(
+            Some(r#"{"subject":"child of ph-1","parent":"ph-1"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let arr = data["tasks"].as_array().unwrap();
+        let child = arr.iter().find(|t| t["subject"] == "child of ph-1").unwrap();
+        assert!(child.get("epic").is_none() || child["epic"].is_null(),
+            "epic must not be inherited from parent, got: {}", child["epic"]);
     }
 
     #[test]

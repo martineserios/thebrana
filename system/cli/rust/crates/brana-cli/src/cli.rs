@@ -882,7 +882,9 @@ pub enum BacklogCmd {
         /// Resolves via ~/.claude/tasks-portfolio.json. Default: current project.
         #[arg(long)]
         project: Option<String>,
-        /// Epic slug (e.g., "cc-alignment", "backlog-schema-v2")
+        /// DEPRECATED (ADR-065): epic is now a hierarchy node, not a flat field.
+        /// This flag is a no-op — cmd_add prints a stderr warning and does not
+        /// write an epic value. Use --parent to place the task in the hierarchy.
         #[arg(long)]
         epic: Option<String>,
         /// Work type: implement, research, design, infra, chore, review
