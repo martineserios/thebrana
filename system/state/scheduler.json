@@ -185,6 +185,15 @@
       "schedule": "Mon *-*-* 09:00:00",
       "type": "command"
     },
+    "link-research-extraction": {
+      "_comment": "t-2306: capped batch run of /brana:research over pending link-tagged tasks captured via the Telegram bot. --depth quick, BATCH_CAP 3/run -- closes the capture-vs-extraction gap without unbounded usage cost. Also marks each task completed after successful research (personal/deploy/research-extraction.sh).",
+      "command": "bash ~/enter_thebrana/personal/deploy/research-extraction.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* */4:00:00",
+      "timeoutSeconds": 1800,
+      "type": "command"
+    },
     "lint-heal": {
       "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00).",
       "captureOutput": true,
@@ -213,6 +222,15 @@
       "schedule": "Mon..Fri *-*-* 08:48:00",
       "skill": "/brana:daily-ops",
       "type": "skill"
+    },
+    "personal-repo-pull": {
+      "_comment": "t-2306: laptop-side pull for oracle-hub's link-capture commits to the personal repo. Confirmed no equivalent job existed before this.",
+      "command": "git -C ~/enter_thebrana/personal pull --ff-only",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:0/15:00",
+      "timeoutSeconds": 30,
+      "type": "command"
     },
     "reindex-knowledge": {
       "_comment": "Weekly full reindex — runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)",
