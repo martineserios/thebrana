@@ -360,6 +360,39 @@ Implementation lives in `thebrana` repo. Deploy target: `~/.claude/scheduler/`.
 | 7 | Update `deploy.sh` to install scheduler | #1-#5 | Scheduler files deployed to `~/.claude/scheduler/`, template copied if config doesn't exist |
 | 8 | End-to-end test: deploy + run + verify | #4, #7 | Manual test: deploy a command job, run it, verify log output and systemd timer |
 
+## Oracle-hub deployment notes (t-2318, 2026-07-22)
+
+Oracle-hub (free-tier VM, ~1GB RAM, Ubuntu 22.04/glibc 2.35) cannot run
+`cargo build` locally (no Rust toolchain, insufficient memory for a
+workspace compile) and can't run a `brana` binary built on a newer-glibc
+dev machine (glibc is backward-compatible only — a binary linked against
+glibc 2.39 won't run against 2.35).
+
+**Fix: cross-compile a static musl binary and copy it over.**
+```bash
+rustup target add x86_64-unknown-linux-musl
+sudo apt-get install musl-tools   # provides musl-gcc; needs an interactive terminal for sudo
+cd system/cli/rust
+cargo build --release --target x86_64-unknown-linux-musl -p brana-cli
+scp target/x86_64-unknown-linux-musl/release/brana oracle-hub:/tmp/brana
+```
+`native-tls` (pulled in via `imap`) depends on `openssl-sys`, which can't
+find a musl-compatible OpenSSL to link against — fixed by vendoring
+OpenSSL via `native-tls = { version = "0.2", features = ["vendored"] }`
+in the workspace `Cargo.toml` (builds OpenSSL from source once, statically
+linked, no system dependency). The resulting binary is `static-pie linked`
+— verify with `file target/x86_64-unknown-linux-musl/release/brana`.
+
+**Two install locations are needed on oracle-hub**, since different jobs
+resolve the binary differently:
+- `~/.local/bin/brana` (symlinked also to `/usr/local/bin/brana` for
+  non-login/cron shells) — used by anything invoking bare `brana` on PATH
+  (e.g. `personal` repo's `deploy/process-link-queue.sh`)
+- `<repo>/system/cli/rust/target/release/brana` — a project-relative path
+  some scheduler jobs call directly (`reindex-knowledge`, `sync-state`);
+  `sync-state`'s command falls back to plain git+shell if this is missing,
+  but `reindex-knowledge` has no fallback and fails outright.
+
 ## Open questions
 
 None remaining. All critical questions resolved.
