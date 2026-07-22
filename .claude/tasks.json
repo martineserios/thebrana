@@ -60730,15 +60730,17 @@
       "work_type": "implement"
     },
     {
-      "acceptance_criteria": null,
-      "blocked_by": [
-        "t-2281"
+      "acceptance_criteria": [
+        "active_epic resolver fix (t-2281) landed before epic-as-top migration runs",
+        "epic-as-top migration is dry-runnable and reversible per ADR-065"
       ],
-      "branch": null,
+      "blocked_by": [],
+      "branch": "cli-backlog-schema/feat/t-2284-land-backlog-v3-schema",
+      "build_step": "decompose",
       "completed": null,
-      "context": "The full backlog-v3 schema landing (ADR-065 epic-as-sole-top + migration engineering) — the \"schema wave\" deferred from t-2283 (which does ONLY the ac_state forward-only slice). This is where epic-as-top, deletes (level/initiative/stream), wave object, key:value tags + tags-normalization land.\n\nBLOCKED BY t-2281 per v3 review finding #6 (2026-07-21): ADR-065 elevates `epic` to the sole hierarchy top and adds active_epic pointer semantics. t-2281 documents that the active_epic resolver LEAKS CROSS-PROJECT (global value applies to foreign projects). The settled fail-loud assertion catches divergence but does NOT fix the scoping bug. Landing epic-as-top on a known-leaky resolver = every epic operation in v3 runs broken. Fix t-2281 first.\n\nRead: docs/architecture/features/backlog-v3-schema.md, docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md, docs/reviews/brana-v3-challenge-2026-07-21.md (finding #6). May fold into a future /brana:backlog plan of the v3 epic.\nAC: active_epic resolver fix (t-2281) landed before epic-as-top migration runs\nAC: epic-as-top migration is dry-runnable and reversible per ADR-065",
+      "context": "The full backlog-v3 schema landing (ADR-065 epic-as-sole-top + migration engineering) — the \"schema wave\" deferred from t-2283 (which does ONLY the ac_state forward-only slice). This is where epic-as-top, deletes (level/initiative/stream), wave object, key:value tags + tags-normalization land.\n\nBLOCKED BY t-2281 per v3 review finding #6 (2026-07-21): ADR-065 elevates `epic` to the sole hierarchy top and adds active_epic pointer semantics. t-2281 documents that the active_epic resolver LEAKS CROSS-PROJECT (global value applies to foreign projects). The settled fail-loud assertion catches divergence but does NOT fix the scoping bug. Landing epic-as-top on a known-leaky resolver = every epic operation in v3 runs broken. Fix t-2281 first.\n\nRead: docs/architecture/features/backlog-v3-schema.md, docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md, docs/reviews/brana-v3-challenge-2026-07-21.md (finding #6). May fold into a future /brana:backlog plan of the v3 epic.\nAC: active_epic resolver fix (t-2281) landed before epic-as-top migration runs\nAC: epic-as-top migration is dry-runnable and reversible per ADR-065\n2026-07-22: Scope decision confirmed with operator — this task lands the L2 cockpit slice only (epic-as-top, deletes, wave object, key:value tags + normalization, migration engineering per existing ACs). skills-as-loops/autonomous pipeline (t-2278) is explicitly OUT of scope here and stays blocked until this lands.",
       "created": "2026-07-21",
-      "description": null,
+      "description": "Land the L2-cockpit slice of the backlog-v3 schema (ADR-065): elevate epic to the sole hierarchy top, delete the level/initiative/stream fields, add the wave object, and migrate tags to key:value with normalization. Includes dry-runnable, reversible migration tooling. Excludes skills-as-loops/autonomous pipeline groundwork (t-2278), which stays out of scope and blocked until this lands.",
       "effort": "L",
       "epic": "cli-backlog-schema",
       "execution": "code",
@@ -60749,8 +60751,9 @@
       "order": 0,
       "parent": null,
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-07-22",
+      "status": "in_progress",
+      "strategy": "feature",
       "subject": "Land backlog-v3 schema: epic-as-top (ADR-065) + migration engineering",
       "tags": [],
       "type": "task",
@@ -61375,9 +61378,15 @@
     },
     {
       "ac_state": "none",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "bot.py detects and queues URLs without breaking existing journal capture",
+        "oracle-hub cron dedupes correctly against tasks.json, no duplicate research tasks",
+        "laptop sees new tasks/event-log entries without manual git pull",
+        "/brana:research runs capped and unattended over pending link tasks, persisting findings"
+      ],
       "blocked_by": [],
       "branch": "personal-automation/feat/t-2306-telegram-link-capture",
+      "build_step": "build",
       "completed": null,
       "context": "Idea doc: docs/ideas/telegram-link-capture.md (full design, rejected alternatives, and challenger-review findings preserved there).\n\nNext steps (from idea doc):\n1. Write real tests for URL detection, atomic queue-append, dedup-vs-tasks.json logic (test-first) — personal/test_bot.py currently has only 2 near-tautological tests, don't assume coverage\n2. Extend bot.py's message handler: URL regex → atomic append (tmp+rename) to link-queue.jsonl, additive to existing journal write\n3. Build oracle-hub cron: dedup vs local tasks.json → brana backlog add + event-log.md append → mark processed → commit/push\n4. Add anti-staleness nudge (queue count/age threshold → proactive Telegram message via bot)\n5. Add laptop-local systemd timer: git -C ~/enter_thebrana/personal pull --ff-only, every 15-30 min (confirmed no such job exists today)\n6. Add laptop-local /brana:research extraction timer: capped batch (3-5), --depth quick, every few hours — this is what actually extracts+persists knowledge, not just logs the URL\n7. Update personal/README.md if bot's described behavior changes materially\n\nAC: bot.py detects and queues URLs without breaking existing journal capture\nAC: oracle-hub cron dedupes correctly against tasks.json, no duplicate research tasks\nAC: laptop sees new tasks/event-log entries without manual git pull\nAC: /brana:research runs capped and unattended over pending link tasks, persisting findings\nskill_selected: /brana:log (score 0.7) — reuse its dedup+URL-detection logic as the basis for the unattended capture path",
       "created": "2026-07-22",
@@ -61385,7 +61394,7 @@
       "effort": "S",
       "epic": "personal-automation",
       "execution": "code",
-      "github_issue": null,
+      "github_issue": "1030",
       "id": "t-2306",
       "kind": "feature",
       "notes": null,
@@ -61394,6 +61403,7 @@
       "priority": "P2",
       "started": "2026-07-22",
       "status": "in_progress",
+      "strategy": "feature",
       "subject": "Telegram link capture — automate WhatsApp link → brana knowledge pipeline",
       "tags": [
         "personal",
@@ -61402,8 +61412,7 @@
         "oracle-hub"
       ],
       "type": "task",
-      "work_type": "implement",
-      "strategy": "feature"
+      "work_type": "implement"
     },
     {
       "ac_state": "none",
