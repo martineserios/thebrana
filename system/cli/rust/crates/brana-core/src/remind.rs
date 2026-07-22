@@ -972,7 +972,12 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         let path = store_path(&dir);
         std::fs::write(&path, PRE_T1997_STORE).unwrap();
-        let out = list(&path).unwrap();
+        // Assert on the parse path (read_store), NOT list(): list() layers the
+        // 30-day pending→expired transition on top, which is calendar-dependent
+        // and would flip this fixture (created 2026-06-01) to Expired after
+        // 2026-07-01. This test's invariant is that old JSON *parses* unchanged;
+        // the expiry transition is covered by list_expires_pending_older_than_30_days.
+        let out = read_store(&path).unwrap().reminders;
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].status, Status::Pending);
         assert!(out[0].due.is_none());
