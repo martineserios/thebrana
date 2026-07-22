@@ -15,7 +15,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 THEBRANA_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-STATE_DIR="$THEBRANA_ROOT/system/state"
+STATE_DIR="${BRANA_STATE_DIR:-$THEBRANA_ROOT/system/state}"
 
 # ── File mappings ──────────────────────────────────────────
 # Global operational state: cache path → repo path
