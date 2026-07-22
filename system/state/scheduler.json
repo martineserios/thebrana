@@ -214,6 +214,24 @@
       "skill": "/brana:daily-ops",
       "type": "skill"
     },
+    "personal-link-research": {
+      "_comment": "t-2306: capped batch run of /brana:research over pending link-tagged tasks captured via the Telegram bot. --depth quick, MAX 5/run -- closes the capture-vs-extraction gap without unbounded usage cost.",
+      "command": "./system/scheduler/process-pending-link-research.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* */4:00:00",
+      "timeoutSeconds": 1800,
+      "type": "command"
+    },
+    "personal-repo-pull": {
+      "_comment": "t-2306: laptop-side pull for oracle-hub's link-capture commits to the personal repo. Confirmed no equivalent job existed before this.",
+      "command": "git -C ~/enter_thebrana/personal pull --ff-only",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:0/15:00",
+      "timeoutSeconds": 30,
+      "type": "command"
+    },
     "reindex-knowledge": {
       "_comment": "Weekly full reindex — runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)",
       "captureOutput": true,
