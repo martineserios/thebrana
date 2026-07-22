@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-22T18:32:42Z",
+  "generated": "2026-07-22T19:41:13Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1576,7 +1576,8 @@
       "title": "Feature: Scheduler",
       "type": "Roadmap",
       "impl_files": [
-        "system/scheduler/"
+        "system/scheduler/",
+        "system/cli/rust/target/release/brana"
       ]
     },
     "docs/architecture/features/sdd-spec-gate.md": {
