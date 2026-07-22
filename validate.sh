@@ -2379,6 +2379,22 @@ fi
 echo ""
 fi  # should_run 61
 
+if should_run 62; then
+# Check 62 — tasks.json tags must be array (t-2309, ADR-065 backlog v3 schema migration).
+echo "Checking tasks.json tags type..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_TAGS_IDS=$(jq -r '[.tasks[] | select(.tags != null and (.tags | type) != "array") | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_TAGS_IDS" ]; then
+    fail "Check 62: tasks.json has non-array tags values (tasks: $BAD_TAGS_IDS) — run system/scripts/migrate/normalize-tags.py --write"
+  else
+    pass "Check 62: tasks.json — all tags are arrays (or null)"
+  fi
+else
+  warn "Check 62: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+fi  # should_run 62
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
