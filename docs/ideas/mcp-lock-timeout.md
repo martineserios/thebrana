@@ -1,11 +1,12 @@
 ---
 title: brana-mcp lock-acquire hang fix
-status: draft
+status: shipped
 created: 2026-07-22
+shipped: 2026-07-22
 ---
 # brana-mcp lock-acquire hang fix
 
-> Brainstormed 2026-07-22 from t-2305. Status: draft, ready to plan.
+> Brainstormed 2026-07-22 from t-2305. Shipped via t-2305 (bounded lock acquire, dispatch-queue recovery test, AC4 substitution documented) — see git log for t-2305 commits.
 
 ## Problem
 

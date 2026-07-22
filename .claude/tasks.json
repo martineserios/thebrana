@@ -61899,7 +61899,7 @@
     {
       "id": "t-2310",
       "subject": "Write-path sealing bundle: seal level/epic across set_field, cmd_add, inherit_initiative, MCP backlog_add",
-      "status": "in_progress",
+      "status": "completed",
       "type": "subtask",
       "kind": "feature",
       "tags": [
@@ -61912,11 +61912,11 @@
       "parent": "t-2284",
       "created": "2026-07-22",
       "started": null,
-      "completed": null,
+      "completed": "2026-07-22",
       "blocked_by": [],
       "branch": null,
       "context": "Part of t-2284 sprint contract ISC 3, rev 3 (2026-07-22, locked after 2 challenger iterations). Precedent: twice-validated three-write-path pattern (t-1344/t-1345). See t-2284 context for full contract.",
-      "notes": null,
+      "notes": "Delegated to parallel agent for composition; verified and applied by hand-checking every quoted before/after against the worktree before editing. Sealed 4 write surfaces: set_field whitelist, cmd_add (shorthand no-op + JSON-path hard-reject), MCP backlog_add (epic removed + added #[serde(deny_unknown_fields)] to close a latent gap where schemars(deny_unknown_fields) alone doesn't make serde reject unknown fields), inherit_initiative() removed entirely. Plus: filter_tasks_by reads only type now, validate_level() dead-code removed, validate.sh Check 63 added. All 1082 workspace tests pass (up from 1080 baseline + this task's ~13 new tests, net of 7 removed inherit_initiative/validate_level tests), 0 regressions after fix. Committed 8f1cafc5. Mini-debrief: the delegate's self-report was thorough but its test search was scoped to the 3 files it edited directly (tasks.rs, backlog.rs, backlog_add.rs) and missed a 4th file, cli_smoke.rs (a separate CLI integration test), which also asserted the old --epic-persists behavior and failed on first `cargo test --workspace` run. Caught only because I ran the FULL workspace suite rather than trusting the agent's per-file test list. Lesson: for delegated Rust changes, always run `cargo test --workspace` (not just the crates the agent named) before committing -- cross-crate integration tests are exactly the surface a file-scoped agent search misses.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
