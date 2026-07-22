@@ -2,6 +2,9 @@
 
 ## /brana:backlog plan
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__brana__backlog_focus")
+
 Interactive phase planning. Builds the hierarchy conversationally.
 
 ### Steps

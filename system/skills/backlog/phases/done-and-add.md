@@ -1,7 +1,7 @@
 <!-- backlog phase: /brana:backlog done, add, replan, archive, migrate — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_release")
+ToolSearch("select:mcp__ruflo__claims_release,mcp__brana__backlog_focus")
 
 ## /brana:backlog done
 
