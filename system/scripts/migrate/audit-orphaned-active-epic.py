@@ -15,6 +15,7 @@ Usage:
 """
 import argparse
 import json
+import os
 import pathlib
 
 HOME = pathlib.Path.home()
@@ -101,7 +102,9 @@ def main():
 
     for key in orphans:
         del global_cfg[key]
-    global_path.write_text(json.dumps(global_cfg, indent=2) + "\n")
+    tmp_path = global_path.with_suffix(global_path.suffix + f".tmp.{os.getpid()}")
+    tmp_path.write_text(json.dumps(global_cfg, indent=2) + "\n")
+    tmp_path.replace(global_path)
     print(f"\nCleared {len(orphans)} orphaned key(s) from {global_path}")
 
 

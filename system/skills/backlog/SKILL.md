@@ -61,7 +61,7 @@ Tasks have two new optional fields:
 | `epic` | slug string (e.g. `"cc-alignment"`) | Groups tasks under a named epic |
 | `work_type` | `implement` / `research` / `design` / `infra` / `review` / `chore` | Cognitive mode — what kind of work this is. Note: `kind: refactor` tasks use `work_type: implement`. |
 
-**Active epic** is set in `~/.claude/tasks-config.json` → `active_epic`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
+**Active epic** is set in the project-local `.claude/tasks-config.json` → `active_epic` (per-repo, never the global `~/.claude/tasks-config.json` — ADR-066, t-2158). When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
 
 **Stream taxonomy** (v3 — 3 values):
 
