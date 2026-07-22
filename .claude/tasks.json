@@ -62356,7 +62356,7 @@
     {
       "id": "t-2324",
       "subject": "Fix process-link-queue.sh dedup false-positive — always skips every link",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -62371,7 +62371,7 @@
       "parent": null,
       "created": "2026-07-22",
       "started": "2026-07-22",
-      "completed": null,
+      "completed": "2026-07-22",
       "blocked_by": [],
       "branch": "personal-automation/feat/t-2324-dedup-false-positive",
       "context": "Root cause from investigation t-2321 (2026-07-22): live-tested on oracle-hub, reproduced with a definitely-novel URL still reported \"already tracked\". Repo: personal (not thebrana) — file at deploy/process-link-queue.sh.\nskill_gap_checked: true (score < 0.3, user chose: Skip)",
@@ -62384,7 +62384,7 @@
       "work_type": "implement",
       "ac_state": "none",
       "strategy": "bug-fix",
-      "build_step": "fix"
+      "build_step": null
     },
     {
       "id": "t-2325",
