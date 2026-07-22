@@ -162,13 +162,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tools::CWD_LOCK;
     use pmcp::ToolHandler;
     use serde_json::json;
     use std::path::PathBuf;
-    use std::sync::Mutex;
-
-    /// Serializes cwd/env mutation across handler tests in this test binary.
-    static CWD_LOCK: Mutex<()> = Mutex::new(());
 
     /// RAII guard: chdir into an isolated non-git tempdir holding a fixture
     /// tasks.json, with CLAUDE_PROJECT_DIR cleared, so the handler's

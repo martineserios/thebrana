@@ -74,13 +74,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tools::CWD_LOCK;
     use pmcp::ToolHandler;
     use serde_json::json;
     use std::path::PathBuf;
-    use std::sync::Mutex;
-
-    /// Serializes cwd/env mutation across handler tests in this test binary.
-    static CWD_LOCK: Mutex<()> = Mutex::new(());
 
     /// RAII guard: chdir into an isolated non-git tempdir holding a fixture
     /// tasks.json, with CLAUDE_PROJECT_DIR cleared, so the handler's
@@ -138,6 +135,15 @@ mod tests {
     /// run explicitly with `cargo test -- --ignored` to verify.
     #[tokio::test]
     #[ignore = "waits out the real DEFAULT_LOCK_TIMEOUT (10s) end-to-end — run with `cargo test -- --ignored` (t-2305)"]
+    // ASSUMPTION (t-2305 AC4, documented per spec-assumptions.md — flagged by Challenger
+    // gate iteration 1): AC4's literal text names `backlog_get` as the repro target, but
+    // backlog_get never calls lock_tasks/lock_sidecar — it's a pure unlocked read, so it
+    // architecturally cannot produce a lock-timeout error. Chose backlog_set instead
+    // because it's the mechanism-accurate target: a real lock-acquiring writer. The
+    // *dispatch-queue* symptom AC4 was reaching for (an unrelated queued call recovering
+    // once the blocking call ahead of it resolves) is separately covered by
+    // `queued_unrelated_request_recovers_after_blocking_request_times_out` below, which
+    // exercises pmcp's actual serialized dispatch loop rather than a single handler.
     async fn test_mcp_set_handler_times_out_cleanly_under_contention() {
         let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let h = Hermetic::new();
