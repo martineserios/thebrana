@@ -9,7 +9,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 1. **Detect project** from CWD (git root -> basename) or argument
 2. **Read tasks.json** — if it doesn't exist, create with empty tasks array
 3. **If phase title provided**, use it. Otherwise ask: "What phase are you planning?"
-3a. **Epic** — read `active_epic` from `~/.claude/tasks-config.json`. If set, assign it to the phase (and all tasks will inherit via `inherit_initiative()`). If unset, ask via AskUserQuestion:
+3a. **Epic** — resolve `active_epic` via `mcp__brana__backlog_focus(top: 0)` (its `active_epic` field is project-scoped — never a raw read of `~/.claude/tasks-config.json`, which can hold a foreign project's value at the global scope, ADR-066). If MCP unavailable, fall back to `brana backlog focus --json`'s first element's `active_epic` field. If set, assign it to the phase (and all tasks will inherit via `inherit_initiative()`). If unset, ask via AskUserQuestion:
     ```
     question: "Assign this phase to an epic?"
     header: "Epic"
