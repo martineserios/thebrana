@@ -60869,7 +60869,7 @@
     {
       "id": "t-2289",
       "subject": "Fix remind test time-bomb: pre_t1997_store_parses_unchanged fails with calendar drift",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [],
@@ -60883,7 +60883,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "Surfaced during t-2288. brana-core/src/remind.rs:977 test asserts Status::Pending but list() now returns Expired for the PRE_T1997_STORE fixture (created 2026-06-01, no due) — the fixture rots as the calendar advances. Either the fixture or list()'s expiry derivation needs a fix so the test is date-stable. Not a t-2288 regression (remind.rs byte-identical to base).\nAC: pre_t1997_store_parses_unchanged passes deterministically regardless of current date\nAC: no other remind test regresses",
-      "notes": null,
+      "notes": "Fixed: pre_t1997_store_parses_unchanged routed through read_store() (parse path) instead of list() (which applies calendar-dependent 30-day expiry). Date-stable now. 37 remind tests green. Merged to dev via cli-backlog-schema/fix/t-2289-remind-test-time-bomb.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -60894,7 +60894,7 @@
     {
       "id": "t-2290",
       "subject": "Regenerate docs/reference — validate.sh Check 29 drift",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [],
@@ -60908,14 +60908,47 @@
       "blocked_by": [],
       "branch": null,
       "context": "Surfaced during t-2288. validate.sh Check 29 fails: reference docs out of date. Run `brana reference generate` with a FRESH binary (installed brana 0.2.0 is stale) to avoid regenerating from stale frontmatter knowledge. Verify the diff before committing (docs/reference/ is auto-generated — do not hand-edit).\nAC: validate.sh Check 29 passes\nAC: docs/reference regenerated with a current binary, diff reviewed",
-      "notes": null,
+      "notes": "Verified no-op. Built fresh brana-cli from dev, ran `reference generate` (not just --check): produced ZERO changes — docs/reference/ already current. Check 29 passes on dev with both the installed (0.2.0) AND fresh binary. The drift surfaced during t-2288 was already resolved when t-2288 merged. Both ACs satisfied without a commit; no worktree changes.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "epic": "cli-backlog-schema",
       "work_type": "chore"
+    },
+    {
+      "id": "t-2291",
+      "subject": "Graduate `brana backlog ac-propose` into a reusable /brana:ac-propose loop skill (wave-4)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "loops",
+        "skills-refactor",
+        "v3",
+        "ac-state"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-22",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2278"
+      ],
+      "branch": null,
+      "context": "2026-07-22: Deferred from t-2288 (notes: \"Reusable loop skill deferred to wave-4/t-2278\"). The CLI primitive already exists and works: `brana backlog ac-propose` (list drain / --apply / --dry-run) in brana-core/tasks.rs + brana-cli. This task wraps it into a loop-body skill: drain via ac_propose_candidates -> agy generates candidate ACs -> write ac_state:proposed (inert). BLOCKED on t-2278 wave-0: the routing-heuristic ADR (control-locus/state-scope/invocation discriminators) must land first so the loop-skill follows the epic's conventions rather than inventing them ad-hoc. Do NOT build before that ADR. This is a t-2278 wave-4 deliverable (\"wire ~4 loop-bodies into drain waves: ... backlog->AC-backfill\").\nAC: /brana:ac-propose skill exists and drains ac_state==none via the existing CLI primitive (no filter re-implementation)\nAC: skill conforms to the loop-skill conventions from t-2278's routing-heuristic ADR\nAC: proposed ACs remain inert (gate nothing until human promotes to approved)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
-  "version": "1"
+  "version": 2
 }
