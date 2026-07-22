@@ -6,8 +6,8 @@ created: 2026-07-19
 
 # Brana v3 — The Graduated Self-Evolving Process Loop
 
-> Brainstormed + adversarially challenged 2026-07-19. Status: draft v3.2 (integrated).
-> Foundation: [agentic-primitives.md](../architecture/agentic-primitives.md) · [2026 gap analysis](../research/agentic-engineering-2026-gap-analysis.md) · [loop-engineering + Pi](../research/loop-engineering-and-pi.md) · [gentle-ai extraction](../research/gentle-ai-productization-extraction.md) · challenge: [brana-v3-challenge-2026-07-19.md](../reviews/brana-v3-challenge-2026-07-19.md)
+> Brainstormed + adversarially challenged 2026-07-19; second-pass challenged 2026-07-21. Status: draft v3.3 (integrated).
+> Foundation: [agentic-primitives.md](../architecture/agentic-primitives.md) · [2026 gap analysis](../research/agentic-engineering-2026-gap-analysis.md) · [loop-engineering + Pi](../research/loop-engineering-and-pi.md) · [gentle-ai extraction](../research/gentle-ai-productization-extraction.md) · challenges: [2026-07-19](../reviews/brana-v3-challenge-2026-07-19.md) · [2026-07-21](../reviews/brana-v3-challenge-2026-07-21.md)
 > Elaborations (2026-07-20): [backlog-v3 schema](../architecture/features/backlog-v3-schema.md) + [ADR-065](../architecture/decisions/ADR-065-epic-as-hierarchy-top.md) (the task-contract backbone) · [skills-as-loops](skills-as-loops.md) (waves 4–5 elaboration + deferred pipeline north star, → t-2278)
 
 ## Problem
@@ -28,8 +28,8 @@ Brana's primitives are individually strong (40 hooks, 35 skills, backlog, memory
 3. **The worktree is the sandbox.** Isolation is git-topological: ephemeral worktree per task with explicit base resolution, PR-only output, human merge gate, hooks on every commit. No syscall-level sandboxing as a precondition — it fought the OS (PID-namespace hangs, executor kills, AppArmor blocks) while the git layers did the real protecting. Heavy sandboxing returns only if v3 ever runs genuinely untrusted code.
 4. **Defer, don't guess or halt.** When a loop hits a human-only decision it parks a NEEDSHUMAN question (via `brana remind`) and continues with other work. Escalation is a lane, not a stop.
 5. **Autonomy is earned from evidence, per task shape.** Graduation applies to *shapes* — (kind, effort, tags, file-surface, AC-presence) — never to individual tasks or whole processes. Thresholds are a transparent, auditable rule table (≥K live runs ∧ ≥95% merged-clean ∧ 0 rejected-as-harmful ∧ never P0), continuously evaluated: shapes auto-demote when they start failing. No learning before the soak (≥50 real outcomes / ≥2 weeks) — learning from a thin ledger is learning from noise.
-6. **Every loop starts observable.** New loops ship with a tested **observe invariant** (read + ledger-write only; the test suite proves no task, git, or reminder mutation) before they may act.
-7. **Explicit compute chain.** agy/Gemini first while its (small, fast-exhausting) quota lasts → automatic engine-switch to Claude (included SDK credit pool, then `claude -p` Haiku/Sonnet) — queues always drain, never defer to a quota reset. Per-loop token/run ceilings are encoded stop conditions.
+6. **Every loop starts observable — two tiers.** **Tier A (pure observe):** read + ledger-write only; the test suite proves zero task/git/reminder/memory mutation. Default for report-only loops. **Tier B (scoped-mutation):** for loops whose entire job is to write somewhere (LEARN → memory/patterns) — writes are permitted at L1 only if a test proves them *inert*: they gate nothing (no ranking, no downstream action, no auto-apply) until an explicit human promotion step. Generalizes the `ac_state:proposed` real-but-inert pattern (t-2283). LEARN ships Tier B, not Tier A (resolved 2026-07-21 challenge finding #3, t-2287).
+7. **Explicit compute chain, bounded.** agy/Gemini first while its (small, fast-exhausting) quota lasts → automatic engine-switch to Claude (included SDK credit pool, then `claude -p` Haiku/Sonnet), governed by a **hard per-run token ceiling**. On ceiling hit: checkpoint the queue cursor and stop cleanly — no defer-to-reset. The next scheduled run resumes from the checkpoint. Queues drain within a bounded number of nights, never stall indefinitely; the original "always drain" claim overstated an unbounded-Claude assumption the fallback pool doesn't actually have (resolved 2026-07-21 challenge finding #2, t-2286).
 8. **Adopt, don't build; delete as you go.** Prefer native primitives and shipped brana machinery (validate.sh, build-evaluator, hooks, remind, worktrees); every wave removes more surface than it adds.
 
 ## The graduated autonomy ladder
@@ -46,7 +46,7 @@ Every loop climbs: **L1 report-only → L2 assisted (cockpit) → L3 unattended.
 
 **Requirement: ASYNC.** Learning extraction runs outside interactive sessions (queue written at close in ~30s; a worker drains it). Budget separation is a free bonus, not a requirement.
 
-**Worker compute chain (per run, per entry):** agy/Gemini first (free) → on quota exhaustion, **switch engine to Claude and keep processing** (Agent SDK worker on the included SDK credit pool — $100–200/mo already in the subscription, covers the workload comfortably — or `claude -p` Haiku/Sonnet). The current skip-and-defer-until-reset behavior is the bug: daily exhaustion makes deferral a deadlock (the prime suspect for the stalled queue). Requires a curation gate — extraction volume (~48/night) without scaled DECAY becomes memory noise.
+**Worker compute chain (per run, per entry):** agy/Gemini first (free) → on quota exhaustion, **switch engine to Claude and keep processing** (Agent SDK worker on the included SDK credit pool — $100–200/mo already in the subscription — or `claude -p` Haiku/Sonnet) — **up to a hard per-run token ceiling**. On ceiling hit, checkpoint the queue cursor (last-processed entry ID) and stop; the next scheduled run resumes from there. The prior skip-and-defer-until-reset behavior was the bug (daily exhaustion → deferral → deadlock, the prime suspect for the stalled queue) — the fix isn't unbounded Claude spend, it's bounded spend + guaranteed resume (resolved 2026-07-21 challenge finding #2, t-2286). Requires a curation gate — extraction volume (~48/night) without scaled DECAY becomes memory noise.
 
 ## Wave plan (v3.2)
 
@@ -58,7 +58,7 @@ Ordering principle: *each wave proves the ladder's next rung while paying for th
 | **2 · LEARN AUTONOMOUS** | The async worker on the compute chain (agy-first → Claude engine-switch, never defer). Curation gate + run/token ceiling *inside this wave*. Observe-invariant test for the worker. Honest label: proves unattended execution on a low-risk loop. Resolve close-FULL scope per ADR-052 (escape hatch survives). | agy skip-and-defer stall path · close FULL sync-extraction weight |
 | **3 · VERIFY** | Independent verifier extending build-evaluator + validate.sh, with the four-step gate stack (incl. empty-diff check); standalone ADR. goal-completion.sh migrated guard-by-guard (presence interlock, base_ref pin, Modified/Added split, allowlist, audit trail — each a named carry-forward); tests ported; its 10+ consumers migrated as explicit tasks. Blast-radius constants encoded per loop. Non-AC fallback: stays L2. AC-authoring adoption task (cockpit-assisted AC writing). | goal-completion.sh (only after consumer migration completes) |
 | **4 · COCKPIT + ROUTER** | Cost-baseline spike first (3 real tasks; fallback N=1 judge-only). Fast-approve iteration: parallel candidate prep in ephemeral worktrees → judge via shipped verify-findings workflow → verified diff → approval as PR merge through the existing gate chain — no new bypass surface. NEEDSHUMAN park lane via `brana remind`. Every review writes an outcome-ledger row. Per-phase model/effort profiles built in. | Manual phase invocations · prose routing rules |
-| **5 · GRADUATE + CUT** | Shape-based graduation from the outcome ledger (transparent rule table, auto-demotion), gated on the soak (≥50 outcomes / 2 weeks of wave-4 usage). First qualifying shape goes L3 (activates the ADR-060 amendment). Core vs process-packs boundary (→ t-2090). Hook tier-model page. | v2 remnants retired against the v3 spec |
+| **5 · GRADUATE + CUT** | Ships the graduation **machinery** — outcome ledger, transparent per-shape rule table, auto-demotion — not a graduation guarantee on a wave-5 timeline (resolved 2026-07-21 challenge finding #1, t-2285: at solo throughput ≥1 task/day, 2 weeks yields only 14 outcomes across ALL shapes, nowhere near ≥50 per-shape). Requires shape coarsening (**cap ≤10 shapes**, not a fine-grained (kind,effort,tags,file-surface,AC) combinatorial space) as the only path any shape becomes reachable at all; even then, a shape's first graduation is realistically **months** past wave-4 shipping, not a wave-5 checkbox. Core vs process-packs boundary (→ t-2090). Hook tier-model page. | v2 remnants retired against the v3 spec |
 
 **Wave contract (non-negotiable):** ≤10 tasks/wave · ships into daily use · deletes ≥ adds · next wave gated on previous shipping · tests and docs ride inside waves · a stop-condition ceiling exists from wave 2's first unattended run.
 
@@ -70,7 +70,9 @@ Ordering principle: *each wave proves the ladder's next rung while paying for th
 
 ## Success metric
 
-Daily development runs through the cockpit (≥1 loop-driven task/day) · LEARN drains its queue unattended every night · total system surface (hooks+skills+rules) smaller than the 2026-07-19 baseline.
+Daily development runs through the cockpit (≥1 loop-driven task/day) · LEARN drains its queue unattended within a bounded per-night token ceiling, resuming from checkpoint across nights if needed · total system surface (hooks+skills+rules) smaller than the 2026-07-19 baseline.
+
+**This metric governs L2 adoption, not an L3 timeline.** L3 graduation is evidence-gated per shape (principle 5) and may take months past wave 5's shipping; wave 5 delivers the graduation machinery, not a guaranteed graduation date (resolved 2026-07-21 challenge finding #1, t-2285).
 
 ## Lessons encoded from the first autonomous-runner attempt (2026-06, ADR-059/060 line)
 
@@ -79,6 +81,16 @@ The prior attempt had the right engineering rigor (locked decision tables, teste
 ## Challenge verdict (3-lens adversarial quorum, 2026-07-19)
 
 Unanimous RECONSIDER on the v3.0 draft; all findings addressed in v3.1/v3.2. Full reports + corroboration matrix: [brana-v3-challenge-2026-07-19.md](../reviews/brana-v3-challenge-2026-07-19.md). Highlights: unreconciled prior architecture (→ wave-1 supersession + this integration); Routines factually unusable for stateful learning (→ local worker, verified); "2 live failures" motivation corrected to diagnoses; goal-completion.sh deletion replaced by guard-by-guard migration; verifier scope limited by ~11% AC coverage (→ AC-authoring work); wave-1 task cap overflow (→ split waves); "L3 day one" mislabeling (→ honest labels + early ceilings).
+
+## Second challenge disposition (2026-07-21, findings #1–#3)
+
+Fresh adversarial pass on v3.2 ([brana-v3-challenge-2026-07-21.md](../reviews/brana-v3-challenge-2026-07-21.md)) found three HIGH-severity load-bearing contradictions, all resolved in this revision (v3.3):
+
+- **#1 soak gate unreachable at solo throughput** (t-2285) → wave 5 ships graduation *machinery*, not a graduation *guarantee*; shape coarsening (≤10 shapes) is now an explicit precondition. See wave plan + success metric.
+- **#2 compute chain moves, doesn't remove, the bottleneck** (t-2286) → principle 7 now specifies a hard per-run token ceiling + checkpoint/resume, replacing the unbounded-Claude-fallback assumption. See principle 7 + async learning section.
+- **#3 observe-invariant contradicts LEARN's actual job** (t-2287) → principle 6 now specifies two tiers (pure-observe vs scoped-mutation), generalizing the `ac_state:proposed` inert-write pattern (t-2283) so LEARN can ship at L1 without violating the invariant's intent.
+
+Not resolved here (tracked separately): #4 (deletes≥adds unit — folded into t-2283's demand-driven field adds), #5 (v3-done definition — open question for the epic plan), #6 (ADR-065 sequencing — captured as t-2284, `blocked_by t-2281`; t-2281 has since closed).
 
 ## Risks
 
