@@ -359,14 +359,21 @@ pub fn search_fts(db_path: &Path, query: &str, limit: usize) -> Result<Vec<Memor
 
 /// Tokenize a free-text query into a safe FTS5 MATCH expression. Splits on
 /// non-alphanumerics, wraps each term as a quoted string token (so FTS5 treats
-/// it literally), and joins with spaces (implicit AND). Returns an empty string
-/// when no usable terms remain.
+/// it literally — no `-`-as-NOT or bareword-operator surprises), and joins with
+/// `OR`. Returns an empty string when no usable terms remain.
+///
+/// `OR` (not implicit AND) so verbose, natural-language queries degrade
+/// gracefully: a query mixing one salient term with several incidental ones no
+/// longer requires a single doc to contain *all* of them (which collapsed to
+/// zero/wrong hits — t-2293). FTS5 `ORDER BY rank` (BM25, IDF-weighted) then
+/// floats the doc matching the rarest/most terms to the top. Single-term queries
+/// are unaffected — one token makes AND and OR identical.
 fn sanitize_fts_query(q: &str) -> String {
     q.split(|c: char| !c.is_alphanumeric())
         .filter(|t| !t.is_empty())
         .map(|t| format!("\"{t}\""))
         .collect::<Vec<_>>()
-        .join(" ")
+        .join(" OR ")
 }
 
 #[cfg(test)]
@@ -429,6 +436,49 @@ mod fts_tests {
 
         assert!(search_fts(&db, "", 10).unwrap().is_empty());
         assert!(search_fts(&db, "  :::  ", 10).unwrap().is_empty());
+    }
+
+    /// Regression for t-2293: a verbose, multi-term query must degrade gracefully.
+    /// The old sanitizer joined tokens with an implicit AND, so a query mixing one
+    /// salient rare term with several common terms required a single doc to contain
+    /// *all* of them — collapsing to zero/wrong hits. OR-joining + BM25 `rank`
+    /// (IDF-weighted) surfaces the doc matching the rarest/most terms, matching the
+    /// single-term result.
+    #[test]
+    fn verbose_query_degrades_gracefully_to_salient_doc() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        // Salient doc: the only one carrying the rare terms "active"/"epic".
+        write(
+            &mem,
+            "pattern_active-epic-two-copies.md",
+            "active_epic lives in two places: deployed cache and repo state",
+        );
+        // Filler docs saturate the COMMON query terms so their IDF is low —
+        // none contain active/epic. Under AND the verbose query hits nothing.
+        write(&mem, "note_a.md", "backlog focus resolution project scoped roadmap");
+        write(&mem, "note_b.md", "backlog focus resolution project scoped triage");
+        write(&mem, "note_c.md", "backlog focus resolution project scoped review");
+        write(&mem, "note_d.md", "backlog focus resolution project scoped grooming");
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("global".into(), mem)], &db).unwrap();
+
+        let verbose = "active_epic backlog focus resolution project-scoped";
+        let hits = search_fts(&db, verbose, 10).unwrap();
+        assert!(
+            !hits.is_empty(),
+            "verbose query must not collapse to empty (old implicit-AND join did)"
+        );
+        assert_eq!(
+            hits[0].slug, "active-epic-two-copies",
+            "BM25 IDF must float the rare-term doc above common-term filler"
+        );
+        // Verbose top hit agrees with the single salient-term query (the AC).
+        let single = search_fts(&db, "active_epic", 10).unwrap();
+        assert_eq!(
+            single[0].slug, hits[0].slug,
+            "verbose top hit matches single-term top hit"
+        );
     }
 
     #[test]
