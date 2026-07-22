@@ -36,7 +36,7 @@ See [ADR-066](../decisions/ADR-066-active-epic-project-scoped-only.md) — full 
 
 ## Assumptions
 
-- `tasks-portfolio.json` is the authoritative project list to audit against — needs confirmation it covers all active projects (some found during audit, e.g. `ventures/proyecto_anita-*` worktree copies, are NOT separately portfolio-registered; only the canonical project path per client/venture is). Audit script scopes to portfolio-registered paths only; worktree copies are out of scope (they inherit their parent project's resolution behavior at runtime, not a separate config).
+- `tasks-portfolio.json` is the authoritative project list to audit against — needs confirmation it covers all active projects (some found during audit, e.g. `ventures/proyecto_anita-*` worktree copies, are NOT separately portfolio-registered; only the canonical project path per client/venture is). Audit script scopes to portfolio-registered paths only; worktree copies are out of scope. **Verified during t-2296** (not just assumed): `git_common_root()` resolves to the main checkout root shared across all its worktrees, confirmed by direct incident — a `set-active` boundary probe run from inside this task's own worktree wrote to the main repo's `.claude/tasks-config.json`, not the worktree's. Worktrees genuinely share one project-local config with their main checkout; skipping them in the audit is correct.
 
 ## Design
 
