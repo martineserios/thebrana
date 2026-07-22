@@ -670,7 +670,14 @@ pub fn cmd_add(
         }
     }
     if let Some(s) = new_task["status"].as_str() {
-        if let Err(e) = tasks::validate_status(s) {
+        // ADR-065: an epic node's status validates against a different
+        // vocabulary than an ordinary task's (t-2313).
+        let status_result = if new_task["type"].as_str() == Some("epic") {
+            tasks::validate_epic_status(s)
+        } else {
+            tasks::validate_status(s)
+        };
+        if let Err(e) = status_result {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
             anyhow::bail!("{e}");
         }
@@ -695,7 +702,13 @@ pub fn cmd_add(
 
     // Set defaults
     new_task["id"] = serde_json::Value::String(id.clone());
-    if new_task["status"].is_null() { new_task["status"] = serde_json::Value::String("pending".into()); }
+    if new_task["status"].is_null() {
+        // ADR-065/t-2313: an epic node's default status must be from the
+        // epic vocabulary, not the task vocabulary — "pending" is invalid
+        // for type:"epic".
+        let default_status = if new_task["type"].as_str() == Some("epic") { "next" } else { "pending" };
+        new_task["status"] = serde_json::Value::String(default_status.into());
+    }
     if new_task["execution"].is_null() { new_task["execution"] = serde_json::Value::String("code".into()); }
     if new_task["created"].is_null() {
         new_task["created"] = serde_json::Value::String(chrono::Local::now().format("%Y-%m-%d").to_string());
@@ -719,6 +732,13 @@ pub fn cmd_add(
     }
 
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
+
+    // ADR-065 D4: WIP cap is advisory during pilot — warn, never block (t-2313).
+    if let Some(parent_id) = new_task["parent"].as_str() {
+        if let Some(warning) = tasks::check_epic_wip_cap(&tasks_arr, parent_id) {
+            eprintln!("  ⚠ {warning}");
+        }
+    }
 
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
@@ -2192,6 +2212,42 @@ mod tests {
         let child = arr.iter().find(|t| t["subject"] == "child of ph-1").unwrap();
         assert!(child.get("epic").is_none() || child["epic"].is_null(),
             "epic must not be inherited from parent, got: {}", child["epic"]);
+    }
+
+    #[test]
+    fn cmd_add_epic_type_defaults_status_to_next_not_pending() {
+        // ADR-065/t-2313: "pending" is task vocab, invalid for type:"epic".
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"new epic","type":"epic"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["status"], "next");
+    }
+
+    #[test]
+    fn cmd_add_wip_cap_warns_not_blocks() {
+        // ADR-065 D4: WIP cap is advisory (warn) during pilot, never a hard block.
+        let mut children = String::from(
+            r#"[{"id":"in-1","subject":"epic","status":"pending","type":"epic","tags":[],"blocked_by":[],"wip_limit":10,"parent":null}"#,
+        );
+        for i in 1..=10 {
+            children.push_str(&format!(
+                r#",{{"id":"t-{i}","subject":"child {i}","status":"pending","type":"task","tags":[],"blocked_by":[],"parent":"in-1"}}"#
+            ));
+        }
+        children.push(']');
+        let f = tasks_file_with(&children);
+        cmd_add(
+            Some(r#"{"subject":"11th child","parent":"in-1"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 12, "11th child must still be persisted (warn, not block)");
     }
 
     #[test]

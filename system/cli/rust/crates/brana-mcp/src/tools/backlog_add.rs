@@ -92,6 +92,11 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     input.context.as_deref(),
                 )?;
 
+                // ADR-065 D4: WIP cap is advisory during pilot — warn, never
+                // block (t-2313). Computed before the mutable borrow below.
+                let wip_warning = input.parent.as_deref()
+                    .and_then(|pid| brana_core::tasks::check_epic_wip_cap(tasks, pid));
+
                 let id = brana_core::tasks::next_id(tasks);
 
                 let tags: Vec<serde_json::Value> = input.tags
@@ -101,10 +106,17 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
 
                 let today = chrono::Local::now().format("%Y-%m-%d").to_string();
 
+                // ADR-065/t-2313: a new epic node's default status must be
+                // from the epic vocabulary (active/next/parked/done/archived),
+                // not the task vocabulary — "pending" is invalid for
+                // type:"epic" and would fail validate_epic_status()/
+                // validate.sh Check 26 the moment anything re-validates it.
+                let default_status = if input.task_type == "epic" { "next" } else { "pending" };
+
                 let task = serde_json::json!({
                     "id": id,
                     "subject": input.subject,
-                    "status": "pending",
+                    "status": default_status,
                     "type": input.task_type,
                     "kind": input.kind,
                     "tags": tags,
@@ -139,6 +151,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     "ok": true,
                     "id": id,
                     "subject": input.subject,
+                    "warning": wip_warning,
                 }))
             })
             .await
@@ -319,6 +332,63 @@ mod tests {
             task["work_type"], "implement",
             "work_type must be persisted: {task}"
         );
+    }
+
+    #[tokio::test]
+    async fn test_mcp_add_epic_type_defaults_status_to_next_not_pending() {
+        // ADR-065/t-2313: "pending" is task vocab, invalid for type:"epic".
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({"subject": "new epic", "task_type": "epic"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("handler must accept task_type=epic");
+
+        let tasks = h.tasks();
+        let task = tasks["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["id"] == out["id"])
+            .expect("added task must be persisted");
+        assert_eq!(task["status"], "next");
+    }
+
+    #[tokio::test]
+    async fn test_mcp_add_wip_cap_warns_not_blocks() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let mut tasks = vec![json!({
+            "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
+            "tags": [], "blocked_by": [], "wip_limit": 5, "parent": null
+        })];
+        for i in 1..=5 {
+            tasks.push(json!({
+                "id": format!("t-{i}"), "subject": format!("child {i}"), "status": "pending",
+                "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"
+            }));
+        }
+        std::fs::write(
+            h.dir.path().join(".claude/tasks.json"),
+            serde_json::to_string(&json!({"project": "test", "tasks": tasks})).unwrap(),
+        ).unwrap();
+
+        let out = build()
+            .handle(
+                json!({"subject": "6th child", "parent": "in-1"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("handler must accept add even over the WIP cap (advisory warn)");
+
+        assert_eq!(out["ok"], true);
+        assert!(out["warning"].as_str().is_some(), "response must carry a WIP-cap warning: {out}");
+        assert_eq!(h.tasks()["tasks"].as_array().unwrap().len(), 7, "task must still be persisted (1 epic + 5 existing + 1 new)");
     }
 
     #[tokio::test]

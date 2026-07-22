@@ -37,19 +37,33 @@ pub fn load_tasks(path: &Path) -> Result<TasksFile, String> {
     Err(format!("invalid JSON in {}", path.display()))
 }
 
+/// True when `task` counts as finished for blocked_by-gate purposes: the
+/// task-status terminal values (`completed`/`cancelled`) for ordinary tasks,
+/// or the epic-status terminal values (`done`/`archived`, ADR-065) for
+/// `type: "epic"` nodes. Without this, an epic `blocked_by` another epic
+/// would never unblock — the gate check previously hardcoded the task
+/// vocabulary and never recognized an epic's own terminal states (t-2313).
+fn is_finished(task: &Value) -> bool {
+    match task["status"].as_str() {
+        Some("completed") | Some("cancelled") => true,
+        Some("done") | Some("archived") => task["type"].as_str() == Some("epic"),
+        _ => false,
+    }
+}
+
 /// Classify a task's effective status.
 pub fn classify(task: &Value, all: &[Value]) -> &'static str {
+    if is_finished(task) {
+        return "done";
+    }
     match task["status"].as_str().unwrap_or("") {
-        "completed" | "cancelled" => "done",
         "in_progress" => "active",
         _ => {
             if let Some(deps) = task["blocked_by"].as_array() {
                 if !deps.is_empty() {
                     let done_ids: HashSet<&str> = all
                         .iter()
-                        .filter(|t| {
-                            matches!(t["status"].as_str(), Some("completed" | "cancelled"))
-                        })
+                        .filter(|t| is_finished(t))
                         .filter_map(|t| t["id"].as_str())
                         .collect();
                     if !deps
@@ -102,6 +116,41 @@ pub fn tag_matches(task_tags: &[&str], query: &str) -> bool {
     task_tags.iter().any(|t| {
         *t == query || t.split_once(':').map(|(k, _)| k) == Some(query)
     })
+}
+
+/// Default WIP cap for an epic node when `wip_limit` is unset (ADR-065 D4 /
+/// backlog-v3-schema.md "WIP cap").
+pub const DEFAULT_EPIC_WIP_LIMIT: i64 = 10;
+
+/// Advisory WIP-cap check for adding a new child under `parent_id` (ADR-065
+/// D4: "warn, not block, during pilot"). Returns `Some(warning)` when adding
+/// one more OPEN task (completed/cancelled children don't count) would push
+/// the epic's open-child count past its `wip_limit` (default
+/// `DEFAULT_EPIC_WIP_LIMIT` when unset). Returns `None` when `parent_id`
+/// doesn't resolve to a `type: "epic"` task, or the cap isn't breached —
+/// callers never branch on "is this an epic" themselves. Single point of
+/// computation shared by CLI `cmd_add` and MCP `backlog_add` (t-2313; same
+/// pattern as `tag_matches()`, t-2311). Never returns an error — the cap is
+/// advisory only.
+pub fn check_epic_wip_cap(all: &[Value], parent_id: &str) -> Option<String> {
+    let parent = all.iter().find(|t| t["id"].as_str() == Some(parent_id))?;
+    if parent["type"].as_str() != Some("epic") {
+        return None;
+    }
+    let limit = parent["wip_limit"].as_i64().unwrap_or(DEFAULT_EPIC_WIP_LIMIT);
+    let open_children = all
+        .iter()
+        .filter(|t| t["parent"].as_str() == Some(parent_id))
+        .filter(|t| !matches!(raw_status(t, ""), "completed" | "cancelled"))
+        .count() as i64;
+    let new_count = open_children + 1;
+    if new_count > limit {
+        Some(format!(
+            "epic {parent_id} is at its WIP cap ({open_children}/{limit} open) — adding this task makes {new_count}; consider closing or parking before adding more"
+        ))
+    } else {
+        None
+    }
 }
 
 /// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
@@ -820,6 +869,20 @@ pub fn validate_status(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate an epic node's `status` value (ADR-065). A DIFFERENT vocabulary
+/// from `validate_status()`'s task lifecycle: active/next/parked/done/archived,
+/// plus "null"/"" (clear). Only reached when the task being validated is
+/// `type: "epic"` — see set_field's status branch and cmd_add; a non-epic
+/// task's `status` field still validates against `validate_status()`. t-2313.
+pub fn validate_epic_status(value: &str) -> Result<(), String> {
+    match value {
+        "active" | "next" | "parked" | "done" | "archived" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid epic status {other:?} — must be active/next/parked/done/archived or null"
+        )),
+    }
+}
+
 pub fn validate_work_type(value: &str) -> Result<(), String> {
     match value {
         "implement" | "research" | "design" | "infra" | "chore" | "review" | "null" | "" => Ok(()),
@@ -996,7 +1059,13 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
                 validate_ac_state(value)?;
             }
             if field == "status" {
-                validate_status(value)?;
+                // ADR-065: an epic node's status validates against a
+                // different vocabulary than an ordinary task's (t-2313).
+                if task["type"].as_str() == Some("epic") {
+                    validate_epic_status(value)?;
+                } else {
+                    validate_status(value)?;
+                }
             }
             if field == "work_type" {
                 validate_work_type(value)?;
@@ -1011,6 +1080,25 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
                 task[field] = Value::Null;
             } else {
                 task[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        "wip_limit" => {
+            // ADR-065: WIP cap on an epic node (t-2313). Settable regardless
+            // of task type — matching this whitelist's existing pattern of
+            // no cross-field type coupling; meaninglessness on a non-epic
+            // task is a semantic concern for check_epic_wip_cap's callers,
+            // not a set_field-level restriction.
+            if value == "null" {
+                task[field] = Value::Null;
+            } else {
+                let parsed: i64 = value.parse().map_err(|_| {
+                    format!("wip_limit must be a positive integer or \"null\" (got: {value})")
+                })?;
+                if parsed < 1 {
+                    return Err(format!("wip_limit must be a positive integer (got: {value})"));
+                }
+                task[field] = Value::Number(parsed.into());
             }
             Ok(())
         }
@@ -1597,6 +1685,50 @@ mod tests {
         assert_eq!(classify(&tasks[1], &tasks), "pending");
     }
 
+    // ── t-2313 (ADR-065): epic blocked_by gate uses epic-vocab terminal states ──
+
+    #[test]
+    fn test_classify_epic_blocked_by_gates_generically() {
+        let tasks = vec![
+            json!({"id": "in-1", "status": "next", "type": "epic", "tags": [], "blocked_by": []}),
+            json!({"id": "in-2", "status": "next", "type": "epic", "tags": [], "blocked_by": ["in-1"]}),
+        ];
+        assert_eq!(classify(&tasks[1], &tasks), "blocked", "epic in-2 must be gated on unfinished in-1");
+    }
+
+    #[test]
+    fn test_classify_epic_done_status_unblocks_dependent_epic() {
+        // ADR-065's epic gate ("epic N blocked on epic N-1 shipping") requires the
+        // epic-status terminal value "done" to satisfy blocked_by, not just the
+        // task-status "completed"/"cancelled" (t-2313 — classify()'s done_ids set
+        // hardcoded the task vocabulary and never recognized an epic's own "done").
+        let tasks = vec![
+            json!({"id": "in-1", "status": "done", "type": "epic", "tags": [], "blocked_by": []}),
+            json!({"id": "in-2", "status": "next", "type": "epic", "tags": [], "blocked_by": ["in-1"]}),
+        ];
+        assert_eq!(classify(&tasks[1], &tasks), "pending", "in-2 must unblock once in-1 is epic-done");
+    }
+
+    #[test]
+    fn test_classify_epic_archived_status_is_finished() {
+        let tasks = vec![
+            json!({"id": "in-1", "status": "archived", "type": "epic", "tags": [], "blocked_by": []}),
+        ];
+        assert_eq!(classify(&tasks[0], &tasks), "done");
+    }
+
+    #[test]
+    fn test_classify_task_status_done_does_not_leak_epic_semantics() {
+        // A plain task's status literally spelled "done" (invalid task vocab —
+        // validate_status would reject it) must NOT be treated as finished just
+        // because is_finished() has a "done"/"archived" branch — that branch is
+        // gated on type=="epic" specifically.
+        let tasks = vec![
+            json!({"id": "t-1", "status": "done", "type": "task", "tags": [], "blocked_by": []}),
+        ];
+        assert_eq!(classify(&tasks[0], &tasks), "pending");
+    }
+
     #[test]
     fn test_filter_by_tag() {
         let tasks = sample_tasks();
@@ -2159,6 +2291,155 @@ mod tests {
         for s in &["DONE", "Pending", "wip", "complete"] {
             assert!(validate_status(s).is_err(), "{s} should be rejected");
         }
+    }
+
+    // ── t-2313 (ADR-065): epic status vocabulary ────────────────────────────
+
+    #[test]
+    fn test_validate_epic_status_accepts_canonical() {
+        for s in &["active", "next", "parked", "done", "archived"] {
+            assert!(validate_epic_status(s).is_ok(), "{s} should be accepted");
+        }
+    }
+
+    #[test]
+    fn test_validate_epic_status_accepts_null_and_empty() {
+        assert!(validate_epic_status("null").is_ok());
+        assert!(validate_epic_status("").is_ok());
+    }
+
+    #[test]
+    fn test_validate_epic_status_rejects_task_vocab() {
+        for s in &["pending", "in_progress", "completed", "cancelled"] {
+            assert!(validate_epic_status(s).is_err(), "{s} is task vocab, not epic vocab");
+        }
+    }
+
+    #[test]
+    fn test_validate_epic_status_rejects_arbitrary() {
+        for s in &["ACTIVE", "wip", "on-hold"] {
+            assert!(validate_epic_status(s).is_err(), "{s} should be rejected");
+        }
+    }
+
+    #[test]
+    fn test_set_field_status_epic_type_uses_epic_vocab() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        set_field(&mut task, "status", "active", false).unwrap();
+        assert_eq!(task["status"], "active");
+        let err = set_field(&mut task, "status", "in_progress", false).unwrap_err();
+        assert!(err.contains("active"), "error must list epic vocab: {err}");
+    }
+
+    #[test]
+    fn test_set_field_status_non_epic_uses_task_vocab() {
+        // Proves a non-epic task's status still validates against the OLD vocab.
+        let mut task = json!({"id": "t-1", "type": "task"});
+        set_field(&mut task, "status", "in_progress", false).unwrap();
+        assert_eq!(task["status"], "in_progress");
+        let err = set_field(&mut task, "status", "active", false).unwrap_err();
+        assert!(err.contains("pending"), "error must list task vocab: {err}");
+    }
+
+    #[test]
+    fn test_set_field_status_missing_type_defaults_to_task_vocab() {
+        let mut task = json!({"id": "t-1"});
+        assert!(set_field(&mut task, "status", "active", false).is_err());
+        assert!(set_field(&mut task, "status", "in_progress", false).is_ok());
+    }
+
+    // ── t-2313 (ADR-065): wip_limit field ────────────────────────────────────
+
+    #[test]
+    fn test_set_field_wip_limit_sets_integer() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        set_field(&mut task, "wip_limit", "5", false).unwrap();
+        assert_eq!(task["wip_limit"], 5);
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_null_clears() {
+        let mut task = json!({"id": "in-1", "type": "epic", "wip_limit": 5});
+        set_field(&mut task, "wip_limit", "null", false).unwrap();
+        assert!(task["wip_limit"].is_null());
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_rejects_non_integer() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        assert!(set_field(&mut task, "wip_limit", "abc", false).is_err());
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_rejects_non_positive() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        assert!(set_field(&mut task, "wip_limit", "0", false).is_err());
+        assert!(set_field(&mut task, "wip_limit", "-1", false).is_err());
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_settable_on_any_type() {
+        let mut task = json!({"id": "t-1", "type": "task"});
+        assert!(set_field(&mut task, "wip_limit", "3", false).is_ok());
+    }
+
+    // ── t-2313 (ADR-065): check_epic_wip_cap ─────────────────────────────────
+
+    fn epic_wip_sample(wip_limit: Option<i64>, open_children: usize, done_children: usize) -> Vec<Value> {
+        let mut tasks = vec![{
+            let mut t = json!({
+                "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
+                "tags": [], "blocked_by": [], "parent": null
+            });
+            if let Some(l) = wip_limit {
+                t["wip_limit"] = json!(l);
+            }
+            t
+        }];
+        for i in 0..open_children {
+            tasks.push(json!({"id": format!("t-open-{i}"), "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"}));
+        }
+        for i in 0..done_children {
+            tasks.push(json!({"id": format!("t-done-{i}"), "status": "completed", "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"}));
+        }
+        tasks
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_default_limit_ten() {
+        let tasks = epic_wip_sample(None, 9, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "9 existing + 1 new = 10, at cap but not over");
+        let tasks = epic_wip_sample(None, 10, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_some(), "10 existing + 1 new = 11, over default cap of 10");
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_respects_explicit_limit() {
+        let tasks = epic_wip_sample(Some(3), 3, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_some());
+        let tasks = epic_wip_sample(Some(3), 2, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_none());
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_ignores_done_children() {
+        let tasks = epic_wip_sample(Some(10), 0, 10);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "completed/cancelled children must not count toward the cap");
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_non_epic_parent_is_noop() {
+        let tasks = vec![
+            json!({"id": "ph-1", "status": "pending", "type": "phase", "tags": [], "blocked_by": [], "wip_limit": 1, "parent": null}),
+            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "ph-1"}),
+        ];
+        assert!(check_epic_wip_cap(&tasks, "ph-1").is_none(), "cap only applies to type:epic parents");
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_unknown_parent_is_noop() {
+        let tasks = epic_wip_sample(Some(1), 5, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-999").is_none());
     }
 
     // ── t-939: validate_context_for_effort ──────────────────────────────

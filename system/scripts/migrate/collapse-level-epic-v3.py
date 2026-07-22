@@ -159,17 +159,20 @@ def find_existing_epic_nodes(tasks):
 
 def make_epic_node(node_id, slug, today):
     """Build a new epic-node task dict. Field shape mirrors cmd_add's
-    defaults for a freshly-created task (backlog.rs:695-705: status=pending,
-    execution=code, tags=[], blocked_by=[], priority=P3, ac_state=none) for
-    consistency with normally-added tasks -- excluding the deprecated
-    `strategy`/`build_step` fields cmd_add still null-pads (those were
-    already dropped repo-wide by drop-deprecated-fields.py; reintroducing
-    them on new tasks would be a regression)."""
+    defaults for a freshly-created task (backlog.rs:695-705: execution=code,
+    tags=[], blocked_by=[], priority=P3, ac_state=none) for consistency with
+    normally-added tasks -- excluding the deprecated `strategy`/`build_step`
+    fields cmd_add still null-pads (those were already dropped repo-wide by
+    drop-deprecated-fields.py; reintroducing them on new tasks would be a
+    regression). `status` is "next" (t-2313, ADR-065 epic-status vocabulary:
+    active/next/parked/done/archived) -- NOT "pending", the task-status
+    vocabulary, which validate_epic_status()/validate.sh Check 26 reject for
+    a type:"epic" task."""
     return {
         "id": node_id,
         "subject": slug,
         "type": "epic",
-        "status": "pending",
+        "status": "next",
         "execution": "code",
         "created": today,
         "tags": [],
