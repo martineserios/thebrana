@@ -726,6 +726,17 @@ pub fn lock_tasks(path: &Path) -> Result<std::fs::File, String> {
     crate::util::lock_sidecar(path)
 }
 
+/// Like [`lock_tasks`], but bounded (see [`crate::util::lock_sidecar_timeout`]).
+///
+/// Use this from any async caller — most notably `brana-mcp` tool handlers — instead of
+/// [`lock_tasks`]. An unbounded `flock()` inside an async handler can starve a
+/// fully-serialized event loop for its remaining lifetime if the lock is contended
+/// (t-2305: this happened to `brana-mcp`'s stdio dispatch — one stuck handler froze the
+/// server for every subsequent request, including unrelated reads).
+pub fn lock_tasks_timeout(path: &Path) -> Result<std::fs::File, String> {
+    crate::util::lock_sidecar_timeout(path, crate::util::DEFAULT_LOCK_TIMEOUT)
+}
+
 /// Load tasks as raw serde_json::Value (preserves all fields for mutation).
 /// Normalizes bare JSON arrays into `{tasks: [...]}` so callers can always use `val["tasks"]`.
 pub fn load_raw(path: &Path) -> Result<Value, String> {
