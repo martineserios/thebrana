@@ -139,6 +139,9 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-042](architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md) | Knowledge pipeline — `ingest` as canonical URL entry point + Gemini routing for Tier 1/2 |
 | [ADR-043](architecture/decisions/ADR-043-session-labels-breadcrumb.md) | session_labels breadcrumb array for same-day multi-session merges |
 | [ADR-044](architecture/decisions/ADR-044-initiative-accumulator.md) | Initiative accumulator — cross-day session continuity per initiative |
+| [ADR-066](architecture/decisions/ADR-066-active-epic-project-scoped-only.md) | active_epic/active_initiative resolve project-local only — closes skill-procedure and sync-state.sh bleed vectors |
+
+> Note: this table is missing several ADRs between 045-065 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
 ### Domain model (docs/domain/)
 
@@ -156,6 +159,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [async-close.md](architecture/features/async-close.md) | Async close: instant close, snapshot queue, nightly extraction cron |
 | [task-management-system.md](architecture/features/task-management-system.md) | Task management: JSON data layer, NL interface |
 | [event-log.md](architecture/features/event-log.md) | Event log: /brana:log skill |
+| [active-epic-project-scoping-cleanup.md](architecture/features/active-epic-project-scoping-cleanup.md) | active_epic scoping cleanup: skill-procedure fix, cmd_set_active hard-stop, sync-state.sh pull guard, orphan-audit script (ADR-066) |
 | [smart-tasks-add.md](architecture/features/smart-tasks-add.md) | Smart /brana:backlog add: suggest-only pattern |
 | [research-stream.md](architecture/features/research-stream.md) | Research as first-class task stream |
 | [acquire-skills.md](architecture/features/acquire-skills.md) | Acquire skills from external marketplaces |
