@@ -240,6 +240,15 @@ pub fn cmd_focus(
         .map(|s| s.to_string())
         .or_else(|| cfg["active_epic"].as_str().map(|s| s.to_string()));
 
+    // t-2314 (ADR-065): fail loud rather than silently no-op-ing the
+    // epic-scoped boost/view when active_epic doesn't resolve to anything.
+    if let Some(ref slug) = active {
+        if let Err(e) = tasks::assert_active_epic_resolves(&data.tasks, slug) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
+
     let mut scored: Vec<_> = data.tasks.iter()
         .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
         .filter(|t| tasks::classify(t, &data.tasks) == "pending")

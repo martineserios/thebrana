@@ -388,6 +388,31 @@ fn focus_does_not_inherit_global_active_epic() {
 }
 
 #[test]
+fn focus_fails_loud_when_active_epic_resolves_to_nothing() {
+    // t-2314 (ADR-065): a project-local active_epic that doesn't resolve to
+    // any task or epic node must error, not silently produce a no-boost view.
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks-config.json"),
+        r#"{"active_epic":"nonexistent-epic"}"#,
+    ).unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"proj","tasks":[{"id":"t-1","subject":"x","type":"task","status":"pending","tags":[],"blocked_by":[],"epic":"a-different-epic"}]}"#,
+    ).unwrap();
+    brana()
+        .args(["backlog", "focus"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("nonexistent-epic"));
+}
+
+#[test]
 fn backlog_add_project_writes_to_resolved_target() {
     // Cross-project create (t-2159): --project <slug> resolves the target repo's
     // tasks.json via the portfolio and writes there, leaving the current project untouched.

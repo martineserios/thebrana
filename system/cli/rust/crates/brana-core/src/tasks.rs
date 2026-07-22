@@ -153,6 +153,32 @@ pub fn check_epic_wip_cap(all: &[Value], parent_id: &str) -> Option<String> {
     }
 }
 
+/// Assert that `active_epic` (if set) resolves to something real — either a
+/// `type: "epic"` node task (post-migration, ADR-065) or a task still
+/// carrying the flat `epic` tag with that value (pre-migration compat,
+/// since t-2312's migration script has not been run against live data yet
+/// as of this task). Returns an error naming the unresolved slug instead of
+/// silently falling through to a no-boost, empty-partition state — closing
+/// the gap the ADR's epic table calls out: "the pointer resolves to a real,
+/// local epic node and errors otherwise." t-2281 already fixed the
+/// project-vs-global resolution BUG (which config file wins); this closes
+/// the separate "resolves to nothing at all" gap on top of that fix. t-2314.
+pub fn assert_active_epic_resolves(all: &[Value], active_epic: &str) -> Result<(), String> {
+    let node_exists = all.iter().any(|t| {
+        t["type"].as_str() == Some("epic") && t["subject"].as_str() == Some(active_epic)
+    });
+    if node_exists {
+        return Ok(());
+    }
+    let flat_tag_exists = all.iter().any(|t| t["epic"].as_str() == Some(active_epic));
+    if flat_tag_exists {
+        return Ok(());
+    }
+    Err(format!(
+        "active_epic {active_epic:?} does not resolve to any epic node or task — check tasks-config.json's active_epic, or run `brana backlog set-active` with a real epic"
+    ))
+}
+
 /// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
 #[derive(Debug, Clone)]
 pub struct TaskFilter<'a> {
@@ -2440,6 +2466,34 @@ mod tests {
     fn test_check_epic_wip_cap_unknown_parent_is_noop() {
         let tasks = epic_wip_sample(Some(1), 5, 0);
         assert!(check_epic_wip_cap(&tasks, "in-999").is_none());
+    }
+
+    // ── t-2314 (ADR-065): active_epic fail-loud resolution ───────────────────
+
+    #[test]
+    fn test_assert_active_epic_resolves_via_node() {
+        let tasks = vec![json!({"id": "in-1", "type": "epic", "subject": "harness-core", "tags": [], "blocked_by": []})];
+        assert!(assert_active_epic_resolves(&tasks, "harness-core").is_ok());
+    }
+
+    #[test]
+    fn test_assert_active_epic_resolves_via_flat_tag_pre_migration_compat() {
+        // Pre-migration data (t-2312's script not yet run against live data):
+        // epic membership is still expressed via the flat `epic` field.
+        let tasks = vec![json!({"id": "t-1", "type": "task", "epic": "harness-core", "tags": [], "blocked_by": []})];
+        assert!(assert_active_epic_resolves(&tasks, "harness-core").is_ok());
+    }
+
+    #[test]
+    fn test_assert_active_epic_resolves_fails_on_unresolved_slug() {
+        let tasks = vec![json!({"id": "t-1", "type": "task", "epic": "other-epic", "tags": [], "blocked_by": []})];
+        let err = assert_active_epic_resolves(&tasks, "harness-core").unwrap_err();
+        assert!(err.contains("harness-core"), "error must name the unresolved slug: {err}");
+    }
+
+    #[test]
+    fn test_assert_active_epic_resolves_fails_on_empty_task_list() {
+        assert!(assert_active_epic_resolves(&[], "harness-core").is_err());
     }
 
     // ── t-939: validate_context_for_effort ──────────────────────────────
