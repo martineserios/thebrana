@@ -12,6 +12,11 @@ pub struct TasksFile {
     pub project: String,
     #[serde(default)]
     pub tasks: Vec<Value>,
+    /// Waves — thin stored process objects, NOT tasks (ADR-065, t-2315). A
+    /// sibling top-level array using the same growth model tasks.json
+    /// already uses for `tasks`. See next_wave_id()/set_wave_field().
+    #[serde(default)]
+    pub waves: Vec<Value>,
 }
 
 /// Load tasks from file. Supports both {tasks: [...]} and bare [...].
@@ -23,6 +28,7 @@ pub fn load_tasks(path: &Path) -> Result<TasksFile, String> {
         return Ok(TasksFile {
             project: "unknown".into(),
             tasks: vec![],
+            waves: vec![],
         });
     }
     if let Ok(tf) = serde_json::from_str::<TasksFile>(content) {
@@ -32,6 +38,7 @@ pub fn load_tasks(path: &Path) -> Result<TasksFile, String> {
         return Ok(TasksFile {
             project: "unknown".into(),
             tasks: arr,
+            waves: vec![],
         });
     }
     Err(format!("invalid JSON in {}", path.display()))
@@ -872,6 +879,21 @@ pub fn next_id(tasks: &[Value]) -> String {
     format!("t-{}", max + 1)
 }
 
+/// Find the next available wave ID (highest numeric suffix + 1). Waves live
+/// in their own `waves` array with a distinct `wave-` prefix, never `t-` —
+/// ADR-065 draws the line explicitly ("It selects tasks; it does not own
+/// them") and a shared numbering scheme would let a bare "wave-3" and "t-3"
+/// coexist while meaning unrelated things depending on which array a caller
+/// looked in. Same algorithm as next_id() (t-2315).
+pub fn next_wave_id(waves: &[Value]) -> String {
+    let max = waves.iter()
+        .filter_map(|w| w["id"].as_str())
+        .filter_map(|id| id.split('-').last()?.parse::<u32>().ok())
+        .max()
+        .unwrap_or(0);
+    format!("wave-{}", max + 1)
+}
+
 /// Validate a priority value. Accepts P0/P1/P2/P3 plus "null"/"" (clear). Rejects legacy
 /// high/medium/low and any other string. Canonical enum is P[0-3] only — see t-1344.
 pub fn validate_priority(value: &str) -> Result<(), String> {
@@ -905,6 +927,24 @@ pub fn validate_epic_status(value: &str) -> Result<(), String> {
         "active" | "next" | "parked" | "done" | "archived" | "null" | "" => Ok(()),
         other => Err(format!(
             "invalid epic status {other:?} — must be active/next/parked/done/archived or null"
+        )),
+    }
+}
+
+/// Validate a wave's `status` value (ADR-065 process-overlay slice, t-2315).
+/// A wave's own vocabulary — distinct from both `validate_status()` (task)
+/// and `validate_epic_status()` (epic node). The documented lifecycle is
+/// queued → draining → shipped (backlog-v3-schema.md "Wave = Queue"), but
+/// this validator does NOT enforce that ordering: no lifecycle-status
+/// validator in this codebase enforces forward-only transitions (both
+/// validate_status/validate_epic_status are pure membership checks), and the
+/// drain/query logic that would give "ordering" real meaning is explicitly
+/// out of scope for this slice.
+pub fn validate_wave_status(value: &str) -> Result<(), String> {
+    match value {
+        "queued" | "draining" | "shipped" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid wave status {other:?} — must be queued/draining/shipped or null"
         )),
     }
 }
@@ -1129,6 +1169,37 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             Ok(())
         }
         _ => Err(format!("unknown field: {field}")),
+    }
+}
+
+/// Set a field on a wave object (ADR-065, t-2315). Waves are not tasks — a
+/// separate, smaller field surface than `set_field()`'s task whitelist:
+/// name/selector/contract/gate/status only. No array append/remove syntax
+/// (no array-typed wave field exists in this minimal slice) and no
+/// referential check on `gate` — nothing in this slice resolves or enforces
+/// gates (that's the intent-CLI's job, deferred), and no other reference
+/// field in this codebase (`parent`, `blocked_by`) is existence-checked at
+/// write time either, so `gate` follows the same precedent.
+pub fn set_wave_field(wave: &mut Value, field: &str, value: &str) -> Result<(), String> {
+    match field {
+        "status" => {
+            validate_wave_status(value)?;
+            if value == "null" {
+                wave[field] = Value::Null;
+            } else {
+                wave[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        "name" | "selector" | "contract" | "gate" => {
+            if value == "null" {
+                wave[field] = Value::Null;
+            } else {
+                wave[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        _ => Err(format!("unknown wave field: {field}")),
     }
 }
 
@@ -2600,6 +2671,96 @@ mod tests {
     fn test_next_id_empty() {
         let tasks: Vec<Value> = vec![];
         assert_eq!(next_id(&tasks), "t-1");
+    }
+
+    // ── t-2315 (ADR-065): wave process-object CRUD ──────────────────────
+
+    #[test]
+    fn test_next_wave_id_empty() {
+        let waves: Vec<Value> = vec![];
+        assert_eq!(next_wave_id(&waves), "wave-1");
+    }
+
+    #[test]
+    fn test_next_wave_id_increments() {
+        let waves = vec![json!({"id": "wave-1"}), json!({"id": "wave-4"})];
+        assert_eq!(next_wave_id(&waves), "wave-5");
+    }
+
+    #[test]
+    fn test_validate_wave_status_accepts_canonical() {
+        for s in &["queued", "draining", "shipped"] {
+            assert!(validate_wave_status(s).is_ok(), "{s} should be accepted");
+        }
+    }
+
+    #[test]
+    fn test_validate_wave_status_accepts_null_and_empty() {
+        assert!(validate_wave_status("null").is_ok());
+        assert!(validate_wave_status("").is_ok());
+    }
+
+    #[test]
+    fn test_validate_wave_status_rejects_arbitrary() {
+        for s in &["QUEUED", "active", "wip", "done"] {
+            assert!(validate_wave_status(s).is_err(), "{s} should be rejected");
+        }
+    }
+
+    #[test]
+    fn test_set_wave_field_status() {
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        set_wave_field(&mut wave, "status", "draining").unwrap();
+        assert_eq!(wave["status"], "draining");
+    }
+
+    #[test]
+    fn test_set_wave_field_status_rejects_invalid() {
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        let err = set_wave_field(&mut wave, "status", "bogus").unwrap_err();
+        assert!(err.contains("queued/draining/shipped"), "error must name valid vocab: {err}");
+        assert_eq!(wave["status"], "queued", "rejected write must not mutate");
+    }
+
+    #[test]
+    fn test_set_wave_field_status_allows_any_to_any() {
+        // No forward-only enforcement — matches validate_status/validate_epic_status precedent.
+        let mut wave = json!({"id": "wave-1", "status": "shipped"});
+        set_wave_field(&mut wave, "status", "queued").unwrap();
+        assert_eq!(wave["status"], "queued", "shipped -> queued must be allowed (free transitions)");
+    }
+
+    #[test]
+    fn test_set_wave_field_selector_contract_gate() {
+        let mut wave = json!({"id": "wave-1"});
+        set_wave_field(&mut wave, "selector", "shape:mechanical").unwrap();
+        set_wave_field(&mut wave, "contract", "all tests green").unwrap();
+        set_wave_field(&mut wave, "gate", "wave-0").unwrap();
+        assert_eq!(wave["selector"], "shape:mechanical");
+        assert_eq!(wave["contract"], "all tests green");
+        assert_eq!(wave["gate"], "wave-0");
+    }
+
+    #[test]
+    fn test_set_wave_field_gate_nonexistent_wave_id_not_validated() {
+        // No referential check — matches parent/blocked_by precedent (t-2315 design call).
+        let mut wave = json!({"id": "wave-1"});
+        set_wave_field(&mut wave, "gate", "wave-999").unwrap();
+        assert_eq!(wave["gate"], "wave-999");
+    }
+
+    #[test]
+    fn test_set_wave_field_gate_clear_to_null() {
+        let mut wave = json!({"id": "wave-1", "gate": "wave-0"});
+        set_wave_field(&mut wave, "gate", "null").unwrap();
+        assert!(wave["gate"].is_null());
+    }
+
+    #[test]
+    fn test_set_wave_field_rejects_unknown_field() {
+        let mut wave = json!({"id": "wave-1"});
+        let err = set_wave_field(&mut wave, "bogus_field", "x").unwrap_err();
+        assert!(err.contains("bogus_field"));
     }
 
     // ── Wave 2: tag_inventory tests ─────────────────────────────────────

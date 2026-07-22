@@ -774,6 +774,106 @@ pub fn cmd_get(task_id: &str, field: Option<String>) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Create a wave — a thin stored process object (ADR-065, t-2315). Waves
+/// select tasks (via `selector`); they don't own them, and this command does
+/// not resolve or execute the selector — storage + validation only.
+pub fn cmd_wave_add(
+    name: String,
+    selector: String,
+    contract: Option<String>,
+    gate: Option<String>,
+    file: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    if val["waves"].is_null() {
+        val["waves"] = serde_json::json!([]);
+    }
+    let waves_arr = val["waves"].as_array().cloned().unwrap_or_default();
+    let id = tasks::next_wave_id(&waves_arr);
+
+    let wave = serde_json::json!({
+        "id": id,
+        "name": name,
+        "selector": selector,
+        "contract": contract,
+        "gate": gate,
+        "status": "queued",
+        "created": chrono::Local::now().format("%Y-%m-%d").to_string(),
+    });
+
+    val["waves"].as_array_mut()
+        .ok_or_else(|| anyhow::anyhow!("tasks.json waves is not an array"))?
+        .push(wave);
+    tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!("{}", serde_json::json!({"ok": true, "id": id, "name": name}));
+    Ok(())
+}
+
+/// Get a single wave by ID, or one field (t-2315).
+pub fn cmd_wave_get(wave_id: &str, field: Option<String>) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let wave = data.waves.iter().find(|w| w["id"].as_str() == Some(wave_id))
+        .ok_or_else(|| anyhow::anyhow!("wave {wave_id} not found"))?;
+
+    if let Some(f) = field {
+        println!("{}", serde_json::to_string(&wave[f.as_str()]).unwrap());
+    } else {
+        println!("{}", serde_json::to_string_pretty(wave).unwrap());
+    }
+    Ok(())
+}
+
+/// List all waves (t-2315). No filtering — this minimal slice stores and
+/// retrieves wave records only; resolving a wave's `selector` against the
+/// task list is the intent-CLI's job, deferred.
+pub fn cmd_wave_list(file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!("{}", serde_json::to_string_pretty(&data.waves).unwrap());
+    Ok(())
+}
+
+/// Set a field on a wave (t-2315): status/selector/contract/gate/name.
+pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let idx = val["waves"].as_array()
+        .and_then(|arr| arr.iter().position(|w| w["id"].as_str() == Some(wave_id)))
+        .ok_or_else(|| {
+            eprintln!("{{\"ok\":false,\"error\":\"wave {wave_id} not found\"}}");
+            anyhow::anyhow!("wave {wave_id} not found")
+        })?;
+
+    let wave = &mut val["waves"][idx];
+    match tasks::set_wave_field(wave, field, value) {
+        Ok(()) => {
+            let actual = val["waves"][idx][field].clone();
+            tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+            println!("{}", serde_json::json!({"ok": true, "id": wave_id, "field": field, "value": actual}));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("set wave field failed: {e}"))
+        }
+    }
+}
+
 /// Definition-of-ready lint for autonomous dispatch (t-1981).
 /// Returns Ok(ready); the caller maps not-ready to exit code 1.
 pub fn cmd_lint(task_id: &str, json_out: bool, file: Option<PathBuf>) -> anyhow::Result<bool> {
@@ -2279,6 +2379,119 @@ mod tests {
         cmd_set("t-1", "priority", "P1", false, Some(f.path().to_path_buf())).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["ac_state"].as_str(), Some("proposed"), "CLI set clobbered ac_state");
+    }
+
+    // ── t-2315 (ADR-065): wave process-object CRUD (CLI path) ────────────
+
+    fn read_waves(f: &tempfile::NamedTempFile) -> serde_json::Value {
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        data["waves"].clone()
+    }
+
+    #[test]
+    fn cmd_wave_add_creates_wave_with_all_fields() {
+        let f = empty_tasks_file();
+        cmd_wave_add(
+            "v3-w1".into(), "shape:mechanical ac_state:approved".into(),
+            Some("all tests green".into()), Some("wave-0".into()),
+            Some(f.path().to_path_buf()),
+        ).unwrap();
+        let waves = read_waves(&f);
+        let w = &waves[0];
+        assert_eq!(w["id"], "wave-1");
+        assert_eq!(w["name"], "v3-w1");
+        assert_eq!(w["selector"], "shape:mechanical ac_state:approved");
+        assert_eq!(w["contract"], "all tests green");
+        assert_eq!(w["gate"], "wave-0");
+        assert_eq!(w["status"], "queued");
+        assert!(w["created"].as_str().is_some());
+    }
+
+    #[test]
+    fn cmd_wave_add_only_required_fields_defaults() {
+        let f = empty_tasks_file();
+        cmd_wave_add(
+            "v3-w1".into(), "shape:mechanical".into(),
+            None, None, Some(f.path().to_path_buf()),
+        ).unwrap();
+        let waves = read_waves(&f);
+        let w = &waves[0];
+        assert_eq!(w["id"], "wave-1");
+        assert!(w["contract"].is_null());
+        assert!(w["gate"].is_null());
+        assert_eq!(w["status"], "queued");
+    }
+
+    #[test]
+    fn cmd_wave_add_initializes_waves_array_when_absent() {
+        // empty_tasks_file() has no "waves" key at all — proves the defensive init works.
+        let f = empty_tasks_file();
+        cmd_wave_add("w".into(), "s".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f).as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn cmd_wave_add_increments_id_across_waves() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_add("w2".into(), "s2".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        let waves = read_waves(&f);
+        assert_eq!(waves[0]["id"], "wave-1");
+        assert_eq!(waves[1]["id"], "wave-2");
+    }
+
+    #[test]
+    fn cmd_wave_set_status_update() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "status", "draining", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_set_selector_contract_gate_update() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "selector", "shape:mechanical", Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "contract", "ship criteria", Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "gate", "wave-0", Some(f.path().to_path_buf())).unwrap();
+        let w = &read_waves(&f)[0];
+        assert_eq!(w["selector"], "shape:mechanical");
+        assert_eq!(w["contract"], "ship criteria");
+        assert_eq!(w["gate"], "wave-0");
+    }
+
+    #[test]
+    fn cmd_wave_set_invalid_status_rejected() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        let err = cmd_wave_set("wave-1", "status", "bogus", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("queued/draining/shipped"));
+        assert_eq!(read_waves(&f)[0]["status"], "queued", "rejected write must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_set_gate_nonexistent_wave_allowed() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "gate", "wave-999", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["gate"], "wave-999");
+    }
+
+    #[test]
+    fn cmd_wave_set_unknown_wave_id_errors() {
+        let f = empty_tasks_file();
+        let err = cmd_wave_set("wave-1", "status", "queued", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("not found"));
+    }
+
+    #[test]
+    fn cmd_wave_list_returns_created_waves() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_add("w2".into(), "s2".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        assert!(cmd_wave_list(Some(f.path().to_path_buf())).is_ok());
     }
 }
 

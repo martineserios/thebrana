@@ -1023,6 +1023,56 @@ pub enum BacklogCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Wave — thin stored process object over the task tree (ADR-065). CRUD
+    /// only in this slice: no selector resolution, no drain loop.
+    Wave {
+        #[command(subcommand)]
+        cmd: WaveCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum WaveCmd {
+    /// Create a wave — a thin stored process object (ADR-065). Storage only:
+    /// does not resolve or execute the selector.
+    Add {
+        /// Human-readable wave name
+        #[arg(long)]
+        name: String,
+        /// Selector query text (stored opaque — not parsed or executed)
+        #[arg(long)]
+        selector: String,
+        /// Ship criteria (free text)
+        #[arg(long)]
+        contract: Option<String>,
+        /// Wave ID that must be `shipped` before this wave may drain (not enforced in this slice)
+        #[arg(long)]
+        gate: Option<String>,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Get a wave by ID, or one field
+    Get {
+        wave_id: String,
+        #[arg(long)]
+        field: Option<String>,
+    },
+    /// List all waves
+    List {
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Set a field on a wave (status, selector, contract, gate, name)
+    Set {
+        wave_id: String,
+        field: String,
+        value: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
