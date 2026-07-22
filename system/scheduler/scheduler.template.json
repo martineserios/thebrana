@@ -288,7 +288,7 @@
       "type": "command",
       "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "0 3 * * *",
+      "schedule": "*-*-* 03:00:00",
       "enabled": false,
       "timeoutSeconds": 300,
       "captureOutput": true,

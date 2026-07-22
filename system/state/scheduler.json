@@ -163,7 +163,7 @@
       "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
       "enabled": true,
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "0 3 * * *",
+      "schedule": "*-*-* 03:00:00",
       "timeoutSeconds": 300,
       "type": "command"
     },
