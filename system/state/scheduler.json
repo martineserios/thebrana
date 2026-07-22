@@ -163,7 +163,7 @@
       "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
       "enabled": true,
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "0 3 * * *",
+      "schedule": "*-*-* 03:00:00",
       "timeoutSeconds": 300,
       "type": "command"
     },
@@ -234,6 +234,17 @@
       "project": "~/enter_thebrana/thebrana",
       "schedule": "Sun *-*-* 03:00:00",
       "timeoutSeconds": 3600,
+      "type": "command"
+    },
+    "reminder-dispatch": {
+      "_comment": "t-1999/ADR-054: dispatch due reminders to registered channels (notify-channels.json) every 30 min. noProjectLock: writes only the Rust-locked reminder store (ADR-051), never tasks.json — must not be starved by the wake catch-up burst (t-2292). Empty-store runs exit fast and silent.",
+      "captureOutput": true,
+      "command": "brana remind due --dispatch",
+      "enabled": true,
+      "noProjectLock": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:00,30:00",
+      "timeoutSeconds": 60,
       "type": "command"
     },
     "second-phase-review": {

@@ -523,6 +523,19 @@ if [ -d "$SCHED_SRC" ]; then
         fi
     fi
 
+    # Notify-channels registry — only if it doesn't exist (t-1999, ADR-054).
+    # Without a registry, reminder dispatch is a silent no-op; provisioning a
+    # default (desktop + stub telegram) ensures a fresh machine can alert.
+    if [ ! -f "$HOME/.claude/notify-channels.json" ] && [ -f "$SCHED_SRC/notify-channels.template.json" ]; then
+        CHANGES=$((CHANGES + 1))
+        if ! $CHECK_ONLY; then
+            cp "$SCHED_SRC/notify-channels.template.json" "$HOME/.claude/notify-channels.json"
+            echo "  + notify-channels.json (new — desktop enabled; add ~/.hub-secrets to activate telegram)"
+        else
+            echo "  + notify-channels.json (would create from template)"
+        fi
+    fi
+
     # PATH symlink
     if ! $CHECK_ONLY; then
         mkdir -p "$HOME/.local/bin"
