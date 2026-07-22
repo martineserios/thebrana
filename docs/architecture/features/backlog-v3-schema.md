@@ -290,6 +290,22 @@ An audit verified whether consumers read *both* doc locations and follow spec→
 2. `/brana:backlog plan` → graduate into the epic node + tasks, sequenced: cleanup (collapse 43→~10, from the family map) → schema + intent-CLI build → AC backfill → loop/cockpit. Fold F2/F3 in as tasks; TDD field-migration tests first. **Hygiene-first variant to weigh at plan time (challenge, Green/Yellow consensus):** the mark-done epic sweep + AC backfill on existing v2 fields + `ac_state` alone deliver most of the stated win in week 1 with zero data-migration risk — the fuller schema wave (spec field, log, waves, key:value) can follow, informed by that usage. The intent-CLI can also start as 3 verbs (`q` / `act` / `log`) with the alias table as thin wrappers added on demand.
 3. First epic through the new lifecycle is the backlog itself — dogfood the model on its own creation.
 
+## Assumptions (t-2284 BUILD, 2026-07-22)
+
+Judgment calls made during implementation that weren't fully spelled out in the spec/ADR — each confirmed with the operator or flagged explicitly in the per-subtask notes below, not picked silently:
+
+- **Re-parent scope**: the migration script does NOT re-parent the 714 tasks that already sit under a milestone/phase — confirmed with operator (t-2312).
+- **`--write` deferred**: the migration script is written, tested, and committed, but not run against live data — confirmed with operator at t-2312 and reconfirmed at the BUILD→CLOSE gate.
+- **Epic-node id/dedup scheme**: `type:"epic"` nodes use the existing `t-NNNN` id scheme (not a new prefix); dedup against pre-existing `in-*` initiative markers uses the id-prefix + own-epic-value signal specifically (weaker `type:"initiative"` + `t-` id signals are deliberately excluded — see t-2323).
+- **Epic-node reuse retypes the marker** from `initiative` → `epic` — not explicit in the original ISC (only new-node creation was), applied for ADR-065 consistency.
+- **`wip_limit` has no type coupling** at the `set_field` level (settable on any task) — matches the whitelist's existing no-coupling pattern; meaninglessness on non-epic tasks is `check_epic_wip_cap`'s concern, not a write-time restriction.
+- **Wave storage**: a `waves` sibling array in `tasks.json`, not a separate file — the "small sibling JSON store" pattern (`remind.rs`/`queue.rs`) is for global stores; waves are project-scoped and share `tasks.json`'s atomicity boundary instead.
+- **Wave status transitions are free** (any-to-any) — matches `validate_status`/`validate_epic_status`, neither of which enforces forward-only ordering; the drain/query logic that would give ordering real meaning is out of scope.
+- **Wave `gate` has no referential check** — an unresolved/nonexistent wave id is accepted, matching how `parent`/`blocked_by` are never existence-checked at write time elsewhere in this schema.
+- **key:value tag disambiguation**: a colon-less query (`--tag backend`) matches both the bare tag and any `backend:*` — chosen for backward compat and to make "everything about this dimension" a natural query.
+- **`active_epic` resolution is backward-compatible**: accepts either a `type:"epic"` node (post-migration) or a flat `epic` tag match (pre-migration) — so nothing regresses while the migration sits unrun.
+- **Version-gate forward-only framing**: the new ceiling check protects binaries built from t-2308 onward against a future version bump; it cannot retroactively protect already-deployed binaries that hardcode the old floor — write-path sealing is the actual defense against those.
+
 ## Implementation progress (t-2284, 2026-07-22)
 
 Sprint contract locked after 2 challenger iterations (see t-2284 task context for the full contract and both review rounds). Subtasks land in dependency order: version-gate → tags normalization → write-path sealing → migration script → epic-as-node conversion → (active_epic assertion, key:value tags, wave object) → config cleanup → docs.
