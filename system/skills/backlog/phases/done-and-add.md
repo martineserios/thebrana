@@ -1,7 +1,7 @@
 <!-- backlog phase: /brana:backlog done, add, replan, archive, migrate — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_release")
+ToolSearch("select:mcp__ruflo__claims_release,mcp__brana__backlog_focus")
 
 ## /brana:backlog done
 
@@ -69,7 +69,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
 2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
 3. **URL auto-detection:** if the description contains `https://`, suggest `kind: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the kind/milestone prompt.
 3a. **Epic assignment** — tasks must always have an epic (no orphans allowed):
-   - Read `active_epic` from `~/.claude/tasks-config.json`. If set, **auto-assign silently** and note "(assigned to epic: {active_epic})" — skip the epic question in step 4.
+   - Resolve `active_epic` via `mcp__brana__backlog_focus(top: 0)` (its `active_epic` field is project-scoped — never a raw read of `~/.claude/tasks-config.json`, which can hold a foreign project's value at the global scope, ADR-066). If MCP unavailable, fall back to `brana backlog focus --json`'s first element's `active_epic` field. If set, **auto-assign silently** and note "(assigned to epic: {active_epic})" — skip the epic question in step 4.
    - Else: infer epic from subject/tags (e.g., "harness" tag → "harness" epic, "backlog" tag → "backlog-git-alignment", "research" tag → most-recent research epic in tasks.json). If confident, set as the default suggestion in step 4.
    - No inference possible → add **Epic** to the first question batch in step 4. Options: distinct epics from tasks.json (sorted by recency) + "Create new…" (user types via Other input). **There is no skip option — every task must have an epic.**
    - "Create new…" → accept slug from free-text input; confirm: "Create epic '{slug}'? It will appear in backlog focus and filters."

@@ -313,6 +313,25 @@ fn backlog_set_active_writes_project_local_not_global() {
 }
 
 #[test]
+fn set_active_hard_stop_when_no_project_root_determinable() {
+    // t-2296 / ADR-066: when no git repo and no pre-existing local .claude/ can be
+    // found, set-active must fail loudly rather than silently write active_epic to
+    // the global $HOME/.claude/tasks-config.json (the exact bleed vector this ADR
+    // exists to close). CWD is a bare tempdir outside any git repo, with no .claude/.
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    brana()
+        .args(["backlog", "set-active", "test-epic"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
+        .assert()
+        .failure();
+    let global = home.path().join(".claude/tasks-config.json");
+    assert!(!global.exists(), "must not write active_epic to the global config on fallback");
+}
+
+#[test]
 fn config_inherits_theme_but_not_active_epic_from_global() {
     // On first set-active, theme seeds from global (inheritable) but a foreign
     // active_epic does NOT bleed in (project-scoped key never inherits).

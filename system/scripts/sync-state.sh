@@ -15,7 +15,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 THEBRANA_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-STATE_DIR="$THEBRANA_ROOT/system/state"
+STATE_DIR="${BRANA_STATE_DIR:-$THEBRANA_ROOT/system/state}"
 
 # ── File mappings ──────────────────────────────────────────
 # Global operational state: cache path → repo path
@@ -218,6 +218,14 @@ cmd_push() {
 cmd_pull() {
     ensure_state_dir
 
+    # Capture the cache's active_epic before pulling — used by the contamination
+    # guard below (t-2297 / ADR-066, mirrors cmd_push's t-1883 guard, reversed).
+    local _cache_epic_before=""
+    local _tasks_config_cache="$HOME/.claude/tasks-config.json"
+    if [ -f "$_tasks_config_cache" ] && command -v jq &>/dev/null; then
+        _cache_epic_before=$(jq -r '.active_epic // empty' "$_tasks_config_cache" 2>/dev/null || true)
+    fi
+
     # Global files (reverse direction)
     for i in "${!CACHE_PATHS[@]}"; do
         if [ -f "${REPO_PATHS[$i]}" ]; then
@@ -225,6 +233,28 @@ cmd_pull() {
             sync_file "${REPO_PATHS[$i]}" "${CACHE_PATHS[$i]}" || true
         fi
     done
+
+    # active_epic cross-project contamination guard (t-2297 / ADR-066):
+    # active_epic is project-scoped — it should never live authoritatively in the
+    # global cache. If a foreign value was already sitting there before this pull,
+    # don't let thebrana's own repo value silently clobber it. Single-repo
+    # before/after diff, same shape as cmd_push's guard — not a portfolio-wide
+    # comparison (that design was considered and rejected, see ADR-066: it would
+    # never converge to a no-op and would block legitimate first-run seeding).
+    if [ -n "$_cache_epic_before" ] && [ -f "$_tasks_config_cache" ] && command -v jq &>/dev/null; then
+        local _repo_epic
+        _repo_epic=$(jq -r '.active_epic // empty' "$STATE_DIR/tasks-config.json" 2>/dev/null || true)
+        if [ -n "$_repo_epic" ] && [ "$_repo_epic" != "$_cache_epic_before" ]; then
+            log "⚠ active_epic cross-project contamination blocked: repo='$_repo_epic' != cache='$_cache_epic_before'"
+            log "  Preserving cache value '$_cache_epic_before'. Use 'brana backlog set-active <slug>' to change explicitly."
+            local _tmp="${_tasks_config_cache}.guard.$$"
+            if jq --arg epic "$_cache_epic_before" '.active_epic = $epic' "$_tasks_config_cache" > "$_tmp" 2>/dev/null; then
+                mv "$_tmp" "$_tasks_config_cache"
+            else
+                rm -f "$_tmp"
+            fi
+        fi
+    fi
 
     # Companion files per project
     local portfolio="$STATE_DIR/tasks-portfolio.json"
