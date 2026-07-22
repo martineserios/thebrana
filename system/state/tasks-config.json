@@ -1,11 +1,10 @@
 {
   "active_epic": "harness-core",
-  "active_initiative": "backlog-ui",
   "github_sync": {
     "enabled": true,
     "labels": {
       "priority": true,
-      "stream": true,
+      "stream": false,
       "tags": 2
     },
     "project": null,
