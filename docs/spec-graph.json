@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-22T14:18:13Z",
+  "generated": "2026-07-22T17:14:20Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1086,6 +1086,16 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md": {
+      "title": "ADR-066: `active_epic`/`active_initiative` Resolve Project-Local Only",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/backlog/phases/plan.md",
+        "system/skills/backlog/phases/done-and-add.md",
+        "system/state/tasks-config.json",
+        "system/scripts/migrate/audit-orphaned-active-epic.py"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1162,6 +1172,13 @@
       "impl_files": [
         "system/skills/acquired/",
         "system/skills/acquired/<name>/"
+      ]
+    },
+    "docs/architecture/features/active-epic-project-scoping-cleanup.md": {
+      "title": "Feature: Active-Epic Project Scoping — Cleanup + Enforcement",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/migrate/audit-orphaned-active-epic.py"
       ]
     },
     "docs/architecture/features/agentdb-v3-upgrade-evaluation.md": {
@@ -2938,6 +2955,11 @@
         "system/scripts/ac-lint.sh"
       ]
     },
+    "docs/ideas/mcp-lock-timeout.md": {
+      "title": "brana-mcp lock-acquire hang fix",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/memory-consolidation-autodream.md": {
       "title": "Memory Consolidation — Auto Dream Integration",
       "type": "Roadmap",
@@ -3038,6 +3060,13 @@
       "title": "Statusline v2 — Backlog-Aware Intelligence",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/telegram-link-capture.md": {
+      "title": "Telegram Link Capture (→ Personal Bot Serverless Migration)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/log/SKILL.md"
+      ]
     },
     "docs/ideas/unified-session-state.md": {
       "title": "Unified Session State",
@@ -9882,6 +9911,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -9919,6 +9954,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/acquire-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/active-epic-project-scoping-cleanup.md",
       "type": "references",
       "computed": false
     },
@@ -10847,6 +10888,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
+      "to": ".claude/memory",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -10915,6 +10962,12 @@
     {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/active-epic-project-scoping-cleanup.md",
+      "to": "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
       "type": "references",
       "computed": false
     },
@@ -15114,9 +15167,9 @@
     }
   ],
   "stats": {
-    "nodes": 518,
-    "edges": 1933,
+    "nodes": 522,
+    "edges": 1937,
     "typed_edges": 682,
-    "orphans": 136
+    "orphans": 138
   }
 }
