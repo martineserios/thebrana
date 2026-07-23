@@ -58926,7 +58926,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "skill_gap_checked: true (score < 0.3, user chose: skip)",
       "created": "2026-07-22",
       "description": "validate_schema() (brana-core/src/tasks.rs:491) has valid_types=[phase,milestone,task,subtask] -- already missing \"initiative\" (17 live tasks) before t-2312, and will newly reject \"epic\" (48 tasks) once t-2312's migration runs. Low urgency: this function is only wired to the manual `brana ... validate` CLI subcommand, not the blocking validate.sh gate. Found during t-2312 (migration script) composition, 2026-07-22.",
       "effort": "S",
@@ -58946,7 +58946,8 @@
         "follow-up"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "bug-fix"
     },
     {
       "ac_state": "none",
@@ -59742,7 +59743,7 @@
       "github_issue": "1035",
       "id": "t-2375",
       "kind": "fix",
-      "notes": "TDD gate skipped: system/skills/close/phases/session-state.md is a markdown skill procedure, no test framework covers it (consistent with other close-skill phase files). Verified manually against live data: old `.epic` jq reads return empty (field retired), new resolve_epic_ancestor() helper correctly resolves t-2375→cli-backlog-schema, t-2173→orbit (via t-2354), and empty for parentless tasks (t-2214). Found and noted separately: concurrent brana backlog get reads during another session's write can return transiently invalid JSON (torn read) — pre-existing infra issue, out of scope here; the fix already degrades gracefully (jq failure -> empty signal -> falls through cascade), so it doesn't affect correctness.\nChallenger gate: 2 iterations, unresolved. Verdict: override. Both named iteration-1 findings (sibling start.md read, unvalidated ancestor subject) confirmed resolved. Iteration-2 surfaced a third sibling in Rust source (TaskFilter.epic in brana-core/src/tasks.rs, exposed via MCP backlog_query's epic param and CLI --epic flags on cmd_query/cmd_next) still filtering against the dead flat field — different subsystem/blast radius (Rust rebuild required), scoped out of this task, filed as a follow-up.",
+      "notes": "TDD gate skipped: system/skills/close/phases/session-state.md is a markdown skill procedure, no test framework covers it (consistent with other close-skill phase files). Verified manually against live data: old `.epic` jq reads return empty (field retired), new resolve_epic_ancestor() helper correctly resolves t-2375→cli-backlog-schema, t-2173→orbit (via t-2354), and empty for parentless tasks (t-2214). Found and noted separately: concurrent brana backlog get reads during another session's write can return transiently invalid JSON (torn read) — pre-existing infra issue, out of scope here; the fix already degrades gracefully (jq failure -> empty signal -> falls through cascade), so it doesn't affect correctness.\nChallenger gate: 2 iterations, unresolved. Verdict: override. Both named iteration-1 findings (sibling start.md read, unvalidated ancestor subject) confirmed resolved. Iteration-2 surfaced a third sibling in Rust source (TaskFilter.epic in brana-core/src/tasks.rs, exposed via MCP backlog_query's epic param and CLI --epic flags on cmd_query/cmd_next) still filtering against the dead flat field — different subsystem/blast radius (Rust rebuild required), scoped out of this task, filed as a follow-up.\nRetrospective: fixed close-skill Tier 2a/2b + backlog-start branch-slug lookup to walk parent chain to nearest type:\"epic\" ancestor (shared helper in system/skills/_shared/epic-ancestor-walk.md), guarded against legacy in-*  markers with non-slug subjects. Challenger Gate ran 2 iterations: iteration 1 found a real sibling bug in start.md (severity 5, fixed) + missing slug validation (severity 4, fixed); iteration 2 confirmed both resolved but found a third sibling in Rust (TaskFilter.epic) — out of scope (different subsystem, needs cargo rebuild), overridden and filed as t-2377. Also found, unrelated to fix correctness: concurrent brana backlog get reads can return torn/invalid JSON during another session's write (field-note captured). 3 field notes + 1 pattern stored to ruflo. Commits: 00cdcf98 (initial fix), 0e9511b9 (challenger repair), 13ac02c2 (docs).\nMerged to dev (3 commits + 1 fixup: 00cdcf98, 0e9511b9, 13ac02c2, 5c02031). Worktree/branch cleaned up. Caught during merge: the ToolSearch-preamble fix for validate.sh Check 45 had been applied in the worktree but never committed after the second Challenger repair — committed as a follow-up fixup (5c02031) and merged before cleanup. dev validate.sh --check 45 confirmed passing post-merge.",
       "order": 0,
       "parent": "t-2338",
       "priority": "P2",
