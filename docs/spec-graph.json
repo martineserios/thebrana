@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-23T18:09:34Z",
+  "generated": "2026-07-23T19:35:44Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1233,7 +1233,9 @@
       "impl_files": [
         "system/procedures/migrate.md",
         "system/scripts/migrate/",
-        "system/scripts/migrate/collapse-level-epic-v3.py"
+        "system/scripts/migrate/collapse-level-epic-v3.py",
+        "system/scripts/migrate/normalize-tags.py",
+        "system/state/tasks-config.json"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
@@ -2495,6 +2497,13 @@
       "title": "Backlog: Per-Project Scoping & Cross-Project Tasks",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/guide/features/backlog-v3-schema.md": {
+      "title": "Backlog v3 Schema — epics, key:value tags, waves",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/migrate/collapse-level-epic-v3.py"
+      ]
     },
     "docs/guide/features/brana-feed-inbox.md": {
       "title": "brana feed + brana inbox",
@@ -11064,6 +11073,12 @@
     },
     {
       "from": "docs/architecture/features/backlog-v3-schema.md",
+      "to": "docs/guide/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-v3-schema.md",
       "to": "docs/ideas/brana-backlog-v2-schema.md",
       "type": "references",
       "computed": false
@@ -15174,8 +15189,8 @@
     }
   ],
   "stats": {
-    "nodes": 522,
-    "edges": 1938,
+    "nodes": 523,
+    "edges": 1939,
     "typed_edges": 682,
     "orphans": 137
   }
