@@ -29,7 +29,6 @@ struct LinearSyncConfig {
     team_id: String,
     default_project_id: String,
     tag_project_map: HashMap<String, String>,
-    keep_streams: Vec<String>,
     keep_statuses: Vec<String>,
 }
 
@@ -340,22 +339,18 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
 
 // ── Helpers ────────────────────────────────────────────────────
 
-/// Status-only filter for structural items (in-XXX, ph-XXX, ms-XXX) — no stream check.
+/// Status filter, applied to every synced task type (in-XXX, ph-XXX, ms-XXX, t-XXX).
+/// t-2325 (ADR-065): the sibling `passes_filters()` (status + retired `stream`
+/// field) was dead code — never called from `cmd_sync_linear`'s four passes,
+/// all of which already used this function directly — removed rather than
+/// left to bit-rot with a non-empty `keep_streams` default that would have
+/// silently broken sync the moment something started calling it.
 fn passes_status_filter(task: &Value, config: &LinearSyncConfig) -> bool {
     if config.keep_statuses.is_empty() {
         return true;
     }
     let status = task["status"].as_str().unwrap_or("pending");
     config.keep_statuses.iter().any(|s| s == status)
-}
-
-/// Full filter for regular tasks — status + stream.
-fn passes_filters(task: &Value, config: &LinearSyncConfig) -> bool {
-    let stream = task["stream"].as_str().unwrap_or("");
-    if !config.keep_streams.is_empty() && !config.keep_streams.iter().any(|s| s == stream) {
-        return false;
-    }
-    passes_status_filter(task, config)
 }
 
 fn resolve_project(task: &Value, config: &LinearSyncConfig) -> String {
@@ -692,11 +687,6 @@ fn load_config() -> anyhow::Result<LinearSyncConfig> {
         })
         .unwrap_or_default();
 
-    let keep_streams = val["keep_streams"]
-        .as_array()
-        .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-        .unwrap_or_else(|| vec!["roadmap".into(), "bugs".into()]);
-
     let keep_statuses = val["keep_statuses"]
         .as_array()
         .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
@@ -706,7 +696,6 @@ fn load_config() -> anyhow::Result<LinearSyncConfig> {
         team_id,
         default_project_id,
         tag_project_map,
-        keep_streams,
         keep_statuses,
     })
 }
