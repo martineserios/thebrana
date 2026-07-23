@@ -5,7 +5,7 @@
 Begin work on a task or freeform description. Accepts task IDs, phase IDs, or natural language. For code tasks, enters the `/brana:build` loop. This is the unified entry point — `/brana:do` is an alias for `start` with freeform text.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__swarm_init,mcp__ruflo__claims_claim,mcp__ruflo__claims_release,mcp__ruflo__claims_mark-stealable,mcp__ruflo__coordination_orchestrate,mcp__ruflo__agent_pool")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__swarm_init,mcp__ruflo__claims_claim,mcp__ruflo__claims_release,mcp__ruflo__claims_mark-stealable,mcp__ruflo__coordination_orchestrate,mcp__ruflo__agent_pool,mcp__brana__backlog_query")
 
 ### Steps
 
