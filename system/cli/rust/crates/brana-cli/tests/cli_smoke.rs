@@ -388,6 +388,31 @@ fn focus_does_not_inherit_global_active_epic() {
 }
 
 #[test]
+fn focus_fails_loud_when_active_epic_resolves_to_nothing() {
+    // t-2314 (ADR-065): a project-local active_epic that doesn't resolve to
+    // any task or epic node must error, not silently produce a no-boost view.
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks-config.json"),
+        r#"{"active_epic":"nonexistent-epic"}"#,
+    ).unwrap();
+    std::fs::write(
+        proj.path().join(".claude/tasks.json"),
+        r#"{"version":"1","project":"proj","tasks":[{"id":"t-1","subject":"x","type":"task","status":"pending","tags":[],"blocked_by":[],"epic":"a-different-epic"}]}"#,
+    ).unwrap();
+    brana()
+        .args(["backlog", "focus"])
+        .env("HOME", home.path())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .current_dir(proj.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("nonexistent-epic"));
+}
+
+#[test]
 fn backlog_add_project_writes_to_resolved_target() {
     // Cross-project create (t-2159): --project <slug> resolves the target repo's
     // tasks.json via the portfolio and writes there, leaving the current project untouched.
@@ -561,7 +586,6 @@ fn backlog_add_with_work_type_persists() {
             "backlog", "add",
             "--subject", "wire new filter",
             "--work-type", "implement",
-            "--epic", "cc-alignment",
             "--effort", "S",
             "--file",
         ])
@@ -572,7 +596,36 @@ fn backlog_add_with_work_type_persists() {
     let val: serde_json::Value = serde_json::from_str(&written).unwrap();
     let added = &val["tasks"][0];
     assert_eq!(added["work_type"].as_str(), Some("implement"));
-    assert_eq!(added["epic"].as_str(), Some("cc-alignment"));
+}
+
+#[test]
+fn backlog_add_epic_flag_is_deprecated_noop() {
+    // t-2310 (ADR-065): --epic is retired from cmd_add's shorthand path —
+    // epic becomes a hierarchy node, not a flat field a new task can carry.
+    // The flag stays parseable (no hard CLI error) but is a no-op with a
+    // stderr deprecation warning.
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks
+        .write_str(r#"{"version":"1","project":"test","tasks":[]}"#)
+        .unwrap();
+    brana()
+        .args([
+            "backlog", "add",
+            "--subject", "shorthand with epic",
+            "--epic", "cc-alignment",
+            "--file",
+        ])
+        .arg(tasks.path())
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("--epic is deprecated"));
+    let written = std::fs::read_to_string(tasks.path()).unwrap();
+    let val: serde_json::Value = serde_json::from_str(&written).unwrap();
+    let added = &val["tasks"][0];
+    assert!(added.get("epic").is_none() || added["epic"].is_null(),
+        "--epic must be a no-op, got: {}", added["epic"]);
 }
 
 #[test]

@@ -20,15 +20,20 @@ The central domain. Manages the task lifecycle — creation, querying, mutation,
 
 **Entities:**
 - `Task` — id, subject, description, status, priority, effort, stream, type, tags, parent, blocked_by, branch, context, notes, created, started, completed, order, execution, github_issue, build_step, strategy
-- `TasksFile` — project name + Vec<Task>
+- `TasksFile` — project name + Vec<Task> + Vec<Wave>
+- `Epic` (ADR-065, ADR-065-driven schema v3) — not a separate struct; a `Task` specializes into an epic node when `type == "epic"`. Epic is the **sole top node** of the subject-tree hierarchy: it absorbs the retired flat `epic` string field, gains its own status vocabulary (`EpicStatus`, distinct from `TaskStatus`) and a `wip_limit`, and other tasks become its children via `parent`. Superseded: `initiative` as a hierarchy node (removed entirely).
+- `Wave` (ADR-065, schema v3) — id (`wave-N`), name, selector (opaque query text, not resolved by brana-core), contract, gate (nullable wave id, unenforced), status, created. Not a `Task` — a thin process object that *selects* tasks; it does not own them. Lives in the sibling `waves` array of `TasksFile`, sharing the same file/lock/atomicity boundary as `tasks`.
 
 **Value objects:**
 - `TaskStatus` — pending | in_progress | completed | cancelled
-- `TaskClassification` — done | active | blocked | parked | pending (computed)
+- `EpicStatus` (ADR-065) — active | next | parked | done | archived — a task's status field validates against this vocabulary instead of `TaskStatus` when `type == "epic"`
+- `WaveStatus` (ADR-065) — queued | draining | shipped — free (any-to-any) transitions, no forward-only enforcement in this slice
+- `TaskClassification` — done | active | blocked | parked | pending (computed) — `done` now also covers an epic's own `EpicStatus::done`/`archived` (see `is_finished`)
 - `TaskPriority` — P0 | P1 | P2 | P3
 - `TaskEffort` — S | M | L | XL
 - `TaskStream` — roadmap | bugs | tech-debt | docs | experiments | research | personal
-- `TaskType` — task | subtask | phase | milestone
+- `TaskType` — task | subtask | phase | milestone | epic
+- `WipLimit` (ADR-065) — i64, default 10 when unset, applied at read time on an epic node; caps OPEN (non-completed/cancelled) children advisorily (warns, never blocks — ADR-065 D4)
 - `FocusScore` — f64 (priority weight + staleness + effort + blocking depth)
 - `BurndownBucket` — date range + created count + completed count
 
@@ -62,6 +67,11 @@ The central domain. Manages the task lifecycle — creation, querying, mutation,
 - `recommended_model(score) -> ModelName`
 - `validate_runnable(task, all) -> Result<()>`
 - `branch_for_task(task) -> String`
+- `validate_epic_status(value) -> Result<()>` (ADR-065)
+- `check_epic_wip_cap(all, parent_id) -> Option<warning>` (ADR-065, advisory)
+- `assert_active_epic_resolves(all, active_epic) -> Result<()>` (ADR-065, fail-loud)
+- `tag_matches(task_tags, query) -> bool` (D8, key:value tag query — `key:value` exact, `key` matches bare-or-any-value)
+- `next_wave_id(waves) -> WaveId`, `validate_wave_status(value) -> Result<()>`, `set_wave_field(wave, field, value) -> Result<()>` (ADR-065)
 
 **State files owned:**
 - `.claude/tasks.json` (primary, worktree-aware via git-common-dir)
@@ -395,6 +405,8 @@ All other contexts are independent:
 | Term | Definition | Context |
 |------|-----------|---------|
 | **Task** | A unit of work with lifecycle (pending -> in_progress -> completed/cancelled) | Backlog |
+| **Epic** | The sole top node of the subject-tree hierarchy (ADR-065) — a task with `type:"epic"`, its own status lifecycle (active/next/parked/done/archived), and a WIP cap; other tasks become its children via `parent` | Backlog |
+| **Wave** | A named, drainable selector over the task tree/tags (ADR-065) — a thin stored process object `{selector, contract, gate, status}`; it selects tasks, it does not own them. Selector resolution is not yet implemented — storage/CRUD only | Backlog |
 | **Phase** | A grouping of milestones/tasks representing a major initiative | Backlog |
 | **Milestone** | A checkpoint within a phase, grouping related tasks | Backlog |
 | **Subtask** | A child task decomposed from a parent | Backlog |

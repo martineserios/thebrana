@@ -12,6 +12,11 @@ pub struct TasksFile {
     pub project: String,
     #[serde(default)]
     pub tasks: Vec<Value>,
+    /// Waves — thin stored process objects, NOT tasks (ADR-065, t-2315). A
+    /// sibling top-level array using the same growth model tasks.json
+    /// already uses for `tasks`. See next_wave_id()/set_wave_field().
+    #[serde(default)]
+    pub waves: Vec<Value>,
 }
 
 /// Load tasks from file. Supports both {tasks: [...]} and bare [...].
@@ -23,6 +28,7 @@ pub fn load_tasks(path: &Path) -> Result<TasksFile, String> {
         return Ok(TasksFile {
             project: "unknown".into(),
             tasks: vec![],
+            waves: vec![],
         });
     }
     if let Ok(tf) = serde_json::from_str::<TasksFile>(content) {
@@ -32,24 +38,39 @@ pub fn load_tasks(path: &Path) -> Result<TasksFile, String> {
         return Ok(TasksFile {
             project: "unknown".into(),
             tasks: arr,
+            waves: vec![],
         });
     }
     Err(format!("invalid JSON in {}", path.display()))
 }
 
+/// True when `task` counts as finished for blocked_by-gate purposes: the
+/// task-status terminal values (`completed`/`cancelled`) for ordinary tasks,
+/// or the epic-status terminal values (`done`/`archived`, ADR-065) for
+/// `type: "epic"` nodes. Without this, an epic `blocked_by` another epic
+/// would never unblock — the gate check previously hardcoded the task
+/// vocabulary and never recognized an epic's own terminal states (t-2313).
+fn is_finished(task: &Value) -> bool {
+    match task["status"].as_str() {
+        Some("completed") | Some("cancelled") => true,
+        Some("done") | Some("archived") => task["type"].as_str() == Some("epic"),
+        _ => false,
+    }
+}
+
 /// Classify a task's effective status.
 pub fn classify(task: &Value, all: &[Value]) -> &'static str {
+    if is_finished(task) {
+        return "done";
+    }
     match task["status"].as_str().unwrap_or("") {
-        "completed" | "cancelled" => "done",
         "in_progress" => "active",
         _ => {
             if let Some(deps) = task["blocked_by"].as_array() {
                 if !deps.is_empty() {
                     let done_ids: HashSet<&str> = all
                         .iter()
-                        .filter(|t| {
-                            matches!(t["status"].as_str(), Some("completed" | "cancelled"))
-                        })
+                        .filter(|t| is_finished(t))
                         .filter_map(|t| t["id"].as_str())
                         .collect();
                     if !deps
@@ -83,33 +104,86 @@ pub fn text_match(task: &Value, needle: &str) -> bool {
         })
 }
 
-/// Walk task's parent chain and inherit `epic` from the first ancestor
-/// that has one. Does nothing if the task already has an epic set.
-pub fn inherit_initiative(task: &mut Value, all: &[Value]) {
-    // Don't override explicit epic
-    if task["epic"].as_str().map(|s| !s.is_empty()).unwrap_or(false) {
-        return;
+/// Match a `--tag` query token against a task's tag list. Tags are still
+/// plain strings (`Vec<String>`) — `key:value` is a naming convention, not
+/// a new storage shape (D8, backlog-v3 t-2311).
+///
+/// - Query contains `:` → exact string match only (`"layer:backend"` matches
+///   only the literal tag `"layer:backend"`).
+/// - Query has no `:` → matches the bare tag of that name (backward compat)
+///   OR any tag `"<query>:*"` (any-value-for-key match) — so `--tag backend`
+///   finds both a bare `"backend"` tag and a `"backend:api"` tag.
+///
+/// A stored tag is split on its FIRST `:` only, so a value containing more
+/// colons (e.g. `"url:https://example.com"`) still parses as key=`"url"`.
+pub fn tag_matches(task_tags: &[&str], query: &str) -> bool {
+    if query.contains(':') {
+        return task_tags.contains(&query);
     }
-    // Walk up parent chain
-    let mut current_id = task["parent"].as_str().map(|s| s.to_string());
-    let mut depth = 0;
-    while let Some(pid) = current_id {
-        depth += 1;
-        if depth > 10 { break; } // guard against cycles
-        let parent = all.iter().find(|t| t["id"].as_str() == Some(pid.as_str()));
-        match parent {
-            None => break,
-            Some(p) => {
-                if let Some(init) = p["epic"].as_str() {
-                    if !init.is_empty() {
-                        task["epic"] = Value::String(init.to_string());
-                        return;
-                    }
-                }
-                current_id = p["parent"].as_str().map(|s| s.to_string());
-            }
-        }
+    task_tags.iter().any(|t| {
+        *t == query || t.split_once(':').map(|(k, _)| k) == Some(query)
+    })
+}
+
+/// Default WIP cap for an epic node when `wip_limit` is unset (ADR-065 D4 /
+/// backlog-v3-schema.md "WIP cap").
+pub const DEFAULT_EPIC_WIP_LIMIT: i64 = 10;
+
+/// Advisory WIP-cap check for adding a new child under `parent_id` (ADR-065
+/// D4: "warn, not block, during pilot"). Returns `Some(warning)` when adding
+/// one more OPEN task (completed/cancelled children don't count) would push
+/// the epic's open-child count past its `wip_limit` (default
+/// `DEFAULT_EPIC_WIP_LIMIT` when unset). Returns `None` when `parent_id`
+/// doesn't resolve to a `type: "epic"` task, or the cap isn't breached —
+/// callers never branch on "is this an epic" themselves. Single point of
+/// computation shared by CLI `cmd_add` and MCP `backlog_add` (t-2313; same
+/// pattern as `tag_matches()`, t-2311). Never returns an error — the cap is
+/// advisory only.
+pub fn check_epic_wip_cap(all: &[Value], parent_id: &str) -> Option<String> {
+    let parent = all.iter().find(|t| t["id"].as_str() == Some(parent_id))?;
+    if parent["type"].as_str() != Some("epic") {
+        return None;
     }
+    let limit = parent["wip_limit"].as_i64().unwrap_or(DEFAULT_EPIC_WIP_LIMIT);
+    let open_children = all
+        .iter()
+        .filter(|t| t["parent"].as_str() == Some(parent_id))
+        .filter(|t| !matches!(raw_status(t, ""), "completed" | "cancelled"))
+        .count() as i64;
+    let new_count = open_children + 1;
+    if new_count > limit {
+        Some(format!(
+            "epic {parent_id} is at its WIP cap ({open_children}/{limit} open) — adding this task makes {new_count}; consider closing or parking before adding more"
+        ))
+    } else {
+        None
+    }
+}
+
+/// Assert that `active_epic` (if set) resolves to something real — either a
+/// `type: "epic"` node task (post-migration, ADR-065) or a task still
+/// carrying the flat `epic` tag with that value (pre-migration compat,
+/// since t-2312's migration script has not been run against live data yet
+/// as of this task). Returns an error naming the unresolved slug instead of
+/// silently falling through to a no-boost, empty-partition state — closing
+/// the gap the ADR's epic table calls out: "the pointer resolves to a real,
+/// local epic node and errors otherwise." t-2281 already fixed the
+/// project-vs-global resolution BUG (which config file wins); this closes
+/// the separate "resolves to nothing at all" gap on top of that fix. t-2314.
+pub fn assert_active_epic_resolves(all: &[Value], active_epic: &str) -> Result<(), String> {
+    let node_exists = all.iter().any(|t| {
+        t["type"].as_str() == Some("epic") && t["subject"].as_str() == Some(active_epic)
+    });
+    if node_exists {
+        return Ok(());
+    }
+    let flat_tag_exists = all.iter().any(|t| t["epic"].as_str() == Some(active_epic));
+    if flat_tag_exists {
+        return Ok(());
+    }
+    Err(format!(
+        "active_epic {active_epic:?} does not resolve to any epic node or task — check tasks-config.json's active_epic, or run `brana backlog set-active` with a real epic"
+    ))
 }
 
 /// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
@@ -150,7 +224,7 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
     tasks
         .iter()
         .filter(|t| {
-            let tt = t["level"].as_str().unwrap_or_else(|| t["type"].as_str().unwrap_or("task"));
+            let tt = t["type"].as_str().unwrap_or("task");
             if !filter.types.contains(&tt) {
                 return false;
             }
@@ -165,7 +239,7 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
                     .as_array()
                     .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
                     .unwrap_or_default();
-                if !tags.contains(&tag) {
+                if !tag_matches(&tags, tag) {
                     return false;
                 }
             }
@@ -660,6 +734,13 @@ fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
     })
 }
 
+/// Canonical tasks-file schema version this binary understands and stamps on
+/// write. t-2283 established the numeric-version convention at floor `2`
+/// (ac_state slice). t-2308 bumps the floor to `3` for t-2284's own schema
+/// slice (level/epic-collapse awareness) — reusing `2` here would be a no-op
+/// since files are already stamped at version 2.
+const CANONICAL_VERSION: i64 = 3;
+
 /// Read a tasks-file `version` value as an integer, tolerating BOTH the numeric
 /// form (`2`) and the legacy JSON-string form (`"1"`). The live tasks.json ships
 /// `version` as a string, so a numbers-only check silently never matched (t-2283
@@ -668,21 +749,40 @@ fn version_as_int(v: &Value) -> Option<i64> {
     v.as_i64().or_else(|| v.as_str().and_then(|s| s.parse::<i64>().ok()))
 }
 
-/// True when `val` already carries a canonical `version: 2` (a JSON NUMBER ≥ 2).
-/// A legacy string `"2"` deliberately reads as *not* canonical so it gets
-/// rewritten to the numeric form on the next save.
+/// True when `val` already carries a canonical version (a JSON NUMBER ≥
+/// `CANONICAL_VERSION`). A legacy string `"3"` deliberately reads as *not*
+/// canonical so it gets rewritten to the numeric form on the next save.
 fn has_canonical_version(val: &Value) -> bool {
-    matches!(val.get("version"), Some(Value::Number(n)) if n.as_i64().map_or(false, |v| v >= 2))
+    matches!(val.get("version"), Some(Value::Number(n)) if n.as_i64().map_or(false, |v| v >= CANONICAL_VERSION))
 }
 
-/// t-2283 (v3 forward-only slice): normalize the tasks-file `version` stamp to a
-/// canonical numeric `2`. Absent, non-integer, string `"1"`, or numeric `1`
-/// upgrade to `2`; a value already ≥ 2 is preserved (and coerced to a JSON
-/// number so legacy string stamps stop lying to `as_i64`-based checks).
+/// t-2308 forward-only guard: true when `val` carries a version NUMBER this
+/// binary was not built to understand (strictly greater than
+/// `CANONICAL_VERSION`). `has_canonical_version` treats "at floor" and
+/// "above floor" the same (both mean "don't rewrite"); this check isolates
+/// the "above floor" case so callers can refuse to write instead of just
+/// skipping the rewrite.
+///
+/// Forward-only: this protects binaries built from t-2308 onward against a
+/// hypothetical future version 4+ file. It CANNOT protect binaries already
+/// compiled before this change — those hardcode `>= 2` (or `>= 1`) and have
+/// no way to learn about version 3 retroactively; only rebuilding/
+/// redeploying the binary closes that gap.
+fn is_unknown_newer_version(val: &Value) -> bool {
+    val.get("version").and_then(version_as_int).map_or(false, |v| v > CANONICAL_VERSION)
+}
+
+/// t-2283 (v3 forward-only slice): normalize the tasks-file `version` stamp to
+/// the canonical numeric floor (`CANONICAL_VERSION`). Absent, non-integer,
+/// string, or numeric values below the floor upgrade to it; a value already
+/// ≥ floor is preserved (and coerced to a JSON number so legacy string stamps
+/// stop lying to `as_i64`-based checks) — this also means a version strictly
+/// ABOVE the floor (unknown-newer, t-2308) is left completely untouched: this
+/// binary does not know that schema shape and must not guess at a downgrade.
 /// Non-breaking by design — existing v1/unversioned files load with task content
 /// untouched, gaining only the canonical stamp. This is the "gate load on
-/// version:2" rule: every loaded/saved file carries numeric version ≥ 2, without
-/// a migration of the ~2,100 legacy tasks (operator decision 2026-07-21:
+/// version:3" rule: every loaded/saved file carries numeric version ≥ 3,
+/// without a migration of legacy tasks (operator decision 2026-07-21:
 /// auto-upgrade, not hard-reject).
 fn normalize_version(val: &mut Value) {
     if has_canonical_version(val) {
@@ -690,15 +790,32 @@ fn normalize_version(val: &mut Value) {
     }
     if let Some(obj) = val.as_object_mut() {
         let current = obj.get("version").and_then(version_as_int).unwrap_or(1);
-        obj.insert("version".into(), Value::from(current.max(2)));
+        obj.insert("version".into(), Value::from(current.max(CANONICAL_VERSION)));
     }
 }
 
-/// Save a TasksFile back to disk (pretty-printed, atomic). Guarantees a canonical
-/// numeric `version: 2` stamp (t-2283). The common write path
-/// (load_raw → mutate → save) already carries the canonical stamp from load_raw,
-/// so the hot path skips the ~2,100-task clone.
+/// Save a TasksFile back to disk (pretty-printed, atomic). Guarantees a
+/// canonical numeric version stamp (`CANONICAL_VERSION`, t-2283/t-2308). The
+/// common write path (load_raw → mutate → save) already carries the
+/// canonical stamp from load_raw, so the hot path skips the ~2,100-task
+/// clone.
+///
+/// Forward-only guard (t-2308): refuses to write when `val` carries a
+/// version this binary does not understand (see `is_unknown_newer_version`)
+/// — read-only + a stderr warning, rather than silently overwriting a future
+/// schema shape with an old binary's serialization of it. This only protects
+/// binaries built from this change onward; it cannot retroactively guard
+/// already-compiled binaries that hardcode an older floor.
 pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
+    if is_unknown_newer_version(val) {
+        eprintln!(
+            "warning: tasks.json version ({:?}) is newer than this binary understands (canonical={CANONICAL_VERSION}) — refusing to write, treating as read-only. Rebuild/upgrade this binary before saving.",
+            val.get("version")
+        );
+        return Err(format!(
+            "refusing to save: tasks.json version is newer than this binary supports (canonical={CANONICAL_VERSION})"
+        ));
+    }
     let content = if has_canonical_version(val) {
         serde_json::to_string_pretty(val)
     } else {
@@ -762,6 +879,21 @@ pub fn next_id(tasks: &[Value]) -> String {
     format!("t-{}", max + 1)
 }
 
+/// Find the next available wave ID (highest numeric suffix + 1). Waves live
+/// in their own `waves` array with a distinct `wave-` prefix, never `t-` —
+/// ADR-065 draws the line explicitly ("It selects tasks; it does not own
+/// them") and a shared numbering scheme would let a bare "wave-3" and "t-3"
+/// coexist while meaning unrelated things depending on which array a caller
+/// looked in. Same algorithm as next_id() (t-2315).
+pub fn next_wave_id(waves: &[Value]) -> String {
+    let max = waves.iter()
+        .filter_map(|w| w["id"].as_str())
+        .filter_map(|id| id.split('-').last()?.parse::<u32>().ok())
+        .max()
+        .unwrap_or(0);
+    format!("wave-{}", max + 1)
+}
+
 /// Validate a priority value. Accepts P0/P1/P2/P3 plus "null"/"" (clear). Rejects legacy
 /// high/medium/low and any other string. Canonical enum is P[0-3] only — see t-1344.
 pub fn validate_priority(value: &str) -> Result<(), String> {
@@ -785,12 +917,34 @@ pub fn validate_status(value: &str) -> Result<(), String> {
     }
 }
 
-/// Validate a level value. Accepts initiative/phase/milestone/task/subtask plus "null"/"" (clear).
-pub fn validate_level(value: &str) -> Result<(), String> {
+/// Validate an epic node's `status` value (ADR-065). A DIFFERENT vocabulary
+/// from `validate_status()`'s task lifecycle: active/next/parked/done/archived,
+/// plus "null"/"" (clear). Only reached when the task being validated is
+/// `type: "epic"` — see set_field's status branch and cmd_add; a non-epic
+/// task's `status` field still validates against `validate_status()`. t-2313.
+pub fn validate_epic_status(value: &str) -> Result<(), String> {
     match value {
-        "initiative" | "phase" | "milestone" | "task" | "subtask" | "null" | "" => Ok(()),
+        "active" | "next" | "parked" | "done" | "archived" | "null" | "" => Ok(()),
         other => Err(format!(
-            "invalid level {other:?} — must be initiative/phase/milestone/task/subtask or null"
+            "invalid epic status {other:?} — must be active/next/parked/done/archived or null"
+        )),
+    }
+}
+
+/// Validate a wave's `status` value (ADR-065 process-overlay slice, t-2315).
+/// A wave's own vocabulary — distinct from both `validate_status()` (task)
+/// and `validate_epic_status()` (epic node). The documented lifecycle is
+/// queued → draining → shipped (backlog-v3-schema.md "Wave = Queue"), but
+/// this validator does NOT enforce that ordering: no lifecycle-status
+/// validator in this codebase enforces forward-only transitions (both
+/// validate_status/validate_epic_status are pure membership checks), and the
+/// drain/query logic that would give "ordering" real meaning is explicitly
+/// out of scope for this slice.
+pub fn validate_wave_status(value: &str) -> Result<(), String> {
+    match value {
+        "queued" | "draining" | "shipped" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid wave status {other:?} — must be queued/draining/shipped or null"
         )),
     }
 }
@@ -960,10 +1114,10 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             Ok(())
         }
-        "priority" | "effort" | "status" | "type" | "level" | "strategy"
+        "priority" | "effort" | "status" | "type" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
-        | "epic" | "work_type" | "kind" | "spawn" | "spawn_strategy" | "ac_state" => {
+        | "work_type" | "kind" | "spawn" | "spawn_strategy" | "ac_state" => {
             if field == "priority" {
                 validate_priority(value)?;
             }
@@ -971,16 +1125,19 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
                 validate_ac_state(value)?;
             }
             if field == "status" {
-                validate_status(value)?;
+                // ADR-065: an epic node's status validates against a
+                // different vocabulary than an ordinary task's (t-2313).
+                if task["type"].as_str() == Some("epic") {
+                    validate_epic_status(value)?;
+                } else {
+                    validate_status(value)?;
+                }
             }
             if field == "work_type" {
                 validate_work_type(value)?;
             }
             if field == "kind" {
                 validate_kind(value)?;
-            }
-            if field == "level" {
-                validate_level(value)?;
             }
             if field == "execution" {
                 validate_execution(value)?;
@@ -992,7 +1149,57 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             Ok(())
         }
+        "wip_limit" => {
+            // ADR-065: WIP cap on an epic node (t-2313). Settable regardless
+            // of task type — matching this whitelist's existing pattern of
+            // no cross-field type coupling; meaninglessness on a non-epic
+            // task is a semantic concern for check_epic_wip_cap's callers,
+            // not a set_field-level restriction.
+            if value == "null" {
+                task[field] = Value::Null;
+            } else {
+                let parsed: i64 = value.parse().map_err(|_| {
+                    format!("wip_limit must be a positive integer or \"null\" (got: {value})")
+                })?;
+                if parsed < 1 {
+                    return Err(format!("wip_limit must be a positive integer (got: {value})"));
+                }
+                task[field] = Value::Number(parsed.into());
+            }
+            Ok(())
+        }
         _ => Err(format!("unknown field: {field}")),
+    }
+}
+
+/// Set a field on a wave object (ADR-065, t-2315). Waves are not tasks — a
+/// separate, smaller field surface than `set_field()`'s task whitelist:
+/// name/selector/contract/gate/status only. No array append/remove syntax
+/// (no array-typed wave field exists in this minimal slice) and no
+/// referential check on `gate` — nothing in this slice resolves or enforces
+/// gates (that's the intent-CLI's job, deferred), and no other reference
+/// field in this codebase (`parent`, `blocked_by`) is existence-checked at
+/// write time either, so `gate` follows the same precedent.
+pub fn set_wave_field(wave: &mut Value, field: &str, value: &str) -> Result<(), String> {
+    match field {
+        "status" => {
+            validate_wave_status(value)?;
+            if value == "null" {
+                wave[field] = Value::Null;
+            } else {
+                wave[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        "name" | "selector" | "contract" | "gate" => {
+            if value == "null" {
+                wave[field] = Value::Null;
+            } else {
+                wave[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        _ => Err(format!("unknown wave field: {field}")),
     }
 }
 
@@ -1575,6 +1782,50 @@ mod tests {
         assert_eq!(classify(&tasks[1], &tasks), "pending");
     }
 
+    // ── t-2313 (ADR-065): epic blocked_by gate uses epic-vocab terminal states ──
+
+    #[test]
+    fn test_classify_epic_blocked_by_gates_generically() {
+        let tasks = vec![
+            json!({"id": "in-1", "status": "next", "type": "epic", "tags": [], "blocked_by": []}),
+            json!({"id": "in-2", "status": "next", "type": "epic", "tags": [], "blocked_by": ["in-1"]}),
+        ];
+        assert_eq!(classify(&tasks[1], &tasks), "blocked", "epic in-2 must be gated on unfinished in-1");
+    }
+
+    #[test]
+    fn test_classify_epic_done_status_unblocks_dependent_epic() {
+        // ADR-065's epic gate ("epic N blocked on epic N-1 shipping") requires the
+        // epic-status terminal value "done" to satisfy blocked_by, not just the
+        // task-status "completed"/"cancelled" (t-2313 — classify()'s done_ids set
+        // hardcoded the task vocabulary and never recognized an epic's own "done").
+        let tasks = vec![
+            json!({"id": "in-1", "status": "done", "type": "epic", "tags": [], "blocked_by": []}),
+            json!({"id": "in-2", "status": "next", "type": "epic", "tags": [], "blocked_by": ["in-1"]}),
+        ];
+        assert_eq!(classify(&tasks[1], &tasks), "pending", "in-2 must unblock once in-1 is epic-done");
+    }
+
+    #[test]
+    fn test_classify_epic_archived_status_is_finished() {
+        let tasks = vec![
+            json!({"id": "in-1", "status": "archived", "type": "epic", "tags": [], "blocked_by": []}),
+        ];
+        assert_eq!(classify(&tasks[0], &tasks), "done");
+    }
+
+    #[test]
+    fn test_classify_task_status_done_does_not_leak_epic_semantics() {
+        // A plain task's status literally spelled "done" (invalid task vocab —
+        // validate_status would reject it) must NOT be treated as finished just
+        // because is_finished() has a "done"/"archived" branch — that branch is
+        // gated on type=="epic" specifically.
+        let tasks = vec![
+            json!({"id": "t-1", "status": "done", "type": "task", "tags": [], "blocked_by": []}),
+        ];
+        assert_eq!(classify(&tasks[0], &tasks), "pending");
+    }
+
     #[test]
     fn test_filter_by_tag() {
         let tasks = sample_tasks();
@@ -1757,74 +2008,25 @@ mod tests {
         }
     }
 
-    // ── t-1543: initiative inheritance tests ────────────────────────────
+    // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
+    // inherit_initiative() and validate_level() are removed outright — level
+    // collapses into type, epic becomes a hierarchy node instead of something
+    // flat-copied down a parent chain. See cmd_add_parent_does_not_inherit_epic
+    // (backlog.rs) for the write-path replacement of the old inherit_initiative
+    // unit tests below.
 
     #[test]
-    fn test_inherit_initiative_from_parent() {
-        let parent = json!({"id": "ph-001", "epic": "cc-alignment", "type": "phase"});
-        let all = vec![parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001"});
-        inherit_initiative(&mut task, &all);
-        assert_eq!(task["epic"].as_str(), Some("cc-alignment"));
-    }
-
-    #[test]
-    fn test_inherit_initiative_does_not_override_explicit() {
-        let parent = json!({"id": "ph-001", "epic": "cc-alignment", "type": "phase"});
-        let all = vec![parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001", "epic": "memory-arch"});
-        inherit_initiative(&mut task, &all);
-        assert_eq!(task["epic"].as_str(), Some("memory-arch"), "explicit epic must not be overridden");
-    }
-
-    #[test]
-    fn test_inherit_initiative_no_parent_initiative() {
-        let parent = json!({"id": "ph-001", "type": "phase"});
-        let all = vec![parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001"});
-        inherit_initiative(&mut task, &all);
-        assert!(task["epic"].is_null() || task.get("epic").is_none(),
-            "no inheritance when parent has no epic");
-    }
-
-    #[test]
-    fn test_inherit_initiative_grandparent() {
-        let grandparent = json!({"id": "in-001", "epic": "rust-cli", "type": "initiative"});
-        let parent = json!({"id": "ph-001", "parent": "in-001", "type": "phase"});
-        let all = vec![grandparent.clone(), parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001"});
-        inherit_initiative(&mut task, &all);
-        assert_eq!(task["epic"].as_str(), Some("rust-cli"),
-            "should inherit from grandparent when parent has no epic");
-    }
-
-    // ── t-1542: level field tests ────────────────────────────────────────
-
-    #[test]
-    fn test_validate_level_valid() {
-        for v in &["initiative", "phase", "milestone", "task", "subtask", "null", ""] {
-            assert!(validate_level(v).is_ok(), "expected Ok for {v:?}");
-        }
-    }
-
-    #[test]
-    fn test_validate_level_invalid() {
-        for v in &["project", "sprint", "epic", "feature", "story"] {
-            assert!(validate_level(v).is_err(), "expected Err for {v:?}");
-        }
-    }
-
-    #[test]
-    fn test_filter_tasks_uses_level_when_set() {
-        // A task with level="task" but type="phase" should match type filter "task"
-        // because level takes priority over type in filtering.
+    fn test_filter_tasks_ignores_stale_level() {
+        // A task carrying a stale `level` value (pre-ADR-065 data) must classify
+        // purely by `type` — level is no longer read for filtering at all.
         let tasks = vec![
             json!({"id": "t-1", "type": "phase", "level": "task", "status": "pending", "tags": [], "blocked_by": []}),
             json!({"id": "ph-1", "type": "phase", "level": "phase", "status": "pending", "tags": [], "blocked_by": []}),
         ];
         let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task"], None, None);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0]["id"], "t-1");
+        assert_eq!(result.len(), 0, "stale level=\"task\" must not override type=\"phase\"");
+        let result_phase = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["phase"], None, None);
+        assert_eq!(result_phase.len(), 2, "both tasks classify as phase by type, regardless of stale level");
     }
 
     #[test]
@@ -1998,6 +2200,25 @@ mod tests {
         assert!(set_field(&mut task, "nonexistent", "val", false).is_err());
     }
 
+    #[test]
+    fn test_set_field_rejects_level() {
+        // ADR-065: level is retired — collapses into type. set_field must
+        // reject it, not silently no-op (t-2310).
+        let mut task = json!({"id": "t-1", "type": "task"});
+        assert!(set_field(&mut task, "level", "phase", false).is_err());
+        assert_eq!(task["type"], "task", "rejected write must not mutate the task");
+        assert!(task.get("level").is_none(), "level must not be written");
+    }
+
+    #[test]
+    fn test_set_field_rejects_epic() {
+        // ADR-065: epic is retired as a flat field — becomes a hierarchy node.
+        // set_field must reject it (t-2310).
+        let mut task = json!({"id": "t-1"});
+        assert!(set_field(&mut task, "epic", "harness", false).is_err());
+        assert!(task.get("epic").is_none(), "epic must not be written");
+    }
+
     // ── t-252: isc field ────────────────────────────────────────────────
 
     #[test]
@@ -2169,6 +2390,183 @@ mod tests {
         }
     }
 
+    // ── t-2313 (ADR-065): epic status vocabulary ────────────────────────────
+
+    #[test]
+    fn test_validate_epic_status_accepts_canonical() {
+        for s in &["active", "next", "parked", "done", "archived"] {
+            assert!(validate_epic_status(s).is_ok(), "{s} should be accepted");
+        }
+    }
+
+    #[test]
+    fn test_validate_epic_status_accepts_null_and_empty() {
+        assert!(validate_epic_status("null").is_ok());
+        assert!(validate_epic_status("").is_ok());
+    }
+
+    #[test]
+    fn test_validate_epic_status_rejects_task_vocab() {
+        for s in &["pending", "in_progress", "completed", "cancelled"] {
+            assert!(validate_epic_status(s).is_err(), "{s} is task vocab, not epic vocab");
+        }
+    }
+
+    #[test]
+    fn test_validate_epic_status_rejects_arbitrary() {
+        for s in &["ACTIVE", "wip", "on-hold"] {
+            assert!(validate_epic_status(s).is_err(), "{s} should be rejected");
+        }
+    }
+
+    #[test]
+    fn test_set_field_status_epic_type_uses_epic_vocab() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        set_field(&mut task, "status", "active", false).unwrap();
+        assert_eq!(task["status"], "active");
+        let err = set_field(&mut task, "status", "in_progress", false).unwrap_err();
+        assert!(err.contains("active"), "error must list epic vocab: {err}");
+    }
+
+    #[test]
+    fn test_set_field_status_non_epic_uses_task_vocab() {
+        // Proves a non-epic task's status still validates against the OLD vocab.
+        let mut task = json!({"id": "t-1", "type": "task"});
+        set_field(&mut task, "status", "in_progress", false).unwrap();
+        assert_eq!(task["status"], "in_progress");
+        let err = set_field(&mut task, "status", "active", false).unwrap_err();
+        assert!(err.contains("pending"), "error must list task vocab: {err}");
+    }
+
+    #[test]
+    fn test_set_field_status_missing_type_defaults_to_task_vocab() {
+        let mut task = json!({"id": "t-1"});
+        assert!(set_field(&mut task, "status", "active", false).is_err());
+        assert!(set_field(&mut task, "status", "in_progress", false).is_ok());
+    }
+
+    // ── t-2313 (ADR-065): wip_limit field ────────────────────────────────────
+
+    #[test]
+    fn test_set_field_wip_limit_sets_integer() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        set_field(&mut task, "wip_limit", "5", false).unwrap();
+        assert_eq!(task["wip_limit"], 5);
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_null_clears() {
+        let mut task = json!({"id": "in-1", "type": "epic", "wip_limit": 5});
+        set_field(&mut task, "wip_limit", "null", false).unwrap();
+        assert!(task["wip_limit"].is_null());
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_rejects_non_integer() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        assert!(set_field(&mut task, "wip_limit", "abc", false).is_err());
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_rejects_non_positive() {
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        assert!(set_field(&mut task, "wip_limit", "0", false).is_err());
+        assert!(set_field(&mut task, "wip_limit", "-1", false).is_err());
+    }
+
+    #[test]
+    fn test_set_field_wip_limit_settable_on_any_type() {
+        let mut task = json!({"id": "t-1", "type": "task"});
+        assert!(set_field(&mut task, "wip_limit", "3", false).is_ok());
+    }
+
+    // ── t-2313 (ADR-065): check_epic_wip_cap ─────────────────────────────────
+
+    fn epic_wip_sample(wip_limit: Option<i64>, open_children: usize, done_children: usize) -> Vec<Value> {
+        let mut tasks = vec![{
+            let mut t = json!({
+                "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
+                "tags": [], "blocked_by": [], "parent": null
+            });
+            if let Some(l) = wip_limit {
+                t["wip_limit"] = json!(l);
+            }
+            t
+        }];
+        for i in 0..open_children {
+            tasks.push(json!({"id": format!("t-open-{i}"), "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"}));
+        }
+        for i in 0..done_children {
+            tasks.push(json!({"id": format!("t-done-{i}"), "status": "completed", "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"}));
+        }
+        tasks
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_default_limit_ten() {
+        let tasks = epic_wip_sample(None, 9, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "9 existing + 1 new = 10, at cap but not over");
+        let tasks = epic_wip_sample(None, 10, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_some(), "10 existing + 1 new = 11, over default cap of 10");
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_respects_explicit_limit() {
+        let tasks = epic_wip_sample(Some(3), 3, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_some());
+        let tasks = epic_wip_sample(Some(3), 2, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_none());
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_ignores_done_children() {
+        let tasks = epic_wip_sample(Some(10), 0, 10);
+        assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "completed/cancelled children must not count toward the cap");
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_non_epic_parent_is_noop() {
+        let tasks = vec![
+            json!({"id": "ph-1", "status": "pending", "type": "phase", "tags": [], "blocked_by": [], "wip_limit": 1, "parent": null}),
+            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "ph-1"}),
+        ];
+        assert!(check_epic_wip_cap(&tasks, "ph-1").is_none(), "cap only applies to type:epic parents");
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_unknown_parent_is_noop() {
+        let tasks = epic_wip_sample(Some(1), 5, 0);
+        assert!(check_epic_wip_cap(&tasks, "in-999").is_none());
+    }
+
+    // ── t-2314 (ADR-065): active_epic fail-loud resolution ───────────────────
+
+    #[test]
+    fn test_assert_active_epic_resolves_via_node() {
+        let tasks = vec![json!({"id": "in-1", "type": "epic", "subject": "harness-core", "tags": [], "blocked_by": []})];
+        assert!(assert_active_epic_resolves(&tasks, "harness-core").is_ok());
+    }
+
+    #[test]
+    fn test_assert_active_epic_resolves_via_flat_tag_pre_migration_compat() {
+        // Pre-migration data (t-2312's script not yet run against live data):
+        // epic membership is still expressed via the flat `epic` field.
+        let tasks = vec![json!({"id": "t-1", "type": "task", "epic": "harness-core", "tags": [], "blocked_by": []})];
+        assert!(assert_active_epic_resolves(&tasks, "harness-core").is_ok());
+    }
+
+    #[test]
+    fn test_assert_active_epic_resolves_fails_on_unresolved_slug() {
+        let tasks = vec![json!({"id": "t-1", "type": "task", "epic": "other-epic", "tags": [], "blocked_by": []})];
+        let err = assert_active_epic_resolves(&tasks, "harness-core").unwrap_err();
+        assert!(err.contains("harness-core"), "error must name the unresolved slug: {err}");
+    }
+
+    #[test]
+    fn test_assert_active_epic_resolves_fails_on_empty_task_list() {
+        assert!(assert_active_epic_resolves(&[], "harness-core").is_err());
+    }
+
     // ── t-939: validate_context_for_effort ──────────────────────────────
 
     #[test]
@@ -2273,6 +2671,96 @@ mod tests {
     fn test_next_id_empty() {
         let tasks: Vec<Value> = vec![];
         assert_eq!(next_id(&tasks), "t-1");
+    }
+
+    // ── t-2315 (ADR-065): wave process-object CRUD ──────────────────────
+
+    #[test]
+    fn test_next_wave_id_empty() {
+        let waves: Vec<Value> = vec![];
+        assert_eq!(next_wave_id(&waves), "wave-1");
+    }
+
+    #[test]
+    fn test_next_wave_id_increments() {
+        let waves = vec![json!({"id": "wave-1"}), json!({"id": "wave-4"})];
+        assert_eq!(next_wave_id(&waves), "wave-5");
+    }
+
+    #[test]
+    fn test_validate_wave_status_accepts_canonical() {
+        for s in &["queued", "draining", "shipped"] {
+            assert!(validate_wave_status(s).is_ok(), "{s} should be accepted");
+        }
+    }
+
+    #[test]
+    fn test_validate_wave_status_accepts_null_and_empty() {
+        assert!(validate_wave_status("null").is_ok());
+        assert!(validate_wave_status("").is_ok());
+    }
+
+    #[test]
+    fn test_validate_wave_status_rejects_arbitrary() {
+        for s in &["QUEUED", "active", "wip", "done"] {
+            assert!(validate_wave_status(s).is_err(), "{s} should be rejected");
+        }
+    }
+
+    #[test]
+    fn test_set_wave_field_status() {
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        set_wave_field(&mut wave, "status", "draining").unwrap();
+        assert_eq!(wave["status"], "draining");
+    }
+
+    #[test]
+    fn test_set_wave_field_status_rejects_invalid() {
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        let err = set_wave_field(&mut wave, "status", "bogus").unwrap_err();
+        assert!(err.contains("queued/draining/shipped"), "error must name valid vocab: {err}");
+        assert_eq!(wave["status"], "queued", "rejected write must not mutate");
+    }
+
+    #[test]
+    fn test_set_wave_field_status_allows_any_to_any() {
+        // No forward-only enforcement — matches validate_status/validate_epic_status precedent.
+        let mut wave = json!({"id": "wave-1", "status": "shipped"});
+        set_wave_field(&mut wave, "status", "queued").unwrap();
+        assert_eq!(wave["status"], "queued", "shipped -> queued must be allowed (free transitions)");
+    }
+
+    #[test]
+    fn test_set_wave_field_selector_contract_gate() {
+        let mut wave = json!({"id": "wave-1"});
+        set_wave_field(&mut wave, "selector", "shape:mechanical").unwrap();
+        set_wave_field(&mut wave, "contract", "all tests green").unwrap();
+        set_wave_field(&mut wave, "gate", "wave-0").unwrap();
+        assert_eq!(wave["selector"], "shape:mechanical");
+        assert_eq!(wave["contract"], "all tests green");
+        assert_eq!(wave["gate"], "wave-0");
+    }
+
+    #[test]
+    fn test_set_wave_field_gate_nonexistent_wave_id_not_validated() {
+        // No referential check — matches parent/blocked_by precedent (t-2315 design call).
+        let mut wave = json!({"id": "wave-1"});
+        set_wave_field(&mut wave, "gate", "wave-999").unwrap();
+        assert_eq!(wave["gate"], "wave-999");
+    }
+
+    #[test]
+    fn test_set_wave_field_gate_clear_to_null() {
+        let mut wave = json!({"id": "wave-1", "gate": "wave-0"});
+        set_wave_field(&mut wave, "gate", "null").unwrap();
+        assert!(wave["gate"].is_null());
+    }
+
+    #[test]
+    fn test_set_wave_field_rejects_unknown_field() {
+        let mut wave = json!({"id": "wave-1"});
+        let err = set_wave_field(&mut wave, "bogus_field", "x").unwrap_err();
+        assert!(err.contains("bogus_field"));
     }
 
     // ── Wave 2: tag_inventory tests ─────────────────────────────────────
@@ -3024,6 +3512,84 @@ mod tests {
         assert_eq!(result.len(), 2);
     }
 
+    // ── t-2311: key:value tag matching (backlog-v3 schema, D8) ──────────────
+
+    #[test]
+    fn tag_matches_exact_key_value() {
+        let tags = vec!["layer:backend", "urgent"];
+        assert!(tag_matches(&tags, "layer:backend"));
+        assert!(!tag_matches(&tags, "layer:frontend"));
+    }
+
+    #[test]
+    fn tag_matches_key_only_matches_any_value() {
+        let tags = vec!["layer:backend"];
+        assert!(tag_matches(&tags, "layer"));
+    }
+
+    #[test]
+    fn tag_matches_key_only_still_matches_bare_tag_backward_compat() {
+        // Pre-existing bare tag "backend" (no colon) must keep matching
+        // `--tag backend` exactly as before this feature.
+        let tags = vec!["backend"];
+        assert!(tag_matches(&tags, "backend"));
+    }
+
+    #[test]
+    fn tag_matches_key_only_matches_both_bare_and_keyed_forms() {
+        // --tag backend finds a task tagged bare "backend" AND a task
+        // tagged "backend:api" — the D8 disambiguation decision.
+        assert!(tag_matches(&["backend"], "backend"));
+        assert!(tag_matches(&["backend:api"], "backend"));
+        assert!(!tag_matches(&["backend-legacy"], "backend")); // no substring false-positive
+    }
+
+    #[test]
+    fn tag_matches_colon_value_boundary_splits_on_first_colon_only() {
+        // A tag value containing multiple colons (e.g. a URL) must not
+        // break key-only matching — split on the FIRST ':' only.
+        let tags = vec!["url:https://example.com"];
+        assert!(tag_matches(&tags, "url"));
+        assert!(tag_matches(&tags, "url:https://example.com"));
+        assert!(!tag_matches(&tags, "https"));
+    }
+
+    #[test]
+    fn tag_matches_mixed_and_query_layer_and_urgent() {
+        // Mirrors cmd_query's multi-tag AND composition: each comma-split
+        // token is matched independently via tag_matches, then AND'd.
+        let task_tags = vec!["layer:backend", "urgent"];
+        let query = ["layer:backend", "urgent"];
+        assert!(query.iter().all(|q| tag_matches(&task_tags, q)));
+
+        let query_miss = ["layer:backend", "dx"];
+        assert!(!query_miss.iter().all(|q| tag_matches(&task_tags, q)));
+    }
+
+    #[test]
+    fn task_filter_by_tag_key_value_exact() {
+        let tasks = vec![
+            json!({"id": "t-a", "type": "task", "status": "pending", "tags": ["layer:backend"], "blocked_by": []}),
+            json!({"id": "t-b", "type": "task", "status": "pending", "tags": ["layer:frontend"], "blocked_by": []}),
+        ];
+        let f = TaskFilter { tag: Some("layer:backend"), types: vec!["task", "subtask"], ..Default::default() };
+        let result = filter_tasks_by(&tasks, &tasks, &f);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["id"], "t-a");
+    }
+
+    #[test]
+    fn task_filter_by_tag_key_only_any_value() {
+        let tasks = vec![
+            json!({"id": "t-a", "type": "task", "status": "pending", "tags": ["layer:backend"], "blocked_by": []}),
+            json!({"id": "t-b", "type": "task", "status": "pending", "tags": ["layer:frontend"], "blocked_by": []}),
+            json!({"id": "t-c", "type": "task", "status": "pending", "tags": ["other"], "blocked_by": []}),
+        ];
+        let f = TaskFilter { tag: Some("layer"), types: vec!["task", "subtask"], ..Default::default() };
+        let result = filter_tasks_by(&tasks, &tasks, &f);
+        assert_eq!(result.len(), 2);
+    }
+
     #[test]
     fn task_filter_by_status() {
         let tasks = sample_tasks();
@@ -3198,12 +3764,12 @@ mod tests {
     }
 
     #[test]
-    fn test_load_raw_upgrades_version_1_to_2() {
+    fn test_load_raw_upgrades_version_1_to_3() {
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"version":1,"project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], 2, "v1 must upgrade to v2 in memory");
+        assert_eq!(val["version"], 3, "v1 must upgrade to the canonical floor (3)");
     }
 
     #[test]
@@ -3212,59 +3778,109 @@ mod tests {
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], 2, "absent version must normalize to v2");
+        assert_eq!(val["version"], 3, "absent version must normalize to the canonical floor (3)");
     }
 
     #[test]
-    fn test_load_raw_keeps_version_2() {
+    fn test_load_raw_upgrades_version_2_to_3() {
+        // t-2308: the floor moved from 2 (t-2283's ac_state slice) to 3
+        // (t-2284's level/epic-collapse awareness) — files already at 2 are
+        // no longer canonical and must upgrade on load.
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"version":2,"project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], 2);
+        assert_eq!(val["version"], 3);
     }
 
     #[test]
-    fn test_save_tasks_stamps_version_2() {
+    fn test_load_raw_keeps_version_3() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":3,"project":"p","tasks":[]}}"#).unwrap();
+        let val = load_raw(f.path()).unwrap();
+        assert_eq!(val["version"], 3);
+    }
+
+    #[test]
+    fn test_save_tasks_stamps_version_3() {
         let f = tempfile::NamedTempFile::new().unwrap();
         let val = json!({"project": "p", "tasks": []});
         save_tasks(f.path(), &val).unwrap();
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(reloaded["version"], 2, "save must stamp version:2");
+        assert_eq!(reloaded["version"], 3, "save must stamp the canonical floor (3)");
     }
 
     #[test]
-    fn test_load_raw_upgrades_string_version_1_to_numeric_2() {
+    fn test_load_raw_upgrades_string_version_1_to_numeric_3() {
         // Challenger CRITICAL: the live tasks.json stores version as a STRING
         // ("1"), which a numbers-only check silently never upgraded.
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"version":"1","project":"p","tasks":[]}}"#).unwrap();
         let val = load_raw(f.path()).unwrap();
-        assert_eq!(val["version"], json!(2), "string \"1\" must upgrade to numeric 2");
+        assert_eq!(val["version"], json!(3), "string \"1\" must upgrade to numeric 3");
         assert!(val["version"].is_number(), "version must normalize to a JSON number");
     }
 
     #[test]
-    fn test_save_tasks_rewrites_string_version_to_numeric_2() {
+    fn test_save_tasks_rewrites_string_version_to_numeric_3() {
         let f = tempfile::NamedTempFile::new().unwrap();
         let val = json!({"version": "1", "project": "p", "tasks": []});
         save_tasks(f.path(), &val).unwrap();
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(reloaded["version"], json!(2));
+        assert_eq!(reloaded["version"], json!(3));
         assert!(reloaded["version"].is_number(), "string version must be coerced to a number");
     }
 
     #[test]
-    fn test_save_tasks_preserves_higher_version() {
+    fn test_save_tasks_preserves_canonical_version() {
+        // Version == CANONICAL_VERSION must round-trip unchanged. Distinct
+        // from unknown-newer (version > CANONICAL_VERSION), which now hits
+        // the forward-only guard instead — see
+        // test_save_tasks_refuses_unknown_newer_version below.
         let f = tempfile::NamedTempFile::new().unwrap();
         let val = json!({"version": 3, "project": "p", "tasks": []});
         save_tasks(f.path(), &val).unwrap();
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(reloaded["version"], 3, "must not downgrade a higher version");
+        assert_eq!(reloaded["version"], 3, "must not touch a value already at the canonical floor");
+    }
+
+    #[test]
+    fn test_normalize_version_leaves_unknown_newer_untouched() {
+        // t-2308 forward-only guard: a version this binary doesn't
+        // understand (here, a hypothetical future 99) must not be
+        // coerced/downgraded.
+        let mut val = json!({"version": 99, "project": "p", "tasks": []});
+        normalize_version(&mut val);
+        assert_eq!(val["version"], json!(99), "unknown-newer version must be left untouched");
+    }
+
+    #[test]
+    fn test_is_unknown_newer_version() {
+        assert!(!is_unknown_newer_version(&json!({"version": 1})));
+        assert!(!is_unknown_newer_version(&json!({"version": 3})));
+        assert!(is_unknown_newer_version(&json!({"version": 99})));
+        assert!(!is_unknown_newer_version(&json!({})), "absent version is not 'newer', just unversioned");
+    }
+
+    #[test]
+    fn test_save_tasks_refuses_unknown_newer_version() {
+        // t-2308 forward-only guard: refuse to write (read-only + warning)
+        // rather than blindly serializing a schema shape this binary
+        // predates. NOTE: this only protects binaries built from this
+        // change onward — an already-compiled binary hardcoding `>= 2` has
+        // no way to learn about this guard after the fact.
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let before = std::fs::read_to_string(f.path()).unwrap_or_default();
+        let val = json!({"version": 99, "project": "p", "tasks": []});
+        let result = save_tasks(f.path(), &val);
+        assert!(result.is_err(), "must refuse to save an unknown-newer version");
+        let after = std::fs::read_to_string(f.path()).unwrap_or_default();
+        assert_eq!(before, after, "refused save must not modify the file on disk");
     }
 
     #[test]

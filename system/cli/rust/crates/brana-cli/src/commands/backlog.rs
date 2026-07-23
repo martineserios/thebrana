@@ -183,7 +183,7 @@ pub fn cmd_query(
             let task_tags: Vec<&str> = t["tags"].as_array()
                 .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
                 .unwrap_or_default();
-            tags.iter().all(|tag| task_tags.contains(tag))
+            tags.iter().all(|tag| tasks::tag_matches(&task_tags, tag))
         });
     }
 
@@ -239,6 +239,15 @@ pub fn cmd_focus(
     let active = epic_override
         .map(|s| s.to_string())
         .or_else(|| cfg["active_epic"].as_str().map(|s| s.to_string()));
+
+    // t-2314 (ADR-065): fail loud rather than silently no-op-ing the
+    // epic-scoped boost/view when active_epic doesn't resolve to anything.
+    if let Some(ref slug) = active {
+        if let Err(e) = tasks::assert_active_epic_resolves(&data.tasks, slug) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
 
     let mut scored: Vec<_> = data.tasks.iter()
         .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
@@ -627,7 +636,9 @@ pub fn cmd_add(
         if let Some(ref p) = parent { obj.insert("parent".into(), serde_json::Value::String(p.clone())); }
         if let Some(ref pr) = priority { obj.insert("priority".into(), serde_json::Value::String(pr.clone())); }
         if let Some(ref c) = context { obj.insert("context".into(), serde_json::Value::String(c.clone())); }
-        if let Some(ref i) = epic { obj.insert("epic".into(), serde_json::Value::String(i.clone())); }
+        if epic.is_some() {
+            eprintln!("  ⚠ --epic is deprecated and ignored (ADR-065: epic is now a hierarchy node, not a flat field) — link via --parent instead");
+        }
         if let Some(ref wt) = work_type { obj.insert("work_type".into(), serde_json::Value::String(wt.clone())); }
         if !acceptance_criteria.is_empty() {
             let ac_arr: Vec<serde_json::Value> = acceptance_criteria.iter()
@@ -646,6 +657,14 @@ pub fn cmd_add(
         anyhow::anyhow!("invalid JSON: {e}")
     })?;
 
+    // t-2310 (ADR-065): level/epic are retired write-surface fields — level
+    // collapses into type, epic becomes a hierarchy node (not a flat value a
+    // new task can carry). Reject the whole add rather than silently drop them.
+    if new_task.as_object().map_or(false, |o| o.contains_key("level") || o.contains_key("epic")) {
+        eprintln!("{{\"ok\":false,\"error\":\"level/epic fields are retired (ADR-065) — level collapses into type, epic is now a hierarchy node; use --parent for hierarchy\"}}");
+        anyhow::bail!("level/epic fields are retired (ADR-065) — level collapses into type, epic is now a hierarchy node; use --parent for hierarchy");
+    }
+
     if let Some(p) = new_task["priority"].as_str() {
         if let Err(e) = tasks::validate_priority(p) {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
@@ -660,7 +679,14 @@ pub fn cmd_add(
         }
     }
     if let Some(s) = new_task["status"].as_str() {
-        if let Err(e) = tasks::validate_status(s) {
+        // ADR-065: an epic node's status validates against a different
+        // vocabulary than an ordinary task's (t-2313).
+        let status_result = if new_task["type"].as_str() == Some("epic") {
+            tasks::validate_epic_status(s)
+        } else {
+            tasks::validate_status(s)
+        };
+        if let Err(e) = status_result {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
             anyhow::bail!("{e}");
         }
@@ -685,7 +711,13 @@ pub fn cmd_add(
 
     // Set defaults
     new_task["id"] = serde_json::Value::String(id.clone());
-    if new_task["status"].is_null() { new_task["status"] = serde_json::Value::String("pending".into()); }
+    if new_task["status"].is_null() {
+        // ADR-065/t-2313: an epic node's default status must be from the
+        // epic vocabulary, not the task vocabulary — "pending" is invalid
+        // for type:"epic".
+        let default_status = if new_task["type"].as_str() == Some("epic") { "next" } else { "pending" };
+        new_task["status"] = serde_json::Value::String(default_status.into());
+    }
     if new_task["execution"].is_null() { new_task["execution"] = serde_json::Value::String("code".into()); }
     if new_task["created"].is_null() {
         new_task["created"] = serde_json::Value::String(chrono::Local::now().format("%Y-%m-%d").to_string());
@@ -708,12 +740,14 @@ pub fn cmd_add(
         }
     }
 
-    // t-1543: inherit epic from parent chain if not explicitly set
-    tasks::inherit_initiative(&mut new_task, &tasks_arr);
-
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
-    let task_level = new_task["level"].as_str().unwrap_or("task").to_string();
-    let has_epic = new_task["epic"].as_str().map(|s| !s.is_empty()).unwrap_or(false);
+
+    // ADR-065 D4: WIP cap is advisory during pilot — warn, never block (t-2313).
+    if let Some(parent_id) = new_task["parent"].as_str() {
+        if let Some(warning) = tasks::check_epic_wip_cap(&tasks_arr, parent_id) {
+            eprintln!("  ⚠ {warning}");
+        }
+    }
 
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
@@ -723,11 +757,6 @@ pub fn cmd_add(
         .push(new_task);
     tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("{}", serde_json::json!({"ok": true, "id": id, "subject": subject}));
-
-    // t-1543: suggest epic when adding phase/milestone without one
-    if matches!(task_level.as_str(), "phase" | "milestone") && !has_epic {
-        eprintln!("  Tip: link to an epic — `brana backlog set {id} epic <slug>`");
-    }
     Ok(())
 }
 
@@ -743,6 +772,106 @@ pub fn cmd_get(task_id: &str, field: Option<String>) -> anyhow::Result<()> {
         println!("{}", serde_json::to_string_pretty(task).unwrap());
     }
     Ok(())
+}
+
+/// Create a wave — a thin stored process object (ADR-065, t-2315). Waves
+/// select tasks (via `selector`); they don't own them, and this command does
+/// not resolve or execute the selector — storage + validation only.
+pub fn cmd_wave_add(
+    name: String,
+    selector: String,
+    contract: Option<String>,
+    gate: Option<String>,
+    file: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    if val["waves"].is_null() {
+        val["waves"] = serde_json::json!([]);
+    }
+    let waves_arr = val["waves"].as_array().cloned().unwrap_or_default();
+    let id = tasks::next_wave_id(&waves_arr);
+
+    let wave = serde_json::json!({
+        "id": id,
+        "name": name,
+        "selector": selector,
+        "contract": contract,
+        "gate": gate,
+        "status": "queued",
+        "created": chrono::Local::now().format("%Y-%m-%d").to_string(),
+    });
+
+    val["waves"].as_array_mut()
+        .ok_or_else(|| anyhow::anyhow!("tasks.json waves is not an array"))?
+        .push(wave);
+    tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!("{}", serde_json::json!({"ok": true, "id": id, "name": name}));
+    Ok(())
+}
+
+/// Get a single wave by ID, or one field (t-2315).
+pub fn cmd_wave_get(wave_id: &str, field: Option<String>) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let wave = data.waves.iter().find(|w| w["id"].as_str() == Some(wave_id))
+        .ok_or_else(|| anyhow::anyhow!("wave {wave_id} not found"))?;
+
+    if let Some(f) = field {
+        println!("{}", serde_json::to_string(&wave[f.as_str()]).unwrap());
+    } else {
+        println!("{}", serde_json::to_string_pretty(wave).unwrap());
+    }
+    Ok(())
+}
+
+/// List all waves (t-2315). No filtering — this minimal slice stores and
+/// retrieves wave records only; resolving a wave's `selector` against the
+/// task list is the intent-CLI's job, deferred.
+pub fn cmd_wave_list(file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!("{}", serde_json::to_string_pretty(&data.waves).unwrap());
+    Ok(())
+}
+
+/// Set a field on a wave (t-2315): status/selector/contract/gate/name.
+pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let idx = val["waves"].as_array()
+        .and_then(|arr| arr.iter().position(|w| w["id"].as_str() == Some(wave_id)))
+        .ok_or_else(|| {
+            eprintln!("{{\"ok\":false,\"error\":\"wave {wave_id} not found\"}}");
+            anyhow::anyhow!("wave {wave_id} not found")
+        })?;
+
+    let wave = &mut val["waves"][idx];
+    match tasks::set_wave_field(wave, field, value) {
+        Ok(()) => {
+            let actual = val["waves"][idx][field].clone();
+            tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+            println!("{}", serde_json::json!({"ok": true, "id": wave_id, "field": field, "value": actual}));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("set wave field failed: {e}"))
+        }
+    }
 }
 
 /// Definition-of-ready lint for autonomous dispatch (t-1981).
@@ -1966,6 +2095,29 @@ mod tests {
     }
 
     #[test]
+    fn select_next_matches_key_value_tag() {
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","subject":"backend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:backend"]}),
+            json!({"id":"t-2","type":"task","subject":"frontend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:frontend"]}),
+        ];
+        let got = select_next(&tasks, Some("layer:backend"), None, None, None, None, None, None, 100);
+        let ids: Vec<&str> = got.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, vec!["t-1"]);
+    }
+
+    #[test]
+    fn select_next_matches_key_only_any_value_tag() {
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","subject":"backend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:backend"]}),
+            json!({"id":"t-2","type":"task","subject":"frontend work","status":"pending","priority":"P1","blocked_by":[],"tags":["layer:frontend"]}),
+        ];
+        let got = select_next(&tasks, Some("layer"), None, None, None, None, None, None, 100);
+        let ids: std::collections::HashSet<&str> = got.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert!(ids.contains("t-1"));
+        assert!(ids.contains("t-2"));
+    }
+
+    #[test]
     fn sort_query_by_priority_orders_p0_first() {
         let tasks = vec![
             json!({"id":"a","priority":"P2","status":"pending","blocked_by":[]}),
@@ -2105,6 +2257,108 @@ mod tests {
         assert_eq!(new["ac_state"].as_str(), Some("none"));
     }
 
+    // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
+
+    #[test]
+    fn cmd_add_shorthand_epic_flag_is_noop() {
+        let f = empty_tasks_file();
+        cmd_add(
+            None, Some("shorthand with epic".into()), None, None, None, None,
+            None, None, None, None, Some(f.path().to_path_buf()), None,
+            Some("cc-alignment".into()), None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert!(task.get("epic").is_none() || task["epic"].is_null(),
+            "--epic must be a no-op, got: {}", task["epic"]);
+    }
+
+    #[test]
+    fn cmd_add_json_payload_rejects_level_key() {
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"has level","level":"phase"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(err.to_string().contains("level"), "error must name the field: {err}");
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task");
+    }
+
+    #[test]
+    fn cmd_add_json_payload_rejects_epic_key() {
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"has epic","epic":"cc-alignment"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(err.to_string().contains("epic"), "error must name the field: {err}");
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task");
+    }
+
+    #[test]
+    fn cmd_add_parent_does_not_inherit_epic() {
+        // Pre-t-2310: inherit_initiative() copied a parent's flat epic onto new
+        // children. ADR-065 retires that — epic becomes a real hierarchy node
+        // with real children, not something to flat-copy.
+        let f = tasks_file_with(
+            r#"[{"id":"ph-1","subject":"parent phase","status":"pending","type":"phase","tags":[],"blocked_by":[],"epic":"cc-alignment"}]"#,
+        );
+        cmd_add(
+            Some(r#"{"subject":"child of ph-1","parent":"ph-1"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let arr = data["tasks"].as_array().unwrap();
+        let child = arr.iter().find(|t| t["subject"] == "child of ph-1").unwrap();
+        assert!(child.get("epic").is_none() || child["epic"].is_null(),
+            "epic must not be inherited from parent, got: {}", child["epic"]);
+    }
+
+    #[test]
+    fn cmd_add_epic_type_defaults_status_to_next_not_pending() {
+        // ADR-065/t-2313: "pending" is task vocab, invalid for type:"epic".
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"new epic","type":"epic"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["status"], "next");
+    }
+
+    #[test]
+    fn cmd_add_wip_cap_warns_not_blocks() {
+        // ADR-065 D4: WIP cap is advisory (warn) during pilot, never a hard block.
+        let mut children = String::from(
+            r#"[{"id":"in-1","subject":"epic","status":"pending","type":"epic","tags":[],"blocked_by":[],"wip_limit":10,"parent":null}"#,
+        );
+        for i in 1..=10 {
+            children.push_str(&format!(
+                r#",{{"id":"t-{i}","subject":"child {i}","status":"pending","type":"task","tags":[],"blocked_by":[],"parent":"in-1"}}"#
+            ));
+        }
+        children.push(']');
+        let f = tasks_file_with(&children);
+        cmd_add(
+            Some(r#"{"subject":"11th child","parent":"in-1"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 12, "11th child must still be persisted (warn, not block)");
+    }
+
     #[test]
     fn cmd_set_ac_state_opt_in_adds_key_to_legacy() {
         // AC#5 (CLI path): setting ac_state on a legacy task adds the key.
@@ -2125,6 +2379,119 @@ mod tests {
         cmd_set("t-1", "priority", "P1", false, Some(f.path().to_path_buf())).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["ac_state"].as_str(), Some("proposed"), "CLI set clobbered ac_state");
+    }
+
+    // ── t-2315 (ADR-065): wave process-object CRUD (CLI path) ────────────
+
+    fn read_waves(f: &tempfile::NamedTempFile) -> serde_json::Value {
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        data["waves"].clone()
+    }
+
+    #[test]
+    fn cmd_wave_add_creates_wave_with_all_fields() {
+        let f = empty_tasks_file();
+        cmd_wave_add(
+            "v3-w1".into(), "shape:mechanical ac_state:approved".into(),
+            Some("all tests green".into()), Some("wave-0".into()),
+            Some(f.path().to_path_buf()),
+        ).unwrap();
+        let waves = read_waves(&f);
+        let w = &waves[0];
+        assert_eq!(w["id"], "wave-1");
+        assert_eq!(w["name"], "v3-w1");
+        assert_eq!(w["selector"], "shape:mechanical ac_state:approved");
+        assert_eq!(w["contract"], "all tests green");
+        assert_eq!(w["gate"], "wave-0");
+        assert_eq!(w["status"], "queued");
+        assert!(w["created"].as_str().is_some());
+    }
+
+    #[test]
+    fn cmd_wave_add_only_required_fields_defaults() {
+        let f = empty_tasks_file();
+        cmd_wave_add(
+            "v3-w1".into(), "shape:mechanical".into(),
+            None, None, Some(f.path().to_path_buf()),
+        ).unwrap();
+        let waves = read_waves(&f);
+        let w = &waves[0];
+        assert_eq!(w["id"], "wave-1");
+        assert!(w["contract"].is_null());
+        assert!(w["gate"].is_null());
+        assert_eq!(w["status"], "queued");
+    }
+
+    #[test]
+    fn cmd_wave_add_initializes_waves_array_when_absent() {
+        // empty_tasks_file() has no "waves" key at all — proves the defensive init works.
+        let f = empty_tasks_file();
+        cmd_wave_add("w".into(), "s".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f).as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn cmd_wave_add_increments_id_across_waves() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_add("w2".into(), "s2".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        let waves = read_waves(&f);
+        assert_eq!(waves[0]["id"], "wave-1");
+        assert_eq!(waves[1]["id"], "wave-2");
+    }
+
+    #[test]
+    fn cmd_wave_set_status_update() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "status", "draining", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_set_selector_contract_gate_update() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "selector", "shape:mechanical", Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "contract", "ship criteria", Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "gate", "wave-0", Some(f.path().to_path_buf())).unwrap();
+        let w = &read_waves(&f)[0];
+        assert_eq!(w["selector"], "shape:mechanical");
+        assert_eq!(w["contract"], "ship criteria");
+        assert_eq!(w["gate"], "wave-0");
+    }
+
+    #[test]
+    fn cmd_wave_set_invalid_status_rejected() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        let err = cmd_wave_set("wave-1", "status", "bogus", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("queued/draining/shipped"));
+        assert_eq!(read_waves(&f)[0]["status"], "queued", "rejected write must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_set_gate_nonexistent_wave_allowed() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "gate", "wave-999", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["gate"], "wave-999");
+    }
+
+    #[test]
+    fn cmd_wave_set_unknown_wave_id_errors() {
+        let f = empty_tasks_file();
+        let err = cmd_wave_set("wave-1", "status", "queued", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("not found"));
+    }
+
+    #[test]
+    fn cmd_wave_list_returns_created_waves() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_add("w2".into(), "s2".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        assert!(cmd_wave_list(Some(f.path().to_path_buf())).is_ok());
     }
 }
 

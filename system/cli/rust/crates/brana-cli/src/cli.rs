@@ -660,6 +660,8 @@ pub enum AgentsCmd {
 pub enum BacklogCmd {
     /// Next unblocked task by priority
     Next {
+        /// Tag filter — bare tag, "key:value" (exact), or "key" (matches
+        /// bare "key" or any "key:*")
         #[arg(long)]
         tag: Option<String>,
         /// Filter by work kind: feature, fix, refactor, research, docs, design, ops
@@ -687,7 +689,9 @@ pub enum BacklogCmd {
     },
     /// Filter tasks (AND logic)
     Query {
-        /// Tag filter (comma-separated for AND: "dx,cli")
+        /// Tag filter (comma-separated for AND: "dx,cli"). Each token may be
+        /// a bare tag, "key:value" (exact match), or "key" (matches bare
+        /// "key" or any "key:*")
         #[arg(short, long)]
         tag: Option<String>,
         #[arg(short, long, value_enum)]
@@ -882,7 +886,9 @@ pub enum BacklogCmd {
         /// Resolves via ~/.claude/tasks-portfolio.json. Default: current project.
         #[arg(long)]
         project: Option<String>,
-        /// Epic slug (e.g., "cc-alignment", "backlog-schema-v2")
+        /// DEPRECATED (ADR-065): epic is now a hierarchy node, not a flat field.
+        /// This flag is a no-op — cmd_add prints a stderr warning and does not
+        /// write an epic value. Use --parent to place the task in the hierarchy.
         #[arg(long)]
         epic: Option<String>,
         /// Work type: implement, research, design, infra, chore, review
@@ -1016,6 +1022,56 @@ pub enum BacklogCmd {
         /// Output JSON array instead of themed table
         #[arg(long)]
         json: bool,
+    },
+    /// Wave — thin stored process object over the task tree (ADR-065). CRUD
+    /// only in this slice: no selector resolution, no drain loop.
+    Wave {
+        #[command(subcommand)]
+        cmd: WaveCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum WaveCmd {
+    /// Create a wave — a thin stored process object (ADR-065). Storage only:
+    /// does not resolve or execute the selector.
+    Add {
+        /// Human-readable wave name
+        #[arg(long)]
+        name: String,
+        /// Selector query text (stored opaque — not parsed or executed)
+        #[arg(long)]
+        selector: String,
+        /// Ship criteria (free text)
+        #[arg(long)]
+        contract: Option<String>,
+        /// Wave ID that must be `shipped` before this wave may drain (not enforced in this slice)
+        #[arg(long)]
+        gate: Option<String>,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Get a wave by ID, or one field
+    Get {
+        wave_id: String,
+        #[arg(long)]
+        field: Option<String>,
+    },
+    /// List all waves
+    List {
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Set a field on a wave (status, selector, contract, gate, name)
+    Set {
+        wave_id: String,
+        field: String,
+        value: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
     },
 }
 

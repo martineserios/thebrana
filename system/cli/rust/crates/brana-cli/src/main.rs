@@ -92,6 +92,13 @@ fn main() {
             BacklogCmd::MigrateEpic { dry_run, file } => run_or_exit(commands::backlog::cmd_backlog_migrate_epic(dry_run, file)),
             BacklogCmd::Initiatives { json } => run_or_exit(commands::backlog::cmd_initiatives(&theme, json)),
             BacklogCmd::Epics { json } => run_or_exit(commands::backlog::cmd_epics(&theme, json)),
+            BacklogCmd::Wave { cmd } => match cmd {
+                WaveCmd::Add { name, selector, contract, gate, file } =>
+                    run_or_exit(commands::backlog::cmd_wave_add(name, selector, contract, gate, file)),
+                WaveCmd::Get { wave_id, field } => run_or_exit(commands::backlog::cmd_wave_get(&wave_id, field)),
+                WaveCmd::List { file } => run_or_exit(commands::backlog::cmd_wave_list(file)),
+                WaveCmd::Set { wave_id, field, value, file } => run_or_exit(commands::backlog::cmd_wave_set(&wave_id, &field, &value, file)),
+            },
         },
         Commands::Ops { cmd } => match cmd {
             OpsCmd::Status { all } => run_or_exit(commands::ops::cmd_ops_status(&theme, all)),

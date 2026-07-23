@@ -896,7 +896,13 @@ fn load_sync_config() -> Result<SyncConfig, String> {
             owner: final_owner,
             repo: final_repo,
             keep_streams,
-            label_stream: true,
+            // t-2316 (ADR-065): `stream` is retired — this GitHub Issues sync
+            // path (task-sync-config.json) has no config toggle of its own
+            // and previously hardcoded `true` unconditionally, independent
+            // of tasks-config.json's `github_sync.labels.stream`. Flipped
+            // off here so it doesn't keep emitting labels from a field that
+            // no longer carries meaning.
+            label_stream: false,
             label_priority: true,
             label_tags: 2,
             project,
@@ -914,7 +920,13 @@ fn load_sync_config() -> Result<SyncConfig, String> {
                 "tech-debt".into(),
                 "bugs".into(),
             ],
-            label_stream: true,
+            // t-2316 (ADR-065): `stream` is retired — this GitHub Issues sync
+            // path (task-sync-config.json) has no config toggle of its own
+            // and previously hardcoded `true` unconditionally, independent
+            // of tasks-config.json's `github_sync.labels.stream`. Flipped
+            // off here so it doesn't keep emitting labels from a field that
+            // no longer carries meaning.
+            label_stream: false,
             label_priority: true,
             label_tags: 2,
             project: None,

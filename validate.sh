@@ -1383,15 +1383,15 @@ echo ""
 fi  # should_run 25
 
 if should_run 26; then
-# Check 26 — tasks.json status enum hygiene (t-1345)
+# Check 26 — tasks.json status enum hygiene (t-1345, epic vocab added t-2313/ADR-065)
 echo "Checking tasks.json status enum..."
 if [ -f "$TASKS_FILE" ]; then
-  BAD_STATUSES=$(jq -r '[.tasks[] | select(.status != null and (.status | test("^(pending|in_progress|completed|cancelled)$") | not)) | .status] | unique | join(",")' "$TASKS_FILE" 2>/dev/null)
+  BAD_STATUSES=$(jq -r '[.tasks[] | select(.status != null) | select(if .type == "epic" then (.status | test("^(active|next|parked|done|archived)$") | not) else (.status | test("^(pending|in_progress|completed|cancelled)$") | not) end) | .status] | unique | join(",")' "$TASKS_FILE" 2>/dev/null)
   if [ -n "$BAD_STATUSES" ]; then
-    BAD_IDS=$(jq -r '[.tasks[] | select(.status != null and (.status | test("^(pending|in_progress|completed|cancelled)$") | not)) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
-    fail "Check 26: tasks.json has non-canonical status values: $BAD_STATUSES (tasks: $BAD_IDS) — must be pending/in_progress/completed/cancelled or null"
+    BAD_IDS=$(jq -r '[.tasks[] | select(.status != null) | select(if .type == "epic" then (.status | test("^(active|next|parked|done|archived)$") | not) else (.status | test("^(pending|in_progress|completed|cancelled)$") | not) end) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+    fail "Check 26: tasks.json has non-canonical status values: $BAD_STATUSES (tasks: $BAD_IDS) — must be pending/in_progress/completed/cancelled (tasks) or active/next/parked/done/archived (epics), or null"
   else
-    pass "Check 26: tasks.json — all statuses canonical (pending/in_progress/completed/cancelled or null)"
+    pass "Check 26: tasks.json — all statuses canonical (task or epic vocab per type, or null)"
   fi
 else
   warn "Check 26: $TASKS_FILE not found (skipped)"
@@ -2378,6 +2378,38 @@ else
 fi
 echo ""
 fi  # should_run 61
+
+if should_run 62; then
+# Check 62 — tasks.json tags must be array (t-2309, ADR-065 backlog v3 schema migration).
+echo "Checking tasks.json tags type..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_TAGS_IDS=$(jq -r '[.tasks[] | select(.tags != null and (.tags | type) != "array") | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_TAGS_IDS" ]; then
+    fail "Check 62: tasks.json has non-array tags values (tasks: $BAD_TAGS_IDS) — run system/scripts/migrate/normalize-tags.py --write"
+  else
+    pass "Check 62: tasks.json — all tags are arrays (or null)"
+  fi
+else
+  warn "Check 62: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+fi  # should_run 62
+
+if should_run 63; then
+# Check 63 — tasks.json must not carry retired level/epic keys (t-2310, ADR-065 backlog v3 schema migration).
+echo "Checking tasks.json for retired level/epic fields..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_LEVEL_EPIC_IDS=$(jq -r '[.tasks[] | select(has("level") or has("epic")) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_LEVEL_EPIC_IDS" ]; then
+    fail "Check 63: tasks.json has retired level/epic keys (tasks: $BAD_LEVEL_EPIC_IDS) — run system/scripts/migrate/collapse-level-epic-v3.py --write"
+  else
+    pass "Check 63: tasks.json — no level/epic keys present"
+  fi
+else
+  warn "Check 63: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+fi  # should_run 63
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
