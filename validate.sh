@@ -2411,6 +2411,22 @@ fi
 echo ""
 fi  # should_run 63
 
+if should_run 64; then
+# Check 64 — tasks.json must not carry the retired stream key (t-2325, ADR-065 backlog v3 schema cleanup).
+echo "Checking tasks.json for retired stream field..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_STREAM_IDS=$(jq -r '[.tasks[] | select(has("stream")) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_STREAM_IDS" ]; then
+    fail "Check 64: tasks.json has retired stream keys (tasks: $BAD_STREAM_IDS) — run system/scripts/migrate/drop-stream-field-v3.py --write"
+  else
+    pass "Check 64: tasks.json — no stream keys present"
+  fi
+else
+  warn "Check 64: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+fi  # should_run 64
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

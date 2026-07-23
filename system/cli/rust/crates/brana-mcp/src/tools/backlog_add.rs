@@ -307,6 +307,31 @@ mod tests {
         );
     }
 
+    // t-2325 (ADR-065): stream is retired as a flat field. #[serde(deny_unknown_fields)]
+    // on Input already hard-rejects "stream" the same way it does "epic" —
+    // this test locks that behavior explicitly rather than leaving it implicit.
+    #[tokio::test]
+    async fn test_mcp_add_rejects_stream_field() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let err = build()
+            .handle(
+                json!({"subject": "task with stream", "stream": "dev"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect_err("handler must reject the retired stream field");
+
+        let msg = err.to_string();
+        assert!(msg.contains("stream"), "error must name the rejected field: {msg}");
+        assert_eq!(
+            h.tasks()["tasks"].as_array().unwrap().len(),
+            0,
+            "rejected add must not persist a task"
+        );
+    }
+
     #[tokio::test]
     async fn test_mcp_add_persists_work_type() {
         let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
