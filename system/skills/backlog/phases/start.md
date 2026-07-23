@@ -200,7 +200,19 @@ Branch name follows the project convention (CLAUDE.md §Branch naming):
 ```
 
 **Computing the branch name:**
-1. `epic-slug` — from `task.epic`. If empty: emit warning and stop: "⚠ Task t-NNN has no epic set. Set it first: `brana backlog set t-NNN epic <slug>`, then re-run start." Do not create a branch with a placeholder epic.
+1. `epic-slug` — the flat `epic` field is retired (backlog-v3 migration, ADR-065, t-2284)
+   and its write path is sealed (t-2310) — do not read or set `task.epic`. Instead resolve
+   the epic-node ancestor via the task's `parent` chain. Read and follow
+   [`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) — call
+   `resolve_epic_ancestor(task_id)`.
+   If it returns empty (no epic ancestor found, or none of the ancestors are a valid
+   slug): emit warning and stop: "⚠ Task t-NNN has no epic ancestor. Set one first:
+   `brana backlog set t-NNN parent <epic-task-id>` (list candidates via
+   `mcp__brana__backlog_query(task_type: \"epic\")` — the CLI's `brana backlog query
+   --type epic` currently errors, since backlog-v3's epic-as-top nodes were never added
+   to its `--type` enum; use the MCP tool or `brana backlog query --json | jq -r '.[] |
+   select(.type=="epic") | .id+" "+.subject'` instead), then re-run start." Do not create
+   a branch with a placeholder epic.
 2. `work-type` — map `task.work_type` → git prefix (exhaustive; covers all values found in data):
    - `implement` / `feat` → `feat`
    - `fix` → `fix`

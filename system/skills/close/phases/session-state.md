@@ -228,29 +228,36 @@ brana session epic clear-marker 2>/dev/null || true
 ```
 If empty, fall through to Tier 2a.
 
-**Tier 2a:** Query in-progress tasks for a common epic:
+**Epic ancestor walk (backlog-v3, t-2375):** Tier 2a and 2b both resolve a task's epic by
+walking its `parent` chain to the nearest `type: "epic"` ancestor, instead of reading the
+retired flat `epic` field. Read and follow
+[`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) — it defines
+`resolve_epic_ancestor()`, reused as-is by both tiers below.
+
+**Tier 2a:** Query in-progress tasks and walk each to its epic ancestor:
 ```bash
 TIER2A_SLUGS=$(brana backlog query --status in_progress --json 2>/dev/null \
-  | jq -r '.[].epic // empty' | sort -u)
+  | jq -r '.[].id' \
+  | while read id; do resolve_epic_ancestor "$id"; done \
+  | sort -u | grep -v '^$')
 ```
 Collect non-empty results into the signal set; continue regardless. **Caveat:** this
 queries in-progress tasks across the *whole portfolio*, including concurrently active
 worktrees on completely unrelated epics — a hit here is not by itself evidence that the
 slug belongs to *this* session (see Converge below).
 
-**Tier 2b:** Extract task IDs from recent commits and look up their epic fields:
+**Tier 2b:** Extract task IDs from recent commits and walk each to its epic ancestor:
 ```bash
 TIER2B_SLUGS=$(git log --oneline -20 \
   | grep -oE 't-[0-9]+' | sort -u \
-  | while read id; do
-      brana backlog get "$id" 2>/dev/null | jq -r '.epic // empty'
-    done \
+  | while read id; do resolve_epic_ancestor "$id"; done \
   | sort -u | grep -v '^$')
 ```
 Add all non-empty results to the signal set. Fixes false Tier 3 prompts when all
-in_progress tasks completed before close but this session's commits reference tasks that
-carry an epic field. Unlike Tier 2a, this is scoped to *this session's own* recent git
-history — a hit here means a task/commit this session actually touched carries that epic.
+in_progress tasks completed before close but this session's commits reference tasks whose
+parent chain resolves to an epic. Unlike Tier 2a, this is scoped to *this session's own*
+recent git history — a hit here means a task/commit this session actually touched resolves
+to that epic.
 
 **Converge 2a + 2b:** Deduplicate the union of `$TIER2A_SLUGS` and `$TIER2B_SLUGS`.
 - Exactly 1 unique non-empty slug **AND that slug also appears in `$TIER2B_SLUGS`** →
