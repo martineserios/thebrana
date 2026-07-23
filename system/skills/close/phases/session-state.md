@@ -228,30 +228,11 @@ brana session epic clear-marker 2>/dev/null || true
 ```
 If empty, fall through to Tier 2a.
 
-**Epic ancestor walk (backlog-v3, t-2375):** the flat `epic` field was retired by the
-backlog-v3 migration (ADR-065, t-2284) — tasks are re-parented under epic-node tasks
-(`type: "epic"`) instead. Tier 2a and 2b both resolve a task's epic by walking its
-`parent` chain to the nearest `type: "epic"` ancestor and using that ancestor's `subject`
-(epic nodes carry a slug as their subject, e.g. `"harness-core"`). Define this helper once,
-reused by both tiers:
-```bash
-resolve_epic_ancestor() {
-  local cur="$1" depth=0 json type_val
-  while [ -n "$cur" ] && [ "$cur" != "null" ] && [ "$depth" -lt 10 ]; do
-    json=$(brana backlog get "$cur" 2>/dev/null) || { echo ""; return; }
-    type_val=$(echo "$json" | jq -r '.type // empty')
-    if [ "$type_val" = "epic" ]; then
-      echo "$json" | jq -r '.subject // empty'
-      return
-    fi
-    cur=$(echo "$json" | jq -r '.parent // empty')
-    depth=$((depth + 1))
-  done
-  echo ""
-}
-```
-Depth cap guards against a malformed/cyclic parent chain — current epic nodes are always
-top-level (`parent: null`), so real chains resolve in 1-2 hops.
+**Epic ancestor walk (backlog-v3, t-2375):** Tier 2a and 2b both resolve a task's epic by
+walking its `parent` chain to the nearest `type: "epic"` ancestor, instead of reading the
+retired flat `epic` field. Read and follow
+[`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) — it defines
+`resolve_epic_ancestor()`, reused as-is by both tiers below.
 
 **Tier 2a:** Query in-progress tasks and walk each to its epic ancestor:
 ```bash
