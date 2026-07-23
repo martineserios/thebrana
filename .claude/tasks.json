@@ -37682,7 +37682,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "dev",
       "subject": "[cli] Complete t-1540 stream removal — sweep brana-mcp/ + tool_tests.rs",
       "tags": [
         "t-1540",
@@ -37711,7 +37710,6 @@
       "started": null,
       "status": "pending",
       "strategy": null,
-      "stream": "dev",
       "subject": "[rule] Add validate.sh check: schema field removal requires brana-mcp/ + test sweep",
       "tags": [
         "validate",
@@ -37740,7 +37738,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "dev",
       "subject": "Backlog audit: reconcile 26+ stale pending tasks with commit history",
       "tags": [
         "backlog-hygiene",
@@ -38074,7 +38071,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "tech-debt",
       "subject": "fix backlog plan procedure — stale stream refs + missing initiative/work_type steps",
       "tags": [
         "backlog",
@@ -38102,7 +38098,6 @@
       "priority": "P2",
       "started": "2026-05-20",
       "status": "completed",
-      "stream": "tech-debt",
       "subject": "sweep \"stream\" JSON injections from system/procedures/ + system/skills/ (E2026-05-20-11)",
       "tags": [
         "stream",
@@ -38248,7 +38243,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "tech-debt",
       "subject": "Drop debrief-analyst model from opus to sonnet",
       "tags": [
         "efficiency",
@@ -38275,7 +38269,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "tech-debt",
       "subject": "Add weight-adaptive branching to close.md Step 1 gate",
       "tags": [
         "efficiency",
@@ -38301,7 +38294,6 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
-      "stream": "tech-debt",
       "subject": "Add --light / --full override flags to /brana:close",
       "tags": [
         "efficiency",
@@ -38329,7 +38321,6 @@
       "started": "2026-05-27",
       "status": "completed",
       "strategy": "investigation",
-      "stream": "tech-debt",
       "subject": "Validate debrief quality after model downgrade — 5-session check",
       "tags": [
         "efficiency",
@@ -39433,7 +39424,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "debrief-analyst: opus → sonnet",
       "tags": [
         "efficiency",
@@ -39460,7 +39450,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "Weight-adaptive close — LIGHT/FULL mode based on session depth",
       "tags": [
         "efficiency",
@@ -39486,7 +39475,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "Phase 3 — Session state scoping",
       "tags": [
         "backlog-git-alignment",
@@ -39511,7 +39499,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[adr] brana compute hierarchy — Claude / Ruflo / Gemini",
       "tags": [
         "adr",
@@ -39537,7 +39524,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "ms-003: Branch-scoped session state reads/writes",
       "tags": [
         "backlog-git-alignment",
@@ -39565,7 +39551,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "Update delegation-routing.md — unified 4+1 question heuristic",
       "tags": [
         "rules",
@@ -39591,7 +39576,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "bugs",
       "subject": "Fix consumed_at bleed-through in merge_states (TDD: failing test first)",
       "tags": [
         "backlog-git-alignment",
@@ -39618,7 +39602,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[gemini] Add ENRICH step — ruflo memory_search before agy prompt",
       "tags": [
         "gemini",
@@ -39646,7 +39629,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "write_state: regex-based epic slug extraction from branch name + stderr fallback warning",
       "tags": [
         "backlog-git-alignment",
@@ -39672,7 +39654,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[gemini] Add PERSIST step — Claude mediates ruflo pattern_store after agy",
       "tags": [
         "gemini",
@@ -39700,7 +39681,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "read_state: resolve session file from current branch epic slug",
       "tags": [
         "backlog-git-alignment",
@@ -39726,7 +39706,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "ms-004: Cross-initiative session visibility",
       "tags": [
         "backlog-git-alignment",
@@ -39755,7 +39734,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[gemini] Compounding loop validation — quality comparison ENRICH-off vs ENRICH-on",
       "tags": [
         "gemini",
@@ -39783,7 +39761,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "brana session read --all: scan all session-state-*.json + session-state.json, one block per epic",
       "tags": [
         "backlog-git-alignment",
@@ -39809,7 +39786,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "sitrep procedure: add --all flag invocation + 30-day filter + cross-epic summary block",
       "tags": [
         "backlog-git-alignment",
@@ -39837,7 +39813,6 @@
       "started": "2026-05-24",
       "status": "completed",
       "strategy": "refactor",
-      "stream": "tech-debt",
       "subject": "Reconcile brana-core/session.rs vs brana-cli/session.rs — designate single authoritative implementation",
       "tags": [
         "backlog-git-alignment",
@@ -39865,7 +39840,6 @@
       "priority": "P2",
       "started": null,
       "status": "cancelled",
-      "stream": "roadmap",
       "subject": "[adr] Hive-mind quorum — write from t-1599 calibration data",
       "tags": [
         "adr",
@@ -39893,7 +39867,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "challenger prompt: add explicit surface-enumeration ask for M+ initiative shapes",
       "tags": [
         "challenger",
@@ -39919,7 +39892,6 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
-      "stream": "docs",
       "subject": "docs/architecture: document two-zone tmp policy (sentinels vs scheduler outputs)",
       "tags": [
         "docs",
@@ -39946,7 +39918,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "brana-v2-compute Phase 0 — Efficiency Quick Wins",
       "tags": [
         "brana-v2-compute",
@@ -39971,7 +39942,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "brana-v2-compute Phase 1 — ADR + Unified Routing Rule",
       "tags": [
         "brana-v2-compute",
@@ -39996,7 +39966,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "brana-v2-compute Phase 3 — Gemini Layer B+C",
       "tags": [
         "brana-v2-compute",
@@ -40021,7 +39990,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "brana-v2-compute Phase 4 — Ruflo-Gemini Pipeline",
       "tags": [
         "brana-v2-compute",
@@ -40047,7 +40015,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[impl] debrief-analyst: change model opus→sonnet in agent + both CLAUDE.md tables",
       "tags": [
         "brana-v2-compute",
@@ -40073,7 +40040,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[impl] Weight-adaptive close: extension-list branch in close.md Step 1 + --light/--full flags",
       "tags": [
         "brana-v2-compute",
@@ -40101,7 +40067,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[sdd] Create docs/architecture/features/brana-v2-compute-model.md — living spec",
       "tags": [
         "brana-v2-compute",
@@ -40127,7 +40092,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[spike] Adversarial agy spike — failure conditions spec",
       "tags": [
         "brana-v2-compute",
@@ -40156,7 +40120,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[rules] Update delegation-routing.md + git-discipline.md + cwd-discipline.md with agy constraints",
       "tags": [
         "brana-v2-compute",
@@ -40184,7 +40147,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[tdd] agy_delegate integration test: live MCP server — assert no JSON-RPC bleed",
       "tags": [
         "brana-v2-compute",
@@ -40212,7 +40174,6 @@
       "priority": "P2",
       "started": "2026-05-24",
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[tdd] /brana:gemini ROUTE tests: ruflo-unavailable hard-block for convention-sensitive tasks",
       "tags": [
         "brana-v2-compute",
@@ -40240,7 +40201,6 @@
       "priority": "P3",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[scheduler] agy sweep template for system/scheduler/templates/",
       "tags": [
         "brana-v2-compute",
@@ -40268,7 +40228,6 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
-      "stream": "roadmap",
       "subject": "[docs] Update docs/architecture/agents.md — agent_spawn pattern + hive-mind quorum section",
       "tags": [
         "brana-v2-compute",
@@ -40296,7 +40255,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[sdd] Update /brana:gemini skill docs after Phase 4 ENRICH+PERSIST wiring",
       "tags": [
         "brana-v2-compute",
@@ -40325,7 +40283,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[tdd] Weight-adaptive close tests: .sh→FULL, tasks.json→LIGHT, settings.json→FULL",
       "tags": [
         "brana-v2-compute",
@@ -40353,7 +40310,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[adr] agy invocation contract — Layer A vs B, routing heuristic, /tmp/ invariant, version pinning",
       "tags": [
         "brana-v2-compute",
@@ -40381,7 +40337,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[tdd] agy_delegate unit tests: 8 scenarios (happy path, timeout, malformed, /tmp/, stdio isolation, version match/mismatch, timestamp collision)",
       "tags": [
         "brana-v2-compute",
@@ -40409,7 +40364,6 @@
       "priority": "P2",
       "started": "2026-05-24",
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[sdd] Update agent-interaction-architecture.md to reference brana-v2-compute-model as current compute shape",
       "tags": [
         "brana-v2-compute",
@@ -40437,7 +40391,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[sdd] Create docs/architecture/features/claude-gemini-orchestration.md — feature spec",
       "tags": [
         "brana-v2-compute",
@@ -40492,7 +40445,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "[cli] brana log &lt;url&gt; — URL ingestion into event-log.md",
       "tags": [
         "cli",
@@ -40518,7 +40470,6 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
-      "stream": "roadmap",
       "subject": "[cli] brana knowledge next — pipeline state + next action hint",
       "tags": [
         "cli",
@@ -40790,7 +40741,6 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
-      "stream": "bugs",
       "subject": "[fix] Add spawn + agent_config fields to CLI/MCP backlog schema",
       "tags": [
         "cli",
@@ -40817,7 +40767,6 @@
       "priority": null,
       "started": null,
       "status": "pending",
-      "stream": "research",
       "subject": "research CLAUDE.md.local",
       "tags": [],
       "type": "task"
@@ -40839,7 +40788,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "tech-debt",
       "subject": "run /brana:reconcile --scope propagation (errata E2026-05-24-6)",
       "tags": [
         "reconcile",
@@ -40865,7 +40813,6 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
-      "stream": "roadmap",
       "subject": "draft knowledge clusters — 304 ready (brana knowledge process --draft)",
       "tags": [
         "knowledge",
@@ -40890,7 +40837,6 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
-      "stream": "roadmap",
       "subject": "/goal adoption P1: add /goal to fix.md + brainstorm.md",
       "tags": [
         "skills",
@@ -40916,7 +40862,6 @@
       "priority": "P3",
       "started": null,
       "status": "completed",
-      "stream": "tech-debt",
       "subject": "bootstrap.sh: auto-sync .claude-plugin/plugin.json to cache after changes",
       "tags": [
         "bootstrap",
@@ -40998,7 +40943,6 @@
       "priority": "P3",
       "started": null,
       "status": "completed",
-      "stream": "tech-debt",
       "subject": "[scheduler] Sync template→live: deploy content-harvest + index-patterns; audit reindex-patterns vs index-patterns overlap",
       "tags": [
         "scheduler",
@@ -41382,7 +41326,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "dev",
       "subject": "[skill] /brana:decide — lightweight recommendation skill (criteria, scenarios, good practices)",
       "tags": [
         "skill",
@@ -41411,7 +41354,6 @@
       "started": "2026-05-27",
       "status": "completed",
       "strategy": "feature",
-      "stream": "dev",
       "subject": "[challenge] replace NotebookLM MCP calls with agy_delegate (Gemini already in brana compute)",
       "tags": [
         "skill",
@@ -41467,7 +41409,6 @@
       "started": null,
       "status": "pending",
       "strategy": null,
-      "stream": "experiments",
       "subject": "Re-test ruflo smart:true after ControllerRegistry fix",
       "tags": [
         "ruflo",
@@ -41495,7 +41436,6 @@
       "started": null,
       "status": "pending",
       "strategy": null,
-      "stream": "ops",
       "subject": "Fix broken pipx/pre-commit Python interpreter",
       "tags": [
         "pre-commit",
@@ -41523,7 +41463,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "experiments",
       "subject": "Fix ruflo smart:true for build.md LOAD — cold-start + MMR over-diversification",
       "tags": [
         "ruflo",
@@ -42154,7 +42093,6 @@
       "started": null,
       "status": "pending",
       "strategy": null,
-      "stream": "ops",
       "subject": "decide skill: add --agy flag to delegate to Gemini Flash (not default)",
       "tags": [
         "decide",
@@ -43859,7 +43797,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "roadmap",
       "subject": "[proc] Wire hive-mind quorum Gate 3 into ship.md pre-merge step",
       "tags": []
     },
@@ -43882,7 +43819,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "hardening",
       "subject": "[fix] AskUserQuestion options missing description field — recurring InputValidationError",
       "tags": [],
       "work_type": "fix"
@@ -43963,7 +43899,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "hardening",
       "subject": "[feat] validate.sh Check 39 — CC /doctor hook schema validation",
       "tags": [],
       "work_type": "feat"
@@ -43987,7 +43922,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "hardening",
       "subject": "[feat] validate.sh Check 40 — AskUserQuestion options missing description field",
       "tags": [],
       "work_type": "feat"
@@ -44011,7 +43945,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "quality",
       "subject": "[test] brana log <url> — extract_from variant test for URL ingestion",
       "tags": [],
       "work_type": "test"
@@ -44035,7 +43968,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "hardening",
       "subject": "[maint] prune patterns.md quarantine entries — 49/50 cap",
       "tags": [],
       "work_type": "chore"
@@ -44114,7 +44046,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "dev",
       "subject": "[fix] brana knowledge process --draft: sanitize cluster names containing / to avoid malformed filenames",
       "tags": [
         "powerhouse +wave2"
@@ -44367,7 +44298,6 @@
       "started": "2026-06-03",
       "status": "completed",
       "strategy": null,
-      "stream": "roadmap",
       "subject": "[cli] brana knowledge process --limit N — bypass 10-draft cap for bulk drafting",
       "tags": [
         "powerhouse +wave2"
@@ -44394,7 +44324,6 @@
       "started": null,
       "status": "pending",
       "strategy": null,
-      "stream": "dev",
       "subject": "[test] Draft cluster name slash sanitization — test_draft_cluster_name_with_slash_produces_flat_file",
       "tags": []
     },
@@ -44417,7 +44346,6 @@
       "started": null,
       "status": "completed",
       "strategy": null,
-      "stream": "dev",
       "subject": "[research] Worktree agent tool permission model — why Edit/Write/Bash denied in isolated agents",
       "tags": []
     },
