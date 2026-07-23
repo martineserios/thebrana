@@ -59023,7 +59023,6 @@
       "created": "2026-07-22",
       "description": "ADR-065 lists `stream` (deprecated, 72 tasks still carry a value) as one of the fields retired by the backlog-v3 collapse, alongside level/epic/initiative -- but t-2284's original 10-subtask decomposition never created a dedicated subtask for it (only the config-flag half was covered, in t-2316). Two parts remain: (1) drop the flat `stream` key from the 72 tasks that carry it (data migration, similar shape to collapse-level-epic-v3.py -- could extend that script or be a new one). (2) Check whether `stream` needs the same write-path sealing treatment as level/epic (t-2310) -- confirm whether set_field/cmd_add/MCP backlog_add currently accept writes to `stream` and seal them if so. Found during t-2316 (config cleanup) verification, 2026-07-22, when a second live consumer of stream labels was discovered (brana-cli/src/sync.rs's load_sync_config(), already fixed inline in t-2316) -- but the underlying field itself was never scheduled for removal.",
       "effort": "M",
-      "epic": "cli-backlog-schema",
       "execution": "code",
       "github_issue": "1034",
       "id": "t-2325",
@@ -59817,7 +59816,6 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": null,
       "work_type": "implement",
       "ac_state": "none"
     }
