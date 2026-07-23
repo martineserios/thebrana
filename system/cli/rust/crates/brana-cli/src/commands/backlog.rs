@@ -665,6 +665,14 @@ pub fn cmd_add(
         anyhow::bail!("level/epic fields are retired (ADR-065) — level collapses into type, epic is now a hierarchy node; use --parent for hierarchy");
     }
 
+    // t-2325 (ADR-065): stream is a retired flat field — superseded by
+    // tags/epic. The --json path merges arbitrary JSON directly, so it needs
+    // the same explicit reject as level/epic above.
+    if new_task.as_object().map_or(false, |o| o.contains_key("stream")) {
+        eprintln!("{{\"ok\":false,\"error\":\"stream field is retired (ADR-065) — use tags or epic instead\"}}");
+        anyhow::bail!("stream field is retired (ADR-065) — use tags or epic instead");
+    }
+
     if let Some(p) = new_task["priority"].as_str() {
         if let Err(e) = tasks::validate_priority(p) {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
@@ -2296,6 +2304,25 @@ mod tests {
             None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap_err();
         assert!(err.to_string().contains("epic"), "error must name the field: {err}");
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task");
+    }
+
+    #[test]
+    fn cmd_add_json_payload_rejects_stream_key() {
+        // ADR-065: stream is retired (t-2325) — the --json path merges
+        // arbitrary JSON directly into new_task, so it must be explicitly
+        // rejected the same way level/epic are (t-2310), not silently
+        // persisted.
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"has stream","stream":"dev"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(err.to_string().contains("stream"), "error must name the field: {err}");
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"].as_array().unwrap().len(), 0,

@@ -2219,6 +2219,16 @@ mod tests {
         assert!(task.get("epic").is_none(), "epic must not be written");
     }
 
+    #[test]
+    fn test_set_field_rejects_stream() {
+        // ADR-065: stream is retired — the 3-value dev/ops/research taxonomy
+        // was superseded by tags/epic. set_field must reject it, not
+        // silently no-op (t-2325).
+        let mut task = json!({"id": "t-1", "type": "task"});
+        assert!(set_field(&mut task, "stream", "dev", false).is_err());
+        assert!(task.get("stream").is_none(), "stream must not be written");
+    }
+
     // ── t-252: isc field ────────────────────────────────────────────────
 
     #[test]
