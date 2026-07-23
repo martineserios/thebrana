@@ -59793,6 +59793,36 @@
       "subject": "tui",
       "tags": [],
       "type": "epic"
+    },
+    {
+      "id": "t-2375",
+      "subject": "Fix close skill's Tier 2a/2b epic detection — reads retired flat `.epic` field",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "schema-v3",
+        "close-skill",
+        "follow-up"
+      ],
+      "description": "system/skills/close/phases/session-state.md Step 9c Tier 2a queries `brana backlog query --status in_progress --json | jq '.[].epic'` and Tier 2b does `brana backlog get $id | jq '.epic'`. The backlog-v3 migration (t-2284's deferred --write, run 2026-07-23) retired the flat `epic` field entirely — tasks are now re-parented to epic-node tasks instead. Both tiers now silently return empty for every task, always falling through to Tier 2c (branch name) or Tier 3 (ask). Fix: walk the `parent` chain to the nearest ancestor with `type:\"epic\"` instead of reading a flat field.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-23",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
