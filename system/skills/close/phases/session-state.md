@@ -228,29 +228,55 @@ brana session epic clear-marker 2>/dev/null || true
 ```
 If empty, fall through to Tier 2a.
 
-**Tier 2a:** Query in-progress tasks for a common epic:
+**Epic ancestor walk (backlog-v3, t-2375):** the flat `epic` field was retired by the
+backlog-v3 migration (ADR-065, t-2284) — tasks are re-parented under epic-node tasks
+(`type: "epic"`) instead. Tier 2a and 2b both resolve a task's epic by walking its
+`parent` chain to the nearest `type: "epic"` ancestor and using that ancestor's `subject`
+(epic nodes carry a slug as their subject, e.g. `"harness-core"`). Define this helper once,
+reused by both tiers:
+```bash
+resolve_epic_ancestor() {
+  local cur="$1" depth=0 json type_val
+  while [ -n "$cur" ] && [ "$cur" != "null" ] && [ "$depth" -lt 10 ]; do
+    json=$(brana backlog get "$cur" 2>/dev/null) || { echo ""; return; }
+    type_val=$(echo "$json" | jq -r '.type // empty')
+    if [ "$type_val" = "epic" ]; then
+      echo "$json" | jq -r '.subject // empty'
+      return
+    fi
+    cur=$(echo "$json" | jq -r '.parent // empty')
+    depth=$((depth + 1))
+  done
+  echo ""
+}
+```
+Depth cap guards against a malformed/cyclic parent chain — current epic nodes are always
+top-level (`parent: null`), so real chains resolve in 1-2 hops.
+
+**Tier 2a:** Query in-progress tasks and walk each to its epic ancestor:
 ```bash
 TIER2A_SLUGS=$(brana backlog query --status in_progress --json 2>/dev/null \
-  | jq -r '.[].epic // empty' | sort -u)
+  | jq -r '.[].id' \
+  | while read id; do resolve_epic_ancestor "$id"; done \
+  | sort -u | grep -v '^$')
 ```
 Collect non-empty results into the signal set; continue regardless. **Caveat:** this
 queries in-progress tasks across the *whole portfolio*, including concurrently active
 worktrees on completely unrelated epics — a hit here is not by itself evidence that the
 slug belongs to *this* session (see Converge below).
 
-**Tier 2b:** Extract task IDs from recent commits and look up their epic fields:
+**Tier 2b:** Extract task IDs from recent commits and walk each to its epic ancestor:
 ```bash
 TIER2B_SLUGS=$(git log --oneline -20 \
   | grep -oE 't-[0-9]+' | sort -u \
-  | while read id; do
-      brana backlog get "$id" 2>/dev/null | jq -r '.epic // empty'
-    done \
+  | while read id; do resolve_epic_ancestor "$id"; done \
   | sort -u | grep -v '^$')
 ```
 Add all non-empty results to the signal set. Fixes false Tier 3 prompts when all
-in_progress tasks completed before close but this session's commits reference tasks that
-carry an epic field. Unlike Tier 2a, this is scoped to *this session's own* recent git
-history — a hit here means a task/commit this session actually touched carries that epic.
+in_progress tasks completed before close but this session's commits reference tasks whose
+parent chain resolves to an epic. Unlike Tier 2a, this is scoped to *this session's own*
+recent git history — a hit here means a task/commit this session actually touched resolves
+to that epic.
 
 **Converge 2a + 2b:** Deduplicate the union of `$TIER2A_SLUGS` and `$TIER2B_SLUGS`.
 - Exactly 1 unique non-empty slug **AND that slug also appears in `$TIER2B_SLUGS`** →
