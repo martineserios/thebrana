@@ -29,8 +29,6 @@ struct ProjectConfig {
 struct SyncConfig {
     owner: String,
     repo: String,
-    keep_streams: Vec<String>,
-    label_stream: bool,
     label_priority: bool,
     label_tags: usize,
     project: Option<ProjectConfig>,
@@ -144,7 +142,7 @@ pub fn cmd_sync(dry_run: bool, force: bool, parallel: usize) -> anyhow::Result<(
 
 // ── Planning ───────────────────────────────────────────────────
 
-fn plan_sync(all_tasks: &[Value], config: &SyncConfig, force: bool) -> SyncPlan {
+fn plan_sync(all_tasks: &[Value], _config: &SyncConfig, force: bool) -> SyncPlan {
     let mut creates = Vec::new();
     let mut closes = Vec::new();
 
@@ -155,17 +153,11 @@ fn plan_sync(all_tasks: &[Value], config: &SyncConfig, force: bool) -> SyncPlan 
         };
         let subject = task["subject"].as_str().unwrap_or("untitled");
         let status = task["status"].as_str().unwrap_or("pending");
-        let stream = task["stream"].as_str().unwrap_or("");
         let has_issue = task["github_issue"].as_u64().is_some()
             || task["github_issue"]
                 .as_str()
                 .and_then(|s| s.parse::<u64>().ok())
                 .is_some();
-
-        // Stream filtering
-        if !config.keep_streams.is_empty() && !config.keep_streams.iter().any(|s| s == stream) {
-            continue;
-        }
 
         match status {
             "completed" | "cancelled" => {
@@ -624,7 +616,6 @@ fn ensure_label(owner: &str, repo: &str, name: &str, color: &str) -> Result<(), 
 
 fn build_issue_body(task: &Value) -> String {
     let id = task["id"].as_str().unwrap_or("?");
-    let stream = task["stream"].as_str().unwrap_or("—");
     let priority = task["priority"].as_str().unwrap_or("—");
     let effort = task["effort"].as_str().unwrap_or("—");
     let strategy = task["strategy"].as_str().unwrap_or("—");
@@ -634,7 +625,7 @@ fn build_issue_body(task: &Value) -> String {
     let notes = task["notes"].as_str();
 
     let mut body = format!(
-        "**Task:** {id} | **Stream:** {stream} | **Priority:** {priority} | **Effort:** {effort}\n\
+        "**Task:** {id} | **Priority:** {priority} | **Effort:** {effort}\n\
          **Strategy:** {strategy} | **Execution:** {execution}\n\
          \n---\n\n\
          {description}"
@@ -652,14 +643,6 @@ fn build_issue_body(task: &Value) -> String {
 
 fn build_labels(task: &Value, config: &SyncConfig) -> Vec<String> {
     let mut labels = Vec::new();
-
-    if config.label_stream {
-        if let Some(stream) = task["stream"].as_str() {
-            if !stream.is_empty() {
-                labels.push(format!("stream:{stream}"));
-            }
-        }
-    }
 
     if config.label_priority {
         if let Some(priority) = task["priority"].as_str() {
@@ -830,11 +813,6 @@ fn load_sync_config() -> Result<SyncConfig, String> {
             .unwrap_or(&detected_owner)
             .to_string();
 
-        let keep_streams: Vec<String> = val["keep_streams"]
-            .as_array()
-            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-            .unwrap_or_default();
-
         // Try to find this project in the config
         let repo = if let Some(projects) = val["projects"].as_object() {
             // Find matching project by detecting current project slug
@@ -895,14 +873,6 @@ fn load_sync_config() -> Result<SyncConfig, String> {
         Ok(SyncConfig {
             owner: final_owner,
             repo: final_repo,
-            keep_streams,
-            // t-2316 (ADR-065): `stream` is retired — this GitHub Issues sync
-            // path (task-sync-config.json) has no config toggle of its own
-            // and previously hardcoded `true` unconditionally, independent
-            // of tasks-config.json's `github_sync.labels.stream`. Flipped
-            // off here so it doesn't keep emitting labels from a field that
-            // no longer carries meaning.
-            label_stream: false,
             label_priority: true,
             label_tags: 2,
             project,
@@ -915,18 +885,6 @@ fn load_sync_config() -> Result<SyncConfig, String> {
         Ok(SyncConfig {
             owner: detected_owner,
             repo: detected_repo,
-            keep_streams: vec![
-                "roadmap".into(),
-                "tech-debt".into(),
-                "bugs".into(),
-            ],
-            // t-2316 (ADR-065): `stream` is retired — this GitHub Issues sync
-            // path (task-sync-config.json) has no config toggle of its own
-            // and previously hardcoded `true` unconditionally, independent
-            // of tasks-config.json's `github_sync.labels.stream`. Flipped
-            // off here so it doesn't keep emitting labels from a field that
-            // no longer carries meaning.
-            label_stream: false,
             label_priority: true,
             label_tags: 2,
             project: None,
@@ -950,4 +908,47 @@ fn detect_project_slug() -> Option<String> {
     Path::new(&root)
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn default_config() -> SyncConfig {
+        SyncConfig {
+            owner: "acme".into(),
+            repo: "widgets".into(),
+            label_priority: true,
+            label_tags: 2,
+            project: None,
+        }
+    }
+
+    #[test]
+    fn plan_sync_includes_task_without_github_issue() {
+        let config = default_config();
+        let tasks = vec![json!({"id": "t-1", "status": "pending"})];
+        let plan = plan_sync(&tasks, &config, false);
+        assert_eq!(plan.creates.len(), 1, "pending task without an issue must be planned for sync");
+        assert_eq!(plan.closes.len(), 0);
+    }
+
+    #[test]
+    fn plan_sync_closes_completed_task_with_issue() {
+        let config = default_config();
+        let tasks = vec![json!({"id": "t-1", "status": "completed", "github_issue": 42})];
+        let plan = plan_sync(&tasks, &config, false);
+        assert_eq!(plan.creates.len(), 0);
+        assert_eq!(plan.closes.len(), 1);
+        assert_eq!(plan.closes[0].issue_number, Some(42));
+    }
+
+    #[test]
+    fn plan_sync_skips_task_that_already_has_an_issue() {
+        let config = default_config();
+        let tasks = vec![json!({"id": "t-1", "status": "pending", "github_issue": 7})];
+        let plan = plan_sync(&tasks, &config, false);
+        assert_eq!(plan.creates.len(), 0, "task with an existing issue is not re-created without --force");
+    }
 }
