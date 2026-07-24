@@ -54,6 +54,40 @@ deliberately ship.
 Ship `dev→main` when `dev` is stable — end of a work batch, or before stepping away. Not
 per-feature. `main` should always be a coherent, deployed-and-known-good snapshot.
 
+## Fast-track exception: schema-sealing / retired-field commits
+
+A narrow exception to the ship cadence above, for one specific class of commit.
+
+- **What qualifies:** a commit that adds or enforces a retired-field / schema-write
+  guard — e.g. adding an entry to a `RETIRED_FIELDS` constant, or hardening a write
+  path's field whitelist. [ADR-067](../../architecture/decisions/ADR-067-retired-fields-write-guard.md)
+  is the origin case.
+- **Why it's an exception:** ordinary feature lag between `dev` and `main` is harmless
+  — a stale binary just lacks new behavior. Schema-sealing lag is not: a `brana` /
+  `brana-mcp` binary built *before* the sealing commit landed on `dev` doesn't know a
+  field is retired, and can actively write corrupted data into the one shared,
+  unversioned `tasks.json` for as long as it stays live and un-shipped. That's a
+  corruption hazard, not a missing-behavior hazard — see
+  [ADR-067](../../architecture/decisions/ADR-067-retired-fields-write-guard.md)'s
+  Consequences section.
+- **What "fast-track" means concretely:** don't wait for the normal "end of a work
+  batch" trigger from Ship cadence above. As soon as a schema-sealing commit lands on
+  `dev`, run the same [ADR-060](../../architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md)
+  ship sequence promptly:
+  ```bash
+  git checkout main
+  git merge --ff-only dev
+  ./bootstrap.sh
+  git push origin main dev
+  git checkout dev
+  ```
+  Then restart any in-flight sessions holding an old MCP/CLI process — shipping alone
+  doesn't reload a binary a session is already running.
+- **Scope:** this exception is narrow — it applies only to commits that add or enforce
+  a retired-field or schema-write guard. It does **not** relax the normal batch cadence
+  in "Ship cadence" above for anything else; ordinary features, fixes, and docs still
+  wait for a normal ship batch.
+
 ## Cross-repo
 
 This two-tier model is brana's own per-project policy. ADR-060's **Layer-1 invariants**
