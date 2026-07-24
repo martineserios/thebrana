@@ -655,7 +655,15 @@ pub fn validate_schema(path: &Path) -> Vec<String> {
             if t["status"].is_null() {
                 errors.push(format!("task {id} missing status"));
             } else if let Some(s) = t["status"].as_str() {
-                if !valid_statuses.contains(&s) {
+                // t-2379 (ADR-065): an epic node's status validates against
+                // a different vocabulary than an ordinary task's, mirroring
+                // set_field()'s status branch (t-2313).
+                let is_valid = if t["type"].as_str() == Some("epic") {
+                    validate_epic_status(s).is_ok()
+                } else {
+                    valid_statuses.contains(&s)
+                };
+                if !is_valid {
                     errors.push(format!("task {id}: invalid status {s}"));
                 }
             }
@@ -2208,6 +2216,49 @@ mod tests {
         assert!(
             !errors.iter().any(|e| e.contains("invalid type")),
             "epic/initiative types must not be flagged as invalid, got: {:?}",
+            errors
+        );
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_accepts_epic_vocab_status_for_epic_type() {
+        // t-2379: t-2322 fixed valid_types to accept "epic", but the status
+        // check stayed unconditional against task-vocab statuses — every
+        // real epic node (status:"next" per make_epic_node()/ADR-065) still
+        // failed validate_schema() with "invalid status next". The status
+        // check must branch on type:"epic" the same way set_field() does,
+        // dispatching to validate_epic_status()'s vocab (active/next/parked/
+        // done/archived/null) instead of the task vocab.
+        let dir = std::env::temp_dir().join("brana-test-validate-epic-status");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("epic-status.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Epic node","status":"next","type":"epic","tags":[],"context":null}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(
+            !errors.iter().any(|e| e.contains("invalid status")),
+            "epic-vocab status \"next\" on a type:\"epic\" task must not be flagged, got: {:?}",
+            errors
+        );
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_rejects_epic_vocab_status_for_non_epic_type() {
+        // No cross-contamination: a non-epic task using epic vocab (e.g.
+        // "next") is still invalid task status.
+        let dir = std::env::temp_dir().join("brana-test-validate-non-epic-status");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("non-epic-status.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Ordinary task","status":"next","type":"task","tags":[],"context":null}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(
+            errors.iter().any(|e| e.contains("invalid status")),
+            "epic-vocab status \"next\" on a non-epic task must still be rejected, got: {:?}",
             errors
         );
         std::fs::remove_dir_all(&dir).ok();
