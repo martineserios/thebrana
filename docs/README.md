@@ -71,10 +71,10 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
-| [the-orbit.md](architecture/the-orbit.md) | **Index & reading map** for the Orbit/Substrate cluster — vocabulary, what to read in what order (start here) |
+| [the-orbit.md](architecture/the-orbit.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — index & reading map for the Orbit/Substrate cluster; historical |
 | [workflow-primitive.md](architecture/workflow-primitive.md) | Verified `Workflow` tool API surface, smoke-test evidence, opt-in rule |
-| [substrate-end-state.md](architecture/substrate-end-state.md) | the Orbit capstone (operation) — tiers, runner stages, safety net, branch strategy |
-| [substrate-primitives.md](architecture/substrate-primitives.md) | Agent substrate primitives & composition — primitive set, composed blocks, composition grammar, durability/trust, plug-points |
+| [substrate-end-state.md](architecture/substrate-end-state.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — the Orbit capstone (operation): tiers, runner stages, safety net, branch strategy; historical |
+| [substrate-primitives.md](architecture/substrate-primitives.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — agent substrate primitives & composition; §1–§3 (primitive set, composed blocks, durability/trust) still accurate as reference |
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
 | [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
@@ -141,6 +141,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-044](architecture/decisions/ADR-044-initiative-accumulator.md) | Initiative accumulator — cross-day session continuity per initiative |
 | [ADR-066](architecture/decisions/ADR-066-active-epic-project-scoped-only.md) | active_epic/active_initiative resolve project-local only — closes skill-procedure and sync-state.sh bleed vectors |
 | [ADR-067](architecture/decisions/ADR-067-retired-fields-write-guard.md) | Write-time RETIRED_FIELDS guard in brana-core — hard-refuse writes of sealed schema fields, binary-version-agnostic |
+| [ADR-068](architecture/decisions/ADR-068-v3-supersession.md) | v3 supersession — retires the Orbit/Substrate doc cluster into the v3 design, folds forward 8 mechanics, scopes the ADR-060 "agent never merges" amendment |
 
 > Note: this table is missing several ADRs between 045-065 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
