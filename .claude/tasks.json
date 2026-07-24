@@ -59975,7 +59975,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "chore",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature"
     },
     {
       "id": "t-2383",
@@ -60037,7 +60038,7 @@
     {
       "id": "t-2385",
       "subject": "Write-time schema-version guard for MCP/CLI write paths (retired-field rejection)",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "design",
       "tags": [
@@ -60051,18 +60052,47 @@
       "priority": "P2",
       "parent": "t-2338",
       "created": "2026-07-24",
-      "started": null,
+      "started": "2026-07-24",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
-      "context": "Design sketch from t-2378 (2026-07-24):\n\nWhere the check lives: inside brana-core's write path (shared by both the `brana` CLI and `brana-mcp` binaries, since both link brana-core) — not in bootstrap.sh and not solely in validate.sh. This is what makes it binary-version-agnostic: whichever binary is running, old or new, enforces against the same rule.\n\nWhat it checks against: rather than a version *number* (which only tells you \"old\" vs \"new\", not \"which fields are retired\"), embed the retired-field list directly as a compiled-in constant in brana-core (e.g. a RETIRED_FIELDS: &[&str] = &[\"level\", \"epic\"] alongside the existing field whitelist). Any write path that serializes a field onto a task record checks it against RETIRED_FIELDS before persisting, in addition to (not instead of) the existing whitelist check that t-2310 already added. This makes the guard self-contained per-binary: an old binary that predates a sealing change won't have the new RETIRED_FIELDS entry (can't fix binaries that don't know a field is retired yet), but a binary that already ships the sealing logic can never regress even if invoked in a stale process/env, and there's no separate marker file to keep in sync or go stale itself.\n\nWhat happens on mismatch: hard-refuse, not warn. This is a data-corruption bug (t-2325/t-2381 already happened 3x with a \"warn after the fact\" backstop — validate.sh check 63 — and still required 3 manual cleanups), so the write should return an error to the MCP/CLI caller rather than silently succeed-with-a-warning. Precedent: t-2310's set_field() whitelist already hard-rejects unknown fields; RETIRED_FIELDS is the same mechanism applied to fields that were once valid and are now sealed.\n\nResidual gap this does NOT close: a binary built *before* a field was added to RETIRED_FIELDS still can't reject it — that binary literally doesn't know the field is retired yet. This guard only prevents *regression* once a binary has shipped the retired-field entry; it doesn't shrink the exposure window during the sealing work itself on dev, before that sealing commit reaches main. Nothing can, without either (a) not doing incremental schema-sealing work on dev while a live stale binary still points at the same shared tasks.json, or (b) fast-tracking schema-sealing commits specifically (see t-2378's process-fix recommendation, applied as a narrow exception to ADR-060's normal main-lags-dev buffer).\n\nScope note: keep this to the retired-field guard only. Do not build a general schema-version marker/skew-detection system (e.g. embedding a semver the binary checks against a source-of-truth file) — it adds a second thing to keep in sync (the marker itself) without preventing more than the simpler RETIRED_FIELDS constant does, since the actual failure mode we've seen is always \"old binary still knows about a since-retired field,\" never \"old binary doesn't understand a field format change it should ideally warn about.\"",
+      "branch": "cli-backlog-schema/feat/t-2385-write-time-retired-fields",
+      "context": "Design sketch from t-2378 (2026-07-24):\n\nWhere the check lives: inside brana-core's write path (shared by both the `brana` CLI and `brana-mcp` binaries, since both link brana-core) — not in bootstrap.sh and not solely in validate.sh. This is what makes it binary-version-agnostic: whichever binary is running, old or new, enforces against the same rule.\n\nWhat it checks against: rather than a version *number* (which only tells you \"old\" vs \"new\", not \"which fields are retired\"), embed the retired-field list directly as a compiled-in constant in brana-core (e.g. a RETIRED_FIELDS: &[&str] = &[\"level\", \"epic\"] alongside the existing field whitelist). Any write path that serializes a field onto a task record checks it against RETIRED_FIELDS before persisting, in addition to (not instead of) the existing whitelist check that t-2310 already added. This makes the guard self-contained per-binary: an old binary that predates a sealing change won't have the new RETIRED_FIELDS entry (can't fix binaries that don't know a field is retired yet), but a binary that already ships the sealing logic can never regress even if invoked in a stale process/env, and there's no separate marker file to keep in sync or go stale itself.\n\nWhat happens on mismatch: hard-refuse, not warn. This is a data-corruption bug (t-2325/t-2381 already happened 3x with a \"warn after the fact\" backstop — validate.sh check 63 — and still required 3 manual cleanups), so the write should return an error to the MCP/CLI caller rather than silently succeed-with-a-warning. Precedent: t-2310's set_field() whitelist already hard-rejects unknown fields; RETIRED_FIELDS is the same mechanism applied to fields that were once valid and are now sealed.\n\nResidual gap this does NOT close: a binary built *before* a field was added to RETIRED_FIELDS still can't reject it — that binary literally doesn't know the field is retired yet. This guard only prevents *regression* once a binary has shipped the retired-field entry; it doesn't shrink the exposure window during the sealing work itself on dev, before that sealing commit reaches main. Nothing can, without either (a) not doing incremental schema-sealing work on dev while a live stale binary still points at the same shared tasks.json, or (b) fast-tracking schema-sealing commits specifically (see t-2378's process-fix recommendation, applied as a narrow exception to ADR-060's normal main-lags-dev buffer).\n\nScope note: keep this to the retired-field guard only. Do not build a general schema-version marker/skew-detection system (e.g. embedding a semver the binary checks against a source-of-truth file) — it adds a second thing to keep in sync (the marker itself) without preventing more than the simpler RETIRED_FIELDS constant does, since the actual failure mode we've seen is always \"old binary still knows about a since-retired field,\" never \"old binary doesn't understand a field format change it should ideally warn about.\"\nskill_gap_checked: true (score < 0.3, user chose: skip)",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "work_type": null,
-      "ac_state": "none"
+      "work_type": "implement",
+      "ac_state": "none",
+      "strategy": "feature",
+      "build_step": "classify"
+    },
+    {
+      "id": "t-2386",
+      "subject": "Codify schema-sealing fast-track ship exception in docs/guide/workflows/branching.md",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [],
+      "description": "t-2378's decision recommended a narrow exception to ADR-060's normal \"ship in batches\" cadence: schema-sealing/retired-field commits should fast-track to main+bootstrap+restart rather than waiting for a batch, because a stale MCP/CLI binary during schema-sealing can write corrupted data into the shared tasks.json (unlike ordinary feature lag, which is just missing behavior). This was left as an informal practice note in t-2378, not codified in branching.md.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Source: t-2378 decision writeup, 2026-07-24. Filed at close of the t-2381/t-2380/t-2378 parallel session.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "chore",
+      "ac_state": "none",
+      "strategy": "feature"
     }
   ],
   "version": 3
