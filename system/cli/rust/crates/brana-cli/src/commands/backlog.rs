@@ -2073,11 +2073,15 @@ mod tests {
     // epic-scoped subset (the ad-hoc-Python bug) would mislabel it blocked.
     fn next_mock() -> Vec<serde_json::Value> {
         vec![
-            json!({"id":"t-1","type":"task","subject":"cross-epic completed blocker","epic":"other","status":"completed","priority":"P1","blocked_by":[]}),
-            json!({"id":"t-2","type":"task","subject":"ready — blocked only by completed t-1","epic":"env-hardening","status":"pending","priority":"P1","blocked_by":["t-1"]}),
-            json!({"id":"t-3","type":"task","subject":"blocked — t-9 still open","epic":"env-hardening","status":"pending","priority":"P1","blocked_by":["t-9"]}),
-            json!({"id":"t-9","type":"task","subject":"open blocker","epic":"other","status":"pending","priority":"P2","blocked_by":[]}),
-            json!({"id":"t-4","type":"task","subject":"ready — other epic","epic":"other","status":"pending","priority":"P1","blocked_by":[]}),
+            // Epic nodes (ADR-065): epic membership is expressed via `parent`
+            // chain to a `type:"epic"` node, not the retired flat `epic` field.
+            json!({"id":"ep-env","type":"epic","subject":"env-hardening","parent": null}),
+            json!({"id":"ep-other","type":"epic","subject":"other","parent": null}),
+            json!({"id":"t-1","type":"task","subject":"cross-epic completed blocker","parent":"ep-other","status":"completed","priority":"P1","blocked_by":[]}),
+            json!({"id":"t-2","type":"task","subject":"ready — blocked only by completed t-1","parent":"ep-env","status":"pending","priority":"P1","blocked_by":["t-1"]}),
+            json!({"id":"t-3","type":"task","subject":"blocked — t-9 still open","parent":"ep-env","status":"pending","priority":"P1","blocked_by":["t-9"]}),
+            json!({"id":"t-9","type":"task","subject":"open blocker","parent":"ep-other","status":"pending","priority":"P2","blocked_by":[]}),
+            json!({"id":"t-4","type":"task","subject":"ready — other epic","parent":"ep-other","status":"pending","priority":"P1","blocked_by":[]}),
         ]
     }
 

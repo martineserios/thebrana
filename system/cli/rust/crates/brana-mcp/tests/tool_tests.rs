@@ -160,8 +160,9 @@ fn test_epic_work_type_filter_roundtrip() {
     std::fs::write(&path, serde_json::to_string_pretty(&json!({
         "project": "test",
         "tasks": [
+            {"id":"ep-cc","subject":"cc-alignment","type":"epic","parent":null},
             {"id":"t-001","subject":"implement feature","type":"task","status":"pending",
-             "priority":"P1","effort":"S","work_type":"implement","epic":"cc-alignment",
+             "priority":"P1","effort":"S","work_type":"implement","epic":"cc-alignment","parent":"ep-cc",
              "tags":[],"blocked_by":[],"created":"2026-01-01"},
             {"id":"t-002","subject":"research spike","type":"task","status":"pending",
              "priority":"P2","effort":"M","work_type":"research",

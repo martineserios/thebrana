@@ -46,6 +46,7 @@ pub enum TaskType {
     Phase,
     Milestone,
     Initiative,
+    Epic,
 }
 
 #[derive(Clone, ValueEnum)]
@@ -1449,5 +1450,27 @@ pub enum CloseQueueCmd {
         /// Reset a specific entry by ID; omit to reset all failed-but-unprocessed entries
         id: Option<String>,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// t-2377: backlog-v3's epic-as-top nodes (`type: "epic"`) were never
+    /// added to TaskType's `--type` enum, so `brana backlog query --type
+    /// epic` errored even though real `type:"epic"` tasks exist and are
+    /// returned fine by the MCP equivalent.
+    #[test]
+    fn task_type_value_enum_includes_epic() {
+        let names: Vec<String> = TaskType::value_variants()
+            .iter()
+            .filter_map(|v| v.to_possible_value())
+            .map(|pv| pv.get_name().to_string())
+            .collect();
+        assert!(
+            names.iter().any(|n| n == "epic"),
+            "TaskType enum must include an Epic variant mapping to \"epic\", got {names:?}"
+        );
+    }
 }
 
