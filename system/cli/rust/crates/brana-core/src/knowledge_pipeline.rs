@@ -625,6 +625,90 @@ pub fn classify_platform(url: &str) -> &'static str {
     }
 }
 
+/// Result of a URL content fetch (ADR-068 three-tier fetch mechanism).
+#[derive(Debug, Clone, PartialEq)]
+pub struct FetchedContent {
+    pub text: String,
+    pub platform: &'static str,
+}
+
+/// Fetch a URL's content via the tier appropriate to its platform: `ureq`
+/// for public URLs, a headless `claude -p --mcp-config` shell-out to
+/// `linkedin-scraper-mcp` for LinkedIn (t-2447).
+///
+/// Never acquires [`lock_pipeline`] — this function is shared with a future
+/// t-1144 for populating `UrlEntry.fetched_content` inside the pipeline's
+/// locked `process_core` call graph, so it must stay lock-free itself
+/// (ADR-068 §Lock discipline; see `test_lock_discipline_source_tripwires`
+/// in `brana-cli/src/commands/knowledge.rs`).
+pub fn fetch_url_content(url: &str) -> Result<FetchedContent> {
+    let platform = classify_platform(url);
+    let text = if platform == "linkedin" {
+        bail!("LinkedIn fetch not yet implemented (t-2447)")
+    } else {
+        fetch_public_url(url)?
+    };
+    Ok(FetchedContent { text, platform })
+}
+
+/// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
+/// Uses `ureq` (already a workspace dependency, ADR-024 convention) — no
+/// new HTTP client dependency.
+fn fetch_public_url(url: &str) -> Result<String> {
+    let response = ureq::get(url)
+        .header("User-Agent", "brana-knowledge-process-url/1.0")
+        .call()
+        .with_context(|| format!("fetch failed: {url}"))?;
+    let body = response
+        .into_body()
+        .read_to_string()
+        .with_context(|| format!("failed to read response body: {url}"))?;
+    Ok(strip_html_to_text(&body))
+}
+
+/// Minimal, dependency-free HTML-to-text: drops `<script>`/`<style>`
+/// blocks, strips remaining tags, collapses whitespace. Not a full HTML
+/// parser (no new dependency beyond the already-present `regex-lite`) —
+/// good enough for LLM-facing extraction, not structured scraping.
+fn strip_html_to_text(html: &str) -> String {
+    static TAG_RE: std::sync::OnceLock<regex_lite::Regex> = std::sync::OnceLock::new();
+    let tag_re = TAG_RE.get_or_init(|| regex_lite::Regex::new(r"<[^>]+>").unwrap());
+
+    let no_script = strip_tag_block(html, "script");
+    let no_style = strip_tag_block(&no_script, "style");
+    let stripped = tag_re.replace_all(&no_style, " ");
+    stripped.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Removes every `<tag ...>...</tag>` block (case-sensitive on the tag
+/// name; HTML is lowercase in practice for `script`/`style`). An unclosed
+/// opening tag drops the rest of the document rather than looping forever.
+fn strip_tag_block(html: &str, tag: &str) -> String {
+    let open = format!("<{tag}");
+    let close = format!("</{tag}>");
+    let mut out = String::new();
+    let mut rest = html;
+    loop {
+        match rest.find(&open) {
+            Some(start) => {
+                out.push_str(&rest[..start]);
+                match rest[start..].find(&close) {
+                    Some(end_rel) => rest = &rest[start + end_rel + close.len()..],
+                    None => {
+                        rest = "";
+                        break;
+                    }
+                }
+            }
+            None => {
+                out.push_str(rest);
+                break;
+            }
+        }
+    }
+    out
+}
+
 /// Result of an `ingest_urls` call.
 pub struct IngestResult {
     /// URLs newly added to pipeline state as `Unprocessed`.
@@ -1166,6 +1250,105 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
     use tempfile::TempDir;
+
+    // ── strip_html_to_text / fetch_url_content ─────────────────────────
+
+    #[test]
+    fn strip_html_to_text_drops_script_and_style() {
+        let html = "<html><head><style>.x{color:red}</style></head><body><script>alert(1)</script><p>Hello world</p></body></html>";
+        assert_eq!(strip_html_to_text(html), "Hello world");
+    }
+
+    #[test]
+    fn strip_html_to_text_collapses_whitespace() {
+        let html = "<p>Hello\n\n   world  </p>  <p>again</p>";
+        assert_eq!(strip_html_to_text(html), "Hello world again");
+    }
+
+    #[test]
+    fn strip_html_to_text_empty_input_is_empty() {
+        assert_eq!(strip_html_to_text(""), "");
+    }
+
+    #[test]
+    fn strip_html_to_text_no_tags_passes_through() {
+        assert_eq!(strip_html_to_text("just plain text"), "just plain text");
+    }
+
+    #[test]
+    fn strip_html_to_text_unclosed_script_drops_rest_of_document() {
+        // Boundary: malformed HTML (unclosed <script>) must not panic or
+        // infinite-loop — dropping the remainder is an acceptable outcome.
+        let html = "<p>before</p><script>var x = 1;";
+        assert_eq!(strip_html_to_text(html), "before");
+    }
+
+    #[test]
+    fn strip_tag_block_leaves_content_outside_block_untouched() {
+        let html = "keep <script>drop this</script> keep too";
+        assert_eq!(strip_tag_block(html, "script"), "keep  keep too");
+    }
+
+    /// Minimal local HTTP/1.1 server for one request — avoids adding a mock
+    /// HTTP crate as a new dependency (spec Design: check before adding).
+    fn serve_once(status_line: &str, body: &'static str) -> (std::net::SocketAddr, std::thread::JoinHandle<()>) {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let status_line = status_line.to_string();
+        let handle = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = stream.read(&mut buf);
+            let response = format!(
+                "{status_line}\r\nContent-Length: {}\r\nContent-Type: text/html\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            let _ = stream.write_all(response.as_bytes());
+        });
+        (addr, handle)
+    }
+
+    #[test]
+    fn fetch_public_url_strips_html_from_response() {
+        let (addr, handle) = serve_once("HTTP/1.1 200 OK", "<p>Real content</p>");
+        let result = fetch_public_url(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        assert_eq!(result.unwrap(), "Real content");
+    }
+
+    #[test]
+    fn fetch_public_url_server_error_returns_err_not_panic() {
+        let (addr, handle) = serve_once("HTTP/1.1 500 Internal Server Error", "boom");
+        let result = fetch_public_url(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        assert!(result.is_err(), "a 500 response must surface as Err");
+    }
+
+    #[test]
+    fn fetch_public_url_connection_refused_returns_err_not_panic() {
+        // Boundary: nothing listening on this port — must not panic.
+        let result = fetch_public_url("http://127.0.0.1:1/");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn fetch_url_content_linkedin_bails_not_yet_implemented() {
+        let result = fetch_url_content("https://www.linkedin.com/posts/example");
+        let err = result.expect_err("linkedin tier is not built yet (t-2447)");
+        assert!(err.to_string().contains("t-2447"));
+    }
+
+    #[test]
+    fn fetch_url_content_public_url_sets_platform() {
+        let (addr, handle) = serve_once("HTTP/1.1 200 OK", "<p>hi</p>");
+        let result = fetch_url_content(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        let content = result.unwrap();
+        assert_eq!(content.text, "hi");
+        assert_eq!(content.platform, "other");
+    }
 
     // ── build_claude_args ─────────────────────────────────────────────
 
