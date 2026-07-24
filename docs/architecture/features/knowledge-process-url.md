@@ -64,14 +64,24 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
   (see Edge Cases) since it must work correctly when invoked unattended.
 - The scoped `--mcp-config` file for the `claude -p` shell-out is a static,
   checked-in file (not dynamically generated) — simpler and auditable.
+- Storage tags `[domain, topic]`: `topic` is derived from the agy-extracted
+  insight (agy returns a short topic/category label alongside the summary);
+  falls back to the platform name (`linkedin`/`web`) when extraction was
+  skipped (agy unavailable — see the extraction-skipped fallback above).
 - Batch mode's "cancellation list" output is advisory text only (v1) — it
   does not call `brana backlog set <id> status cancelled` itself. A human
   reviews the printed list and cancels manually. Automatic cancellation was
   judged too risky for a first cut.
-- `agy` unavailable/quota-exhausted during extraction → fall back to storing
-  truncated raw fetched text (flagged as extraction-skipped) rather than
-  hard-failing the batch, so a nightly agy outage doesn't block the whole
-  queue. Re-extraction can happen later against the stored raw text.
+- `agy` unavailable/quota-exhausted during extraction → fall back to
+  `claude -p` text extraction (existing `call_claude_json`/`build_claude_args`
+  Layer-C pattern, already used for the LinkedIn tier — no new shell-out
+  family needed) rather than immediately degrading to raw text. Only if
+  *both* agy and `claude -p` fail does the command fall back to storing
+  truncated raw fetched text (flagged `extraction_skipped: true`). This
+  three-tier extraction fallback means a nightly agy outage alone never
+  blocks the batch or degrades quality — degradation only happens on a
+  double failure. Re-extraction can happen later against the stored raw text
+  when `extraction_skipped` is set.
 
 ## Behavior
 
@@ -98,9 +108,11 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 - Fetch succeeds but content is empty/near-empty (e.g. a deleted post) →
   store nothing, print a warning, do not add the ID to the cancellation list.
 - `agy` unavailable/quota-exhausted → per delegation-routing.md, this is the
-  one sanctioned agy use case (cross-model extraction); on failure, fall
-  back to storing raw fetched text (truncated to N chars, flagged
-  extraction-skipped) rather than hard-failing the whole batch.
+  one sanctioned agy use case (cross-model extraction); on agy failure, fall
+  back to `claude -p` extraction (same binary/pattern as the LinkedIn tier);
+  only if that also fails, fall back to storing raw fetched text (truncated
+  to N chars, flagged `extraction_skipped: true`) rather than hard-failing
+  the whole batch.
 
 ## Design
 
