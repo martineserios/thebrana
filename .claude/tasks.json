@@ -59974,7 +59974,6 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": null,
       "work_type": "chore",
       "ac_state": "none"
     },
@@ -60003,7 +60002,6 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": null,
       "work_type": "design",
       "ac_state": "none"
     },
@@ -60033,7 +60031,6 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": null,
       "work_type": "implement",
       "ac_state": "none"
     },
@@ -60064,7 +60061,6 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": null,
       "work_type": null,
       "ac_state": "none"
     }
