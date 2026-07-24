@@ -4,6 +4,7 @@
 > Upstream findings: [`../research/2026-04-08-cc-alignment-findings.md`](../research/2026-04-08-cc-alignment-findings.md) §D10 + second addendum.
 > Companion shape doc: [`memory-consolidation-kairos.md`](./memory-consolidation-kairos.md) — the Lint + Heal job that cleans whatever this pipeline produces.
 > Motivating methodology: Karpathy's Living Knowledge Base infographic (Sources → raw/ → Wiki → Q&A → Output).
+> See [ADR-057](../architecture/decisions/ADR-057-unit-of-knowledge.md) §2 — this pipeline's `dimensions/` output target is a `hub` under the corpus schema (dimension-hub vs. reflection-hub is scope, not kind); the ingest/routing mechanics this doc proposes are absorbed by ADR-042 (t-2028) rather than reimplemented here.
 > Layer distinction: [`feedback_layer1-vs-layer2.md`](~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_layer1-vs-layer2.md). **This pipeline operates entirely on Layer 2 (brana's work).** Brana OS rules and hooks (Layer 1) govern *how* the pipeline runs, but the content flowing through is Layer 2.
 
 ## Problem

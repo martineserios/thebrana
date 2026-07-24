@@ -1,6 +1,7 @@
 # Resilient Pattern Store — Hybrid Dual-Write
 
 > **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+> Also see [ADR-057](../architecture/decisions/ADR-057-unit-of-knowledge.md) — `pattern` is a formalized ontology atom type with a quarantine→proven lifecycle, absorbing this doc's dual-write reliability concerns into the corpus-wide schema.
 
 > Brainstormed 2026-04-01. Status: idea.
 

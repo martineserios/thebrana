@@ -4,6 +4,7 @@
 > Status: **shape / brainstorm only — no implementation.**
 > Upstream findings: [`../research/2026-04-08-cc-alignment-findings.md`](../research/2026-04-08-cc-alignment-findings.md) §D2 + second addendum.
 > Related prior work: [`resilient-pattern-store.md`](./resilient-pattern-store.md), [`ruflo-native-integration.md`](./ruflo-native-integration.md).
+> See [ADR-057](../architecture/decisions/ADR-057-unit-of-knowledge.md) — the corpus-wide frontmatter/`type:` schema this Lint+Heal job will operate over once Phase 1 (t-2033+) ships; the consolidation methodology itself is not superseded.
 > Companion shape doc: [`inbox-to-dimensions-pipeline.md`](./inbox-to-dimensions-pipeline.md) — the pipeline that feeds the knowledge base that this job cleans.
 > See also: [`feedback_layer1-vs-layer2.md`](~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_layer1-vs-layer2.md) — the distinction that motivated the reframe.
 
