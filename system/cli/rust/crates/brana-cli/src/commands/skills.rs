@@ -212,10 +212,60 @@ pub fn score_skill(skill: &SkillMeta, ctx: &TaskContext) -> (f64, String) {
     (score, reason)
 }
 
+/// Skills that are in scope regardless of task context — the "6 Jobs" command table in
+/// `.claude/CLAUDE.md`, the Skill Routing table in `system/rules/delegation-routing.md`,
+/// and the workflow skill map in `system/rules/work-start.md`.
+///
+/// Claude reaches these by *workflow position* (starting work, ending a session, planning,
+/// shipping, maintaining docs) — never by subject matter — and the always-loaded rules
+/// already route to them. Suggesting them is pure noise.
+///
+/// This is an **identity list, deliberately not a `brana:` namespace check**. Domain-,
+/// tech- and client-specific skills that happen to live in the `brana:` namespace
+/// (`meta-templates`, `gsheets`, `rust-skills`, `mcp-builder`, …) are conditionally
+/// relevant and stay in the candidate pool like any marketplace skill.
+pub const ALWAYS_LOADED_SKILLS: &[&str] = &[
+    "acquire-skills",
+    "align",
+    "backlog",
+    "brainstorm",
+    "build",
+    "challenge",
+    "close",
+    "discover",
+    "do",
+    "docs",
+    "fix",
+    "memory",
+    "onboard",
+    "reconcile",
+    "repo-cleanup",
+    "research",
+    "retrospective",
+    "review",
+    "ship",
+    "sitrep",
+    "verify-docs",
+];
+
+/// True when `name` is an always-loaded hot-path skill and should be excluded from
+/// suggestions.
+///
+/// Namespace-tolerant: candidates arrive both from local frontmatter (bare, e.g. `build`)
+/// and from ruflo keys (possibly namespaced, e.g. `brana:build`), so the trailing segment
+/// is what gets looked up.
+pub fn is_always_loaded(name: &str) -> bool {
+    let bare = name.rsplit(':').next().unwrap_or(name);
+    ALWAYS_LOADED_SKILLS.contains(&bare)
+}
+
 /// Suggest top N skills for a task context.
+///
+/// Always-loaded skills are dropped before ranking, so they never consume a slot.
 pub fn suggest(skills: &[SkillMeta], ctx: &TaskContext, top_n: usize) -> Vec<SkillMatch> {
     let mut scored: Vec<SkillMatch> = skills
         .iter()
+        .filter(|s| !is_always_loaded(&s.name))
         .map(|s| {
             let (score, reason) = score_skill(s, ctx);
             SkillMatch {
@@ -535,7 +585,10 @@ pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) -> Result<()> {
 
     // Try ruflo semantic search first (HNSW vectors, better than keyword matching)
     if !query_str.is_empty() {
-        if let Some(ruflo_matches) = try_ruflo_suggest(&query_str) {
+        if let Some(mut ruflo_matches) = try_ruflo_suggest(&query_str) {
+            // Semantic search has no notion of hot-path skills — filter here too.
+            // If nothing survives, fall through to local scoring.
+            ruflo_matches.retain(|m| !is_always_loaded(&m.name));
             if !ruflo_matches.is_empty() {
                 let json = serde_json::to_string_pretty(&ruflo_matches).unwrap_or_default();
                 println!("{json}");
@@ -909,6 +962,117 @@ stream_affinity: [roadmap]
 
         let matches = suggest(&skills, &ctx, 3);
         assert!(matches.is_empty() || matches[0].score < 0.3);
+    }
+
+    // ── Always-loaded (hot-path) skill filtering ─────────────────
+
+    fn skill_meta(name: &str, description: &str, keywords: &[&str]) -> SkillMeta {
+        SkillMeta {
+            name: name.into(),
+            description: Some(description.into()),
+            effort: None,
+            group: None,
+            keywords: keywords.iter().map(|s| (*s).to_string()).collect(),
+            task_strategies: vec![],
+            stream_affinity: vec![],
+            depends_on: vec![],
+            argument_hint: None,
+        }
+    }
+
+    /// A pool mixing hot-path/always-loaded skills with domain-specific ones.
+    /// The domain skills deliberately carry the `brana:` namespace — the filter must
+    /// key on skill identity, never on namespace prefix.
+    fn mixed_pool() -> Vec<SkillMeta> {
+        vec![
+            skill_meta("build", "Build anything — features, bug fixes, refactors",
+                &["development", "implementation", "tdd", "build", "refactor"]),
+            skill_meta("backlog", "Manage the backlog — plan, track, navigate",
+                &["task", "backlog", "planning", "roadmap"]),
+            skill_meta("close", "End a session — extract learnings, write handoff",
+                &["session", "close", "handoff", "learnings"]),
+            skill_meta("docs", "Generate and update living documentation",
+                &["docs", "documentation", "guide"]),
+            skill_meta("do", "Alias for backlog start with freeform text",
+                &["do", "start", "task"]),
+            skill_meta("brana:meta-templates", "Manage Meta WhatsApp templates",
+                &["whatsapp", "meta", "template", "waba"]),
+            skill_meta("brana:gsheets", "Google Sheets via MCP",
+                &["sheets", "spreadsheet", "google"]),
+            skill_meta("brana:rust-skills", "Rust best practices — idiomatic, optimized Rust code",
+                &["rust", "cargo", "clippy", "idiomatic"]),
+            skill_meta("brana:mcp-builder", "MCP server development guide",
+                &["mcp", "server", "protocol"]),
+        ]
+    }
+
+    #[test]
+    fn test_suggest_never_returns_always_loaded_skills() {
+        let skills = mixed_pool();
+        let ctx = TaskContext {
+            description_words: ["build", "backlog", "close", "docs", "session", "refactor", "handoff"]
+                .iter().map(|s| s.to_string()).collect(),
+            tags: HashSet::new(),
+            strategy: None,
+            stream: None,
+        };
+
+        let matches = suggest(&skills, &ctx, 3);
+        let names: Vec<&str> = matches.iter().map(|m| m.name.as_str()).collect();
+        for hot in ["build", "backlog", "close", "docs", "do"] {
+            assert!(
+                !names.contains(&hot),
+                "always-loaded skill `{hot}` must never be suggested; got {names:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_is_always_loaded_is_identity_not_namespace() {
+        // Bare and namespaced forms of a hot-path skill both match.
+        for name in ["build", "brana:build", "close", "brana:close", "do", "docs", "backlog"] {
+            assert!(is_always_loaded(name), "`{name}` should be always-loaded");
+        }
+        // Domain skills in the same namespace must NOT match.
+        for name in [
+            "meta-templates", "brana:meta-templates",
+            "gsheets", "brana:gsheets",
+            "rust-skills", "brana:rust-skills",
+            "mcp-builder", "brana:mcp-builder",
+            "cargo-machete", "brana:cargo-machete",
+            "domain-driven-design", "brana:domain-driven-design",
+        ] {
+            assert!(!is_always_loaded(name), "`{name}` is domain-specific and must stay suggestable");
+        }
+    }
+
+    #[test]
+    fn test_suggest_still_returns_domain_brana_skills() {
+        // Regression guard: filtering the whole `brana:` namespace would wipe out every
+        // one of these. The discriminator is always-loaded vs. conditionally relevant.
+        let skills = mixed_pool();
+        let cases: [(&[&str], &str); 4] = [
+            (&["rust", "cargo", "clippy", "build", "refactor"], "brana:rust-skills"),
+            (&["whatsapp", "meta", "template", "docs"], "brana:meta-templates"),
+            (&["google", "sheets", "spreadsheet", "backlog"], "brana:gsheets"),
+            (&["mcp", "server", "protocol", "build"], "brana:mcp-builder"),
+        ];
+
+        for (words, expected) in cases {
+            let ctx = TaskContext {
+                description_words: words.iter().map(|w| w.to_string()).collect(),
+                tags: HashSet::new(),
+                strategy: None,
+                stream: None,
+            };
+            let matches = suggest(&skills, &ctx, 3);
+            let got: Vec<(&str, f64)> = matches.iter().map(|m| (m.name.as_str(), m.score)).collect();
+            assert_eq!(
+                matches.first().map(|m| m.name.as_str()),
+                Some(expected),
+                "expected domain skill `{expected}` on top for {words:?}, got {got:?}"
+            );
+        }
     }
 
     #[test]
