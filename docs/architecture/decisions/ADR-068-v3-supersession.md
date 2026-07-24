@@ -40,13 +40,21 @@ framed as**:
 - **The "stalled extraction queue" is two unrelated mundane bugs, not a quota
   deadlock** (t-2395). `knowledge-pipeline-tier1` failed on a **timeout
   misconfiguration** — `scheduler.json` allows 300s for a chained
-  `--tier1 && --tier2` command whose tier-1 LLM scoring of 50 URLs alone exceeds it;
-  the log stops at 37/50 with a 360s wall-clock, consistent with the runner's
-  `timeout` killing the process tree. Zero quota/429/RESOURCE_EXHAUSTED hits.
-  Separately, the close queue held **one** dead entry at `retry_count:3`, failed
-  `schema-invalid` — explicitly *not* the `agy-empty-output` category this codebase
-  reserves for quota-exhaustion silent exit. The other 16 "unprocessed" entries were
-  same-day backlog awaiting the nightly run. agy was healthy when tested.
+  `--tier1 && --tier2` command whose two tiers share that one budget; a full pass
+  measures ~585s. Zero quota/429/RESOURCE_EXHAUSTED hits. The fix (t-2441) also
+  found a second layer t-2395 could not see: the generated systemd unit's
+  `TimeoutStartSec` is `(timeoutSeconds+60)*(maxRetries+1)` = 360s, an *outer* kill
+  above the runner's own `timeout` — which is what the 360s wall-clock in the logs
+  actually was. Separately, the close queue held **one** dead entry at
+  `retry_count:3`, labelled `schema-invalid`. That label turned out to be a
+  **misclassification** (t-2442): the raw agy output was a Google OAuth
+  re-authentication prompt, and on retry `Error: timed out waiting for response` —
+  the validator JSON-parses any output and buckets every parse failure as a contract
+  violation, so the category cannot distinguish a data error from an infrastructure
+  one. The conclusion "not quota" still holds; the category was never evidence for
+  it. (The quota category is `quota-exhausted:`; `agy-empty-output` was retired in
+  t-2085 per ADR-052.) The other 16 "unprocessed" entries were same-day backlog
+  awaiting the nightly run. agy was healthy when tested.
 - **The recurring CALIBRATION.md read-fail (×48) is prompt ambiguity, not a stale
   path** (t-2396). Both files exist exactly where they belong: the static severity
   rubric at `system/agents/CALIBRATION.md`, and the CC-native per-run agent memory at
@@ -55,9 +63,21 @@ framed as**:
   each lives, so the agent conflates them and reads the rubric's name from the memory
   directory — fresh every run.
 
-Two follow-ups from that pass have since landed and sharpen the picture: **t-2439**
-(a `--json` ingestion path that bypassed the shared validator) and **t-2444** (the
-challenger prompt disambiguation that ends the 48 repeated tool-fails).
+Four follow-ups from that pass have since landed and sharpen the picture: **t-2439**
+(a `--json` ingestion path that bypassed the shared validator), **t-2444** (the
+challenger prompt disambiguation that ends the 48 repeated tool-fails), **t-2441**
+(the timeout fix, which found the systemd layer above it), and **t-2442** (the queue
+reset, which found the error category itself was lying).
+
+**Two of them sharpen the thesis rather than just closing tickets.** t-2442's
+miscategorisation and t-2439's validator bypass are the same shape as the integration
+failure this ADR describes: a mechanism that *reports* correctness while not actually
+checking it. t-2442's entry sat dead for 25 days behind a label that named the wrong
+cause, and would have become permanently unrecoverable on 2026-07-29 when a
+status-blind 30-day reaper deleted its snapshot (t-2463). Machinery that is never
+exercised does not merely stay unproven — it degrades silently, and its own error
+surfaces mislead whoever finally looks. That is the strongest available evidence for
+v3's principle that verification must live outside the thing it verifies.
 
 **This changes the ADR's framing of the retirement.** The correct claim is *not* "the
 prior system failed in production." It is narrower and more damning of the integration
@@ -172,9 +192,10 @@ The amendment must decide:
 - **Does not supersede ADR-059, ADR-060, or ADR-050.** All three are retained; ADR-060
   gets a scoped future amendment, which is not the same as retirement.
 - **Does not amend ADR-060.** It scopes the amendment; the amendment is a later ADR.
-- **Does not fix anything the wave-1 diagnoses found.** The scheduler timeout, the dead
-  close-queue entry, and the challenger prompt ambiguity are their own tasks
-  (t-2439/t-2444 and follow-ups).
+- **Does not fix anything the wave-1 diagnoses found.** The scheduler timeout (t-2441),
+  the dead close-queue entry (t-2442), and the challenger prompt ambiguity (t-2444) are
+  their own tasks, all completed 2026-07-24, alongside t-2439 and the follow-ups
+  t-2462/t-2463 that the close-queue dig surfaced.
 - **Does not decide the fate of the runner implementation** or of Stage 4 learned
   eligibility as code.
 
