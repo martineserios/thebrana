@@ -163,6 +163,19 @@ pub fn tag_matches(task_tags: &[&str], query: &str) -> bool {
     })
 }
 
+/// AND/OR composition of `tag_matches()` over a list of tag queries (t-2326).
+/// Shared by `cmd_query`'s multi-tag AND and `cmd_tags`'s --filter (AND) /
+/// --any (OR), so both commands see the same key:value exact + key-only
+/// bare-or-any-value semantics instead of `cmd_tags` doing its own plain
+/// exact-match check.
+pub fn tags_query_match(task_tags: &[&str], tag_list: &[&str], is_and: bool) -> bool {
+    if is_and {
+        tag_list.iter().all(|tag| tag_matches(task_tags, tag))
+    } else {
+        tag_list.iter().any(|tag| tag_matches(task_tags, tag))
+    }
+}
+
 /// Default WIP cap for an epic node when `wip_limit` is unset (ADR-065 D4 /
 /// backlog-v3-schema.md "WIP cap").
 pub const DEFAULT_EPIC_WIP_LIMIT: i64 = 10;
@@ -3763,6 +3776,23 @@ mod tests {
 
         let query_miss = ["layer:backend", "dx"];
         assert!(!query_miss.iter().all(|q| tag_matches(&task_tags, q)));
+    }
+
+    // ── t-2326: unify cmd_tags --filter/--any with tag_matches() ────────────
+
+    #[test]
+    fn tags_query_match_and_requires_key_value_exact() {
+        let tags = vec!["layer:backend", "urgent"];
+        assert!(tags_query_match(&tags, &["layer:backend", "urgent"], true));
+        assert!(!tags_query_match(&tags, &["layer:frontend", "urgent"], true));
+    }
+
+    #[test]
+    fn tags_query_match_any_matches_key_only_bare_or_any_value() {
+        let tags = vec!["layer:backend"];
+        // key-only query matches any value for that key, OR'd across the list.
+        assert!(tags_query_match(&tags, &["layer", "dx"], false));
+        assert!(!tags_query_match(&tags, &["dx", "urgent"], false));
     }
 
     #[test]

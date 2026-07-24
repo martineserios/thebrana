@@ -937,11 +937,7 @@ pub fn cmd_tags(filter: Option<String>, any: Option<String>, output: String, the
                 let task_tags: Vec<&str> = t["tags"].as_array()
                     .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
                     .unwrap_or_default();
-                if is_and {
-                    tag_list.iter().all(|tag| task_tags.contains(tag))
-                } else {
-                    tag_list.iter().any(|tag| task_tags.contains(tag))
-                }
+                tasks::tags_query_match(&task_tags, &tag_list, is_and)
             })
             .collect();
 
