@@ -60121,6 +60121,37 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2388",
+      "subject": "MCP backlog_add Input struct still serializes retired epic field as null",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "schema-v3",
+        "mcp",
+        "retired-field",
+        "follow-up"
+      ],
+      "description": "brana-mcp's backlog_add tool schema (crates/brana-mcp/src/tools/backlog_add.rs) still declares an `epic` parameter on its Input struct. Even when callers don't pass it, it serializes onto new tasks as `\"epic\": null` — a retired-field (ADR-065) regression source that check 63 (validate.sh) catches after the fact. Discovered 2026-07-24 when t-2385/t-2386 landed with this stray key from MCP-created tasks (t-2386, t-2387), cleaned up via collapse-level-epic-v3.py --write. The t-2385 guard (ADR-067, RETIRED_FIELDS/reject_retired_fields) deliberately did not touch the MCP path, reasoning deny_unknown_fields already made it safe — that reasoning holds for rejecting fields NOT in the struct, but epic is still declared IN the struct, so it's not rejected, just defaulted to null and written through.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-07-24: Found during t-2385/t-2386 merge-to-dev validation (Check 63 failure). Fix: remove the `epic` field from backlog_add's Input struct entirely (epic assignment happens via parent-chain per ADR-065/t-2284, not a flat create-time field) so deny_unknown_fields rejects it at the MCP layer same as level/stream already are. Related: ADR-067, t-2385, t-2382.\nAC: backlog_add's Input struct has no epic field\nAC: creating a task via MCP backlog_add never writes an epic key (present or null) onto the task record\nAC: validate.sh Check 63 has no new occurrences after a fresh backlog_add call",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
