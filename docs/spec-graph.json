@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-24T18:13:32Z",
+  "generated": "2026-07-24T21:29:07Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -919,7 +919,9 @@
     "docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md": {
       "title": "ADR-042: Knowledge Pipeline — `ingest` as Canonical URL Entry Point + Gemini Routing for Tier 1/2",
       "type": "ADR",
-      "impl_files": []
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs"
+      ]
     },
     "docs/architecture/decisions/ADR-043-session-labels-breadcrumb.md": {
       "title": "ADR-043 — session_labels: structured breadcrumb for same-day merges",
@@ -1094,6 +1096,18 @@
         "system/skills/backlog/phases/done-and-add.md",
         "system/state/tasks-config.json",
         "system/scripts/migrate/audit-orphaned-active-epic.py"
+      ]
+    },
+    "docs/architecture/decisions/ADR-067-retired-fields-write-guard.md": {
+      "title": "ADR-067: Write-Time RETIRED_FIELDS Guard in brana-core",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-068-v3-supersession.md": {
+      "title": "ADR-068: v3 Supersession — Retiring the Orbit/Substrate Doc Cluster into the v3 Design",
+      "type": "ADR",
+      "impl_files": [
+        "system/agents/CALIBRATION.md"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -1641,6 +1655,11 @@
         "system/skills/align/SKILL.md",
         "system/hooks/tests/test-feed-index.sh"
       ]
+    },
+    "docs/architecture/features/t-2385-retired-fields-write-guard.md": {
+      "title": "t-2385: Write-Time RETIRED_FIELDS Guard",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/t-527-next-limit.md": {
       "title": "t-527: Add --limit and filter flags to backlog next",
@@ -5627,6 +5646,12 @@
     {
       "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
       "to": "docs/architecture/features/brana-feed-inbox.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/t-2385-retired-fields-write-guard.md",
+      "to": "docs/architecture/decisions/ADR-067-retired-fields-write-guard.md",
       "type": "depends_on",
       "computed": false
     },
@@ -9928,6 +9953,18 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-067-retired-fields-write-guard.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -10115,6 +10152,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/t-2001-feed-tech-stack.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/t-2385-retired-fields-write-guard.md",
       "type": "references",
       "computed": false
     },
@@ -10905,6 +10948,66 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/architecture/features/learned-eligibility.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/architecture/substrate-end-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/architecture/substrate-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/architecture/the-orbit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/reviews/brana-v3-challenge-2026-07-19.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -11494,6 +11597,18 @@
     },
     {
       "from": "docs/architecture/substrate-end-state.md",
+      "to": "decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-end-state.md",
       "to": "docs/research/substrate-leverage-audit.md",
       "type": "references",
       "computed": false
@@ -11531,6 +11646,18 @@
     {
       "from": "docs/architecture/substrate-primitives.md",
       "to": "decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -11621,6 +11748,18 @@
     {
       "from": "docs/architecture/the-orbit.md",
       "to": "decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-orbit.md",
+      "to": "docs/ideas/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -13569,6 +13708,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/workflows/branching.md",
+      "to": "docs/architecture/decisions/ADR-067-retired-fields-write-guard.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/workflows/build.md",
       "to": "docs/architecture/ac-grammar.md",
       "type": "references",
@@ -13720,6 +13865,12 @@
     },
     {
       "from": "docs/ideas/dated-memory-files.md",
+      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/dated-memory-files.md",
       "to": "docs/ideas/memory-consolidation-kairos.md",
       "type": "references",
       "computed": false
@@ -13739,6 +13890,12 @@
     {
       "from": "docs/ideas/enforcement-vs-injection.md",
       "to": "brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
@@ -13780,6 +13937,12 @@
     },
     {
       "from": "docs/ideas/memory-consolidation-autodream.md",
+      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/memory-consolidation-autodream.md",
       "to": "docs/ideas/dated-memory-files.md",
       "type": "references",
       "computed": false
@@ -13787,6 +13950,12 @@
     {
       "from": "docs/ideas/memory-consolidation-autodream.md",
       "to": "docs/ideas/memory-consolidation-kairos.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
@@ -13815,6 +13984,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/memory-pattern-learning-redesign.md",
+      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/resilient-pattern-store.md",
       "to": "brana-operating-model.md",
       "type": "references",
@@ -13829,6 +14004,12 @@
     {
       "from": "docs/ideas/resilient-pattern-store.md",
       "to": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/resilient-pattern-store.md",
+      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
@@ -15190,9 +15371,9 @@
     }
   ],
   "stats": {
-    "nodes": 523,
-    "edges": 1939,
-    "typed_edges": 682,
-    "orphans": 137
+    "nodes": 526,
+    "edges": 1966,
+    "typed_edges": 683,
+    "orphans": 136
   }
 }
