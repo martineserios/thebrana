@@ -12,6 +12,7 @@ related:
 # Memory Architecture Redesign — Pattern Learning that Actually Works
 
 > Brainstormed 2026-05-19. Status: idea.
+> See [ADR-057](../architecture/decisions/ADR-057-unit-of-knowledge.md) — `pattern`'s quarantine→proven lifecycle (§2) formalizes this doc's "garbage in" quality-filter problem as an ontology-level distinction; the recall-tuning proposals below are not addressed by ADR-057 and remain open.
 
 ## Problem
 

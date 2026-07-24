@@ -9,6 +9,7 @@ created: 2026-05-19
 > Brainstormed 2026-05-19. Status: idea.
 > Related: [`session-continuity-multi-session.md`](./session-continuity-multi-session.md) (t-1461),
 > [`memory-consolidation-kairos.md`](./memory-consolidation-kairos.md) (Lint+Heal)
+> **Superseded by [ADR-057](../architecture/decisions/ADR-057-unit-of-knowledge.md) for corpus/type-schema aspects.** This doc's `--type + --scope → deterministic destination` routing became ADR-038's `brana memory write` gateway (partially live); ADR-057 §7 confirms that gateway remains the authoring path, now with the corpus-wide `type:` ontology (`claim`/`pattern`/`event`/`source`/`hub`/`decision`) as its schema, validated by the Phase 1 hard gate (t-2035).
 
 ## Problem
 

@@ -4,6 +4,7 @@
 > Backlog task: t-1834 (t-1713 cancelled — thin orchestrator approach, superseded by this spec)
 > Related: [`memory-consolidation-kairos.md`](./memory-consolidation-kairos.md) (Lint+Heal methodology, L0–L4 depth layers)
 > Related: [`dated-memory-files.md`](./dated-memory-files.md) (memory write gateway)
+> See [ADR-057](../architecture/decisions/ADR-057-unit-of-knowledge.md) — this shipped feature's output (consolidated dimension/memory content) will conform to the corpus-wide `type:` schema once Phase 1/3 healing lands; the consolidation implementation itself is unaffected.
 
 ## Problem
 
