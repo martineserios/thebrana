@@ -50,16 +50,6 @@
       "timeoutSeconds": 1800,
       "type": "command"
     },
-    "daily-digest": {
-      "_comment": "t-688: daily Telegram digest summarizing all scheduler runs. Enable on Oracle only (requires ~/.hub-secrets).",
-      "captureOutput": false,
-      "command": "./system/scheduler/brana-scheduler-digest.sh",
-      "enabled": false,
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 09:30:00",
-      "timeoutSeconds": 30,
-      "type": "command"
-    },
     "export-patterns": {
       "_comment": "ADR-015: weekly JSON export of all ruflo namespaces to git",
       "captureOutput": true,
@@ -150,15 +140,6 @@
       "schedule": "Mon,Tue,Wed,Thu,Fri,Sat *-*-* 15:30:00",
       "timeoutSeconds": 120,
       "type": "command"
-    },
-    "morning-check": {
-      "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram)",
-      "enabled": false,
-      "model": "haiku",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Mon..Fri *-*-* 08:48:00",
-      "skill": "/brana:daily-ops",
-      "type": "skill"
     },
     "personal-repo-pull": {
       "_comment": "t-2306: laptop-side pull for oracle-hub's link-capture commits to the personal repo. Confirmed no equivalent job existed before this.",
