@@ -219,8 +219,54 @@ impl Default for TaskFilter<'_> {
     }
 }
 
+/// Returns true if `s` is a valid kebab-case slug: one or more lowercase
+/// alphanumeric segments joined by single hyphens (no leading/trailing/
+/// consecutive hyphens). Mirrors the bash regex `^[a-z0-9]+(-[a-z0-9]+)*$`
+/// used by the shared `epic-ancestor-walk.md` procedure.
+fn is_epic_slug(s: &str) -> bool {
+    !s.is_empty()
+        && s.split('-')
+            .all(|seg| !seg.is_empty() && seg.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()))
+}
+
+/// Resolve the nearest `type: "epic"` ancestor of `task` by walking its
+/// `parent` chain against `by_id` (a full task-id → task lookup built from
+/// `all`). Rust equivalent of the bash `resolve_epic_ancestor()` in
+/// `system/skills/_shared/epic-ancestor-walk.md` (t-2375/t-2377) — the flat
+/// `epic` field it replaces was retired by the backlog-v3 migration
+/// (ADR-065, t-2284) and its write path is sealed (t-2310), so any epic
+/// membership check must walk `parent` instead of reading `task.epic`.
+/// Depth-capped at 10 hops (current epic nodes are always top-level, so real
+/// chains resolve in 1-2 hops) and rejects non-slug epic subjects (t-2263
+/// failure class — pre-v3 `in-NNN` markers retyped to `type:"epic"` but
+/// still carrying full sentence subjects).
+fn resolve_epic_ancestor(task: &Value, by_id: &HashMap<&str, &Value>) -> Option<String> {
+    let mut cur = task["parent"].as_str();
+    let mut depth = 0;
+    while let Some(id) = cur {
+        if depth >= 10 {
+            break;
+        }
+        let t = *by_id.get(id)?;
+        if t["type"].as_str() == Some("epic") {
+            if let Some(subject) = t["subject"].as_str() {
+                if is_epic_slug(subject) {
+                    return Some(subject.to_string());
+                }
+            }
+        }
+        cur = t["parent"].as_str();
+        depth += 1;
+    }
+    None
+}
+
 /// Filter tasks using a `TaskFilter` struct (preferred API).
 pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilter<'_>) -> Vec<&'a Value> {
+    let by_id: HashMap<&str, &Value> = all
+        .iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
     tasks
         .iter()
         .filter(|t| {
@@ -259,8 +305,9 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
                 }
             }
             if let Some(init) = filter.epic {
-                if t["epic"].as_str().unwrap_or("") != init {
-                    return false;
+                match resolve_epic_ancestor(t, &by_id) {
+                    Some(slug) if slug == init => {}
+                    _ => return false,
                 }
             }
             if let Some(wt) = filter.work_type {
@@ -1988,13 +2035,16 @@ mod tests {
     #[test]
     fn test_filter_tasks_by_initiative() {
         let tasks = vec![
-            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "epic": "cc-alignment"}),
-            json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "epic": "notebooklm"}),
-            json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "epic": "cc-alignment"}),
+            json!({"id": "ep-1", "type": "epic", "subject": "cc-alignment", "parent": null}),
+            json!({"id": "ep-2", "type": "epic", "subject": "notebooklm", "parent": null}),
+            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "ep-1"}),
+            json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "ep-2"}),
+            json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "ep-1"}),
         ];
         let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task", "subtask"], Some("cc-alignment"), None);
         assert_eq!(result.len(), 2);
-        assert!(result.iter().all(|t| t["epic"] == "cc-alignment"));
+        let ids: Vec<&str> = result.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert!(ids.contains(&"t-1") && ids.contains(&"t-3"));
     }
 
     #[test]
@@ -2600,6 +2650,54 @@ mod tests {
     #[test]
     fn test_assert_active_epic_resolves_fails_on_empty_task_list() {
         assert!(assert_active_epic_resolves(&[], "harness-core").is_err());
+    }
+
+    // ── t-2377: TaskFilter.epic must resolve via parent-chain ancestor,
+    // not the retired flat `epic` field (ADR-065, t-2284; sealed t-2310) ──
+
+    #[test]
+    fn test_filter_tasks_by_epic_resolves_via_parent_chain() {
+        let all = vec![
+            json!({"id": "t-1", "type": "epic", "subject": "cli-backlog-schema", "parent": null}),
+            json!({"id": "t-2", "type": "task", "subject": "child of epic", "parent": "t-1", "status": "pending"}),
+            json!({"id": "t-3", "type": "task", "subject": "unrelated", "parent": null, "status": "pending"}),
+        ];
+        let filter = TaskFilter { epic: Some("cli-backlog-schema"), types: vec!["task"], ..Default::default() };
+        let matched = filter_tasks_by(&all, &all, &filter);
+        assert_eq!(matched.len(), 1, "expected exactly the epic's child task to match, got {matched:?}");
+        assert_eq!(matched[0]["id"], "t-2");
+    }
+
+    #[test]
+    fn test_filter_tasks_by_epic_no_match_returns_empty() {
+        let all = vec![
+            json!({"id": "t-1", "type": "epic", "subject": "cli-backlog-schema", "parent": null}),
+            json!({"id": "t-2", "type": "task", "subject": "child of epic", "parent": "t-1", "status": "pending"}),
+        ];
+        let filter = TaskFilter { epic: Some("other-epic"), types: vec!["task"], ..Default::default() };
+        let matched = filter_tasks_by(&all, &all, &filter);
+        assert!(matched.is_empty());
+    }
+
+    #[test]
+    fn test_filter_tasks_by_epic_rejects_non_slug_epic_subject() {
+        // Pre-v3 in-001..in-004 markers were retyped to type:"epic" but still
+        // carry full sentence subjects, not slugs (t-2263 failure class).
+        let all = vec![
+            json!({"id": "in-1", "type": "epic", "subject": "Backlog UI — rich task views", "parent": null}),
+            json!({"id": "t-2", "type": "task", "subject": "child", "parent": "in-1", "status": "pending"}),
+        ];
+        let filter = TaskFilter { epic: Some("Backlog UI — rich task views"), types: vec!["task"], ..Default::default() };
+        let matched = filter_tasks_by(&all, &all, &filter);
+        assert!(matched.is_empty(), "non-slug epic subject must never resolve, even on exact string match");
+    }
+
+    #[test]
+    fn test_filter_tasks_by_no_epic_filter_is_noop() {
+        let all = vec![json!({"id": "t-1", "type": "task", "subject": "x", "parent": null, "status": "pending"})];
+        let filter = TaskFilter { types: vec!["task"], ..Default::default() };
+        let matched = filter_tasks_by(&all, &all, &filter);
+        assert_eq!(matched.len(), 1);
     }
 
     // ── t-939: validate_context_for_effort ──────────────────────────────
@@ -3637,8 +3735,10 @@ mod tests {
     #[test]
     fn task_filter_by_initiative() {
         let tasks = vec![
-            json!({"id": "t-a", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "epic": "cc-alignment"}),
-            json!({"id": "t-b", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "epic": "ruflo"}),
+            json!({"id": "ep-cc", "type": "epic", "subject": "cc-alignment", "parent": null}),
+            json!({"id": "ep-ruflo", "type": "epic", "subject": "ruflo", "parent": null}),
+            json!({"id": "t-a", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "parent": "ep-cc"}),
+            json!({"id": "t-b", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "parent": "ep-ruflo"}),
         ];
         let f = TaskFilter { epic: Some("cc-alignment"), types: vec!["task"], ..Default::default() };
         let result = filter_tasks_by(&tasks, &tasks, &f);
