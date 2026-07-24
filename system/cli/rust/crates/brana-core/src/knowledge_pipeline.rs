@@ -694,10 +694,7 @@ fn strip_tag_block(html: &str, tag: &str) -> String {
                 out.push_str(&rest[..start]);
                 match rest[start..].find(&close) {
                     Some(end_rel) => rest = &rest[start + end_rel + close.len()..],
-                    None => {
-                        rest = "";
-                        break;
-                    }
+                    None => break,
                 }
             }
             None => {
@@ -748,6 +745,77 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     }
 
     result
+}
+
+// ── Insight extraction (ADR-068 three-tier fallback: agy → claude -p → raw) ──
+
+/// Extracted insight from fetched URL content.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExtractedInsight {
+    pub summary: String,
+    pub topic: String,
+    pub extraction_skipped: bool,
+}
+
+/// Truncation length for the raw-text fallback tier (both agy and claude -p failed).
+const EXTRACTION_RAW_TRUNCATE_CHARS: usize = 2000;
+
+/// Extract an insight (summary + topic) from fetched content via a
+/// three-tier fallback: agy → `claude -p` → truncated raw text. Only
+/// degrades to raw text if *both* agy and claude fail — a nightly agy
+/// outage alone never blocks the batch or degrades quality (ADR-068
+/// Assumptions).
+pub fn extract_insight(content: &str, platform: &str) -> ExtractedInsight {
+    let prompt = extraction_prompt(content);
+    let agy_result = call_gemini_json(&prompt);
+    resolve_extraction(agy_result, || call_claude_json(&prompt, None), content, platform)
+}
+
+fn extraction_prompt(content: &str) -> String {
+    format!(
+        "Summarize the following content into a short knowledge-base insight. \
+         Respond ONLY with JSON of the shape {{\"summary\": \"...\", \"topic\": \"...\"}} \
+         (topic = a short 1-3 word category label). Content:\n\n{content}"
+    )
+}
+
+/// Pure fallback decision, unit-testable without real subprocess calls: the
+/// agy result is passed in already-attempted (avoids double-calling agy);
+/// `claude_call` is only invoked if agy's result didn't parse. Falls back
+/// to truncated raw content (flagged `extraction_skipped: true`, topic
+/// defaults to `platform`) only if both fail.
+fn resolve_extraction(
+    agy_result: Result<serde_json::Value>,
+    claude_call: impl FnOnce() -> Result<serde_json::Value>,
+    content: &str,
+    platform: &str,
+) -> ExtractedInsight {
+    if let Ok(v) = agy_result {
+        if let Some(insight) = parse_extraction_response(&v, platform) {
+            return insight;
+        }
+    }
+    if let Ok(v) = claude_call() {
+        if let Some(insight) = parse_extraction_response(&v, platform) {
+            return insight;
+        }
+    }
+    let truncated: String = content.chars().take(EXTRACTION_RAW_TRUNCATE_CHARS).collect();
+    ExtractedInsight { summary: truncated, topic: platform.to_string(), extraction_skipped: true }
+}
+
+/// Parses `{"summary": "...", "topic": "..."}` from a model JSON response.
+/// `summary` is required (`None` on a malformed/missing field — the caller
+/// then falls through to the next tier); `topic` defaults to `platform`
+/// when the model omits it.
+fn parse_extraction_response(v: &serde_json::Value, platform: &str) -> Option<ExtractedInsight> {
+    let summary = v.get("summary")?.as_str()?.to_string();
+    let topic = v
+        .get("topic")
+        .and_then(|t| t.as_str())
+        .unwrap_or(platform)
+        .to_string();
+    Some(ExtractedInsight { summary, topic, extraction_skipped: false })
 }
 
 // ── Gemini CLI shell-out (call_gemini_json — ADR-040 Tier1/Tier2 routing) ────
@@ -1348,6 +1416,105 @@ mod tests {
         let content = result.unwrap();
         assert_eq!(content.text, "hi");
         assert_eq!(content.platform, "other");
+    }
+
+    // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────
+
+    fn valid_response(summary: &str, topic: &str) -> serde_json::Value {
+        serde_json::json!({"summary": summary, "topic": topic})
+    }
+
+    #[test]
+    fn resolve_extraction_agy_success_never_calls_claude() {
+        let claude_called = std::cell::Cell::new(false);
+        let insight = resolve_extraction(
+            Ok(valid_response("agy summary", "rust")),
+            || {
+                claude_called.set(true);
+                bail!("should not be called")
+            },
+            "raw content",
+            "other",
+        );
+        assert_eq!(insight.summary, "agy summary");
+        assert_eq!(insight.topic, "rust");
+        assert!(!insight.extraction_skipped);
+        assert!(!claude_called.get(), "agy succeeded — claude -p must not be invoked");
+    }
+
+    #[test]
+    fn resolve_extraction_agy_fails_falls_back_to_claude() {
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy quota exhausted")),
+            || Ok(valid_response("claude summary", "ai")),
+            "raw content",
+            "other",
+        );
+        assert_eq!(insight.summary, "claude summary");
+        assert_eq!(insight.topic, "ai");
+        assert!(!insight.extraction_skipped);
+    }
+
+    #[test]
+    fn resolve_extraction_agy_malformed_falls_back_to_claude() {
+        // Boundary: agy returns Ok but the JSON doesn't have a "summary" key.
+        let insight = resolve_extraction(
+            Ok(serde_json::json!({"unexpected": "shape"})),
+            || Ok(valid_response("claude summary", "ai")),
+            "raw content",
+            "other",
+        );
+        assert_eq!(insight.summary, "claude summary");
+        assert!(!insight.extraction_skipped);
+    }
+
+    #[test]
+    fn resolve_extraction_both_fail_falls_back_to_raw_truncated() {
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy down")),
+            || Err(anyhow::anyhow!("claude down")),
+            "the raw fetched content",
+            "linkedin",
+        );
+        assert_eq!(insight.summary, "the raw fetched content");
+        assert_eq!(insight.topic, "linkedin", "topic falls back to platform when both fail");
+        assert!(insight.extraction_skipped);
+    }
+
+    #[test]
+    fn resolve_extraction_raw_fallback_truncates_long_content() {
+        let long_content = "x".repeat(EXTRACTION_RAW_TRUNCATE_CHARS + 500);
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy down")),
+            || Err(anyhow::anyhow!("claude down")),
+            &long_content,
+            "other",
+        );
+        assert_eq!(insight.summary.chars().count(), EXTRACTION_RAW_TRUNCATE_CHARS);
+    }
+
+    #[test]
+    fn resolve_extraction_raw_fallback_short_content_not_padded() {
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy down")),
+            || Err(anyhow::anyhow!("claude down")),
+            "short",
+            "other",
+        );
+        assert_eq!(insight.summary, "short");
+    }
+
+    #[test]
+    fn parse_extraction_response_missing_topic_defaults_to_platform() {
+        let v = serde_json::json!({"summary": "hi"});
+        let insight = parse_extraction_response(&v, "github").unwrap();
+        assert_eq!(insight.topic, "github");
+    }
+
+    #[test]
+    fn parse_extraction_response_missing_summary_returns_none() {
+        let v = serde_json::json!({"topic": "rust"});
+        assert!(parse_extraction_response(&v, "other").is_none());
     }
 
     // ── build_claude_args ─────────────────────────────────────────────
