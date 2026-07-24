@@ -1566,14 +1566,27 @@ pub struct EpicStat {
     pub done: usize,
 }
 
+/// Builds an id→task lookup for parent-chain epic resolution. `tasks` here is
+/// expected to be the *full* task list (as passed to `collect_initiative_stats`
+/// / `collect_epic_stats` from `data.tasks`) so ancestor chains resolve fully.
+fn epic_by_id(tasks: &[serde_json::Value]) -> std::collections::HashMap<&str, &serde_json::Value> {
+    tasks.iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect()
+}
+
 pub fn collect_initiative_stats(tasks: &[serde_json::Value]) -> Vec<InitiativeStat> {
+    let by_id = epic_by_id(tasks);
     let initiative_tasks: Vec<&serde_json::Value> = tasks.iter()
         .filter(|t| t["type"].as_str() == Some("initiative"))
         .collect();
 
     let mut stats = Vec::new();
     for ini in &initiative_tasks {
-        let slug = match ini["epic"].as_str() { Some(s) => s, None => continue };
+        // t-2381: the flat `epic` field is retired (ADR-065/t-2284, sealed t-2310).
+        // Resolve epic membership by walking `parent` to the nearest `type:"epic"`
+        // ancestor, same pattern as TaskFilter.epic (t-2377).
+        let slug = match tasks::resolve_epic_ancestor(ini, &by_id) { Some(s) => s, None => continue };
         let id = ini["id"].as_str().unwrap_or("?").to_string();
         let subject = ini["subject"].as_str().unwrap_or("").to_string();
         let priority = ini["priority"].as_str().unwrap_or("—").to_string();
@@ -1581,7 +1594,7 @@ pub fn collect_initiative_stats(tasks: &[serde_json::Value]) -> Vec<InitiativeSt
 
         let children: Vec<&serde_json::Value> = tasks.iter()
             .filter(|t| t["type"].as_str() != Some("initiative"))
-            .filter(|t| t["epic"].as_str() == Some(slug))
+            .filter(|t| tasks::resolve_epic_ancestor(t, &by_id).as_deref() == Some(slug.as_str()))
             .collect();
 
         let total = children.len();
@@ -1594,17 +1607,20 @@ pub fn collect_initiative_stats(tasks: &[serde_json::Value]) -> Vec<InitiativeSt
         }).count();
         let done = children.iter().filter(|t| t["status"].as_str() == Some("completed")).count();
 
-        stats.push(InitiativeStat { id, slug: slug.to_string(), subject, priority, status, total, p1, p2, p3, blocked, done });
+        stats.push(InitiativeStat { id, slug, subject, priority, status, total, p1, p2, p3, blocked, done });
     }
     stats.sort_by(|a, b| a.slug.cmp(&b.slug));
     stats
 }
 
 pub fn collect_epic_stats(tasks: &[serde_json::Value]) -> Vec<EpicStat> {
-    let mut slugs: Vec<&str> = tasks.iter()
+    let by_id = epic_by_id(tasks);
+
+    // t-2381: resolve each non-initiative task's epic via parent-chain walk
+    // (resolve_epic_ancestor), not the retired flat `epic` field.
+    let mut slugs: Vec<String> = tasks.iter()
         .filter(|t| t["type"].as_str() != Some("initiative"))
-        .filter_map(|t| t["epic"].as_str())
-        .filter(|s| !s.is_empty())
+        .filter_map(|t| tasks::resolve_epic_ancestor(t, &by_id))
         .collect::<std::collections::HashSet<_>>()
         .into_iter()
         .collect();
@@ -1613,7 +1629,7 @@ pub fn collect_epic_stats(tasks: &[serde_json::Value]) -> Vec<EpicStat> {
     slugs.iter().map(|slug| {
         let members: Vec<&serde_json::Value> = tasks.iter()
             .filter(|t| t["type"].as_str() != Some("initiative"))
-            .filter(|t| t["epic"].as_str() == Some(slug))
+            .filter(|t| tasks::resolve_epic_ancestor(t, &by_id).as_deref() == Some(slug.as_str()))
             .collect();
         let total = members.len();
         let p1 = members.iter().filter(|t| t["priority"].as_str() == Some("P1")).count();
@@ -1623,7 +1639,7 @@ pub fn collect_epic_stats(tasks: &[serde_json::Value]) -> Vec<EpicStat> {
                 && t["status"].as_str() != Some("completed")
         }).count();
         let done = members.iter().filter(|t| t["status"].as_str() == Some("completed")).count();
-        EpicStat { slug: slug.to_string(), total, p1, p2, blocked, done }
+        EpicStat { slug: slug.clone(), total, p1, p2, blocked, done }
     }).collect()
 }
 
@@ -1988,15 +2004,23 @@ mod tests {
     }
 
     // ── collect_initiative_stats ─────────────────────────────────────
+    //
+    // t-2381: the flat `epic` field is retired (ADR-065/t-2284, write path
+    // sealed t-2310) and is intentionally left empty/absent on every task
+    // below. Epic membership must resolve via `parent` chain walk to the
+    // nearest `type:"epic"` ancestor (mirrors real backlog structure:
+    // task -> initiative -> epic).
 
     fn initiative_mock() -> Vec<serde_json::Value> {
         vec![
-            json!({"id":"in-001","type":"initiative","subject":"Backlog UI","epic":"backlog-ui","status":"in_progress","priority":"P1","blocked_by":[]}),
-            json!({"id":"t-10","type":"task","subject":"Task A","epic":"backlog-ui","status":"completed","priority":"P1","blocked_by":[]}),
-            json!({"id":"t-11","type":"task","subject":"Task B","epic":"backlog-ui","status":"pending","priority":"P2","blocked_by":["t-10"]}),
-            json!({"id":"t-12","type":"task","subject":"Task C","epic":"backlog-ui","status":"pending","priority":"P3","blocked_by":[]}),
-            json!({"id":"in-002","type":"initiative","subject":"Memory Arch","epic":"memory-arch","status":"pending","priority":"P2","blocked_by":[]}),
-            json!({"id":"t-20","type":"task","subject":"Task M","epic":"memory-arch","status":"pending","priority":"P1","blocked_by":[]}),
+            json!({"id":"ep-backlog-ui","type":"epic","subject":"backlog-ui","status":"in_progress","parent":null,"blocked_by":[]}),
+            json!({"id":"ep-memory-arch","type":"epic","subject":"memory-arch","status":"pending","parent":null,"blocked_by":[]}),
+            json!({"id":"in-001","type":"initiative","subject":"Backlog UI","status":"in_progress","priority":"P1","parent":"ep-backlog-ui","blocked_by":[]}),
+            json!({"id":"t-10","type":"task","subject":"Task A","status":"completed","priority":"P1","parent":"in-001","blocked_by":[]}),
+            json!({"id":"t-11","type":"task","subject":"Task B","status":"pending","priority":"P2","parent":"in-001","blocked_by":["t-10"]}),
+            json!({"id":"t-12","type":"task","subject":"Task C","status":"pending","priority":"P3","parent":"in-001","blocked_by":[]}),
+            json!({"id":"in-002","type":"initiative","subject":"Memory Arch","status":"pending","priority":"P2","parent":"ep-memory-arch","blocked_by":[]}),
+            json!({"id":"t-20","type":"task","subject":"Task M","status":"pending","priority":"P1","parent":"in-002","blocked_by":[]}),
         ]
     }
 
@@ -2025,7 +2049,8 @@ mod tests {
     #[test]
     fn initiatives_empty_when_no_initiative_type() {
         let tasks = vec![
-            json!({"id":"t-1","type":"task","epic":"foo","status":"pending","priority":"P2","blocked_by":[]}),
+            json!({"id":"ep-foo","type":"epic","subject":"foo","parent":null,"blocked_by":[]}),
+            json!({"id":"t-1","type":"task","status":"pending","priority":"P2","parent":"ep-foo","blocked_by":[]}),
         ];
         let stats = collect_initiative_stats(&tasks);
         assert!(stats.is_empty());
@@ -2057,12 +2082,34 @@ mod tests {
     #[test]
     fn epics_skips_tasks_without_epic() {
         let tasks = vec![
-            json!({"id":"t-1","type":"task","epic":null,"status":"pending","priority":"P2","blocked_by":[]}),
-            json!({"id":"t-2","type":"task","epic":"foo","status":"pending","priority":"P2","blocked_by":[]}),
+            json!({"id":"t-1","type":"task","status":"pending","priority":"P2","parent":null,"blocked_by":[]}),
+            json!({"id":"ep-foo","type":"epic","subject":"foo","parent":null,"blocked_by":[]}),
+            json!({"id":"t-2","type":"task","status":"pending","priority":"P2","parent":"ep-foo","blocked_by":[]}),
         ];
         let stats = collect_epic_stats(&tasks);
         assert_eq!(stats.len(), 1);
         assert_eq!(stats[0].slug, "foo");
+    }
+
+    #[test]
+    fn epics_and_initiatives_ignore_retired_flat_epic_field() {
+        // t-2381: a task carries a stale flat `epic` field (pre-v3 data, or a
+        // future accidental write) that does NOT match its real parent-chain
+        // epic. The retired field must be ignored entirely — only the
+        // parent-chain ancestor governs membership.
+        let tasks = vec![
+            json!({"id":"ep-real","type":"epic","subject":"real-epic","parent":null,"blocked_by":[]}),
+            json!({"id":"in-1","type":"initiative","subject":"Init","status":"pending","priority":"P1","parent":"ep-real","epic":"stale-slug","blocked_by":[]}),
+            json!({"id":"t-1","type":"task","status":"pending","priority":"P1","parent":"in-1","epic":"stale-slug","blocked_by":[]}),
+        ];
+        let epic_stats = collect_epic_stats(&tasks);
+        assert_eq!(epic_stats.len(), 1);
+        assert_eq!(epic_stats[0].slug, "real-epic");
+
+        let init_stats = collect_initiative_stats(&tasks);
+        assert_eq!(init_stats.len(), 1);
+        assert_eq!(init_stats[0].slug, "real-epic");
+        assert_eq!(init_stats[0].total, 1);
     }
 
     // ── t-2279: select_next (next --epic) + sort_query (query --sort) ──

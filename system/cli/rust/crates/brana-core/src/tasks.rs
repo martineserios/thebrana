@@ -223,7 +223,7 @@ impl Default for TaskFilter<'_> {
 /// alphanumeric segments joined by single hyphens (no leading/trailing/
 /// consecutive hyphens). Mirrors the bash regex `^[a-z0-9]+(-[a-z0-9]+)*$`
 /// used by the shared `epic-ancestor-walk.md` procedure.
-fn is_epic_slug(s: &str) -> bool {
+pub fn is_epic_slug(s: &str) -> bool {
     !s.is_empty()
         && s.split('-')
             .all(|seg| !seg.is_empty() && seg.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()))
@@ -240,7 +240,7 @@ fn is_epic_slug(s: &str) -> bool {
 /// chains resolve in 1-2 hops) and rejects non-slug epic subjects (t-2263
 /// failure class — pre-v3 `in-NNN` markers retyped to `type:"epic"` but
 /// still carrying full sentence subjects).
-fn resolve_epic_ancestor(task: &Value, by_id: &HashMap<&str, &Value>) -> Option<String> {
+pub fn resolve_epic_ancestor(task: &Value, by_id: &HashMap<&str, &Value>) -> Option<String> {
     let mut cur = task["parent"].as_str();
     let mut depth = 0;
     while let Some(id) = cur {
