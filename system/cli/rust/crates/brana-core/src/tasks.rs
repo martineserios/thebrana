@@ -1175,6 +1175,37 @@ pub fn reject_retired_fields(obj: &serde_json::Map<String, Value>) -> Result<(),
     }
 }
 
+/// Task fields whose canonical representation is a JSON array.
+///
+/// `acceptance_criteria` is deliberately absent: its items are prose and
+/// legitimately contain commas, so comma-splitting them would corrupt the
+/// payload. Only fields listed here are coerced.
+pub const ARRAY_FIELDS: &[&str] = &["tags", "blocked_by", "isc"];
+
+/// Coerce legacy comma-string values on [`ARRAY_FIELDS`] into real JSON arrays
+/// (E2026-05-22-7).
+///
+/// Absent keys stay absent and nulls stay null — inventing keys here would
+/// resurrect retired-field-style schema drift.
+///
+/// Shared by `set_field` and `cmd_add`'s `--json` ingestion so both write paths
+/// normalize identically. `--json` merges arbitrary JSON straight onto the new
+/// task, bypassing `set_field`'s per-field match, which is how comma-strings
+/// used to survive to disk (t-2439).
+pub fn normalize_array_fields(task: &mut Value) {
+    for field in ARRAY_FIELDS {
+        if let Some(s) = task.get(*field).and_then(|v| v.as_str()) {
+            task[*field] = Value::Array(
+                s.split(',')
+                    .map(|t| t.trim())
+                    .filter(|t| !t.is_empty())
+                    .map(|t| Value::String(t.to_string()))
+                    .collect(),
+            );
+        }
+    }
+}
+
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
@@ -1184,15 +1215,7 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
                 task[field] = Value::Array(vec![]);
             }
             // Coerce legacy comma-string format to array (E2026-05-22-7)
-            if let Some(s) = task[field].as_str() {
-                task[field] = Value::Array(
-                    s.split(',')
-                        .map(|t| t.trim())
-                        .filter(|t| !t.is_empty())
-                        .map(|t| Value::String(t.to_string()))
-                        .collect(),
-                );
-            }
+            normalize_array_fields(task);
             let arr = task[field].as_array_mut()
                 .ok_or_else(|| format!("{field} is not an array"))?;
             if let Some(stripped) = value.strip_prefix('+') {
@@ -2480,6 +2503,58 @@ mod tests {
         // exact key match only, no substring matching.
         let obj = json!({"epics": "x", "streaming": "y"}).as_object().unwrap().clone();
         assert!(reject_retired_fields(&obj).is_ok());
+    }
+
+    // ── t-2439: shared comma-string → array coercion ─────────────────────
+
+    #[test]
+    fn test_normalize_array_fields_splits_comma_string() {
+        let mut task = json!({"tags": "a,b,c", "blocked_by": "t-1, t-2"});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!(["a", "b", "c"]));
+        assert_eq!(task["blocked_by"], json!(["t-1", "t-2"]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_leaves_arrays_untouched() {
+        let mut task = json!({"tags": ["a", "b"], "blocked_by": []});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!(["a", "b"]));
+        assert_eq!(task["blocked_by"], json!([]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_empty_string_becomes_empty_array() {
+        let mut task = json!({"tags": ""});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!([]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_ignores_absent_and_null() {
+        // Absent keys must stay absent — cmd_add's own null-defaulting owns
+        // that, and inventing keys here would resurrect retired-field-style
+        // schema drift.
+        let mut task = json!({"subject": "no arrays", "blocked_by": null});
+        normalize_array_fields(&mut task);
+        assert!(task.get("tags").is_none(), "must not invent a tags key");
+        assert!(task["blocked_by"].is_null(), "null must stay null");
+    }
+
+    #[test]
+    fn test_normalize_array_fields_trims_and_drops_blanks() {
+        let mut task = json!({"tags": " a , , b "});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!(["a", "b"]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_does_not_split_acceptance_criteria() {
+        // AC items are prose and legitimately contain commas — splitting them
+        // would corrupt the payload. Only ARRAY_FIELDS are coerced.
+        let mut task = json!({"acceptance_criteria": "tests pass, docs updated"});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["acceptance_criteria"], json!("tests pass, docs updated"));
     }
 
     // ── t-252: isc field ────────────────────────────────────────────────
