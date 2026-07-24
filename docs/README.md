@@ -140,6 +140,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-043](architecture/decisions/ADR-043-session-labels-breadcrumb.md) | session_labels breadcrumb array for same-day multi-session merges |
 | [ADR-044](architecture/decisions/ADR-044-initiative-accumulator.md) | Initiative accumulator — cross-day session continuity per initiative |
 | [ADR-066](architecture/decisions/ADR-066-active-epic-project-scoped-only.md) | active_epic/active_initiative resolve project-local only — closes skill-procedure and sync-state.sh bleed vectors |
+| [ADR-067](architecture/decisions/ADR-067-retired-fields-write-guard.md) | Write-time RETIRED_FIELDS guard in brana-core — hard-refuse writes of sealed schema fields, binary-version-agnostic |
 
 > Note: this table is missing several ADRs between 045-065 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
@@ -162,6 +163,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [active-epic-project-scoping-cleanup.md](architecture/features/active-epic-project-scoping-cleanup.md) | active_epic scoping cleanup: skill-procedure fix, cmd_set_active hard-stop, sync-state.sh pull guard, orphan-audit script (ADR-066) |
 | [smart-tasks-add.md](architecture/features/smart-tasks-add.md) | Smart /brana:backlog add: suggest-only pattern |
 | [research-stream.md](architecture/features/research-stream.md) | Research as first-class task stream |
+| [t-2385-retired-fields-write-guard.md](architecture/features/t-2385-retired-fields-write-guard.md) | RETIRED_FIELDS constant in brana-core::tasks — single source of truth replacing 3 independent retirement checks |
 | [acquire-skills.md](architecture/features/acquire-skills.md) | Acquire skills from external marketplaces |
 | [cascade-throttle.md](architecture/features/cascade-throttle.md) | Cascade throttle for failure detection |
 | [scheduler.md](architecture/features/scheduler.md) | Scheduled jobs system |
