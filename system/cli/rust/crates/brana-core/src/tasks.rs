@@ -1084,6 +1084,38 @@ pub fn raw_status<'a>(task: &'a Value, default: &'a str) -> &'a str {
     task["status"].as_str().unwrap_or(default)
 }
 
+/// Fields retired from the task schema (ADR-065) that must never be written
+/// via a write path that merges a raw JSON object directly onto a task
+/// (rather than going through `set_field`'s exhaustive match, which already
+/// hard-rejects them-by-omission via its `unknown field` catch-all). Single
+/// source of truth: t-2310 hand-patched level/epic, then t-2325 had to
+/// hand-patch stream separately with an independent `contains_key` check —
+/// this constant plus `reject_retired_fields` (t-2385, ADR-067) generalizes
+/// that so a future retirement is a one-line addition here instead of a new
+/// call site.
+pub const RETIRED_FIELDS: &[&str] = &["level", "epic", "stream"];
+
+/// Reject a raw JSON object if it contains any retired field key. Exact key
+/// match only — no substring matching, so e.g. `"epics"`/`"streaming"` pass
+/// through untouched. Used by write paths that merge arbitrary JSON directly
+/// (e.g. `cmd_add`'s `--json` ingestion), where `set_field`'s per-field match
+/// doesn't apply. Names every retired field found, not just the first.
+pub fn reject_retired_fields(obj: &serde_json::Map<String, Value>) -> Result<(), String> {
+    let found: Vec<&str> = RETIRED_FIELDS
+        .iter()
+        .filter(|f| obj.contains_key(**f))
+        .copied()
+        .collect();
+    if found.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "{} field(s) are retired (ADR-065) — level collapses into type, epic/stream are now hierarchy/tag concerns; use --parent/tags instead",
+            found.join(", ")
+        ))
+    }
+}
+
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
@@ -2302,6 +2334,50 @@ mod tests {
         let mut task = json!({"id": "t-1", "type": "task"});
         assert!(set_field(&mut task, "stream", "dev", false).is_err());
         assert!(task.get("stream").is_none(), "stream must not be written");
+    }
+
+    // ── t-2385: RETIRED_FIELDS single source of truth (ADR-067) ──────────
+    // set_field()'s exhaustive `match` + catch-all `_ => Err("unknown field")`
+    // is already an allowlist-by-construction, so retired fields are already
+    // hard-rejected there (tests above). The genuine gap is write paths that
+    // merge raw JSON objects directly (cmd_add's --json ingestion), which
+    // used to hand-roll independent contains_key checks per field. These
+    // tests cover the new shared helper those paths call instead.
+
+    #[test]
+    fn test_reject_retired_fields_empty_object_passes() {
+        let obj = json!({"subject": "hi"}).as_object().unwrap().clone();
+        assert!(reject_retired_fields(&obj).is_ok());
+    }
+
+    #[test]
+    fn test_reject_retired_fields_no_retired_keys_passes() {
+        let obj = json!({"subject": "hi", "tags": ["a"], "priority": "P1"}).as_object().unwrap().clone();
+        assert!(reject_retired_fields(&obj).is_ok());
+    }
+
+    #[test]
+    fn test_reject_retired_fields_single_field_named() {
+        let obj = json!({"subject": "hi", "level": "phase"}).as_object().unwrap().clone();
+        let err = reject_retired_fields(&obj).unwrap_err();
+        assert!(err.contains("level"), "error must name the field: {err}");
+    }
+
+    #[test]
+    fn test_reject_retired_fields_all_three_named() {
+        let obj = json!({"level": "x", "epic": "y", "stream": "z"}).as_object().unwrap().clone();
+        let err = reject_retired_fields(&obj).unwrap_err();
+        assert!(err.contains("level"), "error must name level: {err}");
+        assert!(err.contains("epic"), "error must name epic: {err}");
+        assert!(err.contains("stream"), "error must name stream: {err}");
+    }
+
+    #[test]
+    fn test_reject_retired_fields_exact_match_only_no_substrings() {
+        // "epics" and "streaming" are NOT the retired keys "epic"/"stream" —
+        // exact key match only, no substring matching.
+        let obj = json!({"epics": "x", "streaming": "y"}).as_object().unwrap().clone();
+        assert!(reject_retired_fields(&obj).is_ok());
     }
 
     // ── t-252: isc field ────────────────────────────────────────────────
