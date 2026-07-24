@@ -59878,6 +59878,36 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2380",
+      "subject": "Investigate tasks.json concurrent-write torn-read hazard",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "schema-v3",
+        "cli",
+        "concurrency",
+        "follow-up"
+      ],
+      "description": "`brana backlog get <id>` / `brana backlog query --json` can return invalid JSON (control-character parse error, confirmed via both jq and Python's json.loads) when another session is concurrently writing tasks.json for the same or a nearby task. Reproduced live 4+ times during t-2375's close session (2026-07-24): once while another session appended context to t-2325, and repeatedly during the epic-detection Tier 2a/2b live dogfood run at session close, where several in-progress tasks (t-2173, t-2214, t-2249) hit the same parse error.\n\nIsolated single reads of the same task succeeded cleanly every time — the failure only appears under concurrent read/write load, consistent with a torn read (reader observes a partially-written file) rather than a deterministic data bug. `brana backlog set`/`add` are documented as atomic (\"no need to read-modify-write\"), but this suggests either the write path isn't fully atomic (no rename-based swap) or reads aren't taking any lock/snapshot against an in-flight write.\n\nImpact so far: contained — callers that already degrade gracefully (e.g. t-2375's resolve_epic_ancestor(), which treats a jq/parse failure as \"no epic found\" and falls through the cascade) are unaffected in outcome, just silently lose a signal. But any caller that assumes `brana backlog get` always returns valid JSON (most call sites do) could crash or misbehave under concurrent sessions — which this repo demonstrably has right now (confirmed: a second live session was committing to dev on t-2322/t-2378 during this same close).\n\nInvestigate: (1) whether tasks.json writes use atomic write+rename or an in-place write, (2) whether reads should take a shared lock or read a consistent snapshot, (3) how many CLI/MCP read paths currently assume valid JSON without a parse-failure fallback.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: root cause identified (write-path atomicity vs read-path locking)\\nAC: fix implemented (atomic write+rename and/or read-side lock/retry) OR reasoned decision to accept the risk documented\\nAC: no regression in brana backlog get/query performance under normal (non-concurrent) use\\nSource: t-2375 close session, 2026-07-24 — reproduced 4+ times live",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "research",
+      "ac_state": "none"
     }
   ],
   "version": 3
