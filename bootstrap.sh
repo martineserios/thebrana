@@ -783,6 +783,22 @@ if [ -f "$BRANA_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
     fi
 fi
 
+# 7d2: Check brana-mcp binary freshness vs Rust source (t-2378 — the live MCP
+# server is a separate binary from brana-cli and was previously unchecked here,
+# so schema-sealing changes on dev could silently lag the running MCP process
+# even after brana-cli was rebuilt/current).
+BRANA_MCP_BIN="$HOME/.local/bin/brana-mcp"
+if [ -f "$BRANA_MCP_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
+    NEWEST_MCP_SRC=$(find "$RUST_SRC_DIR" -name "*.rs" -newer "$BRANA_MCP_BIN" 2>/dev/null | head -1)
+    if [ -n "$NEWEST_MCP_SRC" ]; then
+        echo "  ! brana-mcp binary may be stale (source changed since last build)"
+        echo "    Run: cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-mcp && cp target/release/brana-mcp ~/.local/bin/brana-mcp"
+        echo "    Then restart Claude Code sessions to pick up the rebuilt MCP server."
+    else
+        echo "  = brana-mcp binary (current)"
+    fi
+fi
+
 # 7e: Register in installed_plugins.json
 # CC uses "name@marketplace" keys with array values: [{scope, installPath, version, ...}]
 INSTALLED="$PLUGINS_DIR/installed_plugins.json"
