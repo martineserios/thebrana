@@ -60158,7 +60158,7 @@
       "branch": null,
       "build_step": null,
       "completed": null,
-      "context": "Implementation rollout of the locked v3.3 design (docs/ideas/brana-v3-redesign.md, adversarially challenged 2026-07-19 and 2026-07-21, all findings resolved via t-2285/t-2286/t-2287). 5-wave gated plan: GROUND TRUTH+SUPERSESSION -> LEARN AUTONOMOUS -> VERIFY -> COCKPIT+ROUTER -> GRADUATE+CUT. Wave contract: <=10 tasks/wave, ships into daily use, deletes >= adds, next wave gated on previous shipping, tests+docs ride inside waves. backlog-v3 schema elaboration (ADR-065) already landed via t-2284 ahead of this rollout. TUI task t-2301 is shelved pending wave 4 (COCKPIT+ROUTER) landing.",
+      "context": "Implementation rollout of the locked v3.3 design (docs/ideas/brana-v3-redesign.md, adversarially challenged 2026-07-19 and 2026-07-21, all findings resolved via t-2285/t-2286/t-2287). 5-wave gated plan: GROUND TRUTH+SUPERSESSION -> LEARN AUTONOMOUS -> VERIFY -> COCKPIT+ROUTER -> GRADUATE+CUT. Wave contract: <=10 tasks/wave, ships into daily use, deletes >= adds, next wave gated on previous shipping, tests+docs ride inside waves. backlog-v3 schema elaboration (ADR-065) already landed via t-2284 ahead of this rollout. TUI task t-2301 is shelved pending wave 4 (COCKPIT+ROUTER) landing.\n2026-07-24: Challenger review (brana-challenger agent) verdict: RECONSIDER — 5 CRITICAL, 6 WARNING, 4 OBSERVATION findings on the decomposition (not the underlying design doc). All 5 CRITICAL addressed:\n1. Cross-wave gating unenforced at leaf level — CONFIRMED by reading classify() in tasks.rs: it only checks a task's OWN blocked_by array, never walks the parent chain, and brana backlog rollup (the only path a milestone's status changes) is a manual, unrun operation. Fixed: added explicit blocked_by edges from each wave's entry task(s) to the prior wave's actual terminal leaf task(s) — t-2404+=t-2403, t-2412+=t-2411, t-2421+=[t-2418,t-2419,t-2420], t-2430+=[t-2428,t-2429]. (Also noted in passing: the separate \"wave object\" schema's own `gate` field is documented \"not enforced in this slice\" in backlog_wave_add.rs — same class of gap, different feature.)\n2. Wave-2 ceiling enforcement untested — t-2406 AC amended to require a real/mocked-token-accounting test asserting the worker STOPS at the ceiling, not just resumes.\n3. t-2409 (delete agy skip-and-defer path) wasn't gated on its replacement — blocked_by extended to include t-2406 and t-2408, not just t-2404.\n4. Systemic AC-grammar defect — confirmed against goal-completion.sh source: heuristic 7 requires the ENTIRE criterion to be a literal-quoted `\"<cmd>\" passes` string; my originally-generated ACs on 22 tasks had no literal quotes at all (pure prose, would never auto-check). Rewrote all 22 to `\"\\\"cargo test --manifest-path system/cli/rust/Cargo.toml\\\" passes\"`; split the 3 \"...passes covering X\" compound criteria into a bare pass-criterion + a separate human-sign-off coverage note; fixed t-2397/t-2410's OR-form and t-2398's glob-form by explicitly labeling them human-sign-off (grammar doesn't support OR/glob); pinned t-2397's ADR target to a real next-available number (ADR-068, confirmed via ls docs/architecture/decisions/) instead of a dead ADR-0NN placeholder, and t-2412's verifier ADR to ADR-069; rewrote t-2405's vague \"contains a queue-drain entrypoint symbol\" into a concrete checkable path+symbol (brana-core/src/learn.rs, pub fn drain_queue) — a design commitment made now so the AC is literally checkable later.\n5. Wave-4 outcome-ledger has no storage to write into — CONFIRMED via grep (no ledger/verdict/merged-clean hits anywhere in system/cli/rust); brana log (commands/log.rs) is the unrelated knowledge-pipeline event log. Fixed: t-2425's scope/AC expanded to require building the ledger storage (schema + read/write API in brana-core) as part of the task, not just the write call.\nAdditional fix applied from WARNING #9: t-2403 (delete doc cluster) now also blocked_by t-2402 (t-1994/t-1995 disposition), since t-2402 may need to read the docs being deleted to judge disposition.\nAccepted as-is (not re-litigated): WARNING #6 (test tasks sequenced after their wave's impl tasks, not before — a deliberate substitution of AC-driven/contract-verification for classic pre-impl TDD sequencing in this loop-engineering epic, consistent with design principle 2); WARNING #8 (t-2417 bundles 10+ consumer migrations into one M-effort task — AC tightened to reference t-2415's enumerated list rather than splitting into 10+ tasks against the wave cap); WARNING #10 (t-2402's AC still accepts either cancel-or-reparent branch — both are legitimate dispositions, judged as the human reviewer's call at wave-1 time, not something to pre-decide here); WARNING #11 (no explicit test that non-AC tasks fall back to L2 — left as an open item for wave-3's own human review, not blocking this plan).\nChallenger's calibration memory: agent-memory/brana-challenger/calibration_brana-v3-wave-decomposition-gating-gaps.md.",
       "created": "2026-07-24",
       "description": null,
       "effort": "XL",
@@ -60390,8 +60390,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "file docs/architecture/decisions/ADR-0NN-v3-supersession.md exists",
-        "file docs/ideas/the-orbit.md OR substrate-end-state.md OR substrate-primitives.md contains a superseded-by pointer to the new ADR"
+        "file docs/architecture/decisions/ADR-068-v3-supersession.md exists",
+        "file docs/ideas/the-orbit.md OR substrate-end-state.md OR substrate-primitives.md contains a superseded-by pointer to ADR-068 (human sign-off — OR-clause not in ac-grammar heuristics)"
       ],
       "blocked_by": [
         "t-2395",
@@ -60427,8 +60427,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "ADR-062 filename collision resolved: only one file matches docs/architecture/decisions/ADR-062-*.md",
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes"
+        "ADR-062 filename collision resolved: only one file matches docs/architecture/decisions/ADR-062-*.md (human sign-off — glob-count not in ac-grammar heuristics)",
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes"
       ],
       "blocked_by": [],
       "branch": null,
@@ -60460,8 +60460,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "brana-challenger agent frontmatter contains a memory: field"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "file system/agents/brana-challenger.md contains \"memory:\""
       ],
       "blocked_by": [
         "t-2396"
@@ -60495,8 +60495,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "brana-build-evaluator agent frontmatter contains a memory: field"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "file system/agents/brana-build-evaluator.md contains \"memory:\""
       ],
       "blocked_by": [],
       "branch": null,
@@ -60528,8 +60528,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "brana-debrief-analyst agent frontmatter contains a memory: field"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "file system/agents/brana-debrief-analyst.md contains \"memory:\""
       ],
       "blocked_by": [],
       "branch": null,
@@ -60603,7 +60603,8 @@
         "t-2397",
         "t-2399",
         "t-2400",
-        "t-2401"
+        "t-2401",
+        "t-2402"
       ],
       "branch": null,
       "build_step": null,
@@ -60636,7 +60637,9 @@
       "acceptance_criteria": [
         "file docs/architecture/features/learn-worker-compute-chain.md exists describing agy-first / Claude engine-switch / token ceiling / checkpoint-resume"
       ],
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2403"
+      ],
       "branch": null,
       "build_step": null,
       "completed": null,
@@ -60666,8 +60669,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "LEARN worker binary/module contains a queue-drain entrypoint symbol"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "file system/cli/rust/crates/brana-core/src/learn.rs contains \"pub fn drain_queue\""
       ],
       "blocked_by": [
         "t-2404"
@@ -60701,8 +60704,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "a checkpoint/cursor test asserts resume-from-last-processed-entry after a simulated ceiling hit"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "a test with mocked token accounting asserts the worker STOPS (not just resumes) once the configured per-run token ceiling is reached, and persists a resumable checkpoint at that point"
       ],
       "blocked_by": [
         "t-2405"
@@ -60811,7 +60814,9 @@
         "grep -r for the agy skip-and-defer stall path returns no matches in the LEARN worker code"
       ],
       "blocked_by": [
-        "t-2404"
+        "t-2404",
+        "t-2406",
+        "t-2408"
       ],
       "branch": null,
       "build_step": null,
@@ -60842,7 +60847,7 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "file docs/architecture/decisions/ADR-052-close-full-scope-resolution.md exists OR ADR-052 updated with the resolved scope"
+        "file docs/architecture/decisions/ADR-052-close-full-scope-resolution.md exists OR ADR-052 updated with the resolved scope (human sign-off — OR-clause not in ac-grammar heuristics)"
       ],
       "blocked_by": [],
       "branch": null,
@@ -60910,9 +60915,11 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "file docs/architecture/decisions/ADR-0NN-independent-verifier.md exists describing the four-step gate stack"
+        "file docs/architecture/decisions/ADR-069-independent-verifier.md exists describing the four-step gate stack"
       ],
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2411"
+      ],
       "branch": null,
       "build_step": null,
       "completed": null,
@@ -60942,8 +60949,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "verifier module implements all four gate steps: NEEDSHUMAN check, non-empty-diff check, validate.sh, AC check"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "verifier module implements all four gate steps: NEEDSHUMAN check, non-empty-diff check, validate.sh, AC check (human sign-off — multi-clause not in ac-grammar heuristics)"
       ],
       "blocked_by": [
         "t-2412"
@@ -60977,8 +60984,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "verifier config exposes consecutive-failure-kill, per-task-timeout, batch-cap, per-loop-cost-ceiling constants"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "verifier config exposes consecutive-failure-kill, per-task-timeout, batch-cap, per-loop-cost-ceiling constants (human sign-off)"
       ],
       "blocked_by": [
         "t-2413"
@@ -61041,8 +61048,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "new verifier implements presence interlock, base_ref pin, Modified/Added split, allowlist, and audit trail"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "new verifier implements presence interlock, base_ref pin, Modified/Added split, allowlist, and audit trail, AND the pre-existing goal-completion.sh regression test suite (immutability-gate bypass, modified-blocks-register-edit-green) passes against it"
       ],
       "blocked_by": [
         "t-2413",
@@ -61077,7 +61084,7 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "all consumers identified in the audit task (t-2415) reference the new verifier, not goal-completion.sh",
+        "all consumers enumerated by t-2415's audit output reference the new verifier, not goal-completion.sh (human sign-off against the enumerated list)",
         "validate.sh passes"
       ],
       "blocked_by": [
@@ -61147,8 +61154,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "cockpit-assisted AC-authoring flow exists and is invoked from /brana:backlog plan or /brana:build"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "cockpit-assisted AC-authoring flow exists and is invoked from /brana:backlog plan or /brana:build (human sign-off)"
       ],
       "blocked_by": [
         "t-2413"
@@ -61182,7 +61189,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes covering the four-step gate stack and blast-radius constants"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "test suite includes cases for all four gate steps and all four blast-radius constants (human sign-off on coverage)"
       ],
       "blocked_by": [
         "t-2413",
@@ -61216,7 +61224,11 @@
     },
     {
       "ac_state": "none",
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2418",
+        "t-2419",
+        "t-2420"
+      ],
       "branch": null,
       "build_step": null,
       "completed": null,
@@ -61280,8 +61292,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "candidate-prep stage creates isolated ephemeral worktrees per candidate and cleans them up on completion"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "candidate-prep stage creates isolated ephemeral worktrees per candidate and cleans them up on completion (human sign-off)"
       ],
       "blocked_by": [
         "t-2422"
@@ -61315,8 +61327,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "cockpit judge stage invokes the shipped verify-findings workflow, not a new bespoke judge"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "cockpit judge stage invokes the shipped verify-findings workflow, not a new bespoke judge (human sign-off)"
       ],
       "blocked_by": [
         "t-2423"
@@ -61350,8 +61362,9 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "every cockpit review writes an outcome-ledger row with verdict in {merged-clean, merged-with-edits, rejected}"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "a new outcome-ledger storage (schema + read/write API) exists in brana-core — confirmed via grep that no ledger/verdict storage predates this task",
+        "every cockpit review writes a row with verdict in {merged-clean, merged-with-edits, rejected}"
       ],
       "blocked_by": [
         "t-2424"
@@ -61385,7 +61398,7 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
         "a NEEDSHUMAN park lane test asserts brana remind receives a parked question and the loop continues with other work"
       ],
       "blocked_by": [
@@ -61420,8 +61433,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "per-phase model/effort profile config is read by the cockpit loop"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "per-phase model/effort profile config is read by the cockpit loop (human sign-off)"
       ],
       "blocked_by": [
         "t-2422"
@@ -61493,7 +61506,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes covering candidate-prep, judge, and ledger-write integration"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "test suite covers candidate-prep, judge, and ledger-write integration end to end (human sign-off on coverage)"
       ],
       "blocked_by": [
         "t-2423",
@@ -61528,7 +61542,10 @@
     },
     {
       "ac_state": "none",
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2428",
+        "t-2429"
+      ],
       "branch": null,
       "build_step": null,
       "completed": null,
@@ -61558,8 +61575,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
-        "per-shape rule table enforces >=K live runs AND >=95% merged-clean AND 0 rejected-as-harmful AND never P0"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "per-shape rule table enforces >=K live runs AND >=95% merged-clean AND 0 rejected-as-harmful AND never P0 (human sign-off — multi-clause threshold not in ac-grammar heuristics)"
       ],
       "blocked_by": [
         "t-2430"
@@ -61593,7 +61610,7 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes",
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
         "auto-demotion test asserts a graduated shape demotes when it starts failing its rule-table thresholds"
       ],
       "blocked_by": [
@@ -61727,7 +61744,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": [
-        "cargo test --manifest-path system/cli/rust/Cargo.toml passes covering the per-shape rule table and auto-demotion"
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "test suite covers the per-shape rule table and auto-demotion (human sign-off on coverage)"
       ],
       "blocked_by": [
         "t-2431",
@@ -61762,10 +61780,8 @@
     {
       "ac_state": "none",
       "acceptance_criteria": null,
-      "blocked_by": [
-        "t-2022"
-      ],
-      "branch": null,
+      "blocked_by": [],
+      "branch": "knowledge-pipeline/fix/t-2438-adr-042-stale-reference",
       "completed": null,
       "context": "Source: ADR-042 amendment (t-2028, 2026-07-24). Blocked on t-2022 landing the ontology enum — do not implement with a placeholder value ahead of that decision.",
       "created": "2026-07-24",
@@ -61779,8 +61795,8 @@
       "order": 0,
       "parent": "t-2022",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-07-24",
+      "status": "in_progress",
       "subject": "Implement type: frontmatter field on knowledge-pipeline Tier 3 draft output",
       "tags": [
         "kb-redesign",
@@ -61788,6 +61804,66 @@
       ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": "knowledge-pipeline/fix/t-2438-adr-042-stale-reference",
+      "completed": null,
+      "context": "Found during t-2029 SPECIFY (2026-07-24): I didn't search docs/architecture/decisions/ broadly enough before writing t-2028's amendment, missed ADR-057 which already resolves the ontology enum and explicitly names t-2028's exact scope (line 171: \\\"ADR-042 is amended (t-2028, separate task) only to require type: frontmatter on ingest output; its Tier 1/2 Gemini routing is untouched.\\\"). AC: ADR-042 amendment references ADR-057 by name/enum, not a deferred/pending decision\\nAC: t-2437 unblocked and implemented (type: field added to knowledge.rs draft_content, using ADR-057's enum)",
+      "created": "2026-07-24",
+      "description": "t-2028's ADR-042 amendment (merged to dev) said the type: ontology enum was \"pending t-2022\" — incorrect. ADR-057 (Unit of Knowledge, authored under t-2027, accepted 2026-06-12) already defines the concrete enum (claim/pattern/event/source/hub/decision) and brana-ontology.yaml was already updated (t-2030, completed). Correct the amendment text in ADR-042 to reference ADR-057 and its enum instead of deferring to a \"future\" decision that already happened. Also unblock and implement t-2437 (the code follow-on) since the premise for blocking it on t-2022 no longer holds.",
+      "effort": "S",
+      "epic": null,
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2438",
+      "kind": "fix",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2022",
+      "priority": "P1",
+      "started": "2026-07-24",
+      "status": "in_progress",
+      "strategy": "bug-fix",
+      "subject": "Fix t-2028: ADR-042 amendment cited stale/wrong ADR status",
+      "tags": [
+        "kb-redesign",
+        "follow-up"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "id": "t-2439",
+      "subject": "Fix: brana backlog add --json doesn't normalize comma-string tags/blocked_by to arrays",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Regression found 2026-07-24 while planning the v3 epic (t-2389). `brana backlog add --json '{\"tags\":\"a,b,c\"}'` stores the literal string \"a,b,c\" instead of a normalized [\"a\",\"b\",\"c\"] array — same for blocked_by. Confirmed workaround: a +/- op via `brana backlog set` (even a no-op add+remove of a dummy value) does normalize correctly, so the bug is specifically in cmd_add's JSON-ingestion path (backlog.rs), not in the general array-field machinery. validate.sh's type-homogeneity check (landed via t-2309 as part of the backlog-v3 schema work, t-2284) doesn't appear to catch this at add-time — worth checking why. Affected ~48 tasks created in that session before the workaround was found (already fixed via the +/- trick); this task is to fix the root cause in cmd_add so future `add --json` calls with comma-string tags/blocked_by normalize immediately.\nAC: \"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes\nAC: brana backlog add --json with a comma-string tags value produces a JSON array on read-back\nAC: brana backlog add --json with a comma-string blocked_by value produces a JSON array on read-back",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
+        "brana backlog add --json with a comma-string tags value produces a JSON array on read-back",
+        "brana backlog add --json with a comma-string blocked_by value produces a JSON array on read-back"
+      ],
+      "epic": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
