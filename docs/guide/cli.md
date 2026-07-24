@@ -119,6 +119,8 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana skills reindex --changed` | Only reindex skills modified since last run |
 | `brana skills usage [--days N] [--cull-threshold N] [--json]` | Show skill invocation counts from JSONL telemetry; flag low-use cull candidates |
 
+> `suggest` excludes always-loaded hot-path skills (`build`, `backlog`, `close`, `do`, `docs`, …) — the always-loaded rules already route to them, so suggesting them is noise. The exclusion is an explicit identity list (`ALWAYS_LOADED_SKILLS` in `system/cli/rust/crates/brana-cli/src/commands/skills.rs`), **not** a `brana:` namespace check: domain-specific skills such as `meta-templates`, `gsheets` and `rust-skills` are still suggested. `search` and `list` are unfiltered.
+
 ### `brana knowledge` — Knowledge Base Indexing & Pipeline
 
 | Command | Description |
