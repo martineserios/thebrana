@@ -60038,7 +60038,7 @@
     {
       "id": "t-2385",
       "subject": "Write-time schema-version guard for MCP/CLI write paths (retired-field rejection)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "design",
       "tags": [
@@ -60057,7 +60057,7 @@
       "blocked_by": [],
       "branch": "cli-backlog-schema/feat/t-2385-write-time-retired-fields",
       "context": "Design sketch from t-2378 (2026-07-24):\n\nWhere the check lives: inside brana-core's write path (shared by both the `brana` CLI and `brana-mcp` binaries, since both link brana-core) — not in bootstrap.sh and not solely in validate.sh. This is what makes it binary-version-agnostic: whichever binary is running, old or new, enforces against the same rule.\n\nWhat it checks against: rather than a version *number* (which only tells you \"old\" vs \"new\", not \"which fields are retired\"), embed the retired-field list directly as a compiled-in constant in brana-core (e.g. a RETIRED_FIELDS: &[&str] = &[\"level\", \"epic\"] alongside the existing field whitelist). Any write path that serializes a field onto a task record checks it against RETIRED_FIELDS before persisting, in addition to (not instead of) the existing whitelist check that t-2310 already added. This makes the guard self-contained per-binary: an old binary that predates a sealing change won't have the new RETIRED_FIELDS entry (can't fix binaries that don't know a field is retired yet), but a binary that already ships the sealing logic can never regress even if invoked in a stale process/env, and there's no separate marker file to keep in sync or go stale itself.\n\nWhat happens on mismatch: hard-refuse, not warn. This is a data-corruption bug (t-2325/t-2381 already happened 3x with a \"warn after the fact\" backstop — validate.sh check 63 — and still required 3 manual cleanups), so the write should return an error to the MCP/CLI caller rather than silently succeed-with-a-warning. Precedent: t-2310's set_field() whitelist already hard-rejects unknown fields; RETIRED_FIELDS is the same mechanism applied to fields that were once valid and are now sealed.\n\nResidual gap this does NOT close: a binary built *before* a field was added to RETIRED_FIELDS still can't reject it — that binary literally doesn't know the field is retired yet. This guard only prevents *regression* once a binary has shipped the retired-field entry; it doesn't shrink the exposure window during the sealing work itself on dev, before that sealing commit reaches main. Nothing can, without either (a) not doing incremental schema-sealing work on dev while a live stale binary still points at the same shared tasks.json, or (b) fast-tracking schema-sealing commits specifically (see t-2378's process-fix recommendation, applied as a narrow exception to ADR-060's normal main-lags-dev buffer).\n\nScope note: keep this to the retired-field guard only. Do not build a general schema-version marker/skew-detection system (e.g. embedding a semver the binary checks against a source-of-truth file) — it adds a second thing to keep in sync (the marker itself) without preventing more than the simpler RETIRED_FIELDS constant does, since the actual failure mode we've seen is always \"old binary still knows about a since-retired field,\" never \"old binary doesn't understand a field format change it should ideally warn about.\"\nskill_gap_checked: true (score < 0.3, user chose: skip)",
-      "notes": null,
+      "notes": "Implemented RETIRED_FIELDS const + reject_retired_fields() in brana-core::tasks, wired into CLI cmd_add's --json raw-merge path only (the one genuine gap). set_field() and MCP backlog_add left untouched — already allowlist-safe by construction (found via a superior uncommitted draft from a prior abandoned session, absorbed into ADR-067/spec before implementation). All existing cmd_add retired-field tests pass unmodified; added reject_retired_fields() unit tests + a multi-field-named-together integration test. brana-core 612 tests / brana-cli 485 tests pass on dev post-merge.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -60070,7 +60070,7 @@
     {
       "id": "t-2386",
       "subject": "Codify schema-sealing fast-track ship exception in docs/guide/workflows/branching.md",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "docs",
       "tags": [],
@@ -60084,7 +60084,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "Source: t-2378 decision writeup, 2026-07-24. Filed at close of the t-2381/t-2380/t-2378 parallel session.",
-      "notes": null,
+      "notes": "Added 'Fast-track exception: schema-sealing / retired-field commits' subsection to docs/guide/workflows/branching.md, between Ship cadence and Cross-repo. Covers what qualifies (cites ADR-067 as origin case), why (corruption risk vs ordinary feature lag), what fast-track means concretely (same ADR-060 ship sequence, run promptly, restart live sessions after), and explicit narrow-scope statement. Docs-only, no code touched.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
