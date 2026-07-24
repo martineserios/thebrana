@@ -672,6 +672,12 @@ pub fn cmd_add(
         }
     }
 
+    // t-2439: the same direct-merge that motivated the retired-field check also
+    // lets a comma-string `tags`/`blocked_by` reach disk verbatim, since
+    // set_field's coercion never runs on this path. Normalize through the
+    // shared helper so `add --json` and `set` agree on the array contract.
+    tasks::normalize_array_fields(&mut new_task);
+
     if let Some(p) = new_task["priority"].as_str() {
         if let Err(e) = tasks::validate_priority(p) {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
@@ -2453,6 +2459,78 @@ mod tests {
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"].as_array().unwrap().len(), 12, "11th child must still be persisted (warn, not block)");
+    }
+
+    // ── t-2439: --json array-field normalization ─────────────────────────
+
+    #[test]
+    fn cmd_add_json_comma_string_tags_normalize_to_array() {
+        // The --json path merges the payload directly onto new_task, bypassing
+        // set_field's comma-string coercion. A string tags value must land as
+        // a JSON array, matching what `backlog set tags +val` produces.
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"comma tags","tags":"a,b,c"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!(["a", "b", "c"]),
+            "comma-string tags must normalize to an array, got: {}", task["tags"]);
+    }
+
+    #[test]
+    fn cmd_add_json_comma_string_blocked_by_normalizes_to_array() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"comma deps","blocked_by":"t-1, t-2"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["blocked_by"], serde_json::json!(["t-1", "t-2"]),
+            "comma-string blocked_by must normalize to an array, got: {}", task["blocked_by"]);
+    }
+
+    #[test]
+    fn cmd_add_json_single_value_string_tags_normalizes_to_one_element_array() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"one tag","tags":"solo"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!(["solo"]),
+            "single-value string tags must still become an array, got: {}", task["tags"]);
+    }
+
+    #[test]
+    fn cmd_add_json_array_tags_pass_through_unchanged() {
+        // Regression guard: the normalization must not disturb a payload that
+        // already supplies a proper array.
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"array tags","tags":["a","b"],"blocked_by":["t-9"]}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!(["a", "b"]));
+        assert_eq!(task["blocked_by"], serde_json::json!(["t-9"]));
+    }
+
+    #[test]
+    fn cmd_add_json_empty_string_tags_normalizes_to_empty_array() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"blank tags","tags":""}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!([]),
+            "empty-string tags must normalize to [], got: {}", task["tags"]);
     }
 
     #[test]
