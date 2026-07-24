@@ -6,6 +6,44 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
+/// Number of extra attempts (beyond the first) when a read races a concurrent
+/// out-of-band writer that doesn't go through [`write_atomic`] — e.g. `git
+/// checkout`/`git merge` rewriting the working-tree file in place on a shared
+/// checkout (t-2216/t-2206), or a direct edit that bypasses the CLI (t-2380).
+/// brana's own writers are already torn-read-proof (atomic rename under an
+/// exclusive sidecar lock — see [`write_atomic`]/[`lock_tasks`]), so this
+/// guards against writers outside that contract, not against brana itself.
+const READ_RETRY_ATTEMPTS: u32 = 3;
+const READ_RETRY_DELAY_MS: u64 = 15;
+
+/// Read `path` and parse it with `parse`, retrying a bounded number of times
+/// on a **parse** failure only (never on an I/O error like file-not-found —
+/// retrying that just delays an unavoidable error). Each retry re-reads the
+/// file from scratch so a torn read caused by a concurrent in-place writer
+/// self-heals once that writer's own write completes.
+fn read_with_retry<T>(
+    path: &Path,
+    parse: impl Fn(&str) -> Result<T, String>,
+) -> Result<T, String> {
+    let mut last_err = String::new();
+    for attempt in 0..=READ_RETRY_ATTEMPTS {
+        let content = match std::fs::read_to_string(path) {
+            Ok(c) => c,
+            Err(e) => return Err(format!("{}: {e}", path.display())),
+        };
+        match parse(&content) {
+            Ok(v) => return Ok(v),
+            Err(e) => {
+                last_err = e;
+                if attempt < READ_RETRY_ATTEMPTS {
+                    std::thread::sleep(std::time::Duration::from_millis(READ_RETRY_DELAY_MS));
+                }
+            }
+        }
+    }
+    Err(last_err)
+}
+
 #[derive(Deserialize)]
 pub struct TasksFile {
     #[serde(default)]
@@ -21,27 +59,27 @@ pub struct TasksFile {
 
 /// Load tasks from file. Supports both {tasks: [...]} and bare [...].
 pub fn load_tasks(path: &Path) -> Result<TasksFile, String> {
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| format!("{}: {}", path.display(), e))?;
-    let content = content.trim();
-    if content.is_empty() {
-        return Ok(TasksFile {
-            project: "unknown".into(),
-            tasks: vec![],
-            waves: vec![],
-        });
-    }
-    if let Ok(tf) = serde_json::from_str::<TasksFile>(content) {
-        return Ok(tf);
-    }
-    if let Ok(arr) = serde_json::from_str::<Vec<Value>>(content) {
-        return Ok(TasksFile {
-            project: "unknown".into(),
-            tasks: arr,
-            waves: vec![],
-        });
-    }
-    Err(format!("invalid JSON in {}", path.display()))
+    read_with_retry(path, |content| {
+        let content = content.trim();
+        if content.is_empty() {
+            return Ok(TasksFile {
+                project: "unknown".into(),
+                tasks: vec![],
+                waves: vec![],
+            });
+        }
+        if let Ok(tf) = serde_json::from_str::<TasksFile>(content) {
+            return Ok(tf);
+        }
+        if let Ok(arr) = serde_json::from_str::<Vec<Value>>(content) {
+            return Ok(TasksFile {
+                project: "unknown".into(),
+                tasks: arr,
+                waves: vec![],
+            });
+        }
+        Err(format!("invalid JSON in {}", path.display()))
+    })
 }
 
 /// True when `task` counts as finished for blocked_by-gate purposes: the
@@ -907,9 +945,9 @@ pub fn lock_tasks_timeout(path: &Path) -> Result<std::fs::File, String> {
 /// Load tasks as raw serde_json::Value (preserves all fields for mutation).
 /// Normalizes bare JSON arrays into `{tasks: [...]}` so callers can always use `val["tasks"]`.
 pub fn load_raw(path: &Path) -> Result<Value, String> {
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| format!("{}: {e}", path.display()))?;
-    let val: Value = serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))?;
+    let val: Value = read_with_retry(path, |content| {
+        serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))
+    })?;
     let mut val = if val.is_array() {
         serde_json::json!({"tasks": val})
     } else {
@@ -3299,6 +3337,34 @@ mod tests {
         let path = dir.join("tasks.json");
         std::fs::write(&path, "not json").unwrap();
         assert!(load_raw(&path).is_err());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// t-2380: a torn/truncated read caused by a concurrent out-of-band, non-atomic
+    /// writer (e.g. `git checkout` rewriting the working-tree file in place on a
+    /// shared checkout) should self-heal once that writer's own write completes,
+    /// instead of surfacing a one-shot parse error. Proxy for the real race: seed
+    /// the file with content that fails to parse, then fix it up from another
+    /// thread shortly after — well inside the retry window — and confirm load_raw
+    /// still returns the valid, final content rather than the earlier error.
+    #[test]
+    fn test_load_raw_retries_past_transient_parse_failure() {
+        let dir = std::env::temp_dir().join("brana-test-load-raw-retry");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("tasks.json");
+        // Simulates a torn read: truncated/garbled bytes mid-write.
+        std::fs::write(&path, "{\"project\":\"test\",\"tasks\":[{\"id\":\"t-1\"\u{0}").unwrap();
+
+        let fixer_path = path.clone();
+        let handle = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            std::fs::write(&fixer_path, r#"{"project":"test","tasks":[{"id":"t-1"}]}"#).unwrap();
+        });
+
+        let val = load_raw(&path).expect("load_raw should retry past the transient failure");
+        handle.join().unwrap();
+
+        assert_eq!(val["tasks"][0]["id"], "t-1");
         std::fs::remove_dir_all(&dir).ok();
     }
 
