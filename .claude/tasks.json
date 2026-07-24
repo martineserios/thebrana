@@ -58240,7 +58240,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Problem: brana is driven by many separate CLI subcommands (backlog, remind, ops, notify, recall). Context-switching between them is slow; there's no unified live view. A TUI gives one interactive dashboard — browse/act without re-typing commands, see live status at a glance.\n\nTech: brana-cli is Rust → ratatui + crossterm. Add `brana tui` subcommand (or a thin separate binary) that is a VIEW over brana-core — reuse existing backlog/remind/notify/search APIs as the data layer; NO new business logic in the TUI (keeps the CLI and TUI behaviorally identical). Follows the CLI-owns-writes model (ADR-051): TUI actions call the same core functions the CLI does.\n\nSuggested v1 panes: (1) Backlog — browse/filter tasks by epic/status/priority, view detail, change status; (2) Reminders — list due/pending, resolve/snooze; (3) Scheduler — brana ops status (job health, last run); (4) Recall — search box over brana recall (FTS). Keyboard nav (vim-style j/k, tab between panes), periodic refresh, theme-aware.\n\nSCOPE NOTE (XL): decompose via /brana:backlog plan into child tasks before building — e.g. one per pane + a shell/layout task + a data-refresh task. Per project CLAUDE.md, M+ tasks need a feature spec in docs/architecture/features/ first — write a TUI design spec (layout, panes, keymap, refresh model, action->core-fn mapping) before implementation. Consider a design/spike task to pick the refresh model (poll core on interval vs event-driven) and confirm ratatui fits.\n\nNon-goals v1: in-TUI memory editing, multi-project switching, mouse support — defer.\n2026-07-22: Design against the brana v3 direction, not just today's flat backlog — two concrete cross-references:\n(1) v3's wave-4 \"cockpit\" (docs/ideas/brana-v3-redesign.md) is named the system's center of gravity: parallel candidates prepared/judged/challenged/verified, human reviews a diff and writes an outcome-ledger verdict (merged-clean/merged-with-edits/rejected) in seconds. If this TUI ships now, design its pane/action model so it can grow into that cockpit review surface later (candidate-diff view + verdict action) instead of being CRUD-only and needing a rework.\n(2) backlog-v3 schema (docs/architecture/features/backlog-v3-schema.md, ADR-065 epic-as-hierarchy-top, ac_state, wave-as-queue) is landing in parallel via t-2284 (blocked_by t-2281, now cleared) — make the backlog pane's data model schema-v3-aware from the start: epic as the top grouping (not a flat tag filter), ac_state visible per task, waves as a drainable queue view — rather than retrofitting after the schema lands.\nRelated tasks: t-2284 (schema landing), t-2285/t-2286/t-2287 (v3 redesign resolutions, epic brana-v3-redesign), t-2278 (skills-as-loops, blocked on schema).",
+      "context": "Problem: brana is driven by many separate CLI subcommands (backlog, remind, ops, notify, recall). Context-switching between them is slow; there's no unified live view. A TUI gives one interactive dashboard — browse/act without re-typing commands, see live status at a glance.\n\nTech: brana-cli is Rust → ratatui + crossterm. Add `brana tui` subcommand (or a thin separate binary) that is a VIEW over brana-core — reuse existing backlog/remind/notify/search APIs as the data layer; NO new business logic in the TUI (keeps the CLI and TUI behaviorally identical). Follows the CLI-owns-writes model (ADR-051): TUI actions call the same core functions the CLI does.\n\nSuggested v1 panes: (1) Backlog — browse/filter tasks by epic/status/priority, view detail, change status; (2) Reminders — list due/pending, resolve/snooze; (3) Scheduler — brana ops status (job health, last run); (4) Recall — search box over brana recall (FTS). Keyboard nav (vim-style j/k, tab between panes), periodic refresh, theme-aware.\n\nSCOPE NOTE (XL): decompose via /brana:backlog plan into child tasks before building — e.g. one per pane + a shell/layout task + a data-refresh task. Per project CLAUDE.md, M+ tasks need a feature spec in docs/architecture/features/ first — write a TUI design spec (layout, panes, keymap, refresh model, action->core-fn mapping) before implementation. Consider a design/spike task to pick the refresh model (poll core on interval vs event-driven) and confirm ratatui fits.\n\nNon-goals v1: in-TUI memory editing, multi-project switching, mouse support — defer.\n2026-07-22: Design against the brana v3 direction, not just today's flat backlog — two concrete cross-references:\n(1) v3's wave-4 \"cockpit\" (docs/ideas/brana-v3-redesign.md) is named the system's center of gravity: parallel candidates prepared/judged/challenged/verified, human reviews a diff and writes an outcome-ledger verdict (merged-clean/merged-with-edits/rejected) in seconds. If this TUI ships now, design its pane/action model so it can grow into that cockpit review surface later (candidate-diff view + verdict action) instead of being CRUD-only and needing a rework.\n(2) backlog-v3 schema (docs/architecture/features/backlog-v3-schema.md, ADR-065 epic-as-hierarchy-top, ac_state, wave-as-queue) is landing in parallel via t-2284 (blocked_by t-2281, now cleared) — make the backlog pane's data model schema-v3-aware from the start: epic as the top grouping (not a flat tag filter), ac_state visible per task, waves as a drainable queue view — rather than retrofitting after the schema lands.\nRelated tasks: t-2284 (schema landing), t-2285/t-2286/t-2287 (v3 redesign resolutions, epic brana-v3-redesign), t-2278 (skills-as-loops, blocked on schema).\n2026-07-24: Shelved pending v3 wave-4 (COCKPIT+ROUTER). Decided in /brana:backlog do TUI session: v3 epic was never planned into the backlog despite the redesign doc being locked (v3.3) — planning it now via /brana:backlog plan takes priority. Building this TUI's cockpit-aware pane/action model ahead of wave 4 would design against a shape the doc itself says gets re-derived once wave 4 ships real data. Do not resume until wave 4 lands (or a scoped-down non-cockpit v1 is explicitly chosen instead).",
       "created": "2026-07-22",
       "description": null,
       "effort": "XL",
@@ -59955,7 +59955,7 @@
     {
       "id": "t-2382",
       "subject": "Cleanup pass: cli-backlog-schema epic accumulator has 59 carried-forward next[] items",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [],
@@ -59969,7 +59969,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "Noted 2026-07-24 during a parallel-start session for t-2381/t-2380/t-2378. Source: session maintenance note, not yet triaged.",
-      "notes": null,
+      "notes": "Triage complete 2026-07-24. next[]: 59 -> 13 (46 dropped, -78%).\n\nDropped 17 task-linked entries whose tasks are completed (t-1699, t-1830, t-1823, t-1794, t-1804, t-1202, t-1768, t-1839, t-1856, t-1859, t-1875, t-1876, t-1883, t-1565, t-1921, t-1926, t-1913).\nDropped all 20 text-only maintenance/watch entries — each verified done or moot against repo state: 8 generic \"/brana:reconcile --scope ...\" carry-forwards (several verbatim duplicates), 2 memory-consolidation watches, 2 t-1840 stash-recovery notes (stashes already dropped), pkg-config install (done), delegate_python cleanup (done), lint-heal due (ran 2026-07-20), MEMORY.md 182/200 watch (now 143), E2026-06-09-1/-3 + Check 46 + reference-generate fixes (all in accomplished[]), ADR-015/memory-backup staleness (both carry the t-1883 guard note), hooks.md branch-verify/worktree-gate coverage (present), brana-cli.md acceptance_criteria (present), \"plan the backlog-v3 schema epic\" (done — epic t-2338 exists and is being built), test-branch-verify Tests 9/10 (suite now passes 14/14).\nDeduped: ~6 near-identical reconcile/watch/stash pairs collapsed (all dropped as stale anyway).\nRetained 13 entries, all task-linked and verified pending, re-prioritized most-actionable first.\n\nCreated 1 new task: t-2387 (fix accumulator Pass 2 false-resolution).\n\nBUG FOUND: resolved[] contained a t-2278 entry written by resolved_by \"pass2-llm\" claiming \"Task t-2278 completed\" — t-2278 is status:pending. Pass 2 resolved a task-linked item without checking live task status. Removed that false entry (resolved[] 4 -> 3) so the file is not self-contradictory; filed t-2387 for the code fix. Same defect in tasks_completed[], which lists t-648 and t-2278 (both pending) — NOT edited, out of scope. tasks_completed[] also holds 2 junk strings from the known comma-split bug (\"t-2375: fixed close skill ...\", \"now walk parent chain ...\").\n\nPATH DISCREPANCY: ADR-044 documents the accumulator at memory/session-initiatives/{slug}.json, but it actually lives at memory/session-epics/{slug}.json. Cause is the initiative->epic rename (t-1613, t-1758) that ADR-044 was never updated for. Noted only — no ADR edit or file migration performed (out of scope).\n\nBackup of the pre-triage file: session-epics/cli-backlog-schema.json.bak-t2382",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -60093,6 +60093,36 @@
       "work_type": "chore",
       "ac_state": "none",
       "strategy": "feature"
+    },
+    {
+      "id": "t-2387",
+      "subject": "Fix accumulator Pass 2 false-resolution — pass2-llm moved a pending task to resolved[]",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "session",
+        "epic",
+        "accumulator"
+      ],
+      "description": "During t-2382 triage of session-epics/cli-backlog-schema.json, the accumulator's resolved[] contained an entry for t-2278 marked resolved_by \"pass2-llm\" with resolution \"Task t-2278 completed\" — but t-2278 is still status:pending in the backlog. Pass 2 pruning resolved a task-linked next[] item without verifying the linked task's live status, silently dropping an open follow-up. tasks_completed[] has the same defect (lists t-648 and t-2278, both pending).",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-07-24: Found during t-2382 accumulator triage. Pass 1 pruning (task_id-linked, ADR-044) checks live task status; Pass 2 (LLM-mediated, deferred in ADR-044) apparently does not, so it can mark a task-linked entry resolved on narrative evidence alone. Fix: Pass 2 must re-check live status via backlog before writing to resolved[], and must never resolve a task_id-linked entry whose task is not completed/cancelled.\nAlso observed: tasks_completed[] in the same file contains two junk strings from the known comma-split bug (pattern_backlog-batch-comma-split) — \"t-2375: fixed close skill ...\" and \"now walk parent chain to nearest type:epic ancestor); filed t-2377 ...\".\nAC: Pass 2 verifies live task status before moving a task_id-linked next[] entry to resolved[]\nAC: regression test covers a pending task_id-linked entry surviving a Pass 2 run",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
