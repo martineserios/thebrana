@@ -180,13 +180,13 @@
       "type": "skill"
     },
     "knowledge-pipeline-tier1": {
-      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enable manually after dry-run passes clean. Tier 3 is manual only.",
+      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enable manually after dry-run passes clean. Tier 3 is manual only. Timeout 900 (t-2441): both tiers share one budget and 300s is not enough for a full pass (~3s/URL LLM scoring, ~585s measured 2026-07-24) — a fresh install seeded from this template would hit the same timeout kill.",
       "captureOutput": true,
       "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
       "enabled": false,
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 03:00:00",
-      "timeoutSeconds": 300,
+      "timeoutSeconds": 900,
       "type": "command"
     },
     "knowledge-review": {

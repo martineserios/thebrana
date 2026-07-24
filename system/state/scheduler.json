@@ -158,13 +158,13 @@
       "type": "skill"
     },
     "knowledge-pipeline-tier1": {
-      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only.",
+      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only. Timeout 900 (t-2441): both tiers share one budget and 300s killed every run — 2026-07-24 17:22 log finished tier1 (48 URLs) but got only 48 of 139 tier2 URLs in 300s (~3s/URL LLM scoring, so a full pass is ~585s). Kept as one job, not split: the && makes tier2 conditional on tier1 succeeding and the schema has no inter-job ordering field. Raising this requires `brana-scheduler deploy` — the systemd unit's TimeoutStartSec is generated as (timeoutSeconds+60)*(maxRetries+1) and a stale 360s unit kills the runner before its own timeout fires.",
       "captureOutput": true,
       "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
       "enabled": true,
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 03:00:00",
-      "timeoutSeconds": 300,
+      "timeoutSeconds": 900,
       "type": "command"
     },
     "knowledge-review": {
