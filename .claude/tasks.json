@@ -39081,8 +39081,8 @@
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": "Three disconnected systems (backlog, git, session state) unified via a single epic slug. Phase 1: rename initiative tag field to epic (breaking CLI change, grep DoD gate required). Phase 2: branch naming convention {epic-slug}/{work-type}/t-{NNN}-{desc}. Phase 3: branch-scoped session state — each initiative gets its own session-state-{epic-slug}.json. Challenger reviewed 2026-05-22: findings addressed, verdict PROCEED.",
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retyped initiative->milestone (ADR-065 removes the initiative level); marked completed - all 3 children (t-1610/t-1617/t-1624) already completed. Already correctly parented under epic node t-2331 (backlog-git-alignment).",
       "created": "2026-05-22",
       "description": null,
       "effort": "L",
@@ -39094,18 +39094,18 @@
       "parent": "t-2331",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Backlog + Git Alignment — epic field, branch convention, session state scoping",
       "tags": [],
-      "type": "initiative"
+      "type": "milestone"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
       "completed": null,
-      "context": null,
+      "context": "t-2323 reconciliation (2026-07-24): retyped initiative->task (no \"deleted\" status exists in schema). Junk test artifact, already cancelled/invisible.",
       "created": "2026-05-22",
       "description": null,
       "effort": null,
@@ -39121,7 +39121,7 @@
       "strategy": null,
       "subject": "test",
       "tags": [],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
@@ -42189,8 +42189,8 @@
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell (0 children, ADR-065 removes initiative level). Successor epic node: t-2333 (backlog-schema-v2).",
       "created": "2026-05-29",
       "description": "Rename initiative field to epic across CLI/MCP/procedures. Implement Linear 3-pass sync (initiative→milestone→issue). Fix stream field injection. Includes branch-name suggestion from epic slug.",
       "effort": null,
@@ -42203,7 +42203,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Backlog Schema v2 — initiative→epic rename + Linear 3-pass sync",
       "tags": [
@@ -42211,14 +42211,14 @@
         "schema-migration",
         "cli"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic node: t-2367 (session-architecture).",
       "created": "2026-05-29",
       "description": "Fix branch-path divergence (t-1722). Session read --all. Sitrep --all + --initiative scoping. Close --light/--full flags, silent key learnings, uncommitted file offer.",
       "effort": null,
@@ -42231,7 +42231,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Session State & Branch Architecture — scoped sessions + sitrep + close DX",
       "tags": [
@@ -42239,14 +42239,14 @@
         "architecture",
         "dx"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic nodes: t-2364/t-2365 (security-hardening/security-hooks).",
       "created": "2026-05-29",
       "description": "Expand /audit with PreToolUse hook enforcement and CVE patterns. Live two-session claims smoke test. Schema field removal validation gate. AgentShield-style scanning spike.",
       "effort": null,
@@ -42259,7 +42259,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Security & Hook Hardening — PreToolUse audit + claims + AgentShield",
       "tags": [
@@ -42267,14 +42267,14 @@
         "hooks",
         "audit"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic nodes: t-2346/t-2347 (harness-engineering/harness-v2).",
       "created": "2026-05-29",
       "description": "Router-as-Haiku + Worker-as-Sonnet/Opus cost routing. PostToolUse Bash compression. Evaluator-after-build agent. Harness simplification audit (what Claude 4 replaces). 12-Factor checklist. Ratchet gate automation.",
       "effort": null,
@@ -42287,7 +42287,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Harness Engineering v2 — smart routing + compression + evaluator",
       "tags": [
@@ -42295,14 +42295,14 @@
         "architecture",
         "efficiency"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic nodes: t-2349/t-2348 (knowledge-v2/knowledge-pipeline) + in-003.",
       "created": "2026-05-29",
       "description": "Auto Dream background memory consolidation. Scheduled consolidation job. Draft 304 knowledge clusters. Parallel tier1/tier2 batch execution. Sirchmunk RAG eval vs ruflo. AnimaWorks forgetting study.",
       "effort": null,
@@ -42315,7 +42315,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Knowledge Architecture v2 — Auto Dream + clusters + RAG eval",
       "tags": [
@@ -42323,14 +42323,14 @@
         "memory",
         "ruflo"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic nodes: t-2360/t-2359 (research-pipeline/research-inbox).",
       "created": "2026-05-29",
       "description": "Process accumulated research: CC ecosystem April 2026 batch (63 URLs), CC architecture deep dive, PAI v4.0.3, IndieDevDan, Miessler Daemon, TurboFlow, multi-agent R&D, Karpathy second brain, LinkedIn batch items.",
       "effort": null,
@@ -42343,7 +42343,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Research Consumption Pipeline — CC ecosystem + PAI + 12-Factor + LinkedIn batch",
       "tags": [
@@ -42351,14 +42351,14 @@
         "claude-code",
         "harness-engineering"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic node: t-2343 (dx-tooling).",
       "created": "2026-05-29",
       "description": "brana doctor MCP warnings. Skills sources CLI. Scope thebrana-only skills. Command discovery runtime listing. CC autosuggestions for skill authoring. CLAUDE_CODE_TASK_LIST_ID investigation. Onboarding one-command install.",
       "effort": null,
@@ -42371,7 +42371,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "DX & CLI Tooling — doctor + skills CLI + thebrana-only scope + onboarding",
       "tags": [
@@ -42379,14 +42379,14 @@
         "cli",
         "skills"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic node: t-2371 (spec-maintenance).",
       "created": "2026-05-29",
       "description": "ADR evaluates_against version-pin field. Reconcile --scope adr-framing. Docs architecture updates (memory.md, hooks). Skill procedures update. MEMORY.md cleanup. Dim 47+48 enrichment. meta-templates skill update.",
       "effort": null,
@@ -42399,7 +42399,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Spec & ADR Maintenance — docs health + reconcile + ADR framing",
       "tags": [
@@ -42407,14 +42407,14 @@
         "adr",
         "spec-maintenance"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic node: t-2352 (multi-agent-eval).",
       "created": "2026-05-29",
       "description": "Hive-mind quorum calibration vs single challenger (blocked: needs API key). agent_spawn cost attribution smoke test. Quorum ADR from calibration data. Challenger explicit surface enumeration. Agent SDK spike.",
       "effort": null,
@@ -42427,7 +42427,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Multi-Agent Evaluation — hive-mind quorum calibration + challenger improvements",
       "tags": [
@@ -42435,14 +42435,14 @@
         "challenger",
         "ruflo"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
-      "context": null,
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell. Successor epic node: t-2335 (brana-ui) / in-001.",
       "created": "2026-05-29",
       "description": "Next.js local UI for backlog management. Kanban swim lanes, CLI-feel list view, HTTP read/write endpoints, task creation form, detail panel. Monitoring dashboard for system health.",
       "effort": null,
@@ -42455,7 +42455,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Brana System UI — Kanban board + monitoring dashboard",
       "tags": [
@@ -42463,7 +42463,7 @@
         "dx",
         "backlog"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
@@ -44900,8 +44900,8 @@
     {
       "blocked_by": [],
       "branch": null,
-      "completed": null,
-      "context": "Four-wave compounding stack. Low output early, exponential after session ~30.\n\nWave 1 — Auto-Learning Engine: t-1713, t-1572, t-1668, t-653\nWave 2 — Knowledge Throughput: t-1202, t-1781, t-1804, t-1794 (fix first)\nWave 3 — Harness Hardening: t-1768, t-1565, t-889\nWave 4 — Multi-Agent Unlock: t-1587, t-1583, t-1594\n\nStart: Wave 1 + Wave 3 in parallel (no blockers, S-M effort). Wave 2 follows. Wave 4 after harness is solid.\n\nCompounding logic:\n- Better memory recall → richer context per session → higher-quality builds → faster learning → repeat\n- Sessions 1-10: foundation laying\n- Sessions 10-30: compounding\n- Sessions 30+: exponential (3-5x output)",
+      "completed": "2026-07-24",
+      "context": "t-2323 reconciliation (2026-07-24): retired empty initiative shell - cross-cutting umbrella, no single successor epic node.",
       "created": "2026-06-03",
       "description": null,
       "effort": "XL",
@@ -44913,7 +44913,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Powerhouse Foundation — auto-learning, throughput, harness, multi-agent",
       "tags": [
         "powerhouse",
@@ -44921,7 +44921,7 @@
         "auto-learning",
         "multi-agent"
       ],
-      "type": "initiative"
+      "type": "task"
     },
     {
       "blocked_by": [],
@@ -58955,7 +58955,7 @@
       "acceptance_criteria": null,
       "blocked_by": [],
       "branch": null,
-      "completed": null,
+      "completed": "2026-07-24",
       "context": "AC: 13 stray type:initiative tasks are reconciled (retyped, retired, or explicitly documented as legitimate exceptions)\\nAC: 88 mixed-epic milestones have a documented resolution (split/dominant-epic/left-unepic'd) applied consistently",
       "created": "2026-07-22",
       "description": "Two related data-hygiene gaps surfaced by t-2312's migration script, deliberately not resolved unilaterally: (1) 13 tasks (e.g. t-1608) carry type:\"initiative\" but aren't epic-node markers (no in- id, no matching epic value) -- they survive t-2312's migration unchanged, leaving stray initiative-typed tasks that violate ADR-065 section 3 (\"remove the initiative node level entirely\"). (2) 714 tasks that carry both a parent and an epic value keep their existing parent post-migration (only lose the flat epic tag) -- of their 166 distinct parents, 88 span more than one epic value, meaning epic is currently orthogonal to the existing milestone/phase tree. Reconciling those 88 mixed-epic milestones (split, pick a dominant epic, or leave un-epic'd) is a human judgment call, not mechanical. Found during t-2312 composition, 2026-07-22.",
@@ -58964,12 +58964,12 @@
       "github_issue": null,
       "id": "t-2323",
       "kind": "refactor",
-      "notes": null,
+      "notes": "2026-07-24: Part 1 executed - t-1608 retyped initiative->milestone+completed, t-1609 + 11 empty shells (t-1725-1734, t-1827) retyped initiative->task and cancelled. Zero type:initiative tasks remain (verified via query). Part 2 reassessed against LIVE data (analysis agent's premise was pre-migration snapshot, not live tasks.json - flat epic field is already fully retired/sealed, t-2310/ADR-065): of the 88 snapshot-era mixed-epic milestones, 72 are historical (no action needed), 4 are already correctly epic-anchored via parent chain (verified: t-1594->t-2362, t-1587->t-2362, t-2022->t-2348 match; t-1244->in-003 differs from snapshot dominant but is anchored). Bucket C3 (7 tasks proposed for direct reparent to dominant epic) is BLOCKED: checked each task's actual current parent - all 6 distinct phase-roots (t-815, t-1545, ph-004, ph-013, t-656, t-1463) are pre-v3 type:phase with parent:null, not epic nodes; two (t-1545, t-1463) are active P1 phases. Reparenting the milestone directly to an epic node would sever it from its real phase grouping - not the \"cheap, mechanical\" operation the original proposal assumed. Needs a fresh decision: reparent the milestone itself (losing phase context), reparent the phase-root instead (affects ALL of that phase's children, a much bigger blast radius), or leave un-epic'd like bucket C1. Bucket C4 (5 program-umbrellas: t-1103, t-496, t-553, t-641, t-2090) deferred per user choice - see follow-up task.\n2026-07-24 (final): Bucket C3 decision made - leave un-epic'd, same rationale as bucket C1 (epic is a forward-planning label; these 7 milestones already have meaningful phase-root grouping, 2 of which are active P1 phases - forcing an epic tag would misrepresent structure for no planning value). Zero writes for C3.\\n\\nFinal disposition, all 88 accounted for: C1 leave-unepic'd 72 + C3 leave-unepic'd 7 = 79 no-action; C2 confirmed-anchored 4 (no action, already correct); C4 deferred to follow-up t-2383 (5 program-umbrellas needing real split/promote design conversation, with explicit warning to re-verify against live data first). Part 1 (13 stray initiatives) fully executed - zero type:initiative tasks remain. Task complete.",
       "order": 0,
       "parent": "t-2338",
       "priority": "P3",
-      "started": null,
-      "status": "pending",
+      "started": "2026-07-24",
+      "status": "completed",
       "subject": "Reconcile 13 stray type:\"initiative\" tasks and 88 mixed-epic milestones (ADR-065 cleanup)",
       "tags": [
         "schema-v3",
@@ -59048,9 +59048,9 @@
       "ac_state": "none",
       "acceptance_criteria": null,
       "blocked_by": [],
-      "branch": null,
-      "completed": null,
-      "context": null,
+      "branch": "cli-backlog-schema/feat/t-2326-unify-tags-filter-semantics",
+      "completed": "2026-07-24",
+      "context": "skill_gap_checked: true (score < 0.3, user chose: skip)",
       "created": "2026-07-23",
       "description": "t-2311 landed tag_matches() (key:value exact + key-only bare-or-any-value) wired into filter_tasks_by (backs `backlog next --tag`) and cmd_query's --tag. `brana backlog tags --filter/--any` (cmd_tags, a separate tag-inventory command in backlog.rs, untouched by t-2311) still does its own plain exact-match matching, so it now has inconsistent semantics vs next/query. Flagged twice during t-2284's build (t-2311 completion notes, and the final challenger gate review) but never actually filed as a task until now.",
       "effort": "S",
@@ -59062,15 +59062,17 @@
       "order": 0,
       "parent": "t-2338",
       "priority": "P3",
-      "started": null,
-      "status": "pending",
+      "started": "2026-07-24",
+      "status": "completed",
       "subject": "Unify backlog tags --filter/--any semantics with tag_matches() (key:value support)",
       "tags": [
         "schema-v3",
         "follow-up"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "refactor",
+      "build_step": null
     },
     {
       "ac_state": "none",
@@ -59830,7 +59832,7 @@
     {
       "id": "t-2378",
       "subject": "Live MCP server (mcp__brana__*) lags dev/feature-branch schema sealing — can reintroduce retired fields",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -59844,23 +59846,24 @@
       "priority": "P2",
       "parent": "t-2338",
       "created": "2026-07-23",
-      "started": null,
-      "completed": null,
+      "started": "2026-07-24",
+      "completed": "2026-07-24",
       "blocked_by": [],
       "branch": null,
-      "context": "AC: decide between process fix (faster ship cadence for sealing changes) vs tooling fix (staleness detection/warning in MCP server or a wrapping hook)\\nAC: if tooling fix chosen, a design sketch exists before implementation begins\\nFound during t-2325 close (2026-07-23): mcp__brana__backlog_set wrote a sealed \"epic\" field onto t-2325/t-2377 because the live MCP binary predates dev's t-2310 write-path sealing.\nSecond live occurrence (2026-07-24): the mcp__brana__backlog_add call that filed THIS task also wrote a stray \"epic\": null key onto it, despite epic not being passed as a param — the stale MCP binary's backlog_add schema still always includes an epic field. Corroborates the core finding: it's not just backlog_set accepting writes to the retired field, backlog_add's schema itself hasn't dropped the field either. Cleaned up in tasks.json (t-2322's worktree, commit to follow).",
+      "context": "AC: decide between process fix (faster ship cadence for sealing changes) vs tooling fix (staleness detection/warning in MCP server or a wrapping hook)\\nAC: if tooling fix chosen, a design sketch exists before implementation begins\\nFound during t-2325 close (2026-07-23): mcp__brana__backlog_set wrote a sealed \"epic\" field onto t-2325/t-2377 because the live MCP binary predates dev's t-2310 write-path sealing.\nSecond live occurrence (2026-07-24): the mcp__brana__backlog_add call that filed THIS task also wrote a stray \"epic\": null key onto it, despite epic not being passed as a param — the stale MCP binary's backlog_add schema still always includes an epic field. Corroborates the core finding: it's not just backlog_set accepting writes to the retired field, backlog_add's schema itself hasn't dropped the field either. Cleaned up in tasks.json (t-2322's worktree, commit to follow).\n2026-07-24: third occurrence — mcp__brana__backlog_add wrote a stray \"epic\": null onto t-2381 (filed via MCP during t-2377's close). Caught by validate.sh check 63 pre-ship, fixed via collapse-level-epic-v3.py --write, committed 774545e0. This session then shipped dev→main + bootstrap.sh, which should refresh the live MCP binary to current sealing (t-2310) — restart CC sessions to pick it up. Root cause (this task) still unfixed; exposure window persists for the next schema-sealing change.\nDecided 2026-07-24: adopt b1 (build-fingerprint skew guard, SessionStart hook, WARN not hard-block) as the structural fix + faster ship-to-main cadence for sealing changes as cheap insurance. Full design sketch grounded in repo investigation:\\n\\n- Current dev source is already fully sealed (set_field's whitelist rejects unknown fields incl. epic; backlog_add's Input uses deny_unknown_fields). Both live incidents (t-2325/t-2377) came from a STALE COMPILED BINARY, not a source gap.\\n- Two independent staleness dimensions: (1) build-from-main lag, (2) running-process lag - MCP is a long-lived stdio process from ~/.local/bin/brana-mcp; a live CC session keeps the OLD process even after the binary is reinstalled, until CC restarts.\\n- bootstrap.sh does neither build nor restart the MCP - only registers the binary path in .claude.json.\\n- CARGO_PKG_VERSION is useless for skew detection (workspace version rarely bumps, dev/main builds carry identical versions).\\n- Process fix (a) alone cannot close dimension 2 (running-process lag) - that's why b1 (tooling) is the structural closer, with (a) as insurance, not either alone.\\n\\nBoth ACs satisfied: decision made; design sketch exists. Implementation tracked separately in t-2384.",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "research",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "investigation"
     },
     {
       "id": "t-2379",
       "subject": "Make validate_schema()'s status check type-conditional (epic vocab vs task vocab)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -59872,23 +59875,25 @@
       "priority": "P3",
       "parent": "t-2338",
       "created": "2026-07-24",
-      "started": null,
-      "completed": null,
+      "started": "2026-07-24",
+      "completed": "2026-07-24",
       "blocked_by": [],
-      "branch": null,
-      "context": "AC: validate_schema() accepts a type:\"epic\" task with status in {active,next,parked,done,archived} without an \"invalid status\" error\\nAC: a task with type != \"epic\" and one of those epic-vocab statuses is still correctly rejected (no cross-contamination between the two vocabularies)",
+      "branch": "cli-backlog-schema/feat/t-2379-validate-schema-status-type",
+      "context": "AC: validate_schema() accepts a type:\"epic\" task with status in {active,next,parked,done,archived} without an \"invalid status\" error\\nAC: a task with type != \"epic\" and one of those epic-vocab statuses is still correctly rejected (no cross-contamination between the two vocabularies)\nskill_gap_checked: true (score < 0.3, user chose: skip)",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix",
+      "build_step": null
     },
     {
       "id": "t-2380",
       "subject": "Investigate tasks.json concurrent-write torn-read hazard",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -59902,23 +59907,24 @@
       "priority": "P2",
       "parent": "t-2338",
       "created": "2026-07-24",
-      "started": null,
+      "started": "2026-07-24",
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "AC: root cause identified (write-path atomicity vs read-path locking)\\nAC: fix implemented (atomic write+rename and/or read-side lock/retry) OR reasoned decision to accept the risk documented\\nAC: no regression in brana backlog get/query performance under normal (non-concurrent) use\\nSource: t-2375 close session, 2026-07-24 — reproduced 4+ times live",
+      "context": "AC: root cause identified (write-path atomicity vs read-path locking)\\nAC: fix implemented (atomic write+rename and/or read-side lock/retry) OR reasoned decision to accept the risk documented\\nAC: no regression in brana backlog get/query performance under normal (non-concurrent) use\\nSource: t-2375 close session, 2026-07-24 — reproduced 4+ times live\n2026-07-24: reproduced again during t-2377's close, Step 9c epic-ancestor-walk — several `brana backlog get {id}` calls in a loop hit \"Invalid string: control characters ... must be escaped\" jq parse errors while another session's writes were presumably in flight. 5th+ live reproduction. resolve_epic_ancestor()'s existing fail-open (\"\" on parse failure) degraded gracefully as designed — no incorrect result, just a dropped signal.",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "research",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "investigation"
     },
     {
       "id": "t-2381",
       "subject": "Fix collect_epic_stats/collect_initiative_stats still reading retired flat epic field",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -59932,17 +59938,134 @@
       "priority": "P2",
       "parent": "t-2338",
       "created": "2026-07-24",
-      "started": null,
-      "completed": null,
+      "started": "2026-07-24",
+      "completed": "2026-07-24",
       "blocked_by": [],
-      "branch": null,
+      "branch": "worktree-agent-a65e5dd73ab71b29b",
       "context": "AC: brana backlog epics and brana backlog initiatives resolve epic/initiative membership via parent-chain (resolve_epic_ancestor), not the retired flat epic field\\nAC: cargo test --workspace passes; validate.sh clean\\nSource: t-2377 Challenger Gate, 2026-07-24 — MEDIUM finding, out of scope for t-2377's declared AC",
-      "notes": null,
+      "notes": "Fixed collect_initiative_stats()/collect_epic_stats() (brana-cli/src/commands/backlog.rs) to resolve epic membership via resolve_epic_ancestor() parent-chain walk (helper made pub in brana-core/src/tasks.rs, reused from t-2377) instead of the retired flat epic field. Added regression tests incl. one that plants a stale flat epic value diverging from the real parent-chain epic and asserts it's ignored. cargo test --workspace: 1159 passed. validate.sh: 0 errors. Committed dfd557f3 on branch worktree-agent-a65e5dd73ab71b29b (worktree at .claude/worktrees/agent-a65e5dd73ab71b29b) — NOT merged to dev, awaiting review/merge decision.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
+      "ac_state": "none",
+      "strategy": "bug-fix"
+    },
+    {
+      "id": "t-2382",
+      "subject": "Cleanup pass: cli-backlog-schema epic accumulator has 59 carried-forward next[] items",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [],
+      "description": "The cli-backlog-schema epic (t-2338) has accumulated 59 carried-forward next[] items across sessions. Needs a dedicated cleanup/triage pass to dedupe, close stale ones, and re-prioritize.",
+      "effort": "M",
+      "priority": "P3",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Noted 2026-07-24 during a parallel-start session for t-2381/t-2380/t-2378. Source: session maintenance note, not yet triaged.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2383",
+      "subject": "Resolve 5 program-umbrella milestones with no dominant epic (t-1103, t-496, t-553, t-641, t-2090)",
+      "status": "pending",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [
+        "schema-v3",
+        "follow-up"
+      ],
+      "description": "Deferred from t-2323's reconciliation (2026-07-24, bucket C4). These 5 pre-v3 milestones have children spanning >=3 distinct epic themes each (per the flat-epic snapshot) and don't have one clear dominant epic the way bucket C3's 7 did - they're genuine cross-cutting program umbrellas, not single-epic milestones. Needs a real design conversation, not a mechanical reparent:\\n\\n- t-1103 (in_progress, 15 children, 8 epics, dominant dx-tooling 46%) - \\\"CC Alignment Program\\\", epic-scale; candidate to promote to an epic node or map onto in-002 (CC Alignment) and re-home its 15 children under their real epic nodes.\\n- t-496 (9 children, 4 epics) - \\\"Brana Distribution & Contribution Pipeline\\\" - candidate to split per-epic (distribution t-2341 + dx-tooling t-2343) or promote.\\n- t-553 (8 children, 4 epics) - \\\"Package for Release\\\" - candidate to split (release/dx/distribution concerns).\\n- t-641 (8 children, 4 epics) - \\\"Harness Design v2\\\" - candidate to split across harness-* epic nodes.\\n- t-2090 (5 children, 3 epics) - \\\"brana public-readiness\\\" - candidate to split (distribution t-2341 + others).",
+      "effort": "M",
+      "priority": "P3",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Note: before acting, re-verify each task's CURRENT parent/children against live tasks.json the way t-2323 did for bucket C3 - the original analysis was built from a pre-migration git snapshot (commit 7278bed8) and bucket C3's \"cheap reparent\" recommendation turned out to be wrong once checked against live data (t-1545/t-1463 are active P1 phase-roots, not epic nodes). The same live-data check must happen here before any write.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "design",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2384",
+      "subject": "Build-fingerprint skew guard for mcp__brana__* MCP server (warn-only)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "schema-v3",
+        "follow-up",
+        "mcp"
+      ],
+      "description": "Implementation follow-up from t-2378's design decision (2026-07-24). Decided direction: adopt option b1 (build-fingerprint skew guard) as the structural fix, with faster ship-to-main cadence for schema-sealing changes as cheap insurance - not either alone.\\n\\nGrounded findings from t-2378's design sketch (full report in that task's context):\\n- Current dev source is already fully sealed (set_field's whitelist, backlog_add's deny_unknown_fields) - both live incidents (t-2325/t-2377) came from a STALE COMPILED BINARY, not a source gap.\\n- Two independent staleness dimensions: (1) build-from-main lag (dev sealed, main not yet rebuilt), (2) running-process lag (MCP is a long-lived stdio process from ~/.local/bin/brana-mcp; even after reinstalling the binary, a live CC session keeps the OLD process until CC restarts).\\n- bootstrap.sh does neither build nor restart the MCP - only registers the binary path in .claude.json.\\n- Version stamp (CARGO_PKG_VERSION) is useless for skew detection - workspace version rarely bumps.\\n\\nImplementation direction (decided: WARN, not hard-block - never lock out a legitimately-ahead dev session mid-work):\\n1. Stamp the binary at build time with git rev-parse HEAD (vergen/build.rs), exposed via a cheap mcp__brana__version tool or `brana --build-hash`.\\n2. Commit a schema-fingerprint file, bumped whenever set_field's whitelist or backlog_add's schema changes.\\n3. A SessionStart hook compares the running binary's hash/fingerprint against the repo's and WARNS on skew (does not block writes).",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Precedent to reuse: existing agy version-pin guard pattern (validate.sh Check 38). Open question resolved: warn-only, not hard-block.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2385",
+      "subject": "Write-time schema-version guard for MCP/CLI write paths (retired-field rejection)",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [
+        "schema-v3",
+        "mcp",
+        "deploy-lag",
+        "follow-up"
+      ],
+      "description": "Follow-up from t-2378's decision: harden brana-core's tasks.json write path (set_field/add_task and equivalents) so a binary refuses (or at minimum loudly warns on) writes of fields that its own compiled schema whitelist no longer recognizes as valid — independent of which process/binary version is running. This is the deeper fix behind the \"stale live MCP server can reintroduce retired fields\" problem (t-2378); the bootstrap.sh staleness warning shipped in t-2378 only helps at deploy/build time and does nothing during the exposure window between a schema-sealing commit landing on dev and the next ship to main.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Design sketch from t-2378 (2026-07-24):\n\nWhere the check lives: inside brana-core's write path (shared by both the `brana` CLI and `brana-mcp` binaries, since both link brana-core) — not in bootstrap.sh and not solely in validate.sh. This is what makes it binary-version-agnostic: whichever binary is running, old or new, enforces against the same rule.\n\nWhat it checks against: rather than a version *number* (which only tells you \"old\" vs \"new\", not \"which fields are retired\"), embed the retired-field list directly as a compiled-in constant in brana-core (e.g. a RETIRED_FIELDS: &[&str] = &[\"level\", \"epic\"] alongside the existing field whitelist). Any write path that serializes a field onto a task record checks it against RETIRED_FIELDS before persisting, in addition to (not instead of) the existing whitelist check that t-2310 already added. This makes the guard self-contained per-binary: an old binary that predates a sealing change won't have the new RETIRED_FIELDS entry (can't fix binaries that don't know a field is retired yet), but a binary that already ships the sealing logic can never regress even if invoked in a stale process/env, and there's no separate marker file to keep in sync or go stale itself.\n\nWhat happens on mismatch: hard-refuse, not warn. This is a data-corruption bug (t-2325/t-2381 already happened 3x with a \"warn after the fact\" backstop — validate.sh check 63 — and still required 3 manual cleanups), so the write should return an error to the MCP/CLI caller rather than silently succeed-with-a-warning. Precedent: t-2310's set_field() whitelist already hard-rejects unknown fields; RETIRED_FIELDS is the same mechanism applied to fields that were once valid and are now sealed.\n\nResidual gap this does NOT close: a binary built *before* a field was added to RETIRED_FIELDS still can't reject it — that binary literally doesn't know the field is retired yet. This guard only prevents *regression* once a binary has shipped the retired-field entry; it doesn't shrink the exposure window during the sealing work itself on dev, before that sealing commit reaches main. Nothing can, without either (a) not doing incremental schema-sealing work on dev while a live stale binary still points at the same shared tasks.json, or (b) fast-tracking schema-sealing commits specifically (see t-2378's process-fix recommendation, applied as a narrow exception to ADR-060's normal main-lags-dev buffer).\n\nScope note: keep this to the retired-field guard only. Do not build a general schema-version marker/skew-detection system (e.g. embedding a semver the binary checks against a source-of-truth file) — it adds a second thing to keep in sync (the marker itself) without preventing more than the simpler RETIRED_FIELDS constant does, since the actual failure mode we've seen is always \"old binary still knows about a since-retired field,\" never \"old binary doesn't understand a field format change it should ideally warn about.\"",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": null,
       "ac_state": "none"
     }
   ],
