@@ -975,9 +975,7 @@ Output: markdown section only (no frontmatter, no preamble).",
         .collect::<Vec<_>>()
         .join("\n");
 
-    let draft_content = format!(
-        "---\nstatus: draft\ncreated: {now_date}\nsources:\n{sources_yaml}\ncluster_topic: {topic}\ndraft_author: llm\nreview_due: {review_due}\npromotion_target: dimensions/{dim_target}.md\n---\n\n{body_text}\n"
-    );
+    let draft_content = build_draft_content(&now_date, &sources_yaml, topic, &dim_target, &review_due, &body_text);
 
     let topic_slug = sanitize_topic_slug(topic);
     let draft_filename = format!("{now_date}-{topic_slug}.md");
@@ -1092,6 +1090,22 @@ fn count_by_tier(state: &kp::PipelineState) -> TierCounts {
 fn url_reset_state(mut state: kp::PipelineState, url: &str) -> kp::PipelineState {
     state.urls.remove(url);
     state
+}
+
+/// Build a Tier 3 draft file's content: frontmatter + body. `type: claim` per
+/// ADR-057 §2 — a drafted dimension addition is a sourced, falsifiable
+/// synthesis awaiting human review, exactly what `claim` models (t-2437).
+fn build_draft_content(
+    now_date: &str,
+    sources_yaml: &str,
+    topic: &str,
+    dim_target: &str,
+    review_due: &str,
+    body_text: &str,
+) -> String {
+    format!(
+        "---\ntype: claim\nstatus: draft\ncreated: {now_date}\nsources:\n{sources_yaml}\ncluster_topic: {topic}\ndraft_author: llm\nreview_due: {review_due}\npromotion_target: dimensions/{dim_target}.md\n---\n\n{body_text}\n"
+    )
 }
 
 fn parse_frontmatter_field(content: &str, field: &str) -> Option<String> {
@@ -1654,6 +1668,44 @@ mod tests {
         let out = format_results(&results);
         // Score should be formatted with 2 decimal places
         assert!(out.contains("[0.12]"), "score should be 2 decimal places, got: {out}");
+    }
+
+    // ── build_draft_content ──────────────────────────────────────────────
+
+    #[test]
+    fn test_build_draft_content_stamps_type_claim() {
+        let content = build_draft_content(
+            "2026-07-24",
+            "  - url: https://example.com\n    logged: unknown",
+            "agent-memory",
+            "21-memory",
+            "2026-07-31",
+            "body text",
+        );
+        assert_eq!(
+            parse_frontmatter_field(&content, "type"),
+            Some("claim".to_string()),
+            "Tier 3 draft output must carry type: claim per ADR-057 (t-2437): got {content}"
+        );
+    }
+
+    #[test]
+    fn test_build_draft_content_preserves_existing_fields() {
+        let content = build_draft_content(
+            "2026-07-24",
+            "  - url: https://example.com\n    logged: unknown",
+            "agent-memory",
+            "21-memory",
+            "2026-07-31",
+            "body text",
+        );
+        assert_eq!(parse_frontmatter_field(&content, "status"), Some("draft".to_string()));
+        assert_eq!(parse_frontmatter_field(&content, "cluster_topic"), Some("agent-memory".to_string()));
+        assert_eq!(
+            parse_frontmatter_field(&content, "promotion_target"),
+            Some("dimensions/21-memory.md".to_string())
+        );
+        assert!(content.ends_with("body text\n"), "got: {content}");
     }
 
     // ── parse_frontmatter_field ──────────────────────────────────────────
