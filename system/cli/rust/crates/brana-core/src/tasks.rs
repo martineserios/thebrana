@@ -591,7 +591,10 @@ pub fn validate_schema(path: &Path) -> Vec<String> {
     }
 
     let valid_statuses = ["pending", "in_progress", "completed", "cancelled"];
-    let valid_types = ["phase", "milestone", "task", "subtask"];
+    // t-2322 (ADR-065): "epic" (hierarchy node markers, t-2312) and
+    // "initiative" (13 stray pre-migration survivors) are valid task types
+    // this standalone validator predates.
+    let valid_types = ["phase", "milestone", "task", "subtask", "epic", "initiative"];
 
     if let Some(tasks) = val["tasks"].as_array() {
         for t in tasks {
@@ -2135,6 +2138,28 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("missing project")));
         assert!(errors.iter().any(|e| e.contains("missing subject")));
         assert!(errors.iter().any(|e| e.contains("missing status")));
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_accepts_epic_and_initiative_types() {
+        // t-2322 (ADR-065): validate_schema()'s valid_types whitelist predates
+        // the epic hierarchy model — type:"epic" (node markers, t-2312's
+        // migration) and type:"initiative" (13 stray pre-migration survivors)
+        // must not be flagged as invalid.
+        let dir = std::env::temp_dir().join("brana-test-validate-epic-initiative");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("epic-initiative.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Epic node","status":"next","type":"epic","tags":[],"context":null},
+            {"id":"t-2","subject":"Stray initiative","status":"pending","type":"initiative","tags":[],"context":null}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(
+            !errors.iter().any(|e| e.contains("invalid type")),
+            "epic/initiative types must not be flagged as invalid, got: {:?}",
+            errors
+        );
         std::fs::remove_dir_all(&dir).ok();
     }
 
