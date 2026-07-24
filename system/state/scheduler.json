@@ -50,28 +50,6 @@
       "timeoutSeconds": 1800,
       "type": "command"
     },
-    "content-harvest": {
-      "_comment": "t-680: weekly content harvest. Synced from template 2026-05-25 (t-1680) — was silently missing from live.",
-      "allowedTools": "Read,Glob,Grep,Bash",
-      "captureOutput": true,
-      "enabled": true,
-      "model": "sonnet",
-      "project": "~/enter_thebrana/ventures/linkedin",
-      "schedule": "Sun *-*-* 22:00:00",
-      "skill": "/brana:harvest 7d --auto",
-      "timeoutSeconds": 600,
-      "type": "skill"
-    },
-    "daily-digest": {
-      "_comment": "t-688: daily Telegram digest summarizing all scheduler runs. Enable on Oracle only (requires ~/.hub-secrets).",
-      "captureOutput": false,
-      "command": "./system/scheduler/brana-scheduler-digest.sh",
-      "enabled": false,
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 09:30:00",
-      "timeoutSeconds": 30,
-      "type": "command"
-    },
     "export-patterns": {
       "_comment": "ADR-015: weekly JSON export of all ruflo namespaces to git",
       "captureOutput": true,
@@ -124,39 +102,6 @@
       "timeoutSeconds": 3600,
       "type": "command"
     },
-    "inbox-poll": {
-      "_comment": "t-585: poll Gmail for new newsletter emails.",
-      "captureOutput": true,
-      "command": "brana inbox poll",
-      "enabled": false,
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 09:00:00",
-      "timeoutSeconds": 60,
-      "type": "command"
-    },
-    "index-assumptions": {
-      "captureOutput": true,
-      "command": "./system/scripts/index-assumptions.sh",
-      "enabled": true,
-      "maxRetries": 1,
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 08:36:00",
-      "timeoutSeconds": 300,
-      "type": "command"
-    },
-    "knowledge-decay": {
-      "_comment": "t-936/t-1102: weekly DECAY — stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon).",
-      "allowedTools": "Read,Glob,Grep,Bash",
-      "captureOutput": true,
-      "enabled": true,
-      "maxRetries": 1,
-      "model": "sonnet",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 13:00:00",
-      "skill": "/brana:reconcile --scope knowledge",
-      "timeoutSeconds": 600,
-      "type": "skill"
-    },
     "knowledge-pipeline-tier1": {
       "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only. Timeout 900 (t-2441): both tiers share one budget and 300s killed every run — 2026-07-24 17:22 log finished tier1 (48 URLs) but got only 48 of 139 tier2 URLs in 300s (~3s/URL LLM scoring, so a full pass is ~585s). Kept as one job, not split: the && makes tier2 conditional on tier1 succeeding and the schema has no inter-job ordering field. Raising this requires `brana-scheduler deploy` — the systemd unit's TimeoutStartSec is generated as (timeoutSeconds+60)*(maxRetries+1) and a stale 360s unit kills the runner before its own timeout fires.",
       "captureOutput": true,
@@ -165,24 +110,6 @@
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 03:00:00",
       "timeoutSeconds": 900,
-      "type": "command"
-    },
-    "knowledge-review": {
-      "_comment": "Monthly knowledge health check",
-      "allowedTools": "Read,Glob,Grep,WebSearch,WebFetch",
-      "enabled": true,
-      "model": "sonnet",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-01 10:00:00",
-      "skill": "/brana:memory review",
-      "type": "skill"
-    },
-    "link-check": {
-      "_comment": "Weekly dead link check (enable after lychee is installed)",
-      "command": "lychee --config .lychee.toml *.md",
-      "enabled": false,
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Mon *-*-* 09:00:00",
       "type": "command"
     },
     "link-research-extraction": {
@@ -214,15 +141,6 @@
       "timeoutSeconds": 120,
       "type": "command"
     },
-    "morning-check": {
-      "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram)",
-      "enabled": false,
-      "model": "haiku",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Mon..Fri *-*-* 08:48:00",
-      "skill": "/brana:daily-ops",
-      "type": "skill"
-    },
     "personal-repo-pull": {
       "_comment": "t-2306: laptop-side pull for oracle-hub's link-capture commits to the personal repo. Confirmed no equivalent job existed before this.",
       "command": "git -C ~/enter_thebrana/personal pull --ff-only",
@@ -252,17 +170,6 @@
       "project": "~/enter_thebrana/thebrana",
       "schedule": "Sun *-*-* 03:00:00",
       "timeoutSeconds": 3600,
-      "type": "command"
-    },
-    "reminder-dispatch": {
-      "_comment": "t-1999/ADR-054: dispatch due reminders to registered channels (notify-channels.json) every 30 min. noProjectLock: writes only the Rust-locked reminder store (ADR-051), never tasks.json — must not be starved by the wake catch-up burst (t-2292). Empty-store runs exit fast and silent.",
-      "captureOutput": true,
-      "command": "brana remind due --dispatch",
-      "enabled": true,
-      "noProjectLock": true,
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* *:00,30:00",
-      "timeoutSeconds": 60,
       "type": "command"
     },
     "second-phase-review": {
@@ -302,15 +209,6 @@
       "schedule": "*-*-* 08:00:00",
       "timeoutSeconds": 60,
       "type": "command"
-    },
-    "weekly-review": {
-      "_comment": "Friday weekly portfolio review",
-      "enabled": true,
-      "model": "sonnet",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Fri *-*-* 17:00:00",
-      "skill": "/brana:review",
-      "type": "skill"
     }
   },
   "version": 1
