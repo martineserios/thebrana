@@ -130,15 +130,22 @@ establishes one frontmatter schema where every knowledge file declares its ontol
 (atom: `claim`/`pattern`/`event`/`source`; synthesis: `hub`/`decision`) so graph, ruflo, and
 Obsidian read the same source of truth with zero translation.
 
-**Amendment:** once t-2022 (Phase 0 — Unit-of-Knowledge ADR) lands the concrete ontology, this
-pipeline's Tier 3 draft output (`brana knowledge process --draft`,
-`system/cli/rust/crates/brana-cli/src/commands/knowledge.rs`, `draft_content` frontmatter block —
-currently `status`/`created`/`sources`/`cluster_topic`/`draft_author`/`review_due`/
-`promotion_target`, no `type:` key) must add a `type:` field to that frontmatter block. This ADR
-does not implement the field or pick its value now — t-2022 hasn't defined the enum yet, and
-hardcoding a placeholder ahead of that decision risks rework. This amendment exists so the
-requirement is on record before implementation, per this repo's "spec/decision before code"
-convention — the actual code change is tracked as a follow-on (t-2437, blocked on t-2022).
+**Amendment:** per ADR-057 (Unit of Knowledge, accepted 2026-06-12, authored under t-2027), which
+already defines the concrete ontology enum `type: claim | pattern | event | source | hub |
+decision` and explicitly names this amendment (ADR-057 §"ADR-038 disposition": *"ADR-042 is
+amended (t-2028, separate task) only to require `type:` frontmatter on ingest output; its Tier
+1/2 Gemini routing is untouched"*) — this pipeline's Tier 3 draft output (`brana knowledge
+process --draft`, `system/cli/rust/crates/brana-cli/src/commands/knowledge.rs`, `draft_content`
+frontmatter block — currently `status`/`created`/`sources`/`cluster_topic`/`draft_author`/
+`review_due`/`promotion_target`, no `type:` key) must add `type: claim` to that frontmatter block.
+A drafted addition to a dimension is a sourced, falsifiable synthesis awaiting human review before
+promotion — ADR-057 §2 defines `claim` as exactly this: *"falsifiable statement; carries
+confidence and review_due"* (the draft already carries `review_due`). Implemented as a follow-on
+(t-2437).
+
+*(Corrects an earlier version of this amendment, 2026-07-24, which incorrectly described the
+ontology enum as still pending on t-2022 — t-2022's child task t-2027 had already produced and
+merged ADR-057 a month prior; t-2022 itself simply hadn't been marked complete. Fixed as t-2438.)*
 
 **Non-Action (amendment-scoped):** this amendment does not touch Tier 1/2 Gemini routing (§2
 above, unchanged) and does not absorb or supersede any of the 6 overlapping kb-redesign idea
