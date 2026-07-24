@@ -60089,7 +60089,6 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": null,
       "work_type": "chore",
       "ac_state": "none",
       "strategy": "feature"
@@ -60120,7 +60119,6 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": null,
       "work_type": "implement",
       "ac_state": "none"
     }
