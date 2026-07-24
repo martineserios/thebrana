@@ -657,20 +657,19 @@ pub fn cmd_add(
         anyhow::anyhow!("invalid JSON: {e}")
     })?;
 
-    // t-2310 (ADR-065): level/epic are retired write-surface fields — level
-    // collapses into type, epic becomes a hierarchy node (not a flat value a
-    // new task can carry). Reject the whole add rather than silently drop them.
-    if new_task.as_object().map_or(false, |o| o.contains_key("level") || o.contains_key("epic")) {
-        eprintln!("{{\"ok\":false,\"error\":\"level/epic fields are retired (ADR-065) — level collapses into type, epic is now a hierarchy node; use --parent for hierarchy\"}}");
-        anyhow::bail!("level/epic fields are retired (ADR-065) — level collapses into type, epic is now a hierarchy node; use --parent for hierarchy");
-    }
-
-    // t-2325 (ADR-065): stream is a retired flat field — superseded by
-    // tags/epic. The --json path merges arbitrary JSON directly, so it needs
-    // the same explicit reject as level/epic above.
-    if new_task.as_object().map_or(false, |o| o.contains_key("stream")) {
-        eprintln!("{{\"ok\":false,\"error\":\"stream field is retired (ADR-065) — use tags or epic instead\"}}");
-        anyhow::bail!("stream field is retired (ADR-065) — use tags or epic instead");
+    // t-2385 (ADR-067): the --json path merges arbitrary JSON directly onto
+    // new_task, bypassing set_field's exhaustive match — so retired fields
+    // (level/epic/stream) need an explicit reject here. Routed through the
+    // shared brana_core::tasks::RETIRED_FIELDS / reject_retired_fields
+    // source of truth instead of independent hand-written contains_key
+    // checks per field (t-2310 added level/epic, t-2325 had to hand-patch
+    // stream separately — this generalizes so a future retirement is a
+    // one-line addition to RETIRED_FIELDS, not a new call site).
+    if let Some(obj) = new_task.as_object() {
+        if let Err(e) = tasks::reject_retired_fields(obj) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
     }
 
     if let Some(p) = new_task["priority"].as_str() {
@@ -2370,6 +2369,29 @@ mod tests {
             None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap_err();
         assert!(err.to_string().contains("stream"), "error must name the field: {err}");
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task");
+    }
+
+    #[test]
+    fn cmd_add_json_payload_rejects_multiple_retired_fields_named_together() {
+        // t-2385: cmd_add's retired-field rejection now routes through the
+        // shared brana_core::tasks::RETIRED_FIELDS / reject_retired_fields
+        // source of truth rather than independent hand-written contains_key
+        // checks per field. A payload carrying two retired fields at once
+        // must name both in a single error, not just whichever check
+        // happened to run first.
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"has level and stream","level":"phase","stream":"dev"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("level"), "error must name level: {msg}");
+        assert!(msg.contains("stream"), "error must name stream: {msg}");
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"].as_array().unwrap().len(), 0,
