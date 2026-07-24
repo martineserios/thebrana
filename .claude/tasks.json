@@ -59794,7 +59794,7 @@
     {
       "id": "t-2377",
       "subject": "Fix TaskFilter.epic in brana-core — CLI/MCP epic filter param reads retired flat field",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -59808,18 +59808,24 @@
       "priority": "P2",
       "parent": "t-2338",
       "created": "2026-07-23",
-      "started": null,
-      "completed": null,
+      "started": "2026-07-24",
+      "completed": "2026-07-24",
       "blocked_by": [],
-      "branch": null,
-      "context": "AC: brana backlog query --epic <slug> (CLI) and MCP backlog_query(epic: <slug>) return tasks whose parent-chain resolves to that epic ancestor, not tasks with a literal (now-dead) epic field\\nAC: brana backlog query --type epic works (TaskType enum includes Epic)\\nAC: cargo test --workspace passes; validate.sh clean\\nSource: t-2375 Challenger Gate iteration 2, 2026-07-23",
-      "notes": null,
+      "branch": "cli-backlog-schema/feat/t-2377-fix-taskfilter-epic-brana-core",
+      "context": "AC: brana backlog query --epic <slug> (CLI) and MCP backlog_query(epic: <slug>) return tasks whose parent-chain resolves to that epic ancestor, not tasks with a literal (now-dead) epic field\\nAC: brana backlog query --type epic works (TaskType enum includes Epic)\\nAC: cargo test --workspace passes; validate.sh clean\\nSource: t-2375 Challenger Gate iteration 2, 2026-07-23\nskill_gap_checked: true (score < 0.3, user chose: skip)",
+      "notes": "Challenger gate (2026-07-24): verdict PROCEED. AC met — TaskFilter.epic now resolves via resolve_epic_ancestor() parent-chain walk (brana-core/src/tasks.rs), TaskType::Epic added to CLI enum, cargo test --workspace passes (1158 tests), validate.sh clean (0 errors). One MEDIUM finding (out of this task's AC scope): collect_epic_stats()/collect_initiative_stats() in brana-cli/src/commands/backlog.rs still read the retired flat epic field, same bug family, feeding `brana backlog epics`/`initiatives`. Filed as follow-up t-2381 (reuse this task's resolve_epic_ancestor() helper as the fix).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "brana backlog query --epic <slug> (CLI) and MCP backlog_query(epic: <slug>) return tasks whose parent-chain resolves to that epic ancestor, not tasks with a literal (now-dead) epic field",
+        "brana backlog query --type epic works (TaskType enum includes Epic)",
+        "cargo test --workspace passes; validate.sh clean"
+      ],
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix",
+      "build_step": null
     },
     {
       "id": "t-2378",
@@ -59907,6 +59913,37 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "research",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2381",
+      "subject": "Fix collect_epic_stats/collect_initiative_stats still reading retired flat epic field",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "schema-v3",
+        "cli",
+        "rust",
+        "follow-up"
+      ],
+      "description": "Challenger Gate finding from t-2377 (2026-07-24, MEDIUM, out of scope for that task's declared AC): `collect_initiative_stats()` (brana-cli/src/commands/backlog.rs:1576,1584) and `collect_epic_stats()` (backlog.rs:1606,1616) both read `t[\\\"epic\\\"].as_str()` directly — the same flat field retired by the backlog-v3 migration (ADR-065, t-2284; write-sealed t-2310) that t-2377 just fixed in TaskFilter.epic. Since every task's flat `epic` field is now empty, these two functions silently return empty/zeroed stats.\\n\\nLive impact: these feed the real CLI subcommands `brana backlog epics` and `brana backlog initiatives` (main.rs:93-94) — same silent-nothing failure class as t-2377's bug, just in a different call site.\\n\\nFix pattern: reuse the `resolve_epic_ancestor()` / `is_epic_slug()` helpers t-2377 added to brana-core/src/tasks.rs (parent-chain walk to nearest type:\\\"epic\\\" ancestor) instead of reading the flat field directly.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2338",
+      "created": "2026-07-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: brana backlog epics and brana backlog initiatives resolve epic/initiative membership via parent-chain (resolve_epic_ancestor), not the retired flat epic field\\nAC: cargo test --workspace passes; validate.sh clean\\nSource: t-2377 Challenger Gate, 2026-07-24 — MEDIUM finding, out of scope for t-2377's declared AC",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": null,
+      "work_type": "implement",
       "ac_state": "none"
     }
   ],

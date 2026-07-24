@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-23T21:22:31Z",
+  "generated": "2026-07-24T12:48:51Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1235,7 +1235,8 @@
         "system/scripts/migrate/",
         "system/scripts/migrate/collapse-level-epic-v3.py",
         "system/scripts/migrate/normalize-tags.py",
-        "system/state/tasks-config.json"
+        "system/state/tasks-config.json",
+        "system/skills/_shared/epic-ancestor-walk.md"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
