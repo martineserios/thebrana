@@ -1,7 +1,7 @@
 # Feature: `brana knowledge process-url`
 
 **Date:** 2026-07-24
-**Status:** decomposing
+**Status:** building
 **Task:** t-1781
 
 ## Problem
