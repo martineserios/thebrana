@@ -6,70 +6,94 @@ depends_on:
 
 ## Problem
 
-Retired task fields (`level`, `epic`, `stream`) are currently rejected only
-by *omission* — `brana-core::tasks::set_field` (`tasks.rs:1147-1282`) is an
-exhaustive `match` over valid field names; anything unmatched falls to the
-catch-all `_ => Err(format!("unknown field: {field}"))` (`tasks.rs:1280`).
-This is indistinguishable from a genuine typo, and two other write surfaces
-duplicate the same retirement list independently:
+Of the three `tasks.json` write surfaces, two are already structurally safe
+against retired fields (allowlist by construction — omitting a match
+arm/struct field is itself the rejection):
 
-- `crates/brana-cli/src/commands/backlog.rs` `cmd_add` (~line 660-680) —
-  explicit `contains_key("level") / "epic" / "stream"` checks.
-- `crates/brana-mcp/src/tools/backlog_add.rs` — `#[serde(deny_unknown_fields)]`
-  on the typed `Input` struct.
+- `brana-core::tasks::set_field` (`tasks.rs:1147-1282`) — exhaustive `match`
+  over valid field names, unmatched fields fall to `_ => Err(format!("unknown
+  field: {field}"))` (`tasks.rs:1280`).
+- `crates/brana-mcp/src/tools/backlog_add.rs` — typed `Input` struct with
+  `#[serde(deny_unknown_fields)]`, rejects retired fields at deserialization.
 
-Three retired fields, three independent enforcement mechanisms, no single
-source of truth. A binary that ships a new retirement has to update all
-three by hand, and there's no way to distinguish "field never existed" from
-"field is retired" in the error message.
+The **one genuine gap** is `crates/brana-cli/src/commands/backlog.rs`
+`cmd_add`'s `--json` path (~line 660-680): it merges a raw, untyped JSON
+object onto the new task, guarded only by hand-written
+`contains_key("level")/("epic")` and `contains_key("stream")` checks — a
+denylist that does not automatically cover future retirements. This already
+drifted once: t-2310 added the first check, t-2325 needed a second
+hand-patch for `stream`.
 
 ## Solution
 
-Add `pub const RETIRED_FIELDS: &[&str] = &["level", "epic", "stream"];` to
-`crates/brana-core/src/tasks.rs`, near the top of the file alongside the
-existing field-handling code.
+Add to `crates/brana-core/src/tasks.rs`, near `set_field()`:
 
-1. **`set_field`** (`tasks.rs:1147`): before/alongside the `match field`
-   dispatch, check `RETIRED_FIELDS.contains(&field)` first. If matched,
-   return a distinct error message (e.g. `format!("field '{field}' is
-   retired and cannot be written — {reason}")`) rather than falling through
-   to the generic `unknown field` catch-all. This makes retirement
-   diagnosable at the call site instead of looking like a typo.
-2. **`cmd_add`** (`backlog.rs` ~660): replace the three hand-written
-   `contains_key` checks with a loop over `brana_core::tasks::RETIRED_FIELDS`
-   checking the incoming JSON object's keys — same behavior, one source of
-   truth.
-3. **MCP `backlog_add`**: leave `deny_unknown_fields` as-is (it already
-   rejects retired fields at deserialization, which is stricter than
-   `RETIRED_FIELDS` would be) — no change needed there. Note in a comment
-   that `RETIRED_FIELDS` is the canonical list this struct must stay a
-   superset-rejecting subset of.
+```rust
+pub const RETIRED_FIELDS: &[&str] = &["level", "epic", "stream"];
+
+pub fn reject_retired_fields(obj: &serde_json::Map<String, serde_json::Value>) -> Result<(), String> {
+    let found: Vec<&str> = RETIRED_FIELDS.iter().filter(|f| obj.contains_key(**f)).copied().collect();
+    if found.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "{} field(s) are retired (ADR-065) — level collapses into type, \
+             epic/stream are now hierarchy/tag concerns; use --parent/tags instead",
+            found.join(", ")
+        ))
+    }
+}
+```
+
+Replace the two hand-written `contains_key` blocks in `cmd_add`
+(`backlog.rs` ~660-674) with:
+
+```rust
+if let Some(obj) = new_task.as_object() {
+    if let Err(e) = tasks::reject_retired_fields(obj) {
+        eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+        anyhow::bail!("{e}");
+    }
+}
+```
 
 ## Non-goals
 
 - No schema-version marker or skew-detection system (ADR-067 rejects this).
-- No change to the MCP path's `deny_unknown_fields` mechanism.
+- **Do not touch `set_field()`** — its catch-all already rejects retired
+  fields correctly; adding a `RETIRED_FIELDS` check there is redundant, not
+  defense-in-depth, and risks touching well-tested dispatch code
+  unnecessarily.
+- **Do not touch `crates/brana-mcp/src/tools/backlog_add.rs`** —
+  `deny_unknown_fields` already rejects retired fields at deserialization,
+  which is stricter than `RETIRED_FIELDS` would be.
 - Does not retroactively fix data already written by a stale binary before
   this guard existed — only prevents regression going forward.
 
 ## Tests (write first, per TDD)
 
-- `set_field` on each of `"level"`, `"epic"`, `"stream"` returns the new
-  distinct "retired" error string, not `"unknown field: ..."`. Existing
-  tests `test_set_field_rejects_level/epic/stream` (`tasks.rs:2380-2407`)
-  assert rejection already — extend them to assert the specific error text
-  distinguishes retired-vs-unknown.
-- A genuinely unknown field (e.g. `"bogus_field"`) still returns
-  `"unknown field: bogus_field"` (regression guard — retirement check must
-  not swallow the generic unknown-field case).
-- `cmd_add` with a retired field in the JSON payload is rejected with the
-  same message source (`RETIRED_FIELDS`), covering the CLI ingestion path.
+- `reject_retired_fields()` unit tests: empty object passes; single retired
+  field rejected and named; all three at once rejected and all named;
+  fields with similar substrings (`"epics"`, `"streaming"`) pass — exact key
+  match only, no substring matching.
+- Existing `cmd_add_json_payload_rejects_level_key` / `_epic_key` /
+  `_stream_key` integration tests in `backlog.rs` must continue passing
+  unmodified — this is a behavior-preserving refactor of the CLI path, not a
+  behavior change.
+- New integration test: a payload combining `level` + `stream` in one
+  request is rejected with both fields named (today's hand-written code only
+  ever names one hardcoded pair; this generalizes to any combination).
+- Do **not** modify `test_set_field_rejects_level/epic/stream`
+  (`tasks.rs:2380-2407`) — out of scope, they already pass against
+  unmodified `set_field()`.
 
 ## Consequences
 
-- Single source of truth for retired field names in `brana-core`.
-- Adding a future retirement is a one-line addition to `RETIRED_FIELDS`
-  instead of touching three call sites.
-- Residual gap (documented in ADR-067): a binary built *before* a field
-  is added to `RETIRED_FIELDS` still can't reject it. Complementary fix is
+- Single source of truth for retired field names, used where it's actually
+  needed (the one raw-JSON merge surface), not spread redundantly across all
+  three write paths.
+- Adding a future retirement to the CLI `--json` path is a one-line addition
+  to `RETIRED_FIELDS` instead of a new hand-written `contains_key` block.
+- Residual gap (documented in ADR-067): a binary built *before* a field is
+  added to `RETIRED_FIELDS` still can't reject it. Complementary fix is
   t-2386 (fast-track ship exception for schema-sealing commits).

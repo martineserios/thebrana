@@ -25,20 +25,36 @@ has already been written, and only when someone happens to run it.
 
 ## Decision
 
-Add a `RETIRED_FIELDS: &[&str]` compiled-in constant in `brana-core`,
-alongside the existing field whitelist. Every write path that serializes a
-field onto a task record checks it against `RETIRED_FIELDS` **in addition
-to** (not instead of) the existing whitelist check, before persisting.
+Add a `RETIRED_FIELDS: &[&str]` compiled-in constant in `brana-core`, plus a
+`reject_retired_fields()` helper, and wire it into the **one** write surface
+that actually needs it.
 
-- **Where:** inside brana-core's shared write path — not `bootstrap.sh`, not
-  solely `validate.sh`. Binary-version-agnostic: whichever binary is
-  running, old or new, enforces against the same compiled rule.
+A codebase audit of the three tasks.json write surfaces found they already
+use three different mechanisms, of uneven strength:
+
+| Write path | Mechanism | Covers future retirements automatically? |
+|---|---|---|
+| `brana-mcp` `backlog_add` | Typed `Input` struct, `#[serde(deny_unknown_fields)]` | Yes — allowlist by construction |
+| `set_field()` (`brana-core/src/tasks.rs:1147`) | Exhaustive `match`, `_ => Err("unknown field")` catch-all | Yes — allowlist by construction |
+| CLI `cmd_add` `--json` path (`brana-cli/src/commands/backlog.rs`) | Raw JSON merged onto the task, guarded by hand-written `contains_key()` checks | **No** — a new retirement needs a new hand-written block; this already happened twice (t-2310, then t-2325) |
+
+The MCP path and `set_field()` are already structurally safe: omitting a
+field's match arm/struct field is *itself* the rejection, so a `RETIRED_FIELDS`
+check there would be redundant, not defense-in-depth. The CLI `--json` add
+path is the one genuine gap — it merges an arbitrary JSON object, so it needs
+an explicit denylist, and that denylist has already drifted once.
+
+- **Where:** `RETIRED_FIELDS` + `reject_retired_fields()` live in
+  `brana-core::tasks`, wired only into CLI `cmd_add`'s raw-JSON merge. Still
+  binary-version-agnostic (both `brana` and `brana-mcp` link `brana-core`),
+  scoped to the surface that actually needs a denylist.
 - **What it checks:** a field *name* list, not a schema version number. A
   version number only tells you "old" vs "new," not *which* fields are
   retired.
-- **On mismatch:** hard-refuse, return an error to the caller. Not a
-  warning — this is a data-corruption bug class (3 prior incidents), and
-  t-2310's whitelist precedent already hard-rejects at this same layer.
+- **On mismatch:** hard-refuse, return an error to the caller — matching
+  `set_field()`'s existing precedent (t-2310) of hard-rejecting unknown
+  fields. This is a data-corruption bug class (3 prior incidents: t-2325,
+  t-2381 required manual cleanup), not a warn-and-continue case.
 
 ## Alternatives considered
 
