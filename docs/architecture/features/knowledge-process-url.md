@@ -62,8 +62,14 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
   the operator, documented in the user guide — no interactive fallback or
   scripted wrapper in v1. The command hard-fails on a dead/missing session
   (see Edge Cases) since it must work correctly when invoked unattended.
-- The scoped `--mcp-config` file for the `claude -p` shell-out is a static,
-  checked-in file (not dynamically generated) — simpler and auditable.
+- The scoped `--mcp-config` file for the `claude -p` shell-out is generated
+  at runtime to a temp file, not statically checked in — corrected 2026-07-24
+  after empirical verification: `linkedin-scraper-mcp`'s install path is
+  machine-specific (resolved via env-var → `~/.local/bin` → `PATH`, mirroring
+  the existing `resolve_ruflo_binary`/`resolve_agy_binary`/`resolve_claude_binary`
+  pattern), so a static file with a hardcoded absolute `command` path
+  wouldn't be portable. Content is otherwise fixed (one server entry) and
+  the temp file is written immediately before the call and not left behind.
 - Storage tags `[domain, topic]`: `topic` is derived from the agy-extracted
   insight (agy returns a short topic/category label alongside the summary);
   falls back to the platform name (`linkedin`/`web`) when extraction was
@@ -102,6 +108,13 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 
 - LinkedIn session expired/missing → hard fail, exit non-zero, message names
   the remediation command (`linkedin-scraper-mcp --login`).
+- **LinkedIn post not found in the author's fetched feed** (corrected
+  2026-07-24 — see ADR-068 §Tier-2 correction: `linkedin-scraper-mcp` has no
+  arbitrary-URL fetch, only `get_person_profile(sections="posts")`
+  fuzzy-matched against the URL's title-signal) → distinct outcome from a
+  fetch failure: print "post not found in {author}'s recent feed", do not
+  store anything, do not add the ID to the cancellation list. This is
+  expected to happen for older posts and is not itself an error.
 - URL already processed (slug already exists in ruflo `knowledge` namespace)
   → skip fetch, print "already stored: {key}" (idempotent — safe to re-run
   the same batch file).

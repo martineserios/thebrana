@@ -51,7 +51,23 @@ eventually started, it reuses this fetch function to populate
    Reuse the existing `classify_platform()` (`knowledge_pipeline.rs:614`)
    to route `linkedin.com` URLs to Tier 2 and everything else to Tier 1,
    rather than reimplementing platform detection.
-2. **LinkedIn URLs — headless MCP shell-out to `linkedin-scraper-mcp`.**
+2. **LinkedIn URLs — headless MCP shell-out to `linkedin-scraper-mcp`, fuzzy
+   author-feed match (corrected 2026-07-24).** Enumerating every MCP tool
+   `linkedin-scraper-mcp` registers (`server.py`'s 4 `register_*_tools`
+   calls + `close_session`) found **no tool accepts an arbitrary post URL**
+   — every tool takes a structured identifier (company name, job ID,
+   username) and builds its own URL internally. There is no
+   `get_post_by_url` and no MCP resource/prompt fallback. The closest
+   available primitive is `get_person_profile(linkedin_username,
+   sections="posts")`, which returns the author's *recent* posts feed as
+   raw text. The mechanism is therefore best-effort: parse the URL's
+   author + title-signal (already-existing `parse_linkedin_url()`), fetch
+   that author's posts feed, and text-match the title-signal against the
+   feed to find the target post. A miss (post not in the fetched feed —
+   too old, or feed pagination not covered) is a **distinct outcome from a
+   fetch failure**: `Ok(None)`, not `Err`. This is materially weaker than
+   "fetch this exact post" and should be stated as a known limitation, not
+   silently treated as equivalent.
    `linkedin-scraper-mcp` (confirmed installed via `uv tool` — `uv tool list`
    shows `linkedin-scraper-mcp v4.8.2`, symlinked into `~/.local/bin/`) runs
    its own headless Chromium via Playwright, independent of the Chrome
@@ -101,6 +117,23 @@ oversight, and must be called out in code comments at the new function plus
 covered by extending `test_lock_discipline_source_tripwires` (or an
 equivalent tripwire) once the function's file location is chosen in
 DECOMPOSE.
+
+## Empirical validation (2026-07-24)
+
+The core mechanism was proven live before implementation, not assumed: a
+scoped `--mcp-config` pointing only at `linkedin-scraper-mcp` +
+`--strict-mcp-config` + `--allowedTools "mcp__linkedin-scraper__close_session"`
+successfully connected (`mcp_servers:[{"name":"linkedin-scraper","status":"connected"}]`),
+invoked the real tool, and returned real structured JSON
+(`{"status":"success","message":"..."}`), parseable via the existing
+`parse_claude_stdout`/`extract_result_from_envelope` NDJSON-envelope
+handling already in `knowledge_pipeline.rs` — no new parsing logic needed
+for the envelope itself, only for the tool-specific response shape.
+**Cost observed: $0.40 / ~9s for one trivial `close_session` call** — a
+real per-invocation cost that scales with a nightly batch size; a
+`get_person_profile(sections="posts")` call will cost more (larger
+response, more agentic turns). Factor this into the nightly-cron cost
+model, not just latency.
 
 ## Consequences
 
