@@ -122,3 +122,24 @@ SOURCES
 - This ADR does not specify the Telegram bot implementation (Phase 2, untracked).
 - This ADR does not change Tier 3 (Claude Sonnet synthesis) — that decision was already stable in ADR-040.
 - This ADR does not define ruflo dedup threshold calibration (0.85 is from t-1589; re-calibration is out of scope here).
+
+## Amendment (t-2028, 2026-07-24): `type:` frontmatter requirement on ingest output
+
+The knowledge-base redesign (`docs/ideas/knowledge-base-redesign.md`, promoted via t-2021/t-2022)
+establishes one frontmatter schema where every knowledge file declares its ontology `type:`
+(atom: `claim`/`pattern`/`event`/`source`; synthesis: `hub`/`decision`) so graph, ruflo, and
+Obsidian read the same source of truth with zero translation.
+
+**Amendment:** once t-2022 (Phase 0 — Unit-of-Knowledge ADR) lands the concrete ontology, this
+pipeline's Tier 3 draft output (`brana knowledge process --draft`,
+`system/cli/rust/crates/brana-cli/src/commands/knowledge.rs`, `draft_content` frontmatter block —
+currently `status`/`created`/`sources`/`cluster_topic`/`draft_author`/`review_due`/
+`promotion_target`, no `type:` key) must add a `type:` field to that frontmatter block. This ADR
+does not implement the field or pick its value now — t-2022 hasn't defined the enum yet, and
+hardcoding a placeholder ahead of that decision risks rework. This amendment exists so the
+requirement is on record before implementation, per this repo's "spec/decision before code"
+convention — the actual code change is tracked as a follow-on (t-2437, blocked on t-2022).
+
+**Non-Action (amendment-scoped):** this amendment does not touch Tier 1/2 Gemini routing (§2
+above, unchanged) and does not absorb or supersede any of the 6 overlapping kb-redesign idea
+docs — that's the separate idea-doc absorption task (t-2029).
