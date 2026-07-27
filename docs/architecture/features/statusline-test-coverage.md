@@ -56,6 +56,30 @@ suites were never retired or updated. Baseline them before blaming a change; 44 
 assertions are the pre-existing state, not a regression signal.
 Source: t-2467, session 2026-07-27
 
+### 2026-07-27: The 44 drifted assertions are retired; all statusline suites now gated by Check 66 (t-2470)
+Resolved the entry above by retiring the stale assertions rather than restoring the
+segments — `system/statusline.sh` is deliberately a single line of
+`model │ project │ branch │ epic │ CTX bar`, and the tests, not the script, were the drift.
+
+Removed: the cache fast-path/jq-fallback/refresh scenarios (`test-statusline-cache.sh`
+tests 7–9), the session-score rendering assertions, and the integration suite's cache-flow,
+session-lifecycle, staleness-recovery, width-dropping, slow-cache, knowledge-freshness/decay,
+job-detection, learning-velocity and two-line-layout scenarios. `test-statusline-integration.sh`
+went from 671 lines / 74 assertions to 194 / 14.
+
+**Corrected, not deleted:** the CTX assertions. CTX *is* rendered — only its format changed
+(the bar now sits between the label and the percentage), so the literal `"CTX 42%"` needle
+was split into two rather than dropped. Deleting it would have silently given up real coverage.
+
+Each removed scenario was replaced with a **negative** guard asserting the segment stays
+absent, so the simplification is now itself under test — verified by re-adding an `S: 5✓`
+segment to the script and confirming two suites go red.
+
+All four suites (`width`, `cache`, `session-score`, `integration`) are wired into
+`validate.sh` Check 66; the epic suite remains on Check 65. Both checks are self-contained
+and run standalone under `--check` (t-2471).
+Source: t-2470, session 2026-07-27
+
 ### 2026-04-10: Show both metrics — don't change units to resolve apparent contradiction
 When two status displays seem contradictory (e.g., `CTX 78%` vs `7% until auto-compact`), the fix is to make their relationship explicit — add a complementary suffix (`·7c`) in the warning zone — not to change what the primary metric represents. Changing the metric breaks the user's mental model. The pair (used%, distance-to-threshold) is coherent; only the visual link was missing.
 Source: t-1114, session 2026-04-10

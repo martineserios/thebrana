@@ -2457,6 +2457,44 @@ fi
 echo ""
 fi  # should_run 65
 
+if should_run 66; then
+# Check 66 — remaining statusline suites (t-2470). Three suites
+# (cache/session-score/integration) asserted a much richer statusline than
+# system/statusline.sh renders and carried 44 permanently-red assertions, so
+# nobody could use them as a regression signal. t-2470 retired the stale
+# assertions and replaced them with negative guards that the removed segments
+# stay removed. Wiring all of them here — alongside Check 65's epic suite — is
+# what stops them drifting back out of sync with the script a second time.
+echo "Check 66: statusline suites (t-2470)..."
+C66_TESTS="test-statusline-width.sh test-statusline-cache.sh test-session-score.sh test-statusline-integration.sh"
+C66_DIR="$SCRIPT_DIR/system/hooks/tests"
+if ! command -v jq >/dev/null 2>&1; then
+    warn "Check 66: jq not installed — statusline suites untestable here"
+else
+    C66_FAILED=""
+    C66_RAN=0
+    for c66_t in $C66_TESTS; do
+        if [ ! -f "$C66_DIR/$c66_t" ]; then
+            warn "Check 66: $c66_t not found — skipping"
+            continue
+        fi
+        C66_RAN=$((C66_RAN + 1))
+        if C66_OUT=$(bash "$C66_DIR/$c66_t" 2>&1); then
+            :
+        else
+            C66_FAILED="$C66_FAILED $c66_t"
+            echo "$C66_OUT" | grep -E "FAIL|passed" | sed 's/^/  /'
+        fi
+    done
+    if [ -n "$C66_FAILED" ]; then
+        fail "Check 66: statusline suite regressions in:$C66_FAILED — see output above"
+    elif [ "$C66_RAN" -gt 0 ]; then
+        pass "Check 66: statusline suites — $C66_RAN/$C66_RAN green"
+    fi
+fi
+echo ""
+fi  # should_run 66
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
