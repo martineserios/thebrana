@@ -445,6 +445,34 @@ if [ -f "$GIT_HOOK_SRC" ]; then
         echo "  ! core.hooksPath is set to: $CURRENT_HOOKS_PATH (not our path — hooks NOT active)"
         echo "    To switch, run: git config --global core.hooksPath ~/.config/git/hooks"
     fi
+
+    # t-2468: the checks above read only the GLOBAL core.hooksPath, but git
+    # resolves the EFFECTIVE one — a repo-local setting overrides the global,
+    # and a repo with neither falls back to its own .git/hooks. thebrana has a
+    # repo-local core.hooksPath pointing at .git/hooks, which shadowed the
+    # deployed ~/.config/git/hooks copy: the active pre-commit was months stale
+    # and lacked the red-verification call, leaving ADR-061 Stage 2 inert.
+    #
+    # Sync the template to wherever the hooks ACTUALLY resolve, so the active
+    # copy can never silently rot behind the deployed one. commit-msg is
+    # included because pre-commit only ever sees a STALE COMMIT_EDITMSG (git
+    # writes it after pre-commit runs) — commit-msg receives the real message
+    # file as $1 and is the only correct surface for the attribution check.
+    EFFECTIVE_HOOKS_PATH=$(git config --get core.hooksPath 2>/dev/null || echo "")
+    if [ -z "$EFFECTIVE_HOOKS_PATH" ]; then
+        GIT_COMMON=$(git rev-parse --git-common-dir 2>/dev/null || echo "")
+        [ -n "$GIT_COMMON" ] && EFFECTIVE_HOOKS_PATH="$GIT_COMMON/hooks"
+    fi
+    if [ -n "$EFFECTIVE_HOOKS_PATH" ] && [ "$EFFECTIVE_HOOKS_PATH" != "$GIT_HOOK_DIR" ] \
+       && [ -d "$EFFECTIVE_HOOKS_PATH" ]; then
+        for _h in pre-commit commit-msg; do
+            sync_file "$GIT_HOOK_SRC" "$EFFECTIVE_HOOKS_PATH/$_h" \
+                      "$(basename "$EFFECTIVE_HOOKS_PATH")/$_h (effective)"
+            if ! $CHECK_ONLY; then
+                chmod +x "$EFFECTIVE_HOOKS_PATH/$_h" 2>/dev/null || true
+            fi
+        done
+    fi
 else
     echo "  — git-hooks/pre-commit template not found in source"
 fi
