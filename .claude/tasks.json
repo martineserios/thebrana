@@ -62675,7 +62675,7 @@
     {
       "id": "t-2470",
       "subject": "Three legacy statusline suites assert a richer statusline than the script renders (44 failing assertions)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -62688,18 +62688,19 @@
       "priority": "P2",
       "parent": "t-2345",
       "created": "2026-07-27",
-      "started": null,
-      "completed": null,
+      "started": "2026-07-27",
+      "completed": "2026-07-27",
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/fix/t-2470-retire-statusline-assertions",
       "context": "2026-07-27: Baseline captured in t-2467 and recorded in docs/architecture/features/statusline-test-coverage.md field note — run the suites on an unmodified checkout before attributing failures to any change.\n2026-07-27: Only test-statusline-width.sh (15/15) and test-statusline-epic.sh (14/14) are currently trustworthy. Only the epic suite is wired into validate.sh (Check 65).\nAC: each of the three suites either passes or has its stale assertions removed\nAC: surviving suites wired into validate.sh so they cannot rot again",
-      "notes": null,
+      "notes": "Chose retire-the-assertions (user decision). statusline.sh is deliberately one line of model | project | branch | epic | CTX bar; the tests were the drift.\n\nAC1 — all three suites green:\n  test-statusline-cache.sh        8/12 -> 9/9   (dropped cache fast-path/jq-fallback/refresh, tests 7-9)\n  test-session-score.sh          11/14 -> 14/14 (dropped score-rendering assertions)\n  test-statusline-integration.sh 37/74 -> 14/14 (671 lines -> 194; dropped cache-flow, session-lifecycle, staleness-recovery, width-dropping, slow-cache, knowledge-freshness/decay, job-detection, learning-velocity, two-line-layout)\n\nAC2 — validate.sh Check 66 runs width/cache/session-score/integration; Check 65 keeps the epic suite. Both self-contained, run standalone under --check (per t-2471).\n\nJudgement calls worth recording:\n- The CTX assertions were CORRECTED, not deleted. CTX is rendered — only the format changed (bar sits between label and percentage), so the literal 'CTX 42%' needle was split in two. Deleting would have silently dropped real coverage.\n- Every removed scenario was replaced with a NEGATIVE guard that the segment stays absent, so the simplification is itself under test. Verified by re-adding an 'S: 5✓' segment and confirming two suites go red.\n- statusline.sh has ZERO references to BRANA_STATUSLINE_COLS — there is no truncation logic at all, so the width-dropping scenarios were premise-invalid, not merely stale. test-statusline-width.sh (15/15) covers what is actually guaranteed.\n\nTotal statusline coverage now 66/66 across five suites.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "refactor"
     },
     {
       "id": "t-2471",
