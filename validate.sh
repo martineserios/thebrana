@@ -2434,7 +2434,7 @@ if should_run 65; then
 # rotting silently — a regression that would otherwise only show as a wrong slug
 # in the status bar, which nobody diffs.
 echo "Check 65: statusline epic resolution (t-2467)..."
-C65_TEST="$SCRIPT_DIR/tests/scripts/test-statusline-epic.sh"
+C65_TEST="$SCRIPT_DIR/system/hooks/tests/test-statusline-epic.sh"
 if [ ! -f "$C65_TEST" ]; then
     warn "Check 65: statusline epic test not found at $C65_TEST — skipping"
 elif ! command -v jq >/dev/null 2>&1; then

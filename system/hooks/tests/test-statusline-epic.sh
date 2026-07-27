@@ -21,8 +21,7 @@
 
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-STATUSLINE="$REPO_ROOT/system/statusline.sh"
+STATUSLINE="$SCRIPT_DIR/../../statusline.sh"
 PASS=0; FAIL=0; TOTAL=0
 
 check() {
