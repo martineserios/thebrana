@@ -7,6 +7,11 @@ SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
 SPEC_GRAPH="$DOCS_DIR/spec-graph.json"
+# t-2471: shared across checks 25/26/62/63/64, so it must be resolved at global
+# scope. It used to be assigned inside the Check 25 block, which made every
+# other consumer abort with "TASKS_FILE: unbound variable" under `--check N`
+# (set -u) whenever the selector skipped 25. Checks must be self-contained.
+TASKS_FILE="$SCRIPT_DIR/.claude/tasks.json"
 ERRORS=0
 WARNINGS=0
 
@@ -1367,7 +1372,7 @@ fi  # should_run 24
 if should_run 25; then
 # Check 25 — tasks.json priority enum hygiene (t-1344)
 echo "Checking tasks.json priority enum..."
-TASKS_FILE="$SCRIPT_DIR/.claude/tasks.json"
+# TASKS_FILE is resolved at global scope (t-2471) — shared with checks 26/62/63/64.
 if [ -f "$TASKS_FILE" ]; then
   BAD_PRIORITIES=$(jq -r '[.tasks[] | select(.priority != null and (.priority | test("^P[0-3]$") | not)) | .priority] | unique | join(",")' "$TASKS_FILE" 2>/dev/null)
   if [ -n "$BAD_PRIORITIES" ]; then
