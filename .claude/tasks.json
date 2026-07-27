@@ -62606,7 +62606,7 @@
     {
       "id": "t-2467",
       "subject": "Statusline: fall back to project-local active_epic when branch has no epic segment",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -62620,11 +62620,11 @@
       "parent": "t-2345",
       "created": "2026-07-27",
       "started": "2026-07-27",
-      "completed": null,
+      "completed": "2026-07-27",
       "blocked_by": [],
       "branch": "harness-core/feat/t-2467-statusline-epic-fallback",
       "context": "2026-07-27: Survey of 22 top-level client/venture repos — only proyecto_anita has active_epic set (anita-envios); no other repo has .claude/tasks-config.json at all. Only palco + tinyhomes are on 3-segment task branches (both already display the epic today).\n2026-07-27: Must read project-local config ONLY, never ~/.claude/tasks-config.json — ADR-066 makes active_epic project-scoped with exactly one authoritative source; the global file is explicitly never valid for this key.\n2026-07-27: Resolve config path from GIT_ROOT (already computed at statusline.sh:23), not raw CWD, so it works from subdirectories.\n2026-07-27: No statusline test coverage exists in system/tests/ or validate.sh — this task adds the first.\nAC: branch matching */*/t-* still yields the branch epic (precedence unchanged)\nAC: on main/dev with project-local active_epic set, statusline shows that epic\nAC: global ~/.claude/tasks-config.json is never read for active_epic\nAC: missing/malformed tasks-config.json degrades silently to no epic segment\nAC: shell test covering the resolution ladder added and passing\n2026-07-27: skill_gap_checked: true (suggest top score 0.23 < 0.3, but brana:bash-defensive-patterns covers shell-script work — ranking miss, not a gap; no acquisition needed)",
-      "notes": "2026-07-27: Implemented as branch-epic → project-local active_epic ladder in system/statusline.sh. Checks $GIT_ROOT/.claude/tasks-config.json then $GIT_ROOT/system/state/tasks-config.json (thebrana's layout); global ~/.claude never read (ADR-066). Boundary probe B6 found a real bug: output goes through printf '%b', so backslash/newline in a config value broke the one-line contract — value is now scrubbed. New suite system/hooks/tests/test-statusline-epic.sh 14/14, wired as validate.sh Check 65. Verified live: thebrana→harness-core, proyecto_anita→anita-envios, tinyhomes→nagi (branch, unchanged), lexia/bemol→no slot. Four legacy statusline suites byte-identical to pre-change baseline (8/12, 15/15, 11/14, 37/74) — all drift, no regression. NOT YET DEPLOYED: ~/.claude/statusline.sh updates only when bootstrap.sh runs at ship.",
+      "notes": "2026-07-27: Shipped. Merged to dev (--no-ff), ff-merged to main, bootstrap.sh deployed (7 changes). Verified live: ~/.claude/statusline.sh matches source and renders 🎯 harness-core in thebrana, 🎯 anita-envios in proyecto_anita. Repos without active_epic (lexia, bemol) correctly show no slot — set one per repo via `brana backlog set-active <slug>`. Not pushed to origin (held for separate approval).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
