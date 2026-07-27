@@ -62652,7 +62652,7 @@
         "tdd",
         "adr-061"
       ],
-      "description": "system/skills/build/phases/build-loop.md step 3d1 states red-verification.sh is 'wired into the git pre-commit chain' and registers red test files into active-goal.json tests_required[]. The script exists at system/hooks/red-verification.sh but .git/hooks/pre-commit contains no reference to it. Observed during t-2467: a genuinely-red test was committed and tests_required stayed []. Consequence is fail-closed (goal-completion.sh blocks auto-complete, human completes manually), so no incorrect completions result — but the ADR-061 Stage-2 trusted-registration mechanism is inert for every build.</description>\n<parameter name=\"parent\">t-2345",
+      "description": "system/skills/build/phases/build-loop.md step 3d1 states red-verification.sh is 'wired into the git pre-commit chain' and registers red test files into active-goal.json tests_required[]. The script exists at system/hooks/red-verification.sh but .git/hooks/pre-commit contains no reference to it. Observed during t-2467: a genuinely-red test was committed and tests_required stayed []. Consequence is fail-closed (goal-completion.sh blocks auto-complete, human completes manually), so no incorrect completions result — but the ADR-061 Stage-2 trusted-registration mechanism is inert for every build.</description>",
       "effort": "S",
       "priority": "P1",
       "parent": "t-2345",
@@ -62682,7 +62682,7 @@
         "adr-066",
         "active-epic"
       ],
-      "description": "ADR-066 decision item 3 specifies a pull-side guard mirroring the t-1883 push-side one, so that pulling ~/.claude/tasks-config.json into system/state/tasks-config.json cannot silently drop active_epic. That guard is not in place. Observed live during t-2467: the working tree had active_epic 'harness-core' deleted from system/state/tasks-config.json, alongside reverted _comment text in scheduler.json. Restored by hand via git checkout, but the next sync will clobber it again because the global copy has no active_epic (correctly — ADR-066 gap 4 cleared it as orphaned).</description>\n<parameter name=\"parent\">t-2345",
+      "description": "ADR-066 decision item 3 specifies a pull-side guard mirroring the t-1883 push-side one, so that pulling ~/.claude/tasks-config.json into system/state/tasks-config.json cannot silently drop active_epic. That guard is not in place. Observed live during t-2467: the working tree had active_epic 'harness-core' deleted from system/state/tasks-config.json, alongside reverted _comment text in scheduler.json. Restored by hand via git checkout, but the next sync will clobber it again because the global copy has no active_epic (correctly — ADR-066 gap 4 cleared it as orphaned).</description>",
       "effort": "M",
       "priority": "P1",
       "parent": "t-2345",
@@ -62712,7 +62712,7 @@
         "tests",
         "drift"
       ],
-      "description": "test-statusline-cache.sh (8/12), test-session-score.sh (11/14) and test-statusline-integration.sh (37/74) fail identically before and after t-2467. They assert cache TSV fields, session score, build_step, bugs and phase segments that the current 61-line system/statusline.sh does not render — the script was simplified and these suites were never retired or updated. Either restore the segments or retire the assertions; leaving 44 permanently-red assertions means nobody can use these suites as a regression signal.</description>\n<parameter name=\"parent\">t-2345",
+      "description": "test-statusline-cache.sh (8/12), test-session-score.sh (11/14) and test-statusline-integration.sh (37/74) fail identically before and after t-2467. They assert cache TSV fields, session score, build_step, bugs and phase segments that the current 61-line system/statusline.sh does not render — the script was simplified and these suites were never retired or updated. Either restore the segments or retire the assertions; leaving 44 permanently-red assertions means nobody can use these suites as a regression signal.</description>",
       "effort": "M",
       "priority": "P2",
       "parent": "t-2345",
@@ -62741,7 +62741,7 @@
         "validate",
         "dx"
       ],
-      "description": "Running ./validate.sh --check 63 aborts with 'validate.sh: line 2401: TASKS_FILE: unbound variable'. TASKS_FILE is assigned inside an earlier check block, so the --check selector cannot run 63 (and likely 62/64, which use the same variable) standalone. Checks should be self-contained so the selector is usable for targeted iteration.</description>\n<parameter name=\"parent\">t-2345",
+      "description": "Running ./validate.sh --check 63 aborts with 'validate.sh: line 2401: TASKS_FILE: unbound variable'. TASKS_FILE is assigned inside an earlier check block, so the --check selector cannot run 63 (and likely 62/64, which use the same variable) standalone. Checks should be self-contained so the selector is usable for targeted iteration.</description>",
       "effort": "S",
       "priority": "P2",
       "parent": "t-2345",
@@ -62763,7 +62763,7 @@
     {
       "id": "t-2472",
       "subject": "backlog_add writes a retired epic:null key on every new task, permanently re-failing validate Check 63",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -62772,15 +62772,15 @@
         "adr-065",
         "validate"
       ],
-      "description": "The flat epic field was retired by the backlog-v3 migration (ADR-065, t-2284) and its write path was believed sealed (t-2310). It is not: backlog_add emits \"epic\": null on every task even when no epic argument is passed (verified on t-2468 and t-2471, created without the argument). validate.sh Check 63 uses has(\"epic\"), so every newly created task re-fails it. This is why the 28 tasks created since the migration (t-2438..t-2465) all carry the key. Running collapse-level-epic-v3.py --write cleans the backlog but Check 63 goes red again on the next task created — the writer is the fix, the migration is the cleanup.</description>\n<parameter name=\"parent\">t-2345",
+      "description": "The flat epic field was retired by the backlog-v3 migration (ADR-065, t-2284) and its write path was believed sealed (t-2310). It is not: backlog_add emits \"epic\": null on every task even when no epic argument is passed (verified on t-2468 and t-2471, created without the argument). validate.sh Check 63 uses has(\"epic\"), so every newly created task re-fails it. This is why the 28 tasks created since the migration (t-2438..t-2465) all carry the key. Running collapse-level-epic-v3.py --write cleans the backlog but Check 63 goes red again on the next task created — the writer is the fix, the migration is the cleanup.</description>",
       "effort": "S",
       "priority": "P1",
       "parent": "t-2345",
       "created": "2026-07-27",
-      "started": null,
+      "started": "2026-07-27",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/fix/t-2472-seal-epic-writer",
       "context": "2026-07-27: Found during t-2467. Reproduce: create a task via backlog_add with no epic argument, then jq '.tasks[] | select(.id==\\\"t-NNNN\\\") | has(\\\"epic\\\")' .claude/tasks.json -> true.\n2026-07-27: backlog_add also still ACCEPTS an epic argument and stores it (t-2467 was created with epic=harness before being re-parented) — so the field is both writable and auto-emitted, contradicting the sealed-write-path claim in backlog/phases/start.md.\n2026-07-27: Setting the field to null via backlog_set does NOT remove the key, so there is no CLI-level workaround; Check 63 tests key presence.\n2026-07-27: Sequence the writer fix BEFORE the migration run, otherwise the cleanup is undone immediately.\nAC: backlog_add omits the epic key entirely on new tasks\nAC: backlog_add rejects or ignores an explicit epic argument\nAC: after the writer fix, collapse-level-epic-v3.py --write clears the backlog and Check 63 stays green across new task creation\nAC: regression test asserting a freshly created task has no epic key",
       "notes": null,
       "order": 0,
@@ -62789,7 +62789,8 @@
       "acceptance_criteria": null,
       "epic": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     }
   ],
   "version": 3
