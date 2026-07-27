@@ -146,14 +146,31 @@ def collect_epic_slugs(tasks):
     return sorted({t["epic"] for t in tasks if t.get("epic")})
 
 
+def is_epic_node_by_subject(task):
+    """Detect an epic node under the CURRENT convention (t-2313, ADR-065):
+    `type: "epic"` with `subject` holding the slug it represents. These nodes
+    (t-2329..t-2374 in live data) postdate this script's original `in-`-only
+    detection, so without this the migration cannot see them and mints a
+    duplicate node for a slug that already has one -- e.g. a second "harness"
+    epic alongside t-2344 (t-2472)."""
+    return task.get("type") == "epic" and bool(task.get("subject"))
+
+
 def find_existing_epic_nodes(tasks):
-    """slug -> node task id, for tasks matching is_epic_node_marker. First
-    match wins if more than one task claims a slug (not observed in live
-    data -- each slug has at most one `in-` marker)."""
+    """slug -> node task id. Matches both node conventions: the legacy `in-`
+    id-prefix marker (is_epic_node_marker, keyed on its flat `epic` value) and
+    the current type:"epic" + subject==slug node (is_epic_node_by_subject).
+
+    Legacy `in-` markers are registered first so they keep winning a contested
+    slug, preserving the original first-match-wins behaviour; subject-keyed
+    nodes only fill slugs no marker claimed."""
     nodes = {}
     for t in tasks:
         if is_epic_node_marker(t):
             nodes.setdefault(t["epic"], t["id"])
+    for t in tasks:
+        if is_epic_node_by_subject(t):
+            nodes.setdefault(t["subject"], t["id"])
     return nodes
 
 
