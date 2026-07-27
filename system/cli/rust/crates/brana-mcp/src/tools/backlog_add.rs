@@ -359,6 +359,41 @@ mod tests {
         );
     }
 
+    /// t-2472 AC#4: the MCP writer must omit the retired `epic`/`level` keys
+    /// entirely — not emit them as null. validate.sh Check 63 tests key
+    /// presence via has("epic"), so a present-but-null key re-fails the check
+    /// on every newly created task. This is the assertion that would have
+    /// caught the stale-binary regression (28 tasks shipped carrying
+    /// "epic": null between the t-2310 seal and the binary rebuild).
+    #[tokio::test]
+    async fn test_mcp_add_emits_no_retired_keys() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({"subject": "plain add"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("handler must accept a plain add");
+
+        let tasks = h.tasks();
+        let task = tasks["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["id"] == out["id"])
+            .expect("added task must be persisted");
+
+        for key in ["epic", "level", "stream"] {
+            assert!(
+                task.get(key).is_none(),
+                "retired key {key:?} must be absent, not null — got: {task}"
+            );
+        }
+    }
+
     #[tokio::test]
     async fn test_mcp_add_epic_type_defaults_status_to_next_not_pending() {
         // ADR-065/t-2313: "pending" is task vocab, invalid for type:"epic".

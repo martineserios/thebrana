@@ -2328,8 +2328,11 @@ mod tests {
             Some("cc-alignment".into()), None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
-        assert!(task.get("epic").is_none() || task["epic"].is_null(),
-            "--epic must be a no-op, got: {}", task["epic"]);
+        // t-2472: assert key ABSENCE, not null-ness. validate.sh Check 63 uses
+        // has("epic"), so a present-but-null key fails the check — an
+        // `|| is_null()` escape hatch here let exactly that ship undetected.
+        assert!(task.get("epic").is_none(),
+            "--epic must be a no-op and emit no epic key at all, got: {:?}", task.get("epic"));
     }
 
     #[test]
@@ -2421,8 +2424,29 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         let arr = data["tasks"].as_array().unwrap();
         let child = arr.iter().find(|t| t["subject"] == "child of ph-1").unwrap();
-        assert!(child.get("epic").is_none() || child["epic"].is_null(),
-            "epic must not be inherited from parent, got: {}", child["epic"]);
+        // t-2472: key absence, not null-ness — see cmd_add_shorthand_epic_flag_is_noop.
+        assert!(child.get("epic").is_none(),
+            "epic must not be inherited from parent, got: {:?}", child.get("epic"));
+    }
+
+    #[test]
+    fn cmd_add_emits_no_epic_key_on_plain_add() {
+        // t-2472 AC#4: the writer must omit the retired epic key entirely on a
+        // plain add with no epic argument anywhere. This is the assertion that
+        // would have caught the stale-binary regression: every task created
+        // between the t-2310 seal and the binary rebuild carried "epic": null,
+        // re-failing validate.sh Check 63 on every new task.
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"plain add"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert!(task.get("epic").is_none(),
+            "plain cmd_add must emit no epic key, got: {:?}", task.get("epic"));
+        assert!(task.get("level").is_none(),
+            "plain cmd_add must emit no level key, got: {:?}", task.get("level"));
     }
 
     #[test]
