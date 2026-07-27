@@ -62645,7 +62645,7 @@
     {
       "id": "t-2469",
       "subject": "sync-state.sh cmd_pull clobbers thebrana's own active_epic (ADR-066 gap 3, still open)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -62658,18 +62658,19 @@
       "priority": "P1",
       "parent": "t-2345",
       "created": "2026-07-27",
-      "started": null,
-      "completed": null,
+      "started": "2026-07-27",
+      "completed": "2026-07-27",
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/fix/t-2469-sync-pull-guard",
       "context": "2026-07-27: Now user-visible — t-2467 makes the statusline render active_epic, so a clobber silently blanks the epic slot in thebrana rather than just degrading focus ranking.\n2026-07-27: Interacts with pattern active-epic-two-copies: the global copy is treated as canonical by sync, but ADR-066 says it is never a valid source for this key. The pull path still copies whole-file.\n2026-07-27: ADR-066 documents a known shared limitation — whole-file sync means a source lacking the key overwrites the target before the guard has a value to compare. That is exactly this case.\nAC: cmd_pull preserves thebrana's project-local active_epic when the global copy lacks it\nAC: guard mirrors the t-1883 push-side algorithm (single before/after diff, warn-and-skip, never hard-fail)\nAC: test covering pull with a keyless global source",
-      "notes": null,
+      "notes": "The guard WAS in place (t-2297/ADR-066) — it had a hole. Both guards required the INCOMING value to be non-empty:\n  push: [ -n \"$_cache_epic\" ] && [ \"$_cache_epic\" != \"$_repo_epic_before\" ]\nThat is inverted. A source that LACKS active_epic is exactly the case that loses data: the whole-file copy already dropped the key from the target, then -n short-circuits so nothing is reverted.\n\nADR-066 item 3 logged this as a rare 'known shared limitation' requiring a key-level-merge redesign. Neither was true: item 4's audit correctly cleared active_epic from the global copy as orphaned, making the source PERMANENTLY keyless, so every push blanked thebrana's active_epic. And no redesign was needed — the guards already revert the key after the copy, so dropping -n suffices.\n\nDirection note: push writes cache→repo, pull writes repo→cache. The sync clobbering thebrana's OWN value is cmd_push, despite the task title naming cmd_pull. Both had the defect; both fixed.\n\nAC1: keyless global no longer drops the project-local value.\nAC2: mirrors the t-1883 push algorithm — single before/after diff, warn-and-skip, never hard-fail. Warnings now distinguish 'source has no active_epic' from a foreign value.\nAC3: tests/scripts/test-sync-state-active-epic.sh — 6 cases, both directions (keyless-source, foreign-value, equal no-op, first-run seeding). Verified red (2/6) before the fix.\n\nLive proof: a real push during the test run preserved active_epic=harness-core (jq only reorders the key).\n\nADR-066 updated with a t-2469 note superseding the 'known limitation' paragraph.\n\nOUT OF SCOPE, still open: the same whole-file sync reverts system/state/scheduler.json — richer repo-side _comment text, and one job's project/command, get overwritten by the staler global copy. Observed live. Relates to pattern_scheduler-config-four-copies. Needs its own task.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-2470",
@@ -62822,6 +62823,35 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2477",
+      "subject": "sync-state whole-file push reverts system/state/scheduler.json _comment text and job fields",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "sync-state",
+        "scheduler",
+        "drift"
+      ],
+      "description": "cmd_push copies ~/.claude/scheduler/scheduler.json over system/state/scheduler.json wholesale. The global copy is staler than the repo's, so a push reverts richer repo-side _comment text (e.g. the t-1136 timeout rationale and the t-2441 systemd TimeoutStartSec note) and, worse, changes real job fields: the t-2306 research-extraction job's project flips from ~/enter_thebrana/personal back to ~/enter_thebrana/thebrana, its command from ./deploy/research-extraction.sh to a ~/enter_thebrana/personal/... path, and its schedule from 0/4:00:00 to */4:00:00. Same whole-file-clobber class as the active_epic bug fixed in t-2469, but scheduler.json has no key-level guard at all.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2345",
+      "created": "2026-07-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-07-27: Found during t-2469 while baselining tests/scripts/test-sync-state.sh — the suite runs a REAL push against the live state dir, which is how the reversion became visible. Reverted by hand with git checkout.\n2026-07-27: Relates to pattern_scheduler-config-four-copies (four copies of scheduler config already documented as a drift source).\n2026-07-27: t-2469 fixed active_epic with a key-level revert-after-copy guard; that pattern does not generalise to scheduler.json, where the whole file is the payload. Likely needs either a merge strategy or a decision on which copy is authoritative.\n2026-07-27: Note tests/scripts/test-sync-state.sh mutates real state as a side effect and hangs at the ruflo import stage (pre-existing, baselined on unmodified dev) — worth isolating that suite as part of this work.\nAC: a push no longer reverts repo-side scheduler.json comments or job fields\nAC: decide and document which copy is authoritative for scheduler.json\nAC: test covering push with a staler global scheduler.json\nAC: test-sync-state.sh no longer mutates live state when run",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
       "ac_state": "none"
     }
   ],
