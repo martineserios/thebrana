@@ -103,5 +103,56 @@ printf '{"active_epic":"harness-core"}\n' > "$R/system/state/tasks-config.json"
 R=$(make_repo t7 dev)
 [ "$(epic_of "$R")" != "GLOBAL-LEAK" ]; check "T7: global ~/.claude config never read" $?
 
+echo ""
+echo "--- boundaries ---"
+
+# B1 -- empty-string active_epic must not render an empty slot
+R=$(make_repo b1 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":""}\n' > "$R/.claude/tasks-config.json"
+[ -z "$(epic_of "$R")" ]; check "B1: empty active_epic -> no epic segment" $?
+
+# B2 -- explicit JSON null must behave like absent
+R=$(make_repo b2 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":null}\n' > "$R/.claude/tasks-config.json"
+[ -z "$(epic_of "$R")" ]; check "B2: null active_epic -> no epic segment" $?
+
+# B3 -- .claude/ exists but lacks the key; system/state/ has it. The loop must
+# fall through to the second path rather than stopping at the first file found.
+R=$(make_repo b3 dev)
+mkdir -p "$R/.claude" "$R/system/state"
+printf '{"theme":"emoji"}\n' > "$R/.claude/tasks-config.json"
+printf '{"active_epic":"second-path"}\n' > "$R/system/state/tasks-config.json"
+[ "$(epic_of "$R")" = "second-path" ]; check "B3: keyless first config falls through to second" $?
+
+# B4 -- CC is opened inside subdirectories too; resolution is GIT_ROOT-relative
+R=$(make_repo b4 dev)
+mkdir -p "$R/.claude" "$R/deep/nested/dir"
+printf '{"active_epic":"from-subdir"}\n' > "$R/.claude/tasks-config.json"
+[ "$(epic_of "$R/deep/nested/dir")" = "from-subdir" ]; check "B4: resolves from a subdirectory" $?
+
+# B5 -- outside any git repo: no GIT_ROOT, must not error or emit an epic
+NOGIT="$TMP/nogit"; mkdir -p "$NOGIT/.claude"
+printf '{"active_epic":"not-a-repo"}\n' > "$NOGIT/.claude/tasks-config.json"
+[ -z "$(epic_of "$NOGIT")" ]; check "B5: non-git dir -> no epic segment" $?
+
+# B6 -- the output is printf '%b', so backslash escapes in a config value would
+# be interpreted; a newline would break the single-line statusline contract.
+R=$(make_repo b6 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"bad\\\\nvalue"}\n' > "$R/.claude/tasks-config.json"
+LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
+[ "$LINES" = "1" ]; check "B6: escape sequence in active_epic stays single-line" $?
+
+# B7 -- same contract for a real embedded newline (jq -r emits it verbatim)
+R=$(make_repo b7 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"bad\\nvalue"}\n' > "$R/.claude/tasks-config.json"
+LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
+[ "$LINES" = "1" ]; check "B7: literal newline in active_epic stays single-line" $?
+
 echo ""; echo "$PASS/$TOTAL passed"
 [ "$FAIL" -eq 0 ] || exit 1

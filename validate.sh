@@ -2427,6 +2427,31 @@ fi
 echo ""
 fi  # should_run 64
 
+if should_run 65; then
+# Check 65 — statusline epic resolution (t-2467). The epic slot resolves from the
+# branch, then the project-local active_epic. Running the suite HERE keeps the
+# ADR-066 guard (global ~/.claude/tasks-config.json is never a valid source) from
+# rotting silently — a regression that would otherwise only show as a wrong slug
+# in the status bar, which nobody diffs.
+echo "Check 65: statusline epic resolution (t-2467)..."
+C65_TEST="$SCRIPT_DIR/tests/scripts/test-statusline-epic.sh"
+if [ ! -f "$C65_TEST" ]; then
+    warn "Check 65: statusline epic test not found at $C65_TEST — skipping"
+elif ! command -v jq >/dev/null 2>&1; then
+    warn "Check 65: jq not installed — statusline epic fallback untestable here"
+else
+    C65_OUT=$(bash "$C65_TEST" 2>&1)
+    C65_RC=$?
+    if [ "$C65_RC" -eq 0 ]; then
+        pass "Check 65: statusline epic resolution — $(echo "$C65_OUT" | tail -1)"
+    else
+        echo "$C65_OUT" | grep -E "FAIL|passed" | sed 's/^/  /'
+        fail "Check 65: statusline epic resolution regressions — see output above"
+    fi
+fi
+echo ""
+fi  # should_run 65
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
