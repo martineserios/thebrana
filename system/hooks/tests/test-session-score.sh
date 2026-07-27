@@ -109,34 +109,28 @@ assert_eq "Session start resets corrections to 0" "0" "$CORR"
 
 # ── Test 5: Statusline reads counter correctly ────────────────────
 echo ""
-echo "--- Statusline segment ---"
-
-# Helper: extract session score from statusline output
-# The statusline reads from the file and renders S: N✓ M✗
+echo "--- Statusline segment (retired — t-2470) ---"
+# system/statusline.sh no longer renders the session-score segment (S: N✓ M✗).
+# The three assertions that required it were permanently red. The score FILE
+# mechanics above are still exercised and still valid — only the rendering
+# assertions are retired. The negative guards below are kept and extended so a
+# re-introduced segment cannot slip in unnoticed.
 STATUSLINE="$SCRIPT_DIR/../../statusline.sh"
 
-# Create a minimal statusline input JSON
 FAKE_CWD="$TMPDIR/fakecwd"
 mkdir -p "$FAKE_CWD"
 STATUSLINE_INPUT='{"model":{"display_name":"Test"},"workspace":{"current_dir":"'"$FAKE_CWD"'","project_dir":"'"$FAKE_CWD"'"},"context_window":{"used_percentage":30},"cost":{"total_lines_added":0,"total_lines_removed":0}}'
 
-# Test with non-zero score
 printf '5\t2\n' > "$SCORE_FILE"
 OUTPUT=$(echo "$STATUSLINE_INPUT" | BRANA_SESSION_SCORE_FILE="$SCORE_FILE" bash "$STATUSLINE" 2>/dev/null) || true
-assert_contains "Statusline shows done count" "5✓" "$OUTPUT"
-assert_contains "Statusline shows corrections count" "2✗" "$OUTPUT"
+assert_not_contains "Statusline renders no score segment (non-zero score)" "S:" "$OUTPUT"
+assert_not_contains "Statusline renders no done count" "5✓" "$OUTPUT"
+assert_not_contains "Statusline renders no corrections count" "2✗" "$OUTPUT"
 
-# Test with zero score — segment should be hidden
 printf '0\t0\n' > "$SCORE_FILE"
 OUTPUT=$(echo "$STATUSLINE_INPUT" | BRANA_SESSION_SCORE_FILE="$SCORE_FILE" bash "$STATUSLINE" 2>/dev/null) || true
 assert_not_contains "Statusline hides segment when all zero" "S:" "$OUTPUT"
 
-# Test with only done > 0
-printf '3\t0\n' > "$SCORE_FILE"
-OUTPUT=$(echo "$STATUSLINE_INPUT" | BRANA_SESSION_SCORE_FILE="$SCORE_FILE" bash "$STATUSLINE" 2>/dev/null) || true
-assert_contains "Statusline shows segment when done > 0" "3✓" "$OUTPUT"
-
-# Test with missing counter file
 OUTPUT=$(echo "$STATUSLINE_INPUT" | BRANA_SESSION_SCORE_FILE="$TMPDIR/nonexistent.tsv" bash "$STATUSLINE" 2>/dev/null) || true
 assert_not_contains "Statusline hides segment when file missing" "S:" "$OUTPUT"
 
