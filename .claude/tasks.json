@@ -62989,6 +62989,35 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2482",
+      "subject": "bootstrap.sh --check never reads clean — two permanent false-positive changes",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "bootstrap",
+        "drift",
+        "dx"
+      ],
+      "description": "bootstrap.sh claims idempotency (\"safe to run multiple times\") but --check always reports at least 2 changes, even immediately after a successful full run. Both are reporting bugs, not real drift: (1) settings.json attribution — CURRENT_ATTR=$(jq '.attribution // {}' ...) pretty-prints multi-line while DESIRED_ATTR is the compact '{\"commit\":\"\",\"pr\":\"\"}', so the string comparison never matches and bootstrap rewrites settings.json on every run; fix is jq -c. (2) rules/ — bootstrap deliberately deletes rules/README.md from the target (line 258, \"the authoring contract, not a rule\"), but sync_dir counts it as a changed file every run because it is present in source and absent in dest; sync_dir needs an exclusion list.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2345",
+      "created": "2026-07-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-07-27: Found while shipping t-2468..t-2472. Reproduce: ./bootstrap.sh && ./bootstrap.sh --check -> \"2 change(s) detected\".\n2026-07-27: Same failure class as the 44 red statusline assertions (t-2470) and the stale binary (t-2472) — a check that is permanently non-green stops working as a signal, so real drift hides in the noise. That is precisely how the stale brana-mcp binary survived from the t-2310 seal until 2026-07-27.\n2026-07-27: The attribution one also means every bootstrap run performs a needless write to ~/.claude/settings.json.\nAC: bootstrap.sh --check reports 0 changes immediately after a successful full run\nAC: attribution comparison uses compact jq output (jq -c) on both sides\nAC: sync_dir does not count deliberately-excluded files as changes\nAC: test asserting back-to-back bootstrap converges to zero changes",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
