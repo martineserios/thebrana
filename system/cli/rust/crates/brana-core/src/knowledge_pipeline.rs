@@ -694,6 +694,75 @@ pub fn resolve_linkedin_scraper_binary() -> Option<PathBuf> {
     None
 }
 
+/// Timeout for the `--status` session probe. Much shorter than the fetch
+/// budget: it inspects a local cookie profile, it does not scrape.
+const LINKEDIN_STATUS_TIMEOUT_SECS: u64 = 30;
+
+/// Marker `linkedin-scraper-mcp --status` prints on a usable session
+/// (observed 2026-07-28: `✅ Session is valid (profile: …)`). Matched
+/// without the emoji so a cosmetic change to the prefix doesn't trip it.
+const LINKEDIN_SESSION_OK_MARKER: &str = "Session is valid";
+
+/// Probe LinkedIn session health via `linkedin-scraper-mcp --status`.
+/// Runs before any fetch is attempted, so an expired login fails loudly
+/// at the start of an unattended run instead of looking like an empty feed.
+fn check_linkedin_session(binary: &std::path::Path) -> Result<()> {
+    let mut child = std::process::Command::new(binary)
+        .arg("--status")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .with_context(|| format!("spawning {} --status", binary.display()))?;
+
+    let timeout = std::time::Duration::from_secs(LINKEDIN_STATUS_TIMEOUT_SECS);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!(
+                        "`linkedin-scraper-mcp --status` timed out after \
+                         {LINKEDIN_STATUS_TIMEOUT_SECS}s — run \
+                         `linkedin-scraper-mcp --login` to refresh the session"
+                    );
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("`linkedin-scraper-mcp --status` wait error: {e}"),
+        }
+    }
+
+    let out = child.wait_with_output()?;
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    resolve_session_health(out.status.success(), &combined)
+}
+
+/// Decide session health from the `--status` probe's outcome.
+///
+/// Fail-closed by design: a usable session must be *positively* confirmed
+/// by the marker. Treating a zero exit alone as healthy would let a change
+/// in the probe's output silently turn every unattended run into a no-op —
+/// exactly the "must not silently succeed on an expired session" constraint
+/// this check exists to enforce (feature spec §Constraints).
+fn resolve_session_health(probe_succeeded: bool, output: &str) -> Result<()> {
+    if probe_succeeded && output.contains(LINKEDIN_SESSION_OK_MARKER) {
+        return Ok(());
+    }
+    let detail = output.trim();
+    let detail = if detail.is_empty() { "(no output)" } else { detail };
+    bail!(
+        "LinkedIn session is not usable — run `linkedin-scraper-mcp --login` to refresh it.\n\
+         `linkedin-scraper-mcp --status` reported: {detail}"
+    )
+}
+
 /// RAII guard for the scoped MCP config temp file — removed on drop
 /// (including on early `?` returns from callers), so a crashed/erroring
 /// call never leaves the file behind.
@@ -833,6 +902,7 @@ fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
             "linkedin-scraper-mcp binary not found — install with: uv tool install linkedin-scraper-mcp"
         )
     })?;
+    check_linkedin_session(&binary)?;
     let config = write_scoped_linkedin_mcp_config(&binary)?;
 
     let prompt = format!(
@@ -1794,6 +1864,86 @@ mod tests {
         );
     }
 
+    // ── LinkedIn session health (t-2448) ────────────────────────────────
+    // Probed before any LinkedIn fetch. The spec's hard constraint is
+    // "must not silently succeed on an expired session — fail loud", so
+    // this is deliberately fail-closed: a usable session must be
+    // positively confirmed, and anything else is an error naming the
+    // one-time remediation command.
+
+    #[test]
+    fn session_health_live_session_is_ok() {
+        // Real observed output of `linkedin-scraper-mcp --status`, 2026-07-28.
+        let output = "Current runtime: linux-amd64-container\n\
+                      Login generation: 45810ed1-6728-4967-a4e7-a035e8952aaa\n\
+                      ✅ Session is valid (profile: /home/u/.linkedin-mcp/profile)";
+        assert!(resolve_session_health(true, output).is_ok());
+    }
+
+    #[test]
+    fn session_health_dead_session_names_login_remediation() {
+        // The contract t-2448 exists for: an unattended run must tell the
+        // operator exactly how to fix it, not just that it failed.
+        let err = resolve_session_health(false, "Session expired or not found")
+            .expect_err("a dead session must be an error");
+        assert!(
+            err.to_string().contains("linkedin-scraper-mcp --login"),
+            "the error must name the remediation command — got: {err}"
+        );
+    }
+
+    #[test]
+    fn session_health_zero_exit_without_marker_fails_closed() {
+        // Boundary, and the load-bearing decision here: exit 0 alone is
+        // NOT confirmation. If the probe's output format ever changes,
+        // failing closed turns nightly runs loud instead of silently
+        // fetching nothing — the failure mode the spec forbids.
+        let err = resolve_session_health(true, "Current runtime: linux-amd64-container")
+            .expect_err("exit 0 without the validity marker must not be treated as healthy");
+        assert!(err.to_string().contains("linkedin-scraper-mcp --login"));
+    }
+
+    #[test]
+    fn session_health_empty_output_fails_closed() {
+        // Boundary: probe produced nothing at all.
+        assert!(resolve_session_health(true, "").is_err());
+    }
+
+    #[test]
+    fn session_health_checked_before_any_fetch_attempt() {
+        // The spec requires the probe to gate the fetch, not merely to
+        // exist ("session health check before any LinkedIn fetch"). Order
+        // is the whole contract: probing afterwards would still report a
+        // dead session, but only after burning a ~$0.40 / ~9s claude -p
+        // MCP round-trip per URL across a nightly batch.
+        let body = fn_span(
+            include_str!("knowledge_pipeline.rs"),
+            "fn fetch_linkedin_content",
+        );
+        let probe = body
+            .find("check_linkedin_session")
+            .expect("fetch_linkedin_content must probe session health");
+        let fetch = body
+            .find("call_claude_json_with_mcp")
+            .expect("fetch_linkedin_content must perform the MCP fetch");
+        assert!(
+            probe < fetch,
+            "session health must be checked BEFORE the claude -p MCP shell-out"
+        );
+    }
+
+    #[test]
+    fn session_health_error_surfaces_probe_output() {
+        // The operator needs the probe's own words to distinguish "logged
+        // out" from "binary is broken".
+        let err = resolve_session_health(false, "playwright: browser not found")
+            .expect_err("must be an error");
+        assert!(
+            err.to_string().contains("playwright: browser not found"),
+            "the probe's output must not be swallowed — got: {err}"
+        );
+    }
+
     /// Source span of a function: its signature through to the next
     /// top-level `fn`/`pub fn`. Backs the lock-discipline tripwire below.
     fn fn_span<'a>(src: &'a str, signature: &str) -> &'a str {
@@ -1824,6 +1974,8 @@ mod tests {
             "pub fn fetch_url_content",
             "fn fetch_linkedin_content",
             "fn resolve_linkedin_fetch",
+            "fn check_linkedin_session",
+            "fn resolve_session_health",
             "fn fetch_public_url",
             "fn call_claude_json_with_mcp",
             "fn write_scoped_linkedin_mcp_config",
