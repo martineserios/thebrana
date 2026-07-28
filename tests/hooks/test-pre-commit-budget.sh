@@ -47,7 +47,11 @@ make_brana_repo() {
     git -C "$dir" config user.email "test@test.com"
     git -C "$dir" config user.name "Test"
     # Minimal brana structure needed for budget gate to activate
-    mkdir -p "$dir/system/skills/my-skill" "$dir/system/hooks" "$dir/system/rules" "$dir/system/agents"
+    mkdir -p "$dir/system/skills/my-skill" "$dir/system/hooks" "$dir/system/rules" "$dir/system/agents" "$dir/system/scripts"
+    # t-2177 made the pre-commit hook delegate to ${SYSTEM_DIR}/scripts/context-budget.sh,
+    # resolved against the repo under test. Absent, `[ -f ]` is false and the hook skips
+    # the budget gate entirely and exits 0 — so every assertion below passed vacuously.
+    cp "$REPO_ROOT/system/scripts/context-budget.sh" "$dir/system/scripts/context-budget.sh"
     # Minimal initial commit so git is usable
     touch "$dir/README.md"
     git -C "$dir" add README.md
