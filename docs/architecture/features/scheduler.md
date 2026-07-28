@@ -1,6 +1,6 @@
 ---
 depends_on:
-  - docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md
+  - docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md
 informs:
   - docs/architecture/features/scheduler-hardening.md
   - docs/architecture/features/staleness-and-memory-pipeline.md
@@ -343,7 +343,7 @@ Transferable patterns from Palco's APScheduler implementation (ADR-010):
 
 ### ADR
 
-See [ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md)
+See [ADR-071](../decisions/ADR-071-scheduler-thin-layer-over-systemd.md)
 
 ## Tasks
 

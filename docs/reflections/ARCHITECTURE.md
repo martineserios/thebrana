@@ -168,7 +168,7 @@ Both write to `/tmp/brana-session-{id}.jsonl` — the shared event stream that S
 
 Hooks fire within interactive sessions. The scheduler fires between them — running maintenance tasks on a cadence without human presence.
 
-**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](../architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md)). It gives the brain a heartbeat.
+**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-071](../architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md)). It gives the brain a heartbeat.
 
 ### Relationship to Other Layers
 

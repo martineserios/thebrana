@@ -9,7 +9,7 @@
 
 **No** for every component that exists today. Go solves problems thebrana does not
 have, and adopting it would re-introduce the exact cross-language split that
-[ADR-026](../architecture/decisions/ADR-026-full-rust-mcp-architecture.md) deliberately
+[ADR-072](../architecture/decisions/ADR-072-full-rust-mcp-architecture.md) deliberately
 eliminated 2.5 months ago.
 
 **One genuine "maybe"**: if loop orchestration is ever extracted *out of* Claude Code's
@@ -86,7 +86,7 @@ Rust already delivers 12 ms startup, a single static binary, no GC, and compiler
 schema consistency. Switching would trade those away for simpler async that the sync CLI
 doesn't use.
 
-**The ADR-026 wall:** [ADR-026](../architecture/decisions/ADR-026-full-rust-mcp-architecture.md)
+**The ADR-072 wall:** [ADR-072](../architecture/decisions/ADR-072-full-rust-mcp-architecture.md)
 (accepted 2026-04-05) absorbed 2,950 lines of Python into Rust specifically to get *one*
 type system, compiler-enforced schemas, zero runtime deps, and **"no cross-language
 bridges."** Introducing Go re-opens exactly that wound — two schema definitions, two build
@@ -154,7 +154,7 @@ If a future Go daemon happens, the integration contract with the existing Rust s
 
 - **Don't reimplement backlog logic in Go.** Shell out to `brana backlog … --json` (the
   CLI already emits JSON on stdout) or call the MCP server. Keeps one source of truth for
-  schema/validation, sidesteps the ADR-026 "two schemas" trap.
+  schema/validation, sidesteps the ADR-072 "two schemas" trap.
 - **tasks.json**: never have the Go daemon write it directly while the Rust CLI/MCP also
   write — that multiplies the t-2166 race across languages. The daemon dispatches; brana
   owns the file.
@@ -166,7 +166,7 @@ This is a thin-client pattern: Go (if ever) orchestrates; Rust owns data + logic
 
 ## 7. Recommendation & follow-ups
 
-1. **Do not adopt Go for the CLI, MCP, hooks, or any current component.** ADR-026 stands;
+1. **Do not adopt Go for the CLI, MCP, hooks, or any current component.** ADR-072 stands;
    no concurrency or performance case exists for the actual workload.
 2. **Fix tasks.json locking (t-2166) in Rust** — `flock` + atomic rename. Unblocks the
    real concurrency pain. This research *feeds* t-2166; the fix is language-agnostic.
@@ -194,7 +194,7 @@ External (validation pass, 2026-06):
 - [workerpool package — gammazero/workerpool](https://pkg.go.dev/github.com/gammazero/workerpool)
 
 Internal grounding:
-- `docs/architecture/decisions/ADR-026-full-rust-mcp-architecture.md` — Rust decision, "no cross-language bridges"
+- `docs/architecture/decisions/ADR-072-full-rust-mcp-architecture.md` — Rust decision, "no cross-language bridges"
 - `docs/research/2026-06-11-loop-native-redesign.md` — foreman/task-crew, rehearsal findings
 - `docs/architecture/decisions/ADR-052-close-queue-architecture.md` — Rust-owned atomic writes
 - `system/cli/rust/crates/brana-core/src/tasks.rs` — tasks.json write path (t-2166 surface)

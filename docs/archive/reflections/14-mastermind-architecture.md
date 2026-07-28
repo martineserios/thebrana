@@ -392,7 +392,7 @@ These are optional extensions to the 3-hook core above. They matter when teammat
 
 Hooks fire within interactive sessions. The scheduler fires between them — running maintenance tasks on a cadence without human presence.
 
-**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](../architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into ruflo memory, and the next session sees what happened overnight.
+**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-071](../architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into ruflo memory, and the next session sees what happened overnight.
 
 ### Architecture
 
