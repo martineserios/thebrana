@@ -843,14 +843,34 @@ fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
         &prompt,
         &config.path,
         &["mcp__linkedin-scraper__get_person_profile"],
-    )?;
+    );
 
+    resolve_linkedin_fetch(response, &title_signal)
+}
+
+/// Decide a Tier-2 fetch's outcome from the MCP shell-out's result.
+///
+/// Split out of [`fetch_linkedin_content`] so the three-way contract is
+/// testable without spawning `claude -p --mcp-config` — the same
+/// injectable-core convention as [`resolve_extraction`], which takes its
+/// upstream call results as parameters for exactly this reason.
+///
+/// - `Err` in → `Err` out: the fetch itself broke (timeout, non-zero exit,
+///   missing binary). Never degraded to a miss.
+/// - Unparseable response shape → `Err`: a changed/failed tool output is a
+///   failure, not evidence the post is absent.
+/// - Feed fetched, post not in it → `Ok(None)`: a real miss.
+fn resolve_linkedin_fetch(
+    response: Result<serde_json::Value>,
+    title_signal: &str,
+) -> Result<Option<String>> {
+    let response = response?;
     let posts_text = response
         .get("posts_text")
         .and_then(|v| v.as_str())
         .ok_or_else(|| anyhow::anyhow!("unexpected response shape from linkedin fetch: {response}"))?;
 
-    Ok(find_matching_post(posts_text, &title_signal))
+    Ok(find_matching_post(posts_text, title_signal))
 }
 
 /// Best-effort match: finds the paragraph-ish chunk in `feed_text` (a raw
@@ -1643,10 +1663,12 @@ mod tests {
     }
 
     // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-068) ───
-    // The live claude -p --mcp-config shell-out itself is not unit tested
-    // here (no prior art for mocking it in this crate; empirically
-    // verified live instead — see ADR-068 §Empirical validation). The
-    // novel, pure logic — fuzzy matching — is thoroughly tested below.
+    // The process spawn in call_claude_json_with_mcp stays untested here
+    // (empirically verified live instead — see ADR-068 §Empirical
+    // validation). Everything downstream of it is not: resolve_linkedin_fetch
+    // takes the shell-out's Result as a parameter, so the response-shape
+    // and Ok(None)/Err decisions are covered below. The novel pure logic —
+    // fuzzy matching — is tested here.
 
     #[test]
     fn find_matching_post_finds_high_overlap_chunk() {
@@ -1692,6 +1714,127 @@ mod tests {
                      No match: totally unrelated content here.";
         let result = find_matching_post(feed, "rust ownership borrow checker lifetimes");
         assert!(result.unwrap().starts_with("Strong match"));
+    }
+
+    // ── LinkedIn Tier 2: resolve_linkedin_fetch — Ok(None) vs Err ───────
+    // fetch_url_content's contract has three outcomes, not two: Ok(Some)
+    // (found), Ok(None) (the author's feed fetched cleanly but this post
+    // isn't in it), and Err (the fetch itself broke). Callers branch on
+    // that Ok(None)/Err split — a miss is skipped, a failure is retried or
+    // surfaced — so collapsing the two silently turns real breakage into
+    // "nothing to see here". The find_matching_post tests above never see
+    // the response envelope and so cannot cover it; these do.
+
+    #[test]
+    fn linkedin_fetch_post_not_in_feed_returns_ok_none() {
+        // The core contract: feed fetched fine, target post absent.
+        let response = serde_json::json!({
+            "posts_text": "A post about gardening.\n\nA post about coffee brewing."
+        });
+        let result = resolve_linkedin_fetch(Ok(response), "quantum computing breakthroughs");
+        assert!(
+            matches!(&result, Ok(None)),
+            "a clean fetch that lacks the post is a miss, not a failure — got {result:?}"
+        );
+    }
+
+    #[test]
+    fn linkedin_fetch_post_present_returns_ok_some() {
+        let response = serde_json::json!({
+            "posts_text": "Unrelated gardening post.\n\n\
+                           Excited to announce our new semantic layer for BigQuery."
+        });
+        let found = resolve_linkedin_fetch(Ok(response), "bigquerys native semantic layer")
+            .expect("a well-formed response must not error")
+            .expect("the post is present in this feed");
+        assert!(found.contains("semantic layer for BigQuery"));
+    }
+
+    #[test]
+    fn linkedin_fetch_malformed_response_returns_err_not_ok_none() {
+        // A broken response shape is a failure, not a miss. If this ever
+        // degrades to Ok(None), every LinkedIn URL silently reports
+        // "not found" the day the MCP tool changes its output shape.
+        let response = serde_json::json!({"unexpected": "shape"});
+        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
+        assert!(result.is_err(), "missing posts_text must be Err — got {result:?}");
+    }
+
+    #[test]
+    fn linkedin_fetch_posts_text_wrong_type_returns_err() {
+        // Boundary: key present, but not a string.
+        let response = serde_json::json!({"posts_text": 42});
+        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
+        assert!(result.is_err(), "non-string posts_text must be Err — got {result:?}");
+    }
+
+    #[test]
+    fn linkedin_fetch_transport_error_propagates_as_err() {
+        // Boundary: the shell-out itself failed (timeout, non-zero exit,
+        // missing binary). Must stay Err — never degrade to a quiet miss.
+        let result = resolve_linkedin_fetch(
+            Err(anyhow::anyhow!("claude CLI (MCP) timed out after 240s")),
+            "some title signal",
+        );
+        let err = result.expect_err("a transport failure must surface as Err");
+        assert!(
+            err.to_string().contains("timed out"),
+            "the underlying cause must not be swallowed — got {err}"
+        );
+    }
+
+    #[test]
+    fn linkedin_fetch_empty_feed_returns_ok_none() {
+        // Boundary: author has no posts, or the section came back empty.
+        let response = serde_json::json!({"posts_text": ""});
+        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
+        assert!(
+            matches!(&result, Ok(None)),
+            "an empty feed is a miss, not a failure — got {result:?}"
+        );
+    }
+
+    /// Source span of a function: its signature through to the next
+    /// top-level `fn`/`pub fn`. Backs the lock-discipline tripwire below.
+    fn fn_span<'a>(src: &'a str, signature: &str) -> &'a str {
+        let start = src
+            .find(signature)
+            .unwrap_or_else(|| panic!("{signature} must exist in the source"));
+        let after = start + signature.len();
+        let end = src[after..]
+            .find("\nfn ")
+            .into_iter()
+            .chain(src[after..].find("\npub fn "))
+            .min()
+            .map(|i| after + i)
+            .unwrap_or(src.len());
+        &src[start..end]
+    }
+
+    #[test]
+    fn linkedin_fetch_call_graph_never_acquires_pipeline_lock() {
+        // ADR-068 §Lock discipline. fetch_url_content is shared with
+        // t-1144's planned in-pipeline use, which calls it from inside
+        // process_core's already-locked call graph. lock_pipeline is
+        // non-reentrant, so an acquire anywhere below deadlocks. The
+        // brana-cli tripwire (test_lock_discipline_source_tripwires) scans
+        // only knowledge.rs and cannot see any of these functions.
+        let src = include_str!("knowledge_pipeline.rs");
+        for signature in [
+            "pub fn fetch_url_content",
+            "fn fetch_linkedin_content",
+            "fn resolve_linkedin_fetch",
+            "fn fetch_public_url",
+            "fn call_claude_json_with_mcp",
+            "fn write_scoped_linkedin_mcp_config",
+            "fn find_matching_post",
+        ] {
+            assert!(
+                !fn_span(src, signature).contains("lock_pipeline"),
+                "{signature} must never acquire the pipeline lock — non-reentrant, \
+                 deadlocks when called from inside process_core (t-1144)"
+            );
+        }
     }
 
     // ── resolve_linkedin_scraper_binary / write_scoped_linkedin_mcp_config ─
