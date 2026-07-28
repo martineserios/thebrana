@@ -72,6 +72,7 @@ the convention already used elsewhere in this skill (`cf-env.sh`,
 notes-and-ideation.md) — never `$(git rev-parse --show-toplevel)/system/scripts/`,
 which only happens to resolve when the git-root IS thebrana itself.
 
+<!-- CLOSE-ANCHOR-BLOCK -->
 ```bash
 # Window anchored on the previous close's session-state written_at (t-1979 #11) —
 # wall-clock windows miss long sessions and double-count short gaps. The 6h
@@ -97,6 +98,10 @@ CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null
 CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.sh" \
     --commit-count "${COMMIT_COUNT:-0}" --arguments "$ARGUMENTS")
 ```
+<!-- /CLOSE-ANCHOR-BLOCK -->
+
+> `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`.
+> Keep the markers and fences intact.
 
 **Orientation flags (ADR-053, t-1980).** `$ARGUMENTS` may carry an orientation — `--continue`, `--finish`, `--patterns`, `--abort` — saying WHY the session is closing. close-classify.sh maps orientation to a forced weight (continue/finish → INSTANT, patterns → LIGHT-INLINE, abort → NANO); the call above already passes `--arguments`, so the orientation reaches the classifier with no extra wiring (programmatic callers can equivalently pass `--mode-override <orientation>` — same mapping, same precedence). Set `ORIENTATION` to the flag name when present, `auto` otherwise.
 
@@ -165,6 +170,7 @@ swallow a concurrent session's commits (two live hits, proyecto_anita 2026-07-02
 Anchor on the oldest session commit from the SAME listing that produced
 `COMMIT_COUNT`:
 
+<!-- SNAPSHOT-INVOCATION-BLOCK -->
 ```bash
 OLDEST=$(git log --format=%H --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | tail -1)
 if [ -n "$OLDEST" ] && git rev-parse -q --verify "${OLDEST}^" >/dev/null 2>&1; then
@@ -189,6 +195,11 @@ bash "$HOME/.claude/scripts/close-snapshot.sh" \
     --commit-count "${COMMIT_COUNT:-0}" \
     --git-range "$SESSION_RANGE"
 ```
+<!-- /SNAPSHOT-INVOCATION-BLOCK -->
+
+> `SNAPSHOT-INVOCATION-BLOCK` is extracted verbatim by
+> `tests/procedures/test-close-gate-zsh-argv.sh`, which runs it under both bash and zsh.
+> Keep the markers and fences intact.
 
 The script diffs `--git-range` verbatim (falling back to the known-wrong
 `HEAD~N..HEAD` only when the range is absent), saves it to
