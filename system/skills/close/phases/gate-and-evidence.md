@@ -76,7 +76,21 @@ which only happens to resolve when the git-root IS thebrana itself.
 # Window anchored on the previous close's session-state written_at (t-1979 #11) —
 # wall-clock windows miss long sessions and double-count short gaps. The 6h
 # window is only the first-session fallback (no prior session state).
-LAST_CLOSE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty' 2>/dev/null)
+# Anchor on the NEWEST session state across the default AND epic-keyed files
+# (t-2491). `brana session read` with no flags reads ONLY session-state.json —
+# but a close that set an epic (Step 9c) routes its handoff to the epic-keyed
+# file instead, leaving the default file stale. Anchoring on it made the window
+# over-reach (32 commits instead of 4, live 2026-07-27) and re-queued commits an
+# earlier close had already queued under a different range string, which
+# close-snapshot.sh does NOT dedup. Every epic-routed close poisoned the next one.
+# `--all` surfaces every session file; the default one appears as epic "(orphan)".
+# Sort on the first 19 chars: writers emit UTC in two shapes ("...:01Z" and
+# "...:31.372637410+00:00") which order correctly by their fixed-width
+# YYYY-MM-DDTHH:MM:SS prefix but not as whole strings.
+LAST_CLOSE=$(brana session read --all --json 2>/dev/null \
+  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+# Fallback for an older binary without --all, or no session files yet.
+[ -z "$LAST_CLOSE" ] && LAST_CLOSE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty' 2>/dev/null)
 COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
 
