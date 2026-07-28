@@ -65,6 +65,8 @@ trap "rm -rf '$TMPDIR'" EXIT
 
 git init "$TMPDIR/repo" >/dev/null 2>&1
 cd "$TMPDIR/repo"
+git config user.email "test@test.com"
+git config user.name "Test"
 git checkout -b main >/dev/null 2>&1
 echo "init" > file.txt
 git add file.txt && git commit -m "init" >/dev/null 2>&1

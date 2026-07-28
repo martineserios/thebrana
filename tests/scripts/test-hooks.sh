@@ -7,9 +7,16 @@ set -euo pipefail
 #   2. Output is valid JSON
 #   3. Output contains "continue": true
 #
-# Run AFTER deploy.sh — tests the deployed copies in ~/.claude/hooks/
+# Run AFTER deploy.sh — tests the deployed copies in ~/.claude/hooks/.
+# On a non-bootstrapped runner (CI) the deployed dir does not exist, so fall back
+# to the repo source that bootstrap copies verbatim — same bytes, and a regression
+# is then caught before deploy rather than after (t-2492).
 
-HOOKS_DIR="$HOME/.claude/hooks"
+if [ -d "$HOME/.claude/hooks" ]; then
+    HOOKS_DIR="$HOME/.claude/hooks"
+else
+    HOOKS_DIR="$(cd "$(dirname "$0")/../../system/hooks" && pwd)"
+fi
 ERRORS=0
 PASSED=0
 
@@ -184,6 +191,8 @@ trap "rm -rf $TMPDIR6" EXIT
 (
     cd "$TMPDIR6"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
     mkdir -p docs/decisions
@@ -206,6 +215,8 @@ TMPDIR7=$(mktemp -d)
 (
     cd "$TMPDIR7"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
     mkdir -p docs/decisions
@@ -228,6 +239,8 @@ TMPDIR8=$(mktemp -d)
 (
     cd "$TMPDIR8"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
 ) >/dev/null 2>&1
@@ -249,6 +262,8 @@ TMPDIR9=$(mktemp -d)
 (
     cd "$TMPDIR9"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b fix/something -q
     mkdir -p docs/decisions
@@ -271,6 +286,8 @@ TMPDIR10=$(mktemp -d)
 (
     cd "$TMPDIR10"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
     mkdir -p docs/decisions system/hooks
@@ -333,6 +350,8 @@ make_feat_repo() {
     (
         cd "$dir"
         git init -q
+        git config user.email "test@test.com"
+        git config user.name "Test"
         git commit --allow-empty -m "init" -q
         git checkout -b feat/test -q
         mkdir -p docs/decisions
