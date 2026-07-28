@@ -64,12 +64,20 @@ fi
 TMPDIR_T="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_T"' EXIT
 
-# FIRST ```bash block only — the doc also carries a caller-example block further
-# down, which would execute (and trip `set -u`) if it were sourced too.
-awk '/^```bash$/{if(!seen){inb=1; seen=1; next}} /^```$/{inb=0} inb' "$WALK_MD" > "$TMPDIR_T/walk.sh"
+# Extract by NAMED MARKER, not by position or content substring (t-2493). The doc
+# also carries a caller-example bash block, and prose legitimately names the very
+# symbols a content selector would match — a positional or substring selector
+# silently grabs the wrong span when the doc grows.
+sed -n '/<!-- EPIC-WALK-BLOCK -->/,/<!-- \/EPIC-WALK-BLOCK -->/p' "$WALK_MD" \
+    | sed '1d;$d' \
+    | sed '/^```/d' > "$TMPDIR_T/walk.sh"
 
+if [ ! -s "$TMPDIR_T/walk.sh" ]; then
+    echo "ERROR: EPIC-WALK-BLOCK markers missing or empty in $WALK_MD"
+    exit 1
+fi
 if ! grep -q 'resolve_epic_ancestor()' "$TMPDIR_T/walk.sh"; then
-    echo "ERROR: could not extract resolve_epic_ancestor() from $WALK_MD"
+    echo "ERROR: EPIC-WALK-BLOCK does not contain resolve_epic_ancestor() — markers moved?"
     exit 1
 fi
 

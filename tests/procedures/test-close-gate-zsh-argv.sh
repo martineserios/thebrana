@@ -39,18 +39,19 @@ TMPROOT="$(mktemp -d)"
 trap 'rm -rf "$TMPROOT"' EXIT
 
 # ── Extract the ```bash block that invokes close-snapshot.sh ─────────────────
-# Select on --git-root, which appears ONLY in the actual invocation. Matching a
-# bare "close-snapshot.sh" substring is too loose — prose comments in other blocks
-# mention the script by name and would hijack the selection (hit while adding the
-# t-2491 anchor comment to the Step 1 block).
-awk '
-  /^```bash$/ { inb=1; buf=""; next }
-  /^```$/     { if (inb && buf ~ /--git-root/) { printf "%s", buf; exit } inb=0; next }
-  inb         { buf = buf $0 "\n" }
-' "$PHASE_MD" > "$TMPROOT/step1b.sh"
+# Extract by NAMED MARKER (t-2493). A content-substring selector was hijacked once
+# already: this test matched "close-snapshot.sh", and the t-2491 fix added a comment
+# mentioning that script to a DIFFERENT block, silently redirecting the extraction.
+sed -n '/<!-- SNAPSHOT-INVOCATION-BLOCK -->/,/<!-- \/SNAPSHOT-INVOCATION-BLOCK -->/p' "$PHASE_MD" \
+    | sed '1d;$d' \
+    | sed '/^```/d' > "$TMPROOT/step1b.sh"
 
+if [ ! -s "$TMPROOT/step1b.sh" ]; then
+    echo "ERROR: SNAPSHOT-INVOCATION-BLOCK markers missing or empty in $PHASE_MD"
+    exit 1
+fi
 if ! grep -q 'close-snapshot.sh' "$TMPROOT/step1b.sh"; then
-    echo "ERROR: could not extract the Step 1b snippet from $PHASE_MD"
+    echo "ERROR: SNAPSHOT-INVOCATION-BLOCK does not invoke close-snapshot.sh — markers moved?"
     exit 1
 fi
 echo "Extracted Step 1b snippet ($(wc -l < "$TMPROOT/step1b.sh") lines)"

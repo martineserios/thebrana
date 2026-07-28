@@ -55,14 +55,16 @@ TMPROOT="$(mktemp -d)"
 trap 'rm -rf "$TMPROOT"' EXIT
 
 # ── Extract the ```bash block that computes LAST_CLOSE ────────────────────────
-awk '
-  /^```bash$/ { inb=1; buf=""; next }
-  /^```$/     { if (inb && buf ~ /LAST_CLOSE=/) { printf "%s", buf; exit } inb=0; next }
-  inb         { buf = buf $0 "\n" }
-' "$PHASE_MD" > "$TMPROOT/step1.sh"
+# Extract by NAMED MARKER (t-2493) — prose and comments can contain any content
+# substring a selector might key on, so named anchors are the only stable handle.
+sed -n '/<!-- CLOSE-ANCHOR-BLOCK -->/,/<!-- \/CLOSE-ANCHOR-BLOCK -->/p' "$PHASE_MD" \
+    | sed '1d;$d' \
+    | sed '/^```/d' > "$TMPROOT/step1.sh"
 
+[ -s "$TMPROOT/step1.sh" ] || {
+    echo "ERROR: CLOSE-ANCHOR-BLOCK markers missing or empty in $PHASE_MD"; exit 1; }
 grep -q 'LAST_CLOSE=' "$TMPROOT/step1.sh" || {
-    echo "ERROR: could not extract the LAST_CLOSE block from $PHASE_MD"; exit 1; }
+    echo "ERROR: CLOSE-ANCHOR-BLOCK does not set LAST_CLOSE — markers moved?"; exit 1; }
 echo "Extracted Step 1 anchor block ($(wc -l < "$TMPROOT/step1.sh") lines)"
 echo ""
 

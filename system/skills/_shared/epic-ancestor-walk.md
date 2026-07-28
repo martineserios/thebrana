@@ -8,6 +8,7 @@ nearest `type: "epic"` ancestor and use that ancestor's `subject` as the slug.
 Used by: `system/skills/close/phases/session-state.md` (Tier 2a/2b epic detection, t-2375),
 `system/skills/backlog/phases/start.md` (branch-name epic-slug, t-2375 repair).
 
+<!-- EPIC-WALK-BLOCK -->
 ```bash
 # Reads one field at a time via `brana backlog get --field`, which needs no jq
 # (t-2487). The previous form fetched the whole object and piped it to jq: the
@@ -52,6 +53,11 @@ resolve_epic_ancestor() {
   return 0
 }
 ```
+<!-- /EPIC-WALK-BLOCK -->
+
+> The `EPIC-WALK-BLOCK` markers above are load-bearing: `tests/procedures/test-epic-ancestor-walk.sh`
+> extracts exactly that span and sources it, so the test always exercises the shipped
+> function. Do not remove or rename them, and keep the fences inside the markers.
 
 Depth cap guards against a malformed/cyclic parent chain — current epic nodes are always
 top-level (`parent: null`), so real chains resolve in 1-2 hops.
