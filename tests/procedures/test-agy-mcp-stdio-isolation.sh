@@ -36,8 +36,15 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MCP_BIN="$REPO_ROOT/system/cli/rust/target/debug/brana-mcp"
 
 if [ ! -x "$MCP_BIN" ]; then
-    echo "ERROR: brana-mcp binary not found at $MCP_BIN — run 'cargo build -p brana-mcp' first"
-    exit 1
+    # target/ is gitignored and ci.yml provisions no Rust toolchain, so on a fresh
+    # runner this binary cannot exist. Skip loudly rather than hard-fail — but keep
+    # it a hard failure wherever the binary is expected, so the skip can't go
+    # silent in a job that does build it (t-2492).
+    echo "SKIP: brana-mcp binary not found at $MCP_BIN"
+    echo "      Build it with 'cargo build -p brana-mcp' to run this test."
+    echo "      (t-1650 stdio-bleed regression is UNCOVERED in this run.)"
+    [ -n "${BRANA_REQUIRE_MCP_BIN:-}" ] && exit 1
+    exit 0
 fi
 
 # ── Create fake agy ───────────────────────────────────────────────────────────
