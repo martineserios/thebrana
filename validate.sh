@@ -222,6 +222,23 @@ for agent_file in "$SYSTEM_DIR"/agents/*.md; do
         esac
     fi
 
+    # memory: must also be PRESENT — an agent without it silently starts cold
+    # every run, losing cross-run calibration with no error surface. Same failure
+    # class as t-1935 (bad value), caught one step earlier (backlog-v3 wave 1,
+    # t-2399/t-2400/t-2401). Two documented exemptions:
+    #   gemini      — stateless delegation shim to agy; holds no calibration itself
+    #   CALIBRATION — static reference doc shipped beside challenger.md, not a
+    #                 reasoning agent (challenger.md:99 reads it as a file, by design)
+    case "$agent_name" in
+        gemini|CALIBRATION) ;;
+        *)
+            if [ -z "$memory_val" ]; then
+                memory_ok="no"
+                fail "agents/$agent_name.md missing 'memory:' scope (add 'memory: user' — without it the agent starts cold every run; t-2400)"
+            fi
+            ;;
+    esac
+
     if [ "$has_name" = "yes" ] && [ "$has_desc" = "yes" ] && [ "$memory_ok" = "yes" ]; then
         pass "agents/$agent_name.md — valid frontmatter"
     fi
