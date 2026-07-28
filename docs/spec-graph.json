@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-24T21:29:07Z",
+  "generated": "2026-07-28T00:47:14Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -812,6 +812,8 @@
       "title": "ADR-025: Skill Lifecycle Manager",
       "type": "ADR",
       "impl_files": [
+        "system/rules/delegation-routing.md",
+        "system/rules/work-start.md",
         "system/skills/.sources.json"
       ]
     },
@@ -1637,7 +1639,9 @@
       "type": "Roadmap",
       "impl_files": [
         "system/statusline.sh",
-        "system/hooks/post-tasks-validate.sh"
+        "system/hooks/post-tasks-validate.sh",
+        "system/hooks/tests/",
+        "system/state/tasks-config.json"
       ]
     },
     "docs/architecture/features/t-2001-feed-tech-stack.md": {
@@ -2464,6 +2468,7 @@
       "title": "Brana CLI — User & Developer Guide",
       "type": "Roadmap",
       "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/commands/skills.rs",
         "system/cli/themes.json",
         "system/cli/rust"
       ]
@@ -3560,6 +3565,11 @@
       "impl_files": []
     },
     "docs/reviews/weekly-2026-07-03.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/reviews/weekly-2026-07-24.md": {
       "title": "",
       "type": "Roadmap",
       "impl_files": []
@@ -11452,6 +11462,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/statusline-test-coverage.md",
+      "to": "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
       "to": "docs/architecture/decisions/ADR-055-tech-stack-feed-tracking.md",
       "type": "references",
@@ -15371,9 +15387,9 @@
     }
   ],
   "stats": {
-    "nodes": 526,
-    "edges": 1966,
+    "nodes": 527,
+    "edges": 1967,
     "typed_edges": 683,
-    "orphans": 136
+    "orphans": 137
   }
 }
