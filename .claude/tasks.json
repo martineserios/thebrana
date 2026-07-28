@@ -62866,7 +62866,7 @@
       "description": "phases/gate-and-evidence.md Step 1b passes ${SESSION_RANGE:+--git-range \"$SESSION_RANGE\"} to close-snapshot.sh. zsh does not word-split unquoted parameter expansions, so the script receives '--git-range A..B' as ONE argument and exits with 'unknown argument'. The snapshot then silently falls back to the KNOWN-WRONG HEAD~N..HEAD range the same file warns about, or is skipped entirely.",
       "effort": "S",
       "priority": "P2",
-      "context": "Hit live 2026-07-27 closing proyecto_anita. close-snapshot.sh itself is correct (it parses --git-range at line 35) — the bug is purely the caller snippet's shell assumption. Fix options: invoke the block via `bash -c`, or drop the ${:+} construct and pass the flag unconditionally with an empty-string guard inside the script. Same zsh word-splitting class already documented in this portfolio as pattern_zsh-for-loop-no-word-split. Note the phase file's own Step 11c snippet already works around this ('Read-loop, not `for id in $PENDING_IDS` — zsh doesn't word-split') — so the fix pattern is established, just not applied at Step 1b.",
+      "context": "Hit live 2026-07-27 closing proyecto_anita. close-snapshot.sh itself is correct (it parses --git-range at line 35) — the bug is purely the caller snippet's shell assumption. Fix options: invoke the block via `bash -c`, or drop the ${:+} construct and pass the flag unconditionally with an empty-string guard inside the script. Same zsh word-splitting class already documented in this portfolio as pattern_zsh-for-loop-no-word-split. Note the phase file's own Step 11c snippet already works around this ('Read-loop, not `for id in $PENDING_IDS` — zsh doesn't word-split') — so the fix pattern is established, just not applied at Step 1b.\n2026-07-27 live repro (from t-2486, cancelled as dup): hit during /brana:close --continue in thebrana. close-snapshot.sh received the single argument '--git-range 4199f469..6d206522' and exited 'unknown argument'. Script itself is correct — deployed copy is byte-identical to system/scripts/ and parses --git-range at line 35. Impact: on zsh every close silently loses the t-2242 explicit-range fix and falls back to the known-wrong HEAD~N..HEAD. Workaround: pass --git-range as two explicit args.",
       "work_type": "implement",
       "acceptance_criteria": [
         "close-snapshot.sh receives --git-range as two argv entries under zsh"
@@ -63103,7 +63103,7 @@
     {
       "id": "t-2486",
       "subject": "close: zsh does not word-split ${SESSION_RANGE:+--git-range \"$SESSION_RANGE\"} — close-snapshot.sh gets one argument",
-      "status": "pending",
+      "status": "cancelled",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -63120,7 +63120,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "Hit live 2026-07-27 during /brana:close --continue in thebrana. gate-and-evidence.md Step 1b documents: bash close-snapshot.sh ... ${SESSION_RANGE:+--git-range \"$SESSION_RANGE\"}. Under zsh (the user's shell) unquoted parameter expansion does NOT word-split, so the script receives the single argument '--git-range 4199f469..6d206522' and dies with 'unknown argument'. Under bash it splits into two and works. Script itself is fine and identical to the deployed copy (--git-range is parsed at line 35).\n\nSame failure class as pattern_zsh-for-loop-no-word-split (memory, 2026-07-16).\n\nImpact: every close on zsh silently loses the t-2242 explicit-range fix and falls back to the known-wrong HEAD~N..HEAD range — the exact over-reach t-2242 was filed to prevent. Workaround used this session: pass --git-range as two explicit arguments.\n\nFix: in Step 1b, build the invocation without relying on word-splitting, e.g. an explicit if/else that calls the script with --git-range \"$SESSION_RANGE\" in one branch and without it in the other.\n\nAC: close procedure Step 1b invokes close-snapshot.sh with an explicit --git-range argument, no ${VAR:+...} word-split dependency\nAC: verified under zsh — snapshot queues the computed range, not HEAD~N..HEAD",
-      "notes": null,
+      "notes": "Cancelled 2026-07-27 as a duplicate of t-2478 (\"fix(close): gate snapshot snippet breaks under zsh — ${VAR:+--flag \\\"$VAR\\\"} is not word-split\"), which was filed earlier the same day for the identical bug. Filed in error: I hit the bug live and filed without searching the backlog first. Any live-repro detail worth keeping is already in this task's context — merge into t-2478 rather than reviving this one.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -63244,6 +63244,35 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "design",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2491",
+      "subject": "close gate anchors on `brana session read` which cannot see epic-keyed session state — window over-reaches every close after an epic-routed one",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close",
+        "cli",
+        "session"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2340",
+      "created": "2026-07-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Hit live 2026-07-27, thebrana, on a second /brana:close --continue in the same session.\n\nMECHANISM. gate-and-evidence.md Step 1 sets the session window with: LAST_CLOSE=$(brana session read --json | jq -r '.written_at'). But `brana session read` with no flags reads only the DEFAULT session-state.json. When the previous close set an epic (Step 9c), `brana session write` routes the handoff to the epic-keyed file instead — here session-state-brana-v3-redesign.json, written_at 2026-07-28T00:25:50Z. The default file still held 2026-07-27T21:57:01Z, so LAST_CLOSE came back ~2.5h stale.\n\nBLAST RADIUS. COMMIT_COUNT computed as 32 instead of the 4 commits actually new since the prior close. That count drives (a) the Step 1b snapshot range, which would have re-queued ~28 commits already queued by the earlier close under a different range — the dedup in close-snapshot.sh keys on the range string, so a DIFFERENT range is not deduped and the same work gets extracted twice; (b) CHANGED_FILES, which drove the weight classification off a 36-file diff instead of the real 1-file diff; (c) Step 9c's COMPLETED accumulator list. Worked around this session by scoping the range by hand to 6d206522..HEAD.\n\nNote the perverse incentive: the more faithfully a close follows Step 9c (set the epic so the handoff lands in its unit bucket, ADR-060/t-2154), the more certainly it breaks the NEXT close's anchor. Every epic-routed close poisons the following one.\n\nFIX OPTIONS. `brana session read --all` already exists and surfaces epic-scoped files (last 30 days) — the gate could take the max written_at across all session files rather than the default file alone. Alternatively `brana session read` gains an --epic flag, or the default file gets a pointer/mtime touch on every epic-routed write. Prefer the read-side fix: writers are already correct per ADR-060, the reader is the one making a false assumption.\n\nAdjacent, do not merge: t-2480 (epic accumulator COMPLETED over-reach on shared main) is a different symptom of over-broad windows; this task is the upstream cause for the epic-routed case.\n\nAC: close Step 1 resolves LAST_CLOSE from the newest session state across default AND epic-keyed files\nAC: a close following an epic-routed close computes a window containing only commits since that close, verified with a two-close-in-one-session repro\nAC: fix documented in gate-and-evidence.md Step 1 so the anchor logic is not re-derived wrongly later",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
       "ac_state": "none"
     }
   ],
