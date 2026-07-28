@@ -358,7 +358,13 @@ pub enum KnowledgeCmd {
     /// `linkedin-scraper-mcp --login`.
     ProcessUrl {
         /// URL to fetch and process
-        url: String,
+        #[arg(required_unless_present = "file", conflicts_with = "file")]
+        url: Option<String>,
+        /// JSONL file of {"id","url"} records to process in sequence.
+        /// Prints an advisory list of task IDs safe to cancel; never
+        /// cancels anything itself.
+        #[arg(long)]
+        file: Option<PathBuf>,
     },
     /// Show knowledge index status (entry count, last indexed)
     Status,

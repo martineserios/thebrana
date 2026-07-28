@@ -86,6 +86,98 @@ fn resolve_process_url_outcome(
     }
 }
 
+/// One `{id, url}` record from a batch file.
+#[derive(Debug, Deserialize)]
+struct BatchEntry {
+    id: String,
+    url: String,
+}
+
+/// Parse a batch JSONL body into records, ignoring blank lines.
+///
+/// Errors name the 1-based line number: a batch runs unattended, and
+/// "invalid json" alone would mean bisecting the file by hand.
+fn parse_batch_file(body: &str) -> Result<Vec<BatchEntry>> {
+    let mut entries = Vec::new();
+    for (i, line) in body.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let entry: BatchEntry = serde_json::from_str(line)
+            .with_context(|| format!("line {}: expected {{\"id\":…,\"url\":…}}", i + 1))?;
+        entries.push(entry);
+    }
+    Ok(entries)
+}
+
+/// Whether an outcome means the URL's tracking task is safe to cancel.
+///
+/// Only outcomes where the content actually reached the knowledge base
+/// qualify. A miss or an empty fetch leaves the link genuinely unread, so
+/// cancelling its stub would silently drop the work (spec §Edge Cases).
+fn is_cancellable(outcome: &ProcessUrlOutcome) -> bool {
+    match outcome {
+        ProcessUrlOutcome::Store | ProcessUrlOutcome::AlreadyStored => true,
+        ProcessUrlOutcome::NotFound | ProcessUrlOutcome::EmptyContent => false,
+    }
+}
+
+/// Batch exit code: non-zero only when a URL genuinely failed.
+///
+/// NotFound and EmptyContent are expected outcomes the spec calls "not
+/// itself an error", so they deliberately do not count — otherwise a
+/// nightly cron would alert on every batch containing one old post.
+fn batch_exit_code(failures: usize) -> i32 {
+    if failures > 0 { 1 } else { 0 }
+}
+
+/// `brana knowledge process-url --file <jsonl>` — process each `{id,url}`
+/// record in sequence, then print an advisory list of task IDs whose
+/// content is now in the knowledge base.
+///
+/// Advisory only: this never calls `backlog set` (spec §Assumptions) — the
+/// operator decides what to cancel.
+pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
+    let body = std::fs::read_to_string(path)
+        .with_context(|| format!("reading batch file {}", path.display()))?;
+    let entries = parse_batch_file(&body)?;
+
+    let mut cancellable: Vec<String> = Vec::new();
+    let mut failures = 0usize;
+
+    for entry in &entries {
+        match process_one_url(&entry.url) {
+            Ok(outcome) => {
+                if is_cancellable(&outcome) {
+                    cancellable.push(entry.id.clone());
+                }
+            }
+            Err(e) => {
+                // Keep going: one dead link must not strand the rest of a
+                // nightly batch. The exit code still reports the failure.
+                failures += 1;
+                eprintln!("{}: FAILED — {e:#}", entry.url);
+            }
+        }
+    }
+
+    println!("\nProcessed {} URL(s), {failures} failed.", entries.len());
+    if cancellable.is_empty() {
+        println!("No task IDs are safe to cancel from this batch.");
+    } else {
+        println!("Task IDs safe to cancel (advisory — not applied):");
+        for id in &cancellable {
+            println!("  {id}");
+        }
+    }
+
+    let code = batch_exit_code(failures);
+    if code != 0 {
+        bail!("{failures} URL(s) failed in this batch");
+    }
+    Ok(())
+}
+
 /// `brana knowledge process-url <url>` — fetch one URL, extract an insight,
 /// store it in the ruflo `knowledge` namespace keyed by slugified URL.
 ///
@@ -95,6 +187,13 @@ fn resolve_process_url_outcome(
 /// Never acquires the pipeline lock — this command's storage is independent
 /// of the tier1/2/3 pipeline (ADR-070 §Lock discipline).
 pub fn cmd_process_url(url: &str) -> Result<()> {
+    process_one_url(url).map(|_| ())
+}
+
+/// Process a single URL and report which branch it took. Shared by the
+/// single-URL command and the batch loop, so batch mode cannot drift from
+/// the semantics the single-URL tests pin down.
+fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
     let key = url_storage_key(url);
 
     let existing = ruflo_memory_get(&key, PROCESS_URL_NAMESPACE)
@@ -106,7 +205,8 @@ pub fn cmd_process_url(url: &str) -> Result<()> {
         None => kp::fetch_url_content(url).with_context(|| format!("fetching {url}"))?,
     };
 
-    match resolve_process_url_outcome(existing.is_some(), fetched.as_ref()) {
+    let outcome = resolve_process_url_outcome(existing.is_some(), fetched.as_ref());
+    match outcome {
         ProcessUrlOutcome::AlreadyStored => println!("already stored: {key}"),
         ProcessUrlOutcome::NotFound => {
             println!("post not found in the author's recent feed: {url}");
@@ -124,7 +224,7 @@ pub fn cmd_process_url(url: &str) -> Result<()> {
             println!("{}", insight.summary);
         }
     }
-    Ok(())
+    Ok(outcome)
 }
 
 /// Warn if the installed binary predates source changes in system/cli/rust/crates/.
@@ -1699,6 +1799,74 @@ mod tests {
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::Store
         );
+    }
+
+    // ── process-url batch mode (t-2451) ──────────────────────────────
+
+    #[test]
+    fn process_url_batch_parses_id_and_url_pairs() {
+        let entries = parse_batch_file(
+            "{\"id\":\"t-100\",\"url\":\"https://example.com/a\"}\n\
+             {\"id\":\"t-101\",\"url\":\"https://example.com/b\"}\n",
+        )
+        .expect("well-formed jsonl must parse");
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].id, "t-100");
+        assert_eq!(entries[1].url, "https://example.com/b");
+    }
+
+    #[test]
+    fn process_url_batch_ignores_blank_lines() {
+        // Boundary: trailing newline / blank separators are common in
+        // generated jsonl and must not read as a malformed record.
+        let entries = parse_batch_file(
+            "{\"id\":\"t-100\",\"url\":\"https://example.com/a\"}\n\n   \n",
+        )
+        .expect("blank lines are not records");
+        assert_eq!(entries.len(), 1);
+    }
+
+    #[test]
+    fn process_url_batch_malformed_line_reports_line_number() {
+        // A batch is unattended; "parse error" without a line number means
+        // hand-bisecting the file.
+        let err = parse_batch_file(
+            "{\"id\":\"t-100\",\"url\":\"https://example.com/a\"}\n\
+             not json at all\n",
+        )
+        .expect_err("malformed jsonl must be an error");
+        assert!(err.to_string().contains('2'), "must name the line: {err}");
+    }
+
+    #[test]
+    fn process_url_batch_cancellable_when_stored_or_already_stored() {
+        // Both mean the URL's content is in the knowledge base, so the
+        // research stub that tracked it can be closed.
+        assert!(is_cancellable(&ProcessUrlOutcome::Store));
+        assert!(is_cancellable(&ProcessUrlOutcome::AlreadyStored));
+    }
+
+    #[test]
+    fn process_url_batch_cancellable_excludes_empty_content() {
+        // Spec Edge Cases, explicit: empty/near-empty content is NOT
+        // grounds to cancel — nothing was captured, so the stub still has
+        // work behind it.
+        assert!(!is_cancellable(&ProcessUrlOutcome::EmptyContent));
+    }
+
+    #[test]
+    fn process_url_batch_cancellable_excludes_not_found() {
+        // The post wasn't in the author's feed; the link is still unread.
+        assert!(!is_cancellable(&ProcessUrlOutcome::NotFound));
+    }
+
+    #[test]
+    fn process_url_batch_exit_code_nonzero_only_on_real_failure() {
+        // NotFound and EmptyContent are expected outcomes, not failures
+        // (spec: a miss "is not itself an error"), so they must not make a
+        // nightly cron alert. A fetch/store error must.
+        assert_eq!(batch_exit_code(0), 0);
+        assert_eq!(batch_exit_code(2), 1);
     }
 
     // ── parse_search_results ─────────────────────────────────────────
