@@ -15,7 +15,7 @@
 ```
 
 - **epic-slug** — kebab-case theme grouping the task (e.g. `session`, `backlog-git`, `harness`)
-- **work-type** — one of: `feat` · `fix` · `chore` · `research` · `test` · `docs` · `refactor` · `review`
+- **work-type** — one of: `feat` · `fix` · `chore` · `research` · `test` · `docs` · `refactor` · `review` · `design`. Resolved from `task.kind` (falling back to `task.work_type`) by `resolve_branch_prefix()` in `system/skills/_shared/branch-prefix.md` — the single authority (t-2494).
 - **t-{NNN}** — backlog task ID (required for all implementation branches)
 - **description-slug** — 2–4 word kebab summary
 
