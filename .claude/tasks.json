@@ -63342,7 +63342,7 @@
     {
       "id": "t-2494",
       "subject": "Branch-prefix rules disagree: task-convention.md maps kind, start.md maps work_type",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -63355,10 +63355,10 @@
       "priority": "P2",
       "parent": "t-2338",
       "created": "2026-07-27",
-      "started": null,
+      "started": "2026-07-28",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "cli-backlog-schema/fix/t-2494-branch-prefix-authority",
       "context": "Hit 2026-07-27 starting t-2487 / t-2478 / t-2491 — all three are kind:fix with work_type:implement.\n\nTHE CONFLICT.\n- ~/.claude/rules/task-convention.md: \"Branch: feature=feat/, fix=fix/, refactor=refactor/, docs=docs/, research=research/, ops=chore/\" — keyed on KIND.\n- system/skills/backlog/phases/start.md \"Branch creation\" step 2: maps task.work_type -> prefix, where `implement`/`feat` -> `feat`. Keyed on WORK_TYPE, and has no `fix` input at all unless work_type is literally \"fix\".\n\nSo a bugfix task carrying work_type:implement resolves to `feat/` under start.md and `fix/` under task-convention.md. Resolved by hand this session in favour of `fix/` (user decision) — branches cut were cli-backlog-schema/fix/t-2487-*, close/fix/t-2478-*, close/fix/t-2491-*.\n\nWHY IT MATTERS BEYOND COSMETICS. The prefix is the only signal in the branch name distinguishing a bugfix from a feature, and CLAUDE.md's branch convention lists `fix` as a first-class work-type. Labelling three P1/P2 defect branches `feat/` misreports the change class to anything reading branch names (validate checks, close classification, review routing).\n\nLIKELY FIX. start.md's mapping should consult `kind` first and fall back to `work_type`, since `work_type:implement` is a cognitive-mode label (\"this is coding work\") and is deliberately orthogonal to what the change DOES — note task-convention.md already says \"kind: refactor tasks use work_type: implement\", confirming work_type is not meant to carry change class. Confirm which file is authoritative before editing; do not fix both independently or they will drift again.\n\nAC: one documented authority for branch prefix; the other file references it rather than restating a mapping\nAC: a kind:fix + work_type:implement task resolves to fix/ through the documented path, not by hand\nAC: mapping covers every kind value in tasks.json (feature/fix/refactor/research/docs/design/ops)",
       "notes": null,
       "order": 0,
@@ -63366,7 +63366,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-2495",
@@ -63709,7 +63710,7 @@
     {
       "id": "t-2506",
       "subject": "brana session write same-day merge silently discards updated next[] text for an existing task_id",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -63723,10 +63724,10 @@
       "priority": "P1",
       "parent": "t-2488",
       "created": "2026-07-28",
-      "started": null,
+      "started": "2026-07-28",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/fix/t-2506-next-task-id-dedup",
       "context": "Found live 2026-07-28 on the second /brana:close --continue of one session in thebrana.\n\nREPRODUCTION (twice, deliberately).\n1. Submitted a merged payload with next[] length 10, containing two entries for t-2502: the prior close's text and a NEW, more accurate one (three reproductions, revised consensus fix). Written file came back with length 9 — the new entry was gone, the stale one kept. No warning, no error, ok:true.\n2. Then submitted a payload with next[] length 9 where the single t-2502 entry's .text had been REPLACED with the new wording. Written file still shows the old text. Verified by grep: the marker string \"THREE reproductions\" is present in the submitted file and absent from the written file.\n\nSo the merge is not a dedup that keeps the last writer — it is a merge that PREFERS THE INCUMBENT. Consequence: once a next[] entry exists for a task_id, no later close that day can update its text. The field is effectively write-once-per-day-per-task_id.\n\nWHY THIS MATTERS. next[] is the handoff — it is what the next session reads to decide what to do. An earlier close's understanding is frozen in, and a later close that learned the earlier guidance was WRONG cannot correct it. That is precisely what happened here: the first close said t-2502 was a clean \"over-reach traded for under-reach\"; by the second close that was known to be wrong (a third reproduction from another session showed over-reach still occurs), and the correction could not be written.\n\nThis also directly violates close/SKILL.md's own field note \"Procedure decision points must never silently drop items\" (2026-05-19) — the drop is in the CLI, below the procedure, so following the procedure correctly does not prevent it.\n\nRELATED BUT DISTINCT. The 2026-05-19 field note on t-1461 covers replace-not-merge losing a PARALLEL session's data. This is the opposite defect in the fix for it: the merge added to prevent loss now prevents updates. Check whether t-1461's merge mode is where this incumbent-preference lives.\n\nMITIGATION USED. The authoritative content was written to t-2502's context field instead, which is what the next session should trust over the handoff's next[] text. Note the handoff currently carries KNOWN-STALE guidance for t-2502.\n\nAC: submitting an updated .text for an existing task_id in a same-day merge updates it\nAC: if any incoming next[] entry is discarded or superseded, that is surfaced (warning/count), never silent\nAC: decide and document the merge rule explicitly — last-writer-wins on text, union on distinct task_ids, and what happens for task_id: null entries\nAC: regression test covering a same-day second write that changes the text of an existing task_id entry\n\n2026-07-28 — REPRODUCED, with a more specific mechanism than this task's subject states.\n\nSUBJECT SAYS: \"session write discards updated next[] text\" — i.e. framed as an UPDATE problem across two writes on the same day.\nACTUAL MECHANISM: `brana session write` deduplicates next[] BY task_id WITHIN A SINGLE WRITE. First entry for a given task_id wins; every subsequent entry carrying the same task_id is dropped. Silently — exit is {\"ok\":true}, no warning, no count in the response.\n\nREPRO (live, this close, epic brana-v3-redesign):\n  payload next[] = 10 entries\n    3 entries with task_id \"t-2488\"\n    1 each with \"t-2502\", \"t-2495\", \"t-2506\"\n    4 entries with task_id null\n  after write: 8 entries.\n  Dropped: the 2nd and 3rd t-2488 entries. Kept: the 1st.\n  All 4 null-task_id entries survived — null is NOT treated as a collision key.\n  Re-wrote with the three t-2488 points folded into ONE entry: 8 in, 8 out, no loss.\n\nWHY THIS MATTERS MORE THAN THE SUBJECT SUGGESTS. The dropped entries are not duplicates — they were three DIFFERENT follow-ups that happen to concern the same task. In this close the two dropped entries were the two open decisions the lane-identity ADR must settle (lane key = session-id vs branch vs task-id; and whether waves get populated or retired). Those are the highest-value items in the handoff, and they vanished with no signal. A handoff silently losing its own open questions is exactly the \"procedure decision points must never silently drop items\" rule in close/SKILL.md (2026-05-19 field note), violated at the storage layer instead of the procedure layer.\n\nWORKAROUND until fixed: never emit more than one next[] entry per task_id in a single payload. Fold multiple points for one task into a single entry's text, or set task_id null (null entries are not deduped, at the cost of losing the task linkage).\n\nFIX DIRECTION (not decided): either (a) stop deduping on task_id — the field is a REFERENCE, not a unique key, and several next steps legitimately share a task; or (b) if dedup is intentional, merge the texts rather than dropping, and report the count in the write response so the loss is at least visible. (a) looks correct: nothing about next[] semantics implies one-entry-per-task.\n\nCLUSTER: this is the IDENTITY half of the concurrency cluster documented in docs/ideas/backlog-v3-lane-identity.md (with t-2502 and the sitrep ambiguity), NOT the atomicity half (t-2495). Fixing it does not require the lane-identity ADR to land first — the dedup is independently wrong and independently fixable, and it is arguably the cheapest real data-loss fix in the cluster.\n2026-07-28 reproduced twice in one close, and the mechanism is now pinned more precisely:\n(1) Two next[] entries sharing a task_id -> only the FIRST survives the write. Wrote 7 entries with two carrying task_id t-1781; 6 persisted, the second t-1781 entry vanished silently (no warning, exit 0).\n(2) Re-writing the SAME task_id with corrected text does NOT update it — the original text is kept and the new text is discarded. Confirmed by diffing the persisted next[0].text against the payload on disk after a second `brana session write` in the same session.\n(3) Entries with task_id: null do NOT dedup against each other — three null entries coexisted fine. So the dedup key is the non-null task_id, and null is exempt.\nPractical consequence for the close procedure: any second follow-up for an already-referenced task must either be folded into that task's single entry, or filed with task_id: null. Both are workarounds around a silent data loss, not fixes.\nSeverity note: this silently drops handoff content at the exact moment it is meant to be preserved. The dropped item here was the merge instruction for a finished 6-commit branch.\n\n2026-07-28 CHALLENGE-GATE FINDING — A SECOND CALL SITE. The fix must cover BOTH or it will regress:\n  (1) dedup_next_items — brana-core/src/session.rs:123-134. Called from SessionState::sanitize() at session.rs:294, which runs on EVERY write path (session.rs:388, :391, :393). This is the one already reproduced.\n  (2) merge_states — brana-core/src/session.rs:491-495. Implements the SAME task_id drop independently, on the same-day/same-branch merge path (reached from session.rs:366). That is the SECOND close of any given day — exactly when handoff volume is highest and when this bug was originally observed.\nFixing only dedup_next_items leaves merge_states dropping. Found by the ADR-069 challenge gate 2026-07-28; flagged there as a recurrence of the twin-fix-missed pattern.\n\nDEPENDENCY NOTE (ADR-069 D2): merge_states is only reached when an existing file resolves at the same path. If lane keying moves to per-session filenames, the same-day merge branch stops firing and the t-2263 branch_has_active_worktree clobber guard (session.rs:377-388) becomes dead code. Fix this BEFORE the keying change so the fix is testable against live behaviour.",
       "notes": null,
       "order": 0,
@@ -63734,7 +63735,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-2507",
@@ -63891,11 +63893,11 @@
       "parent": "t-2371",
       "created": "2026-07-28",
       "started": "2026-07-28",
-      "completed": null,
+      "completed": "2026-07-28",
       "blocked_by": [],
       "branch": "spec-maintenance/chore/t-2512-regenerate-rules-reference",
       "context": "Found 2026-07-28 during t-2507 close. `brana reference generate --check` on a CLEAN dev tree reports \"would update rules.md\" -> validate.sh Check 29 FAILs (VALIDATE_EXIT:1). Introduced by 24e6ee08 \"docs(rules): add bash signal traps to parallel-bash.md (t-2503)\", which edited system/rules/parallel-bash.md but never regenerated docs/reference/rules.md.\nImpact: every branch cut from current dev inherits a failing validate. The t-1781 branch still passes only because it predates 24e6ee08.\nFix: `brana reference generate` then commit docs/reference/rules.md. Do NOT hand-edit it — it carries the \"Generated by brana reference generate — do not edit manually\" banner (field-note-routing.md).\nWorth considering separately: a close/validate step that regenerates reference docs whenever system/rules/ changes, so this class cannot ship again.\nAC: `brana reference generate --check` exits clean on dev\nAC: validate.sh Check 29 passes on dev\n2026-07-28 RESOLVED WITHOUT WORK — both ACs verified met on dev at 9f3eb3ea, but by a concurrent session, not by this task.\n\nWHAT ACTUALLY HAPPENED. The drift was real when observed, but I misread WHERE it lived. Timeline:\n  14:36:06  7e328ced  <- the commit my t-2507 worktree was cut from\n  14:36:24  30550775  \"chore(reference): regenerate rules.md after t-2503's parallel-bash rewrite\"  <- another session fixed it, 18s later\n  14:57:49  1f64a9c8  I filed this task, describing dev as broken\n  15:03:48  9f3eb3ea  t-2505 merge, touched docs/reference/rules.md again\nThe failing validate I saw came from the t-2507 WORKTREE, which was cut 18 seconds before the fix landed. dev itself was already clean by the time this task was written. My close-report claim \"every branch cut from dev inherits a failing validate\" was wrong the moment it was made — the correct scope is \"branches cut inside that 18-second window\", and the remedy is merging dev in, not regenerating anything.\n\nVERIFICATION (current dev, 9f3eb3ea): `brana reference generate --check` -> \"all reference docs up to date\" in two independent checkouts; full validate.sh -> VALIDATE_EXIT:0, \"PASS: Check 29: reference docs up to date\", zero FAIL lines.\n\nACTION TAKEN INSTEAD. Merged dev into the t-2507 branch (which was 7 commits behind and carried the stale rules.md). It is now 0 behind, ADR numbers still unique after the merge, reference check clean. That removed the real failing validate.\n\nNo commit was made under this task. Worktree ../thebrana-t-2512 and branch spec-maintenance/chore/t-2512-regenerate-rules-reference were created, used only for verification, and removed.\n\nLESSON WORTH KEEPING (relevant to t-2515's prevention work): a validate failure inside a worktree says nothing about the integration branch's state. On a repo with concurrent sessions, confirm against dev at current HEAD before declaring dev broken — a stale worktree and a broken dev look identical from inside the worktree.",
-      "notes": null,
+      "notes": "Closed without a code change. Both ACs verified met on dev: `brana reference generate --check` -> \"all reference docs up to date\" (exit 0), and full validate.sh at 9f3eb3ea -> VALIDATE_EXIT:0 with \"PASS: Check 29: reference docs up to date\" and zero FAIL lines. Re-confirmed at dev e1b68cb5: nothing touched system/rules/ or docs/reference/ in between, so the result still holds.\n\nThe drift was real when observed but lived in a stale WORKTREE, not on dev — a concurrent session had already fixed it in 30550775, 18 seconds after that worktree was cut. Real remedy applied elsewhere: merged dev into the t-2507 branch, which was the thing actually carrying the stale rules.md.\n\nNo commit under this task. Verification worktree ../thebrana-t-2512 and branch spec-maintenance/chore/t-2512-regenerate-rules-reference created, used, and removed; `git branch -a | grep 2512` returns nothing.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -64560,6 +64562,35 @@
       "strategy": null,
       "build_step": null,
       "description": null
+    },
+    {
+      "id": "t-2532",
+      "subject": "WIP cap counts pending children, not in_progress — warns on category-bucket parents that have no WIP problem",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "backlog",
+        "cli",
+        "harness"
+      ],
+      "description": "The backlog WIP cap fires on the count of pending children rather than in_progress children, so long-lived category parents trip it permanently while their actual work-in-progress is low. Change the counter to status:in_progress.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-28",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Measured 2026-07-28 while triaging a standing handoff item that described t-2338/t-2345 as \"far past 10, drain or retire the cap\".\n\nTHE MEASUREMENT FALSIFIES THE \"DRAIN IT\" FRAMING:\n  parent   pending   in_progress\n  t-2338      48          1\n  t-2345      37          2\n\nActual work-in-progress is 1 and 2 — both comfortably under 10. The cap is firing on 48 and 37 PENDING. So this was never a WIP problem and no amount of draining fixes it: t-2338 and t-2345 are being used as long-lived CATEGORY BUCKETS (backlog/CLI and harness respectively), and a category bucket accumulates pending children by design. Under the current counter these two can never go quiet.\n\nDECISION (user, 2026-07-28): the cap should count status:in_progress. That is what \"work in progress\" means, it matches what the cap is trying to protect against (too many things open at once), and it makes both parents healthy today without touching a single task.\n\nWHY IT MATTERS BEYOND NOISE: a warning that fires unconditionally on every add trains everyone to ignore it, which costs the cap its value on parents that ARE real WIP queues. This is alarm fatigue with a measurable cause.\n\nAC: the cap counts children with status:in_progress, not pending\nAC: adding a task under t-2338 or t-2345 produces no WIP warning at current counts (1 and 2)\nAC: a parent with >10 in_progress children still warns — regression test for the case the cap actually exists to catch\nAC: the threshold constant and the status predicate live in one place\n\nNOTE: could not locate the implementation by grep for wip_cap/WIP_CAP/\"WIP cap\" under system/cli/rust/src or system/skills/backlog — the warning text emitted on `backlog add` is the way in. Search that string, not the concept.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
