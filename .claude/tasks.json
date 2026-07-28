@@ -63520,7 +63520,7 @@
     {
       "id": "t-2500",
       "subject": "bootstrap.sh syncs 24GB of Rust build artifacts into the plugin cache — cli/rust/target/ is never excluded",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -63535,11 +63535,11 @@
       "parent": "t-2345",
       "created": "2026-07-27",
       "started": "2026-07-28",
-      "completed": null,
+      "completed": "2026-07-28",
       "blocked_by": [],
       "branch": "harness-core/fix/t-2500-plugin-cache-artifacts",
       "context": "2026-07-27: Measured live — `du -sh ~/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target` = 24G.\n2026-07-27: Three distinct harms. (a) Disk: 24GB of duplicated build output. (b) Speed: every bootstrap.sh run rsyncs it. (c) Signal: `diff -rq` sees target/debug/incremental/* and .fingerprint/* which change on every cargo build, so `~ cache/brana/brana/1.0.0 (would sync)` fires permanently after any build — the same never-green-check problem as t-2482, t-2470, t-2472.\n2026-07-27: Caused a hard failure, not just waste — bootstrapping into a temp HOME to test t-2482 died with `rsync: write failed ... Disk quota exceeded (122)` on target/debug/deps/brana_mcp-*, exit 10. Testing bootstrap in an isolated HOME is impossible until this is fixed.\n2026-07-27: Note the cache is what CC actually loads (see memory feedback_plugin-cache-drift), so the cache must still receive the RELEASE binary that hooks invoke — exclude target/ but keep whatever path the deployed binary is read from, or copy that one artifact explicitly.\nAC: cli/rust/target/ is excluded from both the diff -rq staleness check and the rsync\nAC: plugin cache size drops to the order of MB\nAC: the binary/artifacts the plugin cache genuinely needs are still present after a run\nAC: back-to-back bootstrap runs stop reporting `cache/... (would sync)` after a cargo build",
-      "notes": null,
+      "notes": "Fixed and merged to dev (1ed4dee3). Verified against the real system/ tree: plugin cache 24GB -> 29M, both CLAUDE_PLUGIN_ROOT-resolved binaries (brana, brana-query) present and byte-identical, target/debug absent, and cache_diff returns empty so the staleness check finally converges. Bootstrapping into a temp HOME now exits 0 (was exit 10, 'Disk quota exceeded'), which unblocks isolated bootstrap testing for t-2482's AC4.\nKey trap avoided: rsync --exclude also protects a path from --delete, so excluding alone would have left the existing 24GB in place forever while reporting success — prune_cache_target removes it explicitly and refuses any path not under */plugins/cache/*.\nSecond trap: a blanket target/ exclusion would have silently demoted brana/brana-query resolution to the PATH fallback (resolve-brana.sh sources 2+3, session-start.sh) with no error. Those two are copied explicitly; brana-mcp/brana-fmt are not resolved from the cache and are dropped.\nAll five sync/diff sites now share CACHE_RSYNC_EXCLUDES/CACHE_KEEP_BINS/prune_cache_target/sync_cache_bins/cache_diff instead of repeating the policy (the old copies had already drifted into two diff forms and three rsync forms).\nNew tests/bootstrap/test-plugin-cache-artifacts.sh: 8 assertions, confirmed red on the unfixed script (0/8) and green after (8/8). All 6 pre-existing tests/bootstrap/ tests still pass.\nNOT YET RECLAIMED: the live ~/.claude cache is still 24GB on disk. Reclaiming needs either a deploy (ship dev->main + bootstrap.sh) or a manual prune.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
