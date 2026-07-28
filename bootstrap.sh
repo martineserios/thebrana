@@ -47,6 +47,15 @@ prune_cache_target() {
     esac
     [ -d "$target_dir" ] || return 0
 
+    # dotglob: Cargo puts .fingerprint/ and .cargo-lock inside target/ and
+    # target/release/. A bare * skips them, so the first cut of this prune left
+    # them behind while reporting the tree cleaned. nullglob keeps an empty dir
+    # from yielding the literal glob string.
+    local _dotglob_was_set=0 _nullglob_was_set=0
+    shopt -q dotglob && _dotglob_was_set=1
+    shopt -q nullglob && _nullglob_was_set=1
+    shopt -s dotglob nullglob
+
     local entry name sub keep b
     for entry in "$target_dir"/*; do
         [ -e "$entry" ] || continue
@@ -64,6 +73,9 @@ prune_cache_target() {
             [ "$keep" = "0" ] && rm -rf "$sub"
         done
     done
+
+    [ "$_dotglob_was_set" = "1" ] || shopt -u dotglob
+    [ "$_nullglob_was_set" = "1" ] || shopt -u nullglob
 }
 
 # Copy the binaries the plugin actually resolves, after the excluded rsync.

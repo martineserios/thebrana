@@ -98,6 +98,19 @@ else
     [ ! -d "$CACHE/cli/rust/target/debug" ] && [ -f "$CACHE/cli/rust/target/release/brana" ]
     check "T5: prune reclaims a pre-existing target tree" $?
 
+    # T5b — Cargo's hidden entries (.fingerprint/, .cargo-lock) must be pruned
+    # too. A bare * glob skips dotfiles, so the first cut of prune_cache_target
+    # left them behind while reporting the tree cleaned.
+    mkdir -p "$CACHE/cli/rust/target/.fingerprint" "$CACHE/cli/rust/target/release/.fingerprint"
+    touch "$CACHE/cli/rust/target/release/.cargo-lock"
+    prune_cache_target "$CACHE"
+    [ ! -d "$CACHE/cli/rust/target/.fingerprint" ] \
+      && [ ! -d "$CACHE/cli/rust/target/release/.fingerprint" ] \
+      && [ ! -f "$CACHE/cli/rust/target/release/.cargo-lock" ] \
+      && [ -f "$CACHE/cli/rust/target/release/brana" ]
+    check "T5b: prune removes Cargo's hidden entries too" $? \
+        "$(ls -a "$CACHE/cli/rust/target/release" 2>/dev/null | tr '\n' ' ')"
+
     # T6 — the guard: never delete under a path that is not a plugin cache.
     OUTSIDE="$TMP/not-a-cache"
     mkdir -p "$OUTSIDE/cli/rust/target/debug"
