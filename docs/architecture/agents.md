@@ -5,7 +5,9 @@
 ## Design Principles
 
 - **Agent results are inputs, not decisions.** The main context presents findings to the user. File modifications happen in main context after approval.
-- **Most agents are read-only.** Most agents disallow Write, Edit, and NotebookEdit. Agents with `memory: true` (challenger, debrief-analyst, memory-curator, pr-reviewer) may write to `~/.claude/agent-memory/` for cross-session recall.
+- **Most agents are read-only.** Most agents disallow Write, Edit, and NotebookEdit.
+- **Every reasoning agent declares a `memory:` scope.** All 13 functional agents carry `memory: user`, giving them `~/.claude/agent-memory/<name>/` for cross-session recall. `memory: true` is *not* the spelling — a boolean is silently ignored by CC and the agent starts cold every run (see the 2026-06-10 field note). `validate.sh` Check 4 enforces both that the value is a valid scope **and** that it is present at all; the only exemptions are `gemini` (a stateless delegation shim to agy) and `CALIBRATION.md` (a static reference doc, not an agent).
+- **A memory scope does not imply write access to the repo.** CC auto-enables Read/Write/Edit for the agent's own memory directory, but an agent can still keep `Write`/`Edit` in `disallowedTools` for everything else. `build-evaluator` is the reference case: it carries `memory: user` yet stays read-only because it is the pass/fail gate on a build, and a grader that can edit the work it grades is not a gate. It emits a `Proposed calibration` output line for the main context to act on instead of writing its own calibration.
 - **Auto-delegation is rule-based.** The `delegation-routing` rule (in `~/.claude/rules/`) defines triggers — agents fire without being asked when the situation matches.
 - **Model selection by task complexity.** Haiku for fast/cheap work, Sonnet for moderate analysis, Opus for deep reasoning. Challenger uses Sonnet intentionally — a different model than the Opus parent context catches blind spots the originating model can't see.
 
@@ -55,7 +57,7 @@ Every agent lives at `system/agents/{name}.md`:
 name: agent-name
 description: "One-line description with 'Use when' and 'Not for' guidance."
 model: haiku          # haiku | sonnet | opus
-memory: false         # true → agent can write to ~/.claude/agent-memory/
+memory: user          # user | project | local — a SCOPE STRING, never a boolean
 maxTurns: 10          # optional — caps agentic loop iterations
 permissionMode: plan  # optional — plan | bypassPermissions | default
 isolation: worktree   # optional — worktree (git isolation for the agent)
@@ -83,7 +85,7 @@ Instructions for the agent...
 | `name` | string | required | Agent identifier; matches filename |
 | `description` | string | required | Routing hint — include "Use when" and "Not for" |
 | `model` | enum | inherit | `haiku` · `sonnet` · `opus` |
-| `memory` | bool | false | `true` allows writes to `~/.claude/agent-memory/` for cross-session recall |
+| `memory` | enum | none | `user` · `project` · `local` — scope of the agent's memory dir. **Required** on every functional agent (validate.sh Check 4); `gemini` and `CALIBRATION.md` exempt. A boolean is silently ignored (t-1935) |
 | `maxTurns` | int | unlimited | Caps agentic loop iterations to prevent runaway agents |
 | `permissionMode` | enum | default | `plan` requires plan approval before edits; `bypassPermissions` skips prompts |
 | `isolation` | enum | none | `worktree` gives agent a clean git worktree (auto-cleaned if no changes) |
@@ -97,6 +99,13 @@ The `model` field controls cost and capability. The `description` includes expli
 
 ## Field Notes
 
+### 2026-07-27: `memory:` is now REQUIRED, and a memory scope is not a write grant (t-2399/t-2400/t-2401)
+Check 4 in `validate.sh` previously only rejected an *invalid* `memory:` value. It now also fails when the key is **absent** — an agent without it silently starts cold every run and loses cross-run calibration, the same failure class as t-1935 caught one step earlier. Two documented exemptions are hard-coded: `gemini` (a stateless delegation shim to agy — it holds no calibration of its own) and `CALIBRATION` (a static reference doc shipped beside `challenger.md`, which reads it as a file by design).
+
+The second half of the convention matters more than the first: **declaring a memory scope does not mean the agent should be able to write.** CC auto-enables Read/Write/Edit for the agent's own memory directory regardless of the `tools:` allowlist, but `disallowedTools` still governs everything else. `build-evaluator` is the deliberate reference case — it carries `memory: user` for cross-run grading calibration while keeping `Write`/`Edit` in `disallowedTools`, because it is the pass/fail gate on a build and a grader that can edit the work it grades is not a gate. It surfaces a `Proposed calibration` line in its output for the main context to apply, rather than writing calibration itself. Copy that shape for any agent whose job is to judge rather than to produce.
+
+Precedence between CC's auto-enabled memory writes and an explicit `disallowedTools: [Write, Edit]` remains undocumented upstream (see the 2026-06-10 note) — hence build-evaluator's body also names its memory dir as the sole writable location, belt and braces.
+
 ### 2026-06-10: `memory:` takes a scope string, not a boolean — `memory: true` is a silent no-op (t-1935)
 CC agent frontmatter `memory:` accepts `user` (`~/.claude/agent-memory/<name>/`), `project` (`.claude/agent-memory/<name>/`), or `local` (`.claude/agent-memory-local/<name>/`). Any other value — including `true`/`false` — is silently ignored: no memory injection, no MEMORY.md preload, no auto-enabled Write/Edit. All brana agents declared `memory: true` since birth and never persisted anything (architecture review 2026-06-10 §4; root cause was the invalid value, not the missing directory). With a valid scope, CC auto-enables Read/Write/Edit for the memory dir regardless of the `tools:` allowlist; precedence against an explicit `disallowedTools: [Write, Edit]` is undocumented, so debrief-analyst's disallow was reduced to NotebookEdit and both agents' bodies name the memory dir as the sole writable location. Verified live 2026-06-10 (fresh headless session): plugin-namespaced agents resolve the directory with colon→dash — `brana:challenger` writes `~/.claude/agent-memory/brana-challenger/MEMORY.md` (docs leave this unspecified). Agent definitions are read at session start — frontmatter changes need a fresh session to take effect. validate.sh Check 4 now FAILs on non-scope values. Source: code.claude.com/docs/en/sub-agents.md (2026-06-09) + t-1935.
 
@@ -108,7 +117,7 @@ CC agent frontmatter `memory:` accepts `user` (`~/.claude/agent-memory/<name>/`)
 Source: t-1806 investigation + t-1898 resolved 2026-06-08
 
 ### 2026-05-11: Agent file count != functional agent count — filter by model: frontmatter
-`ls system/agents/` returns 13 files but only 12 are functional agents. `CALIBRATION.md` is a calibration doc for challenger-calibration and has no `model:` frontmatter line. Any tool or doc that counts agents by file count will overcount by 1. Correct count: `grep -l '^model:' system/agents/*.md | wc -l`. Generalizes: always filter by the defining frontmatter field, not raw file count.
+`ls system/agents/` returns 14 files but only 13 are functional agents (counts as of 2026-07-27; 13/12 when this note was written). `CALIBRATION.md` is a calibration doc for challenger-calibration and has no `model:` frontmatter line. Any tool or doc that counts agents by file count will overcount by 1. Correct count: `grep -l '^model:' system/agents/*.md | wc -l`. Generalizes: always filter by the defining frontmatter field, not raw file count — and prefer quoting the command over the number, since the number goes stale on every agent added.
 Source: reconcile consistency scan 2026-05-11
 
 ### 2026-04-08: Session JSONL telemetry is global — bucket by repo root for debrief accuracy
