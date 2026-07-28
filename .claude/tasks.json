@@ -64591,6 +64591,31 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2533",
+      "subject": "close gate: LAST_CLOSE anchor picks a concurrent session's close time, yielding COMMIT_COUNT=0 and a silently empty snapshot",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": "P1",
+      "parent": "t-2340",
+      "created": "2026-07-28",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Found 2026-07-28 on the second /brana:close --continue of one session in thebrana.\n\nMECHANISM. close/phases/gate-and-evidence.md CLOSE-ANCHOR-BLOCK computes the session window as:\n  LAST_CLOSE = newest written_at across ALL session-state files (`brana session read --all`)\n  COMMIT_COUNT = git log --since=\"$LAST_CLOSE\" | wc -l\nThe `--all` was added by t-2491 to fix a REAL bug (an epic-routed close leaves session-state.json stale, so anchoring on the default file over-reaches). But `--all` sweeps every session file in the project, including those written by OTHER CONCURRENTLY-ACTIVE SESSIONS on unrelated epics.\n\nOBSERVED. My close wrote session-state-knowledge-pipeline.json at 17:56:04Z. A concurrent lane (t-2488, ADR-069 decomposition) closed at 19:05:21Z. On my next close the anchor resolved to 19:05:21Z — a time AFTER all my work — so COMMIT_COUNT came back 0 and CHANGED_FILES was empty.\n\nCONSEQUENCE (silent). With COMMIT_COUNT=0, Step 1b's close-snapshot.sh \"exits silently without queueing\" (its documented zero-commit behavior). The session's diff never reaches the nightly extraction cron. No warning, no error — the close reports success. This is the SAME failure the user flagged in this session's own opening handoff (\"neither close snapshot captured it and tonight's extraction cron won't see it\"), reached by a different route.\n\nIt also mis-fed close-classify.sh: an empty CHANGED_FILES with commit-count 0 classifies on no evidence.\n\nI only caught it because the 0 looked wrong against work I knew I had done, and recomputed the range by hand from the previously-queued range end.\n\nNOTE THE TENSION. Anchoring on the default file alone = t-2491's bug (over-reach on epic-routed closes). Anchoring on newest-across-all = this bug (under-reach under concurrency). Neither \"pick one file\" rule is correct; the anchor needs to be scoped to THIS session/lane, not to wall-clock newest.\n\nFIX DIRECTION (not decided): anchor on the newest close belonging to this lane — the epic this close will route to (Step 9c's slug) or the current branch — rather than the global max. Alternative/simpler: anchor on the end of the last range this project QUEUED (close-queue already records git_range per project+branch), which is what I fell back to manually and is inherently per-lane.\n\nIndependently worth doing regardless of the anchor fix: make a zero-commit snapshot LOUD. \"0 commits, nothing queued\" should be surfaced in the close report, not silent — a close that queues nothing is either a genuine read-only session or a broken window, and those must not look identical.\n\nAC: two sessions closing on the same project with different epics do not steal each other's anchor\nAC: a close that queues nothing states so explicitly in its report\nAC: regression test — session A closes, session B (different epic) closes later, session A closes again and its window still covers A's own commits",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
