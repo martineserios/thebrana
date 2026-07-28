@@ -1,5 +1,4 @@
 {
-  "active_epic": "harness-core",
   "github_sync": {
     "enabled": true,
     "labels": {
@@ -10,5 +9,6 @@
     "project": null,
     "repo": null
   },
-  "theme": "emoji"
+  "theme": "emoji",
+  "active_epic": "harness-core"
 }

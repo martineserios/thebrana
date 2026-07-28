@@ -63520,7 +63520,7 @@
     {
       "id": "t-2500",
       "subject": "bootstrap.sh syncs 24GB of Rust build artifacts into the plugin cache — cli/rust/target/ is never excluded",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -63534,10 +63534,10 @@
       "priority": "P1",
       "parent": "t-2345",
       "created": "2026-07-27",
-      "started": null,
+      "started": "2026-07-28",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/fix/t-2500-plugin-cache-artifacts",
       "context": "2026-07-27: Measured live — `du -sh ~/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target` = 24G.\n2026-07-27: Three distinct harms. (a) Disk: 24GB of duplicated build output. (b) Speed: every bootstrap.sh run rsyncs it. (c) Signal: `diff -rq` sees target/debug/incremental/* and .fingerprint/* which change on every cargo build, so `~ cache/brana/brana/1.0.0 (would sync)` fires permanently after any build — the same never-green-check problem as t-2482, t-2470, t-2472.\n2026-07-27: Caused a hard failure, not just waste — bootstrapping into a temp HOME to test t-2482 died with `rsync: write failed ... Disk quota exceeded (122)` on target/debug/deps/brana_mcp-*, exit 10. Testing bootstrap in an isolated HOME is impossible until this is fixed.\n2026-07-27: Note the cache is what CC actually loads (see memory feedback_plugin-cache-drift), so the cache must still receive the RELEASE binary that hooks invoke — exclude target/ but keep whatever path the deployed binary is read from, or copy that one artifact explicitly.\nAC: cli/rust/target/ is excluded from both the diff -rq staleness check and the rsync\nAC: plugin cache size drops to the order of MB\nAC: the binary/artifacts the plugin cache genuinely needs are still present after a run\nAC: back-to-back bootstrap runs stop reporting `cache/... (would sync)` after a cargo build",
       "notes": null,
       "order": 0,
@@ -63545,7 +63545,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-2501",

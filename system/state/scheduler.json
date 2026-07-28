@@ -103,7 +103,7 @@
       "type": "command"
     },
     "knowledge-pipeline-tier1": {
-      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only. Timeout 900 (t-2441): both tiers share one budget and 300s killed every run — 2026-07-24 17:22 log finished tier1 (48 URLs) but got only 48 of 139 tier2 URLs in 300s (~3s/URL LLM scoring, so a full pass is ~585s). Kept as one job, not split: the && makes tier2 conditional on tier1 succeeding and the schema has no inter-job ordering field. Raising this requires `brana-scheduler deploy` — the systemd unit's TimeoutStartSec is generated as (timeoutSeconds+60)*(maxRetries+1) and a stale 360s unit kills the runner before its own timeout fires.",
+      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only.",
       "captureOutput": true,
       "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
       "enabled": true,
@@ -113,11 +113,11 @@
       "type": "command"
     },
     "link-research-extraction": {
-      "_comment": "t-2306: capped batch run of /brana:research over pending link-tagged tasks captured via the Telegram bot. --depth quick, BATCH_CAP 3/run -- closes the capture-vs-extraction gap without unbounded usage cost. Also marks each task completed after successful research (personal/deploy/research-extraction.sh).",
-      "command": "bash ~/enter_thebrana/personal/deploy/research-extraction.sh",
+      "_comment": "t-2306: capped /brana:research pass over pending link-tagged tasks from telegram link-capture — closes the capture-to-knowledge loop",
+      "command": "./deploy/research-extraction.sh",
       "enabled": true,
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* */4:00:00",
+      "project": "~/enter_thebrana/personal",
+      "schedule": "*-*-* 0/4:00:00",
       "timeoutSeconds": 1800,
       "type": "command"
     },
@@ -142,10 +142,10 @@
       "type": "command"
     },
     "personal-repo-pull": {
-      "_comment": "t-2306: laptop-side pull for oracle-hub's link-capture commits to the personal repo. Confirmed no equivalent job existed before this.",
+      "_comment": "t-2306: laptop sees new tasks/event-log entries from oracle-hub's link-capture cron without manual git pull",
       "command": "git -C ~/enter_thebrana/personal pull --ff-only",
       "enabled": true,
-      "project": "~/enter_thebrana/thebrana",
+      "project": "~/enter_thebrana/personal",
       "schedule": "*-*-* *:0/15:00",
       "timeoutSeconds": 30,
       "type": "command"
@@ -162,7 +162,7 @@
       "type": "command"
     },
     "reindex-patterns": {
-      "_comment": "Weekly FTS reindex → ~/.claude/memory/index.db (t-857). noProjectLock: rebuilds only its own dedicated store, so it opts out of the shared project lock — a Sun-wake catch-up burst that pins the lock can't starve it into a SKIP (t-2292).",
+      "_comment": "Weekly pattern namespace reindex — runs at 3am (after knowledge reindex), ~1h max (t-857)",
       "captureOutput": true,
       "command": "./system/scripts/index-patterns.sh",
       "enabled": true,
