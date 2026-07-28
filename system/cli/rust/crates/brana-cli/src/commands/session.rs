@@ -67,12 +67,25 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
         }
     }
 
-    write_state(&root, &state)?;
+    // A `base_written_at` on the payload acts as a compare-and-swap token, making next[]
+    // authoritative so entries can be corrected and withdrawn (t-2506).
+    let report = write_state(&root, &state)?;
+
+    // Never let a discard pass unnoticed — this path used to print a bare ok:true while
+    // dropping next[] entries (t-2506).
+    if let Some(warning) = report.warning() {
+        eprintln!("brana session: WARNING — {warning}");
+    }
 
     let branch = current_branch().unwrap_or_default();
     println!(
-        "{{\"ok\":true,\"path\":\"{}\"}}",
-        brana_core::session::unit_scoped_state_path(&root, state.epic.as_deref(), &branch).display()
+        "{{\"ok\":true,\"path\":\"{}\",\"next\":{{\"incoming\":{},\"written\":{},\"dropped_duplicates\":{},\"retained_from_existing\":{},\"mode\":\"{}\"}}}}",
+        brana_core::session::unit_scoped_state_path(&root, state.epic.as_deref(), &branch).display(),
+        report.next_incoming,
+        report.next_written,
+        report.next_dropped_duplicates,
+        report.next_retained,
+        report.next_mode.as_str(),
     );
     Ok(())
 }
@@ -273,7 +286,7 @@ pub fn cmd_session_migrate() -> anyhow::Result<()> {
     for entry in entries.iter().rev() {
         let state = convert_handoff_entry(entry);
         match write_state(&root, &state) {
-            Ok(()) => migrated += 1,
+            Ok(_) => migrated += 1,
             Err(e) => eprintln!("warning: failed to write entry '{}': {e}", entry.heading),
         }
     }
@@ -388,6 +401,8 @@ fn convert_handoff_entry(entry: &handoff::HandoffEntry) -> SessionState {
         session_labels: Vec::new(),
         epic: None,
         consumed_at: Some(written_at),
+        // Migration replays historical entries; there is no read to compare against.
+        base_written_at: None,
         accomplished,
         learnings,
         next,
@@ -606,6 +621,7 @@ mod tests {
             branch: Some("feat/t-798-session-state-structs".into()),
             session_label: Some("session state structs".into()),
             consumed_at: None,
+            base_written_at: None,
             accomplished: vec!["Built session structs".into()],
             learnings: vec!["TDD first".into()],
             next: vec![
