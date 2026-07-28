@@ -1,4 +1,4 @@
-# ADR-068: `brana knowledge process-url` — headless-first fetch architecture
+# ADR-070: `brana knowledge process-url` — headless-first fetch architecture
 
 **Status:** Accepted
 **Date:** 2026-07-24

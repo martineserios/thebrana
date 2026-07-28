@@ -625,7 +625,7 @@ pub fn classify_platform(url: &str) -> &'static str {
     }
 }
 
-/// Result of a URL content fetch (ADR-068 three-tier fetch mechanism).
+/// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
 #[derive(Debug, Clone, PartialEq)]
 pub struct FetchedContent {
     pub text: String,
@@ -637,7 +637,7 @@ pub struct FetchedContent {
 /// `linkedin-scraper-mcp` for LinkedIn.
 ///
 /// Returns `Ok(None)` — distinct from `Err` — when a LinkedIn post could
-/// not be found in the author's fetched feed (ADR-068 §Tier-2 correction:
+/// not be found in the author's fetched feed (ADR-070 §Tier-2 correction:
 /// `linkedin-scraper-mcp` has no arbitrary-URL fetch tool, only a fuzzy
 /// author-feed match). Public URLs never produce `Ok(None)`: they either
 /// fetch or error.
@@ -645,7 +645,7 @@ pub struct FetchedContent {
 /// Never acquires [`lock_pipeline`] — this function is shared with a future
 /// t-1144 for populating `UrlEntry.fetched_content` inside the pipeline's
 /// locked `process_core` call graph, so it must stay lock-free itself
-/// (ADR-068 §Lock discipline; see `test_lock_discipline_source_tripwires`
+/// (ADR-070 §Lock discipline; see `test_lock_discipline_source_tripwires`
 /// in `brana-cli/src/commands/knowledge.rs`).
 pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
     let platform = classify_platform(url);
@@ -719,7 +719,7 @@ static SCOPED_CONFIG_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::
 /// Writes a scoped MCP config (JSON) containing only the
 /// `linkedin-scraper-mcp` server entry, to a fresh temp file. Generated at
 /// runtime rather than checked in statically — the binary path is
-/// machine-specific (ADR-068 §Assumptions, corrected 2026-07-24).
+/// machine-specific (ADR-070 §Assumptions, corrected 2026-07-24).
 fn write_scoped_linkedin_mcp_config(binary: &std::path::Path) -> Result<ScopedMcpConfig> {
     let config = serde_json::json!({
         "mcpServers": {
@@ -740,7 +740,7 @@ fn write_scoped_linkedin_mcp_config(binary: &std::path::Path) -> Result<ScopedMc
 /// Call the `claude` CLI with a scoped `--mcp-config`/`--strict-mcp-config`/
 /// `--allowedTools` for MCP-tool-using prompts. Distinct from
 /// `call_claude_json` (text-only, no MCP) — new arg-building, no prior art
-/// in this file; empirically verified live 2026-07-24 (ADR-068).
+/// in this file; empirically verified live 2026-07-24 (ADR-070).
 ///
 /// Flag order matters: clap's `<tools...>` for `--allowedTools` consumes
 /// positional-looking args until the next recognized `--flag`, so the tool
@@ -820,7 +820,7 @@ fn call_claude_json_with_mcp(
 }
 
 /// Tier 2: best-effort LinkedIn fetch via `linkedin-scraper-mcp`'s
-/// `get_person_profile(sections="posts")` + fuzzy text match (ADR-068
+/// `get_person_profile(sections="posts")` + fuzzy text match (ADR-070
 /// §Tier-2 correction — no arbitrary-URL fetch tool exists). Returns
 /// `Ok(None)` when the target post isn't found in the fetched feed (a real
 /// miss, not a fetch failure).
@@ -998,7 +998,7 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     result
 }
 
-// ── Insight extraction (ADR-068 three-tier fallback: agy → claude -p → raw) ──
+// ── Insight extraction (ADR-070 three-tier fallback: agy → claude -p → raw) ──
 
 /// Extracted insight from fetched URL content.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1014,7 +1014,7 @@ const EXTRACTION_RAW_TRUNCATE_CHARS: usize = 2000;
 /// Extract an insight (summary + topic) from fetched content via a
 /// three-tier fallback: agy → `claude -p` → truncated raw text. Only
 /// degrades to raw text if *both* agy and claude fail — a nightly agy
-/// outage alone never blocks the batch or degrades quality (ADR-068
+/// outage alone never blocks the batch or degrades quality (ADR-070
 /// Assumptions).
 pub fn extract_insight(content: &str, platform: &str) -> ExtractedInsight {
     let prompt = extraction_prompt(content);
@@ -1662,9 +1662,9 @@ mod tests {
         assert_eq!(content.platform, "other");
     }
 
-    // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-068) ───
+    // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
     // The process spawn in call_claude_json_with_mcp stays untested here
-    // (empirically verified live instead — see ADR-068 §Empirical
+    // (empirically verified live instead — see ADR-070 §Empirical
     // validation). Everything downstream of it is not: resolve_linkedin_fetch
     // takes the shell-out's Result as a parameter, so the response-shape
     // and Ok(None)/Err decisions are covered below. The novel pure logic —
@@ -1813,7 +1813,7 @@ mod tests {
 
     #[test]
     fn linkedin_fetch_call_graph_never_acquires_pipeline_lock() {
-        // ADR-068 §Lock discipline. fetch_url_content is shared with
+        // ADR-070 §Lock discipline. fetch_url_content is shared with
         // t-1144's planned in-pipeline use, which calls it from inside
         // process_core's already-locked call graph. lock_pipeline is
         // non-reentrant, so an acquire anywhere below deadlocks. The

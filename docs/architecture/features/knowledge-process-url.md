@@ -15,7 +15,7 @@ a time, inside an interactive Claude Code session. The primary need is a
 
 ## Decision Record (frozen 2026-07-24)
 
-See [ADR-068](../decisions/ADR-068-knowledge-process-url-headless-fetch.md)
+See [ADR-070](../decisions/ADR-070-knowledge-process-url-headless-fetch.md)
 for the full architecture decision (headless-first fetch, three-tier
 mechanism, scope split from t-1144). Summary: `reqwest` for public URLs,
 headless `claude -p --mcp-config` shell-out to the already-installed
@@ -109,7 +109,7 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 - LinkedIn session expired/missing → hard fail, exit non-zero, message names
   the remediation command (`linkedin-scraper-mcp --login`).
 - **LinkedIn post not found in the author's fetched feed** (corrected
-  2026-07-24 — see ADR-068 §Tier-2 correction: `linkedin-scraper-mcp` has no
+  2026-07-24 — see ADR-070 §Tier-2 correction: `linkedin-scraper-mcp` has no
   arbitrary-URL fetch, only `get_person_profile(sections="posts")`
   fuzzy-matched against the URL's title-signal) → distinct outcome from a
   fetch failure: print "post not found in {author}'s recent feed", do not
@@ -136,7 +136,7 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
   from the existing text-only `call_claude_json`/`build_claude_args`),
   reusing `classify_platform()` (`knowledge_pipeline.rs:614`) for routing.
   Returns raw content + platform tag. Shaped to be reusable by a future
-  t-1144. **Must never call `kp::lock_pipeline()`** (see ADR-068 §Lock
+  t-1144. **Must never call `kp::lock_pipeline()`** (see ADR-070 §Lock
   discipline) — this is the one place in this file allowed to skip the
   otherwise-universal handler convention, and must say so in a comment.
 - `brana-core/src/ruflo.rs`: add `ruflo_memory_store(key, value, namespace, tags) -> Result<()>`
@@ -201,10 +201,10 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 - [ ] **Tech doc** — this file (`docs/architecture/features/knowledge-process-url.md`),
       kept in sync with implementation.
 - [ ] **Existing docs to update** — the `fetched_content` field comment in
-      `knowledge_pipeline.rs` (point at ADR-068 alongside t-1144);
+      `knowledge_pipeline.rs` (point at ADR-070 alongside t-1144);
       `docs/reference/skills.md` if a CLI reference table exists there; the
       t-1144 backlog task's `context` field currently (as of 2026-07-24)
-      describes the pre-ADR-068 design ("shared function using the ruflo MCP
+      describes the pre-ADR-070 design ("shared function using the ruflo MCP
       browser agent") — refresh it to match the actual decision (headless
       `claude -p --mcp-config` shell-out, not the browser-extension MCP
       tools) so a future engineer picking up t-1144 doesn't read stale
@@ -212,14 +212,14 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 
 ## Challenger findings
 
-Reviewed 2026-07-24 (brana:challenger, ADR-068 + this spec). Verdict:
+Reviewed 2026-07-24 (brana:challenger, ADR-070 + this spec). Verdict:
 RECONSIDER on the original draft — 4 findings, all addressed in this
 revision:
 
 1. **Lock discipline** — `fetch_url_content()`/`process_url` must never call
    `kp::lock_pipeline()`, despite that being every existing sibling
    handler's convention in `knowledge.rs`. Addressed: called out explicitly
-   in ADR-068 and this spec's Design/Boundaries; DECOMPOSE must add a task
+   in ADR-070 and this spec's Design/Boundaries; DECOMPOSE must add a task
    extending `test_lock_discipline_source_tripwires`.
 2. **Idempotency mechanism was unspecified** — the only existing ruflo read
    path (`ruflo_memory_search_raw`) is semantic/fuzzy, not exact-match; using

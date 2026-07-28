@@ -152,7 +152,7 @@ pub fn ruflo_memory_search_raw(
     Some(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
-/// Store a value in ruflo memory under an exact key (ADR-068). Unlike
+/// Store a value in ruflo memory under an exact key (ADR-070). Unlike
 /// `ruflo_memory_search_raw`, storage failures are surfaced to the caller
 /// rather than failing open — a silent store failure would let a URL be
 /// re-processed forever without ever landing in knowledge memory.
@@ -206,7 +206,7 @@ pub fn ruflo_memory_store(key: &str, value: &str, namespace: &str, tags: &[&str]
     Ok(())
 }
 
-/// Exact-match lookup in ruflo memory (ADR-068). Distinct from
+/// Exact-match lookup in ruflo memory (ADR-070). Distinct from
 /// `ruflo_memory_search_raw`, which is semantic/fuzzy — reusing that for
 /// idempotency checks risks a false-positive "already stored" skip on an
 /// unrelated prior entry. Returns `Ok(None)` for a genuine miss, `Err` for
