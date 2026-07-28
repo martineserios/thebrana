@@ -18,6 +18,83 @@ SYSTEM_DIR="$SCRIPT_DIR/system"
 TARGET_DIR="$HOME/.claude"
 CHECK_ONLY=false
 
+# --- Plugin cache: build-artifact policy (t-2500) -----------------------------
+# system/cli/rust/target/ is Cargo build output (gitignored, line 31 of
+# .gitignore). It was being snapshotted into the plugin cache wholesale — 24GB
+# measured, against ~13MB for every other component combined. Three harms:
+# disk, a multi-GB rsync on every bootstrap run, and a staleness check that
+# could never go quiet because target/debug/incremental/* fingerprints change
+# on every cargo build.
+#
+# The cache cannot drop target/ entirely: two binaries are resolved through
+# CLAUDE_PLUGIN_ROOT and would silently fall through to the PATH copy if absent
+# (system/hooks/lib/resolve-brana.sh source 2+3, system/hooks/session-start.sh).
+# brana-mcp and brana-fmt are NOT resolved from the cache — the MCP server is
+# registered against ~/.local/bin — so they are not kept.
+CACHE_KEEP_BINS=(brana brana-query)
+CACHE_RSYNC_EXCLUDES=(--exclude='cli/rust/target/')
+
+# rsync --exclude also protects the path from --delete, so excluding alone would
+# leave an already-populated 24GB target/ in place forever. Prune it explicitly.
+# Only ever touches <cache>/cli/rust/target, and refuses to run on a path that
+# is not inside a plugin cache.
+prune_cache_target() {
+    local cache_dir="$1"
+    local target_dir="$cache_dir/cli/rust/target"
+    case "$cache_dir" in
+        */plugins/cache/*) ;;
+        *) return 0 ;;
+    esac
+    [ -d "$target_dir" ] || return 0
+
+    local entry name sub keep b
+    for entry in "$target_dir"/*; do
+        [ -e "$entry" ] || continue
+        name=$(basename "$entry")
+        if [ "$name" != "release" ]; then
+            rm -rf "$entry"
+            continue
+        fi
+        for sub in "$entry"/*; do
+            [ -e "$sub" ] || continue
+            keep=0
+            for b in "${CACHE_KEEP_BINS[@]}"; do
+                [ "$(basename "$sub")" = "$b" ] && keep=1
+            done
+            [ "$keep" = "0" ] && rm -rf "$sub"
+        done
+    done
+}
+
+# Copy the binaries the plugin actually resolves, after the excluded rsync.
+sync_cache_bins() {
+    local system_dir="$1" cache_dir="$2"
+    local b src dst
+    for b in "${CACHE_KEEP_BINS[@]}"; do
+        src="$system_dir/cli/rust/target/release/$b"
+        dst="$cache_dir/cli/rust/target/release/$b"
+        [ -f "$src" ] || continue
+        if [ ! -f "$dst" ] || ! cmp -s "$src" "$dst"; then
+            mkdir -p "$(dirname "$dst")"
+            cp "$src" "$dst"
+        fi
+    done
+}
+
+# Staleness check that ignores build output but still notices a stale binary.
+# Echoes a non-empty string when the cache differs from source.
+cache_diff() {
+    local cache_dir="$1" system_dir="$2"
+    diff -rq -x target -x '.claude-plugin' "$cache_dir" "$system_dir" 2>/dev/null || true
+    local b src dst
+    for b in "${CACHE_KEEP_BINS[@]}"; do
+        src="$system_dir/cli/rust/target/release/$b"
+        dst="$cache_dir/cli/rust/target/release/$b"
+        [ -f "$src" ] || continue
+        cmp -s "$src" "$dst" 2>/dev/null || echo "Binary $b differs"
+    done
+}
+
 # --- Plugin cache sync (standalone operation) ---
 sync_plugin_cache() {
     local system_dir="$1"
@@ -43,7 +120,7 @@ sync_plugin_cache() {
 
     # Dry-run diff first
     local diff_output plugin_json_diff
-    diff_output=$(diff -rq "$cache_dir" "$system_dir" 2>/dev/null | grep -v ".claude-plugin" || true)
+    diff_output=$(cache_diff "$cache_dir" "$system_dir" | grep -v ".claude-plugin" || true)
     plugin_json_diff=$(diff "$system_dir/.claude-plugin/plugin.json" "$cache_dir/.claude-plugin/plugin.json" 2>/dev/null | head -1 || echo "differ")
 
     if [ -z "$diff_output" ] && [ -z "$plugin_json_diff" ]; then
@@ -58,7 +135,9 @@ sync_plugin_cache() {
     [ -n "$plugin_json_diff" ] && echo "  .claude-plugin/plugin.json (changed)"
     echo ""
 
-    rsync -av --delete --exclude='.claude-plugin' "$system_dir/" "$cache_dir/" > /dev/null
+    rsync -av --delete --exclude='.claude-plugin' "${CACHE_RSYNC_EXCLUDES[@]}" "$system_dir/" "$cache_dir/" > /dev/null
+    prune_cache_target "$cache_dir"
+    sync_cache_bins "$system_dir" "$cache_dir"
     mkdir -p "$cache_dir/.claude-plugin"
     cp "$system_dir/.claude-plugin/plugin.json" "$cache_dir/.claude-plugin/plugin.json"
     echo "Plugin cache synced. Restart Claude Code to activate."
@@ -794,14 +873,22 @@ PLUGIN_VERSION=$(jq -r '.version // "0.0.0"' "$SYSTEM_DIR/.claude-plugin/plugin.
 CACHE_DIR="$PLUGINS_DIR/cache/brana/brana/$PLUGIN_VERSION"
 if [ -d "$CACHE_DIR" ]; then
     # Check if cache is stale (compare with system/ and plugin.json separately)
-    CACHE_DIFF=$(diff -rq "$CACHE_DIR" "$SYSTEM_DIR" 2>/dev/null | grep -v ".claude-plugin" | head -5 || true)
+    CACHE_DIFF=$(cache_diff "$CACHE_DIR" "$SYSTEM_DIR" | grep -v ".claude-plugin" | head -5 || true)
     PLUGIN_JSON_DIFF=$(diff "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json" 2>/dev/null | head -1 || echo "differ")
-    if [ -n "$CACHE_DIFF" ] || [ -n "$PLUGIN_JSON_DIFF" ]; then
+    # Stale build output left by a pre-t-2500 cache also needs a sync to clear.
+    CACHE_TARGET_STALE=""
+    for _d in "$CACHE_DIR"/cli/rust/target/*; do
+        [ -e "$_d" ] || continue
+        [ "$(basename "$_d")" = "release" ] || { CACHE_TARGET_STALE="build artifacts"; break; }
+    done
+    if [ -n "$CACHE_DIFF" ] || [ -n "$PLUGIN_JSON_DIFF" ] || [ -n "$CACHE_TARGET_STALE" ]; then
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then
-            echo "  ~ cache/brana/brana/$PLUGIN_VERSION (would sync)"
+            echo "  ~ cache/brana/brana/$PLUGIN_VERSION (would sync${CACHE_TARGET_STALE:+ — prunes stale $CACHE_TARGET_STALE})"
         else
-            rsync -av --delete --exclude='.claude-plugin' "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+            rsync -av --delete --exclude='.claude-plugin' "${CACHE_RSYNC_EXCLUDES[@]}" "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+            prune_cache_target "$CACHE_DIR"
+            sync_cache_bins "$SYSTEM_DIR" "$CACHE_DIR"
             mkdir -p "$CACHE_DIR/.claude-plugin"
             cp "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json"
             echo "  ~ cache/brana/brana/$PLUGIN_VERSION (synced)"
@@ -815,7 +902,11 @@ else
         echo "  + cache/brana/brana/$PLUGIN_VERSION (would snapshot)"
     else
         mkdir -p "$CACHE_DIR/.claude-plugin"
-        rsync -av --exclude='.git' "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+        # First-snapshot path — this is the one that used to copy 24GB of Cargo
+        # output into a fresh cache, and made bootstrapping into a temp HOME
+        # fail outright on disk quota (t-2500).
+        rsync -av --exclude='.git' "${CACHE_RSYNC_EXCLUDES[@]}" "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+        sync_cache_bins "$SYSTEM_DIR" "$CACHE_DIR"
         cp "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json"
         echo "  + cache/brana/brana/$PLUGIN_VERSION (snapshotted)"
     fi
