@@ -72,3 +72,27 @@ jobs:
             for t in $FAILED_TESTS; do echo "  - $t"; done
           fi
           exit $FAIL
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: system/cli/rust
+
+      - name: Build brana-mcp
+        working-directory: system/cli/rust
+        run: cargo build -p brana-mcp
+
+      # The only test needing a real cargo artifact. It skips when the binary is
+      # absent (see the test header); BRANA_REQUIRE_MCP_BIN turns that skip back
+      # into a hard failure here, where the binary IS built — so the t-1650
+      # stdio-bleed regression cannot go silently uncovered.
+      - name: Run brana-mcp stdio isolation test
+        env:
+          BRANA_REQUIRE_MCP_BIN: "1"
+        run: bash tests/procedures/test-agy-mcp-stdio-isolation.sh
