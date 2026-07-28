@@ -7,7 +7,7 @@
 #
 # Design:
 #   - Fake CLAUDE_PLUGIN_DATA/brana binary returns mock session JSON with learnings
-#   - session-end.sh forks background; test waits 2s for completion
+#   - session-end.sh forks background; test polls for completion (see await_pipeline)
 #   - Fake HOME isolates patterns.md writes
 #
 # TDD markers: all green post t-1450
@@ -20,6 +20,31 @@ HOOK="$HOOKS_DIR/session-end.sh"
 
 PASS=0; FAIL=0
 TEST_ID="learnings-$$"
+
+# Block until session-end.sh's backgrounded pipeline finishes, bounded at 20s.
+#
+# The old `sleep 2` was simply shorter than the pipeline: session-end-persist.sh
+# gives the ruflo L1 store a `timeout 5` budget BEFORE patterns.md is written, so
+# the file lands ~5.4s after the hook returns. CI hits this every run rather than
+# intermittently — cf-env.sh falls back to `npx ruflo` whenever npx is on PATH
+# (it is on ubuntu-latest), so even a networkless runner burns the full 5s.
+#
+# Poll rather than sleep longer: the happy path stays fast, and the negative case
+# in Test 2 gets a genuine window in which patterns.md could wrongly appear —
+# under a 2s sleep its absence was guaranteed, so the assertion was vacuous.
+#
+# The sentinel is SESSION_FILE, which session-end.sh removes as the last act of
+# the background block. It is deleted unconditionally, so the same signal works
+# for the positive and negative cases alike, and it comes after patterns.md.
+await_pipeline() {
+    local sentinel="$1" i
+    for ((i = 0; i < 100; i++)); do
+        [ -e "$sentinel" ] || return 0
+        sleep 0.2
+    done
+    echo "  WARN: pipeline unfinished after 20s — $sentinel still present" >&2
+    return 1
+}
 
 assert_file_exists() {
     local label="$1" path="$2"
@@ -100,7 +125,7 @@ INPUT_1=$(jq -n -c \
     export CLAUDE_PLUGIN_DATA="$FAKE_PLUGIN_1"
     echo "$INPUT_1" | bash "$HOOK" > /dev/null 2>&1
 )
-sleep 2
+await_pipeline "$SESSION_FILE_1" || true
 
 PATTERNS_1=$(cat "$FAKE_HOME_1/.claude/memory/patterns.md" 2>/dev/null || echo "")
 assert_file_exists "patterns.md created from session learnings" \
@@ -149,7 +174,7 @@ INPUT_2=$(jq -n -c \
     export CLAUDE_PLUGIN_DATA="$FAKE_PLUGIN_2"
     echo "$INPUT_2" | bash "$HOOK" > /dev/null 2>&1
 )
-sleep 2
+await_pipeline "$SESSION_FILE_2" || true
 
 assert_file_not_exists "patterns.md NOT created for empty learnings" \
     "$FAKE_HOME_2/.claude/memory/patterns.md"
@@ -197,7 +222,7 @@ INPUT_3=$(jq -n -c \
     export PATTERN_LEARNINGS='["pre-set caller learning SHOULD appear"]'
     echo "$INPUT_3" | bash "$HOOK" > /dev/null 2>&1
 )
-sleep 2
+await_pipeline "$SESSION_FILE_3" || true
 
 PATTERNS_3=$(cat "$FAKE_HOME_3/.claude/memory/patterns.md" 2>/dev/null || echo "")
 assert_file_exists "patterns.md written from pre-set PATTERN_LEARNINGS" \
