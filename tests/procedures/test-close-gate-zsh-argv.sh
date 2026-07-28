@@ -39,9 +39,13 @@ TMPROOT="$(mktemp -d)"
 trap 'rm -rf "$TMPROOT"' EXIT
 
 # ── Extract the ```bash block that invokes close-snapshot.sh ─────────────────
+# Select on --git-root, which appears ONLY in the actual invocation. Matching a
+# bare "close-snapshot.sh" substring is too loose — prose comments in other blocks
+# mention the script by name and would hijack the selection (hit while adding the
+# t-2491 anchor comment to the Step 1 block).
 awk '
-  /^```bash$/ { inb=1; n++; buf=""; next }
-  /^```$/     { if (inb && buf ~ /close-snapshot\.sh/) { printf "%s", buf; exit } inb=0; next }
+  /^```bash$/ { inb=1; buf=""; next }
+  /^```$/     { if (inb && buf ~ /--git-root/) { printf "%s", buf; exit } inb=0; next }
   inb         { buf = buf $0 "\n" }
 ' "$PHASE_MD" > "$TMPROOT/step1b.sh"
 
