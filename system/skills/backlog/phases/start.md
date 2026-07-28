@@ -205,8 +205,15 @@ Branch name follows the project convention (CLAUDE.md §Branch naming):
    the epic-node ancestor via the task's `parent` chain. Read and follow
    [`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) — call
    `resolve_epic_ancestor(task_id)`.
-   If it returns empty (no epic ancestor found, or none of the ancestors are a valid
-   slug): emit warning and stop: "⚠ Task t-NNN has no epic ancestor. Set one first:
+
+   **Check the exit status first (t-2487).** A non-zero exit means the lookup broke, not
+   that the task lacks an epic — the two used to be indistinguishable. On non-zero: emit
+   "⚠ epic lookup failed for t-NNN (backlog read error) — not naming a branch on an
+   unknown epic" and stop. Do not fall through to the no-epic message below, which would
+   send the user to set a parent that may already be correct.
+
+   If it returns empty *at exit 0* (no epic ancestor found, or none of the ancestors are a
+   valid slug): emit warning and stop: "⚠ Task t-NNN has no epic ancestor. Set one first:
    `brana backlog set t-NNN parent <epic-task-id>` (list candidates via
    `mcp__brana__backlog_query(task_type: \"epic\")` — the CLI's `brana backlog query
    --type epic` currently errors, since backlog-v3's epic-as-top nodes were never added
