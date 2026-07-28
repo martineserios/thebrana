@@ -1,7 +1,7 @@
 ---
 depends_on:
   - docs/architecture/decisions/ADR-051-reminder-store-architecture.md
-  - docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md
+  - docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md
   - docs/domain/MODEL-001-brana-core.md
 informs:
   - docs/ideas/async-first-close.md
@@ -17,14 +17,14 @@ status: accepted
 
 ## Context
 
-The reminder store (ADR-051) is pull-based: reminders surface only at session start (pending count) or via `brana remind list`. There is no way to say "remind me at 15:00" and get pinged at 15:00. The gap is the time trigger and the delivery path — the store, the timer layer (ADR-002 systemd scheduler), and a push channel (Telegram send in `system/scheduler/brana-scheduler-notify.sh`) all exist but are not wired together.
+The reminder store (ADR-051) is pull-based: reminders surface only at session start (pending count) or via `brana remind list`. There is no way to say "remind me at 15:00" and get pinged at 15:00. The gap is the time trigger and the delivery path — the store, the timer layer (ADR-071 systemd scheduler), and a push channel (Telegram send in `system/scheduler/brana-scheduler-notify.sh`) all exist but are not wired together.
 
 The user wants delivery to be **channel-based**: named channels (Telegram, desktop, ntfy, …) that reminders can route to explicitly or broadcast across, with sensible defaults. Google Calendar sync was researched and **deferred** (decision log 2026-06-12): inbound calendar reads are a documented prompt-injection surface (zero-click RCE via calendar events, Feb 2026), and outbound sync is not needed for v1 delivery. The channel abstraction is the seam where calendar returns later as just another channel type.
 
 Constraints inherited from prior decisions:
 
 - ADR-051 §4: the store schema evolves only via `Option<T>` / `#[serde(default)]` fields; mutation only by the Rust CLI under the write lock.
-- ADR-002: new timed behavior is a scheduler job over systemd timers — never a new daemon.
+- ADR-071: new timed behavior is a scheduler job over systemd timers — never a new daemon.
 - MODEL-001: cross-context communication happens through the application layer; contexts stay independent.
 - Telegram send already exists inline in `brana-scheduler-notify.sh` — duplicating it would create drift.
 
@@ -97,11 +97,11 @@ brana notify channels                                   # list registry channels
   1. **Select** (under lock): read store, collect entries with `due <= now`, `status == pending`, `dispatched_at == null`. Release lock.
   2. **Send** (no lock): run adapters for each selected entry.
   3. **Commit** (under lock): re-read store; for each entry that had ≥1 successful send and is *still* `dispatched_at == null`, set `dispatched_at`. Entries already marked by a concurrent run are left untouched.
-- **Ordering is send-then-mark.** A crash between send and commit yields a duplicate ping on the next run; mark-then-send would yield a silent loss (marked, never delivered) — the exact failure class ADR-051 exists to prevent. For human notifications, duplicate beats lost. The double-ping window (select→commit of two concurrent runs) is narrow and bounded: timer runs are serialized by the ADR-002 runner's per-job flock, so the window only opens against a *manual* concurrent `--dispatch`.
+- **Ordering is send-then-mark.** A crash between send and commit yields a duplicate ping on the next run; mark-then-send would yield a silent loss (marked, never delivered) — the exact failure class ADR-051 exists to prevent. For human notifications, duplicate beats lost. The double-ping window (select→commit of two concurrent runs) is narrow and bounded: timer runs are serialized by the ADR-071 runner's per-job flock, so the window only opens against a *manual* concurrent `--dispatch`.
 - **Partial failure:** attempt every resolved channel; if **at least one** succeeds, set `dispatched_at` and log per-channel failures (journal). If **all** fail, leave `dispatched_at` null — the next scheduler run retries all channels. Consequence: a reminder delivered on one channel is never retried on a channel that failed — accepted for v1 (the human was reached); per-channel retry bookkeeping is explicitly out of scope.
 - **Headless safety:** desktop adapter absent/no session → counts as Failed, never blocks, exit 0 (mirrors `remind.sh`'s hooks-never-block contract).
 
-### 6. Scheduler wiring (ADR-002 pattern)
+### 6. Scheduler wiring (ADR-071 pattern)
 
 One template job, command-type (no `claude -p`, no LLM): `brana remind due --dispatch`, every 10 minutes. Empty store / nothing due → fast exit before any lock acquisition (same `[ -s file ]`-style cheap guard as session-start's read path). Job failures route through the existing `brana-sched-notify@.service` OnFailure unit, which stays brana-independent (§1) — so a broken dispatch binary still produces a failure notification.
 
@@ -130,7 +130,7 @@ The Telegram send already lives there. Rejected: dispatch requires locked read-m
 Originally proposed in this ADR's draft to avoid duplicating the Telegram curl. Killed by challenger review (2026-06-12): the script's brana-independence is a deliberate firebreak — it is the component that reports brana-binary failures, so it cannot depend on the brana binary. Two Telegram send sites is the accepted cost; the script's copy is annotated as deliberate.
 
 ### Per-reminder systemd timers (one timer per due time)
-Exact-time delivery instead of ≤10-minute granularity. Rejected: timer-unit churn, orphan cleanup on resolve/snooze, and ADR-002's spirit (a thin static job table, not dynamic unit generation). 10-minute granularity is acceptable for human reminders; revisit only with a concrete need for exactness.
+Exact-time delivery instead of ≤10-minute granularity. Rejected: timer-unit churn, orphan cleanup on resolve/snooze, and ADR-071's spirit (a thin static job table, not dynamic unit generation). 10-minute granularity is acceptable for human reminders; revisit only with a concrete need for exactness.
 
 ### Reusing `tags` or `action` for routing (no schema change)
 Encoding channels as `tags: ["ch:telegram"]`. Rejected: stringly-typed routing in a field with a different meaning; ADR-051 §4 makes proper optional fields cheap and non-breaking.

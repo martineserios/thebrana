@@ -18,6 +18,7 @@
 
 3. **goal-completion.sh has ~10+ undeclared consumers; Wave 2 lists deletion, not migration.** Wired into hooks.json (blocking), ac-lint.sh, git pre-commit, red-verification.sh, presence-refresh.sh, 4 skill phases (build-loop, load, fix, reconcile), plus ADR-047, ADR-061, ADR-062-step-state-contract — which collides in filename with the unrelated ADR-062-runner-executor-sandbox.
    *Fix:* enumerate consumers as explicit Wave-2 tasks; resolve the ADR-062 numbering collision; port test-goal-completion.sh assertions.
+   *Resolved 2026-07-28 (t-2507):* the step-state contract is now `ADR-074-step-state-contract.md`; `ADR-062` unambiguously means the runner/executor sandbox. The filenames above are left as written — they record what was true at review time.
 
 ### Warnings
 

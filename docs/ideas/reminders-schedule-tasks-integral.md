@@ -12,7 +12,7 @@ created: 2026-06-12
 
 Three systems exist but operate in isolation:
 
-1. **Scheduler (ADR-002):** Systemd timers run jobs on fixed intervals. ~23 jobs in production (daily focus, feed polls, nightly extraction).
+1. **Scheduler (ADR-071):** Systemd timers run jobs on fixed intervals. ~23 jobs in production (daily focus, feed polls, nightly extraction).
 2. **Reminders (ADR-051/ADR-054):** Event-based and batch sources write to a Rust-owned store. Channels (Telegram, Desktop, Ntfy) dispatch via a scheduler job (t-1999 pending).
 3. **Tasks (backlog):** ID, subject, status, priority, tags, context. No inherent timing or reminder integration.
 
@@ -35,7 +35,7 @@ Design one unified model that formalizes:
 
 - **Tight coupling is real:** t-1999 (dispatch job) blocks on t-2000 (spec), which doesn't exist yet because the spec needs to define the channel model. But channels are already part of ADR-054, so t-2000 is just docs. The blocker is artificial — rooted in missing clarity on how reminders relate to tasks.
   
-- **Existing foundations are solid:** ADR-051 (Rust store + lock) solves concurrency; ADR-054 (Notify context) establishes channel abstraction; systemd (ADR-002) handles job timing. No major rewrites needed.
+- **Existing foundations are solid:** ADR-051 (Rust store + lock) solves concurrency; ADR-054 (Notify context) establishes channel abstraction; systemd (ADR-071) handles job timing. No major rewrites needed.
 
 - **The gap:** No shared model of "what is due when" across all three systems. The scheduler knows "run job X at 02:00 daily." Reminders know "dispatch this reminder at time T to channels [C]." Tasks know "priority P, blocked by [tasks]." But there's no unified language that says "task X is due at time T and has a reminder that triggers dispatch to channels [C] at time T-1hour."
 
@@ -61,7 +61,7 @@ Three options compared: **A** full unification (one ActionUnit entity — reject
 1. **`due` semantics are typed, not uniform:** reminders carry *fire-at*; tasks carry *finish-by* (deadline) + lead-time policy for derived pings (e.g. T−1d). The shared part is the vocabulary and machinery, not the meaning.
 2. **Compute, don't copy — RESOLVED incl. snooze semantics (follow-up round):** task-due pings are never materialized *ahead of dispatch*. The due-checker derives "what fires now" from live task state each run; at fire time the dispatch record IS a real reminder row (dedup_key `task:t-NNN:due` — ADR-051's dedup machinery already requires this). Snooze therefore needs zero new machinery: it operates on that row like any reminder. **Semantic firewall — two verbs, never conflated:** snooze the ping = per-user attention state in the reminder store, `due_date` untouched (snooze past deadline → refire framed as "overdue by N days"); move the deadline = explicit `brana backlog set t-NNN due_date`, project-scoped, never reachable via a snooze action. The row stores only timing + dedup + task_id — never message content; refires re-derive everything from live task state. **Stale-snooze rule (user decision 2026-06-12):** deadline moved while snoozed → one terminal informational refire ("deadline moved to {new date}; reminder closed") on the row's own `channels`, then expire — a snooze is a promise, never break it silently. Task completed/cancelled while snoozed → expire silently (you closed the loop yourself; notifying is noise).
 3. **One-directional references:** `reminder.task_id` only (with existing `project` field — reminders are per-user, tasks per-project). Reverse lookup is a query (`brana remind list --task t-NNN`), never a stored back-edge. No cross-store transactions exist; don't pretend they do.
-4. **Recurrence — RESOLVED (follow-up round):** recurrence is a trigger expression, not an entity. `recur: Option<String>` on the reminder (v1 keywords: `daily`, `weekly:mon`, `monthly:1`). The stored row is the *series*; `due` always holds next fire time; occurrences are never materialized (same "compute, don't copy" principle). On dispatch: set `dispatched_at`, advance `due` per `recur`. Unified eligibility predicate covers one-shot and recurring with no branching: `due ≤ now AND (dispatched_at null OR dispatched_at < due)` — the one-shot "never dispatch again" rule (ADR-054) is the degenerate case. Semantics: `resolve` = kill series (terminal); `snooze` = defer one occurrence; no per-occurrence acknowledgment. **Boundary rule:** executes code → scheduler job (ADR-002 monopoly); routes attention → reminder with recur. Deferred to post-v1: complex RRULEs, exception dates, per-occurrence done-tracking.
+4. **Recurrence — RESOLVED (follow-up round):** recurrence is a trigger expression, not an entity. `recur: Option<String>` on the reminder (v1 keywords: `daily`, `weekly:mon`, `monthly:1`). The stored row is the *series*; `due` always holds next fire time; occurrences are never materialized (same "compute, don't copy" principle). On dispatch: set `dispatched_at`, advance `due` per `recur`. Unified eligibility predicate covers one-shot and recurring with no branching: `due ≤ now AND (dispatched_at null OR dispatched_at < due)` — the one-shot "never dispatch again" rule (ADR-054) is the degenerate case. Semantics: `resolve` = kill series (terminal); `snooze` = defer one occurrence; no per-occurrence acknowledgment. **Boundary rule:** executes code → scheduler job (ADR-071 monopoly); routes attention → reminder with recur. Deferred to post-v1: complex RRULEs, exception dates, per-occurrence done-tracking.
 5. **Read-time consistency:** task cancelled/completed → linked reminders are skipped at list/dispatch time by checking live task status (same pattern as sitrep's stale-next[] filter). No write-time cascades across stores.
 
 ### Final adversarial sweep (system-level, 2026-06-12)
@@ -88,7 +88,7 @@ Iterative: every stage ships something functional, soaks in production, and gate
 
 ## Engineering Disciplines (SHAPE, approved 2026-06-12)
 
-- **DDD:** one ADR up front — "Integral temporal model: shared primitives, separate entities." Extends ADR-051/ADR-054, respects ADR-002's scheduler monopoly. Written before any implementation task.
+- **DDD:** one ADR up front — "Integral temporal model: shared primitives, separate entities." Extends ADR-051/ADR-054, respects ADR-071's scheduler monopoly. Written before any implementation task.
 - **TDD (per stage, tests first):** predicate eligibility table tests; recurrence advancement incl. missed-day catch-up; snooze round-trip through dispatch; ping derivation per priority (P0/P1/P2 lead times); read-time skip of closed tasks; stale-snooze terminal refire.
 - **SDD:** t-2000 dispatch spec is the Stage 0 deliverable; `docs/architecture/features/reminder-system.md` updated at each stage that changes semantics.
 - **Docs:** tech doc update (reminder-system.md — schema + semantics change: yes); user guide for `brana remind` recur/snooze verbs (yes — new user-facing behavior); `docs/guide/commands/index.md` only if CLI flags change; overview untouched (no system-level pattern shift).

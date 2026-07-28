@@ -4,7 +4,7 @@ informs:
 status: accepted
 ---
 
-# ADR-002: Scheduler — thin layer over systemd timers
+# ADR-071: Scheduler — thin layer over systemd timers
 
 **Date:** 2026-02-18
 **Status:** accepted (hardened 2026-02-19)
