@@ -100,12 +100,41 @@ For each item in `next[]` where `task_id` is non-null:
 
 This step prevents task IDs emitted during ideation or follow-up planning from being lost when session state is written without a corresponding backlog entry.
 
+**Step 9b: Capture the CAS token (required for a second close on the same day)**
+
+A same-day, same-branch write **merges** with the existing state. By default `next[]` is
+**unioned**, which means an entry can be added but never corrected and never withdrawn. To
+make your `next[]` authoritative, read the state you are about to merge with and pass its
+`written_at` back as `base_written_at` (t-2506):
+
+```bash
+BASE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty')
+# include "base_written_at": "$BASE" in the payload
+```
+
+Run this from the repo root — `session read` resolves against the *current* git branch, so a
+timestamp read from a different directory belongs to another lane and will be rejected as
+stale (which is safe, just useless).
+
+**Same-day merge semantics — what MERGES, what REPLACES:**
+
+| Field | Rule | Why |
+|---|---|---|
+| `accomplished[]`, `learnings[]`, `blockers[]` | always **union** | append-only logs of what happened |
+| `next[]` with matching `base_written_at` | **replace** | current forward-looking state; must be correctable |
+| `next[]` with stale/absent `base_written_at` | **union** + warning | caller cannot be shown to have read current content |
+| `session_label` | combined with ` \| ` | breadcrumb across closes |
+
+**To express "this item is done, drop it":** omit it from `next[]` and pass a matching
+`base_written_at`. Omission alone does nothing — without the token the write unions and the
+entry survives. There is no separate delete verb.
+
 **Write via CLI:**
 
 ```bash
 # Write JSON to temp file (avoids shell escaping issues)
 cat > /tmp/session-close-$$.json << 'JSON'
-{ ... the payload above ... }
+{ ... the payload above, including base_written_at ... }
 JSON
 
 # CLI validates schema, archives previous state, writes atomically
@@ -115,7 +144,26 @@ brana session write --file /tmp/session-close-$$.json
 rm -f /tmp/session-close-$$.json
 ```
 
-The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at` is set to null — the next session-start marks it consumed.
+The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at` is set to null — the next session-start marks it consumed. `base_written_at` is a request parameter and is never persisted.
+
+**CHECK THE RESPONSE — it reports what actually landed:**
+
+```json
+{"ok":true,"path":"...","next":{"incoming":8,"written":7,"dropped_duplicates":1,
+                                "retained_from_existing":0,"mode":"replace"}}
+```
+
+`incoming` != `written` means entries did not land. `mode` tells you which rule applied;
+`union-stale-base` means another session wrote while you were composing, your `next[]` was
+unioned rather than replaced, and anything you meant to withdraw is still there — re-read
+and write again. A warning also goes to stderr. **Do not send stderr to `/dev/null` on this
+call** — it is the only place the concurrency downgrade is announced.
+
+> Historical note (t-2506): `task_id` used to be a dedup key, so two `next[]` entries
+> referencing the same task silently collapsed to one and the *incumbent* text won. Several
+> distinct next steps legitimately concern one task; `task_id` is a reference, not a unique
+> key. Folding multiple points into one entry, or setting `task_id: null` to dodge the drop,
+> are no longer necessary.
 
 **`next` category values** (validated enum):
 - `follow-up` — action items from this session

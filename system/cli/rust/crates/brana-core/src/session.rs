@@ -244,6 +244,16 @@ pub struct SessionState {
     pub epic: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consumed_at: Option<String>,
+    /// Compare-and-swap token (t-2506): the `written_at` the caller read before composing
+    /// this payload. When it matches the stored state, the caller has demonstrably seen
+    /// current content, so its `next[]` is authoritative and replaces the stored one —
+    /// which is what makes correcting and withdrawing entries possible. When it is absent
+    /// or stale, `next[]` is unioned instead. See [`write_state_with_base`].
+    ///
+    /// A request parameter, not persisted state: `skip_serializing` keeps it out of the
+    /// file, and `sanitize()` clears it defensively.
+    #[serde(default, skip_serializing)]
+    pub base_written_at: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub accomplished: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -295,6 +305,8 @@ impl SessionState {
     pub fn sanitize(mut self) -> Self {
         // Invariant: consumed_at is set by session-start, never persisted by a write.
         self.consumed_at = None;
+        // Invariant: the CAS token is a request parameter, never persisted (t-2506).
+        self.base_written_at = None;
         if let Some(ref mut drift) = self.doc_drift {
             drift.stale_docs.retain(|p| Path::new(p).exists());
         }
@@ -312,6 +324,7 @@ impl SessionState {
             session_labels: Vec::new(),
             epic: None,
             consumed_at: None,
+            base_written_at: None,
             accomplished: Vec::new(),
             learnings: Vec::new(),
             next: Vec::new(),
@@ -340,10 +353,113 @@ pub fn read_state(project_root: &Path) -> Option<SessionState> {
     read_state_from(project_root, &current_branch().unwrap_or_default())
 }
 
-/// Write session state atomically (.tmp → rename).
-/// Archives the previous state to history JSONL before overwriting.
+/// How `next[]` was resolved on a write (t-2506). Reported so that no discard, and no
+/// downgrade from replace to union, is silent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NextMergeMode {
+    /// No existing state at this path — payload written as-is.
+    Fresh,
+    /// Existing state replaced outright: different day or different branch.
+    ReplaceStale,
+    /// Unioned with existing state — caller supplied no base, so it cannot be shown to
+    /// have read current content. Omission therefore cannot mean "remove this".
+    Union,
+    /// Unioned with existing state — a base was supplied but did not match, meaning
+    /// another writer landed in between. Holds the stored timestamp that was expected.
+    UnionStaleBase { stored: String },
+    /// Base matched stored state — the payload's `next[]` replaced the stored one.
+    Replace,
+}
+
+/// Outcome of a session-state write. Every `next[]` entry that did not survive is
+/// accounted for here (t-2506: a discard must never be silent).
+#[derive(Debug, Clone, PartialEq)]
+pub struct WriteReport {
+    /// Entries in the incoming payload's `next[]`.
+    pub next_incoming: usize,
+    /// Entries in `next[]` as persisted.
+    pub next_written: usize,
+    /// Incoming entries dropped as case-folded text duplicates.
+    pub next_dropped_duplicates: usize,
+    /// Existing entries carried over because the write unioned rather than replaced.
+    pub next_retained: usize,
+    /// How `next[]` was resolved.
+    pub next_mode: NextMergeMode,
+}
+
+impl NextMergeMode {
+    /// Stable machine-readable tag for the CLI/MCP response.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            NextMergeMode::Fresh => "fresh",
+            NextMergeMode::ReplaceStale => "replace-stale",
+            NextMergeMode::Union => "union",
+            NextMergeMode::UnionStaleBase { .. } => "union-stale-base",
+            NextMergeMode::Replace => "replace",
+        }
+    }
+}
+
+impl WriteReport {
+    /// Human-readable warning for the CLI/MCP surface, or `None` when nothing was
+    /// discarded or downgraded and there is nothing worth saying.
+    pub fn warning(&self) -> Option<String> {
+        match &self.next_mode {
+            NextMergeMode::UnionStaleBase { stored } => Some(format!(
+                "next[]: concurrent write detected — another session wrote at {stored} after \
+                 you read. Unioned instead of replaced; {} existing entr{} retained, nothing \
+                 removed. Re-read and write again if you meant to withdraw an entry.",
+                self.next_retained,
+                if self.next_retained == 1 { "y" } else { "ies" }
+            )),
+            _ if self.next_dropped_duplicates > 0 => Some(format!(
+                "next[]: {} of {} incoming entr{} dropped as duplicate text; {} written.",
+                self.next_dropped_duplicates,
+                self.next_incoming,
+                if self.next_dropped_duplicates == 1 { "y" } else { "ies" },
+                self.next_written
+            )),
+            _ => None,
+        }
+    }
+}
+
+/// Write session state atomically (.tmp → rename), unioning `next[]` with any existing
+/// same-day state. Equivalent to [`write_state_with_base`] with no CAS token, so it can
+/// never remove an existing `next[]` entry — the safe default for callers that did not
+/// read current state first (e.g. the session-end safety net).
+pub fn write_state(project_root: &Path, state: &SessionState) -> Result<WriteReport> {
+    write_state_with_base(project_root, state, None)
+}
+
+/// Write session state atomically, resolving `next[]` by compare-and-swap.
+///
+/// `base_written_at` is the `written_at` the caller read before composing `state` (falling
+/// back to `state.base_written_at` when not passed explicitly). It decides how `next[]` is
+/// resolved on the same-day/same-branch merge path:
+///
+/// | base | vs stored | `next[]` outcome |
+/// |---|---|---|
+/// | supplied | matches | **replace** — payload is authoritative; omitted entries are removed |
+/// | supplied | differs | **union** + [`WriteReport::warning`] — a concurrent write landed |
+/// | absent | — | **union** — caller never read, so omission cannot mean "remove" |
+///
+/// Replace is what makes an entry correctable and withdrawable (t-2506); gating it on a
+/// matching base is what keeps it from re-introducing the t-1461 parallel-close data loss.
+/// A caller cannot reach replace without proving it read current state, so the failure mode
+/// is a redundant retention, never a silent loss. Union-loss is in any case recoverable
+/// from `session-history.jsonl`; a stale instruction that cannot be withdrawn is not.
+///
+/// `accomplished[]`, `learnings[]` and `blockers[]` always union regardless — they are
+/// append-only logs of what happened, whereas `next[]` is current forward-looking state and
+/// has to be correctable.
+///
 /// Non-existent paths in `doc_drift.stale_docs` are silently stripped before write.
-pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
+pub fn write_state_with_base(
+    project_root: &Path,
+    state: &SessionState,
+    base_written_at: Option<&str>,
+) -> Result<WriteReport> {
     let branch = state.branch.as_deref().unwrap_or("");
     // Route by the stable unit key (state.epic) first, falling back to branch-derived (t-2152).
     let state_path = unit_scoped_state_path(project_root, state.epic.as_deref(), branch);
@@ -354,12 +470,18 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
         fs::create_dir_all(parent)?;
     }
 
+    // An explicit argument wins over the payload-carried token, so a caller holding a
+    // freshly-read timestamp is never overridden by a stale one embedded in the JSON.
+    let base = base_written_at.or(state.base_written_at.as_deref());
+    let next_incoming = state.next.len();
+    let mut next_retained = 0usize;
+
     // Same-day + same-branch merge: union two closes from the same session context.
     // Uses local timezone — UTC comparison misclassifies late-night closes (e.g. 23:30
     // local = next UTC day) and prevents valid same-day merges.
     // Branch check prevents feat-A accomplishments bleeding into main when branches are
     // switched within the same directory on the same calendar day.
-    let state_to_write = if let Some(existing) = read_state_at(&state_path) {
+    let (state_to_write, next_mode) = if let Some(existing) = read_state_at(&state_path) {
         let same_day = chrono::DateTime::parse_from_rfc3339(&existing.written_at)
             .ok()
             .zip(chrono::DateTime::parse_from_rfc3339(&state.written_at).ok())
@@ -371,7 +493,23 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
         let same_branch = existing.branch == state.branch;
 
         if same_day && same_branch {
-            merge_states(&existing, state).sanitize()
+            let base_matches = base.is_some_and(|b| b == existing.written_at);
+            let mut merged = merge_states(&existing, state);
+            if base_matches {
+                // Caller read this exact state, so its next[] is the whole truth:
+                // anything it omitted was omitted deliberately.
+                merged.next = state.next.clone();
+                (merged.sanitize(), NextMergeMode::Replace)
+            } else {
+                next_retained = dedup_next_items(existing.next.clone()).len();
+                let mode = match base {
+                    Some(_) => NextMergeMode::UnionStaleBase {
+                        stored: existing.written_at.clone(),
+                    },
+                    None => NextMergeMode::Union,
+                };
+                (merged.sanitize(), mode)
+            }
         } else {
             // About to replace a different branch's state outright. Refuse if that
             // branch's worktree looks still active — this is the same failure class
@@ -393,10 +531,10 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
                     }
                 }
             }
-            state.clone().sanitize()
+            (state.clone().sanitize(), NextMergeMode::ReplaceStale)
         }
     } else {
-        state.clone().sanitize()
+        (state.clone().sanitize(), NextMergeMode::Fresh)
     };
 
     state_to_write.validate()?;
@@ -429,7 +567,17 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
     // Rotate history (drop entries > 365 days)
     rotate_history(&history_path)?;
 
-    Ok(())
+    let next_written = state_to_write.next.len();
+    Ok(WriteReport {
+        next_incoming,
+        next_written,
+        // Incoming entries that did not land: total written minus those carried over from
+        // existing state gives how many incoming survived.
+        next_dropped_duplicates: next_incoming
+            .saturating_sub(next_written.saturating_sub(next_retained)),
+        next_retained,
+        next_mode,
+    })
 }
 
 /// Remove history entries older than 365 days.
@@ -1007,6 +1155,7 @@ mod tests {
             session_labels: Vec::new(),
             epic: None,
             consumed_at: None,
+            base_written_at: None,
             accomplished: vec!["did thing A".to_string()],
             learnings: vec!["learned X".to_string()],
             next: vec![NextItem {
@@ -1134,6 +1283,7 @@ mod tests {
             session_labels: Vec::new(),
             epic: None,
             consumed_at: None,
+            base_written_at: None,
             accomplished: accomplished.into_iter().map(String::from).collect(),
             learnings: learnings.into_iter().map(String::from).collect(),
             next: Vec::new(),
@@ -1442,6 +1592,7 @@ mod tests {
         };
         let new = SessionState {
             consumed_at: None,
+            base_written_at: None,
             ..SessionState::minimal(None)
         };
         let merged = merge_states(&existing, &new);
@@ -1754,6 +1905,178 @@ mod tests {
         write_state(root, &state).unwrap();
         let loaded = read_state_from(root, "main").unwrap();
         assert_eq!(loaded.next.len(), 1, "duplicate next items must be deduped on write");
+    }
+
+    // ── next[] compare-and-swap (t-2506) ──────────────────────────────────
+    //
+    // The rule: the caller passes the `written_at` it read before composing its payload.
+    //   base matches stored  -> caller demonstrably saw current state -> REPLACE next[]
+    //   base does not match  -> someone wrote in between              -> UNION + report
+    //   no base supplied     -> caller never read                     -> UNION
+    // Union-loss is recoverable from session-history.jsonl; a stale instruction that
+    // cannot be withdrawn is not. Replace is therefore allowed, but only on proof of a
+    // current read, and it can never be reached by a caller that did not read.
+
+    fn next_item(text: &str, task_id: Option<&str>) -> NextItem {
+        NextItem {
+            text: text.to_string(),
+            task_id: task_id.map(str::to_string),
+            category: NextCategory::FollowUp,
+        }
+    }
+
+    #[test]
+    fn write_with_matching_base_replaces_next() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut first = make_state("2026-04-06T10:00:00Z");
+        first.next = vec![next_item("alpha", Some("t-1")), next_item("beta", Some("t-2"))];
+        write_state(root, &first).unwrap();
+        let stored = read_state_from(root, "main").unwrap();
+
+        // Same day, same branch, base matches → payload is authoritative.
+        let mut second = make_state("2026-04-06T11:00:00Z");
+        second.next = vec![next_item("alpha revised", Some("t-1"))];
+        let report = write_state_with_base(root, &second, Some(&stored.written_at)).unwrap();
+
+        let loaded = read_state_from(root, "main").unwrap();
+        assert_eq!(report.next_mode, NextMergeMode::Replace);
+        assert_eq!(loaded.next.len(), 1, "omitted entry must be removed, not retained");
+        assert_eq!(loaded.next[0].text, "alpha revised", "updated text must land");
+        assert!(
+            !loaded.next.iter().any(|n| n.text == "beta"),
+            "\"beta\" was omitted from an authoritative payload and must be gone"
+        );
+        // Union-only fields are unaffected by next[] replacement.
+        assert!(loaded.accomplished.contains(&"did thing A".to_string()));
+    }
+
+    #[test]
+    fn write_with_matching_base_can_correct_an_entry_text() {
+        // The t-2502 scenario: an earlier close wrote guidance, a later close learned it
+        // was wrong. Before this fix the incumbent won and the correction was discarded.
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut first = make_state("2026-04-06T10:00:00Z");
+        first.next = vec![next_item("over-reach traded for under-reach", Some("t-2502"))];
+        write_state(root, &first).unwrap();
+        let stored = read_state_from(root, "main").unwrap();
+
+        let mut second = make_state("2026-04-06T12:00:00Z");
+        second.next = vec![next_item("THREE reproductions — conditional, not clean", Some("t-2502"))];
+        write_state_with_base(root, &second, Some(&stored.written_at)).unwrap();
+
+        let loaded = read_state_from(root, "main").unwrap();
+        assert_eq!(loaded.next.len(), 1);
+        assert!(loaded.next[0].text.contains("THREE reproductions"));
+    }
+
+    #[test]
+    fn write_with_stale_base_unions_and_reports_concurrency() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut first = make_state("2026-04-06T10:00:00Z");
+        first.next = vec![next_item("alpha", Some("t-1")), next_item("beta", Some("t-2"))];
+        write_state(root, &first).unwrap();
+
+        // Caller read some earlier state, then someone else wrote. Its base is stale, so
+        // it cannot be trusted to have seen "beta" — union and say so.
+        let mut second = make_state("2026-04-06T11:00:00Z");
+        second.next = vec![next_item("gamma", Some("t-3"))];
+        let report =
+            write_state_with_base(root, &second, Some("2026-04-06T09:00:00Z")).unwrap();
+
+        let loaded = read_state_from(root, "main").unwrap();
+        assert!(
+            matches!(report.next_mode, NextMergeMode::UnionStaleBase { .. }),
+            "stale base must be reported, never silently honoured as a replace"
+        );
+        assert_eq!(loaded.next.len(), 3, "nothing may be dropped on a stale base");
+        assert_eq!(report.next_retained, 2, "retained count must be surfaced");
+    }
+
+    #[test]
+    fn write_without_base_unions() {
+        // t-1461 regression guard: a caller that never read current state must not be
+        // able to remove anything by omission.
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut first = make_state("2026-04-06T10:00:00Z");
+        first.next = vec![next_item("alpha", Some("t-1")), next_item("beta", Some("t-2"))];
+        write_state(root, &first).unwrap();
+
+        let mut second = make_state("2026-04-06T11:00:00Z");
+        second.next = vec![next_item("gamma", Some("t-3"))];
+        let report = write_state_with_base(root, &second, None).unwrap();
+
+        let loaded = read_state_from(root, "main").unwrap();
+        assert_eq!(report.next_mode, NextMergeMode::Union);
+        assert_eq!(loaded.next.len(), 3);
+    }
+
+    #[test]
+    fn minimal_same_day_write_cannot_wipe_next() {
+        // The session-end safety net writes SessionState::minimal(), whose next[] is
+        // empty and which never reads current state. Under an unconditional replace this
+        // would zero a full handoff. It must be structurally impossible.
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let now = Utc::now().to_rfc3339();
+
+        let mut rich = make_state(&now);
+        rich.next = vec![
+            next_item("alpha", Some("t-1")),
+            next_item("beta", Some("t-2")),
+            next_item("gamma", None),
+        ];
+        write_state(root, &rich).unwrap();
+
+        let mut safety_net = SessionState::minimal(Some("main".to_string()));
+        safety_net.written_at = now.clone();
+        assert!(safety_net.next.is_empty(), "precondition: minimal() carries no next[]");
+        write_state(root, &safety_net).unwrap();
+
+        let loaded = read_state_from(root, "main").unwrap();
+        assert_eq!(loaded.next.len(), 3, "safety-net write must not erase the handoff");
+    }
+
+    #[test]
+    fn write_report_surfaces_dropped_duplicates() {
+        // AC2: no discard is silent, including within-payload text duplicates.
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.next = vec![
+            next_item("check MEMORY.md", None),
+            next_item("  CHECK memory.md  ", None),
+            next_item("distinct item", None),
+        ];
+        let report = write_state_with_base(root, &state, None).unwrap();
+
+        assert_eq!(report.next_incoming, 3);
+        assert_eq!(report.next_dropped_duplicates, 1);
+        assert_eq!(report.next_written, 2);
+    }
+
+    #[test]
+    fn base_written_at_is_never_persisted() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.base_written_at = Some("2026-04-06T09:00:00Z".to_string());
+        write_state(root, &state).unwrap();
+
+        let raw = fs::read_to_string(epic_scoped_state_path(root, "main")).unwrap();
+        assert!(
+            !raw.contains("base_written_at"),
+            "the CAS token is a request parameter, not persisted state"
+        );
     }
 
     // ── merge_states task_id dedup ────────────────────────────────────────
