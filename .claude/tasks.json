@@ -64666,6 +64666,36 @@
       "acceptance_criteria": null,
       "work_type": "design",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2536",
+      "subject": "Global rules prescribe thebrana-only commands — reconcile-after-convention-change fires in every project but 3 of 4 reconcile scopes need system/",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "rules",
+        "harness",
+        "skills",
+        "portability"
+      ],
+      "description": "Rules in ~/.claude/rules/ load in every project, but some prescribe commands that only work in thebrana. A rule that fires everywhere and silently no-ops elsewhere is worse than no rule: it reads as a completed check.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2345",
+      "created": "2026-07-28",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Found 2026-07-28 at close of the t-2494 session. The rule reconcile-after-convention-change.md fired after a .claude/CLAUDE.md branch-convention edit, instructing `/brana:reconcile --scope propagation`. It is in ~/.claude/rules/, so it loads in EVERY project — but the command it prescribes is thebrana-shaped.\n\nMEASURED SCOPE PORTABILITY (by path references in system/skills/reconcile/phases/*.md):\n\n  scope          portable  why\n  consistency    NO        hardcodes system/hooks, system/skills, system/rules, system/agents\n                           vs docs/reflections, docs/architecture — thebrana's post-ADR-006\n                           layout. No client repo has system/.\n  propagation    NO        PROP-1 shells `bash system/scripts/verify-docs.sh` (thebrana path).\n                           PROP-2 is gated on `docs/spec-graph.json` exists, so it degrades\n                           quietly — but PROP-1 does not.\n  security       NO        8 refs to system/agents, system/hooks, system/skills, ~/.claude/rules.\n                           Audits the brana system itself, not a client application.\n  knowledge      YES       0 system/ refs; only ~/.claude/projects (machine-global).\n\nThe skill header states it outright: \"Unified maintenance command for the brana system.\" consistency is the DEFAULT scope, so a bare `/brana:reconcile` in a client repo is the least portable form.\n\nWHY THIS IS WORTH FIXING RATHER THAN REMEMBERING. The failure is silent-clean, not loud. In a client repo the propagation scope either errors on a missing script or finds nothing and reports no drift — and \"no drift found\" is indistinguishable from \"never actually checked this repo's docs\". That is the exit-code-is-not-evidence-of-work class applied to a maintenance command: a check that cannot fail is not a check. Anyone trusting a clean reconcile result in a client repo is trusting nothing.\n\nVERIFICATION GAP IN THIS FILING — READ BEFORE ACTING. The portability table above is derived from PATH REFERENCES ONLY. reconcile was NOT actually run in a non-thebrana repo. The hardcoded paths are certain; the runtime failure mode is not — consistency and security may degrade gracefully rather than erroring. Establish which it is FIRST, because it decides the fix: a loud failure needs only a guard, a silent-clean pass needs the guard AND a correction to anything that previously reported clean.\n\nLIKELY FIX (pick after the above is settled):\n1. Scope the rule — add a `paths:` predicate or an explicit \"thebrana only\" precondition so it stops firing in client repos. Cheapest, and it removes the false signal at the source.\n2. Guard the skill — reconcile detects a missing system/ and refuses loudly instead of no-opping. Fixes every caller, not just this rule.\n3. Both. Option 2 alone still leaves the rule instructing users to run something that will refuse.\n\nPrefer 2 at minimum: the rule is only one caller, and any future rule or habit pointing at reconcile inherits the same trap.\n\nBROADER SWEEP WORTH DOING WITH THIS: reconcile-after-convention-change is unlikely to be the only global rule prescribing a thebrana-only command. Audit ~/.claude/rules/ for other rules naming brana skills, system/ paths, or repo-specific scripts, and classify each as global / thebrana-only. delegation-routing.md and retrieval-routing.md both name brana-specific surfaces and are worth checking first.\n\nAC: it is established whether reconcile fails loudly or passes silent-clean outside thebrana, and that finding is recorded\nAC: running the prescribed command in a non-thebrana repo either works or refuses with a clear reason — never reports a clean result it did not verify\nAC: ~/.claude/rules/ audited for other rules prescribing thebrana-only commands; each classified global or thebrana-only\nAC: reconcile-after-convention-change.md no longer fires unqualified in projects where its command cannot run",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
