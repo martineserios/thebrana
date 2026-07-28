@@ -182,9 +182,21 @@ pub const DEFAULT_EPIC_WIP_LIMIT: i64 = 10;
 
 /// Advisory WIP-cap check for adding a new child under `parent_id` (ADR-065
 /// D4: "warn, not block, during pilot"). Returns `Some(warning)` when adding
-/// one more OPEN task (completed/cancelled children don't count) would push
-/// the epic's open-child count past its `wip_limit` (default
-/// `DEFAULT_EPIC_WIP_LIMIT` when unset). Returns `None` when `parent_id`
+/// one more LIVE task would push the epic's live-child count past its
+/// `wip_limit` (default `DEFAULT_EPIC_WIP_LIMIT` when unset).
+///
+/// "Live" is a synthetic projection over `classify()`, not a raw-status read:
+/// children `classify()` reports as `done` (completed/cancelled) or `parked`
+/// are excluded; `blocked` children still count, because a blocked task is
+/// still work in flight. Counting via `classify()` rather than `raw_status()`
+/// is what makes backlog-v3-schema.md §72 — "Can't add #11 without closing or
+/// **parking**" — true: parking was implemented as a `parked` tag surfaced by
+/// `classify()`, but this cap read the raw status field and ignored it, so
+/// parking a task had no effect on the count (t-2535). The warning names the
+/// count "live" rather than "open" precisely because it is no longer the raw
+/// reading a `--status` filter would reproduce (t-1340).
+///
+/// Returns `None` when `parent_id`
 /// doesn't resolve to a `type: "epic"` task, or the cap isn't breached —
 /// callers never branch on "is this an epic" themselves. Single point of
 /// computation shared by CLI `cmd_add` and MCP `backlog_add` (t-2313; same
@@ -196,15 +208,15 @@ pub fn check_epic_wip_cap(all: &[Value], parent_id: &str) -> Option<String> {
         return None;
     }
     let limit = parent["wip_limit"].as_i64().unwrap_or(DEFAULT_EPIC_WIP_LIMIT);
-    let open_children = all
+    let live_children = all
         .iter()
         .filter(|t| t["parent"].as_str() == Some(parent_id))
-        .filter(|t| !matches!(raw_status(t, ""), "completed" | "cancelled"))
+        .filter(|t| !matches!(classify(t, all), "done" | "parked"))
         .count() as i64;
-    let new_count = open_children + 1;
+    let new_count = live_children + 1;
     if new_count > limit {
         Some(format!(
-            "epic {parent_id} is at its WIP cap ({open_children}/{limit} open) — adding this task makes {new_count}; consider closing or parking before adding more"
+            "epic {parent_id} is at its WIP cap ({live_children}/{limit} live — parked and finished children excluded) — adding this task makes {new_count}; close or park something before adding more"
         ))
     } else {
         None
@@ -1175,6 +1187,37 @@ pub fn reject_retired_fields(obj: &serde_json::Map<String, Value>) -> Result<(),
     }
 }
 
+/// Task fields whose canonical representation is a JSON array.
+///
+/// `acceptance_criteria` is deliberately absent: its items are prose and
+/// legitimately contain commas, so comma-splitting them would corrupt the
+/// payload. Only fields listed here are coerced.
+pub const ARRAY_FIELDS: &[&str] = &["tags", "blocked_by", "isc"];
+
+/// Coerce legacy comma-string values on [`ARRAY_FIELDS`] into real JSON arrays
+/// (E2026-05-22-7).
+///
+/// Absent keys stay absent and nulls stay null — inventing keys here would
+/// resurrect retired-field-style schema drift.
+///
+/// Shared by `set_field` and `cmd_add`'s `--json` ingestion so both write paths
+/// normalize identically. `--json` merges arbitrary JSON straight onto the new
+/// task, bypassing `set_field`'s per-field match, which is how comma-strings
+/// used to survive to disk (t-2439).
+pub fn normalize_array_fields(task: &mut Value) {
+    for field in ARRAY_FIELDS {
+        if let Some(s) = task.get(*field).and_then(|v| v.as_str()) {
+            task[*field] = Value::Array(
+                s.split(',')
+                    .map(|t| t.trim())
+                    .filter(|t| !t.is_empty())
+                    .map(|t| Value::String(t.to_string()))
+                    .collect(),
+            );
+        }
+    }
+}
+
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
@@ -1184,15 +1227,7 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
                 task[field] = Value::Array(vec![]);
             }
             // Coerce legacy comma-string format to array (E2026-05-22-7)
-            if let Some(s) = task[field].as_str() {
-                task[field] = Value::Array(
-                    s.split(',')
-                        .map(|t| t.trim())
-                        .filter(|t| !t.is_empty())
-                        .map(|t| Value::String(t.to_string()))
-                        .collect(),
-                );
-            }
+            normalize_array_fields(task);
             let arr = task[field].as_array_mut()
                 .ok_or_else(|| format!("{field} is not an array"))?;
             if let Some(stripped) = value.strip_prefix('+') {
@@ -2482,6 +2517,58 @@ mod tests {
         assert!(reject_retired_fields(&obj).is_ok());
     }
 
+    // ── t-2439: shared comma-string → array coercion ─────────────────────
+
+    #[test]
+    fn test_normalize_array_fields_splits_comma_string() {
+        let mut task = json!({"tags": "a,b,c", "blocked_by": "t-1, t-2"});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!(["a", "b", "c"]));
+        assert_eq!(task["blocked_by"], json!(["t-1", "t-2"]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_leaves_arrays_untouched() {
+        let mut task = json!({"tags": ["a", "b"], "blocked_by": []});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!(["a", "b"]));
+        assert_eq!(task["blocked_by"], json!([]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_empty_string_becomes_empty_array() {
+        let mut task = json!({"tags": ""});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!([]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_ignores_absent_and_null() {
+        // Absent keys must stay absent — cmd_add's own null-defaulting owns
+        // that, and inventing keys here would resurrect retired-field-style
+        // schema drift.
+        let mut task = json!({"subject": "no arrays", "blocked_by": null});
+        normalize_array_fields(&mut task);
+        assert!(task.get("tags").is_none(), "must not invent a tags key");
+        assert!(task["blocked_by"].is_null(), "null must stay null");
+    }
+
+    #[test]
+    fn test_normalize_array_fields_trims_and_drops_blanks() {
+        let mut task = json!({"tags": " a , , b "});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["tags"], json!(["a", "b"]));
+    }
+
+    #[test]
+    fn test_normalize_array_fields_does_not_split_acceptance_criteria() {
+        // AC items are prose and legitimately contain commas — splitting them
+        // would corrupt the payload. Only ARRAY_FIELDS are coerced.
+        let mut task = json!({"acceptance_criteria": "tests pass, docs updated"});
+        normalize_array_fields(&mut task);
+        assert_eq!(task["acceptance_criteria"], json!("tests pass, docs updated"));
+    }
+
     // ── t-252: isc field ────────────────────────────────────────────────
 
     #[test]
@@ -2785,6 +2872,77 @@ mod tests {
     fn test_check_epic_wip_cap_ignores_done_children() {
         let tasks = epic_wip_sample(Some(10), 0, 10);
         assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "completed/cancelled children must not count toward the cap");
+    }
+
+    // ── t-2535: the cap must honor the parking that classify() already provides ──
+
+    /// Build an epic whose children carry `tags: ["parked"]` — the shape
+    /// `classify()` reports as the synthetic status "parked".
+    fn epic_wip_sample_parked(wip_limit: i64, parked_children: usize) -> Vec<Value> {
+        let mut tasks = vec![json!({
+            "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
+            "tags": [], "blocked_by": [], "parent": null, "wip_limit": wip_limit
+        })];
+        for i in 0..parked_children {
+            tasks.push(json!({
+                "id": format!("t-parked-{i}"), "status": "pending", "type": "task",
+                "tags": ["parked"], "blocked_by": [], "parent": "in-1"
+            }));
+        }
+        tasks
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_ignores_parked_children() {
+        // backlog-v3-schema.md §72: "Can't add #11 without closing or parking."
+        // Parking is implemented (classify() → "parked" via the tag) but the cap
+        // computed over raw_status, so parking a task did nothing to the count —
+        // making §72's promise false. Parked children must not count.
+        let tasks = epic_wip_sample_parked(10, 20);
+        assert!(
+            check_epic_wip_cap(&tasks, "in-1").is_none(),
+            "parked children must not count toward the cap — parking is §72's stated remedy"
+        );
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_counts_blocked_children() {
+        // Guard against over-filtering: "blocked" is also a synthetic classify()
+        // value, but a blocked task is still live work and must keep counting.
+        let mut tasks = vec![
+            json!({"id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
+                   "tags": [], "blocked_by": [], "parent": null, "wip_limit": 3}),
+            json!({"id": "t-dep", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": null}),
+        ];
+        for i in 0..3 {
+            tasks.push(json!({
+                "id": format!("t-blocked-{i}"), "status": "pending", "type": "task",
+                "tags": [], "blocked_by": ["t-dep"], "parent": "in-1"
+            }));
+        }
+        assert!(
+            check_epic_wip_cap(&tasks, "in-1").is_some(),
+            "blocked children are still live work and must count toward the cap"
+        );
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_warning_does_not_mislabel_count_as_open() {
+        // The count is a synthetic projection (not-done AND not-parked), so the
+        // warning must not call it "open" — "open" is the raw-status reading the
+        // cap no longer performs (split-raw-from-synthetic-aggregations, t-1340).
+        let mut tasks = epic_wip_sample(Some(3), 3, 0);
+        tasks.push(json!({"id": "t-parked-x", "status": "pending", "type": "task",
+                          "tags": ["parked"], "blocked_by": [], "parent": "in-1"}));
+        let warning = check_epic_wip_cap(&tasks, "in-1").expect("3 live + 1 new = 4, over cap of 3");
+        assert!(
+            !warning.contains("open"),
+            "warning must not label a parked-excluding count as 'open': {warning}"
+        );
+        assert!(
+            warning.contains("park"),
+            "warning should surface parking as an available remedy: {warning}"
+        );
     }
 
     #[test]

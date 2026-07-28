@@ -82,6 +82,19 @@ score = (keyword_overlap × 0.4) + (tag_overlap × 0.3) + (strategy_match × 0.2
 
 Returns top 3 matches. Empty array if no score > 0.3.
 
+**Candidate pool exclusion (amended 2026-07-24, t-2443):** always-loaded hot-path skills are
+removed from the candidate pool *before* ranking, so they never consume one of the three slots.
+These are the skills the always-loaded rules already route to by workflow position — the "6 Jobs"
+table in `.claude/CLAUDE.md`, the Skill Routing table in `system/rules/delegation-routing.md`, and
+the workflow skill map in `system/rules/work-start.md`. Suggesting them tells the caller nothing
+it did not already have.
+
+The exclusion is an **explicit identity list** (`ALWAYS_LOADED_SKILLS`), not a namespace-prefix
+check. Namespace is not the discriminator: `brana:meta-templates`, `brana:gsheets` and
+`brana:rust-skills` are domain-specific and remain suggestable exactly like a marketplace skill.
+The filter applies to both the ruflo semantic path and the local keyword-scoring path; `search`
+and `list` are unaffected.
+
 #### `brana skills search <query>`
 
 **Input:** Free-text query string.

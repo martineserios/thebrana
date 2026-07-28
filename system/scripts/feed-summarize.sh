@@ -53,7 +53,10 @@ if [ ! -f "$FEED_LOG" ]; then
     exit 0
 fi
 
-if [ ! -x "$CLAUDE_BIN" ] && ! command -v claude &>/dev/null; then
+# --dry-run never invokes the binary, so it must not require one (t-2485). Gating the
+# dry run on `claude` being installed made it a no-op on any machine without the CLI —
+# which silently turned validate.sh Check 41 into a permanent CI failure.
+if [ "$DRY_RUN" != "1" ] && [ ! -x "$CLAUDE_BIN" ] && ! command -v claude &>/dev/null; then
     echo "[feed-summarize] claude binary not found — skipping summarization"
     exit 0
 fi

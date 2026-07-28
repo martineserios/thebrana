@@ -19,7 +19,7 @@
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
 | `m-plus-discipline-enforcement.md` | M+ Discipline Enforcement | Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines: |
 | `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
-| `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
+| `parallel-bash.md` | Bash: Parallelism and Signals | CC cancels sibling Bash calls when one exits non-zero: guard independent parallel commands with `; e... |
 | `reconcile-after-convention-change.md` | Run Reconcile After CLAUDE.md Convention Changes | After any change to naming conventions in `.claude/CLAUDE.md` (branch prefixes, slug formats, task I... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
 | `retrieval-routing.md` | Retrieval Routing | Pick the retrieval surface by query shape — walk top-to-bottom, first match wins. (ADR-064, pilot ... |
@@ -126,11 +126,11 @@ Any plan, backlog, or build output for efforts M or larger MUST include all four
 Never build a skill whose LOAD step references a doc that doesn't exist yet.
 
 
-## Parallel Bash Resilience
+## Bash: Parallelism and Signals
 
 **File:** `system/rules/parallel-bash.md`
 
-Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel commands:
+CC cancels sibling Bash calls when one exits non-zero: guard independent parallel commands with `; echo EXIT:$?` and check codes after; run dependent ones in one call with `&&`.
 
 
 ## Run Reconcile After CLAUDE.md Convention Changes

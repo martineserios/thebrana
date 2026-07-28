@@ -100,12 +100,41 @@ For each item in `next[]` where `task_id` is non-null:
 
 This step prevents task IDs emitted during ideation or follow-up planning from being lost when session state is written without a corresponding backlog entry.
 
+**Step 9b: Capture the CAS token (required for a second close on the same day)**
+
+A same-day, same-branch write **merges** with the existing state. By default `next[]` is
+**unioned**, which means an entry can be added but never corrected and never withdrawn. To
+make your `next[]` authoritative, read the state you are about to merge with and pass its
+`written_at` back as `base_written_at` (t-2506):
+
+```bash
+BASE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty')
+# include "base_written_at": "$BASE" in the payload
+```
+
+Run this from the repo root — `session read` resolves against the *current* git branch, so a
+timestamp read from a different directory belongs to another lane and will be rejected as
+stale (which is safe, just useless).
+
+**Same-day merge semantics — what MERGES, what REPLACES:**
+
+| Field | Rule | Why |
+|---|---|---|
+| `accomplished[]`, `learnings[]`, `blockers[]` | always **union** | append-only logs of what happened |
+| `next[]` with matching `base_written_at` | **replace** | current forward-looking state; must be correctable |
+| `next[]` with stale/absent `base_written_at` | **union** + warning | caller cannot be shown to have read current content |
+| `session_label` | combined with ` \| ` | breadcrumb across closes |
+
+**To express "this item is done, drop it":** omit it from `next[]` and pass a matching
+`base_written_at`. Omission alone does nothing — without the token the write unions and the
+entry survives. There is no separate delete verb.
+
 **Write via CLI:**
 
 ```bash
 # Write JSON to temp file (avoids shell escaping issues)
 cat > /tmp/session-close-$$.json << 'JSON'
-{ ... the payload above ... }
+{ ... the payload above, including base_written_at ... }
 JSON
 
 # CLI validates schema, archives previous state, writes atomically
@@ -115,7 +144,32 @@ brana session write --file /tmp/session-close-$$.json
 rm -f /tmp/session-close-$$.json
 ```
 
-The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at` is set to null — the next session-start marks it consumed.
+The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at` is set to null — the next session-start marks it consumed. `base_written_at` is a request parameter and is never persisted.
+
+**CHECK THE RESPONSE — it reports what actually landed:**
+
+```json
+{"ok":true,"path":"...","next":{"incoming":8,"written":7,"dropped_duplicates":1,
+                                "retained_from_existing":0,"mode":"replace"}}
+```
+
+`incoming` != `written` means entries did not land. `mode` tells you which rule applied;
+`union-stale-base` means another session wrote while you were composing, your `next[]` was
+unioned rather than replaced, and anything you meant to withdraw is still there — re-read
+and write again. A warning also goes to stderr. **Do not send stderr to `/dev/null` on this
+call** — it is the only place the concurrency downgrade is announced.
+
+**Dedup key:** `next[]` entries are deduplicated by **case-folded trimmed `text` only**.
+`task_id` does not participate, so `task_id: null` and a populated `task_id` behave
+identically — null was never special, it merely escaped a key it should not have been in.
+Two entries with the same `task_id` and different text are two entries; two entries with the
+same text are one, whatever their `task_id`.
+
+> Historical note (t-2506): `task_id` used to be a dedup key, so two `next[]` entries
+> referencing the same task silently collapsed to one and the *incumbent* text won. Several
+> distinct next steps legitimately concern one task; `task_id` is a reference, not a unique
+> key. Folding multiple points into one entry, or setting `task_id: null` to dodge the drop,
+> are no longer necessary.
 
 **`next` category values** (validated enum):
 - `follow-up` — action items from this session
@@ -234,11 +288,21 @@ retired flat `epic` field. Read and follow
 [`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) — it defines
 `resolve_epic_ancestor()`, reused as-is by both tiers below.
 
+**Lookup failures are not negatives (t-2487).** `resolve_epic_ancestor` exits non-zero when
+the lookup itself breaks, as distinct from exiting 0 with an empty string for "this task has
+no epic ancestor." Both tiers below record failures to `$EPIC_FAIL_LOG` instead of letting
+them silently drop out of the signal set — a dropped slug is how `brana-v3-redesign` went
+missing from a live close, leaving a single surviving slug that then looked unambiguous.
+
+```bash
+EPIC_FAIL_LOG=$(mktemp)
+```
+
 **Tier 2a:** Query in-progress tasks and walk each to its epic ancestor:
 ```bash
 TIER2A_SLUGS=$(brana backlog query --status in_progress --json 2>/dev/null \
   | jq -r '.[].id' \
-  | while read id; do resolve_epic_ancestor "$id"; done \
+  | while read -r id; do resolve_epic_ancestor "$id" || echo "$id" >> "$EPIC_FAIL_LOG"; done \
   | sort -u | grep -v '^$')
 ```
 Collect non-empty results into the signal set; continue regardless. **Caveat:** this
@@ -250,7 +314,7 @@ slug belongs to *this* session (see Converge below).
 ```bash
 TIER2B_SLUGS=$(git log --oneline -20 \
   | grep -oE 't-[0-9]+' | sort -u \
-  | while read id; do resolve_epic_ancestor "$id"; done \
+  | while read -r id; do resolve_epic_ancestor "$id" || echo "$id" >> "$EPIC_FAIL_LOG"; done \
   | sort -u | grep -v '^$')
 ```
 Add all non-empty results to the signal set. Fixes false Tier 3 prompts when all
@@ -258,6 +322,19 @@ in_progress tasks completed before close but this session's commits reference ta
 parent chain resolves to an epic. Unlike Tier 2a, this is scoped to *this session's own*
 recent git history — a hit here means a task/commit this session actually touched resolves
 to that epic.
+
+**Check for lookup failures BEFORE converging (t-2487):**
+```bash
+if [ -s "$EPIC_FAIL_LOG" ]; then
+    echo "⚠ epic lookup failed for: $(tr '\n' ' ' < "$EPIC_FAIL_LOG")" >&2
+fi
+```
+If that log is non-empty the signal set is **incomplete, not narrow**. Do not take the
+"exactly 1 unique slug" branch below — an unknown number of slugs were dropped, so a lone
+survivor is not evidence of unambiguity. Fall through to the Tier 3 prompt and let the
+user confirm, naming the failed task IDs. Routing on a mis-resolved slug is the t-2263
+clobber class: `brana session write` keys handoffs by epic and **replaces** rather than
+merges, so a wrong slug destroys another epic's state.
 
 **Converge 2a + 2b:** Deduplicate the union of `$TIER2A_SLUGS` and `$TIER2B_SLUGS`.
 - Exactly 1 unique non-empty slug **AND that slug also appears in `$TIER2B_SLUGS`** →

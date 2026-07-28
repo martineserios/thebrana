@@ -72,17 +72,36 @@ the convention already used elsewhere in this skill (`cf-env.sh`,
 notes-and-ideation.md) — never `$(git rev-parse --show-toplevel)/system/scripts/`,
 which only happens to resolve when the git-root IS thebrana itself.
 
+<!-- CLOSE-ANCHOR-BLOCK -->
 ```bash
 # Window anchored on the previous close's session-state written_at (t-1979 #11) —
 # wall-clock windows miss long sessions and double-count short gaps. The 6h
 # window is only the first-session fallback (no prior session state).
-LAST_CLOSE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty' 2>/dev/null)
+# Anchor on the NEWEST session state across the default AND epic-keyed files
+# (t-2491). `brana session read` with no flags reads ONLY session-state.json —
+# but a close that set an epic (Step 9c) routes its handoff to the epic-keyed
+# file instead, leaving the default file stale. Anchoring on it made the window
+# over-reach (32 commits instead of 4, live 2026-07-27) and re-queued commits an
+# earlier close had already queued under a different range string, which
+# close-snapshot.sh does NOT dedup. Every epic-routed close poisoned the next one.
+# `--all` surfaces every session file; the default one appears as epic "(orphan)".
+# Sort on the first 19 chars: writers emit UTC in two shapes ("...:01Z" and
+# "...:31.372637410+00:00") which order correctly by their fixed-width
+# YYYY-MM-DDTHH:MM:SS prefix but not as whole strings.
+LAST_CLOSE=$(brana session read --all --json 2>/dev/null \
+  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+# Fallback for an older binary without --all, or no session files yet.
+[ -z "$LAST_CLOSE" ] && LAST_CLOSE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty' 2>/dev/null)
 COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
 
 CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.sh" \
     --commit-count "${COMMIT_COUNT:-0}" --arguments "$ARGUMENTS")
 ```
+<!-- /CLOSE-ANCHOR-BLOCK -->
+
+> `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`.
+> Keep the markers and fences intact.
 
 **Orientation flags (ADR-053, t-1980).** `$ARGUMENTS` may carry an orientation — `--continue`, `--finish`, `--patterns`, `--abort` — saying WHY the session is closing. close-classify.sh maps orientation to a forced weight (continue/finish → INSTANT, patterns → LIGHT-INLINE, abort → NANO); the call above already passes `--arguments`, so the orientation reaches the classifier with no extra wiring (programmatic callers can equivalently pass `--mode-override <orientation>` — same mapping, same precedence). Set `ORIENTATION` to the flag name when present, `auto` otherwise.
 
@@ -151,6 +170,7 @@ swallow a concurrent session's commits (two live hits, proyecto_anita 2026-07-02
 Anchor on the oldest session commit from the SAME listing that produced
 `COMMIT_COUNT`:
 
+<!-- SNAPSHOT-INVOCATION-BLOCK -->
 ```bash
 OLDEST=$(git log --format=%H --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | tail -1)
 if [ -n "$OLDEST" ] && git rev-parse -q --verify "${OLDEST}^" >/dev/null 2>&1; then
@@ -159,13 +179,27 @@ else
     SESSION_RANGE=""   # root commit or empty session — let the script fall back
 fi
 
+# Pass --git-range UNCONDITIONALLY (t-2478). The previous form was
+# ${SESSION_RANGE:+--git-range "$SESSION_RANGE"} — but zsh does not word-split
+# unquoted parameter expansions, so close-snapshot.sh received the single
+# argument '--git-range A..B' and exited "unknown argument". The snapshot then
+# silently fell back to the known-wrong HEAD~N..HEAD range this very step exists
+# to avoid. An EMPTY value is already equivalent to omitting the flag
+# (close-snapshot.sh gates on `[ -n "$GIT_RANGE_ARG" ]`), so no ${:+} is needed.
+# Same class as pattern_zsh-for-loop-no-word-split; Step 11c below already
+# carries the sibling workaround.
 bash "$HOME/.claude/scripts/close-snapshot.sh" \
     --git-root "$(git rev-parse --show-toplevel)" \
     --branch "$(git branch --show-current)" \
     --project "$(basename "$(git rev-parse --show-toplevel)")" \
     --commit-count "${COMMIT_COUNT:-0}" \
-    ${SESSION_RANGE:+--git-range "$SESSION_RANGE"}
+    --git-range "$SESSION_RANGE"
 ```
+<!-- /SNAPSHOT-INVOCATION-BLOCK -->
+
+> `SNAPSHOT-INVOCATION-BLOCK` is extracted verbatim by
+> `tests/procedures/test-close-gate-zsh-argv.sh`, which runs it under both bash and zsh.
+> Keep the markers and fences intact.
 
 The script diffs `--git-range` verbatim (falling back to the known-wrong
 `HEAD~N..HEAD` only when the range is absent), saves it to

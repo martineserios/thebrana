@@ -88,10 +88,10 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
-| [the-orbit.md](architecture/the-orbit.md) | **Index & reading map** for the Orbit/Substrate cluster — vocabulary, what to read in what order (start here) |
+| [the-orbit.md](architecture/the-orbit.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — index & reading map for the Orbit/Substrate cluster; historical |
 | [workflow-primitive.md](architecture/workflow-primitive.md) | Verified `Workflow` tool API surface, smoke-test evidence, opt-in rule |
-| [substrate-end-state.md](architecture/substrate-end-state.md) | the Orbit capstone (operation) — tiers, runner stages, safety net, branch strategy |
-| [substrate-primitives.md](architecture/substrate-primitives.md) | Agent substrate primitives & composition — primitive set, composed blocks, composition grammar, durability/trust, plug-points |
+| [substrate-end-state.md](architecture/substrate-end-state.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — the Orbit capstone (operation): tiers, runner stages, safety net, branch strategy; historical |
+| [substrate-primitives.md](architecture/substrate-primitives.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — agent substrate primitives & composition; §1–§3 (primitive set, composed blocks, durability/trust) still accurate as reference |
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
 | [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
@@ -113,7 +113,6 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 |-----|----------|
 | [ADR-001](architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md) | Reconcile command for spec-to-implementation drift |
 | [ADR-002](architecture/decisions/ADR-002-tasks-as-data-layer.md) | Tasks as JSON data layer |
-| [ADR-002 (scheduler)](architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md) | Scheduler as thin layer over systemd |
 | [ADR-003](architecture/decisions/ADR-003-agent-driven-task-execution.md) | Agent-driven task execution |
 | [ADR-004](architecture/decisions/ADR-004-session-handoff-self-learning-loop.md) | Session handoff and self-learning loop |
 | [ADR-005](architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md) | AgentDB v3 as unified knowledge backend |
@@ -137,7 +136,6 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-024](architecture/decisions/ADR-024-content-polling-keyring-credentials.md) | Content polling with keyring credentials |
 | [ADR-025](architecture/decisions/ADR-025-skill-lifecycle-manager.md) | Skill lifecycle manager |
 | [ADR-026](architecture/decisions/ADR-026-ruflo-mcp-backbone.md) | Ruflo MCP as backbone (CLI fallback) |
-| [ADR-026b](architecture/decisions/ADR-026-full-rust-mcp-architecture.md) | **Full Rust + MCP architecture** (Cargo workspace, pmcp, Python elimination) |
 | [ADR-027](architecture/decisions/ADR-027-auto-learning-loop.md) | Auto-learning loop |
 | [ADR-028](architecture/decisions/ADR-028-ontology-v2.md) | Ontology v2 |
 | [ADR-029](architecture/decisions/ADR-029-six-job-taxonomy.md) | 6-job taxonomy |
@@ -158,7 +156,12 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-044](architecture/decisions/ADR-044-initiative-accumulator.md) | Initiative accumulator — cross-day session continuity per initiative |
 | [ADR-066](architecture/decisions/ADR-066-active-epic-project-scoped-only.md) | active_epic/active_initiative resolve project-local only — closes skill-procedure and sync-state.sh bleed vectors |
 | [ADR-067](architecture/decisions/ADR-067-retired-fields-write-guard.md) | Write-time RETIRED_FIELDS guard in brana-core — hard-refuse writes of sealed schema fields, binary-version-agnostic |
+| [ADR-068](architecture/decisions/ADR-068-v3-supersession.md) | v3 supersession — retires the Orbit/Substrate doc cluster into the v3 design, folds forward 8 mechanics, scopes the ADR-060 "agent never merges" amendment |
 | [ADR-070](architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md) | `brana knowledge process-url` headless-first fetch — ureq for public URLs, `claude -p --mcp-config` → linkedin-scraper-mcp for LinkedIn |
+| [ADR-071](architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md) | Scheduler as a thin layer over systemd timers (was ADR-002 — renumbered t-2507) |
+| [ADR-072](architecture/decisions/ADR-072-full-rust-mcp-architecture.md) | **Full Rust + MCP architecture** (Cargo workspace, pmcp, Python elimination) (was ADR-026 — renumbered t-2507) |
+| [ADR-073](architecture/decisions/ADR-073-persona-session-state.md) | Persona modifier persisted in session state, not `CLAUDE.local.md` (was ADR-048 — renumbered t-2507) |
+| [ADR-074](architecture/decisions/ADR-074-step-state-contract.md) | Step-state contract — derive `{next_step, gate_pending}` from a static step registry + the run-state log (was ADR-062 — renumbered t-2507) |
 
 > Note: this table is missing several ADRs between 045-065 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 

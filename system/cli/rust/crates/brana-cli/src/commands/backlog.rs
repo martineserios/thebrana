@@ -672,6 +672,12 @@ pub fn cmd_add(
         }
     }
 
+    // t-2439: the same direct-merge that motivated the retired-field check also
+    // lets a comma-string `tags`/`blocked_by` reach disk verbatim, since
+    // set_field's coercion never runs on this path. Normalize through the
+    // shared helper so `add --json` and `set` agree on the array contract.
+    tasks::normalize_array_fields(&mut new_task);
+
     if let Some(p) = new_task["priority"].as_str() {
         if let Err(e) = tasks::validate_priority(p) {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
@@ -2322,8 +2328,11 @@ mod tests {
             Some("cc-alignment".into()), None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
-        assert!(task.get("epic").is_none() || task["epic"].is_null(),
-            "--epic must be a no-op, got: {}", task["epic"]);
+        // t-2472: assert key ABSENCE, not null-ness. validate.sh Check 63 uses
+        // has("epic"), so a present-but-null key fails the check — an
+        // `|| is_null()` escape hatch here let exactly that ship undetected.
+        assert!(task.get("epic").is_none(),
+            "--epic must be a no-op and emit no epic key at all, got: {:?}", task.get("epic"));
     }
 
     #[test]
@@ -2415,8 +2424,29 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         let arr = data["tasks"].as_array().unwrap();
         let child = arr.iter().find(|t| t["subject"] == "child of ph-1").unwrap();
-        assert!(child.get("epic").is_none() || child["epic"].is_null(),
-            "epic must not be inherited from parent, got: {}", child["epic"]);
+        // t-2472: key absence, not null-ness — see cmd_add_shorthand_epic_flag_is_noop.
+        assert!(child.get("epic").is_none(),
+            "epic must not be inherited from parent, got: {:?}", child.get("epic"));
+    }
+
+    #[test]
+    fn cmd_add_emits_no_epic_key_on_plain_add() {
+        // t-2472 AC#4: the writer must omit the retired epic key entirely on a
+        // plain add with no epic argument anywhere. This is the assertion that
+        // would have caught the stale-binary regression: every task created
+        // between the t-2310 seal and the binary rebuild carried "epic": null,
+        // re-failing validate.sh Check 63 on every new task.
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"plain add"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert!(task.get("epic").is_none(),
+            "plain cmd_add must emit no epic key, got: {:?}", task.get("epic"));
+        assert!(task.get("level").is_none(),
+            "plain cmd_add must emit no level key, got: {:?}", task.get("level"));
     }
 
     #[test]
@@ -2453,6 +2483,78 @@ mod tests {
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"].as_array().unwrap().len(), 12, "11th child must still be persisted (warn, not block)");
+    }
+
+    // ── t-2439: --json array-field normalization ─────────────────────────
+
+    #[test]
+    fn cmd_add_json_comma_string_tags_normalize_to_array() {
+        // The --json path merges the payload directly onto new_task, bypassing
+        // set_field's comma-string coercion. A string tags value must land as
+        // a JSON array, matching what `backlog set tags +val` produces.
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"comma tags","tags":"a,b,c"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!(["a", "b", "c"]),
+            "comma-string tags must normalize to an array, got: {}", task["tags"]);
+    }
+
+    #[test]
+    fn cmd_add_json_comma_string_blocked_by_normalizes_to_array() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"comma deps","blocked_by":"t-1, t-2"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["blocked_by"], serde_json::json!(["t-1", "t-2"]),
+            "comma-string blocked_by must normalize to an array, got: {}", task["blocked_by"]);
+    }
+
+    #[test]
+    fn cmd_add_json_single_value_string_tags_normalizes_to_one_element_array() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"one tag","tags":"solo"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!(["solo"]),
+            "single-value string tags must still become an array, got: {}", task["tags"]);
+    }
+
+    #[test]
+    fn cmd_add_json_array_tags_pass_through_unchanged() {
+        // Regression guard: the normalization must not disturb a payload that
+        // already supplies a proper array.
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"array tags","tags":["a","b"],"blocked_by":["t-9"]}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!(["a", "b"]));
+        assert_eq!(task["blocked_by"], serde_json::json!(["t-9"]));
+    }
+
+    #[test]
+    fn cmd_add_json_empty_string_tags_normalizes_to_empty_array() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"blank tags","tags":""}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["tags"], serde_json::json!([]),
+            "empty-string tags must normalize to [], got: {}", task["tags"]);
     }
 
     #[test]

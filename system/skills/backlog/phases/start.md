@@ -205,24 +205,34 @@ Branch name follows the project convention (CLAUDE.md §Branch naming):
    the epic-node ancestor via the task's `parent` chain. Read and follow
    [`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) — call
    `resolve_epic_ancestor(task_id)`.
-   If it returns empty (no epic ancestor found, or none of the ancestors are a valid
-   slug): emit warning and stop: "⚠ Task t-NNN has no epic ancestor. Set one first:
+
+   **Check the exit status first (t-2487).** A non-zero exit means the lookup broke, not
+   that the task lacks an epic — the two used to be indistinguishable. On non-zero: emit
+   "⚠ epic lookup failed for t-NNN (backlog read error) — not naming a branch on an
+   unknown epic" and stop. Do not fall through to the no-epic message below, which would
+   send the user to set a parent that may already be correct.
+
+   If it returns empty *at exit 0* (no epic ancestor found, or none of the ancestors are a
+   valid slug): emit warning and stop: "⚠ Task t-NNN has no epic ancestor. Set one first:
    `brana backlog set t-NNN parent <epic-task-id>` (list candidates via
    `mcp__brana__backlog_query(task_type: \"epic\")` — the CLI's `brana backlog query
    --type epic` currently errors, since backlog-v3's epic-as-top nodes were never added
    to its `--type` enum; use the MCP tool or `brana backlog query --json | jq -r '.[] |
    select(.type=="epic") | .id+" "+.subject'` instead), then re-run start." Do not create
    a branch with a placeholder epic.
-2. `work-type` — map `task.work_type` → git prefix (exhaustive; covers all values found in data):
-   - `implement` / `feat` → `feat`
-   - `fix` → `fix`
-   - `refactor` → `refactor`
-   - `research` → `research`
-   - `test` → `test`
-   - `chore` / `ops` / `infra` / `dev` → `chore`
-   - `design` / `docs` / `document` → `docs`
-   - `review` → `review`
-   - any other → `feat`
+2. `work-type` — resolve via the shared authority. Read and follow
+   [`../../_shared/branch-prefix.md`](../../_shared/branch-prefix.md) — call
+   `resolve_branch_prefix(task.kind, task.work_type)`.
+
+   **Do not restate the mapping here (t-2494).** This step used to carry its own
+   `work_type` → prefix table while `task-convention.md` carried a `kind`-keyed one, so
+   every `kind:fix` task with `work_type:implement` resolved to `feat/` here and `fix/`
+   there. Three defect branches were mislabelled `feat/` and the conflict was resolved by
+   hand twice before it was traced. `kind` is authoritative; `work_type` is the fallback
+   for the 22% of tasks that carry no `kind`.
+
+   The function always returns a bare prefix and exits 0 — unknown input degrades to
+   `feat`, never to empty, so a malformed branch name cannot be produced here.
 3. `subject-slug` — first 3–4 words of `task.subject`, lowercased, non-alphanumeric replaced with `-`, consecutive dashes collapsed. Strip leading articles ("a", "an", "the"). Strip leading/trailing dashes. Aim for ≤4 words (CLAUDE.md convention).
 
 **Display the suggestion before creating:**

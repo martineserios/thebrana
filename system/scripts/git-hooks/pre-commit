@@ -24,14 +24,26 @@ set -uo pipefail
 # Note: technically the right hook for message inspection is `commit-msg`, not
 # `pre-commit`. We deploy to BOTH for belt-and-suspenders.
 
-# Resolve the commit message source
+# Resolve the commit message source.
+#
+# t-2468: this used to hard-code `.git/COMMIT_EDITMSG` and `exit 0` when it was
+# missing. In a linked worktree `.git` is a FILE, not a directory, so that path
+# never resolves — and the early exit skipped the ENTIRE hook: attribution
+# check, secret scan, context budget and red-verification alike. Since
+# git-discipline.md mandates worktrees for all branch work, every feature commit
+# silently bypassed all four gates.
+#
+# Fixes: resolve via `git rev-parse --git-path` (worktree-aware), and treat a
+# missing message file as "skip the attribution check only" — never as a reason
+# to abandon the rest of the hook.
+msg_file=""
 if [ -n "${1:-}" ] && [ -f "$1" ]; then
     msg_file="$1"
-elif [ -f ".git/COMMIT_EDITMSG" ]; then
-    msg_file=".git/COMMIT_EDITMSG"
 else
-    # No message file available — allow (we can't check)
-    exit 0
+    _candidate=$(git rev-parse --git-path COMMIT_EDITMSG 2>/dev/null || echo "")
+    if [ -n "$_candidate" ] && [ -f "$_candidate" ]; then
+        msg_file="$_candidate"
+    fi
 fi
 
 # Forbidden patterns — case-insensitive substring matches
@@ -48,11 +60,13 @@ forbidden_patterns=(
 )
 
 violations=()
-for pattern in "${forbidden_patterns[@]}"; do
-    if grep -qiF "$pattern" "$msg_file" 2>/dev/null; then
-        violations+=("$pattern")
-    fi
-done
+if [ -n "$msg_file" ]; then
+    for pattern in "${forbidden_patterns[@]}"; do
+        if grep -qiF "$pattern" "$msg_file" 2>/dev/null; then
+            violations+=("$pattern")
+        fi
+    done
+fi
 
 if [ ${#violations[@]} -gt 0 ]; then
     echo ""

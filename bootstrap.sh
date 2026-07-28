@@ -18,6 +18,95 @@ SYSTEM_DIR="$SCRIPT_DIR/system"
 TARGET_DIR="$HOME/.claude"
 CHECK_ONLY=false
 
+# --- Plugin cache: build-artifact policy (t-2500) -----------------------------
+# system/cli/rust/target/ is Cargo build output (gitignored, line 31 of
+# .gitignore). It was being snapshotted into the plugin cache wholesale — 24GB
+# measured, against ~13MB for every other component combined. Three harms:
+# disk, a multi-GB rsync on every bootstrap run, and a staleness check that
+# could never go quiet because target/debug/incremental/* fingerprints change
+# on every cargo build.
+#
+# The cache cannot drop target/ entirely: two binaries are resolved through
+# CLAUDE_PLUGIN_ROOT and would silently fall through to the PATH copy if absent
+# (system/hooks/lib/resolve-brana.sh source 2+3, system/hooks/session-start.sh).
+# brana-mcp and brana-fmt are NOT resolved from the cache — the MCP server is
+# registered against ~/.local/bin — so they are not kept.
+CACHE_KEEP_BINS=(brana brana-query)
+CACHE_RSYNC_EXCLUDES=(--exclude='cli/rust/target/')
+
+# rsync --exclude also protects the path from --delete, so excluding alone would
+# leave an already-populated 24GB target/ in place forever. Prune it explicitly.
+# Only ever touches <cache>/cli/rust/target, and refuses to run on a path that
+# is not inside a plugin cache.
+prune_cache_target() {
+    local cache_dir="$1"
+    local target_dir="$cache_dir/cli/rust/target"
+    case "$cache_dir" in
+        */plugins/cache/*) ;;
+        *) return 0 ;;
+    esac
+    [ -d "$target_dir" ] || return 0
+
+    # dotglob: Cargo puts .fingerprint/ and .cargo-lock inside target/ and
+    # target/release/. A bare * skips them, so the first cut of this prune left
+    # them behind while reporting the tree cleaned. nullglob keeps an empty dir
+    # from yielding the literal glob string.
+    local _dotglob_was_set=0 _nullglob_was_set=0
+    shopt -q dotglob && _dotglob_was_set=1
+    shopt -q nullglob && _nullglob_was_set=1
+    shopt -s dotglob nullglob
+
+    local entry name sub keep b
+    for entry in "$target_dir"/*; do
+        [ -e "$entry" ] || continue
+        name=$(basename "$entry")
+        if [ "$name" != "release" ]; then
+            rm -rf "$entry"
+            continue
+        fi
+        for sub in "$entry"/*; do
+            [ -e "$sub" ] || continue
+            keep=0
+            for b in "${CACHE_KEEP_BINS[@]}"; do
+                [ "$(basename "$sub")" = "$b" ] && keep=1
+            done
+            [ "$keep" = "0" ] && rm -rf "$sub"
+        done
+    done
+
+    [ "$_dotglob_was_set" = "1" ] || shopt -u dotglob
+    [ "$_nullglob_was_set" = "1" ] || shopt -u nullglob
+}
+
+# Copy the binaries the plugin actually resolves, after the excluded rsync.
+sync_cache_bins() {
+    local system_dir="$1" cache_dir="$2"
+    local b src dst
+    for b in "${CACHE_KEEP_BINS[@]}"; do
+        src="$system_dir/cli/rust/target/release/$b"
+        dst="$cache_dir/cli/rust/target/release/$b"
+        [ -f "$src" ] || continue
+        if [ ! -f "$dst" ] || ! cmp -s "$src" "$dst"; then
+            mkdir -p "$(dirname "$dst")"
+            cp "$src" "$dst"
+        fi
+    done
+}
+
+# Staleness check that ignores build output but still notices a stale binary.
+# Echoes a non-empty string when the cache differs from source.
+cache_diff() {
+    local cache_dir="$1" system_dir="$2"
+    diff -rq -x target -x '.claude-plugin' "$cache_dir" "$system_dir" 2>/dev/null || true
+    local b src dst
+    for b in "${CACHE_KEEP_BINS[@]}"; do
+        src="$system_dir/cli/rust/target/release/$b"
+        dst="$cache_dir/cli/rust/target/release/$b"
+        [ -f "$src" ] || continue
+        cmp -s "$src" "$dst" 2>/dev/null || echo "Binary $b differs"
+    done
+}
+
 # --- Plugin cache sync (standalone operation) ---
 sync_plugin_cache() {
     local system_dir="$1"
@@ -43,7 +132,7 @@ sync_plugin_cache() {
 
     # Dry-run diff first
     local diff_output plugin_json_diff
-    diff_output=$(diff -rq "$cache_dir" "$system_dir" 2>/dev/null | grep -v ".claude-plugin" || true)
+    diff_output=$(cache_diff "$cache_dir" "$system_dir" | grep -v ".claude-plugin" || true)
     plugin_json_diff=$(diff "$system_dir/.claude-plugin/plugin.json" "$cache_dir/.claude-plugin/plugin.json" 2>/dev/null | head -1 || echo "differ")
 
     if [ -z "$diff_output" ] && [ -z "$plugin_json_diff" ]; then
@@ -58,7 +147,9 @@ sync_plugin_cache() {
     [ -n "$plugin_json_diff" ] && echo "  .claude-plugin/plugin.json (changed)"
     echo ""
 
-    rsync -av --delete --exclude='.claude-plugin' "$system_dir/" "$cache_dir/" > /dev/null
+    rsync -av --delete --exclude='.claude-plugin' "${CACHE_RSYNC_EXCLUDES[@]}" "$system_dir/" "$cache_dir/" > /dev/null
+    prune_cache_target "$cache_dir"
+    sync_cache_bins "$system_dir" "$cache_dir"
     mkdir -p "$cache_dir/.claude-plugin"
     cp "$system_dir/.claude-plugin/plugin.json" "$cache_dir/.claude-plugin/plugin.json"
     echo "Plugin cache synced. Restart Claude Code to activate."
@@ -171,14 +262,22 @@ sync_file() {
 
 # --- Helper: sync a directory ---
 sync_dir() {
-    local src="$1" dst="$2" label="$3"
+    local src="$1" dst="$2" label="$3" exclude="${4:-}"
     mkdir -p "$dst"
     local dir_changes=0
+
+    # $exclude is a space-separated list of basenames that are deliberately NOT
+    # deployed (e.g. rules/README.md — the authoring contract, not a rule).
+    # They must be skipped by BOTH loops. Previously the caller deleted such a
+    # file after sync_dir ran, so every run saw it present in src and absent in
+    # dst, counted a change, re-copied it, and deleted it again — --check could
+    # never reach zero (t-2482).
 
     # Copy/update files from source
     for f in "$src"/*; do
         [ -f "$f" ] || continue
         local fname=$(basename "$f")
+        case " $exclude " in *" $fname "*) continue ;; esac
         if [ ! -f "$dst/$fname" ] || ! diff -q "$f" "$dst/$fname" &>/dev/null; then
             dir_changes=$((dir_changes + 1))
             if ! $CHECK_ONLY; then
@@ -187,10 +286,21 @@ sync_dir() {
         fi
     done
 
-    # Remove files in dest that aren't in source (brana-managed)
+    # Remove files in dest that aren't in source (brana-managed), plus any
+    # excluded file that is still deployed from before it was excluded. The
+    # latter is a genuine one-time change: once removed it stays removed.
     for f in "$dst"/*; do
         [ -f "$f" ] || continue
         local fname=$(basename "$f")
+        case " $exclude " in
+            *" $fname "*)
+                dir_changes=$((dir_changes + 1))
+                if ! $CHECK_ONLY; then
+                    rm -f "$f"
+                fi
+                continue
+                ;;
+        esac
         if [ ! -f "$src/$fname" ]; then
             dir_changes=$((dir_changes + 1))
             if ! $CHECK_ONLY; then
@@ -253,10 +363,10 @@ done
 # from system/rules/, so hand-placed rule files there will be removed.
 echo "Rules:"
 if [ -d "$SYSTEM_DIR/rules" ]; then
-    sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/"
-    if ! $CHECK_ONLY; then
-        rm -f "$TARGET_DIR/rules/README.md" 2>/dev/null || true
-    fi
+    # README.md is excluded via sync_dir's exclusion list rather than deleted
+    # afterwards — a post-hoc delete made --check count a phantom change on
+    # every run (t-2482).
+    sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/" "README.md"
 fi
 
 # --- Step 3: Scripts ---
@@ -351,8 +461,12 @@ fi
 # never proposes adding Co-Authored-By or similar trailers.
 echo "Undercover mode (settings.json attribution):"
 if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
-    CURRENT_ATTR=$(jq '.attribution // {}' "$SETTINGS_FILE" 2>/dev/null)
-    DESIRED_ATTR='{"commit":"","pr":""}'
+    # -c is load-bearing (t-2482): without it jq pretty-prints across four lines
+    # while DESIRED_ATTR is compact, so the comparison below could never match.
+    # --check reported a phantom change and every real run rewrote settings.json.
+    # Sort keys on both sides so key order is not a false difference either.
+    CURRENT_ATTR=$(jq -cS '.attribution // {}' "$SETTINGS_FILE" 2>/dev/null)
+    DESIRED_ATTR=$(jq -cSn '{"commit":"","pr":""}')
     if [ "$CURRENT_ATTR" = "$DESIRED_ATTR" ] 2>/dev/null; then
         echo "  = settings.json attribution (already empty — undercover on)"
     else
@@ -444,6 +558,34 @@ if [ -f "$GIT_HOOK_SRC" ]; then
     else
         echo "  ! core.hooksPath is set to: $CURRENT_HOOKS_PATH (not our path — hooks NOT active)"
         echo "    To switch, run: git config --global core.hooksPath ~/.config/git/hooks"
+    fi
+
+    # t-2468: the checks above read only the GLOBAL core.hooksPath, but git
+    # resolves the EFFECTIVE one — a repo-local setting overrides the global,
+    # and a repo with neither falls back to its own .git/hooks. thebrana has a
+    # repo-local core.hooksPath pointing at .git/hooks, which shadowed the
+    # deployed ~/.config/git/hooks copy: the active pre-commit was months stale
+    # and lacked the red-verification call, leaving ADR-061 Stage 2 inert.
+    #
+    # Sync the template to wherever the hooks ACTUALLY resolve, so the active
+    # copy can never silently rot behind the deployed one. commit-msg is
+    # included because pre-commit only ever sees a STALE COMMIT_EDITMSG (git
+    # writes it after pre-commit runs) — commit-msg receives the real message
+    # file as $1 and is the only correct surface for the attribution check.
+    EFFECTIVE_HOOKS_PATH=$(git config --get core.hooksPath 2>/dev/null || echo "")
+    if [ -z "$EFFECTIVE_HOOKS_PATH" ]; then
+        GIT_COMMON=$(git rev-parse --git-common-dir 2>/dev/null || echo "")
+        [ -n "$GIT_COMMON" ] && EFFECTIVE_HOOKS_PATH="$GIT_COMMON/hooks"
+    fi
+    if [ -n "$EFFECTIVE_HOOKS_PATH" ] && [ "$EFFECTIVE_HOOKS_PATH" != "$GIT_HOOK_DIR" ] \
+       && [ -d "$EFFECTIVE_HOOKS_PATH" ]; then
+        for _h in pre-commit commit-msg; do
+            sync_file "$GIT_HOOK_SRC" "$EFFECTIVE_HOOKS_PATH/$_h" \
+                      "$(basename "$EFFECTIVE_HOOKS_PATH")/$_h (effective)"
+            if ! $CHECK_ONLY; then
+                chmod +x "$EFFECTIVE_HOOKS_PATH/$_h" 2>/dev/null || true
+            fi
+        done
     fi
 else
     echo "  — git-hooks/pre-commit template not found in source"
@@ -743,14 +885,22 @@ PLUGIN_VERSION=$(jq -r '.version // "0.0.0"' "$SYSTEM_DIR/.claude-plugin/plugin.
 CACHE_DIR="$PLUGINS_DIR/cache/brana/brana/$PLUGIN_VERSION"
 if [ -d "$CACHE_DIR" ]; then
     # Check if cache is stale (compare with system/ and plugin.json separately)
-    CACHE_DIFF=$(diff -rq "$CACHE_DIR" "$SYSTEM_DIR" 2>/dev/null | grep -v ".claude-plugin" | head -5 || true)
+    CACHE_DIFF=$(cache_diff "$CACHE_DIR" "$SYSTEM_DIR" | grep -v ".claude-plugin" | head -5 || true)
     PLUGIN_JSON_DIFF=$(diff "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json" 2>/dev/null | head -1 || echo "differ")
-    if [ -n "$CACHE_DIFF" ] || [ -n "$PLUGIN_JSON_DIFF" ]; then
+    # Stale build output left by a pre-t-2500 cache also needs a sync to clear.
+    CACHE_TARGET_STALE=""
+    for _d in "$CACHE_DIR"/cli/rust/target/*; do
+        [ -e "$_d" ] || continue
+        [ "$(basename "$_d")" = "release" ] || { CACHE_TARGET_STALE="build artifacts"; break; }
+    done
+    if [ -n "$CACHE_DIFF" ] || [ -n "$PLUGIN_JSON_DIFF" ] || [ -n "$CACHE_TARGET_STALE" ]; then
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then
-            echo "  ~ cache/brana/brana/$PLUGIN_VERSION (would sync)"
+            echo "  ~ cache/brana/brana/$PLUGIN_VERSION (would sync${CACHE_TARGET_STALE:+ — prunes stale $CACHE_TARGET_STALE})"
         else
-            rsync -av --delete --exclude='.claude-plugin' "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+            rsync -av --delete --exclude='.claude-plugin' "${CACHE_RSYNC_EXCLUDES[@]}" "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+            prune_cache_target "$CACHE_DIR"
+            sync_cache_bins "$SYSTEM_DIR" "$CACHE_DIR"
             mkdir -p "$CACHE_DIR/.claude-plugin"
             cp "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json"
             echo "  ~ cache/brana/brana/$PLUGIN_VERSION (synced)"
@@ -764,7 +914,11 @@ else
         echo "  + cache/brana/brana/$PLUGIN_VERSION (would snapshot)"
     else
         mkdir -p "$CACHE_DIR/.claude-plugin"
-        rsync -av --exclude='.git' "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+        # First-snapshot path — this is the one that used to copy 24GB of Cargo
+        # output into a fresh cache, and made bootstrapping into a temp HOME
+        # fail outright on disk quota (t-2500).
+        rsync -av --exclude='.git' "${CACHE_RSYNC_EXCLUDES[@]}" "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+        sync_cache_bins "$SYSTEM_DIR" "$CACHE_DIR"
         cp "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json"
         echo "  + cache/brana/brana/$PLUGIN_VERSION (snapshotted)"
     fi

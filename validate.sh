@@ -7,6 +7,11 @@ SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
 SPEC_GRAPH="$DOCS_DIR/spec-graph.json"
+# t-2471: shared across checks 25/26/62/63/64, so it must be resolved at global
+# scope. It used to be assigned inside the Check 25 block, which made every
+# other consumer abort with "TASKS_FILE: unbound variable" under `--check N`
+# (set -u) whenever the selector skipped 25. Checks must be self-contained.
+TASKS_FILE="$SCRIPT_DIR/.claude/tasks.json"
 ERRORS=0
 WARNINGS=0
 
@@ -216,6 +221,23 @@ for agent_file in "$SYSTEM_DIR"/agents/*.md; do
             *) memory_ok="no"; fail "agents/$agent_name.md — invalid memory scope '$memory_val' (must be user|project|local; booleans are silently ignored by CC — t-1935)" ;;
         esac
     fi
+
+    # memory: must also be PRESENT — an agent without it silently starts cold
+    # every run, losing cross-run calibration with no error surface. Same failure
+    # class as t-1935 (bad value), caught one step earlier (backlog-v3 wave 1,
+    # t-2399/t-2400/t-2401). Two documented exemptions:
+    #   gemini      — stateless delegation shim to agy; holds no calibration itself
+    #   CALIBRATION — static reference doc shipped beside challenger.md, not a
+    #                 reasoning agent (challenger.md:99 reads it as a file, by design)
+    case "$agent_name" in
+        gemini|CALIBRATION) ;;
+        *)
+            if [ -z "$memory_val" ]; then
+                memory_ok="no"
+                fail "agents/$agent_name.md missing 'memory:' scope (add 'memory: user' — without it the agent starts cold every run; t-2400)"
+            fi
+            ;;
+    esac
 
     if [ "$has_name" = "yes" ] && [ "$has_desc" = "yes" ] && [ "$memory_ok" = "yes" ]; then
         pass "agents/$agent_name.md — valid frontmatter"
@@ -443,6 +465,24 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
         elif echo "$cmd" | grep -q '\$HOME\|'"$HOME"; then
             # New deployed-path format: expand $HOME
             SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\$HOME|$HOME|g")
+            # Fall back to the repo copy when the deployed copy is absent (t-2485).
+            # system/ is the source of truth; $HOME/.claude/ is derived by bootstrap.sh
+            # and does not exist on a CI runner or a fresh clone. Verifying the repo
+            # copy checks the same invariant — that hooks.json names a real, executable
+            # script — without requiring the machine to have been bootstrapped.
+            if [ ! -f "$SCRIPT_RESOLVED" ]; then
+                REPO_CANDIDATE="$SYSTEM_DIR/${SCRIPT_RESOLVED#*/.claude/}"
+                if [ -f "$REPO_CANDIDATE" ]; then
+                    # On a machine that HAS been bootstrapped, a missing deployed copy is
+                    # a real deploy gap, not an environment difference — surface it rather
+                    # than let the fallback hide it. On a fresh clone / CI runner there is
+                    # no $HOME/.claude/hooks at all, so this stays quiet.
+                    if [ -d "$HOME/.claude/hooks" ]; then
+                        warn "hooks.json '$SCRIPT_NAME' missing from deployed $HOME/.claude/ — re-run ./bootstrap.sh (validated against repo copy)"
+                    fi
+                    SCRIPT_RESOLVED="$REPO_CANDIDATE"
+                fi
+            fi
         else
             fail "hooks.json command '$SCRIPT_NAME' uses unknown path format (expected \${CLAUDE_PLUGIN_ROOT} or \$HOME/.claude/hooks/)"
             continue
@@ -450,9 +490,13 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
         if [ ! -f "$SCRIPT_RESOLVED" ]; then
             fail "hooks.json references $SCRIPT_NAME but file not found (resolved: $SCRIPT_RESOLVED)"
         elif [ ! -x "$SCRIPT_RESOLVED" ]; then
-            fail "$SCRIPT_NAME is not executable"
+            fail "$SCRIPT_NAME is not executable (resolved: $SCRIPT_RESOLVED)"
         else
-            pass "hooks.json command '$SCRIPT_NAME' — exists, executable, uses plugin root"
+            case "$SCRIPT_RESOLVED" in
+                "$SYSTEM_DIR"/*) WHERE="repo copy" ;;
+                *)               WHERE="deployed copy" ;;
+            esac
+            pass "hooks.json command '$SCRIPT_NAME' — exists, executable ($WHERE)"
         fi
     done <<< "$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || true)"
 
@@ -1367,7 +1411,7 @@ fi  # should_run 24
 if should_run 25; then
 # Check 25 — tasks.json priority enum hygiene (t-1344)
 echo "Checking tasks.json priority enum..."
-TASKS_FILE="$SCRIPT_DIR/.claude/tasks.json"
+# TASKS_FILE is resolved at global scope (t-2471) — shared with checks 26/62/63/64.
 if [ -f "$TASKS_FILE" ]; then
   BAD_PRIORITIES=$(jq -r '[.tasks[] | select(.priority != null and (.priority | test("^P[0-3]$") | not)) | .priority] | unique | join(",")' "$TASKS_FILE" 2>/dev/null)
   if [ -n "$BAD_PRIORITIES" ]; then
@@ -2426,6 +2470,94 @@ else
 fi
 echo ""
 fi  # should_run 64
+
+if should_run 65; then
+# Check 65 — statusline epic resolution (t-2467). The epic slot resolves from the
+# branch, then the project-local active_epic. Running the suite HERE keeps the
+# ADR-066 guard (global ~/.claude/tasks-config.json is never a valid source) from
+# rotting silently — a regression that would otherwise only show as a wrong slug
+# in the status bar, which nobody diffs.
+echo "Check 65: statusline epic resolution (t-2467)..."
+C65_TEST="$SCRIPT_DIR/system/hooks/tests/test-statusline-epic.sh"
+if [ ! -f "$C65_TEST" ]; then
+    warn "Check 65: statusline epic test not found at $C65_TEST — skipping"
+elif ! command -v jq >/dev/null 2>&1; then
+    warn "Check 65: jq not installed — statusline epic fallback untestable here"
+else
+    C65_OUT=$(bash "$C65_TEST" 2>&1)
+    C65_RC=$?
+    if [ "$C65_RC" -eq 0 ]; then
+        pass "Check 65: statusline epic resolution — $(echo "$C65_OUT" | tail -1)"
+    else
+        echo "$C65_OUT" | grep -E "FAIL|passed" | sed 's/^/  /'
+        fail "Check 65: statusline epic resolution regressions — see output above"
+    fi
+fi
+echo ""
+fi  # should_run 65
+
+if should_run 66; then
+# Check 66 — remaining statusline suites (t-2470). Three suites
+# (cache/session-score/integration) asserted a much richer statusline than
+# system/statusline.sh renders and carried 44 permanently-red assertions, so
+# nobody could use them as a regression signal. t-2470 retired the stale
+# assertions and replaced them with negative guards that the removed segments
+# stay removed. Wiring all of them here — alongside Check 65's epic suite — is
+# what stops them drifting back out of sync with the script a second time.
+echo "Check 66: statusline suites (t-2470)..."
+C66_TESTS="test-statusline-width.sh test-statusline-cache.sh test-session-score.sh test-statusline-integration.sh"
+C66_DIR="$SCRIPT_DIR/system/hooks/tests"
+if ! command -v jq >/dev/null 2>&1; then
+    warn "Check 66: jq not installed — statusline suites untestable here"
+else
+    C66_FAILED=""
+    C66_RAN=0
+    for c66_t in $C66_TESTS; do
+        if [ ! -f "$C66_DIR/$c66_t" ]; then
+            warn "Check 66: $c66_t not found — skipping"
+            continue
+        fi
+        C66_RAN=$((C66_RAN + 1))
+        if C66_OUT=$(bash "$C66_DIR/$c66_t" 2>&1); then
+            :
+        else
+            C66_FAILED="$C66_FAILED $c66_t"
+            echo "$C66_OUT" | grep -E "FAIL|passed" | sed 's/^/  /'
+        fi
+    done
+    if [ -n "$C66_FAILED" ]; then
+        fail "Check 66: statusline suite regressions in:$C66_FAILED — see output above"
+    elif [ "$C66_RAN" -gt 0 ]; then
+        pass "Check 66: statusline suites — $C66_RAN/$C66_RAN green"
+    fi
+fi
+echo ""
+fi  # should_run 66
+
+if should_run 67; then
+# Check 67 — ADR numbers must be unique (t-2515).
+# Five numbers were colliding simultaneously on 2026-07-28. Four (002, 026,
+# 048, 062) had been duplicated on dev for months — the 002 collision was
+# noted in an audit in March and explicitly deferred, which is what a
+# collision with no gate looks like over time. The fifth (068) was created
+# that same day by picking the next number from a directory listing on a
+# feature branch, which cannot see an ADR added on dev.
+# Running it here makes the next collision fail at the next validate rather
+# than surface at merge, months later.
+echo "Check 67: ADR number uniqueness (t-2515)..."
+C67_CHECK="$SCRIPT_DIR/system/scripts/check-adr-uniqueness.sh"
+if [ ! -f "$C67_CHECK" ]; then
+    warn "Check 67: $C67_CHECK not found — skipping"
+else
+    if C67_OUT=$(bash "$C67_CHECK" "$SCRIPT_DIR/docs/architecture/decisions" 2>&1); then
+        pass "Check 67: ADR numbers — all unique"
+    else
+        echo "$C67_OUT" | sed 's/^/  /'
+        fail "Check 67: duplicate ADR number(s) — two decisions share one identity"
+    fi
+fi
+echo ""
+fi  # should_run 67
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then

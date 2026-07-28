@@ -1,7 +1,7 @@
 ---
 status: proposed
 ---
-# ADR-062: Step-State Contract — Derive {next_step, gate_pending} from a Static Step Registry + the Run-State Log
+# ADR-074: Step-State Contract — Derive {next_step, gate_pending} from a Static Step Registry + the Run-State Log
 
 **Status:** Proposed (2026-06-21; one challenger pass, all findings incorporated)
 **Date:** 2026-06-21

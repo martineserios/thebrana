@@ -29,8 +29,30 @@ BRANCH=$(cd "$CWD" 2>/dev/null && git branch --show-current 2>/dev/null)
 # ── Current task epic ────────────────────────────────────
 # Task-branch convention: {epic}/{work-type}/t-{NNN}-{slug}. Show the epic
 # (first segment) only for real task branches — never dev/main/docs/*.
+# Clients/ventures use the 2-segment convention (feat/t-NNN-slug) and mostly
+# sit on main/dev, so fall back to the project's own active_epic there.
+# Project-local only (ADR-066): active_epic has exactly one authoritative
+# source, the resolving project's config — the global ~/.claude copy is never
+# valid for this key. thebrana keeps its copy at system/state/, others at
+# .claude/; both are project-local, so check each in turn.
 EPIC=""
-[[ "$BRANCH" == */*/t-* ]] && EPIC="${BRANCH%%/*}"
+if [[ "$BRANCH" == */*/t-* ]]; then
+    EPIC="${BRANCH%%/*}"
+elif [ -n "$GIT_ROOT" ]; then
+    for cfg in "$GIT_ROOT/.claude/tasks-config.json" \
+               "$GIT_ROOT/system/state/tasks-config.json"; do
+        [ -f "$cfg" ] || continue
+        EPIC=$(jq -r '.active_epic // empty' "$cfg" 2>/dev/null)
+        [ -n "$EPIC" ] && break
+    done
+    # The output below goes through printf '%b', which interprets backslash
+    # escapes; a literal or escaped newline would break the one-line contract.
+    # Branch names can't contain these (git forbids them in refs) — only a
+    # hand-edited config can, so scrub after the config path.
+    EPIC=${EPIC//\\/}
+    EPIC=${EPIC//$'\n'/}
+    EPIC=${EPIC//$'\r'/}
+fi
 
 # ── CTX bar ──────────────────────────────────────────────
 COMPACT_THRESHOLD=${BRANA_AUTOCOMPACT_THRESHOLD:-85}

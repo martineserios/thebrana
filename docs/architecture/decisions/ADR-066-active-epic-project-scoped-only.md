@@ -29,6 +29,30 @@ Concretely, closing the four gaps found above:
 3. **`sync-state.sh cmd_pull` gets a guard mirroring the existing push-side one (t-1883), same algorithm, not a broader one:** capture the global cache's `active_epic` before the pull; after pulling, if thebrana's own repo value differs from what was there before AND a foreign (non-thebrana) value was present, warn and skip writing that key into the cache rather than clobber silently. This is a single before/after diff against thebrana's own prior state — deliberately not a comparison against every registered project (that design was considered and rejected, see the retired draft in the feature spec's Design section) because under this ADR's own target end-state (no project should have its value depend on the global key) that broader comparison degrades to "no registered project's local value ever matches," permanently blocking legitimate first-run cache seeding rather than converging to a no-op. **Scoped to `active_epic` only** (not `active_initiative`), matching the existing push-side guard's scope exactly — extending coverage to `active_initiative` is a separate, symmetric change to both guards, not folded in here. **Known shared limitation** (verified to already exist in the original push guard, not introduced here): both guards operate as whole-file sync + key-level revert; if the *source* file exists but genuinely lacks the `active_epic` key (rare — typically only when a config was created without ever running `set-active`), the whole-file copy still overwrites the target before the guard has a non-empty source value to compare against, so a foreign value can still be lost in that narrow case. Not fixed here — would require a larger key-level-merge redesign of the sync mechanism.
 4. **One-time cleanup + reusable audit**: a migration script (`system/scripts/migrate/audit-orphaned-active-epic.py`) walks every project registered in `tasks-portfolio.json`, and for each one checks whether the global `~/.claude/tasks-config.json`'s `active_epic`/`active_initiative` value matches that project's *own* project-local config (if any). Any global value with no live project-local counterpart confirming it is reported as orphaned and cleared. This is written as a standing audit tool (rerunnable), not a one-shot patch, since new orphans can reappear until every project has migrated to local config and the skill-procedure + pull-side fixes fully close the write/read vectors.
 
+> **Update (t-2469, 2026-07-27 — the "known shared limitation" in item 3 is CLOSED, and it was the common case, not a narrow one.)**
+> Both guards shipped, but each required the *incoming* value to be non-empty
+> (`[ -n "$_cache_epic" ] && [ "$_cache_epic" != "$_repo_epic_before" ]`, and its
+> mirror in `cmd_pull`). That is inverted: a source file that *lacks* `active_epic`
+> is precisely the case that loses data, because the whole-file copy has already
+> dropped the key from the target and the `-n` test then short-circuits so the
+> guard reverts nothing.
+>
+> This was not the "rare" case item 3 assumed. Item 4's audit correctly cleared
+> `active_epic` from the global copy as orphaned, which made the global source
+> permanently keyless — so **every** subsequent `push` silently blanked thebrana's
+> own `active_epic`. Once t-2467 put the epic on the statusline, the symptom
+> became visible rather than a silent degradation of focus ranking.
+>
+> No key-level-merge redesign was needed. The guards already revert the key
+> *after* the whole-file copy, so the fix is just to drop the `-n` precondition
+> and treat empty as a value: `[ "$_cache_epic" != "$_repo_epic_before" ]`.
+> First-run seeding stays unblocked by the outer `-n "$_repo_epic_before"` test.
+> Guard: `tests/scripts/test-sync-state-active-epic.sh` (6 cases, both directions).
+>
+> Note on naming: `push` writes cache→repo and `pull` writes repo→cache, so the
+> sync that clobbers thebrana's *own* value is `cmd_push`, despite t-2469's title.
+> Both directions had the same defect and both are fixed.
+
 ## Consequences
 
 - The two skill procedures (`plan.md`, `done-and-add.md`) get corrected — this closes the one gap with a live blast radius; until this ships, `/brana:backlog add`/`plan` remain a bleed vector on any project without a local config.
