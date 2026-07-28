@@ -63694,6 +63694,36 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2506",
+      "subject": "brana session write same-day merge silently discards updated next[] text for an existing task_id",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close",
+        "session",
+        "cli",
+        "data-loss"
+      ],
+      "description": "On a same-day second close, session write merges next[] by task_id and keeps the EXISTING entry, silently discarding updated text submitted for that same task_id. A later close therefore cannot correct or supersede guidance written by an earlier one.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2340",
+      "created": "2026-07-28",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Found live 2026-07-28 on the second /brana:close --continue of one session in thebrana.\n\nREPRODUCTION (twice, deliberately).\n1. Submitted a merged payload with next[] length 10, containing two entries for t-2502: the prior close's text and a NEW, more accurate one (three reproductions, revised consensus fix). Written file came back with length 9 — the new entry was gone, the stale one kept. No warning, no error, ok:true.\n2. Then submitted a payload with next[] length 9 where the single t-2502 entry's .text had been REPLACED with the new wording. Written file still shows the old text. Verified by grep: the marker string \"THREE reproductions\" is present in the submitted file and absent from the written file.\n\nSo the merge is not a dedup that keeps the last writer — it is a merge that PREFERS THE INCUMBENT. Consequence: once a next[] entry exists for a task_id, no later close that day can update its text. The field is effectively write-once-per-day-per-task_id.\n\nWHY THIS MATTERS. next[] is the handoff — it is what the next session reads to decide what to do. An earlier close's understanding is frozen in, and a later close that learned the earlier guidance was WRONG cannot correct it. That is precisely what happened here: the first close said t-2502 was a clean \"over-reach traded for under-reach\"; by the second close that was known to be wrong (a third reproduction from another session showed over-reach still occurs), and the correction could not be written.\n\nThis also directly violates close/SKILL.md's own field note \"Procedure decision points must never silently drop items\" (2026-05-19) — the drop is in the CLI, below the procedure, so following the procedure correctly does not prevent it.\n\nRELATED BUT DISTINCT. The 2026-05-19 field note on t-1461 covers replace-not-merge losing a PARALLEL session's data. This is the opposite defect in the fix for it: the merge added to prevent loss now prevents updates. Check whether t-1461's merge mode is where this incumbent-preference lives.\n\nMITIGATION USED. The authoritative content was written to t-2502's context field instead, which is what the next session should trust over the handoff's next[] text. Note the handoff currently carries KNOWN-STALE guidance for t-2502.\n\nAC: submitting an updated .text for an existing task_id in a same-day merge updates it\nAC: if any incoming next[] entry is discarded or superseded, that is surfaced (warning/count), never silent\nAC: decide and document the merge rule explicitly — last-writer-wins on text, union on distinct task_ids, and what happens for task_id: null entries\nAC: regression test covering a same-day second write that changes the text of an existing task_id entry",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
