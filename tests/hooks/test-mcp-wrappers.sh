@@ -68,7 +68,11 @@ done
 
 # ── Test 3: No hardcoded paths in .mcp.json ──
 echo ""
-echo "Test 3: .mcp.json uses CLAUDE_PLUGIN_ROOT"
+# Was "uses CLAUDE_PLUGIN_ROOT" — the wrong variable: the plugin root is system/
+# (system/.claude-plugin/plugin.json), so a repo-root PROJECT .mcp.json is never
+# given CLAUDE_PLUGIN_ROOT, and git log -S shows it never contained it in any
+# commit. The real guarantee is env-var indirection over absolute paths (t-2492).
+echo "Test 3: .mcp.json uses env-var indirection"
 MCP_JSON="$(cd "$SCRIPTS_DIR/../.." && pwd)/.mcp.json"
 if [ -f "$MCP_JSON" ]; then
     HARDCODED=$(grep -c '/home/' "$MCP_JSON" 2>/dev/null) || HARDCODED=0
@@ -79,18 +83,18 @@ if [ -f "$MCP_JSON" ]; then
         FAIL=$((FAIL + 1))
         echo "  FAIL: .mcp.json has $HARDCODED hardcoded /home/ paths"
     fi
-    PLUGIN_ROOT=$(grep -c 'CLAUDE_PLUGIN_ROOT' "$MCP_JSON" 2>/dev/null) || PLUGIN_ROOT=0
+    PLUGIN_ROOT=$(grep -c '\${' "$MCP_JSON" 2>/dev/null) || PLUGIN_ROOT=0
     if [ "$PLUGIN_ROOT" -ge 1 ]; then
         PASS=$((PASS + 1))
-        echo "  PASS: .mcp.json uses CLAUDE_PLUGIN_ROOT ($PLUGIN_ROOT refs)"
+        echo "  PASS: .mcp.json uses env-var indirection ($PLUGIN_ROOT refs)"
     else
         FAIL=$((FAIL + 1))
-        echo "  FAIL: .mcp.json has only $PLUGIN_ROOT CLAUDE_PLUGIN_ROOT refs (expected >=1)"
+        echo "  FAIL: .mcp.json has only $PLUGIN_ROOT \${VAR} refs (expected >=1)"
     fi
 else
     FAIL=$((FAIL + 2))
     echo "  FAIL: .mcp.json not found"
-    echo "  FAIL: (skipped CLAUDE_PLUGIN_ROOT check)"
+    echo "  FAIL: (skipped env-var indirection check)"
 fi
 
 echo ""
