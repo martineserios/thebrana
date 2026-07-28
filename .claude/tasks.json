@@ -63280,7 +63280,7 @@
     {
       "id": "t-2492",
       "subject": "CI \"Run tests\" step fails on a clean runner — 100-file suite has never actually executed",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -63302,7 +63302,11 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "`for t in tests/*/*.sh` passes on a clean, non-bootstrapped runner",
+        "helper libs are not executed as tests",
+        "CI job as a whole reaches green"
+      ],
       "work_type": "implement",
       "ac_state": "none"
     },
@@ -63581,7 +63585,7 @@
     {
       "id": "t-2502",
       "subject": "Close anchor under-reaches when a concurrent session closes first — t-2491 fix traded over-reach for under-reach",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -63597,15 +63601,20 @@
       "started": null,
       "completed": null,
       "blocked_by": [],
-      "branch": null,
-      "context": "Found live 2026-07-27, in the very first close to run the t-2491 fix — caught by comparing the computed window against the actual commit list before trusting it.\n\nOBSERVED. LAST_CLOSE resolved to 2026-07-28T01:29:49Z, written by a CONCURRENT session (which was working t-2496 in its own worktree and closed mid-flight). COMMIT_COUNT came back 4, and the window contained 3 commits from 22:29 onward. The closing session's actual work spanned 22:01 -> 22:51 (10 commits). Everything from 22:01-22:27 — including the t-2487/t-2478/t-2491/t-2493 fixes themselves — fell OUTSIDE the window and would not have been snapshotted or queued for extraction.\n\nTHE TRADE. Before t-2491 the anchor read only the default session-state.json, so an epic-routed close left it stale and the window OVER-reached (32 commits vs 4). After t-2491 it takes the max across all files, so a concurrent session's close makes the window UNDER-reach. Over-reach causes double-extraction (close-snapshot.sh dedups on the range string, so a different range is not deduped). Under-reach causes SILENT LOSS — the work is simply never queued, and nothing surfaces that it was skipped. Under-reach is the worse failure because it is invisible.\n\nROOT CAUSE. \"Newest close anywhere\" is the wrong question. The anchor wants \"when did THIS session last close\", which is a per-session/per-branch/per-epic quantity, not a global max. The global max is only correct when closes are strictly sequential — the assumption that concurrency breaks.\n\nCANDIDATE FIXES (not yet chosen — needs the concurrency model decided first):\n- Anchor on the newest close whose state matches THIS session's epic/branch, falling back to the global max only when no such entry exists.\n- Key session state by session id as well as epic, and anchor on this session's own last close.\n- Take the max but clamp it to no later than the first commit authored by this session/branch in the current window, so another session's close can never truncate.\n- Emit a warning when the resolved anchor is NEWER than the oldest commit that would otherwise be in scope — at minimum make the truncation visible instead of silent.\n\nWorked around for the 2026-07-27 close by passing an explicit --git-range 1a99cb45..HEAD.\n\nAdjacent: t-2480 (epic accumulator over-reach on shared main) and t-2491 (the fix that introduced this). Do not revert t-2491 — the stale-default bug it fixed is real; this needs a better anchor, not the old one.\n\nAC: a session's close window is not truncated by an unrelated concurrent session's close\nAC: if the anchor would truncate, it is surfaced (warning) rather than silently narrowing\nAC: regression test with two session-state files where the newer one belongs to a DIFFERENT session/epic than the one closing\n2026-07-28 (proyecto_anita close, t-2251): NOT A TRADE — OVER-reach still happens AFTER the t-2491 fix. LAST_CLOSE resolved to 2026-07-28T15:25:20Z and COMMIT_COUNT came back 8, of which 2 (676d4dd9, 9b6bda3c) belonged to a concurrent t-2285 session that merged to main AFTER that anchor timestamp. So the max-across-files anchor over-reaches when a concurrent session commits after your anchor, and under-reaches when a concurrent session CLOSES before you (the 2026-07-27 case above). Direction depends purely on whether the other session's close lands before or after your window opens — it is not a stable trade of one failure for the other, and a fix that only addresses under-reach will leave the over-reach half live. IMPLICATION FOR THE FIX: no session-state timestamp can be correct here, because the anchor is a wall-clock proxy for 'my work' in a repo where 'my work' is not contiguous in time. Derive the range from the closing session's OWN commits (first commit this session ^..HEAD), the same shape t-2242 applied to Step 1b. Workaround used both times: compute the range by hand and pass --git-range explicitly; here 676d4dd9..95ba04ee, which queued exactly the 8 session commits with zero t-2285 contamination.\n\n\nSECOND REPRODUCTION, 2026-07-28 — worse than the first, and it points at the fix.\n\nFirst repro truncated the window (3 commits counted for a 10-commit session). This one EXCLUDED IT ENTIRELY: COMMIT_COUNT came back 0.\n\nTimeline, all UTC:\n  15:22:17  this session's own previous close  (epic \"close\")\n  15:57:00  this session commits 24e6ee08 (t-2503 rule change)\n  15:57:16  this session commits d7de06ed (merge)\n  15:58:57  CONCURRENT session writes its close state (orphan/default)\nThe global max is 15:58:57 — 1m41s AFTER this session's last commit — so `--since` that timestamp matched nothing and the gate computed a zero-commit window. A zero-commit window is not merely wrong: gate-and-evidence.md Step 1 treats \"no commits, no changes\" as a READ-ONLY session and short-circuits to a one-line handoff, skipping the snapshot entirely. So the failure escalates from \"queues too little\" to \"queues nothing and declares the session read-only\".\n\nThe severity ordering is now clear: over-reach double-extracts (visible, recoverable), truncation loses part (invisible), zero-window loses everything AND misclassifies the session.\n\nWHAT WORKED. Anchoring on the newest written_at for THIS session's own epic — `jq '.[] | select(.epic==\"close\") | .state.written_at'` — returned 15:22:17 and yielded the correct 11-commit window. That is candidate fix #1 already listed above, now empirically confirmed on a live case. Recommend implementing it as: prefer the newest state whose epic matches the epic this close will write to; fall back to the global max only when no such entry exists (first close for that epic); never let an entry from a different epic/session move the anchor forward.\n\nNote the interaction with the Step 1 read-only short-circuit — whatever fix lands must also ensure a zero-commit window caused by anchoring cannot be mistaken for a genuinely read-only session.\n\n\nCORRECTION to the paragraph immediately above, same session: \"confirmed candidate fix #1\" was OVERSTATED. The epic-scoped anchor fixed the under-reach half only. The resulting 11-commit window contained just 2 commits belonging to this session (24e6ee08, d7de06ed); the other 9 were the concurrent session's bootstrap/plugin-cache work on the same shared branch. So epic-scoping still over-reaches, exactly as the proyecto_anita/t-2251 note above independently found.\n\nThat note's conclusion is the correct one and supersedes the epic-scoped suggestion: no session-state timestamp can be right, because \"my work\" is not contiguous in wall-clock time on a shared branch. Derive the range from the closing session's OWN commits. Epic-scoping is worth keeping only as a cheap guard against the zero-window/read-only misclassification described above, not as the range fix.\n\nWorkaround used here: explicit --git-range f80f9af1..d7de06ed (this session's two commits exactly).",
+      "branch": "close/fix/t-2502-close-window-anchor",
+      "context": "Found live 2026-07-27, in the very first close to run the t-2491 fix — caught by comparing the computed window against the actual commit list before trusting it.\n\nOBSERVED. LAST_CLOSE resolved to 2026-07-28T01:29:49Z, written by a CONCURRENT session (which was working t-2496 in its own worktree and closed mid-flight). COMMIT_COUNT came back 4, and the window contained 3 commits from 22:29 onward. The closing session's actual work spanned 22:01 -> 22:51 (10 commits). Everything from 22:01-22:27 — including the t-2487/t-2478/t-2491/t-2493 fixes themselves — fell OUTSIDE the window and would not have been snapshotted or queued for extraction.\n\nTHE TRADE. Before t-2491 the anchor read only the default session-state.json, so an epic-routed close left it stale and the window OVER-reached (32 commits vs 4). After t-2491 it takes the max across all files, so a concurrent session's close makes the window UNDER-reach. Over-reach causes double-extraction (close-snapshot.sh dedups on the range string, so a different range is not deduped). Under-reach causes SILENT LOSS — the work is simply never queued, and nothing surfaces that it was skipped. Under-reach is the worse failure because it is invisible.\n\nROOT CAUSE. \"Newest close anywhere\" is the wrong question. The anchor wants \"when did THIS session last close\", which is a per-session/per-branch/per-epic quantity, not a global max. The global max is only correct when closes are strictly sequential — the assumption that concurrency breaks.\n\nCANDIDATE FIXES (not yet chosen — needs the concurrency model decided first):\n- Anchor on the newest close whose state matches THIS session's epic/branch, falling back to the global max only when no such entry exists.\n- Key session state by session id as well as epic, and anchor on this session's own last close.\n- Take the max but clamp it to no later than the first commit authored by this session/branch in the current window, so another session's close can never truncate.\n- Emit a warning when the resolved anchor is NEWER than the oldest commit that would otherwise be in scope — at minimum make the truncation visible instead of silent.\n\nWorked around for the 2026-07-27 close by passing an explicit --git-range 1a99cb45..HEAD.\n\nAdjacent: t-2480 (epic accumulator over-reach on shared main) and t-2491 (the fix that introduced this). Do not revert t-2491 — the stale-default bug it fixed is real; this needs a better anchor, not the old one.\n\nAC: a session's close window is not truncated by an unrelated concurrent session's close\nAC: if the anchor would truncate, it is surfaced (warning) rather than silently narrowing\nAC: regression test with two session-state files where the newer one belongs to a DIFFERENT session/epic than the one closing\n2026-07-28 (proyecto_anita close, t-2251): NOT A TRADE — OVER-reach still happens AFTER the t-2491 fix. LAST_CLOSE resolved to 2026-07-28T15:25:20Z and COMMIT_COUNT came back 8, of which 2 (676d4dd9, 9b6bda3c) belonged to a concurrent t-2285 session that merged to main AFTER that anchor timestamp. So the max-across-files anchor over-reaches when a concurrent session commits after your anchor, and under-reaches when a concurrent session CLOSES before you (the 2026-07-27 case above). Direction depends purely on whether the other session's close lands before or after your window opens — it is not a stable trade of one failure for the other, and a fix that only addresses under-reach will leave the over-reach half live. IMPLICATION FOR THE FIX: no session-state timestamp can be correct here, because the anchor is a wall-clock proxy for 'my work' in a repo where 'my work' is not contiguous in time. Derive the range from the closing session's OWN commits (first commit this session ^..HEAD), the same shape t-2242 applied to Step 1b. Workaround used both times: compute the range by hand and pass --git-range explicitly; here 676d4dd9..95ba04ee, which queued exactly the 8 session commits with zero t-2285 contamination.\n\n\nSECOND REPRODUCTION, 2026-07-28 — worse than the first, and it points at the fix.\n\nFirst repro truncated the window (3 commits counted for a 10-commit session). This one EXCLUDED IT ENTIRELY: COMMIT_COUNT came back 0.\n\nTimeline, all UTC:\n  15:22:17  this session's own previous close  (epic \"close\")\n  15:57:00  this session commits 24e6ee08 (t-2503 rule change)\n  15:57:16  this session commits d7de06ed (merge)\n  15:58:57  CONCURRENT session writes its close state (orphan/default)\nThe global max is 15:58:57 — 1m41s AFTER this session's last commit — so `--since` that timestamp matched nothing and the gate computed a zero-commit window. A zero-commit window is not merely wrong: gate-and-evidence.md Step 1 treats \"no commits, no changes\" as a READ-ONLY session and short-circuits to a one-line handoff, skipping the snapshot entirely. So the failure escalates from \"queues too little\" to \"queues nothing and declares the session read-only\".\n\nThe severity ordering is now clear: over-reach double-extracts (visible, recoverable), truncation loses part (invisible), zero-window loses everything AND misclassifies the session.\n\nWHAT WORKED. Anchoring on the newest written_at for THIS session's own epic — `jq '.[] | select(.epic==\"close\") | .state.written_at'` — returned 15:22:17 and yielded the correct 11-commit window. That is candidate fix #1 already listed above, now empirically confirmed on a live case. Recommend implementing it as: prefer the newest state whose epic matches the epic this close will write to; fall back to the global max only when no such entry exists (first close for that epic); never let an entry from a different epic/session move the anchor forward.\n\nNote the interaction with the Step 1 read-only short-circuit — whatever fix lands must also ensure a zero-commit window caused by anchoring cannot be mistaken for a genuinely read-only session.\n\n\nCORRECTION to the paragraph immediately above, same session: \"confirmed candidate fix #1\" was OVERSTATED. The epic-scoped anchor fixed the under-reach half only. The resulting 11-commit window contained just 2 commits belonging to this session (24e6ee08, d7de06ed); the other 9 were the concurrent session's bootstrap/plugin-cache work on the same shared branch. So epic-scoping still over-reaches, exactly as the proyecto_anita/t-2251 note above independently found.\n\nThat note's conclusion is the correct one and supersedes the epic-scoped suggestion: no session-state timestamp can be right, because \"my work\" is not contiguous in wall-clock time on a shared branch. Derive the range from the closing session's OWN commits. Epic-scoping is worth keeping only as a cheap guard against the zero-window/read-only misclassification described above, not as the range fix.\n\nWorkaround used here: explicit --git-range f80f9af1..d7de06ed (this session's two commits exactly).\nskill_gap_checked: true (backlog start step 5, user chose: load first-principles, 2026-07-28)",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "a session's close window is not truncated by an unrelated concurrent session's close",
+        "if the anchor would truncate, it is surfaced (warning) rather than silently narrowing",
+        "regression test with two session-state files where the newer one belongs to a DIFFERENT session/epic than the one closing"
+      ],
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-2503",
@@ -63723,6 +63732,35 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2507",
+      "subject": "ADR-068 number collision: v3-supersession (dev) vs knowledge-process-url-headless-fetch (t-1781 branch)",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "adr",
+        "docs",
+        "knowledge-pipeline"
+      ],
+      "description": "Two different ADRs share number 068. `dev` carries ADR-068-v3-supersession.md; branch knowledge-pipeline/feat/t-1781-brana-knowledge-process-url carries ADR-068-knowledge-process-url-headless-fetch.md. They will collide when t-1781 merges, and cross-references to \"ADR-068\" are already ambiguous — t-1781's task context cites \"ADR-068's three-tier fetch design\", which resolves to the v3-supersession doc on dev and to the fetch doc on the branch.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2338",
+      "created": "2026-07-28",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Found 2026-07-28 while resuming t-1781. Renumber the knowledge one (it is unmerged, so it is the cheap side to move); 068 is taken on dev and 069+ is free there. Update in-doc references and t-1781's task context, plus docs/architecture/features/knowledge-process-url.md which also cites ADR-068.\nNote there are FOUR other duplicate ADR numbers already on dev: ADR-002, ADR-026, ADR-048, ADR-062. Worth deciding whether to renumber those too or accept them as historical, and whether numbering should be allocated by a check rather than by eyeballing the directory.\nAC: no two ADRs in docs/architecture/decisions/ share a number after the change (on dev and on the t-1781 branch)\nAC: references to the renumbered ADR updated in the ADR body, knowledge-process-url.md, and t-1781 context\nAC: a decision recorded on whether the 4 pre-existing duplicates are renumbered or accepted",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "design",
       "ac_state": "none"
     }
   ],

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-28T15:36:51Z",
+  "generated": "2026-07-28T16:11:10Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -637,6 +637,9 @@
         "system/statusline.sh",
         "system/scripts/git-hooks/pre-commit",
         "system/scripts/ruflo-mcp.sh",
+        "system/cli/rust/target/",
+        "system/hooks/lib/resolve-brana.sh",
+        "system/hooks/session-start.sh",
         "system/rules/<file>.md"
       ]
     },
