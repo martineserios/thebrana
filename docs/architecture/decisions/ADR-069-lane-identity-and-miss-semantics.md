@@ -89,42 +89,143 @@ from. It is now observed rather than inferred.
 
 ## Decision
 
-Six decisions, deliberately separable. Each ships independently; none blocks another except
-where stated.
+**Correction to an earlier draft.** It claimed "six decisions, each ships independently."
+That was a comforting fiction, and the challenge gate refuted it. The real graph:
 
-### D1 — A miss is an error, never a substitution *(the load-bearing one)*
+```
+D0b (store scoping)  ──precondition for──▶  everything (D1's escape hatches are void without it)
+D0  (key unification) ──┐
+D2  (resume query)    ──┼──▶ ship together as ONE change; D1 alone is unusable
+D1  (miss semantics)  ──┘
+D3.1/3.2/3.3 ──depends on── D2 (every guard reads a pin field)
+D3b          ── is D2's spec, not a separate decision
+D4           ── produces no diff: two Non-Actions + an audit that needs an owner
+D5           ── produces no diff: a deferral
+D6           ── files a task
+```
+
+**Three decisions carry a diff — D0b, and D0+D1+D2 as one unit, and D3.** D4/D5/D6 are
+governance. Since full scope was chosen partly on the strength of separability, that
+justification does not hold; scope is retained on the operator's explicit call, with the
+dependency graph stated honestly instead.
+
+### D0 — Reads and writes must resolve through one key function *(root cause)*
+
+Reproduction 1 is not a fail-open layered on a correct key. It is a **write-key/read-key
+asymmetry**, verified in source:
+
+| Path | Function | Key |
+|---|---|---|
+| Write | `write_state` → `unit_scoped_state_path(root, state.epic, branch)` — `brana-core/src/session.rs:342` | **epic-first**, branch fallback |
+| Read | `read_state` → `epic_scoped_state_path(root, branch)` — `brana-core/src/session.rs:332` | **branch-only** |
+| Consume | `mark_consumed` → `epic_scoped_state_path(root, branch)` — `brana-core/src/session.rs:649` | **branch-only** (and it *writes*) |
+
+The 17:34:57Z handoff was written under the epic key; the read on `dev` looked under the
+branch key, missed, and fell through. **Read must resolve by the same key the write used.**
+Since a reader holds no state to read `epic` from, that key must come from the lane pin
+(D2) — which is why D0/D1/D2 ship as one change, not three.
+
+`mark_consumed` resolving by the broken key is worse than a bad read: on `dev` it stamps
+`consumed_at` onto another lane's file. A cross-lane **write**.
+
+### D0b — Session state must be worktree-shared, like `tasks.json` *(precondition)*
+
+The store is **worktree-scoped today, and it should not be.** Verified empirically from the
+t-2488 worktree: `brana session read --all --json` returns **0 lanes**, while the main
+checkout returns 24.
+
+| Resolver | Function | Effect |
+|---|---|---|
+| Session state | `find_project_root()` → `git_toplevel()` — `brana-core/src/util.rs:124-130` | **per-worktree** store |
+| `tasks.json` | `find_tasks_config()` → `git_common_root()` first — `brana-core/src/util.rs:158-165` | **shared** across worktrees |
+
+`find_tasks_config` already does the right thing, with a comment at `util.rs:153-157`
+explaining that common-dir resolution is exactly what makes state shared. Session state was
+never given the same treatment. The split is not theoretical: a real orphaned store exists
+at `~/.claude/projects/-home-martineserios-enter-thebrana-thebrana-feat-t-798/`.
+
+**Decision:** session state resolves via `git_common_root()`. Existing per-worktree stores
+are migrated or explicitly adopted as `legacy:` lanes.
+
+**Why this is a precondition and not a nicety:** without it, D1's fail-loud fires on every
+worktree lane on day 1, and D1's own escape hatches (`--all`, `--lane legacy:<slug>`) point
+at a directory that does not contain the handoff. **Reproduction 1 was measured on `dev` in
+the main checkout — the one environment where this defect is invisible.** Any keying
+decision taken before D0b is taken in the wrong coordinate system.
+
+### D1 — A miss is an error, never a substitution
 
 `brana session read` must never return, with exit 0, a state whose lane differs from the
 lane requested.
 
-- No lane pin resolvable → **exit non-zero** with an actionable message. Do not fall back to
-  `session-state.json`.
+- No lane resolvable → **exit non-zero** with an actionable message.
 - `--lane <id>` reads exactly that lane, or fails.
-- `--all` continues to enumerate every lane (unchanged; this is the enumeration surface, not
-  the resolution surface).
-- Legacy identity-less files are reachable **only** through `--all` and explicit `--lane
-  legacy:<slug>`. They are never a fallback target.
+- `--all` continues to enumerate every lane (the enumeration surface, not the resolution
+  surface).
+- Legacy identity-less files are reachable **only** through `--all` and explicit
+  `--lane legacy:<slug>`. Never a fallback target. The current `(orphan)` display label is
+  not an identifier; each legacy file needs a real addressable slug.
 
-**Rationale:** D1 alone fixes Reproduction 1. A correct key with fallback-on-miss retained
-reproduces the bug verbatim, because the observed failure was a fail-open, not a
-mis-addressing. Fixing the key without fixing miss semantics fixes nothing.
+**Every fallback surface must be closed, not just the first.** Naming one and fixing one is
+how the sibling survives:
 
-### D2 — Lane key: session id, with branch and task recorded as metadata
+| Surface | Location | Current miss behaviour |
+|---|---|---|
+| `session-state.json` fallthrough | `brana-core/src/session.rs:56-64` | returns another lane's state |
+| **`handoff last` fallback** | `brana-cli/src/commands/session.rs:96-100` | prints legacy markdown, returns `Ok(())` — **exit 0** |
+| **MCP `session_read`** | `brana-mcp/src/tools/session_read.rs:25` | `{"found": false}` — no exit code exists |
+| **`mark_consumed`** | `brana-core/src/session.rs:649` | writes to the mis-resolved file |
+| **Shell caller idiom** | `system/hooks/session-start.sh:514`, `session-end.sh:109` | `2>/dev/null \|\| VAR=""` converts loud failure back into silence |
 
-- **Key:** `BRANA_SESSION_ID`, captured at session **start**.
-- **Recorded but non-key:** `branch`, `task_id`, `worktree_path`, `head_at_start`.
+The last row is the one that decides whether D1 is real. **Making `read` fail loudly does
+not make the system fail loudly** — the dominant caller idiom in this codebase swallows the
+exit code and, at `session-start.sh:575`, an empty result activates yet another legacy
+scan. D1 is not shipped until those call sites are changed in the same change-set.
 
-Session id survives branch switches within one session — last session touched three
-branches — and branch demonstrably collapses to `dev` at close. Recording branch and task
-as metadata preserves human legibility and debuggability without making either load-bearing.
+**Rationale, corrected:** D1 alone converts *wrong answer, exit 0* into *no answer, exit
+non-zero*. That removes silent cross-lane contamination and is worth shipping for that
+reason alone — but it does **not** make the real handoff reachable on `dev`. Only D0+D2
+does. An earlier draft of this ADR claimed D1 was sufficient for Reproduction 1; that claim
+was refuted against the source and is retracted here.
 
-**Mechanism (constrained by the export gap):** `system/hooks/session-start.sh` already
-computes `SESSION_ID`, `CWD`, and `GIT_ROOT`. It writes a **lane pin file**; it must not
-rely on exporting the id. Every consumer resolves the lane by reading that file, never from
-the environment.
+### D2 — Write key is the lane id; **resume is a query, not a key lookup**
 
-**Legacy read path:** existing files are addressable as `legacy:<slug>`, listed by `--all`,
-and never resolved implicitly. No silent disappearance.
+The distinction an earlier draft collapsed, and the one that makes D1 safe:
+
+| Operation | Mechanism |
+|---|---|
+| **Write** | Key by `BRANA_SESSION_ID`, captured at session start. One session ⇒ one file ⇒ no cross-lane clobber. |
+| **Resume** | **Query** the lane store: most recently closed lane whose `worktree_path` matches mine, else whose `branch` matches, else whose `task_id` matches. Ranked, and it reports *which* rule matched. |
+
+**Why this is not optional.** A fresh session has no state under its own id, so under
+key-lookup resolution **a miss is the universal case at session start**, and D1 would make
+every session start fatal. Key choice therefore *determines the base rate of misses* — the
+opposite of this ADR's earlier claim that miss semantics are independent of key choice.
+
+Resume returns **at most one** lane and always states the matching rule and the candidate
+count. Ambiguity (two equally-ranked candidates) is a **miss** under D1, not a coin flip.
+This is what makes "which lane am I resuming?" answerable — the operator-visible symptom.
+
+- **Recorded but non-key:** `branch`, `task_id`, `worktree_path`, `head_at_start`,
+  `dirty_at_start`.
+- **Legacy:** existing files are addressable as `legacy:<slug>`, enumerated by `--all`, and
+  never resolved implicitly. Filename-derived slugs collide with inner `epic` fields today
+  (three files claim `harness-core`), so legacy slugs must be disambiguated at migration,
+  not at read time.
+
+**Pin discovery — the circularity, resolved.** A consumer cannot read the pin keyed by an id
+it cannot see (`BRANA_SESSION_ID` is not exported). But **cwd *is* inherited**. So the pin is
+discovered by `worktree_path`, and carries `session_id` inside it. In the shared main
+checkout two live pins may match one cwd — that is detected and, per D1, is a miss rather
+than a guess.
+
+**Autonomous bootstrap.** `claude -p` runners and cron fire no interactive SessionStart hook,
+so they would have no pin — and under D3b "missing pin → fail loud" that converts the whole
+autonomous surface from working-but-mis-attributed to **not working**. Therefore: a pin is
+creatable explicitly (`brana session lane init --session-id <id>`), the autonomous runner
+calls it, and a run without a pin degrades to a named `autonomous:<run-id>` lane rather than
+a hard failure. Not verified: whether `autonomous-runner.sh` fires SessionStart inside its
+sandbox. **This must be checked before Accepted.**
 
 ### D3 — Commit attribution: reflog, plus three mechanical guards for the shared checkout
 
@@ -147,22 +248,46 @@ marked `shared: true`. Any consumer deriving a commit set from a `shared` pin **
 rather than computing a window — the same rule as D1, applied to commits instead of state.
 A session may still *work* in the main checkout; it may not silently claim commits there.
 
-**D3.2 — HEAD staleness is verified, not assumed.**
-The pin records `head_at_start`. Before any lane derives a commit set, it compares current
-`HEAD` against `head_at_start` and classifies the delta using reflog reason strings:
-own `commit:` entries are mine, `checkout:` / `reset:` / `merge …: Fast-forward` and
-commits with no matching reflog entry in this worktree are foreign. A foreign move is
-reported, never absorbed. This is what would have caught `ceec1d26` at the moment it landed
-rather than 32 seconds later by accident.
+**D3.2 — HEAD staleness is *detected*; attribution works only in worktree lanes.**
+The pin records `head_at_start`. A lane compares current `HEAD` against it and classifies
+the delta by reflog reason string — `commit:` created here, `checkout:` / `reset:` /
+`merge …: Fast-forward` arrived here.
 
-**D3.3 — Commits may not sweep paths the lane did not author.**
-The pin records `dirty_at_start` — one `git status --porcelain` snapshot taken at session
-start. A pre-commit guard in the shared checkout rejects a commit whose staged set includes
-a path that was **already dirty when this lane started** and that this lane never wrote.
-This is exactly the `ceec1d26` failure: `.claude/tasks.json` was dirty at that lane's start
-because it belonged to the t-2492 lane, and it was committed by a session that did not
-author it. `git commit -a` in the shared checkout is rejected outright, since it cannot
-express authorship.
+**Scope correction.** This works in linked worktrees, which keep their own HEAD reflog. It
+does **not** work in the shared main checkout, which has exactly **one** reflog shared by
+every lane: another lane's `commit:` entry is indistinguishable from mine. An earlier draft
+claimed D3.2 "would have caught `ceec1d26`" — false. It would have classified `ceec1d26` as
+**mine**. In the shared checkout D3.2 can detect only that HEAD *moved*, never by whom; that
+detection feeds D3.1, which refuses rather than attributes.
+
+Known limits, none of which the reflog survives: **rebase/amend/squash** rewrite SHAs so a
+lane's own work classifies foreign; **cherry-pick** is indistinguishable from authorship;
+**reflog expiry** (default 90d / 30d unreachable) bounds the "free and retroactive" claim;
+**detached HEAD** yields no branch metadata; and **`git worktree remove` deletes the
+worktree's reflog** — which git-discipline mandates after merge, destroying the evidence at
+exactly the moment close needs it. That last one is a direct collision between this
+mechanism and the repo's own hard rule and must be resolved before Accepted.
+
+**D3.3 — Commits may not sweep paths that were dirty at lane start.**
+The pin records `dirty_at_start` — one `git status --porcelain` snapshot at session start. A
+pre-commit guard in the shared checkout rejects a commit whose staged set includes a path
+that was dirty at this lane's start, unless the path is explicitly acknowledged
+(`--adopt-path`). `git commit -a` in the shared checkout is rejected outright, since it
+cannot express authorship.
+
+**Predicate correction.** An earlier draft also required "and this lane never wrote it."
+That is **not knowable** — no per-lane write ledger exists, and D3's own Out-of-scope
+section declines to build one, making the guard circular. The predicate is therefore
+`dirty_at_start` **alone**, which is recordable, plus an explicit opt-in for the legitimate
+case (a lane resuming its own uncommitted work). This is more conservative — it will stop
+some valid commits — and that is the correct failure direction. It is also the only guard
+here that would have *prevented* `ceec1d26` rather than merely reported it, and only if that
+lane staged `.claude/tasks.json` rather than adopting it deliberately.
+
+**Host surfaces, named:** `system/scripts/git-hooks/pre-commit` (already worktree-safe via
+`git rev-parse --git-path`), its sibling `commit-msg`, and the bootstrap step that resolves
+the effective `core.hooksPath`. The guard must compose with `no-attribution-commit.sh`
+rather than replace it.
 
 **Out of scope, recorded as known limitations:**
 
@@ -217,7 +342,15 @@ Waves are **not** decided by this ADR. The deferral itself is the recorded decis
 - Waves remain at 0 instances and gain no new consumers.
 - A dedicated decision is due **2026-08-28**, with two admissible outcomes: populate as the
   HOW axis, or retire the primitive.
-- Until then, no design may take a dependency on waves.
+- Until then, no design may take a dependency on the wave **primitive**.
+- **The deadline is a `brana remind` row linked to the task, not a sentence in this ADR.**
+  A prose date is what ADR-065's cleanup had, and it never ran. Past-due reminders are
+  surfaced at session start with a start prompt; a date without a reminder row is theatre.
+
+**Terminology hazard, flagged:** "wave" names two different things — the stored primitive
+(0 instances) and the v3 *program phase* (wave 1, wave 2…, used throughout ADR-068). This
+decision governs the **primitive only**. D6's epic cleanup *is* program wave 1, so the two
+decisions collide on the word without colliding on substance.
 
 **Standing note:** zero instances means zero migration cost. Retirement is cheapest now and
 gets monotonically more expensive with every consumer added.
@@ -227,11 +360,18 @@ gets monotonically more expensive with every consumer added.
 ADR-065 shipped a correct data model and the felt problem got **worse** (43 → 54) because
 wave 1 never ran. An ADR that ships schema without cleanup repeats that failure exactly.
 
-- A cleanup task is filed with a **named owner and a date**, not a backlog aspiration.
-- Target: collapse 54 → ~10, starting with the 46 created in the 2026-07-23 batch (all P3,
-  no tags, no parent).
-- **This ADR is not "done" while the count is above ~10.** Schema completion does not count
-  as completion.
+- A cleanup task is filed with an owner and a **`brana remind` row**, not a prose date.
+  Live measurement 2026-07-28: 54 epics — 4 `active`, 50 `next`, **46** from the 2026-07-23
+  batch (all P3, no tags, no parent). The batch *is* the work.
+- **Correction to an earlier draft:** it stated "this ADR is not done while the count is
+  above ~10." That is withdrawn. It coupled six separable decisions to one unrelated data
+  chore, made ADR status a function of mutable data with nothing reading it, and reproduced
+  ADR-065's failure mode — a prose gate — while citing that same failure as its reason. The
+  accountability is kept; the coupling is dropped.
+- What ADR-065 actually contained, checked: **no cleanup clause at all**. The "43 → ~10"
+  cleanup was assigned in `docs/architecture/features/backlog-v3-schema.md:267` as "v3 wave
+  1" — a prose assignment to a program phase. Nothing enforced it and 43 became 54. That is
+  the precedent D5 and D6 must not repeat.
 
 ## Consequences
 
@@ -262,8 +402,31 @@ wave 1 never ran. An ADR that ships schema without cleanup repeats that failure 
   the range from the closing session's own commits was unbuildable because nothing recorded
   which commits belong to a session. D3 supplies that; the epic-scoped anchor remains the
   same category error in smaller form and must not be built.
-- **Reversibility:** the lane pin is one file and one hook line; miss semantics are one exit
-  path. Both revert without data migration. Legacy files are never rewritten.
+- **Reversibility is asymmetric.** An earlier draft claimed it was symmetric; that is
+  withdrawn. **Revert-safe:** D1 in isolation, D3.1–D3.3, D5. **Not revert-safe:** D2 after
+  any close has run under it — handoffs written to session-id-keyed filenames survive on
+  disk but become unreadable by the reverted reader, which derives `session-state-{epic}.json`
+  from a branch regex and will never produce a uuid-keyed name. Recovery is a rename
+  migration, which is exactly what "no data migration" denied. Worse, the reverted reader
+  lands on `session-state.json` — the metrics stub from Reproduction 1. **A rollback script
+  is a required deliverable of D2, not a contingency.**
+- **`brana session path` is a third resolution surface** (`brana-cli/src/commands/session.rs:242-247`),
+  resolving branch-first while `session write` resolves epic-first. The session-end hook
+  probes with `path` and writes with `write` — reading a different file than the writer
+  writes. This is the mechanism that produced Reproduction 1's orphan stub. It is in scope
+  for D0.
+- **t-2506 has a sibling.** `dedup_next_items` (`brana-core/src/session.rs:123-134`) is the
+  known dropper, but `merge_states` (`session.rs:491-495`) implements the same `task_id`
+  drop independently, on the same-day merge path — i.e. the second close of any day, when
+  handoff volume is highest. Both are in scope; fixing one leaves the other.
+- **D2 silently retires two live behaviours.** Per-session filenames mean the same-day merge
+  branch stops firing, and the `branch_has_active_worktree` clobber guard (`session.rs:377-388`,
+  added for t-2263) becomes dead code because it only triggers against an existing file at
+  the same path. Both must be explicitly re-provided or explicitly dropped.
+- **Session state is not single-writer today.** `system/hooks/session-end-persist.sh:240-242`
+  performs an unlocked read-modify-write (`jq … > tmp && mv`) on a session-state file after
+  `session write`. D3b's single-writer premise holds for the pin, not for the store — and
+  this writer is missing from D4's suspect list, which names only `tasks.json` writers.
 
 ## Non-Actions — explicitly not adopted
 
