@@ -2534,6 +2534,31 @@ fi
 echo ""
 fi  # should_run 66
 
+if should_run 67; then
+# Check 67 — ADR numbers must be unique (t-2515).
+# Five numbers were colliding simultaneously on 2026-07-28. Four (002, 026,
+# 048, 062) had been duplicated on dev for months — the 002 collision was
+# noted in an audit in March and explicitly deferred, which is what a
+# collision with no gate looks like over time. The fifth (068) was created
+# that same day by picking the next number from a directory listing on a
+# feature branch, which cannot see an ADR added on dev.
+# Running it here makes the next collision fail at the next validate rather
+# than surface at merge, months later.
+echo "Check 67: ADR number uniqueness (t-2515)..."
+C67_CHECK="$SCRIPT_DIR/system/scripts/check-adr-uniqueness.sh"
+if [ ! -f "$C67_CHECK" ]; then
+    warn "Check 67: $C67_CHECK not found — skipping"
+else
+    if C67_OUT=$(bash "$C67_CHECK" "$SCRIPT_DIR/docs/architecture/decisions" 2>&1); then
+        pass "Check 67: ADR numbers — all unique"
+    else
+        echo "$C67_OUT" | sed 's/^/  /'
+        fail "Check 67: duplicate ADR number(s) — two decisions share one identity"
+    fi
+fi
+echo ""
+fi  # should_run 67
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
