@@ -13,13 +13,7 @@ Cancelling a parent task does NOT auto-cancel children. When cancelling a parent
 
 Reads: free. Writes: confirm first.
 
-Branch: feature=feat/, fix=fix/, refactor=refactor/, docs=docs/, research=research/, ops=chore/. Format: `{prefix}{id}-{slug}`.
-
-```
-Task t-015 (kind: feature) → branch: feat/t-015-jwt-auth
-Task t-022 (kind: fix)     → branch: fix/t-022-session-timeout
-Task t-030 (kind: docs)    → branch: docs/t-030-api-contracts
-```
+Branch prefix: keyed on `kind` (authoritative — it names what the change does); falls back to `work_type` only when `kind` is absent (22% of tasks). The mapping and the shared `resolve_branch_prefix()` live in `system/skills/_shared/branch-prefix.md` — the single authority. Do not restate it here or in `start.md` (t-2494). Full branch format: CLAUDE.md §Branch naming.
 
 Code tasks: `/brana:backlog start` enters `/brana:build`. Done: `/brana:build` CLOSE step. `/brana:backlog done` for manual/external only.
 
