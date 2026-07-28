@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-28T19:48:46Z",
+  "generated": "2026-07-28T20:13:42Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -665,11 +665,6 @@
         "system/config/"
       ]
     },
-    "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md": {
-      "title": "ADR-002: Scheduler — thin layer over systemd timers",
-      "type": "ADR",
-      "impl_files": []
-    },
     "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md": {
       "title": "ADR-002: Tasks as JSON Data Layer",
       "type": "ADR",
@@ -820,15 +815,6 @@
         "system/skills/.sources.json"
       ]
     },
-    "docs/architecture/decisions/ADR-072-full-rust-mcp-architecture.md": {
-      "title": "ADR-026: Full Rust + MCP Architecture — Cargo Workspace with pmcp",
-      "type": "ADR",
-      "impl_files": [
-        "system/__init__.py",
-        "system/hooks/task-sync.py",
-        "system/scripts/decisions.py"
-      ]
-    },
     "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md": {
       "title": "ADR-026: Ruflo MCP as Backbone, CLI as Fallback",
       "type": "ADR",
@@ -960,11 +946,6 @@
       "type": "ADR",
       "impl_files": []
     },
-    "docs/architecture/decisions/ADR-073-persona-session-state.md": {
-      "title": "ADR-048: Persona modifier persisted in session state, not CLAUDE.local.md",
-      "type": "ADR",
-      "impl_files": []
-    },
     "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md": {
       "title": "ADR-049: Mandatory Challenger Gate at BUILD→CLOSE Boundary",
       "type": "ADR",
@@ -1064,14 +1045,6 @@
         "system/scripts/autonomous-runner.sh"
       ]
     },
-    "docs/architecture/decisions/ADR-074-step-state-contract.md": {
-      "title": "ADR-062: Step-State Contract — Derive {next_step, gate_pending} from a Static Step Registry + the Run-State Log",
-      "type": "ADR",
-      "impl_files": [
-        "system/skills/build/phases/load.md",
-        "system/skills/_shared/guided-execution.md"
-      ]
-    },
     "docs/architecture/decisions/ADR-063-pending-questions-store.md": {
       "title": "ADR-063: Pending-Questions Store — Raised-Hand Queue for Autonomous Workflows",
       "type": "ADR",
@@ -1122,6 +1095,33 @@
         "system/hooks/session-start.sh:514",
         "system/scripts/git-hooks/pre-commit",
         "system/hooks/session-end-persist.sh:240-242"
+      ]
+    },
+    "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md": {
+      "title": "ADR-071: Scheduler — thin layer over systemd timers",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-072-full-rust-mcp-architecture.md": {
+      "title": "ADR-072: Full Rust + MCP Architecture — Cargo Workspace with pmcp",
+      "type": "ADR",
+      "impl_files": [
+        "system/__init__.py",
+        "system/hooks/task-sync.py",
+        "system/scripts/decisions.py"
+      ]
+    },
+    "docs/architecture/decisions/ADR-073-persona-session-state.md": {
+      "title": "ADR-073: Persona modifier persisted in session state, not CLAUDE.local.md",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-074-step-state-contract.md": {
+      "title": "ADR-074: Step-State Contract — Derive {next_step, gate_pending} from a Static Step Registry + the Run-State Log",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/build/phases/load.md",
+        "system/skills/_shared/guided-execution.md"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -4588,12 +4588,6 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
-      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "type": "depends_on",
-      "computed": false
-    },
-    {
-      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
       "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
       "type": "depends_on",
       "computed": true
@@ -4601,6 +4595,12 @@
     {
       "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
       "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "type": "depends_on",
       "computed": false
     },
@@ -6603,12 +6603,6 @@
       "computed": false
     },
     {
-      "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
-      "type": "informs",
-      "computed": false
-    },
-    {
       "from": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
       "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
       "type": "informs",
@@ -6917,6 +6911,12 @@
     {
       "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "to": "docs/ideas/knowledge-base-redesign.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
       "type": "informs",
       "computed": false
     },
@@ -9712,12 +9712,6 @@
     },
     {
       "from": "docs/README.md",
-      "to": "architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-002-tasks-as-data-layer.md",
       "type": "references",
       "computed": false
@@ -9856,12 +9850,6 @@
     },
     {
       "from": "docs/README.md",
-      "to": "architecture/decisions/ADR-072-full-rust-mcp-architecture.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
       "type": "references",
       "computed": false
@@ -9989,6 +9977,30 @@
     {
       "from": "docs/README.md",
       "to": "architecture/decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-072-full-rust-mcp-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-073-persona-session-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-074-step-state-contract.md",
       "type": "references",
       "computed": false
     },
@@ -10647,18 +10659,6 @@
       "computed": false
     },
     {
-      "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "to": "docs/architecture/dimensions/05-claude-flow-v3-analysis.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "to": "docs/architecture/dimensions/34-venture-operating-system.md",
-      "type": "references",
-      "computed": false
-    },
-    {
       "from": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
       "to": "docs/architecture/19-pm-system-design.md",
       "type": "references",
@@ -10893,30 +10893,6 @@
       "computed": false
     },
     {
-      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
-      "to": "ADR-050-loop-request-protocol.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
-      "to": "ADR-061-goal-integration-three-primitive.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
-      "to": "docs/architecture/features/checkpoint-resume.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
-      "to": "docs/research/2026-06-11-loop-native-redesign.md",
-      "type": "references",
-      "computed": false
-    },
-    {
       "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
       "to": "ADR-050-loop-request-protocol.md",
       "type": "references",
@@ -11063,6 +11039,42 @@
     {
       "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
       "to": "docs/ideas/backlog-v3-lane-identity.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "to": "docs/architecture/dimensions/05-claude-flow-v3-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "to": "docs/architecture/dimensions/34-venture-operating-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
+      "to": "ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
+      "to": "ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
+      "to": "docs/architecture/features/checkpoint-resume.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -12178,12 +12190,6 @@
     },
     {
       "from": "docs/archive/reflections/14-mastermind-architecture.md",
-      "to": "docs/archive/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/archive/reflections/14-mastermind-architecture.md",
       "to": "docs/archive/architecture/decisions/ADR-017-decision-log.md",
       "type": "references",
       "computed": false
@@ -12197,6 +12203,12 @@
     {
       "from": "docs/archive/reflections/14-mastermind-architecture.md",
       "to": "docs/archive/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/reflections/14-mastermind-architecture.md",
+      "to": "docs/archive/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "type": "references",
       "computed": false
     },
@@ -14746,12 +14758,6 @@
     },
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
-      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "docs/architecture/decisions/ADR-017-decision-log.md",
       "type": "references",
       "computed": false
@@ -14771,6 +14777,12 @@
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "type": "references",
       "computed": false
     },
@@ -15178,12 +15190,6 @@
     },
     {
       "from": "docs/reflections/ARCHITECTURE.md",
-      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/reflections/ARCHITECTURE.md",
       "to": "docs/architecture/decisions/ADR-011-skills-bundling.md",
       "type": "references",
       "computed": false
@@ -15197,6 +15203,12 @@
     {
       "from": "docs/reflections/ARCHITECTURE.md",
       "to": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "type": "references",
       "computed": false
     },
@@ -15449,7 +15461,7 @@
   ],
   "stats": {
     "nodes": 529,
-    "edges": 1974,
+    "edges": 1976,
     "typed_edges": 683,
     "orphans": 137
   }
