@@ -63099,6 +63099,63 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2486",
+      "subject": "close: zsh does not word-split ${SESSION_RANGE:+--git-range \"$SESSION_RANGE\"} — close-snapshot.sh gets one argument",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close",
+        "hooks"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2344",
+      "created": "2026-07-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Hit live 2026-07-27 during /brana:close --continue in thebrana. gate-and-evidence.md Step 1b documents: bash close-snapshot.sh ... ${SESSION_RANGE:+--git-range \"$SESSION_RANGE\"}. Under zsh (the user's shell) unquoted parameter expansion does NOT word-split, so the script receives the single argument '--git-range 4199f469..6d206522' and dies with 'unknown argument'. Under bash it splits into two and works. Script itself is fine and identical to the deployed copy (--git-range is parsed at line 35).\n\nSame failure class as pattern_zsh-for-loop-no-word-split (memory, 2026-07-16).\n\nImpact: every close on zsh silently loses the t-2242 explicit-range fix and falls back to the known-wrong HEAD~N..HEAD range — the exact over-reach t-2242 was filed to prevent. Workaround used this session: pass --git-range as two explicit arguments.\n\nFix: in Step 1b, build the invocation without relying on word-splitting, e.g. an explicit if/else that calls the script with --git-range \"$SESSION_RANGE\" in one branch and without it in the other.\n\nAC: close procedure Step 1b invokes close-snapshot.sh with an explicit --git-range argument, no ${VAR:+...} word-split dependency\nAC: verified under zsh — snapshot queues the computed range, not HEAD~N..HEAD",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2487",
+      "subject": "brana backlog get emits invalid JSON on some tasks — jq control-char parse error silently breaks resolve_epic_ancestor",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "cli",
+        "backlog",
+        "close"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P1",
+      "parent": "t-2338",
+      "created": "2026-07-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Hit live 2026-07-27 during /brana:close --continue in thebrana. `brana backlog get &lt;id&gt; | jq` fails for several tasks with: \"jq: parse error: Invalid string: control characters from U+0000 through U+001F must be escaped\". Reproduced against IDs pulled from git log (t-2478..t-2482, t-2484 among them); other IDs (t-2400, t-2483) parse fine, so it is content-dependent — a raw control character (newline) reaching the JSON string body unescaped rather than every task being affected.\n\nWhy this is P1 rather than cosmetic: _shared/epic-ancestor-walk.md's resolve_epic_ancestor() does `json=$(brana backlog get \"$cur\")` then `jq -r '.type'` / `jq -r '.parent'`. The command substitution SUCCEEDS (exit 0), jq then fails and returns empty, so type_val and cur both go empty and the loop exits returning \"\" — indistinguishable from \"no epic ancestor found\". It fails open, silently.\n\nObserved blast radius: close Step 9c epic detection returned only 'context-economy' this session, silently dropping 'brana-v3-redesign' (t-2400 -&gt; t-2390 -&gt; t-2389 -&gt; t-2337, confirmed reachable via `brana backlog get --field parent`, which is unaffected). Wrong-epic routing is the documented t-2263 harm class: `brana session write` keys the handoff by epic and replaces rather than merges, so a mis-resolved slug clobbers another epic's state. The same walk is used by /brana:backlog start for branch naming.\n\nTwo fixes, both wanted: (1) serializer escapes control chars so output is always valid JSON; (2) resolve_epic_ancestor stops failing open — either use `brana backlog get --field &lt;f&gt;` (jq-free, verified working) or check jq's exit status and surface an error rather than returning empty.\n\nAC: `brana backlog get` output parses as valid JSON for every task in tasks.json (loop all IDs through jq, zero parse errors)\nAC: resolve_epic_ancestor distinguishes \"no epic ancestor\" from \"lookup failed\" and does not return empty on a parse failure",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
