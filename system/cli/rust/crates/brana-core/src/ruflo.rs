@@ -1,5 +1,6 @@
 //! Ruflo binary resolution — single source of truth for locating ruflo/claude-flow.
 
+use anyhow::{Context, Result, bail};
 use crate::util::home;
 use std::path::PathBuf;
 
@@ -151,17 +152,222 @@ pub fn ruflo_memory_search_raw(
     Some(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
+/// Store a value in ruflo memory under an exact key (ADR-070). Unlike
+/// `ruflo_memory_search_raw`, storage failures are surfaced to the caller
+/// rather than failing open — a silent store failure would let a URL be
+/// re-processed forever without ever landing in knowledge memory.
+pub fn ruflo_memory_store(key: &str, value: &str, namespace: &str, tags: &[&str]) -> Result<()> {
+    let ruflo = resolve_ruflo_binary()
+        .context("ruflo binary not found (RUFLO_BIN/CF unset, not on PATH)")?;
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+
+    let mut cmd = std::process::Command::new(&ruflo);
+    cmd.args(["memory", "store", "-k", key, "--value", value, "-n", namespace, "--upsert"])
+        .env("HOME", &home)
+        .current_dir(&home)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let tags_csv;
+    if !tags.is_empty() {
+        tags_csv = tags.join(",");
+        cmd.args(["--tags", &tags_csv]);
+    }
+
+    let mut child = cmd.spawn().context("failed to spawn ruflo memory store")?;
+
+    let timeout = std::time::Duration::from_secs(15);
+    let start = std::time::Instant::now();
+    let mut timed_out = false;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_status)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    timed_out = true;
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => bail!("ruflo memory store wait failed: {e}"),
+        }
+    }
+
+    let output = child
+        .wait_with_output()
+        .context("failed to collect ruflo memory store output")?;
+    if timed_out {
+        bail!("ruflo memory store timed out after {}s", timeout.as_secs());
+    }
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("ruflo memory store failed: {stderr}");
+    }
+    Ok(())
+}
+
+/// Exact-match lookup in ruflo memory (ADR-070). Distinct from
+/// `ruflo_memory_search_raw`, which is semantic/fuzzy — reusing that for
+/// idempotency checks risks a false-positive "already stored" skip on an
+/// unrelated prior entry. Returns `Ok(None)` for a genuine miss, `Err` for
+/// an actual failure (ruflo absent, timeout, process error) so callers don't
+/// conflate "not found" with "couldn't check."
+pub fn ruflo_memory_get(key: &str, namespace: &str) -> Result<Option<String>> {
+    let ruflo = resolve_ruflo_binary()
+        .context("ruflo binary not found (RUFLO_BIN/CF unset, not on PATH)")?;
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+
+    let mut cmd = std::process::Command::new(&ruflo);
+    cmd.args(["memory", "retrieve", "-k", key, "-n", namespace, "--value-only"])
+        .env("HOME", &home)
+        .current_dir(&home)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let mut child = cmd.spawn().context("failed to spawn ruflo memory retrieve")?;
+
+    let timeout = std::time::Duration::from_secs(15);
+    let start = std::time::Instant::now();
+    let mut timed_out = false;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_status)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    timed_out = true;
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => bail!("ruflo memory retrieve wait failed: {e}"),
+        }
+    }
+
+    let output = child
+        .wait_with_output()
+        .context("failed to collect ruflo memory retrieve output")?;
+    if timed_out {
+        bail!("ruflo memory retrieve timed out after {}s", timeout.as_secs());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if !output.status.success() {
+        // ruflo exits non-zero on a genuine miss and prints "Key not found"
+        // to stdout — treat that specific shape as Ok(None); anything else
+        // non-zero is a real failure the caller must not silently swallow.
+        if stdout.contains("Key not found") {
+            return Ok(None);
+        }
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("ruflo memory retrieve failed: {stderr}");
+    }
+    if stdout.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(stdout))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serial_test::serial;
     use std::fs;
+    use std::os::unix::fs::PermissionsExt;
     use tempfile::TempDir;
 
     fn make_fake_binary(dir: &TempDir, name: &str) -> PathBuf {
         let p = dir.path().join(name);
         fs::write(&p, b"#!/bin/sh\n").unwrap();
         p
+    }
+
+    /// Writes an executable shell-script stub standing in for the real
+    /// `ruflo` binary, driven purely by its exit code + stdout/stderr — the
+    /// same "fake CLI" approach the crate already uses for
+    /// `resolve_ruflo_binary` tests, extended here to actually run.
+    fn make_fake_ruflo_cli(dir: &TempDir, script_body: &str) -> PathBuf {
+        let p = dir.path().join("fake-ruflo");
+        fs::write(&p, format!("#!/bin/sh\n{script_body}\n")).unwrap();
+        let mut perms = fs::metadata(&p).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&p, perms).unwrap();
+        p
+    }
+
+    /// SAFETY: caller must hold #[serial] — mutates process-global env.
+    unsafe fn with_ruflo_bin<T>(bin: &PathBuf, f: impl FnOnce() -> T) -> T {
+        let prev = std::env::var("RUFLO_BIN").ok();
+        unsafe { std::env::set_var("RUFLO_BIN", bin.to_str().unwrap()) };
+        let result = f();
+        unsafe {
+            match prev {
+                Some(v) => std::env::set_var("RUFLO_BIN", v),
+                None => std::env::remove_var("RUFLO_BIN"),
+            }
+        }
+        result
+    }
+
+    #[test]
+    #[serial]
+    fn store_success_returns_ok() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "exit 0");
+        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[])) };
+        assert!(result.is_ok(), "expected Ok, got {result:?}");
+    }
+
+    #[test]
+    #[serial]
+    fn store_failure_returns_err_with_stderr() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "echo 'disk full' >&2; exit 1");
+        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[])) };
+        let err = result.expect_err("expected Err on nonzero exit");
+        assert!(err.to_string().contains("disk full"), "error should surface stderr, got: {err}");
+    }
+
+    #[test]
+    #[serial]
+    fn get_found_returns_some_value() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "echo 'hello world'; exit 0");
+        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_get("k", "knowledge")) };
+        assert_eq!(result.unwrap(), Some("hello world".to_string()));
+    }
+
+    #[test]
+    #[serial]
+    fn get_not_found_returns_ok_none() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "echo '[WARN] Key not found: k'; exit 1");
+        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_get("k", "knowledge")) };
+        assert_eq!(result.unwrap(), None, "a genuine miss must be Ok(None), not an error");
+    }
+
+    #[test]
+    #[serial]
+    fn get_real_failure_returns_err_not_none() {
+        // Boundary: a non-"not found" failure (e.g. DB locked) must NOT be
+        // silently swallowed as Ok(None) — that would let idempotency
+        // false-positive-skip a URL that was never actually checked.
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "echo 'database is locked' >&2; exit 1");
+        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_get("k", "knowledge")) };
+        let err = result.expect_err("a real failure must be Err, not Ok(None)");
+        assert!(err.to_string().contains("database is locked"));
+    }
+
+    #[test]
+    #[serial]
+    fn get_empty_stdout_on_success_is_none() {
+        // Boundary: exit 0 with truly empty output (unexpected but not a
+        // crash condition) must not be mistaken for a stored empty string.
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "exit 0");
+        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_get("k", "knowledge")) };
+        assert_eq!(result.unwrap(), None);
     }
 
     #[test]

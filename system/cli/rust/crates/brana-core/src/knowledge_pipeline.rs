@@ -88,7 +88,13 @@ pub struct UrlEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
     /// Post body fetched by a browser pre-pass.
-    /// Not yet consumed by tier1 scoring — see t-1144 (LinkedIn pre-pass implementation).
+    ///
+    /// Still not consumed by tier1 scoring. The *fetch mechanism* this field
+    /// was waiting on now exists — [`fetch_url_content`], built under ADR-070
+    /// and exposed as `brana knowledge process-url` — but wiring it into the
+    /// pipeline remains t-1144's gated decision (the pipeline must complete
+    /// at least one fully validated cycle first), so nothing populates this
+    /// field yet.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fetched_content: Option<String>,
 }
@@ -625,6 +631,408 @@ pub fn classify_platform(url: &str) -> &'static str {
     }
 }
 
+/// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
+#[derive(Debug, Clone, PartialEq)]
+pub struct FetchedContent {
+    pub text: String,
+    pub platform: &'static str,
+}
+
+/// Fetch a URL's content via the tier appropriate to its platform: `ureq`
+/// for public URLs, a headless `claude -p --mcp-config` shell-out to
+/// `linkedin-scraper-mcp` for LinkedIn.
+///
+/// Returns `Ok(None)` — distinct from `Err` — when a LinkedIn post could
+/// not be found in the author's fetched feed (ADR-070 §Tier-2 correction:
+/// `linkedin-scraper-mcp` has no arbitrary-URL fetch tool, only a fuzzy
+/// author-feed match). Public URLs never produce `Ok(None)`: they either
+/// fetch or error.
+///
+/// Never acquires [`lock_pipeline`] — this function is shared with a future
+/// t-1144 for populating `UrlEntry.fetched_content` inside the pipeline's
+/// locked `process_core` call graph, so it must stay lock-free itself
+/// (ADR-070 §Lock discipline; see `test_lock_discipline_source_tripwires`
+/// in `brana-cli/src/commands/knowledge.rs`).
+pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
+    let platform = classify_platform(url);
+    if platform == "linkedin" {
+        return Ok(fetch_linkedin_content(url)?.map(|text| FetchedContent { text, platform }));
+    }
+    let text = fetch_public_url(url)?;
+    Ok(Some(FetchedContent { text, platform }))
+}
+
+/// Timeout for the LinkedIn MCP shell-out: server-side tool timeout is 90s
+/// (`linkedin_mcp_server` `TOOL_TIMEOUT_SECONDS`) plus MCP server cold-start
+/// (spawning Python, launching headless Chromium) plus buffer — longer than
+/// `call_claude_json`'s plain-text 180s budget would allow on its own.
+const LINKEDIN_MCP_TIMEOUT_SECS: u64 = 240;
+
+/// Resolve the `linkedin-scraper-mcp` binary path.
+///
+/// Resolution order (mirrors `resolve_ruflo_binary`/`resolve_agy_binary`/
+/// `resolve_claude_binary` — install location is machine-specific):
+/// 1. `$LINKEDIN_SCRAPER_MCP_BIN` env var
+/// 2. `~/.local/bin/linkedin-scraper-mcp` (the `uv tool install` default)
+/// 3. `PATH` (via `which`)
+pub fn resolve_linkedin_scraper_binary() -> Option<PathBuf> {
+    if let Ok(v) = std::env::var("LINKEDIN_SCRAPER_MCP_BIN") {
+        let p = PathBuf::from(&v);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    let local_bin = home().join(".local/bin/linkedin-scraper-mcp");
+    if local_bin.exists() {
+        return Some(local_bin);
+    }
+
+    if let Ok(out) = std::process::Command::new("which").arg("linkedin-scraper-mcp").output() {
+        if out.status.success() {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(PathBuf::from(path));
+            }
+        }
+    }
+
+    None
+}
+
+/// Timeout for the `--status` session probe. Much shorter than the fetch
+/// budget: it inspects a local cookie profile, it does not scrape.
+const LINKEDIN_STATUS_TIMEOUT_SECS: u64 = 30;
+
+/// Marker `linkedin-scraper-mcp --status` prints on a usable session
+/// (observed 2026-07-28: `✅ Session is valid (profile: …)`). Matched
+/// without the emoji so a cosmetic change to the prefix doesn't trip it.
+const LINKEDIN_SESSION_OK_MARKER: &str = "Session is valid";
+
+/// Probe LinkedIn session health via `linkedin-scraper-mcp --status`.
+/// Runs before any fetch is attempted, so an expired login fails loudly
+/// at the start of an unattended run instead of looking like an empty feed.
+fn check_linkedin_session(binary: &std::path::Path) -> Result<()> {
+    let mut child = std::process::Command::new(binary)
+        .arg("--status")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .with_context(|| format!("spawning {} --status", binary.display()))?;
+
+    let timeout = std::time::Duration::from_secs(LINKEDIN_STATUS_TIMEOUT_SECS);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!(
+                        "`linkedin-scraper-mcp --status` timed out after \
+                         {LINKEDIN_STATUS_TIMEOUT_SECS}s — run \
+                         `linkedin-scraper-mcp --login` to refresh the session"
+                    );
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("`linkedin-scraper-mcp --status` wait error: {e}"),
+        }
+    }
+
+    let out = child.wait_with_output()?;
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    resolve_session_health(out.status.success(), &combined)
+}
+
+/// Decide session health from the `--status` probe's outcome.
+///
+/// Fail-closed by design: a usable session must be *positively* confirmed
+/// by the marker. Treating a zero exit alone as healthy would let a change
+/// in the probe's output silently turn every unattended run into a no-op —
+/// exactly the "must not silently succeed on an expired session" constraint
+/// this check exists to enforce (feature spec §Constraints).
+fn resolve_session_health(probe_succeeded: bool, output: &str) -> Result<()> {
+    if probe_succeeded && output.contains(LINKEDIN_SESSION_OK_MARKER) {
+        return Ok(());
+    }
+    let detail = output.trim();
+    let detail = if detail.is_empty() { "(no output)" } else { detail };
+    bail!(
+        "LinkedIn session is not usable — run `linkedin-scraper-mcp --login` to refresh it.\n\
+         `linkedin-scraper-mcp --status` reported: {detail}"
+    )
+}
+
+/// RAII guard for the scoped MCP config temp file — removed on drop
+/// (including on early `?` returns from callers), so a crashed/erroring
+/// call never leaves the file behind.
+struct ScopedMcpConfig {
+    path: PathBuf,
+}
+
+impl Drop for ScopedMcpConfig {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+/// Process-wide counter disambiguating temp mcp-config filenames. PID alone
+/// is not sufficient: batch mode calls `write_scoped_linkedin_mcp_config`
+/// once per URL from within the *same* process, so two calls sharing a PID
+/// would collide on one path — and one call's `Drop` cleanup could then
+/// delete another still-in-flight call's file (caught by
+/// `write_scoped_linkedin_mcp_config_writes_expected_json` failing when run
+/// alongside `scoped_mcp_config_removed_on_drop`).
+static SCOPED_CONFIG_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Writes a scoped MCP config (JSON) containing only the
+/// `linkedin-scraper-mcp` server entry, to a fresh temp file. Generated at
+/// runtime rather than checked in statically — the binary path is
+/// machine-specific (ADR-070 §Assumptions, corrected 2026-07-24).
+fn write_scoped_linkedin_mcp_config(binary: &std::path::Path) -> Result<ScopedMcpConfig> {
+    let config = serde_json::json!({
+        "mcpServers": {
+            "linkedin-scraper": {
+                "command": binary.to_string_lossy(),
+                "args": []
+            }
+        }
+    });
+    let n = SCOPED_CONFIG_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let path = std::env::temp_dir()
+        .join(format!("brana-linkedin-mcp-{}-{n}.json", std::process::id()));
+    std::fs::write(&path, config.to_string())
+        .with_context(|| format!("writing scoped mcp-config to {}", path.display()))?;
+    Ok(ScopedMcpConfig { path })
+}
+
+/// Call the `claude` CLI with a scoped `--mcp-config`/`--strict-mcp-config`/
+/// `--allowedTools` for MCP-tool-using prompts. Distinct from
+/// `call_claude_json` (text-only, no MCP) — new arg-building, no prior art
+/// in this file; empirically verified live 2026-07-24 (ADR-070).
+///
+/// Flag order matters: clap's `<tools...>` for `--allowedTools` consumes
+/// positional-looking args until the next recognized `--flag`, so the tool
+/// list must be followed by another flag (`--output-format`) before the
+/// trailing positional prompt, or the prompt gets swallowed into the tools
+/// list.
+fn call_claude_json_with_mcp(
+    prompt: &str,
+    mcp_config_path: &std::path::Path,
+    allowed_tools: &[&str],
+) -> Result<serde_json::Value> {
+    let binary = resolve_claude_binary().ok_or_else(|| {
+        anyhow::anyhow!(
+            "claude CLI binary not found. Checked: $CLAUDE_PLUGIN_DATA/claude, \
+             ~/.local/bin/claude, PATH. Install Claude Code first."
+        )
+    })?;
+
+    let mut cmd = std::process::Command::new(&binary);
+    cmd.arg("--print")
+        .arg("--mcp-config")
+        .arg(mcp_config_path)
+        .arg("--strict-mcp-config")
+        .arg("--allowedTools");
+    for tool in allowed_tools {
+        cmd.arg(tool);
+    }
+    cmd.arg("--output-format")
+        .arg("json")
+        .arg(prompt)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let mut child = cmd
+        .spawn()
+        .with_context(|| format!("spawning claude binary at {}", binary.display()))?;
+
+    let timeout = std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!("claude CLI (MCP) timed out after {LINKEDIN_MCP_TIMEOUT_SECS}s");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("claude wait error: {e}"),
+        }
+    }
+
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("claude CLI (MCP) exited non-zero: {stderr}");
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let raw = parse_claude_stdout(&stdout)?;
+    match extract_result_from_envelope(&raw) {
+        Some(text) => {
+            let cleaned = strip_code_fences(text.trim());
+            match serde_json::from_str::<serde_json::Value>(cleaned) {
+                Ok(v) => Ok(v),
+                // The model's final text may be prose rather than pure
+                // JSON (e.g. it narrates the tool call) — fall back to
+                // treating the raw text as the value rather than erroring,
+                // callers extract the field(s) they need from it.
+                Err(_) => Ok(serde_json::Value::String(text)),
+            }
+        }
+        None => Ok(raw),
+    }
+}
+
+/// Tier 2: best-effort LinkedIn fetch via `linkedin-scraper-mcp`'s
+/// `get_person_profile(sections="posts")` + fuzzy text match (ADR-070
+/// §Tier-2 correction — no arbitrary-URL fetch tool exists). Returns
+/// `Ok(None)` when the target post isn't found in the fetched feed (a real
+/// miss, not a fetch failure).
+fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
+    let (author, title_signal) =
+        parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
+
+    let binary = resolve_linkedin_scraper_binary().ok_or_else(|| {
+        anyhow::anyhow!(
+            "linkedin-scraper-mcp binary not found — install with: uv tool install linkedin-scraper-mcp"
+        )
+    })?;
+    check_linkedin_session(&binary)?;
+    let config = write_scoped_linkedin_mcp_config(&binary)?;
+
+    let prompt = format!(
+        "Call get_person_profile with linkedin_username=\"{author}\" and sections=\"posts\". \
+         Return ONLY JSON of the shape {{\"posts_text\": \"<the raw text of the posts section>\"}}."
+    );
+    let response = call_claude_json_with_mcp(
+        &prompt,
+        &config.path,
+        &["mcp__linkedin-scraper__get_person_profile"],
+    );
+
+    resolve_linkedin_fetch(response, &title_signal)
+}
+
+/// Decide a Tier-2 fetch's outcome from the MCP shell-out's result.
+///
+/// Split out of [`fetch_linkedin_content`] so the three-way contract is
+/// testable without spawning `claude -p --mcp-config` — the same
+/// injectable-core convention as [`resolve_extraction`], which takes its
+/// upstream call results as parameters for exactly this reason.
+///
+/// - `Err` in → `Err` out: the fetch itself broke (timeout, non-zero exit,
+///   missing binary). Never degraded to a miss.
+/// - Unparseable response shape → `Err`: a changed/failed tool output is a
+///   failure, not evidence the post is absent.
+/// - Feed fetched, post not in it → `Ok(None)`: a real miss.
+fn resolve_linkedin_fetch(
+    response: Result<serde_json::Value>,
+    title_signal: &str,
+) -> Result<Option<String>> {
+    let response = response?;
+    let posts_text = response
+        .get("posts_text")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("unexpected response shape from linkedin fetch: {response}"))?;
+
+    Ok(find_matching_post(posts_text, title_signal))
+}
+
+/// Best-effort match: finds the paragraph-ish chunk in `feed_text` (a raw
+/// scraped posts feed) whose content overlaps most with `title_signal`
+/// (derived from the post URL's slug). Requires at least half the
+/// significant (>3 char) signal words to appear, to avoid weak false
+/// positives. Returns `None` — a real "not in this feed" miss — rather
+/// than a low-confidence guess.
+fn find_matching_post(feed_text: &str, title_signal: &str) -> Option<String> {
+    let signal_words: Vec<String> = title_signal
+        .split_whitespace()
+        .filter(|w| w.len() > 3)
+        .map(|w| w.to_lowercase())
+        .collect();
+    if signal_words.is_empty() {
+        return None;
+    }
+
+    let mut best: Option<(&str, usize)> = None;
+    for chunk in feed_text.split("\n\n").filter(|c| !c.trim().is_empty()) {
+        let lower = chunk.to_lowercase();
+        let hits = signal_words.iter().filter(|w| lower.contains(w.as_str())).count();
+        if hits > 0 && best.is_none_or(|(_, best_hits)| hits > best_hits) {
+            best = Some((chunk, hits));
+        }
+    }
+
+    best.filter(|(_, hits)| *hits * 2 >= signal_words.len())
+        .map(|(chunk, _)| chunk.trim().to_string())
+}
+
+/// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
+/// Uses `ureq` (already a workspace dependency, ADR-024 convention) — no
+/// new HTTP client dependency.
+fn fetch_public_url(url: &str) -> Result<String> {
+    let response = ureq::get(url)
+        .header("User-Agent", "brana-knowledge-process-url/1.0")
+        .call()
+        .with_context(|| format!("fetch failed: {url}"))?;
+    let body = response
+        .into_body()
+        .read_to_string()
+        .with_context(|| format!("failed to read response body: {url}"))?;
+    Ok(strip_html_to_text(&body))
+}
+
+/// Minimal, dependency-free HTML-to-text: drops `<script>`/`<style>`
+/// blocks, strips remaining tags, collapses whitespace. Not a full HTML
+/// parser (no new dependency beyond the already-present `regex-lite`) —
+/// good enough for LLM-facing extraction, not structured scraping.
+fn strip_html_to_text(html: &str) -> String {
+    static TAG_RE: std::sync::OnceLock<regex_lite::Regex> = std::sync::OnceLock::new();
+    let tag_re = TAG_RE.get_or_init(|| regex_lite::Regex::new(r"<[^>]+>").unwrap());
+
+    let no_script = strip_tag_block(html, "script");
+    let no_style = strip_tag_block(&no_script, "style");
+    let stripped = tag_re.replace_all(&no_style, " ");
+    stripped.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Removes every `<tag ...>...</tag>` block (case-sensitive on the tag
+/// name; HTML is lowercase in practice for `script`/`style`). An unclosed
+/// opening tag drops the rest of the document rather than looping forever.
+fn strip_tag_block(html: &str, tag: &str) -> String {
+    let open = format!("<{tag}");
+    let close = format!("</{tag}>");
+    let mut out = String::new();
+    let mut rest = html;
+    loop {
+        match rest.find(&open) {
+            Some(start) => {
+                out.push_str(&rest[..start]);
+                match rest[start..].find(&close) {
+                    Some(end_rel) => rest = &rest[start + end_rel + close.len()..],
+                    None => break,
+                }
+            }
+            None => {
+                out.push_str(rest);
+                break;
+            }
+        }
+    }
+    out
+}
+
 /// Result of an `ingest_urls` call.
 pub struct IngestResult {
     /// URLs newly added to pipeline state as `Unprocessed`.
@@ -664,6 +1072,77 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     }
 
     result
+}
+
+// ── Insight extraction (ADR-070 three-tier fallback: agy → claude -p → raw) ──
+
+/// Extracted insight from fetched URL content.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExtractedInsight {
+    pub summary: String,
+    pub topic: String,
+    pub extraction_skipped: bool,
+}
+
+/// Truncation length for the raw-text fallback tier (both agy and claude -p failed).
+const EXTRACTION_RAW_TRUNCATE_CHARS: usize = 2000;
+
+/// Extract an insight (summary + topic) from fetched content via a
+/// three-tier fallback: agy → `claude -p` → truncated raw text. Only
+/// degrades to raw text if *both* agy and claude fail — a nightly agy
+/// outage alone never blocks the batch or degrades quality (ADR-070
+/// Assumptions).
+pub fn extract_insight(content: &str, platform: &str) -> ExtractedInsight {
+    let prompt = extraction_prompt(content);
+    let agy_result = call_gemini_json(&prompt);
+    resolve_extraction(agy_result, || call_claude_json(&prompt, None), content, platform)
+}
+
+fn extraction_prompt(content: &str) -> String {
+    format!(
+        "Summarize the following content into a short knowledge-base insight. \
+         Respond ONLY with JSON of the shape {{\"summary\": \"...\", \"topic\": \"...\"}} \
+         (topic = a short 1-3 word category label). Content:\n\n{content}"
+    )
+}
+
+/// Pure fallback decision, unit-testable without real subprocess calls: the
+/// agy result is passed in already-attempted (avoids double-calling agy);
+/// `claude_call` is only invoked if agy's result didn't parse. Falls back
+/// to truncated raw content (flagged `extraction_skipped: true`, topic
+/// defaults to `platform`) only if both fail.
+fn resolve_extraction(
+    agy_result: Result<serde_json::Value>,
+    claude_call: impl FnOnce() -> Result<serde_json::Value>,
+    content: &str,
+    platform: &str,
+) -> ExtractedInsight {
+    if let Ok(v) = agy_result {
+        if let Some(insight) = parse_extraction_response(&v, platform) {
+            return insight;
+        }
+    }
+    if let Ok(v) = claude_call() {
+        if let Some(insight) = parse_extraction_response(&v, platform) {
+            return insight;
+        }
+    }
+    let truncated: String = content.chars().take(EXTRACTION_RAW_TRUNCATE_CHARS).collect();
+    ExtractedInsight { summary: truncated, topic: platform.to_string(), extraction_skipped: true }
+}
+
+/// Parses `{"summary": "...", "topic": "..."}` from a model JSON response.
+/// `summary` is required (`None` on a malformed/missing field — the caller
+/// then falls through to the next tier); `topic` defaults to `platform`
+/// when the model omits it.
+fn parse_extraction_response(v: &serde_json::Value, platform: &str) -> Option<ExtractedInsight> {
+    let summary = v.get("summary")?.as_str()?.to_string();
+    let topic = v
+        .get("topic")
+        .and_then(|t| t.as_str())
+        .unwrap_or(platform)
+        .to_string();
+    Some(ExtractedInsight { summary, topic, extraction_skipped: false })
 }
 
 // ── Gemini CLI shell-out (call_gemini_json — ADR-040 Tier1/Tier2 routing) ────
@@ -1166,6 +1645,498 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
     use tempfile::TempDir;
+
+    // ── strip_html_to_text / fetch_url_content ─────────────────────────
+
+    #[test]
+    fn strip_html_to_text_drops_script_and_style() {
+        let html = "<html><head><style>.x{color:red}</style></head><body><script>alert(1)</script><p>Hello world</p></body></html>";
+        assert_eq!(strip_html_to_text(html), "Hello world");
+    }
+
+    #[test]
+    fn strip_html_to_text_collapses_whitespace() {
+        let html = "<p>Hello\n\n   world  </p>  <p>again</p>";
+        assert_eq!(strip_html_to_text(html), "Hello world again");
+    }
+
+    #[test]
+    fn strip_html_to_text_empty_input_is_empty() {
+        assert_eq!(strip_html_to_text(""), "");
+    }
+
+    #[test]
+    fn strip_html_to_text_no_tags_passes_through() {
+        assert_eq!(strip_html_to_text("just plain text"), "just plain text");
+    }
+
+    #[test]
+    fn strip_html_to_text_unclosed_script_drops_rest_of_document() {
+        // Boundary: malformed HTML (unclosed <script>) must not panic or
+        // infinite-loop — dropping the remainder is an acceptable outcome.
+        let html = "<p>before</p><script>var x = 1;";
+        assert_eq!(strip_html_to_text(html), "before");
+    }
+
+    #[test]
+    fn strip_tag_block_leaves_content_outside_block_untouched() {
+        let html = "keep <script>drop this</script> keep too";
+        assert_eq!(strip_tag_block(html, "script"), "keep  keep too");
+    }
+
+    /// Minimal local HTTP/1.1 server for one request — avoids adding a mock
+    /// HTTP crate as a new dependency (spec Design: check before adding).
+    fn serve_once(status_line: &str, body: &'static str) -> (std::net::SocketAddr, std::thread::JoinHandle<()>) {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let status_line = status_line.to_string();
+        let handle = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = stream.read(&mut buf);
+            let response = format!(
+                "{status_line}\r\nContent-Length: {}\r\nContent-Type: text/html\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            let _ = stream.write_all(response.as_bytes());
+        });
+        (addr, handle)
+    }
+
+    #[test]
+    fn fetch_public_url_strips_html_from_response() {
+        let (addr, handle) = serve_once("HTTP/1.1 200 OK", "<p>Real content</p>");
+        let result = fetch_public_url(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        assert_eq!(result.unwrap(), "Real content");
+    }
+
+    #[test]
+    fn fetch_public_url_server_error_returns_err_not_panic() {
+        let (addr, handle) = serve_once("HTTP/1.1 500 Internal Server Error", "boom");
+        let result = fetch_public_url(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        assert!(result.is_err(), "a 500 response must surface as Err");
+    }
+
+    #[test]
+    fn fetch_public_url_connection_refused_returns_err_not_panic() {
+        // Boundary: nothing listening on this port — must not panic.
+        let result = fetch_public_url("http://127.0.0.1:1/");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn fetch_url_content_public_url_sets_platform() {
+        let (addr, handle) = serve_once("HTTP/1.1 200 OK", "<p>hi</p>");
+        let result = fetch_url_content(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        let content = result.unwrap().expect("public URLs never produce Ok(None)");
+        assert_eq!(content.text, "hi");
+        assert_eq!(content.platform, "other");
+    }
+
+    // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
+    // The process spawn in call_claude_json_with_mcp stays untested here
+    // (empirically verified live instead — see ADR-070 §Empirical
+    // validation). Everything downstream of it is not: resolve_linkedin_fetch
+    // takes the shell-out's Result as a parameter, so the response-shape
+    // and Ok(None)/Err decisions are covered below. The novel pure logic —
+    // fuzzy matching — is tested here.
+
+    #[test]
+    fn find_matching_post_finds_high_overlap_chunk() {
+        let feed = "Unrelated post about gardening tips and tricks.\n\n\
+                     Excited to announce our new semantic layer for BigQuery, \
+                     built for bounded agent traversal across graphs.\n\n\
+                     Another unrelated post about coffee brewing methods.";
+        let result = find_matching_post(feed, "bigquerys native semantic layer");
+        assert!(result.unwrap().contains("semantic layer for BigQuery"));
+    }
+
+    #[test]
+    fn find_matching_post_no_match_returns_none() {
+        let feed = "A post about gardening.\n\nA post about coffee.";
+        assert_eq!(find_matching_post(feed, "quantum computing breakthroughs"), None);
+    }
+
+    #[test]
+    fn find_matching_post_empty_feed_returns_none() {
+        assert_eq!(find_matching_post("", "some title signal"), None);
+    }
+
+    #[test]
+    fn find_matching_post_only_short_words_returns_none() {
+        // Boundary: title_signal with no words longer than 3 chars — no
+        // reliable signal to match on, must not guess.
+        assert_eq!(find_matching_post("some feed text here", "a it is to"), None);
+    }
+
+    #[test]
+    fn find_matching_post_below_half_threshold_returns_none() {
+        // Boundary: only 1 of 4 significant words overlaps — below the
+        // half-threshold, must not weak-match.
+        let feed = "This chunk mentions bigquery once and nothing else relevant.";
+        let result = find_matching_post(feed, "bigquery semantic layer traversal");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_matching_post_picks_best_of_multiple_candidates() {
+        let feed = "Weak match: mentions rust.\n\n\
+                     Strong match: rust ownership borrow checker lifetimes explained.\n\n\
+                     No match: totally unrelated content here.";
+        let result = find_matching_post(feed, "rust ownership borrow checker lifetimes");
+        assert!(result.unwrap().starts_with("Strong match"));
+    }
+
+    // ── LinkedIn Tier 2: resolve_linkedin_fetch — Ok(None) vs Err ───────
+    // fetch_url_content's contract has three outcomes, not two: Ok(Some)
+    // (found), Ok(None) (the author's feed fetched cleanly but this post
+    // isn't in it), and Err (the fetch itself broke). Callers branch on
+    // that Ok(None)/Err split — a miss is skipped, a failure is retried or
+    // surfaced — so collapsing the two silently turns real breakage into
+    // "nothing to see here". The find_matching_post tests above never see
+    // the response envelope and so cannot cover it; these do.
+
+    #[test]
+    fn linkedin_fetch_post_not_in_feed_returns_ok_none() {
+        // The core contract: feed fetched fine, target post absent.
+        let response = serde_json::json!({
+            "posts_text": "A post about gardening.\n\nA post about coffee brewing."
+        });
+        let result = resolve_linkedin_fetch(Ok(response), "quantum computing breakthroughs");
+        assert!(
+            matches!(&result, Ok(None)),
+            "a clean fetch that lacks the post is a miss, not a failure — got {result:?}"
+        );
+    }
+
+    #[test]
+    fn linkedin_fetch_post_present_returns_ok_some() {
+        let response = serde_json::json!({
+            "posts_text": "Unrelated gardening post.\n\n\
+                           Excited to announce our new semantic layer for BigQuery."
+        });
+        let found = resolve_linkedin_fetch(Ok(response), "bigquerys native semantic layer")
+            .expect("a well-formed response must not error")
+            .expect("the post is present in this feed");
+        assert!(found.contains("semantic layer for BigQuery"));
+    }
+
+    #[test]
+    fn linkedin_fetch_malformed_response_returns_err_not_ok_none() {
+        // A broken response shape is a failure, not a miss. If this ever
+        // degrades to Ok(None), every LinkedIn URL silently reports
+        // "not found" the day the MCP tool changes its output shape.
+        let response = serde_json::json!({"unexpected": "shape"});
+        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
+        assert!(result.is_err(), "missing posts_text must be Err — got {result:?}");
+    }
+
+    #[test]
+    fn linkedin_fetch_posts_text_wrong_type_returns_err() {
+        // Boundary: key present, but not a string.
+        let response = serde_json::json!({"posts_text": 42});
+        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
+        assert!(result.is_err(), "non-string posts_text must be Err — got {result:?}");
+    }
+
+    #[test]
+    fn linkedin_fetch_transport_error_propagates_as_err() {
+        // Boundary: the shell-out itself failed (timeout, non-zero exit,
+        // missing binary). Must stay Err — never degrade to a quiet miss.
+        let result = resolve_linkedin_fetch(
+            Err(anyhow::anyhow!("claude CLI (MCP) timed out after 240s")),
+            "some title signal",
+        );
+        let err = result.expect_err("a transport failure must surface as Err");
+        assert!(
+            err.to_string().contains("timed out"),
+            "the underlying cause must not be swallowed — got {err}"
+        );
+    }
+
+    #[test]
+    fn linkedin_fetch_empty_feed_returns_ok_none() {
+        // Boundary: author has no posts, or the section came back empty.
+        let response = serde_json::json!({"posts_text": ""});
+        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
+        assert!(
+            matches!(&result, Ok(None)),
+            "an empty feed is a miss, not a failure — got {result:?}"
+        );
+    }
+
+    // ── LinkedIn session health (t-2448) ────────────────────────────────
+    // Probed before any LinkedIn fetch. The spec's hard constraint is
+    // "must not silently succeed on an expired session — fail loud", so
+    // this is deliberately fail-closed: a usable session must be
+    // positively confirmed, and anything else is an error naming the
+    // one-time remediation command.
+
+    #[test]
+    fn session_health_live_session_is_ok() {
+        // Real observed output of `linkedin-scraper-mcp --status`, 2026-07-28.
+        let output = "Current runtime: linux-amd64-container\n\
+                      Login generation: 45810ed1-6728-4967-a4e7-a035e8952aaa\n\
+                      ✅ Session is valid (profile: /home/u/.linkedin-mcp/profile)";
+        assert!(resolve_session_health(true, output).is_ok());
+    }
+
+    #[test]
+    fn session_health_dead_session_names_login_remediation() {
+        // The contract t-2448 exists for: an unattended run must tell the
+        // operator exactly how to fix it, not just that it failed.
+        let err = resolve_session_health(false, "Session expired or not found")
+            .expect_err("a dead session must be an error");
+        assert!(
+            err.to_string().contains("linkedin-scraper-mcp --login"),
+            "the error must name the remediation command — got: {err}"
+        );
+    }
+
+    #[test]
+    fn session_health_zero_exit_without_marker_fails_closed() {
+        // Boundary, and the load-bearing decision here: exit 0 alone is
+        // NOT confirmation. If the probe's output format ever changes,
+        // failing closed turns nightly runs loud instead of silently
+        // fetching nothing — the failure mode the spec forbids.
+        let err = resolve_session_health(true, "Current runtime: linux-amd64-container")
+            .expect_err("exit 0 without the validity marker must not be treated as healthy");
+        assert!(err.to_string().contains("linkedin-scraper-mcp --login"));
+    }
+
+    #[test]
+    fn session_health_empty_output_fails_closed() {
+        // Boundary: probe produced nothing at all.
+        assert!(resolve_session_health(true, "").is_err());
+    }
+
+    #[test]
+    fn session_health_checked_before_any_fetch_attempt() {
+        // The spec requires the probe to gate the fetch, not merely to
+        // exist ("session health check before any LinkedIn fetch"). Order
+        // is the whole contract: probing afterwards would still report a
+        // dead session, but only after burning a ~$0.40 / ~9s claude -p
+        // MCP round-trip per URL across a nightly batch.
+        let body = fn_span(
+            include_str!("knowledge_pipeline.rs"),
+            "fn fetch_linkedin_content",
+        );
+        let probe = body
+            .find("check_linkedin_session")
+            .expect("fetch_linkedin_content must probe session health");
+        let fetch = body
+            .find("call_claude_json_with_mcp")
+            .expect("fetch_linkedin_content must perform the MCP fetch");
+        assert!(
+            probe < fetch,
+            "session health must be checked BEFORE the claude -p MCP shell-out"
+        );
+    }
+
+    #[test]
+    fn session_health_error_surfaces_probe_output() {
+        // The operator needs the probe's own words to distinguish "logged
+        // out" from "binary is broken".
+        let err = resolve_session_health(false, "playwright: browser not found")
+            .expect_err("must be an error");
+        assert!(
+            err.to_string().contains("playwright: browser not found"),
+            "the probe's output must not be swallowed — got: {err}"
+        );
+    }
+
+    /// Source span of a function: its signature through to the next
+    /// top-level `fn`/`pub fn`. Backs the lock-discipline tripwire below.
+    fn fn_span<'a>(src: &'a str, signature: &str) -> &'a str {
+        let start = src
+            .find(signature)
+            .unwrap_or_else(|| panic!("{signature} must exist in the source"));
+        let after = start + signature.len();
+        let end = src[after..]
+            .find("\nfn ")
+            .into_iter()
+            .chain(src[after..].find("\npub fn "))
+            .min()
+            .map(|i| after + i)
+            .unwrap_or(src.len());
+        &src[start..end]
+    }
+
+    #[test]
+    fn linkedin_fetch_call_graph_never_acquires_pipeline_lock() {
+        // ADR-070 §Lock discipline. fetch_url_content is shared with
+        // t-1144's planned in-pipeline use, which calls it from inside
+        // process_core's already-locked call graph. lock_pipeline is
+        // non-reentrant, so an acquire anywhere below deadlocks. The
+        // brana-cli tripwire (test_lock_discipline_source_tripwires) scans
+        // only knowledge.rs and cannot see any of these functions.
+        let src = include_str!("knowledge_pipeline.rs");
+        for signature in [
+            "pub fn fetch_url_content",
+            "fn fetch_linkedin_content",
+            "fn resolve_linkedin_fetch",
+            "fn check_linkedin_session",
+            "fn resolve_session_health",
+            "fn fetch_public_url",
+            "fn call_claude_json_with_mcp",
+            "fn write_scoped_linkedin_mcp_config",
+            "fn find_matching_post",
+        ] {
+            assert!(
+                !fn_span(src, signature).contains("lock_pipeline"),
+                "{signature} must never acquire the pipeline lock — non-reentrant, \
+                 deadlocks when called from inside process_core (t-1144)"
+            );
+        }
+    }
+
+    // ── resolve_linkedin_scraper_binary / write_scoped_linkedin_mcp_config ─
+
+    #[test]
+    fn resolve_linkedin_scraper_binary_does_not_panic() {
+        // None is acceptable in environments without the tool installed —
+        // the important contract is no panic, matching the sibling
+        // resolvers' test convention (resolve_ruflo_binary, resolve_claude_binary).
+        let _ = resolve_linkedin_scraper_binary();
+    }
+
+    #[test]
+    fn write_scoped_linkedin_mcp_config_writes_expected_json() {
+        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
+        let config = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        let written = std::fs::read_to_string(&config.path).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&written).unwrap();
+        assert_eq!(
+            parsed["mcpServers"]["linkedin-scraper"]["command"],
+            "/fake/path/linkedin-scraper-mcp"
+        );
+    }
+
+    #[test]
+    fn scoped_mcp_config_two_calls_same_process_get_distinct_paths() {
+        // Boundary: batch mode calls this once per URL from the same
+        // process — PID-only naming would collide (regression guard).
+        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
+        let a = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        let b = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        assert_ne!(a.path, b.path);
+        assert!(a.path.exists());
+        assert!(b.path.exists());
+    }
+
+    #[test]
+    fn scoped_mcp_config_removed_on_drop() {
+        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
+        let config = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        let path = config.path.clone();
+        assert!(path.exists());
+        drop(config);
+        assert!(!path.exists(), "temp mcp-config file must be cleaned up on drop");
+    }
+
+    // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────
+
+    fn valid_response(summary: &str, topic: &str) -> serde_json::Value {
+        serde_json::json!({"summary": summary, "topic": topic})
+    }
+
+    #[test]
+    fn resolve_extraction_agy_success_never_calls_claude() {
+        let claude_called = std::cell::Cell::new(false);
+        let insight = resolve_extraction(
+            Ok(valid_response("agy summary", "rust")),
+            || {
+                claude_called.set(true);
+                bail!("should not be called")
+            },
+            "raw content",
+            "other",
+        );
+        assert_eq!(insight.summary, "agy summary");
+        assert_eq!(insight.topic, "rust");
+        assert!(!insight.extraction_skipped);
+        assert!(!claude_called.get(), "agy succeeded — claude -p must not be invoked");
+    }
+
+    #[test]
+    fn resolve_extraction_agy_fails_falls_back_to_claude() {
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy quota exhausted")),
+            || Ok(valid_response("claude summary", "ai")),
+            "raw content",
+            "other",
+        );
+        assert_eq!(insight.summary, "claude summary");
+        assert_eq!(insight.topic, "ai");
+        assert!(!insight.extraction_skipped);
+    }
+
+    #[test]
+    fn resolve_extraction_agy_malformed_falls_back_to_claude() {
+        // Boundary: agy returns Ok but the JSON doesn't have a "summary" key.
+        let insight = resolve_extraction(
+            Ok(serde_json::json!({"unexpected": "shape"})),
+            || Ok(valid_response("claude summary", "ai")),
+            "raw content",
+            "other",
+        );
+        assert_eq!(insight.summary, "claude summary");
+        assert!(!insight.extraction_skipped);
+    }
+
+    #[test]
+    fn resolve_extraction_both_fail_falls_back_to_raw_truncated() {
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy down")),
+            || Err(anyhow::anyhow!("claude down")),
+            "the raw fetched content",
+            "linkedin",
+        );
+        assert_eq!(insight.summary, "the raw fetched content");
+        assert_eq!(insight.topic, "linkedin", "topic falls back to platform when both fail");
+        assert!(insight.extraction_skipped);
+    }
+
+    #[test]
+    fn resolve_extraction_raw_fallback_truncates_long_content() {
+        let long_content = "x".repeat(EXTRACTION_RAW_TRUNCATE_CHARS + 500);
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy down")),
+            || Err(anyhow::anyhow!("claude down")),
+            &long_content,
+            "other",
+        );
+        assert_eq!(insight.summary.chars().count(), EXTRACTION_RAW_TRUNCATE_CHARS);
+    }
+
+    #[test]
+    fn resolve_extraction_raw_fallback_short_content_not_padded() {
+        let insight = resolve_extraction(
+            Err(anyhow::anyhow!("agy down")),
+            || Err(anyhow::anyhow!("claude down")),
+            "short",
+            "other",
+        );
+        assert_eq!(insight.summary, "short");
+    }
+
+    #[test]
+    fn parse_extraction_response_missing_topic_defaults_to_platform() {
+        let v = serde_json::json!({"summary": "hi"});
+        let insight = parse_extraction_response(&v, "github").unwrap();
+        assert_eq!(insight.topic, "github");
+    }
+
+    #[test]
+    fn parse_extraction_response_missing_summary_returns_none() {
+        let v = serde_json::json!({"topic": "rust"});
+        assert!(parse_extraction_response(&v, "other").is_none());
+    }
 
     // ── build_claude_args ─────────────────────────────────────────────
 

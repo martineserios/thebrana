@@ -34,6 +34,23 @@ User-facing documentation. Start here.
 | [python-to-rust-migration.md](guide/python-to-rust-migration.md) | Python→Rust migration guide: 10 concept comparisons with brana examples |
 | [try-new-features.md](guide/try-new-features.md) | Copy-paste prompts to exercise ADR-059/060 features (runner, secret-gate, workflows, branch flow) — t-2167 |
 
+### Feature guides (docs/guide/features/)
+
+| Doc | Purpose |
+|-----|---------|
+| [knowledge-process-url.md](guide/features/knowledge-process-url.md) | `brana knowledge process-url` — fetch a link, extract an insight, store it; LinkedIn setup, batch mode, cron wiring |
+| [async-close.md](guide/features/async-close.md) | Async close — what changed about ending a session |
+| [close-oriented-modes.md](guide/features/close-oriented-modes.md) | Oriented close modes |
+| [propagate-close-step.md](guide/features/propagate-close-step.md) | PROPAGATE — propagation-debt audit at close |
+| [build-close-auto-docs.md](guide/features/build-close-auto-docs.md) | Auto-generated feature docs |
+| [checkpoint-resume.md](guide/features/checkpoint-resume.md) | Checkpoint/resume for long builds |
+| [backlog-v3-schema.md](guide/features/backlog-v3-schema.md) | Backlog v3 schema — epics, key:value tags, waves |
+| [backlog-lint.md](guide/features/backlog-lint.md) | Backlog lint — is this task ready for autonomous dispatch? |
+| [backlog-project-scoping.md](guide/features/backlog-project-scoping.md) | Per-project scoping and cross-project tasks |
+| [brana-feed-inbox.md](guide/features/brana-feed-inbox.md) | `brana feed` + `brana inbox` |
+| [reminder-system.md](guide/features/reminder-system.md) | Reminders — `brana remind` |
+| [cc-changelog-check.md](guide/features/cc-changelog-check.md) | CC changelog check |
+
 ### Workflow guides (docs/guide/workflows/)
 
 | File | Contents |
@@ -140,6 +157,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-066](architecture/decisions/ADR-066-active-epic-project-scoped-only.md) | active_epic/active_initiative resolve project-local only — closes skill-procedure and sync-state.sh bleed vectors |
 | [ADR-067](architecture/decisions/ADR-067-retired-fields-write-guard.md) | Write-time RETIRED_FIELDS guard in brana-core — hard-refuse writes of sealed schema fields, binary-version-agnostic |
 | [ADR-068](architecture/decisions/ADR-068-v3-supersession.md) | v3 supersession — retires the Orbit/Substrate doc cluster into the v3 design, folds forward 8 mechanics, scopes the ADR-060 "agent never merges" amendment |
+| [ADR-070](architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md) | `brana knowledge process-url` headless-first fetch — ureq for public URLs, `claude -p --mcp-config` → linkedin-scraper-mcp for LinkedIn |
 | [ADR-071](architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md) | Scheduler as a thin layer over systemd timers (was ADR-002 — renumbered t-2507) |
 | [ADR-072](architecture/decisions/ADR-072-full-rust-mcp-architecture.md) | **Full Rust + MCP architecture** (Cargo workspace, pmcp, Python elimination) (was ADR-026 — renumbered t-2507) |
 | [ADR-073](architecture/decisions/ADR-073-persona-session-state.md) | Persona modifier persisted in session state, not `CLAUDE.local.md` (was ADR-048 — renumbered t-2507) |
