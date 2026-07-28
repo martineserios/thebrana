@@ -88,14 +88,20 @@ assert_contains "spec references t-833" "t-833" "$SPEC"
 assert_contains "spec references ADR-026" "ADR-026" "$SPEC"
 
 # ── Test 9: skill-routing gate rule (t-1196) ─────────────────────────────────
-echo "Test 9: skill-routing.md gate rule content"
-GATE_RULE="$REPO_ROOT/system/rules/skill-routing.md"
-assert "skill-routing.md exists" "true" "$([ -f "$GATE_RULE" ] && echo true || echo false)"
-assert_contains "gate rule: always ask" "always ask\|Always ask" "$GATE_RULE"
+# system/rules/skill-routing.md was consolidated into work-start.md by t-1944,
+# which now carries the ask-before-loading gate as step 4 of the entry protocol.
+# The no-double-loading rule landed in delegation-routing.md instead ("Never
+# invoke a skill AND delegate for one trigger"), so assert it where it lives.
+echo "Test 9: skill-routing gate rule content (work-start.md step 4)"
+GATE_RULE="$REPO_ROOT/system/rules/work-start.md"
+ROUTING_RULE="$REPO_ROOT/system/rules/delegation-routing.md"
+assert "work-start.md exists" "true" "$([ -f "$GATE_RULE" ] && echo true || echo false)"
+# "Present ... via AskUserQuestion before loading either" is the always-ask rule.
+assert_contains "gate rule: always ask" "before loading\|always ask\|Always ask" "$GATE_RULE"
 assert_contains "gate rule: AskUserQuestion" "AskUserQuestion" "$GATE_RULE"
 assert_contains "gate rule: no silent routing" "silent" "$GATE_RULE"
-assert_contains "gate rule: no-double-loading" "double.load\|No double" "$GATE_RULE"
 assert_contains "gate rule: surface gaps" "acquire-skills" "$GATE_RULE"
+assert_contains "gate rule: no-double-loading" "double.load\|No double\|skill AND delegate" "$ROUTING_RULE"
 # Confirm it's always-loaded (no paths: guard so it applies globally)
 HAS_PATHS=$(grep -c '^paths:' "$GATE_RULE" 2>/dev/null; true)
 assert "gate rule is always-loaded (no paths: guard)" "0" "$HAS_PATHS"
