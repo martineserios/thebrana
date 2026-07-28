@@ -159,6 +159,12 @@ unioned rather than replaced, and anything you meant to withdraw is still there 
 and write again. A warning also goes to stderr. **Do not send stderr to `/dev/null` on this
 call** — it is the only place the concurrency downgrade is announced.
 
+**Dedup key:** `next[]` entries are deduplicated by **case-folded trimmed `text` only**.
+`task_id` does not participate, so `task_id: null` and a populated `task_id` behave
+identically — null was never special, it merely escaped a key it should not have been in.
+Two entries with the same `task_id` and different text are two entries; two entries with the
+same text are one, whatever their `task_id`.
+
 > Historical note (t-2506): `task_id` used to be a dedup key, so two `next[]` entries
 > referencing the same task silently collapsed to one and the *incumbent* text won. Several
 > distinct next steps legitimately concern one task; `task_id` is a reference, not a unique
