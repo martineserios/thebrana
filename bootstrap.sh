@@ -171,14 +171,22 @@ sync_file() {
 
 # --- Helper: sync a directory ---
 sync_dir() {
-    local src="$1" dst="$2" label="$3"
+    local src="$1" dst="$2" label="$3" exclude="${4:-}"
     mkdir -p "$dst"
     local dir_changes=0
+
+    # $exclude is a space-separated list of basenames that are deliberately NOT
+    # deployed (e.g. rules/README.md — the authoring contract, not a rule).
+    # They must be skipped by BOTH loops. Previously the caller deleted such a
+    # file after sync_dir ran, so every run saw it present in src and absent in
+    # dst, counted a change, re-copied it, and deleted it again — --check could
+    # never reach zero (t-2482).
 
     # Copy/update files from source
     for f in "$src"/*; do
         [ -f "$f" ] || continue
         local fname=$(basename "$f")
+        case " $exclude " in *" $fname "*) continue ;; esac
         if [ ! -f "$dst/$fname" ] || ! diff -q "$f" "$dst/$fname" &>/dev/null; then
             dir_changes=$((dir_changes + 1))
             if ! $CHECK_ONLY; then
@@ -187,10 +195,21 @@ sync_dir() {
         fi
     done
 
-    # Remove files in dest that aren't in source (brana-managed)
+    # Remove files in dest that aren't in source (brana-managed), plus any
+    # excluded file that is still deployed from before it was excluded. The
+    # latter is a genuine one-time change: once removed it stays removed.
     for f in "$dst"/*; do
         [ -f "$f" ] || continue
         local fname=$(basename "$f")
+        case " $exclude " in
+            *" $fname "*)
+                dir_changes=$((dir_changes + 1))
+                if ! $CHECK_ONLY; then
+                    rm -f "$f"
+                fi
+                continue
+                ;;
+        esac
         if [ ! -f "$src/$fname" ]; then
             dir_changes=$((dir_changes + 1))
             if ! $CHECK_ONLY; then
@@ -253,10 +272,10 @@ done
 # from system/rules/, so hand-placed rule files there will be removed.
 echo "Rules:"
 if [ -d "$SYSTEM_DIR/rules" ]; then
-    sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/"
-    if ! $CHECK_ONLY; then
-        rm -f "$TARGET_DIR/rules/README.md" 2>/dev/null || true
-    fi
+    # README.md is excluded via sync_dir's exclusion list rather than deleted
+    # afterwards — a post-hoc delete made --check count a phantom change on
+    # every run (t-2482).
+    sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/" "README.md"
 fi
 
 # --- Step 3: Scripts ---
@@ -351,8 +370,12 @@ fi
 # never proposes adding Co-Authored-By or similar trailers.
 echo "Undercover mode (settings.json attribution):"
 if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
-    CURRENT_ATTR=$(jq '.attribution // {}' "$SETTINGS_FILE" 2>/dev/null)
-    DESIRED_ATTR='{"commit":"","pr":""}'
+    # -c is load-bearing (t-2482): without it jq pretty-prints across four lines
+    # while DESIRED_ATTR is compact, so the comparison below could never match.
+    # --check reported a phantom change and every real run rewrote settings.json.
+    # Sort keys on both sides so key order is not a false difference either.
+    CURRENT_ATTR=$(jq -cS '.attribution // {}' "$SETTINGS_FILE" 2>/dev/null)
+    DESIRED_ATTR=$(jq -cSn '{"commit":"","pr":""}')
     if [ "$CURRENT_ATTR" = "$DESIRED_ATTR" ] 2>/dev/null; then
         echo "  = settings.json attribution (already empty — undercover on)"
     else
