@@ -128,7 +128,7 @@ Registers the brana plugin with CC's plugin system so it loads automatically wit
 |----------|-------------|
 | **7a** | Adds brana to `~/.claude/plugins/known_marketplaces.json` |
 | **7b** | Symlinks `~/.claude/plugins/marketplaces/brana` → this repo (dev mode: local changes are live) |
-| **7c** | Snapshots `system/` to `~/.claude/plugins/cache/brana/brana/<version>/`. CC reads from this cache. |
+| **7c** | Snapshots `system/` to `~/.claude/plugins/cache/brana/brana/<version>/`, **excluding `cli/rust/target/`**. CC reads from this cache. |
 | **7d** | Checks `~/.local/bin/brana` mtime vs newest `*.rs` source. Warns if binary predates source (stale binary = silent failures). |
 | **7e** | Registers in `~/.claude/plugins/installed_plugins.json` with current git SHA and version |
 | **7f** | Writes `~/.claude/installed_plugins.json` (the simple registry CC uses for `brana doctor` check 2). Step 7e writes the verbose `plugins/installed_plugins.json`; step 7f keeps the simpler sibling in sync so fresh installs pass the doctor check without a separate manual step. Uses `jq` if available, falls back to a `printf` write if not. |
@@ -136,6 +136,31 @@ Registers the brana plugin with CC's plugin system so it loads automatically wit
 After step 7, CC loads the plugin from the cache automatically — you don't need `--plugin-dir ./system` for normal sessions. Use `--plugin-dir ./system` when you want to test local changes before snapshotting.
 
 The symlink in 7b means: once bootstrap runs, `--sync-plugin` (or re-running `bootstrap.sh`) is usually enough to push changes to the cache without a full reinstall.
+
+### What 7c does NOT copy (t-2500)
+
+`system/cli/rust/target/` is Cargo build output — gitignored, and measured at 24GB
+against ~13MB for every other component combined. Snapshotting it wholesale cost
+disk, made every bootstrap run a multi-GB rsync, and kept the cache staleness
+check permanently red (`target/debug/incremental/*` fingerprints change on every
+build). It also made bootstrapping into a throwaway `$HOME` fail on disk quota,
+which is why isolated bootstrap testing was impossible.
+
+Two binaries are the exception and **are** copied, because they are resolved
+through `CLAUDE_PLUGIN_ROOT` and would otherwise fall through to the `PATH` copy
+with no error:
+
+| Binary | Resolved by |
+|--------|-------------|
+| `brana` | `system/hooks/lib/resolve-brana.sh` (sources 2 and 3), `system/hooks/session-start.sh` |
+| `brana-query` | `system/hooks/session-start.sh` |
+
+`brana-mcp` and `brana-fmt` are **not** resolved from the cache — the MCP server is
+registered against `~/.local/bin` — so they are not kept.
+
+Note that `rsync --exclude` also protects a path from `--delete`, so excluding the
+directory alone would leave an already-populated cache untouched. `prune_cache_target`
+removes it explicitly, and refuses to run on any path not under `*/plugins/cache/*`.
 
 ---
 
