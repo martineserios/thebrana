@@ -63407,7 +63407,7 @@
       "description": "`brana backlog add --json '{...}'` writes the supplied object into tasks.json without validating field shapes. A task with `\"tags\": \"link,auto-captured\"` (string instead of array) is accepted and persisted, after which `backlog query --tag <t>` can never match it — tasks.rs:335 reads `t[\"tags\"].as_array()`, which yields None for a string and produces an empty tag list. `brana lint` already declares this invalid (tasks.rs:730 \"tags must be array\") and `set_field` already coerces the legacy string form (E2026-05-22-7 tests, tasks.rs:2601), so the write boundary is the only place with no defense. Discovered via the telegram link-capture pipeline, where 29 tasks were written this way and became permanently invisible to every tag query.",
       "effort": "S",
       "priority": "P1",
-      "parent": null,
+      "parent": "t-2338",
       "created": "2026-07-27",
       "started": null,
       "completed": null,
