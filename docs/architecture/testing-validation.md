@@ -47,14 +47,24 @@ For each `system/agents/*.md`:
 
 ### Check 5: Context Budget
 
-Calculates the total always-loaded content size:
+Delegates to `system/scripts/context-budget.sh` — the single source of truth, also called by the `pre-commit` budget gate, so the two enforcement points cannot drift (t-2177).
 
-- `system/CLAUDE.md` (full file)
-- Rules without `paths:` field (loaded unconditionally)
-- Skill descriptions (just the `description:` line from each skill)
-- Agent descriptions (from frontmatter)
+Since t-2505 the always-loaded content is measured as **two independently gated pools**, split by what causes each to grow:
 
-**Budget limit:** 28,672 bytes (28KB). Exceeding this degrades Claude's performance because too much instruction text competes for context window space.
+| Pool | Contents | Limit | Grows because |
+|---|---|---|---|
+| **AUTHORED** | `system/CLAUDE.md` (full file) + rules with `always-load: true` in frontmatter | 22,528 B (22KB) | someone deliberately writes it |
+| **ROUTING METADATA** | skill `description:` lines + agent `description:` lines (frontmatter) | 10,240 B (10KB) | a skill or agent was added |
+
+Either pool exceeding its own limit fails the check. A generous allowance on one pool cannot mask an overrun in the other — that independence is the point.
+
+**Why split.** Under a single cap the two competed, and routing metadata won by default: it reached 8,545 of 28,653 bytes (~30%) without anyone deciding to spend it, leaving 19 bytes of headroom so that any hand-written rule addition was blocked. Automatic growth was silently evicting deliberate writing.
+
+**Why an aggregate cap on descriptions rather than a per-item one.** Measured over the real tree: 35 skills, ~168 B mean, flat distribution with no fat tail. A 200 B per-item cap reclaims 411 B total; reaching ~1.8 KB means rewriting 31 of 35. And no per-item cap bounds the aggregate, which is the actual failure mode — every new skill adds ~168 B whatever the cap is.
+
+Exclusions (all regression-tested): `rules/README.md` (the authoring contract, not a loaded rule — the t-2174 miscount), path-scoped rules, `skills/acquired/`, and agents with `type: reference`.
+
+On failure the gate names the remedy — which pool blew, how many bytes to reclaim, and the largest single contributor — not just the breakdown.
 
 ### Check 5b: Instruction Density
 

@@ -99,7 +99,7 @@ Rules are always-loaded markdown directives in `system/rules/`. They shape behav
 | 2. Rule files | Valid frontmatter if present |
 | 3. JSON validity | `settings.json` |
 | 4. Agent frontmatter | Has `name` and `description` fields |
-| 5. Context budget | Always-loaded content < 28KB |
+| 5. Context budget | Two gated pools: authored rules < 22KB, routing metadata < 10KB |
 | 5b. Instruction density | Directive count < 200 warn, < 300 fail |
 | 6. Secrets | No API keys, passwords, tokens in `system/` |
 | 7. Duplicate skills | No two skills share a name |
