@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-28T20:13:42Z",
+  "generated": "2026-07-28T20:32:55Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1916,7 +1916,8 @@
         "system/skills/X/",
         "system/agents/",
         "system/rules/",
-        "system/state/schema-removals.json"
+        "system/state/schema-removals.json",
+        "system/scripts/check-adr-uniqueness.sh"
       ]
     },
     "docs/architecture/the-orbit.md": {
