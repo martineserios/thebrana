@@ -46,14 +46,29 @@ jobs:
       - name: Run tests
         run: |
           FAIL=0
-          for test in tests/**/*.sh; do
+          FAILED_TESTS=""
+          # Explicit one-level glob: CI runs bash without globstar, so `tests/**/*.sh`
+          # already expanded to exactly this. Spelled out so the pattern is not
+          # misread as recursive.
+          for test in tests/*/*.sh; do
+            # Skip sourced helper libraries — they define functions and are not
+            # standalone tests (tests/hooks/_helpers.sh, tests/lib/*).
+            case "$test" in
+              */_*) echo "=== Skipping helper $test ==="; continue ;;
+              tests/lib/*) echo "=== Skipping helper $test ==="; continue ;;
+            esac
             echo "=== Running $test ==="
             if bash "$test"; then
               echo "--- PASSED ---"
             else
               echo "--- FAILED ---"
               FAIL=1
+              FAILED_TESTS="$FAILED_TESTS $test"
             fi
             echo ""
           done
+          if [ -n "$FAILED_TESTS" ]; then
+            echo "Failed tests:"
+            for t in $FAILED_TESTS; do echo "  - $t"; done
+          fi
           exit $FAIL

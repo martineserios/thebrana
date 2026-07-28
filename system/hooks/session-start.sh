@@ -965,5 +965,9 @@ _mark "hook-end"
     if [ -x "$SYNC_SCRIPT" ]; then
         "$SYNC_SCRIPT" push 2>/dev/null || true
     fi
-) &
+# stdout MUST be discarded: this block forks AFTER the JSON contract is emitted above,
+# and its children print to stdout (index-skills.sh "No skills to index.", brana memory
+# index "MEMORY.md updated"). Inheriting stdout appends those lines to the hook's JSON,
+# making the payload invalid. Only stderr was redirected before (t-2492).
+) >/dev/null 2>&1 &
 disown 2>/dev/null || true
