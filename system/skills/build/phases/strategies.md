@@ -59,9 +59,10 @@ Before implementing the fix, verify a failing test was written in REPRODUCE:
 
 ### FIX
 
-1. **Create branch** (if not already on one):
+1. **Create branch** (if not already on one) — worktree, never `checkout -b`
+   (git-discipline.md HARD RULE, which overrides skill-procedure defaults):
    ```bash
-   git checkout -b fix/{task-id}-{slug}
+   git worktree add ../{repo-shortname} -b {epic-slug}/fix/{task-id}-{slug}
    ```
 2. **Implement the fix** — make the failing test pass.
 3. **Run full test suite** — no regressions.
