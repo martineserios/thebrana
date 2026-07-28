@@ -5,6 +5,14 @@
 # in its body — the exact t-2174 miscount), path-scoped rules, skills/acquired,
 # and type:reference agents. Also checks the --total/--check/--report modes and
 # the over-limit exit code.
+#
+# t-2505 split the single BUDGET_LIMIT into two independently gated pools
+# (AUTHORED_LIMIT for CLAUDE.md + always-load rules, DESC_LIMIT for skill/agent
+# descriptions). This test sets BOTH to the same value so its assertions keep
+# meaning "everything under" / "everything over" — the exclusion semantics it
+# exists to protect are unchanged by the split, and `--total` still reports the
+# combined figure. Pool-independence itself is covered by
+# tests/procedures/test-context-budget-split.sh.
 
 set -uo pipefail
 
@@ -35,23 +43,23 @@ exp=$((exp + $(wc -c < "$SYS/rules/universal.md")))
 exp=$((exp + $(grep '^description:' "$SYS/skills/alpha/SKILL.md" | wc -c)))
 exp=$((exp + $(sed -n '/^---$/,/^---$/p' "$SYS/agents/a1.md" | grep '^description:' | wc -c)))
 
-got=$(SYSTEM_DIR="$SYS" BUDGET_LIMIT=999999 bash "$SCRIPT" --total 2>/dev/null)
+got=$(SYSTEM_DIR="$SYS" AUTHORED_LIMIT=999999 DESC_LIMIT=999999 bash "$SCRIPT" --total 2>/dev/null)
 ok "--total = expected (scoped/README/acquired/reference all excluded)" "[ \"$got\" = \"$exp\" ]" "$got vs $exp"
 
 rdme=$(wc -c < "$SYS/rules/README.md")
 ok "README body example never counted (t-2174 regression)" "[ \"$got\" = \"$exp\" ] && [ $rdme -gt 0 ]" "$got"
 
-SYSTEM_DIR="$SYS" BUDGET_LIMIT=10 bash "$SCRIPT" --check >/dev/null 2>&1
+SYSTEM_DIR="$SYS" AUTHORED_LIMIT=10 DESC_LIMIT=10 bash "$SCRIPT" --check >/dev/null 2>&1
 ok "exit 1 when over limit" "[ $? -eq 1 ]"
 
-SYSTEM_DIR="$SYS" BUDGET_LIMIT=999999 bash "$SCRIPT" --check > "$FX/chk.txt" 2>&1; rc=$?
+SYSTEM_DIR="$SYS" AUTHORED_LIMIT=999999 DESC_LIMIT=999999 bash "$SCRIPT" --check > "$FX/chk.txt" 2>&1; rc=$?
 ok "exit 0 when under limit" "[ $rc -eq 0 ]"
 ok "--check silent on success" "[ ! -s '$FX/chk.txt' ]"
 
-SYSTEM_DIR="$SYS" BUDGET_LIMIT=10 bash "$SCRIPT" --check > "$FX/chkfail.txt" 2>&1
+SYSTEM_DIR="$SYS" AUTHORED_LIMIT=10 DESC_LIMIT=10 bash "$SCRIPT" --check > "$FX/chkfail.txt" 2>&1
 ok "--check prints breakdown on failure" "grep -q 'Total:' '$FX/chkfail.txt'"
 
-SYSTEM_DIR="$SYS" BUDGET_LIMIT=999999 bash "$SCRIPT" --report > "$FX/rep.txt" 2>&1
+SYSTEM_DIR="$SYS" AUTHORED_LIMIT=999999 DESC_LIMIT=999999 bash "$SCRIPT" --report > "$FX/rep.txt" 2>&1
 ok "--report shows Total line" "grep -q 'Total:' '$FX/rep.txt'"
 ok "--report shows informational envelope pointer (t-2181)" "grep -q 't-2181' '$FX/rep.txt'"
 
