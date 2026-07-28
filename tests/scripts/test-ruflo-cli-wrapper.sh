@@ -57,6 +57,14 @@ else
     echo ""; echo "$PASS/$TOTAL passed"; exit 1
 fi
 
+# T2-T6 need ruflo (npm) installed: ruflo-cli.sh exits 127 during binary resolution
+# before it ever prints the resolved command line, so there is nothing to assert on.
+# Guard the whole block rather than only the assert_contains cases — T3/T4/T5b/T6 are
+# assert_not_contains and would pass vacuously against the error string (t-2492).
+# The wrapper's contract is *how to invoke ruflo*; with no ruflo it is inapplicable,
+# not violated. T1/T7/T8 still run in CI and are the checks that guard repo state.
+if RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" --version >/dev/null 2>&1; then
+
 # T2 — namespace-less search gets the contamination guard
 OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory search --query "client:thebrana" --format json 2>&1)
 assert_contains "T2: namespace-less search injects --threshold 0.55" "--threshold 0.55" "$OUT"
@@ -83,6 +91,10 @@ assert_not_contains "T5b: never execs bin/ruflo directly" "bin/ruflo " "$OUT"
 # T6 — non-search subcommands pass through
 OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory store -k "a" -v "b" 2>&1)
 assert_not_contains "T6: store passes through unmodified" "--threshold" "$OUT"
+
+else
+    echo "  SKIP: ruflo not installed (npm i -g ruflo) — T2-T6 argv/resolution tests"
+fi
 
 # T7 — cf-env variants route through the wrapper
 for cfenv in system/scripts/cf-env.sh system/hooks/lib/cf-env.sh; do

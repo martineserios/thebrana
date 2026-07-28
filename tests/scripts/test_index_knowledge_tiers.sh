@@ -28,8 +28,12 @@ echo "=== test_index_knowledge_tiers.sh ==="
 # ── Simulate tier classification logic from the script ──
 # Replicate the DOC_CATEGORIES and classify_tier function
 
-KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge/dimensions"
-THEBRANA_DIR="$HOME/enter_thebrana/thebrana"
+# Mirror the env-override contract of system/scripts/index-knowledge.sh, and default
+# THEBRANA_DIR to the checkout rather than the developer's home layout — on CI the
+# repo lives at $GITHUB_WORKSPACE, where the hardcoded path missed every category
+# dir and dropped the count to 0 (t-2492). brana-knowledge stays optional.
+KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimensions}"
+THEBRANA_DIR="${BRANA_THEBRANA_DIR:-$REPO_ROOT}"
 
 # IMPORTANT: more specific paths MUST come before their parent paths
 DOC_CATEGORIES=(
