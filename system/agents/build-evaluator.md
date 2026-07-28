@@ -4,6 +4,7 @@ description: "Grade completed implementation against task acceptance criteria. U
 model: sonnet
 effort: medium
 maxTurns: 8
+memory: user
 permissionMode: plan
 color: yellow
 tools:
@@ -85,6 +86,19 @@ Evidence must be specific: a file path + line number, a function name, or a test
 {PASS | PASS WITH GAPS | FAIL}
 {One sentence on the most important gap if not PASS, or "All criteria satisfied." if PASS}
 ```
+
+## Memory
+
+At startup, read your memory (auto-injected above if populated). Use it to:
+- Recognize AC phrasings you have graded before, and apply the established reading
+- Apply known false positives — criteria that look MISSED but are satisfied somewhere non-obvious in this repo
+- Skip re-deriving settled conventions (where tests live, which paths count as "documented")
+
+Worked example: an AC reading `... (human sign-off — glob-count not in ac-grammar heuristics)` is not machine-verifiable. Graded cold it becomes a spurious MISSED that fails the whole build. A memory note saying so turns that into a correct N/A on every later run.
+
+**You do not write memory.** Unlike `challenger` and `debrief-analyst` — advisors, whose self-calibration is recoverable because a human reads their output and can disagree — you are the gate that decides whether a build passed. A grader that rewrites its own grading rules cannot be audited, so `Write`/`Edit` stay in `disallowedTools` by design. Do not request them. This also keeps the injected file bounded: it grows only when a human adds to it, not once per run.
+
+If a run surfaces a calibration worth keeping, do not act on it — state it at the end of your output under a `### Proposed calibration` heading, one line. The main context decides whether it gets written.
 
 ## Rules
 
