@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-28T16:11:10Z",
+  "generated": "2026-07-28T19:48:46Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1115,6 +1115,15 @@
         "system/agents/CALIBRATION.md"
       ]
     },
+    "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md": {
+      "title": "ADR-069: Lane Identity, Miss Semantics, and the Unbuilt Axes of v3",
+      "type": "ADR",
+      "impl_files": [
+        "system/hooks/session-start.sh:514",
+        "system/scripts/git-hooks/pre-commit",
+        "system/hooks/session-end-persist.sh:240-242"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1892,6 +1901,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/settings.json",
+        "system/scripts/context-budget.sh",
         "system/CLAUDE.md",
         "system/",
         "system/procedures/",
@@ -2777,6 +2787,11 @@
         "system/cron/close-extraction.sh"
       ]
     },
+    "docs/ideas/backlog-v3-lane-identity.md": {
+      "title": "Lane identity and the unbuilt axes of backlog v3",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/brana-backlog-v2-schema.md": {
       "title": "brana backlog v2 schema",
       "type": "Roadmap",
@@ -3317,6 +3332,7 @@
       "title": "31 - Assurance: Does It Work?",
       "type": "Reflection",
       "impl_files": [
+        "system/scripts/context-budget.sh",
         "system/hooks/hooks.json",
         "system/scripts/git-hooks/pre-commit",
         "system/",
@@ -11021,6 +11037,36 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "to": "ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "to": "ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "to": "docs/ideas/backlog-v3-lane-identity.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -13805,6 +13851,18 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/backlog-v3-lane-identity.md",
+      "to": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/backlog-v3-lane-identity.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/brana-cli-mcp-layer.md",
       "to": "docs/ideas/dynamic-skill-routing.md",
       "type": "references",
@@ -15390,8 +15448,8 @@
     }
   ],
   "stats": {
-    "nodes": 527,
-    "edges": 1967,
+    "nodes": 529,
+    "edges": 1974,
     "typed_edges": 683,
     "orphans": 137
   }
