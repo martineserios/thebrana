@@ -159,12 +159,21 @@ else
     SESSION_RANGE=""   # root commit or empty session — let the script fall back
 fi
 
+# Pass --git-range UNCONDITIONALLY (t-2478). The previous form was
+# ${SESSION_RANGE:+--git-range "$SESSION_RANGE"} — but zsh does not word-split
+# unquoted parameter expansions, so close-snapshot.sh received the single
+# argument '--git-range A..B' and exited "unknown argument". The snapshot then
+# silently fell back to the known-wrong HEAD~N..HEAD range this very step exists
+# to avoid. An EMPTY value is already equivalent to omitting the flag
+# (close-snapshot.sh gates on `[ -n "$GIT_RANGE_ARG" ]`), so no ${:+} is needed.
+# Same class as pattern_zsh-for-loop-no-word-split; Step 11c below already
+# carries the sibling workaround.
 bash "$HOME/.claude/scripts/close-snapshot.sh" \
     --git-root "$(git rev-parse --show-toplevel)" \
     --branch "$(git branch --show-current)" \
     --project "$(basename "$(git rev-parse --show-toplevel)")" \
     --commit-count "${COMMIT_COUNT:-0}" \
-    ${SESSION_RANGE:+--git-range "$SESSION_RANGE"}
+    --git-range "$SESSION_RANGE"
 ```
 
 The script diffs `--git-range` verbatim (falling back to the known-wrong
