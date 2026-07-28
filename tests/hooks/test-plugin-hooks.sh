@@ -2,10 +2,11 @@
 # test-plugin-hooks.sh — Validate plugin hook paths and executability
 #
 # Checks:
-# 1. Every command in hooks.json references a file that exists
+# 1. Every script referenced by hooks.json exists in the REPO SOURCE tree
 # 2. Every referenced script is executable
-# 3. All hooks use ${CLAUDE_PLUGIN_ROOT}, not relative paths
-# 4. session-start-venture.sh exists (referenced by session-start.sh, not in hooks.json)
+# 3. All hook paths are absolute via a known root — "$HOME/.claude" (the stable
+#    deploy target adopted in c1a6a7f1) or ${CLAUDE_PLUGIN_ROOT} — never relative
+# 4. Hook entries use the string command form (CC dropped args[], see a6927b9f)
 
 set -euo pipefail
 
@@ -45,47 +46,75 @@ fi
 echo ""
 echo "Hook scripts:"
 
-# Extract all script paths from hooks.json — handles both string-command and args[] forms
-COMMANDS=$(python3 -c "
-import json
-with open('$HOOKS_JSON') as f:
+# Extract every .sh referenced by hooks.json and resolve it against the REPO
+# SOURCE tree. hooks.json points at "$HOME/.claude/hooks/" — the stable deploy
+# target adopted in c1a6a7f1 so a branch switch or stash in thebrana cannot break
+# hooks in other projects — but the artifact under test is the repo copy, not
+# whatever happens to be deployed. Commands may be a bare invocation, a `bash -c`
+# compound, or an external binary with no .sh at all (reported and skipped).
+ENTRIES=$(PLUGIN_ROOT="$PLUGIN_ROOT" HOOKS_JSON="$HOOKS_JSON" python3 - <<'PYEOF'
+import json, os, re
+
+plugin_root = os.environ['PLUGIN_ROOT']
+with open(os.environ['HOOKS_JSON']) as f:
     data = json.load(f)
+
 seen = set()
 for event_hooks in data.get('hooks', {}).values():
     for matcher_group in event_hooks:
         for hook in matcher_group.get('hooks', []):
-            # Support string-command form and exec-form args[]
-            cmd = hook.get('command') or (hook['args'][1] if 'args' in hook and len(hook['args']) > 1 else '')
-            if cmd and cmd not in seen:
-                seen.add(cmd)
-                print(cmd)
-")
+            cmd = hook.get('command') or ' '.join(hook.get('args', []))
+            if not cmd:
+                continue
+            paths = re.findall(r"""[^\s"';]+\.sh""", cmd)
+            if not paths:
+                print('EXTERNAL\t%s\t-' % cmd)
+                continue
+            for p in paths:
+                resolved = (p.replace('${CLAUDE_PLUGIN_ROOT}', plugin_root)
+                             .replace('${HOME}/.claude', plugin_root)
+                             .replace('$HOME/.claude', plugin_root))
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                print('SCRIPT\t%s\t%s' % (p, resolved))
+PYEOF
+)
 
-while IFS= read -r cmd; do
-    [ -z "$cmd" ] && continue
+while IFS=$'\t' read -r kind raw resolved; do
+    [ -z "$kind" ] && continue
 
-    # Test 3a: Uses ${CLAUDE_PLUGIN_ROOT}
-    if [[ "$cmd" == *'${CLAUDE_PLUGIN_ROOT}'* ]]; then
-        pass "$cmd uses \${CLAUDE_PLUGIN_ROOT}"
-    else
-        fail "$cmd does NOT use \${CLAUDE_PLUGIN_ROOT} — will fail at runtime"
+    if [ "$kind" = "EXTERNAL" ]; then
+        echo "  ⊘ skipped — external binary, not a repo script: $raw"
+        continue
     fi
 
-    # Test 3b: Resolve path relative to plugin root and check existence
-    resolved=$(echo "$cmd" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$PLUGIN_ROOT|g")
+    name="$(basename "$resolved")"
+
+    # Test 3a: absolute via a known root, never relative or machine-specific
+    case "$raw" in
+        '${CLAUDE_PLUGIN_ROOT}'/*|'$HOME'/*|'${HOME}'/*)
+            pass "$name is rooted at an absolute hook root" ;;
+        /*)
+            fail "$name uses a machine-specific absolute path: $raw" ;;
+        *)
+            fail "$name uses a relative path: $raw — will fail at runtime" ;;
+    esac
+
+    # Test 3b: resolves to a real file in the repo source tree
     if [ -f "$resolved" ]; then
-        pass "$(basename "$resolved") exists"
+        pass "$name exists in repo source"
     else
-        fail "$(basename "$resolved") not found at $resolved"
+        fail "$name not found at $resolved"
     fi
 
     # Test 3c: Script is executable
     if [ -x "$resolved" ]; then
-        pass "$(basename "$resolved") is executable"
+        pass "$name is executable"
     else
-        fail "$(basename "$resolved") is NOT executable"
+        fail "$name is NOT executable"
     fi
-done <<< "$COMMANDS"
+done <<< "$ENTRIES"
 
 # --- Test 4: Bundled cf-env.sh ---
 echo ""
@@ -96,17 +125,20 @@ else
     fail "hooks/lib/cf-env.sh missing — hooks will fail without bootstrap"
 fi
 
-# --- Test 5: session-start-venture.sh (sourced by session-start.sh) ---
-if [ -f "$PLUGIN_ROOT/hooks/session-start-venture.sh" ]; then
-    pass "session-start-venture.sh exists (sourced by session-start.sh)"
+# --- Test 5: lib/venture.sh (sourced by session-start.sh) ---
+# The standalone session-start-venture.sh hook was removed in 84d541d1 as
+# orphaned; venture detection now lives in lib/venture.sh, which session-start.sh
+# sources inline. The dependency is what matters, so assert on the current file.
+if [ -f "$PLUGIN_ROOT/hooks/lib/venture.sh" ]; then
+    pass "hooks/lib/venture.sh bundled (sourced by session-start.sh)"
 else
-    fail "session-start-venture.sh missing"
+    fail "hooks/lib/venture.sh missing — session-start.sh venture detection will fail"
 fi
 
-if [ -x "$PLUGIN_ROOT/hooks/session-start-venture.sh" ]; then
-    pass "session-start-venture.sh is executable"
+if grep -q 'lib/venture.sh' "$PLUGIN_ROOT/hooks/session-start.sh"; then
+    pass "session-start.sh sources lib/venture.sh"
 else
-    fail "session-start-venture.sh is NOT executable"
+    fail "session-start.sh no longer sources lib/venture.sh — update this test"
 fi
 
 # --- Test 6: plugin.json exists ---
@@ -124,48 +156,66 @@ else
     fail "plugin.json is not valid JSON"
 fi
 
-# --- Test 7: All hook entries use exec-form args[] (t-1413) ---
+# --- Test 7: All hook entries use the string command form ---
+# t-1413 originally migrated these to an args[] exec-form, but a6927b9f reverted
+# it: the CC hooks schema dropped support for args[]. An entry carrying args[]
+# instead of command is now silently inert, so assert the opposite of t-1413.
 echo ""
-echo "Exec-form migration:"
-STRING_COUNT=$(python3 -c "
-import json
-with open('$HOOKS_JSON') as f:
+echo "Command form (a6927b9f — args[] no longer supported by CC):"
+ARGS_COUNT=$(HOOKS_JSON="$HOOKS_JSON" python3 - <<'PYEOF'
+import json, os
+with open(os.environ['HOOKS_JSON']) as f:
     data = json.load(f)
-count = sum(
+print(sum(
     1 for ev in data.get('hooks', {}).values()
     for mg in ev
     for h in mg.get('hooks', [])
-    if 'command' in h
+    if 'command' not in h
+))
+PYEOF
 )
-print(count)
-")
 
-if [ "$STRING_COUNT" -eq 0 ]; then
-    pass "all hook entries use args[] exec-form (no string command form)"
+if [ "$ARGS_COUNT" -eq 0 ]; then
+    pass "all hook entries use the string command form"
 else
-    fail "$STRING_COUNT hook entries still use string command form — must migrate to args[] (t-1413)"
+    fail "$ARGS_COUNT hook entries lack a string command — CC dropped args[] (a6927b9f)"
 fi
 
 # --- Test 8: Gate taxonomy — advisory gates have continueOnBlock:true, enforcement gates do not ---
 echo ""
 echo "Gate taxonomy (continueOnBlock):"
 
-ADVISORY_GATES="feedback-gate.sh post-plan-challenge.sh post-tasks-validate.sh"
+ADVISORY_GATES="feedback-gate.sh post-plan-challenge.sh post-tasks-validate.sh memory-write-gate.sh"
 ENFORCEMENT_GATES="tdd-gate.sh main-guard.sh branch-verify.sh worktree-gate.sh pre-tool-use.sh"
 
-for gate in $ADVISORY_GATES; do
-    cob=$(python3 -c "
-import json
-with open('$HOOKS_JSON') as f:
+# Echoes "true"/"false" for the first hooks.json entry invoking $1, or "" if the
+# gate is not wired at all. Matching is on the BASENAME of each .sh token: the
+# raw command carries shell quoting (bash "$HOME/.claude/hooks/feedback-gate.sh"),
+# so splitting the whole string on '/' yields a trailing quote and never matches —
+# that bug made every enforcement assertion below pass vacuously.
+gate_cob() {
+    GATE="$1" HOOKS_JSON="$HOOKS_JSON" python3 - <<'PYEOF'
+import json, os, re
+gate = os.environ['GATE']
+with open(os.environ['HOOKS_JSON']) as f:
     data = json.load(f)
+matches = []
 for ev in data.get('hooks', {}).values():
     for mg in ev:
         for h in mg.get('hooks', []):
-            path = h.get('command') or (h.get('args', ['',''])[1] if 'args' in h else '')
-            if path.split('/')[-1] == '$gate':
-                print('true' if h.get('continueOnBlock', False) else 'false')
-" 2>/dev/null | head -1)
-    if [ "$cob" = "true" ]; then
+            cmd = h.get('command') or ' '.join(h.get('args', []))
+            names = [os.path.basename(p) for p in re.findall(r"""[^\s"';]+\.sh""", cmd)]
+            if gate in names:
+                matches.append('true' if h.get('continueOnBlock', False) else 'false')
+print(matches[0] if matches else '')
+PYEOF
+}
+
+for gate in $ADVISORY_GATES; do
+    cob=$(gate_cob "$gate")
+    if [ -z "$cob" ]; then
+        fail "advisory $gate is not wired in hooks.json — cannot verify taxonomy"
+    elif [ "$cob" = "true" ]; then
         pass "advisory $gate has continueOnBlock:true"
     else
         fail "advisory $gate missing continueOnBlock:true (t-1415)"
@@ -173,18 +223,10 @@ for ev in data.get('hooks', {}).values():
 done
 
 for gate in $ENFORCEMENT_GATES; do
-    cob=$(python3 -c "
-import json
-with open('$HOOKS_JSON') as f:
-    data = json.load(f)
-for ev in data.get('hooks', {}).values():
-    for mg in ev:
-        for h in mg.get('hooks', []):
-            path = h.get('command') or (h.get('args', ['',''])[1] if 'args' in h else '')
-            if path.split('/')[-1] == '$gate':
-                print('true' if h.get('continueOnBlock', False) else 'false')
-" 2>/dev/null | head -1)
-    if [ "$cob" = "false" ] || [ -z "$cob" ]; then
+    cob=$(gate_cob "$gate")
+    if [ -z "$cob" ]; then
+        fail "enforcement $gate is not wired in hooks.json — hard-stop unverifiable"
+    elif [ "$cob" = "false" ]; then
         pass "enforcement $gate has no continueOnBlock (hard-stop)"
     else
         fail "enforcement $gate must NOT have continueOnBlock — breaks hard-stop invariant"
