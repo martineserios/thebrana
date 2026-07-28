@@ -118,19 +118,26 @@ impl NextItem {
     }
 }
 
-/// Deduplicate a `next[]` list: first by `task_id` (exact), then by case-folded
-/// trimmed text. First occurrence wins. Order is preserved.
+/// Deduplicate a `next[]` list by case-folded trimmed text. First occurrence wins.
+/// Order is preserved.
+///
+/// `task_id` is deliberately NOT part of the key (t-2506). It is a *reference* to a task,
+/// not a unique identifier for the item: several distinct next steps legitimately concern
+/// the same task. Keying on it silently discarded handoff content at the exact moment it
+/// was meant to be preserved — observed live 2026-07-28, where two of three follow-ups for
+/// one task were dropped and the survivors were not the informative ones.
 pub fn dedup_next_items(items: Vec<NextItem>) -> Vec<NextItem> {
-    let mut seen_task_ids: HashSet<String> = HashSet::new();
     let mut seen_texts: HashSet<String> = HashSet::new();
-    items.into_iter().filter(|item| {
-        if let Some(ref id) = item.task_id {
-            if !seen_task_ids.insert(id.clone()) {
-                return false;
-            }
-        }
-        seen_texts.insert(item.text.trim().to_lowercase())
-    }).collect()
+    items
+        .into_iter()
+        .filter(|item| seen_texts.insert(item.text.trim().to_lowercase()))
+        .collect()
+}
+
+/// Case-folded trimmed dedup key for a `next[]` entry. Single definition so
+/// [`dedup_next_items`] and [`merge_states`] cannot drift apart.
+fn next_item_key(item: &NextItem) -> String {
+    item.text.trim().to_lowercase()
 }
 
 /// A blocker item.
@@ -485,13 +492,15 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
     }
     merged.learnings = learnings;
 
-    // next: dedup by task_id (if present) and exact text (existing wins on collision)
+    // next: dedup by case-folded text only. task_id is a reference, not a key (t-2506) —
+    // the previous task_id collision check made next[] write-once-per-day-per-task_id, so
+    // a later close could not correct guidance it had learned was wrong. Correction is now
+    // expressed by a base-matched replace in `write_state_with_base`; this union is the
+    // concurrent-write fallback, where keeping BOTH texts is the safe outcome.
     let mut next = existing.next.clone();
     for item in &new.next {
-        let task_id_collision = item.task_id.as_ref()
-            .map(|id| next.iter().any(|x| x.task_id.as_ref() == Some(id)))
-            .unwrap_or(false);
-        if !task_id_collision && !next.iter().any(|x| x.text == item.text) {
+        let key = next_item_key(item);
+        if !next.iter().any(|x| next_item_key(x) == key) {
             next.push(item.clone());
         }
     }
@@ -1637,14 +1646,33 @@ mod tests {
     }
 
     #[test]
-    fn dedup_next_removes_duplicate_task_id() {
+    fn dedup_next_keeps_distinct_texts_sharing_task_id() {
+        // t-2506: REVERSES the previous `dedup_next_removes_duplicate_task_id`, which
+        // asserted "first occurrence wins on task_id collision". That behaviour silently
+        // ate handoff content: task_id is a REFERENCE, not a unique key, and several
+        // distinct next steps legitimately concern the same task. Observed live
+        // 2026-07-28 — three different t-2488 follow-ups submitted, two dropped, the two
+        // dropped ones being the highest-value open decisions in the handoff.
         let items = vec![
             NextItem { text: "first text".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
             NextItem { text: "different text".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
         ];
         let result = dedup_next_items(items);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].text, "first text", "first occurrence wins on task_id collision");
+        assert_eq!(result.len(), 2, "distinct texts sharing a task_id are distinct items");
+        assert_eq!(result[0].text, "first text");
+        assert_eq!(result[1].text, "different text");
+    }
+
+    #[test]
+    fn dedup_next_still_removes_exact_duplicate_text_sharing_task_id() {
+        // The text key must keep working even when a task_id is present — dropping the
+        // task_id key must not make genuine duplicates survive.
+        let items = vec![
+            NextItem { text: "same text".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
+            NextItem { text: "  SAME TEXT ".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
+        ];
+        let result = dedup_next_items(items);
+        assert_eq!(result.len(), 1, "case/whitespace-identical text is still a duplicate");
     }
 
     #[test]
@@ -1668,21 +1696,25 @@ mod tests {
     }
 
     #[test]
-    fn dedup_next_task_id_wins_over_text_match() {
-        // Item A has task_id; item B has same text but no task_id → text dedup fires after task_id check; only A kept
+    fn dedup_next_text_match_fires_regardless_of_task_id_presence() {
+        // Same text, one carrying a task_id and one not → the text key dedups them.
+        // (t-2506: renamed from `dedup_next_task_id_wins_over_text_match` — task_id no
+        // longer participates in the key, so there is nothing for it to "win" over.
+        // Behaviour is unchanged; only the reason is.)
         let items = vec![
             NextItem { text: "fix t-99".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
             NextItem { text: "fix t-99".to_string(), task_id: None, category: NextCategory::Maintenance },
         ];
         let result = dedup_next_items(items);
-        // Both share text "fix t-99" → text dedup fires, only first kept
         assert_eq!(result.len(), 1);
     }
 
     // ── sanitize deduplicates next ────────────────────────────────────────
 
     #[test]
-    fn sanitize_deduplicates_next_by_task_id() {
+    fn sanitize_keeps_distinct_next_items_sharing_task_id() {
+        // t-2506: REVERSES `sanitize_deduplicates_next_by_task_id`. sanitize() runs on
+        // EVERY write path, so this was the drop that fired most often.
         let state = SessionState {
             next: vec![
                 NextItem { text: "do t-1693".to_string(), task_id: Some("t-1693".to_string()), category: NextCategory::FollowUp },
@@ -1691,8 +1723,7 @@ mod tests {
             ..SessionState::minimal(None)
         };
         let sanitized = state.sanitize();
-        assert_eq!(sanitized.next.len(), 1);
-        assert_eq!(sanitized.next[0].text, "do t-1693");
+        assert_eq!(sanitized.next.len(), 2, "two distinct follow-ups for one task both survive");
     }
 
     #[test]
@@ -1728,7 +1759,17 @@ mod tests {
     // ── merge_states task_id dedup ────────────────────────────────────────
 
     #[test]
-    fn merge_states_deduplicates_next_by_task_id() {
+    fn merge_states_keeps_distinct_texts_for_same_task_id() {
+        // t-2506: REVERSES `merge_states_deduplicates_next_by_task_id`, whose assertion
+        // read "existing item wins on task_id collision in merge". That incumbent
+        // preference is what made next[] write-once-per-day-per-task_id: a later close
+        // that had LEARNED the earlier guidance was wrong could not correct it.
+        //
+        // NOTE this is a deliberate reversal of deliberate behaviour, not a bug being
+        // swept up. Under the CAS rule (see write_state_with_base) union is now the
+        // fallback for a concurrent write, where retaining the incumbent AND the newcomer
+        // is the safe outcome — the reader sees both rather than silently losing one.
+        // Wholesale correction is expressed by a base-matched replace, not by the merge.
         let existing = SessionState {
             next: vec![NextItem { text: "first text".to_string(), task_id: Some("t-42".to_string()), category: NextCategory::FollowUp }],
             ..SessionState::minimal(None)
@@ -1738,8 +1779,21 @@ mod tests {
             ..SessionState::minimal(None)
         };
         let merged = merge_states(&existing, &new);
-        assert_eq!(merged.next.len(), 1, "same task_id from different closes must merge to one item");
-        assert_eq!(merged.next[0].text, "first text", "existing item wins on task_id collision in merge");
+        assert_eq!(merged.next.len(), 2, "a distinct text for an already-referenced task is not a duplicate");
+        assert_eq!(merged.next[0].text, "first text");
+        assert_eq!(merged.next[1].text, "different text for same task");
+    }
+
+    #[test]
+    fn merge_states_still_dedups_next_by_identical_text() {
+        // Guard: dropping the task_id key must not let identical entries accumulate.
+        let existing = SessionState {
+            next: vec![NextItem { text: "same".to_string(), task_id: Some("t-42".to_string()), category: NextCategory::FollowUp }],
+            ..SessionState::minimal(None)
+        };
+        let new = existing.clone();
+        let merged = merge_states(&existing, &new);
+        assert_eq!(merged.next.len(), 1);
     }
 
     // ── epic_scoped_state_path ────────────────────────────────────────────
