@@ -465,6 +465,24 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
         elif echo "$cmd" | grep -q '\$HOME\|'"$HOME"; then
             # New deployed-path format: expand $HOME
             SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\$HOME|$HOME|g")
+            # Fall back to the repo copy when the deployed copy is absent (t-2485).
+            # system/ is the source of truth; $HOME/.claude/ is derived by bootstrap.sh
+            # and does not exist on a CI runner or a fresh clone. Verifying the repo
+            # copy checks the same invariant — that hooks.json names a real, executable
+            # script — without requiring the machine to have been bootstrapped.
+            if [ ! -f "$SCRIPT_RESOLVED" ]; then
+                REPO_CANDIDATE="$SYSTEM_DIR/${SCRIPT_RESOLVED#*/.claude/}"
+                if [ -f "$REPO_CANDIDATE" ]; then
+                    # On a machine that HAS been bootstrapped, a missing deployed copy is
+                    # a real deploy gap, not an environment difference — surface it rather
+                    # than let the fallback hide it. On a fresh clone / CI runner there is
+                    # no $HOME/.claude/hooks at all, so this stays quiet.
+                    if [ -d "$HOME/.claude/hooks" ]; then
+                        warn "hooks.json '$SCRIPT_NAME' missing from deployed $HOME/.claude/ — re-run ./bootstrap.sh (validated against repo copy)"
+                    fi
+                    SCRIPT_RESOLVED="$REPO_CANDIDATE"
+                fi
+            fi
         else
             fail "hooks.json command '$SCRIPT_NAME' uses unknown path format (expected \${CLAUDE_PLUGIN_ROOT} or \$HOME/.claude/hooks/)"
             continue
@@ -472,9 +490,13 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
         if [ ! -f "$SCRIPT_RESOLVED" ]; then
             fail "hooks.json references $SCRIPT_NAME but file not found (resolved: $SCRIPT_RESOLVED)"
         elif [ ! -x "$SCRIPT_RESOLVED" ]; then
-            fail "$SCRIPT_NAME is not executable"
+            fail "$SCRIPT_NAME is not executable (resolved: $SCRIPT_RESOLVED)"
         else
-            pass "hooks.json command '$SCRIPT_NAME' — exists, executable, uses plugin root"
+            case "$SCRIPT_RESOLVED" in
+                "$SYSTEM_DIR"/*) WHERE="repo copy" ;;
+                *)               WHERE="deployed copy" ;;
+            esac
+            pass "hooks.json command '$SCRIPT_NAME' — exists, executable ($WHERE)"
         fi
     done <<< "$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || true)"
 
