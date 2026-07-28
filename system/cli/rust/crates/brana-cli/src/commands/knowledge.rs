@@ -11,9 +11,121 @@ use std::time::SystemTime;
 use brana_core::knowledge_pipeline::{
     self as kp, DRAFT_CAP, UrlStatus,
 };
+use brana_core::ruflo::{ruflo_memory_get, ruflo_memory_store};
 use std::io::IsTerminal as _;
 
 use crate::util::{find_project_root, home};
+
+/// Ruflo namespace `process-url` stores into. Independent of the tier1/2/3
+/// pipeline's own state file (ADR-070 §Scope split) — this command does not
+/// share or mutate `~/.swarm/knowledge-pipeline-state.json`.
+const PROCESS_URL_NAMESPACE: &str = "knowledge";
+
+/// Below this many non-whitespace characters, fetched content is treated as
+/// empty and stored nothing. A JS-only page or an auth wall strips down to a
+/// handful of characters; storing that yields a namespace entry that looks
+/// real to search and carries no information.
+const MIN_STORABLE_CHARS: usize = 40;
+
+/// Storage key for a processed URL: `knowledge:url:{slug}`.
+///
+/// Idempotency depends on this being a pure function of the URL — the second
+/// run recognises the first run's entry only if it derives the same key.
+fn url_storage_key(url: &str) -> String {
+    let trimmed = url
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_end_matches('/');
+
+    let mut slug = String::with_capacity(trimmed.len());
+    let mut last_was_dash = false;
+    for ch in trimmed.chars() {
+        if ch.is_ascii_alphanumeric() {
+            slug.push(ch.to_ascii_lowercase());
+            last_was_dash = false;
+        } else if !last_was_dash {
+            slug.push('-');
+            last_was_dash = true;
+        }
+    }
+    format!("knowledge:url:{}", slug.trim_matches('-'))
+}
+
+/// What one `process-url` invocation decided to do with a URL.
+#[derive(Debug, PartialEq, Eq)]
+enum ProcessUrlOutcome {
+    /// Key already present — nothing fetched, nothing stored.
+    AlreadyStored,
+    /// Fetch returned `Ok(None)`: the LinkedIn post was not in the author's
+    /// feed. A miss, not a failure (ADR-070 §Tier-2 correction).
+    NotFound,
+    /// Fetched, but the content was empty/near-empty — stored nothing.
+    EmptyContent,
+    /// Fetched substantive content; extract and store it.
+    Store,
+}
+
+/// Decide a URL's outcome from the idempotency probe and the fetch result.
+///
+/// Pure so the four branches are testable without ruflo or the network;
+/// the handler below owns the I/O and the printing.
+fn resolve_process_url_outcome(
+    already_stored: bool,
+    fetched: Option<&kp::FetchedContent>,
+) -> ProcessUrlOutcome {
+    if already_stored {
+        return ProcessUrlOutcome::AlreadyStored;
+    }
+    match fetched {
+        None => ProcessUrlOutcome::NotFound,
+        Some(c) if c.text.trim().chars().count() < MIN_STORABLE_CHARS => {
+            ProcessUrlOutcome::EmptyContent
+        }
+        Some(_) => ProcessUrlOutcome::Store,
+    }
+}
+
+/// `brana knowledge process-url <url>` — fetch one URL, extract an insight,
+/// store it in the ruflo `knowledge` namespace keyed by slugified URL.
+///
+/// Idempotent: an existing key short-circuits before the fetch, so re-running
+/// a nightly batch costs nothing per already-processed URL.
+///
+/// Never acquires the pipeline lock — this command's storage is independent
+/// of the tier1/2/3 pipeline (ADR-070 §Lock discipline).
+pub fn cmd_process_url(url: &str) -> Result<()> {
+    let key = url_storage_key(url);
+
+    let existing = ruflo_memory_get(&key, PROCESS_URL_NAMESPACE)
+        .with_context(|| format!("checking whether {key} is already stored"))?;
+
+    // Only fetch when the idempotency probe came back empty.
+    let fetched = match existing {
+        Some(_) => None,
+        None => kp::fetch_url_content(url).with_context(|| format!("fetching {url}"))?,
+    };
+
+    match resolve_process_url_outcome(existing.is_some(), fetched.as_ref()) {
+        ProcessUrlOutcome::AlreadyStored => println!("already stored: {key}"),
+        ProcessUrlOutcome::NotFound => {
+            println!("post not found in the author's recent feed: {url}");
+        }
+        ProcessUrlOutcome::EmptyContent => {
+            eprintln!("warning: content fetched from {url} is empty or too short — nothing stored");
+        }
+        ProcessUrlOutcome::Store => {
+            let content = fetched.expect("Store outcome is only reachable with fetched content");
+            let insight = kp::extract_insight(&content.text, content.platform);
+            let tags = [content.platform, insight.topic.as_str()];
+            ruflo_memory_store(&key, &insight.summary, PROCESS_URL_NAMESPACE, &tags)
+                .with_context(|| format!("storing {key}"))?;
+            println!("Stored: {key}");
+            println!("{}", insight.summary);
+        }
+    }
+    Ok(())
+}
 
 /// Warn if the installed binary predates source changes in system/cli/rust/crates/.
 /// No-ops silently when the source tree can't be located (non-dev environments).
@@ -1483,6 +1595,20 @@ mod tests {
             "process_core must never acquire the pipeline lock (non-reentrant — deadlocks under run→process composition)"
         );
 
+        // process-url stores independently of the pipeline (ADR-070
+        // §Lock discipline). Acquiring here would serialise an unrelated
+        // command behind a long tier1/2/3 run — and would deadlock outright
+        // if t-1144 ever composes the two.
+        let pu_start = src.find("pub fn cmd_process_url").expect("cmd_process_url exists");
+        let pu_end = src[pu_start..]
+            .find("\n/// Warn if the installed binary")
+            .map(|i| pu_start + i)
+            .unwrap_or(src.len());
+        assert!(
+            !src[pu_start..pu_end].contains("lock_pipeline"),
+            "cmd_process_url must never acquire the pipeline lock — its storage is independent of the tier1/2/3 pipeline"
+        );
+
         let run_start = src.find("pub fn cmd_run").expect("cmd_run exists");
         let run_end = src[run_start..]
             .find("\npub fn ")
@@ -1491,6 +1617,87 @@ mod tests {
         assert!(
             !src[run_start..run_end].contains("cmd_process("),
             "cmd_run must call process_core, not cmd_process — cmd_process acquires the lock cmd_run already holds"
+        );
+    }
+
+    // ── process-url: key derivation + outcome decision (t-2450) ──────
+
+    #[test]
+    fn process_url_key_is_namespaced_and_slugified() {
+        let key = url_storage_key("https://www.Example.com/Posts/Some-Thing?utm=x");
+        assert!(key.starts_with("knowledge:url:"), "got {key}");
+        assert!(!key.contains("://"), "scheme must not survive into the key: {key}");
+        assert!(
+            !key.trim_start_matches("knowledge:url:").contains('/'),
+            "path separators must be slugified: {key}"
+        );
+        assert_eq!(key, key.to_lowercase(), "key must be case-stable: {key}");
+    }
+
+    #[test]
+    fn process_url_key_is_stable_for_the_same_url() {
+        // Idempotency rests entirely on this: the second run must derive
+        // the identical key or it re-fetches and re-stores every time.
+        let a = url_storage_key("https://www.linkedin.com/posts/someone_a-title-abc123");
+        let b = url_storage_key("https://www.linkedin.com/posts/someone_a-title-abc123");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn process_url_distinct_urls_get_distinct_keys() {
+        // Boundary: slug collapsing must not merge two different posts.
+        let a = url_storage_key("https://example.com/one");
+        let b = url_storage_key("https://example.com/two");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn process_url_already_stored_short_circuits_before_fetch() {
+        // The idempotency contract: a stored key means no fetch at all —
+        // re-running a nightly batch must not re-pay for every URL.
+        let outcome = resolve_process_url_outcome(true, None);
+        assert_eq!(outcome, ProcessUrlOutcome::AlreadyStored);
+    }
+
+    #[test]
+    fn process_url_not_found_is_a_miss_not_a_failure() {
+        // fetch_url_content returned Ok(None): the LinkedIn post wasn't in
+        // the author's feed. Spec: print, store nothing, and do NOT add the
+        // id to the cancellation list — but this is not an error.
+        let outcome = resolve_process_url_outcome(false, None);
+        assert_eq!(outcome, ProcessUrlOutcome::NotFound);
+    }
+
+    #[test]
+    fn process_url_empty_content_stores_nothing() {
+        let fetched = kp::FetchedContent { text: String::new(), platform: "other" };
+        assert_eq!(
+            resolve_process_url_outcome(false, Some(&fetched)),
+            ProcessUrlOutcome::EmptyContent
+        );
+    }
+
+    #[test]
+    fn process_url_whitespace_only_content_counts_as_empty() {
+        // Boundary: strip_html_to_text on a JS-only page yields whitespace,
+        // not an empty string. Storing that would poison the namespace with
+        // an entry that looks real to search and contains nothing.
+        let fetched = kp::FetchedContent { text: "   \n\t  ".into(), platform: "other" };
+        assert_eq!(
+            resolve_process_url_outcome(false, Some(&fetched)),
+            ProcessUrlOutcome::EmptyContent
+        );
+    }
+
+    #[test]
+    fn process_url_substantive_content_is_stored() {
+        let fetched = kp::FetchedContent {
+            text: "A genuine paragraph of fetched content worth keeping around.".into(),
+            platform: "other",
+        };
+        assert_eq!(
+            resolve_process_url_outcome(false, Some(&fetched)),
+            ProcessUrlOutcome::Store
         );
     }
 

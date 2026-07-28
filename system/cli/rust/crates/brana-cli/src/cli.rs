@@ -352,6 +352,14 @@ pub enum KnowledgeCmd {
         #[arg(trailing_var_arg = true)]
         files: Vec<PathBuf>,
     },
+    /// Fetch a URL, extract an insight, and store it in the ruflo knowledge
+    /// namespace. Idempotent — an already-stored URL is skipped without
+    /// re-fetching. LinkedIn URLs require a one-time
+    /// `linkedin-scraper-mcp --login`.
+    ProcessUrl {
+        /// URL to fetch and process
+        url: String,
+    },
     /// Show knowledge index status (entry count, last indexed)
     Status,
     /// Semantic search against the ruflo knowledge namespace

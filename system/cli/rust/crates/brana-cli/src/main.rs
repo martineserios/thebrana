@@ -244,6 +244,9 @@ fn main() {
             KnowledgeCmd::Ingest { sources, source, dry_run } => {
                 run_or_exit(commands::knowledge::cmd_ingest(sources, source, dry_run))
             }
+            KnowledgeCmd::ProcessUrl { url } => {
+                run_or_exit(commands::knowledge::cmd_process_url(&url))
+            }
             KnowledgeCmd::Next => run_or_exit(commands::knowledge::cmd_next()),
             KnowledgeCmd::Run => run_or_exit(commands::knowledge::cmd_run()),
         },
