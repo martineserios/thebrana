@@ -63156,6 +63156,35 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2488",
+      "subject": "Brainstorm graph engineering for brana — decide whether v3's orchestration design needs adapting",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [
+        "architecture",
+        "research",
+        "v3"
+      ],
+      "description": "Mature the graph-engineering framing against brana's existing orchestration, then return an explicit verdict: does v3 need adapting, and if so where. Brainstorm and decision only — implementation lands as follow-up tasks the brainstorm defines.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2337",
+      "created": "2026-07-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Raised by user 2026-07-27 after researching the July 2026 \"loops are old, now graphs\" trend.\n\nTHE TREND, WITH THE HYPE STRIPPED. Loop engineering named June 2026; graph engineering July 2026 (Steinberger 2026-07-18: \"Are we still talking loops or did we shift to graphs yet?\"). Framing that survives scrutiny: loops made individual agent BEHAVIOUR programmable, graphs make the ORGANISATION of agents programmable; and Ksenia Se's deflation — \"a loop is already a graph, one whose path returns to an earlier node.\" The real shift is WHO routes: predictable routing in code, model reserved for interpretation/judgment. Prior art is decades old (state machines, DAGs, workflow engines; LangGraph shipped Jan 2024). DO NOT propagate the viral \"graphs replaced RAG, 18% accuracy / 85% cost\" claim — Turing Post traced it to one industrial-diagram case study, generalised falsely.\n\nWHAT BRANA ALREADY HAS (the brainstorm must start here, not from a blank page). .claude/workflows/ holds three working graphs: sweep.js (fan-out finders -> cluster -> verify), verify-findings.js (N diverse-lens skeptics, majority vote), hive-mind.js (diverse workers -> adversarial verify -> synthesize). The Workflow tool's pipeline() vs parallel() distinction IS the graph-vs-barrier decision. Agents in system/agents/ are already nodes with isolated context and scoped tools; hooks are already deterministic edges.\n\nWHAT V3 ALREADY SCOPES. t-2423 parallel candidate-prep on ephemeral worktrees (fan-out), t-2424 wire verify-findings as the cockpit judge stage (fan-in), t-2422 cockpit review-loop contract, t-2427 per-phase model/effort profiles, t-2429 loop tests, and critically t-2428 \"retire manual phase invocations + prose routing rules\" — which is literally \"move routing out of prose and into code.\"\n\nTHE ACTUAL QUESTION, therefore, is NOT \"should brana adopt graphs\" (it already has them). It is: does the graph framing expose anything v3's design currently gets wrong or leaves implicit? Candidate angles worth stress-testing — where is routing still prose that should be code (delegation-routing.md itself is a prose routing table); are barriers used where pipelines would do (parallel() vs pipeline() misuse costs wall-clock); is there a missing typed contract between nodes; should skills-as-loops (t-2278) be skills-as-graphs; does the close/build phase-file protocol want explicit edges. Also in scope: the honest null result — \"v3 is already right, this is vocabulary not architecture\" is a valid and valuable verdict, and should be recorded as such rather than manufacturing changes.\n\nENTRY: /brana:brainstorm, then premortem before any ADR (pattern_brainstorm-premortem-before-adr), then /brana:challenge --deep on the resulting shape. Load-bearing outcome -> ADR in docs/architecture/decisions/.\n\nAC: brainstorm run against the existing three workflows + the v3 cockpit tasks, not from a blank page\nAC: explicit written verdict on whether v3 needs adapting, with reasons — an unchanged verdict is an acceptable and recordable outcome\nAC: if load-bearing, an ADR is written and its Non-Actions section records what was explicitly NOT adopted\nAC: follow-up implementation tasks filed, or an explicit note that none are needed",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "design",
+      "ac_state": "none"
     }
   ],
   "version": 3
