@@ -1,6 +1,9 @@
 # ADR-069: Lane Identity, Miss Semantics, and the Unbuilt Axes of v3
 
-- **Status:** Proposed
+- **Status:** Proposed — **two of six decisions require redesign before Accepted** (t-2516
+  verification, 2026-07-28). The *diagnosis* is unchanged and holds; **D3.2** (reflog
+  attribution) and **D3b** (missing pin ⇒ fail loud) rest on mechanisms that verification
+  contradicted. See the inline VERIFIED blocks in D3.2, D3b and D1's consequences.
 - **Date:** 2026-07-28
 - **Evidence:** [backlog-v3-lane-identity.md](../../ideas/backlog-v3-lane-identity.md) (t-2488 brainstorm); live reproductions 2026-07-28 (below); t-2502 diagnosis (3 reproductions); t-2506 mechanism; t-2495 hypothesis + refutation; live store audit (24 session-state files, 54 epic nodes)
 - **Related:** [ADR-065](ADR-065-epic-as-hierarchy-top.md) (epic as hierarchy top), [ADR-068](ADR-068-v3-supersession.md) (v3 supersession), [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (branch strategy), [backlog-v3-schema.md](../features/backlog-v3-schema.md) D4/D8
@@ -264,9 +267,35 @@ Known limits, none of which the reflog survives: **rebase/amend/squash** rewrite
 lane's own work classifies foreign; **cherry-pick** is indistinguishable from authorship;
 **reflog expiry** (default 90d / 30d unreachable) bounds the "free and retroactive" claim;
 **detached HEAD** yields no branch metadata; and **`git worktree remove` deletes the
-worktree's reflog** — which git-discipline mandates after merge, destroying the evidence at
-exactly the moment close needs it. That last one is a direct collision between this
-mechanism and the repo's own hard rule and must be resolved before Accepted.
+worktree's reflog** — which git-discipline mandates after merge.
+
+> **VERIFIED 2026-07-28 (t-2516 G1) — empirically, and the framing above needed correcting.**
+> `git worktree remove` deletes `.git/worktrees/<name>/` in full, `logs/HEAD` included.
+> Measured on the t-2506 lane: 5 reflog entries present before removal, admin directory and
+> reflog file both absent after. Merged commits survive; only the per-lane attribution
+> evidence dies.
+>
+> **The "at exactly the moment close needs it" claim was wrong**, because it assumed an
+> ordering this ADR never stated:
+>
+> | ordering | reflog at close | D3.2 |
+> |---|---|---|
+> | close → merge → remove | live | works |
+> | merge → remove → close | gone | cannot attribute |
+>
+> Both orderings occur in practice, and the second one occurred in the very session that
+> verified this: t-2506 was merged to `dev` and its worktree removed before close, leaving its
+> three commits with no worktree reflog and only the shared checkout's single reflog — which
+> D3.2 above already says cannot attribute. So D3.2 is **not unconditionally self-defeating.
+> It is unavailable to any lane that merges before it closes**, which is a normal way to work
+> and not an edge case.
+>
+> **Consequence for the mechanism, not just its caveats.** Reflog-as-source is
+> retroactive-by-luck: it reads evidence that a mandated cleanup step is entitled to delete.
+> Attribution must instead be **recorded when the commit happens**, while the evidence
+> certainly exists, rather than **reconstructed at close**, when it may not. D3.3 already
+> installs a commit-time guard, so the recording point exists; D3.2 should append there
+> instead of mining the reflog afterwards. **Do not implement D3.2 as specified.**
 
 **D3.3 — Commits may not sweep paths that were dirty at lane start.**
 The pin records `dirty_at_start` — one `git status --porcelain` snapshot at session start. A
@@ -314,6 +343,30 @@ The pin is new shared state, so it must not reintroduce the failures in D4.
 **Failure direction is uniform:** every degraded state in this table resolves toward
 refusing to answer, never toward answering from another lane. That is the invariant the
 whole ADR turns on.
+
+> **VERIFIED 2026-07-28 (t-2516 G2) — the autonomous surface has no pin at all, and
+> "missing pin ⇒ fail loud" is therefore not a degradation but an outage.**
+>
+> `system/scripts/autonomous-runner.sh:80–103` (`sandbox_claude`) runs `claude -p` under
+> bubblewrap with `--tmpfs /home`, bind-mounting exactly three things beneath it: `~/.cargo`,
+> `~/.gitconfig`, `~/.claude/.credentials.json`. **`~/.claude/settings.json` is not mounted and
+> `~/.claude/hooks/` is not mounted**, the process is launched under `env -i`, and no
+> `CLAUDE_CONFIG_DIR` or `--settings` appears anywhere in the script. SessionStart has no
+> configuration and no script to run, so it cannot fire. `~/.claude/projects/` is likewise
+> unmounted, so session state can be neither read nor written from inside the jail — the store
+> would resolve onto the tmpfs and evaporate with the sandbox.
+>
+> **This inverts the incentive the ADR is built on.** Lines 83–86 fall back to *unsandboxed*
+> execution when `bwrap` is absent or `RUNNER_SANDBOX=0`, and that path has a full `HOME`, so
+> hooks do fire and a pin would exist. Under "missing pin ⇒ fail loud" the **sandboxed
+> default fails and the degraded unsandboxed fallback works** — the rule would reward turning
+> the sandbox off. A failure direction that is uniform for interactive sessions is not uniform
+> once the autonomous surface is included.
+>
+> D3b needs a lane-pin source for non-interactive runs that does not depend on SessionStart —
+> established by the runner as it constructs the jail, not discovered by the session inside it.
+> Note also that `BRANA_SESSION_ID` cannot serve here: it is set but never exported, so even
+> without `env -i` a child process sees it unset.
 
 ### D4 — Atomicity is a separate cluster and stays separate
 
@@ -381,6 +434,10 @@ wave 1 never ran. An ADR that ships schema without cleanup repeats that failure 
 - **Every session-state consumer must handle a non-zero exit** from `session read`. Callers
   that today assume success — `close`, `sitrep`, the session-end hook — need explicit miss
   handling. This is the intended cost of D1.
+  > **VERIFIED 2026-07-28 (t-2516 G3):** `system/scripts/statusline-slow-cache.sh` is **not** a
+  > session-state consumer — no read of `session-state*.json`, `brana session read`, or any
+  > equivalent. It is ruled out of D1's blast radius. The consumer list above is unchanged by
+  > this check; the suspected fourth consumer does not exist.
 - **Sitrep gains a lane line.** It must state which lane the handoff came from; ambiguity
   there is the operator-visible symptom, and a fix that leaves it ambiguous has not shipped.
 - **The shared checkout gets slower and louder.** D3.3 rejects `git commit -a` there and can
