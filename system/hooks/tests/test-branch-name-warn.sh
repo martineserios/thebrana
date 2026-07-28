@@ -102,6 +102,87 @@ assert_block "git branch creation warns" \
     "$(make_input 'git branch wip-stuff')"
 
 echo ""
+echo "── t-2542: prefixes the resolver can emit must be accepted ──"
+
+# t-2494 built resolve_branch_prefix() as the single authority for the work-type
+# segment, and cross-checked its output against CLAUDE.md — but never against
+# THIS hook's regex. So `design` shipped as an emittable prefix the guard rejects,
+# and the existing suite stayed green. Extract the shipped function (same
+# marker-sourcing idiom as tests/procedures/test-branch-prefix.sh, t-1978 rot
+# class) and assert every prefix it can produce survives the guard.
+PREFIX_MD="$SCRIPT_DIR/../../skills/_shared/branch-prefix.md"
+PREFIX_TMP=$(mktemp -d)
+trap 'rm -rf "$PREFIX_TMP"' EXIT
+sed -n '/<!-- BRANCH-PREFIX-BLOCK -->/,/<!-- \/BRANCH-PREFIX-BLOCK -->/p' "$PREFIX_MD" \
+    | sed '1d;$d' \
+    | sed '/^```/d' > "$PREFIX_TMP/prefix.sh"
+
+if ! grep -q 'resolve_branch_prefix()' "$PREFIX_TMP/prefix.sh"; then
+    echo "  FAIL: could not extract resolve_branch_prefix() from $PREFIX_MD"
+    FAIL=$((FAIL + 1)); TOTAL=$((TOTAL + 1))
+else
+    source "$PREFIX_TMP/prefix.sh"
+    # Every `kind` the resolver switches on, plus the degrade-to-feat default.
+    for kind in feature fix refactor research docs design test ops ""; do
+        prefix=$(resolve_branch_prefix "$kind" "")
+        assert_pass_no_warn "resolver prefix '$prefix' (kind=${kind:-<empty>}) is accepted" \
+            "$(make_input "git switch -c an-epic/$prefix/t-2542-cross-check")"
+    done
+fi
+
+echo ""
+echo "── t-2542: the mandated creation path is validated ──────────"
+
+# git-discipline.md makes `git worktree add -b` the HARD RULE for new branches
+# and forbids checkout -b. The guard checked only the forbidden paths, so every
+# worktree cut passed unvalidated.
+assert_pass_no_warn "worktree add -b — conforming" \
+    "$(make_input 'git worktree add ../repo-x -b session/fix/t-1700-epic-scoped-assertion')"
+
+assert_block "worktree add -b — non-conforming" \
+    "$(make_input 'git worktree add ../repo-x -b my-weird-branch')"
+
+assert_block "worktree add -b — bare prefix, no epic segment" \
+    "$(make_input 'git worktree add ../repo-x -b feat/t-1620-branch-hook')"
+
+echo ""
+echo "── t-2542: quoted text is not parsed as a branch name ───────"
+
+# Reproduced on the t-2539 commit: quoting a malformed branch inside a commit
+# message got the commit blocked while the real branch was valid. Documenting
+# branch drift must not be hardest in the commits that fix it.
+assert_pass_no_warn "commit message quoting a bad branch is not blocked" \
+    "$(make_input 'git commit -m \"docs: replace git checkout -b feat/t-123-slug with the full format\"')"
+
+assert_pass_no_warn "commit message quoting worktree add -b is not blocked" \
+    "$(make_input 'git commit -m \"docs: use git worktree add -b bad-name instead\"')"
+
+# The guard must still catch a real creation that merely also carries a message.
+assert_block "real bad branch still blocked when command also has a quoted string" \
+    "$(make_input 'git switch -c my-weird-branch && git commit -m \"wip: start\"')"
+
+echo ""
+echo "── t-2542: block message names the remedy ───────────────────"
+
+# t-2540 ruled the epic segment MANDATORY with no fallback slug: an epic-less
+# task must be assigned an epic before branching. The message restated the
+# grammar without naming that action.
+TOTAL=$((TOTAL + 1))
+msg_out=$(echo "$(make_input 'git switch -c feat/t-1620-branch-hook')" \
+    | BRANA_HOOK_PROFILE=standard bash "$HOOK" 2>/dev/null)
+# Must name the ACTION, not merely contain the token "{epic-slug}" from the
+# grammar it already printed — otherwise the assertion passes on the very
+# restatement t-2540 found unhelpful.
+if echo "$msg_out" | grep -qi 'assign an epic'; then
+    echo "  PASS: block message mentions assigning an epic"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: block message mentions assigning an epic"
+    echo "    output:  $msg_out"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
 echo "── Summary ─────────────────────────────────────────────────"
 echo "  ${PASS}/${TOTAL} passed, ${FAIL} failed"
 [ "$FAIL" -eq 0 ]
