@@ -40,8 +40,17 @@ else
     FAIL=$((FAIL + 1))
     echo "  FAIL: ruflo-mcp.sh not executable"
 fi
-OUTPUT=$(bash "$SCRIPTS_DIR/ruflo-mcp.sh" --version 2>&1) || OUTPUT=""
-assert_contains "ruflo version output" "$OUTPUT" "ruflo"
+# `|| true`, not `|| OUTPUT=""`: the wrapper exits 1 when ruflo is absent, and the
+# old form wiped the very sentinel we key the skip off.
+OUTPUT=$(bash "$SCRIPTS_DIR/ruflo-mcp.sh" --version 2>&1) || true
+if [[ "$OUTPUT" == *"ruflo not found in nvm or PATH"* ]]; then
+    # This assertion tests binary *resolution*; with no ruflo installed there is
+    # nothing to resolve. Keyed off the wrapper's explicit failure sentinel, so a
+    # genuine resolution bug (wrong path, bad exec) still fails rather than skips.
+    echo "  SKIP: ruflo not installed on this runner — binary resolution untestable"
+else
+    assert_contains "ruflo version output" "$OUTPUT" "ruflo"
+fi
 
 # ── Test 2: No hardcoded paths in wrapper scripts ──
 echo ""
