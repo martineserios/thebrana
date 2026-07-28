@@ -1,22 +1,18 @@
 ---
 always-load: true
 ---
-# Parallel Bash Resilience
+# Bash: Parallelism and Signals
 
-Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel commands:
+CC cancels sibling Bash calls when one exits non-zero: guard independent parallel commands
+with `; echo EXIT:$?` and check codes after; run dependent ones in one call with `&&`.
 
-- **Independent checks** (validate, test, lint): append `|| true` so one failure doesn't cancel siblings. Check exit codes in a follow-up message.
-- **Dependent commands** (build then test): run sequentially in one call with `&&`.
-- **Non-critical background work** (metrics, logging): always `|| true`.
+Don't trust a signal the shell didn't give you:
 
-```bash
-# WRONG — cargo test failure cancels the validate call
-Bash("cargo test")          # parallel
-Bash("./validate.sh")       # parallel — cancelled if cargo test fails
-
-# RIGHT — both complete, check results after
-Bash("cargo test; echo EXIT:$?")       # parallel
-Bash("./validate.sh; echo EXIT:$?")    # parallel — runs regardless
-```
-
-When writing skill instructions that say "run in parallel", add the guard pattern explicitly.
+- **A piped exit code is the filter's.** `./v.sh | tail; echo $?` reads 0 on failure.
+  Redirect: `./v.sh >/tmp/o 2>&1; echo $?; tail /tmp/o`. `$PIPESTATUS` is bash-only —
+  this harness is **zsh** (`$pipestatus[1]`), where `PIPESTATUS` expands to empty, so that
+  "fix" reports nothing at all.
+- **Never `pgrep -f` in a wait loop.** The wrapper's argv holds your whole script, so every
+  pattern — bracketed or not — self-matches and it spins forever. Use `kill -0 $PID`, or
+  skip it: `run_in_background` already notifies.
+- **Verify deploys by reading the deployed file**, not the installer's exit code.
