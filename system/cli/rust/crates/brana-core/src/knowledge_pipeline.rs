@@ -634,21 +634,252 @@ pub struct FetchedContent {
 
 /// Fetch a URL's content via the tier appropriate to its platform: `ureq`
 /// for public URLs, a headless `claude -p --mcp-config` shell-out to
-/// `linkedin-scraper-mcp` for LinkedIn (t-2447).
+/// `linkedin-scraper-mcp` for LinkedIn.
+///
+/// Returns `Ok(None)` — distinct from `Err` — when a LinkedIn post could
+/// not be found in the author's fetched feed (ADR-068 §Tier-2 correction:
+/// `linkedin-scraper-mcp` has no arbitrary-URL fetch tool, only a fuzzy
+/// author-feed match). Public URLs never produce `Ok(None)`: they either
+/// fetch or error.
 ///
 /// Never acquires [`lock_pipeline`] — this function is shared with a future
 /// t-1144 for populating `UrlEntry.fetched_content` inside the pipeline's
 /// locked `process_core` call graph, so it must stay lock-free itself
 /// (ADR-068 §Lock discipline; see `test_lock_discipline_source_tripwires`
 /// in `brana-cli/src/commands/knowledge.rs`).
-pub fn fetch_url_content(url: &str) -> Result<FetchedContent> {
+pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
     let platform = classify_platform(url);
-    let text = if platform == "linkedin" {
-        bail!("LinkedIn fetch not yet implemented (t-2447)")
-    } else {
-        fetch_public_url(url)?
-    };
-    Ok(FetchedContent { text, platform })
+    if platform == "linkedin" {
+        return Ok(fetch_linkedin_content(url)?.map(|text| FetchedContent { text, platform }));
+    }
+    let text = fetch_public_url(url)?;
+    Ok(Some(FetchedContent { text, platform }))
+}
+
+/// Timeout for the LinkedIn MCP shell-out: server-side tool timeout is 90s
+/// (`linkedin_mcp_server` `TOOL_TIMEOUT_SECONDS`) plus MCP server cold-start
+/// (spawning Python, launching headless Chromium) plus buffer — longer than
+/// `call_claude_json`'s plain-text 180s budget would allow on its own.
+const LINKEDIN_MCP_TIMEOUT_SECS: u64 = 240;
+
+/// Resolve the `linkedin-scraper-mcp` binary path.
+///
+/// Resolution order (mirrors `resolve_ruflo_binary`/`resolve_agy_binary`/
+/// `resolve_claude_binary` — install location is machine-specific):
+/// 1. `$LINKEDIN_SCRAPER_MCP_BIN` env var
+/// 2. `~/.local/bin/linkedin-scraper-mcp` (the `uv tool install` default)
+/// 3. `PATH` (via `which`)
+pub fn resolve_linkedin_scraper_binary() -> Option<PathBuf> {
+    if let Ok(v) = std::env::var("LINKEDIN_SCRAPER_MCP_BIN") {
+        let p = PathBuf::from(&v);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    let local_bin = home().join(".local/bin/linkedin-scraper-mcp");
+    if local_bin.exists() {
+        return Some(local_bin);
+    }
+
+    if let Ok(out) = std::process::Command::new("which").arg("linkedin-scraper-mcp").output() {
+        if out.status.success() {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(PathBuf::from(path));
+            }
+        }
+    }
+
+    None
+}
+
+/// RAII guard for the scoped MCP config temp file — removed on drop
+/// (including on early `?` returns from callers), so a crashed/erroring
+/// call never leaves the file behind.
+struct ScopedMcpConfig {
+    path: PathBuf,
+}
+
+impl Drop for ScopedMcpConfig {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+/// Process-wide counter disambiguating temp mcp-config filenames. PID alone
+/// is not sufficient: batch mode calls `write_scoped_linkedin_mcp_config`
+/// once per URL from within the *same* process, so two calls sharing a PID
+/// would collide on one path — and one call's `Drop` cleanup could then
+/// delete another still-in-flight call's file (caught by
+/// `write_scoped_linkedin_mcp_config_writes_expected_json` failing when run
+/// alongside `scoped_mcp_config_removed_on_drop`).
+static SCOPED_CONFIG_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Writes a scoped MCP config (JSON) containing only the
+/// `linkedin-scraper-mcp` server entry, to a fresh temp file. Generated at
+/// runtime rather than checked in statically — the binary path is
+/// machine-specific (ADR-068 §Assumptions, corrected 2026-07-24).
+fn write_scoped_linkedin_mcp_config(binary: &std::path::Path) -> Result<ScopedMcpConfig> {
+    let config = serde_json::json!({
+        "mcpServers": {
+            "linkedin-scraper": {
+                "command": binary.to_string_lossy(),
+                "args": []
+            }
+        }
+    });
+    let n = SCOPED_CONFIG_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let path = std::env::temp_dir()
+        .join(format!("brana-linkedin-mcp-{}-{n}.json", std::process::id()));
+    std::fs::write(&path, config.to_string())
+        .with_context(|| format!("writing scoped mcp-config to {}", path.display()))?;
+    Ok(ScopedMcpConfig { path })
+}
+
+/// Call the `claude` CLI with a scoped `--mcp-config`/`--strict-mcp-config`/
+/// `--allowedTools` for MCP-tool-using prompts. Distinct from
+/// `call_claude_json` (text-only, no MCP) — new arg-building, no prior art
+/// in this file; empirically verified live 2026-07-24 (ADR-068).
+///
+/// Flag order matters: clap's `<tools...>` for `--allowedTools` consumes
+/// positional-looking args until the next recognized `--flag`, so the tool
+/// list must be followed by another flag (`--output-format`) before the
+/// trailing positional prompt, or the prompt gets swallowed into the tools
+/// list.
+fn call_claude_json_with_mcp(
+    prompt: &str,
+    mcp_config_path: &std::path::Path,
+    allowed_tools: &[&str],
+) -> Result<serde_json::Value> {
+    let binary = resolve_claude_binary().ok_or_else(|| {
+        anyhow::anyhow!(
+            "claude CLI binary not found. Checked: $CLAUDE_PLUGIN_DATA/claude, \
+             ~/.local/bin/claude, PATH. Install Claude Code first."
+        )
+    })?;
+
+    let mut cmd = std::process::Command::new(&binary);
+    cmd.arg("--print")
+        .arg("--mcp-config")
+        .arg(mcp_config_path)
+        .arg("--strict-mcp-config")
+        .arg("--allowedTools");
+    for tool in allowed_tools {
+        cmd.arg(tool);
+    }
+    cmd.arg("--output-format")
+        .arg("json")
+        .arg(prompt)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let mut child = cmd
+        .spawn()
+        .with_context(|| format!("spawning claude binary at {}", binary.display()))?;
+
+    let timeout = std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!("claude CLI (MCP) timed out after {LINKEDIN_MCP_TIMEOUT_SECS}s");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("claude wait error: {e}"),
+        }
+    }
+
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("claude CLI (MCP) exited non-zero: {stderr}");
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let raw = parse_claude_stdout(&stdout)?;
+    match extract_result_from_envelope(&raw) {
+        Some(text) => {
+            let cleaned = strip_code_fences(text.trim());
+            match serde_json::from_str::<serde_json::Value>(cleaned) {
+                Ok(v) => Ok(v),
+                // The model's final text may be prose rather than pure
+                // JSON (e.g. it narrates the tool call) — fall back to
+                // treating the raw text as the value rather than erroring,
+                // callers extract the field(s) they need from it.
+                Err(_) => Ok(serde_json::Value::String(text)),
+            }
+        }
+        None => Ok(raw),
+    }
+}
+
+/// Tier 2: best-effort LinkedIn fetch via `linkedin-scraper-mcp`'s
+/// `get_person_profile(sections="posts")` + fuzzy text match (ADR-068
+/// §Tier-2 correction — no arbitrary-URL fetch tool exists). Returns
+/// `Ok(None)` when the target post isn't found in the fetched feed (a real
+/// miss, not a fetch failure).
+fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
+    let (author, title_signal) =
+        parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
+
+    let binary = resolve_linkedin_scraper_binary().ok_or_else(|| {
+        anyhow::anyhow!(
+            "linkedin-scraper-mcp binary not found — install with: uv tool install linkedin-scraper-mcp"
+        )
+    })?;
+    let config = write_scoped_linkedin_mcp_config(&binary)?;
+
+    let prompt = format!(
+        "Call get_person_profile with linkedin_username=\"{author}\" and sections=\"posts\". \
+         Return ONLY JSON of the shape {{\"posts_text\": \"<the raw text of the posts section>\"}}."
+    );
+    let response = call_claude_json_with_mcp(
+        &prompt,
+        &config.path,
+        &["mcp__linkedin-scraper__get_person_profile"],
+    )?;
+
+    let posts_text = response
+        .get("posts_text")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("unexpected response shape from linkedin fetch: {response}"))?;
+
+    Ok(find_matching_post(posts_text, &title_signal))
+}
+
+/// Best-effort match: finds the paragraph-ish chunk in `feed_text` (a raw
+/// scraped posts feed) whose content overlaps most with `title_signal`
+/// (derived from the post URL's slug). Requires at least half the
+/// significant (>3 char) signal words to appear, to avoid weak false
+/// positives. Returns `None` — a real "not in this feed" miss — rather
+/// than a low-confidence guess.
+fn find_matching_post(feed_text: &str, title_signal: &str) -> Option<String> {
+    let signal_words: Vec<String> = title_signal
+        .split_whitespace()
+        .filter(|w| w.len() > 3)
+        .map(|w| w.to_lowercase())
+        .collect();
+    if signal_words.is_empty() {
+        return None;
+    }
+
+    let mut best: Option<(&str, usize)> = None;
+    for chunk in feed_text.split("\n\n").filter(|c| !c.trim().is_empty()) {
+        let lower = chunk.to_lowercase();
+        let hits = signal_words.iter().filter(|w| lower.contains(w.as_str())).count();
+        if hits > 0 && best.is_none_or(|(_, best_hits)| hits > best_hits) {
+            best = Some((chunk, hits));
+        }
+    }
+
+    best.filter(|(_, hits)| *hits * 2 >= signal_words.len())
+        .map(|(chunk, _)| chunk.trim().to_string())
 }
 
 /// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
@@ -1402,20 +1633,109 @@ mod tests {
     }
 
     #[test]
-    fn fetch_url_content_linkedin_bails_not_yet_implemented() {
-        let result = fetch_url_content("https://www.linkedin.com/posts/example");
-        let err = result.expect_err("linkedin tier is not built yet (t-2447)");
-        assert!(err.to_string().contains("t-2447"));
-    }
-
-    #[test]
     fn fetch_url_content_public_url_sets_platform() {
         let (addr, handle) = serve_once("HTTP/1.1 200 OK", "<p>hi</p>");
         let result = fetch_url_content(&format!("http://{addr}/"));
         handle.join().unwrap();
-        let content = result.unwrap();
+        let content = result.unwrap().expect("public URLs never produce Ok(None)");
         assert_eq!(content.text, "hi");
         assert_eq!(content.platform, "other");
+    }
+
+    // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-068) ───
+    // The live claude -p --mcp-config shell-out itself is not unit tested
+    // here (no prior art for mocking it in this crate; empirically
+    // verified live instead — see ADR-068 §Empirical validation). The
+    // novel, pure logic — fuzzy matching — is thoroughly tested below.
+
+    #[test]
+    fn find_matching_post_finds_high_overlap_chunk() {
+        let feed = "Unrelated post about gardening tips and tricks.\n\n\
+                     Excited to announce our new semantic layer for BigQuery, \
+                     built for bounded agent traversal across graphs.\n\n\
+                     Another unrelated post about coffee brewing methods.";
+        let result = find_matching_post(feed, "bigquerys native semantic layer");
+        assert!(result.unwrap().contains("semantic layer for BigQuery"));
+    }
+
+    #[test]
+    fn find_matching_post_no_match_returns_none() {
+        let feed = "A post about gardening.\n\nA post about coffee.";
+        assert_eq!(find_matching_post(feed, "quantum computing breakthroughs"), None);
+    }
+
+    #[test]
+    fn find_matching_post_empty_feed_returns_none() {
+        assert_eq!(find_matching_post("", "some title signal"), None);
+    }
+
+    #[test]
+    fn find_matching_post_only_short_words_returns_none() {
+        // Boundary: title_signal with no words longer than 3 chars — no
+        // reliable signal to match on, must not guess.
+        assert_eq!(find_matching_post("some feed text here", "a it is to"), None);
+    }
+
+    #[test]
+    fn find_matching_post_below_half_threshold_returns_none() {
+        // Boundary: only 1 of 4 significant words overlaps — below the
+        // half-threshold, must not weak-match.
+        let feed = "This chunk mentions bigquery once and nothing else relevant.";
+        let result = find_matching_post(feed, "bigquery semantic layer traversal");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_matching_post_picks_best_of_multiple_candidates() {
+        let feed = "Weak match: mentions rust.\n\n\
+                     Strong match: rust ownership borrow checker lifetimes explained.\n\n\
+                     No match: totally unrelated content here.";
+        let result = find_matching_post(feed, "rust ownership borrow checker lifetimes");
+        assert!(result.unwrap().starts_with("Strong match"));
+    }
+
+    // ── resolve_linkedin_scraper_binary / write_scoped_linkedin_mcp_config ─
+
+    #[test]
+    fn resolve_linkedin_scraper_binary_does_not_panic() {
+        // None is acceptable in environments without the tool installed —
+        // the important contract is no panic, matching the sibling
+        // resolvers' test convention (resolve_ruflo_binary, resolve_claude_binary).
+        let _ = resolve_linkedin_scraper_binary();
+    }
+
+    #[test]
+    fn write_scoped_linkedin_mcp_config_writes_expected_json() {
+        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
+        let config = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        let written = std::fs::read_to_string(&config.path).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&written).unwrap();
+        assert_eq!(
+            parsed["mcpServers"]["linkedin-scraper"]["command"],
+            "/fake/path/linkedin-scraper-mcp"
+        );
+    }
+
+    #[test]
+    fn scoped_mcp_config_two_calls_same_process_get_distinct_paths() {
+        // Boundary: batch mode calls this once per URL from the same
+        // process — PID-only naming would collide (regression guard).
+        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
+        let a = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        let b = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        assert_ne!(a.path, b.path);
+        assert!(a.path.exists());
+        assert!(b.path.exists());
+    }
+
+    #[test]
+    fn scoped_mcp_config_removed_on_drop() {
+        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
+        let config = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
+        let path = config.path.clone();
+        assert!(path.exists());
+        drop(config);
+        assert!(!path.exists(), "temp mcp-config file must be cleaned up on drop");
     }
 
     // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────
