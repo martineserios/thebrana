@@ -88,7 +88,13 @@ pub struct UrlEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
     /// Post body fetched by a browser pre-pass.
-    /// Not yet consumed by tier1 scoring — see t-1144 (LinkedIn pre-pass implementation).
+    ///
+    /// Still not consumed by tier1 scoring. The *fetch mechanism* this field
+    /// was waiting on now exists — [`fetch_url_content`], built under ADR-070
+    /// and exposed as `brana knowledge process-url` — but wiring it into the
+    /// pipeline remains t-1144's gated decision (the pipeline must complete
+    /// at least one fully validated cycle first), so nothing populates this
+    /// field yet.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fetched_content: Option<String>,
 }
