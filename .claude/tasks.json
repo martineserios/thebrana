@@ -63070,6 +63070,35 @@
       "acceptance_criteria": null,
       "work_type": "design",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2485",
+      "subject": "CI has been red on main for 15+ consecutive runs — validate.sh cannot pass on a non-bootstrapped machine",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "ci",
+        "validate",
+        "drift"
+      ],
+      "description": "The GitHub \"validate\" workflow is a required status check but has failed on every one of the last 15 main pushes. Root cause is structural, not a code regression: validate.sh resolves system/hooks/hooks.json command paths — which are stored in the deployed form $HOME/.claude/hooks/NAME.sh — against the runner's real $HOME. A CI runner has never run bootstrap.sh, so all 42 hook references resolve to /home/runner/.claude/hooks/*.sh and fail \"file not found\". Reproduced locally: HOME=$(mktemp -d) ./validate.sh yields exactly 42 identical failures, matching CI's 42. A second CI-only failure, \"Check 41: feed-summarize.sh --dry-run missing 3 expected URL(s)\", also passes locally and is likewise environment-dependent. Because the check can never go green in CI, branch protection's required status check is permanently unsatisfiable and every push either bypasses it or is blocked.",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2345",
+      "created": "2026-07-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-07-27: Found while shipping t-2468..t-2472. hooks.json last changed 2026-06-21 (9c71fdfa), so this predates the shipped work — confirmed not a regression from it.\n2026-07-27: Options — (a) have the hooks-reference check fall back to system/hooks/ when $HOME/.claude/hooks/ is absent, (b) run bootstrap.sh in the CI job before validate, or (c) skip the deployed-path checks when CI=true. (a) is probably right: the repo copy is the source of truth and the deployed copy is derived.\n2026-07-27: Same failure class as t-2470 (44 red assertions), t-2482 (bootstrap --check never clean) and t-2472 (stale binary) — a permanently-red check stops being a signal, so real regressions hide in the noise. This one is the most costly instance because it gates merges.\nAC: CI validate job passes on a clean runner\nAC: the hooks-reference check works both bootstrapped and not, without weakening what it verifies\nAC: Check 41 feed-summarize fixture passes in CI or is correctly skipped there\nAC: confirm branch protection's required \"validate\" check can actually be satisfied",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
