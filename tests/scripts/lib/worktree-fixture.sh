@@ -44,7 +44,17 @@ fixture_init() {
     mkdir -p "$FIXTURE_ROOT/bin"
     cat > "$FIXTURE_ROOT/bin/brana" <<'STUB'
 #!/usr/bin/env bash
-# stub brana — understands only: backlog get <id> --field <f>
+# stub brana — understands: backlog get <id> [--field <f>]
+#
+# Faithful to the real contract probed 2026-07-29:
+#   known task, --field set     -> "value"          exit 0
+#   known task, --field null    -> null             exit 0
+#   known task, --field bogus   -> null             exit 0  <-- indistinguishable from above
+#   unknown task                -> stderr message,  exit 1
+#   no --field                  -> full JSON object exit 0
+# The bogus-field case is why the schema self-test exists; the exit-1 case is
+# what must never collapse into "no divergence". Both are reproduced here on
+# purpose — a stub that got either wrong would let a broken check pass.
 set -uo pipefail
 [ "${1:-}" = "backlog" ] || { echo "stub: unsupported: $*" >&2; exit 2; }
 [ "${2:-}" = "get" ]     || { echo "stub: unsupported: $*" >&2; exit 2; }
@@ -56,9 +66,19 @@ if [ -z "$row" ]; then
     exit 1
 fi
 IFS=$'\t' read -r _ st br <<<"$row"
+_json() { [ "$1" = "null" ] && printf null || printf '"%s"' "$1"; }
+if [ -z "$field" ]; then
+    # Full object. FIXTURE_SCHEMA_OMIT lets a test drop a key to simulate the
+    # field rename that the self-test exists to catch.
+    out='{"id":"'"$id"'"'
+    [ "${FIXTURE_SCHEMA_OMIT:-}" != "status" ] && out="$out,\"status\":$(_json "$st")"
+    [ "${FIXTURE_SCHEMA_OMIT:-}" != "branch" ] && out="$out,\"branch\":$(_json "$br")"
+    echo "$out}"
+    exit 0
+fi
 case "$field" in
-    status) [ "$st" = "null" ] && echo null || echo "\"$st\"" ;;
-    branch) [ "$br" = "null" ] && echo null || echo "\"$br\"" ;;
+    status) [ "${FIXTURE_SCHEMA_OMIT:-}" = "status" ] && echo null || _json "$st" && echo ;;
+    branch) [ "${FIXTURE_SCHEMA_OMIT:-}" = "branch" ] && echo null || _json "$br" && echo ;;
     *)      echo null ;;
 esac
 exit 0
