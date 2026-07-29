@@ -71,7 +71,10 @@ fixture_cleanup
 # ── 2. ORPHAN — worktree alive, task completed ───────────────────────────────
 echo "--- ORPHAN ---"
 fixture_init
-fixture_task t-200 completed harness/feat/t-200-done
+# Branch field left null on purpose: this worktree qualifies for ORPHAN *and*
+# FIELD-NULL *and* IDLE at once, so the suppression assertion below is real
+# rather than vacuous.
+fixture_task t-200 completed null
 fixture_worktree wt-orphan harness/feat/t-200-done 39
 run_check
 assert_rc 1 "orphan is a contradiction — exits 1"

@@ -102,7 +102,12 @@ fixture_worktree() {
     path="$FIXTURE_ROOT/$dir"
     git -C "$FIXTURE_REPO" worktree add -q -b "$branch" "$path" 2>/dev/null || return 1
     echo "$dir" > "$path/work.txt"
-    when=$(date -u -d "$days days ago" +"%Y-%m-%dT%H:%M:%S" 2>/dev/null) || return 1
+    # The +00:00 suffix is load-bearing. `date -u` emits a UTC wall-clock time,
+    # but git parses a naive timestamp as LOCAL time — under UTC-3 that shifted
+    # every commit 3 hours later than intended, and integer day-division then
+    # truncated 39d to 38d and 15d to 14d, so a correct >14d threshold looked
+    # broken. The bug was in this line, not in the check.
+    when=$(date -u -d "$days days ago" +"%Y-%m-%dT%H:%M:%S+00:00" 2>/dev/null) || return 1
     git -C "$path" add work.txt
     GIT_AUTHOR_DATE="$when" GIT_COMMITTER_DATE="$when" \
         git -C "$path" commit -q -m "work in $dir"
