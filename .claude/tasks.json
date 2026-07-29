@@ -64897,7 +64897,7 @@
     {
       "id": "t-2544",
       "subject": "Extract WriteReport JSON mapping into core and test it (CLI + MCP share one shape)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -64912,11 +64912,11 @@
       "parent": "t-2488",
       "created": "2026-07-28",
       "started": null,
-      "completed": null,
+      "completed": "2026-07-29",
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/refactor/t-2544-writereport-json",
       "context": "Follow-up to t-2506 (merged dab8a791). AC2 of t-2506 — \"a discard is never silent\" — is currently verified only by core unit tests plus a live probe run by hand. The reporting SURFACE has no coverage.\n\nSpecifics:\n- brana-cli/src/commands/session.rs cmd_session_write builds the response with a format! string containing hand-written JSON braces. Fragile and untested.\n- brana-mcp/src/tools/session_write.rs builds the same shape independently with serde_json::json!. Two definitions of one contract.\n- brana-mcp/tests/tool_tests.rs tests the CORE function, never the tool handler's response (the handler is a closure inside build(), not directly callable), which is why this gap exists.\n\nApproach: WriteReport::next_json() -> serde_json::Value in brana-core, used by both. Tested in core where the type lives. Matches the extract-for-testability pattern already in memory.",
-      "notes": null,
+      "notes": "Merged to dev. WriteReport::next_json() owns the shape; CLI and MCP both call it. Three tests in brana-core cover all five fields, the union-stale-base warning, and the quiet case. Also removed hand-built JSON from the CLI (would have mangled paths needing escaping) and fixed plural agreement in the duplicate warning. 1265 tests pass.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -65030,6 +65030,35 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "subject": "brana session write 0.2.0: base_written_at CAS ignored + task_id dedup incumbent-wins — close phase doc documents both as fixed (t-2506)",
+      "kind": "fix",
+      "type": "task",
+      "execution": "code",
+      "effort": "M",
+      "priority": "P2",
+      "tags": [
+        "cli",
+        "session-state",
+        "close"
+      ],
+      "description": "Found from proyecto_anita during a /brana:close --continue on 2026-07-28. The deployed CLI does NOT implement two behaviours that system/skills/close/phases/session-state.md documents as landed in t-2506. Both fail SILENTLY — the write returns {\"ok\":true,\"path\":...} with no indication.\n\nGAP 1 — base_written_at CAS is ignored; next[] always unions.\nThe phase doc (Step 9b) says a same-day write with a matching base_written_at REPLACES next[], and that omitting an item + passing the token is how you withdraw it. Reality: base_written_at is not read at all (it is not in `brana session write --help`, which offers only --file and --minimal). Every write unions, so a next[] entry can be ADDED but never corrected and never withdrawn.\nThe doc also specifies a response block reporting what landed — {\"next\":{\"incoming\":N,\"written\":N,\"dropped_duplicates\":N,\"retained_from_existing\":N,\"mode\":\"replace|union|union-stale-base\"}} — and says a `union-stale-base` mode plus a stderr warning is how the concurrency downgrade is announced. None of that is emitted. There is no way for a caller to detect the downgrade.\n\nGAP 2 — task_id is still a dedup key, and the INCUMBENT text wins.\nThe doc states explicitly: 'Dedup key: next[] entries are deduplicated by case-folded trimmed text only. task_id does not participate.' It carries a historical note saying task_id USED to be a dedup key and that the incumbent text won. That historical behaviour is the CURRENT behaviour. Submitting an updated text for an existing task_id silently discards the update and keeps the older text.\n\nEVIDENCE (live, proyecto_anita agent epic, 2026-07-28):\nSubmitted a curated 21-item next[] with base_written_at set to the file's exact written_at (2026-07-28T20:52:13.659750834+00:00). Result: 43 items on disk (33 prior + 21 mine, minus 11 identical-text collapses). Every item intended for withdrawal survived. Separately, 5 items whose task_id matched an existing entry (t-2286, t-2293, t-2317, t-2320, t-2321) kept the OLD text and dropped the newer one — e.g. t-2321 retained a 166-char version over the submitted 313-char version.\n\nIMPACT: session-state next[] accumulates monotonically and cannot be curated through the CLI (there is no withdraw/prune verb on `brana session` either — only write/read/history/path/migrate/mark-consumed/insights/epic). Completed work keeps reading as pending across handoffs, which is precisely the re-litigation that 'do not re-litigate' entries exist to prevent. The proyecto_anita agent epic reached 43 items carrying 5 completed tasks before being pruned by hand via a direct file write — the exact operation the close skill forbids ('The LLM never writes session files directly').\n\nVERSION: `brana 0.2.0` for BOTH ~/.local/bin/brana and thebrana/system/cli/rust/target/release/brana (built 2026-07-27 20:29) — so this is not a stale-deployed-binary problem.\n\nFIX OPTIONS: (a) implement the t-2506 semantics as documented (CAS + text-only dedup + the response/mode block); or (b) if they were descoped, correct session-state.md so it stops promising a withdraw path that does not exist — the doc currently reads as authoritative and its 'To express this item is done, drop it' instruction is a no-op. Either way the response block matters most: silent divergence is what made this expensive to find.",
+      "context": "Reported from proyecto_anita 2026-07-28 (agent epic close).\nAC: `brana session write` either implements the documented t-2506 semantics OR session-state.md is corrected to match reality\nAC: a caller can detect that its next[] was unioned rather than replaced (response block or stderr warning)\nAC: an updated text for an existing task_id is not silently discarded in favour of the incumbent\nAC: there is a supported way to withdraw a resolved next[] item without editing session-state JSON by hand\nRepro: submit a next[] omitting an existing entry, with base_written_at set to the target file's exact written_at; the omitted entry survives and the write reports ok:true with no mode/warning.\nVerified on brana 0.2.0, both ~/.local/bin/brana and system/cli/rust/target/release/brana (built 2026-07-27).",
+      "id": "t-2549",
+      "status": "pending",
+      "created": "2026-07-29",
+      "blocked_by": [],
+      "ac_state": "none",
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3
