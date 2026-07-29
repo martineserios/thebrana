@@ -107,14 +107,30 @@ A same-day, same-branch write **merges** with the existing state. By default `ne
 make your `next[]` authoritative, read the state you are about to merge with and pass its
 `written_at` back as `base_written_at` (t-2506):
 
+**Read the base from the SAME key the write will use.** This is the whole correctness
+condition, and it is easy to get wrong:
+
 ```bash
-BASE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty')
-# include "base_written_at": "$BASE" in the payload
+# $EPIC is the value Step 9c puts in the payload's `epic` field.
+BASE=$(brana session read --all --json 2>/dev/null \
+  | jq -r --arg e "$EPIC" '.[] | select(.epic==$e) | .state.written_at // empty')
+# include "base_written_at": "$BASE" in the payload (omit the field entirely if empty)
 ```
 
-Run this from the repo root — `session read` resolves against the *current* git branch, so a
-timestamp read from a different directory belongs to another lane and will be rejected as
-stale (which is safe, just useless).
+> **Do NOT use a bare `brana session read` for this.** It resolves by **branch**, while the
+> write routes by **epic** (`write_state` is epic-first; `read_state` is branch-only). On a
+> branch that does not match the epic convention — `dev`, notably — the bare read prints
+> *"branch ... does not match epic convention, falling back to session-state.json"* on stderr
+> and returns the **orphan** file's `written_at`, which belongs to a different lane. Passing
+> that guarantees a CAS miss: the write silently degrades to union, nothing can be withdrawn,
+> and the response still says `ok:true`. Measured live 2026-07-29 — bare read gave
+> `16:55:03Z` while the epic file this close wrote to was at `19:42:20Z`.
+>
+> Empty `$BASE` means no prior state for this epic; omit `base_written_at` rather than sending
+> an empty string. A first write has nothing to compare against and needs no token.
+
+Run it from the repo root, and confirm the `mode` in the write response is `replace` — not
+`union-stale-base` — before believing an entry was corrected or withdrawn.
 
 **Same-day merge semantics — what MERGES, what REPLACES:**
 
