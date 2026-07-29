@@ -78,14 +78,17 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
     }
 
     let branch = current_branch().unwrap_or_default();
+    // Serialised via serde_json, not a format! string — the path is a filesystem path and
+    // can contain characters that need escaping (t-2544).
     println!(
-        "{{\"ok\":true,\"path\":\"{}\",\"next\":{{\"incoming\":{},\"written\":{},\"dropped_duplicates\":{},\"retained_from_existing\":{},\"mode\":\"{}\"}}}}",
-        brana_core::session::unit_scoped_state_path(&root, state.epic.as_deref(), &branch).display(),
-        report.next_incoming,
-        report.next_written,
-        report.next_dropped_duplicates,
-        report.next_retained,
-        report.next_mode.as_str(),
+        "{}",
+        serde_json::json!({
+            "ok": true,
+            "path": brana_core::session::unit_scoped_state_path(&root, state.epic.as_deref(), &branch)
+                .to_string_lossy(),
+            "next": report.next_json(),
+            "warning": report.warning(),
+        })
     );
     Ok(())
 }

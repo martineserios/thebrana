@@ -401,6 +401,20 @@ impl NextMergeMode {
 }
 
 impl WriteReport {
+    /// `next[]` accounting as JSON, for the CLI and MCP write responses.
+    ///
+    /// One definition so the two surfaces cannot drift: a caller that learns to read these
+    /// fields from one of them can read them from the other (t-2544).
+    pub fn next_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "incoming": self.next_incoming,
+            "written": self.next_written,
+            "dropped_duplicates": self.next_dropped_duplicates,
+            "retained_from_existing": self.next_retained,
+            "mode": self.next_mode.as_str(),
+        })
+    }
+
     /// Human-readable warning for the CLI/MCP surface, or `None` when nothing was
     /// discarded or downgraded and there is nothing worth saying.
     pub fn warning(&self) -> Option<String> {
@@ -413,10 +427,12 @@ impl WriteReport {
                 if self.next_retained == 1 { "y" } else { "ies" }
             )),
             _ if self.next_dropped_duplicates > 0 => Some(format!(
+                // "entr{y,ies}" agrees with next_incoming, the noun it follows in
+                // "N of M incoming entries" — not with the dropped count.
                 "next[]: {} of {} incoming entr{} dropped as duplicate text; {} written.",
                 self.next_dropped_duplicates,
                 self.next_incoming,
-                if self.next_dropped_duplicates == 1 { "y" } else { "ies" },
+                if self.next_incoming == 1 { "y" } else { "ies" },
                 self.next_written
             )),
             _ => None,
@@ -2077,6 +2093,61 @@ mod tests {
             !raw.contains("base_written_at"),
             "the CAS token is a request parameter, not persisted state"
         );
+    }
+
+    // ── WriteReport JSON surface (t-2544) ─────────────────────────────────
+    //
+    // Both `brana session write` and MCP session_write report next[] accounting through
+    // this one mapping. It is tested here, in the crate that owns the type, because the
+    // MCP handler is a closure inside build() and cannot be called directly from a test —
+    // which is exactly how the surface came to be uncovered in t-2506.
+
+    #[test]
+    fn write_report_json_carries_every_accounting_field() {
+        let report = WriteReport {
+            next_incoming: 8,
+            next_written: 7,
+            next_dropped_duplicates: 1,
+            next_retained: 0,
+            next_mode: NextMergeMode::Replace,
+        };
+        let j = report.next_json();
+        assert_eq!(j["incoming"], 8);
+        assert_eq!(j["written"], 7);
+        assert_eq!(j["dropped_duplicates"], 1);
+        assert_eq!(j["retained_from_existing"], 0);
+        assert_eq!(j["mode"], "replace");
+    }
+
+    #[test]
+    fn write_report_json_reports_concurrent_write_as_a_warning() {
+        // The one case a caller must not miss: it asked to replace and got a union.
+        let report = WriteReport {
+            next_incoming: 2,
+            next_written: 5,
+            next_dropped_duplicates: 0,
+            next_retained: 3,
+            next_mode: NextMergeMode::UnionStaleBase { stored: "2026-07-28T10:00:00Z".into() },
+        };
+        let j = report.next_json();
+        assert_eq!(j["mode"], "union-stale-base");
+        assert_eq!(j["retained_from_existing"], 3);
+        let warning = report.warning().expect("a downgrade to union must produce a warning");
+        assert!(warning.contains("concurrent write"), "warning names the cause: {warning}");
+        assert!(warning.contains("2026-07-28T10:00:00Z"), "warning names the stored timestamp");
+    }
+
+    #[test]
+    fn write_report_json_is_quiet_when_nothing_was_lost() {
+        let report = WriteReport {
+            next_incoming: 3,
+            next_written: 3,
+            next_dropped_duplicates: 0,
+            next_retained: 0,
+            next_mode: NextMergeMode::Fresh,
+        };
+        assert_eq!(report.next_json()["mode"], "fresh");
+        assert!(report.warning().is_none(), "a clean write must not emit a warning");
     }
 
     // ── merge_states task_id dedup ────────────────────────────────────────

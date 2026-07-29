@@ -64,13 +64,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "ok": true,
                 "written_at": state.written_at,
                 "path": state_path.to_string_lossy(),
-                "next": {
-                    "incoming": report.next_incoming,
-                    "written": report.next_written,
-                    "dropped_duplicates": report.next_dropped_duplicates,
-                    "retained_from_existing": report.next_retained,
-                    "mode": report.next_mode.as_str(),
-                },
+                "next": report.next_json(),
                 "warning": report.warning(),
             }))
         })
