@@ -66,9 +66,16 @@ reason for it.
 | IDLE | `warn` | A judgment about elapsed time, not a contradiction. Legitimately paused work exists. |
 
 Rejected: **all-four-fail**. It would go red on t-2492, whose only fault is an unset field
-on a worktree minutes old — training people to ignore the check, which is precisely the
-failure `t-2531` diagnosed in the WIP cap ("a cap that never enforces trains the operator
-to ignore warnings"). Rejected: **all-four-warn**, which is that same failure by construction.
+on a worktree minutes old — training people to ignore the check. Rejected: **all-four-warn**,
+which is that failure by construction.
+
+`t-2531` made the same *diagnosis* about the WIP cap ("a cap that never enforces trains the
+operator to ignore warnings"), and the reasoning is shared. It is deliberately **not** cited
+as evidence that this split works: the WIP cap's actual remedy (t-2535) narrowed the
+counting predicate rather than adding a fail/warn split, and its own closing note records
+that "the cap remains ADVISORY — D4's warn-vs-hard-block promotion review is untouched and
+still open," with zero tasks parked at merge. The repo's nearest analogue is itself
+unresolved, so D2 stands on the contradiction-vs-omission logic alone.
 
 ## Constraints
 
@@ -114,14 +121,19 @@ kept these separate from the cap).
 - **Overlapping categories.** A worktree can qualify for several at once (t-2138 is orphan,
   field-null and idle simultaneously). ORPHAN suppresses the others for that worktree: once
   the task is closed, the state of its branch field is moot, and reporting three findings
-  for one problem inflates the count.
+  for one problem inflates the count. **Suppression must not discard the idle age**, which
+  says something a bare orphan does not — a 39-day orphan is a different problem from a
+  1-day one. The line reads `ORPHAN (task completed, idle 39d)`: one finding, no lost datum.
 - **Branch with no `t-NNN`** — reported as `NO-TASK-ID` (warn), not silently skipped.
 - **Task id in the branch but absent from the backlog** — a lookup failure, not a negative.
   Reported as a distinct case; must never be collapsed into "no divergence" (t-2487 class,
   `pattern_exit-code-is-not-evidence-of-work`).
 - **Detached HEAD worktree** — no branch line in `git worktree list --porcelain`; skipped
   with a warning.
-- **Empty worktree with no commits** — `git log -1` fails; idle age is unknown, not 0.
+- **Commit-date lookup fails** — `git log -1` returns nothing for the worktree. Idle age is
+  reported as unknown, never as 0, so a failed lookup cannot read as "fresh". (A worktree
+  with genuinely no history is near-unreachable, since `git worktree add -b` inherits the
+  base ref; the guard is against the lookup failing, not against an empty repo.)
 
 ## Design
 
@@ -134,9 +146,38 @@ Two files, mirroring the Check 67 precedent so the logic is testable outside val
 - `validate.sh` — a ~12-line `should_run 68` block that runs the script, indents its output,
   and maps its exit status onto `pass`/`fail`, exactly as Check 67 does.
 
+**`set -uo pipefail` — no `-e`.** Copy this verbatim from `check-adr-uniqueness.sh:20`, not
+from validate.sh, which uses `set -euo pipefail` (validate.sh:2). Under `-e` the first
+non-zero `brana` exit aborts the loop mid-iteration: the remaining worktrees are never
+examined and the script exits on whatever partial output happened to land. That is the
+"collapse into no divergence" failure this spec forbids, arriving at the control-flow level
+rather than the single-lookup level. The Check 67 wrapper's `if C67_OUT=$(bash ...); then`
+guard exists for the same reason.
+
 Backlog reads use `brana backlog get <id> --field <f>`, one field at a time — the same
 no-jq form the epic-ancestor walk adopted in t-2487, chosen because a command substitution
 piped to `jq` exits 0 on unparseable input and fails open.
+
+**Schema self-test before trusting any `null`.** `cmd_get` indexes the task JSON directly,
+so a *missing key* and a key whose value *is* null both print `null` at exit 0 — verified
+2026-07-29: `brana backlog get t-2443 --field totally_bogus_field` returns `null`, exit 0,
+indistinguishable from `--field branch` on a task with no branch. Inheriting the
+epic-walk's collapse of both cases (`[ "$out" = "null" ] && out=""`) is correct *there*,
+where both mean "keep walking," and wrong *here*, where the FIELD-NULL bucket is defined by
+"genuinely unset."
+
+Consequence if unguarded: this repo has renamed or retired backlog fields three times
+already (Checks 62/63/64 — tags, level/epic, stream). The next rename of `branch` or
+`status` would silently classify every worktree as FIELD-NULL forever — no crash, no loud
+signal, a permanently wrong warning bucket.
+
+So the script first fetches one full task object and asserts that `status` and `branch` are
+present as literal keys. Absent → exit non-zero with "schema drift: field <name> not present
+on <task>", before any classification runs. One extra subprocess call.
+
+**Cost.** Each `--field` read reparses tasks.json in a fresh subprocess: ~0.09s measured,
+2 reads per worktree plus the one self-test — ~1s at today's 5 worktrees, growing linearly.
+Acceptable now; if worktree count grows materially, batch to a single full-JSON read.
 
 **Implementation trap (recorded on t-2545):** this loop lost `PATH` mid-iteration when
 written inline in the zsh harness (`command not found: head/tr/basename`). It runs correctly
@@ -148,7 +189,14 @@ as a bash script file. Do not port it back to an inline one-liner.
 |--------|-----------|-------|
 | Report divergence and name its category | Removing or pruning a worktree | Write to tasks.json / call `backlog set` |
 | Distinguish lookup failure from "no divergence" | Changing the 14d threshold | Auto-correct a stale `task.branch` field |
-| Exclude the main checkout | — | Alter the WIP cap or its inputs |
+| Exclude the main checkout | Promoting IDLE/FIELD-NULL to `fail` | Alter the WIP cap or its inputs |
+
+**Revisit triggers** (the Ask-First rows are otherwise untestable intentions):
+- Reconsider the 14d threshold if IDLE fires on the same worktree across 3+ consecutive
+  validate runs — that means the warning is being read and ignored, not acted on.
+- Reconsider the warn severity of IDLE/FIELD-NULL under the same condition. This is the
+  gap t-2531 left open in the WIP cap: a warning with no stated path to teeth stays
+  advisory forever by default.
 
 ## Testing Strategy
 
@@ -170,4 +218,16 @@ as a bash script file. Do not port it back to an inline one-liner.
 
 ## Challenger findings
 
-_pending_
+Reviewed 2026-07-29 (context-isolated). Verdict **RECONSIDER**, on two Sev-4 findings —
+both mechanical gaps with an in-repo precedent to copy, not a design fault. Both were
+independently reproduced before being accepted.
+
+| Sev | Finding | Disposition |
+|-----|---------|-------------|
+| 4 | `set -e` unstated; copying validate.sh's `set -euo pipefail` would abort the loop on the first `brana` non-zero — the forbidden collapse, one level up | **Accepted.** Design now mandates `set -uo pipefail` verbatim from `check-adr-uniqueness.sh:20`. |
+| 4 | A missing key and a null value both print `null` at exit 0, so a field rename would silently mean FIELD-NULL forever | **Accepted, reproduced:** `--field totally_bogus_field` → `null`, exit 0. Design now requires a schema self-test before any `null` is trusted. |
+| 3 | t-2531 cited as evidence the fail/warn split works, but the WIP cap's remedy never added such a split and remains advisory | **Accepted.** Citation demoted to shared diagnosis; D2 now rests on its own logic. |
+| 2 | ORPHAN suppression discards the idle age | **Accepted.** Age embedded in the ORPHAN line. |
+| 2 | 14d has no revisit trigger | **Accepted.** Revisit triggers added to Boundaries. |
+| 2 | Subprocess cost grows linearly with worktree count | **Accepted as a note**, not a change — ~1s today; batching recorded as the remedy if it grows. |
+| 2 | "Empty worktree with no commits" is near-unreachable | **Accepted.** Reworded to "commit-date lookup fails". |
