@@ -2575,7 +2575,15 @@ else
     # pipefail`, so an unguarded non-zero here would abort the whole run.
     if C68_OUT=$(bash "$C68_CHECK" "$SCRIPT_DIR" 2>&1); then
         [ -n "$C68_OUT" ] && echo "$C68_OUT"
-        pass "Check 68: worktrees — no contradictions with task records"
+        # Omissions must reach the WARNINGS counter. Printing them while the
+        # summary reports "Warnings: 0" would be a signal that does not mean
+        # what it says — the failure class this check was built to catch.
+        C68_OMIT=$(printf '%s\n' "$C68_OUT" | grep -cE '^  (FIELD-NULL|IDLE|NO-TASK-ID|DETACHED) ' || true)
+        if [ "${C68_OMIT:-0}" -gt 0 ]; then
+            warn "Check 68: $C68_OMIT worktree record(s) incomplete or stale — no contradiction, but drifting"
+        else
+            pass "Check 68: worktrees — all records agree"
+        fi
     else
         echo "$C68_OUT"
         fail "Check 68: worktree/task contradiction — resolve by hand; this check never auto-corrects"
