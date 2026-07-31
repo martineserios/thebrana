@@ -2,26 +2,60 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-31
-- **Evidence:** t-2547 (this decision), t-2546 (repo-vs-live drift), t-2214 (the deferral that started the loop, cancelled), t-2542 + t-2506 (two fixes measured inert while merged)
+- **Evidence:** t-2547 (this decision), t-2546 (repo-vs-live drift), t-2506 (a fix measured inert on the binary channel while merged and tested)
 - **Related:** ADR-060 (two-tier dev/main integration model), ADR-069 (fail-open signals), [pattern: exit-code-is-not-evidence-of-work](../../../.claude/memory)
+
+> **Provenance note.** The first two drafts of this ADR argued from a deferral-loop narrative and
+> from live-drift figures that went stale mid-session while four lanes were changing the same
+> system. Both were withdrawn. What follows is argued from *structural* facts in `bootstrap.sh`
+> and from a timestamped snapshot, because point-in-time drift readings in this repo do not
+> survive the hour in which they are taken — which is itself worth knowing before citing one.
 
 ## Context
 
 `main` is production — what `bootstrap.sh` deploys to `~/.claude/`. Feature branches merge to
-`dev`, and nothing in `system/` is in force until `dev` is promoted to `main` and bootstrap runs
-(ADR-060). Promotion has been repeatedly deferred, and the deferrals compound: t-2214 ("Ship
-dev→main + bootstrap.sh") was filed 2026-06-21 and deferred the same day, its recorded reason
-being that `dev` had grown to 83 commits. The batch grows precisely while promotion is deferred,
-so each deferral makes the next one more likely.
+`dev`, and nothing in `system/` is in force until `dev` is promoted and bootstrap runs (ADR-060).
 
-The deferral was locally reasonable every time. A large undifferentiated batch *is* riskier to
-promote than a small one — if batch size measures risk. **It does not, and that assumption was
-never tested.**
+**Promotion is not the problem.** Measured 2026-07-31T13:19: `main` advanced 117 commits over the
+course of the day across several promotions, hooks deployed at 11:11, and by 13:19
+`dev == main == c348482a` with **zero** deploy-surface divergence. An earlier framing of this
+decision (t-2547, written 2026-07-28) described a compounding deferral loop; on the evidence of
+2026-07-31 that loop did not hold, and this ADR does not rest on it.
 
-### Measurement, 2026-07-31
+### The real defect: deploy is two channels, and only one of them acts
 
-`dev` was 68 commits ahead of `main` (55 three days earlier — +13 in 3 days), 48 files changed,
-4534 insertions. Decomposed by deploy surface:
+`bootstrap.sh` mirrors `system/` into `~/.claude/` with `rsync -a --delete` (`:405`, `:417`) — a
+true mirror, so that channel converges by construction. The `brana` binary is a **second,
+independent channel that bootstrap does not execute.**
+
+It is not that bootstrap is unaware of the binary. It checks (`bootstrap.sh:931-937`, and
+`:946-953` for `brana-mcp`, added by t-2378), finds the source newer than the installed artefact,
+and **prints a command for a human to run**:
+
+```
+! brana-cli binary may be stale (source changed since last build)
+  Run: cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli && ...
+```
+
+Every `cargo` occurrence in `bootstrap.sh` is inside a comment or an `echo`. **The deploy tool
+detects the stale channel, reports it, and does nothing** — the same advisory-signal shape this
+system keeps rediscovering elsewhere (ADR-065 D4's unenforced WIP cap; ADR-069's fail-open),
+except here it sits inside the deploy path itself.
+
+The consequence is *silent partiality*, not latency: a ship that promotes `main` and runs
+bootstrap looks complete, exits clean, and can still leave the binary channel behind.
+
+**Observed instance.** Earlier on 2026-07-31 the installed binary was built 2026-07-27T20:30 while
+the newest `system/cli` commit was 2026-07-29T10:26, and `strings ~/.local/bin/brana | grep -c
+base_written_at` returned `0` — t-2506's compare-and-swap fix, merged with 1265 tests passing, was
+not in the running binary, so session closes were still silently dropping `next[]` handoff
+entries. It was resolved at 11:46 when the printed command was run by hand. The fix worked; the
+mechanism that was supposed to surface it only suggested it.
+
+### Batch size does not measure risk
+
+Separately, and independent of the above: at the snapshot where `dev` was 68 commits ahead of
+`main`, that batch decomposed by deploy surface as:
 
 | Path | Files | Commits | Deploy channel |
 |---|---|---|---|
@@ -33,13 +67,14 @@ never tested.**
 | `docs` | 26 | — | none — live in the repo on merge |
 | `.claude` (tasks.json) | 1 | — | none |
 
-Sixty-eight commits reduce to **six deploy-relevant files plus a binary rebuild.** The count that
-triggered every deferral is dominated by documentation and task-record churn with no deployed
-footprint whatsoever.
+Sixty-eight commits reduce to **six deploy-relevant files plus a binary rebuild.** A commits-ahead
+count is dominated by documentation and task-record churn with no deployed footprint whatsoever,
+so it is the wrong input to any ship decision — whether that decision is to defer, or to size a
+batch, or to raise an alarm.
 
 ### Rollback cost, measured
 
-The deferral instinct rests on a bad promotion being expensive. It is not:
+Reluctance to promote presumes a bad promotion is expensive. It is not:
 
 - Promotion is `--ff-only`, so `main` simply moves. There is no merge commit to unwind.
 - `bootstrap.sh` deploys hooks with `rsync -a --delete` (`bootstrap.sh:405`, `:417`) — a **mirror**,
@@ -51,41 +86,26 @@ The deferral instinct rests on a bad promotion being expensive. It is not:
 - **Exception:** `bootstrap.sh` does not rebuild the `brana` binary. That is a second, independent
   deploy channel with its own rollback step.
 
-### What deferral actually cost
+### Withdrawn claims
 
-The live `brana` binary was built 2026-07-27 against a newest-`system/cli`-commit of 2026-07-29,
-and `strings ~/.local/bin/brana | grep -c base_written_at` returned **0** — confirming t-2506's
-compare-and-swap fix was absent from the running binary. Every session close was still silently
-dropping `next[]` handoff entries while the fix sat merged, tested (1265 passing) and inert.
-This is the durable instance: it persisted through the authoring of this ADR and is not
-addressed by `bootstrap.sh`, which does not rebuild the binary.
+Two earlier drafts argued from live-drift readings. Both are withdrawn, and the reason is worth
+recording because it generalises:
 
-### The bootstrap channel drifts differently — and drifts *sideways*
+- **"3 differing hook entries and 1 differing rule, unchanged over three days."** The rule was
+  `Only in system/rules: README.md` — a readme that does not deploy, counted as drift without
+  being inspected. The hook count reached **0** during the writing of this ADR.
+- **"An ad-hoc bootstrap deployed dev's tree while `main` was 68 commits behind."** False. `main`
+  had been promoted to `0803ef52` at 11:10, one minute before the 11:11 hook deploy. That was a
+  correct ship, not a bypass.
+- **"t-2542's undeployed state caused the branch-name guard to reject this ADR's `git worktree
+  add`."** Unverifiable — the rejection occurred (the guard read `2>&1` as a branch name), but it
+  cannot be ordered against the 11:11 deploy. If the guard was already current, the
+  quoted-argument case in t-2542 is not fully fixed. That is an open question, not evidence here.
 
-An earlier draft of this ADR reported 3 differing hook entries and 1 differing rule between
-`system/` and `~/.claude/`, described as unchanged over three days. **Both figures were wrong by
-the time the ADR was committed, and the rules figure was never meaningful:**
-
-- The one "differing rule" was `Only in system/rules: README.md` — a readme that is not deployed.
-  It was counted as drift without being inspected.
-- The hook count went to **0 mid-session.** `~/.claude/hooks/` was rewritten at 2026-07-31 11:11,
-  while this ADR was being written, and `branch-name-warn.sh` is now byte-identical to the repo
-  copy.
-
-That mid-session write is more instructive than the number it invalidated. **The deploy ran
-against the `dev` working tree while `main` was 68 commits behind**, so the live hook layer now
-runs code that was never promoted. This is exactly the second-order risk recorded in t-2546: an
-ad-hoc `bootstrap.sh` run deploys not just the fix someone wanted, but whatever else is sitting
-in the tree. Ad-hoc runs happen *because* the promotion cadence is unreliable, so a broken ship
-cadence does not merely delay deployment — it routes deployment around promotion entirely, which
-is a worse failure than the latency it was avoiding.
-
-A claim in the earlier draft — that `f6a736c6`'s undeployed state caused the branch-name guard to
-reject the `git worktree add` creating this ADR's branch — has been **withdrawn as unverifiable**.
-The rejection did occur (the guard read `2>&1` as the branch name), but the 11:11 deploy cannot be
-ordered against it, so whether the hook was stale at that moment is unknown. If the guard was
-already current, the quoted-argument case in t-2542 is not fully fixed; that is a live question,
-not evidence for this decision.
+**The generalisable lesson:** this repo is written by several concurrent sessions, so a drift
+measurement is stale roughly as fast as it can be acted on. Structural facts (what `bootstrap.sh`
+executes) hold; point-in-time deltas (`diff -rq` counts, commits-ahead) do not, and an ADR built
+on the latter argues from a state that no longer exists by the time anyone reads it.
 
 ## Decision
 
@@ -121,17 +141,24 @@ git diff --name-only main..dev -- system/hooks system/rules system/agents system
 ```
 
 paired with a binary staleness check (live `~/.local/bin/brana` mtime vs. the newest `system/cli`
-commit). On 2026-07-31 that reads "13 deploy-relevant files, binary 4 days stale" rather than "68
-commits" — a number that can be acted on.
+commit) — the check `bootstrap.sh:931` already performs.
+
+Both readings must be taken at the moment of use and reported with their timestamp. At
+2026-07-31T13:19 this reads "0 deploy-relevant files pending, binary current (built 11:46)". Two
+hours earlier the same commands read "13 pending, binary 4 days stale". Neither is *the* state;
+each is a state, and quoting one without its timestamp is how the two withdrawn claims above got
+into this document.
 
 ## Consequences
 
 - Promotion becomes frequent and small on the surface that matters, while documentation continues
   to accumulate on `dev` without triggering anything.
-- The two deploy channels must both be honoured. A promotion that runs `bootstrap.sh` but skips
-  the `cargo` install leaves the binary channel stale, which is how t-2506's fix stayed inert
-  after its merge. Any implementation of this rule covers both, or it recreates the defect it
-  exists to prevent.
+- **The binary rebuild must be executed, not printed.** `bootstrap.sh:934` and `:949` currently
+  emit a copy-paste `cargo build` command and continue; a ship that runs bootstrap and stops there
+  exits clean with one channel stale. That is how t-2506's fix stayed out of the running binary
+  from 2026-07-29 until it was rebuilt by hand at 2026-07-31T11:46. Any implementation of this
+  rule either runs the rebuild or fails loudly — printing a remedy and proceeding is the defect,
+  not the mitigation.
 - `bootstrap.sh`'s existing `--dry-run` becomes a pre-promotion check rather than dead
   functionality.
 - ADR-060's two-tier model is preserved and made honest: `dev` is an integration buffer that
