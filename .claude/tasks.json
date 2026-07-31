@@ -66124,6 +66124,34 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2586",
+      "subject": "memory indexer auto-adds every pattern to MEMORY.md, bypassing the retrospective promotion gate",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "memory",
+        "hooks"
+      ],
+      "description": "The retrospective skill states that pattern files must NOT be added to MEMORY.md, and that entries are added \"only at explicit human promotion (recurrence >= 3 sessions)\". An indexer hook appends every newly-written pattern immediately, so the promotion gate never fires and MEMORY.md — the always-loaded tier — grows with unpromoted patterns.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-07-31",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Observed 2026-07-31 while running /brana:retrospective.\n\nWHAT THE PROCEDURE SAYS (system/skills/retrospective/SKILL.md, Step 5, Pattern branch):\n  \"Do NOT append to MEMORY.md. Pattern files are findable via ruflo semantic search.\n   MEMORY.md entries are added only at explicit human promotion (recurrence >= 3 sessions).\"\nStep 8 reinforces it: promotion is a separate, user-approved path that also bumps the file's confidence to 0.7.\n\nWHAT ACTUALLY HAPPENS: writing pattern_absent-at-runtime-is-not-unmerged_2026-07-31.md took MEMORY.md from 145 to 146 lines with no action of mine — the entry appeared at line 146 with its description already populated. Not a one-off: the tail of MEMORY.md holds several recently-appended patterns from other lanes (pattern_count-by-structural-marker-not-name-exclusion, pattern_worktree-remove-silently-destroys-gitignored-state, pattern_task-notes-are-not-work-state), all in append order rather than the sorted order a rebuild produces.\n\nWHY IT MATTERS — this is a context-budget defect, not a tidiness one. MEMORY.md is the always-loaded tier; it is read into every session. The two-tier design (pattern files findable on demand, MEMORY.md reserved for repeatedly-useful entries) exists so that tier stays small. Auto-indexing collapses the tiers: every one-off observation becomes always-loaded, and the confidence signal (0.5 provisional vs 0.7 promoted) stops corresponding to anything.\n\nDO NOT \"FIX\" THIS BY DELETING INDEX LINES. A known memory (feedback_memory-indexer-reinflates-removed-entries) records that the indexer re-adds removed entries, so hand-pruning is futile and looks like flapping. The fix belongs in the indexer, not the file.\n\nWHICH SIDE IS WRONG IS AN OPEN QUESTION — decide before implementing. Either (a) the indexer should skip pattern_* until frontmatter shows confidence >= 0.7, honouring the documented gate, or (b) the gate was abandoned deliberately and the skill text is stale, in which case fix the docs and drop Step 8's promotion path. Do not implement (a) without checking whether promotion is still wanted; a skill saying one thing and a hook doing another for months is weak evidence that anyone is using the promotion path.\n\nAdjacent: MEMORY.md was compacted 160 -> 139 lines on 2026-07-31 and is already back to 146 six hours later, which puts the growth rate at roughly one line per pattern written across all lanes.\n\nAC: MEMORY.md indexing behaviour and the retrospective skill agree — one of them changes\nAC: if the promotion gate is kept, a freshly written 0.5-confidence pattern does not appear in MEMORY.md\nAC: the decision is recorded so the next reader does not re-litigate which side was right",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
