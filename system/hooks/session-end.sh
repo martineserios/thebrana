@@ -148,6 +148,14 @@ echo '{"continue": true}'
 
     # Clean up event log
     rm -f "$SESSION_FILE"
-) &
+# stdout MUST be discarded, not inherited. This block is fire-and-forget
+# persistence, but it runs in a subshell that inherits the hook's stdout — and
+# the hook has already emitted its JSON. Anything a child prints there lands
+# after that JSON and breaks the hook contract. It happened: the flywheel store
+# in session-end-persist.sh suppresses stderr but not stdout, and when $CF falls
+# back to `npx ruflo` (cf-env.sh, whenever npx is on PATH) ruflo prints
+# "[DEBUG] Positional: [...]" to stdout, corrupting the response. Gated on
+# STORED_L1, so it surfaced only once the L1 store started succeeding.
+) >/dev/null 2>&1 &
 
 disown 2>/dev/null || true
