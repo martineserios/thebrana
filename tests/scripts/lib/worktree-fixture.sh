@@ -16,6 +16,7 @@
 #   fixture_cleanup
 
 set -uo pipefail
+prev_arg=""
 
 FIXTURE_ROOT=""
 FIXTURE_REPO=""
@@ -56,7 +57,28 @@ fixture_init() {
 # what must never collapse into "no divergence". Both are reproduced here on
 # purpose — a stub that got either wrong would let a broken check pass.
 set -uo pipefail
+prev_arg=""
 [ "${1:-}" = "backlog" ] || { echo "stub: unsupported: $*" >&2; exit 2; }
+# `backlog query --status X --output json` — the informational section reads this.
+# Absent from the first version of this stub, which is why the substring-collision
+# bug in that section went untested until an external verifier found it.
+if [ "${2:-}" = "query" ]; then
+    want=""
+    for a in "$@"; do
+        [ "$prev_arg" = "--status" ] 2>/dev/null && want="$a"
+        prev_arg="$a"
+    done
+    printf '['
+    sep=""
+    while IFS=$'\t' read -r qid qst _; do
+        [ -z "$qid" ] && continue
+        [ -n "$want" ] && [ "$qst" != "$want" ] && continue
+        printf '%s{"id":"%s","status":"%s"}' "$sep" "$qid" "$qst"
+        sep=","
+    done < "$FIXTURE_TASKDB"
+    printf ']\n'
+    exit 0
+fi
 [ "${2:-}" = "get" ]     || { echo "stub: unsupported: $*" >&2; exit 2; }
 id="${3:-}"; field=""
 [ "${4:-}" = "--field" ] && field="${5:-}"

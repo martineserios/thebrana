@@ -89,7 +89,11 @@ report_warn() { echo "$1"; }
 # ── Collect worktrees ────────────────────────────────────────────────────────
 # The main checkout is listed first by `git worktree list` and is excluded: it
 # tracks the integration branch, carries no t-NNN, and is not work in flight.
-MAIN_WT=$(git -C "$ROOT" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print $2; exit}')
+# sed, not awk. `awk '{print $2}'` splits on whitespace and would truncate a path
+# containing spaces, while the loop below strips the prefix with ${line#worktree }
+# and preserves them — so the two parsers disagreed and the main checkout escaped
+# exclusion, surfacing as a bogus NO-TASK-ID. Reproduced in a repo at "/tmp/sp ace".
+MAIN_WT=$(git -C "$ROOT" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')
 
 WT_PATHS=()
 WT_BRANCHES=()
@@ -202,17 +206,25 @@ done
 # capture-in-the-moment, edits in the main checkout — and is exactly why t-2541
 # kept declared state as a second signal instead of deriving alone.
 if _ip=$(brana backlog query --status in_progress --output json 2>/dev/null); then
-    _seen=$(printf '%s\n' "${WT_BRANCHES[@]}")
+    # Collect the task ids the worktrees actually carry, then match by whole
+    # token. A substring grep against the joined branch list is unanchored, so
+    # "t-224" matches "orbit/feat/t-2249-x" and a short id would be silently
+    # dropped from this list — the same collision class as
+    # pattern_extracted-block-selector-substring-collision.
+    _seen_ids=""
+    for _b in "${WT_BRANCHES[@]}"; do
+        _sid=$(printf '%s' "$_b" | grep -oE 't-[0-9]+' | head -1)
+        [ -n "$_sid" ] && _seen_ids="$_seen_ids $_sid"
+    done
     _first=1
     while IFS= read -r t; do
         [ -z "$t" ] && continue
-        if ! printf '%s' "$_seen" | grep -q "$t"; then
-            if [ "$_first" = 1 ]; then
-                echo "  (info) in_progress with no worktree — not a failure:"
-                _first=0
-            fi
-            echo "  (info)   $t"
+        case " $_seen_ids " in *" $t "*) continue ;; esac
+        if [ "$_first" = 1 ]; then
+            echo "  (info) in_progress with no worktree — not a failure:"
+            _first=0
         fi
+        echo "  (info)   $t"
     done < <(printf '%s' "$_ip" | grep -oE '"id":"t-[0-9]+"' | cut -d'"' -f4)
 fi
 

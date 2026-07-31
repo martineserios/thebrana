@@ -95,9 +95,25 @@ run_check
 assert_rc 1 "field mismatch is a contradiction — exits 1"
 assert_contains "FIELD-MISMATCH" "mismatch is named"
 assert_contains "t-300-somewhere-else" "mismatch shows the branch the field claims"
+fixture_cleanup
+
+# ── 3b. ORPHAN also fires on `cancelled`, not only `completed` ───────────────
+# The contract is completed|cancelled but every other case here uses completed,
+# so deleting `|cancelled` from the script would pass the whole suite otherwise.
+echo "--- ORPHAN (cancelled) ---"
+fixture_init
+fixture_task t-310 cancelled harness/feat/t-310-dropped
+fixture_worktree wt-cancelled harness/feat/t-310-dropped 3
+run_check
+assert_rc 1 "a cancelled task's live worktree is an orphan — exits 1"
+assert_contains "ORPHAN" "cancelled is named as ORPHAN"
+fixture_cleanup
 
 # ── 4. FIELD-NULL — worktree exists, task.branch unset ───────────────────────
+# Own fixture: this used to run against section 3's tree, so the assertion read
+# as isolated while a stale t-300 mismatch was still present.
 echo "--- FIELD-NULL ---"
+fixture_init
 fixture_task t-400 in_progress null
 fixture_worktree wt-null harness/feat/t-400-unset 0
 run_check
@@ -112,8 +128,8 @@ run_check
 assert_rc 0 "field-null alone is an omission — exits 0"
 fixture_cleanup
 
-# ── 5. IDLE — in_progress, last commit older than the 14d threshold ──────────
-echo "--- IDLE (14d threshold) ---"
+# ── 5. IDLE — in_progress, last commit older than the 7d threshold ───────────
+echo "--- IDLE (7d threshold) ---"
 fixture_init
 fixture_task t-500 in_progress harness/feat/t-500-stale
 fixture_worktree wt-stale harness/feat/t-500-stale 30
@@ -211,6 +227,35 @@ run_check
 assert_rc 0 "detached HEAD alone does not fail the run"
 assert_contains "DETACHED" "detached worktree is reported, not silently skipped"
 fixture_cleanup
+
+# ── 11b. Info section matches task ids by whole token, not substring ─────────
+# Found by an external verifier 2026-07-31, not by this suite — the stub had no
+# `backlog query` support, so the informational section never ran under test.
+# Unanchored `grep -q "$t"` makes "t-224" match "…/t-2249-x", silently dropping
+# the shorter id from the list.
+echo "--- info section: substring collision ---"
+fixture_init
+fixture_task t-2249 in_progress harness/feat/t-2249-has-worktree
+fixture_worktree wt-2249 harness/feat/t-2249-has-worktree 0
+fixture_task t-224 in_progress null          # in_progress, NO worktree -> must be listed
+run_check
+assert_contains "t-224" "a short task id is not suppressed by a longer one containing it"
+fixture_cleanup
+
+# ── 11c. Worktree paths containing spaces ────────────────────────────────────
+# Also from the external verifier: MAIN_WT was extracted with awk '{print $2}'
+# (splits on whitespace) while the loop strips with ${line#worktree } (preserves
+# it), so the two disagreed and the main checkout escaped exclusion.
+echo "--- path with spaces ---"
+SPACE_TMP="${TMPDIR:-/tmp}/t2545 space dir"
+mkdir -p "$SPACE_TMP"
+TMPDIR="$SPACE_TMP" fixture_init
+fixture_task t-950 in_progress harness/feat/t-950-spaced
+fixture_worktree wt-spaced harness/feat/t-950-spaced 0
+run_check
+assert_not_contains "NO-TASK-ID" "main checkout is still excluded when the path contains spaces"
+fixture_cleanup
+rm -rf "$SPACE_TMP"
 
 # ── 12. Read-only: the check never writes to the backlog ─────────────────────
 # The stub records nothing but reads; assert the check issues no `backlog set`.
