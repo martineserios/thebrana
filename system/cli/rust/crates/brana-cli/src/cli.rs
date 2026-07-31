@@ -366,6 +366,24 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Drain pending `link`-tagged backlog tasks through process-url,
+    /// completing only those whose content reached the knowledge base.
+    ///
+    /// Replaces personal/deploy/research-extraction.sh, which marked tasks
+    /// completed on `claude -p` exit 0 even when it persisted nothing.
+    DrainLinks {
+        /// tasks.json to drain (default: the current project's).
+        #[arg(long)]
+        file: Option<PathBuf>,
+        /// Max links to process this run. The rest stay pending for the
+        /// next run — already-stored URLs short-circuit, so re-scanning
+        /// is cheap and no watermark is needed.
+        #[arg(long, default_value_t = 3)]
+        cap: usize,
+        /// List what would be drained without fetching or writing.
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Show knowledge index status (entry count, last indexed)
     Status,
     /// Semantic search against the ruflo knowledge namespace
