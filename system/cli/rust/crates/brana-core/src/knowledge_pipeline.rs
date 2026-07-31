@@ -680,6 +680,115 @@ const TIMEOUT_TAIL_CHARS: usize = 800;
 /// anything. The empty case is reported explicitly: a child that wrote
 /// *nothing* before the kill indicates a different fault than one that
 /// errored loudly, and a blank tail would read as the latter.
+/// Spawn `cmd`, draining stdout and stderr **concurrently**, and wait up to
+/// `timeout` for it to exit.
+///
+/// The concurrency is the whole point, not an optimisation. A pipe holds
+/// ~64 KiB; a child that writes more blocks in `write()` until someone reads.
+/// Polling `try_wait()` and only calling `wait_with_output()` after exit
+/// therefore deadlocks on any child with substantial output — the child can
+/// never exit, so the poll never ends, and the failure surfaces as a timeout
+/// with no output at all.
+///
+/// That is exactly what t-2568 was: the LinkedIn fetch emits ~147 KB (2.2x
+/// the buffer), so it hung every time and always at precisely the timeout
+/// value. Measured directly, the same fetch completes in 98s — well inside
+/// its 240s budget. Nothing was ever slow; the parent was refusing to read.
+///
+/// On timeout the child is killed and whatever it managed to write is still
+/// returned, so a hang can be told apart from silence.
+fn run_with_timeout(
+    cmd: &mut std::process::Command,
+    timeout: std::time::Duration,
+) -> Result<std::process::Output> {
+    use std::io::Read as _;
+
+    cmd.stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let mut child = cmd.spawn().context("spawning child process")?;
+
+    // Take the pipes and drain each on its own thread. Both must be drained:
+    // a child blocked writing stderr is just as stuck as one blocked on
+    // stdout.
+    let out_pipe = child.stdout.take().context("child stdout not piped")?;
+    let err_pipe = child.stderr.take().context("child stderr not piped")?;
+
+    // Accumulate into shared buffers rather than returning from the thread.
+    //
+    // On timeout we must NOT join these threads: killing the child does not
+    // necessarily close the pipe, because a grandchild can still hold the
+    // write end open (killing `claude` leaves the MCP server and its headless
+    // Chromium alive holding it). `read_to_end` would then block for as long
+    // as the grandchild lives, turning a 2s timeout into a 60s stall — the
+    // original hang wearing a different hat. Shared buffers let the timeout
+    // path snapshot whatever has arrived and walk away.
+    let out_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
+    let err_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
+
+    fn pump<R: std::io::Read + Send + 'static>(
+        mut pipe: R,
+        sink: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+    ) -> std::thread::JoinHandle<()> {
+        std::thread::spawn(move || {
+            let mut chunk = [0u8; 8192];
+            loop {
+                match pipe.read(&mut chunk) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => {
+                        if let Ok(mut s) = sink.lock() {
+                            s.extend_from_slice(&chunk[..n]);
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    let out_handle = pump(out_pipe, std::sync::Arc::clone(&out_buf));
+    let err_handle = pump(err_pipe, std::sync::Arc::clone(&err_buf));
+
+    let snapshot = |b: &std::sync::Arc<std::sync::Mutex<Vec<u8>>>| -> Vec<u8> {
+        b.lock().map(|g| g.clone()).unwrap_or_default()
+    };
+
+    let start = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(s)) => break s,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    // Deliberately not joining — see the comment above.
+                    let out = snapshot(&out_buf);
+                    let err = snapshot(&err_buf);
+                    bail!(
+                        "{}",
+                        timeout_diagnostic(
+                            timeout.as_secs(),
+                            &String::from_utf8_lossy(&out),
+                            &String::from_utf8_lossy(&err),
+                        )
+                    );
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("child wait error: {e}"),
+        }
+    };
+
+    // Clean exit: the child is gone, so the pipes are closing and joining is
+    // bounded. This is what guarantees we return the COMPLETE output.
+    let _ = out_handle.join();
+    let _ = err_handle.join();
+    Ok(std::process::Output {
+        status,
+        stdout: snapshot(&out_buf),
+        stderr: snapshot(&err_buf),
+    })
+}
+
 fn timeout_diagnostic(secs: u64, stdout: &str, stderr: &str) -> String {
     fn tail(s: &str) -> Option<String> {
         let t = s.trim();
@@ -891,41 +1000,21 @@ fn call_claude_json_with_mcp(
     cmd.arg("--output-format")
         .arg("json")
         .arg(prompt)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
+        // `claude -p` waits ~3s for stdin before proceeding. Nothing is ever
+        // piped to it here, so close it explicitly rather than inheriting the
+        // parent's — 3s per URL is 81s across a 27-link batch, paid for
+        // nothing.
+        .stdin(std::process::Stdio::null());
 
-    let mut child = cmd
-        .spawn()
-        .with_context(|| format!("spawning claude binary at {}", binary.display()))?;
+    // Concurrent draining is mandatory here, not incidental: this call emits
+    // ~147 KB, over twice a pipe's ~64 KiB. Polling for exit without reading
+    // deadlocked it every time and reported the timeout as the cause (t-2568).
+    let output = run_with_timeout(
+        &mut cmd,
+        std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS),
+    )
+    .with_context(|| format!("running claude binary at {}", binary.display()))?;
 
-    let timeout = std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS);
-    let start = std::time::Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => break,
-            Ok(None) => {
-                if start.elapsed() > timeout {
-                    let _ = child.kill();
-                    // Drain the pipes before giving up. Killing and bailing
-                    // without reading them discards the only evidence of what
-                    // the child was doing — which is exactly why a 240s
-                    // timeout was undiagnosable from its own message (t-2568).
-                    let (out, err) = match child.wait_with_output() {
-                        Ok(o) => (
-                            String::from_utf8_lossy(&o.stdout).into_owned(),
-                            String::from_utf8_lossy(&o.stderr).into_owned(),
-                        ),
-                        Err(_) => (String::new(), String::new()),
-                    };
-                    bail!("{}", timeout_diagnostic(LINKEDIN_MCP_TIMEOUT_SECS, &out, &err));
-                }
-                std::thread::sleep(std::time::Duration::from_millis(100));
-            }
-            Err(e) => bail!("claude wait error: {e}"),
-        }
-    }
-
-    let output = child.wait_with_output()?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         bail!("claude CLI (MCP) exited non-zero: {stderr}");
@@ -1931,6 +2020,69 @@ mod tests {
     // this is deliberately fail-closed: a usable session must be
     // positively confirmed, and anything else is an error naming the
     // one-time remediation command.
+
+    #[test]
+    #[test]
+    fn run_with_timeout_drains_output_larger_than_the_pipe_buffer() {
+        // t-2568. THE BUG: the old loop polled try_wait() and only read the
+        // child's piped stdout after it exited. A pipe buffer is ~64 KiB, so
+        // a child writing more than that blocks on write() and never exits,
+        // while the parent waits forever for the exit that can no longer
+        // happen. Deadlock, reported as "timed out after 240s" with no output.
+        //
+        // Real numbers: the LinkedIn fetch emits ~147 KB — 2.2x the buffer —
+        // so it deadlocked every single time, which is why the failure was
+        // exactly 240s rather than variable.
+        //
+        // 200 KB here so the test fails on any plausible buffer size.
+        let mut cmd = std::process::Command::new("sh");
+        cmd.arg("-c").arg("i=0; while [ $i -lt 200 ]; do printf '%01023d\\n' $i; i=$((i+1)); done");
+
+        let out = run_with_timeout(&mut cmd, std::time::Duration::from_secs(30))
+            .expect("draining run must not time out on a large writer");
+
+        assert!(out.status.success(), "child should exit cleanly");
+        assert!(
+            out.stdout.len() > 100_000,
+            "expected >100KB drained, got {} bytes — output was truncated or the \
+             read happened after exit",
+            out.stdout.len()
+        );
+    }
+
+    #[test]
+    fn run_with_timeout_kills_and_reports_a_genuine_hang() {
+        // The timeout must still fire for a child that really does hang, and
+        // must return whatever it wrote first — silence and a hang are
+        // different diagnoses.
+        let mut cmd = std::process::Command::new("sh");
+        cmd.arg("-c").arg("printf 'before-hang\\n'; sleep 60");
+
+        let started = std::time::Instant::now();
+        let out = run_with_timeout(&mut cmd, std::time::Duration::from_secs(2));
+        let elapsed = started.elapsed();
+
+        // The timeout must actually bound the call. A `sleep 60` grandchild
+        // keeps the pipe's write end open after its `sh` parent is killed, so
+        // joining the reader threads here would block the full 60s — the same
+        // hang in a different coat. Caught for real while building this fix.
+        assert!(
+            elapsed < std::time::Duration::from_secs(20),
+            "timeout path must not block on a grandchild holding the pipe: took {elapsed:?}"
+        );
+
+        match out {
+            Err(e) => {
+                let msg = e.to_string();
+                assert!(msg.contains("timed out"), "must name the timeout: {msg}");
+                assert!(
+                    msg.contains("before-hang"),
+                    "output written before the hang must survive the kill: {msg}"
+                );
+            }
+            Ok(o) => panic!("a 60s sleep must not complete inside a 2s budget: {o:?}"),
+        }
+    }
 
     #[test]
     fn timeout_diagnostic_includes_what_the_child_wrote() {
