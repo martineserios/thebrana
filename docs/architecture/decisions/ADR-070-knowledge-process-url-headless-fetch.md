@@ -238,3 +238,11 @@ prefer the direct client, not a measured saving.)
 - Does not build a skill/slash-command orchestration path — rejected because
   the primary use case (nightly, unattended) has no interactive session to
   orchestrate from.
+
+## Changelog
+
+- 2026-07-31: Tier-2 transport replaced — `claude -p` MCP shell-out → direct
+  JSON-RPC client in `brana-core` (t-2568, b4695c8e). Mechanism, tier routing,
+  and `Ok(None)` miss semantics unchanged. See §Amendment.
+- 2026-07-31: Subprocess failure diagnostics separated — a deadline and a
+  server that closes output early no longer share wording (t-2568, 89d16ac4).
