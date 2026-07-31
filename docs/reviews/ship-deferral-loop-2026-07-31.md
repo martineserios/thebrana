@@ -31,15 +31,57 @@ the reflog.
 | Commits landing on main, 07-27 | **53** |
 | Commits landing on main, 07-28 | **37** |
 
-Two conclusions follow directly:
+**Ship is not deferred.** It ran roughly twice a day through late July.
 
-1. **Ship is not deferred.** It ran roughly twice a day through late July.
-2. **A large batch is not exceptional.** 67 commits is a normal day's volume — batches of
-   53–71 have shipped repeatedly with no recorded incident. The premise that batch size
-   drives deferral has no support: the largest batches shipped fastest.
+### CORRECTION (2026-07-31, same session)
 
-What actually exists is a **single 3-day gap** (2026-07-28 16:35 → 2026-07-31). It is the
-longest recent gap and worth noticing. One gap is not a loop.
+An earlier draft of this section also concluded *"a large batch is not exceptional — 67
+commits is a normal day's volume."* **That was wrong**, and it was the strongest claim in the
+document. It read per-*day* commit totals as if they were per-*ship* batch sizes, but several
+of those days carried multiple ships (07-22 had 3, 07-27 had 4). Disaggregating gives the
+opposite answer.
+
+Per-ship batch size, measured across all 79 ship events in the reflog:
+
+| Statistic | Commits |
+|---|---|
+| Minimum | 1 |
+| **Median** | **2** |
+| Mean | 7 |
+| Maximum | 121 |
+| Batches ≥ 50 commits | **2 of 79** |
+| Batches ≥ 67 (today's gap) | **1 of 79** |
+
+**This repo ships small and often — a median of two commits per promotion.** The current
+67-commit gap is roughly 30× the median and sits in the top ~1% of all batches ever shipped.
+It is a genuine anomaly, not business as usual.
+
+### What survives, and what this changes
+
+- **Still falsified:** the *mechanism*. Batch size does not cause deferral. Ship ran ~21 times
+  in 12 days, and the single largest batch on record (121) shipped rather than stalling.
+  Nothing supports "the batch is large *because* ship is deferred."
+- **No longer dismissed:** the *symptom*. An abnormally large undeployed batch is real and
+  rare. The original concern was pointing at something true; only its explanation was wrong.
+
+### A causal story that fits both facts
+
+Frequent shipping and a rare enormous batch are only paradoxical if ship is assumed to be a
+deliberate periodic decision. It isn't — it is a **step inside build's CLOSE** (close.md:227),
+so it is offered exactly when a build finishes and never otherwise.
+
+That predicts precisely this distribution: most sessions run a build, hit CLOSE, and ship
+their two commits — hence the median of 2. A run of sessions that end *without* a build
+(research, planning, task triage, or a session ending by compaction or interruption) never
+sees the offer at all, and the batch accumulates untouched until the next build happens to
+close.
+
+Stated as a hypothesis rather than a finding: it fits the observed distribution and the
+located defect, but this investigation did not reconstruct which sessions in the current
+3-day window ended without a build. That reconstruction is the way to confirm or refute it.
+
+If it holds, the remedy is not a ship *policy* at all — it is that the offer lives in the
+wrong place, which is exactly what AC4 located independently and what t-2567 fixes.
 
 ### What t-2214 actually is
 
