@@ -77,11 +77,48 @@ sees the offer at all, and the batch accumulates untouched until the next build 
 close.
 
 Stated as a hypothesis rather than a finding: it fits the observed distribution and the
-located defect, but this investigation did not reconstruct which sessions in the current
-3-day window ended without a build. That reconstruction is the way to confirm or refute it.
+located defect, but confirming it requires reconstructing whether the sessions in the 3-day
+window ended without a build.
 
-If it holds, the remedy is not a ship *policy* at all — it is that the offer lives in the
-wrong place, which is exactly what AC4 located independently and what t-2567 fixes.
+### TESTED AND REFUTED (2026-07-31, same session)
+
+That reconstruction was done. **The hypothesis is false.**
+
+The 68 commits accumulated between 2026-07-28 and 07-31 contain **9+ build merges**
+(t-2506, t-2544, t-2542, t-1781, t-2516, t-2535, t-2515, t-2507, t-2539) and **22
+session-close commits** (`chore(tasks)` / `chore(state)`). Builds completed and sessions
+closed repeatedly across the window. Build's CLOSE therefore ran many times, and step 14's
+ship offer should have fired on each occasion. No ship happened.
+
+So the batch did not grow because the offer was never reached *by virtue of no build
+closing*. Builds closed plenty.
+
+**What remains as candidate explanations**, neither yet tested:
+
+1. **Step 14 is the fourteenth step of a long procedure.** CLOSE runs 1→14 with docs
+   generation, reconcile checks and living-doc updates in between. A CLOSE that is truncated
+   by context compression, interrupted, or simply not run to completion never reaches the
+   ship offer. This predicts the offer is *skipped*, not *declined*.
+2. **It is reached and declined.** One instance is directly documented: on 2026-07-31 the
+   offer fired at the end of the t-2545 build, was presented, and was declined in favour of
+   continuing to accumulate — a decision made partly on the mistaken belief (corrected above)
+   that 67 commits was an ordinary batch.
+
+Distinguishing these needs data neither the git history nor the reflog holds: whether CLOSE
+reached step 14. That is a question about session transcripts, not the repository.
+
+**Consequence for the remedy.** t-2567's first defect — close.md:227 is a bare `{N}` with no
+derivation anywhere in `system/` — stands unaffected and is independently evidenced. Its
+second defect ("wrong host") is **weakened**: sessions ending without a build genuinely never
+see the offer, so putting the check in `/brana:close` is still right, but that is *not* what
+caused this particular batch. The fix should be pursued on its own merits, not as the
+explanation for the 68-commit gap.
+
+**Two of this investigation's causal stories have now failed under test** — first "large
+batches are routine" (falsified by disaggregating per-ship), then this one. Both were
+plausible, both fitted the data available at the time, and both were wrong. The pattern worth
+carrying forward is that a causal story which merely *fits* is not evidence; it has to be
+given a chance to fail.
 
 ### What t-2214 actually is
 
