@@ -11,9 +11,405 @@ use std::time::SystemTime;
 use brana_core::knowledge_pipeline::{
     self as kp, DRAFT_CAP, UrlStatus,
 };
+use brana_core::ruflo::{ruflo_memory_get, ruflo_memory_store};
+use brana_core::tasks;
 use std::io::IsTerminal as _;
 
 use crate::util::{find_project_root, home};
+
+/// Ruflo namespace `process-url` stores into. Independent of the tier1/2/3
+/// pipeline's own state file (ADR-070 §Scope split) — this command does not
+/// share or mutate `~/.swarm/knowledge-pipeline-state.json`.
+const PROCESS_URL_NAMESPACE: &str = "knowledge";
+
+/// Below this many non-whitespace characters, fetched content is treated as
+/// empty and stored nothing. A JS-only page or an auth wall strips down to a
+/// handful of characters; storing that yields a namespace entry that looks
+/// real to search and carries no information.
+const MIN_STORABLE_CHARS: usize = 40;
+
+/// Storage key for a processed URL: `knowledge:url:{slug}`.
+///
+/// Idempotency depends on this being a pure function of the URL — the second
+/// run recognises the first run's entry only if it derives the same key.
+fn url_storage_key(url: &str) -> String {
+    let trimmed = url
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_end_matches('/');
+
+    let mut slug = String::with_capacity(trimmed.len());
+    let mut last_was_dash = false;
+    for ch in trimmed.chars() {
+        if ch.is_ascii_alphanumeric() {
+            slug.push(ch.to_ascii_lowercase());
+            last_was_dash = false;
+        } else if !last_was_dash {
+            slug.push('-');
+            last_was_dash = true;
+        }
+    }
+    format!("knowledge:url:{}", slug.trim_matches('-'))
+}
+
+/// What one `process-url` invocation decided to do with a URL.
+#[derive(Debug, PartialEq, Eq)]
+enum ProcessUrlOutcome {
+    /// Key already present — nothing fetched, nothing stored.
+    AlreadyStored,
+    /// Fetch returned `Ok(None)`: the LinkedIn post was not in the author's
+    /// feed. A miss, not a failure (ADR-070 §Tier-2 correction).
+    NotFound,
+    /// Fetched, but the content was empty/near-empty — stored nothing.
+    EmptyContent,
+    /// Fetched substantive content; extract and store it.
+    Store,
+}
+
+/// Decide a URL's outcome from the idempotency probe and the fetch result.
+///
+/// Pure so the four branches are testable without ruflo or the network;
+/// the handler below owns the I/O and the printing.
+fn resolve_process_url_outcome(
+    already_stored: bool,
+    fetched: Option<&kp::FetchedContent>,
+) -> ProcessUrlOutcome {
+    if already_stored {
+        return ProcessUrlOutcome::AlreadyStored;
+    }
+    match fetched {
+        None => ProcessUrlOutcome::NotFound,
+        Some(c) if c.text.trim().chars().count() < MIN_STORABLE_CHARS => {
+            ProcessUrlOutcome::EmptyContent
+        }
+        Some(_) => ProcessUrlOutcome::Store,
+    }
+}
+
+/// One `{id, url}` record from a batch file.
+#[derive(Debug, Deserialize)]
+struct BatchEntry {
+    id: String,
+    url: String,
+}
+
+/// Parse a batch JSONL body into records, ignoring blank lines.
+///
+/// Errors name the 1-based line number: a batch runs unattended, and
+/// "invalid json" alone would mean bisecting the file by hand.
+fn parse_batch_file(body: &str) -> Result<Vec<BatchEntry>> {
+    let mut entries = Vec::new();
+    for (i, line) in body.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let entry: BatchEntry = serde_json::from_str(line)
+            .with_context(|| format!("line {}: expected {{\"id\":…,\"url\":…}}", i + 1))?;
+        entries.push(entry);
+    }
+    Ok(entries)
+}
+
+/// Whether an outcome means the URL's tracking task is safe to cancel.
+///
+/// Only outcomes where the content actually reached the knowledge base
+/// qualify. A miss or an empty fetch leaves the link genuinely unread, so
+/// cancelling its stub would silently drop the work (spec §Edge Cases).
+fn is_cancellable(outcome: &ProcessUrlOutcome) -> bool {
+    match outcome {
+        ProcessUrlOutcome::Store | ProcessUrlOutcome::AlreadyStored => true,
+        ProcessUrlOutcome::NotFound | ProcessUrlOutcome::EmptyContent => false,
+    }
+}
+
+/// Batch exit code: non-zero only when a URL genuinely failed.
+///
+/// NotFound and EmptyContent are expected outcomes the spec calls "not
+/// itself an error", so they deliberately do not count — otherwise a
+/// nightly cron would alert on every batch containing one old post.
+fn batch_exit_code(failures: usize) -> i32 {
+    if failures > 0 { 1 } else { 0 }
+}
+
+/// Pull the captured URL out of a link task's `context` field.
+///
+/// `process-link-queue.sh` writes `... URL: {url}` into the context, so the
+/// marker — not position — is what identifies it.
+///
+/// The trailing-quote trim is a regression guard, not defensiveness:
+/// `backlog get --field` emits a *JSON-quoted* string, so a URL sitting at
+/// the end of the context absorbed the closing `"` and every fetch ran
+/// against a malformed URL (personal-repo t-1365). Trimming here means the
+/// extractor is correct whether the caller hands us a decoded value or a
+/// raw one.
+fn extract_capture_url(context: &str) -> Option<String> {
+    let rest = context.split("URL: ").nth(1)?;
+    let token = rest.split_whitespace().next()?;
+    let cleaned = token.trim_end_matches(['"', '\\', ',']);
+    if cleaned.is_empty() {
+        return None;
+    }
+    Some(cleaned.to_string())
+}
+
+/// Take at most `cap` link IDs for this run, leaving the rest pending.
+///
+/// Per-run cap rather than a watermark (pattern_per-run-cap-backlog-draining,
+/// t-2076): `process_one_url` short-circuits on an already-stored key, so a
+/// later run re-scanning what this one skipped costs a cheap idempotency
+/// probe per link and nothing else. Nothing to advance, nothing to corrupt.
+fn select_drain_batch(ids: &[String], cap: usize) -> Vec<String> {
+    ids.iter().take(cap).cloned().collect()
+}
+
+/// Whether a drained link's tracking task may be marked completed.
+///
+/// Delegates to [`is_cancellable`] deliberately — "the content reached the
+/// knowledge base" is ONE predicate, and a drain that answered it separately
+/// could drift from the batch advisory that reports it. The same
+/// two-copies-of-one-query shape is what let the capture pipeline's staleness
+/// watchdog fail in exactly the mode it was built to detect (t-1364).
+///
+/// This is the defect this whole command exists to kill: the bash it replaces
+/// marked a task completed whenever `claude -p` exited 0, including when it
+/// persisted nothing (personal-repo t-1366, P0). Completion follows the
+/// artifact, never the exit status.
+fn should_complete_link(outcome: &ProcessUrlOutcome) -> bool {
+    is_cancellable(outcome)
+}
+
+/// `brana knowledge process-url --file <jsonl>` — process each `{id,url}`
+/// record in sequence, then print an advisory list of task IDs whose
+/// content is now in the knowledge base.
+///
+/// Advisory only: this never calls `backlog set` (spec §Assumptions) — the
+/// operator decides what to cancel.
+pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
+    let body = std::fs::read_to_string(path)
+        .with_context(|| format!("reading batch file {}", path.display()))?;
+    let entries = parse_batch_file(&body)?;
+
+    let mut cancellable: Vec<String> = Vec::new();
+    let mut failures = 0usize;
+
+    for entry in &entries {
+        match process_one_url(&entry.url) {
+            Ok(outcome) => {
+                if is_cancellable(&outcome) {
+                    cancellable.push(entry.id.clone());
+                }
+            }
+            Err(e) => {
+                // Keep going: one dead link must not strand the rest of a
+                // nightly batch. The exit code still reports the failure.
+                failures += 1;
+                eprintln!("{}: FAILED — {e:#}", entry.url);
+            }
+        }
+    }
+
+    println!("\nProcessed {} URL(s), {failures} failed.", entries.len());
+    if cancellable.is_empty() {
+        println!("No task IDs are safe to cancel from this batch.");
+    } else {
+        println!("Task IDs safe to cancel (advisory — not applied):");
+        for id in &cancellable {
+            println!("  {id}");
+        }
+    }
+
+    let code = batch_exit_code(failures);
+    if code != 0 {
+        bail!("{failures} URL(s) failed in this batch");
+    }
+    Ok(())
+}
+
+/// A pending link task selected for this drain run.
+struct DrainCandidate {
+    id: String,
+    url: String,
+}
+
+/// `brana knowledge drain-links` — drain pending `link`-tagged tasks from a
+/// project's backlog through `process-url`, completing only those whose
+/// content actually reached the knowledge base.
+///
+/// Replaces `personal/deploy/research-extraction.sh`. Three things differ
+/// from the bash, each a defect it shipped:
+///
+/// 1. **Completion follows the artifact.** The bash ran
+///    `claude -p ... >/dev/null 2>&1` and marked the task completed on exit
+///    0 — `/brana:research` exits 0 without persisting anything for a bare
+///    link, so 33 links drained into `completed` with nothing captured
+///    (personal-repo t-1366, P0). Here the outcome comes from the ruflo
+///    idempotency probe and the fetch, via [`should_complete_link`].
+/// 2. **The batch cannot truncate.** The bash looped `while read` over ids
+///    and called `claude` inside it; the child drained the shared stdin, so
+///    a cap of 3 processed 1 (t-1367). A `for` over an owned Vec has no
+///    stdin to share.
+/// 3. **Output is not discarded.** Every per-link outcome is printed.
+///
+/// The tasks lock is taken twice and never held across the network: a batch
+/// of 27 links takes minutes, and holding the sidecar lock through it would
+/// stall every other writer of that backlog.
+pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => brana_core::util::find_tasks_file().context("tasks.json not found")?,
+    };
+
+    // --- Phase 1: select (locked, no I/O beyond the read) ---------------
+    let candidates: Vec<DrainCandidate> = {
+        let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+        let val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+        let empty: Vec<serde_json::Value> = Vec::new();
+        let all = val["tasks"].as_array().unwrap_or(&empty);
+
+        let filter = tasks::TaskFilter {
+            tag: Some("link"),
+            status: Some("pending"),
+            ..Default::default()
+        };
+        let pending = tasks::filter_tasks_by(all, all, &filter);
+
+        // Skip-with-reason, never silently: a link whose context carries no
+        // URL is a capture bug, and dropping it quietly is how this pipeline
+        // lost work before.
+        let mut with_urls: Vec<DrainCandidate> = Vec::new();
+        for t in pending {
+            let Some(id) = t["id"].as_str() else { continue };
+            let ctx = t["context"].as_str().unwrap_or("");
+            match extract_capture_url(ctx) {
+                Some(url) => with_urls.push(DrainCandidate { id: id.to_string(), url }),
+                None => println!("skip {id}: no 'URL:' marker in context"),
+            }
+        }
+
+        let ids: Vec<String> = with_urls.iter().map(|c| c.id.clone()).collect();
+        let selected = select_drain_batch(&ids, cap);
+        with_urls.retain(|c| selected.contains(&c.id));
+        with_urls
+    };
+
+    if candidates.is_empty() {
+        println!("No pending link tasks with a URL — nothing to drain.");
+        return Ok(());
+    }
+
+    if dry_run {
+        println!("Would drain {} link(s) (cap {cap}):", candidates.len());
+        for c in &candidates {
+            println!("  {} {}", c.id, c.url);
+        }
+        return Ok(());
+    }
+
+    // --- Phase 2: process (unlocked — this is the slow, networked part) --
+    let mut completable: Vec<String> = Vec::new();
+    let mut failures = 0usize;
+    for c in &candidates {
+        println!("\ndraining {}: {}", c.id, c.url);
+        match process_one_url(&c.url) {
+            Ok(outcome) => {
+                if should_complete_link(&outcome) {
+                    completable.push(c.id.clone());
+                } else {
+                    // Left pending deliberately — the link is still unread.
+                    println!("  {} left pending ({outcome:?} — nothing stored)", c.id);
+                }
+            }
+            Err(e) => {
+                failures += 1;
+                eprintln!("  {} FAILED — {e:#}", c.id);
+            }
+        }
+    }
+
+    // --- Phase 3: complete (locked again, re-reading current state) ------
+    let mut completed = 0usize;
+    if !completable.is_empty() {
+        let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+        let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+        for id in &completable {
+            let idx = val["tasks"]
+                .as_array()
+                .and_then(|arr| arr.iter().position(|t| t["id"].as_str() == Some(id.as_str())));
+            let Some(idx) = idx else {
+                eprintln!("  {id} vanished from the backlog before completion — skipped");
+                continue;
+            };
+            let task = &mut val["tasks"][idx];
+            if let Err(e) = tasks::set_field(task, "status", "completed", false) {
+                eprintln!("  {id} could not be completed: {e}");
+                continue;
+            }
+            completed += 1;
+        }
+        tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+    }
+
+    println!(
+        "\nDrained {} link(s): {completed} completed, {} left pending, {failures} failed.",
+        candidates.len(),
+        candidates.len() - completed - failures
+    );
+
+    if failures > 0 {
+        bail!("{failures} link(s) failed in this drain");
+    }
+    Ok(())
+}
+
+/// `brana knowledge process-url <url>` — fetch one URL, extract an insight,
+/// store it in the ruflo `knowledge` namespace keyed by slugified URL.
+///
+/// Idempotent: an existing key short-circuits before the fetch, so re-running
+/// a nightly batch costs nothing per already-processed URL.
+///
+/// Never acquires the pipeline lock — this command's storage is independent
+/// of the tier1/2/3 pipeline (ADR-070 §Lock discipline).
+pub fn cmd_process_url(url: &str) -> Result<()> {
+    process_one_url(url).map(|_| ())
+}
+
+/// Process a single URL and report which branch it took. Shared by the
+/// single-URL command and the batch loop, so batch mode cannot drift from
+/// the semantics the single-URL tests pin down.
+fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
+    let key = url_storage_key(url);
+
+    let existing = ruflo_memory_get(&key, PROCESS_URL_NAMESPACE)
+        .with_context(|| format!("checking whether {key} is already stored"))?;
+
+    // Only fetch when the idempotency probe came back empty.
+    let fetched = match existing {
+        Some(_) => None,
+        None => kp::fetch_url_content(url).with_context(|| format!("fetching {url}"))?,
+    };
+
+    let outcome = resolve_process_url_outcome(existing.is_some(), fetched.as_ref());
+    match outcome {
+        ProcessUrlOutcome::AlreadyStored => println!("already stored: {key}"),
+        ProcessUrlOutcome::NotFound => {
+            println!("post not found in the author's recent feed: {url}");
+        }
+        ProcessUrlOutcome::EmptyContent => {
+            eprintln!("warning: content fetched from {url} is empty or too short — nothing stored");
+        }
+        ProcessUrlOutcome::Store => {
+            let content = fetched.expect("Store outcome is only reachable with fetched content");
+            let insight = kp::extract_insight(&content.text, content.platform);
+            let tags = [content.platform, insight.topic.as_str()];
+            ruflo_memory_store(&key, &insight.summary, PROCESS_URL_NAMESPACE, &tags)
+                .with_context(|| format!("storing {key}"))?;
+            println!("Stored: {key}");
+            println!("{}", insight.summary);
+        }
+    }
+    Ok(outcome)
+}
 
 /// Warn if the installed binary predates source changes in system/cli/rust/crates/.
 /// No-ops silently when the source tree can't be located (non-dev environments).
@@ -1483,6 +1879,20 @@ mod tests {
             "process_core must never acquire the pipeline lock (non-reentrant — deadlocks under run→process composition)"
         );
 
+        // process-url stores independently of the pipeline (ADR-070
+        // §Lock discipline). Acquiring here would serialise an unrelated
+        // command behind a long tier1/2/3 run — and would deadlock outright
+        // if t-1144 ever composes the two.
+        let pu_start = src.find("pub fn cmd_process_url").expect("cmd_process_url exists");
+        let pu_end = src[pu_start..]
+            .find("\n/// Warn if the installed binary")
+            .map(|i| pu_start + i)
+            .unwrap_or(src.len());
+        assert!(
+            !src[pu_start..pu_end].contains("lock_pipeline"),
+            "cmd_process_url must never acquire the pipeline lock — its storage is independent of the tier1/2/3 pipeline"
+        );
+
         let run_start = src.find("pub fn cmd_run").expect("cmd_run exists");
         let run_end = src[run_start..]
             .find("\npub fn ")
@@ -1492,6 +1902,284 @@ mod tests {
             !src[run_start..run_end].contains("cmd_process("),
             "cmd_run must call process_core, not cmd_process — cmd_process acquires the lock cmd_run already holds"
         );
+    }
+
+    // ── process-url: key derivation + outcome decision (t-2450) ──────
+
+    #[test]
+    fn process_url_key_is_namespaced_and_slugified() {
+        let key = url_storage_key("https://www.Example.com/Posts/Some-Thing?utm=x");
+        assert!(key.starts_with("knowledge:url:"), "got {key}");
+        assert!(!key.contains("://"), "scheme must not survive into the key: {key}");
+        assert!(
+            !key.trim_start_matches("knowledge:url:").contains('/'),
+            "path separators must be slugified: {key}"
+        );
+        assert_eq!(key, key.to_lowercase(), "key must be case-stable: {key}");
+    }
+
+    #[test]
+    fn process_url_key_is_stable_for_the_same_url() {
+        // Idempotency rests entirely on this: the second run must derive
+        // the identical key or it re-fetches and re-stores every time.
+        let a = url_storage_key("https://www.linkedin.com/posts/someone_a-title-abc123");
+        let b = url_storage_key("https://www.linkedin.com/posts/someone_a-title-abc123");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn process_url_distinct_urls_get_distinct_keys() {
+        // Boundary: slug collapsing must not merge two different posts.
+        let a = url_storage_key("https://example.com/one");
+        let b = url_storage_key("https://example.com/two");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn process_url_already_stored_short_circuits_before_fetch() {
+        // The idempotency contract: a stored key means no fetch at all —
+        // re-running a nightly batch must not re-pay for every URL.
+        let outcome = resolve_process_url_outcome(true, None);
+        assert_eq!(outcome, ProcessUrlOutcome::AlreadyStored);
+    }
+
+    #[test]
+    fn process_url_not_found_is_a_miss_not_a_failure() {
+        // fetch_url_content returned Ok(None): the LinkedIn post wasn't in
+        // the author's feed. Spec: print, store nothing, and do NOT add the
+        // id to the cancellation list — but this is not an error.
+        let outcome = resolve_process_url_outcome(false, None);
+        assert_eq!(outcome, ProcessUrlOutcome::NotFound);
+    }
+
+    #[test]
+    fn process_url_empty_content_stores_nothing() {
+        let fetched = kp::FetchedContent { text: String::new(), platform: "other" };
+        assert_eq!(
+            resolve_process_url_outcome(false, Some(&fetched)),
+            ProcessUrlOutcome::EmptyContent
+        );
+    }
+
+    #[test]
+    fn process_url_whitespace_only_content_counts_as_empty() {
+        // Boundary: strip_html_to_text on a JS-only page yields whitespace,
+        // not an empty string. Storing that would poison the namespace with
+        // an entry that looks real to search and contains nothing.
+        let fetched = kp::FetchedContent { text: "   \n\t  ".into(), platform: "other" };
+        assert_eq!(
+            resolve_process_url_outcome(false, Some(&fetched)),
+            ProcessUrlOutcome::EmptyContent
+        );
+    }
+
+    #[test]
+    fn process_url_substantive_content_is_stored() {
+        let fetched = kp::FetchedContent {
+            text: "A genuine paragraph of fetched content worth keeping around.".into(),
+            platform: "other",
+        };
+        assert_eq!(
+            resolve_process_url_outcome(false, Some(&fetched)),
+            ProcessUrlOutcome::Store
+        );
+    }
+
+    // ── process-url batch mode (t-2451) ──────────────────────────────
+
+    #[test]
+    fn process_url_batch_parses_id_and_url_pairs() {
+        let entries = parse_batch_file(
+            "{\"id\":\"t-100\",\"url\":\"https://example.com/a\"}\n\
+             {\"id\":\"t-101\",\"url\":\"https://example.com/b\"}\n",
+        )
+        .expect("well-formed jsonl must parse");
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].id, "t-100");
+        assert_eq!(entries[1].url, "https://example.com/b");
+    }
+
+    #[test]
+    fn process_url_batch_ignores_blank_lines() {
+        // Boundary: trailing newline / blank separators are common in
+        // generated jsonl and must not read as a malformed record.
+        let entries = parse_batch_file(
+            "{\"id\":\"t-100\",\"url\":\"https://example.com/a\"}\n\n   \n",
+        )
+        .expect("blank lines are not records");
+        assert_eq!(entries.len(), 1);
+    }
+
+    #[test]
+    fn process_url_batch_malformed_line_reports_line_number() {
+        // A batch is unattended; "parse error" without a line number means
+        // hand-bisecting the file.
+        let err = parse_batch_file(
+            "{\"id\":\"t-100\",\"url\":\"https://example.com/a\"}\n\
+             not json at all\n",
+        )
+        .expect_err("malformed jsonl must be an error");
+        assert!(err.to_string().contains('2'), "must name the line: {err}");
+    }
+
+    #[test]
+    fn process_url_batch_cancellable_when_stored_or_already_stored() {
+        // Both mean the URL's content is in the knowledge base, so the
+        // research stub that tracked it can be closed.
+        assert!(is_cancellable(&ProcessUrlOutcome::Store));
+        assert!(is_cancellable(&ProcessUrlOutcome::AlreadyStored));
+    }
+
+    #[test]
+    fn process_url_batch_cancellable_excludes_empty_content() {
+        // Spec Edge Cases, explicit: empty/near-empty content is NOT
+        // grounds to cancel — nothing was captured, so the stub still has
+        // work behind it.
+        assert!(!is_cancellable(&ProcessUrlOutcome::EmptyContent));
+    }
+
+    #[test]
+    fn process_url_batch_cancellable_excludes_not_found() {
+        // The post wasn't in the author's feed; the link is still unread.
+        assert!(!is_cancellable(&ProcessUrlOutcome::NotFound));
+    }
+
+    #[test]
+    fn process_url_batch_exit_code_nonzero_only_on_real_failure() {
+        // NotFound and EmptyContent are expected outcomes, not failures
+        // (spec: a miss "is not itself an error"), so they must not make a
+        // nightly cron alert. A fetch/store error must.
+        assert_eq!(batch_exit_code(0), 0);
+        assert_eq!(batch_exit_code(2), 1);
+    }
+
+    // --- drain-links (t-2557) ---------------------------------------------
+    //
+    // These replace personal/deploy/research-extraction.sh, whose own suite
+    // passed 8/8 while the live path was broken. Each test below pins a
+    // defect that suite could not see.
+
+    #[test]
+    fn drain_extracts_url_from_capture_context() {
+        // process-link-queue.sh writes "... URL: {url}" into the context.
+        let ctx = "Captured via telegram link-capture. \
+                   queued_at: 2026-07-22T19:00:40-03:00. \
+                   URL: https://example.com/post";
+        assert_eq!(
+            extract_capture_url(ctx),
+            Some("https://example.com/post".to_string())
+        );
+    }
+
+    #[test]
+    fn drain_url_extraction_strips_json_quoting() {
+        // REGRESSION t-1365: `backlog get --field` emits a JSON-quoted
+        // string, so a URL at the end of context absorbed the closing quote
+        // and every fetch was made against a malformed URL. The bash fix
+        // decoded the JSON; here the extractor must not include the quote
+        // regardless of how the value arrives.
+        let ctx = "\"Captured via telegram. URL: https://example.com/post\"";
+        assert_eq!(
+            extract_capture_url(ctx),
+            Some("https://example.com/post".to_string())
+        );
+    }
+
+    #[test]
+    fn drain_url_extraction_returns_none_without_a_url() {
+        // A context with no URL: marker must be skipped, not guessed at.
+        assert_eq!(extract_capture_url("Captured via telegram. no link here"), None);
+        assert_eq!(extract_capture_url(""), None);
+    }
+
+    #[test]
+    fn drain_cap_takes_all_items_up_to_the_cap() {
+        // REGRESSION t-1367: the bash loop piped ids into `while read` and
+        // called `claude -p` inside it; the real binary drained the shared
+        // stdin, so a cap of 3 processed exactly 1 and the swallowed ids
+        // leaked into the prompt. Its test passed anyway, because the stub
+        // never read stdin. Selection here is pure — assert the full cap.
+        let ids = vec!["t-1".to_string(), "t-2".to_string(), "t-3".to_string()];
+        assert_eq!(select_drain_batch(&ids, 3).len(), 3);
+    }
+
+    #[test]
+    fn drain_cap_truncates_a_longer_backlog() {
+        // Per-run cap (pattern_per-run-cap-backlog-draining, t-2076): take
+        // `cap` now and leave the rest pending. Idempotency makes the next
+        // run's re-scan cheap, so nothing needs a watermark.
+        let ids: Vec<String> = (0..27).map(|i| format!("t-{i}")).collect();
+        let batch = select_drain_batch(&ids, 3);
+        assert_eq!(batch.len(), 3);
+        assert_eq!(batch[0], "t-0");
+        assert_eq!(batch[2], "t-2");
+    }
+
+    #[test]
+    fn drain_cap_of_zero_selects_nothing() {
+        let ids = vec!["t-1".to_string()];
+        assert!(select_drain_batch(&ids, 0).is_empty());
+    }
+
+    #[test]
+    fn drain_extracts_url_from_real_backlog_output_verbatim() {
+        // Fixture copied byte-for-byte from `brana backlog get t-1336
+        // --field context` in the personal repo — NOT hand-written.
+        //
+        // The suite this command replaces passed 8/8 against a hand-written
+        // stub that returned a tidier shape than the real CLI, which is
+        // precisely how t-1365 survived (pattern_test-double-must-match-
+        // real-output-shape). Note the real shape: JSON-quoted, URL last, so
+        // the closing quote abuts the URL with no whitespace to separate it.
+        let real = "\"Captured via telegram link-capture. \
+                    queued_at: 2026-07-23T21:14:29.722965-03:00. \
+                    URL: https://www.linkedin.com/posts/adrien-taravant_if-youre-building-a-company-brain-gbrain-share-7486017239981375488-H9Dx/?utm_source=share&utm_medium=member_android&rcm=ACoAAARWJLkBjqr70A1PjBg5r3-pHzy3QmyBYwc\"";
+        let url = extract_capture_url(real).expect("real context must yield a URL");
+        assert!(
+            !url.ends_with('"'),
+            "trailing JSON quote leaked into the URL — t-1365 regression: {url}"
+        );
+        assert!(url.ends_with("ACoAAARWJLkBjqr70A1PjBg5r3-pHzy3QmyBYwc"));
+        assert!(url.starts_with("https://www.linkedin.com/posts/adrien-taravant_"));
+    }
+
+    #[test]
+    fn drain_url_extraction_takes_the_first_marker_only() {
+        // Boundary: a context appended to twice must not concatenate or
+        // silently prefer the later link.
+        let ctx = "URL: https://a.example/one and later URL: https://b.example/two";
+        assert_eq!(
+            extract_capture_url(ctx),
+            Some("https://a.example/one".to_string())
+        );
+    }
+
+    #[test]
+    fn drain_url_extraction_handles_a_dangling_marker() {
+        // Boundary: "URL: " with nothing after it must be None, not an
+        // empty-string URL that would then be fetched.
+        assert_eq!(extract_capture_url("Captured. URL: "), None);
+        assert_eq!(extract_capture_url("Captured. URL: \""), None);
+    }
+
+    #[test]
+    fn drain_cap_larger_than_backlog_returns_everything() {
+        // Boundary: the common steady-state once the backlog is drained.
+        let ids = vec!["t-1".to_string(), "t-2".to_string()];
+        assert_eq!(select_drain_batch(&ids, 99).len(), 2);
+        assert!(select_drain_batch(&[], 3).is_empty());
+    }
+
+    #[test]
+    fn drain_completes_only_links_whose_content_reached_the_store() {
+        // THE POINT OF THIS TASK (personal t-1366, P0). The bash script
+        // marked a task completed whenever `claude -p` exited 0 — including
+        // when it persisted nothing — draining 33 links into `completed`
+        // with zero knowledge captured. Completion must follow the artifact.
+        assert!(should_complete_link(&ProcessUrlOutcome::Store));
+        assert!(should_complete_link(&ProcessUrlOutcome::AlreadyStored));
+        assert!(!should_complete_link(&ProcessUrlOutcome::EmptyContent));
+        assert!(!should_complete_link(&ProcessUrlOutcome::NotFound));
     }
 
     // ── parse_search_results ─────────────────────────────────────────

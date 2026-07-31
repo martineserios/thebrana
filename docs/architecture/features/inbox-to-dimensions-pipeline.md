@@ -192,7 +192,23 @@ Extracted fields:
 - **tags**: hashtags the user added at capture time (`#claude-code #cost`)
 
 This is sufficient for relevance scoring (Tier 1) and cluster assignment (Tier 2).
-Full content fetch deferred to v2 (t-1144) pending a LinkedIn auth strategy.
+
+**Full content fetch — mechanism now exists, wiring still deferred (updated
+2026-07-28).** The LinkedIn auth strategy this was waiting on was resolved in
+[ADR-070](../decisions/ADR-070-knowledge-process-url-headless-fetch.md): a
+headless `claude -p --mcp-config` shell-out to `linkedin-scraper-mcp`, plus a
+plain `ureq` path for public URLs. It ships as the standalone `brana knowledge
+process-url` command, which stores into the ruflo `knowledge` namespace
+independently of this pipeline's state file.
+
+Consuming it from Tier 1 (populating `UrlEntry.fetched_content`) is still
+**t-1144's gated decision** — deliberately not auto-wired, because the pipeline
+must complete at least one fully validated cycle first. Two constraints carry
+over if and when that wiring happens: `fetch_url_content` never acquires the
+pipeline lock (it is called from inside `process_core`'s already-locked call
+graph, and the lock is non-reentrant), and a LinkedIn fetch can legitimately
+return "not found" — the post may be older than the author feed the scraper
+returns, which is a miss, not a failure.
 
 **Tier 2 backfill (t-1149):** Records ingested before `author`/`title_signal` fields existed have neither field populated. Tier 2 (`run_tier2()`) auto-backfills both fields from the URL path at processing time — no re-ingestion needed. Idempotent: already-populated fields are not overwritten.
 

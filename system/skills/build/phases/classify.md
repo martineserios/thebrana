@@ -188,7 +188,7 @@ brana backlog set <id> build_step classify
 brana backlog set <id> build_step specify
 brana backlog set <id> build_step decompose
 brana backlog set <id> build_step build
-brana backlog set <id> branch "feat/t-123-slug"
+brana backlog set <id> branch "{epic-slug}/{work-type}/t-123-slug"
 
 # CLOSE
 brana backlog set <id> status completed

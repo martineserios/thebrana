@@ -47,14 +47,24 @@ For each `system/agents/*.md`:
 
 ### Check 5: Context Budget
 
-Calculates the total always-loaded content size:
+Delegates to `system/scripts/context-budget.sh` — the single source of truth, also called by the `pre-commit` budget gate, so the two enforcement points cannot drift (t-2177).
 
-- `system/CLAUDE.md` (full file)
-- Rules without `paths:` field (loaded unconditionally)
-- Skill descriptions (just the `description:` line from each skill)
-- Agent descriptions (from frontmatter)
+Since t-2505 the always-loaded content is measured as **two independently gated pools**, split by what causes each to grow:
 
-**Budget limit:** 28,672 bytes (28KB). Exceeding this degrades Claude's performance because too much instruction text competes for context window space.
+| Pool | Contents | Limit | Grows because |
+|---|---|---|---|
+| **AUTHORED** | `system/CLAUDE.md` (full file) + rules with `always-load: true` in frontmatter | 22,528 B (22KB) | someone deliberately writes it |
+| **ROUTING METADATA** | skill `description:` lines + agent `description:` lines (frontmatter) | 10,240 B (10KB) | a skill or agent was added |
+
+Either pool exceeding its own limit fails the check. A generous allowance on one pool cannot mask an overrun in the other — that independence is the point.
+
+**Why split.** Under a single cap the two competed, and routing metadata won by default: it reached 8,545 of 28,653 bytes (~30%) without anyone deciding to spend it, leaving 19 bytes of headroom so that any hand-written rule addition was blocked. Automatic growth was silently evicting deliberate writing.
+
+**Why an aggregate cap on descriptions rather than a per-item one.** Measured over the real tree: 35 skills, ~168 B mean, flat distribution with no fat tail. A 200 B per-item cap reclaims 411 B total; reaching ~1.8 KB means rewriting 31 of 35. And no per-item cap bounds the aggregate, which is the actual failure mode — every new skill adds ~168 B whatever the cap is.
+
+Exclusions (all regression-tested): `rules/README.md` (the authoring contract, not a loaded rule — the t-2174 miscount), path-scoped rules, `skills/acquired/`, and agents with `type: reference`.
+
+On failure the gate names the remedy — which pool blew, how many bytes to reclaim, and the largest single contributor — not just the breakdown.
 
 ### Check 5b: Instruction Density
 
@@ -633,3 +643,33 @@ Source: close 2026-05-19 / pre-commit.sh Check 5 fix
 
 **Backslash-in-regex trap:** `@tsv` in jq doubles all backslashes. Storing `\bpattern\b` in the JSON then extracting via `@tsv | read` produces `\\b` which grep -E treats as a literal backslash, not a word boundary. Fix: use `grep_whole_word: true` flag + `grep -w` (whole-word) instead of `\b` in patterns. No backslashes needed in the registry values.
 Source: t-1565, session 2026-06-08
+
+### 2026-07-28: Check 67 — ADR numbers must be unique (t-2515)
+
+`system/scripts/check-adr-uniqueness.sh` fails when two files in
+`docs/architecture/decisions/` share an `ADR-NNN` prefix. Wired as validate
+Check 67; guarded by `tests/procedures/test-adr-number-uniqueness.sh`.
+
+**Why it exists.** Five numbers were colliding simultaneously on 2026-07-28.
+Four (002, 026, 048, 062) had been duplicated on `dev` for months — the 002
+collision was recorded in `docs/24-roadmap-corrections.audit-2026-03-02.md` in
+March and explicitly "deferred to next ADR cleanup", which is what a known
+collision with no gate looks like after four months. The fifth (068) was
+created that same day: the number was picked by listing the decisions
+directory **on a feature branch**, which by construction cannot see an ADR
+added on `dev`.
+
+**A directory listing is not an allocator.** That is the generalisable point.
+The check is only the backstop — it makes a collision loud at the next
+validate instead of at merge. It deliberately does not suggest the next free
+number, because doing that correctly means consulting other branches *and*
+numbers claimed only in backlog task text (ADR-069 was reserved inside
+t-2389's `context` field with no file on disk, so every filesystem check
+reported it free). That allocation half remains open under t-2515.
+
+**Test the guard, not just the happy path.** The first mutation probe here
+was invalid — it added `ADR-070-mutation-probe.md` on a branch off `dev`,
+where no ADR-070 exists, so nothing was duplicated and the check correctly
+passed. Reading that as "the guard is broken" would have been wrong. Probe
+with a number that actually exists in the tree under test.
+Source: t-2515, session 2026-07-28

@@ -244,6 +244,19 @@ fn main() {
             KnowledgeCmd::Ingest { sources, source, dry_run } => {
                 run_or_exit(commands::knowledge::cmd_ingest(sources, source, dry_run))
             }
+            KnowledgeCmd::DrainLinks { file, cap, dry_run } => {
+                run_or_exit(commands::knowledge::cmd_drain_links(file, cap, dry_run))
+            }
+            KnowledgeCmd::ProcessUrl { url, file } => match (url, file) {
+                (_, Some(path)) => {
+                    run_or_exit(commands::knowledge::cmd_process_url_batch(&path))
+                }
+                (Some(u), None) => run_or_exit(commands::knowledge::cmd_process_url(&u)),
+                // clap's required_unless_present guarantees this is unreachable.
+                (None, None) => run_or_exit(Err(anyhow::anyhow!(
+                    "provide a URL or --file <jsonl>"
+                ))),
+            },
             KnowledgeCmd::Next => run_or_exit(commands::knowledge::cmd_next()),
             KnowledgeCmd::Run => run_or_exit(commands::knowledge::cmd_run()),
         },

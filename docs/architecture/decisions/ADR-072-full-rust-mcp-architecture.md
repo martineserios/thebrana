@@ -1,7 +1,7 @@
 ---
 status: accepted
 ---
-# ADR-026: Full Rust + MCP Architecture — Cargo Workspace with pmcp
+# ADR-072: Full Rust + MCP Architecture — Cargo Workspace with pmcp
 
 **Date:** 2026-04-05
 **Status:** accepted

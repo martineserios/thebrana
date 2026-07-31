@@ -263,13 +263,18 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
                 test_write_rate:($test_write_rate|tonumber),
                 cascade_rate:($cascade_rate|tonumber),
                 delegation_count:$delegations}}' 2>/dev/null) || MINIMAL_JSON=""
+        # stderr goes to a log, NOT /dev/null: `session write` announces next[] discards
+        # and concurrency downgrades on stderr, and this is a write path — discarding the
+        # only signal that data did not land is the failure class this safety net exists to
+        # guard against (t-2506).
+        WRITE_LOG="${TMPDIR:-/tmp}/brana-session-end-write.log"
         if [ -n "$MINIMAL_JSON" ]; then
             TMPFILE="/tmp/session-end-minimal-$$.json"
             echo "$MINIMAL_JSON" > "$TMPFILE"
-            (cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session write --file "$TMPFILE" 2>/dev/null) || true
+            (cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session write --file "$TMPFILE" 2>>"$WRITE_LOG") || true
             rm -f "$TMPFILE"
         else
-            (cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session write --minimal 2>/dev/null) || true
+            (cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session write --minimal 2>>"$WRITE_LOG") || true
         fi
     fi
 fi

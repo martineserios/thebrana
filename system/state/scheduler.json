@@ -113,9 +113,9 @@
       "type": "command"
     },
     "link-research-extraction": {
-      "_comment": "t-2306: capped /brana:research pass over pending link-tagged tasks from telegram link-capture — closes the capture-to-knowledge loop",
+      "_comment": "t-2306: capped /brana:research pass over pending link-tagged tasks from telegram link-capture. DISABLED 2026-07-29: marks links completed on exit 0 while persisting nothing (personal-repo t-1366, P0) — 6 links already drained with no artifact. Do NOT re-enable until success is gated on a verifiable persisted artifact.",
       "command": "./deploy/research-extraction.sh",
-      "enabled": true,
+      "enabled": false,
       "project": "~/enter_thebrana/personal",
       "schedule": "*-*-* 0/4:00:00",
       "timeoutSeconds": 1800,

@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "cold-start-problem": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "cold-start-problem/SKILL.md",
+      "computedHash": "f76cefa4fb1c1cb70d2fa34359993647b6bf57c5365f628ad1693b2ca26dc47d"
+    },
     "critical-thinking-logical-reasoning": {
       "source": "sammcj/agentic-coding",
       "sourceType": "github",
@@ -32,10 +38,22 @@
       "computedHash": "56dbd8432fa6fdc9e183d0444146a937c8b66dff71b3a698ceeba7d474549957"
     },
     "jobs-to-be-done": {
-      "source": "owl-listener/designer-skills",
+      "source": "wondelai/skills",
       "sourceType": "github",
-      "skillPath": "design-research/skills/jobs-to-be-done/SKILL.md",
-      "computedHash": "a477497452f84b538285c1517d02da8d9aa85f1a7fe06c76bf1afd10d46bbe24"
+      "skillPath": "jobs-to-be-done/SKILL.md",
+      "computedHash": "d2d74d9dafd1a2d7da3542fa330a907d465833689c11a6d6daf214ff4f265fb5"
+    },
+    "marketplace-fundamentals": {
+      "source": "refoundai/lenny-skills",
+      "sourceType": "github",
+      "skillPath": "skills/marketplace-fundamentals/SKILL.md",
+      "computedHash": "eb14c969fa315aef0f5c2da1c44f3905fe86474f2516969a1d75b9b18732581b"
+    },
+    "marketplace-liquidity-take-rates": {
+      "source": "refoundai/lenny-skills",
+      "sourceType": "github",
+      "skillPath": "skills/marketplace-liquidity-take-rates/SKILL.md",
+      "computedHash": "b122cdb4c6900b6c168bd40020fc84c6f9cb0139054b8cfdfcf536b7a45b6e31"
     },
     "pre-mortem": {
       "source": "guia-matthieu/clawfu-skills",
@@ -54,6 +72,12 @@
       "sourceType": "github",
       "skillPath": "skills/strategy/six-thinking-hats/SKILL.md",
       "computedHash": "7c63b1415e55fbca49b2ad3dc26ef4103aad3799d417a7e6d2d4c4287c5ec01a"
+    },
+    "supply-demand-balance": {
+      "source": "refoundai/lenny-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supply-demand-balance/SKILL.md",
+      "computedHash": "37c335fc9a54268e97efa254e0035f5d30a42835d1cb5858eb14682761ec66e0"
     },
     "swot-analysis": {
       "source": "phuryn/pm-skills",

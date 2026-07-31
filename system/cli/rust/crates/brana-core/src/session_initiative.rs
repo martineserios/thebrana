@@ -365,6 +365,7 @@ mod tests {
             session_labels: vec![label.to_string()],
             epic: None,
             consumed_at: None,
+            base_written_at: None,
             accomplished: accomplished.iter().map(|s| s.to_string()).collect(),
             learnings: learnings.iter().map(|s| s.to_string()).collect(),
             next,

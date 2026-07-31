@@ -192,7 +192,7 @@ From [25-self-documentation.md](../25-self-documentation.md) — layer-aware sta
 
 ### Scheduled Automation
 
-From [ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md) — brana-scheduler runs maintenance jobs on a cadence, bridging the gap between session-bound hooks and manual skill invocations:
+From [ADR-071](../decisions/ADR-071-scheduler-thin-layer-over-systemd.md) — brana-scheduler runs maintenance jobs on a cadence, bridging the gap between session-bound hooks and manual skill invocations:
 
 | Job | Schedule | What it does |
 |-----|----------|-------------|

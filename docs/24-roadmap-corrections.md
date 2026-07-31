@@ -1162,12 +1162,12 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 **Severity:** High — architecture gap
 **Status:** applied (2026-02-20)
 
-**Discovery:** Maintain-specs re-evaluation (2026-02-20). ADR-002 was accepted, 5 scheduler items shipped (#45, #48, #49, #50, #51), but [doc 14](reflections/14-mastermind-architecture.md) (R2 Architecture) has zero mentions of scheduler, automation, systemd, or timer. Someone reading the architecture blueprint wouldn't know the automation layer exists.
+**Discovery:** Maintain-specs re-evaluation (2026-02-20). ADR-071 was accepted, 5 scheduler items shipped (#45, #48, #49, #50, #51), but [doc 14](reflections/14-mastermind-architecture.md) (R2 Architecture) has zero mentions of scheduler, automation, systemd, or timer. Someone reading the architecture blueprint wouldn't know the automation layer exists.
 
 **Files affected:**
 - `14-mastermind-architecture.md` — "Scheduled Automation: The Out-of-Session Layer" section added after hooks
 
-**Fix applied:** New section covering architecture diagram, relationship table (hooks vs scheduler vs skills vs agents), ADR-002 reference, output-to-memory pipeline, and current job list.
+**Fix applied:** New section covering architecture diagram, relationship table (hooks vs scheduler vs skills vs agents), ADR-071 reference, output-to-memory pipeline, and current job list.
 
 ---
 

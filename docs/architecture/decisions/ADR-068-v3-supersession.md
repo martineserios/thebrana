@@ -182,9 +182,12 @@ The amendment must decide:
 - **The wave-1 diagnoses are now the citable ground truth** for what did and did not
   fail. Any future doc repeating "the extraction queue stalled on agy quota" is drift
   against t-2395.
-- **Wave 1's remaining items are separate tasks** and are untouched here: the ADR-062
-  filename collision, re-parenting/cancelling t-1994/t-1995, and the native `memory:`
-  frontmatter migration for challenger/build-evaluator/debrief-analyst.
+- **Wave 1's remaining items are separate tasks** and are untouched here:
+  re-parenting/cancelling t-1994/t-1995, and the native `memory:` frontmatter
+  migration for challenger/build-evaluator/debrief-analyst. (The ADR-062 filename
+  collision — t-2398 — was resolved out of band on 2026-07-28 under t-2507, which
+  cleared all four duplicate ADR numbers at once; the step-state contract is now
+  ADR-074 and ADR-062 unambiguously means the runner/executor sandbox.)
 
 ## Non-actions (explicitly out of scope)
 

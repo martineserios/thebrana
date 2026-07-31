@@ -1,4 +1,4 @@
-# ADR-048: Persona modifier persisted in session state, not CLAUDE.local.md
+# ADR-073: Persona modifier persisted in session state, not CLAUDE.local.md
 
 **Status:** Accepted  
 **Date:** 2026-06-03  

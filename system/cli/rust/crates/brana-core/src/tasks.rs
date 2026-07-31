@@ -182,9 +182,21 @@ pub const DEFAULT_EPIC_WIP_LIMIT: i64 = 10;
 
 /// Advisory WIP-cap check for adding a new child under `parent_id` (ADR-065
 /// D4: "warn, not block, during pilot"). Returns `Some(warning)` when adding
-/// one more OPEN task (completed/cancelled children don't count) would push
-/// the epic's open-child count past its `wip_limit` (default
-/// `DEFAULT_EPIC_WIP_LIMIT` when unset). Returns `None` when `parent_id`
+/// one more LIVE task would push the epic's live-child count past its
+/// `wip_limit` (default `DEFAULT_EPIC_WIP_LIMIT` when unset).
+///
+/// "Live" is a synthetic projection over `classify()`, not a raw-status read:
+/// children `classify()` reports as `done` (completed/cancelled) or `parked`
+/// are excluded; `blocked` children still count, because a blocked task is
+/// still work in flight. Counting via `classify()` rather than `raw_status()`
+/// is what makes backlog-v3-schema.md §72 — "Can't add #11 without closing or
+/// **parking**" — true: parking was implemented as a `parked` tag surfaced by
+/// `classify()`, but this cap read the raw status field and ignored it, so
+/// parking a task had no effect on the count (t-2535). The warning names the
+/// count "live" rather than "open" precisely because it is no longer the raw
+/// reading a `--status` filter would reproduce (t-1340).
+///
+/// Returns `None` when `parent_id`
 /// doesn't resolve to a `type: "epic"` task, or the cap isn't breached —
 /// callers never branch on "is this an epic" themselves. Single point of
 /// computation shared by CLI `cmd_add` and MCP `backlog_add` (t-2313; same
@@ -196,15 +208,15 @@ pub fn check_epic_wip_cap(all: &[Value], parent_id: &str) -> Option<String> {
         return None;
     }
     let limit = parent["wip_limit"].as_i64().unwrap_or(DEFAULT_EPIC_WIP_LIMIT);
-    let open_children = all
+    let live_children = all
         .iter()
         .filter(|t| t["parent"].as_str() == Some(parent_id))
-        .filter(|t| !matches!(raw_status(t, ""), "completed" | "cancelled"))
+        .filter(|t| !matches!(classify(t, all), "done" | "parked"))
         .count() as i64;
-    let new_count = open_children + 1;
+    let new_count = live_children + 1;
     if new_count > limit {
         Some(format!(
-            "epic {parent_id} is at its WIP cap ({open_children}/{limit} open) — adding this task makes {new_count}; consider closing or parking before adding more"
+            "epic {parent_id} is at its WIP cap ({live_children}/{limit} live — parked and finished children excluded) — adding this task makes {new_count}; close or park something before adding more"
         ))
     } else {
         None
@@ -2860,6 +2872,77 @@ mod tests {
     fn test_check_epic_wip_cap_ignores_done_children() {
         let tasks = epic_wip_sample(Some(10), 0, 10);
         assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "completed/cancelled children must not count toward the cap");
+    }
+
+    // ── t-2535: the cap must honor the parking that classify() already provides ──
+
+    /// Build an epic whose children carry `tags: ["parked"]` — the shape
+    /// `classify()` reports as the synthetic status "parked".
+    fn epic_wip_sample_parked(wip_limit: i64, parked_children: usize) -> Vec<Value> {
+        let mut tasks = vec![json!({
+            "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
+            "tags": [], "blocked_by": [], "parent": null, "wip_limit": wip_limit
+        })];
+        for i in 0..parked_children {
+            tasks.push(json!({
+                "id": format!("t-parked-{i}"), "status": "pending", "type": "task",
+                "tags": ["parked"], "blocked_by": [], "parent": "in-1"
+            }));
+        }
+        tasks
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_ignores_parked_children() {
+        // backlog-v3-schema.md §72: "Can't add #11 without closing or parking."
+        // Parking is implemented (classify() → "parked" via the tag) but the cap
+        // computed over raw_status, so parking a task did nothing to the count —
+        // making §72's promise false. Parked children must not count.
+        let tasks = epic_wip_sample_parked(10, 20);
+        assert!(
+            check_epic_wip_cap(&tasks, "in-1").is_none(),
+            "parked children must not count toward the cap — parking is §72's stated remedy"
+        );
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_counts_blocked_children() {
+        // Guard against over-filtering: "blocked" is also a synthetic classify()
+        // value, but a blocked task is still live work and must keep counting.
+        let mut tasks = vec![
+            json!({"id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
+                   "tags": [], "blocked_by": [], "parent": null, "wip_limit": 3}),
+            json!({"id": "t-dep", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": null}),
+        ];
+        for i in 0..3 {
+            tasks.push(json!({
+                "id": format!("t-blocked-{i}"), "status": "pending", "type": "task",
+                "tags": [], "blocked_by": ["t-dep"], "parent": "in-1"
+            }));
+        }
+        assert!(
+            check_epic_wip_cap(&tasks, "in-1").is_some(),
+            "blocked children are still live work and must count toward the cap"
+        );
+    }
+
+    #[test]
+    fn test_check_epic_wip_cap_warning_does_not_mislabel_count_as_open() {
+        // The count is a synthetic projection (not-done AND not-parked), so the
+        // warning must not call it "open" — "open" is the raw-status reading the
+        // cap no longer performs (split-raw-from-synthetic-aggregations, t-1340).
+        let mut tasks = epic_wip_sample(Some(3), 3, 0);
+        tasks.push(json!({"id": "t-parked-x", "status": "pending", "type": "task",
+                          "tags": ["parked"], "blocked_by": [], "parent": "in-1"}));
+        let warning = check_epic_wip_cap(&tasks, "in-1").expect("3 live + 1 new = 4, over cap of 3");
+        assert!(
+            !warning.contains("open"),
+            "warning must not label a parked-excluding count as 'open': {warning}"
+        );
+        assert!(
+            warning.contains("park"),
+            "warning should surface parking as an available remedy: {warning}"
+        );
     }
 
     #[test]

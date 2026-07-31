@@ -74,5 +74,5 @@ First run of `/brana:memory review --audit` (t-039). Audited doc 14 (Architectur
 ## Not Fixed (deferred)
 
 - **Context-budget rule text in loaded CLAUDE.md** appears as 3-tier (70/85%) due to system context truncation. Actual source and deployed file both have 4-tier (55/70/85%). No drift — false positive.
-- **ADR-002 numbering collision** (two different ADR-002 files noted in doc 14). Deferred to next ADR cleanup.
+- **ADR-002 numbering collision** (two different ADR-002 files noted in doc 14). Deferred to next ADR cleanup. **Resolved 2026-07-28 (t-2507):** the scheduler ADR moved to ADR-071; `ADR-002` now unambiguously means tasks-as-data-layer. Three sibling collisions (026, 048, 062) were cleared in the same pass.
 - **Embedded CLAUDE.md example** in doc 14 is intentionally illustrative, not a live mirror. Marked as acceptable.
