@@ -131,6 +131,53 @@ fn batch_exit_code(failures: usize) -> i32 {
     if failures > 0 { 1 } else { 0 }
 }
 
+/// Pull the captured URL out of a link task's `context` field.
+///
+/// `process-link-queue.sh` writes `... URL: {url}` into the context, so the
+/// marker — not position — is what identifies it.
+///
+/// The trailing-quote trim is a regression guard, not defensiveness:
+/// `backlog get --field` emits a *JSON-quoted* string, so a URL sitting at
+/// the end of the context absorbed the closing `"` and every fetch ran
+/// against a malformed URL (personal-repo t-1365). Trimming here means the
+/// extractor is correct whether the caller hands us a decoded value or a
+/// raw one.
+fn extract_capture_url(context: &str) -> Option<String> {
+    let rest = context.split("URL: ").nth(1)?;
+    let token = rest.split_whitespace().next()?;
+    let cleaned = token.trim_end_matches(['"', '\\', ',']);
+    if cleaned.is_empty() {
+        return None;
+    }
+    Some(cleaned.to_string())
+}
+
+/// Take at most `cap` link IDs for this run, leaving the rest pending.
+///
+/// Per-run cap rather than a watermark (pattern_per-run-cap-backlog-draining,
+/// t-2076): `process_one_url` short-circuits on an already-stored key, so a
+/// later run re-scanning what this one skipped costs a cheap idempotency
+/// probe per link and nothing else. Nothing to advance, nothing to corrupt.
+fn select_drain_batch(ids: &[String], cap: usize) -> Vec<String> {
+    ids.iter().take(cap).cloned().collect()
+}
+
+/// Whether a drained link's tracking task may be marked completed.
+///
+/// Delegates to [`is_cancellable`] deliberately — "the content reached the
+/// knowledge base" is ONE predicate, and a drain that answered it separately
+/// could drift from the batch advisory that reports it. The same
+/// two-copies-of-one-query shape is what let the capture pipeline's staleness
+/// watchdog fail in exactly the mode it was built to detect (t-1364).
+///
+/// This is the defect this whole command exists to kill: the bash it replaces
+/// marked a task completed whenever `claude -p` exited 0, including when it
+/// persisted nothing (personal-repo t-1366, P0). Completion follows the
+/// artifact, never the exit status.
+fn should_complete_link(outcome: &ProcessUrlOutcome) -> bool {
+    is_cancellable(outcome)
+}
+
 /// `brana knowledge process-url --file <jsonl>` — process each `{id,url}`
 /// record in sequence, then print an advisory list of task IDs whose
 /// content is now in the knowledge base.
@@ -1867,6 +1914,135 @@ mod tests {
         // nightly cron alert. A fetch/store error must.
         assert_eq!(batch_exit_code(0), 0);
         assert_eq!(batch_exit_code(2), 1);
+    }
+
+    // --- drain-links (t-2557) ---------------------------------------------
+    //
+    // These replace personal/deploy/research-extraction.sh, whose own suite
+    // passed 8/8 while the live path was broken. Each test below pins a
+    // defect that suite could not see.
+
+    #[test]
+    fn drain_extracts_url_from_capture_context() {
+        // process-link-queue.sh writes "... URL: {url}" into the context.
+        let ctx = "Captured via telegram link-capture. \
+                   queued_at: 2026-07-22T19:00:40-03:00. \
+                   URL: https://example.com/post";
+        assert_eq!(
+            extract_capture_url(ctx),
+            Some("https://example.com/post".to_string())
+        );
+    }
+
+    #[test]
+    fn drain_url_extraction_strips_json_quoting() {
+        // REGRESSION t-1365: `backlog get --field` emits a JSON-quoted
+        // string, so a URL at the end of context absorbed the closing quote
+        // and every fetch was made against a malformed URL. The bash fix
+        // decoded the JSON; here the extractor must not include the quote
+        // regardless of how the value arrives.
+        let ctx = "\"Captured via telegram. URL: https://example.com/post\"";
+        assert_eq!(
+            extract_capture_url(ctx),
+            Some("https://example.com/post".to_string())
+        );
+    }
+
+    #[test]
+    fn drain_url_extraction_returns_none_without_a_url() {
+        // A context with no URL: marker must be skipped, not guessed at.
+        assert_eq!(extract_capture_url("Captured via telegram. no link here"), None);
+        assert_eq!(extract_capture_url(""), None);
+    }
+
+    #[test]
+    fn drain_cap_takes_all_items_up_to_the_cap() {
+        // REGRESSION t-1367: the bash loop piped ids into `while read` and
+        // called `claude -p` inside it; the real binary drained the shared
+        // stdin, so a cap of 3 processed exactly 1 and the swallowed ids
+        // leaked into the prompt. Its test passed anyway, because the stub
+        // never read stdin. Selection here is pure — assert the full cap.
+        let ids = vec!["t-1".to_string(), "t-2".to_string(), "t-3".to_string()];
+        assert_eq!(select_drain_batch(&ids, 3).len(), 3);
+    }
+
+    #[test]
+    fn drain_cap_truncates_a_longer_backlog() {
+        // Per-run cap (pattern_per-run-cap-backlog-draining, t-2076): take
+        // `cap` now and leave the rest pending. Idempotency makes the next
+        // run's re-scan cheap, so nothing needs a watermark.
+        let ids: Vec<String> = (0..27).map(|i| format!("t-{i}")).collect();
+        let batch = select_drain_batch(&ids, 3);
+        assert_eq!(batch.len(), 3);
+        assert_eq!(batch[0], "t-0");
+        assert_eq!(batch[2], "t-2");
+    }
+
+    #[test]
+    fn drain_cap_of_zero_selects_nothing() {
+        let ids = vec!["t-1".to_string()];
+        assert!(select_drain_batch(&ids, 0).is_empty());
+    }
+
+    #[test]
+    fn drain_extracts_url_from_real_backlog_output_verbatim() {
+        // Fixture copied byte-for-byte from `brana backlog get t-1336
+        // --field context` in the personal repo — NOT hand-written.
+        //
+        // The suite this command replaces passed 8/8 against a hand-written
+        // stub that returned a tidier shape than the real CLI, which is
+        // precisely how t-1365 survived (pattern_test-double-must-match-
+        // real-output-shape). Note the real shape: JSON-quoted, URL last, so
+        // the closing quote abuts the URL with no whitespace to separate it.
+        let real = "\"Captured via telegram link-capture. \
+                    queued_at: 2026-07-23T21:14:29.722965-03:00. \
+                    URL: https://www.linkedin.com/posts/adrien-taravant_if-youre-building-a-company-brain-gbrain-share-7486017239981375488-H9Dx/?utm_source=share&utm_medium=member_android&rcm=ACoAAARWJLkBjqr70A1PjBg5r3-pHzy3QmyBYwc\"";
+        let url = extract_capture_url(real).expect("real context must yield a URL");
+        assert!(
+            !url.ends_with('"'),
+            "trailing JSON quote leaked into the URL — t-1365 regression: {url}"
+        );
+        assert!(url.ends_with("ACoAAARWJLkBjqr70A1PjBg5r3-pHzy3QmyBYwc"));
+        assert!(url.starts_with("https://www.linkedin.com/posts/adrien-taravant_"));
+    }
+
+    #[test]
+    fn drain_url_extraction_takes_the_first_marker_only() {
+        // Boundary: a context appended to twice must not concatenate or
+        // silently prefer the later link.
+        let ctx = "URL: https://a.example/one and later URL: https://b.example/two";
+        assert_eq!(
+            extract_capture_url(ctx),
+            Some("https://a.example/one".to_string())
+        );
+    }
+
+    #[test]
+    fn drain_url_extraction_handles_a_dangling_marker() {
+        // Boundary: "URL: " with nothing after it must be None, not an
+        // empty-string URL that would then be fetched.
+        assert_eq!(extract_capture_url("Captured. URL: "), None);
+        assert_eq!(extract_capture_url("Captured. URL: \""), None);
+    }
+
+    #[test]
+    fn drain_cap_larger_than_backlog_returns_everything() {
+        // Boundary: the common steady-state once the backlog is drained.
+        let ids = vec!["t-1".to_string(), "t-2".to_string()];
+        assert_eq!(select_drain_batch(&ids, 99).len(), 2);
+        assert!(select_drain_batch(&[], 3).is_empty());
+    }
+
+    #[test]
+    fn drain_completes_only_links_whose_content_reached_the_store() {
+        // THE POINT OF THIS TASK (personal t-1366, P0). The bash script
+        // marked a task completed whenever `claude -p` exited 0 — including
+        // when it persisted nothing — draining 33 links into `completed`
+        // with zero knowledge captured. Completion must follow the artifact.
+        assert!(should_complete_link(&ProcessUrlOutcome::Store));
+        assert!(should_complete_link(&ProcessUrlOutcome::AlreadyStored));
+        assert!(!should_complete_link(&ProcessUrlOutcome::EmptyContent));
+        assert!(!should_complete_link(&ProcessUrlOutcome::NotFound));
     }
 
     // ── parse_search_results ─────────────────────────────────────────
