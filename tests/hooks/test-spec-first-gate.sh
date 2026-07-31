@@ -17,10 +17,15 @@ PASS=0
 FAIL=0
 
 # Setup: temp git repo with docs/decisions/ (opts in to enforcement)
-TMPDIR=$(mktemp -d)
+# NOT under /tmp: pre-tool-use.sh step 3a deliberately passes through any file_path
+# under /tmp/* ("no project gates outside the repo"), which would short-circuit every
+# assertion below before the gate is ever reached (t-2492).
+TMPDIR=$(mktemp -d "${HOME}/.brana-test-XXXXXX")
 trap 'rm -rf "$TMPDIR"' EXIT
 
 git -C "$TMPDIR" init -q
+git -C "$TMPDIR" config user.email "test@test.com"
+git -C "$TMPDIR" config user.name "Test"
 mkdir -p "$TMPDIR/docs/decisions" "$TMPDIR/.claude" "$TMPDIR/src"
 
 # Create initial commit on main

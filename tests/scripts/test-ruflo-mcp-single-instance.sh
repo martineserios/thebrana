@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
-# Test: ruflo-mcp.sh prevents multiple simultaneous instances
-# t-1858 — flock mutex prevents DB corruption from concurrent writers
+# Test: ruflo-mcp.sh must NOT reintroduce a flock mutex or orphan sweep.
+#
+# History: t-1858 added a flock mutex + orphan sweep to stop concurrent writers
+# corrupting the ruflo DB. t-2085 REMOVED both — the orphan sweep killed live
+# writers and caused the very corruption it was meant to prevent (confirmed
+# 2026-06-13 with flock active). SQLite WAL mode serialises concurrent writes
+# correctly, so no userspace mutex is needed. See system/scripts/ruflo-mcp.sh
+# header and docs/architecture/bootstrap.md.
+#
+# This test was inverted in t-2492. It previously asserted the mutex was PRESENT,
+# so it had been red since t-2085 landed. Its "flock present" check also passed
+# for a bogus reason: grep matched the comment explaining the removal.
 set -euo pipefail
 
 SCRIPT="$(cd "$(dirname "$0")/../.." && pwd)/system/scripts/ruflo-mcp.sh"
-LOCK="$HOME/.swarm/ruflo-mcp.lock"
-TMPDIR_TEST="$(mktemp -d)"
 PASS=0
 FAIL=0
 
 pass() { echo "PASS: $1"; PASS=$((PASS+1)); }
 fail() { echo "FAIL: $1"; FAIL=$((FAIL+1)); }
 
-cleanup() {
-    rm -rf "$TMPDIR_TEST"
-    # Release any test locks
-    rm -f "${TMPDIR_TEST}/ruflo-mcp.lock" 2>/dev/null || true
-}
-trap cleanup EXIT
-
-echo "=== ruflo-mcp.sh single-instance gate test ==="
+echo "=== ruflo-mcp.sh concurrency-model regression test (t-2085) ==="
 
 # Test 1: Script is executable
 if [ -x "$SCRIPT" ]; then
@@ -28,39 +29,29 @@ else
     fail "script is not executable at $SCRIPT"
 fi
 
-# Test 2: flock pattern exists in script
-if grep -q "flock" "$SCRIPT"; then
-    pass "flock mutex pattern present in script"
+# Test 2: no flock mutex in executable code.
+# Strip comments first — the removal rationale in the header mentions "flock",
+# and matching it is what made the old assertion vacuous.
+if grep -v '^[[:space:]]*#' "$SCRIPT" | grep -q 'flock'; then
+    fail "flock mutex reintroduced — removed in t-2085 because the paired orphan sweep killed live WAL writers; SQLite WAL already serialises concurrent writes"
 else
-    fail "flock mutex pattern MISSING from script — multi-instance DB corruption possible"
+    pass "no flock mutex (t-2085: SQLite WAL handles concurrent sessions)"
 fi
 
-# Test 3: Lock file path uses .swarm directory
-if grep -q '\.swarm.*\.lock' "$SCRIPT"; then
-    pass "lock file uses .swarm directory"
+# Test 3: no orphan sweep — the half that actively caused corruption.
+if grep -v '^[[:space:]]*#' "$SCRIPT" | grep -qE 'pkill|killall|kill +-9'; then
+    fail "orphan-sweep style process kill reintroduced — removed in t-2085 (killed live writers)"
 else
-    fail "lock file not using .swarm directory"
+    pass "no orphan sweep (t-2085)"
 fi
 
-# Test 4: Second instance exits when lock is held
-# Hold the real lock file, then verify a second script call exits non-zero
-REAL_LOCK="$HOME/.swarm/ruflo-mcp.lock"
-mkdir -p "$HOME/.swarm"
-# Acquire the lock ourselves (non-blocking), then call the script
-(
-    exec 9>"$REAL_LOCK"
-    flock -n 9 || { echo "Could not acquire test lock — lock already held, skipping test 4"; exit 0; }
-    # Lock held; now run the real script — it should exit 1 immediately
-    _r=0; timeout 5 bash "$SCRIPT" --version 2>/dev/null || _r=$?
-    echo "$_r"
-) > /tmp/t4_exit.txt 2>&1 || true
-T4_EXIT="$(cat /tmp/t4_exit.txt | tail -1 | tr -d '[:space:]')"
-if [ "$T4_EXIT" = "1" ]; then
-    pass "second instance exits non-zero when lock is held (exit: $T4_EXIT)"
+# Test 4: the WAL rationale stays documented, so the next reader does not
+# "restore" the mutex as a missing safety feature.
+if grep -qi 'WAL' "$SCRIPT"; then
+    pass "WAL concurrency rationale documented in script"
 else
-    fail "second instance did NOT exit when lock was held (got: '$T4_EXIT') — flock not enforced"
+    fail "WAL rationale missing from script header — removal risks being undone"
 fi
-rm -f /tmp/t4_exit.txt
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

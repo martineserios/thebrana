@@ -18,6 +18,8 @@ TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
 git -C "$TMPDIR" init -q
+git -C "$TMPDIR" config user.email "test@test.com"
+git -C "$TMPDIR" config user.name "Test"
 mkdir -p "$TMPDIR/.claude" "$TMPDIR/src"
 echo "# test" > "$TMPDIR/README.md"
 git -C "$TMPDIR" add -A

@@ -7,14 +7,26 @@ set -euo pipefail
 #   2. Output is valid JSON
 #   3. Output contains "continue": true
 #
-# Run AFTER deploy.sh — tests the deployed copies in ~/.claude/hooks/
+# Run AFTER deploy.sh — tests the deployed copies in ~/.claude/hooks/.
+# On a non-bootstrapped runner (CI) the deployed dir does not exist, so fall back
+# to the repo source that bootstrap copies verbatim — same bytes, and a regression
+# is then caught before deploy rather than after (t-2492).
 
-HOOKS_DIR="$HOME/.claude/hooks"
+if [ -d "$HOME/.claude/hooks" ]; then
+    HOOKS_DIR="$HOME/.claude/hooks"
+else
+    HOOKS_DIR="$(cd "$(dirname "$0")/../../system/hooks" && pwd)"
+fi
 ERRORS=0
 PASSED=0
 
 echo "=== Hook Smoke Test ==="
 echo ""
+
+# Fixture repos must NOT live under /tmp: pre-tool-use.sh step 3a passes through any
+# file_path under /tmp/* ("no project gates apply outside the repo"), which short-circuits
+# the spec-gate assertions below before the gate is ever reached (t-2492).
+mktemp_repo() { mktemp -d "${HOME}/.brana-test-XXXXXX"; }
 
 fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); }
 pass() { echo "  PASS: $1"; PASSED=$((PASSED + 1)); }
@@ -179,11 +191,13 @@ run_pre_hook() {
 
 # Test 6: Allows spec files on feat/* branches
 echo "  Test 6: allows spec files on feat/* branches..."
-TMPDIR6=$(mktemp -d)
+TMPDIR6=$(mktemp_repo)
 trap "rm -rf $TMPDIR6" EXIT
 (
     cd "$TMPDIR6"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
     mkdir -p docs/decisions
@@ -202,10 +216,12 @@ rm -rf "$TMPDIR6"
 
 # Test 7: Blocks impl files without spec activity
 echo "  Test 7: blocks impl files without spec activity..."
-TMPDIR7=$(mktemp -d)
+TMPDIR7=$(mktemp_repo)
 (
     cd "$TMPDIR7"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
     mkdir -p docs/decisions
@@ -224,10 +240,12 @@ rm -rf "$TMPDIR7"
 
 # Test 8: Passes through without docs/decisions/
 echo "  Test 8: passes through without docs/decisions/..."
-TMPDIR8=$(mktemp -d)
+TMPDIR8=$(mktemp_repo)
 (
     cd "$TMPDIR8"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
 ) >/dev/null 2>&1
@@ -245,12 +263,17 @@ rm -rf "$TMPDIR8"
 
 # Test 9: Passes through on non-feat branches
 echo "  Test 9: passes through on non-feat branches..."
-TMPDIR9=$(mktemp -d)
+TMPDIR9=$(mktemp_repo)
 (
     cd "$TMPDIR9"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
-    git checkout -b fix/something -q
+    # docs/* is genuinely unenforced. fix/* is NOT — the gate covers feat/*, fix/*
+    # and refactor/* alike (pre-tool-use.sh step 6), so the old fix/* fixture only
+    # ever "passed" because the /tmp exclusion short-circuited the gate (t-2492).
+    git checkout -b docs/something -q
     mkdir -p docs/decisions
 ) >/dev/null 2>&1
 OUTPUT9=$(run_pre_hook "$(jq -n \
@@ -267,10 +290,12 @@ rm -rf "$TMPDIR9"
 
 # Test 10: Passes through on system/* files (brana implementation paths)
 echo "  Test 10: passes through on system/* files on feat/* branches..."
-TMPDIR10=$(mktemp -d)
+TMPDIR10=$(mktemp_repo)
 (
     cd "$TMPDIR10"
     git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
     git commit --allow-empty -m "init" -q
     git checkout -b feat/test -q
     mkdir -p docs/decisions system/hooks
@@ -333,15 +358,23 @@ make_feat_repo() {
     (
         cd "$dir"
         git init -q
+        git config user.email "test@test.com"
+        git config user.name "Test"
         git commit --allow-empty -m "init" -q
         git checkout -b feat/test -q
         mkdir -p docs/decisions
+        # Commit real spec activity so the spec-first gate (steps 8-11) is satisfied.
+        # These are tool-layer guard tests — without this they'd be denied for an
+        # unrelated reason and assert nothing about the tool-layer guard (t-2492).
+        echo "# ADR" > docs/decisions/ADR-001.md
+        git add -A
+        git commit -q -m "spec"
     ) >/dev/null 2>&1
 }
 
 # Test 13: Write to ~/.claude/settings.json → denied (highest-risk global config)
 echo "  Test 13: write to settings.json is denied..."
-TMPDIR13=$(mktemp -d)
+TMPDIR13=$(mktemp_repo)
 make_feat_repo "$TMPDIR13"
 OUTPUT13=$(run_pre_hook "$(jq -n \
     --arg tool "Write" \
@@ -357,7 +390,7 @@ rm -rf "$TMPDIR13"
 
 # Test 14: Write to hooks.json → allowed but warns (normal dev path)
 echo "  Test 14: write to hooks/hooks.json passes through with warning..."
-TMPDIR14=$(mktemp -d)
+TMPDIR14=$(mktemp_repo)
 make_feat_repo "$TMPDIR14"
 mkdir -p "$TMPDIR14/system/hooks"
 OUTPUT14=$(run_pre_hook "$(jq -n \
@@ -374,7 +407,7 @@ rm -rf "$TMPDIR14"
 
 # Test 15: Write to .mcp.json → allowed but warns
 echo "  Test 15: write to .mcp.json passes through with warning..."
-TMPDIR15=$(mktemp -d)
+TMPDIR15=$(mktemp_repo)
 make_feat_repo "$TMPDIR15"
 OUTPUT15=$(run_pre_hook "$(jq -n \
     --arg tool "Write" \

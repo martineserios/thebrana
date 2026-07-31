@@ -143,7 +143,7 @@ echo ""
 echo "Test 2: Wave 2 blocking — feedback_*.md write returns continue:false"
 if [ -f "$HOOK" ]; then
     output=$(invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md")
-    assert_contains "output contains continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+    assert_contains "output contains continue:false" '"permissionDecision"[[:space:]]*:[[:space:]]*"deny"' "$output"
     invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md" > /dev/null 2>&1
     exit_code=$?
     assert_exit_code "exit code 0 (hook exits cleanly even when blocking)" "0" "$exit_code"
@@ -225,7 +225,9 @@ if [ -f "$HOOK" ]; then
     output=$(invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md")
     rm -f "$SENTINEL"
     assert_contains "sentinel present → continue:true" '"continue"[[:space:]]*:[[:space:]]*true' "$output"
-    assert_not_contains "sentinel present → no block message" "BLOCKED" "$output"
+    # Needle was "BLOCKED", a string feedback-gate.sh never emits — the assertion could
+# not fail. Check for the deny payload the hook actually produces (t-2492).
+assert_not_contains "sentinel present → no block message" '"permissionDecision"' "$output"
 else
     assert "hook exists (skip sentinel test)" "exists" "missing"
     assert "hook exists (skip sentinel test)" "exists" "missing"
@@ -237,7 +239,7 @@ echo "Test 11: No sentinel — blocking resumes (continue:false)"
 if [ -f "$HOOK" ]; then
     rm -f /tmp/brana-close-active
     output=$(invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md")
-    assert_contains "no sentinel → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+    assert_contains "no sentinel → continue:false" '"permissionDecision"[[:space:]]*:[[:space:]]*"deny"' "$output"
 else
     assert "hook exists (skip no-sentinel test)" "exists" "missing"
 fi
@@ -260,7 +262,7 @@ echo ""
 echo "Test 13: CLAUDE.md write — unconditionally blocked (continue:false)"
 if [ -f "$HOOK" ]; then
     output=$(invoke_hook "$HOME/.claude/CLAUDE.md")
-    assert_contains "CLAUDE.md → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+    assert_contains "CLAUDE.md → continue:false" '"permissionDecision"[[:space:]]*:[[:space:]]*"deny"' "$output"
     assert_contains "CLAUDE.md → Layer 1 message" "Layer 1" "$output"
 else
     assert "hook exists (skip CLAUDE.md block test)" "exists" "missing"
@@ -272,7 +274,7 @@ echo ""
 echo "Test 14: Project .claude/CLAUDE.md write — blocked"
 if [ -f "$HOOK" ]; then
     output=$(invoke_hook "$REPO_ROOT/.claude/CLAUDE.md")
-    assert_contains "project CLAUDE.md → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+    assert_contains "project CLAUDE.md → continue:false" '"permissionDecision"[[:space:]]*:[[:space:]]*"deny"' "$output"
 else
     assert "hook exists (skip project CLAUDE.md test)" "exists" "missing"
 fi
@@ -285,7 +287,7 @@ if [ -f "$HOOK" ]; then
     touch "$SENTINEL"
     output=$(invoke_hook "$HOME/.claude/CLAUDE.md")
     rm -f "$SENTINEL"
-    assert_contains "CLAUDE.md + sentinel → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+    assert_contains "CLAUDE.md + sentinel → continue:false" '"permissionDecision"[[:space:]]*:[[:space:]]*"deny"' "$output"
     assert_not_contains "CLAUDE.md + sentinel → no pass-through" '"continue"[[:space:]]*:[[:space:]]*true' "$output"
 else
     assert "hook exists (skip CLAUDE.md+sentinel test)" "exists" "missing"

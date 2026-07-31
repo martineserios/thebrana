@@ -57,7 +57,14 @@ Gather context from (in priority order):
 
 ### Output
 
-Write to `docs/architecture/features/{feature-slug}.md` using the template at `system/skills/build/templates/tech-doc.md`.
+Write to `docs/architecture/features/{feature-slug}.md` with these sections:
+
+| Section | Contents |
+|---------|----------|
+| `## Goal` | What the feature does and the problem it solves |
+| `## Design Decisions` | Choices made and why, linking any ADRs |
+| `## Code Flow` | Entry points and the path through the code |
+| `## Testing` | What is covered, and how to run it |
 
 ### Steps
 
@@ -101,7 +108,13 @@ Same as `tech`, plus:
 
 ### Output
 
-Write to `docs/guide/features/{feature-slug}.md` using the template at `system/skills/build/templates/user-guide.md`.
+Write to `docs/guide/features/{feature-slug}.md` with these sections:
+
+| Section | Contents |
+|---------|----------|
+| `## Quick Start` | Shortest copy-pasteable path to first useful result |
+| `## How It Works` | Observable behaviour, in user terms — not implementation |
+| `## Examples` | Real invocations with their output |
 
 ### Steps
 
@@ -257,7 +270,7 @@ When `docs/spec-graph.json` exists and nodes have doc routing fields (`guide_fil
 
 ## Rules
 
-1. **Templates are the source of truth** for doc structure. Always use `system/skills/build/templates/tech-doc.md` and `user-guide.md`.
+1. **The section tables above are the source of truth** for doc structure — see the Output section of `tech` and `guide`. (They replaced the standalone template files that were removed when doc generation moved here in t-476; the pointers to them outlived the files themselves.)
 2. **Never auto-edit workflow docs** — too much coherence risk. Flag them for the user.
 3. **Diff preview before updating existing docs** — show what would change, get approval.
 4. **Philosophy.md grows incrementally** — append insights, don't rewrite.

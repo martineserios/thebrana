@@ -15,6 +15,22 @@ FAIL=0
 
 pass() { PASS=$((PASS + 1)); echo "  ✓ $1"; }
 fail() { FAIL=$((FAIL + 1)); echo "  ✗ $1"; }
+skip() { echo "  ⊘ SKIP: $1"; }
+
+# This suite drives the real sync-state.sh against the real repo, so `export`
+# writes system/state/patterns-export.json into the working tree. Left behind, it
+# breaks an unrelated test: test-retire-when greps system/ for "retire-when:" and
+# the export embeds pattern prose describing that convention, so it counts as a
+# third annotated artifact. Remove the file on exit unless it was already there.
+EXPORT_PATH="$REPO_ROOT/system/state/patterns-export.json"
+EXPORT_PREEXISTED=false
+[ -f "$EXPORT_PATH" ] && EXPORT_PREEXISTED=true
+cleanup_export() {
+    if [ "$EXPORT_PREEXISTED" = false ]; then
+        rm -f "$EXPORT_PATH" 2>/dev/null || true
+    fi
+}
+trap cleanup_export EXIT
 
 # Capture both stdout and stderr from a command
 run_sync() {
@@ -129,14 +145,17 @@ else
     fi
 fi
 
-# --- Test 7: snapshot without arg fails ---
+# --- Test 7: snapshot is no longer a subcommand (t-614) ---
+# t-614 removed MEMORY-snapshot.md along with sessions.md and session-handoff.md.
+# The dispatcher rejects `snapshot` outright; asserting it errors with "requires"
+# was asserting the argument handling of a command that no longer exists.
 echo ""
-echo "snapshot (no arg):"
+echo "snapshot (removed in t-614):"
 output=$(run_sync snapshot)
-if [[ "$output" == *"requires"* ]]; then
-    pass "snapshot without arg shows error"
+if [[ "$output" == *"Unknown command"* ]]; then
+    pass "snapshot is rejected as an unknown command"
 else
-    fail "snapshot without arg should report missing argument: $output"
+    fail "snapshot should be rejected — t-614 removed it: $output"
 fi
 
 # --- Test 8: export subcommand ---
@@ -203,31 +222,18 @@ else
     pass "companion sync — skipped (no portfolio file)"
 fi
 
-# --- Test 10: snapshot creates MEMORY-snapshot.md ---
+# --- Test 10: MEMORY-snapshot.md is not resurrected (t-614) ---
+# Was "snapshot creates MEMORY-snapshot.md". t-614 deleted that artifact
+# deliberately, so the invariant now runs the other way: nothing should recreate
+# it. Note the old version wrote into $REPO_ROOT/.claude/memory/ and removed the
+# file on the restore path even when it had not created it.
 echo ""
-echo "snapshot output:"
-SNAPSHOT_DIR="$REPO_ROOT/.claude/memory"
-mkdir -p "$SNAPSHOT_DIR" 2>/dev/null || true
-# Save original if exists
-[ -f "$SNAPSHOT_DIR/MEMORY-snapshot.md" ] && cp "$SNAPSHOT_DIR/MEMORY-snapshot.md" "/tmp/test-snapshot-backup-$$.md"
-
-output=$(run_sync snapshot "$REPO_ROOT")
-if [ -f "$SNAPSHOT_DIR/MEMORY-snapshot.md" ]; then
-    pass "snapshot creates MEMORY-snapshot.md"
+echo "snapshot artifact (removed in t-614):"
+SNAPSHOT_FILE="$REPO_ROOT/.claude/memory/MEMORY-snapshot.md"
+if [ -f "$SNAPSHOT_FILE" ]; then
+    fail "MEMORY-snapshot.md exists — t-614 removed it"
 else
-    # May not exist if no CC MEMORY.md found for this project
-    if [[ "$output" == *"skipped"* ]]; then
-        pass "snapshot correctly skipped (no MEMORY.md for project)"
-    else
-        fail "snapshot did not create MEMORY-snapshot.md"
-    fi
-fi
-
-# Restore
-if [ -f "/tmp/test-snapshot-backup-$$.md" ]; then
-    mv "/tmp/test-snapshot-backup-$$.md" "$SNAPSHOT_DIR/MEMORY-snapshot.md"
-else
-    rm -f "$SNAPSHOT_DIR/MEMORY-snapshot.md"
+    pass "MEMORY-snapshot.md stays removed"
 fi
 
 # --- Test 11: import without export file ---
@@ -252,6 +258,10 @@ if [ -f "$EXPORT_FILE" ]; then
     knowledge_count=$(jq '.namespaces.knowledge | length' "$EXPORT_FILE" 2>/dev/null) || knowledge_count=0
     if [ "$knowledge_count" -gt 0 ]; then
         pass "export has $knowledge_count knowledge entries (not empty)"
+    elif ! command -v ruflo >/dev/null 2>&1 || [ ! -f "$HOME/.swarm/memory.db" ]; then
+        # An unprovisioned runner has no ruflo store, so an empty export is the
+        # correct result rather than a defect. Assert only where there is data.
+        skip "no ruflo memory store under \$HOME — empty export is expected"
     else
         fail "export knowledge namespace is empty (expected >0)"
     fi

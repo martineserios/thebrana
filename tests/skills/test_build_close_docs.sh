@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Test: /brana:build CLOSE step doc generation templates exist and are well-formed
+# Test: CLOSE-step doc generation is specified and reachable
 # Validates: t-382 — auto-generate tech docs + user guide in CLOSE step
+#
+# t-476 moved generation out of /brana:build and into /brana:docs, and the
+# standalone templates under system/skills/build/templates/ were removed with it.
+# /brana:docs generates inline, so the doc STRUCTURE now lives in that skill's
+# Output tables rather than in template files. The contract under test is
+# therefore: docs/SKILL.md specifies the sections and the output paths, and
+# build's CLOSE phase delegates to it.
 
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SKILL_MD="$REPO_ROOT/system/skills/build/SKILL.md"
-TECH_TEMPLATE="$REPO_ROOT/system/skills/build/templates/tech-doc.md"
-USER_TEMPLATE="$REPO_ROOT/system/skills/build/templates/user-guide.md"
+DOCS_SKILL="$REPO_ROOT/system/skills/docs/SKILL.md"
+CLOSE_PHASE="$REPO_ROOT/system/skills/build/phases/close.md"
 
 PASS=0
 FAIL=0
@@ -26,30 +32,37 @@ assert() {
 
 echo "=== Build CLOSE Docs Tests ==="
 
-# Template files exist
-assert "Tech doc template exists" test -f "$TECH_TEMPLATE"
-assert "User guide template exists" test -f "$USER_TEMPLATE"
+# The two files that carry the contract
+assert "docs SKILL.md exists" test -f "$DOCS_SKILL"
+assert "build CLOSE phase exists" test -f "$CLOSE_PHASE"
 
-# Templates have required sections
-assert "Tech template has Goal section" grep -q "## Goal" "$TECH_TEMPLATE"
-assert "Tech template has Design Decisions section" grep -q "## Design Decisions" "$TECH_TEMPLATE"
-assert "Tech template has Code Flow section" grep -q "## Code Flow" "$TECH_TEMPLATE"
-assert "Tech template has Testing section" grep -qi "## Test" "$TECH_TEMPLATE"
+# Tech doc structure is specified
+assert "tech doc specifies Goal section" grep -q "## Goal" "$DOCS_SKILL"
+assert "tech doc specifies Design Decisions section" grep -q "## Design Decisions" "$DOCS_SKILL"
+assert "tech doc specifies Code Flow section" grep -q "## Code Flow" "$DOCS_SKILL"
+assert "tech doc specifies Testing section" grep -qi "## Test" "$DOCS_SKILL"
 
-assert "User guide has Quick Start section" grep -qi "## Quick [Ss]tart" "$USER_TEMPLATE"
-assert "User guide has How It Works section" grep -qi "## How [Ii]t [Ww]orks" "$USER_TEMPLATE"
-assert "User guide has Examples section" grep -qi "## Examples" "$USER_TEMPLATE"
+# User guide structure is specified
+assert "user guide specifies Quick Start section" grep -qi "## Quick [Ss]tart" "$DOCS_SKILL"
+assert "user guide specifies How It Works section" grep -qi "## How [Ii]t [Ww]orks" "$DOCS_SKILL"
+assert "user guide specifies Examples section" grep -qi "## Examples" "$DOCS_SKILL"
 
-# SKILL.md references the templates
-assert "SKILL.md references tech doc template" grep -q "tech-doc.md\|tech doc template" "$SKILL_MD"
-assert "SKILL.md references user guide template" grep -q "user-guide.md\|user guide template" "$SKILL_MD"
+# CLOSE delegates rather than generating inline (t-476)
+assert "CLOSE delegates doc generation to /brana:docs" grep -q "brana:docs" "$CLOSE_PHASE"
 
-# SKILL.md has strategy routing (which strategies get which docs)
-assert "SKILL.md mentions strategy-aware doc generation" grep -q "feature.*greenfield\|strategy.*doc" "$SKILL_MD"
+# No dangling references to the removed templates — these outlived the files
+# once already, which is how /brana:docs ended up pointing at nothing.
+assert "no stale build/templates references in docs skill" \
+  bash -c '! grep -q "build/templates" "$0"' "$DOCS_SKILL"
+assert "no stale build/templates references in CLOSE phase" \
+  bash -c '! grep -q "build/templates" "$0"' "$CLOSE_PHASE"
 
-# Output directories referenced
-assert "SKILL.md references docs/architecture/features/" grep -q "docs/architecture/features/" "$SKILL_MD"
-assert "SKILL.md references docs/guide/features/" grep -q "docs/guide/features/" "$SKILL_MD"
+# Strategy routing decides which docs a build gets
+assert "docs skill has strategy-aware generation" grep -q "feature.*greenfield\|Strategy.*Tech Doc\|strategy.*doc" "$DOCS_SKILL"
+
+# Output directories
+assert "docs skill references docs/architecture/features/" grep -q "docs/architecture/features/" "$DOCS_SKILL"
+assert "docs skill references docs/guide/features/" grep -q "docs/guide/features/" "$DOCS_SKILL"
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

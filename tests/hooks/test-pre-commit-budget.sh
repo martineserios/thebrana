@@ -47,7 +47,11 @@ make_brana_repo() {
     git -C "$dir" config user.email "test@test.com"
     git -C "$dir" config user.name "Test"
     # Minimal brana structure needed for budget gate to activate
-    mkdir -p "$dir/system/skills/my-skill" "$dir/system/hooks" "$dir/system/rules" "$dir/system/agents"
+    mkdir -p "$dir/system/skills/my-skill" "$dir/system/hooks" "$dir/system/rules" "$dir/system/agents" "$dir/system/scripts"
+    # t-2177 made the pre-commit hook delegate to ${SYSTEM_DIR}/scripts/context-budget.sh,
+    # resolved against the repo under test. Absent, `[ -f ]` is false and the hook skips
+    # the budget gate entirely and exits 0 — so every assertion below passed vacuously.
+    cp "$REPO_ROOT/system/scripts/context-budget.sh" "$dir/system/scripts/context-budget.sh"
     # Minimal initial commit so git is usable
     touch "$dir/README.md"
     git -C "$dir" add README.md
@@ -95,14 +99,17 @@ echo "Test 3: budget over limit → commit blocked"
 TMPDIR3=$(mktemp -d)
 trap 'rm -rf "$TMPDIR3"' EXIT
 make_brana_repo "$TMPDIR3"
-# Write a 30KB CLAUDE.md (exceeds 28672 limit on its own)
+# Write a 30KB CLAUDE.md (exceeds AUTHORED_LIMIT on its own)
 python3 -c "print('# ' + 'x' * 30000)" > "$TMPDIR3/system/CLAUDE.md"
 mkdir -p "$TMPDIR3/system/skills/sk" "$TMPDIR3/system/agents"
 EXIT3=0; OUT3=$(cd "$TMPDIR3" && bash "$HOOK" 2>&1) || EXIT3=$?
 assert_exit "over-budget → exit 1" 1 "$EXIT3"
 assert_contains "over-budget → shows COMMIT BLOCKED" "COMMIT BLOCKED" "$OUT3"
 assert_contains "over-budget → shows byte count" "bytes" "$OUT3"
-assert_contains "over-budget → shows limit" "28672" "$OUT3"
+# The single 28672 budget was split into AUTHORED_LIMIT (22528, CLAUDE.md +
+# always-load rules) and DESC_LIMIT (10240, skill/agent descriptions). 28672 is
+# no longer emitted anywhere; an oversized CLAUDE.md trips the authored limit.
+assert_contains "over-budget → shows limit" "22528" "$OUT3"
 
 # ── Test 4: paths: rules excluded from budget ────────────────────────────────
 echo "Test 4: rule with paths: frontmatter → excluded from always-loaded budget"

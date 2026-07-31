@@ -167,8 +167,12 @@ assert_file_contains "blocked change also logged" 'ANTHROPIC_BASE_URL|anthropic_
 echo ""
 
 # ── Test 11: ConfigChange hook wired at user level (t-1417) ──────────────────
-echo "Test 11: ConfigChange wired in ~/.claude/settings.json (user-level)"
-USER_SETTINGS="$HOME/.claude/settings.json"
+# bootstrap.sh:433-449 deliberately strips .hooks from ~/.claude/settings.json
+# ("now served by plugin hooks.json"), so the deployed file has hooks == {} and this
+# assertion had gone stale. The wiring now lives in the repo-tracked plugin manifest,
+# which is also what makes this check runnable without a deploy (t-2492).
+echo "Test 11: ConfigChange wired in system/hooks/hooks.json (plugin-level)"
+USER_SETTINGS="$REPO_ROOT/system/hooks/hooks.json"
 wiring_found=$(python3 -c "
 import json, sys
 try:
@@ -186,7 +190,7 @@ except Exception as e:
     print('missing')
 " 2>/dev/null)
 assert_contains \
-    "config-change-guard.sh wired to ConfigChange in ~/.claude/settings.json" \
+    "config-change-guard.sh wired to ConfigChange in system/hooks/hooks.json" \
     "found" \
     "$wiring_found"
 echo ""

@@ -30,6 +30,12 @@ assert_contains() {
     TOTAL=$((TOTAL+1))
     if [[ "$haystack" == *"$needle"* ]]; then
         PASS=$((PASS+1)); echo "  PASS: $desc"
+    elif [ -z "$haystack" ]; then
+        # Distinguish "hook produced nothing" from "hook produced the wrong
+        # thing". T2/T3 invoke session-start.sh, which hangs under real session
+        # data (t-2511); an empty haystack then reported as a content mismatch
+        # and read as an assertion failure rather than the timeout it was.
+        FAIL=$((FAIL+1)); echo "  FAIL: $desc — NO OUTPUT from the hook (timeout/crash?), expected '$needle'"
     else
         FAIL=$((FAIL+1)); echo "  FAIL: $desc — '$needle' not in: ${haystack:0:200}"
     fi

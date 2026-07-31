@@ -60,6 +60,12 @@ else
     echo ""; echo "$PASS/$TOTAL passed"; exit 1
 fi
 
+# T2/T2d/T5/T6 exercise the `memory retrieve` read path, which needs ruflo (npm).
+# Without it flywheel-insight.sh degrades to a "retrieve failed" line by design, and
+# T2d (a negative assertion) would pass vacuously against that string. T1/T3/T4/T7
+# stay live in CI — they need no external binary (t-2492).
+if RUFLO_CLI_DRYRUN=1 bash "$REPO_ROOT/system/scripts/ruflo-cli.sh" --version >/dev/null 2>&1; then
+
 # T2 — two rows, distinct rates, latest must win and trend vs prior shown
 make_fixture
 sqlite3 "$FIXTURE_DB" "INSERT INTO memory_entries (id,key,namespace,content,created_at) VALUES
@@ -75,6 +81,10 @@ if [[ "$OUT" == *"0.99"* ]]; then
     FAIL=$((FAIL+1)); echo "  FAIL: T2d: other project's row leaked into observation"
 else
     PASS=$((PASS+1)); echo "  PASS: T2d: project-scoped (no cross-project leak)"
+fi
+
+else
+    echo "  SKIP: ruflo not installed (npm i -g ruflo) — T2/T2d need \`memory retrieve\`"
 fi
 
 # T3 — empty DB
@@ -96,6 +106,10 @@ else
     FAIL=$((FAIL+1)); echo "  FAIL: T4: session-start.sh does not reference flywheel-insight"
 fi
 
+# T5/T6 also need the ruflo `memory retrieve` read path (see the guard above):
+# only a real retrieve writes the access_count row that T5 asserts on.
+if RUFLO_CLI_DRYRUN=1 bash "$REPO_ROOT/system/scripts/ruflo-cli.sh" --version >/dev/null 2>&1; then
+
 # T5 — the read bumps access_count (the loop-closure metric, AC2)
 make_fixture
 sqlite3 "$FIXTURE_DB" "INSERT INTO memory_entries (id,key,namespace,content,created_at) VALUES
@@ -111,6 +125,10 @@ fi
 
 # T6 — retrieve path actually parsed (fields present in observation)
 assert_contains "T6: observation built from retrieved fields" "correction_rate 0.15" "$OUT5"
+
+else
+    echo "  SKIP: ruflo not installed (npm i -g ruflo) — T5/T6 need \`memory retrieve\`"
+fi
 
 # T7 — non-slug project name degrades loudly-gracefully, never hits SQL
 OUT=$(bash "$INSIGHT" "bad'name" "$FIXTURE_DB" 2>&1); RC=$?

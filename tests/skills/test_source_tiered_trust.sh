@@ -3,8 +3,10 @@
 # Spec (t-842): acquire-skills classifies sources by trust tier and applies
 # different install behaviors per tier. Tiers: trusted (anthropics/*),
 # verified (skills.sh/official), community (quarantine), unknown (blocked).
-# Spec (t-843): /brana:audit gains incoming skill scanning for dangerous
-# patterns in allowed-tools, credential paths, and missing frontmatter.
+# Spec (t-843): incoming skill scanning for dangerous patterns in allowed-tools,
+# credential paths, and missing frontmatter. The standalone /brana:audit skill
+# that originally carried this was folded into /brana:reconcile --scope security
+# (2b4495e5); the check now lives there as SEC-6 "Acquired skill safety".
 # Run: bash tests/skills/test_source_tiered_trust.sh
 
 set -euo pipefail
@@ -12,7 +14,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ACQUIRE_SKILL="$REPO_ROOT/system/skills/acquire-skills/SKILL.md"
-AUDIT_SKILL="$REPO_ROOT/system/skills/audit/SKILL.md"
+# Was system/skills/audit/SKILL.md — the audit skill was folded into reconcile.
+SECURITY_PHASE="$REPO_ROOT/system/skills/reconcile/phases/security.md"
 
 PASS=0
 FAIL=0
@@ -33,7 +36,10 @@ assert() {
 assert_contains() {
     local desc="$1" needle="$2" file="$3"
     TOTAL=$((TOTAL + 1))
-    if grep -qE "$needle" "$file" 2>/dev/null; then
+    # Case-insensitive: these assert on prose and table cells, where the docs
+    # legitimately capitalise ("**Trusted**", "**Blocked**"). Matching case here
+    # made Tests 3 and 4 fail against text that says exactly what they require.
+    if grep -qiE "$needle" "$file" 2>/dev/null; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else
@@ -73,28 +79,29 @@ echo "Test 4: Unknown source handling"
 assert_contains "unknown source blocked or warned" "blocked|unknown.*warn|reject.*unknown|add source first" "$ACQUIRE_SKILL"
 
 # ══════════════════════════════════════════════
-# t-843: Audit incoming skill scan
+# t-843: Incoming skill scan (now reconcile --scope security, SEC-6)
 # ══════════════════════════════════════════════
 
-echo "--- t-843: Audit incoming skill scan ---"
+echo "--- t-843: Incoming skill scan (reconcile --scope security) ---"
 
-# ── Test 5: Audit skill exists ──
-echo "Test 5: Audit skill exists"
-assert "audit SKILL.md exists" "true" "$([ -f "$AUDIT_SKILL" ] && echo true || echo false)"
+# ── Test 5: Security phase exists ──
+echo "Test 5: Security phase exists"
+assert "reconcile security phase exists" "true" "$([ -f "$SECURITY_PHASE" ] && echo true || echo false)"
 
-# ── Test 6: Audit has incoming skill scan section ──
+# ── Test 6: Security phase has an incoming skill scan section ──
+# "acquired.*skill" is the current wording — SEC-6 "Acquired skill safety".
 echo "Test 6: Incoming skill scan"
-assert_contains "incoming skill scan section" "incoming.*skill|skill.*scan|acquired.*scan" "$AUDIT_SKILL"
+assert_contains "incoming skill scan section" "incoming.*skill|skill.*scan|acquired.*skill" "$SECURITY_PHASE"
 
 # ── Test 7: Dangerous patterns checked ──
 echo "Test 7: Dangerous pattern detection"
-assert_contains "checks allowed-tools" "allowed-tools|allowed.tools" "$AUDIT_SKILL"
-assert_contains "checks for dangerous Bash" "Bash.*rm|rm -rf|dangerous" "$AUDIT_SKILL"
-assert_contains "checks credential paths" "credential|.env|settings.json" "$AUDIT_SKILL"
+assert_contains "checks allowed-tools" "allowed-tools|allowed.tools" "$SECURITY_PHASE"
+assert_contains "checks for dangerous Bash" "Bash.*rm|rm -rf|dangerous" "$SECURITY_PHASE"
+assert_contains "checks credential paths" "credential|.env|settings.json" "$SECURITY_PHASE"
 
 # ── Test 8: Missing frontmatter flagged ──
 echo "Test 8: Frontmatter validation"
-assert_contains "missing frontmatter check" "frontmatter|missing.*field|required.*field" "$AUDIT_SKILL"
+assert_contains "missing frontmatter check" "frontmatter|missing.*field|required.*field" "$SECURITY_PHASE"
 
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="
