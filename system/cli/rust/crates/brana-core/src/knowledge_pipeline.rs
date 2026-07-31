@@ -668,6 +668,51 @@ pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
 /// `call_claude_json`'s plain-text 180s budget would allow on its own.
 const LINKEDIN_MCP_TIMEOUT_SECS: u64 = 240;
 
+/// Per-stream cap on child output quoted into a timeout error. A hung MCP
+/// server can emit megabytes; an unbounded error is unreadable in a log and
+/// useless in a scheduler notification.
+const TIMEOUT_TAIL_CHARS: usize = 800;
+
+/// Build the error text for a killed-on-timeout child, preserving whatever
+/// it managed to write.
+///
+/// Pure so the truncation and the empty case are testable without spawning
+/// anything. The empty case is reported explicitly: a child that wrote
+/// *nothing* before the kill indicates a different fault than one that
+/// errored loudly, and a blank tail would read as the latter.
+fn timeout_diagnostic(secs: u64, stdout: &str, stderr: &str) -> String {
+    fn tail(s: &str) -> Option<String> {
+        let t = s.trim();
+        if t.is_empty() {
+            return None;
+        }
+        let chars: Vec<char> = t.chars().collect();
+        if chars.len() <= TIMEOUT_TAIL_CHARS {
+            return Some(t.to_string());
+        }
+        let start = chars.len() - TIMEOUT_TAIL_CHARS;
+        Some(format!(
+            "…(truncated, showing last {TIMEOUT_TAIL_CHARS} of {} chars) {}",
+            chars.len(),
+            chars[start..].iter().collect::<String>()
+        ))
+    }
+
+    let mut msg = format!("claude CLI (MCP) timed out after {secs}s");
+    match (tail(stdout), tail(stderr)) {
+        (None, None) => msg.push_str(" — child produced no output before it was killed"),
+        (out, err) => {
+            if let Some(e) = err {
+                msg.push_str(&format!("\n  child stderr: {e}"));
+            }
+            if let Some(o) = out {
+                msg.push_str(&format!("\n  child stdout: {o}"));
+            }
+        }
+    }
+    msg
+}
+
 /// Resolve the `linkedin-scraper-mcp` binary path.
 ///
 /// Resolution order (mirrors `resolve_ruflo_binary`/`resolve_agy_binary`/
@@ -861,8 +906,18 @@ fn call_claude_json_with_mcp(
             Ok(None) => {
                 if start.elapsed() > timeout {
                     let _ = child.kill();
-                    let _ = child.wait();
-                    bail!("claude CLI (MCP) timed out after {LINKEDIN_MCP_TIMEOUT_SECS}s");
+                    // Drain the pipes before giving up. Killing and bailing
+                    // without reading them discards the only evidence of what
+                    // the child was doing — which is exactly why a 240s
+                    // timeout was undiagnosable from its own message (t-2568).
+                    let (out, err) = match child.wait_with_output() {
+                        Ok(o) => (
+                            String::from_utf8_lossy(&o.stdout).into_owned(),
+                            String::from_utf8_lossy(&o.stderr).into_owned(),
+                        ),
+                        Err(_) => (String::new(), String::new()),
+                    };
+                    bail!("{}", timeout_diagnostic(LINKEDIN_MCP_TIMEOUT_SECS, &out, &err));
                 }
                 std::thread::sleep(std::time::Duration::from_millis(100));
             }
@@ -1876,6 +1931,39 @@ mod tests {
     // this is deliberately fail-closed: a usable session must be
     // positively confirmed, and anything else is an error naming the
     // one-time remediation command.
+
+    #[test]
+    fn timeout_diagnostic_includes_what_the_child_wrote() {
+        // t-2557 AC-3. A killed child's piped output used to be dropped on
+        // the floor: the caller got "timed out after 240s" and nothing else,
+        // which is why t-2568 could not be diagnosed from its own error.
+        let msg = timeout_diagnostic(240, "partial stdout here", "Chromium launch failed");
+        assert!(msg.contains("240s"));
+        assert!(msg.contains("Chromium launch failed"), "child stderr must survive: {msg}");
+        assert!(msg.contains("partial stdout here"), "child stdout must survive: {msg}");
+    }
+
+    #[test]
+    fn timeout_diagnostic_says_so_when_the_child_wrote_nothing() {
+        // Silence is itself the diagnosis — a child that produced nothing
+        // before the kill points at a different fault than one that errored.
+        let msg = timeout_diagnostic(240, "", "   ");
+        assert!(msg.contains("240s"));
+        assert!(
+            msg.contains("no output"),
+            "an empty child must be reported as empty, not as a blank tail: {msg}"
+        );
+    }
+
+    #[test]
+    fn timeout_diagnostic_truncates_a_flood() {
+        // A hung MCP server can emit megabytes; the error must stay readable
+        // and must say it truncated rather than silently cutting.
+        let flood = "x".repeat(10_000);
+        let msg = timeout_diagnostic(240, "", &flood);
+        assert!(msg.len() < 3_000, "diagnostic must stay bounded: {} bytes", msg.len());
+        assert!(msg.contains("truncated"));
+    }
 
     #[test]
     fn session_health_live_session_is_ok() {

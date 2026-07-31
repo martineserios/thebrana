@@ -39,6 +39,7 @@ User-facing documentation. Start here.
 | Doc | Purpose |
 |-----|---------|
 | [knowledge-process-url.md](guide/features/knowledge-process-url.md) | `brana knowledge process-url` — fetch a link, extract an insight, store it; LinkedIn setup, batch mode, cron wiring |
+| [knowledge-drain-links.md](guide/features/knowledge-drain-links.md) | `brana knowledge drain-links` — drain pending link tasks; completion gated on the stored artifact, not exit status |
 | [async-close.md](guide/features/async-close.md) | Async close — what changed about ending a session |
 | [close-oriented-modes.md](guide/features/close-oriented-modes.md) | Oriented close modes |
 | [propagate-close-step.md](guide/features/propagate-close-step.md) | PROPAGATE — propagation-debt audit at close |
