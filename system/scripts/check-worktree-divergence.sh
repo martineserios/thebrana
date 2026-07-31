@@ -35,9 +35,17 @@ set -uo pipefail
 # Threshold justified by git-discipline.md §Keep branches short-lived ("Features:
 # days. Fixes: hours."), not fitted to the sample. The 2026-07-29 distribution
 # (0,0,0,4 then 37,39) has an empty span between 5 and 36, so it corroborates any
-# value in that range and can discriminate none of them. Revisit if IDLE fires on
-# the same worktree across 3+ consecutive validate runs.
-IDLE_THRESHOLD_DAYS="${IDLE_THRESHOLD_DAYS:-14}"
+# value in that range and can discriminate none of them.
+#
+# 7, not 14 (revised 2026-07-31, t-2547). The first draft used 14 as "several
+# times the longest sanctioned life". Measuring this repo's actual cadence made
+# that look loose: promotion to main happens at a MEDIAN OF 2 COMMITS, roughly
+# twice a day (79 ship events; mean 7, only 2 batches >= 50). In a workflow
+# moving at that rate, a worktree untouched for two weeks is not merely stale,
+# it is abandoned. 7d is one week — still generous against "Features: days" —
+# and it sits inside the same empty span, so it costs no false positives on the
+# observed tree.
+IDLE_THRESHOLD_DAYS="${IDLE_THRESHOLD_DAYS:-7}"
 
 ROOT="${1:-}"
 if [ -z "$ROOT" ]; then

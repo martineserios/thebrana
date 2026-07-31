@@ -122,20 +122,20 @@ assert_rc 0 "idle alone is an omission — exits 0"
 assert_contains "IDLE" "idle is named past the threshold"
 fixture_cleanup
 
-# Boundary: 13 days must NOT trip a 14-day threshold.
+# Boundary: exactly 7 days must NOT trip a >7d threshold (strict inequality).
 fixture_init
 fixture_task t-501 in_progress harness/feat/t-501-fresh
-fixture_worktree wt-fresh harness/feat/t-501-fresh 13
+fixture_worktree wt-fresh harness/feat/t-501-fresh 7
 run_check
-assert_not_contains "IDLE" "13d does not trip the 14d threshold"
+assert_not_contains "IDLE" "7d does not trip the 7d threshold (strict >)"
 fixture_cleanup
 
-# Boundary: 15 days must trip it.
+# Boundary: 8 days must trip it.
 fixture_init
 fixture_task t-502 in_progress harness/feat/t-502-old
-fixture_worktree wt-old harness/feat/t-502-old 15
+fixture_worktree wt-old harness/feat/t-502-old 8
 run_check
-assert_contains "IDLE" "15d trips the 14d threshold"
+assert_contains "IDLE" "8d trips the 7d threshold"
 fixture_cleanup
 
 # An idle worktree whose task is NOT in_progress is not "idle work" —

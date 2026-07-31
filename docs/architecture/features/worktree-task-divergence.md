@@ -5,7 +5,7 @@
 **Task:** t-2545
 
 ## Changelog
-- 2026-07-31: Check 68 implemented and merged to `dev` (t-2545). Threshold 14d;
+- 2026-07-31: Check 68 implemented and merged to `dev` (t-2545). Threshold 7d (revised from 14 on 2026-07-31);
   contradictions fail, omissions warn. Remediated the two live contradictions found by
   the check itself — t-2138's orphaned worktree removed, t-2173's branch field corrected
   from a branch that did not exist.
@@ -50,15 +50,24 @@ and are **not re-opened here**. This spec implements them. In summary:
 
 Two decisions were left open by t-2541 and are settled here (operator, 2026-07-29):
 
-**D1 — Idle threshold: 14 days.** Justified by this repo's own rule rather than fitted to
-the sample. `git-discipline.md` §Keep branches short-lived states "Features: days. Fixes:
-hours. Docs: one session." — 14 days is already several times the longest sanctioned life,
-so a branch crossing it has left the regime the rule describes.
+**D1 — Idle threshold: 7 days** (revised from 14 on 2026-07-31 — see below). Justified by
+this repo's own rule rather than fitted to the sample. `git-discipline.md` §Keep branches
+short-lived states "Features: days. Fixes: hours. Docs: one session." — a week is already
+generous against that, so a branch crossing it has left the regime the rule describes.
+
+**Revision (2026-07-31, from t-2547's measurement).** The value was first set to 14 as
+"several times the longest sanctioned life" — a qualitative argument the build evaluator
+flagged as the softest point in this spec. Measuring the repo's actual promotion cadence
+made 14 look loose: ship happens at a **median of 2 commits, roughly twice a day** (79 ship
+events; mean 7, only 2 batches ≥ 50). In a workflow moving that fast, a worktree untouched
+for two weeks is not stale but abandoned. 7d still sits inside the empty 5–36 day span of
+the observed distribution, so the tightening costs no false positives on the observed tree.
+This is the spec's own revisit trigger firing on new evidence — which is what it was for.
 
 The measured distribution *corroborates* but does not *set* the threshold. Worktree HEAD
 ages on 2026-07-29 were 0, 0, 0, 4 — then nothing at all until 37, 39. Every value in
 (4, 37] classifies today's tree identically, so the sample cannot discriminate between
-candidate thresholds and must not be used to pick one. 14d sits inside that gap, which
+candidate thresholds and must not be used to pick one. 7d sits inside that gap, which
 means it fires on zero false positives today; that is a property of the choice, not the
 reason for it.
 
@@ -201,11 +210,11 @@ as a bash script file. Do not port it back to an inline one-liner.
 | Always | Ask First | Never |
 |--------|-----------|-------|
 | Report divergence and name its category | Removing or pruning a worktree | Write to tasks.json / call `backlog set` |
-| Distinguish lookup failure from "no divergence" | Changing the 14d threshold | Auto-correct a stale `task.branch` field |
+| Distinguish lookup failure from "no divergence" | Changing the 7d threshold | Auto-correct a stale `task.branch` field |
 | Exclude the main checkout | Promoting IDLE/FIELD-NULL to `fail` | Alter the WIP cap or its inputs |
 
 **Revisit triggers** (the Ask-First rows are otherwise untestable intentions):
-- Reconsider the 14d threshold if IDLE fires on the same worktree across 3+ consecutive
+- Reconsider the 7d threshold if IDLE fires on the same worktree across 3+ consecutive
   validate runs — that means the warning is being read and ignored, not acted on.
 - Reconsider the warn severity of IDLE/FIELD-NULL under the same condition. This is the
   gap t-2531 left open in the WIP cap: a warning with no stated path to teeth stays
@@ -241,6 +250,6 @@ independently reproduced before being accepted.
 | 4 | A missing key and a null value both print `null` at exit 0, so a field rename would silently mean FIELD-NULL forever | **Accepted, reproduced:** `--field totally_bogus_field` → `null`, exit 0. Design now requires a schema self-test before any `null` is trusted. |
 | 3 | t-2531 cited as evidence the fail/warn split works, but the WIP cap's remedy never added such a split and remains advisory | **Accepted.** Citation demoted to shared diagnosis; D2 now rests on its own logic. |
 | 2 | ORPHAN suppression discards the idle age | **Accepted.** Age embedded in the ORPHAN line. |
-| 2 | 14d has no revisit trigger | **Accepted.** Revisit triggers added to Boundaries. |
+| 2 | threshold has no revisit trigger | **Accepted.** Revisit triggers added to Boundaries. |
 | 2 | Subprocess cost grows linearly with worktree count | **Accepted as a note**, not a change — ~1s today; batching recorded as the remedy if it grows. |
 | 2 | "Empty worktree with no commits" is near-unreachable | **Accepted.** Reworded to "commit-date lookup fails". |
