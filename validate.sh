@@ -2559,6 +2559,39 @@ fi
 echo ""
 fi  # should_run 67
 
+if should_run 68; then
+# Check 68 — live worktrees must agree with their task records (t-2545).
+# Measured 2026-07-29: only 2 of 5 worktrees agreed. One belonged to a task
+# completed 39 days earlier, one named a branch that does not exist, one had no
+# branch recorded. The orphan was found by eye — nothing checked for it.
+# Contradictions fail; omissions (unset field, idle, no task id) report only.
+# The script never repairs anything: auto-correcting would erase the drift rate.
+echo "Check 68: worktree/task divergence (t-2545)..."
+C68_CHECK="$SCRIPT_DIR/system/scripts/check-worktree-divergence.sh"
+if [ ! -f "$C68_CHECK" ]; then
+    warn "Check 68: $C68_CHECK not found — skipping"
+else
+    # Guarded substitution, as Check 67 does: validate.sh runs `set -euo
+    # pipefail`, so an unguarded non-zero here would abort the whole run.
+    if C68_OUT=$(bash "$C68_CHECK" "$SCRIPT_DIR" 2>&1); then
+        [ -n "$C68_OUT" ] && echo "$C68_OUT"
+        # Omissions must reach the WARNINGS counter. Printing them while the
+        # summary reports "Warnings: 0" would be a signal that does not mean
+        # what it says — the failure class this check was built to catch.
+        C68_OMIT=$(printf '%s\n' "$C68_OUT" | grep -cE '^  (FIELD-NULL|IDLE|NO-TASK-ID|DETACHED) ' || true)
+        if [ "${C68_OMIT:-0}" -gt 0 ]; then
+            warn "Check 68: $C68_OMIT worktree record(s) incomplete or stale — no contradiction, but drifting"
+        else
+            pass "Check 68: worktrees — all records agree"
+        fi
+    else
+        echo "$C68_OUT"
+        fail "Check 68: worktree/task contradiction — resolve by hand; this check never auto-corrects"
+    fi
+fi
+echo ""
+fi  # should_run 68
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
