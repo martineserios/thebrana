@@ -8,7 +8,9 @@ set -euo pipefail
 #   pull                   — repos → cache (new machine setup)
 #   export [--auto-commit] — ruflo patterns+decisions → repo JSON
 #   import                 — repo JSON → ruflo patterns+decisions
-#   snapshot <project-dir> — MEMORY.md snapshot for a specific project
+#
+# (snapshot was removed in t-614 along with MEMORY-snapshot.md; the dispatcher
+# rejects it as an unknown command. This header outlived the implementation.)
 #
 # Design: unidirectional per subcommand. push always writes cache→repo.
 # pull always writes repo→cache. No bidirectional "newer-wins" logic.

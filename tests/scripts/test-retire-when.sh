@@ -24,7 +24,14 @@ grep -q "retire-when: default model" "$REPO_ROOT/system/hooks/hallucination-dete
 grep -q "retire-when: default model" "$REPO_ROOT/system/hooks/bash-output-compress.sh"; check "T2: bash-output-compress.sh annotated" $?
 
 # T3 — the audit grep enumerates exactly the annotated artifact set
-FOUND=$(grep -rl "retire-when:" "$REPO_ROOT/system/" 2>/dev/null | sort | xargs -n1 basename 2>/dev/null)
+#
+# Scoped to hooks/ and scripts/ rather than all of system/. The annotation is a
+# source-code convention, but system/state/ holds generated data: a sync-state
+# run writes patterns-export.json there, and it embeds pattern prose describing
+# this very convention, which then counts as a third annotated artifact. That
+# made this test fail purely on whether sync-state had run first — it passed on
+# CI only because the glob happens to sort retire-when before sync-state.
+FOUND=$(grep -rl "retire-when:" "$REPO_ROOT/system/hooks/" "$REPO_ROOT/system/scripts/" 2>/dev/null | sort | xargs -n1 basename 2>/dev/null)
 EXPECTED="bash-output-compress.sh
 hallucination-detect.sh"
 [ "$FOUND" = "$EXPECTED" ]; check "T3: grep -r retire-when enumerates the full set" $?
