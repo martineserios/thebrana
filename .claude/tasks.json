@@ -65621,7 +65621,11 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "the 240s timeout is explained — either a root-caused hang with a fix, or a measured figure justifying a new budget",
+        "one LinkedIn URL fetched end-to-end via the tier-2 path, its knowledge:url:<slug> key verified present",
+        "if tier-2 is judged not worth fixing, that decision is recorded and drain-links degrades to the public path deliberately rather than by timeout"
+      ],
       "work_type": "implement",
       "ac_state": "none",
       "build_step": "diagnose",
@@ -65797,6 +65801,31 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2575",
+      "subject": "feedback-gate.sh cd /tmp before SCRIPT_DIR resolution silently disables the CLAUDE.md Layer-1 guard",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [],
+      "description": null,
+      "effort": "XS",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-31",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-07-31: Carried unfixed across three t-2492 sessions; filing so it stops drifting.\n\nsystem/hooks/feedback-gate.sh:10 runs `cd /tmp` BEFORE resolving SCRIPT_DIR from ${BASH_SOURCE[0]}. When the hook is invoked via a RELATIVE path, lib/layer1-paths.sh then fails to source and the CLAUDE.md Layer-1 guard silently stops working — no error, the gate just becomes a no-op.\n\nDoes not surface in tests: tests/hooks/test-feedback-gate.sh invokes an absolute \"$HOOK\", which resolves fine either way. So the suite is green while the production path can be dead.\n\nFix: resolve SCRIPT_DIR (and source layer1-paths.sh) BEFORE any cd. Same shape as the general rule — never cd before resolving BASH_SOURCE.\n\nAC: SCRIPT_DIR resolved before the cd /tmp\nAC: a regression test invokes the hook via a RELATIVE path and asserts the Layer-1 guard still fires\nAC: tests/hooks/test-feedback-gate.sh still passes (currently 27/27)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
