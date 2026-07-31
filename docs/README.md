@@ -207,6 +207,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
 | [skill-routing-in-backlog-start.md](architecture/features/skill-routing-in-backlog-start.md) | Semantic skill suggestion at task start (ADR-026, t-833) |
 | [operating-model.md](architecture/features/operating-model.md) | Operating model: auto-learning loop, 6-job taxonomy, unified maintenance, knowledge graph |
+| [worktree-task-divergence.md](architecture/features/worktree-task-divergence.md) | validate.sh Check 68 — detects worktrees whose branch and task record have diverged (t-2545) |
 
 ## Conventions (docs/conventions/)
 
@@ -241,6 +242,7 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 | [backlog-v3-schema-challenge-2026-07-20.md](reviews/backlog-v3-schema-challenge-2026-07-20.md) | Six-Hats deep challenge of the backlog v3 schema + ADR-065 — 20-skeptic verification, 9/10 findings held, PROCEED WITH CHANGES (all applied) |
 | [brana-v3-challenge-2026-07-19.md](reviews/brana-v3-challenge-2026-07-19.md) | 3-lens adversarial challenge of the brana-v3 redesign — unanimous RECONSIDER on v3.0; findings integrated into v3.1/v3.2 |
 | [knowledge-structure-audit-2026-06-11.md](reviews/knowledge-structure-audit-2026-06-11.md) | Ontology audit of knowledge structure — disjoint spec/memory TBoxes, missing typed relations, no lifecycle facet on memory; recommendations feed t-156 |
+| [ship-deferral-loop-2026-07-31.md](reviews/ship-deferral-loop-2026-07-31.md) | Investigation of the claimed ship-deferral loop — premise falsified, no loop exists; feeds ADR-075 (t-2547) |
 | [token-baseline.md](reviews/token-baseline.md) | Token cost baseline measurements |
 | [weekly-2026-04-17.md](reviews/weekly-2026-04-17.md) | Weekly review 2026-04-17 |
 

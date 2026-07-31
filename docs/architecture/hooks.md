@@ -145,6 +145,16 @@ Called by `session-end.sh` via fork — not wired to CC events directly.
 | `session-end-pattern-promotion.sh` | `session-end.sh` | Promote or demote recalled patterns based on session correction rate (t-203) |
 | `config-drift.sh` | `session-start.sh` | Compare `system/` source files vs deployed `~/.claude/` files and scan `.claude.json` for ADR-033 MCP violations. Outputs JSON: `{status, count, drifted[], mcp_violations[]}` |
 
+### Git-side hooks (pre-commit chain)
+
+Invoked from `system/scripts/git-hooks/pre-commit` (deployed to `~/.config/git/hooks/pre-commit`), not wired to CC events. They read the real staged index after `git add`, so the grader lives outside the agent's control.
+
+| Script | Called from | Purpose |
+|--------|-------------|---------|
+| `red-verification.sh` | git `pre-commit` | Registration gate for `/goal` TDD (ADR-061 §4, t-2216). Registers a newly-added staged test into `active-goal.json.tests_required[]` **only if its staged blob runs RED** — making the grader-immutability exemption earned rather than granted on trust. Fail-closed: green, un-runnable, timeout (124), or missing `jq` → not registered, so `goal-completion.sh` blocks auto-complete. Never blocks the commit (always exits 0). |
+
+> `secret-scan.sh` also runs in this chain but is dual-registered as a PreToolUse hook — see the Plugin hooks table above.
+
 ### Inactive
 
 | Hook | Status |
