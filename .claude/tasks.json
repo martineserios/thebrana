@@ -66096,6 +66096,34 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2585",
+      "subject": "close: orientation override forces INSTANT on NANO-content sessions, queueing state-file-only diffs",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close",
+        "session-state"
+      ],
+      "description": "close-classify.sh gives orientation absolute precedence, so `--continue` on a session whose only change is .claude/tasks.json classifies INSTANT instead of NANO. INSTANT queues a snapshot; NANO deliberately does not. The nightly extraction cron then receives a JSON state-file diff with nothing extractable in it.",
+      "effort": "XS",
+      "priority": "P3",
+      "parent": "t-2367",
+      "created": "2026-07-31",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Found 2026-07-31 during a real `/brana:close continue` whose only commit was a tasks.json context append.\n\nVERIFIED ON BOTH SIDES, not inferred from behaviour:\n  $ echo \".claude/tasks.json\" | close-classify.sh --commit-count 1 --arguments \"--continue\"  -> INSTANT\n  $ echo \".claude/tasks.json\" | close-classify.sh --commit-count 1 --arguments \"\"            -> NANO\nclose-classify.sh header, lines 16-27: \"orientation ... wins over EVERYTHING — including --light/--full/--nano\" and \"1 commit, <=5 non-code files -> NANO (never queues)\". The two rules are individually correct and collide here.\nclose-snapshot.sh has NO state-file filter (grepped: its only skip paths are missing-binary and unresolvable-range), so it queues whatever range it is handed.\n\nWHY NANO EXISTS (ADR-052 §5): sessions with nothing extractable skip the queue because the extraction overhead exceeds the signal. A tasks.json-only diff is the canonical example — it is machine-written state, not authored work. Forcing INSTANT re-adds exactly the cost NANO was introduced to avoid.\n\nSEVERITY IS LOW AND SHOULD STAY LOW. This is queue noise, not data loss: the nightly cron will find nothing and produce nothing. Worth fixing because a `--continue` mid-session pause is a COMMON way to close, and a tasks.json-only pause is common within it, so the noise is recurring rather than rare. Do not escalate this into a redesign of orientation precedence — orientation-wins is correct for task state and cleanup behaviour, which is what it was introduced for (ADR-053 §1).\n\nFIX DIRECTION (small): keep orientation precedence for task-state/cleanup, but let CONTENT veto the QUEUE specifically — if the changed-file set would classify NANO on its own, skip Step 1b regardless of orientation. Equivalent alternative: give close-snapshot.sh a state-file-only guard so it declines a diff touching nothing but .claude/tasks.json, docs/spec-graph.json and similar generated state. The second is narrower and testable in isolation.\n\nNOT DONE IN THE FINDING SESSION, deliberately: that close skipped its own queue by hand rather than queueing a diff it had just established was noise. Mentioning so the behaviour is not read as the bug recurring.\n\nAC: a --continue close whose only changed files are state files does not queue a snapshot\nAC: the same close still writes its handoff and still updates task state (orientation precedence preserved everywhere else)\nAC: covered by a case in tests/procedures/test-close-weight-adaptive.sh",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
