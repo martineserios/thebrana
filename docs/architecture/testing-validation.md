@@ -155,7 +155,7 @@ For each skill with a `depends_on` field:
 
 Scans `docs/reflections/*.md` and all `docs/architecture/**/*.md` (excluding `decisions/`):
 
-- Counts actual items in `system/`: skills (excluding `acquired/`), rules (excluding `README.md`), agents, validate checks, hooks (`.sh` files)
+- Counts actual items in `system/`: skills (dirs holding a `SKILL.md` — this excludes both `acquired/` and `_shared/`, which carries shared procedures rather than a skill), rules (excluding `README.md`), agents, validate checks, hooks (`.sh` files)
 - Three match patterns: (1) parenthesized `(N skills,`, (2) verb-prefixed `has N hooks`, (3) plain list `N skills, N agents.`
 - **Warn** when a doc count differs from actual and is close enough to be a stale total:
   - `hooks`: 80% threshold — hooks grew from 10 to 35; stale totals can be far from actual

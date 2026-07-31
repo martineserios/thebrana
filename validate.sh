@@ -665,7 +665,9 @@ echo ""
 echo "Checking for count drift in docs..."
 
 # Count actual system components
-ACTUAL_SKILLS=$(for d in "$SYSTEM_DIR"/skills/*/; do [ "$(basename "$d")" != "acquired" ] && echo 1; done | wc -l | tr -d ' ')
+# A skill is a dir holding a SKILL.md. This subsumes the old `acquired` exclusion
+# and also drops `_shared/` (shared procedures), which has no SKILL.md (t-2571).
+ACTUAL_SKILLS=$(for d in "$SYSTEM_DIR"/skills/*/; do [ -f "$d/SKILL.md" ] && echo 1; done | wc -l | tr -d ' ')
 ACTUAL_RULES=$(ls "$SYSTEM_DIR"/rules/*.md 2>/dev/null | grep -v '/README\.md$' | wc -l | tr -d ' ')
 ACTUAL_AGENTS=$(grep -rl '^model:' "$SYSTEM_DIR/agents" --include='*.md' 2>/dev/null | wc -l | tr -d ' ')
 ACTUAL_CHECKS=$(grep -c "^# Check [0-9]" "$SCRIPT_DIR/validate.sh" 2>/dev/null || echo "0")
