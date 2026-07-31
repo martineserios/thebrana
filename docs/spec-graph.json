@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-29T14:24:40Z",
+  "generated": "2026-07-31T14:50:26Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1131,6 +1131,19 @@
         "system/skills/_shared/guided-execution.md"
       ]
     },
+    "docs/architecture/decisions/ADR-075-ship-on-deploy-surface-change.md": {
+      "title": "ADR-075: Ship on Deploy-Surface Change, Not on Batch Size or Schedule",
+      "type": "ADR",
+      "impl_files": [
+        "system/",
+        "system/hooks",
+        "system/rules",
+        "system/agents",
+        "system/skills",
+        "system/cli",
+        "system/cli`-commit"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1743,6 +1756,14 @@
       "title": "User Journey Map & Gap Analysis",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/worktree-task-divergence.md": {
+      "title": "Feature: validate.sh Check 68 — worktree/task divergence",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/session-end-drift.sh",
+        "system/scripts/check-worktree-divergence.sh"
+      ]
     },
     "docs/architecture/field-notes/fts5-memory-recall.md": {
       "title": "FTS5 Memory Recall Seam",
@@ -2584,6 +2605,11 @@
     },
     "docs/guide/features/close-oriented-modes.md": {
       "title": "Oriented Close Modes",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/guide/features/knowledge-drain-links.md": {
+      "title": "`brana knowledge drain-links`",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3582,6 +3608,18 @@
       "title": "Knowledge Structure Audit — Ontology Analysis",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/reviews/ship-deferral-loop-2026-07-31.md": {
+      "title": "Ship deferral loop — investigated and falsified",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/hooks|rules|skills",
+        "system/skills/build/phases/close.md:227",
+        "system/skills/close/",
+        "system/skills/build/phases/close.md",
+        "system/ops/t-1816-learning-sweep-cursor"
+      ]
     },
     "docs/reviews/token-baseline.md": {
       "title": "Token Consumption Baseline",
@@ -10032,6 +10070,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-075-ship-on-deploy-surface-change.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -10435,6 +10479,12 @@
     {
       "from": "docs/README.md",
       "to": "guide/features/close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/knowledge-drain-links.md",
       "type": "references",
       "computed": false
     },
@@ -11173,6 +11223,12 @@
     {
       "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
       "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-075-ship-on-deploy-surface-change.md",
+      "to": ".claude/memory",
       "type": "references",
       "computed": false
     },
@@ -13781,6 +13837,18 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/knowledge-drain-links.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/knowledge-drain-links.md",
+      "to": "knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/knowledge-process-url.md",
       "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
       "type": "references",
@@ -15582,9 +15650,9 @@
     }
   ],
   "stats": {
-    "nodes": 532,
-    "edges": 1993,
+    "nodes": 536,
+    "edges": 1998,
     "typed_edges": 683,
-    "orphans": 137
+    "orphans": 139
   }
 }

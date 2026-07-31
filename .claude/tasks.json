@@ -65654,6 +65654,31 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2570",
+      "subject": "Split system/skills/close/phases/session-state.md — 430 lines over the 400-line phase limit",
+      "status": "pending",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-07-31",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-07-31: Found while verifying t-2492's branch against current dev. tests/skills/test_skill_phase_layout.sh enforces per-phase sub-files <=400 lines; system/skills/close/phases/session-state.md is 430, so the test fails 61/1.\n\nPRE-EXISTING ON DEV — reproduced on plain dev with no t-2492 changes applied. dev is currently not green on its own account because of this.\n\nDeliberately NOT fixed inside t-2492: the file is a sequential procedure (Step 9, 9a, 9a-ii, 9b, 9c) whose ordering is load-bearing, and splitting it means registering a new phase file in the close SKILL.md PHASES registry — the same test also checks every registered phase exists with no orphans. That is content surgery on /brana:close, a core workflow, and warrants its own focused pass rather than a tail-end edit.\n\nAC: session-state.md and any new sibling are each <=400 lines\nAC: new phase file registered in close/SKILL.md PHASES registry, no orphans\nAC: tests/skills/test_skill_phase_layout.sh passes 62/62\nAC: step ordering across the split is preserved (9 -> 9a -> 9a-ii -> 9b -> 9c)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
