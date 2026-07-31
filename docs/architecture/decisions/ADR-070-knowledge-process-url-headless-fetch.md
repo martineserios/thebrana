@@ -76,6 +76,11 @@ eventually started, it reuses this fetch function to populate
    it is usable fully headless (`--status` to verify a live session).
    The Rust CLI shells out to `claude -p --mcp-config <scoped-config>
    --allowedTools mcp__linkedin-scraper__... --print --output-format json`.
+   > **Superseded 2026-07-31 (t-2568) — see §Amendment below.** The transport
+   > described in the rest of this paragraph is no longer the Tier-2
+   > substrate: `brana-core` now speaks JSON-RPC to `linkedin-scraper-mcp`
+   > directly. The *mechanism* above (author-feed fetch + fuzzy match, and
+   > its `Ok(None)` miss semantics) is unchanged and still current.
    This is **new** arg-building on top of the existing Layer-C infrastructure
    (`resolve_claude_binary`, `build_claude_args`, `call_claude_json` in
    `knowledge_pipeline.rs`) — those functions currently hardcode
@@ -135,6 +140,77 @@ real per-invocation cost that scales with a nightly batch size; a
 response, more agentic turns). Factor this into the nightly-cron cost
 model, not just latency.
 
+## Amendment (2026-07-31, t-2568): Tier-2 transport is a direct MCP client
+
+**What changes:** the Tier-2 *transport* only. `brana-core` speaks JSON-RPC
+over stdio to `linkedin-scraper-mcp` itself, instead of shelling out to
+`claude -p` as an MCP client. The Tier-2 *mechanism* — `get_person_profile
+(sections="posts")` + fuzzy title-signal match against the author's feed,
+with a miss as `Ok(None)` — is untouched, as is Tier 1 and Tier 3.
+
+**Why the original choice was made, and why it no longer holds.** The
+paragraph above justifies `claude -p` as *"new arg-building on top of the
+existing Layer-C infrastructure"* — it was chosen for scaffolding reuse. A
+direct client was never evaluated against it. That reuse argument was the
+whole case, and it does not survive contact with what the transport costs:
+the model was never doing any work on this path. `find_matching_post()`
+does the matching in Rust. `claude -p` was pure transport.
+
+**Three defects traced to that transport (t-2568):**
+
+1. **Pipe-buffer deadlock.** The call emits ~147 KB into a ~64 KiB pipe
+   while the parent polled `try_wait()` without reading — the child could
+   never exit, so every fetch failed at *exactly* 240s with zero output.
+   Fixed in 0cf60779 (`run_with_timeout`), now removed along with the
+   transport it served.
+2. **The CC sandbox blocks the path.** Sandboxed runs reproduce a 240s
+   timeout even with the deadlock fixed. Environmental, not a code bug, but
+   it confounded two verification runs. **Any live verification of Tier 2
+   must run unsandboxed.**
+3. **The MCP result exceeds the inline token limit.** With 1 and 2 cleared
+   the fetch *succeeds* (~100 posts, ~58 KB) but `claude` cannot return it
+   inline — it writes a file and answers in prose, so the caller sees an
+   unparseable shape. Not fixable by re-budgeting: it is a property of
+   routing 50 KB of data through a model's context.
+
+A direct client eliminates all three structurally rather than working
+around the third: responses are read as they arrive (no deadlock class),
+no context window is involved (no token limit), and no `claude` subprocess
+exists to be sandboxed.
+
+**Measured 2026-07-31, unsandboxed, same author (`adrien-taravant`):**
+
+| | via `claude -p` | direct JSON-RPC |
+|---|---|---|
+| `initialize` | — | 1.0s |
+| `get_person_profile(sections="posts")` | 98s (137s in one verification run) | **28.8s** |
+| Response | prose describing the data | `result.structuredContent.sections.posts`, a typed string (~47–50 KB; the feed is live, so the exact size varies between runs) |
+| Shutdown | child kill; grandchild Chromium may outlive it | rc=0, 0.4s after stdin close |
+
+**Cost.** §Empirical validation above records **$0.40 for one trivial
+`close_session` call** and notes a `posts` call costs more. On a 4-hourly
+timer over ~26 links that is a recurring per-invocation cost for transport
+alone. The direct client has none. (Whether that figure is billed or merely
+reported under a Code subscription was not established — it is a reason to
+prefer the direct client, not a measured saving.)
+
+**Consequences of this amendment:**
+
+- `call_claude_json_with_mcp()` and `run_with_timeout()` had exactly one
+  production call site each and are removed. `call_claude_json()` (the
+  text-only path used by insight extraction) is a different function and is
+  **not** affected.
+- `LINKEDIN_MCP_TIMEOUT_SECS` is re-budgeted against a measured ~30s rather
+  than a guess at model-plus-cold-start latency.
+- **Untrusted input no longer reaches a model holding tools.** The rejected
+  alternative — keeping `claude -p` and having it write the payload to a
+  caller-supplied path — required granting `Write` to a model whose input is
+  attacker-authorable LinkedIn post text. Recorded here because the security
+  property is a reason for the decision, not a side effect of it.
+- The one-time interactive `linkedin-scraper-mcp --login` setup, the
+  `--status` session probe, and the fail-loud-on-expired-session rule are
+  all unchanged.
+
 ## Consequences
 
 - The command is genuinely unattended-capable: no interactive session
@@ -162,3 +238,11 @@ model, not just latency.
 - Does not build a skill/slash-command orchestration path — rejected because
   the primary use case (nightly, unattended) has no interactive session to
   orchestrate from.
+
+## Changelog
+
+- 2026-07-31: Tier-2 transport replaced — `claude -p` MCP shell-out → direct
+  JSON-RPC client in `brana-core` (t-2568, b4695c8e). Mechanism, tier routing,
+  and `Ok(None)` miss semantics unchanged. See §Amendment.
+- 2026-07-31: Subprocess failure diagnostics separated — a deadline and a
+  server that closes output early no longer share wording (t-2568, 89d16ac4).
