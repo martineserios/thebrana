@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-28T20:32:55Z",
+  "generated": "2026-07-29T14:24:40Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1094,8 +1094,15 @@
       "impl_files": [
         "system/hooks/session-start.sh:514",
         "system/scripts/git-hooks/pre-commit",
+        "system/scripts/autonomous-runner.sh:80–103",
+        "system/scripts/statusline-slow-cache.sh",
         "system/hooks/session-end-persist.sh:240-242"
       ]
+    },
+    "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md": {
+      "title": "ADR-070: `brana knowledge process-url` — headless-first fetch architecture",
+      "type": "ADR",
+      "impl_files": []
     },
     "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md": {
       "title": "ADR-071: Scheduler — thin layer over systemd timers",
@@ -1442,6 +1449,13 @@
       "title": "Knowledge Pipeline — Compute Routing",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/knowledge-process-url.md": {
+      "title": "Feature: `brana knowledge process-url`",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/"
+      ]
     },
     "docs/architecture/features/learned-eligibility.md": {
       "title": "Feature Spec — Learned Eligibility for the Autonomous Runner (Stage 4)",
@@ -2570,6 +2584,11 @@
     },
     "docs/guide/features/close-oriented-modes.md": {
       "title": "Oriented Close Modes",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/guide/features/knowledge-process-url.md": {
+      "title": "`brana knowledge process-url` — turn a captured link into knowledge",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -9983,6 +10002,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "type": "references",
       "computed": false
@@ -10356,6 +10381,78 @@
     {
       "from": "docs/README.md",
       "to": "guide/configuration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/backlog-lint.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/backlog-project-scoping.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/brana-feed-inbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/build-close-auto-docs.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/cc-changelog-check.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/checkpoint-resume.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/propagate-close-step.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/reminder-system.md",
       "type": "references",
       "computed": false
     },
@@ -11362,8 +11459,20 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/knowledge-architecture-v2.md",
       "to": "path.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/knowledge-process-url.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
       "type": "references",
       "computed": false
     },
@@ -13672,6 +13781,18 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/knowledge-process-url.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/knowledge-process-url.md",
+      "to": "docs/architecture/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/propagate-close-step.md",
       "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
       "type": "references",
@@ -15461,8 +15582,8 @@
     }
   ],
   "stats": {
-    "nodes": 529,
-    "edges": 1976,
+    "nodes": 532,
+    "edges": 1993,
     "typed_edges": 683,
     "orphans": 137
   }
