@@ -680,17 +680,18 @@ const LINKEDIN_MCP_TIMEOUT_SECS: u64 = 120;
 /// useless in a scheduler notification.
 const TIMEOUT_TAIL_CHARS: usize = 800;
 
-/// Build the error text for a killed-on-timeout child, preserving whatever
-/// it managed to write.
+/// Build the error text for a child killed before it finished, preserving
+/// whatever it managed to write.
 ///
 /// Pure so the truncation and the empty case are testable without spawning
 /// anything. The empty case is reported explicitly: a child that wrote
 /// *nothing* before the kill indicates a different fault than one that
 /// errored loudly, and a blank tail would read as the latter.
 ///
-/// `what` names the operation that timed out — the caller owns the wording
-/// because more than one subprocess path shares this helper.
-fn timeout_diagnostic(what: &str, secs: u64, stdout: &str, stderr: &str) -> String {
+/// `headline` is the whole first line, caller-owned. A deadline and a
+/// server that closed its output early both end in "no response", but they
+/// are different faults and must not be described in the same words.
+fn subprocess_diagnostic(headline: &str, stdout: &str, stderr: &str) -> String {
     fn tail(s: &str) -> Option<String> {
         let t = s.trim();
         if t.is_empty() {
@@ -708,7 +709,7 @@ fn timeout_diagnostic(what: &str, secs: u64, stdout: &str, stderr: &str) -> Stri
         ))
     }
 
-    let mut msg = format!("{what} timed out after {secs}s");
+    let mut msg = headline.to_string();
     match (tail(stdout), tail(stderr)) {
         (None, None) => msg.push_str(" — child produced no output before it was killed"),
         (out, err) => {
@@ -1033,7 +1034,8 @@ fn mcp_call_tool(
         }
     });
 
-    let deadline = std::time::Instant::now() + timeout;
+    let started = std::time::Instant::now();
+    let deadline = started + timeout;
     let exchange = (|| -> Result<Option<serde_json::Value>> {
         mcp_send(
             &mut stdin,
@@ -1093,11 +1095,30 @@ fn mcp_call_tool(
         Ok(None) => {
             let _ = child.kill();
             let _ = child.wait();
+            // Distinguish a real deadline from a server that closed stdout
+            // without answering. Both leave us with no response, but they
+            // are different faults, and reporting "timed out after 120s"
+            // one second in would be exactly the kind of lying diagnostic
+            // that made this bug take four attempts to find (t-2568).
+            let elapsed = started.elapsed();
+            if elapsed >= timeout {
+                bail!(
+                    "{}",
+                    subprocess_diagnostic(
+                        &format!("linkedin MCP {tool} timed out after {}s", timeout.as_secs()),
+                        "",
+                        &stderr_tail(),
+                    )
+                );
+            }
             bail!(
                 "{}",
-                timeout_diagnostic(
-                    &format!("linkedin MCP {tool}"),
-                    timeout.as_secs(),
+                subprocess_diagnostic(
+                    &format!(
+                        "linkedin MCP {tool}: server closed its output after {}s without \
+                         answering",
+                        elapsed.as_secs()
+                    ),
                     "",
                     &stderr_tail(),
                 )
@@ -2159,6 +2180,49 @@ mod tests {
         assert!(a.path.exists() && b.path.exists());
     }
 
+    #[test]
+    fn mcp_call_tool_server_that_closes_output_fails_fast_and_says_why() {
+        // A server that closes stdout without answering leaves us with no
+        // response — same end state as a deadline, different fault. Claiming
+        // "timed out after 120s" a moment in would be exactly the lying
+        // diagnostic that made this bug take four attempts to find (t-2568).
+        //
+        // The stand-in closes stdout but keeps draining stdin, so the writes
+        // succeed and the failure is specifically "no response", not EPIPE.
+        let script = std::env::temp_dir().join(format!("brana-fake-mcp-{}.sh", std::process::id()));
+        std::fs::write(&script, "#!/bin/sh\nexec 1>&-\ncat > /dev/null\n").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        let started = std::time::Instant::now();
+        let err = mcp_call_tool(
+            &script,
+            "get_person_profile",
+            serde_json::json!({}),
+            std::time::Duration::from_secs(120),
+        )
+        .expect_err("a server that never answers must be an error");
+        let elapsed = started.elapsed();
+        let _ = std::fs::remove_file(&script);
+
+        assert!(
+            elapsed < std::time::Duration::from_secs(20),
+            "must not wait out a 120s deadline it never hit: took {elapsed:?}"
+        );
+        let msg = err.to_string();
+        assert!(
+            msg.contains("closed its output"),
+            "must name the actual fault: {msg}"
+        );
+        assert!(
+            !msg.contains("timed out"),
+            "must not report a timeout that did not happen: {msg}"
+        );
+    }
+
     // ── JSON-RPC framing (t-2568) ───────────────────────────────────────
 
     #[test]
@@ -2217,21 +2281,25 @@ mod tests {
     // could not be diagnosed from its own error message.
 
     #[test]
-    fn timeout_diagnostic_includes_what_the_child_wrote() {
+    fn subprocess_diagnostic_includes_what_the_child_wrote() {
         // t-2557 AC-3. A killed child's piped output used to be dropped on
         // the floor: the caller got "timed out after 240s" and nothing else,
         // which is why t-2568 could not be diagnosed from its own error.
-        let msg = timeout_diagnostic("claude CLI (MCP)", 240, "partial stdout here", "Chromium launch failed");
+        let msg = subprocess_diagnostic(
+            "claude CLI (MCP) timed out after 240s",
+            "partial stdout here",
+            "Chromium launch failed",
+        );
         assert!(msg.contains("240s"));
         assert!(msg.contains("Chromium launch failed"), "child stderr must survive: {msg}");
         assert!(msg.contains("partial stdout here"), "child stdout must survive: {msg}");
     }
 
     #[test]
-    fn timeout_diagnostic_says_so_when_the_child_wrote_nothing() {
+    fn subprocess_diagnostic_says_so_when_the_child_wrote_nothing() {
         // Silence is itself the diagnosis — a child that produced nothing
         // before the kill points at a different fault than one that errored.
-        let msg = timeout_diagnostic("linkedin MCP get_person_profile", 240, "", "   ");
+        let msg = subprocess_diagnostic("linkedin MCP get_person_profile timed out after 240s", "", "   ");
         assert!(msg.contains("240s"));
         assert!(
             msg.contains("no output"),
@@ -2240,11 +2308,11 @@ mod tests {
     }
 
     #[test]
-    fn timeout_diagnostic_truncates_a_flood() {
+    fn subprocess_diagnostic_truncates_a_flood() {
         // A hung MCP server can emit megabytes; the error must stay readable
         // and must say it truncated rather than silently cutting.
         let flood = "x".repeat(10_000);
-        let msg = timeout_diagnostic("linkedin MCP get_person_profile", 240, "", &flood);
+        let msg = subprocess_diagnostic("linkedin MCP get_person_profile timed out after 240s", "", &flood);
         assert!(msg.len() < 3_000, "diagnostic must stay bounded: {} bytes", msg.len());
         assert!(msg.contains("truncated"));
     }
