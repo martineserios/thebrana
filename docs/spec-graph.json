@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-31T14:50:26Z",
+  "generated": "2026-07-31T20:48:24Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1136,12 +1136,11 @@
       "type": "ADR",
       "impl_files": [
         "system/",
+        "system/cli",
         "system/hooks",
         "system/rules",
         "system/agents",
-        "system/skills",
-        "system/cli",
-        "system/cli`-commit"
+        "system/skills"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -1788,6 +1787,7 @@
         "system/",
         "system/hooks/lib/git-helpers.spec.md",
         "system/hooks/",
+        "system/scripts/git-hooks/pre-commit",
         "system/hooks/lib/profile.sh",
         "system/hooks/tests/test-post-tool-use-test-signal.sh",
         "system/scripts/flywheel-insight.sh",
@@ -10304,6 +10304,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/worktree-task-divergence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/hooks.md",
       "type": "references",
       "computed": false
@@ -10695,6 +10701,12 @@
     {
       "from": "docs/README.md",
       "to": "reviews/knowledge-structure-audit-2026-06-11.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reviews/ship-deferral-loop-2026-07-31.md",
       "type": "references",
       "computed": false
     },
@@ -15651,7 +15663,7 @@
   ],
   "stats": {
     "nodes": 536,
-    "edges": 1998,
+    "edges": 2000,
     "typed_edges": 683,
     "orphans": 139
   }
