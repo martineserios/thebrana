@@ -100,6 +100,41 @@ For each item in `next[]` where `task_id` is non-null:
 
 This step prevents task IDs emitted during ideation or follow-up planning from being lost when session state is written without a corresponding backlog entry.
 
+**Step 9a-bis: SEARCH BEFORE FILING any new follow-up (t-2578)**
+
+This applies to every `next[]` item you are about to file as a *new* task — i.e. items with
+`task_id: null` that describe a defect, gap, or follow-up. **File them here, before the state
+write, not after.**
+
+1. **Search first — always, one call:**
+   ```bash
+   brana backlog search "{2-4 distinctive terms from the item}"
+   ```
+   (or `backlog_search(query: "...")` via MCP). Search the *mechanism*, not your phrasing of the
+   symptom — a recurring bug gets described differently every time it recurs.
+2. **If a live (`pending`/`in_progress`) match exists: do NOT file.** Append your evidence to it
+   instead, and point the `next[]` item at that id:
+   ```bash
+   brana backlog set {existing-id} context --append "$(date +%Y-%m-%d): {reproduction, measurement, workaround}"
+   ```
+   Before appending, **read the existing context** — if it already records a fix direction, do not
+   propose a competing one without saying why the recorded one is wrong. A duplicate that argues
+   for an already-rejected approach is worse than no task at all.
+3. **Only if there is no match, file a new task** — then put the returned id on the `next[]` item.
+
+**Why this step exists.** Two duplicates were filed against `t-2502` in four days — `t-2533`
+(2026-07-28) and `t-2576` (2026-07-31) — both by closes that had just hit that bug live and filed
+straight from the symptom without searching. Both proposed a fix direction `t-2502` and ADR-069's
+Rejected section had already ruled out, so each duplicate sat in the backlog as *misleading
+guidance*, not merely noise. A close is the single most likely moment to re-file a known bug,
+because it runs right after you have been bitten by one.
+
+**Ordering matters too.** Filing here — before the payload is composed — means real ids land on
+the **first** write. Filing afterwards forces a second same-day write, whose merge semantics are
+lossy (t-2506), which in practice makes closes skip the write and leave `task_id: null`. A null
+id is unreachable by sitrep's staleness filter, so the item then resurfaces as an open follow-up
+forever, even after the work ships.
+
 **Step 9b: Capture the CAS token (required for a second close on the same day)**
 
 A same-day, same-branch write **merges** with the existing state. By default `next[]` is

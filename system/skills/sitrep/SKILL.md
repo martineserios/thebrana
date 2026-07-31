@@ -91,19 +91,78 @@ Extract:
 - **Stashes** → forgotten work-in-progress
 - **Worktrees** → parallel work streams from `git worktree list`; cross-check each worktree's branch against `git branch --merged main`. If any worktree branch appears in the merged list, surface a warning: `⚠ Worktree <path> is on a merged branch — run \`git worktree remove <path>\` to clean up.`
 
+**Contention probe (t-2578) — run before recommending ANY worktree.** Merged-ness is not
+liveness: a worktree can be unmerged, healthy, and *occupied by another live session right now*.
+For each worktree other than the current one:
+
+```bash
+git log -1 --format='%cr|%h|%s' <worktree-branch>
+```
+
+If its last commit is **under ~30 minutes old**, mark it `CONTENDED` and treat it as
+**off-limits**: exclude it from the "Next action" line, never say "worktree already cut" as if
+that were an advantage, and never suggest `cd`-ing into it. Surface it instead as:
+
+```
+⚠ CONTENDED  <path> (<branch>) — last commit <N>m ago, another session is likely live there
+```
+
+Entering an occupied checkout puts two sessions in one working tree — the harm class behind the
+`git worktree` HARD RULE in `git-discipline.md` (t-2216/t-2206). A worktree being *already cut*
+is only an advantage when nobody is standing in it. When a task's only ready worktree is
+contended, recommend a different task rather than a different directory.
+
+The 30-minute figure is a heuristic, not a measurement — prefer a real lane key once ADR-069
+(lane identity) lands, and drop this probe then.
+
 ### 3. Active backlog task
 
-Prefer MCP: `backlog_query(status: "in_progress", tag: <if provided>, stream: <if provided>, kind: <if provided>, priority: <if provided>)`. Fallback:
+**Use the projected CLI form for this call — it is the primary, not the fallback (t-2578).**
+Task bodies are large and sitrep renders ~5 fields per task, so the unprojected call is almost
+all waste:
+
 ```bash
-brana backlog query --status in_progress [--tag <tag>] [--stream <stream>] [--kind <kind>] [--priority <p>]
+brana backlog query --status in_progress [--tag <tag>] [--kind <kind>] [--priority <p>] --output json \
+  | jq -r '.[] | "\(.id) | \(.priority)/\(.effort) | \(.build_step // "-") | \(.branch // "-") | \(.subject[0:45])"'
 ```
+
+Measured 2026-07-31 on the same 5-task result: unprojected `backlog_query` returned **41,781
+chars (~13.6k tokens, ~15% of the window)** before sitrep emitted a single line; the projection
+above returned **462 chars** — 90x less, identical table. This is a *projection* concern, not an
+MCP-vs-CLI one: the general "prefer MCP" rule in `backlog/SKILL.md` still stands everywhere else.
+Use `backlog_query` here only if the CLI is unavailable.
 
 Apply any active filters to this query. If no in_progress tasks match the filter, also check for pending tasks matching the filter to surface what's next in that area.
 
 For each in_progress task, extract:
 - `id`, `subject`, `strategy`, `build_step`, `branch`
-- `context` — tactical details appended via `brana backlog set context --append` (cross-session continuity)
 - `build_step` tells you exactly where in the /brana:build loop you are
+
+**Fetch `context` per-task, on demand — never in bulk.** `context` is the largest field and the
+main reason the unprojected query is expensive. Pull it only for the 1-2 tasks you are about to
+recommend or display:
+
+```bash
+brana backlog get <id> --field context
+```
+
+**Completion-marker guard (t-2578) — check before recommending a resume.** `build_step` is a
+*lagging* field: it records where the loop last was, not whether the work is done. `context` is
+the evidence and it wins. Before proposing `/brana:build` on any task, scan its `context` for a
+completion marker — `RESOLVED`, `SHIPPED`, `LIVE VERIFICATION`, `AC-<n> ... verified`, "all ACs
+met". If one is present:
+
+- do **not** recommend resuming the build
+- recommend **"needs merge/close"** instead, and say which commits are unmerged
+  (`git rev-list --count <base>..<branch>`)
+- note that the owning session may still be mid-flight — closing another lane's task is its call,
+  not yours
+
+Live failure this guards (2026-07-31): sitrep read `t-2568 in_progress, build_step=fix` and
+recommended `/brana:build`, while the very task dump it printed said
+*"RESOLVED — ... SHIPPED ... LIVE VERIFICATION ... AC-2 key verified ... Suite: workspace green"*.
+The task flipped to `completed` minutes later. Same failure shape as treating a drift-checker
+warning as a work order: trusting a field over the evidence that supersedes it.
 
 If the task has a non-empty `context` field, display it under the active task in the output. Also check top-focus tasks (from `backlog_focus` or `brana backlog next`) for context.
 
