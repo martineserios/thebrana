@@ -1,8 +1,14 @@
 # Feature: validate.sh Check 68 — worktree/task divergence
 
 **Date:** 2026-07-29
-**Status:** specifying
+**Status:** shipped
 **Task:** t-2545
+
+## Changelog
+- 2026-07-31: Check 68 implemented and merged to `dev` (t-2545). Threshold 14d;
+  contradictions fail, omissions warn. Remediated the two live contradictions found by
+  the check itself — t-2138's orphaned worktree removed, t-2173's branch field corrected
+  from a branch that did not exist.
 
 ## Problem
 
