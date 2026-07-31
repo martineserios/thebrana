@@ -163,6 +163,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-072](architecture/decisions/ADR-072-full-rust-mcp-architecture.md) | **Full Rust + MCP architecture** (Cargo workspace, pmcp, Python elimination) (was ADR-026 — renumbered t-2507) |
 | [ADR-073](architecture/decisions/ADR-073-persona-session-state.md) | Persona modifier persisted in session state, not `CLAUDE.local.md` (was ADR-048 — renumbered t-2507) |
 | [ADR-074](architecture/decisions/ADR-074-step-state-contract.md) | Step-state contract — derive `{next_step, gate_pending}` from a static step registry + the run-state log (was ADR-062 — renumbered t-2507) |
+| [ADR-075](architecture/decisions/ADR-075-ship-on-deploy-surface-change.md) | Ship on deploy-surface change, not batch size or schedule — commit count is uncorrelated with blast radius (t-2547) |
 
 > Note: this table is missing several ADRs between 045-065 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
