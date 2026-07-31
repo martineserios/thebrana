@@ -232,11 +232,12 @@ as a bash script file. Do not port it back to an inline one-liner.
 
 ## Documentation Plan
 
-- [ ] **Tech doc** — this file.
-- [ ] **User guide** — none. Check 68 surfaces through `./validate.sh` output; no new command
+- [x] **Tech doc** — this file. Written and kept current through the 7d revision.
+- [x] **User guide** — none, deliberately. Check 68 surfaces through `./validate.sh` output; no new command
       or config for a user to learn.
-- [ ] **Existing docs to update** — `docs/architecture/validate-checks.md` if a check
-      inventory exists there; verify during CLOSE.
+- [x] **Existing docs to update** — none. Verified at close 2026-07-31:
+      `docs/architecture/validate-checks.md` does not exist, so there is no check
+      inventory to keep in sync.
 
 ## Challenger findings
 
