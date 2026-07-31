@@ -662,11 +662,18 @@ pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
     Ok(Some(FetchedContent { text, platform }))
 }
 
-/// Timeout for the LinkedIn MCP shell-out: server-side tool timeout is 90s
-/// (`linkedin_mcp_server` `TOOL_TIMEOUT_SECONDS`) plus MCP server cold-start
-/// (spawning Python, launching headless Chromium) plus buffer — longer than
-/// `call_claude_json`'s plain-text 180s budget would allow on its own.
-const LINKEDIN_MCP_TIMEOUT_SECS: u64 = 240;
+/// Timeout for one LinkedIn MCP `tools/call`, measured rather than guessed:
+/// a real `get_person_profile(sections="posts")` took **28.8s** end to end
+/// on 2026-07-31 (t-2568, unsandboxed), against a server-side tool timeout
+/// of 90s (`linkedin_mcp_server` `TOOL_TIMEOUT_SECONDS`). 120s leaves room
+/// for a slow scrape and still bounds a genuine hang at a fifth of the old
+/// budget.
+///
+/// The previous 240s was set for a `claude -p` shell-out that no longer
+/// exists (ADR-070 §Amendment). That figure was never a latency
+/// measurement — every fetch hit it exactly, because the parent deadlocked
+/// on an undrained pipe rather than because anything took four minutes.
+const LINKEDIN_MCP_TIMEOUT_SECS: u64 = 120;
 
 /// Per-stream cap on child output quoted into a timeout error. A hung MCP
 /// server can emit megabytes; an unbounded error is unreadable in a log and
@@ -680,116 +687,10 @@ const TIMEOUT_TAIL_CHARS: usize = 800;
 /// anything. The empty case is reported explicitly: a child that wrote
 /// *nothing* before the kill indicates a different fault than one that
 /// errored loudly, and a blank tail would read as the latter.
-/// Spawn `cmd`, draining stdout and stderr **concurrently**, and wait up to
-/// `timeout` for it to exit.
 ///
-/// The concurrency is the whole point, not an optimisation. A pipe holds
-/// ~64 KiB; a child that writes more blocks in `write()` until someone reads.
-/// Polling `try_wait()` and only calling `wait_with_output()` after exit
-/// therefore deadlocks on any child with substantial output — the child can
-/// never exit, so the poll never ends, and the failure surfaces as a timeout
-/// with no output at all.
-///
-/// That is exactly what t-2568 was: the LinkedIn fetch emits ~147 KB (2.2x
-/// the buffer), so it hung every time and always at precisely the timeout
-/// value. Measured directly, the same fetch completes in 98s — well inside
-/// its 240s budget. Nothing was ever slow; the parent was refusing to read.
-///
-/// On timeout the child is killed and whatever it managed to write is still
-/// returned, so a hang can be told apart from silence.
-fn run_with_timeout(
-    cmd: &mut std::process::Command,
-    timeout: std::time::Duration,
-) -> Result<std::process::Output> {
-    use std::io::Read as _;
-
-    cmd.stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-
-    let mut child = cmd.spawn().context("spawning child process")?;
-
-    // Take the pipes and drain each on its own thread. Both must be drained:
-    // a child blocked writing stderr is just as stuck as one blocked on
-    // stdout.
-    let out_pipe = child.stdout.take().context("child stdout not piped")?;
-    let err_pipe = child.stderr.take().context("child stderr not piped")?;
-
-    // Accumulate into shared buffers rather than returning from the thread.
-    //
-    // On timeout we must NOT join these threads: killing the child does not
-    // necessarily close the pipe, because a grandchild can still hold the
-    // write end open (killing `claude` leaves the MCP server and its headless
-    // Chromium alive holding it). `read_to_end` would then block for as long
-    // as the grandchild lives, turning a 2s timeout into a 60s stall — the
-    // original hang wearing a different hat. Shared buffers let the timeout
-    // path snapshot whatever has arrived and walk away.
-    let out_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
-    let err_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
-
-    fn pump<R: std::io::Read + Send + 'static>(
-        mut pipe: R,
-        sink: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
-    ) -> std::thread::JoinHandle<()> {
-        std::thread::spawn(move || {
-            let mut chunk = [0u8; 8192];
-            loop {
-                match pipe.read(&mut chunk) {
-                    Ok(0) | Err(_) => break,
-                    Ok(n) => {
-                        if let Ok(mut s) = sink.lock() {
-                            s.extend_from_slice(&chunk[..n]);
-                        }
-                    }
-                }
-            }
-        })
-    }
-
-    let out_handle = pump(out_pipe, std::sync::Arc::clone(&out_buf));
-    let err_handle = pump(err_pipe, std::sync::Arc::clone(&err_buf));
-
-    let snapshot = |b: &std::sync::Arc<std::sync::Mutex<Vec<u8>>>| -> Vec<u8> {
-        b.lock().map(|g| g.clone()).unwrap_or_default()
-    };
-
-    let start = std::time::Instant::now();
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(s)) => break s,
-            Ok(None) => {
-                if start.elapsed() > timeout {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    // Deliberately not joining — see the comment above.
-                    let out = snapshot(&out_buf);
-                    let err = snapshot(&err_buf);
-                    bail!(
-                        "{}",
-                        timeout_diagnostic(
-                            timeout.as_secs(),
-                            &String::from_utf8_lossy(&out),
-                            &String::from_utf8_lossy(&err),
-                        )
-                    );
-                }
-                std::thread::sleep(std::time::Duration::from_millis(100));
-            }
-            Err(e) => bail!("child wait error: {e}"),
-        }
-    };
-
-    // Clean exit: the child is gone, so the pipes are closing and joining is
-    // bounded. This is what guarantees we return the COMPLETE output.
-    let _ = out_handle.join();
-    let _ = err_handle.join();
-    Ok(std::process::Output {
-        status,
-        stdout: snapshot(&out_buf),
-        stderr: snapshot(&err_buf),
-    })
-}
-
-fn timeout_diagnostic(secs: u64, stdout: &str, stderr: &str) -> String {
+/// `what` names the operation that timed out — the caller owns the wording
+/// because more than one subprocess path shares this helper.
+fn timeout_diagnostic(what: &str, secs: u64, stdout: &str, stderr: &str) -> String {
     fn tail(s: &str) -> Option<String> {
         let t = s.trim();
         if t.is_empty() {
@@ -807,7 +708,7 @@ fn timeout_diagnostic(secs: u64, stdout: &str, stderr: &str) -> String {
         ))
     }
 
-    let mut msg = format!("claude CLI (MCP) timed out after {secs}s");
+    let mut msg = format!("{what} timed out after {secs}s");
     match (tail(stdout), tail(stderr)) {
         (None, None) => msg.push_str(" — child produced no output before it was killed"),
         (out, err) => {
@@ -923,118 +824,290 @@ fn resolve_session_health(probe_succeeded: bool, output: &str) -> Result<()> {
     )
 }
 
-/// RAII guard for the scoped MCP config temp file — removed on drop
-/// (including on early `?` returns from callers), so a crashed/erroring
-/// call never leaves the file behind.
-struct ScopedMcpConfig {
+/// JSON-RPC ids for the two requests this client makes, in order. Fixed
+/// rather than generated: one `initialize`, then one `tools/call`, per
+/// server process.
+const MCP_INIT_ID: u64 = 1;
+const MCP_CALL_ID: u64 = 2;
+
+/// How long to let an MCP server exit on its own after stdin closes before
+/// killing it. Measured at 0.4s (t-2568); 5s is generous headroom for a
+/// server tearing down a headless browser.
+const MCP_SHUTDOWN_GRACE_SECS: u64 = 5;
+
+/// Interpret one line of an MCP server's stdout while waiting for the
+/// response to `want_id`.
+///
+/// Pure, so the framing rules are testable without spawning a server:
+/// - `Ok(Some(result))` — this line is the awaited response; here is its
+///   `result` object.
+/// - `Ok(None)` — not the awaited response: a notification, a reply to an
+///   earlier id, a log banner, a blank line. Keep reading.
+/// - `Err` — a JSON-RPC error object *for the awaited id*. Fail now rather
+///   than block until the deadline waiting for a reply that will never come.
+fn parse_jsonrpc_message(line: &str, want_id: u64) -> Result<Option<serde_json::Value>> {
+    let Ok(msg) = serde_json::from_str::<serde_json::Value>(line.trim()) else {
+        return Ok(None);
+    };
+    if msg.get("id").and_then(|v| v.as_u64()) != Some(want_id) {
+        return Ok(None);
+    }
+    if let Some(err) = msg.get("error") {
+        let code = err.get("code").and_then(|v| v.as_i64()).unwrap_or(0);
+        let message = err
+            .get("message")
+            .and_then(|v| v.as_str())
+            .unwrap_or("no message");
+        bail!("MCP server returned error {code}: {message}");
+    }
+    Ok(Some(
+        msg.get("result").cloned().unwrap_or(serde_json::Value::Null),
+    ))
+}
+
+/// Pull the `posts` section out of a `get_person_profile` tool result.
+///
+/// Three outcomes, deliberately distinct — they are what feed the
+/// `Ok(None)`-vs-`Err` split that [`resolve_linkedin_fetch`] documents:
+/// - `sections.posts` present → the raw feed text.
+/// - `sections` present, `posts` absent → an **empty feed**, not an error.
+///   The tool documents that a section "may be absent if extraction yielded
+///   no content for that page" — an author with no visible posts.
+/// - anything else — no `structuredContent`/`sections`, a non-string
+///   `posts`, or `isError` — → `Err`. A changed or failed tool output is a
+///   failure, never evidence that the post is absent.
+fn extract_posts_section(result: &serde_json::Value) -> Result<String> {
+    if result.get("isError").and_then(|v| v.as_bool()) == Some(true) {
+        // The server reports tool-level failure in band, on an otherwise
+        // well-formed response. Reading past it would turn a failed scrape
+        // into "this author has no posts".
+        let detail = result
+            .get("content")
+            .and_then(|c| c.as_array())
+            .and_then(|a| a.first())
+            .and_then(|c| c.get("text"))
+            .and_then(|t| t.as_str())
+            .unwrap_or("no detail");
+        bail!("linkedin-scraper-mcp reported a tool error: {detail}");
+    }
+
+    let sections = result
+        .get("structuredContent")
+        .and_then(|s| s.get("sections"))
+        .and_then(|s| s.as_object())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "unexpected get_person_profile result shape — \
+                 no structuredContent.sections: {result}"
+            )
+        })?;
+
+    match sections.get("posts") {
+        None => Ok(String::new()),
+        Some(v) => v
+            .as_str()
+            .map(str::to_string)
+            .ok_or_else(|| anyhow::anyhow!("structuredContent.sections.posts is not a string: {v}")),
+    }
+}
+
+/// Process-wide counter disambiguating temp stderr-log filenames. PID alone
+/// is not enough: batch mode calls [`mcp_call_tool`] once per URL from
+/// within the *same* process, so two calls sharing a PID would collide on
+/// one path — and one call's `Drop` could delete another's still-open log.
+static MCP_STDERR_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// RAII guard for an MCP server's stderr log — removed on drop, including
+/// on early `?` returns, so an erroring call never leaves the file behind.
+///
+/// A plain temp file rather than the `tempfile` crate: `tempfile` is a
+/// dev-dependency across this workspace, and a stderr sink is not worth
+/// promoting it to a runtime one.
+struct ScopedStderrLog {
     path: PathBuf,
 }
 
-impl Drop for ScopedMcpConfig {
+impl Drop for ScopedStderrLog {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(&self.path);
     }
 }
 
-/// Process-wide counter disambiguating temp mcp-config filenames. PID alone
-/// is not sufficient: batch mode calls `write_scoped_linkedin_mcp_config`
-/// once per URL from within the *same* process, so two calls sharing a PID
-/// would collide on one path — and one call's `Drop` cleanup could then
-/// delete another still-in-flight call's file (caught by
-/// `write_scoped_linkedin_mcp_config_writes_expected_json` failing when run
-/// alongside `scoped_mcp_config_removed_on_drop`).
-static SCOPED_CONFIG_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+impl ScopedStderrLog {
+    /// Returns the guard alongside an open handle to hand to `Stdio::from`.
+    fn create() -> Result<(Self, std::fs::File)> {
+        let n = MCP_STDERR_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let path =
+            std::env::temp_dir().join(format!("brana-mcp-stderr-{}-{n}.log", std::process::id()));
+        let file = std::fs::File::create(&path)
+            .with_context(|| format!("creating MCP stderr log at {}", path.display()))?;
+        Ok((Self { path }, file))
+    }
+}
 
-/// Writes a scoped MCP config (JSON) containing only the
-/// `linkedin-scraper-mcp` server entry, to a fresh temp file. Generated at
-/// runtime rather than checked in statically — the binary path is
-/// machine-specific (ADR-070 §Assumptions, corrected 2026-07-24).
-fn write_scoped_linkedin_mcp_config(binary: &std::path::Path) -> Result<ScopedMcpConfig> {
-    let config = serde_json::json!({
-        "mcpServers": {
-            "linkedin-scraper": {
-                "command": binary.to_string_lossy(),
-                "args": []
+/// Write one JSON-RPC message, newline-delimited, to a server's stdin.
+fn mcp_send(stdin: &mut std::process::ChildStdin, msg: &serde_json::Value) -> Result<()> {
+    use std::io::Write as _;
+    stdin.write_all(msg.to_string().as_bytes())?;
+    stdin.write_all(b"\n")?;
+    stdin.flush()?;
+    Ok(())
+}
+
+/// Read lines until the response to `want_id` arrives or `deadline` passes.
+///
+/// `Ok(None)` means the deadline was hit — the caller owns that diagnosis,
+/// because only it can kill the child and quote its stderr.
+fn mcp_await(
+    rx: &std::sync::mpsc::Receiver<String>,
+    want_id: u64,
+    deadline: std::time::Instant,
+) -> Result<Option<serde_json::Value>> {
+    loop {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            return Ok(None);
+        }
+        match rx.recv_timeout(remaining) {
+            Ok(line) => {
+                if let Some(result) = parse_jsonrpc_message(&line, want_id)? {
+                    return Ok(Some(result));
+                }
+                // Not ours — a notification, the initialize reply, or a log
+                // line. Keep reading.
+            }
+            // Timeout, or the reader thread ended because the server closed
+            // stdout without answering. Both are "no response in budget".
+            Err(_) => return Ok(None),
+        }
+    }
+}
+
+/// Call one tool on a stdio MCP server, speaking JSON-RPC 2.0 directly.
+///
+/// `linkedin-scraper-mcp` is a local stdio MCP server, so being its client
+/// is three writes and one read. Routing that through `claude -p` instead
+/// cost a model round-trip (98s against a measured 28.8s here), a
+/// per-invocation API charge, and — fatally — pushed a ~50 KB tool result
+/// through a context window too small to hold it, so the payload came back
+/// as prose *about* the data rather than the data (ADR-070 §Amendment,
+/// t-2568).
+///
+/// Never acquires [`lock_pipeline`] — see [`fetch_url_content`]'s note.
+fn mcp_call_tool(
+    binary: &std::path::Path,
+    tool: &str,
+    arguments: serde_json::Value,
+    timeout: std::time::Duration,
+) -> Result<serde_json::Value> {
+    use std::io::BufRead as _;
+
+    // stderr goes to a file, not a pipe. The server logs banners and status
+    // lines there, and an unread pipe that fills would block it forever —
+    // precisely the deadlock that made this path look like a 240s hang
+    // (t-2568). A file has no such limit and needs no drain thread.
+    let (stderr_log, stderr_file) = ScopedStderrLog::create()?;
+
+    let mut child = std::process::Command::new(binary)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::from(stderr_file))
+        .spawn()
+        .with_context(|| format!("spawning MCP server {}", binary.display()))?;
+
+    let mut stdin = child.stdin.take().context("MCP server stdin not piped")?;
+    let stdout = child.stdout.take().context("MCP server stdout not piped")?;
+
+    // Read on a thread and hand lines over a channel: `recv_timeout` is what
+    // bounds this call. On timeout the child is killed and we walk away
+    // WITHOUT joining — a grandchild (the server's headless Chromium) can
+    // hold the pipe's write end open long after its parent dies, so a join
+    // would block for as long as that grandchild lives. That mistake turned
+    // a 2s timeout into a 60s stall once already (t-2568).
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        for line in std::io::BufReader::new(stdout).lines().map_while(Result::ok) {
+            if tx.send(line).is_err() {
+                break;
             }
         }
     });
-    let n = SCOPED_CONFIG_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let path = std::env::temp_dir()
-        .join(format!("brana-linkedin-mcp-{}-{n}.json", std::process::id()));
-    std::fs::write(&path, config.to_string())
-        .with_context(|| format!("writing scoped mcp-config to {}", path.display()))?;
-    Ok(ScopedMcpConfig { path })
-}
 
-/// Call the `claude` CLI with a scoped `--mcp-config`/`--strict-mcp-config`/
-/// `--allowedTools` for MCP-tool-using prompts. Distinct from
-/// `call_claude_json` (text-only, no MCP) — new arg-building, no prior art
-/// in this file; empirically verified live 2026-07-24 (ADR-070).
-///
-/// Flag order matters: clap's `<tools...>` for `--allowedTools` consumes
-/// positional-looking args until the next recognized `--flag`, so the tool
-/// list must be followed by another flag (`--output-format`) before the
-/// trailing positional prompt, or the prompt gets swallowed into the tools
-/// list.
-fn call_claude_json_with_mcp(
-    prompt: &str,
-    mcp_config_path: &std::path::Path,
-    allowed_tools: &[&str],
-) -> Result<serde_json::Value> {
-    let binary = resolve_claude_binary().ok_or_else(|| {
-        anyhow::anyhow!(
-            "claude CLI binary not found. Checked: $CLAUDE_PLUGIN_DATA/claude, \
-             ~/.local/bin/claude, PATH. Install Claude Code first."
-        )
-    })?;
-
-    let mut cmd = std::process::Command::new(&binary);
-    cmd.arg("--print")
-        .arg("--mcp-config")
-        .arg(mcp_config_path)
-        .arg("--strict-mcp-config")
-        .arg("--allowedTools");
-    for tool in allowed_tools {
-        cmd.arg(tool);
-    }
-    cmd.arg("--output-format")
-        .arg("json")
-        .arg(prompt)
-        // `claude -p` waits ~3s for stdin before proceeding. Nothing is ever
-        // piped to it here, so close it explicitly rather than inheriting the
-        // parent's — 3s per URL is 81s across a 27-link batch, paid for
-        // nothing.
-        .stdin(std::process::Stdio::null());
-
-    // Concurrent draining is mandatory here, not incidental: this call emits
-    // ~147 KB, over twice a pipe's ~64 KiB. Polling for exit without reading
-    // deadlocked it every time and reported the timeout as the cause (t-2568).
-    let output = run_with_timeout(
-        &mut cmd,
-        std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS),
-    )
-    .with_context(|| format!("running claude binary at {}", binary.display()))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("claude CLI (MCP) exited non-zero: {stderr}");
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let raw = parse_claude_stdout(&stdout)?;
-    match extract_result_from_envelope(&raw) {
-        Some(text) => {
-            let cleaned = strip_code_fences(text.trim());
-            match serde_json::from_str::<serde_json::Value>(cleaned) {
-                Ok(v) => Ok(v),
-                // The model's final text may be prose rather than pure
-                // JSON (e.g. it narrates the tool call) — fall back to
-                // treating the raw text as the value rather than erroring,
-                // callers extract the field(s) they need from it.
-                Err(_) => Ok(serde_json::Value::String(text)),
-            }
+    let deadline = std::time::Instant::now() + timeout;
+    let exchange = (|| -> Result<Option<serde_json::Value>> {
+        mcp_send(
+            &mut stdin,
+            &serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": MCP_INIT_ID,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "brana", "version": env!("CARGO_PKG_VERSION")}
+                }
+            }),
+        )?;
+        if mcp_await(&rx, MCP_INIT_ID, deadline)?.is_none() {
+            return Ok(None);
         }
-        None => Ok(raw),
+        mcp_send(
+            &mut stdin,
+            &serde_json::json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+        )?;
+        mcp_send(
+            &mut stdin,
+            &serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": MCP_CALL_ID,
+                "method": "tools/call",
+                "params": {"name": tool, "arguments": arguments}
+            }),
+        )?;
+        mcp_await(&rx, MCP_CALL_ID, deadline)
+    })();
+
+    let stderr_tail = || std::fs::read_to_string(&stderr_log.path).unwrap_or_default();
+
+    match exchange {
+        Ok(Some(result)) => {
+            // Closing stdin is the server's shutdown signal; it exits on EOF
+            // (measured rc=0 in 0.4s). Poll for that rather than killing
+            // outright, so the server gets to close its browser session.
+            drop(stdin);
+            let grace = std::time::Instant::now()
+                + std::time::Duration::from_secs(MCP_SHUTDOWN_GRACE_SECS);
+            loop {
+                match child.try_wait() {
+                    Ok(Some(_)) | Err(_) => break,
+                    Ok(None) if std::time::Instant::now() >= grace => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        break;
+                    }
+                    Ok(None) => std::thread::sleep(std::time::Duration::from_millis(50)),
+                }
+            }
+            Ok(result)
+        }
+        Ok(None) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            bail!(
+                "{}",
+                timeout_diagnostic(
+                    &format!("linkedin MCP {tool}"),
+                    timeout.as_secs(),
+                    "",
+                    &stderr_tail(),
+                )
+            );
+        }
+        Err(e) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            Err(e)
+        }
     }
 }
 
@@ -1053,44 +1126,34 @@ fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
         )
     })?;
     check_linkedin_session(&binary)?;
-    let config = write_scoped_linkedin_mcp_config(&binary)?;
 
-    let prompt = format!(
-        "Call get_person_profile with linkedin_username=\"{author}\" and sections=\"posts\". \
-         Return ONLY JSON of the shape {{\"posts_text\": \"<the raw text of the posts section>\"}}."
-    );
-    let response = call_claude_json_with_mcp(
-        &prompt,
-        &config.path,
-        &["mcp__linkedin-scraper__get_person_profile"],
-    );
+    let feed = mcp_call_tool(
+        &binary,
+        "get_person_profile",
+        serde_json::json!({"linkedin_username": author, "sections": "posts"}),
+        std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS),
+    )
+    .and_then(|result| extract_posts_section(&result));
 
-    resolve_linkedin_fetch(response, &title_signal)
+    resolve_linkedin_fetch(feed, &title_signal)
 }
 
-/// Decide a Tier-2 fetch's outcome from the MCP shell-out's result.
+/// Decide a Tier-2 fetch's outcome from the fetched author feed.
 ///
 /// Split out of [`fetch_linkedin_content`] so the three-way contract is
-/// testable without spawning `claude -p --mcp-config` — the same
-/// injectable-core convention as [`resolve_extraction`], which takes its
-/// upstream call results as parameters for exactly this reason.
+/// testable without spawning an MCP server — the same injectable-core
+/// convention as [`resolve_extraction`], which takes its upstream call
+/// results as parameters for exactly this reason.
 ///
-/// - `Err` in → `Err` out: the fetch itself broke (timeout, non-zero exit,
-///   missing binary). Never degraded to a miss.
-/// - Unparseable response shape → `Err`: a changed/failed tool output is a
-///   failure, not evidence the post is absent.
+/// - `Err` in → `Err` out: the fetch itself broke (spawn failure, timeout,
+///   MCP error, unparseable tool result). Never degraded to a miss.
 /// - Feed fetched, post not in it → `Ok(None)`: a real miss.
-fn resolve_linkedin_fetch(
-    response: Result<serde_json::Value>,
-    title_signal: &str,
-) -> Result<Option<String>> {
-    let response = response?;
-    let posts_text = response
-        .get("posts_text")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| anyhow::anyhow!("unexpected response shape from linkedin fetch: {response}"))?;
-
-    Ok(find_matching_post(posts_text, title_signal))
+///
+/// Shape validation lives upstream in [`extract_posts_section`], which is
+/// what turns a changed tool output into the `Err` this function then
+/// propagates.
+fn resolve_linkedin_fetch(feed: Result<String>, title_signal: &str) -> Result<Option<String>> {
+    Ok(find_matching_post(&feed?, title_signal))
 }
 
 /// Best-effort match: finds the paragraph-ish chunk in `feed_text` (a raw
@@ -1883,12 +1946,13 @@ mod tests {
     }
 
     // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
-    // The process spawn in call_claude_json_with_mcp stays untested here
-    // (empirically verified live instead — see ADR-070 §Empirical
-    // validation). Everything downstream of it is not: resolve_linkedin_fetch
-    // takes the shell-out's Result as a parameter, so the response-shape
-    // and Ok(None)/Err decisions are covered below. The novel pure logic —
-    // fuzzy matching — is tested here.
+    // The process spawn in mcp_call_tool stays untested here (verified live
+    // instead — see ADR-070 §Empirical validation and §Amendment).
+    // Everything around it is covered: extract_posts_section takes the tool
+    // result, parse_jsonrpc_message takes one wire line, and
+    // resolve_linkedin_fetch takes the fetch's Result — so the framing,
+    // response-shape, and Ok(None)/Err decisions are all reachable without
+    // a server. The novel pure logic — fuzzy matching — is tested here.
 
     #[test]
     fn find_matching_post_finds_high_overlap_chunk() {
@@ -1948,10 +2012,8 @@ mod tests {
     #[test]
     fn linkedin_fetch_post_not_in_feed_returns_ok_none() {
         // The core contract: feed fetched fine, target post absent.
-        let response = serde_json::json!({
-            "posts_text": "A post about gardening.\n\nA post about coffee brewing."
-        });
-        let result = resolve_linkedin_fetch(Ok(response), "quantum computing breakthroughs");
+        let feed = "A post about gardening.\n\nA post about coffee brewing.".to_string();
+        let result = resolve_linkedin_fetch(Ok(feed), "quantum computing breakthroughs");
         assert!(
             matches!(&result, Ok(None)),
             "a clean fetch that lacks the post is a miss, not a failure — got {result:?}"
@@ -1960,40 +2022,21 @@ mod tests {
 
     #[test]
     fn linkedin_fetch_post_present_returns_ok_some() {
-        let response = serde_json::json!({
-            "posts_text": "Unrelated gardening post.\n\n\
-                           Excited to announce our new semantic layer for BigQuery."
-        });
-        let found = resolve_linkedin_fetch(Ok(response), "bigquerys native semantic layer")
-            .expect("a well-formed response must not error")
+        let feed = "Unrelated gardening post.\n\n\
+                    Excited to announce our new semantic layer for BigQuery."
+            .to_string();
+        let found = resolve_linkedin_fetch(Ok(feed), "bigquerys native semantic layer")
+            .expect("a well-formed feed must not error")
             .expect("the post is present in this feed");
         assert!(found.contains("semantic layer for BigQuery"));
     }
 
     #[test]
-    fn linkedin_fetch_malformed_response_returns_err_not_ok_none() {
-        // A broken response shape is a failure, not a miss. If this ever
-        // degrades to Ok(None), every LinkedIn URL silently reports
-        // "not found" the day the MCP tool changes its output shape.
-        let response = serde_json::json!({"unexpected": "shape"});
-        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
-        assert!(result.is_err(), "missing posts_text must be Err — got {result:?}");
-    }
-
-    #[test]
-    fn linkedin_fetch_posts_text_wrong_type_returns_err() {
-        // Boundary: key present, but not a string.
-        let response = serde_json::json!({"posts_text": 42});
-        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
-        assert!(result.is_err(), "non-string posts_text must be Err — got {result:?}");
-    }
-
-    #[test]
     fn linkedin_fetch_transport_error_propagates_as_err() {
-        // Boundary: the shell-out itself failed (timeout, non-zero exit,
-        // missing binary). Must stay Err — never degrade to a quiet miss.
+        // Boundary: the fetch itself failed (spawn failure, timeout, MCP
+        // error). Must stay Err — never degrade to a quiet miss.
         let result = resolve_linkedin_fetch(
-            Err(anyhow::anyhow!("claude CLI (MCP) timed out after 240s")),
+            Err(anyhow::anyhow!("linkedin MCP tools/call timed out after 120s")),
             "some title signal",
         );
         let err = result.expect_err("a transport failure must surface as Err");
@@ -2006,90 +2049,179 @@ mod tests {
     #[test]
     fn linkedin_fetch_empty_feed_returns_ok_none() {
         // Boundary: author has no posts, or the section came back empty.
-        let response = serde_json::json!({"posts_text": ""});
-        let result = resolve_linkedin_fetch(Ok(response), "some title signal");
+        let result = resolve_linkedin_fetch(Ok(String::new()), "some title signal");
         assert!(
             matches!(&result, Ok(None)),
             "an empty feed is a miss, not a failure — got {result:?}"
         );
     }
 
-    // ── LinkedIn session health (t-2448) ────────────────────────────────
-    // Probed before any LinkedIn fetch. The spec's hard constraint is
-    // "must not silently succeed on an expired session — fail loud", so
-    // this is deliberately fail-closed: a usable session must be
-    // positively confirmed, and anything else is an error naming the
-    // one-time remediation command.
+    // ── LinkedIn Tier 2: MCP tool-result shape (t-2568) ─────────────────
+    // The transport is a direct JSON-RPC client as of ADR-070 §Amendment,
+    // so what gets parsed is the MCP tool result itself rather than
+    // whatever prose `claude -p` decided to emit around it. These cover the
+    // parse; the spawn stays untested here, same convention as the rest of
+    // this file.
 
     #[test]
+    fn mcp_result_extracts_posts_section() {
+        let result = serde_json::json!({
+            "structuredContent": {
+                "url": "https://www.linkedin.com/in/someone",
+                "sections": {
+                    "main_profile": "Name, headline, etc.",
+                    "posts": "Excited to announce our new semantic layer for BigQuery."
+                }
+            },
+            "isError": false
+        });
+        let posts = extract_posts_section(&result).expect("a well-formed result must parse");
+        assert!(posts.contains("semantic layer for BigQuery"));
+    }
+
     #[test]
-    fn run_with_timeout_drains_output_larger_than_the_pipe_buffer() {
-        // t-2568. THE BUG: the old loop polled try_wait() and only read the
-        // child's piped stdout after it exited. A pipe buffer is ~64 KiB, so
-        // a child writing more than that blocks on write() and never exits,
-        // while the parent waits forever for the exit that can no longer
-        // happen. Deadlock, reported as "timed out after 240s" with no output.
-        //
-        // Real numbers: the LinkedIn fetch emits ~147 KB — 2.2x the buffer —
-        // so it deadlocked every single time, which is why the failure was
-        // exactly 240s rather than variable.
-        //
-        // 200 KB here so the test fails on any plausible buffer size.
-        let mut cmd = std::process::Command::new("sh");
-        cmd.arg("-c").arg("i=0; while [ $i -lt 200 ]; do printf '%01023d\\n' $i; i=$((i+1)); done");
+    fn mcp_result_absent_posts_section_is_an_empty_feed_not_an_error() {
+        // get_person_profile documents that a section "may be absent if
+        // extraction yielded no content for that page" — that is an author
+        // with no visible posts, a miss rather than a broken tool. The
+        // presence of `sections` is what separates this from a shape change.
+        let result = serde_json::json!({
+            "structuredContent": {"sections": {"main_profile": "Name, headline."}},
+            "isError": false
+        });
+        let posts =
+            extract_posts_section(&result).expect("an absent posts section is not an error");
+        assert!(posts.is_empty(), "expected an empty feed, got {posts:?}");
+        assert_eq!(find_matching_post(&posts, "anything at all"), None);
+    }
 
-        let out = run_with_timeout(&mut cmd, std::time::Duration::from_secs(30))
-            .expect("draining run must not time out on a large writer");
-
-        assert!(out.status.success(), "child should exit cleanly");
+    #[test]
+    fn mcp_result_missing_structured_content_is_err() {
+        // A changed or failed tool output is a failure, not evidence that
+        // the post is absent. If this degrades to Ok(None), every LinkedIn
+        // URL silently reports "not found" the day the tool changes shape.
+        let result = serde_json::json!({"content": [{"type": "text", "text": "..."}]});
         assert!(
-            out.stdout.len() > 100_000,
-            "expected >100KB drained, got {} bytes — output was truncated or the \
-             read happened after exit",
-            out.stdout.len()
+            extract_posts_section(&result).is_err(),
+            "missing structuredContent must be Err"
         );
     }
 
     #[test]
-    fn run_with_timeout_kills_and_reports_a_genuine_hang() {
-        // The timeout must still fire for a child that really does hang, and
-        // must return whatever it wrote first — silence and a hang are
-        // different diagnoses.
-        let mut cmd = std::process::Command::new("sh");
-        cmd.arg("-c").arg("printf 'before-hang\\n'; sleep 60");
-
-        let started = std::time::Instant::now();
-        let out = run_with_timeout(&mut cmd, std::time::Duration::from_secs(2));
-        let elapsed = started.elapsed();
-
-        // The timeout must actually bound the call. A `sleep 60` grandchild
-        // keeps the pipe's write end open after its `sh` parent is killed, so
-        // joining the reader threads here would block the full 60s — the same
-        // hang in a different coat. Caught for real while building this fix.
+    fn mcp_result_is_error_flag_is_err() {
+        // The server reports tool-level failure in band, on an otherwise
+        // well-formed response. Ignoring isError would read a failed scrape
+        // as an empty feed and mark the post permanently missing.
+        let result = serde_json::json!({
+            "content": [{"type": "text", "text": "Session expired"}],
+            "structuredContent": {"sections": {"posts": ""}},
+            "isError": true
+        });
+        let err = extract_posts_section(&result).expect_err("isError must surface as Err");
         assert!(
-            elapsed < std::time::Duration::from_secs(20),
-            "timeout path must not block on a grandchild holding the pipe: took {elapsed:?}"
+            err.to_string().contains("Session expired"),
+            "the server's message must not be swallowed — got {err}"
         );
-
-        match out {
-            Err(e) => {
-                let msg = e.to_string();
-                assert!(msg.contains("timed out"), "must name the timeout: {msg}");
-                assert!(
-                    msg.contains("before-hang"),
-                    "output written before the hang must survive the kill: {msg}"
-                );
-            }
-            Ok(o) => panic!("a 60s sleep must not complete inside a 2s budget: {o:?}"),
-        }
     }
+
+    #[test]
+    fn mcp_result_posts_section_wrong_type_is_err() {
+        // Boundary: key present, but not a string.
+        let result = serde_json::json!({
+            "structuredContent": {"sections": {"posts": 42}}
+        });
+        assert!(
+            extract_posts_section(&result).is_err(),
+            "a non-string posts section must be Err"
+        );
+    }
+
+    #[test]
+    fn mcp_stderr_log_is_removed_on_drop() {
+        // Inherited from the scoped-mcp-config guard this replaced: an
+        // unattended batch that leaked one temp file per URL would quietly
+        // fill /tmp.
+        let (guard, _file) = ScopedStderrLog::create().unwrap();
+        let path = guard.path.clone();
+        assert!(path.exists());
+        drop(guard);
+        assert!(!path.exists(), "temp stderr log must be cleaned up on drop");
+    }
+
+    #[test]
+    fn mcp_stderr_logs_two_calls_same_process_get_distinct_paths() {
+        // Boundary: batch mode calls mcp_call_tool once per URL from the
+        // same process — PID-only naming would collide, and one call's Drop
+        // would delete another's still-open log (regression guard).
+        let (a, _fa) = ScopedStderrLog::create().unwrap();
+        let (b, _fb) = ScopedStderrLog::create().unwrap();
+        assert_ne!(a.path, b.path);
+        assert!(a.path.exists() && b.path.exists());
+    }
+
+    // ── JSON-RPC framing (t-2568) ───────────────────────────────────────
+
+    #[test]
+    fn jsonrpc_skips_messages_that_are_not_the_awaited_response() {
+        // FastMCP can interleave progress notifications with responses, and
+        // the initialize reply precedes the tools/call reply on the same
+        // stream. A client that took the first line it read would parse the
+        // wrong message as its tool result.
+        let notification =
+            r#"{"jsonrpc":"2.0","method":"notifications/progress","params":{"progress":0.5}}"#;
+        assert!(
+            matches!(parse_jsonrpc_message(notification, 2), Ok(None)),
+            "a notification must not satisfy the wait for id 2"
+        );
+        let other_id = r#"{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05"}}"#;
+        assert!(
+            matches!(parse_jsonrpc_message(other_id, 2), Ok(None)),
+            "a response to another id must not satisfy the wait for id 2"
+        );
+    }
+
+    #[test]
+    fn jsonrpc_matching_id_returns_the_result() {
+        let line = r#"{"jsonrpc":"2.0","id":2,"result":{"isError":false}}"#;
+        let got = parse_jsonrpc_message(line, 2)
+            .expect("a well-formed response must not error")
+            .expect("id 2 must satisfy the wait");
+        assert_eq!(got["isError"], serde_json::json!(false));
+    }
+
+    #[test]
+    fn jsonrpc_error_object_surfaces_as_err() {
+        // A protocol-level error (unknown tool, bad params) must not be
+        // mistaken for "no result yet" and waited on until the timeout.
+        let line =
+            r#"{"jsonrpc":"2.0","id":2,"error":{"code":-32602,"message":"Unknown tool: nope"}}"#;
+        let err = parse_jsonrpc_message(line, 2).expect_err("an error object must surface as Err");
+        assert!(
+            err.to_string().contains("Unknown tool: nope"),
+            "the server's message must not be swallowed — got {err}"
+        );
+    }
+
+    #[test]
+    fn jsonrpc_non_json_line_is_skipped_not_fatal() {
+        // Servers print banners and log lines. FastMCP's own update notice
+        // goes to stderr, but a stray non-JSON line on stdout must not abort
+        // a fetch that is otherwise fine.
+        assert!(matches!(parse_jsonrpc_message("Starting MCP server", 2), Ok(None)));
+        assert!(matches!(parse_jsonrpc_message("", 2), Ok(None)));
+    }
+
+    // ── Subprocess timeout diagnostics ──────────────────────────────────
+    // Shared by every path that kills a child on a deadline. A killed
+    // child's output used to be dropped on the floor, which is why t-2568
+    // could not be diagnosed from its own error message.
 
     #[test]
     fn timeout_diagnostic_includes_what_the_child_wrote() {
         // t-2557 AC-3. A killed child's piped output used to be dropped on
         // the floor: the caller got "timed out after 240s" and nothing else,
         // which is why t-2568 could not be diagnosed from its own error.
-        let msg = timeout_diagnostic(240, "partial stdout here", "Chromium launch failed");
+        let msg = timeout_diagnostic("claude CLI (MCP)", 240, "partial stdout here", "Chromium launch failed");
         assert!(msg.contains("240s"));
         assert!(msg.contains("Chromium launch failed"), "child stderr must survive: {msg}");
         assert!(msg.contains("partial stdout here"), "child stdout must survive: {msg}");
@@ -2099,7 +2231,7 @@ mod tests {
     fn timeout_diagnostic_says_so_when_the_child_wrote_nothing() {
         // Silence is itself the diagnosis — a child that produced nothing
         // before the kill points at a different fault than one that errored.
-        let msg = timeout_diagnostic(240, "", "   ");
+        let msg = timeout_diagnostic("linkedin MCP get_person_profile", 240, "", "   ");
         assert!(msg.contains("240s"));
         assert!(
             msg.contains("no output"),
@@ -2112,10 +2244,17 @@ mod tests {
         // A hung MCP server can emit megabytes; the error must stay readable
         // and must say it truncated rather than silently cutting.
         let flood = "x".repeat(10_000);
-        let msg = timeout_diagnostic(240, "", &flood);
+        let msg = timeout_diagnostic("linkedin MCP get_person_profile", 240, "", &flood);
         assert!(msg.len() < 3_000, "diagnostic must stay bounded: {} bytes", msg.len());
         assert!(msg.contains("truncated"));
     }
+
+    // ── LinkedIn session health (t-2448) ────────────────────────────────
+    // Probed before any LinkedIn fetch. The spec's hard constraint is
+    // "must not silently succeed on an expired session — fail loud", so
+    // this is deliberately fail-closed: a usable session must be
+    // positively confirmed, and anything else is an error naming the
+    // one-time remediation command.
 
     #[test]
     fn session_health_live_session_is_ok() {
@@ -2160,8 +2299,9 @@ mod tests {
         // The spec requires the probe to gate the fetch, not merely to
         // exist ("session health check before any LinkedIn fetch"). Order
         // is the whole contract: probing afterwards would still report a
-        // dead session, but only after burning a ~$0.40 / ~9s claude -p
-        // MCP round-trip per URL across a nightly batch.
+        // dead session, but only after spawning the server and launching a
+        // headless browser for a ~29s scrape that cannot succeed — once per
+        // URL across an unattended batch.
         let body = fn_span(
             include_str!("knowledge_pipeline.rs"),
             "fn fetch_linkedin_content",
@@ -2170,11 +2310,11 @@ mod tests {
             .find("check_linkedin_session")
             .expect("fetch_linkedin_content must probe session health");
         let fetch = body
-            .find("call_claude_json_with_mcp")
+            .find("mcp_call_tool")
             .expect("fetch_linkedin_content must perform the MCP fetch");
         assert!(
             probe < fetch,
-            "session health must be checked BEFORE the claude -p MCP shell-out"
+            "session health must be checked BEFORE the MCP tools/call"
         );
     }
 
@@ -2223,8 +2363,8 @@ mod tests {
             "fn check_linkedin_session",
             "fn resolve_session_health",
             "fn fetch_public_url",
-            "fn call_claude_json_with_mcp",
-            "fn write_scoped_linkedin_mcp_config",
+            "fn mcp_call_tool",
+            "fn extract_posts_section",
             "fn find_matching_post",
         ] {
             assert!(
@@ -2235,7 +2375,7 @@ mod tests {
         }
     }
 
-    // ── resolve_linkedin_scraper_binary / write_scoped_linkedin_mcp_config ─
+    // ── resolve_linkedin_scraper_binary ─────────────────────────────────
 
     #[test]
     fn resolve_linkedin_scraper_binary_does_not_panic() {
@@ -2243,40 +2383,6 @@ mod tests {
         // the important contract is no panic, matching the sibling
         // resolvers' test convention (resolve_ruflo_binary, resolve_claude_binary).
         let _ = resolve_linkedin_scraper_binary();
-    }
-
-    #[test]
-    fn write_scoped_linkedin_mcp_config_writes_expected_json() {
-        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
-        let config = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
-        let written = std::fs::read_to_string(&config.path).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&written).unwrap();
-        assert_eq!(
-            parsed["mcpServers"]["linkedin-scraper"]["command"],
-            "/fake/path/linkedin-scraper-mcp"
-        );
-    }
-
-    #[test]
-    fn scoped_mcp_config_two_calls_same_process_get_distinct_paths() {
-        // Boundary: batch mode calls this once per URL from the same
-        // process — PID-only naming would collide (regression guard).
-        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
-        let a = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
-        let b = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
-        assert_ne!(a.path, b.path);
-        assert!(a.path.exists());
-        assert!(b.path.exists());
-    }
-
-    #[test]
-    fn scoped_mcp_config_removed_on_drop() {
-        let fake_binary = PathBuf::from("/fake/path/linkedin-scraper-mcp");
-        let config = write_scoped_linkedin_mcp_config(&fake_binary).unwrap();
-        let path = config.path.clone();
-        assert!(path.exists());
-        drop(config);
-        assert!(!path.exists(), "temp mcp-config file must be cleaned up on drop");
     }
 
     // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────
