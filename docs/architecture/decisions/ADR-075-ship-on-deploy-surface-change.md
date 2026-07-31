@@ -53,17 +53,39 @@ The deferral instinct rests on a bad promotion being expensive. It is not:
 
 ### What deferral actually cost
 
-Measured the same day, unchanged across the preceding three days: `diff -rq` reported 3 differing
-hook entries and 1 differing rule between `system/` and `~/.claude/`. The live binary was built
-2026-07-27 against a newest-CLI-commit of 2026-07-29, and `strings ~/.local/bin/brana | grep -c
-base_written_at` returned **0** — confirming t-2506's compare-and-swap fix was absent from the
-running binary. Every session close was still silently dropping `next[]` handoff entries while
-the fix sat merged, tested (1265 passing) and inert.
+The live `brana` binary was built 2026-07-27 against a newest-`system/cli`-commit of 2026-07-29,
+and `strings ~/.local/bin/brana | grep -c base_written_at` returned **0** — confirming t-2506's
+compare-and-swap fix was absent from the running binary. Every session close was still silently
+dropping `next[]` handoff entries while the fix sat merged, tested (1265 passing) and inert.
+This is the durable instance: it persisted through the authoring of this ADR and is not
+addressed by `bootstrap.sh`, which does not rebuild the binary.
 
-The second inert commit, `f6a736c6` (t-2542), fixes the branch-name guard's misparsing of quoted
-shell arguments. During the authoring of this ADR that undeployed bug rejected the very
-`git worktree add` command creating its branch — the guard read `2>&1` as the branch name. A fix
-for a defect blocked the work of shipping itself.
+### The bootstrap channel drifts differently — and drifts *sideways*
+
+An earlier draft of this ADR reported 3 differing hook entries and 1 differing rule between
+`system/` and `~/.claude/`, described as unchanged over three days. **Both figures were wrong by
+the time the ADR was committed, and the rules figure was never meaningful:**
+
+- The one "differing rule" was `Only in system/rules: README.md` — a readme that is not deployed.
+  It was counted as drift without being inspected.
+- The hook count went to **0 mid-session.** `~/.claude/hooks/` was rewritten at 2026-07-31 11:11,
+  while this ADR was being written, and `branch-name-warn.sh` is now byte-identical to the repo
+  copy.
+
+That mid-session write is more instructive than the number it invalidated. **The deploy ran
+against the `dev` working tree while `main` was 68 commits behind**, so the live hook layer now
+runs code that was never promoted. This is exactly the second-order risk recorded in t-2546: an
+ad-hoc `bootstrap.sh` run deploys not just the fix someone wanted, but whatever else is sitting
+in the tree. Ad-hoc runs happen *because* the promotion cadence is unreliable, so a broken ship
+cadence does not merely delay deployment — it routes deployment around promotion entirely, which
+is a worse failure than the latency it was avoiding.
+
+A claim in the earlier draft — that `f6a736c6`'s undeployed state caused the branch-name guard to
+reject the `git worktree add` creating this ADR's branch — has been **withdrawn as unverifiable**.
+The rejection did occur (the guard read `2>&1` as the branch name), but the 11:11 deploy cannot be
+ordered against it, so whether the hook was stale at that moment is unknown. If the guard was
+already current, the quoted-argument case in t-2542 is not fully fixed; that is a live question,
+not evidence for this decision.
 
 ## Decision
 
