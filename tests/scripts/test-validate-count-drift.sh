@@ -193,5 +193,54 @@ assert_eq "agents 10 vs 11: flag (stale)"      "flag" "$(check13_should_flag 10 
 assert_eq "agents 5 vs 11: skip (too far off)" "skip" "$(check13_should_flag 5 11 agents)"
 
 echo ""
+
+# ── ACTUAL_SKILLS counting tests (t-2571) ───────────────────────────────────
+# These do NOT reproduce the formula — they extract the real assignment from
+# validate.sh and eval it against a fixture tree. A copy here would rot the
+# moment validate.sh changed; sourcing the real line cannot.
+
+VALIDATE_SH="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/validate.sh"
+
+# Run validate.sh's own ACTUAL_SKILLS assignment against an arbitrary SYSTEM_DIR.
+count_skills() {
+    local sysdir="$1" line
+    line=$(grep -m1 '^ACTUAL_SKILLS=' "$VALIDATE_SH") || return 1
+    ( SYSTEM_DIR="$sysdir"; eval "$line"; echo "$ACTUAL_SKILLS" )
+}
+
+echo "Test group: ACTUAL_SKILLS counts only real skills (t-2571)"
+
+# Fixture: 2 real skills + the two non-skill dirs that live under system/skills/.
+FIXSYS="$TMPROOT/system"
+mkdir -p "$FIXSYS"/skills/{alpha,beta,_shared,acquired}
+: > "$FIXSYS/skills/alpha/SKILL.md"
+: > "$FIXSYS/skills/beta/SKILL.md"
+: > "$FIXSYS/skills/_shared/branch-prefix.md"   # shared procedure, not a skill
+: > "$FIXSYS/skills/acquired/.gitkeep"          # container dir, not a skill
+
+assert_eq "counts 2 skills, excluding _shared/ and acquired/" "2" "$(count_skills "$FIXSYS")"
+
+# _shared/ is the specific regression: it has no SKILL.md and must not be counted.
+FIXNOSHARED="$TMPROOT/system-no-shared"
+mkdir -p "$FIXNOSHARED"/skills/{alpha,beta}
+: > "$FIXNOSHARED/skills/alpha/SKILL.md"
+: > "$FIXNOSHARED/skills/beta/SKILL.md"
+assert_eq "adding _shared/ does not change the count" \
+    "$(count_skills "$FIXNOSHARED")" "$(count_skills "$FIXSYS")"
+
+# A dir with no SKILL.md is not a skill, whatever it is named.
+mkdir -p "$FIXSYS/skills/not-a-skill"
+: > "$FIXSYS/skills/not-a-skill/README.md"
+assert_eq "dir without SKILL.md is not counted" "2" "$(count_skills "$FIXSYS")"
+
+# Real tree: the count must equal the number of dirs that actually hold a SKILL.md.
+REAL_SYS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/system"
+if [ -d "$REAL_SYS/skills" ]; then
+    real_expected=$(find "$REAL_SYS/skills" -mindepth 2 -maxdepth 2 -name SKILL.md | wc -l | tr -d ' ')
+    assert_eq "real tree: matches dirs containing SKILL.md ($real_expected)" \
+        "$real_expected" "$(count_skills "$REAL_SYS")"
+fi
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed / $TOTAL total ==="
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
