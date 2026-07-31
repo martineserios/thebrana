@@ -105,6 +105,13 @@ kept these separate from the cap).
 - **Commit recency is measured on the worktree's HEAD**, not on divergence from `dev`. A
   worktree whose branch was merged but never removed still reads as idle from its last
   commit, which is the signal wanted.
+- **`brana` resolves the canonical `tasks.json` regardless of which worktree it runs from.**
+  Verified 2026-07-29: `.claude/tasks.json` is git-tracked, so every worktree carries its own
+  copy at a different inode, and this branch's copy was two hours stale — yet a read issued
+  from inside the worktree returned the main checkout's current value. The check therefore
+  reports the same answer from any worktree. Had it read the local copy instead, it would
+  grade live worktrees against a snapshot frozen at branch-cut time and manufacture
+  divergences that do not exist.
 
 ## Behavior
 
