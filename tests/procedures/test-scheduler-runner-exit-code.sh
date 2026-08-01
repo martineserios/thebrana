@@ -53,12 +53,21 @@ mkdir -p "$TESTHOME/.claude/scheduler" "$TESTHOME/proj"
 
 # captureOutput:false keeps the runner off cf-env/ruflo; maxRetries:0 keeps
 # failing runs single-attempt (no backoff sleeps).
+#
+# retry-job reproduces the t-2588 challenger finding: attempt 1 fails (exit 3)
+# after detaching a background flock holder that grabs the project lock the
+# moment the runner releases it; attempt 2 then times out on the lock. The
+# runner must report the prior attempt's real failure, not a SKIPPED/exit-0.
+LOCKFILE="$TESTHOME/.claude/scheduler/locks/proj.lock"
 cat > "$TESTHOME/.claude/scheduler/scheduler.json" <<JSON
 {
   "defaults": {"timeoutSeconds": 30, "maxRetries": 0, "logRetention": 5, "captureOutput": false},
   "jobs": {
-    "fail-job": {"type": "command", "project": "$TESTHOME/proj", "command": "exit 7"},
-    "ok-job":   {"type": "command", "project": "$TESTHOME/proj", "command": "true"}
+    "fail-job":  {"type": "command", "project": "$TESTHOME/proj", "command": "exit 7"},
+    "ok-job":    {"type": "command", "project": "$TESTHOME/proj", "command": "true"},
+    "retry-job": {"type": "command", "project": "$TESTHOME/proj",
+                  "command": "( flock $LOCKFILE -c 'sleep 6' & ); exit 3",
+                  "maxRetries": 1, "retryBackoffSec": 1, "lockWaitSeconds": 1}
   }
 }
 JSON
@@ -91,11 +100,22 @@ assert_eq "runner exit code is 0" "0" "$RC"
 assert_log_contains "log footer records SUCCESS" "SUCCESS" ok-job
 assert_eq "last-status.json status is SUCCESS" "SUCCESS" "$(status_field ok-job status)"
 
-# ── Test 3: mutation sanity — a propagation-stripped runner is caught ────────
+# ── Test 3: lock timeout on a retry must not discard the prior failure ───────
+# Challenger finding on t-2588 (severity 5): the lock-timeout SKIP branch sits
+# inside the retry loop, so on attempt >=2 it fired after a real failure and
+# wrote SKIPPED/exit 0 — reproducing the "failed run reports success" class.
+echo "Test 3: lock timeout on retry reports the prior attempt's failure"
+RC=$(run_job "$RUNNER" retry-job)
+assert_eq "runner exit code is attempt 1's failure" "3" "$RC"
+assert_eq "last-status.json status is FAILED" "FAILED" "$(status_field retry-job status)"
+assert_eq "last-status.json exit_code is 3" "3" "$(status_field retry-job exit_code)"
+assert_log_contains "log explains the lock-timeout-on-retry path" "LOCK TIMEOUT on retry" retry-job
+
+# ── Test 4: mutation sanity — a propagation-stripped runner is caught ────────
 # Proves Test 1's assertion is load-bearing: if someone replaces the final
 # `exit "$EXIT_CODE"` with a bare success exit (the bug t-2588 alleged), the
 # runner reports 0 for a failing job and Test 1 would fail.
-echo "Test 3: mutant runner without propagation would be caught"
+echo "Test 4: mutant runner without propagation would be caught"
 MUTANT="$TESTHOME/runner-mutant.sh"
 sed 's/^exit "\$EXIT_CODE"$/exit 0/' "$RUNNER" > "$MUTANT"
 TOTAL=$((TOTAL + 1))

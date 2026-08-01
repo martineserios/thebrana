@@ -274,7 +274,10 @@ The runner propagates the job's exit status **verbatim** as its own exit status
   its own summary line. The rejected alternative (map partial → exit 0 + warning)
   would trade unit-level honesty for triage the log already provides.
 - Graceful skips (lock contention, OOM guard, disabled job) exit 0 by design —
-  they are "did not run", not "ran and failed" (t-2004).
+  they are "did not run", not "ran and failed" (t-2004). Exception: a lock
+  timeout on a **retry** attempt is not a skip — a prior attempt in the same
+  invocation already ran and failed, so the runner reports that failure
+  (challenger finding on t-2588; the SKIPPED path would have discarded it).
 
 **Reading unit state correctly:** `systemctl show <unit> -p Result -p ExecMainStatus`
 reflects only the **latest** invocation. With `Persistent=true` timers, a failed
