@@ -1147,6 +1147,15 @@ const LINKEDIN_PUBLIC_MIN_CHARS: usize = 200;
 /// unmeasured identity.
 const LINKEDIN_PUBLIC_UA: &str = "curl/8.5.0";
 
+/// Hard bounds on every public HTTP fetch. The fetch target can be
+/// attacker-influenced (unwrapped /safety/go params, user-logged URLs), so
+/// an unbounded request is a resource-exhaustion primitive against the
+/// unattended pipeline (t-2589 challenger finding). 30s covers slow public
+/// pages (the LinkedIn extract measures ~1s); 10 MB covers heavyweight
+/// article pages while bounding a hostile endless stream.
+const PUBLIC_FETCH_TIMEOUT_SECS: u64 = 30;
+const PUBLIC_FETCH_MAX_BYTES: u64 = 10 * 1024 * 1024;
+
 /// LinkedIn fetch — public extract primary, authenticated scrape fallback
 /// (ADR-070 second §Amendment, t-2589).
 ///
@@ -1225,7 +1234,18 @@ fn resolve_tiered_linkedin_fetch(
             (None, None) => Ok(None),
         },
         Err(t2_err) => match thin {
-            Some(p) => Ok(Some(p)),
+            Some(p) => {
+                // Salvage real content, but keep tier-2 failures loud —
+                // a dying session must stay visible in the run log even
+                // when the public path papers over it (t-2589 challenger
+                // finding; ADR-070 fail-loud-on-expired-session rule).
+                eprintln!(
+                    "  tier-2 LinkedIn fetch failed ({t2_err:#}); salvaging thin public \
+                     extract ({} chars)",
+                    p.chars().count()
+                );
+                Ok(Some(p))
+            }
             None => Err(t2_err),
         },
     }
@@ -1241,7 +1261,13 @@ fn resolve_tiered_linkedin_fetch(
 ///   fallback still gets its chance).
 /// - `Err` — transport failure (DNS, connect, read).
 fn fetch_linkedin_public_extract(url: &str) -> Result<Option<String>> {
-    let response = match ureq::get(url).header("User-Agent", LINKEDIN_PUBLIC_UA).call() {
+    let response = match ureq::get(url)
+        .config()
+        .timeout_global(Some(std::time::Duration::from_secs(PUBLIC_FETCH_TIMEOUT_SECS)))
+        .build()
+        .header("User-Agent", LINKEDIN_PUBLIC_UA)
+        .call()
+    {
         Ok(r) => r,
         Err(ureq::Error::StatusCode(_)) => return Ok(None),
         Err(e) => {
@@ -1251,6 +1277,8 @@ fn fetch_linkedin_public_extract(url: &str) -> Result<Option<String>> {
     };
     let html = response
         .into_body()
+        .with_config()
+        .limit(PUBLIC_FETCH_MAX_BYTES)
         .read_to_string()
         .with_context(|| format!("failed to read public LinkedIn response body: {url}"))?;
     Ok(extract_linkedin_public_text(&html))
@@ -1405,7 +1433,55 @@ pub fn unwrap_linkedin_safety_url(url: &str) -> String {
     };
     let raw = url[param + 4..].split('&').next().unwrap_or("");
     let decoded = percent_decode(raw);
-    if decoded.starts_with("http") { decoded } else { url.to_string() }
+    // The url= param is attacker-authorable (any post author controls it)
+    // and becomes the pipeline's raw fetch target — only unwrap to public
+    // http(s) hosts, never loopback/private/link-local (cloud metadata)
+    // targets (t-2589 challenger finding).
+    if is_public_http_target(&decoded) { decoded } else { url.to_string() }
+}
+
+/// True when `url` is `http(s)` on a host that is not loopback, private,
+/// link-local, unique-local, or unspecified. Hostnames pass (DNS answers
+/// are not resolved here); IP literals — including bracketed IPv6 and
+/// userinfo-prefixed forms (`user@127.0.0.1`) — are range-checked.
+fn is_public_http_target(url: &str) -> bool {
+    let rest = if let Some(r) = url.strip_prefix("https://") {
+        r
+    } else if let Some(r) = url.strip_prefix("http://") {
+        r
+    } else {
+        return false;
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    let host_port = authority.rsplit('@').next().unwrap_or(authority);
+    let host = if let Some(bracketed) = host_port.strip_prefix('[') {
+        bracketed.split(']').next().unwrap_or("")
+    } else if host_port.parse::<std::net::Ipv6Addr>().is_ok() {
+        // Unbracketed IPv6 literal (invalid URL syntax, but cheap to
+        // range-check rather than misread its first group as a hostname).
+        host_port
+    } else {
+        host_port.split(':').next().unwrap_or("")
+    };
+    let host = host.to_ascii_lowercase();
+    if host.is_empty() || host == "localhost" || host.ends_with(".localhost") {
+        return false;
+    }
+    if let Ok(v4) = host.parse::<std::net::Ipv4Addr>() {
+        return !(v4.is_loopback()
+            || v4.is_private()
+            || v4.is_link_local()
+            || v4.is_unspecified()
+            || v4.is_broadcast());
+    }
+    if let Ok(v6) = host.parse::<std::net::Ipv6Addr>() {
+        let seg0 = v6.segments()[0];
+        return !(v6.is_loopback()
+            || v6.is_unspecified()
+            || (seg0 & 0xfe00) == 0xfc00    // unique-local fc00::/7
+            || (seg0 & 0xffc0) == 0xfe80); // link-local fe80::/10
+    }
+    true
 }
 
 /// Minimal percent-decoding (RFC 3986 `%XX`). Invalid escapes pass through
@@ -1483,11 +1559,16 @@ fn find_matching_post(feed_text: &str, title_signal: &str) -> Option<String> {
 /// new HTTP client dependency.
 fn fetch_public_url(url: &str) -> Result<String> {
     let response = ureq::get(url)
+        .config()
+        .timeout_global(Some(std::time::Duration::from_secs(PUBLIC_FETCH_TIMEOUT_SECS)))
+        .build()
         .header("User-Agent", "brana-knowledge-process-url/1.0")
         .call()
         .with_context(|| format!("fetch failed: {url}"))?;
     let body = response
         .into_body()
+        .with_config()
+        .limit(PUBLIC_FETCH_MAX_BYTES)
         .read_to_string()
         .with_context(|| format!("failed to read response body: {url}"))?;
     Ok(strip_html_to_text(&body))
@@ -2708,6 +2789,7 @@ mod tests {
             "fn extract_meta_content",
             "fn decode_html_entities",
             "pub fn unwrap_linkedin_safety_url",
+            "fn is_public_http_target",
             "fn percent_decode",
             "fn check_linkedin_session",
             "fn resolve_session_health",
@@ -2746,6 +2828,33 @@ mod tests {
     fn unwrap_safety_url_cuts_trailing_params() {
         let wrapped = "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Fx&trk=feed";
         assert_eq!(unwrap_linkedin_safety_url(wrapped), "https://example.com/x");
+    }
+
+    #[test]
+    fn unwrap_safety_url_rejects_non_public_targets() {
+        // Challenger finding (t-2589, sev 4): the url= param is
+        // attacker-authorable (any post author controls it), and the
+        // decoded value becomes the pipeline's raw fetch target. Private,
+        // loopback, link-local (cloud metadata), and non-http targets must
+        // not be unwrapped — the wrapper URL passes through unchanged.
+        for target in [
+            "http%3A%2F%2Flocalhost%2Fadmin",
+            "http%3A%2F%2F127.0.0.1%3A8080%2F",
+            "http%3A%2F%2F169.254.169.254%2Flatest%2Fmeta-data%2F",
+            "https%3A%2F%2F10.0.0.7%2Finternal",
+            "https%3A%2F%2F192.168.1.1%2F",
+            "http%3A%2F%2F%5B%3A%3A1%5D%2F",
+            "http%3A%2F%2Ffd00%3A%3A1%2F",
+            "http%3A%2F%2Fuser%40127.0.0.1%2F",
+            "ftp%3A%2F%2Fexample.com%2F",
+        ] {
+            let wrapped = format!("https://www.linkedin.com/safety/go?url={target}");
+            assert_eq!(
+                unwrap_linkedin_safety_url(&wrapped),
+                wrapped,
+                "must not unwrap to non-public target: {target}"
+            );
+        }
     }
 
     #[test]
