@@ -198,8 +198,29 @@ each verified against the repo before applying:
 8. Rung 4's kill signal written now, not after three rungs of sunk cost.
 9. DDD/TDD/SDD/Docs sections restored; touched files named.
 
+## Phase 0 has reported — Rungs 2–5 are dead
+
+**t-2591 returned KILL** (2026-08-01). `churn_share = 0.342` against a pre-registered KILL
+threshold of 0.35, robust across three measurement bases (0.285 fresh-token, 0.326 turn-count).
+Full result and honesty contract: [enforced-delegation.md](enforced-delegation.md) §Phase 0 result.
+
+The measurement found something neither side of the argument predicted: **orchestration is 59%
+of build tokens, understanding only 6.8%**, and `cache_read` is **97%** of all tokens consumed
+— cost is dominated by *carrying* context across turns, not by reading files or churning tests.
+
+**Status of this ladder:**
+
+| Rung | Status |
+|---|---|
+| **Rung 1** — thicken the brief | **Alive.** Burns no compute; improves four already-running delegation surfaces regardless. |
+| Rungs 2–5 — executor agents, role marking, writing executor, enforcement | **Dead.** Gated on Phase 0; Phase 0 said no. |
+| Off-ladder items (reviewer discipline, honesty contracts, ratchet, machine tokens) | **Alive.** Never depended on delegation. |
+
+A post-hoc hypothesis survives (delegation may cut the *turns × context* product by moving
+turns into smaller contexts — a different mechanism than exporting churn). It carries no
+evidential weight and would need its own pre-registration. It is not a reason to revive
+Rungs 2–5 now.
+
 ## Next step
 
-**t-2591 (Phase 0) is genuinely first** — it is the gate this project set for itself, and it
-is the only thing that tests the surviving HIGH finding. Rung 1 may run alongside it (no
-parallelism, no compute), but Rung 4 does not start until Phase 0 reports.
+Rung 1, or the off-ladder items. Not the executor rungs.

@@ -242,6 +242,82 @@ What survives and is worth building now:
 Delegation returns only if Phase 0 shows churn-tokens dominate *and* quota is slack — with an
 honest, pre-registered N and kill criterion written before any further code.
 
+## Phase 0 result (t-2591, 2026-08-01) — **KILL**
+
+Decision rule pre-registered and committed at 19:51:11Z (`docs/ideas/phase0-preregistration.md`,
+commit `bf2524aa`) **before any aggregation**. Verdict below follows that rule as written.
+
+### Outcome: KILL — the delegation layer does not proceed
+
+`churn_share = 0.342`, below the pre-registered KILL threshold of 0.35. **Robust across three
+independent bases**, so the verdict does not rest on the thin 0.008 margin:
+
+| Basis | churn share | Verdict |
+|---|---|---|
+| Pre-registered (all tokens) | 0.342 | KILL |
+| Fresh tokens only (cache excluded) | 0.285 | KILL |
+| Raw turn counts | 0.326 | KILL |
+
+Quota veto did **not** fire — median cold-load share 6.4%, far below the 0.40 trigger. Starting
+a fresh executor is cheap. The layer dies on the churn split alone, not on quota.
+
+### The surprise: both sides of the argument were wrong
+
+Pooled over N=5 build sessions (999M tokens):
+
+| Class | Share |
+|---|---|
+| **Orchestration** | **59.0%** |
+| Churn | 34.2% |
+| **Understanding** | **6.8%** |
+
+- The **information-conservation objection was wrong in its specifics** — understanding is not
+  the dominant cost that would make delegation unpayable. It is 6.8%. Writing a self-contained
+  brief is cheap.
+- The **delegation hypothesis was also wrong** — churn is not the majority to be exported. It
+  is roughly a third.
+- Neither side named the actual cost centre: **orchestration** — turns that call no
+  understanding or churn tool at all (planning text, questions, task/backlog ops).
+
+### Mechanism: cost is carrying context, not using it
+
+**`cache_read_input_tokens` is 97.0% of all tokens consumed.** Every turn re-reads the entire
+accumulated context. Cost therefore scales as *(number of turns × context size at that turn)*,
+almost independently of what any given turn does. That is why orchestration dominates: those
+turns are numerous (60.2% of turns) and each pays full freight for a context it barely uses.
+
+### Consequence for the ladder
+
+Rungs 2–5 of `gentle-ai-adoption-ladder.md` are **not justified by this evidence** and do not
+proceed. Rung 1 (the brief) is unaffected — it burns no compute and improves four already-running
+delegation surfaces. Receipts (t-2592–t-2595) were always independent and continue.
+
+### New hypothesis — explicitly NOT tested here
+
+The mechanism suggests delegation might still pay, but for a reason **neither side argued**:
+an executor's turns happen in its own small context, so moving turns out of a large accumulated
+context could cut the `turns × context` product — regardless of whether those turns are churn.
+Cold-load being cheap (6.4%) is consistent with this.
+
+This is a **post-hoc hypothesis and carries no evidential weight**. Rescuing the delegation
+layer with it now is exactly the sunk-cost dynamic the adversarial review warned about. If it
+is to be tested, it needs its own pre-registration, its own threshold, and its own task.
+The honest status of the delegation layer today is: **killed by the evidence it was gated on.**
+
+### Honesty contract — what this does not prove
+
+- **N=5, not the pre-registered 12.** Only five sessions matched "build branch AND reached a
+  write". The protocol anticipated this ("use all of them and report the actual N"), but five
+  sessions is thin, and one atypical session (652M of the 999M tokens) carries the pool.
+- **Whole build sessions were measured, not the build-loop phase in isolation** — the
+  `AC: within build-loop` criterion is only partially met. Phase boundaries are not marked in
+  the transcript, so per-phase attribution was not possible without new instrumentation.
+- Turn-level attribution is coarse, and deliberately biased *against* delegation (mixed turns
+  count as understanding). The bias did not change the outcome.
+- Historical inline sessions cannot show what a delegated workflow would actually cost — only
+  the size of the prize.
+- Nothing here speaks to correctness, only cost.
+
 ## Engineering disciplines
 
 - **DDD:** ADR "Enforced delegation — orchestrator/executor split" + receipt-format decision.
