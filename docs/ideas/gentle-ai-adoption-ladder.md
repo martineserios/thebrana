@@ -221,6 +221,38 @@ turns into smaller contexts — a different mechanism than exporting churn). It 
 evidential weight and would need its own pre-registration. It is not a reason to revive
 Rungs 2–5 now.
 
+## Rung 1 result (t-2597, 2026-08-01) — **done, falsifier passed**
+
+`system/skills/_shared/executor-brief.md` shipped. Six fields, each induced from a delegation
+already running in production (`challenger-gate.md`, the build-evaluator spawn at
+`verify-gates.md:93`, `agents/scout.md`) — not drafted blank, as the challenge required.
+
+**Validation:** regenerating `challenger-gate.md`'s spawn call from the template reproduced
+**4 of 6 fields verbatim**. The two gaps are in the original, not the template: its input trust
+boundary is caller-side only and never told to the agent, and it has no "report what you could
+not determine" instruction. Both logged for a future fix.
+
+**Falsifier — PASSED.** The rung was only complete with a populated instance whose authoring
+cost was recorded. Instance: a full brief for t-2593 (`brana receipt mint|validate`, M effort).
+
+| | Cost |
+|---|---|
+| Composing the brief | ~2 min, no new file reads (reused task spec already in context) |
+| Doing the work it briefs | M effort — hours |
+
+Composing the brief costs roughly two orders of magnitude less than the work it scopes, so the
+**information-conservation objection does not bite at the brief-authoring level**. Caveat: this
+author already held t-2593's spec in context; a cold author must first read the task — seconds,
+not hours.
+
+**This independently agrees with Phase 0.** t-2591 measured understanding at just 6.8% of build
+tokens. Writing a brief is an understanding-type activity, so it should be cheap — and it is.
+Two different measurements, same conclusion, reached independently.
+
+`delegation-tdd-checklist.md` was **retained, not absorbed** — it has three live call sites and
+is correct as-is. The brief is the envelope; the checklist is the code-output done-criteria block.
+
 ## Next step
 
-Rung 1, or the off-ladder items. Not the executor rungs.
+The off-ladder items — reviewer discipline, honesty contracts, ratchet baselines, machine-token
+handoff. Not the executor rungs; Phase 0 closed those.
