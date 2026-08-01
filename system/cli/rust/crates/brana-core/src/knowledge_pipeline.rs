@@ -654,6 +654,10 @@ pub struct FetchedContent {
 /// (ADR-070 §Lock discipline; see `test_lock_discipline_source_tripwires`
 /// in `brana-cli/src/commands/knowledge.rs`).
 pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
+    // /safety/go wrappers unwrap BEFORE platform routing — the wrapped
+    // target is often not LinkedIn at all (t-2589).
+    let unwrapped = unwrap_linkedin_safety_url(url);
+    let url = unwrapped.as_str();
     let platform = classify_platform(url);
     if platform == "linkedin" {
         return Ok(fetch_linkedin_content(url)?.map(|text| FetchedContent { text, platform }));
@@ -1132,31 +1136,392 @@ fn mcp_call_tool(
     }
 }
 
-/// Tier 2: best-effort LinkedIn fetch via `linkedin-scraper-mcp`'s
-/// `get_person_profile(sections="posts")` + fuzzy text match (ADR-070
-/// §Tier-2 correction — no arbitrary-URL fetch tool exists). Returns
-/// `Ok(None)` when the target post isn't found in the fetched feed (a real
-/// miss, not a fetch failure).
+/// Minimum public-extract length (chars) considered a usable post body.
+/// Calibrated from the t-2589 spike: 14/15 pending links returned ≥200
+/// chars publicly; the single sub-200 result was a genuinely thin post.
+const LINKEDIN_PUBLIC_MIN_CHARS: usize = 200;
+
+/// User-Agent for the public LinkedIn GET. The t-2589 spike (14/15 usable,
+/// 0 blocks over 12 rapid requests) was measured with curl's default UA —
+/// keep parity with what was validated rather than introducing an
+/// unmeasured identity.
+const LINKEDIN_PUBLIC_UA: &str = "curl/8.5.0";
+
+/// Hard bounds on every public HTTP fetch. The fetch target can be
+/// attacker-influenced (unwrapped /safety/go params, user-logged URLs), so
+/// an unbounded request is a resource-exhaustion primitive against the
+/// unattended pipeline (t-2589 challenger finding). 30s covers slow public
+/// pages (the LinkedIn extract measures ~1s); 10 MB covers heavyweight
+/// article pages while bounding a hostile endless stream.
+const PUBLIC_FETCH_TIMEOUT_SECS: u64 = 30;
+const PUBLIC_FETCH_MAX_BYTES: u64 = 10 * 1024 * 1024;
+
+/// LinkedIn fetch — public extract primary, authenticated scrape fallback
+/// (ADR-070 second §Amendment, t-2589).
+///
+/// Every post URL serves its body unauthenticated, above the authwall, in
+/// `application/ld+json` `articleBody` + `og:description` (LinkedIn must
+/// serve link previews). One HTTP GET at ~0.8s replaces a ~30-60s
+/// authenticated feed scrape for the common case; the tier-2 MCP client
+/// (t-2568) runs only when the public extract is below
+/// [`LINKEDIN_PUBLIC_MIN_CHARS`].
 fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
-    let (author, title_signal) =
-        parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
+    resolve_tiered_linkedin_fetch(fetch_linkedin_public_extract(url), || {
+        let (author, title_signal) =
+            parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
 
-    let binary = resolve_linkedin_scraper_binary().ok_or_else(|| {
-        anyhow::anyhow!(
-            "linkedin-scraper-mcp binary not found — install with: uv tool install linkedin-scraper-mcp"
+        let binary = resolve_linkedin_scraper_binary().ok_or_else(|| {
+            anyhow::anyhow!(
+                "linkedin-scraper-mcp binary not found — install with: uv tool install linkedin-scraper-mcp"
+            )
+        })?;
+        check_linkedin_session(&binary)?;
+
+        let feed = mcp_call_tool(
+            &binary,
+            "get_person_profile",
+            serde_json::json!({"linkedin_username": author, "sections": "posts"}),
+            std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS),
         )
-    })?;
-    check_linkedin_session(&binary)?;
+        .and_then(|result| extract_posts_section(&result));
 
-    let feed = mcp_call_tool(
-        &binary,
-        "get_person_profile",
-        serde_json::json!({"linkedin_username": author, "sections": "posts"}),
-        std::time::Duration::from_secs(LINKEDIN_MCP_TIMEOUT_SECS),
-    )
-    .and_then(|result| extract_posts_section(&result));
+        resolve_linkedin_fetch(feed, &title_signal)
+    })
+}
 
-    resolve_linkedin_fetch(feed, &title_signal)
+/// Decide the tiered LinkedIn fetch outcome from the public-extract result,
+/// invoking `tier2` only when the public path is insufficient.
+///
+/// Injectable core (same convention as [`resolve_linkedin_fetch`] and
+/// `resolve_extraction`): the laziness of `tier2` is the tested contract —
+/// a sufficient public extract must never spawn the MCP client.
+///
+/// Outcome table (public × tier-2):
+/// - public ≥ threshold → returned; tier-2 not invoked.
+/// - thin/absent public → tier-2 runs; the **longer** non-empty text wins
+///   (each source is individually incomplete — og beat articleBody on 2 of
+///   15 spiked posts, and a thin public beat a tier-2 miss on 1).
+/// - both empty/miss → `Ok(None)` (a real miss).
+/// - tier-2 error with a non-empty thin public → the thin public is
+///   salvaged (real content beats a broken enrichment path).
+/// - nothing salvageable and either path broke → `Err` (never degraded to
+///   a miss).
+fn resolve_tiered_linkedin_fetch(
+    public: Result<Option<String>>,
+    tier2: impl FnOnce() -> Result<Option<String>>,
+) -> Result<Option<String>> {
+    let (thin, public_err) = match public {
+        Ok(Some(text)) => {
+            if text.chars().count() >= LINKEDIN_PUBLIC_MIN_CHARS {
+                return Ok(Some(text));
+            }
+            if text.trim().is_empty() { (None, None) } else { (Some(text), None) }
+        }
+        Ok(None) => (None, None),
+        Err(e) => (None, Some(e)),
+    };
+
+    match tier2() {
+        Ok(Some(t2)) => Ok(Some(match thin {
+            Some(p) if p.chars().count() > t2.chars().count() => p,
+            _ => t2,
+        })),
+        Ok(None) => match (thin, public_err) {
+            (Some(p), _) => Ok(Some(p)),
+            (None, Some(e)) => {
+                Err(e.context("public LinkedIn extract failed and tier-2 found no match"))
+            }
+            (None, None) => Ok(None),
+        },
+        Err(t2_err) => match thin {
+            Some(p) => {
+                // Salvage real content, but keep tier-2 failures loud —
+                // a dying session must stay visible in the run log even
+                // when the public path papers over it (t-2589 challenger
+                // finding; ADR-070 fail-loud-on-expired-session rule).
+                eprintln!(
+                    "  tier-2 LinkedIn fetch failed ({t2_err:#}); salvaging thin public \
+                     extract ({} chars)",
+                    p.chars().count()
+                );
+                Ok(Some(p))
+            }
+            None => Err(t2_err),
+        },
+    }
+}
+
+/// GET the post URL and extract its public preview text.
+///
+/// - `Ok(Some(text))` — extracted (any length; the caller applies the
+///   usability threshold).
+/// - `Ok(None)` — the page answered but carries no post body (deleted post,
+///   authwall-only markup, or an HTTP status error such as 404/999 — status
+///   errors are "no public content", not transport failures, so the tier-2
+///   fallback still gets its chance).
+/// - `Err` — transport failure (DNS, connect, read).
+fn fetch_linkedin_public_extract(url: &str) -> Result<Option<String>> {
+    let response = match ureq::get(url)
+        .config()
+        .timeout_global(Some(std::time::Duration::from_secs(PUBLIC_FETCH_TIMEOUT_SECS)))
+        .build()
+        .header("User-Agent", LINKEDIN_PUBLIC_UA)
+        .call()
+    {
+        Ok(r) => r,
+        Err(ureq::Error::StatusCode(_)) => return Ok(None),
+        Err(e) => {
+            return Err(anyhow::Error::from(e))
+                .with_context(|| format!("public LinkedIn fetch failed: {url}"));
+        }
+    };
+    let html = response
+        .into_body()
+        .with_config()
+        .limit(PUBLIC_FETCH_MAX_BYTES)
+        .read_to_string()
+        .with_context(|| format!("failed to read public LinkedIn response body: {url}"))?;
+    Ok(extract_linkedin_public_text(&html))
+}
+
+/// Extract the post body from public LinkedIn HTML:
+/// `max(ld+json articleBody, og:description)` by char count — never
+/// `articleBody` alone (t-2589 spike: og wins outright on 2 of 15 posts;
+/// each source is individually incomplete).
+fn extract_linkedin_public_text(html: &str) -> Option<String> {
+    let mut candidates: Vec<String> = Vec::new();
+    for block in ld_json_blocks(html) {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(block) {
+            collect_article_bodies(&value, &mut candidates);
+        }
+    }
+    if let Some(og) = extract_meta_content(html, "og:description") {
+        candidates.push(decode_html_entities(&og));
+    }
+    candidates
+        .into_iter()
+        .filter(|c| !c.trim().is_empty())
+        .max_by_key(|c| c.chars().count())
+}
+
+/// The raw contents of every `<script type="application/ld+json">` block.
+/// Manual scan (regex-lite has no lazy quantifiers); a malformed block
+/// without a closing `</script` is skipped rather than looping.
+fn ld_json_blocks(html: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut rest = html;
+    while let Some(marker) = rest.find("application/ld+json") {
+        let after_marker = &rest[marker..];
+        let Some(gt) = after_marker.find('>') else { break };
+        let body = &after_marker[gt + 1..];
+        match body.find("</script") {
+            Some(end) => {
+                out.push(&body[..end]);
+                rest = &body[end..];
+            }
+            None => break,
+        }
+    }
+    out
+}
+
+/// Collect every string-valued `articleBody` anywhere in a JSON-LD value —
+/// LinkedIn nests it directly or under `@graph` depending on post type.
+fn collect_article_bodies(value: &serde_json::Value, out: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, val) in map {
+                if key == "articleBody" {
+                    if let Some(s) = val.as_str() {
+                        out.push(s.to_string());
+                    }
+                } else {
+                    collect_article_bodies(val, out);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                collect_article_bodies(item, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// The `content` attribute of the `<meta>` tag carrying `property_name`.
+/// Attribute order is not assumed; both quote styles are accepted.
+fn extract_meta_content(html: &str, property_name: &str) -> Option<String> {
+    let mut rest = html;
+    while let Some(pos) = rest.find("<meta") {
+        let after = &rest[pos..];
+        let tag_end = after.find('>').map(|i| i + 1).unwrap_or(after.len());
+        let tag = &after[..tag_end];
+        if tag.contains(property_name) {
+            for quote in ['"', '\''] {
+                let needle = format!("content={quote}");
+                if let Some(start) = tag.find(&needle) {
+                    let value_start = start + needle.len();
+                    if let Some(len) = tag[value_start..].find(quote) {
+                        return Some(tag[value_start..value_start + len].to_string());
+                    }
+                }
+            }
+        }
+        rest = &after[tag_end.max(1)..];
+    }
+    None
+}
+
+/// Minimal HTML entity decode for meta-attribute text: the five named
+/// entities plus `&nbsp;` and numeric (`&#39;` / `&#x27;`) forms. Unknown
+/// entities pass through literally.
+fn decode_html_entities(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(amp) = rest.find('&') {
+        out.push_str(&rest[..amp]);
+        let tail = &rest[amp..];
+        let decoded = tail
+            .find(';')
+            .filter(|&i| i > 1 && i <= 10)
+            .and_then(|semi| {
+                let entity = &tail[1..semi];
+                let ch = match entity {
+                    "amp" => Some('&'),
+                    "lt" => Some('<'),
+                    "gt" => Some('>'),
+                    "quot" => Some('"'),
+                    "apos" => Some('\''),
+                    "nbsp" => Some(' '),
+                    _ => entity
+                        .strip_prefix("#x")
+                        .or_else(|| entity.strip_prefix("#X"))
+                        .and_then(|hex| u32::from_str_radix(hex, 16).ok())
+                        .or_else(|| {
+                            entity.strip_prefix('#').and_then(|dec| dec.parse::<u32>().ok())
+                        })
+                        .and_then(char::from_u32),
+                };
+                ch.map(|c| (c, semi))
+            });
+        match decoded {
+            Some((c, semi)) => {
+                out.push(c);
+                rest = &tail[semi + 1..];
+            }
+            None => {
+                out.push('&');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Unwrap a LinkedIn `/safety/go` redirect wrapper to its percent-decoded
+/// `url` parameter, so wrapped external links route to their real platform
+/// (t-2589). Non-wrapper URLs, and wrappers without a decodable `http…`
+/// target, pass through unchanged.
+pub fn unwrap_linkedin_safety_url(url: &str) -> String {
+    if !url.contains("linkedin.com/safety/go") {
+        return url.to_string();
+    }
+    let Some(param) = url.find("url=") else {
+        return url.to_string();
+    };
+    let raw = url[param + 4..].split('&').next().unwrap_or("");
+    let decoded = percent_decode(raw);
+    // The url= param is attacker-authorable (any post author controls it)
+    // and becomes the pipeline's raw fetch target — only unwrap to public
+    // http(s) hosts, never loopback/private/link-local (cloud metadata)
+    // targets (t-2589 challenger finding).
+    if is_public_http_target(&decoded) { decoded } else { url.to_string() }
+}
+
+/// True when `url` is `http(s)` on a host that is not loopback, private,
+/// link-local, unique-local, or unspecified. Hostnames pass (DNS answers
+/// are not resolved here); IP literals — including bracketed IPv6 and
+/// userinfo-prefixed forms (`user@127.0.0.1`) — are range-checked.
+/// Accepted residual risk (not addressed by this check, same as prior art
+/// in this file's redirect handling): DNS rebinding (a hostname that
+/// resolves to a private IP at connect time — this is a string-level
+/// check, not a resolver), 3xx redirect chains to a private target
+/// (neither `ureq::get` call site restricts redirects), and exotic
+/// non-dotted-quad IPv4 literal encodings (decimal/octal/hex — Rust's
+/// `Ipv4Addr` parser rejects them, so they fall through to the
+/// "unresolved hostname" `true` case below). Closing those is a
+/// dedicated-SSRF-guard scope, not a narrow redirect-unwrap fix.
+fn is_public_http_target(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    let rest = if let Some(r) = lower.strip_prefix("https://") {
+        r
+    } else if let Some(r) = lower.strip_prefix("http://") {
+        r
+    } else {
+        return false;
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    let host_port = authority.rsplit('@').next().unwrap_or(authority);
+    let host = if let Some(bracketed) = host_port.strip_prefix('[') {
+        bracketed.split(']').next().unwrap_or("")
+    } else if host_port.parse::<std::net::Ipv6Addr>().is_ok() {
+        // Unbracketed IPv6 literal (invalid URL syntax, but cheap to
+        // range-check rather than misread its first group as a hostname).
+        host_port
+    } else {
+        host_port.split(':').next().unwrap_or("")
+    };
+    if host.is_empty() || host == "localhost" || host.ends_with(".localhost") {
+        return false;
+    }
+    if let Ok(v4) = host.parse::<std::net::Ipv4Addr>() {
+        return is_public_v4(v4);
+    }
+    if let Ok(v6) = host.parse::<std::net::Ipv6Addr>() {
+        // IPv4-mapped (`::ffff:a.b.c.d`, RFC 4291 §2.5.5.2) resolves to the
+        // embedded IPv4 address at the socket layer on every mainstream
+        // OS — `Ipv6Addr::is_loopback`/`is_unspecified` do NOT recognize
+        // this form, so it must be unwrapped and range-checked as IPv4
+        // rather than falling through to the native-v6 checks below.
+        if let Some(mapped) = v6.to_ipv4_mapped() {
+            return is_public_v4(mapped);
+        }
+        let seg0 = v6.segments()[0];
+        return !(v6.is_loopback()
+            || v6.is_unspecified()
+            || (seg0 & 0xfe00) == 0xfc00    // unique-local fc00::/7
+            || (seg0 & 0xffc0) == 0xfe80); // link-local fe80::/10
+    }
+    true
+}
+
+fn is_public_v4(v4: std::net::Ipv4Addr) -> bool {
+    !(v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified() || v4.is_broadcast())
+}
+
+/// Minimal percent-decoding (RFC 3986 `%XX`). Invalid escapes pass through
+/// literally; invalid UTF-8 is replaced rather than erroring.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Some(hex) = std::str::from_utf8(&bytes[i + 1..i + 3])
+                .ok()
+                .and_then(|h| u8::from_str_radix(h, 16).ok())
+            {
+                out.push(hex);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// Decide a Tier-2 fetch's outcome from the fetched author feed.
@@ -1211,11 +1576,16 @@ fn find_matching_post(feed_text: &str, title_signal: &str) -> Option<String> {
 /// new HTTP client dependency.
 fn fetch_public_url(url: &str) -> Result<String> {
     let response = ureq::get(url)
+        .config()
+        .timeout_global(Some(std::time::Duration::from_secs(PUBLIC_FETCH_TIMEOUT_SECS)))
+        .build()
         .header("User-Agent", "brana-knowledge-process-url/1.0")
         .call()
         .with_context(|| format!("fetch failed: {url}"))?;
     let body = response
         .into_body()
+        .with_config()
+        .limit(PUBLIC_FETCH_MAX_BYTES)
         .read_to_string()
         .with_context(|| format!("failed to read response body: {url}"))?;
     Ok(strip_html_to_text(&body))
@@ -2428,6 +2798,16 @@ mod tests {
             "pub fn fetch_url_content",
             "fn fetch_linkedin_content",
             "fn resolve_linkedin_fetch",
+            "fn resolve_tiered_linkedin_fetch",
+            "fn fetch_linkedin_public_extract",
+            "fn extract_linkedin_public_text",
+            "fn ld_json_blocks",
+            "fn collect_article_bodies",
+            "fn extract_meta_content",
+            "fn decode_html_entities",
+            "pub fn unwrap_linkedin_safety_url",
+            "fn is_public_http_target",
+            "fn percent_decode",
             "fn check_linkedin_session",
             "fn resolve_session_health",
             "fn fetch_public_url",
@@ -2451,6 +2831,232 @@ mod tests {
         // the important contract is no panic, matching the sibling
         // resolvers' test convention (resolve_ruflo_binary, resolve_claude_binary).
         let _ = resolve_linkedin_scraper_binary();
+    }
+
+    // ── unwrap_linkedin_safety_url (t-2589) ────────────────────────────
+
+    #[test]
+    fn unwrap_safety_url_decodes_wrapped_target() {
+        let wrapped = "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Fpost%3Fa%3D1";
+        assert_eq!(unwrap_linkedin_safety_url(wrapped), "https://example.com/post?a=1");
+    }
+
+    #[test]
+    fn unwrap_safety_url_cuts_trailing_params() {
+        let wrapped = "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Fx&trk=feed";
+        assert_eq!(unwrap_linkedin_safety_url(wrapped), "https://example.com/x");
+    }
+
+    #[test]
+    fn unwrap_safety_url_rejects_non_public_targets() {
+        // Challenger finding (t-2589, sev 4): the url= param is
+        // attacker-authorable (any post author controls it), and the
+        // decoded value becomes the pipeline's raw fetch target. Private,
+        // loopback, link-local (cloud metadata), and non-http targets must
+        // not be unwrapped — the wrapper URL passes through unchanged.
+        for target in [
+            "http%3A%2F%2Flocalhost%2Fadmin",
+            "http%3A%2F%2F127.0.0.1%3A8080%2F",
+            "http%3A%2F%2F169.254.169.254%2Flatest%2Fmeta-data%2F",
+            "https%3A%2F%2F10.0.0.7%2Finternal",
+            "https%3A%2F%2F192.168.1.1%2F",
+            "http%3A%2F%2F%5B%3A%3A1%5D%2F",
+            "http%3A%2F%2Ffd00%3A%3A1%2F",
+            "http%3A%2F%2Fuser%40127.0.0.1%2F",
+            "ftp%3A%2F%2Fexample.com%2F",
+            // Challenger iteration 2 (t-2589): IPv4-mapped IPv6 resolves to
+            // the embedded IPv4 address at the socket layer on every
+            // mainstream OS, bypassing native-v6-only range checks.
+            "http%3A%2F%2F%5B%3A%3Affff%3A169.254.169.254%5D%2Flatest%2Fmeta-data%2F",
+            "http%3A%2F%2F%5B%3A%3Affff%3A127.0.0.1%5D%2F",
+        ] {
+            let wrapped = format!("https://www.linkedin.com/safety/go?url={target}");
+            assert_eq!(
+                unwrap_linkedin_safety_url(&wrapped),
+                wrapped,
+                "must not unwrap to non-public target: {target}"
+            );
+        }
+    }
+
+    #[test]
+    fn unwrap_safety_url_scheme_check_is_case_insensitive() {
+        // Challenger iteration 2 (t-2589): an uppercase scheme must not
+        // slip past strip_prefix and be treated as "not http", which would
+        // fall back to fetching the ORIGINAL wrapped URL directly.
+        let wrapped = "https://www.linkedin.com/safety/go?url=HTTP%3A%2F%2F169.254.169.254%2F";
+        assert_eq!(unwrap_linkedin_safety_url(wrapped), wrapped);
+
+        let ok = "https://www.linkedin.com/safety/go?url=HTTPS%3A%2F%2Fexample.com%2Fpost";
+        assert_eq!(unwrap_linkedin_safety_url(ok), "HTTPS://example.com/post");
+    }
+
+    #[test]
+    fn unwrap_safety_url_leaves_plain_urls_alone() {
+        let plain = "https://www.linkedin.com/posts/someone_slug-activity-123-xy";
+        assert_eq!(unwrap_linkedin_safety_url(plain), plain);
+        let no_param = "https://www.linkedin.com/safety/go?trk=feed";
+        assert_eq!(unwrap_linkedin_safety_url(no_param), no_param);
+    }
+
+    // ── extract_linkedin_public_text (t-2589) ──────────────────────────
+
+    fn post_html(article_body: Option<&str>, og_description: Option<&str>) -> String {
+        let ld = article_body
+            .map(|b| {
+                format!(
+                    r#"<script type="application/ld+json">{{"@type":"SocialMediaPosting","articleBody":{}}}</script>"#,
+                    serde_json::json!(b)
+                )
+            })
+            .unwrap_or_default();
+        let og = og_description
+            .map(|d| format!(r#"<meta property="og:description" content="{d}"/>"#))
+            .unwrap_or_default();
+        format!("<html><head>{og}{ld}</head><body>authwall</body></html>")
+    }
+
+    #[test]
+    fn public_extract_prefers_longer_article_body() {
+        let html = post_html(Some("the full post body, considerably longer"), Some("short og"));
+        assert_eq!(
+            extract_linkedin_public_text(&html).as_deref(),
+            Some("the full post body, considerably longer")
+        );
+    }
+
+    #[test]
+    fn public_extract_og_wins_when_longer() {
+        // AC (t-2589): max(articleBody, og:description) — og wins outright
+        // on 2 of 15 spiked posts (one had ld=0/og=896, another ld=257/og=283).
+        let html = post_html(Some("thin ld"), Some("a much longer og description carrying the real body"));
+        assert_eq!(
+            extract_linkedin_public_text(&html).as_deref(),
+            Some("a much longer og description carrying the real body")
+        );
+    }
+
+    #[test]
+    fn public_extract_og_only_page_extracts() {
+        let html = post_html(None, Some("og only body"));
+        assert_eq!(extract_linkedin_public_text(&html).as_deref(), Some("og only body"));
+    }
+
+    #[test]
+    fn public_extract_none_when_no_signals() {
+        assert_eq!(extract_linkedin_public_text("<html><body>authwall</body></html>"), None);
+    }
+
+    #[test]
+    fn public_extract_decodes_og_entities() {
+        let html = r#"<meta property="og:description" content="A &amp; B &#39;quoted&#39; &lt;tag&gt;"/>"#;
+        assert_eq!(
+            extract_linkedin_public_text(html).as_deref(),
+            Some("A & B 'quoted' <tag>")
+        );
+    }
+
+    #[test]
+    fn public_extract_takes_longest_article_body_across_blocks() {
+        let html = format!(
+            "{}{}",
+            r#"<script type="application/ld+json">{"articleBody":"short"}</script>"#,
+            r#"<script type="application/ld+json">{"@graph":[{"articleBody":"the nested and much longer article body"}]}</script>"#
+        );
+        assert_eq!(
+            extract_linkedin_public_text(&html).as_deref(),
+            Some("the nested and much longer article body")
+        );
+    }
+
+    // ── resolve_tiered_linkedin_fetch (t-2589 tier inversion) ──────────
+
+    fn long_public(n: usize) -> String {
+        "x".repeat(n)
+    }
+
+    #[test]
+    fn tiered_fetch_sufficient_public_never_calls_tier2() {
+        // AC (t-2589): tier-2 runs only when the public extract is below
+        // the threshold.
+        let tier2_called = std::cell::Cell::new(false);
+        let text = long_public(LINKEDIN_PUBLIC_MIN_CHARS);
+        let got = resolve_tiered_linkedin_fetch(Ok(Some(text.clone())), || {
+            tier2_called.set(true);
+            bail!("tier-2 must not run")
+        })
+        .unwrap();
+        assert_eq!(got, Some(text));
+        assert!(!tier2_called.get(), "tier-2 invoked despite sufficient public extract");
+    }
+
+    #[test]
+    fn tiered_fetch_thin_public_enriched_by_longer_tier2() {
+        let got = resolve_tiered_linkedin_fetch(Ok(Some("thin".into())), || {
+            Ok(Some("a longer tier-2 feed match".into()))
+        })
+        .unwrap();
+        assert_eq!(got.as_deref(), Some("a longer tier-2 feed match"));
+    }
+
+    #[test]
+    fn tiered_fetch_thin_public_beats_shorter_tier2() {
+        let got = resolve_tiered_linkedin_fetch(Ok(Some("thin but longer than t2".into())), || {
+            Ok(Some("t2".into()))
+        })
+        .unwrap();
+        assert_eq!(got.as_deref(), Some("thin but longer than t2"));
+    }
+
+    #[test]
+    fn tiered_fetch_thin_public_survives_tier2_miss_and_error() {
+        let got = resolve_tiered_linkedin_fetch(Ok(Some("thin".into())), || Ok(None)).unwrap();
+        assert_eq!(got.as_deref(), Some("thin"));
+        let got = resolve_tiered_linkedin_fetch(Ok(Some("thin".into())), || bail!("session dead")).unwrap();
+        assert_eq!(got.as_deref(), Some("thin"));
+    }
+
+    #[test]
+    fn tiered_fetch_absent_public_falls_through_to_tier2() {
+        // AC (t-2589): a post tier-2 CAN find still stores when the public
+        // path has nothing; a genuine double miss stays Ok(None).
+        let got = resolve_tiered_linkedin_fetch(Ok(None), || Ok(Some("t2 body".into()))).unwrap();
+        assert_eq!(got.as_deref(), Some("t2 body"));
+        let got = resolve_tiered_linkedin_fetch(Ok(None), || Ok(None)).unwrap();
+        assert_eq!(got, None);
+    }
+
+    #[test]
+    fn tiered_fetch_propagates_errors_when_nothing_salvageable() {
+        // Transport failure is still Err — never degraded to a miss.
+        assert!(resolve_tiered_linkedin_fetch(Ok(None), || bail!("t2 broke")).is_err());
+        assert!(resolve_tiered_linkedin_fetch(Err(anyhow::anyhow!("dns")), || Ok(None)).is_err());
+        let got = resolve_tiered_linkedin_fetch(Err(anyhow::anyhow!("dns")), || {
+            Ok(Some("t2 saves the day".into()))
+        })
+        .unwrap();
+        assert_eq!(got.as_deref(), Some("t2 saves the day"));
+    }
+
+    #[test]
+    #[ignore = "live network probe — run manually: cargo test -p brana-core live_public_extract -- --ignored"]
+    fn live_public_extract_real_post() {
+        // Revalidates the t-2589 spike against LinkedIn's live markup: a
+        // real post must yield a usable public extract, fast, with no auth.
+        // If this starts failing, LinkedIn changed its preview metadata and
+        // the tier inversion needs re-verification.
+        let url = "https://www.linkedin.com/posts/ghiles-moussaoui-b36218250_loop-to-graph-engineering-ugcPost-7486019288294817792-Sr9I/";
+        let started = std::time::Instant::now();
+        let got = fetch_linkedin_public_extract(url).expect("transport must not fail");
+        let elapsed = started.elapsed();
+        let text = got.expect("a live post must have public preview text");
+        println!("live extract: {} chars in {:?}", text.chars().count(), elapsed);
+        assert!(
+            text.chars().count() >= LINKEDIN_PUBLIC_MIN_CHARS,
+            "live post extract under threshold: {} chars",
+            text.chars().count()
+        );
+        assert!(elapsed.as_secs() < 10, "public extract took {elapsed:?} — should be ~1s");
     }
 
     // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────

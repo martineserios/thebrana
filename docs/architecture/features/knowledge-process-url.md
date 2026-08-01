@@ -129,6 +129,14 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 
 ## Design
 
+> **Tier inversion (2026-08-01, t-2589 — ADR-070 second §Amendment):** the
+> LinkedIn branch now tries a public extract first — one HTTP GET of the post
+> URL, `max(ld+json articleBody, og:description)` — and invokes the
+> authenticated tier-2 scrape only when that result is under ~200 chars.
+> LinkedIn `/safety/go/` wrapper URLs are percent-decode-unwrapped before
+> `classify_platform` routing. The bullets below predate the inversion (and
+> the t-2568 transport amendment); tier ordering is as ADR-070 now states.
+
 - New `brana-core` module or extension to `knowledge_pipeline.rs`:
   `fetch_url_content(url: &str) -> Result<FetchedContent>` — three-tier
   dispatch (`ureq` / `linkedin-scraper-mcp` shell-out via a new

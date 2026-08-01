@@ -211,6 +211,62 @@ prefer the direct client, not a measured saving.)
   `--status` session probe, and the fail-loud-on-expired-session rule are
   all unchanged.
 
+## Amendment (2026-08-01, t-2589): public JSON-LD/og extract is the primary LinkedIn tier
+
+**What changes:** the LinkedIn tier *ordering*. Every LinkedIn post URL
+serves its full body unauthenticated, above the authwall, in
+`<script type="application/ld+json">` → `articleBody`, with a second copy in
+`og:description` — LinkedIn must serve link previews. The primary LinkedIn
+path becomes one plain HTTP GET + metadata extract; the authenticated
+feed-scrape (t-2568's direct MCP client) is demoted to fallback, invoked
+only when the public extract is below a usability threshold (~200 chars).
+`classify_platform` routing, the `Ok(None)`-vs-`Err` contract, and the
+tier-2 mechanism itself are unchanged.
+
+**Why ADR-070 missed this.** The original investigation asked "which MCP
+tool accepts an arbitrary post URL?", correctly found none, and built an
+authenticated scraper around `get_person_profile`. It never asked whether
+the post URL itself serves the content. Same error shape as t-2568
+(`claude -p` assumed necessary as MCP transport when the server spoke plain
+JSON-RPC): the expensive mechanism was built without probing the cheap one.
+
+**Measured 2026-08-01 (spike over all 15 then-pending link tasks, curl +
+regex, no dependencies):**
+
+| | tier-2 authenticated scrape | public JSON-LD/og extract |
+|---|---|---|
+| coverage | ~50% (feed pagination) | 15/15 fetched, 14/15 usable (≥200 chars) |
+| latency | 30–60s per link | **0.8s** (15 links in 12.0s) |
+| auth | login session, expires (2 real failures 2026-07-31) | none |
+| runtime | headless Chromium ~1.3 GB | one HTTP GET |
+| failure mode | ambiguous "not in recent feed" | clean HTTP status |
+
+All 4 posts tier-2 missed return full content publicly; on posts tier-2
+hit, JSON-LD often returns more than the feed scrape. No rate limiting
+observed across 12 rapid sequential requests.
+
+**Extraction rule — `max(articleBody, og:description)`, never articleBody
+alone:** each source is individually incomplete. In the spike, og wins
+outright on 2 of 15 (one post has ld=0/og=896, another ld=257/og=283).
+
+**Semantics:**
+
+- Public extract ≥ threshold → returned, tier-2 not invoked.
+- Below threshold → tier-2 runs as enrichment; the longer result wins.
+- HTTP 404 or an empty extract with no tier-2 result → still `Ok(None)`.
+- Transport failure on both paths → still `Err`.
+- LinkedIn `/safety/go/` wrapper URLs are unwrapped (percent-decoded `url`
+  param) before platform classification, so wrapped external links route to
+  their real platform.
+
+**Caveats, stated honestly:** n=15, all recent posts from one backlog at one
+moment. LinkedIn can change its markup — though parsing public preview
+metadata is markedly less fragile than authenticated DOM scraping. Untested:
+deleted posts, company pages, very old posts, sustained bursts. articleBody
+is the post body only (no comments). The tier-2 client is deliberately NOT
+deleted — it remains the right implementation for whatever the public path
+cannot reach.
+
 ## Consequences
 
 - The command is genuinely unattended-capable: no interactive session
@@ -246,3 +302,6 @@ prefer the direct client, not a measured saving.)
   and `Ok(None)` miss semantics unchanged. See §Amendment.
 - 2026-07-31: Subprocess failure diagnostics separated — a deadline and a
   server that closes output early no longer share wording (t-2568, 89d16ac4).
+- 2026-08-01: LinkedIn tiers inverted — public JSON-LD/og extract primary
+  (0.8s, 14/15 usable), authenticated scrape demoted to below-threshold
+  fallback; `/safety/go/` unwrap added (t-2589). See second §Amendment.
