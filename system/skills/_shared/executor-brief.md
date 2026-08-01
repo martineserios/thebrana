@@ -28,8 +28,13 @@ Three gaps recur in ad-hoc delegation prompts:
 
 ## The six fields
 
-Compose these into the delegation prompt, in this order. Omit a field only when it genuinely
-does not apply, and say so inline rather than dropping it silently.
+Compose these into the delegation prompt. Omit a field only when it genuinely does not apply,
+and say so inline rather than dropping it silently.
+
+**Field order is not part of the contract** — only presence and explicit labelling are. Live
+call sites legitimately differ: `challenger-gate.md` leads with `Spec:` then `Acceptance
+criteria:`, while the build-evaluator spawn leads with `Acceptance criteria:`. Both are
+conformant. The numbering below is for reference, not a required sequence.
 
 ### 1. Identity — task, subject, and role in one line
 ```
@@ -133,7 +138,7 @@ differences are gaps in the original, not defects in the template.
 | Field | Regenerated vs live |
 |---|---|
 | 1 Identity | ✅ exact — `"Challenger gate review for task {task_id}: {task_subject}."` |
-| 2 Inputs | ✅ exact — `Spec:` / `Acceptance criteria:` / `Code diff (…):` |
+| 2 Inputs | ✅ all present and labelled — `Spec:` / `Acceptance criteria:` / `Code diff (…):`. Order differs from the reference numbering above, which is why order is explicitly not part of the contract. |
 | 3 Scope boundary | ⚠️ partial — the live prompt scopes the *review* (`Review ONLY: (1)(2)(3)`), but the **trust boundary is never told to the agent**. `challenger-gate.md` §Input contract documents it for the caller ("enforced at the call site") and the challenger itself is never informed what it must not accept. |
 | 4 Acceptance criteria | ✅ exact — `AC_LIST` passed verbatim |
 | 5 Return contract | ✅ shape matches — closed vocabulary + per-item fields (`severity, ac_violated, description, file, spec_says`) |
@@ -146,9 +151,9 @@ differences are gaps in the original, not defects in the template.
 
 ## Relationship to `delegation-tdd-checklist.md`
 
-The checklist is **retained, not absorbed** — it has live call sites in
-`build/phases/build-loop.md:78` and `docs/architecture/extending-agents.md:110`, and it is
-correct as-is. The split:
+The checklist is **retained, not absorbed** — it has a live call site at
+`build/phases/build-loop.md:78` and is documented at
+`docs/architecture/extending-agents.md:110`, and it is correct as-is. The split:
 
 | File | Owns |
 |---|---|

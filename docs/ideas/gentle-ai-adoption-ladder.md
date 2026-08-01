@@ -163,8 +163,11 @@ Resolve before building Rung 2.
   from the new block and diff against the current one. Rung 2 needs a golden-fixture test of
   the agent's returned shape. (Markdown procedure files have no test framework; the
   regeneration diff is the substitute, stated explicitly per the TDD rule.)
-- **SDD:** M+ spec-gate applies to Rung 2/4 `system/` writes →
-  `docs/architecture/features/executor-delegation.md` before those rungs.
+- **SDD:** the spec-gate triggers on **task effort** (M/L/XL writing to `system/`), not on rung
+  number — `system/hooks/spec-gate.sh`. Rung 1 (t-2597) is effort S, so it did not apply. Any
+  rung whose task is M+ needs `docs/architecture/features/executor-delegation.md` first,
+  regardless of which rung it is. (Corrected after the challenger gate flagged the original
+  rung-based phrasing.)
 - **Docs:** new frontmatter convention documented in `docs/architecture/` (never
   `docs/reference/` — generated); `docs/README.md` updated.
 
@@ -249,8 +252,16 @@ not hours.
 tokens. Writing a brief is an understanding-type activity, so it should be cheap — and it is.
 Two different measurements, same conclusion, reached independently.
 
-`delegation-tdd-checklist.md` was **retained, not absorbed** — it has three live call sites and
-is correct as-is. The brief is the envelope; the checklist is the code-output done-criteria block.
+`delegation-tdd-checklist.md` was **retained, not absorbed** — one live call site
+(`build/phases/build-loop.md:78`) plus documentation in `docs/architecture/extending-agents.md`.
+The brief is the envelope; the checklist is the code-output done-criteria block.
+
+**Challenger gate: PROCEED WITH CHANGES** (highest severity 3, none ≥4). Three findings fixed in
+this task: the field-order inconsistency in the brief's own template (order is now explicitly not
+part of the contract), a miscounted call-site claim, and the SDD scoping question — resolved
+factually, since **t-2597 is effort S**, so the M+ spec-gate never applied. The gate correctly
+flagged that its own scoping criterion in this doc was rung-based where the real hook
+(`spec-gate.sh`) is effort-based; the criterion below is corrected to say so.
 
 ## Next step
 
