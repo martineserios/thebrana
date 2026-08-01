@@ -1444,10 +1444,20 @@ pub fn unwrap_linkedin_safety_url(url: &str) -> String {
 /// link-local, unique-local, or unspecified. Hostnames pass (DNS answers
 /// are not resolved here); IP literals — including bracketed IPv6 and
 /// userinfo-prefixed forms (`user@127.0.0.1`) — are range-checked.
+/// Accepted residual risk (not addressed by this check, same as prior art
+/// in this file's redirect handling): DNS rebinding (a hostname that
+/// resolves to a private IP at connect time — this is a string-level
+/// check, not a resolver), 3xx redirect chains to a private target
+/// (neither `ureq::get` call site restricts redirects), and exotic
+/// non-dotted-quad IPv4 literal encodings (decimal/octal/hex — Rust's
+/// `Ipv4Addr` parser rejects them, so they fall through to the
+/// "unresolved hostname" `true` case below). Closing those is a
+/// dedicated-SSRF-guard scope, not a narrow redirect-unwrap fix.
 fn is_public_http_target(url: &str) -> bool {
-    let rest = if let Some(r) = url.strip_prefix("https://") {
+    let lower = url.to_ascii_lowercase();
+    let rest = if let Some(r) = lower.strip_prefix("https://") {
         r
-    } else if let Some(r) = url.strip_prefix("http://") {
+    } else if let Some(r) = lower.strip_prefix("http://") {
         r
     } else {
         return false;
@@ -1463,18 +1473,21 @@ fn is_public_http_target(url: &str) -> bool {
     } else {
         host_port.split(':').next().unwrap_or("")
     };
-    let host = host.to_ascii_lowercase();
     if host.is_empty() || host == "localhost" || host.ends_with(".localhost") {
         return false;
     }
     if let Ok(v4) = host.parse::<std::net::Ipv4Addr>() {
-        return !(v4.is_loopback()
-            || v4.is_private()
-            || v4.is_link_local()
-            || v4.is_unspecified()
-            || v4.is_broadcast());
+        return is_public_v4(v4);
     }
     if let Ok(v6) = host.parse::<std::net::Ipv6Addr>() {
+        // IPv4-mapped (`::ffff:a.b.c.d`, RFC 4291 §2.5.5.2) resolves to the
+        // embedded IPv4 address at the socket layer on every mainstream
+        // OS — `Ipv6Addr::is_loopback`/`is_unspecified` do NOT recognize
+        // this form, so it must be unwrapped and range-checked as IPv4
+        // rather than falling through to the native-v6 checks below.
+        if let Some(mapped) = v6.to_ipv4_mapped() {
+            return is_public_v4(mapped);
+        }
         let seg0 = v6.segments()[0];
         return !(v6.is_loopback()
             || v6.is_unspecified()
@@ -1482,6 +1495,10 @@ fn is_public_http_target(url: &str) -> bool {
             || (seg0 & 0xffc0) == 0xfe80); // link-local fe80::/10
     }
     true
+}
+
+fn is_public_v4(v4: std::net::Ipv4Addr) -> bool {
+    !(v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified() || v4.is_broadcast())
 }
 
 /// Minimal percent-decoding (RFC 3986 `%XX`). Invalid escapes pass through
@@ -2847,6 +2864,11 @@ mod tests {
             "http%3A%2F%2Ffd00%3A%3A1%2F",
             "http%3A%2F%2Fuser%40127.0.0.1%2F",
             "ftp%3A%2F%2Fexample.com%2F",
+            // Challenger iteration 2 (t-2589): IPv4-mapped IPv6 resolves to
+            // the embedded IPv4 address at the socket layer on every
+            // mainstream OS, bypassing native-v6-only range checks.
+            "http%3A%2F%2F%5B%3A%3Affff%3A169.254.169.254%5D%2Flatest%2Fmeta-data%2F",
+            "http%3A%2F%2F%5B%3A%3Affff%3A127.0.0.1%5D%2F",
         ] {
             let wrapped = format!("https://www.linkedin.com/safety/go?url={target}");
             assert_eq!(
@@ -2855,6 +2877,18 @@ mod tests {
                 "must not unwrap to non-public target: {target}"
             );
         }
+    }
+
+    #[test]
+    fn unwrap_safety_url_scheme_check_is_case_insensitive() {
+        // Challenger iteration 2 (t-2589): an uppercase scheme must not
+        // slip past strip_prefix and be treated as "not http", which would
+        // fall back to fetching the ORIGINAL wrapped URL directly.
+        let wrapped = "https://www.linkedin.com/safety/go?url=HTTP%3A%2F%2F169.254.169.254%2F";
+        assert_eq!(unwrap_linkedin_safety_url(wrapped), wrapped);
+
+        let ok = "https://www.linkedin.com/safety/go?url=HTTPS%3A%2F%2Fexample.com%2Fpost";
+        assert_eq!(unwrap_linkedin_safety_url(ok), "HTTPS://example.com/post");
     }
 
     #[test]
