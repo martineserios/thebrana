@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-31T21:32:00Z",
+  "generated": "2026-08-01T14:09:50Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -3603,6 +3603,13 @@
       "title": "Brana v3.2 challenge — fresh adversarial review (2026-07-21)",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/reviews/knowledge-2026-08-01.md": {
+      "title": "Knowledge Health Review — 2026-08-01",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/memory-curator.md"
+      ]
     },
     "docs/reviews/knowledge-structure-audit-2026-06-11.md": {
       "title": "Knowledge Structure Audit — Ontology Analysis",
@@ -15662,9 +15669,9 @@
     }
   ],
   "stats": {
-    "nodes": 536,
+    "nodes": 537,
     "edges": 2000,
     "typed_edges": 683,
-    "orphans": 139
+    "orphans": 140
   }
 }
