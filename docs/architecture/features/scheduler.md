@@ -262,6 +262,33 @@ thebrana/system/skills/scheduler/
 10. Release lock, exit with job's exit code
 ```
 
+#### Exit-code semantics (t-2588, decided 2026-08-01)
+
+The runner propagates the job's exit status **verbatim** as its own exit status
+(step 10). This is deliberate, including for batch jobs:
+
+- **Partial failure is failure.** A batch job that processes N items and fails
+  on any of them (e.g. `drain-links` exits 1 when any link fails) marks the whole
+  run FAILED at the unit level. The unit answers "did this run complete cleanly?",
+  not "how many items succeeded?" — per-item detail belongs to the job's log and
+  its own summary line. The rejected alternative (map partial → exit 0 + warning)
+  would trade unit-level honesty for triage the log already provides.
+- Graceful skips (lock contention, OOM guard, disabled job) exit 0 by design —
+  they are "did not run", not "ran and failed" (t-2004). Exception: a lock
+  timeout on a **retry** attempt is not a skip — a prior attempt in the same
+  invocation already ran and failed, so the runner reports that failure
+  (challenger finding on t-2588; the SKIPPED path would have discarded it).
+
+**Reading unit state correctly:** `systemctl show <unit> -p Result -p ExecMainStatus`
+reflects only the **latest** invocation. With `Persistent=true` timers, a failed
+run can be followed within minutes by a catch-up run whose success overwrites
+both the unit properties and `last-status.json`. To judge a *specific* run, read
+its own log footer (`SUCCESS` / `FAILED (exit code: N)` / `TIMEOUT`) or the
+journal entries for that invocation — never the current unit properties. t-2588
+was filed as "runner swallows exit codes" from exactly this misread; the journal
+showed systemd had recorded `status=1/FAILURE` and fired OnFailure correctly.
+Propagation is pinned by `tests/procedures/test-scheduler-runner-exit-code.sh`.
+
 ### CLI commands (brana-scheduler — bash script)
 
 | Command | What it does |

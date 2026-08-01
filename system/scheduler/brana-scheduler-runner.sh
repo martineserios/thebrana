@@ -144,6 +144,13 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
     if [ "$NO_PROJECT_LOCK" != "true" ]; then
         exec 9>"$LOCKFILE"
         if ! flock -w "$LOCK_WAIT_SECS" 9; then
+            # On attempt >=2 a prior attempt already ran and failed — a SKIPPED/exit-0
+            # here would discard that real failure (t-2588 challenger finding). Fall
+            # through to the normal failure reporting with the prior attempt's exit code.
+            if [ "$ATTEMPT" -gt 1 ] && [ "$EXIT_CODE" -ne 0 ]; then
+                echo "LOCK TIMEOUT on retry attempt $ATTEMPT/$MAX_ATTEMPTS — reporting prior attempt's failure (exit $EXIT_CODE)" >> "$LOGFILE"
+                break
+            fi
             echo "SKIPPED: lock still held after ${LOCK_WAIT_SECS}s by another job in $PROJECT_SLUG" >> "$LOGFILE"
             write_status "SKIPPED" 0
             exit 0  # Graceful skip — not a failure (prevents systemd OnFailure)
