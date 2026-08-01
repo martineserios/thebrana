@@ -163,8 +163,11 @@ Resolve before building Rung 2.
   from the new block and diff against the current one. Rung 2 needs a golden-fixture test of
   the agent's returned shape. (Markdown procedure files have no test framework; the
   regeneration diff is the substitute, stated explicitly per the TDD rule.)
-- **SDD:** M+ spec-gate applies to Rung 2/4 `system/` writes →
-  `docs/architecture/features/executor-delegation.md` before those rungs.
+- **SDD:** the spec-gate triggers on **task effort** (M/L/XL writing to `system/`), not on rung
+  number — `system/hooks/spec-gate.sh`. Rung 1 (t-2597) is effort S, so it did not apply. Any
+  rung whose task is M+ needs `docs/architecture/features/executor-delegation.md` first,
+  regardless of which rung it is. (Corrected after the challenger gate flagged the original
+  rung-based phrasing.)
 - **Docs:** new frontmatter convention documented in `docs/architecture/` (never
   `docs/reference/` — generated); `docs/README.md` updated.
 
@@ -221,6 +224,46 @@ turns into smaller contexts — a different mechanism than exporting churn). It 
 evidential weight and would need its own pre-registration. It is not a reason to revive
 Rungs 2–5 now.
 
+## Rung 1 result (t-2597, 2026-08-01) — **done, falsifier passed**
+
+`system/skills/_shared/executor-brief.md` shipped. Six fields, each induced from a delegation
+already running in production (`challenger-gate.md`, the build-evaluator spawn at
+`verify-gates.md:93`, `agents/scout.md`) — not drafted blank, as the challenge required.
+
+**Validation:** regenerating `challenger-gate.md`'s spawn call from the template reproduced
+**4 of 6 fields verbatim**. The two gaps are in the original, not the template: its input trust
+boundary is caller-side only and never told to the agent, and it has no "report what you could
+not determine" instruction. Both logged for a future fix.
+
+**Falsifier — PASSED.** The rung was only complete with a populated instance whose authoring
+cost was recorded. Instance: a full brief for t-2593 (`brana receipt mint|validate`, M effort).
+
+| | Cost |
+|---|---|
+| Composing the brief | ~2 min, no new file reads (reused task spec already in context) |
+| Doing the work it briefs | M effort — hours |
+
+Composing the brief costs roughly two orders of magnitude less than the work it scopes, so the
+**information-conservation objection does not bite at the brief-authoring level**. Caveat: this
+author already held t-2593's spec in context; a cold author must first read the task — seconds,
+not hours.
+
+**This independently agrees with Phase 0.** t-2591 measured understanding at just 6.8% of build
+tokens. Writing a brief is an understanding-type activity, so it should be cheap — and it is.
+Two different measurements, same conclusion, reached independently.
+
+`delegation-tdd-checklist.md` was **retained, not absorbed** — one live call site
+(`build/phases/build-loop.md:78`) plus documentation in `docs/architecture/extending-agents.md`.
+The brief is the envelope; the checklist is the code-output done-criteria block.
+
+**Challenger gate: PROCEED WITH CHANGES** (highest severity 3, none ≥4). Three findings fixed in
+this task: the field-order inconsistency in the brief's own template (order is now explicitly not
+part of the contract), a miscounted call-site claim, and the SDD scoping question — resolved
+factually, since **t-2597 is effort S**, so the M+ spec-gate never applied. The gate correctly
+flagged that its own scoping criterion in this doc was rung-based where the real hook
+(`spec-gate.sh`) is effort-based; the criterion below is corrected to say so.
+
 ## Next step
 
-Rung 1, or the off-ladder items. Not the executor rungs.
+The off-ladder items — reviewer discipline, honesty contracts, ratchet baselines, machine-token
+handoff. Not the executor rungs; Phase 0 closed those.
