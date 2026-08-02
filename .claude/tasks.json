@@ -66645,6 +66645,36 @@
       "acceptance_criteria": null,
       "work_type": null,
       "ac_state": "none"
+    },
+    {
+      "subject": "Close gate: anchor LAST_CLOSE on own first commit when session state post-dates it",
+      "description": "The close gate derives its extraction window from LAST_CLOSE — the newest written_at across all epic-keyed session files. When a concurrent session closes LATER than yours, the anchor post-dates your own commits and the window collapses, so your session's work is never queued for the nightly extraction cron. Confirmed live twice: 2026-07-31 (anchor post-dated ALL commits, COMMIT_COUNT=0, false 'read-only session') and 2026-08-02 (a concurrent close at 14:39:57Z post-dated 11 of 13 commits; only the last 2 queued). Proposed fix, sketched by the 2026-07-31 session: when the newest session state post-dates this session's own first commit, anchor on that first commit instead.",
+      "context": "AC: close gate anchors on this session's own first commit when the newest session state post-dates it\nAC: close verifies queue coverage rather than trusting COMMIT_COUNT alone — the failure is silent and the close reports success\nAC: regression test covers the concurrent-close case (a later foreign close must not shrink this session's window)\n2026-08-02: second live occurrence. Detected by listing close-queue ranges against git log; missing range 2fe89bac..63021637 re-queued by hand. See session-state-knowledge-pipeline.json learnings.",
+      "kind": "fix",
+      "work_type": "implement",
+      "type": "task",
+      "priority": "P2",
+      "effort": "S",
+      "tags": [
+        "harness",
+        "close",
+        "session"
+      ],
+      "parent": "t-2344",
+      "id": "t-2603",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-08-02",
+      "blocked_by": [],
+      "ac_state": "none",
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3
