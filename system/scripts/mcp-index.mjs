@@ -21,6 +21,7 @@ import { spawn, execSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
+import { selectOrphans } from './lib/orphan-guard.mjs';
 
 // ── Arg parsing ────────────────────────────────────────────────
 let jsonlPath = '/tmp/knowledge-sections.jsonl';
@@ -316,9 +317,19 @@ async function main() {
 
     process.stdout.write('\n\n');
 
+    // A run is only an authoritative census of the namespace if every section was
+    // stored. Both a killed run and a run with per-section errors leave holes, and
+    // pruning against a holed census deletes live data (t-2613).
+    const runComplete = errors === 0;
+
     // Orphan cleanup — list existing entries per namespace, delete any not in this run
     let orphansRemoved = 0;
-    if (orphanCleanup && storedKeys.size > 0) {
+    if (orphanCleanup && storedKeys.size > 0 && !runComplete) {
+      console.log(
+        `Orphan cleanup SKIPPED — run stored ${stored}/${sections.length} sections with ${errors} error(s). ` +
+        `Pruning against an incomplete run would delete entries it merely failed to re-store.`
+      );
+    } else if (orphanCleanup && storedKeys.size > 0) {
       const indexedNamespaces = new Set(sections.map(s => s.namespace || 'knowledge'));
       console.log(`Checking orphans in: ${[...indexedNamespaces].join(', ')}...`);
 
@@ -349,9 +360,18 @@ async function main() {
           }
         } while (cursor);
 
-        // Delete orphans
-        const orphans = [...existingKeys].filter(k => !storedKeys.has(k));
-        console.log(`  ${ns}: ${existingKeys.size} existing, ${storedKeys.size} indexed, ${orphans.length} orphans`);
+        // Delete orphans — restricted to keys this run is authoritative about (t-2613)
+        const orphans = selectOrphans({
+          existingKeys,
+          storedKeys,
+          namespace: ns,
+          runComplete,
+        });
+        const protectedCount = existingKeys.size - storedKeys.size - orphans.length;
+        console.log(
+          `  ${ns}: ${existingKeys.size} existing, ${storedKeys.size} indexed, ${orphans.length} orphans` +
+          (protectedCount > 0 ? `, ${protectedCount} protected (non-doc or untouched doc type)` : '')
+        );
 
         for (const key of orphans) {
           try {

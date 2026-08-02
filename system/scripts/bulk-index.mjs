@@ -17,6 +17,7 @@ import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { homedir } from 'os';
 import { execSync } from 'child_process';
+import { selectOrphans } from './lib/orphan-guard.mjs';
 
 // Parse args
 let jsonlPath = '/tmp/knowledge-sections.jsonl';
@@ -151,6 +152,11 @@ for (let i = 0; i < sections.length; i += BATCH_SIZE) {
 
 console.log('\n');
 
+// A run is only an authoritative census of the namespace if every section was
+// stored. Both a killed run and a run with per-section errors leave holes, and
+// pruning against a holed census deletes live data (t-2613).
+const runComplete = errors === 0;
+
 // Orphan cleanup — remove entries in indexed namespaces not in this run
 let orphansRemoved = 0;
 if (orphanCleanup && storedKeys.size > 0) {
@@ -158,25 +164,42 @@ if (orphanCleanup && storedKeys.size > 0) {
   const indexedNamespaces = new Set(sections.map(s => s.namespace || 'knowledge'));
   console.log(`Checking for orphan entries in: ${[...indexedNamespaces].join(', ')}...`);
 
-  for (const ns of indexedNamespaces) {
-    const existing = db.prepare(
-      `SELECT key FROM memory_entries WHERE namespace = ? AND status = 'active'`
-    ).all(ns);
-
-    const deleteStmt = db.prepare(
-      `DELETE FROM memory_entries WHERE key = ? AND namespace = ?`
+  if (!runComplete) {
+    console.log(
+      `Orphan cleanup SKIPPED — run stored ${stored}/${sections.length} sections with ${errors} error(s). ` +
+      `Pruning against an incomplete run would delete entries it merely failed to re-store.`
     );
-    const cleanupTx = db.transaction(() => {
-      for (const row of existing) {
-        if (!storedKeys.has(row.key)) {
-          deleteStmt.run(row.key, ns);
+  } else {
+    for (const ns of indexedNamespaces) {
+      const existing = db.prepare(
+        `SELECT key FROM memory_entries WHERE namespace = ? AND status = 'active'`
+      ).all(ns);
+
+      const orphans = selectOrphans({
+        existingKeys: existing.map(row => row.key),
+        storedKeys,
+        namespace: ns,
+        runComplete,
+      });
+
+      const deleteStmt = db.prepare(
+        `DELETE FROM memory_entries WHERE key = ? AND namespace = ?`
+      );
+      const cleanupTx = db.transaction(() => {
+        for (const key of orphans) {
+          deleteStmt.run(key, ns);
           orphansRemoved++;
         }
+      });
+      cleanupTx();
+
+      const protectedCount = existing.length - storedKeys.size - orphans.length;
+      if (protectedCount > 0) {
+        console.log(`  ${ns}: ${orphans.length} orphan(s); ${protectedCount} non-doc/untouched entr(ies) protected`);
       }
-    });
-    cleanupTx();
+    }
+    console.log(`Orphans removed: ${orphansRemoved}`);
   }
-  console.log(`Orphans removed: ${orphansRemoved}`);
 }
 
 console.log(`=== Bulk Index Complete ===`);
