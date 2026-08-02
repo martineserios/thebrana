@@ -241,6 +241,16 @@
       "schedule": "*-*-* 08:00:00",
       "timeoutSeconds": 60,
       "type": "command"
+    },
+    "oracle-brana-drift": {
+      "_comment": "t-2501: audits oracle-hub brana manifest (ship-brana-oracle.sh provenance) — UNMANAGED/SWAPPED/DRIFT exit 1 -> FAILED job = the visible signal; unreachable hub is a clean skip. noProjectLock: read-only wrt shared state; avoids the 600s lock-wait vs 180s TimeoutStartSec kill window (t-2611).",
+      "type": "command",
+      "command": "~/enter_thebrana/thebrana/system/scripts/check-oracle-brana-drift.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:15:00",
+      "timeoutSeconds": 120,
+      "noProjectLock": true,
+      "enabled": true
     }
   },
   "version": 1
