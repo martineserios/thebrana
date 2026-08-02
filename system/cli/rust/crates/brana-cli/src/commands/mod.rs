@@ -16,6 +16,7 @@ pub mod ops;
 pub mod orbit;
 pub mod ratings;
 pub mod recall;
+pub mod receipt;
 pub mod reference;
 pub mod remind;
 pub mod run;

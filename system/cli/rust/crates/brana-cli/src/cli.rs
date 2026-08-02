@@ -259,6 +259,11 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Build receipts — proof of done backed by executed tests, not self-report (ADR-076)
+    Receipt {
+        #[command(subcommand)]
+        cmd: ReceiptCmd,
+    },
     /// Hybrid recall — FTS5 + ruflo parallel search, merged via RRF (ADR-058)
     Recall {
         /// Query string
@@ -1506,3 +1511,34 @@ mod tests {
     }
 }
 
+
+/// Build receipts (t-2593, ADR-076). `mint` EXECUTES the command and hashes its own
+/// captured output; no flag supplies the verdict.
+#[derive(Subcommand, Debug)]
+pub enum ReceiptCmd {
+    /// Execute the task's test command and mint a receipt over the current candidate
+    Mint {
+        /// Task ID (e.g. t-2593)
+        task_id: String,
+        /// Command to execute (default: ./validate.sh). Everything after `--`.
+        #[arg(last = true)]
+        command: Vec<String>,
+        /// Base ref to take the merge-base against (default: dev, else main)
+        #[arg(long)]
+        base: Option<String>,
+        /// Emit the receipt as JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Re-derive from git and gate: allow (0) / scope-changed (3) / invalidated (4)
+    Validate {
+        /// Task ID (e.g. t-2593)
+        task_id: String,
+        /// Ref being gated (default: HEAD)
+        #[arg(long)]
+        at: Option<String>,
+        /// Emit the verdict as JSON
+        #[arg(long)]
+        json: bool,
+    },
+}
