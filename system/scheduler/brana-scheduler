@@ -42,6 +42,61 @@ check_systemd() { command -v systemctl &>/dev/null || die "systemd is required";
 check_config() { [ -f "$CONFIG" ] || die "Config not found: $CONFIG (run deploy first or copy template)"; }
 
 # -------------------------------------------------------------------
+# TimeoutStartSec derivation
+# -------------------------------------------------------------------
+# SERVICE-TIMEOUT-BLOCK
+# Derive the systemd TimeoutStartSec budget for one job's service unit.
+#
+# systemd must be an OUTER safety net: it may kill a genuinely wedged runner, but it
+# must never fire inside a window brana-scheduler-runner.sh was configured to spend
+# waiting. The previous formula, (timeoutSeconds + 60) * (maxRetries + 1), omitted the
+# per-project flock wait entirely — and that wait happens BEFORE the job's own `timeout`
+# budget starts, inside the retry loop. With defaults that put a 360s kill above a 900s
+# designed wall clock, so a contended lock was killed as "start operation timed out"
+# instead of reaching the runner's graceful SKIPPED path (t-2611, observed live
+# 2026-08-02 on oracle-brana-drift at exactly +180s with an empty log).
+#
+# Budget = attempts * (lock wait + job timeout) + summed backoff + margin, mirroring
+# brana-scheduler-runner.sh exactly:
+#   - flock -w "$LOCK_WAIT_SECS" runs per attempt, inside the loop (runner:146)
+#   - noProjectLock jobs never open fd 9, so they are not charged it (runner:144, t-2292)
+#   - backoff is RETRY_BACKOFF * 2^(ATTEMPT-1) between attempts (runner:214), summing to
+#     RETRY_BACKOFF * (2^(attempts-1) - 1) over the attempts-1 gaps
+#
+# Contract: always prints one positive integer. Non-numeric input (jq emits the literal
+# `null` for an absent field) degrades to 0 for that term rather than producing an empty
+# or malformed TimeoutStartSec, which systemd would reject at daemon-reload.
+SERVICE_TIMEOUT_MARGIN_SECS=60
+
+# jq emits the literal `null` for an absent field; treat any non-numeric value as 0.
+_svc_timeout_num() { case "$1" in ''|*[!0-9]*) printf '0' ;; *) printf '%s' "$1" ;; esac; }
+
+resolve_service_timeout() {
+    local job_timeout="${1:-}" max_retries="${2:-}" retry_backoff="${3:-}"
+    local lock_wait="${4:-}" no_project_lock="${5:-false}"
+
+    # jq emits `null` for absent fields; treat any non-numeric value as absent.
+    # Defined at block scope, not inside the function: a nested definition would leak
+    # into the global namespace of this 480-line script on first call.
+    job_timeout=$(_svc_timeout_num "$job_timeout")
+    max_retries=$(_svc_timeout_num "$max_retries")
+    retry_backoff=$(_svc_timeout_num "$retry_backoff")
+    lock_wait=$(_svc_timeout_num "$lock_wait")
+
+    local attempts=$((max_retries + 1))
+
+    # Per attempt the runner may spend the full lock wait and then the full job timeout.
+    local per_attempt=$job_timeout
+    [ "$no_project_lock" != "true" ] && per_attempt=$((job_timeout + lock_wait))
+
+    # Exponential backoff summed over the attempts-1 gaps between attempts.
+    local backoff_total=$(( retry_backoff * ((1 << max_retries) - 1) ))
+
+    printf '%s' "$(( attempts * per_attempt + backoff_total + SERVICE_TIMEOUT_MARGIN_SECS ))"
+}
+# /SERVICE-TIMEOUT-BLOCK
+
+# -------------------------------------------------------------------
 # validate — Check config syntax, paths, prerequisites
 # -------------------------------------------------------------------
 cmd_validate() {
@@ -174,10 +229,14 @@ cmd_deploy() {
     cp "$TEMPLATE_DIR/notify@.service" "$UNIT_DIR/brana-sched-notify@.service"
     ok "notify template unit"
 
-    # Read defaults for timeout/retry calculation
-    local DEFAULTS_TIMEOUT DEFAULTS_RETRIES
+    # Read defaults for timeout/retry calculation. These mirror brana-scheduler-runner.sh's
+    # own defaults (runner:68-72) — if they drift apart, the generated budget stops bounding
+    # what the runner actually spends, which is the t-2611 failure class.
+    local DEFAULTS_TIMEOUT DEFAULTS_RETRIES DEFAULTS_BACKOFF DEFAULTS_LOCK_WAIT
     DEFAULTS_TIMEOUT=$(jq -r '.defaults.timeoutSeconds // 300' "$CONFIG")
     DEFAULTS_RETRIES=$(jq -r '.defaults.maxRetries // 0' "$CONFIG")
+    DEFAULTS_BACKOFF=$(jq -r '.defaults.retryBackoffSec // 30' "$CONFIG")
+    DEFAULTS_LOCK_WAIT=$(jq -r '.defaults.lockWaitSeconds // 600' "$CONFIG")
 
     # Read all jobs
     local jobs
@@ -196,12 +255,18 @@ cmd_deploy() {
         local service_unit="$UNIT_DIR/${UNIT_PREFIX}-${job}.service"
         local timer_unit="$UNIT_DIR/${UNIT_PREFIX}-${job}.timer"
 
-        # Compute service timeout (job timeout + 60s safety margin for retries)
-        local job_timeout
+        # Compute the systemd TimeoutStartSec budget. It must bound every wait the runner
+        # can legitimately spend — lock wait included — or systemd kills the unit before
+        # the runner's graceful SKIPPED path is reachable (t-2611).
+        local job_timeout max_retries retry_backoff lock_wait no_project_lock
         job_timeout=$(jq -r --arg j "$job" --arg def "$DEFAULTS_TIMEOUT" '.jobs[$j].timeoutSeconds // $def' "$CONFIG")
-        local max_retries
         max_retries=$(jq -r --arg j "$job" --arg def "$DEFAULTS_RETRIES" '.jobs[$j].maxRetries // $def' "$CONFIG")
-        local service_timeout=$(( (job_timeout + 60) * (max_retries + 1) ))
+        retry_backoff=$(jq -r --arg j "$job" --arg def "$DEFAULTS_BACKOFF" '.jobs[$j].retryBackoffSec // $def' "$CONFIG")
+        lock_wait=$(jq -r --arg j "$job" --arg def "$DEFAULTS_LOCK_WAIT" '.jobs[$j].lockWaitSeconds // $def' "$CONFIG")
+        # has() rather than // — jq's alternative operator treats false as absent.
+        no_project_lock=$(jq -r --arg j "$job" '.jobs[$j] | if has("noProjectLock") then .noProjectLock else false end' "$CONFIG")
+        local service_timeout
+        service_timeout=$(resolve_service_timeout "$job_timeout" "$max_retries" "$retry_backoff" "$lock_wait" "$no_project_lock")
 
         # Generate service unit
         sed -e "s|{{JOB_NAME}}|$job|g" -e "s|{{TIMEOUT}}|$service_timeout|g" "$TEMPLATE_DIR/service.template" > "$service_unit"
