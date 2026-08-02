@@ -11,6 +11,11 @@ created: 2026-08-01
 >
 > Related: [enforced-delegation.md](enforced-delegation.md) (the design this outlived),
 > [gentle-ai-adoption-ladder.md](gentle-ai-adoption-ladder.md).
+>
+> **Decided 2026-08-02:** the decisions below are now recorded in
+> [ADR-076](../architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md),
+> which also carries the pre-registered kill thresholds (K1–K3) for the receipt track.
+> This doc remains the research record; the ADR is the authority.
 
 ## The problem we're actually solving
 
