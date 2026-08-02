@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-02T15:20:45Z",
+  "generated": "2026-08-02T15:53:30Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1143,6 +1143,11 @@
         "system/skills"
       ]
     },
+    "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md": {
+      "title": "ADR-076: Build Receipts as Executed Evidence — and Why Enforced Delegation Was Deferred",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1331,6 +1336,11 @@
       "impl_files": [
         "system/scripts/check-selector.sh"
       ]
+    },
+    "docs/architecture/features/build-receipts.md": {
+      "title": "Feature: Build receipts",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/cascade-throttle.md": {
       "title": "Feature: Cascade Throttle",
@@ -1634,7 +1644,8 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scheduler/",
-        "system/cli/rust/target/release/brana"
+        "system/scripts/check-oracle-brana-drift.sh",
+        "system/cli/rust"
       ]
     },
     "docs/architecture/features/sdd-spec-gate.md": {
@@ -10116,6 +10127,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -10189,6 +10206,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/build-loop-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/build-receipts.md",
       "type": "references",
       "computed": false
     },
@@ -11285,6 +11308,36 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "to": "ADR-075-ship-on-deploy-surface-change.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "to": "docs/ideas/build-receipts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "to": "docs/ideas/enforced-delegation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -11491,6 +11544,12 @@
     {
       "from": "docs/architecture/features/brana-feed-inbox.md",
       "to": "t-2001-feed-tech-stack.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/build-receipts.md",
+      "to": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
       "type": "references",
       "computed": false
     },
@@ -14184,6 +14243,12 @@
     },
     {
       "from": "docs/ideas/build-receipts.md",
+      "to": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/build-receipts.md",
       "to": "enforced-delegation.md",
       "type": "references",
       "computed": false
@@ -15726,8 +15791,8 @@
     }
   ],
   "stats": {
-    "nodes": 541,
-    "edges": 2004,
+    "nodes": 543,
+    "edges": 2013,
     "typed_edges": 683,
     "orphans": 141
   }
