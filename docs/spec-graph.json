@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-01T14:09:50Z",
+  "generated": "2026-08-02T15:20:45Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2892,6 +2892,11 @@
         "system/rules/spec-assumptions.md"
       ]
     },
+    "docs/ideas/build-receipts.md": {
+      "title": "Build receipts",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/build-skill-gate-hardening.md": {
       "title": "Build Skill Gate Hardening — Step 4a",
       "type": "Roadmap",
@@ -2989,6 +2994,13 @@
         "system/mcp/skill-registry/"
       ]
     },
+    "docs/ideas/enforced-delegation.md": {
+      "title": "Enforced Delegation — orchestrator/executor split for build phases",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/orchestrator-gate.md"
+      ]
+    },
     "docs/ideas/enforcement-vs-injection.md": {
       "title": "Enforcement vs Injection — The Harness Architecture Fork",
       "type": "Roadmap",
@@ -2998,6 +3010,22 @@
       "title": "Fast Cold Start for Brana Plugin",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/gentle-ai-adoption-ladder.md": {
+      "title": "gentle-ai adoption ladder",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/",
+        "system/skills/_shared/",
+        "system/skills/_shared/delegation-tdd-checklist.md",
+        "system/skills/build/SKILL.md",
+        "system/",
+        "system/hooks/spec-gate.sh",
+        "system/skills/_shared/challenger-gate.md",
+        "system/skills/build/phases/verify-gates.md",
+        "system/agents/<new-executor>.md",
+        "system/skills/_shared/executor-brief.md"
+      ]
     },
     "docs/ideas/goal-adoption-brana-skills.md": {
       "title": "/goal Adoption — brana Skills",
@@ -3088,6 +3116,11 @@
     },
     "docs/ideas/orbit-evidence-first.md": {
       "title": "Orbit — Evidence Before Infrastructure",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/phase0-preregistration.md": {
+      "title": "Phase 0 pre-registration",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -14150,6 +14183,18 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/build-receipts.md",
+      "to": "enforced-delegation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/build-receipts.md",
+      "to": "gentle-ai-adoption-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/close-oriented-modes.md",
       "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
       "type": "references",
@@ -14186,8 +14231,20 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/enforced-delegation.md",
+      "to": "gentle-ai-adoption-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/enforcement-vs-injection.md",
       "to": "brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/gentle-ai-adoption-ladder.md",
+      "to": "enforced-delegation.md",
       "type": "references",
       "computed": false
     },
@@ -15669,9 +15726,9 @@
     }
   ],
   "stats": {
-    "nodes": 537,
-    "edges": 2000,
+    "nodes": 541,
+    "edges": 2004,
     "typed_edges": 683,
-    "orphans": 140
+    "orphans": 141
   }
 }
