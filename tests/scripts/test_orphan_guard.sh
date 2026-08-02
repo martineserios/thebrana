@@ -149,6 +149,36 @@ console.log(orphans.join(','));
 ")
 assert "pattern namespace still prunes its orphans" "pattern:feedback:old" "$OUT"
 
+# ── Test 6b: keys that failed to store are protected, cleanup still runs ──
+# A section that errors is absent from storedKeys through no fault of its own.
+# Blanket-refusing to prune on any error let one bad section out of thousands
+# disable cleanup for a whole week; protecting exactly the failed keys lets the
+# rest prune normally.
+echo "Test 6b: failed-to-store keys protected without disabling cleanup"
+OUT=$(guard_eval "
+const orphans = selectOrphans({
+  existingKeys: ['knowledge:feature:kept:1', 'knowledge:feature:failed:1', 'knowledge:feature:stale:1'],
+  storedKeys:   new Set(['knowledge:feature:kept:1']),
+  protectedKeys: new Set(['knowledge:feature:failed:1']),
+  namespace: 'knowledge',
+  runComplete: true,
+});
+console.log(orphans.join(','));
+")
+assert "errored key survives, genuine orphan still pruned" "knowledge:feature:stale:1" "$OUT"
+
+# ── Test 6c: doc-type allowlist stays in sync with index-knowledge.sh ──
+# Drift here is silent: a new category added to only one side either never gets
+# pruned or gets wrongly deleted. A comment cannot enforce this; a test can.
+echo "Test 6c: allowlist matches DOC_CATEGORIES in index-knowledge.sh"
+SH_TYPES=$(sed -n '/^DOC_CATEGORIES=(/,/^)/p' "$REPO_ROOT/system/scripts/index-knowledge.sh" \
+    | grep -oE '^\s*"[^"]+"' | sed 's/.*:\([a-z]*\):[a-z]*"/\1/' | sort -u | tr '\n' ',')
+JS_TYPES=$(node --input-type=module -e "
+import { DOC_DERIVED_TYPES } from '$GUARD';
+console.log([...DOC_DERIVED_TYPES].sort().join(',') + ',');
+" 2>&1)
+assert "doc types identical in both files" "$SH_TYPES" "$JS_TYPES"
+
 # ── Test 6: both indexers import the shared guard (no replicated logic) ──
 echo "Test 6: both indexers use the shared module"
 for f in bulk-index.mjs mcp-index.mjs; do

@@ -246,6 +246,9 @@ async function main() {
   let errors = 0;
   const startTime = Date.now();
   const storedKeys = new Set();
+// Keys this run attempted but failed to write. Absent from storedKeys, but not
+// evidence that the entry should be deleted (t-2613).
+const failedKeys = new Set();
 
   try {
     // Wait for MCP server startup before handshake
@@ -302,9 +305,11 @@ async function main() {
           storedKeys.add(s.key);
         } else {
           errors++;
+          failedKeys.add(s.key);
         }
       } catch (e) {
         errors++;
+        failedKeys.add(s.key);
         process.stderr.write(`  ERROR: ${s.key}: ${e.message}\n`);
       }
 
@@ -317,21 +322,20 @@ async function main() {
 
     process.stdout.write('\n\n');
 
-    // A run is only an authoritative census of the namespace if every section was
-    // stored. Both a killed run and a run with per-section errors leave holes, and
-    // pruning against a holed census deletes live data (t-2613).
-    const runComplete = errors === 0;
+    // The store loop above ran to completion. A process killed mid-run never
+    // reaches this line, but stating the invariant explicitly keeps a future
+    // early `break` from silently turning a partial run into an authoritative
+    // census — pruning against a holed census deletes live data (t-2613).
+    const runComplete = true;
 
     // Orphan cleanup — list existing entries per namespace, delete any not in this run
     let orphansRemoved = 0;
-    if (orphanCleanup && storedKeys.size > 0 && !runComplete) {
-      console.log(
-        `Orphan cleanup SKIPPED — run stored ${stored}/${sections.length} sections with ${errors} error(s). ` +
-        `Pruning against an incomplete run would delete entries it merely failed to re-store.`
-      );
-    } else if (orphanCleanup && storedKeys.size > 0) {
+    if (orphanCleanup && storedKeys.size > 0) {
       const indexedNamespaces = new Set(sections.map(s => s.namespace || 'knowledge'));
       console.log(`Checking orphans in: ${[...indexedNamespaces].join(', ')}...`);
+      if (errors > 0) {
+        console.log(`  ${errors} section(s) failed to store — protected from deletion rather than pruned.`);
+      }
 
       for (const ns of indexedNamespaces) {
         let cursor = null;
@@ -364,10 +368,15 @@ async function main() {
         const orphans = selectOrphans({
           existingKeys,
           storedKeys,
+          protectedKeys: failedKeys,
           namespace: ns,
           runComplete,
         });
-        const protectedCount = existingKeys.size - storedKeys.size - orphans.length;
+        // Count against THIS namespace only — storedKeys spans every namespace
+        // in the run, so subtracting its full size here would understate (or go
+        // negative on) a multi-namespace run.
+        const storedHere = [...existingKeys].filter(k => storedKeys.has(k)).length;
+        const protectedCount = existingKeys.size - storedHere - orphans.length;
         console.log(
           `  ${ns}: ${existingKeys.size} existing, ${storedKeys.size} indexed, ${orphans.length} orphans` +
           (protectedCount > 0 ? `, ${protectedCount} protected (non-doc or untouched doc type)` : '')

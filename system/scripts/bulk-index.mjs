@@ -107,6 +107,9 @@ let errors = 0;
 const BATCH_SIZE = 20;
 const startTime = Date.now();
 const storedKeys = new Set();
+// Keys this run attempted but failed to write. Absent from storedKeys, but not
+// evidence that the entry should be deleted (t-2613).
+const failedKeys = new Set();
 
 for (let i = 0; i < sections.length; i += BATCH_SIZE) {
   const batch = sections.slice(i, Math.min(i + BATCH_SIZE, sections.length));
@@ -139,6 +142,7 @@ for (let i = 0; i < sections.length; i += BATCH_SIZE) {
         storedKeys.add(s.key);
       } catch (e) {
         errors++;
+        failedKeys.add(s.key);
         console.error(`  ERR: ${s.key}: ${e.message}`);
       }
     }
@@ -152,10 +156,11 @@ for (let i = 0; i < sections.length; i += BATCH_SIZE) {
 
 console.log('\n');
 
-// A run is only an authoritative census of the namespace if every section was
-// stored. Both a killed run and a run with per-section errors leave holes, and
-// pruning against a holed census deletes live data (t-2613).
-const runComplete = errors === 0;
+// The store loop above ran to completion. A process killed mid-run never reaches
+// this line at all, but stating the invariant explicitly keeps a future early
+// `break` from silently turning a partial run into an authoritative census —
+// pruning against a holed census is what deletes live data (t-2613).
+const runComplete = true;
 
 // Orphan cleanup — remove entries in indexed namespaces not in this run
 let orphansRemoved = 0;
@@ -164,42 +169,46 @@ if (orphanCleanup && storedKeys.size > 0) {
   const indexedNamespaces = new Set(sections.map(s => s.namespace || 'knowledge'));
   console.log(`Checking for orphan entries in: ${[...indexedNamespaces].join(', ')}...`);
 
-  if (!runComplete) {
+  if (errors > 0) {
     console.log(
-      `Orphan cleanup SKIPPED — run stored ${stored}/${sections.length} sections with ${errors} error(s). ` +
-      `Pruning against an incomplete run would delete entries it merely failed to re-store.`
+      `  ${errors} section(s) failed to store — protected from deletion rather than pruned.`
     );
-  } else {
-    for (const ns of indexedNamespaces) {
-      const existing = db.prepare(
-        `SELECT key FROM memory_entries WHERE namespace = ? AND status = 'active'`
-      ).all(ns);
-
-      const orphans = selectOrphans({
-        existingKeys: existing.map(row => row.key),
-        storedKeys,
-        namespace: ns,
-        runComplete,
-      });
-
-      const deleteStmt = db.prepare(
-        `DELETE FROM memory_entries WHERE key = ? AND namespace = ?`
-      );
-      const cleanupTx = db.transaction(() => {
-        for (const key of orphans) {
-          deleteStmt.run(key, ns);
-          orphansRemoved++;
-        }
-      });
-      cleanupTx();
-
-      const protectedCount = existing.length - storedKeys.size - orphans.length;
-      if (protectedCount > 0) {
-        console.log(`  ${ns}: ${orphans.length} orphan(s); ${protectedCount} non-doc/untouched entr(ies) protected`);
-      }
-    }
-    console.log(`Orphans removed: ${orphansRemoved}`);
   }
+
+  for (const ns of indexedNamespaces) {
+    const existing = db.prepare(
+      `SELECT key FROM memory_entries WHERE namespace = ? AND status = 'active'`
+    ).all(ns);
+
+    const orphans = selectOrphans({
+      existingKeys: existing.map(row => row.key),
+      storedKeys,
+      protectedKeys: failedKeys,
+      namespace: ns,
+      runComplete,
+    });
+
+    const deleteStmt = db.prepare(
+      `DELETE FROM memory_entries WHERE key = ? AND namespace = ?`
+    );
+    const cleanupTx = db.transaction(() => {
+      for (const key of orphans) {
+        deleteStmt.run(key, ns);
+        orphansRemoved++;
+      }
+    });
+    cleanupTx();
+
+    // Count against THIS namespace only — storedKeys spans every namespace in
+    // the run, so subtracting its full size here would understate (or go
+    // negative on) a multi-namespace run.
+    const storedHere = existing.filter(row => storedKeys.has(row.key)).length;
+    const protectedCount = existing.length - storedHere - orphans.length;
+    if (protectedCount > 0) {
+      console.log(`  ${ns}: ${orphans.length} orphan(s); ${protectedCount} non-doc/untouched entr(ies) protected`);
+    }
+  }
+  console.log(`Orphans removed: ${orphansRemoved}`);
 }
 
 console.log(`=== Bulk Index Complete ===`);

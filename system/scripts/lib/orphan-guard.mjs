@@ -65,25 +65,43 @@ export function isDocDerived(key) {
  * @param {object}      opts
  * @param {Iterable<string>} opts.existingKeys Keys currently active in the namespace.
  * @param {Set<string>} opts.storedKeys        Keys this run wrote.
+ * @param {Set<string>} [opts.protectedKeys]   Keys this run TRIED to write but
+ *                                             failed on. They are absent from
+ *                                             storedKeys through no fault of
+ *                                             their own, so they must not be
+ *                                             read as "no longer exists".
  * @param {string}      opts.namespace         Namespace being cleaned.
- * @param {boolean}     opts.runComplete       Whether indexing finished without
- *                                             aborting. False => prune nothing.
+ * @param {boolean}     opts.runComplete       Whether the store loop ran to the
+ *                                             end. False => prune nothing.
  * @returns {string[]} keys safe to delete.
  */
-export function selectOrphans({ existingKeys, storedKeys, namespace = 'knowledge', runComplete }) {
+export function selectOrphans({
+  existingKeys,
+  storedKeys,
+  protectedKeys,
+  namespace = 'knowledge',
+  runComplete,
+}) {
   // Hazard 2: only a completed run is a valid census. Callers must pass this
   // explicitly — an undefined value is treated as "not complete" so that a
   // caller which forgets to thread the flag fails safe rather than deleting.
   if (runComplete !== true) return [];
 
   const stored = storedKeys instanceof Set ? storedKeys : new Set(storedKeys || []);
+  const failed = protectedKeys instanceof Set ? protectedKeys : new Set(protectedKeys || []);
   const existing = [...(existingKeys || [])];
+
+  // A key the run tried and failed to store is not evidence of deletion. Any
+  // error rate above zero used to disable cleanup wholesale, which meant one
+  // bad section out of thousands stranded every genuine orphan for a week.
+  // Protecting exactly the failed keys lets the rest prune normally.
+  const isProtected = (k) => stored.has(k) || failed.has(k);
 
   // Namespaces other than `knowledge` are populated solely from the indexer's
   // own JSONL, so their prior full-subtraction behaviour is correct and is
   // preserved. Guarding them would strand real orphans there permanently.
   if (namespace !== 'knowledge') {
-    return existing.filter((k) => !stored.has(k));
+    return existing.filter((k) => !isProtected(k));
   }
 
   // Hazard 3: a doc type absent from this run was not indexed, so this run
@@ -95,7 +113,7 @@ export function selectOrphans({ existingKeys, storedKeys, namespace = 'knowledge
   }
 
   return existing.filter((key) => {
-    if (stored.has(key)) return false;
+    if (isProtected(key)) return false;
     // Hazard 1: never delete what this indexer does not produce.
     if (!isDocDerived(key)) return false;
     return typesInRun.has(keyType(key));
