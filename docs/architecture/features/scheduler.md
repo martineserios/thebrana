@@ -395,43 +395,30 @@ workspace compile) and can't run a `brana` binary built on a newer-glibc
 dev machine (glibc is backward-compatible only — a binary linked against
 glibc 2.39 won't run against 2.35).
 
-**Fix: cross-compile a static musl binary and ship it — one command (t-2501):**
+**Fix: cross-compile a static musl binary and copy it over.**
 ```bash
-system/scripts/ship-brana-oracle.sh
+rustup target add x86_64-unknown-linux-musl
+sudo apt-get install musl-tools   # provides musl-gcc; needs an interactive terminal for sudo
+cd system/cli/rust
+cargo build --release --target x86_64-unknown-linux-musl -p brana-cli
+scp target/x86_64-unknown-linux-musl/release/brana oracle-hub:/tmp/brana
 ```
-The script runs the whole procedure: preflight (musl target, musl-gcc, hub
-reachable), `cargo build --release --target x86_64-unknown-linux-musl -p
-brana-cli`, static-link verification, scp, **atomic same-directory rename
-install** (safe while the old binary is running), a provenance manifest at
-`~/.local/bin/brana.manifest.json` (commit, sha256, built_at, dirty), and a
-post-install sha check. One-time setup on the build machine:
-`rustup target add x86_64-unknown-linux-musl && sudo apt-get install musl-tools`.
-
 `native-tls` (pulled in via `imap`) depends on `openssl-sys`, which can't
 find a musl-compatible OpenSSL to link against — fixed by vendoring
 OpenSSL via `native-tls = { version = "0.2", features = ["vendored"] }`
 in the workspace `Cargo.toml` (builds OpenSSL from source once, statically
 linked, no system dependency). The resulting binary is `static-pie linked`
-— the ship script verifies this before copying.
+— verify with `file target/x86_64-unknown-linux-musl/release/brana`.
 
-**One install location on oracle-hub** (verified 2026-07-27, corrected
-here per t-2501 — this section previously claimed a second,
-project-relative location for `reindex-knowledge`/`sync-state`, but oracle
-has no thebrana clone and no timers or cron entries for those jobs):
-- `~/.local/bin/brana`, symlinked from `/usr/local/bin/brana` for
-  non-login/cron shells — used by everything invoking bare `brana` on PATH
-  (e.g. `personal` repo's `deploy/process-link-queue.sh`).
-
-**Currency/drift signal (t-2501):** the hub binary silently ran 2-day-stale
-code for 5 days in 2026-07 (root cause of the link-pipeline outage) and a
-3-hour-stale binary re-broke a drain on 2026-08-01. The daily
-`oracle-brana-drift` scheduler job runs
-`system/scripts/check-oracle-brana-drift.sh`, which audits the shipped
-manifest and exits non-zero — surfacing as a FAILED job — on: no manifest
-(unmanaged binary), binary sha ≠ manifest (swapped out-of-band), or commits
-under `system/cli/rust` on `origin/main` newer than the shipped commit
-(drift). An unreachable hub is a clean skip, so the laptop being off or the
-VM being down never false-alarms.
+**Two install locations are needed on oracle-hub**, since different jobs
+resolve the binary differently:
+- `~/.local/bin/brana` (symlinked also to `/usr/local/bin/brana` for
+  non-login/cron shells) — used by anything invoking bare `brana` on PATH
+  (e.g. `personal` repo's `deploy/process-link-queue.sh`)
+- `<repo>/system/cli/rust/target/release/brana` — a project-relative path
+  some scheduler jobs call directly (`reindex-knowledge`, `sync-state`);
+  `sync-state`'s command falls back to plain git+shell if this is missing,
+  but `reindex-knowledge` has no fallback and fails outright.
 
 ## Open questions
 
