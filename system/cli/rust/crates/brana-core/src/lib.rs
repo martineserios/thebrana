@@ -11,6 +11,7 @@ pub mod memory;
 pub mod notify;
 pub mod search;
 pub mod queue;
+pub mod receipt;
 pub mod remind;
 pub mod scheduler;
 pub mod session;

@@ -281,6 +281,14 @@ fn main() {
             println!("Never merge a feature branch into main. See docs/guide/workflows/branching.md");
         }
         Commands::Ratings { last, json } => run_or_exit(commands::ratings::cmd_ratings(last, json)),
+        Commands::Receipt { cmd } => match cmd {
+            cli::ReceiptCmd::Mint { task_id, command, base, json } => {
+                run_or_exit(commands::receipt::cmd_mint(&task_id, command, base, json))
+            }
+            cli::ReceiptCmd::Validate { task_id, at, json } => {
+                run_or_exit(commands::receipt::cmd_validate(&task_id, at, json))
+            }
+        }
         Commands::Recall { query, top, json, db } => {
             run_or_exit(commands::recall::cmd_recall(&query, top, json, db))
         }

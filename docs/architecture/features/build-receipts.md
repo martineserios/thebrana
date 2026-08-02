@@ -111,8 +111,8 @@ brana receipt mint <task-id> [--command <argv...>] [--base <ref>]
 4. **Execute** `argv` as a subprocess from the repo root. Capture stdout and stderr
    separately; record exit code and duration. No shell — `argv` is a vector, not a string,
    so nothing is word-split or glob-expanded.
-5. **Re-derive `candidate_tree`.** If it moved, the command wrote tracked files during its
-   own run: **hard error, no receipt.** Recording a tree that did not produce the captured
+5. **Re-derive.** If `HEAD` moved or any *tracked* file is now modified, the command
+   changed the tree during its own run: **hard error, no receipt.** Recording a tree that did not produce the captured
    output is the mint-side TOCTOU. Gitignored churn (caches, build artefacts) does not
    count — the re-derivation is over tracked files only.
 6. Derive `outcome` from the exit code.
@@ -126,7 +126,14 @@ the outcome value.
 
 ```
 $(git rev-parse --git-common-dir)/brana/receipts/<task-id>.json
+$(git rev-parse --git-common-dir)/brana/receipts/<task-id>.stdout
+$(git rev-parse --git-common-dir)/brana/receipts/<task-id>.stderr
 ```
+
+**The captured output blobs are stored, not just their hashes.** Without them
+`stdout_sha256` has nothing to compare against and is unverifiable — a claim, not
+evidence, which is the exact failure this design exists to avoid. `validate` re-hashes the
+blobs; a missing blob fails closed.
 
 `--git-common-dir`, never `.git`: one authority shared across linked worktrees, invisible
 to `git status`, never pushed. This repo runs concurrent sessions in separate worktrees by
@@ -159,6 +166,23 @@ against a repo it also mutates.
 validate_structure(receipt)          -> Result<(), StructureError>   // shape only
 compare(receipt, derived_facts)      -> GateResult                   // pure comparison
 ```
+
+`validate_structure` also enforces **outcome coherence**: `outcome` must equal
+`Outcome::from_exit_code(execution.exit_code)`. A hand-edited receipt claiming `passed`
+over a non-zero exit dies here whoever wrote it — this is ADR-076 D1 expressed
+structurally rather than by convention.
+
+Exit codes, so a hook can branch without parsing stdout:
+
+| Code | Result |
+|---|---|
+| 0 | `allow` |
+| 3 | `scope-changed` |
+| 4 | `invalidated` (including *no receipt at all*) |
+
+Paths are re-derived over `base_commit..<--at>`. On a feature branch that is exactly the
+task's diff. **At a batch promotion it over-includes other tasks' changes** — see the open
+design problem below; the batch policy belongs to t-2594, not to this command.
 
 ### Gate result — three-valued, never boolean
 
@@ -221,6 +245,13 @@ env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
 
 `GIT_COMMON_DIR` matters twice over: it is also what the storage path resolves through, so
 a leaked value would relocate the receipt store itself.
+
+**Found in implementation (t-2593):** the test written for the executed-subprocess case
+caught this on a *different* surface — `brana_core::util::find_tasks_file()` discovers
+tasks.json through unscrubbed `git rev-parse` calls, so under a leaked `GIT_DIR` it
+resolved into a foreign repository. `mint`/`validate` use their own scrubbed resolver;
+the shared helper is still exposed and is filed as **t-2617** (P1 — tasks.json is a write
+target). Any git invocation in this codebase is suspect until audited.
 
 ## Integration points
 
