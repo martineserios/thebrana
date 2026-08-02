@@ -226,6 +226,22 @@ The bounded wait exists for systemd `Persistent=true` catch-up runs: after the m
 
 Lock files are stored in `~/.claude/scheduler/locks/` and named by project directory basename.
 
+### The systemd budget must cover the wait
+
+The generated service unit's `TimeoutStartSec` is an *outer* kill sitting above the runner's own `timeout`. It is derived at deploy time from every wait the runner can legitimately spend:
+
+```
+TimeoutStartSec = (maxRetries + 1) * (lockWaitSeconds + timeoutSeconds)
+                + retryBackoffSec * (2^maxRetries - 1)
+                + 60
+```
+
+Jobs with `noProjectLock: true` are not charged `lockWaitSeconds`, since they never wait on the lock.
+
+This derivation is load-bearing, not cosmetic. Until t-2611 the budget was `(timeoutSeconds + 60) * (maxRetries + 1)`, which omitted the lock wait entirely — and that wait happens *before* the job's own `timeout` budget starts. With defaults that put a 360s kill above a 900s designed wall clock, so systemd killed the unit as `start operation timed out` before `flock -w` could return and let the runner log its SKIPPED. The failure looked like a hang: no status write, and a log ending after the header block. 19 of 21 live jobs carried a budget below their own 600s lock wait, so the graceful SKIP documented above was unreachable for nearly all of them.
+
+If you raise `lockWaitSeconds` or `timeoutSeconds`, re-run `brana-scheduler deploy` — the units are generated, and a config change alone does not update them.
+
 ## Retry behavior
 
 When `maxRetries` is greater than 0, the runner retries failed jobs with exponential backoff:

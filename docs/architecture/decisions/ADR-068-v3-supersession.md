@@ -45,7 +45,11 @@ framed as**:
   found a second layer t-2395 could not see: the generated systemd unit's
   `TimeoutStartSec` is `(timeoutSeconds+60)*(maxRetries+1)` = 360s, an *outer* kill
   above the runner's own `timeout` — which is what the 360s wall-clock in the logs
-  actually was. Separately, the close queue held **one** dead entry at
+  actually was. *(That formula was itself a defect, corrected by t-2611: it omitted
+  the `lockWaitSeconds` flock wait, which the runner spends before the job's own
+  `timeout` starts. See docs/guide/scheduler.md §Concurrency and locking for the
+  current derivation. The t-2441 diagnosis above is unaffected — the 360s reading
+  was correct for the formula then in force.)* Separately, the close queue held **one** dead entry at
   `retry_count:3`, labelled `schema-invalid`. That label turned out to be a
   **misclassification** (t-2442): the raw agy output was a Google OAuth
   re-authentication prompt, and on retry `Error: timed out waiting for response` —
