@@ -73,14 +73,19 @@ log "shipping to $OH_TARGET:$REMOTE_BIN (sha ${sha:0:12}...)"
 "$SCP_BIN" -q "$BIN" "$OH_TARGET:$REMOTE_TMP" || die "scp failed"
 remote "chmod +x $REMOTE_TMP && mv -f $REMOTE_TMP $REMOTE_BIN" || die "remote install (rename) failed"
 
+# --- verify BEFORE writing the manifest ---------------------------------------
+# Never leave a manifest describing an install that failed verification: the
+# manifest is the drift check's ground truth, so it is written only for a
+# verified binary (challenger iteration 1, 2026-08-02). A verified-but-
+# manifest-less state self-reports as UNMANAGED on the next drift run.
+remote_sha="$(remote "sha256sum $REMOTE_BIN" | awk '{print $1}')"
+[[ "$remote_sha" == "$sha" ]] \
+  || die "post-install verification failed: remote sha ${remote_sha:0:12}... != shipped ${sha:0:12}... (mismatch) — manifest NOT written"
+
 manifest="$(printf '{"commit":"%s","sha256":"%s","built_at":"%s","target":"%s","dirty":%s}' \
   "$commit" "$sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TARGET" "$dirty")"
 echo "$manifest" | remote "cat > $REMOTE_MANIFEST" || die "manifest write failed"
 
-# --- verify (never report success on an unverified install) ------------------
-remote_sha="$(remote "sha256sum $REMOTE_BIN" | awk '{print $1}')"
-[[ "$remote_sha" == "$sha" ]] \
-  || die "post-install verification failed: remote sha ${remote_sha:0:12}... != shipped ${sha:0:12}... (mismatch)"
 version="$(remote "$REMOTE_BIN --version 2>/dev/null" || true)"
 
 log "OK: shipped ${commit:0:12} (dirty=$dirty) -> $OH_TARGET:$REMOTE_BIN"

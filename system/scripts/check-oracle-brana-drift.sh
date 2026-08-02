@@ -25,7 +25,16 @@ OH_TARGET="${OH_TARGET:-oracle-hub}"
 REMOTE_BIN="${REMOTE_BIN:-/home/ubuntu/.local/bin/brana}"
 REMOTE_MANIFEST="$REMOTE_BIN.manifest.json"
 REPO="${REPO:-$HOME/enter_thebrana/thebrana}"
-CLI_PATH="system/cli/rust"
+# Pathspec = the shipped binary's dependency closure ONLY (brana-cli ->
+# brana-core, plus workspace manifests). Counting the whole workspace dir
+# false-alarms on brana-mcp-only commits — a crate the shipped binary does
+# not contain (challenger iteration 1, 2026-08-02).
+CLI_PATHS=(
+  "system/cli/rust/crates/brana-cli"
+  "system/cli/rust/crates/brana-core"
+  "system/cli/rust/Cargo.toml"
+  "system/cli/rust/Cargo.lock"
+)
 
 log() { echo "[oracle-brana-drift] $*"; }
 
@@ -50,6 +59,12 @@ if [[ -z "$m_commit" || -z "$m_sha" ]]; then
   log "UNMANAGED: manifest at $REMOTE_MANIFEST is malformed (missing commit/sha256). Re-ship: system/scripts/ship-brana-oracle.sh"
   exit 1
 fi
+# Remote-sourced values never reach git argv unvalidated (defense-in-depth —
+# a compromised hub must not get to pick our git arguments).
+if ! [[ "$m_commit" =~ ^[0-9a-fA-F]{7,40}$ ]] || ! [[ "$m_sha" =~ ^[0-9a-fA-F]{64}$ ]]; then
+  log "UNMANAGED: manifest at $REMOTE_MANIFEST is malformed (commit/sha256 not valid hex). Re-ship: system/scripts/ship-brana-oracle.sh"
+  exit 1
+fi
 
 # 3. Does the deployed binary match what the manifest says was shipped?
 actual_sha="$(remote "sha256sum $REMOTE_BIN 2>/dev/null" | awk '{print $1}')"
@@ -58,17 +73,25 @@ if [[ "$actual_sha" != "$m_sha" ]]; then
   exit 1
 fi
 
-# 4. Has main moved under system/cli/rust since the build?
-git -C "$REPO" fetch -q origin main 2>/dev/null || true
+# 4. Has main moved under the shipped binary's paths since the build?
+# A fetch failure must be LOUD: silently comparing against a stale cached
+# origin/main reproduces the exact silent-staleness failure this check
+# exists to eliminate (challenger iteration 1, 2026-08-02).
+if git -C "$REPO" remote get-url origin >/dev/null 2>&1; then
+  if ! git -C "$REPO" fetch -q origin main 2>/dev/null; then
+    log "FETCH-FAILED: could not refresh origin/main — a comparison now would run against a stale cached ref, which is exactly the silent staleness this check exists to catch. Verdict unreliable; investigate network/auth and re-run."
+    exit 1
+  fi
+fi
 if ! git -C "$REPO" cat-file -e "$m_commit" 2>/dev/null; then
   log "DRIFT: manifest commit $m_commit not found in local repo — cannot measure distance (shallow clone or foreign commit). Treating as drifted; re-ship from current main."
   exit 1
 fi
 upstream="origin/main"
 git -C "$REPO" rev-parse -q --verify "$upstream" >/dev/null 2>&1 || upstream="main"
-count="$(git -C "$REPO" rev-list --count "$m_commit..$upstream" -- "$CLI_PATH" 2>/dev/null || echo 0)"
+count="$(git -C "$REPO" rev-list --count "$m_commit..$upstream" -- "${CLI_PATHS[@]}" 2>/dev/null || echo 0)"
 if [[ "$count" -gt 0 ]]; then
-  log "DRIFT: $count commit(s) under $CLI_PATH on $upstream since shipped commit ${m_commit:0:12} — hub binary is behind. Re-ship: system/scripts/ship-brana-oracle.sh"
+  log "DRIFT: $count commit(s) to the shipped binary's paths (${CLI_PATHS[*]}) on $upstream since shipped commit ${m_commit:0:12} — hub binary is behind. Re-ship: system/scripts/ship-brana-oracle.sh"
   exit 1
 fi
 

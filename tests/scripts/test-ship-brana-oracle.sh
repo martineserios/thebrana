@@ -133,13 +133,16 @@ fi
 rm -rf "$ROOT"
 
 # Test 4 (boundary): post-install remote sha mismatch -> ship FAILS (never
-# report success on an unverified install)
+# report success on an unverified install), and NO manifest is written for
+# the unverified install (challenger iteration 1: manifest-before-verify left
+# a manifest describing a binary that failed verification)
 ROOT="$(mktemp -d)"; make_fixture "$ROOT"
 OUT="$(run_ship "$ROOT" env STUB_BUILD_TAG=t4 STUB_REMOTE_SHA=deadbeef)"; RC=$?
-if [[ "$RC" -ne 0 ]] && grep -qiE "verif|mismatch" <<<"$OUT"; then
-  pass "verify: remote sha mismatch fails the ship"
+LOG="$(cat "$ROOT/tool.log" 2>/dev/null)"
+if [[ "$RC" -ne 0 ]] && grep -qiE "verif|mismatch" <<<"$OUT" && ! grep -q "manifest.json" <<<"$LOG"; then
+  pass "verify: remote sha mismatch fails the ship, manifest not written"
 else
-  fail "verify: remote sha mismatch fails the ship" "rc=$RC out=$(tail -2 <<<"$OUT")"
+  fail "verify: remote sha mismatch fails the ship, manifest not written" "rc=$RC out=$(tail -2 <<<"$OUT")"
 fi
 rm -rf "$ROOT"
 
