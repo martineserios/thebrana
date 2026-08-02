@@ -142,6 +142,43 @@ write_goal
 run_hook
 if is_registered "tests/test-existing.sh"; then bad "modified pre-existing test wrongly registered"; else ok "modified test not registered (Added-only)"; fi
 
+# ── Test 10: leaked GIT_DIR/GIT_INDEX_FILE must not let a staged test's own git-fixture
+# ops (git init/commit in a mktemp dir) redirect onto the real repo (t-2602). Git hooks
+# export GIT_DIR/GIT_INDEX_FILE for their own process; those env vars win over `-C`/cwd,
+# so a staged test that builds a throwaway git fixture silently commits onto the repo
+# invoking the hook instead — see pattern_git-hook-env-leaks-into-executed-tests. ─────────
+echo "Test 10: staged test's fixture git ops isolated from leaked GIT_DIR"
+reset_repo
+REPO_HEAD_BEFORE=$(git -C "$REPO" rev-parse HEAD)
+
+cat > "$REPO/tests/test-fixture-hijack.sh" <<'EOS'
+#!/usr/bin/env bash
+set -e
+FIX=$(mktemp -d)
+git init -q "$FIX"
+git -C "$FIX" config user.email f@f.local
+git -C "$FIX" config user.name fixture
+git -C "$FIX" commit -q --allow-empty -m "fixture: should stay in FIX, not REPO"
+exit 1
+EOS
+git -C "$REPO" add tests/test-fixture-hijack.sh
+write_goal
+
+# Simulate a real pre-commit invocation: GIT_DIR/GIT_INDEX_FILE exported for the hook's
+# own process, exactly as git sets them for every hook it runs.
+(
+  cd "$REPO" &&
+  export GIT_DIR="$REPO/.git" GIT_INDEX_FILE="$REPO/.git/index" &&
+  BRANA_GOAL_FILE="$GOAL" bash "$HOOK"
+) >/dev/null 2>&1
+
+REPO_HEAD_AFTER=$(git -C "$REPO" rev-parse HEAD)
+if [ "$REPO_HEAD_AFTER" = "$REPO_HEAD_BEFORE" ]; then
+    ok "repo HEAD unchanged — staged test's fixture git ops stayed in its own mktemp dir"
+else
+    bad "repo HEAD changed ($REPO_HEAD_BEFORE -> $REPO_HEAD_AFTER) — GIT_DIR leaked into the staged test and hijacked the real repo"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed."

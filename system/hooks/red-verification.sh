@@ -62,7 +62,14 @@ run_red() {
     [ -d "$dir" ] || return 1
     tmp="$dir/.red-verify-$$-$base"
     git -C "$ROOT" show ":$f" > "$tmp" 2>/dev/null || { rm -f "$tmp"; return 1; }
-    ( cd "$ROOT" && timeout 60 bash "$tmp" ) >/dev/null 2>&1
+    # Git exports GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE (and friends) into this hook's own
+    # process. Those override path-based repo discovery, so any git commands the staged
+    # test itself runs (e.g. `git init`/`commit` in a throwaway mktemp fixture) would
+    # silently redirect onto THIS repo instead of the fixture — see
+    # pattern_git-hook-env-leaks-into-executed-tests (t-2501 live incident, t-2602).
+    ( cd "$ROOT" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+        -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
+        timeout 60 bash "$tmp" ) >/dev/null 2>&1
     rc=$?
     rm -f "$tmp"
     # Timeout (124) is ambiguous, not a clean red → fail-closed.
