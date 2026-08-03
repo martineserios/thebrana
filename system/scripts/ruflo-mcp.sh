@@ -47,13 +47,20 @@ ruflo_mcp_db_is_healthy() {
         # 2026-07-31 and -2026-08-01 both pass integrity_check standalone, with
         # 4385 and 4332 rows — two intact databases discarded for nothing
         # (t-2619).
-        local result
-        if ! sqlite3 "$db" ".backup '$tmpdir/copy.db'" 2>/dev/null; then
-            # .backup failing on a live DB is a lock/IO problem, not evidence of
-            # corruption. Treat as healthy — condemning on this signal is what
-            # started the loop.
+        local result err rc
+        err=$(sqlite3 "$db" ".backup '$tmpdir/copy.db'" 2>&1); rc=$?
+        if [ "$rc" -ne 0 ]; then
             rm -rf "$tmpdir"
-            return 0
+            # WHY .backup can fail matters. A lock means another session is
+            # writing — not evidence of corruption, and condemning on it is what
+            # seeded the rotation loop. Anything else (malformed image, bad
+            # header, read error) is exactly the corruption we must catch:
+            # returning "healthy" there would reopen the t-2260 gap, where a
+            # present -wal let real corruption through unchecked for 10 days.
+            case "$err" in
+                *locked*|*busy*|*BUSY*) return 0 ;;
+                *)                      return 1 ;;
+            esac
         fi
         result=$(sqlite3 "$tmpdir/copy.db" "PRAGMA integrity_check;" 2>/dev/null | tail -1)
         rm -rf "$tmpdir"
@@ -114,12 +121,15 @@ ruflo_mcp_recover_db() {
         return 0
     fi
 
-    # No healthy backup. Starting empty throws away the only copy of the data,
-    # damaged or not — put the original back and let ruflo deal with it.
-    echo "[ruflo-mcp] WARN: no healthy backup — restoring the original in place." >&2
-    for suffix in "" "-wal" "-shm"; do
-        [ -e "${rotated}${suffix}" ] && mv "${rotated}${suffix}" "${db}${suffix}" 2>/dev/null
-    done
+    # No healthy backup: ruflo starts with an empty DB. Do NOT put the condemned
+    # file back — running on a malformed database is worse than running on an
+    # empty one, and restoring it in place is exactly the t-2260 loophole (a
+    # corrupt DB left live because recovery declined to quarantine it).
+    # Nothing is lost by quarantining: the data is preserved in the rotated file
+    # and in the .dump.sql beside it, which is what the salvage step above is for.
+    echo "[ruflo-mcp] WARN: no healthy backup — ruflo starts empty." >&2
+    echo "[ruflo-mcp]       data preserved at: ${rotated}" >&2
+    [ -f "${rotated}.dump.sql" ] && echo "[ruflo-mcp]       salvage dump: ${rotated}.dump.sql" >&2
     return 1
 }
 

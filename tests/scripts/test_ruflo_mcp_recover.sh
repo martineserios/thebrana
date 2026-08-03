@@ -108,6 +108,25 @@ assert "salvage dump written next to the rotated file" "true" \
 assert "salvage dump contains rows, not just schema" "true" \
     "$(grep -qc "INSERT INTO" "$D"/memory.db.corrupt-*.dump.sql 2>/dev/null && echo true || echo false)"
 
+echo "Test 4b: a corrupt db WITH a live -wal is still condemned (t-2260 gap stays closed)"
+# The health check must not treat "couldn't .backup it" as "it's fine". Only a
+# lock excuses the failure; a malformed image must still be caught, or a present
+# -wal becomes a loophole that lets real corruption through — which is exactly
+# the regression t-2260 was filed for.
+D3="$TMPROOT/case3"; mkdir -p "$D3"
+sqlite3 "$D3/memory.db" "CREATE TABLE t(x); INSERT INTO t VALUES('a');" >/dev/null 2>&1
+printf 'this is not a valid sqlite page' | dd of="$D3/memory.db" bs=1 seek=100 conv=notrunc status=none 2>/dev/null
+: > "$D3/memory.db-wal"   # a -wal is present, taking the WAL branch
+if ruflo_mcp_db_is_healthy "$D3/memory.db"; then V=HEALTHY; else V=CONDEMNED; fi
+assert "corrupt db with -wal present is condemned" "CONDEMNED" "$V"
+
+echo "Test 4c: a genuinely healthy db with a -wal is NOT condemned"
+D4="$TMPROOT/case4"; mkdir -p "$D4"
+sqlite3 "$D4/memory.db" "CREATE TABLE t(x); INSERT INTO t VALUES('a');" >/dev/null 2>&1
+: > "$D4/memory.db-wal"
+if ruflo_mcp_db_is_healthy "$D4/memory.db"; then V=HEALTHY; else V=CONDEMNED; fi
+assert "healthy db with -wal present is left alone" "HEALTHY" "$V"
+
 echo "Test 5: a healthy db with no backup available is never left empty"
 D2="$TMPROOT/case2"; build_fixtures "$D2"; rm -f "$D2"/backups/*.db
 ruflo_mcp_recover_db "$D2/memory.db" "$D2/backups" >/dev/null 2>&1
