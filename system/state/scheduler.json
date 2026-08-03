@@ -113,8 +113,8 @@
       "type": "command"
     },
     "link-research-extraction": {
-      "_comment": "t-2306: capped pass over pending link-tagged tasks from telegram link-capture. t-2560 (2026-07-31): repointed from ./deploy/research-extraction.sh to the Rust subcommand, which completes a task ONLY after its content reaches the knowledge base — the gate the old script lacked (it marked completed on `claude -p` exit 0 while persisting nothing; personal-repo t-1366, P0, 6 links burned). STILL DISABLED pending a human enable: see t-2560.",
-      "command": "brana knowledge drain-links --cap 10",
+      "_comment": "t-2306: capped pass over pending link-tagged tasks from telegram link-capture. t-2560 (2026-07-31): repointed from ./deploy/research-extraction.sh to the Rust subcommand, which completes a task ONLY after its content reaches the knowledge base — the gate the old script lacked (it marked completed on `claude -p` exit 0 while persisting nothing; personal-repo t-1366, P0, 6 links burned). STILL DISABLED pending a human enable: see t-2560. t-1364 (2026-08-01): wrapped in drain-links.sh — pull before drain, commit+push results after; preserves drain rc.",
+      "command": "~/enter_thebrana/personal/deploy/drain-links.sh",
       "enabled": true,
       "project": "~/enter_thebrana/personal",
       "schedule": "*-*-* 0/4:00:00",
@@ -209,6 +209,16 @@
       "schedule": "*-*-* 08:00:00",
       "timeoutSeconds": 60,
       "type": "command"
+    },
+    "oracle-brana-drift": {
+      "_comment": "t-2501: audits oracle-hub brana manifest (ship-brana-oracle.sh provenance) — UNMANAGED/SWAPPED/DRIFT exit 1 -> FAILED job = the visible signal. Unreachable hub is a clean skip (exit 0). noProjectLock: read-only wrt shared state (ssh + own git fetch); also avoids the 600s lock-wait vs 180s TimeoutStartSec kill window (seen 2026-08-02 smoke run).",
+      "type": "command",
+      "command": "~/enter_thebrana/thebrana/system/scripts/check-oracle-brana-drift.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:15:00",
+      "timeoutSeconds": 120,
+      "enabled": true,
+      "noProjectLock": true
     }
   },
   "version": 1

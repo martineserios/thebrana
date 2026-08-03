@@ -141,6 +141,19 @@
           "path": "~/enter_thebrana/clients/unlock"
         }
       ]
+    },
+    {
+      "slug": "truper",
+      "projects": [
+        {
+          "slug": "truper",
+          "path": "~/enter_thebrana/ventures/truper",
+          "type": "hybrid",
+          "stage": "discovery",
+          "tech_stack": [],
+          "created": "2026-07-29"
+        }
+      ]
     }
   ]
 }
