@@ -84,14 +84,52 @@ which only happens to resolve when the git-root IS thebrana itself.
 # over-reach (32 commits instead of 4, live 2026-07-27) and re-queued commits an
 # earlier close had already queued under a different range string, which
 # close-snapshot.sh does NOT dedup. Every epic-routed close poisoned the next one.
+#
+# Epic-scoped corroboration (t-2603): taking the max written_at across ALL
+# epic-keyed files unconditionally reintroduced a different bug — a CONCURRENT
+# session on a completely unrelated epic that happens to close LATER than this
+# one post-dates this session's own commits, and the window collapses (2/13
+# commits queued, live 2026-08-02, confirmed 3x same day). `--all` files are
+# only trustworthy anchors for THIS close if they belong to an epic this
+# session's own recent commits actually resolve to (same resolve_epic_ancestor
+# primitive used by close/phases/session-state.md Step 9c Tier 2b/t-2618) —
+# or the orphan/default file, which every session can legitimately fall back to.
+# Read ../../_shared/epic-ancestor-walk.md for resolve_epic_ancestor() if not
+# already sourced this session.
+SESSION_EPICS=$(git log --oneline -20 2>/dev/null \
+  | grep -oE 't-[0-9]+' | sort -u \
+  | while read -r id; do resolve_epic_ancestor "$id" 2>/dev/null; done \
+  | sort -u | grep -v '^$')
+
 # `--all` surfaces every session file; the default one appears as epic "(orphan)".
 # Sort on the first 19 chars: writers emit UTC in two shapes ("...:01Z" and
 # "...:31.372637410+00:00") which order correctly by their fixed-width
 # YYYY-MM-DDTHH:MM:SS prefix but not as whole strings.
-LAST_CLOSE=$(brana session read --all --json 2>/dev/null \
-  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+ALL_SESSIONS_JSON=$(brana session read --all --json 2>/dev/null)
+LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
+  | jq -r --arg epics "$SESSION_EPICS" '
+      ($epics | split("\n") | map(select(. != ""))) as $mine |
+      [.[] | select(.epic == "(orphan)" or (.epic as $e | $mine | index($e) != null)) | .state.written_at // empty]
+      | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
 # Fallback for an older binary without --all, or no session files yet.
 [ -z "$LAST_CLOSE" ] && LAST_CLOSE=$(brana session read --json 2>/dev/null | jq -r '.written_at // empty' 2>/dev/null)
+
+# AC2 (t-2603): don't trust the scoped anchor silently — the epic-scope filter
+# above is a heuristic (a session whose commits reference no task IDs degrades
+# to the orphan-only window, which is often but not always right). Compute the
+# pre-t-2603 UNSCOPED max too and surface a visible warning on divergence,
+# rather than reporting success either way. This never blocks the close.
+UNSCOPED_LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
+  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+if [ -n "$UNSCOPED_LAST_CLOSE" ] && [ "${UNSCOPED_LAST_CLOSE:0:19}" != "${LAST_CLOSE:0:19}" ]; then
+    EXCLUDED_EPICS=$(echo "$ALL_SESSIONS_JSON" \
+      | jq -r --arg epics "$SESSION_EPICS" '
+          ($epics | split("\n") | map(select(. != ""))) as $mine |
+          [.[] | select(.epic != "(orphan)" and (.epic as $e | ($mine | index($e)) == null)) | .epic]
+          | unique | join(",")' 2>/dev/null)
+    echo "⚠ scoped close anchor ($LAST_CLOSE) differs from the unscoped max across all session-state files ($UNSCOPED_LAST_CLOSE, epic(s): ${EXCLUDED_EPICS:-unknown}) — that file's epic isn't corroborated by this session's own commits (SESSION_EPICS: ${SESSION_EPICS:-none}). If it actually belongs to this session, its epic-detection must have missed it. Not treating this close as a clean success without a look: $HOME/.claude/sessions/session-state-*.json" >&2
+fi
+
 COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
 
@@ -100,8 +138,10 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.
 ```
 <!-- /CLOSE-ANCHOR-BLOCK -->
 
-> `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`.
-> Keep the markers and fences intact.
+> `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`
+> and `tests/procedures/test-close-gate-foreign-epic.sh`. Keep the markers and fences intact.
+> This block calls `resolve_epic_ancestor` — the extracting test must source
+> `system/skills/_shared/epic-ancestor-walk.md`'s `EPIC-WALK-BLOCK` first.
 
 **Orientation flags (ADR-053, t-1980).** `$ARGUMENTS` may carry an orientation — `--continue`, `--finish`, `--patterns`, `--abort` — saying WHY the session is closing. close-classify.sh maps orientation to a forced weight (continue/finish → INSTANT, patterns → LIGHT-INLINE, abort → NANO); the call above already passes `--arguments`, so the orientation reaches the classifier with no extra wiring (programmatic callers can equivalently pass `--mode-override <orientation>` — same mapping, same precedence). Set `ORIENTATION` to the flag name when present, `auto` otherwise.
 
