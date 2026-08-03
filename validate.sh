@@ -20,6 +20,7 @@ RUN_ASSUMPTIONS_ONLY=false
 RUN_SCALE_TRIGGERS=false
 RUN_SEMANTIC_ONLY=false
 RUN_GOLDEN=false
+RUN_FAST=false
 GRACE_DAYS=7
 CHECK_FILTER=""
 
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
         --scale-triggers) RUN_SCALE_TRIGGERS=true; shift ;;
         --semantic) RUN_SEMANTIC_ONLY=true; shift ;;
         --golden) RUN_GOLDEN=true; shift ;;
+        # Skips Check 69 (hook test sweep, ~4min serial) for quick local
+        # iteration. Full gates (BUILD->CLOSE, ship pre-flight) must NOT pass
+        # --fast — they need the sweep's coverage (t-2622).
+        --fast) RUN_FAST=true; shift ;;
         --grace-days) GRACE_DAYS="$2"; shift 2 ;;
         --check)
             if [ -z "${2:-}" ]; then echo "--check requires a check number argument"; exit 1; fi
@@ -2593,6 +2598,39 @@ else
 fi
 echo ""
 fi  # should_run 68
+
+if should_run 69; then
+# Check 69 — hook test sweep (t-2622). validate.sh previously only ran 5
+# hardcoded statusline suites (Check 65/66) out of the ~60 test-*.sh suites
+# under system/hooks/tests/; everything else — including test-red-verification.sh
+# and the t-2501 oracle tests in tests/scripts/ — was correctly written but
+# never run automatically by anything. Delegates discovery/execution to
+# hook-test-sweep.sh so new suites need no validate.sh edit to be covered.
+#
+# --fast skips this check: serial sweep runtime is ~4min (t-2622 finding —
+# these suites weren't written to be parallel-safe, so this can't be sped up
+# by just raising concurrency without first auditing each for shared-state
+# collisions). Full gates (BUILD->CLOSE, ship pre-flight) must run without
+# --fast; this exists for quick local `./validate.sh --fast` iteration only.
+if $RUN_FAST; then
+    warn "Check 69: skipped (--fast) — hook test sweep not run"
+else
+echo "Check 69: hook test sweep (t-2622)..."
+C69_SWEEP="$SCRIPT_DIR/system/scripts/hook-test-sweep.sh"
+if [ ! -x "$C69_SWEEP" ]; then
+    warn "Check 69: $C69_SWEEP not found or not executable — skipping"
+else
+    if C69_OUT=$(bash "$C69_SWEEP" 2>&1); then
+        C69_SUMMARY=$(printf '%s\n' "$C69_OUT" | tail -1)
+        pass "Check 69: $C69_SUMMARY"
+    else
+        printf '%s\n' "$C69_OUT" | grep -E '^FAIL:' | sed 's/^/  /'
+        fail "Check 69: hook test sweep — see failures above"
+    fi
+fi
+fi
+echo ""
+fi  # should_run 69
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
