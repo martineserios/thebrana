@@ -29,7 +29,11 @@ check() {
 # Fake agy that prints the contents of $FAKE_AGY_OUTPUT (or nothing).
 # FAKE_AGY_STDIN_DUMP copies stdin to a file (diagnostic; stdin is NOT the diff
 # carrier — agy drops large stdin payloads and goes agentic, see t-2055).
-# FAKE_AGY_VERSION overrides the --version response (default: 1.0.8).
+# FAKE_AGY_VERSION overrides the --version response (default: 1.0.10 — must
+# stay >= close-extraction.sh's AGY_MIN_VERSION floor; this default was 1.0.8
+# until t-2622, stale since the floor was raised to 1.0.10 in 1621b484
+# 2026-06-19, four days after this file was last touched — every call in this
+# suite that didn't override the version was silently rejected by the guard).
 make_fake_agy() {
     local path="$1"
     cat > "$path" <<'EOF'
@@ -37,7 +41,7 @@ make_fake_agy() {
 [ -n "${FAKE_AGY_STDIN_DUMP:-}" ] && cat > "$FAKE_AGY_STDIN_DUMP"
 # Handle --version call from the version guard (t-2082).
 if [ "${1:-}" = "--version" ]; then
-    echo "${FAKE_AGY_VERSION:-1.0.8}"
+    echo "${FAKE_AGY_VERSION:-1.0.10}"
     exit 0
 fi
 # $1=-p $2=prompt — dispatch on prompt content so the propagation pass
