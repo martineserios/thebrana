@@ -159,7 +159,14 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         # discarded — recall was empty every session. The pattern namespace excludes
         # session rows structurally; 0.3 matches the build LOAD threshold. Timeout
         # raised 2s→8s: ONNX model load alone takes ~1.6s, search ~2s total.
-        CF_OUTPUT=$(cd "$HOME" && timeout 8 $CF memory search --query "$PROJECT build patterns corrections learnings" --namespace pattern --threshold 0.3 --limit 5 --format json 2>&1)
+        # -k 2: guarantee a SIGKILL 2s after SIGTERM if $CF ignores it (t-2622 —
+        # the npx-ruflo fallback in cf-env.sh spawns an `npm exec` wrapper whose
+        # child doesn't reliably die from SIGTERM alone, leaving an orphan that
+        # outlives this deadline and hangs any caller still reading this
+        # subshell's stdout). </dev/null: this is a non-interactive background
+        # job — it must never block reading a stdin it inherited from the
+        # invoking pipe.
+        CF_OUTPUT=$(cd "$HOME" && timeout -k 2 8 $CF memory search --query "$PROJECT build patterns corrections learnings" --namespace pattern --threshold 0.3 --limit 5 --format json </dev/null 2>&1)
         CF_EXIT=$?   # captured BEFORE any || true — was dead code reading 0 forever
         # CLI emits ONNX/INFO noise before the JSON object — keep JSON only.
         CF_JSON=$(echo "$CF_OUTPUT" | sed -n '/^{/,$p')
@@ -181,7 +188,15 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         # Everything returned is a pattern-namespace hit — collect all keys.
         RECALLED_KEYS=$(echo "$CF_JSON" | jq -c '[.results[]?.key] // []' 2>/dev/null) || RECALLED_KEYS="[]"
         echo "$RECALLED_KEYS" > "$TMPDIR_SS/recalled-keys"
-    ) &
+    # stdout/stderr MUST be discarded: this subshell writes its result to
+    # $TMPDIR_SS/*, not stdout. Without the redirect it inherits the script's
+    # own stdout (the pipe a caller's `$(...)` is reading), and an orphaned
+    # copy that outlives the PIDS kill-loop deadline keeps that pipe's write
+    # end open — the caller's command substitution never sees EOF and hangs
+    # indefinitely (t-2622; reproduced as a flaky hang in test-session-start.sh
+    # on the 2nd+ invocation within one test run, once a prior call's orphan
+    # was still alive). Same fix as the line-972 sync block below (t-2492).
+    ) >/dev/null 2>&1 &
     PIDS="$PIDS $!"
 else
     CF_WARNING="ruflo not found. Memory recall unavailable. Install: npm i -g ruflo"
@@ -198,9 +213,11 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
             [ -x "$_fw" ] && FW_SCRIPT="$_fw" && break
         done
         if [ -n "$FW_SCRIPT" ]; then
-            timeout 12 bash "$FW_SCRIPT" "$PROJECT" > "$TMPDIR_SS/flywheel-insight" 2>/dev/null || true
+            # -k 2 </dev/null: see the CF_OUTPUT timeout above (t-2622).
+            timeout -k 2 12 bash "$FW_SCRIPT" "$PROJECT" </dev/null > "$TMPDIR_SS/flywheel-insight" 2>/dev/null || true
         fi
-    ) &
+    # See the t-2622 note above the Job 1 subshell — same orphaned-stdout hang.
+    ) >/dev/null 2>&1 &
     PIDS="$PIDS $!"
 fi
 
@@ -219,9 +236,10 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
             BRANA_RECALL=$(command -v brana 2>/dev/null || true)
         fi
         if [ -n "$BRANA_RECALL" ] && [ -x "$BRANA_RECALL" ]; then
-            RECALL_RAW=$(cd "$GIT_ROOT" && timeout 3 "$BRANA_RECALL" recall \
+            # -k 1 </dev/null: see the CF_OUTPUT timeout above (t-2622).
+            RECALL_RAW=$(cd "$GIT_ROOT" && timeout -k 1 3 "$BRANA_RECALL" recall \
                 "$PROJECT build patterns corrections learnings" \
-                --top 5 --json 2>/dev/null) || RECALL_RAW=""
+                --top 5 --json </dev/null 2>/dev/null) || RECALL_RAW=""
             if [ -n "$RECALL_RAW" ]; then
                 RECALL_LINES=$(echo "$RECALL_RAW" | jq -r \
                     '.[] | (.doc.MemoryFile.slug // .doc.KnowledgeEntry.key // "?") as $k |
@@ -230,7 +248,8 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
                 [ -n "$RECALL_LINES" ] && echo "$RECALL_LINES" > "$TMPDIR_SS/hybrid-recall"
             fi
         fi
-    ) &
+    # See the t-2622 note above the Job 1 subshell — same orphaned-stdout hang.
+    ) >/dev/null 2>&1 &
     # Not added to PIDS — the PIDS kill loop has a timing issue where
     # date +%s%3N gives nanoseconds on Linux, making REMAINING_MS always
     # negative and killing jobs before they write their results. Recall

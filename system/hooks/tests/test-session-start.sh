@@ -14,15 +14,27 @@ TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
 # ── Test isolation ───────────────────────────────────────
-# Create a minimal PATH that has only essential tools (git, jq, awk, etc.)
-# but NOT ruflo/claude-flow/npx — prevents cf-env.sh from finding ruflo.
-# Also create a fake HOME to isolate from real user state.
-SAFE_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
-# Add git if it's elsewhere
-GIT_DIR="$(dirname "$(command -v git)")"
-[[ ":$SAFE_PATH:" != *":$GIT_DIR:"* ]] && SAFE_PATH="$GIT_DIR:$SAFE_PATH"
-JQ_DIR="$(dirname "$(command -v jq)")"
-[[ ":$SAFE_PATH:" != *":$JQ_DIR:"* ]] && SAFE_PATH="$JQ_DIR:$SAFE_PATH"
+# A directory-based PATH (/usr/bin:/bin:...) is NOT sufficient isolation:
+# on any machine where git/jq happen to live in the same directory as
+# npx/npm/node (e.g. a system Node.js package installs npx into /usr/bin,
+# right alongside git/jq), that whole directory — npx included — leaks back
+# onto PATH. cf-env.sh's last-resort fallback (`command -v npx && CF="npx
+# ruflo"`) then fires for real, and every session-start.sh invocation in
+# this suite pays a genuine ~5-8s network round-trip to the npm registry
+# for a nonexistent "ruflo" package instead of failing instantly — with
+# ~10+ invocations in this file that reliably exceeds any sane test
+# timeout (t-2622; looked exactly like an infinite hang from the outside).
+#
+# Fix: build an explicit allowlist bin/ of symlinks to only the tools this
+# suite actually needs. Anything not linked here — npx/npm/node included —
+# is simply not resolvable, regardless of what shares a directory with git
+# or jq on a given machine.
+SAFE_BIN="$TMPDIR/safebin"
+mkdir -p "$SAFE_BIN"
+for _tool in bash sh git jq cat mkdir rm mv cp basename dirname date grep sed awk head tail wc ls chmod find timeout env true false sleep printf tr cut sort; do
+    _tool_path=$(command -v "$_tool" 2>/dev/null) && ln -sf "$_tool_path" "$SAFE_BIN/$_tool"
+done
+SAFE_PATH="$SAFE_BIN"
 
 FAKE_HOME="$TMPDIR/fakehome"
 mkdir -p "$FAKE_HOME/.claude/projects/fake/memory"
@@ -33,7 +45,19 @@ run_hook() {
     local input="$1"
     local extra_env="${2:-}"
     local raw
-    raw=$(echo "$input" | \
+    # Capture to a file, NOT via `$(...)` on a pipe (t-2622). session-start.sh
+    # forks background jobs (Job 1a/1b/1c) that, even correctly redirected to
+    # /dev/null and reaped by its own PIDS wait-loop, can still leave a
+    # grandchild alive past the point session-start.sh itself exits (observed:
+    # an `npm exec`-spawned node process under the npx-ruflo fallback). Any
+    # such straggler that inherited the ORIGINAL pipe's write end keeps that
+    # pipe open, so `raw=$(... | bash "$HOOK")` never sees EOF and hangs
+    # forever — even though the hook process itself already exited cleanly
+    # and `timeout` already returned. A regular file has no such waiter: once
+    # `timeout` returns we just read whatever is on disk.
+    local out_file
+    out_file=$(mktemp "${TMPDIR}/run-hook-out.XXXXXX")
+    echo "$input" | \
         PATH="$SAFE_PATH" \
         HOME="$FAKE_HOME" \
         BRANA_HOOK_PROFILE=standard \
@@ -42,7 +66,13 @@ run_hook() {
         CLAUDE_ENV_FILE="${CLAUDE_ENV_FILE:-}" \
         BRANA_RECAP_OFF="" \
         $extra_env \
-        bash "$HOOK" 2>/dev/null)
+        timeout -k 2 15 bash "$HOOK" >"$out_file" 2>/dev/null
+    raw=$(cat "$out_file" 2>/dev/null)
+    rm -f "$out_file"
+    # The hook's own PIDS wait-loop budgets ~8s worst case (t-2622 comment in
+    # session-start.sh); 15s is a generous ceiling. Without this, a hook-level
+    # regression that leaks an open stdout fd (t-2622) hangs the whole suite
+    # instead of failing one assertion.
     # Extract only lines that are valid JSON objects (filter background noise)
     echo "$raw" | grep -E '^\{' | head -1
 }
