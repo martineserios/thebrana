@@ -316,12 +316,63 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 **Detect active epic (4-tier cascade, run in order, stop at first hit):**
 
+**Epic ancestor walk (backlog-v3, t-2375):** Tier 0's corroboration gate and Tier 2a/2b all
+resolve a task's epic by walking its `parent` chain to the nearest `type: "epic"` ancestor,
+instead of reading the retired flat `epic` field. Read and follow
+[`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) **before Tier 0
+below** — it defines `resolve_epic_ancestor()`, reused as-is by Tier 0's gate and by Tier 2a/2b.
+
+**Lookup failures are not negatives (t-2487).** `resolve_epic_ancestor` exits non-zero when
+the lookup itself breaks, as distinct from exiting 0 with an empty string for "this task has
+no epic ancestor." Tier 0's gate and Tier 2a below record failures to `$EPIC_FAIL_LOG` instead
+of letting them silently drop out of the signal set — a dropped slug is how `brana-v3-redesign`
+went missing from a live close, leaving a single surviving slug that then looked unambiguous.
+
+```bash
+EPIC_FAIL_LOG=$(mktemp)
+```
+
 **Tier 0 (persistent focus):** Read the persistent focus file written by `brana session epic focus`:
 ```bash
 TIER0_SLUG=$(brana session epic status --json 2>/dev/null | jq -r '.focus // empty')
 ```
-If non-empty, use it as `$INITIATIVE_SLUG` silently and skip Tier 1/2a/2b/2c/3. Do NOT clear it — the focus file is persistent and only removed by `brana session epic unfocus`.
-If empty, fall through to Tier 1.
+If empty, fall through to Tier 1 (still compute `$TIER2B_SLUGS` below — Tier 2b needs it
+regardless of Tier 0's outcome).
+
+**Corroboration gate (t-2618).** The focus file is global and persistent — whichever concurrent
+session last called `brana session epic focus` captures routing for every session that closes
+afterward, with no check that the slug belongs to *this* session. `brana session write` keys
+handoffs by epic and **replaces** rather than merges, so a wrong slug destroys another epic's
+live state (the exact t-2263 clobber class Tier 2a/2b's corroboration was added to prevent —
+see the Converge note below). Tier 0 ran first and skipped every other tier, so it had no gate
+at all. Before trusting a non-empty `$TIER0_SLUG`, corroborate it against this session's OWN
+recent commits — the identical signal Tier 2b uses, computed once here and reused there:
+<!-- TIER0-CORROBORATION-BLOCK -->
+```bash
+TIER2B_SLUGS=$(git log --oneline -20 2>/dev/null \
+  | grep -oE 't-[0-9]+' | sort -u \
+  | while read -r id; do resolve_epic_ancestor "$id" || echo "$id" >> "$EPIC_FAIL_LOG"; done \
+  | sort -u | grep -v '^$')
+
+if [ -n "$TIER0_SLUG" ]; then
+    if echo "$TIER2B_SLUGS" | grep -qx "$TIER0_SLUG"; then
+        INITIATIVE_SLUG="$TIER0_SLUG"
+    else
+        echo "⚠ Persistent focus is \"$TIER0_SLUG\" but this session's own commits resolve to \"$(echo "$TIER2B_SLUGS" | tr '\n' ',' | sed 's/,$//')\" (or nothing) — not routing on an uncorroborated global focus file. Falling through to Tier 1." >&2
+    fi
+fi
+```
+<!-- /TIER0-CORROBORATION-BLOCK -->
+If corroborated (`$INITIATIVE_SLUG` now set): use it silently and skip Tier 1/2a/2b/2c/3. Do NOT
+clear the focus file — it is persistent and only removed by `brana session epic unfocus`.
+If corroboration failed or `$TIER0_SLUG` was empty: fall through to Tier 1.
+
+**Per-worktree focus file? (AC, t-2618 — considered, not adopted.)** A per-worktree focus file
+was considered as an alternative to corroboration. Rejected: this very session worked across
+three worktrees (t-2593, t-2618, t-2603) as one continuous unit of work — a per-worktree file
+would lose the focus signal on every worktree hop within a single session, which is the common
+case here, not the exception. The corroboration gate fixes the clobber risk without giving up
+cross-worktree continuity.
 
 **Tier 1 (session-start marker):** Read the marker written by `brana run` at session start:
 ```bash
@@ -332,22 +383,6 @@ If non-empty, use it as `$INITIATIVE_SLUG` silently and skip Tier 2a/2b/2c/3. Th
 brana session epic clear-marker 2>/dev/null || true
 ```
 If empty, fall through to Tier 2a.
-
-**Epic ancestor walk (backlog-v3, t-2375):** Tier 2a and 2b both resolve a task's epic by
-walking its `parent` chain to the nearest `type: "epic"` ancestor, instead of reading the
-retired flat `epic` field. Read and follow
-[`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md) — it defines
-`resolve_epic_ancestor()`, reused as-is by both tiers below.
-
-**Lookup failures are not negatives (t-2487).** `resolve_epic_ancestor` exits non-zero when
-the lookup itself breaks, as distinct from exiting 0 with an empty string for "this task has
-no epic ancestor." Both tiers below record failures to `$EPIC_FAIL_LOG` instead of letting
-them silently drop out of the signal set — a dropped slug is how `brana-v3-redesign` went
-missing from a live close, leaving a single surviving slug that then looked unambiguous.
-
-```bash
-EPIC_FAIL_LOG=$(mktemp)
-```
 
 **Tier 2a:** Query in-progress tasks and walk each to its epic ancestor:
 ```bash
@@ -361,18 +396,12 @@ queries in-progress tasks across the *whole portfolio*, including concurrently a
 worktrees on completely unrelated epics — a hit here is not by itself evidence that the
 slug belongs to *this* session (see Converge below).
 
-**Tier 2b:** Extract task IDs from recent commits and walk each to its epic ancestor:
-```bash
-TIER2B_SLUGS=$(git log --oneline -20 \
-  | grep -oE 't-[0-9]+' | sort -u \
-  | while read -r id; do resolve_epic_ancestor "$id" || echo "$id" >> "$EPIC_FAIL_LOG"; done \
-  | sort -u | grep -v '^$')
-```
-Add all non-empty results to the signal set. Fixes false Tier 3 prompts when all
-in_progress tasks completed before close but this session's commits reference tasks whose
-parent chain resolves to an epic. Unlike Tier 2a, this is scoped to *this session's own*
-recent git history — a hit here means a task/commit this session actually touched resolves
-to that epic.
+**Tier 2b:** `$TIER2B_SLUGS` was already computed above, alongside Tier 0's corroboration gate
+(identical extraction: task IDs from recent commits, walked to their epic ancestor) — do not
+recompute it here. Fixes false Tier 3 prompts when all in_progress tasks completed before close
+but this session's commits reference tasks whose parent chain resolves to an epic. Unlike Tier
+2a, this is scoped to *this session's own* recent git history — a hit here means a task/commit
+this session actually touched resolves to that epic.
 
 **Check for lookup failures BEFORE converging (t-2487):**
 ```bash
