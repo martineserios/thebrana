@@ -12,7 +12,10 @@ set -uo pipefail
 
 # See test-check-oracle-brana-drift.sh — mandatory for any test running git:
 # the red-verification hook executes tests inside a git hook where GIT_DIR is
-# exported, which would point fixture git calls at the real repo.
+# exported, which would point fixture git calls at the real repo. Same 5-var
+# denylist also lives in system/hooks/red-verification.sh (the root fix,
+# t-2602) and docs/architecture/features/build-receipts.md — no shared
+# source yet; update all four if the list ever changes.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 
 PASS=0

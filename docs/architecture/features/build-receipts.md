@@ -253,6 +253,11 @@ resolved into a foreign repository. `mint`/`validate` use their own scrubbed res
 the shared helper is still exposed and is filed as **t-2617** (P1 — tasks.json is a write
 target). Any git invocation in this codebase is suspect until audited.
 
+This same 5-var denylist is unset independently in `system/hooks/red-verification.sh` (the
+root fix for the live incident above, t-2602), `tests/scripts/test-check-oracle-brana-drift.sh`,
+and `tests/scripts/test-ship-brana-oracle.sh` — no shared source yet; update all four sites if
+the list ever changes.
+
 ## Integration points
 
 ### Mint — build CLOSE, step 1
