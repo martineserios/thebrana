@@ -39,11 +39,23 @@ ruflo_mcp_db_is_healthy() {
     if [ -f "${db}-wal" ]; then
         local tmpdir
         tmpdir=$(mktemp -d) || return 1
-        cp "$db" "$tmpdir/copy.db" 2>/dev/null || { rm -rf "$tmpdir"; return 1; }
-        cp "${db}-wal" "$tmpdir/copy.db-wal" 2>/dev/null || true
-        [ -f "${db}-shm" ] && cp "${db}-shm" "$tmpdir/copy.db-shm" 2>/dev/null
+        # Use sqlite3's own .backup — it is atomic and WAL-aware. Copying db,
+        # -wal and -shm as three separate `cp`s while a writer is live yields a
+        # WAL that does not match the db snapshot; checkpointing that mismatched
+        # pair manufactures corruption in the copy and condemns a healthy
+        # database. That false positive is not theoretical: memory.db.corrupt-
+        # 2026-07-31 and -2026-08-01 both pass integrity_check standalone, with
+        # 4385 and 4332 rows — two intact databases discarded for nothing
+        # (t-2619).
         local result
-        result=$(sqlite3 "$tmpdir/copy.db" "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA integrity_check;" 2>/dev/null | tail -1)
+        if ! sqlite3 "$db" ".backup '$tmpdir/copy.db'" 2>/dev/null; then
+            # .backup failing on a live DB is a lock/IO problem, not evidence of
+            # corruption. Treat as healthy — condemning on this signal is what
+            # started the loop.
+            rm -rf "$tmpdir"
+            return 0
+        fi
+        result=$(sqlite3 "$tmpdir/copy.db" "PRAGMA integrity_check;" 2>/dev/null | tail -1)
         rm -rf "$tmpdir"
         [ "$result" = "ok" ]
         return
@@ -51,29 +63,73 @@ ruflo_mcp_db_is_healthy() {
     sqlite3 "$db" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"
 }
 
+# Rotate a condemned DB aside and restore the newest healthy backup.
+#
+# The sidecars are the whole story. Moving only memory.db leaves memory.db-wal
+# and memory.db-shm behind; the restored backup is then opened underneath the
+# orphaned WAL of the database that was just rotated away, SQLite replays it,
+# and the fresh backup is malformed within milliseconds. The next session sees a
+# broken DB and rotates again — a self-sustaining daily data-loss loop. Move the
+# sidecars with the file they belong to, and make sure none remain before the
+# restore (t-2619).
+ruflo_mcp_recover_db() {
+    local db="$1" backup_dir="$2"
+    local stamp; stamp="$(date +%Y-%m-%d)"
+    local rotated="${db}.corrupt-${stamp}"
+
+    # Secure the files BEFORE touching them. Opening the db to salvage would
+    # checkpoint and delete its WAL, mutating a file we have not yet preserved —
+    # and on a genuinely damaged db, writing to it can lose more than it saves.
+    # Move first, then read from the rotated copy.
+    local suffix
+    for suffix in "" "-wal" "-shm"; do
+        [ -e "${db}${suffix}" ] && mv "${db}${suffix}" "${rotated}${suffix}" 2>/dev/null
+    done
+    # Belt and braces: nothing stale may remain next to the restore target.
+    rm -f "${db}-wal" "${db}-shm"
+
+    # Salvage from the rotated copy. Even a malformed file usually yields most of
+    # its rows — the 2026-08-02 file still dumps 1393 of them. `.recover` is not
+    # compiled into sqlite3 3.50.6 here, so use `.dump`, which skips damaged
+    # pages rather than refusing outright.
+    sqlite3 "$rotated" ".dump" > "${rotated}.dump.sql" 2>/dev/null || true
+    [ -s "${rotated}.dump.sql" ] || rm -f "${rotated}.dump.sql"
+
+    # Restore the newest backup that PASSES integrity_check — not just the
+    # newest. Backups carry corruption forward (the daily snapshot copies
+    # whatever memory.db holds), so "restore newest" re-poisons the DB and loops
+    # the corruption forward indefinitely (t-2236).
+    local latest="" cand
+    while IFS= read -r cand; do
+        [ -n "$cand" ] || continue
+        if sqlite3 "$cand" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"; then
+            latest="$cand"; break
+        fi
+        echo "[ruflo-mcp] skipping corrupt backup: $cand" >&2
+    done < <(ls -t "$backup_dir"/memory_*.db 2>/dev/null)
+
+    if [ -n "$latest" ]; then
+        cp "$latest" "$db" && chmod 600 "$db"
+        echo "[ruflo-mcp] Restored from backup: $latest" >&2
+        return 0
+    fi
+
+    # No healthy backup. Starting empty throws away the only copy of the data,
+    # damaged or not — put the original back and let ruflo deal with it.
+    echo "[ruflo-mcp] WARN: no healthy backup — restoring the original in place." >&2
+    for suffix in "" "-wal" "-shm"; do
+        [ -e "${rotated}${suffix}" ] && mv "${rotated}${suffix}" "${db}${suffix}" 2>/dev/null
+    done
+    return 1
+}
+
+# Allow tests to source the functions above without running the wrapper.
+[ -n "${RUFLO_MCP_SOURCE_ONLY:-}" ] && return 0
+
 if [ -f "$DB_PATH" ]; then
     if ! ruflo_mcp_db_is_healthy "$DB_PATH"; then
         echo "[ruflo-mcp] memory.db integrity check failed — recovering." >&2
-        mv "$DB_PATH" "${DB_PATH}.corrupt-$(date +%Y-%m-%d)" 2>/dev/null || true
-        # Restore the newest backup that PASSES integrity_check — not just the
-        # newest. The backups carry corruption forward (the daily snapshot copies
-        # whatever memory.db holds), so "restore newest" re-poisons the DB and
-        # loops the corruption forward indefinitely (t-2236). Walk newest-first,
-        # skipping any backup that is itself malformed.
-        LATEST_BACKUP=""
-        while IFS= read -r cand; do
-            if sqlite3 "$cand" "PRAGMA integrity_check;" 2>/dev/null | grep -q "^ok$"; then
-                LATEST_BACKUP="$cand"
-                break
-            fi
-            echo "[ruflo-mcp] skipping corrupt backup: $cand" >&2
-        done < <(ls -t "$BACKUP_DIR"/memory_*.db 2>/dev/null)
-        if [ -n "$LATEST_BACKUP" ]; then
-            cp "$LATEST_BACKUP" "$DB_PATH" && chmod 600 "$DB_PATH"
-            echo "[ruflo-mcp] Restored from backup: $LATEST_BACKUP" >&2
-        else
-            echo "[ruflo-mcp] WARN: No healthy backup found — ruflo starts with empty DB." >&2
-        fi
+        ruflo_mcp_recover_db "$DB_PATH" "$BACKUP_DIR"
     fi
 fi
 
