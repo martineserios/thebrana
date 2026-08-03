@@ -1,8 +1,33 @@
 //! Shared helpers for path discovery and config loading.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+/// Git exports these into hook environments (pre-commit, pre-push, etc.), and they
+/// override path-based repo discovery — `cd` does not protect you. Any `git` subprocess
+/// spawned from code that might run inside a hook (or a test fixture simulating one)
+/// must clear all six or it can resolve into — and in write paths, corrupt — whichever
+/// foreign repo the leaked env points at (t-2617; same root cause as
+/// `pattern_git-hook-env-leaks-into-executed-tests`, live failure 2026-08-01, t-2501).
+pub const GIT_ENV_VARS: [&str; 6] = [
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_COMMON_DIR",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+];
+
+/// Clear the git hook environment on a `Command` before spawning it. Apply to every
+/// `Command::new("git")` (and, when executing a caller-supplied command, that command
+/// too — see `brana-cli/src/commands/receipt.rs`).
+pub fn scrub_git_env(cmd: &mut Command) -> &mut Command {
+    for k in GIT_ENV_VARS {
+        cmd.env_remove(k);
+    }
+    cmd
+}
 
 /// Find the authoritative tasks.json, shared across git worktrees.
 ///
@@ -31,14 +56,32 @@ fn find_tasks_file_with_hint(
 }
 
 fn git_common_root() -> Option<PathBuf> {
-    Command::new("git")
-        .args(["rev-parse", "--git-common-dir"])
+    git_common_root_in(None)
+}
+
+/// Testable variant — `cwd` lets a test pin the working directory instead of relying on
+/// the test process's ambient cwd (which is shared and racy across parallel tests).
+fn git_common_root_in(cwd: Option<&Path>) -> Option<PathBuf> {
+    let mut cmd = Command::new("git");
+    scrub_git_env(&mut cmd);
+    if let Some(dir) = cwd {
+        cmd.current_dir(dir);
+    }
+    cmd.args(["rev-parse", "--git-common-dir"])
         .output()
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                let common_git =
-                    PathBuf::from(String::from_utf8_lossy(&o.stdout).trim().to_string());
+                let raw = PathBuf::from(String::from_utf8_lossy(&o.stdout).trim().to_string());
+                // git prints a path relative to the cwd it ran in when the common dir
+                // is discovered via directory traversal (e.g. plain ".git"). Resolve
+                // that against the cwd we actually asked it to run in, when we set one
+                // explicitly — otherwise it's silently wrong the moment the caller's
+                // ambient process cwd differs from where the string is later joined.
+                let common_git = match cwd {
+                    Some(dir) if raw.is_relative() => dir.join(raw),
+                    _ => raw,
+                };
                 common_git.parent().map(|p| p.to_path_buf())
             } else {
                 None
@@ -47,8 +90,17 @@ fn git_common_root() -> Option<PathBuf> {
 }
 
 fn git_toplevel() -> Option<PathBuf> {
-    Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
+    git_toplevel_in(None)
+}
+
+/// Testable variant — see `git_common_root_in`.
+fn git_toplevel_in(cwd: Option<&Path>) -> Option<PathBuf> {
+    let mut cmd = Command::new("git");
+    scrub_git_env(&mut cmd);
+    if let Some(dir) = cwd {
+        cmd.current_dir(dir);
+    }
+    cmd.args(["rev-parse", "--show-toplevel"])
         .output()
         .ok()
         .and_then(|o| {
@@ -744,6 +796,94 @@ mod tests {
             Some(cwd_dir.path().to_path_buf()),
         );
         assert_eq!(result, Some(f));
+    }
+
+    // ── GIT_DIR leak (t-2617) ────────────────────────────────────────────────
+
+    #[test]
+    fn scrub_git_env_removes_all_hook_env_vars() {
+        use std::process::Command;
+        let mut cmd = Command::new("git");
+        super::scrub_git_env(&mut cmd);
+        // `env_remove` shows up in `get_envs()` as the key mapped to `None` —
+        // asserting on that (rather than spawning a process) keeps this test fast
+        // and immune to whatever GIT_* vars happen to be set in the CI/dev env.
+        let removed: std::collections::HashSet<_> = cmd
+            .get_envs()
+            .filter(|(_, v)| v.is_none())
+            .map(|(k, _)| k.to_string_lossy().to_string())
+            .collect();
+        for var in super::GIT_ENV_VARS {
+            assert!(removed.contains(var), "scrub_git_env did not remove {var}");
+        }
+    }
+
+    fn git_init(dir: &std::path::Path) {
+        let mut cmd = std::process::Command::new("git");
+        super::scrub_git_env(&mut cmd);
+        let out = cmd
+            .current_dir(dir)
+            .args(["init", "-q", "-b", "main"])
+            .output()
+            .expect("git init runs");
+        assert!(out.status.success());
+    }
+
+    // Serializes tests that mutate process-global GIT_DIR/GIT_WORK_TREE — Rust
+    // runs #[test] fns on parallel threads by default, and env vars are process-wide.
+    static GIT_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn git_common_root_ignores_leaked_git_dir() {
+        let _guard = GIT_ENV_LOCK.lock().unwrap();
+        let correct = tmp();
+        let foreign = tmp();
+        git_init(correct.path());
+        git_init(foreign.path());
+
+        // Reproduces a git hook's exported environment (t-2617; live failure
+        // pattern also hit t-2501). Without the scrub, `--git-common-dir` resolves
+        // into the FOREIGN repo even though we asked git to run in `correct`.
+        unsafe {
+            std::env::set_var("GIT_DIR", foreign.path().join(".git"));
+            std::env::set_var("GIT_WORK_TREE", foreign.path());
+        }
+        let result = super::git_common_root_in(Some(correct.path()));
+        unsafe {
+            std::env::remove_var("GIT_DIR");
+            std::env::remove_var("GIT_WORK_TREE");
+        }
+
+        let canon_correct = correct.path().canonicalize().unwrap();
+        let canon_foreign = foreign.path().canonicalize().unwrap();
+        let got = result.expect("git-common-dir resolves").canonicalize().unwrap();
+        assert_ne!(got, canon_foreign, "leaked GIT_DIR was not scrubbed — resolved into the foreign repo");
+        assert_eq!(got, canon_correct, "must resolve into the repo git was actually run in");
+    }
+
+    #[test]
+    fn git_toplevel_ignores_leaked_git_dir() {
+        let _guard = GIT_ENV_LOCK.lock().unwrap();
+        let correct = tmp();
+        let foreign = tmp();
+        git_init(correct.path());
+        git_init(foreign.path());
+
+        unsafe {
+            std::env::set_var("GIT_DIR", foreign.path().join(".git"));
+            std::env::set_var("GIT_WORK_TREE", foreign.path());
+        }
+        let result = super::git_toplevel_in(Some(correct.path()));
+        unsafe {
+            std::env::remove_var("GIT_DIR");
+            std::env::remove_var("GIT_WORK_TREE");
+        }
+
+        let canon_correct = correct.path().canonicalize().unwrap();
+        let canon_foreign = foreign.path().canonicalize().unwrap();
+        let got = result.expect("show-toplevel resolves").canonicalize().unwrap();
+        assert_ne!(got, canon_foreign, "leaked GIT_DIR+GIT_WORK_TREE were not scrubbed — resolved into the foreign repo");
+        assert_eq!(got, canon_correct, "must resolve into the repo git was actually run in");
     }
 }
 

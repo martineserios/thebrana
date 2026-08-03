@@ -1075,8 +1075,9 @@ pub fn compute_insights(history: &[SessionState]) -> InsightsSummary {
 
 /// Get current git branch name, if in a git repo.
 pub fn current_branch() -> Option<String> {
-    std::process::Command::new("git")
-        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+    let mut cmd = std::process::Command::new("git");
+    crate::util::scrub_git_env(&mut cmd);
+    cmd.args(["rev-parse", "--abbrev-ref", "HEAD"])
         .output()
         .ok()
         .and_then(|o| {
@@ -1119,7 +1120,9 @@ fn branch_has_active_worktree(project_root: &Path, branch: &str) -> bool {
     }
     let root = project_root.to_string_lossy();
 
-    let worktree_list = match std::process::Command::new("git")
+    let mut wt_cmd = std::process::Command::new("git");
+    crate::util::scrub_git_env(&mut wt_cmd);
+    let worktree_list = match wt_cmd
         .args(["-C", &root, "worktree", "list", "--porcelain"])
         .output()
     {
@@ -1141,7 +1144,9 @@ fn branch_has_active_worktree(project_root: &Path, branch: &str) -> bool {
     // revision — caught in review after an initial attempt at this fix broke the tests
     // above, t-2263 challenger finding.)
     let full_ref = format!("refs/heads/{branch}");
-    let log_out = match std::process::Command::new("git")
+    let mut log_cmd = std::process::Command::new("git");
+    crate::util::scrub_git_env(&mut log_cmd);
+    let log_out = match log_cmd
         .args(["-C", &root, "log", "-1", "--format=%ct", &full_ref])
         .output()
     {
@@ -2349,7 +2354,9 @@ mod tests {
     fn init_git_repo_with_commit(root: &Path, branch_name: &str, age_secs: i64) {
         let git = |args: &[&str]| {
             let ts = (Utc::now().timestamp() - age_secs).to_string();
-            let status = std::process::Command::new("git")
+            let mut cmd = std::process::Command::new("git");
+            crate::util::scrub_git_env(&mut cmd);
+            let status = cmd
                 .args(args)
                 .current_dir(root)
                 .env("GIT_AUTHOR_NAME", "test")
@@ -2379,7 +2386,9 @@ mod tests {
         init_git_repo_with_commit(root, orbit_branch, 60); // 1 minute old — active
 
         let wt_dir = tempdir().unwrap();
-        let status = std::process::Command::new("git")
+        let mut wt_add_cmd = std::process::Command::new("git");
+        crate::util::scrub_git_env(&mut wt_add_cmd);
+        let status = wt_add_cmd
             .args(["-C", &root.to_string_lossy(), "worktree", "add"])
             .arg(wt_dir.path())
             .arg(orbit_branch)
@@ -2454,7 +2463,9 @@ mod tests {
         init_git_repo_with_commit(root, orbit_branch, 48 * 60 * 60);
 
         let wt_dir = tempdir().unwrap();
-        let status = std::process::Command::new("git")
+        let mut wt_add_cmd = std::process::Command::new("git");
+        crate::util::scrub_git_env(&mut wt_add_cmd);
+        let status = wt_add_cmd
             .args(["-C", &root.to_string_lossy(), "worktree", "add"])
             .arg(wt_dir.path())
             .arg(orbit_branch)

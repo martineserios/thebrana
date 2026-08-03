@@ -1059,7 +1059,9 @@ pub fn cmd_diff(theme: &themes::Theme) -> anyhow::Result<()> {
     let root = crate::util::find_project_root().context("Not in git repo")?;
     let rel = tf.strip_prefix(&root).unwrap_or(&tf);
 
-    let output = std::process::Command::new("git")
+    let mut cmd = std::process::Command::new("git");
+    brana_core::util::scrub_git_env(&mut cmd);
+    let output = cmd
         .args(["show", &format!("HEAD:{}", rel.display())])
         .current_dir(&root)
         .output();
@@ -1347,6 +1349,7 @@ pub fn cmd_triage_stale(
 ) -> anyhow::Result<()> {
     // 1. Get git log
     let mut cmd = std::process::Command::new("git");
+    brana_core::util::scrub_git_env(&mut cmd);
     if let Some(ref dir) = git_dir {
         cmd.arg("-C").arg(dir);
     }
