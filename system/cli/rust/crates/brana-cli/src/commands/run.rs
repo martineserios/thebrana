@@ -45,7 +45,9 @@ pub fn cmd_run(task_id: &str, spawn: bool) -> anyhow::Result<()> {
     let worktree_abs = repo_root.parent().unwrap().join(&worktree_rel[3..]);
 
     // Create git worktree
-    let wt_out = Command::new("git")
+    let mut wt_cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut wt_cmd);
+    let wt_out = wt_cmd
         .args(["worktree", "add", &worktree_rel, "-b", &branch])
         .current_dir(&repo_root)
         .output();
@@ -54,7 +56,9 @@ pub fn cmd_run(task_id: &str, spawn: bool) -> anyhow::Result<()> {
         Ok(o) => {
             let err = String::from_utf8_lossy(&o.stderr);
             if err.contains("already exists") {
-                let wt2 = Command::new("git")
+                let mut wt2_cmd = Command::new("git");
+                brana_core::util::scrub_git_env(&mut wt2_cmd);
+                let wt2 = wt2_cmd
                     .args(["worktree", "add", &worktree_rel, &branch])
                     .current_dir(&repo_root)
                     .output();

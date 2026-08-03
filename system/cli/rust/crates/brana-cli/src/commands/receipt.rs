@@ -21,25 +21,13 @@ pub const EXIT_INVALIDATED: i32 = 4;
 /// Git's hook environment overrides path-based repo discovery, and `cd` does not protect
 /// you (`pattern_git-hook-env-leaks-into-executed-tests`; live failure 2026-08-01, t-2501).
 /// Both our own git calls and — critically — the command we execute must run with these
-/// cleared, or a test with git fixtures operates on the real repository.
-const GIT_ENV: [&str; 6] = [
-    "GIT_DIR",
-    "GIT_WORK_TREE",
-    "GIT_INDEX_FILE",
-    "GIT_OBJECT_DIRECTORY",
-    "GIT_COMMON_DIR",
-    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-];
-
-fn scrub(c: &mut Command) -> &mut Command {
-    for k in GIT_ENV {
-        c.env_remove(k);
-    }
-    c
-}
-
+/// cleared, or a test with git fixtures operates on the real repository. Uses the shared
+/// `brana_core::util::scrub_git_env` (t-2617) rather than a local copy — this module used
+/// to carry its own `GIT_ENV`/`scrub()`, the local workaround t-2617's shared fix replaces.
 fn git_in(dir: &Path, args: &[&str]) -> Result<String> {
-    let out = scrub(Command::new("git").current_dir(dir).args(args)).output()?;
+    let mut cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut cmd);
+    let out = cmd.current_dir(dir).args(args).output()?;
     if !out.status.success() {
         bail!(
             "git {} failed: {}",
@@ -51,7 +39,10 @@ fn git_in(dir: &Path, args: &[&str]) -> Result<String> {
 }
 
 fn git_ok(dir: &Path, args: &[&str]) -> bool {
-    scrub(Command::new("git").current_dir(dir).args(args))
+    let mut cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut cmd);
+    cmd.current_dir(dir)
+        .args(args)
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
@@ -209,7 +200,11 @@ pub fn cmd_mint(
     // 4. Execute. No shell — argv is a vector, so nothing is word-split or glob-expanded.
     //    The git environment is scrubbed (H2) or a test with fixtures hijacks this repo.
     let started = std::time::Instant::now();
-    let out = scrub(Command::new(&argv[0]).current_dir(&root).args(&argv[1..]))
+    let mut exec_cmd = Command::new(&argv[0]);
+    brana_core::util::scrub_git_env(&mut exec_cmd);
+    let out = exec_cmd
+        .current_dir(&root)
+        .args(&argv[1..])
         .output()
         .map_err(|e| anyhow!("failed to execute {:?}: {e}", argv))?;
     let duration_ms = started.elapsed().as_millis() as u64;

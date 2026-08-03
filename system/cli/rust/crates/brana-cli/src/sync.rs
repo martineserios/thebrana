@@ -730,7 +730,9 @@ fn check_gh_auth() -> Result<(), String> {
 
 fn find_tasks_file() -> Option<PathBuf> {
     // Prefer git common dir so worktrees share the main repo's tasks.json
-    let common_root = Command::new("git")
+    let mut common_cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut common_cmd);
+    let common_root = common_cmd
         .args(["rev-parse", "--git-common-dir"])
         .output()
         .ok()
@@ -751,7 +753,9 @@ fn find_tasks_file() -> Option<PathBuf> {
     }
 
     // Fallback: worktree root
-    let root = Command::new("git")
+    let mut toplevel_cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut toplevel_cmd);
+    let root = toplevel_cmd
         .args(["rev-parse", "--show-toplevel"])
         .output()
         .ok()
@@ -893,7 +897,9 @@ fn load_sync_config() -> Result<SyncConfig, String> {
 }
 
 fn detect_project_slug() -> Option<String> {
-    let root = Command::new("git")
+    let mut cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut cmd);
+    let root = cmd
         .args(["rev-parse", "--show-toplevel"])
         .output()
         .ok()

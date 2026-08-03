@@ -401,10 +401,9 @@ pub fn find_brana_knowledge_root() -> Option<PathBuf> {
     }
 
     // Try sibling of git repo root
-    if let Ok(out) = std::process::Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-    {
+    let mut cmd = std::process::Command::new("git");
+    crate::util::scrub_git_env(&mut cmd);
+    if let Ok(out) = cmd.args(["rev-parse", "--show-toplevel"]).output() {
         if out.status.success() {
             let repo = PathBuf::from(String::from_utf8_lossy(&out.stdout).trim().to_string());
             if let Some(parent) = repo.parent() {
