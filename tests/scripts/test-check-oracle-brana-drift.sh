@@ -16,6 +16,10 @@ set -uo pipefail
 # fixture `git commit` below lands on the REAL branch instead of the mktemp
 # repo (happened live 2026-08-01: three fixture commits hijacked the t-2501
 # branch and trashed the worktree). Any test that runs git must do this.
+# Same 5-var denylist also lives in tests/scripts/test-ship-brana-oracle.sh,
+# system/hooks/red-verification.sh (the root fix, t-2602), and
+# docs/architecture/features/build-receipts.md — no shared source yet;
+# update all four if the list ever changes.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 
 PASS=0

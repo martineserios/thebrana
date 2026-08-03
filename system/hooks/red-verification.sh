@@ -67,6 +67,10 @@ run_red() {
     # test itself runs (e.g. `git init`/`commit` in a throwaway mktemp fixture) would
     # silently redirect onto THIS repo instead of the fixture — see
     # pattern_git-hook-env-leaks-into-executed-tests (t-2501 live incident, t-2602).
+    # This same 5-var denylist is also unset independently in
+    # tests/scripts/test-check-oracle-brana-drift.sh, tests/scripts/test-ship-brana-oracle.sh,
+    # and documented in docs/architecture/features/build-receipts.md — no shared source yet
+    # (t-2602 challenger finding); update all four if the list ever changes.
     ( cd "$ROOT" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
         -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
         timeout 60 bash "$tmp" ) >/dev/null 2>&1

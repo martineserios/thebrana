@@ -222,6 +222,11 @@ env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
 `GIT_COMMON_DIR` matters twice over: it is also what the storage path resolves through, so
 a leaked value would relocate the receipt store itself.
 
+This same 5-var denylist is unset independently in `system/hooks/red-verification.sh` (the
+root fix for the live incident above, t-2602), `tests/scripts/test-check-oracle-brana-drift.sh`,
+and `tests/scripts/test-ship-brana-oracle.sh` — no shared source yet; update all four sites if
+the list ever changes.
+
 ## Integration points
 
 ### Mint — build CLOSE, step 1
