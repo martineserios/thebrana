@@ -20,7 +20,9 @@ HOOKS_DIR="$SCRIPT_DIR/.."
 PASS=0
 FAIL=0
 TOTAL=0
-E2E_TMPDIR=$(mktemp -d)
+# NOT under /tmp: tdd-gate.sh's /tmp/* early-exit (2026-06-04) otherwise
+# swallows every tdd-gate deny case exercised below. See test-tdd-gate.sh.
+E2E_TMPDIR=$(mktemp -d "${HOME}/.brana-test-XXXXXX")
 
 trap 'rm -rf "$E2E_TMPDIR"' EXIT
 

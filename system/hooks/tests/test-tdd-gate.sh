@@ -8,7 +8,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../tdd-gate.sh"
 PASS=0
 FAIL=0
-TMPDIR=$(mktemp -d)
+# NOT under /tmp: tdd-gate.sh's own early-exit (added 2026-06-04) treats any
+# /tmp/* file_path as a scratch file and passes it through unconditionally,
+# which used to make every "deny" fixture here silently agree with the wrong
+# thing for the wrong reason. Matches the convention already used by
+# tests/scripts/test-hooks.sh and tests/hooks/test-spec-first-gate.sh.
+TMPDIR=$(mktemp -d "${HOME}/.brana-test-XXXXXX")
 
 trap 'rm -rf "$TMPDIR"' EXIT
 
