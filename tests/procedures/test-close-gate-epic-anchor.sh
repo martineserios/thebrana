@@ -21,6 +21,16 @@
 # the more certainly it broke the NEXT close's anchor. Every epic-routed close
 # poisoned the following one.
 #
+# Updated for t-2603: the anchor is now epic-SCOPED — only session-state files
+# whose epic this session's own recent commits resolve to (or the orphan/default
+# file) are eligible. So this fixture's "new" commits now reference a task ID
+# that resolves (via the faked `brana backlog get`) to "brana-v3-redesign",
+# corroborating that epic file as genuinely this session's own — matching the
+# real 2026-07-27 incident, where the epic-routed close and this session were
+# the same initiative. See test-close-gate-foreign-epic.sh for the t-2603
+# counter-case: an epic-keyed file that is NOT corroborated by this session's
+# own commits must NOT win, even if it is the newest.
+#
 # The snippet is EXTRACTED from system/skills/close/phases/gate-and-evidence.md so
 # the test exercises the shipped procedure text, not a copy (t-1978 rot class).
 #
@@ -49,10 +59,18 @@ echo ""
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PHASE_MD="$REPO_ROOT/system/skills/close/phases/gate-and-evidence.md"
+WALK_MD="$REPO_ROOT/system/skills/_shared/epic-ancestor-walk.md"
 [ -f "$PHASE_MD" ] || { echo "ERROR: $PHASE_MD not found"; exit 1; }
+[ -f "$WALK_MD" ] || { echo "ERROR: $WALK_MD not found"; exit 1; }
 
 TMPROOT="$(mktemp -d)"
 trap 'rm -rf "$TMPROOT"' EXIT
+
+# ── Extract resolve_epic_ancestor() (named marker, t-2493) — the anchor block
+# calls it as of t-2603's epic-scoped corroboration ─────────────────────────
+sed -n '/<!-- EPIC-WALK-BLOCK -->/,/<!-- \/EPIC-WALK-BLOCK -->/p' "$WALK_MD" \
+    | sed '1d;$d' | sed '/^```/d' > "$TMPROOT/walk.sh"
+[ -s "$TMPROOT/walk.sh" ] || { echo "ERROR: EPIC-WALK-BLOCK empty/missing"; exit 1; }
 
 # ── Extract the ```bash block that computes LAST_CLOSE ────────────────────────
 # Extract by NAMED MARKER (t-2493) — prose and comments can contain any content
@@ -65,7 +83,7 @@ sed -n '/<!-- CLOSE-ANCHOR-BLOCK -->/,/<!-- \/CLOSE-ANCHOR-BLOCK -->/p' "$PHASE_
     echo "ERROR: CLOSE-ANCHOR-BLOCK markers missing or empty in $PHASE_MD"; exit 1; }
 grep -q 'LAST_CLOSE=' "$TMPROOT/step1.sh" || {
     echo "ERROR: CLOSE-ANCHOR-BLOCK does not set LAST_CLOSE — markers moved?"; exit 1; }
-echo "Extracted Step 1 anchor block ($(wc -l < "$TMPROOT/step1.sh") lines)"
+echo "Extracted walk.sh ($(wc -l < "$TMPROOT/walk.sh") lines) + Step 1 anchor block ($(wc -l < "$TMPROOT/step1.sh") lines)"
 echo ""
 
 # ── Timeline ─────────────────────────────────────────────────────────────────
@@ -81,7 +99,9 @@ NEW_COMMIT_DATE="$(date -d '1 hour ago' --iso-8601=seconds)"
 # ── Fake `brana` ─────────────────────────────────────────────────────────────
 # Mirrors the real shapes: `session read --json` returns the DEFAULT state object;
 # `session read --all --json` returns [{epic, state}], with the default file
-# surfacing as epic "(orphan)".
+# surfacing as epic "(orphan)". `backlog get t-500 --field ...` resolves this
+# session's own commits (see fixture below) to epic "brana-v3-redesign" — the
+# t-2603 corroboration signal.
 mkdir -p "$TMPROOT/bin"
 cat > "$TMPROOT/bin/brana" <<FAKE
 #!/usr/bin/env bash
@@ -98,6 +118,18 @@ JSON
     else
         echo '{"written_at":"__STALE_TS__"}'
     fi
+    exit 0
+fi
+if [ "\$1" = "backlog" ] && [ "\$2" = "get" ]; then
+    id="\$3"; field="\${5:-}"
+    case "\$id:\$field" in
+        t-500:type)    echo '"task"' ;;
+        t-500:parent)  echo '"t-900"' ;;
+        t-900:type)    echo '"epic"' ;;
+        t-900:parent)  echo 'null' ;;
+        t-900:subject) echo '"brana-v3-redesign"' ;;
+        *) echo 'null' ;;
+    esac
     exit 0
 fi
 exit 0
@@ -126,12 +158,12 @@ done
 for i in 1 2; do
     echo "new$i" >> "$FIX/f.txt"; git -C "$FIX" add -A
     GIT_AUTHOR_DATE="$NEW_COMMIT_DATE" GIT_COMMITTER_DATE="$NEW_COMMIT_DATE" \
-        git -C "$FIX" commit -qm "new$i"
+        git -C "$FIX" commit -qm "fix(x): new$i (t-500)"
 done
 
 # ── Run the extracted block ──────────────────────────────────────────────────
 OUT="$(cd "$FIX" && PATH="$TMPROOT/bin:$PATH" HOME="$FAKE_HOME" ARGUMENTS="--continue" \
-    bash -c "source '$TMPROOT/step1.sh' >/dev/null 2>&1; echo \"\$LAST_CLOSE|\$COMMIT_COUNT\"")"
+    bash -c "source '$TMPROOT/walk.sh'; source '$TMPROOT/step1.sh' >/dev/null 2>&1; echo \"\$LAST_CLOSE|\$COMMIT_COUNT\"")"
 GOT_ANCHOR="${OUT%%|*}"
 GOT_COUNT="${OUT##*|}"
 
