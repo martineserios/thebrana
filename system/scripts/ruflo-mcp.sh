@@ -81,8 +81,35 @@ ruflo_mcp_db_is_healthy() {
 # restore (t-2619).
 ruflo_mcp_recover_db() {
     local db="$1" backup_dir="$2"
+    [ -f "$db" ] || return 0
+
+    # NO flock here. A mutex was removed deliberately in t-2085 (its paired
+    # orphan sweep killed live WAL writers and caused the corruption it meant to
+    # prevent), and tests/scripts/test-ruflo-mcp-single-instance.sh enforces its
+    # absence. Concurrency is mitigated lock-free instead:
+    #   - this health re-check, so a session that lost the race does not rotate a
+    #     database another session just restored;
+    #   - `mv` for the rotation, which is atomic;
+    #   - restore via temp-file + `mv`, so a half-copied DB is never visible.
+    # Residual risk, stated rather than hidden: two sessions condemning within
+    # the same instant can still both rotate. The window is small and both
+    # outcomes leave a healthy DB, but it is not eliminated.
+    if ruflo_mcp_db_is_healthy "$db"; then
+        return 0
+    fi
+
     local stamp; stamp="$(date +%Y-%m-%d)"
     local rotated="${db}.corrupt-${stamp}"
+    # Never overwrite a previous rotation. This is not hypothetical: on
+    # 2026-08-02 the DB rotated at 12:52 and again at 13:42, and the date-only
+    # name meant the second rotation destroyed the first file and its salvage
+    # dump — the only copies of five hours of writes. Keep the plain date for the
+    # first rotation of the day (it is what operators and the integrity-gate test
+    # look for) and disambiguate only on collision.
+    if [ -e "$rotated" ] || [ -e "${rotated}.dump.sql" ]; then
+        rotated="${db}.corrupt-$(date +%Y-%m-%d-%H%M%S)"
+        [ -e "$rotated" ] && rotated="${rotated}-$$"
+    fi
 
     # Secure the files BEFORE touching them. Opening the db to salvage would
     # checkpoint and delete its WAL, mutating a file we have not yet preserved —
@@ -116,9 +143,16 @@ ruflo_mcp_recover_db() {
     done < <(ls -t "$backup_dir"/memory_*.db 2>/dev/null)
 
     if [ -n "$latest" ]; then
-        cp "$latest" "$db" && chmod 600 "$db"
-        echo "[ruflo-mcp] Restored from backup: $latest" >&2
-        return 0
+        # temp + atomic mv: never expose a half-copied database to a session
+        # that opens it mid-restore.
+        local tmp="${db}.restore.$$"
+        if cp "$latest" "$tmp" && chmod 600 "$tmp" && mv "$tmp" "$db"; then
+            echo "[ruflo-mcp] Restored from backup: $latest" >&2
+            return 0
+        fi
+        rm -f "$tmp"
+        echo "[ruflo-mcp] WARN: restore from $latest failed." >&2
+        return 1
     fi
 
     # No healthy backup: ruflo starts with an empty DB. Do NOT put the condemned
