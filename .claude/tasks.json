@@ -67522,22 +67522,27 @@
         "brana-server"
       ],
       "description": "Four separate mcp__brana__* tool calls this session (recall, backlog_search, session_history, backlog_add) each hung with no response/progress — the first three ran the full 1800s idle timeout before being aborted; backlog_add was still hanging past 120s when manually stopped. Not a one-off — same server, four different tools, same failure shape, same session. Direct filesystem/CLI-level access (grep, ssh, gh api, brana CLI) worked fine throughout, so this is specific to the MCP server process/transport, not the underlying data.",
-      "context": "Observed 2026-08-05. Failure shape: \"MCP server 'brana' tool 'X' sent no response or progress for 1800s; aborting.\" Investigate: is the brana MCP server process alive/responsive outside this session? Check its own logs for a stuck request, deadlock, lock contention (tasks.json.lock?), or resource exhaustion. If reproducible, this blocks recall/backlog_search/session_history/backlog_add for any concurrent session, not just this one. Workaround in use meanwhile: brana CLI directly via Bash instead of MCP tools.\nAC: root cause identified (hung process, deadlock, resource exhaustion, or transport issue)\nAC: recall/backlog_search/session_history/backlog_add confirmed working again via MCP in a fresh call\nAC: if a systemic bug, a guard added so a hung request doesn't take the whole server down for other tools",
+      "context": "Observed 2026-08-05. Failure shape: \"MCP server 'brana' tool 'X' sent no response or progress for 1800s; aborting.\" Investigate: is the brana MCP server process alive/responsive outside this session? Check its own logs for a stuck request, deadlock, lock contention (tasks.json.lock?), or resource exhaustion. If reproducible, this blocks recall/backlog_search/session_history/backlog_add for any concurrent session, not just this one. Workaround in use meanwhile: brana CLI directly via Bash instead of MCP tools.\nAC: root cause identified (hung process, deadlock, resource exhaustion, or transport issue)\nAC: recall/backlog_search/session_history/backlog_add confirmed working again via MCP in a fresh call\nAC: if a systemic bug, a guard added so a hung request doesn't take the whole server down for other tools\nskill_gap_checked: true (step 0.5, pre-detection, 2026-08-05)\nChallenger finding (iteration 1, 2026-08-05): RECONSIDER (s4). AC3 'systemic guard' only covers 2 of ~13+ tool handlers sharing the identical unwrapped-blocking-I/O pattern. Confirmed via direct read: backlog_query.rs, backlog_stats.rs, backlog_burndown.rs, memory_write.rs (a write path) all do inline sync I/O with no spawn_blocking. AC1 (root cause) also correctly flagged as NOT fully MET by the diff's own honest disclosure — do not close as if fully resolved.",
       "id": "t-2631",
-      "status": "pending",
+      "status": "completed",
       "execution": "code",
       "created": "2026-08-05",
       "blocked_by": [],
       "ac_state": "none",
       "parent": "t-2345",
       "order": null,
-      "branch": null,
+      "branch": "harness-core/fix/t-2631-brana-mcp-server-hang",
       "github_issue": null,
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-08-05",
+      "completed": "2026-08-05",
+      "notes": "Evaluator: PASS WITH GAPS (2026-08-05), 3 criteria checked — AC1 partial (structural gap fixed, live trigger not reproduced), AC2 partial (raw-stdio + unit tests, not literal MCP tool re-verification, harness lacks mid-session reconnect after kill), AC3 met (spawn_blocking added to backlog_search + session_history, tested).\nChallenger iteration 2: PROCEED WITH CHANGES (2026-08-05). All 21 tool handlers verified — 20 wrapped in spawn_blocking + 1 (agy_delegate) already correctly async. Suggested test-coverage asymmetry addressed: added tests for memory_write + session_write (the two write paths). 816 tests pass, clippy clean, validate.sh green.\nCLOSE (2026-08-05): 14 tool handlers hardened with spawn_blocking (2 from the incident + 12 from the systemic sweep prompted by Challenger iter1). AC1/AC2 remain honestly partial — live trigger not reproduced, re-verification is raw-stdio + unit-test level not literal MCP re-call, both disclosed in docs/ideas/mcp-lock-timeout.md. 816 tests pass, validate.sh green. Pattern captured: pattern_ac-systemic-wording-scoped-to-named-instances.",
       "strategy": "bug-fix",
-      "build_step": null
+      "build_step": null,
+      "acceptance_criteria": [
+        "root cause identified (hung process, deadlock, resource exhaustion, or transport issue)",
+        "recall/backlog_search/session_history/backlog_add confirmed working again via MCP in a fresh call",
+        "if a systemic bug, a guard added so a hung request does not take the whole server down for other tools"
+      ]
     },
     {
       "id": "t-2632",
@@ -67594,7 +67599,7 @@
     {
       "id": "t-2634",
       "subject": "Re-evaluate t-2085/t-2260 corruption-check logic in ruflo-mcp.sh against upgraded binary",
-      "status": "in_progress",
+      "status": "completed",
       "type": "subtask",
       "kind": "ops",
       "tags": [],
@@ -67604,13 +67609,13 @@
       "parent": "t-2627",
       "created": "2026-08-05",
       "started": null,
-      "completed": null,
+      "completed": "2026-08-05",
       "blocked_by": [
         "t-2632"
       ],
       "branch": null,
       "context": "AC: tests/scripts/test-ruflo-mcp-single-instance.sh and test-ruflo-cli-wrapper.sh pass against the upgraded binary\\nAC: decision (keep/simplify/remove) recorded with evidence in task notes\\nAC: if code changes, a red test exists before the fix (TDD)\nAC: ruflo_mcp_db_is_healthy() is directly invoked against a WAL-present DB copy post-upgrade and returns healthy — the existing test suite never calls this function, only asserts absence of old flock code + presence of the string \"WAL\"\nAC: a permanent unit test invoking ruflo_mcp_db_is_healthy() against a fixture WAL-copy is added regardless of the keep/simplify/remove decision — extract the function body (e.g. sed-isolate it) rather than sourcing the live script (ruflo-mcp.sh ends in an unconditional exec with no test-mode hatch, unlike ruflo-cli.sh's RUFLO_CLI_DRYRUN=1) — without this, the \"existing suite never calls this function\" gap reopens for the next upgrade",
-      "notes": null,
+      "notes": "DECISION: KEEP the ruflo_mcp_db_is_healthy() checkpoint-copy logic as-is, no code change. Evidence: the defect it defends against (missing busy_timeout, hardcoded dualWrite in @claude-flow/memory) is confirmed still present upstream in v3.34.0 (#2512 open/unmerged, verified during SPECIFY) — the expectation stated in the spec (\"keep, not simplify\") held. Reinforced by t-2632's live finding of a real nvm-shadowing bug in the same subsystem area on first test run.\n\nAdded permanent regression test tests/scripts/test-ruflo-mcp-db-health-check.sh (4/4, stable across 3 runs): healthy WAL-present DB, truncated/corrupt DB, and a documented-not-fixed latent footgun (function reports \"healthy\" for a non-existent path since sqlite3 auto-creates an empty DB there — inert today because the sole call site always guards with -f first; no second call site exists, and this file has 21-consumer blast radius, so no speculative fix). Found and fixed a real bug in my own test script along the way: an EXIT trap's kill/wait on a reset HOLDER_PID resolved to `kill 0`, which signals the entire process group rather than being a no-op.\n\nExisting suites re-confirmed green: test-ruflo-mcp-single-instance.sh 4/4, test-ruflo-cli-wrapper.sh 11/11.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -67621,7 +67626,7 @@
     {
       "id": "t-2635",
       "subject": "Decide and record ADR-377 retrieval guard env var enablement",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "ops",
       "tags": [],
@@ -67631,14 +67636,14 @@
       "parent": "t-2627",
       "created": "2026-08-05",
       "started": null,
-      "completed": null,
+      "completed": "2026-08-05",
       "blocked_by": [
         "t-2632",
         "t-2633"
       ],
       "branch": null,
       "context": "AC: brana decisions log entry exists recording the enable/disable decision and rationale",
-      "notes": null,
+      "notes": "DECISION: NOT enabling CLAUDE_FLOW_RETRIEVAL_GUARD / CLAUDE_FLOW_POISON_FORENSICS by default. Recorded via `brana decisions log` (system/state/decisions/2026-08-05-134934-*.jsonl). Rationale: both are off by default upstream, explicitly pending independent benchmarking per the v3.33.0 release notes -- no benchmark exists from ruflo or us. mcp__brana__recall depends on the same retrieval path; a false-positive rate would silently suppress legitimate results (hard-to-detect correctness regression), and we have no acute poisoning threat model today. Revisit if upstream publishes a benchmark or a concrete risk materializes.\n\nBONUS FINDING (also logged): system/rules/ruflo-stub-guard.md's \"agentdb_* all fail\" warning is now stale -- confirmed live that mcp__ruflo__agentdb_controllers on v3.34.0 reports available:true, 16/23 active (was fully broken at the v3.6-era version that rule was written against, t-1549). Also spotted a \"guardedVectorBackend\" controller (disabled) that appears to be ADR-377's AgentDbRetrievalGuard -- real and present, not a stub, correctly off by default. Flagged as a follow-up (not fixed here, out of scope): ruflo-stub-guard.md's agentdb_* row should be re-verified.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -67649,7 +67654,7 @@
     {
       "id": "t-2636",
       "subject": "Update ruflo-agentdb dimension doc Version History table",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "docs",
       "tags": [],
@@ -67659,7 +67664,7 @@
       "parent": "t-2627",
       "created": "2026-08-05",
       "started": null,
-      "completed": null,
+      "completed": "2026-08-05",
       "blocked_by": [
         "t-2632",
         "t-2634",
@@ -67667,7 +67672,7 @@
       ],
       "branch": null,
       "context": "AC: Version History table in brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md has a new row for this upgrade\nNote: brana-knowledge is a separate git repo (own .git/, .claude/CLAUDE.md, own branches) — confirm its own branch convention before editing (do not assume thebrana's rules travel with the edit). New row must span the full jump (v3.10.39→v3.34.0), matching the table's existing \"vA→vB\" convention.",
-      "notes": null,
+      "notes": "Updated brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md Version History table with a v3.10.39->v3.34.0 row spanning the full jump, plus updated the \"Brana install\" line. Committed directly to brana-knowledge's master branch (b354f92) -- confirmed with user that this matches the repo's own documented + observed convention (post-commit auto-index hook, no branch step anywhere in its history), an intentional exception to the general git-discipline rule for this single-user knowledge repo. Not pushed to origin yet -- deferred to end-of-build confirmation.",
       "order": 0,
       "github_issue": null,
       "execution": "code",

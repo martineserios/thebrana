@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-02T16:31:43Z",
+  "generated": "2026-08-03T15:19:57Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1340,7 +1340,9 @@
     "docs/architecture/features/build-receipts.md": {
       "title": "Feature: Build receipts",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/hooks/red-verification.sh"
+      ]
     },
     "docs/architecture/features/cascade-throttle.md": {
       "title": "Feature: Cascade Throttle",
@@ -1504,6 +1506,11 @@
     },
     "docs/architecture/features/living-docs.md": {
       "title": "Feature: Living Documentation System",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/architecture/features/local-vector-recall.md": {
+      "title": "Local Vector Recall",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -15791,9 +15798,9 @@
     }
   ],
   "stats": {
-    "nodes": 543,
+    "nodes": 544,
     "edges": 2013,
     "typed_edges": 683,
-    "orphans": 141
+    "orphans": 142
   }
 }
