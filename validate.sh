@@ -44,6 +44,9 @@ fail() { echo "  FAIL: $1"; (( ERRORS++ )) || true; }
 warn() { echo "  WARN: $1"; (( WARNINGS++ )) || true; }
 pass() { echo "  PASS: $1"; }
 
+# shellcheck source=system/scripts/validate-remedies.sh
+source "$SCRIPT_DIR/system/scripts/validate-remedies.sh"
+
 # should_run N: returns 0 (true) if CHECK_FILTER is unset or matches this check.
 # --check 5  matches "5" and "5b" (base-number prefix match).
 # --check 31 matches "31", "31a", "31b" but not "3".
