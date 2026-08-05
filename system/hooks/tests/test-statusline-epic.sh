@@ -151,6 +151,27 @@ printf '{"tasks":[
 ]}\n' > "$R/.claude/tasks.json"
 [ "$(epic_of "$R")" = "higher-id-epic" ]; check "T12: same-day tie breaks by higher numeric task id" $?
 
+# T13 -- the jq-scan pre-check (t-2641) must match pretty-printed JSON
+# (`"epic": "value"`, a space after the colon), not just compact JSON
+# (`"epic":"value"`) -- caught live: this exact gap silently regressed
+# proyecto_anita, the project the dynamic fallback exists for, because its
+# tasks.json is pretty-printed and thebrana's own is compact.
+R=$(make_repo t13 dev)
+mkdir -p "$R/.claude"
+printf '{\n  "tasks": [\n    {\n      "id": "t-1",\n      "status": "in_progress",\n      "epic": "pretty-epic",\n      "started": "2026-08-05"\n    }\n  ]\n}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "pretty-epic" ]; check "T13: pre-check matches pretty-printed JSON (space after colon)" $?
+
+# T14 -- pre-check correctly skips the jq scan (falls to static fallback)
+# when tasks.json has no "epic" key at all, not even null -- the shape
+# thebrana's own tasks.json actually has (v3 schema, key entirely absent).
+R=$(make_repo t14 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","started":"2026-08-05"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "fallback-epic" ]; check "T14: no epic key anywhere -> pre-check skips jq, falls back correctly" $?
+
 echo ""
 echo "--- boundaries ---"
 
