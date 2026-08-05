@@ -102,6 +102,44 @@ printf '{"active_epic":"harness-core"}\n' > "$R/system/state/tasks-config.json"
 R=$(make_repo t7 dev)
 [ "$(epic_of "$R")" != "GLOBAL-LEAK" ]; check "T7: global ~/.claude config never read" $?
 
+# T8 -- dynamic derivation (t-2639): most-recently-started in_progress task's
+# .epic field wins over a stale static active_epic on main/dev.
+R=$(make_repo t8 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"stale-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"dyn-epic","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "dyn-epic" ]; check "T8: dynamic in_progress epic wins over stale active_epic" $?
+
+# T9 -- among several in_progress tasks, the latest `started` timestamp wins
+R=$(make_repo t9 dev)
+mkdir -p "$R/.claude"
+printf '{"tasks":[
+  {"id":"t-1","status":"in_progress","epic":"older-epic","started":"2026-07-01"},
+  {"id":"t-2","status":"in_progress","epic":"newer-epic","started":"2026-08-01"},
+  {"id":"t-3","status":"completed","epic":"done-epic","started":"2026-08-05"}
+]}\n' > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "newer-epic" ]; check "T9: latest-started in_progress task wins (status filter applied)" $?
+
+# T10 -- in_progress tasks with no epic field are skipped; static active_epic
+# is still the fallback when none of them carry one
+R=$(make_repo t10 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "fallback-epic" ]; check "T10: no-epic in_progress task falls back to active_epic" $?
+
+# T11 -- malformed tasks.json degrades silently to the static fallback, exit 0
+R=$(make_repo t11 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{ this is not json\n' > "$R/.claude/tasks.json"
+OUT=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null); RC=$?
+[ "$RC" = "0" ] && [ "$(epic_of "$R")" = "fallback-epic" ]
+check "T11: malformed tasks.json -> falls back to active_epic, exit 0" $?
+
 echo ""
 echo "--- boundaries ---"
 
