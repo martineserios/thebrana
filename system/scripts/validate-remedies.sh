@@ -32,8 +32,15 @@
 # leading-whitespace-tolerant regex.
 extract_check_ids() {
     local file="$1"
+    # Matches the heredoc-open token anywhere on the line, not anchored to
+    # end-of-line: validate.sh has two real PYEOF heredocs with different
+    # surrounding syntax — `<<'PYEOF'` (no space, nothing trailing) and
+    # `<< 'PYEOF' 2>/dev/null` (space before the quote, a redirect after) —
+    # an end-of-line-anchored or no-leading-whitespace regex misses the second
+    # (found by the Challenger gate during BUILD; see the fixture regression
+    # test covering both variants).
     awk '
-        /<<['\''"]?PYEOF['\''"]?[[:space:]]*$/ { in_heredoc = 1; print; next }
+        /<<[[:space:]]*['\''"]?PYEOF['\''"]?/ { in_heredoc = 1; print; next }
         in_heredoc && /^PYEOF[[:space:]]*$/ { in_heredoc = 0; print ""; next }
         in_heredoc { print ""; next }
         { print }

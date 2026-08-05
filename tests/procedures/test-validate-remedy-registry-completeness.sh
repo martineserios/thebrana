@@ -122,18 +122,27 @@ echo "=== Live validate.sh: heredoc-embedded fake ids (1/2) must not leak from C
 # Check 18's embedded Python script has its own "# Check 1" / "# Check 2" comments.
 # Both happen to collide with real, already-registered check ids, so their mere
 # presence in REMEDY_REGISTRY can't prove exclusion — cross-check that extraction
-# inside EVERY `<<'PYEOF' ... PYEOF` heredoc span contributes nothing by deleting
-# all such spans a second, independent way (line numbers located dynamically —
-# never hardcoded, since any edit above a heredoc shifts its line numbers) and
-# confirming the id set is unchanged (a leak would only ever ADD ids, never
-# remove real ones).
+# inside EVERY heredoc span contributes nothing, via a GENUINELY INDEPENDENT
+# detection method (not extract_check_ids' own <<-syntax regex — a Challenger
+# BUILD-phase finding on this exact task caught that the original version of this
+# cross-check reused the identical regex, so it shared extract_check_ids' blind
+# spot instead of independently verifying it). Every PYEOF heredoc in this file —
+# open or close — contains the literal token "PYEOF" somewhere on the line; pair
+# consecutive occurrences by line number (open, close, open, close, ...) and
+# delete each paired range via sed. This doesn't care about `<<` syntax at all,
+# so a future syntax variant that fools extract_check_ids' regex would still be
+# caught here (line numbers located dynamically — never hardcoded).
 NO_HEREDOC_FILE="$TMPDIR_T/no-heredoc.sh"
-awk '
-    /<<['\''"]?PYEOF['\''"]?[[:space:]]*$/ { in_heredoc = 1; next }
-    in_heredoc && /^PYEOF[[:space:]]*$/ { in_heredoc = 0; next }
-    in_heredoc { next }
-    { print }
-' "$VALIDATE_SH" > "$NO_HEREDOC_FILE"
+PYEOF_LINE_NUMS=$(grep -n 'PYEOF' "$VALIDATE_SH" | cut -d: -f1)
+SED_DELETE_SCRIPT=""
+readarray -t PYEOF_LINES <<< "$PYEOF_LINE_NUMS"
+for ((_pi=0; _pi<${#PYEOF_LINES[@]}; _pi+=2)); do
+    _open="${PYEOF_LINES[_pi]}"
+    _close="${PYEOF_LINES[_pi+1]:-}"
+    [ -z "$_close" ] && { echo "ERROR: odd number of PYEOF occurrences — unpaired heredoc marker"; exit 1; }
+    SED_DELETE_SCRIPT="${SED_DELETE_SCRIPT}${_open},${_close}d;"
+done
+sed "$SED_DELETE_SCRIPT" "$VALIDATE_SH" > "$NO_HEREDOC_FILE"
 SLICE_WITHOUT_HEREDOC=$(extract_check_ids "$NO_HEREDOC_FILE")
 IDS_INSIDE_HEREDOC_SPAN=$(comm -23 <(printf '%s\n' "$LIVE_IDS" | sort -u) <(printf '%s\n' "$SLICE_WITHOUT_HEREDOC" | sort -u))
 assert_true "no check id is extracted only from inside a PYEOF heredoc span (Check 18's embedded script)" \

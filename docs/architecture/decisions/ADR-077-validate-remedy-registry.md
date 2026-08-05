@@ -66,17 +66,31 @@ task context for the full per-check fixability/risk breakdown.
    comments are themselves at column 0. Currently harmless only because ids 1/2 happen to
    already be real, registered checks; not a structural guarantee.
 
-   **Extraction must therefore explicitly skip heredoc regions.** validate.sh has two such
-   blocks, both delimited by `<<'PYEOF'` ... `PYEOF` (`validate.sh:1125,1205` and
-   `:1818,1836`). Implementation: pre-filter the file to blank out (not delete — line
-   numbers must stay stable for error messages) every line between a `<<'PYEOF'`-matching
-   open and its matching `PYEOF` close, THEN run the `# Check N` regex against the filtered
-   text. Do not rely on a "cross-validate against `should_run()` gate points" heuristic as
-   the primary defense — checks 1-22 have zero individual `should_run N` call sites (they're
-   gated only by block-level flags), so that cross-check structurally cannot catch a fake id
-   in that range; it may still be added as a secondary sanity check but is not sufficient
-   alone. Add fixture regression tests for both the indented-real-check case (51) AND the
-   heredoc-fake-id exclusion case (Check 18's embedded "# Check 1"/"# Check 2" comments must
+   **Extraction must therefore explicitly skip heredoc regions — and the two blocks do NOT
+   share identical delimiter syntax, a distinction the first implementation attempt missed
+   (caught by the Challenger gate during BUILD, not SPECIFY).** validate.sh has two PYEOF
+   heredocs: Check 18's embedded script opens with `<<'PYEOF'` (no space, nothing trailing)
+   while a second block (an AskUserQuestion-description-field checker) opens with
+   `<< 'PYEOF' 2>/dev/null` (space before the quote, a redirect after) — a detection regex
+   anchored to the first block's exact shape silently fails to blank the second. Line numbers
+   are not cited here by design (the whole point of catching this class of bug is that they
+   drift — see the dynamic-detection requirement below). Implementation: pre-filter the file
+   to blank out (not delete — line numbers must stay stable for error messages) every line
+   between a heredoc open — matching `<<`, optional whitespace, optional quote, `PYEOF`,
+   optional quote, ANYTHING after (not anchored to end-of-line) — and its matching `PYEOF`
+   close, THEN run the `# Check N` regex against the filtered text. Do not rely on a
+   "cross-validate against `should_run()` gate points" heuristic as the primary defense —
+   checks 1-22 have zero individual `should_run N` call sites (they're gated only by
+   block-level flags), so that cross-check structurally cannot catch a fake id in that range;
+   it may still be added as a secondary sanity check but is not sufficient alone. The
+   completeness test's own independent cross-check must use a **genuinely different
+   detection method** than `extract_check_ids()` itself — reusing the identical regex in two
+   places tests self-agreement, not correctness — exactly how the second heredoc's syntax
+   variant shipped undetected in the first BUILD implementation attempt, caught only by the
+   BUILD-phase Challenger gate reviewing the actual code (the two SPECIFY-phase rounds
+   reviewed this ADR's design text, before either heredoc-detection regex existed). Add fixture
+   regression tests for the indented-real-check case (51) AND heredoc-fake-id exclusion
+   against BOTH real syntax variants (Check 18's embedded "# Check 1"/"# Check 2" comments must
    NOT appear in the extracted id set).
 
 2. **`NO_REMEDY` is a first-class, visible state — not absence.** Every `NO_REMEDY` entry
