@@ -81,15 +81,35 @@ ADR-377 retrieval guard gets recorded via `brana decisions log`, not a new ADR.
   the upgrade itself.
 
 ## Scope (v1)
-- Upgrade global ruflo install and confirm the MCP wrapper resolves the new version.
+- Upgrade global ruflo install and confirm **both** wrappers resolve the new version:
+  `system/scripts/ruflo-mcp.sh` (MCP server entry) AND `system/scripts/ruflo-cli.sh`
+  (t-1936, "the single sanctioned CLI entry for ruflo" — feeds `session-start.sh` recall
+  and both `cf-env.sh` variants). **Correction (sprint-contract review, 2026-08-05):**
+  the two wrappers implement nvm resolution differently — `ruflo-mcp.sh` does an explicit
+  `sort -rV` newest-first walk with a stale-shadow WARN; `ruflo-cli.sh` uses a plain glob
+  (`for candidate in "$HOME"/.nvm/versions/node/*/bin/$name`, no version sort) and is
+  objectively more shadowing-prone. Both must be verified independently, not just the one
+  the original draft named.
 - Verify `memory store` / MCP `memory_store` round-trips against the live
   `~/.swarm/memory.db`, per v3.32.34's own verification steps.
-- Re-run (or write, if missing) a test exercising the t-2085/t-2260 checkpoint-copy
-  logic in `ruflo-mcp.sh` against the upgraded binary; decide keep/simplify/remove based
-  on evidence, not assumption.
+- Directly invoke `ruflo_mcp_db_is_healthy()` (the t-2085/t-2260 checkpoint-copy function)
+  against a WAL-present DB copy post-upgrade and confirm it still returns healthy — not
+  just "the test suite passes," which doesn't call this function at all (sprint-contract
+  finding: `test-ruflo-mcp-single-instance.sh` only asserts absence of the old
+  flock/orphan-sweep code and presence of the string "WAL"; it never exercises the
+  function whose keep/simplify/remove decision is this task's actual AC3).
+- Prove cross-project invocation still resolves post-upgrade: run `ruflo-mcp.sh` with an
+  external `CLAUDE_PROJECT_DIR` (simulating one of the 21 other consumer projects) before
+  merging to `dev` — the blast-radius mitigation this task commits to is only real if
+  tested from outside thebrana's own checkout, not asserted in prose.
 - Decide — and record — whether to enable `CLAUDE_FLOW_RETRIEVAL_GUARD` /
-  `CLAUDE_FLOW_POISON_FORENSICS` given `mcp__brana__recall`'s dependency on this path.
-- Update the ruflo-agentdb dimension doc's Version History table.
+  `CLAUDE_FLOW_POISON_FORENSICS` (**ruflo's own ADR-377** — distinct numbering space from
+  this repo's `docs/architecture/decisions/ADR-NNN`, no local collision, but easy to
+  misread; always write "ruflo ADR-377" in task notes/decision-log text) given
+  `mcp__brana__recall`'s dependency on this path.
+- Update the ruflo-agentdb dimension doc's Version History table with a row spanning the
+  full jump (**v3.10.39→v3.34.0**, not just the destination version — the table's existing
+  rows already show this convention, e.g. "v3.6.30→v3.10.3").
 
 ## Research
 - ruflo release changelog (v3.10.39 → v3.34.0) reviewed via `gh release view` /
@@ -145,7 +165,16 @@ ADR-377 retrieval guard gets recorded via `brana decisions log`, not a new ADR.
 - **Wrapper resolves a stale nvm-installed version:** `ruflo-mcp.sh` walks
   `$HOME/.nvm/versions/node/*/bin/node` newest-first looking for `ruflo` — if an old
   version exists under a *newer* node install than the one just upgraded, the wrapper
-  could pick the newer node/older ruflo pairing. Check this explicitly post-upgrade.
+  could pick the newer node/older ruflo pairing. **Concrete check (sprint-contract
+  finding — the original draft left this eyeball-passable):** grep `ruflo-mcp.sh`'s
+  stderr for its own WARN string (`ruflo found in nvm ... but nvm default is ...`) after
+  invocation and assert absence, rather than trusting "no shadowing" as an unverified
+  claim.
+- **`ruflo-cli.sh` shadowing is a separate, higher-risk instance of the same class:** its
+  plain-glob resolution (no version sort) makes it more likely than `ruflo-mcp.sh` to
+  pick a stale install if multiple nvm node versions carry a `ruflo` binary. Must be
+  checked independently — passing `ruflo-mcp.sh`'s check says nothing about
+  `ruflo-cli.sh`.
 
 ## Design
 Primarily an operational change, not a code design:
@@ -165,14 +194,29 @@ Primarily an operational change, not a code design:
 | Test any `ruflo-mcp.sh` edit thoroughly before merging to `dev` — 21 other projects (several active client engagements) run whatever is checked out at the main thebrana path the moment their MCP restarts, with zero deploy gate | Merging any `ruflo-mcp.sh` change without running its full test suite first | Treat a `dev`-branch merge of `ruflo-mcp.sh` as low-stakes because "dev isn't shipped yet" — that safety model doesn't hold for this file |
 
 ## Testing Strategy
-- **Unit:** none new expected — this is a version bump plus verification, not new logic.
+- **Unit:** one new permanent test — invoke `ruflo_mcp_db_is_healthy()` against a fixture
+  WAL-copy, added regardless of AC3's keep/simplify/remove outcome (2nd-review Warning 2:
+  the neither-suite-calls-it gap this task exists to close would otherwise reopen for the
+  *next* upgrade, since the spec's own predicted AC3 outcome is "keep" — no code change,
+  no test triggered by the conditional rule alone). `ruflo-mcp.sh` ends in an unconditional
+  `exec "$RUFLO" "$@"` with no test-mode hatch (unlike `ruflo-cli.sh`'s
+  `RUFLO_CLI_DRYRUN=1`) — extract the function body for testing (e.g. `sed`-isolate it)
+  rather than sourcing the live script, to avoid adding a new env-var branch to a file
+  with 21 external consumers just for testability.
 - **Integration:** re-run `tests/scripts/test-ruflo-mcp-single-instance.sh` and
   `tests/scripts/test-ruflo-cli-wrapper.sh` against the upgraded binary (existing
   coverage, target 90%+ of the test budget for this task). If AC3 concludes a code
   change to the checkpoint-copy logic, write a failing test for the new behavior first.
 - **E2E:** manual `ruflo memory store` / `memory_search` round-trip against
   `~/.swarm/memory.db` (the AC2 verification step) — can't meaningfully be captured as
-  an automated test since it depends on the live, shared DB state.
+  an automated test since it depends on the live, shared DB state. Run it once under
+  `CLAUDE_PROJECT_DIR=/tmp/fake-project` too, in addition to the plain environment
+  (2nd-review Warning 3: the external-CWD check and the round-trip check otherwise don't
+  overlap, so neither alone proves read/write correctness from an external project's
+  CWD — the actual named blast-radius risk). `mkdir -p /tmp/fake-project` first — the
+  wrapper silently falls back to `cd "$HOME"` if the directory doesn't pre-exist (line
+  19's `-d` test), so an unprepared directory would make the check pass without
+  exercising anything (2nd-review Warning 4).
 - **Mock policy:** N/A — no new collaborators introduced.
 
 ## Documentation Plan
