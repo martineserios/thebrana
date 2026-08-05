@@ -18,34 +18,43 @@ pub struct Input {
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
     TypedTool::new("session_read", |input: Input, _extra| {
         Box::pin(async move {
-            let root = brana_core::util::find_project_root()
-                .ok_or_else(|| pmcp::Error::validation("not in a git repository"))?;
+            // Synchronous file I/O run off the async executor (t-2631): a
+            // handler that blocks the tokio worker running pmcp's single,
+            // fully-serialized stdio dispatch task (t-2305) freezes every
+            // other tool for its duration.
+            let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
+                let root = brana_core::util::find_project_root()
+                    .ok_or_else(|| "not in a git repository".to_string())?;
 
-            match session::read_state(&root) {
-                None => Ok(serde_json::json!({ "found": false })),
-                Some(state) => {
-                    let as_value = serde_json::to_value(&state)
-                        .map_err(|e| pmcp::Error::validation(e.to_string()))?;
+                match session::read_state(&root) {
+                    None => Ok(serde_json::json!({ "found": false })),
+                    Some(state) => {
+                        let as_value = serde_json::to_value(&state).map_err(|e| e.to_string())?;
 
-                    match input.field {
-                        Some(ref f) => Ok(serde_json::json!({
-                            "found": true,
-                            "field": f,
-                            "value": as_value[f],
-                        })),
-                        None => {
-                            // Inject "found": true alongside the state
-                            let mut result = serde_json::json!({ "found": true });
-                            if let serde_json::Value::Object(map) = as_value {
-                                for (k, v) in map {
-                                    result[k] = v;
+                        match input.field {
+                            Some(ref f) => Ok(serde_json::json!({
+                                "found": true,
+                                "field": f,
+                                "value": as_value[f],
+                            })),
+                            None => {
+                                // Inject "found": true alongside the state
+                                let mut result = serde_json::json!({ "found": true });
+                                if let serde_json::Value::Object(map) = as_value {
+                                    for (k, v) in map {
+                                        result[k] = v;
+                                    }
                                 }
+                                Ok(result)
                             }
-                            Ok(result)
                         }
                     }
                 }
-            }
+            })
+            .await
+            .map_err(|e| pmcp::Error::validation(format!("blocking task panicked: {e}")))?;
+
+            result.map_err(pmcp::Error::validation)
         })
     })
     .with_description("Read the current session state. Returns the full JSON state or a specific field. Returns {found: false} when no state exists.")

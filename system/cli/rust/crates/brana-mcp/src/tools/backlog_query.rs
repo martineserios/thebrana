@@ -41,52 +41,61 @@ pub struct Input {
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
     TypedTool::new("backlog_query", |input: Input, _extra| {
         Box::pin(async move {
-            let tf = brana_core::util::find_tasks_file()
-                .ok_or_else(|| pmcp::Error::validation("tasks.json not found"))?;
-            let data = brana_core::tasks::load_tasks(&tf)
-                .map_err(|e| pmcp::Error::validation(e))?;
+            // Synchronous file I/O run off the async executor (t-2631): a
+            // handler that blocks the tokio worker running pmcp's single,
+            // fully-serialized stdio dispatch task (t-2305) freezes every
+            // other tool for its duration.
+            let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
+                let tf = brana_core::util::find_tasks_file()
+                    .ok_or_else(|| "tasks.json not found".to_string())?;
+                let data = brana_core::tasks::load_tasks(&tf)?;
 
-            let types: Vec<&str> = input.task_type.as_deref()
-                .map(|t| t.split(',').collect())
-                .unwrap_or_else(|| vec!["task", "subtask"]);
+                let types: Vec<&str> = input.task_type.as_deref()
+                    .map(|t| t.split(',').collect())
+                    .unwrap_or_else(|| vec!["task", "subtask"]);
 
-            let tag_list: Option<Vec<&str>> = input.tag.as_deref()
-                .map(|t| t.split(',').collect());
+                let tag_list: Option<Vec<&str>> = input.tag.as_deref()
+                    .map(|t| t.split(',').collect());
 
-            let mut results = brana_core::tasks::filter_tasks_by(
-                &data.tasks, &data.tasks,
-                &brana_core::tasks::TaskFilter {
-                    status: input.status.as_deref(),
-                    priority: input.priority.as_deref(),
-                    effort: input.effort.as_deref(),
-                    search: input.search.as_deref(),
-                    types: types.clone(),
-                    epic: input.epic.as_deref(),
-                    work_type: input.work_type.as_deref(),
-                    ac_state: input.ac_state.as_deref(),
-                    ..Default::default()
-                },
-            );
+                let mut results = brana_core::tasks::filter_tasks_by(
+                    &data.tasks, &data.tasks,
+                    &brana_core::tasks::TaskFilter {
+                        status: input.status.as_deref(),
+                        priority: input.priority.as_deref(),
+                        effort: input.effort.as_deref(),
+                        search: input.search.as_deref(),
+                        types: types.clone(),
+                        epic: input.epic.as_deref(),
+                        work_type: input.work_type.as_deref(),
+                        ac_state: input.ac_state.as_deref(),
+                        ..Default::default()
+                    },
+                );
 
-            if let Some(ref tags) = tag_list {
-                results.retain(|t| {
-                    let task_tags: Vec<&str> = t["tags"].as_array()
-                        .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
-                        .unwrap_or_default();
-                    tags.iter().all(|tag| task_tags.contains(tag))
-                });
-            }
+                if let Some(ref tags) = tag_list {
+                    results.retain(|t| {
+                        let task_tags: Vec<&str> = t["tags"].as_array()
+                            .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                            .unwrap_or_default();
+                        tags.iter().all(|tag| task_tags.contains(tag))
+                    });
+                }
 
-            if let Some(ref pid) = input.parent {
-                results.retain(|t| t["parent"].as_str() == Some(pid.as_str()));
-            }
+                if let Some(ref pid) = input.parent {
+                    results.retain(|t| t["parent"].as_str() == Some(pid.as_str()));
+                }
 
-            brana_core::tasks::sort_by_priority(&mut results);
+                brana_core::tasks::sort_by_priority(&mut results);
 
-            Ok(serde_json::json!({
-                "count": results.len(),
-                "tasks": results,
-            }))
+                Ok(serde_json::json!({
+                    "count": results.len(),
+                    "tasks": results,
+                }))
+            })
+            .await
+            .map_err(|e| pmcp::Error::validation(format!("blocking task panicked: {e}")))?;
+
+            result.map_err(pmcp::Error::validation)
         })
     })
     .with_description("Query backlog tasks with filters. Returns matching tasks as structured JSON.")
