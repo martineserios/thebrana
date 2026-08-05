@@ -5,7 +5,7 @@ depends_on:
 # Feature: Remedy Binding for validate.sh Findings
 
 **Date:** 2026-08-05
-**Status:** decomposing
+**Status:** building
 **Task:** t-2630
 
 ## Problem
