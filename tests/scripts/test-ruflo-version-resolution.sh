@@ -75,6 +75,27 @@ fi
 rm -f /tmp/ruflo-version-test-stderr.$$
 rm -rf "$FAKE_PROJECT"
 
+# Boundary test 1: CLAUDE_PROJECT_DIR set but pointing at a non-existent
+# directory — the wrapper's own -d test (line 19) should fall back to $HOME
+# rather than crash or cd into nothing.
+nonexistent_out="$(CLAUDE_PROJECT_DIR="/tmp/does-not-exist-$$" "$MCP_SCRIPT" --version 2>&1)"
+nonexistent_version="$(echo "$nonexistent_out" | tr -d '[:space:]')"
+if [ -n "$nonexistent_version" ] && [ "$nonexistent_version" != "$PINNED_VERSION" ] && [[ "$nonexistent_version" != *"$PINNED_VERSION"* ]]; then
+    pass "non-existent CLAUDE_PROJECT_DIR falls back cleanly, still resolves upgraded version"
+else
+    fail "non-existent CLAUDE_PROJECT_DIR did not fall back cleanly (output: $nonexistent_out)"
+fi
+
+# Boundary test 2: CLAUDE_PROJECT_DIR unset entirely (the plain-environment
+# case most CI/non-CC invocations hit) still resolves correctly.
+unset_out="$(env -u CLAUDE_PROJECT_DIR "$MCP_SCRIPT" --version 2>&1)"
+unset_version="$(echo "$unset_out" | tr -d '[:space:]')"
+if [ -n "$unset_version" ] && [ "$unset_version" != "$PINNED_VERSION" ] && [[ "$unset_version" != *"$PINNED_VERSION"* ]]; then
+    pass "unset CLAUDE_PROJECT_DIR resolves the upgraded version"
+else
+    fail "unset CLAUDE_PROJECT_DIR did not resolve the upgraded version (output: $unset_out)"
+fi
+
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
