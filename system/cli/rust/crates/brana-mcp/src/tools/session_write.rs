@@ -81,3 +81,81 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
     })
     .with_description("Write the current session state. Accepts a session-state JSON payload. Auto-fills written_at and branch. Archives the previous state before writing. Returns next[] accounting (incoming/written/dropped_duplicates/retained_from_existing/mode) plus a warning when entries were dropped or a concurrent write forced a union — check it, the counts are the only signal that what you submitted is not what landed. Pass base_written_at (the written_at you read) to make next[] authoritative so entries can be corrected and withdrawn.")
 }
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tools::CWD_LOCK;
+    use pmcp::ToolHandler;
+    use serde_json::json;
+
+    /// RAII guard: isolates HOME and CLAUDE_PROJECT_DIR to a tempdir, so
+    /// session state writes never touch the real `~/.claude/projects/...`
+    /// tree. Callers must hold CWD_LOCK for its lifetime.
+    struct Hermetic {
+        orig_home: Option<String>,
+        orig_project_dir: Option<String>,
+        _dir: tempfile::TempDir,
+    }
+
+    impl Hermetic {
+        fn new() -> Self {
+            let dir = tempfile::tempdir().unwrap();
+            let project_root = dir.path().join("project");
+            std::fs::create_dir_all(&project_root).unwrap();
+
+            let orig_home = std::env::var("HOME").ok();
+            let orig_project_dir = std::env::var("CLAUDE_PROJECT_DIR").ok();
+            // SAFETY: caller holds CWD_LOCK; no other test in this binary
+            // reads or writes these env vars concurrently.
+            unsafe {
+                std::env::set_var("HOME", dir.path());
+                std::env::set_var("CLAUDE_PROJECT_DIR", &project_root);
+            }
+
+            Self { orig_home, orig_project_dir, _dir: dir }
+        }
+    }
+
+    impl Drop for Hermetic {
+        fn drop(&mut self) {
+            // SAFETY: still under CWD_LOCK.
+            unsafe {
+                match &self.orig_home {
+                    Some(v) => std::env::set_var("HOME", v),
+                    None => std::env::remove_var("HOME"),
+                }
+                match &self.orig_project_dir {
+                    Some(v) => std::env::set_var("CLAUDE_PROJECT_DIR", v),
+                    None => std::env::remove_var("CLAUDE_PROJECT_DIR"),
+                }
+            }
+        }
+    }
+
+    /// t-2631 (Challenger iteration 2 follow-up): session_write is a write
+    /// path, one of the two highest-cost instances of the spawn_blocking
+    /// sweep — this locks in that it still writes correct state after the
+    /// refactor. `branch` is supplied explicitly so the test never shells
+    /// out to git for auto-fill.
+    #[tokio::test]
+    async fn test_write_session_state_persists_and_reports_next() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({"payload": {"version": 1, "branch": "test/fix/t-0000-dummy", "accomplished": ["did a thing"]}}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("write must succeed");
+
+        assert_eq!(out["ok"], true);
+        assert!(!out["written_at"].as_str().unwrap_or("").is_empty(), "written_at must be auto-filled");
+        let path = out["path"].as_str().expect("path must be a string");
+        assert!(std::path::Path::new(path).exists(), "state file must actually exist on disk: {path}");
+    }
+}
