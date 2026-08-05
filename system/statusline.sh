@@ -47,7 +47,27 @@ EPIC=""
 if [[ "$BRANCH" == */*/t-* ]]; then
     EPIC="${BRANCH%%/*}"
 elif [ -n "$GIT_ROOT" ]; then
-    if [ -f "$GIT_ROOT/.claude/tasks.json" ]; then
+    # Cheap pre-check before the jq scan (t-2641): thebrana's own tasks.json
+    # has zero tasks carrying the flat .epic field (v3 uses parent-chain
+    # epics instead — see the elif's own comment below), so on thebrana's
+    # own dev branch the jq parse+sort below was previously an unconditional
+    # ~40ms cost on a 2500+-task file for a guaranteed-empty result every
+    # single render. A plain-text grep for a non-empty "epic" value is ~10x
+    # cheaper and lets thebrana (and any other v3-schema project) skip the
+    # jq scan entirely; v2-schema projects like proyecto_anita still match
+    # and pay the full scan same as before. Allow optional whitespace after
+    # the colon — every known tasks.json writer here (brana-cli, brana-mcp)
+    # pretty-prints (`"epic": "x"`, space after colon), not compact
+    # (`"epic":"x"`); the distinguishing factor across projects is whether
+    # the key appears at all (v3 vs v2 schema), not compact-vs-pretty
+    # formatting — an earlier version of this pattern assumed the latter and
+    # silently broke on proyecto_anita before being caught pre-commit.
+    # Known limitation: this is a line-scoped grep, not a JSON parser — a
+    # hypothetical writer that split `"epic"` and its `: "value"` across two
+    # lines would evade it and fail safe to the static fallback (verified no
+    # current writer does this; not worth a multi-line-tolerant pattern for
+    # a case no writer produces).
+    if [ -f "$GIT_ROOT/.claude/tasks.json" ] && grep -qE '"epic"[[:space:]]*:[[:space:]]*"[^"]' "$GIT_ROOT/.claude/tasks.json" 2>/dev/null; then
         # `.started` is date-only in practice (no time component), so ties are
         # a realistic outcome under this project's own concurrent-work style,
         # not a rare edge — break them by numeric task id (higher id = created
