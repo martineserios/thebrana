@@ -37,7 +37,8 @@ fi
 # shellcheck source=/dev/null
 source "$REMEDIES_SH"
 
-for fn in remedy_62_apply remedy_62_undo remedy_63_apply remedy_63_undo remedy_64_apply remedy_64_undo; do
+for fn in remedy_62_apply remedy_62_undo remedy_63_apply remedy_63_undo remedy_64_apply remedy_64_undo \
+          remedy_42_apply remedy_42_undo; do
     if ! declare -f "$fn" >/dev/null; then
         echo "ERROR: $fn() not defined by $REMEDIES_SH"
         exit 1
@@ -139,6 +140,85 @@ UNDO_DIFF=$(cd "$FIXTURE_REPO" && git diff --stat)
 assert_true "remedy_64_undo: exact restoration (git diff --quiet)" \
     "$([ -z "$UNDO_DIFF" ] && echo true || echo false)"
 [ -n "$UNDO_DIFF" ] && echo "    residual diff: $UNDO_DIFF"
+
+# ── Check 42 (debrief-analyst model field) — separate fixture, own repo ────────
+# Two independent sub-cases, both driven by the same underlying check condition
+# (grep -m1 '^model:' | awk '{print $2}' != "sonnet"): the field absent entirely,
+# and the field present but wrong. apply() must fix both.
+echo ""
+echo "=== Check 42 remedy: debrief-analyst.md model field ==="
+
+FIXTURE42_REPO=$(mktemp -d)
+DEBRIEF_FIXTURE="$FIXTURE42_REPO/system/agents/debrief-analyst.md"
+mkdir -p "$FIXTURE42_REPO/system/agents"
+
+write_debrief_fixture() {
+    # $1: body to substitute for the model line ("" = field absent entirely)
+    if [ -z "$1" ]; then
+        cat > "$DEBRIEF_FIXTURE" <<'EOF'
+---
+name: debrief-analyst
+description: "test fixture"
+effort: high
+---
+body
+EOF
+    else
+        cat > "$DEBRIEF_FIXTURE" <<EOF
+---
+name: debrief-analyst
+description: "test fixture"
+$1
+effort: high
+---
+body
+EOF
+    fi
+}
+
+( cd "$FIXTURE42_REPO" && git init -q )
+
+echo "--- sub-case: model field absent ---"
+write_debrief_fixture ""
+( cd "$FIXTURE42_REPO" && git add -A && git -c user.email=test@test -c user.name=test commit -q -m "fixture: model absent" )
+( SCRIPT_DIR="$FIXTURE42_REPO"; remedy_42_apply ) >/dev/null 2>&1
+MODEL_AFTER_ABSENT=$(grep -m1 '^model:' "$DEBRIEF_FIXTURE" | awk '{print $2}' | tr -d '"')
+assert_true "remedy_42_apply: absent-field sub-case sets model: sonnet" \
+    "$([ "$MODEL_AFTER_ABSENT" = "sonnet" ] && echo true || echo false)"
+
+( SCRIPT_DIR="$FIXTURE42_REPO"; remedy_42_apply ) >/dev/null 2>&1
+IDEMPOTENT_RC=$?
+MODEL_AFTER_ABSENT_2=$(grep -m1 '^model:' "$DEBRIEF_FIXTURE" | awk '{print $2}' | tr -d '"')
+assert_true "remedy_42_apply: idempotent after fixing absent-field case" \
+    "$([ "$IDEMPOTENT_RC" -eq 0 ] && [ "$MODEL_AFTER_ABSENT_2" = "sonnet" ] && echo true || echo false)"
+
+( SCRIPT_DIR="$FIXTURE42_REPO"; remedy_42_undo ) >/dev/null 2>&1
+UNDO_DIFF=$(cd "$FIXTURE42_REPO" && git diff --stat)
+assert_true "remedy_42_undo: exact restoration after absent-field case" \
+    "$([ -z "$UNDO_DIFF" ] && echo true || echo false)"
+[ -n "$UNDO_DIFF" ] && echo "    residual diff: $UNDO_DIFF"
+
+echo "--- sub-case: model field present but wrong (opus) ---"
+write_debrief_fixture "model: opus"
+( cd "$FIXTURE42_REPO" && git add -A && git -c user.email=test@test -c user.name=test commit -q -m "fixture: model wrong" )
+( SCRIPT_DIR="$FIXTURE42_REPO"; remedy_42_apply ) >/dev/null 2>&1
+MODEL_AFTER_WRONG=$(grep -m1 '^model:' "$DEBRIEF_FIXTURE" | awk '{print $2}' | tr -d '"')
+assert_true "remedy_42_apply: wrong-value sub-case corrects model: opus -> sonnet" \
+    "$([ "$MODEL_AFTER_WRONG" = "sonnet" ] && echo true || echo false)"
+
+( SCRIPT_DIR="$FIXTURE42_REPO"; remedy_42_apply ) >/dev/null 2>&1
+IDEMPOTENT_RC=$?
+MODEL_AFTER_WRONG_2=$(grep -m1 '^model:' "$DEBRIEF_FIXTURE" | awk '{print $2}' | tr -d '"')
+assert_true "remedy_42_apply: idempotent after fixing wrong-value case" \
+    "$([ "$IDEMPOTENT_RC" -eq 0 ] && [ "$MODEL_AFTER_WRONG_2" = "sonnet" ] && echo true || echo false)"
+
+( SCRIPT_DIR="$FIXTURE42_REPO"; remedy_42_undo ) >/dev/null 2>&1
+UNDO_DIFF=$(cd "$FIXTURE42_REPO" && git diff --stat)
+assert_true "remedy_42_undo: exact restoration after wrong-value case (back to opus)" \
+    "$([ -z "$UNDO_DIFF" ] && echo true || echo false)"
+[ -n "$UNDO_DIFF" ] && echo "    residual diff: $UNDO_DIFF"
+
+rm -rf "$FIXTURE42_REPO"
 
 echo ""
 echo "=== Summary ==="
