@@ -1,7 +1,7 @@
 # Feature: Upgrade ruflo v3.10.39 → v3.34.0 and re-verify memory reliability
 
 **Date:** 2026-08-05
-**Status:** building
+**Status:** implemented
 **Task:** t-2627
 
 ## Problem
@@ -126,12 +126,19 @@ ADR-377 retrieval guard gets recorded via `brana decisions log`, not a new ADR.
 
 ## Assumptions
 - **Upgrade mechanism: `npm install -g ruflo@latest` is sufficient** to move both the
-  npx-resolved CLI and whatever `ruflo-mcp.sh`'s nvm-walk picks up — needs confirmation
-  during BUILD (the wrapper's version-detection logic walks multiple nvm-installed node
-  versions, so a stray older install could still shadow the new one).
+  npx-resolved CLI and whatever `ruflo-mcp.sh`'s nvm-walk picks up. **Resolved during
+  BUILD (t-2632), partially wrong as originally stated:** the plain `npm install -g`
+  under the nvm default (v22.22.3) correctly upgraded `ruflo-mcp.sh`'s resolution, but a
+  stray v3.10.39 install under a different, non-default nvm node version (v20.19.0 —
+  leftover from before nvm default moved to v22.22.3) shadowed `ruflo-cli.sh`'s weaker
+  plain-glob resolution. Fixed by uninstalling the stray install rather than upgrading it
+  in place — chose removal over parallel-upgrade because a second live install at the
+  same node version is pure duplication with no upside, and removing it eliminates the
+  shadowing risk for *both* wrappers at once rather than just papering over the version
+  mismatch.
 - **"Latest stable" means v3.34.0 at time of writing**, not a specific alpha/pre-release
-  tag — chose this because v3.34.0 is the `latest` npm dist-tag as of 2026-07-31 — needs
-  confirmation if a newer stable has shipped by the time this task executes.
+  tag — chose this because v3.34.0 is the `latest` npm dist-tag as of 2026-07-31.
+  **Confirmed during BUILD:** still the latest at execution time (2026-08-05).
 - **The corruption-check logic in `ruflo-mcp.sh` should default to "keep unless proven
   redundant"** rather than "remove unless proven necessary" — chose this because
   weakening a safety check on a shared, multi-session DB is a higher-cost mistake than
