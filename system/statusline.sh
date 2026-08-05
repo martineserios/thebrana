@@ -30,28 +30,57 @@ BRANCH=$(cd "$CWD" 2>/dev/null && git branch --show-current 2>/dev/null)
 # Task-branch convention: {epic}/{work-type}/t-{NNN}-{slug}. Show the epic
 # (first segment) only for real task branches — never dev/main/docs/*.
 # Clients/ventures use the 2-segment convention (feat/t-NNN-slug) and mostly
-# sit on main/dev, so fall back to the project's own active_epic there.
-# Project-local only (ADR-066): active_epic has exactly one authoritative
-# source, the resolving project's config — the global ~/.claude copy is never
-# valid for this key. thebrana keeps its copy at system/state/, others at
-# .claude/; both are project-local, so check each in turn.
+# sit on main/dev, so on those branches prefer the epic of whichever task is
+# actually being worked (most-recently-started in_progress task's flat
+# `.epic` field — the pre-v3 schema still used by client/venture projects;
+# thebrana's own v3 parent-chain epics aren't resolved here, a hot-path
+# statusline render isn't the place for a multi-hop lookup, so those degrade
+# to the static fallback below same as before, t-2639). A stale active_epic
+# config value otherwise lingers indefinitely once you stop cutting task
+# branches for a while.
+# Static fallback, project-local only (ADR-066): active_epic has exactly one
+# authoritative source, the resolving project's config — the global
+# ~/.claude copy is never valid for this key. thebrana keeps its copy at
+# system/state/, others at .claude/; both are project-local, so check each
+# in turn.
 EPIC=""
 if [[ "$BRANCH" == */*/t-* ]]; then
     EPIC="${BRANCH%%/*}"
 elif [ -n "$GIT_ROOT" ]; then
-    for cfg in "$GIT_ROOT/.claude/tasks-config.json" \
-               "$GIT_ROOT/system/state/tasks-config.json"; do
-        [ -f "$cfg" ] || continue
-        EPIC=$(jq -r '.active_epic // empty' "$cfg" 2>/dev/null)
-        [ -n "$EPIC" ] && break
-    done
+    if [ -f "$GIT_ROOT/.claude/tasks.json" ]; then
+        # `.started` is date-only in practice (no time component), so ties are
+        # a realistic outcome under this project's own concurrent-work style,
+        # not a rare edge — break them by numeric task id (higher id = created
+        # later) instead of leaving jq's stable sort to fall back to whatever
+        # order the tasks happen to appear in the file (t-2639 challenger).
+        EPIC=$(jq -r '
+            [ (.tasks // [])[] | select(.status == "in_progress") | select((.epic // "") != "")
+              | . + {_idnum: ((.id // "0") | sub("^[a-zA-Z]+-"; "") | tonumber? // 0)} ]
+            | sort_by([.started // "", ._idnum])
+            | reverse
+            | .[0].epic // empty
+        ' "$GIT_ROOT/.claude/tasks.json" 2>/dev/null)
+    fi
+    if [ -z "$EPIC" ]; then
+        for cfg in "$GIT_ROOT/.claude/tasks-config.json" \
+                   "$GIT_ROOT/system/state/tasks-config.json"; do
+            [ -f "$cfg" ] || continue
+            EPIC=$(jq -r '.active_epic // empty' "$cfg" 2>/dev/null)
+            [ -n "$EPIC" ] && break
+        done
+    fi
     # The output below goes through printf '%b', which interprets backslash
     # escapes; a literal or escaped newline would break the one-line contract.
-    # Branch names can't contain these (git forbids them in refs) — only a
-    # hand-edited config can, so scrub after the config path.
+    # Branch names can't contain these (git forbids them in refs), but both
+    # config sources here are hand-edited or automation-written JSON, so
+    # scrub after either path. Strip all raw control bytes (not just \n/\r)
+    # — a JSON control-character escape (ESC, 0x1B) or similar decodes to a literal byte with no
+    # backslash character for the first pass to catch, and t-2639 widened
+    # this scrub's reach from one hand-set config key to every task's .epic
+    # field (any write path: CLI/MCP/agent), so the narrower two-char strip
+    # was no longer enough (t-2639 challenger).
     EPIC=${EPIC//\\/}
-    EPIC=${EPIC//$'\n'/}
-    EPIC=${EPIC//$'\r'/}
+    EPIC=$(printf '%s' "$EPIC" | tr -d '[:cntrl:]')
 fi
 
 # ── CTX bar ──────────────────────────────────────────────
