@@ -16,7 +16,7 @@ All live in `system/hooks/tests/`. Only the epic suite is wired into `validate.s
 | `test-statusline-width.sh` | Width detection, progressive segment dropping | 15 | 15/15 |
 | `test-session-score.sh` | Session score counter lifecycle, statusline segment | 14 | 11/14 — drifted |
 | `test-statusline-integration.sh` | End-to-end: cache flow, session lifecycle, staleness recovery, empty state, width+segments | 74 | 37/74 — drifted |
-| `test-statusline-epic.sh` | Epic resolution ladder: branch epic → project-local `active_epic`; ADR-066 global-isolation guard; malformed/empty/null config; subdirectory resolution (t-2467) | 14 | 14/14 |
+| `test-statusline-epic.sh` | Epic resolution ladder: branch epic → dynamic in_progress-task epic → project-local `active_epic`; ADR-066 global-isolation guard; malformed/empty/null config; subdirectory resolution; same-day tie-break; control-byte scrub (t-2467, t-2639) | 21 | 21/21 |
 
 ## Integration Test Scenarios
 
@@ -27,25 +27,55 @@ All live in `system/hooks/tests/`. Only the epic suite is wired into `validate.s
 5. **Empty/missing state** — no tasks.json, no cache, no score file; statusline renders cleanly with exit 0
 6. **Width + segments combined** — narrow terminal with task data drops low-priority segments while keeping model and CTX%
 
-## Epic Resolution Ladder (t-2467)
+## Epic Resolution Ladder (t-2467, t-2639)
 
 The `🎯` slot resolves in strict order, first hit wins:
 
 1. **Branch epic** — first segment of a 3-segment task branch (`{epic}/{work-type}/t-NNN-slug`).
-2. **Project-local `active_epic`** — `$GIT_ROOT/.claude/tasks-config.json`, then
+2. **Dynamic in_progress-task epic** (t-2639) — the flat `.epic` field of the
+   most-recently-started `in_progress` task in `$GIT_ROOT/.claude/tasks.json` (ties on
+   `.started`, which is date-only in practice, broken by higher numeric task id). Only the
+   pre-v3 flat `.epic` field is read — thebrana's own tasks.json has none (v3 moved epics to
+   parent-chain ancestors, ADR-065/t-2284), so this step is a confirmed permanent no-op for
+   thebrana's own repo and only fires for client/venture projects still on the flat schema.
+   Exists to stop the next fallback going stale once focus shifts epics without cutting a
+   task branch.
+3. **Project-local `active_epic`** — `$GIT_ROOT/.claude/tasks-config.json`, then
    `$GIT_ROOT/system/state/tasks-config.json` (thebrana's layout; it has no `.claude/` copy).
-3. **Nothing** — the slot is omitted entirely.
+4. **Nothing** — the slot is omitted entirely.
 
 The global `~/.claude/tasks-config.json` is **never** consulted: per
 [ADR-066](../decisions/ADR-066-active-epic-project-scoped-only.md), `active_epic` is
 project-scoped with exactly one authoritative source. `test-statusline-epic.sh` T7 pins
-this by pointing `HOME` at a fixture whose global config carries a sentinel value.
+this by pointing `HOME` at a fixture whose global config carries a sentinel value. ADR-066
+governs step 3's own source only — it doesn't need to know about steps 2 or 4, since it never
+touches `active_epic`'s resolution, only adds a fallback ahead of it in the same display layer.
 
-Values from config are scrubbed of backslashes and newlines before rendering — the output
-path uses `printf '%b'`, which interprets escapes, so an unscrubbed value could break the
-one-line contract. Branch names cannot carry these (git forbids them in refs).
+Values from either config source are scrubbed of backslashes and all raw control bytes before
+rendering — the output path uses `printf '%b'`, which interprets backslash escapes, so an
+unscrubbed value could break the one-line contract. Branch names cannot carry these (git
+forbids them in refs), but both config sources are hand-edited or automation-written JSON.
+The scrub originally stripped only literal `\n`/`\r` sequences; t-2639 widened it to strip
+all control bytes after the challenger gate found a raw control byte decoded from a JSON
+string escape has no backslash character left for the narrower strip to catch, and the same
+diff routed a second, more automation-reachable source (every task's `.epic` field) through
+the same scrub.
 
 ## Field Notes
+
+### 2026-08-05: Static active_epic went stale without a task-branch checkout — added a dynamic fallback
+Reported bug: proyecto_anita's statusline stayed on `anita-envios` for days while the user
+worked `env-hardening`/`agent-memory` tasks on `main` — nothing recuts the branch when work
+shifts epics without a task-branch checkout, so the static `active_epic` fallback (step 3
+above) never updates on its own. Added step 2 (dynamic in_progress-task epic) ahead of it.
+Challenger gate on t-2639 found two real, non-blocking gaps in the first pass: production
+`.started` values are date-only, so same-day ties (a realistic occurrence given this
+project's own concurrent-work style — 10 simultaneous in_progress tasks at review time) were
+breaking on arbitrary array order; and the pre-existing `active_epic` scrub, now reused for
+the wider-reach dynamic source, only stripped literal `\n`/`\r` and missed raw control bytes
+with no backslash character for it to catch. Both fixed same-day: tie-break by numeric task
+id, scrub widened to strip all control bytes.
+Source: t-2639, session 2026-08-05
 
 ### 2026-07-27: Three of four legacy statusline suites are drifted, not broken by change
 `test-statusline-cache.sh` (8/12), `test-session-score.sh` (11/14) and
