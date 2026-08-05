@@ -103,15 +103,24 @@ assert_true "Check 51 (indented inside a conditional block) is extracted from va
 echo ""
 echo "=== Live validate.sh: heredoc-embedded fake ids (1/2) must not leak from Check 18's script ==="
 
-# Check 18's embedded Python script has its own "# Check 1" / "# Check 2" comments
-# (validate.sh:1139,1151). Both happen to collide with real, already-registered check
-# ids, so this alone can't prove exclusion — cross-check that extraction inside the
-# Check 18 heredoc span (1125-1205) contributes nothing by re-extracting a slice of the
-# file with that span blanked a second, independent way and confirming id count is
-# unchanged (a leak would only ever ADD ids, never remove real ones).
-SLICE_WITHOUT_HEREDOC=$(sed '1125,1205d' "$VALIDATE_SH" > "$TMPDIR_T/no-heredoc.sh"; extract_check_ids "$TMPDIR_T/no-heredoc.sh")
+# Check 18's embedded Python script has its own "# Check 1" / "# Check 2" comments.
+# Both happen to collide with real, already-registered check ids, so their mere
+# presence in REMEDY_REGISTRY can't prove exclusion — cross-check that extraction
+# inside EVERY `<<'PYEOF' ... PYEOF` heredoc span contributes nothing by deleting
+# all such spans a second, independent way (line numbers located dynamically —
+# never hardcoded, since any edit above a heredoc shifts its line numbers) and
+# confirming the id set is unchanged (a leak would only ever ADD ids, never
+# remove real ones).
+NO_HEREDOC_FILE="$TMPDIR_T/no-heredoc.sh"
+awk '
+    /<<['\''"]?PYEOF['\''"]?[[:space:]]*$/ { in_heredoc = 1; next }
+    in_heredoc && /^PYEOF[[:space:]]*$/ { in_heredoc = 0; next }
+    in_heredoc { next }
+    { print }
+' "$VALIDATE_SH" > "$NO_HEREDOC_FILE"
+SLICE_WITHOUT_HEREDOC=$(extract_check_ids "$NO_HEREDOC_FILE")
 IDS_INSIDE_HEREDOC_SPAN=$(comm -23 <(printf '%s\n' "$LIVE_IDS" | sort -u) <(printf '%s\n' "$SLICE_WITHOUT_HEREDOC" | sort -u))
-assert_true "no check id is extracted only from inside the Check 18 heredoc span (1125-1205)" \
+assert_true "no check id is extracted only from inside a PYEOF heredoc span (Check 18's embedded script)" \
     "$([ -z "$IDS_INSIDE_HEREDOC_SPAN" ] && echo true || echo false)"
 if [ -n "$IDS_INSIDE_HEREDOC_SPAN" ]; then
     echo "    ids found only inside heredoc span: $IDS_INSIDE_HEREDOC_SPAN"

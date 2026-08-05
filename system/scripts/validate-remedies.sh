@@ -129,6 +129,7 @@ declare -A REMEDY_UNDO_HINT=(
   [63]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
   [64]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
   [42]="cd \$SCRIPT_DIR && git restore system/agents/debrief-analyst.md"
+  [29]="cd \$SCRIPT_DIR && git restore docs/reference/"
 )
 
 # remedy_lookup CHECK_ID — print "HAS_REMEDY" or the NO_REMEDY reason (without the
@@ -223,4 +224,17 @@ remedy_42_apply() {
 }
 remedy_42_undo() {
     ( cd "$SCRIPT_DIR" && git restore system/agents/debrief-analyst.md )
+}
+
+# Check 29 — reference docs up to date (t-1429). Regenerates docs/reference/*.md
+# via the `brana` CLI's own designed purpose (idempotent by construction: a
+# no-drift run writes nothing). cd-wrapped per ADR-077 Decision #5 — the `brana`
+# binary resolves its project root the same CWD-relative way the migrate scripts
+# do.
+remedy_29_apply() {
+    command -v brana >/dev/null 2>&1 || return 0
+    ( cd "$SCRIPT_DIR" && brana reference generate )
+}
+remedy_29_undo() {
+    ( cd "$SCRIPT_DIR" && git restore docs/reference/ )
 }
