@@ -140,6 +140,17 @@ OUT=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"co
 [ "$RC" = "0" ] && [ "$(epic_of "$R")" = "fallback-epic" ]
 check "T11: malformed tasks.json -> falls back to active_epic, exit 0" $?
 
+# T12 -- same-day tie among in_progress tasks (production `.started` is
+# date-only, so this is a realistic occurrence, not a rare edge, t-2639
+# challenger): higher numeric task id wins, not array-insertion order.
+R=$(make_repo t12 dev)
+mkdir -p "$R/.claude"
+printf '{"tasks":[
+  {"id":"t-2076","status":"in_progress","epic":"higher-id-epic","started":"2026-08-05"},
+  {"id":"t-2065","status":"in_progress","epic":"lower-id-epic","started":"2026-08-05"}
+]}\n' > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "higher-id-epic" ]; check "T12: same-day tie breaks by higher numeric task id" $?
+
 echo ""
 echo "--- boundaries ---"
 
@@ -190,6 +201,29 @@ printf '{"active_epic":"bad\\nvalue"}\n' > "$R/.claude/tasks-config.json"
 LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
     | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
 [ "$LINES" = "1" ]; check "B7: literal newline in active_epic stays single-line" $?
+
+# B8 -- a raw control byte delivered via a JSON \u001b (ESC) escape has no
+# backslash character left after jq decodes it, so the backslash-strip alone
+# can't catch it; the scrub must also strip raw control bytes directly
+# (t-2639 challenger: pre-existing gap on active_epic, now closed).
+R=$(make_repo b8 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"bad\\u001bvalue"}\n' > "$R/.claude/tasks-config.json"
+LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
+[ "$LINES" = "1" ] && [ "$(epic_of "$R")" = "badvalue" ]
+check "B8: raw ESC byte (JSON \\u001b escape) in active_epic is stripped" $?
+
+# B9 -- same class, but through the new dynamic source (t-2639 widened the
+# shared scrub's reach to every task's .epic field, any write path).
+R=$(make_repo b9 dev)
+mkdir -p "$R/.claude"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"bad\\u001bvalue","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
+[ "$LINES" = "1" ] && [ "$(epic_of "$R")" = "badvalue" ]
+check "B9: raw ESC byte in dynamic task .epic field is stripped" $?
 
 echo ""; echo "$PASS/$TOTAL passed"
 [ "$FAIL" -eq 0 ] || exit 1

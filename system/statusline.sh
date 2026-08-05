@@ -48,9 +48,15 @@ if [[ "$BRANCH" == */*/t-* ]]; then
     EPIC="${BRANCH%%/*}"
 elif [ -n "$GIT_ROOT" ]; then
     if [ -f "$GIT_ROOT/.claude/tasks.json" ]; then
+        # `.started` is date-only in practice (no time component), so ties are
+        # a realistic outcome under this project's own concurrent-work style,
+        # not a rare edge — break them by numeric task id (higher id = created
+        # later) instead of leaving jq's stable sort to fall back to whatever
+        # order the tasks happen to appear in the file (t-2639 challenger).
         EPIC=$(jq -r '
-            [ (.tasks // [])[] | select(.status == "in_progress") | select((.epic // "") != "") ]
-            | sort_by(.started // "")
+            [ (.tasks // [])[] | select(.status == "in_progress") | select((.epic // "") != "")
+              | . + {_idnum: ((.id // "0") | sub("^[a-zA-Z]+-"; "") | tonumber? // 0)} ]
+            | sort_by([.started // "", ._idnum])
             | reverse
             | .[0].epic // empty
         ' "$GIT_ROOT/.claude/tasks.json" 2>/dev/null)
@@ -65,11 +71,16 @@ elif [ -n "$GIT_ROOT" ]; then
     fi
     # The output below goes through printf '%b', which interprets backslash
     # escapes; a literal or escaped newline would break the one-line contract.
-    # Branch names can't contain these (git forbids them in refs) — only a
-    # hand-edited config can, so scrub after the config path.
+    # Branch names can't contain these (git forbids them in refs), but both
+    # config sources here are hand-edited or automation-written JSON, so
+    # scrub after either path. Strip all raw control bytes (not just \n/\r)
+    # — a JSON control-character escape (ESC, 0x1B) or similar decodes to a literal byte with no
+    # backslash character for the first pass to catch, and t-2639 widened
+    # this scrub's reach from one hand-set config key to every task's .epic
+    # field (any write path: CLI/MCP/agent), so the narrower two-char strip
+    # was no longer enough (t-2639 challenger).
     EPIC=${EPIC//\\/}
-    EPIC=${EPIC//$'\n'/}
-    EPIC=${EPIC//$'\r'/}
+    EPIC=$(printf '%s' "$EPIC" | tr -d '[:cntrl:]')
 fi
 
 # ── CTX bar ──────────────────────────────────────────────
