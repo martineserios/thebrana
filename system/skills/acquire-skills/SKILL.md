@@ -1,6 +1,6 @@
 ---
 name: acquire-skills
-description: "Find and install skills for what you're doing — tech stack AND thinking/reasoning gaps. Analyzes activity type (deciding, strategizing, challenging, analyzing, planning) and tech context to surface relevant skills. Use when entering unfamiliar tech, stuck on a reasoning challenge, or when no local skill covers the current task."
+description: "Find and install skills for what you're doing — tech or reasoning gaps. Matches activity and tech context to relevant skills. Use when entering unfamiliar tech, stuck on a reasoning challenge, or no skill fits."
 effort: low
 model: haiku
 keywords: [skills, marketplace, install, gap, discovery, external, reasoning, frameworks, thinking]

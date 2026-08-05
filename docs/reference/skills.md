@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**35 skills** loaded from `system/skills/`.
+**44 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -21,7 +21,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 
 | Skill | Group | Description |
 |-------|-------|-------------|
-| `/brana:acquire-skills` | brana | Find and install skills for what you're doing — tech stack AND thinking/reasonin |
+| `/brana:acquire-skills` | brana | Find and install skills for what you're doing — tech or reasoning gaps. Matches  |
 | `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Auto- |
 | `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
 | `/brana:bash-defensive-patterns` | brana | Master defensive Bash programming techniques for production-grade scripts. Use w |
@@ -33,35 +33,44 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
+| `/brana:design-system` | frontend | Token architecture and component specs: three-layer tokens (primitive→semantic→c |
+| `/brana:design-taste-frontend` | frontend | Anti-slop frontend skill for landing pages, portfolios, redesigns — infers the d |
 | `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
-| `/brana:domain-driven-design` | domain | DDD tactical patterns for complex business modeling including entities, value ob |
+| `/brana:domain-driven-design` | domain | DDD tactical patterns — entities, value objects, aggregates, domain services, re |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
+| `/brana:first-principles` | thinking | Break down complex problems to fundamental truths, then reason up — Aristotle's  |
 | `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), v |
 | `/brana:gemini` | execution | Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. U |
+| `/brana:grad-mechanism-design` | thinking | Mechanism design (reverse game theory): incentive-compatible rules for allocatio |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
+| `/brana:impeccable` | frontend | Use when designing, redesigning, critiquing, auditing, or polishing a frontend i |
+| `/brana:inversion` | thinking | 'Invert, always invert' — Munger's approach to solving problems by thinking back |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bulk m |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, polli |
 | `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for an |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list. Us |
+| `/brana:product-brainstorming` | thinking | Brainstorm product ideas, explore problem spaces, and challenge assumptions as a |
 | `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagatio |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce fi |
 | `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after disc |
 | `/brana:review` | venture | Business review — weekly health check, monthly close, or ad-hoc audit. Subcomman |
 | `/brana:rust-skills` | brana | Rust best practices — 179 rules across 14 categories for idiomatic, optimized Ru |
 | `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, run remote agents on cron. Use whe |
+| `/brana:second-order-thinking` | thinking | Think beyond immediate consequences to second- and third-order effects — Howard  |
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
+| `/brana:web-design-guidelines` | frontend | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
 ## brana
 
 ### `/brana:acquire-skills`
 
-Find and install skills for what you're doing — tech stack AND thinking/reasoning gaps. Analyzes activity type (deciding, strategizing, challenging, analyzing, planning) and tech context to surface relevant skills. Use when entering unfamiliar tech, stuck on a reasoning challenge, or when no local skill covers the current task.
+Find and install skills for what you're doing — tech or reasoning gaps. Matches activity and tech context to relevant skills. Use when entering unfamiliar tech, stuck on a reasoning challenge, or no skill fits.
 
 **Allowed tools:** Read, Write, Bash, Glob, Grep, WebSearch, WebFetch, AskUserQuestion, Agent
 
@@ -170,7 +179,7 @@ Situational awareness — where am I, what was I doing, what's next. Context rec
 
 ### `/brana:domain-driven-design`
 
-DDD tactical patterns for complex business modeling including entities, value objects, aggregates, domain services, repositories, specifications, and bounded contexts. Python dataclass implementations with TypeScript alternatives. Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
+DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript). Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
 
 **Allowed tools:** [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
 
@@ -248,6 +257,33 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, ToolSearch
 
 
+## frontend
+
+### `/brana:design-system`
+
+Token architecture and component specs: three-layer tokens (primitive→semantic→component), CSS variables, spacing/typography scales, slide generation. Use for design tokens, systematic design, brand-compliant presentations.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:design-taste-frontend`
+
+Anti-slop frontend skill for landing pages, portfolios, redesigns — infers the design direction and ships interfaces that don't look templated. Real design systems when applicable, audit-first, strict pre-flight.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:impeccable`
+
+Use when designing, redesigning, critiquing, auditing, or polishing a frontend interface — sites, dashboards, product UI, forms, onboarding, empty states. Covers UX, visual hierarchy, IA, cognitive load, accessibility.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:web-design-guidelines`
+
+Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", or \"vs best practices\".
+
+**Allowed tools:** [Read, Glob, Grep, Bash, WebFetch]
+
+
 ## learning
 
 ### `/brana:challenge`
@@ -311,6 +347,36 @@ Decision support — criteria, scenarios, patterns, recommendation.
 **Arguments:** `[question or options, e.g. 'should I do A or B' / 'what to work on next']`
 
 **Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, ToolSearch
+
+### `/brana:first-principles`
+
+Break down complex problems to fundamental truths, then reason up — Aristotle's method as modernized by Elon Musk. Use when a problem looks impossible or to challenge an assumed industry constraint.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:grad-mechanism-design`
+
+Mechanism design (reverse game theory): incentive-compatible rules for allocation — auctions, voting, matching. Use when designing or evaluating a mechanism for incentive compatibility and rationality.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:inversion`
+
+'Invert, always invert' — Munger's approach to solving problems by thinking backward from failure. Use for goal-setting (define what guarantees failure, then avoid it) or risk analysis (find what could destroy the project).
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:product-brainstorming`
+
+Brainstorm product ideas, explore problem spaces, and challenge assumptions as a thinking partner. Use when exploring an opportunity, generating solutions, or stress-testing an idea before converging on a direction.
+
+**Allowed tools:** [Read, Glob, Grep, Write, AskUserQuestion]
+
+### `/brana:second-order-thinking`
+
+Think beyond immediate consequences to second- and third-order effects — Howard Marks' investment framework. Use for strategic calls, policy/rule changes, or competitive moves where the obvious answer may backfire.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
 
 
 ## utility
