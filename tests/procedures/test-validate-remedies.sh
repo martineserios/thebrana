@@ -38,7 +38,7 @@ fi
 source "$REMEDIES_SH"
 
 for fn in remedy_62_apply remedy_62_undo remedy_63_apply remedy_63_undo remedy_64_apply remedy_64_undo \
-          remedy_42_apply remedy_42_undo; do
+          remedy_42_apply remedy_42_undo remedy_29_apply remedy_29_undo; do
     if ! declare -f "$fn" >/dev/null; then
         echo "ERROR: $fn() not defined by $REMEDIES_SH"
         exit 1
@@ -219,6 +219,61 @@ assert_true "remedy_42_undo: exact restoration after wrong-value case (back to o
 [ -n "$UNDO_DIFF" ] && echo "    residual diff: $UNDO_DIFF"
 
 rm -rf "$FIXTURE42_REPO"
+
+# ── Check 29 (brana reference generate) — copied minimal skills/hooks/agents tree ──
+# find_project_root() resolves via `git rev-parse --show-toplevel` against the
+# CALLER's CWD (same hazard class as the migrate scripts) — a fresh git-inited
+# fixture repo with its own minimal skill tree naturally reproduces the FAIL state
+# (docs/reference/ doesn't exist yet), no special corruption needed.
+echo ""
+echo "=== Check 29 remedy: brana reference generate ==="
+
+FIXTURE29_REPO=$(mktemp -d)
+mkdir -p "$FIXTURE29_REPO/system/skills/example-skill" \
+         "$FIXTURE29_REPO/system/hooks" \
+         "$FIXTURE29_REPO/system/agents" \
+         "$FIXTURE29_REPO/system/rules" \
+         "$FIXTURE29_REPO/system/commands"
+cat > "$FIXTURE29_REPO/system/skills/example-skill/SKILL.md" <<'EOF'
+---
+name: example-skill
+description: "fixture skill for check 29 remedy test"
+---
+# Example Skill
+Body.
+EOF
+( cd "$FIXTURE29_REPO" && git init -q && git add -A && git -c user.email=test@test -c user.name=test commit -q -m init )
+
+if ! command -v brana >/dev/null 2>&1; then
+    echo "  SKIP: brana CLI not found in PATH — cannot exercise check 29's remedy"
+else
+    PRE_CHECK_RC=0
+    ( cd "$FIXTURE29_REPO" && brana reference generate --check ) >/dev/null 2>&1 || PRE_CHECK_RC=$?
+    assert_true "fixture reproduces the FAIL state (reference docs not yet generated)" \
+        "$([ "$PRE_CHECK_RC" -ne 0 ] && echo true || echo false)"
+
+    ( SCRIPT_DIR="$FIXTURE29_REPO"; remedy_29_apply ) >/dev/null 2>&1
+    POST_CHECK_RC=0
+    ( cd "$FIXTURE29_REPO" && brana reference generate --check ) >/dev/null 2>&1 || POST_CHECK_RC=$?
+    assert_true "remedy_29_apply: reference docs now up to date (--check passes)" \
+        "$([ "$POST_CHECK_RC" -eq 0 ] && echo true || echo false)"
+    assert_true "remedy_29_apply: docs/reference/skills.md was actually written" \
+        "$([ -f "$FIXTURE29_REPO/docs/reference/skills.md" ] && echo true || echo false)"
+
+    ( cd "$FIXTURE29_REPO" && git add -A && git -c user.email=test@test -c user.name=test commit -q -m "generated reference docs" )
+    ( SCRIPT_DIR="$FIXTURE29_REPO"; remedy_29_apply ) >/dev/null 2>&1
+    IDEMPOTENT_RC=$?
+    IDEMPOTENT_DIFF=$(cd "$FIXTURE29_REPO" && git diff --stat)
+    assert_true "remedy_29_apply: idempotent (second call is a safe no-op, no diff)" \
+        "$([ "$IDEMPOTENT_RC" -eq 0 ] && [ -z "$IDEMPOTENT_DIFF" ] && echo true || echo false)"
+
+    ( SCRIPT_DIR="$FIXTURE29_REPO"; remedy_29_undo ) >/dev/null 2>&1
+    UNDO_STATUS=$(cd "$FIXTURE29_REPO" && git status --porcelain docs/reference/)
+    assert_true "remedy_29_undo: docs/reference/ reverted to last commit" \
+        "$([ -z "$UNDO_STATUS" ] && echo true || echo false)"
+fi
+
+rm -rf "$FIXTURE29_REPO"
 
 echo ""
 echo "=== Summary ==="
