@@ -195,3 +195,23 @@ remedy_64_apply() {
 remedy_64_undo() {
     ( cd "$SCRIPT_DIR" && git restore .claude/tasks.json )
 }
+
+# Check 42 — debrief-analyst agent must use model: sonnet (ADR-040 §6, t-1801).
+# Two sub-cases share one fix: the `model:` line absent entirely, or present with
+# the wrong value. Mirrors the check's own condition exactly (grep -m1 '^model:'
+# | awk '{print $2}' != "sonnet") so apply() covers both, not just the absent case.
+remedy_42_apply() {
+    local f="$SCRIPT_DIR/system/agents/debrief-analyst.md"
+    [ -f "$f" ] || return 0
+    local current
+    current=$(grep -m1 '^model:' "$f" | awk '{print $2}' | tr -d '"')
+    [ "$current" = "sonnet" ] && return 0
+    if grep -q '^model:' "$f"; then
+        sed -i 's/^model:.*/model: sonnet/' "$f"
+    else
+        sed -i '1a model: sonnet' "$f"
+    fi
+}
+remedy_42_undo() {
+    ( cd "$SCRIPT_DIR" && git restore system/agents/debrief-analyst.md )
+}
