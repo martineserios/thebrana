@@ -166,7 +166,11 @@ the contract and proves it on the 4-5 lowest-risk cases.
 - `tests/procedures/test-validate-remedies.sh` (new)
 - `docs/architecture/decisions/ADR-077-validate-remedy-registry.md` (new, already written)
 
-**Registry shape** (bash, matching the project's existing associative-array conventions):
+**Registry shape** (bash, matching the project's existing associative-array conventions).
+`NO_REMEDY` reasons are one of four (ADR-077 Decision #2): `judgment-required`,
+`not-fixable`, `excluded-high-risk`, or `deferred-wave2` (genuinely mechanical per the
+SPECIFY-phase catalog, just not built in this pilot — distinct from `judgment-required` so
+the registry never mislabels a real, known-fixable gap as "can't be automated"):
 ```bash
 declare -A REMEDY_REGISTRY=(
   [62]="HAS_REMEDY"
@@ -176,6 +180,7 @@ declare -A REMEDY_REGISTRY=(
   [29]="HAS_REMEDY"
   [1]="NO_REMEDY:judgment-required — missing/invalid frontmatter content can't be inferred"
   [34]="NO_REMEDY:excluded-high-risk — mutates live scheduler outside the repo"
+  [28]="NO_REMEDY:deferred-wave2 — mechanical (python3 -> uv run prefix), not yet wired"
   # ... one entry per remaining check id
 )
 ```

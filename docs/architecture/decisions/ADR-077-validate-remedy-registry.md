@@ -80,11 +80,17 @@ task context for the full per-check fixability/risk breakdown.
    NOT appear in the extracted id set).
 
 2. **`NO_REMEDY` is a first-class, visible state — not absence.** Every `NO_REMEDY` entry
-   carries a one-line reason (`judgment-required`, `not-fixable`, or `excluded-high-risk`).
+   carries a one-line reason, one of four: `judgment-required` (fixing it means guessing
+   content/policy), `not-fixable` (no deterministic target state exists), `excluded-high-risk`
+   (a fix could exist but is deliberately not automated — see Decision #4), or
+   `deferred-wave2` (the SPECIFY-phase catalog found this check genuinely mechanical and
+   low-risk, but it isn't wired in this v1 pilot — a real gap, not a judgment call; labeling
+   it `judgment-required` would itself be exactly the kind of misleading state this registry
+   exists to prevent). `deferred-wave2` entries are the seed list for the Wave 2 follow-up.
    This mirrors ruvnet-brain's "UNKNOWN as a first-class state, visually separate from OFF"
    finding — the failure class it caught (a renderer reading a table column that doesn't
    exist, misread as real "disabled" state) is the same shape as validate.sh silently
-   having no remedy where an author might assume one exists.
+   having no remedy where an author might assume one exists, or mislabeling why.
 
 3. **v1 binds remedies for 4 checks unconditionally, plus a 5th (29) conditional on its
    fixture proving practical during DECOMPOSE.** Unconditional: **62, 63, 64** (tasks.json

@@ -122,6 +122,15 @@ declare -A REMEDY_REGISTRY=(
   [68]="NO_REMEDY:not-fixable — explicit author intent — the check's own message states it never auto-corrects, by design"
 )
 
+# REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
+# successful apply. Not a CLI --undo flag (out of v1 scope) — just what to copy-paste.
+declare -A REMEDY_UNDO_HINT=(
+  [62]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
+  [63]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
+  [64]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
+  [42]="cd \$SCRIPT_DIR && git restore system/agents/debrief-analyst.md"
+)
+
 # remedy_lookup CHECK_ID — print "HAS_REMEDY" or the NO_REMEDY reason (without the
 # "NO_REMEDY:" prefix) for CHECK_ID. Prints nothing and returns 1 if CHECK_ID has no
 # registry entry at all (should never happen for a real check id — that's what the

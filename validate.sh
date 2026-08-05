@@ -22,6 +22,7 @@ RUN_SEMANTIC_ONLY=false
 RUN_GOLDEN=false
 GRACE_DAYS=7
 CHECK_FILTER=""
+FIX_TARGET=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -33,9 +34,17 @@ while [[ $# -gt 0 ]]; do
         --check)
             if [ -z "${2:-}" ]; then echo "--check requires a check number argument"; exit 1; fi
             CHECK_FILTER="$2"; shift 2 ;;
+        --fix)
+            if [ -z "${2:-}" ]; then echo "--fix requires a check number argument"; exit 1; fi
+            FIX_TARGET="$2"; shift 2 ;;
         *) echo "Unknown flag: $1"; exit 1 ;;
     esac
 done
+
+if [ -n "$CHECK_FILTER" ] && [ -n "$FIX_TARGET" ]; then
+    echo "--check and --fix are mutually exclusive"
+    exit 1
+fi
 
 echo "=== Brana Validate ==="
 echo ""
@@ -55,6 +64,45 @@ should_run() {
     local base="${1%%[a-z]*}"
     [ "$base" = "$CHECK_FILTER" ]
 }
+
+# --fix <N> dispatch (ADR-077 Decision #6). Looks up REMEDY_REGISTRY[N], confirms
+# HAS_REMEDY, then calls remedy_<N>_apply — never eval or unvalidated function-name
+# construction; the function name is only ever built from an id already confirmed
+# present in the registry with HAS_REMEDY. Re-runs check N afterward to confirm it
+# actually passes (not just "the apply command exited 0") before reporting success.
+# Exits — never falls through to the full check suite below.
+if [ -n "$FIX_TARGET" ]; then
+    if ! FIX_ENTRY=$(remedy_lookup "$FIX_TARGET"); then
+        echo "No registry entry for check $FIX_TARGET — this should never happen (the completeness test guards against it). Not fixing."
+        exit 1
+    fi
+    case "$FIX_ENTRY" in
+        HAS_REMEDY)
+            FIX_APPLY_FN="remedy_${FIX_TARGET}_apply"
+            if ! declare -f "$FIX_APPLY_FN" >/dev/null; then
+                echo "Registry says check $FIX_TARGET has a remedy but $FIX_APPLY_FN() is not defined — refusing to guess. Not fixing."
+                exit 1
+            fi
+            "$FIX_APPLY_FN"
+            if bash "$0" --check "$FIX_TARGET" 2>&1 | grep -q "FAIL: Check $FIX_TARGET"; then
+                echo "Applied the remedy for check $FIX_TARGET, but the check still fails. Manual review needed."
+                exit 1
+            fi
+            echo "Fixed check $FIX_TARGET."
+            FIX_UNDO_HINT="${REMEDY_UNDO_HINT[$FIX_TARGET]:-}"
+            [ -n "$FIX_UNDO_HINT" ] && echo "To undo: $FIX_UNDO_HINT"
+            exit 0
+            ;;
+        NO_REMEDY:*)
+            echo "No remedy for check $FIX_TARGET: ${FIX_ENTRY#NO_REMEDY:}"
+            exit 1
+            ;;
+        *)
+            echo "Malformed registry entry for check $FIX_TARGET: $FIX_ENTRY"
+            exit 1
+            ;;
+    esac
+fi
 
 # effective_body NAME: prints the full effective procedure body of a skill,
 # regardless of layout (t-1942). Handles all three layouts:
