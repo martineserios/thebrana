@@ -1,7 +1,7 @@
 # Feature: Upgrade ruflo v3.10.39 → v3.34.0 and re-verify memory reliability
 
 **Date:** 2026-08-05
-**Status:** decomposing
+**Status:** building
 **Task:** t-2627
 
 ## Problem
