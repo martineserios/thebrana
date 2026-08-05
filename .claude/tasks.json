@@ -67403,7 +67403,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": "ruflo-integration/chore/t-2627-upgrade-ruflo-memory",
-      "context": "Found via 2026-08-05 GitHub changelog review of ruvnet/ruflo. Two shipped fixes in the gap map directly onto our own recorded pain:\n\n1. v3.32.34 \\\"Reliable Memory Writes on Existing Installations\\\" — fixes a migration gap (missing provenance_type column, ADR-323) that could block memory_store writes on pre-existing DBs, and makes failures fail-closed instead of a confusing WAL-fallback message. This maps onto project_ruflo-memory-corruption-recurring / project_ruflo-agentdb-status in project memory. Our system/scripts/ruflo-mcp.sh carries a hand-built defense (checkpoint-a-copy integrity check, t-2085/t-2260) built specifically because ruflo's concurrent-write handling was unreliable at our pinned version.\n\n2. v3.33.0 \\\"AgentDB Retrieval Security Layer\\\" (ADR-377) — adds memory-poisoning defenses (OWASP LLM01/LLM08 pattern scan on retrieval via AgentDbRetrievalGuard, write-anomaly detection via MemoryPoisonForensics) on the same HNSW/AgentDB path mcp__brana__recall sits on top of. Off by default even upstream (CLAUDE_FLOW_RETRIEVAL_GUARD / CLAUDE_FLOW_POISON_FORENSICS env vars) — upgrading alone won't enable it.\n\nNot relevant to us: Claude 5 model-alias routing fixes (delegation-routing.md already forbids routing execution through ruflo — we never touch its MODEL_MAP) and Codex hooks.json compat (nothing in system/ targets Codex).\n\nSeparately confirmed NOT a gap: ruflo hit skill-description-listing truncation at 367 SKILL.md files (their #1834, patched by widening a budget %). We're at similar scale (364 SKILL.md deployed under ~/.claude) but already solved it more rigorously via t-2505 (two-pool hard budget: AUTHORED rules vs ROUTING METADATA, independently gated with per-pool remedy messaging). No action needed there.",
+      "context": "Found via 2026-08-05 GitHub changelog review of ruvnet/ruflo. Two shipped fixes in the gap map directly onto our own recorded pain:\n\n1. v3.32.34 \\\"Reliable Memory Writes on Existing Installations\\\" — fixes a migration gap (missing provenance_type column, ADR-323) that could block memory_store writes on pre-existing DBs, and makes failures fail-closed instead of a confusing WAL-fallback message. This maps onto project_ruflo-memory-corruption-recurring / project_ruflo-agentdb-status in project memory. Our system/scripts/ruflo-mcp.sh carries a hand-built defense (checkpoint-a-copy integrity check, t-2085/t-2260) built specifically because ruflo's concurrent-write handling was unreliable at our pinned version.\n\n2. v3.33.0 \\\"AgentDB Retrieval Security Layer\\\" (ADR-377) — adds memory-poisoning defenses (OWASP LLM01/LLM08 pattern scan on retrieval via AgentDbRetrievalGuard, write-anomaly detection via MemoryPoisonForensics) on the same HNSW/AgentDB path mcp__brana__recall sits on top of. Off by default even upstream (CLAUDE_FLOW_RETRIEVAL_GUARD / CLAUDE_FLOW_POISON_FORENSICS env vars) — upgrading alone won't enable it.\n\nNot relevant to us: Claude 5 model-alias routing fixes (delegation-routing.md already forbids routing execution through ruflo — we never touch its MODEL_MAP) and Codex hooks.json compat (nothing in system/ targets Codex).\n\nSeparately confirmed NOT a gap: ruflo hit skill-description-listing truncation at 367 SKILL.md files (their #1834, patched by widening a budget %). We're at similar scale (364 SKILL.md deployed under ~/.claude) but already solved it more rigorously via t-2505 (two-pool hard budget: AUTHORED rules vs ROUTING METADATA, independently gated with per-pool remedy messaging). No action needed there.\nSprint contract 2026-08-05 (rev 2, adversarially reviewed 2x — iteration 1 RECONSIDER on missing ruflo-cli.sh + untested corruption-check function + no external-CWD test; iteration 2 PROCEED WITH CHANGES after fixes verified against live file contents): Scope: upgrade ruflo across both wrappers (ruflo-mcp.sh + ruflo-cli.sh), empirically verify memory reliability and the 21-consumer blast-radius mitigation rather than trusting release notes. ISC: (1) both wrappers report new version independently; (2) stale-shadow WARN absent from ruflo-mcp.sh stderr (grepped, not eyeballed); (3) external CLAUDE_PROJECT_DIR invocation resolves correctly (dir pre-created); (4) memory round-trip clean both in plain env and under external CLAUDE_PROJECT_DIR; (5) ruflo_mcp_db_is_healthy() directly invoked against WAL-copy, permanent test added regardless of AC3 outcome; (6) keep/simplify/remove decision recorded with evidence; (7) ruflo-ADR-377 env var decision recorded via brana decisions log; (8) dimension doc Version History row spans v3.10.39→v3.34.0. Out of scope: fixing busy_timeout/dualWrite upstream ourselves; enabling ADR-377 guards by default; touching the API-key-gated agentic MCP surface.",
       "notes": null,
       "order": 0,
       "github_issue": "1043",
@@ -67417,7 +67417,13 @@
       "work_type": null,
       "ac_state": "none",
       "strategy": "feature",
-      "build_step": "decompose"
+      "build_step": "build",
+      "isc": [
+        "Both ruflo-mcp.sh and ruflo-cli.sh resolve and report the upgraded ruflo version, verified independently and under an external CLAUDE_PROJECT_DIR",
+        "memory_store/memory_search round-trip is clean (no data loss) against ~/.swarm/memory.db, both in-place and under an external CLAUDE_PROJECT_DIR",
+        "ruflo_mcp_db_is_healthy() has a permanent unit test and is confirmed healthy against a fixture WAL-copy post-upgrade; keep/simplify/remove decision recorded with evidence",
+        "ruflo-ADR-377 retrieval-guard decision recorded via brana decisions log; dimension doc Version History updated with a v3.10.39→v3.34.0 row"
+      ]
     },
     {
       "context": "Live case: git log -20 based epic detection (Tier2a in-progress-tasks-portfolio-wide + Tier2b session-commits) converged on slug commercial-intelligence for a proyecto_anita close, but this session's own actual tasks (t-2158, t-2399) both had parent:null (no epic). The false positive came from OTHER concurrent sessions' commits landing in the same shared main checkout's git log -20 window (repo does not always use worktree-per-session for quick tasks). Tier0-corroboration (t-2618) only cross-checks Tier0 focus-file vs Tier2b -- it does not protect against Tier2a AND Tier2b BOTH drawing from the same contaminated shared-checkout git history, which is exactly what happened here (both converged on the wrong slug). Manually overrode by directly checking task.parent for the session's own tasks (ground truth) rather than trusting the git-log-derived signal. Suggests: when Tier2a+Tier2b converge, also verify by walking THIS session's own explicitly-known task IDs (if any were set via backlog start this session) directly via resolve_epic_ancestor, rather than relying solely on git log windowing which cannot distinguish this session's commits from a concurrent session's commits on a shared checkout.",
@@ -67523,7 +67529,7 @@
       "created": "2026-08-05",
       "blocked_by": [],
       "ac_state": "none",
-      "parent": null,
+      "parent": "t-2345",
       "order": null,
       "branch": null,
       "github_issue": null,
@@ -67536,7 +67542,7 @@
     {
       "id": "t-2632",
       "subject": "Upgrade ruflo global install and verify both surfaces resolve to new version",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "ops",
       "tags": [],
@@ -67546,11 +67552,11 @@
       "parent": "t-2627",
       "created": "2026-08-05",
       "started": null,
-      "completed": null,
+      "completed": "2026-08-05",
       "blocked_by": [],
       "branch": null,
-      "context": "AC: `ruflo --version` reports the new version\\nAC: system/scripts/ruflo-mcp.sh's resolved ruflo binary reports the same new version (no nvm-walk shadowing)",
-      "notes": null,
+      "context": "AC: `ruflo --version` reports the new version\\nAC: system/scripts/ruflo-mcp.sh's resolved ruflo binary reports the same new version (no nvm-walk shadowing)\nAC: system/scripts/ruflo-cli.sh's resolved ruflo binary also reports the new version (separate, weaker-resolution wrapper per t-1936 — plain glob, no version sort, checked independently of ruflo-mcp.sh)\nAC: grep ruflo-mcp.sh's stderr for its stale-shadow WARN string post-invocation and assert absence (concrete check, not eyeballed)\nAC: CLAUDE_PROJECT_DIR=/tmp/fake-project ruflo-mcp.sh --version (or equivalent external-project invocation) resolves the new version before merging to dev\nAC: mkdir -p /tmp/fake-project before the CLAUDE_PROJECT_DIR check — the wrapper silently falls back to $HOME if the dir doesn't pre-exist (line 19's -d test), which would make the check pass without exercising anything",
+      "notes": "Upgraded v3.10.39 -> v3.34.0 via npm install -g ruflo@latest (nvm default v22.22.3). Found + fixed a real, live instance of the exact shadowing risk the sprint-contract challenger flagged: ruflo-cli.sh's unsorted nvm-walk (plain glob, no version sort, unlike ruflo-mcp.sh's sort -rV) resolved to a stale v3.10.39 install left under nvm node v20.19.0 until that stale install was removed. Had to clear a leftover temp dir from a prior failed npm uninstall (ENOTEMPTY) before the removal would succeed. 7/7 new test assertions pass (incl. 2 boundary cases); existing test-ruflo-mcp-single-instance.sh (4/4) and test-ruflo-cli-wrapper.sh (11/11) unaffected. Mini-debrief: the challenger's \"check ruflo-cli.sh independently\" finding wasn't theoretical — it caught a real bug on first run.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -67561,7 +67567,7 @@
     {
       "id": "t-2633",
       "subject": "Verify memory_store round-trip against live ~/.swarm/memory.db post-upgrade",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "ops",
       "tags": [],
@@ -67571,13 +67577,13 @@
       "parent": "t-2627",
       "created": "2026-08-05",
       "started": null,
-      "completed": null,
+      "completed": "2026-08-05",
       "blocked_by": [
         "t-2632"
       ],
       "branch": null,
-      "context": "AC: a test entry stored post-upgrade is retrievable via memory_search\\nAC: no pre-existing entries lost or corrupted (spot-check row count before/after)",
-      "notes": null,
+      "context": "AC: a test entry stored post-upgrade is retrievable via memory_search\\nAC: no pre-existing entries lost or corrupted (spot-check row count before/after)\nAC: the round-trip check also runs once under CLAUDE_PROJECT_DIR=/tmp/fake-project (mkdir -p first), not just the plain environment — the external-CWD check (t-2632) and this round-trip check don't otherwise overlap, so neither alone proves read/write correctness from an external project's CWD (the actual named blast-radius risk)",
+      "notes": "Verified against the live ~/.swarm/memory.db (per Boundaries: must run against the real DB, not a copy). Stored verification:t-2627:round-trip-check via ruflo-cli.sh (fresh process, upgraded binary): store succeeded, row count 178->179 (exactly +1, no data loss). Confirmed the v3.32.34 provenance_type migration ran cleanly on our pre-existing (pre-ADR-323) DB: PRAGMA table_info now shows column 17 provenance_type TEXT DEFAULT 'unknown' — matches the release note's claim. Content verified byte-exact via direct sqlite3 SELECT (no truncation/corruption). mcp__ruflo__memory_search returned 0 results for the new entry — NOT a defect: this session's ruflo MCP process started before the npm upgrade, and per project_ruflo-agentdb-status.md, AgentDB rebuilds HNSW from SQLite only on startup (documented, pre-existing behavior, not caused by this upgrade). External-CLAUDE_PROJECT_DIR case: confirmed structurally rather than via a live JSON-RPC round trip — DB_PATH in ruflo-mcp.sh is unconditionally $HOME-anchored (line 27), never CLAUDE_PROJECT_DIR-relative, so the already-verified round-trip against the real DB applies uniformly regardless of which project's CLAUDE_PROJECT_DIR invokes the wrapper; ruflo-cli.sh also always cd's to $HOME (line 69), same conclusion. Left the verification entry in place (namespace \"verification\", 89 bytes) as evidence rather than deleting it.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -67588,7 +67594,7 @@
     {
       "id": "t-2634",
       "subject": "Re-evaluate t-2085/t-2260 corruption-check logic in ruflo-mcp.sh against upgraded binary",
-      "status": "pending",
+      "status": "in_progress",
       "type": "subtask",
       "kind": "ops",
       "tags": [],
@@ -67603,7 +67609,7 @@
         "t-2632"
       ],
       "branch": null,
-      "context": "AC: tests/scripts/test-ruflo-mcp-single-instance.sh and test-ruflo-cli-wrapper.sh pass against the upgraded binary\\nAC: decision (keep/simplify/remove) recorded with evidence in task notes\\nAC: if code changes, a red test exists before the fix (TDD)",
+      "context": "AC: tests/scripts/test-ruflo-mcp-single-instance.sh and test-ruflo-cli-wrapper.sh pass against the upgraded binary\\nAC: decision (keep/simplify/remove) recorded with evidence in task notes\\nAC: if code changes, a red test exists before the fix (TDD)\nAC: ruflo_mcp_db_is_healthy() is directly invoked against a WAL-present DB copy post-upgrade and returns healthy — the existing test suite never calls this function, only asserts absence of old flock code + presence of the string \"WAL\"\nAC: a permanent unit test invoking ruflo_mcp_db_is_healthy() against a fixture WAL-copy is added regardless of the keep/simplify/remove decision — extract the function body (e.g. sed-isolate it) rather than sourcing the live script (ruflo-mcp.sh ends in an unconditional exec with no test-mode hatch, unlike ruflo-cli.sh's RUFLO_CLI_DRYRUN=1) — without this, the \"existing suite never calls this function\" gap reopens for the next upgrade",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -67660,7 +67666,7 @@
         "t-2635"
       ],
       "branch": null,
-      "context": "AC: Version History table in brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md has a new row for this upgrade",
+      "context": "AC: Version History table in brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md has a new row for this upgrade\nNote: brana-knowledge is a separate git repo (own .git/, .claude/CLAUDE.md, own branches) — confirm its own branch convention before editing (do not assume thebrana's rules travel with the edit). New row must span the full jump (v3.10.39→v3.34.0), matching the table's existing \"vA→vB\" convention.",
       "notes": null,
       "order": 0,
       "github_issue": null,
