@@ -92,21 +92,17 @@ task context for the full per-check fixability/risk breakdown.
    exist, misread as real "disabled" state) is the same shape as validate.sh silently
    having no remedy where an author might assume one exists, or mislabeling why.
 
-3. **v1 binds remedies for 4 checks unconditionally, plus a 5th (29) conditional on its
-   fixture proving practical during DECOMPOSE.** Unconditional: **62, 63, 64** (tasks.json
-   migrations — script and `--write` flag already exist; inverse is `git restore
-   .claude/tasks.json`), **42** (single frontmatter field, ADR-backed, one-file blast
-   radius). Conditional: **29** (`brana reference generate` — the generator's own designed
-   purpose; inverse is `git restore` the regenerated files) — its fixture (a copied minimal
-   skills/hooks/agents tree, since the generator reads a whole tree and writes an
-   un-enumerated file set) is untested at spec time. **If 29's fixture turns out impractical
-   during DECOMPOSE, dropping it to 4 checks requires flagging back to the user before
-   DECOMPOSE is finalized — not a unilateral implementation-time call.** Check 29 is
-   currently the *only* check delivered from AC2's named candidate list
-   (9/28/29/30/36/45/60); silently dropping it would take that count to zero without the
-   same explicit confirmation this ADR's own AC2 narrowing already required once. This is a
-   deliberately narrow pilot regardless of whether it lands at 4 or 5 — not the full
-   mechanical set found in research — see Non-Actions.
+3. **v1 binds remedies for 5 checks: 62, 63, 64** (tasks.json migrations — script and
+   `--write` flag already exist; inverse is `git restore .claude/tasks.json`), **42** (single
+   frontmatter field, ADR-backed, one-file blast radius), and **29** (`brana reference
+   generate` — the generator's own designed purpose; inverse is `git restore
+   docs/reference/`). Check 29 was conditional at spec time — its fixture (a copied minimal
+   skills/hooks/agents tree) was untested — but proved practical during BUILD (t-2645):
+   `find_project_root()` only needs a `.git` directory to resolve, and each generator either
+   `.exists()`-guards its input or just needs the target subdirectory to exist, even empty.
+   Check 29 is the *only* check delivered from AC2's named candidate list
+   (9/28/29/30/36/45/60) — the other six are Wave 2. This is a deliberately narrow pilot —
+   not the full mechanical set found in research — see Non-Actions.
 
 4. **Explicitly excluded from any future wave without a separate ADR:** checks that mutate
    state *outside the repo* (34, 58: live scheduler at `~/.claude/scheduler/`; 59: moves git
@@ -154,13 +150,12 @@ task context for the full per-check fixability/risk breakdown.
   or `NO_REMEDY:<reason>`) in the same PR, or the completeness test fails. This is a real,
   permanent authoring cost on every future check — accepted because the alternative (silent
   gaps) is the exact problem this ADR closes.
-- 4-5 bound remedies (depending on check 29's DECOMPOSE-time fixture outcome) out of ~72
-  checks (~6-7%) is a small fraction. The registry's value is
-  structural (no check can *silently* lack a remedy — the gap is either genuinely justified
-  and visible, or it's a completeness-test failure) more than immediate fix coverage. Wave 2
-  (9, 28, 30, 36, 45, 60 — narrower/riskier mechanical candidates from the same catalog) is
-  a follow-up task, not blocked by this ADR, but each addition still goes through the same
-  registry contract.
+- 5 bound remedies out of 75 registered check ids (~7%) is a small fraction. The registry's
+  value is structural (no check can *silently* lack a remedy — the gap is either genuinely
+  justified and visible, or it's a completeness-test failure) more than immediate fix
+  coverage. Wave 2 (9, 28, 30, 36, 45, 60, plus the other `deferred-wave2`-tagged ids —
+  narrower/riskier mechanical candidates from the same catalog) is a follow-up task, not
+  blocked by this ADR, but each addition still goes through the same registry contract.
 - `--fix` mutates tracked files. It is opt-in (never runs as part of a normal `validate.sh`
   invocation) and every bound remedy has a tested inverse, but it is still a new way for
   `validate.sh` — previously read-only — to write to the repo. Anyone piping `validate.sh`
