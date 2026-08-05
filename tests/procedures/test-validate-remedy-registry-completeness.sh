@@ -82,12 +82,28 @@ fi
 
 # Check 8: a real check after the heredoc closes
 echo "check 8 body"
+
+# Check 9: precedes an embedded interpreter block using validate.sh's OTHER real
+# heredoc-open syntax variant (space before the quote, trailing redirect after —
+# validate.sh:1869 uses exactly this shape; a regex tuned only to the Check 18
+# variant at validate.sh:1176, which has no space and no trailing content, would
+# silently miss this one).
+if python3 - "$0" << 'PYEOF' 2>/dev/null
+# Check 1001: fake id inside the OTHER heredoc syntax variant — must NOT be extracted
+print("hi")
+PYEOF
+then
+    echo "ran"
+fi
+
+# Check 10: a real check after the second heredoc closes
+echo "check 10 body"
 FIXEOF
 
 FIXTURE_IDS=$(extract_check_ids "$FIXTURE" | sort -n | tr '\n' ' ')
-EXPECTED_IDS="5 6 7 8 "
+EXPECTED_IDS="5 6 7 8 9 10 "
 
-assert_true "fixture: real + indented + post-heredoc ids extracted, heredoc fakes excluded" \
+assert_true "fixture: real + indented + post-heredoc ids extracted, heredoc fakes excluded (both heredoc syntax variants)" \
     "$([ "$FIXTURE_IDS" = "$EXPECTED_IDS" ] && echo true || echo false)"
 if [ "$FIXTURE_IDS" != "$EXPECTED_IDS" ]; then
     echo "    expected: [$EXPECTED_IDS]  actual: [$FIXTURE_IDS]"
