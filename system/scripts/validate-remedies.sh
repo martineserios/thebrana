@@ -136,3 +136,62 @@ remedy_lookup() {
     printf '%s\n' "$entry"
     return 0
 }
+
+# ── v1 remedies ──────────────────────────────────────────────────────────────
+#
+# Every remedy that invokes a script resolving its target via `git rev-parse
+# --show-toplevel` (or any other CWD-relative lookup) MUST cd into $SCRIPT_DIR
+# first (ADR-077 Decision #5) — those scripts resolve against the CALLER's CWD,
+# not BASH_SOURCE, so an unwrapped call would reintroduce the exact bug class
+# Check 30 (t-1439) exists to prevent, now for a file-mutating operation. $SCRIPT_DIR
+# is read at call time (not captured at definition time), so overriding it in a
+# subshell before calling a remedy — e.g. `( SCRIPT_DIR="$fixture"; remedy_62_apply )`
+# — safely retargets the remedy at a fixture repo for testing.
+
+# _tasks_json_violation_count JQ_FILTER — count of tasks matching JQ_FILTER in
+# $SCRIPT_DIR/.claude/tasks.json, or 0 if the file is absent. Used to make
+# remedy_62/63/64_apply idempotent at the wrapper level: some of the underlying
+# migrate scripts refuse --write on a dirty working tree (their own, unrelated,
+# legitimate safety check) — a first apply() leaves the tasks.json modified but
+# uncommitted, so an unguarded second call would trip that refusal and fail the
+# ADR-077 Decision #5 idempotency requirement even though there is nothing left
+# to fix. Checking first (and skipping --write when already clean) makes apply()
+# a safe no-op on the second call without touching the underlying scripts' guard.
+_tasks_json_violation_count() {
+    local jq_filter="$1" tasks_file="$SCRIPT_DIR/.claude/tasks.json"
+    [ -f "$tasks_file" ] || { echo 0; return; }
+    jq -r "$jq_filter" "$tasks_file" 2>/dev/null || echo 0
+}
+
+# Check 62 — tasks.json tags must be array (t-2309, ADR-065).
+remedy_62_apply() {
+    local n
+    n=$(_tasks_json_violation_count '[.tasks[] | select(.tags != null and (.tags | type) != "array")] | length')
+    [ "$n" = "0" ] && return 0
+    ( cd "$SCRIPT_DIR" && uv run python3 system/scripts/migrate/normalize-tags.py --write )
+}
+remedy_62_undo() {
+    ( cd "$SCRIPT_DIR" && git restore .claude/tasks.json )
+}
+
+# Check 63 — tasks.json must not carry retired level/epic keys (t-2310, ADR-065).
+remedy_63_apply() {
+    local n
+    n=$(_tasks_json_violation_count '[.tasks[] | select(has("level") or has("epic"))] | length')
+    [ "$n" = "0" ] && return 0
+    ( cd "$SCRIPT_DIR" && uv run python3 system/scripts/migrate/collapse-level-epic-v3.py --write )
+}
+remedy_63_undo() {
+    ( cd "$SCRIPT_DIR" && git restore .claude/tasks.json )
+}
+
+# Check 64 — tasks.json must not carry the retired stream key (t-2325, ADR-065).
+remedy_64_apply() {
+    local n
+    n=$(_tasks_json_violation_count '[.tasks[] | select(has("stream"))] | length')
+    [ "$n" = "0" ] && return 0
+    ( cd "$SCRIPT_DIR" && uv run python3 system/scripts/migrate/drop-stream-field-v3.py --write )
+}
+remedy_64_undo() {
+    ( cd "$SCRIPT_DIR" && git restore .claude/tasks.json )
+}
