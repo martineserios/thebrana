@@ -156,6 +156,9 @@ pub fn cmd_ops_health(theme: &themes::Theme) -> anyhow::Result<()> {
     if !report.skipped.is_empty() {
         println!("{}  {} Skipped: {}{}", themes::ansi("yellow"), theme.icon("pending"), report.skipped.join(", "), themes::RESET);
     }
+    if !report.never_run.is_empty() {
+        println!("{}  {} Never run: {}{}", themes::ansi("yellow"), theme.icon("pending"), report.never_run.join(", "), themes::RESET);
+    }
     if report.collisions.is_empty() {
         println!("{}  {} No schedule collisions{}", themes::ansi("green"), theme.icon("done"), themes::RESET);
     } else {
