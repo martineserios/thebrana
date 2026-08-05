@@ -5,7 +5,7 @@ depends_on:
 # Feature: Remedy Binding for validate.sh Findings
 
 **Date:** 2026-08-05
-**Status:** building
+**Status:** shipped
 **Task:** t-2630
 
 ## Problem
@@ -41,14 +41,16 @@ judgment, not scripting.
 - A `system/scripts/validate-remedies.sh` file, sourced by `validate.sh`, containing:
   - A `REMEDY_REGISTRY` associative array covering every check id extracted from
     `validate.sh` (`HAS_REMEDY` or `NO_REMEDY:<reason>` per id).
-  - `remedy_<id>_apply()` / `remedy_<id>_undo()` function pairs for 4 checks unconditionally
-    — **62, 63, 64** (tasks.json migrations — wraps the existing
+  - `remedy_<id>_apply()` / `remedy_<id>_undo()` function pairs for all 5 v1 checks —
+    **62, 63, 64** (tasks.json migrations — wraps the existing
     `system/scripts/migrate/{normalize-tags,collapse-level-epic-v3,drop-stream-field-v3}.py --write`;
     inverse is `git restore .claude/tasks.json`), **42** (writes `model: sonnet` into
     `debrief-analyst.md` frontmatter, covering both the absent-field and
-    present-but-wrong-value sub-cases; inverse restores the prior value from git) — plus a
-    5th, **29** (runs `brana reference generate`; inverse is `git restore` the regenerated
-    files), conditional on its fixture proving practical during DECOMPOSE (see Assumptions).
+    present-but-wrong-value sub-cases; inverse restores the prior value from git), and
+    **29** (runs `brana reference generate`; inverse is `git restore docs/reference/`).
+    Check 29's fixture proved practical (feasibility confirmed during BUILD — a minimal
+    git-inited skills/hooks/agents tree, `find_project_root()` only needs a `.git` dir),
+    so it shipped in v1 as planned rather than dropping to Wave 2.
 - `./validate.sh --fix <N>`: runs the check's `apply()`, re-runs check `N` to confirm it now
   passes, prints the undo command. On a `NO_REMEDY` check: prints the reason, exits
   non-zero — never a silent no-op.
@@ -63,20 +65,25 @@ judgment, not scripting.
   fixture regression tests for both the indented-real-check case (51) and the
   heredoc-fake-id exclusion case (Check 18's embedded comments must NOT appear in the
   extracted set).
-- `tests/procedures/test-validate-remedies.sh`: for the v1-bound checks (4 unconditional,
-  plus 29 if its fixture proves practical — see Assumptions), a fixture
+- `tests/procedures/test-validate-remedies.sh`: for all 5 v1-bound checks, a fixture
   that induces the FAIL/WARN state, applies the remedy, asserts the check now passes, calls
   `apply()` a second time and asserts it's still a no-op error-free pass (idempotency),
   undoes it, asserts `git diff --quiet` (exact restoration).
+- `tests/procedures/test-validate-fix-dispatch.sh`: `--check`/`--fix` mutual exclusion, the
+  NO_REMEDY path (reason printed, nothing touched), the HAS_REMEDY happy path end-to-end via
+  the real `validate.sh --fix N` CLI, an id absent from the registry entirely, and the
+  dispatch-safety boundary (a drifted registry entry claiming `HAS_REMEDY` with no matching
+  function must refuse cleanly, never surface a raw shell error).
 
 ## Deferred (Wave 2 — separate task, not blocked by this one)
 
 Narrower/riskier mechanical candidates from the same catalog: checks 9 (executable bit /
 shebang insert), 28 (`python3` → `uv run python3` prefix), 30 (`cd` subshell wrap), 36/45
-(append missing tool declarations), 60 (append `allowed-tools` entries) — plus 29 itself if
-its fixture proves impractical during DECOMPOSE (see Assumptions). Each still needs its own
-`apply`/`undo` pair and test under the same registry contract — this task only establishes
-the contract and proves it on the 4-5 lowest-risk cases.
+(append missing tool declarations), 60 (append `allowed-tools` entries), 13/17/44/48b/53/67
+(other mechanical checks catalogued during SPECIFY, registered as `NO_REMEDY:deferred-wave2`
+— ADR-077 Decision #2). Each still needs its own `apply`/`undo` pair and test under the same
+registry contract — this task only establishes the contract and proves it on the 5
+lowest-risk cases.
 
 ## Assumptions
 
@@ -231,9 +238,9 @@ directly.
 - [ ] **Tech doc** — this file (`docs/architecture/features/validate-remedy-binding.md`).
 - [ ] **Existing docs to update** — none identified via spec-graph routing (no existing node
   has `validate.sh` in `impl_files`); if that changes during DECOMPOSE, re-check.
-- [ ] **User guide** — not needed; `--fix` is a maintainer-facing flag on an internal tool,
-  not a user-facing feature. `validate.sh`'s own `--help`/usage text (if any) should mention
-  it — confirm during BUILD.
+- [x] **User guide** — confirmed not needed during BUILD: `--fix` is a maintainer-facing
+  flag on an internal tool, not a user-facing feature, and `validate.sh` has no `--help`/
+  usage mechanism to update (verified: no `--help` or `usage()` anywhere in the file).
 
 ## Challenger findings
 
@@ -247,8 +254,15 @@ Assumptions section.
 half, not the heredoc-embedded-fake-id half; the check-29 Wave-2 fallback introduced a new
 unguarded path back to zero AC2 coverage plus an ADR/spec count inconsistency. Both fixed —
 extraction now pre-filters the two `PYEOF` heredoc regions before matching (with a fixture
-test for the exclusion), and check 29 is now explicitly 4-unconditional-plus-1-conditional
-with a required re-confirmation gate if it drops.
+test for the exclusion), and check 29 was made explicitly conditional with a required
+re-confirmation gate if it dropped.
+
+**BUILD resolution:** check 29's fixture proved practical (t-2645/t-2650) — all 5 checks
+(62/63/64/42/29) shipped in v1. A third, unrelated bug surfaced during BUILD itself (not a
+Challenger finding): the completeness test's heredoc-exclusion check had hardcoded Check 18's
+`PYEOF` span as absolute line numbers, which went stale the moment the `--fix` dispatch
+insertion added lines above it. Fixed to locate every `PYEOF` span dynamically instead
+(same scan `extract_check_ids()` itself uses) — see commit `e4b9a367`.
 
 Hard 2-iteration Challenger cap reached at that point (per `challenger-gate.md`'s repair
 loop). Both iteration-2 fixes are concrete, verifiable textual corrections rather than open
