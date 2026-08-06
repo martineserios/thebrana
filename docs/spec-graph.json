@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-03T15:19:57Z",
+  "generated": "2026-08-06T00:19:42Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1148,6 +1148,14 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-077-validate-remedy-registry.md": {
+      "title": "ADR-077: Remedy Registry for `validate.sh` — Bound Fixes, Not Just Findings",
+      "type": "ADR",
+      "impl_files": [
+        "system/scripts/migrate/",
+        "system/scripts/validate-remedies.sh"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1641,6 +1649,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/ruflo-upgrade-memory-reliability.md": {
+      "title": "Feature: Upgrade ruflo v3.10.39 → v3.34.0 and re-verify memory reliability",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/ruflo-mcp.sh",
+        "system/scripts/ruflo-cli.sh"
+      ]
+    },
     "docs/architecture/features/scheduler-hardening.md": {
       "title": "Feature: Scheduler Hardening (Wave 1)",
       "type": "Roadmap",
@@ -1773,6 +1789,14 @@
       "title": "User Journey Map & Gap Analysis",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/validate-remedy-binding.md": {
+      "title": "Feature: Remedy Binding for validate.sh Findings",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/validate-remedies.sh",
+        "system/scripts/migrate/"
+      ]
     },
     "docs/architecture/features/worktree-task-divergence.md": {
       "title": "Feature: validate.sh Check 68 — worktree/task divergence",
@@ -5959,6 +5983,12 @@
     {
       "from": "docs/architecture/features/user-journey-gap-analysis.md",
       "to": "docs/architecture/features/plugin-packaging.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/validate-remedy-binding.md",
+      "to": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
       "type": "depends_on",
       "computed": false
     },
@@ -11345,6 +11375,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
+      "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -11821,6 +11857,12 @@
     {
       "from": "docs/architecture/features/test-lint-feedback-hook.md",
       "to": "docs/.claude/tasks.json",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/validate-remedy-binding.md",
+      "to": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
       "type": "references",
       "computed": false
     },
@@ -15798,9 +15840,9 @@
     }
   ],
   "stats": {
-    "nodes": 544,
-    "edges": 2013,
-    "typed_edges": 683,
-    "orphans": 142
+    "nodes": 547,
+    "edges": 2016,
+    "typed_edges": 684,
+    "orphans": 143
   }
 }
