@@ -67497,9 +67497,9 @@
         "ruvnet-brain-comparison"
       ],
       "description": "All ~218 check call sites in validate.sh route through fail()/warn(), which only echo + increment a counter. No finding anywhere in the file binds to an executor or an undo. ruvnet-brain's equivalent (remedy registry: id->executor->inverse as one value, a factory that throws if any detected problem is offered without a runnable+tested undo) caught its own headline recommendation shipping as a dead button with no executor at all — the same silent gap likely exists here across some subset of the 218 sites.",
-      "context": "Found 2026-08-05 during the same probe pass as the sibling brana-ops-health task and documented in auto-memory project_gentle-ai-ruflo-comparison-adoption-candidates.md. This is M+ effort (structural change to validate.sh's finding model) — per thebrana's own CLAUDE.md rule, needs a feature spec in docs/architecture/features/ before touching system/ code. Scope to decide during spec: (1) which subset of the 218 checks actually have a known automatable fix vs. which are inherently human-judgment-only (those should be explicitly marked \"no remedy\" rather than silently lacking one — ruvnet-brain's UNKNOWN-as-first-class-state precedent applies here too); (2) whether remedy binding is enforced structurally (a registry/factory that fails closed like ruvnet-brain's) or just documented per-check.\nAC: feature spec written in docs/architecture/features/ before implementation\nAC: at least the highest-value automatable findings (e.g. skill frontmatter errors, duplicate skill names, JSON validity) bind to a runnable fix\nAC: checks with no sensible automated fix are explicitly marked as such, not silently unbound\nAC: a check cannot ship claiming a fix exists without a test proving the fix runs and reverses cleanly\n2026-08-05 SPECIFY research (Explore agent catalog of all 68 numbered checks + 4 semantic checks): the AC's original example checks (skill frontmatter, duplicate skill names, JSON validity) are judgment-required, NOT mechanical — fixing them means guessing correct content/policy, which risks masking real errors under a wrong auto-fix. User confirmed (AskUserQuestion): rewrite the AC around the checks that are actually mechanical. Strongest candidates: 62/63/64 (tasks.json migration scripts already exist with --write flags, clean git-restore inverse), 42 (single frontmatter field, ADR-backed). Narrower/riskier mechanical candidates: 9 (chmod +x / shebang insert), 28 (python3 -> uv run prefix), 29 (brana reference generate), 30 (cd wrap), 36/45 (append tool/preamble names), 60 (append allowed-tools entries). Explicitly excluded from v1 (high risk, marked no-remedy with rationale): 34/58 (mutate live scheduler outside repo), 59 (moves git worktrees outside repo, could disrupt in-progress sessions), 47 (wrong JSON shape could reintroduce the exact silent-hook-failure class the check guards against). Full catalog with fixability/risk per check available in this session's transcript if needed for DECOMPOSE.\nChallenger finding (SPECIFY-phase review, iteration 1, 2026-08-05): RECONSIDER. 3 severity-4 blocking findings: (1) completeness-test extraction regex misses indented \"# Check 51\" comment and conflates heredoc-embedded fake \"# Check 1/2\" ids inside Check 18 — fix: use `grep -oP '^\\s*# Check \\K[0-9]+[a-z]?'`, add indented-comment fixture. (2) remedy executors for 62/63/64/29 don't cd into $SCRIPT_DIR before invoking CWD-sensitive scripts (migrate/*.py resolve via `git rev-parse --show-toplevel` against caller CWD, not BASH_SOURCE) — reproduces the exact bug class Check 30 (t-1439) exists to prevent; fix: wrap every remedy invocation in `(cd \"$SCRIPT_DIR\" && ...)`, codify as an explicit ADR-077 Decision #5 rule. (3) AC2 names a \"curated subset of 9/28/29/30/36/45/60\" but v1 only delivers 1 of those 7 (check 29) — silently narrowed without an Assumptions entry flagging it for confirmation, especially risky since this is the task's second scope narrowing. Fix: add explicit Assumptions entry. 5 non-blocking severity-3 warnings also given (check 29 fixture strategy unnamed; check 42 only covers absent-field not wrong-value sub-case; Boundaries table drops check 47's distinct exclusion rationale; no run-twice idempotency test named; --fix dispatch safety unspecified). User chose \"Fix now\" — updating spec + ADR, then one more Challenger pass before DECOMPOSE.\nChallenger iteration 2 (2026-08-05): RECONSIDER. 2 findings: (1) completeness-regex fix from iter 1 only fixed indentation, not the heredoc-embedded-fake-id half (Check 18's Python heredoc has its own \"# Check 1\"/\"# Check 2\" comments) — fixed: extraction now pre-filters out the two PYEOF heredoc regions before regex matching, added fixture test for the exclusion. (2) the \"check 29 drops to Wave 2 if fixture impractical\" fallback silently re-narrowed AC2 coverage to zero with no re-confirmation gate, and ADR/spec disagreed on whether v1 is \"exactly 5\" — fixed: ADR/spec now state 4 unconditional + 1 conditional (29), with an explicit requirement to re-confirm with the user before finalizing DECOMPOSE if 29 drops. Hard 2-iteration Challenger cap reached; user reviewed the fix summary and approved proceeding to DECOMPOSE rather than a third automated pass (2026-08-05).",
+      "context": "Found 2026-08-05 during the same probe pass as the sibling brana-ops-health task and documented in auto-memory project_gentle-ai-ruflo-comparison-adoption-candidates.md. This is M+ effort (structural change to validate.sh's finding model) — per thebrana's own CLAUDE.md rule, needs a feature spec in docs/architecture/features/ before touching system/ code. Scope to decide during spec: (1) which subset of the 218 checks actually have a known automatable fix vs. which are inherently human-judgment-only (those should be explicitly marked \"no remedy\" rather than silently lacking one — ruvnet-brain's UNKNOWN-as-first-class-state precedent applies here too); (2) whether remedy binding is enforced structurally (a registry/factory that fails closed like ruvnet-brain's) or just documented per-check.\nAC: feature spec written in docs/architecture/features/ before implementation\nAC: the identified mechanical, low/medium-risk checks (62, 63, 64 tasks.json migrations; 42 agent model field; 29 brana reference generate) bind to a runnable, tested fix via a remedy registry\nAC: checks with no sensible automated fix (including the originally-cited skill frontmatter / duplicate skill names / JSON validity examples, which investigation showed require human judgment) are explicitly marked as such, not silently unbound\nAC: a check cannot ship claiming a fix exists without a test proving the fix runs and reverses cleanly\nAC: high-risk checks that mutate state outside the repo (34, 58, 59) or carry silent-failure-reintroduction risk (47) are excluded from v1 auto-remedy and explicitly marked no-remedy with a rationale\n2026-08-05 SPECIFY research (Explore agent catalog of all 68 numbered checks + 4 semantic checks): the AC's original example checks (skill frontmatter, duplicate skill names, JSON validity) are judgment-required, NOT mechanical — fixing them means guessing correct content/policy, which risks masking real errors under a wrong auto-fix. User confirmed (AskUserQuestion): rewrite the AC around the checks that are actually mechanical. Strongest candidates: 62/63/64 (tasks.json migration scripts already exist with --write flags, clean git-restore inverse), 42 (single frontmatter field, ADR-backed). Narrower/riskier mechanical candidates: 9 (chmod +x / shebang insert), 28 (python3 -> uv run prefix), 29 (brana reference generate), 30 (cd wrap), 36/45 (append tool/preamble names), 60 (append allowed-tools entries). Explicitly excluded from v1 (high risk, marked no-remedy with rationale): 34/58 (mutate live scheduler outside repo), 59 (moves git worktrees outside repo, could disrupt in-progress sessions), 47 (wrong JSON shape could reintroduce the exact silent-hook-failure class the check guards against). Full catalog with fixability/risk per check available in this session's transcript if needed for DECOMPOSE.\nChallenger finding (SPECIFY-phase review, iteration 1, 2026-08-05): RECONSIDER. 3 severity-4 blocking findings: (1) completeness-test extraction regex misses indented \"# Check 51\" comment and conflates heredoc-embedded fake \"# Check 1/2\" ids inside Check 18 — fix: use `grep -oP '^\\s*# Check \\K[0-9]+[a-z]?'`, add indented-comment fixture. (2) remedy executors for 62/63/64/29 don't cd into $SCRIPT_DIR before invoking CWD-sensitive scripts (migrate/*.py resolve via `git rev-parse --show-toplevel` against caller CWD, not BASH_SOURCE) — reproduces the exact bug class Check 30 (t-1439) exists to prevent; fix: wrap every remedy invocation in `(cd \"$SCRIPT_DIR\" && ...)`, codify as an explicit ADR-077 Decision #5 rule. (3) AC2 names a \"curated subset of 9/28/29/30/36/45/60\" but v1 only delivers 1 of those 7 (check 29) — silently narrowed without an Assumptions entry flagging it for confirmation, especially risky since this is the task's second scope narrowing. Fix: add explicit Assumptions entry. 5 non-blocking severity-3 warnings also given (check 29 fixture strategy unnamed; check 42 only covers absent-field not wrong-value sub-case; Boundaries table drops check 47's distinct exclusion rationale; no run-twice idempotency test named; --fix dispatch safety unspecified). User chose \"Fix now\" — updating spec + ADR, then one more Challenger pass before DECOMPOSE.\nChallenger iteration 2 (2026-08-05): RECONSIDER. 2 findings: (1) completeness-regex fix from iter 1 only fixed indentation, not the heredoc-embedded-fake-id half (Check 18's Python heredoc has its own \"# Check 1\"/\"# Check 2\" comments) — fixed: extraction now pre-filters out the two PYEOF heredoc regions before regex matching, added fixture test for the exclusion. (2) the \"check 29 drops to Wave 2 if fixture impractical\" fallback silently re-narrowed AC2 coverage to zero with no re-confirmation gate, and ADR/spec disagreed on whether v1 is \"exactly 5\" — fixed: ADR/spec now state 4 unconditional + 1 conditional (29), with an explicit requirement to re-confirm with the user before finalizing DECOMPOSE if 29 drops. Hard 2-iteration Challenger cap reached; user reviewed the fix summary and approved proceeding to DECOMPOSE rather than a third automated pass (2026-08-05).\nt-2645 resolved (2026-08-05): check 29 fixture IS feasible. brana reference generate's find_project_root() only needs a .git directory to resolve root (git init suffices, no commits needed); each generator either .exists()-guards its input (hooks.json) or just needs the target subdir to exist, even empty (skills/agents/rules/commands use fs::read_dir which errors only on a missing directory, not an empty one). Fixture: mkdir -p system/{skills,hooks,agents,rules,commands} + git init + one real skill dir to make the round-trip meaningful, cd-wrapped per ADR-077 Decision #5. Decision: check 29 stays in v1 (5 checks total: 62/63/64/42/29). t-2650 proceeds.\nBUILD complete (2026-08-05): all 9 subtasks (t-2642 through t-2650) done. AC: lines above corrected to match the final rescoped scope — the original lines (still referencing dropped skill-frontmatter/duplicate-name/JSON-validity examples) were caught stale here, before the Evaluator gate that reads them directly.",
       "id": "t-2630",
-      "status": "in_progress",
+      "status": "completed",
       "execution": "code",
       "created": "2026-08-05",
       "blocked_by": [],
@@ -67509,10 +67509,10 @@
       "branch": "dx-tooling/refactor/t-2630-validate-sh-findings-have-no",
       "github_issue": "1045",
       "started": "2026-08-05",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-08-05",
+      "notes": "Challenger gate (BUILD-phase review, 2026-08-05): RECONSIDER (1 severity-4 finding, ac_violated: AC3). The heredoc-exclusion mechanism only handled one of validate.sh's two real PYEOF heredocs — a second block (validate.sh ~line 1869, AskUserQuestion-description-field checker) uses `<< 'PYEOF' 2>/dev/null` (space before quote, trailing redirect), which the original regex (anchored to end-of-line, no leading-space tolerance) never matched. Currently inert only by coincidence (no # Check N comment inside that block today) but a real structural gap in the exact guarantee this ADR exists to provide. Also flagged: the completeness test's \"independent\" cross-check reused the identical regex, so it wasn't actually independent.\nFixed: widened extract_check_ids' regex to match the heredoc-open token anywhere on the line (not end-anchored), tolerating whitespace before the quote. Rewrote the completeness test's cross-check to use a genuinely different detection method (pairs PYEOF line numbers via grep+sed rather than reusing the <<-syntax regex). Added a fixture regression test covering both real syntax variants. Verified via fresh TDD cycle (confirmed red against the old regex, green after the fix) plus a full validate.sh rerun (0 errors). No second Challenger round spawned for this fix — narrow, mechanical, directly verified.\nOWASP/injection review: clean. $FIX_TARGET only used as an associative-array key lookup (gated by remedy_lookup before any further use) and a quoted argv element — never eval'd or interpolated into a constructed command.",
       "strategy": "refactor",
-      "build_step": "decompose",
+      "build_step": null,
       "acceptance_criteria": [
         "feature spec written in docs/architecture/features/ before implementation",
         "the identified mechanical, low/medium-risk checks (62, 63, 64 tasks.json migrations; 42 agent model field; a curated subset of 9/28/29/30/36/45/60) bind to a runnable, tested fix via a remedy registry",
@@ -67849,7 +67849,7 @@
     {
       "id": "t-2642",
       "subject": "Write registry-completeness tests (heredoc-exclusion + indented-check fixtures)",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -67874,7 +67874,7 @@
     {
       "id": "t-2643",
       "subject": "Write apply/undo/idempotency tests for checks 62/63/64 remedies",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -67899,7 +67899,7 @@
     {
       "id": "t-2644",
       "subject": "Write apply/undo/idempotency tests for check 42 remedy (both sub-cases)",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -67924,7 +67924,7 @@
     {
       "id": "t-2645",
       "subject": "Investigate check 29 remedy fixture feasibility; decide v1 inclusion",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "research",
       "tags": [],
@@ -67949,7 +67949,7 @@
     {
       "id": "t-2646",
       "subject": "Build REMEDY_REGISTRY covering every validate.sh check id",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -67976,7 +67976,7 @@
     {
       "id": "t-2647",
       "subject": "Implement remedy_62/63/64 apply+undo (cd-wrapped migrate script invocation)",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -68003,7 +68003,7 @@
     {
       "id": "t-2648",
       "subject": "Implement remedy_42 apply+undo (debrief-analyst.md model field)",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -68030,7 +68030,7 @@
     {
       "id": "t-2649",
       "subject": "Wire ./validate.sh --fix N dispatch",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -68059,7 +68059,7 @@
     {
       "id": "t-2650",
       "subject": "Implement remedy_29 apply+undo (conditional on t-2645 feasibility)",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "refactor",
       "tags": [],
@@ -68083,6 +68083,91 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2651",
+      "subject": "Complete unchecked Documentation Plan items in ruflo-upgrade-memory-reliability.md",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "propagate-gap"
+      ],
+      "description": "Surfaced by /brana:close PROPAGATE L1 check (2026-08-05, during t-2639/t-2641 close) — pre-existing gap from an earlier session's work (t-2627 ruflo upgrade), not something this session touched. docs/architecture/features/ruflo-upgrade-memory-reliability.md has 3 unchecked \"- [ ]\" items under its Documentation Plan section. Not investigated further — needs someone to read the doc and either complete the items or explain why they're no longer applicable.",
+      "effort": "XS",
+      "priority": null,
+      "parent": null,
+      "created": "2026-08-05",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2652",
+      "subject": "Ship dev→main + deploy (accumulated fixes from statusline epic-resolution work)",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "ship"
+      ],
+      "description": "dev is ahead of main — t-2639/t-2641 statusline dynamic-epic fix + perf follow-up, plus prior unrelated work. Deferred at close on 2026-08-05 per explicit choice to batch rather than ship per-task. When ready: git checkout main && git merge --ff-only dev && ./bootstrap.sh && git push origin main dev && git checkout dev.",
+      "effort": "XS",
+      "priority": null,
+      "parent": null,
+      "created": "2026-08-05",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "subject": "clean up commercial-intelligence session-epic accumulator contamination (unrelated env-hardening/Tracy entries)",
+      "kind": "fix",
+      "type": "task",
+      "tags": [
+        "git-hygiene",
+        "concurrent-sessions",
+        "session-state"
+      ],
+      "priority": "P3",
+      "effort": "S",
+      "blocked_by": [
+        "t-2628"
+      ],
+      "description": "proyecto_anita session-epics/commercial-intelligence.json accumulator (~/.claude/projects/-home-martineserios-enter-thebrana-ventures-proyecto-anita/memory/session-state-commercial-intelligence.json) contains next[] entries and accomplished[] history that are clearly NOT about commercial-intelligence -- e.g. t-2087 (Greencode questionnaire for Tracy QA->prod cutover), t-2077 (archive zvp cold storage), t-2070 (Kapso canary deploy), t-2403 (anita-dev naming disambiguation), and an accomplished[] entry about Delorenzi catalog enrichment. Live-confirmed 2026-08-05 while closing t-2439 (which itself investigates the mechanism) -- this accumulator is a real, concrete instance of the epic-detection contamination bug t-2628 already tracks (t-2628 next[] entry even references itself from inside this same contaminated file).\n\nBlocked on t-2628 landing first (fixing the detection mechanism) -- no point manually pruning this file if the same contamination will just recur on the next close.",
+      "context": "AC: once t-2628 lands, audit session-state-commercial-intelligence.json full next[]/accomplished[] history and remove entries that do not belong to the commercial-intelligence epic\nAC: verify no other epic accumulators in this project have the same contamination (spot-check env-hardening, agent, anita-envios accumulators)\nSource: t-2439 close session, 2026-08-05 (proyecto_anita)",
+      "id": "t-2653",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-08-05",
+      "ac_state": "none",
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3

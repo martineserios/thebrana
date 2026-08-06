@@ -235,9 +235,9 @@ directly.
 
 ## Documentation Plan
 
-- [ ] **Tech doc** — this file (`docs/architecture/features/validate-remedy-binding.md`).
-- [ ] **Existing docs to update** — none identified via spec-graph routing (no existing node
-  has `validate.sh` in `impl_files`); if that changes during DECOMPOSE, re-check.
+- [x] **Tech doc** — this file (`docs/architecture/features/validate-remedy-binding.md`).
+- [x] **Existing docs to update** — none identified via spec-graph routing (no existing node
+  has `validate.sh` in `impl_files`); confirmed unchanged through BUILD.
 - [x] **User guide** — confirmed not needed during BUILD: `--fix` is a maintainer-facing
   flag on an internal tool, not a user-facing feature, and `validate.sh` has no `--help`/
   usage mechanism to update (verified: no `--help` or `usage()` anywhere in the file).
