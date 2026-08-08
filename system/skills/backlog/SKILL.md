@@ -115,7 +115,7 @@ Tasks keep one v3 metadata field:
 | Next by stream | `brana backlog next --stream dev` |
 | Query tasks | `brana backlog query --status pending --kind fix --output json` |
 | Filter by epic | `brana backlog query --epic cc-alignment` — read-only; resolves via parent chain (flat `epic` field retired, ADR-065) |
-| List epic nodes | `brana backlog query --json \| jq -r '.[] \| select(.type=="epic") \| .id+" "+.subject'` (the *query* `--type` enum lacks `epic` — use this jq, or MCP `backlog_query(task_type: "epic")`; `add --type epic` works fine) |
+| List epic nodes | `brana backlog query --type epic` (works since t-2377) — or MCP `backlog_query(task_type: "epic")` |
 | Filter by work type | `brana backlog query --work-type implement --status pending` |
 | Multi-tag AND query | `brana backlog query --tag "dx,cli" --count` |
 | Filter by parent | `brana backlog query --parent ph-001 --type task` |
