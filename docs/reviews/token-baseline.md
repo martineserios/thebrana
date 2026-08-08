@@ -122,3 +122,31 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **knowledge-review**: expected 1st of month firings (status unclear)
 - Log updated: one entry per day, weekly summary after 7 days
 - **Gap note**: baseline not updated 2026-04-27 to 2026-06-21; activity resumed with weekly-review on 2026-06-19; gap from 2026-06-21 to 2026-07-08 during offline period
+
+---
+
+## 2026-08-01 to 2026-08-07
+- Triggers fired: knowledge-review (2026-08-01)
+- New commits from agents (24h window): 0 (knowledge-review committed 2026-08-01 at 13:11:37 UTC)
+- New review files: knowledge-2026-08-01.md (~7.8K markdown)
+- Output size: medium report
+- This monitor session: offline
+
+## 2026-08-08 (Today)
+- Triggers fired in last 24h: none (knowledge-review already on 2026-08-01)
+- New commits from agents (24h): 0
+- New review files: none (today)
+- This monitor session: haiku (minimal cost)
+- Status: monitoring resumed after knowledge-review confirmation
+
+---
+
+## Baseline Summary (124 days of observation)
+- **Total trigger fires observed**: 
+  - weekly-review: 5 confirmed fires (2026-04-17, 2026-06-19, 2026-06-26, 2026-07-03, 2026-07-24)
+  - knowledge-review: 1 confirmed fire (2026-08-01) ✓ Monthly trigger confirmed working
+- **weekly-review** pattern: Thursdays/Fridays cadence, ~6-7K output per run, estimated 1–2K tokens per execution
+- **knowledge-review** pattern: 1st of month, ~7.8K output per run, estimated 1–2K tokens per execution
+- **token-monitor**: daily observations, haiku model, <200 tokens per run
+- **Architecture/knowledge audits**: 2 large files observed (17K, 9K) from 2026-06-10/11, trigger source unconfirmed
+- **Recommendation**: Both weekly-review and knowledge-review are stable and predictable (~1-2K tokens each, ~1-2 triggers weekly combined). Continue daily monitoring. Total estimated cost ~200-400 tokens/week across scheduled triggers + daily monitor.
