@@ -14,7 +14,7 @@ Make `research` a first-class task stream so research URLs (previously in `docs/
 2. **Regular `t-NNN` IDs** — no special prefix; promotion = change stream, no ID renumbering
 3. **No new subcommand** — extend existing `/brana:backlog add`, `/brana:backlog status`, `/brana:backlog next`
 4. **Research tasks are flat** — no parent/milestone hierarchy, `execution: code` (Claude does the research)
-5. **URL auto-detection** — `/brana:backlog add` suggests `stream: research` when description contains `https://`
+5. **URL auto-detection** — `/brana:backlog add` suggests `kind: research` when description contains `https://` (updated 2026-08-08: stream is no longer set on add; detection lives in `system/skills/backlog/phases/done-and-add.md`)
 6. **Branch prefix** — `research/` for research tasks that produce code artifacts
 7. **Cross-reference on add** — when adding any non-research task, scan research tasks for tag overlap and surface matches
 
@@ -29,13 +29,7 @@ To promote a research task to actionable work:
 
 ## Status Rendering
 
-`/brana:backlog status` shows a Research section after Tech Debt:
-
-```
-Research                          5 new · 2 reviewed · 1 applied
-├── → t-105 GraphRAG evaluation           pending [knowledge-graphs]
-└── ...(+62 more)
-```
+> **Superseded 2026-08-08:** status rendering is now delegated entirely to the CLI (`brana backlog status` — the skill computes nothing manually, see `system/skills/backlog/phases/views.md`); the skill-rendered Research section described below was never carried into the phase split. What survives is `--stream research` filtering on `next` (views.md).
 
 Research triage counts: `new` = pending, `reviewed` = completed with notes, `applied` = completed and spawned follow-up task.
 
@@ -52,7 +46,8 @@ Research triage counts: `new` = pending, `reviewed` = completed with notes, `app
 | File | Change |
 |------|--------|
 | `system/rules/task-convention.md` | Add `research` stream, `research/` branch prefix |
-| `system/skills/backlog/SKILL.md` | URL auto-detect in `/brana:backlog add`, research section in `/brana:backlog status`, `--stream` filter in `/brana:backlog next`, cross-reference scan |
+| `system/skills/backlog/phases/done-and-add.md` | URL auto-detect in `/brana:backlog add`, cross-reference scan (moved from SKILL.md in the t-1942 phase split; the status Research section was superseded by CLI rendering) |
+| `system/skills/backlog/phases/views.md` | `--stream` filter in `/brana:backlog next` |
 | `system/rules/delegation-routing.md` | Add research task trigger |
 | `.claude/tasks.json` | 69 research tasks (t-091 through t-159) |
 | `docs/backlog-urls.md` | Superseded notice |
