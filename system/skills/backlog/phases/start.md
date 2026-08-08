@@ -215,11 +215,9 @@ Branch name follows the project convention (CLAUDE.md §Branch naming):
    If it returns empty *at exit 0* (no epic ancestor found, or none of the ancestors are a
    valid slug): emit warning and stop: "⚠ Task t-NNN has no epic ancestor. Set one first:
    `brana backlog set t-NNN parent <epic-task-id>` (list candidates via
-   `mcp__brana__backlog_query(task_type: \"epic\")` — the CLI's `brana backlog query
-   --type epic` currently errors, since backlog-v3's epic-as-top nodes were never added
-   to its `--type` enum; use the MCP tool or `brana backlog query --json | jq -r '.[] |
-   select(.type=="epic") | .id+" "+.subject'` instead), then re-run start." Do not create
-   a branch with a placeholder epic.
+   `mcp__brana__backlog_query(task_type: \"epic\")` or CLI `brana backlog query --type
+   epic` — works since t-2377), then re-run start." Do not create a branch with a
+   placeholder epic.
 2. `work-type` — resolve via the shared authority. Read and follow
    [`../../_shared/branch-prefix.md`](../../_shared/branch-prefix.md) — call
    `resolve_branch_prefix(task.kind, task.work_type)`.
