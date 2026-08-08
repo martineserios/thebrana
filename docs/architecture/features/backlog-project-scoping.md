@@ -145,18 +145,19 @@ migrating existing global config (fallback is enough).
 
 ## Assumptions
 
-- A project that has never set `active_epic` locally will get the global value (desired: YES, this
-  is the backward-compat fallback).
+- Project-scoped keys (`active_epic`, `active_initiative`) resolve to None when no local config
+  exists — never inherited from global (superseded 2026-08-08 per ADR-066: the global file can
+  hold a foreign project's value, so global fallback for scoped keys was removed).
 - `save_tasks_config()` writes project-local, never global — old global config remains untouched
-  as fallback. (needs confirmation: OK?)
+  (but is no longer read for project-scoped keys, per ADR-066).
 - `--project` slug lookup is case-sensitive (portfolio slugs are lowercase kebab).
 
 ## Behavior
 
 **`brana backlog focus` in client A:**
 - Before: reads `~/.claude/tasks-config.json` → sees thebrana's `active_epic` → shows thebrana tasks
-- After: reads `{client_A_git_root}/.claude/tasks-config.json` → finds no `active_epic` → falls
-  back to global → BUT global active_epic was last set per-project, not overwritten → clean
+- After: reads `{client_A_git_root}/.claude/tasks-config.json` → finds no local `active_epic` →
+  resolves to None (no epic focus) — no global fallback for project-scoped keys (ADR-066)
 
 **`brana backlog set-active harness` in thebrana:**
 - Before: overwrites `~/.claude/tasks-config.json` → affects all projects
@@ -173,7 +174,7 @@ migrating existing global config (fallback is enough).
 
 - Non-git directory: CWD fallback applies (same as `find_tasks_file()`). Looks for
   `.claude/tasks-config.json` in CWD if `.claude/` exists, else global.
-- Project local config has partial keys: merge with global (local wins per-key)
+- Project local config has partial keys: local file is authoritative wholesale for project-scoped keys; no per-key merge with global (Decision 2 / challenger M-1, ADR-066)
 - `--project` in `backlog add` + `--file` flag conflict: error, require one or the other
 - Portfolio slug collision (two entries same slug): use first match; log a warning
 
