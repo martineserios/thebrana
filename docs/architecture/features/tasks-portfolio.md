@@ -86,7 +86,7 @@ tasks-portfolio.json
 - Must handle missing tasks.json gracefully (skip silently)
 - Must handle all-completed projects (show collapsed line, not skip)
 - Must handle both JSON shapes: bare `[{...}]` array and `{"tasks": [...]}` wrapper
-- Skill is a SKILL.md section (instructions, not code)
+- ~~Skill is a SKILL.md section (instructions, not code)~~ (superseded 2026-08-08: `--all` rendering moved into the brana CLI — the skill delegates via `brana backlog status --all`, see `system/skills/backlog/phases/views.md`)
 
 ## Scope (v1)
 
@@ -100,7 +100,7 @@ tasks-portfolio.json
 - Last 3 completed tasks (✓ icon, with completion date)
 - All-completed clients shown as collapsed line: `{slug}  all done ({N} tasks)`
 
-**Unified priority** (`--unified`): flat list sorted by priority across all clients, prefixed with client slug. Sort order: P0 > P1 > P2 > null. Ties broken by: in_progress first, then pending, then order field.
+**Unified priority** (`--unified`): flat list sorted by priority across all clients, prefixed with client slug. Sort order: P0 > P1 > P2 > P3 > null. Ties broken by: in_progress first, then pending, then order field.
 
 ### Multi-project display (v2, t-287)
 
@@ -128,6 +128,8 @@ Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {i
 
 ### Data flow
 
+> **Note (2026-08-08):** this pipeline is now implemented inside the brana CLI (`brana backlog status --all`), not as SKILL.md instructions — the skill delegates rendering entirely (`system/skills/backlog/phases/views.md`). Kept as documentation of the CLI's behavior.
+
 ```
 ~/.claude/tasks-portfolio.json
   → resolve schema (v2 nested or v1 legacy)
@@ -144,7 +146,7 @@ Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {i
 
 ### Files to modify
 
-1. `system/skills/backlog/SKILL.md` — portfolio section + wide-mode template
+1. ~~`system/skills/backlog/SKILL.md` — portfolio section + wide-mode template~~ (superseded: rendering lives in the brana CLI; the wide-mode template lives in `system/skills/backlog/phases/display-themes.md` since the t-1942 phase split)
 
 ### Challenger findings (addressed)
 

@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-067: Write-Time RETIRED_FIELDS Guard in brana-core
 
 - **Status:** Accepted

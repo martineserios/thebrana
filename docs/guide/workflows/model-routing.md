@@ -10,7 +10,7 @@ Before spawning an agent for a task, the backlog skill computes a complexity sco
 |-------|-------|-----|
 | Description word count / 100 | Length signal | 0.3 |
 | Dependency count x 0.1 | Complexity signal | 0.2 |
-| Stream is `roadmap` | Scope signal | 0.2 |
+| Stream is `dev` | Stream signal | 0.2 |
 | Tags contain `architecture` | Depth signal | 0.1 |
 | Effort is `L` or `XL` | Size signal | 0.1 |
 
@@ -36,7 +36,7 @@ Routing decisions are logged to the decision log as `cost` entries:
 
 ```bash
 # See all routing decisions
-uv run python3 system/scripts/decisions.py read --type cost
+brana decisions read --type cost --agent backlog
 
 # Output example:
 # [2026-03-11 12:00] backlog/cost: t-348 routed to opus (score: 0.75)
@@ -51,4 +51,4 @@ The scoring function is a starting point. After collecting 30+ routing decisions
 - Are opus tasks actually complex? (If they're routine, lower the threshold)
 - Is any input systematically misleading? (e.g., long descriptions that are actually simple)
 
-Adjust thresholds in `system/skills/backlog/SKILL.md` based on data.
+Adjust thresholds in `system/skills/backlog/phases/execute.md` (§Model routing) based on data; the canonical Router-as-Haiku pattern lives in `system/skills/_shared/model-routing.md`.

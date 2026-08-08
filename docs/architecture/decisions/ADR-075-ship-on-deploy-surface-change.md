@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-075: Ship on Deploy-Surface Change, Not on Batch Size or Schedule
 
 - **Status:** Accepted

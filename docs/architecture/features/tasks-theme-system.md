@@ -79,14 +79,14 @@ Every subcommand that renders output: status, portfolio, roadmap, next, tags, co
 ## Design
 
 ### Post-challenger adjustments
-- **Theme drift mitigation:** Uses "task-line template" pattern — compact inline block near top of SKILL.md, referenced by name in every rendering section. Avoids distant lookup table problem.
+- **Theme drift mitigation:** Uses "task-line template" pattern — compact template block referenced by name in every rendering section. Avoids distant lookup table problem. (Since the t-1942 phase split, the templates live in `system/skills/backlog/phases/display-themes.md`, loaded via the PHASES registry before any themed view renders.)
 - **Config simplified:** Global-only (`~/.claude/tasks-config.json`), 2-level resolution (flag > global > classic). No per-project config.
 - **Emoji alignment:** Accepted as trade-off. Emoji theme trades column precision for visual scannability.
 - **Tree connectors:** Universal (all themes), removed from theme table since they don't vary.
 - **No ADR:** Cosmetic feature in a single file with no architectural impact.
 
 ### Files modified
-- `system/skills/backlog/SKILL.md` — theme system + rendering updates (617 → 758 lines)
+- `system/skills/backlog/SKILL.md` — theme system + rendering updates (617 → 758 lines at build time; since the t-1942 phase split the theme system lives in `system/skills/backlog/phases/display-themes.md`)
 
 ## Learnings
 
