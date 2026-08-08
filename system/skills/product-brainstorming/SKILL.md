@@ -4,7 +4,7 @@ description: "Brainstorm product ideas, explore problem spaces, and challenge as
 group: thinking
 keywords: [brainstorming, product, ideation]
 allowed-tools: [Read, Glob, Grep, Write, AskUserQuestion]
-status: acquired
+status: experimental
 source: "https://skills.sh/anthropics/knowledge-work-plugins/product-brainstorming"
 acquired: "2026-08-04"
 quarantine: false

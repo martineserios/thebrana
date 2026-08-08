@@ -1,10 +1,10 @@
 ---
 name: web-design-guidelines
 description: "Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", or \"vs best practices\"."
-group: frontend
+group: domain
 keywords: [ux, ui, design, accessibility, review, frontend]
 allowed-tools: [Read, Glob, Grep, Bash, WebFetch]
-status: acquired
+status: experimental
 source: "https://skills.sh/vercel-labs/agent-skills/web-design-guidelines"
 acquired: "2026-08-04"
 ---

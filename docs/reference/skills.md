@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**40 skills** loaded from `system/skills/`.
+**39 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -33,7 +33,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
-| `/brana:design-system` | frontend | Token architecture and component specs: three-layer tokens (primitive→semantic→c |
+| `/brana:design-system` | domain | Token architecture and component specs: three-layer tokens (primitive→semantic→c |
 | `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
@@ -43,7 +43,6 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:gemini` | execution | Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. U |
 | `/brana:grad-mechanism-design` | thinking | Mechanism design (reverse game theory): incentive-compatible rules for allocatio |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
-| `/brana:impeccable` | frontend | Use when designing, redesigning, critiquing, auditing, or polishing a frontend i |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bulk m |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, polli |
@@ -60,7 +59,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
-| `/brana:web-design-guidelines` | frontend | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
+| `/brana:web-design-guidelines` | domain | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
 ## brana
 
@@ -173,11 +172,23 @@ Situational awareness — where am I, what was I doing, what's next. Context rec
 
 ## domain
 
+### `/brana:design-system`
+
+Token architecture and component specs: three-layer tokens (primitive→semantic→component), CSS variables, spacing/typography scales, slide generation. Use for design tokens, systematic design, brand-compliant presentations.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
 ### `/brana:domain-driven-design`
 
 DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript). Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
 
 **Allowed tools:** [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
+
+### `/brana:web-design-guidelines`
+
+Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", or \"vs best practices\".
+
+**Allowed tools:** [Read, Glob, Grep, Bash, WebFetch]
 
 
 ## execution
@@ -251,27 +262,6 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 **Arguments:** `[target or task-id]`
 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, ToolSearch
-
-
-## frontend
-
-### `/brana:design-system`
-
-Token architecture and component specs: three-layer tokens (primitive→semantic→component), CSS variables, spacing/typography scales, slide generation. Use for design tokens, systematic design, brand-compliant presentations.
-
-**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
-
-### `/brana:impeccable`
-
-Use when designing, redesigning, critiquing, auditing, or polishing a frontend interface — sites, dashboards, product UI, forms, onboarding, empty states. Covers UX, visual hierarchy, IA, cognitive load, accessibility.
-
-**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
-
-### `/brana:web-design-guidelines`
-
-Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", or \"vs best practices\".
-
-**Allowed tools:** [Read, Glob, Grep, Bash, WebFetch]
 
 
 ## learning

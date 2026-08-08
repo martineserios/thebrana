@@ -1,10 +1,10 @@
 ---
 name: design-system
 description: "Token architecture and component specs: three-layer tokens (primitive→semantic→component), CSS variables, spacing/typography scales, slide generation. Use for design tokens, systematic design, brand-compliant presentations."
-group: frontend
+group: domain
 keywords: [design-tokens, design-system, css, ui]
 allowed-tools: [Read, Glob, Grep, AskUserQuestion]
-status: acquired
+status: experimental
 source: "https://skills.sh/nextlevelbuilder/ui-ux-pro-max-skill/design-system"
 acquired: "2026-08-04"
 quarantine: true

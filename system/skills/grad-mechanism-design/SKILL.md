@@ -4,7 +4,7 @@ description: "Mechanism design (reverse game theory): incentive-compatible rules
 group: thinking
 keywords: [mechanism-design, matching-markets, game-theory, incentives]
 allowed-tools: [Read, Glob, Grep, AskUserQuestion]
-status: acquired
+status: experimental
 source: "https://skills.sh/asgard-ai-platform/skills/grad-mechanism-design"
 acquired: "2026-08-04"
 quarantine: true
