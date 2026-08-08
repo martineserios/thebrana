@@ -26,8 +26,8 @@ Solo developer who wants full info density on wide terminals (120+ cols).
 
 ## Scope (v1)
 
-- `--wide` flag on: `status`, `portfolio`, `roadmap`, `next`, `tags --filter/--any`
-- Fixed column order: `icon id subject status tags pri eff stream blocked_by started completed`
+- `--wide` flag on: `status` (incl. `status --all`, the former `portfolio` subcommand — renamed in t-289), `roadmap`, `next`, `tags --filter/--any`
+- Fixed column order: `icon id subject status tags pri eff stream project blocked_by started completed` (`project` column added by t-287, always visible in wide mode)
 - Phases/milestones render as header rows (progress summary, no per-column detail)
 - Tags show first 3, then `+N` if more
 - Theme icons apply to the `icon` column (same icons as compact mode)
@@ -42,7 +42,7 @@ Solo developer who wants full info density on wide terminals (120+ cols).
 
 ## Design
 
-Single-file change to `system/skills/backlog/SKILL.md`. Three insertion points:
+Single-file change to `system/skills/backlog/SKILL.md` at build time (since the t-1942 phase split, the wide-mode template and Display Themes live in `system/skills/backlog/phases/display-themes.md`). Three insertion points:
 1. Display Themes section — wide-mode template definition with examples for all 3 themes
 2. Commands list — `--wide` flag on supported commands
 3. Each view command section — "If `--wide`, render using wide-mode template" clause
