@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**35 skills** loaded from `system/skills/`.
+**40 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -33,6 +33,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
+| `/brana:design-system` | frontend | Token architecture and component specs: three-layer tokens (primitive→semantic→c |
 | `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
@@ -40,13 +41,16 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), v |
 | `/brana:gemini` | execution | Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. U |
+| `/brana:grad-mechanism-design` | thinking | Mechanism design (reverse game theory): incentive-compatible rules for allocatio |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
+| `/brana:impeccable` | frontend | Use when designing, redesigning, critiquing, auditing, or polishing a frontend i |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bulk m |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, polli |
 | `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for an |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list. Us |
+| `/brana:product-brainstorming` | thinking | Brainstorm product ideas, explore problem spaces, and challenge assumptions as a |
 | `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagatio |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce fi |
 | `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after disc |
@@ -56,6 +60,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
+| `/brana:web-design-guidelines` | frontend | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
 ## brana
 
@@ -248,6 +253,27 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, ToolSearch
 
 
+## frontend
+
+### `/brana:design-system`
+
+Token architecture and component specs: three-layer tokens (primitive→semantic→component), CSS variables, spacing/typography scales, slide generation. Use for design tokens, systematic design, brand-compliant presentations.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:impeccable`
+
+Use when designing, redesigning, critiquing, auditing, or polishing a frontend interface — sites, dashboards, product UI, forms, onboarding, empty states. Covers UX, visual hierarchy, IA, cognitive load, accessibility.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:web-design-guidelines`
+
+Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", or \"vs best practices\".
+
+**Allowed tools:** [Read, Glob, Grep, Bash, WebFetch]
+
+
 ## learning
 
 ### `/brana:challenge`
@@ -311,6 +337,18 @@ Decision support — criteria, scenarios, patterns, recommendation.
 **Arguments:** `[question or options, e.g. 'should I do A or B' / 'what to work on next']`
 
 **Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, ToolSearch
+
+### `/brana:grad-mechanism-design`
+
+Mechanism design (reverse game theory): incentive-compatible rules for allocation — auctions, voting, matching. Use when designing or evaluating a mechanism for incentive compatibility and rationality.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:product-brainstorming`
+
+Brainstorm product ideas, explore problem spaces, and challenge assumptions as a thinking partner. Use when exploring an opportunity, generating solutions, or stress-testing an idea before converging on a direction.
+
+**Allowed tools:** [Read, Glob, Grep, Write, AskUserQuestion]
 
 
 ## utility
