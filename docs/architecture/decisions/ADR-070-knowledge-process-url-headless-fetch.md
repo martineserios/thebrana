@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-070: `brana knowledge process-url` — headless-first fetch architecture
 
 **Status:** Accepted

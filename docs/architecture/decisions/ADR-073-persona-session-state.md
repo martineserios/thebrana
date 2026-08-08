@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-073: Persona modifier persisted in session state, not CLAUDE.local.md
 
 **Status:** Accepted  

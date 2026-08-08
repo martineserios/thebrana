@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-065: Epic as the Sole Hierarchy Top Node (reversing v2 initiative-as-top)
 
 - **Status:** Accepted
