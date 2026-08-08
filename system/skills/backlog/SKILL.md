@@ -54,14 +54,19 @@ language guided by the task-convention rule — no skill invocation needed.
 
 ### Initiative Model (v3)
 
-Tasks have two new optional fields:
+**Epics are hierarchy nodes, not a field** (ADR-065). An epic is a top-level task with `type: "epic"` whose `subject` is the epic slug (e.g. `"cc-alignment"`). A task belongs to an epic through its `parent` chain — its nearest `type: "epic"` ancestor (walk helper: [`../_shared/epic-ancestor-walk.md`](../_shared/epic-ancestor-walk.md)).
+
+> **Retired — flat `epic` field.** The pre-v3 flat `epic` string field is gone and its set/add write paths are sealed (t-2310): `backlog_set(field: "epic")` and `brana backlog set <id> epic <slug>` are hard-rejected with `unknown field: epic`, and `brana backlog add --epic` is a warned no-op. Never set or create the field. Epic membership is written by setting `parent` to an epic node's id.
+>
+> **Mid-migration caveat (t-2698):** the ADR-065 backfill (promote old epic slugs to nodes, re-parent tasks) has only run in some projects (e.g. thebrana). In a project whose tasks.json has no `type: "epic"` nodes yet, first create the epic node (`brana backlog add --subject "<slug>" --type epic`), then parent tasks to it — or, if restructuring isn't warranted yet, tag tasks with the epic slug as the interim marker. Never resurrect the flat field.
+
+Tasks keep one v3 metadata field:
 
 | Field | Values | Purpose |
 |-------|--------|---------|
-| `epic` | slug string (e.g. `"cc-alignment"`) | Groups tasks under a named epic |
 | `work_type` | `implement` / `research` / `design` / `infra` / `review` / `chore` | Cognitive mode — what kind of work this is. Note: `kind: refactor` tasks use `work_type: implement`. |
 
-**Active epic** is set in the project-local `.claude/tasks-config.json` → `active_epic` (per-repo, never the global `~/.claude/tasks-config.json` — ADR-066, t-2158). When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
+**Active epic** is set in the project-local `.claude/tasks-config.json` → `active_epic` (per-repo, never the global `~/.claude/tasks-config.json` — ADR-066, t-2158). It stores the epic *slug* — i.e. an epic node's `subject`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
 
 **Stream taxonomy** (v3 — 3 values):
 
@@ -78,18 +83,19 @@ Tasks have two new optional fields:
 | Get task | `backlog_get(task_id: "t-123")` |
 | Get field | `backlog_get(task_id: "t-123", field: "status")` |
 | Query tasks | `backlog_query(status: "pending", stream: "dev")` or `backlog_query(kind: "fix")` |
-| Filter by epic | `backlog_query(epic: "cc-alignment")` |
+| Filter by epic | `backlog_query(epic: "cc-alignment")` — read-only; resolves membership via the parent chain (flat `epic` field retired, ADR-065) |
+| List epic nodes | `backlog_query(task_type: "epic")` |
 | Filter by work type | `backlog_query(work_type: "implement", status: "pending")` |
 | Multi-tag AND | `backlog_query(tag: "dx,cli")` |
 | Filter by parent | `backlog_query(parent: "ph-001", task_type: "task")` |
 | Search | `backlog_search(query: "enforcement")` |
 | Aggregate stats | `backlog_stats()` |
 | Set field | `backlog_set(task_id: "t-123", field: "status", value: "in_progress")` |
-| Set epic | `backlog_set(task_id: "t-123", field: "epic", value: "cc-alignment")` |
+| Assign to epic | `backlog_set(task_id: "t-123", field: "parent", value: "<epic-node-id>")` — membership = parent chain (ADR-065); `field: "epic"` is retired and rejected (`unknown field: epic`) |
 | Add/remove tag | `backlog_set(task_id: "t-123", field: "tags", value: "+newtag")` |
 | Append text | `backlog_set(task_id: "t-123", field: "context", value: "note", append: true)` |
 | Create task | `backlog_add(subject: "...", kind: "feature", task_type: "task")` |
-| Create with epic | `backlog_add(subject: "...", epic: "cc-alignment", work_type: "implement")` |
+| Create under epic | `backlog_add(subject: "...", parent: "<epic-node-id>", work_type: "implement")` — `epic:` param is retired (ADR-065) |
 | Focus (top tasks) | `backlog_focus(top: 5)` or `backlog_focus(work_type: "research")` |
 
 ### CLI fallback (when MCP unavailable)
@@ -106,7 +112,8 @@ Tasks have two new optional fields:
 | Next unblocked task | `brana backlog next --kind feature --tag Y` |
 | Next by stream | `brana backlog next --stream dev` |
 | Query tasks | `brana backlog query --status pending --kind fix --output json` |
-| Filter by epic | `brana backlog query --epic cc-alignment` |
+| Filter by epic | `brana backlog query --epic cc-alignment` — read-only; resolves via parent chain (flat `epic` field retired, ADR-065) |
+| List epic nodes | `brana backlog query --json \| jq -r '.[] \| select(.type=="epic") \| .id+" "+.subject'` (the *query* `--type` enum lacks `epic` — use this jq, or MCP `backlog_query(task_type: "epic")`; `add --type epic` works fine) |
 | Filter by work type | `brana backlog query --work-type implement --status pending` |
 | Multi-tag AND query | `brana backlog query --tag "dx,cli" --count` |
 | Filter by parent | `brana backlog query --parent ph-001 --type task` |
@@ -114,14 +121,14 @@ Tasks have two new optional fields:
 | Get single field | `brana backlog get <id> --field status` |
 | Focus (active epic) | `brana backlog focus` |
 | Focus by work type | `brana backlog focus --work-type research` |
-| Focus override epic | `brana backlog focus --epic cc-alignment` |
+| Focus override epic | `brana backlog focus --epic cc-alignment` — read-only; epic resolved from nodes, not the retired flat field (ADR-065) |
 
 ### Write operations
 
 | Operation | CLI command |
 |-----------|------------|
 | Set any field | `brana backlog set <id> <field> <value>` |
-| Set epic | `brana backlog set <id> epic cc-alignment` |
+| Assign to epic | `brana backlog set <id> parent <epic-node-id>` (membership = parent chain, ADR-065; `set <id> epic <slug>` is retired → `unknown field: epic`) |
 | Set work type | `brana backlog set <id> work_type implement` |
 | **Set active epic** | `brana backlog set-active <slug>` (per-repo — writes project-local `.claude/tasks-config.json`, t-2155) |
 | Set to null | `brana backlog set <id> priority null` |
@@ -130,7 +137,8 @@ Tasks have two new optional fields:
 | Add blocked_by | `brana backlog set <id> blocked_by +t-100` |
 | Create task (JSON) | `brana backlog add --json '{"subject":"...","kind":"feature","type":"task"}'` |
 | Create task (shorthand) | `brana backlog add --subject "..." --kind feature --type task --tags "a,b" --effort S` |
-| Create with epic | `brana backlog add --subject "..." --epic cc-alignment --work-type implement` |
+| Create under epic | `brana backlog add --subject "..." --parent <epic-node-id> --work-type implement` (the `--epic` flag is DEPRECATED per ADR-065 — it parses but no-ops with a stderr warning) |
+| Create epic node | `brana backlog add --subject "<slug>" --type epic` (`epic` is a valid `--type` on add — t-2322) |
 | Create in another project | `brana backlog add --subject "..." --project <slug>` (cross-project via portfolio; default = current project, t-2155) |
 | Create initiative | `brana backlog add --subject "..." --kind feature --type initiative` |
 | Create task (from file) | `brana backlog add --json @/tmp/task.json` |
