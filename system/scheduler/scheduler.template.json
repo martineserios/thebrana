@@ -39,7 +39,7 @@
       "type": "command"
     },
     "cc-changelog-review": {
-      "_comment": "Weekly CC changelog diff \u2014 writes ~/.claude/cc-changelog-report.md if changes found (t-512)",
+      "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)",
       "captureOutput": true,
       "command": "./system/scripts/cc-changelog-check.sh",
       "enabled": true,
@@ -50,7 +50,7 @@
       "type": "command"
     },
     "close-extraction": {
-      "_comment": "ADR-052 Track 2: nightly extraction \u2014 agy pass per queued close snapshot, learnings to reminders, daily summary. Exits non-zero on agy failure so health surfaces it.",
+      "_comment": "ADR-052 Track 2: nightly extraction — agy pass per queued close snapshot, learnings to reminders, daily summary. Exits non-zero on agy failure so health surfaces it.",
       "captureOutput": true,
       "command": "./system/cron/close-extraction.sh",
       "enabled": true,
@@ -73,7 +73,7 @@
       "type": "command"
     },
     "feed-index": {
-      "_comment": "t-1009: daily intelligence digest from feed-log.jsonl \u2192 ~/.claude/intelligence-feed-digest.md. Runs after last feed-poll (18:00).",
+      "_comment": "t-1009: daily intelligence digest from feed-log.jsonl → ~/.claude/intelligence-feed-digest.md. Runs after last feed-poll (18:00).",
       "captureOutput": true,
       "command": "./system/scripts/feed-index.sh",
       "enabled": true,
@@ -124,7 +124,7 @@
       "type": "command"
     },
     "knowledge-pipeline-tier1": {
-      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enable manually after dry-run passes clean. Tier 3 is manual only. Timeout 900 (t-2441): both tiers share one budget and 300s is not enough for a full pass (~3s/URL LLM scoring, ~585s measured 2026-07-24) \u2014 a fresh install seeded from this template would hit the same timeout kill.",
+      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enable manually after dry-run passes clean. Tier 3 is manual only. Timeout 900 (t-2441): both tiers share one budget and 300s is not enough for a full pass (~3s/URL LLM scoring, ~585s measured 2026-07-24) — a fresh install seeded from this template would hit the same timeout kill.",
       "captureOutput": true,
       "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
       "enabled": false,
@@ -134,7 +134,7 @@
       "type": "command"
     },
     "link-research-extraction": {
-      "_comment": "t-2306: capped pass over pending link-tagged tasks from telegram link-capture. t-2560 (2026-07-31): repointed from ./deploy/research-extraction.sh to the Rust subcommand, which completes a task ONLY after its content reaches the knowledge base \u2014 the gate the old script lacked (it marked completed on `claude -p` exit 0 while persisting nothing; personal-repo t-1366, P0, 6 links burned). STILL DISABLED pending a human enable: see t-2560.",
+      "_comment": "t-2306: capped pass over pending link-tagged tasks from telegram link-capture. t-2560 (2026-07-31): repointed from ./deploy/research-extraction.sh to the Rust subcommand, which completes a task ONLY after its content reaches the knowledge base — the gate the old script lacked (it marked completed on `claude -p` exit 0 while persisting nothing; personal-repo t-1366, P0, 6 links burned). STILL DISABLED pending a human enable: see t-2560.",
       "command": "brana knowledge drain-links --cap 10",
       "enabled": true,
       "project": "~/enter_thebrana/personal",
@@ -143,7 +143,7 @@
       "type": "command"
     },
     "lint-heal": {
-      "_comment": "t-1075: weekly L2 memory lint+heal \u2014 dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00). Enable only after --dry-run validation.",
+      "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00). Enable only after --dry-run validation.",
       "captureOutput": true,
       "command": "./system/scripts/lint-heal.sh",
       "enabled": true,
@@ -153,7 +153,7 @@
       "type": "command"
     },
     "memory-consolidation": {
-      "_comment": "t-1834: threshold-triggered L3 consolidation \u2014 debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter).",
+      "_comment": "t-1834: threshold-triggered L3 consolidation — debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter).",
       "captureOutput": true,
       "command": "./system/scripts/memory-consolidation.sh",
       "enabled": true,
@@ -183,7 +183,7 @@
       "type": "command"
     },
     "reindex-patterns": {
-      "_comment": "t-857: weekly FTS reindex \u2192 ~/.claude/memory/index.db. noProjectLock (t-2292): writes only its own store, opts out of the shared project lock so a Sun-wake catch-up burst can't starve it into a SKIP.",
+      "_comment": "t-857: weekly FTS reindex → ~/.claude/memory/index.db. noProjectLock (t-2292): writes only its own store, opts out of the shared project lock so a Sun-wake catch-up burst can't starve it into a SKIP.",
       "captureOutput": true,
       "command": "./system/scripts/index-patterns.sh",
       "enabled": true,
@@ -233,7 +233,7 @@
       "type": "command"
     },
     "sync-state": {
-      "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos.",
+      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos.",
       "captureOutput": true,
       "command": "./system/scripts/sync-state.sh push --auto-commit",
       "enabled": true,
@@ -243,7 +243,7 @@
       "type": "command"
     },
     "oracle-brana-drift": {
-      "_comment": "t-2501: audits oracle-hub brana manifest (ship-brana-oracle.sh provenance) \u2014 UNMANAGED/SWAPPED/DRIFT exit 1 -> FAILED job = the visible signal; unreachable hub is a clean skip. noProjectLock: read-only wrt shared state; avoids the 600s lock-wait vs 180s TimeoutStartSec kill window (t-2611).",
+      "_comment": "t-2501: audits oracle-hub brana manifest (ship-brana-oracle.sh provenance) — UNMANAGED/SWAPPED/DRIFT exit 1 -> FAILED job = the visible signal; unreachable hub is a clean skip. noProjectLock: read-only wrt shared state; avoids the 600s lock-wait vs 180s TimeoutStartSec kill window (t-2611).",
       "type": "command",
       "command": "~/enter_thebrana/thebrana/system/scripts/check-oracle-brana-drift.sh",
       "project": "~/enter_thebrana/thebrana",
