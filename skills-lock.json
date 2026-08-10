@@ -31,6 +31,12 @@
       "skillPath": "skills/strategy/first-principles/SKILL.md",
       "computedHash": "2c502541c4fb385194c64a8e45d9d8d5f45b4fd080f0641958ebae19614f06ee"
     },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "051984124b25179c17bfb812fb605d7a8f3f9b0768e7534dd137f76a0cc52a26"
+    },
     "inversion": {
       "source": "guia-matthieu/clawfu-skills",
       "sourceType": "github",

@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**39 skills** loaded from `system/skills/`.
+**40 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -43,6 +43,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:gemini` | execution | Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. U |
 | `/brana:grad-mechanism-design` | thinking | Mechanism design (reverse game theory): incentive-compatible rules for allocatio |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
+| `/brana:impeccable` | domain | Use when the user wants to design, redesign, shape, critique, audit, polish, cla |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bulk m |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, polli |
@@ -183,6 +184,12 @@ Token architecture and component specs: three-layer tokens (primitive→semantic
 DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript). Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
 
 **Allowed tools:** [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
+
+### `/brana:impeccable`
+
+Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
 
 ### `/brana:web-design-guidelines`
 
