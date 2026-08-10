@@ -251,6 +251,15 @@
       "timeoutSeconds": 120,
       "noProjectLock": true,
       "enabled": true
+    },
+    "knowledge-vector-sync": {
+      "_comment": "t-2620: sync the brana-owned vector store (~/.claude/memory/knowledge.db) from ruflo memory_entries. Runs 20min after each drain-links pass so freshly drained links become topic-searchable. Idempotent (newest row per key wins); unreadable sources are skipped loudly.",
+      "command": "brana knowledge vector-sync",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 0/4:20:00",
+      "timeoutSeconds": 600,
+      "type": "command"
     }
   },
   "version": 1

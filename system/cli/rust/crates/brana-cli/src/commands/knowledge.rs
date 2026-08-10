@@ -2910,3 +2910,54 @@ mod tests {
         assert!(prompt.contains("\"reason\""), "prompt must mention reason key");
     }
 }
+
+// --- vector-sync (t-2620) ---------------------------------------------------
+
+/// `brana knowledge vector-sync` — sync the brana-owned vector store from
+/// ruflo `memory_entries` DBs (local-vector-recall.md). Idempotent: newest
+/// row per key wins across sources; unreadable sources are skipped loudly.
+pub fn cmd_vector_sync(
+    sources: Vec<PathBuf>,
+    dest: Option<PathBuf>,
+    json: bool,
+) -> Result<()> {
+    let default_src = home().join(".swarm").join("memory.db");
+    let requested: Vec<PathBuf> = if sources.is_empty() { vec![default_src] } else { sources };
+
+    let (readable, skipped): (Vec<PathBuf>, Vec<PathBuf>) = requested
+        .into_iter()
+        .partition(|p| brana_core::vector::probe_memory_entries(p));
+    for s in &skipped {
+        eprintln!("⚠ skipping unreadable source: {}", s.display());
+    }
+    if readable.is_empty() {
+        bail!("no readable memory_entries source among the given paths");
+    }
+
+    let dest = dest.unwrap_or_else(brana_core::vector::knowledge_db_path);
+    let stats = brana_core::vector::migrate_from_memory_entries(&readable, &dest)?;
+    let total = brana_core::vector::KnowledgeStore::open(&dest)?.count()?;
+
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "dest": dest,
+                "sources": readable,
+                "sources_skipped": skipped,
+                "scanned": stats.scanned,
+                "migrated": stats.migrated,
+                "skipped_no_embedding": stats.skipped_no_embedding,
+                "deduped": stats.deduped,
+                "store_total": total,
+            })
+        );
+    } else {
+        println!(
+            "vector-sync: scanned {} rows from {} source(s) → migrated {} (deduped {}, no-embedding {}). Store now holds {} entries at {}",
+            stats.scanned, readable.len(), stats.migrated, stats.deduped,
+            stats.skipped_no_embedding, total, dest.display()
+        );
+    }
+    Ok(())
+}

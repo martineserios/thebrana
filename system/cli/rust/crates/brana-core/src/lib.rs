@@ -19,3 +19,4 @@ pub mod session_initiative;
 pub mod sync;
 pub mod tasks;
 pub mod util;
+pub mod vector;
