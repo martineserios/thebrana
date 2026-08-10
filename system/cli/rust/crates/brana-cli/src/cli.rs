@@ -461,6 +461,20 @@ pub enum KnowledgeCmd {
     /// Auto-advance the pipeline: tier1→tier2, stopping at human decision points.
     /// Parallel-safe: holds the pipeline lock for the whole advance.
     Run,
+    /// Sync the brana-owned vector store (~/.claude/memory/knowledge.db) from
+    /// ruflo memory_entries DBs. Idempotent: newest row per key wins (t-2620).
+    VectorSync {
+        /// Source memory.db files (default: ~/.swarm/memory.db). Rotated
+        /// memory.db.corrupt-* files that pass integrity_check are valid sources.
+        #[arg(long)]
+        source: Vec<PathBuf>,
+        /// Destination store (default: ~/.claude/memory/knowledge.db)
+        #[arg(long)]
+        dest: Option<PathBuf>,
+        /// Output stats as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]

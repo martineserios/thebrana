@@ -259,6 +259,9 @@ fn main() {
             },
             KnowledgeCmd::Next => run_or_exit(commands::knowledge::cmd_next()),
             KnowledgeCmd::Run => run_or_exit(commands::knowledge::cmd_run()),
+            KnowledgeCmd::VectorSync { source, dest, json } => {
+                run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, json))
+            }
         },
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),

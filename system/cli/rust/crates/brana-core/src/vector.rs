@@ -9,15 +9,24 @@
 //! Embedding generation stays external (ruflo ONNX, all-MiniLM-L6-v2 384d) —
 //! injected via the [`Embedder`] trait so search is testable without it.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
+use rusqlite::{Connection, OpenFlags, params};
 
 use crate::search::{DocRef, SearchHit, SearchProvider};
 
 /// Embedding dimensionality (all-MiniLM-L6-v2).
 pub const EMBED_DIM: usize = 384;
+
+/// Canonical store location: `~/.claude/memory/knowledge.db` — brana-owned,
+/// deliberately outside `~/.swarm/` and its rotation machinery (t-2615/t-2619).
+pub fn knowledge_db_path() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(home).join(".claude").join("memory").join("knowledge.db")
+}
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
@@ -31,13 +40,38 @@ pub struct KnowledgeStore {
 
 impl KnowledgeStore {
     /// Open the store, creating the file and schema if absent.
+    ///
+    /// Holds only the path — connections are opened per operation, matching
+    /// `FTS5Provider`'s idiom (`rusqlite::Connection` is `!Send`).
     pub fn open(db_path: impl Into<PathBuf>) -> Result<Self> {
-        let _ = db_path;
-        todo!("t-2620 FIX")
+        let db_path = db_path.into();
+        if let Some(parent) = db_path.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("creating {}", parent.display()))?;
+        }
+        let conn = Connection::open(&db_path)
+            .with_context(|| format!("opening {}", db_path.display()))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS knowledge (
+                key        TEXT PRIMARY KEY,
+                content    TEXT NOT NULL,
+                tags       TEXT,
+                source     TEXT,
+                created_at INTEGER NOT NULL,
+                vec        BLOB NOT NULL
+            );",
+        )
+        .context("creating knowledge schema")?;
+        Ok(Self { db_path })
     }
 
     pub fn db_path(&self) -> &Path {
         &self.db_path
+    }
+
+    fn conn(&self) -> Result<Connection> {
+        Connection::open(&self.db_path)
+            .with_context(|| format!("opening {}", self.db_path.display()))
     }
 
     /// Insert or replace an entry. `vec` must be `EMBED_DIM` long.
@@ -50,22 +84,64 @@ impl KnowledgeStore {
         created_at: i64,
         vec: &[f32],
     ) -> Result<()> {
-        let _ = (key, content, tags, source, created_at, vec);
-        todo!("t-2620 FIX")
+        if vec.len() != EMBED_DIM {
+            bail!("vector for {key} has {} dims, expected {EMBED_DIM}", vec.len());
+        }
+        self.conn()?
+            .execute(
+                "INSERT OR REPLACE INTO knowledge (key, content, tags, source, created_at, vec)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![key, content, tags, source, created_at, vec_to_blob(vec)],
+            )
+            .with_context(|| format!("upserting {key}"))?;
+        Ok(())
     }
 
     /// Number of stored entries.
     pub fn count(&self) -> Result<usize> {
-        todo!("t-2620 FIX")
+        let n: i64 = self
+            .conn()?
+            .query_row("SELECT COUNT(*) FROM knowledge", [], |r| r.get(0))?;
+        Ok(n as usize)
     }
+}
+
+/// Encode a vector as little-endian `f32` bytes.
+fn vec_to_blob(v: &[f32]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(v.len() * 4);
+    for f in v {
+        out.extend_from_slice(&f.to_le_bytes());
+    }
+    out
+}
+
+/// Decode a little-endian `f32` BLOB. `None` if the byte length is not a
+/// multiple of 4 or the dimensionality is wrong.
+fn blob_to_vec(blob: &[u8]) -> Option<Vec<f32>> {
+    if blob.len() != EMBED_DIM * 4 {
+        return None;
+    }
+    Some(
+        blob.chunks_exact(4)
+            .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+            .collect(),
+    )
 }
 
 // ── Cosine ────────────────────────────────────────────────────────────────────
 
 /// Cosine similarity of two equal-length vectors. Returns 0.0 for zero-norm inputs.
 pub fn cosine(a: &[f32], b: &[f32]) -> f32 {
-    let _ = (a, b);
-    todo!("t-2620 FIX")
+    let mut dot = 0.0_f32;
+    let mut na = 0.0_f32;
+    let mut nb = 0.0_f32;
+    for (x, y) in a.iter().zip(b.iter()) {
+        dot += x * y;
+        na += x * x;
+        nb += y * y;
+    }
+    let denom = (na.sqrt()) * (nb.sqrt());
+    if denom == 0.0 { 0.0 } else { dot / denom }
 }
 
 // ── Embedder seam ─────────────────────────────────────────────────────────────
@@ -107,9 +183,66 @@ impl VectorProvider {
 
 impl SearchProvider for VectorProvider {
     fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
-        let _ = (q, top_k);
-        todo!("t-2620 FIX")
+        if q.trim().is_empty() || top_k == 0 || !self.db_path.exists() {
+            return Vec::new();
+        }
+        let Some(qvec) = self.embedder.embed(q) else {
+            return Vec::new();
+        };
+        if qvec.len() != EMBED_DIM {
+            return Vec::new();
+        }
+        let Ok(conn) = Connection::open_with_flags(
+            &self.db_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        ) else {
+            return Vec::new();
+        };
+        let Ok(mut stmt) = conn.prepare("SELECT key, content, vec FROM knowledge") else {
+            return Vec::new();
+        };
+        let rows = stmt.query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Vec<u8>>(2)?,
+            ))
+        });
+        let Ok(rows) = rows else { return Vec::new() };
+
+        let mut scored: Vec<(f32, String, String)> = rows
+            .filter_map(|row| {
+                let (key, content, blob) = row.ok()?;
+                let v = blob_to_vec(&blob)?;
+                let score = cosine(&qvec, &v);
+                (score >= self.threshold).then_some((score, key, content))
+            })
+            .collect();
+        scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+        scored.truncate(top_k);
+
+        scored
+            .into_iter()
+            .map(|(_, key, content)| SearchHit {
+                doc: DocRef::KnowledgeEntry {
+                    key,
+                    namespace: "knowledge".to_string(),
+                },
+                snippet: truncate_chars(&content, 300),
+                rrf_score: 0.0,
+            })
+            .collect()
     }
+}
+
+/// Truncate at a char boundary, appending `…` when shortened.
+fn truncate_chars(s: &str, max: usize) -> String {
+    if s.chars().count() <= max {
+        return s.to_string();
+    }
+    let mut out: String = s.chars().take(max).collect();
+    out.push('…');
+    out
 }
 
 // ── Migration ─────────────────────────────────────────────────────────────────
@@ -137,8 +270,112 @@ pub struct MigrateStats {
 /// live DB lost (t-2615). Rows without a parseable embedding are counted in
 /// `skipped_no_embedding`, never silently dropped.
 pub fn migrate_from_memory_entries(sources: &[PathBuf], dest: &Path) -> Result<MigrateStats> {
-    let _ = (sources, dest);
-    todo!("t-2620 FIX")
+    struct Candidate {
+        content: String,
+        tags: Option<String>,
+        created_at: i64,
+        updated_at: i64,
+        vec: Vec<f32>,
+    }
+
+    let mut stats = MigrateStats::default();
+    let mut best: HashMap<String, Candidate> = HashMap::new();
+
+    for src in sources {
+        let conn = Connection::open_with_flags(
+            src,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .with_context(|| format!("opening source {}", src.display()))?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT key, content, embedding, tags, created_at, updated_at
+                 FROM memory_entries WHERE namespace = 'knowledge'",
+            )
+            .with_context(|| format!("querying memory_entries in {}", src.display()))?;
+        let rows = stmt.query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, i64>(4)?,
+                r.get::<_, i64>(5)?,
+            ))
+        })?;
+
+        for row in rows {
+            let (key, content, embedding, tags, created_at, updated_at) = row?;
+            stats.scanned += 1;
+            let vec = embedding
+                .as_deref()
+                .and_then(|e| serde_json::from_str::<Vec<f32>>(e).ok())
+                .filter(|v| v.len() == EMBED_DIM);
+            let Some(vec) = vec else {
+                stats.skipped_no_embedding += 1;
+                continue;
+            };
+            let cand = Candidate { content, tags, created_at, updated_at, vec };
+            match best.entry(key) {
+                std::collections::hash_map::Entry::Vacant(e) => {
+                    e.insert(cand);
+                }
+                std::collections::hash_map::Entry::Occupied(mut e) => {
+                    stats.deduped += 1;
+                    if cand.updated_at > e.get().updated_at {
+                        e.insert(cand);
+                    }
+                }
+            }
+        }
+    }
+
+    let store = KnowledgeStore::open(dest)?;
+    for (key, c) in &best {
+        store.upsert(key, &c.content, c.tags.as_deref(), Some("memory_entries"), c.created_at, &c.vec)?;
+        stats.migrated += 1;
+    }
+    Ok(stats)
+}
+
+/// Cheap readability probe: can `path` be opened and its `memory_entries`
+/// table stepped? Used by `vector-sync` to skip unreadable/corrupt sources
+/// with a warning instead of failing the whole batch.
+pub fn probe_memory_entries(path: &Path) -> bool {
+    let Ok(conn) = Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    ) else {
+        return false;
+    };
+    conn.query_row("SELECT COUNT(*) FROM memory_entries WHERE namespace='knowledge'", [], |r| {
+        r.get::<_, i64>(0)
+    })
+    .is_ok()
+}
+
+// ── Production embedder ───────────────────────────────────────────────────────
+
+/// Query-text embedding via `ruflo embeddings generate -t <q> -o json` — the
+/// one ruflo layer the spec keeps (ONNX all-MiniLM-L6-v2, 384d). Fails open:
+/// any resolution/spawn/parse failure returns `None`.
+pub struct RufloEmbedder;
+
+impl Embedder for RufloEmbedder {
+    fn embed(&self, text: &str) -> Option<Vec<f32>> {
+        let bin = crate::ruflo::resolve_ruflo_binary()?;
+        let out = std::process::Command::new(bin)
+            .args(["embeddings", "generate", "-t", text, "-o", "json"])
+            .output()
+            .ok()?;
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        // Node preamble may precede the JSON object — scan for the first '{'.
+        let start = stdout.find('{')?;
+        let v: serde_json::Value = serde_json::from_str(stdout[start..].trim()).ok()?;
+        let emb = v.get("embedding")?.as_array()?;
+        let vec: Vec<f32> = emb.iter().filter_map(|x| x.as_f64().map(|f| f as f32)).collect();
+        (vec.len() == EMBED_DIM).then_some(vec)
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 use anyhow::Result;
-use brana_core::search::{DocRef, FTS5Provider, HybridProvider, RufloProvider, SearchProvider};
+use brana_core::search::{DocRef, FTS5Provider, HybridProvider, SearchProvider};
+use brana_core::vector::{RufloEmbedder, VectorProvider};
 use std::sync::Arc;
 
 pub fn cmd_recall(query: &str, top_k: usize, json: bool, db: Option<String>) -> Result<()> {
@@ -8,8 +9,14 @@ pub fn cmd_recall(query: &str, top_k: usize, json: bool, db: Option<String>) -> 
         .unwrap_or_else(brana_core::memory::fts_index_path);
 
     let fts5 = Arc::new(FTS5Provider::new(db_path)) as Arc<dyn brana_core::search::SearchProvider>;
-    let ruflo = Arc::new(RufloProvider::new("knowledge")) as Arc<dyn brana_core::search::SearchProvider>;
-    let provider = HybridProvider::new(fts5, ruflo);
+    // Local vector recall over the brana-owned store (t-2620) — replaces the
+    // broken ruflo retrieval stack; ruflo remains only as query embedder.
+    // Threshold 0.25 keeps sub-topical noise out of the RRF pool.
+    let vectors = Arc::new(
+        VectorProvider::new(brana_core::vector::knowledge_db_path(), Arc::new(RufloEmbedder))
+            .with_threshold(0.25),
+    ) as Arc<dyn brana_core::search::SearchProvider>;
+    let provider = HybridProvider::new(fts5, vectors);
 
     let hits = provider.query(query, top_k);
 
