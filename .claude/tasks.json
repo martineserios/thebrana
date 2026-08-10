@@ -70357,6 +70357,34 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2725",
+      "subject": "brana-scheduler validate reports WARN \"has issues\" uniformly across ~23/24 jobs incl. healthy ones",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "scheduler",
+        "validator"
+      ],
+      "description": "brana-scheduler validate flags nearly every deployed job unit as \"has issues\" (23 of 24 in the current run), including jobs confirmed healthy via `systemctl --user status` (e.g. sync-state ran successfully today, exit 0/SUCCESS, timer active). Observed 2026-08-10 while adding the knowledge-vector-sync job — the config itself validated OK (path/schedule lines all show OK), only the unit-verification pass flags issues. Root cause unknown; likely a validator check that doesn't match this systemd/unit-file setup rather than a real per-job defect. Investigate what \"has issues\" actually checks and fix the false-positive rate, or narrow the check so a real issue is distinguishable from noise.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-08-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-08-10: discovered during /brana:ship for t-2620 while merging the knowledge-vector-sync job (defined in system/scheduler/scheduler.template.json but missing from live ~/.claude/scheduler/scheduler.json) into the live config and running `brana-scheduler deploy`. Post-deploy `brana-scheduler validate` showed 22-23 WARN \"has issues\" out of ~24 jobs. Spot-checked brana-sched-sync-state.service via systemctl --user status: Active inactive (dead) since today 08:24, exit code 0/SUCCESS, timer active and waiting — genuinely healthy, yet still flagged.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3
