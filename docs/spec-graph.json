@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-08T22:55:51Z",
+  "generated": "2026-08-10T11:48:48Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -250,6 +250,11 @@
     },
     "brana-knowledge/dimensions/60-agent-loop-architecture.md": {
       "title": "Agent Loop Architecture — Self-Contained Loops That Act, Measure, Judge, Assimilate",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/60-upstash-platform.md": {
+      "title": "Upstash Platform",
       "type": "Dimension",
       "impl_files": []
     },
@@ -1624,8 +1629,9 @@
       "title": "Feature: Research Stream in /brana:backlog",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/backlog/phases/done-and-add.md",
+        "system/skills/backlog/phases/views.md",
         "system/rules/task-convention.md",
-        "system/skills/backlog/SKILL.md",
         "system/rules/delegation-routing.md"
       ]
     },
@@ -1758,13 +1764,16 @@
       "title": "Feature: /brana:backlog status --all",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/backlog/SKILL.md"
+        "system/skills/backlog/phases/views.md",
+        "system/skills/backlog/SKILL.md",
+        "system/skills/backlog/phases/display-themes.md"
       ]
     },
     "docs/architecture/features/tasks-theme-system.md": {
       "title": "Feature: Themeable Task Display",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/backlog/phases/display-themes.md",
         "system/skills/backlog/SKILL.md"
       ]
     },
@@ -1772,7 +1781,8 @@
       "title": "Feature: Wide Display Mode for /brana:backlog",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/backlog/SKILL.md"
+        "system/skills/backlog/SKILL.md",
+        "system/skills/backlog/phases/display-themes.md"
       ]
     },
     "docs/architecture/features/test-lint-feedback-hook.md": {
@@ -2352,6 +2362,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/60-upstash-platform.md": {
+      "title": "Upstash Platform",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/INDEX.md": {
       "title": "Dimension Docs Index",
       "type": "Roadmap",
@@ -2791,7 +2806,8 @@
       "title": "Dynamic Model Routing",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/backlog/SKILL.md"
+        "system/skills/backlog/phases/execute.md",
+        "system/skills/_shared/model-routing.md"
       ]
     },
     "docs/guide/workflows/reconcile.md": {
@@ -15840,9 +15856,9 @@
     }
   ],
   "stats": {
-    "nodes": 547,
+    "nodes": 549,
     "edges": 2016,
     "typed_edges": 684,
-    "orphans": 143
+    "orphans": 145
   }
 }
