@@ -70074,6 +70074,35 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2717",
+      "subject": "Park/close pass on epic t-2338 cli-backlog-schema — over WIP cap (56/10)",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "maintenance",
+        "backlog",
+        "epic:cli-backlog-schema"
+      ],
+      "description": "backlog_add warned 2026-08-08 that epic t-2338 is at 56 live children vs a 10-task WIP cap (parked and finished children excluded). Triage the epic's pending/in_progress children: park stale ones, close/cancel superseded ones, until under cap.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-08-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Deliberately NOT parented to t-2338 (would add to the cap it fixes) — carries the epic:cli-backlog-schema tag instead. Filed from /brana:close 2026-08-08 follow-up offer. Use `brana backlog tree t-2338` to survey the subtree.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3
