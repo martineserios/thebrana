@@ -1,6 +1,6 @@
 ---
 title: Local Vector Recall — own retrieval, drop the index
-status: proposed
+status: built
 created: 2026-08-03
 tasks: [t-2620, t-2619, t-2616]
 supersedes: []
@@ -174,6 +174,35 @@ No re-fetch, no re-embed, no network.
    pointless while the store rolls back daily.
 2. **This spec.** Table, migration, brute-force search behind `brana recall`.
 3. **The hook.** Only worth building once 1 and 2 land.
+
+> **Sequencing revision (2026-08-10, t-2620):** t-2619's own audit found its
+> "fixes the daily loop" diagnosis unsupported (reclassified as reaction
+> hardening; root cause moved to t-2626), so item 1 stopped being a
+> precondition — the brana-owned store makes rotation irrelevant to retrieval.
+> Item 2 shipped without waiting.
+
+## Implementation notes (t-2620, 2026-08-10)
+
+- `brana-core::vector` — `KnowledgeStore` (schema as designed, f32 LE BLOB),
+  `cosine`, `VectorProvider` (fail-open, threshold-gated), `Embedder` seam with
+  `RufloEmbedder` (`ruflo embeddings generate -t <q> -o json`), and
+  `migrate_from_memory_entries`.
+- **Migration became a salvage union**, not the single-source copy assumed
+  here: by build time the live DB had rolled back again (122 knowledge rows).
+  The union of `memory.db.corrupt-2026-08-03` (passes `integrity_check`; 3,801
+  embedded rows) and the live DB migrated **3,922 entries**, dedup by key,
+  newest `updated_at` wins.
+- `brana knowledge vector-sync [--source …] [--dest …] [--json]` — idempotent
+  re-sync; scheduler job `knowledge-vector-sync` runs 20min after each
+  `drain-links` pass.
+- Both `brana recall` (CLI) and the `recall` MCP tool now build
+  `HybridProvider(FTS5, VectorProvider)`; `RufloProvider` remains in
+  `search.rs` but has no production call site.
+- Verified live: `brana recall "python web scraping framework"` returns the
+  `knowledge:url:…python-framework-scrapes…` entry captured via Telegram —
+  the first `knowledge:url` hit semantic search has ever returned. 0.7s total
+  (ONNX embed shell-out dominates; the scan is sub-ms).
+- The auto-recall hook (item 3) remains open — tracked separately.
 
 ## Acceptance criteria
 
