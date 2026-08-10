@@ -512,6 +512,35 @@ brana knowledge run
 
 ---
 
+## brana knowledge vector-sync
+
+Sync the brana-owned vector store (`~/.claude/memory/knowledge.db`) from ruflo
+`memory_entries` DBs. Idempotent: newest row per key wins (t-2620). Zero
+dependency on the ruflo HNSW index — this is the local brute-force cosine
+recall path.
+
+### Usage
+
+```bash
+brana knowledge vector-sync [--source <path>]... [--dest <path>] [--json]
+```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source <path>` | `~/.swarm/memory.db` | Source memory.db file(s). Repeatable. Rotated `memory.db.corrupt-*` files that pass `integrity_check` are valid sources. |
+| `--dest <path>` | `~/.claude/memory/knowledge.db` | Destination store. |
+| `--json` | off | Output migration stats as JSON. |
+
+### Scheduling
+
+Wired as the `knowledge-vector-sync` scheduler job (every 4h, 20min offset
+from `link-research-extraction`) so freshly drained links become
+topic-searchable without a manual run.
+
+---
+
 ## brana session
 
 Unified session state management. Subcommands: `write`, `read`, `history`, `path`,
