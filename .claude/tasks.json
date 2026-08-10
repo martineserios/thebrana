@@ -4169,7 +4169,8 @@
       "subject": "Review brana-knowledge structure and functioning",
       "tags": [
         "architecture",
-        "docs"
+        "docs",
+        "parked"
       ],
       "type": "task",
       "work_type": "chore"
@@ -7971,7 +7972,8 @@
       "tags": [
         "knowledge-architecture",
         "second-phase",
-        "drift-detection"
+        "drift-detection",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -8049,7 +8051,8 @@
       "tags": [
         "knowledge-architecture",
         "second-phase",
-        "scale-trigger"
+        "scale-trigger",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -18271,7 +18274,8 @@
         "ruflo",
         "sona",
         "trajectory",
-        "blocked"
+        "blocked",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -20058,7 +20062,8 @@
       "tags": [
         "knowledge-architecture",
         "rag",
-        "evaluation"
+        "evaluation",
+        "parked"
       ],
       "type": "task",
       "work_type": "research"
@@ -20083,7 +20088,8 @@
       "tags": [
         "agent-memory",
         "consolidation",
-        "knowledge-architecture"
+        "knowledge-architecture",
+        "parked"
       ],
       "type": "task",
       "work_type": "research"
@@ -23979,7 +23985,8 @@
         "memory-compiler",
         "claude-code",
         "github",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24031,7 +24038,8 @@
         "metadata-driven",
         "ontology",
         "agentic-ai",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24057,7 +24065,8 @@
         "skill-kit",
         "github",
         "framework",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24083,7 +24092,8 @@
         "ontology",
         "modeling",
         "semantic",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "design"
@@ -24109,7 +24119,8 @@
         "memory-palace",
         "agent-memory",
         "context-engineering",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24136,7 +24147,8 @@
         "rdf",
         "lpg",
         "database",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24162,7 +24174,8 @@
         "metadata",
         "ai-ops",
         "architecture",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24188,7 +24201,8 @@
         "reference-catalog",
         "github",
         "metadata",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24213,7 +24227,8 @@
       "tags": [
         "knowledge-graph",
         "community",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -24239,7 +24254,8 @@
         "semantic-layer",
         "data-architecture",
         "semantic-contracts",
-        "research"
+        "research",
+        "parked"
       ],
       "type": "task",
       "work_type": "design"
@@ -25380,7 +25396,8 @@
       "tags": [
         "[\"memory\"",
         "\"kairos\"",
-        "\"maintenance\"]"
+        "\"maintenance\"]",
+        "parked"
       ],
       "type": "task",
       "work_type": "research"
@@ -28256,7 +28273,9 @@
       "started": null,
       "status": "pending",
       "subject": "brana knowledge insights: session digest command",
-      "tags": [],
+      "tags": [
+        "parked"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -28322,7 +28341,9 @@
       "started": null,
       "status": "pending",
       "subject": "cli: --reindex flag on brana knowledge promote",
-      "tags": [],
+      "tags": [
+        "parked"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -33551,7 +33572,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "2026-08-10 cancelled in t-2348 WIP-cap triage: the t-1397 investigation this note-update targets was resolved long ago; updating its note has no remaining value.",
       "created": "2026-05-14",
       "description": "CC v2.1.126 removed per-file malware-assessment on Read tool. Prior to this, CC made internal Read calls for each file to assess malware — these fired PostToolUseFailure when they hit errors. This is the most likely explanation for the 572 Read tool-fail count. Now on v2.1.141, these should stop accumulating. Monitor error-recurrence.jsonl for 2-3 sessions to confirm count stops growing. If confirmed, close t-1397 root-cause investigation.",
       "effort": "XS",
@@ -33562,7 +33583,7 @@
       "parent": "t-2348",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Update t-1397: Read x572 root cause likely CC v2.1.126 malware-assessment removal",
       "tags": [
         "observability",
@@ -33642,7 +33663,8 @@
       "tags": [
         "memory",
         "procedure",
-        "client-move"
+        "client-move",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -36915,7 +36937,8 @@
       "tags": [
         "knowledge-pipeline",
         "cli",
-        "ideation"
+        "ideation",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -36943,7 +36966,8 @@
       "tags": [
         "knowledge-pipeline",
         "tier2",
-        "ideation"
+        "ideation",
+        "parked"
       ],
       "type": "task",
       "work_type": "research"
@@ -38354,7 +38378,8 @@
         "claude-gemini-orchestration",
         "mcp",
         "rust",
-        "powerhouse +wave4"
+        "powerhouse +wave4",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -38409,7 +38434,8 @@
       "subject": "[rule] Update delegation-routing.md + git-discipline.md + cwd-discipline.md for agy",
       "tags": [
         "claude-gemini-orchestration",
-        "rules"
+        "rules",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -41395,7 +41421,7 @@
       "branch": null,
       "build_step": null,
       "completed": null,
-      "context": "t-1552 spike found smart:true fails 100% with Duplicate export of ControllerRegistry in ruflo v3.6. Re-run the same 10 LOAD queries after upgrading ruflo. Pass threshold: p95 latency delta <500ms vs smart:false baseline (p50 199ms, p95 303ms).\n2026-05-27 post-upgrade test: bug fixed in 3.10.3. But smart:true still unsuitable — cold-start 3.3s (7x threshold), MMR too aggressive (top-2/3 collapse to <0.1 sim). Recommend closing t-1697 unless ruflo adds tunable MMR + warmup.",
+      "context": "t-1552 spike found smart:true fails 100% with Duplicate export of ControllerRegistry in ruflo v3.6. Re-run the same 10 LOAD queries after upgrading ruflo. Pass threshold: p95 latency delta <500ms vs smart:false baseline (p50 199ms, p95 303ms).\n2026-05-27 post-upgrade test: bug fixed in 3.10.3. But smart:true still unsuitable — cold-start 3.3s (7x threshold), MMR too aggressive (top-2/3 collapse to <0.1 sim). Recommend closing t-1697 unless ruflo adds tunable MMR + warmup.\n2026-08-10 cancelled in t-2348 WIP-cap triage: ruflo agentic layer (smart:true, agent_execute) ruled hollow under subscription (field-note_ruflo-agentic-layer-subscription-theater, ADR-059) — re-testing it serves no execution path.",
       "created": "2026-05-27",
       "description": null,
       "effort": "S",
@@ -41407,7 +41433,7 @@
       "parent": "t-2348",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Re-test ruflo smart:true after ControllerRegistry fix",
       "tags": [
@@ -44325,7 +44351,9 @@
       "status": "pending",
       "strategy": null,
       "subject": "[test] Draft cluster name slash sanitization — test_draft_cluster_name_with_slash_produces_flat_file",
-      "tags": []
+      "tags": [
+        "parked"
+      ]
     },
     {
       "blocked_by": [],
@@ -44969,7 +44997,8 @@
         "brana",
         "experiment",
         "ratchet",
-        "skill"
+        "skill",
+        "parked"
       ],
       "type": "task"
     },
@@ -45021,7 +45050,8 @@
         "brana",
         "inbox",
         "auto-research",
-        "knowledge"
+        "knowledge",
+        "parked"
       ],
       "type": "task"
     },
@@ -45047,7 +45077,8 @@
         "brana",
         "ruflo",
         "knowledge",
-        "hook"
+        "hook",
+        "parked"
       ],
       "type": "task"
     },
@@ -50282,7 +50313,8 @@
       "strategy": null,
       "subject": "Knowledge Base Redesign — One Schema, Three Consumers",
       "tags": [
-        "kb-redesign"
+        "kb-redesign",
+        "parked"
       ],
       "type": "phase"
     },
@@ -50308,7 +50340,8 @@
       "strategy": null,
       "subject": "Phase 0 — Unit-of-Knowledge ADR",
       "tags": [
-        "kb-redesign"
+        "kb-redesign",
+        "parked"
       ],
       "type": "milestone"
     },
@@ -50557,7 +50590,8 @@
       "subject": "[test] Phase 1 failing tests — schema checks, hard-reject gate, classify-by-type, graph↔indexer agreement",
       "tags": [
         "kb-redesign",
-        "test"
+        "test",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -50701,7 +50735,8 @@
       "subject": "[test] Phase 2 failing tests — close routing, research/inbox emit, event promotion",
       "tags": [
         "kb-redesign",
-        "test"
+        "test",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -50846,7 +50881,8 @@
       "strategy": null,
       "subject": "Lifecycle sweep of docs/ideas/",
       "tags": [
-        "kb-redesign"
+        "kb-redesign",
+        "parked"
       ],
       "type": "task",
       "work_type": "ops"
@@ -50873,7 +50909,8 @@
       "strategy": null,
       "subject": "Atomize top-5 dimensions — hub-linking required at creation",
       "tags": [
-        "kb-redesign"
+        "kb-redesign",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -50900,7 +50937,8 @@
       "strategy": null,
       "subject": "Memory-file frontmatter reconciliation (170+ files)",
       "tags": [
-        "kb-redesign"
+        "kb-redesign",
+        "parked"
       ],
       "type": "task",
       "work_type": "ops"
@@ -50927,7 +50965,8 @@
       "strategy": null,
       "subject": "Merge 24-roadmap-corrections into 18-lean-roadmap",
       "tags": [
-        "kb-redesign"
+        "kb-redesign",
+        "parked"
       ],
       "type": "task",
       "work_type": "ops"
@@ -50955,7 +50994,8 @@
       "subject": "[test] Phase 4 failing tests — LOAD traversal, graph impact",
       "tags": [
         "kb-redesign",
-        "test"
+        "test",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -51599,7 +51639,8 @@
       "status": "pending",
       "subject": "brana-knowledge: untangle DB backups — move agentdb.rvf/ruvector.db under backup/ (cron-safe)",
       "tags": [
-        "kb-redesign"
+        "kb-redesign",
+        "parked"
       ],
       "type": "task"
     },
