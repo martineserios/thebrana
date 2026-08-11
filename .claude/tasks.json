@@ -70620,6 +70620,36 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2734",
+      "subject": "brana knowledge search queries live ruflo, which holds only 4% of the knowledge base — point it at the vector store",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "knowledge",
+        "retrieval",
+        "ruflo",
+        "cli"
+      ],
+      "description": "`brana knowledge search` searches `~/.swarm/memory.db` (live ruflo, namespace `knowledge`). That store holds 147 entries. The brana-owned vector store `~/.claude/memory/knowledge.db` holds 3,946. Measured 2026-08-11 by anti-join on key: **3,800 knowledge entries exist in the vector store and NOT in live ruflo — 96% of the corpus is invisible to knowledge search.**\n\nCause is not rotation or namespace mismatch. `~/.swarm/` holds ~10 `memory.db.corrupt-YYYY-MM-DD` artifacts (2026-06-28 through 2026-08-05, 3.9M-39.7M each) against a 7.4M live DB. ruflo's store corrupts and gets reset repeatedly; each reset loses entries. `brana knowledge vector-sync` (t-2620) has been accumulating into the vector store across those generations, so the vector store is the surviving record and ruflo is a lossy recent window. Root cause of the corruption itself is already documented (missing busy_timeout + HybridBackend dual-write race in vendored @claude-flow/memory; upstream ruvnet/ruflo #2512, #1257) — that is NOT this task. This task is about which store the search reads.\n\n`brana recall` already reads the vector store via VectorProvider + FTS5Provider and therefore sees all 3,946. The fix is to give `knowledge search` the same backing store, rather than leaving two retrieval surfaces with a 27x coverage difference and no indication to the user which one they are getting.\n\nNote this makes t-2729's threshold fix necessary but not sufficient: search now returns results, but only from the 4% window. That the \"orca\" verification query worked was luck — those 2 entries happen to survive in the live ruflo DB.",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2348",
+      "created": "2026-08-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Found 2026-08-11 at session close, chasing the unexplained 139-vs-3939 row gap flagged during t-2729. The gap was not benign.\n\nMEASUREMENTS (reproduce):\n  sqlite3 ~/.claude/memory/knowledge.db \"attach '/home/martineserios/.swarm/memory.db' as r; select count(*) from knowledge k where not exists (select 1 from r.memory_entries m where m.key=k.key and m.namespace='knowledge');\"\n  -> 3800\n  sqlite3 ~/.swarm/memory.db \"select count(*) from memory_entries where namespace='knowledge' and status='active';\"  -> 147\n  sqlite3 ~/.claude/memory/knowledge.db \"select count(*) from knowledge;\"  -> 3946\n  ls ~/.swarm/memory.db.corrupt-*  -> ~10 artifacts, 2026-06-28..2026-08-05\n\nSTORE SHAPES:\n- ruflo: `memory_entries(id,key,namespace,content,type,embedding,embedding_model,embedding_dimensions,tags,metadata,owner_id,created_at,updated_at,expires_at,last_accessed_at,access_count,status,provenance_type)`, UNIQUE(namespace,key). Embeddings populated for all active rows.\n- brana vector: `knowledge(key,content,tags,source,created_at,vec)`. All 3,946 rows carry the `knowledge:` key prefix (plus 1 stray `k`-prefixed row worth a look).\n\nPRIOR ART TO REUSE — do not rebuild: `brana-core/src/search.rs` (VectorProvider, FTS5Provider, HybridProvider, RRF merge) and `brana-cli/src/commands/recall.rs` / `brana-mcp/src/tools/recall.rs`, both constructing `VectorProvider::new(brana_core::vector::knowledge_db_path(), Arc::new(RufloEmbedder)).with_threshold(0.25)`. Note that 0.25 is an f32 VECTOR-similarity threshold, distinct from `brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD` (f64, ruflo CLI) added by t-2729 — same number, different knob, do not merge them.\n\nDECIDE EXPLICITLY: does `knowledge search` become a thin alias over the recall stack, or keep a separate surface with its own ranking? If ruflo stays in the mix at all, it should be one provider in the merge, not the sole backing store. Also decide what happens to `--namespace` (only meaningful for ruflo) once the vector store is primary.\n\nRELATED: t-2729 (threshold fix — necessary, insufficient); t-2620 (vector-sync, the reason the vector store survived); memory `project_ruflo-memory-corruption-recurring` (root cause of the data loss, out of scope here).\n\nAC: a knowledge entry present in the vector store but absent from live ruflo is findable via `brana knowledge search`\nAC: search coverage is measured and reported — no silent 4% window\nAC: explicit decision recorded on ruflo's role (dropped, or one provider among several)\nAC: the stray non-`knowledge:`-prefixed row in the vector store is explained or cleaned",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3
