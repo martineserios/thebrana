@@ -15,10 +15,22 @@
 
 set -euo pipefail
 
-# Ensure nvm-installed node/ruflo binaries are on PATH (non-interactive shells miss this)
+# Ensure nvm-installed node/ruflo binaries are on PATH (non-interactive shells miss this).
+# Prefer a version dir that actually has ruflo installed: npm installs global binaries
+# per-node-version, and with multiple nvm versions present, `ruflo` may only exist under
+# one of them. Stopping at the first dir with `node` (regardless of ruflo) breaks when a
+# lower-sorting version lacks ruflo — e.g. v20.19.0 sorts before v22.22.3 but only
+# v22.22.3 has it installed (t-2736).
 for _nvm_bin in "$HOME"/.nvm/versions/node/*/bin; do
-    [ -x "$_nvm_bin/node" ] && export PATH="$_nvm_bin:$PATH" && break
+    [ -x "$_nvm_bin/ruflo" ] && export PATH="$_nvm_bin:$PATH" && break
 done
+# Fall back to any dir with `node` so the script itself still runs even if ruflo isn't
+# installed under any nvm version (mcp-index.mjs then reports its own clear error).
+if ! command -v ruflo >/dev/null 2>&1; then
+    for _nvm_bin in "$HOME"/.nvm/versions/node/*/bin; do
+        [ -x "$_nvm_bin/node" ] && export PATH="$_nvm_bin:$PATH" && break
+    done
+fi
 
 FEED_LOG="$HOME/.claude/scheduler/feed-log.jsonl"
 WATERMARK="$HOME/.claude/scheduler/state/feed-ruflo-watermark"
