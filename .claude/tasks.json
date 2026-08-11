@@ -70443,6 +70443,35 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "subject": "close-classify.sh misses bare orientation args — '/brana:close finish' classifies by weight heuristics, not orientation",
+      "kind": "fix",
+      "type": "task",
+      "tags": [
+        "close",
+        "cli",
+        "dx"
+      ],
+      "description": "close-classify.sh detects orientation with [[ $ARGUMENTS == *\"--$ORIENT\"* ]] (line ~61) — it requires the literal dashes. But the slash command passes command-args verbatim, so '/brana:close finish' yields ARGUMENTS='finish' (no dashes) and the orientation is NOT detected; the script falls through to the file/commit-count weight heuristics. Measured 2026-08-11: bare 'continue' with 0 commits -> LIGHT, while '--continue' -> INSTANT and '--mode-override continue' -> INSTANT. The failure is SILENT and intermittent-looking: bare 'finish' on a 3-commit code session also returned INSTANT, which is the correct finish mapping reached by coincidence of the heuristics, so the bug only surfaces when the heuristic answer happens to differ from the orientation mapping. t-1990 wired orientation through the phases but did not close this arg-parsing gap. Impact: a LIGHT misclassification runs Steps 4-8 inline on a session the user asked to merely pause, and (inversely) could skip work a --finish close owes. Note the phase files are unaffected — they read orientation from instruction context, so a careful operator still behaves correctly; it is the classifier's answer that is wrong.",
+      "effort": "S",
+      "parent": "t-2340",
+      "context": "AC: bare 'finish'/'continue'/'patterns'/'abort' in --arguments are detected identically to their --dashed forms\nAC: a regression test covers both bare and dashed spellings for all 4 orientations\n2026-08-11: found live during a /brana:close continue on proyecto_anita; corrected in-session by re-running with --mode-override. Fix is likely a word-boundary match on the bare token in addition to the --flag form (careful not to match 'finish' appearing incidentally in a focus-hint argument like '/brana:close hooks finish-up').",
+      "id": "t-2728",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-08-11",
+      "blocked_by": [],
+      "priority": "P3",
+      "ac_state": "none",
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3
