@@ -68167,7 +68167,7 @@
     {
       "id": "t-2652",
       "subject": "Ship dev→main + deploy (accumulated fixes from statusline epic-resolution work)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -68179,11 +68179,11 @@
       "parent": null,
       "created": "2026-08-05",
       "started": null,
-      "completed": null,
+      "completed": "2026-08-11",
       "blocked_by": [],
       "branch": null,
       "context": "2026-08-11: scope grew — dev now also carries the t-2729 knowledge-search fix (c6d0927a, merged f61169a7). That one is user-visible and currently broken in the deployed binary: ~/.local/bin/brana is the Aug 10 build, so `brana knowledge search` still fails with \"unrecognized ruflo output format\" on every query until this ships. Verify after bootstrap.sh with: brana knowledge search \"orca\" (expect 2 results, not a format error).",
-      "notes": null,
+      "notes": "Shipped 2026-08-11: dev→main --ff-only (a2a13d21..1a989a13), bootstrap.sh, pushed both branches. Carried the t-2729 knowledge-search fix, the export-pdf --gh-style fix (t-2726), the vector-sync docs (t-2620), and the new brana knowledge search docs. NOTE: bootstrap.sh does NOT install the Rust binaries — it only warns they are stale and prints the cargo command. Had to build brana + brana-mcp and install via atomic rename to ~/.local/bin. Verified from PATH before calling it done.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
