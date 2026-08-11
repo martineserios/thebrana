@@ -16,17 +16,30 @@
 set -euo pipefail
 
 # Ensure nvm-installed node/ruflo binaries are on PATH (non-interactive shells miss this).
-# Prefer a version dir that actually has ruflo installed: npm installs global binaries
-# per-node-version, and with multiple nvm versions present, `ruflo` may only exist under
-# one of them. Stopping at the first dir with `node` (regardless of ruflo) breaks when a
-# lower-sorting version lacks ruflo — e.g. v20.19.0 sorts before v22.22.3 but only
-# v22.22.3 has it installed (t-2736).
-for _nvm_bin in "$HOME"/.nvm/versions/node/*/bin; do
-    [ -x "$_nvm_bin/ruflo" ] && export PATH="$_nvm_bin:$PATH" && break
-done
-# Fall back to any dir with `node` so the script itself still runs even if ruflo isn't
-# installed under any nvm version (mcp-index.mjs then reports its own clear error).
-if ! command -v ruflo >/dev/null 2>&1; then
+# Mirrors ruflo-mcp.sh's resolution order (t-2736, per t-2627 review of ad-hoc lexical
+# globs): nvm default first, then the newest installed version that actually has ruflo
+# (`sort -rV`, not plain glob order — npm installs global binaries per-node-version, and
+# with multiple nvm versions present `ruflo` may live under only one; a lower-sorting
+# version's `bin/` winning over a higher one that has ruflo is exactly the t-2736 bug).
+if [ -f "$HOME/.nvm/nvm.sh" ]; then
+    export NVM_DIR="$HOME/.nvm"
+    . "$NVM_DIR/nvm.sh" --no-use 2>/dev/null
+    _default_bin="$(nvm which default 2>/dev/null | sed 's|/node$||')"
+    [ -n "$_default_bin" ] && [ -x "$_default_bin/ruflo" ] && export PATH="$_default_bin:$PATH"
+fi
+if ! command -v ruflo >/dev/null 2>&1 && [ -d "$HOME/.nvm/versions/node" ]; then
+    while IFS= read -r _node_bin; do
+        _bin_dir="${_node_bin%/node}"
+        if [ -x "$_bin_dir/ruflo" ]; then
+            export PATH="$_bin_dir:$PATH"
+            break
+        fi
+    done < <(find "$HOME/.nvm/versions/node" -name "node" -path "*/bin/node" 2>/dev/null | sort -rV)
+fi
+# Last resort: put any dir with `node` on PATH so this script's own `node` invocation
+# below still runs even if no nvm version has ruflo installed (mcp-index.mjs then
+# reports its own clear "ruflo not found" error).
+if ! command -v node >/dev/null 2>&1; then
     for _nvm_bin in "$HOME"/.nvm/versions/node/*/bin; do
         [ -x "$_nvm_bin/node" ] && export PATH="$_nvm_bin:$PATH" && break
     done
