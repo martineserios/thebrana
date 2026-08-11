@@ -124,7 +124,7 @@ Search order:
 2. `{project_root}/docs/pdf-style.css`
 3. Same directory as the source file: `{source_dir}/pdf-style.css`
 
-If found, tell the user and use it with `--style={path}`. If not found, proceed without custom styling.
+If found, tell the user and use it with `--style={path} --gh-style` (see step 5 note — `--gh-style` is required to keep the default typography). If not found, proceed without custom styling.
 
 ### 5. Run mdpdf
 
@@ -132,10 +132,12 @@ Use `render_source` (from step 3) as input.
 
 **Important:** `mdpdf --dest` is silently ignored — the output PDF always lands beside the source file (same directory, `.pdf` extension). When using a temp copy (`render_source` ≠ `{source_file}`), mdpdf writes the PDF into `$tmp_dir`. After it completes, copy manually to the original source directory:
 
+**Important:** mdpdf sets `ghStyle = style.length > 0 ? !!ghStyleFlag : true` — passing `--style` without also passing `--gh-style` silently drops the default GitHub markdown typography (fonts shrink, spacing tightens). Always pass `--gh-style` alongside `--style`.
+
 ```bash
 # Run mdpdf (output lands in same dir as render_source)
-mdpdf "{render_source}" --style="{css_path}"   # with CSS
-mdpdf "{render_source}"                        # without CSS
+mdpdf "{render_source}" --style="{css_path}" --gh-style   # with CSS
+mdpdf "{render_source}"                                   # without CSS
 
 # If Mermaid pre-render was used, copy PDF to original location
 tmp_pdf="${tmp_dir}/{source_basename_no_ext}.pdf"
