@@ -70651,6 +70651,35 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2735",
+      "subject": "Verify the nightly close-extraction cron actually ran and extracted — never validated since t-1974 shipped",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "close",
+        "scheduler",
+        "async-close"
+      ],
+      "description": "The async-close design (ADR-052 Track 1) makes INSTANT the default for code sessions: close queues a snapshot diff and defers extraction to a nightly cron. Every INSTANT close since t-1974 has been writing to that queue on the assumption the cron consumes it. That assumption has never been verified end to end.\n\nIf the cron is not running, or runs and extracts nothing, then every INSTANT close since t-1974 has silently dropped its learnings — the snapshot sits in ~/.claude/sessions/snap-*.diff and nothing reads it. The failure is invisible by construction: close reports success either way, because queueing succeeded.\n\nVerify: (1) the job exists and is enabled (`brana ops status`), (2) it has run recently and exited 0 (`brana ops logs close-extraction`), (3) it actually produced findings for a known queued range, and (4) queue entries get marked consumed rather than accumulating forever.\n\nPrior signal that this may already be broken: an earlier accumulator entry recorded \"Fix close-extraction scheduler job (red as of 2026-06-12)\". Check whether that was ever resolved before assuming the job is healthy.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2348",
+      "created": "2026-08-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Filed 2026-08-11 at close. This existed as a text-only item in the knowledge-pipeline accumulator's next[] (\"First-run validation of nightly close-extraction cron (t-1974 shipped, not yet verified)\") and I wrongly passed it to `brana session epic upsert --resolved-texts` with a resolution of \"not addressed\" — which moved it to resolved[]. Re-adding it to session-state next[] and re-upserting does NOT restore it: the accumulator suppresses anything already in resolved[]. Filing it as a task is the durable fix and is better than the original text-only entry, which had no task_id and was therefore invisible to sitrep's staleness filter.\n\nPROCEDURE NOTE for close/phases/session-state.md Pass 2: the step says \"Items with no evidence of being addressed -> omit (they carry forward automatically)\". Passing an unaddressed item with an explanatory resolution string is a one-way drop with no documented undo. Worth a warning in that phase file, and possibly an `--unresolve` on `brana session epic`.\n\nQueue evidence available now: two snapshots queued today alone — snap-20260811-164330-548239.diff (21bea567..61bc62a1) and snap-20260811-191633-819848.diff (61bc62a1..3a5999bc).\n\nAC: confirmed whether the close-extraction cron is running, with evidence (job status + recent log exit code)\nAC: confirmed whether a queued snapshot produces actual extracted findings, traced to where they land\nAC: if broken, the backlog of unconsumed snap-*.diff files is quantified and a recovery decision recorded\nAC: close-queue entries are marked consumed after extraction (or the absence of that mechanism is recorded)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3
