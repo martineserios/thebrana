@@ -70655,7 +70655,7 @@
     {
       "id": "t-2735",
       "subject": "Verify the nightly close-extraction cron actually ran and extracted — never validated since t-1974 shipped",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -70668,18 +70668,19 @@
       "priority": "P2",
       "parent": "t-2348",
       "created": "2026-08-11",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-11",
+      "completed": "2026-08-11",
       "blocked_by": [],
-      "branch": null,
+      "branch": "knowledge-pipeline/chore/t-2735-verify-nightly-close-cron",
       "context": "Filed 2026-08-11 at close. This existed as a text-only item in the knowledge-pipeline accumulator's next[] (\"First-run validation of nightly close-extraction cron (t-1974 shipped, not yet verified)\") and I wrongly passed it to `brana session epic upsert --resolved-texts` with a resolution of \"not addressed\" — which moved it to resolved[]. Re-adding it to session-state next[] and re-upserting does NOT restore it: the accumulator suppresses anything already in resolved[]. Filing it as a task is the durable fix and is better than the original text-only entry, which had no task_id and was therefore invisible to sitrep's staleness filter.\n\nPROCEDURE NOTE for close/phases/session-state.md Pass 2: the step says \"Items with no evidence of being addressed -> omit (they carry forward automatically)\". Passing an unaddressed item with an explanatory resolution string is a one-way drop with no documented undo. Worth a warning in that phase file, and possibly an `--unresolve` on `brana session epic`.\n\nQueue evidence available now: two snapshots queued today alone — snap-20260811-164330-548239.diff (21bea567..61bc62a1) and snap-20260811-191633-819848.diff (61bc62a1..3a5999bc).\n\nAC: confirmed whether the close-extraction cron is running, with evidence (job status + recent log exit code)\nAC: confirmed whether a queued snapshot produces actual extracted findings, traced to where they land\nAC: if broken, the backlog of unconsumed snap-*.diff files is quantified and a recovery decision recorded\nAC: close-queue entries are marked consumed after extraction (or the absence of that mechanism is recorded)",
-      "notes": null,
+      "notes": "INVESTIGATION RESULT: cron is healthy, not broken. Evidence:\n\n1) `brana ops status` — close-extraction job enabled, last run SUCCESS 2026-08-11T12:51 (-03:00).\n2) Log history (~/.claude/scheduler/logs/close-extraction/, 2026-07-11..2026-08-11): near-daily runs. Two transient agy failures (08-08, 08-09) auto-retried and succeeded on attempt 2 — retry mechanism works as designed. No unretried failures in this window.\n3) Queue quantification (`brana close-queue list`, 392 total entries): 388 processed, 4 unprocessed, 0 failed. All 4 unprocessed (incl. the two named snapshots q-319026ef4b77c921 21bea567..61bc62a1 and q-bf55bb94ae84d2bb 61bc62a1..3a5999bc) were queued AFTER the last successful run (19:43 & 22:16 UTC vs run window 15:38-15:51 UTC) — not a backlog, just awaiting next run. No accumulation.\n4) End-to-end trace confirmed: other recent thebrana entries (q-0d12d9a5a4171fad, q-77a35e66c8b33103) produced real extracted findings landing in ~/.claude/sessions/daily-summary-2026-08-11.md, and reminders.json (1.98MB, mtime = last run finish time) is the destination store per close-extraction.sh's design (routes to reminder store, human reviews into memory). \"No notable learnings\" entries are correctly recorded, not silently dropped.\n5) Consumed marking confirmed: `processed: true` + `processed_at` timestamp set via `brana close-queue mark-processed`, called by the script after each successful entry.\n\nThe 2026-06-12 \"red\" accumulator note appears resolved by the agy version-floor fix (t-2082, later >= floor per topic_agy-orchestration.md, dated 2026-06-14..06-19) — no evidence of current breakage.\n\nRecommendation: accept — no fix needed. No recovery action required; nothing was silently dropped since t-1974.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "chore",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "investigation"
     }
   ],
   "version": 3
