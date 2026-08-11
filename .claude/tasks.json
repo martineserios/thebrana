@@ -70681,6 +70681,36 @@
       "work_type": "chore",
       "ac_state": "none",
       "strategy": "investigation"
+    },
+    {
+      "id": "t-2736",
+      "subject": "feed-ruflo-index scheduler job failing — ruflo not found on PATH",
+      "status": "completed",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "scheduler",
+        "feed",
+        "ruflo"
+      ],
+      "description": "Scheduler job feed-ruflo-index FAILED 2026-08-11T19:16 with \"ERROR: ruflo not found. Install with: npm install -g ruflo\" after successfully preparing 345 sections for indexing. Discovered incidentally during t-2735 (close-extraction cron investigation) — not investigated further, out of scope for that task.\n\nPrior related fixes (t-1934, t-2008, t-2076) addressed different root causes (CRLF shebang, exec-bit loss, timeout/backlog) for the same job — this looks like a fresh env/PATH regression (npm global `ruflo` binary not resolvable from the scheduler's environment), not a repeat of any of those.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2345",
+      "created": "2026-08-11",
+      "started": "2026-08-11",
+      "completed": "2026-08-11",
+      "blocked_by": [],
+      "branch": "harness-core/fix/t-2736-ruflo-not-on-path",
+      "context": "Challenger finding (iteration 1, 2026-08-11): RECONSIDER, 2 critical findings.\n(1) sev5: claimed ruflo isn't installed under any nvm version on the host — REFUTED by direct verification: `which ruflo`, `ls -la`, and `ruflo --version` all confirm /home/martineserios/.nvm/versions/node/v22.22.3/bin/ruflo exists (symlink to ruflo.js), is executable, and runs (v3.34.0); a real dry-run against the live 345-entry backlog with a minimal PATH also succeeded end-to-end. Challenger's Glob search apparently missed the symlinked bin entry.\n(2) sev4: fix reinvented a 4th ad-hoc/lexically-sorted ruflo resolver when ruflo-mcp.sh already has a hardened, tested one (nvm default -> newest-with-ruflo via sort -rV -> PATH) — VALID, addressed: reworked feed-ruflo-index.sh's PATH shim to mirror ruflo-mcp.sh's exact resolution order (commit d2fac9a0) instead of the original ad-hoc glob-order loop.",
+      "notes": "Fixed via bug-fix strategy. Root cause: PATH shim in feed-ruflo-index.sh picked the first .nvm/versions/node/*/bin dir with `node` in alphabetical glob order (v20.19.0), not the one with ruflo installed (v22.22.3) — a fresh regression from multiple nvm versions now present on the machine. Fix reworked to mirror ruflo-mcp.sh's hardened resolution order (nvm default -> newest-with-ruflo via sort -rV -> PATH) after Challenger iteration 1 flagged the initial ad-hoc glob-order fix as a 4th weaker resolver. Verified with a new failing->passing test (19/19) and a real dry-run against the live 345-entry backlog. Challenger iteration 2: PROCEED — no issues found. No docs generated per brana:docs rule 5 (bug fixes skip docs). Branch: harness-core/fix/t-2736-ruflo-not-on-path, commits 37a3c145 + d2fac9a0.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "infra",
+      "ac_state": "none",
+      "strategy": "bug-fix"
     }
   ],
   "version": 3
