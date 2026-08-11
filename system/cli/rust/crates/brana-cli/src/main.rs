@@ -230,8 +230,8 @@ fn main() {
                 }
             }
             KnowledgeCmd::Status => commands::knowledge::cmd_status(),
-            KnowledgeCmd::Search { query, limit, namespace, json } => {
-                run_or_exit(commands::knowledge::cmd_search(&query, limit, &namespace, json))
+            KnowledgeCmd::Search { query, limit, namespace, threshold, json } => {
+                run_or_exit(commands::knowledge::cmd_search(&query, limit, &namespace, threshold, json))
             }
             KnowledgeCmd::Process { tier1, tier2, draft, report, status, reset_url, dry_run, limit } => {
                 run_or_exit(commands::knowledge::cmd_process(

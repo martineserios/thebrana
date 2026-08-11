@@ -558,8 +558,26 @@ fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
 /// Try ruflo semantic search for skill suggestions.
 /// Returns None if ruflo is unavailable or returns no results.
 /// Uses a 15-second timeout because ruflo CLI can hang after completion.
+/// **Currently inert — always falls through to keyword matching.** Two reasons,
+/// both traced in t-2729; the threshold below is fixed, the parse is not:
+///
+/// 1. Threshold (fixed here): passing `None` selected ruflo's 0.7 default,
+///    above this corpus's ceiling, so every query returned zero matches.
+/// 2. Format (open, see follow-up): `parse_ruflo_results` is JSON-only, but
+///    this ruflo build has no `--json` on `memory search` — it emits an ASCII
+///    table and truncates the Key column at 20 chars (`skill:domain-driv...`).
+///    A truncated key is not a usable skill name, so table parsing needs a
+///    resolution step against the local skill list before it can be trusted.
+///
+/// Keyword fallback returns correct names today, so this staying inert is safe.
 fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
-    let raw = brana_core::ruflo::ruflo_memory_search_raw(query, "skills", 5, None, false)?;
+    let raw = brana_core::ruflo::ruflo_memory_search_raw(
+        query,
+        "skills",
+        5,
+        Some(brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD),
+        false,
+    )?;
     parse_ruflo_results(&raw)
 }
 
@@ -1181,6 +1199,37 @@ stream_affinity: [roadmap]
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "close");
         assert!((results[0].score - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_cannot_read_table_output() {
+        // Pins the known gap (t-2729): this parser is JSON-only, but the ruflo
+        // build in use has no `--json` on `memory search` and emits this table,
+        // so the semantic path is inert and `cmd_suggest` falls back to keyword
+        // matching. When table support lands, this test should flip to
+        // asserting parsed values — and must also assert that keys truncated at
+        // 20 chars (`skill:domain-driv...`) are resolved to real skill names.
+        let table = concat!(
+            "[INFO] Searching: \"rust\" (semantic)\n\n",
+            "+---------------------+-------+-----------+----------------------+\n",
+            "| Key                 | Score | Namespace | Preview              |\n",
+            "+---------------------+-------+-----------+----------------------+\n",
+            "| skill:rust-skills   |  0.49 | skills    | rust-skills Rust ... |\n",
+            "+---------------------+-------+-----------+----------------------+\n"
+        );
+        assert!(parse_ruflo_results(table).is_none());
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_reads_json_shape_ruflo_emits() {
+        // The `--json` shape, as returned by ruflo memory search --json.
+        let json = r#"[{"key":"skill:rust-skills","value":"Rust best practices","score":0.49},
+                       {"key":"skill:cargo-machete","value":"Unused deps","score":0.43}]"#;
+        let results = parse_ruflo_results(json).expect("should parse ruflo json");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].name, "rust-skills");
+        assert!((results[0].score - 0.49).abs() < 1e-9);
+        assert_eq!(results[0].reason, "ruflo semantic");
     }
 
     // ── reindex --force flag tests ────────────────────────────────────
