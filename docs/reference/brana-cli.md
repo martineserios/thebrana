@@ -512,6 +512,53 @@ brana knowledge run
 
 ---
 
+## brana knowledge search
+
+Semantic search over a ruflo memory namespace (default `knowledge`).
+
+### Usage
+
+```bash
+brana knowledge search "<query>" [--limit N] [--namespace NS] [--threshold T] [--json]
+```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--limit <N>` | `10` | Maximum results. |
+| `--namespace <NS>` | `knowledge` | ruflo namespace to search. |
+| `--threshold <T>` | `0.25` | Similarity threshold, 0.0–1.0. Lower returns more. |
+| `--json` | off | Output results as JSON instead of human-readable text. |
+
+### Threshold calibration
+
+**Do not rely on ruflo's own default of 0.7** — it sits above this corpus's score
+ceiling, so every query returns zero results. Measured top scores over the
+`knowledge` namespace across 5 diverse queries: 0.69, 0.43, 0.40, 0.39, 0.37 —
+nothing reaches 0.7. The 0.25 default clears the weakest with margin while
+`--limit` bounds the result count (t-2729). The constant lives in
+`brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD`; recalibrate if the embedding model
+or corpus changes.
+
+Note this is a ruflo-CLI threshold (f64). It is distinct from the f32 vector
+threshold `recall` passes to `VectorProvider`, which happens to share the value
+0.25 but controls a different store.
+
+An empty result set prints `No results found.` and exits 0 — only malformed
+output is an error.
+
+### Known limitation — partial coverage
+
+This command searches the **live ruflo store** (`~/.swarm/memory.db`), not the
+brana vector store that `brana recall` reads. Because ruflo's store has corrupted
+and been reset repeatedly, the live DB holds a fraction of the knowledge base
+(measured 2026-08-11: 147 entries live vs 3,946 in the vector store — 3,800
+entries findable only via `recall`). Use `brana recall` for full-corpus retrieval
+until t-2734 repoints this command at the vector store.
+
+---
+
 ## brana knowledge vector-sync
 
 Sync the brana-owned vector store (`~/.claude/memory/knowledge.db`) from ruflo
