@@ -68182,7 +68182,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": null,
+      "context": "2026-08-11: scope grew — dev now also carries the t-2729 knowledge-search fix (c6d0927a, merged f61169a7). That one is user-visible and currently broken in the deployed binary: ~/.local/bin/brana is the Aug 10 build, so `brana knowledge search` still fails with \"unrecognized ruflo output format\" on every query until this ships. Verify after bootstrap.sh with: brana knowledge search \"orca\" (expect 2 results, not a format error).",
       "notes": null,
       "order": 0,
       "github_issue": null,
