@@ -70537,7 +70537,7 @@
     {
       "id": "t-2731",
       "subject": "Statusline: show session id with an icon so parallel lanes are distinguishable at a glance",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -70551,11 +70551,11 @@
       "parent": "t-2366",
       "created": "2026-08-11",
       "started": "2026-08-11",
-      "completed": null,
+      "completed": "2026-08-11",
       "blocked_by": [],
       "branch": "session/feat/t-2731-statusline-session-id",
       "context": "PROBLEM (not cosmetic). ADR-069 / t-2502 record the operator-facing symptom directly: \"opening a new session, cannot tell whether the handoff is this lane's or a parallel lane's.\" Concurrent sessions are routine here and there is currently no on-screen signal of which one you are looking at. A visible session id makes the lane legible at a glance and gives a key to grep session state with.\n\nIMPLEMENTATION NOTES (verified 2026-08-11):\n- `system/statusline.sh` L5-13 reads stdin JSON and extracts fields in one jq call:\n  `[(.model.display_name), (.workspace.current_dir // .cwd), (.context_window.used_percentage)] | @tsv`\n  Add `.session_id` to that array and a segment to the render. Currently `statusline.sh` contains zero references to session (grep: 0 matches).\n- Do NOT source `BRANA_SESSION_ID`. `system/hooks/session-start.sh` L44 writes it to $CLAUDE_ENV_FILE, but t-2502 verified it is SET AND NOT EXPORTED (`export -p | grep -c BRANA_SESSION_ID` = 0; a plain `bash -c` child sees UNSET). The statusline's own stdin is the correct source.\n- VERIFY FIRST: confirm the statusline hook's stdin JSON actually carries `session_id` (the SessionStart hook's does — session-start.sh L22 reads `.session_id`). If absent, fall back to `.sessionId` or reconsider the source before building.\n- Theme is `emoji` (.claude/tasks-config.json), consistent with adding a glyph.\n\nRELATED, NOT BLOCKING (user decision 2026-08-11): the ADR-069 lane-identity effort (t-2516..t-2531, esp. t-2517/t-2520/t-2521) will define a canonical lane key. This task does not depend on it — session_id is available from stdin today. If lane identity later supersedes the raw id, swap the displayed value; the segment stays.\n\nPrior statusline work for reference: t-2280 (epic segment), t-2639 (dynamic epic resolution), t-2641 (perf), t-2467 (active_epic fallback). Beware t-2282/t-2470: three legacy statusline suites assert a richer statusline than the script renders — check which suites are live before adding assertions.\n\nAC: statusline renders a session-id segment with an icon, matching the existing segment style\nAC: displayed id is a short prefix, not the full UUID\nAC: value comes from the statusline hook's own stdin JSON, not BRANA_SESSION_ID\nAC: segment degrades gracefully (omitted, not blank/garbled) when session_id is absent\nAC: test asserts the segment renders and that a missing session_id does not break the line",
-      "notes": null,
+      "notes": "Reconciled 2026-08-11 via /brana:close --finish (t-2736 close, Step 11b): branch session/feat/t-2731-statusline-session-id was fully merged into dev (0 commits ahead, 8 behind) with a clean worktree — task-state was stale, not active work.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -70711,6 +70711,35 @@
       "work_type": "infra",
       "ac_state": "none",
       "strategy": "bug-fix"
+    },
+    {
+      "id": "t-2737",
+      "subject": "Consolidate ruflo-resolution logic in cf-env.sh/ruflo-cli.sh to sort -rV order",
+      "status": "pending",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [
+        "scheduler",
+        "ruflo",
+        "tech-debt"
+      ],
+      "description": "cf-env.sh and ruflo-cli.sh both resolve ruflo/claude-flow via a plain unsorted glob over $HOME/.nvm/versions/node/*/bin/{name} — the same lexical-order fragility flagged in t-2627 and confirmed as a real bug class in t-2736 (feed-ruflo-index.sh silently resolved the wrong nvm version because ruflo wasn't installed under the alphabetically-first node version). ruflo-mcp.sh already has the hardened fix: nvm default first, then newest-installed-with-target-binary via `sort -rV`, then PATH.\n\nSurfaced by the Challenger gate (iteration 2) reviewing t-2736 as a \"future-consolidation observation, not a blocker\" — not itself broken today (no observed failure), but the same latent bug as t-2736 given a second nvm version is added without ruflo installed there.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-08-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "infra",
+      "ac_state": "none"
     }
   ],
   "version": 3
