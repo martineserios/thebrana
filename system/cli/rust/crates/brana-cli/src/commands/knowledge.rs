@@ -536,6 +536,13 @@ pub fn parse_search_results(text: &str) -> Result<Vec<SearchResult>> {
         return parse_table_results(text);
     }
 
+    // No matches: ruflo emits neither a table nor a JSON array, just a warning.
+    // An empty result set is a valid answer, not a malformed response — returning
+    // an error here made a zero-result search look like a parser bug (t-2729).
+    if text.contains("No results found") {
+        return Ok(Vec::new());
+    }
+
     // JSON format: skip ONNX preamble and [INFO] log lines.
     // Find a [ that's followed (ignoring whitespace) by { or ] — a real JSON array.
     // This correctly skips [INFO] markers where [ is followed by a letter.
@@ -635,18 +642,42 @@ pub fn format_results(results: &[SearchResult]) -> String {
     lines.join("\n")
 }
 
-/// Call ruflo memory search and return raw output.
-/// Uses a 15-second timeout. No threshold passed — ruflo-cli.sh wrapper injects
-/// threshold=0.55 for namespaceless calls; namespaced calls use ruflo defaults.
-/// TODO(t-2109): calibrate threshold per namespace after empirical k-probe.
-fn call_ruflo_search(query: &str, namespace: &str, limit: usize) -> Result<String> {
-    brana_core::ruflo::ruflo_memory_search_raw(query, namespace, limit, None, false)
-        .ok_or_else(|| anyhow::anyhow!("ruflo not found or timed out — run `brana knowledge reindex` first"))
+/// Resolve the similarity threshold for a search — an explicit `--threshold`
+/// wins, otherwise the calibrated default. Never falls through to ruflo's 0.7;
+/// see `brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD` for the calibration data.
+fn resolve_threshold(explicit: Option<f64>) -> f64 {
+    explicit.unwrap_or(brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD)
 }
 
-/// `brana knowledge search <query> [--limit N] [--namespace NS] [--json]`
-pub fn cmd_search(query: &str, limit: usize, namespace: &str, json_output: bool) -> Result<()> {
-    let raw = call_ruflo_search(query, namespace, limit)?;
+/// Call ruflo memory search and return raw output.
+/// Uses a 15-second timeout. Always passes an explicit threshold: the
+/// ruflo-cli.sh wrapper only injects one for namespaceless calls, and this call
+/// is always namespaced, so omitting it silently selected ruflo's 0.7 default.
+fn call_ruflo_search(
+    query: &str,
+    namespace: &str,
+    limit: usize,
+    threshold: Option<f64>,
+) -> Result<String> {
+    brana_core::ruflo::ruflo_memory_search_raw(
+        query,
+        namespace,
+        limit,
+        Some(resolve_threshold(threshold)),
+        false,
+    )
+    .ok_or_else(|| anyhow::anyhow!("ruflo not found or timed out — run `brana knowledge reindex` first"))
+}
+
+/// `brana knowledge search <query> [--limit N] [--namespace NS] [--threshold T] [--json]`
+pub fn cmd_search(
+    query: &str,
+    limit: usize,
+    namespace: &str,
+    threshold: Option<f64>,
+    json_output: bool,
+) -> Result<()> {
+    let raw = call_ruflo_search(query, namespace, limit, threshold)?;
     let results = parse_search_results(&raw)?;
 
     if json_output {
@@ -2267,6 +2298,50 @@ mod tests {
         );
         let results = parse_search_results(table).expect("should parse empty table");
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_parse_no_results_returns_empty_not_error() {
+        // ruflo emits neither a table nor a JSON array when nothing matches.
+        // This is a legitimate empty result, not a malformed response (t-2729).
+        let text = concat!(
+            "[INFO] Searching: \"orca\" (semantic)\n\n",
+            "  Search time: 313ms\n\n",
+            "[WARN] No results found\n",
+            "Try: claude-flow memory store -k \"key\" --value \"data\"\n"
+        );
+        let results = parse_search_results(text).expect("no-results output should parse as empty");
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_parse_garbage_still_errors() {
+        // Guard: the no-results carve-out must not swallow genuinely broken output.
+        assert!(parse_search_results("not json").is_err());
+        assert!(parse_search_results("").is_err());
+    }
+
+    // ── search threshold calibration ─────────────────────────────────
+
+    #[test]
+    fn test_default_threshold_below_corpus_ceiling() {
+        // ruflo's own default is 0.7. Measured top scores in the `knowledge`
+        // namespace across 5 diverse queries: 0.69, 0.43, 0.40, 0.39, 0.37.
+        // A 0.7 default therefore filters out every result for every query.
+        const OBSERVED_TOP_SCORES: [f64; 5] = [0.69, 0.43, 0.40, 0.39, 0.37];
+        for top in OBSERVED_TOP_SCORES {
+            assert!(
+                resolve_threshold(None) < top,
+                "default threshold {} would return zero results for a query whose best match scores {top}",
+                resolve_threshold(None)
+            );
+        }
+    }
+
+    #[test]
+    fn test_explicit_threshold_overrides_default() {
+        assert!((resolve_threshold(Some(0.6)) - 0.6).abs() < 1e-9);
+        assert!((resolve_threshold(Some(0.0)) - 0.0).abs() < 1e-9);
     }
 
     // ── truncate ─────────────────────────────────────────────────────

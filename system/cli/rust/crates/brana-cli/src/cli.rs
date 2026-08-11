@@ -401,6 +401,9 @@ pub enum KnowledgeCmd {
         /// Ruflo namespace to search (default: knowledge)
         #[arg(long, default_value = "knowledge")]
         namespace: String,
+        /// Similarity threshold 0.0-1.0 (default: 0.25, calibrated to this corpus)
+        #[arg(long)]
+        threshold: Option<f64>,
         /// Output raw JSON instead of human-readable text
         #[arg(long)]
         json: bool,
