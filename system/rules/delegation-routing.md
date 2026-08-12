@@ -20,6 +20,8 @@ supersedes: ADR-040 (Gemini-first routing, retired 2026-06-19)
 
 **Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` for execution — hollow under subscription (records + self-votes). **Never** use `mcp__ruflo__wasm_agent_prompt` — under no API key it returns a literal `echo: <input>` stub that looks like a real answer (live-probed 2026-08-12; on this install it errors before even that — optional pkg missing). **Never** use `mcp__ruflo__terminal_execute` — unrestricted shell via MCP with no permission prompt (also denied in settings, t-2755). Exception: `mcp__ruflo__testgen_tdd_repair` IS sanctioned — the one subscription-native ruflo MCP execution path (spawns `claude -p`, budget-capped, test-verified); branch on `data.repaired`, never `success` (verify availability on installed version first — confirmed at HEAD v3.38, unverified on v3.34, t-2753). See `field-note_ruflo-agentic-layer-subscription-theater`, ADR-059.
 
+**More AgentDB bridge failures** (t-2759, 2026-08-12): also broken — `agentdb_context-synthesize`/`batch`/`feedback`/`session-start`/`session-end`/`consolidate` (same crash as `hierarchical-*`). **Degraded not broken** — `agentdb_pattern-search`/`agentdb_route` silently fall back (substring match; hardcoded confidence) instead of erroring; use `memory_search(namespace:"pattern")`. **Never** use `performance_metrics` (self-labels `_real:false`); use `performance_bottleneck` instead. Full evidence: `docs/architecture/features/ruflo-mcp-tool-classification.md`.
+
 Headless output (`claude -p`, agy) → `/tmp/` only; Claude applies via Write/Edit (cwd-discipline.md). agy never runs git.
 
 ## Retrieval (ADR-064)
