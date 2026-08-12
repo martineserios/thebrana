@@ -191,6 +191,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [research-stream.md](architecture/features/research-stream.md) | Research as first-class task stream |
 | [t-2385-retired-fields-write-guard.md](architecture/features/t-2385-retired-fields-write-guard.md) | RETIRED_FIELDS constant in brana-core::tasks — single source of truth replacing 3 independent retirement checks |
 | [stale-task-lifecycle-policy.md](architecture/features/stale-task-lifecycle-policy.md) | Spec only — auto-park stale P2/P3 (tag-based, reversible) + escalate stale P0/P1 at session-start; scheduled job design |
+| [wave-gate-enforcement.md](architecture/features/wave-gate-enforcement.md) | Spec only — minimal `wave drain` (gate check + `tag:` selector only, not the full v3 query grammar) to make ADR-065's unenforced `gate` field real |
 | [acquire-skills.md](architecture/features/acquire-skills.md) | Acquire skills from external marketplaces |
 | [cascade-throttle.md](architecture/features/cascade-throttle.md) | Cascade throttle for failure detection |
 | [scheduler.md](architecture/features/scheduler.md) | Scheduled jobs system |
