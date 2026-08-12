@@ -70888,7 +70888,7 @@
     {
       "id": "t-2741",
       "subject": "Strip retired stream references from backlog skill + fix ADR-066 global-config reads",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "docs",
       "tags": [
@@ -70902,23 +70902,24 @@
       "priority": "P2",
       "parent": "t-2771",
       "created": "2026-08-12",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-12",
+      "completed": "2026-08-12",
       "blocked_by": [],
-      "branch": null,
-      "context": null,
+      "branch": "backlog-audit-2026-08/docs/t-2741-strip-retired-stream-refs",
+      "context": "2026-08-12: re-scoped during implementation — the ADR-066 global-config gap (plan.md/done-and-add.md step 3a) was already fixed in commit 93d2e297 (2026-07-22), before this task was filed. Actual work done: stripped retired --stream/by_stream/stream_affinity/stream: references from SKILL.md + 5 phase files (views.md, display-themes.md, execute.md, done-and-add.md, start.md) and system/skills/_shared/model-routing.md; renamed execute.md's DAG-batch 'wave' terminology to 'batch' to stop colliding with persisted ADR-065 wave objects.",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "chore",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature"
     },
     {
       "id": "t-2742",
       "subject": "Extend post-tasks-validate.sh with work_type/kind/type checks + migration-script lint convention",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -70932,18 +70933,19 @@
       "priority": "P2",
       "parent": "t-2771",
       "created": "2026-08-12",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-12",
+      "completed": "2026-08-12",
       "blocked_by": [],
-      "branch": null,
-      "context": null,
+      "branch": "backlog-audit-2026-08/chore/t-2742-validate-schema-work-type-kind",
+      "context": "2026-08-12: also fixed a dead .stream==\"bugs\" statusline metric in post-tasks-validate.sh (found while editing the file) -> kind==\"fix\"; dropped stale 'stream (deprecated)' from task-convention.md field list (it's RETIRED_FIELDS-sealed, not merely deprecated).",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "infra",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature"
     },
     {
       "id": "t-2743",
@@ -71038,7 +71040,7 @@
     {
       "id": "t-2746",
       "subject": "Research: CC native Tasks bridge — CLAUDE_CODE_TASK_LIST_ID subagent task visibility",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -71052,11 +71054,11 @@
       "priority": "P2",
       "parent": "t-2771",
       "created": "2026-08-12",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-12",
+      "completed": "2026-08-12",
       "blocked_by": [],
       "branch": null,
-      "context": "Research deliverable: recommendation + spike results, not implementation. Evaluate against context-economy epic constraints (t-2483) — task-list injection size matters. Prior art: knowledge:research:2026-05-19-cc-tasks-vs-ruflo-pm-evaluation.",
+      "context": "Research deliverable: recommendation + spike results, not implementation. Evaluate against context-economy epic constraints (t-2483) — task-list injection size matters. Prior art: knowledge:research:2026-05-19-cc-tasks-vs-ruflo-pm-evaluation.\n2026-08-12: recommendation written to docs/architecture/cc-tasks-bridge-research.md. Findings: never mirror full backlog into native CC Tasks (context-economy violation, observed live this session); do formalize a batch-scoped ephemeral one-way mirror for in-flight work only. Inbox report processed and deleted.",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -71439,7 +71441,7 @@
     {
       "id": "t-2759",
       "subject": "Audit ruflo MCP surface: whitelist what's real under subscription, blacklist theater",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -71452,18 +71454,19 @@
       "priority": "P2",
       "parent": "t-2362",
       "created": "2026-08-12",
-      "started": null,
+      "started": "2026-08-12",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
-      "context": "Origin: 2026-08-12 ruv.io crawl + cross-session reconciliation with 53e3ba7a (its ruflo-gap-analysis.md has partial coverage — reuse, don't redo). Probe method per field-note ruflo-agentic-layer-subscription-theater: subscription-only, no API key, verify outputs are computed not fabricated. Known real: memory/embedding store, browser_*, testgen_tdd_repair (t-2753). Known theater: agent_*/hive-mind_*/swarm_*/neural_*/daa_*/autopilot_*/wasm_agent_* (echo stub). Coordinate with 53e3ba7a's env-hardening recs (RUFLO_REQUIRE_REAL_EMBEDDINGS=1 etc.).\nAC: every mcp__ruflo__ tool family classified real+useful / real+redundant / theater with probe evidence\nAC: delegation-routing.md or successor doc updated from the whitelist\n2026-08-12 (peer session 53e3ba7a reconciliation): peer's t-2757 (live re-verify agentdb_hierarchical-store/recall, resolves ADR-026-BROKEN-in-April vs real-at-HEAD conflict) is a fast S-effort input to this audit - run t-2757 first, fold its finding in rather than re-deriving. Sequencing: this audit runs after t-2757, before t-2754 (skill hygiene) so any additional forbidden-tool findings sweep into one hygiene pass.",
+      "branch": "ruflo-integration/research/t-2759-audit-ruflo-mcp-surface",
+      "context": "Origin: 2026-08-12 ruv.io crawl + cross-session reconciliation with 53e3ba7a (its ruflo-gap-analysis.md has partial coverage — reuse, don't redo). Probe method per field-note ruflo-agentic-layer-subscription-theater: subscription-only, no API key, verify outputs are computed not fabricated. Known real: memory/embedding store, browser_*, testgen_tdd_repair (t-2753). Known theater: agent_*/hive-mind_*/swarm_*/neural_*/daa_*/autopilot_*/wasm_agent_* (echo stub). Coordinate with 53e3ba7a's env-hardening recs (RUFLO_REQUIRE_REAL_EMBEDDINGS=1 etc.).\nAC: every mcp__ruflo__ tool family classified real+useful / real+redundant / theater with probe evidence\nAC: delegation-routing.md or successor doc updated from the whitelist\n2026-08-12 (peer session 53e3ba7a reconciliation): peer's t-2757 (live re-verify agentdb_hierarchical-store/recall, resolves ADR-026-BROKEN-in-April vs real-at-HEAD conflict) is a fast S-effort input to this audit - run t-2757 first, fold its finding in rather than re-deriving. Sequencing: this audit runs after t-2757, before t-2754 (skill hygiene) so any additional forbidden-tool findings sweep into one hygiene pass.\nskill_gap_checked: true (score < 0.3, user chose: Skip)",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "research",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "spike"
     },
     {
       "id": "t-2760",
@@ -71616,7 +71619,7 @@
     {
       "id": "t-2765",
       "subject": "Fix remaining retired-epic-field readers: backlog-reconcile.sh --execute, backlog_focus.rs, session_initiative.rs",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -71631,10 +71634,10 @@
       "priority": "P1",
       "parent": "t-2771",
       "created": "2026-08-12",
-      "started": null,
+      "started": "2026-08-12",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-audit-2026-08/fix/t-2765-retired-epic-field-readers",
       "context": "M effort — cross-subsystem (destructive script + MCP + session close pipeline), each site needs its own test. Use resolve_epic_ancestor (brana-core/src/tasks.rs) as the canonical parent-chain walk for the Rust sites; the Python backlog-reconcile.sh needs an equivalent parent-chain walk against tasks.json or a shelled call to `brana backlog query --epic`.\nAC: backlog-reconcile.sh --epic filter matches tasks via parent-chain ancestor, not flat field\nAC: backlog_focus.rs active-epic boost fires correctly for parent-chain-resolved epic membership\nAC: session_initiative.rs maybe_write_initiative_marker writes correctly for current tasks\nAC: grep for `t[\"epic\"]` / `.get('epic')` / `\\[\"epic\"\\]` across system/ returns zero live-consumer hits outside the sealed write-path rejection and the documented pre-migration compat check\n2026-08-12: Challenger flagged this as the second occurrence of the exact blind spot ADR-065's Consequences section names — \"check config-driven filters, not just labels/displays, when tracing a field's read consumers.\" Worth a repo-wide grep sweep as step 1, not just these 3 named sites, in case more exist.",
       "notes": null,
       "order": 0,
@@ -71642,7 +71645,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-2766",

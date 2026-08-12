@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T13:09:05Z",
+  "generated": "2026-08-12T14:00:47Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -655,6 +655,15 @@
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/crates/brana-cli/src/commands/"
+      ]
+    },
+    "docs/architecture/cc-tasks-bridge-research.md": {
+      "title": "CC native Tasks bridge — research findings (t-2746)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/rules/context-budget.md",
+        "system/skills/backlog/phases/execute.md",
+        "system/skills/build/"
       ]
     },
     "docs/architecture/context-budget.md": {
@@ -1655,7 +1664,9 @@
     "docs/architecture/features/ruflo-integration-map.md": {
       "title": "Ruflo Integration Map",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/rules/delegation-routing.md"
+      ]
     },
     "docs/architecture/features/ruflo-upgrade-memory-reliability.md": {
       "title": "Feature: Upgrade ruflo v3.10.39 → v3.34.0 and re-verify memory reliability",
@@ -9877,6 +9888,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/cc-tasks-bridge-research.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/context-budget.md",
       "type": "references",
       "computed": false
@@ -15883,9 +15900,9 @@
     }
   ],
   "stats": {
-    "nodes": 551,
-    "edges": 2018,
+    "nodes": 552,
+    "edges": 2019,
     "typed_edges": 684,
-    "orphans": 147
+    "orphans": 148
   }
 }
