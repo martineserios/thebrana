@@ -45,8 +45,8 @@ and are **not re-opened here**. This spec implements them. In summary:
   Auto-correct is *right* in all observed cases and still *wrong*, because it erases the
   drift rate.
 - **Lives in validate.sh**, not in `session-end-drift.sh` (per `rules-over-hooks-for-gates.md`).
-- **Does not touch the WIP cap.** The cap stays anti-sprawl over live children (t-2535).
-  This is a separate measure.
+- **Does not touch the epic WIP cap.** (Retired 2026-08-12, t-2727 — epics are unbounded
+  groupings, not concurrency-limited; this feature never had a dependency on it either way.)
 
 Two decisions were left open by t-2541 and are settled here (operator, 2026-07-29):
 

@@ -802,13 +802,6 @@ pub fn cmd_add(
 
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
 
-    // ADR-065 D4: WIP cap is advisory during pilot — warn, never block (t-2313).
-    if let Some(parent_id) = new_task["parent"].as_str() {
-        if let Some(warning) = tasks::check_epic_wip_cap(&tasks_arr, parent_id) {
-            eprintln!("  ⚠ {warning}");
-        }
-    }
-
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
             eprintln!("{{\"ok\":false,\"error\":\"tasks.json has no tasks array\"}}");
@@ -2513,12 +2506,15 @@ mod tests {
     }
 
     #[test]
-    fn cmd_add_wip_cap_warns_not_blocks() {
-        // ADR-065 D4: WIP cap is advisory (warn) during pilot, never a hard block.
+    fn cmd_add_no_epic_wip_cap_at_any_count() {
+        // ADR-065 D4 (retired 2026-08-12, t-2727): the epic WIP cap is gone —
+        // epics are unbounded groupings, not concurrency-limited. Adding well
+        // past the old default-10 cap must persist cleanly with no warning
+        // path invoked at all.
         let mut children = String::from(
-            r#"[{"id":"in-1","subject":"epic","status":"pending","type":"epic","tags":[],"blocked_by":[],"wip_limit":10,"parent":null}"#,
+            r#"[{"id":"in-1","subject":"epic","status":"pending","type":"epic","tags":[],"blocked_by":[],"parent":null}"#,
         );
-        for i in 1..=10 {
+        for i in 1..=20 {
             children.push_str(&format!(
                 r#",{{"id":"t-{i}","subject":"child {i}","status":"pending","type":"task","tags":[],"blocked_by":[],"parent":"in-1"}}"#
             ));
@@ -2526,13 +2522,24 @@ mod tests {
         children.push(']');
         let f = tasks_file_with(&children);
         cmd_add(
-            Some(r#"{"subject":"11th child","parent":"in-1"}"#.into()),
+            Some(r#"{"subject":"21st child","parent":"in-1"}"#.into()),
             None, None, None, None, None, None, None, None,
             None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap();
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(data["tasks"].as_array().unwrap().len(), 12, "11th child must still be persisted (warn, not block)");
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 22, "21st child under an unbounded epic must persist with no cap effect");
+    }
+
+    #[test]
+    fn cmd_add_json_wip_limit_rejected_as_retired_field() {
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"new epic","type":"epic","wip_limit":5}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(format!("{err}").contains("wip_limit"), "error must name wip_limit: {err}");
     }
 
     // ── t-2439: --json array-field normalization ─────────────────────────

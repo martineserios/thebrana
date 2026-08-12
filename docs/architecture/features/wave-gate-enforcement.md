@@ -137,9 +137,14 @@ not silently no-op'd.
   built speculatively.
 - An MCP `backlog_wave_drain` tool (§3) — CLI-only for the MVP.
 - Anything from t-2743 (stale-task lifecycle) — a related but distinct
-  spec; epic `wip_limit` enforcement and wave `gate` enforcement are
-  different failure modes (too much concurrent epic work vs. wave
-  sequencing) and don't share implementation.
+  spec; epic `wip_limit` enforcement and wave `gate` enforcement were
+  always different failure modes (too much concurrent epic work vs. wave
+  sequencing) and don't share implementation. Epic `wip_limit` itself was
+  retired 2026-08-12 (t-2727, ADR-065's amendment) rather than enforced —
+  epics turned out to be unbounded groupings, not concurrency-limited. A
+  WIP-capping strategy *on waves* is a distinct, later follow-up (t-2782,
+  blocked on this spec's `drain` implementation landing first) — not part
+  of this MVP.
 
 ## Follow-up implementation task
 

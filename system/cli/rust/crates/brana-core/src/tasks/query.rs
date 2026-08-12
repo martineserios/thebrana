@@ -97,53 +97,6 @@ pub fn tags_query_match(task_tags: &[&str], tag_list: &[&str], is_and: bool) -> 
     }
 }
 
-/// Default WIP cap for an epic node when `wip_limit` is unset (ADR-065 D4 /
-/// backlog-v3-schema.md "WIP cap").
-pub const DEFAULT_EPIC_WIP_LIMIT: i64 = 10;
-
-/// Advisory WIP-cap check for adding a new child under `parent_id` (ADR-065
-/// D4: "warn, not block, during pilot"). Returns `Some(warning)` when adding
-/// one more LIVE task would push the epic's live-child count past its
-/// `wip_limit` (default `DEFAULT_EPIC_WIP_LIMIT` when unset).
-///
-/// "Live" is a synthetic projection over `classify()`, not a raw-status read:
-/// children `classify()` reports as `done` (completed/cancelled) or `parked`
-/// are excluded; `blocked` children still count, because a blocked task is
-/// still work in flight. Counting via `classify()` rather than `raw_status()`
-/// is what makes backlog-v3-schema.md §72 — "Can't add #11 without closing or
-/// **parking**" — true: parking was implemented as a `parked` tag surfaced by
-/// `classify()`, but this cap read the raw status field and ignored it, so
-/// parking a task had no effect on the count (t-2535). The warning names the
-/// count "live" rather than "open" precisely because it is no longer the raw
-/// reading a `--status` filter would reproduce (t-1340).
-///
-/// Returns `None` when `parent_id`
-/// doesn't resolve to a `type: "epic"` task, or the cap isn't breached —
-/// callers never branch on "is this an epic" themselves. Single point of
-/// computation shared by CLI `cmd_add` and MCP `backlog_add` (t-2313; same
-/// pattern as `tag_matches()`, t-2311). Never returns an error — the cap is
-/// advisory only.
-pub fn check_epic_wip_cap(all: &[Value], parent_id: &str) -> Option<String> {
-    let parent = all.iter().find(|t| t["id"].as_str() == Some(parent_id))?;
-    if parent["type"].as_str() != Some("epic") {
-        return None;
-    }
-    let limit = parent["wip_limit"].as_i64().unwrap_or(DEFAULT_EPIC_WIP_LIMIT);
-    let live_children = all
-        .iter()
-        .filter(|t| t["parent"].as_str() == Some(parent_id))
-        .filter(|t| !matches!(classify(t, all), "done" | "parked"))
-        .count() as i64;
-    let new_count = live_children + 1;
-    if new_count > limit {
-        Some(format!(
-            "epic {parent_id} is at its WIP cap ({live_children}/{limit} live — parked and finished children excluded) — adding this task makes {new_count}; close or park something before adding more"
-        ))
-    } else {
-        None
-    }
-}
-
 /// Assert that `active_epic` (if set) resolves to something real — either a
 /// `type: "epic"` node task (post-migration, ADR-065) or a task still
 /// carrying the flat `epic` tag with that value (pre-migration compat,
