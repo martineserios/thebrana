@@ -758,6 +758,20 @@ pub fn validate_schema(path: &Path) -> Vec<String> {
                     }
                 }
             }
+            // t-2742: validate_schema() predates validate_work_type/validate_kind
+            // (t-1960/t-2739's single-field write-path validators) and never
+            // picked them up — whole-file validation missed drift they'd catch
+            // on `set`. Reuse the same validators so the two paths can't diverge.
+            if let Some(wt) = t["work_type"].as_str() {
+                if let Err(e) = validate_work_type(wt) {
+                    errors.push(format!("task {id}: {e}"));
+                }
+            }
+            if let Some(k) = t["kind"].as_str() {
+                if let Err(e) = validate_kind(k) {
+                    errors.push(format!("task {id}: {e}"));
+                }
+            }
         }
     }
 
@@ -2445,6 +2459,51 @@ mod tests {
         std::fs::write(&path, "not json at all").unwrap();
         let errors = validate_schema(&path);
         assert_eq!(errors, vec!["invalid JSON"]);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_rejects_invalid_work_type_kind_task_type() {
+        // t-2742: validate_schema() predates validate_work_type/validate_kind/
+        // validate_task_type (single-field write-path validators, t-1960/t-2739)
+        // and never picked them up, so whole-file validation (the hook's Rust
+        // path) silently missed drift on these three fields.
+        let dir = std::env::temp_dir().join("brana-test-validate-work-type-kind");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("bad-enums.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Bad work_type","status":"pending","type":"task","work_type":"bogus"},
+            {"id":"t-2","subject":"Bad kind","status":"pending","type":"task","kind":"bogus"}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(
+            errors.iter().any(|e| e.contains("t-1") && e.contains("work_type")),
+            "expected work_type error, got: {:?}",
+            errors
+        );
+        assert!(
+            errors.iter().any(|e| e.contains("t-2") && e.contains("kind")),
+            "expected kind error, got: {:?}",
+            errors
+        );
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_accepts_valid_work_type_kind_null() {
+        let dir = std::env::temp_dir().join("brana-test-validate-work-type-kind-valid");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("good-enums.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Good","status":"pending","type":"task","work_type":"implement","kind":"fix"},
+            {"id":"t-2","subject":"Null ok","status":"pending","type":"task","work_type":null,"kind":null}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(
+            !errors.iter().any(|e| e.contains("work_type") || e.contains("kind")),
+            "valid/null work_type and kind must not error, got: {:?}",
+            errors
+        );
         std::fs::remove_dir_all(&dir).ok();
     }
 

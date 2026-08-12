@@ -58,9 +58,12 @@ else
             if (.status | IN("pending","in_progress","completed","cancelled") | not)
               then "task \(.id // "?"): invalid status \(.status)" else empty end,
             if .type == null then "task \(.id // "?") missing type" else empty end,
-            if (.type | IN("phase","milestone","task","subtask") | not)
+            if (.type | IN("phase","milestone","task","subtask","epic","initiative") | not)
               then "task \(.id // "?"): invalid type \(.type)" else empty end,
-            if .stream == null then "task \(.id // "?") missing stream" else empty end,
+            if .work_type != null and (.work_type | IN("implement","research","design","infra","chore","review") | not)
+              then "task \(.id // "?"): invalid work_type \(.work_type)" else empty end,
+            if .kind != null and (.kind | IN("feature","fix","refactor","research","docs","design","ops") | not)
+              then "task \(.id // "?"): invalid kind \(.kind)" else empty end,
             if .tags != null and (.tags | type) != "array"
               then "task \(.id // "?"): tags must be array" else empty end,
             if .tags != null and (.tags | type) == "array" and ([.tags[] | type != "string"] | any)
@@ -145,7 +148,7 @@ fi
     ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length),
     ([.tasks[] | select(.type == "task" or .type == "subtask")] | length),
     ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .subject // ""),
-    ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length),
+    ([.tasks[] | select(.kind == "fix" and .status != "completed" and .status != "cancelled")] | length),
     ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .build_step // "")
   ] | @tsv' "$FILE_PATH" > "$CACHE_FILE" 2>/dev/null
 } &
