@@ -295,7 +295,7 @@ Research a topic, doc, or creator — check sources, follow references, produce 
 
 **Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate] [--depth quick|standard|deep]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, AskUserQuestion, ToolSearch, EnterPlanMode, TaskList, ExitPlanMode, Skill
+**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, AskUserQuestion, ToolSearch, EnterPlanMode, TaskList, ExitPlanMode, Skill
 
 ### `/brana:retrospective`
 
@@ -333,7 +333,7 @@ Decision support — criteria, scenarios, patterns, recommendation.
 
 **Arguments:** `[question or options, e.g. 'should I do A or B' / 'what to work on next']`
 
-**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, ToolSearch
+**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, ToolSearch
 
 ### `/brana:grad-mechanism-design`
 
@@ -391,5 +391,5 @@ Business review — weekly health check, monthly close, or ad-hoc audit. Subcomm
 
 **Arguments:** `[weekly|monthly|check]`
 
-**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, ToolSearch, Agent, Skill
+**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store, ToolSearch, Agent, Skill
 
