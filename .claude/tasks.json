@@ -71827,6 +71827,34 @@
       "acceptance_criteria": null,
       "work_type": null,
       "ac_state": "none"
+    },
+    {
+      "id": "t-2772",
+      "subject": "Investigate untracked truncated system/rules/no-patches-root-cause.md",
+      "status": "pending",
+      "type": "task",
+      "kind": null,
+      "tags": [
+        "maintenance",
+        "rules"
+      ],
+      "description": "Found during 2026-08-12 close: an untracked, truncated (664B) copy of no-patches-root-cause.md sits in the main checkout's system/rules/, vs. the deployed copy at ~/.claude/rules/ (1735B, matches the content already committed elsewhere in history). Likely a leftover partial write from an earlier interrupted session. Investigate origin, then either restore the correct full content and commit it, or delete the stray file if it's confirmed to be garbage.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3
