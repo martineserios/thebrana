@@ -1,8 +1,5 @@
 <!-- build phase: CLOSE (shared step) — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
-<!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__autopilot_learn")
-
 ## CLOSE (shared step)
 
 Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike or investigation.
@@ -40,12 +37,6 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
        --upsert
      ```
    If ruflo unavailable, append to project's auto memory MEMORY.md.
-
-   After storing learnings, call:
-   ```
-   mcp__ruflo__autopilot_learn()
-   ```
-   This seeds the autopilot pattern registry from completed task outcomes — no params needed.
 
 4. **Knowledge maintenance** (after tests pass, before docs/merge):
 

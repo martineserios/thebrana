@@ -24,7 +24,6 @@ allowed-tools:
   - mcp__ruflo__memory_search
   - mcp__ruflo__hive-mind_memory
   - mcp__ruflo__claims_release
-  - mcp__ruflo__claims_list
   - ToolSearch
 status: stable
 growth_stage: evergreen

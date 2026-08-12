@@ -1,7 +1,7 @@
 <!-- backlog phase: /brana:backlog execute — DAG-aware subagent execution, model routing — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__agent_spawn,mcp__ruflo__claims_claim,mcp__ruflo__claims_mark-stealable,mcp__ruflo__claims_release,mcp__ruflo__coordination_orchestrate,mcp__ruflo__memory_search,mcp__ruflo__swarm_init")
+ToolSearch("select:mcp__ruflo__claims_claim,mcp__ruflo__claims_mark-stealable,mcp__ruflo__claims_release,mcp__ruflo__memory_search")
 
 ## /brana:backlog execute
 
@@ -55,12 +55,11 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
 6. **User confirms**
 7. **Execute wave-by-wave:**
 
-   **7a. Swarm init** (once per execute run, before first wave):
+   **7a. Batch ID** (once per execute run, before first wave):
+   Derive a local batch identifier for claim ownership — no ruflo call needed (`swarm_init` is bookkeeping-only under subscription, ADR-059; it never created a real topology to init):
    ```
-   mcp__ruflo__swarm_init(topology: "mesh", maxAgents: {max_parallel}, strategy: "adaptive")
+   swarmId = "{git branch --show-current}-{execute run timestamp}"
    ```
-   Captures the swarmId for use in agent_spawn calls below.
-   **Fallback:** If ruflo unavailable, skip swarm init — use native Task tool per task as before.
 
    - **Knowledge injection (per task, before spawning):**
      Query ruflo for domain context related to the task:
@@ -85,22 +84,7 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
    ```
    If claim fails (another agent holds it), skip this task in the wave — it may be running in a parallel session.
 
-   - For each task in the wave, spawn a subagent via ruflo (preferred) or Task tool (fallback):
-     ```
-     mcp__ruflo__agent_spawn(
-       agentType: "{agent_config.type or 'claude'}",
-       model: "{computed model from routing table}",
-       domain: "{project_slug}",
-       task: "{task subject + description + knowledge context}",
-       swarmId: "{swarmId from 7a}"
-     )
-     mcp__ruflo__coordination_orchestrate(
-       task: "{task.subject}",
-       agents: ["{agentId}"],
-       strategy: "parallel"
-     )
-     ```
-     **Fallback (ruflo unavailable):** use native Task tool:
+   - For each task in the wave, spawn a subagent via the native Agent tool — `agent_spawn`/`coordination_orchestrate` are bookkeeping-only under subscription (ADR-059; `coordination_orchestrate` self-documents "records the request but does not execute it," source-confirmed 2026-08-12) and would silently no-op the entire wave if used as the execution path:
      - `subagent_type`: from `agent_config.type` (default: `"general-purpose"`)
      - `model`: from `agent_config.model`
      - `prompt`: task subject + description + relevant context + knowledge context
