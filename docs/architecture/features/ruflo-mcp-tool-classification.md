@@ -3,7 +3,7 @@ title: Ruflo MCP Surface — Real/Theater/Broken Classification
 status: active
 produced_by: t-2759
 depends_on: ADR-026-ruflo-mcp-backbone.md, ADR-059-multi-agent-substrate-selection.md
-see_also: field-note_ruflo-agentic-layer-subscription-theater, system/rules/ruflo-stub-guard.md, system/rules/delegation-routing.md
+see_also: field-note_ruflo-agentic-layer-subscription-theater, system/rules/ruflo-stub-guard.md, system/rules/delegation-routing.md, project_gentle-ai-ruflo-comparison-adoption-candidates (2026-08-01/05 strategic-level comparison this audit tool-verifies)
 created: 2026-08-12
 ---
 
@@ -19,7 +19,12 @@ inventory, per t-2759.
 `agentdb_hierarchical-store/recall` — confirmed BROKEN on our v3.34, root-caused to a
 `ControllerRegistry` duplicate-ESM-export crash); the 2026-08-12 peer-session gap
 analysis (`ruflo-gap-analysis.md` / `ruflo-upstream-extraction.md`, session `53e3ba7a`),
-which source-audited upstream HEAD v3.38.0 and live-probed the agentic-theater tools.
+which source-audited upstream HEAD v3.38.0 and live-probed the agentic-theater tools;
+and, at the strategic level, the earlier 2026-08-01/05 four-way comparison (gentle-ai /
+ruflo / ruvnet-brain / thebrana — memory `project_gentle-ai-ruflo-comparison-adoption-candidates`),
+whose call that "ruflo's durable value is the memory/embeddings layer, not the
+orchestration layer Anthropic is natively absorbing" this audit now verifies tool by
+tool rather than assumes.
 This doc adds five parallel sessions of direct live probing (2026-08-12) across every
 family prior work named but hadn't tested: `embeddings_*`, all of `agentdb_*`, memory
 hygiene, `analyze_diff*`, `session_*`, `system_*`, `config_*`, `policy_*`, `guidance_*`,
