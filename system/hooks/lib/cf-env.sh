@@ -7,18 +7,23 @@
 # searches, so no caller needs to know either rule.
 
 CF=""
-_cf_candidates="$HOME/.claude/scripts/ruflo-cli.sh"
-[ -n "${CLAUDE_PROJECT_DIR:-}" ] && _cf_candidates="$_cf_candidates ${CLAUDE_PROJECT_DIR}/system/scripts/ruflo-cli.sh"
-for _cf_candidate in $_cf_candidates; do
-    [ -x "$_cf_candidate" ] && CF="$_cf_candidate" && break
+for _cf_candidate in \
+    "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/ruflo-cli.sh" \
+    "$HOME/.claude/scripts/ruflo-cli.sh" \
+    "${CLAUDE_PROJECT_DIR:-}/system/scripts/ruflo-cli.sh"; do
+    [ -n "$_cf_candidate" ] && [ -x "$_cf_candidate" ] && CF="$_cf_candidate" && break
 done
 
-# Last-resort fallbacks (wrapper missing — may hit the CRLF-shebang bin, t-1934)
+# Last-resort fallbacks (wrapper missing — may hit the CRLF-shebang bin, t-1934).
+# nvm candidates walked newest-first (sort -rV) — an unsorted glob here shadows
+# the intended version with whatever order the filesystem returns (t-2632 bug
+# class; unified across both cf-env.sh copies and ruflo-cli.sh, t-2754).
 if [ -z "$CF" ]; then
     for name in ruflo claude-flow; do
-        for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
-            [ -x "$candidate" ] && CF="$candidate" && break 2
-        done
+        while IFS= read -r _cf_nvm_bin; do
+            [ -x "$_cf_nvm_bin" ] && CF="$_cf_nvm_bin" && break
+        done < <(find "$HOME/.nvm/versions/node" -maxdepth 3 -path "*/bin/$name" 2>/dev/null | sort -rV)
+        [ -n "$CF" ] && break
     done
     [ -z "$CF" ] && command -v ruflo &>/dev/null && CF="ruflo"
     [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
