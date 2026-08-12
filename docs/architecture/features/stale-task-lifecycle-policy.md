@@ -152,6 +152,25 @@ spec).
   it runs is exactly the kind of surprise a scheduled job should never
   produce).
 
+## Assumptions
+
+Surfaced during BUILD (t-2774), documented rather than silently picked:
+
+- **P0/P1 escalation threshold: 14d.** §3/§4b intentionally left this
+  unspecified (only P2/P3's 90d park threshold is explicit). Resolved during
+  BUILD-approval by reusing `stale_tasks()`'s own existing default
+  (`--days 14`) rather than inventing a new number — needs confirmation if
+  the intent was to match the audit's 30d framing instead.
+  (`STALE_LIFECYCLE_ESCALATE_DAYS` env override if this needs tuning later.)
+- **Job-driven unpark is tag hygiene, not a correctness fix.** `classify()`
+  already treats `task.status` as authoritative over the `parked` tag for
+  `by_state` bucketing (an `in_progress`/`completed` task never displays as
+  "parked" regardless of the tag) — see ADR-078's noted consequence. The
+  implementation still strips the tag proactively so `task.tags` itself
+  doesn't accumulate stale metadata indefinitely; confirmed via live
+  `--dry-run` against real data (2 tasks, t-824/t-1832, found carrying a
+  `parked` tag on now-`cancelled` status).
+
 ## Follow-up implementation task
 
 File as a new task once this spec is reviewed: `brana ops` job wiring
@@ -161,3 +180,20 @@ integration. Suggested effort: M (touches scheduler config, a new small
 Rust or shell driver over the existing `stale_tasks()` primitive, and one
 skill-phase-file edit for the session-start line) — TDD as normal once
 that task starts.
+
+## Documentation Plan
+
+This is internal ops automation, not a user-facing product feature — no
+separate `docs/guide/features/` user guide is warranted (no end-user-facing
+behavior beyond an operator reading a status line or a weekly report they
+already read).
+
+- [x] **Tech doc** — this file (`docs/architecture/features/stale-task-lifecycle-policy.md`)
+  is both the spec and the tech doc; §1–§6 already cover design rationale and
+  extension points. [ADR-078](../decisions/ADR-078-stale-task-park-via-tag.md)
+  covers the storage-mechanism decision specifically.
+- [ ] **Existing docs to update** — `system/scheduler/scheduler.template.json`
+  gets a `_comment` field on the new job entry (matches every other job's
+  self-documenting convention, no separate doc file); the session-start
+  skill phase file gets an inline note on the gated single-line surfacing
+  it adds (context-budget.md already governs that surface).
