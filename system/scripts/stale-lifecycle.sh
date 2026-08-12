@@ -106,6 +106,12 @@ STALE_P0P1_COUNT="$(echo "$PENDING_JSON" | jq --arg cutoff "$ESCALATE_CUTOFF" '
 jq -nc --argjson count "$STALE_P0P1_COUNT" --arg updated "$TODAY" --argjson days "$ESCALATE_DAYS" \
     '{stale_p0p1_count: $count, threshold_days: $days, updated: $updated}' > "$STATUS_FILE"
 
+if [ "$STALE_P0P1_COUNT" -gt 0 ]; then
+    jq -nc --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg action "escalate" --argjson count "$STALE_P0P1_COUNT" \
+        --arg reason "stale >${ESCALATE_DAYS}d, priority P0/P1" \
+        '{ts: $ts, action: $action, count: $count, reason: $reason}' >> "$LOG_FILE"
+fi
+
 # ── (c) Weekly intake-vs-drain report ──────────────────────────────────
 C7="$(cutoff 7)"; C30="$(cutoff 30)"
 
