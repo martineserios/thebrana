@@ -90,6 +90,8 @@ ok "dry-run mutates nothing (only would-park actions, never park)" \
 ok "status file produced" '[ -s "$STATUS" ]'
 ok "stale P0/P1 count is 1 (t-9104 only: t-9105 is 2d, t-9106 is 13d, neither stale)" \
   '[ "$(jq -r .stale_p0p1_count "$STATUS")" = "1" ]'
+ok "escalate action also logged to the JSONL audit log (not status-file-only)" \
+  'jq -e "select(.action==\"escalate\" and .count==1)" "$LOG" >/dev/null'
 
 # ── Weekly intake/drain report ────────────────────────────────────────
 ok "report produced" '[ -s "$REPORT" ]'
