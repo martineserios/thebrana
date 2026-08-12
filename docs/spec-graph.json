@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T17:54:15Z",
+  "generated": "2026-08-12T19:13:08Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1743,7 +1743,14 @@
         "system/state/stale-lifecycle-log.jsonl",
         "system/state/",
         "system/scheduler/scheduler.template.json",
-        "system/scheduler/"
+        "system/scheduler/",
+        "system/skills/review/SKILL.md",
+        "system/scripts/stale-lifecycle.sh",
+        "system/state/stale-lifecycle-status.json",
+        "system/hooks/session-start.sh",
+        "system/state/stale-lifecycle-report.jsonl",
+        "system/scripts/tests/test-stale-lifecycle.sh",
+        "system/hooks/tests/test-session-start.sh"
       ]
     },
     "docs/architecture/features/staleness-and-memory-pipeline.md": {
@@ -3433,6 +3440,8 @@
         "system/rules/hard-deny-manifest.md",
         "system/rules/inbox-convention.md",
         "system/rules/m-plus-discipline-enforcement.md",
+        "system/rules/migration-script-validation.md",
+        "system/rules/no-patches-root-cause.md",
         "system/rules/no-phantom-dependencies.md",
         "system/rules/parallel-bash.md",
         "system/rules/reconcile-after-convention-change.md",
@@ -11958,6 +11967,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/stale-task-lifecycle-policy.md",
+      "to": "docs/architecture/decisions/ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/staleness-and-memory-pipeline.md",
       "to": "docs/architecture/25-self-documentation.md",
       "type": "references",
@@ -15968,8 +15983,8 @@
   ],
   "stats": {
     "nodes": 556,
-    "edges": 2025,
+    "edges": 2026,
     "typed_edges": 685,
-    "orphans": 149
+    "orphans": 148
   }
 }
