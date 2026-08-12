@@ -40,25 +40,25 @@ Wide mode composes with any theme (icons come from the active theme).
 **Wide-mode template:**
 
 ```
-Columns:  {icon} {id}  {subject}  {status}  {tags}  {pri}  {eff}  {stream}  {project}  {blocked_by}  {started}  {completed}
+Columns:  {icon} {id}  {subject}  {status}  {tags}  {pri}  {eff}  {project}  {blocked_by}  {started}  {completed}
 
 Header row (always shown):
-  ID       Subject                         Status    Tags              Pri  Eff  Stream   Project      Blocked     Started     Done
+  ID       Subject                         Status    Tags              Pri  Eff  Project      Blocked     Started     Done
 
 Task rows (classic icons):
-  ✓ t-007  Design auth flow                done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
-  → t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    roadmap  —           —           —
-  · t-009  Write auth tests                blocked   auth              P1   M    roadmap  t-008       —           —
+  ✓ t-007  Design auth flow                done      auth              P1   S    —           2026-02-10  2026-02-12
+  → t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    —           —           —
+  · t-009  Write auth tests                blocked   auth              P1   M    t-008       —           —
 
 Task rows (emoji icons):
-  ✅ t-007  Design auth flow                done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
-  🔲 t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    roadmap  —           —           —
+  ✅ t-007  Design auth flow                done      auth              P1   S    —           2026-02-10  2026-02-12
+  🔲 t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    —           —           —
   🔒 t-009  Write auth tests                blocked   auth              ⛓ t-008
 
 Task rows (minimal icons):
-  ● t-007  Design auth flow                done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
-  ○ t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    roadmap  —           —           —
-  ⊘ t-009  Write auth tests                blocked   auth              P1   M    roadmap  ← t-008     —           —
+  ● t-007  Design auth flow                done      auth              P1   S    —           2026-02-10  2026-02-12
+  ○ t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    —           —           —
+  ⊘ t-009  Write auth tests                blocked   auth              P1   M    ← t-008     —           —
 ```
 
 **Rules:**

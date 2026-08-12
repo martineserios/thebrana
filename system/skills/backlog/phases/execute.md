@@ -5,16 +5,16 @@ ToolSearch("select:mcp__ruflo__claims_claim,mcp__ruflo__claims_mark-stealable,mc
 
 ## /brana:backlog execute
 
-Execute tasks via subagents — DAG-aware parallel execution with automatic wave scheduling.
+Execute tasks via subagents — DAG-aware parallel execution with automatic batch scheduling.
 
 ```
 /brana:backlog execute [scope] [--dry-run] [--max-parallel N] [--retry]
 ```
 
 **Arguments:**
-- `scope`: task/milestone/phase ID, or `"next"` for the next unblocked wave. Default: next
+- `scope`: task/milestone/phase ID, or `"next"` for the next unblocked batch. Default: next
 - `--dry-run`: show execution plan without running agents
-- `--max-parallel N`: max concurrent subagents per wave (default: 3)
+- `--max-parallel N`: max concurrent subagents per batch (default: 3)
 - `--retry`: re-run failed/partial tasks, skip completed
 
 ### Prerequisites
@@ -25,37 +25,37 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
 
 1. **Read tasks.json**, identify scope
 2. **Filter executable tasks** — only tasks with `spawn: "subagent"` and status `pending` (or `in_progress`/failed for `--retry`)
-3. **Build execution waves** from `blocked_by` DAG (topological sort):
-   - Wave 1: tasks with no unmet dependencies
-   - Wave 2: tasks whose blockers are all in wave 1
-   - Wave N: tasks whose blockers are all in earlier waves
-4. **Check parent `spawn_strategy`** — if set, override wave ordering:
-   - `"parallel"`: all children in one wave (ignore inter-child deps)
-   - `"sequential"`: one task per wave, in order
+3. **Build execution batches** from `blocked_by` DAG (topological sort):
+   - Batch 1: tasks with no unmet dependencies
+   - Batch 2: tasks whose blockers are all in batch 1
+   - Batch N: tasks whose blockers are all in earlier batches
+4. **Check parent `spawn_strategy`** — if set, override batch ordering:
+   - `"parallel"`: all children in one batch (ignore inter-child deps)
+   - `"sequential"`: one task per batch, in order
    - `"auto"`: use DAG (default behavior)
 5. **Present execution plan:**
    ```
-   Execution plan for ph-002 (3 waves, 8 tasks):
+   Execution plan for ph-002 (3 batches, 8 tasks):
 
-     Wave 1 (parallel):
+     Batch 1 (parallel):
        t-007 Design auth flow          haiku   research
        t-010 Design schema             haiku   research
 
-     Wave 2 (parallel):
+     Batch 2 (parallel):
        t-008 Implement JWT middleware   sonnet  code
        t-011 Write migrations           sonnet  code
 
-     Wave 3 (parallel):
+     Batch 3 (parallel):
        t-009 Write auth tests           sonnet  code
        t-012 Seed dev data              sonnet  code
 
-   Estimated: 3 waves, max 2 parallel agents per wave.
+   Estimated: 3 batches, max 2 parallel agents per batch.
    Proceed? (yes / dry-run was requested)
    ```
 6. **User confirms**
-7. **Execute wave-by-wave:**
+7. **Execute batch-by-batch:**
 
-   **7a. Batch ID** (once per execute run, before first wave):
+   **7a. Batch ID** (once per execute run, before first batch):
    Derive a local batch identifier for claim ownership — no ruflo call needed (`swarm_init` is bookkeeping-only under subscription, ADR-059; it never created a real topology to init):
    ```
    swarmId = "{git branch --show-current}-{execute run timestamp}"
@@ -82,9 +82,9 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
      context: "{task.subject}"
    )
    ```
-   If claim fails (another agent holds it), skip this task in the wave — it may be running in a parallel session.
+   If claim fails (another agent holds it), skip this task in the batch — it may be running in a parallel session.
 
-   - For each task in the wave, spawn a subagent via the native Agent tool — `agent_spawn`/`coordination_orchestrate` are bookkeeping-only under subscription (ADR-059; `coordination_orchestrate` self-documents "records the request but does not execute it," source-confirmed 2026-08-12) and would silently no-op the entire wave if used as the execution path:
+   - For each task in the batch, spawn a subagent via the native Agent tool — `agent_spawn`/`coordination_orchestrate` are bookkeeping-only under subscription (ADR-059; `coordination_orchestrate` self-documents "records the request but does not execute it," source-confirmed 2026-08-12) and would silently no-op the entire batch if used as the execution path:
      - `subagent_type`: from `agent_config.type` (default: `"general-purpose"`)
      - `model`: from `agent_config.model`
      - `prompt`: task subject + description + relevant context + knowledge context
@@ -100,7 +100,7 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
    - **Failed tasks:**
      - Write `agent_result`: `{status: "failed", error: "...", completed_at: "..."}`
      - Task stays `in_progress`. Dependents remain blocked.
-     - Log error and continue with remaining tasks in wave
+     - Log error and continue with remaining tasks in batch
 
    **7c. Per-task release or mark-stealable** (after each task completes or fails):
    - On completion:
@@ -143,7 +143,7 @@ Before spawning an agent for a task, compute a complexity score (0.0–1.0):
 |-------|-------------------|-----|
 | `min(word_count(description) / 100, 0.3)` | Description length | 0.3 |
 | `min(len(blocked_by) * 0.1, 0.2)` | Dependency count | 0.2 |
-| `0.2` if stream is `dev` | Stream type | 0.2 |
+| `0.2` if `work_type` is `implement` | Work type | 0.2 |
 | `0.1` if `architecture` in tags | Architecture tag | 0.1 |
 | `0.1` if effort is `L` or `XL` | Effort estimate | 0.1 |
 
