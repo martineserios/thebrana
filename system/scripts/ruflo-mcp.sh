@@ -119,4 +119,17 @@ fi
 [ ! -x "${RUFLO:-}" ] && RUFLO="$(command -v ruflo 2>/dev/null)"
 [ ! -x "${RUFLO:-}" ] && { echo "ruflo not found in nvm or PATH" >&2; exit 1; }
 
+# Hardening (t-2755, 2026-08-12 upstream audit):
+# - REQUIRE_REAL_EMBEDDINGS: the embedder silently falls back to deterministic
+#   hash vectors when no ONNX model loads, degrading every search to noise with
+#   no error. This makes the fallback throw instead (upstream v3.25.1).
+# - SCAN_ON_WRITE: MemPoison/ChannelGuard injection scan before persisting to a
+#   store that ingests agent output (memory store exits 2 on a finding —
+#   hook callers already tolerate and log non-zero stores).
+# - RUFLO_FUNNEL=0: kill switch for funnel telemetry, including the promo-message
+#   fetch to funnel.ruv.io that is otherwise ON by default (opt-out upstream).
+export RUFLO_REQUIRE_REAL_EMBEDDINGS=1
+export RUFLO_MEMORY_SCAN_ON_WRITE=1
+export RUFLO_FUNNEL=0
+
 exec "$RUFLO" "$@"

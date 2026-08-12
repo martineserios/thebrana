@@ -61,6 +61,11 @@ if [ "${1:-}" = "memory" ] && [ "${2:-}" = "search" ]; then
     fi
 fi
 
+# ── Hardening (t-2755 — same three guards as ruflo-mcp.sh, see comments there) ──
+export RUFLO_REQUIRE_REAL_EMBEDDINGS=1
+export RUFLO_MEMORY_SCAN_ON_WRITE=1
+export RUFLO_FUNNEL=0
+
 # ── Execute (always from $HOME so ruflo uses ~/.swarm/memory.db) ──────────
 if [ "${RUFLO_CLI_DRYRUN:-0}" = "1" ]; then
     echo "$NODE_BIN $RUFLO_JS ${args[*]}"
