@@ -226,6 +226,7 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 | File | Contents |
 |------|----------|
 | [brana-agency-growth-machine.md](ideas/brana-agency-growth-machine.md) | Agency growth strategy — no-posting machine: thebrana.ai relaunch (t-2249) + WhatsApp demo agent as lead magnet, referral engine day 1 |
+| [brana-whatsapp-agent.md](ideas/brana-whatsapp-agent.md) | The Brana WhatsApp Agent — brana over WhatsApp bridge (system/services/whatsapp-bridge) |
 | [ruflo-native-integration.md](ideas/ruflo-native-integration.md) | Ruflo native integration — controller status, upstream blockers, upgrade path |
 | [skill-auto-router.md](ideas/skill-auto-router.md) | Skill auto-routing with ruflo HNSW + marketplace discovery |
 | [skills-as-loops.md](ideas/skills-as-loops.md) | Skills re-derived as loops (stop condition + verifier + queue), loop composition rules, exit-router pattern — v3 seed, grounded in loop-engineering's 7 patterns |
