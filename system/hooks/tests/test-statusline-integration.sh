@@ -124,8 +124,12 @@ run_hook() {
 
 make_statusline_input() {
     local cwd="$1"
+    local session_id="${2:-}"
+    local session_field=""
+    [ -n "$session_id" ] && session_field="  \"session_id\": \"$session_id\","
     cat <<JSON
 {
+$session_field
   "model": {"display_name": "Haiku"},
   "workspace": {"current_dir": "$cwd", "project_dir": "$cwd"},
   "context_window": {"used_percentage": 42},
@@ -204,6 +208,41 @@ EXIT5=$(make_statusline_input "$DIR5" | env \
     BRANA_STATUSLINE_COLS=200 \
     bash "$STATUSLINE" >/dev/null 2>&1; echo $?)
 assert_eq "empty: exits cleanly" "0" "$EXIT5"
+
+echo ""
+echo "--- 4. Session-id segment (t-2731) ---"
+
+DIR4="$TMPDIR/int4"
+mkdir -p "$DIR4"
+cd "$DIR4" && git init -q && git commit --allow-empty -m "init" -q
+
+OUTPUT4=$(make_statusline_input "$DIR4" "e48d4fcb-1234-5678-9abc-def012345678" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    bash "$STATUSLINE" 2>/dev/null)
+STRIPPED4=$(strip_ansi "$OUTPUT4")
+
+assert_contains "session: has short session id prefix" "e48d4fcb" "$STRIPPED4"
+assert_not_contains "session: does not leak full uuid" "e48d4fcb-1234-5678-9abc-def012345678" "$STRIPPED4"
+
+LINE_COUNT4=$(printf '%s' "$OUTPUT4" | grep -c '')
+assert_eq "session: still single line" "1" "$LINE_COUNT4"
+
+echo ""
+echo "--- 5. Missing session id degrades gracefully ---"
+
+OUTPUT5B=$(make_statusline_input "$DIR4" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    bash "$STATUSLINE" 2>/dev/null)
+STRIPPED5B=$(strip_ansi "$OUTPUT5B")
+
+assert_not_contains "no-session: no dangling icon" "🪪" "$STRIPPED5B"
+LINE_COUNT5B=$(printf '%s' "$OUTPUT5B" | grep -c '')
+assert_eq "no-session: still single line, no crash" "1" "$LINE_COUNT5B"
+
+EXIT5B=$(make_statusline_input "$DIR4" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    bash "$STATUSLINE" >/dev/null 2>&1; echo $?)
+assert_eq "no-session: exits cleanly" "0" "$EXIT5B"
 
 echo ""
 echo "Results: ${PASS}/${TOTAL} passed, ${FAIL} failed"
