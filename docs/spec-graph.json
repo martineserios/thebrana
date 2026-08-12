@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T17:41:18Z",
+  "generated": "2026-08-12T17:54:15Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1171,6 +1171,11 @@
         "system/scripts/migrate/",
         "system/scripts/validate-remedies.sh"
       ]
+    },
+    "docs/architecture/decisions/ADR-078-stale-task-park-via-tag.md": {
+      "title": "ADR-078: Park Stale Tasks via the Existing `parked` Tag, Not a New Status",
+      "type": "ADR",
+      "impl_files": []
     },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
@@ -10250,6 +10255,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -11481,6 +11492,12 @@
     {
       "from": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
       "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-078-stale-task-park-via-tag.md",
+      "to": "ADR-065-wave-process-objects.md",
       "type": "references",
       "computed": false
     },
@@ -15950,8 +15967,8 @@
     }
   ],
   "stats": {
-    "nodes": 555,
-    "edges": 2023,
+    "nodes": 556,
+    "edges": 2025,
     "typed_edges": 685,
     "orphans": 149
   }

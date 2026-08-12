@@ -23,7 +23,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 |-------|-------|-------------|
 | `/brana:acquire-skills` | brana | Find and install skills for what you're doing — tech or reasoning gaps. Matches  |
 | `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Auto- |
-| `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
+| `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and epics. Use when planning p |
 | `/brana:bash-defensive-patterns` | brana | Master defensive Bash programming techniques for production-grade scripts. Use w |
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detect |
@@ -72,7 +72,7 @@ Find and install skills for what you're doing — tech or reasoning gaps. Matche
 
 ### `/brana:backlog`
 
-Manage the backlog — plan, track, navigate phases and streams. Use when planning phases, viewing roadmaps, or restructuring work.
+Manage the backlog — plan, track, navigate phases and epics. Use when planning phases, viewing roadmaps, or restructuring work.
 
 **Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
 

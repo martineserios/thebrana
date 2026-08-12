@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**28 rules** in `system/rules/`.
+**30 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -18,6 +18,8 @@
 | `hard-deny-manifest.md` | Hard Deny Manifest | Canonical list of commands that are **unconditionally blocked** in auto mode via `settings.autoMode.... |
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
 | `m-plus-discipline-enforcement.md` | M+ Discipline Enforcement | Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines: |
+| `migration-script-validation.md` | Migration Scripts Must Self-Validate | Three surfaces write `tasks.json`: the Rust CLI, the Rust MCP server, and ad-hoc Python migration sc... |
+| `no-patches-root-cause.md` | No Patches — Fix Root Causes | When a review, test failure, or finding surfaces a defect, do not stop at the fix that makes the sym... |
 | `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
 | `parallel-bash.md` | Bash: Parallelism and Signals | CC cancels sibling Bash calls when one exits non-zero: guard independent parallel commands with `; e... |
 | `reconcile-after-convention-change.md` | Run Reconcile After CLAUDE.md Convention Changes | After any change to naming conventions in `.claude/CLAUDE.md` (branch prefixes, slug formats, task I... |
@@ -30,7 +32,7 @@
 | `spec-assumptions.md` | No Silent Ambiguity Fill | If a requirement can be interpreted two ways, **ask — don't pick**. |
 | `specify-check-ids.md` | SPECIFY Phase Must Check Existing Task IDs | Before proposing a task tree in the SPECIFY phase, read tasks.json to find the next available ID. |
 | `tactical-context.md` | Tactical Context | After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do ... |
-| `task-convention.md` | Task Convention | Work-start ordering (read tasks.json → backlog gate → lifecycle → skills → delegation) is in... |
+| `task-convention.md` | Task Convention | Work-start ordering: see `work-start.md`. |
 | `universal-quality.md` | Quality Standards | - **Test before committing**: run relevant tests before any commit. If no test suite exists, at leas... |
 | `work-preferences.md` | Work Preferences | ## Parallelism |
 | `work-start.md` | Work Start — Ordered Entry Protocol | When starting any task (implementation, design, research) follow these steps **in order**. First mat... |
@@ -117,6 +119,20 @@ Canonical list of commands that are **unconditionally blocked** in auto mode via
 **File:** `system/rules/m-plus-discipline-enforcement.md`
 
 Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines:
+
+
+## Migration Scripts Must Self-Validate
+
+**File:** `system/rules/migration-script-validation.md`
+
+Three surfaces write `tasks.json`: the Rust CLI, the Rust MCP server, and ad-hoc Python migration scripts run via Bash. The first two share `validate_work_type`/`validate_kind`/`validate_task_type`/`v
+
+
+## No Patches — Fix Root Causes
+
+**File:** `system/rules/no-patches-root-cause.md`
+
+When a review, test failure, or finding surfaces a defect, do not stop at the fix that makes the symptom go away. Ask what *class* of problem produced it, and close that class.
 
 
 ## Never Reference Non-Existent Docs in Skill LOAD Steps
@@ -207,7 +223,7 @@ After giving actionable advice related to a task (workaround, constraint, deadli
 
 **File:** `system/rules/task-convention.md`
 
-Work-start ordering (read tasks.json → backlog gate → lifecycle → skills → delegation) is in `work-start.md`.
+Work-start ordering: see `work-start.md`.
 
 
 ## Quality Standards
