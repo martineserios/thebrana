@@ -7,19 +7,21 @@ Work-start ordering: see `work-start.md`.
 
 After completing: update task to `completed` with notes.
 
-Fields: id, subject, description, tags, status, kind, type, parent, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context, strategy, build_step. Types: in-/ph-/ms-/t-/st-. Status: pending/in_progress/completed/cancelled. Kind (v2): feature/fix/refactor/research/docs/design/ops. Strategy: auto-classified from description.
+Fields: id, subject, description, tags, status, kind, type, parent, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context, strategy, build_step, work_type, acceptance_criteria, ac_state. Types: in-/ph-/ms-/t-/st-. Status: pending/in_progress/completed/cancelled. Kind (v2): feature/fix/refactor/research/docs/design/ops. Strategy: auto-classified from description.
 
-Cancelling a parent task does NOT auto-cancel children. When cancelling a parent, manually cancel or re-parent all children. `brana backlog tree <parent-id>` shows the subtree.
+`epic` isn't a field (`set_field`/`add` reject it) — membership is `parent` → nearest `type:"epic"` task, resolved live, no cache. See: [backlog-v3-schema.md](../../docs/architecture/features/backlog-v3-schema.md).
 
-Reads: free. Writes: confirm first.
+Cancelling a parent does NOT auto-cancel children — manually cancel/re-parent. `brana backlog tree <parent-id>` shows the subtree.
 
-Branch prefix: keyed on `kind` (authoritative — it names what the change does); falls back to `work_type` only when `kind` is absent (22% of tasks). The mapping and the shared `resolve_branch_prefix()` live in `system/skills/_shared/branch-prefix.md` — the single authority. Do not restate it here or in `start.md` (t-2494). Full branch format: CLAUDE.md §Branch naming.
+Reads free; writes confirm first.
 
-Code tasks: `/brana:backlog start` enters `/brana:build`. Done: `/brana:build` CLOSE step. `/brana:backlog done` for manual/external only.
+Branch prefix: `kind` authoritative, `work_type` fallback (22% lack `kind`). Resolver: `system/skills/_shared/branch-prefix.md` (single authority, t-2494). Format: CLAUDE.md §Branch naming.
+
+Code tasks: `/brana:backlog start` enters `/brana:build`; done via its CLOSE step. `/brana:backlog done` is manual/external only.
 
 ## AC: prefix — acceptance criteria
 
-Lines in `context` starting with `AC:` are machine-readable acceptance criteria. `/brana:build` reads them to auto-generate a `/goal` string. Additive — tasks without `AC:` lines are unaffected.
+Lines in `context` starting with `AC:` are machine-readable acceptance criteria — `/brana:build` reads them to auto-generate a `/goal` string. Additive; unaffected without them.
 
 ```
 context: "AC: all tests green\nAC: branch merged to main\nAC: tasks.json updated"
