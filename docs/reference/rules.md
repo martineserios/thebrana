@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**30 rules** in `system/rules/`.
+**32 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -18,6 +18,8 @@
 | `hard-deny-manifest.md` | Hard Deny Manifest | Canonical list of commands that are **unconditionally blocked** in auto mode via `settings.autoMode.... |
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
 | `m-plus-discipline-enforcement.md` | M+ Discipline Enforcement | Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines: |
+| `memory-consolidation-scheduled.md` | Memory Consolidation Is a Scheduled Pass | Memory consolidation is a scheduled pass, not a side effect of writing a new entry. |
+| `memory-decay-by-non-use.md` | Memory Decay by Non-Use | A memory's staleness signal is "never recalled since written," not "written N days ago." |
 | `migration-script-validation.md` | Migration Scripts Must Self-Validate | Three surfaces write `tasks.json`: the Rust CLI, the Rust MCP server, and ad-hoc Python migration sc... |
 | `no-patches-root-cause.md` | No Patches — Fix Root Causes | When a review, test failure, or finding surfaces a defect, do not stop at the fix that makes the sym... |
 | `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
@@ -119,6 +121,20 @@ Canonical list of commands that are **unconditionally blocked** in auto mode via
 **File:** `system/rules/m-plus-discipline-enforcement.md`
 
 Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines:
+
+
+## Memory Consolidation Is a Scheduled Pass
+
+**File:** `system/rules/memory-consolidation-scheduled.md`
+
+Memory consolidation is a scheduled pass, not a side effect of writing a new entry.
+
+
+## Memory Decay by Non-Use
+
+**File:** `system/rules/memory-decay-by-non-use.md`
+
+A memory's staleness signal is "never recalled since written," not "written N days ago."
 
 
 ## Migration Scripts Must Self-Validate
