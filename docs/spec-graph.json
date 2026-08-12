@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:01:40Z",
+  "generated": "2026-08-12T01:06:01Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2896,6 +2896,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/brana-agency-growth-machine.md": {
+      "title": "Brana Agency Growth Machine",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/brana-backlog-v2-schema.md": {
       "title": "brana backlog v2 schema",
       "type": "Roadmap",
@@ -2941,6 +2946,14 @@
       "title": "Brana v3 — The Graduated Self-Evolving Process Loop",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/brana-whatsapp-agent.md": {
+      "title": "The Brana WhatsApp Agent",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/services/whatsapp-bridge/"
+      ]
     },
     "docs/ideas/build-enhancements-from-osmani.md": {
       "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
@@ -15856,9 +15869,9 @@
     }
   ],
   "stats": {
-    "nodes": 549,
+    "nodes": 551,
     "edges": 2016,
     "typed_edges": 684,
-    "orphans": 145
+    "orphans": 147
   }
 }
