@@ -1,7 +1,7 @@
 <!-- build phase: Step 0: LOAD + CROSS-REFERENCE + STEP REGISTRY + RESUME CHECK + READINESS — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__claims_claim,mcp__ruflo__claims_release,mcp__ruflo__memory_store,mcp__ruflo__autopilot_learn,mcp__brana__agy_delegate")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__claims_claim,mcp__ruflo__claims_release,mcp__ruflo__memory_store,mcp__brana__agy_delegate")
 
 ## Step 0: LOAD
 

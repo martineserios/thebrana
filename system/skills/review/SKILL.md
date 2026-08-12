@@ -17,7 +17,6 @@ allowed-tools:
   - AskUserQuestion
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_store
-  - mcp__ruflo__agent_spawn
   - ToolSearch
   - Agent
   - Skill
@@ -33,7 +32,7 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 Register these steps: LOAD, REVIEW (subcommand-specific), EXTRACT, EVALUATE, PERSIST.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__memory_store")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__memory_store")
 
 ## Step 0 — LOAD
 
@@ -79,11 +78,11 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 ### Steps
 
 1. **Detect stage and business model** from CLAUDE.md / docs/metrics/
-2. **Spawn metrics-collector agent** via ruflo for cost attribution:
+2. **Spawn metrics-collector agent:**
    ```
-   mcp__ruflo__agent_spawn(agentType: "brana:metrics-collector", model: "haiku", domain: "{venture_slug}", task: "Gather current metrics from Google Sheets, docs/metrics/, tasks.json")
+   Agent(subagent_type: "brana:metrics-collector", model: "haiku", prompt: "Gather current metrics from Google Sheets, docs/metrics/, tasks.json")
    ```
-   Collect the returned agentId for cost queries. Fall back to `Agent(subagent_type: "brana:metrics-collector")` if ruflo is unavailable.
+   (`mcp__ruflo__agent_spawn` is bookkeeping-only under subscription, ADR-059 — it registers metadata but never runs the collection, so it cannot be the primary dispatch path.)
 3. **Portfolio health:** read tasks.json across portfolio clients, compute progress per project
 4. **Zombie cleanup:** identify tasks older than 30 days with no activity — present for archival or reprioritization
 5. **Metrics delta:** compare current metrics vs last week's stored values

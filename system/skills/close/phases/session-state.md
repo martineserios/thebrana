@@ -1,7 +1,7 @@
 <!-- close phase: Steps 9-9c: session state, consolidation counter, ruflo mirror, initiative accumulator — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__hive-mind_memory,mcp__ruflo__memory_store")
+ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__memory_store")
 
 ### Step 9: Write session state via CLI
 
@@ -263,8 +263,10 @@ Skip silently if the state file directory doesn't exist or Python fails — non-
 
 ### Step 9b: Ruflo MCP — session mirror + cross-session signals
 
-> Additive — all 3 calls are best-effort. If MCP is unavailable, skip silently.
+> Additive — all 2 calls are best-effort. If MCP is unavailable, skip silently.
 > Local session state (Step 9) is the primary record. This step adds searchability and cross-session awareness.
+>
+> **Removed 2026-08-12 (t-2754):** a "Call 2 — Cross-session close announcement" used to run here via `hive-mind_memory(action:"set", key:"client:{PROJECT}:session:closed:...")`, claiming "other terminals see the session ended + what's next via `/brana:sitrep`." That claim went false the moment sitrep's reader for this exact key pattern was removed in the same task (sitrep's former "Source 7"): the store is in-memory and resets per MCP restart, so it never delivered cross-session awareness in the first place. Removed rather than left as a write nobody reads.
 
 **Call 1: Session state to ruflo (searchable mirror)**
 
@@ -280,19 +282,7 @@ mcp__ruflo__memory_store(
 
 This makes session history semantically searchable: `memory_search(namespace: "session", query: "JWT auth")` finds past sessions by topic.
 
-**Call 2: Cross-session close announcement (transient)**
-
-```
-mcp__ruflo__hive-mind_memory(
-  action: "set",
-  key: "client:{PROJECT}:session:closed:{YYYY-MM-DD}",
-  value: {"status": "closed", "summary": "<1-line session label>", "next": ["<top 3 next items>"], "closed_at": "<ISO timestamp>"}
-)
-```
-
-Other terminals see the session ended + what's next via `/brana:sitrep`. Transient (in-memory, lost on MCP restart) — OK for session announcements.
-
-**Call 3: Task claim release (guarded)**
+**Call 2: Task claim release (guarded)**
 
 Only if an active task was being worked on this session:
 

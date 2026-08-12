@@ -66,7 +66,9 @@ Step 5: Skill suggestion (after strategy confirmed)
       - No results (ruflo down + CLI fails):
         Skip silently
   5e. If a skill is selected, note it in the task's context field for the build loop
-  5f. Agent pool check (added later — code tasks, effort M+ only; see start.md:151-168)
+  (5f. "Agent pool check" existed here 2026-05-29 to 2026-08-12 — removed, t-2754: its
+   "Background pool (fire and forget)" option relied on mcp__ruflo__agent_spawn, which
+   never executes under subscription, so selecting it silently did nothing.)
 ```
 
 ### What changes in backlog SKILL.md frontmatter

@@ -22,12 +22,16 @@
 set -u
 
 # ── Resolve node + ruflo entry .js ────────────────────────────────────────
+# nvm candidates walked newest-first (sort -rV) — an unsorted glob here shadows
+# the intended version with whatever order the filesystem returns (t-2632 bug
+# class; unified with cf-env.sh's fallback resolvers, t-2754).
 RUFLO_BIN=""
 for name in ruflo claude-flow; do
-    for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
-        [ -e "$candidate" ] && RUFLO_BIN="$candidate" && break 2
-    done
-    [ -z "$RUFLO_BIN" ] && [ -e "$HOME/.npm-global/bin/$name" ] && RUFLO_BIN="$HOME/.npm-global/bin/$name" && break
+    while IFS= read -r _candidate; do
+        [ -e "$_candidate" ] && RUFLO_BIN="$_candidate" && break
+    done < <(find "$HOME/.nvm/versions/node" -maxdepth 3 -path "*/bin/$name" 2>/dev/null | sort -rV)
+    [ -n "$RUFLO_BIN" ] && break
+    [ -e "$HOME/.npm-global/bin/$name" ] && RUFLO_BIN="$HOME/.npm-global/bin/$name" && break
 done
 [ -z "$RUFLO_BIN" ] && RUFLO_BIN="$(command -v ruflo || command -v claude-flow || true)"
 

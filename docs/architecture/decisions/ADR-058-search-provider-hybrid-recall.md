@@ -182,3 +182,4 @@ Both are independent constants. FTS5 slowness does not reduce ruflo's budget.
 
 ## Changelog
 - 2026-06-16: HybridProvider, `brana recall` CLI, and `mcp__brana__recall` MCP tool shipped (t-2125, commits ada3d5c5, f2aa0f58). 498 tests green. ADR-046 deadline values confirmed accurate against live corpus.
+- ~2026-07-xx (exact date not recorded — retroactively documented 2026-08-12, t-2754): `RufloProvider`'s retrieval stack was retired (t-2620 — HNSW index desync, silent no-op rebuilds). `recall.rs` now wires `FTS5Provider + VectorProvider` instead; ruflo is kept only as the query embedder (ONNX MiniLM). The RRF dual-backend design this ADR specifies for `RufloProvider` no longer reflects what `brana recall` runs — this ADR should be revisited or superseded to describe the current provider pair.

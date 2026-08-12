@@ -45,13 +45,10 @@ model = score < 0.3 ? "haiku" : score < 0.7 ? "sonnet" : "fable"
 # Override check
 if task.agent_config?.model: model = task.agent_config.model
 
-mcp__ruflo__agent_spawn(
-  agentType: "claude",
-  domain: "{project_slug}",
-  model: model,
-  task: "{subtask description + TDD checklist}"
-)
+Agent(subagent_type: "claude", model: model, prompt: "{subtask description + TDD checklist}")
 ```
+
+(ruflo's `agent_spawn` MCP tool is bookkeeping-only under subscription, ADR-059 — it registers metadata but never runs the subtask, so the native Agent tool is the dispatch path, not a fallback.)
 
 ## Logging
 
