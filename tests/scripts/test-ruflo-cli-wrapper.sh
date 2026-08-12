@@ -12,7 +12,9 @@
 #   T1: wrapper exists and is executable
 #   T2: namespace-less `memory search` gets --threshold 0.55 injected (DRYRUN)
 #   T3: --namespace query is NOT modified (DRYRUN)
+#   T3b: short-form -n namespace is also recognized (DRYRUN, t-2767)
 #   T4: explicit --threshold is respected, no double-inject (DRYRUN)
+#   T4c: -t (--type) is NOT mistaken for --threshold's short form (DRYRUN, t-2767)
 #   T5: resolved command is node + *.js, never the shebang bin (DRYRUN)
 #   T6: non-search subcommands pass through unmodified (DRYRUN)
 #   T7: both cf-env.sh variants route $CF through the wrapper
@@ -72,6 +74,14 @@ assert_contains "T2: namespace-less search injects --threshold 0.55" "--threshol
 # T3 — namespaced search untouched
 OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory search --query "x" --namespace pattern 2>&1)
 assert_not_contains "T3: namespaced search not modified" "--threshold 0.55" "$OUT"
+
+# T3b — short-form -n namespace also suppresses the guard (t-2767)
+OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory search -q "x" -n knowledge -l 5 2>&1)
+assert_not_contains "T3b: -n namespaced search not modified" "--threshold 0.55" "$OUT"
+
+# T4c — -t is --type, not --threshold's short form: guard must still fire (t-2767)
+OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory search -q "x" -t keyword 2>&1)
+assert_contains "T4c: -t (search type) still gets threshold injected" "--threshold 0.55" "$OUT"
 
 # T4 — explicit threshold respected
 OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory search --query "x" --threshold 0.4 2>&1)

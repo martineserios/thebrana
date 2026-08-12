@@ -14,8 +14,9 @@
 #    "namespace 'all' only with threshold 0.55" — lived only in .mcp.json
 #    instructions and CLAUDE.md; callers forgot it. Now the wrapper injects
 #    `--threshold 0.55` whenever `memory search` is called without an explicit
-#    --namespace or --threshold. Namespaced and explicitly-thresholded calls
-#    pass through untouched.
+#    --namespace/-n or --threshold. Namespaced and explicitly-thresholded calls
+#    pass through untouched. (-t is --type, not a --threshold short form —
+#    never add it here, t-2767.)
 #
 # RUFLO_CLI_DRYRUN=1 prints the final command instead of executing (tests).
 
@@ -56,7 +57,7 @@ if [ "${1:-}" = "memory" ] && [ "${2:-}" = "search" ]; then
     has_scope=0
     for a in "$@"; do
         case "$a" in
-            --namespace|--namespace=*|--threshold|--threshold=*) has_scope=1 ;;
+            --namespace|--namespace=*|-n|-n=*|--threshold|--threshold=*) has_scope=1 ;;
         esac
     done
     if [ "$has_scope" -eq 0 ]; then
