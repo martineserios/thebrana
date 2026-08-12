@@ -1,8 +1,9 @@
 # Stale-task lifecycle policy (t-2743)
 
-Status: **spec only — not implemented this batch.** This document resolves
-the design questions the task's own context flagged; a follow-up task
-implements it.
+Status: **implementation in progress (t-2774).** This document resolves
+the design questions the task's own context flagged. The park-mechanism
+decision (§1) is formalized in
+[ADR-078](../decisions/ADR-078-stale-task-park-via-tag.md).
 
 ## Problem
 
