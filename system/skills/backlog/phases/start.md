@@ -68,10 +68,10 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__claims_claim,mcp__brana
 3. **Check blocked_by** — if any blocker not completed, warn and abort
 4. **Auto-classify strategy** (if not already set on the task):
    - Infer from task kind, tags, and description:
-     - `kind: fix` or `stream: dev` or tag `bug` → strategy: `bug-fix`
-     - `kind: research` or `stream: research` → strategy: `spike`
+     - `kind: fix` or tag `bug` → strategy: `bug-fix`
+     - `kind: research` → strategy: `spike`
      - `kind: refactor` or tag `refactor` → strategy: `refactor`
-     - `kind: docs` or `stream: ops` → strategy: `feature` (light)
+     - `kind: docs` → strategy: `feature` (light)
      - Tag `migration` → strategy: `migration`
      - Tag `investigation` → strategy: `investigation`
      - Default → strategy: `feature`

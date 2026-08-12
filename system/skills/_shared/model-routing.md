@@ -16,7 +16,7 @@ Never spawn a Sonnet/Fable agent when a Haiku agent can do the job. The cost dif
 |-------|-------------|-----|
 | `min(word_count(description) / 100, 0.3)` | Description length | 0.3 |
 | `min(len(blocked_by) × 0.1, 0.2)` | Dependency depth | 0.2 |
-| `0.2` if stream is `dev` or `implement` | Stream type | 0.2 |
+| `0.2` if `work_type` is `implement` | Work type | 0.2 |
 | `0.1` if tag `architecture` present | Architecture scope | 0.1 |
 | `0.1` if effort is `L` or `XL` | Effort estimate | 0.1 |
 

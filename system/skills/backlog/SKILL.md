@@ -1,11 +1,10 @@
 ---
 name: backlog
-description: "Manage the backlog — plan, track, navigate phases and streams. Use when planning phases, viewing roadmaps, or restructuring work."
+description: "Manage the backlog — plan, track, navigate phases and epics. Use when planning phases, viewing roadmaps, or restructuring work."
 effort: medium
 model: sonnet
 keywords: [tasks, planning, roadmap, milestones, phases, tracking, priority]
 task_strategies: [feature, refactor]
-stream_affinity: [roadmap, tech-debt]
 argument-hint: "[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]"
 group: brana
 allowed-tools:
@@ -32,7 +31,7 @@ growth_stage: evergreen
 # Backlog
 
 Manage the project backlog — plan, track, and navigate work across phases,
-milestones, and streams. Natural language is the primary interface;
+milestones, and epics. Natural language is the primary interface;
 these commands are shortcuts for complex operations.
 
 ## When to use
@@ -65,21 +64,13 @@ Tasks keep one v3 metadata field:
 
 **Active epic** is set in the project-local `.claude/tasks-config.json` → `active_epic` (per-repo, never the global `~/.claude/tasks-config.json` — ADR-066, t-2158). It stores the epic *slug* — i.e. an epic node's `subject`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
 
-**Stream taxonomy** (v3 — 3 values):
-
-| Value | Covers |
-|-------|--------|
-| `dev` | code, features, bugs, tech-debt, architecture |
-| `ops` | maintenance, docs, config, deploy |
-| `research` | spikes, evaluations, knowledge, experiments |
-
 ### MCP tools (preferred)
 
 | Operation | MCP tool |
 |-----------|---------|
 | Get task | `backlog_get(task_id: "t-123")` |
 | Get field | `backlog_get(task_id: "t-123", field: "status")` |
-| Query tasks | `backlog_query(status: "pending", stream: "dev")` or `backlog_query(kind: "fix")` |
+| Query tasks | `backlog_query(status: "pending", work_type: "implement")` or `backlog_query(kind: "fix")` |
 | Filter by epic | `backlog_query(epic: "cc-alignment")` — read-only; resolves membership via the parent chain (flat `epic` field retired, ADR-065) |
 | List epic nodes | `backlog_query(task_type: "epic")` |
 | Filter by work type | `backlog_query(work_type: "implement", status: "pending")` |
@@ -107,7 +98,6 @@ Tasks keep one v3 metadata field:
 | Tag inventory | `brana backlog tags --output json` |
 | Tag filter (AND) | `brana backlog tags --filter "a,b" --output json` |
 | Next unblocked task | `brana backlog next --kind feature --tag Y` |
-| Next by stream | `brana backlog next --stream dev` |
 | Query tasks | `brana backlog query --status pending --kind fix --output json` |
 | Filter by epic | `brana backlog query --epic cc-alignment` — read-only; resolves via parent chain (flat `epic` field retired, ADR-065) |
 | List epic nodes | `brana backlog query --type epic` (works since t-2377) — or MCP `backlog_query(task_type: "epic")` |
@@ -181,7 +171,7 @@ In the deployed-plugin layout the same relative paths apply: `{base-dir}/phases/
 - `/brana:backlog plan [project] "[phase-title]"` — plan a phase interactively
 - `/brana:backlog status [project] [--all] [--unified] [--wide]` — progress overview (`--all` = cross-client task drill-down, `--unified` = priority-sorted flat list)
 - `/brana:backlog roadmap [project] [--wide]` — full tree view with all levels
-- `/brana:backlog next [project] [--stream X] [--wide]` — next unblocked task by priority
+- `/brana:backlog next [project] [--wide]` — next unblocked task by priority
 - `/brana:backlog start <id>` — begin work on a task
 - `/brana:backlog done [id]` — complete current task
 - `/brana:backlog add "[description]"` — quick-add a task

@@ -17,7 +17,7 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
 3. **Check if build-managed:** if the task has a `build_step` field set, warn: "This task is in the /brana:build loop (step: {build_step}). Use /brana:build CLOSE to complete it, or force-complete here?"
 4. **For execution: code** (non-build-managed):
    - Stage changes: `git add -A` (or ask user what to stage)
-   - Commit with conventional type from stream mapping
+   - Commit with conventional type from `kind` mapping (see `system/skills/_shared/branch-prefix.md`)
    - Create PR: `gh pr create --title "{type}: {subject}" --body "Closes #{github_issue}"`
    - Offer to merge: "Merge to main? (PR #{N})"
    - **Worktree cleanup:** if task was started in a worktree (`git worktree list` shows `../project-{prefix}{id}`), offer to remove it after merge: `git worktree remove ../project-{prefix}{id} && git branch -d {branch}`
@@ -94,7 +94,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - If no candidates found, skip silently
    - **Never auto-commit dependencies** — always ask
    - **Research cross-reference** (runs alongside dependency scan):
-     - Adding a **non-research** task → scan `stream: research` or `work_type: research` tasks for tag overlap → include in dependency question or separate AskUserQuestion
+     - Adding a **non-research** task → scan `work_type: research` tasks for tag overlap → include in dependency question or separate AskUserQuestion
      - Adding a **research** task → scan non-research tasks for tag overlap → surface as informational note
 7. **Build-trap check** — if the description contains solution verbs ("build", "implement", "create", "add", "setup") without outcome/problem context:
    - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
