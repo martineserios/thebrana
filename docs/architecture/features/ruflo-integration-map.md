@@ -1,6 +1,7 @@
 ---
 title: Ruflo Integration Map — Tool Groups, Preambles, Quorum Gates
-status: active
+status: superseded
+superseded_by: docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md
 created: 2026-05-30
 depends_on: ADR-040
 see_also: brana-v2-compute-model.md, claude-gemini-orchestration.md
@@ -8,6 +9,13 @@ see_also: brana-v2-compute-model.md, claude-gemini-orchestration.md
 
 # Ruflo Integration Map
 
+> **SUPERSEDED (2026-08-12, t-2754):** ADR-040's coordination-substrate role for ruflo (and
+> this doc's hive-mind/claims/coordination wiring specced under it) was reversed by
+> ADR-059 — the agentic MCP surface is bookkeeping-only under subscription. The gate
+> specs, quorum wiring, and tool-group table below are historical record of the
+> pre-ADR-059 design, not a live target. For current guidance see ADR-059 and
+> `system/rules/delegation-routing.md`.
+>
 > ADR-040 locked the architecture. This doc is the operational map: which tool groups to
 > use, how to load them, where they fire, and what falls back when ruflo is unavailable.
 
