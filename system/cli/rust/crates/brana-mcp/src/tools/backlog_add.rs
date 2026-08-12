@@ -86,6 +86,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 if let Some(wt) = input.work_type.as_deref() {
                     brana_core::tasks::validate_work_type(wt)?;
                 }
+                brana_core::tasks::validate_task_type(&input.task_type)?;
                 brana_core::tasks::validate_execution(&input.execution)?;
                 brana_core::tasks::validate_context_for_effort(
                     input.effort.as_deref(),
