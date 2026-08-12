@@ -91,6 +91,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
 | [the-orbit.md](architecture/the-orbit.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — index & reading map for the Orbit/Substrate cluster; historical |
 | [workflow-primitive.md](architecture/workflow-primitive.md) | Verified `Workflow` tool API surface, smoke-test evidence, opt-in rule |
+| [cc-tasks-bridge-research.md](architecture/cc-tasks-bridge-research.md) | CC native Tasks (`CLAUDE_CODE_TASK_LIST_ID`) research — recommendation: batch-scoped ephemeral mirror only, never a full/bidirectional backlog sync |
 | [substrate-end-state.md](architecture/substrate-end-state.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — the Orbit capstone (operation): tiers, runner stages, safety net, branch strategy; historical |
 | [substrate-primitives.md](architecture/substrate-primitives.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — agent substrate primitives & composition; §1–§3 (primitive set, composed blocks, durability/trust) still accurate as reference |
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
