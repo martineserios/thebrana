@@ -85,6 +85,7 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
    (`mcp__ruflo__agent_spawn` is bookkeeping-only under subscription, ADR-059 — it registers metadata but never runs the collection, so it cannot be the primary dispatch path.)
 3. **Portfolio health:** read tasks.json across portfolio clients, compute progress per project
 4. **Zombie cleanup:** identify tasks older than 30 days with no activity — present for archival or reprioritization
+4b. **Backlog flow (t-2774):** read the latest line of `system/state/stale-lifecycle-report.jsonl` (written weekly by `stale-lifecycle.sh`, per docs/architecture/features/stale-task-lifecycle-policy.md §4c). Surface `created_7d`/`completed_7d` as the week's intake-vs-drain delta, alongside `created_30d`/`completed_30d` for trend context. If the file doesn't exist yet (job hasn't run — first activation): note "Backlog flow: no data yet — stale-lifecycle job hasn't run" and omit the section's numbers. This report is pull-based (read here), not push — the job itself never posts anywhere (spec §4c).
 5. **Metrics delta:** compare current metrics vs last week's stored values
 6. **Ship log:** `git log --oneline --since="7 days ago"` across active clients
 7. **Friction check:**
@@ -128,6 +129,11 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 
 ### Zombies
 {stale tasks flagged}
+
+### Backlog Flow
+This week: {created_7d} created / {completed_7d} completed
+Trailing 30d: {created_30d} created / {completed_30d} completed
+{omit section if stale-lifecycle-report.jsonl doesn't exist yet}
 
 ### Pipeline
 {deal status if applicable}
