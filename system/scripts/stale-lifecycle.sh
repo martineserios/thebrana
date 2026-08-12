@@ -10,7 +10,14 @@
 # (b) Escalate stale P0/P1: no tag mutation, count-only, written to a status
 #     file for session-start to read cheaply (no live query on every session).
 # (c) Weekly intake-vs-drain report: created vs completed, trailing 7/30d.
-# Every park action (or would-park, in --dry-run) is logged to a JSONL file.
+# (d) Unpark: classify() already treats task.status as authoritative over the
+#     parked tag for by_state bucketing (status:in_progress -> "active" wins
+#     regardless of the tag), but the raw tag itself lingers on tasks.json
+#     until something removes it. This pass strips +parked from any task
+#     whose status is no longer "pending" — tag hygiene, not a correctness
+#     fix (ADR-078's noted consequence).
+# Every park/unpark action (or would-park/would-unpark, in --dry-run) is
+# logged to a JSONL file.
 #
 # Env (fixture overrides, for tests — see test-stale-lifecycle.sh):
 #   STALE_TASKS_JSON      pending task-source override (file path). Default: live query.
@@ -114,4 +121,26 @@ REPORT_COUNTS="$(echo "$ALL_JSON" | jq --arg c7 "$C7" --arg c30 "$C30" '
 
 echo "$REPORT_COUNTS" | jq -c --arg date "$TODAY" '. + {date: $date}' >> "$REPORT_FILE"
 
-echo "[stale-lifecycle] parked/would-park: $(echo "$TO_PARK" | jq 'length') | stale P0/P1: $STALE_P0P1_COUNT | dry_run=$DRY_RUN"
+# ── (d) Unpark: strip +parked from tasks no longer pending ────────────
+TO_UNPARK="$(echo "$ALL_JSON" | jq '
+  [ .[] | select(
+      ((.tags // []) | index("parked")) and
+      (.status != "pending")
+    ) | {id, status} ]
+')"
+
+echo "$TO_UNPARK" | jq -c '.[]' | while IFS= read -r row; do
+    [ -z "$row" ] && continue
+    TID="$(echo "$row" | jq -r .id)"
+    TSTATUS="$(echo "$row" | jq -r .status)"
+    ACTION="would-unpark"
+    if [ "$DRY_RUN" = false ]; then
+        brana backlog set "$TID" tags "-parked" >/dev/null 2>&1 || true
+        ACTION="unpark"
+    fi
+    jq -nc --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg id "$TID" --arg action "$ACTION" \
+        --arg reason "status now $TSTATUS, parked tag stale" \
+        '{ts: $ts, task_id: $id, action: $action, reason: $reason}' >> "$LOG_FILE"
+done
+
+echo "[stale-lifecycle] parked/would-park: $(echo "$TO_PARK" | jq 'length') | unparked/would-unpark: $(echo "$TO_UNPARK" | jq 'length') | stale P0/P1: $STALE_P0P1_COUNT | dry_run=$DRY_RUN"
