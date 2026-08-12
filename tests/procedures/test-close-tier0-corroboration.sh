@@ -98,6 +98,11 @@ if [ "$1" = "backlog" ] && [ "$2" = "get" ]; then
         t-999:type)   echo '"epic"' ;;
         t-999:parent) echo 'null' ;;
         t-999:subject) echo '"epic-b"' ;;
+        t-200:type)    echo '"task"' ;;
+        t-200:parent)  echo '"t-998"' ;;
+        t-998:type)   echo '"epic"' ;;
+        t-998:parent) echo 'null' ;;
+        t-998:subject) echo '"epic-a"' ;;
         *) echo 'null' ;;
     esac
     exit 0
@@ -116,16 +121,35 @@ git -C "$FIX" config user.name t
 echo one >> "$FIX/f.txt"; git -C "$FIX" add -A
 git -C "$FIX" -c commit.gpgsign=false commit -qm "fix(x): resolve t-100 issue"
 
+# ── Fixture repo 2 (t-2768): an OLD out-of-session commit (t-200 -> epic-a) plus
+# a NEW this-session commit (t-100 -> epic-b), straddling a LAST_CLOSE anchor —
+# isolated from $FIX so it doesn't perturb cases 1-3's commit count/window.
+FIX2="$TMPROOT/repo2"
+mkdir -p "$FIX2"
+git -C "$FIX2" init -q
+git -C "$FIX2" config user.email t@t.t
+git -C "$FIX2" config user.name t
+echo old >> "$FIX2/f.txt"; git -C "$FIX2" add -A
+GIT_AUTHOR_DATE="2026-08-01T00:00:00Z" GIT_COMMITTER_DATE="2026-08-01T00:00:00Z" \
+    git -C "$FIX2" -c commit.gpgsign=false commit -qm "chore(y): unrelated t-200 work, out-of-session"
+echo new >> "$FIX2/f.txt"; git -C "$FIX2" add -A
+GIT_AUTHOR_DATE="2026-08-12T00:00:00Z" GIT_COMMITTER_DATE="2026-08-12T00:00:00Z" \
+    git -C "$FIX2" -c commit.gpgsign=false commit -qm "fix(x): resolve t-100 issue, this session"
+
 # shellcheck disable=SC1090
 source "$TMPROOT/walk.sh"
 
 run_tier0() {
     # $1 = focus value to serve ("null" or a quoted slug), run inside the fixture repo
-    local focus_json="$1"
+    # $2 = optional LAST_CLOSE anchor (t-2768) — same session-scope anchor
+    #      gate-and-evidence.md's Step 0 GATE computes; unset for cases that don't care.
+    # $3 = fixture repo dir to run inside (default: $FIX)
+    local focus_json="$1" last_close="${2:-}" repo="${3:-$FIX}"
     printf '%s' "$focus_json" > "$TMPROOT/focus.txt"
     (
-        cd "$FIX" || exit 1
+        cd "$repo" || exit 1
         export FAKE_FOCUS_FILE="$TMPROOT/focus.txt"
+        [ -n "$last_close" ] && export LAST_CLOSE="$last_close"
         TIER0_SLUG=$(brana session epic status --json 2>/dev/null | jq -r '.focus // empty')
         source "$TMPROOT/tier0.sh" 2>"$TMPROOT/stderr.txt"
         echo "INITIATIVE_SLUG=${INITIATIVE_SLUG:-}"
@@ -158,6 +182,20 @@ GOT_SLUG="${OUT#INITIATIVE_SLUG=}"
 assert_eq "no slug adopted" "" "$GOT_SLUG"
 STDERR="$(cat "$TMPROOT/stderr.txt" 2>/dev/null)"
 assert_eq "no warning when focus is empty" "" "$STDERR"
+echo ""
+
+# ── Case 4 (t-2768): stale focus slug only reachable from an OLDER, out-of-session
+# commit — must NOT corroborate even though a flat `git log -20` window would still
+# see that old commit in a low-commit-count repo. Anchors TIER2B_SLUGS on LAST_CLOSE
+# (2026-08-10, between the two fixture commits) so only the post-anchor commit
+# (t-100 -> epic-b) counts as "this session's own" — the stale focus (epic-a, from
+# the pre-anchor t-200 commit) must fall through unchanged.
+echo "Case 4: focus=epic-a (only reachable from a commit BEFORE LAST_CLOSE) — must not corroborate"
+OUT=$(run_tier0 '"epic-a"' "2026-08-10T00:00:00Z" "$FIX2")
+GOT_SLUG="${OUT#INITIATIVE_SLUG=}"
+assert_eq "does NOT adopt a focus slug reachable only from a pre-session commit" "" "$GOT_SLUG"
+STDERR="$(cat "$TMPROOT/stderr.txt" 2>/dev/null)"
+assert_contains "warning names the stale focus slug" "$STDERR" "epic-a"
 echo ""
 
 echo "─────────────────────────────────"

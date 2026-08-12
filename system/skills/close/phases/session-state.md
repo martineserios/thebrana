@@ -339,7 +339,17 @@ at all. Before trusting a non-empty `$TIER0_SLUG`, corroborate it against this s
 recent commits — the identical signal Tier 2b uses, computed once here and reused there:
 <!-- TIER0-CORROBORATION-BLOCK -->
 ```bash
-TIER2B_SLUGS=$(git log --oneline -20 2>/dev/null \
+# Session-scoped window (t-2768): a flat `git log -20` is not scoped to this
+# session's own boundary — on a low-commit session it overflows into a PRIOR
+# DAY's unrelated session (live incident 1, 2026-08-12: 1 own commit, but the
+# -20 tail picked up ~17 commits from the previous day's session), and on a
+# high-concurrency shared branch it overflows into OTHER SESSIONS' commits
+# landing in real time (live incident 2, same day: 3 slugs surfaced from
+# concurrent peer commits on dev). Anchor on the SAME $LAST_CLOSE this
+# session's gate-and-evidence.md Step 0 GATE (CLOSE-ANCHOR-BLOCK) already
+# computed — the identical anchor its own COMMIT_COUNT/CHANGED_FILES/OLDEST
+# already rely on — instead of recomputing a separate window here.
+TIER2B_SLUGS=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null \
   | grep -oE 't-[0-9]+' | sort -u \
   | while read -r id; do resolve_epic_ancestor "$id" || echo "$id" >> "$EPIC_FAIL_LOG"; done \
   | sort -u | grep -v '^$')
