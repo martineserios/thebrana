@@ -228,6 +228,19 @@ LINE_COUNT4=$(printf '%s' "$OUTPUT4" | grep -c '')
 assert_eq "session: still single line" "1" "$LINE_COUNT4"
 
 echo ""
+echo "--- 4b. Session-id scrub: raw control byte (challenger finding, t-2731) ---"
+
+INPUT4B=$(printf '{"model":{"display_name":"Haiku"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":42},"session_id":"bad\\u001b1234"}' "$DIR4")
+OUTPUT4B=$(echo "$INPUT4B" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    bash "$STATUSLINE" 2>/dev/null)
+STRIPPED4B=$(strip_ansi "$OUTPUT4B")
+
+LINE_COUNT4B=$(printf '%s' "$OUTPUT4B" | grep -c '')
+assert_eq "session scrub: raw ESC byte stays single-line" "1" "$LINE_COUNT4B"
+assert_contains "session scrub: ESC byte stripped from segment" "bad1234" "$STRIPPED4B"
+
+echo ""
 echo "--- 5. Missing session id degrades gracefully ---"
 
 OUTPUT5B=$(make_statusline_input "$DIR4" | env \

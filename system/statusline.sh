@@ -14,6 +14,11 @@ IFS=$'\t' read -r MODEL CWD CTX_PCT SESSION_ID <<< \
 
 CTX_PCT=${CTX_PCT:-0}
 SESSION_SHORT="${SESSION_ID:0:8}"
+# Scrub before the printf '%b' render sink, same as EPIC below (t-2731 challenger
+# finding): %b interprets backslash escapes, and a stray one or raw control byte
+# would break the one-line contract.
+SESSION_SHORT=${SESSION_SHORT//\\/}
+SESSION_SHORT=$(printf '%s' "$SESSION_SHORT" | tr -d '[:cntrl:]')
 
 # ── ANSI palette ─────────────────────────────────────────
 R='\033[0m' D='\033[2m' B='\033[1m'
