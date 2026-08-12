@@ -26,11 +26,6 @@ allowed-tools:
   - mcp__context7__query-docs
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_store
-  - mcp__ruflo__agent_spawn
-  - mcp__ruflo__hive-mind_shutdown
-  - mcp__ruflo__hive-mind_init
-  - mcp__ruflo__hive-mind_spawn
-  - mcp__ruflo__hive-mind_consensus
   - ToolSearch
 status: stable
 growth_stage: evergreen
@@ -62,7 +57,7 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 Register these steps: LOAD, SEED, EXPAND, DISCUSS, SHAPE, OUTPUT, EXTRACT, EVALUATE, PERSIST.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown,mcp__brana__agy_delegate")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__brana__agy_delegate")
 
 ## Procedure
 
@@ -129,11 +124,7 @@ Explore the idea space. Run these in parallel:
 - Report: "Found N related items" (list briefly)
 
 **2b. Auto-research** — if the seed mentions any tool, platform, framework, or technical concept:
-- Spawn a scout agent via ruflo for cost tracking:
-  ```
-  mcp__ruflo__agent_spawn(agentType: "Explore", model: "haiku", domain: "{active_project}", task: "Search codebase for: {seed keywords}")
-  ```
-  Fall back to `Agent(subagent_type: "Explore", model: "haiku")` if ruflo is unavailable.
+- Spawn a scout agent: `Agent(subagent_type: "Explore", model: "haiku", task: "Search codebase for: {seed keywords}")`
 - Run WebSearch for the concept (1-2 queries max)
 - Summarize findings in 3-5 bullets
 - If a library is mentioned, use context7 MCP to get latest docs
