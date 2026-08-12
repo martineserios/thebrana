@@ -142,6 +142,19 @@ if [ -f "$CQ_FILE" ]; then
     fi
 fi
 
+# 4. Stale-lifecycle P0/P1 escalation (t-2774, spec §3/§5). Pure jq read of
+# the weekly job's status file (system/state/, repo-relative — never a live
+# query at session-start, per context-budget.md). Gated: silent when the
+# count is 0 or the file is absent (job hasn't run yet).
+STALE_LIFECYCLE_CONTEXT=""
+STALE_STATUS_FILE_HOOK="$GIT_ROOT/system/state/stale-lifecycle-status.json"
+if [ -f "$STALE_STATUS_FILE_HOOK" ]; then
+    STALE_P0P1_COUNT=$(jq -r '.stale_p0p1_count // 0' "$STALE_STATUS_FILE_HOOK" 2>/dev/null) || STALE_P0P1_COUNT=0
+    if [ "${STALE_P0P1_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+        STALE_LIFECYCLE_CONTEXT="⚠ [Stale tasks] $STALE_P0P1_COUNT stale P0/P1 task(s) — brana backlog stale --days 14"
+    fi
+fi
+
 # ══════════════════════════════════════════════════════════
 # PHASE 1: Launch slow operations in parallel
 # ══════════════════════════════════════════════════════════
@@ -830,6 +843,10 @@ fi
 if [ -n "$CQ_STALE_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$CQ_STALE_CONTEXT"
+fi
+if [ -n "$STALE_LIFECYCLE_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$STALE_LIFECYCLE_CONTEXT"
 fi
 if [ -n "$LOOP_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

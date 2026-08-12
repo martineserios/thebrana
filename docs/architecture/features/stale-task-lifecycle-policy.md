@@ -1,8 +1,9 @@
 # Stale-task lifecycle policy (t-2743)
 
-Status: **spec only — not implemented this batch.** This document resolves
-the design questions the task's own context flagged; a follow-up task
-implements it.
+Status: **implementation in progress (t-2774).** This document resolves
+the design questions the task's own context flagged. The park-mechanism
+decision (§1) is formalized in
+[ADR-078](../decisions/ADR-078-stale-task-park-via-tag.md).
 
 ## Problem
 
@@ -151,6 +152,25 @@ spec).
   it runs is exactly the kind of surprise a scheduled job should never
   produce).
 
+## Assumptions
+
+Surfaced during BUILD (t-2774), documented rather than silently picked:
+
+- **P0/P1 escalation threshold: 14d.** §3/§4b intentionally left this
+  unspecified (only P2/P3's 90d park threshold is explicit). Resolved during
+  BUILD-approval by reusing `stale_tasks()`'s own existing default
+  (`--days 14`) rather than inventing a new number — needs confirmation if
+  the intent was to match the audit's 30d framing instead.
+  (`STALE_LIFECYCLE_ESCALATE_DAYS` env override if this needs tuning later.)
+- **Job-driven unpark is tag hygiene, not a correctness fix.** `classify()`
+  already treats `task.status` as authoritative over the `parked` tag for
+  `by_state` bucketing (an `in_progress`/`completed` task never displays as
+  "parked" regardless of the tag) — see ADR-078's noted consequence. The
+  implementation still strips the tag proactively so `task.tags` itself
+  doesn't accumulate stale metadata indefinitely; confirmed via live
+  `--dry-run` against real data (2 tasks, t-824/t-1832, found carrying a
+  `parked` tag on now-`cancelled` status).
+
 ## Follow-up implementation task
 
 File as a new task once this spec is reviewed: `brana ops` job wiring
@@ -160,3 +180,57 @@ integration. Suggested effort: M (touches scheduler config, a new small
 Rust or shell driver over the existing `stale_tasks()` primitive, and one
 skill-phase-file edit for the session-start line) — TDD as normal once
 that task starts.
+
+## Documentation Plan
+
+This is internal ops automation, not a user-facing product feature — no
+separate `docs/guide/features/` user guide is warranted (no end-user-facing
+behavior beyond an operator reading a status line or a weekly report they
+already read).
+
+- [x] **Tech doc** — this file (`docs/architecture/features/stale-task-lifecycle-policy.md`)
+  is both the spec and the tech doc; §1–§6 already cover design rationale and
+  extension points. [ADR-078](../decisions/ADR-078-stale-task-park-via-tag.md)
+  covers the storage-mechanism decision specifically.
+- [x] **Existing docs to update** — `system/scheduler/scheduler.template.json`
+  gets a `_comment` field on the new job entry (matches every other job's
+  self-documenting convention, no separate doc file); `system/skills/review/SKILL.md`
+  gets step 4b + a Backlog Flow report section (t-2780).
+
+## Code Flow
+
+`system/scripts/stale-lifecycle.sh` (weekly, via `system/scheduler/scheduler.template.json`'s
+`stale-lifecycle` job):
+1. Fetch pending tasks (`brana backlog query --status pending`) and all tasks
+   (`brana backlog query`, no filter) — both fixture-overridable for tests.
+2. **Park** — P2/P3 task/subtask stale >90d (unparked) → `tags +parked`.
+3. **Escalate** — P0/P1 task/subtask stale >14d → count written to
+   `system/state/stale-lifecycle-status.json`. `system/hooks/session-start.sh`
+   reads this file (pure jq, no live query) and surfaces a single gated line
+   when count > 0.
+4. **Report** — created/completed counts (7d/30d) appended to
+   `system/state/stale-lifecycle-report.jsonl`. `/brana:review weekly`
+   (`system/skills/review/SKILL.md` step 4b) reads the latest line.
+5. **Unpark** — tasks tagged `parked` whose status is no longer `pending` →
+   `tags -parked` (tag hygiene; see Assumptions).
+
+Every park/unpark action (or would-park/would-unpark in `--dry-run`) is
+logged to `system/state/stale-lifecycle-log.jsonl`.
+
+## Testing
+
+- `system/scripts/tests/test-stale-lifecycle.sh` — 21 hermetic tests via
+  fixture env-var overrides (`STALE_TASKS_JSON`, `STALE_ALL_TASKS_JSON`,
+  `STALE_TODAY`, output-path overrides), matching `autonomous-runner.sh`'s
+  `RUNNER_TASKS_JSON` idiom. No live backlog, no network. Covers park
+  selection, priority partitioning, already-parked exclusion, type
+  filtering, the intake/drain report, the unpark pass, and boundary cases
+  (empty fixture, exact-cutoff-date is not stale).
+- `system/hooks/tests/test-session-start.sh` — 39 tests (3 new: nonzero
+  count → gated line, zero count → silent, status file absent → silent).
+- Run: `bash system/scripts/tests/test-stale-lifecycle.sh` /
+  `bash system/hooks/tests/test-session-start.sh` (the latter takes ~2-3
+  minutes — many real hook invocations per case, not a hang).
+- `bash system/scripts/stale-lifecycle.sh --dry-run` is also a live smoke
+  test against the real backlog (no mutations) — useful for sanity-checking
+  counts before enabling the scheduler job for real.

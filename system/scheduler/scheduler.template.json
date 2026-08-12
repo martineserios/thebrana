@@ -214,6 +214,17 @@
       "timeoutSeconds": 120,
       "type": "command"
     },
+    "stale-lifecycle": {
+      "_comment": "t-2774: weekly stale-task lifecycle policy — auto-parks pending P2/P3 task/subtask items stale >90d (tags +parked, ADR-078), writes a stale P0/P1 count for session-start surfacing, and a weekly intake-vs-drain report for /brana:review weekly. Runs before export-patterns (08:30) so a fresh report is available when export runs.",
+      "captureOutput": true,
+      "command": "./system/scripts/stale-lifecycle.sh",
+      "enabled": true,
+      "maxRetries": 1,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 07:30:00",
+      "timeoutSeconds": 120,
+      "type": "command"
+    },
     "staleness-report": {
       "_comment": "Weekly staleness check on spec docs",
       "command": "./scripts/staleness-report.sh",
