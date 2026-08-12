@@ -1,6 +1,6 @@
 # Statusline v2 — Backlog-Aware Intelligence
 
-> Brainstormed 2026-04-07. Challenged 2026-04-07. **Implemented 2026-04-07** (all 4 milestones shipped).
+> Brainstormed 2026-04-07. Challenged 2026-04-07. **Partially implemented**: only Phase 2 (`system/scripts/statusline-slow-cache.sh`) actually shipped. The revised Phase 1 (jq→brana-query, build_step bracket, session score, self-populating cache, width detection) is in neither the current statusline script nor its git history — re-verify before relying on any Phase 1 claim (t-459, 2026-08-12).
 
 ## Problem
 
