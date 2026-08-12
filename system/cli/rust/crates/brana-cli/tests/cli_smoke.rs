@@ -628,6 +628,123 @@ fn backlog_add_epic_flag_is_deprecated_noop() {
         "--epic must be a no-op, got: {}", added["epic"]);
 }
 
+// ── t-2739: cmd_add validated kind/priority/status but not work_type or type,
+// so the CLI add path leaked non-enum values (fix, docs) the MCP path rejects. ──
+
+#[test]
+fn backlog_add_rejects_invalid_work_type_shorthand() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks
+        .write_str(r#"{"version":"1","project":"test","tasks":[]}"#)
+        .unwrap();
+    brana()
+        .args([
+            "backlog", "add",
+            "--subject", "bad work type",
+            "--work-type", "fix",
+            "--file",
+        ])
+        .arg(tasks.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid work_type"));
+    let written = std::fs::read_to_string(tasks.path()).unwrap();
+    let val: serde_json::Value = serde_json::from_str(&written).unwrap();
+    assert_eq!(
+        val["tasks"].as_array().unwrap().len(), 0,
+        "no task must be written on invalid work_type"
+    );
+}
+
+#[test]
+fn backlog_add_rejects_invalid_work_type_json() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks
+        .write_str(r#"{"version":"1","project":"test","tasks":[]}"#)
+        .unwrap();
+    brana()
+        .args([
+            "backlog", "add",
+            "--json", r#"{"subject":"bad wt via json","work_type":"docs"}"#,
+            "--file",
+        ])
+        .arg(tasks.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid work_type"));
+}
+
+#[test]
+fn backlog_add_rejects_invalid_kind_shorthand() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks
+        .write_str(r#"{"version":"1","project":"test","tasks":[]}"#)
+        .unwrap();
+    brana()
+        .args([
+            "backlog", "add",
+            "--subject", "bad kind",
+            "--kind", "banana",
+            "--file",
+        ])
+        .arg(tasks.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid kind"));
+}
+
+#[test]
+fn backlog_add_rejects_invalid_task_type() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks
+        .write_str(r#"{"version":"1","project":"test","tasks":[]}"#)
+        .unwrap();
+    brana()
+        .args([
+            "backlog", "add",
+            "--subject", "bad node type",
+            "--type", "feature",
+            "--file",
+        ])
+        .arg(tasks.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid type"));
+}
+
+#[test]
+fn backlog_add_accepts_initiative_task_type() {
+    // Positive guard: the least-common canonical type must stay accepted
+    // once type validation lands (t-2739).
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks
+        .write_str(r#"{"version":"1","project":"test","tasks":[]}"#)
+        .unwrap();
+    brana()
+        .args([
+            "backlog", "add",
+            "--subject", "an initiative",
+            "--type", "initiative",
+            "--file",
+        ])
+        .arg(tasks.path())
+        .assert()
+        .success();
+    let written = std::fs::read_to_string(tasks.path()).unwrap();
+    let val: serde_json::Value = serde_json::from_str(&written).unwrap();
+    assert_eq!(val["tasks"][0]["type"].as_str(), Some("initiative"));
+}
+
 #[test]
 fn backlog_query_by_work_type_filters_correctly() {
     let tmp = tempfile::tempdir().unwrap();

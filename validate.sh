@@ -2645,6 +2645,27 @@ fi
 echo ""
 fi  # should_run 68
 
+if should_run 69; then
+# Check 69 — tasks.json work_type/type enum hygiene (t-2739). Pairs the
+# validate_task_type/validate_work_type write-path validators with a data
+# check, same bundle as Check 26 gave status: write paths alone leave
+# pre-existing corrupted rows permanently invisible to CI.
+echo "Checking tasks.json work_type/type enums..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_WT=$(jq -r '[.tasks[] | select(.work_type != null) | select(.work_type | test("^(implement|research|design|infra|chore|review)$") | not) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  BAD_TY=$(jq -r '[.tasks[] | select(.type != null) | select(.type | test("^(task|subtask|phase|milestone|epic|initiative)$") | not) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_WT" ] || [ -n "$BAD_TY" ]; then
+    [ -n "$BAD_WT" ] && fail "Check 69: tasks.json has non-canonical work_type values (tasks: $BAD_WT) — must be implement/research/design/infra/chore/review or null"
+    [ -n "$BAD_TY" ] && fail "Check 69: tasks.json has non-canonical type values (tasks: $BAD_TY) — must be task/subtask/phase/milestone/epic/initiative or null"
+  else
+    pass "Check 69: tasks.json — all work_type/type values canonical (or null)"
+  fi
+else
+  warn "Check 69: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+fi  # should_run 69
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

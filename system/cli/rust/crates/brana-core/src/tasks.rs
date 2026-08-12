@@ -1090,6 +1090,21 @@ pub fn validate_kind(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate a task node `type` value (t-2739). Canonical hierarchy vocabulary:
+/// initiative/phase/milestone/task/subtask (task-convention.md) plus epic
+/// nodes (ADR-065). Shared by every write path (CLI cmd_add, MCP backlog_add,
+/// set_field) so they cannot drift — live data accumulated kind/work_type
+/// values mistyped into `type` (feature/research/chore/ops) before this
+/// validator existed.
+pub fn validate_task_type(value: &str) -> Result<(), String> {
+    match value {
+        "task" | "subtask" | "phase" | "milestone" | "epic" | "initiative" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid type {other:?} — must be task/subtask/phase/milestone/epic/initiative or null"
+        )),
+    }
+}
+
 /// Validate an execution value (t-1982). Accepted: code, autonomous, null, "".
 /// Shared by CLI set, MCP backlog_set, and MCP backlog_add so they cannot drift.
 pub fn validate_execution(value: &str) -> Result<(), String> {
@@ -1314,6 +1329,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             if field == "kind" {
                 validate_kind(value)?;
+            }
+            if field == "type" {
+                validate_task_type(value)?;
             }
             if field == "execution" {
                 validate_execution(value)?;
@@ -2194,6 +2212,34 @@ mod tests {
         for v in &["code", "manual", "feature", "build", "dev", "ops"] {
             assert!(validate_work_type(v).is_err(), "expected Err for {v:?}");
         }
+    }
+
+    #[test]
+    fn test_validate_task_type_valid() {
+        for v in &["task", "subtask", "phase", "milestone", "epic", "initiative", "null", ""] {
+            assert!(validate_task_type(v).is_ok(), "expected Ok for {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_validate_task_type_invalid() {
+        // t-2739: kinds/work_types mistyped into `type` leaked into live data
+        // (feature/research/chore/ops rows) — all must be rejected.
+        for v in &["feature", "research", "chore", "ops", "fix", "banana"] {
+            assert!(validate_task_type(v).is_err(), "expected Err for {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_set_field_type_validates() {
+        let mut task = json!({"id": "t-1", "type": "task"});
+        assert!(set_field(&mut task, "type", "epic", false).is_ok());
+        assert!(set_field(&mut task, "type", "feature", false).is_err());
+        assert_eq!(
+            task["type"].as_str(),
+            Some("epic"),
+            "rejected value must not overwrite the field"
+        );
     }
 
     // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────

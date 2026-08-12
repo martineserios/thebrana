@@ -691,6 +691,20 @@ pub fn cmd_add(
             anyhow::bail!("{e}");
         }
     }
+    // t-2739: work_type/type were the only enum fields cmd_add didn't validate,
+    // so the CLI add path leaked values the MCP path (backlog_add.rs) rejects.
+    if let Some(wt) = new_task["work_type"].as_str() {
+        if let Err(e) = tasks::validate_work_type(wt) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
+    if let Some(tt) = new_task["type"].as_str() {
+        if let Err(e) = tasks::validate_task_type(tt) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
     if let Some(s) = new_task["status"].as_str() {
         // ADR-065: an epic node's status validates against a different
         // vocabulary than an ordinary task's (t-2313).
