@@ -37,8 +37,12 @@ cat > "$PENDING_FIX" <<'EOF'
 ]
 EOF
 
-# All-tasks fixture (feeds the intake/drain report) — created/completed dates
-# straddling the 7d/30d cutoffs from FROZEN_TODAY.
+# All-tasks fixture (feeds the intake/drain report AND the unpark pass —
+# tasks tagged "parked" whose status is no longer pending must be untagged,
+# per ADR-078's consequence: classify() already treats status as authoritative
+# over the tag for by_state bucketing, but the raw tag itself lingers unless
+# something removes it — that's this job's cleanup pass).
+# created/completed dates straddle the 7d/30d cutoffs from FROZEN_TODAY.
 ALL_FIX="$TMP/all.json"
 cat > "$ALL_FIX" <<'EOF'
 [
@@ -46,7 +50,10 @@ cat > "$ALL_FIX" <<'EOF'
   {"id":"t-9202","type":"task","status":"completed","priority":"P2","created":"2026-07-01","completed":"2026-07-20"},
   {"id":"t-9203","type":"task","status":"pending","priority":"P2","created":"2026-08-05"},
   {"id":"t-9204","type":"subtask","status":"pending","priority":"P3","created":"2026-06-01"},
-  {"id":"t-9205","type":"phase","status":"completed","priority":"P2","created":"2026-08-05","completed":"2026-08-06"}
+  {"id":"t-9205","type":"phase","status":"completed","priority":"P2","created":"2026-08-05","completed":"2026-08-06"},
+  {"id":"t-9206","type":"task","status":"in_progress","priority":"P2","created":"2026-06-01","tags":["parked"]},
+  {"id":"t-9207","type":"task","status":"completed","priority":"P2","created":"2026-05-01","completed":"2026-08-01","tags":["parked"]},
+  {"id":"t-9208","type":"task","status":"pending","priority":"P2","created":"2026-06-01","tags":["parked"]}
 ]
 EOF
 
@@ -90,8 +97,18 @@ ok "created_7d counts t-9201,t-9203,t-9204? no — t-9204 created 2026-06-01 exc
   '[ "$(tail -1 "$REPORT" | jq -r .created_7d)" = "2" ]'
 ok "completed_7d counts t-9201 only (t-9202 completed 2026-07-20, >7d)" \
   '[ "$(tail -1 "$REPORT" | jq -r .completed_7d)" = "1" ]'
-ok "completed_30d counts t-9201+t-9202, excludes phase-type t-9205" \
-  '[ "$(tail -1 "$REPORT" | jq -r .completed_30d)" = "2" ]'
+ok "completed_30d counts t-9201+t-9202+t-9207, excludes phase-type t-9205" \
+  '[ "$(tail -1 "$REPORT" | jq -r .completed_30d)" = "3" ]'
+
+# ── Unpark pass (job-driven): parked tag on a no-longer-pending task ──
+ok "t-9206 (parked, now in_progress) -> would-unpark" \
+  'jq -e "select(.task_id==\"t-9206\" and .action==\"would-unpark\")" "$LOG" >/dev/null'
+ok "t-9207 (parked, now completed) -> would-unpark" \
+  'jq -e "select(.task_id==\"t-9207\" and .action==\"would-unpark\")" "$LOG" >/dev/null'
+ok "t-9208 (parked, still pending) -> NOT unparked (still legitimately stale-parked)" \
+  '! jq -e "select(.task_id==\"t-9208\")" "$LOG" >/dev/null'
+ok "dry-run unpark mutates nothing (only would-unpark, never unpark)" \
+  '! jq -e "select(.action==\"unpark\")" "$LOG" >/dev/null'
 
 # ── Boundary: empty fixture — must not crash, must produce zero counts ──
 EMPTY_FIX="$TMP/empty.json"
