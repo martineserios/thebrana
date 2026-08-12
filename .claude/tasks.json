@@ -72539,7 +72539,7 @@
     {
       "id": "t-2795",
       "subject": "Regenerate docs/reference/rules.md after task-convention.md edit",
-      "status": "pending",
+      "status": "cancelled",
       "type": "task",
       "kind": "docs",
       "tags": [],
@@ -72552,7 +72552,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "2026-08-12: validate.sh Check 29 flagged docs/reference/rules.md as stale relative to system/rules/task-convention.md (edited by a concurrent session's commit ae4ec722 on dev). Ran `brana reference generate` as part of ship pre-flight; fixed inline.",
+      "context": "2026-08-12: cancelled — moot. While I was doing ship pre-flight, a concurrent session already ran the full ship (checkout main, ff-only merge dev, bootstrap.sh, push) and its own close/propagate flow regenerated docs/reference/rules.md as part of that. main and dev are now both at 9e980cfd; re-running `brana reference generate` produces zero diff. My worktree/branch for this fix was redundant and discarded rather than merged.",
       "notes": null,
       "order": 0,
       "github_issue": null,
