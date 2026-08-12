@@ -47,6 +47,13 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     brana_core::tasks::assert_active_epic_resolves(&data.tasks, slug)?;
                 }
 
+                // t-2765: the flat `epic` field is retired (RETIRED_FIELDS) — epic
+                // membership is the nearest type:"epic" ancestor via the parent
+                // chain, resolved the same way compute_stats() already does.
+                let by_id: std::collections::HashMap<&str, &serde_json::Value> = data.tasks.iter()
+                    .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+                    .collect();
+
                 let mut scored: Vec<_> = data.tasks.iter()
                     .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
                     .filter(|t| brana_core::tasks::classify(t, &data.tasks) == "pending")
@@ -64,7 +71,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     })
                     .map(|t| {
                         let boost = active.as_deref()
-                            .filter(|a| t["epic"].as_str() == Some(a))
+                            .filter(|a| brana_core::tasks::resolve_epic_ancestor(t, &by_id).as_deref() == Some(a))
                             .map_or(0.0, |_| 500.0);
                         let score = brana_core::tasks::focus_score(t, boost);
                         (t, score)
@@ -187,5 +194,42 @@ mod tests {
             .expect("handler must succeed when epic resolves via the flat tag (pre-migration compat)");
 
         assert_eq!(out["active_epic"], "cc-alignment");
+    }
+
+    // ── t-2765: boost must use the parent-chain epic resolver, not the
+    // retired flat `epic` field ─────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_mcp_focus_boost_fires_via_parent_chain_not_flat_field() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new(
+            r#"{"project":"test","tasks":[
+                {"id":"t-epic","subject":"cc-alignment","type":"epic","status":"next","tags":[],"blocked_by":[]},
+                {"id":"t-member","subject":"in epic via parent","type":"task","status":"pending","tags":[],"blocked_by":[],"parent":"t-epic","priority":"P3"},
+                {"id":"t-outsider","subject":"not in epic","type":"task","status":"pending","tags":[],"blocked_by":[],"priority":"P0"}
+            ]}"#,
+        );
+
+        let out = build()
+            .handle(
+                json!({"epic": "cc-alignment", "top": 10}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("handler must succeed");
+
+        let tasks = out["tasks"].as_array().expect("tasks array");
+        let member = tasks.iter().find(|t| t["task"]["id"] == "t-member").expect("member task present");
+        let outsider = tasks.iter().find(|t| t["task"]["id"] == "t-outsider").expect("outsider task present");
+
+        // t-member is P3 (base priority 100) but gets the 500 epic boost via
+        // its parent chain to the epic node -> outranks P0 (400) t-outsider,
+        // which has no epic ancestor and gets no boost.
+        let member_score = member["focus_score"].as_f64().unwrap();
+        let outsider_score = outsider["focus_score"].as_f64().unwrap();
+        assert!(
+            member_score > outsider_score,
+            "parent-chain epic member (P3+boost={member_score}) must outrank non-member (P0, no boost={outsider_score})"
+        );
     }
 }

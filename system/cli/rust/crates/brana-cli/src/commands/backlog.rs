@@ -225,6 +225,52 @@ pub fn cmd_query(
     Ok(())
 }
 
+/// Score tasks for focus, applying the active-epic boost via the parent
+/// chain (t-2765: the flat `epic` field is retired, RETIRED_FIELDS — epic
+/// membership is the nearest type:"epic" ancestor, resolved the same way
+/// compute_stats() and the MCP backlog_focus tool already do). Extracted
+/// from cmd_focus so the boost and epic-membership partition logic are
+/// unit-testable without capturing stdout (neither had any test coverage
+/// before t-2765).
+fn score_tasks_with_epic_boost<'a>(
+    all: &'a [serde_json::Value],
+    work_type: Option<&str>,
+    active: Option<&str>,
+) -> Vec<(&'a serde_json::Value, f64)> {
+    let by_id: std::collections::HashMap<&str, &serde_json::Value> = all.iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
+
+    let mut scored: Vec<_> = all.iter()
+        .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
+        .filter(|t| tasks::classify(t, all) == "pending")
+        .filter(|t| work_type.map_or(true, |wt| t["work_type"].as_str().unwrap_or("") == wt))
+        .map(|t| {
+            let boost = active
+                .filter(|a| tasks::resolve_epic_ancestor(t, &by_id).as_deref() == Some(*a))
+                .map_or(0.0, |_| 500.0);
+            (t, tasks::focus_score(t, boost))
+        })
+        .collect();
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    scored
+}
+
+/// Partition scored tasks into epic members (via parent chain) vs the rest,
+/// for the active-epic ★-first display path.
+fn partition_epic_members<'a>(
+    scored: &[(&'a serde_json::Value, f64)],
+    all: &'a [serde_json::Value],
+    slug: &str,
+) -> (Vec<(&'a serde_json::Value, f64)>, Vec<(&'a serde_json::Value, f64)>) {
+    let by_id: std::collections::HashMap<&str, &serde_json::Value> = all.iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
+    scored.iter().cloned().partition(|(t, _)| {
+        tasks::resolve_epic_ancestor(t, &by_id).as_deref() == Some(slug)
+    })
+}
+
 pub fn cmd_focus(
     theme: &themes::Theme,
     top: usize,
@@ -249,18 +295,7 @@ pub fn cmd_focus(
         }
     }
 
-    let mut scored: Vec<_> = data.tasks.iter()
-        .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
-        .filter(|t| tasks::classify(t, &data.tasks) == "pending")
-        .filter(|t| work_type.map_or(true, |wt| t["work_type"].as_str().unwrap_or("") == wt))
-        .map(|t| {
-            let boost = active.as_deref()
-                .filter(|a| t["epic"].as_str() == Some(a))
-                .map_or(0.0, |_| 500.0);
-            (t, tasks::focus_score(t, boost))
-        })
-        .collect();
-    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    let scored = score_tasks_with_epic_boost(&data.tasks, work_type, active.as_deref());
 
     if json_out {
         let out: Vec<_> = scored.iter().take(top).map(|(t, score)| {
@@ -278,9 +313,7 @@ pub fn cmd_focus(
 
     if let Some(ref slug) = active {
         // Active-epic path: ★ tasks first, then P0/P1 overflow
-        let (epic_tasks, overflow): (Vec<_>, Vec<_>) = scored.iter().partition(|(t, _)| {
-            t["epic"].as_str() == Some(slug.as_str())
-        });
+        let (epic_tasks, overflow) = partition_epic_members(&scored, &data.tasks, slug);
         let initiative_shown = epic_tasks.len().min(top);
         let overflow_slots = top.saturating_sub(initiative_shown);
         let overflow_shown: Vec<_> = overflow.iter()
@@ -2707,6 +2740,53 @@ mod tests {
         cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
         cmd_wave_add("w2".into(), "s2".into(), None, None, Some(f.path().to_path_buf())).unwrap();
         assert!(cmd_wave_list(Some(f.path().to_path_buf())).is_ok());
+    }
+
+    // ── t-2765: cmd_focus boost + partition must use the parent-chain epic
+    // resolver, not the retired flat `epic` field. No prior test coverage. ──
+
+    fn epic_focus_fixture() -> Vec<serde_json::Value> {
+        vec![
+            json!({"id": "t-epic", "type": "epic", "subject": "cc-alignment", "status": "next"}),
+            json!({"id": "t-member", "type": "task", "subject": "in epic", "status": "pending", "parent": "t-epic", "priority": "P3"}),
+            json!({"id": "t-outsider", "type": "task", "subject": "not in epic", "status": "pending", "priority": "P0"}),
+        ]
+    }
+
+    #[test]
+    fn score_tasks_with_epic_boost_ranks_parent_chain_member_above_outsider() {
+        let tasks = epic_focus_fixture();
+        let scored = score_tasks_with_epic_boost(&tasks, None, Some("cc-alignment"));
+
+        let member = scored.iter().find(|(t, _)| t["id"] == "t-member").expect("member present");
+        let outsider = scored.iter().find(|(t, _)| t["id"] == "t-outsider").expect("outsider present");
+        assert!(
+            member.1 > outsider.1,
+            "P3 epic member (score {}) must outrank P0 non-member (score {}) via the 500 boost",
+            member.1, outsider.1
+        );
+    }
+
+    #[test]
+    fn score_tasks_with_epic_boost_no_boost_when_no_active_epic() {
+        let tasks = epic_focus_fixture();
+        let scored = score_tasks_with_epic_boost(&tasks, None, None);
+        let member = scored.iter().find(|(t, _)| t["id"] == "t-member").unwrap();
+        let outsider = scored.iter().find(|(t, _)| t["id"] == "t-outsider").unwrap();
+        // No active epic -> no boost -> plain priority ordering (P0 > P3).
+        assert!(outsider.1 > member.1, "without an active epic, P0 must outrank P3");
+    }
+
+    #[test]
+    fn partition_epic_members_splits_by_parent_chain() {
+        let tasks = epic_focus_fixture();
+        let scored = score_tasks_with_epic_boost(&tasks, None, Some("cc-alignment"));
+        let (members, rest) = partition_epic_members(&scored, &tasks, "cc-alignment");
+
+        assert_eq!(members.len(), 1);
+        assert_eq!(members[0].0["id"], "t-member");
+        assert_eq!(rest.len(), 1);
+        assert_eq!(rest[0].0["id"], "t-outsider");
     }
 }
 

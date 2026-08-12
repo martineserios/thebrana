@@ -93,39 +93,27 @@ fi
 printf '%s\n' "${TARGET_EPICS[@]:-}" > "$EPICS_FILE"
 printf '%s\n' "${TARGET_WORK_TYPES[@]:-}" > "$WORK_TYPES_FILE"
 
-# ── Analyse ─────────────────────────────────────────────────
-ANALYSIS_FILE="$TMP_DIR/analysis.json"
-python3 - "$TASKS_FILE" "$GIT_FILE" "$EPICS_FILE" "$WORK_TYPES_FILE" \
-    "$AGE_DAYS" "$PRIORITY" "$CHECK_GIT_REFS" <<'PYEOF' > "$ANALYSIS_FILE"
-import sys, json, re
+# ── Stage 1: age/priority pre-filter (pure Python, no epic resolution yet —
+# epic resolution is a per-task subprocess walk, so it only runs against the
+# much smaller post-filter survivor set, not all pending tasks) ────────────
+STAGE1_FILE="$TMP_DIR/stage1.json"
+python3 - "$TASKS_FILE" "$AGE_DAYS" "$PRIORITY" <<'PYEOF' > "$STAGE1_FILE"
+import sys, json
 from datetime import date
-from collections import defaultdict
 
-tasks_file, git_file, epics_file, wt_file, age_arg, priority, check_git = sys.argv[1:]
+tasks_file, age_arg, priority = sys.argv[1:]
 age_cutoff = int(age_arg)
-check_git  = check_git == 'true'
 
 with open(tasks_file) as f:
     data = json.load(f)
 
-with open(git_file) as f:
-    git_lines = [l.strip() for l in f if l.strip()]
+today = date.today()
 
-with open(epics_file) as f:
-    target_epics = [l.strip() for l in f if l.strip()]
-
-with open(wt_file) as f:
-    target_wt = [l.strip() for l in f if l.strip()]
-
-today = date(2026, 5, 30)
-
-candidates = []
+survivors = []
 skipped_age = 0
 skipped_pri = 0
-skipped_epic = 0
 
 for t in data:
-    tid = t['id']
     created = t.get('created')
     if not created:
         skipped_age += 1
@@ -144,7 +132,97 @@ for t in data:
         skipped_pri += 1
         continue
 
-    if target_epics and t.get('epic') not in target_epics:
+    t['_age_days'] = age_days
+    survivors.append(t)
+
+print(json.dumps({
+    'total_pending': len(data),
+    'skipped_age': skipped_age,
+    'skipped_priority': skipped_pri,
+    'survivors': survivors,
+}))
+PYEOF
+
+# ── Stage 2: resolve each survivor's epic via the canonical parent-chain
+# walk (system/skills/_shared/epic-ancestor-walk.md, t-2765) — reuses the
+# single source of truth for the walk instead of re-implementing it in
+# Python a third time (the exact drift risk ADR-065's Consequences section
+# warns about). Bash resolves per-task; Python only ever consumes the
+# result. Per the shared doc's exit contract, a non-zero exit means the
+# lookup itself broke — that task is excluded and counted, never silently
+# treated as "no epic".
+EPIC_WALK_MD="$SCRIPT_DIR/../skills/_shared/epic-ancestor-walk.md"
+# shellcheck disable=SC1090
+source <(sed -n '/<!-- EPIC-WALK-BLOCK -->/,/<!-- \/EPIC-WALK-BLOCK -->/p' "$EPIC_WALK_MD" | grep -v '^<!--' | grep -v '^```')
+
+SURVIVOR_IDS=$(python3 -c "
+import json
+with open('$STAGE1_FILE') as f:
+    print('\n'.join(t['id'] for t in json.load(f)['survivors']))
+")
+
+EPIC_MAP_FILE="$TMP_DIR/epic_map.json"
+SKIPPED_LOOKUP_FILE="$TMP_DIR/skipped_epic_lookup.txt"
+echo 0 > "$SKIPPED_LOOKUP_FILE"
+{
+    echo "{"
+    first=true
+    skipped_lookup_failed=0
+    while IFS= read -r tid; do
+        [ -z "$tid" ] && continue
+        if slug=$(resolve_epic_ancestor "$tid"); then
+            [ "$first" = true ] && first=false || echo ","
+            printf '  "%s": %s' "$tid" "$(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$slug")"
+        else
+            echo "⚠ epic lookup failed for $tid — excluding from candidates (never silently treated as \"no epic\")" >&2
+            skipped_lookup_failed=$((skipped_lookup_failed + 1))
+        fi
+    done <<< "$SURVIVOR_IDS"
+    echo ""
+    echo "}"
+    echo "$skipped_lookup_failed" > "$SKIPPED_LOOKUP_FILE"
+} > "$EPIC_MAP_FILE"
+
+# ── Stage 3: apply epic/work_type filters, build candidates + by_epic ──────
+ANALYSIS_FILE="$TMP_DIR/analysis.json"
+python3 - "$STAGE1_FILE" "$EPIC_MAP_FILE" "$GIT_FILE" "$EPICS_FILE" "$WORK_TYPES_FILE" \
+    "$AGE_DAYS" "$CHECK_GIT_REFS" "$SKIPPED_LOOKUP_FILE" <<'PYEOF' > "$ANALYSIS_FILE"
+import sys, json, re
+from collections import defaultdict
+
+stage1_file, epic_map_file, git_file, epics_file, wt_file, age_arg, check_git, skipped_lookup_file = sys.argv[1:]
+age_cutoff = int(age_arg)
+check_git = check_git == 'true'
+
+with open(stage1_file) as f:
+    stage1 = json.load(f)
+
+with open(epic_map_file) as f:
+    epic_map = json.load(f)
+
+with open(git_file) as f:
+    git_lines = [l.strip() for l in f if l.strip()]
+
+with open(epics_file) as f:
+    target_epics = [l.strip() for l in f if l.strip()]
+
+with open(wt_file) as f:
+    target_wt = [l.strip() for l in f if l.strip()]
+
+with open(skipped_lookup_file) as f:
+    skipped_epic_lookup_failed = int(f.read().strip() or 0)
+
+candidates = []
+skipped_epic = 0
+
+for t in stage1['survivors']:
+    tid = t['id']
+    if tid not in epic_map:
+        continue  # excluded by a failed epic lookup (stage 2), already counted
+
+    epic = epic_map[tid]  # '' means resolved successfully to "no epic ancestor"
+
+    if target_epics and epic not in target_epics:
         skipped_epic += 1
         continue
 
@@ -159,9 +237,9 @@ for t in data:
 
     candidates.append({
         'id': tid,
-        'age': age_days,
-        'priority': pri,
-        'epic': t.get('epic', ''),
+        'age': t['_age_days'],
+        'priority': t.get('priority'),
+        'epic': epic,
         'work_type': t.get('work_type', ''),
         'subject': t.get('subject', ''),
         'git_mentions': git_mentions,
@@ -172,11 +250,12 @@ for c in candidates:
     by_epic[c['epic'] or '(none)'] += 1
 
 print(json.dumps({
-    'total_pending': len(data),
+    'total_pending': stage1['total_pending'],
     'age_cutoff': age_cutoff,
-    'skipped_age': skipped_age,
-    'skipped_priority': skipped_pri,
+    'skipped_age': stage1['skipped_age'],
+    'skipped_priority': stage1['skipped_priority'],
     'skipped_epic': skipped_epic,
+    'skipped_epic_lookup_failed': skipped_epic_lookup_failed,
     'candidate_count': len(candidates),
     'by_epic': dict(by_epic),
     'candidates': candidates,
@@ -199,6 +278,8 @@ print(f'Total pending:    {a["total_pending"]}')
 print(f'Age filter (>{a["age_cutoff"]}d): excluded {a["skipped_age"]}')
 print(f'Priority filter:  excluded {a["skipped_priority"]}')
 print(f'Epic/type filter: excluded {a["skipped_epic"]}')
+if a.get('skipped_epic_lookup_failed'):
+    print(f'Epic lookup failed: excluded {a["skipped_epic_lookup_failed"]} (not treated as "no epic" — see stderr)')
 print(f'Candidates:       {a["candidate_count"]}')
 print()
 
