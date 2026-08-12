@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T14:00:47Z",
+  "generated": "2026-08-12T17:41:18Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1312,7 +1312,10 @@
         "system/scripts/migrate/collapse-level-epic-v3.py",
         "system/scripts/migrate/normalize-tags.py",
         "system/state/tasks-config.json",
-        "system/skills/_shared/epic-ancestor-walk.md"
+        "system/skills/_shared/epic-ancestor-walk.md",
+        "system/scripts/backlog-reconcile.sh",
+        "system/scripts/tests/test-no-flat-epic-field-reads.sh",
+        "system/"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
@@ -1668,6 +1671,14 @@
         "system/rules/delegation-routing.md"
       ]
     },
+    "docs/architecture/features/ruflo-mcp-tool-classification.md": {
+      "title": "Ruflo MCP Surface — Real/Theater/Broken Classification",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/rules/ruflo-stub-guard.md",
+        "system/rules/delegation-routing.md"
+      ]
+    },
     "docs/architecture/features/ruflo-upgrade-memory-reliability.md": {
       "title": "Feature: Upgrade ruflo v3.10.39 → v3.34.0 and re-verify memory reliability",
       "type": "Roadmap",
@@ -1719,6 +1730,16 @@
       "title": "Feature: Smart /brana:backlog add with dependency scan",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/stale-task-lifecycle-policy.md": {
+      "title": "Stale-task lifecycle policy (t-2743)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/state/stale-lifecycle-log.jsonl",
+        "system/state/",
+        "system/scheduler/scheduler.template.json",
+        "system/scheduler/"
+      ]
     },
     "docs/architecture/features/staleness-and-memory-pipeline.md": {
       "title": "Feature: Staleness Report + Output-to-Memory Pipeline",
@@ -1820,6 +1841,11 @@
         "system/scripts/validate-remedies.sh",
         "system/scripts/migrate/"
       ]
+    },
+    "docs/architecture/features/wave-gate-enforcement.md": {
+      "title": "Wave gate enforcement (t-2744)",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/worktree-task-divergence.md": {
       "title": "Feature: validate.sh Check 68 — worktree/task divergence",
@@ -5659,6 +5685,12 @@
     {
       "from": "docs/architecture/features/resilient-pattern-store.md",
       "to": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/ruflo-mcp-tool-classification.md",
+      "to": "ADR-026-ruflo-mcp-backbone.md, ADR-059-multi-agent-substrate-selection.md",
       "type": "depends_on",
       "computed": false
     },
@@ -10404,6 +10436,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/stale-task-lifecycle-policy.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/staleness-and-memory-pipeline.md",
       "type": "references",
       "computed": false
@@ -10447,6 +10485,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/test-lint-feedback-hook.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/wave-gate-enforcement.md",
       "type": "references",
       "computed": false
     },
@@ -11923,6 +11967,12 @@
     {
       "from": "docs/architecture/features/validate-remedy-binding.md",
       "to": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-gate-enforcement.md",
+      "to": "backlog-v3-schema.md",
       "type": "references",
       "computed": false
     },
@@ -15900,9 +15950,9 @@
     }
   ],
   "stats": {
-    "nodes": 552,
-    "edges": 2019,
-    "typed_edges": 684,
-    "orphans": 148
+    "nodes": 555,
+    "edges": 2023,
+    "typed_edges": 685,
+    "orphans": 149
   }
 }
