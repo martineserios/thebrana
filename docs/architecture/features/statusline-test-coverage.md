@@ -63,6 +63,23 @@ the same scrub.
 
 ## Field Notes
 
+### 2026-08-11: Added a session-id segment (🪪); a first close mistakenly marked the task done before it was ever built
+`system/statusline.sh` gained a `🪪 {8-char-session-id-prefix}` segment, sourced from the
+statusline hook's own stdin JSON (`.session_id`) — never `BRANA_SESSION_ID`, which is set
+but not exported to child processes. Placed between `🎯 epic` and `CTX` in render order.
+Value is truncated to 8 chars, then scrubbed of backslashes and raw control bytes before the
+`printf '%b'` sink — same two-line pattern `EPIC` already uses (challenger gate caught the
+scrub missing on the first implementation pass; see the finding trail on t-2731).
+`test-statusline-integration.sh` gained 3 new scenarios (render, control-byte-scrub
+regression mirroring `test-statusline-epic.sh`'s B8, and graceful degradation when
+`session_id` is absent) — 20 → 22 assertions, still 22/22.
+
+Notable: the task (t-2731) had already been marked `completed` once before this build, by a
+close/reconcile step that read the branch's "0 commits ahead, 8 behind dev" as "already
+merged" — the branch had in fact never had any commits, BUILD had never run. Ahead=0 doesn't
+distinguish "fully merged" from "nothing was ever committed"; see
+`pattern_branch-ahead-zero-is-ambiguous-merged-vs-never-worked` in project memory.
+
 ### 2026-08-05: Static active_epic went stale without a task-branch checkout — added a dynamic fallback
 Reported bug: proyecto_anita's statusline stayed on `anita-envios` for days while the user
 worked `env-hardening`/`agent-memory` tasks on `main` — nothing recuts the branch when work
