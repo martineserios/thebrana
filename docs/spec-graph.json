@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T01:06:01Z",
+  "generated": "2026-08-12T12:33:46Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -605,7 +605,9 @@
     "docs/README.md": {
       "title": "Documentation Index",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/services/whatsapp-bridge"
+      ]
     },
     "docs/architecture/ac-grammar.md": {
       "title": "AC Grammar — Machine-Checkable Acceptance Criteria",
@@ -10739,6 +10741,18 @@
     },
     {
       "from": "docs/README.md",
+      "to": "ideas/brana-agency-growth-machine.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/brana-whatsapp-agent.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "ideas/ruflo-native-integration.md",
       "type": "references",
       "computed": false
@@ -15870,7 +15884,7 @@
   ],
   "stats": {
     "nodes": 551,
-    "edges": 2016,
+    "edges": 2018,
     "typed_edges": 684,
     "orphans": 147
   }

@@ -42215,7 +42215,7 @@
         "config"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "kind": "ops"
     },
     {
@@ -45805,7 +45805,7 @@
         "reconcile"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "kind": "ops"
     },
     {
@@ -46235,7 +46235,7 @@
         "cleanup"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "kind": "ops"
     },
     {
@@ -47413,7 +47413,7 @@
         "maintenance"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "kind": "ops"
     },
     {
@@ -48280,7 +48280,7 @@
         "proyecto-anita"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "infra"
     },
     {
       "blocked_by": [],
@@ -48308,7 +48308,7 @@
         "git-hygiene"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "infra"
     },
     {
       "blocked_by": [],
@@ -48337,7 +48337,7 @@
         "maintenance"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "infra"
     },
     {
       "blocked_by": [],
@@ -48395,7 +48395,7 @@
         "cleanup"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "infra"
     },
     {
       "blocked_by": [],
@@ -48426,7 +48426,7 @@
         "security"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "infra"
     },
     {
       "blocked_by": [],
@@ -50971,7 +50971,7 @@
         "parked"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "infra"
     },
     {
       "blocked_by": [],
@@ -52228,7 +52228,7 @@
         "quota"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "kind": "ops"
     },
     {
@@ -56548,7 +56548,7 @@
         "build"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "infra"
     },
     {
       "acceptance_criteria": null,
@@ -69118,7 +69118,7 @@
         "brana-harness"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "id": "t-2682",
       "execution": "code",
       "ac_state": "none",
@@ -69149,7 +69149,7 @@
         "brana-harness"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "id": "t-2683",
       "execution": "code",
       "ac_state": "none",
@@ -69180,7 +69180,7 @@
         "brana-harness"
       ],
       "type": "task",
-      "work_type": "chore",
+      "work_type": "infra",
       "id": "t-2684",
       "execution": "code",
       "ac_state": "none",
@@ -70820,7 +70820,7 @@
     {
       "id": "t-2739",
       "subject": "Fix cmd_add validation gap: enforce work_type/kind on CLI add + add validate_task_type",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -70835,11 +70835,11 @@
       "parent": "t-2338",
       "created": "2026-08-12",
       "started": "2026-08-12",
-      "completed": null,
+      "completed": "2026-08-12",
       "blocked_by": [],
       "branch": "cli-backlog-schema/fix/t-2739-cmd-add-validation-gap",
       "context": "AC: brana backlog add rejects invalid work_type/kind with the same error as MCP backlog_add\nAC: validate_task_type exists and is enforced on both add paths (CLI + MCP)\nAC: failing tests written first covering the CLI add path with invalid work_type/kind/type\n2026-08-12: found in backlog system audit. Validation helpers already exist in brana-core/src/tasks.rs:1073 (validate_work_type) and :1084 (validate_kind) — fix is wiring them into cmd_add, mirroring backlog_add.rs:87.\nskill_gap_checked: true (step 0.5, rust detected, skipped load — S-size mechanical fix, 2026-08-12)\nChallenger finding (iteration 1, 2026-08-12): severity 4 — new enum validators shipped without paired validate.sh hygiene check (3rd occurrence of this drop; cf. Check 26 for status). Corrupted live rows (~51 work_type, 6 type) undetectable by CI until checked. Options: amend t-2739 or defer to t-2742 (which scopes exactly this).",
-      "notes": null,
+      "notes": "Retrospective: mechanical validation-parity fix — wired existing validate_work_type into cmd_add, added validate_task_type (new, no prior validator existed for the type field at all). Challenger iteration 1 (severity 4, RECONSIDER) caught a real gap: new validators without a paired validate.sh hygiene check (3rd time this codebase has dropped that leg — cf. Check 26/status). Fixed by adding Check 69 + remapping 82 pre-existing corrupted rows via backlog_batch. Iteration 2: PROCEED WITH CHANGES, independently re-verified (not just trusted) via separate grep-count reconstruction against live data. Applied the one optional suggestion (ops-origin rows: chore→infra, 15 unambiguous rows) before closing.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -70851,7 +70851,7 @@
       "work_type": "implement",
       "ac_state": "none",
       "strategy": "bug-fix",
-      "build_step": "fix"
+      "build_step": null
     },
     {
       "id": "t-2740",
@@ -71341,7 +71341,7 @@
     {
       "id": "t-2756",
       "subject": "Re-benchmark ruflo memory search smart:true and --intent routing on v3.34",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -71350,6 +71350,67 @@
         "retrieval"
       ],
       "description": "Our smart:true rejection (latency 275-879ms, MMR over-diversification) dates from v3.6/v3.10-era probes; upstream shipped SmartRetrieval fixes and SCM intent routing (--intent auto, episodic/semantic/procedural, cited 86% LongMemEval) since. Re-measure on v3.34: latency + on-topic similarity for smart:false vs smart:true vs --intent auto on ~10 representative brana recall queries. Decide whether brana recall / build LOAD adopt either flag.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2362",
+      "created": "2026-08-12",
+      "started": "2026-08-12",
+      "completed": "2026-08-12",
+      "blocked_by": [],
+      "branch": "ruflo-integration/research/t-2756-smart-intent-benchmark",
+      "context": null,
+      "notes": "SPIKE ANSWER: No — do not adopt smart:true or --intent auto. smart:true silently falls back to smart:false on v3.34 due to a ControllerRegistry duplicate-export ESM crash (regressed from the v3.10.36 fix noted in an earlier memory — that memory is now stale/wrong for this install). --intent auto showed zero measurable difference in latency or results across 2 test queries. Decision: keep smart:false default in build LOAD / brana recall, no change needed. Bonus finding filed as separate task: ruflo-cli.sh contamination guard doesn't recognize short-form -n/-t flags.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "research",
+      "ac_state": "none",
+      "strategy": "spike"
+    },
+    {
+      "id": "t-2757",
+      "subject": "Live re-verify agentdb hierarchical-store/recall + temporal validity on v3.34",
+      "status": "completed",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "ruflo",
+        "memory",
+        "agentdb"
+      ],
+      "description": "Conflict to resolve: ADR-026 (April) classified agentdb_hierarchical-store/recall BROKEN (in-memory Map stub, ruvnet/ruflo#1492); the 2026-08-12 HEAD source audit says all 20 agentdb tools are real. Probe live on our v3.34 install: store with validFrom/validUntil/supersedes, restart MCP, recall — does it persist and does temporal invalidation work? If real, this is the direct fix for the memory-staleness problem (point-in-time memories); if still broken, update ADR-026 classification date.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2362",
+      "created": "2026-08-12",
+      "started": "2026-08-12",
+      "completed": "2026-08-12",
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": "SPIKE ANSWER: hierarchical memory + temporal validity remain BROKEN on v3.34, confirmed live (agentdb_health: available:false; agentdb_hierarchical-store: 'AgentDB bridge not available'). Root cause traced to source: memory-bridge.js:164 imports ControllerRegistry from @claude-flow/memory, which double-exports the symbol on our install — the exact same duplicate-export ESM crash found in t-2756's smart:true investigation. One shared bug breaks BOTH features, not two independent problems. Fixed upstream at HEAD (shim re-export dropped) but present in our v3.34. ADR-026 corrected in place with a dated addendum (superseding the 'in-memory Map stub' explanation). Distillation's causal-edge/episode writes unaffected — separate direct-sqlite path. Does not change the upgrade decision (t-2763 still gated on #2512).",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "research",
+      "ac_state": "none",
+      "strategy": "spike"
+    },
+    {
+      "id": "t-2758",
+      "subject": "Evaluate ruflo daemon headless worker mode (subscription claude --print loop)",
+      "status": "in_progress",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "ruflo",
+        "daemon",
+        "loop",
+        "autonomy"
+      ],
+      "description": "The daemon's background workers are the loop mechanism already half-alive on our machine (consolidate has run 105+ times; local-only mode is near-worthless — writes existence booleans). AI mode is consent-gated (daemon start --headless or RUFLO_DAEMON_AI_WORKERS=1) and executes via claude --print on the subscription, budget-capped. Evaluate: which of the 7 scheduled workers (map/audit/optimize/consolidate/testgaps/backup/harness) produce value in headless mode, cost per cycle, overlap vs our native /loop + scheduler jobs (ADR-059 chose native /loop over ruflo autopilot — this is the daemon, a different surface, unevaluated). Output: adopt/reject per worker.",
       "effort": "S",
       "priority": "P3",
       "parent": "t-2362",
@@ -71367,65 +71428,6 @@
       "work_type": "research",
       "ac_state": "none",
       "strategy": "spike"
-    },
-    {
-      "id": "t-2757",
-      "subject": "Live re-verify agentdb hierarchical-store/recall + temporal validity on v3.34",
-      "status": "pending",
-      "type": "task",
-      "kind": "research",
-      "tags": [
-        "ruflo",
-        "memory",
-        "agentdb"
-      ],
-      "description": "Conflict to resolve: ADR-026 (April) classified agentdb_hierarchical-store/recall BROKEN (in-memory Map stub, ruvnet/ruflo#1492); the 2026-08-12 HEAD source audit says all 20 agentdb tools are real. Probe live on our v3.34 install: store with validFrom/validUntil/supersedes, restart MCP, recall — does it persist and does temporal invalidation work? If real, this is the direct fix for the memory-staleness problem (point-in-time memories); if still broken, update ADR-026 classification date.",
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-2362",
-      "created": "2026-08-12",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": null,
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
-      "execution": "code",
-      "acceptance_criteria": null,
-      "work_type": null,
-      "ac_state": "none"
-    },
-    {
-      "id": "t-2758",
-      "subject": "Evaluate ruflo daemon headless worker mode (subscription claude --print loop)",
-      "status": "pending",
-      "type": "task",
-      "kind": "research",
-      "tags": [
-        "ruflo",
-        "daemon",
-        "loop",
-        "autonomy"
-      ],
-      "description": "The daemon's background workers are the loop mechanism already half-alive on our machine (consolidate has run 105+ times; local-only mode is near-worthless — writes existence booleans). AI mode is consent-gated (daemon start --headless or RUFLO_DAEMON_AI_WORKERS=1) and executes via claude --print on the subscription, budget-capped. Evaluate: which of the 7 scheduled workers (map/audit/optimize/consolidate/testgaps/backup/harness) produce value in headless mode, cost per cycle, overlap vs our native /loop + scheduler jobs (ADR-059 chose native /loop over ruflo autopilot — this is the daemon, a different surface, unevaluated). Output: adopt/reject per worker.",
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-2362",
-      "created": "2026-08-12",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": null,
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
-      "execution": "code",
-      "acceptance_criteria": null,
-      "work_type": null,
-      "ac_state": "none"
     },
     {
       "id": "t-2759",
@@ -71565,7 +71567,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "Origin: 2026-08-12 subscription-leverage analysis + 53e3ba7a release-note sampling (v3.37 proxy). Prior evidence: field-note ruflo-agentic-layer-subscription-theater CORRECTION section (CLI --claude is real, one CC session per worker, ~$0.19-equiv for a trivial call). Requires 3.34→3.38 upgrade for the proxy piece — sequence after upgrade decision; if upgrading, rerun t-2627 reverify (upstream #2512 still open).\nAC: cost-per-worker measured on current version for --claude path\nAC: Meta LLM Proxy behavior documented from source or probe, not README\nAC: ADR-059 addendum drafted with keep/adopt/hybrid recommendation\n2026-08-12 (peer session 53e3ba7a reconciliation): peer's t-2758 (daemon headless worker mode) covers a different ruflo surface (persistent daemon scheduled workers vs this task's CLI spawn-per-invocation) but answers the same question (right subscription-native autonomy path). Land together, merge into ONE ADR-059 addendum rather than two. Both gated behind the 3.34-to-3.38 upgrade decision + t-2627 reverify.",
+      "context": "Origin: 2026-08-12 subscription-leverage analysis + 53e3ba7a release-note sampling (v3.37 proxy). Prior evidence: field-note ruflo-agentic-layer-subscription-theater CORRECTION section (CLI --claude is real, one CC session per worker, ~$0.19-equiv for a trivial call). Requires 3.34→3.38 upgrade for the proxy piece — sequence after upgrade decision; if upgrading, rerun t-2627 reverify (upstream #2512 still open).\nAC: cost-per-worker measured on current version for --claude path\nAC: Meta LLM Proxy behavior documented from source or probe, not README\nAC: ADR-059 addendum drafted with keep/adopt/hybrid recommendation\n2026-08-12 (peer session 53e3ba7a reconciliation): peer's t-2758 (daemon headless worker mode) covers a different ruflo surface (persistent daemon scheduled workers vs this task's CLI spawn-per-invocation) but answers the same question (right subscription-native autonomy path). Land together, merge into ONE ADR-059 addendum rather than two. Both gated behind the 3.34-to-3.38 upgrade decision + t-2627 reverify.\n2026-08-12 (t-2756 spike evidence): live-confirmed our installed v3.34 @claude-flow/memory dist double-exports ControllerRegistry (line 2 via legacy controller-registry-shim.js re-export, line 62 via the real file) — this IS the \"Duplicate export of 'ControllerRegistry'\" crash causing smart:true to silently fall back on our install. HEAD (v3.38-era) source has dropped the shim re-export — single export only, bug fixed there. HOWEVER grep of HEAD's hybrid-backend.ts confirms the corruption root cause is UNCHANGED: dualWrite: true still hardcoded, zero busy_timeout/PRAGMA calls in the memory package. Net: upgrading would fix smart:true (low value to us — we default smart:false regardless) but does NOT fix #2512. Not a reason to accelerate the upgrade decision; the #2512 gate stands.",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -71663,6 +71665,128 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2767",
+      "subject": "Fix ruflo-cli.sh contamination guard: doesn't recognize short-form -n/-t flags",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "ruflo",
+        "wrapper",
+        "bug"
+      ],
+      "description": "Found during t-2756 spike (2026-08-12). ruflo-cli.sh's t-1936 contamination guard (injects --threshold 0.55 on namespace-less memory search) only checks for long-form flags: --namespace|--namespace=*|--threshold|--threshold=*. Passing the short form -n knowledge is not detected, so the guard still force-injects --threshold 0.55 even though a namespace was explicitly given — silently produced zero results on a real query with genuine similarity 0.35. Fix: add -n and -t to the case pattern.",
+      "effort": "XS",
+      "priority": "P3",
+      "parent": "t-2362",
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Repro: system/scripts/ruflo-cli.sh memory search -q \"...\" -n knowledge -l 5 --> [WARN] No results found, despite the same query returning a 0.35-similarity hit via --namespace/long flags or the MCP tool directly.\nAC: -n and -t recognized by the guard same as --namespace/--threshold\nAC: repro query above returns the expected result after fix",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2768",
+      "subject": "Tier 0 epic corroboration window (close session-state.md) isn't session-scoped — false-positive corroboration risk",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close-skill",
+        "epic-routing",
+        "session-state",
+        "data-loss-risk"
+      ],
+      "description": "Live near-miss during /brana:close --finish on 2026-08-12 (session f2f7a045). Tier 0 corroboration (session-state.md Step 9c) checks whether the persistent focus-file slug appears anywhere in TIER2B_SLUGS, computed from `git log --oneline -20 | grep t-NNN | resolve_epic_ancestor`. That window is NOT scoped to the current session — it's a raw last-20-commits lookback that can span multiple prior unrelated sessions.\n\nConcrete failure observed: TIER0_SLUG=knowledge-pipeline (stale global focus file). This session's own actual work (1 commit, d1009acc) resolves cleanly to ruflo-integration. But the git-log-20 window also picked up ~17 commits from a PRIOR DAY's unrelated session (t-2731 statusline work, 2026-08-11 21:xx) which happened to resolve to knowledge-pipeline, satisfying Tier0's `grep -qx` corroboration check. Had I trusted it mechanically, `brana session write` would have routed this session's ruflo-integration-themed handoff into session-state-knowledge-pipeline.json, REPLACING/polluting that file's genuinely live, same-morning content (written 2026-08-12T01:18:25Z, session label about t-2736 scheduler ship work) — the exact t-2263 clobber class this whole tiered cascade exists to prevent, defeated by its own corroboration window not matching the session boundary.\n\nFix direction: Tier0's corroboration window should reuse the SAME session-boundary anchor already computed in gate-and-evidence.md's CLOSE-ANCHOR-BLOCK (git log --since \"$LAST_CLOSE\", not a flat last-20-commits count) — session-state.md even says Tier2b is \"scoped to *this session's own* recent git history\" but its actual implementation (`git log --oneline -20`) is a fixed commit count, not a session-scoped range, so it silently violates its own documented scoping whenever a session makes fewer than ~20 commits and the tail overflows into a prior session's work (very common for research/coordination sessions with 1 commit).\n\nWorkaround applied this close: overrode Tier0's mechanical answer, used ruflo-integration (evidence: 100% of today's commits resolve there, 0% to knowledge-pipeline; confirmed via `brana session read --all --json` that knowledge-pipeline's file is live/recent and ruflo-integration's doesn't exist yet — no clobber either way today, but the mechanism itself is unsound).",
+      "effort": "S",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Origin: 2026-08-12 /brana:close --finish, session f2f7a045. File: system/skills/close/phases/session-state.md Step 9c Tier 0 (TIER0-CORROBORATION-BLOCK) + Tier 2b. Related prior clobber incidents: t-2263 (orbit/uncorroborated Tier 2a hit), t-1461 (same-day parallel close replace-not-merge). Same root class, different tier.\nAC: TIER2B_SLUGS computed from a session-scoped git range (reuse gate-and-evidence.md's LAST_CLOSE anchor / resolve_epic_ancestor), not a flat -20 count\nAC: regression test added — a session with 1 own commit + a stale global focus file whose slug only appears in older, out-of-session commits must NOT corroborate\nAC: existing tests/procedures/test-close-gate-epic-anchor.sh and test-epic-ancestor-walk.sh still pass",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2769",
+      "subject": "Pilot smart:true in brainstorm's search step — diversity may help where precision doesn't",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "ruflo",
+        "memory",
+        "retrieval",
+        "brainstorm"
+      ],
+      "description": "t-2756 confirmed smart:true is universally rejected for precision retrieval (build LOAD, brana recall) — but that verdict was scoped to precision use cases. smart:true's MMR diversity behavior (deliberately demotes near-duplicate results to cover more topic space) is a poor fit for \"find the exact prior decision\" but a plausible fit for \"show me the breadth of what's related\" — exploratory search, not lookup. Candidate: brainstorm/SKILL.md's memory_search calls (knowledge + pattern namespaces, exploratory by nature) and the ecosystem-scanning pattern used in the 2026-08-12 ruv.io crawl (peer session f2f7a045).",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2362",
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Origin: 2026-08-12, user follow-up after t-2756 spike. Blocked on: t-2755's smart:true ESM crash fix requires an upstream upgrade (ControllerRegistry duplicate export, fixed at HEAD v3.38 not our v3.34 — see t-2763 context) OR test against a scratch v3.38 install without touching our production DB.\nAC: smart:true probed specifically on 3-5 exploratory/brainstorm-shaped queries (not precision lookups) — result diversity measured qualitatively (does it surface genuinely different-but-relevant angles, or off-topic noise like the t-1699 Feynman-physics case)\nAC: adopt/skip decision scoped to brainstorm's search step only, not a system-wide default change\nAC: if adopted, gate via a new memory_search call site (namespace=knowledge/pattern, smart:true) rather than changing the shared build LOAD default",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2770",
+      "subject": "Audit, diagnose, and fix tasks.json concurrent-writer dirty-state ambiguity at close time",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "close-skill",
+        "concurrency",
+        "tasks-json",
+        "session-state",
+        "propagate"
+      ],
+      "description": "At close, tasks.json is a single shared, unlocked file on the dev integration branch — multiple concurrent sessions/worktrees write to it directly (no per-writer isolation, no lock). PROPAGATE's L1 check (system/skills/close/phases/propagate.md) can detect \"tasks.json has uncommitted changes\" but has no way to know WHOSE changes they are: this session's own task-filing, or another live session's in-flight edit. Committing blindly risks truncating a concurrent writer's incomplete state; never committing risks losing this session's own real work.\n\nConcretely observed 2026-08-12 (session f2f7a045, two consecutive /brana:close invocations on thebrana, ~5 minutes apart): first close found tasks.json dirty from THIS session's own 13 task-filing calls — correctly identified via evidence (files were clean at session start) and committed as d1009acc. Second close (--continue) found tasks.json dirty AGAIN, this time from provably concurrent writers: peer session 53e3ba7a actively working on t-2756/t-2757/t-2758 (mid-spike, added real findings to t-2757's context, filed a brand new bug t-2767 from live evidence), interleaved with an apparent unrelated chore->infra work_type normalization sweep touching dozens of old, unrelated tasks (matches the shape of the cli-backlog-schema epic's t-2739/t-2740 validation work). Correctly did NOT commit this time — but the only way to tell the two situations apart was manual diff inspection and reasoning about task-ID provenance each time close ran. That doesn't scale and is exactly the kind of judgment call a procedure should not depend on an LLM making correctly by inspection every single close.\n\nThis is a sibling problem to seven existing bugs already tracked under this epic (t-2478, t-2491, t-2513/dup-of-t-2480, t-2533/dup-of-t-2502, t-2534, t-2657, t-2728) — all of which are about close's git-log-window/anchor computation getting confused by concurrent activity on the shared dev branch. This task is the same root cause (multiple sessions writing a shared resource with no coordination) manifesting one layer down: not \"which git range is mine\" but \"which uncommitted bytes in a single shared JSON file are mine.\"\n\nDiagnose and propose a fix. Candidate directions (not decided):\n1. Per-writer attribution — before any close-time write, diff tasks.json against the last commit and check whether every task ID touched appears in THIS session's own conversation/tool-call history (the backlog_add/backlog_set calls actually made). Only commit if 100% attributable to this session; otherwise route to next[] as a watch item.\n2. A lightweight lock/lease on tasks.json writes at the CLI layer (brana backlog add/set already goes through one binary — a short-lived advisory lock file could serialize concurrent writers without full serialization of unrelated sessions' work).\n3. Per-session staging — each session's backlog CLI calls write to a session-scoped overlay/journal instead of tasks.json directly, merged by a single serialized writer (bigger redesign, likely out of scope for this task alone — note as a north-star option only).\n4. At minimum: make PROPAGATE's L1 check show WHICH task IDs are dirty (not just \"tasks.json has uncommitted changes\") so a human/LLM reviewing the close report has the evidence already surfaced instead of needing to `git diff` by hand.\n\nRelated prior art: pattern_file-lock-scope-classify-writers memory (2026-06-20) may already cover adjacent ground — read it before designing a new mechanism.",
+      "effort": "M",
+      "priority": null,
+      "parent": "t-2340",
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2768"
+      ],
+      "branch": null,
+      "context": "Origin: 2026-08-12, session f2f7a045, two /brana:close invocations 5 min apart on thebrana dev. First close: tasks.json dirty from this session's own 13 task-filing calls (t-2747-t-2768), correctly committed as d1009acc after PROPAGATE flagged it and user confirmed. Second close (--continue): tasks.json dirty again, this time from confirmed concurrent writers (peer session 53e3ba7a mid-spike on t-2756/t-2757/t-2758, filed t-2767 live; plus an apparent unrelated work_type chore->infra normalization sweep). Correctly not committed, routed to next[] instead — but only via manual diff inspection each time, not a repeatable mechanism.\nRelated epic siblings (same root cause, different layer — all t-2340 close): t-2478 (zsh word-split), t-2491 (epic-keyed anchor stale), t-2513 (cancelled, dup of t-2480 — epic accumulator over-reach), t-2533 (cancelled, dup of t-2502 — anchor picks concurrent session's close time), t-2534 (false fallback warning), t-2657 (HEAD~N merge-commit over-reach), t-2728 (bare orientation arg not detected). blocked_by t-2768 (this same session's Tier0 corroboration finding) — same family, may share a fix.\nAC: PROPAGATE L1 (or a new check) distinguishes this-session-attributable tasks.json changes from concurrent-writer changes, without relying on manual diff-reading each close\nAC: a close never commits another live session's in-flight tasks.json edit\nAC: a close never silently drops its own session's real task-filing work either\nAC: design doc or ADR addendum records the chosen mechanism (attribution / lock / staging) and why the others were rejected",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
       "ac_state": "none"
     }
   ],
