@@ -193,17 +193,25 @@ pub fn clear_focus_marker(project_root: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Write the initiative marker if the task JSON has a non-empty `epic` field.
-/// Called by `brana run` after setting the task to in_progress. No-op when the field is absent or null.
+/// Write the initiative marker if the task resolves to an epic via its parent
+/// chain. Called by `brana run` after setting the task to in_progress. No-op
+/// when the task has no epic ancestor.
+///
+/// t-2765: the flat `epic` field is retired (RETIRED_FIELDS) — epic
+/// membership is the nearest type:"epic" ancestor via the parent chain
+/// (`crate::tasks::resolve_epic_ancestor`), not a flat field read. `all`
+/// must be the full task list so the parent chain can be walked.
 pub fn maybe_write_initiative_marker(
     project_root: &Path,
     task_id: &str,
     task: &serde_json::Value,
+    all: &[serde_json::Value],
 ) -> Result<()> {
-    if let Some(slug) = task["epic"].as_str() {
-        if !slug.is_empty() {
-            write_initiative_marker(project_root, slug, task_id)?;
-        }
+    let by_id: std::collections::HashMap<&str, &serde_json::Value> = all.iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
+    if let Some(slug) = crate::tasks::resolve_epic_ancestor(task, &by_id) {
+        write_initiative_marker(project_root, &slug, task_id)?;
     }
     Ok(())
 }
@@ -521,26 +529,33 @@ mod tests {
     }
 
     #[test]
-    fn maybe_write_marker_when_epic_present() {
+    fn maybe_write_marker_when_epic_present_via_parent_chain() {
+        // t-2765: epic membership resolves via the parent chain to a
+        // type:"epic" node, not a flat `epic` field.
         let dir = tempdir().unwrap();
-        let task = serde_json::json!({"id": "t-999", "epic": "rust-cli"});
-        maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
+        let epic = serde_json::json!({"id": "t-epic", "type": "epic", "subject": "rust-cli"});
+        let task = serde_json::json!({"id": "t-999", "type": "task", "parent": "t-epic"});
+        let all = vec![epic, task.clone()];
+        maybe_write_initiative_marker(dir.path(), "t-999", &task, &all).unwrap();
         assert_eq!(read_initiative_marker(dir.path()).as_deref(), Some("rust-cli"));
     }
 
     #[test]
-    fn maybe_write_marker_noop_when_epic_absent() {
+    fn maybe_write_marker_noop_when_no_parent() {
         let dir = tempdir().unwrap();
-        let task = serde_json::json!({"id": "t-999"});
-        maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
+        let task = serde_json::json!({"id": "t-999", "type": "task"});
+        let all = vec![task.clone()];
+        maybe_write_initiative_marker(dir.path(), "t-999", &task, &all).unwrap();
         assert!(read_initiative_marker(dir.path()).is_none());
     }
 
     #[test]
-    fn maybe_write_marker_noop_when_epic_null() {
+    fn maybe_write_marker_noop_when_parent_is_not_an_epic() {
         let dir = tempdir().unwrap();
-        let task = serde_json::json!({"id": "t-999", "epic": null});
-        maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
+        let milestone = serde_json::json!({"id": "ms-1", "type": "milestone", "subject": "Milestone"});
+        let task = serde_json::json!({"id": "t-999", "type": "task", "parent": "ms-1"});
+        let all = vec![milestone, task.clone()];
+        maybe_write_initiative_marker(dir.path(), "t-999", &task, &all).unwrap();
         assert!(read_initiative_marker(dir.path()).is_none());
     }
 

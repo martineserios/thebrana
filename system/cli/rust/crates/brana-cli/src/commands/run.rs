@@ -92,7 +92,7 @@ pub fn cmd_run(task_id: &str, spawn: bool) -> anyhow::Result<()> {
 
     // Write session-initiative marker so close Step 9c Tier 1 can detect the initiative
     // without parsing git log or querying in-progress tasks.
-    brana_core::session_initiative::maybe_write_initiative_marker(&repo_root, task_id, task).ok();
+    brana_core::session_initiative::maybe_write_initiative_marker(&repo_root, task_id, task, &data.tasks).ok();
 
     // Spawn in tmux if requested
     if spawn {
