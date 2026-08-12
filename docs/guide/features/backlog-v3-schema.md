@@ -17,11 +17,7 @@ brana backlog set in-002 status active
 brana backlog set in-002 status pending   # rejected — "pending" is task vocab, not epic vocab
 ```
 
-An epic also carries a `wip_limit` (default 10). Adding an 11th open task under an epic doesn't block the add — it prints an advisory warning:
-
-```
-⚠ epic in-002 is at its WIP cap (10/10 open) — adding this task makes 11; consider closing or parking before adding more
-```
+Epics have no WIP cap — an epic is an unbounded grouping of "what we're building," and adding tasks under it is never limited or warned about (the `wip_limit` field and its advisory warning were retired 2026-08-12; see ADR-065's amendment). If you want to bound how much work is actively in flight, use a wave instead (below).
 
 `blocked_by` works on epics the same way it works on tasks — an epic blocked on a prior epic stays `blocked` until that epic reaches `done` or `archived`.
 

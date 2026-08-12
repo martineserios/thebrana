@@ -125,17 +125,18 @@ else (the park action, the weekly report) is pull-based (`brana backlog
 stale`, `/brana:review weekly`), not push, and therefore outside that
 budget's concern entirely.
 
-### 6. Epic `wip_limit` — ships separately, not bundled
+### 6. Epic `wip_limit` — retired 2026-08-12, not this policy's concern
 
-ADR-065 promised an epic `wip_limit` (default 10, applied at read time) —
-already implemented as `check_epic_wip_cap()` (advisory warn-not-block,
-per ADR-065 D4) but has no relationship to task-level staleness; an epic
-being over its WIP cap and a task being stale are different failure modes
-(too much *concurrent* work vs. one thing sitting *untouched*). Bundling
-them into one feature would conflate two policies with different owners,
-different signals, and different remedies. Ships as its own task if/when
-someone wants gate enforcement for it (see t-2744, a related but distinct
-spec).
+ADR-065 originally gave epics a `wip_limit` (default 10, advisory
+warn-not-block per ADR-065 D4). It never had a relationship to task-level
+staleness — an epic being over its WIP cap and a task being stale were
+always different failure modes (too much *concurrent* work vs. one thing
+sitting *untouched*) — and that reasoning still holds even though the cap
+itself is gone: `wip_limit`/`check_epic_wip_cap()` were retired (t-2727,
+ADR-065's amendment) after epics turned out to be unbounded groupings in
+practice, not concurrency-limited. If WIP/concurrency control returns, it
+belongs on waves (t-2782, a distinct follow-up), not on this staleness
+policy.
 
 ## Out of scope (this spec, and the follow-up implementation task)
 

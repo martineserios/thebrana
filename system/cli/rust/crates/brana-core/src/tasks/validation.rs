@@ -288,7 +288,7 @@ pub fn raw_status<'a>(task: &'a Value, default: &'a str) -> &'a str {
 /// this constant plus `reject_retired_fields` (t-2385, ADR-067) generalizes
 /// that so a future retirement is a one-line addition here instead of a new
 /// call site.
-pub const RETIRED_FIELDS: &[&str] = &["level", "epic", "stream"];
+pub const RETIRED_FIELDS: &[&str] = &["level", "epic", "stream", "wip_limit"];
 
 /// Reject a raw JSON object if it contains any retired field key. Exact key
 /// match only — no substring matching, so e.g. `"epics"`/`"streaming"` pass
@@ -305,7 +305,7 @@ pub fn reject_retired_fields(obj: &serde_json::Map<String, Value>) -> Result<(),
         Ok(())
     } else {
         Err(format!(
-            "{} field(s) are retired (ADR-065) — level collapses into type, epic/stream are now hierarchy/tag concerns; use --parent/tags instead",
+            "{} field(s) are retired (ADR-065) — level collapses into type, epic/stream are now hierarchy/tag concerns, wip_limit is retired (D4, 2026-08-12 — epics are unbounded, WIP control moves to waves); use --parent/tags instead",
             found.join(", ")
         ))
     }
@@ -449,25 +449,6 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
                 task[field] = Value::Null;
             } else {
                 task[field] = Value::String(value.to_string());
-            }
-            Ok(())
-        }
-        "wip_limit" => {
-            // ADR-065: WIP cap on an epic node (t-2313). Settable regardless
-            // of task type — matching this whitelist's existing pattern of
-            // no cross-field type coupling; meaninglessness on a non-epic
-            // task is a semantic concern for check_epic_wip_cap's callers,
-            // not a set_field-level restriction.
-            if value == "null" {
-                task[field] = Value::Null;
-            } else {
-                let parsed: i64 = value.parse().map_err(|_| {
-                    format!("wip_limit must be a positive integer or \"null\" (got: {value})")
-                })?;
-                if parsed < 1 {
-                    return Err(format!("wip_limit must be a positive integer (got: {value})"));
-                }
-                task[field] = Value::Number(parsed.into());
             }
             Ok(())
         }
