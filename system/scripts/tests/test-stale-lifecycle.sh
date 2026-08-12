@@ -90,8 +90,34 @@ ok "created_7d counts t-9201,t-9203,t-9204? no — t-9204 created 2026-06-01 exc
   '[ "$(tail -1 "$REPORT" | jq -r .created_7d)" = "2" ]'
 ok "completed_7d counts t-9201 only (t-9202 completed 2026-07-20, >7d)" \
   '[ "$(tail -1 "$REPORT" | jq -r .completed_7d)" = "1" ]'
-ok "phase-type task (t-9205) excluded from report counts" \
-  '[ "$(tail -1 "$REPORT" | jq -r .completed_30d)" = "1" ]'
+ok "completed_30d counts t-9201+t-9202, excludes phase-type t-9205" \
+  '[ "$(tail -1 "$REPORT" | jq -r .completed_30d)" = "2" ]'
+
+# ── Boundary: empty fixture — must not crash, must produce zero counts ──
+EMPTY_FIX="$TMP/empty.json"
+echo '[]' > "$EMPTY_FIX"
+LOG2="$TMP/log2.jsonl"; STATUS2="$TMP/status2.json"; REPORT2="$TMP/report2.jsonl"
+STALE_TODAY="$FROZEN_TODAY" STALE_TASKS_JSON="$EMPTY_FIX" STALE_ALL_TASKS_JSON="$EMPTY_FIX" \
+STALE_LOG_FILE="$LOG2" STALE_STATUS_FILE="$STATUS2" STALE_REPORT_FILE="$REPORT2" \
+  bash "$SCRIPT" --dry-run >/dev/null 2>&1
+RC2=$?
+ok "empty fixture: exits 0, no crash" '[ "$RC2" = "0" ]'
+ok "empty fixture: stale_p0p1_count is 0" '[ "$(jq -r .stale_p0p1_count "$STATUS2")" = "0" ]'
+ok "empty fixture: log file has no park lines" '[ ! -s "$LOG2" ]'
+
+# ── Boundary: created exactly ON the cutoff date is NOT stale (strict <) ──
+BOUNDARY_FIX="$TMP/boundary.json"
+cat > "$BOUNDARY_FIX" <<'EOF'
+[
+  {"id":"t-9301","type":"task","status":"pending","priority":"P2","created":"2026-05-14","tags":[]}
+]
+EOF
+LOG3="$TMP/log3.jsonl"; STATUS3="$TMP/status3.json"; REPORT3="$TMP/report3.jsonl"
+STALE_TODAY="$FROZEN_TODAY" STALE_TASKS_JSON="$BOUNDARY_FIX" STALE_ALL_TASKS_JSON="$EMPTY_FIX" \
+STALE_LOG_FILE="$LOG3" STALE_STATUS_FILE="$STATUS3" STALE_REPORT_FILE="$REPORT3" \
+  bash "$SCRIPT" --dry-run >/dev/null 2>&1
+ok "created exactly on 90d cutoff (2026-05-14) is NOT stale (strict <, matches stale_tasks())" \
+  '[ ! -s "$LOG3" ] || ! jq -e "select(.task_id==\"t-9301\")" "$LOG3" >/dev/null'
 
 echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]
