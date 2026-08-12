@@ -13,14 +13,14 @@ supersedes: ADR-040 (Gemini-first routing, retired 2026-06-19)
 3. In-session quick parallel fan-out → native TASK (Agent tool), many agents per message.
 4. Atomic / detail retrieval, ZERO reasoning → claude -p --model haiku (subscription, no quota).
 5. Cross-model second opinion — CHALLENGER ONLY → agy (Gemini); quota exhausted → Claude challenger lens. The ONLY use of agy.
-6. Autonomous / overnight / "until all done" → native /loop + claude -p over tasks.json, or ruflo autopilot (see ADR-059).
+6. Autonomous / overnight / "until all done" → native /loop + claude -p over tasks.json.
 7. Cross-session recall → `brana recall` / `mcp__brana__recall`, NOT `mcp__ruflo__memory_search` (t-2294).
 8. Everything else → Claude inline.
 ```
 
-**Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` for execution — hollow under subscription (records + self-votes). **Never** use `mcp__ruflo__wasm_agent_prompt` — under no API key it returns a literal `echo: <input>` stub (errors before even that on this install — optional pkg missing). **Never** use `mcp__ruflo__terminal_execute` — unrestricted shell via MCP, no permission prompt (denied in settings, t-2755). Exception: `mcp__ruflo__testgen_tdd_repair` IS sanctioned — the one subscription-native ruflo MCP execution path (spawns `claude -p`, budget-capped, test-verified); branch on `data.repaired`, never `success` (confirmed at HEAD v3.38, unverified on v3.34, t-2753). See `field-note_ruflo-agentic-layer-subscription-theater`, ADR-059.
+**Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` for execution — hollow under subscription (records + self-votes). **Never** use `mcp__ruflo__wasm_agent_prompt` — under no API key it returns a literal `echo: <input>` stub (this install errors even earlier — optional pkg missing). **Never** use `mcp__ruflo__terminal_execute` — unrestricted shell via MCP, no permission prompt (denied in settings, t-2755). No sanctioned ruflo MCP execution path exists: `testgen_tdd_repair` is a dead export, never registered on v3.34 or v3.38.3 — use `/brana:build`'s TDD loop instead (t-2753). CLI `--claude` spawn (no worktree isolation) and the Meta LLM Proxy (absent on our pinned version) are also closed (t-2763) — ruflo's sanctioned surface is memory/recall only. See `field-note_ruflo-agentic-layer-subscription-theater`, ADR-059.
 
-**t-2759**: further AgentDB/`performance_*`/`guidance_recommend`/`task_summary`/`wasm_gallery_*` findings — see `ruflo-mcp-tool-classification.md`.
+**t-2759**: more AgentDB/performance/guidance/wasm findings — see `ruflo-mcp-tool-classification.md`.
 
 Headless output (`claude -p`, agy) → `/tmp/` only; Claude applies via Write/Edit (cwd-discipline.md). agy never runs git.
 
