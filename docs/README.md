@@ -166,8 +166,9 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-074](architecture/decisions/ADR-074-step-state-contract.md) | Step-state contract — derive `{next_step, gate_pending}` from a static step registry + the run-state log (was ADR-062 — renumbered t-2507) |
 | [ADR-075](architecture/decisions/ADR-075-ship-on-deploy-surface-change.md) | Ship on deploy-surface change, not batch size or schedule — commit count is uncorrelated with blast radius (t-2547) |
 | [ADR-076](architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md) | Build receipts as executed evidence — `mint` runs the tests and hashes its own output; enforced delegation deferred, killed by its own falsifier (t-2592) |
+| [ADR-078](architecture/decisions/ADR-078-stale-task-park-via-tag.md) | Park stale tasks via the existing `parked` tag, not a new `status` value — reuses `classify()`'s already-tested synthetic state (t-2773) |
 
-> Note: this table is missing several ADRs between 045-065 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
+> Note: this table is missing several ADRs between 045-065 and ADR-077 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
 ### Domain model (docs/domain/)
 
