@@ -1437,6 +1437,10 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
     let mut by_type: HashMap<String, usize> = HashMap::new();
     let mut by_work_type: HashMap<String, usize> = HashMap::new();
     let mut by_epic: HashMap<String, usize> = HashMap::new();
+    let by_id: HashMap<&str, &Value> = all
+        .iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
 
     for t in tasks {
         let raw = raw_status(t, "unknown").to_string();
@@ -1452,8 +1456,13 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
         if let Some(wt) = t["work_type"].as_str() {
             *by_work_type.entry(wt.to_string()).or_default() += 1;
         }
-        if let Some(init) = t["epic"].as_str() {
-            *by_epic.entry(init.to_string()).or_default() += 1;
+        // t-2740 (ADR-065): the flat `epic` field is retired (RETIRED_FIELDS,
+        // write path sealed t-2310) — membership is the nearest type:"epic"
+        // ancestor via the parent chain. Epic nodes are containers, not members.
+        if t["type"].as_str() != Some("epic") {
+            if let Some(slug) = resolve_epic_ancestor(t, &by_id) {
+                *by_epic.entry(slug).or_default() += 1;
+            }
         }
     }
 
@@ -3278,6 +3287,24 @@ mod tests {
         assert_eq!(stats["by_work_type"]["implement"], 2);
         assert_eq!(stats["by_work_type"]["research"], 1);
         assert!(stats.get("by_stream").is_none(), "by_stream must not appear in stats output");
+    }
+
+    #[test]
+    fn test_compute_stats_by_epic_parent_chain() {
+        // t-2740 (ADR-065): by_epic must resolve membership via the parent
+        // chain — the flat `epic` field was stripped from live data, so the
+        // old `t["epic"].as_str()` read left by_epic permanently empty.
+        let tasks = vec![
+            json!({"id": "ep-1", "type": "epic", "subject": "cc-alignment", "parent": null, "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "t-1", "type": "task", "subject": "direct child", "parent": "ep-1", "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "t-2", "type": "task", "subject": "nested child", "parent": "t-1", "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "t-3", "type": "task", "subject": "epic-less", "parent": null, "status": "pending", "tags": [], "blocked_by": []}),
+        ];
+        let stats = compute_stats(&tasks, &tasks);
+        assert_eq!(stats["by_epic"]["cc-alignment"], 2, "direct + nested child must both resolve via parent chain");
+        // The epic node is not a member of its own epic and the epic-less task
+        // lands in no bucket (no "(none)" convention) — exactly one key.
+        assert_eq!(stats["by_epic"].as_object().unwrap().len(), 1);
     }
 
     // ── Wave 3: build_tree tests ────────────────────────────────────────
