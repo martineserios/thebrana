@@ -1,17 +1,19 @@
 #!/bin/bash
 # ─── Claude Code Statusline ─────────────────────────────
-# 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN%
+# 🧠 Model │ 📂 project │ 🌿 branch │ 🎯 epic │ 🪪 session │ CTX NN%
 
 INPUT=$(cat)
 
-IFS=$'\t' read -r MODEL CWD CTX_PCT <<< \
+IFS=$'\t' read -r MODEL CWD CTX_PCT SESSION_ID <<< \
   "$(echo "$INPUT" | jq -r '[
     (.model.display_name // "Claude"),
     (.workspace.current_dir // .cwd // "."),
-    (.context_window.used_percentage // 0 | floor)
+    (.context_window.used_percentage // 0 | floor),
+    (.session_id // "")
   ] | @tsv')"
 
 CTX_PCT=${CTX_PCT:-0}
+SESSION_SHORT="${SESSION_ID:0:8}"
 
 # ── ANSI palette ─────────────────────────────────────────
 R='\033[0m' D='\033[2m' B='\033[1m'
@@ -127,5 +129,6 @@ fi
 printf '%b' "🧠 ${B}${Cw}${MODEL}${R} ${S} 📂 ${Cy}${PROJ_NAME}${R}"
 [ -n "$BRANCH" ] && printf '%b' " ${S} @ ${Cf}${BRANCH}${R}"
 [ -n "$EPIC" ] && printf '%b' " ${S} 🎯 ${Cg}${EPIC}${R}"
+[ -n "$SESSION_SHORT" ] && printf '%b' " ${S} 🪪 ${D}${SESSION_SHORT}${R}"
 printf '%b' " ${S} ${CTX_SHOW}"
 echo
