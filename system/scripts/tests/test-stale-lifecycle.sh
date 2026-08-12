@@ -122,7 +122,10 @@ STALE_LOG_FILE="$LOG2" STALE_STATUS_FILE="$STATUS2" STALE_REPORT_FILE="$REPORT2"
 RC2=$?
 ok "empty fixture: exits 0, no crash" '[ "$RC2" = "0" ]'
 ok "empty fixture: stale_p0p1_count is 0" '[ "$(jq -r .stale_p0p1_count "$STATUS2")" = "0" ]'
-ok "empty fixture: log file has no park lines" '[ ! -s "$LOG2" ]'
+ok "empty fixture: log file has no park/unpark lines (escalate only logs when count > 0)" \
+  '! grep -q "\"action\":\"would-park\"\|\"action\":\"park\"\|\"action\":\"would-unpark\"\|\"action\":\"unpark\"" "$LOG2"'
+ok "empty fixture: no escalate line either (count is 0, gated)" \
+  '[ ! -s "$LOG2" ] || ! grep -q "\"action\":\"escalate\"" "$LOG2"'
 
 # ── Boundary: created exactly ON the cutoff date is NOT stale (strict <) ──
 BOUNDARY_FIX="$TMP/boundary.json"
