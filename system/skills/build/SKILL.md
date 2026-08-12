@@ -29,7 +29,6 @@ allowed-tools:
   - WebFetch
   - WebSearch
   - Write
-  - mcp__ruflo__hive-mind_memory
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_store
   - mcp__ruflo__claims_claim

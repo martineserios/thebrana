@@ -218,7 +218,7 @@ Build anything — features, bug fixes, refactors, spikes, migrations. Auto-dete
 
 **Depends on:** `/brana:backlog`, `/brana:challenge`, `/brana:retrospective`
 
-**Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, ToolSearch
+**Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, ToolSearch
 
 ### `/brana:claudemd`
 
@@ -314,7 +314,7 @@ End a session — extract learnings, write handoff, store patterns, detect doc d
 
 **Arguments:** `[--continue|--finish|--patterns|--abort|--full|--light|--nano] [focus-hint]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__hive-mind_memory, mcp__ruflo__claims_release, ToolSearch
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__claims_release, ToolSearch
 
 
 ## thinking
