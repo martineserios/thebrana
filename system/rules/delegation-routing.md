@@ -18,7 +18,7 @@ supersedes: ADR-040 (Gemini-first routing, retired 2026-06-19)
 8. Everything else → Claude inline.
 ```
 
-**Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` for execution — hollow under subscription (records + self-votes). See `field-note_ruflo-agentic-layer-subscription-theater`, ADR-059.
+**Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` for execution — hollow under subscription (records + self-votes). **Never** use `mcp__ruflo__wasm_agent_prompt` — under no API key it returns a literal `echo: <input>` stub that looks like a real answer (live-probed 2026-08-12; on this install it errors before even that — optional pkg missing). **Never** use `mcp__ruflo__terminal_execute` — unrestricted shell via MCP with no permission prompt (also denied in settings, t-2755). Exception: `mcp__ruflo__testgen_tdd_repair` IS sanctioned — the one subscription-native ruflo MCP execution path (spawns `claude -p`, budget-capped, test-verified); branch on `data.repaired`, never `success` (verify availability on installed version first — confirmed at HEAD v3.38, unverified on v3.34, t-2753). See `field-note_ruflo-agentic-layer-subscription-theater`, ADR-059.
 
 Headless output (`claude -p`, agy) → `/tmp/` only; Claude applies via Write/Edit (cwd-discipline.md). agy never runs git.
 
