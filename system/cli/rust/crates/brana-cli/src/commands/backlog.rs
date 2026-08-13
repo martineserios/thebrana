@@ -2996,6 +2996,17 @@ mod tests {
     }
 
     #[test]
+    fn cmd_wave_set_wip_limit_integer_roundtrip() {
+        // t-2782 (ADR-079 §3): wip_limit persists as a JSON number end to end.
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "tag:x".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "wip_limit", "3", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["wip_limit"], serde_json::json!(3));
+        cmd_wave_set("wave-1", "wip_limit", "null", Some(f.path().to_path_buf())).unwrap();
+        assert!(read_waves(&f)[0]["wip_limit"].is_null());
+    }
+
+    #[test]
     fn cmd_wave_set_invalid_status_rejected() {
         let f = empty_tasks_file();
         cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();

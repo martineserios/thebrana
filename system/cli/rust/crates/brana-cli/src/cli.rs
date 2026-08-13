@@ -1142,7 +1142,9 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
-    /// Set a field on a wave (status, selector, contract, gate, name)
+    /// Set a field on a wave (status, selector, contract, gate, name,
+    /// wip_limit — non-negative integer or null; selector/gate are frozen
+    /// while the wave is draining, requeue first)
     Set {
         wave_id: String,
         field: String,
