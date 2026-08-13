@@ -2995,6 +2995,44 @@ mod tests {
         assert_eq!(read_waves(&f)[0]["status"], "shipped");
     }
 
+    // ── t-2813 (ADR-079 §2/§3): CLI wave pull ────────────────────────────
+
+    #[test]
+    fn cmd_wave_pull_pulls_and_persists() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
+        );
+        cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"][0]["status"], "in_progress");
+    }
+
+    #[test]
+    fn cmd_wave_pull_at_limit_is_ok_not_error() {
+        // Skip-cycle is a normal outcome for a runner beat, not a failure.
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"in_progress","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
+        );
+        cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"][1]["status"], "pending", "at-limit must not pull");
+    }
+
+    #[test]
+    fn cmd_wave_pull_non_draining_errors() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued"}]"#,
+        );
+        let err = cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("draining"), "{err}");
+    }
+
     #[test]
     fn cmd_wave_set_wip_limit_integer_roundtrip() {
         // t-2782 (ADR-079 §3): wip_limit persists as a JSON number end to end.
