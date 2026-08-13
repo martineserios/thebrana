@@ -4,6 +4,19 @@
 **Status:** implemented
 **Task:** t-2627
 
+> **Mechanism correction (2026-08-13, t-2802):** this doc's Problem/Decision Record/Assumptions
+> sections cite the busy_timeout/hardcoded-`dualWrite` race in `hybrid-backend.js` (t-2261's
+> 2026-07-16 finding) as the corruption root cause. That bug is real but t-2802 traced the *actual*
+> live code path for the MCP memory tools (`memory_store`/`search`/`retrieve`) and found it does not
+> go through `HybridBackend` at all — it hits a ControllerRegistry duplicate-export crash that
+> latches the native bridge off, falls back to WAL-blind `sql.js`, and collides with unrelated
+> `better-sqlite3` code paths in the same file that still set `journal_mode=WAL`, orphaning the
+> `-wal` sidecar. See `project_ruflo-memory-corruption-recurring.md` for the full mechanism. **This
+> does not change this doc's conclusion** — the "keep, not simplify" verdict on the checkpoint-copy
+> health check (`ruflo_mcp_db_is_healthy()`) holds regardless of which mechanism is primary, and the
+> upgrade-doesn't-fix-it verdict also holds (the ControllerRegistry duplicate export and the
+> `dualWrite` bug are both still present in the bundled v3.34.0 package).
+
 ## Problem
 
 thebrana is pinned to ruflo v3.10.39 (released 2026-06-08) with no deliberate reason —
