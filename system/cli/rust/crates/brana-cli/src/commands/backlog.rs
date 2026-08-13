@@ -2413,6 +2413,47 @@ mod tests {
         assert_eq!(new["ac_state"].as_str(), Some("none"));
     }
 
+    // ── t-2812/t-2816 (ADR-079 §1): no pre-approved tasks via add --json ──
+
+    #[test]
+    fn cmd_add_json_ac_state_approved_rejected() {
+        // Survey 2026-08-13: --json merges raw JSON, bypassing set_field's
+        // rejection — a payload could create a born-approved task. Sealed here,
+        // same bypass class as retired-fields (ADR-067) / array-coercion (t-2439).
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"sneaky","ac_state":"approved"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(
+            err.to_string().contains("approve"),
+            "rejection must point at the sanctioned verb: {err}"
+        );
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(
+            data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task"
+        );
+    }
+
+    #[test]
+    fn cmd_add_json_ac_state_none_and_proposed_still_accepted() {
+        // Regression guard: the seal must not overcorrect into blocking the
+        // legitimate creation-time states.
+        for state in ["none", "proposed"] {
+            let f = empty_tasks_file();
+            cmd_add(
+                Some(format!(r#"{{"subject":"ok","ac_state":"{state}"}}"#)),
+                None, None, None, None, None, None, None, None,
+                None, Some(f.path().to_path_buf()), None, None, None, vec![],
+            ).unwrap();
+            let task = read_first_task(&f);
+            assert_eq!(task["ac_state"].as_str(), Some(state));
+        }
+    }
+
     // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
 
     #[test]
