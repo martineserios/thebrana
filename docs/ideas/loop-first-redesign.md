@@ -350,3 +350,7 @@ by little; this is the first step"):**
 The ladder + promotion-by-evidence generalizes to every loop in the roster
 (cf. pattern_gate-destructive-capability-on-proof-not-assertion, t-1992's
 "5 clean completions" sunset trigger).
+
+## Changelog
+
+- 2026-08-13: L0 Reporter shipped (t-2823) — system/scripts/pipeline-digest.sh + system/loops/pipeline-digest.md; challenger PROCEED WITH CHANGES, findings fixed in-branch; graduated-autonomy ADR tracked as t-2824.

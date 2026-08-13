@@ -46,6 +46,7 @@ User-facing documentation. Start here.
 | [build-close-auto-docs.md](guide/features/build-close-auto-docs.md) | Auto-generated feature docs |
 | [checkpoint-resume.md](guide/features/checkpoint-resume.md) | Checkpoint/resume for long builds |
 | [backlog-v3-schema.md](guide/features/backlog-v3-schema.md) | Backlog v3 schema — epics, key:value tags, waves |
+| [pipeline-digest.md](guide/features/pipeline-digest.md) | Pipeline digest — L0 read-only gauge run via /loop |
 | [backlog-lint.md](guide/features/backlog-lint.md) | Backlog lint — is this task ready for autonomous dispatch? |
 | [backlog-project-scoping.md](guide/features/backlog-project-scoping.md) | Per-project scoping and cross-project tasks |
 | [brana-feed-inbox.md](guide/features/brana-feed-inbox.md) | `brana feed` + `brana inbox` |
@@ -214,6 +215,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
 | [skill-routing-in-backlog-start.md](architecture/features/skill-routing-in-backlog-start.md) | Semantic skill suggestion at task start (ADR-026, t-833) |
 | [operating-model.md](architecture/features/operating-model.md) | Operating model: auto-learning loop, 6-job taxonomy, unified maintenance, knowledge graph |
+| [pipeline-digest.md](architecture/features/pipeline-digest.md) | L0 Reporter gauge — read-only pipeline digest, loop-first epic |
 | [worktree-task-divergence.md](architecture/features/worktree-task-divergence.md) | validate.sh Check 68 — detects worktrees whose branch and task record have diverged (t-2545) |
 
 ## Conventions (docs/conventions/)
