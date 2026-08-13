@@ -3118,4 +3118,139 @@ mod tests {
         assert_eq!(t1["proposed_acceptance_criteria"], json!(["done when green"]));
         assert!(t2.get("ac_state").is_none(), "legacy task stays key-less on disk");
     }
+
+    // ── t-2812 (ADR-079 §1): ac approve — promote + flip ─────────────────
+
+    #[test]
+    fn test_approve_ac_promotes_proposed_and_flips() {
+        let mut task = json!({
+            "id":"t-1","subject":"s","type":"task","ac_state":"proposed",
+            "proposed_acceptance_criteria":["a is tested","b is wired"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert_eq!(task["ac_state"], "approved");
+        assert_eq!(task["acceptance_criteria"], json!(["a is tested","b is wired"]));
+        assert!(
+            task.get(PROPOSED_AC_FIELD).is_none(),
+            "proposed field must be cleared on promote"
+        );
+        assert_eq!(out.promoted, 2);
+        assert!(!out.already_approved);
+    }
+
+    #[test]
+    fn test_approve_ac_union_when_both_non_empty() {
+        // ADR-079 §1 addendum (challenger-confirmed assumption): when both fields
+        // are non-empty, promote is a dedup-union — existing order first, so a
+        // human-authored contract is never destroyed by a loop proposal.
+        let mut task = json!({
+            "id":"t-1","ac_state":"proposed",
+            "acceptance_criteria":["human authored","shared item"],
+            "proposed_acceptance_criteria":["shared item","loop proposed"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert_eq!(
+            task["acceptance_criteria"],
+            json!(["human authored","shared item","loop proposed"])
+        );
+        assert_eq!(out.promoted, 1, "only the genuinely new criterion counts");
+        assert_eq!(task["ac_state"], "approved");
+    }
+
+    #[test]
+    fn test_approve_ac_both_empty_errors_task_untouched() {
+        // Rejected approve is atomic: the task stays byte-identical.
+        let mut task = json!({"id":"t-1","ac_state":"none","acceptance_criteria":[]});
+        let before = task.clone();
+        let err = approve_ac(&mut task).unwrap_err();
+        assert!(err.contains("no acceptance criteria to approve"), "got: {err}");
+        assert_eq!(task, before, "failed approve must not mutate the task");
+    }
+
+    #[test]
+    fn test_approve_ac_idempotent_on_approved() {
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["done when green"]
+        });
+        let before = task.clone();
+        let out = approve_ac(&mut task).unwrap();
+        assert!(out.already_approved);
+        assert_eq!(out.promoted, 0);
+        assert_eq!(task, before, "re-approve is a no-op");
+    }
+
+    #[test]
+    fn test_approve_ac_key_absent_treated_as_none() {
+        // Legacy opt-in — same precedent as set_field's ac_state arm (AC#5, t-2283).
+        let mut task = json!({"id":"t-1","acceptance_criteria":["authored by hand"]});
+        approve_ac(&mut task).unwrap();
+        assert_eq!(task["ac_state"], "approved");
+        assert_eq!(task["acceptance_criteria"], json!(["authored by hand"]));
+    }
+
+    #[test]
+    fn test_approve_ac_bare_string_coerced_to_array() {
+        // Legacy string-valued acceptance_criteria: whole-string coercion, never
+        // comma-split — the normalize_array_fields exclusion for this field stands.
+        let mut task = json!({
+            "id":"t-1","ac_state":"none",
+            "acceptance_criteria":"works, even with commas"
+        });
+        approve_ac(&mut task).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["works, even with commas"]));
+        assert_eq!(task["ac_state"], "approved");
+    }
+
+    #[test]
+    fn test_approve_ac_from_none_with_authored_ac() {
+        // §1: a human may author + approve directly — proposed never involved.
+        let mut task = json!({
+            "id":"t-1","ac_state":"none","acceptance_criteria":["tests green"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert_eq!(out.promoted, 0);
+        assert_eq!(task["ac_state"], "approved");
+    }
+
+    #[test]
+    fn test_approve_ac_empty_string_is_empty() {
+        // Boundary: an empty-string acceptance_criteria counts as no criteria.
+        let mut task = json!({"id":"t-1","ac_state":"none","acceptance_criteria":""});
+        assert!(approve_ac(&mut task).is_err());
+    }
+
+    #[test]
+    fn test_approve_ac_non_string_element_errors() {
+        // Boundary: silently dropping non-string criteria would approve a
+        // different contract than the one on disk — fail loud instead.
+        let mut task = json!({
+            "id":"t-1","ac_state":"proposed",
+            "proposed_acceptance_criteria":["ok", 42]
+        });
+        let before = task.clone();
+        assert!(approve_ac(&mut task).is_err());
+        assert_eq!(task, before, "failed approve must not mutate the task");
+    }
+
+    #[test]
+    fn test_perform_ac_approve_persists_and_missing_task_errors() {
+        use std::io::Write;
+        let body = r#"{"version":2,"project":"p","tasks":[
+            {"id":"t-1","subject":"a","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["done when green"]}
+        ]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+
+        let out = perform_ac_approve(f.path(), "t-1").unwrap();
+        assert_eq!(out.promoted, 1);
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let t1 = &reloaded["tasks"][0];
+        assert_eq!(t1["ac_state"], "approved");
+        assert_eq!(t1["acceptance_criteria"], json!(["done when green"]));
+        assert!(t1.get("proposed_acceptance_criteria").is_none());
+
+        let err = perform_ac_approve(f.path(), "t-99").unwrap_err();
+        assert!(err.contains("t-99"), "missing task must error with the id: {err}");
+    }
 }
