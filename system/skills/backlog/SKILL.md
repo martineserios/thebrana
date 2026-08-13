@@ -79,6 +79,7 @@ Tasks keep one v3 metadata field:
 | Search | `backlog_search(query: "enforcement")` |
 | Aggregate stats | `backlog_stats()` |
 | Set field | `backlog_set(task_id: "t-123", field: "status", value: "in_progress")` |
+| Approve AC | `backlog_ac_approve(task_id: "t-123")` — promotes proposed_acceptance_criteria + sets `ac_state:approved` (ADR-079, t-2812). `backlog_set(field: "ac_state", value: "approved")` is rejected — this verb is the only path |
 | Assign to epic | `backlog_set(task_id: "t-123", field: "parent", value: "<epic-node-id>")` — membership = parent chain (ADR-065); `field: "epic"` is retired and rejected (`unknown field: epic`) |
 | Add/remove tag | `backlog_set(task_id: "t-123", field: "tags", value: "+newtag")` |
 | Append text | `backlog_set(task_id: "t-123", field: "context", value: "note", append: true)` |
@@ -131,6 +132,7 @@ Tasks keep one v3 metadata field:
 | Create task (from file) | `brana backlog add --json @/tmp/task.json` |
 | Create task (stdin) | `echo '{"subject":"..."}' \| brana backlog add --json -` |
 | Rollup parents | `brana backlog rollup` |
+| Approve AC | `brana backlog ac <id> approve` — promote + flip to `ac_state:approved` (ADR-079, t-2812); `set <id> ac_state approved` is rejected. AC edits on an approved task reset it to `proposed` |
 
 ### Rules
 
