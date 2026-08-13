@@ -2866,6 +2866,28 @@ mod tests {
     }
 
     #[test]
+    fn test_set_fields_atomic_rejects_approved_and_rolls_back() {
+        // The MCP backlog_batch path: set_fields_atomic must surface the
+        // verb-only rejection and leave the task untouched (all-or-nothing).
+        let mut task = json!({"id":"t-1","ac_state":"proposed","priority":"P2"});
+        let before = task.clone();
+        let errs = set_fields_atomic(
+            &mut task,
+            &[
+                ("priority".to_string(), "P1".to_string()),
+                ("ac_state".to_string(), "approved".to_string()),
+            ],
+            false,
+        )
+        .unwrap_err();
+        assert!(
+            errs.iter().any(|e| e.contains("approve")),
+            "batch error must carry the verb pointer: {errs:?}"
+        );
+        assert_eq!(task, before, "atomic batch must roll back the priority write too");
+    }
+
+    #[test]
     fn test_set_field_ac_edit_failed_write_does_not_reset() {
         // Boundary: a rejected write is not an edit — approval must survive it.
         let mut task = json!({
