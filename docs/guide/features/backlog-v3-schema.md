@@ -42,18 +42,21 @@ brana backlog next --tag risk:high
 
 Multi-tag AND still works with mixed forms: `--tag "layer:backend,urgent"`.
 
-## Wave (minimal, storage-only)
+## Wave (CRUD + drain)
 
-A `wave` is a named record — not yet a working queue. This lands the storage shape and CRUD only; resolving a wave's `selector` against the task list (`backlog wave drain`, the intent-CLI query grammar) is future work.
+A `wave` is a named, drainable selector over tasks. CRUD landed first (t-2315); `drain` landed 2026-08-13 (t-2775) — it enforces the `gate` and resolves the selector, but still doesn't execute anything (working the matched tasks is the loop runner's job, t-2813).
 
 ```bash
-brana backlog wave add --name v3-w1 --selector "shape:mechanical ac_state:approved" --contract "all tests green"
+brana backlog wave add --name v3-w1 --selector "tag:wave:v3-w1" --contract "all tests green"
 brana backlog wave list
 brana backlog wave get wave-1
-brana backlog wave set wave-1 status draining
+brana backlog wave drain wave-1     # gate check → match report → status: draining
+brana backlog wave set wave-1 status shipped   # operator marks done (not auto-detected)
 ```
 
-Status is `queued` → `draining` → `shipped`, but nothing enforces that ordering yet — you can set any status at any time.
+`drain` refuses if the wave's `gate` names a wave that isn't `shipped` yet (the error names the blocking wave; a nonexistent gate id fails loud). The MVP resolves exactly one selector form — `tag:<name>` (including key:value tags like `tag:wave:v3-w1`), matching **pending** tasks only; any other selector string is rejected with a "MVP only resolves tag:<name>" error rather than silently ignored. Draining reports the matched tasks and sets the wave's status to `draining` without touching the tasks themselves; re-draining a draining wave just re-resolves and re-reports (idempotent), while draining a `shipped` wave is an error.
+
+Status is `queued` → `draining` → `shipped`. `drain` moves queued→draining; an operator sets `shipped` manually via `wave set`; direct `wave set` status writes remain unrestricted (any-to-any).
 
 ## Migration status
 

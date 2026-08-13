@@ -1,8 +1,14 @@
 # Wave gate enforcement (t-2744)
 
-Status: **spec only — not implemented this batch.** This document defines
-what "drain" means operationally and how `gate` gets enforced; a follow-up
-task implements it.
+Status: **implemented (t-2775, 2026-08-13).** `check_wave_gate` +
+`resolve_wave_selector` live in `brana-core/src/tasks/wave.rs` (exported as
+importable functions per [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md)
+§2 — the loop runner t-2813 must call the same resolver);
+`cmd_wave_drain` in `brana-cli/src/commands/backlog.rs`, wired as
+`brana backlog wave drain <id>`. The open question in §1 (drain on an
+already-draining/shipped wave) was decided during implementation:
+**draining → idempotent** (re-resolves and re-reports, fits ADR-079's
+re-resolve-each-cycle model), **shipped → rejected, fail loud**.
 
 ## Problem
 

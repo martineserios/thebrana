@@ -1128,6 +1128,15 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Drain a wave (t-2775): gate check + tag:<name> selector resolution.
+    /// Reports matched pending tasks and sets status to "draining" — does
+    /// NOT execute anything or touch matched tasks.
+    Drain {
+        wave_id: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
