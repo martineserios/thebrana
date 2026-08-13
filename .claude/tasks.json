@@ -72576,9 +72576,9 @@
         "bug",
         "sqlite"
       ],
-      "context": "Reproduction: any mcp__ruflo__memory_store call, or `$CF memory store`, from the proyecto_anita project, 2026-08-12 ~22:53 UTC. Same underlying store also failed backup-knowledge.sh integrity check around the same time. Likely two related but distinct issues: (1) a native WAL writer holding a lock that sql.js cannot safely read around, (2) actual on-disk page corruption in at least 3 btrees. Cross-reference t-2759 (memory/embedding store classified Known real today) and t-1570/t-1697 (prior ControllerRegistry bridge fixes) before re-diagnosing from scratch.\nAC: root-caused whether this is a live lock (self-resolves) or persistent corruption (needs repair/rebuild)\nAC: mcp__ruflo__memory_store succeeds from a clean session after the fix\nAC: backup-knowledge.sh integrity check passes clean, or a NON-zero exit is wired for a corrupt-DB result instead of the current silent exit-0\nskill_gap_checked: true (score < 0.3, user chose: skip)\n2026-08-12: Root-caused (AC1). Two distinct, unrelated failure modes bundled in one report:\n\n(1) memory_store WAL-lock failure: sql.js correctly refuses an unsafe whole-image write while a native writer holds the WAL (documented safe-guard behavior, see topic_ruflo-ops.md field-note_ruflo-multi-session-flock-removal — SQLite WAL mode safely serializes concurrent writers; this refusal is a live lock, self-resolving on retry, NOT corruption). The reported failure is that the advertised fallback path (\"restore the native better-sqlite3 bridge\") is unavailable because of the known @claude-flow/memory v3.34 ControllerRegistry double-export packaging bug (same root cause as t-2757/t-2793, documented in ruflo-stub-guard.md) — not a new defect. No fix available on our pinned version; AC2 (memory_store succeeds after fix) is blocked on that upstream fix, same as t-2793.\n\n(2) backup-knowledge.sh \"silent exit-0 despite corruption WARNING\" (AC3): NOT a bug in brana-knowledge/backup.sh itself — that script already does `PRAGMA integrity_check` on the backup copy and correctly `exit 1`s with a WARNING when corrupt. The bug was in every thebrana skill call site: `\"$HOME/.claude/scripts/backup-knowledge.sh\" 2>/dev/null || true` (close/metadata-and-memory.md, retrospective/SKILL.md) discarded the WARNING text via `2>/dev/null` and force-exited 0 via `|| true`; client-retire/SKILL.md and memory/SKILL.md called it bare with no exit-code handling at all. Fixed: added system/skills/_shared/backup-knowledge-invoke.md (run_knowledge_backup(), tested by tests/procedures/test-backup-knowledge-invoke.sh) and repointed all 4 call sites to it. Failure now surfaces a stderr warning with the underlying diagnostic instead of vanishing. AC3 satisfied.\n\nAC2 remains blocked on the upstream ControllerRegistry packaging fix (not actionable from this repo) — same blocker as t-2793. Leaving task open/tracked rather than completed until that lands, per no-patches-root-cause: the class of problem (bridge unavailable) is separate from the class fixed here (swallowed exit codes).\n2026-08-13: Reproduced live during this same session's close (Step 9b memory_store call) — identical error text (\"active native WAL connection... Bridge unavailable: Duplicate export of 'ControllerRegistry'\"). Confirms the AC1 diagnosis above; non-fatal, close proceeded via CLI session write per the documented fallback.",
+      "context": "Reproduction: any mcp__ruflo__memory_store call, or `$CF memory store`, from the proyecto_anita project, 2026-08-12 ~22:53 UTC. Same underlying store also failed backup-knowledge.sh integrity check around the same time. Likely two related but distinct issues: (1) a native WAL writer holding a lock that sql.js cannot safely read around, (2) actual on-disk page corruption in at least 3 btrees. Cross-reference t-2759 (memory/embedding store classified Known real today) and t-1570/t-1697 (prior ControllerRegistry bridge fixes) before re-diagnosing from scratch.\nAC: root-caused whether this is a live lock (self-resolves) or persistent corruption (needs repair/rebuild)\nAC: mcp__ruflo__memory_store succeeds from a clean session after the fix\nAC: backup-knowledge.sh integrity check passes clean, or a NON-zero exit is wired for a corrupt-DB result instead of the current silent exit-0\nskill_gap_checked: true (score < 0.3, user chose: skip)\n2026-08-12: Root-caused (AC1). Two distinct, unrelated failure modes bundled in one report:\n\n(1) memory_store WAL-lock failure: sql.js correctly refuses an unsafe whole-image write while a native writer holds the WAL (documented safe-guard behavior, see topic_ruflo-ops.md field-note_ruflo-multi-session-flock-removal — SQLite WAL mode safely serializes concurrent writers; this refusal is a live lock, self-resolving on retry, NOT corruption). The reported failure is that the advertised fallback path (\"restore the native better-sqlite3 bridge\") is unavailable because of the known @claude-flow/memory v3.34 ControllerRegistry double-export packaging bug (same root cause as t-2757/t-2793, documented in ruflo-stub-guard.md) — not a new defect. No fix available on our pinned version; AC2 (memory_store succeeds after fix) is blocked on that upstream fix, same as t-2793.\n\n(2) backup-knowledge.sh \"silent exit-0 despite corruption WARNING\" (AC3): NOT a bug in brana-knowledge/backup.sh itself — that script already does `PRAGMA integrity_check` on the backup copy and correctly `exit 1`s with a WARNING when corrupt. The bug was in every thebrana skill call site: `\"$HOME/.claude/scripts/backup-knowledge.sh\" 2>/dev/null || true` (close/metadata-and-memory.md, retrospective/SKILL.md) discarded the WARNING text via `2>/dev/null` and force-exited 0 via `|| true`; client-retire/SKILL.md and memory/SKILL.md called it bare with no exit-code handling at all. Fixed: added system/skills/_shared/backup-knowledge-invoke.md (run_knowledge_backup(), tested by tests/procedures/test-backup-knowledge-invoke.sh) and repointed all 4 call sites to it. Failure now surfaces a stderr warning with the underlying diagnostic instead of vanishing. AC3 satisfied.\n\nAC2 remains blocked on the upstream ControllerRegistry packaging fix (not actionable from this repo) — same blocker as t-2793. Leaving task open/tracked rather than completed until that lands, per no-patches-root-cause: the class of problem (bridge unavailable) is separate from the class fixed here (swallowed exit codes).\n2026-08-13: Reproduced live during this same session's close (Step 9b memory_store call) — identical error text (\"active native WAL connection... Bridge unavailable: Duplicate export of 'ControllerRegistry'\"). Confirms the AC1 diagnosis above; non-fatal, close proceeded via CLI session write per the documented fallback.\n2026-08-13: LIVE CORRUPTION CONFIRMED AND RESTORED (updates AC1/AC2). During this session's close, backup-knowledge.sh (run manually to test the AC3 fix) hit real, current corruption in ~/.swarm/memory.db — Tree 95, hundreds of btreeInitPage() error 11 pages, verified two independent ways (direct integrity_check + checkpointed-copy check). This is NOT the WAL-lock false-positive class; it is genuine persistent corruption, confirming the \"needs repair/rebuild\" branch of AC1.\n\nRestored (with user confirmation) from ~/.swarm/backups/memory-2026-08-12T16-43-00-169Z.db (verified healthy). Corrupt file + WAL/SHM quarantined, not deleted: ~/.swarm/backups/corrupt-quarantine/*-20260813T004604Z. Post-restore: integrity_check ok, mcp__ruflo__memory_store write succeeded — AC2 now satisfied for THIS incident (memory_store works from a clean DB), though the underlying ControllerRegistry bridge bug is unchanged and would still block the *fallback* path if the same lock/corruption recurs.\n\nDiscovered this is a CHRONIC recurring pattern (12 corruption events in ~7 weeks: 06-28, 07-17, 07-22 through 08-05, 08-12) that survived t-2236's detection fix. Root-causing the recurrence itself is out of scope for this task and filed separately as t-2802 — per no-patches-root-cause, today's restore is a stopgap for this one incident, not a fix for the class.\n\nAll three original AC now addressed: AC1 root-caused (WAL-refusal is safe/self-resolving; separately, real corruption was confirmed and is tracked as a recurring class in t-2802), AC2 satisfied for this incident (restore unblocked memory_store), AC3 fixed (swallowed exit codes). Marking this task's own scope complete; t-2802 carries the open recurrence investigation and t-2793 still awaits the upstream bridge fix.",
       "id": "t-2796",
-      "status": "in_progress",
+      "status": "completed",
       "execution": "code",
       "created": "2026-08-12",
       "blocked_by": [],
@@ -72588,7 +72588,7 @@
       "branch": "ruflo-integration/fix/t-2796-ruflo-memory-store-degraded",
       "github_issue": null,
       "started": "2026-08-12",
-      "completed": null,
+      "completed": "2026-08-12",
       "notes": null,
       "strategy": "bug-fix",
       "build_step": null,
@@ -72689,7 +72689,7 @@
     {
       "id": "t-2800",
       "subject": "Fix 56 dangling wikilinks in auto-memory dir",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "docs",
       "tags": [
@@ -72702,7 +72702,7 @@
       "priority": "P3",
       "parent": null,
       "created": "2026-08-12",
-      "started": null,
+      "started": "2026-08-12",
       "completed": null,
       "blocked_by": [],
       "branch": null,
@@ -72713,7 +72713,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "chore",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature"
     },
     {
       "id": "t-2801",
@@ -72742,6 +72743,36 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "research",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2802",
+      "subject": "Find root cause of recurring ~/.swarm/memory.db page corruption (12 events in ~7 weeks)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "ruflo",
+        "sqlite",
+        "corruption",
+        "follow-up"
+      ],
+      "description": null,
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-2362",
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-08-12 (t-2796 close session): Confirmed LIVE persistent corruption in ~/.swarm/memory.db (Tree 95, hundreds of btreeInitPage() error 11 pages) — verified two independent ways (direct integrity_check on the base file, and a checkpointed-copy check matching backup-memory.sh's own safe method). This was NOT a WAL-concurrency false positive.\n\nRestored from ~/.swarm/backups/memory-2026-08-12T16-43-00-169Z.db (verified healthy, ~5h old) as a stopgap — corrupt live file + WAL/SHM quarantined to ~/.swarm/backups/corrupt-quarantine/*-20260813T004604Z, not deleted. Post-restore: integrity_check ok, 1119 entries, mcp__ruflo__memory_store writes succeed again.\n\n**This is a chronic, recurring pattern, not a one-off.** `~/.swarm/memory.db.corrupt-*` files exist for: 2026-06-28, 07-17, 07-22, 07-23, 07-24, 07-27, 07-31, 08-01, 08-02, 08-03, 08-05, 08-12 — 12 corruption events in ~7 weeks, roughly every 3-4 days. t-2236 (2026-06-28) fixed the DETECTION side (integrity_check gating in backup-memory.sh, preventing the old restore-newest-corrupt-backup infinite loop) but did NOT fix whatever keeps corrupting the live DB in the first place — corruption continued recurring on the same cadence after that fix shipped.\n\nLeading hypothesis (unconfirmed): the same @claude-flow/memory v3.34 ControllerRegistry double-export bug that breaks the native better-sqlite3 bridge fallback (t-2757/t-2793/t-2796) may leave sql.js and a native writer both touching the DB in an inconsistent way when the fallback path is invoked mid-write, producing partial/malformed pages. Needs actual investigation, not assumed.\n\nAC: identify what operation(s) precede each corruption event (check timestamps of the 12 corrupt-* files against session/hook logs from those dates)\nAC: confirm or rule out the ControllerRegistry-bridge-fallback hypothesis above\nAC: either a code fix that stops the corruption at the source, or (if unfixable on our pinned ruflo version) an automated detect-and-restore-from-last-healthy-backup job so this stops requiring manual intervention every few days\nAC: cross-reference field-note_ruflo-db-page-corruption-restore-loop_2026-06-28 and t-2236 before re-diagnosing from scratch",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
       "ac_state": "none"
     }
   ],
