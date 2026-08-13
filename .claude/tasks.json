@@ -71957,7 +71957,7 @@
     {
       "id": "t-2775",
       "subject": "Implement wave gate enforcement: `brana backlog wave drain <id>` (gate check + tag: selector)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -71971,11 +71971,11 @@
       "parent": "t-2811",
       "created": "2026-08-12",
       "started": "2026-08-13",
-      "completed": null,
+      "completed": "2026-08-13",
       "blocked_by": [],
       "branch": "backlog-drain/feat/t-2775-wave-gate-enforcement",
       "context": "Spec: docs/architecture/features/wave-gate-enforcement.md (scope, gate resolution, and out-of-scope boundaries all resolved there).\nOne gap surfaced during spec review (2026-08-12), not a blocker: the spec doesn't say what `drain` does if called on a wave already in \"draining\" or \"shipped\" status — decide (reject vs. idempotent) and add as a test case alongside the spec's own §4 list (gate-not-shipped blocks with blocking wave named, gate-shipped allows, empty/absent gate allows, nonexistent gate fails loud, tag: selector matches only pending tasks with that tag, any other selector form rejected).\nTDD applies as normal (sdd-tdd.md) — write the gate-check and selector-resolution tests first.\nS effort — no M+ discipline requirement.\nAC: `brana backlog wave drain <id>` implemented per spec, gate check blocks/allows correctly with the blocking wave named in refusal errors\nAC: tag:<name> selector resolves via existing backlog_query tag filter; any other selector form rejected with the MVP-only error\nAC: drain sets wave status to \"draining\" without touching matched tasks\nAC: all test cases from spec §4 covered, plus the already-draining/shipped idempotency case decided during implementation\n2026-08-13 (ADR-079): implementation note — land the gate-check + tag: selector resolution as an importable brana-core function (e.g. resolve_wave_selector), not CLI-command-local; the loop runner (t-2813) must call the same resolver. Behavior/tests unchanged from spec.\n2026-08-13 (ADR-079 as amended): the resolver has TWO structurally different callers (one-shot CLI report + t-2813's per-cycle polling) — design the exported function signature for both; acknowledged as slightly more than a pure internal-structure note but likely still S.\nskill_gap_checked: true (step 0.5, rust detected, user chose skip 2026-08-13)",
-      "notes": null,
+      "notes": "Evaluator: PASS (2026-08-13), 5/5 criteria MET\nChallenger: PROCEED (2026-08-13), 2 severity-1 observations (raw_status style parity; gate cycles degrade to documented fail-loud), no AC violations, no scope creep, OWASP clean\nRetrospective: smooth S build against a complete spec — red commit 54e16fe8 (19 tests), green c28ea12b, docs e30c5e0f. check_wave_gate + resolve_wave_selector exported from brana-core tasks/wave.rs (ADR-079 §2 single-owner resolver, ready for t-2813). Idempotency decided: draining→idempotent, shipped→reject. Full suite 1403 passed, validate.sh 0 errors, Evaluator PASS 5/5, Challenger PROCEED.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -71989,7 +71989,7 @@
       "work_type": "implement",
       "ac_state": "none",
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-2776",
