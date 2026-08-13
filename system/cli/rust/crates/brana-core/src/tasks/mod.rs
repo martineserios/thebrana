@@ -1806,6 +1806,138 @@ mod tests {
         assert_eq!(wave["selector"], "tag:y");
     }
 
+    // ── t-2813 (ADR-079 §2/§3): wave pull — decision + atomic file-level ──
+
+    fn pull_wave(status: &str, wip: Option<u64>) -> Value {
+        let mut w = json!({"id":"wave-1","name":"w","selector":"tag:w1","status":status});
+        if let Some(n) = wip {
+            w["wip_limit"] = json!(n);
+        }
+        w
+    }
+
+    fn pull_task(id: &str, status: &str, ac_state: Option<&str>, tags: &[&str]) -> Value {
+        let mut t = json!({"id":id,"subject":format!("s-{id}"),"status":status,"tags":tags});
+        if let Some(a) = ac_state {
+            t["ac_state"] = json!(a);
+        }
+        t
+    }
+
+    #[test]
+    fn test_wave_pull_decision_pulls_first_eligible_in_array_order() {
+        let wave = pull_wave("draining", Some(2));
+        let tasks = vec![
+            pull_task("t-1", "pending", Some("proposed"), &["w1"]), // unapproved
+            pull_task("t-2", "pending", Some("approved"), &["w1"]), // first eligible
+            pull_task("t-3", "pending", Some("approved"), &["w1"]),
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_filters_unapproved_and_parked() {
+        // ADR-079 §2 eligibility: pending ∧ approved ∧ ¬parked. ADR-078 parks
+        // by tag while status stays pending — without the exclusion the loop
+        // would autonomously work deliberately shelved tasks.
+        let wave = pull_wave("draining", None);
+        let tasks = vec![
+            pull_task("t-1", "pending", Some("proposed"), &["w1"]),
+            pull_task("t-2", "pending", None, &["w1"]),                    // legacy, no ac_state
+            pull_task("t-3", "pending", Some("approved"), &["w1", "parked"]),
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(
+            d,
+            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1 },
+            "matched-but-not-eligible is visible and expected, not a bug"
+        );
+    }
+
+    #[test]
+    fn test_wave_pull_decision_at_limit_counts_in_progress_matches() {
+        let wave = pull_wave("draining", Some(1));
+        let tasks = vec![
+            pull_task("t-1", "in_progress", Some("approved"), &["w1"]), // live
+            pull_task("t-2", "pending", Some("approved"), &["w1"]),     // eligible but capped
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::AtLimit { live: 1, limit: 1 });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_null_wip_limit_is_unbounded() {
+        let wave = pull_wave("draining", None);
+        let tasks = vec![
+            pull_task("t-1", "in_progress", Some("approved"), &["w1"]),
+            pull_task("t-2", "in_progress", Some("approved"), &["w1"]),
+            pull_task("t-3", "pending", Some("approved"), &["w1"]),
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-3".into() });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_zero_limit_pauses() {
+        // wip_limit 0 = pause pulling (t-2782) — always at limit.
+        let wave = pull_wave("draining", Some(0));
+        let tasks = vec![pull_task("t-1", "pending", Some("approved"), &["w1"])];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::AtLimit { live: 0, limit: 0 });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_refuses_non_draining_wave() {
+        for status in ["queued", "shipped"] {
+            let wave = pull_wave(status, None);
+            let err = wave_pull_decision(&wave, &[]).unwrap_err();
+            assert!(
+                err.contains("draining"),
+                "pull from a {status} wave must refuse, naming the required state: {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_pull_wave_task_persists_and_respects_limit() {
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+
+        // First pull: t-1 goes in_progress with a started date, persisted.
+        let d = pull_wave_task(f.path(), "wave-1").unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let t1 = &reloaded["tasks"][0];
+        assert_eq!(t1["status"], "in_progress");
+        assert!(t1["started"].is_string(), "pull must stamp started");
+
+        // Second pull: at limit now — and the no-write outcome must not
+        // touch the file (byte-stable modulo nothing: reload and compare).
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        let d2 = pull_wave_task(f.path(), "wave-1").unwrap();
+        assert_eq!(d2, PullDecision::AtLimit { live: 1, limit: 1 });
+        assert_eq!(
+            std::fs::read_to_string(f.path()).unwrap(),
+            before,
+            "a non-pulling decision must not rewrite the file"
+        );
+    }
+
+    #[test]
+    fn test_pull_wave_task_unknown_wave_errors() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[],"waves":[]}}"#).unwrap();
+        let err = pull_wave_task(f.path(), "wave-9").unwrap_err();
+        assert!(err.contains("wave-9"), "{err}");
+    }
+
     #[test]
     fn test_set_wave_field_gate_nonexistent_wave_id_not_validated() {
         // No referential check — matches parent/blocked_by precedent (t-2315 design call).
