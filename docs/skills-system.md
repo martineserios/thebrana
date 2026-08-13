@@ -10,12 +10,12 @@ Quick reference for the brana skills system — shared scripts, the `/brana:memo
 |--------|---------|-------|
 | `cf-env.sh` | Discover ruflo binary, export `$CF` | `source "$HOME/.claude/scripts/cf-env.sh"` |
 | `memory-store.sh` | Store a key-value pair in ruflo memory (falls back to MEMORY.md) | `"$HOME/.claude/scripts/memory-store.sh" -k KEY -v VALUE -n NAMESPACE -t TAGS` |
-| `backup-knowledge.sh` | Trigger brana-knowledge backup if repo exists | `"$HOME/.claude/scripts/backup-knowledge.sh"` |
+| `backup-knowledge.sh` | Trigger brana-knowledge backup if repo exists | via `run_knowledge_backup()` — see [`_shared/backup-knowledge-invoke.md`](../system/skills/_shared/backup-knowledge-invoke.md) |
 
 **When writing a new skill or hook:**
 - Need `$CF` for any ruflo command: source `cf-env.sh`
 - Need to store a memory entry: call `memory-store.sh` (don't source cf-env.sh separately)
-- Need to trigger backup: call `backup-knowledge.sh`
+- Need to trigger backup: source [`_shared/backup-knowledge-invoke.md`](../system/skills/_shared/backup-knowledge-invoke.md) and call `run_knowledge_backup()` — never invoke `backup-knowledge.sh` directly (a raw call silently swallows integrity-check failures, t-2796)
 
 ## The `/brana:memory` Skill
 
