@@ -1959,6 +1959,39 @@ mod tests {
     }
 
     #[test]
+    fn process_url_key_ignores_tracking_params() {
+        // t-2583: mobile share sheets append utm_*/rcm to effectively every
+        // captured link — with and without them must be ONE key or exact-key
+        // idempotency never fires.
+        let clean = url_storage_key(
+            "https://www.linkedin.com/posts/adrien-taravant-aa11bb_some-post-activity-h9dx",
+        );
+        let tracked = url_storage_key(
+            "https://www.linkedin.com/posts/adrien-taravant-aa11bb_some-post-activity-h9dx?utm_source=share&utm_medium=member_android&rcm=ACoAAARwJLkBJqr70A1PJbG5r3-PHzY3QMybYwc",
+        );
+        assert_eq!(clean, tracked);
+    }
+
+    #[test]
+    fn process_url_key_keeps_load_bearing_query() {
+        // Two different videos must not collapse to one key.
+        let a = url_storage_key("https://www.youtube.com/watch?v=aaaa1111");
+        let b = url_storage_key("https://www.youtube.com/watch?v=bbbb2222");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn process_url_key_unwraps_safety_wrapper() {
+        // t-2590 residual: different /safety/go wrappers around the same
+        // target must store under the target's key.
+        let wrapped = url_storage_key(
+            "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Fpost&trk=feed",
+        );
+        let direct = url_storage_key("https://example.com/post");
+        assert_eq!(wrapped, direct);
+    }
+
+    #[test]
     fn process_url_distinct_urls_get_distinct_keys() {
         // Boundary: slug collapsing must not merge two different posts.
         let a = url_storage_key("https://example.com/one");
