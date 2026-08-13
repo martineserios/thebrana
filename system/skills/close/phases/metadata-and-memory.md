@@ -34,11 +34,15 @@ cd "$HOME" && $CF memory store \
 
 If both MCP and CLI are unavailable, skip — the handoff note is the fallback.
 
-Then backup:
+Then backup, via `run_knowledge_backup()` from
+[`../../_shared/backup-knowledge-invoke.md`](../../_shared/backup-knowledge-invoke.md)
+(read that file, extract the `BACKUP-KNOWLEDGE-INVOKE-BLOCK`, and call it — a
+non-zero return means the backup failed integrity check; warn the user
+inline rather than silently continuing, t-2796):
 
 ```bash
 # CLI alias: bbackup (or source system/cli/aliases.sh)
-"$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true
+run_knowledge_backup
 ```
 
 ### Step 11: Memory review

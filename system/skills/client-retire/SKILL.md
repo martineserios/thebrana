@@ -42,11 +42,14 @@ growth_stage: evergreen
 
 7. **Never delete anything** — only tag and archive. Deletion is a human decision.
 
-8. **Backup knowledge** after archiving:
+8. **Backup knowledge** after archiving, via `run_knowledge_backup()` from
+   [`../_shared/backup-knowledge-invoke.md`](../_shared/backup-knowledge-invoke.md)
+   (read that file, extract the `BACKUP-KNOWLEDGE-INVOKE-BLOCK`, and call it —
+   a non-zero return means the backup failed integrity check; warn the user
+   inline rather than silently continuing, t-2796):
    ```bash
-   "$HOME/.claude/scripts/backup-knowledge.sh"
+   run_knowledge_backup
    ```
-   Skip silently if the script doesn't exist.
 
 ## Rules
 
