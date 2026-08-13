@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T16:14:27Z",
+  "generated": "2026-08-13T23:00:40Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1175,6 +1175,11 @@
     },
     "docs/architecture/decisions/ADR-078-stale-task-park-via-tag.md": {
       "title": "ADR-078: Park Stale Tasks via the Existing `parked` Tag, Not a New Status",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md": {
+      "title": "ADR-079: ac_state Approval, Wave-Drain→Loop Handoff, and WIP Location (amends ADR-065)",
       "type": "ADR",
       "impl_files": []
     },
@@ -3199,6 +3204,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/loop-first-redesign.md": {
+      "title": "Loop-First Operation of thebrana",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/loop-goal-native-planning.md": {
       "title": "Loop+Goal-Native Backlog Planning",
       "type": "Roadmap",
@@ -3825,7 +3835,8 @@
       "title": "Skills System Guide",
       "type": "Roadmap",
       "impl_files": [
-        "system/scripts/"
+        "system/scripts/",
+        "system/skills/_shared/backup-knowledge-invoke.md"
       ]
     }
   },
@@ -10276,6 +10287,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -11529,6 +11546,48 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-067-retired-fields-write-guard.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "docs/architecture/features/wave-gate-enforcement.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -12023,6 +12082,12 @@
     {
       "from": "docs/architecture/features/wave-gate-enforcement.md",
       "to": "backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-gate-enforcement.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
       "computed": false
     },
@@ -16000,9 +16065,9 @@
     }
   ],
   "stats": {
-    "nodes": 556,
-    "edges": 2028,
+    "nodes": 558,
+    "edges": 2037,
     "typed_edges": 685,
-    "orphans": 147
+    "orphans": 148
   }
 }
