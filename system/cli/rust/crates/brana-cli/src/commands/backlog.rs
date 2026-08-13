@@ -756,6 +756,15 @@ pub fn cmd_add(
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
             anyhow::bail!("{e}");
         }
+        // t-2816 (ADR-079 §1): --json merges raw JSON past set_field's arm, so
+        // the verb-only rule for "approved" must be enforced here too — no
+        // born-approved tasks. none/proposed stay legal creation-time states.
+        if a == "approved" {
+            let e = "ac_state \"approved\" cannot be set at creation — create the task, \
+                     then use `brana backlog ac <id> approve`";
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
     }
     {
         let effort = new_task["effort"].as_str();
