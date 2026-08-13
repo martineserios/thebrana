@@ -288,6 +288,13 @@ pub fn raw_status<'a>(task: &'a Value, default: &'a str) -> &'a str {
 /// this constant plus `reject_retired_fields` (t-2385, ADR-067) generalizes
 /// that so a future retirement is a one-line addition here instead of a new
 /// call site.
+///
+/// SCOPE (ADR-067, t-2782): this list and `reject_retired_fields` are
+/// **task-object-scoped** — they guard `.tasks[]` writes only. The `wip_limit`
+/// entry retires the TASK/EPIC-level field (ADR-065 D4); the WAVE-level
+/// `wip_limit` (ADR-079 §3, `set_wave_field`) is deliberate name reuse and
+/// must never route through this guard. A future grep-shaped guard extension
+/// must keep that scoping.
 pub const RETIRED_FIELDS: &[&str] = &["level", "epic", "stream", "wip_limit"];
 
 /// Reject a raw JSON object if it contains any retired field key. Exact key
@@ -494,7 +501,42 @@ pub fn set_wave_field(wave: &mut Value, field: &str, value: &str) -> Result<(), 
             }
             Ok(())
         }
-        "name" | "selector" | "contract" | "gate" => {
+        // t-2782 (ADR-079 §3): the wave's WIP bound — nullable non-negative
+        // integer, null = unbounded (the default until an operator opts in).
+        // First non-string wave field: stored as a JSON number so the loop's
+        // pull-step comparison (t-2813) can never be defeated by a "3" string.
+        // 0 is legal (pause pulling). Enforcement lives at the loop's pull
+        // step only — never here, never at drain, never at task start.
+        "wip_limit" => {
+            if value == "null" {
+                wave[field] = Value::Null;
+            } else {
+                let n: u64 = value.parse().map_err(|_| {
+                    format!("wip_limit must be a non-negative integer or null (got: {value})")
+                })?;
+                wave[field] = Value::Number(n.into());
+            }
+            Ok(())
+        }
+        // t-2782 (ADR-079 §3): selector/gate freeze while draining. Waves have
+        // no log field, so a mid-drain edit would silently redirect what the
+        // next pull cycle matches with zero audit trail. Requeue first — status
+        // stays writable below precisely so the requeue path works.
+        "selector" | "gate" => {
+            if wave["status"].as_str() == Some("draining") {
+                return Err(format!(
+                    "wave is draining — {field} edits would silently redirect the next \
+                     pull cycle; requeue first (set status queued), then edit {field}"
+                ));
+            }
+            if value == "null" {
+                wave[field] = Value::Null;
+            } else {
+                wave[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        "name" | "contract" => {
             if value == "null" {
                 wave[field] = Value::Null;
             } else {

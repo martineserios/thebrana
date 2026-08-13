@@ -58,6 +58,11 @@ brana backlog wave set wave-1 status shipped   # operator marks done (not auto-d
 
 Status is `queued` → `draining` → `shipped`. `drain` moves queued→draining; an operator sets `shipped` manually via `wave set`; direct `wave set` status writes remain unrestricted (any-to-any).
 
+Two guard rails landed with t-2782 (ADR-079 §3):
+
+- **`wip_limit`** — a nullable non-negative integer on the wave (`brana backlog wave set wave-1 wip_limit 3`, `wip_limit null` to clear). `null` (the default) means unbounded; `0` means pause pulling. It bounds how many selector-matched tasks may be `in_progress` at once, enforced at the future loop runner's pull step (t-2813) — not at `drain`, not at task `start`, so manually starting wave-matched tasks still works. There is deliberately no default number until real drain usage exists.
+- **Selector/gate freeze while draining** — `wave set` refuses `selector` and `gate` edits while a wave's status is `draining` (waves have no audit log, so a mid-drain edit would silently redirect what the next pull cycle matches). Requeue first (`wave set wave-1 status queued`), edit, re-drain. Everything else (`name`, `contract`, `wip_limit`, `status` itself) stays editable while draining.
+
 ## AC approval (`ac approve`)
 
 `ac_state` tracks whether a task's acceptance criteria are trusted: `none` → `proposed` (a loop drafted them via `ac-propose`) → `approved` (you signed off). Approval is a verb, not a field write (t-2812, ADR-079):

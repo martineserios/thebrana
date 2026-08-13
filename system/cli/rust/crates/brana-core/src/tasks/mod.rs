@@ -1740,6 +1740,72 @@ mod tests {
         assert_eq!(wave["gate"], "wave-0");
     }
 
+    // ── t-2782 (ADR-079 §3): wip_limit integer arm + draining-edit rejection ──
+
+    #[test]
+    fn test_set_wave_field_wip_limit_integer() {
+        // First non-string wave field: stored as a JSON number, not a string —
+        // a "3" string would defeat any numeric comparison at the loop's pull
+        // step (the json-version-string-defeats-numeric-gate class).
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        set_wave_field(&mut wave, "wip_limit", "3").unwrap();
+        assert_eq!(wave["wip_limit"], json!(3));
+        assert!(wave["wip_limit"].is_u64(), "must be a number, not a string");
+    }
+
+    #[test]
+    fn test_set_wave_field_wip_limit_zero_and_null() {
+        // 0 is legal (pause pulling); null clears back to unbounded (the default).
+        let mut wave = json!({"id": "wave-1", "status": "queued", "wip_limit": 3});
+        set_wave_field(&mut wave, "wip_limit", "0").unwrap();
+        assert_eq!(wave["wip_limit"], json!(0));
+        set_wave_field(&mut wave, "wip_limit", "null").unwrap();
+        assert!(wave["wip_limit"].is_null());
+    }
+
+    #[test]
+    fn test_set_wave_field_wip_limit_rejects_non_integer() {
+        for bad in ["abc", "-1", "3.5", "", "3 "] {
+            let mut wave = json!({"id": "wave-1", "status": "queued"});
+            let err = set_wave_field(&mut wave, "wip_limit", bad).unwrap_err();
+            assert!(
+                err.contains("non-negative integer"),
+                "error must name the expected shape for {bad:?}: {err}"
+            );
+            assert!(wave.get("wip_limit").is_none(), "rejected write must not mutate ({bad:?})");
+        }
+    }
+
+    #[test]
+    fn test_set_wave_field_selector_and_gate_rejected_while_draining() {
+        // ADR-079 §3: waves have no log field, so a mid-drain selector/gate edit
+        // would silently redirect the next pull cycle with zero audit trail.
+        for field in ["selector", "gate"] {
+            let mut wave = json!({
+                "id":"wave-1","status":"draining","selector":"tag:x","gate":null
+            });
+            let before = wave.clone();
+            let err = set_wave_field(&mut wave, field, "tag:y").unwrap_err();
+            assert!(err.contains("requeue"), "error must say how to proceed: {err}");
+            assert_eq!(wave, before, "rejected {field} edit must not mutate");
+        }
+    }
+
+    #[test]
+    fn test_set_wave_field_draining_still_allows_other_fields() {
+        // Only selector/gate freeze during drain: status must stay writable
+        // (requeue IS a status write), and name/contract/wip_limit are harmless.
+        let mut wave = json!({"id":"wave-1","status":"draining","selector":"tag:x"});
+        set_wave_field(&mut wave, "name", "renamed").unwrap();
+        set_wave_field(&mut wave, "contract", "tests green").unwrap();
+        set_wave_field(&mut wave, "wip_limit", "2").unwrap();
+        set_wave_field(&mut wave, "status", "queued").unwrap();
+        assert_eq!(wave["status"], "queued");
+        // ...and once requeued, the selector edit goes through.
+        set_wave_field(&mut wave, "selector", "tag:y").unwrap();
+        assert_eq!(wave["selector"], "tag:y");
+    }
+
     #[test]
     fn test_set_wave_field_gate_nonexistent_wave_id_not_validated() {
         // No referential check — matches parent/blocked_by precedent (t-2315 design call).

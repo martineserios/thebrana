@@ -7,7 +7,8 @@ use serde::Deserialize;
 pub struct Input {
     /// Wave ID to modify
     pub wave_id: String,
-    /// Field to set: status, selector, contract, gate, name
+    /// Field to set: status, selector, contract, gate, name, wip_limit
+    /// (non-negative integer or "null"; selector/gate frozen while draining)
     pub field: String,
     /// New value. Use "null" to clear an optional field.
     pub value: String,
@@ -50,5 +51,5 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             result.map_err(pmcp::Error::validation)
         })
     })
-    .with_description("Set a field on a wave: status, selector, contract, gate, or name.")
+    .with_description("Set a field on a wave: status, selector, contract, gate, name, or wip_limit (non-negative integer or \"null\" = unbounded; ADR-079). selector/gate are frozen while the wave is draining — requeue first.")
 }
