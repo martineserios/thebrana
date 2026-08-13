@@ -90,8 +90,10 @@ Reuses all existing fields (`subject`, `description`, `status`, `priority`, `eff
 > **Status 2026-08-13:** both halves now exist. The proposer is `brana backlog ac-propose`
 > (t-2288, writes `proposed_acceptance_criteria` + `ac_state:proposed`); the promoter is
 > `brana backlog ac <id> approve` (t-2812, per ADR-079 §1 — promote + flip, human-only:
-> t-2813's runner manifest denies the verb). What still doesn't exist is the consumer that
-> branches on `approved` — that's the loop runner's eligibility filter (t-2813).
+> t-2813's runner manifest denies the verb). The consumer landed same day (t-2813):
+> `wave pull` filters on `ac_state:approved` in its eligibility check — the field now
+> gates real behavior end to end (propose → approve → pull), closing the loop this
+> section describes. Runner procedure: `docs/guide/workflows/drain-loop.md`.
 
 ### Spec provenance — the task gates to its spec/ADR
 
