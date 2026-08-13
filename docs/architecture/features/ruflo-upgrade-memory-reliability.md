@@ -241,10 +241,11 @@ Primarily an operational change, not a code design:
 
 ## Documentation Plan
 - [x] **Tech doc** — this file, updated to `Status: implemented` at CLOSE.
-- [ ] **Existing docs to update** — `brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md`
-      Version History table (new row for v3.10.39→v3.34.0, plus ADR-377/v3.32.34 notes). Cross-repo
-      (brana-knowledge, not this repo) — not verifiable/actionable from here; carried to next[] at
-      close (2026-08-13, /brana:close PROPAGATE audit).
+- [x] **Existing docs to update** — `brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md`
+      Version History table (new row for v3.10.39→v3.34.0, plus ADR-377/v3.32.34 notes). Verified
+      2026-08-13: already present, committed via t-2636 (commit `b354f92`, 2026-08-05) — the
+      follow-up task t-2809 filed by the prior close's PROPAGATE audit was a duplicate of already
+      -completed work and has been cancelled.
 - [x] **User guide** — not applicable; this is an internal ops change with no
       user-facing behavior.
 
