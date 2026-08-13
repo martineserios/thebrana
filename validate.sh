@@ -1766,7 +1766,14 @@ while IFS= read -r -d '' proc_file; do
         */SKILL.md) content=$(awk 'fm==2{print} /^---$/{fm++}' "$proc_file"); label="skills/$(basename "$(dirname "$proc_file")")" ;;
         *) content=$(cat "$proc_file"); label=$(basename "$proc_file") ;;
     esac
-    if grep -q "mcp__ruflo__" 2>/dev/null <<< "$content"; then
+    # RUFLO-CALL-DETECT: A prose mention of a tool name (backticked or plain
+    # text explaining why NOT to call it) is not a call site — only a name
+    # immediately followed by "(" is an actual invocation requiring the tool
+    # to be loaded first. A bare name inside a ToolSearch("select:...") list
+    # doesn't match either: ToolSearch IS the load mechanism, so it can't
+    # itself throw the InputValidationError this check guards against.
+    # Confirmed false positive on build-loop.md:61 (pure prose) — live 2026-08-12.
+    if grep -qE "mcp__ruflo__[A-Za-z_-]+\(" 2>/dev/null <<< "$content"; then
         if ! grep -q "ruflo preamble" 2>/dev/null <<< "$content"; then
             MISSING_PREAMBLE+=("$label")
         fi
