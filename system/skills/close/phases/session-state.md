@@ -180,6 +180,28 @@ Run it from the repo root, and confirm the `mode` in the write response is `repl
 `base_written_at`. Omission alone does nothing — without the token the write unions and the
 entry survives. There is no separate delete verb.
 
+> ⚠️ **This table is the documented contract, not a guarantee — treat it as unreliable and
+> ALWAYS read+merge (t-2674).** Two independent live incidents on the same epic
+> ("anita-envios"), two days apart, both destroyed a prior session's `next[]` wholesale
+> (`mode: replace`, `retained_from_existing: 0`, `warning: null`, `ok: true` — no signal of
+> loss anywhere in the response) under two DIFFERENT trigger conditions: once with a
+> **correctly-matching** `base_written_at` (2026-08-11 — that one IS the documented "replace"
+> row above, the destructive part is that nothing warns you your `next[]` wasn't exhaustive),
+> and once with `base_written_at` **omitted entirely** (2026-08-13 — that one contradicts the
+> "absent → union" row above). A controlled repro against an isolated throwaway epic
+> (sequential omitted-base writes, and a concurrent two-writer race) reproduced only the
+> documented **union** behavior — the destructive path could NOT be reproduced in isolation,
+> meaning it depends on some real-session precondition not yet identified (candidates:
+> `consumed_at` state of the prior write, a genuine concurrent writer on the SAME epic from a
+> different live session, or something else entirely). **Do not trust `base_written_at`
+> presence/absence/match as a safety signal in either direction.** Before every write, read
+> the epic's current `next[]` (`brana session read --all --json | jq ...`, see
+> `pattern_session-write-replace-wipes-prior-next_2026-08-11` in project memory) and always
+> compose your `next[]` as "everything still live from the read, plus what's new" — never rely
+> on the CLI to preserve anything you didn't re-state, regardless of which merge mode you
+> expect to get. Root cause is still open — no CLI source was available to this investigation
+> to fix it directly; see t-2674.
+
 **Write via CLI:**
 
 ```bash
