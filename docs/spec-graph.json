@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T21:55:05Z",
+  "generated": "2026-08-12T23:42:00Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1320,7 +1320,8 @@
         "system/skills/_shared/epic-ancestor-walk.md",
         "system/scripts/backlog-reconcile.sh",
         "system/scripts/tests/test-no-flat-epic-field-reads.sh",
-        "system/"
+        "system/",
+        "system/rules/task-convention.md"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
@@ -3313,7 +3314,9 @@
     "docs/ideas/statusline-v2-backlog-intelligence.md": {
       "title": "Statusline v2 — Backlog-Aware Intelligence",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/scripts/statusline-slow-cache.sh"
+      ]
     },
     "docs/ideas/telegram-link-capture.md": {
       "title": "Telegram Link Capture",
@@ -3440,6 +3443,8 @@
         "system/rules/hard-deny-manifest.md",
         "system/rules/inbox-convention.md",
         "system/rules/m-plus-discipline-enforcement.md",
+        "system/rules/memory-consolidation-scheduled.md",
+        "system/rules/memory-decay-by-non-use.md",
         "system/rules/migration-script-validation.md",
         "system/rules/no-patches-root-cause.md",
         "system/rules/no-phantom-dependencies.md",

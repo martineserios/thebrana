@@ -72211,7 +72211,7 @@
     {
       "id": "t-2784",
       "subject": "gate-and-evidence.md SESSION_EPICS uses flat git log -20, same class as t-2768",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -72224,18 +72224,20 @@
       "priority": "P3",
       "parent": "t-2340",
       "created": "2026-08-12",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-12",
+      "completed": "2026-08-12",
       "blocked_by": [],
-      "branch": null,
+      "branch": "close/fix/t-2784-session-epics-git-log",
       "context": "2026-08-12 (third live incident, this same session's own close): LAST_CLOSE anchor resolved to 2026-08-12T19:00:37Z via SESSION_EPICS overlap, but the resulting 5-commit window (8260acdf, 27eb9a81, c6dc9e4a, eda36e71, aa665b23 — t-2727 WIP-cap retirement + t-2767 ruflo-cli fix) belongs to a concurrent session, not this one. This session's own commits stopped at a6f33bd3 (Merge t-2768). SESSION_EPICS's flat `git log -20` picked up the concurrent session's t-2727 commit, which happens to resolve to an epic (cli-backlog-schema) this session also touched earlier (t-2739/t-2740 were reviewed, not authored, this session) — coincidental epic overlap masked a wrong window. Confirms this isn't just a file-selection edge case: it can pull a materially wrong commit range into the close snapshot/queue.\n2026-08-12 (fourth live incident, t-2764's close, LAST_CLOSE-scoped window this time, not the flat -20): Step 9c's Tier2b epic-detection (which anchors on LAST_CLOSE, the fix this task proposes for SESSION_EPICS) still picked up a concurrent session's merge commits (b1324b1e/7fda30c4, branch-named ruflo-integration/docs/t-2791.../t-2788...) landing on shared dev within my own close window, alongside 4 more unrelated slugs from Tier2a's portfolio-wide in-progress-task query (brana-v3-redesign, harness-core, knowledge-pipeline, orbit). Confirms the LAST_CLOSE-anchor fix alone doesn't close this class — a wall-clock window on a shared branch admits concurrent commits regardless of which anchor computes its start. Resolved live by asking the user to pick the slug corroborated by branch/own-commits (cli-backlog-schema) over the contaminated ones. Same structural conclusion ADR-069 D0/D2 already reached for the sibling close-anchor bug (t-2502): time-window anchoring cannot fix a lane-identity problem; only per-commit/per-lane attribution can.",
-      "notes": null,
+      "notes": "Retrospective: fixed SESSION_EPICS's flat `-20` window (system/skills/close/phases/gate-and-evidence.md) to a 6h time-bounded window, matching the file's own first-session-fallback default. Explicitly scoped as a stopgap per user's own choice (AskUserQuestion) — fixes only the overflow-into-an-older-close failure mode (this session's own 4th live incident), does NOT fix concurrent-shared-checkout contamination, which ADR-069 (D0-D3, unshipped) already concluded needs per-commit/per-lane attribution, not windowing. New regression test: tests/procedures/test-close-gate-session-epics-window.sh (red→green via TDD). Challenger gate: PROCEED WITH CHANGES (2 s3 findings — missing t-2480 sibling cross-reference, undisclosed under-reach tradeoff of time- vs count-window) — both fixed in a follow-up commit before close. Pattern stored: pattern_count-window-to-time-window-swap-trades-overreach-for-underreach.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": null,
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix",
+      "build_step": null
     },
     {
       "id": "t-2785",
