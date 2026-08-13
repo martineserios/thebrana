@@ -58,6 +58,25 @@ brana backlog wave set wave-1 status shipped   # operator marks done (not auto-d
 
 Status is `queued` → `draining` → `shipped`. `drain` moves queued→draining; an operator sets `shipped` manually via `wave set`; direct `wave set` status writes remain unrestricted (any-to-any).
 
+## AC approval (`ac approve`)
+
+`ac_state` tracks whether a task's acceptance criteria are trusted: `none` → `proposed` (a loop drafted them via `ac-propose`) → `approved` (you signed off). Approval is a verb, not a field write (t-2812, ADR-079):
+
+```bash
+brana backlog ac t-123 approve
+# {"ok":true,"id":"t-123","ac_state":"approved","promoted":2,"already_approved":false}
+```
+
+Approve does two things atomically: it **promotes** anything in `proposed_acceptance_criteria` into the live `acceptance_criteria` field (dedup-union — hand-authored criteria are kept, order preserved) and **flips** `ac_state` to `approved`. MCP twin: `backlog_ac_approve(task_id)`.
+
+Rules worth knowing:
+
+- Approving a task with no criteria in either field is an error — there's nothing to approve.
+- `brana backlog set t-123 ac_state approved` (and the MCP/batch equivalents, and `add --json`) are **rejected** with a pointer to the verb — the precondition can't be bypassed.
+- Editing `acceptance_criteria` on an approved task drops it back to `proposed`: approval binds to the criteria text you approved, not just the state. Re-approve after editing.
+- Re-approving an approved task is a harmless no-op (`already_approved: true`).
+- The verb is human-only by design: the future loop runner (t-2813) is denied it, so a loop can propose criteria but never approve its own work contract.
+
 ## Migration status
 
 The mechanical collapse (`level` → `type`, flat `epic` → epic nodes) has a script — `system/scripts/migrate/collapse-level-epic-v3.py` — but it has **not been run against live data yet**. Until it runs:

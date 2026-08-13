@@ -70,6 +70,15 @@ pub enum TaskWorkType {
     Review,
 }
 
+/// t-2812 (ADR-079 §1): actions for the `backlog ac <id> <action>` verb.
+/// `add` is deliberately absent (out of scope per the ADR).
+#[derive(Clone, ValueEnum)]
+pub enum AcAction {
+    /// Promote proposed_acceptance_criteria into acceptance_criteria and set
+    /// ac_state:approved — the only sanctioned way to reach approved.
+    Approve,
+}
+
 #[derive(Clone, ValueEnum)]
 pub enum BurndownPeriod {
     Day,
@@ -880,6 +889,20 @@ pub enum BacklogCmd {
         /// With --apply: compute the applied set without writing.
         #[arg(long)]
         dry_run: bool,
+    },
+    /// ac verbs (ADR-079 §1): `ac <id> approve` promotes any
+    /// proposed_acceptance_criteria into acceptance_criteria and sets
+    /// ac_state:approved. The generic `set <id> ac_state approved` is rejected —
+    /// this verb is the sanctioned transition.
+    Ac {
+        /// Task ID (e.g. t-463)
+        task_id: String,
+        /// Action to perform (approve)
+        #[arg(value_enum)]
+        action: AcAction,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
     },
     /// Set a field on a task
     Set {

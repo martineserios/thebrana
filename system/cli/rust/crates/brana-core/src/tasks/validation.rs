@@ -385,6 +385,15 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
                 }
                 task[field] = parsed;
             }
+            // t-2815 (ADR-079 §1 content-binding): approval binds to content —
+            // any successful AC write on an approved task drops it back to
+            // proposed, all three sub-paths above. Without this a loop could
+            // obtain approval then reshape the contract while staying drainable
+            // (the ADR-076-D2 moving-target class). approve_ac writes the field
+            // directly, not through here, so promotion never un-approves itself.
+            if task["ac_state"].as_str() == Some("approved") {
+                task["ac_state"] = Value::String("proposed".into());
+            }
             Ok(())
         }
         "context" | "notes" | "description" => {
@@ -423,6 +432,16 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             if field == "ac_state" {
                 validate_ac_state(value)?;
+                // t-2815 (ADR-079 §1): "approved" is reachable only through the
+                // approve verb — a generic set with empty criteria would make the
+                // verb's precondition decorative. none/proposed/null stay settable.
+                if value == "approved" {
+                    return Err(
+                        "ac_state \"approved\" cannot be set directly — use \
+                         `brana backlog ac <id> approve` (CLI) or backlog_ac_approve (MCP)"
+                            .into(),
+                    );
+                }
             }
             if field == "status" {
                 // ADR-065: an epic node's status validates against a

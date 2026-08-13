@@ -569,6 +569,32 @@ pub fn cmd_set_active(slug: &str) -> anyhow::Result<()> {
 
 // ── write commands ──────────────────────────────────────────────────────
 
+/// t-2812 (ADR-079 §1): `backlog ac <id> approve` — the sanctioned transition
+/// to ac_state:approved. Locking, promotion, and flip live in
+/// brana_core::tasks::perform_ac_approve; this is the CLI shell.
+pub fn cmd_ac_approve(task_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    match tasks::perform_ac_approve(&tf, task_id) {
+        Ok(out) => {
+            println!("{}", serde_json::json!({
+                "ok": true,
+                "id": task_id,
+                "ac_state": "approved",
+                "promoted": out.promoted,
+                "already_approved": out.already_approved,
+            }));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("{e}"))
+        }
+    }
+}
+
 pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,
@@ -753,6 +779,15 @@ pub fn cmd_add(
     }
     if let Some(a) = new_task["ac_state"].as_str() {
         if let Err(e) = tasks::validate_ac_state(a) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+        // t-2816 (ADR-079 §1): --json merges raw JSON past set_field's arm, so
+        // the verb-only rule for "approved" must be enforced here too — no
+        // born-approved tasks. none/proposed stay legal creation-time states.
+        if a == "approved" {
+            let e = "ac_state \"approved\" cannot be set at creation — create the task, \
+                     then use `brana backlog ac <id> approve`";
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
             anyhow::bail!("{e}");
         }
@@ -2411,6 +2446,79 @@ mod tests {
         assert!(legacy.get("ac_state").is_none(), "existing legacy task must stay key-less");
         let new = arr.iter().find(|t| t["subject"] == "new one").unwrap();
         assert_eq!(new["ac_state"].as_str(), Some("none"));
+    }
+
+    // ── t-2812/t-2816 (ADR-079 §1): no pre-approved tasks via add --json ──
+
+    #[test]
+    fn cmd_add_json_ac_state_approved_rejected() {
+        // Survey 2026-08-13: --json merges raw JSON, bypassing set_field's
+        // rejection — a payload could create a born-approved task. Sealed here,
+        // same bypass class as retired-fields (ADR-067) / array-coercion (t-2439).
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"sneaky","ac_state":"approved"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(
+            err.to_string().contains("approve"),
+            "rejection must point at the sanctioned verb: {err}"
+        );
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(
+            data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task"
+        );
+    }
+
+    #[test]
+    fn cmd_add_json_ac_state_none_and_proposed_still_accepted() {
+        // Regression guard: the seal must not overcorrect into blocking the
+        // legitimate creation-time states.
+        for state in ["none", "proposed"] {
+            let f = empty_tasks_file();
+            cmd_add(
+                Some(format!(r#"{{"subject":"ok","ac_state":"{state}"}}"#)),
+                None, None, None, None, None, None, None, None,
+                None, Some(f.path().to_path_buf()), None, None, None, vec![],
+            ).unwrap();
+            let task = read_first_task(&f);
+            assert_eq!(task["ac_state"].as_str(), Some(state));
+        }
+    }
+
+    // ── t-2812/t-2817 (ADR-079 §1): CLI approve verb ─────────────────────
+
+    #[test]
+    fn cmd_ac_approve_promotes_and_persists() {
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["done when green"]}]"#,
+        );
+        cmd_ac_approve("t-1", Some(f.path().to_path_buf())).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"], "approved");
+        assert_eq!(task["acceptance_criteria"], serde_json::json!(["done when green"]));
+        assert!(task.get("proposed_acceptance_criteria").is_none());
+    }
+
+    #[test]
+    fn cmd_ac_approve_no_criteria_errors_and_persists_nothing() {
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"none"}]"#,
+        );
+        let err = cmd_ac_approve("t-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("no acceptance criteria to approve"), "{err}");
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"], "none", "rejected approve must not persist");
+    }
+
+    #[test]
+    fn cmd_ac_approve_unknown_task_errors() {
+        let f = empty_tasks_file();
+        let err = cmd_ac_approve("t-99", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("t-99"), "{err}");
     }
 
     // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────

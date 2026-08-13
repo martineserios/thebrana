@@ -59,6 +59,9 @@ It is the sanctioned transition to `ac_state:approved` and does two things atomi
 1. **Promote:** if `proposed_acceptance_criteria` is non-empty, move its contents into
    `acceptance_criteria` (the live gating field) and clear `proposed_acceptance_criteria`.
    This completes the promotion path t-2288's proposer was built against and never got.
+   *(Addendum, t-2812 implementation: when both fields are non-empty, promote is a
+   dedup-union — existing `acceptance_criteria` order first, proposed items appended —
+   so a hand-authored contract is never destroyed by a loop proposal.)*
 2. **Flip:** set `ac_state: approved`.
 
 - **Precondition:** at least one of `acceptance_criteria` / `proposed_acceptance_criteria`

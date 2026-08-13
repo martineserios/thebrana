@@ -78,7 +78,7 @@ Reuses all existing fields (`subject`, `description`, `status`, `priority`, `eff
 |---|---|---|
 | `execution` | exists | `code` (human, default-deny) · `autonomous` (a loop may take it) |
 | `acceptance_criteria` | **exists** (ADR-047; the key appears on 233 tasks but only **38 are non-empty** — the store is untyped `serde_json::Value`; `Option<Vec<String>>` exists only as the MCP/CLI *input* type, no typed Task struct enforces it) | the canonical AC store — the contract a loop verifies. v3 does **not** fork a new representation; the `AC:` context convention (ac-grammar) remains a human-authoring shorthand that lints into this field |
-| `ac_state` | **new — ADR-047 amendment** | `none` → `proposed` (a loop populated `acceptance_criteria`) → `approved` (human OK'd them). Gate for loop-eligibility. Net-new: ADR-047 defined no approval state |
+| `ac_state` | **new — ADR-047 amendment** | `none` → `proposed` (a loop populated `acceptance_criteria`) → `approved` (human OK'd them). Gate for loop-eligibility. Net-new: ADR-047 defined no approval state. **Implemented 2026-08-13 (t-2812, ADR-079 §1):** `approved` is reachable only via `brana backlog ac <id> approve` / MCP `backlog_ac_approve` — approve promotes `proposed_acceptance_criteria` into `acceptance_criteria` (dedup-union) and flips the state; generic `set ac_state approved` is rejected on every write path (incl. `add --json`), and any AC edit on an approved task resets it to `proposed` (content-binding) |
 | `spec` | **new, nullable, structured** | the governing spec/ADR that *authorizes* the task — gates start, drives drift-cascade, is the source its `AC:` lines derive from. `null` = untraced (legit for meta-work/bugs). Inherited from the epic; a task may add a finer ADR. See below. |
 | `shape` | **computed, never stored** | `kind × work_type × effort × tags × ac-presence` — the join key that decides *which drainer* may take the task. `work_type` (implement/research/design/…) is a key eligibility signal: a loop drains `work_type:chore` far sooner than `work_type:design`. **Single owner:** one `brana-core` function (`shape(task)`) exposed identically to CLI, MCP, and loop drivers — loops call the CLI/MCP surface, never re-derive shape from raw tasks.json (replicated-logic drift; the `claude -p`-over-tasks.json loop path is the known divergence vector) |
 | `tags` | exists, upgraded | **key:value** (`layer:backend`, `client:acrelec`, `risk:high`) — the orthogonal axis |
@@ -86,6 +86,12 @@ Reuses all existing fields (`subject`, `description`, `status`, `priority`, `eff
 | `log` | **new** | attributed, typed, append-only thread — see below |
 
 `ac_state:proposed → approved` is exactly what makes **"the loop backfills its own contracts"** work: the first loop reads a mechanical `ac_state:none` task, **populates its `acceptance_criteria`** (ADR-047's field), sets `proposed`; you approve in the cockpit → `approved` → now it is loop-drainable. No new AC representation — just the missing approval state on the existing field.
+
+> **Status 2026-08-13:** both halves now exist. The proposer is `brana backlog ac-propose`
+> (t-2288, writes `proposed_acceptance_criteria` + `ac_state:proposed`); the promoter is
+> `brana backlog ac <id> approve` (t-2812, per ADR-079 §1 — promote + flip, human-only:
+> t-2813's runner manifest denies the verb). What still doesn't exist is the consumer that
+> branches on `approved` — that's the loop runner's eligibility filter (t-2813).
 
 ### Spec provenance — the task gates to its spec/ADR
 
