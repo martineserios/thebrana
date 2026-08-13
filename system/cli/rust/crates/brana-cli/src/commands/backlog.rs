@@ -569,6 +569,32 @@ pub fn cmd_set_active(slug: &str) -> anyhow::Result<()> {
 
 // ── write commands ──────────────────────────────────────────────────────
 
+/// t-2812 (ADR-079 §1): `backlog ac <id> approve` — the sanctioned transition
+/// to ac_state:approved. Locking, promotion, and flip live in
+/// brana_core::tasks::perform_ac_approve; this is the CLI shell.
+pub fn cmd_ac_approve(task_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    match tasks::perform_ac_approve(&tf, task_id) {
+        Ok(out) => {
+            println!("{}", serde_json::json!({
+                "ok": true,
+                "id": task_id,
+                "ac_state": "approved",
+                "promoted": out.promoted,
+                "already_approved": out.already_approved,
+            }));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("{e}"))
+        }
+    }
+}
+
 pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,
