@@ -138,9 +138,13 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 5. **Suggest actions** — present options, let user decide. If no promotion/demotion/staleness candidates exist and all metrics are within thresholds (quarantine < 30%, staleness < 20%, proven > 50%), report "No action needed" with the numbers.
 
-6. **Backup** if changes made:
+6. **Backup** if changes made, via `run_knowledge_backup()` from
+   [`../_shared/backup-knowledge-invoke.md`](../_shared/backup-knowledge-invoke.md)
+   (read that file, extract the `BACKUP-KNOWLEDGE-INVOKE-BLOCK`, and call it —
+   a non-zero return means the backup failed integrity check; warn the user
+   inline rather than silently continuing, t-2796):
    ```bash
-   "$HOME/.claude/scripts/backup-knowledge.sh"
+   run_knowledge_backup
    ```
 
 ---
