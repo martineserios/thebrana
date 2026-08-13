@@ -72922,6 +72922,36 @@
       "acceptance_criteria": null,
       "work_type": "chore",
       "ac_state": "none"
+    },
+    {
+      "subject": "brana session write silently REPLACEs next[] instead of unioning — contradicts documented CAS/union contract, caused live data loss twice",
+      "kind": "fix",
+      "priority": "P1",
+      "effort": "S",
+      "work_type": "implement",
+      "tags": [
+        "brana-cli",
+        "session-state",
+        "close-skill",
+        "data-loss"
+      ],
+      "description": "system/skills/close/phases/session-state.md (Step 9b) documents the CAS contract for brana session write next[]: matching base_written_at -> replace (correctable); stale/absent base_written_at -> union + warning. Two independent live incidents in proyecto_anita, two days apart, both contradicting this: (1) 2026-08-11, matching base_written_at was passed and it STILL replaced wholesale (retained_from_existing:0), destroying 5 live items. Documented only as a memory pattern, no task filed at the time. (2) 2026-08-13, base_written_at was OMITTED entirely (documented as union+warning fallback) and it ALSO replaced wholesale, warning:null, destroying 5 different live items from a concurrent same-day session. Recovered by hand from session-history.jsonl archive. Both incidents: ok:true, no warning, retained_from_existing:0 is the only tell and looks identical to the nothing-existed-before case. Cross-referenced from proyecto_anita backlog task t-2674.",
+      "context": "AC: reproduce both the omitted-base and matching-base-still-replaces cases against a throwaway test session-state file with a controlled prior next[]\nAC: either fix the CLI so union genuinely happens per the documented contract, or rewrite session-state.md Step 9b to state the true behavior (destructive-replace by default) and require always read-modify-write regardless of base token\nAC: add regression tests for both cases — existing t-2506 coverage referenced in session-state.md did not catch either\nAC: add a visible signal when data was actually discarded (retained_from_existing:0 with a non-empty prior next[] should not be silent)",
+      "id": "t-2808",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-08-13",
+      "blocked_by": [],
+      "ac_state": "none",
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3
