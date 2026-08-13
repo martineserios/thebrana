@@ -26,6 +26,15 @@
 # only per-commit/per-lane attribution does. See gate-and-evidence.md's
 # in-code comment above SESSION_EPICS for the same statement.
 #
+# Second tradeoff, disclosed but not covered by this test (challenger gate,
+# t-2784): a session running LONGER than the 6h window, whose epic-identifying
+# commit landed near session start, now falls outside the window and loses
+# corroboration — the opposite failure from the one fixed here. Not yet
+# observed live.
+#
+# Sibling instance of this exact bug shape still open: session-state.md's
+# Step 9c COMPLETED accumulator, tracked separately as t-2480.
+#
 # The snippet is EXTRACTED from system/skills/close/phases/gate-and-evidence.md
 # so the test exercises the shipped procedure text, not a copy (t-1978 rot class).
 #

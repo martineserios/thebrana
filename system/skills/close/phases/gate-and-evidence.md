@@ -114,6 +114,17 @@ which only happens to resolve when the git-root IS thebrana itself.
 # session's own close). That class needs per-commit/per-lane attribution
 # (ADR-069 D3), not a narrower window. A clean SESSION_EPICS here is not proof
 # this session's epics are uncontaminated in a shared checkout.
+#
+# Second tradeoff, disclosed (challenger gate, t-2784): trading a count window
+# for a time window doesn't just close over-reach, it opens the opposite
+# failure — a session running LONGER than 6h whose epic-identifying commit
+# landed near session start now falls OUTSIDE the window, so that epic never
+# enters SESSION_EPICS and its session-state file loses corroboration here.
+# Not yet observed live; flagged so it isn't mistaken for solved.
+#
+# Sibling instance still open: session-state.md's Step 9c COMPLETED
+# accumulator has the identical flat `-20` shape and is tracked separately as
+# t-2480 (concurrent-session over-reach; not fixed by this change).
 SESSION_EPICS=$(git log --oneline --since="6 hours ago" 2>/dev/null \
   | grep -oE 't-[0-9]+' | sort -u \
   | while read -r id; do resolve_epic_ancestor "$id" 2>/dev/null; done \
