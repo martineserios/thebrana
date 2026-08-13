@@ -101,6 +101,7 @@ fn main() {
                 WaveCmd::Get { wave_id, field } => run_or_exit(commands::backlog::cmd_wave_get(&wave_id, field)),
                 WaveCmd::List { file } => run_or_exit(commands::backlog::cmd_wave_list(file)),
                 WaveCmd::Set { wave_id, field, value, file } => run_or_exit(commands::backlog::cmd_wave_set(&wave_id, &field, &value, file)),
+                WaveCmd::Pull { wave_id, file } => run_or_exit(commands::backlog::cmd_wave_pull(&wave_id, file)),
                 WaveCmd::Drain { wave_id, file } => run_or_exit(commands::backlog::cmd_wave_drain(&wave_id, file)),
             },
         },

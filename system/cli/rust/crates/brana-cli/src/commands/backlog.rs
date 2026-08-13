@@ -967,6 +967,40 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
 /// NOT execute anything or touch matched tasks. Draining an already-draining
 /// wave is idempotent (re-resolves and re-reports — fits ADR-079's
 /// re-resolve-each-cycle model); draining a shipped wave is a caller error.
+/// t-2813 (ADR-079 §2/§3): `backlog wave pull <id>` — one atomic pull cycle.
+/// The decision logic lives in brana_core (wave_pull_decision under
+/// pull_wave_task's lock); this is the CLI shell reporting the outcome.
+pub fn cmd_wave_pull(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    match tasks::pull_wave_task(&tf, wave_id) {
+        Ok(tasks::PullDecision::Pulled { task_id }) => {
+            println!("{}", serde_json::json!({"ok": true, "id": wave_id, "pulled": task_id}));
+            Ok(())
+        }
+        Ok(tasks::PullDecision::AtLimit { live, limit }) => {
+            println!("{}", serde_json::json!({
+                "ok": true, "id": wave_id, "pulled": null,
+                "at_limit": {"live": live, "limit": limit}
+            }));
+            Ok(())
+        }
+        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked }) => {
+            println!("{}", serde_json::json!({
+                "ok": true, "id": wave_id, "pulled": null,
+                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked}
+            }));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("{e}"))
+        }
+    }
+}
+
 pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,
