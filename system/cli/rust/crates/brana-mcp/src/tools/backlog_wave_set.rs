@@ -7,7 +7,8 @@ use serde::Deserialize;
 pub struct Input {
     /// Wave ID to modify
     pub wave_id: String,
-    /// Field to set: status, selector, contract, gate, name
+    /// Field to set: status, selector, contract, gate, name, wip_limit
+    /// (non-negative integer or "null"; selector/gate frozen while draining)
     pub field: String,
     /// New value. Use "null" to clear an optional field.
     pub value: String,
