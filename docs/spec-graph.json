@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T01:19:31Z",
+  "generated": "2026-08-13T16:14:27Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -911,6 +911,7 @@
       "title": "ADR-040: brana Compute Hierarchy — Claude / Ruflo / Gemini",
       "type": "ADR",
       "impl_files": [
+        "system/rules/delegation-routing.md",
         "system/scheduler/outputs/",
         "system/"
       ]
@@ -11180,6 +11181,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md",
+      "to": "ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md",
       "to": "docs/architecture/ac-grammar.md",
       "type": "references",
@@ -11206,6 +11213,12 @@
     {
       "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
       "to": "ADR-041-agy-invocation-contract.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
       "type": "references",
       "computed": false
     },
@@ -15988,8 +16001,8 @@
   ],
   "stats": {
     "nodes": 556,
-    "edges": 2026,
+    "edges": 2028,
     "typed_edges": 685,
-    "orphans": 148
+    "orphans": 147
   }
 }
