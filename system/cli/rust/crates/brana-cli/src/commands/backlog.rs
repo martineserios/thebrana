@@ -2463,6 +2463,38 @@ mod tests {
         }
     }
 
+    // ── t-2812/t-2817 (ADR-079 §1): CLI approve verb ─────────────────────
+
+    #[test]
+    fn cmd_ac_approve_promotes_and_persists() {
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["done when green"]}]"#,
+        );
+        cmd_ac_approve("t-1", Some(f.path().to_path_buf())).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"], "approved");
+        assert_eq!(task["acceptance_criteria"], serde_json::json!(["done when green"]));
+        assert!(task.get("proposed_acceptance_criteria").is_none());
+    }
+
+    #[test]
+    fn cmd_ac_approve_no_criteria_errors_and_persists_nothing() {
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"none"}]"#,
+        );
+        let err = cmd_ac_approve("t-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("no acceptance criteria to approve"), "{err}");
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"], "none", "rejected approve must not persist");
+    }
+
+    #[test]
+    fn cmd_ac_approve_unknown_task_errors() {
+        let f = empty_tasks_file();
+        let err = cmd_ac_approve("t-99", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("t-99"), "{err}");
+    }
+
     // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
 
     #[test]
