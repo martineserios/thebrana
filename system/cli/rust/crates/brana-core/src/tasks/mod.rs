@@ -3308,6 +3308,27 @@ mod tests {
     }
 
     #[test]
+    fn test_approve_ac_reapprove_merges_lingering_proposed() {
+        // Challenger observation (t-2812 gate): "idempotent on approved" is a
+        // STATE guarantee, not a content no-op. approved + non-empty proposed is
+        // unreachable via sanctioned paths (ac-propose only targets ac_state:none;
+        // set_field has no proposed_acceptance_criteria arm), but if the state
+        // exists on disk, re-approve deliberately merges the lingering items
+        // rather than silently dropping them — pinned here so t-2813's grading
+        // semantics can rely on it.
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved",
+            "acceptance_criteria":["live"],
+            "proposed_acceptance_criteria":["lingering"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert!(out.already_approved);
+        assert_eq!(out.promoted, 1);
+        assert_eq!(task["acceptance_criteria"], json!(["live","lingering"]));
+        assert!(task.get(PROPOSED_AC_FIELD).is_none());
+    }
+
+    #[test]
     fn test_approve_ac_empty_string_is_empty() {
         // Boundary: an empty-string acceptance_criteria counts as no criteria.
         let mut task = json!({"id":"t-1","ac_state":"none","acceptance_criteria":""});
