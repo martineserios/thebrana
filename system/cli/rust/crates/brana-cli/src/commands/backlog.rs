@@ -967,6 +967,40 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
 /// NOT execute anything or touch matched tasks. Draining an already-draining
 /// wave is idempotent (re-resolves and re-reports — fits ADR-079's
 /// re-resolve-each-cycle model); draining a shipped wave is a caller error.
+/// t-2813 (ADR-079 §2/§3): `backlog wave pull <id>` — one atomic pull cycle.
+/// The decision logic lives in brana_core (wave_pull_decision under
+/// pull_wave_task's lock); this is the CLI shell reporting the outcome.
+pub fn cmd_wave_pull(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    match tasks::pull_wave_task(&tf, wave_id) {
+        Ok(tasks::PullDecision::Pulled { task_id }) => {
+            println!("{}", serde_json::json!({"ok": true, "id": wave_id, "pulled": task_id}));
+            Ok(())
+        }
+        Ok(tasks::PullDecision::AtLimit { live, limit }) => {
+            println!("{}", serde_json::json!({
+                "ok": true, "id": wave_id, "pulled": null,
+                "at_limit": {"live": live, "limit": limit}
+            }));
+            Ok(())
+        }
+        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked }) => {
+            println!("{}", serde_json::json!({
+                "ok": true, "id": wave_id, "pulled": null,
+                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked}
+            }));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("{e}"))
+        }
+    }
+}
+
 pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,
@@ -2993,6 +3027,44 @@ mod tests {
         assert!(err.to_string().contains("shipped"),
             "draining finished work is a caller error: {err}");
         assert_eq!(read_waves(&f)[0]["status"], "shipped");
+    }
+
+    // ── t-2813 (ADR-079 §2/§3): CLI wave pull ────────────────────────────
+
+    #[test]
+    fn cmd_wave_pull_pulls_and_persists() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
+        );
+        cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"][0]["status"], "in_progress");
+    }
+
+    #[test]
+    fn cmd_wave_pull_at_limit_is_ok_not_error() {
+        // Skip-cycle is a normal outcome for a runner beat, not a failure.
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"in_progress","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
+        );
+        cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"][1]["status"], "pending", "at-limit must not pull");
+    }
+
+    #[test]
+    fn cmd_wave_pull_non_draining_errors() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued"}]"#,
+        );
+        let err = cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("draining"), "{err}");
     }
 
     #[test]

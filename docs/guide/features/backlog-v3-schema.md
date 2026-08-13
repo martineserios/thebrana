@@ -58,6 +58,8 @@ brana backlog wave set wave-1 status shipped   # operator marks done (not auto-d
 
 Status is `queued` → `draining` → `shipped`. `drain` moves queued→draining; an operator sets `shipped` manually via `wave set`; direct `wave set` status writes remain unrestricted (any-to-any).
 
+The consumer landed with t-2813 (ADR-079 §2/§3): **`brana backlog wave pull wave-N`** — one atomic pull cycle: re-resolve the selector, filter `pending ∧ ac_state:approved ∧ ¬parked`, count in-flight matches against `wip_limit`, set the first eligible task `in_progress`. At-limit and none-eligible report as normal `ok` outcomes with counts (a runner beat just skips the cycle). The committed runner procedure — how to wrap `pull` in a supervised `/loop`, and the verbs a runner is denied — is [drain-loop.md](../workflows/drain-loop.md).
+
 Two guard rails landed with t-2782 (ADR-079 §3):
 
 - **`wip_limit`** — a nullable non-negative integer on the wave (`brana backlog wave set wave-1 wip_limit 3`, `wip_limit null` to clear). `null` (the default) means unbounded; `0` means pause pulling. It bounds how many selector-matched tasks may be `in_progress` at once, enforced at the future loop runner's pull step (t-2813) — not at `drain`, not at task `start`, so manually starting wave-matched tasks still works. There is deliberately no default number until real drain usage exists.

@@ -58,6 +58,7 @@ User-facing documentation. Start here.
 | File | Contents |
 |------|----------|
 | [build.md](guide/workflows/build.md) | The build loop -- 7 strategies, task integration |
+| [drain-loop.md](guide/workflows/drain-loop.md) | Wave drain loop -- committed /loop runner procedure (ADR-079) |
 | [research.md](guide/workflows/research.md) | 3-phase research with scout agents |
 | [hive-mind.md](guide/workflows/hive-mind.md) | Multi-agent collective intelligence -- find/verify/synthesize on the subscription |
 | [session.md](guide/workflows/session.md) | Session lifecycle -- start hooks, close, handoffs |

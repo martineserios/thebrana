@@ -6,8 +6,10 @@
 //! the SAME resolver, never re-derive selector semantics from raw tasks.json.
 
 use serde_json::Value;
+use std::path::Path;
 
 use super::query::tag_matches;
+use super::{load_raw, lock_tasks, save_tasks};
 
 /// Gate check (the point of t-2775). A wave with a non-empty `gate` may only
 /// drain once the gated wave's status is `shipped`.
@@ -64,6 +66,133 @@ pub fn resolve_wave_selector<'a>(
             }
         })
         .collect())
+}
+
+/// t-2813 (ADR-079 §2/§3): what one pull cycle decided. `NoneEligible`'s
+/// counts make matched-but-not-eligible visible — the ADR names that state
+/// as expected, not a bug, so the runner can report it instead of guessing.
+#[derive(Debug, PartialEq, Eq)]
+pub enum PullDecision {
+    /// One task was (or, in the pure decision fn, would be) set in_progress.
+    Pulled { task_id: String },
+    /// Live in_progress selector-matches ≥ wip_limit — skip this cycle.
+    AtLimit { live: usize, limit: u64 },
+    /// Selector matched, but nothing is pending ∧ approved ∧ ¬parked.
+    NoneEligible { matched: usize, unapproved: usize, parked: usize },
+}
+
+/// t-2813: pure pull decision over in-memory state — the loop runner's whole
+/// eligibility contract in one place (ADR-079 §2 filter + §3 WIP bound):
+///
+/// - wave must be `draining` (pull from anything else is a caller error);
+/// - candidates = `resolve_wave_selector` (the shared resolver — pending
+///   matches), then `ac_state:approved` and not tagged `parked` (ADR-078);
+/// - live = in_progress selector-matches; `wip_limit` null/absent = unbounded,
+///   0 = pause; at limit → `AtLimit` before any candidate is considered;
+/// - first eligible in array order wins (deterministic, no priority logic —
+///   that's the operator's job via ordering/waves, not the pump's).
+pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision, String> {
+    let wid = wave["id"].as_str().unwrap_or("?");
+    let status = wave["status"].as_str().unwrap_or("unknown");
+    if status != "draining" {
+        return Err(format!(
+            "wave {wid} is {status}, not draining — only draining waves may be pulled from"
+        ));
+    }
+
+    let matched = resolve_wave_selector(wave, tasks)?;
+
+    // Live count: in_progress tasks matching the selector tag. The resolver
+    // (pending-only) validated the selector form above, so the strip is safe.
+    let name = wave["selector"].as_str().unwrap_or("").trim()
+        .strip_prefix("tag:").unwrap_or("");
+    let live = tasks
+        .iter()
+        .filter(|t| {
+            t["status"].as_str() == Some("in_progress") && {
+                let tags: Vec<&str> = t["tags"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                    .unwrap_or_default();
+                tag_matches(&tags, name)
+            }
+        })
+        .count();
+
+    let limit = match wave.get("wip_limit") {
+        None | Some(Value::Null) => None,
+        Some(v) => Some(v.as_u64().ok_or_else(|| {
+            format!("wave {wid} has a non-integer wip_limit ({v}) — fix the wave before pulling")
+        })?),
+    };
+    if let Some(l) = limit {
+        if live as u64 >= l {
+            return Ok(PullDecision::AtLimit { live, limit: l });
+        }
+    }
+
+    let mut unapproved = 0;
+    let mut parked = 0;
+    let mut first: Option<String> = None;
+    for t in &matched {
+        if t["ac_state"].as_str() != Some("approved") {
+            unapproved += 1;
+            continue;
+        }
+        let is_parked = t["tags"]
+            .as_array()
+            .map(|a| a.iter().any(|v| v.as_str() == Some("parked")))
+            .unwrap_or(false);
+        if is_parked {
+            parked += 1;
+            continue;
+        }
+        if first.is_none() {
+            first = Some(t["id"].as_str().unwrap_or("?").to_string());
+        }
+    }
+    match first {
+        Some(task_id) => Ok(PullDecision::Pulled { task_id }),
+        None => Ok(PullDecision::NoneEligible {
+            matched: matched.len(),
+            unapproved,
+            parked,
+        }),
+    }
+}
+
+/// t-2813 (ADR-079 §3): the atomic pull — ONE lock_tasks critical section:
+/// lock → fresh read → decide (`wave_pull_decision` on the just-read state) →
+/// write in_progress + started → save. Count-then-pull as two calls is the
+/// named TOCTOU; everything here happens under the same lock. A non-pulling
+/// decision (AtLimit/NoneEligible) writes nothing. Never sets `completed` on
+/// tasks or `shipped` on waves — promotion stays human (no auto-ship).
+pub fn pull_wave_task(path: &Path, wave_id: &str) -> Result<PullDecision, String> {
+    let _lock = lock_tasks(path)?;
+    let mut val = load_raw(path)?;
+
+    let wave = val["waves"]
+        .as_array()
+        .and_then(|ws| ws.iter().find(|w| w["id"].as_str() == Some(wave_id)))
+        .cloned()
+        .ok_or_else(|| format!("wave {wave_id} not found"))?;
+    let tasks_snapshot = val["tasks"].as_array().cloned().unwrap_or_default();
+
+    let decision = wave_pull_decision(&wave, &tasks_snapshot)?;
+
+    if let PullDecision::Pulled { task_id } = &decision {
+        let tasks = val["tasks"].as_array_mut().ok_or("tasks is not an array")?;
+        let task = tasks
+            .iter_mut()
+            .find(|t| t["id"].as_str() == Some(task_id.as_str()))
+            .ok_or_else(|| format!("pulled task {task_id} vanished mid-pull"))?;
+        task["status"] = Value::String("in_progress".into());
+        task["started"] =
+            Value::String(chrono::Local::now().format("%Y-%m-%d").to_string());
+        val["last_modified"] = Value::String(chrono::Local::now().to_rfc3339());
+        save_tasks(path, &val).map_err(|e| format!("wave pull write failed: {e}"))?;
+    }
+    Ok(decision)
 }
 
 #[cfg(test)]

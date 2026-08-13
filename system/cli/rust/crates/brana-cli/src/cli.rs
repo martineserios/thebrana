@@ -1142,6 +1142,16 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Pull one task from a draining wave (ADR-079 §2/§3): re-resolve the
+    /// selector, filter pending ∧ ac_state:approved ∧ ¬parked, respect
+    /// wip_limit, set the first eligible task in_progress — atomically.
+    /// At-limit / none-eligible are normal ok outcomes (skip this cycle).
+    Pull {
+        wave_id: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Set a field on a wave (status, selector, contract, gate, name,
     /// wip_limit — non-negative integer or null; selector/gate are frozen
     /// while the wave is draining, requeue first)
