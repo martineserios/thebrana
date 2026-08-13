@@ -72952,6 +72952,35 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2809",
+      "subject": "Update brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md Version History table for v3.10.39→v3.34.0",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "ruflo",
+        "docs",
+        "follow-up"
+      ],
+      "description": "Documentation Plan item from t-2627 (ruflo-upgrade-memory-reliability.md, 2026-08-05), never actioned — flagged by /brana:close PROPAGATE audit 2026-08-13. Add a Version History row spanning v3.10.39→v3.34.0 (matching the table's existing convention, e.g. \"v3.6.30→v3.10.3\"), plus notes on ADR-377 (retrieval security, opt-in) and v3.32.34 (provenance_type migration). This is a cross-repo doc (brana-knowledge, not thebrana) — cannot be verified or edited from this repo.",
+      "effort": "XS",
+      "priority": "P3",
+      "parent": "t-2362",
+      "created": "2026-08-13",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3

@@ -3,6 +3,7 @@
 .claude/memory.db
 agentdb.rvf*
 .claude-flow/
+.hive-mind/
 system/state/decisions/
 
 # Local Claude Code config
