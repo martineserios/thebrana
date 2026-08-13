@@ -21,9 +21,16 @@ per the graduated-autonomy ladder in
   returned 3× RECONSIDER on any L0+ write path (unattended runs, inbox drain,
   auto-rebase). The gauge therefore mutates nothing it observes.
 - **"Zero writes" scope** — zero mutations of *observed* pipeline state (git
-  refs/worktrees, backlog, inbox contents). The digest artifact itself is the
-  required output and lands outside the repo. `git merge-tree --write-tree`
-  creates only unreferenced loose objects (pruned by auto-gc); no refs move.
+  refs/worktrees/object store, backlog, inbox contents). The digest artifact
+  itself is the required output and lands outside the repo. The `merge-tree
+  --write-tree` conflict probe redirects its tree objects to a scratch
+  `GIT_OBJECT_DIRECTORY` (deleted on exit) with the repo's objects mounted as
+  read-only alternates, so the observed object store stays byte-identical
+  (challenger finding, 2026-08-13; verified by test T7d).
+- **Quiet beats are one line** — when headline counts match the previous
+  history entry the script prints only "no change (…)", so the loop session
+  never ingests a full digest on a no-op beat (the Risk-A cheap-preflight
+  rule, wired into the script rather than the prompt; test T7b/c).
 - **Digest home: `~/.claude/run-state/pipeline-digest/`** (user-confirmed) —
   durable, no git churn, readable by SessionStart/ops hooks later.
   `latest.md` is the current gauge; `history.jsonl` appends one summary line

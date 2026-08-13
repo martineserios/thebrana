@@ -5,11 +5,13 @@
 # branches, inbox queue (names only — never contents), backlog signals.
 #
 # READ-ONLY CONTRACT (AC t-2823): zero mutations of observed pipeline state —
-# no git ref/worktree changes, no backlog writes, no inbox reads-of-content.
-# The only writes are the digest artifact itself (latest.md + history.jsonl)
-# under BRANA_DIGEST_DIR, outside the observed repo. `git merge-tree
-# --write-tree` creates unreferenced loose objects (pruned by auto-gc); it
-# moves no refs and touches no worktree.
+# no git ref/worktree changes, no object-store writes, no backlog writes, no
+# inbox reads-of-content. The only writes are the digest artifact itself
+# (latest.md + history.jsonl) under BRANA_DIGEST_DIR, outside the observed
+# repo. The `git merge-tree --write-tree` conflict probe would normally write
+# tree objects into the repo — those are redirected to a scratch object dir
+# (GIT_OBJECT_DIRECTORY) that is deleted on exit, so the observed object store
+# stays byte-identical (challenger finding 1, 2026-08-13).
 #
 # Usage: pipeline-digest.sh [repo-path]
 #   BRANA_DIGEST_DIR  output dir (default ~/.claude/run-state/pipeline-digest)
@@ -29,6 +31,17 @@ if ! g rev-parse --verify -q "$BASE" >/dev/null; then
     echo "pipeline-digest: base branch '$BASE' not found in $REPO" >&2
     exit 1
 fi
+
+# Scratch object dir for the merge-tree conflict probe: new objects land here
+# (deleted on exit); existing objects are read via the alternates mechanism.
+OBJ_SCRATCH="$(mktemp -d)"
+trap 'rm -rf "$OBJ_SCRATCH"' EXIT
+REPO_OBJECTS="$(g rev-parse --path-format=absolute --git-common-dir)/objects"
+merge_probe() {  # merge_probe <base> <branch> — exit 0 clean, non-zero conflict
+    GIT_OBJECT_DIRECTORY="$OBJ_SCRATCH" \
+    GIT_ALTERNATE_OBJECT_DIRECTORIES="$REPO_OBJECTS" \
+        git -C "$REPO" merge-tree --write-tree "$1" "$2" >/dev/null 2>&1
+}
 
 WORKTREES="$(g worktree list --porcelain 2>/dev/null || true)"
 
@@ -56,7 +69,7 @@ while IFS= read -r br; do
     counts="$(g rev-list --left-right --count "$BASE...$br" 2>/dev/null || echo "? ?")"
     behind="${counts%%[[:space:]]*}"; ahead="${counts##*[[:space:]]}"
     activity="$(g log -1 --format='%cr' "$br" 2>/dev/null || echo "?")"
-    if g merge-tree --write-tree "$BASE" "$br" >/dev/null 2>&1; then
+    if merge_probe "$BASE" "$br"; then
         conflict="clean"
     else
         conflict="CONFLICTS"
@@ -87,6 +100,9 @@ if [ -d "$REPO/inbox" ]; then
 fi
 
 # --- Backlog signals (degrade gracefully without brana CLI) ---
+# MVP approximation (challenger finding 3): P0/P1 *pending* counts + an
+# unfiltered stale excerpt stand in for "stale P0/P1"; "ready-to-drain"
+# (waves, ac_state:approved — ADR-079) is absent pending CLI query support.
 backlog_section=""
 strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
 if command -v brana >/dev/null 2>&1; then
@@ -126,7 +142,17 @@ ${inbox_rows:-_empty_}
 $backlog_section
 "
 
+# Cheap no-op beat (challenger finding 2): if headline counts match the last
+# history line, keep the durable artifacts current but print only a one-line
+# status — the loop session never ingests a full digest on a quiet beat.
+counts_now="\"unmerged\":$n_unmerged,\"stale_merged\":$n_stale,\"inbox\":$n_inbox"
+counts_prev="$(tail -n1 "$OUT_DIR/history.jsonl" 2>/dev/null | sed 's/^{"ts":"[^"]*",//; s/}$//')"
+
 printf '%s' "$DIGEST" > "$OUT_DIR/latest.md"
-printf '{"ts":"%s","unmerged":%s,"stale_merged":%s,"inbox":%s}\n' \
-    "$NOW" "$n_unmerged" "$n_stale" "$n_inbox" >> "$OUT_DIR/history.jsonl"
-printf '%s' "$DIGEST"
+printf '{"ts":"%s",%s}\n' "$NOW" "$counts_now" >> "$OUT_DIR/history.jsonl"
+
+if [ "$counts_now" = "$counts_prev" ]; then
+    echo "no change (unmerged $n_unmerged, stale $n_stale, inbox $n_inbox) — full digest: $OUT_DIR/latest.md"
+else
+    printf '%s' "$DIGEST"
+fi

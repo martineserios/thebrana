@@ -10,19 +10,16 @@ script) and a short report message.
 
 Each beat:
 
-1. **Preflight (cheap no-op check):** read the last line of
-   `~/.claude/run-state/pipeline-digest/history.jsonl` (if present) and note its
-   counts.
-2. **Run the gauge:** `./system/scripts/pipeline-digest.sh` from the repo root.
-   It writes `~/.claude/run-state/pipeline-digest/latest.md` and appends one
-   history line.
-3. **Compare** the new history line with the previous one.
-   - **No change in counts:** report one line — "no change (unmerged N, stale
-     N, inbox N)" — and end the beat. Nothing else.
-   - **Changed:** report the delta plus the notable rows from the digest
+1. **Run the gauge:** `./system/scripts/pipeline-digest.sh` from the repo root.
+   It writes `~/.claude/run-state/pipeline-digest/latest.md`, appends one
+   history line, and is delta-aware: on a quiet beat it prints a single
+   "no change (…)" line; on a changed beat it prints the full digest.
+2. **Report:**
+   - **"no change" output:** relay that one line. End the beat. Nothing else.
+   - **Full digest output:** report the delta plus the notable rows
      (new/gone branches, a branch that turned CONFLICTS, a dirty worktree,
      inbox growth). Max ~10 lines.
-4. **Never** act on what you see: no rebases, no merges, no branch deletion, no
+3. **Never** act on what you see: no rebases, no merges, no branch deletion, no
    backlog edits, no inbox processing. If something looks urgent (e.g. a
    conflict appeared on an active branch), say so in the report — the human
    decides. Escalation beyond reporting is L1+ and gated by the
