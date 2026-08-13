@@ -10,9 +10,41 @@ pub struct Input {
 }
 
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
-    TypedTool::new("backlog_ac_approve", |_input: Input, _extra| {
+    TypedTool::new("backlog_ac_approve", |input: Input, _extra| {
         Box::pin(async move {
-            Err(pmcp::Error::validation("unimplemented".to_string()))
+            // Same shape as backlog_set: synchronous std I/O off the async
+            // executor, and the BOUNDED lock (t-2305) — perform_ac_approve's
+            // unbounded lock_tasks is CLI-only, so the RMW scaffold is
+            // replicated here around the shared approve_ac() semantics owner.
+            let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
+                let tf = brana_core::util::find_tasks_file()
+                    .ok_or_else(|| "tasks.json not found".to_string())?;
+                let _lock = brana_core::tasks::lock_tasks_timeout(&tf)?;
+                let mut val = brana_core::tasks::load_raw(&tf)?;
+
+                let outcome = {
+                    let tasks = val["tasks"].as_array_mut()
+                        .ok_or_else(|| "tasks.json has no tasks array".to_string())?;
+                    let task = tasks.iter_mut()
+                        .find(|t| t["id"].as_str() == Some(&input.task_id))
+                        .ok_or_else(|| format!("task {} not found", input.task_id))?;
+                    brana_core::tasks::approve_ac(task)?
+                };
+
+                brana_core::tasks::save_tasks(&tf, &val)?;
+
+                Ok(serde_json::json!({
+                    "ok": true,
+                    "id": input.task_id,
+                    "ac_state": "approved",
+                    "promoted": outcome.promoted,
+                    "already_approved": outcome.already_approved,
+                }))
+            })
+            .await
+            .map_err(|e| pmcp::Error::validation(format!("blocking task panicked: {e}")))?;
+
+            result.map_err(pmcp::Error::validation)
         })
     })
     .with_description("Approve a task's acceptance criteria (ADR-079): promotes proposed_acceptance_criteria into acceptance_criteria and sets ac_state to approved. The sanctioned transition — backlog_set(ac_state, approved) is rejected.")
