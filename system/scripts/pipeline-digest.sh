@@ -88,11 +88,14 @@ fi
 
 # --- Backlog signals (degrade gracefully without brana CLI) ---
 backlog_section=""
+strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
 if command -v brana >/dev/null 2>&1; then
     pending="$(timeout 30 brana backlog query --status pending --count 2>/dev/null || echo "?")"
     inprog="$(timeout 30 brana backlog query --status in_progress --count 2>/dev/null || echo "?")"
-    stale_tasks="$(timeout 30 brana backlog stale 2>/dev/null | head -12 || true)"
-    backlog_section="pending: $pending · in_progress: $inprog
+    p0="$(timeout 30 brana backlog query --status pending --priority P0 --count 2>/dev/null || echo "?")"
+    p1="$(timeout 30 brana backlog query --status pending --priority P1 --count 2>/dev/null || echo "?")"
+    stale_tasks="$(timeout 30 brana backlog stale 2>/dev/null | strip_ansi | head -12 || true)"
+    backlog_section="pending: $pending (P0: $p0 · P1: $p1) · in_progress: $inprog
 
 Stale tasks (excerpt):
 \`\`\`
