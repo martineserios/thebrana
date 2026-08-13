@@ -3,174 +3,240 @@ status: accepted
 ---
 # ADR-079: ac_state Approval, Wave-Drain→Loop Handoff, and WIP Location (amends ADR-065)
 
-**Status:** Accepted (2026-08-13)
+**Status:** Accepted (2026-08-13; challenged and amended same day — see §Challenge record)
 **Date:** 2026-08-13
 **Deciders:** Martín Rios
 **Tags:** backlog, waves, ac, wip, loop, epic-entry, adr-065-followup
 **Tasks:** t-2811 (epic), t-2775, t-2812, t-2813, t-2782
 **Relates:** [ADR-065](ADR-065-epic-as-hierarchy-top.md) (waves as thin process objects, D3;
-epic WIP cap retirement amendment) · [backlog-v3-schema.md](../features/backlog-v3-schema.md)
-(§ac_state, §Wave = Queue — the design intent this ADR makes concrete) ·
-[wave-gate-enforcement.md](../features/wave-gate-enforcement.md) (t-2775's spec — unchanged by
-this ADR, referenced not superseded)
+epic WIP cap retirement amendment) · [ADR-060](ADR-060-branch-strategy-autonomous-agents.md)
+(execution contract for the loop's workers — §2b) ·
+[ADR-062](ADR-062-runner-executor-sandbox.md) (sandbox precondition for unattended drain) ·
+[ADR-067](ADR-067-retired-fields-write-guard.md) (`wip_limit` name reuse — §3) ·
+[ADR-078](ADR-078-stale-task-park-via-tag.md) (`parked` exclusion in the eligibility filter) ·
+ADR-047 + t-2288 (`ac-propose`, the existing proposer this ADR's approve verb completes) ·
+[backlog-v3-schema.md](../features/backlog-v3-schema.md) (§ac_state, §Wave = Queue) ·
+[wave-gate-enforcement.md](../features/wave-gate-enforcement.md) (t-2775's spec — unchanged,
+referenced not superseded) · ADR-074/t-1994 (foreman loop protocol — t-2813 is a pre-foreman
+interim and converges with that contract when ADR-074 lands)
 
 ---
 
 ## Context
 
-t-2811 (epic: backlog-drain) diagnosed 2026-08-13 that three backlog-v3 features shipped at
-the schema/storage layer only, with zero live consumers and no wiring to a loop:
+t-2811 (epic: backlog-drain) diagnosed 2026-08-13 that three backlog-v3 features shipped
+without the connective tissue that makes them mean anything:
 
 1. **Waves** (ADR-065 D3) — CRUD exists, `drain` does not yet (t-2775, already spec'd,
    unblocked, S effort — this ADR does not change that spec).
-2. **`ac_state`** — the field, its validation (`none`/`proposed`/`approved`), and query
-   filtering all exist. Zero write paths besides the untyped `backlog set <id> ac_state
-   <value>` escape hatch; zero read paths gate or branch on it anywhere in the codebase
-   (confirmed by exhaustive grep, 2026-08-13 audit — the only two hits are a one-time
-   migration default-write).
-3. **WIP capping** — `check_epic_wip_cap()` was retired 2026-08-12 (t-2727, ADR-065's own
-   amendment) because epics are unbounded groupings. Its replacement was redirected to
-   waves (t-2782) but never designed.
+2. **`ac_state`** — the field, validation (`none`/`proposed`/`approved`), and query filtering
+   exist. The **proposer half is also already built**: `brana backlog ac-propose` (t-2288,
+   CLI-only) emits the drain queue (`ac_state:none` minus research/review) and with `--apply`
+   writes `ac_state:proposed` plus `proposed_acceptance_criteria` — a field **deliberately
+   separate** from `acceptance_criteria` so a proposed contract gates nothing until promoted
+   (rollup.rs's own design comment: "promotion moves this array into `acceptance_criteria`
+   and flips `ac_state` to `approved`"). What is missing is exactly that promotion: **no
+   approve/promote verb exists, and nothing anywhere consumes `ac_state:approved`.** (An
+   earlier draft of this ADR claimed ac_state had zero writers/readers outright — corrected
+   after fact-check: `ac-propose` writes it and branches on `none`; the accurate claim is
+   the narrower one just stated.)
+3. **WIP capping** — `check_epic_wip_cap()` retired 2026-08-12 (t-2727, ADR-065's amendment)
+   because epics are unbounded groupings. Its replacement was redirected to waves (t-2782)
+   but never designed.
 
-Per `m-plus-discipline-enforcement.md`, the epic's three implementation children (t-2812,
-t-2813, and t-2782's downstream consumer) are gated on an ADR settling the cross-cutting
-contract between these three pieces before code starts. This is that ADR.
-
-**What this ADR does NOT redo:** t-2775's spec (`wave-gate-enforcement.md`) already fully
-specifies `wave drain`'s gate-check and `tag:<name>` selector resolution — that stands as
-written. This ADR covers only the three things `wave-gate-enforcement.md` explicitly declined
-to specify: what consumes `drain`'s output, what "approved" means and how a task gets there,
-and where a WIP bound is enforced.
+Per `m-plus-discipline-enforcement.md`, the epic's implementation children are gated on an
+ADR settling the cross-cutting contract before code starts. This is that ADR. It covers only
+what `wave-gate-enforcement.md` explicitly deferred: what consumes `drain`'s output, what
+"approved" means and how a task gets there, and where a WIP bound lives.
 
 ## Decision
 
-### 1. `ac_state` approval verb + consumer
+### 1. `ac_state` approval verb: approve = promote + flip, human-only
 
-**New verb**, not a new representation: `brana backlog ac <id> approve` (CLI) and
-`backlog_ac_approve(task_id)` (MCP). It is the sanctioned way to move a task to
-`ac_state:approved`, replacing the untyped `backlog set <id> ac_state approved` escape hatch
-for this transition (the generic `set` path remains available for the other transitions —
-`none`→`proposed`, clearing to `null` — which are not human-approval events).
+**New verb:** `brana backlog ac <id> approve` (CLI) and `backlog_ac_approve(task_id)` (MCP).
+It is the sanctioned transition to `ac_state:approved` and does two things atomically:
 
-- **Precondition:** `acceptance_criteria` (ADR-047's field) must be non-empty. Approving an
-  empty contract is a no-op error ("no acceptance criteria to approve — populate
-  `acceptance_criteria` first"), not a silent state flip.
-- **Source state:** accepts from `none` or `proposed` (a human may author+approve AC directly
-  without a loop backfill step first; the loop-backfill path via `proposed` is the common
-  case per `backlog-v3-schema.md`'s "loop backfills its own contracts" flow, not the only
-  legal one).
-- **Idempotent:** already-`approved` → no-op success, not an error (matches
-  `validate_wave_status`'s "any-to-any" precedent — approval is a human action re-confirming
-  state, not a strict state machine that forbids re-entry).
-- **`ac <id> add <criterion>`** — explicitly **out of scope** for t-2812 and this ADR. AC
-  authoring already has a working convention (`AC:` context lines lint into
-  `acceptance_criteria`; the generic field can be set directly). Only the *approval* verb was
-  missing a home. If a dedicated `add` verb is wanted later, it's its own task — not bundled
-  here.
-- **The consumer:** the loop runner (t-2813, §2 below) is the first and, for this epic, only
-  real consumer. It filters candidate tasks to `ac_state:approved` before pulling — this is
-  what closes the loop `backlog-v3-schema.md` describes ("you approve in the cockpit →
-  approved → now it is loop-drainable") and what makes the approve verb more than a naming
-  exercise.
+1. **Promote:** if `proposed_acceptance_criteria` is non-empty, move its contents into
+   `acceptance_criteria` (the live gating field) and clear `proposed_acceptance_criteria`.
+   This completes the promotion path t-2288's proposer was built against and never got.
+2. **Flip:** set `ac_state: approved`.
+
+- **Precondition:** at least one of `acceptance_criteria` / `proposed_acceptance_criteria`
+  non-empty. Approving with both empty is an error ("no acceptance criteria to approve"),
+  not a silent flip. (An earlier draft required `acceptance_criteria` non-empty — that would
+  have rejected exactly the tasks `ac-propose` prepared, since the proposer populates the
+  *other* field.)
+- **Source state:** accepts from `none` or `proposed` (human may author+approve directly;
+  the loop-backfill path via `proposed` is the common case, not the only legal one).
+- **Idempotent on `approved`** — but see content-binding below.
+- **Approval binds to content, not just state.** Any write to `acceptance_criteria` on a
+  task whose `ac_state` is `approved` resets `ac_state` to `proposed` (enforced in
+  `set_field`'s `acceptance_criteria` arm — shared layer, all write paths). An approval of
+  criteria that were then edited is an approval of nothing; without this, a loop could
+  propose, obtain approval, then reshape the contract while staying drainable (the
+  ADR-076-D2 moving-target class).
+- **No bypass via generic `set`.** `backlog set <id> ac_state approved` (and the MCP
+  `backlog_set` twin) is **rejected** at the shared validation layer with a pointer to the
+  verb ("use `backlog ac <id> approve`"). Without this the verb's precondition is
+  decorative — today `set_field` accepts `approved` with empty AC. The other transitions
+  (`none`/`proposed`/`null`) remain settable generically.
+- **Human-only gate, structurally.** The loop runner's tool manifest (allowedTools/deny
+  list, t-2813) **denies** `backlog ac approve` and `backlog_ac_approve`. The whole point of
+  `approved` is a human trust boundary between selector-match and autonomous execution; a
+  gate armed by the party it constrains is no gate
+  (`pattern_gate-armed-by-the-party-it-constrains`, ADR-076 D4). Approval happens in an
+  interactive human session, never inside the drain loop.
+- **Which representation the grader trusts:** `acceptance_criteria` (the ADR-047 field) is
+  the contract of record for loop grading. `AC:` context lines remain the human-authoring
+  shorthand that lints into the field; the loop never reads `AC:` lines directly.
+- **`ac <id> add`** — explicitly out of scope (authoring paths already exist); own task if
+  ever wanted.
 
 ### 2. Wave-drain → loop handoff contract
 
-`wave drain <id>` (t-2775, unchanged) is a **point-in-time report**, not a queue handle: it
-resolves the selector once, prints the matched list, and sets `wave.status: "draining"`. It
-does not execute anything and does not freeze the matched list anywhere durable.
+`wave drain <id>` (t-2775, unchanged) is a **point-in-time report**: resolve selector once,
+print matches, set `wave.status: "draining"`. It executes nothing and freezes nothing.
 
-The loop runner (t-2813) is the actual consumer and owns re-resolution:
+The loop runner (t-2813) is the consumer and owns re-resolution:
 
-- **Eligibility to run:** the loop only pulls from waves whose `status == "draining"`. A wave
-  in `queued` has not been drained (nothing to pull); a wave in `shipped` is done. This is the
-  entire signal — no new wave field for "loop is watching this."
-- **Re-resolve, don't trust the frozen snapshot.** On each pull cycle the loop calls the
-  **same selector-resolution function `wave drain` uses** — not a re-implementation. This
-  function must be a single `brana-core` export (e.g. `resolve_wave_selector(wave) ->
-  Vec<Task>`) called identically by `cmd_wave_drain` and the loop driver, mirroring the
-  `shape(task)` single-owner principle `backlog-v3-schema.md` already establishes for shape
-  computation (replicated-logic drift is the named failure mode to avoid — see
-  `pattern_replicated-logic-tests-rot_2026-06-11` and the `claude -p`-over-tasks.json
-  divergence vector `backlog-v3-schema.md` calls out for `shape`). t-2775's implementation
-  must land this resolver as an importable function, not inline it only in the CLI command
-  body, so t-2813 has something to call.
-- **Filter chain the loop applies** on top of the resolver's raw match: `status:pending ∧
-  ac_state:approved`, then the WIP bound (§3). Selector match alone (what `drain` reports) is
-  necessary but not sufficient for loop-eligibility — `drain`'s report and the loop's actual
-  pull set are allowed to differ, and that difference (matched-but-not-yet-approved) is
-  visible/expected, not a bug.
-- **No auto-ship.** Per `wave-gate-enforcement.md` §1.4 (unchanged): the loop does not
-  transition a wave to `shipped` when its matched set empties. An operator does that
-  manually. The loop's job ends at "no eligible tasks this cycle" — it does not decide the
-  wave is done, only that there's nothing to pull *right now*.
-- **Runner shape:** native `/loop` (or `ScheduleWakeup`-paced dynamic loop) over the CLI/MCP
-  surface — per `delegation-routing.md` compute routing, this is in-session orchestration
-  work, not a `ruflo` `hive-mind`/`agent_execute` path (those are hollow under subscription,
-  ADR-059). t-2813 implements the pull-and-work loop; it does not need a new daemon process.
+- **Eligibility to run:** pull only from waves with `status == "draining"`.
+- **Re-resolve each cycle** via the **same brana-core selector resolver `wave drain` uses**
+  (single owner, e.g. `resolve_wave_selector(wave) -> Vec<Task>`; t-2775 must land it as an
+  importable function, not CLI-command-local — mirroring the `shape(task)` single-owner
+  principle; replicated-logic drift is the named failure mode). Note for t-2775: the
+  resolver now has two structurally different callers (one-shot CLI report vs. repeated
+  per-cycle polling) — design the signature for both; likely still small, but it is a real
+  second consumer, not a free refactor.
+- **Eligibility filter** on the resolver's raw match:
+  `status:pending ∧ ac_state:approved ∧ ¬tag:parked`, then the WIP bound (§3).
+  The `parked` exclusion is load-bearing: ADR-078 parks tasks by tag while `status` stays
+  `pending`, so without it the loop would autonomously work deliberately shelved tasks.
+  `drain`'s report and the loop's pull set are allowed to differ; matched-but-not-approved
+  (or parked) is visible and expected, not a bug.
+- **No auto-ship** (unchanged from `wave-gate-enforcement.md` §1.4): the loop never sets
+  `shipped`; "no eligible tasks this cycle" is not "the wave is done."
 
-### 3. WIP enforcement: on waves, at pull time, no default
+#### 2b. Execution contract — what "works them" means
 
-Confirms t-2782's design direction (WIP moves from epics to waves) and resolves its three open
-questions enough to unblock implementation, deferring only the *numeric default* to real usage
-data (repeating the epic-cap mistake — guessing a number pre-data — is exactly what this ADR
-must not do):
+An earlier draft specified the pull precisely and left the work implicit. That silence
+recreated the exact shape ADR-059's OQ3 closure rejected in ruflo's `--claude` spawn (workers
+without worktree isolation). Made explicit:
 
-- **New field:** `wip_limit` on the wave object (nullable int, parallel to the retired
-  `epic.wip_limit`). `null` = unbounded (the default for every wave until an operator opts in).
+- **Routing class:** this is the *autonomous* row of `delegation-routing.md` ("native
+  `/loop` + `claude -p` over tasks.json"), not in-session orchestration. The loop is the
+  foreman-shaped puller; each pulled task is dispatched to an **executor** (`claude -p`, or
+  an interactive build session when supervised).
+- **ADR-060 invariants apply to every executor, non-negotiable:** work happens in an
+  isolated ephemeral worktree cut from `dev`; result returns as a branch/PR into `dev`;
+  the loop/executor never merges to `dev` or `main`, never pushes production, and **never
+  sets `status:completed`** — a human gates promotion and completion.
+- **The work goes through the build framework:** the executor runs the pulled task through
+  `/brana:build` (or the runner's equivalent with the same gates — spec gate, TDD,
+  challenger, build_step tracking) per `always-use-build-framework.md`. The approved AC is
+  the machine-verifiable done-signal that framework grades; a bespoke execution path would
+  bypass exactly the machinery that makes `approved` meaningful.
+- **Sandbox precondition for unattended operation (ADR-062):** task `subject`/
+  `description`/AC content is untrusted input flowing into executor prompts. Supervised
+  interactive drain (human at the gates) may run without it; **unattended** drain
+  (ScheduleWakeup-paced overnight operation) inherits ADR-062's sandbox as a hard
+  precondition — t-2813 must not enable unattended mode before that gate is satisfiable.
+
+### 3. WIP enforcement: on waves, at pull time, atomically, no default
+
+Confirms t-2782's direction (WIP moves from epics to waves) and resolves its open questions,
+deferring only the numeric default to real usage data:
+
+- **New field:** `wip_limit` on the wave object — nullable **integer**, `null` = unbounded
+  (the default until an operator opts in). Implementation notes for t-2782: `set_wave_field`
+  is a hard allowlist that currently stores only strings — `wip_limit` needs a new
+  integer-parsing arm (the first non-string wave field), plus the MCP `backlog_wave_set`
+  mirror. **Name reuse is deliberate and scoped** (ADR-067): task-level `wip_limit` sits in
+  `RETIRED_FIELDS` and its guard (`reject_retired_fields`) is task-object-scoped; wave
+  writes must never route through it, retired-field validate checks stay `.tasks[]`-scoped,
+  and `RETIRED_FIELDS` gets a comment noting the scope so a future grep-shaped guard
+  extension doesn't wrongly reject the wave field.
 - **What counts as "live":** tasks matching the wave's selector with `status:in_progress`.
-  Not "explicitly linked to the wave" — waves select, they don't own (ADR-065 D3's own
-  framing: "It *selects* tasks; it does not *own* them"); membership is always computed via
-  the selector, never a stored link, keeping this consistent with how `drain`'s match works.
-- **Enforcement point:** at the **loop's pull step** (t-2813), not at `wave drain` and not at
-  task `start`. `drain` only reports/gates on the *sibling* wave via `gate` (t-2775's
-  existing scope) — it has no reason to also enforce WIP, since it doesn't execute anything.
-  Task `start` stays ungated by waves entirely: a human can still manually start a
-  wave-matched task outside the loop, same as today — waves don't gate creation/start the way
-  epics used to, and this ADR doesn't change that. The loop is the only actor that "pulls
-  jobs," so it's the only actor that needs to check the bound before pulling one more.
-- **Mechanism:** before each pull, the loop counts current live tasks (as defined above) for
-  the wave; if `count >= wip_limit`, skip pulling this cycle (poll again later — this is a
-  natural fit for `ScheduleWakeup`'s dynamic-loop pacing, not a hard stop).
-- **t-2782 still owns:** the exact default/derivation once real `drain` usage exists, any
-  cockpit/reporting surface for "N/limit in flight," and whether a limit is ever enforced
-  retroactively (e.g. a wave whose limit is lowered while over it — out of scope here, decide
-  when it's observed).
+  Computed, never a stored link (ADR-065 D3: waves select, don't own). **Accepted
+  limitation of the no-stored-link design:** re-tagging a task mid-execution so it stops
+  matching the selector silently frees a WIP slot while the work is still running — real
+  concurrency can then exceed `wip_limit`. Named and accepted (consistent with D3's
+  rationale) rather than fixed with a claim/lease mechanism this MVP doesn't need.
+- **Enforcement point:** the **loop's pull step only** (t-2813). Not at `drain` (a snapshot
+  report), not at task `start` (humans can still manually start wave-matched tasks outside
+  the loop, same as today).
+- **The pull is one atomic critical section.** Count-then-pull as two independent calls is a
+  TOCTOU: two loop cycles (or loop + human start) both read `count < limit` and both
+  proceed, overshooting the limit. The pull step must run inside a single
+  `lock_tasks` RMW: lock → re-read fresh → count live → re-verify the target task is still
+  `status:pending` (and still approved/unparked) → write `in_progress` → save → unlock.
+  The existing unlocked read paths (e.g. `backlog_get`) are fine for reporting but must not
+  feed the pull decision.
+- **Overlapping selectors don't compose.** Two concurrently-draining waves whose selectors
+  overlap each count a shared task against their own cap independently; per-wave budgets are
+  not additive and a task pulled under one wave counts as live in every wave that matches
+  it. The atomic pull (above) is what prevents two waves' loops double-pulling the same
+  task. Supported, with these semantics — not an error.
+- **Selector edits while draining are rejected.** `set_wave_field` refuses `selector`/`gate`
+  writes while `status == "draining"` (error: requeue the wave first). Waves have no `log`
+  field, so a mid-drain selector edit would silently redirect what the next cycle pulls
+  with zero audit trail. Cheap validation arm, rides with t-2782's `wip_limit` arm.
+- **t-2782 still owns:** the numeric default/derivation once real drain usage exists, any
+  cockpit surface for "N/limit in flight," and retroactive-lowering semantics (decide when
+  observed).
 
 ## Consequences
 
-- **t-2775** (wave drain CLI) needs one adjustment to its already-approved scope: land the
-  gate-check + `tag:<name>` selector resolution as an importable `brana-core` function (not
-  CLI-command-local), so §2's reuse requirement is satisfiable. This does not change
-  `wave-gate-enforcement.md`'s behavior or test list — it's an internal-structure note for
-  the implementer, not a spec rewrite.
-- **t-2812** (ac_state approval verb) is unblocked by this ADR — scope is exactly §1: the
-  `approve` verb, CLI + MCP, plus wiring the loop runner (t-2813) to filter on
-  `ac_state:approved`. `ac <id> add` stays out of scope.
-- **t-2813** (loop runner, capstone) is unblocked in design terms but stays practically
-  blocked_by t-2775 and t-2812 landing first (existing `blocked_by` on the task is correct
-  and unchanged) — this ADR defines the contract those two must expose, not a way to skip
-  building them.
-- **t-2782** (WIP-on-waves) gets its three open design questions resolved by §3 above; its
-  remaining scope shrinks to: add the `wip_limit` field + validation, wire the loop's
-  count-and-skip check, and decide the numeric default from real usage — no longer an open
-  architecture question.
-- **`wave-gate-enforcement.md`** is not amended in content — this ADR sits alongside it,
-  covering what it explicitly deferred, not what it already specified.
+- **t-2775** (wave drain CLI): land the gate-check + `tag:` selector resolution as an
+  importable brana-core function serving both callers (one-shot CLI, per-cycle loop
+  polling). Behavior and test list per `wave-gate-enforcement.md`, unchanged.
+- **t-2812** (approve verb): scope is §1 — promote+flip verb (CLI + MCP), the
+  approved-write rejection in the generic `set` path, the AC-edit→`proposed` reset in
+  `set_field`'s `acceptance_criteria` arm, and wiring t-2813's approved-filter. `ac add`
+  stays out.
+- **t-2813** (loop runner, capstone): §2 + §2b + §3's atomic pull. Stays `blocked_by`
+  t-2775/t-2782/t-2812. Its tool manifest denies the approve verb (§1). Unattended mode is
+  additionally gated on ADR-062's sandbox. Converges with the ADR-074/t-1994 foreman
+  contract when that lands — this is the interim, not a competing loop architecture.
+- **t-2782** (WIP-on-waves): design questions resolved by §3; remaining scope: `wip_limit`
+  integer arm + MCP mirror + draining-edit rejection in `set_wave_field`, the loop's
+  atomic count-and-pull, ADR-067 scope comment, numeric default from usage data.
+- **`wave-gate-enforcement.md`**: not amended — this ADR covers what it deferred.
+- **Review checkpoint (pre-registered, per ADR-076's precedent):** after the first ~10 real
+  wave drains, review: has any wave set `wip_limit`? has `ac approve` been used outside this
+  epic's own tasks? If both answers are no, the unused halves get the ADR-076 treatment —
+  revisit and shrink rather than let dead mechanism accrete.
 
 ## Alternatives considered
 
-- **Enforce WIP at `wave drain` time** (cap the matched list drain reports). Rejected: `drain`
-  is a snapshot report with no ongoing process attached to it; a cap there would be stale the
-  moment a task elsewhere in the matched set finishes, and doesn't fit `drain`'s "report,
-  don't execute" contract (`wave-gate-enforcement.md` §1.3).
-- **Link tasks to waves explicitly (a stored membership field) instead of re-resolving the
-  selector.** Rejected: contradicts ADR-065 D3's "waves select, don't own" framing and doubles
-  the bookkeeping (selector *and* a link that can drift from it) for no benefit the selector
-  doesn't already provide.
-- **Auto-ship a wave when its matched set empties.** Rejected: already explicitly out of scope
-  in `wave-gate-enforcement.md` §1.4 as a "reasonable fast-follow, not required" — this ADR
-  doesn't reopen that call.
-- **Guess a default `wip_limit` now** (e.g. port the retired epic default of 10). Rejected:
-  this is the exact mistake ADR-065's own amendment names (9/55 epics sat 4-7x over an
-  unvalidated default). No wave has drained yet in live data; `null`/unbounded is the only
-  honest default until usage exists.
+- **Enforce WIP at `wave drain` time.** Rejected: `drain` is a snapshot report; a cap there
+  is stale immediately and violates its "report, don't execute" contract.
+- **Stored wave-membership link instead of re-resolving.** Rejected: contradicts ADR-065 D3
+  and doubles bookkeeping (selector + a link that drifts from it).
+- **Auto-ship on empty matched set.** Rejected: already out of scope in
+  `wave-gate-enforcement.md` §1.4; not reopened.
+- **Guess a default `wip_limit` now.** Rejected: the epic-cap retirement is the cautionary
+  tale (9/55 epics 4-7x over an unvalidated default). `null` is the only honest default
+  until usage exists.
+- **Approve verb without promotion (state-flip only).** Rejected after fact-check: the
+  existing proposer writes `proposed_acceptance_criteria`, so a flip-only verb with an
+  `acceptance_criteria` precondition rejects every loop-prepared task; promotion is the
+  missing half of t-2288's own documented design.
+- **Content-hash snapshot at approval, verified at drain time** (instead of edit-resets-
+  state). Considered for binding approval to content; rejected as heavier — the reset rule
+  achieves the same trust boundary with one line in an existing match arm and no new stored
+  state.
+
+## Challenge record (2026-08-13)
+
+Reviewed same-day by three independent passes (adversarial challenger, code fact-check,
+cross-ADR alignment audit). Material findings, all amended into the text above: the original
+§1 precondition was broken against the existing `ac-propose` proposer (fact-check — approve
+now promotes); the Context's "zero writers/readers" audit claim was wrong (corrected);
+execution contract was entirely implicit (alignment BLOCKER — now §2b); the WIP check was a
+TOCTOU as described (challenger MAJOR — now an atomic critical section); approval didn't
+bind to content (challenger MAJOR — now the edit-reset rule); parked tasks were
+loop-eligible (now excluded); the generic-`set` bypass made the precondition decorative (now
+rejected at the shared layer); self-approval was structurally possible (now denied in the
+runner manifest); plus minor items: overlapping-selector semantics, mid-drain selector-edit
+rejection, the re-tag WIP-slot leak named as accepted limitation, ADR-067 name-scoping, and
+the pre-registered review checkpoint.
