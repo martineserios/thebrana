@@ -927,6 +927,16 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
     }
 }
 
+/// Drain a wave (t-2775, wave-gate-enforcement.md): gate check → selector
+/// resolution → report matched tasks + set wave status to "draining". Does
+/// NOT execute anything or touch matched tasks. Draining an already-draining
+/// wave is idempotent (re-resolves and re-reports — fits ADR-079's
+/// re-resolve-each-cycle model); draining a shipped wave is a caller error.
+pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let _ = (wave_id, file);
+    todo!("t-2775: wave drain not implemented yet")
+}
+
 /// Definition-of-ready lint for autonomous dispatch (t-1981).
 /// Returns Ok(ready); the caller maps not-ready to exit code 1.
 pub fn cmd_lint(task_id: &str, json_out: bool, file: Option<PathBuf>) -> anyhow::Result<bool> {
@@ -2715,6 +2725,123 @@ mod tests {
         assert_eq!(w["selector"], "shape:mechanical");
         assert_eq!(w["contract"], "ship criteria");
         assert_eq!(w["gate"], "wave-0");
+    }
+
+    // ── t-2775: wave drain (gate enforcement + tag: selector) ────────────
+
+    fn drain_fixture(tasks_json: &str, waves_json: &str) -> tempfile::NamedTempFile {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"test","tasks":{tasks_json},"waves":{waves_json}}}"#)
+            .unwrap();
+        f.flush().unwrap();
+        f
+    }
+
+    fn read_tasks_arr(f: &tempfile::NamedTempFile) -> serde_json::Value {
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        data["tasks"].clone()
+    }
+
+    #[test]
+    fn cmd_wave_drain_no_gate_sets_draining() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","tags":["bugfix"],"blocked_by":[]}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:bugfix","gate":null,"status":"queued"}]"#,
+        );
+        cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_drain_does_not_touch_matched_tasks() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","tags":["bugfix"],"blocked_by":[]}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:bugfix","gate":null,"status":"queued"}]"#,
+        );
+        cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let tasks = read_tasks_arr(&f);
+        assert_eq!(tasks[0]["status"], "pending", "drain must not touch matched tasks");
+        assert!(tasks[0].get("wave").is_none(), "drain must not stamp tasks");
+    }
+
+    #[test]
+    fn cmd_wave_drain_gate_not_shipped_blocks_naming_wave() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"g","selector":"tag:x","gate":null,"status":"draining"},
+                {"id":"wave-2","name":"w","selector":"tag:x","gate":"wave-1","status":"queued"}]"#,
+        );
+        let err = cmd_wave_drain("wave-2", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("wave-1"), "must name the blocking wave: {err}");
+        assert_eq!(read_waves(&f)[1]["status"], "queued", "blocked drain must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_drain_gate_shipped_allows() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"g","selector":"tag:x","gate":null,"status":"shipped"},
+                {"id":"wave-2","name":"w","selector":"tag:x","gate":"wave-1","status":"queued"}]"#,
+        );
+        cmd_wave_drain("wave-2", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[1]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_drain_nonexistent_gate_fails_loud() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:x","gate":"wave-99","status":"queued"}]"#,
+        );
+        let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("wave-99") && err.to_string().contains("not found"),
+            "broken gate must fail loud, not act as no-gate: {err}");
+        assert_eq!(read_waves(&f)[0]["status"], "queued");
+    }
+
+    #[test]
+    fn cmd_wave_drain_nonexistent_wave_errors() {
+        let f = drain_fixture("[]", "[]");
+        let err = cmd_wave_drain("wave-7", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("wave-7"));
+    }
+
+    #[test]
+    fn cmd_wave_drain_non_tag_selector_rejected() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"shape:mechanical ac_state:approved","gate":null,"status":"queued"}]"#,
+        );
+        let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("MVP only resolves tag:<name>"),
+            "unsupported selector must be rejected, not silently no-op'd: {err}");
+        assert_eq!(read_waves(&f)[0]["status"], "queued", "rejected drain must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_drain_on_draining_is_idempotent() {
+        // Decided during implementation (spec left it open): re-draining a
+        // draining wave re-resolves and re-reports — useful, harmless.
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:x","gate":null,"status":"draining"}]"#,
+        );
+        cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_drain_on_shipped_rejected() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:x","gate":null,"status":"shipped"}]"#,
+        );
+        let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("shipped"),
+            "draining finished work is a caller error: {err}");
+        assert_eq!(read_waves(&f)[0]["status"], "shipped");
     }
 
     #[test]

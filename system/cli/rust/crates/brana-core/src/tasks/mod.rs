@@ -10,12 +10,14 @@ mod validation;
 mod query;
 mod rollup;
 mod stats;
+mod wave;
 
 
 pub use validation::*;
 pub use query::*;
 pub use rollup::*;
 pub use stats::*;
+pub use wave::*;
 
 
 
