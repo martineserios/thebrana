@@ -68861,7 +68861,7 @@
       "description": null,
       "effort": "S",
       "kind": "refactor",
-      "notes": null,
+      "notes": "2026-08-13: doc-fix half MERGED to thebrana dev (6d90d023, --no-ff of 341eaf5a); worktree/branch cleaned up. Task deliberately stays OPEN — it is the live tracker for the unfixed CLI root cause (session write replace/union behavior), per merge-review note.",
       "order": 0,
       "parent": null,
       "priority": "P3",
@@ -72158,7 +72158,7 @@
     {
       "id": "t-2782",
       "subject": "Design WIP-capping strategy on waves (after wave drain lands)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -72173,13 +72173,13 @@
       "parent": "t-2811",
       "created": "2026-08-12",
       "started": "2026-08-13",
-      "completed": null,
+      "completed": "2026-08-13",
       "blocked_by": [
         "t-2775"
       ],
       "branch": "backlog-drain/feat/t-2782-wave-wip-limit",
       "context": "2026-08-12: spun out of t-2727 (epic WIP cap retirement) per user direction — \"no capping epics, cap/create waves following a wip strategy.\" See t-2727 for the epic-cap retirement rationale and ADR-065 D4 amendment.\n2026-08-12: additional design intent from task owner — wave drain was originally conceived to fit CC loops: an autonomous /loop or claude -p runner picks jobs off a wave's drain queue. This is a much closer fit for a WIP cap than the epic cap ever was — it directly bounds how many jobs a loop pulls/works concurrently, rather than an epic's total accumulated backlog size. When this task is picked up, design the wip_limit semantics against that consumer (loop draining a wave) specifically, not just as an abstract count-of-matched-tasks like the retired epic check was.\n2026-08-13: ADR-079 §3 resolves this task's three open questions: new nullable wip_limit field on wave (null=unbounded default); \"live\" = selector-matched tasks with status:in_progress (computed, never a stored link); enforcement at the loop's pull step only (not drain, not task start). Remaining scope: field+validation, loop count-and-skip wiring, numeric default from real usage data.\n2026-08-13 (ADR-079 as amended): implementation additions — wip_limit needs a new INTEGER-parsing arm in set_wave_field (first non-string wave field) + backlog_wave_set MCP mirror; set_wave_field must REJECT selector/gate edits while status:draining (requeue first); keep reject_retired_fields task-scoped + add scope comment on RETIRED_FIELDS (ADR-067 — task wip_limit is retired, wave wip_limit is deliberate reuse); overlapping selectors don't compose (task counts against every matching wave); re-tag mid-execution WIP-slot leak is a named accepted limitation.\n2026-08-13 start: reclassified kind design->feature, effort M->S — the design questions were all resolved by ADR-079 §3; remaining scope is the small implementation slice (wip_limit integer arm + MCP mirror via shared set_wave_field, draining-edit rejection, ADR-067 scope comment). The loop's atomic count-and-pull rides with t-2813 (enforcement point is the pull step), NOT here — documented assumption per ADR-079 §3 vs its consequences bullet.",
-      "notes": null,
+      "notes": "Challenger gate: PROCEED (2026-08-13), 5/5 AC verified, suite independently reproduced (1435 green), no security findings; one cosmetic nit (MCP field schema comment) fixed in bddf089. Shipped: wip_limit integer arm (number-typed, 0 legal, null=unbounded), draining selector/gate freeze with requeue pointer, ADR-067 scope comment, MCP mirror via shared arm. Atomic count-and-pull deliberately deferred to t-2813 per ADR-079 §3 enforcement-point decision. Branch backlog-drain/feat/t-2782-wave-wip-limit ready to merge to dev.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -72192,7 +72192,8 @@
       ],
       "work_type": "implement",
       "ac_state": "none",
-      "strategy": "feature"
+      "strategy": "feature",
+      "build_step": null
     },
     {
       "id": "t-2783",
@@ -73419,7 +73420,7 @@
     {
       "id": "t-2823",
       "subject": "MVP: L0 Reporter loop — pipeline digest (read-only gauge)",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -73433,18 +73434,23 @@
       "priority": null,
       "parent": "t-2820",
       "created": "2026-08-13",
-      "started": null,
+      "started": "2026-08-13",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "loop-first/feat/t-2823-l0-reporter-digest",
       "context": "Origin: 2026-08-13 brainstorm (docs/ideas/loop-first-redesign.md — see §Challenger review: 3× RECONSIDER verdicts all gate L1+/unattended/drain-inbox writes; L0 read-only is the sanctioned start). Design rules that DO apply even at L0: dedicated lean loop session (cache-read ≈ context size — never piggyback a fat session), 30m+ cadence, cheap no-op preflight, digest lands in a durable file (gauge readable by SessionStart/ops later). Probe evidence day-1 (2026-08-13): 5 unmerged branches (1 active 3min prior, 1 dirty worktree, 1 838-behind), 4 stale merged branches, 9 inbox items. Script direction: extend the probe commands already validated this session (rev-list left-right, merge-tree, worktree status, backlog stale).\\nAC: digest artifact produced on a real beat\\nAC: zero write operations in the loop path (read-only verified)",
-      "notes": null,
+      "notes": "Evaluator: PASS (2026-08-13), 2 criteria checked — both MET (real-beat artifact + read-only verified T5/T6)",
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "digest artifact produced on a real beat",
+        "zero write operations in the loop path (read-only verified)"
+      ],
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature",
+      "build_step": "build"
     }
   ],
   "version": 3
