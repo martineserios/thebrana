@@ -18,8 +18,22 @@ use super::query::tag_matches;
 /// - gated wave status != "shipped" → Err naming the blocking wave.
 /// - gated wave shipped → Ok.
 pub fn check_wave_gate(wave: &Value, all_waves: &[Value]) -> Result<(), String> {
-    let _ = (wave, all_waves);
-    todo!("t-2775: gate check not implemented yet")
+    let gate = match wave["gate"].as_str() {
+        Some(g) if !g.is_empty() => g,
+        _ => return Ok(()),
+    };
+    let gated = all_waves
+        .iter()
+        .find(|w| w["id"].as_str() == Some(gate))
+        .ok_or_else(|| format!("gate wave {gate} not found"))?;
+    let status = gated["status"].as_str().unwrap_or("unknown");
+    if status != "shipped" {
+        let id = wave["id"].as_str().unwrap_or("?");
+        return Err(format!(
+            "wave {id} blocked: gate wave {gate} not shipped (status: {status})"
+        ));
+    }
+    Ok(())
 }
 
 /// MVP selector resolution. Supports exactly one selector form: `tag:<name>`
@@ -31,8 +45,25 @@ pub fn resolve_wave_selector<'a>(
     wave: &Value,
     tasks: &'a [Value],
 ) -> Result<Vec<&'a Value>, String> {
-    let _ = (wave, tasks, tag_matches as fn(&[&str], &str) -> bool);
-    todo!("t-2775: selector resolution not implemented yet")
+    let selector = wave["selector"].as_str().unwrap_or("").trim();
+    let name = selector
+        .strip_prefix("tag:")
+        .filter(|n| !n.is_empty() && !n.contains(char::is_whitespace))
+        .ok_or_else(|| {
+            format!("selector form not supported — MVP only resolves tag:<name> (got: {selector:?})")
+        })?;
+    Ok(tasks
+        .iter()
+        .filter(|t| {
+            t["status"].as_str() == Some("pending") && {
+                let tags: Vec<&str> = t["tags"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                    .unwrap_or_default();
+                tag_matches(&tags, name)
+            }
+        })
+        .collect())
 }
 
 #[cfg(test)]

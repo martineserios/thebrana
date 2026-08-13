@@ -933,8 +933,51 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
 /// wave is idempotent (re-resolves and re-reports — fits ADR-079's
 /// re-resolve-each-cycle model); draining a shipped wave is a caller error.
 pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
-    let _ = (wave_id, file);
-    todo!("t-2775: wave drain not implemented yet")
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let waves = val["waves"].as_array().cloned().unwrap_or_default();
+    let idx = waves
+        .iter()
+        .position(|w| w["id"].as_str() == Some(wave_id))
+        .ok_or_else(|| {
+            eprintln!("{{\"ok\":false,\"error\":\"wave {wave_id} not found\"}}");
+            anyhow::anyhow!("wave {wave_id} not found")
+        })?;
+    let wave = &waves[idx];
+
+    // Draining finished work is a caller error; re-draining a draining wave
+    // is idempotent (re-resolves, re-reports — ADR-079's re-resolve model).
+    if wave["status"].as_str() == Some("shipped") {
+        let msg = format!("wave {wave_id} already shipped — nothing to drain");
+        eprintln!("{}", serde_json::json!({"ok": false, "error": msg}));
+        anyhow::bail!(msg);
+    }
+
+    let fail = |msg: String| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": msg}));
+        anyhow::anyhow!(msg)
+    };
+    tasks::check_wave_gate(wave, &waves).map_err(fail)?;
+
+    let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
+    let matched = tasks::resolve_wave_selector(wave, &tasks_arr).map_err(fail)?;
+    let report: Vec<serde_json::Value> = matched
+        .iter()
+        .map(|t| serde_json::json!({"id": t["id"], "subject": t["subject"]}))
+        .collect();
+
+    val["waves"][idx]["status"] = serde_json::Value::String("draining".into());
+    tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!("{}", serde_json::json!({
+        "ok": true, "id": wave_id, "status": "draining",
+        "matched": report, "count": report.len(),
+    }));
+    Ok(())
 }
 
 /// Definition-of-ready lint for autonomous dispatch (t-1981).
