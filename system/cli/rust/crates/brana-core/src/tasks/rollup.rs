@@ -93,6 +93,117 @@ pub fn perform_ac_propose(
     Ok(applied)
 }
 
+/// t-2812 (ADR-079 §1): what an approve did — consumed by the CLI/MCP verbs
+/// for their result payload.
+#[derive(Debug, PartialEq, Eq)]
+pub struct AcApprove {
+    /// Criteria newly moved from `proposed_acceptance_criteria` into
+    /// `acceptance_criteria` (post-dedup — items already present don't count).
+    pub promoted: usize,
+    /// The task was already `approved` before this call (idempotent re-approve).
+    pub already_approved: bool,
+}
+
+/// t-2812: read a criteria field into owned strings. Array-of-strings is the
+/// canonical shape; a bare non-empty string (legacy pre-ADR-047 data, still on
+/// disk — see `test_normalize_array_fields_does_not_split_acceptance_criteria`)
+/// coerces to a single-element vec, whole-string, never comma-split. Null /
+/// absent / empty-string are empty. A non-string array element is an error:
+/// silently dropping it would approve a different contract than the one stored.
+fn criteria_vec(v: &Value, field: &str) -> Result<Vec<String>, String> {
+    match v {
+        Value::Null => Ok(vec![]),
+        Value::String(s) if s.trim().is_empty() => Ok(vec![]),
+        Value::String(s) => Ok(vec![s.clone()]),
+        Value::Array(arr) => arr
+            .iter()
+            .map(|e| {
+                e.as_str().map(str::to_string).ok_or_else(|| {
+                    format!("{field} contains a non-string element ({e}) — fix the task data before approving")
+                })
+            })
+            .collect(),
+        other => Err(format!("{field} must be an array of strings (got: {other})")),
+    }
+}
+
+/// t-2812 (ADR-079 §1): the sanctioned transition to `ac_state:approved` —
+/// approve = promote + flip, atomically. Completes the promotion path t-2288's
+/// proposer (`apply_ac_proposals` above) was built against:
+///
+/// 1. **Promote:** dedup-union `proposed_acceptance_criteria` into
+///    `acceptance_criteria` (existing order first — a human-authored contract is
+///    never destroyed by a loop proposal), then remove the proposed key.
+/// 2. **Flip:** `ac_state = "approved"`.
+///
+/// Precondition: at least one of the two fields non-empty — approving nothing
+/// is an error, not a silent flip. Accepts from `none`, `proposed`, or a
+/// key-absent legacy task (opt-in, same precedent as set_field's ac_state arm);
+/// idempotent on `approved`. Errors leave the task untouched: all fallible
+/// reads happen before the first write.
+///
+/// Writes the fields directly rather than via `set_field` — deliberately, twice
+/// over: set_field rejects `ac_state:approved` (this verb IS the sanctioned
+/// path), and set_field's acceptance_criteria arm resets approved→proposed
+/// (promotion must not immediately un-approve itself).
+pub fn approve_ac(task: &mut Value) -> Result<AcApprove, String> {
+    let state = match task.get("ac_state") {
+        None | Some(Value::Null) => "none",
+        Some(Value::String(s)) => s.as_str(),
+        Some(other) => return Err(format!("ac_state is not a string: {other}")),
+    };
+    let already_approved = match state {
+        "none" | "proposed" | "approved" | "" => state == "approved",
+        other => return Err(format!("invalid ac_state {other:?} on task — fix before approving")),
+    };
+
+    let existing = criteria_vec(&task["acceptance_criteria"], "acceptance_criteria")?;
+    let proposed = criteria_vec(&task[PROPOSED_AC_FIELD], PROPOSED_AC_FIELD)?;
+    if existing.is_empty() && proposed.is_empty() {
+        return Err(
+            "no acceptance criteria to approve — populate acceptance_criteria \
+             or proposed_acceptance_criteria first"
+                .into(),
+        );
+    }
+
+    let mut merged = existing;
+    let mut promoted = 0;
+    for p in proposed {
+        if !merged.contains(&p) {
+            merged.push(p);
+            promoted += 1;
+        }
+    }
+
+    task["acceptance_criteria"] =
+        Value::Array(merged.into_iter().map(Value::String).collect());
+    if let Some(obj) = task.as_object_mut() {
+        obj.remove(PROPOSED_AC_FIELD);
+    }
+    task["ac_state"] = Value::String("approved".into());
+
+    Ok(AcApprove { promoted, already_approved })
+}
+
+/// t-2812: file-level approve — lock, load, find, approve, save. Mirrors
+/// `perform_ac_propose`'s sealed read-modify-write over a raw `Value`.
+pub fn perform_ac_approve(path: &Path, task_id: &str) -> Result<AcApprove, String> {
+    let _lock = lock_tasks(path)?;
+    let mut val = load_raw(path)?;
+    let tasks = val["tasks"].as_array_mut().ok_or("tasks is not an array")?;
+    let task = tasks
+        .iter_mut()
+        .find(|t| t["id"].as_str() == Some(task_id))
+        .ok_or_else(|| format!("task {task_id} not found"))?;
+
+    let outcome = approve_ac(task)?;
+
+    val["last_modified"] = Value::String(chrono::Local::now().to_rfc3339());
+    save_tasks(path, &val).map_err(|e| format!("ac approve write failed: {e}"))?;
+    Ok(outcome)
+}
+
 /// Find parent IDs that should be auto-completed (all children done).
 pub fn find_rollup_candidates(tasks: &[Value]) -> Vec<String> {
     let mut candidates = Vec::new();
