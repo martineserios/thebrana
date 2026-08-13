@@ -2796,11 +2796,84 @@ mod tests {
 
     #[test]
     fn test_set_field_ac_state_valid_values() {
-        for v in ["none", "proposed", "approved"] {
+        // "approved" removed 2026-08-13 (t-2815, ADR-079 §1): the generic set
+        // path now rejects it — the sanctioned transition is the approve verb.
+        for v in ["none", "proposed"] {
             let mut task = json!({"id": "t-1"});
             set_field(&mut task, "ac_state", v, false).unwrap();
             assert_eq!(task["ac_state"], v);
         }
+    }
+
+    // ── t-2812/t-2815 (ADR-079 §1): approved is verb-only; AC edits reset ──
+
+    #[test]
+    fn test_set_field_ac_state_approved_rejected_with_verb_pointer() {
+        let mut task = json!({"id": "t-1", "ac_state": "proposed"});
+        let err = set_field(&mut task, "ac_state", "approved", false).unwrap_err();
+        assert!(
+            err.contains("ac") && err.contains("approve"),
+            "rejection must point at the sanctioned verb: {err}"
+        );
+        assert_eq!(task["ac_state"], "proposed", "task unchanged on rejection");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_replace_resets_approved_to_proposed() {
+        // ADR-079 §1 content-binding: an approval of criteria that were then
+        // edited is an approval of nothing (ADR-076-D2 moving-target class).
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["old contract"]
+        });
+        set_field(&mut task, "acceptance_criteria", r#"["new contract"]"#, false).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["new contract"]));
+        assert_eq!(task["ac_state"], "proposed", "full-array replace must reset approval");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_append_resets_approved_to_proposed() {
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["kept"]
+        });
+        set_field(&mut task, "acceptance_criteria", "+also this", false).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["kept", "also this"]));
+        assert_eq!(task["ac_state"], "proposed", "+item append must reset approval");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_remove_resets_approved_to_proposed() {
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["kept","dropped"]
+        });
+        set_field(&mut task, "acceptance_criteria", "-dropped", false).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["kept"]));
+        assert_eq!(task["ac_state"], "proposed", "-item remove must reset approval");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_no_reset_when_not_approved() {
+        for state in ["none", "proposed"] {
+            let mut task = json!({
+                "id":"t-1","ac_state":state,"acceptance_criteria":[]
+            });
+            set_field(&mut task, "acceptance_criteria", r#"["x"]"#, false).unwrap();
+            assert_eq!(task["ac_state"], state, "non-approved state must not change");
+        }
+        // Legacy key-absent task must not gain the key from an AC edit.
+        let mut legacy = json!({"id":"t-1","acceptance_criteria":[]});
+        set_field(&mut legacy, "acceptance_criteria", r#"["x"]"#, false).unwrap();
+        assert!(legacy.get("ac_state").is_none(), "AC edit must not opt a legacy task in");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_failed_write_does_not_reset() {
+        // Boundary: a rejected write is not an edit — approval must survive it.
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["kept"]
+        });
+        assert!(set_field(&mut task, "acceptance_criteria", "not json", false).is_err());
+        assert_eq!(task["ac_state"], "approved", "failed write must not reset approval");
+        assert_eq!(task["acceptance_criteria"], json!(["kept"]));
     }
 
     #[test]
