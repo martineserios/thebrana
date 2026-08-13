@@ -72576,7 +72576,7 @@
         "bug",
         "sqlite"
       ],
-      "context": "Reproduction: any mcp__ruflo__memory_store call, or `$CF memory store`, from the proyecto_anita project, 2026-08-12 ~22:53 UTC. Same underlying store also failed backup-knowledge.sh integrity check around the same time. Likely two related but distinct issues: (1) a native WAL writer holding a lock that sql.js cannot safely read around, (2) actual on-disk page corruption in at least 3 btrees. Cross-reference t-2759 (memory/embedding store classified Known real today) and t-1570/t-1697 (prior ControllerRegistry bridge fixes) before re-diagnosing from scratch.\nAC: root-caused whether this is a live lock (self-resolves) or persistent corruption (needs repair/rebuild)\nAC: mcp__ruflo__memory_store succeeds from a clean session after the fix\nAC: backup-knowledge.sh integrity check passes clean, or a NON-zero exit is wired for a corrupt-DB result instead of the current silent exit-0\nskill_gap_checked: true (score < 0.3, user chose: skip)\n2026-08-12: Root-caused (AC1). Two distinct, unrelated failure modes bundled in one report:\n\n(1) memory_store WAL-lock failure: sql.js correctly refuses an unsafe whole-image write while a native writer holds the WAL (documented safe-guard behavior, see topic_ruflo-ops.md field-note_ruflo-multi-session-flock-removal — SQLite WAL mode safely serializes concurrent writers; this refusal is a live lock, self-resolving on retry, NOT corruption). The reported failure is that the advertised fallback path (\"restore the native better-sqlite3 bridge\") is unavailable because of the known @claude-flow/memory v3.34 ControllerRegistry double-export packaging bug (same root cause as t-2757/t-2793, documented in ruflo-stub-guard.md) — not a new defect. No fix available on our pinned version; AC2 (memory_store succeeds after fix) is blocked on that upstream fix, same as t-2793.\n\n(2) backup-knowledge.sh \"silent exit-0 despite corruption WARNING\" (AC3): NOT a bug in brana-knowledge/backup.sh itself — that script already does `PRAGMA integrity_check` on the backup copy and correctly `exit 1`s with a WARNING when corrupt. The bug was in every thebrana skill call site: `\"$HOME/.claude/scripts/backup-knowledge.sh\" 2>/dev/null || true` (close/metadata-and-memory.md, retrospective/SKILL.md) discarded the WARNING text via `2>/dev/null` and force-exited 0 via `|| true`; client-retire/SKILL.md and memory/SKILL.md called it bare with no exit-code handling at all. Fixed: added system/skills/_shared/backup-knowledge-invoke.md (run_knowledge_backup(), tested by tests/procedures/test-backup-knowledge-invoke.sh) and repointed all 4 call sites to it. Failure now surfaces a stderr warning with the underlying diagnostic instead of vanishing. AC3 satisfied.\n\nAC2 remains blocked on the upstream ControllerRegistry packaging fix (not actionable from this repo) — same blocker as t-2793. Leaving task open/tracked rather than completed until that lands, per no-patches-root-cause: the class of problem (bridge unavailable) is separate from the class fixed here (swallowed exit codes).",
+      "context": "Reproduction: any mcp__ruflo__memory_store call, or `$CF memory store`, from the proyecto_anita project, 2026-08-12 ~22:53 UTC. Same underlying store also failed backup-knowledge.sh integrity check around the same time. Likely two related but distinct issues: (1) a native WAL writer holding a lock that sql.js cannot safely read around, (2) actual on-disk page corruption in at least 3 btrees. Cross-reference t-2759 (memory/embedding store classified Known real today) and t-1570/t-1697 (prior ControllerRegistry bridge fixes) before re-diagnosing from scratch.\nAC: root-caused whether this is a live lock (self-resolves) or persistent corruption (needs repair/rebuild)\nAC: mcp__ruflo__memory_store succeeds from a clean session after the fix\nAC: backup-knowledge.sh integrity check passes clean, or a NON-zero exit is wired for a corrupt-DB result instead of the current silent exit-0\nskill_gap_checked: true (score < 0.3, user chose: skip)\n2026-08-12: Root-caused (AC1). Two distinct, unrelated failure modes bundled in one report:\n\n(1) memory_store WAL-lock failure: sql.js correctly refuses an unsafe whole-image write while a native writer holds the WAL (documented safe-guard behavior, see topic_ruflo-ops.md field-note_ruflo-multi-session-flock-removal — SQLite WAL mode safely serializes concurrent writers; this refusal is a live lock, self-resolving on retry, NOT corruption). The reported failure is that the advertised fallback path (\"restore the native better-sqlite3 bridge\") is unavailable because of the known @claude-flow/memory v3.34 ControllerRegistry double-export packaging bug (same root cause as t-2757/t-2793, documented in ruflo-stub-guard.md) — not a new defect. No fix available on our pinned version; AC2 (memory_store succeeds after fix) is blocked on that upstream fix, same as t-2793.\n\n(2) backup-knowledge.sh \"silent exit-0 despite corruption WARNING\" (AC3): NOT a bug in brana-knowledge/backup.sh itself — that script already does `PRAGMA integrity_check` on the backup copy and correctly `exit 1`s with a WARNING when corrupt. The bug was in every thebrana skill call site: `\"$HOME/.claude/scripts/backup-knowledge.sh\" 2>/dev/null || true` (close/metadata-and-memory.md, retrospective/SKILL.md) discarded the WARNING text via `2>/dev/null` and force-exited 0 via `|| true`; client-retire/SKILL.md and memory/SKILL.md called it bare with no exit-code handling at all. Fixed: added system/skills/_shared/backup-knowledge-invoke.md (run_knowledge_backup(), tested by tests/procedures/test-backup-knowledge-invoke.sh) and repointed all 4 call sites to it. Failure now surfaces a stderr warning with the underlying diagnostic instead of vanishing. AC3 satisfied.\n\nAC2 remains blocked on the upstream ControllerRegistry packaging fix (not actionable from this repo) — same blocker as t-2793. Leaving task open/tracked rather than completed until that lands, per no-patches-root-cause: the class of problem (bridge unavailable) is separate from the class fixed here (swallowed exit codes).\n2026-08-13: Reproduced live during this same session's close (Step 9b memory_store call) — identical error text (\"active native WAL connection... Bridge unavailable: Duplicate export of 'ControllerRegistry'\"). Confirms the AC1 diagnosis above; non-fatal, close proceeded via CLI session write per the documented fallback.",
       "id": "t-2796",
       "status": "in_progress",
       "execution": "code",
@@ -72685,6 +72685,64 @@
       "context": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2800",
+      "subject": "Fix 56 dangling wikilinks in auto-memory dir",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "memory",
+        "hygiene",
+        "close-carried"
+      ],
+      "description": "Auto-memory files under ~/.claude/projects/*/memory/ contain 56 [[wikilink]] references that don't resolve. Two classes: (1) prefix-drop — link uses bare slug ([[jq-pitfalls]]) but the actual file/anchor uses a type prefix ([[pattern_jq-pitfalls]]) — mechanical fix, find/replace with correct prefix; (2) prose-folded — link points at a memory that was folded under a prose heading in an earlier consolidation pass rather than kept as its own anchor — needs a per-link judgment call on whether to restore the anchor, retarget the link, or drop it.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2801",
+      "subject": "Consider anchoring LAST_CLOSE on session's own first commit",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "close-skill",
+        "epic-routing",
+        "session-state"
+      ],
+      "description": "Proposed alternative mechanism for the close gate anchor (CLOSE-ANCHOR-BLOCK, gate-and-evidence.md): anchor LAST_CLOSE on this session's own first commit when the newest session-state file post-dates it, so a concurrent session's LATER close cannot zero out this session's COMMIT_COUNT. Distinct from t-2784 (which fixed SESSION_EPICS's own window, not this LAST_CLOSE anchor mechanism) and related to ADR-069 D3's conclusion that windowing alone cannot solve the shared-checkout lane-identity problem — evaluate whether this proposal is a real improvement within that constraint or another instance of the same category error before implementing.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-08-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "research",
+      "ac_state": "none"
     }
   ],
   "version": 3
