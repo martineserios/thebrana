@@ -240,10 +240,12 @@ Primarily an operational change, not a code design:
 - **Mock policy:** N/A — no new collaborators introduced.
 
 ## Documentation Plan
-- [ ] **Tech doc** — this file, updated to `Status: implemented` at CLOSE.
+- [x] **Tech doc** — this file, updated to `Status: implemented` at CLOSE.
 - [ ] **Existing docs to update** — `brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md`
-      Version History table (new row for v3.10.39→v3.34.0, plus ADR-377/v3.32.34 notes).
-- [ ] **User guide** — not applicable; this is an internal ops change with no
+      Version History table (new row for v3.10.39→v3.34.0, plus ADR-377/v3.32.34 notes). Cross-repo
+      (brana-knowledge, not this repo) — not verifiable/actionable from here; carried to next[] at
+      close (2026-08-13, /brana:close PROPAGATE audit).
+- [x] **User guide** — not applicable; this is an internal ops change with no
       user-facing behavior.
 
 ## Challenger findings
