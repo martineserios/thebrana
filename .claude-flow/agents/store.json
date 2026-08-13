@@ -26,6 +26,32 @@
       "createdAt": "2026-08-12T11:56:51.401Z",
       "model": "haiku",
       "modelRoutedBy": "explicit"
+    },
+    "t-2802-corruption-investigator": {
+      "agentId": "t-2802-corruption-investigator",
+      "agentType": "researcher",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {},
+      "createdAt": "2026-08-13T00:54:09.488Z",
+      "domain": "ruflo-memory-db",
+      "model": "opus",
+      "modelRoutedBy": "router",
+      "provider": "anthropic"
+    },
+    "t-2793-controllerregistry-watcher": {
+      "agentId": "t-2793-controllerregistry-watcher",
+      "agentType": "researcher",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {},
+      "createdAt": "2026-08-13T00:54:10.129Z",
+      "domain": "ruflo-agentdb-bridge",
+      "model": "opus",
+      "modelRoutedBy": "router",
+      "provider": "anthropic"
     }
   },
   "version": "3.0.0"
