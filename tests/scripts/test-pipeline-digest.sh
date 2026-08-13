@@ -53,6 +53,7 @@ touch "$FIX/inbox/audio-2.m4a"
 # snapshot state before run (read-only verification baseline)
 REFS_BEFORE="$(git -C "$FIX" for-each-ref)"
 STATUS_BEFORE="$(git -C "$FIX" status --porcelain)"
+OBJ_BEFORE=$(find "$FIX/.git/objects" -type f | wc -l)
 
 # T2 — run produces the digest artifact
 BRANA_DIGEST_DIR="$DIGEST_DIR" "$DIGEST_SH" "$FIX" >/dev/null 2>&1
@@ -84,10 +85,18 @@ STATUS_AFTER="$(git -C "$FIX" status --porcelain)"
     | grep -vE '^\s*#|merge-base|merge-tree' | grep -q .
 check "T6: no mutating git subcommands in script source" $?
 
-# T7 — history line appended per beat (two runs -> two lines)
-BRANA_DIGEST_DIR="$DIGEST_DIR" "$DIGEST_SH" "$FIX" >/dev/null 2>&1
+# T7 — history line appended per beat (two runs -> two lines);
+#      second identical run prints a short no-change line, not the full digest
+OUT2="$(BRANA_DIGEST_DIR="$DIGEST_DIR" "$DIGEST_SH" "$FIX" 2>/dev/null)"
 LINES=$(wc -l < "$DIGEST_DIR/history.jsonl" 2>/dev/null || echo 0)
 [ "$LINES" -eq 2 ]; check "T7: history.jsonl has one line per run" $?
+echo "$OUT2" | grep -q "no change"; check "T7b: unchanged beat prints no-change line" $?
+[ "$(printf '%s\n' "$OUT2" | wc -l)" -le 3 ]; check "T7c: unchanged beat output is short (no full digest)" $?
+
+# T7d — loose-object count unchanged (merge-tree probe must not write into
+#       the observed repo's object store — challenger finding 1)
+OBJ_AFTER=$(find "$FIX/.git/objects" -type f | wc -l)
+[ "$OBJ_BEFORE" -eq "$OBJ_AFTER" ]; check "T7d: no objects written into observed repo" $?
 
 # T8 — boundary: missing inbox dir does not fail the beat
 rm -rf "$FIX/inbox"
