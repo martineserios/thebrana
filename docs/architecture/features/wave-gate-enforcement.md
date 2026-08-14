@@ -1,5 +1,9 @@
 # Wave gate enforcement (t-2744)
 
+> Extended 2026-08-14 by [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §1
+> (t-2840) — see §ADR-080 extension below. The "MVP only resolves tag:<name>"
+> restriction and the out-of-scope line on selector forms are superseded.
+
 Status: **implemented (t-2775, 2026-08-13).** `check_wave_gate` +
 `resolve_wave_selector` live in `brana-core/src/tasks/wave.rs` (exported as
 importable functions per [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md)
