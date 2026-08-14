@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T16:41:09Z",
+  "generated": "2026-08-14T17:40:37Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -3811,6 +3811,21 @@
     },
     "docs/research/2026-08-14-agent-work-contracts.md": {
       "title": "Agent Work Contracts: Research Findings",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-08-14-judge-panel-probe.md": {
+      "title": "Judge-panel probe — retrospective measurement (t-2887)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-08-14-llm-judge-panels.md": {
+      "title": "Multi-Agent LLM Judge Panels: Research Findings 2024-2026",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-08-14-multiagent-orchestration-lessons.md": {
+      "title": "Multi-Agent Orchestration: 2024–2026 Lessons Learned",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -15296,6 +15311,24 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/loop-task-multiagent.md",
+      "to": "docs/research/2026-08-14-judge-panel-probe.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-task-multiagent.md",
+      "to": "docs/research/2026-08-14-llm-judge-panels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-task-multiagent.md",
+      "to": "docs/research/2026-08-14-multiagent-orchestration-lessons.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/venture-playbook-product-management.md",
       "to": "docs/guide/workflows/venture.md",
       "type": "references",
@@ -16394,6 +16427,12 @@
       "computed": false
     },
     {
+      "from": "docs/research/2026-08-14-judge-panel-probe.md",
+      "to": "docs/ideas/loop-task-multiagent.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/agentic-engineering-2026-gap-analysis.md",
       "to": "gentle-ai-productization-extraction.md",
       "type": "references",
@@ -16551,9 +16590,9 @@
     }
   ],
   "stats": {
-    "nodes": 578,
-    "edges": 2092,
+    "nodes": 581,
+    "edges": 2096,
     "typed_edges": 686,
-    "orphans": 160
+    "orphans": 159
   }
 }
