@@ -114,6 +114,46 @@ else
     check "T7: pretty-printed attribution compares equal to desired" 0 "jq absent — skipped"
 fi
 
+
+# --- t-2879: scripts/lib/ must actually deploy (Gate 3 ship-blocking finding) ---
+# sync_dir's copy loop is `for f in "$src"/*; do [ -f "$f" ] || continue` —
+# directory entries fail -f and are silently skipped, never recursed into.
+# system/scripts/ already had git-hooks/, migrate/, tests/ subdirs that were
+# never deployed either; lib/ became load-bearing when ac-lint.sh/ac-grade.sh
+# started `source`-ing system/scripts/lib/cmd-allowlist.sh (t-2857/t-2868) —
+# post-deploy that source call silently fails, undefining allowlisted_command.
+
+echo "T8: Scripts deploy step includes a sync_dir call for scripts/lib/"
+SCRIPTS_BLOCK=$(awk '/# --- Step 3: Scripts ---/{flag=1} flag{print} flag&&/# --- Step 3b: Hooks ---/{exit}' "$BOOTSTRAP")
+echo "$SCRIPTS_BLOCK" | grep -q 'sync_dir "\$SYSTEM_DIR/scripts/lib" "\$TARGET_DIR/scripts/lib"'
+check "T8: scripts/lib/ has its own sync_dir call in the Scripts deploy step" $?
+
+echo "T9: behavioral — a subdir is invisible to a single sync_dir call, present after a second targeted call"
+FN=$(awk '/^sync_dir\(\) \{/{flag=1} flag{print} flag&&/^\}/{exit}' "$BOOTSTRAP")
+if [ -z "$FN" ]; then
+    check "T9: sync_dir extractable for lib/ behavioral test" 1 "could not extract function"
+else
+    run_sync2() {
+        local src="$1" dst="$2"
+        ( CHANGES=0; CHECK_ONLY=false; eval "$FN"; sync_dir "$src" "$dst" "test/" > /dev/null )
+    }
+    TMP2=$(mktemp -d)
+    trap 'rm -rf "$TMP2"' EXIT
+    mkdir -p "$TMP2/src" "$TMP2/src/lib" "$TMP2/dst"
+    printf 'a\n' > "$TMP2/src/top.sh"
+    printf 'b\n' > "$TMP2/src/lib/nested.sh"
+
+    run_sync2 "$TMP2/src" "$TMP2/dst"
+    TOP_OK=0; [ -f "$TMP2/dst/top.sh" ] || TOP_OK=1
+    NESTED_MISSING=0; [ -f "$TMP2/dst/lib/nested.sh" ] && NESTED_MISSING=1
+    check "T9a: top-level file deployed by the plain sync_dir call" "$TOP_OK"
+    check "T9b: nested file NOT deployed by the plain sync_dir call (the bug, documented)" "$NESTED_MISSING"
+
+    run_sync2 "$TMP2/src/lib" "$TMP2/dst/lib"
+    NESTED_OK=0; [ -f "$TMP2/dst/lib/nested.sh" ] || NESTED_OK=1
+    check "T9c: nested file deployed once a dedicated sync_dir call targets the subdir (the fix)" "$NESTED_OK"
+fi
+
 echo ""
 echo "$PASS/$TOTAL passed"
 [ "$FAIL" -eq 0 ] || exit 1
