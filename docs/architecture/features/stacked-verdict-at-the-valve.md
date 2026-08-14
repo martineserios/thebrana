@@ -61,16 +61,30 @@ Scope below.
 
 ## Scope (v1)
 
+- `system/scripts/lib/cmd-allowlist.sh` — **new**, the single owner of
+  `CMD_ALLOWLIST_RE`/`allowlisted_command()` (ADR-081 D1, round-2 verification finding:
+  "sources or calls" needed a pinned mechanism, not left implicit). Both `ac-grade.sh`
+  and `ac-lint.sh` `source` this file via a relative path from `system/scripts/` — no
+  cross-directory sourcing needed since both live in the same directory. Follows the
+  existing `system/scripts/lib/` convention (already holds `orphan-guard.mjs`).
 - `system/scripts/ac-grade.sh <task-id> [--json]` — standalone per-criterion check
-  execution (new, extracted from `goal-completion.sh`). Resolves its own `WORK_DIR`
-  from the task's `branch` field via `git worktree list` (ADR-081 D1); errors loudly,
-  never defaults, if resolution is ambiguous or the task has no worktree.
+  execution (new, extracted from `goal-completion.sh`). Sources
+  `system/hooks/lib/resolve-brana.sh` and uses `$BRANA` rather than a bare `brana` call
+  (round-2 verification finding: the Stop-hook's PATH can't be trusted to contain
+  `brana`, and this script is called from that exact context via `goal-completion.sh`
+  — the hardening must transfer, not just the logic). Resolves its own `WORK_DIR` from
+  the task's `branch` field via `git worktree list` (ADR-081 D1); errors loudly, never
+  defaults, if resolution is ambiguous or the task has no worktree.
 - `system/scripts/ac-lint.sh` **modified** (not just referenced) — its inline
-  `CMD_ALLOWLIST_RE`/allowlist-guard copy is removed; it sources/calls the single
-  definition that moves to `ac-grade.sh` (ADR-081 D1 — this is the actual
+  `CMD_ALLOWLIST_RE`/allowlist-guard copy is removed; it sources
+  `system/scripts/lib/cmd-allowlist.sh` instead (ADR-081 D1 — this is the actual
   consolidation the t-2856 lesson requires, not just a `goal-completion.sh`-side move).
+  `ac-lint.sh` stays a pure shape classifier — it does not gain execution, so it does
+  not need `resolve-brana.sh`.
 - `goal-completion.sh` refactored to call `ac-grade.sh` instead of its own inline loop
-  (no behavior change to the Stop-hook contract — same tests must stay green).
+  (no behavior change to the Stop-hook contract — same tests must stay green). Its own
+  copy of `CMD_ALLOWLIST_RE`/`allowlisted_command()` is deleted entirely — grading now
+  lives one level down in `ac-grade.sh`, which itself sources the shared lib above.
 - `system/skills/_shared/challenger-gate.md` — `Always log` template for the
   PROCEED/PROCEED WITH CHANGES path (ADR-081 D2). *Already applied* (2026-08-14,
   ahead of DECOMPOSE, since `stacked-verdict`'s parser depends on it existing).

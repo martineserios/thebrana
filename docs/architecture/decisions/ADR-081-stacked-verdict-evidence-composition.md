@@ -31,15 +31,30 @@ read-only script, `system/scripts/ac-grade.sh`. This is not a copy — `goal-com
 calls it and layers its own Stop-hook-only policy (presence interlock, grader
 immutability, audit jsonl) on top.
 
-**The shared command allowlist moves with it.** `allowlisted_command()`/
-`CMD_ALLOWLIST_RE` (t-2856's injection fix) exists today as two independently-authored
-copies — `goal-completion.sh` and `ac-lint.sh` — proven by divergent syntax
-(`<<<"$cmd"` vs `echo "$cmd" |`) despite one's comment claiming to mirror the other.
-`ac-grade.sh` becomes the **single** owner of this guard; `ac-lint.sh` sources or calls
-it rather than carrying its own copy. A pure move of `goal-completion.sh`'s copy alone,
-leaving `ac-lint.sh`'s untouched, would satisfy the letter of "extraction" while leaving
-the exact drift class t-2856 fixed still open on a third file (challenger finding,
-2026-08-14, score 4 — folded in before acceptance).
+**The shared command allowlist moves to a pinned, dedicated location — not "into
+ac-grade.sh" implicitly.** `allowlisted_command()`/`CMD_ALLOWLIST_RE` (t-2856's
+injection fix) exists today as two independently-authored copies — `goal-completion.sh`
+and `ac-lint.sh` — proven by divergent syntax (`<<<"$cmd"` vs `echo "$cmd" |`) despite
+one's comment claiming to mirror the other. A pure move of `goal-completion.sh`'s copy
+alone, leaving `ac-lint.sh`'s untouched, would satisfy the letter of "extraction" while
+leaving the exact drift class t-2856 fixed still open on a third file (challenger
+finding, 2026-08-14, score 4 — folded in before acceptance).
+
+**Round-2 verification refinement (2026-08-14):** the first fix said `ac-lint.sh`
+"sources or calls" `ac-grade.sh` — re-verification correctly flagged this as an
+unpinned mechanism (`ac-grade.sh`'s `<task-id> [--json]` interface has no code path for
+classifying a bare command string, so neither literal reading is directly
+implementable). Pinned: the guard lives in a new, standalone
+`system/scripts/lib/cmd-allowlist.sh`; `ac-grade.sh` and `ac-lint.sh` both `source` it
+(same directory, no cross-directory path needed); `ac-lint.sh` stays a pure classifier
+and gains no execution capability. This follows the existing `system/scripts/lib/`
+convention (already holds `orphan-guard.mjs`).
+
+**Round-2 verification also flagged a second gap, fixed the same way:** `ac-grade.sh`
+is called from the Stop-hook's untrusted PATH (via `goal-completion.sh`) *and*
+standalone from a trusted CLI PATH — it must source `system/hooks/lib/resolve-brana.sh`
+and use `$BRANA`, mirroring `goal-completion.sh`'s own `[ -x "${BRANA:-}" ]` gate, not
+just inherit the check-execution logic without the environment hardening around it.
 
 **Standalone invocation must resolve its own working directory — never assume the
 caller's cwd.** `goal-completion.sh` trusts `active-goal.json`'s recorded cwd; a
@@ -123,3 +138,20 @@ WARNING (score 3): the Decision Record belonged in a standalone ADR, not embedde
 self-declared frozen in the feature spec. All four folded into this ADR (D1, D2) and
 the feature spec before acceptance — see `docs/architecture/features/stacked-verdict-at-the-valve.md`
 for the full spec, now referencing this ADR by filename per the fix.
+
+**Round 2 (2026-08-14, hard-cap re-verification):** verdict PROCEED WITH CHANGES — all
+4 round-1 findings verified genuinely closed (code-level checks, not just text
+presence). Two new WARNING-level (score 3) items surfaced during re-verification: the
+consolidation mechanism was named but not pinned (D1's "sources or calls" had no
+implementable literal reading), and the extracted script's environment-hardening
+(`resolve-brana.sh`/`$BRANA`) wasn't named as transferring. Both folded into D1 above.
+
+**Design-time caveat, carried forward to BUILD:** every decision above (D1's pinned
+paths, D2's regex compatibility) was verified by reading the current repo state, not by
+executing the not-yet-written code. DECOMPOSE/BUILD should re-check each pinned path
+and interface against the actual files as they're touched — if reality diverges from
+what's recorded here, fix the divergence and update this ADR in the same change, don't
+silently work around it. This is the normal DDD→SDD→TDD posture (the spec narrows the
+unknowns; the build still has to hit them), stated explicitly here because two rounds
+of challenger review already found real gaps at this altitude — a third is plausible at
+implementation altitude.
