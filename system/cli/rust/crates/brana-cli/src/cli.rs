@@ -1148,6 +1148,11 @@ pub enum WaveCmd {
     /// At-limit / none-eligible are normal ok outcomes (skip this cycle).
     Pull {
         wave_id: String,
+        /// Shadow drain (ADR-080): report the would-pull decision and write
+        /// nothing. A queued wave is simulated as-if-draining (labeled in
+        /// the output); a shipped wave remains an error.
+        #[arg(long)]
+        dry_run: bool,
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,

@@ -248,6 +248,16 @@ pub fn pull_wave_task(path: &Path, wave_id: &str) -> Result<PullDecision, String
     Ok(decision)
 }
 
+/// t-2862 (ADR-080 §1/§6c): shadow drain — the rehearsal primitive. Computes
+/// the full pull decision on a fresh read and writes NOTHING. A `queued` wave
+/// is simulated as-if-draining (returned bool = simulated) so a graph can be
+/// rehearsed before arming; `wave_pull_decision` itself stays strict, and a
+/// `shipped` wave remains a caller error.
+pub fn dry_run_wave_pull(path: &Path, wave_id: &str) -> Result<(PullDecision, bool), String> {
+    let _ = (path, wave_id);
+    todo!("t-2862")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
