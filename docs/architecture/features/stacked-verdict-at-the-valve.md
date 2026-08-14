@@ -172,8 +172,8 @@ future TUI pane to consume without re-parsing text.
 
 ## Documentation Plan
 
-- [ ] **Tech doc** — this file, kept current through DECOMPOSE/BUILD/CLOSE.
-- [ ] **Existing docs to update** — `docs/architecture/ac-grammar.md` gets a short
+- [x] **Tech doc** — this file, kept current through DECOMPOSE/BUILD/CLOSE.
+- [x] **Existing docs to update** — `docs/architecture/ac-grammar.md` gets a short
   pointer to `ac-grade.sh` as the execution-layer sibling of `ac-lint.sh`'s
   shape-layer classifier (avoid future readers assuming `ac-lint.sh` runs checks).
   `verify-gates.md`/`challenger-gate.md` get a note that their Evaluator:/Challenger:
