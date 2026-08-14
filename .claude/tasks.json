@@ -75933,6 +75933,67 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-2902",
+      "subject": "brana session write routes to stale persistent-focus marker even when Step 9c corroboration explicitly rejects it",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "session-state",
+        "epic-routing",
+        "close"
+      ],
+      "description": "Observed live during a /brana:close --finish (2026-08-14, thebrana): the session's own Step 9c epic-detection (Tiers 0-3, per system/skills/close/phases/session-state.md) determined that the persistent focus marker (\"knowledge-pipeline\", set via `brana session epic status`) was NOT corroborated by this session's own recent commits — the session touched no epic-scoped work (filed a standalone task with no parent). Per protocol, no `epic` field was set on the Step 9 JSON payload and no `brana session epic upsert` was run.\n\nDespite that, `brana session write` (called with no `epic` field in the payload) independently fell back to the SAME uncorroborated persistent-focus marker and routed the handoff into `session-state-knowledge-pipeline.json` anyway. Per docs/architecture (ADR-060/t-2154), the CLI's own routing precedence is \"payload epic → the initiative/focus marker → the branch\" — but that fallback reads the raw global focus file directly, with no awareness of the corroboration analysis the skill procedure just performed to reject it.\n\nThis is the same failure class Step 9c's own Tier 0 corroboration gate (t-2618) was built to prevent for the accumulator upsert — but the gate only guards Step 9c's own upsert call, not the separate `brana session write` CLI call in Step 9, which has an independent, uncorroborated fallback to the same stale global state.\n\nImpact observed: non-destructive this time (`mode: union` — no data lost), but a session's handoff note landed under an unrelated epic's session-state file. On a session with a *conflicting* next[] item and a same-day write, this could be worse (replace-mode risk already extensively documented as unreliable in session-state.md, t-2674).\n\nCandidate fixes:\n1. When the skill explicitly determines \"no epic\" (Tier 3 skip / corroboration rejected), pass an explicit signal to `brana session write` (e.g. `--no-epic` flag, or `\"epic\": null` in the payload) that overrides the CLI's own focus-marker fallback, instead of relying on omission.\n2. Or: have `brana session write`'s focus-marker fallback perform the same corroboration check Step 9c does (recent-commit epic resolution) before trusting the global marker, rather than trusting it unconditionally.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-08-14",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "A close session that determines 'no epic' for itself (Tier 3 skip, or Tier 0 corroboration explicitly rejected) does not have its brana session write handoff routed into an unrelated epic's session-state file via the stale persistent-focus marker",
+        "Fix documented in docs/architecture (session-state / epic-routing area) noting this failure class alongside the existing t-2618/t-2263/t-2674 routing caveats"
+      ],
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2903",
+      "subject": "Memory pruning can silently discard content — archive-then-delete with a MEMORY.md pointer instead of hard-delete",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [
+        "memory",
+        "knowledge-pipeline",
+        "data-safety"
+      ],
+      "description": "User concern (2026-08-14): worried that memory pruning sometimes drops important things with no way to recover them, and that pruned entries should be archived somewhere with a pointer left in MEMORY.md, not deleted outright.\n\nConfirmed the actual gap: system/skills/close/phases/metadata-and-memory.md Step 11's classification audit has two branches that call for outright `Delete` with no archive step — entries classified \"Derivable\" (obtainable via command/file read) or \"Historical\" (completed, no future value). Both are close-time judgment calls made in a single pass; a misclassified entry is unrecoverable the moment the file is rm'd. (The separate dead-link prepass in the same step is NOT the risk — it only removes index lines whose target file is *already* gone, so no live content is lost there.)\n\nAlso relevant, not necessarily in scope: memory-consolidation-scheduled.md's \"demote entries no session has read since they were written\" and memory-decay-by-non-use.md's recall-hit-count sort don't specify where a demoted/decayed entry lands — same silent-loss shape if \"demote\" ever resolves to delete rather than move.\n\nProposed direction (needs a design decision, not prescribing the exact mechanism): before any classification-driven delete, move the source file to an archive location (e.g. `~/.claude/projects/{project}/memory/archive/`) instead of `rm`, and leave a one-line pointer in MEMORY.md (or a dedicated `MEMORY-ARCHIVE.md` index) recording what was archived, when, and why — so nothing vanishes without a trail, even if it's no longer in the always-loaded budget.\n\nRelated but distinct — several existing pending tasks (t-2073, t-2098, t-1843, t-2672, t-2071, t-1820) implement the *current*, delete-based pruning mechanism to bring MEMORY.md under its line cap. This task is about changing that mechanism's safety property, not about line-count reduction — file this first if the archive convention should land before those consolidation passes run again, otherwise they'll keep exercising the delete-only path.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2348",
+      "created": "2026-08-14",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-08-14 (user, sequencing decision): file this BEFORE running any of the six pending consolidation tasks (t-2073, t-2098, t-1843, t-2672, t-2071, t-1820) again — they all exercise the current delete-based pruning path. Land the archive-with-pointer convention here first, then let those passes use it, rather than letting them run once more under the unsafe mechanism.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
     }
   ],
   "version": 3,
