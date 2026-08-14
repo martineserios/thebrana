@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T09:59:01Z",
+  "generated": "2026-08-14T11:28:43Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -605,9 +605,7 @@
     "docs/README.md": {
       "title": "Documentation Index",
       "type": "Roadmap",
-      "impl_files": [
-        "system/services/whatsapp-bridge"
-      ]
+      "impl_files": []
     },
     "docs/architecture/ac-grammar.md": {
       "title": "AC Grammar — Machine-Checkable Acceptance Criteria",
@@ -2943,28 +2941,34 @@
         "system/procedures/onboard.md"
       ]
     },
-    "docs/ideas/agent-definition-gaps.md": {
+    "docs/ideas/construction-budget-automation.md": {
+      "title": "Construction Budget Automation",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/drained/agent-definition-gaps.md": {
       "title": "Agent Definition Gaps — Unused CC Frontmatter Fields",
       "type": "Roadmap",
       "impl_files": [
         "system/agents/"
       ]
     },
-    "docs/ideas/agent-interaction-architecture.md": {
+    "docs/ideas/drained/agent-interaction-architecture.md": {
       "title": "Agent Interaction Architecture",
       "type": "Roadmap",
       "impl_files": [
+        "docs/system/rules/delegation-routing.md",
         "system/rules/delegation-routing.md",
         "system/",
         "system/scripts/evaluator-spike.py"
       ]
     },
-    "docs/ideas/agent-observability-learning.md": {
+    "docs/ideas/drained/agent-observability-learning.md": {
       "title": "Agent Observability & Learning Extraction",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/agent-skills-brana-enhancements.md": {
+    "docs/ideas/drained/agent-skills-brana-enhancements.md": {
       "title": "Brana Enhancements from addyosmani/agent-skills Analysis",
       "type": "Roadmap",
       "impl_files": [
@@ -2977,14 +2981,14 @@
         "system/agents/"
       ]
     },
-    "docs/ideas/async-close-design.md": {
+    "docs/ideas/drained/async-close-design.md": {
       "title": "Async-First Close — Design Spec",
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/lib/remind.sh"
       ]
     },
-    "docs/ideas/async-first-close.md": {
+    "docs/ideas/drained/async-first-close.md": {
       "title": "Async-First Close + Nightly Extraction Cron",
       "type": "Roadmap",
       "impl_files": [
@@ -2992,27 +2996,27 @@
         "system/cron/close-extraction.sh"
       ]
     },
-    "docs/ideas/backlog-v3-lane-identity.md": {
+    "docs/ideas/drained/backlog-v3-lane-identity.md": {
       "title": "Lane identity and the unbuilt axes of backlog v3",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/brana-agency-growth-machine.md": {
+    "docs/ideas/drained/brana-agency-growth-machine.md": {
       "title": "Brana Agency Growth Machine",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/brana-backlog-v2-schema.md": {
+    "docs/ideas/drained/brana-backlog-v2-schema.md": {
       "title": "brana backlog v2 schema",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/brana-backlog-web-ui.md": {
+    "docs/ideas/drained/brana-backlog-web-ui.md": {
       "title": "Brana Backlog Web UI",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/brana-cli-mcp-layer.md": {
+    "docs/ideas/drained/brana-cli-mcp-layer.md": {
       "title": "Brana CLI MCP Layer — Architecture Decision",
       "type": "Roadmap",
       "impl_files": [
@@ -3030,25 +3034,26 @@
         "system/scripts/spec_graph.py"
       ]
     },
-    "docs/ideas/brana-efficiency-without-power-loss.md": {
+    "docs/ideas/drained/brana-efficiency-without-power-loss.md": {
       "title": "Brana Efficiency — Reduce Usage Without Losing Power",
       "type": "Roadmap",
       "impl_files": [
         "system/agents/debrief-analyst.md",
-        "system/procedures/close.md"
+        "system/procedures/close.md",
+        "system/skills/close/phases/"
       ]
     },
-    "docs/ideas/brana-operating-model.md": {
+    "docs/ideas/drained/brana-operating-model.md": {
       "title": "Brana Operating Model",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/brana-v3-redesign.md": {
+    "docs/ideas/drained/brana-v3-redesign.md": {
       "title": "Brana v3 — The Graduated Self-Evolving Process Loop",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/brana-whatsapp-agent.md": {
+    "docs/ideas/drained/brana-whatsapp-agent.md": {
       "title": "The Brana WhatsApp Agent",
       "type": "Roadmap",
       "impl_files": [
@@ -3056,7 +3061,7 @@
         "system/services/whatsapp-bridge/"
       ]
     },
-    "docs/ideas/build-enhancements-from-osmani.md": {
+    "docs/ideas/drained/build-enhancements-from-osmani.md": {
       "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
       "type": "Roadmap",
       "impl_files": [
@@ -3064,12 +3069,12 @@
         "system/rules/spec-assumptions.md"
       ]
     },
-    "docs/ideas/build-receipts.md": {
+    "docs/ideas/drained/build-receipts.md": {
       "title": "Build receipts",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/build-skill-gate-hardening.md": {
+    "docs/ideas/drained/build-skill-gate-hardening.md": {
       "title": "Build Skill Gate Hardening — Step 4a",
       "type": "Roadmap",
       "impl_files": [
@@ -3077,17 +3082,17 @@
         "system/cli/rust/Cargo.toml"
       ]
     },
-    "docs/ideas/cc-feature-adoption-v2.1.136-142.md": {
+    "docs/ideas/drained/cc-feature-adoption-v2.1.136-142.md": {
       "title": "CC Feature Adoption — v2.1.136–v2.1.142",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/cc-feature-adoption-v2.1.76-81.md": {
+    "docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md": {
       "title": "CC Feature Adoption — v2.1.76–v2.1.81",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/challenger-outer-loop-gate.md": {
+    "docs/ideas/drained/challenger-outer-loop-gate.md": {
       "title": "Challenger as Mandatory Outer Loop Gate in /brana:build",
       "type": "Roadmap",
       "impl_files": [
@@ -3096,7 +3101,7 @@
         "system/agents/CALIBRATION.md"
       ]
     },
-    "docs/ideas/claude-gemini-orchestration.md": {
+    "docs/ideas/drained/claude-gemini-orchestration.md": {
       "title": "Claude-Gemini Orchestrator-Worker Integration",
       "type": "Roadmap",
       "impl_files": [
@@ -3106,7 +3111,7 @@
         "system/rules/delegation-routing.md"
       ]
     },
-    "docs/ideas/close-oriented-modes.md": {
+    "docs/ideas/drained/close-oriented-modes.md": {
       "title": "Oriented Close Modes (`/brana:close --<mode>`)",
       "type": "Roadmap",
       "impl_files": [
@@ -3120,70 +3125,65 @@
         "system/hooks/pre-compact.sh"
       ]
     },
-    "docs/ideas/cloud-scheduler-provider-abstraction.md": {
+    "docs/ideas/drained/cloud-scheduler-provider-abstraction.md": {
       "title": "Brana Cloud Scheduler — Provider-Abstracted Job Orchestration",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/construction-budget-automation.md": {
-      "title": "Construction Budget Automation",
-      "type": "Roadmap",
-      "impl_files": []
-    },
-    "docs/ideas/content-skill-seed-to-post.md": {
+    "docs/ideas/drained/content-skill-seed-to-post.md": {
       "title": "/brana:content — Seed-to-Post Guided Workflow",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/dated-memory-files.md": {
+    "docs/ideas/drained/dated-memory-files.md": {
       "title": "Unified Knowledge Routing Gateway — `brana memory write`",
       "type": "Roadmap",
       "impl_files": [
         "system/brana-mcp/"
       ]
     },
-    "docs/ideas/ddd-sdd-lifecycle-artifacts.md": {
+    "docs/ideas/drained/ddd-sdd-lifecycle-artifacts.md": {
       "title": "DDD + SDD Lifecycle Artifacts",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/build/phases/specify.md"
       ]
     },
-    "docs/ideas/display-id-from-type.md": {
+    "docs/ideas/drained/display-id-from-type.md": {
       "title": "Display-layer task ID prefixes",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/distribution-strategy.md": {
+    "docs/ideas/drained/distribution-strategy.md": {
       "title": "Brana Distribution Strategy",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/dynamic-skill-routing.md": {
+    "docs/ideas/drained/dynamic-skill-routing.md": {
       "title": "Dynamic Skill Routing — Investigation Report (t-608)",
       "type": "Roadmap",
       "impl_files": [
         "system/mcp/skill-registry/"
       ]
     },
-    "docs/ideas/enforced-delegation.md": {
+    "docs/ideas/drained/enforced-delegation.md": {
       "title": "Enforced Delegation — orchestrator/executor split for build phases",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/_shared/orchestrator-gate.md"
       ]
     },
-    "docs/ideas/enforcement-vs-injection.md": {
+    "docs/ideas/drained/enforcement-vs-injection.md": {
       "title": "Enforcement vs Injection — The Harness Architecture Fork",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/fast-cold-start.md": {
+    "docs/ideas/drained/fast-cold-start.md": {
       "title": "Fast Cold Start for Brana Plugin",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/gentle-ai-adoption-ladder.md": {
+    "docs/ideas/drained/gentle-ai-adoption-ladder.md": {
       "title": "gentle-ai adoption ladder",
       "type": "Roadmap",
       "impl_files": [
@@ -3199,12 +3199,12 @@
         "system/skills/_shared/executor-brief.md"
       ]
     },
-    "docs/ideas/goal-adoption-brana-skills.md": {
+    "docs/ideas/drained/goal-adoption-brana-skills.md": {
       "title": "/goal Adoption — brana Skills",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/goal-completion-heuristics-h5-h8.md": {
+    "docs/ideas/drained/goal-completion-heuristics-h5-h8.md": {
       "title": "Goal-Completion Heuristics H5–H8 + AC: Authoring Guide",
       "type": "Roadmap",
       "impl_files": [
@@ -3212,42 +3212,42 @@
         "system/scheduler/scheduler.template.json"
       ]
     },
-    "docs/ideas/goal-integration-three-primitive.md": {
+    "docs/ideas/drained/goal-integration-three-primitive.md": {
       "title": "/goal integration — three-primitive composition",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/hybrid-provider-fts5-ruflo-rrf.md": {
+    "docs/ideas/drained/hybrid-provider-fts5-ruflo-rrf.md": {
       "title": "HybridProvider — Parallel FTS5 + Ruflo Recall with RRF Merge",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/inbox-to-dimensions-pipeline.md": {
+    "docs/ideas/drained/inbox-to-dimensions-pipeline.md": {
       "title": "Inbox → Dimensions Pipeline — Shape",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/knowledge-base-redesign.md": {
+    "docs/ideas/drained/knowledge-base-redesign.md": {
       "title": "Knowledge Base Redesign — One Schema, Three Consumers",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/knowledge-insights-digest.md": {
+    "docs/ideas/drained/knowledge-insights-digest.md": {
       "title": "Knowledge Pipeline — Research Session Digest",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/knowledge-pipeline-glue.md": {
+    "docs/ideas/drained/knowledge-pipeline-glue.md": {
       "title": "Knowledge Pipeline Glue",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/layered-input-processing.md": {
+    "docs/ideas/drained/layered-input-processing.md": {
       "title": "Layered Input Processing — Batch + Express Pipelines",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/loop-first-redesign.md": {
+    "docs/ideas/drained/loop-first-redesign.md": {
       "title": "Loop-First Operation of thebrana",
       "type": "Roadmap",
       "impl_files": [
@@ -3255,98 +3255,93 @@
         "system/loops/pipeline-digest.md"
       ]
     },
-    "docs/ideas/loop-goal-native-planning.md": {
+    "docs/ideas/drained/loop-goal-native-planning.md": {
       "title": "Loop+Goal-Native Backlog Planning",
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/ac-lint.sh"
       ]
     },
-    "docs/ideas/loops-library.md": {
+    "docs/ideas/drained/loops-library.md": {
       "title": "Loops Library",
       "type": "Roadmap",
       "impl_files": [
         "system/loops/"
       ]
     },
-    "docs/ideas/mcp-lock-timeout.md": {
+    "docs/ideas/drained/mcp-lock-timeout.md": {
       "title": "brana-mcp lock-acquire hang fix",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/memory-consolidation-autodream.md": {
+    "docs/ideas/drained/memory-consolidation-autodream.md": {
       "title": "Memory Consolidation — Auto Dream Integration",
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/memory-consolidation.sh"
       ]
     },
-    "docs/ideas/memory-consolidation-kairos.md": {
+    "docs/ideas/drained/memory-consolidation-kairos.md": {
       "title": "Memory Consolidation — Lint + Heal Shape",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/memory-pattern-learning-redesign.md": {
+    "docs/ideas/drained/memory-pattern-learning-redesign.md": {
       "title": "Memory Architecture Redesign — Pattern Learning that Actually Works",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/mission-control.md": {
+    "docs/ideas/drained/mission-control.md": {
       "title": "Brana Mission Control",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/open-threads-lifecycle.md": {
+    "docs/ideas/drained/open-threads-lifecycle.md": {
       "title": "Open Threads Lifecycle",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/orbit-evidence-first.md": {
+    "docs/ideas/drained/orbit-evidence-first.md": {
       "title": "Orbit — Evidence Before Infrastructure",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/phase0-preregistration.md": {
+    "docs/ideas/drained/phase0-preregistration.md": {
       "title": "Phase 0 pre-registration",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/prompt-patterns-brana-enrichment.md": {
-      "title": "Prompt Patterns → brana Enrichment",
-      "type": "Roadmap",
-      "impl_files": []
-    },
-    "docs/ideas/reminders-schedule-tasks-integral.md": {
+    "docs/ideas/drained/reminders-schedule-tasks-integral.md": {
       "title": "Reminders, Scheduling, Tasks — Integral Design Model",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/resilient-pattern-store.md": {
+    "docs/ideas/drained/resilient-pattern-store.md": {
       "title": "Resilient Pattern Store — Hybrid Dual-Write",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/runner-capability-isolation.md": {
+    "docs/ideas/drained/runner-capability-isolation.md": {
       "title": "Autonomous Runner — Capability Isolation",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/session-continuity-multi-session.md": {
+    "docs/ideas/drained/session-continuity-multi-session.md": {
       "title": "Session Continuity — Multi-Session & Cross-Project",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/session-memory-cc-alignment.md": {
+    "docs/ideas/drained/session-memory-cc-alignment.md": {
       "title": "Session Memory — CC Alignment Shape",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/skill-auto-router.md": {
+    "docs/ideas/drained/skill-auto-router.md": {
       "title": "Skill Auto-Router",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/skill-lifecycle-manager.md": {
+    "docs/ideas/drained/skill-lifecycle-manager.md": {
       "title": "Skill Lifecycle Manager — Revised Design",
       "type": "Roadmap",
       "impl_files": [
@@ -3355,12 +3350,12 @@
         "system/cli/rust/"
       ]
     },
-    "docs/ideas/skill-semantic-validation.md": {
+    "docs/ideas/drained/skill-semantic-validation.md": {
       "title": "Skill Semantic Validation Layer",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/skill-tiering.md": {
+    "docs/ideas/drained/skill-tiering.md": {
       "title": "Skill Tiering — Core Plugin + On-Demand Procedures",
       "type": "Roadmap",
       "impl_files": [
@@ -3370,44 +3365,54 @@
         "system/procedures/acquire-skills.md"
       ]
     },
-    "docs/ideas/skills-as-loops.md": {
+    "docs/ideas/drained/skills-as-loops.md": {
       "title": "Skills as Loops",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/statusline-v2-backlog-intelligence.md": {
+    "docs/ideas/drained/statusline-v2-backlog-intelligence.md": {
       "title": "Statusline v2 — Backlog-Aware Intelligence",
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/statusline-slow-cache.sh"
       ]
     },
-    "docs/ideas/telegram-link-capture.md": {
+    "docs/ideas/drained/telegram-link-capture.md": {
       "title": "Telegram Link Capture",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/log/SKILL.md"
       ]
     },
-    "docs/ideas/unified-session-state.md": {
+    "docs/ideas/drained/unified-session-state.md": {
       "title": "Unified Session State",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/universal-doc-graph.md": {
+    "docs/ideas/drained/universal-doc-graph.md": {
       "title": "Universal Doc Graph",
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/venture-playbook-product-management.md": {
-      "title": "Venture Playbook & Product Management Layer",
-      "type": "Roadmap",
-      "impl_files": []
-    },
-    "docs/ideas/wave-pipeline.md": {
+    "docs/ideas/drained/wave-pipeline.md": {
       "title": "The Wave Pipeline",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/prompt-patterns-brana-enrichment.md": {
+      "title": "Prompt Patterns → brana Enrichment",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
+    },
+    "docs/ideas/venture-playbook-product-management.md": {
+      "title": "Venture Playbook & Product Management Layer",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/",
+        "system/skills/"
+      ]
     },
     "docs/personal/abdaal-productivity-research.md": {
       "title": "Ali Abdaal — Feel-Good Productivity & Life Design",
@@ -3723,6 +3728,11 @@
         "system/skills/_shared/smart-router.md",
         "system/skills/challenge/SKILL.md"
       ]
+    },
+    "docs/research/2026-08-14-agent-work-contracts.md": {
+      "title": "Agent Work Contracts: Research Findings",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/research/agentic-engineering-2026-gap-analysis.md": {
       "title": "Gap Analysis: Agentic Engineering Feb–Jul 2026 vs brana",
@@ -4827,7 +4837,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
-      "to": "docs/ideas/cc-feature-adoption-v2.1.76-81.md",
+      "to": "docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md",
       "type": "depends_on",
       "computed": false
     },
@@ -4839,7 +4849,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": false
     },
@@ -4857,7 +4867,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": false
     },
@@ -4881,13 +4891,13 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": true
     },
     {
       "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
-      "to": "docs/ideas/close-oriented-modes.md",
+      "to": "docs/ideas/drained/close-oriented-modes.md",
       "type": "depends_on",
       "computed": false
     },
@@ -4917,7 +4927,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": true
     },
@@ -5001,13 +5011,13 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": true
     },
     {
       "from": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
-      "to": "docs/ideas/close-oriented-modes.md",
+      "to": "docs/ideas/drained/close-oriented-modes.md",
       "type": "depends_on",
       "computed": true
     },
@@ -5115,7 +5125,7 @@
     },
     {
       "from": "docs/architecture/features/async-close.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5397,13 +5407,13 @@
     },
     {
       "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
-      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/drained/inbox-to-dimensions-pipeline.md",
       "type": "depends_on",
       "computed": false
     },
     {
       "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
-      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/ideas/drained/memory-consolidation-kairos.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5421,7 +5431,7 @@
     },
     {
       "from": "docs/architecture/features/lint-heal-deterministic.md",
-      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/ideas/drained/memory-consolidation-kairos.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5727,13 +5737,13 @@
     },
     {
       "from": "docs/architecture/features/propagate-close-step.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": true
     },
     {
       "from": "docs/architecture/features/propagate-close-step.md",
-      "to": "docs/ideas/close-oriented-modes.md",
+      "to": "docs/ideas/drained/close-oriented-modes.md",
       "type": "depends_on",
       "computed": true
     },
@@ -5751,7 +5761,7 @@
     },
     {
       "from": "docs/architecture/features/reminder-system.md",
-      "to": "docs/ideas/async-close-design.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5823,7 +5833,7 @@
     },
     {
       "from": "docs/architecture/features/sdd-spec-gate.md",
-      "to": "docs/ideas/ddd-sdd-lifecycle-artifacts.md",
+      "to": "docs/ideas/drained/ddd-sdd-lifecycle-artifacts.md",
       "type": "depends_on",
       "computed": false
     },
@@ -7179,7 +7189,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
-      "to": "docs/ideas/async-first-close.md",
+      "to": "docs/ideas/drained/async-first-close.md",
       "type": "informs",
       "computed": false
     },
@@ -7191,7 +7201,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
-      "to": "docs/ideas/async-first-close.md",
+      "to": "docs/ideas/drained/async-first-close.md",
       "type": "informs",
       "computed": false
     },
@@ -7203,7 +7213,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
-      "to": "docs/ideas/async-first-close.md",
+      "to": "docs/ideas/drained/async-first-close.md",
       "type": "informs",
       "computed": false
     },
@@ -7227,7 +7237,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
-      "to": "docs/ideas/knowledge-base-redesign.md",
+      "to": "docs/ideas/drained/knowledge-base-redesign.md",
       "type": "informs",
       "computed": false
     },
@@ -7251,7 +7261,7 @@
     },
     {
       "from": "docs/architecture/features/async-close.md",
-      "to": "docs/ideas/async-first-close.md",
+      "to": "docs/ideas/drained/async-first-close.md",
       "type": "informs",
       "computed": false
     },
@@ -7323,13 +7333,13 @@
     },
     {
       "from": "docs/architecture/features/lint-heal-deterministic.md",
-      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/drained/inbox-to-dimensions-pipeline.md",
       "type": "informs",
       "computed": false
     },
     {
       "from": "docs/architecture/features/reminder-system.md",
-      "to": "docs/ideas/async-first-close.md",
+      "to": "docs/ideas/drained/async-first-close.md",
       "type": "informs",
       "computed": false
     },
@@ -7880,7 +7890,7 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/loop-first-redesign.md",
+      "from": "docs/ideas/drained/loop-first-redesign.md",
       "to": "docs/ideas/loops-library.md",
       "type": "informs",
       "computed": false
@@ -10935,43 +10945,61 @@
     },
     {
       "from": "docs/README.md",
-      "to": "ideas/brana-agency-growth-machine.md",
+      "to": "ideas/construction-budget-automation.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/README.md",
-      "to": "ideas/brana-whatsapp-agent.md",
+      "to": "ideas/drained/",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/README.md",
-      "to": "ideas/loops-library.md",
+      "to": "ideas/drained/brana-agency-growth-machine.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/README.md",
-      "to": "ideas/ruflo-native-integration.md",
+      "to": "ideas/drained/brana-whatsapp-agent.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/README.md",
-      "to": "ideas/skill-auto-router.md",
+      "to": "ideas/drained/loop-first-redesign.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/README.md",
-      "to": "ideas/skills-as-loops.md",
+      "to": "ideas/drained/loops-library.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/README.md",
-      "to": "ideas/wave-pipeline.md",
+      "to": "ideas/drained/skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/drained/wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/prompt-patterns-brana-enrichment.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/venture-playbook-product-management.md",
       "type": "references",
       "computed": false
     },
@@ -11409,7 +11437,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
-      "to": "docs/ideas/runner-capability-isolation.md",
+      "to": "docs/ideas/drained/runner-capability-isolation.md",
       "type": "references",
       "computed": false
     },
@@ -11457,13 +11485,13 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
-      "to": "docs/ideas/brana-backlog-v2-schema.md",
+      "to": "docs/ideas/drained/brana-backlog-v2-schema.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -11517,7 +11545,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -11559,7 +11587,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
-      "to": "docs/ideas/backlog-v3-lane-identity.md",
+      "to": "docs/ideas/drained/backlog-v3-lane-identity.md",
       "type": "references",
       "computed": false
     },
@@ -11625,13 +11653,13 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
-      "to": "docs/ideas/build-receipts.md",
+      "to": "docs/ideas/drained/build-receipts.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
-      "to": "docs/ideas/enforced-delegation.md",
+      "to": "docs/ideas/drained/enforced-delegation.md",
       "type": "references",
       "computed": false
     },
@@ -11721,13 +11749,13 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
-      "to": "docs/ideas/loops-library.md",
+      "to": "docs/ideas/drained/loops-library.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
-      "to": "docs/ideas/wave-pipeline.md",
+      "to": "docs/ideas/drained/wave-pipeline.md",
       "type": "references",
       "computed": false
     },
@@ -11907,13 +11935,13 @@
     },
     {
       "from": "docs/architecture/features/backlog-v3-schema.md",
-      "to": "docs/ideas/brana-backlog-v2-schema.md",
+      "to": "docs/ideas/drained/brana-backlog-v2-schema.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/features/backlog-v3-schema.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -12129,7 +12157,7 @@
     },
     {
       "from": "docs/architecture/features/pipeline-digest.md",
-      "to": "docs/ideas/loop-first-redesign.md",
+      "to": "docs/ideas/drained/loop-first-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -12159,7 +12187,7 @@
     },
     {
       "from": "docs/architecture/features/resilient-pattern-store.md",
-      "to": "docs/ideas/resilient-pattern-store.md",
+      "to": "docs/ideas/drained/resilient-pattern-store.md",
       "type": "references",
       "computed": false
     },
@@ -12381,7 +12409,7 @@
     },
     {
       "from": "docs/architecture/substrate-end-state.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -12435,7 +12463,7 @@
     },
     {
       "from": "docs/architecture/substrate-primitives.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -12537,13 +12565,13 @@
     },
     {
       "from": "docs/architecture/the-orbit.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/the-orbit.md",
-      "to": "docs/ideas/runner-capability-isolation.md",
+      "to": "docs/ideas/drained/runner-capability-isolation.md",
       "type": "references",
       "computed": false
     },
@@ -12951,7 +12979,7 @@
     },
     {
       "from": "docs/archive/session-aware-loop-integration.md",
-      "to": "docs/ideas/brana-operating-model.md",
+      "to": "docs/ideas/drained/brana-operating-model.md",
       "type": "references",
       "computed": false
     },
@@ -14541,13 +14569,13 @@
     },
     {
       "from": "docs/guide/workflows/drain-loop.md",
-      "to": "docs/ideas/loop-first-redesign.md",
+      "to": "docs/ideas/drained/loop-first-redesign.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/guide/workflows/drain-loop.md",
-      "to": "docs/ideas/loops-library.md",
+      "to": "docs/ideas/drained/loops-library.md",
       "type": "references",
       "computed": false
     },
@@ -14564,518 +14592,518 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/agent-interaction-architecture.md",
-      "to": "docs/architecture/features/brana-v2-compute-model.md",
+      "from": "docs/ideas/drained/agent-interaction-architecture.md",
+      "to": "docs/ideas/architecture/features/brana-v2-compute-model.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/agent-observability-learning.md",
+      "from": "docs/ideas/drained/agent-observability-learning.md",
       "to": "brana-operating-model.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/agent-observability-learning.md",
-      "to": "docs/architecture/features/chat-agents-monitoring.md",
+      "from": "docs/ideas/drained/agent-observability-learning.md",
+      "to": "docs/ideas/architecture/features/chat-agents-monitoring.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/async-close-design.md",
-      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "from": "docs/ideas/drained/async-close-design.md",
+      "to": "docs/ideas/architecture/decisions/ADR-052-close-queue-architecture.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/async-close-design.md",
-      "to": "docs/architecture/features/async-close.md",
+      "from": "docs/ideas/drained/async-close-design.md",
+      "to": "docs/ideas/architecture/features/async-close.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/async-first-close.md",
-      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "from": "docs/ideas/drained/async-first-close.md",
+      "to": "docs/ideas/architecture/decisions/ADR-052-close-queue-architecture.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/async-first-close.md",
-      "to": "docs/architecture/features/async-close.md",
+      "from": "docs/ideas/drained/async-first-close.md",
+      "to": "docs/ideas/architecture/features/async-close.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/backlog-v3-lane-identity.md",
-      "to": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "from": "docs/ideas/drained/backlog-v3-lane-identity.md",
+      "to": "docs/ideas/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/backlog-v3-lane-identity.md",
-      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "from": "docs/ideas/drained/backlog-v3-lane-identity.md",
+      "to": "docs/ideas/architecture/features/backlog-v3-schema.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-cli-mcp-layer.md",
-      "to": "docs/ideas/dynamic-skill-routing.md",
+      "from": "docs/ideas/drained/brana-cli-mcp-layer.md",
+      "to": "docs/ideas/drained/dynamic-skill-routing.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
       "to": "brana-v3-design.html",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/architecture/agentic-primitives.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/architecture/agentic-primitives.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/architecture/features/backlog-v3-schema.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/research/agentic-engineering-2026-gap-analysis.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/research/agentic-engineering-2026-gap-analysis.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/research/gentle-ai-productization-extraction.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/research/gentle-ai-productization-extraction.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/research/loop-engineering-and-pi.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/research/loop-engineering-and-pi.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/reviews/brana-v3-challenge-2026-07-19.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/reviews/brana-v3-challenge-2026-07-19.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
-      "to": "docs/reviews/brana-v3-challenge-2026-07-21.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/ideas/reviews/brana-v3-challenge-2026-07-21.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/brana-v3-redesign.md",
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
       "to": "skills-as-loops.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/build-receipts.md",
-      "to": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "from": "docs/ideas/drained/build-receipts.md",
+      "to": "docs/ideas/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/build-receipts.md",
+      "from": "docs/ideas/drained/build-receipts.md",
       "to": "enforced-delegation.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/build-receipts.md",
+      "from": "docs/ideas/drained/build-receipts.md",
       "to": "gentle-ai-adoption-ladder.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/close-oriented-modes.md",
-      "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "from": "docs/ideas/drained/close-oriented-modes.md",
+      "to": "docs/ideas/architecture/decisions/ADR-053-close-oriented-modes.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/close-oriented-modes.md",
-      "to": "docs/architecture/features/close-oriented-modes.md",
+      "from": "docs/ideas/drained/close-oriented-modes.md",
+      "to": "docs/ideas/architecture/features/close-oriented-modes.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/dated-memory-files.md",
-      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "from": "docs/ideas/drained/dated-memory-files.md",
+      "to": "docs/ideas/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/dated-memory-files.md",
-      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "from": "docs/ideas/drained/dated-memory-files.md",
+      "to": "docs/ideas/drained/memory-consolidation-kairos.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/dated-memory-files.md",
-      "to": "docs/ideas/session-continuity-multi-session.md",
+      "from": "docs/ideas/drained/dated-memory-files.md",
+      "to": "docs/ideas/drained/session-continuity-multi-session.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/dynamic-skill-routing.md",
+      "from": "docs/ideas/drained/dynamic-skill-routing.md",
       "to": "brana-operating-model.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/enforced-delegation.md",
+      "from": "docs/ideas/drained/enforced-delegation.md",
       "to": "gentle-ai-adoption-ladder.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/enforcement-vs-injection.md",
+      "from": "docs/ideas/drained/enforcement-vs-injection.md",
       "to": "brana-operating-model.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/gentle-ai-adoption-ladder.md",
+      "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
       "to": "enforced-delegation.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/inbox-to-dimensions-pipeline.md",
-      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "from": "docs/ideas/drained/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/inbox-to-dimensions-pipeline.md",
-      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "from": "docs/ideas/drained/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/drained/memory-consolidation-kairos.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/inbox-to-dimensions-pipeline.md",
-      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "from": "docs/ideas/drained/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/research/2026-04-08-cc-alignment-findings.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/knowledge-base-redesign.md",
-      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "from": "docs/ideas/drained/knowledge-base-redesign.md",
+      "to": "docs/ideas/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/knowledge-pipeline-glue.md",
-      "to": "docs/ideas/layered-input-processing.md",
+      "from": "docs/ideas/drained/knowledge-pipeline-glue.md",
+      "to": "docs/ideas/drained/layered-input-processing.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/layered-input-processing.md",
-      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "from": "docs/ideas/drained/layered-input-processing.md",
+      "to": "docs/ideas/drained/inbox-to-dimensions-pipeline.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/layered-input-processing.md",
-      "to": "docs/ideas/knowledge-insights-digest.md",
+      "from": "docs/ideas/drained/layered-input-processing.md",
+      "to": "docs/ideas/drained/knowledge-insights-digest.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loop-first-redesign.md",
-      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "from": "docs/ideas/drained/loop-first-redesign.md",
+      "to": "docs/ideas/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loop-first-redesign.md",
-      "to": "docs/guide/workflows/drain-loop.md",
+      "from": "docs/ideas/drained/loop-first-redesign.md",
+      "to": "docs/ideas/guide/workflows/drain-loop.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loop-first-redesign.md",
-      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
+      "from": "docs/ideas/drained/loop-first-redesign.md",
+      "to": "docs/ideas/research/2026-08-13-matt-pocock-skill-system.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loop-first-redesign.md",
+      "from": "docs/ideas/drained/loop-first-redesign.md",
       "to": "loops-library.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loop-first-redesign.md",
+      "from": "docs/ideas/drained/loop-first-redesign.md",
       "to": "wave-pipeline-design.html",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loop-first-redesign.md",
+      "from": "docs/ideas/drained/loop-first-redesign.md",
       "to": "wave-pipeline.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loops-library.md",
-      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "from": "docs/ideas/drained/loops-library.md",
+      "to": "docs/ideas/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loops-library.md",
+      "from": "docs/ideas/drained/loops-library.md",
       "to": "loop-first-redesign.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/loops-library.md",
+      "from": "docs/ideas/drained/loops-library.md",
       "to": "wave-pipeline.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-autodream.md",
-      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "from": "docs/ideas/drained/memory-consolidation-autodream.md",
+      "to": "docs/ideas/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-autodream.md",
-      "to": "docs/ideas/dated-memory-files.md",
+      "from": "docs/ideas/drained/memory-consolidation-autodream.md",
+      "to": "docs/ideas/drained/dated-memory-files.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-autodream.md",
-      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "from": "docs/ideas/drained/memory-consolidation-autodream.md",
+      "to": "docs/ideas/drained/memory-consolidation-kairos.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-kairos.md",
-      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "from": "docs/ideas/drained/memory-consolidation-kairos.md",
+      "to": "docs/ideas/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-kairos.md",
-      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "from": "docs/ideas/drained/memory-consolidation-kairos.md",
+      "to": "docs/ideas/drained/inbox-to-dimensions-pipeline.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-kairos.md",
-      "to": "docs/ideas/resilient-pattern-store.md",
+      "from": "docs/ideas/drained/memory-consolidation-kairos.md",
+      "to": "docs/ideas/drained/resilient-pattern-store.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-kairos.md",
-      "to": "docs/ideas/ruflo-native-integration.md",
+      "from": "docs/ideas/drained/memory-consolidation-kairos.md",
+      "to": "docs/ideas/drained/ruflo-native-integration.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-consolidation-kairos.md",
-      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "from": "docs/ideas/drained/memory-consolidation-kairos.md",
+      "to": "docs/ideas/research/2026-04-08-cc-alignment-findings.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/memory-pattern-learning-redesign.md",
-      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "from": "docs/ideas/drained/memory-pattern-learning-redesign.md",
+      "to": "docs/ideas/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/resilient-pattern-store.md",
+      "from": "docs/ideas/drained/resilient-pattern-store.md",
       "to": "brana-operating-model.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/resilient-pattern-store.md",
-      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "from": "docs/ideas/drained/resilient-pattern-store.md",
+      "to": "docs/ideas/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/resilient-pattern-store.md",
-      "to": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "from": "docs/ideas/drained/resilient-pattern-store.md",
+      "to": "docs/ideas/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/resilient-pattern-store.md",
-      "to": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "from": "docs/ideas/drained/resilient-pattern-store.md",
+      "to": "docs/ideas/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/resilient-pattern-store.md",
+      "from": "docs/ideas/drained/resilient-pattern-store.md",
       "to": "ruflo-native-integration.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/session-continuity-multi-session.md",
-      "to": "docs/ideas/session-memory-cc-alignment.md",
+      "from": "docs/ideas/drained/session-continuity-multi-session.md",
+      "to": "docs/ideas/drained/session-memory-cc-alignment.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/session-continuity-multi-session.md",
-      "to": "docs/ideas/unified-session-state.md",
+      "from": "docs/ideas/drained/session-continuity-multi-session.md",
+      "to": "docs/ideas/drained/unified-session-state.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/session-memory-cc-alignment.md",
-      "to": "docs/ideas/unified-session-state.md",
+      "from": "docs/ideas/drained/session-memory-cc-alignment.md",
+      "to": "docs/ideas/drained/unified-session-state.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/session-memory-cc-alignment.md",
-      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "from": "docs/ideas/drained/session-memory-cc-alignment.md",
+      "to": "docs/ideas/research/2026-04-08-cc-alignment-findings.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skill-auto-router.md",
+      "from": "docs/ideas/drained/skill-auto-router.md",
       "to": "brana-operating-model.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skill-semantic-validation.md",
+      "from": "docs/ideas/drained/skill-semantic-validation.md",
       "to": "relative/path.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
       "to": "brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/architecture/features/backlog-v3-schema.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/reflections/32-lifecycle.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/reflections/32-lifecycle.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/research/loop-engineering-and-pi.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/research/loop-engineering-and-pi.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/research/loop-engineering-examples-catalog.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/research/loop-engineering-examples-catalog.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/research/loop-examples-wild-2026-07.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/research/loop-examples-wild-2026-07.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/research/loop-framework-landscape-2026-07.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/research/loop-framework-landscape-2026-07.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/research/primitive-taxonomy-prior-art.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/research/primitive-taxonomy-prior-art.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/skills-as-loops.md",
-      "to": "docs/research/skills-primitive-audit-preview-2026-07.md",
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/ideas/research/skills-primitive-audit-preview-2026-07.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/universal-doc-graph.md",
+      "from": "docs/ideas/drained/universal-doc-graph.md",
       "to": "wikilinks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "docs/ideas/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "docs/ideas/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "docs/ideas/research/2026-08-13-matt-pocock-skill-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "loop-first-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "wave-pipeline-design.html",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/ideas/venture-playbook-product-management.md",
       "to": "docs/guide/workflows/venture.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/wave-pipeline.md",
-      "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/wave-pipeline.md",
-      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/wave-pipeline.md",
-      "to": "docs/guide/workflows/drain-loop.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/wave-pipeline.md",
-      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/wave-pipeline.md",
-      "to": "loop-first-redesign.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/wave-pipeline.md",
-      "to": "loops-library.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/wave-pipeline.md",
-      "to": "wave-pipeline-design.html",
       "type": "references",
       "computed": false
     },
@@ -16107,13 +16135,13 @@
     },
     {
       "from": "docs/research/2026-04-08-cc-alignment-findings.md",
-      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/ideas/drained/memory-consolidation-kairos.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/research/2026-04-08-cc-alignment-findings.md",
-      "to": "docs/ideas/session-memory-cc-alignment.md",
+      "to": "docs/ideas/drained/session-memory-cc-alignment.md",
       "type": "references",
       "computed": false
     },
@@ -16227,7 +16255,7 @@
     },
     {
       "from": "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -16239,7 +16267,7 @@
     },
     {
       "from": "docs/reviews/brana-v3-challenge-2026-07-19.md",
-      "to": "docs/ideas/brana-v3-redesign.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -16329,9 +16357,9 @@
     }
   ],
   "stats": {
-    "nodes": 567,
-    "edges": 2070,
+    "nodes": 568,
+    "edges": 2073,
     "typed_edges": 686,
-    "orphans": 150
+    "orphans": 159
   }
 }
