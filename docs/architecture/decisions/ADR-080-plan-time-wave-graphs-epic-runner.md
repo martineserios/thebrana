@@ -35,8 +35,16 @@ acceptance lens (§7).
 
 - **`parent:<id>`** — matches every task whose parent chain contains `<id>`
   (descendants of a milestone/phase/task node). Same eligibility filter and atomic
-  pull as `tag:` (ADR-079 §2/§3) — the selector form changes *membership*, nothing
-  downstream.
+  pull as `tag:` (ADR-079 §2/§3).
+- **Downstream is NOT selector-agnostic today — explicit impl requirement.** The
+  membership resolver is not the only selector consumer: `wave_pull_decision`
+  (wave.rs) computes the wip_limit `live` count by hand-stripping the `tag:` prefix
+  instead of calling `resolve_wave_selector`. Against a `parent:` wave that strips to
+  `""`, the live count is 0 forever and `wip_limit` is silently defeated — for
+  exactly the waves the plan emits. The `parent:` task must route **every** selector
+  consumer (membership, live count, and any future one) through the single resolver,
+  with a test asserting `AtLimit` fires on a `parent:` wave. (Challenge finding 1 —
+  code-verified.)
 - Membership is **computed at resolution time** from the parent chain (ADR-065 D3:
   waves select, they don't own). Re-parenting a task moves it between waves with no
   wave edit — same accepted-limitation class as ADR-079 §3's re-tag note.
@@ -51,7 +59,13 @@ gains a **WAVES step** between DEPS and PROPOSE:
    own structure is the wave graph; no tags are written.
 2. **Gate chain from the computed dependency structure:** if milestone B's tasks depend
    on A's (any `blocked_by` edge crossing A→B, or explicit sequencing), wave-B gets
-   `gate: wave-A`. Independent milestones share a gate or have none (parallel waves).
+   `gate: wave-A`. Independent milestones share a gate or have none. **"Ungated"
+   means order-free, not concurrent:** a single epic-drain instance drains one wave at
+   a time in topo order; two gate-satisfied waves are drained sequentially, first
+   wins. Multi-instance concurrent draining of one epic has no wave-level claim
+   mechanism and is **out of scope** in this slice (two instances would converge on
+   the same "first ready" wave — challenge finding 7); the per-task atomic pull merely
+   makes it safe, not useful. Design a wave-claim story before ever recommending it.
 3. **Contract seeded from the milestone's definition of done** (prose; §5 keeps
    contracts human-graded).
 4. The proposed wave graph is shown in PROPOSE alongside the task tree — **the human
@@ -67,21 +81,38 @@ A second committed loop entry, **`epic-drain`** (loops library). Beat procedure:
 
 1. **PREFLIGHT (cheap):** resolve the epic's waves — waves whose selector root
    (`parent:<id>`'s node) has this epic as its epic-ancestor. Computed live, no stored
-   wave→epic link. Topo-sort by `gate`.
+   wave→epic link. Topo-sort by `gate`. **Cycle detection is mandatory:** a cyclic
+   gate chain (possible — `set_wave_field`'s `gate` arm has no referential or cycle
+   check) must STOP the loop with a loud diagnostic routed to the studio agenda, never
+   stall silently as if waiting on a human ship (challenge finding 9).
+   **Scope: the epic runner walks `parent:` waves only.** A `tag:` selector has no
+   single root node — its matches can span epics or none — so hand-rolled `tag:`
+   waves are structurally outside any epic graph. They drain via the single-wave
+   [drain-loop.md](../../guide/workflows/drain-loop.md), unchanged; a `tag:` wave may
+   still appear as another wave's `gate` (the gate check is per-wave and
+   selector-blind). Accepted scope, not an oversight (challenge finding 6).
 2. **Find the active wave:** first in topo order with `status != shipped` whose gate is
    `null` or names a `shipped` wave.
-3. **Arm if queued:** the runner MAY run `wave drain <id>` on that wave. Arming is not
-   a human valve *here* because the human valve already fired upstream: the gate wave
-   was human-shipped (or the human approved the graph at plan time for the first wave).
-   Drain remains a report + status flip; re-draining a draining wave is a no-op report
-   (idempotent — law 4).
+3. **Arm if queued:** the runner MAY run `wave drain <id>` on that wave. The human
+   authorization for autonomous arming is **launching the runner itself**: `/loop
+   epic-drain <epic>` is a deliberate, named human action, temporally proximate to
+   execution — the human who starts an epic runner is authorizing it to open that
+   epic's gate-satisfied queues as the graph unlocks. (Plan-approval alone is NOT the
+   arming valve — a plan can be approved weeks before anyone chooses to drain it;
+   challenge finding 3.) For waves after the first, the upstream human ship is a
+   second, per-wave human signal on top of that. Drain remains a report + status
+   flip; re-draining a draining wave is a no-op report (idempotent — law 4).
 4. **Pump:** `wave pull` → work the pulled task through the full build framework —
    identical to [drain-loop.md](../../guide/workflows/drain-loop.md) from here,
    including every denied verb.
-5. **Contract-met announcement:** when the wave's matched set has no pending work left
-   (matched tasks all completed/cancelled), announce **"contract likely met"** to the
-   cockpit digest and back off. The runner **never ships** — one human ship decision
-   per wave is what makes epic-looping safe (unchanged from ADR-079 / §1.4).
+5. **Contract-met announcement:** when the wave's matched set is **non-empty** and has
+   no pending work left (matched tasks all completed/cancelled), announce **"contract
+   likely met"** to the cockpit digest and back off. An **empty matched set is not
+   contract-met** — it is vacuous truth (undecomposed milestone, deleted selector
+   root, pure-planning milestone) and routes to the **studio agenda** as "wave matched
+   zero tasks — needs a look," never to the ship digest (challenge finding 5). The
+   runner **never ships** — one human ship decision per wave is what makes
+   epic-looping safe (unchanged from ADR-079 / §1.4).
 6. **Advance:** a human `wave set <id> status shipped` unlocks the next wave; the next
    beat finds it via step 2. All waves shipped → epic drained → STOP (real signal).
 7. **Escalation routing (two rooms):** anything the runner is unsure about — scope
@@ -100,9 +131,14 @@ enforcement of denials) covers this list too.
 (MCP). Human-only, cockpit-shaped:
 
 - Resolves the wave's selector, lists matched tasks with `ac_state: proposed`, shows
-  each task's proposed criteria, takes **one confirmation**, then applies the existing
-  per-task promote+flip (ADR-079 §1) to each. No new state semantics — a batch loop
-  over the sanctioned verb, all its bindings intact (content-binding reset, no-bypass).
+  each task's proposed criteria, takes **one confirmation per batch of at most 10**,
+  then applies the existing per-task promote+flip (ADR-079 §1) to each. No new state
+  semantics — a batch loop over the sanctioned verb, all its bindings intact
+  (content-binding reset, no-bypass). **The batch cap is the rubber-stamp guard**
+  (challenge finding 8): ADR-079 §1's trust boundary is a human actually reading
+  criteria before arming autonomous work; past ~10 items a single confirmation stops
+  being review. Larger waves approve in successive capped batches, each explicitly
+  confirmed.
 - Tasks with `ac_state: none` in the matched set are listed but skipped (nothing to
   approve) — the gap is visible, not silently absorbed.
 - Denied in the runner manifest, same trust boundary as `ac approve`.
@@ -122,11 +158,29 @@ edge 3).
 - **Ack clears it.** Build CLOSE (task → completed) and any human `status` write clear
   `lease`. Manual `backlog start` does **not** take a lease — leases mark *pump-pulled*
   work; human work is not watchdog-reclaimable.
-- **Reclaim is the watchdog's job** (external, law 3 — never the pump's own): task
-  `in_progress` ∧ lease expired → reset to `pending`, clear lease, append a reclaim
-  note. **Second reclaim of the same task → dead-letter:** tag `parked` (ADR-078) +
+- **Reclaim is a pump, not the watchdog.** The four-primitive vocabulary says gauges
+  never act; resetting `in_progress → pending` is moving work a stage, i.e. pump
+  behavior (challenge finding 4). Split: the **watchdog stays a pure gauge** — it
+  reads lease state and *surfaces* expired leases in its digest; a separate tiny
+  **`lease-reclaimer` pump** (its own loops-library entry, external to every drain
+  loop per law 3) performs the reset. Both live in the loop-first epic.
+- **Reclaim is evidence-gated, not timer-only — the double-execution fence**
+  (challenge finding 2). An expired lease alone does not prove the pump is dead; a
+  slow build past TTL is alive. The reclaimer resets a task only when the lease is
+  expired **and** the task's branch shows no executor liveness (no new commits within
+  the TTL window) — gate the destructive act on proof, not assertion. Two designed
+  backstops if a presumed-dead executor returns anyway: (a) the task's branch name is
+  deterministic (`…/t-NNN-…`), so a second executor's `worktree add` on the same
+  branch fails loudly at dispatch; (b) the reclaim note travels to the merge valve,
+  where the human sees the task was reclaimed before accepting either result. These
+  are named contracts of the design, not accidents.
+- **Second reclaim of the same task → dead-letter:** tag `parked` (ADR-078) +
   `dead-letter` — which lands it in the standing triage wave (§6) and out of every
   eligibility filter (ADR-079 already excludes parked).
+- **Open question, named (not silently deferred): who reclaims the reclaimer?** The
+  reclaimer/watchdog pair is currently a SPOF with no meta-answer beyond "the human
+  notices the digest went quiet." Same deferred-item status as §7's auto-advance
+  question (challenge finding 12).
 - Schema: new nullable task field `lease` (object). Not a retired-field name (ADR-067
   clean). Absent = no lease — assert key absence, not null.
 
@@ -141,7 +195,7 @@ The boundary rule: **backlog-drain (t-2811) owns the task-queue substrate; loop-
 | `wave approve` batch (§4), lease field + pull change (§5) | backlog-drain | new impl tasks |
 | `epic-drain` committed loop entry (§3) | backlog-drain authors the procedure | **filed as a loops-library entry** (t-2826 format) — first proof the library holds >1 entry |
 | `wave board` gauge (gate-chain graph + counts, the L0 cockpit digest) | backlog-drain (CLI) | new impl task; TUI (t-2825) renders it later |
-| Watchdog + lease reclaim | **loop-first** — the watchdog is the external meta-gauge (law 3); reclaim (§5) is its second job, consuming backlog-drain's lease data | extend t-2823's follow-on scope |
+| Watchdog (gauge) + `lease-reclaimer` (pump) | **loop-first** — watchdog reads and surfaces lease state (pure gauge, law 3); the reclaimer is a separate tiny pump acting on what the watchdog surfaces (§5), consuming backlog-drain's lease data | extend t-2823's follow-on scope; two catalog entries, not one |
 | Loops library catalog + entry schema + `records:` beat schema | **loop-first** (t-2826 — its feature spec is where the entry format lives) | unchanged |
 | TUI dashboard | **loop-first** (t-2825) | unchanged |
 | Autonomy ladder / per-wave autonomy promotion | **loop-first** (t-2824's ADR) — a wave has no autonomy field; autonomy is a property of the loop you arm, not the queue | defer to t-2824 |
@@ -170,8 +224,9 @@ default is the current behavior, so deferral costs nothing.
 ## Seven-laws check (acceptance lens)
 
 1. Runner coordinates with nothing — it pulls from waves, escalates into queues
-   (digest/agenda). 2. Dead-letter path exists with a named closer (§5/§6g). 3. Reclaim
-lives in the external watchdog, never the pump. 4. Every beat step is
+   (digest/agenda). 2. Dead-letter path exists with a named closer (§5/§6g). 3. Lease
+observation lives in the external watchdog (gauge) and reclaim in a separate external
+reclaimer pump — neither inside the loops they guard. 4. Every beat step is
 replay-safe (atomic pull; drain re-run is a no-op report). 5. Preflight is one
 tasks.json read + topo-sort. 6. `--dry-run` rehearses without arming. 7. Loop entries
 inherit /loop lifecycle (7-day expiry, Esc-kill); the epic runner terminates on a real
@@ -182,9 +237,12 @@ signal (all waves shipped).
 - ADR-065's wave object grows nothing; ADR-079's contracts are unchanged — this ADR
   only adds a selector form, a batch wrapper over an existing verb, a lease field, and
   two committed procedures (plan WAVES step, epic-drain entry).
-- MODEL-001 updates (DDD): Wave entry is stale ("selector resolution is not yet
-  implemented" — it shipped in t-2775/t-2813); add **Lease**, **Wave graph**,
-  **Epic runner**, **Standing wave**, **Dead-letter wave** to the ubiquitous language.
+- MODEL-001 updates (DDD): **two** stale Wave statements, not one — "selector
+  resolution is not yet implemented" (line ~409; shipped in t-2775/t-2813) and "gate
+  (nullable wave id, **unenforced**)" (line ~25; `check_wave_gate` is implemented and
+  tested since t-2775) — fix both in the same pass (challenge finding 10); add
+  **Lease**, **Wave graph**, **Epic runner**, **Standing wave**, **Dead-letter wave**
+  to the ubiquitous language.
 - Implementation tree (emitted by t-2828's REPORT, waves included — the plan that
   plans itself): selector + dry-run · plan WAVES step · wave approve · lease + reclaim
   handoff spec to watchdog · wave board · epic-drain entry.
@@ -205,3 +263,26 @@ signal (all waves shipped).
 - **Batch approve as a new state transition.** Rejected: a loop over the existing verb
   keeps every ADR-079 §1 binding for free.
 - **Auto-advance gates on machine-verified contracts now.** Deferred (§7).
+- **Timer-only lease reclaim (no liveness evidence).** Rejected: an expired lease on a
+  slow-but-alive pump would trigger double execution; reclaim gates on proof (§5).
+- **Lease-renewal heartbeat from the executor.** Rejected for this slice: `claude -p`
+  executors have no natural mid-build hook to renew from, and evidence-gated reclaim
+  (branch commits ARE the heartbeat) gets the same protection without new machinery.
+
+## Challenge record
+
+**Round 1 (2026-08-13, context-isolated challenger, code-verified):** verdict
+RECONSIDER on the pre-challenge draft; all findings amended into the text above.
+BLOCKER-class: the §1 "nothing downstream changes" claim was false against
+`wave_pull_decision`'s hardcoded `tag:` strip (wip_limit silently defeated for
+`parent:` waves — now an explicit impl requirement with a named test); lease reclaim
+had no fencing (now evidence-gated with two named backstops); first-wave arming was
+justified by stale plan-approval (now justified by the temporally-proximate human act
+of launching the runner). MAJOR: watchdog-as-reclaimer violated the gauge primitive
+(split into gauge + reclaimer pump); vacuous contract-met on empty matched sets (now
+routed to the studio agenda); `tag:` waves structurally invisible to the runner (now
+named accepted scope); "parallel waves" overpromised under a single runner instance
+(scoped to order-free, multi-instance deferred); unbounded batch approve (capped at
+10 per confirmation). MINOR: gate-cycle detection made mandatory in PREFLIGHT; both
+MODEL-001 stale lines flagged, not one; reclaimer SPOF named as an open question.
+Round 2 runs against the implementation task tree before it is written to the backlog.
