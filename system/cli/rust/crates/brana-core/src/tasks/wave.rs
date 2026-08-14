@@ -29,8 +29,17 @@ pub enum WaveSelector {
 /// The single parse point. Unknown forms are rejected loud, never silently
 /// no-op'd or partially matched.
 pub fn parse_wave_selector(selector: &str) -> Result<WaveSelector, String> {
-    let _ = selector;
-    todo!("t-2860")
+    let s = selector.trim();
+    let valid = |v: &&str| !v.is_empty() && !v.contains(char::is_whitespace);
+    if let Some(name) = s.strip_prefix("tag:").filter(valid) {
+        return Ok(WaveSelector::Tag(name.to_string()));
+    }
+    if let Some(id) = s.strip_prefix("parent:").filter(valid) {
+        return Ok(WaveSelector::Parent(id.to_string()));
+    }
+    Err(format!(
+        "selector form not supported — resolves tag:<name> or parent:<id> (got: {s:?})"
+    ))
 }
 
 impl WaveSelector {
@@ -38,15 +47,42 @@ impl WaveSelector {
     /// filter (resolver: pending; wip live-count: in_progress). `by_id` is
     /// the id→task index for parent-chain walks.
     pub fn matches(&self, task: &Value, by_id: &HashMap<&str, &Value>) -> bool {
-        let _ = (task, by_id);
-        todo!("t-2860")
+        match self {
+            WaveSelector::Tag(name) => {
+                let tags: Vec<&str> = task["tags"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                    .unwrap_or_default();
+                tag_matches(&tags, name)
+            }
+            WaveSelector::Parent(target) => {
+                // Ancestor walk, depth-capped at 10 (resolve_epic_ancestor
+                // precedent) — the cap doubles as the cycle guard. An id not
+                // present in `by_id` ends the walk: empty match, not error.
+                let mut cur = task["parent"].as_str();
+                let mut depth = 0;
+                while let Some(id) = cur {
+                    if depth >= 10 {
+                        break;
+                    }
+                    if id == target {
+                        return true;
+                    }
+                    cur = by_id.get(id).and_then(|t| t["parent"].as_str());
+                    depth += 1;
+                }
+                false
+            }
+        }
     }
 }
 
 /// id→task index for `WaveSelector::matches` parent-chain walks.
 pub fn task_index(tasks: &[Value]) -> HashMap<&str, &Value> {
-    let _ = tasks;
-    todo!("t-2860")
+    tasks
+        .iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect()
 }
 
 /// Gate check (the point of t-2775). A wave with a non-empty `gate` may only
@@ -76,33 +112,19 @@ pub fn check_wave_gate(wave: &Value, all_waves: &[Value]) -> Result<(), String> 
     Ok(())
 }
 
-/// MVP selector resolution. Supports exactly one selector form: `tag:<name>`
-/// — resolved as pending tasks whose tags match `<name>` via the shared
-/// `tag_matches` semantics (key:value exact, bare key any-value). Any other
-/// selector string is rejected with a clear MVP-only error, never silently
-/// no-op'd or partially matched.
+/// Selector resolution: pending tasks matching the wave's selector
+/// (`tag:<name>` or `parent:<id>` — ADR-080 §1), parsed by the single parse
+/// point above. Unknown selector strings are rejected with a clear error,
+/// never silently no-op'd or partially matched.
 pub fn resolve_wave_selector<'a>(
     wave: &Value,
     tasks: &'a [Value],
 ) -> Result<Vec<&'a Value>, String> {
-    let selector = wave["selector"].as_str().unwrap_or("").trim();
-    let name = selector
-        .strip_prefix("tag:")
-        .filter(|n| !n.is_empty() && !n.contains(char::is_whitespace))
-        .ok_or_else(|| {
-            format!("selector form not supported — MVP only resolves tag:<name> (got: {selector:?})")
-        })?;
+    let sel = parse_wave_selector(wave["selector"].as_str().unwrap_or(""))?;
+    let by_id = task_index(tasks);
     Ok(tasks
         .iter()
-        .filter(|t| {
-            t["status"].as_str() == Some("pending") && {
-                let tags: Vec<&str> = t["tags"]
-                    .as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
-                    .unwrap_or_default();
-                tag_matches(&tags, name)
-            }
-        })
+        .filter(|t| t["status"].as_str() == Some("pending") && sel.matches(t, &by_id))
         .collect())
 }
 
