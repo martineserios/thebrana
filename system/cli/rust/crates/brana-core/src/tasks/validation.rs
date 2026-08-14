@@ -476,6 +476,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             } else {
                 task[field] = Value::String(value.to_string());
             }
+            if field == "status" {
+                crate::tasks::ack_status_write(task, value);
+            }
             Ok(())
         }
         _ => Err(format!("unknown field: {field}")),

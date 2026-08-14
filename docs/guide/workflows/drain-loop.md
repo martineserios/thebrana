@@ -59,7 +59,12 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
 
 `wave pull` is atomic (one lock: fresh read → eligibility → write `in_progress`)
 — two concurrent beats cannot double-pull, and a human starting a wave-matched
-task manually counts against `wip_limit` on the next pull.
+task manually counts against `wip_limit` on the next pull. Since t-2841
+(ADR-080 §5) the pull also takes a **lease** `{claimant, expires}` in the same
+critical section (claimant via `--claimant`, default `wave-pull:{session|pid}`;
+TTL 24h). Any status write acks/clears it; manual `backlog start` takes no
+lease. Expired leases are surfaced by the future watchdog and reset by the
+`lease-reclaimer` pump (loop-first epic) — never by this loop.
 
 ## Denied verbs — the runner must never run these
 

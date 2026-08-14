@@ -220,7 +220,7 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
 /// named TOCTOU; everything here happens under the same lock. A non-pulling
 /// decision (AtLimit/NoneEligible) writes nothing. Never sets `completed` on
 /// tasks or `shipped` on waves — promotion stays human (no auto-ship).
-pub fn pull_wave_task(path: &Path, wave_id: &str) -> Result<PullDecision, String> {
+pub fn pull_wave_task(path: &Path, wave_id: &str, claimant: &str) -> Result<PullDecision, String> {
     let _lock = lock_tasks(path)?;
     let mut val = load_raw(path)?;
 
@@ -242,6 +242,16 @@ pub fn pull_wave_task(path: &Path, wave_id: &str) -> Result<PullDecision, String
         task["status"] = Value::String("in_progress".into());
         task["started"] =
             Value::String(chrono::Local::now().format("%Y-%m-%d").to_string());
+        // t-2841 (ADR-080 §5): lease taken in the SAME critical section as the
+        // in_progress write — a pump that dies between pull and ack leaves an
+        // expired lease behind for the reclaimer, never an unmarked orphan.
+        // Manual `backlog start` (a plain status write) takes NO lease.
+        // reclaim_count is deliberately NOT touched here: it lives outside
+        // lease so it survives lease clearing (round-2 challenge BLOCKER).
+        task["lease"] = serde_json::json!({
+            "claimant": claimant,
+            "expires": (chrono::Local::now() + chrono::Duration::hours(24)).to_rfc3339(),
+        });
         val["last_modified"] = Value::String(chrono::Local::now().to_rfc3339());
         save_tasks(path, &val).map_err(|e| format!("wave pull write failed: {e}"))?;
     }
