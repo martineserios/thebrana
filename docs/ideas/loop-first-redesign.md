@@ -1,12 +1,17 @@
 ---
 title: Loop-First Operation of thebrana
-status: draft
+status: historical
 created: 2026-08-13
 informs: [docs/ideas/loops-library.md]
+superseded_by: [docs/ideas/wave-pipeline.md]
 ---
 # Loop-First Operation of thebrana
 
-> Brainstormed 2026-08-13. Status: draft — shaped, probed, externally validated.
+> **Historical — reasoning ledger, not current state.** Current-state philosophy lives in
+> [wave-pipeline.md](wave-pipeline.md); the contract in [loops-library.md](loops-library.md);
+> mechanics in ADR-079/[ADR-080](../architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md).
+> This doc is kept for its lineage value: the probes, challenger reviews, framings ledger,
+> and decision trail that produced the approach. Do not update it to track current state.
 >
 > **Descendants of this approach** (this doc is the philosophy; these carry it forward):
 > [loops-library.md](loops-library.md) — the catalog born from this approach: entry schema,
