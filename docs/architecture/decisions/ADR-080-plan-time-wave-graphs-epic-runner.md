@@ -7,7 +7,7 @@ status: accepted
 **Date:** 2026-08-13
 **Deciders:** Martín Rios
 **Tags:** backlog, waves, loop, planning, epic-entry
-**Tasks:** t-2828 (design), t-2811 (epic backlog-drain), t-2820 (epic loop-first — reconciled here)
+**Tasks:** t-2828 (design), t-2811 (epic backlog-drain), t-2820 (epic loop-first — reconciled here), t-2859 (§8 review-budget amendment)
 **Relates:** [ADR-079](ADR-079-backlog-drain-loop-handoff.md) (the substrate this extends: `ac approve`, drain→loop handoff, WIP-at-pull) · [ADR-065](ADR-065-epic-as-hierarchy-top.md) (waves as thin process objects — D1's selector addition and D4's lease stay within its computed-not-stored stance) · [ADR-062](ADR-062-runner-executor-sandbox.md) (unattended gate — unchanged) · [ADR-078](ADR-078-stale-task-park-via-tag.md) (`parked` — reused by the dead-letter path) · [wave-pipeline.md](../../ideas/drained/wave-pipeline.md) (concept doc: four rings, four primitives, seven laws) · [loops-library.md](../../ideas/drained/loops-library.md) (entry schema, pull interface, the lease gap this ADR closes) · [drain-loop.md](../../guide/workflows/drain-loop.md) (the single-wave runner the epic runner generalizes)
 
 ---
@@ -251,6 +251,40 @@ got). Until then: contracts stay prose, the runner announces contract-likely-met
 as a cockpit item, and **no gate advances without a human ship** — the conservative
 default is the current behavior, so deferral costs nothing.
 
+### 8. Review budget: sitting-based model + cross-epic arbitration (amendment 2026-08-14, t-2859)
+
+The valve-order challenge (2026-08-14) found the "~1/day review rate" figure uncited
+and load-bearing. Re-derived from measured history (t-2859; derivation commands and
+raw snapshot in the task record):
+
+- **Cadence:** 21 active days out of 31 (2026-07-14 → 2026-08-14), typically 1–2
+  review sittings on an active day (e.g. 2026-08-13 evening ~3.5h and 2026-08-14
+  morning ~2.25h — two sittings within 12 hours). The "~1/day" *cadence* holds.
+- **Throughput:** the original sentence conflated cadence with throughput. Measured
+  per-sitting batch capacity for well-contracted small tasks: **7 approvals + merges
+  in 33 minutes** (wave-2 drain, 2026-08-13 21:01–21:32); 185 task completions over
+  the 31-day window (mean 8.8/active day, bursts to 48). "1 review/day" understates
+  batch-reviewable capacity by roughly an order of magnitude.
+- **Model:** the review budget is **per-sitting**, shared across ALL epics — not
+  per-task-per-day. Plan against ≈1 sitting/day × ≈7–8 well-contracted reviews per
+  sitting. §4's batch-approve cap of 10 already sits just above measured per-sitting
+  capacity — confirmed, unchanged.
+
+**Cross-epic arbitration** (the gap: §2's no-multi-instance rule is scoped *within*
+one epic's graph; nothing forbids concurrent epic-drain instances across different
+epics, all drawing on the same review budget):
+
+1. Concurrent epic-drain instances across **different** epics are permitted; the
+   within-epic single-instance rule (§2.2) is unchanged.
+2. The shared resource is the **cockpit digest queue** — every epic's pending-review
+   items land in the one digest, consumed per sitting, ordered priority-then-FIFO.
+   No per-epic quotas; the queue is the arbiter.
+3. **Backpressure rule:** if unreviewed items at sitting start exceed ~2× measured
+   per-sitting throughput (≈15), the lowest-priority epic's runner pauses pulling
+   until the queue drains below ~1× (≈8). Thresholds are seeded from this
+   measurement and revised at the §Consequences review checkpoint — promotion by
+   evidence, not by guess.
+
 ## Seven-laws check (acceptance lens)
 
 1. Runner coordinates with nothing — it pulls from waves, escalates into queues
@@ -279,10 +313,13 @@ signal (all waves shipped).
   acceptance bar is proof-of-life** (materialization rule: a band exists only once
   something has cycled in it): N real supervised beats completed with structured
   records emitted — completion graded, not asserted. Wave sequencing across lanes:
-  gate the staged `drain-3` wave (t-2831–t-2836) on `adr080-consumers` — the binding
-  system constraint is human review rate (~1/day, probe-derived), so waves serialize
-  by gates rather than trusting per-wave wip; drain-3 then exercises leases + batch
-  approve as the third dogfood.
+  gate the staged `drain-3` wave (t-2831–t-2836) on `adr080-consumers` — gates encode
+  dependency order (drain-3 dogfoods what adr080-consumers ships). The review-budget
+  rationale originally stated here ("human review rate ~1/day, probe-derived") was
+  re-derived from measured history and replaced by §8's sitting-based model: cadence
+  ≈1 sitting/day holds, but per-sitting batch throughput is ~7–8 well-contracted
+  tasks — serialization is justified by dependencies, not by review scarcity alone;
+  drain-3 then exercises leases + batch approve as the third dogfood.
 - Review checkpoint (ADR-076 pattern): after the first epic drained end-to-end via
   epic-drain, review whether `parent:` waves, batch approve, and leases were each
   actually exercised; unexercised halves get the shrink treatment.
@@ -336,3 +373,10 @@ standing dead-letter wave creation tracked as an operational AC, not left to mem
 Notes: wave-4's `parent:` overlap with shipped wave-3 tasks verified harmless in code
 (completed tasks match neither eligibility nor live-count) — overlap accepted, no
 sub-milestone; §6(g) selector prose corrected (no AND grammar exists).
+**Amendment (2026-08-14, t-2859 — from the valve-order six-hats challenge):** the
+"~1/day review rate" figure was flagged uncited while anchoring the serialize-by-gates
+rationale. Re-derived from 31 days of completion history + the wave-2 drain record;
+§8 added (sitting-based review-budget model + cross-epic arbitration: shared cockpit
+digest queue, priority-then-FIFO, evidence-seeded backpressure thresholds). The
+Consequences sentence re-grounded: gates serialize for dependency order; review
+scarcity alone no longer carries the argument.
