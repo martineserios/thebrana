@@ -38,6 +38,7 @@ User-facing documentation. Start here.
 
 | Doc | Purpose |
 |-----|---------|
+| [judge-escalation-valve.md](guide/features/judge-escalation-valve.md) | Judge escalation valve (ADR-082) — sizing rungs, hard signals, SIBLINGS/SPLIT verdicts, escaped-defect log, blind test-author |
 | [knowledge-process-url.md](guide/features/knowledge-process-url.md) | `brana knowledge process-url` — fetch a link, extract an insight, store it; LinkedIn setup, batch mode, cron wiring |
 | [knowledge-drain-links.md](guide/features/knowledge-drain-links.md) | `brana knowledge drain-links` — drain pending link tasks; completion gated on the stored artifact, not exit status |
 | [async-close.md](guide/features/async-close.md) | Async close — what changed about ending a session |
