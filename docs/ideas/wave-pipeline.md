@@ -82,11 +82,92 @@ continuous. Consequences:
   every cycle comes back to a different place. The wave cycles; the spiral is what the
   cycling leaves behind.
 
+### Materialization — a discretized frequency is a new brana
+
+The continuum holds infinite layers — all possibilities. A layer exists as a *thing* only
+when a frequency of interest is identified and discretized: installing the instruments
+(queue, pump, valve, gauge, memory contract) on a chosen band **materializes** it. That
+materialized layer is a brane in the name's original sense — a self-contained unit with
+its own fields, living in the higher-dimensional bulk (the memory reservoir), leaking
+learnings to the others through it. The layer test above is therefore not just an
+admission check — it is the **materialization procedure**. brana, the system, is the
+practice of materializing branas out of the continuum, one proven band at a time. (In
+string theory the objects living on branes are strings, whose modes are frequencies of
+one vibrating string — the name predicted this section.)
+
+### The skeleton match — an independent derivation
+
+The fundamental has an engineering-grade anatomy, and thebrana already researched it:
+[doc 60](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) (t-1851,
+2026-06-07, 18 sources) found every loop lineage — ReAct, Reflexion, RALPH, OODA —
+converging on one seven-step skeleton: **ORIENT → SELECT → ACT → MEASURE → JUDGE →
+ASSIMILATE → RESTART**. Lined up against this doc's vocabulary, derived independently
+two months later, the match is 1:1:
+
+| Canonical step (doc 60) | This doc's structure | The shared rule |
+|---|---|---|
+| ORIENT — load external state | memory read-on-entry | the repo is the memory; the agent forgets |
+| SELECT — next incomplete item | **queue** (atomic pull) | durable state, not conversation |
+| ACT — execute | **pump** | moves work exactly one stage |
+| MEASURE — external validators | **gauge** | objective readout; never self-assessment, never acts |
+| JUDGE — *separate* evaluator | **valve** | Actor≠Evaluator ↔ never armed by the party it constrains |
+| ASSIMILATE — write reflection back | memory write-on-exit | the circle-into-spiral step |
+| RESTART — exit or re-enter | pacing (`{active, waiting, empty}`) | termination the agent can't game |
+
+So the layer test is an **anatomy exam** — the four primitives plus the memory contract
+*are* the skeleton's structural roles — and the diagnostic runs both ways: for any
+existing band, ask which of the seven steps is missing (the knowledge band has strong
+ORIENT/ACT/ASSIMILATE but weak MEASURE/JUDGE — nothing yet measures whether accumulated
+knowledge is any good; that is why eval-rerunner and memory-hygiene surfaced on the
+loops-library candidate list before anyone could name why).
+
+Two refinements this system made over the June theory, worth stating as deliberate:
+
+1. **JUDGE splits by reversibility.** Doc 60 allows an automated separate evaluator;
+   here, machine judges (challenger, evaluator, verification gates) own *reversible*
+   outcomes, while the human valve is mandatory for *irreversible* ones (approve, merge,
+   ship). Judgment routed by blast radius, not one JUDGE box.
+2. **SELECT is externalized.** Doc 60's loop picks its own next task; here selection
+   lives in the queue with eligibility enforced queue-side in the atomic pull —
+   structurally unbypassable by the pump. A loop that picks its own work can game its
+   priorities; a loop that can only `pull` cannot.
+
 **Where the metaphor stops.** Queues and valves are deliberately *not* wave-like: a queue
 decouples frequencies so they need not stay in phase (law 1 — loops never talk), and a
 valve is a discontinuity where flow may stop dead. Continuous wave as the medium;
 discrete instruments mounted in it. The frequency lens covers the timescale structure,
 never the parts catalog — the four primitives remain the vocabulary for the machinery.
+
+## The five pillars (merged 2026-08-14)
+
+Five independently built perspectives converge on this one object; the merge is the aim,
+because each looks along a different axis and corrects the others:
+
+| Pillar | Axis | Contributes | Corrects in the others |
+|---|---|---|---|
+| **Wave-pipeline** (this doc: primitives, laws, rooms) | composition — what parts exist | closed vocabulary, backpressure, dead-letter, studio/cockpit | forces the JUDGE-by-reversibility split |
+| **Frequency spectrum** (§above) | time — where loops run | continuity, layer materialization, low-pass human, tuning to dynamic equilibrium | dissolves rings-as-fixed-ontology |
+| **Canonical skeleton** ([doc 60](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md)) | anatomy — what one loop is made of | the seven steps + hard rules (external state, Actor≠Evaluator, ungameable termination) | turns the layer test into an anatomy exam |
+| **Pocock / AI Hero** ([study](../research/2026-08-13-matt-pocock-skill-system.md), t-2830) | ergonomics — how a human walks it | the ordered spine, artifact-chain handoffs, triage state machine, writing-for-agents craft, thin skills as armable beat bodies | exposes the legibility gap; third independent derivation (RALPH shared ancestor with doc 60) — convergence is evidence |
+| **Lived practice** (brainstorm, build, challenge, close, sitrep, reconcile, …) | evidence — what a real team actually needed | months of daily usage; every skill already *occupies* a skeleton position (build's steps are literally the seven: LOAD=ORIENT, CLASSIFY/DECOMPOSE=SELECT, BUILD=ACT, gates=MEASURE, evaluator+challenger=JUDGE, learning=ASSIMILATE, CLOSE=RESTART; close=ASSIMILATE at session band; sitrep=ORIENT gauge; reconcile=slow-band drift gauge+pump) | grounds the theory: positions grew empirically into the right places |
+
+Orthogonality note: Pocock's 7 *phases* (Idea→Research→Prototype→PRD→Kanban→Execution→QA)
+traverse the flow line once — a spatial pass; doc 60's 7 *steps* are the loop anatomy
+each station repeats — temporal. Flow × anatomy, not two versions of one list. (His
+`wayfinder` and our waves are structural cousins — claim-before-work frontiers over
+blocking-edge graphs — but wayfinder drains *decision* tickets, waves drain *execution*
+tasks; don't conflate.)
+
+**The lived-practice diagnosis.** The skills deliver because their positions are right,
+but they factor by *occasion* ("session ending" → close does six jobs), not by
+*anatomy* — monoliths spanning multiple skeleton steps and bands, with shared organs
+(interviewing, learning-extraction, verification, handoff-writing) duplicated inside
+several skills instead of extracted once (Pocock's `grilling`/`tdd` show the thin-organ
+alternative; his `implement` is 12 lines because the organs live outside it). Refactor
+direction: **skill boundaries follow skeleton-step × band; shared organs extracted;
+enforcement layer untouched.** Discipline for the rethink: loop first, redesign after —
+refactors are pulled incrementally by observed friction, never big-bang (the t-1994
+lesson; first six moves already queued as t-2831–t-2836, tagged `wave:drain-3`).
 
 ## The flow
 

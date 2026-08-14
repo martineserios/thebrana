@@ -212,6 +212,7 @@ the lens that fits the question at hand.
 | **Challenger lenses** (convergent/systems/critical) | secrets in inbox, RCE gate, lifecycle darkness, TOCTOU, quota accumulation | the value/opportunity side |
 | **Pre-mortem** (imagine it failed) | quota starvation & review pileup as the two death modes | slow-burn failure (framings above caught those) |
 | **Wave/frequency** (rings = harmonics of one continuous signal; human = low-pass filter — [wave-pipeline.md](wave-pipeline.md) §The spectrum, 2026-08-14) | layers as discoverable sample points, not fixed ontology; the layer test (name queue/pump/valve/gauge + memory contract); autonomy tuning = sliding human coupling to lower frequencies; try→feedback→improve as the fundamental at every rate | discrete queue mechanics (decoupling, backpressure); valves as flow discontinuities |
+| **Pocock/ergonomics** (skills as a walkable spine — [study](../research/2026-08-13-matt-pocock-skill-system.md) t-2830; [wave-pipeline.md](wave-pipeline.md) §The five pillars, 2026-08-14) | the legibility gap (ordered idea→ship spine); artifact-chain handoffs; thin single-organ skills as armable beat bodies; front/back-loaded human gates = independent derivation of the low-pass filter (RALPH shared ancestor with doc 60) | enforcement, execution substrate (waves, valves, watchdog), cost model |
 
 Method note worth keeping: **deliberately re-describing the system in a new
 vocabulary is a cheap generator of design insight** — the pipeline reframe
