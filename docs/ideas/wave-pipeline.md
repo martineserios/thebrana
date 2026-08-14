@@ -5,7 +5,7 @@ created: 2026-08-14
 task: t-2828
 adr: ADR-079
 produced_by: [docs/ideas/loop-first-redesign.md]
-related: [docs/ideas/loops-library.md, docs/guide/workflows/drain-loop.md, docs/ideas/wave-pipeline-design.html]
+related: [docs/ideas/loops-library.md, docs/guide/workflows/drain-loop.md, docs/ideas/wave-pipeline-design.html, docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md]
 ---
 # The Wave Pipeline
 
@@ -131,6 +131,12 @@ Two refinements this system made over the June theory, worth stating as delibera
    lives in the queue with eligibility enforced queue-side in the atomic pull —
    structurally unbypassable by the pump. A loop that picks its own work can game its
    priorities; a loop that can only `pull` cannot.
+
+This section stays conceptual; the mechanics — the epic runner's seven-step beat,
+leases with evidence-gated reclaim, the watchdog gauge/reclaimer-pump split — are
+specified in
+[ADR-080 §3](../architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md),
+which cross-references this section rather than duplicating it.
 
 **Where the metaphor stops.** Queues and valves are deliberately *not* wave-like: a queue
 decouples frequencies so they need not stay in phase (law 1 — loops never talk), and a
