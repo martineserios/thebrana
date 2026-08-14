@@ -83,13 +83,32 @@ run_red() {
 registered=0
 for f in "${ADDED[@]}"; do
     [ -z "$f" ] && continue
-    # Idempotent — skip anything already registered.
-    if jq -e --arg p "$f" '(.tests_required // []) | index($p) != null' "$GOAL_FILE" >/dev/null 2>&1; then
+    # Already registered with an unchanged staged blob → nothing to do. A registered
+    # path whose staged blob CHANGED falls through: redness must be re-earned and the
+    # hash re-pinned (panel repair — without this, one edit after registration gated
+    # forever with no recovery path).
+    blob_hash=$(git -C "$ROOT" show ":$f" 2>/dev/null | sha256sum | cut -d' ' -f1) || blob_hash=""
+    # Fail-closed: no readable staged blob → no registration, no pin. A path
+    # registered without a hash would be gated by goal-completion's missing-hash
+    # rule anyway; never create that state deliberately.
+    [ -z "$blob_hash" ] && continue
+    if jq -e --arg p "$f" --arg h "$blob_hash" \
+          '((.tests_required // []) | index($p) != null) and ((.tests_hashes // {})[$p] == $h)' \
+          "$GOAL_FILE" >/dev/null 2>&1; then
         continue
     fi
     if run_red "$f"; then
-        tmp=$(mktemp) || continue
-        if jq --arg p "$f" '.tests_required = ((.tests_required // []) + [$p] | unique)' \
+        # Pin the staged blob's content hash alongside registration (ADR-082 §5).
+        # tests_required[] stays a plain string array — every existing consumer is
+        # untouched; the hash lives in the SIBLING map tests_hashes{path: sha256}.
+        # goal-completion.sh re-hashes registered paths at grade time and blocks on
+        # mismatch or missing entry, closing the weaken-after-registration gap.
+        # Temp file lives in the goal file's own directory so mv is an atomic
+        # rename, never a cross-device copy (panel repair).
+        tmp=$(mktemp "$(dirname "$GOAL_FILE")/.goal.XXXXXX") || continue
+        if jq --arg p "$f" --arg h "$blob_hash" \
+              '.tests_required = ((.tests_required // []) + [$p] | unique)
+               | .tests_hashes = ((.tests_hashes // {}) + {($p): $h})' \
               "$GOAL_FILE" > "$tmp" 2>/dev/null; then
             mv "$tmp" "$GOAL_FILE"
             registered=$((registered + 1))

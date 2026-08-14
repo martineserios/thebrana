@@ -74,3 +74,13 @@ belonging in each entry's frozen contract — `model: {preflight, act, judge,
 records}` — but no entry has adopted it yet and no default table exists.
 Out of scope for this stub; a real decision needs t-2826's full pass across
 more than one entry's beats to calibrate against, not a single proof entry.
+
+**Partial resolution (2026-08-14, t-2895/ADR-082):** for the JUDGE component
+specifically, the model-and-shape question is now decided and single-sourced in
+`system/skills/_shared/judge-sizing.md` — the deterministic sizing ladder
+(rungs 0–2: single challenger → +sibling-path finder → find/filter/verify funnel
+with per-stage tiers) plus its hard-signal arming table. Entries declaring a
+`model.judge` field should reference `resolve_judge_rung` from judge-sizing.md
+rather than restating a tier — the t-2494 drift class applies to model tables
+exactly as it does to prefix tables. The other components (preflight, act,
+records) remain deferred as above.

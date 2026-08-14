@@ -104,8 +104,15 @@ self-assessed:
 
 1. Challenger verdict **RECONSIDER with severity ≥ 4**.
 2. Evaluator verdict **PASS-WITH-GAPS**.
-3. Diff touches a **critical-section path** (the §1 list): lock/pull code, runner
-   lease sections, `system/hooks/`.
+3. Diff touches a **lock/pull-lease code path** — the NARROW subset of the §1
+   critical list (wave pull, lease, approve sections in `brana-core`), not the
+   whole list. *(Amended 2026-08-14, t-2895 wiring: as originally written this
+   signal covered the entire §1 list, which made §2's rung-1
+   "code with criticality hit" row unreachable — any critical hit jumped
+   straight to rung 2 via this signal. The broad §1 list feeds rung 1 through
+   the criticality input; only the lock/pull-lease subset is a rung-2 signal.
+   Implementation: `JUDGE_LOCK_PULL_PATHS` / `lock_pull_hit` vs
+   `JUDGE_CRITICAL_PATHS` / `criticality_hit` in judge-sizing.md.)*
 4. **Fix-commit-next-to-unaudited-sibling** shape: the diff fixes one variant of a
    pattern that has ≥1 structural sibling not in the diff (the probe's dominant
    miss class). **Detection mechanism:** this is NOT a standalone static diff scan —
@@ -369,3 +376,11 @@ this ADR knowingly borrows from it:
   reading was incoherent with the floor clause); Alternatives §model-judgment
   bullet made precise (signal 4 is a recorded verdict as *input*; what stays
   rejected is the model choosing the *shape*).
+- **Wiring amendment (2026-08-14, t-2895 rung-2 panel):** the implementation's
+  own escalated review (this ADR's valve, run on the diff that built it) found
+  §3 signal 3 as written swallowed §2's rung-1 criticality row — every §1-list
+  hit armed rung 2, making the graded middle rung dead code. Signal 3 narrowed
+  to the lock/pull-lease subset (see §3 item 3 inline note). Found by a blind
+  second-variant finder; the same panel confirmed 4 more sev-4 implementation
+  gaps (all repaired in t-2895) — first live evidence the rung-2 shape catches
+  what a single reviewer misses, on its own code.

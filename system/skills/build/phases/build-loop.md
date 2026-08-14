@@ -146,6 +146,18 @@ Skip this step for: S/XS builds, spike/investigation strategies, and any invocat
       - Reusable pattern?
       - Store significant findings in ruflo
 
+### In-loop critic (rung 2 only — ADR-082 §5)
+
+When the beat's sizing valve armed **rung 2** (see challenger-gate.md §Sizing valve —
+the rung computed at the gate applies to the whole beat), spawn a fresh-context
+critic at each subtask boundary (after step 3h's commit, before the next subtask),
+using the spawn contract in `_shared/judge-sizing.md` §Spawn contracts §In-loop
+critic. Explicitly spawned, never inline self-review (Actor≠Evaluator, ADR-080 §3).
+Findings feed the next subtask like mini-debrief items; RECONSIDER-severity findings
+pause the loop for the user. At rungs 0–1 critique stays at CLOSE — per-beat
+criticism of small mechanical work is pure overhead. The beat report states
+`in-loop critic: armed` or `did not arm: rung < 2`.
+
 4. **At natural breakpoints** (every 2-3 tasks), ask:
    ```
    question: "Continue to next task, or review/adjust?"

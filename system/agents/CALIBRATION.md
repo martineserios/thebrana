@@ -22,6 +22,11 @@ Severity scoring guide with few-shot examples and hard thresholds. Referenced by
 - ANY finding >= 4 --> verdict is **RECONSIDER**
 - All findings <= 2 with clear mitigations --> **PROCEED WITH CHANGES**
 - All findings <= 1 --> **PROCEED**
+- **SPLIT** (rung-2 panels only, ADR-082): the verification stage disagreed on a
+  finding. Blocking impact = RECONSIDER for that finding's beat — a SPLIT is
+  never auto-resolved, never counted as FALSE_POSITIVE; it routes to the human
+  valve as its own signal class with both verifier positions attached.
+  Disagreement is diagnostic, not noise (idea doc Round 5 / ADR-082 §4).
 
 ## Hard Thresholds
 

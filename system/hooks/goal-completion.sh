@@ -134,6 +134,39 @@ $(
 EOF
             CHANGED=$(printf '%s %s' "$MODIFIED" "$UNREG" | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//' | cut -c1-200)
             [ -n "$CHANGED" ] && GATE_REASON="grader path changed since goal start ($CHANGED)"
+            # Channel 3 (ADR-082 §5) — registered-test content re-verification.
+            # A path in tests_required[] is exempt from channels 1b/2 forever, and
+            # "Added" never becomes "Modified" vs base_ref — so without this check a
+            # registered test could be weakened after its red registration undetected.
+            # red-verification.sh pins tests_hashes{path: sha256-of-staged-blob} at
+            # registration (re-pinning when a changed blob is re-proven red). The walk
+            # is over tests_required[] — the authoritative list — so a registered path
+            # with NO hash entry gates too (fail-closed; panel repair: iterating
+            # tests_hashes alone silently kept the pre-ADR-082 exemption). An
+            # unreadable tests_hashes map also gates rather than passing silently.
+            if [ -z "$GATE_REASON" ]; then
+                HASH_MISMATCH=""
+                HASHES_JSON=$(jq -c '.tests_hashes // {}' "$GOAL_FILE" 2>/dev/null) || HASHES_JSON=""
+                if [ -z "$HASHES_JSON" ]; then
+                    [ -n "$TESTS_REQ" ] && GATE_REASON="registered tests present but tests_hashes unreadable — cannot verify grader integrity"
+                else
+                    while IFS= read -r hp; do
+                        [ -z "$hp" ] && continue
+                        hh=$(jq -r --arg p "$hp" '.[$p] // ""' <<<"$HASHES_JSON" 2>/dev/null) || hh=""
+                        if [ -z "$hh" ]; then
+                            HASH_MISMATCH="$HASH_MISMATCH $hp(unpinned)"
+                            continue
+                        fi
+                        cur=$(sha256sum "$WORK_DIR/$hp" 2>/dev/null | cut -d' ' -f1) || cur=""
+                        [ "$cur" != "$hh" ] && HASH_MISMATCH="$HASH_MISMATCH $hp"
+                    done <<EOF
+$TESTS_REQ
+EOF
+                    if [ -n "$HASH_MISMATCH" ]; then
+                        GATE_REASON="registered test content changed or unpinned since red registration (hash mismatch:$(printf '%s' "$HASH_MISMATCH" | cut -c1-160))"
+                    fi
+                fi
+            fi
         fi
     fi
 

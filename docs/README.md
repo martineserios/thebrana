@@ -38,6 +38,7 @@ User-facing documentation. Start here.
 
 | Doc | Purpose |
 |-----|---------|
+| [judge-escalation-valve.md](guide/features/judge-escalation-valve.md) | Judge escalation valve (ADR-082) — sizing rungs, hard signals, SIBLINGS/SPLIT verdicts, escaped-defect log, blind test-author |
 | [knowledge-process-url.md](guide/features/knowledge-process-url.md) | `brana knowledge process-url` — fetch a link, extract an insight, store it; LinkedIn setup, batch mode, cron wiring |
 | [knowledge-drain-links.md](guide/features/knowledge-drain-links.md) | `brana knowledge drain-links` — drain pending link tasks; completion gated on the stored artifact, not exit status |
 | [async-close.md](guide/features/async-close.md) | Async close — what changed about ending a session |
@@ -97,6 +98,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [substrate-end-state.md](architecture/substrate-end-state.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — the Orbit capstone (operation): tiers, runner stages, safety net, branch strategy; historical |
 | [substrate-primitives.md](architecture/substrate-primitives.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — agent substrate primitives & composition; §1–§3 (primitive set, composed blocks, durability/trust) still accurate as reference |
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
+| [features/judge-escalation-valve.md](architecture/features/judge-escalation-valve.md) | ADR-082 sizing valve implementation spec (t-2895) — ladder wiring, hard signals, funnel, hash pinning; authority block lives in system/skills/_shared/judge-sizing.md |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
 | [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
 
@@ -256,6 +258,12 @@ The idea pool — where creative/studio work lands, and what the backlog drains 
 | [ship-deferral-loop-2026-07-31.md](reviews/ship-deferral-loop-2026-07-31.md) | Investigation of the claimed ship-deferral loop — premise falsified, no loop exists; feeds ADR-075 (t-2547) |
 | [token-baseline.md](reviews/token-baseline.md) | Token cost baseline measurements |
 | [weekly-2026-04-17.md](reviews/weekly-2026-04-17.md) | Weekly review 2026-04-17 |
+
+## Ops data (docs/ops/)
+
+| File | Contents |
+|------|----------|
+| escaped-defects.jsonl | Append-only escaped-defect log (ADR-082 §7) — defects the single challenger passed; read by the sizing valve's signal 5 (`judge_area_weight`, 30-day window). Seeded 2026-08-14 with the t-2887 probe's 4 verified misses |
 
 ## Research and spec docs (docs/ root)
 

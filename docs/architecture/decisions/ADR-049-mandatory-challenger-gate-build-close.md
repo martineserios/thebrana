@@ -7,13 +7,18 @@ tags: [build, challenger, loop, reflexion, quality-gate, looptrap]
 informs:
   - docs/architecture/features/build-loop-redesign.md
   - system/procedures/build.md
+extended_by:
+  - docs/architecture/decisions/ADR-082-multi-agent-sizing-function.md
 ---
 
 # ADR-049: Mandatory Challenger Gate at BUILD→CLOSE Boundary
 
 ## Status
 
-Accepted — 2026-06-08
+Accepted — 2026-06-08. Extended 2026-08-14 by
+[ADR-082](ADR-082-multi-agent-sizing-function.md): the gate this ADR mandates now
+carries a graded sizing valve (challenger-gate.md §Sizing valve) — the single
+challenger remains the rung-0 default; panels arm on hard signals only.
 
 ## Context
 
