@@ -88,8 +88,16 @@ for f in "${ADDED[@]}"; do
         continue
     fi
     if run_red "$f"; then
+        # Pin the staged blob's content hash alongside registration (ADR-082 §5).
+        # tests_required[] stays a plain string array — every existing consumer is
+        # untouched; the hash lives in the SIBLING map tests_hashes{path: sha256}.
+        # goal-completion.sh re-hashes registered paths at grade time and blocks on
+        # mismatch, closing the weaken-after-registration gap.
+        blob_hash=$(git -C "$ROOT" show ":$f" 2>/dev/null | sha256sum | cut -d' ' -f1) || blob_hash=""
         tmp=$(mktemp) || continue
-        if jq --arg p "$f" '.tests_required = ((.tests_required // []) + [$p] | unique)' \
+        if jq --arg p "$f" --arg h "$blob_hash" \
+              '.tests_required = ((.tests_required // []) + [$p] | unique)
+               | .tests_hashes = ((.tests_hashes // {}) + (if $h == "" then {} else {($p): $h} end))' \
               "$GOAL_FILE" > "$tmp" 2>/dev/null; then
             mv "$tmp" "$GOAL_FILE"
             registered=$((registered + 1))

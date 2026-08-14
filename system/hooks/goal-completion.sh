@@ -134,6 +134,26 @@ $(
 EOF
             CHANGED=$(printf '%s %s' "$MODIFIED" "$UNREG" | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//' | cut -c1-200)
             [ -n "$CHANGED" ] && GATE_REASON="grader path changed since goal start ($CHANGED)"
+            # Channel 3 (ADR-082 §5) — registered-test content re-verification.
+            # A path in tests_required[] is exempt from channels 1b/2 forever, and
+            # "Added" never becomes "Modified" vs base_ref — so without this check a
+            # registered test could be weakened after its red registration undetected.
+            # red-verification.sh pins tests_hashes{path: sha256-of-staged-blob} at
+            # registration; any current-content mismatch (or deleted file) gates.
+            # Goals without tests_hashes (pre-ADR-082) skip this loop — backward safe.
+            if [ -z "$GATE_REASON" ]; then
+                HASH_MISMATCH=""
+                while IFS=$'\t' read -r hp hh; do
+                    [ -z "$hp" ] && continue
+                    cur=$(sha256sum "$WORK_DIR/$hp" 2>/dev/null | cut -d' ' -f1) || cur=""
+                    [ "$cur" != "$hh" ] && HASH_MISMATCH="$HASH_MISMATCH $hp"
+                done <<EOF
+$(jq -r '(.tests_hashes // {}) | to_entries[] | "\(.key)\t\(.value)"' "$GOAL_FILE" 2>/dev/null)
+EOF
+                if [ -n "$HASH_MISMATCH" ]; then
+                    GATE_REASON="registered test content changed since red registration (hash mismatch:$(printf '%s' "$HASH_MISMATCH" | cut -c1-160))"
+                fi
+            fi
         fi
     fi
 
