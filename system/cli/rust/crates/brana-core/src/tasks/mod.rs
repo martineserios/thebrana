@@ -1909,7 +1909,7 @@ mod tests {
         write!(f, "{body}").unwrap();
 
         // First pull: t-1 goes in_progress with a started date, persisted.
-        let d = pull_wave_task(f.path(), "wave-1").unwrap();
+        let d = pull_wave_task(f.path(), "wave-1", "test-pump:s1").unwrap();
         assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
         let reloaded: Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
@@ -1920,7 +1920,7 @@ mod tests {
         // Second pull: at limit now — and the no-write outcome must not
         // touch the file (byte-stable modulo nothing: reload and compare).
         let before = std::fs::read_to_string(f.path()).unwrap();
-        let d2 = pull_wave_task(f.path(), "wave-1").unwrap();
+        let d2 = pull_wave_task(f.path(), "wave-1", "test-pump:s1").unwrap();
         assert_eq!(d2, PullDecision::AtLimit { live: 1, limit: 1 });
         assert_eq!(
             std::fs::read_to_string(f.path()).unwrap(),
@@ -1961,7 +1961,7 @@ mod tests {
         assert!(simulated, "queued wave must be labeled as simulated");
         assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before);
         // The strict path stays strict: direct pull on queued still refuses.
-        let err = pull_wave_task(f.path(), "wave-1").unwrap_err();
+        let err = pull_wave_task(f.path(), "wave-1", "test-pump:s1").unwrap_err();
         assert!(err.contains("draining"), "{err}");
     }
 
@@ -1981,8 +1981,71 @@ mod tests {
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, r#"{{"version":1,"project":"p","tasks":[],"waves":[]}}"#).unwrap();
-        let err = pull_wave_task(f.path(), "wave-9").unwrap_err();
+        let err = pull_wave_task(f.path(), "wave-9", "test-pump:s1").unwrap_err();
         assert!(err.contains("wave-9"), "{err}");
+    }
+
+    // ── t-2841 (ADR-080 §5): lease + reclaim_count on atomic pull ────────
+
+    #[test]
+    fn test_pull_writes_lease_with_claimant_and_24h_expiry() {
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let d = pull_wave_task(f.path(), "wave-1", "drain-3:sess-b6c7").unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let t1 = &reloaded["tasks"][0];
+        // Lease persisted in the SAME write as in_progress (one critical section).
+        assert_eq!(t1["status"], "in_progress");
+        assert_eq!(t1["lease"]["claimant"], "drain-3:sess-b6c7");
+        let exp = chrono::DateTime::parse_from_rfc3339(t1["lease"]["expires"].as_str()
+            .expect("lease.expires must be an RFC3339 string")).unwrap();
+        let ttl = exp.signed_duration_since(chrono::Local::now());
+        assert!(ttl > chrono::Duration::hours(23) && ttl < chrono::Duration::hours(25),
+            "default TTL must be ~24h, got {ttl}");
+        // reclaim_count is NOT invented at pull time — key absent (ADR-067).
+        assert!(t1.get("reclaim_count").is_none(),
+            "pull must not create reclaim_count");
+    }
+
+    #[test]
+    fn test_status_write_clears_lease_reclaim_count_survives() {
+        // Ack path: ANY status write clears lease; reclaim_count lives
+        // OUTSIDE lease and must survive lease clearing.
+        let mut task = json!({"id":"t-1","status":"in_progress",
+            "lease":{"claimant":"pump:x","expires":"2026-08-15T10:00:00+00:00"},
+            "reclaim_count":1});
+        set_field(&mut task, "status", "pending", false).unwrap();
+        assert!(task.get("lease").is_none(),
+            "status write must remove lease key entirely (absence, not null)");
+        assert_eq!(task["reclaim_count"], 1,
+            "reclaim_count must survive lease clearing");
+    }
+
+    #[test]
+    fn test_completed_status_clears_lease_and_reclaim_count() {
+        let mut task = json!({"id":"t-1","status":"in_progress",
+            "lease":{"claimant":"pump:x","expires":"2026-08-15T10:00:00+00:00"},
+            "reclaim_count":2});
+        set_field(&mut task, "status", "completed", false).unwrap();
+        assert!(task.get("lease").is_none(), "completion clears lease");
+        assert!(task.get("reclaim_count").is_none(),
+            "completion removes reclaim_count (key absent, not null)");
+    }
+
+    #[test]
+    fn test_manual_status_write_takes_no_lease() {
+        // Manual `backlog start` (a plain status write) must NOT create a
+        // lease — human work is not watchdog-reclaimable (ADR-080 §5).
+        let mut task = json!({"id":"t-1","status":"pending"});
+        set_field(&mut task, "status", "in_progress", false).unwrap();
+        assert!(task.get("lease").is_none(), "manual start takes no lease");
+        assert!(task.get("reclaim_count").is_none());
     }
 
     #[test]

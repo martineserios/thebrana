@@ -220,7 +220,8 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
 /// named TOCTOU; everything here happens under the same lock. A non-pulling
 /// decision (AtLimit/NoneEligible) writes nothing. Never sets `completed` on
 /// tasks or `shipped` on waves — promotion stays human (no auto-ship).
-pub fn pull_wave_task(path: &Path, wave_id: &str) -> Result<PullDecision, String> {
+pub fn pull_wave_task(path: &Path, wave_id: &str, claimant: &str) -> Result<PullDecision, String> {
+    let _ = claimant;
     let _lock = lock_tasks(path)?;
     let mut val = load_raw(path)?;
 

@@ -1148,6 +1148,10 @@ pub enum WaveCmd {
     /// At-limit / none-eligible are normal ok outcomes (skip this cycle).
     Pull {
         wave_id: String,
+        /// Lease claimant identity (ADR-080 §5): loop name + session id.
+        /// Defaults to wave-pull:{BRANA_SESSION_ID} or wave-pull:pid-{pid}.
+        #[arg(long)]
+        claimant: Option<String>,
         /// Shadow drain (ADR-080): report the would-pull decision and write
         /// nothing. A queued wave is simulated as-if-draining (labeled in
         /// the output); a shipped wave remains an error.

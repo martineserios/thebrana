@@ -970,7 +970,12 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
 /// t-2813 (ADR-079 §2/§3): `backlog wave pull <id>` — one atomic pull cycle.
 /// The decision logic lives in brana_core (wave_pull_decision under
 /// pull_wave_task's lock); this is the CLI shell reporting the outcome.
-pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
+pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, file: Option<PathBuf>) -> anyhow::Result<()> {
+    // ADR-080 §5: claimant = loop name + session id. Flag wins; else derive.
+    let claimant = claimant.unwrap_or_else(|| match std::env::var("BRANA_SESSION_ID") {
+        Ok(sid) if !sid.is_empty() => format!("wave-pull:{sid}"),
+        _ => format!("wave-pull:pid-{}", std::process::id()),
+    });
     let tf = match file {
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
@@ -1005,7 +1010,7 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, file: Option<PathBuf>) -> any
             }
         };
     }
-    match tasks::pull_wave_task(&tf, wave_id) {
+    match tasks::pull_wave_task(&tf, wave_id, &claimant) {
         Ok(tasks::PullDecision::Pulled { task_id }) => {
             println!("{}", serde_json::json!({"ok": true, "id": wave_id, "pulled": task_id}));
             Ok(())
@@ -3067,7 +3072,7 @@ mod tests {
             r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
         );
-        cmd_wave_pull("wave-1", false, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_pull("wave-1", false, None, Some(f.path().to_path_buf())).unwrap();
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"][0]["status"], "in_progress");
@@ -3081,7 +3086,7 @@ mod tests {
                 {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
         );
-        cmd_wave_pull("wave-1", false, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_pull("wave-1", false, None, Some(f.path().to_path_buf())).unwrap();
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"][1]["status"], "pending", "at-limit must not pull");
@@ -3093,7 +3098,7 @@ mod tests {
             "[]",
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued"}]"#,
         );
-        let err = cmd_wave_pull("wave-1", false, Some(f.path().to_path_buf())).unwrap_err();
+        let err = cmd_wave_pull("wave-1", false, None, Some(f.path().to_path_buf())).unwrap_err();
         assert!(err.to_string().contains("draining"), "{err}");
     }
 
@@ -3106,7 +3111,7 @@ mod tests {
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued","wip_limit":1}]"#,
         );
         let before = std::fs::read_to_string(f.path()).unwrap();
-        cmd_wave_pull("wave-1", true, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_pull("wave-1", true, None, Some(f.path().to_path_buf())).unwrap();
         assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
             "dry-run must not rewrite tasks.json");
     }
