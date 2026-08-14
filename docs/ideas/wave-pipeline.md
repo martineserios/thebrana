@@ -43,6 +43,51 @@ each recalls from it on entry (LOAD, wave state, task context) and writes back o
 fourth accumulates. (Proven in the first live drain: beat 2 read its build map from the
 task's `context` field, not from the conversation.)
 
+## The spectrum — rings are sample points (studio dialogue, 2026-08-14)
+
+The four rings are not an ontology. They are **different frequencies of the same wave** —
+one subject oscillating at four rates, superimposed harmonics of one continuous signal —
+and the rings table above marks the frequencies where instruments happen to be installed
+(`/loop` at minutes, waves at days, the harness at weeks). The spectrum underneath is
+continuous. Consequences:
+
+- **Layers are discoverable, not fixed.** Bands already cycling uninstrumented: *session*
+  (~hours — the close/handoff rhythm), *season* (~months — ADR-002's monthly reviews,
+  portfolio direction, heavily studio), *sub-second* (lint, type-check — below micro,
+  already fully machine). New layers are found by asking: where does work naturally cycle
+  without a queue, pump, valve, or gauge installed yet?
+- **The layer test — closed vocabulary at a new altitude.** A proposed band is real iff
+  you can name its queue, its pump, its valve placement, its gauge, and its memory
+  read-on-entry / write-on-exit. Can't name the queue → it's not a layer. Admission stays
+  graded: a band exists once something has actually cycled in it with records emitted —
+  the [loops-library.md](loops-library.md) proof-of-life bar, applied to layers.
+- **The human is a low-pass filter.** Sustained coupling to the slow frequencies
+  (studio), discrete sampling of the fast ones (cockpit valves), absent from the fastest.
+  Tuning the system = sliding your coupling toward lower frequencies as evidence
+  accumulates — the graduated-autonomy ladder
+  ([loop-first-redesign.md](loop-first-redesign.md): L0→L3, promotion by clean runs,
+  never assumption) is exactly this, generalized. The target is **dynamic equilibrium**:
+  most learning and enjoyment per unit of effort. Gauges are the sensors, the watchdog
+  the homeostat, the human the setpoint.
+- **Ascent is phase, not a return trip.** Nothing travels back up the rings; the slow
+  wave advances *because* the fast one oscillated. A wave is not closed by a separate
+  closing activity — it closes as a side effect of its beats completing.
+- **The fundamental.** Every band runs the same loop at its own rate:
+  **try → feedback → improve**. red→green→refactor (seconds) · pull→work→report
+  (minutes) · drain→ship→learnings (days) · memory→recall→work→learnings (weeks) ·
+  observe-loop-failures→redesign — the band this doc itself cycles in
+  ([loop-first-redesign.md](loop-first-redesign.md): "redesign follows observed loop
+  failures, not upfront design"). Memory write-back is what turns each circle into a
+  **spiral**: a loop without write-back returns to exactly where it started; with it,
+  every cycle comes back to a different place. The wave cycles; the spiral is what the
+  cycling leaves behind.
+
+**Where the metaphor stops.** Queues and valves are deliberately *not* wave-like: a queue
+decouples frequencies so they need not stay in phase (law 1 — loops never talk), and a
+valve is a discontinuity where flow may stop dead. Continuous wave as the medium;
+discrete instruments mounted in it. The frequency lens covers the timescale structure,
+never the parts catalog — the four primitives remain the vocabulary for the machinery.
+
 ## The flow
 
 ```

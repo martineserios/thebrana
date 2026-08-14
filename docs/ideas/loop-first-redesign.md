@@ -211,11 +211,14 @@ the lens that fits the question at hand.
 | **Factory/kanban** (backlog = work source, foreman/crew) | the original 2026-06-11 architecture; where the foreman fits; why it goes last | why the foreman stalled (human factors) |
 | **Challenger lenses** (convergent/systems/critical) | secrets in inbox, RCE gate, lifecycle darkness, TOCTOU, quota accumulation | the value/opportunity side |
 | **Pre-mortem** (imagine it failed) | quota starvation & review pileup as the two death modes | slow-burn failure (framings above caught those) |
+| **Wave/frequency** (rings = harmonics of one continuous signal; human = low-pass filter — [wave-pipeline.md](wave-pipeline.md) §The spectrum, 2026-08-14) | layers as discoverable sample points, not fixed ontology; the layer test (name queue/pump/valve/gauge + memory contract); autonomy tuning = sliding human coupling to lower frequencies; try→feedback→improve as the fundamental at every rate | discrete queue mechanics (decoupling, backpressure); valves as flow discontinuities |
 
 Method note worth keeping: **deliberately re-describing the system in a new
 vocabulary is a cheap generator of design insight** — the pipeline reframe
 alone produced backpressure, dead-letter queues, and autonomy-as-routing in
-minutes, none of which the first three framings surfaced.
+minutes, none of which the first three framings surfaced. The wave/frequency
+reframe repeated the trick: layer discovery, the layer test, and
+tuning-as-coupling all surfaced in one studio dialogue (2026-08-14).
 
 ## Proposed backlog plan — MATERIALIZED (reconcile snapshot 2026-08-14)
 

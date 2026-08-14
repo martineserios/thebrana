@@ -57,11 +57,11 @@ Example pipeline (URLs): `/brana:log` enqueues → feed-digester pump drains N/b
 - **Beyond-repo**: pipeline-follower, metrics-snapshot, feed-digester, template-auditor (ADR-002 already lists ~15 recurring tasks: weekly staleness/link/dependency/frontmatter checks; monthly knowledge review, growth, financial close)
 - **Self-maintaining**: memory-hygiene, phantom-ref-check, eval-rerunner
 
-Dimension axes for generating more: primitive (gauge/pump/valve-feeder) × pacing (time/work/event) × boundedness × scope (repo/portfolio/business/personal) × autonomy (L0–L3). Sparse grid corners generate ideas mechanically.
+Dimension axes for generating more: primitive (gauge/pump/valve-feeder) × pacing (time/work/event) × boundedness × scope (repo/portfolio/business/personal) × autonomy (L0–L3) × **frequency band** (sub-second … session … season — see [wave-pipeline.md](wave-pipeline.md) §The spectrum: bands already cycling uninstrumented are loop candidates). Sparse grid corners generate ideas mechanically.
 
 ## Philosophy — defer to wave-pipeline.md
 
-The seven operating laws, the studio/cockpit two-rooms split (and its "needs human is not one queue" consequence), the four primitives, and the four rings are canonical in [wave-pipeline.md](wave-pipeline.md) — not duplicated here. This doc adds exactly one library-specific principle on top: **records are always emitted; verbosity is a render toggle** — records feed the TUI (t-2825): bounded → progress bar, unbounded → heartbeat.
+The seven operating laws, the studio/cockpit two-rooms split (and its "needs human is not one queue" consequence), the four primitives, the four rings, and the continuous-spectrum frequency lens that generalizes the rings (§The spectrum — rings as sample points, the layer test, the try→feedback→improve fundamental) are canonical in [wave-pipeline.md](wave-pipeline.md) — not duplicated here. This doc adds exactly one library-specific principle on top: **records are always emitted; verbosity is a render toggle** — records feed the TUI (t-2825): bounded → progress bar, unbounded → heartbeat.
 
 ## Pull interface (explored 2026-08-13)
 
