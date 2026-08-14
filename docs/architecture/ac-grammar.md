@@ -33,10 +33,10 @@ A leading `AC: ` prefix is stripped before matching.
 | 4 | **hook exists** | `hook .+\.sh exists` | `test -f system/hooks/{name}.sh` | `hook goal-completion.sh exists` |
 | 5 | **file contains** | `^file .+ contains "` | `grep -F "{string}"` the named file | `file system/skills/build/phases/load.md contains "acceptance_criteria"` |
 | 6 | **jq returns** | `^jq '.+' .+ returns` | run `jq '{expr}' {file}`; string-equal the expected value | `jq '.version' docs/spec-graph.json returns "1"` |
-| 7 | **command passes** | `^"[^"]+" passes$` | run the quoted command (allowlist only); pass on exit 0 | `"cargo test" passes` |
+| 7 | **command passes** | `^"[^"]+" passes$` | run the quoted command via `allowlisted_command()` — allowlist prefix match **and** no shell metacharacters (`;&\|`$(){}<>`), rejecting injected suffixes riding a legitimate prefix (t-2856 challenger finding 1); pass on exit 0 | `"cargo test" passes` |
 | 8 | **git log check** | `^changes to .+ committed$` **or** `^commit message contains "` | `git log` for the path / `--grep` the message; pass if a commit matches | `commit message contains "t-2199"` · `changes to load.md committed` |
 | 9 | **validate.sh passes (full)** | `validate\.sh` + `(passes\|exit 0\|exit code 0)` + NOT `check [0-9]` | run `./validate.sh` (whole suite); pass on exit 0 | `validate.sh passes` (the `/brana:reconcile` /goal done-signal, t-2206) |
-| 10 | **demoable** | `^demoable: ` | strip the prefix; run the command **iff** it matches heuristic 7's allowlist (shared `CMD_ALLOWLIST_RE`, one definition); pass on exit 0. Non-allowlisted → UNKNOWN — the demo happens at a human sitting, never executed unattended (t-2856) | `demoable: bash tests/demo-wave-pull.sh` |
+| 10 | **demoable** | `^demoable: ` | strip the prefix; run the command through the same `allowlisted_command()` as heuristic 7 (one guard, no drift); pass on exit 0. Non-allowlisted or metacharacter-bearing → UNKNOWN — the demo happens at a human sitting, never executed unattended (t-2856) | `demoable: bash tests/demo-wave-pull.sh` |
 
 Anything else → **UNKNOWN** → surfaced for manual sign-off (the task is NOT auto-completed).
 

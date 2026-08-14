@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ac-lint.sh — classify an acceptance criterion as machine-checkable or prose.
 #
-# Canonical grammar: docs/architecture/ac-grammar.md (the 8 heuristics).
+# Canonical grammar: docs/architecture/ac-grammar.md (the 10 heuristics).
 # This classifier MUST mirror the consumer's matching logic in
-# system/hooks/goal-completion.sh:59-206 — a criterion classifies "checkable"
+# system/hooks/goal-completion.sh — a criterion classifies "checkable"
 # here iff goal-completion.sh would actually run a check for it (not UNKNOWN).
 # Producer (/brana:backlog plan lint) uses this to warn when a generated
 # criterion won't auto-complete. (t-2201; tests: system/hooks/tests/test-ac-lint.sh)
@@ -23,6 +23,17 @@ criterion="${criterion# }"
 
 prose() { echo "prose"; exit 1; }
 checkable() { echo "checkable"; exit 0; }
+
+# Shared H7/H10 allowlist + metachar guard — one definition (mirrors the fix in
+# goal-completion.sh's allowlisted_command(), t-2856 challenger finding 1+2:
+# the two inline copies of this regex are exactly the "one gets updated, one
+# doesn't" pattern that produced the H9 drift bug this same change fixed).
+CMD_ALLOWLIST_RE='^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'
+allowlisted_command() {
+    local cmd="$1"
+    grep -qE '[;&|`$(){}<>]' <<<"$cmd" && return 1
+    grep -qE "$CMD_ALLOWLIST_RE" <<<"$cmd"
+}
 
 [ -z "$criterion" ] && prose
 
@@ -59,7 +70,7 @@ fi
 # ── Heuristic 7: "{command}" passes — allowlist only ─────────────────────────
 if grep -qiE '^"[^"]+" passes$' <<<"$criterion"; then
     cmd=$(grep -oE '"[^"]+"' <<<"$criterion" | head -1 | tr -d '"')
-    grep -qE '^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)' <<<"$cmd" && checkable
+    allowlisted_command "$cmd" && checkable
 fi
 
 # ── Heuristic 8: git log checks ──────────────────────────────────────────────
@@ -79,7 +90,7 @@ fi
 # them; the demo happens at a human sitting.
 if grep -qiE '^demoable: .+' <<<"$criterion"; then
     cmd=$(sed 's/^[Dd]emoable: *//' <<<"$criterion")
-    grep -qE '^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)' <<<"$cmd" && checkable
+    allowlisted_command "$cmd" && checkable
 fi
 
 # ── Fallback: unknown pattern → prose (manual sign-off) ──────────────────────

