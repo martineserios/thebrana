@@ -75720,7 +75720,7 @@
     {
       "id": "t-2895",
       "subject": "JUDGE wiring — escalation-armed judge panel in the build beat (sizing-ladder rungs 0-2)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -75735,7 +75735,7 @@
       "parent": "t-2811",
       "created": "2026-08-14",
       "started": "2026-08-14",
-      "completed": null,
+      "completed": "2026-08-14",
       "blocked_by": [
         "t-2894"
       ],
@@ -75748,7 +75748,7 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none",
-      "build_step": "build",
+      "build_step": null,
       "strategy": "feature"
     },
     {
