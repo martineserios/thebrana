@@ -5,12 +5,14 @@ created: 2026-08-14
 task: t-2828
 adr: ADR-079
 produced_by: [docs/ideas/loop-first-redesign.md]
-related: [docs/ideas/loops-library.md, docs/guide/workflows/drain-loop.md, docs/ideas/wave-pipeline-design.html, docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md]
+related: [docs/ideas/loops-library.md, docs/guide/workflows/drain-loop.md, docs/ideas/wave-pipeline-design.html, docs/ideas/wave-pipeline-infographic-prompt.md, docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md]
 ---
 # The Wave Pipeline
 
 > The concept doc for how thebrana builds itself. Visual companion (diagrams, 4-D depth
-> view, cast mapping): [wave-pipeline-design.html](wave-pipeline-design.html). Lineage:
+> view, cast mapping): [wave-pipeline-design.html](wave-pipeline-design.html). NotebookLM
+> infographic prompt built from this doc:
+> [wave-pipeline-infographic-prompt.md](wave-pipeline-infographic-prompt.md). Lineage:
 > born from [loop-first-redesign.md](loop-first-redesign.md) (the approach), built as the
 > ADR-079 substrate (delivered 2026-08-13, t-2811), cataloged in
 > [loops-library.md](loops-library.md). All three converge in **t-2828**.
