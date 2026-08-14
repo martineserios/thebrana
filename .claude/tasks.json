@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-08-14T08:32:31.353227659-03:00",
+  "last_modified": "2026-08-14T08:53:25.220317049-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -74094,7 +74094,7 @@
     {
       "id": "t-2842",
       "subject": "wave approve — batch AC valve (CLI + MCP), cap 10, runner-denied",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -74109,10 +74109,10 @@
       "priority": null,
       "parent": "t-2839",
       "created": "2026-08-14",
-      "started": null,
+      "started": "2026-08-14",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-drain/feat/t-2842-wave-approve-batch-valve",
       "context": "ADR-080 §4. A batch loop over the existing per-task promote+flip (ADR-079 §1) — all its bindings (content-binding reset, no-bypass) come free; no new state semantics. Cap 10 per confirmation is the rubber-stamp guard. TDD: tests first.",
       "notes": null,
       "order": 0,
@@ -74132,7 +74132,9 @@
         "TDD: failing tests written first, all green at close"
       ],
       "work_type": "implement",
-      "ac_state": "approved"
+      "ac_state": "approved",
+      "build_step": "build",
+      "strategy": "feature"
     },
     {
       "id": "t-2843",
@@ -74828,6 +74830,36 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "design",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2865",
+      "subject": "Analyze the merge valve — is human review at ac-approve/merge doing real work, or should it auto-advance?",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "valve",
+        "cockpit",
+        "contracts",
+        "human-factors"
+      ],
+      "description": "Live finding (2026-08-14, wave-3 drain, first real usage of the drain-loop merge valve): the human reported reviewing nothing at the merge valve — every merge command from the drain session gets typed without reading the stacked evidence (evaluator/challenger verdicts, gate counts). Two real failure classes surfaced the same evening as candidate evidence: (a) the human hit the worktree-merge-cwd trap 3x — friction is in TURNING the valve mechanically, not in the judgment (t-2838's `brana merge <task>` tool already targets this, unblocked, do first regardless of this task's outcome); (b) three concurrent sessions were writing the same tasks.json/wave graph the same evening — merge blast radius on `dev` is not zero even though dev is an integration buffer, not production. Tension to resolve, not assume: rubber-stamping-with-full-attention-available is different from removing the gate — Goodhart risk if approval becomes known-always-automatic (evaluator/challenger are themselves model judges, not ground truth). Deliverable: a recommendation, not a redesign — (1) survey how many of tonight's + the next N valve turns were content-bearing decisions vs pure formality (retroactive from beat records/git log once available); (2) decide whether merge-to-dev with full-green stacked evidence is exactly t-2855's reversible-gate auto-advance case, and if so what N (clean cycles) and what evidence bar; (3) if kept human, redesign what the human is FOR at that valve — spot-check + veto, not full review — and what t-2857's rendering needs to make a 5-second spot-check genuinely informative rather than theater; (4) name what should NEVER auto-advance regardless of evidence (ship/main, architecture-changing diffs, low evaluator/challenger confidence, cross-epic blast radius).",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2820",
+      "created": "2026-08-14",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Read first: docs/research/2026-08-14-agent-work-contracts.md (Goodhart section, stacked-metrics defense), wave-pipeline.md §The skeleton match (JUDGE splits by reversibility), ADR-080 §7 (auto-advance deferred, no auto-advance NOW — this task feeds that decision, doesn't override it). Directly feeds t-2855's 6th decision (auto-advance promotion rule) and t-2857 (stacked verdict rendering) — do not duplicate their scope, this task supplies the EVIDENCE and RECOMMENDATION those two consume. t-2838's brana-merge tool addresses the mechanical friction independently — not blocked on this, do it first.\nAC: real usage data gathered (valve turns this session + N more) classified content-bearing vs formality\nAC: explicit recommendation on merge-to-dev auto-advance eligibility, with N and evidence bar named\nAC: human's redefined role at a kept-human valve stated concretely (what to look at, what triggers escalation to full review)\nAC: a never-auto-advance list named, tied to reversibility/blast-radius, not vibes",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "research",
       "ac_state": "none"
     }
   ],
