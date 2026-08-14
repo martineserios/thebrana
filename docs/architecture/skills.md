@@ -126,7 +126,7 @@ External skills are classified by source into trust tiers that determine install
 | Other GitHub/npm | Community | Quarantine | Read, Glob, Grep only |
 | Unknown | Blocked | Rejected | N/A |
 
-Community skills install with `quarantine: true` in frontmatter and read-only tools. `/brana:audit` includes an incoming skill scan that checks acquired skills for dangerous allowed-tools, credential path references, suspicious MCP tool requests, and missing frontmatter.
+Community skills install with `quarantine: true` in frontmatter and read-only tools. `/brana:reconcile --scope security` includes an incoming skill scan that checks acquired skills for dangerous allowed-tools, credential path references, suspicious MCP tool requests, and missing frontmatter (formerly `/brana:audit`, merged into reconcile's security domain).
 
 ### Installed Acquired Skills
 

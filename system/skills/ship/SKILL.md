@@ -20,9 +20,6 @@ allowed-tools:
   - TaskCreate
   - TaskList
   - TaskUpdate
-  - mcp__ruflo__hive-mind_spawn
-  - mcp__ruflo__hive-mind_consensus
-  - mcp__ruflo__hive-mind_shutdown
   - ToolSearch
 status: experimental
 growth_stage: seed
@@ -56,9 +53,6 @@ ROLLBACK is conditional — only executed if VERIFY or MONITOR fails.
 - **Project detection is best-effort.** Always offer manual override via AskUserQuestion when detection is ambiguous.
 
 ---
-
-<!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
 
 ## Steps
 
@@ -119,34 +113,20 @@ Run all safety checks before touching anything external.
 
    **If user selects Abort → stop. Do not proceed to Step 1b.**
 
-### Step 1b: Gate 3 — Hive-mind pre-merge quorum
+### Step 1b: Gate 3 — Adversarial pre-merge quorum
 
 Run after pre-flight passes and user confirms deploy, before any external action.
 
-Spawn a 3-worker hive-mind quorum:
+Uses the native adversarial-hive-mind pattern — read [`../_shared/adversarial-hive-mind.md`](../_shared/adversarial-hive-mind.md) for the spawn/collect/confidence-tier mechanics (`hive-mind_*` MCP tools are bookkeeping-only under subscription — ADR-059 — the native Agent/Task fan-out does what they only claimed to).
 
-```
-mcp__ruflo__hive-mind_shutdown(force: true)
-mcp__ruflo__hive-mind_init(consensus: "quorum", topology: "hierarchical")
-mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "gate-3")
-```
-
-Assign each worker a distinct focus:
+Spawn **3 agents in one message** (`subagent_type: "brana:challenger"`), each with a ship-specific lens instead of the shared pattern's default trio:
 - **Worker 1 (regression):** What existing functionality is most at risk? Name specific files or behaviors.
 - **Worker 2 (security):** What security concerns does this change introduce or expose?
 - **Worker 3 (completeness):** Is the implementation done? What was intended but not finished?
 
-Provide each worker with: the diff summary, relevant changed files, and task AC (if available).
+Provide each worker: the diff summary, relevant changed files, and task AC (if available).
 
-Collect findings via quorum consensus:
-
-```
-mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum",
-  quorumPreset: "majority", type: "pre-merge", value: "{merged findings}")
-mcp__ruflo__hive-mind_shutdown()
-```
-
-Quorum threshold: **majority (2/3)**. ≥2 workers flagging the same concern = HIGH confidence (blocking). 1 worker only = OBSERVATION (informational).
+Collect (caller synthesizes — no separate consensus tool): await all 3, merge and dedup findings. Quorum threshold: **majority (2/3)**. ≥2 workers flagging the same concern = HIGH confidence (blocking). 1 worker only = OBSERVATION (informational).
 
 **If HIGH confidence finding raised:**
 ```
@@ -155,7 +135,7 @@ Options: ["Fix before deploy", "Override and deploy anyway", "Abort"]
 ```
 If Abort → stop. If Override → proceed with finding noted.
 
-**Fallback (ruflo unavailable):** Claude runs all three roles sequentially in main context, self-assesses ≥2-role agreement as HIGH, single-role as OBSERVATION. Same gate logic applies.
+Fallback if Agent/Task cannot be spawned: see `adversarial-hive-mind.md`'s fallback section (Claude runs all three roles sequentially in main context; same gate logic applies).
 
 ### Step 2: Deploy — Push it out
 

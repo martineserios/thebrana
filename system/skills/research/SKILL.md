@@ -21,7 +21,6 @@ allowed-tools:
   - mcp__ruflo__memory_search
   - mcp__ruflo__embeddings_compare
   - mcp__ruflo__memory_store
-  - mcp__ruflo__agent_spawn
   - AskUserQuestion
   - ToolSearch
   - EnterPlanMode
@@ -81,7 +80,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 **Plan mode:** Enter plan mode for INTERNAL-SEARCH, WIDE-SCAN, and TRIAGE (Phases 0-2). Exit plan mode before DEEP-DIVE (Phase 3) which may involve writing temp files.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__brana__agy_delegate,mcp__ruflo__embeddings_compare,mcp__ruflo__memory_store")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__brana__agy_delegate,mcp__ruflo__embeddings_compare,mcp__ruflo__memory_store")
 
 ## Procedure
 
@@ -252,6 +251,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__brana_
    - **Security scout (mandatory for topic/ecosystem mode)**: one scout must search for CVEs, security advisories, and community trust signals. Tag findings `[SECURITY]`.
    - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget). **`--depth` override**: `quick` = max 3 scouts total; `deep` = max 12 scouts total.
    - Scout spawn prompt MUST include: "Return ALL findings as structured markdown in your response. Start with a summary line: 'X HIGH, Y MEDIUM, Z LOW findings.' Then list each finding. Do NOT use WebFetch."
+   - **Replan-on-failure**: if a scout returns 0 findings, re-dispatch it once with a different query anchor (a different specific noun/phrasing from the research target) before accepting the empty result — mirrors the Phase 0b canned-response retry below.
    - **When internal context exists (Phase 0)**: include in scout prompts: "Internal docs say the following about this topic: [summary from Phase 0 internal]. Tag findings that confirm internal decisions as [CONFIRMED-INTERNAL], findings that contradict as [CONTRADICTS-INTERNAL], and findings that answer open questions as [ANSWERS-INTERNAL]."
    - **When agy prior details exist (Phase 0b)**: include in scout prompts: "Compare findings against these claims from agy: [summary from Phase 0b]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-AGY]."
 

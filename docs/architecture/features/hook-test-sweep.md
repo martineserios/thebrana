@@ -1,4 +1,4 @@
-# Feature: Hook Test Sweep (validate.sh Check 69)
+# Feature: Hook Test Sweep (validate.sh Check 70)
 
 **Date:** 2026-08-03
 **Status:** shipped
@@ -38,7 +38,7 @@ for parallel-safety was out of scope. Speed is opt-in via
 **`--fast` flag on validate.sh, not a separate check-skip mechanism.** The
 sweep's serial runtime (~4 min) roughly triples `validate.sh`'s total time,
 and `validate.sh` is invoked by `/brana:build`'s BUILD→CLOSE gate and
-`/brana:ship`'s pre-flight — not just standalone. `--fast` skips Check 69
+`/brana:ship`'s pre-flight — not just standalone. `--fast` skips Check 70
 specifically for local iteration; full gates must run without it.
 
 **Four pre-existing bugs found and fixed while unblocking the sweep** (all
@@ -83,7 +83,7 @@ unrelated to each other, all masked by nothing running these suites):
     motivated this).
   - `HOOK_TEST_SWEEP_CONCURRENCY` (default `1`) bounds parallelism via
     plain bash job slots — no external tool dependency.
-- `validate.sh` Check 69 calls it with no args, prints its summary line
+- `validate.sh` Check 70 calls it with no args, prints its summary line
   through `pass`/`fail`, skips with a `warn` under `--fast`.
 
 ## Key Files
@@ -92,7 +92,7 @@ unrelated to each other, all masked by nothing running these suites):
 |------|------|
 | `system/scripts/hook-test-sweep.sh` | Discovery + execution engine |
 | `system/scripts/tests/test-hook-test-sweep.sh` | Tests for the sweep script itself |
-| `validate.sh` (Check 69, `--fast` flag) | Wiring into the validation gate |
+| `validate.sh` (Check 70, `--fast` flag) | Wiring into the validation gate |
 | `system/hooks/session-start.sh` | Real bug fix (background-job stdout leak) |
 | `system/hooks/tests/test-{tdd-gate,e2e-hooks,session-start,close-extraction}.sh` | Stale-fixture fixes |
 
@@ -102,7 +102,7 @@ unrelated to each other, all masked by nothing running these suites):
   discovery, pass/fail aggregation, explicit-file args, non-`test-*.sh`
   files ignored, empty-directory handling, and the real default targets.
 - `./validate.sh --check 69` — runs the full sweep standalone.
-- `./validate.sh --fast` — confirms Check 69 is skipped (warn, not fail).
+- `./validate.sh --fast` — confirms Check 70 is skipped (warn, not fail).
 
 ## Known Limitations
 

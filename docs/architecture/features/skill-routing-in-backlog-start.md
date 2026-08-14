@@ -40,19 +40,19 @@ New behavior:
 
 ```
 Step 5: Skill suggestion (after strategy confirmed)
+(sub-step lettering matches system/skills/backlog/phases/start.md as of 2026-08-08)
 
-  5a. Read task metadata: subject, tags, strategy, stream, description
-  5b. Build query: "{subject} {tags joined} {strategy}"
-  5c. Try MCP:
+  5a. Build query from task metadata: "{subject} {tags joined} {strategy}"
+  5b. Try MCP:
       mcp__ruflo__memory_search(
-        query: "{query from 5b}",
+        query: "{query from 5a}",
         namespace: "skills",
         limit: 5,
         threshold: 0.3
       )
-  5d. If MCP unavailable, try CLI:
+  5c. If MCP unavailable, try CLI:
       brana skills suggest --task <id>
-  5e. Present results based on confidence:
+  5d. Present results based on confidence:
       - Top result > suggest_threshold (default 0.5):
         AskUserQuestion: "Suggested skill: /brana:{name} (score: {N})"
         Options: ["Run /brana:{name}", other matches, "Skip — none needed"]
@@ -65,6 +65,10 @@ Step 5: Skill suggestion (after strategy confirmed)
         If yes → Skill(skill="brana:acquire-skills", args="{subject keywords}")
       - No results (ruflo down + CLI fails):
         Skip silently
+  5e. If a skill is selected, note it in the task's context field for the build loop
+  (5f. "Agent pool check" existed here 2026-05-29 to 2026-08-12 — removed, t-2754: its
+   "Background pool (fire and forget)" option relied on mcp__ruflo__agent_spawn, which
+   never executes under subscription, so selecting it silently did nothing.)
 ```
 
 ### What changes in backlog SKILL.md frontmatter

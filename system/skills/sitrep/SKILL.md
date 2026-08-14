@@ -16,10 +16,7 @@ allowed-tools:
   - Task
   - AskUserQuestion
   - mcp__ruflo__hooks_intelligence_pattern-search
-  - mcp__ruflo__hive-mind_memory
   - mcp__ruflo__memory_search_unified
-  - mcp__ruflo__autopilot_predict
-  - mcp__ruflo__claims_board
   - mcp__brana__session_history
   - ToolSearch
 status: stable
@@ -53,11 +50,11 @@ Multiple filters combine with AND. When any filter is active, show a **Filter:**
 - Proactively: anytime you're unsure whether to continue, stop, or switch
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search_unified,mcp__ruflo__autopilot_predict,mcp__ruflo__claims_board,mcp__ruflo__hive-mind_memory,mcp__brana__session_history")
+ToolSearch("select:mcp__ruflo__memory_search_unified,mcp__brana__session_history")
 
 ## Process
 
-Gather from 7 sources in parallel, then synthesize into one snapshot. No writes — this is read-only.
+Gather from 6 sources in parallel, then synthesize into one snapshot. No writes — this is read-only.
 
 ### 1. CC Tasks (active skill flow)
 
@@ -244,18 +241,12 @@ Review the last few conversation turns for:
 
 ### Source 6 — Memory context (ruflo)
 
-Run both calls in parallel:
-
 ```
-# Primary: unified semantic search across all namespaces
 mcp__ruflo__memory_search_unified(
   query: "{TASK_SUBJECT} {BRANCH}",
   namespace: "pattern",
   limit: 3
 )
-
-# Shadow: autopilot prediction (shadow mode — emit only, do not act on it yet)
-mcp__ruflo__autopilot_predict()
 ```
 
 **Output rules:**
@@ -263,41 +254,16 @@ mcp__ruflo__autopilot_predict()
 - If all results below threshold, omit the memory context block entirely
 - Use plain-language labels: "from past sessions" not "[episodic]"
 - If a correction pattern matches current task, surface it explicitly
-- Show autopilot prediction alongside sitrep's own "Next action" heuristic:
-  - Label it `**Autopilot (shadow):**` so it's visible but distinct
-  - Always act on sitrep's heuristic — autopilot is observational until Phase 3
 
 ```markdown
 **Memory context:**
 - {pattern description, similarity: 0.35} — from past sessions
 - Note: past correction on this topic — {correction}
-
-**Autopilot (shadow):** {action} (confidence: {confidence}, reason: {reason})
 ```
 
 **Fallback:** If MCP unavailable, skip Source 6 entirely. Sitrep works as today — local-only.
 
-### Source 7 — Cross-session awareness (claims_board)
-
-Check in-flight claims for active work across sessions:
-```
-mcp__ruflo__claims_board()
-```
-
-Use `board.active` for active claims; also surface `board.stealable` if non-empty (abandoned work).
-
-**Output:** If `summary.active > 0` or `summary.stealable > 0`:
-```markdown
-**In-flight claims:** {summary.active} active, {summary.stealable} stealable
-- {claim.issueId} — {claim.claimant.agentType} {claim.claimant.agentId} ({claim.status})
-```
-If board is empty or MCP unavailable, omit this section.
-
-**Fallback:** If `claims_board` fails, fall back to:
-```
-mcp__ruflo__hive-mind_memory(action: "list")
-```
-Filter for keys matching `client:*:build:*` or `client:*:session:*` and display as before.
+> **Removed 2026-08-12 (t-2754):** a "Source 7 — Cross-session awareness" via `claims_board`/`hive-mind_memory` used to run here. Both are in-memory stores that reset on every ruflo MCP restart (a new session gets a fresh server process), so they structurally cannot answer "what's active in *other* sessions" — the one thing this source existed for. `autopilot_predict` (the "shadow" line above) is removed for the same reason: hardcoded `confidence: 0.5, reason: "Heuristic (learning not available)"`, live-verified 2026-08-12. See ADR-059 and `field-note_ruflo-agentic-layer-subscription-theater`.
 
 ---
 

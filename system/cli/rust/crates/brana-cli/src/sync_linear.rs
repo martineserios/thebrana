@@ -707,7 +707,9 @@ fn home_dir() -> PathBuf {
 }
 
 fn find_tasks_file() -> Option<PathBuf> {
-    let common_root = Command::new("git")
+    let mut common_cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut common_cmd);
+    let common_root = common_cmd
         .args(["rev-parse", "--git-common-dir"])
         .output()
         .ok()
@@ -727,7 +729,9 @@ fn find_tasks_file() -> Option<PathBuf> {
         }
     }
 
-    let root = Command::new("git")
+    let mut toplevel_cmd = Command::new("git");
+    brana_core::util::scrub_git_env(&mut toplevel_cmd);
+    let root = toplevel_cmd
         .args(["rev-parse", "--show-toplevel"])
         .output()
         .ok()

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-02T16:31:43Z",
+  "generated": "2026-08-13T23:45:31Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -250,6 +250,11 @@
     },
     "brana-knowledge/dimensions/60-agent-loop-architecture.md": {
       "title": "Agent Loop Architecture — Self-Contained Loops That Act, Measure, Judge, Assimilate",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/60-upstash-platform.md": {
+      "title": "Upstash Platform",
       "type": "Dimension",
       "impl_files": []
     },
@@ -600,7 +605,9 @@
     "docs/README.md": {
       "title": "Documentation Index",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/services/whatsapp-bridge"
+      ]
     },
     "docs/architecture/ac-grammar.md": {
       "title": "AC Grammar — Machine-Checkable Acceptance Criteria",
@@ -648,6 +655,15 @@
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/crates/brana-cli/src/commands/"
+      ]
+    },
+    "docs/architecture/cc-tasks-bridge-research.md": {
+      "title": "CC native Tasks bridge — research findings (t-2746)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/rules/context-budget.md",
+        "system/skills/backlog/phases/execute.md",
+        "system/skills/build/"
       ]
     },
     "docs/architecture/context-budget.md": {
@@ -895,6 +911,7 @@
       "title": "ADR-040: brana Compute Hierarchy — Claude / Ruflo / Gemini",
       "type": "ADR",
       "impl_files": [
+        "system/rules/delegation-routing.md",
         "system/scheduler/outputs/",
         "system/"
       ]
@@ -1148,6 +1165,24 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-077-validate-remedy-registry.md": {
+      "title": "ADR-077: Remedy Registry for `validate.sh` — Bound Fixes, Not Just Findings",
+      "type": "ADR",
+      "impl_files": [
+        "system/scripts/migrate/",
+        "system/scripts/validate-remedies.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-078-stale-task-park-via-tag.md": {
+      "title": "ADR-078: Park Stale Tasks via the Existing `parked` Tag, Not a New Status",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md": {
+      "title": "ADR-079: ac_state Approval, Wave-Drain→Loop Handoff, and WIP Location (amends ADR-065)",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1288,7 +1323,11 @@
         "system/scripts/migrate/collapse-level-epic-v3.py",
         "system/scripts/migrate/normalize-tags.py",
         "system/state/tasks-config.json",
-        "system/skills/_shared/epic-ancestor-walk.md"
+        "system/skills/_shared/epic-ancestor-walk.md",
+        "system/scripts/backlog-reconcile.sh",
+        "system/scripts/tests/test-no-flat-epic-field-reads.sh",
+        "system/",
+        "system/rules/task-convention.md"
       ]
     },
     "docs/architecture/features/brana-cli.md": {
@@ -1340,7 +1379,9 @@
     "docs/architecture/features/build-receipts.md": {
       "title": "Feature: Build receipts",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/hooks/red-verification.sh"
+      ]
     },
     "docs/architecture/features/cascade-throttle.md": {
       "title": "Feature: Cascade Throttle",
@@ -1507,6 +1548,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/local-vector-recall.md": {
+      "title": "Local Vector Recall",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/features/memory-migration-manifest.md": {
       "title": "Memory Migration Manifest — Phase A",
       "type": "Roadmap",
@@ -1562,6 +1608,15 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/pipeline-digest.md": {
+      "title": "Feature: pipeline-digest (L0 Reporter gauge)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/pipeline-digest.md",
+        "system/loops/",
+        "system/scripts/pipeline-digest.sh"
+      ]
+    },
     "docs/architecture/features/plugin-packaging.md": {
       "title": "Feature: Plugin Packaging — Distribute thebrana as CC Plugin",
       "type": "Roadmap",
@@ -1609,8 +1664,9 @@
       "title": "Feature: Research Stream in /brana:backlog",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/backlog/phases/done-and-add.md",
+        "system/skills/backlog/phases/views.md",
         "system/rules/task-convention.md",
-        "system/skills/backlog/SKILL.md",
         "system/rules/delegation-routing.md"
       ]
     },
@@ -1632,7 +1688,25 @@
     "docs/architecture/features/ruflo-integration-map.md": {
       "title": "Ruflo Integration Map",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/rules/delegation-routing.md"
+      ]
+    },
+    "docs/architecture/features/ruflo-mcp-tool-classification.md": {
+      "title": "Ruflo MCP Surface — Real/Theater/Broken Classification",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/rules/ruflo-stub-guard.md",
+        "system/rules/delegation-routing.md"
+      ]
+    },
+    "docs/architecture/features/ruflo-upgrade-memory-reliability.md": {
+      "title": "Feature: Upgrade ruflo v3.10.39 → v3.34.0 and re-verify memory reliability",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/ruflo-mcp.sh",
+        "system/scripts/ruflo-cli.sh"
+      ]
     },
     "docs/architecture/features/scheduler-hardening.md": {
       "title": "Feature: Scheduler Hardening (Wave 1)",
@@ -1677,6 +1751,23 @@
       "title": "Feature: Smart /brana:backlog add with dependency scan",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/stale-task-lifecycle-policy.md": {
+      "title": "Stale-task lifecycle policy (t-2743)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/state/stale-lifecycle-log.jsonl",
+        "system/state/",
+        "system/scheduler/scheduler.template.json",
+        "system/scheduler/",
+        "system/skills/review/SKILL.md",
+        "system/scripts/stale-lifecycle.sh",
+        "system/state/stale-lifecycle-status.json",
+        "system/hooks/session-start.sh",
+        "system/state/stale-lifecycle-report.jsonl",
+        "system/scripts/tests/test-stale-lifecycle.sh",
+        "system/hooks/tests/test-session-start.sh"
+      ]
     },
     "docs/architecture/features/staleness-and-memory-pipeline.md": {
       "title": "Feature: Staleness Report + Output-to-Memory Pipeline",
@@ -1735,13 +1826,16 @@
       "title": "Feature: /brana:backlog status --all",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/backlog/SKILL.md"
+        "system/skills/backlog/phases/views.md",
+        "system/skills/backlog/SKILL.md",
+        "system/skills/backlog/phases/display-themes.md"
       ]
     },
     "docs/architecture/features/tasks-theme-system.md": {
       "title": "Feature: Themeable Task Display",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/backlog/phases/display-themes.md",
         "system/skills/backlog/SKILL.md"
       ]
     },
@@ -1749,7 +1843,8 @@
       "title": "Feature: Wide Display Mode for /brana:backlog",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/backlog/SKILL.md"
+        "system/skills/backlog/SKILL.md",
+        "system/skills/backlog/phases/display-themes.md"
       ]
     },
     "docs/architecture/features/test-lint-feedback-hook.md": {
@@ -1764,6 +1859,19 @@
     },
     "docs/architecture/features/user-journey-gap-analysis.md": {
       "title": "User Journey Map & Gap Analysis",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/architecture/features/validate-remedy-binding.md": {
+      "title": "Feature: Remedy Binding for validate.sh Findings",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/validate-remedies.sh",
+        "system/scripts/migrate/"
+      ]
+    },
+    "docs/architecture/features/wave-gate-enforcement.md": {
+      "title": "Wave gate enforcement (t-2744)",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2321,6 +2429,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/60-upstash-platform.md": {
+      "title": "Upstash Platform",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/INDEX.md": {
       "title": "Dimension Docs Index",
       "type": "Roadmap",
@@ -2629,6 +2742,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/pipeline-digest.md": {
+      "title": "Pipeline Digest (L0 Reporter)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/propagate-close-step.md": {
       "title": "PROPAGATE — propagation-debt audit at close",
       "type": "Roadmap",
@@ -2760,7 +2878,8 @@
       "title": "Dynamic Model Routing",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/backlog/SKILL.md"
+        "system/skills/backlog/phases/execute.md",
+        "system/skills/_shared/model-routing.md"
       ]
     },
     "docs/guide/workflows/reconcile.md": {
@@ -2849,6 +2968,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/brana-agency-growth-machine.md": {
+      "title": "Brana Agency Growth Machine",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/brana-backlog-v2-schema.md": {
       "title": "brana backlog v2 schema",
       "type": "Roadmap",
@@ -2894,6 +3018,14 @@
       "title": "Brana v3 — The Graduated Self-Evolving Process Loop",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/brana-whatsapp-agent.md": {
+      "title": "The Brana WhatsApp Agent",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/services/whatsapp-bridge/"
+      ]
     },
     "docs/ideas/build-enhancements-from-osmani.md": {
       "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
@@ -3086,6 +3218,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/loop-first-redesign.md": {
+      "title": "Loop-First Operation of thebrana",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/pipeline-digest.sh",
+        "system/loops/pipeline-digest.md"
+      ]
+    },
     "docs/ideas/loop-goal-native-planning.md": {
       "title": "Loop+Goal-Native Backlog Planning",
       "type": "Roadmap",
@@ -3202,7 +3342,9 @@
     "docs/ideas/statusline-v2-backlog-intelligence.md": {
       "title": "Statusline v2 — Backlog-Aware Intelligence",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/scripts/statusline-slow-cache.sh"
+      ]
     },
     "docs/ideas/telegram-link-capture.md": {
       "title": "Telegram Link Capture",
@@ -3329,6 +3471,10 @@
         "system/rules/hard-deny-manifest.md",
         "system/rules/inbox-convention.md",
         "system/rules/m-plus-discipline-enforcement.md",
+        "system/rules/memory-consolidation-scheduled.md",
+        "system/rules/memory-decay-by-non-use.md",
+        "system/rules/migration-script-validation.md",
+        "system/rules/no-patches-root-cause.md",
         "system/rules/no-phantom-dependencies.md",
         "system/rules/parallel-bash.md",
         "system/rules/reconcile-after-convention-change.md",
@@ -3706,7 +3852,8 @@
       "title": "Skills System Guide",
       "type": "Roadmap",
       "impl_files": [
-        "system/scripts/"
+        "system/scripts/",
+        "system/skills/_shared/backup-knowledge-invoke.md"
       ]
     }
   },
@@ -5590,6 +5737,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/ruflo-mcp-tool-classification.md",
+      "to": "ADR-026-ruflo-mcp-backbone.md, ADR-059-multi-agent-substrate-selection.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/scheduler-hardening.md",
       "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "type": "depends_on",
@@ -5952,6 +6105,12 @@
     {
       "from": "docs/architecture/features/user-journey-gap-analysis.md",
       "to": "docs/architecture/features/plugin-packaging.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/validate-remedy-binding.md",
+      "to": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
       "type": "depends_on",
       "computed": false
     },
@@ -9809,6 +9968,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/cc-tasks-bridge-research.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/context-budget.md",
       "type": "references",
       "computed": false
@@ -10133,6 +10298,18 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -10259,6 +10436,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/pipeline-digest.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/plugin-packaging.md",
       "type": "references",
       "computed": false
@@ -10319,6 +10502,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/stale-task-lifecycle-policy.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/staleness-and-memory-pipeline.md",
       "type": "references",
       "computed": false
@@ -10362,6 +10551,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/test-lint-feedback-hook.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/wave-gate-enforcement.md",
       "type": "references",
       "computed": false
     },
@@ -10565,6 +10760,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "guide/features/pipeline-digest.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "guide/features/propagate-close-step.md",
       "type": "references",
       "computed": false
@@ -10668,6 +10869,18 @@
     {
       "from": "docs/README.md",
       "to": "guide/workflows/venture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/brana-agency-growth-machine.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/brana-whatsapp-agent.md",
       "type": "references",
       "computed": false
     },
@@ -11014,6 +11227,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md",
+      "to": "ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md",
       "to": "docs/architecture/ac-grammar.md",
       "type": "references",
@@ -11040,6 +11259,12 @@
     {
       "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
       "to": "ADR-041-agy-invocation-contract.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
       "type": "references",
       "computed": false
     },
@@ -11334,6 +11559,60 @@
     {
       "from": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
       "to": "docs/ideas/enforced-delegation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
+      "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-078-stale-task-park-via-tag.md",
+      "to": "ADR-065-wave-process-objects.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-067-retired-fields-write-guard.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "docs/architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "docs/architecture/features/wave-gate-enforcement.md",
       "type": "references",
       "computed": false
     },
@@ -11734,6 +12013,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/pipeline-digest.md",
+      "to": "docs/ideas/loop-first-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/propagate-close-step.md",
       "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
       "type": "references",
@@ -11794,6 +12079,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/stale-task-lifecycle-policy.md",
+      "to": "docs/architecture/decisions/ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/staleness-and-memory-pipeline.md",
       "to": "docs/architecture/25-self-documentation.md",
       "type": "references",
@@ -11814,6 +12105,24 @@
     {
       "from": "docs/architecture/features/test-lint-feedback-hook.md",
       "to": "docs/.claude/tasks.json",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/validate-remedy-binding.md",
+      "to": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-gate-enforcement.md",
+      "to": "backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-gate-enforcement.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
       "computed": false
     },
@@ -15791,9 +16100,9 @@
     }
   ],
   "stats": {
-    "nodes": 543,
-    "edges": 2013,
-    "typed_edges": 683,
-    "orphans": 141
+    "nodes": 560,
+    "edges": 2040,
+    "typed_edges": 685,
+    "orphans": 148
   }
 }

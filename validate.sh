@@ -23,6 +23,7 @@ RUN_GOLDEN=false
 RUN_FAST=false
 GRACE_DAYS=7
 CHECK_FILTER=""
+FIX_TARGET=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -38,9 +39,17 @@ while [[ $# -gt 0 ]]; do
         --check)
             if [ -z "${2:-}" ]; then echo "--check requires a check number argument"; exit 1; fi
             CHECK_FILTER="$2"; shift 2 ;;
+        --fix)
+            if [ -z "${2:-}" ]; then echo "--fix requires a check number argument"; exit 1; fi
+            FIX_TARGET="$2"; shift 2 ;;
         *) echo "Unknown flag: $1"; exit 1 ;;
     esac
 done
+
+if [ -n "$CHECK_FILTER" ] && [ -n "$FIX_TARGET" ]; then
+    echo "--check and --fix are mutually exclusive"
+    exit 1
+fi
 
 echo "=== Brana Validate ==="
 echo ""
@@ -48,6 +57,9 @@ echo ""
 fail() { echo "  FAIL: $1"; (( ERRORS++ )) || true; }
 warn() { echo "  WARN: $1"; (( WARNINGS++ )) || true; }
 pass() { echo "  PASS: $1"; }
+
+# shellcheck source=system/scripts/validate-remedies.sh
+source "$SCRIPT_DIR/system/scripts/validate-remedies.sh"
 
 # should_run N: returns 0 (true) if CHECK_FILTER is unset or matches this check.
 # --check 5  matches "5" and "5b" (base-number prefix match).
@@ -57,6 +69,45 @@ should_run() {
     local base="${1%%[a-z]*}"
     [ "$base" = "$CHECK_FILTER" ]
 }
+
+# --fix <N> dispatch (ADR-077 Decision #6). Looks up REMEDY_REGISTRY[N], confirms
+# HAS_REMEDY, then calls remedy_<N>_apply — never eval or unvalidated function-name
+# construction; the function name is only ever built from an id already confirmed
+# present in the registry with HAS_REMEDY. Re-runs check N afterward to confirm it
+# actually passes (not just "the apply command exited 0") before reporting success.
+# Exits — never falls through to the full check suite below.
+if [ -n "$FIX_TARGET" ]; then
+    if ! FIX_ENTRY=$(remedy_lookup "$FIX_TARGET"); then
+        echo "No registry entry for check $FIX_TARGET — this should never happen (the completeness test guards against it). Not fixing."
+        exit 1
+    fi
+    case "$FIX_ENTRY" in
+        HAS_REMEDY)
+            FIX_APPLY_FN="remedy_${FIX_TARGET}_apply"
+            if ! declare -f "$FIX_APPLY_FN" >/dev/null; then
+                echo "Registry says check $FIX_TARGET has a remedy but $FIX_APPLY_FN() is not defined — refusing to guess. Not fixing."
+                exit 1
+            fi
+            "$FIX_APPLY_FN"
+            if bash "$0" --check "$FIX_TARGET" 2>&1 | grep -q "FAIL: Check $FIX_TARGET"; then
+                echo "Applied the remedy for check $FIX_TARGET, but the check still fails. Manual review needed."
+                exit 1
+            fi
+            echo "Fixed check $FIX_TARGET."
+            FIX_UNDO_HINT="${REMEDY_UNDO_HINT[$FIX_TARGET]:-}"
+            [ -n "$FIX_UNDO_HINT" ] && echo "To undo: $FIX_UNDO_HINT"
+            exit 0
+            ;;
+        NO_REMEDY:*)
+            echo "No remedy for check $FIX_TARGET: ${FIX_ENTRY#NO_REMEDY:}"
+            exit 1
+            ;;
+        *)
+            echo "Malformed registry entry for check $FIX_TARGET: $FIX_ENTRY"
+            exit 1
+            ;;
+    esac
+fi
 
 # effective_body NAME: prints the full effective procedure body of a skill,
 # regardless of layout (t-1942). Handles all three layouts:
@@ -1720,7 +1771,14 @@ while IFS= read -r -d '' proc_file; do
         */SKILL.md) content=$(awk 'fm==2{print} /^---$/{fm++}' "$proc_file"); label="skills/$(basename "$(dirname "$proc_file")")" ;;
         *) content=$(cat "$proc_file"); label=$(basename "$proc_file") ;;
     esac
-    if grep -q "mcp__ruflo__" 2>/dev/null <<< "$content"; then
+    # RUFLO-CALL-DETECT: A prose mention of a tool name (backticked or plain
+    # text explaining why NOT to call it) is not a call site — only a name
+    # immediately followed by "(" is an actual invocation requiring the tool
+    # to be loaded first. A bare name inside a ToolSearch("select:...") list
+    # doesn't match either: ToolSearch IS the load mechanism, so it can't
+    # itself throw the InputValidationError this check guards against.
+    # Confirmed false positive on build-loop.md:61 (pure prose) — live 2026-08-12.
+    if grep -qE "mcp__ruflo__[A-Za-z_-]+\(" 2>/dev/null <<< "$content"; then
         if ! grep -q "ruflo preamble" 2>/dev/null <<< "$content"; then
             MISSING_PREAMBLE+=("$label")
         fi
@@ -2600,9 +2658,31 @@ echo ""
 fi  # should_run 68
 
 if should_run 69; then
-# Check 69 — hook test sweep (t-2622). validate.sh previously only ran 5
-# hardcoded statusline suites (Check 65/66) out of the ~60 test-*.sh suites
-# under system/hooks/tests/; everything else — including test-red-verification.sh
+# Check 69 — tasks.json work_type/type enum hygiene (t-2739). Pairs the
+# validate_task_type/validate_work_type write-path validators with a data
+# check, same bundle as Check 26 gave status: write paths alone leave
+# pre-existing corrupted rows permanently invisible to CI.
+echo "Checking tasks.json work_type/type enums..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_WT=$(jq -r '[.tasks[] | select(.work_type != null) | select(.work_type | test("^(implement|research|design|infra|chore|review)$") | not) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  BAD_TY=$(jq -r '[.tasks[] | select(.type != null) | select(.type | test("^(task|subtask|phase|milestone|epic|initiative)$") | not) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_WT" ] || [ -n "$BAD_TY" ]; then
+    [ -n "$BAD_WT" ] && fail "Check 69: tasks.json has non-canonical work_type values (tasks: $BAD_WT) — must be implement/research/design/infra/chore/review or null"
+    [ -n "$BAD_TY" ] && fail "Check 69: tasks.json has non-canonical type values (tasks: $BAD_TY) — must be task/subtask/phase/milestone/epic/initiative or null"
+  else
+    pass "Check 69: tasks.json — all work_type/type values canonical (or null)"
+  fi
+else
+  warn "Check 69: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+fi  # should_run 69
+
+if should_run 70; then
+# Check 70 — hook test sweep (t-2622; renumbered from 69 after dev's enum
+# check claimed that slot). validate.sh previously only ran 5 hardcoded
+# statusline suites (Check 65/66) out of the ~60 test-*.sh suites under
+# system/hooks/tests/; everything else — including test-red-verification.sh
 # and the t-2501 oracle tests in tests/scripts/ — was correctly written but
 # never run automatically by anything. Delegates discovery/execution to
 # hook-test-sweep.sh so new suites need no validate.sh edit to be covered.
@@ -2613,24 +2693,24 @@ if should_run 69; then
 # collisions). Full gates (BUILD->CLOSE, ship pre-flight) must run without
 # --fast; this exists for quick local `./validate.sh --fast` iteration only.
 if $RUN_FAST; then
-    warn "Check 69: skipped (--fast) — hook test sweep not run"
+    warn "Check 70: skipped (--fast) — hook test sweep not run"
 else
-echo "Check 69: hook test sweep (t-2622)..."
-C69_SWEEP="$SCRIPT_DIR/system/scripts/hook-test-sweep.sh"
-if [ ! -x "$C69_SWEEP" ]; then
-    warn "Check 69: $C69_SWEEP not found or not executable — skipping"
+echo "Check 70: hook test sweep (t-2622)..."
+C70_SWEEP="$SCRIPT_DIR/system/scripts/hook-test-sweep.sh"
+if [ ! -x "$C70_SWEEP" ]; then
+    warn "Check 70: $C70_SWEEP not found or not executable — skipping"
 else
-    if C69_OUT=$(bash "$C69_SWEEP" 2>&1); then
-        C69_SUMMARY=$(printf '%s\n' "$C69_OUT" | tail -1)
-        pass "Check 69: $C69_SUMMARY"
+    if C70_OUT=$(bash "$C70_SWEEP" 2>&1); then
+        C70_SUMMARY=$(printf '%s\n' "$C70_OUT" | tail -1)
+        pass "Check 70: $C70_SUMMARY"
     else
-        printf '%s\n' "$C69_OUT" | grep -E '^FAIL:' | sed 's/^/  /'
-        fail "Check 69: hook test sweep — see failures above"
+        printf '%s\n' "$C70_OUT" | grep -E '^FAIL:' | sed 's/^/  /'
+        fail "Check 70: hook test sweep — see failures above"
     fi
 fi
 fi
 echo ""
-fi  # should_run 69
+fi  # should_run 70
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then

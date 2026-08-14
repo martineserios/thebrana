@@ -610,6 +610,44 @@ else
 fi
 rm -f "$FAKE_HOME/.claude/close-queue.json"
 
+# ── 15. Stale-lifecycle P0/P1 escalation (t-2774/t-2779) ────────────────
+# Pure jq read of the weekly job's status file (system/state/, repo-relative,
+# not $HOME) — never a live query at session-start (context-budget.md).
+REPO_STALE="$TMPDIR/stale-proj"
+mkdir -p "$REPO_STALE/system/state"
+
+printf '{"stale_p0p1_count":3,"threshold_days":14,"updated":"2026-08-12"}' \
+    > "$REPO_STALE/system/state/stale-lifecycle-status.json"
+assert_context_contains "Stale P0/P1 count > 0 → gated warning line" \
+    "stale P0/P1" \
+    "$(make_session_input "sess-stale-nonzero" "$REPO_STALE")"
+
+# count is 0 → silent (no line at all, matches spec §5's gated-single-line requirement)
+printf '{"stale_p0p1_count":0,"threshold_days":14,"updated":"2026-08-12"}' \
+    > "$REPO_STALE/system/state/stale-lifecycle-status.json"
+TOTAL=$((TOTAL + 1))
+OUT_STALE=$(run_hook "$(make_session_input "sess-stale-zero" "$REPO_STALE")")
+if echo "$OUT_STALE" | jq -r '.additionalContext // ""' 2>/dev/null | grep -qi "stale P0/P1"; then
+    echo "  FAIL: Stale P0/P1 count == 0 → silent, no line"
+    FAIL=$((FAIL + 1))
+else
+    echo "  PASS: Stale P0/P1 count == 0 → silent, no line"
+    PASS=$((PASS + 1))
+fi
+
+# status file absent → silent, no crash
+rm -f "$REPO_STALE/system/state/stale-lifecycle-status.json"
+TOTAL=$((TOTAL + 1))
+OUT_STALE=$(run_hook "$(make_session_input "sess-stale-absent" "$REPO_STALE")")
+if echo "$OUT_STALE" | jq -e '.continue == true' >/dev/null 2>&1 \
+    && ! echo "$OUT_STALE" | jq -r '.additionalContext // ""' 2>/dev/null | grep -qi "stale P0/P1"; then
+    echo "  PASS: Status file absent → silent, no crash"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Status file absent → silent, no crash"
+    FAIL=$((FAIL + 1))
+fi
+
 # ── Summary ─────────────────────────────────────────────
 echo ""
 echo "$PASS/$TOTAL passed"

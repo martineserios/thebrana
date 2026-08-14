@@ -1,3 +1,6 @@
+---
+status: proposed
+---
 # ADR-069: Lane Identity, Miss Semantics, and the Unbuilt Axes of v3
 
 - **Status:** Proposed — **two of six decisions require redesign before Accepted** (t-2516

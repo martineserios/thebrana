@@ -86,16 +86,12 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 if let Some(wt) = input.work_type.as_deref() {
                     brana_core::tasks::validate_work_type(wt)?;
                 }
+                brana_core::tasks::validate_task_type(&input.task_type)?;
                 brana_core::tasks::validate_execution(&input.execution)?;
                 brana_core::tasks::validate_context_for_effort(
                     input.effort.as_deref(),
                     input.context.as_deref(),
                 )?;
-
-                // ADR-065 D4: WIP cap is advisory during pilot — warn, never
-                // block (t-2313). Computed before the mutable borrow below.
-                let wip_warning = input.parent.as_deref()
-                    .and_then(|pid| brana_core::tasks::check_epic_wip_cap(tasks, pid));
 
                 let id = brana_core::tasks::next_id(tasks);
 
@@ -151,7 +147,6 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     "ok": true,
                     "id": id,
                     "subject": input.subject,
-                    "warning": wip_warning,
                 }))
             })
             .await
@@ -418,16 +413,42 @@ mod tests {
         assert_eq!(task["status"], "next");
     }
 
+    // t-2727 (ADR-065 D4, retired 2026-08-12): the epic WIP cap is gone —
+    // epics stay unbounded groupings. #[serde(deny_unknown_fields)] on Input
+    // already hard-rejects "wip_limit" the same way it does "epic"/"stream" —
+    // this test locks that behavior explicitly rather than leaving it implicit.
     #[tokio::test]
-    async fn test_mcp_add_wip_cap_warns_not_blocks() {
+    async fn test_mcp_add_rejects_wip_limit_field() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new();
+
+        let err = build()
+            .handle(
+                json!({"subject": "new epic", "task_type": "epic", "wip_limit": 5}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect_err("handler must reject the retired wip_limit field");
+
+        let msg = err.to_string();
+        assert!(msg.contains("wip_limit"), "error must name the rejected field: {msg}");
+        assert_eq!(
+            h.tasks()["tasks"].as_array().unwrap().len(),
+            0,
+            "rejected add must not persist a task"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_mcp_add_no_epic_wip_cap_at_any_count() {
         let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let h = Hermetic::new();
 
         let mut tasks = vec![json!({
             "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
-            "tags": [], "blocked_by": [], "wip_limit": 5, "parent": null
+            "tags": [], "blocked_by": [], "parent": null
         })];
-        for i in 1..=5 {
+        for i in 1..=20 {
             tasks.push(json!({
                 "id": format!("t-{i}"), "subject": format!("child {i}"), "status": "pending",
                 "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"
@@ -440,15 +461,15 @@ mod tests {
 
         let out = build()
             .handle(
-                json!({"subject": "6th child", "parent": "in-1"}),
+                json!({"subject": "21st child", "parent": "in-1"}),
                 pmcp::RequestHandlerExtra::default(),
             )
             .await
-            .expect("handler must accept add even over the WIP cap (advisory warn)");
+            .expect("adding under an unbounded epic must always succeed, at any count");
 
         assert_eq!(out["ok"], true);
-        assert!(out["warning"].as_str().is_some(), "response must carry a WIP-cap warning: {out}");
-        assert_eq!(h.tasks()["tasks"].as_array().unwrap().len(), 7, "task must still be persisted (1 epic + 5 existing + 1 new)");
+        assert!(out.get("warning").is_none(), "response must carry no warning key — the cap is gone: {out}");
+        assert_eq!(h.tasks()["tasks"].as_array().unwrap().len(), 22, "1 epic + 20 existing + 1 new");
     }
 
     #[tokio::test]

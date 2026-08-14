@@ -5,7 +5,7 @@
 Begin work on a task or freeform description. Accepts task IDs, phase IDs, or natural language. For code tasks, enters the `/brana:build` loop. This is the unified entry point — `/brana:do` is an alias for `start` with freeform text.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__swarm_init,mcp__ruflo__claims_claim,mcp__ruflo__claims_release,mcp__ruflo__claims_mark-stealable,mcp__ruflo__coordination_orchestrate,mcp__ruflo__agent_pool,mcp__brana__backlog_query")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__claims_claim,mcp__brana__backlog_query")
 
 ### Steps
 
@@ -68,10 +68,10 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
 3. **Check blocked_by** — if any blocker not completed, warn and abort
 4. **Auto-classify strategy** (if not already set on the task):
    - Infer from task kind, tags, and description:
-     - `kind: fix` or `stream: dev` or tag `bug` → strategy: `bug-fix`
-     - `kind: research` or `stream: research` → strategy: `spike`
+     - `kind: fix` or tag `bug` → strategy: `bug-fix`
+     - `kind: research` → strategy: `spike`
      - `kind: refactor` or tag `refactor` → strategy: `refactor`
-     - `kind: docs` or `stream: ops` → strategy: `feature` (light)
+     - `kind: docs` → strategy: `feature` (light)
      - Tag `migration` → strategy: `migration`
      - Tag `investigation` → strategy: `investigation`
      - Default → strategy: `feature`
@@ -148,24 +148,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
 
    **5e.** If user selects a skill, note it in the task's `context` field for the build loop.
 
-   **5f. Agent pool check** (code tasks, effort M+ only — skip for S/XL and non-code):
-   Check if warm pool agents are available for background delegation:
-   ```
-   mcp__ruflo__agent_pool(action: "status", agentType: "claude")
-   ```
-   If pool has idle agents (`idle > 0`):
-   ```
-   AskUserQuestion:
-     question: "Pool has {idle} warm agent(s). Run in-session or delegate to background pool?"
-     header: "Execution mode"
-     options:
-       - label: "In-session (default — interactive, you see progress)"
-         description: "Run agents inline — visible progress, blocks until done."
-       - label: "Background pool (fire and forget — check results later)"
-         description: "Dispatch to background workers; results available later."
-   ```
-   If user selects **background**: spawn with `mcp__ruflo__agent_spawn(agentType: "claude", domain: "{project}", model: "sonnet", task: "{task subject + strategy}")` and stop — do NOT enter `/brana:build`.
-   If user selects **in-session**, pool is empty, or ruflo unavailable: proceed to step 6.
+   > **Removed 2026-08-12 (t-2754):** a "5f. Agent pool check" step used to offer a "Background pool (fire and forget)" execution mode here, backed by `mcp__ruflo__agent_pool` + `agent_spawn`. `agent_spawn` is bookkeeping-only under subscription (ADR-059) — it registers metadata and never runs the task, so selecting "background" silently did nothing while telling the user to "check results later." Removed rather than patched: a genuine fire-and-forget background dispatch needs the daemon/loop pattern (native `/loop` + `claude -p`), not a per-call spawn — that's a different, bigger feature, not a drop-in replacement for this step.
 
 6. **Determine execution mode:**
    - `code`: check git status clean → compute and display branch name (see Branch creation below) → create branch → set status + started date + branch field → **enter `/brana:build` with the task's strategy** (build_step: classify)
@@ -215,11 +198,9 @@ Branch name follows the project convention (CLAUDE.md §Branch naming):
    If it returns empty *at exit 0* (no epic ancestor found, or none of the ancestors are a
    valid slug): emit warning and stop: "⚠ Task t-NNN has no epic ancestor. Set one first:
    `brana backlog set t-NNN parent <epic-task-id>` (list candidates via
-   `mcp__brana__backlog_query(task_type: \"epic\")` — the CLI's `brana backlog query
-   --type epic` currently errors, since backlog-v3's epic-as-top nodes were never added
-   to its `--type` enum; use the MCP tool or `brana backlog query --json | jq -r '.[] |
-   select(.type=="epic") | .id+" "+.subject'` instead), then re-run start." Do not create
-   a branch with a placeholder epic.
+   `mcp__brana__backlog_query(task_type: \"epic\")` or CLI `brana backlog query --type
+   epic` — works since t-2377), then re-run start." Do not create a branch with a
+   placeholder epic.
 2. `work-type` — resolve via the shared authority. Read and follow
    [`../../_shared/branch-prefix.md`](../../_shared/branch-prefix.md) — call
    `resolve_branch_prefix(task.kind, task.work_type)`.

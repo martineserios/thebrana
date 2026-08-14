@@ -291,8 +291,24 @@ fi
 
 echo "$INDEXER_OUTPUT"
 
+# t-2616: a killed/truncated indexer must not read as success. The 2026-08-02
+# run died at 86%, printed no completion summary, and the scheduler recorded
+# SUCCESS. Require the completion marker AND a census that accounts for every
+# section handed to the indexer (Stored + Errors == TOTAL_SECTIONS).
+if ! echo "$INDEXER_OUTPUT" | grep -q "Index Complete"; then
+    echo "ERROR: truncated indexer run — no completion summary in output (killed mid-run?)" >&2
+    exit 1
+fi
+STORED_N=$(echo "$INDEXER_OUTPUT" | grep -oP 'Stored:\s+\K\d+' | tail -1 || true)
+BULK_ERRORS=$(echo "$INDEXER_OUTPUT" | grep -oP 'Errors:\s+\K\d+' | tail -1 || true)
+BULK_ERRORS="${BULK_ERRORS:-0}"
+if [ -z "$STORED_N" ] || [ $((STORED_N + BULK_ERRORS)) -lt "$TOTAL_SECTIONS" ]; then
+    echo "ERROR: truncated indexer run — stored ${STORED_N:-0} + errors ${BULK_ERRORS} accounts for fewer than ${TOTAL_SECTIONS} sections" >&2
+    exit 1
+fi
+echo "Index verified complete: $((STORED_N + BULK_ERRORS))/${TOTAL_SECTIONS} sections accounted for."
+
 # Tolerate up to 5% error rate from indexer output
-BULK_ERRORS=$(echo "$INDEXER_OUTPUT" | grep -oP 'Errors:\s+\K\d+' || echo "0")
 if [ "$TOTAL_SECTIONS" -gt 0 ] && [ "$BULK_ERRORS" -gt 0 ]; then
     ERROR_PCT=$((BULK_ERRORS * 100 / TOTAL_SECTIONS))
     if [ "$ERROR_PCT" -ge 5 ]; then

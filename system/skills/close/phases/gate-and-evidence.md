@@ -96,7 +96,36 @@ which only happens to resolve when the git-root IS thebrana itself.
 # or the orphan/default file, which every session can legitimately fall back to.
 # Read ../../_shared/epic-ancestor-walk.md for resolve_epic_ancestor() if not
 # already sourced this session.
-SESSION_EPICS=$(git log --oneline -20 2>/dev/null \
+#
+# SESSION_EPICS runs BEFORE LAST_CLOSE exists (it feeds LAST_CLOSE's own file
+# filter above) so it cannot bound itself on LAST_CLOSE — a chicken-and-egg. Use
+# the same 6h fallback window this block's own first-session-fallback comment
+# already documents, not a flat commit-count window (t-2784): a low-commit
+# session's `-20` tail has no relationship to session boundaries and can
+# overflow into an unrelated PRIOR close's commits, resolving that close's epic
+# as if it were this session's own (confirmed live 2026-08-12, this session's
+# own close).
+#
+# Stopgap, not a fix for the class (t-2784): bounding by time closes the
+# overflow-into-an-older-close failure above, but per ADR-069 (D0-D3, not yet
+# shipped) no window — time or count — prevents a CONCURRENT session's commits
+# landing on the shared `dev` checkout within the same window from being picked
+# up here too (confirmed live twice more the same day: t-2764's close and this
+# session's own close). That class needs per-commit/per-lane attribution
+# (ADR-069 D3), not a narrower window. A clean SESSION_EPICS here is not proof
+# this session's epics are uncontaminated in a shared checkout.
+#
+# Second tradeoff, disclosed (challenger gate, t-2784): trading a count window
+# for a time window doesn't just close over-reach, it opens the opposite
+# failure — a session running LONGER than 6h whose epic-identifying commit
+# landed near session start now falls OUTSIDE the window, so that epic never
+# enters SESSION_EPICS and its session-state file loses corroboration here.
+# Not yet observed live; flagged so it isn't mistaken for solved.
+#
+# Sibling instance still open: session-state.md's Step 9c COMPLETED
+# accumulator has the identical flat `-20` shape and is tracked separately as
+# t-2480 (concurrent-session over-reach; not fixed by this change).
+SESSION_EPICS=$(git log --oneline --since="6 hours ago" 2>/dev/null \
   | grep -oE 't-[0-9]+' | sort -u \
   | while read -r id; do resolve_epic_ancestor "$id" 2>/dev/null; done \
   | sort -u | grep -v '^$')

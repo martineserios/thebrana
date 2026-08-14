@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-066: `active_epic`/`active_initiative` Resolve Project-Local Only
 
 - **Status:** Accepted

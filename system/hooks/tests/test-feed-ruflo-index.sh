@@ -202,6 +202,49 @@ assert_contains "Failed chunk exits nonzero" "$rc" "^[^0]"
 assert_contains "Watermark holds completed chunk 1 (line 2)" "$(cat "$WATERMARK" 2>/dev/null || echo missing)" "^2$"
 assert_contains "Only chunk 1 sections indexed" "$(wc -l < "$STUB_SECTIONS" 2>/dev/null | tr -d ' ')" "^2$"
 
+# --- Test 9: PATH shim finds ruflo even when an earlier-sorting nvm version lacks it (t-2736) ---
+# Real-world layout: v20.19.0 and v20.20.2 sort before v22.22.3 alphabetically but only
+# v22.22.3 has ruflo installed. The old shim broke on the first dir with `node`
+# (v20.19.0), never reaching PATH="v22.22.3/bin:...", so `ruflo` stayed unresolvable
+# even though a working install existed under a later-sorting version.
+NVM_ROOT="$HOME/.nvm/versions/node"
+mkdir -p "$NVM_ROOT/v20.19.0/bin" "$NVM_ROOT/v20.20.2/bin" "$NVM_ROOT/v22.22.3/bin"
+for d in v20.19.0 v20.20.2 v22.22.3; do
+    cat > "$NVM_ROOT/$d/bin/node" <<'NODESTUB'
+#!/usr/bin/env bash
+exec /usr/bin/node "$@"
+NODESTUB
+    chmod +x "$NVM_ROOT/$d/bin/node"
+done
+# Only the highest version actually has ruflo, matching the observed regression.
+cat > "$NVM_ROOT/v22.22.3/bin/ruflo" <<'RUFLOSTUB'
+#!/usr/bin/env bash
+echo "ruflo-stub"
+RUFLOSTUB
+chmod +x "$NVM_ROOT/v22.22.3/bin/ruflo"
+
+# Stub mcp-index.mjs to report whether `ruflo` resolved on PATH, instead of doing real work.
+RESOLVE_STUB="$TMPDIR/mcp-index-resolve.mjs"
+cat > "$RESOLVE_STUB" <<'STUB'
+#!/usr/bin/env node
+import { execSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+let resolved = '';
+try { resolved = execSync('command -v ruflo', { encoding: 'utf8' }).trim(); } catch {}
+writeFileSync(process.env.STUB_RUFLO_PATH_OUT, resolved);
+STUB
+cp "$RESOLVE_STUB" "$SCRIPTS_DIR/mcp-index.mjs"
+export STUB_RUFLO_PATH_OUT="$TMPDIR/resolved-ruflo-path"
+
+echo "$SAMPLE_ENTRY" > "$FEED_LOG"
+rm -f "$WATERMARK" "$STUB_RUFLO_PATH_OUT"
+# Isolate PATH from this test's own real environment so only the script's shim
+# (or lack thereof) determines whether ruflo resolves.
+output=$(HOME="$HOME" PATH="/usr/bin:/bin" bash "$SCRIPT" 2>&1); rc=$?
+assert_pass "Run with only earlier-sorting node versions on the shim path exits 0" "$rc" "$output"
+assert_contains "Shim resolves ruflo from the version that actually has it, not just the first with node" \
+    "$(cat "$STUB_RUFLO_PATH_OUT" 2>/dev/null || echo missing)" "v22.22.3/bin/ruflo"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"

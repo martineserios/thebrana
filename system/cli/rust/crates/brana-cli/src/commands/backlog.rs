@@ -225,6 +225,52 @@ pub fn cmd_query(
     Ok(())
 }
 
+/// Score tasks for focus, applying the active-epic boost via the parent
+/// chain (t-2765: the flat `epic` field is retired, RETIRED_FIELDS — epic
+/// membership is the nearest type:"epic" ancestor, resolved the same way
+/// compute_stats() and the MCP backlog_focus tool already do). Extracted
+/// from cmd_focus so the boost and epic-membership partition logic are
+/// unit-testable without capturing stdout (neither had any test coverage
+/// before t-2765).
+fn score_tasks_with_epic_boost<'a>(
+    all: &'a [serde_json::Value],
+    work_type: Option<&str>,
+    active: Option<&str>,
+) -> Vec<(&'a serde_json::Value, f64)> {
+    let by_id: std::collections::HashMap<&str, &serde_json::Value> = all.iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
+
+    let mut scored: Vec<_> = all.iter()
+        .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
+        .filter(|t| tasks::classify(t, all) == "pending")
+        .filter(|t| work_type.map_or(true, |wt| t["work_type"].as_str().unwrap_or("") == wt))
+        .map(|t| {
+            let boost = active
+                .filter(|a| tasks::resolve_epic_ancestor(t, &by_id).as_deref() == Some(*a))
+                .map_or(0.0, |_| 500.0);
+            (t, tasks::focus_score(t, boost))
+        })
+        .collect();
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    scored
+}
+
+/// Partition scored tasks into epic members (via parent chain) vs the rest,
+/// for the active-epic ★-first display path.
+fn partition_epic_members<'a>(
+    scored: &[(&'a serde_json::Value, f64)],
+    all: &'a [serde_json::Value],
+    slug: &str,
+) -> (Vec<(&'a serde_json::Value, f64)>, Vec<(&'a serde_json::Value, f64)>) {
+    let by_id: std::collections::HashMap<&str, &serde_json::Value> = all.iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
+    scored.iter().cloned().partition(|(t, _)| {
+        tasks::resolve_epic_ancestor(t, &by_id).as_deref() == Some(slug)
+    })
+}
+
 pub fn cmd_focus(
     theme: &themes::Theme,
     top: usize,
@@ -249,18 +295,7 @@ pub fn cmd_focus(
         }
     }
 
-    let mut scored: Vec<_> = data.tasks.iter()
-        .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
-        .filter(|t| tasks::classify(t, &data.tasks) == "pending")
-        .filter(|t| work_type.map_or(true, |wt| t["work_type"].as_str().unwrap_or("") == wt))
-        .map(|t| {
-            let boost = active.as_deref()
-                .filter(|a| t["epic"].as_str() == Some(a))
-                .map_or(0.0, |_| 500.0);
-            (t, tasks::focus_score(t, boost))
-        })
-        .collect();
-    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    let scored = score_tasks_with_epic_boost(&data.tasks, work_type, active.as_deref());
 
     if json_out {
         let out: Vec<_> = scored.iter().take(top).map(|(t, score)| {
@@ -278,9 +313,7 @@ pub fn cmd_focus(
 
     if let Some(ref slug) = active {
         // Active-epic path: ★ tasks first, then P0/P1 overflow
-        let (epic_tasks, overflow): (Vec<_>, Vec<_>) = scored.iter().partition(|(t, _)| {
-            t["epic"].as_str() == Some(slug.as_str())
-        });
+        let (epic_tasks, overflow) = partition_epic_members(&scored, &data.tasks, slug);
         let initiative_shown = epic_tasks.len().min(top);
         let overflow_slots = top.saturating_sub(initiative_shown);
         let overflow_shown: Vec<_> = overflow.iter()
@@ -536,6 +569,32 @@ pub fn cmd_set_active(slug: &str) -> anyhow::Result<()> {
 
 // ── write commands ──────────────────────────────────────────────────────
 
+/// t-2812 (ADR-079 §1): `backlog ac <id> approve` — the sanctioned transition
+/// to ac_state:approved. Locking, promotion, and flip live in
+/// brana_core::tasks::perform_ac_approve; this is the CLI shell.
+pub fn cmd_ac_approve(task_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    match tasks::perform_ac_approve(&tf, task_id) {
+        Ok(out) => {
+            println!("{}", serde_json::json!({
+                "ok": true,
+                "id": task_id,
+                "ac_state": "approved",
+                "promoted": out.promoted,
+                "already_approved": out.already_approved,
+            }));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("{e}"))
+        }
+    }
+}
+
 pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,
@@ -691,6 +750,20 @@ pub fn cmd_add(
             anyhow::bail!("{e}");
         }
     }
+    // t-2739: work_type/type were the only enum fields cmd_add didn't validate,
+    // so the CLI add path leaked values the MCP path (backlog_add.rs) rejects.
+    if let Some(wt) = new_task["work_type"].as_str() {
+        if let Err(e) = tasks::validate_work_type(wt) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
+    if let Some(tt) = new_task["type"].as_str() {
+        if let Err(e) = tasks::validate_task_type(tt) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
     if let Some(s) = new_task["status"].as_str() {
         // ADR-065: an epic node's status validates against a different
         // vocabulary than an ordinary task's (t-2313).
@@ -706,6 +779,15 @@ pub fn cmd_add(
     }
     if let Some(a) = new_task["ac_state"].as_str() {
         if let Err(e) = tasks::validate_ac_state(a) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+        // t-2816 (ADR-079 §1): --json merges raw JSON past set_field's arm, so
+        // the verb-only rule for "approved" must be enforced here too — no
+        // born-approved tasks. none/proposed stay legal creation-time states.
+        if a == "approved" {
+            let e = "ac_state \"approved\" cannot be set at creation — create the task, \
+                     then use `brana backlog ac <id> approve`";
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
             anyhow::bail!("{e}");
         }
@@ -754,13 +836,6 @@ pub fn cmd_add(
     }
 
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
-
-    // ADR-065 D4: WIP cap is advisory during pilot — warn, never block (t-2313).
-    if let Some(parent_id) = new_task["parent"].as_str() {
-        if let Some(warning) = tasks::check_epic_wip_cap(&tasks_arr, parent_id) {
-            eprintln!("  ⚠ {warning}");
-        }
-    }
 
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
@@ -885,6 +960,93 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
             Err(anyhow::anyhow!("set wave field failed: {e}"))
         }
     }
+}
+
+/// Drain a wave (t-2775, wave-gate-enforcement.md): gate check → selector
+/// resolution → report matched tasks + set wave status to "draining". Does
+/// NOT execute anything or touch matched tasks. Draining an already-draining
+/// wave is idempotent (re-resolves and re-reports — fits ADR-079's
+/// re-resolve-each-cycle model); draining a shipped wave is a caller error.
+/// t-2813 (ADR-079 §2/§3): `backlog wave pull <id>` — one atomic pull cycle.
+/// The decision logic lives in brana_core (wave_pull_decision under
+/// pull_wave_task's lock); this is the CLI shell reporting the outcome.
+pub fn cmd_wave_pull(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    match tasks::pull_wave_task(&tf, wave_id) {
+        Ok(tasks::PullDecision::Pulled { task_id }) => {
+            println!("{}", serde_json::json!({"ok": true, "id": wave_id, "pulled": task_id}));
+            Ok(())
+        }
+        Ok(tasks::PullDecision::AtLimit { live, limit }) => {
+            println!("{}", serde_json::json!({
+                "ok": true, "id": wave_id, "pulled": null,
+                "at_limit": {"live": live, "limit": limit}
+            }));
+            Ok(())
+        }
+        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked }) => {
+            println!("{}", serde_json::json!({
+                "ok": true, "id": wave_id, "pulled": null,
+                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked}
+            }));
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            Err(anyhow::anyhow!("{e}"))
+        }
+    }
+}
+
+pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let waves = val["waves"].as_array().cloned().unwrap_or_default();
+    let idx = waves
+        .iter()
+        .position(|w| w["id"].as_str() == Some(wave_id))
+        .ok_or_else(|| {
+            eprintln!("{{\"ok\":false,\"error\":\"wave {wave_id} not found\"}}");
+            anyhow::anyhow!("wave {wave_id} not found")
+        })?;
+    let wave = &waves[idx];
+
+    // Draining finished work is a caller error; re-draining a draining wave
+    // is idempotent (re-resolves, re-reports — ADR-079's re-resolve model).
+    if wave["status"].as_str() == Some("shipped") {
+        let msg = format!("wave {wave_id} already shipped — nothing to drain");
+        eprintln!("{}", serde_json::json!({"ok": false, "error": msg}));
+        anyhow::bail!(msg);
+    }
+
+    let fail = |msg: String| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": msg}));
+        anyhow::anyhow!(msg)
+    };
+    tasks::check_wave_gate(wave, &waves).map_err(fail)?;
+
+    let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
+    let matched = tasks::resolve_wave_selector(wave, &tasks_arr).map_err(fail)?;
+    let report: Vec<serde_json::Value> = matched
+        .iter()
+        .map(|t| serde_json::json!({"id": t["id"], "subject": t["subject"]}))
+        .collect();
+
+    val["waves"][idx]["status"] = serde_json::Value::String("draining".into());
+    tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!("{}", serde_json::json!({
+        "ok": true, "id": wave_id, "status": "draining",
+        "matched": report, "count": report.len(),
+    }));
+    Ok(())
 }
 
 /// Definition-of-ready lint for autonomous dispatch (t-1981).
@@ -1059,7 +1221,9 @@ pub fn cmd_diff(theme: &themes::Theme) -> anyhow::Result<()> {
     let root = crate::util::find_project_root().context("Not in git repo")?;
     let rel = tf.strip_prefix(&root).unwrap_or(&tf);
 
-    let output = std::process::Command::new("git")
+    let mut cmd = std::process::Command::new("git");
+    brana_core::util::scrub_git_env(&mut cmd);
+    let output = cmd
         .args(["show", &format!("HEAD:{}", rel.display())])
         .current_dir(&root)
         .output();
@@ -1347,6 +1511,7 @@ pub fn cmd_triage_stale(
 ) -> anyhow::Result<()> {
     // 1. Get git log
     let mut cmd = std::process::Command::new("git");
+    brana_core::util::scrub_git_env(&mut cmd);
     if let Some(ref dir) = git_dir {
         cmd.arg("-C").arg(dir);
     }
@@ -2317,6 +2482,79 @@ mod tests {
         assert_eq!(new["ac_state"].as_str(), Some("none"));
     }
 
+    // ── t-2812/t-2816 (ADR-079 §1): no pre-approved tasks via add --json ──
+
+    #[test]
+    fn cmd_add_json_ac_state_approved_rejected() {
+        // Survey 2026-08-13: --json merges raw JSON, bypassing set_field's
+        // rejection — a payload could create a born-approved task. Sealed here,
+        // same bypass class as retired-fields (ADR-067) / array-coercion (t-2439).
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"sneaky","ac_state":"approved"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(
+            err.to_string().contains("approve"),
+            "rejection must point at the sanctioned verb: {err}"
+        );
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(
+            data["tasks"].as_array().unwrap().len(), 0,
+            "rejected add must not persist a task"
+        );
+    }
+
+    #[test]
+    fn cmd_add_json_ac_state_none_and_proposed_still_accepted() {
+        // Regression guard: the seal must not overcorrect into blocking the
+        // legitimate creation-time states.
+        for state in ["none", "proposed"] {
+            let f = empty_tasks_file();
+            cmd_add(
+                Some(format!(r#"{{"subject":"ok","ac_state":"{state}"}}"#)),
+                None, None, None, None, None, None, None, None,
+                None, Some(f.path().to_path_buf()), None, None, None, vec![],
+            ).unwrap();
+            let task = read_first_task(&f);
+            assert_eq!(task["ac_state"].as_str(), Some(state));
+        }
+    }
+
+    // ── t-2812/t-2817 (ADR-079 §1): CLI approve verb ─────────────────────
+
+    #[test]
+    fn cmd_ac_approve_promotes_and_persists() {
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["done when green"]}]"#,
+        );
+        cmd_ac_approve("t-1", Some(f.path().to_path_buf())).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"], "approved");
+        assert_eq!(task["acceptance_criteria"], serde_json::json!(["done when green"]));
+        assert!(task.get("proposed_acceptance_criteria").is_none());
+    }
+
+    #[test]
+    fn cmd_ac_approve_no_criteria_errors_and_persists_nothing() {
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"none"}]"#,
+        );
+        let err = cmd_ac_approve("t-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("no acceptance criteria to approve"), "{err}");
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"], "none", "rejected approve must not persist");
+    }
+
+    #[test]
+    fn cmd_ac_approve_unknown_task_errors() {
+        let f = empty_tasks_file();
+        let err = cmd_ac_approve("t-99", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("t-99"), "{err}");
+    }
+
     // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
 
     #[test]
@@ -2463,12 +2701,15 @@ mod tests {
     }
 
     #[test]
-    fn cmd_add_wip_cap_warns_not_blocks() {
-        // ADR-065 D4: WIP cap is advisory (warn) during pilot, never a hard block.
+    fn cmd_add_no_epic_wip_cap_at_any_count() {
+        // ADR-065 D4 (retired 2026-08-12, t-2727): the epic WIP cap is gone —
+        // epics are unbounded groupings, not concurrency-limited. Adding well
+        // past the old default-10 cap must persist cleanly with no warning
+        // path invoked at all.
         let mut children = String::from(
-            r#"[{"id":"in-1","subject":"epic","status":"pending","type":"epic","tags":[],"blocked_by":[],"wip_limit":10,"parent":null}"#,
+            r#"[{"id":"in-1","subject":"epic","status":"pending","type":"epic","tags":[],"blocked_by":[],"parent":null}"#,
         );
-        for i in 1..=10 {
+        for i in 1..=20 {
             children.push_str(&format!(
                 r#",{{"id":"t-{i}","subject":"child {i}","status":"pending","type":"task","tags":[],"blocked_by":[],"parent":"in-1"}}"#
             ));
@@ -2476,13 +2717,24 @@ mod tests {
         children.push(']');
         let f = tasks_file_with(&children);
         cmd_add(
-            Some(r#"{"subject":"11th child","parent":"in-1"}"#.into()),
+            Some(r#"{"subject":"21st child","parent":"in-1"}"#.into()),
             None, None, None, None, None, None, None, None,
             None, Some(f.path().to_path_buf()), None, None, None, vec![],
         ).unwrap();
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
-        assert_eq!(data["tasks"].as_array().unwrap().len(), 12, "11th child must still be persisted (warn, not block)");
+        assert_eq!(data["tasks"].as_array().unwrap().len(), 22, "21st child under an unbounded epic must persist with no cap effect");
+    }
+
+    #[test]
+    fn cmd_add_json_wip_limit_rejected_as_retired_field() {
+        let f = empty_tasks_file();
+        let err = cmd_add(
+            Some(r#"{"subject":"new epic","type":"epic","wip_limit":5}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap_err();
+        assert!(format!("{err}").contains("wip_limit"), "error must name wip_limit: {err}");
     }
 
     // ── t-2439: --json array-field normalization ─────────────────────────
@@ -2660,6 +2912,172 @@ mod tests {
         assert_eq!(w["gate"], "wave-0");
     }
 
+    // ── t-2775: wave drain (gate enforcement + tag: selector) ────────────
+
+    fn drain_fixture(tasks_json: &str, waves_json: &str) -> tempfile::NamedTempFile {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"test","tasks":{tasks_json},"waves":{waves_json}}}"#)
+            .unwrap();
+        f.flush().unwrap();
+        f
+    }
+
+    fn read_tasks_arr(f: &tempfile::NamedTempFile) -> serde_json::Value {
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        data["tasks"].clone()
+    }
+
+    #[test]
+    fn cmd_wave_drain_no_gate_sets_draining() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","tags":["bugfix"],"blocked_by":[]}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:bugfix","gate":null,"status":"queued"}]"#,
+        );
+        cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_drain_does_not_touch_matched_tasks() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","tags":["bugfix"],"blocked_by":[]}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:bugfix","gate":null,"status":"queued"}]"#,
+        );
+        cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let tasks = read_tasks_arr(&f);
+        assert_eq!(tasks[0]["status"], "pending", "drain must not touch matched tasks");
+        assert!(tasks[0].get("wave").is_none(), "drain must not stamp tasks");
+    }
+
+    #[test]
+    fn cmd_wave_drain_gate_not_shipped_blocks_naming_wave() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"g","selector":"tag:x","gate":null,"status":"draining"},
+                {"id":"wave-2","name":"w","selector":"tag:x","gate":"wave-1","status":"queued"}]"#,
+        );
+        let err = cmd_wave_drain("wave-2", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("wave-1"), "must name the blocking wave: {err}");
+        assert_eq!(read_waves(&f)[1]["status"], "queued", "blocked drain must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_drain_gate_shipped_allows() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"g","selector":"tag:x","gate":null,"status":"shipped"},
+                {"id":"wave-2","name":"w","selector":"tag:x","gate":"wave-1","status":"queued"}]"#,
+        );
+        cmd_wave_drain("wave-2", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[1]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_drain_nonexistent_gate_fails_loud() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:x","gate":"wave-99","status":"queued"}]"#,
+        );
+        let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("wave-99") && err.to_string().contains("not found"),
+            "broken gate must fail loud, not act as no-gate: {err}");
+        assert_eq!(read_waves(&f)[0]["status"], "queued");
+    }
+
+    #[test]
+    fn cmd_wave_drain_nonexistent_wave_errors() {
+        let f = drain_fixture("[]", "[]");
+        let err = cmd_wave_drain("wave-7", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("wave-7"));
+    }
+
+    #[test]
+    fn cmd_wave_drain_non_tag_selector_rejected() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"shape:mechanical ac_state:approved","gate":null,"status":"queued"}]"#,
+        );
+        let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("MVP only resolves tag:<name>"),
+            "unsupported selector must be rejected, not silently no-op'd: {err}");
+        assert_eq!(read_waves(&f)[0]["status"], "queued", "rejected drain must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_drain_on_draining_is_idempotent() {
+        // Decided during implementation (spec left it open): re-draining a
+        // draining wave re-resolves and re-reports — useful, harmless.
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:x","gate":null,"status":"draining"}]"#,
+        );
+        cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "draining");
+    }
+
+    #[test]
+    fn cmd_wave_drain_on_shipped_rejected() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:x","gate":null,"status":"shipped"}]"#,
+        );
+        let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("shipped"),
+            "draining finished work is a caller error: {err}");
+        assert_eq!(read_waves(&f)[0]["status"], "shipped");
+    }
+
+    // ── t-2813 (ADR-079 §2/§3): CLI wave pull ────────────────────────────
+
+    #[test]
+    fn cmd_wave_pull_pulls_and_persists() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
+        );
+        cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"][0]["status"], "in_progress");
+    }
+
+    #[test]
+    fn cmd_wave_pull_at_limit_is_ok_not_error() {
+        // Skip-cycle is a normal outcome for a runner beat, not a failure.
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"in_progress","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
+        );
+        cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"][1]["status"], "pending", "at-limit must not pull");
+    }
+
+    #[test]
+    fn cmd_wave_pull_non_draining_errors() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued"}]"#,
+        );
+        let err = cmd_wave_pull("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("draining"), "{err}");
+    }
+
+    #[test]
+    fn cmd_wave_set_wip_limit_integer_roundtrip() {
+        // t-2782 (ADR-079 §3): wip_limit persists as a JSON number end to end.
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "tag:x".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_set("wave-1", "wip_limit", "3", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["wip_limit"], serde_json::json!(3));
+        cmd_wave_set("wave-1", "wip_limit", "null", Some(f.path().to_path_buf())).unwrap();
+        assert!(read_waves(&f)[0]["wip_limit"].is_null());
+    }
+
     #[test]
     fn cmd_wave_set_invalid_status_rejected() {
         let f = empty_tasks_file();
@@ -2690,6 +3108,53 @@ mod tests {
         cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
         cmd_wave_add("w2".into(), "s2".into(), None, None, Some(f.path().to_path_buf())).unwrap();
         assert!(cmd_wave_list(Some(f.path().to_path_buf())).is_ok());
+    }
+
+    // ── t-2765: cmd_focus boost + partition must use the parent-chain epic
+    // resolver, not the retired flat `epic` field. No prior test coverage. ──
+
+    fn epic_focus_fixture() -> Vec<serde_json::Value> {
+        vec![
+            json!({"id": "t-epic", "type": "epic", "subject": "cc-alignment", "status": "next"}),
+            json!({"id": "t-member", "type": "task", "subject": "in epic", "status": "pending", "parent": "t-epic", "priority": "P3"}),
+            json!({"id": "t-outsider", "type": "task", "subject": "not in epic", "status": "pending", "priority": "P0"}),
+        ]
+    }
+
+    #[test]
+    fn score_tasks_with_epic_boost_ranks_parent_chain_member_above_outsider() {
+        let tasks = epic_focus_fixture();
+        let scored = score_tasks_with_epic_boost(&tasks, None, Some("cc-alignment"));
+
+        let member = scored.iter().find(|(t, _)| t["id"] == "t-member").expect("member present");
+        let outsider = scored.iter().find(|(t, _)| t["id"] == "t-outsider").expect("outsider present");
+        assert!(
+            member.1 > outsider.1,
+            "P3 epic member (score {}) must outrank P0 non-member (score {}) via the 500 boost",
+            member.1, outsider.1
+        );
+    }
+
+    #[test]
+    fn score_tasks_with_epic_boost_no_boost_when_no_active_epic() {
+        let tasks = epic_focus_fixture();
+        let scored = score_tasks_with_epic_boost(&tasks, None, None);
+        let member = scored.iter().find(|(t, _)| t["id"] == "t-member").unwrap();
+        let outsider = scored.iter().find(|(t, _)| t["id"] == "t-outsider").unwrap();
+        // No active epic -> no boost -> plain priority ordering (P0 > P3).
+        assert!(outsider.1 > member.1, "without an active epic, P0 must outrank P3");
+    }
+
+    #[test]
+    fn partition_epic_members_splits_by_parent_chain() {
+        let tasks = epic_focus_fixture();
+        let scored = score_tasks_with_epic_boost(&tasks, None, Some("cc-alignment"));
+        let (members, rest) = partition_epic_members(&scored, &tasks, "cc-alignment");
+
+        assert_eq!(members.len(), 1);
+        assert_eq!(members[0].0["id"], "t-member");
+        assert_eq!(rest.len(), 1);
+        assert_eq!(rest[0].0["id"], "t-outsider");
     }
 }
 

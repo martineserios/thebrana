@@ -401,10 +401,9 @@ pub fn find_brana_knowledge_root() -> Option<PathBuf> {
     }
 
     // Try sibling of git repo root
-    if let Ok(out) = std::process::Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-    {
+    let mut cmd = std::process::Command::new("git");
+    crate::util::scrub_git_env(&mut cmd);
+    if let Ok(out) = cmd.args(["rev-parse", "--show-toplevel"]).output() {
         if out.status.success() {
             let repo = PathBuf::from(String::from_utf8_lossy(&out.stdout).trim().to_string());
             if let Some(parent) = repo.parent() {
@@ -1438,6 +1437,37 @@ pub fn unwrap_linkedin_safety_url(url: &str) -> String {
     // http(s) hosts, never loopback/private/link-local (cloud metadata)
     // targets (t-2589 challenger finding).
     if is_public_http_target(&decoded) { decoded } else { url.to_string() }
+}
+
+/// Tracking query params stripped by [`canonicalize_url`]. A denylist, not an
+/// allowlist — some queries are load-bearing (`youtube.com/watch?v=`), so only
+/// known tracking keys are removed (t-2583).
+const TRACKING_PARAMS: [&str; 7] = ["rcm", "fbclid", "gclid", "si", "igshid", "ref", "ref_src"];
+
+/// Canonical form of a captured URL for keying and dedup (t-2583, t-2590):
+/// unwrap the LinkedIn `/safety/go` wrapper, drop the fragment, then strip
+/// tracking params (`utm_*` prefix plus [`TRACKING_PARAMS`]). Mobile share
+/// sheets append `utm_*`/`rcm` to effectively every captured link, so without
+/// this pass the same page stores under two `knowledge:url:` keys and
+/// exact-key idempotency never fires.
+pub fn canonicalize_url(url: &str) -> String {
+    let unwrapped = unwrap_linkedin_safety_url(url.trim());
+    let no_fragment = unwrapped.split('#').next().unwrap_or("");
+    let Some((base, query)) = no_fragment.split_once('?') else {
+        return no_fragment.to_string();
+    };
+    let kept: Vec<&str> = query
+        .split('&')
+        .filter(|pair| {
+            let key = pair.split('=').next().unwrap_or("").to_ascii_lowercase();
+            !key.starts_with("utm_") && !TRACKING_PARAMS.contains(&key.as_str())
+        })
+        .collect();
+    if kept.is_empty() {
+        base.to_string()
+    } else {
+        format!("{base}?{}", kept.join("&"))
+    }
 }
 
 /// True when `url` is `http(s)` on a host that is not loopback, private,
@@ -2897,6 +2927,52 @@ mod tests {
         assert_eq!(unwrap_linkedin_safety_url(plain), plain);
         let no_param = "https://www.linkedin.com/safety/go?trk=feed";
         assert_eq!(unwrap_linkedin_safety_url(no_param), no_param);
+    }
+
+    // ── canonicalize_url (t-2583, t-2590) ──────────────────────────────
+
+    #[test]
+    fn canonicalize_strips_tracking_params() {
+        // The real observed shape (t-2583): the same LinkedIn post captured
+        // clean and via a mobile share sheet carrying utm_*/rcm.
+        let clean = "https://www.linkedin.com/posts/adrien-taravant-aa11bb_some-post-activity-h9dx";
+        let tracked = "https://www.linkedin.com/posts/adrien-taravant-aa11bb_some-post-activity-h9dx?utm_source=share&utm_medium=member_android&rcm=ACoAAARwJLkBJqr70A1PJbG5r3-PHzY3QMybYwc";
+        assert_eq!(canonicalize_url(tracked), clean);
+        assert_eq!(canonicalize_url(clean), clean);
+    }
+
+    #[test]
+    fn canonicalize_keeps_load_bearing_query_params() {
+        // youtube.com/watch is meaningless without ?v= — strip only the
+        // tracking keys (si is YouTube's share-tracking param), keep v.
+        let url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&si=AbCdEf123";
+        assert_eq!(
+            canonicalize_url(url),
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        );
+    }
+
+    #[test]
+    fn canonicalize_strips_fragment() {
+        assert_eq!(
+            canonicalize_url("https://example.com/page?x=1#section-2"),
+            "https://example.com/page?x=1"
+        );
+    }
+
+    #[test]
+    fn canonicalize_unwraps_safety_wrapper_then_strips_tracking() {
+        // t-2590 residual: the same content shared via different /safety/go
+        // wrappers must canonicalize to one URL.
+        let wrapped =
+            "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Fpost%3Futm_source%3Dshare&trk=feed";
+        assert_eq!(canonicalize_url(wrapped), "https://example.com/post");
+    }
+
+    #[test]
+    fn canonicalize_leaves_plain_urls_alone() {
+        let plain = "https://example.com/a/b?page=2";
+        assert_eq!(canonicalize_url(plain), plain);
     }
 
     // ── extract_linkedin_public_text (t-2589) ──────────────────────────

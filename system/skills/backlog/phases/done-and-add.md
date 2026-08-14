@@ -1,7 +1,7 @@
 <!-- backlog phase: /brana:backlog done, add, replan, archive, migrate — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_release,mcp__brana__backlog_focus")
+ToolSearch("select:mcp__ruflo__claims_release,mcp__brana__backlog_focus,mcp__brana__backlog_query")
 
 ## /brana:backlog done
 
@@ -17,7 +17,7 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
 3. **Check if build-managed:** if the task has a `build_step` field set, warn: "This task is in the /brana:build loop (step: {build_step}). Use /brana:build CLOSE to complete it, or force-complete here?"
 4. **For execution: code** (non-build-managed):
    - Stage changes: `git add -A` (or ask user what to stage)
-   - Commit with conventional type from stream mapping
+   - Commit with conventional type from `kind` mapping (see `system/skills/_shared/branch-prefix.md`)
    - Create PR: `gh pr create --title "{type}: {subject}" --body "Closes #{github_issue}"`
    - Offer to merge: "Merge to main? (PR #{N})"
    - **Worktree cleanup:** if task was started in a worktree (`git worktree list` shows `../project-{prefix}{id}`), offer to remove it after merge: `git worktree remove ../project-{prefix}{id} && git branch -d {branch}`
@@ -68,16 +68,20 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
 1. **Parse description** from argument. If no description provided: scan recent conversation turns for actionable items — problems discussed, ideas proposed, improvements suggested, or work identified. Draft a subject + description from the strongest candidate and present it: "Add task: '{subject}'? [Confirm / Edit / Cancel]". If no actionable item found in conversation, ask for a description.
 2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
 3. **URL auto-detection:** if the description contains `https://`, suggest `kind: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the kind/milestone prompt.
-3a. **Epic assignment** — tasks must always have an epic (no orphans allowed):
-   - Resolve `active_epic` via `mcp__brana__backlog_focus(top: 0)` (its `active_epic` field is project-scoped — never a raw read of `~/.claude/tasks-config.json`, which can hold a foreign project's value at the global scope, ADR-066). If MCP unavailable, fall back to `brana backlog focus --json`'s first element's `active_epic` field. If set, **auto-assign silently** and note "(assigned to epic: {active_epic})" — skip the epic question in step 4.
-   - Else: infer epic from subject/tags (e.g., "harness" tag → "harness" epic, "backlog" tag → "backlog-git-alignment", "research" tag → most-recent research epic in tasks.json). If confident, set as the default suggestion in step 4.
-   - No inference possible → add **Epic** to the first question batch in step 4. Options: distinct epics from tasks.json (sorted by recency) + "Create new…" (user types via Other input). **There is no skip option — every task must have an epic.**
-   - "Create new…" → accept slug from free-text input; confirm: "Create epic '{slug}'? It will appear in backlog focus and filters."
+3a. **Epic assignment** — epic membership is the `parent` chain to a `type: "epic"` node (ADR-065). The flat `epic` field is retired and its write path sealed (t-2310) — `backlog_set(field: "epic")` / `brana backlog set <id> epic <slug>` return `unknown field: epic`; never set it.
+   - Resolve `active_epic` via `mcp__brana__backlog_focus(top: 0)` (its `active_epic` field is project-scoped — never a raw read of `~/.claude/tasks-config.json`, which can hold a foreign project's value at the global scope, ADR-066). If MCP unavailable, fall back to `brana backlog focus --json`'s first element's `active_epic` field.
+   - Map the slug to its epic node: `mcp__brana__backlog_query(task_type: "epic")`, match `subject == {active_epic}`. CLI fallback: `brana backlog query --type epic` (works since t-2377).
+   - Node resolved: **auto-assign silently** — skip the epic question in step 4, but defer the actual `parent` write until step 4's Milestone answer is known. If the task ends up with no structural parent (no milestone/phase chosen), set its `parent` to the epic node id; note "(assigned to epic: {slug} via parent {epic-node-id})".
+   - Task parented under a milestone/phase instead: leave `parent` structural — epic membership flows through the chain. After creating, verify the chain reaches an epic node (`resolve_epic_ancestor`, [`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md)); if it does **not** (un-migrated ancestry, t-2698), tag the task `epic:{slug}` (`tags +epic:{slug}` — the namespaced lightweight marker, SKILL.md §Initiative Model) so membership isn't silently dropped.
+   - No `active_epic` set: infer a candidate from subject/tags matched against existing epic-node subjects. If confident, set as the default suggestion in step 4.
+   - No inference possible → add **Epic** to the first question batch in step 4. Options: epic-node subjects (sorted by recency) + "Create new…" (user types via Other input). Prefer an epic for every task; if none fits, the `epic:<slug>` tag-fallback beats a wrong parent.
+   - "Create new…" → accept slug from free-text input; confirm: "Create epic node '{slug}'? It will appear in backlog focus and filters." → `brana backlog add --subject "{slug}" --type epic` (`epic` is a valid add `--type`, t-2322), then set the new task's `parent` to it.
+   - Project has zero epic nodes (ADR-065 backfill never ran there — t-2698): create the epic node as above, or tag `epic:<slug>` as the interim marker. Never write the flat `epic` field.
 4. **First question batch** — use a single AskUserQuestion with up to 4 questions (omit Epic question if active_epic was auto-assigned in step 3a; omit Milestone if URL auto-detected or no active milestones):
    - **Kind** (skip if URL auto-detected): `feature`, `fix`, `refactor`, `research`, `docs`, `design`, `ops`. Header: "Kind"
    - **Tags**: suggest tags from description keywords matched against existing vocabulary. Options: "Accept {suggested}" (recommended), "Edit", "Skip". Header: "Tags"
    - **Effort**: suggest from description complexity (S/M/L/XL). Options: each size with description. Header: "Effort"
-   - **Epic** (only if not auto-assigned in step 3a): options = inferred slug (recommended, if any) + top epics from tasks.json + "Create new…". Header: "Epic"
+   - **Epic** (only if not auto-assigned in step 3a): options = inferred slug (recommended, if any) + epic-node subjects from `backlog_query(task_type: "epic")` + "Create new…". Header: "Epic"
 5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/kind/tags (same heuristic as `/brana:backlog start`). Leave `build_step` null.
 6. **Dependency scan** — cross-reference all pending tasks:
    - Match by **tag overlap** (2+ shared tags with the new task)
@@ -90,14 +94,14 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - If no candidates found, skip silently
    - **Never auto-commit dependencies** — always ask
    - **Research cross-reference** (runs alongside dependency scan):
-     - Adding a **non-research** task → scan `stream: research` or `work_type: research` tasks for tag overlap → include in dependency question or separate AskUserQuestion
+     - Adding a **non-research** task → scan `work_type: research` tasks for tag overlap → include in dependency question or separate AskUserQuestion
      - Adding a **research** task → scan non-research tasks for tag overlap → surface as informational note
 7. **Build-trap check** — if the description contains solution verbs ("build", "implement", "create", "add", "setup") without outcome/problem context:
    - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
    - If the user provides text, store it in the `context` field
    - If skipped, proceed without context
 8. Priority: **leave null** (user sets manually via `/brana:backlog triage` or direct edit)
-9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] epic:{epic} under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
+9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] epic:{epic-slug via parent chain, or `epic:<slug>` tag fallback} under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
 10. Write tasks.json
 11. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
     - Run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.

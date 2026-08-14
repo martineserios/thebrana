@@ -19,7 +19,6 @@ allowed-tools:
   - Read
   - Write
   - Agent
-  - mcp__ruflo__autopilot_learn
   - ToolSearch
   - TaskCreate
   - TaskList
@@ -95,9 +94,6 @@ print('\n'.join(lines))
 > human gate is ever added inside this span, the same commit must re-scope or retire this binding.
 
 COMMIT is the natural terminator for single fixes. HARDEN fires only when recurrence is detected — skip it otherwise and self-terminate after COMMIT.
-
-<!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__autopilot_learn")
 
 ## Procedure
 
@@ -178,13 +174,7 @@ Goal: confirm the fix works and introduced no regressions.
    brana backlog set {task_id} notes --append "Fixed {date}: {one-line summary}"
    ```
 
-3. **Feed the autopilot** — after committing, call:
-   ```
-   mcp__ruflo__autopilot_learn()
-   ```
-   Seeds pattern registry from completed fix outcome. Skip silently if ruflo unavailable.
-
-4. **Close the session** if this was the only task: invoke `/brana:close`.
+3. **Close the session** if this was the only task: invoke `/brana:close`.
 
 ---
 

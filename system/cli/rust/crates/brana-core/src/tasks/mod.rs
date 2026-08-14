@@ -3,8 +3,23 @@
 
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
 use std::path::Path;
+
+
+mod validation;
+mod query;
+mod rollup;
+mod stats;
+mod wave;
+
+
+pub use validation::*;
+pub use query::*;
+pub use rollup::*;
+pub use stats::*;
+pub use wave::*;
+
+
 
 /// Number of extra attempts (beyond the first) when a read races a concurrent
 /// out-of-band writer that doesn't go through [`write_atomic`] — e.g. `git
@@ -80,759 +95,6 @@ pub fn load_tasks(path: &Path) -> Result<TasksFile, String> {
         }
         Err(format!("invalid JSON in {}", path.display()))
     })
-}
-
-/// True when `task` counts as finished for blocked_by-gate purposes: the
-/// task-status terminal values (`completed`/`cancelled`) for ordinary tasks,
-/// or the epic-status terminal values (`done`/`archived`, ADR-065) for
-/// `type: "epic"` nodes. Without this, an epic `blocked_by` another epic
-/// would never unblock — the gate check previously hardcoded the task
-/// vocabulary and never recognized an epic's own terminal states (t-2313).
-fn is_finished(task: &Value) -> bool {
-    match task["status"].as_str() {
-        Some("completed") | Some("cancelled") => true,
-        Some("done") | Some("archived") => task["type"].as_str() == Some("epic"),
-        _ => false,
-    }
-}
-
-/// Classify a task's effective status.
-pub fn classify(task: &Value, all: &[Value]) -> &'static str {
-    if is_finished(task) {
-        return "done";
-    }
-    match task["status"].as_str().unwrap_or("") {
-        "in_progress" => "active",
-        _ => {
-            if let Some(deps) = task["blocked_by"].as_array() {
-                if !deps.is_empty() {
-                    let done_ids: HashSet<&str> = all
-                        .iter()
-                        .filter(|t| is_finished(t))
-                        .filter_map(|t| t["id"].as_str())
-                        .collect();
-                    if !deps
-                        .iter()
-                        .all(|d| done_ids.contains(d.as_str().unwrap_or("")))
-                    {
-                        return "blocked";
-                    }
-                }
-            }
-            if task["tags"]
-                .as_array()
-                .map_or(false, |t| t.iter().any(|v| v.as_str() == Some("parked")))
-            {
-                return "parked";
-            }
-            "pending"
-        }
-    }
-}
-
-/// Free-text search across subject, description, context, notes.
-pub fn text_match(task: &Value, needle: &str) -> bool {
-    let n = needle.to_lowercase();
-    ["subject", "description", "context", "notes"]
-        .iter()
-        .any(|f| {
-            task[f]
-                .as_str()
-                .map_or(false, |v| v.to_lowercase().contains(&n))
-        })
-}
-
-/// Match a `--tag` query token against a task's tag list. Tags are still
-/// plain strings (`Vec<String>`) — `key:value` is a naming convention, not
-/// a new storage shape (D8, backlog-v3 t-2311).
-///
-/// - Query contains `:` → exact string match only (`"layer:backend"` matches
-///   only the literal tag `"layer:backend"`).
-/// - Query has no `:` → matches the bare tag of that name (backward compat)
-///   OR any tag `"<query>:*"` (any-value-for-key match) — so `--tag backend`
-///   finds both a bare `"backend"` tag and a `"backend:api"` tag.
-///
-/// A stored tag is split on its FIRST `:` only, so a value containing more
-/// colons (e.g. `"url:https://example.com"`) still parses as key=`"url"`.
-pub fn tag_matches(task_tags: &[&str], query: &str) -> bool {
-    if query.contains(':') {
-        return task_tags.contains(&query);
-    }
-    task_tags.iter().any(|t| {
-        *t == query || t.split_once(':').map(|(k, _)| k) == Some(query)
-    })
-}
-
-/// AND/OR composition of `tag_matches()` over a list of tag queries (t-2326).
-/// Shared by `cmd_query`'s multi-tag AND and `cmd_tags`'s --filter (AND) /
-/// --any (OR), so both commands see the same key:value exact + key-only
-/// bare-or-any-value semantics instead of `cmd_tags` doing its own plain
-/// exact-match check.
-pub fn tags_query_match(task_tags: &[&str], tag_list: &[&str], is_and: bool) -> bool {
-    if is_and {
-        tag_list.iter().all(|tag| tag_matches(task_tags, tag))
-    } else {
-        tag_list.iter().any(|tag| tag_matches(task_tags, tag))
-    }
-}
-
-/// Default WIP cap for an epic node when `wip_limit` is unset (ADR-065 D4 /
-/// backlog-v3-schema.md "WIP cap").
-pub const DEFAULT_EPIC_WIP_LIMIT: i64 = 10;
-
-/// Advisory WIP-cap check for adding a new child under `parent_id` (ADR-065
-/// D4: "warn, not block, during pilot"). Returns `Some(warning)` when adding
-/// one more LIVE task would push the epic's live-child count past its
-/// `wip_limit` (default `DEFAULT_EPIC_WIP_LIMIT` when unset).
-///
-/// "Live" is a synthetic projection over `classify()`, not a raw-status read:
-/// children `classify()` reports as `done` (completed/cancelled) or `parked`
-/// are excluded; `blocked` children still count, because a blocked task is
-/// still work in flight. Counting via `classify()` rather than `raw_status()`
-/// is what makes backlog-v3-schema.md §72 — "Can't add #11 without closing or
-/// **parking**" — true: parking was implemented as a `parked` tag surfaced by
-/// `classify()`, but this cap read the raw status field and ignored it, so
-/// parking a task had no effect on the count (t-2535). The warning names the
-/// count "live" rather than "open" precisely because it is no longer the raw
-/// reading a `--status` filter would reproduce (t-1340).
-///
-/// Returns `None` when `parent_id`
-/// doesn't resolve to a `type: "epic"` task, or the cap isn't breached —
-/// callers never branch on "is this an epic" themselves. Single point of
-/// computation shared by CLI `cmd_add` and MCP `backlog_add` (t-2313; same
-/// pattern as `tag_matches()`, t-2311). Never returns an error — the cap is
-/// advisory only.
-pub fn check_epic_wip_cap(all: &[Value], parent_id: &str) -> Option<String> {
-    let parent = all.iter().find(|t| t["id"].as_str() == Some(parent_id))?;
-    if parent["type"].as_str() != Some("epic") {
-        return None;
-    }
-    let limit = parent["wip_limit"].as_i64().unwrap_or(DEFAULT_EPIC_WIP_LIMIT);
-    let live_children = all
-        .iter()
-        .filter(|t| t["parent"].as_str() == Some(parent_id))
-        .filter(|t| !matches!(classify(t, all), "done" | "parked"))
-        .count() as i64;
-    let new_count = live_children + 1;
-    if new_count > limit {
-        Some(format!(
-            "epic {parent_id} is at its WIP cap ({live_children}/{limit} live — parked and finished children excluded) — adding this task makes {new_count}; close or park something before adding more"
-        ))
-    } else {
-        None
-    }
-}
-
-/// Assert that `active_epic` (if set) resolves to something real — either a
-/// `type: "epic"` node task (post-migration, ADR-065) or a task still
-/// carrying the flat `epic` tag with that value (pre-migration compat,
-/// since t-2312's migration script has not been run against live data yet
-/// as of this task). Returns an error naming the unresolved slug instead of
-/// silently falling through to a no-boost, empty-partition state — closing
-/// the gap the ADR's epic table calls out: "the pointer resolves to a real,
-/// local epic node and errors otherwise." t-2281 already fixed the
-/// project-vs-global resolution BUG (which config file wins); this closes
-/// the separate "resolves to nothing at all" gap on top of that fix. t-2314.
-pub fn assert_active_epic_resolves(all: &[Value], active_epic: &str) -> Result<(), String> {
-    let node_exists = all.iter().any(|t| {
-        t["type"].as_str() == Some("epic") && t["subject"].as_str() == Some(active_epic)
-    });
-    if node_exists {
-        return Ok(());
-    }
-    let flat_tag_exists = all.iter().any(|t| t["epic"].as_str() == Some(active_epic));
-    if flat_tag_exists {
-        return Ok(());
-    }
-    Err(format!(
-        "active_epic {active_epic:?} does not resolve to any epic node or task — check tasks-config.json's active_epic, or run `brana backlog set-active` with a real epic"
-    ))
-}
-
-/// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
-#[derive(Debug, Clone)]
-pub struct TaskFilter<'a> {
-    pub tag: Option<&'a str>,
-    pub status: Option<&'a str>,
-    pub priority: Option<&'a str>,
-    pub effort: Option<&'a str>,
-    pub search: Option<&'a str>,
-    pub types: Vec<&'a str>,
-    pub epic: Option<&'a str>,
-    pub work_type: Option<&'a str>,
-    /// t-2283: filter by `ac_state` (v3 forward-only slice). Matches only tasks
-    /// whose `ac_state` key is PRESENT and equals this value; legacy tasks (key
-    /// absent) never match.
-    pub ac_state: Option<&'a str>,
-}
-
-impl Default for TaskFilter<'_> {
-    fn default() -> Self {
-        TaskFilter {
-            tag: None,
-            status: None,
-            priority: None,
-            effort: None,
-            search: None,
-            types: vec!["task", "subtask"],
-            epic: None,
-            work_type: None,
-            ac_state: None,
-        }
-    }
-}
-
-/// Returns true if `s` is a valid kebab-case slug: one or more lowercase
-/// alphanumeric segments joined by single hyphens (no leading/trailing/
-/// consecutive hyphens). Mirrors the bash regex `^[a-z0-9]+(-[a-z0-9]+)*$`
-/// used by the shared `epic-ancestor-walk.md` procedure.
-pub fn is_epic_slug(s: &str) -> bool {
-    !s.is_empty()
-        && s.split('-')
-            .all(|seg| !seg.is_empty() && seg.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()))
-}
-
-/// Resolve the nearest `type: "epic"` ancestor of `task` by walking its
-/// `parent` chain against `by_id` (a full task-id → task lookup built from
-/// `all`). Rust equivalent of the bash `resolve_epic_ancestor()` in
-/// `system/skills/_shared/epic-ancestor-walk.md` (t-2375/t-2377) — the flat
-/// `epic` field it replaces was retired by the backlog-v3 migration
-/// (ADR-065, t-2284) and its write path is sealed (t-2310), so any epic
-/// membership check must walk `parent` instead of reading `task.epic`.
-/// Depth-capped at 10 hops (current epic nodes are always top-level, so real
-/// chains resolve in 1-2 hops) and rejects non-slug epic subjects (t-2263
-/// failure class — pre-v3 `in-NNN` markers retyped to `type:"epic"` but
-/// still carrying full sentence subjects).
-pub fn resolve_epic_ancestor(task: &Value, by_id: &HashMap<&str, &Value>) -> Option<String> {
-    let mut cur = task["parent"].as_str();
-    let mut depth = 0;
-    while let Some(id) = cur {
-        if depth >= 10 {
-            break;
-        }
-        let t = *by_id.get(id)?;
-        if t["type"].as_str() == Some("epic") {
-            if let Some(subject) = t["subject"].as_str() {
-                if is_epic_slug(subject) {
-                    return Some(subject.to_string());
-                }
-            }
-        }
-        cur = t["parent"].as_str();
-        depth += 1;
-    }
-    None
-}
-
-/// Filter tasks using a `TaskFilter` struct (preferred API).
-pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilter<'_>) -> Vec<&'a Value> {
-    let by_id: HashMap<&str, &Value> = all
-        .iter()
-        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
-        .collect();
-    tasks
-        .iter()
-        .filter(|t| {
-            let tt = t["type"].as_str().unwrap_or("task");
-            if !filter.types.contains(&tt) {
-                return false;
-            }
-            if let Some(s) = filter.status {
-                let _ = all;
-                if raw_status(t, "") != s {
-                    return false;
-                }
-            }
-            if let Some(tag) = filter.tag {
-                let tags: Vec<&str> = t["tags"]
-                    .as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
-                    .unwrap_or_default();
-                if !tag_matches(&tags, tag) {
-                    return false;
-                }
-            }
-            if let Some(p) = filter.priority {
-                if t["priority"].as_str().unwrap_or("") != p {
-                    return false;
-                }
-            }
-            if let Some(e) = filter.effort {
-                if t["effort"].as_str().unwrap_or("") != e {
-                    return false;
-                }
-            }
-            if let Some(q) = filter.search {
-                if !text_match(t, q) {
-                    return false;
-                }
-            }
-            if let Some(init) = filter.epic {
-                match resolve_epic_ancestor(t, &by_id) {
-                    Some(slug) if slug == init => {}
-                    _ => return false,
-                }
-            }
-            if let Some(wt) = filter.work_type {
-                if t["work_type"].as_str().unwrap_or("") != wt {
-                    return false;
-                }
-            }
-            if let Some(acs) = filter.ac_state {
-                // t-2283: match only when the ac_state KEY is present and equals
-                // `acs`. A legacy task (key absent) reads as Null → never matches.
-                if t["ac_state"].as_str() != Some(acs) {
-                    return false;
-                }
-            }
-            true
-        })
-        .collect()
-}
-
-/// Filter tasks by multiple criteria (AND logic).
-/// Thin wrapper around `filter_tasks_by` — prefer that for new call sites.
-pub fn filter_tasks<'a>(
-    tasks: &'a [Value],
-    all: &[Value],
-    tag: Option<&str>,
-    status: Option<&str>,
-    priority: Option<&str>,
-    effort: Option<&str>,
-    search: Option<&str>,
-    types: &[&str],
-    epic: Option<&str>,
-    work_type: Option<&str>,
-) -> Vec<&'a Value> {
-    filter_tasks_by(tasks, all, &TaskFilter {
-        tag,
-        status,
-        priority,
-        effort,
-        search,
-        types: types.to_vec(),
-        epic,
-        work_type,
-        ac_state: None,
-    })
-}
-
-/// t-2283: ac-propose drain candidates — the queue the ac-propose loop drains.
-/// Candidates = tasks with `ac_state == "none"` MINUS work_type in {research, review}
-/// (research/audit tasks yield only thin disjunctive ACs — route L2-only, per the
-/// Step-1 dry run 2026-07-21). Legacy tasks (`ac_state` key absent) are never
-/// candidates: only key-present, `none`-valued tasks are under v3 AC management.
-pub fn ac_propose_candidates(tasks: &[Value]) -> Vec<&Value> {
-    // AC#7 phrases the exclusion as "research/audit". There is no `audit`
-    // work_type in the canonical enum (see `validate_work_type`) — "audit" maps
-    // to `review` by convention, so the exclusion set is {research, review}.
-    tasks
-        .iter()
-        .filter(|t| t["ac_state"].as_str() == Some(AC_STATE_DEFAULT))
-        .filter(|t| !matches!(t["work_type"].as_str(), Some("research") | Some("review")))
-        .collect()
-}
-
-/// t-2288: the inert field the ac-propose loop writes a candidate criterion into.
-/// Deliberately SEPARATE from `acceptance_criteria` (the live gating field) so a
-/// proposed AC gates nothing until a human promotes it — promotion moves this
-/// array into `acceptance_criteria` and flips `ac_state` to `approved`. Array form
-/// mirrors `acceptance_criteria` so promotion is a lossless move.
-pub const PROPOSED_AC_FIELD: &str = "proposed_acceptance_criteria";
-
-/// t-2288: apply ac-propose proposals in memory. For each `(id, criteria)` whose
-/// task is a CURRENT drain candidate (`ac_propose_candidates`), set
-/// `ac_state = "proposed"` + `proposed_acceptance_criteria = criteria` and mutate
-/// **nothing else**. Returns the ids actually applied.
-///
-/// Forward-only safety (AC#3 scoped mutation, AC#5 legacy untouched): the candidate
-/// set is recomputed from the live `tasks` slice — never trusted from the caller —
-/// so a proposal targeting a non-candidate is a silent no-op. Legacy tasks
-/// (`ac_state` key absent), already-`proposed`/`approved` tasks, and research/review
-/// work_types are never mutated. Proposed ACs are inert (AC#4): this writes only
-/// the holding field, never `acceptance_criteria`.
-pub fn apply_ac_proposals(
-    tasks: &mut [Value],
-    proposals: &HashMap<String, Vec<String>>,
-) -> Vec<String> {
-    // Immutable borrow first (compute the candidate id-set), then mutate — the two
-    // borrows cannot overlap, so materialize owned ids before iterating mutably.
-    let candidates: HashSet<String> = ac_propose_candidates(tasks)
-        .iter()
-        .filter_map(|t| t["id"].as_str().map(str::to_string))
-        .collect();
-
-    let mut applied = Vec::new();
-    for t in tasks.iter_mut() {
-        let id = match t["id"].as_str() {
-            Some(id) => id.to_string(),
-            None => continue,
-        };
-        // Non-candidate → never touched (legacy key-absent / proposed / approved /
-        // research / review). This is the forward-only guard.
-        if !candidates.contains(&id) {
-            continue;
-        }
-        if let Some(criteria) = proposals.get(&id) {
-            t["ac_state"] = Value::String("proposed".into());
-            t[PROPOSED_AC_FIELD] =
-                Value::Array(criteria.iter().map(|c| Value::String(c.clone())).collect());
-            applied.push(id);
-        }
-    }
-    applied
-}
-
-/// t-2288: file-level ac-propose apply — lock, load, apply proposals, save.
-/// Mirrors `perform_rollup`'s read-modify-write over a raw `Value` (unknown fields
-/// round-trip, so the write is sealed). `dry_run` computes the applied set without
-/// writing. Returns the ids applied (or that would be applied under `dry_run`).
-pub fn perform_ac_propose(
-    path: &Path,
-    proposals: &HashMap<String, Vec<String>>,
-    dry_run: bool,
-) -> Result<Vec<String>, String> {
-    let _lock = lock_tasks(path)?;
-    let mut val = load_raw(path)?;
-    let tasks = val["tasks"].as_array_mut().ok_or("tasks is not an array")?;
-    let applied = apply_ac_proposals(tasks, proposals);
-
-    if applied.is_empty() || dry_run {
-        return Ok(applied);
-    }
-
-    val["last_modified"] = Value::String(chrono::Local::now().to_rfc3339());
-    save_tasks(path, &val).map_err(|e| format!("ac-propose write failed: {e}"))?;
-    Ok(applied)
-}
-
-/// Sort by priority (P0 first), then status (in_progress first), then order.
-pub fn sort_by_priority(tasks: &mut [&Value]) {
-    tasks.sort_by(|a, b| {
-        let pri = |t: &Value| match t["priority"].as_str() {
-            Some("P0") => 0,
-            Some("P1") => 1,
-            Some("P2") => 2,
-            Some("P3") => 3,
-            _ => 4,
-        };
-        let status_ord = |t: &Value| {
-            if t["status"].as_str() == Some("in_progress") {
-                0
-            } else {
-                1
-            }
-        };
-        let order = |t: &Value| t["order"].as_i64().unwrap_or(999);
-
-        (pri(a), status_ord(a), order(a)).cmp(&(pri(b), status_ord(b), order(b)))
-    });
-}
-
-/// Focus score: initiative boost + priority weight - effort - blocked depth.
-///
-/// `initiative_boost` is 500.0 when the task belongs to the active initiative,
-/// 0.0 otherwise. Staleness is intentionally excluded — it rewarded neglect by
-/// floating forgotten tasks above freshly-prioritised work.
-pub fn focus_score(task: &Value, initiative_boost: f64) -> f64 {
-    let pri = match task["priority"].as_str() {
-        Some("P0") => 400.0,
-        Some("P1") => 300.0,
-        Some("P2") => 200.0,
-        Some("P3") => 100.0,
-        _ => 50.0,
-    };
-
-    let effort = match task["effort"].as_str() {
-        Some("S") => 10.0,
-        Some("M") => 20.0,
-        Some("L") => 30.0,
-        Some("XL") => 40.0,
-        _ => 15.0,
-    };
-
-    let blocked_depth = task["blocked_by"]
-        .as_array()
-        .map_or(0, |a| a.len()) as f64
-        * 50.0;
-
-    initiative_boost + pri - effort - blocked_depth
-}
-
-/// Compute burndown: created vs completed counts over a time period.
-///
-/// Returns a JSON object with created_count, completed_count, delta, and period info.
-pub fn burndown(tasks: &[Value], period: &str) -> Value {
-    let now = chrono::Local::now().date_naive();
-    let days = match period {
-        "month" => 30,
-        _ => 7, // default: week
-    };
-    let cutoff = (now - chrono::Duration::days(days)).format("%Y-%m-%d").to_string();
-
-    let created_count = tasks.iter()
-        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
-        .filter(|t| t["created"].as_str().unwrap_or("") >= cutoff.as_str())
-        .count();
-
-    let completed_count = tasks.iter()
-        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
-        .filter(|t| t["completed"].as_str().unwrap_or("") >= cutoff.as_str())
-        .count();
-
-    let delta = completed_count as i64 - created_count as i64;
-
-    serde_json::json!({
-        "period": period,
-        "days": days,
-        "cutoff": cutoff,
-        "created": created_count,
-        "completed": completed_count,
-        "delta": delta,
-        "direction": if delta > 0 { "shrinking" } else if delta < 0 { "growing" } else { "stable" },
-    })
-}
-
-/// Walk the blocked-by dependency chain for a task with cycle detection.
-///
-/// Returns a list of (depth, task) pairs representing the blocking tree.
-/// Only includes blockers that are not yet done.
-pub fn blocked_chain<'a>(
-    task_id: &str,
-    all: &'a [Value],
-    depth: usize,
-    visited: &mut HashSet<String>,
-) -> Vec<(usize, &'a Value)> {
-    if visited.contains(task_id) {
-        return vec![]; // cycle detected
-    }
-    visited.insert(task_id.to_string());
-
-    let task = match all.iter().find(|t| t["id"].as_str() == Some(task_id)) {
-        Some(t) => t,
-        None => return vec![],
-    };
-
-    let mut chain = vec![(depth, task)];
-
-    if let Some(deps) = task["blocked_by"].as_array() {
-        for dep in deps {
-            if let Some(dep_id) = dep.as_str() {
-                let blocker = all.iter().find(|t| t["id"].as_str() == Some(dep_id));
-                if let Some(b) = blocker {
-                    if classify(b, all) != "done" {
-                        chain.extend(blocked_chain(dep_id, all, depth + 1, visited));
-                    }
-                }
-            }
-        }
-    }
-
-    chain
-}
-
-/// Find tasks that have been pending longer than the given threshold.
-///
-/// Returns tasks sorted by created date (oldest first).
-pub fn stale_tasks<'a>(tasks: &'a [Value], all: &'a [Value], threshold_days: i64) -> Vec<&'a Value> {
-    let cutoff = (chrono::Local::now().date_naive() - chrono::Duration::days(threshold_days))
-        .format("%Y-%m-%d")
-        .to_string();
-
-    let mut stale: Vec<&Value> = tasks.iter()
-        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
-        .filter(|t| classify(t, all) == "pending")
-        .filter(|t| {
-            let created = t["created"].as_str().unwrap_or("9999-99-99");
-            created < cutoff.as_str()
-        })
-        .collect();
-
-    stale.sort_by(|a, b| {
-        let da = a["created"].as_str().unwrap_or("");
-        let db = b["created"].as_str().unwrap_or("");
-        da.cmp(db)
-    });
-
-    stale
-}
-
-/// Find duplicate task IDs.
-pub fn find_duplicate_ids(tasks: &[Value]) -> Vec<String> {
-    let mut seen = HashSet::new();
-    let mut dupes = Vec::new();
-    for t in tasks {
-        if let Some(id) = t["id"].as_str() {
-            if !seen.insert(id) {
-                dupes.push(id.to_string());
-            }
-        }
-    }
-    dupes
-}
-
-/// Validate tasks.json schema. Returns list of error strings.
-pub fn validate_schema(path: &Path) -> Vec<String> {
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(e) => return vec![format!("cannot read file: {e}")],
-    };
-    let content = content.trim();
-    if content.is_empty() {
-        return vec!["file is empty".into()];
-    }
-
-    let val: Value = match serde_json::from_str(content) {
-        Ok(v) => v,
-        Err(_) => return vec!["invalid JSON".into()],
-    };
-
-    let mut errors = Vec::new();
-
-    if val["version"].is_null() {
-        errors.push("missing version".into());
-    }
-    if val["project"].is_null() {
-        errors.push("missing project".into());
-    }
-    if !val["tasks"].is_array() {
-        errors.push("tasks must be array".into());
-        return errors;
-    }
-
-    let valid_statuses = ["pending", "in_progress", "completed", "cancelled"];
-    // t-2322 (ADR-065): "epic" (hierarchy node markers, t-2312) and
-    // "initiative" (13 stray pre-migration survivors) are valid task types
-    // this standalone validator predates.
-    let valid_types = ["phase", "milestone", "task", "subtask", "epic", "initiative"];
-
-    if let Some(tasks) = val["tasks"].as_array() {
-        for t in tasks {
-            let id = t["id"].as_str().unwrap_or("?");
-            if t["id"].is_null() {
-                errors.push("task missing id".into());
-            }
-            if t["subject"].is_null() {
-                errors.push(format!("task {id} missing subject"));
-            }
-            if t["status"].is_null() {
-                errors.push(format!("task {id} missing status"));
-            } else if let Some(s) = t["status"].as_str() {
-                // t-2379 (ADR-065): an epic node's status validates against
-                // a different vocabulary than an ordinary task's, mirroring
-                // set_field()'s status branch (t-2313).
-                let is_valid = if t["type"].as_str() == Some("epic") {
-                    validate_epic_status(s).is_ok()
-                } else {
-                    valid_statuses.contains(&s)
-                };
-                if !is_valid {
-                    errors.push(format!("task {id}: invalid status {s}"));
-                }
-            }
-            if t["type"].is_null() {
-                errors.push(format!("task {id} missing type"));
-            } else if let Some(tp) = t["type"].as_str() {
-                if !valid_types.contains(&tp) {
-                    errors.push(format!("task {id}: invalid type {tp}"));
-                }
-            }
-            if !t["tags"].is_null() {
-                if !t["tags"].is_array() {
-                    errors.push(format!("task {id}: tags must be array"));
-                } else if let Some(tags) = t["tags"].as_array() {
-                    if tags.iter().any(|v| !v.is_string()) {
-                        errors.push(format!("task {id}: tags items must be strings"));
-                    }
-                }
-            }
-            if !t["context"].is_null() && !t["context"].is_string() {
-                errors.push(format!("task {id}: context must be string"));
-            }
-            if !t["isc"].is_null() {
-                if !t["isc"].is_array() {
-                    errors.push(format!("task {id}: isc must be array"));
-                } else if let Some(items) = t["isc"].as_array() {
-                    if items.iter().any(|v| !v.is_string()) {
-                        errors.push(format!("task {id}: isc items must be strings"));
-                    }
-                }
-            }
-        }
-    }
-
-    errors
-}
-
-/// Find parent IDs that should be auto-completed (all children done).
-pub fn find_rollup_candidates(tasks: &[Value]) -> Vec<String> {
-    let mut candidates = Vec::new();
-    for parent in tasks
-        .iter()
-        .filter(|t| matches!(t["type"].as_str(), Some("milestone" | "phase")))
-    {
-        let pid = match parent["id"].as_str() {
-            Some(id) => id,
-            None => continue,
-        };
-        if parent["status"].as_str() == Some("completed") {
-            continue;
-        }
-
-        let children: Vec<_> = tasks
-            .iter()
-            .filter(|t| t["parent"].as_str() == Some(pid))
-            .collect();
-
-        if !children.is_empty()
-            && children
-                .iter()
-                .all(|c| c["status"].as_str() == Some("completed"))
-        {
-            candidates.push(pid.to_string());
-        }
-    }
-    candidates
-}
-
-/// Perform rollup: mark parents as completed, write back to file.
-/// Returns list of completed parent IDs.
-pub fn perform_rollup(path: &Path, dry_run: bool) -> Result<Vec<String>, String> {
-    // Serialize the rollup's read-modify-write against concurrent writers
-    // (t-2166). Sole caller is cmd_rollup, which holds no lock — no nesting.
-    let _lock = lock_tasks(path)?;
-    let content =
-        std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let mut val: Value =
-        serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))?;
-
-    let tasks = val["tasks"]
-        .as_array()
-        .ok_or("tasks is not an array")?;
-    let candidates = find_rollup_candidates(tasks);
-
-    if candidates.is_empty() || dry_run {
-        return Ok(candidates);
-    }
-
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let now = chrono::Local::now().to_rfc3339();
-
-    if let Some(tasks) = val["tasks"].as_array_mut() {
-        for t in tasks.iter_mut() {
-            if let Some(id) = t["id"].as_str() {
-                if candidates.contains(&id.to_string()) {
-                    t["status"] = Value::String("completed".into());
-                    t["completed"] = Value::String(today.clone());
-                }
-            }
-        }
-    }
-    val["last_modified"] = Value::String(now);
-
-    save_tasks(path, &val).map_err(|e| format!("rollup write failed: {e}"))?;
-
-    Ok(candidates)
 }
 
 /// Write `content` to `path` atomically via a PID-scoped temp file + rename.
@@ -1015,645 +277,6 @@ pub fn next_wave_id(waves: &[Value]) -> String {
     format!("wave-{}", max + 1)
 }
 
-/// Validate a priority value. Accepts P0/P1/P2/P3 plus "null"/"" (clear). Rejects legacy
-/// high/medium/low and any other string. Canonical enum is P[0-3] only — see t-1344.
-pub fn validate_priority(value: &str) -> Result<(), String> {
-    match value {
-        "P0" | "P1" | "P2" | "P3" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid priority {other:?} — must be P0/P1/P2/P3 or null"
-        )),
-    }
-}
-
-/// Validate a status value. Accepts pending/in_progress/completed/cancelled plus "null"/""
-/// (clear). Rejects synthetic display values like "done", "active", "blocked", "parked" — those
-/// belong only in classify() output. See t-1345.
-pub fn validate_status(value: &str) -> Result<(), String> {
-    match value {
-        "pending" | "in_progress" | "completed" | "cancelled" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid status {other:?} — must be pending/in_progress/completed/cancelled or null"
-        )),
-    }
-}
-
-/// Validate an epic node's `status` value (ADR-065). A DIFFERENT vocabulary
-/// from `validate_status()`'s task lifecycle: active/next/parked/done/archived,
-/// plus "null"/"" (clear). Only reached when the task being validated is
-/// `type: "epic"` — see set_field's status branch and cmd_add; a non-epic
-/// task's `status` field still validates against `validate_status()`. t-2313.
-pub fn validate_epic_status(value: &str) -> Result<(), String> {
-    match value {
-        "active" | "next" | "parked" | "done" | "archived" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid epic status {other:?} — must be active/next/parked/done/archived or null"
-        )),
-    }
-}
-
-/// Validate a wave's `status` value (ADR-065 process-overlay slice, t-2315).
-/// A wave's own vocabulary — distinct from both `validate_status()` (task)
-/// and `validate_epic_status()` (epic node). The documented lifecycle is
-/// queued → draining → shipped (backlog-v3-schema.md "Wave = Queue"), but
-/// this validator does NOT enforce that ordering: no lifecycle-status
-/// validator in this codebase enforces forward-only transitions (both
-/// validate_status/validate_epic_status are pure membership checks), and the
-/// drain/query logic that would give "ordering" real meaning is explicitly
-/// out of scope for this slice.
-pub fn validate_wave_status(value: &str) -> Result<(), String> {
-    match value {
-        "queued" | "draining" | "shipped" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid wave status {other:?} — must be queued/draining/shipped or null"
-        )),
-    }
-}
-
-pub fn validate_work_type(value: &str) -> Result<(), String> {
-    match value {
-        "implement" | "research" | "design" | "infra" | "chore" | "review" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid work_type {other:?} — must be implement/research/design/infra/chore/review or null"
-        )),
-    }
-}
-
-/// Validate a kind value (t-1960). Canonical list matches the CLI TaskKind enum;
-/// used by every write path (CLI add/set, MCP add/set/batch) so they cannot drift.
-pub fn validate_kind(value: &str) -> Result<(), String> {
-    match value {
-        "feature" | "fix" | "refactor" | "research" | "docs" | "design" | "ops" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid kind {other:?} — must be feature/fix/refactor/research/docs/design/ops or null"
-        )),
-    }
-}
-
-/// Validate an execution value (t-1982). Accepted: code, autonomous, null, "".
-/// Shared by CLI set, MCP backlog_set, and MCP backlog_add so they cannot drift.
-pub fn validate_execution(value: &str) -> Result<(), String> {
-    match value {
-        "code" | "autonomous" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid execution {other:?} — must be code/autonomous or null"
-        )),
-    }
-}
-
-/// t-2283: the value a new task's `ac_state` is stamped with. Shared by every
-/// write path (CLI `cmd_add`, MCP `backlog_add`) so the stamp cannot drift.
-pub const AC_STATE_DEFAULT: &str = "none";
-
-/// Validate an ac_state value (t-2283, v3 forward-only slice). Accepts
-/// none/proposed/approved plus "null"/"" (clear the key). Shared by every write
-/// path so CLI and MCP cannot drift. Key *presence* marks a task as v3-managed;
-/// this validator governs only the value once the key is being written.
-pub fn validate_ac_state(value: &str) -> Result<(), String> {
-    match value {
-        "none" | "proposed" | "approved" | "null" | "" => Ok(()),
-        other => Err(format!(
-            "invalid ac_state {other:?} — must be none/proposed/approved or null"
-        )),
-    }
-}
-
-/// Rename the `initiative` key to `epic` on a single task object (t-1614 schema migration).
-/// Preserves `level: "initiative"` and `type: "initiative"` values — only the KEY is renamed.
-pub fn migrate_initiative_to_epic(mut task: Value) -> Value {
-    if let Some(obj) = task.as_object_mut() {
-        if let Some(val) = obj.remove("initiative") {
-            obj.insert("epic".to_string(), val);
-        }
-    }
-    task
-}
-
-/// Validate that tasks with effort M/L/XL have a non-empty context. See t-939 and tasks.spec.md.
-pub fn validate_context_for_effort(effort: Option<&str>, context: Option<&str>) -> Result<(), String> {
-    match effort {
-        Some("M") | Some("L") | Some("XL") => {
-            let has_context = context.map(|c| !c.trim().is_empty()).unwrap_or(false);
-            if has_context {
-                Ok(())
-            } else {
-                Err(format!(
-                    "effort {:?} requires a non-empty context — add --context or include \"context\" in the JSON payload",
-                    effort.unwrap()
-                ))
-            }
-        }
-        _ => Ok(()),
-    }
-}
-
-/// Read the raw `status` field from a task — the canonical accessor used by
-/// filter predicates AND aggregations. **Never use `classify()` for filtering**:
-/// classify() emits synthetic display values (done/active/blocked/parked) that
-/// are not in the raw enum and silently break --status filters. See t-1340/t-1346.
-pub fn raw_status<'a>(task: &'a Value, default: &'a str) -> &'a str {
-    task["status"].as_str().unwrap_or(default)
-}
-
-/// Fields retired from the task schema (ADR-065) that must never be written
-/// via a write path that merges a raw JSON object directly onto a task
-/// (rather than going through `set_field`'s exhaustive match, which already
-/// hard-rejects them-by-omission via its `unknown field` catch-all). Single
-/// source of truth: t-2310 hand-patched level/epic, then t-2325 had to
-/// hand-patch stream separately with an independent `contains_key` check —
-/// this constant plus `reject_retired_fields` (t-2385, ADR-067) generalizes
-/// that so a future retirement is a one-line addition here instead of a new
-/// call site.
-pub const RETIRED_FIELDS: &[&str] = &["level", "epic", "stream"];
-
-/// Reject a raw JSON object if it contains any retired field key. Exact key
-/// match only — no substring matching, so e.g. `"epics"`/`"streaming"` pass
-/// through untouched. Used by write paths that merge arbitrary JSON directly
-/// (e.g. `cmd_add`'s `--json` ingestion), where `set_field`'s per-field match
-/// doesn't apply. Names every retired field found, not just the first.
-pub fn reject_retired_fields(obj: &serde_json::Map<String, Value>) -> Result<(), String> {
-    let found: Vec<&str> = RETIRED_FIELDS
-        .iter()
-        .filter(|f| obj.contains_key(**f))
-        .copied()
-        .collect();
-    if found.is_empty() {
-        Ok(())
-    } else {
-        Err(format!(
-            "{} field(s) are retired (ADR-065) — level collapses into type, epic/stream are now hierarchy/tag concerns; use --parent/tags instead",
-            found.join(", ")
-        ))
-    }
-}
-
-/// Task fields whose canonical representation is a JSON array.
-///
-/// `acceptance_criteria` is deliberately absent: its items are prose and
-/// legitimately contain commas, so comma-splitting them would corrupt the
-/// payload. Only fields listed here are coerced.
-pub const ARRAY_FIELDS: &[&str] = &["tags", "blocked_by", "isc"];
-
-/// Coerce legacy comma-string values on [`ARRAY_FIELDS`] into real JSON arrays
-/// (E2026-05-22-7).
-///
-/// Absent keys stay absent and nulls stay null — inventing keys here would
-/// resurrect retired-field-style schema drift.
-///
-/// Shared by `set_field` and `cmd_add`'s `--json` ingestion so both write paths
-/// normalize identically. `--json` merges arbitrary JSON straight onto the new
-/// task, bypassing `set_field`'s per-field match, which is how comma-strings
-/// used to survive to disk (t-2439).
-pub fn normalize_array_fields(task: &mut Value) {
-    for field in ARRAY_FIELDS {
-        if let Some(s) = task.get(*field).and_then(|v| v.as_str()) {
-            task[*field] = Value::Array(
-                s.split(',')
-                    .map(|t| t.trim())
-                    .filter(|t| !t.is_empty())
-                    .map(|t| Value::String(t.to_string()))
-                    .collect(),
-            );
-        }
-    }
-}
-
-/// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
-pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
-    match field {
-        "tags" | "blocked_by" | "isc" => {
-            // Auto-initialize isc if absent
-            if field == "isc" && task[field].is_null() {
-                task[field] = Value::Array(vec![]);
-            }
-            // Coerce legacy comma-string format to array (E2026-05-22-7)
-            normalize_array_fields(task);
-            let arr = task[field].as_array_mut()
-                .ok_or_else(|| format!("{field} is not an array"))?;
-            if let Some(stripped) = value.strip_prefix('+') {
-                let v = Value::String(stripped.to_string());
-                if !arr.contains(&v) { arr.push(v); }
-            } else if let Some(stripped) = value.strip_prefix('-') {
-                arr.retain(|v| v.as_str() != Some(stripped));
-            } else {
-                return Err(format!("use +val or -val for array fields (got: {value})"));
-            }
-            Ok(())
-        }
-        "acceptance_criteria" => {
-            if task[field].is_null() {
-                task[field] = Value::Array(vec![]);
-            }
-            if let Some(stripped) = value.strip_prefix('+') {
-                let arr = task[field].as_array_mut()
-                    .ok_or_else(|| format!("{field} is not an array"))?;
-                let v = Value::String(stripped.to_string());
-                if !arr.contains(&v) { arr.push(v); }
-            } else if let Some(stripped) = value.strip_prefix('-') {
-                let arr = task[field].as_array_mut()
-                    .ok_or_else(|| format!("{field} is not an array"))?;
-                arr.retain(|v| v.as_str() != Some(stripped));
-            } else {
-                let parsed: Value = serde_json::from_str(value)
-                    .map_err(|_| format!("acceptance_criteria must be a JSON array or use +item/-item (got: {value})"))?;
-                if !parsed.is_array() {
-                    return Err(format!("acceptance_criteria must be a JSON array or use +item/-item (got: {value})"));
-                }
-                task[field] = parsed;
-            }
-            Ok(())
-        }
-        "context" | "notes" | "description" => {
-            if append {
-                let existing = task[field].as_str().unwrap_or("").to_string();
-                let new_val = if existing.is_empty() {
-                    value.to_string()
-                } else {
-                    format!("{existing}\n{value}")
-                };
-                task[field] = Value::String(new_val);
-            } else {
-                task[field] = Value::String(value.to_string());
-            }
-            Ok(())
-        }
-        "agent_config" | "agent_result" => {
-            if value == "null" {
-                task[field] = Value::Null;
-            } else {
-                let parsed: Value = serde_json::from_str(value)
-                    .map_err(|e| format!("{field} must be a JSON object or \"null\": {e}"))?;
-                if !parsed.is_object() {
-                    return Err(format!("{field} must be a JSON object or \"null\""));
-                }
-                task[field] = parsed;
-            }
-            Ok(())
-        }
-        "priority" | "effort" | "status" | "type" | "strategy"
-        | "build_step" | "execution" | "branch" | "subject" | "parent"
-        | "started" | "completed" | "created" | "github_issue"
-        | "work_type" | "kind" | "spawn" | "spawn_strategy" | "ac_state" => {
-            if field == "priority" {
-                validate_priority(value)?;
-            }
-            if field == "ac_state" {
-                validate_ac_state(value)?;
-            }
-            if field == "status" {
-                // ADR-065: an epic node's status validates against a
-                // different vocabulary than an ordinary task's (t-2313).
-                if task["type"].as_str() == Some("epic") {
-                    validate_epic_status(value)?;
-                } else {
-                    validate_status(value)?;
-                }
-            }
-            if field == "work_type" {
-                validate_work_type(value)?;
-            }
-            if field == "kind" {
-                validate_kind(value)?;
-            }
-            if field == "execution" {
-                validate_execution(value)?;
-            }
-            if value == "null" {
-                task[field] = Value::Null;
-            } else {
-                task[field] = Value::String(value.to_string());
-            }
-            Ok(())
-        }
-        "wip_limit" => {
-            // ADR-065: WIP cap on an epic node (t-2313). Settable regardless
-            // of task type — matching this whitelist's existing pattern of
-            // no cross-field type coupling; meaninglessness on a non-epic
-            // task is a semantic concern for check_epic_wip_cap's callers,
-            // not a set_field-level restriction.
-            if value == "null" {
-                task[field] = Value::Null;
-            } else {
-                let parsed: i64 = value.parse().map_err(|_| {
-                    format!("wip_limit must be a positive integer or \"null\" (got: {value})")
-                })?;
-                if parsed < 1 {
-                    return Err(format!("wip_limit must be a positive integer (got: {value})"));
-                }
-                task[field] = Value::Number(parsed.into());
-            }
-            Ok(())
-        }
-        _ => Err(format!("unknown field: {field}")),
-    }
-}
-
-/// Set a field on a wave object (ADR-065, t-2315). Waves are not tasks — a
-/// separate, smaller field surface than `set_field()`'s task whitelist:
-/// name/selector/contract/gate/status only. No array append/remove syntax
-/// (no array-typed wave field exists in this minimal slice) and no
-/// referential check on `gate` — nothing in this slice resolves or enforces
-/// gates (that's the intent-CLI's job, deferred), and no other reference
-/// field in this codebase (`parent`, `blocked_by`) is existence-checked at
-/// write time either, so `gate` follows the same precedent.
-pub fn set_wave_field(wave: &mut Value, field: &str, value: &str) -> Result<(), String> {
-    match field {
-        "status" => {
-            validate_wave_status(value)?;
-            if value == "null" {
-                wave[field] = Value::Null;
-            } else {
-                wave[field] = Value::String(value.to_string());
-            }
-            Ok(())
-        }
-        "name" | "selector" | "contract" | "gate" => {
-            if value == "null" {
-                wave[field] = Value::Null;
-            } else {
-                wave[field] = Value::String(value.to_string());
-            }
-            Ok(())
-        }
-        _ => Err(format!("unknown wave field: {field}")),
-    }
-}
-
-/// Apply multiple field updates to a task atomically: either every field
-/// applies, or the task is left untouched and all field errors are returned.
-/// Fields are applied in caller-supplied order (t-1958).
-pub fn set_fields_atomic(
-    task: &mut Value,
-    fields: &[(String, String)],
-    append: bool,
-) -> Result<serde_json::Map<String, Value>, Vec<String>> {
-    let snapshot = task.clone();
-    let mut updated = serde_json::Map::new();
-    let mut errors = Vec::new();
-
-    for (field, value) in fields {
-        match set_field(task, field, value, append) {
-            Ok(()) => {
-                updated.insert(field.clone(), task[field.as_str()].clone());
-            }
-            Err(e) => errors.push(format!("{field}: {e}")),
-        }
-    }
-
-    if errors.is_empty() {
-        Ok(updated)
-    } else {
-        *task = snapshot;
-        Err(errors)
-    }
-}
-
-/// Collect tag inventory: tag -> {total, pending, active, done, blocked}.
-pub fn tag_inventory(tasks: &[Value], all: &[Value]) -> Vec<(String, HashMap<String, usize>)> {
-    let mut map: HashMap<String, HashMap<String, usize>> = HashMap::new();
-    for t in tasks.iter().filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask"))) {
-        if let Some(tags) = t["tags"].as_array() {
-            let st = classify(t, all);
-            for tag in tags.iter().filter_map(|v| v.as_str()) {
-                let entry = map.entry(tag.to_string()).or_default();
-                *entry.entry("total".into()).or_default() += 1;
-                *entry.entry(st.into()).or_default() += 1;
-            }
-        }
-    }
-    let mut result: Vec<_> = map.into_iter().collect();
-    result.sort_by(|a, b| b.1.get("total").unwrap_or(&0).cmp(a.1.get("total").unwrap_or(&0)));
-    result
-}
-
-/// Compute aggregate stats by status, priority, type, work_type, initiative.
-pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
-    // by_status: raw task.status (matches filter_tasks predicate / CLI enum).
-    // by_state:  synthetic classify() output for display rollups.
-    // See tasks.spec.md (t-1323, t-1340).
-    let mut by_status: HashMap<String, usize> = HashMap::new();
-    let mut by_state: HashMap<String, usize> = HashMap::new();
-    let mut by_priority: HashMap<String, usize> = HashMap::new();
-    let mut by_type: HashMap<String, usize> = HashMap::new();
-    let mut by_work_type: HashMap<String, usize> = HashMap::new();
-    let mut by_epic: HashMap<String, usize> = HashMap::new();
-
-    for t in tasks {
-        let raw = raw_status(t, "unknown").to_string();
-        let state = classify(t, all).to_string();
-        let pri = t["priority"].as_str().unwrap_or("null").to_string();
-        let tp = t["type"].as_str().unwrap_or("task").to_string();
-
-        *by_status.entry(raw).or_default() += 1;
-        *by_state.entry(state).or_default() += 1;
-        *by_priority.entry(pri).or_default() += 1;
-        *by_type.entry(tp).or_default() += 1;
-
-        if let Some(wt) = t["work_type"].as_str() {
-            *by_work_type.entry(wt.to_string()).or_default() += 1;
-        }
-        if let Some(init) = t["epic"].as_str() {
-            *by_epic.entry(init.to_string()).or_default() += 1;
-        }
-    }
-
-    serde_json::json!({
-        "total": tasks.len(),
-        "by_status": by_status,
-        "by_state": by_state,
-        "by_priority": by_priority,
-        "by_type": by_type,
-        "by_work_type": by_work_type,
-        "by_epic": by_epic,
-    })
-}
-
-/// Build a tree structure from parent references.
-pub fn build_tree(tasks: &[Value], all: &[Value]) -> Vec<Value> {
-    let root_ids: Vec<&str> = tasks.iter()
-        .filter(|t| matches!(t["type"].as_str(), Some("phase")))
-        .filter_map(|t| t["id"].as_str())
-        .collect();
-
-    let mut result = Vec::new();
-    for rid in &root_ids {
-        if let Some(phase) = tasks.iter().find(|t| t["id"].as_str() == Some(rid)) {
-            result.push(build_node(phase, tasks, all));
-        }
-    }
-
-    // Orphan tasks (no parent, not a phase/milestone)
-    let parented: HashSet<&str> = tasks.iter()
-        .filter_map(|t| t["parent"].as_str())
-        .collect();
-    let _phase_ms_ids: HashSet<&str> = tasks.iter()
-        .filter(|t| matches!(t["type"].as_str(), Some("phase" | "milestone")))
-        .filter_map(|t| t["id"].as_str())
-        .collect();
-
-    // Tasks under milestones are already included, tasks without parent go to streams
-    let orphans: Vec<&Value> = tasks.iter()
-        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
-        .filter(|t| t["parent"].as_str().is_none() || t["parent"].is_null())
-        .filter(|t| !parented.contains(t["id"].as_str().unwrap_or("")))
-        .collect();
-
-    if !orphans.is_empty() {
-        // Group orphan tasks by work_type
-        let mut by_work_type: HashMap<String, Vec<Value>> = HashMap::new();
-        for t in orphans {
-            let wt = t["work_type"].as_str().unwrap_or("implement").to_string();
-            let st = classify(t, all);
-            let mut node = serde_json::json!({
-                "id": t["id"],
-                "subject": t["subject"],
-                "type": t["type"],
-                "status": st,
-            });
-            if let Some(bs) = t["build_step"].as_str() {
-                node["build_step"] = Value::String(bs.into());
-            }
-            by_work_type.entry(wt).or_default().push(node);
-        }
-        for (wt, tasks) in by_work_type {
-            result.push(serde_json::json!({
-                "id": wt,
-                "subject": wt,
-                "type": "work_type",
-                "children": tasks,
-            }));
-        }
-    }
-
-    result
-}
-
-fn build_node(task: &Value, all_tasks: &[Value], all: &[Value]) -> Value {
-    let id = task["id"].as_str().unwrap_or("?");
-    let st = classify(task, all);
-
-    // Find children
-    let children: Vec<Value> = all_tasks.iter()
-        .filter(|t| t["parent"].as_str() == Some(id))
-        .map(|t| build_node(t, all_tasks, all))
-        .collect();
-
-    // Compute progress from leaf tasks
-    let (done, total) = count_leaves(&children, task);
-
-    let mut node = serde_json::json!({
-        "id": id,
-        "subject": task["subject"],
-        "type": task["type"],
-        "status": st,
-    });
-    if !children.is_empty() {
-        node["children"] = Value::Array(children);
-        node["progress"] = serde_json::json!({"done": done, "total": total});
-    }
-    if let Some(bs) = task["build_step"].as_str() {
-        node["build_step"] = Value::String(bs.into());
-    }
-    node
-}
-
-fn count_leaves(children: &[Value], _parent: &Value) -> (usize, usize) {
-    let mut done = 0;
-    let mut total = 0;
-    for c in children {
-        if let Some(sub) = c["children"].as_array() {
-            if !sub.is_empty() {
-                let (d, t) = count_leaves(sub, c);
-                done += d;
-                total += t;
-                continue;
-            }
-        }
-        total += 1;
-        if c["status"].as_str() == Some("done") {
-            done += 1;
-        }
-    }
-    (done, total)
-}
-
-/// Get subtree of a specific task (phase or milestone).
-pub fn subtree(tasks: &[Value], all: &[Value], root_id: &str) -> Option<Value> {
-    tasks.iter()
-        .find(|t| t["id"].as_str() == Some(root_id))
-        .map(|t| build_node(t, tasks, all))
-}
-
-/// Load tasks-portfolio.json and aggregate status across all projects.
-pub fn portfolio_status() -> Result<Vec<Value>, String> {
-    let home = std::env::var("HOME").unwrap_or_default();
-    let portfolio_path = std::path::PathBuf::from(&home).join(".claude/tasks-portfolio.json");
-    let content = std::fs::read_to_string(&portfolio_path)
-        .map_err(|_| "tasks-portfolio.json not found".to_string())?;
-    let portfolio: Value = serde_json::from_str(&content)
-        .map_err(|e| format!("invalid portfolio JSON: {e}"))?;
-
-    let mut results = Vec::new();
-
-    // Support both { clients: [...] } and { projects: [...] } schemas
-    let clients = if let Some(clients) = portfolio["clients"].as_array() {
-        clients.clone()
-    } else if let Some(projects) = portfolio["projects"].as_array() {
-        // Legacy: wrap each project as a single-project client
-        projects.iter().map(|p| {
-            let slug = p["slug"].as_str().or_else(|| p["name"].as_str()).unwrap_or("unknown");
-            serde_json::json!({"slug": slug, "projects": [p]})
-        }).collect()
-    } else {
-        return Err("portfolio has no clients or projects array".into());
-    };
-
-    for client in &clients {
-        let client_slug = client["slug"].as_str().unwrap_or("unknown");
-        let projects = client["projects"].as_array().cloned().unwrap_or_default();
-        for proj in &projects {
-            let proj_slug = proj["slug"].as_str().unwrap_or(client_slug);
-            let path_str = proj["path"].as_str().unwrap_or("");
-            let resolved = path_str.replace("~/", &format!("{home}/"));
-            let tasks_path = std::path::PathBuf::from(&resolved).join(".claude/tasks.json");
-
-            if !tasks_path.exists() { continue; }
-
-            let data = match load_tasks(&tasks_path) {
-                Ok(d) => d,
-                Err(_) => continue,
-            };
-
-            let task_items: Vec<_> = data.tasks.iter()
-                .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
-                .collect();
-            let total = task_items.len();
-            let done = task_items.iter().filter(|t| classify(t, &data.tasks) == "done").count();
-            let active = task_items.iter().filter(|t| classify(t, &data.tasks) == "active").count();
-            let blocked = task_items.iter().filter(|t| classify(t, &data.tasks) == "blocked").count();
-
-            let active_tasks: Vec<Value> = data.tasks.iter()
-                .filter(|t| classify(t, &data.tasks) == "active")
-                .map(|t| serde_json::json!({"id": t["id"], "subject": t["subject"]}))
-                .collect();
-
-            results.push(serde_json::json!({
-                "client": client_slug,
-                "project": proj_slug,
-                "path": resolved,
-                "total": total,
-                "done": done,
-                "active": active,
-                "blocked": blocked,
-                "active_tasks": active_tasks,
-            }));
-        }
-    }
-
-    Ok(results)
-}
-
-// ── Run command helpers (pure, testable) ─────────────────────────────
 
 /// Compute the git branch name for a task based on work_type + kind + id + subject.
 pub fn branch_for_task(task: &Value) -> String {
@@ -1707,33 +330,6 @@ pub fn worktree_path_for_task(task: &Value, repo_name: &str) -> String {
     let id = task["id"].as_str().unwrap_or("t-000");
     format!("../{repo_name}-{prefix}/{id}")
 }
-
-/// Validate that a task can be run: must be pending and not blocked.
-pub fn validate_task_runnable(task: &Value, all: &[Value]) -> Result<(), String> {
-    let id = task["id"].as_str().unwrap_or("?");
-    let status = task["status"].as_str().unwrap_or("");
-    if status == "in_progress" {
-        return Err(format!("{id} already in_progress"));
-    }
-    if status != "pending" {
-        return Err(format!("{id} is {status}, not pending"));
-    }
-    if let Some(deps) = task["blocked_by"].as_array() {
-        for dep in deps {
-            if let Some(dep_id) = dep.as_str() {
-                if let Some(bt) = all.iter().find(|t| t["id"].as_str() == Some(dep_id)) {
-                    if bt["status"].as_str() != Some("completed") {
-                        let bs = bt["status"].as_str().unwrap_or("?");
-                        return Err(format!("{id} blocked by {dep_id} ({bs})"));
-                    }
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-// ── Agent management (agents.json) ───────────────────────────────────
 
 /// Load agents from agents.json. Returns empty vec if file doesn't exist.
 pub fn load_agents(path: &Path) -> Vec<Value> {
@@ -1897,9 +493,12 @@ pub fn format_agents_table(agents: &[Value]) -> String {
 }
 
 #[cfg(test)]
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::collections::{HashMap, HashSet};
 
     fn sample_tasks() -> Vec<Value> {
         vec![
@@ -2187,6 +786,34 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_validate_task_type_valid() {
+        for v in &["task", "subtask", "phase", "milestone", "epic", "initiative", "null", ""] {
+            assert!(validate_task_type(v).is_ok(), "expected Ok for {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_validate_task_type_invalid() {
+        // t-2739: kinds/work_types mistyped into `type` leaked into live data
+        // (feature/research/chore/ops rows) — all must be rejected.
+        for v in &["feature", "research", "chore", "ops", "fix", "banana"] {
+            assert!(validate_task_type(v).is_err(), "expected Err for {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_set_field_type_validates() {
+        let mut task = json!({"id": "t-1", "type": "task"});
+        assert!(set_field(&mut task, "type", "epic", false).is_ok());
+        assert!(set_field(&mut task, "type", "feature", false).is_err());
+        assert_eq!(
+            task["type"].as_str(),
+            Some("epic"),
+            "rejected value must not overwrite the field"
+        );
+    }
+
     // ── t-2310 (ADR-065): level/epic write-path sealing ──────────────────
     // inherit_initiative() and validate_level() are removed outright — level
     // collapses into type, epic becomes a hierarchy node instead of something
@@ -2393,6 +1020,51 @@ mod tests {
         std::fs::remove_dir_all(&dir).ok();
     }
 
+    #[test]
+    fn test_validate_schema_rejects_invalid_work_type_kind_task_type() {
+        // t-2742: validate_schema() predates validate_work_type/validate_kind/
+        // validate_task_type (single-field write-path validators, t-1960/t-2739)
+        // and never picked them up, so whole-file validation (the hook's Rust
+        // path) silently missed drift on these three fields.
+        let dir = std::env::temp_dir().join("brana-test-validate-work-type-kind");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("bad-enums.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Bad work_type","status":"pending","type":"task","work_type":"bogus"},
+            {"id":"t-2","subject":"Bad kind","status":"pending","type":"task","kind":"bogus"}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(
+            errors.iter().any(|e| e.contains("t-1") && e.contains("work_type")),
+            "expected work_type error, got: {:?}",
+            errors
+        );
+        assert!(
+            errors.iter().any(|e| e.contains("t-2") && e.contains("kind")),
+            "expected kind error, got: {:?}",
+            errors
+        );
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_accepts_valid_work_type_kind_null() {
+        let dir = std::env::temp_dir().join("brana-test-validate-work-type-kind-valid");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("good-enums.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Good","status":"pending","type":"task","work_type":"implement","kind":"fix"},
+            {"id":"t-2","subject":"Null ok","status":"pending","type":"task","work_type":null,"kind":null}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(
+            !errors.iter().any(|e| e.contains("work_type") || e.contains("kind")),
+            "valid/null work_type and kind must not error, got: {:?}",
+            errors
+        );
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
     // ── Wave 1: set_field tests ─────────────────────────────────────────
 
     #[test]
@@ -2473,6 +1145,16 @@ mod tests {
         assert!(task.get("stream").is_none(), "stream must not be written");
     }
 
+    #[test]
+    fn test_set_field_rejects_wip_limit() {
+        // ADR-065 D4 (retired 2026-08-12, t-2727): epic wip_limit is retired
+        // — epics stay unbounded groupings, WIP control moves to waves
+        // (t-2782). set_field must reject it, not silently no-op.
+        let mut task = json!({"id": "in-1", "type": "epic"});
+        assert!(set_field(&mut task, "wip_limit", "10", false).is_err());
+        assert!(task.get("wip_limit").is_none(), "wip_limit must not be written");
+    }
+
     // ── t-2385: RETIRED_FIELDS single source of truth (ADR-067) ──────────
     // set_field()'s exhaustive `match` + catch-all `_ => Err("unknown field")`
     // is already an allowlist-by-construction, so retired fields are already
@@ -2501,12 +1183,25 @@ mod tests {
     }
 
     #[test]
-    fn test_reject_retired_fields_all_three_named() {
-        let obj = json!({"level": "x", "epic": "y", "stream": "z"}).as_object().unwrap().clone();
+    fn test_reject_retired_fields_all_named() {
+        let obj = json!({"level": "x", "epic": "y", "stream": "z", "wip_limit": 5})
+            .as_object().unwrap().clone();
         let err = reject_retired_fields(&obj).unwrap_err();
         assert!(err.contains("level"), "error must name level: {err}");
         assert!(err.contains("epic"), "error must name epic: {err}");
         assert!(err.contains("stream"), "error must name stream: {err}");
+        assert!(err.contains("wip_limit"), "error must name wip_limit: {err}");
+    }
+
+    #[test]
+    fn test_reject_retired_fields_wip_limit_named() {
+        // ADR-065 D4 (retired 2026-08-12, t-2727): the epic wip_limit cap
+        // never blocked in over a year of pilot and was wrong for 9/55 live
+        // epics by 4-7x — retired rather than retuned. WIP control, if
+        // wanted, moves to waves (t-2782), a different unit than epics.
+        let obj = json!({"subject": "hi", "wip_limit": 10}).as_object().unwrap().clone();
+        let err = reject_retired_fields(&obj).unwrap_err();
+        assert!(err.contains("wip_limit"), "error must name the field: {err}");
     }
 
     #[test]
@@ -2795,171 +1490,6 @@ mod tests {
         assert!(set_field(&mut task, "status", "in_progress", false).is_ok());
     }
 
-    // ── t-2313 (ADR-065): wip_limit field ────────────────────────────────────
-
-    #[test]
-    fn test_set_field_wip_limit_sets_integer() {
-        let mut task = json!({"id": "in-1", "type": "epic"});
-        set_field(&mut task, "wip_limit", "5", false).unwrap();
-        assert_eq!(task["wip_limit"], 5);
-    }
-
-    #[test]
-    fn test_set_field_wip_limit_null_clears() {
-        let mut task = json!({"id": "in-1", "type": "epic", "wip_limit": 5});
-        set_field(&mut task, "wip_limit", "null", false).unwrap();
-        assert!(task["wip_limit"].is_null());
-    }
-
-    #[test]
-    fn test_set_field_wip_limit_rejects_non_integer() {
-        let mut task = json!({"id": "in-1", "type": "epic"});
-        assert!(set_field(&mut task, "wip_limit", "abc", false).is_err());
-    }
-
-    #[test]
-    fn test_set_field_wip_limit_rejects_non_positive() {
-        let mut task = json!({"id": "in-1", "type": "epic"});
-        assert!(set_field(&mut task, "wip_limit", "0", false).is_err());
-        assert!(set_field(&mut task, "wip_limit", "-1", false).is_err());
-    }
-
-    #[test]
-    fn test_set_field_wip_limit_settable_on_any_type() {
-        let mut task = json!({"id": "t-1", "type": "task"});
-        assert!(set_field(&mut task, "wip_limit", "3", false).is_ok());
-    }
-
-    // ── t-2313 (ADR-065): check_epic_wip_cap ─────────────────────────────────
-
-    fn epic_wip_sample(wip_limit: Option<i64>, open_children: usize, done_children: usize) -> Vec<Value> {
-        let mut tasks = vec![{
-            let mut t = json!({
-                "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
-                "tags": [], "blocked_by": [], "parent": null
-            });
-            if let Some(l) = wip_limit {
-                t["wip_limit"] = json!(l);
-            }
-            t
-        }];
-        for i in 0..open_children {
-            tasks.push(json!({"id": format!("t-open-{i}"), "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"}));
-        }
-        for i in 0..done_children {
-            tasks.push(json!({"id": format!("t-done-{i}"), "status": "completed", "type": "task", "tags": [], "blocked_by": [], "parent": "in-1"}));
-        }
-        tasks
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_default_limit_ten() {
-        let tasks = epic_wip_sample(None, 9, 0);
-        assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "9 existing + 1 new = 10, at cap but not over");
-        let tasks = epic_wip_sample(None, 10, 0);
-        assert!(check_epic_wip_cap(&tasks, "in-1").is_some(), "10 existing + 1 new = 11, over default cap of 10");
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_respects_explicit_limit() {
-        let tasks = epic_wip_sample(Some(3), 3, 0);
-        assert!(check_epic_wip_cap(&tasks, "in-1").is_some());
-        let tasks = epic_wip_sample(Some(3), 2, 0);
-        assert!(check_epic_wip_cap(&tasks, "in-1").is_none());
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_ignores_done_children() {
-        let tasks = epic_wip_sample(Some(10), 0, 10);
-        assert!(check_epic_wip_cap(&tasks, "in-1").is_none(), "completed/cancelled children must not count toward the cap");
-    }
-
-    // ── t-2535: the cap must honor the parking that classify() already provides ──
-
-    /// Build an epic whose children carry `tags: ["parked"]` — the shape
-    /// `classify()` reports as the synthetic status "parked".
-    fn epic_wip_sample_parked(wip_limit: i64, parked_children: usize) -> Vec<Value> {
-        let mut tasks = vec![json!({
-            "id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
-            "tags": [], "blocked_by": [], "parent": null, "wip_limit": wip_limit
-        })];
-        for i in 0..parked_children {
-            tasks.push(json!({
-                "id": format!("t-parked-{i}"), "status": "pending", "type": "task",
-                "tags": ["parked"], "blocked_by": [], "parent": "in-1"
-            }));
-        }
-        tasks
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_ignores_parked_children() {
-        // backlog-v3-schema.md §72: "Can't add #11 without closing or parking."
-        // Parking is implemented (classify() → "parked" via the tag) but the cap
-        // computed over raw_status, so parking a task did nothing to the count —
-        // making §72's promise false. Parked children must not count.
-        let tasks = epic_wip_sample_parked(10, 20);
-        assert!(
-            check_epic_wip_cap(&tasks, "in-1").is_none(),
-            "parked children must not count toward the cap — parking is §72's stated remedy"
-        );
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_counts_blocked_children() {
-        // Guard against over-filtering: "blocked" is also a synthetic classify()
-        // value, but a blocked task is still live work and must keep counting.
-        let mut tasks = vec![
-            json!({"id": "in-1", "subject": "epic", "status": "pending", "type": "epic",
-                   "tags": [], "blocked_by": [], "parent": null, "wip_limit": 3}),
-            json!({"id": "t-dep", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": null}),
-        ];
-        for i in 0..3 {
-            tasks.push(json!({
-                "id": format!("t-blocked-{i}"), "status": "pending", "type": "task",
-                "tags": [], "blocked_by": ["t-dep"], "parent": "in-1"
-            }));
-        }
-        assert!(
-            check_epic_wip_cap(&tasks, "in-1").is_some(),
-            "blocked children are still live work and must count toward the cap"
-        );
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_warning_does_not_mislabel_count_as_open() {
-        // The count is a synthetic projection (not-done AND not-parked), so the
-        // warning must not call it "open" — "open" is the raw-status reading the
-        // cap no longer performs (split-raw-from-synthetic-aggregations, t-1340).
-        let mut tasks = epic_wip_sample(Some(3), 3, 0);
-        tasks.push(json!({"id": "t-parked-x", "status": "pending", "type": "task",
-                          "tags": ["parked"], "blocked_by": [], "parent": "in-1"}));
-        let warning = check_epic_wip_cap(&tasks, "in-1").expect("3 live + 1 new = 4, over cap of 3");
-        assert!(
-            !warning.contains("open"),
-            "warning must not label a parked-excluding count as 'open': {warning}"
-        );
-        assert!(
-            warning.contains("park"),
-            "warning should surface parking as an available remedy: {warning}"
-        );
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_non_epic_parent_is_noop() {
-        let tasks = vec![
-            json!({"id": "ph-1", "status": "pending", "type": "phase", "tags": [], "blocked_by": [], "wip_limit": 1, "parent": null}),
-            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "parent": "ph-1"}),
-        ];
-        assert!(check_epic_wip_cap(&tasks, "ph-1").is_none(), "cap only applies to type:epic parents");
-    }
-
-    #[test]
-    fn test_check_epic_wip_cap_unknown_parent_is_noop() {
-        let tasks = epic_wip_sample(Some(1), 5, 0);
-        assert!(check_epic_wip_cap(&tasks, "in-999").is_none());
-    }
-
     // ── t-2314 (ADR-065): active_epic fail-loud resolution ───────────────────
 
     #[test]
@@ -3210,6 +1740,204 @@ mod tests {
         assert_eq!(wave["gate"], "wave-0");
     }
 
+    // ── t-2782 (ADR-079 §3): wip_limit integer arm + draining-edit rejection ──
+
+    #[test]
+    fn test_set_wave_field_wip_limit_integer() {
+        // First non-string wave field: stored as a JSON number, not a string —
+        // a "3" string would defeat any numeric comparison at the loop's pull
+        // step (the json-version-string-defeats-numeric-gate class).
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        set_wave_field(&mut wave, "wip_limit", "3").unwrap();
+        assert_eq!(wave["wip_limit"], json!(3));
+        assert!(wave["wip_limit"].is_u64(), "must be a number, not a string");
+    }
+
+    #[test]
+    fn test_set_wave_field_wip_limit_zero_and_null() {
+        // 0 is legal (pause pulling); null clears back to unbounded (the default).
+        let mut wave = json!({"id": "wave-1", "status": "queued", "wip_limit": 3});
+        set_wave_field(&mut wave, "wip_limit", "0").unwrap();
+        assert_eq!(wave["wip_limit"], json!(0));
+        set_wave_field(&mut wave, "wip_limit", "null").unwrap();
+        assert!(wave["wip_limit"].is_null());
+    }
+
+    #[test]
+    fn test_set_wave_field_wip_limit_rejects_non_integer() {
+        for bad in ["abc", "-1", "3.5", "", "3 "] {
+            let mut wave = json!({"id": "wave-1", "status": "queued"});
+            let err = set_wave_field(&mut wave, "wip_limit", bad).unwrap_err();
+            assert!(
+                err.contains("non-negative integer"),
+                "error must name the expected shape for {bad:?}: {err}"
+            );
+            assert!(wave.get("wip_limit").is_none(), "rejected write must not mutate ({bad:?})");
+        }
+    }
+
+    #[test]
+    fn test_set_wave_field_selector_and_gate_rejected_while_draining() {
+        // ADR-079 §3: waves have no log field, so a mid-drain selector/gate edit
+        // would silently redirect the next pull cycle with zero audit trail.
+        for field in ["selector", "gate"] {
+            let mut wave = json!({
+                "id":"wave-1","status":"draining","selector":"tag:x","gate":null
+            });
+            let before = wave.clone();
+            let err = set_wave_field(&mut wave, field, "tag:y").unwrap_err();
+            assert!(err.contains("requeue"), "error must say how to proceed: {err}");
+            assert_eq!(wave, before, "rejected {field} edit must not mutate");
+        }
+    }
+
+    #[test]
+    fn test_set_wave_field_draining_still_allows_other_fields() {
+        // Only selector/gate freeze during drain: status must stay writable
+        // (requeue IS a status write), and name/contract/wip_limit are harmless.
+        let mut wave = json!({"id":"wave-1","status":"draining","selector":"tag:x"});
+        set_wave_field(&mut wave, "name", "renamed").unwrap();
+        set_wave_field(&mut wave, "contract", "tests green").unwrap();
+        set_wave_field(&mut wave, "wip_limit", "2").unwrap();
+        set_wave_field(&mut wave, "status", "queued").unwrap();
+        assert_eq!(wave["status"], "queued");
+        // ...and once requeued, the selector edit goes through.
+        set_wave_field(&mut wave, "selector", "tag:y").unwrap();
+        assert_eq!(wave["selector"], "tag:y");
+    }
+
+    // ── t-2813 (ADR-079 §2/§3): wave pull — decision + atomic file-level ──
+
+    fn pull_wave(status: &str, wip: Option<u64>) -> Value {
+        let mut w = json!({"id":"wave-1","name":"w","selector":"tag:w1","status":status});
+        if let Some(n) = wip {
+            w["wip_limit"] = json!(n);
+        }
+        w
+    }
+
+    fn pull_task(id: &str, status: &str, ac_state: Option<&str>, tags: &[&str]) -> Value {
+        let mut t = json!({"id":id,"subject":format!("s-{id}"),"status":status,"tags":tags});
+        if let Some(a) = ac_state {
+            t["ac_state"] = json!(a);
+        }
+        t
+    }
+
+    #[test]
+    fn test_wave_pull_decision_pulls_first_eligible_in_array_order() {
+        let wave = pull_wave("draining", Some(2));
+        let tasks = vec![
+            pull_task("t-1", "pending", Some("proposed"), &["w1"]), // unapproved
+            pull_task("t-2", "pending", Some("approved"), &["w1"]), // first eligible
+            pull_task("t-3", "pending", Some("approved"), &["w1"]),
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_filters_unapproved_and_parked() {
+        // ADR-079 §2 eligibility: pending ∧ approved ∧ ¬parked. ADR-078 parks
+        // by tag while status stays pending — without the exclusion the loop
+        // would autonomously work deliberately shelved tasks.
+        let wave = pull_wave("draining", None);
+        let tasks = vec![
+            pull_task("t-1", "pending", Some("proposed"), &["w1"]),
+            pull_task("t-2", "pending", None, &["w1"]),                    // legacy, no ac_state
+            pull_task("t-3", "pending", Some("approved"), &["w1", "parked"]),
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(
+            d,
+            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1 },
+            "matched-but-not-eligible is visible and expected, not a bug"
+        );
+    }
+
+    #[test]
+    fn test_wave_pull_decision_at_limit_counts_in_progress_matches() {
+        let wave = pull_wave("draining", Some(1));
+        let tasks = vec![
+            pull_task("t-1", "in_progress", Some("approved"), &["w1"]), // live
+            pull_task("t-2", "pending", Some("approved"), &["w1"]),     // eligible but capped
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::AtLimit { live: 1, limit: 1 });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_null_wip_limit_is_unbounded() {
+        let wave = pull_wave("draining", None);
+        let tasks = vec![
+            pull_task("t-1", "in_progress", Some("approved"), &["w1"]),
+            pull_task("t-2", "in_progress", Some("approved"), &["w1"]),
+            pull_task("t-3", "pending", Some("approved"), &["w1"]),
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-3".into() });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_zero_limit_pauses() {
+        // wip_limit 0 = pause pulling (t-2782) — always at limit.
+        let wave = pull_wave("draining", Some(0));
+        let tasks = vec![pull_task("t-1", "pending", Some("approved"), &["w1"])];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::AtLimit { live: 0, limit: 0 });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_refuses_non_draining_wave() {
+        for status in ["queued", "shipped"] {
+            let wave = pull_wave(status, None);
+            let err = wave_pull_decision(&wave, &[]).unwrap_err();
+            assert!(
+                err.contains("draining"),
+                "pull from a {status} wave must refuse, naming the required state: {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_pull_wave_task_persists_and_respects_limit() {
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+
+        // First pull: t-1 goes in_progress with a started date, persisted.
+        let d = pull_wave_task(f.path(), "wave-1").unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let t1 = &reloaded["tasks"][0];
+        assert_eq!(t1["status"], "in_progress");
+        assert!(t1["started"].is_string(), "pull must stamp started");
+
+        // Second pull: at limit now — and the no-write outcome must not
+        // touch the file (byte-stable modulo nothing: reload and compare).
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        let d2 = pull_wave_task(f.path(), "wave-1").unwrap();
+        assert_eq!(d2, PullDecision::AtLimit { live: 1, limit: 1 });
+        assert_eq!(
+            std::fs::read_to_string(f.path()).unwrap(),
+            before,
+            "a non-pulling decision must not rewrite the file"
+        );
+    }
+
+    #[test]
+    fn test_pull_wave_task_unknown_wave_errors() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[],"waves":[]}}"#).unwrap();
+        let err = pull_wave_task(f.path(), "wave-9").unwrap_err();
+        assert!(err.contains("wave-9"), "{err}");
+    }
+
     #[test]
     fn test_set_wave_field_gate_nonexistent_wave_id_not_validated() {
         // No referential check — matches parent/blocked_by precedent (t-2315 design call).
@@ -3278,6 +2006,24 @@ mod tests {
         assert_eq!(stats["by_work_type"]["implement"], 2);
         assert_eq!(stats["by_work_type"]["research"], 1);
         assert!(stats.get("by_stream").is_none(), "by_stream must not appear in stats output");
+    }
+
+    #[test]
+    fn test_compute_stats_by_epic_parent_chain() {
+        // t-2740 (ADR-065): by_epic must resolve membership via the parent
+        // chain — the flat `epic` field was stripped from live data, so the
+        // old `t["epic"].as_str()` read left by_epic permanently empty.
+        let tasks = vec![
+            json!({"id": "ep-1", "type": "epic", "subject": "cc-alignment", "parent": null, "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "t-1", "type": "task", "subject": "direct child", "parent": "ep-1", "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "t-2", "type": "task", "subject": "nested child", "parent": "t-1", "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "t-3", "type": "task", "subject": "epic-less", "parent": null, "status": "pending", "tags": [], "blocked_by": []}),
+        ];
+        let stats = compute_stats(&tasks, &tasks);
+        assert_eq!(stats["by_epic"]["cc-alignment"], 2, "direct + nested child must both resolve via parent chain");
+        // The epic node is not a member of its own epic and the epic-less task
+        // lands in no bucket (no "(none)" convention) — exactly one key.
+        assert_eq!(stats["by_epic"].as_object().unwrap().len(), 1);
     }
 
     // ── Wave 3: build_tree tests ────────────────────────────────────────
@@ -4248,11 +2994,106 @@ mod tests {
 
     #[test]
     fn test_set_field_ac_state_valid_values() {
-        for v in ["none", "proposed", "approved"] {
+        // "approved" removed 2026-08-13 (t-2815, ADR-079 §1): the generic set
+        // path now rejects it — the sanctioned transition is the approve verb.
+        for v in ["none", "proposed"] {
             let mut task = json!({"id": "t-1"});
             set_field(&mut task, "ac_state", v, false).unwrap();
             assert_eq!(task["ac_state"], v);
         }
+    }
+
+    // ── t-2812/t-2815 (ADR-079 §1): approved is verb-only; AC edits reset ──
+
+    #[test]
+    fn test_set_field_ac_state_approved_rejected_with_verb_pointer() {
+        let mut task = json!({"id": "t-1", "ac_state": "proposed"});
+        let err = set_field(&mut task, "ac_state", "approved", false).unwrap_err();
+        assert!(
+            err.contains("ac") && err.contains("approve"),
+            "rejection must point at the sanctioned verb: {err}"
+        );
+        assert_eq!(task["ac_state"], "proposed", "task unchanged on rejection");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_replace_resets_approved_to_proposed() {
+        // ADR-079 §1 content-binding: an approval of criteria that were then
+        // edited is an approval of nothing (ADR-076-D2 moving-target class).
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["old contract"]
+        });
+        set_field(&mut task, "acceptance_criteria", r#"["new contract"]"#, false).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["new contract"]));
+        assert_eq!(task["ac_state"], "proposed", "full-array replace must reset approval");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_append_resets_approved_to_proposed() {
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["kept"]
+        });
+        set_field(&mut task, "acceptance_criteria", "+also this", false).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["kept", "also this"]));
+        assert_eq!(task["ac_state"], "proposed", "+item append must reset approval");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_remove_resets_approved_to_proposed() {
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["kept","dropped"]
+        });
+        set_field(&mut task, "acceptance_criteria", "-dropped", false).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["kept"]));
+        assert_eq!(task["ac_state"], "proposed", "-item remove must reset approval");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_no_reset_when_not_approved() {
+        for state in ["none", "proposed"] {
+            let mut task = json!({
+                "id":"t-1","ac_state":state,"acceptance_criteria":[]
+            });
+            set_field(&mut task, "acceptance_criteria", r#"["x"]"#, false).unwrap();
+            assert_eq!(task["ac_state"], state, "non-approved state must not change");
+        }
+        // Legacy key-absent task must not gain the key from an AC edit.
+        let mut legacy = json!({"id":"t-1","acceptance_criteria":[]});
+        set_field(&mut legacy, "acceptance_criteria", r#"["x"]"#, false).unwrap();
+        assert!(legacy.get("ac_state").is_none(), "AC edit must not opt a legacy task in");
+    }
+
+    #[test]
+    fn test_set_fields_atomic_rejects_approved_and_rolls_back() {
+        // The MCP backlog_batch path: set_fields_atomic must surface the
+        // verb-only rejection and leave the task untouched (all-or-nothing).
+        let mut task = json!({"id":"t-1","ac_state":"proposed","priority":"P2"});
+        let before = task.clone();
+        let errs = set_fields_atomic(
+            &mut task,
+            &[
+                ("priority".to_string(), "P1".to_string()),
+                ("ac_state".to_string(), "approved".to_string()),
+            ],
+            false,
+        )
+        .unwrap_err();
+        assert!(
+            errs.iter().any(|e| e.contains("approve")),
+            "batch error must carry the verb pointer: {errs:?}"
+        );
+        assert_eq!(task, before, "atomic batch must roll back the priority write too");
+    }
+
+    #[test]
+    fn test_set_field_ac_edit_failed_write_does_not_reset() {
+        // Boundary: a rejected write is not an edit — approval must survive it.
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["kept"]
+        });
+        assert!(set_field(&mut task, "acceptance_criteria", "not json", false).is_err());
+        assert_eq!(task["ac_state"], "approved", "failed write must not reset approval");
+        assert_eq!(task["acceptance_criteria"], json!(["kept"]));
     }
 
     #[test]
@@ -4569,5 +3410,161 @@ mod tests {
         assert_eq!(t1["ac_state"], "proposed");
         assert_eq!(t1["proposed_acceptance_criteria"], json!(["done when green"]));
         assert!(t2.get("ac_state").is_none(), "legacy task stays key-less on disk");
+    }
+
+    // ── t-2812 (ADR-079 §1): ac approve — promote + flip ─────────────────
+
+    #[test]
+    fn test_approve_ac_promotes_proposed_and_flips() {
+        let mut task = json!({
+            "id":"t-1","subject":"s","type":"task","ac_state":"proposed",
+            "proposed_acceptance_criteria":["a is tested","b is wired"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert_eq!(task["ac_state"], "approved");
+        assert_eq!(task["acceptance_criteria"], json!(["a is tested","b is wired"]));
+        assert!(
+            task.get(PROPOSED_AC_FIELD).is_none(),
+            "proposed field must be cleared on promote"
+        );
+        assert_eq!(out.promoted, 2);
+        assert!(!out.already_approved);
+    }
+
+    #[test]
+    fn test_approve_ac_union_when_both_non_empty() {
+        // ADR-079 §1 addendum (challenger-confirmed assumption): when both fields
+        // are non-empty, promote is a dedup-union — existing order first, so a
+        // human-authored contract is never destroyed by a loop proposal.
+        let mut task = json!({
+            "id":"t-1","ac_state":"proposed",
+            "acceptance_criteria":["human authored","shared item"],
+            "proposed_acceptance_criteria":["shared item","loop proposed"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert_eq!(
+            task["acceptance_criteria"],
+            json!(["human authored","shared item","loop proposed"])
+        );
+        assert_eq!(out.promoted, 1, "only the genuinely new criterion counts");
+        assert_eq!(task["ac_state"], "approved");
+    }
+
+    #[test]
+    fn test_approve_ac_both_empty_errors_task_untouched() {
+        // Rejected approve is atomic: the task stays byte-identical.
+        let mut task = json!({"id":"t-1","ac_state":"none","acceptance_criteria":[]});
+        let before = task.clone();
+        let err = approve_ac(&mut task).unwrap_err();
+        assert!(err.contains("no acceptance criteria to approve"), "got: {err}");
+        assert_eq!(task, before, "failed approve must not mutate the task");
+    }
+
+    #[test]
+    fn test_approve_ac_idempotent_on_approved() {
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved","acceptance_criteria":["done when green"]
+        });
+        let before = task.clone();
+        let out = approve_ac(&mut task).unwrap();
+        assert!(out.already_approved);
+        assert_eq!(out.promoted, 0);
+        assert_eq!(task, before, "re-approve is a no-op");
+    }
+
+    #[test]
+    fn test_approve_ac_key_absent_treated_as_none() {
+        // Legacy opt-in — same precedent as set_field's ac_state arm (AC#5, t-2283).
+        let mut task = json!({"id":"t-1","acceptance_criteria":["authored by hand"]});
+        approve_ac(&mut task).unwrap();
+        assert_eq!(task["ac_state"], "approved");
+        assert_eq!(task["acceptance_criteria"], json!(["authored by hand"]));
+    }
+
+    #[test]
+    fn test_approve_ac_bare_string_coerced_to_array() {
+        // Legacy string-valued acceptance_criteria: whole-string coercion, never
+        // comma-split — the normalize_array_fields exclusion for this field stands.
+        let mut task = json!({
+            "id":"t-1","ac_state":"none",
+            "acceptance_criteria":"works, even with commas"
+        });
+        approve_ac(&mut task).unwrap();
+        assert_eq!(task["acceptance_criteria"], json!(["works, even with commas"]));
+        assert_eq!(task["ac_state"], "approved");
+    }
+
+    #[test]
+    fn test_approve_ac_from_none_with_authored_ac() {
+        // §1: a human may author + approve directly — proposed never involved.
+        let mut task = json!({
+            "id":"t-1","ac_state":"none","acceptance_criteria":["tests green"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert_eq!(out.promoted, 0);
+        assert_eq!(task["ac_state"], "approved");
+    }
+
+    #[test]
+    fn test_approve_ac_reapprove_merges_lingering_proposed() {
+        // Challenger observation (t-2812 gate): "idempotent on approved" is a
+        // STATE guarantee, not a content no-op. approved + non-empty proposed is
+        // unreachable via sanctioned paths (ac-propose only targets ac_state:none;
+        // set_field has no proposed_acceptance_criteria arm), but if the state
+        // exists on disk, re-approve deliberately merges the lingering items
+        // rather than silently dropping them — pinned here so t-2813's grading
+        // semantics can rely on it.
+        let mut task = json!({
+            "id":"t-1","ac_state":"approved",
+            "acceptance_criteria":["live"],
+            "proposed_acceptance_criteria":["lingering"]
+        });
+        let out = approve_ac(&mut task).unwrap();
+        assert!(out.already_approved);
+        assert_eq!(out.promoted, 1);
+        assert_eq!(task["acceptance_criteria"], json!(["live","lingering"]));
+        assert!(task.get(PROPOSED_AC_FIELD).is_none());
+    }
+
+    #[test]
+    fn test_approve_ac_empty_string_is_empty() {
+        // Boundary: an empty-string acceptance_criteria counts as no criteria.
+        let mut task = json!({"id":"t-1","ac_state":"none","acceptance_criteria":""});
+        assert!(approve_ac(&mut task).is_err());
+    }
+
+    #[test]
+    fn test_approve_ac_non_string_element_errors() {
+        // Boundary: silently dropping non-string criteria would approve a
+        // different contract than the one on disk — fail loud instead.
+        let mut task = json!({
+            "id":"t-1","ac_state":"proposed",
+            "proposed_acceptance_criteria":["ok", 42]
+        });
+        let before = task.clone();
+        assert!(approve_ac(&mut task).is_err());
+        assert_eq!(task, before, "failed approve must not mutate the task");
+    }
+
+    #[test]
+    fn test_perform_ac_approve_persists_and_missing_task_errors() {
+        use std::io::Write;
+        let body = r#"{"version":2,"project":"p","tasks":[
+            {"id":"t-1","subject":"a","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["done when green"]}
+        ]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+
+        let out = perform_ac_approve(f.path(), "t-1").unwrap();
+        assert_eq!(out.promoted, 1);
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let t1 = &reloaded["tasks"][0];
+        assert_eq!(t1["ac_state"], "approved");
+        assert_eq!(t1["acceptance_criteria"], json!(["done when green"]));
+        assert!(t1.get("proposed_acceptance_criteria").is_none());
+
+        let err = perform_ac_approve(f.path(), "t-99").unwrap_err();
+        assert!(err.contains("t-99"), "missing task must error with the id: {err}");
     }
 }

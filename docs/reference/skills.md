@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**35 skills** loaded from `system/skills/`.
+**40 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -21,9 +21,9 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 
 | Skill | Group | Description |
 |-------|-------|-------------|
-| `/brana:acquire-skills` | brana | Find and install skills for what you're doing — tech stack AND thinking/reasonin |
+| `/brana:acquire-skills` | brana | Find and install skills for what you're doing — tech or reasoning gaps. Matches  |
 | `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Auto- |
-| `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
+| `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and epics. Use when planning p |
 | `/brana:bash-defensive-patterns` | brana | Master defensive Bash programming techniques for production-grade scripts. Use w |
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detect |
@@ -33,20 +33,24 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
+| `/brana:design-system` | domain | Token architecture and component specs: three-layer tokens (primitive→semantic→c |
 | `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
-| `/brana:domain-driven-design` | domain | DDD tactical patterns for complex business modeling including entities, value ob |
+| `/brana:domain-driven-design` | domain | DDD tactical patterns — entities, value objects, aggregates, domain services, re |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), v |
 | `/brana:gemini` | execution | Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. U |
+| `/brana:grad-mechanism-design` | thinking | Mechanism design (reverse game theory): incentive-compatible rules for allocatio |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
+| `/brana:impeccable` | domain | Use when the user wants to design, redesign, shape, critique, audit, polish, cla |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bulk m |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, polli |
 | `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for an |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list. Us |
+| `/brana:product-brainstorming` | thinking | Brainstorm product ideas, explore problem spaces, and challenge assumptions as a |
 | `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagatio |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce fi |
 | `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after disc |
@@ -56,22 +60,23 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
+| `/brana:web-design-guidelines` | domain | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
 ## brana
 
 ### `/brana:acquire-skills`
 
-Find and install skills for what you're doing — tech stack AND thinking/reasoning gaps. Analyzes activity type (deciding, strategizing, challenging, analyzing, planning) and tech context to surface relevant skills. Use when entering unfamiliar tech, stuck on a reasoning challenge, or when no local skill covers the current task.
+Find and install skills for what you're doing — tech or reasoning gaps. Matches activity and tech context to relevant skills. Use when entering unfamiliar tech, stuck on a reasoning challenge, or no skill fits.
 
 **Allowed tools:** Read, Write, Bash, Glob, Grep, WebSearch, WebFetch, AskUserQuestion, Agent
 
 ### `/brana:backlog`
 
-Manage the backlog — plan, track, navigate phases and streams. Use when planning phases, viewing roadmaps, or restructuring work.
+Manage the backlog — plan, track, navigate phases and epics. Use when planning phases, viewing roadmaps, or restructuring work.
 
 **Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
 
-**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_list, mcp__ruflo__agent_spawn, mcp__ruflo__swarm_init, mcp__ruflo__claims_mark-stealable, mcp__ruflo__coordination_orchestrate, mcp__ruflo__agent_pool, TaskCreate, TaskList, TaskUpdate, ToolSearch
+**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_mark-stealable, TaskCreate, TaskList, TaskUpdate, ToolSearch
 
 ### `/brana:bash-defensive-patterns`
 
@@ -163,16 +168,34 @@ Situational awareness — where am I, what was I doing, what's next. Context rec
 
 **Arguments:** `[--tag <tag>] [--stream <stream>] [--kind <kind>] [--priority <p>]`
 
-**Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, mcp__ruflo__claims_board, mcp__brana__session_history, ToolSearch
+**Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__memory_search_unified, mcp__brana__session_history, ToolSearch
 
 
 ## domain
 
+### `/brana:design-system`
+
+Token architecture and component specs: three-layer tokens (primitive→semantic→component), CSS variables, spacing/typography scales, slide generation. Use for design tokens, systematic design, brand-compliant presentations.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
 ### `/brana:domain-driven-design`
 
-DDD tactical patterns for complex business modeling including entities, value objects, aggregates, domain services, repositories, specifications, and bounded contexts. Python dataclass implementations with TypeScript alternatives. Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
+DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript). Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
 
 **Allowed tools:** [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
+
+### `/brana:impeccable`
+
+Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:web-design-guidelines`
+
+Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", or \"vs best practices\".
+
+**Allowed tools:** [Read, Glob, Grep, Bash, WebFetch]
 
 
 ## execution
@@ -195,7 +218,7 @@ Build anything — features, bug fixes, refactors, spikes, migrations. Auto-dete
 
 **Depends on:** `/brana:backlog`, `/brana:challenge`, `/brana:retrospective`
 
-**Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, ToolSearch
+**Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, ToolSearch
 
 ### `/brana:claudemd`
 
@@ -221,7 +244,7 @@ Structured bug fix — reproduce (failing test), diagnose, fix (minimal change),
 
 **Depends on:** `/brana:backlog`
 
-**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent, mcp__ruflo__autopilot_learn, ToolSearch, TaskCreate, TaskList
+**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent, ToolSearch, TaskCreate, TaskList
 
 ### `/brana:gemini`
 
@@ -245,7 +268,7 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 
 **Arguments:** `[target or task-id]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, ToolSearch
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate, ToolSearch
 
 
 ## learning
@@ -272,7 +295,7 @@ Research a topic, doc, or creator — check sources, follow references, produce 
 
 **Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate] [--depth quick|standard|deep]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, AskUserQuestion, ToolSearch, EnterPlanMode, TaskList, ExitPlanMode, Skill
+**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, AskUserQuestion, ToolSearch, EnterPlanMode, TaskList, ExitPlanMode, Skill
 
 ### `/brana:retrospective`
 
@@ -291,7 +314,7 @@ End a session — extract learnings, write handoff, store patterns, detect doc d
 
 **Arguments:** `[--continue|--finish|--patterns|--abort|--full|--light|--nano] [focus-hint]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__hive-mind_memory, mcp__ruflo__claims_release, mcp__ruflo__claims_list, ToolSearch
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__claims_release, ToolSearch
 
 
 ## thinking
@@ -302,7 +325,7 @@ Interactive idea maturation — explore, research, shape raw ideas into actionab
 
 **Arguments:** `[idea or topic]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, mcp__ruflo__hive-mind_shutdown, mcp__ruflo__hive-mind_init, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, ToolSearch
+**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store, ToolSearch
 
 ### `/brana:decide`
 
@@ -310,7 +333,19 @@ Decision support — criteria, scenarios, patterns, recommendation.
 
 **Arguments:** `[question or options, e.g. 'should I do A or B' / 'what to work on next']`
 
-**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, ToolSearch
+**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, ToolSearch
+
+### `/brana:grad-mechanism-design`
+
+Mechanism design (reverse game theory): incentive-compatible rules for allocation — auctions, voting, matching. Use when designing or evaluating a mechanism for incentive compatibility and rationality.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:product-brainstorming`
+
+Brainstorm product ideas, explore problem spaces, and challenge assumptions as a thinking partner. Use when exploring an opportunity, generating solutions, or stress-testing an idea before converging on a direction.
+
+**Allowed tools:** [Read, Glob, Grep, Write, AskUserQuestion]
 
 
 ## utility
@@ -356,5 +391,5 @@ Business review — weekly health check, monthly close, or ad-hoc audit. Subcomm
 
 **Arguments:** `[weekly|monthly|check]`
 
-**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, ToolSearch, Agent, Skill
+**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store, ToolSearch, Agent, Skill
 

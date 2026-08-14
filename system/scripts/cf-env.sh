@@ -17,12 +17,16 @@ done
 # Last-resort fallbacks (wrapper missing — e.g. partial deploy). These hit the
 # raw npm bin, which may carry the CRLF shebang (t-1934) — works only if the
 # tarball is fixed upstream.
+# nvm candidates walked newest-first (sort -rV) — an unsorted glob here shadows
+# the intended version with whatever order the filesystem returns (t-2632 bug
+# class; unified across both cf-env.sh copies and ruflo-cli.sh, t-2754).
 if [ -z "$CF" ]; then
     for name in ruflo claude-flow; do
-        for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
-            [ -x "$candidate" ] && CF="$candidate" && break 2
-        done
-        [ -z "$CF" ] && [ -x "$HOME/.npm-global/bin/$name" ] && CF="$HOME/.npm-global/bin/$name" && break
+        while IFS= read -r _cf_nvm_bin; do
+            [ -x "$_cf_nvm_bin" ] && CF="$_cf_nvm_bin" && break
+        done < <(find "$HOME/.nvm/versions/node" -maxdepth 3 -path "*/bin/$name" 2>/dev/null | sort -rV)
+        [ -n "$CF" ] && break
+        [ -x "$HOME/.npm-global/bin/$name" ] && CF="$HOME/.npm-global/bin/$name" && break
     done
     [ -z "$CF" ] && command -v ruflo &>/dev/null && CF="ruflo"
     [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"

@@ -9,6 +9,15 @@ depends_on: []
 **Date:** 2026-05-24
 **Task:** t-1625 (brana-v2-compute-model initiative)
 
+> **PARTIALLY SUPERSEDED (2026-06-19/2026-08-13) by [ADR-059](ADR-059-multi-agent-substrate-selection.md):**
+> Decision 2 below ("Ruflo coordinates Claude sub-agents only" via `agent_spawn`/`claims`/`hive-mind`)
+> assumed these MCP tools genuinely coordinate workers. Live probing since ADR-059 confirmed the
+> agentic MCP surface (`agent_*`/`hive-mind_*`/`swarm_*`/`coordination_*`) is bookkeeping-only under
+> subscription — no real coordination happens through it. The **Routing Summary** section below is
+> superseded by `system/rules/delegation-routing.md`'s live routing table. Decisions 1 (Claude is the
+> only system writer), 3 (Gemini dispatched not coordinated), 5 (/tmp/ invariant), 6 (Sonnet for
+> debrief), and 7 (weight-adaptive close) are unaffected and remain current.
+
 ---
 
 ## Context

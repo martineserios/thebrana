@@ -14,20 +14,25 @@
 #    "namespace 'all' only with threshold 0.55" — lived only in .mcp.json
 #    instructions and CLAUDE.md; callers forgot it. Now the wrapper injects
 #    `--threshold 0.55` whenever `memory search` is called without an explicit
-#    --namespace or --threshold. Namespaced and explicitly-thresholded calls
-#    pass through untouched.
+#    --namespace/-n or --threshold. Namespaced and explicitly-thresholded calls
+#    pass through untouched. (-t is --type, not a --threshold short form —
+#    never add it here, t-2767.)
 #
 # RUFLO_CLI_DRYRUN=1 prints the final command instead of executing (tests).
 
 set -u
 
 # ── Resolve node + ruflo entry .js ────────────────────────────────────────
+# nvm candidates walked newest-first (sort -rV) — an unsorted glob here shadows
+# the intended version with whatever order the filesystem returns (t-2632 bug
+# class; unified with cf-env.sh's fallback resolvers, t-2754).
 RUFLO_BIN=""
 for name in ruflo claude-flow; do
-    for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
-        [ -e "$candidate" ] && RUFLO_BIN="$candidate" && break 2
-    done
-    [ -z "$RUFLO_BIN" ] && [ -e "$HOME/.npm-global/bin/$name" ] && RUFLO_BIN="$HOME/.npm-global/bin/$name" && break
+    while IFS= read -r _candidate; do
+        [ -e "$_candidate" ] && RUFLO_BIN="$_candidate" && break
+    done < <(find "$HOME/.nvm/versions/node" -maxdepth 3 -path "*/bin/$name" 2>/dev/null | sort -rV)
+    [ -n "$RUFLO_BIN" ] && break
+    [ -e "$HOME/.npm-global/bin/$name" ] && RUFLO_BIN="$HOME/.npm-global/bin/$name" && break
 done
 [ -z "$RUFLO_BIN" ] && RUFLO_BIN="$(command -v ruflo || command -v claude-flow || true)"
 
@@ -52,7 +57,7 @@ if [ "${1:-}" = "memory" ] && [ "${2:-}" = "search" ]; then
     has_scope=0
     for a in "$@"; do
         case "$a" in
-            --namespace|--namespace=*|--threshold|--threshold=*) has_scope=1 ;;
+            --namespace|--namespace=*|-n|-n=*|--threshold|--threshold=*) has_scope=1 ;;
         esac
     done
     if [ "$has_scope" -eq 0 ]; then
@@ -60,6 +65,11 @@ if [ "${1:-}" = "memory" ] && [ "${2:-}" = "search" ]; then
         echo "[ruflo-cli] namespace-less search: injected --threshold 0.55 (session rows score 0.5 — see t-1936)" >&2
     fi
 fi
+
+# ── Hardening (t-2755 — same three guards as ruflo-mcp.sh, see comments there) ──
+export RUFLO_REQUIRE_REAL_EMBEDDINGS=1
+export RUFLO_MEMORY_SCAN_ON_WRITE=1
+export RUFLO_FUNNEL=0
 
 # ── Execute (always from $HOME so ruflo uses ~/.swarm/memory.db) ──────────
 if [ "${RUFLO_CLI_DRYRUN:-0}" = "1" ]; then

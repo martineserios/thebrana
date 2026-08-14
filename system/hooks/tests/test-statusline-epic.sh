@@ -102,6 +102,76 @@ printf '{"active_epic":"harness-core"}\n' > "$R/system/state/tasks-config.json"
 R=$(make_repo t7 dev)
 [ "$(epic_of "$R")" != "GLOBAL-LEAK" ]; check "T7: global ~/.claude config never read" $?
 
+# T8 -- dynamic derivation (t-2639): most-recently-started in_progress task's
+# .epic field wins over a stale static active_epic on main/dev.
+R=$(make_repo t8 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"stale-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"dyn-epic","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "dyn-epic" ]; check "T8: dynamic in_progress epic wins over stale active_epic" $?
+
+# T9 -- among several in_progress tasks, the latest `started` timestamp wins
+R=$(make_repo t9 dev)
+mkdir -p "$R/.claude"
+printf '{"tasks":[
+  {"id":"t-1","status":"in_progress","epic":"older-epic","started":"2026-07-01"},
+  {"id":"t-2","status":"in_progress","epic":"newer-epic","started":"2026-08-01"},
+  {"id":"t-3","status":"completed","epic":"done-epic","started":"2026-08-05"}
+]}\n' > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "newer-epic" ]; check "T9: latest-started in_progress task wins (status filter applied)" $?
+
+# T10 -- in_progress tasks with no epic field are skipped; static active_epic
+# is still the fallback when none of them carry one
+R=$(make_repo t10 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "fallback-epic" ]; check "T10: no-epic in_progress task falls back to active_epic" $?
+
+# T11 -- malformed tasks.json degrades silently to the static fallback, exit 0
+R=$(make_repo t11 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{ this is not json\n' > "$R/.claude/tasks.json"
+OUT=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null); RC=$?
+[ "$RC" = "0" ] && [ "$(epic_of "$R")" = "fallback-epic" ]
+check "T11: malformed tasks.json -> falls back to active_epic, exit 0" $?
+
+# T12 -- same-day tie among in_progress tasks (production `.started` is
+# date-only, so this is a realistic occurrence, not a rare edge, t-2639
+# challenger): higher numeric task id wins, not array-insertion order.
+R=$(make_repo t12 dev)
+mkdir -p "$R/.claude"
+printf '{"tasks":[
+  {"id":"t-2076","status":"in_progress","epic":"higher-id-epic","started":"2026-08-05"},
+  {"id":"t-2065","status":"in_progress","epic":"lower-id-epic","started":"2026-08-05"}
+]}\n' > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "higher-id-epic" ]; check "T12: same-day tie breaks by higher numeric task id" $?
+
+# T13 -- the jq-scan pre-check (t-2641) must match pretty-printed JSON
+# (`"epic": "value"`, a space after the colon), not just compact JSON
+# (`"epic":"value"`) -- caught live: this exact gap silently regressed
+# proyecto_anita, the project the dynamic fallback exists for, because its
+# tasks.json is pretty-printed and thebrana's own is compact.
+R=$(make_repo t13 dev)
+mkdir -p "$R/.claude"
+printf '{\n  "tasks": [\n    {\n      "id": "t-1",\n      "status": "in_progress",\n      "epic": "pretty-epic",\n      "started": "2026-08-05"\n    }\n  ]\n}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "pretty-epic" ]; check "T13: pre-check matches pretty-printed JSON (space after colon)" $?
+
+# T14 -- pre-check correctly skips the jq scan (falls to static fallback)
+# when tasks.json has no "epic" key at all, not even null -- the shape
+# thebrana's own tasks.json actually has (v3 schema, key entirely absent).
+R=$(make_repo t14 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","started":"2026-08-05"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "fallback-epic" ]; check "T14: no epic key anywhere -> pre-check skips jq, falls back correctly" $?
+
 echo ""
 echo "--- boundaries ---"
 
@@ -152,6 +222,29 @@ printf '{"active_epic":"bad\\nvalue"}\n' > "$R/.claude/tasks-config.json"
 LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
     | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
 [ "$LINES" = "1" ]; check "B7: literal newline in active_epic stays single-line" $?
+
+# B8 -- a raw control byte delivered via a JSON \u001b (ESC) escape has no
+# backslash character left after jq decodes it, so the backslash-strip alone
+# can't catch it; the scrub must also strip raw control bytes directly
+# (t-2639 challenger: pre-existing gap on active_epic, now closed).
+R=$(make_repo b8 dev)
+mkdir -p "$R/.claude"
+printf '{"active_epic":"bad\\u001bvalue"}\n' > "$R/.claude/tasks-config.json"
+LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
+[ "$LINES" = "1" ] && [ "$(epic_of "$R")" = "badvalue" ]
+check "B8: raw ESC byte (JSON \\u001b escape) in active_epic is stripped" $?
+
+# B9 -- same class, but through the new dynamic source (t-2639 widened the
+# shared scrub's reach to every task's .epic field, any write path).
+R=$(make_repo b9 dev)
+mkdir -p "$R/.claude"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"bad\\u001bvalue","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
+    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
+[ "$LINES" = "1" ] && [ "$(epic_of "$R")" = "badvalue" ]
+check "B9: raw ESC byte in dynamic task .epic field is stripped" $?
 
 echo ""; echo "$PASS/$TOTAL passed"
 [ "$FAIL" -eq 0 ] || exit 1

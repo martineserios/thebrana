@@ -6,6 +6,10 @@ paths: ["src/**", "lib/**", "api/**", "app/**", "services/**", "system/**", "tes
 Pick the retrieval surface by query shape — walk top-to-bottom, first match wins. (ADR-064, pilot t-2271)
 
 ```
+0. Current value of a live record (task field, config key, count, inventory,
+   path) → the owning CLI/file (brana backlog get, tasks-config.json, brana
+   discover, grep frontmatter, Glob/Grep), NEVER brana recall — memory is a
+   frozen assertion, not a live value (t-2749).
 1. Exact string / known symbol location → Grep/Glob.
 2. Structural — "what calls X", "what breaks if I change Y", "how do A and B
    connect", "explain this symbol" → graphify explain/affected/path,
@@ -15,6 +19,8 @@ Pick the retrieval surface by query shape — walk top-to-bottom, first match wi
 4. Past decisions, learnings, curated patterns/feedback, cross-session knowledge → brana recall
    (NOT mcp__ruflo__memory_search — its `pattern` namespace is error-recurrence hook noise,
    not curated patterns; those live on the filesystem, indexed only for brana recall — t-2294).
+   Recall may return a stale snapshot — re-verify against the live accessor (rule 0) before
+   acting on it, not just when the query is obviously fact-class.
 5. Single known file → Read.
 ```
 

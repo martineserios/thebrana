@@ -41,6 +41,11 @@ pub struct Collision {
 pub struct HealthReport {
     pub failures: Vec<String>,
     pub skipped: Vec<String>,
+    /// Enabled jobs with no entry in `status` at all — timer never fired, or the
+    /// job crashed before writing a status entry. Distinct from `failures`: an
+    /// absent status is not a known-failed run, and must not be folded into
+    /// "no failures" (t-2629).
+    pub never_run: Vec<String>,
     pub collisions: Vec<Collision>,
     pub enabled_count: usize,
     pub disabled_count: usize,
@@ -63,12 +68,20 @@ pub fn check_health(
         }
     }
 
+    let never_run: Vec<String> = jobs
+        .iter()
+        .filter(|(_, v)| v["enabled"].as_bool().unwrap_or(true))
+        .filter(|(name, _)| !status.contains_key(*name))
+        .map(|(name, _)| name.clone())
+        .collect();
+
     let collisions = find_collisions(jobs);
     let enabled = jobs.values().filter(|v| v["enabled"].as_bool().unwrap_or(true)).count();
 
     HealthReport {
         failures,
         skipped,
+        never_run,
         collisions,
         enabled_count: enabled,
         disabled_count: jobs.len() - enabled,
@@ -210,6 +223,35 @@ mod tests {
         assert!(report.skipped.is_empty());
         assert_eq!(report.enabled_count, 1);
         assert_eq!(report.disabled_count, 1);
+    }
+
+    #[test]
+    fn test_health_report_never_run_job_not_folded_into_healthy() {
+        // job-a is registered and enabled but has never produced a status.json entry
+        // (timer never fired, or it crashed before writing status). It must show up
+        // as a distinct never-run job, not be silently absent from both failures and
+        // never_run (which reads as "healthy").
+        let jobs = make_jobs(&[
+            ("job-a", "*/5 * * * *", "/proj", true),
+            ("job-b", "*/10 * * * *", "/proj", true),
+        ]);
+        let mut status = HashMap::new();
+        status.insert("job-b".into(), json!({"status": "SUCCESS"}));
+
+        let report = check_health(&jobs, &status);
+        assert_eq!(report.never_run, vec!["job-a"]);
+        assert!(report.failures.is_empty());
+        assert!(report.skipped.is_empty());
+    }
+
+    #[test]
+    fn test_health_report_disabled_job_never_run_not_flagged() {
+        // A disabled job absent from status is expected — it's not supposed to run.
+        let jobs = make_jobs(&[("job-a", "*/5 * * * *", "/proj", false)]);
+        let status = HashMap::new();
+
+        let report = check_health(&jobs, &status);
+        assert!(report.never_run.is_empty());
     }
 
     #[test]

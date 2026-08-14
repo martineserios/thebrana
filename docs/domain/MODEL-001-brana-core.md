@@ -21,7 +21,7 @@ The central domain. Manages the task lifecycle — creation, querying, mutation,
 **Entities:**
 - `Task` — id, subject, description, status, priority, effort, stream, type, tags, parent, blocked_by, branch, context, notes, created, started, completed, order, execution, github_issue, build_step, strategy
 - `TasksFile` — project name + Vec<Task> + Vec<Wave>
-- `Epic` (ADR-065, ADR-065-driven schema v3) — not a separate struct; a `Task` specializes into an epic node when `type == "epic"`. Epic is the **sole top node** of the subject-tree hierarchy: it absorbs the retired flat `epic` string field, gains its own status vocabulary (`EpicStatus`, distinct from `TaskStatus`) and a `wip_limit`, and other tasks become its children via `parent`. Superseded: `initiative` as a hierarchy node (removed entirely).
+- `Epic` (ADR-065, ADR-065-driven schema v3) — not a separate struct; a `Task` specializes into an epic node when `type == "epic"`. Epic is the **sole top node** of the subject-tree hierarchy: it absorbs the retired flat `epic` string field, gains its own status vocabulary (`EpicStatus`, distinct from `TaskStatus`), and other tasks become its children via `parent`. Superseded: `initiative` as a hierarchy node (removed entirely); `wip_limit` (retired 2026-08-12, t-2727 — see ADR-065's amendment).
 - `Wave` (ADR-065, schema v3) — id (`wave-N`), name, selector (opaque query text, not resolved by brana-core), contract, gate (nullable wave id, unenforced), status, created. Not a `Task` — a thin process object that *selects* tasks; it does not own them. Lives in the sibling `waves` array of `TasksFile`, sharing the same file/lock/atomicity boundary as `tasks`.
 
 **Value objects:**

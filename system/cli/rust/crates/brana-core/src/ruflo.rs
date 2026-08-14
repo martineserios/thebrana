@@ -86,11 +86,30 @@ pub fn resolve_ruflo_binary() -> Option<PathBuf> {
     None
 }
 
+/// Similarity threshold for semantic search over ruflo namespaces.
+///
+/// **Always pass this (or an explicit value) — never `None` for a namespaced
+/// call.** `ruflo-cli.sh` only injects a threshold for *namespaceless* searches;
+/// a namespaced call with `None` silently takes ruflo's own default of **0.7**,
+/// which sits above this corpus's score ceiling and returns zero results for
+/// every query. That is how `brana knowledge search` and `brana skills suggest`
+/// were both dead while looking merely empty (t-2729).
+///
+/// Measured top scores, `knowledge` namespace (139 entries, all-MiniLM-L6-v2,
+/// 384d): 0.69, 0.43, 0.40, 0.39, 0.37 across 5 diverse queries — nothing ever
+/// reaches 0.7. 0.25 clears the weakest with margin; `limit` bounds the count,
+/// so a permissive threshold costs nothing. Recalibrate if the embedding model
+/// or corpus changes.
+pub const DEFAULT_SEARCH_THRESHOLD: f64 = 0.25;
+
 /// Call `ruflo memory search` and return raw stdout JSON, or `None` on failure.
 ///
 /// Resolves the ruflo binary, spawns the process with a 15-second timeout, and
 /// returns the raw JSON string from stdout. Returns `None` when ruflo is absent,
 /// the process exits non-zero, or the timeout is exceeded.
+///
+/// Pass `Some(DEFAULT_SEARCH_THRESHOLD)` unless the caller has a calibrated
+/// value of its own — see the constant's note on the `None` trap.
 ///
 /// All callers should fail-open on `None`.
 pub fn ruflo_memory_search_raw(

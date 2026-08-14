@@ -1,28 +1,13 @@
 <!-- build phase: BUILD loop (all strategies) — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
-<!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__agent_spawn,mcp__ruflo__hive-mind_memory")
-
 ### BUILD
 
-**Hive-mind announce (best-effort):**
-At build start, announce what you're working on:
-```
-mcp__ruflo__hive-mind_memory(
-  action: "set",
-  key: "client:{PROJECT}:build:{TASK_ID}",
-  value: {"status": "in-progress", "branch": "{BRANCH}", "task": "{SUBJECT}", "started": "{ISO_TIMESTAMP}"}
-)
-```
-At build end (success or failure), update status:
-```
-mcp__ruflo__hive-mind_memory(
-  action: "set",
-  key: "client:{PROJECT}:build:{TASK_ID}",
-  value: {"status": "done|failed", "branch": "{BRANCH}", "task": "{SUBJECT}", "completed": "{ISO_TIMESTAMP}"}
-)
-```
-If MCP unavailable, skip silently. Hive-mind is transient awareness, not critical path.
+> **Removed 2026-08-12 (t-2754):** a "Hive-mind announce (best-effort)" step used to write
+> build start/end status here via `hive-mind_memory(action:"set", key:"client:{PROJECT}:build:{TASK_ID}"...)`.
+> No reader for that key pattern exists anywhere in the codebase (confirmed by grep) — the
+> in-memory store also resets on every MCP restart, so it never delivered cross-session
+> visibility in the first place. Removed as a write nobody reads, same rationale as the
+> matching removal in close/phases/session-state.md and sitrep's former "Source 7".
 
 **Loop suggestion (L/XL builds only — one per invocation, ADR-050):**
 For effort L or XL tasks only, once per build invocation, optionally suggest a session loop:
@@ -71,9 +56,9 @@ Skip this step for: S/XS builds, spike/investigation strategies, and any invocat
    ```
    score = complexity_score(subtask)   # see model-routing.md formula
    model = score < 0.3 ? "haiku" : score < 0.7 ? "sonnet" : "opus"
-   mcp__ruflo__agent_spawn(agentType: "claude", domain: "{project_slug}", model: model, task: "{subtask description + TDD checklist}")
+   Agent(subagent_type: "claude", model: model, prompt: "{subtask description + TDD checklist}")
    ```
-   Fall back to native `Agent(subagent_type: "claude", prompt: "...")` if ruflo is unavailable — use the same model selection.
+   (`mcp__ruflo__agent_spawn` is bookkeeping-only under subscription, ADR-059 — it registers metadata but never runs the subtask, so it cannot be the primary dispatch path.)
 
    Always include the delegation TDD checklist — append it verbatim from `system/skills/_shared/delegation-tdd-checklist.md` to the task/prompt:
    > Include the acceptance criteria from `system/skills/_shared/delegation-tdd-checklist.md` verbatim at the end of this prompt. Do not mark the subtask done until all criteria are met.

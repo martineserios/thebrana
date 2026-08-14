@@ -1,7 +1,7 @@
 <!-- close phase: Steps 9-9c: session state, consolidation counter, ruflo mirror, initiative accumulator — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__hive-mind_memory,mcp__ruflo__memory_store")
+ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__memory_store")
 
 ### Step 9: Write session state via CLI
 
@@ -180,6 +180,28 @@ Run it from the repo root, and confirm the `mode` in the write response is `repl
 `base_written_at`. Omission alone does nothing — without the token the write unions and the
 entry survives. There is no separate delete verb.
 
+> ⚠️ **This table is the documented contract, not a guarantee — treat it as unreliable and
+> ALWAYS read+merge (t-2674).** Two independent live incidents on the same epic
+> ("anita-envios"), two days apart, both destroyed a prior session's `next[]` wholesale
+> (`mode: replace`, `retained_from_existing: 0`, `warning: null`, `ok: true` — no signal of
+> loss anywhere in the response) under two DIFFERENT trigger conditions: once with a
+> **correctly-matching** `base_written_at` (2026-08-11 — that one IS the documented "replace"
+> row above, the destructive part is that nothing warns you your `next[]` wasn't exhaustive),
+> and once with `base_written_at` **omitted entirely** (2026-08-13 — that one contradicts the
+> "absent → union" row above). A controlled repro against an isolated throwaway epic
+> (sequential omitted-base writes, and a concurrent two-writer race) reproduced only the
+> documented **union** behavior — the destructive path could NOT be reproduced in isolation,
+> meaning it depends on some real-session precondition not yet identified (candidates:
+> `consumed_at` state of the prior write, a genuine concurrent writer on the SAME epic from a
+> different live session, or something else entirely). **Do not trust `base_written_at`
+> presence/absence/match as a safety signal in either direction.** Before every write, read
+> the epic's current `next[]` (`brana session read --all --json | jq ...`, see
+> `pattern_session-write-replace-wipes-prior-next_2026-08-11` in project memory) and always
+> compose your `next[]` as "everything still live from the read, plus what's new" — never rely
+> on the CLI to preserve anything you didn't re-state, regardless of which merge mode you
+> expect to get. Root cause is still open — no CLI source was available to this investigation
+> to fix it directly; see t-2674.
+
 **Write via CLI:**
 
 ```bash
@@ -263,8 +285,10 @@ Skip silently if the state file directory doesn't exist or Python fails — non-
 
 ### Step 9b: Ruflo MCP — session mirror + cross-session signals
 
-> Additive — all 3 calls are best-effort. If MCP is unavailable, skip silently.
+> Additive — all 2 calls are best-effort. If MCP is unavailable, skip silently.
 > Local session state (Step 9) is the primary record. This step adds searchability and cross-session awareness.
+>
+> **Removed 2026-08-12 (t-2754):** a "Call 2 — Cross-session close announcement" used to run here via `hive-mind_memory(action:"set", key:"client:{PROJECT}:session:closed:...")`, claiming "other terminals see the session ended + what's next via `/brana:sitrep`." That claim went false the moment sitrep's reader for this exact key pattern was removed in the same task (sitrep's former "Source 7"): the store is in-memory and resets per MCP restart, so it never delivered cross-session awareness in the first place. Removed rather than left as a write nobody reads.
 
 **Call 1: Session state to ruflo (searchable mirror)**
 
@@ -280,19 +304,7 @@ mcp__ruflo__memory_store(
 
 This makes session history semantically searchable: `memory_search(namespace: "session", query: "JWT auth")` finds past sessions by topic.
 
-**Call 2: Cross-session close announcement (transient)**
-
-```
-mcp__ruflo__hive-mind_memory(
-  action: "set",
-  key: "client:{PROJECT}:session:closed:{YYYY-MM-DD}",
-  value: {"status": "closed", "summary": "<1-line session label>", "next": ["<top 3 next items>"], "closed_at": "<ISO timestamp>"}
-)
-```
-
-Other terminals see the session ended + what's next via `/brana:sitrep`. Transient (in-memory, lost on MCP restart) — OK for session announcements.
-
-**Call 3: Task claim release (guarded)**
+**Call 2: Task claim release (guarded)**
 
 Only if an active task was being worked on this session:
 
@@ -349,7 +361,17 @@ at all. Before trusting a non-empty `$TIER0_SLUG`, corroborate it against this s
 recent commits — the identical signal Tier 2b uses, computed once here and reused there:
 <!-- TIER0-CORROBORATION-BLOCK -->
 ```bash
-TIER2B_SLUGS=$(git log --oneline -20 2>/dev/null \
+# Session-scoped window (t-2768): a flat `git log -20` is not scoped to this
+# session's own boundary — on a low-commit session it overflows into a PRIOR
+# DAY's unrelated session (live incident 1, 2026-08-12: 1 own commit, but the
+# -20 tail picked up ~17 commits from the previous day's session), and on a
+# high-concurrency shared branch it overflows into OTHER SESSIONS' commits
+# landing in real time (live incident 2, same day: 3 slugs surfaced from
+# concurrent peer commits on dev). Anchor on the SAME $LAST_CLOSE this
+# session's gate-and-evidence.md Step 0 GATE (CLOSE-ANCHOR-BLOCK) already
+# computed — the identical anchor its own COMMIT_COUNT/CHANGED_FILES/OLDEST
+# already rely on — instead of recomputing a separate window here.
+TIER2B_SLUGS=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null \
   | grep -oE 't-[0-9]+' | sort -u \
   | while read -r id; do resolve_epic_ancestor "$id" || echo "$id" >> "$EPIC_FAIL_LOG"; done \
   | sort -u | grep -v '^$')

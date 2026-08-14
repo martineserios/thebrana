@@ -297,8 +297,15 @@ For each recalled pattern that **was harmful or misleading**:
 
 ## Step 9 — Backup
 
+Uses `run_knowledge_backup()` from
+[`../_shared/backup-knowledge-invoke.md`](../_shared/backup-knowledge-invoke.md) —
+read that file, extract the `BACKUP-KNOWLEDGE-INVOKE-BLOCK`, and call it. A
+non-zero return means the backup failed integrity check; warn the user
+inline rather than silently continuing (t-2796 — the previous
+`2>/dev/null || true` form discarded corruption warnings).
+
 ```bash
-"$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true
+run_knowledge_backup
 ```
 
 ---

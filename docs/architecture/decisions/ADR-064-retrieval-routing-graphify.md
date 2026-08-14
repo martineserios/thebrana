@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-064: Retrieval Routing — Structural Repo Queries via graphify
 
 - **Status:** Accepted

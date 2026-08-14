@@ -1,3 +1,6 @@
+---
+status: proposed
+---
 # ADR-068: v3 Supersession — Retiring the Orbit/Substrate Doc Cluster into the v3 Design
 
 - **Status:** Proposed

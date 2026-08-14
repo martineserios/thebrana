@@ -95,13 +95,17 @@ done
 
 # ── ROUTING METADATA pool ────────────────────────────────────────────────────
 
-# Skill descriptions (the description: line only; the acquired/ tree is excluded).
+# Skill descriptions (the description: line only, frontmatter-scoped like the
+# agents loop below — a bare whole-file grep also matches "description:" lines
+# inside documentation examples in a skill's body, e.g. acquire-skills' own
+# template snippet, inflating the count with non-routing text).
 skills_total=0
 for sd in "$SYSTEM_DIR"/skills/*/; do
     [ "$(basename "$sd")" = "acquired" ] && continue
     sf="${sd}SKILL.md"
     [ -f "$sf" ] || continue
-    skills_total=$((skills_total + $(grep '^description:' "$sf" | wc -c)))
+    fm=$(sed -n '/^---$/,/^---$/p' "$sf")
+    skills_total=$((skills_total + $(echo "$fm" | grep '^description:' | wc -c)))
 done
 [ "$skills_total" -gt 0 ] && add_routing "$skills_total" "skill descriptions (all)"
 

@@ -3,7 +3,7 @@
 ## /brana:backlog plan
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__brana__backlog_focus")
+ToolSearch("select:mcp__brana__backlog_focus,mcp__brana__backlog_query")
 
 Interactive phase planning. Builds the hierarchy conversationally.
 
@@ -12,7 +12,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 1. **Detect project** from CWD (git root -> basename) or argument
 2. **Read tasks.json** — if it doesn't exist, create with empty tasks array
 3. **If phase title provided**, use it. Otherwise ask: "What phase are you planning?"
-3a. **Epic** — resolve `active_epic` via `mcp__brana__backlog_focus(top: 0)` (its `active_epic` field is project-scoped — never a raw read of `~/.claude/tasks-config.json`, which can hold a foreign project's value at the global scope, ADR-066). If MCP unavailable, fall back to `brana backlog focus --json`'s first element's `active_epic` field. If set, assign it to the phase (and all tasks will inherit via `inherit_initiative()`). If unset, ask via AskUserQuestion:
+3a. **Epic** — epic membership is the `parent` chain to a `type: "epic"` node (ADR-065); the flat `epic` field is retired and write-sealed (t-2310) — never set it. Resolve `active_epic` via `mcp__brana__backlog_focus(top: 0)` (its `active_epic` field is project-scoped — never a raw read of `~/.claude/tasks-config.json`, which can hold a foreign project's value at the global scope, ADR-066). If MCP unavailable, fall back to `brana backlog focus --json`'s first element's `active_epic` field. If set, map the slug to its epic node (`mcp__brana__backlog_query(task_type: "epic")`, match `subject == slug`; CLI: `brana backlog query --type epic` — works since t-2377) and set it as the **phase task's** `parent` in step 4 — the phase task is the ONLY node parented to the epic; child milestones and tasks inherit membership through the parent chain automatically, never re-parent them to the epic node directly. If unset, ask via AskUserQuestion:
     ```
     question: "Assign this phase to an epic?"
     header: "Epic"
@@ -24,8 +24,8 @@ Interactive phase planning. Builds the hierarchy conversationally.
       - label: "Skip — no epic"
         description: "Leave this task without an epic assignment."
     ```
-    Assign the epic to the phase task; child milestones and tasks inherit automatically at write-time.
-4. **Create the phase task** (type: phase) with next available ph-N id; include `epic` if set in step 3a
+    Membership lands on the phase task's `parent`; child milestones and tasks inherit automatically through the chain.
+4. **Create the phase task** (type: phase) with next available ph-N id; set its `parent` to the epic node id resolved in step 3a (if any)
 5. **Ask for milestones:** "What are the key milestones in this phase?"
 6. **For each milestone**, ask: "Break down {milestone} into tasks?"
    - If yes: ask for tasks and their `work_type` (implement / research / design — infer from description if obvious, confirm with user), create with parent → milestone id
@@ -132,7 +132,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 ### Defaults
 - `work_type`: inferred from task kind (implement → feature/fix/refactor, research → research/docs, design → design); ask if ambiguous
 - `acceptance_criteria`: auto-generated for leaf implement/design tasks (step 11b) — template+LLM-fill, linted against [`ac-grammar.md`](../../../../docs/architecture/ac-grammar.md), written to the canonical field
-- `epic`: inherited from phase (set in step 3a); null if skipped
+- epic membership: phase task's `parent` → epic node (step 3a); children inherit through the parent chain — there is no per-task epic field (retired, ADR-065)
 - Execution: code (if project has .git), manual (otherwise)
 - Priority/effort: null (user provides later if needed)
 - Status: pending for all new tasks

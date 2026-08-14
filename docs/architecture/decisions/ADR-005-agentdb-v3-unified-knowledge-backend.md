@@ -3,13 +3,14 @@ informs:
   - docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md
   - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
   - docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md
-status: accepted
+status: superseded
+superseded_by: docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md
 ---
 
 # ADR-005: AgentDB v3 + RVF as Unified Knowledge Backend
 
 **Date:** 2026-02-24
-**Status:** partially activated (2026-02-27) — AgentDB v3 integrated via ruflo v3.5.1 + ControllerRegistry shim. Relational + vector layers active (BM25 hybrid search). Graph layer deferred (Cypher controllers return null). Original kill date (2026-06-24) superseded by successful integration.
+**Status:** superseded by ADR-026 (2026-04-01, listed under its `supersedes:`). Frontmatter corrected 2026-08-12 (t-2754) — it read `accepted` for over four months despite ADR-026 formally superseding it. Historical detail preserved below: partially activated (2026-02-27) — AgentDB v3 integrated via ruflo v3.5.1 + ControllerRegistry shim. Relational + vector layers active (BM25 hybrid search). Graph layer deferred (Cypher controllers return null). Original kill date (2026-06-24) superseded by successful integration.
 
 ## Context
 

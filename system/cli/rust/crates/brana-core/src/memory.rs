@@ -96,22 +96,37 @@ fn timestamp_now() -> String {
 ///
 /// Algorithm:
 /// 1. Scan all *.md files in the memory dir (excluding MEMORY.md itself)
-/// 2. Parse each filename: type_slug or type_slug_YYYY-MM-DDTHH-MM-SS
+/// 2. Parse each filename: type_slug or type_slug_YYYY-MM-DDTHH-MM-SS.
+///    Files with no `type_` prefix (e.g. `{slug}.md`, the naming used by
+///    Claude's auto-memory system prompt) fall back to the `metadata.type`
+///    field in the file's YAML frontmatter — see `parse_frontmatter_type`.
+///    A file with neither a `type_` prefix nor any frontmatter at all is not
+///    a memory entry (e.g. an auto-appended flywheel log) and is skipped.
 /// 3. Group by (type_slug) key; prefer the newest dated file per key
 ///    (dated beats plain-slug; newer timestamp beats older)
 /// 4. Write MEMORY.md with one entry per key, linking to the winning file
+///
+/// Before the frontmatter fallback (t-24), every file using the `{slug}.md`
+/// naming was silently dropped — a project whose memory dir contains only
+/// such files regenerated to an EMPTY index while every underlying file
+/// stayed on disk untouched, discovered live 2026-08-05 (truper, 13 files).
 pub fn index_memory(scope: &str, project_root: &Path) -> Result<()> {
     let mem_dir = match scope {
         "project" => resolve_memory_dir(project_root),
         "global" => home().join(".claude/memory"),
         other => bail!("invalid scope '{}' for index; use: project, global", other),
     };
+    index_memory_dir(&mem_dir)
+}
 
+/// Testable core of `index_memory` — operates directly on a memory directory,
+/// bypassing project-root resolution so it can run against a `tempdir()` fixture.
+fn index_memory_dir(mem_dir: &Path) -> Result<()> {
     if !mem_dir.exists() {
         bail!("memory dir does not exist: {}", mem_dir.display());
     }
 
-    let mut entries: Vec<PathBuf> = fs::read_dir(&mem_dir)?
+    let mut entries: Vec<PathBuf> = fs::read_dir(mem_dir)?
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().map(|e| e == "md").unwrap_or(false))
         .filter(|p| {
@@ -131,22 +146,29 @@ pub fn index_memory(scope: &str, project_root: &Path) -> Result<()> {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        let Some((type_part, rest)) = stem.split_once('_') else {
-            continue;
+
+        let (key, is_dated, sort_stem) = if let Some((type_part, rest)) = stem.split_once('_') {
+            let slug = slug_from_rest(rest);
+            (format!("{}_{}", type_part, slug), is_dated_filename(rest), stem.clone())
+        } else {
+            match parse_frontmatter_type(path) {
+                None => continue, // no frontmatter at all — not a memory entry
+                Some(ty) => {
+                    let type_part = ty.unwrap_or_else(|| "memory".to_string());
+                    (format!("{}_{}", type_part, stem), false, stem.clone())
+                }
+            }
         };
-        let slug = slug_from_rest(rest);
-        let key = format!("{}_{}", type_part, slug);
-        let is_dated = is_dated_filename(rest);
 
         match best.entry(key) {
             Entry::Vacant(e) => {
-                e.insert((path.clone(), is_dated, stem));
+                e.insert((path.clone(), is_dated, sort_stem));
             }
             Entry::Occupied(mut e) => {
                 let (_, existing_dated, existing_stem) = e.get();
                 // Dated beats plain-slug; among dated, newer stem (lexicographic) wins
-                if is_dated && (!existing_dated || &stem > existing_stem) {
-                    e.insert((path.clone(), is_dated, stem));
+                if is_dated && (!existing_dated || &sort_stem > existing_stem) {
+                    e.insert((path.clone(), is_dated, sort_stem));
                 }
             }
         }
@@ -196,6 +218,143 @@ fn is_timestamp(s: &str) -> bool {
         && s.as_bytes().get(10) == Some(&b'T')
         && s.as_bytes().get(13) == Some(&b'-')
         && s.as_bytes().get(16) == Some(&b'-')
+}
+
+/// Parse `metadata.type` from a memory file's YAML frontmatter, for files whose
+/// filename has no `{type}_` prefix (t-24 — the auto-memory system prompt names
+/// files `{slug}.md` and records the type under a nested `metadata: \n  type: X`
+/// block instead of in the filename).
+///
+/// Returns:
+/// - `None` — no frontmatter block at all (file doesn't open with a `---` line).
+///   Not a memory entry: e.g. an auto-appended flywheel log with no YAML header.
+/// - `Some(None)` — frontmatter present, but no `type` field found under `metadata:`.
+/// - `Some(Some(ty))` — frontmatter present with a `type` field.
+fn parse_frontmatter_type(path: &Path) -> Option<Option<String>> {
+    let content = fs::read_to_string(path).ok()?;
+    let mut lines = content.lines();
+    if lines.next()?.trim() != "---" {
+        return None;
+    }
+    let mut in_metadata = false;
+    for line in lines {
+        if line.trim() == "---" {
+            return Some(None);
+        }
+        if !line.starts_with(' ') && !line.starts_with('\t') {
+            in_metadata = line.trim_end().trim_end_matches(':') == "metadata";
+            continue;
+        }
+        if in_metadata {
+            if let Some(rest) = line.trim().strip_prefix("type:") {
+                let ty = rest.trim().trim_matches('"').trim_matches('\'');
+                if !ty.is_empty() {
+                    return Some(Some(ty.to_string()));
+                }
+            }
+        }
+    }
+    // Frontmatter block never closed — still treat as present-but-typeless
+    // rather than as "no frontmatter", since a `---` header was found.
+    Some(None)
+}
+
+#[cfg(test)]
+mod index_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn write(dir: &Path, name: &str, body: &str) {
+        fs::create_dir_all(dir).unwrap();
+        fs::write(dir.join(name), body).unwrap();
+    }
+
+    #[test]
+    fn adr038_type_prefixed_files_index_as_before() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(&mem, "pattern_jwt-auth.md", "some content");
+        write(&mem, "feedback_redis-cache.md", "some content");
+        index_memory_dir(&mem).unwrap();
+
+        let idx = fs::read_to_string(mem.join("MEMORY.md")).unwrap();
+        assert!(idx.contains("pattern_jwt-auth"), "index:\n{idx}");
+        assert!(idx.contains("feedback_redis-cache"), "index:\n{idx}");
+    }
+
+    /// Regression for t-24: files named `{slug}.md` (no `{type}_` prefix — the
+    /// naming Claude's auto-memory system prompt uses) were silently dropped by
+    /// `index_memory`, wiping MEMORY.md to an empty header on projects whose
+    /// memory dir contained only this style (live 2026-08-05, truper, 13 files).
+    #[test]
+    fn frontmatter_fallback_recovers_unprefixed_files() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(
+            &mem,
+            "truper-transaction-shape.md",
+            "---\nname: truper-transaction-shape\ndescription: test\nmetadata:\n  type: project\n---\n\nbody\n",
+        );
+        write(
+            &mem,
+            "worktree-merge-from-main.md",
+            "---\nname: worktree-merge-from-main\ndescription: test\nmetadata: \n  node_type: memory\n  type: feedback\n---\n\nbody\n",
+        );
+        index_memory_dir(&mem).unwrap();
+
+        let idx = fs::read_to_string(mem.join("MEMORY.md")).unwrap();
+        assert!(
+            idx.contains("project_truper-transaction-shape"),
+            "frontmatter type=project must be recovered; index:\n{idx}"
+        );
+        assert!(
+            idx.contains("feedback_worktree-merge-from-main"),
+            "frontmatter type=feedback must be recovered even with a leading space after 'metadata:'; index:\n{idx}"
+        );
+    }
+
+    #[test]
+    fn unprefixed_file_with_no_frontmatter_type_gets_memory_fallback() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(&mem, "untyped-note.md", "---\nname: untyped-note\n---\n\nbody\n");
+        index_memory_dir(&mem).unwrap();
+
+        let idx = fs::read_to_string(mem.join("MEMORY.md")).unwrap();
+        assert!(
+            idx.contains("memory_untyped-note"),
+            "frontmatter present but no type field -> 'memory' fallback; index:\n{idx}"
+        );
+    }
+
+    /// Files with no YAML frontmatter at all (e.g. an auto-appended flywheel log)
+    /// are not memory entries and must stay excluded, exactly as before t-24.
+    #[test]
+    fn unprefixed_file_with_no_frontmatter_at_all_is_skipped() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(&mem, "sessions.md", "### Session abc123 (2026-07-31T17:27:31Z)\n- Events: 1124\n");
+        index_memory_dir(&mem).unwrap();
+
+        let idx = fs::read_to_string(mem.join("MEMORY.md")).unwrap();
+        assert_eq!(idx.trim(), "# Memory Index", "non-memory file must not appear; index:\n{idx}");
+    }
+
+    #[test]
+    fn mixed_directory_never_regresses_to_fewer_entries_than_valid_files() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write(&mem, "pattern_a.md", "x");
+        write(&mem, "b-topic.md", "---\nname: b-topic\nmetadata:\n  type: project\n---\n");
+        write(&mem, "c-topic.md", "---\nname: c-topic\nmetadata:\n  type: feedback\n---\n");
+        write(&mem, "sessions.md", "not a memory file, no frontmatter\n");
+        index_memory_dir(&mem).unwrap();
+
+        let idx = fs::read_to_string(mem.join("MEMORY.md")).unwrap();
+        let entry_count = idx.lines().filter(|l| l.starts_with("- [")).count();
+        assert_eq!(entry_count, 3, "3 valid memory files (a, b-topic, c-topic); index:\n{idx}");
+    }
 }
 
 // ── Embedded FTS5 recall index (t-2094) ──────────────────────────────────

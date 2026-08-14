@@ -1,0 +1,356 @@
+use super::*;
+use serde_json::Value;
+use std::collections::{HashMap, HashSet};
+
+
+/// True when `task` counts as finished for blocked_by-gate purposes: the
+/// task-status terminal values (`completed`/`cancelled`) for ordinary tasks,
+/// or the epic-status terminal values (`done`/`archived`, ADR-065) for
+/// `type: "epic"` nodes. Without this, an epic `blocked_by` another epic
+/// would never unblock — the gate check previously hardcoded the task
+/// vocabulary and never recognized an epic's own terminal states (t-2313).
+pub fn is_finished(task: &Value) -> bool {
+    match task["status"].as_str() {
+        Some("completed") | Some("cancelled") => true,
+        Some("done") | Some("archived") => task["type"].as_str() == Some("epic"),
+        _ => false,
+    }
+}
+
+/// Classify a task's effective status.
+pub fn classify(task: &Value, all: &[Value]) -> &'static str {
+    if is_finished(task) {
+        return "done";
+    }
+    match task["status"].as_str().unwrap_or("") {
+        "in_progress" => "active",
+        _ => {
+            if let Some(deps) = task["blocked_by"].as_array() {
+                if !deps.is_empty() {
+                    let done_ids: HashSet<&str> = all
+                        .iter()
+                        .filter(|t| is_finished(t))
+                        .filter_map(|t| t["id"].as_str())
+                        .collect();
+                    if !deps
+                        .iter()
+                        .all(|d| done_ids.contains(d.as_str().unwrap_or("")))
+                    {
+                        return "blocked";
+                    }
+                }
+            }
+            if task["tags"]
+                .as_array()
+                .map_or(false, |t| t.iter().any(|v| v.as_str() == Some("parked")))
+            {
+                return "parked";
+            }
+            "pending"
+        }
+    }
+}
+
+/// Free-text search across subject, description, context, notes.
+pub fn text_match(task: &Value, needle: &str) -> bool {
+    let n = needle.to_lowercase();
+    ["subject", "description", "context", "notes"]
+        .iter()
+        .any(|f| {
+            task[f]
+                .as_str()
+                .map_or(false, |v| v.to_lowercase().contains(&n))
+        })
+}
+
+/// Match a `--tag` query token against a task's tag list. Tags are still
+/// plain strings (`Vec<String>`) — `key:value` is a naming convention, not
+/// a new storage shape (D8, backlog-v3 t-2311).
+///
+/// - Query contains `:` → exact string match only (`"layer:backend"` matches
+///   only the literal tag `"layer:backend"`).
+/// - Query has no `:` → matches the bare tag of that name (backward compat)
+///   OR any tag `"<query>:*"` (any-value-for-key match) — so `--tag backend`
+///   finds both a bare `"backend"` tag and a `"backend:api"` tag.
+///
+/// A stored tag is split on its FIRST `:` only, so a value containing more
+/// colons (e.g. `"url:https://example.com"`) still parses as key=`"url"`.
+pub fn tag_matches(task_tags: &[&str], query: &str) -> bool {
+    if query.contains(':') {
+        return task_tags.contains(&query);
+    }
+    task_tags.iter().any(|t| {
+        *t == query || t.split_once(':').map(|(k, _)| k) == Some(query)
+    })
+}
+
+/// AND/OR composition of `tag_matches()` over a list of tag queries (t-2326).
+/// Shared by `cmd_query`'s multi-tag AND and `cmd_tags`'s --filter (AND) /
+/// --any (OR), so both commands see the same key:value exact + key-only
+/// bare-or-any-value semantics instead of `cmd_tags` doing its own plain
+/// exact-match check.
+pub fn tags_query_match(task_tags: &[&str], tag_list: &[&str], is_and: bool) -> bool {
+    if is_and {
+        tag_list.iter().all(|tag| tag_matches(task_tags, tag))
+    } else {
+        tag_list.iter().any(|tag| tag_matches(task_tags, tag))
+    }
+}
+
+/// Assert that `active_epic` (if set) resolves to something real — either a
+/// `type: "epic"` node task (post-migration, ADR-065) or a task still
+/// carrying the flat `epic` tag with that value (pre-migration compat,
+/// since t-2312's migration script has not been run against live data yet
+/// as of this task). Returns an error naming the unresolved slug instead of
+/// silently falling through to a no-boost, empty-partition state — closing
+/// the gap the ADR's epic table calls out: "the pointer resolves to a real,
+/// local epic node and errors otherwise." t-2281 already fixed the
+/// project-vs-global resolution BUG (which config file wins); this closes
+/// the separate "resolves to nothing at all" gap on top of that fix. t-2314.
+pub fn assert_active_epic_resolves(all: &[Value], active_epic: &str) -> Result<(), String> {
+    let node_exists = all.iter().any(|t| {
+        t["type"].as_str() == Some("epic") && t["subject"].as_str() == Some(active_epic)
+    });
+    if node_exists {
+        return Ok(());
+    }
+    let flat_tag_exists = all.iter().any(|t| t["epic"].as_str() == Some(active_epic));
+    if flat_tag_exists {
+        return Ok(());
+    }
+    Err(format!(
+        "active_epic {active_epic:?} does not resolve to any epic node or task — check tasks-config.json's active_epic, or run `brana backlog set-active` with a real epic"
+    ))
+}
+
+/// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
+#[derive(Debug, Clone)]
+pub struct TaskFilter<'a> {
+    pub tag: Option<&'a str>,
+    pub status: Option<&'a str>,
+    pub priority: Option<&'a str>,
+    pub effort: Option<&'a str>,
+    pub search: Option<&'a str>,
+    pub types: Vec<&'a str>,
+    pub epic: Option<&'a str>,
+    pub work_type: Option<&'a str>,
+    /// t-2283: filter by `ac_state` (v3 forward-only slice). Matches only tasks
+    /// whose `ac_state` key is PRESENT and equals this value; legacy tasks (key
+    /// absent) never match.
+    pub ac_state: Option<&'a str>,
+}
+
+impl Default for TaskFilter<'_> {
+    fn default() -> Self {
+        TaskFilter {
+            tag: None,
+            status: None,
+            priority: None,
+            effort: None,
+            search: None,
+            types: vec!["task", "subtask"],
+            epic: None,
+            work_type: None,
+            ac_state: None,
+        }
+    }
+}
+
+/// Returns true if `s` is a valid kebab-case slug: one or more lowercase
+/// alphanumeric segments joined by single hyphens (no leading/trailing/
+/// consecutive hyphens). Mirrors the bash regex `^[a-z0-9]+(-[a-z0-9]+)*$`
+/// used by the shared `epic-ancestor-walk.md` procedure.
+pub fn is_epic_slug(s: &str) -> bool {
+    !s.is_empty()
+        && s.split('-')
+            .all(|seg| !seg.is_empty() && seg.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()))
+}
+
+/// Resolve the nearest `type: "epic"` ancestor of `task` by walking its
+/// `parent` chain against `by_id` (a full task-id → task lookup built from
+/// `all`). Rust equivalent of the bash `resolve_epic_ancestor()` in
+/// `system/skills/_shared/epic-ancestor-walk.md` (t-2375/t-2377) — the flat
+/// `epic` field it replaces was retired by the backlog-v3 migration
+/// (ADR-065, t-2284) and its write path is sealed (t-2310), so any epic
+/// membership check must walk `parent` instead of reading `task.epic`.
+/// Depth-capped at 10 hops (current epic nodes are always top-level, so real
+/// chains resolve in 1-2 hops) and rejects non-slug epic subjects (t-2263
+/// failure class — pre-v3 `in-NNN` markers retyped to `type:"epic"` but
+/// still carrying full sentence subjects).
+pub fn resolve_epic_ancestor(task: &Value, by_id: &HashMap<&str, &Value>) -> Option<String> {
+    let mut cur = task["parent"].as_str();
+    let mut depth = 0;
+    while let Some(id) = cur {
+        if depth >= 10 {
+            break;
+        }
+        let t = *by_id.get(id)?;
+        if t["type"].as_str() == Some("epic") {
+            if let Some(subject) = t["subject"].as_str() {
+                if is_epic_slug(subject) {
+                    return Some(subject.to_string());
+                }
+            }
+        }
+        cur = t["parent"].as_str();
+        depth += 1;
+    }
+    None
+}
+
+/// Filter tasks using a `TaskFilter` struct (preferred API).
+pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilter<'_>) -> Vec<&'a Value> {
+    let by_id: HashMap<&str, &Value> = all
+        .iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
+    tasks
+        .iter()
+        .filter(|t| {
+            let tt = t["type"].as_str().unwrap_or("task");
+            if !filter.types.contains(&tt) {
+                return false;
+            }
+            if let Some(s) = filter.status {
+                let _ = all;
+                if raw_status(t, "") != s {
+                    return false;
+                }
+            }
+            if let Some(tag) = filter.tag {
+                let tags: Vec<&str> = t["tags"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                    .unwrap_or_default();
+                if !tag_matches(&tags, tag) {
+                    return false;
+                }
+            }
+            if let Some(p) = filter.priority {
+                if t["priority"].as_str().unwrap_or("") != p {
+                    return false;
+                }
+            }
+            if let Some(e) = filter.effort {
+                if t["effort"].as_str().unwrap_or("") != e {
+                    return false;
+                }
+            }
+            if let Some(q) = filter.search {
+                if !text_match(t, q) {
+                    return false;
+                }
+            }
+            if let Some(init) = filter.epic {
+                match resolve_epic_ancestor(t, &by_id) {
+                    Some(slug) if slug == init => {}
+                    _ => return false,
+                }
+            }
+            if let Some(wt) = filter.work_type {
+                if t["work_type"].as_str().unwrap_or("") != wt {
+                    return false;
+                }
+            }
+            if let Some(acs) = filter.ac_state {
+                // t-2283: match only when the ac_state KEY is present and equals
+                // `acs`. A legacy task (key absent) reads as Null → never matches.
+                if t["ac_state"].as_str() != Some(acs) {
+                    return false;
+                }
+            }
+            true
+        })
+        .collect()
+}
+
+/// Filter tasks by multiple criteria (AND logic).
+/// Thin wrapper around `filter_tasks_by` — prefer that for new call sites.
+pub fn filter_tasks<'a>(
+    tasks: &'a [Value],
+    all: &[Value],
+    tag: Option<&str>,
+    status: Option<&str>,
+    priority: Option<&str>,
+    effort: Option<&str>,
+    search: Option<&str>,
+    types: &[&str],
+    epic: Option<&str>,
+    work_type: Option<&str>,
+) -> Vec<&'a Value> {
+    filter_tasks_by(tasks, all, &TaskFilter {
+        tag,
+        status,
+        priority,
+        effort,
+        search,
+        types: types.to_vec(),
+        epic,
+        work_type,
+        ac_state: None,
+    })
+}
+
+/// Walk the blocked-by dependency chain for a task with cycle detection.
+///
+/// Returns a list of (depth, task) pairs representing the blocking tree.
+/// Only includes blockers that are not yet done.
+pub fn blocked_chain<'a>(
+    task_id: &str,
+    all: &'a [Value],
+    depth: usize,
+    visited: &mut HashSet<String>,
+) -> Vec<(usize, &'a Value)> {
+    if visited.contains(task_id) {
+        return vec![]; // cycle detected
+    }
+    visited.insert(task_id.to_string());
+
+    let task = match all.iter().find(|t| t["id"].as_str() == Some(task_id)) {
+        Some(t) => t,
+        None => return vec![],
+    };
+
+    let mut chain = vec![(depth, task)];
+
+    if let Some(deps) = task["blocked_by"].as_array() {
+        for dep in deps {
+            if let Some(dep_id) = dep.as_str() {
+                let blocker = all.iter().find(|t| t["id"].as_str() == Some(dep_id));
+                if let Some(b) = blocker {
+                    if classify(b, all) != "done" {
+                        chain.extend(blocked_chain(dep_id, all, depth + 1, visited));
+                    }
+                }
+            }
+        }
+    }
+
+    chain
+}
+
+/// Find tasks that have been pending longer than the given threshold.
+///
+/// Returns tasks sorted by created date (oldest first).
+pub fn stale_tasks<'a>(tasks: &'a [Value], all: &'a [Value], threshold_days: i64) -> Vec<&'a Value> {
+    let cutoff = (chrono::Local::now().date_naive() - chrono::Duration::days(threshold_days))
+        .format("%Y-%m-%d")
+        .to_string();
+
+    let mut stale: Vec<&Value> = tasks.iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
+        .filter(|t| classify(t, all) == "pending")
+        .filter(|t| {
+            let created = t["created"].as_str().unwrap_or("9999-99-99");
+            created < cutoff.as_str()
+        })
+        .collect();
+
+    stale.sort_by(|a, b| {
+        let da = a["created"].as_str().unwrap_or("");
+        let db = b["created"].as_str().unwrap_or("");
+        da.cmp(db)
+    });
+
+    stale
+}

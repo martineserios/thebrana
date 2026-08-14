@@ -46,6 +46,7 @@ User-facing documentation. Start here.
 | [build-close-auto-docs.md](guide/features/build-close-auto-docs.md) | Auto-generated feature docs |
 | [checkpoint-resume.md](guide/features/checkpoint-resume.md) | Checkpoint/resume for long builds |
 | [backlog-v3-schema.md](guide/features/backlog-v3-schema.md) | Backlog v3 schema — epics, key:value tags, waves |
+| [pipeline-digest.md](guide/features/pipeline-digest.md) | Pipeline digest — L0 read-only gauge run via /loop |
 | [backlog-lint.md](guide/features/backlog-lint.md) | Backlog lint — is this task ready for autonomous dispatch? |
 | [backlog-project-scoping.md](guide/features/backlog-project-scoping.md) | Per-project scoping and cross-project tasks |
 | [brana-feed-inbox.md](guide/features/brana-feed-inbox.md) | `brana feed` + `brana inbox` |
@@ -57,6 +58,7 @@ User-facing documentation. Start here.
 | File | Contents |
 |------|----------|
 | [build.md](guide/workflows/build.md) | The build loop -- 7 strategies, task integration |
+| [drain-loop.md](guide/workflows/drain-loop.md) | Wave drain loop -- committed /loop runner procedure (ADR-079) |
 | [research.md](guide/workflows/research.md) | 3-phase research with scout agents |
 | [hive-mind.md](guide/workflows/hive-mind.md) | Multi-agent collective intelligence -- find/verify/synthesize on the subscription |
 | [session.md](guide/workflows/session.md) | Session lifecycle -- start hooks, close, handoffs |
@@ -91,6 +93,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
 | [the-orbit.md](architecture/the-orbit.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — index & reading map for the Orbit/Substrate cluster; historical |
 | [workflow-primitive.md](architecture/workflow-primitive.md) | Verified `Workflow` tool API surface, smoke-test evidence, opt-in rule |
+| [cc-tasks-bridge-research.md](architecture/cc-tasks-bridge-research.md) | CC native Tasks (`CLAUDE_CODE_TASK_LIST_ID`) research — recommendation: batch-scoped ephemeral mirror only, never a full/bidirectional backlog sync |
 | [substrate-end-state.md](architecture/substrate-end-state.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — the Orbit capstone (operation): tiers, runner stages, safety net, branch strategy; historical |
 | [substrate-primitives.md](architecture/substrate-primitives.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — agent substrate primitives & composition; §1–§3 (primitive set, composed blocks, durability/trust) still accurate as reference |
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
@@ -165,8 +168,10 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-074](architecture/decisions/ADR-074-step-state-contract.md) | Step-state contract — derive `{next_step, gate_pending}` from a static step registry + the run-state log (was ADR-062 — renumbered t-2507) |
 | [ADR-075](architecture/decisions/ADR-075-ship-on-deploy-surface-change.md) | Ship on deploy-surface change, not batch size or schedule — commit count is uncorrelated with blast radius (t-2547) |
 | [ADR-076](architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md) | Build receipts as executed evidence — `mint` runs the tests and hashes its own output; enforced delegation deferred, killed by its own falsifier (t-2592) |
+| [ADR-078](architecture/decisions/ADR-078-stale-task-park-via-tag.md) | Park stale tasks via the existing `parked` tag, not a new `status` value — reuses `classify()`'s already-tested synthetic state (t-2773) |
+| [ADR-079](architecture/decisions/ADR-079-backlog-drain-loop-handoff.md) | `ac_state` approval verb, wave-drain→loop handoff contract, and WIP enforcement moved to waves at pull time (amends ADR-065; unblocks the backlog-drain epic, t-2811) |
 
-> Note: this table is missing several ADRs between 045-065 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
+> Note: this table is missing several ADRs between 045-065 and ADR-077 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
 ### Domain model (docs/domain/)
 
@@ -189,6 +194,8 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [smart-tasks-add.md](architecture/features/smart-tasks-add.md) | Smart /brana:backlog add: suggest-only pattern |
 | [research-stream.md](architecture/features/research-stream.md) | Research as first-class task stream |
 | [t-2385-retired-fields-write-guard.md](architecture/features/t-2385-retired-fields-write-guard.md) | RETIRED_FIELDS constant in brana-core::tasks — single source of truth replacing 3 independent retirement checks |
+| [stale-task-lifecycle-policy.md](architecture/features/stale-task-lifecycle-policy.md) | Spec only — auto-park stale P2/P3 (tag-based, reversible) + escalate stale P0/P1 at session-start; scheduled job design |
+| [wave-gate-enforcement.md](architecture/features/wave-gate-enforcement.md) | Spec only — minimal `wave drain` (gate check + `tag:` selector only, not the full v3 query grammar) to make ADR-065's unenforced `gate` field real |
 | [acquire-skills.md](architecture/features/acquire-skills.md) | Acquire skills from external marketplaces |
 | [cascade-throttle.md](architecture/features/cascade-throttle.md) | Cascade throttle for failure detection |
 | [scheduler.md](architecture/features/scheduler.md) | Scheduled jobs system |
@@ -209,6 +216,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
 | [skill-routing-in-backlog-start.md](architecture/features/skill-routing-in-backlog-start.md) | Semantic skill suggestion at task start (ADR-026, t-833) |
 | [operating-model.md](architecture/features/operating-model.md) | Operating model: auto-learning loop, 6-job taxonomy, unified maintenance, knowledge graph |
+| [pipeline-digest.md](architecture/features/pipeline-digest.md) | L0 Reporter gauge — read-only pipeline digest, loop-first epic |
 | [worktree-task-divergence.md](architecture/features/worktree-task-divergence.md) | validate.sh Check 68 — detects worktrees whose branch and task record have diverged (t-2545) |
 
 ## Conventions (docs/conventions/)
@@ -225,6 +233,8 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 
 | File | Contents |
 |------|----------|
+| [brana-agency-growth-machine.md](ideas/brana-agency-growth-machine.md) | Agency growth strategy — no-posting machine: thebrana.ai relaunch (t-2249) + WhatsApp demo agent as lead magnet, referral engine day 1 |
+| [brana-whatsapp-agent.md](ideas/brana-whatsapp-agent.md) | The Brana WhatsApp Agent — brana over WhatsApp bridge (system/services/whatsapp-bridge) |
 | [ruflo-native-integration.md](ideas/ruflo-native-integration.md) | Ruflo native integration — controller status, upstream blockers, upgrade path |
 | [skill-auto-router.md](ideas/skill-auto-router.md) | Skill auto-routing with ruflo HNSW + marketplace discovery |
 | [skills-as-loops.md](ideas/skills-as-loops.md) | Skills re-derived as loops (stop condition + verifier + queue), loop composition rules, exit-router pattern — v3 seed, grounded in loop-engineering's 7 patterns |

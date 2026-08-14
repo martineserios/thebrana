@@ -70,6 +70,15 @@ pub enum TaskWorkType {
     Review,
 }
 
+/// t-2812 (ADR-079 §1): actions for the `backlog ac <id> <action>` verb.
+/// `add` is deliberately absent (out of scope per the ADR).
+#[derive(Clone, ValueEnum)]
+pub enum AcAction {
+    /// Promote proposed_acceptance_criteria into acceptance_criteria and set
+    /// ac_state:approved — the only sanctioned way to reach approved.
+    Approve,
+}
+
 #[derive(Clone, ValueEnum)]
 pub enum BurndownPeriod {
     Day,
@@ -401,6 +410,9 @@ pub enum KnowledgeCmd {
         /// Ruflo namespace to search (default: knowledge)
         #[arg(long, default_value = "knowledge")]
         namespace: String,
+        /// Similarity threshold 0.0-1.0 (default: 0.25, calibrated to this corpus)
+        #[arg(long)]
+        threshold: Option<f64>,
         /// Output raw JSON instead of human-readable text
         #[arg(long)]
         json: bool,
@@ -461,6 +473,20 @@ pub enum KnowledgeCmd {
     /// Auto-advance the pipeline: tier1→tier2, stopping at human decision points.
     /// Parallel-safe: holds the pipeline lock for the whole advance.
     Run,
+    /// Sync the brana-owned vector store (~/.claude/memory/knowledge.db) from
+    /// ruflo memory_entries DBs. Idempotent: newest row per key wins (t-2620).
+    VectorSync {
+        /// Source memory.db files (default: ~/.swarm/memory.db). Rotated
+        /// memory.db.corrupt-* files that pass integrity_check are valid sources.
+        #[arg(long)]
+        source: Vec<PathBuf>,
+        /// Destination store (default: ~/.claude/memory/knowledge.db)
+        #[arg(long)]
+        dest: Option<PathBuf>,
+        /// Output stats as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -864,6 +890,20 @@ pub enum BacklogCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// ac verbs (ADR-079 §1): `ac <id> approve` promotes any
+    /// proposed_acceptance_criteria into acceptance_criteria and sets
+    /// ac_state:approved. The generic `set <id> ac_state approved` is rejected —
+    /// this verb is the sanctioned transition.
+    Ac {
+        /// Task ID (e.g. t-463)
+        task_id: String,
+        /// Action to perform (approve)
+        #[arg(value_enum)]
+        action: AcAction,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Set a field on a task
     Set {
         /// Task ID (e.g. t-463)
@@ -1102,11 +1142,32 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
-    /// Set a field on a wave (status, selector, contract, gate, name)
+    /// Pull one task from a draining wave (ADR-079 §2/§3): re-resolve the
+    /// selector, filter pending ∧ ac_state:approved ∧ ¬parked, respect
+    /// wip_limit, set the first eligible task in_progress — atomically.
+    /// At-limit / none-eligible are normal ok outcomes (skip this cycle).
+    Pull {
+        wave_id: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Set a field on a wave (status, selector, contract, gate, name,
+    /// wip_limit — non-negative integer or null; selector/gate are frozen
+    /// while the wave is draining, requeue first)
     Set {
         wave_id: String,
         field: String,
         value: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Drain a wave (t-2775): gate check + tag:<name> selector resolution.
+    /// Reports matched pending tasks and sets status to "draining" — does
+    /// NOT execute anything or touch matched tasks.
+    Drain {
+        wave_id: String,
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,

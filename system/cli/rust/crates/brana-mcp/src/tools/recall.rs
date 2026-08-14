@@ -1,4 +1,5 @@
-use brana_core::search::{FTS5Provider, HybridProvider, RufloProvider, SearchProvider};
+use brana_core::search::{FTS5Provider, HybridProvider, SearchProvider};
+use brana_core::vector::{RufloEmbedder, VectorProvider};
 use pmcp::{RequestHandlerExtra, TypedTool};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -24,8 +25,12 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let query_str = input.query.clone();
             let hits = tokio::task::spawn_blocking(move || {
                 let fts5 = Arc::new(FTS5Provider::new(db_path)) as Arc<dyn SearchProvider>;
-                let ruflo = Arc::new(RufloProvider::new("knowledge")) as Arc<dyn SearchProvider>;
-                let provider = HybridProvider::new(fts5, ruflo);
+                // Local vector recall (t-2620) — ruflo kept only as query embedder.
+                let vectors = Arc::new(
+                    VectorProvider::new(brana_core::vector::knowledge_db_path(), Arc::new(RufloEmbedder))
+                        .with_threshold(0.25),
+                ) as Arc<dyn SearchProvider>;
+                let provider = HybridProvider::new(fts5, vectors);
                 provider.query(&input.query, input.top_k)
             })
             .await

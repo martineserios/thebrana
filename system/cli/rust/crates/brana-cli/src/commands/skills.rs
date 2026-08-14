@@ -532,18 +532,24 @@ fn build_query_string(ctx: &TaskContext) -> String {
 
 
 /// Parse ruflo memory search output into SkillMatch entries.
-fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
-    let val: serde_json::Value = serde_json::from_str(text).ok()?;
-    let entries = val.as_array()?;
+///
+/// `known` is the local skill-name list (from `scan_skills`) used to resolve
+/// table keys that ruflo truncates at ~20 chars (`skill:domain-driv...`) —
+/// a truncated key prefix-matches against it; ambiguous or unmatched stems
+/// are dropped rather than returned truncated (t-2730).
+fn parse_ruflo_results(text: &str, known: &[String]) -> Option<Vec<SkillMatch>> {
+    // knowledge::parse_search_results handles all real ruflo shapes: ASCII
+    // table (current builds — no --json flag exists), JSON array (older
+    // builds), and the "No results found" message. Reuse it rather than
+    // keeping a second, drifting parser (t-2730).
+    let entries = super::knowledge::parse_search_results(text).ok()?;
     let matches: Vec<SkillMatch> = entries
         .iter()
         .filter_map(|e| {
-            let key = e["key"].as_str()?;
-            let name = key.strip_prefix("skill:")?.to_string();
-            let score = e["score"].as_f64().unwrap_or(0.0);
+            let name = resolve_skill_key(&e.key, known)?;
             Some(SkillMatch {
                 name,
-                score,
+                score: e.score,
                 reason: "ruflo semantic".to_string(),
             })
         })
@@ -555,12 +561,43 @@ fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
     }
 }
 
+/// Resolve a `skill:` key — possibly truncated by ruflo's table renderer —
+/// to a full local skill name.
+///
+/// Untruncated keys just lose the prefix. A `...`-truncated key is prefix-
+/// matched against `known`; exactly one hit resolves, zero or several drop
+/// the entry (a truncated name is not a usable skill name).
+fn resolve_skill_key(key: &str, known: &[String]) -> Option<String> {
+    if let Some(stem) = key.strip_suffix("...") {
+        let stem = stem.strip_prefix("skill:")?;
+        let mut hits = known.iter().filter(|n| n.starts_with(stem));
+        match (hits.next(), hits.next()) {
+            (Some(name), None) => Some(name.clone()),
+            _ => None,
+        }
+    } else {
+        key.strip_prefix("skill:").map(str::to_string)
+    }
+}
+
 /// Try ruflo semantic search for skill suggestions.
 /// Returns None if ruflo is unavailable or returns no results.
 /// Uses a 15-second timeout because ruflo CLI can hang after completion.
-fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
-    let raw = brana_core::ruflo::ruflo_memory_search_raw(query, "skills", 5, None, false)?;
-    parse_ruflo_results(&raw)
+///
+/// Both halves of the t-2729 inertness are now fixed: the threshold
+/// (DEFAULT_SEARCH_THRESHOLD instead of ruflo's 0.7 default) and the parse
+/// (table-aware via knowledge::parse_search_results, with truncated keys
+/// resolved against `known` — t-2730). Keyword fallback remains for
+/// ruflo-unavailable and zero-result cases.
+fn try_ruflo_suggest(query: &str, known: &[String]) -> Option<Vec<SkillMatch>> {
+    let raw = brana_core::ruflo::ruflo_memory_search_raw(
+        query,
+        "skills",
+        5,
+        Some(brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD),
+        false,
+    )?;
+    parse_ruflo_results(&raw, known)
 }
 
 /// `brana skills suggest --task <id>` or `--query <text>`
@@ -583,9 +620,14 @@ pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) -> Result<()> {
     // Build query string for ruflo semantic search
     let query_str = build_query_string(&ctx);
 
+    // Scan local skills up front: the list both resolves ruflo's truncated
+    // table keys (t-2730) and feeds the keyword fallback below.
+    let skills = scan_skills(&skill_dirs());
+    let known: Vec<String> = skills.iter().map(|s| s.name.clone()).collect();
+
     // Try ruflo semantic search first (HNSW vectors, better than keyword matching)
     if !query_str.is_empty() {
-        if let Some(mut ruflo_matches) = try_ruflo_suggest(&query_str) {
+        if let Some(mut ruflo_matches) = try_ruflo_suggest(&query_str, &known) {
             // Semantic search has no notion of hot-path skills — filter here too.
             // If nothing survives, fall through to local scoring.
             ruflo_matches.retain(|m| !is_always_loaded(&m.name));
@@ -598,7 +640,6 @@ pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) -> Result<()> {
     }
 
     // Fallback: local keyword/tag scoring
-    let skills = scan_skills(&skill_dirs());
     let matches = suggest(&skills, &ctx, 3);
     let json = serde_json::to_string_pretty(&matches).unwrap_or_default();
     println!("{json}");
@@ -1147,7 +1188,7 @@ stream_affinity: [roadmap]
             {"key": "skill:research", "value": "Research topics", "score": 0.78},
             {"key": "not-a-skill", "value": "ignored", "score": 0.5}
         ]"#;
-        let results = parse_ruflo_results(json).expect("should parse");
+        let results = parse_ruflo_results(json, &[]).expect("should parse");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].name, "build");
         assert!((results[0].score - 0.92).abs() < f64::EPSILON);
@@ -1158,29 +1199,96 @@ stream_affinity: [roadmap]
     #[test]
     fn test_parse_ruflo_results_no_skills() {
         let json = r#"[{"key": "pattern:something", "value": "not a skill", "score": 0.9}]"#;
-        let result = parse_ruflo_results(json);
+        let result = parse_ruflo_results(json, &[]);
         assert!(result.is_none());
     }
 
     #[test]
     fn test_parse_ruflo_results_empty_array() {
-        let result = parse_ruflo_results("[]");
+        let result = parse_ruflo_results("[]", &[]);
         assert!(result.is_none());
     }
 
     #[test]
     fn test_parse_ruflo_results_invalid_json() {
-        let result = parse_ruflo_results("not json at all");
+        let result = parse_ruflo_results("not json at all", &[]);
         assert!(result.is_none());
     }
 
     #[test]
     fn test_parse_ruflo_results_missing_score() {
         let json = r#"[{"key": "skill:close", "value": "End session"}]"#;
-        let results = parse_ruflo_results(json).expect("should parse");
+        let results = parse_ruflo_results(json, &[]).expect("should parse");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "close");
         assert!((results[0].score - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_reads_table_output() {
+        // Flipped from `cannot_read_table_output` (t-2730): the installed
+        // ruflo has no `--json` on `memory search` — the ASCII table IS the
+        // real output shape, so the semantic path must parse it.
+        let table = concat!(
+            "[INFO] Searching: \"rust\" (semantic)\n\n",
+            "+---------------------+-------+-----------+----------------------+\n",
+            "| Key                 | Score | Namespace | Preview              |\n",
+            "+---------------------+-------+-----------+----------------------+\n",
+            "| skill:rust-skills   |  0.49 | skills    | rust-skills Rust ... |\n",
+            "+---------------------+-------+-----------+----------------------+\n"
+        );
+        let results = parse_ruflo_results(table, &[]).expect("should parse table");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "rust-skills");
+        assert!((results[0].score - 0.49).abs() < 1e-9);
+        assert_eq!(results[0].reason, "ruflo semantic");
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_resolves_truncated_table_key() {
+        // AC (t-2730): a >20-char skill name survives the round trip — ruflo
+        // truncates the Key column, the parser prefix-resolves it against the
+        // local skill list.
+        let table = concat!(
+            "+----------------------+-------+-----------+------------------+\n",
+            "| Key                  | Score | Namespace | Preview          |\n",
+            "+----------------------+-------+-----------+------------------+\n",
+            "| skill:domain-driv... |  0.44 | skills    | domain-driven... |\n",
+            "+----------------------+-------+-----------+------------------+\n"
+        );
+        let known = vec!["domain-driven-design".to_string(), "build".to_string()];
+        let results = parse_ruflo_results(table, &known).expect("should resolve");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "domain-driven-design");
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_drops_ambiguous_truncated_key() {
+        // An ambiguous stem must be dropped, never returned truncated.
+        let table = concat!(
+            "+----------------------+-------+-----------+------------------+\n",
+            "| Key                  | Score | Namespace | Preview          |\n",
+            "+----------------------+-------+-----------+------------------+\n",
+            "| skill:domain-driv... |  0.44 | skills    | domain-driven... |\n",
+            "+----------------------+-------+-----------+------------------+\n"
+        );
+        let known = vec![
+            "domain-driven-design".to_string(),
+            "domain-driven-docs".to_string(),
+        ];
+        assert!(parse_ruflo_results(table, &known).is_none());
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_reads_json_shape_ruflo_emits() {
+        // The `--json` shape, as returned by ruflo memory search --json.
+        let json = r#"[{"key":"skill:rust-skills","value":"Rust best practices","score":0.49},
+                       {"key":"skill:cargo-machete","value":"Unused deps","score":0.43}]"#;
+        let results = parse_ruflo_results(json, &[]).expect("should parse ruflo json");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].name, "rust-skills");
+        assert!((results[0].score - 0.49).abs() < 1e-9);
+        assert_eq!(results[0].reason, "ruflo semantic");
     }
 
     // ── reindex --force flag tests ────────────────────────────────────

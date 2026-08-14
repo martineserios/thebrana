@@ -64,6 +64,9 @@ fn main() {
             BacklogCmd::Burndown { period } => run_or_exit(commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme)),
             BacklogCmd::Rollup { file, dry_run } => run_or_exit(commands::backlog::cmd_rollup(file, dry_run)),
             BacklogCmd::AcPropose { file, apply, dry_run } => run_or_exit(commands::backlog::cmd_ac_propose(file, apply, dry_run)),
+            BacklogCmd::Ac { task_id, action, file } => match action {
+                cli::AcAction::Approve => run_or_exit(commands::backlog::cmd_ac_approve(&task_id, file)),
+            },
             BacklogCmd::Set { task_id, field, value, append, file } => run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file)),
             BacklogCmd::SetActive { slug } => run_or_exit(commands::backlog::cmd_set_active(&slug)),
             BacklogCmd::Add { json, subject, kind, task_type, tags, description, effort, parent, priority, context, file, project, epic, work_type, acceptance_criteria } =>
@@ -98,6 +101,8 @@ fn main() {
                 WaveCmd::Get { wave_id, field } => run_or_exit(commands::backlog::cmd_wave_get(&wave_id, field)),
                 WaveCmd::List { file } => run_or_exit(commands::backlog::cmd_wave_list(file)),
                 WaveCmd::Set { wave_id, field, value, file } => run_or_exit(commands::backlog::cmd_wave_set(&wave_id, &field, &value, file)),
+                WaveCmd::Pull { wave_id, file } => run_or_exit(commands::backlog::cmd_wave_pull(&wave_id, file)),
+                WaveCmd::Drain { wave_id, file } => run_or_exit(commands::backlog::cmd_wave_drain(&wave_id, file)),
             },
         },
         Commands::Ops { cmd } => match cmd {
@@ -230,8 +235,8 @@ fn main() {
                 }
             }
             KnowledgeCmd::Status => commands::knowledge::cmd_status(),
-            KnowledgeCmd::Search { query, limit, namespace, json } => {
-                run_or_exit(commands::knowledge::cmd_search(&query, limit, &namespace, json))
+            KnowledgeCmd::Search { query, limit, namespace, threshold, json } => {
+                run_or_exit(commands::knowledge::cmd_search(&query, limit, &namespace, threshold, json))
             }
             KnowledgeCmd::Process { tier1, tier2, draft, report, status, reset_url, dry_run, limit } => {
                 run_or_exit(commands::knowledge::cmd_process(
@@ -259,6 +264,9 @@ fn main() {
             },
             KnowledgeCmd::Next => run_or_exit(commands::knowledge::cmd_next()),
             KnowledgeCmd::Run => run_or_exit(commands::knowledge::cmd_run()),
+            KnowledgeCmd::VectorSync { source, dest, json } => {
+                run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, json))
+            }
         },
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),
