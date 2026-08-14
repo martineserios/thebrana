@@ -2039,6 +2039,17 @@ mod tests {
     }
 
     #[test]
+    fn test_non_status_write_preserves_lease() {
+        // Only status writes are acks — a notes/context append mid-flight
+        // must not release the claim.
+        let mut task = json!({"id":"t-1","status":"in_progress",
+            "lease":{"claimant":"pump:x","expires":"2026-08-15T10:00:00+00:00"}});
+        set_field(&mut task, "notes", "progress note", true).unwrap();
+        assert_eq!(task["lease"]["claimant"], "pump:x",
+            "non-status writes must not clear the lease");
+    }
+
+    #[test]
     fn test_manual_status_write_takes_no_lease() {
         // Manual `backlog start` (a plain status write) must NOT create a
         // lease — human work is not watchdog-reclaimable (ADR-080 §5).
