@@ -161,6 +161,22 @@ else
     echo "  FAIL: denied-verb list has ${JUDGE_DENIED_COUNT:-0} entries — suspiciously empty"; FAIL=$((FAIL + 1))
 fi
 
+echo "=== boundary: criticality_hit prefix semantics ==="
+assert_eq "exact file match"            "1" "$(criticality_hit 'bootstrap.sh')"
+assert_eq "subdir of critical prefix"   "1" "$(criticality_hit 'system/hooks/new-hook.sh')"
+assert_eq "sibling non-critical path"   "0" "$(criticality_hit 'system/scripts/x.sh docs/a.md')"
+assert_eq "prefix-substring is NOT a hit (system/hooks-extra)" "0" "$(criticality_hit 'system/hooks-extra/a.sh')"
+assert_eq "empty file list"             "0" "$(criticality_hit '')"
+
+echo "=== boundary: append_escaped_defect roundtrip (incl. control_arm) ==="
+RLOG="$TMPDIR_T/roundtrip.jsonl"
+append_escaped_defect "$RLOG" "system/hooks" "CRITICAL_PATH" 2 1 340000 '{"rung1_findings":1,"panel_findings":1}'
+append_escaped_defect "$RLOG" "docs/guide" "RECONSIDER_SEV4" 2 0 120000
+assert_eq "two records appended"        "2" "$(jq -s 'length' "$RLOG")"
+assert_eq "control_arm preserved"       "1" "$(jq -s '.[0].control_arm.panel_findings' "$RLOG")"
+assert_eq "no control_arm key when omitted" "null" "$(jq -s '.[1].control_arm' "$RLOG")"
+assert_eq "roundtrip feeds area weight" "1" "$(judge_area_weight 'system/hooks' "$RLOG")"
+
 echo ""
 echo "=== Summary ==="
 echo "Total: $TOTAL | Passed: $PASS | Failed: $FAIL"
