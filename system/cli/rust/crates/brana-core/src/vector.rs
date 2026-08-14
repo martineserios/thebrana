@@ -223,13 +223,17 @@ impl SearchProvider for VectorProvider {
 
         scored
             .into_iter()
-            .map(|(_, key, content)| SearchHit {
+            .map(|(score, key, content)| SearchHit {
                 doc: DocRef::KnowledgeEntry {
                     key,
                     namespace: "knowledge".to_string(),
                 },
                 snippet: truncate_chars(&content, 300),
-                rrf_score: 0.0,
+                // Cosine similarity at the provider level — single-provider
+                // callers (knowledge search, t-2734) display it directly.
+                // HybridProvider overwrites this during RRF merge, so the
+                // "0.0 until merged" contract only relaxes, never breaks.
+                rrf_score: score as f64,
             })
             .collect()
     }

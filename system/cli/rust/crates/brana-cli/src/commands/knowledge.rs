@@ -689,11 +689,28 @@ fn call_ruflo_search(
 /// (`knowledge:feed:re...`), so a ruflo key ending in `...` is considered
 /// covered when its stem prefixes any vector key.
 fn merge_search_legs(vector: Vec<SearchResult>, ruflo: Vec<SearchResult>) -> Vec<SearchResult> {
-    let _ = ruflo;
-    vector // stub — TDD red (t-2734)
+    let covered = |rk: &str| -> bool {
+        if let Some(stem) = rk.strip_suffix("...") {
+            vector.iter().any(|v| v.key.starts_with(stem))
+        } else {
+            vector.iter().any(|v| v.key == rk)
+        }
+    };
+    let extras: Vec<SearchResult> = ruflo.into_iter().filter(|r| !covered(&r.key)).collect();
+    let mut merged = vector;
+    merged.extend(extras);
+    merged
 }
 
 /// `brana knowledge search <query> [--limit N] [--namespace NS] [--threshold T] [--json]`
+///
+/// Backing stores (t-2734 decision, recorded): the brana-owned vector store
+/// (`~/.claude/memory/knowledge.db`, the surviving record — same stack recall
+/// uses) is the **authoritative** semantic leg. Live ruflo is **demoted to a
+/// best-effort second leg** covering the fresh-writes window not yet
+/// vector-synced — one provider in a merge, never the sole backing store
+/// again. `--namespace` other than `knowledge` stays ruflo-only: the vector
+/// store holds only `knowledge:` entries.
 pub fn cmd_search(
     query: &str,
     limit: usize,
@@ -701,17 +718,79 @@ pub fn cmd_search(
     threshold: Option<f64>,
     json_output: bool,
 ) -> Result<()> {
-    let raw = call_ruflo_search(query, namespace, limit, threshold)?;
-    let results = parse_search_results(&raw)?;
-
-    if json_output {
-        let out = serde_json::to_string_pretty(&results)?;
-        println!("{out}");
-    } else {
-        println!("\n  \x1b[1mKnowledge Search\x1b[0m — \"{query}\" (namespace: {namespace})\n");
-        println!("{}", format_results(&results));
-        println!();
+    // Non-knowledge namespaces exist only in live ruflo — unchanged path.
+    if namespace != "knowledge" {
+        let raw = call_ruflo_search(query, namespace, limit, threshold)?;
+        let results = parse_search_results(&raw)?;
+        return print_search_output(query, namespace, &results, None, json_output);
     }
+
+    // Leg 1 — authoritative: brana vector store (full keys, verified by
+    // retrieval). Same construction as recall.rs; 0.25 is the f32 cosine
+    // threshold, a different knob from ruflo's DEFAULT_SEARCH_THRESHOLD.
+    use brana_core::search::{DocRef, SearchProvider};
+    use brana_core::vector::{RufloEmbedder, VectorProvider};
+    let provider = VectorProvider::new(
+        brana_core::vector::knowledge_db_path(),
+        std::sync::Arc::new(RufloEmbedder),
+    )
+    .with_threshold(0.25);
+    let vector_hits: Vec<SearchResult> = provider
+        .query(query, limit)
+        .into_iter()
+        .map(|h| SearchResult {
+            key: match h.doc {
+                DocRef::KnowledgeEntry { key, .. } => key,
+                DocRef::MemoryFile { slug, .. } => slug,
+            },
+            value: h.snippet,
+            score: h.rrf_score,
+            source: "vector".to_string(),
+        })
+        .collect();
+
+    // Leg 2 — best-effort: live ruflo (fresh-writes window). Fail-open: a
+    // missing/timed-out ruflo must not hide the authoritative leg.
+    let ruflo_hits: Vec<SearchResult> = call_ruflo_search(query, namespace, limit, threshold)
+        .ok()
+        .and_then(|raw| parse_search_results(&raw).ok())
+        .unwrap_or_default();
+
+    let (n_vector, n_ruflo) = (vector_hits.len(), ruflo_hits.len());
+    let results = merge_search_legs(vector_hits, ruflo_hits);
+    print_search_output(
+        query,
+        namespace,
+        &results,
+        Some((n_vector, n_ruflo)),
+        json_output,
+    )
+}
+
+/// Render search results. `leg_counts` (vector, ruflo) drives the coverage
+/// line — the AC-mandated signal that both stores were consulted, so a
+/// 4%-window regression can never again be silent.
+fn print_search_output(
+    query: &str,
+    namespace: &str,
+    results: &[SearchResult],
+    leg_counts: Option<(usize, usize)>,
+    json_output: bool,
+) -> Result<()> {
+    if json_output {
+        let out = serde_json::to_string_pretty(results)?;
+        println!("{out}");
+        if let Some((v, r)) = leg_counts {
+            eprintln!("coverage: vector store {v} hit(s), live ruflo {r} hit(s)");
+        }
+        return Ok(());
+    }
+    println!("\n  \x1b[1mKnowledge Search\x1b[0m — \"{query}\" (namespace: {namespace})\n");
+    println!("{}", format_results(results));
+    if let Some((v, r)) = leg_counts {
+        println!("\n  coverage: vector store {v} hit(s) · live ruflo {r} hit(s)");
+    }
+    println!();
     Ok(())
 }
 
