@@ -25,11 +25,18 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
         (queue)                (proposer)         (the human valve)                  (opens queue)     (this file)
 ```
 
-1. Tag the tasks: `brana backlog set t-N tags +wave:<name>`
+1. Tag the tasks: `brana backlog set t-N tags +wave:<name>` — or skip tagging
+   entirely with a `parent:<id>` selector (ADR-080 §1): the wave then matches
+   every descendant of a milestone/phase node via the parent chain.
 2. Create the wave: `brana backlog wave add --name <name> --selector tag:wave:<name> --contract "..."`
+   (or `--selector parent:<ms-id>` for plan-structure waves)
 3. Optionally bound it: `brana backlog wave set wave-N wip_limit 1`
 4. Approve each task's AC (**human-only** — see Denied verbs): `brana backlog ac t-N approve`
-5. Open the queue: `brana backlog wave drain wave-N`
+5. **Rehearse (optional, law 6):** `brana backlog wave pull wave-N --dry-run` —
+   reports the would-pull decision and writes nothing. Works on a still-queued
+   wave by simulating as-if-draining (labeled `simulated_draining` in the
+   output), so a graph can be checked before arming.
+6. Open the queue: `brana backlog wave drain wave-N`
 
 ## The loop prompt (supervised)
 
