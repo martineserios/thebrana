@@ -21,50 +21,33 @@ the agent's self-report or manually chase three different surfaces. The gap betw
 rubber-stamp and a real re-review is exactly whether this composition is visible at the
 decision point.
 
-## Decision Record (frozen 2026-08-14)
+## Decision Record
 
-> Do not modify after acceptance.
-
-**Context:** the deterministic-check loop that actually runs each AC-grammar heuristic
-lives only inside `goal-completion.sh`, wrapped in Stop-hook-specific policy (presence
-interlock, grader-immutability, `active-goal.json` state). An on-demand render at
-`ac approve` time has none of that context — no active goal, no session presence token
-— so the loop cannot be called as-is.
-
-**Decision:** extract the per-criterion **check-execution** logic (distinct from
-`ac-lint.sh`'s existing shape-only classifier) into a new standalone,
-read-only script, `system/scripts/ac-grade.sh <task-id> [--json]`. It reads
-`acceptance_criteria` directly via `brana backlog get`, runs the same 10 heuristics
-against the current working tree, and reports pass/fail/unknown per criterion — no
-state mutation, no Stop-hook gates. `goal-completion.sh` is refactored to call this
-script for its own check loop rather than carrying a second, independently-drifting
-copy (the exact drift class t-2856 fixed for the H9 gap and the injection-guard
-duplication — same lesson, applied at the module boundary this time instead of within
-one file).
-
-**Consequences:** `goal-completion.sh` shrinks to: call `ac-grade.sh`, then apply its
-own Stop-hook-only policy layer (presence, immutability, audit jsonl) on top of the
-grades it receives. Any future on-demand grading caller (this feature, a future TUI
-pane, a CI check) gets the real heuristic execution for free instead of re-deriving it.
-
-**Judged-layer convention (formalized, not invented):** `verify-gates.md` and
-`challenger-gate.md` already instruct writing `"Evaluator: {verdict} ({date}), ..."`
-and the Challenger Gate's blocking-rule verdicts (`PROCEED` / `PROCEED WITH CHANGES` /
-`RECONSIDER`) into task `notes` — this session's own t-2840/t-2856 closes did exactly
-this, unprompted, because it's what the skill procedures already say to write. This
-feature makes that convention **load-bearing**: `stacked-verdict` parses `notes` for
-lines matching `^Evaluator: (PASS|PASS WITH GAPS|FAIL)` and `^Challenger:
-(PROCEED(?: WITH CHANGES)?|RECONSIDER)`, most-recent-per-source wins. No new storage —
-existing free text, now also machine-read. If a task has no such lines, its judged
-layer reports `0 judged` (not an error — many tasks skip these gates by size/strategy).
+The load-bearing decisions (extraction boundary, allowlist consolidation, cwd
+resolution, and the notes-parsing contract) are recorded in
+[ADR-081](../decisions/ADR-081-stacked-verdict-evidence-composition.md) — promoted out
+of this spec per pre-DECOMPOSE challenger review (DDD: a decision that constrains other
+code's future dependencies belongs in a standalone ADR, referenced by filename, not
+embedded and self-declared frozen here). Read ADR-081 D1/D2 before touching any file in
+Scope below.
 
 ## Constraints
 
 - **Gauge law (wave-pipeline.md §skeleton match):** "MEASURE — external validators —
-  objective readout; **never self-assessment, never acts**." `stacked-verdict` reads
-  and renders; it never writes to `acceptance_criteria`, `ac_state`, `status`, or any
-  other task field. Verified by a boundary test asserting zero writes in the code path
-  (mirrors t-2844's own AC #2, same law, same test shape).
+  objective readout; **never self-assessment, never acts**." `stacked-verdict` never
+  writes to `acceptance_criteria`, `ac_state`, `status`, or any other task field —
+  verified by a boundary test asserting zero writes in the code path (mirrors t-2844's
+  own AC #2). **This is narrower than "never acts" in the literal sense** (ADR-081 D1):
+  grading a command-shaped criterion (heuristics 7/9/10) executes that command as a
+  subprocess — real action, real side effects, just not a task-field write. Docs and
+  any caller-facing surface must say this plainly; the gauge-law claim in this feature
+  is scoped to state mutation, not to "nothing happens."
+- **cwd resolution is not optional** (ADR-081 D1): `ac-grade.sh` MUST resolve its
+  working directory from the target task's own record (`branch` → `git worktree list`)
+  and refuse to run with a loud error on ambiguity — never fall back to the caller's
+  current directory. Concurrent per-task worktrees are a hard rule in this repo; a
+  silent-cwd default would let a human approve one task while grading a different
+  worktree's tree.
 - **Two call sites, one implementation** (t-2825 addendum item 6: "composition, not
   duplication"): `brana backlog ac <id> approve` prints the bundle before promoting;
   the merge moment is served by the same underlying command, not a second renderer.
@@ -79,14 +62,24 @@ layer reports `0 judged` (not an error — many tasks skip these gates by size/s
 ## Scope (v1)
 
 - `system/scripts/ac-grade.sh <task-id> [--json]` — standalone per-criterion check
-  execution (new, extracted from `goal-completion.sh`).
+  execution (new, extracted from `goal-completion.sh`). Resolves its own `WORK_DIR`
+  from the task's `branch` field via `git worktree list` (ADR-081 D1); errors loudly,
+  never defaults, if resolution is ambiguous or the task has no worktree.
+- `system/scripts/ac-lint.sh` **modified** (not just referenced) — its inline
+  `CMD_ALLOWLIST_RE`/allowlist-guard copy is removed; it sources/calls the single
+  definition that moves to `ac-grade.sh` (ADR-081 D1 — this is the actual
+  consolidation the t-2856 lesson requires, not just a `goal-completion.sh`-side move).
 - `goal-completion.sh` refactored to call `ac-grade.sh` instead of its own inline loop
   (no behavior change to the Stop-hook contract — same tests must stay green).
+- `system/skills/_shared/challenger-gate.md` — `Always log` template for the
+  PROCEED/PROCEED WITH CHANGES path (ADR-081 D2). *Already applied* (2026-08-14,
+  ahead of DECOMPOSE, since `stacked-verdict`'s parser depends on it existing).
 - New CLI: `brana backlog stacked-verdict <task-id> [--json]` (Rust, `brana-cli`) —
   composes the three layers into one line:
   `{X}/{N} AC machine-green · {Y} judged-pass ({verdicts}) · {Z} needs-you · receipt: {result}`
-  Shells to `ac-grade.sh --json` and `brana receipt validate --json`; reads `notes`
-  directly for the judged layer (in-process, no shell-out).
+  Shells to `ac-grade.sh --json` (which resolves its own worktree per ADR-081 D1) and
+  `brana receipt validate --json`; reads `notes` directly for the judged layer
+  (in-process, no shell-out).
 - `brana backlog ac <id> approve` prints the bundle (via the same composition function)
   immediately before promoting — informational only, does not gate the promotion.
 
@@ -145,9 +138,10 @@ future TUI pane to consume without re-parsing text.
 
 | Always | Ask First | Never |
 |--------|-----------|-------|
-| Render read-only from existing state (AC, notes, receipt) | Add a new judged-verdict source beyond Evaluator/Challenger | Write to any task field |
-| Show unknown/needs-you explicitly, never as 0 | Wire into the actual merge git-hook (t-2594 territory) | Auto-advance ac_state or status |
-| Keep `ac-grade.sh` behavior-identical to the code it replaces in goal-completion.sh | | Gate `ac approve`'s actual promotion on the bundle's contents |
+| Never write to any task field (`acceptance_criteria`, `ac_state`, `status`, `notes`) | Add a new judged-verdict source beyond Evaluator/Challenger | Fall back to the caller's cwd when the target worktree can't be resolved |
+| Disclose that command-shaped criteria (H7/H9/H10) execute subprocesses when graded | Wire into the actual merge git-hook (t-2594 territory) | Auto-advance ac_state or status |
+| Show unknown/needs-you explicitly, never as 0 | | Gate `ac approve`'s actual promotion on the bundle's contents |
+| Keep `ac-grade.sh` behavior-identical to the heuristic logic it replaces in goal-completion.sh | | |
 
 ## Testing Strategy
 
@@ -174,4 +168,14 @@ future TUI pane to consume without re-parsing text.
 
 ## Challenger findings
 
-{populated by pre-DECOMPOSE challenger review below}
+Pre-DECOMPOSE review (2026-08-14): RECONSIDER, 3 CRITICAL (score 4) + 1 WARNING (score 3).
+All folded in before acceptance:
+1. **ac-lint.sh sibling copy unconsolidated** — fixed: Scope now names the file and the
+   consolidation explicitly; ADR-081 D1 records why.
+2. **Notes convention asymmetric** — fixed: `challenger-gate.md` now carries the
+   matching `Always log` template (ADR-081 D2); applied same-day, ahead of DECOMPOSE.
+3. **ac-grade.sh cwd unanchored + execution mislabeled "read-only"** — fixed: Scope and
+   Constraints now require branch/worktree resolution with a loud-error fallback, and
+   the gauge-law claim is scoped correctly to state mutation, not subprocess execution.
+4. **WARNING — Decision Record should be a standalone ADR** — fixed: promoted to
+   ADR-081, spec now references it by filename.
