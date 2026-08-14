@@ -82,7 +82,11 @@ FIX_WORKTREE="$TMPDIR_TEST/fix-worktree"
 git -C "$MAIN_REPO" worktree add -q "$FIX_WORKTREE" "stub/fix-branch" 2>/dev/null
 echo "fixture" > "$FIX_WORKTREE/fixture.md"
 
+# resolve-brana.sh checks CLAUDE_PLUGIN_DATA first, ahead of PATH — override it
+# (not PATH) so the stub actually wins over any real installed brana, matching
+# the established pattern in test-goal-completion.sh's G1-G9 fixtures.
 export PATH="$STUBDIR:$PATH"
+export CLAUDE_PLUGIN_DATA="$STUBDIR"
 
 # ── Worktree resolution: branch → real worktree path ─────────────────────────
 echo "Test: worktree resolution finds the right path for a recorded branch"
