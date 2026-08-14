@@ -523,6 +523,15 @@ pub struct SearchResult {
     pub value: String,
     #[serde(default)]
     pub score: f64,
+    /// Which store produced this hit: "vector" (brana-owned store, full keys,
+    /// authoritative) or "ruflo" (live store — fresh-writes window; table
+    /// output may truncate keys). Default keeps old JSON deserializable.
+    #[serde(default = "default_source")]
+    pub source: String,
+}
+
+fn default_source() -> String {
+    "ruflo".to_string()
 }
 
 /// Parse ruflo memory search output into `SearchResult` entries.
@@ -607,7 +616,7 @@ fn parse_table_results(text: &str) -> Result<Vec<SearchResult>> {
         let key = parts[0].to_string();
         let score: f64 = parts[1].parse().unwrap_or(0.0);
         let value = parts.get(3).copied().unwrap_or("").to_string();
-        results.push(SearchResult { key, value, score });
+        results.push(SearchResult { key, value, score, source: default_source() });
     }
     Ok(results)
 }
@@ -673,7 +682,35 @@ fn call_ruflo_search(
     .ok_or_else(|| anyhow::anyhow!("ruflo not found or timed out — run `brana knowledge reindex` first"))
 }
 
+/// Merge the two search legs (t-2734): vector-store hits (authoritative,
+/// full keys) first, then live-ruflo extras that are not already covered.
+///
+/// Dedup is truncation-aware: ruflo's table output truncates keys
+/// (`knowledge:feed:re...`), so a ruflo key ending in `...` is considered
+/// covered when its stem prefixes any vector key.
+fn merge_search_legs(vector: Vec<SearchResult>, ruflo: Vec<SearchResult>) -> Vec<SearchResult> {
+    let covered = |rk: &str| -> bool {
+        if let Some(stem) = rk.strip_suffix("...") {
+            vector.iter().any(|v| v.key.starts_with(stem))
+        } else {
+            vector.iter().any(|v| v.key == rk)
+        }
+    };
+    let extras: Vec<SearchResult> = ruflo.into_iter().filter(|r| !covered(&r.key)).collect();
+    let mut merged = vector;
+    merged.extend(extras);
+    merged
+}
+
 /// `brana knowledge search <query> [--limit N] [--namespace NS] [--threshold T] [--json]`
+///
+/// Backing stores (t-2734 decision, recorded): the brana-owned vector store
+/// (`~/.claude/memory/knowledge.db`, the surviving record — same stack recall
+/// uses) is the **authoritative** semantic leg. Live ruflo is **demoted to a
+/// best-effort second leg** covering the fresh-writes window not yet
+/// vector-synced — one provider in a merge, never the sole backing store
+/// again. `--namespace` other than `knowledge` stays ruflo-only: the vector
+/// store holds only `knowledge:` entries.
 pub fn cmd_search(
     query: &str,
     limit: usize,
@@ -681,17 +718,79 @@ pub fn cmd_search(
     threshold: Option<f64>,
     json_output: bool,
 ) -> Result<()> {
-    let raw = call_ruflo_search(query, namespace, limit, threshold)?;
-    let results = parse_search_results(&raw)?;
-
-    if json_output {
-        let out = serde_json::to_string_pretty(&results)?;
-        println!("{out}");
-    } else {
-        println!("\n  \x1b[1mKnowledge Search\x1b[0m — \"{query}\" (namespace: {namespace})\n");
-        println!("{}", format_results(&results));
-        println!();
+    // Non-knowledge namespaces exist only in live ruflo — unchanged path.
+    if namespace != "knowledge" {
+        let raw = call_ruflo_search(query, namespace, limit, threshold)?;
+        let results = parse_search_results(&raw)?;
+        return print_search_output(query, namespace, &results, None, json_output);
     }
+
+    // Leg 1 — authoritative: brana vector store (full keys, verified by
+    // retrieval). Same construction as recall.rs; 0.25 is the f32 cosine
+    // threshold, a different knob from ruflo's DEFAULT_SEARCH_THRESHOLD.
+    use brana_core::search::{DocRef, SearchProvider};
+    use brana_core::vector::{RufloEmbedder, VectorProvider};
+    let provider = VectorProvider::new(
+        brana_core::vector::knowledge_db_path(),
+        std::sync::Arc::new(RufloEmbedder),
+    )
+    .with_threshold(0.25);
+    let vector_hits: Vec<SearchResult> = provider
+        .query(query, limit)
+        .into_iter()
+        .map(|h| SearchResult {
+            key: match h.doc {
+                DocRef::KnowledgeEntry { key, .. } => key,
+                DocRef::MemoryFile { slug, .. } => slug,
+            },
+            value: h.snippet,
+            score: h.rrf_score,
+            source: "vector".to_string(),
+        })
+        .collect();
+
+    // Leg 2 — best-effort: live ruflo (fresh-writes window). Fail-open: a
+    // missing/timed-out ruflo must not hide the authoritative leg.
+    let ruflo_hits: Vec<SearchResult> = call_ruflo_search(query, namespace, limit, threshold)
+        .ok()
+        .and_then(|raw| parse_search_results(&raw).ok())
+        .unwrap_or_default();
+
+    let (n_vector, n_ruflo) = (vector_hits.len(), ruflo_hits.len());
+    let results = merge_search_legs(vector_hits, ruflo_hits);
+    print_search_output(
+        query,
+        namespace,
+        &results,
+        Some((n_vector, n_ruflo)),
+        json_output,
+    )
+}
+
+/// Render search results. `leg_counts` (vector, ruflo) drives the coverage
+/// line — the AC-mandated signal that both stores were consulted, so a
+/// 4%-window regression can never again be silent.
+fn print_search_output(
+    query: &str,
+    namespace: &str,
+    results: &[SearchResult],
+    leg_counts: Option<(usize, usize)>,
+    json_output: bool,
+) -> Result<()> {
+    if json_output {
+        let out = serde_json::to_string_pretty(results)?;
+        println!("{out}");
+        if let Some((v, r)) = leg_counts {
+            eprintln!("coverage: vector store {v} hit(s), live ruflo {r} hit(s)");
+        }
+        return Ok(());
+    }
+    println!("\n  \x1b[1mKnowledge Search\x1b[0m — \"{query}\" (namespace: {namespace})\n");
+    println!("{}", format_results(results));
+    if let Some((v, r)) = leg_counts {
+        println!("\n  coverage: vector store {v} hit(s) · live ruflo {r} hit(s)");
+    }
+    println!();
     Ok(())
 }
 
@@ -2419,7 +2518,7 @@ mod tests {
         let results = vec![SearchResult {
             key: "knowledge:docs/reflections/31-assurance.md:testing".into(),
             value: "Testing and assurance framework overview".into(),
-            score: 0.82,
+            score: 0.82, source: default_source(),
         }];
         let out = format_results(&results);
         assert!(out.contains("1."), "should contain rank number");
@@ -2431,9 +2530,9 @@ mod tests {
     #[test]
     fn test_format_multiple_results_numbered_sequentially() {
         let results = vec![
-            SearchResult { key: "k:a".into(), value: "first".into(), score: 0.9 },
-            SearchResult { key: "k:b".into(), value: "second".into(), score: 0.7 },
-            SearchResult { key: "k:c".into(), value: "third".into(), score: 0.5 },
+            SearchResult { key: "k:a".into(), value: "first".into(), score: 0.9, source: default_source() },
+            SearchResult { key: "k:b".into(), value: "second".into(), score: 0.7, source: default_source() },
+            SearchResult { key: "k:c".into(), value: "third".into(), score: 0.5, source: default_source() },
         ];
         let out = format_results(&results);
         assert!(out.contains("1."));
@@ -2451,7 +2550,7 @@ mod tests {
         let results = vec![SearchResult {
             key: "k:long".into(),
             value: long_value,
-            score: 0.5,
+            score: 0.5, source: default_source(),
         }];
         let out = format_results(&results);
         // Value preview line should end with "..." due to truncation
@@ -2463,11 +2562,66 @@ mod tests {
         let results = vec![SearchResult {
             key: "k:precise".into(),
             value: "some content".into(),
-            score: 0.123456,
+            score: 0.123456, source: default_source(),
         }];
         let out = format_results(&results);
         // Score should be formatted with 2 decimal places
         assert!(out.contains("[0.12]"), "score should be 2 decimal places, got: {out}");
+    }
+
+    // ── merge_search_legs (t-2734) ───────────────────────────────────────
+
+    fn sr(key: &str, score: f64, source: &str) -> SearchResult {
+        SearchResult {
+            key: key.into(),
+            value: format!("value for {key}"),
+            score,
+            source: source.into(),
+        }
+    }
+
+    #[test]
+    fn test_merge_vector_first_then_ruflo_extras() {
+        // AC (t-2734): an entry present only in the vector store must be
+        // findable; ruflo extras (fresh-writes window) follow, source-tagged.
+        let vector = vec![sr("knowledge:feature:only-in-vector", 0.9, "vector")];
+        let ruflo = vec![sr("knowledge:feed:fresh-write", 0.8, "ruflo")];
+        let merged = merge_search_legs(vector, ruflo);
+        assert_eq!(merged.len(), 2);
+        assert_eq!(merged[0].key, "knowledge:feature:only-in-vector");
+        assert_eq!(merged[0].source, "vector");
+        assert_eq!(merged[1].key, "knowledge:feed:fresh-write");
+        assert_eq!(merged[1].source, "ruflo");
+    }
+
+    #[test]
+    fn test_merge_dedups_exact_key() {
+        let vector = vec![sr("knowledge:feed:same", 0.9, "vector")];
+        let ruflo = vec![sr("knowledge:feed:same", 0.7, "ruflo")];
+        let merged = merge_search_legs(vector, ruflo);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].source, "vector");
+    }
+
+    #[test]
+    fn test_merge_dedups_truncated_ruflo_key() {
+        // ruflo table output truncates keys — a `...` stem that prefixes a
+        // vector key is the same entry, not an extra.
+        let vector = vec![sr("knowledge:feed:release-notes-2026", 0.9, "vector")];
+        let ruflo = vec![sr("knowledge:feed:re...", 0.7, "ruflo")];
+        let merged = merge_search_legs(vector, ruflo);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].key, "knowledge:feed:release-notes-2026");
+    }
+
+    #[test]
+    fn test_merge_keeps_unrelated_truncated_key() {
+        // A truncated stem that matches NO vector key is a genuine extra —
+        // keep it (display-grade identity is better than silence).
+        let vector = vec![sr("knowledge:feature:x", 0.9, "vector")];
+        let ruflo = vec![sr("knowledge:url:someth...", 0.7, "ruflo")];
+        let merged = merge_search_legs(vector, ruflo);
+        assert_eq!(merged.len(), 2);
     }
 
     // ── build_draft_content ──────────────────────────────────────────────
