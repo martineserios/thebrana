@@ -177,6 +177,33 @@ assert_eq "control_arm preserved"       "1" "$(jq -s '.[0].control_arm.panel_fin
 assert_eq "no control_arm key when omitted" "null" "$(jq -s '.[1].control_arm' "$RLOG")"
 assert_eq "roundtrip feeds area weight" "1" "$(judge_area_weight 'system/hooks' "$RLOG")"
 
+echo "=== challenger-gate wiring contract (t-2905) ==="
+GATE_MD="$REPO_ROOT/system/skills/_shared/challenger-gate.md"
+TOTAL=$((TOTAL + 1))
+if grep -q '## Sizing valve' "$GATE_MD"; then
+    echo "  PASS: gate carries the Sizing valve section"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: gate has no '## Sizing valve' section"; FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if grep -q 'structural siblings outside the diff' "$GATE_MD"; then
+    echo "  PASS: spawn prompt carries the sibling-verdict field (signal 4 source)"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: spawn prompt missing the sibling-verdict question"; FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if grep -q 'control_arm' "$GATE_MD"; then
+    echo "  PASS: gate carries the control-arm counter contract"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: gate has no control_arm contract"; FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if grep -q 'judge-sizing.md\|resolve_judge_rung' "$GATE_MD"; then
+    echo "  PASS: gate references the sizing authority (never restates the ladder)"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: gate does not reference judge-sizing.md"; FAIL=$((FAIL + 1))
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "Total: $TOTAL | Passed: $PASS | Failed: $FAIL"
