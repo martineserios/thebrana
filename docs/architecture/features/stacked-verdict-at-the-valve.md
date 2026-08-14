@@ -1,7 +1,7 @@
 # Feature: Stacked verdict at the valve
 
 **Date:** 2026-08-14
-**Status:** specifying
+**Status:** shipped
 **Task:** t-2857
 
 ## Problem
@@ -193,3 +193,25 @@ All folded in before acceptance:
    the gauge-law claim is scoped correctly to state mutation, not subprocess execution.
 4. **WARNING — Decision Record should be a standalone ADR** — fixed: promoted to
    ADR-081, spec now references it by filename.
+
+## Retrospective learnings (post-BUILD)
+
+Post-build challenger gate (on the real code diff, not the spec) found 3 more score-3-or-below
+items, all folded in: AC1's "evidence links" clause was under-delivered (counts only — fixed by
+passing `ac-grade.sh`'s `graded[]` detail + an audit-file pointer through `--json`); the promised
+zero-writes integration test was missing (added `stacked_verdict_smoke.rs`); `run_ac_grade`'s
+repo_root ignored an explicit `--file` override (fixed). AC3's wording ("works for both ac-approve
+and merge moments") risks being read as "the merge hook already calls this" — it doesn't; only the
+bundle is available for a future merge-hook integration (t-2594) to use. State that scoping
+explicitly wherever AC3 is cited, not just in ADR-081.
+
+Three real bugs surfaced by manual smoke testing against live tasks in this repo — none caught by
+pure-function unit tests alone, since each was a subprocess/path-resolution defect invisible to
+logic-only tests: a `grep -c ... || echo 0` double-echo in `ac-grade.sh`'s worktree-match counting
+that corrupted a count string and masked the real error; a grading-semantics gap where the
+Stop-hook needed to grade against `active-goal.json`'s frozen snapshot, not live `tasks.json`
+(closed with `--criteria-json`); and a `repo_root` computed from `tasks.json`'s `--git-common-dir`
+path instead of the invoking process's own checkout, silently defeating script lookup pre-merge.
+Lesson for future M+ builds touching subprocess orchestration: run the compiled binary against a
+real fixture before calling BUILD done, even when unit tests are green — they cover different
+failure classes.
