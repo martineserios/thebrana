@@ -1,6 +1,6 @@
 # Construction Budget Automation
 
-> Brainstormed 2026-03-26. Status: idea (paused — waiting for sample CAD/PDF files).
+> Brainstormed 2026-03-26. Status: **deferred** (2026-08-14, idea-pool drain review) — was paused waiting for sample CAD/PDF files; explicitly deferred until they arrive or the engagement resurfaces. Not solved, not discarded — revisit on the next pool drain.
 
 ## Problem
 
