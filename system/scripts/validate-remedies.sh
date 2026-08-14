@@ -127,6 +127,8 @@ declare -A REMEDY_REGISTRY=(
   [66]="NO_REMEDY:not-fixable — regression test; needs an arbitrary code fix in statusline.sh"
   [67]="NO_REMEDY:deferred-wave2 — mechanical but medium-risk (repo-wide reference rewrite); not wired in v1"
   [68]="NO_REMEDY:not-fixable — explicit author intent — the check's own message states it never auto-corrects, by design"
+  [69]="NO_REMEDY:judgment-required — a non-canonical work_type/type value needs a per-task decision about which canonical value was intended"
+  [70]="NO_REMEDY:not-fixable — test-suite failures need arbitrary code fixes in the failing hooks, same as Checks 65/66"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
