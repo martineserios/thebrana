@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T01:37:23Z",
+  "generated": "2026-08-14T02:24:02Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -10934,6 +10934,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "ideas/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "ideas/ruflo-native-integration.md",
       "type": "references",
       "computed": false
@@ -14755,8 +14761,26 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/loop-first-redesign.md",
+      "to": "wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loops-library.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/loops-library.md",
       "to": "loop-first-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loops-library.md",
+      "to": "wave-pipeline.md",
       "type": "references",
       "computed": false
     },
@@ -16221,7 +16245,7 @@
   ],
   "stats": {
     "nodes": 565,
-    "edges": 2054,
+    "edges": 2058,
     "typed_edges": 686,
     "orphans": 150
   }
