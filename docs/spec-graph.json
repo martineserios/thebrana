@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T11:28:43Z",
+  "generated": "2026-08-14T12:58:17Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -612,9 +612,10 @@
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/goal-completion.sh",
-        "system/hooks/goal-completion.sh:59-206",
         "system/hooks/",
-        "system/skills/build/phases/load.md"
+        "system/skills/build/phases/load.md",
+        "system/hooks/tests/test-goal-completion.sh",
+        "system/scripts/ac-lint.sh"
       ]
     },
     "docs/architecture/agentic-primitives.md": {
@@ -3391,6 +3392,11 @@
     },
     "docs/ideas/drained/universal-doc-graph.md": {
       "title": "Universal Doc Graph",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/drained/wave-pipeline-infographic-prompt.md": {
+      "title": "NotebookLM infographic prompt — The Wave Pipeline",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -10987,6 +10993,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "ideas/drained/wave-pipeline-infographic-prompt.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "ideas/drained/wave-pipeline.md",
       "type": "references",
       "computed": false
@@ -11102,6 +11114,12 @@
     {
       "from": "docs/architecture/ac-grammar.md",
       "to": "decisions/ADR-047-acceptance-criteria-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/ac-grammar.md",
+      "to": "docs/research/2026-08-14-agent-work-contracts.md",
       "type": "references",
       "computed": false
     },
@@ -12266,6 +12284,12 @@
     {
       "from": "docs/architecture/features/wave-gate-enforcement.md",
       "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-gate-enforcement.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "type": "references",
       "computed": false
     },
@@ -15060,6 +15084,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/drained/wave-pipeline-infographic-prompt.md",
+      "to": "wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/wave-pipeline.md",
       "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
       "type": "references",
@@ -15098,6 +15128,12 @@
     {
       "from": "docs/ideas/drained/wave-pipeline.md",
       "to": "wave-pipeline-design.html",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline.md",
+      "to": "wave-pipeline-infographic-prompt.md",
       "type": "references",
       "computed": false
     },
@@ -16357,9 +16393,9 @@
     }
   ],
   "stats": {
-    "nodes": 568,
-    "edges": 2073,
+    "nodes": 569,
+    "edges": 2078,
     "typed_edges": 686,
-    "orphans": 159
+    "orphans": 158
   }
 }
