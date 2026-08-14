@@ -129,3 +129,19 @@ Six tasks created via `backlog_add`, parented to `t-2830`, tagged `skills,wave:d
 
 - No `research-sources.yaml` entry exists for `mattpocock/skills` or `aihero.dev` — not proposing one; this is a one-off skill-system comparison, not a recurring-cadence source (no ongoing "check for updates" value the way a framework doc would have).
 - Doc-drift finding (§3): `docs/ideas/gentle-ai-adoption-ladder.md` line ~111 misstates that `domain-driven-design/SKILL.md` carries `disable-model-invocation: true` — it does not, as of 2026-08-13. Worth a small correction pass next time that doc is touched; not fixed here (out of this task's scope — it's an ideas doc, not authoritative).
+
+---
+
+## 7. Integration model — depend, don't fork (added 2026-08-14)
+
+Decision direction from the follow-up studio session (feeds t-2838; supersedes any read of §4 as "copy his content"):
+
+**Three modes, per skill:**
+
+1. **DEPEND** — install his plugin verbatim, **pinned**, wrapped by ~10-line brana adapter skills that map inputs (tasks.json/context vocab → his expectations) and route output artifacts to brana homes. Applies to the artifact-shaped organs: `grilling`, `tdd`, `diagnosing-bugs`, `writing-for-agents`, `wizard`, `resolving-merge-conflicts`, `prototype`. This is his own thin-composition pattern with the organ upstream — we inherit his updates and versioning instead of maintaining drifted copies.
+2. **ADAPT** — his *idea* applied to our machinery, nothing to import: spine doc (t-2831), `disable-model-invocation` taxonomy (t-2832), two-axis review in our reviewer agents (t-2835).
+3. **SKIP** — ours is a superset (`research`, `handoff`, git-guardrails) or his is stack-coupled (TS/Husky misc tier).
+
+**Update discipline (non-negotiable):** upstream skills are prompt-code executing inside our agent — an unpinned dependency lets upstream change our organs' behavior unreviewed. So: pin the version · a release-watch gauge surfaces new versions with diffs in the cockpit digest · a human valve approves the bump. Updates are queue items through a valve, never auto-pulls.
+
+**Open gate:** verify the repo's license permits this usage before shipping any wrapper.

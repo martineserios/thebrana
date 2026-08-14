@@ -43,7 +43,7 @@ each recalls from it on entry (LOAD, wave state, task context) and writes back o
 fourth accumulates. (Proven in the first live drain: beat 2 read its build map from the
 task's `context` field, not from the conversation.)
 
-## The spectrum — rings are sample points (studio dialogue, 2026-08-14)
+## The spectrum — rings are sample points
 
 The four rings are not an ontology. They are **different frequencies of the same wave** —
 one subject oscillating at four rates, superimposed harmonics of one continuous signal —
@@ -144,7 +144,7 @@ valve is a discontinuity where flow may stop dead. Continuous wave as the medium
 discrete instruments mounted in it. The frequency lens covers the timescale structure,
 never the parts catalog — the four primitives remain the vocabulary for the machinery.
 
-## The five pillars (merged 2026-08-14)
+## The five pillars
 
 Five independently built perspectives converge on this one object; the merge is the aim,
 because each looks along a different axis and corrects the others:
@@ -219,6 +219,30 @@ cockpit digest; *needs thinking* → a **studio agenda** queue for the next desi
 conversation, never the interrupt stream. When unsure, route to the agenda —
 under-escalating a design question into a rubber-stamp is the worse failure.
 
+## Session lifecycle in the loop world
+
+Sessions are **disposable read/write heads over durable state**, not where state lives.
+Consequences for the session-band apparatus:
+
+- **Close decomposes into distributed ASSIMILATE.** Learning extraction, handoff, and
+  pattern storage stop being an end-of-session ceremony: every beat writes its record,
+  task context, and staging entries at exit. What remains of `/close` is a thin
+  session-band valve — the human confirming what enters `next[]` and what counts. Loop
+  sessions never call close; their beat record *is* their close.
+- **Sitrep becomes ORIENT.** Loops re-orient every beat from durable stores and need no
+  reconstruction; sitrep survives as the *human's* gauge — rendering wave board, beat
+  records, and `next[]` after time away, instead of excavating a dying context.
+- **Cross-session learning is a pipeline, not a feature:** capture (every beat, free) →
+  `knowledge-staging` queue (cap = WIP bound) → distiller pump → curation valve
+  (cockpit digest) → reservoir, with hygiene gauges measuring staleness and a
+  retirement path (law 7 for knowledge). This materializes the knowledge band's missing
+  MEASURE/JUDGE (t-2851 pump · t-2852 valve-feeder · t-2853 gauge).
+- **Context economy is law 5 applied to sessions:** lean dedicated loop sessions
+  (~100× cheaper than piggybacking, probe-measured), cheap no-op preflight, a named
+  session-recreation cadence (sessions regrow fat from turn count alone), and a slim
+  resident harness (on-demand skill shelf, `disable-model-invocation` taxonomy).
+  Killing a session must always be a non-event.
+
 ## The seven operating laws
 
 1. **Loops never talk to each other — queues do.** Coordination is backpressure; the
@@ -236,7 +260,7 @@ under-escalating a design question into a rubber-stamp is the worse failure.
 7. **Lifecycle needs a stance** — 7-day expiry, Esc-kill, no pause/resume: retirement and
    re-arming, not just birth.
 
-## Status (2026-08-14)
+## Status (2026-08-14, post-ADR-080)
 
 **Shipped and deployed** (dev→main, bootstrap + release binaries): `wave drain` (t-2775) ·
 `ac approve` (t-2812) · `wip_limit` + draining freeze (t-2782) · atomic `wave pull` +
@@ -244,7 +268,29 @@ under-escalating a design question into a rubber-stamp is the worse failure.
 itself over 8 supervised `/loop` beats). Wave-1 completed the first full lifecycle:
 queued → draining → **shipped**.
 
-**Open:** t-2828 (plan-time wave graphs + epic runner — owns the corpus and the
-two-epic reconciliation with t-2820 loop-first) · t-2827 (approve-denial as technical
-control) · **leases** (a crashed pump strands its pulled task — known gap, design owned
-by t-2828) · unattended mode (hard-gated on the ADR-062 sandbox).
+**Designed, implementation queued:**
+[ADR-080](../architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md)
+**accepted** (t-2828 completed) — plan-time wave graphs, epic-drain runner, leases with
+evidence-gated reclaim, watchdog gauge/reclaimer-pump split. Implementation tree:
+milestone t-2839 (t-2840–t-2846) + t-2847, draining via wave-3 `adr080-core` → wave-4
+`adr080-consumers` (first live `parent:` selector). Behind them: the Pocock-mining
+batch (t-2831–t-2836, `wave:drain-3`, gated on adr080-consumers), the knowledge-band
+trio (t-2851–t-2853), and the skill-system rethink map (t-2838).
+
+**Open:** t-2827 (approve-denial as technical control) · unattended mode (hard-gated on
+the ADR-062 sandbox).
+
+## Changelog
+
+One line per substantive revision — the temporal ledger. Reasoning history lives in git,
+task contexts, and ADRs; this doc keeps only current state.
+
+- 2026-08-14 · born from [loop-first-redesign.md](loop-first-redesign.md); four rings,
+  four primitives, seven laws, two rooms (t-2828 corpus).
+- 2026-08-14 · spectrum lens: rings as sample points, layer test, low-pass human,
+  try→feedback→improve fundamental (studio dialogue).
+- 2026-08-14 · skeleton match (doc 60 isomorphism), materialization (= a new brana),
+  five pillars incl. Pocock convergence ([study](../research/2026-08-13-matt-pocock-skill-system.md))
+  and lived-practice factoring diagnosis.
+- 2026-08-14 · ADR-080 accepted (mechanics cross-ref); session-lifecycle section;
+  status refreshed to post-ADR-080.
