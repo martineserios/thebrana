@@ -150,6 +150,8 @@ pub fn cmd_stacked_verdict(task_id: &str, json: bool, file: Option<PathBuf>) -> 
                 "judged": {"pass": bundle.judged.pass, "fail": bundle.judged.fail},
                 "receipt": bundle.receipt.render(),
                 "line": bundle.line,
+                "graded": bundle.graded_detail,
+                "audit_file": bundle.audit_file.map(|p| p.display().to_string()),
             })
         );
     } else {
@@ -163,9 +165,17 @@ struct Bundle {
     judged: JudgedCounts,
     receipt: ReceiptStatus,
     line: String,
+    /// Per-criterion {criterion, verdict} detail from ac-grade.sh — the
+    /// evidence link AC1 promises, not just aggregate counts.
+    graded_detail: Value,
+    /// Path to the Stop-hook's per-criterion audit trail, if one exists for
+    /// this task (goal-completion.sh writes it; a task never graded through
+    /// the Stop hook has none — that's expected, not an error).
+    audit_file: Option<PathBuf>,
 }
 
 fn compute_bundle(task_id: &str, file: Option<PathBuf>) -> Result<Bundle> {
+    let explicit_file = file.is_some();
     let tf = match file {
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
@@ -182,28 +192,63 @@ fn compute_bundle(task_id: &str, file: Option<PathBuf>) -> Result<Bundle> {
 
     // repo_root for LOCATING ac-grade.sh must be the invoking process's own
     // checkout (`git rev-parse --show-toplevel` from cwd) — NOT derived from
-    // tasks.json's path. tasks.json deliberately resolves via
-    // `--git-common-dir` (shared across every worktree, by design — the
-    // single source of truth for task state), which on a feature branch
-    // points at the MAIN checkout. That checkout may not yet have this
-    // branch's own system/scripts/ac-grade.sh, silently defeating the
-    // grading call. Matches how ac-grade.sh's own worktree resolution and
-    // `brana receipt validate`'s repo_root() already work: both assume the
-    // invoking cwd IS the relevant checkout. Found via manual smoke test —
-    // the unit tests below cover composition logic, not this subprocess
-    // path-resolution mismatch, which only surfaces against a real repo.
-    let repo_root = current_repo_root().unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+    // the AUTO-DISCOVERED tasks.json's path. Auto-discovery deliberately
+    // resolves via `--git-common-dir` (shared across every worktree, by
+    // design — the single source of truth for task state), which on a
+    // feature branch points at the MAIN checkout. That checkout may not yet
+    // have this branch's own system/scripts/ac-grade.sh, silently defeating
+    // the grading call. Matches how ac-grade.sh's own worktree resolution
+    // and `brana receipt validate`'s repo_root() already work: both assume
+    // the invoking cwd IS the relevant checkout. Found via manual smoke test.
+    //
+    // Exception (post-build challenger finding, score 2): when the CALLER
+    // passes an EXPLICIT --file, that is a deliberate signal about which
+    // repo they mean — derive repo_root from that path's own ancestry
+    // (assumes the standard `<root>/.claude/tasks.json` layout) rather than
+    // the invoking process's cwd, so cross-repo `--file` usage (tests,
+    // programmatic callers) grades against the repo the caller actually
+    // named, not wherever `brana` happens to be running from.
+    let repo_root = if explicit_file {
+        tf.parent()
+            .and_then(|p| p.parent())
+            .map(|p| p.to_path_buf())
+            .or_else(current_repo_root)
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default())
+    } else {
+        current_repo_root().unwrap_or_else(|| std::env::current_dir().unwrap_or_default())
+    };
 
-    let grade = run_ac_grade(&repo_root, task_id)
-        .map(|v| grade_counts_from_json(&v))
+    let grade_json = run_ac_grade(&repo_root, task_id);
+    let grade = grade_json
+        .as_ref()
+        .map(grade_counts_from_json)
         .unwrap_or_default();
+    // Post-build challenger finding (score 3, AC1 "evidence links"): counts
+    // alone reproduce the "chase three surfaces by hand" problem this
+    // feature exists to eliminate. Pass the per-criterion detail through —
+    // ac-grade.sh already computed it, this was previously discarded.
+    let graded_detail = grade_json
+        .as_ref()
+        .and_then(|v| v.get("graded"))
+        .cloned()
+        .unwrap_or_else(|| Value::Array(vec![]));
 
     let receipt = run_receipt_validate(task_id)
         .map(|v| receipt_status_from_json(&v))
         .unwrap_or(ReceiptStatus::NoneMinted);
 
+    // Second evidence link: the audit jsonl goal-completion.sh writes per
+    // criterion (same run_ac_grade contract) — point at it if it exists,
+    // rather than making the reader guess the path.
+    let audit_file = dirs_audit_path(task_id).filter(|p| p.exists());
+
     let line = compose_line(&grade, judged, &receipt);
-    Ok(Bundle { grade, judged, receipt, line })
+    Ok(Bundle { grade, judged, receipt, line, graded_detail, audit_file })
+}
+
+fn dirs_audit_path(task_id: &str) -> Option<PathBuf> {
+    let home = std::env::var_os("HOME")?;
+    Some(PathBuf::from(home).join(".claude/run-state").join(format!("{task_id}-audit.jsonl")))
 }
 
 /// For `ac approve` (t-2872): render the bundle line, best-effort. `None` on
