@@ -83,8 +83,15 @@ It is the sanctioned transition to `ac_state:approved` and does two things atomi
   verb ("use `backlog ac <id> approve`"). Without this the verb's precondition is
   decorative — today `set_field` accepts `approved` with empty AC. The other transitions
   (`none`/`proposed`/`null`) remain settable generically.
-- **Human-only gate, structurally.** The loop runner's tool manifest (allowedTools/deny
-  list, t-2813) **denies** `backlog ac approve` and `backlog_ac_approve`. The whole point of
+- **Human-only gate, structurally.** Two enforcement layers by runner shape (t-2827 —
+  this bullet originally claimed a single "tool manifest", which only ever existed for
+  one of the two): headless runners (`autonomous-runner.sh`) pass a real `--allowedTools`
+  manifest to `claude -p`; interactive `/loop` runner sessions have no manifest mechanism,
+  so the human launches them with `BRANA_RUNNER=1` in the environment and the
+  `runner-verb-guard.sh` PreToolUse hook **denies** `backlog ac approve`,
+  `backlog_ac_approve`, and the wider denied-verb list (wave approve, wave
+  `status shipped`/`gate`/`selector` edits, `git merge`/`push` — ADR-080 §3/§4). The
+  agent cannot modify the harness env, so it cannot disarm the guard. The whole point of
   `approved` is a human trust boundary between selector-match and autonomous execution; a
   gate armed by the party it constrains is no gate
   (`pattern_gate-armed-by-the-party-it-constrains`, ADR-076 D4). Approval happens in an
@@ -197,7 +204,8 @@ deferring only the numeric default to real usage data:
   `set_field`'s `acceptance_criteria` arm, and wiring t-2813's approved-filter. `ac add`
   stays out.
 - **t-2813** (loop runner, capstone): §2 + §2b + §3's atomic pull. Stays `blocked_by`
-  t-2775/t-2782/t-2812. Its tool manifest denies the approve verb (§1). Unattended mode is
+  t-2775/t-2782/t-2812. Its session denies the approve verb via the §1 enforcement layers
+  (headless manifest / `BRANA_RUNNER`-armed hook, t-2827). Unattended mode is
   additionally gated on ADR-062's sandbox. Converges with the ADR-074/t-1994 foreman
   contract when that lands — this is the interim, not a competing loop architecture.
 - **t-2782** (WIP-on-waves): design questions resolved by §3; remaining scope: `wip_limit`
