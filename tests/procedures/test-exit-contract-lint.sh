@@ -155,6 +155,10 @@ assert_exit "indented if-wrapped call -> exit 0" 0 "$RC"
 run_lint "$(mkdiff foo.sh '+prev_cmd || B=$(frob_widget "$id")')"
 assert_exit "|| preceding the call -> exit 1 (call failure unhandled)" 1 "$RC"
 
+# Call directly after a closing brace with no separator (iteration-2 low finding).
+run_lint "$(mkdiff foo.sh '+}  frob_widget "$id"')"
+assert_exit "call after closing brace, unbranched -> exit 1" 1 "$RC"
+
 echo "=== exemption is registry-scoped, not any _shared/ (finding #2) ==="
 run_lint "$(mkdiff some/other/_shared/foo.sh '+B=$(frob_widget "$id")')"
 assert_exit "bare call in a foreign _shared/ dir -> exit 1 (not the registry)" 1 "$RC"

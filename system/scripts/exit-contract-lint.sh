@@ -160,7 +160,7 @@ lint_diff() {
             # calls are the common real-world shapes).
             if ! [[ "$prefix" =~ \$\([[:space:]]*$ ]] \
                && ! [[ "$prefix" =~ ^[[:space:]]*$ ]] \
-               && ! [[ "$prefix" =~ [\;\&\|\{\(][[:space:]]*$ ]] \
+               && ! [[ "$prefix" =~ [\;\&\|\{\}\(\)][[:space:]]*$ ]] \
                && ! [[ "$prefix" =~ (^|[[:space:]\;\&\|\{\(])(do|then|else)[[:space:]]+$ ]]; then
                 continue
             fi
