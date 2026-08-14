@@ -2060,6 +2060,43 @@ mod tests {
     }
 
     #[test]
+    fn test_rollup_completion_clears_lease_and_reclaim_count() {
+        // Evaluator gap (t-2841): rollup writes status directly — it must go
+        // through the same ack as set_field, or a leased task completed via
+        // rollup strands its lease. "ANY status write clears lease" (AC2).
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p","tasks":[
+            {"id":"t-p","subject":"parent","status":"in_progress","type":"task","tags":[],"blocked_by":[],
+             "lease":{"claimant":"pump:x","expires":"2026-08-15T10:00:00+00:00"},"reclaim_count":1},
+            {"id":"t-c","subject":"child","status":"completed","type":"subtask","parent":"t-p","tags":[],"blocked_by":[]}
+        ]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let rolled = perform_rollup(f.path(), false).unwrap();
+        assert!(rolled.contains(&"t-p".to_string()), "fixture: parent must roll up");
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let tp = &reloaded["tasks"][0];
+        assert_eq!(tp["status"], "completed");
+        assert!(tp.get("lease").is_none(), "rollup completion must clear lease");
+        assert!(tp.get("reclaim_count").is_none(),
+            "rollup completion must retire reclaim_count");
+    }
+
+    #[test]
+    fn test_ack_status_write_helper_semantics() {
+        // The single ack owner all status writers route through.
+        let mut t = json!({"id":"t-1","status":"in_progress",
+            "lease":{"claimant":"pump:x","expires":"2026-08-15T10:00:00+00:00"},
+            "reclaim_count":3});
+        ack_status_write(&mut t, "pending");
+        assert!(t.get("lease").is_none());
+        assert_eq!(t["reclaim_count"], 3);
+        ack_status_write(&mut t, "completed");
+        assert!(t.get("reclaim_count").is_none());
+    }
+
+    #[test]
     fn test_set_wave_field_gate_nonexistent_wave_id_not_validated() {
         // No referential check — matches parent/blocked_by precedent (t-2315 design call).
         let mut wave = json!({"id": "wave-1"});
