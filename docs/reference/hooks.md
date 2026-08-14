@@ -22,6 +22,7 @@
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Bash` | `branch-checkout-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `bash-risk-classifier.sh` | 2000ms |
+| PreToolUse | `Bash|mcp__brana__backlog_ac_approve|mcp__brana__backlog_wave_approve|mcp__brana__backlog_wave_set` | `runner-verb-guard.sh` | 5000ms |
 | PreToolUse | `Bash` | `rtk" hook claude` | 5000ms |
 | PostToolUse | `` | `post-tool-use.sh` | 5000ms |
 | PostToolUse | `Skill` | `skill-sentinel.sh` | 2000ms |
@@ -237,6 +238,12 @@ No strict mode — hooks must never fail and block the session.
 ### `red-verification.sh`
 
 red-verification.sh — pre-commit registration gate for /goal TDD (ADR-061 §4, t-2216).
+
+**Gate:** Advisory
+
+### `runner-verb-guard.sh`
+
+runner-verb-guard.sh — PreToolUse technical enforcement of the drain-runner
 
 **Gate:** Advisory
 
