@@ -19,10 +19,10 @@ check it. Criteria that don't match any grammar below fall to **UNKNOWN** → ma
 sign-off → the loop stalls. ADR-047 §3 originally documented 4 patterns while the hook
 implemented 8; the table drifted. This file is the de-drift anchor (t-2199).
 
-## The 8 heuristics
+## The 10 heuristics
 
 Each row is a pattern `goal-completion.sh` recognizes (regex = the actual match in
-`system/hooks/goal-completion.sh:59-206`), the check it runs, and an authoring example.
+`system/hooks/goal-completion.sh`), the check it runs, and an authoring example.
 A leading `AC: ` prefix is stripped before matching.
 
 | # | Criterion shape | Match (ERE) | Check performed | Example |
@@ -36,6 +36,7 @@ A leading `AC: ` prefix is stripped before matching.
 | 7 | **command passes** | `^"[^"]+" passes$` | run the quoted command (allowlist only); pass on exit 0 | `"cargo test" passes` |
 | 8 | **git log check** | `^changes to .+ committed$` **or** `^commit message contains "` | `git log` for the path / `--grep` the message; pass if a commit matches | `commit message contains "t-2199"` · `changes to load.md committed` |
 | 9 | **validate.sh passes (full)** | `validate\.sh` + `(passes\|exit 0\|exit code 0)` + NOT `check [0-9]` | run `./validate.sh` (whole suite); pass on exit 0 | `validate.sh passes` (the `/brana:reconcile` /goal done-signal, t-2206) |
+| 10 | **demoable** | `^demoable: ` | strip the prefix; run the command **iff** it matches heuristic 7's allowlist (shared `CMD_ALLOWLIST_RE`, one definition); pass on exit 0. Non-allowlisted → UNKNOWN — the demo happens at a human sitting, never executed unattended (t-2856) | `demoable: bash tests/demo-wave-pull.sh` |
 
 Anything else → **UNKNOWN** → surfaced for manual sign-off (the task is NOT auto-completed).
 
@@ -51,19 +52,55 @@ Anything else → **UNKNOWN** → surfaced for manual sign-off (the task is NOT 
 - **Work-dir scoped** — all relative paths resolve under the goal's recorded `cwd`
   (`active-goal.json`), never the hook's own `/tmp` cwd.
 
-## Authoring rules (producer)
+## Authoring rules (producer): clarity × demand
 
-From ADR-047 §1 — a criterion is valid only if:
+From ADR-047 §1 — **clarity**: a criterion is valid only if:
 
 - **Falsifiable** — "X does Y when Z", not "X works correctly".
 - **Observable** — CLI output, file state, test pass/fail, HTTP response.
 - **What, not how** — no implementation detail.
 - **Max 10 per task** — more is a scope signal; split the task.
 
-`/brana:backlog plan` generates criteria by `work_type` template, then **lints** each
-against the 8 heuristics above: a criterion matching none is kept but flagged
-(`won't auto-complete — loop needs manual sign-off`), never silently dropped (lint+warn,
-not hard-block — genuine human-judgment criteria are allowed).
+**Demand** (v2, t-2856 — Pocock's second dimension, [agent-work-contracts research](../research/2026-08-14-agent-work-contracts.md) §1):
+clarity says whether the agent can tell finished from unfinished; **demand says how much
+thoroughness "finished" requires**. "Every modified model accounted for" (high demand) and
+"produce a change list" (low demand) are equally *clear* — but the low-demand one passes
+its check while under-delivering. That is a gaming vector the heuristics cannot see: both
+shapes lint "checkable". Authoring rules for demand:
+
+- **Quantify over the full set** — "zero direct selector string parsing outside the
+  resolver (grep-clean)" beats "resolver refactored": the check spans the whole scope,
+  not one instance. ✅ `"bash system/hooks/tests/test-goal-completion.sh" passes` (whole
+  suite) · ❌ "the new heuristic has a test" (one instance, rest unchecked).
+- **Name the exhaustiveness boundary** — say what "every/all/zero" ranges over, so the
+  check is closed: "all N callers routed" with N enumerable, not "callers updated".
+- **Prefer checks that would catch the lazy version** — before accepting a criterion, ask:
+  would the minimal under-delivering implementation still pass it? If yes, raise demand.
+- **demoable: raises demand cheaply** — a runnable demo forces end-to-end behavior, not
+  just artifact presence (heuristic 10).
+
+`/brana:backlog plan` and the `ac-propose` generator author **grammar-matching shapes
+FIRST** (heuristics 1–10), freeform prose only as fallback when no shape fits, then
+**lint** each via `system/scripts/ac-lint.sh`: a criterion matching none is kept but
+flagged (`won't auto-complete — loop needs manual sign-off`), never silently dropped
+(lint+warn, not hard-block — genuine human-judgment criteria are allowed).
+
+## Gauge: machine-checkable share (contract coverage)
+
+The readout for how much of the backlog's live contract surface a loop can grade
+unattended: **the % of `acceptance_criteria` entries on `ac_state:approved` tasks that
+classify `checkable` under `ac-lint.sh`**. Computed on demand:
+
+```bash
+brana backlog query --ac-state approved --output json \
+  | jq -r '.[] | .acceptance_criteria // [] | .[]' \
+  | while IFS= read -r c; do bash system/scripts/ac-lint.sh "$c" >/dev/null && echo ok; done \
+  | wc -l   # vs total criteria count → the share
+```
+
+Read it as a **gauge, not a target** (Goodhart): a rising share means loops stall less on
+manual sign-off; a 100% share is NOT the goal — human-judgment criteria are legitimate
+and demand (above) matters more than checkability alone.
 
 ## Keeping this in sync
 

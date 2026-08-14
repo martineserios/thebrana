@@ -81,9 +81,9 @@ Interactive phase planning. Builds the hierarchy conversationally.
    - **If test tasks found:** proceed to step 12.
    - **If all tasks are docs/config/spec only:** gate passes automatically — no code, no test required.
 
-11b. **Acceptance-criteria generation** (ADR-047 §5; implements loop+goal-native planning) — for each **leaf** task with `work_type` `implement` or `design`, generate machine-checkable `acceptance_criteria` so the task can auto-complete under `/goal` (see [`docs/architecture/ac-grammar.md`](../../../../docs/architecture/ac-grammar.md) for the 8 heuristics). Skip phases, milestones, and `research`/`docs`-only tasks.
+11b. **Acceptance-criteria generation** (ADR-047 §5; implements loop+goal-native planning) — for each **leaf** task with `work_type` `implement` or `design`, generate machine-checkable `acceptance_criteria` so the task can auto-complete under `/goal` (see [`docs/architecture/ac-grammar.md`](../../../../docs/architecture/ac-grammar.md) for the 10 heuristics). Skip phases, milestones, and `research`/`docs`-only tasks.
 
-   **a. Generate (template + LLM-fill by `work_type`):** scaffold 1–3 criteria, then fill specifics from the task subject/description:
+   **a. Generate (template + LLM-fill by `work_type`):** author **grammar-matching shapes FIRST** (ac-grammar.md heuristics 1–10) — freeform prose only as fallback when no shape fits — and check demand, not just clarity (ac-grammar.md §Authoring rules: would the minimal under-delivering implementation still pass? If yes, raise demand — quantify over the full set, or add a `demoable: <command>`). Scaffold 1–3 criteria, then fill specifics from the task subject/description:
    - `implement` → `"<project test cmd>" passes` (infer: `cargo test` / `pytest` / `bun test` / `bash tests/<file>.sh` from project manifest) **plus** one observable: `file <impl path> contains "<symbol>"` or `validate.sh Check <N> passes`.
    - `design` → `file docs/architecture/decisions/<adr-slug>.md exists` (or the doc the task produces).
 

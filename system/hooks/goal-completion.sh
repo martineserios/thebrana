@@ -41,7 +41,7 @@ CRITERIA_COUNT=$(echo "$CRITERIA_JSON" | jq 'length' 2>/dev/null) || CRITERIA_CO
 [ "$CRITERIA_COUNT" -eq 0 ] && { echo '{"continue": true}'; exit 0; }
 
 # Validate each criterion using deterministic heuristics (ADR-047 §3).
-# Canonical grammar (the 8 patterns below): docs/architecture/ac-grammar.md —
+# Canonical grammar (the 10 patterns below): docs/architecture/ac-grammar.md —
 # edit that file first when adding/changing a heuristic so plan-lint stays in sync (t-2199).
 PASSED=0
 FAILED=0

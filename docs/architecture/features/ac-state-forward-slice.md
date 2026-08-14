@@ -116,6 +116,9 @@ brana backlog ac-propose > /tmp/ac-candidates.json
 
 # 2. Generate — agent layer (agy-first → Claude) turns each packet into
 #    [{"id","proposed_acceptance_criteria":[…]}]  (out of the binary)
+#    Authoring contract (t-2856): grammar-matching shapes FIRST (ac-grammar.md
+#    heuristics 1-10), freeform prose only when no shape fits; check demand as
+#    well as clarity (ac-grammar.md §Authoring rules — clarity × demand)
 
 # 3. Apply — persist the scoped mutation (--dry-run to preview)
 brana backlog ac-propose --apply /tmp/ac-proposals.json
