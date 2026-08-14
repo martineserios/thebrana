@@ -162,21 +162,14 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
 
     let matched = resolve_wave_selector(wave, tasks)?;
 
-    // Live count: in_progress tasks matching the selector tag. The resolver
-    // (pending-only) validated the selector form above, so the strip is safe.
-    let name = wave["selector"].as_str().unwrap_or("").trim()
-        .strip_prefix("tag:").unwrap_or("");
+    // Live count: in_progress selector-matches, via the SAME parse point and
+    // matcher as membership (ADR-080 §1 — a hand-stripped "tag:" here counted
+    // live=0 forever on parent: waves, silently defeating wip_limit).
+    let sel = parse_wave_selector(wave["selector"].as_str().unwrap_or(""))?;
+    let by_id = task_index(tasks);
     let live = tasks
         .iter()
-        .filter(|t| {
-            t["status"].as_str() == Some("in_progress") && {
-                let tags: Vec<&str> = t["tags"]
-                    .as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
-                    .unwrap_or_default();
-                tag_matches(&tags, name)
-            }
-        })
+        .filter(|t| t["status"].as_str() == Some("in_progress") && sel.matches(t, &by_id))
         .count();
 
     let limit = match wave.get("wip_limit") {
