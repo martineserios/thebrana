@@ -3,6 +3,29 @@
 > Brainstormed 2026-04-07. Status: idea.
 > User-facing reference: [docs/guide/workflows/venture.md](../guide/workflows/venture.md)
 
+> **Current-state review (2026-08-14, idea-pool staleness sweep, t-2864).** The core proposal is
+> still unbuilt and still open — no `/brana:venture-assess`, no `/brana:gtm`, no
+> `docs/guide/venture-playbook.md`. But read the rest through these corrections:
+>
+> - **"Procedure edits" → skills.** The `system/procedures/` architecture this doc targets was
+>   replaced by `system/skills/{name}/SKILL.md` + phase files. All four "extended skills" rows
+>   still make sense, but land as skill/phase edits now.
+> - **Framework gap largely closed by marketplace skills.** Much of what the playbook document
+>   was meant to encode is now installed as on-demand skills: `jobs-to-be-done` (JTBD + Mom Test
+>   interviews → shrinks G5), `pre-mortem`, `six-thinking-hats`, `decision-matrix`, `swot-analysis`,
+>   `cold-start-problem`, `marketplace-fundamentals`/`-liquidity`/`supply-demand-balance`,
+>   `first-principles`, `inversion`, `second-order-thinking`. A playbook would now mostly be a
+>   stage→skill routing table, not new content.
+> - **G14/G16 (financial + pipeline tracking) deferral reason is gone** — Google Sheets and
+>   Airtable MCP servers are configured today. The gaps are still open but no longer blocked.
+> - **Skill-count arithmetic ("29 instead of 30") and the 6-Jobs snapshot are stale** — the
+>   catalog has grown far past that; re-count via `/brana:discover` before re-scoping.
+> - Early research tasks t-057/t-102 (completed) fed this doc; nothing since (orphan per the
+>   2026-08-14 pool sweep).
+>
+> Drain decision pending: re-scope (probably: skeleton playbook as a stage→skill router +
+> venture-assess) or defer until a venture actually demands it.
+
 ## Problem
 
 Brana has 7+ deep research docs on product/business management (docs 28, 34, 38, 40, 41, 42, SMB marketing, client retention) but they're dead knowledge — not connected to daily workflow. Ventures lack a structured guide for stage-appropriate practices. The GROW job has only 3 skills (review, harvest, client-retire) while BUILD has a full toolkit.

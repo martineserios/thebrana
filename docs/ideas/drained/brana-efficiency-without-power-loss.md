@@ -1,12 +1,25 @@
 ---
 title: Brana Efficiency — Reduce Usage Without Losing Power
-status: idea
+status: absorbed
 created: 2026-05-22
+reviewed: 2026-08-14
 ---
 
 # Brana Efficiency — Reduce Usage Without Losing Power
 
-> Brainstormed 2026-05-22. Work in progress.
+> Brainstormed 2026-05-22. **Absorbed** (2026-08-14 idea-pool staleness review, t-2864): every
+> proposal shipped through other routes, in stronger form than proposed here.
+>
+> - §1 debrief-analyst Opus→Sonnet: **done** — `system/agents/debrief-analyst.md` is `model: sonnet` (model audit t-1702).
+> - §2 weight-adaptive close: **done and superseded** — close now classifies NANO/LIGHT/FULL/INSTANT
+>   with `--full`/`--light`/`--nano` flags (t-1646, t-1980), and ADR-052 Track 1 went further than this
+>   doc imagined: INSTANT close + nightly extraction queue.
+> - §3 context discipline: **done** — codified as the always-loaded `context-budget.md` rule with
+>   explicit thresholds (55/70/85%), not just operational habit.
+> - Stale: `system/procedures/close.md` path (now `system/skills/close/phases/`), the 24h usage
+>   breakdown, and the model landscape ("Sonnet 4.6" / Opus tiers — Claude 5 family now).
+>
+> Nothing left to drain. Kept in `drained/` as the design record.
 
 ## Problem
 

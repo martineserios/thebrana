@@ -3,9 +3,29 @@ title: Prompt Patterns → brana Enrichment
 status: draft
 created: 2026-06-03
 challenged: 2026-06-03
+reviewed: 2026-08-14
 ---
 
 # Prompt Patterns → brana Enrichment
+
+> **Current-state review (2026-08-14, idea-pool staleness sweep, t-2864).** Roughly half of this
+> doc has shipped or been mooted since it was written:
+>
+> - Next-step 1 (`/ultrathink` audit): **done/moot** — zero references remain in `system/`.
+> - Next-step 3 (`challenge --deep`): **shipped, different composition** — `--deep` exists but as an
+>   adversarial verification stage (N skeptics via `verify-findings`, native subagents), not the
+>   steelman+blindspots+brutal sequence proposed here. Treat that section as superseded.
+> - Premortem (steps 3–4): **gap closed by another route** — the `pre-mortem` marketplace skill
+>   (plus `inversion`, `six-thinking-hats`) is installed; no `challenge --premortem` flag or build
+>   SHAPE gate was built, and likely none is needed now.
+> - Next-step 2 (`BRANA_DEEP_THINKING`/`MAX_THINKING_TOKENS`): **not built and stale** — CC reasoning-effort
+>   controls have since changed; re-derive before implementing.
+> - Steps 5–7 (`/brana:persona` via session state, user-facing `/brana:scout`): **still open** — the only
+>   live remainder. Session-state substrate now exists (`session_read`/`session_write` MCP), which the
+>   persona design assumed.
+> - Stale background: model landscape ("Claude 4.x/4.6" auto-thinking) predates the Claude 5 family.
+>
+> Drain decision pending: re-scope to just persona+scout, or discard.
 
 > Brainstormed 2026-06-03. Triggered by a viral Substack post ("20 secret Claude commands")
 > that revealed user demand for structured AI behavior modifiers.
