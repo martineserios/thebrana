@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T01:32:04Z",
+  "generated": "2026-08-14T01:37:23Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1491,6 +1491,17 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/hook-test-sweep.md": {
+      "title": "Feature: Hook Test Sweep (validate.sh Check 70)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/tests/",
+        "system/scripts/hook-test-sweep.sh",
+        "system/scripts/tests/test-hook-test-sweep.sh",
+        "system/hooks/session-start.sh",
+        "system/hooks/tests/test-"
+      ]
+    },
     "docs/architecture/features/inbox-to-dimensions-pipeline.md": {
       "title": "Feature: Inbox → Dimensions Pipeline — Tiered Research",
       "type": "Roadmap",
@@ -2732,6 +2743,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/hook-test-sweep.md": {
+      "title": "Hook Test Sweep",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/tests/",
+        "system/scripts/hook-test-sweep.sh"
+      ]
+    },
     "docs/guide/features/knowledge-drain-links.md": {
       "title": "`brana knowledge drain-links`",
       "type": "Roadmap",
@@ -3377,6 +3396,11 @@
     },
     "docs/ideas/venture-playbook-product-management.md": {
       "title": "Venture Playbook & Product Management Layer",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/wave-pipeline.md": {
+      "title": "The Wave Pipeline",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -10928,6 +10952,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "ideas/wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "reference/agents.md",
       "type": "references",
       "computed": false
@@ -14917,6 +14947,30 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/wave-pipeline.md",
+      "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/wave-pipeline.md",
+      "to": "loop-first-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/wave-pipeline.md",
+      "to": "loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/wave-pipeline.md",
+      "to": "wave-pipeline-design.html",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/personal/miessler-telos-research.md",
       "to": "docs/research/miessler-pai-comparison.md",
       "type": "references",
@@ -16166,9 +16220,9 @@
     }
   ],
   "stats": {
-    "nodes": 562,
-    "edges": 2049,
+    "nodes": 565,
+    "edges": 2054,
     "typed_edges": 686,
-    "orphans": 148
+    "orphans": 150
   }
 }

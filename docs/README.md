@@ -233,6 +233,7 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 
 | File | Contents |
 |------|----------|
+| [wave-pipeline.md](ideas/wave-pipeline.md) | The wave pipeline concept — four nested loops, memory as 4th dimension, queue/pump/valve/gauge, studio/cockpit, seven operating laws (ADR-079, t-2828) |
 | [brana-agency-growth-machine.md](ideas/brana-agency-growth-machine.md) | Agency growth strategy — no-posting machine: thebrana.ai relaunch (t-2249) + WhatsApp demo agent as lead magnet, referral engine day 1 |
 | [brana-whatsapp-agent.md](ideas/brana-whatsapp-agent.md) | The Brana WhatsApp Agent — brana over WhatsApp bridge (system/services/whatsapp-bridge) |
 | [ruflo-native-integration.md](ideas/ruflo-native-integration.md) | Ruflo native integration — controller status, upstream blockers, upgrade path |
