@@ -119,6 +119,31 @@ check "edge: h7 not-allowlisted"   '"rm -rf /" passes'                        "p
 check "edge: h5 no path traversal" 'file ../../../etc/passwd contains "root"' "prose" 1
 check "edge: h5 absolute path"     'file /etc/hosts contains "localhost"'     "prose" 1
 
+# ── Consolidation (t-2868, ADR-081 D1): shared allowlist lives in ONE place ───
+echo "--- Consolidation: shared cmd-allowlist.sh lib ---"
+LIB="$SCRIPT_DIR/../../scripts/lib/cmd-allowlist.sh"
+
+TOTAL=$((TOTAL + 1))
+if [ -f "$LIB" ]; then
+    echo "  PASS: lib/cmd-allowlist.sh exists"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: lib/cmd-allowlist.sh missing at $LIB"; FAIL=$((FAIL + 1))
+fi
+
+TOTAL=$((TOTAL + 1))
+if [ -f "$LIB" ] && (source "$LIB" && declare -f allowlisted_command >/dev/null 2>&1 && [ -n "${CMD_ALLOWLIST_RE:-}" ]); then
+    echo "  PASS: sourcing lib defines allowlisted_command() + CMD_ALLOWLIST_RE"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: lib does not define allowlisted_command()/CMD_ALLOWLIST_RE when sourced"; FAIL=$((FAIL + 1))
+fi
+
+TOTAL=$((TOTAL + 1))
+if ! grep -q "^CMD_ALLOWLIST_RE=" "$CLASSIFIER" 2>/dev/null; then
+    echo "  PASS: ac-lint.sh no longer carries its own inline CMD_ALLOWLIST_RE"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: ac-lint.sh still defines CMD_ALLOWLIST_RE inline — not sourcing the shared lib"; FAIL=$((FAIL + 1))
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "=== AC lint results: $PASS passed, $FAIL failed, $TOTAL total ==="
