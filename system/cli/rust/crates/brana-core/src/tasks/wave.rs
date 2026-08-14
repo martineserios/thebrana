@@ -6,10 +6,48 @@
 //! the SAME resolver, never re-derive selector semantics from raw tasks.json.
 
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::Path;
 
 use super::query::tag_matches;
 use super::{load_raw, lock_tasks, save_tasks};
+
+/// Parsed selector — the single owner of selector-string semantics (ADR-080
+/// §1). Every consumer (membership, wip live-count, any future one) parses
+/// via `parse_wave_selector` and matches via `WaveSelector::matches`; nothing
+/// else may strip prefixes off the raw string.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WaveSelector {
+    /// `tag:<name>` — tasks whose tags match `<name>` (shared `tag_matches`
+    /// semantics: key:value exact, bare key any-value).
+    Tag(String),
+    /// `parent:<id>` — tasks whose parent chain contains `<id>` (ADR-065 D3:
+    /// waves select, they don't own; membership computed at resolution time).
+    Parent(String),
+}
+
+/// The single parse point. Unknown forms are rejected loud, never silently
+/// no-op'd or partially matched.
+pub fn parse_wave_selector(selector: &str) -> Result<WaveSelector, String> {
+    let _ = selector;
+    todo!("t-2860")
+}
+
+impl WaveSelector {
+    /// Status-agnostic membership test — callers apply their own status
+    /// filter (resolver: pending; wip live-count: in_progress). `by_id` is
+    /// the id→task index for parent-chain walks.
+    pub fn matches(&self, task: &Value, by_id: &HashMap<&str, &Value>) -> bool {
+        let _ = (task, by_id);
+        todo!("t-2860")
+    }
+}
+
+/// id→task index for `WaveSelector::matches` parent-chain walks.
+pub fn task_index(tasks: &[Value]) -> HashMap<&str, &Value> {
+    let _ = tasks;
+    todo!("t-2860")
+}
 
 /// Gate check (the point of t-2775). A wave with a non-empty `gate` may only
 /// drain once the gated wave's status is `shipped`.
@@ -281,13 +319,110 @@ mod tests {
     }
 
     #[test]
-    fn non_tag_selector_rejected_with_mvp_error() {
+    fn unknown_selector_rejected_loud() {
         for sel in ["shape:mechanical ac_state:approved", "status:pending",
-                    "drainable", "tag:", "tag:a b", ""] {
+                    "drainable", "tag:", "tag:a b", "", "parent:", "parent:a b"] {
             let err = resolve_wave_selector(&wave(None, sel), &[]).unwrap_err();
-            assert!(err.contains("MVP only resolves tag:<name>"),
-                "selector {sel:?} must be rejected with the MVP-only error, got: {err}");
+            assert!(err.contains("selector form not supported"),
+                "selector {sel:?} must be rejected loud, got: {err}");
+            assert!(err.contains("tag:<name>") && err.contains("parent:<id>"),
+                "error must name both supported forms: {err}");
         }
+    }
+
+    // ── parse_wave_selector + WaveSelector::matches (t-2860, ADR-080 §1) ─
+
+    #[test]
+    fn parse_selector_both_forms() {
+        assert_eq!(parse_wave_selector("tag:bugfix").unwrap(),
+                   WaveSelector::Tag("bugfix".into()));
+        assert_eq!(parse_wave_selector("tag:wave:v3-w1").unwrap(),
+                   WaveSelector::Tag("wave:v3-w1".into()));
+        assert_eq!(parse_wave_selector("parent:ms-12").unwrap(),
+                   WaveSelector::Parent("ms-12".into()));
+        assert_eq!(parse_wave_selector("  parent:t-2839  ").unwrap(),
+                   WaveSelector::Parent("t-2839".into()));
+    }
+
+    fn ptask(id: &str, status: &str, parent: Option<&str>) -> Value {
+        json!({"id": id, "subject": format!("s-{id}"), "status": status,
+               "tags": [], "parent": parent})
+    }
+
+    #[test]
+    fn parent_selector_matches_direct_child_and_deep_descendant() {
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            ptask("t-1", "pending", Some("ms-1")),      // direct child
+            ptask("t-2", "pending", Some("t-1")),       // grandchild
+            ptask("t-3", "pending", Some("ms-2")),      // other subtree
+            ptask("t-4", "in_progress", Some("ms-1")),  // matches, not pending
+        ];
+        let matched =
+            resolve_wave_selector(&wave(None, "parent:ms-1"), &tasks).unwrap();
+        let ids: Vec<_> = matched.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, vec!["t-1", "t-2"],
+            "pending descendants at any depth match; other subtrees and non-pending don't");
+    }
+
+    #[test]
+    fn parent_selector_matches_is_status_agnostic_for_consumers() {
+        // The resolver filters pending; the raw predicate must NOT — that's
+        // what the wip live-count (in_progress) routes through (ADR-080 §1).
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            ptask("t-1", "in_progress", Some("ms-1")),
+        ];
+        let by_id = task_index(&tasks);
+        let sel = parse_wave_selector("parent:ms-1").unwrap();
+        assert!(sel.matches(&tasks[1], &by_id),
+            "matches() is membership-only — status is the caller's filter");
+    }
+
+    #[test]
+    fn parent_chain_cycle_terminates_without_match() {
+        // Corrupt data: t-1 ⇄ t-2 parent cycle. The walk must terminate
+        // (depth cap, resolve_epic_ancestor precedent) and simply not match.
+        let tasks = vec![
+            ptask("t-1", "pending", Some("t-2")),
+            ptask("t-2", "pending", Some("t-1")),
+        ];
+        let matched =
+            resolve_wave_selector(&wave(None, "parent:ms-9"), &tasks).unwrap();
+        assert!(matched.is_empty(), "cycle must terminate, not hang or match");
+    }
+
+    #[test]
+    fn parent_selector_nonexistent_id_empty_match_not_error() {
+        // AC 6: a parent: selector naming a task id that doesn't exist is an
+        // empty wave, not an error (matches tag:'s empty-match-is-ok stance).
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            ptask("t-1", "pending", Some("ms-1")),
+        ];
+        let matched =
+            resolve_wave_selector(&wave(None, "parent:ms-404"), &tasks).unwrap();
+        assert!(matched.is_empty(), "nonexistent parent id → empty match, not error");
+    }
+
+    #[test]
+    fn parent_selector_null_or_missing_parent_no_match_no_crash() {
+        let tasks = vec![
+            ptask("t-1", "pending", None),
+            json!({"id": "t-2", "subject": "s", "status": "pending", "tags": []}),
+        ];
+        let matched =
+            resolve_wave_selector(&wave(None, "parent:ms-1"), &tasks).unwrap();
+        assert!(matched.is_empty());
+    }
+
+    #[test]
+    fn tag_selector_still_resolves_through_parse_point() {
+        // tag: behavior unchanged by the parse-point refactor.
+        let tasks = vec![task("t-1", "pending", &["bugfix"])];
+        let sel = parse_wave_selector("tag:bugfix").unwrap();
+        let by_id = task_index(&tasks);
+        assert!(sel.matches(&tasks[0], &by_id));
     }
 
     #[test]

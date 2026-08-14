@@ -3000,7 +3000,7 @@ mod tests {
             r#"[{"id":"wave-1","name":"w","selector":"shape:mechanical ac_state:approved","gate":null,"status":"queued"}]"#,
         );
         let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
-        assert!(err.to_string().contains("MVP only resolves tag:<name>"),
+        assert!(err.to_string().contains("selector form not supported"),
             "unsupported selector must be rejected, not silently no-op'd: {err}");
         assert_eq!(read_waves(&f)[0]["status"], "queued", "rejected drain must not persist");
     }
