@@ -146,6 +146,13 @@ lint_diff() {
         for h in "${!CONTRACT_DOC[@]}"; do
             [[ "$line" =~ (^|[^a-zA-Z0-9_])"$h"([^a-zA-Z0-9_]|$) ]] || continue
             [[ "$line" == *"$h()"* ]] && continue           # function definition
+            # Invocation syntax required — prose/doc mentions of the helper name
+            # are not call sites (pre-edit challenger finding #2, t-2888):
+            # command substitution `$(h ...)` or direct command position.
+            if ! [[ "$line" =~ \$\("$h"([[:space:]]|\)) ]] \
+               && ! [[ "$line" =~ (^|[\;\&\|][[:space:]]*)"$h"([[:space:]]|$) ]]; then
+                continue
+            fi
             # Branched on the call line itself?
             if [[ "$line" =~ (^|[\;\&\|][[:space:]]*)(if|elif|while|until)[[:space:]] ]] \
                || [[ "$line" == *'||'* ]]; then

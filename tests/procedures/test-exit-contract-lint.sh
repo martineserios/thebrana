@@ -126,6 +126,21 @@ assert_exit "direct if on the call -> exit 0" 0 "$RC"
 run_lint "$(mkdiff foo.md '+EPIC=$(frob_widget "$id")' '+if [ $? -ne 0 ]; then' '+  echo fail' '+fi')"
 assert_exit "\$? checked within 2 added lines -> exit 0" 0 "$RC"
 
+echo "=== codebase-derived clean shapes (pre-edit challenger finding #1) ==="
+# backlog-reconcile.sh:173 — idiomatic UNNEGATED if-assignment branch. No `!`,
+# no `||`, no literal `$?`, yet fully correct. Must NOT flag.
+run_lint "$(mkdiff system/scripts/foo.sh '+if slug=$(frob_widget "$tid"); then' '+  ok=1' '+else' '+  echo "warn" >&2' '+fi')"
+assert_exit "unnegated if-assignment (backlog-reconcile.sh shape) -> exit 0" 0 "$RC"
+run_lint "$(mkdiff foo.sh '+SLUG=$(frob_widget "$id")' '+case $? in' '+  0) ok ;;' '+esac')"
+assert_exit "case \$? in within window -> exit 0" 0 "$RC"
+
+echo "=== prose mentions are not call sites (pre-edit challenger finding #2) ==="
+# decompose-mode.md:42 class — helper named in doc prose, no invocation syntax.
+run_lint "$(mkdiff system/skills/build/phases/doc.md '+Resolve the epic via frob_widget before branching (see the shared walk doc).')"
+assert_exit "prose mention without invocation -> exit 0" 0 "$RC"
+run_lint "$(mkdiff system/skills/build/phases/doc.md '+call \`frob_widget\` — check the exit status first')"
+assert_exit "backticked name-only mention -> exit 0" 0 "$RC"
+
 echo "=== success-only chaining does NOT handle failure ==="
 run_lint "$(mkdiff foo.md '+EPIC=$(frob_widget "$id") && echo ok')"
 assert_exit "&&-only chaining -> exit 1 (failure branch missing)" 1 "$RC"
