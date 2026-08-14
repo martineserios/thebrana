@@ -32,8 +32,12 @@ const MIN_STORABLE_CHARS: usize = 40;
 ///
 /// Idempotency depends on this being a pure function of the URL — the second
 /// run recognises the first run's entry only if it derives the same key.
+/// Keyed on the canonical URL (safety-wrapper unwrapped, tracking params
+/// stripped — t-2583/t-2590), so share-sheet variants of the same page
+/// resolve to one entry.
 fn url_storage_key(url: &str) -> String {
-    let trimmed = url
+    let canonical = brana_core::knowledge_pipeline::canonicalize_url(url);
+    let trimmed = canonical
         .trim()
         .trim_start_matches("https://")
         .trim_start_matches("http://")

@@ -1451,7 +1451,23 @@ const TRACKING_PARAMS: [&str; 7] = ["rcm", "fbclid", "gclid", "si", "igshid", "r
 /// this pass the same page stores under two `knowledge:url:` keys and
 /// exact-key idempotency never fires.
 pub fn canonicalize_url(url: &str) -> String {
-    url.trim().to_string() // stub — TDD red (t-2583)
+    let unwrapped = unwrap_linkedin_safety_url(url.trim());
+    let no_fragment = unwrapped.split('#').next().unwrap_or("");
+    let Some((base, query)) = no_fragment.split_once('?') else {
+        return no_fragment.to_string();
+    };
+    let kept: Vec<&str> = query
+        .split('&')
+        .filter(|pair| {
+            let key = pair.split('=').next().unwrap_or("").to_ascii_lowercase();
+            !key.starts_with("utm_") && !TRACKING_PARAMS.contains(&key.as_str())
+        })
+        .collect();
+    if kept.is_empty() {
+        base.to_string()
+    } else {
+        format!("{base}?{}", kept.join("&"))
+    }
 }
 
 /// True when `url` is `http(s)` on a host that is not loopback, private,
