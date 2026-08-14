@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T02:24:02Z",
+  "generated": "2026-08-14T09:59:01Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1180,6 +1180,11 @@
     },
     "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md": {
       "title": "ADR-079: ac_state Approval, Wave-Drain→Loop Handoff, and WIP Location (amends ADR-065)",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md": {
+      "title": "ADR-080: Plan-Time Wave Graphs, the Epic Runner, and Leases (extends ADR-079)",
       "type": "ADR",
       "impl_files": []
     },
@@ -3709,6 +3714,14 @@
       "impl_files": [
         "system/cli/rust/",
         "system/cli/rust/crates/brana-core/src/tasks.rs"
+      ]
+    },
+    "docs/research/2026-08-13-matt-pocock-skill-system.md": {
+      "title": "Research: Matt Pocock's Skill System vs brana's",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/smart-router.md",
+        "system/skills/challenge/SKILL.md"
       ]
     },
     "docs/research/agentic-engineering-2026-gap-analysis.md": {
@@ -11677,6 +11690,48 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "docs/ideas/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "docs/ideas/wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -14744,7 +14799,19 @@
     },
     {
       "from": "docs/ideas/loop-first-redesign.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-first-redesign.md",
       "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-first-redesign.md",
+      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
       "type": "references",
       "computed": false
     },
@@ -14972,7 +15039,25 @@
     },
     {
       "from": "docs/ideas/wave-pipeline.md",
+      "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/wave-pipeline.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/wave-pipeline.md",
       "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/wave-pipeline.md",
+      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
       "type": "references",
       "computed": false
     },
@@ -16244,8 +16329,8 @@
     }
   ],
   "stats": {
-    "nodes": 565,
-    "edges": 2058,
+    "nodes": 567,
+    "edges": 2070,
     "typed_edges": 686,
     "orphans": 150
   }
