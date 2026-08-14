@@ -904,6 +904,20 @@ pub enum BacklogCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Stacked verdict at the valve (t-2857, ADR-081): compose the deterministic
+    /// (AC-grammar, via ac-grade.sh), judged (Evaluator:/Challenger: notes
+    /// convention), and executed (ADR-076 receipts) evidence layers into one
+    /// line. Display-only — never writes any task field (gauge law).
+    StackedVerdict {
+        /// Task ID (e.g. t-463)
+        task_id: String,
+        /// Emit structured JSON instead of the human-readable line
+        #[arg(long)]
+        json: bool,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Set a field on a task
     Set {
         /// Task ID (e.g. t-463)

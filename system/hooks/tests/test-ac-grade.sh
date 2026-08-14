@@ -103,6 +103,15 @@ echo "Test: task with a branch but no matching worktree → loud error, never de
 OUT_ORPHAN=$(cd "$MAIN_REPO" && bash "$GRADER" t-orphan --json 2>&1); RC_ORPHAN=$?
 assert "orphan-branch case exits non-zero" '[ "$RC_ORPHAN" -ne 0 ]'
 assert "orphan-branch case does not silently grade against caller cwd" '! echo "$OUT_ORPHAN" | jq -e ".graded" >/dev/null 2>&1'
+# Tightened per a real bug found via manual smoke test: the zero-matches count
+# path previously corrupted MATCH_COUNT into a two-line "0\n0" string (grep -c
+# already prints "0" on no-match before its nonzero exit triggers `|| echo 0`),
+# which failed `-eq` as a bad integer and fell through to a DIFFERENT, wrong
+# error message rather than the intended one — these looser assertions above
+# passed anyway (both paths exit non-zero), masking the defect. Assert the
+# actual intended error text now, not just "something failed".
+assert "orphan-branch error names the actual reason, not a bash arithmetic error" \
+  'grep -qF "no worktree found for branch" <<<"$OUT_ORPHAN" && ! grep -qiF "integer expected" <<<"$OUT_ORPHAN"'
 
 echo "Test: --cwd override bypasses worktree lookup entirely"
 OUT_CWD=$(bash "$GRADER" t-fix --json --cwd "$FIX_WORKTREE" 2>&1)

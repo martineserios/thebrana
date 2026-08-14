@@ -73,12 +73,26 @@ else
         /^worktree / { p = substr($0, 10) }
         /^branch /   { if (substr($0, 8) == want) print p }
     ' <<<"$WT_LIST")
-    MATCH_COUNT=$(grep -c . <<<"$MATCHES" 2>/dev/null || echo 0)
+
+    # Count non-empty lines via an array, not `grep -c ... || echo 0` — grep -c
+    # already PRINTS "0" (with exit 1) on zero matches, so `|| echo 0` doubles
+    # the output into a two-line "0\n0" string that then fails `-eq` as a bad
+    # integer, masking the real "no worktree" error behind a bash arithmetic
+    # error (found via manual smoke test against a real removed-after-merge
+    # worktree — the unit test's assertions were too loose to catch this).
+    mapfile -t MATCH_ARR <<<"$MATCHES"
+    MATCH_COUNT=0
+    RESOLVED=""
+    for m in "${MATCH_ARR[@]}"; do
+        [ -n "$m" ] || continue
+        MATCH_COUNT=$((MATCH_COUNT + 1))
+        RESOLVED="$m"
+    done
 
     [ "$MATCH_COUNT" -eq 0 ] && err "no worktree found for branch '$BRANCH' (task $TASK_ID) — the worktree may have been removed after merge; never grading against the caller's cwd instead"
     [ "$MATCH_COUNT" -gt 1 ] && err "ambiguous: $MATCH_COUNT worktrees match branch '$BRANCH' (task $TASK_ID) — refusing to guess, pass --cwd explicitly"
 
-    WORK_DIR="$MATCHES"
+    WORK_DIR="$RESOLVED"
 fi
 [ -d "$WORK_DIR" ] || err "resolved WORK_DIR does not exist: $WORK_DIR"
 

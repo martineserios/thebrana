@@ -33,8 +33,35 @@ pub struct JudgedCounts {
 /// source → that source contributes nothing (not an error — many tasks skip
 /// these gates by size/strategy).
 pub fn parse_judged_verdicts(notes: &str) -> JudgedCounts {
-    let _ = notes;
-    todo!("t-2871")
+    let mut evaluator: Option<bool> = None; // Some(true) = pass, Some(false) = fail
+    let mut challenger: Option<bool> = None;
+
+    for line in notes.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("Evaluator: ") {
+            if rest.starts_with("PASS WITH GAPS") || rest.starts_with("PASS") {
+                evaluator = Some(true);
+            } else if rest.starts_with("FAIL") {
+                evaluator = Some(false);
+            }
+        } else if let Some(rest) = line.strip_prefix("Challenger: ") {
+            if rest.starts_with("PROCEED WITH CHANGES") || rest.starts_with("PROCEED") {
+                challenger = Some(true);
+            } else if rest.starts_with("RECONSIDER") {
+                challenger = Some(false);
+            }
+        }
+    }
+
+    let mut counts = JudgedCounts::default();
+    for v in [evaluator, challenger] {
+        match v {
+            Some(true) => counts.pass += 1,
+            Some(false) => counts.fail += 1,
+            None => {}
+        }
+    }
+    counts
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -50,8 +77,11 @@ pub struct GradeCounts {
 /// this can't fully parse still renders a partial bundle, never crashes the
 /// approve/merge flow it's meant to inform.
 pub fn grade_counts_from_json(v: &Value) -> GradeCounts {
-    let _ = v;
-    todo!("t-2871")
+    GradeCounts {
+        pass: v["counts"]["pass"].as_u64().unwrap_or(0) as usize,
+        fail: v["counts"]["fail"].as_u64().unwrap_or(0) as usize,
+        unknown: v["counts"]["unknown"].as_u64().unwrap_or(0) as usize,
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,15 +108,31 @@ impl ReceiptStatus {
 /// of exit code. "no receipt" is reported as `invalidated` with that literal
 /// reason string — distinguished here from a real invalidation.
 pub fn receipt_status_from_json(v: &Value) -> ReceiptStatus {
-    let _ = v;
-    todo!("t-2871")
+    let result = v["result"].as_str().unwrap_or("");
+    let reason = v["reason"].as_str().unwrap_or("").to_string();
+    match result {
+        "allow" => ReceiptStatus::Allow,
+        "scope-changed" => ReceiptStatus::ScopeChanged,
+        "invalidated" if reason == "no receipt" => ReceiptStatus::NoneMinted,
+        "invalidated" => ReceiptStatus::Invalidated(reason),
+        _ => ReceiptStatus::NoneMinted,
+    }
 }
 
 /// Compose the one-line bundle. Pure — no I/O, directly testable.
 /// `"{X}/{N} AC machine-green · {Y} judged-pass{detail} · {Z} needs-you · receipt: {R}"`
 pub fn compose_line(grade: &GradeCounts, judged: JudgedCounts, receipt: &ReceiptStatus) -> String {
-    let _ = (grade, judged, receipt);
-    todo!("t-2871")
+    let total = grade.pass + grade.fail + grade.unknown;
+    let detail = if judged.pass > 0 { " (verdicts attached)" } else { "" };
+    format!(
+        "{}/{} AC machine-green · {} judged-pass{} · {} needs-you · receipt: {}",
+        grade.pass,
+        total,
+        judged.pass,
+        detail,
+        grade.unknown,
+        receipt.render()
+    )
 }
 
 /// The thin wrapper: loads the task, shells to `ac-grade.sh` and `brana
@@ -107,11 +153,19 @@ pub fn cmd_stacked_verdict(task_id: &str, json: bool, file: Option<PathBuf>) -> 
     let notes = task["notes"].as_str().unwrap_or("");
     let judged = parse_judged_verdicts(notes);
 
-    let repo_root = tf
-        .parent() // .claude/
-        .and_then(|p| p.parent()) // repo root
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+    // repo_root for LOCATING ac-grade.sh must be the invoking process's own
+    // checkout (`git rev-parse --show-toplevel` from cwd) — NOT derived from
+    // tasks.json's path. tasks.json deliberately resolves via
+    // `--git-common-dir` (shared across every worktree, by design — the
+    // single source of truth for task state), which on a feature branch
+    // points at the MAIN checkout. That checkout may not yet have this
+    // branch's own system/scripts/ac-grade.sh, silently defeating the
+    // grading call. Matches how ac-grade.sh's own worktree resolution and
+    // `brana receipt validate`'s repo_root() already work: both assume the
+    // invoking cwd IS the relevant checkout. Found via manual smoke test —
+    // the unit tests below cover composition logic, not this subprocess
+    // path-resolution mismatch, which only surfaces against a real repo.
+    let repo_root = current_repo_root().unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
 
     let grade = run_ac_grade(&repo_root, task_id)
         .map(|v| grade_counts_from_json(&v))
@@ -138,6 +192,27 @@ pub fn cmd_stacked_verdict(task_id: &str, json: bool, file: Option<PathBuf>) -> 
         println!("{line}");
     }
     Ok(())
+}
+
+/// The invoking process's own checkout root — never derived from tasks.json's
+/// path (see the comment at its call site above).
+fn current_repo_root() -> Option<PathBuf> {
+    let cwd = std::env::current_dir().ok()?;
+    let out = Command::new("git")
+        .current_dir(&cwd)
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let s = String::from_utf8(out.stdout).ok()?;
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(trimmed))
+    }
 }
 
 fn run_ac_grade(repo_root: &std::path::Path, task_id: &str) -> Option<Value> {
