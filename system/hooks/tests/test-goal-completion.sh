@@ -362,15 +362,16 @@ assert_completes "clean run still auto-completes (gate is specific)" "$(make_sto
 rm -rf "$RG6"
 
 # ── G7 (Option C): a REGISTERED new test file is exempt → auto-completes ──────
-echo "Test G7 (Option C): registered new test in tests_required[] is exempt → auto-completes"
+echo "Test G7 (Option C): registered+hash-pinned new test is exempt → auto-completes"
 read -r RG7 BR7 <<< "$(make_goal_repo)"
 fresh_presence
 echo "test('new', () => {})" > "$RG7/tests/new.test.js"   # build writes a new test...
 git -C "$RG7" add -A >/dev/null 2>&1; git -C "$RG7" commit -q -m "add red test" 2>/dev/null
+PIN7=$(sha256sum "$RG7/tests/new.test.js" | cut -d' ' -f1)
 cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
-{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG7","base_ref":"$BR7","criteria":["app.js exists"],"tests_required":["tests/new.test.js"]}
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG7","base_ref":"$BR7","criteria":["app.js exists"],"tests_required":["tests/new.test.js"],"tests_hashes":{"tests/new.test.js":"$PIN7"}}
 EOF
-assert_completes "registered new test is exempt" "$(make_stop_input "$RG7")"
+assert_completes "registered+pinned new test is exempt" "$(make_stop_input "$RG7")"
 rm -rf "$RG7"
 
 # ── G8 (Option C): an UNREGISTERED new test file still blocks (G2-class guard) ─
@@ -410,6 +411,20 @@ cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
 EOF
 assert_gated "weakened registered test trips hash gate" "$(make_stop_input "$RG10")" "hash"
 rm -rf "$RG10"
+
+# ── G12 (panel repair): registered path with NO hash entry → gate (fail-closed) ─
+# A tests_required[] entry missing from tests_hashes kept the exact pre-ADR-082
+# exemption (panel finding: channel 3 iterated tests_hashes, not tests_required).
+echo "Test G12 (panel): registered-but-unhashed test trips the gate"
+read -r RG12 BR12 <<< "$(make_goal_repo)"
+fresh_presence
+echo "test('unpinned', () => {})" > "$RG12/tests/new.test.js"
+git -C "$RG12" add -A >/dev/null 2>&1; git -C "$RG12" commit -q -m "add test" 2>/dev/null
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG12","base_ref":"$BR12","criteria":["app.js exists"],"tests_required":["tests/new.test.js"]}
+EOF
+assert_gated "registered path without pinned hash trips gate" "$(make_stop_input "$RG12")" "hash"
+rm -rf "$RG12"
 
 # ── G11 (control): registered test with MATCHING pinned hash still auto-completes ─
 echo "Test G11 (control): untouched registered test with matching hash auto-completes"

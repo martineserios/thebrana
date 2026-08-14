@@ -209,6 +209,35 @@ run_hook
 H=$(jq -r '.tests_hashes["tests/test-green.sh"] // ""' "$GOAL" 2>/dev/null)
 if [ -z "$H" ]; then ok "no hash pinned for unregistered test"; else bad "hash pinned for green test"; fi
 
+# ── Test 13 (panel repair): red re-commit of a registered path RE-PINS the hash ─
+# Without re-pinning, an edit after registration gates forever with no recovery
+# path (registration skipped registered paths entirely). Redness re-earns the pin.
+echo "Test 13: registered path, new staged content, still red → hash re-pinned"
+reset_repo
+printf '#!/usr/bin/env bash\nexit 1\n' > "$REPO/tests/test-red.sh"
+git -C "$REPO" add tests/test-red.sh
+write_goal
+run_hook
+H1=$(jq -r '.tests_hashes["tests/test-red.sh"]' "$GOAL")
+printf '#!/usr/bin/env bash\n# stronger assertion\nexit 1\n' > "$REPO/tests/test-red.sh"
+git -C "$REPO" add tests/test-red.sh
+EXPECT2=$(git -C "$REPO" show ":tests/test-red.sh" | sha256sum | cut -d' ' -f1)
+run_hook
+H2=$(jq -r '.tests_hashes["tests/test-red.sh"]' "$GOAL")
+if [ "$H2" = "$EXPECT2" ] && [ "$H2" != "$H1" ]; then
+    ok "hash re-pinned to the new red blob"
+else
+    bad "hash not re-pinned — H1=$H1 H2=$H2 expected=$EXPECT2"
+fi
+L=$(req_len)
+if [ "$L" = "1" ]; then ok "tests_required still has exactly one entry (no dup)"; else bad "expected 1 entry, got $L"; fi
+# and a GREEN re-stage of a registered path must NOT re-pin (redness not re-earned)
+printf '#!/usr/bin/env bash\nexit 0\n' > "$REPO/tests/test-red.sh"
+git -C "$REPO" add tests/test-red.sh
+run_hook
+H3=$(jq -r '.tests_hashes["tests/test-red.sh"]' "$GOAL")
+if [ "$H3" = "$H2" ]; then ok "green re-stage does not re-pin"; else bad "green re-stage re-pinned ($H2 -> $H3)"; fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed."
