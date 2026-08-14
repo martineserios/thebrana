@@ -66,5 +66,21 @@ fi
 grep -qiE "^changes to .+ committed$" <<<"$criterion" && checkable
 grep -qiE '^commit message contains "' <<<"$criterion" && checkable
 
+# ── Heuristic 9: validate.sh passes (full run) — mirrors goal-completion.sh ──
+# (t-2856 drift fix: H9 shipped in the hook with t-2206 but was never mirrored here.)
+if grep -qiE 'validate\.sh' <<<"$criterion" \
+   && grep -qiE '(passes|exit 0|exit code 0)' <<<"$criterion" \
+   && ! grep -qiE 'check [0-9]' <<<"$criterion"; then
+    checkable
+fi
+
+# ── Heuristic 10: demoable: <command> — same allowlist as heuristic 7 ────────
+# (t-2856) Non-allowlisted demoable commands are prose: the hook never executes
+# them; the demo happens at a human sitting.
+if grep -qiE '^demoable: .+' <<<"$criterion"; then
+    cmd=$(sed 's/^[Dd]emoable: *//' <<<"$criterion")
+    grep -qE '^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)' <<<"$cmd" && checkable
+fi
+
 # ── Fallback: unknown pattern → prose (manual sign-off) ──────────────────────
 prose
