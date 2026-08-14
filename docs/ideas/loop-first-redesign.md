@@ -12,8 +12,9 @@ informs: [docs/ideas/loops-library.md]
 > [loops-library.md](loops-library.md) — the catalog born from this approach: entry schema,
 > queue types, the five-verb pull interface, leases. · ADR-079 + the backlog-drain epic
 > (t-2811, delivered 2026-08-13) — the substrate the loops pump against: waves, `ac approve`
-> valve, atomic `wave pull`, `docs/guide/workflows/drain-loop.md` (first committed loop,
-> proven live over 8 beats). · t-2828 — plan-time wave graphs + epic-level runner.
+> valve, atomic `wave pull`, [drain-loop.md](../guide/workflows/drain-loop.md) (first
+> committed loop, proven live over 8 beats). · t-2828 — plan-time wave graphs + epic-level
+> runner.
 
 ## Shape summary
 

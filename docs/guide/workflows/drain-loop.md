@@ -4,8 +4,13 @@ status: active
 created: 2026-08-13
 task: t-2813
 adr: ADR-079
+produced_by: [docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md]
 ---
 # Wave Drain Loop
+
+> First entry of the loops library ([loops-library.md](../../ideas/loops-library.md) — the
+> catalog this proves the pattern for); the approach behind both is
+> [loop-first-redesign.md](../../ideas/loop-first-redesign.md).
 
 The runner procedure for draining a wave with `/loop` (ADR-079 §2/§2b/§3). This
 file IS the committed prompt — a loop is *trigger + committed prompt + a
