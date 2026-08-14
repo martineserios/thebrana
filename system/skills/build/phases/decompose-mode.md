@@ -37,6 +37,27 @@ When invoked with `decompose` as the first argument, `/brana:build` skips the no
    | t-N | task | Task name | ms-N | — | S |
    | t-N+1 | task | Next task | ms-N | t-N | S |
    ```
+3a. **WAVES** (ADR-080 §2) — only when decomposing under an epic: resolve the
+   tree root's epic ancestor via [`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md)
+   (`resolve_epic_ancestor`). If it returns empty, or the draft tree has fewer
+   than 2 milestones with tasks under them, skip 3a silently. Otherwise, using
+   the shared primitives in [`../../_shared/wave-graph-emit.md`](../../_shared/wave-graph-emit.md):
+   - **One wave per milestone**, selector `parent:<ms-id>` — the ids are not
+     assigned until step 5 persists the tree, so draft the graph against the
+     table's placeholder milestone rows and resolve real `ms-N` ids at persist
+     time.
+   - **Gate chain** from the `Blocked by` column: if any task under milestone B
+     is blocked by a task under milestone A, wave-B's gate is
+     `wave_name_for_milestone(epic_slug, A's milestone-slug)`.
+   - **Contract** seeded from the milestone's stated definition-of-done (prose).
+   - **Wave naming**: `wave_name_for_milestone(epic_slug, ms_slug)`.
+   - **Cycle check before persist**: pipe the full `id<TAB>gate` set through
+     `wave_gate_chain_has_cycle`. A cycle is a hard stop — fix the milestone
+     dependency edges before proceeding; never persist a cyclic graph. Plan-time
+     defense in depth alongside the epic runner's PREFLIGHT cycle-STOP
+     (ADR-080 §3.1).
+   - Show the wave graph alongside the draft tree table (one line per wave:
+     `<name>`: selector, gate, contract) so step 4's approval covers both.
 4. **Get approval** via AskUserQuestion:
    ```
    question: "Task tree ready. Persist it?"
@@ -48,7 +69,15 @@ When invoked with `decompose` as the first argument, `/brana:build` skips the no
    brana backlog add --json '{"subject":"...","type":"milestone","parent":"ph-N",...}'
    brana backlog add --json '{"subject":"...","type":"task","parent":"ms-N","blocked_by":["t-N"],...}'
    ```
-6. **Report** — show the persisted tree with assigned IDs
+   **If step 3a produced a wave graph**, create the wave objects too, only now
+   (on approval), each `status: queued`, using the real `ms-N` ids just
+   assigned (gate before selector so an upstream wave name resolves for
+   `--gate`):
+   ```bash
+   brana backlog wave add --name "<wave-name>" --selector "parent:<ms-N>" \
+     --contract "<milestone definition-of-done>" [--gate <upstream-wave-name>]
+   ```
+6. **Report** — show the persisted tree with assigned IDs, plus the wave graph if one was written
 
 ### Decomposing an existing task
 

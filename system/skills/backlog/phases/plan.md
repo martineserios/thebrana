@@ -31,7 +31,28 @@ Interactive phase planning. Builds the hierarchy conversationally.
    - If yes: ask for tasks and their `work_type` (implement / research / design — infer from description if obvious, confirm with user), create with parent → milestone id
    - If no: create milestone only, tasks deferred
 7. **Ask about dependencies:** "Any tasks that block others?"
-8. **Propose the full tree** formatted as a roadmap view
+7a. **WAVES** (ADR-080 §2) — if the phase has 2+ milestones with tasks under them,
+   emit a wave graph from the plan structure using the shared primitives in
+   [`../../_shared/wave-graph-emit.md`](../../_shared/wave-graph-emit.md):
+   - **One wave per milestone**, selector `parent:<ms-id>` — no tags written.
+   - **Gate chain** from the dependency edges gathered in step 7: if any task
+     under milestone B is `blocked_by` a task under milestone A, wave-B's gate is
+     `wave_name_for_milestone(epic_slug, A's milestone-slug)`. Independent
+     milestones share a gate or have none.
+   - **Contract** seeded from the milestone's stated definition-of-done (prose).
+   - **Wave naming**: `wave_name_for_milestone(epic_slug, ms_slug)` →
+     `<epic-slug>-<ms-slug>`.
+   - **Cycle check before WRITE**: pipe the full `id<TAB>gate` set through
+     `wave_gate_chain_has_cycle` (from the shared file). A cycle is a hard stop —
+     surface the diagnostic and fix the milestone dependency edges before
+     proceeding; never display or write a cyclic graph. This plan-time check is
+     the first line of defense — the epic runner's PREFLIGHT cycle-STOP
+     (ADR-080 §3.1) is the last, not the only one.
+   - If the phase has 0 or 1 milestones, skip 7a silently — nothing to group.
+8. **Propose the full tree** formatted as a roadmap view, and — if step 7a
+   produced a wave graph — display it alongside the task tree in the same
+   PROPOSE gesture (ADR-080 §2.4): one line per wave (`<name>`: selector, gate,
+   contract). The human approves the graph and the tree together.
 9. **Cross-reference scan** — before finalizing, check the broader backlog for overlap:
    - Collect all subjects and tags from the proposed new tasks in this phase
    - Search existing pending tasks via CLI:
@@ -126,8 +147,15 @@ Interactive phase planning. Builds the hierarchy conversationally.
     - **If the phase is an investigation/spike** (strategy: investigation or all tasks tagged `investigation`): recommend the **double-challenge pattern** — challenge once before planning, once after reshaping. Suggest running `/brana:challenge` again after step 8 (PROPOSE).
 
 13. **Wait for approval** — user can adjust before writing
-14. **Write tasks.json** — one Write for the entire batch
-15. **Report:** show the tree with IDs and tags for reference
+14. **Write tasks.json** — one Write for the entire batch. **If step 7a produced a
+   wave graph**, create the wave objects too, only now (on approval), each
+   `status: queued` (per-wave, gate before selector so an upstream wave name
+   resolves for `--gate`):
+   ```bash
+   brana backlog wave add --name "<wave-name>" --selector "parent:<ms-id>" \
+     --contract "<milestone definition-of-done>" [--gate <upstream-wave-name>]
+   ```
+15. **Report:** show the tree with IDs and tags for reference, plus the wave graph if one was written
 
 ### Defaults
 - `work_type`: inferred from task kind (implement → feature/fix/refactor, research → research/docs, design → design); ask if ambiguous
