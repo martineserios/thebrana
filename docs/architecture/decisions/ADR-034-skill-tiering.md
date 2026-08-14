@@ -55,7 +55,7 @@ Stubs preserve full frontmatter (name, description, group, keywords, allowed-too
 
 ## References
 
-- Idea doc: `docs/ideas/skill-tiering.md`
+- Idea doc: `docs/ideas/drained/skill-tiering.md`
 - CC bug: anthropics/claude-code#14882 (skills load full content)
 - CC bug: anthropics/claude-code#42906 (cold cache API calls)
 - Challenger review: 2026-04-06 (Sonnet, simplicity flavor)

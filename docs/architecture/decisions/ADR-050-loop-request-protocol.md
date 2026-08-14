@@ -1,7 +1,7 @@
 ---
 depends_on:
   - docs/architecture/decisions/ADR-027-auto-learning-loop.md
-  - docs/ideas/cc-feature-adoption-v2.1.76-81.md
+  - docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md
 informs:
   - docs/archive/session-aware-loop-integration.md
 status: accepted
@@ -32,7 +32,7 @@ Skills never spawn loops silently. At defined moments, a skill procedure MAY sug
 
 1. **Cache economics.** The prompt cache TTL is 5 minutes. Any watcher interval >5 min forces a full-context cache miss per fire. A 15-minute test watcher across a 3-hour build session = 12 uncached full-context reads — paying repeatedly for signal the build loop already produces.
 2. **Redundancy with the TDD loop.** `/brana:build` BUILD step 3f runs tests per subtask; the BUILD→CLOSE gate runs `validate.sh`. An interval test-poller adds no information between those points.
-3. **Prior deliberate decision.** `docs/ideas/cc-feature-adoption-v2.1.76-81.md` already ruled: "Session cron forgotten mid-session → Don't automate — user-initiated only." This ADR upholds that ruling and gives it an ADR home.
+3. **Prior deliberate decision.** `docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md` already ruled: "Session cron forgotten mid-session → Don't automate — user-initiated only." This ADR upholds that ruling and gives it an ADR home.
 4. **ADR-027 ratchet.** "No evidence = no expansion." The Phase A gate metric (doc-update rate >50%) has no recorded measurement. Adding a new automation tier before the existing one is measured inverts the priority stack.
 5. **Wrong tool shape.** CronCreate's own guidance: live watching belongs to `Monitor` (event-streamed), not cron (wall-clock polling). Test-watching is event-shaped.
 6. **LoopTrap surface.** Recurring self-prompts widen the loop-termination-poisoning surface (arxiv 2605.05846: P5 sunk-cost, P7 recursive decomposition). Fewer autonomous loops = smaller attack surface.
@@ -65,7 +65,7 @@ t-517 remains deferred until someone wants to implement it; these conditions rem
 
 - t-731 re-scopes from "wire auto-spawn" to "add suggest-and-confirm lines to build/close procedures + the close-step loop sweep." Effort drops M → S.
 - t-1930 (tests) scopes to: validate the procedure lines exist, the close sweep runs `CronList`/`CronDelete`, and suggestion constraints (one per invocation) are stated in procedures.
-- `docs/ideas/cc-feature-adoption-v2.1.76-81.md` needs an errata line: the "skills can't invoke CronCreate" claim is obsolete (constraint dissolved, verified 2026-06-09); its "don't automate" ruling is superseded by this ADR's protocol.
+- `docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md` needs an errata line: the "skills can't invoke CronCreate" claim is obsolete (constraint dissolved, verified 2026-06-09); its "don't automate" ruling is superseded by this ADR's protocol.
 - t-705 (loop provider): no dependency taken. Disposition deferred to t-703 (provider abstraction, P2) — not obsoleted, not required.
 
 ## Non-Actions
@@ -80,5 +80,5 @@ t-517 remains deferred until someone wants to implement it; these conditions rem
 
 - `system/procedures/build.md` — BUILD-start suggestion point (L/XL only), step registry non-advancement conditions reference
 - `system/procedures/close.md` — session loop sweep line
-- `docs/ideas/cc-feature-adoption-v2.1.76-81.md` — errata line
+- `docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md` — errata line
 - `docs/archive/session-aware-loop-integration.md` — supersession pointer update (→ this ADR for the watcher scope)

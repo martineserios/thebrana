@@ -1,7 +1,7 @@
 # Research: Matt Pocock's Skill System vs brana's
 
 **Date:** 2026-08-13 | **Task:** t-2830 | **Strategy:** research (comparison + improvement mining)
-**Sources:** [github.com/mattpocock/skills](https://github.com/mattpocock/skills) (35 `SKILL.md` files read in full, `main` branch, 2026-08-13) · [aihero.dev/skills](https://www.aihero.dev/skills) · brana internal: `docs/reference/skills.md`, `docs/reference/skill-validation-checklist.md`, `system/skills/_shared/smart-router.md`, `system/skills/challenge/SKILL.md`, `docs/ideas/gentle-ai-adoption-ladder.md`, `docs/ideas/enforced-delegation.md`
+**Sources:** [github.com/mattpocock/skills](https://github.com/mattpocock/skills) (35 `SKILL.md` files read in full, `main` branch, 2026-08-13) · [aihero.dev/skills](https://www.aihero.dev/skills) · brana internal: `docs/reference/skills.md`, `docs/reference/skill-validation-checklist.md`, `system/skills/_shared/smart-router.md`, `system/skills/challenge/SKILL.md`, `docs/ideas/drained/gentle-ai-adoption-ladder.md`, `docs/ideas/drained/enforced-delegation.md`
 
 ## Method
 
@@ -82,7 +82,7 @@ Legend: **✅ counterpart** (brana has an equivalent doing the same job) · **�
 
 - `SKILL-MECHANICS.md` (Pocock) documents it as the whole basis of his user-invoked/model-invoked split: omit it → model-invoked (agent can fire it autonomously, description stays loaded every turn); set it `true` → user-invoked-only (zero context load, only reachable by typed name).
 - Brana's `docs/reference/skills.md` "Legal values" table (generated from `docs/architecture/testing-validation.md`) **does not list `disable-model-invocation` as a field at all** — it documents `status`, `growth_stage`, `group`, but not this one, despite it being live.
-- **Live usage audit**: grepping all 40 `system/skills/*/SKILL.md` for `disable-model-invocation` finds exactly **one** hit — `challenge/SKILL.md`. `docs/ideas/gentle-ai-adoption-ladder.md` (line 111–113) claims *two* live uses ("`challenge/SKILL.md`, `domain-driven-design/SKILL.md`") — that claim is **stale**; `domain-driven-design/SKILL.md` currently carries no such field. Flagging this as a small doc-drift finding in its own right, not something this task fixes.
+- **Live usage audit**: grepping all 40 `system/skills/*/SKILL.md` for `disable-model-invocation` finds exactly **one** hit — `challenge/SKILL.md`. `docs/ideas/drained/gentle-ai-adoption-ladder.md` (line 111–113) claims *two* live uses ("`challenge/SKILL.md`, `domain-driven-design/SKILL.md`") — that claim is **stale**; `domain-driven-design/SKILL.md` currently carries no such field. Flagging this as a small doc-drift finding in its own right, not something this task fixes.
 - **The conflict to name explicitly**: `gentle-ai-adoption-ladder.md` §Rung 3 proposed a **new, distinct** key `mode: execute-only` specifically *to avoid overloading* `disable-model-invocation`, reasoning that the existing field already means "deliberate-invocation-only" and a second, unrelated meaning (executor-vs-orchestrator role) needed its own key. **That ladder's Rungs 2–5 (including Rung 3, where `mode: execute-only` lives) were killed** by its own Phase 0 measurement (t-2591, `churn_share=0.342` against a 0.35 kill threshold, 2026-08-01). So `mode: execute-only` is dead — good, because Proposal P2 below (§4) is about systematizing `disable-model-invocation` itself for the *invocation-mode* axis, which is a **different axis** than the killed executor-role idea and does not resurrect it. This distinction must survive into P2's implementation or it will re-litigate a decision that already has a documented kill signal.
 
 **`writing-for-agents` vs `skill-validation-checklist.md` — complementary, not competing.** The 12-factor checklist is a compliance gate (does the skill pass 12 binary-ish checks). `writing-for-agents` is about *why* prose choices work (context load vs cognitive load, progressive disclosure, leading words, the no-op test). Neither supersedes the other; §4 P3 proposes citing the latter as the craft reference the former's item 3 ("context loading is bounded") and item 4 ("control flow is explicit") already gesture at but don't explain the mechanism for.
@@ -128,7 +128,7 @@ Six tasks created via `backlog_add`, parented to `t-2830`, tagged `skills,wave:d
 ## 6. Registry / follow-up notes
 
 - No `research-sources.yaml` entry exists for `mattpocock/skills` or `aihero.dev` — not proposing one; this is a one-off skill-system comparison, not a recurring-cadence source (no ongoing "check for updates" value the way a framework doc would have).
-- Doc-drift finding (§3): `docs/ideas/gentle-ai-adoption-ladder.md` line ~111 misstates that `domain-driven-design/SKILL.md` carries `disable-model-invocation: true` — it does not, as of 2026-08-13. Worth a small correction pass next time that doc is touched; not fixed here (out of this task's scope — it's an ideas doc, not authoritative).
+- Doc-drift finding (§3): `docs/ideas/drained/gentle-ai-adoption-ladder.md` line ~111 misstates that `domain-driven-design/SKILL.md` carries `disable-model-invocation: true` — it does not, as of 2026-08-13. Worth a small correction pass next time that doc is touched; not fixed here (out of this task's scope — it's an ideas doc, not authoritative).
 
 ---
 

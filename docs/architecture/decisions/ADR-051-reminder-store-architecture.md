@@ -1,9 +1,9 @@
 ---
 depends_on:
-  - docs/ideas/async-close-design.md
+  - docs/ideas/drained/async-close-design.md
   - docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md
 informs:
-  - docs/ideas/async-first-close.md
+  - docs/ideas/drained/async-first-close.md
 status: accepted
 ---
 
@@ -16,7 +16,7 @@ status: accepted
 
 ## Context
 
-The async-first close architecture (docs/ideas/async-first-close.md) defers learning extraction to a nightly cron. Learnings that need human routing — large/novel patterns, accumulated errata, deferred doc updates — must be held somewhere and surfaced later without blocking session close or session start. Hooks also need a way to write event-based reminders in real time (e.g., "edited hooks 3× — run validate.sh").
+The async-first close architecture (docs/ideas/drained/async-first-close.md) defers learning extraction to a nightly cron. Learnings that need human routing — large/novel patterns, accumulated errata, deferred doc updates — must be held somewhere and surfaced later without blocking session close or session start. Hooks also need a way to write event-based reminders in real time (e.g., "edited hooks 3× — run validate.sh").
 
 The original design had a bash-jq write helper (`remind.sh`) doing read-modify-write on a shared JSON store with atomic rename and no locking, deferring `flock` "until corruption is observed."
 
@@ -50,7 +50,7 @@ Additionally (t-2116), the session-start hook uses a second jq filter to find pa
 
 ### 4. Schema and evolution rules
 
-Store schema v1 per docs/ideas/async-close-design.md (lifecycle: pending → resolved / snoozed / expired). Binding implementation rules:
+Store schema v1 per docs/ideas/drained/async-close-design.md (lifecycle: pending → resolved / snoozed / expired). Binding implementation rules:
 
 - No `#[serde(deny_unknown_fields)]` on store structs
 - Every post-v1 field is `Option<T>` or `#[serde(default)]`

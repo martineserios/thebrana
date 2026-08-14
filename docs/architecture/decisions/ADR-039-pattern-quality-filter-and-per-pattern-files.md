@@ -1,6 +1,6 @@
 ---
 status: proposed
-produced_by: docs/ideas/memory-pattern-learning-redesign.md
+produced_by: docs/ideas/drained/memory-pattern-learning-redesign.md
 depends_on:
   - docs/architecture/decisions/ADR-038-memory-write-gateway.md
   - docs/architecture/features/memory-taxonomy-sdd.md

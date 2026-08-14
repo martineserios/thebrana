@@ -8,7 +8,7 @@ status: accepted
 **Deciders:** Martín Rios
 **Tags:** backlog, waves, loop, planning, epic-entry
 **Tasks:** t-2828 (design), t-2811 (epic backlog-drain), t-2820 (epic loop-first — reconciled here)
-**Relates:** [ADR-079](ADR-079-backlog-drain-loop-handoff.md) (the substrate this extends: `ac approve`, drain→loop handoff, WIP-at-pull) · [ADR-065](ADR-065-epic-as-hierarchy-top.md) (waves as thin process objects — D1's selector addition and D4's lease stay within its computed-not-stored stance) · [ADR-062](ADR-062-runner-executor-sandbox.md) (unattended gate — unchanged) · [ADR-078](ADR-078-stale-task-park-via-tag.md) (`parked` — reused by the dead-letter path) · [wave-pipeline.md](../../ideas/wave-pipeline.md) (concept doc: four rings, four primitives, seven laws) · [loops-library.md](../../ideas/loops-library.md) (entry schema, pull interface, the lease gap this ADR closes) · [drain-loop.md](../../guide/workflows/drain-loop.md) (the single-wave runner the epic runner generalizes)
+**Relates:** [ADR-079](ADR-079-backlog-drain-loop-handoff.md) (the substrate this extends: `ac approve`, drain→loop handoff, WIP-at-pull) · [ADR-065](ADR-065-epic-as-hierarchy-top.md) (waves as thin process objects — D1's selector addition and D4's lease stay within its computed-not-stored stance) · [ADR-062](ADR-062-runner-executor-sandbox.md) (unattended gate — unchanged) · [ADR-078](ADR-078-stale-task-park-via-tag.md) (`parked` — reused by the dead-letter path) · [wave-pipeline.md](../../ideas/drained/wave-pipeline.md) (concept doc: four rings, four primitives, seven laws) · [loops-library.md](../../ideas/drained/loops-library.md) (entry schema, pull interface, the lease gap this ADR closes) · [drain-loop.md](../../guide/workflows/drain-loop.md) (the single-wave runner the epic runner generalizes)
 
 ---
 
@@ -23,7 +23,7 @@ not be pointed at one wave. Two epics were independently designing adjacent mach
 both sessions flagged the scope overlap for reconciliation here (§6).
 
 Design constraint carried throughout: **the vocabulary is closed** — queue, pump, valve,
-gauge ([wave-pipeline.md](../../ideas/wave-pipeline.md)). Every capability below is an
+gauge ([wave-pipeline.md](../../ideas/drained/wave-pipeline.md)). Every capability below is an
 arrangement of those four; none adds a fifth primitive. The seven operating laws are the
 acceptance lens (§7).
 

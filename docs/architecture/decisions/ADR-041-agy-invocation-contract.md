@@ -1,6 +1,6 @@
 ---
 status: accepted
-produced_by: docs/ideas/claude-gemini-orchestration.md
+produced_by: docs/ideas/drained/claude-gemini-orchestration.md
 depends_on: [ADR-040]
 ---
 # ADR-041: agy Invocation Contract — Layer A vs B, Routing, /tmp/ Invariant, Version Pinning

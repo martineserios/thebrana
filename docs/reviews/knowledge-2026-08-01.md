@@ -69,7 +69,7 @@ Template stubs were never filled in. These are real breakage in reference docs:
 | `docs/architecture/hooks.md` | `${FILENAME}`, `topic_rust-cargo-patterns.md` |
 | `docs/guide/knowledge-system.md` | `path.md` |
 | `docs/guide/workflows/spec-graph.md` | `path` |
-| `docs/ideas/skill-semantic-validation.md` | `relative/path.md` |
+| `docs/ideas/drained/skill-semantic-validation.md` | `relative/path.md` |
 
 **Fix:** Replace each with actual target, or remove the link if the target doesn't exist yet.
 
@@ -99,7 +99,7 @@ Six files link to reflection docs that moved or were archived:
 
 ### 3f. Old machine-path links in ideas docs (LOW)
 
-Two ideas docs (`ideas/memory-consolidation-kairos.md`, `ideas/inbox-to-dimensions-pipeline.md`) contain hardcoded paths:
+Two ideas docs (`ideas/drained/memory-consolidation-kairos.md`, `ideas/drained/inbox-to-dimensions-pipeline.md`) contain hardcoded paths:
 ```
 ~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/...
 ```

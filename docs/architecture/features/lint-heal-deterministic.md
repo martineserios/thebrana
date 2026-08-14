@@ -1,9 +1,9 @@
 ---
 depends_on:
-  - docs/ideas/memory-consolidation-kairos.md
+  - docs/ideas/drained/memory-consolidation-kairos.md
   - docs/research/2026-04-08-cc-alignment-findings.md
 informs:
-  - docs/ideas/inbox-to-dimensions-pipeline.md
+  - docs/ideas/drained/inbox-to-dimensions-pipeline.md
 ---
 # Feature: Lint+Heal L2 — Deterministic Memory Consolidation
 

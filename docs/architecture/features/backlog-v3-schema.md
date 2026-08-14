@@ -3,8 +3,8 @@ title: Backlog v3 — Three-Axis Schema (Subject · Tags · Waves)
 status: shipped
 created: 2026-07-20
 relates-to:
-  - "[brana-v3 redesign](../../ideas/brana-v3-redesign.md)"
-  - "[brana-backlog-v2 schema](../../ideas/brana-backlog-v2-schema.md)"
+  - "[brana-v3 redesign](../../ideas/drained/brana-v3-redesign.md)"
+  - "[brana-backlog-v2 schema](../../ideas/drained/brana-backlog-v2-schema.md)"
   - "[ADR-002 tasks-as-data-layer](../decisions/ADR-002-tasks-as-data-layer.md)"
   - "[ADR-003 agent-driven task execution](../decisions/ADR-003-agent-driven-task-execution.md)"
   - "[ADR-047 acceptance-criteria schema](../decisions/ADR-047-acceptance-criteria-schema.md)"
@@ -19,7 +19,7 @@ challenged: "[six-hats deep challenge 2026-07-20](../../reviews/backlog-v3-schem
 
 # Backlog v3 — Three-Axis Schema
 
-> Designed 2026-07-20. The backlog reshaped to fit the [brana-v3 self-evolving loop](../../ideas/brana-v3-redesign.md): the task becomes both a **machine-readable contract** a loop can drain *and* a **self-contained handoff packet** any worker (loop, agent, human) can pick up cold.
+> Designed 2026-07-20. The backlog reshaped to fit the [brana-v3 self-evolving loop](../../ideas/drained/brana-v3-redesign.md): the task becomes both a **machine-readable contract** a loop can drain *and* a **self-contained handoff packet** any worker (loop, agent, human) can pick up cold.
 
 ## Problem
 
@@ -270,7 +270,7 @@ The migration is a JSON-transform over ~2,100 loose `serde_json::Value` objects 
 
 ## Relationship to the v3 waves
 
-This spec is **not** separate work from the [v3 epic](../../ideas/brana-v3-redesign.md) — it *is* its backbone:
+This spec is **not** separate work from the [v3 epic](../../ideas/drained/brana-v3-redesign.md) — it *is* its backbone:
 
 - **Cleanup** (collapse 43 → ~10, mark done, re-home strays, retire `dx-tooling`) = v3 **wave 1** (re-parent/supersession).
 - **This schema** (epic-as-node + tags + wave-as-selector + lifecycle + log) = fits the existing **backlog-cli** wave.

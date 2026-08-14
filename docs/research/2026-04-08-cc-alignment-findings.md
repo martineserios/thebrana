@@ -3,7 +3,7 @@
 **Date:** 2026-04-08
 **Status:** Findings only — no implementation. Shape work in progress.
 **Reads with:** [`2026-04-08-claude-code-leak-analysis.md`](./2026-04-08-claude-code-leak-analysis.md) (full research), [`2026-04-08-url-batch-findings.md`](./2026-04-08-url-batch-findings.md) (URL cluster synthesis).
-**Shape docs:** [`../ideas/session-memory-cc-alignment.md`](../ideas/session-memory-cc-alignment.md), [`../ideas/memory-consolidation-kairos.md`](../ideas/memory-consolidation-kairos.md).
+**Shape docs:** [`../ideas/drained/session-memory-cc-alignment.md`](../ideas/drained/session-memory-cc-alignment.md), [`../ideas/drained/memory-consolidation-kairos.md`](../ideas/drained/memory-consolidation-kairos.md).
 
 ---
 
@@ -61,7 +61,7 @@ Each opportunity from the leak-analysis doc, restated as "what is the decision t
 
 **The question:** How should brana's existing `session-state.json` (implemented via `unified-session-state.md`) relate to CC's `session_memory` file?
 
-**The tradeoff space:** see `../ideas/session-memory-cc-alignment.md` for three shape options (Additive / Replace / Mirror). Each has a different cost profile for compatibility, migration, and redundancy. **This is the single biggest decision in the batch** because it affects close/sitrep/session-end/session-start all at once.
+**The tradeoff space:** see `../ideas/drained/session-memory-cc-alignment.md` for three shape options (Additive / Replace / Mirror). Each has a different cost profile for compatibility, migration, and redundancy. **This is the single biggest decision in the batch** because it affects close/sitrep/session-end/session-start all at once.
 
 **Blocker to decision:** user preference on compat-vs-cleanliness tradeoff.
 
@@ -69,7 +69,7 @@ Each opportunity from the leak-analysis doc, restated as "what is the decision t
 
 **The question:** Should brana build a consolidation job *now*, before Anthropic flips the Kairos flag? And if yes, what pattern — Cathedral reimplementation, minimal dedup, or wait-and-see?
 
-**The tradeoff space:** see `../ideas/memory-consolidation-kairos.md` for four shape options (Cathedral clone / Minimal dedup / Wait-and-mirror / Do nothing). **Every option that builds ahead is building on sand** (Cathedral pattern is conceptual, not leaked). Risk of wasted work is real.
+**The tradeoff space:** see `../ideas/drained/memory-consolidation-kairos.md` for four shape options (Cathedral clone / Minimal dedup / Wait-and-mirror / Do nothing). **Every option that builds ahead is building on sand** (Cathedral pattern is conceptual, not leaked). Risk of wasted work is real.
 
 **Blocker to decision:** risk tolerance. If we build to Cathedral's spec and Anthropic ships something incompatible, we throw work away.
 
@@ -380,7 +380,7 @@ Karpathy's version is the most concrete of the three — it describes a **determ
 
 **Q: Should brana OS enforce an LLM-drafts-dimensions-from-inbox pipeline?**
 
-**A (user, 2026-04-08): Yes — this is the chosen workflow.** No longer flag-and-park. Now a real design decision with a shape doc due: `docs/ideas/inbox-to-dimensions-pipeline.md`.
+**A (user, 2026-04-08): Yes — this is the chosen workflow.** No longer flag-and-park. Now a real design decision with a shape doc due: `docs/ideas/drained/inbox-to-dimensions-pipeline.md`.
 
 Current state:
 - Sessions produce learnings → `/brana:close` → `feedback_*.md` + ruflo (already LLM-written — this is Layer 2)

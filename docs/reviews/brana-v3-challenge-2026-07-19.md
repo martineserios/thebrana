@@ -1,6 +1,6 @@
 # Brana v3 — Adversarial Challenge Reports (3-lens quorum)
 
-> 2026-07-19 · Target: [brana-v3-redesign.md](../ideas/brana-v3-redesign.md) + [agentic-primitives.md](../architecture/agentic-primitives.md)
+> 2026-07-19 · Target: [brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md) + [agentic-primitives.md](../architecture/agentic-primitives.md)
 > Pattern: `_shared/adversarial-hive-mind.md` — 3 independent challenger agents (convergent / systems / critical), no cross-visibility, caller synthesis.
 > **Verdict: unanimous RECONSIDER.** Corroboration matrix at the end.
 

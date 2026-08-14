@@ -5,7 +5,7 @@ status: proposed
 
 - **Status:** Proposed
 - **Date:** 2026-07-24
-- **Evidence:** [brana-v3-redesign.md](../../ideas/brana-v3-redesign.md) §"Lessons encoded" (the fold-in list) · wave-1 ground-truth diagnoses t-2395 (scheduler timeout + one dead close-queue entry) and t-2396 (challenger prompt ambiguity, 48 recurring read-fails) · challenge finding "unreconciled prior architecture" ([2026-07-19](../../reviews/brana-v3-challenge-2026-07-19.md) §1)
+- **Evidence:** [brana-v3-redesign.md](../../ideas/drained/brana-v3-redesign.md) §"Lessons encoded" (the fold-in list) · wave-1 ground-truth diagnoses t-2395 (scheduler timeout + one dead close-queue entry) and t-2396 (challenger prompt ambiguity, 48 recurring read-fails) · challenge finding "unreconciled prior architecture" ([2026-07-19](../../reviews/brana-v3-challenge-2026-07-19.md) §1)
 - **Related:** t-2397 (this ADR) · ADR-059 (substrate selection — retained) · [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (branch strategy — retained, amendment scoped below) · [ADR-050](ADR-050-loop-request-protocol.md) (blast-radius constants — retained) · ADR-065 / [backlog-v3-schema](../features/backlog-v3-schema.md) (the task contract) · t-2439, t-2444 (wave-1 diagnosis follow-ups)
 
 ## Context
@@ -19,7 +19,7 @@ capstones — describing brana's autonomous-agent system:
 | [substrate-end-state.md](../substrate-end-state.md) | Orbit capstone — autonomy tiers, staged rollout, safety net, operating surface |
 | [substrate-primitives.md](../substrate-primitives.md) | Substrate capstone — primitive set, composed blocks, composition grammar, durability/trust, §2b two-architectures |
 
-[brana-v3-redesign.md](../../ideas/brana-v3-redesign.md) (draft v3.3, adversarially
+[brana-v3-redesign.md](../../ideas/drained/brana-v3-redesign.md) (draft v3.3, adversarially
 challenged twice) is now the governing design for the same subject matter. Its wave-1
 scope explicitly includes retiring this cluster. The 2026-07-19 challenge named the
 unreconciled prior architecture as its first finding: v3 was re-deriving a shipped
@@ -97,7 +97,7 @@ this ADR or in v3 should rest on it as evidence.
 
 ## Decision
 
-**1. The three docs above are superseded by [brana-v3-redesign.md](../../ideas/brana-v3-redesign.md)** as the
+**1. The three docs above are superseded by [brana-v3-redesign.md](../../ideas/drained/brana-v3-redesign.md)** as the
 governing design for autonomous operation, its ladder, and its safety model. They are
 **retained** as dated design records carrying `Superseded by:` pointers — not deleted,
 not rewritten. Where they conflict with v3, v3 wins.
@@ -172,7 +172,7 @@ The amendment must decide:
 
 - **No link rot.** The three docs stay at their paths; all 26 inbound references across
   11 files (ADR-061, `features/consensus-primitive.md`, `features/learned-eligibility.md`,
-  `docs/ideas/orbit-evidence-first.md`, `docs/README.md`, and the cluster's own
+  `docs/ideas/drained/orbit-evidence-first.md`, `docs/README.md`, and the cluster's own
   cross-links) continue to resolve. Readers arriving via those links hit the
   `Superseded by:` pointer first.
 - **`docs/README.md` marks all three rows superseded** and indexes this ADR.

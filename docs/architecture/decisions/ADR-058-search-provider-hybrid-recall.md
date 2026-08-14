@@ -8,7 +8,7 @@ status: accepted
 **Deciders:** Martín Rios  
 **Tags:** memory, recall, rust, architecture, search  
 **Tasks:** t-2091 (parent), t-2109 (trait impl), t-2124 (this ADR)  
-**Spec:** docs/ideas/hybrid-provider-fts5-ruflo-rrf.md (challenger-reviewed x3)
+**Spec:** docs/ideas/drained/hybrid-provider-fts5-ruflo-rrf.md (challenger-reviewed x3)
 
 ---
 
@@ -171,7 +171,7 @@ Both are independent constants. FTS5 slowness does not reduce ruflo's budget.
 
 ## References
 
-- docs/ideas/hybrid-provider-fts5-ruflo-rrf.md — full design spec (challenger-reviewed x3)
+- docs/ideas/drained/hybrid-provider-fts5-ruflo-rrf.md — full design spec (challenger-reviewed x3)
 - system/cli/rust/crates/brana-core/src/search.rs — SearchProvider trait, FTS5Provider, RufloProvider (t-2109)
 - t-2091 — MemoryStore seam (parent task)
 - t-2109 — SearchProvider trait + FTS5/Ruflo impls (completed 2026-06-15)

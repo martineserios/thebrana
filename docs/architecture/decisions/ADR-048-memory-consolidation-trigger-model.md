@@ -3,7 +3,7 @@ id: ADR-048
 status: Accepted
 date: 2026-06-03
 tags: [memory, consolidation, scheduler, kairos]
-produced_by: [docs/ideas/memory-consolidation-autodream.md]
+produced_by: [docs/ideas/drained/memory-consolidation-autodream.md]
 applies_to: thebrana
 ---
 

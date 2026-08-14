@@ -2,7 +2,7 @@
 status: specifying
 task: t-1492
 date: 2026-05-20
-produced_by: docs/ideas/memory-pattern-learning-redesign.md
+produced_by: docs/ideas/drained/memory-pattern-learning-redesign.md
 depends_on:
   - docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md
   - docs/architecture/features/memory-taxonomy-sdd.md

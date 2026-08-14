@@ -8,7 +8,7 @@ status: accepted
 **Deciders:** Martín Rios
 **Tags:** security, runner, autonomy, sandbox, adr-060, lethal-trifecta
 **Tasks:** t-2173 (this ADR + impl) · gates unattended `--run-batch` on real tasks
-**Relates:** [ADR-060](ADR-060-two-tier-integration.md) (worktree isolation = the git layer this ADR completes at the OS layer) · [ADR-050](ADR-050-loop-request-protocol.md) (autonomy caps) · [substrate-end-state §Operating the Orbit](../substrate-end-state.md#operating-the-orbit) · idea: [runner-capability-isolation](../../ideas/runner-capability-isolation.md)
+**Relates:** [ADR-060](ADR-060-two-tier-integration.md) (worktree isolation = the git layer this ADR completes at the OS layer) · [ADR-050](ADR-050-loop-request-protocol.md) (autonomy caps) · [substrate-end-state §Operating the Orbit](../substrate-end-state.md#operating-the-orbit) · idea: [runner-capability-isolation](../../ideas/drained/runner-capability-isolation.md)
 
 ---
 

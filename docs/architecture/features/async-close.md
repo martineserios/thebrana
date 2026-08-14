@@ -2,9 +2,9 @@
 depends_on:
   - docs/architecture/decisions/ADR-052-close-queue-architecture.md
   - docs/architecture/features/reminder-system.md
-  - docs/ideas/async-close-design.md
+  - docs/ideas/drained/async-close-design.md
 informs:
-  - docs/ideas/async-first-close.md
+  - docs/ideas/drained/async-first-close.md
 ---
 # Feature: Async-First Close — Instant Close, Nightly Extraction
 

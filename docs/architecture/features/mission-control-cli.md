@@ -59,7 +59,7 @@ Managing 5+ projects across terminal screens requires constant manual switching.
 ## Research
 
 - Investigation: `docs/research/multi-agent-orchestration-investigation.md`
-- Idea: `docs/ideas/mission-control.md`
+- Idea: `docs/ideas/drained/mission-control.md`
 - 13 sources researched (5 orchestrators, 4 workflow patterns, 3 CC native, 1 security)
 - Challenger review: 2 critical findings accepted (decouple tmux, split phases)
 - Key patterns: delegate's 6-layer security, Composio's event reactions, Tomcal's minimalism

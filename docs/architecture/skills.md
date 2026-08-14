@@ -147,7 +147,7 @@ Community skills install with `quarantine: true` in frontmatter and read-only to
 ## Field Notes
 
 ### 2026-06-01: Skill retirement requires updating 10 locations in one commit
-When retiring a skill, the full checklist: SKILL.md + procedure file (delete), skills.md row, guide/commands/index.md row, brana-cli.md row, component-index.md row, architecture feature docs, guide workflow docs, ideas/skill-tiering.md row, scripts.md section (if has a script). Do all in one commit — leaving any behind creates a window where docs reference deleted files.
+When retiring a skill, the full checklist: SKILL.md + procedure file (delete), skills.md row, guide/commands/index.md row, brana-cli.md row, component-index.md row, architecture feature docs, guide workflow docs, ideas/drained/skill-tiering.md row, scripts.md section (if has a script). Do all in one commit — leaving any behind creates a window where docs reference deleted files.
 Source: notebooklm-source retirement / close session 2026-06-01 / t-1813
 
 ### 2026-06-01: Procedure preamble ToolSearch audit — grep, not positional extraction

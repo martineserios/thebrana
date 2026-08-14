@@ -1,7 +1,7 @@
 # the Orbit — Autonomous-Agent Operation (End-State Design)
 
 **Status:** superseded (2026-07-24) — historical design record; was: Design capstone (2026-06-20) · **Owner:** Martín Rios
-**Superseded by:** [ADR-068](decisions/ADR-068-v3-supersession.md) — superseded by the v3 design ([brana-v3-redesign.md](../ideas/brana-v3-redesign.md)) for autonomy tiers, staged rollout, and the safety net. The staged observe→act rollout, defer-don't-halt parking, the verification gate stack, ephemeral-worktree isolation, and the ADR-050 blast-radius constants are all carried forward — see ADR-068 §Decision item 3 for how each changed. ADR-059/ADR-060/ADR-050 are retained; ADR-060's "agent never merges" invariant has a scoped future amendment (ADR-068 §Scope of the ADR-060 amendment).
+**Superseded by:** [ADR-068](decisions/ADR-068-v3-supersession.md) — superseded by the v3 design ([brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md)) for autonomy tiers, staged rollout, and the safety net. The staged observe→act rollout, defer-don't-halt parking, the verification gate stack, ephemeral-worktree isolation, and the ADR-050 blast-radius constants are all carried forward — see ADR-068 §Decision item 3 for how each changed. ADR-059/ADR-060/ADR-050 are retained; ADR-060's "agent never merges" invariant has a scoped future amendment (ADR-068 §Scope of the ADR-060 amendment).
 
 > **This is the Orbit capstone** — the autonomous *operation* that runs on the Substrate. The filename (`substrate-end-state`) predates the Substrate/Orbit vocabulary and is kept to preserve inbound links. Start at the index: [the-orbit.md](the-orbit.md).
 

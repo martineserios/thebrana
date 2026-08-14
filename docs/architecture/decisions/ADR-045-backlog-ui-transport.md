@@ -9,7 +9,7 @@ status: accepted
 
 ## Context
 
-The brana backlog web UI (idea doc: `docs/ideas/brana-backlog-web-ui.md`) needs a transport
+The brana backlog web UI (idea doc: `docs/ideas/drained/brana-backlog-web-ui.md`) needs a transport
 layer between the Next.js frontend and `tasks.json`. Three options were evaluated:
 
 | Option | Description |

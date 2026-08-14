@@ -76,5 +76,5 @@ Source: t-2095, 2026-06-15
 Source: close Step 5, 2026-06-15
 
 ### 2026-06-15: Planned third SearchProvider impl — HybridProvider (parallel + RRF)
-The §Recall provider model above lists two providers. A third is planned: HybridProvider — parallel FTS5 + ruflo dispatch, results merged via RRF (k=20). Designed in brainstorm 2026-06-15, captured in `docs/ideas/hybrid-provider-fts5-ruflo-rrf.md`. To be implemented as part of t-2091 extension. (Errata E2026-06-15-3.)
+The §Recall provider model above lists two providers. A third is planned: HybridProvider — parallel FTS5 + ruflo dispatch, results merged via RRF (k=20). Designed in brainstorm 2026-06-15, captured in `docs/ideas/drained/hybrid-provider-fts5-ruflo-rrf.md`. To be implemented as part of t-2091 extension. (Errata E2026-06-15-3.)
 Source: brainstorm 2026-06-15

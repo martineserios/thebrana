@@ -1,6 +1,6 @@
 # Challenge Report — Backlog v3 Schema (Six Hats, Deep) — 2026-07-20
 
-**Target:** [backlog-v3-schema.md](../architecture/features/backlog-v3-schema.md) + [ADR-065](../architecture/decisions/ADR-065-epic-as-hierarchy-top.md) (branch `docs/backlog-v3-schema`), paired with [brana-v3-redesign.md](../ideas/brana-v3-redesign.md)
+**Target:** [backlog-v3-schema.md](../architecture/features/backlog-v3-schema.md) + [ADR-065](../architecture/decisions/ADR-065-epic-as-hierarchy-top.md) (branch `docs/backlog-v3-schema`), paired with [brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md)
 **Mode:** Six Hats — White · Black · Yellow · Green — plus adversarial verification (2 skeptics × 10 findings, 20 verifier agents, ~1.2M tokens)
 **Flavor:** Pre-mortem
 **Verdict:** **PROCEED WITH CHANGES** — all changes applied to the docs in the same revision that added this report.

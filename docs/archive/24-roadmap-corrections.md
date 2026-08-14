@@ -2860,8 +2860,8 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 ## Error E2026-05-17-1: `MCP_CONNECTION_NONBLOCKING` interactive-mode claim contradicts feature adoption doc
 
 **Severity:** Medium — if the env var only works in headless (`-p`) mode, t-1418's central change is a no-op in interactive sessions and should be reverted or scoped.
-**Discovery:** 2026-05-17 — t-1418 implementation. `docs/ideas/fast-cold-start.md:42` states the var "only works in `-p` (headless) mode". `docs/ideas/cc-feature-adoption-v2.1.136-142.md` recommends setting it unconditionally. Both docs are in the same repo and contradict each other.
-**Affected files:** `docs/ideas/fast-cold-start.md` (line 42), `docs/ideas/cc-feature-adoption-v2.1.136-142.md`, `.mcp.json`
+**Discovery:** 2026-05-17 — t-1418 implementation. `docs/ideas/drained/fast-cold-start.md:42` states the var "only works in `-p` (headless) mode". `docs/ideas/drained/cc-feature-adoption-v2.1.136-142.md` recommends setting it unconditionally. Both docs are in the same repo and contradict each other.
+**Affected files:** `docs/ideas/drained/fast-cold-start.md` (line 42), `docs/ideas/drained/cc-feature-adoption-v2.1.136-142.md`, `.mcp.json`
 
 **Fix:** Empirically verify: start CC interactively with `MCP_CONNECTION_NONBLOCKING=1` set vs. unset, time MCP connection. Then correct whichever doc is wrong and add a cross-reference. Filed as task for tracking.
 

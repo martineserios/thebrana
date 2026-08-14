@@ -4,7 +4,7 @@ depends_on:
   - docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md
   - docs/domain/MODEL-001-brana-core.md
 informs:
-  - docs/ideas/async-first-close.md
+  - docs/ideas/drained/async-first-close.md
 status: accepted
 ---
 

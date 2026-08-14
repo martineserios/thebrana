@@ -1,9 +1,9 @@
 ---
 depends_on:
   - docs/architecture/decisions/ADR-051-reminder-store-architecture.md
-  - docs/ideas/async-close-design.md
+  - docs/ideas/drained/async-close-design.md
 informs:
-  - docs/ideas/async-first-close.md
+  - docs/ideas/drained/async-first-close.md
 ---
 # Feature: Reminder System — Two-Layer Sources, Rust-Owned Store
 

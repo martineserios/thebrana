@@ -2,7 +2,7 @@
 
 **Status:** superseded (2026-07-24) — historical index; was: Index / orientation (2026-06-21) · **Owner:** Martín Rios
 **Type:** Index — the entry point for the autonomous-agent doc cluster.
-**Superseded by:** [ADR-068](decisions/ADR-068-v3-supersession.md) — the v3 design ([brana-v3-redesign.md](../ideas/brana-v3-redesign.md)) governs autonomous operation. The Substrate / Orbit / ground-control vocabulary below is retired in favour of the L1→L2→L3 ladder; ADR-068 §Decision lists the eight mechanics v3 carries forward. The peripheral docs this index links (autonomous-runner, learned-eligibility, consensus-primitive, workflow-primitive, substrate-leverage-audit) are **not** retired and remain live.
+**Superseded by:** [ADR-068](decisions/ADR-068-v3-supersession.md) — the v3 design ([brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md)) governs autonomous operation. The Substrate / Orbit / ground-control vocabulary below is retired in favour of the L1→L2→L3 ladder; ADR-068 §Decision lists the eight mechanics v3 carries forward. The peripheral docs this index links (autonomous-runner, learned-eligibility, consensus-primitive, workflow-primitive, substrate-leverage-audit) are **not** retired and remain live.
 
 This is the front door to brana's autonomous-agent system — the spine docs below,
 in reading order. Read this first; peripheral notes link out from each.
@@ -60,7 +60,7 @@ work cleared by ground control to leave the Orbit.
 
 | Doc | Status |
 |-----|--------|
-| [../ideas/runner-capability-isolation.md](../ideas/runner-capability-isolation.md) | Sandbox the Orbit's executor — bwrap capability isolation (idea, t-2173; HARD precondition for unattended runs) |
+| [../ideas/drained/runner-capability-isolation.md](../ideas/drained/runner-capability-isolation.md) | Sandbox the Orbit's executor — bwrap capability isolation (idea, t-2173; HARD precondition for unattended runs) |
 
 ## How the spine fits together
 

@@ -8,7 +8,7 @@ status: accepted
 **Deciders:** Martín Rios
 **Tags:** harness, receipts, verification, delegation, adr-060, adr-062
 **Tasks:** t-2592 (this ADR) · gates t-2593 (`brana receipt mint|validate`) · t-2594 (pre-merge hook) · t-2595 (feature spec) · t-2591 (the Phase-0 measurement that killed the delegation half)
-**Relates:** [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (two-tier `dev`→`main`; records that promotion has no automated gate) · [ADR-062](ADR-062-runner-executor-sandbox.md) (a worktree isolates tracked files, not the process — the same "the gate inspects less than you think" class) · [ADR-075](ADR-075-ship-on-deploy-surface-change.md) (advisory signals inside the deploy path) · idea: [build-receipts](../../ideas/build-receipts.md) · idea: [enforced-delegation](../../ideas/enforced-delegation.md)
+**Relates:** [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (two-tier `dev`→`main`; records that promotion has no automated gate) · [ADR-062](ADR-062-runner-executor-sandbox.md) (a worktree isolates tracked files, not the process — the same "the gate inspects less than you think" class) · [ADR-075](ADR-075-ship-on-deploy-surface-change.md) (advisory signals inside the deploy path) · idea: [build-receipts](../../ideas/drained/build-receipts.md) · idea: [enforced-delegation](../../ideas/drained/enforced-delegation.md)
 
 ---
 

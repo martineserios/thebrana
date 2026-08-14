@@ -5,8 +5,8 @@ status: accepted
 
 - **Status:** Accepted
 - **Date:** 2026-07-20
-- **Evidence:** [backlog-v3-schema.md](../features/backlog-v3-schema.md) D1; live task-shape inspection (2,156 tasks); [brana-backlog-v2-schema.md](../../ideas/brana-backlog-v2-schema.md); operator decision 2026-07-20
-- **Related:** ADR-002 (tasks-as-data-layer), ADR-047 (AC schema), [brana-v3 redesign](../../ideas/brana-v3-redesign.md)
+- **Evidence:** [backlog-v3-schema.md](../features/backlog-v3-schema.md) D1; live task-shape inspection (2,156 tasks); [brana-backlog-v2-schema.md](../../ideas/drained/brana-backlog-v2-schema.md); operator decision 2026-07-20
+- **Related:** ADR-002 (tasks-as-data-layer), ADR-047 (AC schema), [brana-v3 redesign](../../ideas/drained/brana-v3-redesign.md)
 
 ## Context
 
@@ -17,7 +17,7 @@ The backlog carries **two competing grouping systems** in its schema:
 
 A task therefore has two independent answers to "what is this part of." This duplication is a direct cause of the operator's felt "I get lost in epics" — and of epic sprawl (43 epics, ~19 already done but never closed, no WIP cap).
 
-**Why v2 put `initiative` on top ([brana-backlog-v2-schema.md](../../ideas/brana-backlog-v2-schema.md) §1):** to map 1:1 to **Linear's hierarchy — Initiative → Project → ProjectMilestone → Issue** — and, explicitly, because "initiatives are currently encoded as **tags**, which works but **isn't queryable**." That queryability gap is the stated reason for promoting initiative to a node.
+**Why v2 put `initiative` on top ([brana-backlog-v2-schema.md](../../ideas/drained/brana-backlog-v2-schema.md) §1):** to map 1:1 to **Linear's hierarchy — Initiative → Project → ProjectMilestone → Issue** — and, explicitly, because "initiatives are currently encoded as **tags**, which works but **isn't queryable**." That queryability gap is the stated reason for promoting initiative to a node.
 
 **The operator's model** (2026-07-20): an **epic = "what we're building," empty = feature done** — the home base they navigate by, WIP-capped and closable. Semantically a *deliverable that completes* = a Linear **Project**. And on Linear itself: *"keep a way to sync with Linear — we'll eventually adopt it; keep the link possible."*
 

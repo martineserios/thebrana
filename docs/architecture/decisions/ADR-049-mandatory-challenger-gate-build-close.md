@@ -131,4 +131,4 @@ Production numbers from RALPH (open-ralph-wiggum): average 1.4–1.8 outer itera
 - Reflexion (Shinn et al. NeurIPS 2023) — actor/evaluator separation requirement
 - [dim-60: Agent Loop Architecture](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) — JUDGE step must be architecturally separated from BUILD
 - LoopTrap (arxiv 2605.05846) — P4 Authority Override and P7 Recursive Decomposition defenses
-- `docs/ideas/challenger-outer-loop-gate.md` — brainstorm session 2026-06-08 (two rounds of adversarial challenge)
+- `docs/ideas/drained/challenger-outer-loop-gate.md` — brainstorm session 2026-06-08 (two rounds of adversarial challenge)

@@ -1,6 +1,6 @@
 ---
 status: proposed
-produced_by: docs/ideas/dated-memory-files.md
+produced_by: docs/ideas/drained/dated-memory-files.md
 depends_on:
   - docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md
   - docs/architecture/features/memory-taxonomy-sdd.md

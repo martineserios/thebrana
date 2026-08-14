@@ -13,7 +13,7 @@ merge-readiness signals, stale merged branches, inbox queue (names only), and
 backlog signals — then stops. No writes, no rebases, no processing. The point
 is evidence: what the digest teaches drives L1 (preparer) and everything after,
 per the graduated-autonomy ladder in
-[loop-first-redesign.md](../../ideas/loop-first-redesign.md).
+[loop-first-redesign.md](../../ideas/drained/loop-first-redesign.md).
 
 ## Design Decisions
 

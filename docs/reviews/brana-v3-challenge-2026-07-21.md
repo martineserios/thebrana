@@ -1,7 +1,7 @@
 ---
 title: Brana v3.2 challenge — fresh adversarial review
 date: 2026-07-21
-target: docs/ideas/brana-v3-redesign.md (draft v3.2)
+target: docs/ideas/drained/brana-v3-redesign.md (draft v3.2)
 prior: docs/reviews/brana-v3-challenge-2026-07-19.md · docs/reviews/backlog-v3-schema-challenge-2026-07-20.md
 verdict: PROCEED WITH CHANGES
 ---

@@ -1,7 +1,7 @@
 ---
 depends_on:
   - docs/architecture/decisions/ADR-052-close-queue-architecture.md
-  - docs/ideas/close-oriented-modes.md
+  - docs/ideas/drained/close-oriented-modes.md
 informs:
   - docs/architecture/features/close-oriented-modes.md
 amended_by:
@@ -14,7 +14,7 @@ status: accepted
 **Date:** 2026-06-11
 **Status:** Accepted
 **Tasks:** t-1980
-**Source:** docs/ideas/close-oriented-modes.md (brainstorm 2026-06-11) + premortem challenger review same day (verdict: RECONSIDER — 3 CRITICAL, 4 HIGH findings, all resolved here)
+**Source:** docs/ideas/drained/close-oriented-modes.md (brainstorm 2026-06-11) + premortem challenger review same day (verdict: RECONSIDER — 3 CRITICAL, 4 HIGH findings, all resolved here)
 
 ## Context
 

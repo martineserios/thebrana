@@ -137,7 +137,7 @@ Investigated 11 external sources + brana's current architecture to answer: shoul
 
 ## 8. Implementation: Mission Control
 
-See `docs/ideas/mission-control.md` for the full plan (post-challenge).
+See `docs/ideas/drained/mission-control.md` for the full plan (post-challenge).
 
 **Phases:**
 - 0.5: `brana run` (print command) — S effort

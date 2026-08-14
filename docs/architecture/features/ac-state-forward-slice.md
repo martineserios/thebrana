@@ -5,7 +5,7 @@ task: t-2283
 created: 2026-07-21
 related:
   - docs/architecture/features/backlog-v3-schema.md   # destination map (full schema)
-  - docs/ideas/brana-v3-redesign.md                   # the process-loop north star
+  - docs/ideas/drained/brana-v3-redesign.md                   # the process-loop north star
   - docs/reviews/backlog-v3-schema-challenge-2026-07-20.md  # write-path sealing = surviving CRITICAL
   - docs/architecture/decisions/ADR-047-*             # ac_state is an amendment to ADR-047
 ---

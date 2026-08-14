@@ -8,7 +8,7 @@ status: proposed
   attribution) and **D3b** (missing pin ⇒ fail loud) rest on mechanisms that verification
   contradicted. See the inline VERIFIED blocks in D3.2, D3b and D1's consequences.
 - **Date:** 2026-07-28
-- **Evidence:** [backlog-v3-lane-identity.md](../../ideas/backlog-v3-lane-identity.md) (t-2488 brainstorm); live reproductions 2026-07-28 (below); t-2502 diagnosis (3 reproductions); t-2506 mechanism; t-2495 hypothesis + refutation; live store audit (24 session-state files, 54 epic nodes)
+- **Evidence:** [backlog-v3-lane-identity.md](../../ideas/drained/backlog-v3-lane-identity.md) (t-2488 brainstorm); live reproductions 2026-07-28 (below); t-2502 diagnosis (3 reproductions); t-2506 mechanism; t-2495 hypothesis + refutation; live store audit (24 session-state files, 54 epic nodes)
 - **Related:** [ADR-065](ADR-065-epic-as-hierarchy-top.md) (epic as hierarchy top), [ADR-068](ADR-068-v3-supersession.md) (v3 supersession), [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (branch strategy), [backlog-v3-schema.md](../features/backlog-v3-schema.md) D4/D8
 - **Task:** t-2488
 

@@ -5,7 +5,7 @@ depends_on:
 informs:
   - docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md
   - docs/architecture/decisions/ADR-038-memory-write-gateway.md
-  - docs/ideas/knowledge-base-redesign.md
+  - docs/ideas/drained/knowledge-base-redesign.md
 status: accepted
 ---
 
@@ -14,7 +14,7 @@ status: accepted
 **Date:** 2026-06-12
 **Status:** Accepted (2026-06-12) — condition resolved: brana-ontology.yaml v1.6 carries Claim, Event, Source, Hub, Decision (t-2030)
 **Tasks:** t-2027 (this ADR), phase t-2021 (Knowledge Base Redesign); consumers: t-2028 (ADR-042 amendment), t-2030 (ontology update), t-2031..t-2035 (enforcement), t-2039 (event promotion)
-**Source:** docs/ideas/knowledge-base-redesign.md (brainstorm + dual challenger review 2026-06-12); 2026-06-11 knowledge-structure audit; corpus-root and migration-mode decisions confirmed by user 2026-06-12
+**Source:** docs/ideas/drained/knowledge-base-redesign.md (brainstorm + dual challenger review 2026-06-12); 2026-06-11 knowledge-structure audit; corpus-root and migration-mode decisions confirmed by user 2026-06-12
 
 ## Context
 

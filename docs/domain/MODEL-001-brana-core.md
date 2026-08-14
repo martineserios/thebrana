@@ -1,6 +1,6 @@
 # MODEL-001: brana-core Bounded Contexts
 
-> Created 2026-04-05. Source: idea doc `docs/ideas/brana-cli-mcp-layer.md`, codebase inventory.
+> Created 2026-04-05. Source: idea doc `docs/ideas/drained/brana-cli-mcp-layer.md`, codebase inventory.
 
 ## Purpose
 

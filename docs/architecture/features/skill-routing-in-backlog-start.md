@@ -10,7 +10,7 @@ informs:
 **Date:** 2026-04-01
 **Status:** implemented
 **Task:** t-833
-**Idea doc:** docs/ideas/skill-auto-router.md
+**Idea doc:** docs/ideas/drained/skill-auto-router.md
 **ADR:** ADR-026 (ruflo MCP backbone)
 
 ## Goal

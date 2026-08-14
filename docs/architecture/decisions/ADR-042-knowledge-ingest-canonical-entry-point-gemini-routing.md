@@ -1,6 +1,6 @@
 ---
 status: accepted
-produced_by: docs/ideas/knowledge-pipeline-glue.md
+produced_by: docs/ideas/drained/knowledge-pipeline-glue.md
 depends_on: [ADR-040]
 operationalized_by: docs/architecture/features/knowledge-pipeline-compute.md
 ---
@@ -125,7 +125,7 @@ SOURCES
 
 ## Amendment (t-2028, 2026-07-24): `type:` frontmatter requirement on ingest output
 
-The knowledge-base redesign (`docs/ideas/knowledge-base-redesign.md`, promoted via t-2021/t-2022)
+The knowledge-base redesign (`docs/ideas/drained/knowledge-base-redesign.md`, promoted via t-2021/t-2022)
 establishes one frontmatter schema where every knowledge file declares its ontology `type:`
 (atom: `claim`/`pattern`/`event`/`source`; synthesis: `hub`/`decision`) so graph, ruflo, and
 Obsidian read the same source of truth with zero translation.

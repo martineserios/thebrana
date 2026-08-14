@@ -7,7 +7,7 @@ related:
   - docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md
   - docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md
   - docs/architecture/decisions/ADR-075-ship-on-deploy-surface-change.md
-  - docs/ideas/build-receipts.md
+  - docs/ideas/drained/build-receipts.md
 ---
 
 # Feature: Build receipts

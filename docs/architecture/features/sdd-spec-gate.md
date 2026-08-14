@@ -5,7 +5,7 @@ date: 2026-06-15
 depends_on:
   - docs/architecture/features/t-601-tdd-gate.md
   - docs/reflections/32-lifecycle.md
-  - docs/ideas/ddd-sdd-lifecycle-artifacts.md
+  - docs/ideas/drained/ddd-sdd-lifecycle-artifacts.md
 ---
 
 # Feature: SDD Spec Gate — Feature Spec Template + Advisory Gate for M+ Tasks

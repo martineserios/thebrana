@@ -5,7 +5,7 @@ depends_on:
 # Feature: Resilient Pattern Store
 
 > Status: in-progress (wave 1 complete, wave 2 pending)
-> Idea: [docs/ideas/resilient-pattern-store.md](../../ideas/resilient-pattern-store.md)
+> Idea: [docs/ideas/drained/resilient-pattern-store.md](../../ideas/drained/resilient-pattern-store.md)
 > Phase: t-815 (Ruflo as Native Backbone) → t-848 (Foundation) + t-849 (Indexer + Seeding)
 > ADR: [ADR-026](../decisions/ADR-026-ruflo-mcp-backbone.md) (ruflo MCP backbone)
 
@@ -122,7 +122,7 @@ Writes per-namespace JSON to temp files, assembles with `jq --slurpfile` to avoi
 | `system/hooks/session-end.sh:164` | `--namespace pattern` → `--namespace session` | ✅ Done |
 | `system/skills/close/SKILL.md:459,473` | `namespace: "pattern"` → `namespace: "session"` for session-meta | ✅ Done |
 | `system/scripts/sync-state.sh` | SQLite fallback for `ruflo_list_all`, add `session` namespace to export list, restructure `cmd_export` to use temp files | ✅ Done |
-| `docs/ideas/resilient-pattern-store.md` | New idea doc | ✅ Done |
+| `docs/ideas/drained/resilient-pattern-store.md` | New idea doc | ✅ Done |
 | `docs/ideas/ruflo-native-integration.md` | 7 corrections (status, counts, dual-write strategy, failure mode, patches, field note) | ✅ Done |
 | `system/skills/close/SKILL.md` | Step 5b: write each pattern as individual frontmatter .md file | ✅ Done (t-852) |
 | `system/scripts/index-assumptions.sh` | Add missing `timeout 15` wrapper to `$CF memory store` | ✅ Done (t-852) |

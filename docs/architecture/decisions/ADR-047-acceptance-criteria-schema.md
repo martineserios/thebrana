@@ -14,7 +14,7 @@ status: accepted
 
 CC v2.1.139 introduced `/goal` — a completion condition that anchors multi-turn sessions and enables self-termination when the stated outcome is reached. Without structured criteria in the task definition, `/goal` strings are LLM-inferred prose that Claude might satisfy trivially or prematurely.
 
-The design doc `docs/ideas/goal-adoption-brana-skills.md` identified the gap: structured `acceptance_criteria` in the backlog schema must come first. `/goal` becomes powerful only when it is generated deterministically from machine-readable assertions, not from free-text description.
+The design doc `docs/ideas/drained/goal-adoption-brana-skills.md` identified the gap: structured `acceptance_criteria` in the backlog schema must come first. `/goal` becomes powerful only when it is generated deterministically from machine-readable assertions, not from free-text description.
 
 This ADR locks the schema design and the wiring contract between backlog tasks, `/brana:build`, and the Stop hook. It gates t-1778 (Rust CLI impl) and t-1779 (/brana:build wiring).
 
@@ -168,8 +168,8 @@ Mandatory backfill of 1,500+ tasks would be a high-friction migration with low R
 
 - t-1778: Add acceptance_criteria field to backlog schema (Rust + MCP) — blocked by this ADR
 - t-1779: /brana:build reads criteria → generates /goal + Stop hook validates — blocked by t-1778
-- `docs/ideas/goal-adoption-brana-skills.md` — /goal adoption design and taxonomy
-- `docs/ideas/cc-feature-adoption-v2.1.136-142.md` — acceptance_criteria prerequisite identified
+- `docs/ideas/drained/goal-adoption-brana-skills.md` — /goal adoption design and taxonomy
+- `docs/ideas/drained/cc-feature-adoption-v2.1.136-142.md` — acceptance_criteria prerequisite identified
 - ADR-044: Initiative accumulator (related schema extension pattern)
 
 ---
