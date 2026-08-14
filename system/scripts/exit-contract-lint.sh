@@ -110,10 +110,13 @@ lint_diff() {
                 flush_pending
                 file="${raw#+++ }"; file="${file#b/}"
                 skip_file=0
-                # Exempt: test files (fixtures) and registry docs (worked examples).
+                # Exempt: test files (fixtures) and registry docs (worked
+                # examples). Registry exemption is scoped to the ACTIVE
+                # registry dir, not any _shared/ repo-wide (challenger, t-2888).
+                file_dir=$(dirname "$file")
                 if [[ "$file" =~ (^|/)tests/ ]] \
                    || [ -n "${REGISTRY_BASE[$(basename "$file")]:-}" ] \
-                   || [[ "$file" == */_shared/* ]]; then
+                   || [[ "$REGISTRY_DIR" == */"$file_dir" || "$REGISTRY_DIR" == "$file_dir" ]]; then
                     skip_file=1
                 fi
                 continue ;;
@@ -146,18 +149,30 @@ lint_diff() {
         for h in "${!CONTRACT_DOC[@]}"; do
             [[ "$line" =~ (^|[^a-zA-Z0-9_])"$h"([^a-zA-Z0-9_]|$) ]] || continue
             [[ "$line" == *"$h()"* ]] && continue           # function definition
+            prefix="${line%%"$h"*}"   # text before the first occurrence
+            suffix="${line#*"$h"}"    # text after it
             # Invocation syntax required — prose/doc mentions of the helper name
-            # are not call sites (pre-edit challenger finding #2, t-2888):
-            # command substitution `$(h ...)` or direct command position.
-            if ! [[ "$line" =~ \$\("$h"([[:space:]]|\)) ]] \
-               && ! [[ "$line" =~ (^|[\;\&\|][[:space:]]*)"$h"([[:space:]]|$) ]]; then
+            # are not call sites (pre-edit challenger finding #2, t-2888).
+            # A call is: command substitution `$(h ...`, or the helper in
+            # command position — line start (any indentation), after a
+            # separator (; & | { (), or after do/then/else (post-build
+            # challenger finding #1: indented and keyword-prefixed direct
+            # calls are the common real-world shapes).
+            if ! [[ "$prefix" =~ \$\([[:space:]]*$ ]] \
+               && ! [[ "$prefix" =~ ^[[:space:]]*$ ]] \
+               && ! [[ "$prefix" =~ [\;\&\|\{\(][[:space:]]*$ ]] \
+               && ! [[ "$prefix" =~ (^|[[:space:]\;\&\|\{\(])(do|then|else)[[:space:]]+$ ]]; then
                 continue
             fi
-            # Branched on the call line itself?
-            if [[ "$line" =~ (^|[\;\&\|][[:space:]]*)(if|elif|while|until)[[:space:]] ]] \
-               || [[ "$line" == *'||'* ]]; then
+            # Branched? A guarding keyword must still be OPEN at the call —
+            # i.e. no `;` between it and the helper (`| while read; do h` is
+            # NOT guarded: the while tests read, the `;` closed its condition).
+            if [[ "$prefix" =~ (^|[[:space:]\;\&\|\{\(])(if|elif|while|until)[[:space:]][^\;]*$ ]]; then
                 continue
             fi
+            # `||` AFTER the call handles this call's failure; before it, the
+            # previous command's (post-build challenger finding #1).
+            [[ "$suffix" == *'||'* ]] && continue
             flush_pending   # an older unresolved call reports before we track this one
             pending_helper="$h"
             pending_line="$cur"

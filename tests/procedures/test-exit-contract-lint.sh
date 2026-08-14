@@ -141,6 +141,24 @@ assert_exit "prose mention without invocation -> exit 0" 0 "$RC"
 run_lint "$(mkdiff system/skills/build/phases/doc.md '+call \`frob_widget\` — check the exit status first')"
 assert_exit "backticked name-only mention -> exit 0" 0 "$RC"
 
+echo "=== direct calls in common positions (post-build challenger finding #1) ==="
+# Indented direct call — the shape almost every real if/for/while body uses.
+run_lint "$(mkdiff foo.sh '+    frob_widget "$id"')"
+assert_exit "indented direct call, unbranched -> exit 1" 1 "$RC"
+# Pipeline loop body — live shape at close/phases/gate-and-evidence.md:130.
+run_lint "$(mkdiff foo.sh '+| while read -r id; do frob_widget "$id" 2>/dev/null; done')"
+assert_exit "do-prefixed call in pipeline loop, unbranched -> exit 1" 1 "$RC"
+# Indented if-wrapped call is still a branch — must stay clean.
+run_lint "$(mkdiff foo.sh '+  if frob_widget "$id"; then' '+    ok=1' '+  fi')"
+assert_exit "indented if-wrapped call -> exit 0" 0 "$RC"
+# || BEFORE the call handles the previous command's failure, not this one's.
+run_lint "$(mkdiff foo.sh '+prev_cmd || B=$(frob_widget "$id")')"
+assert_exit "|| preceding the call -> exit 1 (call failure unhandled)" 1 "$RC"
+
+echo "=== exemption is registry-scoped, not any _shared/ (finding #2) ==="
+run_lint "$(mkdiff some/other/_shared/foo.sh '+B=$(frob_widget "$id")')"
+assert_exit "bare call in a foreign _shared/ dir -> exit 1 (not the registry)" 1 "$RC"
+
 echo "=== success-only chaining does NOT handle failure ==="
 run_lint "$(mkdiff foo.md '+EPIC=$(frob_widget "$id") && echo ok')"
 assert_exit "&&-only chaining -> exit 1 (failure branch missing)" 1 "$RC"
