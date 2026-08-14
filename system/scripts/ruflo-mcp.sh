@@ -16,6 +16,10 @@
 # (41d7a9fc) were removed — the orphan sweep killed live writers and caused the
 # very corruption it was meant to prevent (confirmed June 13 2026 with flock active).
 # SQLite WAL is the correct mechanism for concurrent access (t-2085).
+# CORRECTION (t-2626): the WAL premise holds ONLY while the AgentDB bridge is
+# up (native better-sqlite3). With the bridge down, ruflo silently falls back
+# to sql.js — whole-file non-atomic writeFileSync, no WAL at all — which is
+# what corrupted the store daily. The patch call below keeps the bridge up.
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR:-}" ]; then
     cd "$CLAUDE_PROJECT_DIR"
 else
@@ -23,6 +27,14 @@ else
 fi
 
 mkdir -p "$HOME/.swarm"
+
+# t-2626: dedupe @claude-flow/memory's ControllerRegistry double-export before
+# launch. The duplicate is an ESM SyntaxError that crashes the AgentDB bridge
+# import and silently drops every memory op onto the sql.js whole-file-rewrite
+# fallback — the root cause of the daily memory.db torn-write corruption. An
+# npm upgrade/reinstall reverts the dist; re-asserting here self-heals on the
+# next MCP launch. Never blocks startup.
+"$(cd "$(dirname "$0")" && pwd)/patch-ruflo-memory-dup-export.sh" 2>&1 | head -2 >&2 || true
 
 DB_PATH="$HOME/.swarm/memory.db"
 BACKUP_DIR="$HOME/.swarm/backups"
