@@ -287,6 +287,152 @@ pub fn dry_run_wave_pull(path: &Path, wave_id: &str) -> Result<(PullDecision, bo
     Ok((decision, simulated))
 }
 
+/// t-2844 (ADR-080 §6f): topologically order waves by gate dependency
+/// (least-depended-on first). A wave's `gate` names at most one predecessor,
+/// so the gate graph is a forest, not a general DAG — depth-from-root
+/// ordering is a valid topo sort, computed via DFS with a `visiting` stack
+/// for cycle detection (ADR-080 §2's "cheap DFS", the real thing here rather
+/// than the bash bound-walk approximation in `wave-graph-emit.md`).
+///
+/// Board is a **read-only display**, not the enforcement point — a gate id
+/// that names no known wave (a broken reference `check_wave_gate` would
+/// reject at drain time) degrades to depth-0 here rather than erroring, so a
+/// dangling reference still renders instead of blanking the whole board.
+/// Ties (equal depth) break by wave id for a stable, deterministic order.
+pub fn wave_gate_topo_order(waves: &[Value]) -> Result<Vec<String>, String> {
+    let by_id: HashMap<&str, &Value> = waves
+        .iter()
+        .filter_map(|w| w["id"].as_str().map(|id| (id, w)))
+        .collect();
+
+    fn depth_of(
+        id: &str,
+        by_id: &HashMap<&str, &Value>,
+        memo: &mut HashMap<String, usize>,
+        visiting: &mut Vec<String>,
+    ) -> Result<usize, String> {
+        if let Some(&d) = memo.get(id) {
+            return Ok(d);
+        }
+        if visiting.iter().any(|v| v == id) {
+            visiting.push(id.to_string());
+            return Err(format!("gate cycle detected: {}", visiting.join(" -> ")));
+        }
+        visiting.push(id.to_string());
+        let gate = by_id
+            .get(id)
+            .and_then(|w| w["gate"].as_str())
+            .filter(|g| !g.is_empty());
+        let depth = match gate {
+            None => 0,
+            Some(g) if !by_id.contains_key(g) => 0,
+            Some(g) => 1 + depth_of(g, by_id, memo, visiting)?,
+        };
+        visiting.pop();
+        memo.insert(id.to_string(), depth);
+        Ok(depth)
+    }
+
+    let mut memo: HashMap<String, usize> = HashMap::new();
+    let mut order: Vec<(String, usize)> = Vec::new();
+    for w in waves {
+        let id = match w["id"].as_str() {
+            Some(id) => id,
+            None => continue,
+        };
+        let mut visiting = Vec::new();
+        let depth = depth_of(id, &by_id, &mut memo, &mut visiting)?;
+        order.push((id.to_string(), depth));
+    }
+    order.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
+    Ok(order.into_iter().map(|(id, _)| id).collect())
+}
+
+/// Per-wave counts for the wave board gauge (t-2844, ADR-080 §6f).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WaveCounts {
+    /// Total tasks matching the selector, any status.
+    pub matched: usize,
+    /// Matched tasks with status `pending`.
+    pub pending: usize,
+    /// Matched tasks with status `in_progress`.
+    pub in_progress: usize,
+    /// Matched tasks with `ac_state:approved`, any status.
+    pub approved: usize,
+}
+
+/// Compute `WaveCounts` for one wave. **Zero direct selector string
+/// parsing** — routes exclusively through `parse_wave_selector` +
+/// `WaveSelector::matches`, the single parse point and status-agnostic
+/// matcher (ADR-080 §1), the same authority `resolve_wave_selector` and the
+/// wip live-count use. Read-only: takes `&[Value]`, never `&mut`.
+pub fn wave_counts(wave: &Value, tasks: &[Value]) -> Result<WaveCounts, String> {
+    let sel = parse_wave_selector(wave["selector"].as_str().unwrap_or(""))?;
+    let by_id = task_index(tasks);
+    let mut counts = WaveCounts { matched: 0, pending: 0, in_progress: 0, approved: 0 };
+    for t in tasks {
+        if !sel.matches(t, &by_id) {
+            continue;
+        }
+        counts.matched += 1;
+        match t["status"].as_str() {
+            Some("pending") => counts.pending += 1,
+            Some("in_progress") => counts.in_progress += 1,
+            _ => {}
+        }
+        if t["ac_state"].as_str() == Some("approved") {
+            counts.approved += 1;
+        }
+    }
+    Ok(counts)
+}
+
+/// One rendered row of the wave board.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WaveBoardRow {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub gate: Option<String>,
+    pub matched: usize,
+    pub pending: usize,
+    pub in_progress: usize,
+    pub approved: usize,
+}
+
+/// The wave board (t-2844, ADR-080 §6f): gate-chain topo order + per-wave
+/// matched/pending/in_progress/approved counts, computed live from
+/// tasks.json. **Strictly read-only — zero writes**: every parameter and
+/// intermediate is `&[Value]`/owned data, nothing here ever touches
+/// `lock_tasks`/`save_tasks`. No new store — this reads the existing `waves`
+/// + `tasks` arrays only.
+pub fn wave_board(waves: &[Value], tasks: &[Value]) -> Result<Vec<WaveBoardRow>, String> {
+    let order = wave_gate_topo_order(waves)?;
+    let by_id: HashMap<&str, &Value> = waves
+        .iter()
+        .filter_map(|w| w["id"].as_str().map(|id| (id, w)))
+        .collect();
+    order
+        .into_iter()
+        .map(|id| {
+            let wave = by_id
+                .get(id.as_str())
+                .ok_or_else(|| format!("wave {id} vanished during board render"))?;
+            let counts = wave_counts(wave, tasks)?;
+            Ok(WaveBoardRow {
+                id: id.clone(),
+                name: wave["name"].as_str().unwrap_or("").to_string(),
+                status: wave["status"].as_str().unwrap_or("unknown").to_string(),
+                gate: wave["gate"].as_str().filter(|g| !g.is_empty()).map(|s| s.to_string()),
+                matched: counts.matched,
+                pending: counts.pending,
+                in_progress: counts.in_progress,
+                approved: counts.approved,
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -519,5 +665,149 @@ mod tests {
         let tasks = [json!({"id": "t-1", "status": "pending", "tags": "bugfix,old"})];
         let matched = resolve_wave_selector(&wave(None, "tag:bugfix"), &tasks).unwrap();
         assert!(matched.is_empty(), "string-typed tags are skipped, not parsed");
+    }
+
+    // ── wave_gate_topo_order (t-2844, ADR-080 §6f) ──────────────────────────
+
+    fn simple_wave(id: &str, gate: Option<&str>) -> Value {
+        json!({"id": id, "name": id, "selector": "tag:x", "gate": gate, "status": "queued"})
+    }
+
+    #[test]
+    fn topo_order_no_gates_ties_break_by_id() {
+        let waves = vec![simple_wave("wave-2", None), simple_wave("wave-1", None)];
+        let order = wave_gate_topo_order(&waves).unwrap();
+        assert_eq!(order, vec!["wave-1", "wave-2"], "equal depth (0) ties break by id");
+    }
+
+    #[test]
+    fn topo_order_linear_chain() {
+        let waves = vec![
+            simple_wave("wave-3", Some("wave-2")),
+            simple_wave("wave-1", None),
+            simple_wave("wave-2", Some("wave-1")),
+        ];
+        let order = wave_gate_topo_order(&waves).unwrap();
+        assert_eq!(order, vec!["wave-1", "wave-2", "wave-3"],
+            "gated-on wave must precede the wave that gates on it");
+    }
+
+    #[test]
+    fn topo_order_fan_in_shared_gate() {
+        // Two waves both gate on wave-1 — same depth, tie-break by id.
+        let waves = vec![
+            simple_wave("wave-1", None),
+            simple_wave("wave-3", Some("wave-1")),
+            simple_wave("wave-2", Some("wave-1")),
+        ];
+        let order = wave_gate_topo_order(&waves).unwrap();
+        assert_eq!(order, vec!["wave-1", "wave-2", "wave-3"]);
+    }
+
+    #[test]
+    fn topo_order_two_cycle_detected_loud() {
+        let waves = vec![
+            simple_wave("wave-1", Some("wave-2")),
+            simple_wave("wave-2", Some("wave-1")),
+        ];
+        let err = wave_gate_topo_order(&waves).unwrap_err();
+        assert!(err.contains("cycle"), "must name the cycle, not silently order or hang: {err}");
+    }
+
+    #[test]
+    fn topo_order_self_gate_detected_loud() {
+        let waves = vec![simple_wave("wave-1", Some("wave-1"))];
+        let err = wave_gate_topo_order(&waves).unwrap_err();
+        assert!(err.contains("cycle"));
+    }
+
+    #[test]
+    fn topo_order_broken_gate_reference_degrades_to_root_not_crash() {
+        // Board is read-only display, not the enforcement point — a dangling
+        // gate reference (check_wave_gate's job to reject at drain time)
+        // must render, not panic. It degrades to depth-0 (same treatment as
+        // no gate at all).
+        let waves = vec![simple_wave("wave-1", Some("wave-99"))];
+        let order = wave_gate_topo_order(&waves).unwrap();
+        assert_eq!(order, vec!["wave-1"]);
+    }
+
+    // ── wave_counts (t-2844, ADR-080 §6f) ───────────────────────────────────
+
+    fn counted_task(id: &str, status: &str, parent: Option<&str>, ac_state: Option<&str>) -> Value {
+        json!({"id": id, "subject": format!("s-{id}"), "status": status, "tags": [],
+               "parent": parent, "ac_state": ac_state})
+    }
+
+    #[test]
+    fn wave_counts_buckets_matched_pending_in_progress_approved() {
+        let w = json!({"id": "wave-1", "name": "w", "selector": "parent:ms-1", "status": "draining"});
+        let tasks = vec![
+            counted_task("ms-1", "pending", None, None),              // not matched — parent:ms-1 targets ms-1, doesn't match ms-1 itself
+            counted_task("t-1", "pending", Some("ms-1"), Some("approved")),
+            counted_task("t-2", "pending", Some("ms-1"), Some("proposed")),
+            counted_task("t-3", "in_progress", Some("ms-1"), Some("approved")),
+            counted_task("t-4", "completed", Some("ms-1"), Some("approved")),
+            counted_task("t-5", "pending", Some("other-ms"), Some("approved")), // different subtree
+        ];
+        let counts = wave_counts(&w, &tasks).unwrap();
+        assert_eq!(counts.matched, 4, "t-1..t-4 match parent:ms-1; ms-1 and t-5 don't");
+        assert_eq!(counts.pending, 2, "t-1, t-2");
+        assert_eq!(counts.in_progress, 1, "t-3");
+        assert_eq!(counts.approved, 3, "t-1, t-3, t-4 (any status) — t-2 is proposed");
+    }
+
+    #[test]
+    fn wave_counts_zero_matches_is_ok_not_error() {
+        let w = json!({"id": "wave-1", "name": "w", "selector": "tag:nothing", "status": "queued"});
+        let counts = wave_counts(&w, &[]).unwrap();
+        assert_eq!(counts.matched, 0);
+        assert_eq!(counts.pending, 0);
+        assert_eq!(counts.in_progress, 0);
+        assert_eq!(counts.approved, 0);
+    }
+
+    #[test]
+    fn wave_counts_routes_through_shared_parse_point_not_raw_string_match() {
+        // AC: "zero direct selector string parsing — resolve_wave_selector
+        // exclusively" (well, its single parse point) — an unsupported
+        // selector form must reject loud here too, not silently count 0.
+        let w = json!({"id": "wave-1", "name": "w", "selector": "status:pending", "status": "queued"});
+        let err = wave_counts(&w, &[]).unwrap_err();
+        assert!(err.contains("selector form not supported"));
+    }
+
+    // ── wave_board (t-2844, ADR-080 §6f) ────────────────────────────────────
+
+    #[test]
+    fn wave_board_orders_by_gate_and_reports_counts() {
+        let waves = vec![
+            json!({"id": "wave-2", "name": "consumers", "selector": "parent:ms-2",
+                   "gate": "wave-1", "status": "queued"}),
+            json!({"id": "wave-1", "name": "core", "selector": "parent:ms-1",
+                   "gate": null, "status": "shipped"}),
+        ];
+        let tasks = vec![
+            counted_task("t-1", "pending", Some("ms-2"), Some("approved")),
+        ];
+        let rows = wave_board(&waves, &tasks).unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].id, "wave-1", "gate-free wave (depth 0) orders first");
+        assert_eq!(rows[0].status, "shipped");
+        assert_eq!(rows[0].gate, None);
+        assert_eq!(rows[1].id, "wave-2");
+        assert_eq!(rows[1].gate.as_deref(), Some("wave-1"));
+        assert_eq!(rows[1].matched, 1);
+        assert_eq!(rows[1].approved, 1);
+    }
+
+    #[test]
+    fn wave_board_propagates_cycle_error() {
+        let waves = vec![
+            simple_wave("wave-1", Some("wave-2")),
+            simple_wave("wave-2", Some("wave-1")),
+        ];
+        let err = wave_board(&waves, &[]).unwrap_err();
+        assert!(err.contains("cycle"));
     }
 }

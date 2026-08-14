@@ -941,6 +941,50 @@ pub fn cmd_wave_list(file: Option<PathBuf>) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Wave board (t-2844, ADR-080 §6f): strictly read-only L0 cockpit gauge —
+/// gate-chain topo order + per-wave matched/pending/in_progress/approved
+/// counts, computed live from `tasks::wave_board`. No new store, no lock, no
+/// write — a plain `load_tasks` read, same as `cmd_wave_list`/`cmd_wave_get`.
+pub fn cmd_wave_board(theme: &themes::Theme, json_out: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let rows = tasks::wave_board(&data.waves, &data.tasks).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    if json_out {
+        let out: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
+            "id": r.id, "name": r.name, "status": r.status, "gate": r.gate,
+            "matched": r.matched, "pending": r.pending,
+            "in_progress": r.in_progress, "approved": r.approved,
+        })).collect();
+        println!("{}", serde_json::to_string(&out).unwrap());
+        return Ok(());
+    }
+
+    if rows.is_empty() {
+        println!("\n  No waves found.\n");
+        return Ok(());
+    }
+
+    println!("\n{}Wave Board{}", themes::ansi(theme.color("header")), themes::RESET);
+    for r in &rows {
+        let gate = r.gate.as_deref().unwrap_or("none");
+        println!(
+            "{}  {} {}  {} {}  gate:{}  matched:{} pending:{} in_progress:{} approved:{}",
+            themes::ansi(theme.color("header")),
+            r.id, r.name,
+            themes::RESET,
+            r.status,
+            gate,
+            r.matched, r.pending, r.in_progress, r.approved,
+        );
+    }
+    println!();
+    Ok(())
+}
+
 /// Set a field on a wave (t-2315): status/selector/contract/gate/name.
 pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
@@ -3148,6 +3192,47 @@ mod tests {
         let tasks = read_tasks_arr(&f);
         assert_eq!(tasks[0]["status"], "pending", "drain must not touch matched tasks");
         assert!(tasks[0].get("wave").is_none(), "drain must not stamp tasks");
+    }
+
+    // ── t-2844 (ADR-080 §6f): wave board (CLI path) ───────────────────────
+
+    #[test]
+    fn cmd_wave_board_json_reports_gate_order_and_counts() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","tags":["bugfix"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-2","name":"consumers","selector":"tag:bugfix","gate":"wave-1","status":"queued"},
+                {"id":"wave-1","name":"core","selector":"tag:nothing","gate":null,"status":"shipped"}]"#,
+        );
+        let theme = themes::Theme::load("classic");
+        cmd_wave_board(&theme, true, Some(f.path().to_path_buf())).unwrap();
+        // json_out prints to stdout, not returned — assert via the pure
+        // core function instead (already unit-tested); this test's job is
+        // to confirm the CLI wiring doesn't error and doesn't write.
+    }
+
+    #[test]
+    fn cmd_wave_board_is_strictly_read_only() {
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","tags":["bugfix"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:bugfix","gate":null,"status":"queued"}]"#,
+        );
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        let theme = themes::Theme::load("classic");
+        cmd_wave_board(&theme, true, Some(f.path().to_path_buf())).unwrap();
+        let after = std::fs::read_to_string(f.path()).unwrap();
+        assert_eq!(before, after, "wave board must not write to tasks.json — zero writes in the code path");
+    }
+
+    #[test]
+    fn cmd_wave_board_cycle_errors_loud_not_silent() {
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"a","selector":"tag:x","gate":"wave-2","status":"queued"},
+                {"id":"wave-2","name":"b","selector":"tag:x","gate":"wave-1","status":"queued"}]"#,
+        );
+        let theme = themes::Theme::load("classic");
+        let err = cmd_wave_board(&theme, true, Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("cycle"), "gate cycle must surface, not render partial/garbage: {err}");
     }
 
     #[test]
