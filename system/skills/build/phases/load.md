@@ -297,6 +297,7 @@ Before CLASSIFY, verify the task is in a buildable state. Read the task via `bac
 | All blocked_by resolved | **Hard block** | any `blocked_by` entry has status != completed | "Resolve blockers first: {list of open blocked_by IDs}" |
 | Effort set | **Soft warn** | `effort` field null, AND task is M or L (infer from description length/scope) | "Consider setting effort: `brana backlog set {task_id} effort M`" |
 | AC: lines in context (M/L) | **Soft warn** | no lines starting with `AC:` in `context` field, AND effort is M or L | "No AC: lines found — add acceptance criteria for /goal injection: `brana backlog set {task_id} context 'AC: ...'`" |
+| ac_state approved (M+) | **Soft warn** | `ac_state` != `approved`, AND effort is M, L, or XL | "AC not approved — the blind test-author (ADR-082 §5) cannot arm; approve via `brana backlog ac {task_id} approve`" |
 
 **Hard blocks** — collect all hard failures, then:
 ```
@@ -321,6 +322,7 @@ If "Skip — reason required": require free text. Log to task notes and decision
 ```
 ⚠ {task_id}: effort not set. Consider: `brana backlog set {task_id} effort M`
 ⚠ {task_id}: no AC: lines in context. Session anchored with /goal "{subject}"; auto-complete disabled (add AC: lines to enable).
+⚠ {task_id}: ac_state is '{value}' — blind test-author cannot arm (ADR-082 §5); approve via `brana backlog ac {task_id} approve`.
 ```
 
 If all checks pass (or only soft warns remain), proceed silently.
