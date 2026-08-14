@@ -22,7 +22,7 @@ The central domain. Manages the task lifecycle — creation, querying, mutation,
 - `Task` — id, subject, description, status, priority, effort, stream, type, tags, parent, blocked_by, branch, context, notes, created, started, completed, order, execution, github_issue, build_step, strategy
 - `TasksFile` — project name + Vec<Task> + Vec<Wave>
 - `Epic` (ADR-065, ADR-065-driven schema v3) — not a separate struct; a `Task` specializes into an epic node when `type == "epic"`. Epic is the **sole top node** of the subject-tree hierarchy: it absorbs the retired flat `epic` string field, gains its own status vocabulary (`EpicStatus`, distinct from `TaskStatus`), and other tasks become its children via `parent`. Superseded: `initiative` as a hierarchy node (removed entirely); `wip_limit` (retired 2026-08-12, t-2727 — see ADR-065's amendment).
-- `Wave` (ADR-065, schema v3) — id (`wave-N`), name, selector (opaque query text, not resolved by brana-core), contract, gate (nullable wave id, unenforced), status, created. Not a `Task` — a thin process object that *selects* tasks; it does not own them. Lives in the sibling `waves` array of `TasksFile`, sharing the same file/lock/atomicity boundary as `tasks`.
+- `Wave` (ADR-065, schema v3) — id (`wave-N`), name, selector (resolved by brana-core's `parse_wave_selector`/`resolve_wave_selector` since t-2775; forms: `tag:<name>`, `parent:<id>` per ADR-080 §1 — storage paths still treat the string as opaque), contract, gate (nullable wave id, enforced by `check_wave_gate` at drain since t-2775), status, created, wip_limit (nullable, enforced at pull since t-2813). Not a `Task` — a thin process object that *selects* tasks; it does not own them. Lives in the sibling `waves` array of `TasksFile`, sharing the same file/lock/atomicity boundary as `tasks`.
 
 **Value objects:**
 - `TaskStatus` — pending | in_progress | completed | cancelled
@@ -406,7 +406,7 @@ All other contexts are independent:
 |------|-----------|---------|
 | **Task** | A unit of work with lifecycle (pending -> in_progress -> completed/cancelled) | Backlog |
 | **Epic** | The sole top node of the subject-tree hierarchy (ADR-065) — a task with `type:"epic"`, its own status lifecycle (active/next/parked/done/archived), and a WIP cap; other tasks become its children via `parent` | Backlog |
-| **Wave** | A named, drainable selector over the task tree/tags (ADR-065) — a thin stored process object `{selector, contract, gate, status}`; it selects tasks, it does not own them. Selector resolution is not yet implemented — storage/CRUD only | Backlog |
+| **Wave** | A named, drainable selector over the task tree/tags (ADR-065) — a thin stored process object `{selector, contract, gate, status, wip_limit}`; it selects tasks, it does not own them. Selector resolution shipped in t-2775/t-2813 (`tag:<name>`) and t-2840 (`parent:<id>`, ADR-080 §1); `wave pull --dry-run` rehearses a pull without writing (shadow drain) | Backlog |
 | **Phase** | A grouping of milestones/tasks representing a major initiative | Backlog |
 | **Milestone** | A checkpoint within a phase, grouping related tasks | Backlog |
 | **Subtask** | A child task decomposed from a parent | Backlog |

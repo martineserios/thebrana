@@ -1930,6 +1930,53 @@ mod tests {
     }
 
     #[test]
+    fn test_dry_run_wave_pull_reports_would_pull_writes_nothing() {
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        let (d, simulated) = dry_run_wave_pull(f.path(), "wave-1").unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
+        assert!(!simulated, "draining wave needs no simulation");
+        assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
+            "dry-run must be byte-identical — it writes nothing");
+    }
+
+    #[test]
+    fn test_dry_run_wave_pull_simulates_queued_as_draining() {
+        // AC 5: rehearse an unarmed (queued) wave — decision computed as-if
+        // draining, flagged simulated, still zero writes.
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued","wip_limit":1}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        let (d, simulated) = dry_run_wave_pull(f.path(), "wave-1").unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
+        assert!(simulated, "queued wave must be labeled as simulated");
+        assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before);
+        // The strict path stays strict: direct pull on queued still refuses.
+        let err = pull_wave_task(f.path(), "wave-1").unwrap_err();
+        assert!(err.contains("draining"), "{err}");
+    }
+
+    #[test]
+    fn test_dry_run_wave_pull_shipped_remains_caller_error() {
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p","tasks":[],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"shipped"}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let err = dry_run_wave_pull(f.path(), "wave-1").unwrap_err();
+        assert!(err.contains("shipped"), "shipped is not rehearsable: {err}");
+    }
+
+    #[test]
     fn test_pull_wave_task_unknown_wave_errors() {
         use std::io::Write;
         let mut f = tempfile::NamedTempFile::new().unwrap();

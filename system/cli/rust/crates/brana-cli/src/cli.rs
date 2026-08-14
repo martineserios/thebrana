@@ -1148,6 +1148,11 @@ pub enum WaveCmd {
     /// At-limit / none-eligible are normal ok outcomes (skip this cycle).
     Pull {
         wave_id: String,
+        /// Shadow drain (ADR-080): report the would-pull decision and write
+        /// nothing. A queued wave is simulated as-if-draining (labeled in
+        /// the output); a shipped wave remains an error.
+        #[arg(long)]
+        dry_run: bool,
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,
@@ -1163,9 +1168,10 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
-    /// Drain a wave (t-2775): gate check + tag:<name> selector resolution.
-    /// Reports matched pending tasks and sets status to "draining" — does
-    /// NOT execute anything or touch matched tasks.
+    /// Drain a wave (t-2775): gate check + selector resolution (tag:<name>
+    /// or parent:<id>, ADR-080). Reports matched pending tasks and sets
+    /// status to "draining" — does NOT execute anything or touch matched
+    /// tasks.
     Drain {
         wave_id: String,
         /// Path to tasks.json (auto-detected if omitted)
