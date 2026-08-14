@@ -497,6 +497,43 @@ else
 fi
 rm -rf "$RH10C"
 
+# ── Injection hardening (t-2856 challenger finding 1): allowlist is prefix-anchored,
+# so "pytest; <anything>" matched and reached eval. Commands containing shell
+# metacharacters must fall to UNKNOWN — never executed — for BOTH H7 and H10.
+echo "Test INJ-H7: '\"pytest; touch canary\" passes' → UNKNOWN, never executed"
+read -r RINJ BRINJ <<< "$(make_goal_repo)"
+fresh_presence
+mkdir -p "$TMPDIR_TEST/bininj"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$TMPDIR_TEST/bininj/pytest"; chmod +x "$TMPDIR_TEST/bininj/pytest"
+OLD_PATH="$PATH"; export PATH="$TMPDIR_TEST/bininj:$PATH"
+CANARY7="$TMPDIR_TEST/inj-canary-h7"
+write_goal "$RINJ" "$BRINJ" "\\\"pytest; touch $CANARY7\\\" passes"
+TOTAL=$((TOTAL + 1))
+OUT_INJ7=$(echo "$(make_stop_input "$RINJ")" | bash "$HOOK" 2>/dev/null) || OUT_INJ7=""
+if [ ! -f "$CANARY7" ] && ! echo "$OUT_INJ7" | grep -qiE 'Goal complete|auto-marked completed'; then
+    echo "  PASS: H7 metachar command never executed, not completed"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: H7 injection — canary=$([ -f "$CANARY7" ] && echo executed) output: $OUT_INJ7"; FAIL=$((FAIL + 1))
+fi
+export PATH="$OLD_PATH"
+rm -rf "$RINJ"
+
+echo "Test INJ-H10: 'demoable: pytest && touch canary' → UNKNOWN, never executed"
+read -r RINJB BRINJB <<< "$(make_goal_repo)"
+fresh_presence
+export PATH="$TMPDIR_TEST/bininj:$PATH"
+CANARY10="$TMPDIR_TEST/inj-canary-h10"
+write_goal "$RINJB" "$BRINJB" "demoable: pytest && touch $CANARY10"
+TOTAL=$((TOTAL + 1))
+OUT_INJ10=$(echo "$(make_stop_input "$RINJB")" | bash "$HOOK" 2>/dev/null) || OUT_INJ10=""
+if [ ! -f "$CANARY10" ] && ! echo "$OUT_INJ10" | grep -qiE 'Goal complete|auto-marked completed'; then
+    echo "  PASS: H10 metachar command never executed, not completed"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: H10 injection — canary=$([ -f "$CANARY10" ] && echo executed) output: $OUT_INJ10"; FAIL=$((FAIL + 1))
+fi
+export PATH="$OLD_PATH"
+rm -rf "$RINJB"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"

