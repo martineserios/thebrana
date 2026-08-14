@@ -35,6 +35,37 @@ AskUserQuestion:
 ```
 If "Skip": log `brana backlog set {task_id} notes --append "Challenger gate skipped at BUILD exit: {reason}"` and proceed to CLOSE.
 
+## Mechanical pre-check: exit-contract lint (t-2888)
+
+Before spawning the challenger, run the deterministic lint over the same diff range:
+
+```bash
+system/scripts/exit-contract-lint.sh main...HEAD
+```
+
+Registry: helpers marked `# Exit contract` in `system/skills/_shared/*.md` — the class
+that was dropped three times against `resolve_epic_ancestor` (t-2263, t-2843, t-2845)
+despite documentation at the source.
+
+| Exit | Meaning | Action |
+|---|---|---|
+| 0 | clean | proceed to spawn |
+| 1 | added call site doesn't branch on the helper's exit status | fix the call site(s) in BUILD, re-run the lint, then spawn |
+| 2 | registry empty/unreadable | the **lint** is broken, not the diff — fix it; never skip silently |
+
+Semantics (kept distinct from the LLM gate):
+- Mechanical violations do **not** consume the max-2 Challenger iteration cap — the cap
+  counts LLM challenger runs only. The challenger still runs after the lint is clean: it
+  judges whether a *branched* call distinguishes every documented outcome; the lint owns
+  only the mechanical class (no branch at all).
+- Intentionally ignoring a helper's failure requires an explicit `|| true` at the call
+  site — that is the opt-out, not an override.
+- Disputed violation: require a reason and log it with the mechanical prefix so
+  CALIBRATION.md's monthly finding review can filter non-LLM findings:
+  ```bash
+  brana backlog set {task_id} notes --append "Challenger gate (mechanical exit-contract-lint): overridden ({date}) — {reason}"
+  ```
+
 ## Input contract (LoopTrap P4 Authority Override defense)
 
 Build the context object explicitly. Challenger reads ONLY trusted content:
