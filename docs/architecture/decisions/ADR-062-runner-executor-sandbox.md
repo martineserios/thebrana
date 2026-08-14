@@ -101,16 +101,15 @@ executes. The runner must therefore:
 This also makes the escape test non-circular (it cannot be defeated by the very code under
 test).
 
-### Network egress — allowlist, OPEN sub-decision
+### Network egress — allowlist (RESOLVED 2026-06-21, see Addendum)
 
-Net egress **should** be restricted to `api.anthropic.com:443` only (Codex/Claude-cloud
-pattern). The spike used the *shared* host net namespace (no `--unshare-net`), which
-reaches **every** host — so egress is **not yet restricted**. `tinyproxy`/`pasta` are
-absent; `socat` + `slirp4netns` are present. The mechanism (`--unshare-net` +
-slirp4netns/proxy allowlist, or an nftables egress filter) is deferred to the impl phase
-and tracked as the load-bearing open item. **Until egress is restricted, do not run
-`--run-batch` unattended on untrusted tasks** — the default-deny scheduler job (ADR-060)
-plus `brana orbit` staying in `observe` is the interim control.
+Net egress is restricted to `api.anthropic.com:443` only (Codex/Claude-cloud pattern). The
+original ADR left the *mechanism* open. A 2026-06-21 spike proved the slirp4netns/nft path
+**infeasible** for the unprivileged runner on Ubuntu 24.04+ (AppArmor
+`apparmor_restrict_unprivileged_userns`), and resolved it to a **single-level
+`bwrap --unshare-net` + bind-mounted unix socket → host CONNECT allowlist proxy** —
+unprivileged, AppArmor-compatible, and validated end-to-end with real subscription
+`claude -p`. See the **Addendum** below for the full record.
 
 ### Filtering kept as a tripwire only
 
@@ -154,6 +153,84 @@ fails loudly.
    bwrap-caused errors, no new failures vs baseline; tune binds until the default works.
 4. **Docs (SDD):** `docs/architecture/features/autonomous-runner.md` capability-isolation
    section + runner-PR reviewer checklist.
+
+## Addendum (2026-06-21): Egress sub-decision RESOLVED — unix-socket CONNECT proxy
+
+**Status:** Accepted (spike-validated end-to-end with real subscription `claude -p`).
+**Supersedes** the "Network egress — OPEN sub-decision" section above.
+
+### What the spike found (all empirical, this host = Ubuntu 26.04, `bwrap 0.11.1`)
+
+1. **The slirp4netns/nft path is infeasible unprivileged here.** Ubuntu 24.04+ ships
+   `kernel.apparmor_restrict_unprivileged_userns=1`, which neuters the capabilities needed
+   for network-namespace work *inside* an unprivileged user namespace. Proven: as uid 1000
+   (init userns, `CapEff=0`) `setns(CLONE_NEWNET)` fails (`nsenter` into our own netns →
+   EPERM); creating a nested netns fails; `nft` netlink fails — **even with `--cap-add
+   CAP_SYS_ADMIN`** inside the bwrap userns (`CapEff=0x200000`, ops still EPERM). No
+   passwordless sudo. So nft-egress-firewall **and** any slirp4netns/pasta proxy bridge
+   (both need `setns`) are out without privileged provisioning.
+2. **Anthropic's own `@anthropic-ai/sandbox-runtime` (srt) also fails here** — it nests a
+   userns for its seccomp layer (`apply-seccomp: write /proc/self/setgroups … nested userns
+   is capability-restricted`), which the same AppArmor control blocks. srt would need
+   `sysctl=0` or a privileged AppArmor profile. (srt remains the reference for the
+   *technique* — bwrap `--unshare-net` + unix-socket + allowlist proxy.)
+3. **A single-level `bwrap --unshare-net` works** (no nesting, no netns ops) and gives the
+   jail only loopback. Proven: direct egress blocked (`curl 1.1.1.1` → rc=7), while a
+   request over a **bind-mounted unix socket** reached the outside (http 301).
+
+### Decision (the egress leg, layered on the existing fs/secret/env jail)
+
+Egress is enforced by a **host-side HTTP CONNECT allowlist proxy reachable only through a
+bind-mounted unix socket** — no privileged setup, no `setns`, no nested userns:
+
+```
+single bwrap --unshare-net                 # jail = loopback only; all direct egress blocked
+  + writable per-run HOME copy             # .credentials.json + sanitized .claude.json
+  + --bind <unix-socket> /egress.sock      # the jail's ONLY path out
+  + in-jail: socat TCP-LISTEN:<hi-port>,bind=127.0.0.1 → UNIX-CONNECT:/egress.sock
+  + env HTTPS_PROXY=http://127.0.0.1:<hi-port>
+host side: a ~40-line python3 CONNECT proxy on the unix socket, allowlist = {api.anthropic.com:443}
+```
+
+Validated: jailed **real subscription** `claude -p` → `PONG` RC=0, with the proxy logging
+`ALLOW api.anthropic.com` and `DENY example.com / mcp-proxy.anthropic.com /
+http-intake…datadoghq.com` (claude tolerates the telemetry/MCP denials). DNS is not needed
+in the jail — the proxy resolves host-side from the CONNECT hostname.
+
+### Two corrections this forces
+
+- **Writable HOME copy (not RO cred bind).** `claude` **rewrites `~/.claude.json` on
+  startup**; the original RO bind made it bail `Not logged in · Please run /login` (this is
+  the subscription-OAuth path — creds live in `~/.claude/.credentials.json` +
+  `~/.claude.json` account state; *not* the system keyring, disproven). The runner now
+  stages a **writable per-run copy** of those two files into the jail HOME and `rm -rf`s it
+  after the run (mode 700, under `/tmp`). The copied `.claude.json` is **sanitized** — strip
+  `mcpServers`, `mcpOAuth`, and `history` — so (a) third-party MCP tokens (linear, supabase,
+  …) never enter the jail and (b) MCP servers don't load, shrinking egress to
+  `api.anthropic.com`.
+- **Cred-copy is safe *only because* egress is locked.** A writable copy of the live OAuth
+  token is readable by the (possibly injected) executor — acceptable **only** under the
+  egress allowlist, which makes the token unexfiltratable. This couples the two controls:
+  the runner must never stage real creds without the egress proxy active. (It also closes a
+  latent hole in the pre-egress config, where RO-but-readable creds + shared net namespace
+  left the token exfiltratable.)
+
+### Knobs / fallback
+
+- `RUNNER_EGRESS=1` (default) enforces the proxy; `RUNNER_EGRESS_ALLOW` overrides the
+  allowlist (default `api.anthropic.com`). `RUNNER_SANDBOX=0` remains the full
+  unsandboxed escape hatch (loud warning).
+- Dependencies (all present, unprivileged): `bwrap`, `socat`, `python3`. No `tinyproxy`/
+  `pasta`/`slirp4netns`/`nft` needed.
+- **Privileged hosts** (no AppArmor userns restriction, or with the `bwrap` AppArmor profile
+  / `sysctl=0`) could alternatively adopt `srt` directly or an nft egress firewall — recorded
+  as future options, not required.
+
+### Escape test
+
+V5/V6 (egress/DNS) graduate from documented KNOWN GAP to **hard asserts**: an injected stub
+that `curl`s a non-allowlisted host must be **blocked**, while the allowlisted endpoint is
+reachable. Runs in `validate.sh` Check 61 so egress erosion fails loudly.
 
 ## Sources
 
