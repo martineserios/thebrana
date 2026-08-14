@@ -29,20 +29,44 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CONCURRENCY="${HOOK_TEST_SWEEP_CONCURRENCY:-1}"
 
+# Already run individually by validate.sh Check 65/66 (statusline suites,
+# t-2467/t-2470) — excluded ONLY from the no-args default so the default
+# sweep and those checks don't double-run the same 5 files every validate.sh
+# invocation (challenger finding, t-2622). Passing an explicit directory/file
+# arg bypasses this exclusion — the caller asked for exactly that.
+DEFAULT_EXCLUDE=(
+    test-statusline-epic.sh
+    test-statusline-width.sh
+    test-statusline-cache.sh
+    test-session-score.sh
+    test-statusline-integration.sh
+)
+
 if [ "$#" -gt 0 ]; then
     TARGETS=("$@")
+    EXCLUDE=()
 else
     TARGETS=(
         "$ROOT/system/hooks/tests"
         "$ROOT/tests/scripts/test-check-oracle-brana-drift.sh"
         "$ROOT/tests/scripts/test-ship-brana-oracle.sh"
     )
+    EXCLUDE=("${DEFAULT_EXCLUDE[@]}")
 fi
+
+is_excluded() {
+    local base="$1" e
+    for e in "${EXCLUDE[@]:-}"; do
+        [ "$base" = "$e" ] && return 0
+    done
+    return 1
+}
 
 FILES=()
 for t in "${TARGETS[@]}"; do
     if [ -d "$t" ]; then
         while IFS= read -r -d '' f; do
+            is_excluded "$(basename "$f")" && continue
             FILES+=("$f")
         done < <(find "$t" -maxdepth 1 -name 'test-*.sh' -print0 | sort -z)
     elif [ -f "$t" ]; then
