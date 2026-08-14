@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T17:40:37Z",
+  "generated": "2026-08-14T18:21:00Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1202,6 +1202,14 @@
         "system/scripts/ac-lint.sh"
       ]
     },
+    "docs/architecture/decisions/ADR-082-multi-agent-sizing-function.md": {
+      "title": "ADR-082: Graded Multi-Agent Sizing — Judge Panels and Build-Team Role Separation (extends ADR-080)",
+      "type": "ADR",
+      "impl_files": [
+        "system/hooks/",
+        "system/hooks/goal-completion.sh"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1972,6 +1980,7 @@
         "system/hooks/hooks.json",
         "system/",
         "system/hooks/lib/git-helpers.spec.md",
+        "system/hooks/tests/test-runner-verb-guard.sh",
         "system/hooks/",
         "system/scripts/ac-grade.sh",
         "system/scripts/lib/cmd-allowlist.sh",
@@ -16590,9 +16599,9 @@
     }
   ],
   "stats": {
-    "nodes": 581,
+    "nodes": 582,
     "edges": 2096,
     "typed_edges": 686,
-    "orphans": 159
+    "orphans": 160
   }
 }
