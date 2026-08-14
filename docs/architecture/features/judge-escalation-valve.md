@@ -1,7 +1,7 @@
 # Feature: Judge Escalation Valve — sizing-ladder rungs 0–2 in the challenger gate
 
 **Date:** 2026-08-14
-**Status:** specifying
+**Status:** decomposing
 **Task:** t-2895
 **Decision:** [ADR-082](../decisions/ADR-082-multi-agent-sizing-function.md) (frozen — this spec implements it, never restates it)
 
