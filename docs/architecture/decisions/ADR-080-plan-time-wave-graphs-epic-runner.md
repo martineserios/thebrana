@@ -1,9 +1,9 @@
 ---
-status: draft
+status: accepted
 ---
 # ADR-080: Plan-Time Wave Graphs, the Epic Runner, and Leases (extends ADR-079)
 
-**Status:** Draft (2026-08-13, t-2828 — investigation deliverable, pre-challenge)
+**Status:** Accepted (2026-08-14; challenged twice + studio-synced same session — see §Challenge record)
 **Date:** 2026-08-13
 **Deciders:** Martín Rios
 **Tags:** backlog, waves, loop, planning, epic-entry
