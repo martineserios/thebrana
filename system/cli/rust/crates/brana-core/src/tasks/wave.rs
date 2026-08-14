@@ -254,8 +254,27 @@ pub fn pull_wave_task(path: &Path, wave_id: &str) -> Result<PullDecision, String
 /// rehearsed before arming; `wave_pull_decision` itself stays strict, and a
 /// `shipped` wave remains a caller error.
 pub fn dry_run_wave_pull(path: &Path, wave_id: &str) -> Result<(PullDecision, bool), String> {
-    let _ = (path, wave_id);
-    todo!("t-2862")
+    let _lock = lock_tasks(path)?;
+    let val = load_raw(path)?;
+
+    let wave = val["waves"]
+        .as_array()
+        .and_then(|ws| ws.iter().find(|w| w["id"].as_str() == Some(wave_id)))
+        .cloned()
+        .ok_or_else(|| format!("wave {wave_id} not found"))?;
+    let tasks_snapshot = val["tasks"].as_array().cloned().unwrap_or_default();
+
+    // Only `queued` is rehearsed as-if-draining; `wave_pull_decision` stays
+    // strict, so anything else (shipped included) errors through it unchanged.
+    let simulated = wave["status"].as_str() == Some("queued");
+    let decision = if simulated {
+        let mut as_if = wave.clone();
+        as_if["status"] = Value::String("draining".into());
+        wave_pull_decision(&as_if, &tasks_snapshot)?
+    } else {
+        wave_pull_decision(&wave, &tasks_snapshot)?
+    };
+    Ok((decision, simulated))
 }
 
 #[cfg(test)]
