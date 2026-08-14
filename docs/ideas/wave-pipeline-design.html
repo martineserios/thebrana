@@ -1,0 +1,887 @@
+<title>The Wave Pipeline</title>
+<style>
+  :root {
+    --bg: #F3F5F7;
+    --surface: #FBFCFD;
+    --ink: #1C2733;
+    --ink-soft: #4A5A68;
+    --line: #D5DCE2;
+    --flow: #0E7686;        /* pumps, loops, motion */
+    --flow-soft: #E0EEF0;
+    --valve: #A06B1E;       /* human gates */
+    --valve-soft: #F3E9D8;
+    --queue: #5B6B7A;       /* durable state */
+    --studio: #6E4694;      /* human creativity — the studio */
+    --studio-soft: #EFE7F5;
+    --memory: #3E7A4C;      /* the 4th dimension — accumulated knowledge */
+    --memory-soft: #E3F0E6;
+    --warn: #A8402F;        /* gaps, known holes */
+    --warn-soft: #F6E4E0;
+    --code-bg: #E9EDF0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101820;
+      --surface: #16202A;
+      --ink: #DCE5EC;
+      --ink-soft: #93A4B2;
+      --line: #2A3846;
+      --flow: #46B4C4;
+      --flow-soft: #123A42;
+      --valve: #D9A24A;
+      --valve-soft: #3A2E17;
+      --queue: #8A9BAA;
+      --studio: #C09CE0;
+      --studio-soft: #2E2140;
+      --memory: #7CC28B;
+      --memory-soft: #1B3322;
+      --warn: #E08A76;
+      --warn-soft: #3D211B;
+      --code-bg: #1D2935;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101820;
+    --surface: #16202A;
+    --ink: #DCE5EC;
+    --ink-soft: #93A4B2;
+    --line: #2A3846;
+    --flow: #46B4C4;
+    --flow-soft: #123A42;
+    --valve: #D9A24A;
+    --valve-soft: #3A2E17;
+    --queue: #8A9BAA;
+    --studio: #C09CE0;
+    --studio-soft: #2E2140;
+    --memory: #7CC28B;
+    --memory-soft: #1B3322;
+    --warn: #E08A76;
+    --warn-soft: #3D211B;
+    --code-bg: #1D2935;
+  }
+  * { box-sizing: border-box; }
+  html { scrollbar-color: var(--queue) var(--bg); }
+  ::selection { background: var(--flow); color: var(--bg); }
+  :focus-visible { outline: 2px solid var(--flow); outline-offset: 2px; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    line-height: 1.55;
+    margin: 0;
+    padding: 3rem 1.25rem 4rem;
+  }
+  .page { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 2.75rem; align-items: start; }
+  main { display: flex; flex-direction: column; gap: 3rem; min-width: 0; }
+  @media (max-width: 980px) { .page { grid-template-columns: 1fr; gap: 2rem; } }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.15; margin: 0; }
+  h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.025em; }
+  h2 { font-size: 1.2rem; font-weight: 750; letter-spacing: -0.015em; }
+  h3 { font-size: 1rem; font-weight: 750; }
+  p { margin: 0; }
+  .meta {
+    font-size: 0.8rem; color: var(--ink-soft);
+    display: flex; gap: 0.6em; flex-wrap: wrap; align-items: baseline;
+  }
+  .meta b { color: var(--flow); font-weight: 650; }
+  .lede { color: var(--ink-soft); max-width: 62ch; font-size: 1.04rem; }
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.86em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px;
+  }
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  h2[id], .fig-label[id] { scroll-margin-top: 1.25rem; }
+  .index {
+    position: sticky; top: 1.5rem; align-self: start;
+    max-height: calc(100vh - 3rem); overflow-y: auto;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+    padding: 1.1rem 1.15rem; display: flex; flex-direction: column; gap: 0.7rem;
+  }
+  @media (max-width: 980px) { .index { position: static; max-height: none; } }
+  .index .ix-name { font-weight: 800; letter-spacing: -0.015em; font-size: 1.02rem; }
+  .index .ix-title { font-size: 0.68rem; letter-spacing: 0.11em; text-transform: uppercase;
+    font-weight: 700; color: var(--ink-soft); }
+  .index ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.1rem; }
+  .index li { display: flex; flex-direction: column; gap: 0.1rem; }
+  .index a.ix-sec {
+    color: var(--ink); text-decoration: none; font-size: 0.86rem; font-weight: 650;
+    padding: 0.3rem 0.55rem; border-radius: 6px; border-left: 2px solid transparent;
+    display: block;
+  }
+  .index a.ix-sec:hover { color: var(--flow); background: var(--code-bg); }
+  .index a.ix-sec.on { color: var(--flow); border-left-color: var(--flow); background: var(--flow-soft); }
+  .index .ix-figs { font-size: 0.74rem; color: var(--ink-soft); padding: 0 0.55rem 0.3rem; }
+  .index .ix-figs a { color: var(--flow); text-decoration: none; font-weight: 600; }
+  .index .ix-figs a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .index .ix-note { font-size: 0.74rem; color: var(--ink-soft); padding: 0 0.55rem 0.3rem; }
+  .ix-legend { display: flex; flex-direction: column; gap: 0.28rem; font-size: 0.74rem;
+    color: var(--ink-soft); border-top: 1px solid var(--line); padding-top: 0.7rem; }
+  .ix-legend span { display: flex; align-items: center; gap: 0.45rem; }
+  .ix-legend i { width: 0.62rem; height: 0.62rem; border-radius: 2px; flex: none; font-style: normal; }
+
+  figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.2rem; overflow-x: auto; }
+  figure svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+  figcaption { font-size: 0.84rem; color: var(--ink-soft); margin-top: 0.7rem; max-width: 70ch; }
+  .fig-label {
+    font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
+    color: var(--flow); display: block; margin-bottom: 0.55rem;
+  }
+
+  /* one authored moment: the rings draw themselves closed on load */
+  @keyframes ringdraw { from { stroke-dashoffset: var(--dash); } to { stroke-dashoffset: 0; } }
+  .ring { stroke-dasharray: var(--dash); stroke-dashoffset: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ring { animation: ringdraw 1.1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .ring:nth-child(2) { animation-delay: 0.12s; }
+    .ring:nth-child(3) { animation-delay: 0.24s; }
+    .ring:nth-child(4) { animation-delay: 0.36s; }
+  }
+
+  /* ── flow strip ── */
+  .flow-scroll { overflow-x: auto; padding-bottom: 0.5rem; }
+  .flow { display: flex; align-items: stretch; gap: 0; min-width: 720px; }
+  .stage {
+    flex: 1; display: flex; flex-direction: column; gap: 0.2rem;
+    padding: 0.75rem 0.85rem; border: 1px solid var(--line); background: var(--surface);
+  }
+  .stage:first-child { border-radius: 12px 0 0 12px; }
+  .stage:last-child { border-radius: 0 12px 12px 0; }
+  .stage + .stage { border-left: none; }
+  .stage .name { font-weight: 700; font-size: 0.92rem; }
+  .stage .role { font-size: 0.78rem; color: var(--ink-soft); }
+  .stage .who {
+    font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;
+  }
+  .stage.pump .who { color: var(--flow); }
+  .stage.pump { border-top: 3px solid var(--flow); }
+  .stage.gate .who { color: var(--valve); }
+  .stage.gate { border-top: 3px solid var(--valve); background: var(--valve-soft); }
+  .stage.store { border-top: 3px solid var(--queue); }
+  .stage.store .who { color: var(--queue); }
+  .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--ink-soft); }
+  .legend span::before {
+    content: ""; display: inline-block; width: 0.7em; height: 0.7em; border-radius: 2px;
+    margin-right: 0.45em;
+  }
+  .legend .l-store::before { background: var(--queue); }
+  .legend .l-pump::before { background: var(--flow); }
+  .legend .l-gate::before { background: var(--valve); }
+
+  /* ── primitive families ── */
+  .family { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+  .family > header {
+    display: flex; gap: 1rem; align-items: baseline; flex-wrap: wrap;
+    padding: 0.95rem 1.15rem; border-bottom: 1px solid var(--line);
+  }
+  .family.f-queue > header { border-top: 3px solid var(--queue); }
+  .family.f-pump  > header { border-top: 3px solid var(--flow); }
+  .family.f-valve > header { border-top: 3px solid var(--valve); }
+  .family.f-gauge > header { border-top: 3px dashed var(--queue); }
+  .family .contract { font-size: 0.84rem; color: var(--ink-soft); }
+  .family .item { display: grid; grid-template-columns: 10.5rem 1fr; gap: 1.1rem; padding: 0.8rem 1.15rem; align-items: baseline; }
+  .family .item + .item { border-top: 1px solid var(--line); }
+  .family .item .k { font-weight: 700; font-size: 0.92rem; display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-start; }
+  .family .item .v { font-size: 0.88rem; color: var(--ink-soft); }
+  .family .item .v b { color: var(--ink); font-weight: 650; }
+  @media (max-width: 560px) { .family .item { grid-template-columns: 1fr; gap: 0.3rem; } }
+
+  .chip {
+    font-size: 0.66rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.1rem 0.45rem; border-radius: 999px; border: 1px solid;
+  }
+  .chip.live     { color: var(--flow); border-color: var(--flow); background: var(--flow-soft); }
+  .chip.designed { color: var(--ink-soft); border-color: var(--line); background: transparent; }
+  .chip.gap      { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+  .chip.agent    { color: var(--flow); border-color: var(--flow); background: transparent; }
+  .chip.native   { color: var(--queue); border-color: var(--queue); background: transparent; }
+
+  /* ── laws ── */
+  .rows { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .laws { counter-reset: law; }
+  .laws .row { display: grid; grid-template-columns: 2rem 1fr; gap: 1.25rem; padding: 0.9rem 1.15rem; }
+  .laws .row + .row { border-top: 1px solid var(--line); }
+  .laws .row::before {
+    counter-increment: law; content: counter(law);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-weight: 700; color: var(--valve); text-align: right;
+    font-variant-numeric: tabular-nums; font-size: 1rem;
+  }
+  .laws .body { display: flex; flex-direction: column; gap: 0.15rem; }
+  .laws .t { font-weight: 700; font-size: 0.95rem; }
+  .laws .d { font-size: 0.86rem; color: var(--ink-soft); }
+
+  /* ── target ── */
+  .target {
+    background: var(--flow-soft); border: 1px solid var(--flow); border-radius: 12px;
+    padding: 1.15rem 1.3rem; display: flex; flex-direction: column; gap: 0.55rem;
+  }
+  .target .steps {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.92rem; font-weight: 600; overflow-x: auto; white-space: nowrap; padding-bottom: 0.2rem;
+  }
+  .target .steps .h { color: var(--valve); }
+  .target p { font-size: 0.9rem; color: var(--ink-soft); }
+
+  footer { font-size: 0.78rem; color: var(--ink-soft); border-top: 1px solid var(--line); padding-top: 1.1rem; }
+</style>
+
+<div class="page">
+  <nav class="index" aria-label="Index">
+    <span class="ix-name">The Wave Pipeline</span>
+    <span class="ix-title">Index</span>
+    <ol>
+      <li><a class="ix-sec" href="#loops">Loops all the way down</a>
+        <span class="ix-figs"><a href="#fig1">rings</a> · <a href="#fig2">4-D depth</a> · <a href="#fig3">knowledge</a> · <a href="#fig4">epic</a> · <a href="#fig5">beat</a></span></li>
+      <li><a class="ix-sec" href="#lineage">One thread, three docs</a>
+        <span class="ix-figs"><a href="#fig6">lineage</a></span></li>
+      <li><a class="ix-sec" href="#library">Inside the loops library</a>
+        <span class="ix-note">schema · five verbs · roster</span></li>
+      <li><a class="ix-sec" href="#flow">The flow</a></li>
+      <li><a class="ix-sec" href="#design">Primitive by primitive</a>
+        <span class="ix-note">live · designed · gaps</span></li>
+      <li><a class="ix-sec" href="#cast">The cast</a>
+        <span class="ix-note">skills &amp; agents mapped</span></li>
+      <li><a class="ix-sec" href="#rooms">The two rooms</a>
+        <span class="ix-figs"><a href="#fig7">studio · cockpit</a></span></li>
+      <li><a class="ix-sec" href="#target">Where this goes</a></li>
+      <li><a class="ix-sec" href="#laws">The seven laws</a></li>
+    </ol>
+    <div class="ix-legend" aria-label="Color language">
+      <span class="ix-title" style="padding:0">Color language</span>
+      <span><i style="background:var(--flow)"></i> machine loops · pumps</span>
+      <span><i style="background:var(--valve)"></i> cockpit — fast decisions</span>
+      <span><i style="background:var(--studio)"></i> studio — you create</span>
+      <span><i style="background:var(--memory)"></i> memory — accumulates</span>
+      <span><i style="background:var(--queue)"></i> queues — durable state</span>
+      <span><i style="background:var(--warn)"></i> gaps — known holes</span>
+    </div>
+  </nav>
+<main>
+  <header style="display:flex;flex-direction:column;gap:0.7rem;">
+    <h1>The Wave Pipeline</h1>
+    <p class="meta"><b>thebrana</b> · backlog-drain epic · 2026-08-14 · design corpus, both authors</p>
+    <p class="lede">How thebrana builds itself: work flows through durable queues, loops pump it forward, and every irreversible step passes a human valve — and the human works in two rooms: <b style="color:var(--studio)">the studio</b>, where direction is created in dialogue, and <b style="color:var(--valve)">the cockpit</b>, where decisions take seconds. Only the innermost loop is the <code>/loop</code> command — the outer ones are achieved by harness design, and the outermost has no command at all: it is knowledge being processed and reused.</p>
+  </header>
+
+  
+
+  <section>
+    <h2 id="loops">Loops all the way down</h2>
+    <figure>
+      <span class="fig-label" id="fig1">Fig 1 · The four rings</span>
+      <svg viewBox="0 0 760 400" role="img" aria-label="Four nested loops: the knowledge loop contains the epic loop, which contains the beat loop, which contains the build micro-loops. Each ring runs at a different timescale and only the beat loop is the /loop command.">
+        <defs>
+          <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-opacity="0.55">
+          <rect class="ring" style="--dash: 2224" x="12"  y="12"  width="736" height="376" rx="14"/>
+          <rect class="ring" style="--dash: 1936" x="44"  y="66"  width="672" height="296" rx="12"/>
+          <rect class="ring" style="--dash: 1648" x="76"  y="120" width="608" height="216" rx="10"/>
+          <rect class="ring" style="--dash: 1360" x="108" y="174" width="544" height="136" rx="8"/>
+        </g>
+        <g font-size="13" font-weight="700" fill="currentColor">
+          <text x="30" y="38">KNOWLEDGE LOOP</text>
+          <text x="62" y="92">EPIC LOOP</text>
+          <text x="94" y="146">BEAT LOOP</text>
+          <text x="126" y="200">BUILD MICRO-LOOPS</text>
+        </g>
+        <g font-size="12" fill="currentColor" fill-opacity="0.75">
+          <text x="30" y="56">memory → recall → work → learnings → memory · no command — the harness itself</text>
+          <text x="62" y="110">plan emits wave graph → approve → drain → ship → next gate unlocks · design: waves + gates + valves</text>
+          <text x="94" y="164">sleep → wake → preflight → pull → work → report · <tspan font-family="ui-monospace, Menlo, monospace">the /loop command</tspan></text>
+          <text x="126" y="218">red → green → refactor · find → fix → re-verify (challenger) · inside one task</text>
+        </g>
+        <g stroke="var(--flow)" fill="none" stroke-width="2">
+          <path d="M 380 262 a 26 26 0 1 1 -8 -19" marker-end="url(#ar)" style="color: var(--flow)"/>
+        </g>
+        <g font-size="11" fill="var(--flow)">
+          <text x="380" y="300" text-anchor="middle">a beat replayed twice is safe</text>
+        </g>
+        <g font-size="11" fill="currentColor" fill-opacity="0.6" text-anchor="end">
+          <text x="736" y="38">sessions · weeks</text>
+          <text x="704" y="92">an epic · days</text>
+          <text x="672" y="146">minutes</text>
+          <text x="640" y="200">seconds–minutes</text>
+        </g>
+        <!-- the human, ring by ring: studio (teal) vs cockpit (amber) -->
+        <g font-size="11" font-weight="700">
+          <text x="30"  y="380" fill="var(--studio)">YOU · STUDIO — you bring the topic; we design side by side</text>
+          <text x="62"  y="354"><tspan fill="var(--studio)">YOU · STUDIO births the graph</tspan><tspan fill="currentColor" fill-opacity="0.5"> · </tspan><tspan fill="var(--valve)">COCKPIT approves + ships</tspan></text>
+          <text x="94"  y="328" fill="var(--valve)">YOU · COCKPIT — the merge valve; seconds per decision</text>
+          <text x="126" y="302" fill="currentColor" fill-opacity="0.5">YOU · none — machines all the way down</text>
+        </g>
+      </svg>
+      <figcaption>Each ring closes at its own timescale — and each ring needs you differently (bottom-left corners): <b style="color:var(--studio)">violet = studio</b>, the room where you create; <b style="color:var(--valve)">amber = cockpit</b>, the room where you decide in seconds. The deeper the ring, the less of you it needs — until the micro-loops, which need none. Zooming out, "loop" stops meaning a command and starts meaning the design: the harness cycling knowledge back into itself.</figcaption>
+    </figure>
+
+    <figure>
+      <span class="fig-label" id="fig2">Fig 2 · Depth + memory — four dimensions</span>
+      <svg viewBox="0 0 900 620" role="img" aria-label="An isometric stack of four planes — knowledge, epic, beat, micro-loops — each opening into the one below through a zoom cone, with a vertical memory slab standing beside all four: every layer recalls from it on entry and writes learnings back on exit. Memory is the fourth dimension: it persists across sessions while the layers cycle.">
+        <defs>
+          <marker id="ar6" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+          </marker>
+          <marker id="ar7" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="var(--memory)"/>
+          </marker>
+        </defs>
+
+        <!-- depth axis, far left -->
+        <g stroke="currentColor" fill="none">
+          <line x1="8" y1="80" x2="8" y2="500" marker-end="url(#ar6)"/>
+        </g>
+        <text x="-4" y="290" font-size="11" font-weight="700" fill="currentColor" transform="rotate(-90 -4 290)" text-anchor="middle">DEPTH</text>
+
+        <!-- layer 1: KNOWLEDGE -->
+        <g>
+          <polygon points="180,26 670,26 530,96 40,96" fill="var(--surface)" stroke="currentColor" stroke-opacity="0.55"/>
+          <polygon points="40,96 530,96 530,104 40,104" fill="var(--line)"/>
+          <polygon points="350,48 468,48 428,76 310,76" fill="var(--flow-soft)" stroke="var(--flow)" stroke-width="1.5"/>
+          <text x="388" y="66" font-size="11" fill="var(--flow)" text-anchor="middle">one epic</text>
+          <text x="56" y="52" font-size="13" font-weight="700" fill="currentColor">KNOWLEDGE</text>
+          <text x="56" y="68" font-size="11" fill="currentColor" fill-opacity="0.7">recall → work → learnings</text>
+          <text x="56" y="84" font-size="10.5" font-weight="700" fill="var(--studio)">you: studio — dialogue, direction</text>
+          <text x="676" y="46" font-size="11" fill="currentColor" fill-opacity="0.6">weeks</text>
+          <text x="676" y="60" font-size="11" font-weight="700" fill="var(--flow)">→ Fig 3</text>
+        </g>
+        <g stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="5 4" fill="none">
+          <line x1="310" y1="76" x2="180" y2="166"/>
+          <line x1="428" y1="76" x2="670" y2="166"/>
+        </g>
+
+        <!-- layer 2: EPIC -->
+        <g>
+          <polygon points="180,166 670,166 530,236 40,236" fill="var(--surface)" stroke="currentColor" stroke-opacity="0.55"/>
+          <polygon points="40,236 530,236 530,244 40,244" fill="var(--line)"/>
+          <polygon points="350,188 468,188 428,216 310,216" fill="var(--flow-soft)" stroke="var(--flow)" stroke-width="1.5"/>
+          <text x="388" y="206" font-size="11" fill="var(--flow)" text-anchor="middle">one beat</text>
+          <text x="56" y="192" font-size="13" font-weight="700" fill="currentColor">EPIC</text>
+          <text x="56" y="208" font-size="11" fill="currentColor" fill-opacity="0.7">wave graph · gates · valves</text>
+          <text x="56" y="224" font-size="10.5" font-weight="700"><tspan fill="var(--studio)">you: design the graph</tspan><tspan fill="var(--valve)"> · approve · ship</tspan></text>
+          <text x="676" y="186" font-size="11" fill="currentColor" fill-opacity="0.6">days</text>
+          <text x="676" y="200" font-size="11" font-weight="700" fill="var(--flow)">→ Fig 4</text>
+        </g>
+        <g stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="5 4" fill="none">
+          <line x1="310" y1="216" x2="180" y2="306"/>
+          <line x1="428" y1="216" x2="670" y2="306"/>
+        </g>
+
+        <!-- layer 3: BEAT -->
+        <g>
+          <polygon points="180,306 670,306 530,376 40,376" fill="var(--surface)" stroke="currentColor" stroke-opacity="0.55"/>
+          <polygon points="40,376 530,376 530,384 40,384" fill="var(--line)"/>
+          <polygon points="350,328 468,328 428,356 310,356" fill="var(--flow-soft)" stroke="var(--flow)" stroke-width="1.5"/>
+          <text x="388" y="346" font-size="11" fill="var(--flow)" text-anchor="middle">one task</text>
+          <text x="56" y="332" font-size="13" font-weight="700" fill="currentColor">BEAT</text>
+          <text x="56" y="348" font-size="11" fill="currentColor" fill-opacity="0.7">the /loop command · pull → work</text>
+          <text x="56" y="364" font-size="10.5" font-weight="700" fill="var(--valve)">you: merge valve only</text>
+          <text x="676" y="326" font-size="11" fill="currentColor" fill-opacity="0.6">minutes</text>
+          <text x="676" y="340" font-size="11" font-weight="700" fill="var(--flow)">→ Fig 5</text>
+        </g>
+        <g stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="5 4" fill="none">
+          <line x1="310" y1="356" x2="180" y2="446"/>
+          <line x1="428" y1="356" x2="670" y2="446"/>
+        </g>
+
+        <!-- layer 4: MICRO -->
+        <g>
+          <polygon points="180,446 670,446 530,516 40,516" fill="var(--surface)" stroke="currentColor" stroke-opacity="0.55"/>
+          <polygon points="40,516 530,516 530,524 40,524" fill="var(--line)"/>
+          <text x="56" y="472" font-size="13" font-weight="700" fill="currentColor">MICRO-LOOPS</text>
+          <text x="56" y="488" font-size="11" fill="currentColor" fill-opacity="0.7">red→green→refactor · challenger</text>
+          <text x="56" y="504" font-size="10.5" font-weight="700" fill="currentColor" fill-opacity="0.5">you: not here</text>
+          <text x="676" y="466" font-size="11" fill="currentColor" fill-opacity="0.6">seconds</text>
+          <text x="355" y="492" font-size="11" fill="currentColor" fill-opacity="0.7">the deepest layer — drawn inside Fig 5</text>
+        </g>
+
+        <!-- MEMORY slab: the 4th dimension, orthogonal to depth -->
+        <g>
+          <polygon points="790,30 862,14 862,506 790,522" fill="var(--memory-soft)" fill-opacity="0.6" stroke="var(--memory)" stroke-width="2"/>
+          <polygon points="778,36 790,30 790,522 778,528" fill="var(--line)"/>
+          <text x="832" y="272" font-size="13" font-weight="700" fill="currentColor" transform="rotate(-90 832 272)" text-anchor="middle">MEMORY</text>
+          <text x="850" y="272" font-size="10" fill="currentColor" fill-opacity="0.7" transform="rotate(-90 850 272)" text-anchor="middle">patterns · ADRs · docs · task context · beat records</text>
+          <text x="814" y="272" font-size="10" font-weight="700" transform="rotate(-90 814 272)" text-anchor="middle"><tspan fill="var(--studio)">studio writes direction</tspan><tspan fill="currentColor" fill-opacity="0.5"> · </tspan><tspan fill="var(--valve)">cockpit writes verdicts</tspan></text>
+        </g>
+        <!-- bidirectional ties: every layer recalls and writes -->
+        <g stroke="var(--memory)" fill="none" stroke-width="1.5">
+          <line x1="672" y1="56"  x2="784" y2="52"  marker-end="url(#ar7)" marker-start="url(#ar7)"/>
+          <line x1="672" y1="196" x2="784" y2="192" marker-end="url(#ar7)" marker-start="url(#ar7)"/>
+          <line x1="672" y1="336" x2="784" y2="332" marker-end="url(#ar7)" marker-start="url(#ar7)"/>
+          <line x1="672" y1="476" x2="784" y2="472" marker-end="url(#ar7)" marker-start="url(#ar7)"/>
+        </g>
+        <g font-size="10" fill="var(--memory)" text-anchor="middle">
+          <text x="728" y="44">session memory</text>
+          <text x="728" y="184">wave state · ADR-079</text>
+          <text x="728" y="324">task context · pull state</text>
+          <text x="728" y="464">commits · test results</text>
+        </g>
+
+        <text x="40" y="566" font-size="11" fill="currentColor" fill-opacity="0.7">Ascent happens on the way back: green tests close a beat, beats close a wave, shipped waves close an epic, the epic's learnings close the knowledge loop —</text>
+        <text x="40" y="582" font-size="11" fill="currentColor" fill-opacity="0.7">and every crossing of a layer boundary passes through the memory slab. The layers cycle; memory accumulates. That is the fourth dimension.</text>
+      </svg>
+      <figcaption>The same four loops as Fig 1, seen as depth instead of containment: each plane's highlighted region — one epic, one beat, one task — is the entire plane below it, so zooming changes timescale, never subject. The slab on the right is the fourth dimension: memory stands orthogonal to depth, touching every layer — each ring recalls from it on entry (LOAD, wave state, task context) and writes back on exit (learnings, ADRs, beat records). The three spatial dimensions cycle and forget; the fourth accumulates. Beat 2 of tonight's drain read its build map from t-2813's context field, not from the conversation — that arrow is this slab, working.</figcaption>
+    </figure>
+
+    <figure>
+      <span class="fig-label" id="fig3">Fig 3 · Zoom: the knowledge loop — outermost, no command</span>
+      <svg viewBox="0 0 760 230" role="img" aria-label="The knowledge loop: memory is recalled at LOAD, shapes planning and design, the build produces work, close and retrospective extract learnings, and learnings are written back to memory, patterns, and ADRs.">
+        <defs>
+          <marker id="ar2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor">
+          <rect x="20"  y="80" width="150" height="60" rx="8" stroke="var(--memory)" stroke-width="2"/>
+          <rect x="250" y="30" width="150" height="52" rx="8"/>
+          <rect x="470" y="30" width="150" height="52" rx="8"/>
+          <rect x="470" y="150" width="150" height="52" rx="8"/>
+          <rect x="250" y="150" width="150" height="52" rx="8"/>
+        </g>
+        <g font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">
+          <text x="95"  y="105">Memory</text>
+          <text x="325" y="52">Plan · Design</text>
+          <text x="545" y="52">Build</text>
+          <text x="545" y="172">Close · Retro</text>
+          <text x="325" y="172">Learnings</text>
+        </g>
+        <g font-size="11" fill="currentColor" fill-opacity="0.7" text-anchor="middle">
+          <text x="95"  y="123">patterns · ADRs · docs</text>
+          <text x="325" y="70" fill="var(--studio)" fill-opacity="1" font-weight="700">the studio — waves born here</text>
+          <text x="545" y="70">the inner rings run</text>
+          <text x="545" y="190">gates · debrief</text>
+          <text x="325" y="190">pattern? ADR? field note?</text>
+        </g>
+        <g fill="none" stroke="currentColor" marker-end="url(#ar2)">
+          <path d="M 170 95 C 200 70, 215 58, 246 56"/>
+          <path d="M 400 56 L 466 56"/>
+          <path d="M 545 82 L 545 146"/>
+          <path d="M 466 176 L 404 176"/>
+          <path d="M 246 176 C 210 172, 195 150, 172 128"/>
+        </g>
+        <g font-size="11" fill="currentColor" fill-opacity="0.7">
+          <text x="176" y="52">recalled at LOAD</text>
+          <text x="410" y="46">shapes the work</text>
+          <text x="552" y="120">produces</text>
+          <text x="435" y="166">extracts</text>
+          <text x="178" y="165">written back</text>
+        </g>
+      </svg>
+      <figcaption>The harness itself is the loop: what this session learned (the atomic-pull pattern, the seven laws, this very page's ideas in t-2828's context) is what the next session recalls before it plans. Nothing schedules this ring — the design closes it.</figcaption>
+    </figure>
+
+    <figure>
+      <span class="fig-label" id="fig4">Fig 4 · Zoom: the epic loop — design: waves + gates + valves</span>
+      <svg viewBox="0 0 760 210" role="img" aria-label="The epic loop: planning emits a wave graph; you approve the waves; a wave drains and its beats run until the contract is met; you ship it; shipping satisfies the next wave's gate, which drains next, until the epic is done.">
+        <defs>
+          <marker id="ar3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor">
+          <rect x="16"  y="45" width="128" height="56" rx="8"/>
+          <rect x="188" y="45" width="120" height="56" rx="8" stroke="var(--valve)" stroke-width="2"/>
+          <rect x="352" y="45" width="128" height="56" rx="8" stroke="var(--flow)" stroke-width="2"/>
+          <rect x="524" y="45" width="100" height="56" rx="8" stroke="var(--valve)" stroke-width="2"/>
+          <rect x="662" y="45" width="84"  height="56" rx="8"/>
+        </g>
+        <g font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">
+          <text x="80"  y="68">Plan</text>
+          <text x="248" y="68">Approve</text>
+          <text x="416" y="68">Wave N drains</text>
+          <text x="574" y="68">Ship</text>
+          <text x="704" y="68">Epic done</text>
+        </g>
+        <g font-size="11" fill="currentColor" fill-opacity="0.7" text-anchor="middle">
+          <text x="80"  y="86" fill="var(--studio)" fill-opacity="1" font-weight="700">studio — designed with you</text>
+          <text x="248" y="86" fill="var(--valve)" fill-opacity="1" font-weight="700">cockpit · seconds</text>
+          <text x="416" y="86">beats run to contract</text>
+          <text x="574" y="86" fill="var(--valve)" fill-opacity="1" font-weight="700">cockpit · seconds</text>
+          <text x="704" y="86">last wave shipped</text>
+        </g>
+        <g fill="none" stroke="currentColor" marker-end="url(#ar3)">
+          <path d="M 144 73 L 184 73"/>
+          <path d="M 308 73 L 348 73"/>
+          <path d="M 480 73 L 520 73"/>
+          <path d="M 624 73 L 658 73"/>
+          <path d="M 574 101 C 574 150, 460 155, 420 105" stroke="var(--flow)" style="color: var(--flow)"/>
+        </g>
+        <g font-size="11">
+          <text x="497" y="165" text-anchor="middle" fill="var(--flow)">shipped satisfies wave N+1's gate → it drains next</text>
+          <text x="80" y="130" fill="currentColor" fill-opacity="0.7">sequential = gate chain</text>
+          <text x="80" y="146" fill="currentColor" fill-opacity="0.7">parallel = waves sharing a gate</text>
+        </g>
+      </svg>
+      <figcaption>No command runs this ring either — it emerges from the wave graph: each <em>shipped</em> is simultaneously your sign-off on wave N and the key that unlocks wave N+1's gate. Two decisions per wave (approve, ship); everything between them pumps itself.</figcaption>
+    </figure>
+
+    <figure>
+      <span class="fig-label" id="fig5">Fig 5 · Zoom: the beat loop — the /loop command — and its micro-loops</span>
+      <svg viewBox="0 0 760 260" role="img" aria-label="The beat loop: sleep, wake, preflight with wave pull; if nothing is eligible the beat no-ops back to sleep; if a task is pulled it is worked through the build's inner TDD and challenger cycles, progress is committed and reported, and the loop schedules its next wakeup.">
+        <defs>
+          <marker id="ar4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor">
+          <rect x="16"  y="90" width="96"  height="52" rx="8"/>
+          <rect x="152" y="90" width="140" height="52" rx="8" stroke="var(--flow)" stroke-width="2"/>
+          <rect x="332" y="60" width="240" height="150" rx="10"/>
+          <rect x="352" y="120" width="94" height="52" rx="8" stroke="currentColor" stroke-opacity="0.6"/>
+          <rect x="458" y="120" width="94" height="52" rx="8" stroke="currentColor" stroke-opacity="0.6"/>
+          <rect x="612" y="90" width="132" height="52" rx="8"/>
+        </g>
+        <g font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">
+          <text x="64"  y="112">Sleep</text>
+          <text x="222" y="112">Preflight</text>
+          <text x="452" y="84">Work the task</text>
+          <text x="399" y="141">TDD</text>
+          <text x="505" y="141">Challenger</text>
+          <text x="678" y="112">Report</text>
+        </g>
+        <g font-size="11" fill="currentColor" fill-opacity="0.7" text-anchor="middle">
+          <text x="64"  y="130">scheduled wakeup</text>
+          <text x="222" y="130" fill="var(--flow)" fill-opacity="1">wave pull · atomic</text>
+          <text x="452" y="100">build framework, in a worktree</text>
+          <text x="399" y="158">red→green</text>
+          <text x="399" y="170">→refactor</text>
+          <text x="505" y="158">find→fix</text>
+          <text x="505" y="170">→re-verify</text>
+          <text x="678" y="130">commit · 1–3 lines</text>
+          <text x="678" y="76" font-size="10.5" font-weight="700" fill="var(--valve)">→ cockpit digest</text>
+        </g>
+        <g fill="none" stroke="currentColor" marker-end="url(#ar4)">
+          <path d="M 112 116 L 148 116"/>
+          <path d="M 292 116 L 328 116"/>
+          <path d="M 572 116 L 608 116"/>
+          <path d="M 678 142 C 678 225, 120 225, 66 146"/>
+          <path d="M 222 90 C 235 30, 95 30, 66 84" stroke="var(--flow)" style="color: var(--flow)"/>
+        </g>
+        <g font-size="11">
+          <text x="140" y="26" fill="var(--flow)">at-limit / none-eligible → no-op, back off (the cheap exit fires first)</text>
+          <text x="380" y="243" fill="currentColor" fill-opacity="0.7">schedule next wakeup — short while building, 20+ min when waiting on a valve</text>
+        </g>
+      </svg>
+      <figcaption>The only ring that is literally the <code>/loop</code> command. Its beat is idempotent (the pull is one atomic lock), its cheap exit fires before any expensive work, and the micro-loops it contains — TDD and the challenger's find→fix→re-verify — are loops of their own, run entirely inside one beat's "work" step.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2 id="lineage">One thread, three documents</h2>
+    <figure>
+      <span class="fig-label" id="fig6">Fig 6 · Lineage — the approach, its substrate, its catalog</span>
+      <svg viewBox="0 0 760 240" role="img" aria-label="Lineage: the Cherny seed leads to the loop-first approach; from it branch the wave pipeline substrate, which is shipped, and the loops library catalog, still an idea; both converge into t-2828, the epic-level runner design.">
+        <defs>
+          <marker id="ar5" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor">
+          <rect x="16"  y="90" width="130" height="60" rx="8" stroke-opacity="0.5"/>
+          <rect x="204" y="90" width="160" height="60" rx="8"/>
+          <rect x="430" y="24" width="180" height="64" rx="8" stroke="var(--flow)" stroke-width="2"/>
+          <rect x="430" y="152" width="180" height="64" rx="8"/>
+          <rect x="662" y="90" width="84" height="60" rx="8" stroke="var(--valve)" stroke-width="2"/>
+        </g>
+        <g font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">
+          <text x="81"  y="114">The seed</text>
+          <text x="284" y="114">Loop-first</text>
+          <text x="520" y="48">Wave pipeline</text>
+          <text x="520" y="176">Loops library</text>
+          <text x="704" y="114">t-2828</text>
+        </g>
+        <g font-size="11" fill="currentColor" fill-opacity="0.7" text-anchor="middle">
+          <text x="81"  y="131">"my job is to</text>
+          <text x="81"  y="143">write loops"</text>
+          <text x="284" y="131">the approach — philosophy,</text>
+          <text x="284" y="143">ladder, vocabulary</text>
+          <text x="520" y="64" fill="var(--flow)" fill-opacity="1">the substrate — SHIPPED</text>
+          <text x="520" y="78">waves · valves · atomic pull</text>
+          <text x="520" y="192">the catalog — idea, growing</text>
+          <text x="520" y="204">entry schema · queues · leases</text>
+          <text x="704" y="131" fill="var(--valve)" fill-opacity="1">converge</text>
+          <text x="704" y="143">epic runner</text>
+        </g>
+        <g fill="none" stroke="currentColor" marker-end="url(#ar5)">
+          <path d="M 146 120 L 200 120"/>
+          <path d="M 364 104 C 395 85, 400 70, 426 60"/>
+          <path d="M 364 136 C 395 155, 400 170, 426 180"/>
+          <path d="M 610 60 C 645 70, 650 90, 668 100"/>
+          <path d="M 610 180 C 645 170, 650 150, 668 140"/>
+        </g>
+        <g font-size="11" fill="currentColor" fill-opacity="0.7">
+          <text x="368" y="72">built it</text>
+          <text x="368" y="176">cataloged it</text>
+        </g>
+      </svg>
+      <figcaption><em>loop-first-redesign.md</em> is the philosophy; the wave pipeline (this page, ADR-079) is that philosophy built into a working substrate; <em>loops-library.md</em> (a sibling session, in parallel) is the same philosophy institutionalized as a catalog — loop entry schema, six queue materializations, and the five-verb pull interface every queue answers: <code>peek · pull · ack · dead-letter · depth</code>. All three converge in t-2828.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2 id="library">Inside the loops library</h2>
+    <p class="lede" style="font-size:0.92rem;">The catalog's core claim: a loop is a <b>declared artifact</b>, not an improvised prompt. Every entry states what it drains, what it fills, how it paces, and which verbs it is denied — reviewable before it ever runs, exactly like a skill.</p>
+
+    <div class="family f-pump">
+      <header><h3>What a loop entry declares</h3>
+        <span class="contract">Frontmatter schema, from <code>loops-library.md</code> — the input types of a loop definition</span></header>
+      <div class="item"><span class="k"><code>name · cadence · pacing</code></span><span class="v">Pacing is <b>time</b> (fixed beats) | <b>work</b> (drain while work exists) | <b>event</b> (a Monitor fires). Lived finding from tonight's 8 beats: work-pacing wants three delays, not one — <code>{active: ~90s, waiting: 20min+, empty: 30min+}</code>, and the pull outcome tells the loop which state it's in (Pulled / AtLimit / NoneEligible map 1:1).</span></div>
+      <div class="item"><span class="k"><code>autonomy</code></span><span class="v">L0 report → L1 prepare → L2 merge-the-trivially-safe → L3, plus a <code>supervised</code> flag. Unattended is hard-gated on the ADR-062 sandbox regardless of level.</span></div>
+      <div class="item"><span class="k"><code>drains: · fills:</code></span><span class="v">Queue references — the loop's entire relationship to the rest of the system. Loops compose <b>only</b> through these (law 1); a loop that fills what another drains is a pipeline, with backpressure for free.</span></div>
+      <div class="item"><span class="k"><code>spawns:</code></span><span class="v">Which runners a beat may launch, with a max concurrency — the recursion bound that keeps a foreman from forking a fleet.</span></div>
+      <div class="item"><span class="k"><code>records:</code></span><span class="v">The per-beat record schema — always emitted, verbosity is a render toggle. Records are what the watchdog reads, what the TUI renders (bounded queue → progress bar, unbounded → heartbeat), and where lease claims live.</span></div>
+      <div class="item"><span class="k">Body</span><span class="v">Beat procedure + cheap preflight (no-op fast) + stop conditions (real signals only) + <b>denied verbs</b> — the valves, written into the definition itself.</span></div>
+    </div>
+
+    <div class="family f-queue">
+      <header><h3>The five-verb pull interface</h3>
+        <span class="contract">Every queue answers these, however it's stored — the abstraction lives here, never in a mirror store</span></header>
+      <div class="item"><span class="k"><code>peek</code></span><span class="v">What's eligible, without taking it. Waves: resolve selector. inbox/: oldest file. Refs: list <code>ready/*</code>.</span></div>
+      <div class="item"><span class="k"><code>pull</code> <span class="chip live">the hard one</span></span><span class="v">Take exactly one item, atomically — each store uses its <b>native</b> primitive: waves = flock sidecar + fresh-read + status write (proven: 20 concurrent processes, zero double-pulls); inbox/ = <code>mv</code> to <code>.processing/</code> (rename is the lock); git = <code>update-ref</code>; jsonl = flock + rewrite; external APIs = conditional update, the one race-prone store. Eligibility is enforced <b>inside</b> pull, queue-side — no pump can bypass the valve.</span></div>
+      <div class="item"><span class="k"><code>ack</code></span><span class="v">Two grades: <b>mechanical</b> (URL digested — self-ack) vs <b>judged</b> (a wave task — acked only through build CLOSE with evidence; "completion is graded, not asserted"). Each queue's spec declares which grade it requires.</span></div>
+      <div class="item"><span class="k"><code>dead-letter</code></span><span class="v">The explicit "no", with a reason: park + note (waves), <code>.dead/</code> + sidecar (inbox), <code>rejected/*</code> (refs). Feeds the standing triage wave.</span></div>
+      <div class="item"><span class="k"><code>depth</code></span><span class="v">How much is waiting — the number backpressure and the wave board both read. Anything that answers <code>depth</code> is renderable and watchable for free.</span></div>
+      <div class="item"><span class="k">Leases <span class="chip gap">gap</span></span><span class="v">The verb that's missing everywhere: <code>pull</code> should take a lease (<code>claimant + expiry</code> in the beat record) so a pump that dies between pull and ack doesn't strand its item — today a dead drain session leaves its task <code>in_progress</code> forever. Stale-lease requeue becomes the watchdog's second job.</span></div>
+    </div>
+
+    <div class="family f-gauge">
+      <header><h3>The candidate roster</h3>
+        <span class="contract">Seed spread from the catalog — generated by axes: primitive × pacing × boundedness × scope × autonomy</span></header>
+      <div class="item"><span class="k">Gauges · L0</span><span class="v">session-status <span class="chip live">proven</span> · merge-radar <span class="chip live">proven</span> (caught a real conflict on t-2622 day one) · backlog-health · doc-drift · cost-gauge · <b>loop-watchdog</b> (the meta-gauge — must live outside the loops it watches)</span></div>
+      <div class="item"><span class="k">Pumps</span><span class="v">wave-drain <span class="chip live">live</span> · inbox-processor (gated on an opt-in safety marker — inbox holds secrets) · pr-shepherd · worktree-reaper · stale-closer (the dead-letter pump) · knowledge-distiller</span></div>
+      <div class="item"><span class="k">Valve-feeders</span><span class="v">Loops that prepare human decisions rather than act: ac-proposer <span class="chip live">live</span> · triage-preparer · close-sweeper · needs-you-digest (the morning "your valves are waiting" note)</span></div>
+      <div class="item"><span class="k">Beyond the repo</span><span class="v">feed-digester (URL queue → knowledge-staging, its filler already exists) · metrics-snapshot · template-auditor — ADR-002 already lists ~15 recurring jobs waiting to become declared loops.</span></div>
+      <div class="item"><span class="k">Self-maintaining</span><span class="v">memory-hygiene · phantom-ref-check · eval-rerunner — the knowledge loop (Fig 3) getting its own pumps.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="flow">The flow, stage by stage</h2>
+    <div class="flow-scroll"><div class="flow">
+      <div class="stage store"><span class="who">queue</span><span class="name">Backlog</span><span class="role">tasks, tagged into waves at plan time</span></div>
+      <div class="stage pump"><span class="who">pump</span><span class="name">ac-propose</span><span class="role">loop drafts acceptance criteria</span></div>
+      <div class="stage gate"><span class="who">valve · you</span><span class="name">ac approve</span><span class="role">sign the contract — loop-eligible</span></div>
+      <div class="stage gate"><span class="who">valve · you</span><span class="name">wave drain</span><span class="role">gate check, open the queue</span></div>
+      <div class="stage pump"><span class="who">pump</span><span class="name">wave pull</span><span class="role">atomic: approved ∧ ¬parked, under wip_limit</span></div>
+      <div class="stage pump"><span class="who">pump</span><span class="name">build</span><span class="role">worktree · TDD · gates · branch</span></div>
+      <div class="stage gate"><span class="who">valve · you</span><span class="name">merge · ship</span><span class="role">integrate to dev, ship the wave</span></div>
+    </div></div>
+    <div class="legend">
+      <span class="l-store">Queue — durable state, the loop's memory</span>
+      <span class="l-pump">Pump — a loop moves work one stage</span>
+      <span class="l-gate">Valve — human decision, never automated</span>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="design">The design, primitive by primitive</h2>
+    <p class="lede" style="font-size:0.92rem;">Four primitives are the whole vocabulary. Everything the system is or will become — standing waves, shadow drains, dead-letter triage, graduated autonomy — is not an extension bolted on; it is one of these four, arranged. Each family below carries its full range: what runs today, what the design already contains, and where the known holes are.</p>
+
+    <div class="family f-queue">
+      <header><h3>Queue — durable state holding work between pumps</h3>
+        <span class="contract">Contract: item · <code>pending→pulled→done|dead</code> · eligibility valve · atomic pull · dead-letter path · WIP bound</span></header>
+      <div class="item"><span class="k">Waves <span class="chip live">live</span></span><span class="v">Named, gated, drainable selectors over tasks — <b>the queue this page proved</b>. <code>wip_limit</code> is the pipe width; <code>gate</code> chains waves into graphs (sequential = chain, parallel = siblings).</span></div>
+      <div class="item"><span class="k">Waves from structure <span class="chip designed">designed</span></span><span class="v">Selector form <code>parent:ms-52</code> — the plan's milestone tree <b>is</b> the wave graph, no tagging step at all. Planning emits queues as a side effect of planning.</span></div>
+      <div class="item"><span class="k">Standing waves <span class="chip designed">designed</span></span><span class="v">Always-draining intake (<code>kind:fix ∧ approved</code>): bugs get approved and simply get worked, forever. A queue with no end state.</span></div>
+      <div class="item"><span class="k">Dead-letter wave <span class="chip designed">designed</span></span><span class="v">Twice-failed tasks auto-park into a standing triage wave with its own closer pump. The explicit "no" path every stage owes its work — queueless rejects rot (the 160-day-stale root cause).</span></div>
+      <div class="item"><span class="k">Other materializations <span class="chip designed">designed</span></span><span class="v">Same contract, different stores (loops library): <code>inbox/</code> dirs (rename = atomic pull), URL jsonl, git <code>ready/*</code> refs (<code>update-ref</code> = atomic pull), external APIs. Native stores stay authoritative — the abstraction is only the five verbs.</span></div>
+    </div>
+
+    <div class="family f-pump">
+      <header><h3>Pump — a loop moving work exactly one stage forward</h3>
+        <span class="contract">Some pumps are the <code>/loop</code> command; some are the harness's own design. All obey the beat anatomy of Fig 4.</span></header>
+      <div class="item"><span class="k">Drain pump <span class="chip live">live</span></span><span class="v"><code>wave pull</code> each beat — atomic, concurrency-proven (20 processes, wip_limit 5, exactly 5 pulls). Ran 8 supervised beats to build t-2813, its own permanent form. Runbook: <code>drain-loop.md</code>.</span></div>
+      <div class="item"><span class="k">Epic runner <span class="chip designed">designed</span></span><span class="v">Walks the wave graph instead of one wave: drain the first gate-satisfied wave, pull to contract, surface the ship decision, let <em>shipped</em> unlock the next. The t-2828 centerpiece.</span></div>
+      <div class="item"><span class="k">Shadow mode <span class="chip designed">designed</span></span><span class="v">Report-only beats: the pump says what it <b>would</b> pull, zero writes. Review the simulation, then arm — trust granted on proof, for every new pump and wave graph.</span></div>
+      <div class="item"><span class="k">Leases <span class="chip gap">gap</span></span><span class="v">A pump that crashes between pull and ack strands its task <code>in_progress</code> forever — true of today's shipped pull. Fix: pull takes a claimant + expiry; stale leases get requeued by the watchdog. The loops library's sharpest find.</span></div>
+    </div>
+
+    <div class="family f-valve">
+      <header><h3>Valve — a human gate between stages</h3>
+        <span class="contract">Never automated, and never armed by the party it constrains. Autonomy grows by moving valves, not by smarter pumps.</span></header>
+      <div class="item"><span class="k">ac approve <span class="chip live">live</span></span><span class="v">The trust boundary between selector-match and autonomous execution — promote + flip, verb-only, denied to every runner. First real use opened tonight's drain.</span></div>
+      <div class="item"><span class="k">Merge &amp; ship <span class="chip live">live</span></span><span class="v">Executors return branches; you integrate. <em>Shipped</em> on a wave is a double act: sign-off on wave N and the key to wave N+1's gate.</span></div>
+      <div class="item"><span class="k">Wave-level approval <span class="chip designed">designed</span></span><span class="v">Review a wave's proposed criteria as one batch, approve in one action — one decision per wave, not per task. The valve gets coarser as trust grows.</span></div>
+      <div class="item"><span class="k">Graduated autonomy <span class="chip designed">designed</span></span><span class="v">A wave class with 5 consecutive approved-unchanged cycles is promoted by rule (e.g. docs-only waves earn auto-merge). Narrow pipes earn trust independently; promotion is evidence, never assumption.</span></div>
+    </div>
+
+    <div class="family f-gauge">
+      <header><h3>Gauge — a readout on a queue or on the pumps themselves</h3>
+        <span class="contract">Gauges never act — they make the human's next decision cheap.</span></header>
+      <div class="item"><span class="k">Wave board <span class="chip designed">designed</span></span><span class="v"><code>brana backlog wave board</code>: gate chains drawn as a graph, matched / approved / in-flight / done per wave. The morning cockpit.</span></div>
+      <div class="item"><span class="k">Watchdog <span class="chip designed">designed</span></span><span class="v">One external meta-gauge over every loop's last-beat records — outside the loops it guards. Session death is loop death; only the watchdog notices. Second job once leases exist: requeue the stale ones.</span></div>
+      <div class="item"><span class="k">Contract-met <span class="chip designed">designed</span></span><span class="v">Machine-checkable <code>contract</code> ("all matched completed ∧ validate.sh green") announced the moment it's true. You still ship; you stop polling. Precondition for ever letting a gate auto-advance.</span></div>
+      <div class="item"><span class="k">Beat telemetry <span class="chip designed">designed</span></span><span class="v">Every drain records beats, pulls, failures, cost — the usage data the deferred <code>wip_limit</code> default was waiting for. The system measures itself into its own tuning numbers.</span></div>
+    </div>
+  </section>
+
+
+  <section>
+    <h2 id="cast">The cast — where today's skills and agents play</h2>
+    <p class="lede" style="font-size:0.92rem;">The harness already employs most of the pipeline's roles — they just weren't named as pipeline roles until now. Grouped by the ring they serve. <span class="chip agent">agent</span> marks subagents, <span class="chip native">native</span> marks CC-native blocks; everything else is a <code>/brana:*</code> skill.</p>
+
+    <div class="family f-queue">
+      <header><h3>Knowledge loop — the outer ring (Fig 3)</h3>
+        <span class="contract">Memory in, work through, learnings out</span></header>
+      <div class="item"><span class="k">Recall &amp; store</span><span class="v"><code>/brana:memory</code> (recall · pollinate · audit) and the LOAD step's <code>brana recall</code> — the "recalled at LOAD" arrow. <span class="chip agent">agent</span> <b>memory-curator</b> is its hygiene pump; <span class="chip agent">agent</span> <b>scout</b> fills knowledge from outside.</span></div>
+      <div class="item"><span class="k">Plan &amp; design</span><span class="v"><code>/brana:brainstorm</code> · <code>/brana:research</code> · <code>/brana:decide</code> · <code>/brana:product-brainstorming</code> — the Plan·Design node, where waves will be born (t-2828).</span></div>
+      <div class="item"><span class="k">Close &amp; extract</span><span class="v"><code>/brana:close</code> (session end) · <code>/brana:retrospective</code> (route a learning) · <code>/brana:docs</code> (write it into living docs). <span class="chip agent">agent</span> <b>debrief-analyst</b> is the extraction worker.</span></div>
+      <div class="item"><span class="k">Keep it true</span><span class="v"><code>/brana:reconcile</code> (drift cascade) · <code>/brana:verify-docs</code> (quarterly) — recurring by nature: first in line to become declared loops (doc-drift gauge already probed as a perfect no-op beat).</span></div>
+      <div class="item"><span class="k">Grow the harness</span><span class="v"><code>/brana:acquire-skills</code> · <code>/brana:discover</code> · <code>/brana:plugin</code> · <code>/brana:align</code> · <code>/brana:onboard</code> · <code>/brana:claudemd</code> — the knowledge loop applied to the harness itself (capability intake and setup).</span></div>
+    </div>
+
+    <div class="family f-valve">
+      <header><h3>Epic loop — waves, gates, valves (Fig 4)</h3>
+        <span class="contract">Two human decisions per wave; skills prepare them</span></header>
+      <div class="item"><span class="k">Queue ops</span><span class="v"><code>/brana:backlog</code> — plan (emits the task tree, future wave graphs), start (the manual pull), wave verbs, <code>ac-propose</code>. <code>/brana:do</code> is its freeform door.</span></div>
+      <div class="item"><span class="k">Ship valve</span><span class="v"><code>/brana:ship</code> — pre-flight, deploy, verify for the dev→main promotion; the rich form of the merge/ship valve.</span></div>
+      <div class="item"><span class="k">Cadence infra</span><span class="v"><code>/brana:scheduler</code> + native <code>/schedule</code> <span class="chip native">native</span> — the durable-tier triggers (Routines/desktop) for loops that must outlive a session.</span></div>
+    </div>
+
+    <div class="family f-pump">
+      <header><h3>Beat loop &amp; build micro-loops — the inner rings (Fig 5)</h3>
+        <span class="contract">The /loop command outside, the build framework inside</span></header>
+      <div class="item"><span class="k">The trigger</span><span class="v"><code>/loop</code> <span class="chip native">native</span> — the beat scheduler itself. <code>/brana:sitrep</code> is its recovery gauge (where am I after compression/crash).</span></div>
+      <div class="item"><span class="k">The work</span><span class="v"><code>/brana:build</code> (the full framework a pulled task runs through) · <code>/brana:fix</code> (its bug-fix form). <span class="chip agent">agent</span> <b>gemini</b> / <code>/brana:gemini</code> — delegate executor for mechanical sub-work.</span></div>
+      <div class="item"><span class="k">The judges</span><span class="v"><span class="chip agent">agent</span> <b>challenger</b> (+ its calibration rubric) — the find→fix→re-verify micro-loop. <span class="chip agent">agent</span> <b>build-evaluator</b> — <b>the graded ack in person</b>: it produces the evidence that lets a judged item be acknowledged. Native panels <code>hive-mind</code> · <code>sweep</code> · <code>verify-findings</code> <span class="chip native">native</span> and <code>/code-review</code> · <code>/simplify</code> are the same judge role at different scales.</span></div>
+      <div class="item"><span class="k">Branch queue</span><span class="v"><span class="chip agent">agent</span> <b>pr-reviewer</b> — already a pump on the branch queue (auto-fires on PR creation); kin of the future pr-shepherd.</span></div>
+    </div>
+
+    <div class="family f-gauge">
+      <header><h3>Gauges — readouts at every scope</h3>
+        <span class="contract">Repo, business, portfolio — same primitive</span></header>
+      <div class="item"><span class="k">Business</span><span class="v"><code>/brana:review</code> (weekly/monthly/check) with <span class="chip agent">agent</span> <b>metrics-collector</b> (beat-telemetry kin, business scope) and <span class="chip agent">agent</span> <b>pipeline-tracker</b> — literally a queue gauge: deal stages ARE a queue with depth and staleness.</span></div>
+      <div class="item"><span class="k">Health scans</span><span class="v"><span class="chip agent">agents</span> <b>daily-ops</b> (the needs-you-digest kin) · <b>client-scanner</b> · <b>venture-scanner</b> — periodic by nature, loop-wrappable as L0 reporters.</span></div>
+      <div class="item"><span class="k">Retirement</span><span class="v"><span class="chip agent">agent</span> <b>archiver</b> + <code>/brana:client-retire</code> — the lifecycle stance law 7 asks for, already practiced at project scope: retire deliberately, archive the transferable, delete the rest.</span></div>
+      <div class="item"><span class="k">Queue fillers</span><span class="v"><code>/brana:log</code> (events → append-only log) + <code>brana feed/inbox</code> CLI — fillers for the URL/content queues whose pumps don't exist yet (the library's "fillers without drainers" diagnosis).</span></div>
+    </div>
+
+    <div class="family f-queue">
+      <header><h3>Domain toolkits — inside a beat, not actors</h3>
+        <span class="contract">Loaded as knowledge while a pump works a task; they hold no pipeline role themselves</span></header>
+      <div class="item"><span class="k">Engineering</span><span class="v"><code>rust-skills</code> · <code>bash-defensive-patterns</code> · <code>domain-driven-design</code> · <code>cargo-machete</code> · <code>mcp-builder</code></span></div>
+      <div class="item"><span class="k">Design &amp; reasoning</span><span class="v"><code>impeccable</code> · <code>design-system</code> · <code>web-design-guidelines</code> · <code>grad-mechanism-design</code> and the thinking-framework pack (pre-mortem, inversion, six hats, …)</span></div>
+    </div>
+
+    <div class="family f-pump">
+      <header><h3>No pipeline match — reported, not forced</h3>
+        <span class="contract">Honest leftovers: utilities with no queue, pump, valve, or gauge role</span></header>
+      <div class="item"><span class="k">Client delivery</span><span class="v"><code>/brana:export-pdf</code> · <code>/brana:gsheets</code> · <code>/brana:meta-templates</code> — output/format utilities invoked ad hoc; nothing recurring, nothing queued.</span></div>
+      <div class="item"><span class="k">CC utilities</span><span class="v"><code>claude-code-guide</code> <span class="chip agent">agent</span> · statusline/keybindings helpers · third-party plugin packs (vercel/supabase/airtable/upstash) — environment tooling, out of the pipeline's scope by design.</span></div>
+      <div class="item"><span class="k">Worth watching</span><span class="v"><code>/brana:repo-cleanup</code> half-matches: today an ad-hoc skill, but its job (sweep uncommitted spec changes into commits) is a textbook closer pump — a loop-wrap candidate rather than a true no-match.</span></div>
+    </div>
+  </section>
+
+
+  <section>
+    <h2 id="rooms">The two rooms — where you create, where you operate</h2>
+    <p class="lede" style="font-size:0.92rem;">You appear in this system in two entirely different postures, and the whole architecture exists to keep them distinct: loops <b>protect</b> the first and <b>speed</b> the second.</p>
+
+    <figure>
+      <span class="fig-label" id="fig7">Fig 7 · Studio and cockpit — one human, two modes, two queues</span>
+      <svg viewBox="0 0 760 330" role="img" aria-label="Two rooms. In the studio, the human brings a topic and builds solutions in dialogue with the assistant, producing epics, waves, ADRs and specs that fill the queues. In the cockpit, the system brings items to the human for fast valve decisions: approve, merge, ship, triage. Between them a router classifies everything that needs a human: rubber-stamp items go to the cockpit digest, needs-thinking items go to a studio agenda queue and never interrupt.">
+        <defs>
+          <marker id="ar8" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- studio -->
+        <g>
+          <rect x="16" y="20" width="330" height="150" rx="10" fill="var(--studio-soft)" stroke="var(--studio)" stroke-width="2"/>
+          <text x="36" y="48" font-size="14" font-weight="700" fill="currentColor">STUDIO — creative</text>
+          <text x="36" y="70" font-size="11.5" fill="currentColor" fill-opacity="0.8">you bring the topic or the project</text>
+          <text x="36" y="87" font-size="11.5" fill="currentColor" fill-opacity="0.8">we discuss — solutions built together</text>
+          <text x="36" y="104" font-size="11.5" fill="currentColor" fill-opacity="0.8">you decide, side by side with my knowledge</text>
+          <text x="36" y="128" font-size="11" font-weight="700" fill="var(--studio)">unhurried · protected · never interrupted</text>
+          <text x="36" y="152" font-size="11" fill="currentColor" fill-opacity="0.7">births: epics · wave graphs · ADRs · specs · these laws</text>
+        </g>
+
+        <!-- cockpit -->
+        <g>
+          <rect x="414" y="20" width="330" height="150" rx="10" fill="var(--valve-soft)" stroke="var(--valve)" stroke-width="2"/>
+          <text x="434" y="48" font-size="14" font-weight="700" fill="currentColor">COCKPIT — operative</text>
+          <text x="434" y="70" font-size="11.5" fill="currentColor" fill-opacity="0.8">the system brings items to you</text>
+          <text x="434" y="87" font-size="11.5" fill="currentColor" fill-opacity="0.8">fast decisions on the fly — seconds each</text>
+          <text x="434" y="104" font-size="11.5" fill="currentColor" fill-opacity="0.8">"go" · approve AC · merge · ship · triage</text>
+          <text x="434" y="128" font-size="11" font-weight="700" fill="var(--valve)">batched · digest + board · the valve role</text>
+          <text x="434" y="152" font-size="11" fill="currentColor" fill-opacity="0.7">tonight: 8 valve decisions drove 3 shipped tasks</text>
+        </g>
+
+        <!-- studio fills the queues / queues feed cockpit -->
+        <g fill="none" stroke="currentColor" marker-end="url(#ar8)">
+          <path d="M 181 170 C 181 205, 240 215, 300 218"/>
+          <path d="M 460 218 C 520 215, 579 205, 579 170"/>
+        </g>
+        <rect x="304" y="200" width="152" height="36" rx="8" fill="var(--surface)" stroke="currentColor" stroke-opacity="0.55"/>
+        <text x="380" y="222" font-size="12" font-weight="700" fill="currentColor" text-anchor="middle">the queues</text>
+        <text x="215" y="196" font-size="10.5" fill="currentColor" fill-opacity="0.7">direction fills them</text>
+        <text x="478" y="196" font-size="10.5" fill="currentColor" fill-opacity="0.7">items surface for valves</text>
+
+        <!-- the router -->
+        <g>
+          <rect x="240" y="264" width="280" height="42" rx="8" fill="var(--surface)" stroke="currentColor" stroke-opacity="0.55"/>
+          <text x="380" y="281" font-size="11.5" font-weight="700" fill="currentColor" text-anchor="middle">"needs human" is NOT one queue</text>
+          <text x="380" y="297" font-size="10.5" fill="currentColor" fill-opacity="0.75" text-anchor="middle">valve-feeders classify every item before it reaches you</text>
+        </g>
+        <g fill="none" stroke="var(--valve)" marker-end="url(#ar8)">
+          <path d="M 524 285 C 620 285, 660 220, 660 174" style="color: var(--valve)"/>
+        </g>
+        <g fill="none" stroke="var(--studio)" marker-end="url(#ar8)">
+          <path d="M 236 285 C 140 285, 100 220, 100 174" style="color: var(--studio)"/>
+        </g>
+        <text x="608" y="248" font-size="10.5" fill="var(--valve)">rubber-stamp → cockpit digest</text>
+        <text x="46" y="248" font-size="10.5" fill="var(--studio)">needs thinking → studio agenda</text>
+      </svg>
+      <figcaption>The router is the load-bearing part: every "needs human" item is classified before it reaches you. <b>Rubber-stamp</b> items (clearable in seconds) batch into the cockpit digest; <b>needs-thinking</b> items go onto a studio agenda — a queue for the next design conversation, never an interrupt. Mixing them fails in both directions: operative noise eats creative time, or a design decision gets made like a merge click. Tonight had both rooms: the wave pipeline's laws and this page were studio; the eight "go"s that shipped three tasks were cockpit.</figcaption>
+    </figure>
+
+    <div class="family f-valve">
+      <header><h3>What each room gets from the system</h3>
+        <span class="contract">Loops cannot create and must not interrupt — they serve the studio and staff the cockpit</span></header>
+      <div class="item"><span class="k">Studio inputs</span><span class="v">Gauges feed the conversation (wave board, health digests, telemetry — the facts on the table when you bring a topic); memory feeds it depth (what we decided before, what failed, why). The studio's output — epics, wave graphs, approved contracts — is what fills every queue the pumps drain.</span></div>
+      <div class="item"><span class="k">Cockpit inputs</span><span class="v">The needs-you digest and the wave board surface exactly the valve decisions waiting: approve this wave's AC, merge this branch, ship this wave, triage this dead-letter. Each arrives with its evidence attached (the graded ack), so a decision costs seconds, not investigation.</span></div>
+      <div class="item"><span class="k">The line between</span><span class="v">A valve-feeder that can't classify an item confidently routes it to the <b>studio agenda</b>, never the interrupt stream — under-escalating a design question into a rubber-stamp is the worse failure. The agenda itself is a queue: <code>depth</code> tells you how much thinking is waiting for your next session.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="target">Where this goes</h2>
+    <div class="target">
+      <div class="steps">/brana:backlog plan "epic" &nbsp;→&nbsp; <span class="h">review + approve the waves it proposes</span> &nbsp;→&nbsp; /loop drain epic</div>
+      <p>Planning emits the wave graph. You sign once per wave, not once per task. The loop walks the graph: drains the first gate-satisfied wave, pulls until its contract is met, surfaces the ship decision, and your <em>shipped</em> unlocks the next wave. Your job becomes pipeline design; the loops do the pumping. — t-2828, where this page's design and the loops library converge</p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="laws">The seven operating laws</h2>
+    <div class="rows laws">
+      <div class="row"><div class="body"><span class="t">Loops never talk to each other — queues do.</span><span class="d">Coordination is backpressure: a full downstream queue makes upstream pumps no-op. If two loops need to message each other, the design is wrong — add a queue. The foreman fills a queue; it never calls workers.</span></div></div>
+      <div class="row"><div class="body"><span class="t">Every loop needs a dead-letter path.</span><span class="d">Failed beats and poison tasks go to an explicit "no" queue with its own closer pump. Rejected work without a queue becomes invisible and rots — the documented root cause of the 160-day stale tasks.</span></div></div>
+      <div class="row"><div class="body"><span class="t">One external watchdog watches all loops.</span><span class="d">It reads last-beat timestamps from durable records and sits outside the loops it guards. Session death is loop death — only the watchdog notices.</span></div></div>
+      <div class="row"><div class="body"><span class="t">Beats are idempotent.</span><span class="d">No catch-up on missed fires and crash re-runs mean a beat replayed twice must be safe. The atomic wave pull is the reference implementation.</span></div></div>
+      <div class="row"><div class="body"><span class="t">Cost per beat ≈ context size.</span><span class="d">Loops live in lean dedicated sessions; cheap preflight always fires first. A loop whose beats cost more than the work they move is a net negative — beat telemetry measures exactly that.</span></div></div>
+      <div class="row"><div class="body"><span class="t">Loops are testable.</span><span class="d">Rehearse beats against a fixture queue before arming for real. Shadow drains are the wave-native form of the same discipline.</span></div></div>
+      <div class="row"><div class="body"><span class="t">Lifecycle is unfinished business.</span><span class="d">Hard 7-day expiry, Esc kills a waiting loop, no pause/resume. The loop library needs a stance on retirement and re-arming — not just birth.</span></div></div>
+    </div>
+  </section>
+
+  <footer>Shipped to dev 2026-08-13: wave drain (t-2775) · ac approve (t-2812) · wip_limit (t-2782) · wave pull + drain-loop runbook (t-2813). Open: t-2827 (approve-denial as technical control) · t-2828 (the convergence design) · leases · unattended mode (ADR-062 gate) · your valves: ship wave-1, deploy dev→main. Sources: ADR-079 · docs/guide/workflows/drain-loop.md · docs/ideas/loop-first-redesign.md · docs/ideas/loops-library.md · first live drain session, 8 beats.</footer>
+</main>
+</div>
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll(".index a.ix-sec"));
+  var byId = {};
+  links.forEach(function(a){ byId[a.getAttribute("href").slice(1)] = a; });
+  var heads = Array.prototype.slice.call(document.querySelectorAll("h2[id]"));
+  function setOn(id){ links.forEach(function(l){ l.classList.remove("on"); }); if (byId[id]) byId[id].classList.add("on"); }
+  var obs = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if (e.isIntersecting) setOn(e.target.id); });
+  }, { rootMargin: "-15% 0px -65% 0px" });
+  heads.forEach(function(h){ obs.observe(h); });
+})();
+</script>

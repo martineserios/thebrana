@@ -216,7 +216,20 @@ vocabulary is a cheap generator of design insight** — the pipeline reframe
 alone produced backpressure, dead-letter queues, and autonomy-as-routing in
 minutes, none of which the first three framings surfaced.
 
-## Proposed backlog plan (PENDING USER APPROVAL — not yet written)
+## Proposed backlog plan — MATERIALIZED (reconcile snapshot 2026-08-14)
+
+> **Stale-marker fix:** this section was drafted as "pending user approval — not yet
+> written". It has since been written: epic **t-2820 loop-first** exists with children
+> (t-2823 merge-radar L0 **shipped**, t-2825, t-2826 loops-library), in parallel with the
+> **t-2811 backlog-drain epic (delivered 2026-08-13)** — waves, `ac approve`, `wip_limit`,
+> atomic `wave pull`, and the committed drain-loop runbook, built via the first live
+> supervised `/loop` (8 beats). Follow-ons: t-2827 (approve-denial hardening), **t-2828
+> (plan-time wave graphs + epic runner) — which owns reconciling the two epics' scopes**
+> plus the design corpus accumulated 2026-08-14: seven operating laws, studio/cockpit
+> two-rooms model, six-color identity language, lease gap. Corpus lives in t-2828's
+> context, [loops-library.md](loops-library.md), and the design one-pager
+> [wave-pipeline-design.html](wave-pipeline-design.html). Original proposal kept below
+> for provenance:
 
 Epic `t-2820 loop-first` → phase `ph-14 Loop-First Operation — wave 1`:
 
