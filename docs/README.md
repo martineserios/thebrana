@@ -233,11 +233,10 @@ The idea pool — where creative/studio work lands, and what the backlog drains 
 
 | File | Contents |
 |------|----------|
-| [brana-efficiency-without-power-loss.md](ideas/brana-efficiency-without-power-loss.md) | Reduce usage without losing power — open |
 | [construction-budget-automation.md](ideas/construction-budget-automation.md) | Construction budget automation — deferred 2026-08-14 (waiting on sample CAD/PDF files) |
-| [prompt-patterns-brana-enrichment.md](ideas/prompt-patterns-brana-enrichment.md) | Prompt patterns → brana enrichment — open draft |
-| [venture-playbook-product-management.md](ideas/venture-playbook-product-management.md) | Venture playbook & product management layer — open |
-| [drained/](ideas/drained/) | 71 idea docs already converted to backlog tasks — notable: [wave-pipeline.md](ideas/drained/wave-pipeline.md) (ADR-079, t-2828), [loops-library.md](ideas/drained/loops-library.md) (t-2826), [loop-first-redesign.md](ideas/drained/loop-first-redesign.md) (epic t-2820), [skills-as-loops.md](ideas/drained/skills-as-loops.md), [brana-whatsapp-agent.md](ideas/drained/brana-whatsapp-agent.md), [brana-agency-growth-machine.md](ideas/drained/brana-agency-growth-machine.md) (t-2249) |
+| [prompt-patterns-brana-enrichment.md](ideas/prompt-patterns-brana-enrichment.md) | Prompt patterns → brana enrichment — open draft, ~half shipped/mooted (see its 2026-08-14 review header); live remainder: persona + user-facing scout |
+| [venture-playbook-product-management.md](ideas/venture-playbook-product-management.md) | Venture playbook & product management layer — open; 2026-08-14 review: marketplace skills now cover most frameworks, Sheets/Airtable MCP unblock G14/G16 |
+| [drained/](ideas/drained/) | 72 idea docs converted to tasks or absorbed (incl. brana-efficiency-without-power-loss.md — all proposals shipped elsewhere) — notable: [wave-pipeline.md](ideas/drained/wave-pipeline.md) (ADR-079, t-2828), [loops-library.md](ideas/drained/loops-library.md) (t-2826), [loop-first-redesign.md](ideas/drained/loop-first-redesign.md) (epic t-2820), [skills-as-loops.md](ideas/drained/skills-as-loops.md), [brana-whatsapp-agent.md](ideas/drained/brana-whatsapp-agent.md), [brana-agency-growth-machine.md](ideas/drained/brana-agency-growth-machine.md) (t-2249) |
 
 ## Content (docs/content/)
 
