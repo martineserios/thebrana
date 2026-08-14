@@ -532,7 +532,12 @@ fn build_query_string(ctx: &TaskContext) -> String {
 
 
 /// Parse ruflo memory search output into SkillMatch entries.
-fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
+///
+/// `known` is the local skill-name list (from `scan_skills`) used to resolve
+/// table keys that ruflo truncates at ~20 chars (`skill:domain-driv...`) —
+/// a truncated key prefix-matches against it; ambiguous or unmatched stems
+/// are dropped rather than returned truncated (t-2730).
+fn parse_ruflo_results(text: &str, _known: &[String]) -> Option<Vec<SkillMatch>> {
     let val: serde_json::Value = serde_json::from_str(text).ok()?;
     let entries = val.as_array()?;
     let matches: Vec<SkillMatch> = entries
@@ -578,7 +583,7 @@ fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
         Some(brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD),
         false,
     )?;
-    parse_ruflo_results(&raw)
+    parse_ruflo_results(&raw, &[])
 }
 
 /// `brana skills suggest --task <id>` or `--query <text>`
@@ -1165,7 +1170,7 @@ stream_affinity: [roadmap]
             {"key": "skill:research", "value": "Research topics", "score": 0.78},
             {"key": "not-a-skill", "value": "ignored", "score": 0.5}
         ]"#;
-        let results = parse_ruflo_results(json).expect("should parse");
+        let results = parse_ruflo_results(json, &[]).expect("should parse");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].name, "build");
         assert!((results[0].score - 0.92).abs() < f64::EPSILON);
@@ -1176,39 +1181,36 @@ stream_affinity: [roadmap]
     #[test]
     fn test_parse_ruflo_results_no_skills() {
         let json = r#"[{"key": "pattern:something", "value": "not a skill", "score": 0.9}]"#;
-        let result = parse_ruflo_results(json);
+        let result = parse_ruflo_results(json, &[]);
         assert!(result.is_none());
     }
 
     #[test]
     fn test_parse_ruflo_results_empty_array() {
-        let result = parse_ruflo_results("[]");
+        let result = parse_ruflo_results("[]", &[]);
         assert!(result.is_none());
     }
 
     #[test]
     fn test_parse_ruflo_results_invalid_json() {
-        let result = parse_ruflo_results("not json at all");
+        let result = parse_ruflo_results("not json at all", &[]);
         assert!(result.is_none());
     }
 
     #[test]
     fn test_parse_ruflo_results_missing_score() {
         let json = r#"[{"key": "skill:close", "value": "End session"}]"#;
-        let results = parse_ruflo_results(json).expect("should parse");
+        let results = parse_ruflo_results(json, &[]).expect("should parse");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "close");
         assert!((results[0].score - 0.0).abs() < f64::EPSILON);
     }
 
     #[test]
-    fn test_parse_ruflo_results_cannot_read_table_output() {
-        // Pins the known gap (t-2729): this parser is JSON-only, but the ruflo
-        // build in use has no `--json` on `memory search` and emits this table,
-        // so the semantic path is inert and `cmd_suggest` falls back to keyword
-        // matching. When table support lands, this test should flip to
-        // asserting parsed values — and must also assert that keys truncated at
-        // 20 chars (`skill:domain-driv...`) are resolved to real skill names.
+    fn test_parse_ruflo_results_reads_table_output() {
+        // Flipped from `cannot_read_table_output` (t-2730): the installed
+        // ruflo has no `--json` on `memory search` — the ASCII table IS the
+        // real output shape, so the semantic path must parse it.
         let table = concat!(
             "[INFO] Searching: \"rust\" (semantic)\n\n",
             "+---------------------+-------+-----------+----------------------+\n",
@@ -1217,7 +1219,46 @@ stream_affinity: [roadmap]
             "| skill:rust-skills   |  0.49 | skills    | rust-skills Rust ... |\n",
             "+---------------------+-------+-----------+----------------------+\n"
         );
-        assert!(parse_ruflo_results(table).is_none());
+        let results = parse_ruflo_results(table, &[]).expect("should parse table");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "rust-skills");
+        assert!((results[0].score - 0.49).abs() < 1e-9);
+        assert_eq!(results[0].reason, "ruflo semantic");
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_resolves_truncated_table_key() {
+        // AC (t-2730): a >20-char skill name survives the round trip — ruflo
+        // truncates the Key column, the parser prefix-resolves it against the
+        // local skill list.
+        let table = concat!(
+            "+----------------------+-------+-----------+------------------+\n",
+            "| Key                  | Score | Namespace | Preview          |\n",
+            "+----------------------+-------+-----------+------------------+\n",
+            "| skill:domain-driv... |  0.44 | skills    | domain-driven... |\n",
+            "+----------------------+-------+-----------+------------------+\n"
+        );
+        let known = vec!["domain-driven-design".to_string(), "build".to_string()];
+        let results = parse_ruflo_results(table, &known).expect("should resolve");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "domain-driven-design");
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_drops_ambiguous_truncated_key() {
+        // An ambiguous stem must be dropped, never returned truncated.
+        let table = concat!(
+            "+----------------------+-------+-----------+------------------+\n",
+            "| Key                  | Score | Namespace | Preview          |\n",
+            "+----------------------+-------+-----------+------------------+\n",
+            "| skill:domain-driv... |  0.44 | skills    | domain-driven... |\n",
+            "+----------------------+-------+-----------+------------------+\n"
+        );
+        let known = vec![
+            "domain-driven-design".to_string(),
+            "domain-driven-docs".to_string(),
+        ];
+        assert!(parse_ruflo_results(table, &known).is_none());
     }
 
     #[test]
@@ -1225,7 +1266,7 @@ stream_affinity: [roadmap]
         // The `--json` shape, as returned by ruflo memory search --json.
         let json = r#"[{"key":"skill:rust-skills","value":"Rust best practices","score":0.49},
                        {"key":"skill:cargo-machete","value":"Unused deps","score":0.43}]"#;
-        let results = parse_ruflo_results(json).expect("should parse ruflo json");
+        let results = parse_ruflo_results(json, &[]).expect("should parse ruflo json");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].name, "rust-skills");
         assert!((results[0].score - 0.49).abs() < 1e-9);
