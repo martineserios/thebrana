@@ -66,6 +66,56 @@ Semantics (kept distinct from the LLM gate):
   brana backlog set {task_id} notes --append "Challenger gate (mechanical exit-contract-lint): overridden ({date}) — {reason}"
   ```
 
+## Sizing valve (ADR-082 rungs 0–2)
+
+After the mechanical lint and before spawning, compute the beat's rung. The ladder,
+signals table, briefs, and helpers are single-sourced in
+[`judge-sizing.md`](judge-sizing.md) — **do not restate any mapping here** (the
+t-2494 drift class). Sequence:
+
+```bash
+# Inputs — all machine-readable (ADR-082 §1):
+EFFORT=$(brana backlog get {task_id} --field effort 2>/dev/null | tr -d '"')
+KIND=$(brana backlog get {task_id} --field kind 2>/dev/null | tr -d '"')
+FILES=$(git diff --name-only main...HEAD | tr '\n' ' ')
+NATURE=$(nature_class "$KIND" "$FILES")
+CRIT=$(criticality_hit "$FILES")
+# Fired signals this beat (comma-separated, from recorded events only):
+#   RECONSIDER_SEV4      — prior challenger iteration verdict RECONSIDER with sev >= 4
+#   PASS_WITH_GAPS       — evaluator verdict PASS-WITH-GAPS
+#   CRITICAL_PATH        — CRIT=1 doubles as this signal when the diff lands in a critical section
+#   SIBLING_VERDICT      — parse_sibling_verdict on the prior verdict printed "yes"
+#   ESCAPED_DEFECT_AREA  — judge_area_weight "{task area}" >= 1
+RUNG=$(resolve_judge_rung "$EFFORT" "$NATURE" "$CRIT" "$SIGNALS_CSV") || {
+    echo "⚠ judge-sizing valve broken (exit $?) — fix the valve; never skip silently" >&2; exit 2; }
+```
+
+**Beat report line (always, every beat):** `judge rung: {N} — {shape}` plus, for any
+mechanism whose precondition failed, an explicit unarmed line, e.g.
+`blind test-author did not arm: AC unapproved` (`blind_author_arms` prints the
+verdict; an unarmed mechanism must be observable, never silent — ADR-082 §2).
+
+| Rung | What this gate does differently |
+|---|---|
+| 0 | Nothing — the flow below runs exactly as written (single challenger) |
+| 1 | Spawn the **second-variant finder** (brief from judge-sizing.md §Briefs) in the same message as the challenger — parallel, blind (diff-only). Its findings merge into the same blocking rules |
+| 2 | Run the funnel per judge-sizing.md §Spawn contracts: 2 nature-routed finders → haiku filter → strongest-model default-refute verify. `SPLIT` verdicts surface to the human as their own class — never suppressed |
+
+**Signal timing:** a signal fired by this beat's own judge pass arms the raised rung
+for the *re-judgment* (repair-loop iteration 2 runs at the raised rung); the
+delivered verdict stands (ADR-082 §2 Timing).
+
+**Control arm (first 6 rung-2 firings):** run the rung-1 shape (lone second-variant
+finder) alongside the full funnel on the same beat; record both counts in the
+escaped-defect log's `control_arm: {rung1_findings, panel_findings}` field
+(`append_escaped_defect` 7th arg). This is the data ADR-082 §6's rung-2-collapse
+decision reads. Every rung ≥ 1 firing appends a log record regardless
+(`append_escaped_defect docs/ops/escaped-defects.jsonl ...`).
+
+Panel-role allowlists are subset-only (`judge_allowlist_violations` must print
+nothing — ADR-082 §4e); panel spawns never consume the max-2 challenger iteration
+cap (same rule as the mechanical lint).
+
 ## Input contract (LoopTrap P4 Authority Override defense)
 
 Build the context object explicitly. Challenger reads ONLY trusted content:
@@ -98,11 +148,19 @@ Review ONLY:
 (1) Are all acceptance criteria met? Cite evidence from the diff.
 (2) Does the diff align with the spec — no scope creep, no scope miss?
 (3) Any security antipatterns (OWASP top 10)?
+(4) Does this fix have structural siblings outside the diff — the same pattern in a
+    parallel path, second variant, or sibling consumer the diff does not touch?
+    End your verdict with the recorded field, exactly one of:
+    'SIBLINGS: yes — {paths}' or 'SIBLINGS: no'.
 
 Use CALIBRATION.md severity rubric. Return structured findings or 'PROCEED — no issues found.'
 For each finding include: severity, ac_violated (if any), description, file, spec_says."
 )
 ```
+
+The `SIBLINGS:` line is signal 4's source (ADR-082 §3): `parse_sibling_verdict` reads
+it — a recorded `yes` arms rung 2 for the re-judgment pass. A missing field means
+prompt drift: treat as NOT fired and state the omission in the beat report.
 
 ## Blocking rules
 
