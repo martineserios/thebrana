@@ -1079,6 +1079,107 @@ pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()
     Ok(())
 }
 
+/// t-2842 (ADR-080 §4): batch AC approve over a wave — human-only, cockpit-
+/// shaped. Resolves the wave's selector, lists matched `ac_state:proposed`
+/// tasks with their proposed criteria, takes one confirmation per batch of
+/// at most `WAVE_APPROVE_BATCH_CAP`, then applies the sanctioned per-task
+/// `perform_ac_approve` to each — a batch loop over the existing verb, no
+/// new state semantics. `ac_state:none` matches are listed, not silently
+/// absorbed. Denied in the runner manifest, same trust boundary as `ac
+/// approve` (drain-loop.md Denied verbs table).
+///
+/// Deliberately NOT locked across the confirmation loop (t-2166 precedent,
+/// `cmd_triage_stale`): holding the flock across human think-time would
+/// block every other session. Each confirmed task is approved via its own
+/// short-lived lock inside `perform_ac_approve`.
+pub fn cmd_wave_approve(
+    wave_id: &str,
+    yes: bool,
+    dry_run: bool,
+    file: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let data = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let wave = data["waves"]
+        .as_array()
+        .and_then(|ws| ws.iter().find(|w| w["id"].as_str() == Some(wave_id)))
+        .ok_or_else(|| anyhow::anyhow!("wave {wave_id} not found"))?
+        .clone();
+    let tasks_arr = data["tasks"].as_array().cloned().unwrap_or_default();
+    let plan = tasks::plan_wave_approve(&wave, &tasks_arr).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    if !plan.none_ids.is_empty() {
+        println!("Matched but ac_state:none — nothing to approve (not silently skipped):");
+        for id in &plan.none_ids {
+            println!("  {id}");
+        }
+        println!();
+    }
+    if plan.batches.is_empty() {
+        println!("No proposed-AC tasks to approve in wave {wave_id}.");
+        return Ok(());
+    }
+
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    let mut approved_total = 0usize;
+
+    for batch in &plan.batches {
+        println!("Batch of {} task(s) with proposed criteria:", batch.len());
+        for (id, criteria) in batch {
+            println!("  {id}:");
+            for c in criteria {
+                println!("    - {c}");
+            }
+        }
+        println!();
+
+        if dry_run {
+            println!("  (dry-run: would approve {} tasks)\n", batch.len());
+            continue;
+        }
+
+        let answer = if yes {
+            "y".to_string()
+        } else {
+            print!("  Approve these {} tasks? [y/n/q]: ", batch.len());
+            stdout.flush()?;
+            let mut line = String::new();
+            stdin.lock().read_line(&mut line)?;
+            line.trim().to_lowercase()
+        };
+
+        match answer.as_str() {
+            "y" | "yes" => {
+                for (id, _) in batch {
+                    tasks::perform_ac_approve(&tf, id).map_err(|e| anyhow::anyhow!("{e}"))?;
+                    approved_total += 1;
+                }
+                println!("  ✓ approved {approved_total} tasks so far\n");
+            }
+            "q" | "quit" => {
+                println!("  Stopped. {approved_total} tasks approved.");
+                return Ok(());
+            }
+            _ => println!("  Skipped.\n"),
+        }
+    }
+
+    if dry_run {
+        let would: usize = plan.batches.iter().map(|b| b.len()).sum();
+        println!(
+            "dry-run: would approve {would} tasks total across {} batch(es)",
+            plan.batches.len()
+        );
+    } else {
+        println!("Done. {approved_total} tasks approved.");
+    }
+    Ok(())
+}
+
 /// Definition-of-ready lint for autonomous dispatch (t-1981).
 /// Returns Ok(ready); the caller maps not-ready to exit code 1.
 pub fn cmd_lint(task_id: &str, json_out: bool, file: Option<PathBuf>) -> anyhow::Result<bool> {
@@ -3109,6 +3210,78 @@ mod tests {
         cmd_wave_pull("wave-1", true, Some(f.path().to_path_buf())).unwrap();
         assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
             "dry-run must not rewrite tasks.json");
+    }
+
+    // ── t-2842 (ADR-080 §4): CLI wave approve — batch AC valve ───────────
+
+    fn approve_fixture(ac_state: &str) -> tempfile::NamedTempFile {
+        drain_fixture(
+            &format!(
+                r#"[{{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],
+                    "blocked_by":[],"ac_state":"{ac_state}",
+                    "proposed_acceptance_criteria":["tests green"]}}]"#
+            ),
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining"}]"#,
+        )
+    }
+
+    #[test]
+    fn cmd_wave_approve_yes_promotes_and_flips() {
+        let f = approve_fixture("proposed");
+        cmd_wave_approve("wave-1", true, false, Some(f.path().to_path_buf())).unwrap();
+        let reloaded: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let t1 = &reloaded["tasks"][0];
+        assert_eq!(t1["ac_state"], "approved");
+        assert_eq!(t1["acceptance_criteria"], serde_json::json!(["tests green"]));
+        assert!(t1.get("proposed_acceptance_criteria").is_none());
+    }
+
+    #[test]
+    fn cmd_wave_approve_dry_run_writes_nothing() {
+        let f = approve_fixture("proposed");
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        cmd_wave_approve("wave-1", true, true, Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
+            "dry-run must not approve anything");
+    }
+
+    #[test]
+    fn cmd_wave_approve_none_state_not_approved() {
+        let f = approve_fixture("none");
+        cmd_wave_approve("wave-1", true, false, Some(f.path().to_path_buf())).unwrap();
+        let reloaded: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["tasks"][0]["ac_state"], "none",
+            "ac_state:none is listed, never auto-approved");
+    }
+
+    #[test]
+    fn cmd_wave_approve_caps_at_ten_per_batch() {
+        let tasks_json: String = (1..=15)
+            .map(|i| format!(
+                r#"{{"id":"t-{i}","subject":"s","status":"pending","type":"task","tags":["w1"],
+                   "blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["c"]}}"#
+            ))
+            .collect::<Vec<_>>()
+            .join(",");
+        let f = drain_fixture(
+            &format!("[{tasks_json}]"),
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining"}]"#,
+        );
+        cmd_wave_approve("wave-1", true, false, Some(f.path().to_path_buf())).unwrap();
+        let reloaded: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let approved = reloaded["tasks"].as_array().unwrap().iter()
+            .filter(|t| t["ac_state"] == "approved").count();
+        assert_eq!(approved, 15, "yes:true confirms every batch — both the 10-batch and the 5-batch");
+    }
+
+    #[test]
+    fn cmd_wave_approve_unknown_wave_errors() {
+        let f = empty_tasks_file();
+        let err = cmd_wave_approve("wave-9", true, false, Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("wave-9"));
     }
 
     #[test]
