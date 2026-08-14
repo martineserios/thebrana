@@ -447,6 +447,93 @@ write_goal "$RH9C" "$BRH9C" "validate.sh Check 18 passes"
 assert_completes "check-N form still grades (heuristic 3 precedence intact)" "$(make_stop_input "$RH9C")"
 rm -rf "$RH9C"
 
+# ── H10 (t-2856): "demoable: <command>" heuristic ────────────────────────────
+# Pocock demoability (ac-grammar.md #10): the criterion names a command a human can
+# run to watch the feature work. Auto-check runs it under the SAME allowlist as
+# heuristic 7; a non-allowlisted command is NEVER executed → UNKNOWN (demo pending
+# a human sitting).
+echo "Test H10a: 'demoable: pytest' with green mocked pytest → auto-completes"
+read -r RH10 BRH10 <<< "$(make_goal_repo)"
+fresh_presence
+mkdir -p "$TMPDIR_TEST/bin10"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$TMPDIR_TEST/bin10/pytest"; chmod +x "$TMPDIR_TEST/bin10/pytest"
+OLD_PATH="$PATH"; export PATH="$TMPDIR_TEST/bin10:$PATH"
+write_goal "$RH10" "$BRH10" "demoable: pytest"
+assert_completes "green demoable command → criterion passes → auto-complete" "$(make_stop_input "$RH10")"
+export PATH="$OLD_PATH"
+rm -rf "$RH10"
+
+echo "Test H10b: 'demoable: pytest' with red mocked pytest → NOT complete, failure surfaced"
+read -r RH10B BRH10B <<< "$(make_goal_repo)"
+fresh_presence
+mkdir -p "$TMPDIR_TEST/bin10b"
+printf '#!/usr/bin/env bash\nexit 1\n' > "$TMPDIR_TEST/bin10b/pytest"; chmod +x "$TMPDIR_TEST/bin10b/pytest"
+OLD_PATH="$PATH"; export PATH="$TMPDIR_TEST/bin10b:$PATH"
+write_goal "$RH10B" "$BRH10B" "demoable: pytest"
+TOTAL=$((TOTAL + 1))
+OUT_H10B=$(echo "$(make_stop_input "$RH10B")" | bash "$HOOK" 2>/dev/null) || OUT_H10B=""
+if echo "$OUT_H10B" | grep -qiF "Failed:" && ! echo "$OUT_H10B" | grep -qiE 'Goal complete|auto-marked completed'; then
+    echo "  PASS: red demoable command → not completed, failure surfaced"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: red demoable handling — output: $OUT_H10B"; FAIL=$((FAIL + 1))
+fi
+export PATH="$OLD_PATH"
+rm -rf "$RH10B"
+
+echo "Test H10c: 'demoable: <non-allowlisted>' → UNKNOWN, never executed"
+read -r RH10C BRH10C <<< "$(make_goal_repo)"
+fresh_presence
+rm -f "$TMPDIR_TEST/.claude/run-state/t-999-audit.jsonl"
+CANARY="$TMPDIR_TEST/h10-canary"
+write_goal "$RH10C" "$BRH10C" "demoable: touch $CANARY"
+TOTAL=$((TOTAL + 1))
+OUT_H10C=$(echo "$(make_stop_input "$RH10C")" | bash "$HOOK" 2>/dev/null) || OUT_H10C=""
+AUD10="$TMPDIR_TEST/.claude/run-state/t-999-audit.jsonl"
+if [ ! -f "$CANARY" ] && ! echo "$OUT_H10C" | grep -qiE 'Goal complete|auto-marked completed' \
+   && grep -q '"verdict":"unknown"' "$AUD10" 2>/dev/null; then
+    echo "  PASS: non-allowlisted demoable → unknown, never executed"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: non-allowlisted demoable — canary=$([ -f "$CANARY" ] && echo executed) output: $OUT_H10C"; FAIL=$((FAIL + 1))
+fi
+rm -rf "$RH10C"
+
+# ── Injection hardening (t-2856 challenger finding 1): allowlist is prefix-anchored,
+# so "pytest; <anything>" matched and reached eval. Commands containing shell
+# metacharacters must fall to UNKNOWN — never executed — for BOTH H7 and H10.
+echo "Test INJ-H7: '\"pytest; touch canary\" passes' → UNKNOWN, never executed"
+read -r RINJ BRINJ <<< "$(make_goal_repo)"
+fresh_presence
+mkdir -p "$TMPDIR_TEST/bininj"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$TMPDIR_TEST/bininj/pytest"; chmod +x "$TMPDIR_TEST/bininj/pytest"
+OLD_PATH="$PATH"; export PATH="$TMPDIR_TEST/bininj:$PATH"
+CANARY7="$TMPDIR_TEST/inj-canary-h7"
+write_goal "$RINJ" "$BRINJ" "\\\"pytest; touch $CANARY7\\\" passes"
+TOTAL=$((TOTAL + 1))
+OUT_INJ7=$(echo "$(make_stop_input "$RINJ")" | bash "$HOOK" 2>/dev/null) || OUT_INJ7=""
+if [ ! -f "$CANARY7" ] && ! echo "$OUT_INJ7" | grep -qiE 'Goal complete|auto-marked completed'; then
+    echo "  PASS: H7 metachar command never executed, not completed"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: H7 injection — canary=$([ -f "$CANARY7" ] && echo executed) output: $OUT_INJ7"; FAIL=$((FAIL + 1))
+fi
+export PATH="$OLD_PATH"
+rm -rf "$RINJ"
+
+echo "Test INJ-H10: 'demoable: pytest && touch canary' → UNKNOWN, never executed"
+read -r RINJB BRINJB <<< "$(make_goal_repo)"
+fresh_presence
+export PATH="$TMPDIR_TEST/bininj:$PATH"
+CANARY10="$TMPDIR_TEST/inj-canary-h10"
+write_goal "$RINJB" "$BRINJB" "demoable: pytest && touch $CANARY10"
+TOTAL=$((TOTAL + 1))
+OUT_INJ10=$(echo "$(make_stop_input "$RINJB")" | bash "$HOOK" 2>/dev/null) || OUT_INJ10=""
+if [ ! -f "$CANARY10" ] && ! echo "$OUT_INJ10" | grep -qiE 'Goal complete|auto-marked completed'; then
+    echo "  PASS: H10 metachar command never executed, not completed"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: H10 injection — canary=$([ -f "$CANARY10" ] && echo executed) output: $OUT_INJ10"; FAIL=$((FAIL + 1))
+fi
+export PATH="$OLD_PATH"
+rm -rf "$RINJB"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"
