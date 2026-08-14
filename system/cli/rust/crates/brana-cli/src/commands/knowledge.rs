@@ -32,8 +32,12 @@ const MIN_STORABLE_CHARS: usize = 40;
 ///
 /// Idempotency depends on this being a pure function of the URL — the second
 /// run recognises the first run's entry only if it derives the same key.
+/// Keyed on the canonical URL (safety-wrapper unwrapped, tracking params
+/// stripped — t-2583/t-2590), so share-sheet variants of the same page
+/// resolve to one entry.
 fn url_storage_key(url: &str) -> String {
-    let trimmed = url
+    let canonical = brana_core::knowledge_pipeline::canonicalize_url(url);
+    let trimmed = canonical
         .trim()
         .trim_start_matches("https://")
         .trim_start_matches("http://")
@@ -1956,6 +1960,39 @@ mod tests {
         let a = url_storage_key("https://www.linkedin.com/posts/someone_a-title-abc123");
         let b = url_storage_key("https://www.linkedin.com/posts/someone_a-title-abc123");
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn process_url_key_ignores_tracking_params() {
+        // t-2583: mobile share sheets append utm_*/rcm to effectively every
+        // captured link — with and without them must be ONE key or exact-key
+        // idempotency never fires.
+        let clean = url_storage_key(
+            "https://www.linkedin.com/posts/adrien-taravant-aa11bb_some-post-activity-h9dx",
+        );
+        let tracked = url_storage_key(
+            "https://www.linkedin.com/posts/adrien-taravant-aa11bb_some-post-activity-h9dx?utm_source=share&utm_medium=member_android&rcm=ACoAAARwJLkBJqr70A1PJbG5r3-PHzY3QMybYwc",
+        );
+        assert_eq!(clean, tracked);
+    }
+
+    #[test]
+    fn process_url_key_keeps_load_bearing_query() {
+        // Two different videos must not collapse to one key.
+        let a = url_storage_key("https://www.youtube.com/watch?v=aaaa1111");
+        let b = url_storage_key("https://www.youtube.com/watch?v=bbbb2222");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn process_url_key_unwraps_safety_wrapper() {
+        // t-2590 residual: different /safety/go wrappers around the same
+        // target must store under the target's key.
+        let wrapped = url_storage_key(
+            "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Fpost&trk=feed",
+        );
+        let direct = url_storage_key("https://example.com/post");
+        assert_eq!(wrapped, direct);
     }
 
     #[test]
