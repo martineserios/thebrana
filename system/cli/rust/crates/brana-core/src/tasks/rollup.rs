@@ -186,6 +186,51 @@ pub fn approve_ac(task: &mut Value) -> Result<AcApprove, String> {
     Ok(AcApprove { promoted, already_approved })
 }
 
+/// t-2842 (ADR-080 §4): the rubber-stamp guard (challenge finding 8) — one
+/// confirmation stops being review past this many items.
+pub const WAVE_APPROVE_BATCH_CAP: usize = 10;
+
+/// t-2842: what a wave's batch-approve found. A batch loop over the existing
+/// per-task promote+flip (`approve_ac`/`perform_ac_approve`, ADR-079 §1) —
+/// this only plans (read-only); the caller applies each batch via the
+/// sanctioned single-task verb, unmodified, so all its bindings (content-
+/// binding reset, no-bypass) come free. No new state semantics.
+#[derive(Debug)]
+pub struct WaveApprovePlan {
+    /// Matched tasks with `ac_state:proposed`, chunked into batches of at
+    /// most `WAVE_APPROVE_BATCH_CAP`: (id, proposed_acceptance_criteria).
+    pub batches: Vec<Vec<(String, Vec<String>)>>,
+    /// Matched tasks with `ac_state:none` — nothing to approve, listed so
+    /// the gap stays visible rather than silently absorbed.
+    pub none_ids: Vec<String>,
+}
+
+/// Resolve `wave`'s selector (the SAME resolver every consumer uses —
+/// `resolve_wave_selector`; zero direct selector parsing here) and partition
+/// matches by `ac_state`. Already-`approved` matches are neither batched nor
+/// listed — there's nothing to do for them.
+pub fn plan_wave_approve(wave: &Value, tasks: &[Value]) -> Result<WaveApprovePlan, String> {
+    let matched = super::resolve_wave_selector(wave, tasks)?;
+    let mut proposed: Vec<(String, Vec<String>)> = Vec::new();
+    let mut none_ids = Vec::new();
+    for t in matched {
+        let id = t["id"].as_str().unwrap_or("?").to_string();
+        match t["ac_state"].as_str() {
+            Some("proposed") => {
+                let criteria = criteria_vec(&t[PROPOSED_AC_FIELD], PROPOSED_AC_FIELD)?;
+                proposed.push((id, criteria));
+            }
+            Some("none") | None => none_ids.push(id),
+            _ => {} // approved (or other) — nothing to do, not itemized.
+        }
+    }
+    let batches = proposed
+        .chunks(WAVE_APPROVE_BATCH_CAP)
+        .map(|c| c.to_vec())
+        .collect();
+    Ok(WaveApprovePlan { batches, none_ids })
+}
+
 /// t-2812: file-level approve — lock, load, find, approve, save. Mirrors
 /// `perform_ac_propose`'s sealed read-modify-write over a raw `Value`.
 pub fn perform_ac_approve(path: &Path, task_id: &str) -> Result<AcApprove, String> {

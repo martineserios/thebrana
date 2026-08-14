@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
         .tool("backlog_wave_get", tools::backlog_wave_get::build())
         .tool("backlog_wave_list", tools::backlog_wave_list::build())
         .tool("backlog_wave_set", tools::backlog_wave_set::build())
+        .tool("backlog_wave_approve", tools::backlog_wave_approve::build())
         .tool("session_write", tools::session_write::build())
         .tool("session_read", tools::session_read::build())
         .tool("session_history", tools::session_history::build())

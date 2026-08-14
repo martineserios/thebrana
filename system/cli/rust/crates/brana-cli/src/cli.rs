@@ -1182,6 +1182,27 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Batch AC approve over a wave (ADR-080 §4): human-only cockpit valve.
+    /// Lists matched ac_state:proposed tasks with proposed criteria, one
+    /// confirmation per batch of at most 10, applies the sanctioned per-task
+    /// approve to each. ac_state:none matches are listed, never auto-approved.
+    /// Denied to the drain loop runner — same trust boundary as `ac approve`.
+    Approve {
+        wave_id: String,
+        /// Skip interactive confirmation for ONE batch (at most 10 tasks)
+        /// and stop — re-run to confirm the next batch. Never approves more
+        /// than one batch per invocation, even with multiple batches
+        /// pending (the rubber-stamp guard holds for non-interactive
+        /// callers too, ADR-080 §4).
+        #[arg(long)]
+        yes: bool,
+        /// Report what would be approved, write nothing
+        #[arg(long)]
+        dry_run: bool,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]

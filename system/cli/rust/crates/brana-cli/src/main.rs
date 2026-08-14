@@ -103,6 +103,7 @@ fn main() {
                 WaveCmd::Set { wave_id, field, value, file } => run_or_exit(commands::backlog::cmd_wave_set(&wave_id, &field, &value, file)),
                 WaveCmd::Pull { wave_id, dry_run, claimant, file } => run_or_exit(commands::backlog::cmd_wave_pull(&wave_id, dry_run, claimant, file)),
                 WaveCmd::Drain { wave_id, file } => run_or_exit(commands::backlog::cmd_wave_drain(&wave_id, file)),
+                WaveCmd::Approve { wave_id, yes, dry_run, file } => run_or_exit(commands::backlog::cmd_wave_approve(&wave_id, yes, dry_run, file)),
             },
         },
         Commands::Ops { cmd } => match cmd {
