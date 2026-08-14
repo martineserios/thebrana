@@ -177,6 +177,38 @@ assert_eq "control_arm preserved"       "1" "$(jq -s '.[0].control_arm.panel_fin
 assert_eq "no control_arm key when omitted" "null" "$(jq -s '.[1].control_arm' "$RLOG")"
 assert_eq "roundtrip feeds area weight" "1" "$(judge_area_weight 'system/hooks' "$RLOG")"
 
+echo "=== panel repairs: self-protection, lint registration, signal-3 split, real detector ==="
+# The sizing authority must protect itself (panel finding: gutting the ladder got rung 0)
+TOTAL=$((TOTAL + 1))
+if printf '%s\n' "$JUDGE_CRITICAL_PATHS" | grep -qx 'system/skills/_shared/judge-sizing.md'; then
+    echo "  PASS: judge-sizing.md is in its own critical list"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: judge-sizing.md missing from JUDGE_CRITICAL_PATHS"; FAIL=$((FAIL + 1))
+fi
+# Exit-contract marker must sit within 10 lines of the function def, else the lint
+# never registers it (panel finding, verified: marker was 20 lines away → unregistered)
+marker_line=$(grep -n '# Exit contract' "$SIZING_MD" | head -1 | cut -d: -f1)
+def_line=$(grep -n 'resolve_judge_rung() {' "$SIZING_MD" | head -1 | cut -d: -f1)
+TOTAL=$((TOTAL + 1))
+if [ -n "$marker_line" ] && [ -n "$def_line" ] && [ $((def_line - marker_line)) -ge 0 ] && [ $((def_line - marker_line)) -le 10 ]; then
+    echo "  PASS: exit-contract marker within 10 lines of resolve_judge_rung (lint binds)"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: marker at ${marker_line:-none}, def at ${def_line:-none} — lint will not register"; FAIL=$((FAIL + 1))
+fi
+# Signal-3 split: lock/pull paths (rung-2 signal) are a NARROWER set than the
+# rung-1 criticality list (panel finding: CRIT doubling as signal made rung 1 dead)
+assert_eq "lock_pull: brana-core src is lock/pull      -> 1" "1" "$(lock_pull_hit 'system/cli/rust/crates/brana-core/src/wave.rs')"
+assert_eq "lock_pull: hooks are critical but NOT lock/pull -> 0" "0" "$(lock_pull_hit 'system/hooks/a.sh')"
+assert_eq "crit list still catches hooks (rung-1 input)  -> 1" "1" "$(criticality_hit 'system/hooks/a.sh')"
+# The §4e detector must be able to fire (panel finding: tools∩verbs was vacuous)
+tampered=$(JUDGE_BRIEFS="rogue|code|Read Bash(git push) ac-approve" judge_allowlist_violations)
+TOTAL=$((TOTAL + 1))
+if [ -n "$tampered" ]; then
+    echo "  PASS: detector fires on a brief carrying a non-base tool ($tampered)"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: detector still vacuous — tampered brief produced no violation"; FAIL=$((FAIL + 1))
+fi
+
 echo "=== challenger-gate wiring contract (t-2905) ==="
 GATE_MD="$REPO_ROOT/system/skills/_shared/challenger-gate.md"
 TOTAL=$((TOTAL + 1))
