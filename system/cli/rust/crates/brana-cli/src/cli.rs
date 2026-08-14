@@ -1156,6 +1156,17 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Wave board (t-2844, ADR-080 §6f): strictly read-only L0 cockpit gauge —
+    /// gate-chain topo order + per-wave matched/pending/in_progress/approved
+    /// counts, computed live from tasks.json. No new store, zero writes.
+    Board {
+        /// Output JSON array instead of a themed table
+        #[arg(long)]
+        json: bool,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Pull one task from a draining wave (ADR-079 §2/§3): re-resolve the
     /// selector, filter pending ∧ ac_state:approved ∧ ¬parked, respect
     /// wip_limit, set the first eligible task in_progress — atomically.
