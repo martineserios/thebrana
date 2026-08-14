@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T23:00:40Z",
+  "generated": "2026-08-13T23:45:31Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1608,6 +1608,15 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/pipeline-digest.md": {
+      "title": "Feature: pipeline-digest (L0 Reporter gauge)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/pipeline-digest.md",
+        "system/loops/",
+        "system/scripts/pipeline-digest.sh"
+      ]
+    },
     "docs/architecture/features/plugin-packaging.md": {
       "title": "Feature: Plugin Packaging — Distribute thebrana as CC Plugin",
       "type": "Roadmap",
@@ -2733,6 +2742,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/pipeline-digest.md": {
+      "title": "Pipeline Digest (L0 Reporter)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/propagate-close-step.md": {
       "title": "PROPAGATE — propagation-debt audit at close",
       "type": "Roadmap",
@@ -3207,7 +3221,10 @@
     "docs/ideas/loop-first-redesign.md": {
       "title": "Loop-First Operation of thebrana",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/scripts/pipeline-digest.sh",
+        "system/loops/pipeline-digest.md"
+      ]
     },
     "docs/ideas/loop-goal-native-planning.md": {
       "title": "Loop+Goal-Native Backlog Planning",
@@ -10419,6 +10436,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/pipeline-digest.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/plugin-packaging.md",
       "type": "references",
       "computed": false
@@ -10732,6 +10755,12 @@
     {
       "from": "docs/README.md",
       "to": "guide/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/pipeline-digest.md",
       "type": "references",
       "computed": false
     },
@@ -11980,6 +12009,12 @@
     {
       "from": "docs/architecture/features/memory-taxonomy-sdd.md",
       "to": "memory-taxonomy-ddd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/pipeline-digest.md",
+      "to": "docs/ideas/loop-first-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -16065,8 +16100,8 @@
     }
   ],
   "stats": {
-    "nodes": 558,
-    "edges": 2037,
+    "nodes": 560,
+    "edges": 2040,
     "typed_edges": 685,
     "orphans": 148
   }

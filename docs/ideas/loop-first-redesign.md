@@ -2,10 +2,18 @@
 title: Loop-First Operation of thebrana
 status: draft
 created: 2026-08-13
+informs: [docs/ideas/loops-library.md]
 ---
 # Loop-First Operation of thebrana
 
 > Brainstormed 2026-08-13. Status: draft — shaped, probed, externally validated.
+>
+> **Descendants of this approach** (this doc is the philosophy; these carry it forward):
+> [loops-library.md](loops-library.md) — the catalog born from this approach: entry schema,
+> queue types, the five-verb pull interface, leases. · ADR-079 + the backlog-drain epic
+> (t-2811, delivered 2026-08-13) — the substrate the loops pump against: waves, `ac approve`
+> valve, atomic `wave pull`, `docs/guide/workflows/drain-loop.md` (first committed loop,
+> proven live over 8 beats). · t-2828 — plan-time wave graphs + epic-level runner.
 
 ## Shape summary
 
