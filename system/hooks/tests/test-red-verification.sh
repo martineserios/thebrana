@@ -179,6 +179,36 @@ else
     bad "repo HEAD changed ($REPO_HEAD_BEFORE -> $REPO_HEAD_AFTER) — GIT_DIR leaked into the staged test and hijacked the real repo"
 fi
 
+# ── Test 11: registration pins a content hash (tests_hashes parallel map, ADR-082 §5) ─
+# tests_required[] stays a plain string array (all existing consumers untouched);
+# the hash lands in the SIBLING key tests_hashes{path: sha256-of-staged-blob}.
+echo "Test 11: red registration writes tests_hashes[path] = staged-blob sha256"
+reset_repo
+printf '#!/usr/bin/env bash\nexit 1\n' > "$REPO/tests/test-red.sh"
+git -C "$REPO" add tests/test-red.sh
+EXPECTED_HASH=$(git -C "$REPO" show ":tests/test-red.sh" | sha256sum | cut -d' ' -f1)
+write_goal
+run_hook
+GOT_HASH=$(jq -r '.tests_hashes["tests/test-red.sh"] // ""' "$GOAL" 2>/dev/null)
+if [ -n "$GOT_HASH" ] && [ "$GOT_HASH" = "$EXPECTED_HASH" ]; then
+    ok "tests_hashes carries the staged-blob sha256"
+else
+    bad "tests_hashes missing/wrong — expected $EXPECTED_HASH, got [${GOT_HASH:-<empty>}]"
+fi
+# tests_required must remain a plain string array (schema untouched)
+T=$(jq -r '.tests_required[0] | type' "$GOAL" 2>/dev/null)
+if [ "$T" = "string" ]; then ok "tests_required[] still a string array"; else bad "tests_required[] type drifted to [$T]"; fi
+
+# ── Test 12: green (unregistered) test gets no hash entry ─────────────────────
+echo "Test 12: unregistered test → no tests_hashes entry"
+reset_repo
+printf '#!/usr/bin/env bash\nexit 0\n' > "$REPO/tests/test-green.sh"
+git -C "$REPO" add tests/test-green.sh
+write_goal
+run_hook
+H=$(jq -r '.tests_hashes["tests/test-green.sh"] // ""' "$GOAL" 2>/dev/null)
+if [ -z "$H" ]; then ok "no hash pinned for unregistered test"; else bad "hash pinned for green test"; fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed."

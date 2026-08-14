@@ -393,6 +393,37 @@ EOF
 assert_gated "registering a pre-existing path can't exempt its modification" "$(make_stop_input "$RG9")" "grader path"
 rm -rf "$RG9"
 
+# ── G10 (ADR-082 §5): a registered test WEAKENED after red registration → gate ─
+# Closes the residual gap: a path in tests_required[] was skipped forever after
+# registration (Added stays Added vs base_ref), so post-registration weakening was
+# invisible. The content hash pinned at registration (tests_hashes) must catch it.
+echo "Test G10 (ADR-082): weakening a registered test after hash-pinning trips the gate"
+read -r RG10 BR10 <<< "$(make_goal_repo)"
+fresh_presence
+echo "test('real assertion', () => {})" > "$RG10/tests/new.test.js"
+git -C "$RG10" add -A >/dev/null 2>&1; git -C "$RG10" commit -q -m "add red test" 2>/dev/null
+PINNED=$(sha256sum "$RG10/tests/new.test.js" | cut -d' ' -f1)
+echo "// weakened to a stub" > "$RG10/tests/new.test.js"   # builder guts the test post-registration
+git -C "$RG10" add -A >/dev/null 2>&1; git -C "$RG10" commit -q -m "weaken" 2>/dev/null
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG10","base_ref":"$BR10","criteria":["app.js exists"],"tests_required":["tests/new.test.js"],"tests_hashes":{"tests/new.test.js":"$PINNED"}}
+EOF
+assert_gated "weakened registered test trips hash gate" "$(make_stop_input "$RG10")" "hash"
+rm -rf "$RG10"
+
+# ── G11 (control): registered test with MATCHING pinned hash still auto-completes ─
+echo "Test G11 (control): untouched registered test with matching hash auto-completes"
+read -r RG11 BR11 <<< "$(make_goal_repo)"
+fresh_presence
+echo "test('real assertion', () => {})" > "$RG11/tests/new.test.js"
+git -C "$RG11" add -A >/dev/null 2>&1; git -C "$RG11" commit -q -m "add red test" 2>/dev/null
+PIN11=$(sha256sum "$RG11/tests/new.test.js" | cut -d' ' -f1)
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG11","base_ref":"$BR11","criteria":["app.js exists"],"tests_required":["tests/new.test.js"],"tests_hashes":{"tests/new.test.js":"$PIN11"}}
+EOF
+assert_completes "matching hash does not over-block" "$(make_stop_input "$RG11")"
+rm -rf "$RG11"
+
 # ── A1 (Option C audit, t-2218): per-criterion audit jsonl + registered_as_red ─
 echo "Test A1 (audit): goal-completion emits per-criterion audit jsonl + registered_as_red"
 read -r RA1 BR_A1 <<< "$(make_goal_repo)"
