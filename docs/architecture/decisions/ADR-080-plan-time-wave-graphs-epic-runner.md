@@ -66,6 +66,9 @@ gains a **WAVES step** between DEPS and PROPOSE:
    mechanism and is **out of scope** in this slice (two instances would converge on
    the same "first ready" wave — challenge finding 7); the per-task atomic pull merely
    makes it safe, not useful. Design a wave-claim story before ever recommending it.
+   **The WAVES step validates its own output:** the emitted gate chain is checked for
+   cycles at emission time (cheap DFS) — the runner's PREFLIGHT cycle STOP (§3.1) is
+   the last line of defense, not the first (round-2 challenge).
 3. **Contract seeded from the milestone's definition of done** (prose; §5 keeps
    contracts human-graded).
 4. The proposed wave graph is shown in PROPOSE alongside the task tree — **the human
@@ -174,9 +177,14 @@ edge 3).
   branch fails loudly at dispatch; (b) the reclaim note travels to the merge valve,
   where the human sees the task was reclaimed before accepting either result. These
   are named contracts of the design, not accidents.
-- **Second reclaim of the same task → dead-letter:** tag `parked` (ADR-078) +
-  `dead-letter` — which lands it in the standing triage wave (§6) and out of every
-  eligibility filter (ADR-079 already excludes parked).
+- **Reclaims are counted in schema, not inferred:** new nullable task field
+  `reclaim_count` (int), incremented by the reclaimer in the same write as the reset,
+  removed on task completion. It must survive lease clearing — which is why it is not
+  inside `lease` (round-2 challenge BLOCKER: an uncounted "second reclaim" rule would
+  force schema invention mid-implementation).
+- **Second reclaim of the same task (`reclaim_count ≥ 2`) → dead-letter:** tag
+  `parked` (ADR-078) + `dead-letter` — which lands it in the standing triage wave
+  (§6) and out of every eligibility filter (ADR-079 already excludes parked).
 - **Open question, named (not silently deferred): who reclaims the reclaimer?** The
   reclaimer/watchdog pair is currently a SPOF with no meta-answer beyond "the human
   notices the digest went quiet." Same deferred-item status as §7's auto-advance
@@ -206,9 +214,11 @@ Brainstorm items (a)–(h) resolved as arrangements, no new mechanism:
   selector `tag:dead-letter`, the triage wave). A usage pattern; zero code.
 - **(c) shadow drain** — `wave pull --dry-run`: report what would be pulled, write
   nothing. Small CLI arm; the rehearsal-beat primitive (law 6).
-- **(g) dead-letter wave** — standing triage wave over `tag:dead-letter ∧ parked`,
-  fed by the watchdog's second-reclaim path (§5); its closer pump is a human triage
-  session (cockpit), honoring law 2.
+- **(g) dead-letter wave** — standing triage wave, selector `tag:dead-letter` (the
+  selector grammar has no AND; this is subset-equivalent because the reclaimer always
+  applies `parked` + `dead-letter` together — do not go looking for compound-selector
+  support, it was never built). Fed by the second-reclaim path (§5); its closer pump
+  is a human triage session (cockpit), honoring law 2.
 - **(h) telemetry** — per-beat records are the loops-library `records:` schema
   (loop-first's scope); wave-level counts are computed from tasks.json by `wave
   board`, no new store. t-2782 keeps the wip-default question.
@@ -285,4 +295,17 @@ named accepted scope); "parallel waves" overpromised under a single runner insta
 (scoped to order-free, multi-instance deferred); unbounded batch approve (capped at
 10 per confirmation). MINOR: gate-cycle detection made mandatory in PREFLIGHT; both
 MODEL-001 stale lines flagged, not one; reclaimer SPOF named as an open question.
-Round 2 runs against the implementation task tree before it is written to the backlog.
+**Round 2 (2026-08-13, second isolated challenger, against the implementation tree):**
+verdict PROCEED WITH CHANGES; amendments applied. BLOCKER: "second reclaim →
+dead-letter" had no counting mechanism in schema — `reclaim_count` named (§5).
+MAJOR: doc-sync task wired behind the watchdog/reclaimer task so MODEL-001 never
+describes unbuilt machinery; `wave board` reclassified as real Rust needing
+tests-first; explicit "zero direct selector string parsing — resolve_wave_selector
+exclusively" AC added to every new selector consumer (the finding-1 bug class,
+prevented by AC rather than rediscovered). MINOR: lease task sequenced after the
+selector task (same critical-section functions); plan-time gate-cycle DFS added to
+§2; fixture-epic dry-run made an explicit deliverable of the epic-drain entry;
+standing dead-letter wave creation tracked as an operational AC, not left to memory.
+Notes: wave-4's `parent:` overlap with shipped wave-3 tasks verified harmless in code
+(completed tasks match neither eligibility nor live-count) — overlap accepted, no
+sub-milestone; §6(g) selector prose corrected (no AND grammar exists).
