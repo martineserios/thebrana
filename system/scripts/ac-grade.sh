@@ -6,11 +6,19 @@
 # (`ac approve`, `stacked-verdict`) and the Stop-hook (goal-completion.sh, via
 # t-2870) share ONE execution path instead of two independently-drifting ones.
 #
-# Usage:   ac-grade.sh <task-id> [--json] [--cwd <path>]
+# Usage:   ac-grade.sh <task-id> [--json] [--cwd <path>] [--criteria-json <array>]
 # Output:  JSON {"task_id":..., "graded":[{"criterion":..., "verdict":"pass|fail|unknown"}],
 #                "counts":{"pass":N,"fail":N,"unknown":N}}
 #          (--json is accepted for interface symmetry with future non-JSON output;
 #          JSON is the only implemented mode today — every caller wants it)
+#
+# --criteria-json <array>: grade against this array instead of fetching the
+#   task's live acceptance_criteria field. The Stop-hook (goal-completion.sh)
+#   MUST pass this — it grades against active-goal.json's frozen snapshot, not
+#   whatever tasks.json currently holds (a task's criteria can be edited
+#   mid-build; re-deriving live here would silently defeat that contract).
+#   Standalone callers (stacked-verdict, ac approve) omit this to get the live
+#   value, which is exactly what they want.
 #
 # Never mutates any task field (gauge law) — reads acceptance_criteria once via
 # `brana backlog get`, never calls `brana backlog set`.
@@ -38,14 +46,16 @@ err() { echo "ac-grade.sh: $*" >&2; exit 1; }
 [ ! -x "${BRANA:-}" ] && err "brana CLI not found (checked PLUGIN_DATA, dev target, PLUGIN_ROOT, PATH)"
 
 TASK_ID="${1:-}"
-[ -z "$TASK_ID" ] && err "usage: ac-grade.sh <task-id> [--json] [--cwd <path>]"
+[ -z "$TASK_ID" ] && err "usage: ac-grade.sh <task-id> [--json] [--cwd <path>] [--criteria-json <array>]"
 shift || true
 
 CWD_OVERRIDE=""
+CRITERIA_OVERRIDE=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --json) shift ;;   # only mode implemented — accepted, no-op
         --cwd) CWD_OVERRIDE="${2:-}"; shift 2 ;;
+        --criteria-json) CRITERIA_OVERRIDE="${2:-}"; shift 2 ;;
         *) err "unknown argument: $1" ;;
     esac
 done
@@ -73,8 +83,18 @@ fi
 [ -d "$WORK_DIR" ] || err "resolved WORK_DIR does not exist: $WORK_DIR"
 
 # ── Load acceptance_criteria ───────────────────────────────────────────────
-CRITERIA_JSON=$("$BRANA" backlog get "$TASK_ID" --field acceptance_criteria 2>/dev/null) || CRITERIA_JSON="null"
-CRITERIA_JSON=$(jq -c '. // []' <<<"$CRITERIA_JSON" 2>/dev/null) || CRITERIA_JSON="[]"
+# --criteria-json (ADR-081, t-2870 verification finding): the Stop-hook caller
+# grades against active-goal.json's FROZEN snapshot (captured once at /goal
+# start), never against the live tasks.json value — a task's acceptance_criteria
+# can be edited mid-build, and re-deriving live here would silently swap what
+# the grader-immutability contract actually grades. When given, this flag skips
+# the backlog-get fetch entirely (no live read at all, not just an override).
+if [ -n "$CRITERIA_OVERRIDE" ]; then
+    CRITERIA_JSON=$(jq -c '. // []' <<<"$CRITERIA_OVERRIDE" 2>/dev/null) || err "--criteria-json is not valid JSON"
+else
+    CRITERIA_JSON=$("$BRANA" backlog get "$TASK_ID" --field acceptance_criteria 2>/dev/null) || CRITERIA_JSON="null"
+    CRITERIA_JSON=$(jq -c '. // []' <<<"$CRITERIA_JSON" 2>/dev/null) || CRITERIA_JSON="[]"
+fi
 CRITERIA_COUNT=$(jq 'length' <<<"$CRITERIA_JSON" 2>/dev/null) || CRITERIA_COUNT=0
 
 PASSED=0
