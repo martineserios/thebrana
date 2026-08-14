@@ -70,9 +70,22 @@ budget across epics.
 /loop Epic-drain pump for <epic-slug> (supervised, ADR-080 §3). Each beat:
 
 (1) PREFLIGHT (cheap, no-op fast): fresh-read tasks.json + `brana backlog
-    wave list`. For each wave, resolve its selector root's epic-ancestor
-    (skip tag: waves — out of scope, see Scope above); keep the ones whose
-    ancestor == <epic-slug>.
+    wave list`. For each wave, resolve its selector root's epic-ancestor via
+    `resolve_epic_ancestor` (skip tag: waves — out of scope, see Scope
+    above); keep the ones whose ancestor == <epic-slug>.
+    - **Check the exit status, not just the returned string** (the helper's
+      own documented contract, `system/skills/_shared/epic-ancestor-walk.md`
+      — three recurrences of this exact gap already found in the ADR-080
+      family, t-2843 and this entry's own first draft included). A non-zero
+      exit means the lookup itself broke, not that the wave has no epic —
+      **do not silently exclude that wave from the kept set.** Silently
+      dropping a wave here corrupts both downstream checks: it can hide a
+      wave that was actually part of a cycle (false negative on cycle-STOP,
+      step below) or make an epic look fully shipped when it isn't (false
+      "epic drained. STOP" at step 2). On lookup failure: STOP the loop this
+      beat, emit a beat record with state:"stopped", route "epic-ancestor
+      lookup failed for `<wave-id>`'s selector root — not safe to compute
+      this epic's wave graph" to the **studio agenda**. Never guess.
     - **Cycle detection is mandatory and runs FIRST, structurally.** Build
       the directed graph wave → its `gate` target over the kept waves only
       (edges to a wave outside the kept set, e.g. a `tag:` gate, are not
@@ -194,3 +207,13 @@ fixture beat doesn't exercise live-drift failure modes (contract-met on a
 real wave, a real gate ship unlocking a real dependent, a real escalation),
 so real production beats must dominate (ADR-080 valve-order amendment,
 2026-08-14).
+
+**Provenance (this entry's own bar, t-2845):** fixture epic t-2881
+(`epic-drain-fixture`, milestones t-2882/t-2883 for the happy-path chain,
+t-2885/t-2886 for the deliberate 2-cycle; waves wave-7..wave-10; archived
+after use — waves have no delete verb, left inert with `contract` marked
+FIXTURE). Beat records for the rehearsal and the two subsequent real beats
+against the live `backlog-drain` epic's `wave-4` are logged on t-2845's
+`notes` field (session-state, committed on `dev` per this project's
+convention — not on this doc's own branch, so they won't appear in a diff
+of this file).
