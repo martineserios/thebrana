@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T23:45:31Z",
+  "generated": "2026-08-14T01:32:04Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2847,6 +2847,11 @@
         "system/state/decisions/archive/"
       ]
     },
+    "docs/guide/workflows/drain-loop.md": {
+      "title": "Wave Drain Loop",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/workflows/fix.md": {
       "title": "Fixing Bugs",
       "type": "Roadmap",
@@ -3231,6 +3236,13 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/ac-lint.sh"
+      ]
+    },
+    "docs/ideas/loops-library.md": {
+      "title": "Loops Library",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/"
       ]
     },
     "docs/ideas/mcp-lock-timeout.md": {
@@ -7831,6 +7843,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/loop-first-redesign.md",
+      "to": "docs/ideas/loops-library.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/reflections/08-diagnosis.md",
       "to": "docs/reflections/29-venture-management-reflection.md",
       "type": "informs",
@@ -10827,6 +10845,12 @@
     {
       "from": "docs/README.md",
       "to": "guide/workflows/decision-log.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/workflows/drain-loop.md",
       "type": "references",
       "computed": false
     },
@@ -14251,6 +14275,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/backlog-v3-schema.md",
+      "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/close-oriented-modes.md",
       "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
       "type": "references",
@@ -14415,6 +14445,18 @@
     {
       "from": "docs/guide/workflows/build.md",
       "to": "docs/conventions/ac-criteria.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/drain-loop.md",
+      "to": "docs/ideas/loop-first-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/drain-loop.md",
+      "to": "docs/ideas/loops-library.md",
       "type": "references",
       "computed": false
     },
@@ -14661,6 +14703,30 @@
     {
       "from": "docs/ideas/layered-input-processing.md",
       "to": "docs/ideas/knowledge-insights-digest.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-first-redesign.md",
+      "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-first-redesign.md",
+      "to": "loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-first-redesign.md",
+      "to": "wave-pipeline-design.html",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loops-library.md",
+      "to": "loop-first-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -16100,9 +16166,9 @@
     }
   ],
   "stats": {
-    "nodes": 560,
-    "edges": 2040,
-    "typed_edges": 685,
+    "nodes": 562,
+    "edges": 2049,
+    "typed_edges": 686,
     "orphans": 148
   }
 }
