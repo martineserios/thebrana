@@ -257,6 +257,12 @@ The idea pool — where creative/studio work lands, and what the backlog drains 
 | [token-baseline.md](reviews/token-baseline.md) | Token cost baseline measurements |
 | [weekly-2026-04-17.md](reviews/weekly-2026-04-17.md) | Weekly review 2026-04-17 |
 
+## Ops data (docs/ops/)
+
+| File | Contents |
+|------|----------|
+| escaped-defects.jsonl | Append-only escaped-defect log (ADR-082 §7) — defects the single challenger passed; read by the sizing valve's signal 5 (`judge_area_weight`, 30-day window). Seeded 2026-08-14 with the t-2887 probe's 4 verified misses |
+
 ## Research and spec docs (docs/ root)
 
 Design specifications and research from the original enter repo, now part of thebrana.
