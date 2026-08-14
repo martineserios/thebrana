@@ -35,11 +35,19 @@ Interactive phase planning. Builds the hierarchy conversationally.
    emit a wave graph from the plan structure using the shared primitives in
    [`../../_shared/wave-graph-emit.md`](../../_shared/wave-graph-emit.md):
    - **One wave per milestone**, selector `parent:<ms-id>` — no tags written.
-   - **Gate chain** from the dependency edges gathered in step 7: if any task
-     under milestone B is `blocked_by` a task under milestone A, wave-B's gate is
-     `wave_name_for_milestone(epic_slug, A's milestone-slug)`. Independent
-     milestones share a gate or have none.
+   - **Gate chain (cross-milestone only)** from the dependency edges gathered
+     in step 7: if any task under milestone B is `blocked_by` a task under a
+     *different* milestone A, wave-B's gate is
+     `wave_name_for_milestone(epic_slug, A's milestone-slug)`. A `blocked_by`
+     edge between two tasks in the *same* milestone is not a gate edge — it
+     stays inside that milestone's wave. Independent milestones share a gate
+     or have none.
    - **Contract** seeded from the milestone's stated definition-of-done (prose).
+     Quote it as a single shell argument when interpolating into a `wave add`
+     call (step 14) — free prose can contain `"`, backticks, or `$(...)`, and
+     an unescaped double-quoted interpolation can break argument parsing or
+     execute a substitution. Pass it as one already-quoted string, never build
+     the command by concatenating unescaped prose into a larger quoted string.
    - **Wave naming**: `wave_name_for_milestone(epic_slug, ms_slug)` →
      `<epic-slug>-<ms-slug>`.
    - **Cycle check before WRITE**: pipe the full `id<TAB>gate` set through

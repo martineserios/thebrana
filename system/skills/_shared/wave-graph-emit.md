@@ -66,13 +66,15 @@ wave_gate_chain_has_cycle() {
 ## Usage at each call site
 
 1. Collect the milestone's children (or the emitted milestones in a fresh
-   `/brana:build decompose` tree) and compute each wave's `gate`: if any task
-   under milestone B is `blocked_by` a task under milestone A, wave-B's gate is
-   `wave_name_for_milestone(epic_slug, A's slug)`; independent milestones get no
-   gate. Multiple upstream milestones collapse to one gate (a wave gates on at
-   most one other wave) — pick the milestone whose tasks are referenced by the
-   most cross-milestone `blocked_by` edges, and name the tie-break choice in the
-   PROPOSE display so the human can override it.
+   `/brana:build decompose` tree) and compute each wave's `gate` — **cross-milestone
+   edges only**: if any task under milestone B is `blocked_by` a task under a
+   *different* milestone A, wave-B's gate is `wave_name_for_milestone(epic_slug,
+   A's slug)`; a `blocked_by` edge between two tasks in the same milestone is
+   not a gate edge. Independent milestones get no gate. Multiple upstream
+   milestones collapse to one gate (a wave gates on at most one other wave) —
+   pick the milestone whose tasks are referenced by the most cross-milestone
+   `blocked_by` edges, and name the tie-break choice in the PROPOSE display so
+   the human can override it.
 2. Before displaying the graph in PROPOSE, feed the full `id<TAB>gate` set through
    `wave_gate_chain_has_cycle`. A cycle is a hard stop — surface the diagnostic
    and require the milestone dependency edges to be fixed before proceeding; do
@@ -85,3 +87,8 @@ wave_gate_chain_has_cycle() {
    brana backlog wave add --name "<wave-name>" --selector "parent:<ms-id>" \
      --contract "<milestone definition-of-done>" [--gate <upstream-wave-name>]
    ```
+   **Quoting note:** the contract is free prose (a milestone's stated
+   definition-of-done) and can contain `"`, backticks, or `$(...)`. Pass it as
+   one already-quoted shell argument — never build the command by
+   concatenating unescaped prose into a larger quoted string, which can break
+   argument parsing or execute a substitution.

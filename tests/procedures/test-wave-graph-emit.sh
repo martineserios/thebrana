@@ -132,6 +132,58 @@ for f in "$PLAN_MD" "$DECOMPOSE_MODE_MD"; do
     fi
 done
 
+echo "=== decompose-mode.md branches on resolve_epic_ancestor's exit status (Challenger finding, t-2843 iteration 1) ==="
+# THE BUG. decompose-mode.md's first draft collapsed resolve_epic_ancestor's
+# 3-way exit contract (slug+exit0 found / empty+exit0 real negative / exit1
+# lookup FAILED — epic-ancestor-walk.md lines 28-31) into a bare empty-string
+# check. A transient lookup failure would be indistinguishable from "no epic
+# here" and silently skip the WAVES step for a genuinely epic-scoped
+# decompose — the t-2263 failure class ("a dropped slug is how brana-v3-redesign
+# went missing from a live close"). Every other caller of this shared
+# primitive (start.md, session-state.md) branches on exit status; this one
+# must too.
+TOTAL=$((TOTAL + 1))
+if grep -qi 'lookup failed' "$DECOMPOSE_MODE_MD"; then
+    echo "  PASS: decompose-mode.md surfaces a lookup-failure diagnostic (does not conflate failure with no-epic)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: decompose-mode.md has no lookup-failure diagnostic — exit-status contract not honored"
+    FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if grep -qi 'non-zero exit' "$DECOMPOSE_MODE_MD"; then
+    echo "  PASS: decompose-mode.md documents the non-zero-exit branch explicitly"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: decompose-mode.md does not document a non-zero-exit branch"
+    FAIL=$((FAIL + 1))
+fi
+
+echo "=== gate chain is documented as cross-milestone only (Challenger finding, t-2843 iteration 1) ==="
+for f in "$PLAN_MD" "$DECOMPOSE_MODE_MD"; do
+    TOTAL=$((TOTAL + 1))
+    if grep -qi 'cross-milestone' "$f"; then
+        echo "  PASS: $(basename "$f") states the gate chain is cross-milestone only"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: $(basename "$f") does not clarify cross-milestone-only, same-milestone self-gate risk undocumented"
+        FAIL=$((FAIL + 1))
+    fi
+done
+
+echo "=== contract interpolation carries quoting guidance (Challenger finding, t-2843 iteration 1) ==="
+EMIT_QUOTING_TARGETS=("$PLAN_MD" "$DECOMPOSE_MODE_MD" "$EMIT_MD")
+for f in "${EMIT_QUOTING_TARGETS[@]}"; do
+    TOTAL=$((TOTAL + 1))
+    if grep -qi 'quot' "$f"; then
+        echo "  PASS: $(basename "$f") documents quoting for the --contract interpolation"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: $(basename "$f") is missing quoting guidance for free-prose --contract interpolation"
+        FAIL=$((FAIL + 1))
+    fi
+done
+
 echo ""
 echo "=== Summary ==="
 echo "Total: $TOTAL | Passed: $PASS | Failed: $FAIL"
