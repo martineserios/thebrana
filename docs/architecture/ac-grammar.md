@@ -111,3 +111,12 @@ When a heuristic is added/changed in `goal-completion.sh`:
 3. The lint in `/brana:backlog plan` reads this file's heuristic list — no separate copy.
 
 This is the contract `tests/procedures/` should assert against so the three never diverge again.
+
+## Changelog
+
+- 2026-08-14 (t-2856): v2 — added the demand dimension to authoring rules (Pocock clarity ×
+  demand), heuristic #10 `demoable: <command>`, the machine-checkable-share gauge, and a
+  shared `allowlisted_command()` guard for heuristics 7 + 10 (rejects shell metacharacters
+  before eval — closes a prefix-match injection bypass found by challenger review). Producer
+  instructions (backlog plan step 11b, ac-propose generator) now require grammar-matching
+  shapes first, freeform prose only as fallback.
