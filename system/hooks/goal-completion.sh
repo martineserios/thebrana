@@ -162,10 +162,12 @@ for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
     fi
 
     # ── Heuristic 7: "{command}" passes ──────────────────────────────────────
+    # Allowlist shared with heuristic 10 (demoable) — one definition, no drift.
+    CMD_ALLOWLIST_RE='^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'
     if echo "$criterion" | grep -qiE '^"[^"]+" passes$'; then
         cmd=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
         # Allowlist: only execute known-safe test commands
-        if echo "$cmd" | grep -qE '^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'; then
+        if echo "$cmd" | grep -qE "$CMD_ALLOWLIST_RE"; then
             if (cd "$WORK_DIR" && eval "$cmd" >/dev/null 2>&1); then
                 PASSED=$((PASSED + 1))
             else
@@ -212,6 +214,28 @@ for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
        && ! echo "$criterion" | grep -qiE 'check [0-9]'; then
         if [ -f "$WORK_DIR/validate.sh" ]; then
             if (cd "$WORK_DIR" && ./validate.sh >/dev/null 2>&1); then
+                PASSED=$((PASSED + 1))
+            else
+                FAILED=$((FAILED + 1))
+                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
+            fi
+        else
+            UNKNOWN=$((UNKNOWN + 1))
+            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
+        fi
+        continue
+    fi
+
+    # ── Heuristic 10: demoable: <command> ────────────────────────────────────
+    # Pocock demoability (ac-grammar.md #10, t-2856): the criterion names a command
+    # a human can run to watch the feature work. Unattended check: run it iff it
+    # matches heuristic 7's allowlist (CMD_ALLOWLIST_RE, shared definition above);
+    # a non-allowlisted command is NEVER executed → UNKNOWN (demo pending a human
+    # sitting — routed to manual sign-off like any UNKNOWN).
+    if echo "$criterion" | grep -qiE '^demoable: .+'; then
+        cmd=$(echo "$criterion" | sed 's/^[Dd]emoable: *//')
+        if echo "$cmd" | grep -qE "$CMD_ALLOWLIST_RE"; then
+            if (cd "$WORK_DIR" && eval "$cmd" >/dev/null 2>&1); then
                 PASSED=$((PASSED + 1))
             else
                 FAILED=$((FAILED + 1))
