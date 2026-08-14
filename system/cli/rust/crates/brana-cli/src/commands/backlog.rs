@@ -1123,10 +1123,64 @@ pub fn cmd_wave_approve(
         return Ok(());
     }
 
+    if dry_run {
+        for batch in &plan.batches {
+            println!("Batch of {} task(s) with proposed criteria:", batch.len());
+            for (id, criteria) in batch {
+                println!("  {id}:");
+                for c in criteria {
+                    println!("    - {c}");
+                }
+            }
+            println!("  (dry-run: would approve {} tasks)\n", batch.len());
+        }
+        let would: usize = plan.batches.iter().map(|b| b.len()).sum();
+        println!(
+            "dry-run: would approve {would} tasks total across {} batch(es)",
+            plan.batches.len()
+        );
+        return Ok(());
+    }
+
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     let mut approved_total = 0usize;
 
+    if yes {
+        // Challenger RECONSIDER (severity 4): --yes must not let one
+        // invocation blow through every batch — that collapses ADR-080 §4's
+        // "one confirmation per batch of at most 10" into a single global
+        // bypass, the only path a non-interactive caller has into this
+        // command. Confirm exactly the FIRST batch; a caller that needs the
+        // rest re-invokes — the re-invocation IS the next explicit
+        // confirmation, same per-call boundary as MCP's confirm_ids.
+        let batch = &plan.batches[0];
+        println!("Batch of {} task(s) with proposed criteria:", batch.len());
+        for (id, criteria) in batch {
+            println!("  {id}:");
+            for c in criteria {
+                println!("    - {c}");
+            }
+        }
+        for (id, _) in batch {
+            tasks::perform_ac_approve(&tf, id).map_err(|e| anyhow::anyhow!("{e}"))?;
+            approved_total += 1;
+        }
+        println!("  ✓ approved {approved_total} tasks\n");
+        if plan.batches.len() > 1 {
+            let remaining: usize = plan.batches[1..].iter().map(|b| b.len()).sum();
+            println!(
+                "{remaining} more task(s) across {} more batch(es) — re-run to continue (one batch per --yes call, by design).",
+                plan.batches.len() - 1
+            );
+        }
+        println!("Done. {approved_total} tasks approved.");
+        return Ok(());
+    }
+
+    // Interactive path: a human physically present sees and confirms EACH
+    // batch in turn within one sitting — the live y/n per batch IS the
+    // explicit confirmation ADR-080 §4 requires. Unrestricted by design.
     for batch in &plan.batches {
         println!("Batch of {} task(s) with proposed criteria:", batch.len());
         for (id, criteria) in batch {
@@ -1135,24 +1189,11 @@ pub fn cmd_wave_approve(
                 println!("    - {c}");
             }
         }
-        println!();
-
-        if dry_run {
-            println!("  (dry-run: would approve {} tasks)\n", batch.len());
-            continue;
-        }
-
-        let answer = if yes {
-            "y".to_string()
-        } else {
-            print!("  Approve these {} tasks? [y/n/q]: ", batch.len());
-            stdout.flush()?;
-            let mut line = String::new();
-            stdin.lock().read_line(&mut line)?;
-            line.trim().to_lowercase()
-        };
-
-        match answer.as_str() {
+        print!("  Approve these {} tasks? [y/n/q]: ", batch.len());
+        stdout.flush()?;
+        let mut line = String::new();
+        stdin.lock().read_line(&mut line)?;
+        match line.trim().to_lowercase().as_str() {
             "y" | "yes" => {
                 for (id, _) in batch {
                     tasks::perform_ac_approve(&tf, id).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -1167,16 +1208,7 @@ pub fn cmd_wave_approve(
             _ => println!("  Skipped.\n"),
         }
     }
-
-    if dry_run {
-        let would: usize = plan.batches.iter().map(|b| b.len()).sum();
-        println!(
-            "dry-run: would approve {would} tasks total across {} batch(es)",
-            plan.batches.len()
-        );
-    } else {
-        println!("Done. {approved_total} tasks approved.");
-    }
+    println!("Done. {approved_total} tasks approved.");
     Ok(())
 }
 

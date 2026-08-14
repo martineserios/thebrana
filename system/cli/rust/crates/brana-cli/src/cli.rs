@@ -1185,8 +1185,11 @@ pub enum WaveCmd {
     /// Denied to the drain loop runner — same trust boundary as `ac approve`.
     Approve {
         wave_id: String,
-        /// Skip interactive confirmation (scripting/automation only — a
-        /// human still decided to pass this flag)
+        /// Skip interactive confirmation for ONE batch (at most 10 tasks)
+        /// and stop — re-run to confirm the next batch. Never approves more
+        /// than one batch per invocation, even with multiple batches
+        /// pending (the rubber-stamp guard holds for non-interactive
+        /// callers too, ADR-080 §4).
         #[arg(long)]
         yes: bool,
         /// Report what would be approved, write nothing
