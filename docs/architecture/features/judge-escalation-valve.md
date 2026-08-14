@@ -157,10 +157,10 @@ for free — no runner edits).
 
 ## Documentation Plan
 
-- [ ] **Tech doc** — this file (design rationale, extending the table).
-- [ ] **User guide** — `docs/guide/features/judge-escalation-valve.md`: what arms,
+- [x] **Tech doc** — this file (design rationale, extending the table).
+- [x] **User guide** — `docs/guide/features/judge-escalation-valve.md`: what arms,
   what the beat report lines mean, how to read SPLIT verdicts and the log.
-- [ ] **Existing docs to update** — challenger-gate.md (in-place), loops-library.md
+- [x] **Existing docs to update** — challenger-gate.md (in-place), loops-library.md
   (reference), CALIBRATION.md pointer if verdict classes grow `SPLIT`.
 
 ## Challenger findings

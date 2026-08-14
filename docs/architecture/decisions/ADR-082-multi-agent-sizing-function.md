@@ -1,6 +1,6 @@
 # ADR-082: Graded Multi-Agent Sizing — Judge Panels and Build-Team Role Separation (extends ADR-080)
 
-- Status: proposed
+- Status: accepted (implemented by t-2895, 2026-08-14)
 - Date: 2026-08-14
 - Task: t-2894 (epic t-2811 backlog-drain)
 - Extends: ADR-080 (epic runner JUDGE beats), ADR-079 (drain-loop contract)
