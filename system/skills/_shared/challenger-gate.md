@@ -77,7 +77,16 @@ For each finding include: severity, ac_violated (if any), description, file, spe
 
 From [CALIBRATION.md](../../agents/CALIBRATION.md):
 - Any finding score ≥ 4 → verdict **RECONSIDER** → **CLOSE blocked**
-- All findings score ≤ 3 → verdict **PROCEED** or **PROCEED WITH CHANGES** → CLOSE continues (surface findings as notes)
+- All findings score ≤ 3 → verdict **PROCEED** or **PROCEED WITH CHANGES** → CLOSE continues
+
+**Always log** (t-2857 — this line is machine-read, not just a human record; matches the
+`Evaluator:` convention in [verify-gates.md](../build/phases/verify-gates.md)):
+```bash
+brana backlog set {task_id} notes --append "Challenger: {verdict} ({date}), {N} finding(s), max severity {score}"
+```
+`{verdict}` is exactly `PROCEED`, `PROCEED WITH CHANGES`, or `RECONSIDER` — no other
+wording. Findings themselves (the numbered list) may still be surfaced as additional
+notes text alongside this line; the verdict line's exact wording is the contract.
 
 ## Repair loop (Reflexion ASSIMILATE step, LoopTrap P7 defense)
 

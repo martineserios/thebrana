@@ -579,6 +579,16 @@ pub fn cmd_ac_approve(task_id: &str, file: Option<PathBuf>) -> anyhow::Result<()
     };
     match tasks::perform_ac_approve(&tf, task_id) {
         Ok(out) => {
+            // t-2872 (ADR-081): print the stacked-verdict bundle to stderr,
+            // best-effort, AFTER promotion succeeds — informational only,
+            // never gates the approval (gauge law). Stdout stays exactly the
+            // JSON below, byte-identical to before this change, so scripted/
+            // MCP consumers parsing stdout are unaffected either way (the
+            // MCP path calls perform_ac_approve directly and never touches
+            // this CLI wrapper's stdout at all).
+            if let Some(line) = crate::commands::stacked_verdict::render_bundle_line(task_id, Some(tf.clone())) {
+                eprintln!("{line}");
+            }
             println!("{}", serde_json::json!({
                 "ok": true,
                 "id": task_id,
@@ -2707,6 +2717,23 @@ mod tests {
         assert_eq!(task["ac_state"], "approved");
         assert_eq!(task["acceptance_criteria"], serde_json::json!(["done when green"]));
         assert!(task.get("proposed_acceptance_criteria").is_none());
+    }
+
+    #[test]
+    fn cmd_ac_approve_promotes_even_when_bundle_rendering_fails(
+    ) {
+        // t-2872 (ADR-081, gauge law): the fixture tasks.json lives in a bare
+        // tempdir — no git repo, no ac-grade.sh, no reachable `brana receipt
+        // validate` — so render_bundle_line's every subprocess call fails
+        // and returns None. Promotion must succeed anyway; the bundle is
+        // informational only and must never gate the approval.
+        let f = tasks_file_with(
+            r#"[{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["some vague prose criterion"]}]"#,
+        );
+        cmd_ac_approve("t-1", Some(f.path().to_path_buf())).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["ac_state"], "approved", "promotion must succeed even when the bundle can't be rendered");
+        assert_eq!(task["acceptance_criteria"], serde_json::json!(["some vague prose criterion"]));
     }
 
     #[test]

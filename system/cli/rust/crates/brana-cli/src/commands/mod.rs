@@ -22,3 +22,4 @@ pub mod remind;
 pub mod run;
 pub mod session;
 pub mod skills;
+pub mod stacked_verdict;

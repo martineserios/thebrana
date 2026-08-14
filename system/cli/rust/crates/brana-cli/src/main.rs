@@ -67,6 +67,7 @@ fn main() {
             BacklogCmd::Ac { task_id, action, file } => match action {
                 cli::AcAction::Approve => run_or_exit(commands::backlog::cmd_ac_approve(&task_id, file)),
             },
+            BacklogCmd::StackedVerdict { task_id, json, file } => run_or_exit(commands::stacked_verdict::cmd_stacked_verdict(&task_id, json, file)),
             BacklogCmd::Set { task_id, field, value, append, file } => run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file)),
             BacklogCmd::SetActive { slug } => run_or_exit(commands::backlog::cmd_set_active(&slug)),
             BacklogCmd::Add { json, subject, kind, task_type, tags, description, effort, parent, priority, context, file, project, epic, work_type, acceptance_criteria } =>

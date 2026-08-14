@@ -24,16 +24,13 @@ criterion="${criterion# }"
 prose() { echo "prose"; exit 1; }
 checkable() { echo "checkable"; exit 0; }
 
-# Shared H7/H10 allowlist + metachar guard — one definition (mirrors the fix in
-# goal-completion.sh's allowlisted_command(), t-2856 challenger finding 1+2:
-# the two inline copies of this regex are exactly the "one gets updated, one
-# doesn't" pattern that produced the H9 drift bug this same change fixed).
-CMD_ALLOWLIST_RE='^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'
-allowlisted_command() {
-    local cmd="$1"
-    grep -qE '[;&|`$(){}<>]' <<<"$cmd" && return 1
-    grep -qE "$CMD_ALLOWLIST_RE" <<<"$cmd"
-}
+# Shared H7/H10 allowlist + metachar guard — single owner is lib/cmd-allowlist.sh
+# (ADR-081 D1, t-2868). Do not redefine CMD_ALLOWLIST_RE/allowlisted_command()
+# here — that's the exact two-copies drift that let an injection bypass ship
+# (t-2856 challenger finding).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/cmd-allowlist.sh
+source "${SCRIPT_DIR}/lib/cmd-allowlist.sh"
 
 [ -z "$criterion" ] && prose
 
