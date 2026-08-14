@@ -299,9 +299,13 @@ challenger**, at ~2.5–3.5× cost. Decision rule met decisively.
 Engineering levers derived from the probe's own data (the design input for the JUDGE
 wiring task):
 
-1. **Diversity to VERIFY, not FIND** — Gemini find-lane measured near-zero verified
-   signal; cross-model belongs at verification where a false CONFIRM is the dangerous
-   failure. agy lane needs a health check (one wrapper silently fell back to Claude).
+1. **Claude-only panels (user constraint, 2026-08-14)** — agy/Gemini runs on a
+   free-tier account and always fails (explains the probe's silent Claude fallback);
+   no cross-vendor lane anywhere. Correlated-error mitigation comes from
+   within-subscription diversity instead, all probe-validated: role/brief diversity,
+   stance asymmetry (adversarial finder vs default-refute verifier), context diversity
+   (blind diff-only finders vs full-repo verifiers), model-tier diversity
+   (haiku/sonnet/opus/fable), and tool diversity.
 2. **Narrow-brief library + router by diff type** — 3/4 misses from the two narrow
    Claude briefs; misses cluster in second-variant/parallel-path blindness. Briefs:
    second-variant auditor, concurrency/lock-discipline, read-only-claims, denied-verb
@@ -319,11 +323,24 @@ wiring task):
 7. **"Empty findings are respectable" + blinding are load-bearing** — 3 defended clean
    verdicts on the strongest diff, zero invented findings there.
 
+## Round 6 (2026-08-14, post-close) — build-team role separation joins the ADR scope
+
+User reopened the execution side with a shape DISTINCT from the rejected ACT-panel:
+an orchestrated **team with different jobs** during building — builder + independent
+tester/validator + iteration. That's Anthropic's evaluator-optimizer pattern, and the
+build framework already has the roles serialized (TDD → builder → evaluator →
+challenger); the open design questions are **independence** (a blind test-author
+writing failing tests from AC alone — the sequential-handoff context-loss warning
+doesn't apply because the blindness is the feature) and **iteration timing** (in-loop
+fresh-context critic vs today's expensive at-CLOSE RECONSIDER cycles). Folded into
+t-2894's ADR as part of the same graded sizing function. Pilot corpus pre-identified:
+t-2890/t-2891/t-2893.
+
 ## Next steps
 
-1. ~~t-2887: run the retrospective probe~~ **DONE — GO.** Remaining ANSWER scope:
-   file the 4 verified defects as fix tasks, specify the two S build tasks (with the
-   levers above as design constraints), escalation-valve ADR.
+1. ~~t-2887: run the retrospective probe~~ **DONE — GO.** Defects filed
+   (t-2890–t-2893, t-2175 note), ADR task t-2894 (now covering judge panels + build
+   teams, Claude-only), wiring tasks t-2895/t-2896 gated on it.
 2. Start escaped-defect logging at the merge valve immediately (no build dependency —
    can begin as a manual habit: any valve catch the challenger passed gets recorded).
 3. If go: two S drain-eligible build tasks — (a) JUDGE wiring (disagreement-surfacing

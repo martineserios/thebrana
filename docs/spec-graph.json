@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T16:33:19Z",
+  "generated": "2026-08-14T16:41:09Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1654,6 +1654,16 @@
         "system/scripts/pipeline-digest.sh"
       ]
     },
+    "docs/architecture/features/plan-time-wave-graph.md": {
+      "title": "Plan-time wave graph (t-2843)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/wave-graph-emit.md",
+        "system/skills/backlog/phases/plan.md",
+        "system/skills/build/phases/decompose-mode.md",
+        "system/skills/_shared/epic-ancestor-walk.md"
+      ]
+    },
     "docs/architecture/features/plugin-packaging.md": {
       "title": "Feature: Plugin Packaging — Distribute thebrana as CC Plugin",
       "type": "Roadmap",
@@ -1918,6 +1928,13 @@
       "impl_files": [
         "system/scripts/validate-remedies.sh",
         "system/scripts/migrate/"
+      ]
+    },
+    "docs/architecture/features/wave-board.md": {
+      "title": "Wave board (t-2844)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/wave-graph-emit.md"
       ]
     },
     "docs/architecture/features/wave-gate-enforcement.md": {
@@ -2807,6 +2824,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/plan-time-wave-graph.md": {
+      "title": "Plan-time wave graph",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/propagate-close-step.md": {
       "title": "PROPAGATE — propagation-debt audit at close",
       "type": "Roadmap",
@@ -2814,6 +2836,11 @@
     },
     "docs/guide/features/reminder-system.md": {
       "title": "Reminders — brana remind",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/guide/features/wave-board.md": {
+      "title": "Wave board",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3448,7 +3475,7 @@
       "impl_files": []
     },
     "docs/ideas/loop-task-multiagent.md": {
-      "title": "Task-level multi-agent orchestration for the wave-drain loop",
+      "title": "Multi-agent orchestration in the loop/wave pipeline",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -12257,6 +12284,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/plan-time-wave-graph.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/plan-time-wave-graph.md",
+      "to": "wave-gate-enforcement.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/propagate-close-step.md",
       "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
       "type": "references",
@@ -12355,6 +12394,24 @@
     {
       "from": "docs/architecture/features/validate-remedy-binding.md",
       "to": "docs/architecture/decisions/ADR-077-validate-remedy-registry.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-board.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-board.md",
+      "to": "plan-time-wave-graph.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/wave-board.md",
+      "to": "wave-gate-enforcement.md",
       "type": "references",
       "computed": false
     },
@@ -14537,6 +14594,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/plan-time-wave-graph.md",
+      "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/propagate-close-step.md",
       "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
       "type": "references",
@@ -16488,9 +16551,9 @@
     }
   ],
   "stats": {
-    "nodes": 574,
-    "edges": 2086,
+    "nodes": 578,
+    "edges": 2092,
     "typed_edges": 686,
-    "orphans": 159
+    "orphans": 160
   }
 }
