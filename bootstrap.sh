@@ -377,6 +377,20 @@ if [ -d "$SYSTEM_DIR/scripts" ]; then
         chmod +x "$TARGET_DIR/scripts/"*.sh 2>/dev/null || true
     fi
 fi
+# scripts/lib/ (t-2879, Gate 3 ship-blocking finding): sync_dir's copy loop
+# (`for f in "$src"/*; do [ -f "$f" ] || continue`) is flat-file-only —
+# directory entries silently skip, never recurse. system/scripts/lib/ became
+# load-bearing when ac-lint.sh/ac-grade.sh started sourcing
+# lib/cmd-allowlist.sh at runtime (t-2857/t-2868); without this second call
+# that source fails post-deploy with no error surfaced, silently degrading
+# the H7/H10 AC-grammar heuristics to always-UNKNOWN. Scoped to lib/ only —
+# scripts/ also has git-hooks/, migrate/, tests/ subdirs with their own
+# established (unaudited here) deploy/reference patterns; not touched.
+# lib/ files are sourced, never directly executed — no chmod +x needed,
+# unlike the flat scripts/*.sh above.
+if [ -d "$SYSTEM_DIR/scripts/lib" ]; then
+    sync_dir "$SYSTEM_DIR/scripts/lib" "$TARGET_DIR/scripts/lib" "scripts/lib/"
+fi
 
 # --- Step 3b: Hooks ---
 # hooks.json invokes scripts at $HOME/.claude/hooks/ — the plugin does NOT
