@@ -264,6 +264,10 @@ pub fn perform_rollup(path: &Path, dry_run: bool) -> Result<Vec<String>, String>
                 if candidates.contains(&id.to_string()) {
                     t["status"] = Value::String("completed".into());
                     t["completed"] = Value::String(today.clone());
+                    // t-2841: rollup is a status writer too — ack it the same
+                    // way set_field does, or a leased parent completed via
+                    // rollup strands its lease forever.
+                    super::ack_status_write(t, "completed");
                 }
             }
         }

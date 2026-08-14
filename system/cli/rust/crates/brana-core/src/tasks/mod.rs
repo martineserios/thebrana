@@ -252,6 +252,21 @@ pub fn load_raw(path: &Path) -> Result<Value, String> {
     Ok(val)
 }
 
+/// t-2841 (ADR-080 §5): the single ack owner. ANY status write — through
+/// `set_field`, `perform_rollup`'s parent-completion, or the CLI bulk-close
+/// command — must call this so a leased task never strands its lease no
+/// matter which door closed it. Clears `lease` unconditionally (key removed,
+/// never null — ADR-067); retires `reclaim_count` only on `completed` (it
+/// lives outside `lease` precisely so it survives every other status write).
+pub fn ack_status_write(task: &mut Value, new_status: &str) {
+    if let Some(obj) = task.as_object_mut() {
+        obj.remove("lease");
+        if new_status == "completed" {
+            obj.remove("reclaim_count");
+        }
+    }
+}
+
 /// Find the next available task ID (highest numeric suffix + 1).
 pub fn next_id(tasks: &[Value]) -> String {
     let max = tasks.iter()
@@ -2066,9 +2081,9 @@ mod tests {
         // rollup strands its lease. "ANY status write clears lease" (AC2).
         use std::io::Write;
         let body = r#"{"version":1,"project":"p","tasks":[
-            {"id":"t-p","subject":"parent","status":"in_progress","type":"task","tags":[],"blocked_by":[],
+            {"id":"t-p","subject":"parent","status":"in_progress","type":"milestone","tags":[],"blocked_by":[],
              "lease":{"claimant":"pump:x","expires":"2026-08-15T10:00:00+00:00"},"reclaim_count":1},
-            {"id":"t-c","subject":"child","status":"completed","type":"subtask","parent":"t-p","tags":[],"blocked_by":[]}
+            {"id":"t-c","subject":"child","status":"completed","type":"task","parent":"t-p","tags":[],"blocked_by":[]}
         ]}"#;
         let mut f = tempfile::NamedTempFile::new().unwrap();
         write!(f, "{body}").unwrap();

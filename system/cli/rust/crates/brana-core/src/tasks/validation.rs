@@ -476,18 +476,8 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             } else {
                 task[field] = Value::String(value.to_string());
             }
-            // t-2841 (ADR-080 §5): ANY status write is an ack — it clears the
-            // pull-taken lease (key removed entirely; absence, not null —
-            // ADR-067). Completion additionally retires reclaim_count; on any
-            // other status it survives lease clearing by design (it lives
-            // outside `lease` precisely for that).
             if field == "status" {
-                if let Some(obj) = task.as_object_mut() {
-                    obj.remove("lease");
-                    if value == "completed" {
-                        obj.remove("reclaim_count");
-                    }
-                }
+                crate::tasks::ack_status_write(task, value);
             }
             Ok(())
         }

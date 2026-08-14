@@ -1642,6 +1642,10 @@ pub fn cmd_triage_stale(
                         {
                             task["status"] = serde_json::json!("completed");
                             task["completed"] = serde_json::json!(today);
+                            // t-2841: bulk-close is a status writer — ack it
+                            // like set_field, or a leased task closed this
+                            // way strands its lease.
+                            tasks::ack_status_write(task, "completed");
                         }
                         closed += 1;
                     }
