@@ -74148,7 +74148,7 @@
       ],
       "branch": "backlog-drain/feat/t-2843-plan-waves-step-emit",
       "completed": null,
-      "context": "ADR-080 §2. Skill-procedure edit only (system/skills/backlog/phases/plan.md between DEPS and PROPOSE; mirror in build phases/decompose.md when decomposing under an epic). One wave per milestone, selector parent:<ms-id>, gate chain from blocked_by edges crossing milestones, contract from milestone definition-of-done, names <epic-slug>-<ms-slug>. Human approves the graph in the same PROPOSE gesture. blocked_by t-2840 (parent: selector must exist before plan emits it).\nskill_gap_checked: true (score < 0.3, user chose: Skip)\n2026-08-14 (build CLASSIFY): scope ambiguity resolved — \"mirror in build phases/decompose.md\" in ADR-080 §2 / task context targets phases/decompose-mode.md (the /brana:build decompose epic-scoped phase→milestone→task tree builder), not the generic per-task phases/decompose.md subtask-breakdown step. Confirmed with user: only decompose-mode.md creates the milestone level a wave-per-milestone graph needs.\nLifecycle gate: DDD skip (glossary updates for Wave graph/Epic runner/etc. are t-2846's scope, sequenced after this per ADR-080 Consequences — not duplicated here). SDD skip (ADR-080 is the accepted governing spec; this task implements it, no new ADR). TDD apply (gate-chain cycle-check is real DFS logic — shared bash block + test, following the BRANCH-PREFIX-BLOCK/EPIC-WALK-BLOCK convention).",
+      "context": "ADR-080 §2. Skill-procedure edit only (system/skills/backlog/phases/plan.md between DEPS and PROPOSE; mirror in build phases/decompose.md when decomposing under an epic). One wave per milestone, selector parent:<ms-id>, gate chain from blocked_by edges crossing milestones, contract from milestone definition-of-done, names <epic-slug>-<ms-slug>. Human approves the graph in the same PROPOSE gesture. blocked_by t-2840 (parent: selector must exist before plan emits it).\nskill_gap_checked: true (score < 0.3, user chose: Skip)\n2026-08-14 (build CLASSIFY): scope ambiguity resolved — \"mirror in build phases/decompose.md\" in ADR-080 §2 / task context targets phases/decompose-mode.md (the /brana:build decompose epic-scoped phase→milestone→task tree builder), not the generic per-task phases/decompose.md subtask-breakdown step. Confirmed with user: only decompose-mode.md creates the milestone level a wave-per-milestone graph needs.\nLifecycle gate: DDD skip (glossary updates for Wave graph/Epic runner/etc. are t-2846's scope, sequenced after this per ADR-080 Consequences — not duplicated here). SDD skip (ADR-080 is the accepted governing spec; this task implements it, no new ADR). TDD apply (gate-chain cycle-check is real DFS logic — shared bash block + test, following the BRANCH-PREFIX-BLOCK/EPIC-WALK-BLOCK convention).\nAC: plan.md and decompose.md gain a WAVES step: one wave per milestone, parent: selector, gate chain from computed deps\nAC: emission-time gate-chain cycle check (DFS) before WRITE — runner PREFLIGHT is the last line of defense, not the first\nAC: PROPOSE displays the wave graph alongside the task tree; waves written status:queued only on approval",
       "created": "2026-08-14",
       "description": "Add a WAVES step to /brana:backlog plan (and /brana:build DECOMPOSE when decomposing under an epic), between DEPS and PROPOSE. Default grouping: one wave per milestone, selector parent:<ms-id>. Compute the gate chain from blocked_by edges crossing milestones, with an emission-time cycle check (DFS) before WRITE. Seed each wave's contract from the milestone's definition-of-done. Show the proposed wave graph in PROPOSE alongside the task tree so the human approves it in the same gesture as the plan; WRITE creates the wave objects with status:queued. Wave naming: <epic-slug>-<milestone-slug>. Governed by ADR-080 §2.",
       "effort": "S",
@@ -74160,7 +74160,7 @@
         "claimant": "wave-pull:pid-2362612",
         "expires": "2026-08-15T10:00:33.124429789-03:00"
       },
-      "notes": null,
+      "notes": "Evaluator: PASS (2026-08-14), 3 criteria checked",
       "order": 0,
       "parent": "t-2839",
       "priority": null,
@@ -75157,6 +75157,35 @@
       ],
       "type": "task",
       "work_type": "research"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": "security/fix/t-2876-cmd-allowlist-newline-bypass",
+      "completed": null,
+      "context": "Found during /brana:ship Gate 3 (adversarial pre-merge quorum), security-lens worker, 2026-08-14. Verified independently by the coordinating session before treating as blocking (never trust an agent claim without reproduction). This is the SAME vulnerability class as the earlier t-2856 injection fix (prefix-match bypass reaching eval) — that fix closed the metacharacter gap but didn't address grep's line-oriented matching model, leaving H10's non-fully-anchored extraction path open. Blocks the current ship (dev→main); must land on dev before the merge to main proceeds.\nAC: allowlisted_command rejects any command containing an embedded newline\nAC: allowlisted_command matches the allowlist prefix against the whole string, not per-line\nAC: \"bash system/hooks/tests/test-ac-grade.sh\" passes with a new red-then-green regression test for the embedded-newline H10 bypass\nAC: \"bash system/hooks/tests/test-ac-lint.sh\" passes (shared guard, same fix)",
+      "created": "2026-08-14",
+      "description": "Gate 3 (ship pre-deploy adversarial review) security worker found and I independently reproduced: allowlisted_command() in system/scripts/lib/cmd-allowlist.sh validates line-by-line (grep's input model), not as a whole string. A $cmd containing an embedded literal newline — e.g. \"pytest\\ntouch /tmp/PWNED\" — passes both the metachar check (no line contains a metacharacter) and the allowlist-prefix check (line 1 alone matches \"pytest\"), then reaches eval in system/scripts/ac-grade.sh via H10 (demoable: <command>, ac-grade.sh:268-281), where bash treats the embedded newline as a command separator — executing an arbitrary attacker-supplied second command.\n\nH7 (\"<command>\" passes) is NOT vulnerable — its outer gate is fully ^...$ anchored, so grep's line-splitting means a multi-line criterion can never match it at all. H10's gate (^demoable: .+, no $ anchor) plus sed-based extraction (not a fully-anchored match) is what lets the multi-line payload through to allowlisted_command() and then eval.\n\nReproduced directly: source system/scripts/lib/cmd-allowlist.sh; payload=$'pytest\\ntouch /tmp/PWNED'; allowlisted_command \"$payload\" → returns true (ALLOWED); eval \"$payload\" → executes touch. Confirmed end-to-end: this is reachable from an acceptance_criteria JSON string via ac-grade.sh, which goal-completion.sh (the Stop hook, fires on every Claude Code session) now delegates 100% of grading to.\n\nRoot cause: allowlisted_command() uses grep <<<\"$cmd\" (line-oriented) instead of validating the whole string as a unit. Fix: switch to bash [[ =~ ]] (whole-string match) and explicitly reject any embedded newline, per the security worker's suggested fix — this closes the class for every current AND future consumer, not just H10.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2876",
+      "kind": "fix",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P0",
+      "started": "2026-08-14",
+      "status": "in_progress",
+      "subject": "SECURITY: cmd-allowlist.sh embedded-newline bypass reaches eval via H10 demoable:",
+      "tags": [
+        "security",
+        "injection",
+        "ship-blocker"
+      ],
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": 3,
