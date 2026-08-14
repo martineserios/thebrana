@@ -537,18 +537,19 @@ fn build_query_string(ctx: &TaskContext) -> String {
 /// table keys that ruflo truncates at ~20 chars (`skill:domain-driv...`) —
 /// a truncated key prefix-matches against it; ambiguous or unmatched stems
 /// are dropped rather than returned truncated (t-2730).
-fn parse_ruflo_results(text: &str, _known: &[String]) -> Option<Vec<SkillMatch>> {
-    let val: serde_json::Value = serde_json::from_str(text).ok()?;
-    let entries = val.as_array()?;
+fn parse_ruflo_results(text: &str, known: &[String]) -> Option<Vec<SkillMatch>> {
+    // knowledge::parse_search_results handles all real ruflo shapes: ASCII
+    // table (current builds — no --json flag exists), JSON array (older
+    // builds), and the "No results found" message. Reuse it rather than
+    // keeping a second, drifting parser (t-2730).
+    let entries = super::knowledge::parse_search_results(text).ok()?;
     let matches: Vec<SkillMatch> = entries
         .iter()
         .filter_map(|e| {
-            let key = e["key"].as_str()?;
-            let name = key.strip_prefix("skill:")?.to_string();
-            let score = e["score"].as_f64().unwrap_or(0.0);
+            let name = resolve_skill_key(&e.key, known)?;
             Some(SkillMatch {
                 name,
-                score,
+                score: e.score,
                 reason: "ruflo semantic".to_string(),
             })
         })
@@ -560,22 +561,35 @@ fn parse_ruflo_results(text: &str, _known: &[String]) -> Option<Vec<SkillMatch>>
     }
 }
 
+/// Resolve a `skill:` key — possibly truncated by ruflo's table renderer —
+/// to a full local skill name.
+///
+/// Untruncated keys just lose the prefix. A `...`-truncated key is prefix-
+/// matched against `known`; exactly one hit resolves, zero or several drop
+/// the entry (a truncated name is not a usable skill name).
+fn resolve_skill_key(key: &str, known: &[String]) -> Option<String> {
+    if let Some(stem) = key.strip_suffix("...") {
+        let stem = stem.strip_prefix("skill:")?;
+        let mut hits = known.iter().filter(|n| n.starts_with(stem));
+        match (hits.next(), hits.next()) {
+            (Some(name), None) => Some(name.clone()),
+            _ => None,
+        }
+    } else {
+        key.strip_prefix("skill:").map(str::to_string)
+    }
+}
+
 /// Try ruflo semantic search for skill suggestions.
 /// Returns None if ruflo is unavailable or returns no results.
 /// Uses a 15-second timeout because ruflo CLI can hang after completion.
-/// **Currently inert — always falls through to keyword matching.** Two reasons,
-/// both traced in t-2729; the threshold below is fixed, the parse is not:
 ///
-/// 1. Threshold (fixed here): passing `None` selected ruflo's 0.7 default,
-///    above this corpus's ceiling, so every query returned zero matches.
-/// 2. Format (open, see follow-up): `parse_ruflo_results` is JSON-only, but
-///    this ruflo build has no `--json` on `memory search` — it emits an ASCII
-///    table and truncates the Key column at 20 chars (`skill:domain-driv...`).
-///    A truncated key is not a usable skill name, so table parsing needs a
-///    resolution step against the local skill list before it can be trusted.
-///
-/// Keyword fallback returns correct names today, so this staying inert is safe.
-fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
+/// Both halves of the t-2729 inertness are now fixed: the threshold
+/// (DEFAULT_SEARCH_THRESHOLD instead of ruflo's 0.7 default) and the parse
+/// (table-aware via knowledge::parse_search_results, with truncated keys
+/// resolved against `known` — t-2730). Keyword fallback remains for
+/// ruflo-unavailable and zero-result cases.
+fn try_ruflo_suggest(query: &str, known: &[String]) -> Option<Vec<SkillMatch>> {
     let raw = brana_core::ruflo::ruflo_memory_search_raw(
         query,
         "skills",
@@ -583,7 +597,7 @@ fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
         Some(brana_core::ruflo::DEFAULT_SEARCH_THRESHOLD),
         false,
     )?;
-    parse_ruflo_results(&raw, &[])
+    parse_ruflo_results(&raw, known)
 }
 
 /// `brana skills suggest --task <id>` or `--query <text>`
@@ -606,9 +620,14 @@ pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) -> Result<()> {
     // Build query string for ruflo semantic search
     let query_str = build_query_string(&ctx);
 
+    // Scan local skills up front: the list both resolves ruflo's truncated
+    // table keys (t-2730) and feeds the keyword fallback below.
+    let skills = scan_skills(&skill_dirs());
+    let known: Vec<String> = skills.iter().map(|s| s.name.clone()).collect();
+
     // Try ruflo semantic search first (HNSW vectors, better than keyword matching)
     if !query_str.is_empty() {
-        if let Some(mut ruflo_matches) = try_ruflo_suggest(&query_str) {
+        if let Some(mut ruflo_matches) = try_ruflo_suggest(&query_str, &known) {
             // Semantic search has no notion of hot-path skills — filter here too.
             // If nothing survives, fall through to local scoring.
             ruflo_matches.retain(|m| !is_always_loaded(&m.name));
@@ -621,7 +640,6 @@ pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) -> Result<()> {
     }
 
     // Fallback: local keyword/tag scoring
-    let skills = scan_skills(&skill_dirs());
     let matches = suggest(&skills, &ctx, 3);
     let json = serde_json::to_string_pretty(&matches).unwrap_or_default();
     println!("{json}");
