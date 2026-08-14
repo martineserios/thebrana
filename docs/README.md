@@ -229,17 +229,15 @@ Authoring guides for brana-specific syntax and patterns.
 
 ## Ideas (docs/ideas/)
 
-Exploratory design notes and integration proposals. Not committed to the roadmap.
+The idea pool — where creative/studio work lands, and what the backlog drains from (t-2864). Root holds **open** ideas (no backlog action yet); `ideas/drained/` holds ideas already turned into backlog tasks (kept as design records).
 
 | File | Contents |
 |------|----------|
-| [wave-pipeline.md](ideas/wave-pipeline.md) | The wave pipeline concept — four nested loops, memory as 4th dimension, queue/pump/valve/gauge, studio/cockpit, seven operating laws (ADR-079, t-2828) |
-| [loops-library.md](ideas/loops-library.md) | Loops library contract — entry schema, queue types + pull-interface verbs, per-beat records, proof-of-life acceptance bar (t-2826) |
-| [brana-agency-growth-machine.md](ideas/brana-agency-growth-machine.md) | Agency growth strategy — no-posting machine: thebrana.ai relaunch (t-2249) + WhatsApp demo agent as lead magnet, referral engine day 1 |
-| [brana-whatsapp-agent.md](ideas/brana-whatsapp-agent.md) | The Brana WhatsApp Agent — brana over WhatsApp bridge (system/services/whatsapp-bridge) |
-| [ruflo-native-integration.md](ideas/ruflo-native-integration.md) | Ruflo native integration — controller status, upstream blockers, upgrade path |
-| [skill-auto-router.md](ideas/skill-auto-router.md) | Skill auto-routing with ruflo HNSW + marketplace discovery |
-| [skills-as-loops.md](ideas/skills-as-loops.md) | Skills re-derived as loops (stop condition + verifier + queue), loop composition rules, exit-router pattern — v3 seed, grounded in loop-engineering's 7 patterns |
+| [brana-efficiency-without-power-loss.md](ideas/brana-efficiency-without-power-loss.md) | Reduce usage without losing power — open |
+| [construction-budget-automation.md](ideas/construction-budget-automation.md) | Construction budget automation — paused, waiting on external input |
+| [prompt-patterns-brana-enrichment.md](ideas/prompt-patterns-brana-enrichment.md) | Prompt patterns → brana enrichment — open draft |
+| [venture-playbook-product-management.md](ideas/venture-playbook-product-management.md) | Venture playbook & product management layer — open |
+| [drained/](ideas/drained/) | 71 idea docs already converted to backlog tasks — notable: [wave-pipeline.md](ideas/drained/wave-pipeline.md) (ADR-079, t-2828), [loops-library.md](ideas/drained/loops-library.md) (t-2826), [loop-first-redesign.md](ideas/drained/loop-first-redesign.md) (epic t-2820), [skills-as-loops.md](ideas/drained/skills-as-loops.md), [brana-whatsapp-agent.md](ideas/drained/brana-whatsapp-agent.md), [brana-agency-growth-machine.md](ideas/drained/brana-agency-growth-machine.md) (t-2249) |
 
 ## Content (docs/content/)
 
