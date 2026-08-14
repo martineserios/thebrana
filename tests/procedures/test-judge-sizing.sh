@@ -204,6 +204,28 @@ else
     echo "  FAIL: gate does not reference judge-sizing.md"; FAIL=$((FAIL + 1))
 fi
 
+echo "=== build-team surfaces contract (t-2908) ==="
+LOAD_MD="$REPO_ROOT/system/skills/build/phases/load.md"
+BUILD_MD="$REPO_ROOT/system/skills/build/phases/build-loop.md"
+TOTAL=$((TOTAL + 1))
+if grep -q '⚠ {task_id}: ac_state is' "$LOAD_MD" || grep -q '⚠ ac_state is' "$LOAD_MD"; then
+    echo "  PASS: readiness check surfaces the ac_state warn line"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: load.md Step 0d has no ac_state warn line"; FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if grep -q '### In-loop critic' "$BUILD_MD"; then
+    echo "  PASS: build-loop carries the In-loop critic section"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: build-loop.md has no '### In-loop critic' section"; FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if grep -q 'judge-sizing' "$BUILD_MD"; then
+    echo "  PASS: build-loop references the sizing authority for the critic contract"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: build-loop critic section does not reference judge-sizing.md"; FAIL=$((FAIL + 1))
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "Total: $TOTAL | Passed: $PASS | Failed: $FAIL"
