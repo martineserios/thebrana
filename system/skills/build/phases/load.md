@@ -322,7 +322,7 @@ If "Skip — reason required": require free text. Log to task notes and decision
 ```
 ⚠ {task_id}: effort not set. Consider: `brana backlog set {task_id} effort M`
 ⚠ {task_id}: no AC: lines in context. Session anchored with /goal "{subject}"; auto-complete disabled (add AC: lines to enable).
-⚠ {task_id}: ac_state is '{value}' — blind test-author cannot arm (ADR-082 §5); approve via `brana backlog ac {task_id} approve`.
+⚠ ac_state is '{value}' — {task_id}: blind test-author cannot arm (ADR-082 §5); approve via `brana backlog ac {task_id} approve`.
 ```
 
 If all checks pass (or only soft warns remain), proceed silently.
