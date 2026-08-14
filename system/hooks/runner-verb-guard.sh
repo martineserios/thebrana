@@ -28,6 +28,13 @@
 # tables): `backlog set <id> status completed` outside build CLOSE; inline
 # self-review in place of a spawned challenger.
 #
+# THREAT MODEL BOUNDARY. This guard targets an honest-but-drifting runner —
+# regex matching on the literal command string is evadable by deliberate
+# shell indirection (var expansion, eval, alias shadowing), and tools outside
+# the matcher (e.g. raw Write to tasks.json) bypass it entirely. It is a
+# guardrail, not a hardened security boundary; the adversarial/unattended
+# case is gated separately by the ADR-062 executor sandbox.
+#
 # Tests: system/hooks/tests/test-runner-verb-guard.sh
 
 # Ensure valid CWD

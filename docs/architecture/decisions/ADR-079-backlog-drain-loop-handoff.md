@@ -91,7 +91,10 @@ It is the sanctioned transition to `ac_state:approved` and does two things atomi
   `runner-verb-guard.sh` PreToolUse hook **denies** `backlog ac approve`,
   `backlog_ac_approve`, and the wider denied-verb list (wave approve, wave
   `status shipped`/`gate`/`selector` edits, `git merge`/`push` — ADR-080 §3/§4). The
-  agent cannot modify the harness env, so it cannot disarm the guard. The whole point of
+  agent cannot modify the harness env, so it cannot disarm the guard. (Scope boundary:
+  the hook assumes an honest-but-drifting runner — deliberate shell obfuscation can evade
+  string matching; the adversarial/unattended case is gated by the ADR-062 sandbox, not
+  this guard.) The whole point of
   `approved` is a human trust boundary between selector-match and autonomous execution; a
   gate armed by the party it constrains is no gate
   (`pattern_gate-armed-by-the-party-it-constrains`, ADR-076 D4). Approval happens in an
