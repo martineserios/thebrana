@@ -3541,6 +3541,85 @@ mod tests {
         assert_eq!(task["ac_state"], "approved");
     }
 
+    // ── t-2842 (ADR-080 §4): wave approve — batch AC valve, cap 10 ───────
+
+    fn wave_q(selector: &str) -> Value {
+        json!({"id": "wave-9", "name": "w", "selector": selector, "status": "queued"})
+    }
+
+    fn ac_task(id: &str, ac_state: &str, tag: &str) -> Value {
+        json!({"id": id, "subject": format!("s-{id}"), "status": "pending",
+               "tags": [tag], "ac_state": ac_state,
+               "proposed_acceptance_criteria": if ac_state == "proposed" {
+                   json!(["criterion for", id])
+               } else { Value::Null }})
+    }
+
+    #[test]
+    fn plan_wave_approve_partitions_proposed_and_none() {
+        let tasks = vec![
+            ac_task("t-1", "proposed", "w1"),
+            ac_task("t-2", "none", "w1"),
+            ac_task("t-3", "approved", "w1"),
+        ];
+        let plan = plan_wave_approve(&wave_q("tag:w1"), &tasks).unwrap();
+        assert_eq!(plan.batches.len(), 1);
+        assert_eq!(plan.batches[0].len(), 1, "only proposed tasks are batched");
+        assert_eq!(plan.batches[0][0].0, "t-1");
+        assert_eq!(plan.none_ids, vec!["t-2"],
+            "none tasks are listed, not silently absorbed");
+        // t-3 (already approved) is neither batched nor listed — nothing to do.
+    }
+
+    #[test]
+    fn plan_wave_approve_caps_batches_at_ten() {
+        let tasks: Vec<Value> = (1..=23)
+            .map(|i| ac_task(&format!("t-{i}"), "proposed", "w1"))
+            .collect();
+        let plan = plan_wave_approve(&wave_q("tag:w1"), &tasks).unwrap();
+        let sizes: Vec<usize> = plan.batches.iter().map(|b| b.len()).collect();
+        assert_eq!(sizes, vec![10, 10, 3],
+            "batches capped at 10 — the rubber-stamp guard (challenge finding 8)");
+    }
+
+    #[test]
+    fn plan_wave_approve_carries_proposed_criteria_for_display() {
+        let tasks = vec![ac_task("t-1", "proposed", "w1")];
+        let plan = plan_wave_approve(&wave_q("tag:w1"), &tasks).unwrap();
+        assert_eq!(plan.batches[0][0].1, vec!["criterion for", "t-1"]);
+    }
+
+    #[test]
+    fn plan_wave_approve_routes_through_resolve_wave_selector_only() {
+        // parent: form must work too — same resolver as every other consumer,
+        // zero direct selector parsing in this new code (ADR-080 §1 discipline
+        // extends to §4's new consumer).
+        let tasks = vec![
+            json!({"id":"ms-1","status":"pending","tags":[],"ac_state":"none"}),
+            {
+                let mut t = ac_task("t-1", "proposed", "unused");
+                t["parent"] = Value::String("ms-1".into());
+                t
+            },
+        ];
+        let plan = plan_wave_approve(&wave_q("parent:ms-1"), &tasks).unwrap();
+        assert_eq!(plan.batches.len(), 1);
+        assert_eq!(plan.batches[0][0].0, "t-1");
+    }
+
+    #[test]
+    fn plan_wave_approve_unknown_selector_rejected_loud() {
+        let err = plan_wave_approve(&wave_q("bogus:x"), &[]).unwrap_err();
+        assert!(err.contains("selector form not supported"));
+    }
+
+    #[test]
+    fn plan_wave_approve_empty_match_is_ok_empty_plan() {
+        let plan = plan_wave_approve(&wave_q("tag:nothing"), &[]).unwrap();
+        assert!(plan.batches.is_empty());
+        assert!(plan.none_ids.is_empty());
+    }
+
     #[test]
     fn test_approve_ac_from_none_with_authored_ac() {
         // §1: a human may author + approve directly — proposed never involved.
