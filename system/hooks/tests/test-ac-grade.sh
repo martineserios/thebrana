@@ -108,6 +108,15 @@ echo "Test: --cwd override bypasses worktree lookup entirely"
 OUT_CWD=$(bash "$GRADER" t-fix --json --cwd "$FIX_WORKTREE" 2>&1)
 assert "--cwd override succeeds without any worktree lookup" 'echo "$OUT_CWD" | jq -e ".graded" >/dev/null 2>&1'
 
+echo "Test: --criteria-json overrides the live tasks.json value (frozen-snapshot grading)"
+# t-fix's stubbed acceptance_criteria has 2 entries; supply a DIFFERENT 1-entry
+# array via --criteria-json and confirm the override wins, not the live value —
+# this is the property goal-completion.sh's Stop-hook caller depends on: grade
+# against active-goal.json's frozen snapshot, never re-derive live from tasks.json.
+OUT_FROZEN=$(bash "$GRADER" t-fix --json --cwd "$FIX_WORKTREE" --criteria-json '["file fixture.md exists"]' 2>&1)
+assert "frozen override: graded length is 1 (the override), not 2 (the live value)" \
+  'echo "$OUT_FROZEN" | jq -e ".graded | length == 1" >/dev/null 2>&1'
+
 # ── Heuristic execution + JSON shape ──────────────────────────────────────────
 echo "Test: JSON shape — task_id, graded[], counts"
 OUT_SHAPE=$(bash "$GRADER" t-fix --json --cwd "$FIX_WORKTREE" 2>&1)
@@ -159,6 +168,12 @@ chmod +x "$STUBDIR/brana"
 : > "$STUB_CALL_LOG"
 bash "$GRADER" t-fix --json --cwd "$FIX_WORKTREE" >/dev/null 2>&1
 assert "no 'backlog set' call ever issued during grading" '! grep -q "backlog set" "$STUB_CALL_LOG"'
+
+echo "Test: --criteria-json skips the acceptance_criteria fetch entirely"
+: > "$STUB_CALL_LOG"
+bash "$GRADER" t-fix --json --cwd "$FIX_WORKTREE" --criteria-json '["file fixture.md exists"]' >/dev/null 2>&1
+assert "no 'get ... acceptance_criteria' call issued when --criteria-json is given" \
+  '! grep -q "acceptance_criteria" "$STUB_CALL_LOG"'
 
 # ── Summary ────────────────────────────────────────────────────────────────────
 echo ""
