@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T12:58:17Z",
+  "generated": "2026-08-14T16:33:19Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -612,10 +612,12 @@
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/goal-completion.sh",
+        "system/scripts/ac-grade.sh",
         "system/hooks/",
         "system/skills/build/phases/load.md",
         "system/hooks/tests/test-goal-completion.sh",
-        "system/scripts/ac-lint.sh"
+        "system/scripts/ac-lint.sh",
+        "system/scripts/lib/cmd-allowlist.sh"
       ]
     },
     "docs/architecture/agentic-primitives.md": {
@@ -1187,6 +1189,19 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md": {
+      "title": "ADR-081: Stacked-Verdict Evidence Composition — Extraction Boundary and the Notes Contract",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/_shared/challenger-gate.md",
+        "system/skills/build/phases/verify-gates.md",
+        "system/scripts/ac-grade.sh",
+        "system/scripts/lib/cmd-allowlist.sh",
+        "system/scripts/lib/",
+        "system/hooks/lib/resolve-brana.sh",
+        "system/scripts/ac-lint.sh"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1568,6 +1583,13 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/loops-library.md": {
+      "title": "Loops Library — contract (stub)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/"
+      ]
+    },
     "docs/architecture/features/memory-migration-manifest.md": {
       "title": "Memory Migration Manifest — Phase A",
       "type": "Roadmap",
@@ -1767,6 +1789,19 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/stacked-verdict-at-the-valve.md": {
+      "title": "Feature: Stacked verdict at the valve",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/lib/cmd-allowlist.sh",
+        "system/scripts/",
+        "system/scripts/lib/",
+        "system/scripts/ac-grade.sh",
+        "system/hooks/lib/resolve-brana.sh",
+        "system/scripts/ac-lint.sh",
+        "system/skills/_shared/challenger-gate.md"
+      ]
+    },
     "docs/architecture/features/stale-task-lifecycle-policy.md": {
       "title": "Stale-task lifecycle policy (t-2743)",
       "type": "Roadmap",
@@ -1921,6 +1956,8 @@
         "system/",
         "system/hooks/lib/git-helpers.spec.md",
         "system/hooks/",
+        "system/scripts/ac-grade.sh",
+        "system/scripts/lib/cmd-allowlist.sh",
         "system/scripts/git-hooks/pre-commit",
         "system/hooks/lib/profile.sh",
         "system/hooks/tests/test-post-tool-use-test-signal.sh",
@@ -2875,6 +2912,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/workflows/epic-drain.md": {
+      "title": "Epic Drain Loop",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/workflows/fix.md": {
       "title": "Fixing Bugs",
       "type": "Roadmap",
@@ -3402,6 +3444,11 @@
     },
     "docs/ideas/drained/wave-pipeline.md": {
       "title": "The Wave Pipeline",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/loop-task-multiagent.md": {
+      "title": "Task-level multi-agent orchestration for the wave-drain loop",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -11778,6 +11825,30 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
+      "to": "ADR-047-acceptance-criteria-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
+      "to": "ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
+      "to": "docs/architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
+      "to": "docs/ideas/drained/wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -12150,6 +12221,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/loops-library.md",
+      "to": "docs/ideas/drained/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/memory-pattern-redesign.md",
       "to": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
       "type": "references",
@@ -12236,6 +12313,12 @@
     {
       "from": "docs/architecture/features/skill-utilization-tracking.md",
       "to": "docs/.claude/tasks.json",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/stacked-verdict-at-the-valve.md",
+      "to": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
       "type": "references",
       "computed": false
     },
@@ -14604,6 +14687,18 @@
       "computed": false
     },
     {
+      "from": "docs/guide/workflows/epic-drain.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/epic-drain.md",
+      "to": "drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/workflows/spec-graph.md",
       "to": "path",
       "type": "references",
@@ -16393,9 +16488,9 @@
     }
   ],
   "stats": {
-    "nodes": 569,
-    "edges": 2078,
+    "nodes": 574,
+    "edges": 2086,
     "typed_edges": 686,
-    "orphans": 158
+    "orphans": 159
   }
 }
