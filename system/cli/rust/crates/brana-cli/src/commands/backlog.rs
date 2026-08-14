@@ -3256,25 +3256,62 @@ mod tests {
             "ac_state:none is listed, never auto-approved");
     }
 
-    #[test]
-    fn cmd_wave_approve_caps_at_ten_per_batch() {
-        let tasks_json: String = (1..=15)
+    fn approve_fixture_n(n: usize) -> tempfile::NamedTempFile {
+        let tasks_json: String = (1..=n)
             .map(|i| format!(
                 r#"{{"id":"t-{i}","subject":"s","status":"pending","type":"task","tags":["w1"],
                    "blocked_by":[],"ac_state":"proposed","proposed_acceptance_criteria":["c"]}}"#
             ))
             .collect::<Vec<_>>()
             .join(",");
-        let f = drain_fixture(
+        drain_fixture(
             &format!("[{tasks_json}]"),
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining"}]"#,
-        );
+        )
+    }
+
+    #[test]
+    fn cmd_wave_approve_yes_confirms_only_current_batch_not_all() {
+        // Challenger RECONSIDER finding (severity 4, t-2842): --yes must not
+        // let ONE invocation blow through every batch — that collapses "one
+        // confirmation per batch of ≤10" into a single global bypass,
+        // contradicting AC "cap enforced, not advisory" (ADR-080 §4). A
+        // non-interactive caller gets exactly one batch per call, same
+        // per-call boundary as the MCP confirm_ids surface.
+        let f = approve_fixture_n(15);
         cmd_wave_approve("wave-1", true, false, Some(f.path().to_path_buf())).unwrap();
         let reloaded: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         let approved = reloaded["tasks"].as_array().unwrap().iter()
             .filter(|t| t["ac_state"] == "approved").count();
-        assert_eq!(approved, 15, "yes:true confirms every batch — both the 10-batch and the 5-batch");
+        assert_eq!(approved, 10,
+            "one --yes call must approve at most WAVE_APPROVE_BATCH_CAP tasks, never all remaining batches");
+    }
+
+    #[test]
+    fn cmd_wave_approve_yes_second_invocation_takes_remaining_batch() {
+        // Re-invocation is the explicit act for a non-interactive caller —
+        // mirrors MCP's confirm_ids-per-call model.
+        let f = approve_fixture_n(15);
+        cmd_wave_approve("wave-1", true, false, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_approve("wave-1", true, false, Some(f.path().to_path_buf())).unwrap();
+        let reloaded: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let approved = reloaded["tasks"].as_array().unwrap().iter()
+            .filter(|t| t["ac_state"] == "approved").count();
+        assert_eq!(approved, 15, "two invocations cover both batches (10 + 5)");
+    }
+
+    #[test]
+    fn plan_wave_approve_fixture_sanity_two_batches() {
+        // Confirms the 15-task fixture used above genuinely spans two
+        // batches (10 + 5) — the precondition the two tests above depend on.
+        let f = approve_fixture_n(15);
+        let data = tasks::load_raw(&f.path().to_path_buf()).unwrap();
+        let wave = data["waves"][0].clone();
+        let tasks_arr = data["tasks"].as_array().cloned().unwrap();
+        let plan = tasks::plan_wave_approve(&wave, &tasks_arr).unwrap();
+        assert_eq!(plan.batches.iter().map(|b| b.len()).collect::<Vec<_>>(), vec![10, 5]);
     }
 
     #[test]
