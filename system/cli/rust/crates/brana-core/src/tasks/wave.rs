@@ -439,6 +439,39 @@ mod tests {
     }
 
     #[test]
+    fn at_limit_fires_on_parent_wave_at_wip_limit() {
+        // ADR-080 §1 regression (challenge finding 1): the wip live-count
+        // must route through the shared matcher. The old tag:-strip counted
+        // live=0 forever on parent: waves — wip_limit silently defeated.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 1});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            ptask("t-1", "in_progress", Some("ms-1")), // live descendant
+            json!({"id": "t-2", "subject": "s", "status": "pending",
+                   "tags": [], "parent": "ms-1", "ac_state": "approved"}),
+        ];
+        let d = wave_pull_decision(&w, &tasks).unwrap();
+        assert_eq!(d, PullDecision::AtLimit { live: 1, limit: 1 },
+            "parent: wave at wip_limit must AtLimit, not pull");
+    }
+
+    #[test]
+    fn parent_wave_pulls_below_limit() {
+        // Companion: below the limit the same wave pulls its first eligible.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 2});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            ptask("t-1", "in_progress", Some("ms-1")),
+            json!({"id": "t-2", "subject": "s", "status": "pending",
+                   "tags": [], "parent": "ms-1", "ac_state": "approved"}),
+        ];
+        let d = wave_pull_decision(&w, &tasks).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
+    }
+
+    #[test]
     fn tag_selector_still_resolves_through_parse_point() {
         // tag: behavior unchanged by the parse-point refactor.
         let tasks = vec![task("t-1", "pending", &["bugfix"])];
