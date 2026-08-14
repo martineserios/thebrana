@@ -177,7 +177,11 @@ verbs this loop's wider blast radius makes newly reachable:
 | `brana backlog wave set <id> gate` / `brana backlog wave set <id> selector` | **New at epic scope.** The loop reads the gate chain to topo-sort; it must never rewrite it — a runner that can edit its own dependency graph could route around a human-authored gate. |
 | Inline self-review in place of a spawned challenger/evaluator | **New at epic scope.** Step 7 (JUDGE) above — the machine half of judgment must be a fresh-context worker per beat, never this loop reviewing its own pull. |
 
-`t-2827` (technical enforcement of denied verbs) covers this list. This
+Shipped (t-2827): `runner-verb-guard.sh` (PreToolUse) mechanically denies
+this list in sessions launched with `BRANA_RUNNER=1` — arm it when starting
+the runner session (`BRANA_RUNNER=1 claude`). Two rows stay procedural (a
+hook cannot distinguish them): `status completed` outside build CLOSE, and
+inline self-review in place of a spawned challenger. This
 prompt must not hardcode assumptions about which skills are
 model-invocable — `t-2832` will re-taxonomize skill frontmatter; this loop
 stays order-independent of that change.

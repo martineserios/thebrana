@@ -175,6 +175,16 @@
             "command": "\"$HOME/.local/bin/rtk\" hook claude"
           }
         ]
+      },
+      {
+        "matcher": "Bash|mcp__brana__backlog_ac_approve|mcp__brana__backlog_wave_approve|mcp__brana__backlog_wave_set",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 5000,
+            "command": "bash \"$HOME/.claude/hooks/runner-verb-guard.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [

@@ -38,6 +38,13 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
    output), so a graph can be checked before arming.
 6. Open the queue: `brana backlog wave drain wave-N`
 
+7. **Arm the verb guard:** launch the runner session with `BRANA_RUNNER=1` in
+   its environment (`BRANA_RUNNER=1 claude`). This arms the
+   `runner-verb-guard.sh` PreToolUse hook (t-2827), which mechanically denies
+   the Denied-verbs table below — the agent cannot modify the harness env, so
+   it cannot disarm it. An unflagged session falls back to this doc being
+   advisory only.
+
 ## The loop prompt (supervised)
 
 ```
@@ -67,6 +74,10 @@ lease. Expired leases are surfaced by the future watchdog and reset by the
 `lease-reclaimer` pump (loop-first epic) — never by this loop.
 
 ## Denied verbs — the runner must never run these
+
+Mechanically enforced in `BRANA_RUNNER=1` sessions by `runner-verb-guard.sh`
+(t-2827) — except `status completed` outside build CLOSE, which a hook cannot
+distinguish from the framework's own CLOSE and stays procedural.
 
 | Verb | Why |
 |---|---|
