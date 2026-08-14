@@ -18,26 +18,32 @@ no rung persists past the beat that armed it.
 
 <!-- JUDGE-SIZING-BLOCK -->
 ```bash
-# Exit contract — resolve_judge_rung:
-#   prints exactly one of 0|1|2 at exit 0   (the armed rung)
-#   exit 2  — the valve itself is broken (empty signals table, unknown signal
-#             name). LOUD by design: a broken valve must never silently de-arm
-#             to rung 0 (silent de-arming) nor default to rung 2 (cost explosion).
-#             Precedent: exit-contract-lint.sh registry rule, NOT branch-prefix
-#             (which degrades); only branch-prefix's test pattern is copied here.
-
 # --- Hard signals (ADR-082 §3) — the arming vocabulary. Data, not code. ---
 # Guard is the plain counter below, never ${#ARR[@]} under set -u
 # (pattern_set-u-empty-assoc-array-fails-open).
 JUDGE_SIGNALS="RECONSIDER_SEV4 PASS_WITH_GAPS CRITICAL_PATH SIBLING_VERDICT ESCAPED_DEFECT_AREA"
 JUDGE_SIGNALS_COUNT=5
 
-# --- Critical-section path prefixes (ADR-082 §1 seed list). One line per entry. ---
+# --- Rung-1 criticality: broad critical-section prefixes (ADR-082 §1 list). ---
+# Includes this file itself — the authority protecting the gate must protect
+# itself (panel finding: a diff gutting the ladder would have had a rung-0 review).
 JUDGE_CRITICAL_PATHS="system/cli/rust/crates/brana-core/src
 system/hooks
 bootstrap.sh
-system/skills/_shared/challenger-gate.md"
+system/skills/_shared/challenger-gate.md
+system/skills/_shared/judge-sizing.md"
 
+# --- Signal-3 (CRITICAL_PATH): the NARROW lock/pull/lease subset of the above ---
+# (ADR-082 §3 as amended: signal 3 arms rung 2 only for lock/pull-lease code;
+# the broad list feeds rung 1 via the criticality input. Without the split,
+# CRIT doubling as a signal made the rung-1 branch unreachable — panel finding.)
+JUDGE_LOCK_PULL_PATHS="system/cli/rust/crates/brana-core/src"
+
+# Exit contract — resolve_judge_rung: prints exactly one of 0|1|2 at exit 0;
+# exit 2 = the valve itself is broken (empty signals table, unknown signal name).
+# LOUD by design: never silently de-arm to rung 0, never default to rung 2.
+# Precedent: exit-contract-lint.sh registry rule (this marker must stay within
+# 10 lines of the function def or the lint cannot bind it — panel finding).
 resolve_judge_rung() {
   local effort="${1:-}" nature="${2:-}" crit="${3:-0}" signals_csv="${4:-}"
   [ "$effort" = "null" ] && effort=""
@@ -102,6 +108,19 @@ criticality_hit() {
   printf '0'
 }
 
+# lock_pull_hit("file1 file2 ...") → 1 if any file lands in the narrow signal-3
+# (lock/pull-lease) set, else 0. Feeds the CRITICAL_PATH hard signal — rung 2.
+lock_pull_hit() {
+  local files="${1:-}" f p
+  for f in $files; do
+    while IFS= read -r p; do
+      [ -z "$p" ] && continue
+      case "$f" in "$p"|"$p"/*) printf '1'; return 0 ;; esac
+    done <<< "$JUDGE_LOCK_PULL_PATHS"
+  done
+  printf '0'
+}
+
 # blind_author_arms(rung, ac_state, nature) → yes|no  (ADR-082 §5 precondition:
 # rung >= 1 AND approved AC AND testable code nature). Opt-in mechanism — the
 # pilot gates default-on promotion only, never this arming rule.
@@ -142,7 +161,14 @@ append_escaped_defect() {
 # count >= 1. Absent/empty log → 0 (a real negative, never an error): the
 # stigmergy trail — deposits arm, the window evaporates (ADR-082 §3/§7).
 judge_area_weight() {
-  local area="${1:?}" log="${2:-docs/ops/escaped-defects.jsonl}"
+  local area="${1:?}" log="${2:-}"
+  # Default is ROOT-ANCHORED, never cwd-relative — a relative default read from a
+  # worktree subdir silently reported 0 and de-armed signal 5 (panel finding).
+  if [ -z "$log" ]; then
+    local _root
+    _root=$(git rev-parse --show-toplevel 2>/dev/null) || _root=""
+    log="${_root:+$_root/}docs/ops/escaped-defects.jsonl"
+  fi
   [ -f "$log" ] || { printf '0'; return 0; }
   local cutoff count
   cutoff=$(date -d '30 days ago' +%Y-%m-%d 2>/dev/null || date -v-30d +%Y-%m-%d)
@@ -160,18 +186,34 @@ denied-verb-completeness|procedure|Read Grep Glob
 contract-ac-fidelity|docs|Read Grep Glob"
 JUDGE_BRIEF_COUNT=5
 
-# Verbs no panel role may ever hold (runner manifest, ADR-079/080). A brief
-# allowlist may only NARROW the base tool set — never contain these.
+# The base tool set panel roles may draw from. A brief allowlist may only
+# NARROW this set (subset-only, ADR-082 §4e) — any token outside it is a
+# violation, which is what makes the detector real: a tools-vs-verbs
+# intersection alone can never fire on well-formed briefs (panel finding).
+JUDGE_BASE_TOOLS="Read Grep Glob"
+
+# Denied verbs, mirrored for documentation from the runner manifests
+# (AUTHORITY: docs/guide/workflows/drain-loop.md + epic-drain.md denied-verbs
+# tables, ADR-079/080 — this is a defense-in-depth mirror, not a fourth
+# authority; seeded escaped-defect #3 records what table drift costs).
 JUDGE_DENIED_VERBS="ac-approve wave-set-status batch-approve merge git-push backlog-write"
 JUDGE_DENIED_COUNT=6
 
-# judge_allowlist_violations() → prints "brief:verb" per violation; empty = §4e AC holds
+# judge_allowlist_violations() → prints "brief:token" per violation; empty = §4e AC
+# holds. A violation is any allowlist token NOT in JUDGE_BASE_TOOLS (subset-only),
+# or any literal denied verb (belt and braces).
 judge_allowlist_violations() {
-  local line name tools v
+  local line name tools t v
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     name="${line%%|*}"
     tools="${line##*|}"
+    for t in $tools; do
+      case " $JUDGE_BASE_TOOLS " in
+        *" $t "*) : ;;
+        *) printf '%s:%s\n' "$name" "$t" ;;
+      esac
+    done
     for v in $JUDGE_DENIED_VERBS; do
       case " $tools " in *" $v "*) printf '%s:%s\n' "$name" "$v" ;; esac
     done

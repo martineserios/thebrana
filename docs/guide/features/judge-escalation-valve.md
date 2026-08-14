@@ -34,8 +34,9 @@ An unarmed mechanism is always visible — silence never means "checked and clea
 ## What arms rung 2 (hard signals)
 
 Only recorded events, never model self-confidence: a prior RECONSIDER verdict at
-severity ≥ 4; an evaluator PASS-WITH-GAPS; the diff landing in a critical section
-(locks, hooks, the gate itself); the challenger's own `SIBLINGS: yes` verdict
+severity ≥ 4; an evaluator PASS-WITH-GAPS; the diff landing in **lock/pull-lease
+code** (the narrow subset — broader critical sections like hooks or the gate
+itself arm rung 1, not rung 2); the challenger's own `SIBLINGS: yes` verdict
 line; or a fresh escaped-defect log entry in the same area.
 
 ## Reading verdicts

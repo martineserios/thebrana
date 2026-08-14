@@ -201,7 +201,7 @@ assert_eq "lock_pull: brana-core src is lock/pull      -> 1" "1" "$(lock_pull_hi
 assert_eq "lock_pull: hooks are critical but NOT lock/pull -> 0" "0" "$(lock_pull_hit 'system/hooks/a.sh')"
 assert_eq "crit list still catches hooks (rung-1 input)  -> 1" "1" "$(criticality_hit 'system/hooks/a.sh')"
 # The §4e detector must be able to fire (panel finding: tools∩verbs was vacuous)
-tampered=$(JUDGE_BRIEFS="rogue|code|Read Bash(git push) ac-approve" judge_allowlist_violations)
+tampered=$(JUDGE_BRIEFS="rogue|code|Read WebFetch" judge_allowlist_violations)
 TOTAL=$((TOTAL + 1))
 if [ -n "$tampered" ]; then
     echo "  PASS: detector fires on a brief carrying a non-base tool ($tampered)"; PASS=$((PASS + 1))

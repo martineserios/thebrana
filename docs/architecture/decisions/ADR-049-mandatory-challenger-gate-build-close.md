@@ -7,6 +7,8 @@ tags: [build, challenger, loop, reflexion, quality-gate, looptrap]
 informs:
   - docs/architecture/features/build-loop-redesign.md
   - system/procedures/build.md
+extended_by:
+  - docs/architecture/decisions/ADR-082-multi-agent-sizing-function.md
 ---
 
 # ADR-049: Mandatory Challenger Gate at BUILD→CLOSE Boundary

@@ -91,9 +91,11 @@ for free — no runner edits).
   surface to the human as `SPLIT` — never suppressed to FALSE_POSITIVE.
 - Every valve firing appends an escaped-defect log record; the log's area weights
   (30-day window) feed signal 5 on later beats.
-- Success confirmed when: a rung-0 beat's transcript is indistinguishable from
-  today's, and a forced-signal test beat arms rung 2, produces the funnel, and
-  logs the firing.
+- Success confirmed when: a rung-0 beat is mechanism- and cost-identical to
+  today's (the challenger prompt does gain the SIBLINGS field on all rungs —
+  that is the one deliberate rung-0 change, needed so signal 4 can ever fire),
+  and a forced-signal test beat arms rung 2, produces the funnel, and logs the
+  firing.
 
 ## Edge Cases
 
@@ -182,3 +184,21 @@ Spec challenge 2026-08-14 (context-isolated, RECONSIDER → repaired in place):
 - **Sev ≤2:** Edge Case 4 runtime fallback assigned to the supervised E2E beat;
   `docs/ops/` placement kept (user-confirmed) with the workspace-taxonomy note
   acknowledged.
+
+Gate challenge 2026-08-14 (rung-2 panel on this feature's own diff — challenger +
+2 blind finders; 22 raw → 14 verified, 5 sev-4, all repaired same-day; the ADR's
+Challenge record carries the §3 signal-3 amendment this pass produced):
+- Fixed: unhashed-registration exemption (channel 3 walks `tests_required` now);
+  hash re-pin on red re-commit; exit-contract marker within lint's 10-line bind
+  window (lint polices 2 helpers, verified); judge-sizing.md in its own critical
+  list; SPLIT defined in CALIBRATION.md; §4e detector de-vacuized (subset-vs-base);
+  signal-3 narrowed to lock/pull (ADR amendment); valve diff base `dev...HEAD` +
+  snapshot-once; `judge_area_weight` root-anchored default; goal-file temp rename
+  same-dir; unreadable `tests_hashes` gates; `merge=union` for the log.
+- Accepted residual risks (recorded, not silent): manual/CLOSE completion path
+  can still complete a task with a weakened test — the hash gate governs
+  AUTO-completion; the human valve is the intended backstop for manual paths.
+  Partial multi-file registration on crash self-heals on the next commit
+  (idempotent re-run). Control-arm may overshoot 6 samples under concurrency
+  (harmless). Two sessions sharing one checkout can race the goal file —
+  excluded by worktree discipline, not by code.

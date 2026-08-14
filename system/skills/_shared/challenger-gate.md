@@ -74,16 +74,21 @@ signals table, briefs, and helpers are single-sourced in
 t-2494 drift class). Sequence:
 
 ```bash
-# Inputs — all machine-readable (ADR-082 §1):
+# Inputs — all machine-readable (ADR-082 §1). Snapshot FILES ONCE per beat and
+# reuse it for every pass including repair-loop re-judgments — refs move under
+# long beats and a re-sampled diff can silently change the rung mid-beat.
 EFFORT=$(brana backlog get {task_id} --field effort 2>/dev/null | tr -d '"')
 KIND=$(brana backlog get {task_id} --field kind 2>/dev/null | tr -d '"')
-FILES=$(git diff --name-only main...HEAD | tr '\n' ' ')
+FILES=$(git diff --name-only dev...HEAD | tr '\n' ' ')   # dev = this repo's integration base (ADR-060)
 NATURE=$(nature_class "$KIND" "$FILES")
-CRIT=$(criticality_hit "$FILES")
+CRIT=$(criticality_hit "$FILES")          # broad §1 list → rung-1 input (arg 3)
 # Fired signals this beat (comma-separated, from recorded events only):
 #   RECONSIDER_SEV4      — prior challenger iteration verdict RECONSIDER with sev >= 4
 #   PASS_WITH_GAPS       — evaluator verdict PASS-WITH-GAPS
-#   CRITICAL_PATH        — CRIT=1 doubles as this signal when the diff lands in a critical section
+#   CRITICAL_PATH        — lock_pull_hit "$FILES" = 1: the NARROW lock/pull-lease
+#                          subset only (ADR-082 §3 as amended). The broad critical
+#                          list feeds rung 1 via CRIT — it is NOT a signal, or the
+#                          rung-1 row would be unreachable.
 #   SIBLING_VERDICT      — parse_sibling_verdict on the prior verdict printed "yes"
 #   ESCAPED_DEFECT_AREA  — judge_area_weight "{task area}" >= 1
 RUNG=$(resolve_judge_rung "$EFFORT" "$NATURE" "$CRIT" "$SIGNALS_CSV") || {
@@ -110,7 +115,9 @@ finder) alongside the full funnel on the same beat; record both counts in the
 escaped-defect log's `control_arm: {rung1_findings, panel_findings}` field
 (`append_escaped_defect` 7th arg). This is the data ADR-082 §6's rung-2-collapse
 decision reads. Every rung ≥ 1 firing appends a log record regardless
-(`append_escaped_defect docs/ops/escaped-defects.jsonl ...`).
+(`append_escaped_defect docs/ops/escaped-defects.jsonl ...`). The "first 6" count
+is read from the log without a reservation step — concurrent beats may overshoot
+six control-arm samples; harmless (more measurement data), so no lock is added.
 
 Panel-role allowlists are subset-only (`judge_allowlist_violations` must print
 nothing — ADR-082 §4e); panel spawns never consume the max-2 challenger iteration
