@@ -48,6 +48,8 @@ if [ "$1" = "backlog" ] && [ "$2" = "get" ]; then
         t-empty:acceptance_criteria) echo 'null' ;;
         t-inj:acceptance_criteria) echo '["demoable: pytest && touch INJECTED"]' ;;
         t-inj:branch) echo '"stub/fix-branch"' ;;
+        t-inj-nl:acceptance_criteria) echo '["demoable: pytest\ntouch INJECTED_NL"]' ;;
+        t-inj-nl:branch) echo '"stub/fix-branch"' ;;
         *) echo 'null' ;;
     esac
     exit 0
@@ -147,6 +149,21 @@ OUT_INJ=$(bash "$GRADER" t-inj --json --cwd "$FIX_WORKTREE" 2>&1)
 assert "injected command never executed (canary file absent)" '[ ! -f "$CANARY" ]'
 assert "injected criterion classifies unknown, not silently dropped" \
   'echo "$OUT_INJ" | jq -e ".counts.unknown == 1" >/dev/null 2>&1'
+
+# t-2876 (Gate 3 security finding, ship-blocking): allowlisted_command() validated
+# line-by-line (grep's input model) — a $cmd with an embedded newline passed BOTH
+# checks (line 1 alone matched the allowlist prefix; no single line contained a
+# metacharacter), then bash's `eval` treated the embedded newline as a command
+# separator, executing the second line as an unchecked second command. H10's gate
+# (^demoable: .+, no $ anchor) + sed-based extraction let a multi-line payload
+# through where H7's fully ^...$-anchored gate blocks it.
+echo "Test: embedded-newline demoable payload never executes the injected second command"
+CANARY_NL="$FIX_WORKTREE/INJECTED_NL"
+rm -f "$CANARY_NL"
+OUT_INJ_NL=$(bash "$GRADER" t-inj-nl --json --cwd "$FIX_WORKTREE" 2>&1)
+assert "embedded-newline injected command never executed (canary file absent)" '[ ! -f "$CANARY_NL" ]'
+assert "embedded-newline criterion classifies unknown, not silently dropped" \
+  'echo "$OUT_INJ_NL" | jq -e ".counts.unknown == 1" >/dev/null 2>&1'
 
 # ── Gauge law: zero writes ────────────────────────────────────────────────────
 echo "Test: ac-grade.sh never writes to tasks.json or any task field (gauge law)"

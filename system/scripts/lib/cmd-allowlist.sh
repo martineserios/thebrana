@@ -11,11 +11,26 @@
 # Usage: source this file, then call `allowlisted_command "$cmd"` — returns 0
 # (true) iff the command both matches an allowed test-runner prefix AND contains
 # no shell metacharacters (rejecting "safe-prefix; payload" injection).
+#
+# t-2876 (Gate 3 ship-blocking finding): the original implementation validated
+# via `grep <<<"$cmd"` — grep's input model is LINE-ORIENTED, so a $cmd
+# containing an embedded literal newline was checked one line at a time. Line 1
+# alone ("pytest") satisfied the allowlist-prefix match, and no single line
+# contained a blocked metacharacter, so a payload like $'pytest\ntouch PWNED'
+# passed both checks — then reached `eval`, where bash treats an embedded
+# newline as a command separator exactly like `;`, executing the injected
+# second line. `[[ =~ ]]` alone does NOT fix this: a whole-string `^(cargo
+# test|...)` still matches at position 0 regardless of what characters (incl.
+# newlines) follow. The newline must be rejected explicitly, before any other
+# check — this closes the class for every current and future consumer, not
+# just the call site (H10's demoable:, ac-grade.sh) where it was first found
+# reachable.
 
 CMD_ALLOWLIST_RE='^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'
 
 allowlisted_command() {
     local cmd="$1"
-    grep -qE '[;&|`$(){}<>]' <<<"$cmd" && return 1
-    grep -qE "$CMD_ALLOWLIST_RE" <<<"$cmd"
+    [[ "$cmd" == *$'\n'* ]] && return 1
+    [[ "$cmd" =~ [\;\&\|\`\$\(\)\{\}\<\>] ]] && return 1
+    [[ "$cmd" =~ $CMD_ALLOWLIST_RE ]]
 }
