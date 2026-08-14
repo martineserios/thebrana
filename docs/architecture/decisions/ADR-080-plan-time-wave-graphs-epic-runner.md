@@ -110,23 +110,43 @@ A second committed loop entry, **`epic-drain`** (loops library). Beat procedure:
    including every denied verb.
 5. **Contract-met announcement:** when the wave's matched set is **non-empty** and has
    no pending work left (matched tasks all completed/cancelled), announce **"contract
-   likely met"** to the cockpit digest and back off. An **empty matched set is not
-   contract-met** — it is vacuous truth (undecomposed milestone, deleted selector
-   root, pure-planning milestone) and routes to the **studio agenda** as "wave matched
-   zero tasks — needs a look," never to the ship digest (challenge finding 5). The
-   runner **never ships** — one human ship decision per wave is what makes
-   epic-looping safe (unchanged from ADR-079 / §1.4).
+   likely met"** to the cockpit digest and back off. **The check is derived at
+   announce time from a fresh read of tasks.json** — same fresh-read discipline as
+   the pull; a stale in-memory view must not be able to announce a closed wave
+   (closure is derived, never asserted — studio sync 2026-08-14). An **empty matched
+   set is not contract-met** — it is vacuous truth (undecomposed milestone, deleted
+   selector root, pure-planning milestone) and routes to the **studio agenda** as
+   "wave matched zero tasks — needs a look," never to the ship digest (challenge
+   finding 5). The runner **never ships** — one human ship decision per wave is what
+   makes epic-looping safe (unchanged from ADR-079 / §1.4).
 6. **Advance:** a human `wave set <id> status shipped` unlocks the next wave; the next
    beat finds it via step 2. All waves shipped → epic drained → STOP (real signal).
 7. **Escalation routing (two rooms):** anything the runner is unsure about — scope
-   questions, conflicting AC, design doubts — goes to the **studio agenda queue**,
-   never the cockpit digest. Rubber-stamp items (ship valve, merge valve) go to the
-   digest. When unsure which, the agenda (under-escalating a design question into a
-   rubber-stamp is the worse failure).
+   questions, conflicting AC, design doubts, **and any item it cannot confidently
+   classify** — goes to the **studio agenda queue**, never the cockpit digest.
+   Rubber-stamp items (ship valve, merge valve) go to the digest. The agenda is the
+   default under uncertainty (under-escalating a design question into a rubber-stamp
+   is the worse failure).
+
+**The beat is the seven-step skeleton, deliberately** (wave-pipeline.md §The skeleton
+match — the runner is designed against the merged model): preflight re-read = ORIENT ·
+atomic pull = SELECT (externalized queue-side, unbypassable) · build framework = ACT ·
+gates/tests = MEASURE · JUDGE split by reversibility — machine judges for reversible
+outcomes, human valves for irreversible ones · structured beat record + task-context
+write = ASSIMILATE · pacing `{active, waiting, empty}` = RESTART. Two mechanical
+consequences, not just description: **(a) the machine half of JUDGE is structurally
+fresh-context** — challenger/evaluator run as separately-spawned workers per beat,
+never inline in the runner's own context (Actor≠Evaluator is a process separation;
+a beat that self-reviews is self-judging); **(b) the beat record is emitted from beat
+1** with its schema single-sourced in the loops-library contract — referenced, never
+duplicated here.
 
 Runner denied verbs = drain-loop.md's table **plus**: `wave set * status shipped`,
-`wave set * gate/selector`, and the batch approve verb (§4). t-2827 (technical
-enforcement of denials) covers this list too.
+`wave set * gate/selector`, the batch approve verb (§4), and **inline self-review in
+place of a spawned challenger/evaluator**. t-2827 (technical enforcement of denials)
+covers this list too. The runner prompt must not hardcode assumptions about which
+skills are model-invocable (t-2832 will re-taxonomize skill frontmatter; the runner
+stays order-independent of that change).
 
 ### 4. Coarser valve: wave-level batch approve
 
@@ -255,7 +275,14 @@ signal (all waves shipped).
   to the ubiquitous language.
 - Implementation tree (emitted by t-2828's REPORT, waves included — the plan that
   plans itself): selector + dry-run · plan WAVES step · wave approve · lease + reclaim
-  handoff spec to watchdog · wave board · epic-drain entry.
+  handoff spec to watchdog · wave board · epic-drain entry. **The epic-drain entry's
+  acceptance bar is proof-of-life** (materialization rule: a band exists only once
+  something has cycled in it): N real supervised beats completed with structured
+  records emitted — completion graded, not asserted. Wave sequencing across lanes:
+  gate the staged `drain-3` wave (t-2831–t-2836) on `adr080-consumers` — the binding
+  system constraint is human review rate (~1/day, probe-derived), so waves serialize
+  by gates rather than trusting per-wave wip; drain-3 then exercises leases + batch
+  approve as the third dogfood.
 - Review checkpoint (ADR-076 pattern): after the first epic drained end-to-end via
   epic-drain, review whether `parent:` waves, batch approve, and leases were each
   actually exercised; unexercised halves get the shrink treatment.
