@@ -34,13 +34,19 @@ this task.
 In: valve + rung computation in challenger-gate.md; sibling-verdict field in the
 challenger prompt (signal 4 source); rung-1 sibling-path finder; rung-2 funnel
 (2 finders → haiku filter → strongest-Claude default-refute verify) with
-disagreement-surfacing; brief library + diff-type router; escaped-defect log;
-content-hash pinning for blind-authored tests; M+ readiness ac_state surface;
-loops-library contract reference.
+disagreement-surfacing; **rung-2 in-loop fresh-context critic**; **blind
+test-author mechanism, shipped opt-in/signal-armed** (rung ≥ 1 + AC-approval
+precondition — per ADR-082 §6 the mechanism ships now; only its *default-on*
+promotion waits for the pilot); **control-arm counters** (§6: first 6 rung-2
+firings run rung-1-alone alongside, verified-miss delta recorded); brief library
++ diff-type router (all three natures); escaped-defect log (write AND read/query
+side); content-hash pinning for blind-authored tests; M+ readiness ac_state
+surface; loops-library contract reference.
 
-Out: rung 3 / PLAN panels (t-2896); blind test-author *authoring* flow (pilot-gated,
-separate task when the pilot is scheduled); wave/epic-runner JUDGE beats (they reuse
-this gate via /brana:build, so they inherit the valve for free — no runner edits).
+Out: rung 3 / PLAN panels (t-2896); blind-test-author *default-on* promotion
+(pilot gates the default, never the mechanism — ADR-082 §6); wave/epic-runner
+JUDGE beats (they reuse this gate via /brana:build, so they inherit the valve
+for free — no runner edits).
 
 ## Research
 
@@ -55,11 +61,14 @@ this gate via /brana:build, so they inherit the valve for free — no runner edi
 
 ## Assumptions
 
-- `nature` derivation: `kind` + diff file classes — code = any `*.rs`, `*.sh`,
-  `*.py`, `*.ts`, `system/hooks/`, `system/scripts/`; procedure = `system/skills/`,
-  `system/rules/`, `system/agents/` markdown; docs = everything else markdown.
-  Chose file-class precedence code > procedure > docs on mixed diffs because the
-  riskiest class governs — needs confirmation at spec review.
+- `nature` derivation — two inputs, riskiest wins: `kind` maps to a floor class
+  (feature/fix/refactor → code; design/docs/research → docs; ops → procedure),
+  diff file classes map each file (code = `*.rs`, `*.sh`, `*.py`, `*.ts`,
+  `system/hooks/`, `system/scripts/`; procedure = `system/skills/`,
+  `system/rules/`, `system/agents/` markdown; docs = other markdown), and
+  `nature = max(kind_class, max(file_classes))` by risk order code > procedure >
+  docs. Mixed diffs and kind/file disagreements both resolve upward — needs
+  confirmation at spec review.
 - Critical-section seed list (§1 ADR): `system/cli/rust/crates/*/src/**` paths
   matching lock/pull/lease code (`backlog.rs` wave/approve sections, `wave.rs`,
   `util.rs` tasks-file discovery), `system/hooks/**`, `bootstrap.sh`,
@@ -101,13 +110,16 @@ this gate via /brana:build, so they inherit the valve for free — no runner edi
 
 | Component | File | Shape |
 |---|---|---|
-| Sizing function + signals table + critical-path list | `system/skills/_shared/judge-sizing.md` (new) | `JUDGE-SIZING-BLOCK` extractable bash: `resolve_judge_rung(effort, nature, criticality_hit, signals_csv)` → prints `0|1|2`, exit contract like branch-prefix (never empty, exit 0; exit 2 on unreadable table) |
-| Valve wiring | `challenger-gate.md` (edit) | New "Sizing valve" section between lint and spawn: compute inputs, call resolver, spawn per shape; beat-report line format |
-| Sibling-verdict field | `challenger-gate.md` spawn prompt (edit) | Adds "(4) Does this fix have structural siblings outside the diff? Answer yes/no with paths — this is a recorded verdict field" |
-| Brief library + router | `judge-sizing.md` §Briefs | 4 briefs from ADR-082 §4a; router: diff-type (code→second-variant+concurrency; procedure→read-only-claims+denied-verb) |
+| Sizing function + signals table + critical-path list | `system/skills/_shared/judge-sizing.md` (new) | `JUDGE-SIZING-BLOCK` extractable bash: `resolve_judge_rung(effort, nature, criticality_hit, signals_csv)` → prints `0|1|2` at exit 0; exit 2 on unreadable/empty table (precedent: `exit-contract-lint.sh` registry rule, NOT branch-prefix — branch-prefix degrades and never errors; only its extracted-block *test pattern* is copied). Marked `# Exit contract` and registered in the exit-contract-lint registry so call sites are mechanically checked |
+| Valve wiring | `challenger-gate.md` (edit) | New "Sizing valve" section between lint and spawn: compute inputs, call resolver, spawn per shape; beat-report line format (armed/unarmed + why) |
+| Sibling-verdict field | `challenger-gate.md` spawn prompt (edit) + `parse_sibling_verdict()` helper in `judge-sizing.md` | Prompt adds "(4) Does this fix have structural siblings outside the diff? Answer yes/no with paths — recorded verdict field". Parser is extractable bash, unit-tested on fixture verdict text; missing field → not-fired + logged omission |
+| Brief library + router | `judge-sizing.md` §Briefs | 4 briefs from ADR-082 §4a; router covers all three natures: code→second-variant+concurrency; procedure→read-only-claims+denied-verb; docs→read-only-claims+contract/AC-fidelity (the probe's own docs-capable brief) |
 | Rung-2 funnel | `judge-sizing.md` §Funnel | Spawn contract per stage (model tier, stance, context access, blinding, "empty is respectable"); disagreement-surfacing verdict class `SPLIT` |
-| Escaped-defect log | `docs/ops/escaped-defects.jsonl` (new) + append helper in `judge-sizing.md` | `{date, area, signal, rung_armed, verified_findings, cost_tokens}`; seeded with probe's 4 |
-| Content-hash pinning | `system/hooks/red-verification.sh` + `goal-completion.sh` (edit) | Registration writes `{path, sha256}` into `tests_required[]`; goal-completion re-hashes registered paths, mismatch = block (closes ADR-082 §5 residual gap) |
+| Rung-2 in-loop critic | `judge-sizing.md` §Team + `build-loop.md` (edit) | Fresh-context critic spawn contract at beat boundaries during BUILD, rung-2 only (ADR-082 §5); explicitly spawned, Actor≠Evaluator |
+| Blind test-author (opt-in) | `judge-sizing.md` §Team | Spawn contract: authors failing tests from approved AC only (never sees plan/diff); arms at rung ≥ 1 + `ac_state: approved`; ships opt-in — pilot gates *default-on* only (ADR-082 §6) |
+| Control-arm counters | escaped-defect log fields + `challenger-gate.md` valve section | First 6 rung-2 firings also run rung-1-alone on the same beat; log record gains `control_arm: {rung1_findings, panel_findings}` — the §6 collapse decision's data |
+| Escaped-defect log — write + read | `docs/ops/escaped-defects.jsonl` (new) + `append_escaped_defect()` and `judge_area_weight(area)` helpers in `judge-sizing.md` | Record: `{date, area, signal, rung_armed, verified_findings, cost_tokens, control_arm?}`; seeded with probe's 4. Read side: `judge_area_weight` filters records to the 30-day window and counts prefix-matches on `area` — signal 5 fires on count ≥ 1; absent file → 0 |
+| Content-hash pinning | `system/hooks/red-verification.sh` + `goal-completion.sh` (edit) | **Backward-compatible parallel map**: `tests_required[]` stays a string array (all existing consumers untouched — red-verification idempotency `index()`, goal-completion audit/UNREG greps, test suites test-red-verification.sh / test-goal-completion.sh G7/G9/A1); a new sibling key `tests_hashes: {path: sha256}` is written at registration; goal-completion re-hashes registered paths and blocks on mismatch (closes ADR-082 §5 residual gap) |
 | Readiness ac_state surface | `system/skills/build/phases/load.md` Step 0d (edit) | M+ soft-warn line: `⚠ ac_state is '{v}' — blind test-author cannot arm; approve via brana backlog ac {id} approve` |
 | Loops-library reference | `docs/architecture/features/loops-library.md` (append) | JUDGE-step/model-per-beat schema cites the sizing function |
 
@@ -123,13 +135,21 @@ this gate via /brana:build, so they inherit the valve for free — no runner edi
 
 - **Unit (70%):** `tests/procedures/test-judge-sizing.sh` — extracted-block sourcing;
   table totality (every input combo → exactly one rung; rung-0 floor); signal
-  precedence; exit-2 on empty table; nature precedence on mixed inputs. Content-hash:
-  `tests/hooks/` case — register, weaken, expect block.
-- **Integration (25%):** forced-signal dry beat — a fixture diff touching a
-  critical path arms rung ≥1; challenger-prompt contract test greps the spawn
+  precedence; exit-2 on empty table; nature max() precedence (kind vs file class,
+  mixed diffs); `parse_sibling_verdict()` on fixture verdict text (yes/no/missing
+  field); `judge_area_weight()` window + prefix matching + absent-file → 0;
+  **subset-only allowlist assertion** — every brief's allowlist intersected with
+  the runner denied-verb list must be empty (ADR-082 §4e AC). Content-hash:
+  register → weaken → expect block; plus regression run of the EXISTING suites
+  (test-red-verification.sh, test-goal-completion.sh G7/G9/A1) proving the
+  parallel-map design leaves string-array consumers untouched.
+- **Integration (25%):** forced-signal dry beat — fixture diff touching a
+  critical path arms rung ≥ 1; challenger-prompt contract test greps the spawn
   prompt for the sibling-verdict field (drift guard).
 - **E2E (5%):** one supervised proof-of-life beat on a real S task at rung 0
-  (transcript unchanged) — t-2845 precedent.
+  (transcript unchanged) — t-2845 precedent. Runtime missing-field fallback
+  (Edge Case 4) is verified here, in the supervised beat — it is LLM-output
+  behavior the bash-block pattern cannot capture.
 - **Mock policy:** real files/fixtures; no model calls in tests (spawn contracts
   are text, tested as text).
 
@@ -143,4 +163,22 @@ this gate via /brana:build, so they inherit the valve for free — no runner edi
 
 ## Challenger findings
 
-(pending — populated after spec challenger review)
+Spec challenge 2026-08-14 (context-isolated, RECONSIDER → repaired in place):
+- **Sev 5:** blind test-author was written "pilot-gated" — the exact framing
+  ADR-082 §6 rejects. Repaired: mechanism ships opt-in/signal-armed in this task;
+  the pilot gates default-on promotion only.
+- **Sev 4 ×2:** in-loop critic + control-arm counters (both ADR-assigned to
+  t-2895) were undeclared → added to Scope In + Design; escaped-defect log had
+  no read side → `judge_area_weight()` specified. (The task-context deliverables
+  list predating this spec had the same two omissions — reconciled here.)
+- **Sev 3-4:** content-hash schema change would have broken 4+ existing
+  consumers → redesigned as a backward-compatible parallel `tests_hashes` map;
+  existing suites added as regression tests.
+- **Sev 3 ×4:** nature derivation dropped `kind` → max() rule stated; docs-nature
+  had no router case → read-only-claims + contract/AC-fidelity; exit-contract
+  precedent mis-cited (branch-prefix never errors — exit-2 follows
+  exit-contract-lint's registry rule, and the resolver registers in that lint);
+  §4e subset-only AC had no test → allowlist-intersection assertion added.
+- **Sev ≤2:** Edge Case 4 runtime fallback assigned to the supervised E2E beat;
+  `docs/ops/` placement kept (user-confirmed) with the workspace-taxonomy note
+  acknowledged.
