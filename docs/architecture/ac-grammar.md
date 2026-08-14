@@ -2,8 +2,16 @@
 
 > **Single source of truth** for the acceptance-criteria heuristic grammar.
 > Both the **producer** (`/brana:backlog plan` criteria generation + lint) and the
-> **consumer** (`system/hooks/goal-completion.sh`) cite this file. Keep them in sync
+> **consumer** (`system/hooks/goal-completion.sh`, via `system/scripts/ac-grade.sh` —
+> the shared execution layer, t-2871/ADR-081) cite this file. Keep them in sync
 > by editing here first, then the implementations. See [ADR-047](decisions/ADR-047-acceptance-criteria-schema.md) §3.
+>
+> Two sibling scripts, two different jobs — don't confuse them: `ac-lint.sh`
+> classifies a criterion's **shape** (checkable vs. prose) without running
+> anything; `ac-grade.sh` **executes** the heuristics against a real working
+> tree and reports pass/fail/unknown per criterion. `goal-completion.sh` and
+> `brana backlog stacked-verdict`/`ac approve` all call `ac-grade.sh` — it is
+> the only place any heuristic actually runs.
 
 ## Why this file exists
 
@@ -120,3 +128,8 @@ This is the contract `tests/procedures/` should assert against so the three neve
   before eval — closes a prefix-match injection bypass found by challenger review). Producer
   instructions (backlog plan step 11b, ac-propose generator) now require grammar-matching
   shapes first, freeform prose only as fallback.
+- 2026-08-14 (t-2857/t-2871, ADR-081): heuristic execution extracted from `goal-completion.sh`
+  into standalone `system/scripts/ac-grade.sh` — the single execution layer, now shared by the
+  Stop hook, `brana backlog stacked-verdict`, and `ac approve`. The shared `allowlisted_command()`
+  guard moved again, to `system/scripts/lib/cmd-allowlist.sh` — `ac-lint.sh` and `ac-grade.sh`
+  both source it; neither carries its own copy.

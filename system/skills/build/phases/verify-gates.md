@@ -115,6 +115,8 @@ Where `MODIFIED_FILES` = output of `git diff --name-only main...HEAD` (from the 
 
 Always log: `brana backlog set {task_id} notes --append "Evaluator: {verdict} ({date}), {N} criteria checked"`
 
+This line is **machine-read**, not just a human record (t-2857, ADR-081 D2) — `brana backlog stacked-verdict` and `ac approve` parse `Evaluator: {verdict}` out of `notes` as the judged evidence layer. `{verdict}` must be exactly `PASS`, `PASS WITH GAPS`, or `FAIL` — no other wording — or the parser silently counts it as `0 judged` instead of erroring.
+
 #### Repair loop (max 2 iterations)
 
 **Iteration 1 — FAIL verdict:**
