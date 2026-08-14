@@ -88,6 +88,17 @@ echo "--- Heuristic 8: git log ---"
 check "h8 changes committed"       "changes to load.md committed"            "checkable" 0
 check "h8 commit msg contains"     'commit message contains "t-2199"'        "checkable" 0
 
+# ── Heuristic 9: validate.sh full run (t-2856 drift fix — hook had it, lint didn't) ──
+echo "--- Heuristic 9: validate.sh full run ---"
+check "h9 validate.sh passes"      "validate.sh passes"                       "checkable" 0
+check "h9 validate.sh exit 0"      "validate.sh exit 0"                       "checkable" 0
+
+# ── Heuristic 10: demoable: <command> (t-2856) ───────────────────────────────
+echo "--- Heuristic 10: demoable ---"
+check "h10 demoable cargo test"    "demoable: cargo test"                     "checkable" 0
+check "h10 demoable bash tests/"   "demoable: bash tests/demo.sh"             "checkable" 0
+check "h10 non-allowlisted prose"  "demoable: rm -rf /"                       "prose" 1
+
 # ── Prose (UNKNOWN) — must NOT be checkable ───────────────────────────────────
 echo "--- Prose criteria (should classify as prose) ---"
 check "prose: works correctly"     "works correctly"                          "prose" 1
