@@ -86,6 +86,12 @@ pub fn cmd_run(task_id: &str, spawn: bool) -> anyhow::Result<()> {
         val["tasks"][idx]["status"] = serde_json::json!("in_progress");
         val["tasks"][idx]["started"] = serde_json::json!(today);
         val["tasks"][idx]["branch"] = serde_json::json!(branch);
+        // t-2841: manual `run` taking over a task is a status write too — if
+        // the task carries a pump-taken lease, a human is now working it, so
+        // ack it the same way set_field does (human work is not
+        // watchdog-reclaimable; a stale lease here would invite the future
+        // reclaimer to fight the human for the same task).
+        tasks::ack_status_write(&mut val["tasks"][idx], "in_progress");
         tasks::save_tasks(&tf, &val)
             .map_err(|e| anyhow::anyhow!("{}", serde_json::json!({"ok": false, "error": e})))?;
     }
@@ -229,6 +235,8 @@ pub fn cmd_agents_kill(agent_id: &str) -> anyhow::Result<()> {
             if let Some(idx) = idx {
                 val["tasks"][idx]["status"] = serde_json::json!("pending");
                 val["tasks"][idx]["started"] = serde_json::Value::Null;
+                // t-2841: cleanup reset is a status write — ack it (see above).
+                tasks::ack_status_write(&mut val["tasks"][idx], "pending");
                 tasks::save_tasks(&tf, &val).ok();
             }
         }
