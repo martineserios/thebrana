@@ -139,6 +139,33 @@ pub fn compose_line(grade: &GradeCounts, judged: JudgedCounts, receipt: &Receipt
 /// receipt validate`, composes, prints. Zero writes — never calls
 /// `tasks::save_tasks` or any mutating helper (gauge law, boundary-tested).
 pub fn cmd_stacked_verdict(task_id: &str, json: bool, file: Option<PathBuf>) -> Result<()> {
+    let bundle = compute_bundle(task_id, file)?;
+
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "task_id": task_id,
+                "grade": {"pass": bundle.grade.pass, "fail": bundle.grade.fail, "unknown": bundle.grade.unknown},
+                "judged": {"pass": bundle.judged.pass, "fail": bundle.judged.fail},
+                "receipt": bundle.receipt.render(),
+                "line": bundle.line,
+            })
+        );
+    } else {
+        println!("{}", bundle.line);
+    }
+    Ok(())
+}
+
+struct Bundle {
+    grade: GradeCounts,
+    judged: JudgedCounts,
+    receipt: ReceiptStatus,
+    line: String,
+}
+
+fn compute_bundle(task_id: &str, file: Option<PathBuf>) -> Result<Bundle> {
     let tf = match file {
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
@@ -176,22 +203,15 @@ pub fn cmd_stacked_verdict(task_id: &str, json: bool, file: Option<PathBuf>) -> 
         .unwrap_or(ReceiptStatus::NoneMinted);
 
     let line = compose_line(&grade, judged, &receipt);
+    Ok(Bundle { grade, judged, receipt, line })
+}
 
-    if json {
-        println!(
-            "{}",
-            serde_json::json!({
-                "task_id": task_id,
-                "grade": {"pass": grade.pass, "fail": grade.fail, "unknown": grade.unknown},
-                "judged": {"pass": judged.pass, "fail": judged.fail},
-                "receipt": receipt.render(),
-                "line": line,
-            })
-        );
-    } else {
-        println!("{line}");
-    }
-    Ok(())
+/// For `ac approve` (t-2872): render the bundle line, best-effort. `None` on
+/// any failure (task not found, subprocess errors) — the caller must never
+/// let this block or fail the actual approval; the gauge is informational
+/// only, never a gate (gauge law, wave-pipeline.md §skeleton match).
+pub fn render_bundle_line(task_id: &str, file: Option<PathBuf>) -> Option<String> {
+    compute_bundle(task_id, file).ok().map(|b| b.line)
 }
 
 /// The invoking process's own checkout root — never derived from tasks.json's
