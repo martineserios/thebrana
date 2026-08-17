@@ -80,6 +80,13 @@ Nothing requires plan-born waves: `wave add` stays for hand-rolled ones.
 
 ### 3. The epic runner — a graph-walking generalization of drain-loop.md
 
+> **Addendum (2026-08-17, t-2933):** this section's beat procedure shipped as the
+> committed runner doc [`docs/guide/workflows/epic-drain.md`](../../guide/workflows/epic-drain.md)
+> (t-2845) and its catalog entry [`system/loops/epic-drain.md`](../../../system/loops/epic-drain.md)
+> (t-2826/t-2933). The prose below is preserved as the original decision record — for the
+> current, maintained procedure (including post-t-2845 fixes not reflected here), read the
+> committed doc, not this ADR.
+
 A second committed loop entry, **`epic-drain`** (loops library). Beat procedure:
 
 1. **PREFLIGHT (cheap):** resolve the epic's waves — waves whose selector root

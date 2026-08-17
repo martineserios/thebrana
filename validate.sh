@@ -2712,6 +2712,33 @@ fi
 echo ""
 fi  # should_run 70
 
+# Check 71: loops-library catalog entries (t-2826)
+echo "Checking loops-library catalog entries..."
+C71_LINT="$SCRIPT_DIR/system/scripts/loops-lint.py"
+C71_LOOPS_DIR="$SYSTEM_DIR/loops"
+if [ ! -f "$C71_LINT" ]; then
+    warn "Check 71: $C71_LINT not found — skipping"
+elif [ ! -d "$C71_LOOPS_DIR" ]; then
+    warn "Check 71: $C71_LOOPS_DIR not found — skipping"
+else
+    C71_ENTRIES=()
+    for C71_F in "$C71_LOOPS_DIR"/*.md; do
+        [ "$(basename "$C71_F")" = "README.md" ] && continue
+        C71_ENTRIES+=("$C71_F")
+    done
+    if [ "${#C71_ENTRIES[@]}" -eq 0 ]; then
+        warn "Check 71: no entries in $C71_LOOPS_DIR — skipping"
+    else
+        if C71_OUT=$(python3 "$C71_LINT" "${C71_ENTRIES[@]}" 2>&1); then
+            pass "Check 71: loops-library entries — all lint-clean"
+        else
+            printf '%s\n' "$C71_OUT" | grep -E ': FAIL' | sed 's/^/  /'
+            fail "Check 71: loops-library entry lint failed — see above"
+        fi
+    fi
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

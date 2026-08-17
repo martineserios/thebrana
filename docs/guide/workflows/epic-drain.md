@@ -12,11 +12,13 @@ related: [docs/guide/workflows/drain-loop.md, docs/architecture/features/loops-l
 > Second entry of the loops library ([loops-library.md](../../architecture/features/loops-library.md)
 > — the beat-record schema this entry emits, single-sourced there, never
 > duplicated here) — the first proof the library holds more than one entry.
-> Generalizes [drain-loop.md](drain-loop.md) (t-2813, ADR-079) from "one
-> wave, hand-armed" to "walk an epic's wave graph, arm each wave as its gate
-> clears." Everything drain-loop.md does once epic-drain has pulled a task —
-> full build framework, human merge valve, denied verbs — is unchanged and
-> inherited, not reimplemented here.
+> Catalog entry: [system/loops/epic-drain.md](../../../system/loops/epic-drain.md)
+> (frontmatter + pointer back here — this file stays the single source for
+> the procedure). Generalizes [drain-loop.md](drain-loop.md) (t-2813,
+> ADR-079) from "one wave, hand-armed" to "walk an epic's wave graph, arm
+> each wave as its gate clears." Everything drain-loop.md does once
+> epic-drain has pulled a task — full build framework, human merge valve,
+> denied verbs — is unchanged and inherited, not reimplemented here.
 
 ## Prerequisites
 
