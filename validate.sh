@@ -2721,8 +2721,12 @@ if [ ! -f "$C71_LINT" ]; then
 elif [ ! -d "$C71_LOOPS_DIR" ]; then
     warn "Check 71: $C71_LOOPS_DIR not found — skipping"
 else
-    C71_ENTRIES=("$C71_LOOPS_DIR"/*.md)
-    if [ ! -e "${C71_ENTRIES[0]}" ]; then
+    C71_ENTRIES=()
+    for C71_F in "$C71_LOOPS_DIR"/*.md; do
+        [ "$(basename "$C71_F")" = "README.md" ] && continue
+        C71_ENTRIES+=("$C71_F")
+    done
+    if [ "${#C71_ENTRIES[@]}" -eq 0 ]; then
         warn "Check 71: no entries in $C71_LOOPS_DIR — skipping"
     else
         if C71_OUT=$(python3 "$C71_LINT" "${C71_ENTRIES[@]}" 2>&1); then

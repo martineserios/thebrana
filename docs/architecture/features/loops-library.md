@@ -1,7 +1,7 @@
 # Feature: Loops Library — `system/loops/` catalog of committed loop definitions
 
 **Date:** 2026-08-17
-**Status:** building
+**Status:** shipped
 **Task:** t-2826
 **Source doc:** [loops-library.md (idea, shape approved 2026-08-14)](../../ideas/drained/loops-library.md)
 **Related ADRs:** [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md) (drain-loop substrate), [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §6 (scope split: loop-first owns "loops library catalog + entry schema + `records:` beat schema")
@@ -41,6 +41,8 @@ Like skills, loops need a library: versioned, discoverable, reviewable, with a s
 3. **`system/loops/README.md`** — catalog index + "how to write and arm a loop" guide, mirroring the skills library's own README convention (operator-facing, lives in `system/` not `docs/`).
 4. **Discoverability, scoped down.** `brana discover` has no existing subcommand for this (verified: no `Discover` command in `system/cli/rust/crates/brana-cli/src`) — wiring it is net-new CLI code, not a documentation change. v1 ships the catalog itself plus its README index; `brana discover` integration is deferred (see Out of scope) rather than silently assumed.
 
+## Out of scope (v1)
+
 - New loop entries beyond the three above (e.g. `ac-proposer`, `knowledge-distiller`, `watchdog`/`lease-reclaimer`) — each is its own follow-on task once the catalog format exists to write them into.
 - Full resolution of model-per-beat-component beyond the already-decided JUDGE slice.
 - Unattended/autonomous execution (ADR-062 gate).
@@ -60,10 +62,10 @@ Like skills, loops need a library: versioned, discoverable, reviewable, with a s
 
 Per the no-silent-ambiguity rule — flagged, not picked:
 
-1. **Directory vs skill-frontmatter.** The idea doc's own open question ("`system/loops/` dir vs skills-with-loop-frontmatter") is unresolved upstream. Assumption: keep the dedicated `system/loops/` directory (already exists, already has a real file in it) rather than retrofitting loops as skill frontmatter — because none of the three seed entries are skills. *Needs confirmation.*
-2. **Lint implementation.** No prior art for a loops-specific lint exists. Assumption: a small Python script under `system/scripts/`, following the same shape as skill-validation-checklist tooling, wired into `validate.sh`. *Needs confirmation on language/wiring.*
-3. **Proof-of-life bar for seed entries.** The idea doc's bar is "N real beats with emitted records," which reads as a forward-looking usage requirement, not a one-sitting deliverable. Assumption: for v1, proof-of-life is satisfied by pointing at each entry's *already-emitted* historical run evidence (pipeline-digest's live beats since t-2823, drain-loop's 8-beat t-2813 session + ongoing wave-drain use, epic-drain's t-2845 beats) rather than requiring fresh beats post-cataloging. *Needs confirmation* — the alternative reading (N beats *after* the entry is catalog-compliant) would make this task open-ended rather than closeable in one build.
-4. **`drain-loop` and `epic-drain` catalog entries as references vs forks.** Assumption: the catalog file for both is a thin wrapper (frontmatter + a pointer to the authoritative procedure doc, which stays at `docs/guide/workflows/`) rather than a full copy or move, to avoid the exact duplication problem ADR-080 already flagged for the beat-record schema. *Needs confirmation* — an alternative is `git mv`ing both files into `system/loops/` outright, which would make the catalog the single home instead of a second location pointing at `docs/guide/workflows/`.
+1. **Directory vs skill-frontmatter.** The idea doc's own open question ("`system/loops/` dir vs skills-with-loop-frontmatter") is unresolved upstream. Assumption: keep the dedicated `system/loops/` directory (already exists, already has a real file in it) rather than retrofitting loops as skill frontmatter — because none of the three seed entries are skills. **Resolved 2026-08-17:** built as assumed — carried through APPROVE (CLASSIFY step) and DECOMPOSE approval without objection; the idea doc's open question stays open for a future entry that *is* skill-shaped, but is no longer live for this build's three seed entries.
+2. **Lint implementation.** No prior art for a loops-specific lint exists. Assumption: a small Python script under `system/scripts/`, following the same shape as skill-validation-checklist tooling, wired into `validate.sh`. **Resolved 2026-08-17:** built as assumed — `system/scripts/loops-lint.py`, wired as validate.sh Check 71 (t-2930).
+3. **Proof-of-life bar for seed entries.** The idea doc's bar is "N real beats with emitted records," which reads as a forward-looking usage requirement, not a one-sitting deliverable. Assumption: for v1, proof-of-life is satisfied by pointing at each entry's *already-emitted* historical run evidence (pipeline-digest's live beats since t-2823, drain-loop's 8-beat t-2813 session + ongoing wave-drain use, epic-drain's t-2845 beats) rather than requiring fresh beats post-cataloging. **Resolved 2026-08-17:** built as assumed, independently corroborated by the challenger review (see Challenger findings below) — each entry's Proven evidence is cited in `system/loops/README.md`'s catalog table rather than re-earned.
+4. **`drain-loop` and `epic-drain` catalog entries as references vs forks.** Assumption: the catalog file for both is a thin wrapper (frontmatter + a pointer to the authoritative procedure doc, which stays at `docs/guide/workflows/`) rather than a full copy or move, to avoid the exact duplication problem ADR-080 already flagged for the beat-record schema. **Resolved 2026-08-17:** built as assumed — both entries (t-2932, t-2933) are thin wrappers; verified by diff that neither source doc's procedure content changed. The `git mv`-into-`system/loops/` alternative was not taken; still open for reconsideration if a future contributor finds the two-location split confusing.
 
 ## Behavior
 
@@ -150,13 +152,13 @@ A per-step model tier belongs in each entry's frozen contract (`model: {prefligh
 
 ## Documentation Plan
 
-- [ ] **User guide** — `system/loops/README.md`: how to write and arm a loop entry, the frontmatter contract, how `/loop` picks it up (operator-facing, mirrors skill-authoring conventions, lives in `system/` not `docs/guide/`).
-- [ ] **Tech doc** — this file, updated post-build with final design notes and any assumption resolutions.
-- [ ] **Existing docs to update:**
-  - `docs/guide/workflows/drain-loop.md` — add a header pointer to its catalog entry.
-  - `docs/guide/workflows/epic-drain.md` — add a header pointer to its catalog entry (already has a `related:` frontmatter field pointing at this spec; the catalog file is the missing reverse link).
-  - `docs/architecture/skills.md` — add a "loops library" pointer alongside skills (this task's own framing: "parallel to the skills library"). **Not `docs/reference/skills.md`** — that file carries a `Generated by brana reference generate — do not edit manually` banner and is fully recomputed on every `brana reference generate` run; a hand-added pointer there would silently vanish on the next regen (field-note-routing.md: the architecture file is the only valid hand-edit target when both exist for a topic).
-  - ADR-080 §3 — its epic-drain beat-procedure prose now predates and duplicates the committed `epic-drain.md`; point at the file instead of restating the procedure (same duplication ADR-080 itself warns against for the records schema).
+- [x] **User guide** — `system/loops/README.md`: how to write and arm a loop entry, the frontmatter contract, how `/loop` picks it up (operator-facing, mirrors skill-authoring conventions, lives in `system/` not `docs/guide/`). (t-2934)
+- [x] **Tech doc** — this file, updated post-build with final design notes and any assumption resolutions. (t-2936)
+- [x] **Existing docs to update:**
+  - `docs/guide/workflows/drain-loop.md` — header pointer added to its catalog entry. (t-2932)
+  - `docs/guide/workflows/epic-drain.md` — header pointer added to its catalog entry. (t-2933)
+  - `docs/architecture/skills.md` — "loops library" pointer added alongside skills. (t-2935)
+  - ADR-080 §3 — additive addendum block added pointing at the committed `epic-drain.md` doc; original decision prose preserved unrewritten (ADR discipline: accepted ADRs aren't edited, only amended — see Challenger findings / t-2933 deviation note). (t-2933)
 
 ## Challenger findings
 
@@ -165,5 +167,7 @@ A per-step model tier belongs in each entry's frozen contract (`model: {prefligh
 Warnings addressed: (1) `brana discover` has no existing subcommand — moved from Scope to Out-of-scope (net-new CLI, not this build). (2) Verified the pre-existing stub's beat-record schema and model-per-beat-component sections survived this rewrite verbatim, per the stub's own "expand — don't replace" instruction.
 
 Observations: proof-of-life-via-historical-evidence (Assumption 3) independently corroborated for all three entries — pipeline-digest (t-2823 run-state history), drain-loop (ADR-080's own citation of the 8-beat t-2813 session), epic-drain (t-2845's own Proof-of-life section + live tasks.json).
+
+**Close-out note (t-2936):** during Documentation Plan checkbox review, found the `## Out of scope (v1)` heading had been silently dropped by an earlier Edit call (the bullet list survived, the heading didn't) — fixed. No other structural gaps found on a full re-read.
 
 **Sprint contract review (2026-08-17): RECONSIDER → fixed (single s4 finding, narrow).** Critical: the Documentation Plan's pointer target was `docs/reference/skills.md`, a generated file (`Generated by brana reference generate — do not edit manually` banner, fully recomputed on every run) — a hand-added pointer there would silently vanish on the next regen. Fixed: retargeted to `docs/architecture/skills.md` per field-note-routing.md. Also folded in: `validate.sh` wiring made an explicit AC on the lint subtask (t-2930) rather than left implicit; lint test-coverage AC expanded to cover the semantic "records: is a reference, not a redefinition" check, not just field-presence. `spawns:` recursion-bound non-enforcement remains correctly named in this spec's own Out of scope section (the contract review's Warning 2 was that a *separate, shorter* sprint-contract restatement omitted it — not a gap in this spec).
