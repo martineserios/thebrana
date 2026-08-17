@@ -1,7 +1,7 @@
 # Feature: Time Tracking — Metric 1 (Active Effort)
 
 **Date:** 2026-08-17
-**Status:** specifying
+**Status:** building
 **Task:** t-2921 (tests, this spec) · t-2922 (implementation)
 
 ## Problem
