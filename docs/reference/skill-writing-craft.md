@@ -159,3 +159,25 @@ Both source files (`SKILL.md`, `SKILL-MECHANICS.md`) fetched in full from
 [mattpocock/skills](https://github.com/mattpocock/skills) (2026-08-17) rather than reconstructed
 from the t-2830 research summary, so the levers above are transcribed against the primary
 source, not a paraphrase of a paraphrase.
+
+**License:** [mattpocock/skills](https://github.com/mattpocock/skills) is MIT-licensed
+(confirmed via `gh api repos/mattpocock/skills/license`, 2026-08-17). MIT permits this
+attributed derivative summary; no separate clearance needed.
+
+**Relationship to the DEPEND integration mode (t-2837, pending):** t-2830's research doc
+reclassified `writing-for-agents` from §4's original companion-doc framing to §7's DEPEND
+mode (vendor his skill verbatim, pinned, wrapped by a thin brana adapter) — and t-2837's own
+context states this doc's task "becomes a pinned reference" under that model. t-2837 is the
+ADR that would formally decide and execute that reshape; as of this writing it is still
+`status: pending`, undecided, and has not superseded t-2833's own (separately approved)
+acceptance criteria, which this doc satisfies as written.
+
+This doc is **not** a substitute for that vendored dependency if t-2837 lands DEPEND for this
+skill — it's this repo's own authored reference (framed against brana's `SKILL.md` +
+`phases/*.md` split specifically, with a worked example against a brana skill), not a copy of
+Pocock's skill file redistributed for direct agent consumption. The two can coexist: a future
+pinned `writing-for-agents` dependency would be the mechanism an agent invokes; this doc stays
+the human-facing craft rationale a skill *author* reads once while writing or reviewing a
+skill, cross-referenced from `skill-validation-checklist.md`. If t-2837 lands DEPEND for this
+skill, revisit whether this doc should point at the vendored copy instead of restating its
+content — flagged here so that reconciliation isn't lost.
