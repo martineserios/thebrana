@@ -31,6 +31,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `status` | `stable`, `experimental`, `seed`, `deprecated` |
 | `growth_stage` | `evergreen`, `prototype`, `seed` |
 | `group` | `brana`, `capture`, `core`, `execution`, `learning`, `session`, `thinking`, `tools`, `utility`, `venture` (legacy: `business`, `content`, `domain`, `integration`) |
+| `disable-model-invocation` | `true` (omit for the default — model-invoked). See [Skills Architecture](../architecture/skills.md) for the audited user-invoked-only classification. |
 
 `name` must equal the directory name. `description`, `argument-hint`, `depends_on`, and `allowed-tools` are free-form strings or string lists.
 

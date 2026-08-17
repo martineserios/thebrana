@@ -107,6 +107,8 @@ Not one of the original twelve factors — a CC-native addition. Every model-inv
 default: no `disable-model-invocation` field) sits in context every turn *and* can fire
 autonomously without the user asking for that specific action.
 
+**This is a friction nudge, not a hard gate** ([ADR-076](../architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md) §Verified findings, #3): `disable-model-invocation` blocks only the `Skill` tool. A `SKILL.md` set to `true` is still a readable file — the model can `Read` it and follow the steps inline via `Bash`/`Edit`/`Write` without ever invoking the skill. Set the field to raise the bar for opportunistic firing, not as a guarantee the agent can never reach the same effect another way.
+
 - [ ] If the skill's effects are destructive, one-shot, external, or hard to reverse
       (deploying, archiving/deleting data, publishing, modifying shared registries or
       credentials), it sets `disable-model-invocation: true`

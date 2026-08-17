@@ -19,6 +19,7 @@ allowed-tools:
   - Task
   - TaskList
   - Skill
+disable-model-invocation: true
 status: stable
 growth_stage: evergreen
 ---
