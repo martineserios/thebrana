@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-08-17T13:26:51.010693776-03:00",
+  "last_modified": "2026-08-17T14:54:21.152901959-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -63674,9 +63674,9 @@
         "regression test with two session-state files where the newer one belongs to a DIFFERENT session/epic than the one closing"
       ],
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/fix/t-2502-close-anchor-visibility",
       "completed": null,
-      "context": "Found live 2026-07-27, in the very first close to run the t-2491 fix — caught by comparing the computed window against the actual commit list before trusting it.\n\nOBSERVED. LAST_CLOSE resolved to 2026-07-28T01:29:49Z, written by a CONCURRENT session (which was working t-2496 in its own worktree and closed mid-flight). COMMIT_COUNT came back 4, and the window contained 3 commits from 22:29 onward. The closing session's actual work spanned 22:01 -> 22:51 (10 commits). Everything from 22:01-22:27 — including the t-2487/t-2478/t-2491/t-2493 fixes themselves — fell OUTSIDE the window and would not have been snapshotted or queued for extraction.\n\nTHE TRADE. Before t-2491 the anchor read only the default session-state.json, so an epic-routed close left it stale and the window OVER-reached (32 commits vs 4). After t-2491 it takes the max across all files, so a concurrent session's close makes the window UNDER-reach. Over-reach causes double-extraction (close-snapshot.sh dedups on the range string, so a different range is not deduped). Under-reach causes SILENT LOSS — the work is simply never queued, and nothing surfaces that it was skipped. Under-reach is the worse failure because it is invisible.\n\nROOT CAUSE. \"Newest close anywhere\" is the wrong question. The anchor wants \"when did THIS session last close\", which is a per-session/per-branch/per-epic quantity, not a global max. The global max is only correct when closes are strictly sequential — the assumption that concurrency breaks.\n\nCANDIDATE FIXES (not yet chosen — needs the concurrency model decided first):\n- Anchor on the newest close whose state matches THIS session's epic/branch, falling back to the global max only when no such entry exists.\n- Key session state by session id as well as epic, and anchor on this session's own last close.\n- Take the max but clamp it to no later than the first commit authored by this session/branch in the current window, so another session's close can never truncate.\n- Emit a warning when the resolved anchor is NEWER than the oldest commit that would otherwise be in scope — at minimum make the truncation visible instead of silent.\n\nWorked around for the 2026-07-27 close by passing an explicit --git-range 1a99cb45..HEAD.\n\nAdjacent: t-2480 (epic accumulator over-reach on shared main) and t-2491 (the fix that introduced this). Do not revert t-2491 — the stale-default bug it fixed is real; this needs a better anchor, not the old one.\n\nAC: a session's close window is not truncated by an unrelated concurrent session's close\nAC: if the anchor would truncate, it is surfaced (warning) rather than silently narrowing\nAC: regression test with two session-state files where the newer one belongs to a DIFFERENT session/epic than the one closing\n2026-07-28 (proyecto_anita close, t-2251): NOT A TRADE — OVER-reach still happens AFTER the t-2491 fix. LAST_CLOSE resolved to 2026-07-28T15:25:20Z and COMMIT_COUNT came back 8, of which 2 (676d4dd9, 9b6bda3c) belonged to a concurrent t-2285 session that merged to main AFTER that anchor timestamp. So the max-across-files anchor over-reaches when a concurrent session commits after your anchor, and under-reaches when a concurrent session CLOSES before you (the 2026-07-27 case above). Direction depends purely on whether the other session's close lands before or after your window opens — it is not a stable trade of one failure for the other, and a fix that only addresses under-reach will leave the over-reach half live. IMPLICATION FOR THE FIX: no session-state timestamp can be correct here, because the anchor is a wall-clock proxy for 'my work' in a repo where 'my work' is not contiguous in time. Derive the range from the closing session's OWN commits (first commit this session ^..HEAD), the same shape t-2242 applied to Step 1b. Workaround used both times: compute the range by hand and pass --git-range explicitly; here 676d4dd9..95ba04ee, which queued exactly the 8 session commits with zero t-2285 contamination.\n\n\nSECOND REPRODUCTION, 2026-07-28 — worse than the first, and it points at the fix.\n\nFirst repro truncated the window (3 commits counted for a 10-commit session). This one EXCLUDED IT ENTIRELY: COMMIT_COUNT came back 0.\n\nTimeline, all UTC:\n  15:22:17  this session's own previous close  (epic \"close\")\n  15:57:00  this session commits 24e6ee08 (t-2503 rule change)\n  15:57:16  this session commits d7de06ed (merge)\n  15:58:57  CONCURRENT session writes its close state (orphan/default)\nThe global max is 15:58:57 — 1m41s AFTER this session's last commit — so `--since` that timestamp matched nothing and the gate computed a zero-commit window. A zero-commit window is not merely wrong: gate-and-evidence.md Step 1 treats \"no commits, no changes\" as a READ-ONLY session and short-circuits to a one-line handoff, skipping the snapshot entirely. So the failure escalates from \"queues too little\" to \"queues nothing and declares the session read-only\".\n\nThe severity ordering is now clear: over-reach double-extracts (visible, recoverable), truncation loses part (invisible), zero-window loses everything AND misclassifies the session.\n\nWHAT WORKED. Anchoring on the newest written_at for THIS session's own epic — `jq '.[] | select(.epic==\"close\") | .state.written_at'` — returned 15:22:17 and yielded the correct 11-commit window. That is candidate fix #1 already listed above, now empirically confirmed on a live case. Recommend implementing it as: prefer the newest state whose epic matches the epic this close will write to; fall back to the global max only when no such entry exists (first close for that epic); never let an entry from a different epic/session move the anchor forward.\n\nNote the interaction with the Step 1 read-only short-circuit — whatever fix lands must also ensure a zero-commit window caused by anchoring cannot be mistaken for a genuinely read-only session.\n\n\nCORRECTION to the paragraph immediately above, same session: \"confirmed candidate fix #1\" was OVERSTATED. The epic-scoped anchor fixed the under-reach half only. The resulting 11-commit window contained just 2 commits belonging to this session (24e6ee08, d7de06ed); the other 9 were the concurrent session's bootstrap/plugin-cache work on the same shared branch. So epic-scoping still over-reaches, exactly as the proyecto_anita/t-2251 note above independently found.\n\nThat note's conclusion is the correct one and supersedes the epic-scoped suggestion: no session-state timestamp can be right, because \"my work\" is not contiguous in wall-clock time on a shared branch. Derive the range from the closing session's OWN commits. Epic-scoping is worth keeping only as a cheap guard against the zero-window/read-only misclassification described above, not as the range fix.\n\nWorkaround used here: explicit --git-range f80f9af1..d7de06ed (this session's two commits exactly).\nskill_gap_checked: true (backlog start step 5, user chose: load first-principles, 2026-07-28)\n\n2026-07-28 — BUILD HALTED AT DIAGNOSE. Escalated to t-2488 design; t-2502 returns to pending as a child candidate rather than shipping a heuristic that the architecture would delete.\n\nWHY THE AGREED FIX JAMMED. \"Derive the range from the closing session's OWN commits\" requires knowing which commits are this session's. That record does not exist. Verified: BRANA_SESSION_ID IS present in the environment (e48d4fcb-...) but is never persisted anywhere; there is no SessionStart hook capturing HEAD; the only HEAD pin is active-goal.json's base_ref, written by /brana:build step 0 and gated on the task having acceptance_criteria, so it is not a general session anchor. Commits carry no session marker and attribution trailers are banned by rule. Ownership is knowable only at creation time and nothing writes it down.\n\nSTRUCTURAL LIMIT (new — not previously recorded here). A contiguous range A..B cannot express a non-contiguous commit set. Sessions interleave on dev, so even a CORRECT start-anchor yields a range containing another session's commits. This is why the 2026-07-28 epic-scoped attempt produced an 11-commit window holding only 2 own commits: the anchor was right and the range was still ~80% contamination. Killing over-reach therefore needs per-commit recording PLUS a --commits LIST interface into close-snapshot.sh (which today accepts only --git-range). Anchor fixes and over-reach fixes are separate problems; no anchor change of any kind can solve the second.\n\nSTORE AUDIT (live, thebrana, 2026-07-28). All 24 session-state files return has_session_id: false — the store carries NO session identity at all; it is keyed by epic alone. Key collision is already live: three files claim epic \"harness-core\" (session-state-harness-core.json, session-state-async-close.json, session-state-thinking.json), i.e. the filename slug and the inner epic field have drifted apart. And the default session-state.json was written 2026-07-28T16:55:03Z, AFTER the close epic file at 16:02:23 — so the global-max anchor currently resolves to a different session's state, reproducing this bug a fourth time in the live data.\n\nCORRECTION TO A NATURAL ASSUMPTION. Overwriting is NOT destroying past work: `brana session history` is append-only and retains prior states (verified — the concurrent 15:58:57 Telegram session sits between this lane's 15:22:17 and 16:01:47 closes). What is lost is IDENTITY, not data. History is a flat chronological list with nothing distinguishing whose lane an entry belongs to, which is why a fresh session cannot tell whether a handoff is its own or a parallel lane's.\n\nROOT CAUSE, RESTATED (supersedes \"newest close anywhere is the wrong question\"). ADR-065 defines epic as \"what we're building, empty = feature done\" — a DELIVERABLE. A lane is an EXECUTION CONTEXT. Keying session handoffs by epic uses a \"what\" as a \"where\", so two parallel sessions building toward one deliverable are the same key by construction. Not a keying bug; a category error in the choice of key.\n\nTHE PRIMITIVE ALREADY EXISTS IN THE BACKLOG. task -> task.branch -> worktree -> session is already 1:1, enforced by git-discipline's worktree HARD RULE; `backlog start` already writes task.branch and already claims the lane by branch (claims_claim claimant \"agent:{branch}:session\"). The session store simply does not reference it. Constraint: the key must be captured at session START, not read at close — 15 of 24 files record branch \"dev\" because closes happen after merge, so branch collapses at close time.\n\nSCOPE VERDICT. t-2502 as filed (patch the anchor heuristic, S) is subsumed by lane-identity keying, which also fixes t-2506 (same-day second close cannot update its own next[]) and the sitrep ambiguity (cannot tell which lane a handoff came from). One missing primitive, three symptoms. Routed to t-2488 brainstorm -> premortem -> ADR -> challenge --deep -> decompose. Do NOT implement the epic-scoped anchor in the meantime; it is the category error in smaller form.\n\n\n\n2026-07-28 BUILD — scope raised S -> M, user-approved. The agreed fix (\"derive the range from the closing session's OWN commits\") has NO session-attribution substrate today. Findings:\n- BRANA_SESSION_ID is SET BUT NOT EXPORTED (`export -p` = 0 matches; a plain `bash -c` child sees UNSET). No git hook and no child process can attribute a commit to a session via env.\n- post-commit hooks DO fire in linked worktrees (probed live). The worktree-git-is-a-file-hooks-inert pattern is about hard-coded .git/<path> resolution, NOT hook firing.\n- git REFLOG is the authoritative created-here vs arrived-here detector: reason strings are `commit:` / `commit (initial):` / `commit (merge):` for commits CREATED in this worktree, vs `merge X: Fast-forward` / `checkout: moving` / `reset: moving` for history that merely arrived. No committer-date heuristic needed.\n- Linked worktrees have their OWN HEAD reflog — a concurrent session working in its own worktree is excluded for free.\nChosen design (3-tier, degrades loudly): (1) session-scoped commit ledger recorded by PostToolUse, using the reflog as the create-detector -> exact shas, closes the same-worktree gap; (2) reflog-since-pin, retroactive, for sessions predating the ledger; (3) today's wall-clock anchor + an EXPLICIT warning that it is known-wrong. Session pin written at session start, advanced at each close.\n\n\nCONCURRENCY NOTE — the \"2026-07-28 BUILD — scope raised S -> M\" paragraph immediately above was appended by a DIFFERENT session (96f57378) that had read this task BEFORE the \"BUILD HALTED AT DIAGNOSE\" note landed. It does NOT supersede the halt. Ordering in this field is append-order, not precedence. The halt stands: t-2502 stays pending, subsumed by lane-identity keying under t-2488. The S->M scope raise is withdrawn — effort restored to S pending the ADR, since the eventual shape is t-2488's to decide.\nThe three empirical findings in that paragraph are still valid as EVIDENCE and have been copied to t-2488, where they answer an explicitly open question in its agenda note. No implementation was started; nothing was written to system/.\n\n2026-07-28 — THREE MORE REPRODUCTIONS in a single session (thebrana, knowledge-pipeline lane). Confirmatory only; adds no new mechanism beyond what is already recorded above. Logged because the recurrence rate is itself the finding.\n- Close 2: LAST_CLOSE resolved to 19:05:21Z (concurrent t-2488 lane) vs this lane's own 17:56:04Z -> COMMIT_COUNT=0 against real work.\n- Close 3: LAST_CLOSE 19:40:00Z (another lane) -> COMMIT_COUNT=0 against 10 real commits.\n- Same session also hit the over-reach half: of those 10 commits only 2 were this lane's (the rest were t-2488 and t-2494), matching the \"11-commit window holding 2 own commits\" measurement already recorded above and independently confirming that no anchor change fixes over-reach.\nWorkaround used all three times: ignore the anchor entirely and compute the range from the END OF THE LAST RANGE THIS LANE QUEUED (close-queue records git_range per project+branch), then pass --git-range explicitly. On close 3 the two own commits were non-contiguous, so they were queued as two separate single-commit ranges rather than one span — which is the contiguous-range structural limit above, hit in practice.\nDUPLICATE FILED AND CANCELLED: t-2533 was filed for this same defect earlier in the session by a lane that did not search the backlog first. Cancelled as duplicate of this task. Note its context proposed the epic-scoped anchor as a fix direction — that is the direction this task and ADR-069's Rejected section both forbid, so it was withdrawn rather than left in the backlog as misleading guidance.\nSTATUS AGAINST ADR-069 (landed 2026-07-28): the ADR's Rejected section names \"Epic-scoped close anchor — the category error in smaller form\" and records that t-2502 was parked rather than shipping it. D3.2 is the reachable win — make the over-reach VISIBLE rather than silent. That supersedes every candidate-fix bullet listed earlier in this field.\n\n2026-07-28 (t-2516 G1) — THE REFLOG SUBSTRATE THIS TASK'S DESIGN RESTS ON IS DESTROYED BY A\nMANDATED CLEANUP STEP. Verified empirically, not inferred.\n\n`git worktree remove` deletes `.git/worktrees/<name>/` in full, `logs/HEAD` included. Measured\non the t-2506 lane: 5 reflog entries present before removal, admin dir and reflog file both\nabsent after. git-discipline MANDATES that removal after merge.\n\nWHAT THIS HITS HERE, specifically:\n- \"Linked worktrees have their OWN HEAD reflog — a concurrent session working in its own\n  worktree is excluded for free\" (recorded above) is TRUE ONLY WHILE THE WORKTREE EXISTS.\n- Tier (2) of the chosen 3-tier design — \"reflog-since-pin, RETROACTIVE, for sessions\n  predating the ledger\" — is the part that breaks. Retroactive is precisely what the reflog\n  cannot be: it is evidence a mandated step is entitled to delete. Tier 2 works only if\n  nothing has cleaned up yet, which is luck, not a mechanism.\n- Tier (1), the PostToolUse-recorded commit ledger, is UNAFFECTED, because it records at\n  creation time. That asymmetry is the real lesson: attribution must be RECORDED WHEN THE\n  COMMIT HAPPENS, never RECONSTRUCTED afterwards.\n\nORDERING NUANCE that ADR-069 got wrong and is now corrected there: the reflog is still live at\nclose for close -> merge -> remove, and already gone for merge -> remove -> close. Both\norderings are normal. So this is not \"the reflog is useless\" — it is \"the reflog is available\nonly to lanes that close before merging\", which is not a property a design may assume.\n\nBearing on the under-reach half recorded above (\"missing 2 of my own — they were on a worktree\nbranch\"): once that worktree is removed there is no per-worktree reflog left to attribute those\ncommits from, so a retrospective fix cannot recover them even in principle. Reinforces the\nexisting conclusion that the range must come from a record written during the work.\n\n\nSECOND REPRODUCTION 2026-07-31 (from t-2576, filed as a duplicate before this task was found; t-2576 cancelled in its favour).\n\nSame defect, opposite arithmetic — worth recording because the symptom differs enough to be re-filed as new.\n\n  LAST_CLOSE resolved to 2026-07-31T19:45:31Z, written by a concurrent session on epic `harness` (a second, on `harness-core`, had closed at 19:42Z). The closing session's own commits landed at 14:50Z. COMMIT_COUNT came back **0** — not truncated, zeroed. close-classify.sh then returned CLOSE_MODE=INSTANT on an empty changed-file list, i.e. the gate classified a session with two real commits as read-only, and Step 1b would have queued nothing.\n\nSo the under-reach has a degenerate case: when the foreign anchor post-dates ALL of this session's commits, the window is empty rather than merely short, and the failure presents as \"read-only session\" rather than \"some commits missing\". That is harder to notice, because an empty window looks like a legitimate outcome.\n\nWORKAROUND USED (not a fix): computed the range from the session's own merge commit's first parent — `git log -1 --format=%p <my-merge>` -> 973dad98..7a21d5cc — and passed --commit-count explicitly to close-snapshot.sh. Snapshot queued correctly as snap-20260731-170741.\n\nThis supports the \"anchor on the session's own earliest commit when the resolved anchor post-dates it\" direction over any pure max-across-files rule. Note the CLOSE-ANCHOR-BLOCK comment in close/phases/gate-and-evidence.md currently documents only the epic-routing trigger; concurrency is a second, independent trigger and should be named there too.\n\n\nCORRECTION to the 2026-07-31 note immediately above, same session, before anyone acts on it.\n\n1. \"SECOND REPRODUCTION\" is wrong — it is at least the sixth recorded in this field, and the zero-window/read-only-misclassification variant it describes was ALREADY recorded on 2026-07-28 (\"COMMIT_COUNT came back 0 ... escalates to queues nothing and declares the session read-only\"). It adds a date, not a mechanism. Kept only as recurrence-rate evidence.\n\n2. Its closing suggestion — \"anchor on the session's own earliest commit when the resolved anchor post-dates it\" — is WITHDRAWN. It is an anchor heuristic, and this field already establishes twice over that no anchor of any kind fixes the over-reach half, plus ADR-069's Rejected section names epic-scoped anchoring as \"the category error in smaller form\". The standing direction is unchanged: D3.2 — make the over-reach VISIBLE rather than silent — pending lane identity (t-2517/t-2520/t-2521).\n\n3. PROCESS FINDING, which is the only genuinely new thing here. This is the SECOND duplicate filed against this task by a lane that did not search first (t-2533 on 2026-07-28, t-2576 on 2026-07-31). Both were filed by a /brana:close that had just hit the bug live and filed from the symptom. The close skill files follow-ups without a backlog search, so a recurring bug gets re-filed every time it recurs — and each duplicate proposes a fix direction this task has already rejected, which is worse than noise. Worth a step in close: search the backlog before filing a follow-up. Filed as part of t-2578.\n\n\n2026-07-31, THIRD DUPLICATE FILED (t-2584, cancelled in this task's favour). Confirmatory on mechanism; no fix direction proposed — the standing direction remains ADR-069 D3.2 pending lane identity, and t-2584's suggestion (anchor on max(last_close, own first commit)) was an anchor heuristic and is withdrawn.\n\nBOTH HALVES IN A SINGLE WINDOW, measured. LAST_CLOSE resolved to 21:14:24Z (concurrent lane). This session's own commits were 21:01:40Z and 21:03:29Z — before the anchor, so EXCLUDED. The window's 2 commits were the concurrent lane's t-2578 work at 21:18:58Z/21:19:02Z — after the anchor, so INCLUDED. So the window simultaneously dropped 100% of this session's commits and admitted 100% of another lane's. Prior notes record the two halves; this is them co-occurring in one window, which is the expected consequence but had not been measured together. A third close (epic harness) landed at 21:21:58Z mid-composition.\n\nPOSSIBLY NEW — COMMITS ORPHANED FROM EVERY QUEUE. The concurrent lane closed at 21:14:24Z and then committed t-2578 at 21:18/21:19. Its own close had already run, so those commits were queued by NOBODY: too late for its close, and only reachable by mine because I widened the range by hand. The failure mode \"close before your last commit lands\" leaves work permanently unqueued rather than merely mis-attributed. Worth naming as a distinct symptom when D3.2 makes over-reach visible: a visibility fix that only warns the OVER-reaching lane still leaves these commits invisible to everyone.\n\nWORKAROUND USED: ignored the anchor, passed --git-range a31a5b57..7569a6c5 (last genuinely-queued point .. HEAD), covering this session's t-2571 work plus the orphaned t-2578 commits.\n\nPROCESS: the t-2578 search-before-filing step was already live in dev when this close ran, and I executed it — two searches, both returning 0. It did not prevent the duplicate because searching is not enough; the queries were symptom-phrased (\"close gate anchor LAST_CLOSE concurrent\", \"close window commit count anchor session state written_at\") while the task is titled \"Close anchor under-reaches...\". What DID catch it was reading the epic accumulator's next[], which carries an explicit \"do NOT re-file this\" watch item. Suggests the guard should point at that watch list, or that recurring-defect tasks need a searchable alias/keyword line, rather than relying on the closer to guess the mechanism's vocabulary.\n2026-08-01: reproduced again on thebrana knowledge-pipeline session close (--continue). LAST_CLOSE resolved to 2026-08-01T19:20:13Z via the newest-across-all epic-keyed session state (concurrent 'bemol' session closed later), yielding COMMIT_COUNT=0 against 7 real own commits (d0faba98..HEAD). Manually anchored on d0faba98 (the commit at session start, per this conversation's own opening gitStatus) to recover the correct range and queue the snapshot. Same failure class as t-2533's cancelled duplicate and ADR-069's D3 discussion — not re-proposing the epic-scoped anchor fix (already rejected). Confirms the bug is still live as of this date.",
+      "context": "Found live 2026-07-27, in the very first close to run the t-2491 fix — caught by comparing the computed window against the actual commit list before trusting it.\n\nOBSERVED. LAST_CLOSE resolved to 2026-07-28T01:29:49Z, written by a CONCURRENT session (which was working t-2496 in its own worktree and closed mid-flight). COMMIT_COUNT came back 4, and the window contained 3 commits from 22:29 onward. The closing session's actual work spanned 22:01 -> 22:51 (10 commits). Everything from 22:01-22:27 — including the t-2487/t-2478/t-2491/t-2493 fixes themselves — fell OUTSIDE the window and would not have been snapshotted or queued for extraction.\n\nTHE TRADE. Before t-2491 the anchor read only the default session-state.json, so an epic-routed close left it stale and the window OVER-reached (32 commits vs 4). After t-2491 it takes the max across all files, so a concurrent session's close makes the window UNDER-reach. Over-reach causes double-extraction (close-snapshot.sh dedups on the range string, so a different range is not deduped). Under-reach causes SILENT LOSS — the work is simply never queued, and nothing surfaces that it was skipped. Under-reach is the worse failure because it is invisible.\n\nROOT CAUSE. \"Newest close anywhere\" is the wrong question. The anchor wants \"when did THIS session last close\", which is a per-session/per-branch/per-epic quantity, not a global max. The global max is only correct when closes are strictly sequential — the assumption that concurrency breaks.\n\nCANDIDATE FIXES (not yet chosen — needs the concurrency model decided first):\n- Anchor on the newest close whose state matches THIS session's epic/branch, falling back to the global max only when no such entry exists.\n- Key session state by session id as well as epic, and anchor on this session's own last close.\n- Take the max but clamp it to no later than the first commit authored by this session/branch in the current window, so another session's close can never truncate.\n- Emit a warning when the resolved anchor is NEWER than the oldest commit that would otherwise be in scope — at minimum make the truncation visible instead of silent.\n\nWorked around for the 2026-07-27 close by passing an explicit --git-range 1a99cb45..HEAD.\n\nAdjacent: t-2480 (epic accumulator over-reach on shared main) and t-2491 (the fix that introduced this). Do not revert t-2491 — the stale-default bug it fixed is real; this needs a better anchor, not the old one.\n\nAC: a session's close window is not truncated by an unrelated concurrent session's close\nAC: if the anchor would truncate, it is surfaced (warning) rather than silently narrowing\nAC: regression test with two session-state files where the newer one belongs to a DIFFERENT session/epic than the one closing\n2026-07-28 (proyecto_anita close, t-2251): NOT A TRADE — OVER-reach still happens AFTER the t-2491 fix. LAST_CLOSE resolved to 2026-07-28T15:25:20Z and COMMIT_COUNT came back 8, of which 2 (676d4dd9, 9b6bda3c) belonged to a concurrent t-2285 session that merged to main AFTER that anchor timestamp. So the max-across-files anchor over-reaches when a concurrent session commits after your anchor, and under-reaches when a concurrent session CLOSES before you (the 2026-07-27 case above). Direction depends purely on whether the other session's close lands before or after your window opens — it is not a stable trade of one failure for the other, and a fix that only addresses under-reach will leave the over-reach half live. IMPLICATION FOR THE FIX: no session-state timestamp can be correct here, because the anchor is a wall-clock proxy for 'my work' in a repo where 'my work' is not contiguous in time. Derive the range from the closing session's OWN commits (first commit this session ^..HEAD), the same shape t-2242 applied to Step 1b. Workaround used both times: compute the range by hand and pass --git-range explicitly; here 676d4dd9..95ba04ee, which queued exactly the 8 session commits with zero t-2285 contamination.\n\n\nSECOND REPRODUCTION, 2026-07-28 — worse than the first, and it points at the fix.\n\nFirst repro truncated the window (3 commits counted for a 10-commit session). This one EXCLUDED IT ENTIRELY: COMMIT_COUNT came back 0.\n\nTimeline, all UTC:\n  15:22:17  this session's own previous close  (epic \"close\")\n  15:57:00  this session commits 24e6ee08 (t-2503 rule change)\n  15:57:16  this session commits d7de06ed (merge)\n  15:58:57  CONCURRENT session writes its close state (orphan/default)\nThe global max is 15:58:57 — 1m41s AFTER this session's last commit — so `--since` that timestamp matched nothing and the gate computed a zero-commit window. A zero-commit window is not merely wrong: gate-and-evidence.md Step 1 treats \"no commits, no changes\" as a READ-ONLY session and short-circuits to a one-line handoff, skipping the snapshot entirely. So the failure escalates from \"queues too little\" to \"queues nothing and declares the session read-only\".\n\nThe severity ordering is now clear: over-reach double-extracts (visible, recoverable), truncation loses part (invisible), zero-window loses everything AND misclassifies the session.\n\nWHAT WORKED. Anchoring on the newest written_at for THIS session's own epic — `jq '.[] | select(.epic==\"close\") | .state.written_at'` — returned 15:22:17 and yielded the correct 11-commit window. That is candidate fix #1 already listed above, now empirically confirmed on a live case. Recommend implementing it as: prefer the newest state whose epic matches the epic this close will write to; fall back to the global max only when no such entry exists (first close for that epic); never let an entry from a different epic/session move the anchor forward.\n\nNote the interaction with the Step 1 read-only short-circuit — whatever fix lands must also ensure a zero-commit window caused by anchoring cannot be mistaken for a genuinely read-only session.\n\n\nCORRECTION to the paragraph immediately above, same session: \"confirmed candidate fix #1\" was OVERSTATED. The epic-scoped anchor fixed the under-reach half only. The resulting 11-commit window contained just 2 commits belonging to this session (24e6ee08, d7de06ed); the other 9 were the concurrent session's bootstrap/plugin-cache work on the same shared branch. So epic-scoping still over-reaches, exactly as the proyecto_anita/t-2251 note above independently found.\n\nThat note's conclusion is the correct one and supersedes the epic-scoped suggestion: no session-state timestamp can be right, because \"my work\" is not contiguous in wall-clock time on a shared branch. Derive the range from the closing session's OWN commits. Epic-scoping is worth keeping only as a cheap guard against the zero-window/read-only misclassification described above, not as the range fix.\n\nWorkaround used here: explicit --git-range f80f9af1..d7de06ed (this session's two commits exactly).\nskill_gap_checked: true (backlog start step 5, user chose: load first-principles, 2026-07-28)\n\n2026-07-28 — BUILD HALTED AT DIAGNOSE. Escalated to t-2488 design; t-2502 returns to pending as a child candidate rather than shipping a heuristic that the architecture would delete.\n\nWHY THE AGREED FIX JAMMED. \"Derive the range from the closing session's OWN commits\" requires knowing which commits are this session's. That record does not exist. Verified: BRANA_SESSION_ID IS present in the environment (e48d4fcb-...) but is never persisted anywhere; there is no SessionStart hook capturing HEAD; the only HEAD pin is active-goal.json's base_ref, written by /brana:build step 0 and gated on the task having acceptance_criteria, so it is not a general session anchor. Commits carry no session marker and attribution trailers are banned by rule. Ownership is knowable only at creation time and nothing writes it down.\n\nSTRUCTURAL LIMIT (new — not previously recorded here). A contiguous range A..B cannot express a non-contiguous commit set. Sessions interleave on dev, so even a CORRECT start-anchor yields a range containing another session's commits. This is why the 2026-07-28 epic-scoped attempt produced an 11-commit window holding only 2 own commits: the anchor was right and the range was still ~80% contamination. Killing over-reach therefore needs per-commit recording PLUS a --commits LIST interface into close-snapshot.sh (which today accepts only --git-range). Anchor fixes and over-reach fixes are separate problems; no anchor change of any kind can solve the second.\n\nSTORE AUDIT (live, thebrana, 2026-07-28). All 24 session-state files return has_session_id: false — the store carries NO session identity at all; it is keyed by epic alone. Key collision is already live: three files claim epic \"harness-core\" (session-state-harness-core.json, session-state-async-close.json, session-state-thinking.json), i.e. the filename slug and the inner epic field have drifted apart. And the default session-state.json was written 2026-07-28T16:55:03Z, AFTER the close epic file at 16:02:23 — so the global-max anchor currently resolves to a different session's state, reproducing this bug a fourth time in the live data.\n\nCORRECTION TO A NATURAL ASSUMPTION. Overwriting is NOT destroying past work: `brana session history` is append-only and retains prior states (verified — the concurrent 15:58:57 Telegram session sits between this lane's 15:22:17 and 16:01:47 closes). What is lost is IDENTITY, not data. History is a flat chronological list with nothing distinguishing whose lane an entry belongs to, which is why a fresh session cannot tell whether a handoff is its own or a parallel lane's.\n\nROOT CAUSE, RESTATED (supersedes \"newest close anywhere is the wrong question\"). ADR-065 defines epic as \"what we're building, empty = feature done\" — a DELIVERABLE. A lane is an EXECUTION CONTEXT. Keying session handoffs by epic uses a \"what\" as a \"where\", so two parallel sessions building toward one deliverable are the same key by construction. Not a keying bug; a category error in the choice of key.\n\nTHE PRIMITIVE ALREADY EXISTS IN THE BACKLOG. task -> task.branch -> worktree -> session is already 1:1, enforced by git-discipline's worktree HARD RULE; `backlog start` already writes task.branch and already claims the lane by branch (claims_claim claimant \"agent:{branch}:session\"). The session store simply does not reference it. Constraint: the key must be captured at session START, not read at close — 15 of 24 files record branch \"dev\" because closes happen after merge, so branch collapses at close time.\n\nSCOPE VERDICT. t-2502 as filed (patch the anchor heuristic, S) is subsumed by lane-identity keying, which also fixes t-2506 (same-day second close cannot update its own next[]) and the sitrep ambiguity (cannot tell which lane a handoff came from). One missing primitive, three symptoms. Routed to t-2488 brainstorm -> premortem -> ADR -> challenge --deep -> decompose. Do NOT implement the epic-scoped anchor in the meantime; it is the category error in smaller form.\n\n\n\n2026-07-28 BUILD — scope raised S -> M, user-approved. The agreed fix (\"derive the range from the closing session's OWN commits\") has NO session-attribution substrate today. Findings:\n- BRANA_SESSION_ID is SET BUT NOT EXPORTED (`export -p` = 0 matches; a plain `bash -c` child sees UNSET). No git hook and no child process can attribute a commit to a session via env.\n- post-commit hooks DO fire in linked worktrees (probed live). The worktree-git-is-a-file-hooks-inert pattern is about hard-coded .git/<path> resolution, NOT hook firing.\n- git REFLOG is the authoritative created-here vs arrived-here detector: reason strings are `commit:` / `commit (initial):` / `commit (merge):` for commits CREATED in this worktree, vs `merge X: Fast-forward` / `checkout: moving` / `reset: moving` for history that merely arrived. No committer-date heuristic needed.\n- Linked worktrees have their OWN HEAD reflog — a concurrent session working in its own worktree is excluded for free.\nChosen design (3-tier, degrades loudly): (1) session-scoped commit ledger recorded by PostToolUse, using the reflog as the create-detector -> exact shas, closes the same-worktree gap; (2) reflog-since-pin, retroactive, for sessions predating the ledger; (3) today's wall-clock anchor + an EXPLICIT warning that it is known-wrong. Session pin written at session start, advanced at each close.\n\n\nCONCURRENCY NOTE — the \"2026-07-28 BUILD — scope raised S -> M\" paragraph immediately above was appended by a DIFFERENT session (96f57378) that had read this task BEFORE the \"BUILD HALTED AT DIAGNOSE\" note landed. It does NOT supersede the halt. Ordering in this field is append-order, not precedence. The halt stands: t-2502 stays pending, subsumed by lane-identity keying under t-2488. The S->M scope raise is withdrawn — effort restored to S pending the ADR, since the eventual shape is t-2488's to decide.\nThe three empirical findings in that paragraph are still valid as EVIDENCE and have been copied to t-2488, where they answer an explicitly open question in its agenda note. No implementation was started; nothing was written to system/.\n\n2026-07-28 — THREE MORE REPRODUCTIONS in a single session (thebrana, knowledge-pipeline lane). Confirmatory only; adds no new mechanism beyond what is already recorded above. Logged because the recurrence rate is itself the finding.\n- Close 2: LAST_CLOSE resolved to 19:05:21Z (concurrent t-2488 lane) vs this lane's own 17:56:04Z -> COMMIT_COUNT=0 against real work.\n- Close 3: LAST_CLOSE 19:40:00Z (another lane) -> COMMIT_COUNT=0 against 10 real commits.\n- Same session also hit the over-reach half: of those 10 commits only 2 were this lane's (the rest were t-2488 and t-2494), matching the \"11-commit window holding 2 own commits\" measurement already recorded above and independently confirming that no anchor change fixes over-reach.\nWorkaround used all three times: ignore the anchor entirely and compute the range from the END OF THE LAST RANGE THIS LANE QUEUED (close-queue records git_range per project+branch), then pass --git-range explicitly. On close 3 the two own commits were non-contiguous, so they were queued as two separate single-commit ranges rather than one span — which is the contiguous-range structural limit above, hit in practice.\nDUPLICATE FILED AND CANCELLED: t-2533 was filed for this same defect earlier in the session by a lane that did not search the backlog first. Cancelled as duplicate of this task. Note its context proposed the epic-scoped anchor as a fix direction — that is the direction this task and ADR-069's Rejected section both forbid, so it was withdrawn rather than left in the backlog as misleading guidance.\nSTATUS AGAINST ADR-069 (landed 2026-07-28): the ADR's Rejected section names \"Epic-scoped close anchor — the category error in smaller form\" and records that t-2502 was parked rather than shipping it. D3.2 is the reachable win — make the over-reach VISIBLE rather than silent. That supersedes every candidate-fix bullet listed earlier in this field.\n\n2026-07-28 (t-2516 G1) — THE REFLOG SUBSTRATE THIS TASK'S DESIGN RESTS ON IS DESTROYED BY A\nMANDATED CLEANUP STEP. Verified empirically, not inferred.\n\n`git worktree remove` deletes `.git/worktrees/<name>/` in full, `logs/HEAD` included. Measured\non the t-2506 lane: 5 reflog entries present before removal, admin dir and reflog file both\nabsent after. git-discipline MANDATES that removal after merge.\n\nWHAT THIS HITS HERE, specifically:\n- \"Linked worktrees have their OWN HEAD reflog — a concurrent session working in its own\n  worktree is excluded for free\" (recorded above) is TRUE ONLY WHILE THE WORKTREE EXISTS.\n- Tier (2) of the chosen 3-tier design — \"reflog-since-pin, RETROACTIVE, for sessions\n  predating the ledger\" — is the part that breaks. Retroactive is precisely what the reflog\n  cannot be: it is evidence a mandated step is entitled to delete. Tier 2 works only if\n  nothing has cleaned up yet, which is luck, not a mechanism.\n- Tier (1), the PostToolUse-recorded commit ledger, is UNAFFECTED, because it records at\n  creation time. That asymmetry is the real lesson: attribution must be RECORDED WHEN THE\n  COMMIT HAPPENS, never RECONSTRUCTED afterwards.\n\nORDERING NUANCE that ADR-069 got wrong and is now corrected there: the reflog is still live at\nclose for close -> merge -> remove, and already gone for merge -> remove -> close. Both\norderings are normal. So this is not \"the reflog is useless\" — it is \"the reflog is available\nonly to lanes that close before merging\", which is not a property a design may assume.\n\nBearing on the under-reach half recorded above (\"missing 2 of my own — they were on a worktree\nbranch\"): once that worktree is removed there is no per-worktree reflog left to attribute those\ncommits from, so a retrospective fix cannot recover them even in principle. Reinforces the\nexisting conclusion that the range must come from a record written during the work.\n\n\nSECOND REPRODUCTION 2026-07-31 (from t-2576, filed as a duplicate before this task was found; t-2576 cancelled in its favour).\n\nSame defect, opposite arithmetic — worth recording because the symptom differs enough to be re-filed as new.\n\n  LAST_CLOSE resolved to 2026-07-31T19:45:31Z, written by a concurrent session on epic `harness` (a second, on `harness-core`, had closed at 19:42Z). The closing session's own commits landed at 14:50Z. COMMIT_COUNT came back **0** — not truncated, zeroed. close-classify.sh then returned CLOSE_MODE=INSTANT on an empty changed-file list, i.e. the gate classified a session with two real commits as read-only, and Step 1b would have queued nothing.\n\nSo the under-reach has a degenerate case: when the foreign anchor post-dates ALL of this session's commits, the window is empty rather than merely short, and the failure presents as \"read-only session\" rather than \"some commits missing\". That is harder to notice, because an empty window looks like a legitimate outcome.\n\nWORKAROUND USED (not a fix): computed the range from the session's own merge commit's first parent — `git log -1 --format=%p <my-merge>` -> 973dad98..7a21d5cc — and passed --commit-count explicitly to close-snapshot.sh. Snapshot queued correctly as snap-20260731-170741.\n\nThis supports the \"anchor on the session's own earliest commit when the resolved anchor post-dates it\" direction over any pure max-across-files rule. Note the CLOSE-ANCHOR-BLOCK comment in close/phases/gate-and-evidence.md currently documents only the epic-routing trigger; concurrency is a second, independent trigger and should be named there too.\n\n\nCORRECTION to the 2026-07-31 note immediately above, same session, before anyone acts on it.\n\n1. \"SECOND REPRODUCTION\" is wrong — it is at least the sixth recorded in this field, and the zero-window/read-only-misclassification variant it describes was ALREADY recorded on 2026-07-28 (\"COMMIT_COUNT came back 0 ... escalates to queues nothing and declares the session read-only\"). It adds a date, not a mechanism. Kept only as recurrence-rate evidence.\n\n2. Its closing suggestion — \"anchor on the session's own earliest commit when the resolved anchor post-dates it\" — is WITHDRAWN. It is an anchor heuristic, and this field already establishes twice over that no anchor of any kind fixes the over-reach half, plus ADR-069's Rejected section names epic-scoped anchoring as \"the category error in smaller form\". The standing direction is unchanged: D3.2 — make the over-reach VISIBLE rather than silent — pending lane identity (t-2517/t-2520/t-2521).\n\n3. PROCESS FINDING, which is the only genuinely new thing here. This is the SECOND duplicate filed against this task by a lane that did not search first (t-2533 on 2026-07-28, t-2576 on 2026-07-31). Both were filed by a /brana:close that had just hit the bug live and filed from the symptom. The close skill files follow-ups without a backlog search, so a recurring bug gets re-filed every time it recurs — and each duplicate proposes a fix direction this task has already rejected, which is worse than noise. Worth a step in close: search the backlog before filing a follow-up. Filed as part of t-2578.\n\n\n2026-07-31, THIRD DUPLICATE FILED (t-2584, cancelled in this task's favour). Confirmatory on mechanism; no fix direction proposed — the standing direction remains ADR-069 D3.2 pending lane identity, and t-2584's suggestion (anchor on max(last_close, own first commit)) was an anchor heuristic and is withdrawn.\n\nBOTH HALVES IN A SINGLE WINDOW, measured. LAST_CLOSE resolved to 21:14:24Z (concurrent lane). This session's own commits were 21:01:40Z and 21:03:29Z — before the anchor, so EXCLUDED. The window's 2 commits were the concurrent lane's t-2578 work at 21:18:58Z/21:19:02Z — after the anchor, so INCLUDED. So the window simultaneously dropped 100% of this session's commits and admitted 100% of another lane's. Prior notes record the two halves; this is them co-occurring in one window, which is the expected consequence but had not been measured together. A third close (epic harness) landed at 21:21:58Z mid-composition.\n\nPOSSIBLY NEW — COMMITS ORPHANED FROM EVERY QUEUE. The concurrent lane closed at 21:14:24Z and then committed t-2578 at 21:18/21:19. Its own close had already run, so those commits were queued by NOBODY: too late for its close, and only reachable by mine because I widened the range by hand. The failure mode \"close before your last commit lands\" leaves work permanently unqueued rather than merely mis-attributed. Worth naming as a distinct symptom when D3.2 makes over-reach visible: a visibility fix that only warns the OVER-reaching lane still leaves these commits invisible to everyone.\n\nWORKAROUND USED: ignored the anchor, passed --git-range a31a5b57..7569a6c5 (last genuinely-queued point .. HEAD), covering this session's t-2571 work plus the orphaned t-2578 commits.\n\nPROCESS: the t-2578 search-before-filing step was already live in dev when this close ran, and I executed it — two searches, both returning 0. It did not prevent the duplicate because searching is not enough; the queries were symptom-phrased (\"close gate anchor LAST_CLOSE concurrent\", \"close window commit count anchor session state written_at\") while the task is titled \"Close anchor under-reaches...\". What DID catch it was reading the epic accumulator's next[], which carries an explicit \"do NOT re-file this\" watch item. Suggests the guard should point at that watch list, or that recurring-defect tasks need a searchable alias/keyword line, rather than relying on the closer to guess the mechanism's vocabulary.\n2026-08-01: reproduced again on thebrana knowledge-pipeline session close (--continue). LAST_CLOSE resolved to 2026-08-01T19:20:13Z via the newest-across-all epic-keyed session state (concurrent 'bemol' session closed later), yielding COMMIT_COUNT=0 against 7 real own commits (d0faba98..HEAD). Manually anchored on d0faba98 (the commit at session start, per this conversation's own opening gitStatus) to recover the correct range and queue the snapshot. Same failure class as t-2533's cancelled duplicate and ADR-069's D3 discussion — not re-proposing the epic-scoped anchor fix (already rejected). Confirms the bug is still live as of this date.\n2026-08-17 (thebrana wave-6 drain-loop session, cc-alignment epic): reproduced again, same failure shape as the 2026-08-01 note above. First /brana:close --continue this session: SESSION_EPICS resolved to {backlog-drain, cc-alignment, loop-first, time-tracking} (4 concurrent epics active on shared dev), LAST_CLOSE anchored to the newest-across-all written_at (2026-08-17T14:49:25Z) and COMMIT_COUNT came back 24 -- of which only 2 (t-2831, t-2832) were this session's own; the rest were t-2826/loop-first and t-2920/time-tracking concurrent-lane commits. Same over-reach half already measured repeatedly in this task (\"11-commit window holding 2 own commits\" pattern). Not filing a new task -- this is the fourth-plus confirmatory reproduction and the fix direction I'd have proposed (anchor on this session's own first commit) is the exact one already rejected in t-2801 and withdrawn twice in this task's own notes. Standing direction unchanged: ADR-069 D3 (lane pin + per-commit attribution) is the real fix; no anchor heuristic solves the non-contiguous-range structural limit.\n2026-08-17: STARTED, scope narrowed by user decision to the visibility slice (AC #2 + AC #3): (a) zero-window guard — an anchored window with COMMIT_COUNT=0 while session-state anchors exist is surfaced loudly and never silently classified read-only; (b) multi-epic window warning — SESSION_EPICS resolving to >1 epic means the window plausibly spans concurrent lanes (today's 24-vs-2 repro had 4). AC #1 (no truncation) is DEFERRED to lane identity t-2521 (via t-2517 spec) — no anchor heuristic will be added here, per ADR-069 Rejected. Branch: brana-v3-redesign/fix/t-2502-close-anchor-visibility.",
       "created": "2026-07-27",
       "description": "t-2491 changed the close gate to anchor LAST_CLOSE on the newest written_at across ALL session files. That fixes the stale-default case, but under concurrent sessions it anchors on ANOTHER session's close and silently truncates this session's window.",
       "effort": "S",
@@ -63684,12 +63684,12 @@
       "github_issue": null,
       "id": "t-2502",
       "kind": "fix",
-      "notes": null,
+      "notes": "Evaluator: PASS-WITH-GAPS (2026-08-17) — AC#2 MET, AC#3 MET, AC#1 DEFERRED-BY-DECISION to t-2521 (no anchor heuristic in diff)",
       "order": 0,
       "parent": "t-2488",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-17",
+      "status": "in_progress",
       "strategy": "bug-fix",
       "subject": "Close anchor under-reaches when a concurrent session closes first — t-2491 fix traded over-reach for under-reach",
       "tags": [
@@ -73805,22 +73805,23 @@
         "One existing sprawling skill run through the craft doc as a worked example, findings reported, no skill body rewritten (scope: doc only)"
       ],
       "blocked_by": [],
-      "branch": null,
-      "completed": null,
-      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §3 and §4 P3. Pocock's writing-for-agents (github.com/mattpocock/skills/skills/productivity/writing-for-agents/SKILL.md + SKILL-MECHANICS.md) covers context pointers, information hierarchy (in-file step / in-file reference / disclosed reference), completion-criteria clarity x demand, leading words, and pruning (single-source-of-truth, the no-op test). Complementary to brana's skill-validation-checklist.md (a pass/fail 12-factor gate), not competing — checklist says WHAT to check, this explains WHY/HOW the mechanism works. Checklist items 3 (bounded context loading) and 4 (explicit control flow) currently state the rule without explaining the mechanism.\nAC: new doc or appended section captures context pointers, information hierarchy, completion criteria, leading words, and the pruning/no-op test, attributed to source\nAC: skill-validation-checklist.md links to it as the craft rationale behind items 3 and 4\nAC: one existing skill with known sprawl is run through the craft doc as a worked example, findings reported in task notes — no skill body rewritten as part of this task (scope: doc only)",
+      "branch": "cc-alignment/docs/t-2833-adopt-writing-for-agents",
+      "completed": "2026-08-17",
+      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §3 and §4 P3. Pocock's writing-for-agents (github.com/mattpocock/skills/skills/productivity/writing-for-agents/SKILL.md + SKILL-MECHANICS.md) covers context pointers, information hierarchy (in-file step / in-file reference / disclosed reference), completion-criteria clarity x demand, leading words, and pruning (single-source-of-truth, the no-op test). Complementary to brana's skill-validation-checklist.md (a pass/fail 12-factor gate), not competing — checklist says WHAT to check, this explains WHY/HOW the mechanism works. Checklist items 3 (bounded context loading) and 4 (explicit control flow) currently state the rule without explaining the mechanism.\nAC: new doc or appended section captures context pointers, information hierarchy, completion criteria, leading words, and the pruning/no-op test, attributed to source\nAC: skill-validation-checklist.md links to it as the craft rationale behind items 3 and 4\nAC: one existing skill with known sprawl is run through the craft doc as a worked example, findings reported in task notes — no skill body rewritten as part of this task (scope: doc only)\n## Assumptions\nDoc placed at docs/reference/skill-writing-craft.md (sibling to skill-validation-checklist.md), not docs/architecture/ — verified skill-validation-checklist.md carries no \"Generated by brana reference generate\" banner and no generator script references it, so it's hand-maintained despite living under docs/reference/; the craft doc follows the same placement.\nChallenger finding (iteration 1, 2026-08-17): RECONSIDER sev4 — task built the pre-§7 ADAPT/companion-doc reading while research doc §7 (2026-08-14) reclassifies writing-for-agents as DEPEND and t-2837 (pending ADR) says t-2833 \"becomes a pinned reference.\" Repair: added a \"Relationship to the DEPEND integration mode (t-2837, pending)\" section to skill-writing-craft.md's Origin, explicitly reconciling why a docs/reference/ companion coexists with a future vendored dependency rather than substituting for it, plus an explicit License answer (MIT, confirmed via gh api, no clearance blocker). Re-run challenger next.",
       "created": "2026-08-13",
-      "description": null,
+      "description": "Write a craft-rationale companion doc (context pointers, information hierarchy, completion criteria, leading words, pruning/no-op test) linked from skill-validation-checklist.md items 3-4, and run one sprawling skill through it as a worked example (doc-only, no skill rewrite). Source: t-2830 research, docs/research/2026-08-13-matt-pocock-skill-system.md.",
       "effort": "S",
       "execution": "code",
       "github_issue": null,
       "id": "t-2833",
       "kind": "docs",
-      "notes": null,
+      "notes": "Worked example (AC 3): ran system/skills/close/SKILL.md through the craft doc's levers, doc-only, no skill body changed.\n- Information hierarchy: PHASES table disclosure is sound; SKILL.md body carries in-file reference (what auto-memory is, why it differs from session state) that's a disclosure candidate — used only once per session, not every invocation.\n- Context pointers: PHASES \"Load when\" column is well-worded, single-branch — no variance-bug pointers found.\n- Leading words: \"handoff\" / \"session state\" already reused consistently across phase files — lever already in active use, not a gap.\n- Pruning / no-op test: Rules section restates some defaults the model already follows under global git-discipline.md (e.g. \"write clear commit messages\") — no-op-test candidate for deletion, not rewording.\n- Verdict: close is not sprawling at the phase-file level; concentrated sprawl risk is in SKILL.md's own body carrying reference material one rung too high on the ladder.\nNo skill body rewritten — follow-up work if judged worth its own task.\nDocs-generation step (verify-gates.md) skipped: this task's deliverable is itself the documentation artifact (skill-writing-craft.md + checklist links) — running /brana:docs to generate a separate tech doc/user guide about \"the feature\" would be redundant self-documentation, not a missing artifact.\nEvaluator gate false-negative on criterion 3: agent read the worktree's .claude/tasks.json snapshot (frozen at worktree-creation time, 14:20) instead of the main checkout's live copy (14:25, post-notes-write) — worktrees don't share a live tasks.json, so backlog reads from inside a worktree can see stale task state. Synced by copying main checkout's tasks.json into the worktree; notes now readable there too. Re-verified: all 3 AC criteria MET. Worth a follow-up field-note/pattern (worktree tasks.json staleness) — not fixed here, out of this task's scope.\nChallenger: RECONSIDER (2026-08-17), 1 finding, max severity 4. Finding: implementation built the companion-doc/ADAPT reading of the task (from research doc §4 P3, task created 2026-08-13), but the same research doc's §7 (added 2026-08-14) reclassifies writing-for-agents as DEPEND (vendor verbatim, pinned, thin adapter) — and t-2837's context literally states \"t-2833 becomes a pinned reference.\" t-2837 (the ADR that would formally decide this) is still status:pending, unapproved — so this is an unresolved premise conflict between t-2833's own (approved) AC and a later, undecided reshaping proposal, not a mechanical defect. AC1-3 as literally written are MET. SIBLINGS: docs/research/2026-08-13-matt-pocock-skill-system.md §7, t-2837 (pending ADR).\nChallenger: PROCEED WITH CHANGES (2026-08-17), 1 finding, max severity 3. Iteration 2 (after repair): all 3 AC re-confirmed MET, scope clean (3 files, docs-only), no security issues. Reconciliation section judged substantive on independent re-verification (t-2837 status/ac_state, MIT license claim both corroborated directly) — capped at severity 3 rather than dismissed, since the coexist-with-DEPEND argument remains self-adjudicated with no human sign-off, per calibration_verified-and-documented-premise-gap-downgrades-severity. SIBLINGS: no. Gate cleared — proceeding to CLOSE.\nRetrospective: (1) Discovered and fixed a real cross-task premise conflict mid-build — t-2833's approved AC predate research doc §7's DEPEND reclassification of writing-for-agents, and t-2837 (pending ADR) says t-2833 \"becomes a pinned reference.\" Resolved by adding an explicit reconciliation section rather than either ignoring it or unilaterally re-scoping the task — challenger iteration 2 confirmed this holds up under independent re-verification. (2) Hit and fixed a worktree/tasks.json staleness bug where the evaluator agent read a stale snapshot from worktree creation time — captured as pattern_worktree-tasks-json-read-staleness for reuse. (3) Docs-generation (/brana:docs) and the CLOSE pre-merge feature-doc check were both skipped with logged justification: this task's deliverable IS the documentation artifact, so a second auto-generated tech-doc pass would be redundant self-documentation, and the diff correctly doesn't touch docs/architecture/features/ or docs/guide/features/ since no new feature/behavior was implemented.\nDecision logged to main decision log. GitHub sync: no github_issue set on this task, nothing to close.",
       "order": 0,
       "parent": "t-2830",
       "priority": "P3",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-17",
+      "status": "completed",
+      "strategy": "feature",
       "subject": "Adopt writing-for-agents prose-craft levers as companion to skill-validation-checklist",
       "tags": [
         "skills",
@@ -73839,10 +73840,12 @@
         "No-correct-seam-found is an explicit valid exit state",
         "skill-validation-checklist.md item 4 re-verified against updated fix.md"
       ],
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2837"
+      ],
       "branch": null,
       "completed": null,
-      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P5. Pocock's diagnosing-bugs (github.com/mattpocock/skills/skills/engineering/diagnosing-bugs/SKILL.md) is a 6-phase debug discipline brana's /brana:fix only partially covers: (1) explicit tight-loop completion criteria before any hypothesis work (red-capable / deterministic / fast / agent-runnable, each checked off with a shown command+output), (2) 3-5 RANKED FALSIFIABLE hypotheses shown to the user before instrumentation (not single-hypothesis anchoring), (3) tagged debug-log convention ([DEBUG-xxxx]) so cleanup is one grep, (4) secret-redaction discipline for any shown command output, (5) explicit \"no correct seam = itself a finding, hand off to architecture\" exit. /brana:fix currently does reproduce->diagnose->fix->verify->commit without these explicit gates.\nAC: /brana:fix's reproduce step states an explicit tight-loop completion criterion (red-capable, deterministic, fast, agent-runnable) with a shown command+output before diagnosis proceeds\nAC: a ranked-hypotheses-before-instrumentation step is added (3-5 falsifiable hypotheses, shown to user, one variable changed at a time)\nAC: tagged debug-log convention documented in the skill and a cleanup check added before a fix can be marked complete\nAC: no-correct-seam-found is an explicit valid exit state that hands off rather than silently skipping the regression test\nAC: skill-validation-checklist.md item 4 (explicit control flow) re-verified against the updated system/skills/fix/SKILL.md",
+      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P5. Pocock's diagnosing-bugs (github.com/mattpocock/skills/skills/engineering/diagnosing-bugs/SKILL.md) is a 6-phase debug discipline brana's /brana:fix only partially covers: (1) explicit tight-loop completion criteria before any hypothesis work (red-capable / deterministic / fast / agent-runnable, each checked off with a shown command+output), (2) 3-5 RANKED FALSIFIABLE hypotheses shown to the user before instrumentation (not single-hypothesis anchoring), (3) tagged debug-log convention ([DEBUG-xxxx]) so cleanup is one grep, (4) secret-redaction discipline for any shown command output, (5) explicit \"no correct seam = itself a finding, hand off to architecture\" exit. /brana:fix currently does reproduce->diagnose->fix->verify->commit without these explicit gates.\nAC: /brana:fix's reproduce step states an explicit tight-loop completion criterion (red-capable, deterministic, fast, agent-runnable) with a shown command+output before diagnosis proceeds\nAC: a ranked-hypotheses-before-instrumentation step is added (3-5 falsifiable hypotheses, shown to user, one variable changed at a time)\nAC: tagged debug-log convention documented in the skill and a cleanup check added before a fix can be marked complete\nAC: no-correct-seam-found is an explicit valid exit state that hands off rather than silently skipping the regression test\nAC: skill-validation-checklist.md item 4 (explicit control flow) re-verified against the updated system/skills/fix/SKILL.md\n2026-08-17: pulled by wave-6 pump, parked back to pending before build — current AC describe the pre-§7 \"port\" reading (rewrite system/skills/fix/SKILL.md with adapted content), but t-2837 (pending, unapproved ADR) explicitly names this task as its own vendor+wrap pilot beat (a structurally different implementation: vendor diagnosing-bugs as a pinned dependency, wrap thin in /brana:fix). Human chose to hold t-2834 until t-2837's ADR is decided rather than build under stale AC. Blocked-by relationship not set (t-2837 isn't formally a blocker, just an unresolved premise conflict) — revisit AC after t-2837 ships or is rejected.\n2026-08-17 (correction): blocked_by alone doesn't gate wave-pull eligibility (filter is `status:pending ∧ ac_state:approved ∧ ¬tag:parked` per ADR-079/ADR-078 — no blocked_by check) — wave-6 re-pulled t-2834 immediately after the blocked_by-only park attempt. Added tag `parked` (ADR-078 stale-task-park-via-tag) to actually exclude it from the wave's eligibility filter while keeping status:pending and the task queryable/visible. blocked_by:t-2837 stays as accurate dependency documentation even though it's not load-bearing for the wave filter.",
       "created": "2026-08-13",
       "description": null,
       "effort": "M",
@@ -73860,7 +73863,8 @@
       "tags": [
         "skills",
         "wave:drain-3",
-        "mattpocock-mining"
+        "mattpocock-mining",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -73873,10 +73877,12 @@
         "Scope boundary against challenger-calibration.md stated explicitly",
         "Missing-spec case handled explicitly"
       ],
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2837"
+      ],
       "branch": null,
       "completed": null,
-      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P6. Pocock's code-review (github.com/mattpocock/skills/skills/engineering/code-review/SKILL.md) runs two parallel sub-agents — Standards (repo conventions + a documented Fowler-derived smell baseline, always a judgement call, repo overrides baseline) and Spec (diff vs originating issue/spec: missing, scope-creep, wrong-looking) — and reports them under separate headings, deliberately never merged or reranked, because \"a change can pass one axis and fail the other.\" brana's pr-reviewer and challenger agents currently blend correctness/style/spec-fit into one pass.\n\nSCOPE BOUNDARY: cross-check against challenger-calibration.md so this doesn't duplicate challenger's job — challenger is for plan/architecture stress-testing before commitment; this is for diff review after code exists. State the boundary explicitly in the implementation.\nAC: pr-reviewer (or a new build VERIFY-phase step) runs two parallel sub-agent reviews - Standards and Spec - reported under separate un-merged, un-reranked headings\nAC: a documented smell baseline (Fowler Ch.3 derived, always a judgement call, repo-documented standards override it) is written once and reused rather than duplicated per invocation\nAC: scope boundary against challenger/challenger-calibration.md stated explicitly in the skill doc\nAC: missing-spec case handled explicitly (Spec axis skips and reports 'no spec available')",
+      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P6. Pocock's code-review (github.com/mattpocock/skills/skills/engineering/code-review/SKILL.md) runs two parallel sub-agents — Standards (repo conventions + a documented Fowler-derived smell baseline, always a judgement call, repo overrides baseline) and Spec (diff vs originating issue/spec: missing, scope-creep, wrong-looking) — and reports them under separate headings, deliberately never merged or reranked, because \"a change can pass one axis and fail the other.\" brana's pr-reviewer and challenger agents currently blend correctness/style/spec-fit into one pass.\n\nSCOPE BOUNDARY: cross-check against challenger-calibration.md so this doesn't duplicate challenger's job — challenger is for plan/architecture stress-testing before commitment; this is for diff review after code exists. State the boundary explicitly in the implementation.\nAC: pr-reviewer (or a new build VERIFY-phase step) runs two parallel sub-agent reviews - Standards and Spec - reported under separate un-merged, un-reranked headings\nAC: a documented smell baseline (Fowler Ch.3 derived, always a judgement call, repo-documented standards override it) is written once and reused rather than duplicated per invocation\nAC: scope boundary against challenger/challenger-calibration.md stated explicitly in the skill doc\nAC: missing-spec case handled explicitly (Spec axis skips and reports 'no spec available')\n2026-08-17: parked proactively (before wave-6 pull) — same premise conflict as t-2834: current AC describe the pre-§7 \"port\" reading (build a two-axis review as a brana pr-reviewer/build-VERIFY step), but research doc §7 explicitly lists t-2835 among the tasks that \"flip from port to vendor+wrap.\" t-2837 (pending, unapproved ADR) would decide this. Human already made the same call for the identical t-2834 conflict (skip/park rather than build under stale AC) — applying it here without re-asking. Tagged parked (ADR-078) + blocked_by t-2837 (documentation; not load-bearing for wave-pull's eligibility filter, which checks tag:parked only). Revisit after t-2837 ships or is rejected.",
       "created": "2026-08-13",
       "description": null,
       "effort": "M",
@@ -73894,7 +73900,8 @@
       "tags": [
         "skills",
         "wave:drain-3",
-        "mattpocock-mining"
+        "mattpocock-mining",
+        "parked"
       ],
       "type": "task",
       "work_type": "implement"
@@ -73907,10 +73914,12 @@
         "Generated script ephemeral by default, committed only if repeatable",
         "Script passes bash -n and shellcheck before hand-off"
       ],
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2837"
+      ],
       "branch": null,
       "completed": null,
-      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P7. Pocock's wizard (github.com/mattpocock/skills/skills/engineering/wizard/SKILL.md + template.sh) generates a stage-by-stage interactive bash script for steps only a human can perform: opens each URL, says exactly what to click/copy, captures values, writes .env/gh secrets, confirms before irreversible actions, shows progress. Model-invoked (agent reaches for it the moment it hits a wall only a human can pass), ephemeral by default (scratch/ path, committed only if repeatable). brana has recurring manual-provisioning needs (client onboarding secrets, meta-templates WhatsApp BSP setup, venture scaffolding) with no standardized generator — currently ad hoc prose instructions per skill.\nAC: a skill or build-composable step generates an interactive bash script (stage-by-stage, confirm gates before irreversible actions, .env/secret writes, cross-platform URL opening) modeled on wizard's template.sh pattern\nAC: at least one real brana provisioning flow (e.g. client onboarding secret, or meta-templates BSP setup) exercised end-to-end via static trace (not executed — it blocks on human input) as acceptance proof\nAC: generated script is ephemeral by default (scratch/ or /tmp path per cwd-discipline.md) and committed only when the user wants a repeatable setup path\nAC: script passes bash -n and shellcheck where available before hand-off",
+      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P7. Pocock's wizard (github.com/mattpocock/skills/skills/engineering/wizard/SKILL.md + template.sh) generates a stage-by-stage interactive bash script for steps only a human can perform: opens each URL, says exactly what to click/copy, captures values, writes .env/gh secrets, confirms before irreversible actions, shows progress. Model-invoked (agent reaches for it the moment it hits a wall only a human can pass), ephemeral by default (scratch/ path, committed only if repeatable). brana has recurring manual-provisioning needs (client onboarding secrets, meta-templates WhatsApp BSP setup, venture scaffolding) with no standardized generator — currently ad hoc prose instructions per skill.\nAC: a skill or build-composable step generates an interactive bash script (stage-by-stage, confirm gates before irreversible actions, .env/secret writes, cross-platform URL opening) modeled on wizard's template.sh pattern\nAC: at least one real brana provisioning flow (e.g. client onboarding secret, or meta-templates BSP setup) exercised end-to-end via static trace (not executed — it blocks on human input) as acceptance proof\nAC: generated script is ephemeral by default (scratch/ or /tmp path per cwd-discipline.md) and committed only when the user wants a repeatable setup path\nAC: script passes bash -n and shellcheck where available before hand-off\n2026-08-17: parked (wave-6 pull) — same premise-conflict class as t-2834/t-2835. This task's own AC explicitly model the generator \"on wizard's template.sh pattern\" (the ADAPT/port reading), but research doc §7's DEPEND-mode table explicitly lists \"wizard\" among the artifact-shaped organs to vendor+pin+wrap thin, not port. t-2837's own point-4 reshape list (context field) doesn't name t-2836 explicitly — only t-2834/t-2835/t-2833/t-2831 — so this may be an omission in that dialogue note rather than a deliberate exclusion; §7's DEPEND table is the more authoritative source and it does include wizard. Applying the same human-approved resolution (skip/park rather than build under a possibly-superseded AC) as t-2834/t-2835, without re-asking — same conflict shape, same decision rule. Tagged parked (ADR-078) + blocked_by t-2837 (documentation only). Flag for t-2837's author: the ADR should explicitly confirm or deny whether t-2836/wizard is in scope, since its own reshape list and its own DEPEND table disagree on this one.",
       "created": "2026-08-13",
       "description": null,
       "effort": "M",
@@ -73918,6 +73927,7 @@
       "github_issue": null,
       "id": "t-2836",
       "kind": "feature",
+      "work_type": "implement",
       "notes": null,
       "order": 0,
       "parent": "t-2830",
@@ -73928,10 +73938,10 @@
       "tags": [
         "skills",
         "wave:drain-3",
-        "mattpocock-mining"
+        "mattpocock-mining",
+        "parked"
       ],
-      "type": "task",
-      "work_type": "implement"
+      "type": "task"
     },
     {
       "ac_state": "none",
@@ -73939,7 +73949,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Source: t-2830 findings (docs/research/2026-08-13-matt-pocock-skill-system.md, on branch cc-alignment/research/t-2830-matt-pocock-skill-system, unmerged) + studio dialogue same day. Key constraints from the dialogue: (1) per-skill verdicts, not global swap — brana's research/close are supersets of his, never downgrade; (2) name collisions: his skills cross-reference each other (/grilling, /tdd, /research) — the adapter owns the remap and it is the piece that breaks silently on upstream updates; (3) his CONTEXT.md assumption must map to brana docs/memory; (4) reshapes queued wave-3 tasks: t-2834 and t-2835 flip from port to vendor+wrap, t-2833 becomes a pinned reference, t-2831 unchanged; (5) run /brana:challenge on the ADR before rolling past the pilot — the killed mode:execute-only history (gentle-ai-adoption-ladder Rung 3, t-2591) shows these moves need the adversarial pass.\nAC: ADR drafted in docs/architecture/decisions/ with the layer-test mapping (queue/pump/valve/gauge/memory), pin+sync policy, valve placement, per-skill swap criteria, and name-remap contract\nAC: per-skill swap table produced from the t-2830 comparison — vendor / wrap / keep-brana verdict for every overlapping skill\nAC: t-2834 reshaped into the vendor+wrap pilot (proof-of-life beat) with its own AC lines\nAC: ADR passed through /brana:challenge with findings addressed or explicitly accepted\nAC: decision recorded — adopt band / pilot-only / reject — with the kill/expand criteria named",
+      "context": "Source: t-2830 findings (docs/research/2026-08-13-matt-pocock-skill-system.md, on branch cc-alignment/research/t-2830-matt-pocock-skill-system, unmerged) + studio dialogue same day. Key constraints from the dialogue: (1) per-skill verdicts, not global swap — brana's research/close are supersets of his, never downgrade; (2) name collisions: his skills cross-reference each other (/grilling, /tdd, /research) — the adapter owns the remap and it is the piece that breaks silently on upstream updates; (3) his CONTEXT.md assumption must map to brana docs/memory; (4) reshapes queued wave-3 tasks: t-2834 and t-2835 flip from port to vendor+wrap, t-2833 becomes a pinned reference, t-2831 unchanged; (5) run /brana:challenge on the ADR before rolling past the pilot — the killed mode:execute-only history (gentle-ai-adoption-ladder Rung 3, t-2591) shows these moves need the adversarial pass.\nAC: ADR drafted in docs/architecture/decisions/ with the layer-test mapping (queue/pump/valve/gauge/memory), pin+sync policy, valve placement, per-skill swap criteria, and name-remap contract\nAC: per-skill swap table produced from the t-2830 comparison — vendor / wrap / keep-brana verdict for every overlapping skill\nAC: t-2834 reshaped into the vendor+wrap pilot (proof-of-life beat) with its own AC lines\nAC: ADR passed through /brana:challenge with findings addressed or explicitly accepted\nAC: decision recorded — adopt band / pilot-only / reject — with the kill/expand criteria named\n2026-08-17: t-2833 (companion craft doc) shipped as a doc-only reference (docs/reference/skill-writing-craft.md) before this ADR landed — challenger flagged the premise conflict with this task's \"t-2833 becomes a pinned reference\" framing (iteration 1: RECONSIDER sev4), resolved via an explicit reconciliation section in the doc (iteration 2: PROCEED WITH CHANGES sev3) stating the doc coexists with, not substitutes for, a future DEPEND-mode vendored writing-for-agents dependency. When this ADR is drafted, revisit whether skill-writing-craft.md should point at a vendored copy instead of restating content.",
       "created": "2026-08-13",
       "description": "Shape and decide the layer split proposed in the t-2830 studio dialogue (2026-08-13): brana keeps the substrate (backlog, waves, hooks, evaluator) and thin orchestration shells (entry/exit state, branch/worktree, AC wiring, close); the cognitive middle of overlapping skills is vendored from mattpocock/skills (MIT, changeset-versioned, pinned — v1.2.3 at time of writing), reused via his own tracker-doc seam mapped onto brana primitives (tickets=tasks, blocking=blocked_by, claim=claims, frontier=wave selector). Framed in wave-pipeline.md spectrum terms as a new instrumented band — the upstream loop: queue=unreviewed upstream delta (pinned ref vs latest), pump=reconcile-style sync job, valve=human diff review before re-pin (never auto-track main), gauge=version-drift readout, memory=adapter doc + per-skill adopt table. Graded admission per the layer test: the band exists only after one real beat — the t-2834 pilot (vendor diagnosing-bugs, wrap in /brana:fix shell, run on a real bug, emit records).",
       "effort": "M",
@@ -76425,8 +76435,9 @@
         "t-2920"
       ],
       "branch": "time-tracking/design/t-2919-adr-fold-t-648-into",
-      "completed": null,
-      "context": "Records: brana/time/ storage path (not t-648's original ~/.claude/run-state — that path is already occupied by the live LOAD-checkpoint/CLOSE-delete mechanism, see docs/ideas/task-time-tracking.md); many-sub-spans-per-task_id bracket model; serialized one-bracket-per-session rule; subagent/fork fan-out exclusion for v1 (coverage:partial flag); decoupling from the existing M+-only resume-checkpoint gate; turn-delta/idle-cap measurement method (pending re-validation task); atomic-write + H2 git-env-scrub requirements. Full rationale: docs/ideas/task-time-tracking.md.\nturn-delta/idle-cap measurement method — RE-VALIDATED (t-2920, 2026-08-17): 15-min cap confirmed safe against 5 real build/bug/research sessions; findings in docs/ideas/task-time-tracking.md (Metric 1 re-validation block). No longer \"pending re-validation\" — incorporate the confirmed constant, not the old n=1 value.",
+      "build_step": null,
+      "completed": "2026-08-17",
+      "context": "Records: brana/time/ storage path (not t-648's original ~/.claude/run-state — that path is already occupied by the live LOAD-checkpoint/CLOSE-delete mechanism, see docs/ideas/task-time-tracking.md); many-sub-spans-per-task_id bracket model; serialized one-bracket-per-session rule; subagent/fork fan-out exclusion for v1 (coverage:partial flag); decoupling from the existing M+-only resume-checkpoint gate; turn-delta/idle-cap measurement method (pending re-validation task); atomic-write + H2 git-env-scrub requirements. Full rationale: docs/ideas/task-time-tracking.md.\nturn-delta/idle-cap measurement method — RE-VALIDATED (t-2920, 2026-08-17): 15-min cap confirmed safe against 5 real build/bug/research sessions; findings in docs/ideas/task-time-tracking.md (Metric 1 re-validation block). No longer \"pending re-validation\" — incorporate the confirmed constant, not the old n=1 value.\nChallenger finding (iteration 1, 2026-08-17): (a) SEV4 — ADR-083 must add the two ADR-level notes docs/ideas/task-time-tracking.md's challenger table (#12, #18) promised it: a combined CLOSE-latency-budget note tracked against build-receipts.md's K2 kill-threshold, and a prompt-cache-sharing-across-forks double-counting footnote. (b) SEV3 — ADR-083 must cite/engage sibling docs governing the same build.md LOAD/CLOSE task_id-keyed JSONL integration points: ADR-074-step-state-contract.md (explicit Accepted principle \"we extend it; we do NOT invent a third state location\"), docs/architecture/features/checkpoint-resume.md, docs/guide/features/checkpoint-resume.md, and docs/architecture/features/goal-binding-build-tdd.md (a third ~/.claude/run-state/{task_id}-audit.jsonl sibling). Explain why brana/time/ is a legitimately distinct (durable-aggregate vs ephemeral-checkpoint) location rather than a silent 4th state store.",
       "created": "2026-08-17",
       "description": "Write the ADR that folds t-648 (build-cost-tracking) into the unified time+cost tracking design from docs/ideas/task-time-tracking.md: brana/time/ storage path, many-sub-spans bracket model, serialized one-bracket-per-session rule, subagent/fork fan-out exclusion for v1, decoupling from the M+-only resume-checkpoint gate, the re-validated turn-delta/idle-cap measurement method (t-2920), and atomic-write + git-env-scrub requirements.",
       "effort": "S",
@@ -76434,13 +76445,13 @@
       "github_issue": null,
       "id": "t-2919",
       "kind": "design",
-      "strategy": "feature",
-      "notes": null,
+      "notes": "Evaluator: PASS (2026-08-17), 3 criteria checked\nChallenger: RECONSIDER (2026-08-17), iteration 1, 4 finding(s) (2 warnings + 2 observations), max severity 4\nChallenger: PROCEED WITH CHANGES (2026-08-17), iteration 2, 3 finding(s) (1 warning + 2 observations), no blocking severity",
       "order": 0,
       "parent": "t-2914",
       "priority": null,
       "started": "2026-08-17",
-      "status": "in_progress",
+      "status": "completed",
+      "strategy": "feature",
       "subject": "ADR: fold t-648 into unified time+cost tracking mechanism",
       "tags": [],
       "type": "task",
@@ -76477,18 +76488,18 @@
       "work_type": "research"
     },
     {
-      "ac_state": "none",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "tests exist covering turn-delta idle-cap summation, many-sub-spans rollup, serialized-bracket rejection, and atomic concurrent-write, and fail red before Metric 1 is implemented"
       ],
       "blocked_by": [
         "t-2919"
       ],
-      "branch": null,
+      "branch": "time-tracking/feat/t-2921-tests-metric-1-bracket",
       "completed": null,
       "context": "Tests-first per TDD gate. Covers: turn-delta summation with idle-gap capping (incl. synthetic overnight-gap case); many-sub-spans rollup across multiple transcript files for one task_id (cross-session resumption); serialized-bracket rejection (second START while one is already open in-session); atomic concurrent-write stress test (two sessions writing brana/time/ store, no corruption/loss); coverage-annotation output shape (task/bracket counts, partial-coverage flag for fan-out exclusion). See docs/ideas/task-time-tracking.md Next Steps #3.",
       "created": "2026-08-17",
-      "description": null,
+      "description": "Write the failing tests (TDD, blocks t-2922's implementation) for Metric 1 of ADR-083: turn-delta summation with 15-min idle-gap capping (incl. synthetic overnight-gap case), many-sub-spans rollup across multiple transcript files for one task_id, serialized-bracket rejection (second START while one is already open in-session), atomic concurrent-write stress test (two sessions writing brana/time/ store, no corruption/loss), and coverage-annotation output shape (task/bracket counts, partial-coverage flag for fan-out exclusion).",
       "effort": "M",
       "execution": "code",
       "github_issue": null,
@@ -76498,8 +76509,9 @@
       "order": 0,
       "parent": "t-2915",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-17",
+      "status": "in_progress",
+      "strategy": "feature",
       "subject": "Tests: Metric 1 bracket model, idle-cap, concurrency, coverage output",
       "tags": [
         "test"
@@ -76508,7 +76520,7 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "\"./validate.sh\" passes",
         "file system/skills/build/phases/load.md contains \"brana/time\"",
@@ -77120,12 +77132,14 @@
     {
       "ac_state": "none",
       "acceptance_criteria": null,
-      "blocked_by": [],
+      "blocked_by": [
+        "t-2937"
+      ],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "Corrected 2026-08-17: the doc's original \"scope creep\" precedent framing (inbox-to-dimensions-pipeline.md) was wrong -- that pipeline actually shipped and runs nightly (verified live via `brana knowledge process --status`), currently capped at its 10-draft review limit. Real lesson for THIS milestone: if concepts/entities synthesis introduces any human-review gate, give it the same hard-cap-and-stop discipline from day one -- don't let synthesis outpace review capacity.",
       "created": "2026-08-17",
-      "description": "Mine raw/ transcripts for concepts/entities via structure-aware segmentation (not fixed-token chunking); write/update concepts/*.md and entities/*.md, each ending in a Sources section citing resource + &t=Ns back to the video. Gated on Phase 1 actually being used.",
+      "description": "Mine raw/ transcripts for concepts/entities via structure-aware segmentation (not fixed-token chunking); write/update concepts/*.md and entities/*.md, each ending in a Sources section citing resource + &t=Ns back to the video. Introduces the directory-bundle storage shape (raw/+concepts/+entities/+sources/) for the first time in this pipeline -- Phase 1 deliberately does NOT use this shape (flat knowledge:url:<slug> instead, per /brana:challenge CRITICAL finding 2026-08-17). Gated on BOTH: Phase 1 actually being used in practice, AND t-2937 (OKF adoption decision) resolving first -- shipping a bundle format before that decision lands risks pre-biasing it and schema-drifting against t-2939's imported Cole Medin bundle.",
       "effort": null,
       "execution": "code",
       "github_issue": null,
@@ -77175,9 +77189,9 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "Corrected 2026-08-17 by /brana:challenge (3 CRITICAL findings, decision log has full report). Original scope (directory-bundle storage in Phase 1, --cap N as rate-limiting) was wrong on both counts -- see docs/ideas/youtube-knowledge-extraction.md Risks + Next steps for the corrected design this ADR must formalize.",
       "created": "2026-08-17",
-      "description": "Amend ADR-070 (three-tier fetch): add a youtube tier alongside the existing linkedin/public tiers. Cover: yt-dlp subprocess as the fetch mechanism, rate-limit/pacing budget separate from the LinkedIn tier's --cap pattern, and the raw/+sources/+concepts/+entities storage shape (informed by OKF conventions without committing to full OKF adoption — that's t-2937's separate scope).",
+      "description": "Amend ADR-070 (three-tier fetch, more precisely restructure fetch_url_content()'s binary branch into an N-tier dispatch): add a youtube tier. Decide: (a) yt-dlp subprocess as fetch mechanism, single primary-language caption only for Phase 1; (b) per-platform sub-cap within drain-links' shared FIFO --cap N batch, or remove youtube from the shared job entirely, so a stuck/retrying fetch cannot starve LinkedIn/GitHub/Substack slots; (c) no-captions contract: yt-dlp exit 0 + zero subtitle files written -> stays pending, never Completed. Phase 1 storage is the pipeline's EXISTING flat knowledge:url:<slug> value (ruflo_memory_store), NOT a new directory-bundle shape -- the bundle/OKF architecture is explicitly Phase 2, gated on t-2937.",
       "effort": "S",
       "execution": "code",
       "github_issue": null,
@@ -77206,7 +77220,7 @@
       "completed": null,
       "context": null,
       "created": "2026-08-17",
-      "description": "docs/architecture/features/youtube-knowledge-extraction.md — required before implementation begins (M-effort spec-gate, system/hooks/spec-gate.sh). Covers classify_platform() extension, yt-dlp subprocess contract, VTT cleanup, raw/+sources/ writer, drain-links wiring for Phase 1; sketches Phase 2/3 shape for continuity.",
+      "description": "docs/architecture/features/youtube-knowledge-extraction.md -- required before implementation begins (M-effort spec-gate). Covers classify_platform() extension, yt-dlp subprocess contract (single-language command), no-captions Ok(None) contract, backoff/retry + per-platform-cap design, flat knowledge:url:<slug> storage for Phase 1 (same mechanism every other tier uses). Sketches Phase 2 bundle/concepts/entities shape for continuity, explicitly marked as gated on t-2937.",
       "effort": "S",
       "execution": "code",
       "github_issue": null,
@@ -77235,7 +77249,7 @@
       "completed": null,
       "context": null,
       "created": "2026-08-17",
-      "description": "Write failing tests first (TDD): classify_platform() returns \"youtube\" for youtube.com/youtu.be URLs incl. shorts; yt-dlp subprocess wrapper tested against a recorded/fixture VTT (not live network — same discipline as the LinkedIn tier's existing tests, see test_lock_discipline_source_tripwires in brana-cli/src/commands/knowledge.rs); VTT cue-dedup function produces plain text from a fixture with word-level cue duplication.",
+      "description": "Write failing tests first (TDD): classify_platform() returns \"youtube\" for youtube.com/youtu.be URLs incl. shorts; yt-dlp subprocess wrapper (single-language command, explicit --socket-timeout 30) tested against a recorded/fixture VTT, not live network; VTT cue-dedup function produces plain text from a fixture with word-level cue duplication; NO-CAPTIONS FIXTURE -- yt-dlp exit 0 with zero subtitle files written must produce Ok(None)/stay-pending, never Completed (live-reproduced 2026-08-17 against https://www.youtube.com/watch?v=jNQXAC9IVRw -- real fixture case exists, not hypothetical).",
       "effort": "S",
       "execution": "code",
       "github_issue": null,
@@ -77323,16 +77337,18 @@
       "ac_state": "none",
       "acceptance_criteria": [
         "cargo test -p brana-core passes",
-        "file system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs contains \"youtube\""
+        "file system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs contains \"youtube\"",
+        "no-captions fixture returns Ok(None) not Completed"
       ],
       "blocked_by": [
-        "t-2947"
+        "t-2947",
+        "t-2956"
       ],
       "branch": null,
       "completed": null,
-      "context": "Blocked by t-2946 (feature spec) and t-2947 (tests, TDD). Validated live during brainstorm 2026-08-17: yt-dlp is already installed (/usr/bin/yt-dlp), pulled real transcript for the exact video from t-1349. Hit HTTP 429 on a third subtitle language request seconds apart — fetch only one language per video in this implementation.",
+      "context": "Blocked by t-2946 (feature spec), t-2947 (tests, TDD), and t-2956 (backoff/retry unit). Corrected 2026-08-17 by /brana:challenge: storage shape changed from directory-bundle to the pipeline's existing flat knowledge:url:<slug> value. Timeout budget measured live 2026-08-17 (not guessed): 2.25s (2h26m video, real captions) and 5.51s (no captions, exit 0 zero files) -- both extractor-overhead-dominated, not content-size-dominated. 30s socket-timeout + 60s outer kill-timeout is generous relative to observed range.",
       "created": "2026-08-17",
-      "description": "classify_platform() gains a \"youtube\" case; new fetch path shells out to `yt-dlp --skip-download --write-auto-sub --sub-format vtt` (single primary-language caption, per the pacing mitigation); VTT cue-dedup into plain text; store immutable transcript under raw/ (generated field: caption_source manual|auto + timestamp) plus one sources/ doc per video (frontmatter: type, title, resource=video URL, tags). Wired into the existing drain-links scheduler job — no new capture mechanism.",
+      "description": "classify_platform() gains a \"youtube\" case; new fetch path shells out to `yt-dlp --skip-download --write-auto-sub --sub-langs \"en\" --sub-format vtt --socket-timeout 30` (single primary-language caption, explicit socket timeout -- yt-dlp has no default, confirmed via --help) with an outer ~60s process kill-timeout; VTT cue-dedup into plain text; store the real transcript through the EXISTING ruflo_memory_store(\"knowledge:url:<slug>\", ...) call every other tier uses, with caption_source: manual|auto carried as metadata on that value. No-captions case (yt-dlp exit 0, no subtitle file -- live-reproduced 2026-08-17, ~5.5s, confirmed exit code 0 with zero files written) must stay pending, never Completed. Wired into the existing drain-links scheduler job.",
       "effort": "M",
       "execution": "code",
       "github_issue": null,
@@ -77357,7 +77373,9 @@
         "cargo test -p brana-core passes"
       ],
       "blocked_by": [
-        "t-2948"
+        "t-2948",
+        "t-2937",
+        "t-2959"
       ],
       "branch": null,
       "completed": null,
@@ -77425,7 +77443,7 @@
       "completed": null,
       "context": null,
       "created": "2026-08-17",
-      "description": "Tech doc covering the new youtube tier (docs/architecture/ or docs/reference/ per the split convention — architecture for hand-maintained field notes, reference if generated). No user guide needed — internal pipeline, no user-facing surface beyond what drain-links already has.",
+      "description": "Tech doc covering the new youtube tier (docs/architecture/ or docs/reference/ per the split convention). Documents the flat knowledge:url:<slug> storage decision (not a bundle -- corrected 2026-08-17 by /brana:challenge), the no-captions contract, and the per-platform rate-limit handling. No user guide needed -- internal pipeline, no user-facing surface beyond what drain-links already has.",
       "effort": "S",
       "execution": "code",
       "github_issue": null,
@@ -77446,33 +77464,321 @@
       "work_type": "chore"
     },
     {
+      "ac_state": "none",
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": "harness-core/fix/t-2954-brana-challenge-background-orchestrator",
+      "build_step": "fix",
+      "completed": null,
+      "context": "Filed 2026-08-17 via /brana:backlog do (freeform routing, no matching skill found). Not started — filed for later triage while a fresh /brana:challenge relaunch (agentId a38dcb864b4834c4f) runs concurrently on docs/ideas/youtube-knowledge-extraction.md.\n2026-08-17 REPRODUCE/DIAGNOSE/FIX: TDD gate skipped — no test framework applies (skill-frontmatter/YAML + prose docs change, no executable code path). validate.sh run as structural regression check instead.\nDIAGNOSE confirmed via background research: docs/architecture/extending-skills.md:44 documents context:fork as running the WHOLE skill invocation as a forked/background task. system/skills/_shared/adversarial-hive-mind.md's step 4a then has that forked orchestrator spawn 3 more Agent-tool sub-agents and synchronously await all 3 across turns via notification — safe only for a live interactive session (per Agent tool's own docs), not a fork of one. Zero TTL/reaping docs exist anywhere in the repo for forked skill contexts — confirmed via full grep sweep of docs/architecture, docs/reference, system/.\nFIX: removed `context: fork` from system/skills/challenge/SKILL.md (was present since skill creation, 2026-02-09, dac5bdfd), added a rule note there against re-adding it, and added a hazard warning to docs/architecture/extending-skills.md's context:fork frontmatter row. Filed t-2961 (P2) to audit research/SKILL.md for the identical exposure (same context:fork + likely same Agent-tool fan-out pattern, not yet verified).",
+      "created": "2026-08-17",
+      "description": "A /brana:challenge run (docs/ideas/youtube-knowledge-extraction.md, 2026-08-17) spawned 3 real challenger sub-agents (convergent/systems/critical) via the Agent tool and then sat in a \"waiting for notifications\" loop. Its own background task (agentId a649ad0eaf69a40a6) subsequently disappeared — TaskOutput returned \"No task found,\" ListAgents showed nothing, and no synthesized report was ever produced. The 3 sub-agents' results, if they landed, were never picked up since the parent that would consume their notifications was already gone. Re-running the same /brana:challenge produced a fresh orchestrator (a38dcb864b4834c4f) — the bug is in the orchestrator's lifecycle/notification handling, not a one-off fluke.\n\nRoot cause to investigate: does the forked-skill-launch background task have a TTL or get reaped while its own spawned Agent-tool sub-agents are still legitimately running? If so, the parent needs to either block synchronously on its children (Agent tool calls awaited, not fire-and-forget) or have a durable notification queue that survives the parent's own task disappearing.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
       "id": "t-2954",
-      "subject": "brana:challenge background orchestrator can die mid-run, orphaning spawned sub-agents",
-      "status": "pending",
-      "type": "task",
       "kind": "fix",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2345",
+      "priority": "P2",
+      "started": "2026-08-17",
+      "status": "in_progress",
+      "strategy": "bug-fix",
+      "subject": "brana:challenge background orchestrator can die mid-run, orphaning spawned sub-agents",
       "tags": [
         "challenge-skill",
         "harness",
         "reliability"
       ],
-      "description": "A /brana:challenge run (docs/ideas/youtube-knowledge-extraction.md, 2026-08-17) spawned 3 real challenger sub-agents (convergent/systems/critical) via the Agent tool and then sat in a \"waiting for notifications\" loop. Its own background task (agentId a649ad0eaf69a40a6) subsequently disappeared — TaskOutput returned \"No task found,\" ListAgents showed nothing, and no synthesized report was ever produced. The 3 sub-agents' results, if they landed, were never picked up since the parent that would consume their notifications was already gone. Re-running the same /brana:challenge produced a fresh orchestrator (a38dcb864b4834c4f) — the bug is in the orchestrator's lifecycle/notification handling, not a one-off fluke.\n\nRoot cause to investigate: does the forked-skill-launch background task have a TTL or get reaped while its own spawned Agent-tool sub-agents are still legitimately running? If so, the parent needs to either block synchronously on its children (Agent tool calls awaited, not fire-and-forget) or have a durable notification queue that survives the parent's own task disappearing.",
-      "effort": "S",
-      "priority": "P2",
-      "parent": null,
-      "created": "2026-08-17",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
+      "type": "task",
+      "work_type": null
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": [
+        "cargo test -p brana-core youtube_backoff fails (red, pre-impl)"
+      ],
+      "blocked_by": [
+        "t-2946"
+      ],
       "branch": null,
-      "context": "Filed 2026-08-17 via /brana:backlog do (freeform routing, no matching skill found). Not started — filed for later triage while a fresh /brana:challenge relaunch (agentId a38dcb864b4834c4f) runs concurrently on docs/ideas/youtube-knowledge-extraction.md.",
+      "completed": null,
+      "context": "Filed 2026-08-17 per /brana:challenge CRITICAL finding: the originally-assumed rate-limit mitigation (--cap N pattern) doesn't provide backoff/retry -- this is genuinely new scope, not a reuse of existing infra. Blocked by t-2946 (feature spec/ADR must decide sub-cap vs. removal-from-batch first).",
+      "created": "2026-08-17",
+      "description": "Write failing tests first: backoff/retry logic handles a simulated HTTP 429 (exponential or fixed backoff, bounded retry count); per-platform sub-cap prevents a stuck/retrying youtube fetch from starving other platforms' slots within drain-links' shared FIFO --cap N batch (or: youtube removed from the shared batch entirely -- test whichever the ADR decides).",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2955",
+      "kind": null,
       "notes": null,
       "order": 0,
-      "github_issue": null,
+      "parent": "t-2942",
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "subject": "Tests: rate-limit backoff/retry + per-platform batch cap",
+      "tags": [
+        "test",
+        "knowledge-pipeline"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": [
+        "cargo test -p brana-core passes"
+      ],
+      "blocked_by": [
+        "t-2955"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Filed 2026-08-17 per /brana:challenge CRITICAL finding (3-way agreement): the doc originally described --cap N (t-2560/t-2583) as rate-limiting infrastructure, but grepping knowledge_pipeline.rs found zero matches for 429/backoff/retry -- it doesn't exist. This task builds it as its own tested unit, as the challenge recommended.",
+      "created": "2026-08-17",
+      "description": "Real backoff/retry unit for yt-dlp subprocess calls hitting HTTP 429 (bounded retries, backoff delay). Per the ADR's decision (t-2945): either a per-platform sub-cap within drain-links' shared --cap N FIFO batch, or remove youtube from the shared job entirely for Phase 1. Consumed by t-2950's fetch tier -- that task's yt-dlp calls must go through this, not loop naively.",
+      "effort": "S",
       "execution": "code",
+      "github_issue": null,
+      "id": "t-2956",
+      "kind": null,
+      "notes": null,
+      "order": 0,
+      "parent": "t-2942",
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "subject": "Implement: rate-limit backoff/retry + per-platform batch cap",
+      "tags": [],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
       "acceptance_criteria": null,
-      "work_type": null,
-      "ac_state": "none"
+      "blocked_by": [],
+      "branch": null,
+      "completed": "2026-08-17",
+      "context": null,
+      "created": "2026-08-17",
+      "description": "t-2831's AC3 asked for a pointer line under system/CLAUDE.md's 6 Jobs table pointing at docs/architecture/idea-to-ship.md. Claude cannot make this edit — system/hooks/feedback-gate.sh + lib/layer1-paths.sh deny ALL Write/Edit to any file named CLAUDE.md, unconditionally, no override. A human needs to paste this one line manually after the 6 Jobs table in .claude/CLAUDE.md (around line 53): \"The table above is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../docs/architecture/idea-to-ship.md).\"",
+      "effort": "XS",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2957",
+      "kind": "docs",
+      "notes": "Applied by the user directly (script apply-t2957-claude-md-pointer.sh) -- .claude/CLAUDE.md 6 Jobs table now has the idea-to-ship pointer.",
+      "order": 0,
+      "parent": "t-2831",
+      "priority": "P3",
+      "started": null,
+      "status": "completed",
+      "subject": "Paste idea-to-ship pointer into .claude/CLAUDE.md 6 Jobs table (human-only, blocked for Claude)",
+      "tags": [
+        "docs",
+        "human-only",
+        "layer1"
+      ],
+      "type": "task",
+      "work_type": null
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": [
+        "cargo test -p brana-core claude_envelope_cost_usage fails (red, pre-impl)"
+      ],
+      "blocked_by": [
+        "t-2946"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Filed 2026-08-17 during brainstorm cost investigation: measured a real Phase 2 concept/entity-mining call on a 2h26m video's full transcript at ~38,000 input tokens (152,208 chars / 29,248 words after VTT cue-dedup, live-measured) -- a different order of magnitude from tier1/tier2/tier3's metadata-only calls (~300-1000 tokens). Before Phase 2 scales to whole channels (this doc's stated end objective), per-call cost must be measured, not invisible.",
+      "created": "2026-08-17",
+      "description": "Write failing tests first: call_claude_json/call_claude_text currently discard everything in the `claude --print --output-format json` envelope except the `result` text field (confirmed 2026-08-17, zero grep hits for total_cost_usd/input_tokens/output_tokens anywhere in the pipeline). Test that a fixture envelope JSON with cost/usage fields present gets those fields extracted and returned alongside the result text, not silently dropped.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2958",
+      "kind": null,
+      "notes": null,
+      "order": 0,
+      "parent": "t-2943",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "subject": "Tests: capture total_cost_usd/token usage from claude CLI envelope",
+      "tags": [
+        "test",
+        "knowledge-pipeline",
+        "cost"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": [
+        "cargo test -p brana-core passes"
+      ],
+      "blocked_by": [
+        "t-2958"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Blocked by t-2955-tests (this task) and feeds into t-2951 (Phase 2 concept/entity synthesis impl) -- cost visibility should exist from Phase 2's first real run, not be retrofitted after channel-crawl (Phase 3) has already multiplied the spend.",
+      "created": "2026-08-17",
+      "description": "Extend call_claude_json/call_claude_text (or add a variant used by Phase 2's concept/entity synthesis calls specifically) to capture total_cost_usd + input/output token counts from the claude --print --output-format json envelope, and log/accumulate them (e.g. per-run total printed by `brana knowledge process --status`-equivalent for this pipeline, or appended to pipeline state) so channel-scale cost is visible before it's incurred, not discovered after.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2959",
+      "kind": null,
+      "notes": null,
+      "order": 0,
+      "parent": "t-2943",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "subject": "Implement: log per-call cost/token usage for concept/entity synthesis",
+      "tags": [],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": [
+        "Audit: read always-use-build-framework.md, start.md, and build.md's CLASSIFY phase as they exist today",
+        "Propose 2-3 concrete options for how (or whether) to formalize risk-gated build rigor, each with an explicit auditability/override mechanism",
+        "Get explicit human sign-off before editing always-use-build-framework.md or start.md -- this is a standing-rule change, not a bugfix"
+      ],
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "The 4 criteria used (session 2026-08-17, proyecto_anita anita-envios drain):\n1. Multiple viable designs exist -> full build earns its keep (adversarial pass catches a bad structural choice before code exists). If the pattern is already established by sibling code (e.g. t-2704's error_log->gate_runs, admin_audit_logs already used identically elsewhere for t-2705), there's nothing to challenge -- 'propose 3 approaches' is theater over a copy-adjacent pattern.\n2. Blast radius / production risk -> worth the extra scrutiny regardless of design ambiguity (e.g. a task that fires real sends, or handles a server-side API key).\n3. Compounding risk across a dependency chain -> challenge once at the HEAD of a multi-task chain (where later tasks build on the first one's shape/AST/schema), not on every link.\n4. UI/UX -> if the user has already asked to be looped in directly on UI decisions via live conversation, that conversation IS the challenge -- running the skill's CHALLENGE phase on top is redundant.\n\nApplied retrospectively, this matched what actually happened for the first two tasks completed that session (t-2704, t-2705): no real design decision existed to challenge, just an existing pattern extended correctly -- confirming the heuristic wasn't just post-hoc rationalization for skipping ceremony.\n\nOPEN QUESTION for this task: should start.md's step 4 (auto-classify strategy) or build.md's CLASSIFY step incorporate a similar auto-assignment -- e.g. a lightweight heuristic (grep for: does this task extend an existing pattern already used elsewhere in the codebase? does it touch a known-sensitive surface -- payments, sends, credentials, auth, migrations? is it the first task in a chain of blocked_by/parent-linked siblings?) that suggests 'full build' vs 'lighter flow' with a confidence score, presented via AskUserQuestion for a quick confirm/override rather than either (a) rigidly forcing full ceremony on every task regardless of size, or (b) leaving each session to reinvent the gating logic from scratch. Needs to preserve the 'no silent skip' spirit of the original rule (the exceptions must be visible/auditable, not a quiet default) while reducing the actual friction on genuinely bounded, pattern-following S/M tasks.\n\nNot a decision to make unilaterally in this task -- surface options (e.g. as a proposed addition to always-use-build-framework.md with an explicit opt-out clause + audit trail, or as a new step in start.md's Step 4) and get a human call before changing the standing rule.",
+      "created": "2026-08-17",
+      "description": "During a 16-task backlog-drain session in proyecto_anita (anita-envios epic, t-2704..t-2658 etc.), the standing rule 'always-use-build-framework' (no exceptions for S-effort) collided with an explicit user authorization for a faster autonomous mode. Resolved ad-hoc, mid-session, with a 4-criterion heuristic gating full /brana:build vs a lighter TDD-only flow (worktree -> test-first -> typecheck -> full suite -> merge --no-ff -> mark done, skipping CHALLENGE/PROPOSE/SPECIFY).",
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2960",
+      "kind": "research",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "Auto-classify build rigor (full /brana:build vs lighter TDD-only flow) by risk/design-ambiguity criteria",
+      "tags": [
+        "brana-harness",
+        "backlog-skill",
+        "build-skill",
+        "dx"
+      ],
+      "type": "task",
+      "work_type": "design"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Filed as a t-2954 follow-up 2026-08-17. t-2954 root-caused and fixed a bug where /brana:challenge's `context: fork` frontmatter made the whole skill invocation a background/forked task that then spawned 3 more Agent-tool sub-agents and awaited them across turns — an undocumented, unreliable nesting (no TTL/reap contract exists anywhere in the repo for forked skill contexts). Fix removed `context: fork` from challenge/SKILL.md and added a hazard warning to docs/architecture/extending-skills.md.\n\n`system/skills/research/SKILL.md:11` carries the identical `context: fork` frontmatter and (per its own procedure) likely does a similar internal Agent-tool fan-out/await for parallel search agents — same exposure, not yet verified or fixed. Read research/SKILL.md's fan-out step(s), confirm whether it awaits Agent-tool notifications the same way, and either remove context:fork (matching challenge's fix) or document why research's case is actually safe.",
+      "created": "2026-08-17",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2961",
+      "kind": "fix",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2345",
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "subject": "Audit research/SKILL.md for the same context:fork + Agent-tool-await orphaning hazard as t-2954",
+      "tags": [
+        "harness",
+        "reliability",
+        "challenge-skill"
+      ],
+      "type": "task",
+      "work_type": "review"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": [
+        "Methodology doc exists with the ordered phases, the questions→views table pattern, and the Inteligencia v2 worked example linked",
+        "A rule in system/rules/ states: user-facing design starts from user needs/journeys and a mockup precedes backend/ADR tasks; hooks/skills reference it",
+        "/brana:brainstorm, /brana:build SPECIFY and /brana:align propose the user-needs→journeys→UI phase for user-facing work (visible in their phase files)",
+        "Challenger calibration has a UI-plan lens: does every view answer a stated question and every signal trigger an action"
+      ],
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "2026-08-17: worked example = proyecto_anita t-2645 session — sequence that worked: persona + questions + actions → journeys → question→view map → interactive artifact mockup (artifact-design + dataviz skills, palette validated) → user approves → task tree split into ADR gate + backend track + UI track. Keep the honesty principles from ADR-075 (min-N, unattributed buckets, action per signal) as part of the pattern — they are what made the design trustworthy. Do NOT create a heavy new skill at M effort — extend existing entry points; a dedicated /brana:design skill is the L option if this proves itself.",
+      "created": "2026-08-17",
+      "description": "Martín (2026-08-17, after the proyecto_anita Inteligencia redesign session): \"I like this way for UI design and for any platform design — starting from the user's needs, ending in the backend and architecture and infra. We need to inject this approach in our methodology.\" Make it the default order for any product/platform/UI design work in brana: (1) who uses it + the questions they arrive with + the actions they need to trigger → (2) explicit user journeys → (3) UI built from those journeys (mockup as an artifact, question-first IA, every signal carries an action, honesty about suppressed/unattributable data) → (4) only then the data model, backend, architecture and infra needed to serve those journeys — with a task tree derived from the mockup. Deliverables: a methodology doc with the phase order, the questions→views mapping-table pattern, and the worked example (Inteligencia v2 — artifact https://claude.ai/code/artifact/bb38c0a2-f800-4123-b92e-44cf3c613391, task tree under proyecto_anita t-2645); a rule that any design/feature task touching a user-facing surface starts at step (1) and does not open a backend/ADR task before a journey exists; wiring into the entry of /brana:brainstorm, /brana:build (SPECIFY) and /brana:align so the phase is proposed, not remembered; challenger-calibration guidance for reviewing UI plans against journeys.",
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2962",
+      "kind": "design",
+      "notes": null,
+      "order": null,
+      "parent": "t-2346",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "Inject \"user needs → journeys → UI → backend → architecture → infra\" as the default design approach in the methodology (skills + rule)",
+      "tags": [
+        "methodology",
+        "skills",
+        "design",
+        "ux",
+        "harness"
+      ],
+      "type": "task",
+      "work_type": "design"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Call sites (body): system/skills/backlog/phases/start.md:158-165 (7b), backlog/phases/execute.md:79, backlog/phases/done-and-add.md:45, close/phases/session-state.md:305-321 (Step 9b Call 2), build/phases/load.md:4 (ToolSearch preamble). Frontmatter allowed-tools: backlog/SKILL.md:20, build/SKILL.md, close/SKILL.md:25 (+ ToolSearch select lists at close/SKILL.md:90, start.md:8, execute.md:4, done-and-add.md:4). Docs to update in same commit: docs/architecture/skills.md:106,110; docs/reference/skills.md (auto-generated — regenerate, don't hand-edit); docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md:101 (changelog entry, don't rewrite); docs/architecture/features/ruflo-mcp-tool-classification.md:169,346 (claims_board row: note \"retired 2026-08-17 — stale board, native sources cover it\"); ruflo-integration-map.md is already superseded (t-2754) — leave. Optional one-shot cleanup: claims_release the 5 stale rows so the ruflo board doesn't mislead anyone reading it later. Note t-2754 listed claims_* as \"dead frontmatter with zero body call sites\" — that was wrong, the body calls above are live; this task closes what t-2754 missed. Watch validate.sh Check 36 (ruflo preamble) and check-shared-coverage.py after pruning frontmatter (t-2754 challenger finding).\nAC: no mcp__ruflo__claims_* call sites remain in system/skills/ bodies or allowed-tools/ToolSearch preambles\nAC: docs/architecture/skills.md, ADR-026 changelog, ruflo-mcp-tool-classification.md updated in the same commit; docs/reference/skills.md regenerated\nAC: validate.sh 0 FAIL and check-shared-coverage.py clean after the frontmatter prune\nAC: 5 stale claims released on the ruflo board (or documented why not)",
+      "created": "2026-08-17",
+      "description": "2026-08-17 audit of ruflo claims_list: 6 claims on the board, 5 stale (t-1981 claimed Jun 12, t-2321, t-1781, t-2622, t-2627 — all tasks completed weeks ago, claims never released), while 2 of 3 live in-flight worktrees (t-2502, t-2921) have no claim at all. Precision 1/6, recall 1/3. Root cause is structural, not \"close didn't run\": claimant = current branch name at claim time (`agent:{branch}:session`), but claims_release at close (session-state.md Step 9b) and backlog done (done-and-add.md) rebuild the claimant from the *current* branch, which after merge is `dev` → mismatch → \"skip silently\". Same class produced the `agent:dev:session` claim on t-1781. Everything the board could show (who's on what across concurrent sessions) is already derivable from tasks.json status:in_progress+branch, `git worktree list`, and ~/.claude/run-state — the sources statusline-pipeline-awareness.md already builds on. Fixing claims to mirror data we already own runs against ADR-059 / delegation-routing (ruflo sanctioned surface = memory/recall only). Retire rather than repair: strip the calls, prune allowed-tools, update the docs that describe them.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2963",
+      "kind": "refactor",
+      "notes": null,
+      "order": 0,
+      "parent": "t-2362",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "subject": "Retire ruflo claims_claim/claims_release from backlog start/done, build load, close — board is stale and native sources already cover WIP visibility",
+      "tags": [
+        "ruflo",
+        "skills",
+        "hygiene",
+        "adr-059",
+        "claims"
+      ],
+      "type": "task",
+      "work_type": "chore"
     }
   ],
   "version": 3,
@@ -77578,7 +77884,7 @@
       "id": "wave-11",
       "name": "time-tracking-decision-validation",
       "selector": "parent:t-2914",
-      "status": "draining"
+      "status": "shipped"
     },
     {
       "contract": "Tests pass; quote_started/kickoff_date/delivered_date fields and fallbacks implemented",
@@ -77592,16 +77898,16 @@
     {
       "contract": "Tests pass; START/CLOSE markers writing atomically to brana/time/ from build.md LOAD/CLOSE for all task sizes",
       "created": "2026-08-17",
-      "gate": "time-tracking-decision-validation",
+      "gate": "wave-11",
       "id": "wave-13",
       "name": "time-tracking-metric-1-active-effort",
       "selector": "parent:t-2915",
-      "status": "queued"
+      "status": "draining"
     },
     {
       "contract": "Tests pass; time_spent and cycle_time queryable with mandatory coverage annotation (tie-break note: also depends on time-tracking-metric-2-elapsed-cycle-time, which has no gate of its own — verify it has drained before pulling this wave)",
       "created": "2026-08-17",
-      "gate": "time-tracking-metric-1-active-effort",
+      "gate": "wave-13",
       "id": "wave-14",
       "name": "time-tracking-aggregation-query",
       "selector": "parent:t-2917",
@@ -77610,7 +77916,7 @@
     {
       "contract": "build-cost-tracking.md spec updated to reflect final design; user-facing query-command doc published",
       "created": "2026-08-17",
-      "gate": "time-tracking-aggregation-query",
+      "gate": "wave-14",
       "id": "wave-15",
       "name": "time-tracking-spec-docs",
       "selector": "parent:t-2918",
