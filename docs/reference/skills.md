@@ -4,6 +4,8 @@
 
 **40 skills** loaded from `system/skills/`.
 
+This index is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../architecture/idea-to-ship.md).
+
 ## Skill Frontmatter Reference
 
 Legal values for keys used in `system/skills/<name>/SKILL.md` frontmatter.

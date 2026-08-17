@@ -193,6 +193,12 @@ fn generate_skills(root: &Path) -> Result<String> {
         skills.len()
     ));
 
+    out.push_str(
+        "This index is the ingredient list, unordered. For the walkable idea → ship \
+         narrative — main flow, on-ramps, standalone skills, vocabulary layer — see \
+         [Idea → Ship: The Skill Flow](../architecture/idea-to-ship.md).\n\n",
+    );
+
     out.push_str(SKILL_FRONTMATTER_REFERENCE);
 
     out.push_str("## Index\n\n");

@@ -1,6 +1,6 @@
 # Skills Architecture
 
-> Design principles and structure for brana skills. For the complete per-skill catalog, see [Skill Reference](../reference/skills.md).
+> Design principles and structure for brana skills. For the complete per-skill catalog, see [Skill Reference](../reference/skills.md). For the walkable idea → ship narrative these skills compose into, see [Idea → Ship: The Skill Flow](idea-to-ship.md).
 
 ## Group Overview
 
@@ -169,3 +169,7 @@ Source: t-1903 / E2026-06-08-9 / close session 2026-06-08
 ### 2026-06-08: Guard conditions in shared procedures must use testable artifact checks, not intent labels
 "Skip for freeform tasks" is ambiguous — different callers have different definitions of "freeform." Use observable artifact checks instead: "Skip when `task_id` is absent." The condition is binary, independent of caller intent, and stays correct even as the set of callers grows beyond the original use case. Applied: build.md Step 0.5 guard changed from "skip for freeform tasks" → "skip when no task_id". General rule: if a guard condition can be rephrased as "when artifact X is present/absent," do so.
 Source: t-1903 challenger review / close session 2026-06-08
+
+### 2026-08-17: CLAUDE.md is unconditionally off-limits to every tool, no bypass; generated reference docs route through their generator, not a hand edit
+`system/hooks/feedback-gate.sh` + `lib/layer1-paths.sh` deny **every** Write/Edit whose path ends in `CLAUDE.md` — project or global, any depth — with no sentinel, no override flag, no exception for build/CLOSE. When a task's acceptance criteria ask for a pointer inside a CLAUDE.md file, the correct move is: don't attempt the edit, log the exact one-line addition to the task's `context` field, and let a human paste it via PR. Separately, `docs/reference/*.md` carries a do-not-edit banner because `brana reference generate` overwrites it — the fix for "this generated doc needs a new line" is editing the generator source (`system/cli/rust/crates/brana-cli/src/commands/reference.rs`), rebuilding (`cargo build --release -p brana-cli`), regenerating with the local binary, and verifying with `reference generate --check`. The system-installed `~/.local/bin/brana` won't reflect a generator change made in a worktree until it's rebuilt from that branch post-merge — `validate.sh`'s "reference docs out of date" check will correctly flag that lag until then; it's expected, not a defect.
+Source: t-2831 build session 2026-08-17
