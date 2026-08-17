@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T18:21:00Z",
+  "generated": "2026-08-17T14:30:11Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -605,7 +605,9 @@
     "docs/README.md": {
       "title": "Documentation Index",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/skills/_shared/judge-sizing.md"
+      ]
     },
     "docs/architecture/ac-grammar.md": {
       "title": "AC Grammar — Machine-Checkable Acceptance Criteria",
@@ -1539,6 +1541,21 @@
         "system/state/scheduler.json"
       ]
     },
+    "docs/architecture/features/judge-escalation-valve.md": {
+      "title": "Feature: Judge Escalation Valve — sizing-ladder rungs 0–2 in the challenger gate",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/challenger-gate.md",
+        "system/hooks/",
+        "system/scripts/",
+        "system/skills/",
+        "system/rules/",
+        "system/agents/",
+        "system/skills/_shared/judge-sizing.md",
+        "system/hooks/red-verification.sh",
+        "system/skills/build/phases/load.md"
+      ]
+    },
     "docs/architecture/features/knowledge-architecture-v2.md": {
       "title": "Knowledge Architecture v2 — Feature Brief",
       "type": "Roadmap",
@@ -1595,7 +1612,8 @@
       "title": "Loops Library — contract (stub)",
       "type": "Roadmap",
       "impl_files": [
-        "system/loops/"
+        "system/loops/",
+        "system/skills/_shared/judge-sizing.md"
       ]
     },
     "docs/architecture/features/memory-migration-manifest.md": {
@@ -2818,6 +2836,13 @@
         "system/scripts/hook-test-sweep.sh"
       ]
     },
+    "docs/guide/features/judge-escalation-valve.md": {
+      "title": "Judge Escalation Valve — user guide",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/judge-sizing.md"
+      ]
+    },
     "docs/guide/features/knowledge-drain-links.md": {
       "title": "`brana knowledge drain-links`",
       "type": "Roadmap",
@@ -3494,6 +3519,18 @@
       "impl_files": [
         "system/"
       ]
+    },
+    "docs/ideas/statusline-pipeline-awareness.md": {
+      "title": "Statusline Pipeline Awareness",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/statusline-slow-cache.sh"
+      ]
+    },
+    "docs/ideas/task-time-tracking.md": {
+      "title": "Project time & cost tracking — active effort and calendar cycle time",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/ideas/venture-playbook-product-management.md": {
       "title": "Venture Playbook & Product Management Layer",
@@ -10593,6 +10630,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/judge-escalation-valve.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/learned-eligibility.md",
       "type": "references",
       "computed": false
@@ -10912,6 +10955,12 @@
     {
       "from": "docs/README.md",
       "to": "guide/features/close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/features/judge-escalation-valve.md",
       "type": "references",
       "computed": false
     },
@@ -11452,6 +11501,12 @@
     {
       "from": "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md",
       "to": "docs/architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
+      "to": "ADR-082-multi-agent-sizing-function.md",
       "type": "references",
       "computed": false
     },
@@ -12190,6 +12245,12 @@
     {
       "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
       "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/judge-escalation-valve.md",
+      "to": "docs/architecture/decisions/ADR-082-multi-agent-sizing-function.md",
       "type": "references",
       "computed": false
     },
@@ -16599,9 +16660,9 @@
     }
   ],
   "stats": {
-    "nodes": 582,
-    "edges": 2096,
+    "nodes": 586,
+    "edges": 2100,
     "typed_edges": 686,
-    "orphans": 160
+    "orphans": 162
   }
 }

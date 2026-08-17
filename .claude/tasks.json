@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-08-14T12:03:58.117152708-03:00",
+  "last_modified": "2026-08-17T11:33:55.396955165-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -13559,7 +13559,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Anthropic cost data: solo=$9/20min, full harness=$200/6hr. Need our own baselines to know when harness overhead is justified vs overkill. Integrate with RTK gain metrics and decision log cost entries.\n2026-06-09: Research complete. CC transcript JSONL (~/.claude/projects/{hash}/{session_uuid}.jsonl) has per-turn message.usage with input/cache_create/cache_read/output tokens. This session: $4.37 / 83 turns. Anchor via BRANA_SESSION_ID + start timestamp in run-state. Implementation: S-effort bash+Python script. Findings in docs/architecture/features/build-cost-tracking.md.",
+      "context": "Anthropic cost data: solo=$9/20min, full harness=$200/6hr. Need our own baselines to know when harness overhead is justified vs overkill. Integrate with RTK gain metrics and decision log cost entries.\n2026-06-09: Research complete. CC transcript JSONL (~/.claude/projects/{hash}/{session_uuid}.jsonl) has per-turn message.usage with input/cache_create/cache_read/output tokens. This session: $4.37 / 83 turns. Anchor via BRANA_SESSION_ID + start timestamp in run-state. Implementation: S-effort bash+Python script. Findings in docs/architecture/features/build-cost-tracking.md.\n2026-08-17: superseded by epic t-2912 (time-tracking) — scope folded into t-2919 (ADR) and t-2922 (Metric 1 impl). See docs/ideas/task-time-tracking.md.",
       "created": "2026-03-26",
       "description": "Track token cost per /brana:build run. Log: total tokens, duration, agent spawns, model routing decisions. Compare solo (no evaluator) vs full harness runs. Anthropic benchmark: 20x cost for substantially higher quality.",
       "effort": "M",
@@ -13571,7 +13571,7 @@
       "parent": "t-641",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Build cost tracking — log token spend per build, compare solo vs harness runs",
       "tags": [
         "harness-engineering",
@@ -73566,7 +73566,7 @@
       "blocked_by": [
         "t-2828"
       ],
-      "branch": null,
+      "branch": "loop-first/feat/t-2826-loops-library-catalog",
       "completed": null,
       "context": "Origin 2026-08-13: user identified this as \"the key\" — like the skills library, we now need the loops library. Loop definitions today are scattered: ephemeral /loop prompts carried in ScheduleWakeup calls (die with the session, invisible to other sessions) vs the one committed example, docs/guide/workflows/drain-loop.md (t-2813, ADR-079), whose header states the formula: \"a loop is trigger + committed prompt + a termination check the agent can't game — this file IS the committed prompt.\"\nDesign shape: each catalog entry = frontmatter (name, cadence default, autonomy level L0-L3, supervised/unattended flag) + beat procedure + preflight (cheap, no-op fast) + explicit STOP conditions (real signals: exit codes, error strings — never self-assessment) + denied verbs (human valves). Seed entries: drain-loop (move/link from docs/guide/workflows/), session-status loop (proven 2026-08-13, see t-2825), doc-drift check.\nDesign questions: (1) system/loops/ vs skills-with-loop-frontmatter — should a loop just be a skill the /loop command arms? (Cherny pattern: /loop 5m /babysit-prs — skill = what a beat does, /loop = when). (2) Loop-calls-loop composition: foreman→worker hierarchy — a beat may spawn claude -p runner sessions that run their own loops, or arm additional crons in-session; needs recursion bounds (WIP limits, no unbounded spawn) per ADR-079. (3) Discovery: brana discover integration; t-2825 dashboard as the render surface for which library loops are running where.\nRelates: t-2820 loop-first (this is its connective tissue), t-2813 drain-loop runner, t-2825 TUI session dashboard, ADR-079.\nM effort → feature spec required in docs/architecture/features/ before implementation (spec-gate).\n2026-08-13: Pavlyshyn \"Graph Engineering: The Loop That Remembers\" (leanpub.com/graphengineering) — user-supplied external validation + extension of the library design: (a) \"memory is the thing the loop exists to produce\" → each library entry should declare a RECORDS field (what durable record a beat appends — decisions/verdicts, not just artifacts), else loops scale organizational forgetting; (b) work graph (immutable what-happened: git, transcripts) vs knowledge graph (curated what-is-true: ADRs, memory) must not conflate — thebrana already has both planes + the close/retrospective gate between them; (c) his structure ladder (loop→chain→swarm→DAG→KG) is orthogonal to our L0-L3 autonomy ladder — entries could carry both coordinates. Traceability test for any loop: output traceable through objective→plan→artifact→evaluator decision→execution record.\n2026-08-13: verbosity requirement (user) — beats must ALWAYS emit a structured per-beat record (loop name, beat #, state, what was done, queue remaining/total if bounded, next wake); verbosity is a RENDER toggle (inline vs quiet), never an emit toggle — the record doubles as the Pavlyshyn work-graph entry and the TUI feed. records: schema should declare progress kind: bounded (queue denominator → progress bar) vs unbounded (heartbeat: last-beat age + beat count).\n2026-08-14 SHAPE approved + scope narrowed (brainstorm complete, doc committed dcd5b1cc): loops-library.md = the CONTRACT only (entry schema, queue types, pull-interface verbs, records, proof-of-life bar); philosophy (7 laws, two rooms, 4 primitives/rings) is canonical in docs/ideas/wave-pipeline.md — do not duplicate. ADR folds into t-2828's design (blocks this task's impl). t-2826 build scope: system/loops/ structure + records-schema lint + first two entries to PROOF-OF-LIFE (entry not done until N real beats with records; N scales with autonomy): session-status gauge + drain-loop pump (already beating). Success metric: 3 catalog loops each ≥10 real beats within a month, records visible in one place. Feature spec at build start: distill docs/architecture/features/loops-library.md from the idea doc.\n2026-08-14 (t-2828/ADR-080): epic-drain (t-2845) is the library's second proof entry — the feature spec should treat it as the >1-entry proof against the catalog-of-one risk. Beat-record schema is single-sourced in this library's contract; ADR-080 and t-2838's map both reference it, never duplicate.\n2026-08-14: three knowledge-band follow-on entries queued behind this catalog — t-2851 knowledge-distiller pump, t-2852 curation-digest valve-feeder, t-2853 memory-hygiene gauge (the band's missing MEASURE/JUDGE organs per wave-pipeline.md §The skeleton match). They inherit this task's records schema + proof-of-life bar; distiller drains first.\n2026-08-14 (contract review): the AC coverage gap is the library's business — only 38/2156 tasks carry non-empty acceptance_criteria (~1.8%), so the ac-grammar checker idles. Arm the ac-proposer valve-feeder (already on this catalog's candidate list) as a coverage pump: drains ac_state:none tasks, authors grammar-matching AC shapes (per t-2856's authoring rules), sets proposed — output lands behind the existing human approve valve. Candidate for entry #3 after session-status gauge + drain-loop pump. Evidence: docs/research/2026-08-14-agent-work-contracts.md.\n2026-08-14 (user, studio): entry schema should declare MODEL PER BEAT COMPONENT — model tier is the second cost lever after context (law 5), and demands differ per skeleton step, so it belongs in the loop's frozen contract, not per-session choice. Shape: model: {preflight: none|haiku, act: by-effort (sonnet S-mechanical, opus/fable M+/architectural), judge: strongest + DIVERSE (different model or agy challenger-lane — uncorrelated blind spots; same-model self-review is the weakest judge even fresh-context), records: haiku}. Per-loop defaults fall out: gauges L0 = script or haiku (a gauge needing opus is misdesigned); mechanical pumps = haiku; judgment pumps = per-step table; classify-pumps (e.g. t-2851 distiller) = haiku with sonnet escalation-on-uncertainty (EDD two-layer applied to routing); watchdog = script only, no model ever. Cautions: never source tier from ruflo hooks_model-route (stub-guard, integrity defects); haiku-at-~90%-frontier claims are task-shaped (true for extraction/classification, false for adversarial judging).\n2026-08-14: t-2845 (epic-drain, the library's 2nd proof entry) had to distill a minimal docs/architecture/features/loops-library.md stub (records: beat-schema only, ~76 lines) ahead of this task starting, since the AC required referencing a contract that didn't exist yet. Expand this file — don't replace it — when starting: it already holds the concrete beat-record JSON shape (loop/instance/beat/timestamp/state/what_happened/progress/escalations/next_wake), field-by-field notes, and an explicit note that the \"model per beat component\" idea is deferred pending a real second-entry pass to calibrate against (which epic-drain now provides).\n2026-08-14 (user, via anita session fb8f7296): studio-interaction loop filed as catalogue-entry candidate — t-2898 (human-in-beat design/prototype loop, user-end-first ordering, \"human reacted\" contract-freeze gate). Empirical loop already running un-catalogued in proyecto-anita's platform build; full contract in t-2898 context.",
       "created": "2026-08-13",
@@ -73580,8 +73580,8 @@
       "order": 0,
       "parent": "t-2820",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-17",
+      "status": "in_progress",
       "subject": "Loops library — system/loops/ catalog of committed loop definitions",
       "tags": [
         "loop",
@@ -73589,7 +73589,9 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "feature",
+      "build_step": "specify"
     },
     {
       "ac_state": "none",
@@ -73714,7 +73716,7 @@
       "work_type": "research"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "New doc presents brana's idea-to-ship flow as an ordered walkthrough mirroring ask-matt's structure",
         "Every step links to its skill file via doc-linking convention",
@@ -73722,11 +73724,11 @@
         "Reviewed against docs/reflections/ARCHITECTURE.md for consistency"
       ],
       "blocked_by": [],
-      "branch": null,
+      "branch": "cc-alignment/docs/t-2831-ordered-idea-ship-spine",
       "completed": null,
-      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P1. Pocock's ask-matt (github.com/mattpocock/skills/skills/engineering/ask-matt/SKILL.md) presents his whole skill system as one ordered \"idea → ship\" walkthrough: main flow, on-ramps, standalone skills, vocabulary layer. brana's docs/reference/skills.md 6 Jobs table has the same ingredients but is unordered/generated, not a walkable narrative. Don't duplicate this into /brana:do (see rejected P4 in the same doc) — /brana:do should point at this doc, not re-author it.\nAC: new doc (docs/architecture/ or docs/reflections/) presents brana's idea-to-ship flow as an ordered walkthrough mirroring ask-matt's structure: main flow, on-ramps, standalone skills, vocabulary-underneath layer\nAC: every step in the walkthrough links to its skill file via doc-linking convention\nAC: docs/reference/skills.md and system/CLAUDE.md's 6 Jobs table get a pointer to the new spine doc (table itself unchanged — it's a generated reference, not the narrative)\nAC: reviewed against docs/reflections/ARCHITECTURE.md for consistency — no contradiction introduced\n2026-08-14 (t-2828/ADR-080): when the drain-3 wave is created, gate it on adr080-consumers — review rate (~1/day) is the binding constraint, waves serialize by gates; drain-3 then exercises leases + batch approve as the third dogfood (agreed with studio session 87330b1c).",
+      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P1. Pocock's ask-matt (github.com/mattpocock/skills/skills/engineering/ask-matt/SKILL.md) presents his whole skill system as one ordered \"idea → ship\" walkthrough: main flow, on-ramps, standalone skills, vocabulary layer. brana's docs/reference/skills.md 6 Jobs table has the same ingredients but is unordered/generated, not a walkable narrative. Don't duplicate this into /brana:do (see rejected P4 in the same doc) — /brana:do should point at this doc, not re-author it.\nAC: new doc (docs/architecture/ or docs/reflections/) presents brana's idea-to-ship flow as an ordered walkthrough mirroring ask-matt's structure: main flow, on-ramps, standalone skills, vocabulary-underneath layer\nAC: every step in the walkthrough links to its skill file via doc-linking convention\nAC: docs/reference/skills.md and system/CLAUDE.md's 6 Jobs table get a pointer to the new spine doc (table itself unchanged — it's a generated reference, not the narrative)\nAC: reviewed against docs/reflections/ARCHITECTURE.md for consistency — no contradiction introduced\n2026-08-14 (t-2828/ADR-080): when the drain-3 wave is created, gate it on adr080-consumers — review rate (~1/day) is the binding constraint, waves serialize by gates; drain-3 then exercises leases + batch approve as the third dogfood (agreed with studio session 87330b1c).\n2026-08-17: docs/architecture/idea-to-ship.md written; docs/reference/skills.md gets its pointer via the Rust generator (system/cli/rust/crates/brana-cli/src/commands/reference.rs generate_skills()), not a manual edit (it's an auto-generated file, banner says do-not-edit). BLOCKED: the .claude/CLAUDE.md 6-Jobs-table pointer cannot be added by Claude — system/hooks/feedback-gate.sh + lib/layer1-paths.sh block ALL Write/Edit to any file named CLAUDE.md, unconditionally, no override (\"Layer 1, human-authored only... Add conventions via PR\"). One-line addition for a human to apply after the 6 Jobs table (.claude/CLAUDE.md line ~53): \"The table above is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../docs/architecture/idea-to-ship.md).\"",
       "created": "2026-08-13",
-      "description": null,
+      "description": "Write an ordered \"idea → ship\" spine doc that presents brana's skill system as one walkable narrative (main flow, on-ramps, standalone skills, vocabulary layer), mirroring Matt Pocock's ask-matt structure. Link it from docs/reference/skills.md and system/CLAUDE.md's 6 Jobs table.",
       "effort": "S",
       "execution": "code",
       "github_issue": null,
@@ -73736,8 +73738,8 @@
       "order": 0,
       "parent": "t-2830",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-17",
+      "status": "in_progress",
       "subject": "Ordered idea→ship spine doc — walkable skill flow (mattpocock ask-matt pattern)",
       "tags": [
         "skills",
@@ -73745,10 +73747,16 @@
         "mattpocock-mining"
       ],
       "type": "task",
-      "work_type": "design"
+      "work_type": "design",
+      "lease": {
+        "claimant": "wave-pull:pid-2730520",
+        "expires": "2026-08-18T11:33:55.396952337-03:00"
+      },
+      "strategy": "feature",
+      "build_step": "classify"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "testing-validation.md documents disable-model-invocation as a legal field, cross-referenced against the killed mode:execute-only proposal",
         "Audit table classifies all skills user-invoked-only vs model-invoked with rationale",
@@ -73783,7 +73791,7 @@
       "work_type": "design"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "New doc/section captures context pointers, information hierarchy, completion criteria, leading words, pruning/no-op test",
         "skill-validation-checklist.md links to it as craft rationale for items 3 and 4",
@@ -73816,7 +73824,7 @@
       "work_type": "design"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "/brana:fix states explicit tight-loop completion criterion before diagnosis proceeds",
         "Ranked-hypotheses-before-instrumentation step added",
@@ -73851,7 +73859,7 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "Two parallel sub-agent reviews (Standards, Spec) reported under separate un-merged headings",
         "Documented smell baseline written once and reused",
@@ -73885,7 +73893,7 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "Skill/step generates interactive bash script (stage-by-stage, confirm gates, .env/secret writes) per wizard's template.sh pattern",
         "One real brana provisioning flow exercised end-to-end via static trace as acceptance proof",
@@ -76192,6 +76200,504 @@
       "context": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "subject": "Auditar si el mecanismo de epic-focus/accumulator (foco persistente + marcador + gates de corroboración) vale su complejidad",
+      "description": "El usuario no siente que el sistema de epic focus (ADR-044 accumulator + ADR-060 routing + ADR-066 active_epic) aporte valor proporcional a su complejidad. Diagnosticar y recomendar: mantener, simplificar, o eliminar.",
+      "kind": "research",
+      "work_type": "research",
+      "task_type": "task",
+      "effort": "M",
+      "priority": "P2",
+      "tags": [
+        "epic-routing",
+        "session-continuity",
+        "active-epic",
+        "propagation"
+      ],
+      "parent": "t-2368",
+      "context": "2026-08-17: Disparado por un incidente en vivo durante /brana:close --finish en el proyecto somos_mirada. Un session write SIN campo epic en el payload (usuario había elegido explícitamente skip — sin epic en el picker Tier 3) igual se enrutó a session-state-lifecycle-workflows.json vía el marcador de foco persistente (Tier 0), porque la corroboración solo se aplica cuando SI hay un TIER0_SLUG que contradice los commits de la sesión — no cubre el caso de epic explícitamente vacío pero el marcador persistente igual gana. Al ser un write cross-day, hizo replace-stale completo y borró next[] abiertos (t-159, t-175, un ítem de mantenimiento) de una sesión no relacionada (Vero SM / lifecycle-workflows). Detectado y corregido en la misma sesión de cierre (restaurado vía write corrector con base_written_at) — nada se perdió, pero fue una detección manual, no una protección estructural.\n\nEvidencia de que esto no es un caso aislado: close/phases/session-state.md documenta ~8 incidentes/parches previos sobre el mismo mecanismo, todos con la firma un slug se enruta mal y session write hace replace no merge sobre estado ajeno: t-2263 (Tier 2a sin corroboración clobbereó epic orbit no relacionado), t-2480 (mismo over-reach en el acumulador COMPLETED), t-2506 (same-day merge semantics, causa raíz del CAS token), t-2603 (divergencia scoped vs unscoped, exclusión silenciosa de epics), t-2618 (gate de corroboración para Tier 0 — el mismo tier que falló hoy), t-2674 (el más grave: la tabla de contrato documentado NO es garantía, 2 wipes en vivo bajo condiciones contradictorias, causa raíz nunca identificada), t-2768 y t-2784 (ventana flat -20 sigue fallando en bajo commit-count o alta concurrencia).\n\nPreguntas a responder: 1) Qué valor real aporta (routing de handoffs, continuidad cross-day en sitrep) vs costo (>2000 líneas de lógica defensiva, ~8 incidentes documentados, uno en vivo hoy). 2) El caso de uso real se podría resolver más simple — epic explícito y obligatorio en el payload, sin fallback silencioso a marcador global? 3) El fallback al marcador persistente es la causa raíz recurrente? Si se eliminara (exigir epic explícito o dejarlo huérfano), qué se rompe? 4) Recomendación final: mantener / simplificar (qué cortar) / eliminar y reemplazar por qué.\n\nNota: de los 8 incidentes citados, t-2480, t-2506 y t-2674 siguen abiertos (pending/in_progress) — son parches puntuales al mismo mecanismo, en curso en paralelo. Este audit es upstream de esos parches (decide si el mecanismo debe existir en su forma actual), no bloqueante ni bloqueado por ellos — pero coordinar antes de proponer eliminar/rediseñar para no pisar ese trabajo.",
+      "id": "t-2911",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-08-17",
+      "blocked_by": [],
+      "ac_state": "none",
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-2912",
+      "subject": "time-tracking",
+      "status": "next",
+      "type": "epic",
+      "kind": null,
+      "tags": [],
+      "description": null,
+      "effort": null,
+      "priority": null,
+      "parent": null,
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2913",
+      "subject": "Project time & cost tracking — active effort and calendar cycle time",
+      "status": "pending",
+      "type": "phase",
+      "kind": "feature",
+      "tags": [],
+      "description": null,
+      "effort": null,
+      "priority": null,
+      "parent": "t-2912",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Idea doc: docs/ideas/task-time-tracking.md — brainstormed 2026-08-17, reviewed by 3-worker adversarial challenge, all 18 findings resolved. Two metrics: (1) active Claude effort per task via turn-delta summation with idle-cap, rolled up through parent->epic hierarchy; (2) real-world quote->kickoff->delivery cycle time via explicit epic fields with derived fallbacks. Folds in previously-unbuilt t-648 (build-cost-tracking.md).",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2914",
+      "subject": "Decision & validation",
+      "status": "pending",
+      "type": "milestone",
+      "kind": null,
+      "tags": [],
+      "description": null,
+      "effort": null,
+      "priority": null,
+      "parent": "t-2913",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2915",
+      "subject": "Metric 1 — active effort tracking",
+      "status": "pending",
+      "type": "milestone",
+      "kind": null,
+      "tags": [],
+      "description": null,
+      "effort": null,
+      "priority": null,
+      "parent": "t-2913",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2916",
+      "subject": "Metric 2 — elapsed cycle-time tracking",
+      "status": "pending",
+      "type": "milestone",
+      "kind": null,
+      "tags": [],
+      "description": null,
+      "effort": null,
+      "priority": null,
+      "parent": "t-2913",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2917",
+      "subject": "Aggregation & query command",
+      "status": "pending",
+      "type": "milestone",
+      "kind": null,
+      "tags": [],
+      "description": null,
+      "effort": null,
+      "priority": null,
+      "parent": "t-2913",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2918",
+      "subject": "Spec & docs",
+      "status": "pending",
+      "type": "milestone",
+      "kind": null,
+      "tags": [],
+      "description": null,
+      "effort": null,
+      "priority": null,
+      "parent": "t-2913",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2919",
+      "subject": "ADR: fold t-648 into unified time+cost tracking mechanism",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2914",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2920"
+      ],
+      "branch": null,
+      "context": "Records: brana/time/ storage path (not t-648's original ~/.claude/run-state — that path is already occupied by the live LOAD-checkpoint/CLOSE-delete mechanism, see docs/ideas/task-time-tracking.md); many-sub-spans-per-task_id bracket model; serialized one-bracket-per-session rule; subagent/fork fan-out exclusion for v1 (coverage:partial flag); decoupling from the existing M+-only resume-checkpoint gate; turn-delta/idle-cap measurement method (pending re-validation task); atomic-write + H2 git-env-scrub requirements. Full rationale: docs/ideas/task-time-tracking.md.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "file docs/architecture/decisions/ADR-time-tracking-mechanism.md exists"
+      ],
+      "work_type": "design",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2920",
+      "subject": "Re-validate 15-minute idle-cap threshold against varied session shapes",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2914",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Current 15-min cap validated only on n=1, a fast text-only brainstorm session (239/262 sub-cap gaps under 5s, max legit gap ~5min). Check against >=3 more real transcripts spanning build/fix/research task kinds — sessions with long blocking tool calls (test suites, builds, Agent/Task calls) may need a different threshold. Must complete before the ADR (t-{ADR_ID}) locks the constant in.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "research",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2921",
+      "subject": "Tests: Metric 1 bracket model, idle-cap, concurrency, coverage output",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "test"
+      ],
+      "description": null,
+      "effort": "M",
+      "priority": null,
+      "parent": "t-2915",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2919"
+      ],
+      "branch": null,
+      "context": "Tests-first per TDD gate. Covers: turn-delta summation with idle-gap capping (incl. synthetic overnight-gap case); many-sub-spans rollup across multiple transcript files for one task_id (cross-session resumption); serialized-bracket rejection (second START while one is already open in-session); atomic concurrent-write stress test (two sessions writing brana/time/ store, no corruption/loss); coverage-annotation output shape (task/bracket counts, partial-coverage flag for fan-out exclusion). See docs/ideas/task-time-tracking.md Next Steps #3.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "tests exist covering turn-delta idle-cap summation, many-sub-spans rollup, serialized-bracket rejection, and atomic concurrent-write, and fail red before Metric 1 is implemented"
+      ],
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2922",
+      "subject": "Implement Metric 1: START/CLOSE markers in build.md, brana/time/ storage",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [],
+      "description": null,
+      "effort": "M",
+      "priority": null,
+      "parent": "t-2915",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2921"
+      ],
+      "branch": null,
+      "context": "Marker writes in build.md's LOAD/CLOSE steps, keyed by task_id, applies to ALL effort sizes (decoupled from the existing M+-only ~/.claude/run-state resume-checkpoint gate). Atomic writes (temp-file+rename) to $(git rev-parse --git-common-dir)/brana/time/&lt;task_id&gt;.jsonl. Git env scrubbed (H2: GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY/GIT_COMMON_DIR) for any subprocess mint executes. Serialized one-open-bracket-per-session enforced at LOAD. Fan-out/subagent time excluded from sum, coverage:partial flagged. Synchronous aggregation at CLOSE (store computed number, not a transcript pointer).",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "\"./validate.sh\" passes",
+        "file system/skills/build/phases/load.md contains \"brana/time\"",
+        "file system/skills/build/phases/close.md contains \"brana/time\""
+      ],
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2923",
+      "subject": "Tests: Metric 2 milestone fields + derived fallback logic",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "test"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2916",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Tests-first per TDD gate. Covers: quote_started/kickoff_date/delivered_date field read/write; kickoff_date fallback (first child task in_progress / first branch cut); delivered_date fallback (last child completion / ship event); quote_started fallback (epic creation timestamp, flagged approximate) and override-by-explicit-value. No backfill/interaction with legacy started/completed fields.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "tests exist covering quote_started/kickoff_date/delivered_date read-write and derived fallbacks, and fail red before Metric 2 is implemented"
+      ],
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2924",
+      "subject": "Implement Metric 2: quote/kickoff/delivered fields + fallback logic",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2916",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2923"
+      ],
+      "branch": null,
+      "context": "Add quote_started/kickoff_date/delivered_date fields to epic/task schema. Applies to all projects uniformly (fields stay empty on internal/infra epics). Derived-fallback logic for kickoff_date and delivered_date; quote_started falls back to epic creation timestamp, always surfaced with an \"approximate\" annotation, overridden by explicit manual value when set. No dependency on Metric 1 — can build independently.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "\"./validate.sh\" passes"
+      ],
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2925",
+      "subject": "Tests: aggregation rollup + coverage annotation + cycle-time deltas",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "test"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2917",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2922",
+        "t-2924"
+      ],
+      "branch": null,
+      "context": "Tests-first per TDD gate. Covers: per-task active-time rollup through parent->epic chain (Metric 1); cycle-time as milestone-field deltas (Metric 2); mandatory coverage annotation on every output (task/bracket counts, exclusions, idle-cap application) — never a bare number.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "tests exist covering the parent-to-epic rollup, cycle-time deltas, and the mandatory coverage annotation, and fail red before the aggregation command is implemented"
+      ],
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2926",
+      "subject": "Implement aggregation + query command (time_spent / cycle_time)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2917",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2925"
+      ],
+      "branch": null,
+      "context": "Per-task active time (Metric 1) via turn-delta summation rolled up through parent->epic; cycle time (Metric 2) as milestone deltas. Exposed via `brana backlog get &lt;id&gt; --field time_spent` / `--field cycle_time`, or a dedicated `brana time` rollup. Every output carries the coverage annotation, never a bare number. Shadow-validation period required before wiring into any real client quote/invoice.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "\"./validate.sh\" passes"
+      ],
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2927",
+      "subject": "Spec update: extend build-cost-tracking.md into final feature spec",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2918",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2926"
+      ],
+      "branch": null,
+      "context": "Replace build-cost-tracking.md's status:research with the final specified design reflecting the ADR (t-2919) and implementation. Update build.md's documented LOAD/CLOSE steps to describe both metrics' markers.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "file docs/architecture/features/build-cost-tracking.md contains \"quote_started\"",
+        "file docs/architecture/features/build-cost-tracking.md does not contain \"status: research\""
+      ],
+      "work_type": "design",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2928",
+      "subject": "User docs: time/cost query command + shadow-validation caveat",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2918",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2926"
+      ],
+      "branch": null,
+      "context": "User-facing doc for the query command (time_spent / cycle_time / brana time). Must state the shadow-validation requirement before any number is used in a real client quote or invoice, and explain the coverage annotation.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3,
@@ -76252,7 +76758,7 @@
       "id": "wave-6",
       "name": "drain-3",
       "selector": "tag:wave:drain-3",
-      "status": "queued"
+      "status": "draining"
     },
     {
       "contract": "FIXTURE — never ship. Proves normal topo order (gate:null, sorts first).",
@@ -76289,6 +76795,51 @@
       "gate": "wave-9",
       "status": "queued",
       "created": "2026-08-14"
+    },
+    {
+      "id": "wave-11",
+      "name": "time-tracking-decision-validation",
+      "selector": "parent:t-2914",
+      "contract": "ADR written and approved; idle-cap threshold re-validated against >=3 additional session shapes",
+      "gate": null,
+      "status": "queued",
+      "created": "2026-08-17"
+    },
+    {
+      "id": "wave-12",
+      "name": "time-tracking-metric-2-elapsed-cycle-time",
+      "selector": "parent:t-2916",
+      "contract": "Tests pass; quote_started/kickoff_date/delivered_date fields and fallbacks implemented",
+      "gate": null,
+      "status": "queued",
+      "created": "2026-08-17"
+    },
+    {
+      "id": "wave-13",
+      "name": "time-tracking-metric-1-active-effort",
+      "selector": "parent:t-2915",
+      "contract": "Tests pass; START/CLOSE markers writing atomically to brana/time/ from build.md LOAD/CLOSE for all task sizes",
+      "gate": "time-tracking-decision-validation",
+      "status": "queued",
+      "created": "2026-08-17"
+    },
+    {
+      "id": "wave-14",
+      "name": "time-tracking-aggregation-query",
+      "selector": "parent:t-2917",
+      "contract": "Tests pass; time_spent and cycle_time queryable with mandatory coverage annotation (tie-break note: also depends on time-tracking-metric-2-elapsed-cycle-time, which has no gate of its own — verify it has drained before pulling this wave)",
+      "gate": "time-tracking-metric-1-active-effort",
+      "status": "queued",
+      "created": "2026-08-17"
+    },
+    {
+      "id": "wave-15",
+      "name": "time-tracking-spec-docs",
+      "selector": "parent:t-2918",
+      "contract": "build-cost-tracking.md spec updated to reflect final design; user-facing query-command doc published",
+      "gate": "time-tracking-aggregation-query",
+      "status": "queued",
+      "created": "2026-08-17"
     }
   ]
 }
