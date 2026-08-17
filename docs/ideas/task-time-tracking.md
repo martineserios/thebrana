@@ -111,12 +111,42 @@ spans.** Validated against this brainstorm's own session transcript: the raw ses
 spanned 63.5 hours wall clock (open across a multi-day idle gap), but turn-to-turn deltas
 capped at 15 minutes summed to 0.51 hours — the actual active time (124x difference). Of
 262 sub-cap gaps, 239 were under 5 seconds and the largest legitimate gap was ~5 minutes.
-**Caveat:** this was validated on n=1, a fast text-only brainstorm session — a coding
-session with long blocking tool calls (test suites, builds, `Agent`/`Task` calls that
-legitimately run 10-20+ minutes while the session is still engaged, not idle) may behave
-differently. **Before locking the 15-min constant into the ADR, re-validate against at
-least 3 more sessions spanning build/fix/research task kinds** — this is now an explicit
-next step, not an assumption.
+
+**Re-validated 2026-08-17 (t-2920) against 5 additional real session transcripts** from
+this project, spanning build, bug-fix, and research task kinds and ranging from 1.35h to
+27.25h of naive wall-clock span (2,198–7,652 turns each):
+
+| Session (truncated id) | Turns | Naive span | Capped active | Gaps >15min | Max sub-cap gap |
+|---|---|---|---|---|---|
+| cc81cf5d | 7,652 | 27.25h | 6.51h | 9 | 12.92min |
+| deb2eb19 | 4,905 | 23.40h | 3.83h | 2 | 8.09min |
+| f021c8b3 (bug/research) | 2,893 | 15.33h | 2.84h | 2 | 11.53min |
+| e644471f | 4,372 | 2.65h | 2.59h | 1 | 12.29min |
+| dccbeb3d | 2,198 | 1.35h | 1.29h | 1 | 8.81min |
+
+**Findings:**
+- Across all 15 over-cap gaps found in these 5 sessions, **every single one** was either
+  (a) an overnight/multi-hour idle break between sessions, or (b) an `AskUserQuestion`
+  tool call awaiting user input (4.2–84.1 minutes observed) — i.e. genuine non-active time
+  that the cap is correctly designed to exclude.
+- **Zero cases** of a blocking `Bash`/`Agent`/`Task` tool call (test suite, build,
+  subagent spawn) exceeding ~5 minutes were found in any of the 5 sessions — the specific
+  risk named in the original caveat (long blocking tool calls being wrongly capped as
+  idle) did not materialize in this sample. Absence of evidence is not proof for the
+  general case — no session sampled happened to include an extremely long single test/build
+  run — but across build- and bug-fix-shaped sessions specifically, no near-miss occurred.
+- The closest sub-cap (i.e. correctly-not-capped) gap across all 5 sessions was 12.92
+  minutes — within ~2 minutes of the 15-min threshold. This is a mild residual-risk
+  signal: a legitimately-engaged-but-slow turn (e.g. a long-running Bash command whose
+  result is the very next transcript entry) could plausibly cross 15 minutes in a larger
+  or slower build even though it wasn't observed here.
+
+**Conclusion: 15-minute idle cap confirmed safe to lock into the ADR**, with one
+documentation addition recommended for the ADR: explicitly note that `AskUserQuestion`
+waits are an expected source of long (sometimes 60-90+ minute) gaps that the cap will
+correctly exclude — so a future reviewer doesn't mistake a large `AskUserQuestion` gap
+for a tracking bug. No change to the 15-minute constant itself is warranted by this
+re-validation.
 
 **Aggregation timing: synchronous at CLOSE**, inheriting t-648's pattern exactly — the
 computed number is stored, not a pointer into the transcript, so transcript
@@ -181,7 +211,7 @@ against source); otherwise single-worker.
 | 3 | Subagent/fork fan-out invisible to Metric 1 | HIGH (2 workers) | Excluded from v1 sum; `coverage: partial` flag |
 | 4 | Concurrent/interleaved same-session multi-task attribution undefined | HIGH (2 workers) | Serialized — one open bracket per session |
 | 5 | Existing marker precedent is M+-only → S-effort structurally uncovered | Verified against source | Time-tracking markers decoupled from the M+ gate, apply to all effort sizes |
-| 6 | 15-min idle cap curve-fit to n=1 atypical session | HIGH (2 workers) | Re-validation against ≥3 more sessions required before ADR locks the constant |
+| 6 | 15-min idle cap curve-fit to n=1 atypical session | HIGH (2 workers) | Re-validated 2026-08-17 (t-2920) against 5 real build/bug/research sessions; cap confirmed safe, see Metric 1 re-validation block |
 | 7 | M+ discipline task graph not yet enumerated | HIGH (2 workers) | Resolved at backlog-planning time (below), not idea-doc level |
 | 8 | No coverage/confidence signal at output layer, despite pricing use case | Single-worker, high-value | Mandatory coverage annotation + shadow-validation period before quote use |
 | 9 | Cross-session/multi-day bracket-stitching undefined | Single-worker, high-value | Many-sub-spans-per-task_id bracket model (see above) |
@@ -197,9 +227,12 @@ against source); otherwise single-worker.
 
 ## Risks (post-resolution)
 
-**Primary remaining risk: the 15-minute idle cap is still only validated on one
-session-shape.** Re-validation is now a required step before the ADR, not optional
-follow-up — see finding #6.
+**Primary risk resolved 2026-08-17 (t-2920):** the 15-minute idle cap was re-validated
+against 5 additional real session transcripts spanning build/bug-fix/research kinds — see
+the re-validation block under Metric 1 above. Confirmed safe; no constant change needed.
+Residual: the closest sub-cap gap observed was 12.92 minutes, so a legitimately-engaged
+turn could plausibly cross 15 minutes in a larger/slower session than any sampled here —
+worth a passive watch after Metric 1 ships, not a blocker.
 
 **Secondary: `quote_started` will still be under-entered even with the creation-timestamp
 proxy**, since the proxy is explicitly weak. A lightweight reminder mechanism (e.g. a
@@ -231,10 +264,11 @@ filed as follow-up, not core scope.
 1. **ADR** (blocks all implementation tasks below): fold t-648 into this design on the
    `brana/time/` storage path; record the many-sub-spans bracket model, the serialized-
    one-bracket-per-session rule, the fan-out exclusion for v1, the M+-gate decoupling,
-   the turn-delta/idle-cap measurement method (pending re-validation), and the atomic-
+   the turn-delta/idle-cap measurement method (re-validated, see below), and the atomic-
    write + H2 requirements.
-2. **Idle-cap re-validation** (blocks the ADR's constant from being finalized): check the
-   15-minute threshold against ≥3 more real sessions spanning build/fix/research kinds.
+2. **Idle-cap re-validation — DONE (t-2920, 2026-08-17):** checked the 15-minute
+   threshold against 5 real sessions spanning build/bug/research kinds. Confirmed safe;
+   see the re-validation block under Metric 1 above.
 3. **Tests before implementation** (blocked_by ADR): turn-delta summation with idle-gap
    capping (including a synthetic overnight-gap case); many-sub-spans rollup across
    multiple transcript files for one task_id; serialized-bracket rejection (second START
