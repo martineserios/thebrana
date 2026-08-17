@@ -381,6 +381,13 @@ if [ -n "$TIER0_SLUG" ]; then
         INITIATIVE_SLUG="$TIER0_SLUG"
     else
         echo "⚠ Persistent focus is \"$TIER0_SLUG\" but this session's own commits resolve to \"$(echo "$TIER2B_SLUGS" | tr '\n' ',' | sed 's/,$//')\" (or nothing) — not routing on an uncorroborated global focus file. Falling through to Tier 1." >&2
+        # Same anchor as the CLOSE-ANCHOR-BLOCK, same truncation (t-2502): if that
+        # block flagged an empty window, TIER2B_SLUGS is empty for the same reason
+        # and this "mismatch" is an artefact of a concurrent lane's close, not
+        # evidence against the focus. Say so instead of leaving it generic.
+        if [ "${ANCHOR_ZERO_WINDOW:-0}" = "1" ]; then
+            echo "  ↳ note: the close anchor window is EMPTY (ANCHOR_ZERO_WINDOW=1, t-2502) — TIER2B_SLUGS is empty because a concurrent lane's close post-dates this session's commits, so this corroboration miss is probably spurious. Verify with git log --since='6 hours ago' before trusting the fall-through." >&2
+        fi
     fi
 fi
 ```
