@@ -30,6 +30,8 @@ The skill does not load more than it needs into context. Large files, full git l
 - [ ] No unconditional `cat` of large files at startup
 - [ ] Subagents are used when a step would otherwise consume significant context
 
+> Craft rationale: [Skill Writing Craft](skill-writing-craft.md#information-hierarchy) — the information-hierarchy ladder (in-file step / in-file reference / disclosed reference) explains *why* pushing material behind a pointer protects the top of the file, not just that it should be bounded.
+
 ### 4. Control flow is explicit
 
 The skill's steps are listed and sequential. There are no implicit loops, no "continue as appropriate" instructions, and no steps that depend on the model remembering earlier context.
@@ -37,6 +39,8 @@ The skill's steps are listed and sequential. There are no implicit loops, no "co
 - [ ] Workflow steps are numbered and complete
 - [ ] Early-exit conditions are stated (e.g., "if no tasks are pending, report and stop")
 - [ ] Resume behavior after context compaction is defined or not required
+
+> Craft rationale: [Skill Writing Craft](skill-writing-craft.md#completion-criteria) — the completion-criteria lever (clarity × demand) explains the mechanism behind "early-exit conditions are stated" and "resume behavior is defined": a step's stopping condition needs to be checkable, not just present.
 
 ### 5. Errors become context, not stops
 
@@ -134,4 +138,5 @@ autonomously without the user asking for that specific action.
 
 Derived from the [12-Factor Agents manifesto](https://github.com/humanlayer/12-factor-agents) by humanlayer (2025). The twelve factors (stateless reducer, own your prompts, own your context window, tools as structured outputs, unify execution and business state, launch/pause/resume, contact humans with tool calls, own your control flow, compact errors into context, small focused agents, trigger from events, stateless reducer) are mapped here to the CC skill primitive rather than to general agentic systems.
 
-See also: [docs/reference/skills.md](skills.md) for skill authoring conventions.
+See also: [docs/reference/skills.md](skills.md) for skill authoring conventions, and
+[Skill Writing Craft](skill-writing-craft.md) for the prose-craft rationale behind items 3 and 4.
