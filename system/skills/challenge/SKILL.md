@@ -18,7 +18,6 @@ allowed-tools:
   - AskUserQuestion
   - ToolSearch
 disable-model-invocation: true
-context: fork
 status: stable
 growth_stage: evergreen
 ---
@@ -318,3 +317,4 @@ source "$HOME/.claude/scripts/cf-env.sh"
 - **Gemini retrieves, Claude reasons.** Never ask Gemini to "adversarially review" or "find problems" — it falls back to generic summaries. Ask it to enumerate specific constraints, then Claude checks compliance. Gemini is a detail-extraction engine, not a synthesis engine.
 - **Anchor Gemini queries to technical nouns.** Use specific terms from the plan (hook names, tool names, thresholds) as query anchors. Never start a Gemini query with broad system names — this triggers canned overview responses.
 - **Tag all Gemini-only claims.** Any finding sourced exclusively from Gemini must carry `[AGY-UNVERIFIED]`. The user decides whether to verify against source docs.
+- **Never re-add `context: fork` to this skill's frontmatter (t-2954).** Step 4a spawns 3 Agent-tool sub-agents and awaits all 3 across turns via notification — safe only when the awaiting context is the live interactive session (the documented pattern: "the notification arrives... in a later turn"). With `context: fork`, the orchestrator running this whole skill is *itself* a background/forked task with no documented TTL or reaping contract — a fork awaiting further forked children, twice observed to vanish mid-run with its 3 sub-agents' results never picked up (t-2954). Run this skill inline; if backgroundability is wanted again, the caller should wrap the invocation in its own explicit fork-mode subagent call (subagent_type "fork") from a session that stays live to receive the notification — not via this frontmatter key.
