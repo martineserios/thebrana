@@ -80,6 +80,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 |------|----------|
 | [overview.md](architecture/overview.md) | System architecture overview |
 | [skills.md](architecture/skills.md) | Skills architecture -- 8 groups, design-level overview |
+| [idea-to-ship.md](architecture/idea-to-ship.md) | The walkable idea → ship narrative -- main flow, on-ramps, standalone skills, vocabulary layer |
 | [hooks.md](architecture/hooks.md) | Hooks architecture -- plugin/bootstrap split, design principles |
 | [agents.md](architecture/agents.md) | Agents architecture -- groups, routing, hook triggers |
 | [ac-grammar.md](architecture/ac-grammar.md) | AC grammar — the 8 machine-checkable criteria heuristics (loop+goal contract) |

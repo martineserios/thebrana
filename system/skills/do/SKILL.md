@@ -21,6 +21,8 @@ growth_stage: seed
 
 `/brana:do` is an alias for `/brana:backlog start` with freeform text input.
 
+For the ordered idea → ship walkthrough this alias enters at, see [Idea → Ship: The Skill Flow](../../../docs/architecture/idea-to-ship.md) — start there when the question is "which skill for this," not just "start this task."
+
 ## Usage
 
 `/brana:do <description>`
