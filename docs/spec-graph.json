@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T14:30:11Z",
+  "generated": "2026-08-17T18:11:10Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1184,12 +1184,16 @@
     "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md": {
       "title": "ADR-079: ac_state Approval, Wave-Drain→Loop Handoff, and WIP Location (amends ADR-065)",
       "type": "ADR",
-      "impl_files": []
+      "impl_files": [
+        "system/loops/drain-loop.md"
+      ]
     },
     "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md": {
       "title": "ADR-080: Plan-Time Wave Graphs, the Epic Runner, and Leases (extends ADR-079)",
       "type": "ADR",
-      "impl_files": []
+      "impl_files": [
+        "system/loops/epic-drain.md"
+      ]
     },
     "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md": {
       "title": "ADR-081: Stacked-Verdict Evidence Composition — Extraction Boundary and the Notes Contract",
@@ -1210,6 +1214,13 @@
       "impl_files": [
         "system/hooks/",
         "system/hooks/goal-completion.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md": {
+      "title": "ADR-083: Unified Project Time & Cost Tracking — Active Effort and Calendar Cycle Time",
+      "type": "ADR",
+      "impl_files": [
+        "system/hooks/red-verification.sh"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -1609,11 +1620,18 @@
       "impl_files": []
     },
     "docs/architecture/features/loops-library.md": {
-      "title": "Loops Library — contract (stub)",
+      "title": "Feature: Loops Library — `system/loops/` catalog of committed loop definitions",
       "type": "Roadmap",
       "impl_files": [
         "system/loops/",
-        "system/skills/_shared/judge-sizing.md"
+        "system/loops/pipeline-digest.md",
+        "system/skills/_shared/judge-sizing.md",
+        "system/scripts/loops-lint.py",
+        "system/",
+        "system/cli/rust/crates/brana-cli/src",
+        "system/scripts/",
+        "system/loops/README.md",
+        "system/loops/drain-loop.md"
       ]
     },
     "docs/architecture/features/memory-migration-manifest.md": {
@@ -2018,6 +2036,39 @@
         "system/hooks/branch-checkout-warn.sh"
       ]
     },
+    "docs/architecture/idea-to-ship.md": {
+      "title": "Idea → Ship: The Skill Flow",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/brainstorm/SKILL.md",
+        "system/skills/decide/SKILL.md",
+        "system/skills/build/SKILL.md",
+        "system/skills/build/phases/strategies.md",
+        "system/skills/build/phases/classify.md",
+        "system/skills/build/phases/classify.md#task-integration",
+        "system/skills/backlog/SKILL.md",
+        "system/rules/sdd-tdd.md",
+        "system/skills/build/phases/verify-gates.md",
+        "system/skills/ship/SKILL.md",
+        "system/rules/context-budget.md",
+        "system/skills/close/SKILL.md",
+        "system/skills/fix/SKILL.md",
+        "system/skills/reconcile/SKILL.md",
+        "system/skills/verify-docs/SKILL.md",
+        "system/skills/domain-driven-design/SKILL.md",
+        "system/skills/research/SKILL.md",
+        "system/skills/challenge/SKILL.md",
+        "system/skills/sitrep/SKILL.md",
+        "system/skills/retrospective/SKILL.md",
+        "system/skills/memory/SKILL.md",
+        "system/skills/log/SKILL.md",
+        "system/skills/claudemd/SKILL.md",
+        "system/skills/acquire-skills/SKILL.md",
+        "system/skills/build/phases/load.md",
+        "system/skills/onboard/SKILL.md",
+        "system/skills/align/SKILL.md"
+      ]
+    },
     "docs/architecture/knowledge-system-extending.md": {
       "title": "Extending the Knowledge System",
       "type": "Roadmap",
@@ -2085,13 +2136,16 @@
       "title": "Skills Architecture",
       "type": "Roadmap",
       "impl_files": [
+        "system/loops/README.md",
         "system/skills/",
         "system/procedures/",
         "system/skills/acquired/",
         "system/skills/_shared/",
         "system/commands/",
         "system/skills/memory/",
-        "system/skills/memory/MEMORY.md"
+        "system/skills/memory/MEMORY.md",
+        "system/hooks/feedback-gate.sh",
+        "system/cli/rust/crates/brana-cli/src/commands/reference.rs"
       ]
     },
     "docs/architecture/substrate-end-state.md": {
@@ -2971,12 +3025,16 @@
     "docs/guide/workflows/drain-loop.md": {
       "title": "Wave Drain Loop",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/loops/drain-loop.md"
+      ]
     },
     "docs/guide/workflows/epic-drain.md": {
       "title": "Epic Drain Loop",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/loops/epic-drain.md"
+      ]
     },
     "docs/guide/workflows/fix.md": {
       "title": "Fixing Bugs",
@@ -3295,6 +3353,8 @@
         "system/skills/_shared/",
         "system/skills/_shared/delegation-tdd-checklist.md",
         "system/skills/build/SKILL.md",
+        "system/skills/domain-driven-design/SKILL.md",
+        "system/skills/",
         "system/",
         "system/hooks/spec-gate.sh",
         "system/skills/_shared/challenger-gate.md",
@@ -3540,6 +3600,14 @@
         "system/skills/"
       ]
     },
+    "docs/ideas/youtube-knowledge-extraction.md": {
+      "title": "YouTube Knowledge Extraction",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
+        "system/"
+      ]
+    },
     "docs/personal/abdaal-productivity-research.md": {
       "title": "Ali Abdaal — Feel-Good Productivity & Life Design",
       "type": "Roadmap",
@@ -3702,6 +3770,14 @@
       "title": "Skill Validation Checklist",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/reference/skill-writing-craft.md": {
+      "title": "Skill Writing Craft",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/build/SKILL.md",
+        "system/skills/close/SKILL.md"
+      ]
     },
     "docs/reference/skills.md": {
       "title": "Skill Reference",
@@ -10516,6 +10592,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -10781,6 +10863,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/hooks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/idea-to-ship.md",
       "type": "references",
       "computed": false
     },
@@ -11207,6 +11295,12 @@
     {
       "from": "docs/README.md",
       "to": "reference/skill-validation-checklist.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reference/skill-writing-craft.md",
       "type": "references",
       "computed": false
     },
@@ -11889,6 +11983,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "to": "ADR-062-runner-executor-sandbox.md",
       "type": "references",
@@ -11915,6 +12015,12 @@
     {
       "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "docs/guide/workflows/epic-drain.md",
       "type": "references",
       "computed": false
     },
@@ -11951,6 +12057,54 @@
     {
       "from": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
       "to": "docs/ideas/drained/wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "ADR-074-step-state-contract.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "docs/architecture/features/build-cost-tracking.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "docs/architecture/features/build-receipts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "docs/architecture/features/checkpoint-resume.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "docs/architecture/features/goal-binding-build-tdd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "docs/guide/features/checkpoint-resume.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "to": "docs/ideas/task-time-tracking.md",
       "type": "references",
       "computed": false
     },
@@ -11999,6 +12153,12 @@
     {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "testing-validation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/extending-skills.md",
+      "to": "skills.md",
       "type": "references",
       "computed": false
     },
@@ -12161,6 +12321,12 @@
     {
       "from": "docs/architecture/features/brana-feed-inbox.md",
       "to": "t-2001-feed-tech-stack.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/build-cost-tracking.md",
+      "to": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
       "type": "references",
       "computed": false
     },
@@ -12334,7 +12500,25 @@
     },
     {
       "from": "docs/architecture/features/loops-library.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/loops-library.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/loops-library.md",
       "to": "docs/ideas/drained/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/loops-library.md",
+      "to": "docs/ideas/drained/wave-pipeline.md",
       "type": "references",
       "computed": false
     },
@@ -12537,6 +12721,48 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": ".claude/CLAUDE.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": "decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": "decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": "docs/reference/skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": "skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/overview.md",
       "to": "agents.md",
       "type": "references",
@@ -12616,6 +12842,12 @@
     },
     {
       "from": "docs/architecture/skills.md",
+      "to": "decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/skills.md",
       "to": "docs/reference/commands.md",
       "type": "references",
       "computed": false
@@ -12623,6 +12855,18 @@
     {
       "from": "docs/architecture/skills.md",
       "to": "docs/reference/skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/skills.md",
+      "to": "idea-to-ship.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/skills.md",
+      "to": "testing-validation.md",
       "type": "references",
       "computed": false
     },
@@ -12785,6 +13029,12 @@
     {
       "from": "docs/architecture/testing-validation.md",
       "to": "path",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/testing-validation.md",
+      "to": "skills.md",
       "type": "references",
       "computed": false
     },
@@ -14824,6 +15074,12 @@
     },
     {
       "from": "docs/guide/workflows/drain-loop.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/drain-loop.md",
       "to": "docs/ideas/drained/loop-first-redesign.md",
       "type": "references",
       "computed": false
@@ -15041,6 +15297,30 @@
     {
       "from": "docs/ideas/drained/enforcement-vs-injection.md",
       "to": "brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
+      "to": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
+      "to": "docs/architecture/skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
+      "to": "docs/architecture/testing-validation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
+      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
       "type": "references",
       "computed": false
     },
@@ -15454,7 +15734,55 @@
     },
     {
       "from": "docs/reference/skill-validation-checklist.md",
+      "to": "docs/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skill-validation-checklist.md",
+      "to": "docs/architecture/skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skill-validation-checklist.md",
+      "to": "docs/architecture/testing-validation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skill-validation-checklist.md",
+      "to": "skill-writing-craft.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skill-validation-checklist.md",
       "to": "skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skill-writing-craft.md",
+      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skill-writing-craft.md",
+      "to": "skill-validation-checklist.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skills.md",
+      "to": "docs/architecture/idea-to-ship.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skills.md",
+      "to": "docs/architecture/skills.md",
       "type": "references",
       "computed": false
     },
@@ -16660,9 +16988,9 @@
     }
   ],
   "stats": {
-    "nodes": 586,
-    "edges": 2100,
+    "nodes": 590,
+    "edges": 2142,
     "typed_edges": 686,
-    "orphans": 162
+    "orphans": 158
   }
 }
