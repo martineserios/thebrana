@@ -1,6 +1,6 @@
 # Skills Architecture
 
-> Design principles and structure for brana skills. For the complete per-skill catalog, see [Skill Reference](../reference/skills.md).
+> Design principles and structure for brana skills. For the complete per-skill catalog, see [Skill Reference](../reference/skills.md). For the parallel catalog of committed **loops** (trigger + prompt + termination check, `/loop`-armed), see [system/loops/README.md](../../system/loops/README.md).
 
 ## Group Overview
 
