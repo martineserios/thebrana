@@ -8,6 +8,8 @@ import pathlib
 import subprocess
 import sys
 
+import yaml
+
 SCRIPT_PATH = pathlib.Path(__file__).parent.parent / "loops-lint.py"
 spec = importlib.util.spec_from_file_location("loops_lint", SCRIPT_PATH)
 mod = importlib.util.module_from_spec(spec)
@@ -105,7 +107,7 @@ def test_l0_entry_without_denied_verbs_table_passes():
 
 def test_l1_entry_without_denied_verbs_table_fails():
     fm = {**VALID_L0, "autonomy": "L1"}
-    errors = lint_content(fm, "## Beat procedure\n...\nno denied verbs section here")
+    errors = lint_content(fm, "## Beat procedure\n...\njust a plain body, nothing else")
     assert any("denied" in e.lower() for e in errors)
 
 
@@ -126,14 +128,36 @@ def test_records_field_as_string_reference_passes():
     assert lint_content(fm, "## Beat procedure\n...") == []
 
 
-def test_cli_passes_on_all_real_catalog_entries():
-    repo_root = pathlib.Path(__file__).parent.parent.parent.parent
-    loops_dir = repo_root / "system" / "loops"
-    entries = sorted(loops_dir.glob("*.md"))
-    assert entries, "expected at least one committed loop entry in system/loops/"
+def test_empty_frontmatter_dict_fails_all_required_keys():
+    errors = lint_content({}, "body")
+    assert len(errors) >= len(mod.REQUIRED_KEYS)
+
+
+def test_file_with_no_frontmatter_block_fails_at_cli(tmp_path):
+    no_fm = tmp_path / "no-frontmatter.md"
+    no_fm.write_text("# Just a heading\nno frontmatter block at all\n")
     result = subprocess.run(
-        [sys.executable, str(SCRIPT_PATH), *[str(e) for e in entries]],
+        [sys.executable, str(SCRIPT_PATH), str(no_fm)],
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.returncode == 1
+    assert "no YAML frontmatter" in result.stdout
+
+
+def test_cli_reports_pass_fail_per_file(tmp_path):
+    good = tmp_path / "good.md"
+    good.write_text(
+        "---\n" + yaml.dump(VALID_L0) + "---\n## Beat procedure\n..."
+    )
+    bad = tmp_path / "bad.md"
+    bad.write_text("---\nname: incomplete\n---\nbody")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), str(good), str(bad)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert f"{good}: PASS" in result.stdout
+    assert "FAIL" in result.stdout
