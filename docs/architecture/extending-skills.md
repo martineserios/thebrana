@@ -43,6 +43,7 @@ Read relevant files...
 | `depends_on` | No | List of other skill names this skill references. `validate.sh` checks that all listed skills exist. |
 | `context` | No | Set to `fork` to run the skill in a forked context (separate from main conversation). |
 | `allowed-tools` | Yes | List of tools Claude may use during skill execution. Unlisted tools are blocked. |
+| `disable-model-invocation` | No | Set to `true` if the skill's effects are destructive, one-shot, external, or hard to reverse (deploy, archive/delete data, publish, modify shared registries) — the agent can then only reach it via the user typing `/brana:{name}`, not autonomously. Omit for skills that are safe, cheap, and reversible enough for the agent to fire opportunistically. See the audited classification in [Skills Architecture](skills.md#invocation-mode-audit-t-2832-2026-08-17). |
 
 ### Allowed Tools
 

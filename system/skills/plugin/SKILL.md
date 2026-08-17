@@ -17,6 +17,7 @@ allowed-tools:
   - WebFetch
   - AskUserQuestion
   - Agent
+disable-model-invocation: true
 status: stable
 growth_stage: evergreen
 ---

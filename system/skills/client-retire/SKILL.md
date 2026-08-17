@@ -15,6 +15,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+disable-model-invocation: true
 status: stable
 growth_stage: evergreen
 ---

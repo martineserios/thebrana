@@ -389,6 +389,12 @@ Enforces required fields and valid enum values.
 | `growth_stage` | evergreen, prototype, seed |
 | `group` | execution, session, learning, business, integration, content, brana, utility, thinking, venture, core, domain, capture, tools |
 
+**Optional fields:**
+
+| Field | Valid values | Meaning |
+|-------|-------------|---------|
+| `disable-model-invocation` | `true` (omit for the default) | Native Claude Code frontmatter — governs invocation mode, not execution role. Omitted (default) = model-invoked: the description stays loaded every turn and the agent may fire the skill autonomously. `true` = user-invoked-only: zero ongoing context cost, reachable only by the user typing `/brana:{name}`. Applied to destructive/one-shot/irreversible skills — see [Skills Architecture](skills.md) for the audited classification. **Not** the same axis as the killed `mode: execute-only` proposal in `docs/ideas/drained/gentle-ai-adoption-ladder.md` Rung 3 (executor-vs-orchestrator role) — that proposal was killed at t-2591's Phase 0 measurement (`churn_share=0.342` against a 0.35 threshold, 2026-08-01) and is not resurrected by this field. |
+
 #### Check D: Step Registry Consistency
 
 For skills referencing the [guided-execution protocol](../../system/skills/_shared/guided-execution.md):

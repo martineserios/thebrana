@@ -212,6 +212,12 @@ valid_groups = {'execution', 'session', 'learning', 'business', 'integration',
 if group and group not in valid_groups:
     errors.append(f\"  FAIL: skills/{skill} — invalid group '{group}' (valid: {', '.join(sorted(valid_groups))})\")
 
+# Boolean: disable-model-invocation (optional; only true|false parse as bool in YAML —
+# anything else, e.g. a stray string, is caught here rather than silently accepted)
+dmi = d.get('disable-model-invocation')
+if dmi is not None and dmi is not True and dmi is not False:
+    errors.append(f\"  FAIL: skills/{skill} — invalid disable-model-invocation '{dmi}' (valid: true, or omit the field)\")
+
 for e in errors:
     print(e)
 " 2>/dev/null || true

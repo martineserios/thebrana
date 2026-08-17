@@ -12,6 +12,7 @@ allowed-tools:
   - Bash
   - Read
   - Glob
+disable-model-invocation: true
 status: stable
 growth_stage: evergreen
 ---
