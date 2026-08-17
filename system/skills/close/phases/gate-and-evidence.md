@@ -41,6 +41,13 @@ git commit -m "chore(state): commit state files at session close"
 ```
 
 **If both empty** (no commits, no changes in 6 hours):
+- This branch is decided by the wall-clock 6h listing above, NOT by the anchored
+  `COMMIT_COUNT` — so a concurrent lane's close truncating the anchor (t-2502) can never
+  route you here. That case surfaces instead inside the CLOSE-ANCHOR-BLOCK below as the
+  `⚠ close window is EMPTY` warning with `ANCHOR_ZERO_WINDOW=1`: recent commits exist,
+  the anchored window is empty, and Step 1b would queue nothing. When you see it, give
+  Step 1b an explicit `--git-range <first-own-commit>^..HEAD` rather than trusting the
+  computed window.
 - Write a minimal handoff entry: `## YYYY-MM-DD — read-only session`
 - Add only a **Next:** section from conversation context
 - Skip to Step 9 (Write handoff note)
@@ -84,6 +91,16 @@ which only happens to resolve when the git-root IS thebrana itself.
 # over-reach (32 commits instead of 4, live 2026-07-27) and re-queued commits an
 # earlier close had already queued under a different range string, which
 # close-snapshot.sh does NOT dedup. Every epic-routed close poisoned the next one.
+#
+# SECOND, INDEPENDENT TRIGGER — concurrency (t-2502, reproduced 7+ times
+# 2026-07-27..2026-08-17): the store carries no lane identity (ADR-069), so any
+# file this session may legitimately anchor on — the "(orphan)" default, or a
+# same-epic peer's — can have been written minutes ago by a DIFFERENT concurrent
+# session. No timestamp anchor can be right for "my work" on a shared checkout,
+# and no anchor heuristic is allowed here (ADR-069 Rejected; three withdrawn in
+# t-2502). What this block CAN do is refuse to fail silently — see the two
+# visibility guards after COMMIT_COUNT below. The real fix is lane identity
+# (ADR-069 D0-D3; t-2517/t-2520/t-2521).
 #
 # Epic-scoped corroboration (t-2603): taking the max written_at across ALL
 # epic-keyed files unconditionally reintroduced a different bug — a CONCURRENT
@@ -160,6 +177,49 @@ if [ -n "$UNSCOPED_LAST_CLOSE" ] && [ "${UNSCOPED_LAST_CLOSE:0:19}" != "${LAST_C
 fi
 
 COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/null | wc -l | tr -d ' ')
+
+# ── Visibility guards (t-2502) ────────────────────────────────────────────────
+# Implements the INTENT of ADR-069 D3's out-of-scope note ("make the over-reach
+# visible rather than silent — the reachable win"), NOT D3.2's reflog-attribution
+# mechanism, which the ADR itself marks "do not implement as specified". These
+# guards read only what this block already computed; they add no attribution.
+# Neither guard moves the anchor or the window. They exist because the two
+# concurrency failure shapes below are otherwise INVISIBLE, and an invisible
+# miss is worse than a visible double-extraction. Both print to stderr only;
+# neither blocks the close.
+#
+# (a) ZERO WINDOW. The anchor exists and post-dates every commit in the
+#     fallback window, so COMMIT_COUNT=0. Two causes are indistinguishable
+#     without lane identity: this session genuinely made no commits since its
+#     own last close (read-only), or a CONCURRENT lane's close truncated the
+#     window to nothing. The second has been observed live 4+ times and, left
+#     silent, COMMIT_COUNT=0 makes CHANGED_FILES a null diff and Step 1b's
+#     snapshot exits without queueing anything — the session's work is never
+#     extracted, and nothing says so. So: name the anchor's source, set
+#     ANCHOR_ZERO_WINDOW=1, and let the closer decide (Step 1b with an explicit
+#     --git-range). Quiet when there are no recent commits at all (nothing
+#     could have been truncated — that is the genuine read-only case, which
+#     Step 1's wall-clock listing above already routes).
+RECENT_COMMITS=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
+ANCHOR_ZERO_WINDOW=0
+if [ "${COMMIT_COUNT:-0}" -eq 0 ] && [ -n "$LAST_CLOSE" ] && [ "${RECENT_COMMITS:-0}" -gt 0 ]; then
+    ANCHOR_ZERO_WINDOW=1
+    LAST_CLOSE_EPIC=$(echo "$ALL_SESSIONS_JSON" \
+      | jq -r --arg ts "${LAST_CLOSE:0:19}" \
+          '[.[] | select((.state.written_at // "")[0:19] == $ts) | .epic] | unique | join(",")' 2>/dev/null)
+    echo "⚠ close window is EMPTY: anchor $LAST_CLOSE (session-state epic: ${LAST_CLOSE_EPIC:-unknown}) post-dates all $RECENT_COMMITS commit(s) of the last 6h. If any of those commits are this session's, a CONCURRENT lane's close truncated the window (t-2502 — do not re-file). Do NOT treat this as a read-only session on this signal alone: confirm this session made no commits, or re-run Step 1b with an explicit --git-range <first-own-commit>^..HEAD (git log --since='6 hours ago' to find it)." >&2
+fi
+
+# (b) OVER-REACH. On the shared checkout the window contains other lanes'
+#     commits (measured live 2026-08-17: 24 commits, 2 own, SESSION_EPICS=4).
+#     A contiguous range cannot exclude them and no anchor change helps; but
+#     SESSION_EPICS resolving to >1 epic is the visible symptom, so say so.
+SESSION_EPIC_COUNT=$(printf '%s\n' "$SESSION_EPICS" | grep -c . || true)
+if [ "${SESSION_EPIC_COUNT:-0}" -gt 1 ]; then
+    echo "⚠ close window spans $SESSION_EPIC_COUNT epics ($(printf '%s\n' "$SESSION_EPICS" | paste -sd, -)) — on a shared checkout this window very likely holds concurrent lanes' commits (over-reach, t-2502 — do not re-file). Step 1b will queue them all; narrow with an explicit --git-range if you know this session's own commits. Real fix: lane identity (ADR-069 D3, t-2521)." >&2
+fi
+# ── end visibility guards ─────────────────────────────────────────────────────
+
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
 
 CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.sh" \
@@ -167,8 +227,10 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.
 ```
 <!-- /CLOSE-ANCHOR-BLOCK -->
 
-> `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`
-> and `tests/procedures/test-close-gate-foreign-epic.sh`. Keep the markers and fences intact.
+> `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`,
+> `tests/procedures/test-close-gate-foreign-epic.sh` and
+> `tests/procedures/test-close-gate-concurrent-anchor.sh` (t-2502 visibility guards). Keep the
+> markers and fences intact.
 > This block calls `resolve_epic_ancestor` — the extracting test must source
 > `system/skills/_shared/epic-ancestor-walk.md`'s `EPIC-WALK-BLOCK` first.
 

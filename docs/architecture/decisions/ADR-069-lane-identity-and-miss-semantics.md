@@ -496,7 +496,10 @@ wave 1 never ran. An ADR that ships schema without cleanup repeats that failure 
   Reproduction 2 proves it cannot carry the guarantee on its own. The guards are mechanical
   precisely because the rule was already in force when it was violated.
 - **Epic-scoped close anchor** — the category error in smaller form. t-2502 was parked
-  rather than shipping it.
+  rather than shipping it. (2026-08-17: t-2502 shipped only the D3 "visible, not silent"
+  slice — an empty-window flag `ANCHOR_ZERO_WINDOW` and a multi-epic over-reach warning in
+  `close/phases/gate-and-evidence.md`'s CLOSE-ANCHOR-BLOCK; no anchor change. Truncation
+  itself still waits on the lane pin, t-2521.)
 - **Any change to `save_tasks`, `write_atomic`, or `lock_tasks`** (D4) — the torn-read
   hypothesis was refuted; these are correct.
 - **A new node level for lanes.** A lane is not a hierarchy node. The key is session state's
