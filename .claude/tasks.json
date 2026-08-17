@@ -73927,7 +73927,6 @@
       "github_issue": null,
       "id": "t-2836",
       "kind": "feature",
-      "work_type": "implement",
       "notes": null,
       "order": 0,
       "parent": "t-2830",
@@ -73941,7 +73940,8 @@
         "mattpocock-mining",
         "parked"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "ac_state": "none",
@@ -77779,6 +77779,37 @@
       ],
       "type": "task",
       "work_type": "chore"
+    },
+    {
+      "ac_state": "none",
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "[migrated from proyecto_anita t-2674, 2026-08-17]\n\nAC: reproduce the omitted-base_written_at case against a test/throwaway session-state file and confirm actual CLI behavior (replace vs union) with a minimal repro\nAC: either fix the CLI to union on absent base_written_at (matching the doc), or fix system/skills/close/phases/session-state.md Step 9b to state the true behavior and require ALWAYS reading+merging existing next[] before writing, never relying on omission-as-safe\nAC: if CLI fix chosen, add a regression test for the omitted-base_written_at case specifically (not just the stale-base case, which t-2506 already covers per the doc's own references)\n2026-08-13: investigated. Controlled repro against an ISOLATED throwaway epic (CWD-keyed bucket, unrelated to any real project state) — 3 sequential writes omitting base_written_at, AND a genuine concurrent 2-writer race, both omitting base_written_at — reproduced ONLY the documented union behavior (mode:union, retained_from_existing>0 each time). Could NOT reproduce the destructive replace-with-omitted-base incident in isolation, meaning the real trigger requires some precondition not captured by my repro (candidates: consumed_at state of prior write, a genuine concurrent writer from a DIFFERENT live session on the same real epic, or something else). No brana CLI source is present anywhere on this machine (~/.local/bin/brana is a bare installed binary) — the CLI-fix option (AC bullet 2, first branch) is not actionable from this environment. Went with the doc-fix branch instead: system/skills/close/phases/session-state.md Step 9b's merge-semantics table now carries an explicit warning that base_written_at presence/absence/match cannot be trusted as a safety signal in either direction, and mandates always reading+merging next[] before every write. Committed on thebrana branch docs/t-2674-session-write-replace-doc-fix (worktree ../thebrana-t2674, commit 341eaf5) — not merged, needs review/merge by whoever owns the thebrana repo.\n\nSide-finding while committing this: system/hooks/branch-verify.sh's cd-prefix detection (extract_cd_prefix_dir in lib/git-helpers.sh) only matches 'cd <path> &&' / ';' / '||' on the SAME line as the git command — a bash script with 'cd <path>' as its own line (newline-separated, not &&-joined) does NOT match, so the hook silently falls back to checking the session's ORIGINAL shell cwd's branch instead of the target repo's branch. Hit this live: staging inside a proper worktree (correct branch, verified via git branch --show-current) was rejected as 'cannot stage on main' because the hook fell back to checking proyecto_anita's cwd (which was on main) instead of the thebrana worktree. Worked around by using a single &&-joined command. Not filed as a separate task — flagging here since it surfaced during this investigation; may be worth its own follow-up if it bites again.",
+      "created": "2026-08-17",
+      "description": "system/skills/close/phases/session-state.md documents: \"next[] with stale/absent base_written_at → union + warning\". Live-reproduced 2026-08-13 during a /brana:close --finish on proyecto_anita, epic \"anita-envios\": called `brana session write` with NO base_written_at field in the payload at all. Response: {\"mode\":\"replace\",\"warning\":null} — not \"union\", no warning. The write silently discarded 5 legitimate next[] items from a same-day, ~13-hour-earlier session (t-1884 go-live checklist, t-2663, t-2664, t-2575, t-2571), keeping only the 3 new items from this write.\n\nData loss caught and manually corrected by recovering the prior next[] from system/state/.../memory/session-history.jsonl (archive), re-running the write with the recovered items unioned in plus an explicit base_written_at. The archive saved this — a session without archive access would have silently lost the 5 items with no error signal anywhere.\n\nCORROBORATING PRIOR INCIDENT (found after filing, via ~/.claude/projects/{project}/memory/pattern_session-write-replace-wipes-prior-next_2026-08-11.md — should have been checked BEFORE filing, not after): 2026-08-11, same \"anita-envios\" epic, a DIFFERENT trigger — that time base_written_at WAS correctly matched/provided, and it STILL replaced wholesale (retained_from_existing: 0), destroying 5 then-live items (t-1884, t-2605, an untracked item, plus 2 legitimately-completed ones). So there are now two independent, live-reproduced incidents two days apart with two different trigger conditions (omitted base_written_at vs. correctly-matching base_written_at) producing the identical destructive outcome (wholesale replace, zero retained, no warning signal in the response). This strongly suggests \"mode: replace\" ALWAYS discards next[] wholesale regardless of how the call is made, and the documented \"union on absent/stale base\" fallback either never worked or regressed.\n\nEither the CLI's actual behavior needs to change to match the documented union-on-absent-base contract, or the doc needs to be corrected to say \"next[] write is fundamentally replace-only, caller must always read-modify-write\" (in which case close/phases/session-state.md Step 9b's CAS-token framing is misleading — it implies base_written_at is only needed to WITHDRAW an item, when in practice the write is destructive by default regardless of the token).",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2964",
+      "kind": "fix",
+      "notes": "Doc fix committed (thebrana docs/t-2674-session-write-replace-doc-fix, commit 341eaf5) — needs merge review. CLI root cause NOT found/fixed (no source access); isolated repro contradicts a simple 'always replaces' theory. See context for full findings.",
+      "order": null,
+      "parent": null,
+      "priority": "P1",
+      "started": null,
+      "status": "in_progress",
+      "strategy": null,
+      "subject": "brana session write silently REPLACEs next[] when base_written_at is omitted, contradicting documented union fallback",
+      "tags": [
+        "brana-cli",
+        "session-state",
+        "data-loss",
+        "brana-harness"
+      ],
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": 3,
