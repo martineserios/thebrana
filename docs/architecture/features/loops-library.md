@@ -1,7 +1,7 @@
 # Feature: Loops Library — `system/loops/` catalog of committed loop definitions
 
 **Date:** 2026-08-17
-**Status:** decomposing
+**Status:** building
 **Task:** t-2826
 **Source doc:** [loops-library.md (idea, shape approved 2026-08-14)](../../ideas/drained/loops-library.md)
 **Related ADRs:** [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md) (drain-loop substrate), [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §6 (scope split: loop-first owns "loops library catalog + entry schema + `records:` beat schema")
