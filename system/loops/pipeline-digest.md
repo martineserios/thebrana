@@ -1,3 +1,13 @@
+---
+name: pipeline-digest
+cadence: "30-60m"
+autonomy: L0
+supervised: true
+drains: []
+fills: []
+spawns: []
+records: "single-sourced in docs/architecture/features/loops-library.md §Beat record schema"
+---
 # Loop prompt: pipeline-digest (L0 Reporter)
 
 <!-- t-2823, epic t-2820 (loop-first). Fire via /loop at 30–60m cadence from a
