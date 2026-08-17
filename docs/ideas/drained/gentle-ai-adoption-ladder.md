@@ -108,10 +108,20 @@ evaluation sub-block — leaving the write path out.
 **Authoring cost:** a labelling pass · **Compute cost:** none
 
 Add a role marker to the extracted procedure. **Use a distinct key — `mode: execute-only` —
-not `disable-model-invocation`**, which already has two live, differently-scoped uses in this
-repo (`challenge/SKILL.md`, `domain-driven-design/SKILL.md`) both meaning
-"deliberate-invocation-only." Overloading it leaves a future reader unable to tell the two
+not `disable-model-invocation`**, which already has a live use in this repo
+(`challenge/SKILL.md`, meaning "deliberate-invocation-only"; a claim that
+`domain-driven-design/SKILL.md` also carried it was stale as of 2026-08-13 — grep found
+zero matches — and has been corrected here, per [t-2830 research](../../research/2026-08-13-matt-pocock-skill-system.md)
+§3). Overloading the existing field leaves a future reader unable to tell the two
 apart. `role:` is net-new vocabulary under `system/` and needs an ADR.
+
+> **Correction (2026-08-17, t-2832):** this rung's proposal (`mode: execute-only`) was killed
+> at t-2591's Phase 0 measurement (`churn_share=0.342` against a 0.35 threshold, 2026-08-01) —
+> see [ARCHITECTURE.md](../../reflections/ARCHITECTURE.md). Left in place as historical record
+> of the reasoning, not an active proposal. `disable-model-invocation` itself (the
+> invocation-mode axis, not the executor-role axis this rung proposed) is now documented and
+> audited in [testing-validation.md](../../architecture/testing-validation.md) and
+> [Skills Architecture](../../architecture/skills.md).
 
 Classification, **not** enforcement — and note it does not resolve the killed finding that
 Bash and inline-Read bypass a Skill-tool-only block. Relabeling fixes nothing there.

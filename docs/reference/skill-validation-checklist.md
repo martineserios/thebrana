@@ -101,11 +101,26 @@ A reviewer reading the skill file can understand what it does, why, and when to 
 - [ ] `## Input` section lists all required context (if applicable)
 - [ ] `## Steps` or equivalent workflow section is complete and current
 
+### 13. Invocation mode matches blast radius
+
+Not one of the original twelve factors — a CC-native addition. Every model-invoked skill (the
+default: no `disable-model-invocation` field) sits in context every turn *and* can fire
+autonomously without the user asking for that specific action.
+
+- [ ] If the skill's effects are destructive, one-shot, external, or hard to reverse
+      (deploying, archiving/deleting data, publishing, modifying shared registries or
+      credentials), it sets `disable-model-invocation: true`
+- [ ] If the skill is safe, cheap, and reversible, it stays model-invoked (no field) so the
+      agent can reach for it opportunistically
+- [ ] The classification is justified, not guessed — see the audited table in
+      [Skills Architecture](../architecture/skills.md) and the field's documentation in
+      [testing-validation.md](../architecture/testing-validation.md)
+
 ---
 
 ## How to Use This Checklist
 
-**New skill:** Run through all 12 items before marking the skill ready.
+**New skill:** Run through all 13 items before marking the skill ready.
 
 **Existing skill audit:** Start with items 1, 4, and 8 — these are the most common failure modes (trigger overlap, implicit control flow, and scope creep).
 

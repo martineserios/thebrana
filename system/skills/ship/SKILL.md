@@ -21,6 +21,7 @@ allowed-tools:
   - TaskList
   - TaskUpdate
   - ToolSearch
+disable-model-invocation: true
 status: experimental
 growth_stage: seed
 ---

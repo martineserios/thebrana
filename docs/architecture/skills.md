@@ -144,6 +144,59 @@ Community skills install with `quarantine: true` in frontmatter and read-only to
 | `decision-matrix` | Pugh / community | Weighted criteria scoring + sensitivity analysis for multi-alternative decisions. | 2026-06-15 |
 | `critical-thinking-logical-reasoning` | Paul/Elder/Kahneman / community | Fallacies, assumptions, evidence quality; 8-step reasoning audit. | 2026-06-15 |
 
+## Invocation Mode Audit (t-2832, 2026-08-17)
+
+`disable-model-invocation` is native Claude Code frontmatter, not a brana invention — see [testing-validation.md](testing-validation.md) Check C for the field's contract. Omitted (the default) = **model-invoked**: the description stays loaded every turn and the agent may fire the skill autonomously. `true` = **user-invoked-only**: zero ongoing context cost, reachable only by the user typing `/brana:{name}`.
+
+Before this audit, exactly 1 of 40 skills (`challenge`) set the field. Every skill under `system/skills/` (excluding `_shared/` and `acquired/`) was classified against one question: **is autonomous, unprompted firing destructive, one-shot, external, or hard to reverse?** Six skills answered yes and now carry `disable-model-invocation: true`: **ship**, **client-retire**, **plugin** (the task's own named minimum), plus **gsheets**, **meta-templates**, and **scheduler** — surfaced by this audit as equally clear-cut against the same criterion (see rationale below) and flipped in the same pass rather than left as a dangling recommendation.
+
+| Skill | Group | Classification | Rationale |
+|---|---|---|---|
+| acquire-skills | brana | model-invoked | Hard-codes "never auto-install, always present and let the user choose" — worst case of autonomous firing is a search/listing, no state change. |
+| backlog | brana | model-invoked | Core task-tracking primitive the work-start protocol depends on firing opportunistically; writes are scoped to `.claude/tasks.json`, routinely reversible. |
+| bash-defensive-patterns | brana | model-invoked | Quarantined community skill, `allowed-tools: Read, Glob, Grep, AskUserQuestion` only — advisory, no write capability. |
+| cargo-machete | brana | model-invoked | Edits `Cargo.toml` to drop unused deps — routine, git-reversible dev-loop cleanup. |
+| do | brana | model-invoked | Thin router/alias to `backlog start`; no independent side effects of its own. |
+| mcp-builder | brana | model-invoked | Local build/test/registration guidance for MCP servers — despite "deploy" in the description, no real publish step. |
+| **plugin** | brana | **user-invoked-only** | Writes `~/.claude/plugins/known_marketplaces.json` / `installed_plugins.json` — a shared registry that decides what third-party code loads into every future session; installing untrusted marketplace code autonomously is a supply-chain risk. |
+| reconcile | brana | model-invoked | Fixes detected drift, but scope is repo-local and git-reversible — explicitly routine hygiene per this file's own CLAUDE.md cross-reference. |
+| rust-skills | brana | model-invoked | Pure advisory rule reference, no destructive action. |
+| verify-docs | brana | model-invoked | `allowed-tools: Bash, Read, AskUserQuestion` — no Write/Edit; runs `validate.sh` and samples for review only. |
+| discover | core | model-invoked | Read-only catalog listing of skills/agents/hooks. |
+| docs | core | model-invoked | Generates/updates doc files, git-reversible, explicitly a composable CLOSE building block. |
+| sitrep | core | model-invoked | Read-only situational-awareness/status recovery. |
+| align | execution | model-invoked | Restructures a project toward brana conventions — reversible dev-loop work with AskUserQuestion checkpoints. |
+| build | execution | model-invoked | The unified dev/build command — foundational; must stay reachable autonomously for the dev loop to function. |
+| claudemd | execution | model-invoked | Audits/generates a `CLAUDE.md`; single-file, git-reversible edit. |
+| **client-retire** | execution | **user-invoked-only** | Archives a client's live knowledge base as historical — a one-shot, business-affecting action on real client data. |
+| fix | execution | model-invoked | Structured, test-first bug-fix workflow — routine, reversible dev work. |
+| gemini | execution | model-invoked | Delegates to the external Gemini API for research/boilerplate; agy never runs git and writes only to `/tmp/` — no lasting external state change. |
+| onboard | execution | model-invoked | Scan mode is read-only; "new" mode scaffolds a client but is additive/reversible and AskUserQuestion-gated. |
+| **ship** | execution | **user-invoked-only** | Deploys code, publishes packages, releases to production — the canonical irreversible action (a published package or live deploy can't be cleanly un-shipped), even with an internal pre-deploy confirmation gate. |
+| **challenge** | learning | **user-invoked-only** (pre-existing) | The one skill that already carried the field before this audit — confirmed correct, unchanged. |
+| memory | learning | model-invoked | `recall`/`pollinate`/`review` are read-and-report; pollinate surfaces cross-client patterns for the user to validate, doesn't write across client boundaries. |
+| research | learning | model-invoked | Read/web-research + writes findings docs — safe, reversible, exactly the shape of skill the model should reach for opportunistically. |
+| retrospective | learning | model-invoked | Writes a learning to the memory taxonomy — additive, low-stakes, encouraged to fire often. |
+| close | session | model-invoked | End-of-session handoff/pattern extraction — safe, expected to fire routinely. |
+| brainstorm | thinking | model-invoked | Idea exploration with Write/Edit scoped to notes/docs — low risk. |
+| decide | thinking | model-invoked | Read-only decision-support synthesis. |
+| grad-mechanism-design | thinking | model-invoked | Quarantined advisory skill, `Read/Glob/Grep/AskUserQuestion` only. |
+| product-brainstorming | thinking | model-invoked | Ideation/thinking-partner skill, Write scoped to brainstorm output. |
+| log | capture | model-invoked | Append-only event log — lowest-friction, explicitly designed for opportunistic capture. |
+| design-system | domain | model-invoked | Quarantined advisory skill, `Read/Glob/Grep/AskUserQuestion` only. |
+| domain-driven-design | domain | model-invoked | Quarantined advisory skill, `Read/Glob/Grep` only by design (no Write/WebFetch). |
+| impeccable | domain | model-invoked | Quarantined advisory/critique skill, `Read/Glob/Grep/AskUserQuestion` only. |
+| web-design-guidelines | domain | model-invoked | Read-only UI compliance review (`Read, Glob, Grep, Bash, WebFetch`), no write capability. |
+| export-pdf | utility | model-invoked | Converts a local markdown file to PDF — local, reversible, no external effect. |
+| **gsheets** | utility | **user-invoked-only** | Its `share <spreadsheet> <email>` action grants an arbitrary external address access to a spreadsheet that may hold sensitive business data — an internal confirm gate exists, but the decision to reach for external sharing at all should be user-initiated. |
+| **meta-templates** | utility | **user-invoked-only** | `submit`/`appeal` push WhatsApp Business template changes into Meta's live review queue against a real client's WABA account — external, business-facing, not easily undone once submitted. |
+| **scheduler** | utility | **user-invoked-only** | Modifies persistent systemd timers/cron automation and can immediately `run` a configured job (itself potentially invoking build/ship); `teardown` removes all timers at once — persistent system-level side effects outside the repo. |
+| review | venture | model-invoked | Reads/aggregates metrics into a health-check report — no state mutation beyond report files. |
+
+`system/skills/acquired/` (23 skills: community reasoning frameworks and stack-specific references — `caveman`, `cloud-run-basics`, `critical-thinking-logical-reasoning`, `decision-matrix`, `event-driven-architect`, `fastapi`, `first-principles`, `gcp-cloud-run`, `inversion`, `jobs-to-be-done`, `llm-evaluation`, `nextjs-patterns`, `pre-mortem`, `second-order-thinking`, `six-thinking-hats`, `supabase`, `supabase-postgres`, `supabase-skill`, `swot-analysis`, `systems-thinking`, `vercel-react`, `vitest`, `web-design-guidelines`) sit outside the `/brana:*` surface and were not classified — quarantine's read-only tool grant already covers the same risk this audit targets.
+
+Not resurrecting the killed `mode: execute-only` proposal (`docs/ideas/drained/gentle-ai-adoption-ladder.md` Rung 3, killed at t-2591's Phase 0 measurement) — that was a different axis (executor-vs-orchestrator role). This audit only systematizes the invocation-mode axis `disable-model-invocation` already covers.
+
 ## Field Notes
 
 ### 2026-06-01: Skill retirement requires updating 10 locations in one commit

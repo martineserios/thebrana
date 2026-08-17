@@ -11,6 +11,7 @@ group: utility
 allowed-tools:
   - Bash
   - AskUserQuestion
+disable-model-invocation: true
 status: stable
 growth_stage: evergreen
 ---
