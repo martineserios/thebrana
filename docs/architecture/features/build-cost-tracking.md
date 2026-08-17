@@ -1,11 +1,21 @@
 ---
-status: research
+status: superseded
 task: t-648
 date: 2026-06-09
 produced_by: t-648
+superseded_by: docs/architecture/decisions/ADR-083-time-tracking-mechanism.md
 ---
 
 # Feature: Build Cost Tracking
+
+> **Superseded 2026-08-17 by [ADR-083](../decisions/ADR-083-time-tracking-mechanism.md).**
+> This design's storage path (`~/.claude/run-state/{task_id}.jsonl`) collides with the
+> live LOAD-checkpoint/CLOSE-delete resume mechanism and would have destroyed effort data
+> before aggregation — verified live during ADR-083's design. The core insight (per-turn
+> `message.usage` in the session transcript is the cost data source) is retained; the
+> anchoring/storage/aggregation mechanism is replaced by ADR-083's `brana/time/`
+> many-sub-spans bracket model, which also covers calendar cycle time (Metric 2), which
+> this design never addressed. Kept here for historical reference only.
 
 ## Problem
 
