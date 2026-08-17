@@ -52,6 +52,8 @@ Full doc: docs/guide/workflows/branching.md.
 | MAINTAIN | "Keep it healthy" | `/brana:reconcile`, `/brana:verify-docs` |
 | GROW | "Build the business" | `/brana:review` |
 
+The table above is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../docs/architecture/idea-to-ship.md).
+
 > Full command reference: [docs/reference/skills.md](../docs/reference/skills.md)
 
 ## Specs Reference
