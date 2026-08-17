@@ -5,13 +5,16 @@ Contract source: docs/architecture/features/loops-library.md (t-2826).
 Usage: loops-lint.py <entry.md> [entry2.md ...]
 Exit 0 if every entry passes, 1 if any fails (errors printed to stdout).
 """
+import re
 import sys
 from pathlib import Path
 
 import yaml
 
 REQUIRED_KEYS = ["name", "autonomy", "supervised", "drains", "fills", "spawns", "records"]
+LIST_KEYS = ["drains", "fills", "spawns"]
 VALID_AUTONOMY = {"L0", "L1", "L2", "L3"}
+DENIED_VERBS_HEADING = re.compile(r"^#+\s*denied verbs\b", re.IGNORECASE | re.MULTILINE)
 
 
 def parse_entry(path):
@@ -53,9 +56,23 @@ def lint_content(frontmatter, body):
             "schema (docs/architecture/features/loops-library.md), not an inline redefinition"
         )
 
+    for key in LIST_KEYS:
+        value = frontmatter.get(key)
+        if value is not None and not isinstance(value, list):
+            errors.append(f"{key} field must be a list, got {type(value).__name__}")
+
+    supervised = frontmatter.get("supervised")
+    if supervised is not None and not isinstance(supervised, bool):
+        errors.append(f"supervised field must be a boolean, got {type(supervised).__name__}")
+    elif supervised is False:
+        errors.append("supervised: false is unreachable until ADR-062 lands (Boundaries: never enable unattended mode)")
+
     if autonomy is not None and autonomy != "L0" and autonomy in VALID_AUTONOMY:
-        if "denied verb" not in body.lower():
-            errors.append(f"autonomy {autonomy} requires a 'Denied verbs' section in the body")
+        if not DENIED_VERBS_HEADING.search(body):
+            errors.append(
+                f"autonomy {autonomy} requires a 'Denied verbs' markdown heading in the body "
+                "(a substring mention in prose does not count)"
+            )
 
     return errors
 

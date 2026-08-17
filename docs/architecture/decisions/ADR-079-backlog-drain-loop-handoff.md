@@ -131,6 +131,14 @@ The loop runner (t-2813) is the consumer and owns re-resolution:
 
 #### 2b. Execution contract — what "works them" means
 
+> **Addendum (2026-08-17, t-2826/t-2933 sibling fix):** this section's execution contract
+> shipped as the committed runner doc
+> [`docs/guide/workflows/drain-loop.md`](../../guide/workflows/drain-loop.md) (t-2813) and
+> its catalog entry [`system/loops/drain-loop.md`](../../../system/loops/drain-loop.md)
+> (t-2826). The prose below is preserved as the original decision record — for the current,
+> maintained procedure, read the committed doc, not this ADR (same treatment ADR-080 §3
+> received for `epic-drain`).
+
 An earlier draft specified the pull precisely and left the work implicit. That silence
 recreated the exact shape ADR-059's OQ3 closure rejected in ruflo's `--claude` spawn (workers
 without worktree isolation). Made explicit:
