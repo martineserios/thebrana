@@ -1,9 +1,9 @@
 ---
-status: proposed
+status: accepted
 ---
 # ADR-083: Unified Project Time & Cost Tracking — Active Effort and Calendar Cycle Time
 
-**Status:** Proposed (2026-08-17)
+**Status:** Accepted (2026-08-17)
 **Date:** 2026-08-17
 **Deciders:** Martín Rios
 **Tags:** time-tracking, cost-tracking, harness, backlog, waves
