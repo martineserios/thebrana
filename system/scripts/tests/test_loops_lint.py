@@ -128,6 +128,65 @@ def test_records_field_as_string_reference_passes():
     assert lint_content(fm, "## Beat procedure\n...") == []
 
 
+def test_denied_verbs_substring_in_prose_without_heading_fails():
+    fm = {**VALID_L0, "autonomy": "L1"}
+    body = "## Beat procedure\nThis procedure never mentions denied verbs as a real section, just in passing prose."
+    errors = lint_content(fm, body)
+    assert any("denied" in e.lower() for e in errors)
+
+
+def test_denied_verbs_real_heading_passes():
+    fm = {**VALID_L0, "autonomy": "L1"}
+    body = "## Beat procedure\n...\n## Denied verbs\nSingle-sourced elsewhere.\n"
+    assert lint_content(fm, body) == []
+
+
+def test_denied_verbs_heading_deeper_level_passes():
+    fm = {**VALID_L0, "autonomy": "L1"}
+    body = "## Beat procedure\n...\n### Denied verbs\nSingle-sourced elsewhere.\n"
+    assert lint_content(fm, body) == []
+
+
+def test_supervised_false_fails():
+    fm = {**VALID_L0, "supervised": False}
+    errors = lint_content(fm, "## Beat procedure\n...")
+    assert any("supervised" in e for e in errors)
+
+
+def test_supervised_non_boolean_fails():
+    fm = {**VALID_L0, "supervised": "true"}
+    errors = lint_content(fm, "## Beat procedure\n...")
+    assert any("supervised" in e for e in errors)
+
+
+def test_supervised_true_passes():
+    fm = {**VALID_L0, "supervised": True}
+    assert lint_content(fm, "## Beat procedure\n...") == []
+
+
+def test_drains_wrong_type_fails():
+    fm = {**VALID_L0, "drains": "not-a-list"}
+    errors = lint_content(fm, "## Beat procedure\n...")
+    assert any("drains" in e for e in errors)
+
+
+def test_fills_wrong_type_fails():
+    fm = {**VALID_L0, "fills": "not-a-list"}
+    errors = lint_content(fm, "## Beat procedure\n...")
+    assert any("fills" in e for e in errors)
+
+
+def test_spawns_wrong_type_fails():
+    fm = {**VALID_L0, "spawns": "not-a-list"}
+    errors = lint_content(fm, "## Beat procedure\n...")
+    assert any("spawns" in e for e in errors)
+
+
+def test_drains_fills_spawns_as_empty_lists_pass():
+    fm = {**VALID_L0, "drains": [], "fills": [], "spawns": []}
+    assert lint_content(fm, "## Beat procedure\n...") == []
+
+
 def test_empty_frontmatter_dict_fails_all_required_keys():
     errors = lint_content({}, "body")
     assert len(errors) >= len(mod.REQUIRED_KEYS)
