@@ -87,6 +87,32 @@ Inference: Pocock's implicit answer to "atomic skills composed via graphs" is *k
 
 **Plainly:** on loops and graphs brana is *ahead* of Pocock's ideal (he has no loop runtime and no code graphs; his conveyor is a person). Where his ideal is *cleaner* is one place: **skill granularity** — his build stage is a thin wrapper over stations (`implement` → `tdd` → `code-review`); brana's build *is* the station graph, folded inside one skill. That fold carries brana's enforcement — and is also exactly why `/brana:build` can be a whole station for a loop yet not a node in a `Workflow` graph. The question t-2490 is really circling: **should brana's monolith skills become `implement`-shaped (thin wrapper over stations that already exist as phase files), keeping the gates but making the stations separately callable?** — word for word, t-2278's parked north-star.
 
+## Opinion, criteria, recommendation per stage (Claude, 2026-08-18 — operator asked; not yet accepted)
+
+**Criteria (a unit earns extraction only if it clears one):** (1) **Enforcement** — holds a gate someone could skip → keep inside the monolith; (2) **Reuse pressure** — ≥2 callers → primitive; (3) **Headless viability** — must run in a Workflow `agent()` or unattended runner → needs an AskUserQuestion-free path; (4) **Judgment locus** — human judgment → human-stop loop; verdict → fan-out judges; mechanical → code; (5) **Cost per hop** — every extraction is a context re-entry.
+
+| Stage | Opinion | Deciding criteria | Recommendation |
+|---|---|---|---|
+| 1. Sharpen | Brainstorm monolith is fine (human-stop rounds are the design). Interview mechanic reused by brainstorm/decide/triage/challenge → real reuse pressure; `grilling` already on ADR-084 DEPEND list. | 4, 2 | Keep brainstorm as wrapper; adopt `grilling` primitive via ADR-084. Don't split brainstorm's 9 steps; hive-mind challenge is already the one right extraction. |
+| 2. Runnable question | Brana's task-packet edge > Pocock's markdown handoff; his artifact discipline (prototype kept as primary source on `prototype/<name>`, linked from the task) is better. | 5 | Keep spike; borrow the branch/link convention into `strategies.md` ANSWER. Low priority. |
+| 3. Multi-session | Brana ahead — never regress to human-as-conveyor. Pocock's one lesson: `/clear` per ticket. epic-drain builds inline in the loop session (context accumulates); ADR-060 already says runner spawns `claude -p` per worktree. | 3, 5 | State fresh-context-per-pull as epic-drain step-4 default when unattended lands. Wayfinder decision-tickets: no adoption (`kind:design` under an epic covers it). |
+| 3b. Build one unit — crux | Keep `build` as supervised wrapper (CLASSIFY/SPECIFY/DECOMPOSE = judgment; gates = enforcement). Two stations clear 2+3: the **TDD loop** (build+fix; must run headless) and **verify-gates' judgment fan-out** (Workflow-shaped; called from build/close/challenge) — Pocock's `tdd` and `code-review`; `tdd` is DEPEND-listed. | 1 keeps wrapper; 2+3 extract two | No 9-station rewrite. Bounded second pilot after t-2834: vendor `tdd` per ADR-084, `build-loop.md` calls it — same seam t-2834 proves. Two-axis review = t-2835 (parked). |
+| Ship | Explicit valve is right. | 1 | Nothing. |
+| Triage | `ac_state` is the machine that matters (drainability). | — | Nothing. |
+| Fix / diagnosing-bugs | **t-2834 is the evidence beat.** Read the atom contract off its adapter (inputs mapped, output homes, denied verbs), don't design it abstractly. | 2, 3 | Proceed t-2834 first; its adapter = reference implementation of "brana's atom contract." |
+| Huge foggy effort | brainstorm-deep → challenge ×2 → plan → waves covers wayfinder; different output. | — | Nothing. |
+| Upkeep | reconcile/verify-docs want to be a loop; t-2278's blocker (v3 schema) has landed. | 3 | Unblock t-2278 as the focused L it already is; no scope change. |
+| Vocabulary | Agree with P8 reject. | — | Nothing now. |
+| Phase boundaries | Pocock's five-option tree is crisper than brana's scattered guidance. | 5 | Fold the ordered tree into `context-budget.md`. Docs-only, S. |
+
+**Primitive-level calls:**
+- **Atom contract (skills):** no new schema. Atom = a model-invoked skill (or `_shared/` block) with one job, no AskUserQuestion on its main path, schema'd return when called from a Workflow node. Mechanism = t-2832 `disable-model-invocation` taxonomy + ADR-084 DEPEND wrappers. **Granularity floor: a phase file becomes a station only when it has ≥2 callers or must run headless.** By that floor `build` yields ~2 stations, not 9.
+- **Loops:** keep all; adopt only fresh-context-per-pull.
+- **Graphs:** keep the three homes; prose routing (`idea-to-ship.md`, `delegation-routing.md`) stays prose — Pocock validates a router doc need not be code.
+- **Dual-mode gap:** don't build a dual-mode unit. Headless nodes = agents/Workflow prompts; supervised stations = skills. Where one station must run both ways, the fix is at the **runner layer** (`claude -p` running the skill with questions answered by policy — ADR-062), not the skill-schema layer. The gap dissolves rather than needing an abstraction.
+
+**Net verdict recommendation:** leave t-2278 as planned; adopt no new atom schema; atom contract = Pocock two-tier via ADR-084/t-2832 + the ≥2-callers-or-headless floor; dual-mode gap resolves at the runner layer. Follow-ups (all small): t-2834 evidence beat → `tdd`-into-build second pilot → epic-drain fresh-context note → phase-boundary tree in context-budget.md → unblock t-2278. Load-bearing enough for a **short ADR** recording Non-Actions (9-station rewrite, typed atom schema, dual-mode abstraction).
+
 ## Open (not yet converged — operator still debating, 2026-08-18)
 
 - Is the dual-mode (supervised + headless) gap causing pain *today*, or theoretical? No duplicated-logic evidence gathered yet.
