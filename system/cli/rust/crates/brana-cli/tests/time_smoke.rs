@@ -63,8 +63,16 @@ fn repo() -> tempfile::TempDir {
 
 /// Add a second worktree off `base`'s `dev` branch — a genuinely separate `--git-dir`
 /// from `base`'s own, sharing the same `--git-common-dir`. Returns the worktree path.
+///
+/// `base.parent()` is `/tmp` itself (tempfile creates its tempdirs directly there), a
+/// namespace shared across every test run — a fixed literal `name` (e.g. "wt2") landed
+/// two different runs' worktrees on the same path and made `git worktree add` fail
+/// against leftover state from a prior run (the linked worktree directory isn't owned
+/// by either `base`'s or its own `tempfile::TempDir`, so nothing cleans it up on drop).
+/// Suffixing with `base`'s own random tempdir name keeps every run's path unique.
 fn add_worktree(base: &Path, name: &str, branch: &str) -> PathBuf {
-    let wt_path = base.parent().unwrap().join(name);
+    let unique = base.file_name().and_then(|n| n.to_str()).unwrap_or("wt");
+    let wt_path = base.parent().unwrap().join(format!("{name}-{unique}"));
     git_ok(base, &[
         "worktree", "add", wt_path.to_str().unwrap(), "-b", branch,
     ]);

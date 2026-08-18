@@ -16,6 +16,12 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - [x] All tests pass
    ```
 
+1.5. **Time tracking CLOSE marker** (ADR-083, Metric 1 — task_id known only, all effort sizes; skip for freeform builds): close the bracket this task's LOAD step opened.
+   ```bash
+   brana time close {task_id} 2>/dev/null || true
+   ```
+   Best-effort and never blocks CLOSE. Reads the transcript recorded at START forward, computes turn-delta-summed active time (15-min idle cap), appends a Close marker to `$(git rev-parse --git-common-dir)/brana/time/{task_id}.jsonl`, and removes the worktree's open-bracket lock. If this session delegated meaningful work to subagents/forks (their own active time isn't summed into this bracket — v1 excludes fan-out), pass `--partial` so the stored duration is flagged `coverage: partial` rather than read as the task's full effort.
+
 2. **Log build outcome to decision log:**
    ```bash
    brana decisions log main decision \

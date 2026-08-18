@@ -7,6 +7,12 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__claims_claim,mcp__ruflo
 
 Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.
 
+**Time tracking START marker** (ADR-083, Metric 1 — task_id known only, all effort sizes, no M+ gate; skip for freeform builds): open a time-tracking bracket for this task before anything else in LOAD.
+```bash
+brana time start {task_id} 2>/dev/null || true
+```
+Best-effort and never blocks the build — a non-zero exit (e.g. a bracket already open in this worktree, left over from a crashed prior session) is swallowed. Writes an append-only Start marker to `$(git rev-parse --git-common-dir)/brana/time/{task_id}.jsonl` and a per-worktree open-bracket lock at `$(git rev-parse --git-dir)/brana-time-open-bracket.json`. If start refuses because a bracket is already open for a *different* task_id in this worktree, close it first (`brana time close {other_task_id}`) then retry — the CLOSE step below writes the matching Close marker.
+
 0. **Goal injection** (task_id known only — skip for freeform builds):
    The **`acceptance_criteria` field is canonical** (ADR-047 §1; t-1778). `AC:` lines in
    `context` are a human-typing **shorthand** — read them, but normalize them *into* the

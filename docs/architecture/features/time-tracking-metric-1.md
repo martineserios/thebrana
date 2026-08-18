@@ -1,7 +1,7 @@
 # Feature: Time Tracking — Metric 1 (Active Effort)
 
 **Date:** 2026-08-17
-**Status:** building
+**Status:** shipped
 **Task:** t-2921 (tests, this spec) · t-2922 (implementation)
 
 ## Problem
@@ -129,7 +129,7 @@ Presence of this file = a bracket is open in this worktree; absence = none open.
 
 - [x] **Tech doc** — this file, `docs/architecture/features/time-tracking-metric-1.md`
 - [ ] **User guide** — deferred to t-2925+ (the query/aggregation command); this task has no user-facing surface yet (LOAD/CLOSE markers are internal)
-- [ ] **Existing docs to update** — `docs/ideas/task-time-tracking.md` Next Steps #3/#4 status, once t-2921/t-2922 complete
+- [x] **Existing docs to update** — `docs/ideas/task-time-tracking.md` Next Steps #3/#4 status, marked DONE (2026-08-18)
 
 ## Challenger findings
 

@@ -60,10 +60,31 @@ pub struct TurnDeltaSummary {
 /// Sum turn-to-turn deltas over an ordered list of per-turn timestamps, capping each
 /// individual delta at `idle_cap_secs`. `timestamps` must already be sorted ascending —
 /// this function does not sort (the caller reads them in transcript order).
-///
-/// t-2921: stub only, no real implementation — t-2922 fills this in.
-pub fn turn_delta_summed(_timestamps: &[DateTime<Utc>], _idle_cap_secs: i64) -> TurnDeltaSummary {
-    todo!("t-2922: turn-delta summation with idle-gap capping")
+pub fn turn_delta_summed(timestamps: &[DateTime<Utc>], idle_cap_secs: i64) -> TurnDeltaSummary {
+    let turn_count = timestamps.len() as u64;
+    if timestamps.len() < 2 {
+        return TurnDeltaSummary {
+            capped_total_secs: 0,
+            gaps_capped: 0,
+            turn_count,
+        };
+    }
+    let mut capped_total_secs = 0i64;
+    let mut gaps_capped = 0u64;
+    for pair in timestamps.windows(2) {
+        let delta = (pair[1] - pair[0]).num_seconds();
+        if delta > idle_cap_secs {
+            capped_total_secs += idle_cap_secs;
+            gaps_capped += 1;
+        } else {
+            capped_total_secs += delta;
+        }
+    }
+    TurnDeltaSummary {
+        capped_total_secs,
+        gaps_capped,
+        turn_count,
+    }
 }
 
 /// Many-sub-spans bracket rollup: sum every `Close` line's `duration_capped_secs` for a
@@ -81,21 +102,49 @@ pub struct BracketRollup {
     pub coverage: Coverage,
 }
 
-/// t-2921: stub only, no real implementation — t-2922 fills this in.
-pub fn sum_brackets(_lines: &[BracketLine]) -> BracketRollup {
-    todo!("t-2922: many-sub-spans bracket rollup")
+pub fn sum_brackets(lines: &[BracketLine]) -> BracketRollup {
+    let mut total_capped_secs = 0i64;
+    let mut bracket_count = 0u64;
+    let mut coverage = Coverage::Full;
+    for line in lines {
+        if let BracketLine::Close {
+            duration_capped_secs,
+            coverage: line_coverage,
+            ..
+        } = line
+        {
+            total_capped_secs += duration_capped_secs;
+            bracket_count += 1;
+            if *line_coverage == Coverage::Partial {
+                coverage = Coverage::Partial;
+            }
+        }
+    }
+    BracketRollup {
+        total_capped_secs,
+        bracket_count,
+        coverage,
+    }
 }
 
 /// Recover an orphaned `Start` (no matching `Close` — the session died mid-bracket).
 /// ADR-083's fallback: the bracket's end is the transcript's own last real turn's
 /// timestamp, never "now" and never an error.
 ///
-/// t-2921: stub only, no real implementation — t-2922 fills this in.
 pub fn close_orphaned_bracket(
-    _start: &BracketLine,
-    _transcript_timestamps: &[DateTime<Utc>],
+    start: &BracketLine,
+    transcript_timestamps: &[DateTime<Utc>],
 ) -> TurnDeltaSummary {
-    todo!("t-2922: orphaned-bracket recovery using the transcript's last turn timestamp")
+    let start_ts = match start {
+        BracketLine::Start { ts, .. } => *ts,
+        BracketLine::Close { ts, .. } => *ts,
+    };
+    let relevant: Vec<DateTime<Utc>> = transcript_timestamps
+        .iter()
+        .copied()
+        .filter(|t| *t >= start_ts)
+        .collect();
+    turn_delta_summed(&relevant, IDLE_CAP_SECS)
 }
 
 #[cfg(test)]

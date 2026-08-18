@@ -302,7 +302,9 @@ fn main() {
         }
         Commands::Time { cmd } => match cmd {
             cli::TimeCmd::Start { task_id } => run_or_exit(commands::time::cmd_start(&task_id)),
-            cli::TimeCmd::Close { task_id } => run_or_exit(commands::time::cmd_close(&task_id)),
+            cli::TimeCmd::Close { task_id, partial } => {
+                run_or_exit(commands::time::cmd_close(&task_id, partial))
+            }
         }
         Commands::Recall { query, top, json, db } => {
             run_or_exit(commands::recall::cmd_recall(&query, top, json, db))
