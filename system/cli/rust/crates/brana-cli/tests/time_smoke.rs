@@ -260,15 +260,19 @@ fn b2_concurrent_writers_same_task_id_no_corruption() {
             let path = path.clone();
             let barrier = barrier.clone();
             std::thread::spawn(move || {
-                let line = serde_json::json!({
+                // One pre-serialized buffer, ONE write_all call — the exact invariant
+                // under test (verify-stage catch, iteration 2: the first draft did two
+                // separate write_all calls per line, the same multi-syscall hazard
+                // class as writeln!, just coarser).
+                let mut line = serde_json::json!({
                     "version": 1, "kind": "note", "task_id": "t-shared", "writer": i
                 })
                 .to_string();
+                line.push('\n');
                 barrier.wait();
                 use std::io::Write;
                 let mut f = std::fs::OpenOptions::new().append(true).open(&path).unwrap();
                 f.write_all(line.as_bytes()).unwrap();
-                f.write_all(b"\n").unwrap();
             })
         })
         .collect();
@@ -429,4 +433,37 @@ fn d3_close_with_deleted_recorded_transcript_fails_closed() {
         .args(["time", "close", "t-1"])
         .assert()
         .failure();
+}
+
+/// Verify-stage catch, iteration 2 (2026-08-17): the redesign's headline claim —
+/// "CLOSE reads the recorded `transcript_path`; a second session becoming
+/// newest-mtime between START and CLOSE cannot redirect it" — had zero coverage.
+/// This proves it directly, decoupled from real duration-computation values (nothing
+/// is implemented yet): after START records the *valid* transcript's path, a second,
+/// NEWER `.jsonl` is written into the same fake project directory with deliberately
+/// unparseable content. If a future implementation regresses to "always re-resolve
+/// newest mtime at CLOSE" (the exact mistake this design exists to prevent), it would
+/// try to read the broken newer file and fail; reading the recorded (valid, older)
+/// path succeeds regardless of what else exists in the directory.
+#[test]
+fn d4_close_reads_recorded_transcript_not_newest_mtime() {
+    let tmp = repo();
+    let home = tempfile::TempDir::new().unwrap();
+    add_fake_transcript(home.path(), tmp.path());
+    let project_root = git_ok(tmp.path(), &["rev-parse", "--show-toplevel"]);
+    let encoded = encode_project_path(&project_root);
+    let project_dir = home.path().join(".claude/projects").join(&encoded);
+
+    brana_with_home(tmp.path(), home.path()).args(["time", "start", "t-1"]).assert().success();
+
+    // A second, strictly-newer .jsonl with content that would fail to parse as a
+    // transcript — if CLOSE mistakenly re-resolves "newest mtime" instead of reading
+    // the path START recorded, it reaches this file and must fail; it doesn't.
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    std::fs::write(project_dir.join("newer-but-broken-session.jsonl"), "not a transcript at all").unwrap();
+
+    brana_with_home(tmp.path(), home.path())
+        .args(["time", "close", "t-1"])
+        .assert()
+        .success();
 }

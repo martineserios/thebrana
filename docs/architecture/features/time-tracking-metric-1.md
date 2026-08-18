@@ -115,7 +115,8 @@ Presence of this file = a bracket is open in this worktree; absence = none open.
 | Always | Ask First | Never |
 |--------|-----------|-------|
 | Atomic writes: single `write_all` append to `brana/time/`, locked read-modify-write to the per-worktree lock file | Changing the 15-min idle-cap constant (ADR-083 locked it) | Write to `~/.claude/run-state/{task_id}.jsonl` (resume-checkpoint's file) |
-| Fail closed on an unresolvable transcript path (recorded-path-missing at CLOSE, or no `.jsonl` found at START) | Adding a new git-common-dir resolution helper (reuse `receipt.rs`'s pattern) | Use `util::find_tasks_file`/`git_common_root` for this path (unscrubbed), depend on `$BRANA_SESSION_ID` for correctness, or re-resolve "newest mtime" at CLOSE instead of reading the path START recorded |
+| **CLOSE only**: fail closed when the recorded `transcript_path` no longer resolves | Adding a new git-common-dir resolution helper (reuse `receipt.rs`'s pattern) | Use `util::find_tasks_file`/`git_common_root` for this path (unscrubbed), depend on `$BRANA_SESSION_ID` for correctness, or re-resolve "newest mtime" at CLOSE instead of reading the path START recorded |
+| **START does NOT require a resolvable transcript** — clarified during BUILD verify (2026-08-17, iteration-2 catch): the row above previously read ambiguously as "no `.jsonl` found at START" also failing closed, but 6 of 9 tests already assumed START succeeds unconditionally (it only needs to record a `transcript_path`, best-effort — a `null`/absent value there is CLOSE's problem to fail on, not START's). Avoids a chicken-and-egg bootstrap case (a brand-new project's very first session has no prior transcript yet at the moment LOAD fires). | — | Block bracket-open on transcript resolvability |
 
 ## Testing Strategy
 
