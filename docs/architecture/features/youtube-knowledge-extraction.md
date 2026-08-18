@@ -41,10 +41,27 @@ the function's `&'static str` return type or existing branches. Update the
 doc comment's platform list (`"linkedin"`, `"github"`, `"substack"`,
 `"arxiv"`, `"other"` → add `"youtube"`).
 
+**Other `classify_platform` call sites, audited for safety, not silently
+ignored.** Three call sites besides `fetch_url_content` (`knowledge_pipeline.rs:660`)
+also receive the new `"youtube"` return value once this lands:
+`knowledge_pipeline.rs:1693` and `knowledge.rs:1094`/`:1172`, all inside the
+older tier1/2/3 auto-pipeline (`UrlEntry.platform` tagging + dedup/scoring),
+the pipeline t-1144/ADR-070 explicitly declines to wire YouTube fetch into.
+Safe today for a specific, checkable reason, not by assumption: the
+scheduler job that drives that pipeline (`"brana knowledge process --tier1
+&& brana knowledge process --tier2"`, `scheduler.template.json:126-135`) is
+`"enabled": false`. If that job is ever enabled, YouTube URLs start flowing
+through tier1/2/3 tagging/scoring with no fetch behind them — worth a
+tripwire (a test asserting the job stays disabled, or a one-line comment at
+the job entry) if this spec ships before that pipeline does. Not built
+here; flagging so it isn't rediscovered as a surprise.
+
 `canonicalize_url`/`TRACKING_PARAMS` (`knowledge_pipeline.rs:1442-1471`) is
-already YouTube-aware (strips `?v=`/`si=` correctly per its existing test) —
-no change needed there; confirmed during the ADR-070 amendment's Challenger
-review.
+already YouTube-aware (strips `?v=`/`si=` correctly, `v=` explicitly
+preserved as load-bearing per the code's own comment, per its existing
+test) — no change needed there. Independently re-verified against the live
+source while writing this spec, not carried forward from ADR-070's text —
+the ADR amendment itself doesn't mention either symbol.
 
 ### 2. `fetch_url_content()` — new youtube branch
 
@@ -293,9 +310,9 @@ Phase 1 ships with this documented, not silent.
 
 ## Follow-up implementation tasks
 
-File under `t-2942` (Phase 1 milestone — its current description is stale,
-predates this spec's corrections, and should be rewritten to match before
-or during decomposition). Suggested task breakdown, each independently
+File under `t-2942` (Phase 1 milestone — subject and description corrected
+2026-08-18 to match this spec; previously encoded the pre-correction
+`raw/`+`sources/` design). Suggested task breakdown, each independently
 testable per §Tests above:
 
 1. `classify_platform` youtube case (§1) — trivial, no dependencies.
@@ -305,7 +322,10 @@ testable per §Tests above:
    `FetchedContent`/`caption_source` shape.
 4. Backoff/retry unit for `HTTP 429` (§2) — can parallel #3.
 5. `cmd_drain_links` platform filter + `--platform` flag + new
-   `scheduler.template.json` entry (§5) — depends on #1.
+   `scheduler.template.json` entry, **plus the one-line operational note in
+   `docs/architecture/hooks.md` or the scheduler doc that ADR-070's
+   Consequences section asks for** (two independent scheduler jobs now
+   drain the same `link` tag by disjoint platform filters) — depends on #1.
 6. Extend `test_lock_discipline_source_tripwires` to cover
    `knowledge_pipeline.rs` (§Tests) — independent, can run anytime.
 
