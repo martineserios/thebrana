@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T18:11:10Z",
+  "generated": "2026-08-18T00:23:59Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1263,7 +1263,8 @@
       "title": "Extending Skills",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/"
+        "system/skills/",
+        "system/skills/_shared/adversarial-hive-mind.md"
       ]
     },
     "docs/architecture/extending.md": {

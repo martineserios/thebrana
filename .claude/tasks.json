@@ -63324,7 +63324,7 @@
       ],
       "type": "task",
       "work_type": "design",
-      "strategy": "investigation"
+      "strategy": "feature"
     },
     {
       "ac_state": "none",
