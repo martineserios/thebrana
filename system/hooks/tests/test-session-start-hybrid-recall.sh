@@ -165,6 +165,38 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+# ── 5. Repeated invocations with the same session_id don't clobber ──
+# each other's results (t-2969). Root cause: the hook's TMPDIR_SS temp dir
+# had a `rm -rf` EXIT trap that every backgrounded subshell in the script
+# inherits (Job 1/1b/1c, the Phase 3 per-job kill-timers). Under observed
+# timing, one of those subshells independently re-fired the inherited trap
+# mid-run and deleted the live TMPDIR_SS out from under a still-writing job
+# — e.g. hybrid recall's result silently dropped from additionalContext.
+# Fixed by dropping the EXIT trap entirely and giving TMPDIR_SS a single
+# owner (the Phase 5 background job, the last reader) that removes it as
+# its own final statement.
+
+echo ""
+echo "--- Repeated invocation, same session_id (t-2969) ---"
+
+TOTAL=$((TOTAL + 1))
+REPEAT_FAIL_AT=0
+for i in $(seq 1 5); do
+    R_OUTPUT=$(run_hook "$(make_input "sess-recall-repeat" "$REPO")")
+    R_CTX=$(echo "$R_OUTPUT" | jq -r '.additionalContext // ""' 2>/dev/null)
+    if ! echo "$R_CTX" | grep -qiE "Hybrid recall|hybrid-recall-pattern|write tests before"; then
+        REPEAT_FAIL_AT="$i"
+        break
+    fi
+done
+if [ "$REPEAT_FAIL_AT" -eq 0 ]; then
+    echo "  PASS: hybrid recall survives repeated same-session_id invocations"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: hybrid recall clobbered on repeated same-session_id invocation #$REPEAT_FAIL_AT"
+    FAIL=$((FAIL + 1))
+fi
+
 # ── Summary ──────────────────────────────────────────────
 echo ""
 echo "$PASS/$TOTAL passed"
