@@ -313,8 +313,8 @@ original brainstorm.
 warranted for one subprocess call:
 
 ```
-yt-dlp --skip-download --write-auto-sub --sub-langs "en" --sub-format vtt \
-  --socket-timeout 30 -- "<url>"
+yt-dlp --skip-download --write-sub --write-auto-sub --sub-langs "en" \
+  --sub-format vtt --socket-timeout 30 -- "<url>"
 ```
 
 The `--` end-of-flags separator before the URL is required, not cosmetic: a
@@ -323,6 +323,19 @@ Telegram), and `yt-dlp` has an `--exec <cmd>` flag — the same
 "decoded target is untrusted" lesson §Amendment (2026-08-01) already applied
 to LinkedIn's `/safety/go/` unwrap, applied here to argv instead of an HTTP
 target. Without `--`, a URL string starting with `-` is parsed as a flag.
+
+**Corrected: `--write-sub` added alongside `--write-auto-sub`.** The
+original draft of this section requested only auto-generated captions
+while separately promising `caption_source: manual|auto` metadata — a
+command that can never produce a manual result cannot honestly carry a
+`manual` tag. `yt-dlp` writes the human-authored track when one exists and
+falls back to the auto-generated track otherwise; both flags together get
+the better-quality manual track when available, never worse than the
+auto-only behavior. Distinguishing which track actually landed (manual vs.
+auto — `yt-dlp --dump-json`'s `requested_subtitles` vs.
+`automatic_captions` fields, not filename parsing) is an implementation
+detail for DECOMPOSE, not this ADR — but the command must request both for
+`caption_source` to ever be true.
 
 Single primary-language (`en`) caption only for Phase 1 — the multi-language
 `en.*,es.*` form validated in the brainstorm is what hit `HTTP 429` on its
@@ -349,14 +362,15 @@ one-line `"command"` jobs (`drain-links --cap 10` is one of them, line
 ~138) — YouTube gets its own line, not a code change to the shared
 selector:
 
-- `select_drain_batch`'s candidate filter (currently `tag:"link",
-  status:"pending"`) excludes `classify_platform(url) == "youtube"` for the
-  existing `drain-links --cap N` job — LinkedIn/GitHub/Substack/arxiv/other
-  are unaffected, no change to their behavior or the tested `.take(cap)`
-  logic.
+- `cmd_drain_links`'s candidate filter (currently `tag:"link",
+  status:"pending"`, feeding `select_drain_batch`'s unchanged `.take(cap)`)
+  excludes `classify_platform(url) == "youtube"` for the existing
+  `drain-links --cap N` job — LinkedIn/GitHub/Substack/arxiv/other are
+  unaffected, no change to their behavior or the tested `.take(cap)` logic.
 - A new `drain-links --platform youtube --cap N` invocation (same binary,
-  new flag: candidate filter becomes exactly `classify_platform(url) ==
-  "youtube"`) runs as its own `scheduler.template.json` entry, with its own
+  new flag: `cmd_drain_links`'s candidate filter becomes exactly
+  `classify_platform(url) == "youtube"`) runs as its own
+  `scheduler.template.json` entry, with its own
   cap and, inside `fetch_url_content`'s youtube branch, its own
   backoff/retry unit around the `yt-dlp` call for an `HTTP 429`. A stuck or
   retrying YouTube fetch can now only starve its own job's slots, never
@@ -400,12 +414,13 @@ needs the raw transcript, which would already be gone.
 code change beyond "add a branch to `classify_platform`/`fetch_url_content`"
 — `process_one_url`'s `Store` arm gains a platform check: youtube skips the
 `extract_insight` call and calls `ruflo_memory_store(&key, &content.text,
-PROCESS_URL_NAMESPACE, &tags)` directly, where `tags` becomes
-`[platform, "transcript"]` (no LLM-derived `topic` — there is no
-`insight.topic` when `extract_insight` is skipped). `caption_source:
-manual|auto` is carried as an additional tag alongside `"transcript"`, not
-a separate metadata channel. Every other tier's summarization behavior is
-unchanged. **This also resolves the token-cost second-order effect below**:
+PROCESS_URL_NAMESPACE, &tags)` directly, where `tags` becomes exactly
+`[platform, "transcript", caption_source]` — a fixed 3-element array, with
+`caption_source` literally `"manual"` or `"auto"` (no LLM-derived `topic` —
+there is no `insight.topic` when `extract_insight` is skipped; `"transcript"`
+takes its place as the fixed content-type marker). Every other tier's
+summarization behavior is unchanged. **This also resolves the token-cost
+second-order effect below**:
 because the youtube branch never calls `extract_insight`, Phase 1 incurs no
 per-video LLM summarization cost — the token-cost risk the idea doc flags
 (~38K tokens/video) stays genuinely Phase 2's problem (concepts/entities
@@ -420,6 +435,37 @@ scheduler cycle would re-fetch every YouTube URL forever, invisible to
 `brana recall`'s knowledge-namespace query. That architecture is Phase 2,
 itself gated on `t-2937` (OKF adoption, a separate brana-wide decision this
 ADR does not make).
+
+**Known limitation, documented not silent: semantic search on a stored
+transcript only reaches its opening content.** `knowledge-vector-sync`
+(t-2620, `system/scheduler/scheduler.template.json:266-273`, runs 20 min
+after every `drain-links` pass) re-embeds every value written to the
+`knowledge` namespace via `RufloEmbedder::embed`
+(`brana-core/src/vector.rs`) — `ruflo`'s `all-MiniLM-L6-v2`, a 384-dim
+sentence model with a ~256-token max input sequence. `vector.rs` has no
+chunking anywhere; `truncate_chars` there is only a 300-char *display*
+snippet, not an embedding-input bound. Every existing tier's stored value
+is an `extract_insight` summary — always well inside that window, so this
+never mattered before. This amendment's own decision above (store the full
+transcript, not a summary) is the first write positioned to exceed it: a
+152,208-character transcript gets silently truncated by the embedder to
+roughly its first ~1,000–1,300 characters before it's vectorized, so
+semantic (`brana recall`) search on a long video's stored entry only
+matches its opening captions — the rest of the transcript is real,
+stored, and reachable by exact-key lookup (`process_one_url`'s idempotency
+check) and by Phase 2's raw-transcript mining, but not by semantic search.
+`brana recall`'s knowledge-namespace side has no FTS fallback for this gap
+(ADR-058: FTS5 covers `~/.claude/memory/*.md` only, not the ruflo
+`knowledge` namespace).
+
+Accepted as a known Phase 1 limitation, not fixed here: chunked or
+multi-vector embedding is real feature work inside `vector.rs` /
+`knowledge-vector-sync` — a shared consumer of four other platforms'
+entries too, not a youtube-specific concern, and out of scope for an
+ADR-only, single-tier task. Tracked as `t-2970` (chunked/multi-vector
+embedding for long-content knowledge entries), not gating Phase 1's ship:
+until it lands, a long YouTube video is fully stored and exact-key/Phase-2
+reachable, just not fully semantic-searchable end to end.
 
 **Consequences.**
 
@@ -488,12 +534,15 @@ ADR does not make).
 - 2026-08-01: LinkedIn tiers inverted — public JSON-LD/og extract primary
   (0.8s, 14/15 usable), authenticated scrape demoted to below-threshold
   fallback; `/safety/go/` unwrap added (t-2589). See second §Amendment.
-- 2026-08-17: Fourth tier added — YouTube via `yt-dlp` subprocess, single
-  `en` caption, removed from the shared `drain-links` batch into its own
+- 2026-08-17: Fourth tier added — YouTube via `yt-dlp` subprocess (both
+  `--write-sub`/`--write-auto-sub`, `--` argv-injection guard), single `en`
+  caption, removed from the shared `drain-links` batch into its own
   scheduler job, `Ok(None)` no-captions contract, flat storage key with the
   youtube branch bypassing `extract_insight`'s LLM summarization to store
-  the raw transcript directly (t-2945, corrected by `/brana:challenge`
-  against `docs/ideas/youtube-knowledge-extraction.md`; storage design
-  itself corrected a second time by the build-gate Challenger review, which
-  traced the original "unchanged" storage claim against `process_one_url`
-  and found it false). See §Amendment.
+  the raw transcript directly, and the resulting `knowledge-vector-sync`
+  semantic-search limitation documented with a tracked fast-follow
+  (`t-2970`) rather than silently accepted (t-2945; corrected across two
+  Challenger gate iterations — storage-claim CRITICAL in iteration 1,
+  vector-sync/caption-command WARNINGs in iteration 2 — plus an earlier
+  `/brana:challenge` pass against
+  `docs/ideas/youtube-knowledge-extraction.md`). See §Amendment.
