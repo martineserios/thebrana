@@ -1682,17 +1682,46 @@ pub fn is_youtube_rate_limited(stderr: &str) -> bool {
     todo!("t-2956: implement")
 }
 
+/// Maximum retry attempts for a rate-limited `yt-dlp` call before giving up.
+/// Bounded deliberately — this repo's other rate-limit retry precedent,
+/// `gh_create_issue` (`brana-cli/src/sync.rs:413-419`), has NO cap at all
+/// (unbounded recursion on every 429), which is a real defect class, not a
+/// hypothetical one (Challenger finding, t-2955 iteration 1).
+const YOUTUBE_BACKOFF_MAX_RETRIES: u32 = 5;
+
+/// Backoff delay before retry attempt `attempt` (0-indexed) of a
+/// rate-limited `yt-dlp` call. `None` once the retry budget
+/// ([`YOUTUBE_BACKOFF_MAX_RETRIES`]) is exhausted — [`run_with_youtube_backoff`]
+/// gives up rather than retrying forever.
+///
+/// Pure and deterministic — no sleep, no I/O — so pacing itself is
+/// fixture-testable without a real (and, under an unbounded or
+/// zero-abstraction design, potentially minutes-long) wait. This is the
+/// seam the feature spec's own Tests section asks for ("Backoff/retry
+/// unit — simulated HTTP 429, verifies pacing without a live network
+/// call") that the first draft of this function omitted.
+///
+/// Exponential, capped at 5 attempts: 1s, 2s, 4s, 8s, 16s — generous
+/// against a 429 that clears within seconds in practice (live-measured
+/// 2026-08-17), while keeping a fully-exhausted retry budget's total wait
+/// well under a minute rather than open-ended.
+pub fn backoff_delay(attempt: u32) -> Option<std::time::Duration> {
+    if attempt >= YOUTUBE_BACKOFF_MAX_RETRIES {
+        return None;
+    }
+    Some(std::time::Duration::from_secs(1u64 << attempt))
+}
+
 /// Run `attempt` (given its 0-indexed attempt number) until it succeeds or
-/// the retry budget is exhausted, retrying only when the error looks
-/// rate-limited per [`is_youtube_rate_limited`]. A non-rate-limited failure
-/// returns immediately on the first attempt — never masked behind a retry
-/// loop. Bounded: a persistently rate-limited call must eventually give up,
-/// not retry forever.
+/// [`backoff_delay`]'s retry budget is exhausted, retrying only when the
+/// error looks rate-limited per [`is_youtube_rate_limited`], sleeping
+/// [`backoff_delay`] between retries. A non-rate-limited failure returns
+/// immediately on the first attempt — never masked behind a retry loop.
 pub fn run_with_youtube_backoff<T>(
     attempt: impl FnMut(u32) -> Result<T, String>,
 ) -> Result<T, String> {
     let _ = attempt;
-    todo!("t-2956: implement — bounded backoff/retry")
+    todo!("t-2956: implement — call backoff_delay between retries")
 }
 
 /// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
@@ -2585,6 +2614,42 @@ jumps over the lazy dog
         });
         assert!(result.is_err(), "must eventually give up, not retry forever");
         assert!(calls <= 10, "retry count must be bounded, not unbounded");
+    }
+
+    // Pacing itself, fixture-tested without sleeping (Challenger finding,
+    // t-2955 iteration 1: the spec's Tests section requires verifying
+    // pacing, not just call count — these are fast and deterministic
+    // because backoff_delay is pure).
+
+    #[test]
+    fn test_backoff_delay_grows_monotonically() {
+        let d0 = backoff_delay(0).expect("attempt 0 is within budget");
+        let d1 = backoff_delay(1).expect("attempt 1 is within budget");
+        let d2 = backoff_delay(2).expect("attempt 2 is within budget");
+        assert!(d0 < d1, "delay must grow between retries, not stay flat");
+        assert!(d1 < d2, "delay must grow between retries, not stay flat");
+    }
+
+    #[test]
+    fn test_backoff_delay_none_once_retry_budget_exhausted() {
+        assert_eq!(
+            backoff_delay(YOUTUBE_BACKOFF_MAX_RETRIES),
+            None,
+            "must give up at the retry budget, not retry forever"
+        );
+    }
+
+    #[test]
+    fn test_backoff_delay_bounded_total_wait() {
+        // The Challenger's concrete failure mode: a fully-exhausted retry
+        // budget must not silently accumulate to a minutes-long stall.
+        let total: std::time::Duration = (0..YOUTUBE_BACKOFF_MAX_RETRIES)
+            .filter_map(backoff_delay)
+            .sum();
+        assert!(
+            total < std::time::Duration::from_secs(60),
+            "total retry wait across the whole budget must stay well under a minute, got {total:?}"
+        );
     }
 
     // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
