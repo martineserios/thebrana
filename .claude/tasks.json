@@ -77130,7 +77130,7 @@
       "completed": null,
       "context": null,
       "created": "2026-08-17",
-      "description": "classify_platform() gains a youtube case; new fetch path shells out to yt-dlp for subtitles/auto-captions; VTT cue-dedup into plain text; store immutable transcript under raw/ (generated field records manual|auto provenance) plus one sources/ doc per video. No cross-video synthesis yet. Ships through the existing drain-links scheduler job.",
+      "description": "Corrected 2026-08-18 to match ADR-070's amendment and t-2946's feature spec (the original description below describing raw/+sources/ storage was superseded by /brana:challenge findings — see ADR-070 §Amendment).\n\nclassify_platform() gains a youtube case; new fetch_youtube_content() shells out to yt-dlp for a single-language (en) caption (both --write-sub and --write-auto-sub, -- argv-injection guard, --socket-timeout 30, ~60s outer kill-timeout); VTT cue-dedup into plain text; no-captions (yt-dlp exit 0, zero subtitle files) returns Ok(None), never Completed. Storage: process_one_url's Store arm gains a platform branch that bypasses extract_insight's LLM-summarization for youtube and stores the raw transcript directly under the existing flat knowledge:url:<slug> key (tags: [platform, \"transcript\", caption_source]) -- NOT the raw/+sources/ directory-bundle shape (that's Phase 2, gated on t-2937). Batch isolation: YouTube excluded from the shared drain-links FIFO batch, runs as its own scheduler job with its own cap and backoff/retry. Ships through the drain-links mechanism, no new capture path.\n\nFull design: docs/architecture/features/youtube-knowledge-extraction.md (t-2946). Suggested DECOMPOSE breakdown (6 tasks, each S-effort, independently testable) is in that spec's §Follow-up implementation tasks.",
       "effort": null,
       "execution": "code",
       "github_issue": null,
@@ -77142,7 +77142,7 @@
       "priority": null,
       "started": null,
       "status": "pending",
-      "subject": "Phase 1 — single video/shorts: transcript extraction into raw/ + sources/",
+      "subject": "Phase 1 — single video/shorts: transcript extraction (flat storage)",
       "tags": [],
       "type": "milestone",
       "work_type": null
@@ -77236,8 +77236,8 @@
       "blocked_by": [
         "t-2945"
       ],
-      "branch": null,
-      "completed": null,
+      "branch": "knowledge-pipeline/design/t-2946-feature-spec-youtube",
+      "completed": "2026-08-18",
       "context": null,
       "created": "2026-08-17",
       "description": "docs/architecture/features/youtube-knowledge-extraction.md -- required before implementation begins (M-effort spec-gate). Covers classify_platform() extension, yt-dlp subprocess contract (single-language command), no-captions Ok(None) contract, backoff/retry + per-platform-cap design, flat knowledge:url:<slug> storage for Phase 1 (same mechanism every other tier uses). Sketches Phase 2 bundle/concepts/entities shape for continuity, explicitly marked as gated on t-2937.",
@@ -77246,16 +77246,18 @@
       "github_issue": null,
       "id": "t-2946",
       "kind": null,
-      "notes": null,
+      "notes": "Challenger: PROCEED WITH CHANGES (2026-08-18), 0 CRITICAL, 3 WARNING (all fixed: classify_platform sibling call sites documented, t-2942 subject/description corrected, ADR-070 scheduler-doc note folded into Follow-up task 5). All ADR-070 corrections verified to have survived translation into this spec intact -- first clean pass in the 3-review lineage on this doc chain.",
       "order": 0,
       "parent": "t-2941",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-18",
+      "status": "completed",
       "subject": "Feature spec: youtube knowledge extraction pipeline",
       "tags": [],
       "type": "task",
-      "work_type": "design"
+      "work_type": "design",
+      "strategy": "feature",
+      "build_step": null
     },
     {
       "ac_state": "none",
