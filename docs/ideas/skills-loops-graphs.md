@@ -113,6 +113,59 @@ Inference: Pocock's implicit answer to "atomic skills composed via graphs" is *k
 
 **Net verdict recommendation:** leave t-2278 as planned; adopt no new atom schema; atom contract = Pocock two-tier via ADR-084/t-2832 + the ≥2-callers-or-headless floor; dual-mode gap resolves at the runner layer. Follow-ups (all small): t-2834 evidence beat → `tdd`-into-build second pilot → epic-drain fresh-context note → phase-boundary tree in context-budget.md → unblock t-2278. Load-bearing enough for a **short ADR** recording Non-Actions (9-station rewrite, typed atom schema, dual-mode abstraction).
 
+## Studio session 2026-08-18 — decision, collision, evidence, reconciled verdict (thebrana-50 synthesis)
+
+> Second session on t-2490, opened by the operator to merge this doc with session 64be2e25 (ADR-084 Pocock vendoring). Sources: this doc (f7c57a08); four reader digests over 11 prior docs (skills-as-loops, loop-first-redesign, loops-library spec, build-loop-redesign spec, agent-definition-gaps, runner-capability-isolation, loop-task-multiagent, goal-integration-three-primitive, dynamic-skill-routing, agent-interaction-architecture, wave-pipeline); direct exchange with both peer sessions; a duplicated-logic evidence test. Nothing above this heading was rewritten.
+
+### Framing the operator brought
+
+"My loops drain the backlog and the loop steps invoke skills — Pocock's skills invoke loops and graphs. Inverse." Resolution: **duals, not opposites — recursive.** brana already has both: `epic-drain` → `/brana:build` (loop ⊃ skill) and `/brana:challenge --deep` → `verify-findings.js` (skill ⊃ graph). Pocock's `to-tickets` emits a DAG that his Ralph loop walks = `/brana:backlog plan` + epic-drain rebuilt from the other end. So the atom is neither skill nor loop: it is the **station**, and skills/loops/graphs are three *arrangements* of stations. Pocock's contribution is the reading of *skill = playbook a station loads* (context), not procedure.
+
+### Operator decision (2026-08-18)
+
+**Human mode (`inside | valve | none`) is set by the CALLER, never the station. A station may only SUGGEST a default per named ask; the caller's grants policy decides.** Bounds attached by the reader findings and peer review:
+- grants are **default-deny** (loop-first challenger, inbox-secrets finding);
+- a suggested default is a **closed enum fixed by the station author**, never text flowing from task fields (runner-capability-isolation: lethal-trifecta leg 2); the vendored/upstream skill's own "if AFK, proceed" prose is *evidence* for the default, not the enum (thebrana-84);
+- **presence interlock** (ADR-061 Inv.1): a headless caller cannot honor a default that crosses a gate; irreversible ops (approve / merge / ship) have no default — reversibility routes judgment (wave-pipeline);
+- ambiguous asks carry no default → studio agenda (wave-pipeline: "when unsure, agenda").
+- Pocock's practice matches this *undeclared*: `implement`/`tdd` run supervised in-session and headless under Ralph with zero skill change; `diagnosing-bugs` Phase 3 has a station-suggested non-gating default ("show ranked list… don't block, proceed if AFK"); wizard `confirm` before irreversible actions never proceeds (thebrana-84). `disable-model-invocation` is the *who may start it* axis — orthogonal to who owns human mode *during* execution; keep separate (t-2830 §3).
+
+### The station-manifest sketch — drafted, then deferred (Non-Action evidence)
+
+Sketched in-session for `build-loop`: `input:/output:` JSON schema, `context:` (files/rules/recall), `skills:` as playbooks, `tools:` allow/never, `judge:`, `model:`, `asks:` {question, suggested_default, room}, with an `ask()` that compiles per caller mode (inside → `AskUserQuestion`; valve → return `needs_judgment` + escalation; none → default only if granted). Kept here as evidence for Non-Actions #2/#3, not as pending design, because the readers showed:
+- **Not a fifth primitive.** wave-pipeline (ADR-079) closes the vocabulary at queue/pump/valve/gauge — a station is the *body of a pump*; `asks:` are valves; `judge:` splits into gauge (readout) + valve (decision) by reversibility. Coordinate already named: **skeleton-step × band**.
+- **Fields already have owners.** `skills:/tools:/model:/isolation:/maxTurns:/memory:/permissionMode:` = native CC agent frontmatter (agent-definition-gaps; native `skills:` is *unconditional preload*, the opposite of "may pick up"). `stop_condition:/verifier:/queue:` = skills-as-loops L169 (the sketch dropped two of the three). `model: {preflight, act, judge, records}` = loops-library (slot claimed, empty; `judge` must reference `resolve_judge_rung`, ADR-082). Typed I/O = **packet** (skills-as-loops). Two rooms incl. the routing default = wave-pipeline. `judge:` policy = **t-2894** (live) — a policy that arms on hard signals, never a name, never same-model.
+- **Missing organs** the sketch had no slot for: ASSIMILATE (memory write-on-exit), RESTART (`{active|waiting|empty}`), **dead-letter output** (wave-pipeline law 2: "queueless rejects rot — the 160-day-stale root cause"). These are loops-library gaps (t-2826 out-of-scope) — cross-referenced, not absorbed here (thebrana-1b).
+- **`tools: never` is a tripwire, not a boundary** (t-2173: sandbox = bwrap; denylists bypassable; advisory in CC-native).
+- **Chains are the anti-pattern** (loop-task-multiagent: sequential handoffs 39–70% worse; only orchestrated fan-out + synthesis); `context:` must be able to express *deliberate starvation* (blind test-author from AC alone), not just loading.
+- **Three docs independently forbid the big-bang schema**: skills-as-loops L55 ("earned by evidence… single loops one at a time → then compose"), goal-integration Stage 4 ("premature abstraction — generalized contract designed before evidence"), wave-pipeline ("loop first, redesign after — never big-bang, the t-1994 lesson").
+
+### Evidence — the §Open L118 question is answered: the dual-mode pain is REAL today
+
+Duplicated-logic test over the three pairs thebrana-1b scoped. Verdict: **drifted duplication in all three** — the copies already contradict each other on load-bearing rules.
+
+| Pair | Duplicated | Diverged / contradicted | One-sided |
+|---|---|---|---|
+| **A** gates | `verify-gates.md:101-102` ↔ `system/agents/build-evaluator.md:55-67` (MET/PARTIAL/MISSED restated); `verify-gates.md:120-154` ↔ `_shared/challenger-gate.md:187-229` (repair loop near-verbatim) | `system/agents/CALIBRATION.md:25-28` "SPLIT… never counted as FALSE_POSITIVE" **vs** `verify-findings.js:27-28,110` "ties drop to FALSE_POSITIVE" (t-2887 already ruled splits are their own signal class → the JS is wrong); `verify-findings.js:111` emits `UNVERIFIED` absent from its own enum `:66`; voter default `:23` "2" vs `:29/:54` "3" | prose-only: `challenger.md:104-115` discipline check; headless-only: all-verifiers-failed degradation `verify-findings.js:108-127` |
+| **B** hive-mind | `_shared/adversarial-hive-mind.md:9,30-32` ↔ `hive-mind.js:4-7,100` (3 lensed workers, skeptic framing) | lens sets share only "systems" (`md:11-15` vs `js:51-57`); ≥2-worker corroboration rule prose-only (`md:20-28`); md routes through verify-findings (`md:35-39`), js forbids it (`js:9-13`) | prose-only inline fallback; headless-only synthesize stage `js:106-126` |
+| **C** TDD | `build-loop.md:102,133,139` ↔ `_shared/delegation-tdd-checklist.md:11-14` | delegated agents get a **materially weaker** contract: no red-commit/`tests_required` (`build-loop.md:101-112`), no TEST→IMPLEMENT hard gate (`:113-131`) | **no headless TDD prompt exists** in any workflow or loop — runners inherit it only by invoking the whole skill |
+
+Fix direction the evidence points to: **not a typed schema** — *shared organs extracted once* (wave-pipeline's own refactor direction) as **files both paths Read**. `agent()` nodes can Read; only the Workflow JS itself cannot import (`verify-findings.js:82`). Pocock's "skill = context pack" lands as the minimum atom: an **organ file**, loaded by the prose skill and by the headless prompt alike.
+
+### Reconciled verdict (both sessions, both peers)
+
+- **t-2278 stays as planned.** No typed atom schema; the manifest sketch is Non-Action evidence.
+- **Atom = organ file + station-admission checklist.** Checklist (queue · stop_condition · packet in/out · dead-letter · judge policy · rooms · assimilate · restart · denied verbs) is applied **only to bindings that become stations** — first at t-2834 — never as a gate on all ~40 skills (thebrana-1b: 8 questions × 40 skills is the cost-per-hop failure in a new dress). Per-ask `suggested_default + room` table only if t-2834's adapter shows named asks repeating across ≥2 bindings — the 2-3-bindings rule applied to our own manifest.
+- **`build` yields 1 extraction + 1 wiring**, not "~2 stations": TDD loop (extraction, headless-viable); verify-gates fan-out (wiring — the block already exists as `verify-findings.js` / `_shared/adversarial-hive-mind.md`; the work is making build/close/challenge call *one* copy). State it that way or the ADR overclaims (thebrana-1b).
+- **t-2834 = evidence beat, not started** (unparked 2026-08-17). ADR-084 §3 already specifies what the wrapper owns — inputs mapped (tracker→tasks.json, ticket→t-NNN, triage→status+ac_state), redirect table for cross-skill slash-refs, output homes, and denied verbs *not yet enumerated* (from his skills: never `gh issue create`, never write `.scratch/`, never modify the parent issue, never bump upstream — valve-only). Read the atom contract off it. Related gap surfaced: his frontier excludes blocked tickets; brana `wave_pull_decision` ignores `blocked_by` (thebrana-84).
+- **Independent-agents goal** (operator: "run independent agents with just the right context, skills, tools") is real and stays gated: supervised `claude -p` runner today (ADR-060); `human: none` waits on t-2173 sandbox + ADR-062.
+- **Concrete follow-ups the evidence demands** (file as tasks; none needs t-2490's ADR to land first): (1) resolve tie/SPLIT toward `CALIBRATION.md` in `verify-findings.js`; (2) `UNVERIFIED` into the enum + one voter default; (3) single-source the challenger/evaluator rubric between `verify-gates.md`, `challenger-gate.md`, `build-evaluator.md`; (4) reconcile hive-mind lens set + corroboration rule, one direction, and decide the verify-findings routing; (5) `delegation-tdd-checklist.md` inherits the red-commit gate or records why not.
+- ADR-084's two challenger findings still open (tie-break rule; `skills-lock.json` dir hash + pinnedRef, t-2834 AC to cover `agents/` + `scripts/`) — thebrana-84 landing them on the t-2837 branch.
+
+### Doc hygiene the operator raised (2026-08-18)
+
+Too many overlapping idea docs on this one machine (loop-first-redesign, wave-pipeline, loops-library, skills-as-loops, goal-integration, loop-task-multiagent, this doc…) — same concepts owned in 3–4 places, two core docs never cite each other. Requested: **one index doc with clearly referenced component docs**, one owner per concept, superseded docs pointing at the index; and a **rename** — "wave pipeline" no longer names the whole (waves are one mechanism inside it). Tracked as a separate docs task, not folded into t-2490's ADR.
+
 ## Open (not yet converged — operator still debating, 2026-08-18)
 
 - Is the dual-mode (supervised + headless) gap causing pain *today*, or theoretical? No duplicated-logic evidence gathered yet.
