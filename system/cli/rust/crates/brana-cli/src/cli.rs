@@ -273,6 +273,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: ReceiptCmd,
     },
+    /// Active-effort time tracking, per-worktree serialized brackets (ADR-083)
+    Time {
+        #[command(subcommand)]
+        cmd: TimeCmd,
+    },
     /// Hybrid recall — FTS5 + ruflo parallel search, merged via RRF (ADR-058)
     Recall {
         /// Query string
@@ -1657,5 +1662,20 @@ pub enum ReceiptCmd {
         /// Emit the verdict as JSON
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum TimeCmd {
+    /// Open a bracket for task_id — refuses if one is already open in this worktree
+    Start {
+        /// Task ID (e.g. t-2921)
+        task_id: String,
+    },
+    /// Close the open bracket for task_id: read the transcript, sum turn-deltas
+    /// (15-min idle cap), append a Close line, remove the worktree's open-bracket lock
+    Close {
+        /// Task ID (e.g. t-2921)
+        task_id: String,
     },
 }
