@@ -616,6 +616,9 @@ pub fn extract_urls_from_text(text: &str) -> Vec<String> {
 /// Classify a URL's platform.
 ///
 /// Returns one of: `"linkedin"`, `"github"`, `"substack"`, `"arxiv"`, `"other"`.
+/// A `"youtube"` case is TDD-red as of t-2947 (test:
+/// `test_classify_platform_youtube` below) — implementation lands in the
+/// follow-up task per docs/architecture/features/youtube-knowledge-extraction.md §1.
 pub fn classify_platform(url: &str) -> &'static str {
     if url.contains("linkedin.com") {
         "linkedin"
@@ -1601,6 +1604,69 @@ fn find_matching_post(feed_text: &str, title_signal: &str) -> Option<String> {
         .map(|(chunk, _)| chunk.trim().to_string())
 }
 
+// ── YouTube caption fetch (ADR-070 §Amendment) ──────────────────────────
+// Tests only as of t-2947 (TDD-red, pre-impl); the bodies below land in the
+// follow-up implementation task per
+// docs/architecture/features/youtube-knowledge-extraction.md §2, §Follow-up.
+
+/// Which yt-dlp caption track a subtitle file came from — human-authored
+/// (`"manual"`, `--write-sub`) or auto-generated (`"auto"`,
+/// `--write-auto-sub`). Feeds the `caption_source` tag on the stored entry.
+pub type YoutubeCaptionSource = &'static str;
+
+/// Resolve yt-dlp's caption output for one video into deduped plain text.
+///
+/// Pure — no I/O, no subprocess. `manual_vtt`/`auto_vtt` are the raw file
+/// contents yt-dlp would have written for `--write-sub`/`--write-auto-sub`
+/// respectively (`None` when that file wasn't written). This is the
+/// fixture-testable boundary for [`fetch_youtube_content`]'s subprocess
+/// wrapper (feature spec §2 "Tests"): tests exercise it directly against
+/// fixture VTT text instead of spawning `yt-dlp` or hitting the network —
+/// same discipline as `find_matching_post` relative to `mcp_call_tool`
+/// above.
+///
+/// - Both `None` — yt-dlp exited 0 with zero subtitle files written. This
+///   is the no-captions contract (spec §2): `Ok(None)`, never an error,
+///   never `Completed` downstream.
+/// - `manual_vtt` present — the human-authored track wins.
+/// - Otherwise `auto_vtt` — auto-generated fallback.
+pub fn resolve_youtube_captions(
+    manual_vtt: Option<&str>,
+    auto_vtt: Option<&str>,
+) -> Result<Option<(String, YoutubeCaptionSource)>> {
+    let _ = (manual_vtt, auto_vtt);
+    todo!("t-2950: implement — manual/auto precedence over dedupe_vtt_cues")
+}
+
+/// Remove `yt-dlp` auto-caption's word-level cue duplication, producing
+/// plain text. Auto-generated VTT re-emits each line multiple times with
+/// incrementally revealed words (a live-caption rendering artifact) — this
+/// collapses each growing run down to its final, longest cue. Pure, no I/O;
+/// never store raw VTT (feature spec §2).
+pub fn dedupe_vtt_cues(vtt: &str) -> String {
+    let _ = vtt;
+    todo!("t-2950: implement")
+}
+
+/// Fetch a YouTube video's captions via `yt-dlp` (ADR-070 §Amendment,
+/// docs/architecture/features/youtube-knowledge-extraction.md §2). Shells
+/// out once, never a Rust YouTube client library — same shape as the
+/// LinkedIn MCP client and `call_gemini_json` subprocess calls in this file.
+///
+/// `Ok(None)` — distinct from `Err` — when `yt-dlp` exits 0 with zero
+/// subtitle files written (no captions available for this video). Never
+/// acquires [`lock_pipeline`] (see [`fetch_url_content`]'s note — this
+/// function is subject to the same lock-discipline tripwire).
+///
+/// The subprocess spawn itself stays untested here (verified live instead,
+/// same discipline as `mcp_call_tool` above) — the fixture-testable logic
+/// (dedup, manual/auto precedence, no-captions contract) lives in
+/// [`resolve_youtube_captions`], which this delegates to.
+pub fn fetch_youtube_content(url: &str) -> Result<Option<String>> {
+    let _ = url;
+    todo!("t-2950: implement — yt-dlp subprocess wrapper")
+}
+
 /// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
 /// Uses `ureq` (already a workspace dependency, ADR-024 convention) — no
 /// new HTTP client dependency.
@@ -2364,6 +2430,74 @@ mod tests {
         let content = result.unwrap().expect("public URLs never produce Ok(None)");
         assert_eq!(content.text, "hi");
         assert_eq!(content.platform, "other");
+    }
+
+    // ── YouTube caption fetch (t-2947, TDD-red pre-impl) ────────────────
+    // dedupe_vtt_cues / resolve_youtube_captions are pure — no subprocess,
+    // no network — so they're exercised directly against fixture VTT text,
+    // per feature spec §2 "Tests". fetch_youtube_content's actual yt-dlp
+    // spawn stays untested here, same discipline as mcp_call_tool above.
+
+    /// A fixture auto-caption VTT with the real word-level cue-duplication
+    /// artifact: each cue repeats the prior cue's words plus one more,
+    /// reset once for a second run. Modeled on the shape observed
+    /// live 2026-08-17 against https://www.youtube.com/watch?v=jNQXAC9IVRw.
+    const FIXTURE_VTT_WORD_LEVEL_DUPLICATION: &str = "\
+WEBVTT
+
+00:00:00.000 --> 00:00:02.000
+the quick
+
+00:00:01.000 --> 00:00:03.000
+the quick brown
+
+00:00:02.000 --> 00:00:04.000
+the quick brown fox
+
+00:00:04.000 --> 00:00:06.000
+jumps over
+
+00:00:05.000 --> 00:00:07.000
+jumps over the lazy dog
+";
+
+    #[test]
+    fn test_dedupe_vtt_cues_collapses_word_level_duplication() {
+        assert_eq!(
+            dedupe_vtt_cues(FIXTURE_VTT_WORD_LEVEL_DUPLICATION),
+            "the quick brown fox jumps over the lazy dog"
+        );
+    }
+
+    #[test]
+    fn test_dedupe_vtt_cues_empty_input_is_empty() {
+        assert_eq!(dedupe_vtt_cues("WEBVTT\n"), "");
+    }
+
+    #[test]
+    fn test_resolve_youtube_captions_prefers_manual_over_auto() {
+        let manual = "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nmanual track text\n";
+        let auto = "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nauto track text\n";
+        let (text, source) = resolve_youtube_captions(Some(manual), Some(auto)).unwrap().unwrap();
+        assert_eq!(text, "manual track text");
+        assert_eq!(source, "manual");
+    }
+
+    #[test]
+    fn test_resolve_youtube_captions_falls_back_to_auto_when_no_manual_track() {
+        let auto = "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nauto track text\n";
+        let (text, source) = resolve_youtube_captions(None, Some(auto)).unwrap().unwrap();
+        assert_eq!(text, "auto track text");
+        assert_eq!(source, "auto");
+    }
+
+    // AC (t-2947): yt-dlp exit 0 with zero subtitle files written must
+    // produce Ok(None), not an error and not (downstream) Completed —
+    // reproduces the original t-1349 bug shape one layer deeper if
+    // unhandled. Asserted directly here, not just documented as a case.
+    #[test]
+    fn test_resolve_youtube_captions_no_captions_returns_ok_none() {
+        assert_eq!(resolve_youtube_captions(None, None).unwrap(), None);
     }
 
     // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
@@ -4069,6 +4203,16 @@ mod tests {
     #[test]
     fn test_classify_platform_other() {
         assert_eq!(classify_platform("https://example.com/article"), "other");
+    }
+
+    // TDD-red as of t-2947 (pre-impl): classify_platform has no youtube
+    // case yet, so this fails today. Implementation lands in the follow-up
+    // task per docs/architecture/features/youtube-knowledge-extraction.md §1.
+    #[test]
+    fn test_classify_platform_youtube() {
+        assert_eq!(classify_platform("https://www.youtube.com/watch?v=jNQXAC9IVRw"), "youtube");
+        assert_eq!(classify_platform("https://www.youtube.com/shorts/abc123"), "youtube");
+        assert_eq!(classify_platform("https://youtu.be/jNQXAC9IVRw"), "youtube");
     }
 
     // ── ingest_urls ───────────────────────────────────────────────────────
