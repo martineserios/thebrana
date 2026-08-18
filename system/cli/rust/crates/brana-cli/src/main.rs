@@ -252,8 +252,8 @@ fn main() {
             KnowledgeCmd::Ingest { sources, source, dry_run } => {
                 run_or_exit(commands::knowledge::cmd_ingest(sources, source, dry_run))
             }
-            KnowledgeCmd::DrainLinks { file, cap, dry_run } => {
-                run_or_exit(commands::knowledge::cmd_drain_links(file, cap, dry_run))
+            KnowledgeCmd::DrainLinks { file, cap, dry_run, platform } => {
+                run_or_exit(commands::knowledge::cmd_drain_links(file, cap, dry_run, platform.as_deref()))
             }
             KnowledgeCmd::ProcessUrl { url, file } => match (url, file) {
                 (_, Some(path)) => {
