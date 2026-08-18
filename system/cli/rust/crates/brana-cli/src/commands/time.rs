@@ -81,16 +81,32 @@ fn encode_project_path(root: &Path) -> String {
     root.to_string_lossy().replace('/', "-").replace('_', "-")
 }
 
+/// Legacy CC encoding (`/` only, underscores preserved) — `commands/handoff.rs`'s
+/// `encode_path_legacy` proved this fallback load-bearing for projects whose CC
+/// project directory predates the current encoding scheme; a project root containing
+/// `_` resolves to a different directory under each scheme, and this feature has no
+/// other way to discover which one a given install actually has on disk.
+fn encode_project_path_legacy(root: &Path) -> String {
+    root.to_string_lossy().replace('/', "-")
+}
+
 /// Best-effort: the newest-mtime `.jsonl` in this project's CC transcript directory.
+/// Tries the current encoding first, falling back to the legacy one if it yields no
+/// directory or no `.jsonl` files — same dual-try order as `handoff.rs::resolve_handoff_path`.
 /// A heuristic, not a guarantee (per spec Assumptions) — the only session actively
 /// writing its transcript at this instant is presumed to be the current one. Returns
-/// `None` on any resolution failure (no project root, no directory, no `.jsonl` files)
-/// — START does not require a resolvable transcript (Boundaries table).
+/// `None` on total resolution failure (no project root, no directory under either
+/// encoding, no `.jsonl` files) — START does not require a resolvable transcript
+/// (Boundaries table).
 fn resolve_newest_transcript() -> Option<PathBuf> {
     let root = brana_core::util::find_project_root()?;
-    let encoded = encode_project_path(&root);
-    let dir = brana_core::util::home().join(".claude/projects").join(encoded);
-    let entries = std::fs::read_dir(&dir).ok()?;
+    let base = brana_core::util::home().join(".claude/projects");
+    newest_jsonl_in(&base.join(encode_project_path(&root)))
+        .or_else(|| newest_jsonl_in(&base.join(encode_project_path_legacy(&root))))
+}
+
+fn newest_jsonl_in(dir: &Path) -> Option<PathBuf> {
+    let entries = std::fs::read_dir(dir).ok()?;
     let mut best: Option<(PathBuf, std::time::SystemTime)> = None;
     for entry in entries.flatten() {
         let path = entry.path();
