@@ -64,7 +64,10 @@ mkdir -p "$TMPDIR_SS" 2>/dev/null || true
 # from additionalContext. Ownership of $TMPDIR_SS's lifecycle belongs
 # solely to the last reader — the Phase 5 background job below, which
 # `rm -rf`s it as its own final statement — so no other subshell can ever
-# inherit a trap that touches it.
+# inherit a trap that touches it. Tradeoff: an external SIGTERM/SIGKILL that
+# hits this process before Phase 5 runs leaks $TMPDIR_SS (a few small files
+# under /tmp) — accepted, since the only pre-Phase-5 `exit` in this script
+# is the early return above, before $TMPDIR_SS is even created.
 
 # ── Source cf-env.sh ──────────────────────────────────────
 if [ -f "$SCRIPT_DIR/lib/cf-env.sh" ]; then
