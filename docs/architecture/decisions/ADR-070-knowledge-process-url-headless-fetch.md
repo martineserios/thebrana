@@ -289,6 +289,222 @@ cannot reach.
   architecturally distinct — the new one is heavier (MCP server startup) and
   should only be invoked for LinkedIn URLs, never as a general-purpose path.
 
+## Amendment (2026-08-17, t-2945): Tier 4 — YouTube (`yt-dlp` subprocess)
+
+**What changes:** `classify_platform()` gains a fourth branch, `"youtube"`
+(`youtube.com` / `youtu.be`, incl. `/shorts/`), and `fetch_url_content()`
+routes it to a new subprocess-based fetch — neither the Tier-1 `ureq` GET
+nor the Tier-2 LinkedIn MCP client, because YouTube's actual content
+(captions) is not present in the fetched HTML at all (`docs/ideas/youtube-knowledge-extraction.md`
+§Problem — the existing Tier-1 path stores the SPA shell, confirmed live on
+`t-1349`).
+
+**Why this doc exists.** `/brana:challenge` (2026-08-17, standard mode)
+found the original brainstorm's rate-limit mitigation didn't exist, its
+storage shape would have broken the pipeline's idempotency check, and its
+no-captions case reproduced `t-1349`'s own bug one layer deeper — 3 CRITICAL
+findings, logged to the decision log against
+`docs/ideas/youtube-knowledge-extraction.md`. This amendment formalizes the
+corrected design from that doc's Risks/Next-steps sections, not the
+original brainstorm.
+
+**(a) Fetch mechanism.** Shell out to `yt-dlp` (already installed,
+`/usr/bin/yt-dlp`), not a library — no Rust YouTube client exists or is
+warranted for one subprocess call:
+
+```
+yt-dlp --skip-download --write-sub --write-auto-sub --sub-langs "en" \
+  --sub-format vtt --socket-timeout 30 -- "<url>"
+```
+
+The `--` end-of-flags separator before the URL is required, not cosmetic: a
+`link`-tagged task's URL is attacker-influenced input (captured from
+Telegram), and `yt-dlp` has an `--exec <cmd>` flag — the same
+"decoded target is untrusted" lesson §Amendment (2026-08-01) already applied
+to LinkedIn's `/safety/go/` unwrap, applied here to argv instead of an HTTP
+target. Without `--`, a URL string starting with `-` is parsed as a flag.
+
+**Corrected: `--write-sub` added alongside `--write-auto-sub`.** The
+original draft of this section requested only auto-generated captions
+while separately promising `caption_source: manual|auto` metadata — a
+command that can never produce a manual result cannot honestly carry a
+`manual` tag. `yt-dlp` writes the human-authored track when one exists and
+falls back to the auto-generated track otherwise; both flags together get
+the better-quality manual track when available, never worse than the
+auto-only behavior. Distinguishing which track actually landed (manual vs.
+auto — `yt-dlp --dump-json`'s `requested_subtitles` vs.
+`automatic_captions` fields, not filename parsing) is an implementation
+detail for DECOMPOSE, not this ADR — but the command must request both for
+`caption_source` to ever be true.
+
+Single primary-language (`en`) caption only for Phase 1 — the multi-language
+`en.*,es.*` form validated in the brainstorm is what hit `HTTP 429` on its
+third request; it is explicitly not what ships. Wrap the subprocess with an
+outer kill-timeout of ~60s (generous against the 2–6s typical case measured
+live 2026-08-17, bounds the pathological hang `yt-dlp`'s default leaves
+open — no default `--socket-timeout` otherwise, `--retries` defaults to 10).
+Raw VTT has word-level cue duplication (auto-caption artifact); a dedupe
+pass runs before storage — never store raw VTT as the value.
+
+**(b) Batch isolation — YouTube is removed from the shared `drain-links`
+batch, not sub-capped within it.** `select_drain_batch()`
+(`brana-cli/src/commands/knowledge.rs:166`) is today a single
+platform-agnostic FIFO `.take(cap)` over every pending `link`-tagged task
+(the filter that will gain the platform split lives in its caller,
+`cmd_drain_links`, not in `select_drain_batch` itself — the function stays
+a bare `.take(cap)`) —
+adding per-platform sub-cap accounting to it is new state-tracking logic
+that Phase 3 (channel-crawl, "own scheduler cadence, separate rate-limit
+budget") would immediately need to replace with a fully separate job
+anyway. Decided in favor of the simpler, already-established pattern
+instead: `scheduler.template.json` already runs a dozen independent
+one-line `"command"` jobs (`drain-links --cap 10` is one of them, line
+~138) — YouTube gets its own line, not a code change to the shared
+selector:
+
+- `cmd_drain_links`'s candidate filter (currently `tag:"link",
+  status:"pending"`, feeding `select_drain_batch`'s unchanged `.take(cap)`)
+  excludes `classify_platform(url) == "youtube"` for the existing
+  `drain-links --cap N` job — LinkedIn/GitHub/Substack/arxiv/other are
+  unaffected, no change to their behavior or the tested `.take(cap)` logic.
+- A new `drain-links --platform youtube --cap N` invocation (same binary,
+  new flag: `cmd_drain_links`'s candidate filter becomes exactly
+  `classify_platform(url) == "youtube"`) runs as its own
+  `scheduler.template.json` entry, with its own
+  cap and, inside `fetch_url_content`'s youtube branch, its own
+  backoff/retry unit around the `yt-dlp` call for an `HTTP 429`. A stuck or
+  retrying YouTube fetch can now only starve its own job's slots, never
+  LinkedIn/GitHub/Substack's in the same run — the CRITICAL finding this
+  section exists to close.
+
+**(c) No-captions contract.** `yt-dlp` exiting 0 having written zero
+subtitle files is a distinct, expected outcome — not an error, not success.
+`fetch_url_content` returns `Ok(None)` for it, exactly like a LinkedIn
+"post not in feed" miss (§Tier-2 correction above) — `process_one_url`
+already treats `Ok(None)` as "leave pending, never `Completed`"
+(`should_complete_link` / `is_cancellable`), so no change is needed there,
+only in what the youtube branch returns. This is the same failure shape as
+the original `t-1349` bug (fetch "succeeds," content is absent, task marked
+`Completed` anyway) reproduced one layer deeper if left unhandled — an
+explicit fixture test (no-captions video, zero subtitle files written)
+covers it alongside the populated-fixture happy path.
+
+**Storage — flat key, unchanged; the write path is not, corrected.** An
+earlier draft of this amendment claimed the youtube branch's
+`FetchedContent { text, platform: "youtube" }` flows through `process_one_url`
+"unchanged," storing the real transcript. That is false against the actual
+code: `process_one_url` (`knowledge.rs:384-416`) never stores `content.text`
+for any tier — it calls `kp::extract_insight(&content.text, content.platform)`
+(`knowledge_pipeline.rs:1723`) first and stores `insight.summary`, the
+output of a three-tier LLM-summarization fallback (agy → `claude -p` →
+2000-char truncated raw, only on double-failure). `extraction_prompt`
+applies no truncation before that call — the full transcript is what's
+sent, today, to every existing tier.
+
+Summarizing a video transcript into a short blurb would reproduce the
+original bug one layer deeper: `t-1349` failed because the stored
+"knowledge" was shallow (an HTML shell), and a one-paragraph LLM summary of
+a 152,208-character/29,248-word transcript (the 2h26m video measured live
+2026-08-17) is only marginally less shallow. It would also strand Phase 2
+before it starts — concepts/entities/timestamp-anchored-citation mining
+needs the raw transcript, which would already be gone.
+
+**Decision: the youtube branch bypasses `extract_insight` and stores
+`content.text` (the cleaned, deduped transcript) directly.** This is a real
+code change beyond "add a branch to `classify_platform`/`fetch_url_content`"
+— `process_one_url`'s `Store` arm gains a platform check: youtube skips the
+`extract_insight` call and calls `ruflo_memory_store(&key, &content.text,
+PROCESS_URL_NAMESPACE, &tags)` directly, where `tags` becomes exactly
+`[platform, "transcript", caption_source]` — a fixed 3-element array, with
+`caption_source` literally `"manual"` or `"auto"` (no LLM-derived `topic` —
+there is no `insight.topic` when `extract_insight` is skipped; `"transcript"`
+takes its place as the fixed content-type marker). Every other tier's
+summarization behavior is unchanged. **This also resolves the token-cost
+second-order effect below**:
+because the youtube branch never calls `extract_insight`, Phase 1 incurs no
+per-video LLM summarization cost — the token-cost risk the idea doc flags
+(~38K tokens/video) stays genuinely Phase 2's problem (concepts/entities
+extraction reading the stored transcript), not a cost silently already
+paid in Phase 1.
+
+**No new directory-bundle storage shape ships here.** The brainstorm's
+`raw/`+`sources/`+`concepts/`+`entities/` design cannot be written through
+`ruflo_memory_store`'s flat-value call at all (a directory can't be a
+string value) — writing one would leave the idempotency key unset, so every
+scheduler cycle would re-fetch every YouTube URL forever, invisible to
+`brana recall`'s knowledge-namespace query. That architecture is Phase 2,
+itself gated on `t-2937` (OKF adoption, a separate brana-wide decision this
+ADR does not make).
+
+**Known limitation, documented not silent: semantic search on a stored
+transcript only reaches its opening content.** `knowledge-vector-sync`
+(t-2620, `system/scheduler/scheduler.template.json:266-273`, runs 20 min
+after every `drain-links` pass) re-embeds every value written to the
+`knowledge` namespace via `RufloEmbedder::embed`
+(`brana-core/src/vector.rs`) — `ruflo`'s `all-MiniLM-L6-v2`, a 384-dim
+sentence model with a ~256-token max input sequence. `vector.rs` has no
+chunking anywhere; `truncate_chars` there is only a 300-char *display*
+snippet, not an embedding-input bound. Every existing tier's stored value
+is an `extract_insight` summary — always well inside that window, so this
+never mattered before. This amendment's own decision above (store the full
+transcript, not a summary) is the first write positioned to exceed it: a
+152,208-character transcript gets silently truncated by the embedder to
+roughly its first ~1,000–1,300 characters before it's vectorized, so
+semantic (`brana recall`) search on a long video's stored entry only
+matches its opening captions — the rest of the transcript is real,
+stored, and reachable by exact-key lookup (`process_one_url`'s idempotency
+check) and by Phase 2's raw-transcript mining, but not by semantic search.
+`brana recall`'s knowledge-namespace side has no FTS fallback for this gap
+(ADR-058: FTS5 covers `~/.claude/memory/*.md` only, not the ruflo
+`knowledge` namespace).
+
+Accepted as a known Phase 1 limitation, not fixed here: chunked or
+multi-vector embedding is real feature work inside `vector.rs` /
+`knowledge-vector-sync` — a shared consumer of four other platforms'
+entries too, not a youtube-specific concern, and out of scope for an
+ADR-only, single-tier task. Tracked as `t-2970` (chunked/multi-vector
+embedding for long-content knowledge entries), not gating Phase 1's ship:
+until it lands, a long YouTube video is fully stored and exact-key/Phase-2
+reachable, just not fully semantic-searchable end to end.
+
+**Consequences.**
+
+- `classify_platform()`'s doc comment (`"linkedin"`, `"github"`,
+  `"substack"`, `"arxiv"`, `"other"`) gains `"youtube"` — the return type is
+  already `&'static str`, no signature change.
+- `fetch_url_content()` gains a fourth branch alongside its existing
+  `platform == "linkedin"` special case; the fallthrough `fetch_public_url`
+  path is now reached only by github/substack/arxiv/other, unchanged.
+- `select_drain_batch()`'s signature/logic is untouched; only its caller in
+  `cmd_drain_links` gains a platform filter, applied identically regardless
+  of which side of the split a given run is on.
+- `process_one_url`'s `Store` arm gains a platform branch (see Storage
+  above) — youtube skips `extract_insight`; every other tier's call site is
+  unchanged. This is the one piece of this amendment that touches existing
+  control flow shared with LinkedIn/GitHub/Substack/arxiv, not just adds a
+  new branch alongside them — call it out explicitly in the DECOMPOSE task
+  breakdown, not folded silently into "add classify_platform branch."
+- Two independent scheduler jobs now drain the same `link`-tagged backlog
+  tag by disjoint platform filters — an operational fact worth a one-line
+  note in `docs/architecture/hooks.md` or the scheduler doc, not a new
+  architectural mechanism. Note for whoever adds the new job entry: the
+  existing `link-research-extraction` job (`scheduler.template.json:136-144`,
+  the one `drain-links --cap 10` is defined on) runs against
+  `project: ~/enter_thebrana/personal`, not `thebrana` — the new
+  `--platform youtube` job entry needs the same `project` value, not
+  `thebrana`'s, or it will drain against the wrong backlog.
+- Lock discipline is unchanged: the youtube branch is reached through
+  `fetch_url_content`, which must stay lock-free per §Lock discipline above
+  — the `yt-dlp` subprocess call and its retry/backoff wrapper must not
+  acquire `lock_pipeline()`. Known pre-existing gap, not introduced by this
+  amendment but more load-bearing now (new subprocess call site):
+  `test_lock_discipline_source_tripwires` (`brana-cli/src/commands/knowledge.rs`)
+  scans only `knowledge.rs` via `include_str!` — it cannot see
+  `fetch_url_content` at all, which lives in the `brana-core` crate's
+  `knowledge_pipeline.rs`. Extending the tripwire (or adding a companion
+  test in `brana-core`) to cover that file is worth doing alongside this
+  work, not deferred indefinitely.
+
 ## Non-Actions
 
 - Does not implement t-1144 (pipeline tier1/2/3 wiring of `fetched_content`).
@@ -297,6 +513,16 @@ cannot reach.
 - Does not build a skill/slash-command orchestration path — rejected because
   the primary use case (nightly, unattended) has no interactive session to
   orchestrate from.
+- Does not implement Phase 2 (directory-bundle `raw/`/`sources/`/`concepts/`/`entities/`
+  storage, concepts/entities synthesis, timestamp-anchored citations) —
+  gated on Phase 1 proving out in practice AND `t-2937` resolving first.
+- Does not implement Phase 3 (channel-crawl via `yt-dlp --flat-playlist`).
+- Does not decide brana-wide OKF adoption (`t-2937`) — this amendment only
+  borrows OKF's frontmatter conventions where free, per
+  `docs/ideas/youtube-knowledge-extraction.md` §Scope.
+- Does not build the concepts/entities LLM extraction step — Phase 1 stores
+  the real transcript text; extraction cost/design is Phase 2's problem
+  (see that doc's Risks — Phase 2 token cost, `t-2958`/`t-2959`).
 
 ## Changelog
 
@@ -308,3 +534,15 @@ cannot reach.
 - 2026-08-01: LinkedIn tiers inverted — public JSON-LD/og extract primary
   (0.8s, 14/15 usable), authenticated scrape demoted to below-threshold
   fallback; `/safety/go/` unwrap added (t-2589). See second §Amendment.
+- 2026-08-17: Fourth tier added — YouTube via `yt-dlp` subprocess (both
+  `--write-sub`/`--write-auto-sub`, `--` argv-injection guard), single `en`
+  caption, removed from the shared `drain-links` batch into its own
+  scheduler job, `Ok(None)` no-captions contract, flat storage key with the
+  youtube branch bypassing `extract_insight`'s LLM summarization to store
+  the raw transcript directly, and the resulting `knowledge-vector-sync`
+  semantic-search limitation documented with a tracked fast-follow
+  (`t-2970`) rather than silently accepted (t-2945; corrected across two
+  Challenger gate iterations — storage-claim CRITICAL in iteration 1,
+  vector-sync/caption-command WARNINGs in iteration 2 — plus an earlier
+  `/brana:challenge` pass against
+  `docs/ideas/youtube-knowledge-extraction.md`). See §Amendment.
