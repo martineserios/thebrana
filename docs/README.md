@@ -175,6 +175,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-078](architecture/decisions/ADR-078-stale-task-park-via-tag.md) | Park stale tasks via the existing `parked` tag, not a new `status` value — reuses `classify()`'s already-tested synthetic state (t-2773) |
 | [ADR-079](architecture/decisions/ADR-079-backlog-drain-loop-handoff.md) | `ac_state` approval verb, wave-drain→loop handoff contract, and WIP enforcement moved to waves at pull time (amends ADR-065; unblocks the backlog-drain epic, t-2811) |
 | [ADR-083](architecture/decisions/ADR-083-time-tracking-mechanism.md) | Unified project time & cost tracking — active-effort bracket model on `brana/time/`, calendar cycle-time milestone fields, folds in t-648, incorporates the re-validated 15-min idle cap (t-2919/t-2920) |
+| [ADR-085](architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md) | Skills stay whole stations composed via loops (`system/loops/`, waves) and graphs (`Workflow`, `blocked_by`/`gate`) — no atom schema; two-tier (wrapper → model-invoked primitive) for new/adapted skills; ≥2-callers-or-headless extraction floor; dual-mode resolves at the runner layer; t-2278 left as planned (t-2490) |
 
 > Note: this table is missing several ADRs between 045-065 and ADR-077, and 080-082 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
