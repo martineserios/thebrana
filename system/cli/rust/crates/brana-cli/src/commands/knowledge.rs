@@ -167,6 +167,25 @@ fn select_drain_batch(ids: &[String], cap: usize) -> Vec<String> {
     ids.iter().take(cap).cloned().collect()
 }
 
+/// Whether a drain-links candidate URL belongs in this run's batch, given
+/// an optional `--platform` filter (feature spec §5, t-2955 tests /
+/// t-2956 impl). `platform: None` is the existing shared job — excludes
+/// youtube (it runs its own separate job, its own cap, its own
+/// backoff/retry) so a stuck youtube fetch can never starve
+/// LinkedIn/GitHub/Substack/arxiv slots in the same batch. `platform:
+/// Some("youtube")` is the new youtube-only job.
+///
+/// This is the split point — `select_drain_batch` itself stays a bare
+/// `.take(cap)`, unmodified; the platform split lives entirely in the
+/// candidate filter that runs before it.
+// Not yet wired into cmd_drain_links (t-2956) — only tests call it so far,
+// which `--lib`-only clippy runs can't see.
+#[allow(dead_code)]
+fn candidate_passes_platform_filter(url: &str, platform: Option<&str>) -> bool {
+    let _ = (url, platform);
+    todo!("t-2956: implement")
+}
+
 /// Whether a drained link's tracking task may be marked completed.
 ///
 /// Delegates to [`is_cancellable`] deliberately — "the content reached the
@@ -2335,6 +2354,33 @@ mod tests {
         let ids = vec!["t-1".to_string(), "t-2".to_string()];
         assert_eq!(select_drain_batch(&ids, 99).len(), 2);
         assert!(select_drain_batch(&[], 3).is_empty());
+    }
+
+    // ── drain-links platform filter (t-2955, TDD-red pre-impl) ──────────
+    // AC: the split lives in cmd_drain_links's candidate filter, NOT
+    // select_drain_batch (which stays a bare .take(cap), asserted above
+    // unchanged by these three new tests existing alongside it).
+
+    #[test]
+    fn test_candidate_filter_excludes_youtube_from_default_batch() {
+        assert!(!candidate_passes_platform_filter(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            None
+        ));
+    }
+
+    #[test]
+    fn test_candidate_filter_includes_non_youtube_in_default_batch() {
+        assert!(candidate_passes_platform_filter("https://github.com/foo/bar", None));
+    }
+
+    #[test]
+    fn test_candidate_filter_platform_youtube_selects_only_youtube() {
+        assert!(candidate_passes_platform_filter(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            Some("youtube")
+        ));
+        assert!(!candidate_passes_platform_filter("https://github.com/foo/bar", Some("youtube")));
     }
 
     #[test]

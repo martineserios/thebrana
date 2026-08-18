@@ -1667,6 +1667,34 @@ pub fn fetch_youtube_content(url: &str) -> Result<Option<String>> {
     todo!("t-2950: implement — yt-dlp subprocess wrapper")
 }
 
+// ── YouTube rate-limit backoff/retry (t-2955 tests, TDD-red pre-impl) ───
+// Tests only as of t-2955; bodies land in t-2956 per
+// docs/architecture/features/youtube-knowledge-extraction.md §2, §5.
+// Rate limiting is confirmed real (HTTP 429 observed live 2026-08-17 on a
+// single video, 2 languages back-to-back) — this is not a hypothetical case.
+
+/// Whether a `yt-dlp` subprocess's stderr indicates HTTP 429 rate limiting —
+/// the ONLY failure class [`run_with_youtube_backoff`] should mask behind a
+/// retry. Any other failure (malformed URL, network down, no captions) must
+/// surface immediately, never be silently retried.
+pub fn is_youtube_rate_limited(stderr: &str) -> bool {
+    let _ = stderr;
+    todo!("t-2956: implement")
+}
+
+/// Run `attempt` (given its 0-indexed attempt number) until it succeeds or
+/// the retry budget is exhausted, retrying only when the error looks
+/// rate-limited per [`is_youtube_rate_limited`]. A non-rate-limited failure
+/// returns immediately on the first attempt — never masked behind a retry
+/// loop. Bounded: a persistently rate-limited call must eventually give up,
+/// not retry forever.
+pub fn run_with_youtube_backoff<T>(
+    attempt: impl FnMut(u32) -> Result<T, String>,
+) -> Result<T, String> {
+    let _ = attempt;
+    todo!("t-2956: implement — bounded backoff/retry")
+}
+
 /// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
 /// Uses `ureq` (already a workspace dependency, ADR-024 convention) — no
 /// new HTTP client dependency.
@@ -2498,6 +2526,65 @@ jumps over the lazy dog
     #[test]
     fn test_resolve_youtube_captions_no_captions_returns_ok_none() {
         assert_eq!(resolve_youtube_captions(None, None).unwrap(), None);
+    }
+
+    // ── YouTube rate-limit backoff/retry (t-2955, TDD-red pre-impl) ─────
+    // is_youtube_rate_limited / run_with_youtube_backoff are pure and take
+    // no subprocess, no network — a simulated HTTP 429 is a plain string,
+    // per feature spec §2/§5's "not a live network call" discipline.
+
+    /// A yt-dlp stderr fixture as observed live 2026-08-17 against a real
+    /// video hit twice in quick succession (2 caption languages).
+    const FIXTURE_STDERR_HTTP_429: &str =
+        "ERROR: unable to download video subtitles for en: HTTP Error 429: Too Many Requests";
+
+    #[test]
+    fn test_is_youtube_rate_limited_matches_http_429() {
+        assert!(is_youtube_rate_limited(FIXTURE_STDERR_HTTP_429));
+    }
+
+    #[test]
+    fn test_is_youtube_rate_limited_false_for_unrelated_failure() {
+        assert!(!is_youtube_rate_limited("ERROR: Unsupported URL: not-a-real-url"));
+    }
+
+    // AC (t-2955): a simulated HTTP 429 must trigger backoff/retry, not an
+    // immediate error — asserted via call count, not just documented.
+    #[test]
+    fn test_youtube_backoff_retries_on_simulated_429() {
+        let mut calls = 0u32;
+        let result = run_with_youtube_backoff(|attempt| {
+            calls += 1;
+            if attempt < 2 {
+                Err(FIXTURE_STDERR_HTTP_429.to_string())
+            } else {
+                Ok(calls)
+            }
+        });
+        assert_eq!(result, Ok(3));
+        assert_eq!(calls, 3, "must retry through the 429s rather than erroring immediately");
+    }
+
+    #[test]
+    fn test_youtube_backoff_does_not_retry_non_429_failures() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Err("ERROR: Unsupported URL".to_string())
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 1, "a non-429 failure must surface immediately, not be masked by retries");
+    }
+
+    #[test]
+    fn test_youtube_backoff_gives_up_after_bounded_retries_on_persistent_429() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Err(FIXTURE_STDERR_HTTP_429.to_string())
+        });
+        assert!(result.is_err(), "must eventually give up, not retry forever");
+        assert!(calls <= 10, "retry count must be bounded, not unbounded");
     }
 
     // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
