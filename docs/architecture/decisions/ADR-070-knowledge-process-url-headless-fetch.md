@@ -289,6 +289,116 @@ cannot reach.
   architecturally distinct — the new one is heavier (MCP server startup) and
   should only be invoked for LinkedIn URLs, never as a general-purpose path.
 
+## Amendment (2026-08-17, t-2945): Tier 4 — YouTube (`yt-dlp` subprocess)
+
+**What changes:** `classify_platform()` gains a fourth branch, `"youtube"`
+(`youtube.com` / `youtu.be`, incl. `/shorts/`), and `fetch_url_content()`
+routes it to a new subprocess-based fetch — neither the Tier-1 `ureq` GET
+nor the Tier-2 LinkedIn MCP client, because YouTube's actual content
+(captions) is not present in the fetched HTML at all (`docs/ideas/youtube-knowledge-extraction.md`
+§Problem — the existing Tier-1 path stores the SPA shell, confirmed live on
+`t-1349`).
+
+**Why this doc exists.** `/brana:challenge` (2026-08-17, standard mode)
+found the original brainstorm's rate-limit mitigation didn't exist, its
+storage shape would have broken the pipeline's idempotency check, and its
+no-captions case reproduced `t-1349`'s own bug one layer deeper — 3 CRITICAL
+findings, logged to the decision log against
+`docs/ideas/youtube-knowledge-extraction.md`. This amendment formalizes the
+corrected design from that doc's Risks/Next-steps sections, not the
+original brainstorm.
+
+**(a) Fetch mechanism.** Shell out to `yt-dlp` (already installed,
+`/usr/bin/yt-dlp`), not a library — no Rust YouTube client exists or is
+warranted for one subprocess call:
+
+```
+yt-dlp --skip-download --write-auto-sub --sub-langs "en" --sub-format vtt \
+  --socket-timeout 30 "<url>"
+```
+
+Single primary-language (`en`) caption only for Phase 1 — the multi-language
+`en.*,es.*` form validated in the brainstorm is what hit `HTTP 429` on its
+third request; it is explicitly not what ships. Wrap the subprocess with an
+outer kill-timeout of ~60s (generous against the 2–6s typical case measured
+live 2026-08-17, bounds the pathological hang `yt-dlp`'s default leaves
+open — no default `--socket-timeout` otherwise, `--retries` defaults to 10).
+Raw VTT has word-level cue duplication (auto-caption artifact); a dedupe
+pass runs before storage — never store raw VTT as the value.
+
+**(b) Batch isolation — YouTube is removed from the shared `drain-links`
+batch, not sub-capped within it.** `select_drain_batch()`
+(`brana-cli/src/commands/knowledge.rs:166`) is today a single
+platform-agnostic FIFO `.take(cap)` over every pending `link`-tagged task —
+adding per-platform sub-cap accounting to it is new state-tracking logic
+that Phase 3 (channel-crawl, "own scheduler cadence, separate rate-limit
+budget") would immediately need to replace with a fully separate job
+anyway. Decided in favor of the simpler, already-established pattern
+instead: `scheduler.template.json` already runs a dozen independent
+one-line `"command"` jobs (`drain-links --cap 10` is one of them, line
+~138) — YouTube gets its own line, not a code change to the shared
+selector:
+
+- `select_drain_batch`'s candidate filter (currently `tag:"link",
+  status:"pending"`) excludes `classify_platform(url) == "youtube"` for the
+  existing `drain-links --cap N` job — LinkedIn/GitHub/Substack/arxiv/other
+  are unaffected, no change to their behavior or the tested `.take(cap)`
+  logic.
+- A new `drain-links --platform youtube --cap N` invocation (same binary,
+  new flag: candidate filter becomes exactly `classify_platform(url) ==
+  "youtube"`) runs as its own `scheduler.template.json` entry, with its own
+  cap and, inside `fetch_url_content`'s youtube branch, its own
+  backoff/retry unit around the `yt-dlp` call for an `HTTP 429`. A stuck or
+  retrying YouTube fetch can now only starve its own job's slots, never
+  LinkedIn/GitHub/Substack's in the same run — the CRITICAL finding this
+  section exists to close.
+
+**(c) No-captions contract.** `yt-dlp` exiting 0 having written zero
+subtitle files is a distinct, expected outcome — not an error, not success.
+`fetch_url_content` returns `Ok(None)` for it, exactly like a LinkedIn
+"post not in feed" miss (§Tier-2 correction above) — `process_one_url`
+already treats `Ok(None)` as "leave pending, never `Completed`"
+(`should_complete_link` / `is_cancellable`), so no change is needed there,
+only in what the youtube branch returns. This is the same failure shape as
+the original `t-1349` bug (fetch "succeeds," content is absent, task marked
+`Completed` anyway) reproduced one layer deeper if left unhandled — an
+explicit fixture test (no-captions video, zero subtitle files written)
+covers it alongside the populated-fixture happy path.
+
+**Storage — unchanged, explicitly.** The youtube branch returns a
+`FetchedContent { text, platform: "youtube" }` like every other tier and
+flows through the *existing* `ruflo_memory_store(key, ..., PROCESS_URL_NAMESPACE,
+tags)` call in `process_one_url` — the real, cleaned transcript as the
+value, `caption_source: manual|auto` carried as tag/metadata alongside it.
+**No new directory-bundle storage shape ships here.** The brainstorm's
+`raw/`+`sources/`+`concepts/`+`entities/` design cannot be written through
+`ruflo_memory_store`'s flat-value call at all (a directory can't be a
+string value) — writing one would leave the idempotency key unset, so every
+scheduler cycle would re-fetch every YouTube URL forever, invisible to
+`brana recall`'s knowledge-namespace query. That architecture is Phase 2,
+itself gated on `t-2937` (OKF adoption, a separate brana-wide decision this
+ADR does not make).
+
+**Consequences.**
+
+- `classify_platform()`'s doc comment (`"linkedin"`, `"github"`,
+  `"substack"`, `"arxiv"`, `"other"`) gains `"youtube"` — the return type is
+  already `&'static str`, no signature change.
+- `fetch_url_content()` gains a fourth branch alongside its existing
+  `platform == "linkedin"` special case; the fallthrough `fetch_public_url`
+  path is now reached only by github/substack/arxiv/other, unchanged.
+- `select_drain_batch()`'s signature/logic is untouched; only its caller in
+  `cmd_drain_links` gains a platform filter, applied identically regardless
+  of which side of the split a given run is on.
+- Two independent scheduler jobs now drain the same `link`-tagged backlog
+  tag by disjoint platform filters — an operational fact worth a one-line
+  note in `docs/architecture/hooks.md` or the scheduler doc, not a new
+  architectural mechanism.
+- Lock discipline is unchanged: the youtube branch is reached through
+  `fetch_url_content`, which must stay lock-free per §Lock discipline above
+  — the `yt-dlp` subprocess call and its retry/backoff wrapper must not
+  acquire `lock_pipeline()`.
+
 ## Non-Actions
 
 - Does not implement t-1144 (pipeline tier1/2/3 wiring of `fetched_content`).
@@ -297,6 +407,16 @@ cannot reach.
 - Does not build a skill/slash-command orchestration path — rejected because
   the primary use case (nightly, unattended) has no interactive session to
   orchestrate from.
+- Does not implement Phase 2 (directory-bundle `raw/`/`sources/`/`concepts/`/`entities/`
+  storage, concepts/entities synthesis, timestamp-anchored citations) —
+  gated on Phase 1 proving out in practice AND `t-2937` resolving first.
+- Does not implement Phase 3 (channel-crawl via `yt-dlp --flat-playlist`).
+- Does not decide brana-wide OKF adoption (`t-2937`) — this amendment only
+  borrows OKF's frontmatter conventions where free, per
+  `docs/ideas/youtube-knowledge-extraction.md` §Scope.
+- Does not build the concepts/entities LLM extraction step — Phase 1 stores
+  the real transcript text; extraction cost/design is Phase 2's problem
+  (see that doc's Risks — Phase 2 token cost, `t-2958`/`t-2959`).
 
 ## Changelog
 
@@ -308,3 +428,8 @@ cannot reach.
 - 2026-08-01: LinkedIn tiers inverted — public JSON-LD/og extract primary
   (0.8s, 14/15 usable), authenticated scrape demoted to below-threshold
   fallback; `/safety/go/` unwrap added (t-2589). See second §Amendment.
+- 2026-08-17: Fourth tier added — YouTube via `yt-dlp` subprocess, single
+  `en` caption, removed from the shared `drain-links` batch into its own
+  scheduler job, `Ok(None)` no-captions contract, existing flat storage
+  (t-2945, corrected by `/brana:challenge` against
+  `docs/ideas/youtube-knowledge-extraction.md`). See §Amendment.
