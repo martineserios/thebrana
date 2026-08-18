@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-18T00:37:14Z",
+  "generated": "2026-08-18T12:53:16Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1122,7 +1122,9 @@
     "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md": {
       "title": "ADR-070: `brana knowledge process-url` — headless-first fetch architecture",
       "type": "ADR",
-      "impl_files": []
+      "impl_files": [
+        "system/scheduler/scheduler.template.json:266-273"
+      ]
     },
     "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md": {
       "title": "ADR-071: Scheduler — thin layer over systemd timers",
@@ -1960,6 +1962,14 @@
         "system/hooks/post-tool-use-failure.sh",
         "system/hooks/session-end.sh",
         "system/hooks/session-start.sh"
+      ]
+    },
+    "docs/architecture/features/time-tracking-metric-1.md": {
+      "title": "Feature: Time Tracking — Metric 1 (Active Effort)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-core/",
+        "system/skills/build/phases/load.md`/`close.md"
       ]
     },
     "docs/architecture/features/user-journey-gap-analysis.md": {
@@ -16989,9 +16999,9 @@
     }
   ],
   "stats": {
-    "nodes": 590,
+    "nodes": 591,
     "edges": 2142,
     "typed_edges": 686,
-    "orphans": 158
+    "orphans": 159
   }
 }
