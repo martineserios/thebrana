@@ -63300,7 +63300,7 @@
       "blocked_by": [
         "t-2488"
       ],
-      "branch": null,
+      "branch": "brana-v3-redesign/design/t-2490-rethink-skills-atomic",
       "completed": null,
       "context": "Raised by user 2026-07-27, immediately after the graph-engineering research (see t-2488).\n\nTHE PROPOSAL. Skills today are large procedures (build, close, backlog each carry multi-step phase files). The proposal: make skills ATOMIC — small units with one job, a typed input and a typed output — and achieve complex procedures by composing those atoms in loops and graphs. The same atom is then reusable across different graphs instead of being locked inside one skill's procedure. Explicitly framed by the user as \"we need to design to do graph engineering.\"\n\nTENSION WITH t-2278 — DO NOT PAPER OVER THIS. t-2278 (skills-as-loops) was right-sized by a REAL AUDIT to a focused L refactor and deliberately scoped this out: \"22 skills stay skills (untouched — churn de-risked)\", \"NOT 35-skill rewrite\", and the \"pipeline/assembly-line model = deferred north-star/final wave, out of initial scope\". This task is close to that parked north-star and reopens the churn t-2278 chose to avoid. That earlier caution was evidence-based, so this design must either (a) show why the audit's conclusion no longer holds, or (b) find a decomposition that gets graph-composability WITHOUT the 35-skill rewrite. \"The audit was too conservative\" is a claim requiring evidence, not an assumption. Per user decision 2026-07-27: this is a SEPARATE task from t-2278, gated on t-2488 — t-2278's de-risked plan stays intact unless this design earns the reopening.\n\nCARRY FORWARD FROM t-2278 (already decided, do not relitigate): default to CODE-AS-ORCHESTRATOR — deterministic control flow via Workflow scripts + wave-drain — NOT an LLM supervisor. Anthropic's orchestrator-workers pattern is reserved only for open-ended tasks whose subtasks cannot be predetermined. Conveyor = code; stations = specialized worker agents; advance/bounce routing = verifier VERDICTS feeding deterministic routing. An orchestrator agent earns a station only where \"good enough to advance?\" is irreducible judgment, and even then it is modelled as a verifier returning a verdict, not a pipeline-wide supervisor.\n\nDESIGN QUESTIONS THIS MUST ANSWER. What is the atom — a phase file? a single tool-scoped agent? something smaller? What is the contract between atoms (typed schema in/out, like the Workflow tool's schema option)? How does an atom stay independently invocable by a human while also being graph-callable? What carries state across atoms without re-injecting whole context (ties directly to t-2484 context economy — atomicity is a context-economy lever, since a small atom loads only what it needs). Which existing skills are genuinely composite vs genuinely atomic — start from an audit, not a blank page. How do the existing graphs (sweep.js, verify-findings.js, hive-mind.js) already demonstrate the atom/graph split, and what is missing to generalise them.\n\nWATCH FOR: over-decomposition. Atoms too small produce graph plumbing that costs more than the monolith it replaced, and every hop is a context re-entry. The design should state the granularity floor and justify it.\n\nENTRY: /brana:brainstorm, then premortem before ADR (pattern_brainstorm-premortem-before-adr), then /brana:challenge --deep. Prior art in-repo: docs/ideas/skills-as-loops.md (draft, brainstormed + 3 research passes).\n\nAC: skill audit produced — each existing skill classified composite vs atomic, with the granularity floor stated and justified\nAC: atom contract defined (typed input/output, invocation surface for both human and graph callers)\nAC: explicit verdict on whether t-2278's de-risked scope should be reopened, with evidence — \"leave t-2278 as planned\" is an acceptable and recordable outcome\nAC: ADR written if load-bearing, with Non-Actions recording what decomposition was explicitly NOT adopted\nAC: follow-up implementation tasks filed, or an explicit note that none are needed",
       "created": "2026-07-27",
@@ -63314,8 +63314,8 @@
       "order": 0,
       "parent": "t-2337",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-17",
+      "status": "in_progress",
       "subject": "Rethink skills as atomic reusable units composed via loops and graphs — design for graph engineering",
       "tags": [
         "architecture",
@@ -77875,6 +77875,62 @@
       "tags": [],
       "type": "subtask",
       "work_type": "implement"
+    },
+    {
+      "id": "t-2967",
+      "subject": "Prune harness-core session-epic accumulator — 100+ stale next[] items dating to 2026-06",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "maintenance",
+        "session-state"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2345",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Observed 2026-08-17 during a /brana:close --continue: `brana session epic read harness-core --json` returns 100+ text-only next[] items, the oldest dated 2026-06-08. Many reference already-completed tasks, already-run reconcile passes, or long-superseded state (e.g. \"MEMORY.md at 182/200 lines\" from a session in June). Pass 2's per-close LLM pruning only resolves items THIS session's own accomplished[]/git-log actually addressed, so unrelated stale items accumulate indefinitely with no dedicated sweep. Needs a standalone pass: read the full accumulator, cross-check each text-only item against current repo/task state, and drop what's resolved or superseded.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2968",
+      "subject": "Re-challenge docs/ideas/youtube-knowledge-extraction.md before starting t-2945",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "youtube",
+        "challenge-skill"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2941",
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Filed 2026-08-17 at session close. docs/ideas/youtube-knowledge-extraction.md changed substantially after its first /brana:challenge pass (3 CRITICAL findings, corrected t-2945's scope). A fresh /brana:challenge relaunch (agentId a38dcb864b4834c4f) was reportedly running concurrently in a prior session on this doc — its outcome is unverified (t-2954's own investigation found the challenge orchestrator can silently die mid-run, context:fork now removed as of t-2954's fix). Before starting t-2945 (ADR-070 youtube tier), verify whether that relaunch produced a report; if not, or if stale, re-run /brana:challenge on the doc now that the orphaning bug is fixed.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "review",
+      "ac_state": "none"
     }
   ],
   "version": 3,
