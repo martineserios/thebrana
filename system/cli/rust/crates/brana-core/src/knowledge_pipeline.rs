@@ -1667,6 +1667,63 @@ pub fn fetch_youtube_content(url: &str) -> Result<Option<String>> {
     todo!("t-2950: implement — yt-dlp subprocess wrapper")
 }
 
+// ── YouTube rate-limit backoff/retry (t-2955 tests, TDD-red pre-impl) ───
+// Tests only as of t-2955; bodies land in t-2956 per
+// docs/architecture/features/youtube-knowledge-extraction.md §2, §5.
+// Rate limiting is confirmed real (HTTP 429 observed live 2026-08-17 on a
+// single video, 2 languages back-to-back) — this is not a hypothetical case.
+
+/// Whether a `yt-dlp` subprocess's stderr indicates HTTP 429 rate limiting —
+/// the ONLY failure class [`run_with_youtube_backoff`] should mask behind a
+/// retry. Any other failure (malformed URL, network down, no captions) must
+/// surface immediately, never be silently retried.
+pub fn is_youtube_rate_limited(stderr: &str) -> bool {
+    let _ = stderr;
+    todo!("t-2956: implement")
+}
+
+/// Maximum retry attempts for a rate-limited `yt-dlp` call before giving up.
+/// Bounded deliberately — this repo's other rate-limit retry precedent,
+/// `gh_create_issue` (`brana-cli/src/sync.rs:413-419`), has NO cap at all
+/// (unbounded recursion on every 429), which is a real defect class, not a
+/// hypothetical one (Challenger finding, t-2955 iteration 1).
+const YOUTUBE_BACKOFF_MAX_RETRIES: u32 = 5;
+
+/// Backoff delay before retry attempt `attempt` (0-indexed) of a
+/// rate-limited `yt-dlp` call. `None` once the retry budget
+/// ([`YOUTUBE_BACKOFF_MAX_RETRIES`]) is exhausted — [`run_with_youtube_backoff`]
+/// gives up rather than retrying forever.
+///
+/// Pure and deterministic — no sleep, no I/O — so pacing itself is
+/// fixture-testable without a real (and, under an unbounded or
+/// zero-abstraction design, potentially minutes-long) wait. This is the
+/// seam the feature spec's own Tests section asks for ("Backoff/retry
+/// unit — simulated HTTP 429, verifies pacing without a live network
+/// call") that the first draft of this function omitted.
+///
+/// Exponential, capped at 5 attempts: 1s, 2s, 4s, 8s, 16s — generous
+/// against a 429 that clears within seconds in practice (live-measured
+/// 2026-08-17), while keeping a fully-exhausted retry budget's total wait
+/// well under a minute rather than open-ended.
+pub fn backoff_delay(attempt: u32) -> Option<std::time::Duration> {
+    if attempt >= YOUTUBE_BACKOFF_MAX_RETRIES {
+        return None;
+    }
+    Some(std::time::Duration::from_secs(1u64 << attempt))
+}
+
+/// Run `attempt` (given its 0-indexed attempt number) until it succeeds or
+/// [`backoff_delay`]'s retry budget is exhausted, retrying only when the
+/// error looks rate-limited per [`is_youtube_rate_limited`], sleeping
+/// [`backoff_delay`] between retries. A non-rate-limited failure returns
+/// immediately on the first attempt — never masked behind a retry loop.
+pub fn run_with_youtube_backoff<T>(
+    attempt: impl FnMut(u32) -> Result<T, String>,
+) -> Result<T, String> {
+    let _ = attempt;
+    todo!("t-2956: implement — call backoff_delay between retries")
+}
+
 /// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
 /// Uses `ureq` (already a workspace dependency, ADR-024 convention) — no
 /// new HTTP client dependency.
@@ -2498,6 +2555,101 @@ jumps over the lazy dog
     #[test]
     fn test_resolve_youtube_captions_no_captions_returns_ok_none() {
         assert_eq!(resolve_youtube_captions(None, None).unwrap(), None);
+    }
+
+    // ── YouTube rate-limit backoff/retry (t-2955, TDD-red pre-impl) ─────
+    // is_youtube_rate_limited / run_with_youtube_backoff are pure and take
+    // no subprocess, no network — a simulated HTTP 429 is a plain string,
+    // per feature spec §2/§5's "not a live network call" discipline.
+
+    /// A yt-dlp stderr fixture as observed live 2026-08-17 against a real
+    /// video hit twice in quick succession (2 caption languages).
+    const FIXTURE_STDERR_HTTP_429: &str =
+        "ERROR: unable to download video subtitles for en: HTTP Error 429: Too Many Requests";
+
+    #[test]
+    fn test_is_youtube_rate_limited_matches_http_429() {
+        assert!(is_youtube_rate_limited(FIXTURE_STDERR_HTTP_429));
+    }
+
+    #[test]
+    fn test_is_youtube_rate_limited_false_for_unrelated_failure() {
+        assert!(!is_youtube_rate_limited("ERROR: Unsupported URL: not-a-real-url"));
+    }
+
+    // AC (t-2955): a simulated HTTP 429 must trigger backoff/retry, not an
+    // immediate error — asserted via call count, not just documented.
+    #[test]
+    fn test_youtube_backoff_retries_on_simulated_429() {
+        let mut calls = 0u32;
+        let result = run_with_youtube_backoff(|attempt| {
+            calls += 1;
+            if attempt < 2 {
+                Err(FIXTURE_STDERR_HTTP_429.to_string())
+            } else {
+                Ok(calls)
+            }
+        });
+        assert_eq!(result, Ok(3));
+        assert_eq!(calls, 3, "must retry through the 429s rather than erroring immediately");
+    }
+
+    #[test]
+    fn test_youtube_backoff_does_not_retry_non_429_failures() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Err("ERROR: Unsupported URL".to_string())
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 1, "a non-429 failure must surface immediately, not be masked by retries");
+    }
+
+    #[test]
+    fn test_youtube_backoff_gives_up_after_bounded_retries_on_persistent_429() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Err(FIXTURE_STDERR_HTTP_429.to_string())
+        });
+        assert!(result.is_err(), "must eventually give up, not retry forever");
+        assert!(calls <= 10, "retry count must be bounded, not unbounded");
+    }
+
+    // Pacing itself, fixture-tested without sleeping (Challenger finding,
+    // t-2955 iteration 1: the spec's Tests section requires verifying
+    // pacing, not just call count — these are fast and deterministic
+    // because backoff_delay is pure).
+
+    #[test]
+    fn test_backoff_delay_grows_monotonically() {
+        let d0 = backoff_delay(0).expect("attempt 0 is within budget");
+        let d1 = backoff_delay(1).expect("attempt 1 is within budget");
+        let d2 = backoff_delay(2).expect("attempt 2 is within budget");
+        assert!(d0 < d1, "delay must grow between retries, not stay flat");
+        assert!(d1 < d2, "delay must grow between retries, not stay flat");
+    }
+
+    #[test]
+    fn test_backoff_delay_none_once_retry_budget_exhausted() {
+        assert_eq!(
+            backoff_delay(YOUTUBE_BACKOFF_MAX_RETRIES),
+            None,
+            "must give up at the retry budget, not retry forever"
+        );
+    }
+
+    #[test]
+    fn test_backoff_delay_bounded_total_wait() {
+        // The Challenger's concrete failure mode: a fully-exhausted retry
+        // budget must not silently accumulate to a minutes-long stall.
+        let total: std::time::Duration = (0..YOUTUBE_BACKOFF_MAX_RETRIES)
+            .filter_map(backoff_delay)
+            .sum();
+        assert!(
+            total < std::time::Duration::from_secs(60),
+            "total retry wait across the whole budget must stay well under a minute, got {total:?}"
+        );
     }
 
     // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
