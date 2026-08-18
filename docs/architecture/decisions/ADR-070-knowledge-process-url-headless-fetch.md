@@ -314,8 +314,15 @@ warranted for one subprocess call:
 
 ```
 yt-dlp --skip-download --write-auto-sub --sub-langs "en" --sub-format vtt \
-  --socket-timeout 30 "<url>"
+  --socket-timeout 30 -- "<url>"
 ```
+
+The `--` end-of-flags separator before the URL is required, not cosmetic: a
+`link`-tagged task's URL is attacker-influenced input (captured from
+Telegram), and `yt-dlp` has an `--exec <cmd>` flag — the same
+"decoded target is untrusted" lesson §Amendment (2026-08-01) already applied
+to LinkedIn's `/safety/go/` unwrap, applied here to argv instead of an HTTP
+target. Without `--`, a URL string starting with `-` is parsed as a flag.
 
 Single primary-language (`en`) caption only for Phase 1 — the multi-language
 `en.*,es.*` form validated in the brainstorm is what hit `HTTP 429` on its
@@ -329,7 +336,10 @@ pass runs before storage — never store raw VTT as the value.
 **(b) Batch isolation — YouTube is removed from the shared `drain-links`
 batch, not sub-capped within it.** `select_drain_batch()`
 (`brana-cli/src/commands/knowledge.rs:166`) is today a single
-platform-agnostic FIFO `.take(cap)` over every pending `link`-tagged task —
+platform-agnostic FIFO `.take(cap)` over every pending `link`-tagged task
+(the filter that will gain the platform split lives in its caller,
+`cmd_drain_links`, not in `select_drain_batch` itself — the function stays
+a bare `.take(cap)`) —
 adding per-platform sub-cap accounting to it is new state-tracking logic
 that Phase 3 (channel-crawl, "own scheduler cadence, separate rate-limit
 budget") would immediately need to replace with a fully separate job
@@ -365,11 +375,43 @@ the original `t-1349` bug (fetch "succeeds," content is absent, task marked
 explicit fixture test (no-captions video, zero subtitle files written)
 covers it alongside the populated-fixture happy path.
 
-**Storage — unchanged, explicitly.** The youtube branch returns a
-`FetchedContent { text, platform: "youtube" }` like every other tier and
-flows through the *existing* `ruflo_memory_store(key, ..., PROCESS_URL_NAMESPACE,
-tags)` call in `process_one_url` — the real, cleaned transcript as the
-value, `caption_source: manual|auto` carried as tag/metadata alongside it.
+**Storage — flat key, unchanged; the write path is not, corrected.** An
+earlier draft of this amendment claimed the youtube branch's
+`FetchedContent { text, platform: "youtube" }` flows through `process_one_url`
+"unchanged," storing the real transcript. That is false against the actual
+code: `process_one_url` (`knowledge.rs:384-416`) never stores `content.text`
+for any tier — it calls `kp::extract_insight(&content.text, content.platform)`
+(`knowledge_pipeline.rs:1723`) first and stores `insight.summary`, the
+output of a three-tier LLM-summarization fallback (agy → `claude -p` →
+2000-char truncated raw, only on double-failure). `extraction_prompt`
+applies no truncation before that call — the full transcript is what's
+sent, today, to every existing tier.
+
+Summarizing a video transcript into a short blurb would reproduce the
+original bug one layer deeper: `t-1349` failed because the stored
+"knowledge" was shallow (an HTML shell), and a one-paragraph LLM summary of
+a 152,208-character/29,248-word transcript (the 2h26m video measured live
+2026-08-17) is only marginally less shallow. It would also strand Phase 2
+before it starts — concepts/entities/timestamp-anchored-citation mining
+needs the raw transcript, which would already be gone.
+
+**Decision: the youtube branch bypasses `extract_insight` and stores
+`content.text` (the cleaned, deduped transcript) directly.** This is a real
+code change beyond "add a branch to `classify_platform`/`fetch_url_content`"
+— `process_one_url`'s `Store` arm gains a platform check: youtube skips the
+`extract_insight` call and calls `ruflo_memory_store(&key, &content.text,
+PROCESS_URL_NAMESPACE, &tags)` directly, where `tags` becomes
+`[platform, "transcript"]` (no LLM-derived `topic` — there is no
+`insight.topic` when `extract_insight` is skipped). `caption_source:
+manual|auto` is carried as an additional tag alongside `"transcript"`, not
+a separate metadata channel. Every other tier's summarization behavior is
+unchanged. **This also resolves the token-cost second-order effect below**:
+because the youtube branch never calls `extract_insight`, Phase 1 incurs no
+per-video LLM summarization cost — the token-cost risk the idea doc flags
+(~38K tokens/video) stays genuinely Phase 2's problem (concepts/entities
+extraction reading the stored transcript), not a cost silently already
+paid in Phase 1.
+
 **No new directory-bundle storage shape ships here.** The brainstorm's
 `raw/`+`sources/`+`concepts/`+`entities/` design cannot be written through
 `ruflo_memory_store`'s flat-value call at all (a directory can't be a
@@ -390,14 +432,32 @@ ADR does not make).
 - `select_drain_batch()`'s signature/logic is untouched; only its caller in
   `cmd_drain_links` gains a platform filter, applied identically regardless
   of which side of the split a given run is on.
+- `process_one_url`'s `Store` arm gains a platform branch (see Storage
+  above) — youtube skips `extract_insight`; every other tier's call site is
+  unchanged. This is the one piece of this amendment that touches existing
+  control flow shared with LinkedIn/GitHub/Substack/arxiv, not just adds a
+  new branch alongside them — call it out explicitly in the DECOMPOSE task
+  breakdown, not folded silently into "add classify_platform branch."
 - Two independent scheduler jobs now drain the same `link`-tagged backlog
   tag by disjoint platform filters — an operational fact worth a one-line
   note in `docs/architecture/hooks.md` or the scheduler doc, not a new
-  architectural mechanism.
+  architectural mechanism. Note for whoever adds the new job entry: the
+  existing `link-research-extraction` job (`scheduler.template.json:136-144`,
+  the one `drain-links --cap 10` is defined on) runs against
+  `project: ~/enter_thebrana/personal`, not `thebrana` — the new
+  `--platform youtube` job entry needs the same `project` value, not
+  `thebrana`'s, or it will drain against the wrong backlog.
 - Lock discipline is unchanged: the youtube branch is reached through
   `fetch_url_content`, which must stay lock-free per §Lock discipline above
   — the `yt-dlp` subprocess call and its retry/backoff wrapper must not
-  acquire `lock_pipeline()`.
+  acquire `lock_pipeline()`. Known pre-existing gap, not introduced by this
+  amendment but more load-bearing now (new subprocess call site):
+  `test_lock_discipline_source_tripwires` (`brana-cli/src/commands/knowledge.rs`)
+  scans only `knowledge.rs` via `include_str!` — it cannot see
+  `fetch_url_content` at all, which lives in the `brana-core` crate's
+  `knowledge_pipeline.rs`. Extending the tripwire (or adding a companion
+  test in `brana-core`) to cover that file is worth doing alongside this
+  work, not deferred indefinitely.
 
 ## Non-Actions
 
@@ -430,6 +490,10 @@ ADR does not make).
   fallback; `/safety/go/` unwrap added (t-2589). See second §Amendment.
 - 2026-08-17: Fourth tier added — YouTube via `yt-dlp` subprocess, single
   `en` caption, removed from the shared `drain-links` batch into its own
-  scheduler job, `Ok(None)` no-captions contract, existing flat storage
-  (t-2945, corrected by `/brana:challenge` against
-  `docs/ideas/youtube-knowledge-extraction.md`). See §Amendment.
+  scheduler job, `Ok(None)` no-captions contract, flat storage key with the
+  youtube branch bypassing `extract_insight`'s LLM summarization to store
+  the raw transcript directly (t-2945, corrected by `/brana:challenge`
+  against `docs/ideas/youtube-knowledge-extraction.md`; storage design
+  itself corrected a second time by the build-gate Challenger review, which
+  traced the original "unchanged" storage claim against `process_one_url`
+  and found it false). See §Amendment.
