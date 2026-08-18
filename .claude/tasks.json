@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-08-18T11:02:50.801380598-03:00",
+  "last_modified": "2026-08-18T11:19:25.278461939-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -57671,7 +57671,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "2026-07-20: Blocked on backlog-v3 schema landing (branch docs/backlog-v3-schema) — waves = the queue primitive. Idea doc: docs/ideas/skills-as-loops.md (status draft, brainstormed + 3 research passes grounded). Right-sized by real audit: focused L-effort refactor, NOT 35-skill rewrite. Concretely the epic = (1) routing-heuristic ADR (control-locus/state-scope/invocation discriminators, Anthropic 'start simple' rule); (2) build 2 standalone loops: reconcile, cargo-machete/dep-sweep; (3) formalize 2 workflows: challenge, research; (4) wire ~4 loop-bodies into drain waves: fix->bug-drain, close->LEARN, docs->changelog, backlog->AC-backfill; (5) retire 2: do->backlog start, verify-docs->reconcile. 22 skills stay skills (untouched — churn de-risked). Pipeline/assembly-line model = deferred north-star/final wave, out of initial scope. Sequence: schema -> audit wave 0 -> one loop per wave -> (later) pipeline.\nAC: feature spec exists at docs/architecture/features/skills-as-loops.md with the routing heuristic\nAC: routing-heuristic ADR written\nAC: epic planned via /brana:backlog plan with wave structure\nAC: v3 schema confirmed landed before starting\n2026-07-20: Orchestration decision for the pipeline/loops — DEFAULT to code-as-orchestrator (deterministic control flow, à la Workflow scripts + wave-drain), NOT an LLM supervisor agent. Anthropic's \"orchestrator-workers\" (LLM supervisor decomposes→delegates→synthesizes; = CrewAI hierarchical / AutoGen GroupChatManager) is reserved ONLY for open-ended tasks where subtasks can't be predetermined. Loop-engineering's reliability model is deterministic-loop + maker/checker split precisely to avoid the LLM-supervisor single-point-of-failure. Pipeline design: conveyor = code (wave/pipeline script); stations = specialized worker agents; advance/bounce routing = verifier VERDICTS feeding deterministic routing, not a supervisor holding the whole line. An orchestrator agent earns its place only at a station where \"good enough to advance?\" is irreducible judgment — even then, model it as a verifier returning a verdict, not a pipeline-wide supervisor.\n2026-07-27: SCOPE CHALLENGE FILED — t-2490 proposes decomposing skills into atomic graph-composable units, i.e. the 'pipeline/assembly-line north-star' this task parked as out-of-scope, plus reopening the '22 skills stay untouched' de-risking. t-2490 is blocked_by t-2488 (graph-engineering brainstorm) and must justify reopening with evidence; 'leave t-2278 as planned' is an explicit acceptable outcome there. Do not start t-2278's wave plan assuming its scope is final until t-2490 returns a verdict.",
+      "context": "2026-07-20: Blocked on backlog-v3 schema landing (branch docs/backlog-v3-schema) — waves = the queue primitive. Idea doc: docs/ideas/skills-as-loops.md (status draft, brainstormed + 3 research passes grounded). Right-sized by real audit: focused L-effort refactor, NOT 35-skill rewrite. Concretely the epic = (1) routing-heuristic ADR (control-locus/state-scope/invocation discriminators, Anthropic 'start simple' rule); (2) build 2 standalone loops: reconcile, cargo-machete/dep-sweep; (3) formalize 2 workflows: challenge, research; (4) wire ~4 loop-bodies into drain waves: fix->bug-drain, close->LEARN, docs->changelog, backlog->AC-backfill; (5) retire 2: do->backlog start, verify-docs->reconcile. 22 skills stay skills (untouched — churn de-risked). Pipeline/assembly-line model = deferred north-star/final wave, out of initial scope. Sequence: schema -> audit wave 0 -> one loop per wave -> (later) pipeline.\nAC: feature spec exists at docs/architecture/features/skills-as-loops.md with the routing heuristic\nAC: routing-heuristic ADR written\nAC: epic planned via /brana:backlog plan with wave structure\nAC: v3 schema confirmed landed before starting\n2026-07-20: Orchestration decision for the pipeline/loops — DEFAULT to code-as-orchestrator (deterministic control flow, à la Workflow scripts + wave-drain), NOT an LLM supervisor agent. Anthropic's \"orchestrator-workers\" (LLM supervisor decomposes→delegates→synthesizes; = CrewAI hierarchical / AutoGen GroupChatManager) is reserved ONLY for open-ended tasks where subtasks can't be predetermined. Loop-engineering's reliability model is deterministic-loop + maker/checker split precisely to avoid the LLM-supervisor single-point-of-failure. Pipeline design: conveyor = code (wave/pipeline script); stations = specialized worker agents; advance/bounce routing = verifier VERDICTS feeding deterministic routing, not a supervisor holding the whole line. An orchestrator agent earns its place only at a station where \"good enough to advance?\" is irreducible judgment — even then, model it as a verifier returning a verdict, not a pipeline-wide supervisor.\n2026-07-27: SCOPE CHALLENGE FILED — t-2490 proposes decomposing skills into atomic graph-composable units, i.e. the 'pipeline/assembly-line north-star' this task parked as out-of-scope, plus reopening the '22 skills stay untouched' de-risking. t-2490 is blocked_by t-2488 (graph-engineering brainstorm) and must justify reopening with evidence; 'leave t-2278 as planned' is an explicit acceptable outcome there. Do not start t-2278's wave plan assuming its scope is final until t-2490 returns a verdict.\n2026-08-18: t-2490 VERDICT RETURNED — ADR-085 D1: leave t-2278 as planned. Scope unchanged (routing heuristic + ADR, ~2 standalone loops, ~2 workflows formalized, ~4 loop-bodies → drain waves, 2 retires, 22 skills untouched). Blocker (backlog-v3 schema / waves) has landed — this task is unblocked. No atom schema, no 9-station rewrite; the pipeline north-star stays deferred (earned only via ADR-085 D6 pilots t-2834 → t-2981). Related: docs/ideas/skills-loops-graphs.md.",
       "created": "2026-07-20",
       "description": "Graduate the shaped skills-as-loops idea (docs/ideas/skills-as-loops.md, brainstormed 2026-07-20) into a feature spec + ADR, then /brana:backlog plan the wave-structured epic. Hard-blocked until the backlog-v3 schema ships (waves are the queue primitive every loop drains).",
       "effort": "S",
@@ -63309,7 +63309,7 @@
       "branch": "brana-v3-redesign/design/t-2490-rethink-skills-atomic",
       "build_step": "classify",
       "completed": null,
-      "context": "Raised by user 2026-07-27, immediately after the graph-engineering research (see t-2488).\n\nTHE PROPOSAL. Skills today are large procedures (build, close, backlog each carry multi-step phase files). The proposal: make skills ATOMIC — small units with one job, a typed input and a typed output — and achieve complex procedures by composing those atoms in loops and graphs. The same atom is then reusable across different graphs instead of being locked inside one skill's procedure. Explicitly framed by the user as \"we need to design to do graph engineering.\"\n\nTENSION WITH t-2278 — DO NOT PAPER OVER THIS. t-2278 (skills-as-loops) was right-sized by a REAL AUDIT to a focused L refactor and deliberately scoped this out: \"22 skills stay skills (untouched — churn de-risked)\", \"NOT 35-skill rewrite\", and the \"pipeline/assembly-line model = deferred north-star/final wave, out of initial scope\". This task is close to that parked north-star and reopens the churn t-2278 chose to avoid. That earlier caution was evidence-based, so this design must either (a) show why the audit's conclusion no longer holds, or (b) find a decomposition that gets graph-composability WITHOUT the 35-skill rewrite. \"The audit was too conservative\" is a claim requiring evidence, not an assumption. Per user decision 2026-07-27: this is a SEPARATE task from t-2278, gated on t-2488 — t-2278's de-risked plan stays intact unless this design earns the reopening.\n\nCARRY FORWARD FROM t-2278 (already decided, do not relitigate): default to CODE-AS-ORCHESTRATOR — deterministic control flow via Workflow scripts + wave-drain — NOT an LLM supervisor. Anthropic's orchestrator-workers pattern is reserved only for open-ended tasks whose subtasks cannot be predetermined. Conveyor = code; stations = specialized worker agents; advance/bounce routing = verifier VERDICTS feeding deterministic routing. An orchestrator agent earns a station only where \"good enough to advance?\" is irreducible judgment, and even then it is modelled as a verifier returning a verdict, not a pipeline-wide supervisor.\n\nDESIGN QUESTIONS THIS MUST ANSWER. What is the atom — a phase file? a single tool-scoped agent? something smaller? What is the contract between atoms (typed schema in/out, like the Workflow tool's schema option)? How does an atom stay independently invocable by a human while also being graph-callable? What carries state across atoms without re-injecting whole context (ties directly to t-2484 context economy — atomicity is a context-economy lever, since a small atom loads only what it needs). Which existing skills are genuinely composite vs genuinely atomic — start from an audit, not a blank page. How do the existing graphs (sweep.js, verify-findings.js, hive-mind.js) already demonstrate the atom/graph split, and what is missing to generalise them.\n\nWATCH FOR: over-decomposition. Atoms too small produce graph plumbing that costs more than the monolith it replaced, and every hop is a context re-entry. The design should state the granularity floor and justify it.\n\nENTRY: /brana:brainstorm, then premortem before ADR (pattern_brainstorm-premortem-before-adr), then /brana:challenge --deep. Prior art in-repo: docs/ideas/skills-as-loops.md (draft, brainstormed + 3 research passes).\n\nAC: skill audit produced — each existing skill classified composite vs atomic, with the granularity floor stated and justified\nAC: atom contract defined (typed input/output, invocation surface for both human and graph callers)\nAC: explicit verdict on whether t-2278's de-risked scope should be reopened, with evidence — \"leave t-2278 as planned\" is an acceptable and recordable outcome\nAC: ADR written if load-bearing, with Non-Actions recording what decomposition was explicitly NOT adopted\nAC: follow-up implementation tasks filed, or an explicit note that none are needed\n2026-08-18: crystallization from session c7993116 (not stored elsewhere): loop = graph whose path returns to an earlier node. Rule: graph that executes once, all at once → Workflow script (sweep/verify-findings/hive-mind); graph walked incrementally over days with a human between nodes → store as data (waves, gate: edges) and let /loop traverse it. Open gap: two disjoint invocation surfaces (AskUserQuestion-native skills as opaque loop stations vs headless agent() nodes) — same logic can't run both ways without duplication. Pocock corroboration (session 64be2e25): Ralph loop + to-tickets→DAG = same lineage as epic-drain + wave graph; his skills are playbooks loaded INTO a loop iteration (skill⊃loop framing is the dual of brana's loop⊃skill).",
+      "context": "Raised by user 2026-07-27, immediately after the graph-engineering research (see t-2488).\n\nTHE PROPOSAL. Skills today are large procedures (build, close, backlog each carry multi-step phase files). The proposal: make skills ATOMIC — small units with one job, a typed input and a typed output — and achieve complex procedures by composing those atoms in loops and graphs. The same atom is then reusable across different graphs instead of being locked inside one skill's procedure. Explicitly framed by the user as \"we need to design to do graph engineering.\"\n\nTENSION WITH t-2278 — DO NOT PAPER OVER THIS. t-2278 (skills-as-loops) was right-sized by a REAL AUDIT to a focused L refactor and deliberately scoped this out: \"22 skills stay skills (untouched — churn de-risked)\", \"NOT 35-skill rewrite\", and the \"pipeline/assembly-line model = deferred north-star/final wave, out of initial scope\". This task is close to that parked north-star and reopens the churn t-2278 chose to avoid. That earlier caution was evidence-based, so this design must either (a) show why the audit's conclusion no longer holds, or (b) find a decomposition that gets graph-composability WITHOUT the 35-skill rewrite. \"The audit was too conservative\" is a claim requiring evidence, not an assumption. Per user decision 2026-07-27: this is a SEPARATE task from t-2278, gated on t-2488 — t-2278's de-risked plan stays intact unless this design earns the reopening.\n\nCARRY FORWARD FROM t-2278 (already decided, do not relitigate): default to CODE-AS-ORCHESTRATOR — deterministic control flow via Workflow scripts + wave-drain — NOT an LLM supervisor. Anthropic's orchestrator-workers pattern is reserved only for open-ended tasks whose subtasks cannot be predetermined. Conveyor = code; stations = specialized worker agents; advance/bounce routing = verifier VERDICTS feeding deterministic routing. An orchestrator agent earns a station only where \"good enough to advance?\" is irreducible judgment, and even then it is modelled as a verifier returning a verdict, not a pipeline-wide supervisor.\n\nDESIGN QUESTIONS THIS MUST ANSWER. What is the atom — a phase file? a single tool-scoped agent? something smaller? What is the contract between atoms (typed schema in/out, like the Workflow tool's schema option)? How does an atom stay independently invocable by a human while also being graph-callable? What carries state across atoms without re-injecting whole context (ties directly to t-2484 context economy — atomicity is a context-economy lever, since a small atom loads only what it needs). Which existing skills are genuinely composite vs genuinely atomic — start from an audit, not a blank page. How do the existing graphs (sweep.js, verify-findings.js, hive-mind.js) already demonstrate the atom/graph split, and what is missing to generalise them.\n\nWATCH FOR: over-decomposition. Atoms too small produce graph plumbing that costs more than the monolith it replaced, and every hop is a context re-entry. The design should state the granularity floor and justify it.\n\nENTRY: /brana:brainstorm, then premortem before ADR (pattern_brainstorm-premortem-before-adr), then /brana:challenge --deep. Prior art in-repo: docs/ideas/skills-as-loops.md (draft, brainstormed + 3 research passes).\n\nAC: skill audit produced — each existing skill classified composite vs atomic, with the granularity floor stated and justified\nAC: atom contract defined (typed input/output, invocation surface for both human and graph callers)\nAC: explicit verdict on whether t-2278's de-risked scope should be reopened, with evidence — \"leave t-2278 as planned\" is an acceptable and recordable outcome\nAC: ADR written if load-bearing, with Non-Actions recording what decomposition was explicitly NOT adopted\nAC: follow-up implementation tasks filed, or an explicit note that none are needed\n2026-08-18: crystallization from session c7993116 (not stored elsewhere): loop = graph whose path returns to an earlier node. Rule: graph that executes once, all at once → Workflow script (sweep/verify-findings/hive-mind); graph walked incrementally over days with a human between nodes → store as data (waves, gate: edges) and let /loop traverse it. Open gap: two disjoint invocation surfaces (AskUserQuestion-native skills as opaque loop stations vs headless agent() nodes) — same logic can't run both ways without duplication. Pocock corroboration (session 64be2e25): Ralph loop + to-tickets→DAG = same lineage as epic-drain + wave graph; his skills are playbooks loaded INTO a loop iteration (skill⊃loop framing is the dual of brana's loop⊃skill).\n2026-08-18 (studio, user decision): atom = STATION manifest (input/output schema, context, skills-as-playbooks, tools, judge, model). Human mode (inside|valve|none) is set by CALLER, never the station. ask() compiles per mode: inside→AskUserQuestion; valve→return needs_judgment+escalation{room,question,suggested_default}; none→take default only if caller granted it. Station may only SUGGEST a default (`suggested_default`); the caller decides whether that suggestion is honored — safety with the graph/loop author, reuse with the station author. Build's PHASES table = graph-as-data already; becomes build.graph.json; load.md dissolves into per-station context: blocks. Decomposition without churn (t-2278 stays intact).\n2026-08-18 EVIDENCE (dup-logic test, answers skills-loops-graphs.md §Open L118 — pain is REAL today): all 3 pairs = DRIFTED DUPLICATION. A) verify-gates.md:101-102↔build-evaluator.md:55-67 (MET/PARTIAL/MISSED rubric restated); verify-gates.md:120-154↔_shared/challenger-gate.md:187-229 (repair loop near-verbatim); CONTRADICTION CALIBRATION.md:25-28 \"SPLIT never counted FALSE_POSITIVE\" vs verify-findings.js:27-28,110 \"ties drop to FALSE_POSITIVE\"; js emits UNVERIFIED (:111) absent from its own enum (:66); voter default drift inside one file (:23 vs :29/:54). B) _shared/adversarial-hive-mind.md↔hive-mind.js: lens sets share only \"systems\"; ≥2-worker corroboration rule prose-only; md routes through verify-findings.js, js forbids it. C) build-loop.md↔_shared/delegation-tdd-checklist.md: delegated agents get a materially weaker TDD contract (no red-commit/tests_required, no TEST→IMPLEMENT gate); NO headless TDD prompt anywhere in workflows/loops — runners inherit only by invoking the skill. Fix direction = single-source organs as files both paths Read (agent() nodes can Read; Workflow JS itself cannot import — verify-findings.js:82), not a typed schema. Peers consulted: thebrana-84 (ADR-084: t-2834 not started, wrapper=de-facto station, Pocock practice = caller-owns-mode undeclared, diagnosing-bugs Ph3 has a station-suggested non-gating default; add denied verbs never gh issue create/.scratch/parent-issue/bump-upstream; wave_pull ignores blocked_by vs his frontier excludes blocked) and thebrana-1b (agrees; checklist scoped to station-bindings only; ~2 stations = 1 extraction TDD + 1 wiring verify-gates; manifest sketch = Non-Action evidence; dead-letter/ASSIMILATE/RESTART = loops-library gaps, cross-ref).\n2026-08-18: converged. ADR-085 (docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md, Proposed) written on branch brana-v3-redesign/design/t-2490-rethink-skills-atomic. Verdict: leave t-2278 as planned; no atom schema; atom contract = Pocock two-tier via ADR-084/t-2832 + ≥2-callers-or-headless floor; dual-mode gap resolves at runner layer (caller owns human mode). Follow-ups filed: t-2981 (tdd pilot, blocked_by t-2834), t-2982 (epic-drain fresh-context), t-2983 (phase-boundary tree → context-budget.md), t-2984 (prototype branch convention). t-2278 context updated. Peer session thebrana-50 (64be2e25) synthesizing in parallel — appending to skills-loops-graphs.md; duplicated-logic test delegated to it. BLOCKED on AC4's challenge: /brana:challenge --deep is disable-model-invocation:true — user must run it against ADR-085 (same block t-2837 hit).\n2026-08-18 CORRECTION to the \"(studio, user decision)\" note above: the operator decided ONLY \"caller owns human mode; station may suggest a default\". The station-manifest sketch itself was Claude's overshoot — recorded in skills-loops-graphs.md §Studio session (dec648e6) as Non-Action evidence, NOT a decision. ADR-085 D2 (no atom schema) stands. OPERATOR DIRECTION 2026-08-18: do not focus on ADRs yet — polish the idea first so ADRs become definitive and stop churning. Hold ADR-085 as Proposed, no challenge/drained-move/README churn until the idea docs are consolidated into ONE index doc with clearly referenced component docs (one owner per concept) and the \"wave pipeline\" umbrella is renamed (waves are one mechanism inside it).",
       "created": "2026-07-27",
       "description": "Design skills as atomic, reusable units that compose into complex procedures via loops and graphs, rather than as large monolithic procedures. Design and decision only — implementation lands as follow-up tasks this design defines.",
       "effort": "L",
@@ -76548,21 +76548,21 @@
         "t-2921"
       ],
       "branch": "time-tracking/feat/t-2922-metric-1-markers",
-      "completed": null,
-      "context": "Marker writes in build.md's LOAD/CLOSE steps, keyed by task_id, applies to ALL effort sizes (decoupled from the existing M+-only ~/.claude/run-state resume-checkpoint gate). Atomic writes (temp-file+rename) to $(git rev-parse --git-common-dir)/brana/time/&lt;task_id&gt;.jsonl. Git env scrubbed (H2: GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY/GIT_COMMON_DIR) for any subprocess mint executes. Serialized one-open-bracket-per-session enforced at LOAD. Fan-out/subagent time excluded from sum, coverage:partial flagged. Synchronous aggregation at CLOSE (store computed number, not a transcript pointer).",
+      "completed": "2026-08-18",
+      "context": "Marker writes in build.md's LOAD/CLOSE steps, keyed by task_id, applies to ALL effort sizes (decoupled from the existing M+-only ~/.claude/run-state resume-checkpoint gate). Atomic writes (temp-file+rename) to $(git rev-parse --git-common-dir)/brana/time/&lt;task_id&gt;.jsonl. Git env scrubbed (H2: GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY/GIT_COMMON_DIR) for any subprocess mint executes. Serialized one-open-bracket-per-session enforced at LOAD. Fan-out/subagent time excluded from sum, coverage:partial flagged. Synchronous aggregation at CLOSE (store computed number, not a transcript pointer).\nChallenger finding (iteration 1, 2026-08-18): RECONSIDER, 2 sev-4 findings. (1) CLOSE marker at close.md step 1.5 fires immediately after AC validation, before steps 2-14 (decision log, retrospective, docs generation, task update, GitHub sync, merge, post-merge validate, reconcile, living-docs update, report, ship) — silently truncates the measured window without a coverage flag (coverage:partial is reserved for subagent fan-out only). Fix: move the CLOSE marker to fire after step 13 (Report), before step 14 (Ship to main, which is periodic/optional and not this build's own effort). (2) time.rs::encode_project_path is a 3rd hand-rolled copy of the CC project-directory encoding, missing the legacy-encoding fallback (/  only, preserving _) that handoff.rs::encode_path_legacy already proved necessary for older CC versions — SIBLINGS: handoff.rs. Fix: mirror handoff.rs's dual-try resolution (current encoding first, legacy fallback second) in resolve_newest_transcript.",
       "created": "2026-08-17",
       "description": "Implement Metric 1 (ADR-083): wire START/CLOSE effort markers into build.md's LOAD and CLOSE steps, keyed by task_id, for all effort sizes. Markers write atomically (temp-file+rename) to $(git rev-parse --git-common-dir)/brana/time/<task_id>.jsonl, with git env scrubbed for any subprocess. Bracket-open is serialized per-worktree at LOAD (reject a second START while one is open in the same worktree). CLOSE performs synchronous aggregation (turn-delta summation with 15-min idle-gap capping, many-sub-spans rollup) and stores the computed number, not a transcript pointer; fan-out/subagent time is excluded from the sum and flagged coverage:partial. t-2921's tests (already merged/completed) define the contract this implementation must satisfy.",
       "effort": "M",
       "execution": "code",
-      "github_issue": null,
+      "github_issue": "1050",
       "id": "t-2922",
       "kind": "feature",
-      "notes": null,
+      "notes": "BUILD->CLOSE gate (validate.sh, 2026-08-18): 1 error only — Check 27 (autonomous-runner.sh background+wait anti-pattern), confirmed pre-existing and unrelated (last touched by t-2173, reproduces identically on dev before this branch's changes). Filed as t-2979 (not this task's scope, same precedent as t-2921's own gate note). Check 70 (hook-test-sweep, the flakiness t-2969 tracks) passed clean this run. Tests: cargo test -p brana-core -p brana-cli time_smoke/time_tracking — 12/12 + 13/13 pass, verified across repeated runs. Proceeding to CLOSE without a fully clean validate.sh run.\nChallenger: PROCEED WITH CHANGES (2026-08-18), 2 finding(s), max severity 3. Iteration 1: RECONSIDER (2 sev-4 — CLOSE-marker window truncation; missing legacy-encoding fallback), both fixed. Iteration 2: PROCEED WITH CHANGES — both fixes verified genuinely closed; 1 new sev-3 (no test covered the legacy-encoding fallback branch) closed directly with a new test (e1_legacy_encoded_project_dir_transcript_still_resolves), manually verified to fail without the fix and pass with it. 26/26 time-tracking tests green (13 brana-core unit, 13 brana-cli smoke).",
       "order": 0,
       "parent": "t-2915",
       "priority": null,
       "started": "2026-08-18",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "feature",
       "subject": "Implement Metric 1: START/CLOSE markers in build.md, brana/time/ storage",
       "tags": [],
@@ -77261,15 +77261,18 @@
       "work_type": "design"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
-        "cargo test -p brana-core classify_platform_youtube fails (red, pre-impl)"
+        "cargo test -p brana-core classify_platform_youtube fails (red, pre-impl)",
+        "yt-dlp subprocess wrapper tested against a recorded/fixture VTT, not live network",
+        "VTT cue-dedup function tested against a fixture with known word-level cue duplication",
+        "no-captions fixture (yt-dlp exit 0, zero subtitle files) asserts Ok(None), not just documented as a case"
       ],
       "blocked_by": [
         "t-2946"
       ],
-      "branch": null,
-      "completed": null,
+      "branch": "knowledge-pipeline/feat/t-2947-tests-youtube-classify-platform",
+      "completed": "2026-08-18",
       "context": null,
       "created": "2026-08-17",
       "description": "Write failing tests first (TDD): classify_platform() returns \"youtube\" for youtube.com/youtu.be URLs incl. shorts; yt-dlp subprocess wrapper (single-language command, explicit --socket-timeout 30) tested against a recorded/fixture VTT, not live network; VTT cue-dedup function produces plain text from a fixture with word-level cue duplication; NO-CAPTIONS FIXTURE -- yt-dlp exit 0 with zero subtitle files written must produce Ok(None)/stay-pending, never Completed (live-reproduced 2026-08-17 against https://www.youtube.com/watch?v=jNQXAC9IVRw -- real fixture case exists, not hypothetical).",
@@ -77278,25 +77281,20 @@
       "github_issue": null,
       "id": "t-2947",
       "kind": null,
-      "notes": null,
+      "work_type": "implement",
+      "notes": "Challenger: PROCEED WITH CHANGES (2026-08-18), 1 finding, max severity 2\nRetrospective: added 6 new tests (classify_platform_youtube ×3 URL forms, dedupe_vtt_cues ×2, resolve_youtube_captions ×4 incl. manual/auto precedence + no-captions Ok(None)) plus 3 stub pub fns (dedupe_vtt_cues, resolve_youtube_captions, fetch_youtube_content) with todo!() bodies so the crate compiles and the tests genuinely run-and-fail rather than fail-to-compile. Verified: cargo test -p brana-core — only the 6 new tests + a pre-existing unrelated red set (t-2922, time_tracking) fail; 832 pass; clippy clean (no new warnings); exit-contract-lint clean. Challenger: PROCEED WITH CHANGES (sev2, non-blocking) — carried the argv-construction regression-guard-test suggestion forward to t-2950's context. Docs generation skipped deliberately: this is the test-only sub-task of a larger phase (t-2942); the phase's tech doc is already tracked separately as t-2953, gated on t-2950 (the implementation task), not on this one. Reusable pattern captured: pattern_tdd-red-test-author-stub-with-todo.",
       "order": 0,
       "parent": "t-2942",
       "priority": "P2",
-      "proposed_acceptance_criteria": [
-        "cargo test -p brana-core classify_platform_youtube fails (red, pre-impl)",
-        "yt-dlp subprocess wrapper tested against a recorded/fixture VTT, not live network",
-        "VTT cue-dedup function tested against a fixture with known word-level cue duplication",
-        "no-captions fixture (yt-dlp exit 0, zero subtitle files) asserts Ok(None), not just documented as a case"
-      ],
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-18",
+      "status": "completed",
+      "strategy": "feature",
       "subject": "Tests: youtube classify_platform + yt-dlp fetch wrapper + VTT cleanup",
       "tags": [
         "test",
         "knowledge-pipeline"
       ],
-      "type": "task",
-      "work_type": "implement"
+      "type": "task"
     },
     {
       "ac_state": "none",
@@ -77363,11 +77361,15 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "cargo test -p brana-core passes",
         "file system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs contains \"youtube\"",
-        "no-captions fixture returns Ok(None) not Completed"
+        "no-captions fixture returns Ok(None) not Completed",
+        "no-captions fixture returns Ok(None), never Completed",
+        "process_one_url stores content.text unmodified for platform==\"youtube\" (not insight.summary), tags exactly [platform, \"transcript\", caption_source]",
+        "existing tests for linkedin/github/substack/arxiv/other tiers still pass unmodified",
+        "test_lock_discipline_source_tripwires (or a companion test in brana-core) covers knowledge_pipeline.rs, not just knowledge.rs"
       ],
       "blocked_by": [
         "t-2947",
@@ -77375,7 +77377,7 @@
       ],
       "branch": null,
       "completed": null,
-      "context": "Corrected 2026-08-18 to match the finalized ADR-070 amendment (t-2945, Accepted) and the feature spec (t-2946, docs/architecture/features/youtube-knowledge-extraction.md). yt-dlp command is now --write-sub AND --write-auto-sub (not auto-only -- a command that never requests manual captions can't honestly carry caption_source:manual) plus a -- separator before the URL (argv-injection guard, attacker-influenced input). process_one_url's Store arm must explicitly bypass extract_insight for platform==\"youtube\" and store content.text directly -- an earlier ADR draft claimed this path was \"unchanged,\" which the build-gate Challenger found false against live code (extract_insight LLM-summarizes for every tier today); tags become the fixed 3-element array [platform, \"transcript\", caption_source]. Also known: knowledge-vector-sync (t-2620) has no chunking and will silently truncate a long transcript's embedding to its opening content -- documented limitation, real fix tracked separately as t-2970, not this task's job.\n\nLock-discipline tripwire gap (fold into this task, not a separate one): test_lock_discipline_source_tripwires (brana-cli/src/commands/knowledge.rs) scans only knowledge.rs via include_str! -- it can't see fetch_url_content/fetch_youtube_content, which live in brana-core's knowledge_pipeline.rs. Extend the tripwire (or add a companion test in brana-core) alongside this implementation, not deferred.",
+      "context": "Corrected 2026-08-18 to match the finalized ADR-070 amendment (t-2945, Accepted) and the feature spec (t-2946, docs/architecture/features/youtube-knowledge-extraction.md). yt-dlp command is now --write-sub AND --write-auto-sub (not auto-only -- a command that never requests manual captions can't honestly carry caption_source:manual) plus a -- separator before the URL (argv-injection guard, attacker-influenced input). process_one_url's Store arm must explicitly bypass extract_insight for platform==\"youtube\" and store content.text directly -- an earlier ADR draft claimed this path was \"unchanged,\" which the build-gate Challenger found false against live code (extract_insight LLM-summarizes for every tier today); tags become the fixed 3-element array [platform, \"transcript\", caption_source]. Also known: knowledge-vector-sync (t-2620) has no chunking and will silently truncate a long transcript's embedding to its opening content -- documented limitation, real fix tracked separately as t-2970, not this task's job.\n\nLock-discipline tripwire gap (fold into this task, not a separate one): test_lock_discipline_source_tripwires (brana-cli/src/commands/knowledge.rs) scans only knowledge.rs via include_str! -- it can't see fetch_url_content/fetch_youtube_content, which live in brana-core's knowledge_pipeline.rs. Extend the tripwire (or add a companion test in brana-core) alongside this implementation, not deferred.\n2026-08-18: t-2947's Challenger gate (sev2, non-blocking) flagged that no regression-guard test yet pins fetch_youtube_content's argv construction (the `--` separator before the URL + --socket-timeout 30) — add one when implementing here so a future edit can't silently drop either flag.",
       "created": "2026-08-17",
       "description": "classify_platform() gains a \"youtube\" case; new fetch path shells out to `yt-dlp --skip-download --write-auto-sub --sub-langs \"en\" --sub-format vtt --socket-timeout 30` (single primary-language caption, explicit socket timeout -- yt-dlp has no default, confirmed via --help) with an outer ~60s process kill-timeout; VTT cue-dedup into plain text; store the real transcript through the EXISTING ruflo_memory_store(\"knowledge:url:<slug>\", ...) call every other tier uses, with caption_source: manual|auto carried as metadata on that value. No-captions case (yt-dlp exit 0, no subtitle file -- live-reproduced 2026-08-17, ~5.5s, confirmed exit code 0 with zero files written) must stay pending, never Completed. Wired into the existing drain-links scheduler job.",
       "effort": "M",
@@ -77387,14 +77389,6 @@
       "order": 0,
       "parent": "t-2942",
       "priority": "P2",
-      "proposed_acceptance_criteria": [
-        "cargo test -p brana-core passes",
-        "file system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs contains \"youtube\"",
-        "no-captions fixture returns Ok(None), never Completed",
-        "process_one_url stores content.text unmodified for platform==\"youtube\" (not insight.summary), tags exactly [platform, \"transcript\", caption_source]",
-        "existing tests for linkedin/github/substack/arxiv/other tiers still pass unmodified",
-        "test_lock_discipline_source_tripwires (or a companion test in brana-core) covers knowledge_pipeline.rs, not just knowledge.rs"
-      ],
       "started": null,
       "status": "pending",
       "subject": "Implement: youtube fetch tier (flat storage), wired into drain-links",
@@ -77469,9 +77463,11 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
-        "file docs/architecture/knowledge-pipeline.md contains \"youtube\""
+        "file docs/architecture/knowledge-pipeline.md contains \"youtube\"",
+        "doc documents the flat knowledge:url:<slug> storage decision (not a bundle) and the no-captions Ok(None) contract",
+        "doc documents the youtube-gets-its-own-scheduler-job decision, not per-platform sub-capping"
       ],
       "blocked_by": [
         "t-2950"
@@ -77490,11 +77486,6 @@
       "order": 0,
       "parent": "t-2942",
       "priority": "P3",
-      "proposed_acceptance_criteria": [
-        "file docs/architecture/knowledge-pipeline.md contains \"youtube\"",
-        "doc documents the flat knowledge:url:<slug> storage decision (not a bundle) and the no-captions Ok(None) contract",
-        "doc documents the youtube-gets-its-own-scheduler-job decision, not per-platform sub-capping"
-      ],
       "started": null,
       "status": "pending",
       "subject": "Docs: tech doc for the youtube fetch tier",
@@ -77537,9 +77528,11 @@
       "work_type": null
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
-        "cargo test -p brana-core youtube_backoff fails (red, pre-impl)"
+        "cargo test -p brana-core youtube_backoff fails (red, pre-impl)",
+        "test asserts a simulated HTTP 429 triggers backoff/retry, not an immediate error",
+        "test asserts cmd_drain_links's candidate filter (not select_drain_batch) is what splits youtube from the shared batch"
       ],
       "blocked_by": [
         "t-2946"
@@ -77558,11 +77551,6 @@
       "order": 0,
       "parent": "t-2942",
       "priority": "P2",
-      "proposed_acceptance_criteria": [
-        "cargo test -p brana-core youtube_backoff fails (red, pre-impl)",
-        "test asserts a simulated HTTP 429 triggers backoff/retry, not an immediate error",
-        "test asserts cmd_drain_links's candidate filter (not select_drain_batch) is what splits youtube from the shared batch"
-      ],
       "started": null,
       "status": "pending",
       "subject": "Tests: rate-limit backoff/retry + youtube's own scheduler job",
@@ -77574,9 +77562,13 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "proposed",
+      "ac_state": "approved",
       "acceptance_criteria": [
-        "cargo test -p brana-core passes"
+        "cargo test -p brana-core passes",
+        "a simulated yt-dlp HTTP 429 triggers backoff/retry with a bounded retry count",
+        "cmd_drain_links excludes youtube URLs from the existing drain-links --cap N batch; drain-links --platform youtube selects only youtube URLs",
+        "scheduler.template.json has a new youtube job entry with project set to ~/enter_thebrana/personal",
+        "select_drain_batch's .take(cap) logic is unmodified"
       ],
       "blocked_by": [
         "t-2955"
@@ -77595,13 +77587,6 @@
       "order": 0,
       "parent": "t-2942",
       "priority": "P2",
-      "proposed_acceptance_criteria": [
-        "cargo test -p brana-core passes",
-        "a simulated yt-dlp HTTP 429 triggers backoff/retry with a bounded retry count",
-        "cmd_drain_links excludes youtube URLs from the existing drain-links --cap N batch; drain-links --platform youtube selects only youtube URLs",
-        "scheduler.template.json has a new youtube job entry with project set to ~/enter_thebrana/personal",
-        "select_drain_batch's .take(cap) logic is unmodified"
-      ],
       "started": null,
       "status": "pending",
       "subject": "Implement: rate-limit backoff/retry + youtube's own scheduler job",
@@ -78286,6 +78271,245 @@
       ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "2026-08-18: surfaced again during t-2922 (time-tracking Metric 1 implementation) — validate.sh's only ERROR (Check 27), 265 warnings unrelated. system/scripts/autonomous-runner.sh uses a background+wait pattern instead of exec, which breaks stdin for MCP stdio per the check's own message. Last touched by t-2173 (egress allowlist), unrelated to this defect.",
+      "created": "2026-08-18",
+      "description": "validate.sh Check 27 fails: \"MCP wrapper script(s) use background+wait anti-pattern: autonomous-runner.sh — use exec instead (breaks stdin for MCP stdio)\". Confirmed pre-existing and reproduces identically on main dev (not introduced by t-2921 or t-2922) — both tasks proceeded to CLOSE without a clean validate.sh run because of this single unrelated failure. No task previously tracked it.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2979",
+      "kind": "fix",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "subject": "Fix validate.sh Check 27: autonomous-runner.sh background+wait anti-pattern",
+      "tags": [],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
+      "blocked_by": [],
+      "branch": "backlog-drain/design/t-2980-adr-085-wave-human-unit",
+      "build_step": null,
+      "completed": null,
+      "context": "Source: 2026-08-17/18 studio dialogue on Pocock adoption (this session, follows ADR-084/t-2837 pilot-only decision) — user framing verbatim intent: 'waves are testable (by contract) chunks, units of work a bit bigger than a task where AI can put something to work and I focus on another thing'; 'brana backlog is key because it gives continuity; if we use Pocock's approach we adapt to his tickets a bit'; 'context field is important — I just say do t-NNN and context gathers everything'. Grounding read this session: Pocock to-tickets/setup-matt-pocock-skills/issue-tracker-{github,local}.md at v1.2.3 (tracker-agnostic 'Other' backend = freeform prose; frontier excludes blocked tickets; ticket body = what-to-build/AC/blocked-by/status; ready-for-agent single label). Live wave evidence: 16 waves, 5 shipped, most shipped waves wip=1, wave-6 stalled by design on unapproved AC; brana-core wave_pull_decision filter = pending ∧ approved ∧ ¬parked (no blocked_by). ADR-078 lesson: derive, never store, a parallel state signal.\nAC: ADR-085 drafted in docs/architecture/decisions/ with the two-unit framing as opening, per-item decisions, non-decisions, and a candidate task table (S/M each)\nAC: every decision item cites the ADR/spec it amends (ADR-079 §2 filter, backlog-v3-schema D2/D3/D5, ADR-084 §3) — no orphan mechanism\nAC: ADR passed through /brana:challenge (user-run) with findings addressed or explicitly accepted\nAC: docs/README.md ADR index wired\n2026-08-18: ADR-085 drafted (docs/architecture/decisions/ADR-085-wave-as-human-unit-pocock-ticket-shape.md, branch backlog-drain/design/t-2980-adr-085-wave-human-unit, worktree ../thebrana-t-2980, commit 63c5da18). docs/README.md wired. Status: proposed — needs user-run /brana:challenge (disable-model-invocation; cannot be invoked from Skill tool). Candidate tasks T1–T7 listed in the ADR, not created until accepted.",
+      "created": "2026-08-18",
+      "description": "Draft ADR-085 settling how brana backlog adapts to Pocock's ticket/issue model without moving storage: opening framing = task is the agent's unit (one fresh context window, tested by AC), wave is the human's unit (one AFK/attention cycle, tested by contract) — task:AC :: wave:contract. Decisions: Pocock ticket body as brana ticket discipline; his five triage roles as DERIVED readiness vocabulary (ready-for-agent = the single pull-eligibility bit); frontier = ready ∧ unblocked ∧ unclaimed (blocked_by added to wave_pull_decision, amends ADR-079 §2); one standing wave for singletons, bespoke waves only for release units; contract as CHECK: lines (testable like AC); tracker doc docs/agents/issue-tracker.md + generated CONTEXT.md as the interop seam for his skills; comments = context appends with pointer discipline; waves the only process grouping. Explicit non-decisions: storage stays tasks.json, no field renames, no GitHub-as-canonical.",
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2980",
+      "kind": "design",
+      "notes": null,
+      "order": null,
+      "parent": "t-2811",
+      "priority": "P2",
+      "started": "2026-08-18",
+      "status": "in_progress",
+      "strategy": "feature",
+      "subject": "ADR-085: wave as the human unit — backlog speaks the Pocock ticket shape",
+      "tags": [
+        "backlog",
+        "waves",
+        "mattpocock-mining",
+        "adr",
+        "skills"
+      ],
+      "type": "task",
+      "work_type": "design"
+    },
+    {
+      "id": "t-2981",
+      "subject": "ADR-084 second pilot: vendor Pocock `tdd`, have build-loop.md call it (D4/D6 of ADR-085)",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "skills",
+        "v3",
+        "adr-085",
+        "adr-084",
+        "mattpocock-mining"
+      ],
+      "description": "Bounded second pilot of the ADR-084 vendor+wrap seam: install mattpocock/skills `tdd` pinned per ADR-084, wrap with a thin brana adapter, and have /brana:build's build-loop.md TDD step call it — the one extraction ADR-085 D4's floor admits for build (≥2 callers: build + fix; must run headless under a runner). Only proceed if t-2834 (diagnosing-bugs into /brana:fix) proves the seam; read the station contract off t-2834's adapter, don't design it abstractly (D6).",
+      "effort": "M",
+      "priority": "P3",
+      "parent": "t-2490",
+      "created": "2026-08-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-2834"
+      ],
+      "branch": null,
+      "context": "Source: ADR-085 (docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md) D4 + D6, brainstorm docs/ideas/skills-loops-graphs.md (t-2490, 2026-08-18). Blocked_by t-2834 by design — the evidence beat. Apply the station-admission checklist (queue · stop · packet in/out · dead-letter · judge policy · rooms · assimilate · restart) to THIS binding only; a manifest file is written only if a third binding repeats fields. Do not touch CLASSIFY/SPECIFY/DECOMPOSE or the gates — they stay in the build wrapper.\nAC: `tdd` vendored pinned per ADR-084 pin+sync policy, adapter ≤ ~15 lines mapping brana inputs (task packet, worktree) to its expectations\nAC: build-loop.md's TDD step invokes the adapter; /brana:fix can invoke the same adapter (≥2 callers proven)\nAC: one real build run through the wrapped tdd with the run recorded in task notes\nAC: station-admission checklist answered for this binding in the adapter's header comment",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2982",
+      "subject": "epic-drain step 4: state fresh-context-per-pull (runner spawns claude -p per task) as the default",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "loops",
+        "epic-drain",
+        "adr-085",
+        "docs"
+      ],
+      "description": "docs/guide/workflows/epic-drain.md step 4 currently runs /brana:backlog start inside the loop session, so beat context accumulates. ADR-060 already says the runner spawns `claude -p` in its own worktree per task. Amend step 4 (and the system/loops/epic-drain.md pointer if needed) to state fresh-context-per-pull as the default once unattended mode (ADR-062) lands — Pocock's `/clear`-between-tickets lesson, ADR-085 follow-up 2. Supervised mode note: today's inline run stays valid; the amendment names the target, not a behavior change now.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2490",
+      "created": "2026-08-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2983",
+      "subject": "Fold Pocock's ordered phase-boundary tree (continue/clear/handoff/subagent/compact) into context-budget.md",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "context-economy",
+        "rules",
+        "adr-085",
+        "mattpocock-mining",
+        "docs"
+      ],
+      "description": "system/rules/context-budget.md has the thresholds; brana's phase-boundary options (continue / /compact / close --continue handoff / subagent / /clear) are scattered across context-budget.md, close skill, and habit. Pocock's ask-matt + PHASE-BOUNDARIES.md state one ordered decision tree (rule out Continue first; /compact is the default at the bottom, not the first reach; /handoff only for new harness/dir/colleague/mid-phase fork). Add one short ordered section to context-budget.md mapping his five options onto brana's equivalents. Docs-only, ADR-085 follow-up 3. Verify current PHASE-BOUNDARIES.md text from the repo (raw fetch) before writing — don't paraphrase from memory.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2490",
+      "created": "2026-08-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2984",
+      "subject": "Spike ANSWER: keep the throwaway on prototype/<name>, link it from the graduated task (Pocock prototype-as-primary-source)",
+      "status": "pending",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "build",
+        "spike",
+        "adr-085",
+        "mattpocock-mining",
+        "docs"
+      ],
+      "description": "system/skills/build/phases/strategies.md spike ANSWER step: add the convention that a spike's throwaway code is kept as a primary source on a `prototype/<name>` branch (never merged, pointed at from the graduated feature task's context) rather than discarded. Borrowed from Pocock's `/prototype` (t-2830 research, ◐ match). ADR-085 follow-up 4, low priority. Docs/procedure only.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2490",
+      "created": "2026-08-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2985",
+      "subject": "Single-source drifted judgment organs (verdict rubric, repair loop, corroboration rule) as files both skill phases and agent() prompts Read; fix SPLIT/FALSE_POSITIVE contradiction (ADR-085 D4)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "skills",
+        "workflows",
+        "challenger",
+        "adr-085",
+        "dedup",
+        "v3"
+      ],
+      "description": "Duplicated-logic test (2026-08-18, thebrana-50 synthesis for t-2490) found three DRIFTED duplications between supervised skill phases and headless workflow/agent prompts, plus one live contradiction. Fix by single-sourcing each organ as one file both paths Read (agent() nodes can Read files; Workflow JS cannot import — verify-findings.js:82), then deleting the restatements. Not a typed schema (ADR-085 D2/D4).",
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2490",
+      "created": "2026-08-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Evidence (line refs as of 2026-08-18, re-verify before editing):\nA) system/skills/build/phases/verify-gates.md:101-102 ↔ system/agents/build-evaluator.md:55-67 — MET/PARTIAL/MISSED rubric restated. verify-gates.md:120-154 ↔ system/skills/_shared/challenger-gate.md:187-229 — repair loop near-verbatim. CONTRADICTION: challenger CALIBRATION.md:25-28 \"SPLIT never counted FALSE_POSITIVE\" vs .claude/workflows/verify-findings.js:27-28,110 \"ties drop to FALSE_POSITIVE\"; js emits UNVERIFIED (:111) absent from its own enum (:66); voter default drift inside verify-findings.js (:23 vs :29/:54).\nB) system/skills/_shared/adversarial-hive-mind.md ↔ .claude/workflows/hive-mind.js — lens sets share only \"systems\"; the ≥2-worker corroboration rule is prose-only; md routes through verify-findings.js, js forbids it.\nC) build-loop.md ↔ _shared/delegation-tdd-checklist.md — delegated agents get a weaker TDD contract (no red-commit/tests_required, no TEST→IMPLEMENT gate); no headless TDD prompt exists in any workflow/loop. C is owned by t-2981 (tdd pilot), not this task — cross-reference only.\nScope: pairs A and B. Decide the single-source file location per organ (candidates: system/agents/challenger/CALIBRATION.md for verdict rubric; a new _shared/ organ file for repair loop and corroboration rule) and make every consumer Read it. Resolve the SPLIT/FALSE_POSITIVE contradiction deliberately — one policy, recorded in the organ file, with the reason; do not just pick one silently. tests/workflows/ has verify-findings tests — extend them for the enum fix.\nAC: each of the A/B organs exists exactly once on disk; every former restatement replaced by a Read/pointer\nAC: SPLIT vs FALSE_POSITIVE policy is one documented rule, CALIBRATION.md and verify-findings.js agree, and a test asserts the tie/split verdict\nAC: UNVERIFIED either added to verify-findings.js's enum or no longer emitted; test covers it\nAC: grep for the rubric/repair-loop wording returns one hit",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2986",
+      "subject": "Add scrub_git_env to stacked_verdict.rs::current_repo_root (H2 gap)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [],
+      "description": "current_repo_root() in system/cli/rust/crates/brana-cli/src/commands/stacked_verdict.rs (~line 264-270) runs `Command::new(\"git\").current_dir(&cwd).args([\"rev-parse\", \"--show-toplevel\"])` with no scrub_git_env call. This is live production code backing `ac approve`'s grading-bundle line (compute_bundle) — a leaked GIT_DIR/GIT_WORK_TREE (e.g. inside a git hook environment) would silently resolve it to a foreign checkout and run/locate ac-grade.sh there. Same H2 class as t-2617/t-2501.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-08-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-08-18: surfaced by a second-variant finder during t-2922's (time-tracking Metric 1) rung-1 Challenger gate — blind diff-only sibling sweep for unscrubbed git-dir resolution call sites, since t-2922's own time.rs deliberately avoids the unscrubbed find_tasks_file/git_common_root path. Severity 3, not blocking for t-2922 (unrelated file, untouched by that diff).",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3,
@@ -78436,7 +78660,7 @@
       "id": "wave-16",
       "name": "youtube-phase1",
       "selector": "parent:t-2942",
-      "status": "queued",
+      "status": "draining",
       "wip_limit": 1
     }
   ]

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-18T12:53:16Z",
+  "generated": "2026-08-18T17:39:12Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2005,6 +2005,13 @@
         "system/scripts/check-worktree-divergence.sh"
       ]
     },
+    "docs/architecture/features/youtube-knowledge-extraction.md": {
+      "title": "YouTube knowledge extraction — Phase 1 (t-2946)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
+    },
     "docs/architecture/field-notes/fts5-memory-recall.md": {
       "title": "FTS5 Memory Recall Seam",
       "type": "Roadmap",
@@ -3601,7 +3608,9 @@
     "docs/ideas/task-time-tracking.md": {
       "title": "Project time & cost tracking — active effort and calendar cycle time",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/skills/build/phases/load.md`/"
+      ]
     },
     "docs/ideas/venture-playbook-product-management.md": {
       "title": "Venture Playbook & Product Management Layer",
@@ -12714,6 +12723,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/youtube-knowledge-extraction.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-knowledge-extraction.md",
+      "to": "docs/ideas/youtube-knowledge-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/hooks.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -16999,9 +17020,9 @@
     }
   ],
   "stats": {
-    "nodes": 591,
-    "edges": 2142,
+    "nodes": 592,
+    "edges": 2144,
     "typed_edges": 686,
-    "orphans": 159
+    "orphans": 158
   }
 }
