@@ -2634,6 +2634,27 @@ jumps over the lazy dog
         assert_eq!(calls, 1);
     }
 
+    // Regression (Challenger, t-2956 implementation gate): a non-429 error
+    // on a LATER retry attempt (after at least one genuine 429) must still
+    // return immediately, not get masked by the retry loop continuing on
+    // the strength of the earlier 429. Guards the `Err(e) if
+    // is_youtube_rate_limited(&e) => ... / Err(e) => return Err(e)` control
+    // flow against a future refactor silently reordering those arms.
+    #[test]
+    fn test_youtube_backoff_non_429_after_retry_still_returns_immediately() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|attempt| {
+            calls += 1;
+            if attempt == 0 {
+                Err(FIXTURE_STDERR_HTTP_429.to_string())
+            } else {
+                Err("ERROR: Unsupported URL".to_string())
+            }
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 2, "must stop at the first non-429 failure, not keep retrying past it");
+    }
+
     // AC (t-2955): a simulated HTTP 429 must trigger backoff/retry, not an
     // immediate error — asserted via call count, not just documented.
     #[test]

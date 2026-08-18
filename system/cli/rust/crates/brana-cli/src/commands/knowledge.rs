@@ -341,7 +341,20 @@ pub fn cmd_drain_links(
     };
 
     if candidates.is_empty() {
-        println!("No pending link tasks with a URL — nothing to drain.");
+        // An unrecognized --platform value fails closed (selects nothing,
+        // candidate_passes_platform_filter's `Some(_) => false` arm) —
+        // distinguish that from a legitimately empty batch rather than
+        // printing the same message either way (Challenger finding,
+        // t-2956 implementation gate).
+        match platform {
+            Some(p) if p != "youtube" => {
+                println!(
+                    "No candidates selected — \"{p}\" is not a recognized --platform value \
+                     (only \"youtube\" is supported today). Nothing was drained."
+                );
+            }
+            _ => println!("No pending link tasks with a URL — nothing to drain."),
+        }
         return Ok(());
     }
 
