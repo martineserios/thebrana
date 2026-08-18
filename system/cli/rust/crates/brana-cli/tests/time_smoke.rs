@@ -8,7 +8,6 @@
 //! here is expected to fail red until t-2922 implements the real logic.
 
 use assert_cmd::Command;
-use predicates::prelude::*;
 use std::path::{Path, PathBuf};
 
 const GIT_ENV: [&str; 6] = [
@@ -91,6 +90,38 @@ fn a1_second_start_in_same_worktree_is_rejected() {
         .failure();
 }
 
+/// Rung-2 concurrency-lock finder catch (2026-08-17): `a1` above is sequential — the
+/// first call fully completes before the second is even constructed, so it cannot
+/// distinguish a real TOCTOU-safe lock from a naive unlocked check-then-write. This
+/// test fires two `time start` calls at the SAME worktree with no serialization
+/// between them (a `Barrier` holds both threads until both are ready to launch their
+/// subprocess), asserting exactly one succeeds — the actual invariant the per-worktree
+/// lock exists to protect.
+#[test]
+fn a4_concurrent_starts_in_same_worktree_exactly_one_succeeds() {
+    let tmp = repo();
+    let root = tmp.path().to_path_buf();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+
+    let handles: Vec<_> = ["t-race-a", "t-race-b"]
+        .iter()
+        .map(|task_id| {
+            let root = root.clone();
+            let barrier = barrier.clone();
+            let task_id = task_id.to_string();
+            std::thread::spawn(move || {
+                barrier.wait();
+                brana(&root).args(["time", "start", &task_id]).ok().is_ok()
+            })
+        })
+        .collect();
+    let successes: usize = handles.into_iter().map(|h| h.join().unwrap()).filter(|ok| *ok).count();
+    assert_eq!(
+        successes, 1,
+        "expected exactly one concurrent `time start` to win the same-worktree lock"
+    );
+}
+
 #[test]
 fn a2_start_after_close_succeeds() {
     let tmp = repo();
@@ -117,16 +148,25 @@ fn b1_concurrent_writers_distinct_task_ids_no_corruption() {
     let tmp = repo();
     let root = tmp.path().to_path_buf();
     let n = 6;
-    // N real `brana` subprocesses, each starting+closing a DISTINCT task_id, all racing
-    // to write into the same brana/time/ directory (shared, git-common-dir-scoped).
-    // Each writer uses its own worktree so the per-worktree lock doesn't itself
-    // serialize them — the thing under test is the shared *data store*'s atomicity.
-    let handles: Vec<_> = (0..n)
-        .map(|i| {
-            let base = root.clone();
+    // Pre-create all N worktrees SEQUENTIALLY first, outside the timed region — `git
+    // worktree add`'s own internal repo-state locking (rung-2 concurrency-lock finder,
+    // 2026-08-17) otherwise staggers thread start times enough to reduce genuine
+    // overlap at the shared brana/time/ writes, weakening this test's evidentiary
+    // value. A Barrier then holds all N threads until every worktree exists and every
+    // thread is ready, so the actual start+close calls fire as close to simultaneously
+    // as possible — that's the thing under test, not worktree setup.
+    let worktrees: Vec<PathBuf> = (0..n)
+        .map(|i| add_worktree(&root, &format!("wt-b{i}"), &format!("feat/b{i}")))
+        .collect();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(n));
+    let handles: Vec<_> = worktrees
+        .into_iter()
+        .enumerate()
+        .map(|(i, wt)| {
+            let barrier = barrier.clone();
             std::thread::spawn(move || {
-                let wt = add_worktree(&base, &format!("wt-b{i}"), &format!("feat/b{i}"));
                 let task_id = format!("t-b{i}");
+                barrier.wait();
                 brana(&wt).args(["time", "start", &task_id]).assert().success();
                 brana(&wt).args(["time", "close", &task_id]).assert().success();
                 task_id
@@ -198,22 +238,57 @@ fn c2_leaked_git_dir_does_not_relocate_the_open_bracket_lock() {
 
 // ---- Group D: corrupt-store-not-clobbered ----------------------------------------
 
+/// Rung-2 design fix (2026-08-17): the data store is a blind `O_APPEND` log (see
+/// spec Decision #2), not a read-modify-write document — appending a new line never
+/// needs to parse or validate what's already in the file, so a pre-existing corrupt
+/// line does NOT block a new bracket from opening (unlike `queue.rs`'s
+/// `parse_before_write_never_clobbers_corrupt_store`, which applies to the
+/// LOCK file's read-modify-write, not this file). What must hold: the append succeeds,
+/// the corrupt prefix is never truncated/rewritten, and the new line is well-formed —
+/// data-quality issues in old lines are an aggregation-time concern (a later,
+/// unbuilt task), not a write-time one.
 #[test]
-fn d1_corrupt_data_store_is_not_silently_overwritten() {
+fn d1_corrupt_data_store_does_not_block_append_and_is_never_truncated() {
     let tmp = repo();
     let path = data_store_path(tmp.path(), "t-1");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    std::fs::write(&path, "{not valid jsonl at all").unwrap();
+    std::fs::write(&path, "{not valid jsonl at all\n").unwrap();
 
-    // Starting a bracket for a task_id whose store file is already corrupt must error
-    // with a message that names the real cause, not just fail for any reason (a stub
-    // panic also exits non-zero — that must NOT count as passing this test) — parse-
-    // before-write, queue.rs-shaped: `parse_before_write_never_clobbers_corrupt_store`.
-    brana(tmp.path())
-        .args(["time", "start", "t-1"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("corrupt").or(predicate::str::contains("parse")));
+    brana(tmp.path()).args(["time", "start", "t-1"]).assert().success();
+
     let content = std::fs::read_to_string(&path).unwrap();
-    assert_eq!(content, "{not valid jsonl at all", "corrupt store was overwritten");
+    assert!(
+        content.starts_with("{not valid jsonl at all\n"),
+        "the pre-existing corrupt line was truncated or rewritten: {content:?}"
+    );
+    let appended: Vec<&str> = content
+        .lines()
+        .skip(1)
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+    assert_eq!(appended.len(), 1, "expected exactly one new line appended: {content:?}");
+    let _: serde_json::Value = serde_json::from_str(appended[0])
+        .unwrap_or_else(|e| panic!("appended line is not valid JSON: {e}"));
+}
+
+/// A lock file left behind by a crash (a `Start` that never got `Close`d — no OS
+/// mechanism reclaims ordinary file content, unlike the transient `lock_sidecar`
+/// flock which the kernel releases on process death). The next `time start`/`close`
+/// in that worktree must produce a clean, named-cause outcome, not a silent hang or
+/// an unrelated crash.
+#[test]
+fn d2_stale_open_bracket_lock_after_crash_is_handled_cleanly() {
+    let tmp = repo();
+    let lock_path = tmp.path().join(".git/brana-time-open-bracket.json");
+    std::fs::write(&lock_path, r#"{"task_id":"t-crashed","opened_at":"2020-01-01T00:00:00Z"}"#)
+        .unwrap();
+
+    // A start for a DIFFERENT task_id must be refused — the stale lock still says a
+    // bracket is open, exactly as if the crashed session were still running.
+    brana(tmp.path()).args(["time", "start", "t-1"]).assert().failure();
+
+    // Closing the crashed task_id's own bracket must succeed and clear the lock,
+    // regardless of how long ago `opened_at` claims it was opened.
+    brana(tmp.path()).args(["time", "close", "t-crashed"]).assert().success();
+    assert!(!lock_path.exists(), "stale lock not cleared after closing its own task_id");
 }
