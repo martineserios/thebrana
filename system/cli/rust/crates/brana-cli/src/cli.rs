@@ -1677,5 +1677,10 @@ pub enum TimeCmd {
     Close {
         /// Task ID (e.g. t-2921)
         task_id: String,
+        /// Mark this bracket's duration as partial coverage — set when the session
+        /// delegated meaningful work to subagents/forks whose own time isn't summed
+        /// into this bracket (ADR-083; fan-out time is v1-excluded, not estimated)
+        #[arg(long)]
+        partial: bool,
     },
 }
