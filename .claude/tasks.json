@@ -63296,7 +63296,13 @@
     },
     {
       "ac_state": "none",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "skill audit produced — each existing skill classified composite vs atomic, with the granularity floor stated and justified",
+        "atom contract defined (typed input/output, invocation surface for both human and graph callers)",
+        "explicit verdict on whether t-2278's de-risked scope should be reopened, with evidence — \"leave t-2278 as planned\" is an acceptable and recordable outcome",
+        "ADR written if load-bearing, with Non-Actions recording what decomposition was explicitly NOT adopted",
+        "follow-up implementation tasks filed, or an explicit note that none are needed"
+      ],
       "blocked_by": [
         "t-2488"
       ],
@@ -63324,7 +63330,8 @@
       ],
       "type": "task",
       "work_type": "design",
-      "strategy": "feature"
+      "strategy": "feature",
+      "build_step": "classify"
     },
     {
       "ac_state": "none",
@@ -73986,7 +73993,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Read first: docs/ideas/wave-pipeline.md (§The spectrum, §The skeleton match, §The five pillars), docs/research/2026-08-13-matt-pocock-skill-system.md, brana-knowledge/dimensions/60-agent-loop-architecture.md. Discipline: loop first, redesign after (t-1994 lesson) — this task delivers a map + ranked moves, never a big-bang rewrite; enforcement layer stays untouched.\nAC: every brana skill positioned on a skeleton-step × band grid (one table)\nAC: shared organs named with their current duplication sites listed\nAC: refactor moves ranked by observed friction, each sized and scoped to one wave slot\nAC: explicit reconciliation with t-2831–t-2836 — overlaps named, no double-build\n2026-08-14 STARTING MAP (studio session, grounded in 30d telemetry: 860 invocations, backlog 334 + build 244 = 67%): KEEP-SPINE (~15): backlog, build, docs, do, close, challenge, sitrep, ship, brainstorm, reconcile, acquire-skills, research, retrospective (merge-into-close candidate), export-pdf, plugin, meta-templates, client-retire (law-7 keeper despite 0 uses — rarity ≠ worthlessness for lifecycle skills). FOLD: fix→build bug-fix strategy (0 uses in 30d; t-2834 retargets there), decide + product-brainstorming → brainstorm(+grilling organ), onboard + claudemd → align (scan/audit modes), memory/discover/log/gemini/gsheets → CLI + rules cover them. LOOP-IFY (skills that are really beat bodies): repo-cleanup→cleanup pump, verify-docs→doc-drift gauge, review→metrics loop, cargo-machete→CI check. SHELF (retire from residency, re-acquire on demand): bash-defensive-patterns, domain-driven-design, grad-mechanism-design, design-system, web-design-guidelines, mcp-builder, impeccable (452K / 3 uses — consolidate frontend trio with frontend-design plugin); rust-skills stays resident (8 uses). Caveat: 30d window under-samples slow-cadence skills — low count alone never executes a kill. Pocock integration modes + update-valve discipline: see research doc §7 (depend/adapt/skip, pin + release-watch gauge + human bump valve, license gate). Net target: ~8 spine + ~6 organs (some upstream) + ~5 armed loops + on-demand shelf.\n2026-08-14 (valve-order challenge): unblocked today — the \"later\" placement was narrative, not graph-enforced. Parallel-eligible with the wave-3 drain; map-only deliverable, so no collision with the ADR-080 build.\n2026-08-14 (friction evidence, live drain): the merge valve's mechanical half needs tooling — `brana merge <task-id>` (or wave-aware `brana valve merge`): refuses to run outside the main checkout, executes merge --no-ff with the conventional message, verifies merge-base --is-ancestor afterward, then reaps worktree+branch. Trap class it deletes: merge run from inside a worktree silently no-ops (\"Already up to date\") — hit 3x on 2026-08-14 alone, the third time by the HUMAN at a live merge valve (pattern_worktree-merge-must-run-from-main-checkout). High-frequency friction (every valve turn), small S-shaped fix; rank accordingly in the friction-ordered refactor list. Pairs naturally with t-2857 (stacked verdict renders, this executes).",
+      "context": "2026-08-17: Deep-dive research pass on Pocock's public content (YouTube not fetchable, but X/aihero.dev/third-party comparison covered equivalent ground) — beyond t-2830's skill-file reading, into his stated methodology. Full synthesis: /tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/64be2e25-9cdc-431a-ab9f-e96d4ca49835/scratchpad/pocock-methodology-synthesis.md (not yet moved into docs/research/ — ephemeral scratch path per cwd-discipline.md until promoted).\nHeadline verdict: CONFIRMS this task's 2026-08-14 KEEP-SPINE map. His stated critique target is process *opacity* (frameworks that \"own the process,\" name-checking GSD/BMAD/Spec-Kit), not verification depth — brana's evaluator/challenger/wave substrate is transparent and human-gated, so it falls outside his own critique; a third-party \"three philosophies\" comparison independently places him at the lightest-weight end of the spectrum, arguing against importing his model into `challenge` specifically. No evidence found for a bigger rethink than internal-refactor-not-replace.\nPer-skill: brainstorm confirmed KEEP-SPINE + one narrow adoptable gap (his grill-me hard-blocks artifact creation until shared understanding confirmed — audit whether brana's brainstorm enforces the same gate). build confirmed KEEP-SPINE, reinforces the already-known expand-contract gap (still unclaimed), surfaces one genuine NEW disagreement: he splits refactor out of the TDD loop into code-review, contradicting brana's inline red-green-refactor (sdd-tdd.md) — real fork, not settled, needs an explicit decision not silent inheritance. close/sitrep: no new evidence either way. challenge: strongest confirmation, explicitly logged as CONFIRM-AS-IS so it isn't re-litigated without new evidence.\nThree new scored candidates (not overlapping t-2830's P1-P10): N1 ADOPT/S (audit brainstorm's alignment gate), N2 INVESTIGATE-not-blind-adopt/M (TDD refactor-placement — needs a small spike/trial before deciding either way), N3 CONFIRM-AS-IS (challenge, no action).",
       "created": "2026-08-14",
       "description": "Studio deliverable from the 2026-08-14 frequency/five-pillar dialogue (wave-pipeline.md §The five pillars, commit 60dfe445). The lived-practice skills (brainstorm, build+steps, challenge, close, sitrep, reconcile, …) occupy the right skeleton positions but factor by occasion, not anatomy — monoliths spanning multiple skeleton steps and bands, shared organs (interviewing, learning-extraction, verification, handoff-writing) duplicated inside several skills. Produce the refactor MAP, not a big-bang refactor: (1) position every skill on the skeleton-step × band grid; (2) name the shared organs to extract (Pocock grilling/tdd thin-organ pattern); (3) rank refactor moves by observed friction; (4) reconcile with the already-queued Pocock moves t-2831–t-2836 (wave:drain-3) so nothing double-builds. Refactors themselves are pulled incrementally, wave by wave, per the loop-first discipline.",
       "effort": "M",
@@ -76516,7 +76523,7 @@
         "All 8 named test cases (4 unit t-2965, 4 integration t-2966) exist and compile"
       ],
       "kind": "feature",
-      "notes": "SPECIFY-stage challenger: RECONSIDER (2026-08-17) — caught 2 critical design errors before DECOMPOSE: (1) md5(cwd) transcript-path hypothesis factually wrong, corrected to session.rs::encode_path(); (2) BRANA_SESSION_ID-scoped bracket serialization unverifiable, redesigned to per-worktree lock (git rev-parse --git-dir) needing no env var. Spec revised in place, both fixes independently verified against source before applying.",
+      "notes": "SPECIFY-stage challenger: RECONSIDER (2026-08-17) — caught 2 critical design errors before DECOMPOSE: (1) md5(cwd) transcript-path hypothesis factually wrong, corrected to session.rs::encode_path(); (2) BRANA_SESSION_ID-scoped bracket serialization unverifiable, redesigned to per-worktree lock (git rev-parse --git-dir) needing no env var. Spec revised in place, both fixes independently verified against source before applying.\nBUILD->CLOSE gate skipped (validate.sh, 2026-08-17): validate.sh fails on 2 checks, both confirmed pre-existing/unrelated to this diff (system/cli/rust/ + docs only, zero hook/session-start touches): (1) Check 27 autonomous-runner.sh anti-pattern -- reproduces identically on main dev. (2) Check 70 hook-test-sweep test-session-start-hybrid-recall.sh -- passes 4/4 standalone and on main dev, fails only when run via the sweep from this worktree; hook-test-sweep.sh's own source documents known pre-existing cross-suite state-pollution flakiness. Filed as t-2969 for real investigation (not this task's scope). Proceeding to CLOSE without a clean validate.sh run.",
       "order": 0,
       "parent": "t-2915",
       "priority": null,
@@ -77907,7 +77914,7 @@
     {
       "id": "t-2968",
       "subject": "Re-challenge docs/ideas/youtube-knowledge-extraction.md before starting t-2945",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -77924,12 +77931,37 @@
       "blocked_by": [],
       "branch": null,
       "context": "Filed 2026-08-17 at session close. docs/ideas/youtube-knowledge-extraction.md changed substantially after its first /brana:challenge pass (3 CRITICAL findings, corrected t-2945's scope). A fresh /brana:challenge relaunch (agentId a38dcb864b4834c4f) was reportedly running concurrently in a prior session on this doc — its outcome is unverified (t-2954's own investigation found the challenge orchestrator can silently die mid-run, context:fork now removed as of t-2954's fix). Before starting t-2945 (ADR-070 youtube tier), verify whether that relaunch produced a report; if not, or if stale, re-run /brana:challenge on the doc now that the orphaning bug is fixed.",
-      "notes": null,
+      "notes": "Verified: relaunch (agentId a38dcb864b4834c4f) completed successfully, did not orphan. Full report synthesized 2026-08-17T16:37:47Z, 9 findings (3 CRITICAL, 6 WARNING) logged to decision log against docs/ideas/youtube-knowledge-extraction.md. Doc mtime (17:08:39Z) is ~31min after report completion — confirmed this is the doc being edited to incorporate the findings (not a later un-reviewed edit): doc contains explicit \"Corrected by /brana:challenge\" sections, rewritten Risks/Next steps, and a Challenge findings section citing the decision log. No re-challenge needed. Doc is current and ready for t-2945.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "review",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-2969",
+      "subject": "Investigate flaky test-session-start-hybrid-recall.sh under hook-test-sweep in worktrees",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-08-17",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Discovered 2026-08-17 during t-2921 CLOSE (unrelated diff: system/cli/rust/ + docs only). validate.sh Check 70 (hook-test-sweep.sh) failed test-session-start-hybrid-recall.sh consistently (2/2 runs) when run from worktree ../thebrana-t-2921, but: (a) passed cleanly on main dev checkout same session (2/2 runs including a full validate.sh pass), (b) passed 4/4 when run standalone (bash system/hooks/tests/test-session-start-hybrid-recall.sh) even from within the same worktree. HOOK_TEST_SWEEP_CONCURRENCY confirmed unset (default=1, serial) in both cases -- not a concurrency-count issue. hook-test-sweep.sh's own source comment (line 19) already documents prior flakiness at higher concurrency ('CONCURRENCY=8 run measured 3 suites flaking that pass cleanly serial'), suggesting shared-state pollution between suites in the sweep is a known fragility class here, not new. Likely cause: some earlier suite in the sweep leaks state (probably under ~/.claude/) that the hybrid-recall test reads, and worktree-vs-main-checkout path differences (e.g. encode_path()-based project-dir resolution differing per cwd) change which polluted state gets read. Needs: reproduce with bisection (run sweep with subsets of suites to find the polluting suite), check what shared path test-session-start-hybrid-recall.sh reads that isn't request-scoped/tempdir-isolated.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
       "ac_state": "none"
     }
   ],
