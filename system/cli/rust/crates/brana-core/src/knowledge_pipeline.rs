@@ -615,10 +615,8 @@ pub fn extract_urls_from_text(text: &str) -> Vec<String> {
 
 /// Classify a URL's platform.
 ///
-/// Returns one of: `"linkedin"`, `"github"`, `"substack"`, `"arxiv"`, `"other"`.
-/// A `"youtube"` case is TDD-red as of t-2947 (test:
-/// `test_classify_platform_youtube` below) — implementation lands in the
-/// follow-up task per docs/architecture/features/youtube-knowledge-extraction.md §1.
+/// Returns one of: `"linkedin"`, `"github"`, `"substack"`, `"arxiv"`,
+/// `"youtube"`, `"other"`.
 pub fn classify_platform(url: &str) -> &'static str {
     if url.contains("linkedin.com") {
         "linkedin"
@@ -628,6 +626,8 @@ pub fn classify_platform(url: &str) -> &'static str {
         "substack"
     } else if url.contains("arxiv.org") {
         "arxiv"
+    } else if url.contains("youtube.com") || url.contains("youtu.be") {
+        "youtube"
     } else {
         "other"
     }
@@ -1634,8 +1634,49 @@ pub fn resolve_youtube_captions(
     manual_vtt: Option<&str>,
     auto_vtt: Option<&str>,
 ) -> Result<Option<(String, YoutubeCaptionSource)>> {
-    let _ = (manual_vtt, auto_vtt);
-    todo!("t-2950: implement — manual/auto precedence over dedupe_vtt_cues")
+    if let Some(vtt) = manual_vtt {
+        return Ok(Some((dedupe_vtt_cues(vtt), "manual")));
+    }
+    if let Some(vtt) = auto_vtt {
+        return Ok(Some((dedupe_vtt_cues(vtt), "auto")));
+    }
+    Ok(None)
+}
+
+/// Extract each cue's text from a VTT document, in order. Pure text
+/// parsing — no timestamp arithmetic needed, only "does this block have a
+/// `-->` line" to distinguish a cue block from the `WEBVTT` header or a
+/// bare cue identifier line.
+fn parse_vtt_cue_texts(vtt: &str) -> Vec<String> {
+    let mut cues = Vec::new();
+    for block in vtt.split("\n\n") {
+        let mut text_lines: Vec<&str> = Vec::new();
+        let mut seen_timing_line = false;
+        for line in block.lines() {
+            if line.contains("-->") {
+                seen_timing_line = true;
+                continue;
+            }
+            if seen_timing_line {
+                text_lines.push(line);
+            }
+        }
+        if seen_timing_line {
+            let text = text_lines.join(" ").trim().to_string();
+            if !text.is_empty() {
+                cues.push(text);
+            }
+        }
+    }
+    cues
+}
+
+/// Whether `cue` is `prefix` plus zero or more additional whole words —
+/// i.e. `prefix` is a growing run's earlier, shorter cue and `cue` is its
+/// next incremental reveal. Word-boundary-checked so `"the quick"` does not
+/// falsely match `"the quickest"`.
+fn extends_cue(cue: &str, prefix: &str) -> bool {
+    cue.strip_prefix(prefix).is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
 }
 
 /// Remove `yt-dlp` auto-caption's word-level cue duplication, producing
@@ -1644,8 +1685,17 @@ pub fn resolve_youtube_captions(
 /// collapses each growing run down to its final, longest cue. Pure, no I/O;
 /// never store raw VTT (feature spec §2).
 pub fn dedupe_vtt_cues(vtt: &str) -> String {
-    let _ = vtt;
-    todo!("t-2950: implement")
+    let mut runs: Vec<String> = Vec::new();
+    for cue in parse_vtt_cue_texts(vtt) {
+        match runs.last() {
+            Some(prev) if extends_cue(&cue, prev) => {
+                let last = runs.last_mut().expect("checked Some above");
+                *last = cue;
+            }
+            _ => runs.push(cue),
+        }
+    }
+    runs.join(" ")
 }
 
 /// Fetch a YouTube video's captions via `yt-dlp` (ADR-070 §Amendment,
