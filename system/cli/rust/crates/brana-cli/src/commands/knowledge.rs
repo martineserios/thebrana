@@ -2210,6 +2210,68 @@ mod tests {
         );
     }
 
+    // ── process-url Store arm: youtube bypasses extract_insight (t-2950) ──
+    // resolve_store_value takes the already-extracted insight as a parameter
+    // rather than calling kp::extract_insight itself, so these tests exercise
+    // the storage decision without extract_insight's real agy/claude -p
+    // subprocess calls (same "test the decision, not the I/O" discipline as
+    // resolve_process_url_outcome above).
+
+    #[test]
+    fn test_resolve_store_value_youtube_stores_text_unmodified_with_transcript_tags() {
+        let fetched = kp::FetchedContent {
+            text: "the full transcript text, unsummarized".into(),
+            platform: "youtube",
+            caption_source: Some("manual"),
+        };
+        let (value, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(value, "the full transcript text, unsummarized");
+        assert_eq!(tags, vec!["youtube", "transcript", "manual"]);
+    }
+
+    #[test]
+    fn test_resolve_store_value_youtube_auto_caption_source_tag() {
+        let fetched = kp::FetchedContent {
+            text: "auto-captioned transcript".into(),
+            platform: "youtube",
+            caption_source: Some("auto"),
+        };
+        let (_, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+    }
+
+    #[test]
+    fn test_resolve_store_value_non_youtube_uses_insight_summary_and_topic() {
+        // Regression guard (t-2950 AC): every non-youtube tier's existing
+        // extract_insight summarization behavior must stay unchanged.
+        let fetched = kp::FetchedContent {
+            text: "raw fetched content, never stored directly for this platform".into(),
+            platform: "github",
+            caption_source: None,
+        };
+        let insight = kp::ExtractedInsight {
+            summary: "a short summary".into(),
+            topic: "software".into(),
+            extraction_skipped: false,
+        };
+        let (value, tags) = resolve_store_value(&fetched, Some(&insight));
+        assert_eq!(value, "a short summary");
+        assert_eq!(tags, vec!["github", "software"]);
+    }
+
+    // Boundary (t-2950): caption_source should always be Some for a
+    // Store-reachable youtube FetchedContent (fetch_youtube_content only
+    // returns Some(FetchedContent) when it found captions), but the
+    // storage decision must not panic if that invariant is ever violated —
+    // fail safe to "auto" rather than crash the drain.
+    #[test]
+    fn test_resolve_store_value_youtube_missing_caption_source_defaults_to_auto() {
+        let fetched =
+            kp::FetchedContent { text: "transcript".into(), platform: "youtube", caption_source: None };
+        let (_, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+    }
+
     // ── process-url batch mode (t-2451) ──────────────────────────────
 
     #[test]
