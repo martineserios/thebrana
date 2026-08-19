@@ -2793,6 +2793,46 @@ mod tests {
         assert_eq!(content.platform, "other");
     }
 
+    // Companion to knowledge.rs's test_lock_discipline_source_tripwires
+    // (t-2950 AC): that test scans brana-cli's knowledge.rs via
+    // include_str! and cannot see fetch_url_content/fetch_youtube_content,
+    // which live here in brana-core. Structural guarantee: neither ever
+    // acquires the pipeline lock (ADR-070 §Lock discipline) — a lock held
+    // across fetch_youtube_content's yt-dlp subprocess call would stall
+    // every other pipeline writer for the duration of a network fetch.
+    #[test]
+    fn test_lock_discipline_source_tripwires_youtube_fetch() {
+        let src = include_str!("knowledge_pipeline.rs");
+
+        let fuc_start = src.find("pub fn fetch_url_content").expect("fetch_url_content exists");
+        let fuc_end = src[fuc_start..]
+            .find("\nconst LINKEDIN_MCP_TIMEOUT_SECS")
+            .map(|i| fuc_start + i)
+            .expect("LINKEDIN_MCP_TIMEOUT_SECS follows fetch_url_content");
+        assert!(
+            !src[fuc_start..fuc_end].contains("lock_pipeline("),
+            "fetch_url_content must never acquire the pipeline lock (ADR-070 §Lock discipline)"
+        );
+
+        // Covers the whole youtube-fetch helper chain, not just the public
+        // fetch_youtube_content entry point — build_yt_dlp_caption_args,
+        // resolve_yt_dlp_binary, ScopedYtDlpWorkDir, run_yt_dlp_captions,
+        // and determine_youtube_caption_source all live BEFORE
+        // fetch_youtube_content in source order, so a narrower scan
+        // anchored only on the pub fn would miss them.
+        let fyc_start =
+            src.find("const YT_DLP_CAPTION_BASENAME").expect("youtube fetch helper block exists");
+        let fyc_end = src[fyc_start..]
+            .find("\n// ── YouTube rate-limit backoff/retry (t-2955 tests")
+            .map(|i| fyc_start + i)
+            .expect("the backoff/retry section follows the youtube fetch helper block");
+        assert!(
+            !src[fyc_start..fyc_end].contains("lock_pipeline("),
+            "fetch_youtube_content and its helpers must never acquire the pipeline lock — \
+             it spawns a yt-dlp subprocess and must not stall other pipeline writers"
+        );
+    }
+
     // ── YouTube caption fetch (t-2947, TDD-red pre-impl) ────────────────
     // dedupe_vtt_cues / resolve_youtube_captions are pure — no subprocess,
     // no network — so they're exercised directly against fixture VTT text,
