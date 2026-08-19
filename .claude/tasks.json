@@ -78789,7 +78789,7 @@
     {
       "id": "t-2996",
       "subject": "Feature spec: youtube channel ingestion Tier A",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "design",
       "tags": [
@@ -78803,18 +78803,19 @@
       "priority": "P2",
       "parent": "t-2993",
       "created": "2026-08-19",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-19",
+      "completed": "2026-08-19",
       "blocked_by": [],
-      "branch": null,
+      "branch": "knowledge-pipeline/design/t-2996-feature-spec-channel-ingestion",
       "context": "Written 2026-08-19 as the direct continuation of t-2994's spike findings (ADR-070 amendment, commit c387b37a). Mirrors t-2946's shape for Phase 1: ADR (t-2945) -> spec (t-2946) -> decomposition. Here: ADR amendment (t-2994) -> this spec -> decomposition into t-2993's implementation tasks.",
-      "notes": null,
+      "notes": "Spec written and committed (e55d17cb). Mirrors t-2946's shape for Phase 1. Ready for decomposition into t-2993's Tier A implementation tasks per the spec's Follow-up section.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": null,
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature"
     }
   ],
   "version": 3,
