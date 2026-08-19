@@ -2177,7 +2177,7 @@ mod tests {
 
     #[test]
     fn process_url_empty_content_stores_nothing() {
-        let fetched = kp::FetchedContent { text: String::new(), platform: "other" };
+        let fetched = kp::FetchedContent { text: String::new(), platform: "other", caption_source: None };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2189,7 +2189,8 @@ mod tests {
         // Boundary: strip_html_to_text on a JS-only page yields whitespace,
         // not an empty string. Storing that would poison the namespace with
         // an entry that looks real to search and contains nothing.
-        let fetched = kp::FetchedContent { text: "   \n\t  ".into(), platform: "other" };
+        let fetched =
+            kp::FetchedContent { text: "   \n\t  ".into(), platform: "other", caption_source: None };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2201,6 +2202,7 @@ mod tests {
         let fetched = kp::FetchedContent {
             text: "A genuine paragraph of fetched content worth keeping around.".into(),
             platform: "other",
+            caption_source: None,
         };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
