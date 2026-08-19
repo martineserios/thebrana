@@ -81,10 +81,10 @@ Reuse `display-themes.md`'s exact connector convention — don't invent a parall
 
 ```
 epic-cc-alignment
-├── t-2991  Skill: proactive terminal diagrams
+├── t-2991  proactive terminal diagrams
 │   ├── t-2991a  rule trigger heuristic
-│   └── t-2991b  skill reference file
-└── t-2837  upstream skill band ADR
+│   └── t-2991b  reference file
+└── t-2837  upstream authoring guideline
 ```
 
 ### 3. Comparison table
