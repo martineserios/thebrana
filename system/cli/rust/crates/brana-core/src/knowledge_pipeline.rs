@@ -1729,9 +1729,19 @@ const YT_DLP_CAPTION_BASENAME: &str = "video";
 /// stdout in the SAME invocation that writes the subtitle files — one
 /// subprocess call, not two, per the spec's "no new dependency, one
 /// subprocess call" constraint.
+///
+/// **`--no-simulate` is required** — `-j`/`--dump-json` implies
+/// `--simulate` on its own (yt-dlp's documented behavior for its
+/// info-only flags), which suppresses every disk write including
+/// `--write-sub`/`--write-auto-sub`. Without this flag every real
+/// invocation would silently resolve as "no captions" regardless of
+/// ground truth (Challenger finding, t-2950 iteration 1) — exactly the
+/// class of bug ("fetch appears to succeed, content never lands") this
+/// whole feature exists to fix, arriving through a different mechanism.
 fn build_yt_dlp_caption_args(url: &str) -> Vec<String> {
     vec![
         "--dump-json".to_string(),
+        "--no-simulate".to_string(),
         "--skip-download".to_string(),
         "--write-sub".to_string(),
         "--write-auto-sub".to_string(),
@@ -1868,6 +1878,17 @@ fn run_yt_dlp_captions(
 /// `requested_subtitles` vs `automatic_captions`, not filename parsing").
 /// `None` when neither map contains the requested language — the
 /// no-captions case, or a `--dump-json` payload that failed to parse.
+///
+/// Precedence: `requested_subtitles` is checked first, so a video with
+/// both a manual and an auto-generated English track resolves as
+/// `"manual"`. This matches yt-dlp's documented field semantics —
+/// `requested_subtitles` is only populated when a subtitle yt-dlp
+/// actually wrote is present in it, and manual tracks are preferred over
+/// auto ones during writing — but it has **not** been live-verified
+/// against a real yt-dlp invocation in this sandbox (no network/yt-dlp
+/// access here; Challenger finding, t-2950 iteration 1). Verify against a
+/// real dual-track video once a task with live yt-dlp access runs
+/// (tracked for t-2953).
 fn determine_youtube_caption_source(info: &serde_json::Value) -> Option<YoutubeCaptionSource> {
     let has = |key: &str| {
         info.get(key).and_then(|v| v.as_object()).is_some_and(|o| o.contains_key("en"))
@@ -1979,8 +2000,19 @@ const YOUTUBE_BACKOFF_MAX_RETRIES: u32 = 5;
 ///
 /// Exponential, capped at 5 attempts: 1s, 2s, 4s, 8s, 16s — generous
 /// against a 429 that clears within seconds in practice (live-measured
-/// 2026-08-17), while keeping a fully-exhausted retry budget's total wait
-/// well under a minute rather than open-ended.
+/// 2026-08-17), while keeping the *backoff/sleep* portion of a
+/// fully-exhausted retry budget (1+2+4+8+16 = 31s) well under a minute
+/// rather than open-ended.
+///
+/// This bounds only the sleeps this function contributes — it is NOT the
+/// worst-case latency of a full [`run_with_youtube_backoff`] call. Each
+/// retry attempt can also block for up to [`YT_DLP_TIMEOUT_SECS`] (60s)
+/// inside `run_yt_dlp_captions` before backoff even runs, so a call that
+/// exhausts the whole retry budget can take up to
+/// `6 * YT_DLP_TIMEOUT_SECS + 31s ≈ 391s` (~6.5 minutes) end to end
+/// (Challenger finding, t-2950 iteration 1: the "well under a minute"
+/// framing read as a claim about total latency, not just this function's
+/// own sleep contribution).
 pub fn backoff_delay(attempt: u32) -> Option<std::time::Duration> {
     if attempt >= YOUTUBE_BACKOFF_MAX_RETRIES {
         return None;
@@ -2924,6 +2956,79 @@ jumps over the lazy dog
         assert_eq!(args[sep_idx + 1], "https://www.youtube.com/watch?v=jNQXAC9IVRw");
     }
 
+    // Regression (Challenger, t-2950 iteration 1, severity 5): --dump-json
+    // implies --simulate on its own, which suppresses every disk write —
+    // including --write-sub/--write-auto-sub. Without --no-simulate,
+    // fetch_youtube_content would silently resolve every video as
+    // "no captions" regardless of ground truth. This pins the flag so a
+    // future edit can't drop it the way its absence went unnoticed here.
+    #[test]
+    fn test_build_yt_dlp_caption_args_includes_no_simulate_alongside_dump_json() {
+        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw");
+        assert!(
+            args.contains(&"--dump-json".to_string()),
+            "sanity: --dump-json must still be present"
+        );
+        assert!(
+            args.contains(&"--no-simulate".to_string()),
+            "--dump-json implies --simulate on its own — without --no-simulate, \
+             --write-sub/--write-auto-sub silently write nothing to disk"
+        );
+    }
+
+    // determine_youtube_caption_source (Challenger, t-2950 iteration 1,
+    // severity 3): pins the assumed manual-over-auto precedence contract
+    // as an executable spec, since it can't be live-verified against real
+    // yt-dlp output in this sandbox — see the function's own doc comment.
+    #[test]
+    fn test_determine_youtube_caption_source_manual_only() {
+        let info = serde_json::json!({"requested_subtitles": {"en": {}}});
+        assert_eq!(determine_youtube_caption_source(&info), Some("manual"));
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_auto_only() {
+        let info = serde_json::json!({"automatic_captions": {"en": {}}});
+        assert_eq!(determine_youtube_caption_source(&info), Some("auto"));
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_manual_takes_precedence_over_auto() {
+        let info = serde_json::json!({
+            "requested_subtitles": {"en": {}},
+            "automatic_captions": {"en": {}},
+        });
+        assert_eq!(
+            determine_youtube_caption_source(&info),
+            Some("manual"),
+            "a video with both tracks must resolve as manual, not auto"
+        );
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_neither_track_is_none() {
+        let info = serde_json::json!({"requested_subtitles": {}, "automatic_captions": {}});
+        assert_eq!(determine_youtube_caption_source(&info), None);
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_wrong_language_is_none() {
+        let info = serde_json::json!({
+            "requested_subtitles": {"es": {}},
+            "automatic_captions": {"fr": {}},
+        });
+        assert_eq!(
+            determine_youtube_caption_source(&info),
+            None,
+            "only the requested language (en) counts as a captured track"
+        );
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_malformed_json_is_none() {
+        assert_eq!(determine_youtube_caption_source(&serde_json::Value::Null), None);
+    }
+
     // Boundary (t-2950): a URL-shaped string starting with "-" (attacker
     // influenced, per t-2589's LinkedIn precedent for the same class of bug)
     // must land strictly after the -- separator, never before it where yt-dlp
@@ -3067,14 +3172,17 @@ jumps over the lazy dog
 
     #[test]
     fn test_backoff_delay_bounded_total_wait() {
-        // The Challenger's concrete failure mode: a fully-exhausted retry
-        // budget must not silently accumulate to a minutes-long stall.
+        // Bounds only the backoff/sleep portion of a fully-exhausted retry
+        // budget — NOT the full run_with_youtube_backoff worst case, which
+        // also includes up to YT_DLP_TIMEOUT_SECS per attempt and can run
+        // to several minutes (see backoff_delay's doc comment; Challenger
+        // finding, t-2950 iteration 1).
         let total: std::time::Duration = (0..YOUTUBE_BACKOFF_MAX_RETRIES)
             .filter_map(backoff_delay)
             .sum();
         assert!(
             total < std::time::Duration::from_secs(60),
-            "total retry wait across the whole budget must stay well under a minute, got {total:?}"
+            "backoff-only wait across the whole retry budget must stay well under a minute, got {total:?}"
         );
     }
 
