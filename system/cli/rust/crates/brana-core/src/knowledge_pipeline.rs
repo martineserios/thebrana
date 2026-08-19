@@ -2638,6 +2638,41 @@ jumps over the lazy dog
         assert_eq!(resolve_youtube_captions(None, None).unwrap(), None);
     }
 
+    // Regression (t-2950, Challenger finding carried from t-2947 iteration 1):
+    // fetch_youtube_content's yt-dlp argv construction had no test pinning the
+    // `--` separator or --socket-timeout, so a future edit could silently drop
+    // either. build_yt_dlp_caption_args is pure — no subprocess — so this
+    // asserts the exact argv without spawning yt-dlp.
+    #[test]
+    fn test_build_yt_dlp_caption_args_includes_required_flags_and_separator() {
+        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw");
+        assert!(args.contains(&"--write-sub".to_string()));
+        assert!(args.contains(&"--write-auto-sub".to_string()));
+        let langs_idx = args.iter().position(|a| a == "--sub-langs").expect("--sub-langs present");
+        assert_eq!(args[langs_idx + 1], "en");
+        let timeout_idx =
+            args.iter().position(|a| a == "--socket-timeout").expect("--socket-timeout present");
+        assert_eq!(args[timeout_idx + 1], "30");
+        // -- separator must be the second-to-last arg, URL last — argv-injection
+        // guard (t-2947 Challenger finding): attacker-influenced URL input must
+        // never be parsed as a yt-dlp flag.
+        let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+        assert_eq!(sep_idx, args.len() - 2);
+        assert_eq!(args[sep_idx + 1], "https://www.youtube.com/watch?v=jNQXAC9IVRw");
+    }
+
+    // Boundary (t-2950): a URL-shaped string starting with "-" (attacker
+    // influenced, per t-2589's LinkedIn precedent for the same class of bug)
+    // must land strictly after the -- separator, never before it where yt-dlp
+    // would parse it as a flag (e.g. yt-dlp's own --exec <cmd>).
+    #[test]
+    fn test_build_yt_dlp_caption_args_dash_prefixed_url_never_precedes_separator() {
+        let args = build_yt_dlp_caption_args("-exec=rm -rf /");
+        let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+        assert_eq!(args[sep_idx + 1], "-exec=rm -rf /");
+        assert!(args[..sep_idx].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
     // ── YouTube rate-limit backoff/retry (t-2955, TDD-red pre-impl) ─────
     // is_youtube_rate_limited / run_with_youtube_backoff are pure and take
     // no subprocess, no network — a simulated HTTP 429 is a plain string,
