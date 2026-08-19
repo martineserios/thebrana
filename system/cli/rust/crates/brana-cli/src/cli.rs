@@ -402,6 +402,13 @@ pub enum KnowledgeCmd {
         /// List what would be drained without fetching or writing.
         #[arg(long)]
         dry_run: bool,
+        /// Restrict the batch to one platform (feature spec §5, t-2956).
+        /// Only "youtube" is meaningful today — it runs as its own
+        /// scheduler job with its own cap, kept isolated from the shared
+        /// job so a stuck youtube fetch can't starve other platforms'
+        /// slots. Omitted: the shared job, which excludes youtube.
+        #[arg(long)]
+        platform: Option<String>,
     },
     /// Show knowledge index status (entry count, last indexed)
     Status,

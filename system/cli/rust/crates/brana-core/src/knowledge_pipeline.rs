@@ -1677,9 +1677,12 @@ pub fn fetch_youtube_content(url: &str) -> Result<Option<String>> {
 /// the ONLY failure class [`run_with_youtube_backoff`] should mask behind a
 /// retry. Any other failure (malformed URL, network down, no captions) must
 /// surface immediately, never be silently retried.
+///
+/// Matched on `yt-dlp`'s own error line shape (`HTTP Error <code>: <reason>`,
+/// observed live 2026-08-17), not a bare `"429"` substring — a URL or video
+/// ID containing the digits "429" must not false-positive into a retry.
 pub fn is_youtube_rate_limited(stderr: &str) -> bool {
-    let _ = stderr;
-    todo!("t-2956: implement")
+    stderr.contains("HTTP Error 429")
 }
 
 /// Maximum retry attempts for a rate-limited `yt-dlp` call before giving up.
@@ -1712,16 +1715,44 @@ pub fn backoff_delay(attempt: u32) -> Option<std::time::Duration> {
     Some(std::time::Duration::from_secs(1u64 << attempt))
 }
 
+/// Actually wait out a computed backoff delay. A private seam so tests can
+/// exercise [`run_with_youtube_backoff`]'s retry/give-up control flow
+/// without incurring [`backoff_delay`]'s real multi-second-to-31-second
+/// exponential schedule — pacing itself is already verified deterministically
+/// by `backoff_delay`'s own tests; re-sleeping the full schedule here would
+/// only slow the suite (t-2955 Challenger iteration 2 finding 1: the
+/// pacing-call commitment needed to be more than doc-comment-only, but
+/// "more than doc-comment-only" means gated, not literally executed, in
+/// test builds).
+#[cfg(not(test))]
+fn youtube_backoff_wait(delay: std::time::Duration) {
+    std::thread::sleep(delay);
+}
+#[cfg(test)]
+fn youtube_backoff_wait(_delay: std::time::Duration) {}
+
 /// Run `attempt` (given its 0-indexed attempt number) until it succeeds or
 /// [`backoff_delay`]'s retry budget is exhausted, retrying only when the
 /// error looks rate-limited per [`is_youtube_rate_limited`], sleeping
 /// [`backoff_delay`] between retries. A non-rate-limited failure returns
 /// immediately on the first attempt — never masked behind a retry loop.
 pub fn run_with_youtube_backoff<T>(
-    attempt: impl FnMut(u32) -> Result<T, String>,
+    mut attempt: impl FnMut(u32) -> Result<T, String>,
 ) -> Result<T, String> {
-    let _ = attempt;
-    todo!("t-2956: implement — call backoff_delay between retries")
+    let mut n = 0u32;
+    loop {
+        match attempt(n) {
+            Ok(v) => return Ok(v),
+            Err(e) if is_youtube_rate_limited(&e) => match backoff_delay(n) {
+                Some(delay) => {
+                    youtube_backoff_wait(delay);
+                    n += 1;
+                }
+                None => return Err(e),
+            },
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 /// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
@@ -2575,6 +2606,53 @@ jumps over the lazy dog
     #[test]
     fn test_is_youtube_rate_limited_false_for_unrelated_failure() {
         assert!(!is_youtube_rate_limited("ERROR: Unsupported URL: not-a-real-url"));
+    }
+
+    // Boundary (t-2956): a bare "429" substring — e.g. incidentally present
+    // in a video length or id — must not false-positive into a retry. Only
+    // yt-dlp's actual HTTP-error line shape counts.
+    #[test]
+    fn test_is_youtube_rate_limited_false_for_bare_429_substring() {
+        assert!(!is_youtube_rate_limited("video is 429 seconds long"));
+    }
+
+    #[test]
+    fn test_is_youtube_rate_limited_empty_input_is_false() {
+        assert!(!is_youtube_rate_limited(""));
+    }
+
+    // Boundary (t-2956): success on the very first attempt must not enter
+    // the retry loop at all — no backoff, no sleep, one call.
+    #[test]
+    fn test_youtube_backoff_succeeds_immediately_without_retry() {
+        let mut calls = 0u32;
+        let result = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Ok::<u32, String>(42)
+        });
+        assert_eq!(result, Ok(42));
+        assert_eq!(calls, 1);
+    }
+
+    // Regression (Challenger, t-2956 implementation gate): a non-429 error
+    // on a LATER retry attempt (after at least one genuine 429) must still
+    // return immediately, not get masked by the retry loop continuing on
+    // the strength of the earlier 429. Guards the `Err(e) if
+    // is_youtube_rate_limited(&e) => ... / Err(e) => return Err(e)` control
+    // flow against a future refactor silently reordering those arms.
+    #[test]
+    fn test_youtube_backoff_non_429_after_retry_still_returns_immediately() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|attempt| {
+            calls += 1;
+            if attempt == 0 {
+                Err(FIXTURE_STDERR_HTTP_429.to_string())
+            } else {
+                Err("ERROR: Unsupported URL".to_string())
+            }
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 2, "must stop at the first non-429 failure, not keep retrying past it");
     }
 
     // AC (t-2955): a simulated HTTP 429 must trigger backoff/retry, not an

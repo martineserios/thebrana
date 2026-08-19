@@ -178,12 +178,25 @@ fn select_drain_batch(ids: &[String], cap: usize) -> Vec<String> {
 /// This is the split point — `select_drain_batch` itself stays a bare
 /// `.take(cap)`, unmodified; the platform split lives entirely in the
 /// candidate filter that runs before it.
-// Not yet wired into cmd_drain_links (t-2956) — only tests call it so far,
-// which `--lib`-only clippy runs can't see.
-#[allow(dead_code)]
+///
+/// Matches youtube by URL substring rather than calling
+/// `kp::classify_platform` — that function's own youtube case lands in a
+/// separate, still-pending task (t-2950, blocked_by this one), so this
+/// inlines the same `youtube.com`/`youtu.be` match the feature spec's §1
+/// defines for it. Once t-2950 ships, this can be replaced with
+/// `kp::classify_platform(url) == "youtube"` with no behavior change —
+/// left as-is here to keep this task self-contained.
 fn candidate_passes_platform_filter(url: &str, platform: Option<&str>) -> bool {
-    let _ = (url, platform);
-    todo!("t-2956: implement")
+    let is_youtube = url.contains("youtube.com") || url.contains("youtu.be");
+    match platform {
+        None => !is_youtube,
+        Some("youtube") => is_youtube,
+        // Fail closed: no other platform-specific job exists yet, so an
+        // unrecognized --platform value selects nothing rather than
+        // silently reusing the default job's set (which would include
+        // URLs the caller didn't ask for).
+        Some(_) => false,
+    }
 }
 
 /// Whether a drained link's tracking task may be marked completed.
@@ -277,7 +290,12 @@ struct DrainCandidate {
 /// The tasks lock is taken twice and never held across the network: a batch
 /// of 27 links takes minutes, and holding the sidecar lock through it would
 /// stall every other writer of that backlog.
-pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Result<()> {
+pub fn cmd_drain_links(
+    file: Option<PathBuf>,
+    cap: usize,
+    dry_run: bool,
+    platform: Option<&str>,
+) -> Result<()> {
     let tf = match file {
         Some(f) => f,
         None => brana_core::util::find_tasks_file().context("tasks.json not found")?,
@@ -310,6 +328,12 @@ pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Resu
             }
         }
 
+        // Platform split (feature spec §5) — runs before select_drain_batch,
+        // which stays a bare .take(cap) unmodified. `platform: None` (the
+        // existing shared job) excludes youtube; `--platform youtube`
+        // selects only youtube.
+        with_urls.retain(|c| candidate_passes_platform_filter(&c.url, platform));
+
         let ids: Vec<String> = with_urls.iter().map(|c| c.id.clone()).collect();
         let selected = select_drain_batch(&ids, cap);
         with_urls.retain(|c| selected.contains(&c.id));
@@ -317,7 +341,20 @@ pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Resu
     };
 
     if candidates.is_empty() {
-        println!("No pending link tasks with a URL — nothing to drain.");
+        // An unrecognized --platform value fails closed (selects nothing,
+        // candidate_passes_platform_filter's `Some(_) => false` arm) —
+        // distinguish that from a legitimately empty batch rather than
+        // printing the same message either way (Challenger finding,
+        // t-2956 implementation gate).
+        match platform {
+            Some(p) if p != "youtube" => {
+                println!(
+                    "No candidates selected — \"{p}\" is not a recognized --platform value \
+                     (only \"youtube\" is supported today). Nothing was drained."
+                );
+            }
+            _ => println!("No pending link tasks with a URL — nothing to drain."),
+        }
         return Ok(());
     }
 
@@ -2381,6 +2418,24 @@ mod tests {
             Some("youtube")
         ));
         assert!(!candidate_passes_platform_filter("https://github.com/foo/bar", Some("youtube")));
+    }
+
+    // Boundary (t-2956): youtu.be short links must match too — not just
+    // youtube.com/watch — and an unrecognized --platform value must select
+    // nothing rather than silently falling back to the default job's set.
+    #[test]
+    fn test_candidate_filter_matches_youtu_be_short_links() {
+        assert!(!candidate_passes_platform_filter("https://youtu.be/jNQXAC9IVRw", None));
+        assert!(candidate_passes_platform_filter("https://youtu.be/jNQXAC9IVRw", Some("youtube")));
+    }
+
+    #[test]
+    fn test_candidate_filter_unknown_platform_selects_nothing() {
+        assert!(!candidate_passes_platform_filter("https://github.com/foo/bar", Some("linkedin")));
+        assert!(!candidate_passes_platform_filter(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            Some("linkedin")
+        ));
     }
 
     #[test]
