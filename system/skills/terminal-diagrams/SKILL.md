@@ -6,8 +6,6 @@ group: domain
 allowed-tools:
   - Read
 status: stable
-source: "Primitives extend system/skills/backlog/phases/display-themes.md. Worked examples adapt conventions (glyph legends, verification checklists) from tjboudreaux/cc-visualization-skills (MIT) — tools-visual-ascii-arch, tools-visual-workflows, tools-visual-state-machines."
-acquired: "2026-08-19"
 ---
 # Terminal Diagrams
 
@@ -139,5 +137,15 @@ needing color/interactivity), that's the signal to stop and use `artifact-diagra
 
 - Every node labeled; every non-obvious edge labeled.
 - Alignment checked by eye — columns line up, no ragged edges from width miscounts.
+- If the diagram doesn't clarify faster than 2-3 sentences would, it wasn't worth drawing —
+  drop it and use prose.
+
+## Credits
+
+Originally authored for this repo, not an installed third-party skill (no `acquire-skills`
+trust-tier applies). Box-drawing/tree-connector primitives extend
+`system/skills/backlog/phases/display-themes.md`. A few conventions in the worked examples
+(glyph-legend style, per-diagram verification checklists) took inspiration from
+`tjboudreaux/cc-visualization-skills` (MIT) — no text or code was copied verbatim.
 - If the diagram doesn't clarify faster than 2-3 sentences would, it wasn't worth drawing —
   drop it and use prose.
