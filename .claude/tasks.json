@@ -78785,6 +78785,36 @@
       ],
       "type": "task",
       "work_type": null
+    },
+    {
+      "id": "t-2996",
+      "subject": "Feature spec: youtube channel ingestion Tier A",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [
+        "knowledge-pipeline",
+        "youtube",
+        "channel-ingest",
+        "docs"
+      ],
+      "description": "docs/architecture/features/youtube-channel-ingestion.md -- required before implementation begins (M-effort spec-gate on t-2993). Covers fetch_youtube_channel_videos() signature (ChannelTab, ChannelSelection), reuse of the existing link-tagged queue for backfilled video URLs (no new fetch/dedupe/store code -- Phase 1's path handles every queued URL unchanged), and Tier A's explicit boundary against ADR-070's deferred Tier B (date/tag selection).",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-2993",
+      "created": "2026-08-19",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Written 2026-08-19 as the direct continuation of t-2994's spike findings (ADR-070 amendment, commit c387b37a). Mirrors t-2946's shape for Phase 1: ADR (t-2945) -> spec (t-2946) -> decomposition. Here: ADR amendment (t-2994) -> this spec -> decomposition into t-2993's implementation tasks.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": null,
+      "ac_state": "none"
     }
   ],
   "version": 3,
