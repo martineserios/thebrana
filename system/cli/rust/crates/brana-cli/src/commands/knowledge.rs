@@ -208,15 +208,13 @@ fn select_drain_batch(ids: &[String], cap: usize) -> Vec<String> {
 /// `.take(cap)`, unmodified; the platform split lives entirely in the
 /// candidate filter that runs before it.
 ///
-/// Matches youtube by URL substring rather than calling
-/// `kp::classify_platform` — that function's own youtube case lands in a
-/// separate, still-pending task (t-2950, blocked_by this one), so this
-/// inlines the same `youtube.com`/`youtu.be` match the feature spec's §1
-/// defines for it. Once t-2950 ships, this can be replaced with
-/// `kp::classify_platform(url) == "youtube"` with no behavior change —
-/// left as-is here to keep this task self-contained.
+/// Reconciled onto `kp::classify_platform` (t-2950) — it inlined its own
+/// `youtube.com`/`youtu.be` match while classify_platform's youtube case
+/// was still a separate pending task (t-2956 Challenger finding: two
+/// places independently deciding what counts as a youtube URL). No
+/// behavior change; same URL patterns, single source of truth now.
 fn candidate_passes_platform_filter(url: &str, platform: Option<&str>) -> bool {
-    let is_youtube = url.contains("youtube.com") || url.contains("youtu.be");
+    let is_youtube = kp::classify_platform(url) == "youtube";
     match platform {
         None => !is_youtube,
         Some("youtube") => is_youtube,
