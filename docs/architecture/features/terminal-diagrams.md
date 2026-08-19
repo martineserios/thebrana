@@ -127,14 +127,13 @@ Small single-step skills like `sitrep`):
 
 ## Documentation Plan
 
-- [ ] **Tech doc** — this file (`docs/architecture/features/terminal-diagrams.md`).
-- [ ] **No separate user guide** — the rule/skill pair IS the user-facing behavior; a guide
+- [x] **Tech doc** — this file (`docs/architecture/features/terminal-diagrams.md`).
+- [x] **No separate user guide** — the rule/skill pair IS the user-facing behavior; a guide
   would just restate the rule.
-- [ ] **Existing docs to update** — `docs/reference/skills.md` (skill registry — every current
-  skill including single-file ones like `sitrep` has a row + detail section; this skill needs
-  one too, with a note that it's Read-as-reference and never formally invoked via the Skill
-  tool, a pattern no sibling skill uses). `system/rules/README.md`'s stale budget-cap prose
-  ("28 KB", "Check 5a") is a separate, small follow-up — not fixed by this task, flagged in the
+- [x] **Existing docs to update** — `docs/reference/skills.md` regenerated via
+  `brana reference generate` (entry present, includes the Read-as-reference note in the
+  skill's own description). `system/rules/README.md`'s stale budget-cap prose ("28 KB",
+  "Check 5a") is a separate, small follow-up — not fixed by this task, flagged in the
   Decision Record above.
 
 ## Challenger findings
