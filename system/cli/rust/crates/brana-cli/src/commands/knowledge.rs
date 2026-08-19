@@ -91,6 +91,35 @@ fn resolve_process_url_outcome(
     }
 }
 
+/// Compute the value to store and its tags for a `Store` outcome. Pure —
+/// takes the already-extracted insight rather than calling
+/// `kp::extract_insight` itself, so it's testable without that function's
+/// real agy/`claude -p` subprocess calls (same "test the decision, not the
+/// I/O" discipline as `resolve_process_url_outcome` above).
+///
+/// youtube skips summarization entirely and stores `content.text`
+/// unmodified, tagged `[platform, "transcript", caption_source]` — a short
+/// summary of a long transcript is only marginally less shallow than the
+/// HTML-shell bug this whole command exists to fix (feature spec §3,
+/// t-2950). Every other platform keeps the existing summarized-storage
+/// behavior, unchanged. `insight` must be `Some` for every non-youtube
+/// platform — the caller (`process_one_url`) only skips computing it for
+/// youtube.
+fn resolve_store_value(
+    content: &kp::FetchedContent,
+    insight: Option<&kp::ExtractedInsight>,
+) -> (String, Vec<String>) {
+    if content.platform == "youtube" {
+        let source = content.caption_source.unwrap_or("auto");
+        return (
+            content.text.clone(),
+            vec![content.platform.to_string(), "transcript".to_string(), source.to_string()],
+        );
+    }
+    let insight = insight.expect("non-youtube Store always has an extracted insight");
+    (insight.summary.clone(), vec![content.platform.to_string(), insight.topic.clone()])
+}
+
 /// One `{id, url}` record from a batch file.
 #[derive(Debug, Deserialize)]
 struct BatchEntry {
@@ -460,12 +489,22 @@ fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
         }
         ProcessUrlOutcome::Store => {
             let content = fetched.expect("Store outcome is only reachable with fetched content");
-            let insight = kp::extract_insight(&content.text, content.platform);
-            let tags = [content.platform, insight.topic.as_str()];
-            ruflo_memory_store(&key, &insight.summary, PROCESS_URL_NAMESPACE, &tags)
+            // youtube skips extract_insight entirely (feature spec §3) —
+            // don't pay for the LLM call at all when its result is discarded.
+            let insight = (content.platform != "youtube")
+                .then(|| kp::extract_insight(&content.text, content.platform));
+            let (value, tags) = resolve_store_value(&content, insight.as_ref());
+            let tag_refs: Vec<&str> = tags.iter().map(String::as_str).collect();
+            ruflo_memory_store(&key, &value, PROCESS_URL_NAMESPACE, &tag_refs)
                 .with_context(|| format!("storing {key}"))?;
             println!("Stored: {key}");
-            println!("{}", insight.summary);
+            if content.platform == "youtube" {
+                // A transcript can be hundreds of KB — printing it in full
+                // would flood the terminal on every drain-links run.
+                println!("{} chars of transcript stored (not printed in full)", value.chars().count());
+            } else {
+                println!("{value}");
+            }
         }
     }
     Ok(outcome)
