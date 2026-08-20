@@ -7,10 +7,9 @@
 > t-2994 (live-probed against a real channel, findings recorded in the ADR
 > amendment).
 
-Status: **spec — not yet decomposed into implementation tasks.** This is the
-M-effort spec-gate artifact `t-2993` (Phase 3 — Channel ingestion milestone)
-requires before any `system/`, `src/`, `lib/`, or `bin/` write can begin. Once
-reviewed, file implementation tasks under `t-2993` per §Follow-up below.
+Status: **shipped (implementation).** `t-2996` (this spec) → `t-2997` (tests)
+→ `t-2999` (implementation + CLI) are complete. `t-2998` (tech doc) is the
+one remaining follow-up task under `t-2993`.
 
 ## Problem
 
@@ -99,3 +98,7 @@ File under `t-2993` (Phase 3 milestone). Suggested breakdown, each independently
 
 Effort per task: S (each is a focused, independently-testable unit, and #2 reuses Phase 1's fetch/dedupe/store entirely).
 Suggested wave selector once filed: `parent:t-2993`.
+
+## Changelog
+
+- 2026-08-20: `fetch_youtube_channel_videos()` + `brana knowledge channel-backfill` CLI implemented and shipped (t-2999). Draining a channel-backfilled URL today falls through to the generic-scrape path, not caption extraction, until `fetch_youtube_content`/`fetch_url_content`'s youtube case ships (t-2950, separate, in-progress) — tracked in t-2950's context.
