@@ -1711,8 +1711,33 @@ pub enum ChannelSelection {
 /// can never be evaluated meaningfully. Callers (and this function's
 /// tests) must never reach a subprocess call for this case.
 pub fn build_channel_selection_args(tab: ChannelTab, selection: &ChannelSelection) -> Result<Vec<String>> {
-    let _ = (tab, selection);
-    todo!("t-2999: implement — Range -> --playlist-start/-end, Items -> --playlist-items, MaxDuration -> --match-filter (Videos only)")
+    match selection {
+        ChannelSelection::Range { start, end } => {
+            let mut args = Vec::new();
+            if let Some(s) = start {
+                args.push("--playlist-start".to_string());
+                args.push(s.to_string());
+            }
+            if let Some(e) = end {
+                args.push("--playlist-end".to_string());
+                args.push(e.to_string());
+            }
+            Ok(args)
+        }
+        ChannelSelection::Items(items) => {
+            let joined = items.iter().map(u32::to_string).collect::<Vec<_>>().join(",");
+            Ok(vec!["--playlist-items".to_string(), joined])
+        }
+        ChannelSelection::MaxDuration(max_secs) => {
+            if tab == ChannelTab::Shorts {
+                bail!(
+                    "MaxDuration selection is not supported on the Shorts tab — \
+                     yt-dlp's flat-playlist entries carry no duration field for Shorts"
+                );
+            }
+            Ok(vec!["--match-filter".to_string(), format!("duration<{max_secs}")])
+        }
+    }
 }
 
 /// Pure parser for `yt-dlp --flat-playlist --print "%(id)s"` stdout —
@@ -1723,16 +1748,19 @@ pub fn build_channel_selection_args(tab: ChannelTab, selection: &ChannelSelectio
 /// error — the empty-channel / zero-results fixture case (feature spec
 /// §1 "Tests") is a legitimate `Ok(vec![])`, not a failure.
 pub fn parse_flat_playlist_ids(output: &str) -> Vec<String> {
-    let _ = output;
-    todo!("t-2999: implement")
+    output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 /// Pure mapping: a bare video ID -> its full `youtube.com/watch` URL.
 /// No subprocess, no I/O (feature spec §1 "Tests": "unit tested
 /// independently of the subprocess call").
 pub fn youtube_video_id_to_url(id: &str) -> String {
-    let _ = id;
-    todo!("t-2999: implement")
+    format!("https://www.youtube.com/watch?v={id}")
 }
 
 /// [`fetch_youtube_channel_videos`]'s testable core — takes an injected
@@ -1756,8 +1784,13 @@ pub fn fetch_youtube_channel_videos_with_runner(
     selection: ChannelSelection,
     run: impl FnOnce(&[String]) -> Result<String, String>,
 ) -> Result<Vec<String>> {
-    let _ = (channel_url, tab, selection, run);
-    todo!("t-2999: implement — build_channel_selection_args, then run(), then parse_flat_playlist_ids + youtube_video_id_to_url")
+    let _ = channel_url; // only the real subprocess wrapper needs it, to build the full yt-dlp URL
+    let args = build_channel_selection_args(tab, &selection)?;
+    let output = run(&args).map_err(|e| anyhow::anyhow!(e))?;
+    Ok(parse_flat_playlist_ids(&output)
+        .iter()
+        .map(|id| youtube_video_id_to_url(id))
+        .collect())
 }
 
 /// Enumerate a YouTube channel tab's video URLs via `yt-dlp
@@ -1777,8 +1810,28 @@ pub fn fetch_youtube_channel_videos(
     tab: ChannelTab,
     selection: ChannelSelection,
 ) -> Result<Vec<String>> {
-    let _ = (channel_url, tab, selection);
-    todo!("t-2999: implement — yt-dlp subprocess wrapper, delegates to fetch_youtube_channel_videos_with_runner")
+    let tab_path = match tab {
+        ChannelTab::Videos => "videos",
+        ChannelTab::Shorts => "shorts",
+    };
+    let listing_url = format!("{}/{tab_path}", channel_url.trim_end_matches('/'));
+
+    fetch_youtube_channel_videos_with_runner(channel_url, tab, selection, |args| {
+        let mut cmd = std::process::Command::new("yt-dlp");
+        cmd.arg("--flat-playlist").arg("--skip-download");
+        cmd.args(args);
+        cmd.arg("--print").arg("%(id)s");
+        cmd.arg(&listing_url);
+
+        let out = cmd
+            .output()
+            .map_err(|e| format!("spawning yt-dlp for {listing_url}: {e}"))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            return Err(format!("yt-dlp failed for {listing_url}: {stderr}"));
+        }
+        String::from_utf8(out.stdout).map_err(|e| format!("yt-dlp stdout not valid UTF-8: {e}"))
+    })
 }
 
 // ── YouTube rate-limit backoff/retry (t-2955 tests, TDD-red pre-impl) ───

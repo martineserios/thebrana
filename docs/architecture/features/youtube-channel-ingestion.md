@@ -7,10 +7,9 @@
 > t-2994 (live-probed against a real channel, findings recorded in the ADR
 > amendment).
 
-Status: **spec — not yet decomposed into implementation tasks.** This is the
-M-effort spec-gate artifact `t-2993` (Phase 3 — Channel ingestion milestone)
-requires before any `system/`, `src/`, `lib/`, or `bin/` write can begin. Once
-reviewed, file implementation tasks under `t-2993` per §Follow-up below.
+Status: **shipped (implementation).** `t-2996` (this spec) → `t-2997` (tests)
+→ `t-2999` (implementation + CLI) are complete. `t-2998` (tech doc) is the
+one remaining follow-up task under `t-2993`.
 
 ## Problem
 
@@ -87,6 +86,7 @@ Shells out once: `yt-dlp --flat-playlist --skip-download [range/items/match-filt
 
 - **t-2997 (tests):** the tests exercise a `fetch_youtube_channel_videos_with_runner(channel_url, tab, selection, run: impl FnOnce(&[String]) -> Result<String, String>)` seam rather than calling `fetch_youtube_channel_videos` directly — mirrors `run_with_youtube_backoff`'s injected-closure pattern already used in this file (t-2955/t-2956) so the "fixture invocation, not live network" and "test double that fails if invoked" requirements (§Tests) are satisfiable without a process-mocking crate. `fetch_youtube_channel_videos` itself stays a thin wrapper that supplies the real `yt-dlp` subprocess call as `run` — needs confirmation at t-2999 that this doesn't conflict with the CLI wiring shape.
 - **Argv contract (pure, asserted by tests, binding on t-2999's implementation):** `Range{start,end}` → `--playlist-start N` / `--playlist-end N` (either/both, omitted flag when `None`); `Items(v)` → `--playlist-items "a,b,c"` (comma-joined, no spaces); `MaxDuration(n)` on `Videos` → `--match-filter "duration<n"`; `MaxDuration` on `Shorts` → `Err` before any argv is returned.
+- **t-2999 (implementation) — CLI surface:** `brana knowledge channel-backfill <channel_url> --tab videos|shorts --max N --dry-run`. `--max` (default 50 — this *is* §3's sanity cap; a caller who wants more overrides the flag explicitly) maps directly to `ChannelSelection::Range { start: None, end: Some(max) }` — the CLI exposes only this one selection shape; `Items`/`MaxDuration` exist as library-level `ChannelSelection` variants (exercised by t-2997's tests) but have no CLI flag yet, since the spec left the exact surface open and Range-by-count covers the "backfill the last N videos" use case this task was scoped for. Each returned URL is queued via `brana backlog add --json {subject, type:"task", tags:["link","channel-backfill"], context:"URL: {url}"}`, shelled out per video — mirrors the *shellout shape* of `feed.rs`'s existing `"task"` action (`Command::new("brana").args(["backlog","add",...])`), the only other in-repo precedent for creating a backlog task from Rust CLI code this way. **Correction (Challenger panel, t-2999):** `feed.rs` is not actually a working `link`-tagged-task precedent — it tags `["feed", &feed.name]`, never `"link"`, so tasks it creates are invisible to `cmd_drain_links`'s `tag:"link"` filter and have never actually drained; that mismatch is pre-existing and out of scope for t-2999 (tracked separately as t-2995's "brana feed → link tag wiring", already called out in this spec's §3 as independent/not-blocked-on-this). This diff's own `build_channel_link_task_json` gets the tag right (`"link"`, verified against the real `extract_capture_url` parser by an inline test) — only the shellout *mechanism* is shared with feed.rs, not its tag correctness. The extra `"channel-backfill"` tag is bookkeeping only; `drain-links`' candidate filter and platform split key on `tag:"link"` and URL substring, unaffected by it. **Needs confirmation:** whether `Items`/`MaxDuration` should get CLI flags in a follow-up, and whether the `"channel-backfill"` tag is wanted for anything beyond bookkeeping.
 
 ## Follow-up implementation tasks
 
@@ -98,3 +98,7 @@ File under `t-2993` (Phase 3 milestone). Suggested breakdown, each independently
 
 Effort per task: S (each is a focused, independently-testable unit, and #2 reuses Phase 1's fetch/dedupe/store entirely).
 Suggested wave selector once filed: `parent:t-2993`.
+
+## Changelog
+
+- 2026-08-20: `fetch_youtube_channel_videos()` + `brana knowledge channel-backfill` CLI implemented and shipped (t-2999). Draining a channel-backfilled URL today falls through to the generic-scrape path, not caption extraction, until `fetch_youtube_content`/`fetch_url_content`'s youtube case ships (t-2950, separate, in-progress) — tracked in t-2950's context.

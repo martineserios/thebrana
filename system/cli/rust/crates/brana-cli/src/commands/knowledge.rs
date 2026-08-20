@@ -1994,6 +1994,83 @@ pub fn cmd_ingest(
     Ok(())
 }
 
+/// Parse the `--tab` flag into [`kp::ChannelTab`]. Pure, no I/O.
+fn resolve_channel_tab(tab: &str) -> Result<kp::ChannelTab> {
+    match tab {
+        "videos" => Ok(kp::ChannelTab::Videos),
+        "shorts" => Ok(kp::ChannelTab::Shorts),
+        other => bail!("unknown --tab value \"{other}\" — expected \"videos\" or \"shorts\""),
+    }
+}
+
+/// Build the `brana backlog add --json` payload for one channel-backfilled
+/// video URL. Pure, no I/O — mirrors the `link`-tag / `"URL: {url}"`
+/// contract [`extract_capture_url`] parses on the drain side (feature spec
+/// §2: "queues each one as a `link`-tagged backlog task exactly the way any
+/// other link enters the queue today").
+fn build_channel_link_task_json(channel_url: &str, video_url: &str) -> serde_json::Value {
+    serde_json::json!({
+        "subject": format!("[channel-backfill] {channel_url} — {video_url}"),
+        "type": "task",
+        "tags": ["link", "channel-backfill"],
+        "context": format!("URL: {video_url}"),
+    })
+}
+
+/// `brana knowledge channel-backfill <channel_url> --tab videos --max N` —
+/// enumerate a channel tab via [`kp::fetch_youtube_channel_videos`] and
+/// queue each returned URL as a `link`-tagged backlog task (feature spec
+/// §1, §2). No new fetch/dedupe/store code: every queued URL drains
+/// through the existing `drain-links --platform youtube` path unchanged.
+///
+/// The `--max` flag's own default (50) is the sanity cap the feature spec
+/// §3 calls for — mapped directly to `ChannelSelection::Range { end }`, so
+/// a caller who wants more must say so explicitly via `--max`.
+pub fn cmd_channel_backfill(channel_url: &str, tab: &str, max: u32, dry_run: bool) -> Result<()> {
+    let channel_tab = resolve_channel_tab(tab)?;
+    let selection = kp::ChannelSelection::Range { start: None, end: Some(max) };
+    let urls = kp::fetch_youtube_channel_videos(channel_url, channel_tab, selection)
+        .with_context(|| format!("enumerating channel {channel_url}"))?;
+
+    if urls.is_empty() {
+        println!("No videos found for {channel_url} ({tab} tab).");
+        return Ok(());
+    }
+
+    println!(
+        "\n  \x1b[1mbrana knowledge channel-backfill\x1b[0m{}",
+        if dry_run { " [dry-run]" } else { "" }
+    );
+    println!("  {} video(s) found on {channel_url} ({tab} tab)\n", urls.len());
+
+    let mut queued = 0usize;
+    for url in &urls {
+        let payload = build_channel_link_task_json(channel_url, url);
+        if dry_run {
+            println!("  [dry-run] would queue: {url}");
+        } else {
+            let status = Command::new("brana")
+                .args(["backlog", "add", "--json", &payload.to_string()])
+                .status()
+                .context("spawning brana backlog add")?;
+            if status.success() {
+                queued += 1;
+            } else {
+                eprintln!("  ⚠ failed to queue {url} (brana backlog add exited {status})");
+            }
+        }
+    }
+
+    if dry_run {
+        println!("\n  [dry-run] nothing queued.");
+    } else {
+        println!("\n  ✓ {queued} video(s) queued");
+        println!("  Next: brana knowledge drain-links --platform youtube");
+    }
+
+    Ok(())
+}
+
 /// Return cluster topics that have Tier2Clustered URLs but no Tier3Drafted URLs,
 /// sorted by source count descending (highest-signal clusters first).
 fn list_undrafted_clusters(state: &kp::PipelineState) -> Vec<String> {
@@ -3275,6 +3352,59 @@ mod tests {
         assert!(prompt.contains("Respond with JSON only"), "prompt must request JSON response");
         assert!(prompt.contains("\"score\""), "prompt must mention score key");
         assert!(prompt.contains("\"reason\""), "prompt must mention reason key");
+    }
+
+    // ── channel-backfill CLI wiring (t-2999) ─────────────────────────────
+    // resolve_channel_tab / build_channel_link_task_json are pure — no
+    // subprocess, no I/O — the same split as extract_capture_url above.
+    // cmd_channel_backfill itself (network + subprocess shellout to `brana
+    // backlog add`) stays untested here, same discipline as cmd_ingest and
+    // feed.rs's "task" action.
+
+    #[test]
+    fn resolve_channel_tab_videos() {
+        assert_eq!(resolve_channel_tab("videos").unwrap(), kp::ChannelTab::Videos);
+    }
+
+    #[test]
+    fn resolve_channel_tab_shorts() {
+        assert_eq!(resolve_channel_tab("shorts").unwrap(), kp::ChannelTab::Shorts);
+    }
+
+    #[test]
+    fn resolve_channel_tab_rejects_unknown_value() {
+        let err = resolve_channel_tab("live").unwrap_err();
+        assert!(
+            err.to_string().contains("live"),
+            "error should name the invalid value, got: {err}"
+        );
+    }
+
+    #[test]
+    fn channel_link_task_json_carries_link_tag_and_url_marker() {
+        let json = build_channel_link_task_json(
+            "https://www.youtube.com/@example",
+            "https://www.youtube.com/watch?v=abc123",
+        );
+        assert_eq!(json["tags"], serde_json::json!(["link", "channel-backfill"]));
+        assert_eq!(json["type"], serde_json::json!("task"));
+        // extract_capture_url (drain-links' own parser, tested above) must
+        // round-trip the context this produces — the two functions share
+        // the "URL: {url}" contract without either importing the other.
+        assert_eq!(
+            extract_capture_url(json["context"].as_str().unwrap()),
+            Some("https://www.youtube.com/watch?v=abc123".to_string())
+        );
+    }
+
+    #[test]
+    fn channel_link_task_json_subject_names_the_source_channel() {
+        let json = build_channel_link_task_json(
+            "https://www.youtube.com/@example",
+            "https://www.youtube.com/watch?v=abc123",
+        );
+        let subject = json["subject"].as_str().unwrap();
+        assert!(subject.contains("https://www.youtube.com/@example"));
     }
 }
 
