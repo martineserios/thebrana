@@ -1,7 +1,7 @@
 # Feature: Terminal diagrams — proactive inline visual explanations
 
 **Date:** 2026-08-19
-**Status:** specifying
+**Status:** shipped
 **Task:** t-2991
 
 ## Problem
@@ -150,3 +150,24 @@ Decision Record §Consequences:**
 Warnings (accepted, not blocking): docs/reference/skills.md registry entry added to
 Documentation Plan above; trigger-heuristic interaction with context-budget.md's orange/red
 zone guidance stays an open question for the Assumptions section, resolved via usage.
+
+**Post-implementation challenger gate (2026-08-19), verdict PROCEED WITH CHANGES — 4 findings,
+max severity 3, both actionable ones fixed:**
+1. (sev 3) `terminal-diagrams` SKILL.md's `source`/`acquired` frontmatter fields signaled
+   `acquire-skills` Community-tier install machinery, mischaracterizing an originally-authored
+   file (which only took light stylistic inspiration from an external MIT repo, no verbatim
+   text) as a foreign artifact. Fixed: removed those frontmatter fields, added a plain-prose
+   `## Credits` section in the body instead.
+2. (sev 3) `docs/architecture/idea-to-ship.md`'s "40 skills" count was stale (registry is now
+   41). Fixed: updated to 41.
+3. (sev 2) Budget claim unverifiable by the challenger agent (no Bash tool that session) —
+   self-consistency checked instead; independently re-confirmed by this build via
+   `context-budget.sh --report` (183B AUTHORED headroom, 21B ROUTING headroom after the
+   skill's own description was tightened).
+4. (sev 2, observation) `system/rules/README.md`'s stale cap prose reconfirmed as a disclosed,
+   deliberately out-of-scope follow-up — now tracked as t-3000. `challenger-gate.md`'s
+   `main...HEAD` diff-base instruction (should be `dev...HEAD` per this repo's two-tier branch
+   model) surfaced independently during this gate's own execution — tracked as t-3001.
+
+SIBLINGS confirmed by challenger: yes — both addressed above (idea-to-ship.md count; the
+acquire-skills trust-tier miscategorization).
