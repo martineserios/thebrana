@@ -83,6 +83,11 @@ Shells out once: `yt-dlp --flat-playlist --skip-download [range/items/match-filt
 - Exact CLI surface (`brana knowledge channel-backfill` vs. some other command shape, exact flag names) — a DECOMPOSE-time implementation decision, not fixed here.
 - Default `--max` cap value — DECOMPOSE-time implementation decision (§3 flags this as needed, doesn't fix the number).
 
+## Assumptions
+
+- **t-2997 (tests):** the tests exercise a `fetch_youtube_channel_videos_with_runner(channel_url, tab, selection, run: impl FnOnce(&[String]) -> Result<String, String>)` seam rather than calling `fetch_youtube_channel_videos` directly — mirrors `run_with_youtube_backoff`'s injected-closure pattern already used in this file (t-2955/t-2956) so the "fixture invocation, not live network" and "test double that fails if invoked" requirements (§Tests) are satisfiable without a process-mocking crate. `fetch_youtube_channel_videos` itself stays a thin wrapper that supplies the real `yt-dlp` subprocess call as `run` — needs confirmation at t-2999 that this doesn't conflict with the CLI wiring shape.
+- **Argv contract (pure, asserted by tests, binding on t-2999's implementation):** `Range{start,end}` → `--playlist-start N` / `--playlist-end N` (either/both, omitted flag when `None`); `Items(v)` → `--playlist-items "a,b,c"` (comma-joined, no spaces); `MaxDuration(n)` on `Videos` → `--match-filter "duration<n"`; `MaxDuration` on `Shorts` → `Err` before any argv is returned.
+
 ## Follow-up implementation tasks
 
 File under `t-2993` (Phase 3 milestone). Suggested breakdown, each independently testable per §Tests above:
