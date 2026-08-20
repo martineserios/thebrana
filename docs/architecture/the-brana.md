@@ -43,12 +43,14 @@ Closes [ADR-068](decisions/ADR-068-v3-supersession.md)'s open Q2: this is the ex
 
 A **loop is a graph whose path returns to an earlier node** — which is the same fact as "Loop = closed string, returns" stated in a different vocabulary, not a second fact. `Workflow` *is* a graph that runs to completion in one call; `/loop` *traverses* a graph over time.
 
+**Precision, not just cycles:** the code/data split isn't "has repetition vs. doesn't." A `Workflow` script's `pipeline()`/`parallel()` composition is always a DAG (no back-edges in the declared structure) — its `while`-loop accumulation patterns (loop-until-count, loop-until-dry) are bounded JS repetition *inside one continuous execution*, not a graph cycle, and not what this vocabulary calls "Loop." "Loop" names specifically the **data-realized** case: a graph with a genuine back-edge (a blocked task re-entering the frontier, a wave gate reopening) that persists and gets re-walked across separate invocations, days apart. `/goal` sits outside the Graph family entirely, not a smaller instance of it — it repeats *within one span*, one node, no hand-off between agents/skills to route. Loop ⊂ Graph (a topology, realized as data); Workflow ⊂ Graph (any DAG, realized as code); `/goal` isn't a routing structure at all.
+
 | Primitive | What it is | Home chapter |
 |---|---|---|
-| **Task** (Agent tool) | One subagent, in-session, dies with session. | Cycle — one ACT |
-| **Workflow** | Deterministic JS fan-out; a graph, as code, run once. | Cycle — open string |
-| **/loop** + `claude -p` | Detached iteration over a queue; a graph, as data, walked over time. | Cycle — closed string |
-| **/goal** | Iterates within one gate-free span until a done-signal (ADR-061's third motion — ITERATE, distinct from `/loop`'s POLL and `Workflow`'s FAN-OUT). | Cycle |
+| **Task** (Agent tool) | One subagent, in-session, dies with session — the node graphs are built from, not a graph itself. | Cycle — one ACT |
+| **Workflow** | Deterministic JS fan-out; a DAG, as code, run once (bounded internal repetition allowed, no structural cycle). | Cycle — open string |
+| **/loop** + `claude -p` | Detached iteration over a queue; a graph, as data, genuinely cyclic, walked over time across sessions. | Cycle — closed string |
+| **/goal** | Iterates within one gate-free span until a done-signal — one node, no routing (ADR-061's third motion — ITERATE, distinct from `/loop`'s POLL and `Workflow`'s FAN-OUT). Outside the Graph family. | Cycle |
 | **ruflo memory / recall** | Persistent, cross-session shared store. | Cycle — what a loop carries (gravity-leak) |
 | **Skills** | Playbooks a station loads. | Space — sits above this stack, not in it |
 
