@@ -18,7 +18,57 @@ The rest of the physics vocabulary — open/closed strings in detail, the KK fre
 - **Gate** — who decides: human decisions and where they're placed.
 - **Scale** — the axis across all three: the same skeleton at every ring, warped.
 
-Full chapter content, the vocabulary table, and the component map fill in as [the-brana-guide.md](../ideas/the-brana-guide.md)'s walk (L1 → L6) settles, one node at a time.
+Full chapter content and the component map fill in as [the-brana-guide.md](../ideas/the-brana-guide.md)'s walk (L1 → L6) settles, one node at a time. The vocabulary table below is this page's canonical copy — [glossary.md](glossary.md) points here rather than duplicating it (see L0's one-owner-per-concept rule).
+
+## Vocabulary
+
+Term → one line → owner doc. Every term here traces back to a node in [the-brana-guide.md](../ideas/the-brana-guide.md) — check there for the full discussion, refs, and any flagged seams.
+
+**Space**
+
+| Term | One-line | Owner |
+|---|---|---|
+| **Bulk** | The shared portfolio; the laws every brane obeys. | this page |
+| **Brane** | A self-contained unit at any scale — a KK-tower family, not one size. | this page |
+| **Project** | The brane at the epic ring. | this page §L1 table |
+| **Station** | The brane at the beat ring; loads skills as playbooks. | [drained/skills-as-loops.md](../ideas/drained/skills-as-loops.md) |
+| **Organ** | The brane at the micro ring — a file, a function. | [skills-loops-graphs.md](../ideas/skills-loops-graphs.md) (worktree — not yet landed) |
+| **Fields** | A brane's own context/tools/contract — confined to it, don't cross. | this page |
+| **Skill** | A playbook a station loads. | [drained/skills-as-loops.md](../ideas/drained/skills-as-loops.md) |
+
+**Cycle**
+
+| Term | One-line | Owner |
+|---|---|---|
+| **Loop** | A closed string — unpinned, returns; the only thing that crosses branes. | [features/loops-library.md](features/loops-library.md) |
+| **Workflow** | An open string — pinned to the brane it started on, runs once. | [workflow-primitive.md](workflow-primitive.md) |
+| **Memory (gravity-leak)** | The one thing a loop carries across branes. | this page |
+| **Ring** | One level of the Scale axis: micro / beat / epic / knowledge. | this page |
+| **Seven-step skeleton** | A ring's loop shape: ORIENT→SELECT→ACT→MEASURE→JUDGE→ASSIMILATE→RESTART; plain gloss = context→action→feedback. | [60-agent-loop-architecture.md](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) |
+| **Wave** | The human's unit of work — a batch of tasks pulled and shipped together. | [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md), [ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) |
+| **Task** | The agent's unit of work. | [ADR-002](decisions/ADR-002-tasks-as-data-layer.md) |
+| **Beat** | One pass through a ring's loop; produces a beat record. | [features/loops-library.md](features/loops-library.md) |
+
+**Gate**
+
+| Term | One-line | Owner |
+|---|---|---|
+| **Valve** | A human gate, placed by reversibility. | this page (absorbing [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md)) |
+| **Studio** | The room for slow, high-thinking design work. | [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms |
+| **Cockpit** | The room for fast, low-thinking approvals. | [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms |
+| **Judge** | The machine or panel that owns a reversible-outcome decision. | [ADR-082](decisions/ADR-082-multi-agent-sizing-function.md) |
+| **Autonomy rung** | L1 report-only / L2 assisted / L3 unattended — gated by AC coverage ("Non-AC fallback: stays L2"). *Not* this guide's L0–L6 walk levels — same letter, different axis. | [drained/brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md) §graduated autonomy ladder |
+| **AC** | Machine-checkable definition of done; gates `/goal` and L3 eligibility. | [ADR-047](decisions/ADR-047-acceptance-criteria-schema.md), [ac-grammar.md](ac-grammar.md) |
+
+**Scale**
+
+| Term | One-line | Owner |
+|---|---|---|
+| **KK tower** | One brane-concept, instantiated differently at each ring. | [brana-etymology-naming.md](../../../brana-knowledge/dimensions/brana-etymology-naming.md) |
+| **Compactification radius** | A ring's "size" — small = fast, large = slow. | [60-agent-loop-architecture.md](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) |
+| **Low-pass filter** | The human's relationship to ring frequency — only slow rings reach them directly. | [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §Spectrum |
+| **Inhabitant** | The human's role: lives in Cycle, decides at Gate, senses via memory. | memory `user_creative-vs-operative-modes` |
+| **Orbit / Orbit** | Plain word inside Cycle now; capital-O = a future satellite component, on evidence. | [ADR-068](decisions/ADR-068-v3-supersession.md), [features/autonomous-runner.md](features/autonomous-runner.md) |
 
 ## Reading map
 

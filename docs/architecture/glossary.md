@@ -2,6 +2,8 @@
 
 Terms used across ADRs 027-032, skills, and the auto-learning loop.
 
+> Wave/loop/station/brane vocabulary lives in [the-brana.md](the-brana.md#vocabulary) — the-brana.md is the owner, this file points there rather than duplicating (one term, one owner doc).
+
 ## Jobs
 
 | Term | Definition |
