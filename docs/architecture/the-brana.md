@@ -20,6 +20,42 @@ The rest of the physics vocabulary — open/closed strings in detail, the KK fre
 
 Full chapter content and the component map fill in as [the-brana-guide.md](../ideas/the-brana-guide.md)'s walk (L1 → L6) settles, one node at a time. The vocabulary table below is this page's canonical copy — [glossary.md](glossary.md) points here rather than duplicating it (see L0's one-owner-per-concept rule).
 
+## Space — the primitive table
+
+Closes [ADR-068](decisions/ADR-068-v3-supersession.md)'s open Q2: this is the extraction of [substrate-primitives.md](substrate-primitives.md) §1's still-accurate primitive set into a live doc, not a re-derivation. [agentic-primitives.md](agentic-primitives.md) and [workflow-primitive.md](workflow-primitive.md) remain the detailed references this table points to, not duplicates of it.
+
+```
+                        GRAPH
+        the shape: nodes = agents/skills/stations,
+             edges = hand-offs / routing
+                          │
+          ┌───────────────┴────────────────┐
+          ▼                                  ▼
+   AS CODE (Workflow)                AS DATA (tasks.json)
+   runs to completion,               walked incrementally,
+   in one call                       over days, by /loop
+          │                                  │
+   agent()      = node               blocked_by / gate:  = edges
+   pipeline()   = edges, no barrier  epic-drain topo-sorts + walks
+   parallel()   = edges, barrier       one wave at a time,
+                                       human valves between nodes
+```
+
+A **loop is a graph whose path returns to an earlier node** — which is the same fact as "Loop = closed string, returns" stated in a different vocabulary, not a second fact. `Workflow` *is* a graph that runs to completion in one call; `/loop` *traverses* a graph over time.
+
+| Primitive | What it is | Home chapter |
+|---|---|---|
+| **Task** (Agent tool) | One subagent, in-session, dies with session. | Cycle — one ACT |
+| **Workflow** | Deterministic JS fan-out; a graph, as code, run once. | Cycle — open string |
+| **/loop** + `claude -p` | Detached iteration over a queue; a graph, as data, walked over time. | Cycle — closed string |
+| **/goal** | Iterates within one gate-free span until a done-signal (ADR-061's third motion — ITERATE, distinct from `/loop`'s POLL and `Workflow`'s FAN-OUT). | Cycle |
+| **ruflo memory / recall** | Persistent, cross-session shared store. | Cycle — what a loop carries (gravity-leak) |
+| **Skills** | Playbooks a station loads. | Space — sits above this stack, not in it |
+
+Composed blocks (Layer 1, `.claude/workflows/`) — each a `Workflow` script combining Layer-0 primitives: **hive-mind** (diverse answers → verify → synthesize), **sweep** (diverse finders → dedup → verify), **verify-findings** (the canonical judge panel, called by both). Invoked by Layer-2 skills (`/brana:challenge --deep`, `/code-review ultra`, brainstorm evaluate) — an agent deciding on its own a task "would benefit" does not count as invocation.
+
+**Open:** where hooks (PreToolUse, SessionStart, …) belong isn't resolved — not in `substrate-primitives.md`'s set at all, and it doesn't cleanly fit Cycle's motion-primitives. Reads more like Gate (an automatic, non-human check) or connective tissue spanning all four chapters. Tracked at [the-brana-guide.md](../ideas/the-brana-guide.md) L2.1.
+
 ## Vocabulary
 
 Term → one line → owner doc. Every term here traces back to a node in [the-brana-guide.md](../ideas/the-brana-guide.md) — check there for the full discussion, refs, and any flagged seams.
@@ -40,8 +76,9 @@ Term → one line → owner doc. Every term here traces back to a node in [the-b
 
 | Term | One-line | Owner |
 |---|---|---|
-| **Loop** | A closed string — unpinned, returns; the only thing that crosses branes. | [features/loops-library.md](features/loops-library.md) |
-| **Workflow** | An open string — pinned to the brane it started on, runs once. | [workflow-primitive.md](workflow-primitive.md) |
+| **Graph** | The shape: nodes = agents/skills/stations, edges = hand-offs. Built two ways — as code (Workflow) or as data (tasks.json), walked by a loop. | [skills-loops-graphs.md](../ideas/skills-loops-graphs.md) (worktree — not yet landed) |
+| **Loop** | A closed string — unpinned, returns; the only thing that crosses branes. Equivalently: a graph whose path returns to an earlier node. | [features/loops-library.md](features/loops-library.md) |
+| **Workflow** | An open string — pinned to the brane it started on, runs once. Equivalently: a graph, as code, that runs to completion in one call. | [workflow-primitive.md](workflow-primitive.md) |
 | **Memory (gravity-leak)** | The one thing a loop carries across branes. | this page |
 | **Ring** | One level of the Scale axis: micro / beat / epic / knowledge. | this page |
 | **Seven-step skeleton** | A ring's loop shape: ORIENT→SELECT→ACT→MEASURE→JUDGE→ASSIMILATE→RESTART; plain gloss = context→action→feedback. | [60-agent-loop-architecture.md](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) |

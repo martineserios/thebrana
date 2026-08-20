@@ -223,8 +223,9 @@ The amendment must decide:
    notes, the cost gate) are reference material that v3 uses but does not restate. If
    they matter operationally, they should be extracted into a live reference doc rather
    than read out of a superseded one.
-   **Routed 2026-08-19, not yet closed:** lands as the-brana.md's Space-chapter primitive
-   table — tracked as [the-brana-guide.md](../../ideas/the-brana-guide.md) L2.1.
+   **Resolved 2026-08-20:** landed as [the-brana.md](../the-brana.md)'s §Space primitive
+   table — [the-brana-guide.md](../../ideas/the-brana-guide.md) L2.1. One residual
+   sub-question (hooks' chapter placement) stays open there; doesn't block this Q2 closure.
 3. **What ends "v3 is draft"?** `brana-v3-redesign.md` is still `status: draft` while
    this ADR treats it as governing. Challenge finding #5 ("what does v3-done mean")
    remains open at the epic level.
