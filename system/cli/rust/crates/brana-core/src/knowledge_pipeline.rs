@@ -2721,6 +2721,18 @@ jumps over the lazy dog
         );
     }
 
+    // Boundary (Challenger, t-2997 build gate): Range with neither bound
+    // set is a legitimate "no restriction" selection, not a caller
+    // error — must produce an empty argv, not a spurious flag.
+    #[test]
+    fn test_build_channel_selection_args_range_no_bounds_is_empty_args() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: None, end: None })
+                .unwrap();
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(args, empty);
+    }
+
     #[test]
     fn test_build_channel_selection_args_range_start_only() {
         let args =
