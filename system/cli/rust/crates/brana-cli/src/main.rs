@@ -265,6 +265,9 @@ fn main() {
                     "provide a URL or --file <jsonl>"
                 ))),
             },
+            KnowledgeCmd::ChannelBackfill { channel_url, tab, max, dry_run } => {
+                run_or_exit(commands::knowledge::cmd_channel_backfill(&channel_url, &tab, max, dry_run))
+            }
             KnowledgeCmd::Next => run_or_exit(commands::knowledge::cmd_next()),
             KnowledgeCmd::Run => run_or_exit(commands::knowledge::cmd_run()),
             KnowledgeCmd::VectorSync { source, dest, json } => {

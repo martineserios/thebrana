@@ -480,6 +480,24 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Enumerate a YouTube channel tab and queue its videos as `link`-tagged
+    /// backlog tasks — each drains through the existing `drain-links`
+    /// path unchanged (docs/architecture/features/youtube-channel-ingestion.md).
+    ChannelBackfill {
+        /// Channel URL, e.g. https://www.youtube.com/@example
+        channel_url: String,
+        /// Which channel tab to enumerate
+        #[arg(long, default_value = "videos")]
+        tab: String,
+        /// Max videos to queue this run — position-range cap on the channel
+        /// listing. Sanity-capped by this flag's own default; pass a larger
+        /// value to override (feature spec §3 footgun note).
+        #[arg(long, default_value_t = 50)]
+        max: u32,
+        /// Print what would be queued without writing any tasks
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Emit the single next pipeline command to run (state-aware, zero LLM calls)
     Next,
     /// Auto-advance the pipeline: tier1→tier2, stopping at human decision points.
