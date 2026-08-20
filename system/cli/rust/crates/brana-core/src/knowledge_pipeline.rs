@@ -1667,6 +1667,120 @@ pub fn fetch_youtube_content(url: &str) -> Result<Option<String>> {
     todo!("t-2950: implement — yt-dlp subprocess wrapper")
 }
 
+// ── YouTube channel ingestion, Tier A (t-2997 tests, TDD-red pre-impl) ──
+// Tests only as of t-2997; bodies land in t-2999 per
+// docs/architecture/features/youtube-channel-ingestion.md §1, §Tests.
+// Spike source: t-2994 (live-probed against a real channel — position
+// range + duration match-filter confirmed cheap and correct under
+// `--flat-playlist`; date filters confirmed to silently no-op, hence
+// out of scope here — see ADR-070 §Amendment).
+
+/// Which channel tab to enumerate — caller picks explicitly, never
+/// inferred from the URL (feature spec §1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChannelTab {
+    Videos,
+    Shorts,
+}
+
+/// How to narrow a channel tab's video listing before mapping to URLs.
+/// Each variant maps to a distinct `yt-dlp --flat-playlist` flag —
+/// see [`build_channel_selection_args`] (feature spec §1).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChannelSelection {
+    /// `--playlist-start`/`--playlist-end` (1-indexed, either bound optional).
+    Range { start: Option<u32>, end: Option<u32> },
+    /// `--playlist-items "3,7,10"`.
+    Items(Vec<u32>),
+    /// `--match-filter "duration<N"` — **`Videos` tab only**. The spike
+    /// (t-2994) confirmed `duration` is unset on `Shorts`-tab flat
+    /// entries, so pairing this with `tab: Shorts` is a caller error,
+    /// not a silently-empty result (see [`build_channel_selection_args`]).
+    MaxDuration(u32),
+}
+
+/// Pure argv builder for `yt-dlp --flat-playlist` selection flags —
+/// no subprocess, no I/O (feature spec §1 "Tests": "pure
+/// argv-construction tests, no subprocess").
+///
+/// # Errors
+///
+/// Returns `Err` immediately for `ChannelSelection::MaxDuration` paired
+/// with `tab: ChannelTab::Shorts` — the spike (t-2994) confirmed
+/// `duration` is unset for Shorts-tab flat entries, so this combination
+/// can never be evaluated meaningfully. Callers (and this function's
+/// tests) must never reach a subprocess call for this case.
+pub fn build_channel_selection_args(tab: ChannelTab, selection: &ChannelSelection) -> Result<Vec<String>> {
+    let _ = (tab, selection);
+    todo!("t-2999: implement — Range -> --playlist-start/-end, Items -> --playlist-items, MaxDuration -> --match-filter (Videos only)")
+}
+
+/// Pure parser for `yt-dlp --flat-playlist --print "%(id)s"` stdout —
+/// one video ID per line, blank lines skipped. No subprocess, no I/O
+/// (feature spec §1 "Tests": "fixture-based flat-listing parse").
+///
+/// An empty or all-blank `output` returns an empty `Vec`, never an
+/// error — the empty-channel / zero-results fixture case (feature spec
+/// §1 "Tests") is a legitimate `Ok(vec![])`, not a failure.
+pub fn parse_flat_playlist_ids(output: &str) -> Vec<String> {
+    let _ = output;
+    todo!("t-2999: implement")
+}
+
+/// Pure mapping: a bare video ID -> its full `youtube.com/watch` URL.
+/// No subprocess, no I/O (feature spec §1 "Tests": "unit tested
+/// independently of the subprocess call").
+pub fn youtube_video_id_to_url(id: &str) -> String {
+    let _ = id;
+    todo!("t-2999: implement")
+}
+
+/// [`fetch_youtube_channel_videos`]'s testable core — takes an injected
+/// `run` closure in place of the real `yt-dlp` subprocess spawn, same
+/// seam shape as [`run_with_youtube_backoff`]'s injected `attempt`
+/// closure above. Tests substitute a fixture-returning or
+/// invocation-asserting stub here instead of shelling out (feature spec
+/// §1 "Tests": "tested against a recorded/fixture `--flat-playlist`
+/// invocation, not live network", and "assert via a test double that
+/// fails the test if the subprocess mock is invoked" for the
+/// Shorts+MaxDuration caller-error case).
+///
+/// `run` receives the argv built by [`build_channel_selection_args`]
+/// (flags only — the channel URL/tab suffix is appended separately)
+/// and returns `yt-dlp`'s stdout on success. Never called at all when
+/// [`build_channel_selection_args`] itself returns `Err` — the error
+/// path must short-circuit before `run` is invoked.
+pub fn fetch_youtube_channel_videos_with_runner(
+    channel_url: &str,
+    tab: ChannelTab,
+    selection: ChannelSelection,
+    run: impl FnOnce(&[String]) -> Result<String, String>,
+) -> Result<Vec<String>> {
+    let _ = (channel_url, tab, selection, run);
+    todo!("t-2999: implement — build_channel_selection_args, then run(), then parse_flat_playlist_ids + youtube_video_id_to_url")
+}
+
+/// Enumerate a YouTube channel tab's video URLs via `yt-dlp
+/// --flat-playlist`, narrowed by `selection`. Shells out once, same
+/// subprocess discipline as [`fetch_youtube_content`] — never acquires
+/// [`lock_pipeline`] (feature spec §1).
+///
+/// The subprocess spawn itself stays untested here (verified live
+/// instead, same discipline as `fetch_youtube_content` above) — the
+/// fixture-testable logic (argv construction, listing parse,
+/// ID-to-URL mapping, the Shorts+MaxDuration caller error) lives in
+/// [`build_channel_selection_args`], [`parse_flat_playlist_ids`],
+/// [`youtube_video_id_to_url`], and [`fetch_youtube_channel_videos_with_runner`],
+/// which this delegates to.
+pub fn fetch_youtube_channel_videos(
+    channel_url: &str,
+    tab: ChannelTab,
+    selection: ChannelSelection,
+) -> Result<Vec<String>> {
+    let _ = (channel_url, tab, selection);
+    todo!("t-2999: implement — yt-dlp subprocess wrapper, delegates to fetch_youtube_channel_videos_with_runner")
+}
+
 // ── YouTube rate-limit backoff/retry (t-2955 tests, TDD-red pre-impl) ───
 // Tests only as of t-2955; bodies land in t-2956 per
 // docs/architecture/features/youtube-knowledge-extraction.md §2, §5.
@@ -2586,6 +2700,152 @@ jumps over the lazy dog
     #[test]
     fn test_resolve_youtube_captions_no_captions_returns_ok_none() {
         assert_eq!(resolve_youtube_captions(None, None).unwrap(), None);
+    }
+
+    // ── YouTube channel ingestion, Tier A (t-2997, TDD-red pre-impl) ────
+    // build_channel_selection_args / parse_flat_playlist_ids /
+    // youtube_video_id_to_url are pure — no subprocess, no network — per
+    // feature spec §1 "Tests". fetch_youtube_channel_videos_with_runner
+    // exercises the subprocess-shaped seam against an injected closure
+    // instead of a real `yt-dlp` spawn (same discipline as
+    // run_with_youtube_backoff's injected `attempt` closure above).
+
+    #[test]
+    fn test_build_channel_selection_args_range_both_bounds() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: Some(1), end: Some(20) })
+                .unwrap();
+        assert_eq!(
+            args,
+            vec!["--playlist-start", "1", "--playlist-end", "20"]
+        );
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_range_start_only() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: Some(5), end: None })
+                .unwrap();
+        assert_eq!(args, vec!["--playlist-start", "5"]);
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_range_end_only() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: None, end: Some(10) })
+                .unwrap();
+        assert_eq!(args, vec!["--playlist-end", "10"]);
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_items() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Items(vec![3, 7, 10])).unwrap();
+        assert_eq!(args, vec!["--playlist-items", "3,7,10"]);
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_max_duration_on_videos_tab() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::MaxDuration(600)).unwrap();
+        assert_eq!(args, vec!["--match-filter", "duration<600"]);
+    }
+
+    // AC (t-2994 spike / feature spec §1): Shorts-tab flat entries carry
+    // no duration field — MaxDuration paired with Shorts must fail before
+    // any argv is used to spawn a subprocess, not silently produce an
+    // unfiltered or nonsensical filter.
+    #[test]
+    fn test_build_channel_selection_args_max_duration_on_shorts_tab_errs() {
+        let result = build_channel_selection_args(ChannelTab::Shorts, &ChannelSelection::MaxDuration(60));
+        assert!(result.is_err(), "MaxDuration on Shorts must be a caller error, not silently accepted");
+    }
+
+    #[test]
+    fn test_parse_flat_playlist_ids_multiple_lines() {
+        assert_eq!(
+            parse_flat_playlist_ids("abc123\ndef456\nghi789\n"),
+            vec!["abc123", "def456", "ghi789"]
+        );
+    }
+
+    #[test]
+    fn test_parse_flat_playlist_ids_skips_blank_lines() {
+        assert_eq!(parse_flat_playlist_ids("abc123\n\n\ndef456\n"), vec!["abc123", "def456"]);
+    }
+
+    // AC (feature spec §1 "Tests"): empty-channel / zero-results is a
+    // legitimate Ok(vec![]), never an error.
+    #[test]
+    fn test_parse_flat_playlist_ids_empty_output_is_empty_vec() {
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(parse_flat_playlist_ids(""), empty);
+    }
+
+    #[test]
+    fn test_parse_flat_playlist_ids_whitespace_only_output_is_empty_vec() {
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(parse_flat_playlist_ids("   \n\n  \n"), empty);
+    }
+
+    #[test]
+    fn test_youtube_video_id_to_url_maps_bare_id() {
+        assert_eq!(
+            youtube_video_id_to_url("dQw4w9WgXcQ"),
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        );
+    }
+
+    // AC (feature spec §1 "Tests"): "tested against a recorded/fixture
+    // --flat-playlist invocation, not live network" — the injected `run`
+    // closure stands in for the subprocess spawn.
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_maps_fixture_listing_to_urls() {
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@example",
+            ChannelTab::Videos,
+            ChannelSelection::Range { start: Some(1), end: Some(3) },
+            |_argv| Ok::<String, String>("id1\nid2\nid3\n".to_string()),
+        );
+        assert_eq!(
+            result.unwrap(),
+            vec![
+                "https://www.youtube.com/watch?v=id1",
+                "https://www.youtube.com/watch?v=id2",
+                "https://www.youtube.com/watch?v=id3",
+            ]
+        );
+    }
+
+    // AC (feature spec §1 "Tests"): empty-channel / zero-results fixture
+    // returns Ok(vec![]), not an error.
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_empty_channel_returns_ok_empty() {
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@empty-channel",
+            ChannelTab::Videos,
+            ChannelSelection::Range { start: None, end: None },
+            |_argv| Ok::<String, String>(String::new()),
+        );
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(result.unwrap(), empty);
+    }
+
+    // AC (feature spec §1 "Tests"): "MaxDuration on tab:Shorts returns Err
+    // immediately with no subprocess call made (assert via a test double
+    // that fails if invoked)" — the closure panics if it is ever called,
+    // which fails this test rather than silently passing.
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_max_duration_on_shorts_never_invokes_runner() {
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@example",
+            ChannelTab::Shorts,
+            ChannelSelection::MaxDuration(60),
+            |_argv| -> Result<String, String> {
+                panic!("subprocess runner must not be invoked for MaxDuration on Shorts")
+            },
+        );
+        assert!(result.is_err(), "MaxDuration on Shorts must fail before reaching the runner");
     }
 
     // ── YouTube rate-limit backoff/retry (t-2955, TDD-red pre-impl) ─────
