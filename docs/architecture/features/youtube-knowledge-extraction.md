@@ -7,10 +7,14 @@
 > Challenger against this ADR — see that doc's §Challenge findings and ADR-070's
 > §Amendment for what each pass corrected).
 
-Status: **spec — not yet decomposed into implementation tasks.** This is the
-M-effort spec-gate artifact `t-2940` (the YouTube phase) requires before any
-`system/`, `src/`, `lib/`, or `bin/` write can begin. Once reviewed, file
-implementation tasks under `t-2942` (Phase 1 milestone) per §Follow-up below.
+Status: **shipped** (t-2950, 2026-08-21) — the youtube fetch tier described
+below is implemented and merged: `classify_platform()` has a youtube case,
+`fetch_youtube_content()` shells out to yt-dlp per §Fix below, and
+`process_one_url`'s Store arm bypasses `extract_insight` for youtube. Tech
+doc covering usage is tracked separately as t-2953 (pending).
+
+## Changelog
+- 2026-08-21: youtube fetch tier implemented and merged (t-2950).
 
 ## Problem
 
@@ -331,3 +335,46 @@ testable per §Tests above:
 
 Effort per task: S (each is a focused, independently-testable unit).
 Suggested wave selector once filed: `parent:t-2942`.
+
+## Assumptions
+
+Implementation decisions this spec explicitly deferred to DECOMPOSE-time
+(t-2950), recorded here rather than left implicit:
+
+- **`--dump-json` combined with `--write-sub`/`--write-auto-sub` in the
+  SAME `yt-dlp` invocation** — the spec's "distinguish manual vs.
+  auto-generated" note said "use `--dump-json`'s fields, not filename
+  parsing" without fixing how, given the design's own "one subprocess
+  call, not two" constraint. Chose: `yt-dlp` supports printing JSON
+  metadata to stdout while ALSO writing the requested subtitle files to
+  disk in one call — `requested_subtitles`/`automatic_captions` on that
+  JSON determine `caption_source`, the actual `.vtt` file is read
+  separately from disk. Needs confirmation: verified against `yt-dlp`'s
+  documented flag semantics, not live-tested (no `yt-dlp`/network access
+  in this build's sandbox) — same "verified live instead" discipline this
+  file already applies to `mcp_call_tool` and the LinkedIn fetch.
+- **Fixed `-o "video.%(ext)s"` output template** — makes the caption
+  file's path deterministic (`{work_dir}/video.en.vtt`) regardless of the
+  video's actual title/id, avoiding a second `yt-dlp --dump-json` parse
+  just to locate the file yt-dlp wrote.
+- **`caption_source` plumbing**: added `pub caption_source:
+  Option<YoutubeCaptionSource>` to `FetchedContent` (`None` for every
+  non-youtube platform) — the "sibling return value" option the spec
+  left open, chosen over overloading `platform` or a second return type
+  from `fetch_url_content`.
+- **`fetch_youtube_content`'s own return type** changed from the spec's
+  original `Result<Option<String>>` sketch to `Result<Option<(String,
+  YoutubeCaptionSource)>>` — nothing depended on the original signature
+  (no test called it directly; t-2947 only pinned `resolve_youtube_captions`
+  and `dedupe_vtt_cues`'s shapes), so this was a free choice at
+  implementation time, not a breaking change.
+- **`resolve_store_value` pure-function extraction** in `process_one_url`'s
+  Store arm — factors the storage decision (value + tags) out from the
+  `extract_insight`/`ruflo_memory_store` I/O so the youtube-bypass branch
+  is unit-testable without real agy/`claude -p` subprocess calls, matching
+  this file's established "test the decision, not the I/O" pattern
+  (`resolve_process_url_outcome`, `candidate_passes_platform_filter`).
+- **Tech doc deferred to t-2953**, not written here — t-2950's own
+  approved acceptance criteria don't require doc changes, and t-2953
+  ("Docs: tech doc for the youtube fetch tier") is the dedicated
+  downstream task, gated on this one.

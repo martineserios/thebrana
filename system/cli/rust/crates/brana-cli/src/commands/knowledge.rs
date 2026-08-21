@@ -91,6 +91,35 @@ fn resolve_process_url_outcome(
     }
 }
 
+/// Compute the value to store and its tags for a `Store` outcome. Pure —
+/// takes the already-extracted insight rather than calling
+/// `kp::extract_insight` itself, so it's testable without that function's
+/// real agy/`claude -p` subprocess calls (same "test the decision, not the
+/// I/O" discipline as `resolve_process_url_outcome` above).
+///
+/// youtube skips summarization entirely and stores `content.text`
+/// unmodified, tagged `[platform, "transcript", caption_source]` — a short
+/// summary of a long transcript is only marginally less shallow than the
+/// HTML-shell bug this whole command exists to fix (feature spec §3,
+/// t-2950). Every other platform keeps the existing summarized-storage
+/// behavior, unchanged. `insight` must be `Some` for every non-youtube
+/// platform — the caller (`process_one_url`) only skips computing it for
+/// youtube.
+fn resolve_store_value(
+    content: &kp::FetchedContent,
+    insight: Option<&kp::ExtractedInsight>,
+) -> (String, Vec<String>) {
+    if content.platform == "youtube" {
+        let source = content.caption_source.unwrap_or("auto");
+        return (
+            content.text.clone(),
+            vec![content.platform.to_string(), "transcript".to_string(), source.to_string()],
+        );
+    }
+    let insight = insight.expect("non-youtube Store always has an extracted insight");
+    (insight.summary.clone(), vec![content.platform.to_string(), insight.topic.clone()])
+}
+
 /// One `{id, url}` record from a batch file.
 #[derive(Debug, Deserialize)]
 struct BatchEntry {
@@ -179,15 +208,13 @@ fn select_drain_batch(ids: &[String], cap: usize) -> Vec<String> {
 /// `.take(cap)`, unmodified; the platform split lives entirely in the
 /// candidate filter that runs before it.
 ///
-/// Matches youtube by URL substring rather than calling
-/// `kp::classify_platform` — that function's own youtube case lands in a
-/// separate, still-pending task (t-2950, blocked_by this one), so this
-/// inlines the same `youtube.com`/`youtu.be` match the feature spec's §1
-/// defines for it. Once t-2950 ships, this can be replaced with
-/// `kp::classify_platform(url) == "youtube"` with no behavior change —
-/// left as-is here to keep this task self-contained.
+/// Reconciled onto `kp::classify_platform` (t-2950) — it inlined its own
+/// `youtube.com`/`youtu.be` match while classify_platform's youtube case
+/// was still a separate pending task (t-2956 Challenger finding: two
+/// places independently deciding what counts as a youtube URL). No
+/// behavior change; same URL patterns, single source of truth now.
 fn candidate_passes_platform_filter(url: &str, platform: Option<&str>) -> bool {
-    let is_youtube = url.contains("youtube.com") || url.contains("youtu.be");
+    let is_youtube = kp::classify_platform(url) == "youtube";
     match platform {
         None => !is_youtube,
         Some("youtube") => is_youtube,
@@ -460,12 +487,22 @@ fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
         }
         ProcessUrlOutcome::Store => {
             let content = fetched.expect("Store outcome is only reachable with fetched content");
-            let insight = kp::extract_insight(&content.text, content.platform);
-            let tags = [content.platform, insight.topic.as_str()];
-            ruflo_memory_store(&key, &insight.summary, PROCESS_URL_NAMESPACE, &tags)
+            // youtube skips extract_insight entirely (feature spec §3) —
+            // don't pay for the LLM call at all when its result is discarded.
+            let insight = (content.platform != "youtube")
+                .then(|| kp::extract_insight(&content.text, content.platform));
+            let (value, tags) = resolve_store_value(&content, insight.as_ref());
+            let tag_refs: Vec<&str> = tags.iter().map(String::as_str).collect();
+            ruflo_memory_store(&key, &value, PROCESS_URL_NAMESPACE, &tag_refs)
                 .with_context(|| format!("storing {key}"))?;
             println!("Stored: {key}");
-            println!("{}", insight.summary);
+            if content.platform == "youtube" {
+                // A transcript can be hundreds of KB — printing it in full
+                // would flood the terminal on every drain-links run.
+                println!("{} chars of transcript stored (not printed in full)", value.chars().count());
+            } else {
+                println!("{value}");
+            }
         }
     }
     Ok(outcome)
@@ -2254,7 +2291,7 @@ mod tests {
 
     #[test]
     fn process_url_empty_content_stores_nothing() {
-        let fetched = kp::FetchedContent { text: String::new(), platform: "other" };
+        let fetched = kp::FetchedContent { text: String::new(), platform: "other", caption_source: None };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2266,7 +2303,8 @@ mod tests {
         // Boundary: strip_html_to_text on a JS-only page yields whitespace,
         // not an empty string. Storing that would poison the namespace with
         // an entry that looks real to search and contains nothing.
-        let fetched = kp::FetchedContent { text: "   \n\t  ".into(), platform: "other" };
+        let fetched =
+            kp::FetchedContent { text: "   \n\t  ".into(), platform: "other", caption_source: None };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2278,11 +2316,74 @@ mod tests {
         let fetched = kp::FetchedContent {
             text: "A genuine paragraph of fetched content worth keeping around.".into(),
             platform: "other",
+            caption_source: None,
         };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::Store
         );
+    }
+
+    // ── process-url Store arm: youtube bypasses extract_insight (t-2950) ──
+    // resolve_store_value takes the already-extracted insight as a parameter
+    // rather than calling kp::extract_insight itself, so these tests exercise
+    // the storage decision without extract_insight's real agy/claude -p
+    // subprocess calls (same "test the decision, not the I/O" discipline as
+    // resolve_process_url_outcome above).
+
+    #[test]
+    fn test_resolve_store_value_youtube_stores_text_unmodified_with_transcript_tags() {
+        let fetched = kp::FetchedContent {
+            text: "the full transcript text, unsummarized".into(),
+            platform: "youtube",
+            caption_source: Some("manual"),
+        };
+        let (value, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(value, "the full transcript text, unsummarized");
+        assert_eq!(tags, vec!["youtube", "transcript", "manual"]);
+    }
+
+    #[test]
+    fn test_resolve_store_value_youtube_auto_caption_source_tag() {
+        let fetched = kp::FetchedContent {
+            text: "auto-captioned transcript".into(),
+            platform: "youtube",
+            caption_source: Some("auto"),
+        };
+        let (_, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+    }
+
+    #[test]
+    fn test_resolve_store_value_non_youtube_uses_insight_summary_and_topic() {
+        // Regression guard (t-2950 AC): every non-youtube tier's existing
+        // extract_insight summarization behavior must stay unchanged.
+        let fetched = kp::FetchedContent {
+            text: "raw fetched content, never stored directly for this platform".into(),
+            platform: "github",
+            caption_source: None,
+        };
+        let insight = kp::ExtractedInsight {
+            summary: "a short summary".into(),
+            topic: "software".into(),
+            extraction_skipped: false,
+        };
+        let (value, tags) = resolve_store_value(&fetched, Some(&insight));
+        assert_eq!(value, "a short summary");
+        assert_eq!(tags, vec!["github", "software"]);
+    }
+
+    // Boundary (t-2950): caption_source should always be Some for a
+    // Store-reachable youtube FetchedContent (fetch_youtube_content only
+    // returns Some(FetchedContent) when it found captions), but the
+    // storage decision must not panic if that invariant is ever violated —
+    // fail safe to "auto" rather than crash the drain.
+    #[test]
+    fn test_resolve_store_value_youtube_missing_caption_source_defaults_to_auto() {
+        let fetched =
+            kp::FetchedContent { text: "transcript".into(), platform: "youtube", caption_source: None };
+        let (_, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
     }
 
     // ── process-url batch mode (t-2451) ──────────────────────────────
