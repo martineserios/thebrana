@@ -7,10 +7,14 @@
 > Challenger against this ADR — see that doc's §Challenge findings and ADR-070's
 > §Amendment for what each pass corrected).
 
-Status: **spec — not yet decomposed into implementation tasks.** This is the
-M-effort spec-gate artifact `t-2940` (the YouTube phase) requires before any
-`system/`, `src/`, `lib/`, or `bin/` write can begin. Once reviewed, file
-implementation tasks under `t-2942` (Phase 1 milestone) per §Follow-up below.
+Status: **shipped** (t-2950, 2026-08-21) — the youtube fetch tier described
+below is implemented and merged: `classify_platform()` has a youtube case,
+`fetch_youtube_content()` shells out to yt-dlp per §Fix below, and
+`process_one_url`'s Store arm bypasses `extract_insight` for youtube. Tech
+doc covering usage is tracked separately as t-2953 (pending).
+
+## Changelog
+- 2026-08-21: youtube fetch tier implemented and merged (t-2950).
 
 ## Problem
 
