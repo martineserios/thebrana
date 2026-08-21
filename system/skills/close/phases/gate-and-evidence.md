@@ -114,44 +114,71 @@ which only happens to resolve when the git-root IS thebrana itself.
 # Read ../../_shared/epic-ancestor-walk.md for resolve_epic_ancestor() if not
 # already sourced this session.
 #
-# SESSION_EPICS runs BEFORE LAST_CLOSE exists (it feeds LAST_CLOSE's own file
-# filter above) so it cannot bound itself on LAST_CLOSE — a chicken-and-egg. Use
-# the same 6h fallback window this block's own first-session-fallback comment
-# already documents, not a flat commit-count window (t-2784): a low-commit
-# session's `-20` tail has no relationship to session boundaries and can
-# overflow into an unrelated PRIOR close's commits, resolving that close's epic
-# as if it were this session's own (confirmed live 2026-08-12, this session's
-# own close).
+# SESSION_EPICS used to run BEFORE LAST_CLOSE existed, bounded by a flat
+# `--since="6 hours ago"` (t-2784), because the epic-SCOPED LAST_CLOSE below
+# depends on SESSION_EPICS and can't be used to bound it — a chicken-and-egg.
+# But the UNSCOPED max computed for AC2 further below has NO such dependency
+# (it doesn't reference SESSION_EPICS at all) — it's just "the newest write
+# across every session-state file, any epic" — so it's hoisted above
+# SESSION_EPICS (t-3004) and reused as a widening signal, breaking the
+# chicken-and-egg without inventing new state.
 #
-# Stopgap, not a fix for the class (t-2784): bounding by time closes the
-# overflow-into-an-older-close failure above, but per ADR-069 (D0-D3, not yet
-# shipped) no window — time or count — prevents a CONCURRENT session's commits
-# landing on the shared `dev` checkout within the same window from being picked
-# up here too (confirmed live twice more the same day: t-2764's close and this
-# session's own close). That class needs per-commit/per-lane attribution
-# (ADR-069 D3), not a narrower window. A clean SESSION_EPICS here is not proof
-# this session's epics are uncontaminated in a shared checkout.
+# Bug closed by this (t-3004, live 2026-08-20 and 2026-08-21, this session's
+# own close both times): a session whose own commits landed 6.5h, then 16h,
+# before close time fell entirely outside the flat 6h window — SESSION_EPICS
+# resolved empty, LAST_CLOSE fell back to an orphan file 3 weeks stale, and
+# COMMIT_COUNT computed as the entire history since that stale anchor (679,
+# then 686 commits). This is exactly the tradeoff flagged below as
+# "disclosed... not yet observed live" — now confirmed live twice.
 #
-# Second tradeoff, disclosed (challenger gate, t-2784): trading a count window
-# for a time window doesn't just close over-reach, it opens the opposite
-# failure — a session running LONGER than 6h whose epic-identifying commit
-# landed near session start now falls OUTSIDE the window, so that epic never
-# enters SESSION_EPICS and its session-state file loses corroboration here.
-# Not yet observed live; flagged so it isn't mistaken for solved.
-#
-# Sibling instance still open: session-state.md's Step 9c COMPLETED
-# accumulator has the identical flat `-20` shape and is tracked separately as
-# t-2480 (concurrent-session over-reach; not fixed by this change).
-SESSION_EPICS=$(git log --oneline --since="6 hours ago" 2>/dev/null \
-  | grep -oE 't-[0-9]+' | sort -u \
-  | while read -r id; do resolve_epic_ancestor "$id" 2>/dev/null; done \
-  | sort -u | grep -v '^$')
-
 # `--all` surfaces every session file; the default one appears as epic "(orphan)".
 # Sort on the first 19 chars: writers emit UTC in two shapes ("...:01Z" and
 # "...:31.372637410+00:00") which order correctly by their fixed-width
 # YYYY-MM-DDTHH:MM:SS prefix but not as whole strings.
 ALL_SESSIONS_JSON=$(brana session read --all --json 2>/dev/null)
+UNSCOPED_LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
+  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+
+# Floor at 6h, never narrow below it — do NOT just use UNSCOPED_LAST_CLOSE
+# directly as SESSION_EPICS's `--since`. UNSCOPED_LAST_CLOSE can also be
+# NEWER than 6h ago (e.g. a concurrent session on the shared checkout closes
+# 5 minutes ago while this session's own commits landed 40 minutes ago).
+# Anchoring on that closer timestamp would shrink the window to 5 minutes and
+# silently drop this session's own 40-minute-old commits from corroboration —
+# reintroducing, in smaller form, exactly the concurrency-narrowing class
+# ADR-069 rejects anchor heuristics for (t-2502; see
+# test-close-gate-concurrent-anchor.sh Case A, which exercises this and must
+# keep passing). Taking the OLDER of {6h ago, UNSCOPED_LAST_CLOSE} only ever
+# WIDENS the window, never narrows it — a concurrent close can widen the
+# search but can never shrink it below the safe 6h default.
+SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null)
+UNSCOPED_LAST_CLOSE_EPOCH=""
+[ -n "$UNSCOPED_LAST_CLOSE" ] && UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$UNSCOPED_LAST_CLOSE" +%s 2>/dev/null)
+if [ -n "$UNSCOPED_LAST_CLOSE_EPOCH" ] && [ -n "$SIX_HOURS_AGO_EPOCH" ] \
+   && [ "$UNSCOPED_LAST_CLOSE_EPOCH" -lt "$SIX_HOURS_AGO_EPOCH" ]; then
+  SESSION_EPICS_SINCE="@$UNSCOPED_LAST_CLOSE_EPOCH"
+else
+  SESSION_EPICS_SINCE="6 hours ago"
+fi
+
+# Stopgap, not a fix for the class (t-2784, still true after t-3004): bounding
+# by time — flat or widened — closes the overflow-into-an-older-close failure,
+# but per ADR-069 (D0-D3, not yet shipped) no window prevents a CONCURRENT
+# session's commits landing on the shared `dev` checkout within the same
+# window from being picked up here too (confirmed live twice more the same
+# day: t-2764's close and a prior close of this same session). That class
+# needs per-commit/per-lane attribution (ADR-069 D3), not a wider window. A
+# clean SESSION_EPICS here is not proof this session's epics are
+# uncontaminated in a shared checkout.
+#
+# Sibling instance still open: session-state.md's Step 9c COMPLETED
+# accumulator has the identical flat `-20` shape and is tracked separately as
+# t-2480 (concurrent-session over-reach; not fixed by this change).
+SESSION_EPICS=$(git log --oneline --since="$SESSION_EPICS_SINCE" 2>/dev/null \
+  | grep -oE 't-[0-9]+' | sort -u \
+  | while read -r id; do resolve_epic_ancestor "$id" 2>/dev/null; done \
+  | sort -u | grep -v '^$')
+
 LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
   | jq -r --arg epics "$SESSION_EPICS" '
       ($epics | split("\n") | map(select(. != ""))) as $mine |
@@ -162,11 +189,10 @@ LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
 
 # AC2 (t-2603): don't trust the scoped anchor silently — the epic-scope filter
 # above is a heuristic (a session whose commits reference no task IDs degrades
-# to the orphan-only window, which is often but not always right). Compute the
-# pre-t-2603 UNSCOPED max too and surface a visible warning on divergence,
-# rather than reporting success either way. This never blocks the close.
-UNSCOPED_LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
-  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+# to the orphan-only window, which is often but not always right). Compare
+# against UNSCOPED_LAST_CLOSE (computed above, ahead of SESSION_EPICS since
+# t-3004) and surface a visible warning on divergence, rather than reporting
+# success either way. This never blocks the close.
 if [ -n "$UNSCOPED_LAST_CLOSE" ] && [ "${UNSCOPED_LAST_CLOSE:0:19}" != "${LAST_CLOSE:0:19}" ]; then
     EXCLUDED_EPICS=$(echo "$ALL_SESSIONS_JSON" \
       | jq -r --arg epics "$SESSION_EPICS" '
@@ -228,9 +254,11 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.
 <!-- /CLOSE-ANCHOR-BLOCK -->
 
 > `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`,
-> `tests/procedures/test-close-gate-foreign-epic.sh` and
-> `tests/procedures/test-close-gate-concurrent-anchor.sh` (t-2502 visibility guards). Keep the
-> markers and fences intact.
+> `tests/procedures/test-close-gate-foreign-epic.sh`,
+> `tests/procedures/test-close-gate-concurrent-anchor.sh` (t-2502 visibility guards),
+> `tests/procedures/test-close-gate-session-epics-window.sh` (t-2784 overflow-exclusion) and
+> `tests/procedures/test-close-gate-session-epics-duration.sh` (t-3004 long-session widening). Keep
+> the markers and fences intact.
 > This block calls `resolve_epic_ancestor` — the extracting test must source
 > `system/skills/_shared/epic-ancestor-walk.md`'s `EPIC-WALK-BLOCK` first.
 
