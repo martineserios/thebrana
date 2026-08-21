@@ -127,11 +127,10 @@ untouched. A channel-backfill-queued URL is a normal
 `youtube.com/watch?v=...` URL, classified by `classify_platform` and drained
 exactly like any manually captured one.
 
-Known limitation carried over unchanged from Phase 1, not new to this
-feature: draining a channel-backfilled URL currently falls through to the
-generic-scrape path rather than caption extraction, until
-`fetch_youtube_content`/`fetch_url_content`'s youtube case ships (`t-2950`,
-separate, tracked in that task's context).
+`fetch_youtube_content`/`fetch_url_content`'s youtube case shipped separately
+as `t-2950` (merged 2026-08-21, after this doc's first draft) — a
+channel-backfilled URL now gets real caption extraction on drain, the same
+as any manually captured youtube URL, not the generic-scrape fallback.
 
 ## Out of scope
 
