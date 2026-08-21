@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-20T00:11:58Z",
+  "generated": "2026-08-21T14:04:23Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2020,9 +2020,7 @@
     "docs/architecture/features/youtube-channel-ingestion.md": {
       "title": "YouTube channel ingestion — Phase 3, Tier A (t-2993)",
       "type": "Roadmap",
-      "impl_files": [
-        "system/"
-      ]
+      "impl_files": []
     },
     "docs/architecture/features/youtube-knowledge-extraction.md": {
       "title": "YouTube knowledge extraction — Phase 1 (t-2946)",
