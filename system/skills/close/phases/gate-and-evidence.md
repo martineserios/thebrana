@@ -10,10 +10,56 @@ Call `/goal "session closed: errata filed, learnings stored, tasks.json committe
 
 Assess what happened this session:
 
+<!-- GATE-WINDOW-BLOCK -->
 ```bash
+# Widen the "both empty -> read-only" wall-clock window the same way t-3004
+# widened SESSION_EPICS's window (CLOSE-ANCHOR-BLOCK below) — anchored on the
+# newest session-state write across all epic files (UNSCOPED_LAST_CLOSE),
+# floored at 6h so it only ever WIDENS, never narrows (a concurrent lane's
+# fresher close can't shrink this window below the safe default — same
+# narrowing-hazard invariant as t-3004; see that block's comment for the full
+# rationale). Deliberately self-contained (does not source CLOSE-ANCHOR-BLOCK)
+# so this gate stays independently testable and the "both empty" decision
+# below stays purely wall-clock-derived — it still never consults the
+# anchored COMMIT_COUNT, so t-2502's decoupling (see the note right after
+# this block) is unaffected: widening the clock is not the same as trusting
+# the anchor.
+#
+# Bug closed by this (t-3006, live 2026-08-22, this session's own close): the
+# system clock had jumped ~20h overnight relative to this session's own
+# commit timestamps. This flat `--since="6 hours ago"` came back empty even
+# though the session had 7 of its own commits and had just merged 3 completed
+# tasks — the "both empty -> write minimal handoff, skip to Step 9" shortcut
+# below would have silently discarded a substantial, non-read-only session as
+# if nothing happened. Caught only because CLOSE-ANCHOR-BLOCK's SESSION_EPICS
+# (fixed in t-3004) was cross-checked manually; this gate had no equivalent
+# safeguard of its own.
+GATE_ALL_SESSIONS_JSON=$(brana session read --all --json 2>/dev/null)
+GATE_UNSCOPED_LAST_CLOSE=$(echo "$GATE_ALL_SESSIONS_JSON" \
+  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+GATE_SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null)
+GATE_UNSCOPED_LAST_CLOSE_EPOCH=""
+[ -n "$GATE_UNSCOPED_LAST_CLOSE" ] && GATE_UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$GATE_UNSCOPED_LAST_CLOSE" +%s 2>/dev/null)
+if [ -n "$GATE_UNSCOPED_LAST_CLOSE_EPOCH" ] && [ -n "$GATE_SIX_HOURS_AGO_EPOCH" ] \
+   && [ "$GATE_UNSCOPED_LAST_CLOSE_EPOCH" -lt "$GATE_SIX_HOURS_AGO_EPOCH" ]; then
+  GATE_SINCE="@$GATE_UNSCOPED_LAST_CLOSE_EPOCH"
+else
+  GATE_SINCE="6 hours ago"
+fi
+
 git diff --stat HEAD~5..HEAD 2>/dev/null
-git log --oneline --since="6 hours ago" 2>/dev/null
+git log --oneline --since="$GATE_SINCE" 2>/dev/null
 ```
+<!-- /GATE-WINDOW-BLOCK -->
+
+> `GATE-WINDOW-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-step1-window.sh`
+> (t-3006). Keep the markers and fences intact. It duplicates ~10 lines of t-3004's
+> UNSCOPED_LAST_CLOSE/floor-at-6h formula from CLOSE-ANCHOR-BLOCK rather than sourcing it,
+> because CLOSE-ANCHOR-BLOCK is extracted and run in isolation by five other tests
+> (test-close-gate-epic-anchor.sh, test-close-gate-foreign-epic.sh,
+> test-close-gate-concurrent-anchor.sh, test-close-gate-session-epics-window.sh,
+> test-close-gate-session-epics-duration.sh) — an inter-block dependency would silently
+> break their isolated sourcing. If the widening formula changes, update both copies.
 
 **State-file dirty check:** After the git commands above, also run:
 
@@ -40,14 +86,14 @@ git add system/state/
 git commit -m "chore(state): commit state files at session close"
 ```
 
-**If both empty** (no commits, no changes in 6 hours):
-- This branch is decided by the wall-clock 6h listing above, NOT by the anchored
-  `COMMIT_COUNT` — so a concurrent lane's close truncating the anchor (t-2502) can never
-  route you here. That case surfaces instead inside the CLOSE-ANCHOR-BLOCK below as the
-  `⚠ close window is EMPTY` warning with `ANCHOR_ZERO_WINDOW=1`: recent commits exist,
-  the anchored window is empty, and Step 1b would queue nothing. When you see it, give
-  Step 1b an explicit `--git-range <first-own-commit>^..HEAD` rather than trusting the
-  computed window.
+**If both empty** (no commits, no changes in the widened window above):
+- This branch is decided by the wall-clock listing above (GATE_SINCE — widened same as
+  SESSION_EPICS, floored at 6h; t-3006), NOT by the anchored `COMMIT_COUNT` — so a
+  concurrent lane's close truncating the anchor (t-2502) can never route you here. That
+  case surfaces instead inside the CLOSE-ANCHOR-BLOCK below as the `⚠ close window is
+  EMPTY` warning with `ANCHOR_ZERO_WINDOW=1`: recent commits exist, the anchored window
+  is empty, and Step 1b would queue nothing. When you see it, give Step 1b an explicit
+  `--git-range <first-own-commit>^..HEAD` rather than trusting the computed window.
 - Write a minimal handoff entry: `## YYYY-MM-DD — read-only session`
 - Add only a **Next:** section from conversation context
 - Skip to Step 9 (Write handoff note)
