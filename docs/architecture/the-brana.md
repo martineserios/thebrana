@@ -107,7 +107,7 @@ Term → one line → owner doc. Every term here traces back to a node in [the-b
 | **Loop** | A closed string — unpinned, returns; the only thing that crosses branes. Equivalently: a graph whose path returns to an earlier node. | [features/loops-library.md](features/loops-library.md) |
 | **Workflow** | An open string — pinned to the brane it started on, runs once. Equivalently: a graph, as code, that runs to completion in one call. | [workflow-primitive.md](workflow-primitive.md) |
 | **Memory (gravity-leak)** | The one thing a loop carries across branes. | this page |
-| **Ring** | One level of the Scale axis: micro / beat / epic / knowledge. | this page |
+| **Ring** | One level of the Scale axis. The four named rings — micro / beat / epic / knowledge — are sample points on a continuous spectrum, not an ontology: other bands (sub-second lint/type-check · session, ~hours · season, ~months) are real and simply not yet instrumented. A band becomes a ring once something has actually cycled in it with records emitted (the layer test). | this page; [wave-pipeline.md §spectrum](../ideas/drained/wave-pipeline.md) |
 | **Seven-step skeleton** | A ring's loop shape: ORIENT→SELECT→ACT→MEASURE→JUDGE→ASSIMILATE→RESTART; plain gloss = context→action→feedback. | [60-agent-loop-architecture.md](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) |
 | **Wave** | The human's unit of work — a batch of tasks pulled and shipped together. | [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md), [ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) |
 | **Task** | The agent's unit of work. | [ADR-002](decisions/ADR-002-tasks-as-data-layer.md) |
