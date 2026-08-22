@@ -49,7 +49,32 @@ if [ -n "$HEAD_HASH" ] && [ -x "$SNAPSHOT_SCRIPT" ]; then
         # failed try would fail identically on the next compaction seconds
         # later; close-snapshot.sh degrades gracefully on its own.
         mkdir -p "$GUARD_DIR" 2>/dev/null && touch "$GUARD" 2>/dev/null
-        COMMIT_COUNT=$(git -C "$GIT_ROOT" log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ') || COMMIT_COUNT=0
+        # Widen the flat 6h commit-count window the same way t-3004/t-3006
+        # widened SESSION_EPICS/GATE_SINCE in gate-and-evidence.md — anchored
+        # on the newest session-state write across all epic files, floored at
+        # 6h so it only ever WIDENS, never narrows (t-3017). Bug: a session
+        # whose last commit landed >6h before compaction (clock skew, or a
+        # long session) computed COMMIT_COUNT=0 here, so close-snapshot.sh
+        # (COMMIT_COUNT -le 0 -> silent no-op) never queued the pre-compaction
+        # safety-net — undermining this hook's own "nothing from this session
+        # is lost to compaction" guarantee. Unlike RECENT_COMMITS's sibling
+        # fix in gate-and-evidence.md, this site has no LAST_CLOSE/anchor to
+        # be bounded by, so the widening formula applies directly. Best-effort
+        # and never blocks: falls back to the flat 6h default if $BRANA is
+        # unresolved or any step fails.
+        SINCE="6 hours ago"
+        if [ -x "$BRANA" ]; then
+            UNSCOPED_LAST_CLOSE=$(cd "$GIT_ROOT" && "$BRANA" session read --all --json 2>/dev/null \
+                | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null) || UNSCOPED_LAST_CLOSE=""
+            SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null) || SIX_HOURS_AGO_EPOCH=""
+            if [ -n "$UNSCOPED_LAST_CLOSE" ] && [ -n "$SIX_HOURS_AGO_EPOCH" ]; then
+                UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$UNSCOPED_LAST_CLOSE" +%s 2>/dev/null) || UNSCOPED_LAST_CLOSE_EPOCH=""
+                if [ -n "$UNSCOPED_LAST_CLOSE_EPOCH" ] && [ "$UNSCOPED_LAST_CLOSE_EPOCH" -lt "$SIX_HOURS_AGO_EPOCH" ]; then
+                    SINCE="@$UNSCOPED_LAST_CLOSE_EPOCH"
+                fi
+            fi
+        fi
+        COMMIT_COUNT=$(git -C "$GIT_ROOT" log --oneline --since="$SINCE" 2>/dev/null | wc -l | tr -d ' ') || COMMIT_COUNT=0
         if bash "$SNAPSHOT_SCRIPT" --git-root "$GIT_ROOT" --branch "$BRANCH" \
                 --project "$PROJECT" --commit-count "${COMMIT_COUNT:-0}" >/dev/null 2>&1; then
             SNAPSHOT_NOTE="Pre-compaction snapshot saved and queued (HEAD $HEAD_HASH) — nothing from this session is lost to compaction."
