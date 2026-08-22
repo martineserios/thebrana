@@ -1,6 +1,7 @@
 ---
 title: brana v2 Compute Model — Living Spec
-status: active
+status: superseded
+superseded_by: docs/architecture/decisions/ADR-068-v3-supersession.md
 created: 2026-05-24
 source: canonical
 depends_on: ADR-040, ADR-041
@@ -8,6 +9,8 @@ depends_on: ADR-040, ADR-041
 
 # brana v2 Compute Model
 
+> **Superseded 2026-08-19 by [ADR-068](decisions/ADR-068-v3-supersession.md).** The v3 design retires this doc's "active" status; current compute routing lives in `~/.claude/rules/delegation-routing.md` (the always-loaded 8-step table this doc's own "Routing Hierarchy" prefigured). The Ruflo-as-coordinator framing below ("claims · hive-mind · autopilot · memory") also no longer holds — ruflo's agentic layer (`agent_execute`/`hive-mind_*`/`coordination_*`) is confirmed hollow under subscription (self-votes, no real execution); see `field-note_ruflo-agentic-layer-subscription-theater`. Kept for history — the Gemini-delegation half (ENRICH→DELEGATE→APPLY→PERSIST) is still accurate and is what `/brana:gemini` implements today.
+>
 > Three workstreams — efficiency tuning, Gemini delegation, Ruflo multi-agent — form one
 > initiative. They all attack the same constraint: brana runs on a single compute source
 > (Claude's token pool, serial execution).

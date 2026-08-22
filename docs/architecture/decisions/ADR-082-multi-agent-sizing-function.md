@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-082: Graded Multi-Agent Sizing — Judge Panels and Build-Team Role Separation (extends ADR-080)
 
 - Status: accepted (implemented by t-2895, 2026-08-14)

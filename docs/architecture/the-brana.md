@@ -58,6 +58,31 @@ Composed blocks (Layer 1, `.claude/workflows/`) — each a `Workflow` script com
 
 **Open:** where hooks (PreToolUse, SessionStart, …) belong isn't resolved — not in `substrate-primitives.md`'s set at all, and it doesn't cleanly fit Cycle's motion-primitives. Reads more like Gate (an automatic, non-human check) or connective tissue spanning all four chapters. Tracked at [the-brana-guide.md](../ideas/the-brana-guide.md) L2.1.
 
+### Grain files — where they live
+
+Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L2.3. No new top-level directory — three homes, split by *who owns the grain*, not by file type:
+
+| Home | For | Status |
+|---|---|---|
+| `system/skills/_shared/` | Logic multiple stations (skills/workflows) call | Already the de facto home — no change |
+| `system/agents/<agent>/` | One agent's own owned judgment (a rubric, a calibration table) | New — `system/agents/` is flat `.md` today |
+| `.agents/skills/<pocock-name>/` | Vendored upstream organs, pinned + tracked in `skills-lock.json` (never restated into the other two homes) | Mechanism from [ADR-084](decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md), pilot-accepted |
+
+Rule: whichever home, the prose skill and the headless caller both **Read the same file** — no restating. The three drifted pairs found during this walk (verify-gates/build-evaluator/challenger-gate; adversarial-hive-mind/hive-mind.js; build-loop/delegation-tdd-checklist) already prove judgment silently diverges between a human-run skill and an unattended loop reading a stale second copy — one home per rule closes that class of bug.
+
+### The handoff packet — what actually carries context between stations
+
+Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L2.4. [backlog-v3-schema.md](features/backlog-v3-schema.md)'s original packet design (spec + AC + log + refs, all typed) turned out mostly aspirational — checked against the live store, only **AC** (`acceptance_criteria`/`ac_state`) is real and load-bearing. `spec`, `log`, and `ref:` were designed but essentially unbuilt or unused.
+
+| Piece | Status | Resolution |
+|---|---|---|
+| **AC** | Real — propose→approve→pull works end to end | Unchanged, the real contract |
+| **spec** (provenance) | Designed, never populated | Adopt going-forward only, no backfill (t-3007) |
+| **log** (attributed thread) | Never built; write-contention risk flagged in the original design | Not the tasks.json field — extend `/brana:log` (already append-only, tag-routed) with task-scoped read/write instead (t-3008) |
+| **refs** | Designed, barely used | Broaden past specs/ADRs; require a context-pointer's what+when, not a bare link (t-3009) |
+
+The `log` resolution is closer to Pocock's own model than the original design was: he has no per-task structured log either — decisions are their own markdown documents, referenced by a task, not schema fields embedded in it.
+
 ## Vocabulary
 
 Term → one line → owner doc. Every term here traces back to a node in [the-brana-guide.md](../ideas/the-brana-guide.md) — check there for the full discussion, refs, and any flagged seams.

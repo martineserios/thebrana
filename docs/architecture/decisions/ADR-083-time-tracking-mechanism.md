@@ -8,6 +8,7 @@ status: accepted
 **Deciders:** Martín Rios
 **Tags:** time-tracking, cost-tracking, harness, backlog, waves
 **Tasks:** t-2919 (this ADR) · t-648 (superseded — original build-cost-tracking design, folded in) · t-2920 (idle-cap re-validation, incorporated) · t-2912 (time-tracking epic, parent)
+**Supersedes:** [build-cost-tracking.md](../features/build-cost-tracking.md) (t-648's original design — storage-path collision with `ADR-076`'s beat-record path was the trigger; folded in here)
 **Relates:** [idea: task-time-tracking](../../ideas/task-time-tracking.md) (full rationale, 3-worker challenger review, and the idle-cap re-validation this ADR incorporates) · [build-receipts feature spec](../features/build-receipts.md) (atomic-write + H2 git-env-scrub precedent this design reuses) · [ADR-076](ADR-076-build-receipts-as-executed-evidence.md) (`git rev-parse --git-common-dir` storage precedent)
 
 ---
