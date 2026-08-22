@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-21T14:46:37Z",
+  "generated": "2026-08-22T16:52:25Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2017,6 +2017,15 @@
         "system/scripts/check-worktree-divergence.sh"
       ]
     },
+    "docs/architecture/features/youtube-channel-backfill.md": {
+      "title": "YouTube channel backfill — Tier A tech doc (t-2998)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
+        "system/cli/rust/crates/brana-cli/src/cli.rs",
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs"
+      ]
+    },
     "docs/architecture/features/youtube-channel-ingestion.md": {
       "title": "YouTube channel ingestion — Phase 3, Tier A (t-2993)",
       "type": "Roadmap",
@@ -2025,9 +2034,7 @@
     "docs/architecture/features/youtube-knowledge-extraction.md": {
       "title": "YouTube knowledge extraction — Phase 1 (t-2946)",
       "type": "Roadmap",
-      "impl_files": [
-        "system/"
-      ]
+      "impl_files": []
     },
     "docs/architecture/field-notes/fts5-memory-recall.md": {
       "title": "FTS5 Memory Recall Seam",
@@ -10899,6 +10906,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/youtube-channel-backfill.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/youtube-channel-ingestion.md",
       "type": "references",
       "computed": false
@@ -12748,6 +12761,24 @@
     {
       "from": "docs/architecture/features/wave-gate-enforcement.md",
       "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-channel-backfill.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-channel-backfill.md",
+      "to": "youtube-channel-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-channel-backfill.md",
+      "to": "youtube-knowledge-extraction.md",
       "type": "references",
       "computed": false
     },
@@ -17061,8 +17092,8 @@
     }
   ],
   "stats": {
-    "nodes": 594,
-    "edges": 2148,
+    "nodes": 595,
+    "edges": 2152,
     "typed_edges": 686,
     "orphans": 159
   }
