@@ -272,14 +272,38 @@ COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/nul
 #     --git-range). Quiet when there are no recent commits at all (nothing
 #     could have been truncated — that is the genuine read-only case, which
 #     Step 1's wall-clock listing above already routes).
-RECENT_COMMITS=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
+# Widened flat fallback (24h, t-3017) — NOT the UNSCOPED_LAST_CLOSE-anchored
+# formula t-3004/t-3006 use elsewhere in this block. That formula cannot fix
+# this specific check: LAST_CLOSE is always <= UNSCOPED_LAST_CLOSE by
+# construction (LAST_CLOSE is chosen from a subset of the same
+# ALL_SESSIONS_JSON that UNSCOPED_LAST_CLOSE maxes over), so whenever
+# COMMIT_COUNT==0 below (the only case RECENT_COMMITS matters for),
+# LAST_CLOSE already postdates every recent commit — and so does
+# UNSCOPED_LAST_CLOSE. No UNSCOPED_LAST_CLOSE-anchored widening can ever
+# reach back further than the very anchor that caused the zero window in the
+# first place (verified by direct construction, not just argued — see
+# test-close-gate-recent-commits-window.sh). A generous FLAT fallback,
+# independent of any session-state anchor, is the only mechanism that can
+# actually widen this specific check. Safe because RECENT_COMMITS is
+# diagnostic-only: it feeds the stderr warning below, never gates real
+# behavior. 24h comfortably covers both live clock-skew magnitudes recorded
+# so far (16h t-3004, 20h t-3006) with margin; widen further if a session
+# exceeds it.
+#
+# Disclosed tradeoff (challenger review, t-3017): the mirror image of fixing
+# the silent-miss case is that the ⚠ EMPTY warning below now fires on more
+# shared-checkout noise too — any commit from ANY lane in the last 24h can
+# trigger it, not just the last 6h. Acceptable: the guard is stderr-only,
+# advisory, and never blocks (same accepted tradeoff shape as the
+# over-reach guard right below this one).
+RECENT_COMMITS=$(git log --oneline --since="24 hours ago" 2>/dev/null | wc -l | tr -d ' ')
 ANCHOR_ZERO_WINDOW=0
 if [ "${COMMIT_COUNT:-0}" -eq 0 ] && [ -n "$LAST_CLOSE" ] && [ "${RECENT_COMMITS:-0}" -gt 0 ]; then
     ANCHOR_ZERO_WINDOW=1
     LAST_CLOSE_EPIC=$(echo "$ALL_SESSIONS_JSON" \
       | jq -r --arg ts "${LAST_CLOSE:0:19}" \
           '[.[] | select((.state.written_at // "")[0:19] == $ts) | .epic] | unique | join(",")' 2>/dev/null)
-    echo "⚠ close window is EMPTY: anchor $LAST_CLOSE (session-state epic: ${LAST_CLOSE_EPIC:-unknown}) post-dates all $RECENT_COMMITS commit(s) of the last 6h. If any of those commits are this session's, a CONCURRENT lane's close truncated the window (t-2502 — do not re-file). Do NOT treat this as a read-only session on this signal alone: confirm this session made no commits, or re-run Step 1b with an explicit --git-range <first-own-commit>^..HEAD (git log --since='6 hours ago' to find it)." >&2
+    echo "⚠ close window is EMPTY: anchor $LAST_CLOSE (session-state epic: ${LAST_CLOSE_EPIC:-unknown}) post-dates all $RECENT_COMMITS commit(s) of the last 24h. If any of those commits are this session's, a CONCURRENT lane's close truncated the window (t-2502 — do not re-file) or this session's clock/commits are older than 6h (t-3006/t-3017 — do not re-file that either). Do NOT treat this as a read-only session on this signal alone: confirm this session made no commits, or re-run Step 1b with an explicit --git-range <first-own-commit>^..HEAD (git log --since='24 hours ago' to find it)." >&2
 fi
 
 # (b) OVER-REACH. On the shared checkout the window contains other lanes'
@@ -302,9 +326,10 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.
 > `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`,
 > `tests/procedures/test-close-gate-foreign-epic.sh`,
 > `tests/procedures/test-close-gate-concurrent-anchor.sh` (t-2502 visibility guards),
-> `tests/procedures/test-close-gate-session-epics-window.sh` (t-2784 overflow-exclusion) and
-> `tests/procedures/test-close-gate-session-epics-duration.sh` (t-3004 long-session widening). Keep
-> the markers and fences intact.
+> `tests/procedures/test-close-gate-session-epics-window.sh` (t-2784 overflow-exclusion),
+> `tests/procedures/test-close-gate-session-epics-duration.sh` (t-3004 long-session widening) and
+> `tests/procedures/test-close-gate-recent-commits-window.sh` (t-3017 RECENT_COMMITS widened
+> fallback). Keep the markers and fences intact.
 > This block calls `resolve_epic_ancestor` — the extracting test must source
 > `system/skills/_shared/epic-ancestor-walk.md`'s `EPIC-WALK-BLOCK` first.
 
