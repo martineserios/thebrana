@@ -62,6 +62,18 @@ if [ -n "$HEAD_HASH" ] && [ -x "$SNAPSHOT_SCRIPT" ]; then
         # be bounded by, so the widening formula applies directly. Best-effort
         # and never blocks: falls back to the flat 6h default if $BRANA is
         # unresolved or any step fails.
+        #
+        # No upper cap (challenger review, t-3017): unlike RECENT_COMMITS
+        # (diagnostic-only), COMMIT_COUNT here IS load-bearing — it scales
+        # close-snapshot.sh's HEAD~N..HEAD fallback range (the pre-t-2478
+        # imprecision t-2242 already accepts for this no-anchor site). A
+        # stale UNSCOPED_LAST_CLOSE could in principle grow the range
+        # unboundedly; in practice this is self-limiting (session storage is
+        # project-scoped per resolve_memory_dir, and close-snapshot.sh caps
+        # its diff output at 500KB regardless of range size), so no cap was
+        # added — the same no-upper-cap shape already ships unchallenged in
+        # SESSION_EPICS_SINCE's widening above. Documented here rather than
+        # left implicit, since this site's COMMIT_COUNT gates real behavior.
         SINCE="6 hours ago"
         if [ -x "$BRANA" ]; then
             UNSCOPED_LAST_CLOSE=$(cd "$GIT_ROOT" && "$BRANA" session read --all --json 2>/dev/null \

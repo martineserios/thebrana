@@ -289,6 +289,13 @@ COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/nul
 # behavior. 24h comfortably covers both live clock-skew magnitudes recorded
 # so far (16h t-3004, 20h t-3006) with margin; widen further if a session
 # exceeds it.
+#
+# Disclosed tradeoff (challenger review, t-3017): the mirror image of fixing
+# the silent-miss case is that the ⚠ EMPTY warning below now fires on more
+# shared-checkout noise too — any commit from ANY lane in the last 24h can
+# trigger it, not just the last 6h. Acceptable: the guard is stderr-only,
+# advisory, and never blocks (same accepted tradeoff shape as the
+# over-reach guard right below this one).
 RECENT_COMMITS=$(git log --oneline --since="24 hours ago" 2>/dev/null | wc -l | tr -d ' ')
 ANCHOR_ZERO_WINDOW=0
 if [ "${COMMIT_COUNT:-0}" -eq 0 ] && [ -n "$LAST_CLOSE" ] && [ "${RECENT_COMMITS:-0}" -gt 0 ]; then
