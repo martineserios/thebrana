@@ -78,7 +78,7 @@ Find and install skills for what you're doing — tech or reasoning gaps. Matche
 
 Manage the backlog — plan, track, navigate phases and epics. Use when planning phases, viewing roadmaps, or restructuring work.
 
-**Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
+**Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync|execute] [args] (execute: [scope] [--dry-run] [--max-parallel N] [--retry])`
 
 **Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_mark-stealable, TaskCreate, TaskList, TaskUpdate, ToolSearch
 

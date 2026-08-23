@@ -5,7 +5,7 @@ effort: medium
 model: sonnet
 keywords: [tasks, planning, roadmap, milestones, phases, tracking, priority]
 task_strategies: [feature, refactor]
-argument-hint: "[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]"
+argument-hint: "[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync|execute] [args] (execute: [scope] [--dry-run] [--max-parallel N] [--retry])"
 group: brana
 allowed-tools:
   - Read
