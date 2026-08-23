@@ -6,13 +6,13 @@ created: 2026-08-14
 # Statusline Pipeline Awareness
 
 > Brainstormed 2026-08-14. Successor to the drained `statusline-v2-backlog-intelligence`
-> idea (2026-04-07) — that idea predates the wave-pipeline system (ADR-080, shipped
+> idea (2026-04-07) — that idea predates the wave mechanics of The Brana (ADR-080, shipped
 > 2026-08-13/14) it would now be built around. Status: draft, ready for backlog planning.
 
 ## Problem
 
 The statusline shows session-local info (model/project/branch/epic/session/CTX%) but
-has zero visibility into the backlog wave-pipeline (ADR-080): wave status (queued /
+has zero visibility into the backlog wave mechanics (ADR-080): wave status (queued /
 draining / shipped), gate blockers, approval-pending (VALVE) tasks, or which wave a
 running drain-loop (PUMP) is currently beating on. Today, seeing any of that requires
 manually running `brana backlog wave board`, `sitrep`, or `claims status`. The old

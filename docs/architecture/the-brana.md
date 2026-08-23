@@ -96,17 +96,49 @@ Standing direction: adapt toward Pocock's lighter structure, not the reverse def
 
 `[the-brana-guide.md L3 standing direction · memory feedback_backlog-field-usage-vs-feed-mechanism · matrix]`
 
+### Mechanics — four primitives, seven laws
+
+Absorbed from `drained/wave-pipeline.md` (D3, 2026-08-23); this page is now the owner. The vocabulary for the machinery is **closed**: every capability — standing waves, shadow drains, dead-letter triage, graduated autonomy, the epic runner — is an *arrangement* of these four. The day an idea needs a fifth primitive is the day to be suspicious of it.
+
+| Primitive | Definition | Instances |
+|---|---|---|
+| **Queue** | Durable state holding work between pumps — the loop's only memory | waves, `inbox/`, branches (`ready/*`), URL jsonl, ADR-063's hands store |
+| **Pump** | A loop moving work exactly one stage forward; a *station* is the body of a pump | `wave pull`, drain loop, epic-drain, cleanup |
+| **Valve** | A human gate between stages — never automated, never armed by the party it constrains | `ac approve`, merge→dev, ship→main, `wave … shipped` (full inventory: §Gate L4.4) |
+| **Gauge** | A readout on a queue or the pumps — never acts, makes the next decision cheap | wave board, watchdog, beat telemetry |
+
+Every queue answers five verbs — `peek / pull / ack / dead-letter / depth` — with its store's native atomic primitive doing `pull` (lock+write for waves, `mv` for dirs, `update-ref` for git). Native stores stay authoritative; the abstraction lives only at the verb interface ([features/loops-library.md](features/loops-library.md) has the contract).
+
+```
+backlog ──▶ ac-propose ──▶ ac approve ──▶ wave drain ──▶ wave pull ──▶ build ──▶ merge · ship
+ QUEUE        PUMP          VALVE·you      VALVE·you       PUMP         PUMP       VALVE·you
+```
+
+Ascent happens on the way back: green tests close a beat, beats close a wave, shipped waves close an epic, the epic's learnings close the knowledge loop. **Ascent is phase, not a return trip:** nothing travels back up the rings; the slow wave advances *because* the fast one oscillated — a wave is not closed by a separate closing activity, it closes as a side effect of its beats completing.
+
+**The seven operating laws** (brana's own derivation, no Pocock analogue; memory `project_loop-operating-laws`):
+
+1. **Loops never talk to each other — queues do.** Coordination is backpressure; the foreman fills a queue, it never calls workers.
+2. **Every loop needs a dead-letter path** with its own closer pump — queueless rejects rot (the 160-day-stale root cause; t-2587).
+3. **One external watchdog watches all loops** via last-beat records, outside the loops it guards. Session death is loop death; only the watchdog notices.
+4. **Beats are idempotent.** A beat replayed twice must be safe (the atomic wave pull is the reference implementation).
+5. **Cost per beat ≈ context size.** Lean dedicated sessions, cheap preflight first; a loop whose beats cost more than the work they move is net negative. (Applied to sessions: sessions are disposable read/write heads over durable state, never where state lives — see §Space L2.5.)
+6. **Loops are testable.** Rehearse beats against fixture queues before arming (shadow drains are the wave-native form).
+7. **Lifecycle needs a stance** — 7-day expiry, Esc-kill, no pause/resume: retirement and re-arming, not just birth.
+
+**Knowledge band, instrumented (design, not yet built):** cross-session learning is a pipeline, not a feature — capture (every beat, free) → `knowledge-staging` queue (cap = WIP bound) → distiller pump (t-2851) → curation valve as a cockpit digest (t-2852) → reservoir, with hygiene gauges for staleness and a retirement path, law 7 applied to knowledge (t-2853). This is what fills the Knowledge ring's missing MEASURE/JUDGE (§Scale). Close then decomposes into *distributed* ASSIMILATE — every beat writes its record at exit; `/close` thins to a session-band valve.
+
 ### Decided
 
 - **Workflow-vs-loop rule:** runs once → `Workflow` script; walked with humans between nodes → data + `/loop`. No Pocock analogue for either half — his system has no loop primitive ("the loop is a human habit") and no graph-as-code. `[skills-loops-graphs.md §Loop vs graph · memory pattern_loop-traverses-graph-workflow-is-graph · matrix row 1]`
 - **Loop contract** = [features/loops-library.md](features/loops-library.md) + `system/loops/` (frontmatter, beat record, denied verbs, pull interface). KEEP brana (row 1): denied verbs / pull interface are unattended-safety scaffolding real production crons need. `[features/loops-library.md · system/loops/{README,drain-loop,epic-drain,pipeline-digest}.md · system/scripts/loops-lint.py · matrix rows 1, 8]`
 - **Wave mechanics** — split by verdict, not one bloc: `ac_state` approval KEEP (row 5 — routes *and* gates, unlike Pocock's readiness state; 0.8% usage reads as early load-bearing infra under the corrected lens) · leases KEEP (row 6 — hard dependency the moment wave-level parallelism lands, to avoid re-running t-2216/t-2206) · gate graph / `blocked_by` in the pull frontier **ADOPT Pocock** (row 10, largest margin in the matrix — his `to-tickets` frontier rule open ∧ unblocked ∧ unclaimed fixes a confirmed live bug; amend [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md) §2). Epic-drain supersedes drain-loop for epics. `[ADR-079 §2 · ADR-080 · ADR-065 · features/plan-time-wave-graph.md, wave-board.md, wave-gate-enforcement.md, ac-state-forward-slice.md · guide/workflows/epic-drain.md, drain-loop.md · features/backlog-v3-schema.md · memory pattern_wave-pull-ignores-blocked-by-ordering · matrix rows 5, 6, 10]`
 - **Wave-level parallelism** (independent unblocked tickets → concurrent agents) — ADOPT Pocock (row 2). Not yet built; leases are a prerequisite, ship together. `[ideas/loop-task-multiagent.md Round 1 · t-2889 · matrix row 2]`
-- **Seven laws** — brana's own derivation, no Pocock analogue, no matrix row. `[memory project_loop-operating-laws · drained/wave-pipeline.md §seven laws]`
-- **Four mechanics primitives** queue / pump / valve / gauge (+ backpressure, dead-letter), closed set. Dead-letter KEEP (row 7): Pocock's `wontfix` is human-only classification; t-2587 (LinkedIn-miss starvation) is exactly what automatic dead-letter prevents. `[drained/wave-pipeline.md · drained/loop-first-redesign.md L188–203 · memory pattern_pipeline-primitives-* · t-2587 · matrix row 7]`
+- **Seven laws** — brana's own derivation, no Pocock analogue, no matrix row. `[this page §Cycle → Mechanics · memory project_loop-operating-laws]`
+- **Four mechanics primitives** queue / pump / valve / gauge (+ backpressure, dead-letter), closed set. Dead-letter KEEP (row 7): Pocock's `wontfix` is human-only classification; t-2587 (LinkedIn-miss starvation) is exactly what automatic dead-letter prevents. `[this page §Cycle → Mechanics · drained/loop-first-redesign.md L188–203 · memory pattern_pipeline-primitives-* · t-2587 · matrix row 7]`
 - **Task = agent's unit; wave = human's unit** — KEEP brana by override (row 11): raw score slightly favors Pocock's unified ticket, but billing a client for a defined chunk of work is a must-have filter none of the six criteria capture (Bucket 2). `[WT t-2980 ADR (→086) · memory project_pocock-adoption-ideas-2026-08-18 · matrix row 11]`
 - **Chains are an anti-pattern** (39–70% worse than single-agent; context loss per hop). Fan-out + synthesis only at JUDGE (leans KEEP, row 3 — 4 verified misses across 6 diffs, 2.5–3.5× cost, escalation-gated) — PLAN-step panels **not settled** (row 4; needs the same retrospective probe before t-2896). `[ideas/loop-task-multiagent.md · research/2026-08-14-multiagent-orchestration-lessons.md · memory pattern_multiagent-belongs-at-judgment-not-execution · matrix rows 3, 4]`
-- **Ring table** (L3.1, locked after `/brana:challenge` deep) — per ring: queue · act · cycle unit · record · gauge · valve · memory read/write, with ✓ proven / ◇ design-only / ⚠ contested markers. Beat is the only fully-exercised ring; Epic's record and exit-write are design-only; the whole Knowledge row is design-only. Table lives in the guide, not restated here. `[the-brana-guide.md L3.1 · drained/wave-pipeline.md §layer test · features/loops-library.md §beat record · ADR-080 §3, §7 · t-3018 · L3.7]`
+- **Ring table** (L3.1, locked after `/brana:challenge` deep) — per ring: queue · act · cycle unit · record · gauge · valve · memory read/write, with ✓ proven / ◇ design-only / ⚠ contested markers. Beat is the only fully-exercised ring; Epic's record and exit-write are design-only; the whole Knowledge row is design-only. Table lives in the guide, not restated here. `[the-brana-guide.md L3.1 · this page §Scale (layer test) · features/loops-library.md §beat record · ADR-080 §3, §7 · t-3018 · L3.7]`
 - **`/goal` placement** (L3.2) — the Micro→Beat seam: owns the Micro ring's red→green cycle, stops at Beat's valve; lives *inside* Beat's Act cell, never across its valve. Bucket 1, KEEP — it is what lets a task auto-complete with nobody watching. `[ADR-061 §1, §2, §4 · features/goal-binding-build-tdd.md (stale → pointer, L6) · t-3018 · t-2981]`
 - **Two runners, one seam: presence** (L3.4) — epic runner (`inside`/`valve`) and autonomous runner (`none`) walk the same beat; converge the autonomous runner onto `epic-drain` as its `presence: none` mode (t-3019, blocked_by t-2982). The satellite keeps the eligibility layer + headless executor. `[ADR-080 · features/autonomous-runner.md · drained/orbit-evidence-first.md · ADR-085 · t-3019 · t-2982]`
 - **Beat record = markdown document** referenced by the task/beat, not a schema field (L3.5, row 8 — matches L2.4's `log` resolution, t-3008). A build receipt is one *instance* of that document type. `[features/loops-library.md · features/build-receipts.md · ADR-076 · matrix row 8]`
@@ -120,14 +152,14 @@ Standing direction: adapt toward Pocock's lighter structure, not the reverse def
 
 ## Gate — who decides
 
-Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L4; absorbs [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms + §Spectrum. Valves = human gates placed by reversibility: machine judges own reversible outcomes; the human valve is mandatory for irreversible ones (approve · merge · ship). Two rooms: **studio** (needs thinking → agenda) and **cockpit** (rubber-stamps → digest). Autonomy = altitude L0→L3; L3 hard-gated on the sandbox.
+Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L4; owns the two rooms and the valve-by-reversibility rule (absorbed 2026-08-23, D3); the spectrum/low-pass view is §Scale. Valves = human gates placed by reversibility: machine judges own reversible outcomes; the human valve is mandatory for irreversible ones (approve · merge · ship). Two rooms: **studio** (needs thinking → agenda) and **cockpit** (rubber-stamps → digest). Autonomy = altitude L0→L3; L3 hard-gated on the sandbox.
 
 ### Decided
 
 - **Caller owns human mode**; station suggests a closed-enum default; grants default-deny; presence interlock; ambiguous → agenda; irreversible → no default. `[t-2490 context · skills-loops-graphs.md §Operator decision · ADR-061 Inv.1 · drained/loop-first-redesign.md challenger #1 · drained/runner-capability-isolation.md (lethal trifecta) · Pocock research (diagnosing-bugs Ph3 default; wizard confirm) · memory pattern_dual-mode-gap-resolves-at-runner-layer]`
 - **Panels at JUDGE/PLAN only**; judge = policy arming on hard signals (t-2894); same-model self-review weakest; split verdicts are their own signal. `[ideas/loop-task-multiagent.md · research 2026-08-14-judge-panel-probe.md, 2026-08-14-llm-judge-panels.md · ADR-082 · features/judge-escalation-valve.md · system/agents/CALIBRATION.md · memory pattern_llm-judge-panel-design-rules]`
 - **Autonomy = routing, not smarter agents**; promotion by evidence, auto-demotion by shape. `[drained/loop-first-redesign.md L200 · drained/brana-v3-redesign.md principles 5–6 · ADR-068 §3]`
-- **Gate armed by an actor external to the loop.** `[drained/wave-pipeline.md · memory pattern_gate-armed-by-the-party-it-constrains · guide/workflows/epic-drain.md (3)]`
+- **Gate armed by an actor external to the loop.** `[this page §Cycle → Mechanics (valve) · memory pattern_gate-armed-by-the-party-it-constrains · guide/workflows/epic-drain.md (3)]`
 - **L3 hard-gated on ADR-062**; `tools:` deny = tripwire. `[ADR-062 · t-2173 · drained/runner-capability-isolation.md]`
 - **Two rooms as one store, two trays** (L4.1) — [ADR-063](decisions/ADR-063-pending-questions-store.md)'s `pending-questions.json` is the only queue; add `room ∈ cockpit | studio`, set by the valve-feeder at stop-time by a cheap rule (irreversible or ambiguous or unsure → studio; else cockpit), never an LLM classifier. Three verbs: `peek` (gauge) · `pull` (lease) · `ack` (the valve). KEEP two rooms, ADOPT Pocock's shape (state on the item, not a parallel queue). `brana hands` is Accepted, never built → t-3021, blocked_by t-2834. `[ADR-063 (amend §1 schema: room) · features/pipeline-digest.md · ideas/statusline-pipeline-awareness.md · t-2825 · t-3021 · t-2587]`
 - **`ask()` compile table** (L4.2) — the station writes the question once; the caller compiles it: `inside` → `AskUserQuestion` · `valve` → raise a hand into ADR-063's store with `room`, stop the beat with `needs_judgment` · `none` → take `suggested_default` only if the grant covers it (closed enum, default-deny), logged as an assumption. **`none` degrades to `valve`, never to a guess.** Prose at the runner layer, single owner, no schema (ADR-085 D2) — owner to create: `system/loops/README.md` §ask (t-3021). Today `valve` is paper (`autonomous-runner.sh plan_task` up-front NEEDSHUMAN is the stopgap). `[ADR-062 · ADR-063 · ADR-085 D2 · guide/workflows/epic-drain.md (8) · system/scripts/autonomous-runner.sh · t-3021]`
@@ -142,12 +174,31 @@ Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L4; absorbs [drained/wa
   | Ship → main | **no** (deploys `~/.claude/`) | `ff-only + bootstrap.sh + push` → PR + required CI (t-3023) | **nowhere** |
   | Re-arm runner | yes (Esc) | `/loop epic-drain` (launch = arm) | n/a |
 
-  **Tiers:** tier 0 *workbench* = feature/worktree/runner branches, nothing live, fast · tier 1 *buffer* = `dev`, integrated not deployed, human merge valve, judge ladder arms by signal · tier 2 *production* = `main` → `~/.claude/`, human-only, recorded, never a runner, never a default. Every valve is already default-deny; all five are cockpit items and four are surfaced nowhere → `peek --room cockpit` (t-3021) is the single surfacing point. Ship→main was the one irreversible valve and the only one unsurfaced — that asymmetry is the defect. **GitHub is a mirror, not a gate today** (last PR merged 2026-03-16; no required checks). KEEP brana's five; ADOPT Pocock at **tier 2 only**: `dev→main` via PR + required CI + enforce_admins (t-3023), and greppable valve verbs (t-3022). NOT adopted: tickets→issues, PR per feature branch, a staging tier, machine defaults on any valve. `[ADR-079 · ADR-080 §3/§6 · ADR-060 · ADR-082 · CLAUDE.md §Integration model · guide/workflows/branching.md · system/hooks/spec-gate.sh · .github/workflows/ci.yml · memory G/pattern_challenge-wave-pipeline-valve-order-2026-08-14 · t-3021 · t-3022 · t-3023 · research 2026-08-13-matt-pocock-skill-system.md]`
+  **Tiers:** tier 0 *workbench* = feature/worktree/runner branches, nothing live, fast · tier 1 *buffer* = `dev`, integrated not deployed, human merge valve, judge ladder arms by signal · tier 2 *production* = `main` → `~/.claude/`, human-only, recorded, never a runner, never a default. Every valve is already default-deny; all five are cockpit items and four are surfaced nowhere → `peek --room cockpit` (t-3021) is the single surfacing point. Ship→main was the one irreversible valve and the only one unsurfaced — that asymmetry is the defect. **GitHub is a mirror, not a gate today** (last PR merged 2026-03-16; no required checks). KEEP brana's five; ADOPT Pocock at **tier 2 only**: `dev→main` via PR + required CI + enforce_admins (t-3023), and greppable valve verbs (t-3022). NOT adopted: tickets→issues, PR per feature branch, a staging tier, machine defaults on any valve. `[ADR-079 · ADR-080 §3/§6 · ADR-060 · ADR-082 · CLAUDE.md §Integration model · guide/workflows/branching.md · system/hooks/spec-gate.sh · .github/workflows/ci.yml · memory G/pattern_challenge-wave-pipeline-valve-order-2026-08-14 (historical name) · t-3021 · t-3022 · t-3023 · research 2026-08-13-matt-pocock-skill-system.md]`
 
 ### Parked
 
 - ⏸ **L4.5 Orbit satellite** — what, when, own component doc. `[features/autonomous-runner.md · ADR-068 · drained/orbit-evidence-first.md]`
 - ⏸ **L4.6 Model/effort routing** — compute routing (which primitive) is decided in `delegation-routing.md`; which capability tier a primitive runs at is not, beyond JUDGE's `judge-sizing.md`. Operator brings more knowledge later; no forced rule. `[~/.claude/rules/delegation-routing.md · ruflo-stub-guard.md · judge-sizing.md · ADR-082]`
+
+## Scale — the rings
+
+The axis across the three chapters, absorbed from `drained/wave-pipeline.md` §four rings / §spectrum / §skeleton match (D3). Nested loops, each closing at its own timescale; zooming in changes timescale, never subject — one epic is a region of the knowledge plane, one beat a region of the epic plane, one task a region of the beat plane. The per-ring instrument table (queue · act · cycle unit · record · gauge · valve · memory, with proven/design-only markers) lives in [the-brana-guide.md](../ideas/the-brana-guide.md) L3.1 and is not restated here.
+
+| Ring | Mechanism | Timescale | The human here |
+|---|---|---|---|
+| **Knowledge** | memory → recall → work → learnings → memory. No command — the harness itself | weeks | **Studio** — you bring the topic; we design side by side |
+| **Epic** | plan emits wave graph → approve → drain → ship → next gate unlocks — waves + gates + valves ([ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md)) | days | Studio births the graph · **Cockpit** approves + ships |
+| **Beat** | sleep → wake → preflight → pull → work → report — the `/loop` command | minutes | Cockpit — the merge valve; seconds per decision |
+| **Micro** | red→green→refactor · challenger find→fix→re-verify, inside one task (`/goal`) | seconds | none — machines all the way down |
+
+The deeper the ring, the less of you it needs. **Memory is the fourth dimension** — orthogonal to depth, touching every ring: each recalls on entry (LOAD, wave state, task context) and writes back on exit (learnings, ADRs, beat records). The spatial rings cycle and forget; memory accumulates — write-back is what turns each circle into a spiral. (Proven in the first live drain: beat 2 read its build map from the task's `context` field, not from the conversation.)
+
+- **Rings are sample points, not an ontology.** They mark the frequencies where instruments happen to be installed; the spectrum underneath is continuous (KK tower: small dimension = fast). Bands already cycling uninstrumented: *session* (~hours), *season* (~months), *sub-second* (lint, type-check).
+- **The layer test.** A proposed band is real iff you can name its queue, pump, valve placement, gauge, and memory read-on-entry / write-on-exit — and something has actually cycled in it with records emitted. Can't name the queue → not a layer. Installing the instruments on a chosen band *materializes* it: a new brane in the bulk, with its own fields, leaking learnings to the others only through memory.
+- **The human is a low-pass filter.** Sustained coupling to the slow frequencies (studio), discrete sampling of the fast ones (cockpit valves), absent from the fastest. Tuning the system = sliding coupling toward lower frequencies as evidence accumulates — the graduated-autonomy ladder (§Gate), generalized. The target is **dynamic equilibrium** — most learning and enjoyment per unit of effort. Gauges are the sensors, the watchdog the homeostat, the human the setpoint.
+- **The fundamental.** Every band runs the same loop at its own rate — **try → feedback → improve** — and that loop has one engineering-grade anatomy, [60-agent-loop-architecture.md](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md)'s seven steps, derived independently and matching 1:1: ORIENT = memory read-on-entry · SELECT = **queue** (atomic pull — externalized, so a loop cannot game its own priorities) · ACT = **pump** · MEASURE = **gauge** (objective readout, never self-assessment, never acts — the *gauge law*) · JUDGE = **valve** (Actor≠Evaluator; split by reversibility — machine judges own reversible outcomes, the human valve the irreversible ones) · ASSIMILATE = memory write-on-exit · RESTART = pacing `{active, waiting, empty}`. The layer test is therefore an anatomy exam, run both ways: for any band, ask which step is missing (Knowledge has strong ORIENT/ACT/ASSIMILATE, weak MEASURE/JUDGE — why eval-rerunner and memory-hygiene surfaced as candidates before anyone could name why).
+- **Where the metaphor stops.** Queues and valves are deliberately *not* wave-like: a queue decouples frequencies so they need not stay in phase (law 1), a valve is a discontinuity where flow may stop dead. Continuous wave as the medium; discrete instruments mounted in it. The frequency lens covers the timescale structure, never the parts catalog — the four primitives (§Cycle → Mechanics) remain the vocabulary for the machinery.
 
 ## Vocabulary
 
@@ -173,7 +224,7 @@ Term → one line → owner doc. Every term here traces back to a node in [the-b
 | **Loop** | A closed string — unpinned, returns; the only thing that crosses branes. Equivalently: a graph whose path returns to an earlier node. | [features/loops-library.md](features/loops-library.md) |
 | **Workflow** | An open string — pinned to the brane it started on, runs once. Equivalently: a graph, as code, that runs to completion in one call. | [workflow-primitive.md](workflow-primitive.md) |
 | **Memory (gravity-leak)** | The one thing a loop carries across branes. | this page |
-| **Ring** | One level of the Scale axis. The four named rings — micro / beat / epic / knowledge — are sample points on a continuous spectrum, not an ontology: other bands (sub-second lint/type-check · session, ~hours · season, ~months) are real and simply not yet instrumented. A band becomes a ring once something has actually cycled in it with records emitted (the layer test). | this page; [wave-pipeline.md §spectrum](../ideas/drained/wave-pipeline.md) |
+| **Ring** | One level of the Scale axis. The four named rings — micro / beat / epic / knowledge — are sample points on a continuous spectrum, not an ontology: other bands (sub-second lint/type-check · session, ~hours · season, ~months) are real and simply not yet instrumented. A band becomes a ring once something has actually cycled in it with records emitted (the layer test). | this page §Scale |
 | **Seven-step skeleton** | A ring's loop shape: ORIENT→SELECT→ACT→MEASURE→JUDGE→ASSIMILATE→RESTART; plain gloss = context→action→feedback. | [60-agent-loop-architecture.md](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) |
 | **Wave** | The human's unit of work — a batch of tasks pulled and shipped together. | [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md), [ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) |
 | **Task** | The agent's unit of work. | [ADR-002](decisions/ADR-002-tasks-as-data-layer.md) |
@@ -183,9 +234,9 @@ Term → one line → owner doc. Every term here traces back to a node in [the-b
 
 | Term | One-line | Owner |
 |---|---|---|
-| **Valve** | A human gate, placed by reversibility. | this page (absorbing [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md)) |
-| **Studio** | The room for slow, high-thinking design work. | this page §Gate (absorbed from [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms) |
-| **Cockpit** | The room for fast, low-thinking approvals. | this page §Gate (absorbed from [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms) |
+| **Valve** | A human gate, placed by reversibility. | this page §Gate |
+| **Studio** | The room for slow, high-thinking design work. | this page §Gate |
+| **Cockpit** | The room for fast, low-thinking approvals. | this page §Gate |
 | **Judge** | The machine or panel that owns a reversible-outcome decision. | [ADR-082](decisions/ADR-082-multi-agent-sizing-function.md) |
 | **Autonomy rung** | L1 report-only / L2 assisted / L3 unattended — gated by AC coverage ("Non-AC fallback: stays L2"). *Not* this guide's L0–L6 walk levels — same letter, different axis. | [drained/brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md) §graduated autonomy ladder |
 | **AC** | Machine-checkable definition of done; gates `/goal` and L3 eligibility. | [ADR-047](decisions/ADR-047-acceptance-criteria-schema.md), [ac-grammar.md](ac-grammar.md) |
@@ -196,7 +247,7 @@ Term → one line → owner doc. Every term here traces back to a node in [the-b
 |---|---|---|
 | **KK tower** | One brane-concept, instantiated differently at each ring. | [brana-etymology-naming.md](../../../brana-knowledge/dimensions/brana-etymology-naming.md) |
 | **Compactification radius** | A ring's "size" — small = fast, large = slow. | [60-agent-loop-architecture.md](../../../brana-knowledge/dimensions/60-agent-loop-architecture.md) |
-| **Low-pass filter** | The human's relationship to ring frequency — only slow rings reach them directly. | [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §Spectrum |
+| **Low-pass filter** | The human's relationship to ring frequency — only slow rings reach them directly. | this page §Scale |
 | **Inhabitant** | The human's role: lives in Cycle, decides at Gate, senses via memory. | memory `user_creative-vs-operative-modes` |
 | **Orbit / Orbit** | Plain word inside Cycle now; capital-O = a future satellite component, on evidence. | [ADR-068](decisions/ADR-068-v3-supersession.md), [features/autonomous-runner.md](features/autonomous-runner.md) |
 
@@ -207,7 +258,9 @@ Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L5 (2026-08-23). Concep
 | concept | owner (single) | status | ch. |
 |---|---|---|---|
 | The whole / lens / chapters | this page §Cover, §Three chapters | landed | L0–L1 |
-| Primitive table (queue·pump·valve·gauge) | this page §Space | landed | Space |
+| Motion primitives (Task · Workflow · /loop · /goal · memory) | this page §Space | landed | Space |
+| Mechanics primitives (queue·pump·valve·gauge), flow, seven laws | this page §Cycle → Mechanics | landed (D3) | Cycle |
+| Rings, spectrum, layer test, skeleton match | this page §Scale | landed (D3) | Scale |
 | Station (= pump body), grain files, three homes | this page §Space → Grain files | landed | Space |
 | Handoff packet (AC real; spec/log/refs → t-3007/t-3008/t-3009) | this page §Space → Packet | landed | Space |
 | Skills-layer verdict (no atom schema; t-2278 intact) | [ADR-085](decisions/ADR-085-skills-as-stations-no-atom-schema.md) (Proposed) ← [skills-loops-graphs.md](../ideas/skills-loops-graphs.md) | hold | Space |
@@ -230,7 +283,7 @@ Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L5 (2026-08-23). Concep
 | Orbit satellite · model/effort routing | ⏸ none (L4.5 / L4.6) | parked | Gate |
 | Vocabulary | this page §Vocabulary | landed | all |
 
-Two concepts have no owner by design (readiness state, `ask()` prose) — both gated; intended homes are recorded above so they aren't invented twice. `drained/wave-pipeline.md` owns nothing after this map.
+Two concepts have no owner by design (readiness state, `ask()` prose) — both gated; intended homes are recorded above so they aren't invented twice. `drained/wave-pipeline.md` is a redirect stub (D3, t-3028) — everything it owned is on this page.
 
 ## Reading map
 

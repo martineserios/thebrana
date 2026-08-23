@@ -254,7 +254,7 @@ fn dirs_audit_path(task_id: &str) -> Option<PathBuf> {
 /// For `ac approve` (t-2872): render the bundle line, best-effort. `None` on
 /// any failure (task not found, subprocess errors) — the caller must never
 /// let this block or fail the actual approval; the gauge is informational
-/// only, never a gate (gauge law, wave-pipeline.md §skeleton match).
+/// only, never a gate (gauge law, docs/architecture/the-brana.md §Scale, skeleton match).
 pub fn render_bundle_line(task_id: &str, file: Option<PathBuf>) -> Option<String> {
     compute_bundle(task_id, file).ok().map(|b| b.line)
 }

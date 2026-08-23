@@ -1,11 +1,15 @@
 ---
 title: NotebookLM infographic prompt — The Wave Pipeline
-status: active
+status: superseded
+superseded_by: docs/architecture/the-brana.md
+superseded: 2026-08-23
 created: 2026-08-14
 task: t-2867
 related: [docs/ideas/drained/wave-pipeline.md, docs/ideas/drained/wave-pipeline-design.html]
 ---
 # NotebookLM infographic prompt — The Wave Pipeline
+
+> **Historical artifact (t-3028).** wave-pipeline.md is a redirect stub since 2026-08-23; to regenerate, use [the-brana.md](../../architecture/the-brana.md) §Cycle→Mechanics/§Scale/§Gate as the source, or `git show 8d772a38:docs/ideas/drained/wave-pipeline.md` for the original text.
 
 > Customization prompt for NotebookLM's Infographic feature. Load
 > [wave-pipeline.md](wave-pipeline.md) (and its related ADRs) as sources, then paste the

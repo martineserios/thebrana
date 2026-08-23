@@ -116,7 +116,7 @@ Front-door rule: the-brana.md = what it is; idea-to-ship.md = flow view; ADR-068
 |---|---|---|
 | A. `the-brana.md` index — cover, 3 chapters + Scale, components table, front-door rule | docs · M | — |
 | B. Cluster doc hygiene — headers/pointers/merges/archives per §2–3 (idea docs + arch + guides + loops README) | chore · M | A |
-| C. wave-pipeline → the-brana: absorb philosophy, redirect stub, tag sweep, README rows | chore · S | A |
+| C. ✅ wave-pipeline → the-brana: absorb philosophy, redirect stub, tag sweep, README rows (t-3028, 2026-08-23) | chore · S | A |
 | D. Memory tidy per §4 (+ MEMORY.md index lines) | chore · S | — |
 | E. ADR housekeeping: accept ADR-068, renumber t-2980's to 086, status headers (082/080/065/build-cost-tracking), ADR-069 amend | chore · S | D1/D2 |
 | F. docs/README.md full coverage sweep (repo-wide, 19 ADRs + 41 features + 2 dead rows) | chore · S | — |
