@@ -99,9 +99,15 @@ brana knowledge process-url --cookies-from-browser chrome https://www.youtube.co
 brana knowledge process-url --file batch.jsonl --cookies ~/.config/brana/yt-cookies.txt
 ```
 
+With neither flag, `process-url` uses the persisted jar at
+`~/.config/brana/yt-cookies.txt` if it exists — the same resolver as
+`drain-links`, so the same rules apply: the file must be mode `0600` (any
+group/other bit is a hard error, even for a non-YouTube URL, because the
+check runs at argument resolution), and either flag overrides it.
+
 Export, security and scheduling notes live in
 [`knowledge-drain-links.md` § YouTube needs an authenticated session](knowledge-drain-links.md#youtube-needs-an-authenticated-session).
-Non-YouTube URLs ignore the flags.
+Non-YouTube URLs ignore the cookies.
 
 ## Batch mode
 

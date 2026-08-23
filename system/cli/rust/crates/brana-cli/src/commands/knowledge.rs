@@ -475,21 +475,88 @@ pub fn resolve_yt_dlp_cookies(
     from_browser: Option<String>,
     file: Option<PathBuf>,
 ) -> Result<kp::YtDlpCookies> {
-    match (from_browser, file) {
-        (None, None) => Ok(kp::YtDlpCookies::None),
-        (Some(browser), None) => Ok(kp::YtDlpCookies::FromBrowser(browser)),
-        (_, Some(path)) => {
-            let abs = path
-                .canonicalize()
-                .with_context(|| format!("--cookies {}: file not found", path.display()))?;
-            std::fs::File::open(&abs)
-                .with_context(|| format!("--cookies {}: not readable by this process", abs.display()))?;
-            if abs.to_str().is_none() {
-                bail!("--cookies {}: path is not valid UTF-8", abs.display());
-            }
-            Ok(kp::YtDlpCookies::File(abs))
-        }
+    resolve_yt_dlp_cookies_with(from_browser, file, default_yt_dlp_cookie_jar().as_deref())
+}
+
+/// The persisted cookie jar (feature spec §8, t-3038): consulted only when
+/// neither flag is given, so a scheduled `drain-links --platform youtube`
+/// needs no per-run flag. Lives outside every git repo and the synced
+/// `~/.claude/` tree, next to `linear.env`. `None` when `$HOME` is unset
+/// or not absolute — see `default_yt_dlp_cookie_jar_in`.
+pub fn default_yt_dlp_cookie_jar() -> Option<PathBuf> {
+    default_yt_dlp_cookie_jar_in(&home())
+}
+
+/// `default_yt_dlp_cookie_jar` for an explicit home. A non-absolute home
+/// (notably the empty string `util::home()` yields when `$HOME` is unset)
+/// returns `None` rather than a cwd-relative `.config/brana/yt-cookies.txt`
+/// — in a stripped scheduler environment that relative path would let a
+/// planted file in the working directory pose as the trusted credential
+/// (t-3038 rung-2 panel finding).
+pub fn default_yt_dlp_cookie_jar_in(home: &std::path::Path) -> Option<PathBuf> {
+    if !home.is_absolute() {
+        return None;
     }
+    Some(home.join(".config").join("brana").join("yt-cookies.txt"))
+}
+
+/// `resolve_yt_dlp_cookies` with the default-jar location injected, so tests
+/// never touch the real `$HOME`. Precedence: explicit flag > default jar
+/// (if present) > `None`.
+///
+/// The implicit jar must be private: any group/other permission bit is a
+/// hard error naming `chmod 600` (a warning would leave the requirement
+/// unenforced — same stance as ssh on a loose private key). An explicit
+/// `--cookies` keeps §7's contract and is not mode-checked. A default jar
+/// that exists but cannot be read is also an error: the operator placed a
+/// file there, so failing loud beats silently draining unauthenticated.
+pub fn resolve_yt_dlp_cookies_with(
+    from_browser: Option<String>,
+    file: Option<PathBuf>,
+    default_jar: Option<&std::path::Path>,
+) -> Result<kp::YtDlpCookies> {
+    match (from_browser, file) {
+        (Some(browser), None) => Ok(kp::YtDlpCookies::FromBrowser(browser)),
+        (_, Some(path)) => checked_jar(&path, "--cookies"),
+        (None, None) => match default_jar {
+            Some(jar) if jar.exists() => {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt as _;
+                    let mode = std::fs::metadata(jar)
+                        .with_context(|| format!("persisted cookie jar {}: cannot stat", jar.display()))?
+                        .permissions()
+                        .mode()
+                        & 0o777;
+                    if mode & 0o077 != 0 {
+                        bail!(
+                            "persisted cookie jar {}: mode {:04o} is readable by others — run `chmod 600 {}` (it is a Google bearer credential)",
+                            jar.display(),
+                            mode,
+                            jar.display()
+                        );
+                    }
+                }
+                checked_jar(jar, "persisted cookie jar")
+            }
+            _ => Ok(kp::YtDlpCookies::None),
+        },
+    }
+}
+
+/// §7's checks shared by both jar sources: canonicalize (the child runs
+/// with `current_dir(work_dir)`), open-for-read (existence alone misses the
+/// cron-user-can't-read case), and UTF-8 (so `to_args` never mangles).
+fn checked_jar(path: &std::path::Path, label: &str) -> Result<kp::YtDlpCookies> {
+    let abs = path
+        .canonicalize()
+        .with_context(|| format!("{label} {}: file not found", path.display()))?;
+    std::fs::File::open(&abs)
+        .with_context(|| format!("{label} {}: not readable by this process", abs.display()))?;
+    if abs.to_str().is_none() {
+        bail!("{label} {}: path is not valid UTF-8", abs.display());
+    }
+    Ok(kp::YtDlpCookies::File(abs))
 }
 
 /// Process a single URL and report which branch it took. Shared by the
@@ -3503,7 +3570,10 @@ mod tests {
 
     #[test]
     fn resolve_yt_dlp_cookies_neither_flag_is_none() {
-        assert_eq!(resolve_yt_dlp_cookies(None, None).unwrap(), kp::YtDlpCookies::None);
+        // Hermetic: the `resolve_yt_dlp_cookies` wrapper consults the real
+        // `$HOME` default jar (spec §8), so the neither-flag contract is
+        // pinned on the injectable form (challenger finding, t-3038).
+        assert_eq!(resolve_yt_dlp_cookies_with(None, None, None).unwrap(), kp::YtDlpCookies::None);
     }
 
     #[test]
@@ -3563,6 +3633,129 @@ mod tests {
             fn geteuid() -> u32;
         }
         unsafe { geteuid() }
+    }
+
+    // ── resolve_yt_dlp_cookies_with — persisted default jar (t-3038, spec §8) ──
+
+    fn default_jar_in(dir: &std::path::Path, mode: u32) -> PathBuf {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        let jar = dir.join("yt-cookies.txt");
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(mode)
+            .open(&jar)
+            .unwrap();
+        std::io::Write::write_all(&mut f, b"# Netscape HTTP Cookie File\n").unwrap();
+        jar
+    }
+
+    #[test]
+    fn default_jar_absent_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join("yt-cookies.txt");
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&missing)).unwrap(),
+            kp::YtDlpCookies::None
+        );
+    }
+
+    #[test]
+    fn default_jar_no_default_is_none() {
+        assert_eq!(resolve_yt_dlp_cookies_with(None, None, None).unwrap(), kp::YtDlpCookies::None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_0600_is_used() {
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o600);
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap(),
+            kp::YtDlpCookies::File(jar.canonicalize().unwrap())
+        );
+    }
+
+    // Spec §8: an implicitly picked-up jar must be private — refuse, don't warn.
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_group_or_other_bits_errs_naming_chmod() {
+        for mode in [0o644, 0o640, 0o604, 0o660] {
+            let dir = tempfile::tempdir().unwrap();
+            let jar = default_jar_in(dir.path(), mode);
+            let err = resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap_err().to_string();
+            assert!(err.contains("chmod 600"), "mode {mode:o}: {err}");
+            assert!(err.contains(&jar.display().to_string()), "mode {mode:o}: {err}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_owner_only_stricter_modes_are_accepted() {
+        // 0400 is stricter than 0600 and still owner-only: accepted.
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o400);
+        assert!(matches!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap(),
+            kp::YtDlpCookies::File(_)
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn explicit_flags_win_over_present_default_jar() {
+        let dir = tempfile::tempdir().unwrap();
+        let default = default_jar_in(dir.path(), 0o600);
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(Some("firefox".into()), None, Some(&default)).unwrap(),
+            kp::YtDlpCookies::FromBrowser("firefox".into())
+        );
+        let explicit = dir.path().join("explicit.txt");
+        std::fs::write(&explicit, "x").unwrap();
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, Some(explicit.clone()), Some(&default)).unwrap(),
+            kp::YtDlpCookies::File(explicit.canonicalize().unwrap())
+        );
+    }
+
+    // A loose default jar must not poison an explicit flag: the mode check
+    // is only for the implicit path.
+    #[cfg(unix)]
+    #[test]
+    fn loose_default_jar_does_not_affect_explicit_flags() {
+        let dir = tempfile::tempdir().unwrap();
+        let default = default_jar_in(dir.path(), 0o644);
+        assert!(resolve_yt_dlp_cookies_with(Some("chrome".into()), None, Some(&default)).is_ok());
+    }
+
+    // 0000 passes the "no group/other bits" check but is unreadable: the
+    // operator placed a file there, so fail loud rather than drain unauthenticated.
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_unreadable_errs() {
+        if unsafe { libc_geteuid() } == 0 {
+            return; // root ignores mode bits
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o000);
+        let err = resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap_err().to_string();
+        assert!(err.contains("yt-cookies.txt"), "{err}");
+    }
+
+    #[test]
+    fn default_yt_dlp_cookie_jar_is_under_config_brana() {
+        let p = default_yt_dlp_cookie_jar_in(std::path::Path::new("/home/someone")).unwrap();
+        assert_eq!(p, PathBuf::from("/home/someone/.config/brana/yt-cookies.txt"));
+    }
+
+    // Panel finding (t-3038 rung-2, C3): `home()` yields "" when $HOME is
+    // unset, which would make the default jar a cwd-relative path — a
+    // planted file in a stripped scheduler env would become the trusted
+    // credential. Non-absolute homes produce no default at all.
+    #[test]
+    fn default_yt_dlp_cookie_jar_requires_absolute_home() {
+        assert_eq!(default_yt_dlp_cookie_jar_in(std::path::Path::new("")), None);
+        assert_eq!(default_yt_dlp_cookie_jar_in(std::path::Path::new("relative/home")), None);
     }
 
     #[test]
