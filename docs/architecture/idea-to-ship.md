@@ -14,7 +14,7 @@ You don't remember all 41 skills, so here's the route. Most work travels one **m
 
    Either way, `/brana:build`'s BUILD loop drives red-green-refactor per [sdd-tdd.md](../../system/rules/sdd-tdd.md), then runs whichever of its verification gates apply to the build's size and strategy (ISC, BUILD→CLOSE, Four Questions, evaluator, challenger — see [phases/verify-gates.md](../../system/skills/build/phases/verify-gates.md); most are size- or AC-gated, not unconditional), plus `/brana:docs` before CLOSE. Brana ships no standalone `/tdd` or `/code-review` skill of its own the way Pocock's flow has one — that discipline is folded into `/brana:build`'s BUILD and gates steps, not separately invocable (Claude Code's own built-in `/code-review` command is a different, harness-level thing).
 
-   CLOSE merges to `dev` — the integration buffer, not live (ADR-060). **Shipping** — `dev`→`main` promotion plus deploy — is a separate, human-gated, periodic step: CLOSE's own step 14, or **[`/brana:ship`](../../system/skills/ship/SKILL.md)** for the richer pre-flight/verify path. That's the "ship" this doc's title promises; it's deliberately decoupled from any one build.
+   CLOSE merges to `dev` — the integration buffer, not live (ADR-060). **Shipping** — `dev`→`main` promotion plus deploy — is a separate, human-gated, periodic step — not part of CLOSE: **[`/brana:ship`](../../system/skills/ship/SKILL.md)** for the richer pre-flight/verify path. That's the "ship" this doc's title promises; it's deliberately decoupled from any one build.
 
 ### Context hygiene
 
