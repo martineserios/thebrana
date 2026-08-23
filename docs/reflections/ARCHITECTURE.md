@@ -60,7 +60,7 @@ When you `cd ~/projects/alpha && claude`:
 ```
 Loaded automatically:
   1. ~/.claude/CLAUDE.md              ← Identity layer
-  2. ~/.claude/rules/*                ← Universal rules (14)
+  2. ~/.claude/rules/*                ← Universal rules (see docs/reference/)
   3. ~/.claude/memory/MEMORY.md       ← Cross-project auto memory (first 200 lines)
   4. ~/projects/alpha/.claude/CLAUDE.md  ← Project identity
   5. ~/projects/alpha/.claude/rules/* ← Project-specific rules
@@ -120,17 +120,15 @@ For the full directory tree and component inventory, see [component-index.md](co
 
 Five hook types connect the layers. Three handle learning (SessionStart, SessionEnd, PostToolUse). One handles enforcement (PreToolUse). One handles error recovery (PostToolUseFailure).
 
-> **Platform note:** CC v2.1.x does not dispatch PostToolUse/PostToolUseFailure from plugin `hooks.json`. Workaround: `bootstrap.sh` installs these to `~/.claude/settings.json`. Track CC issue #24529.
+> **Platform note:** All hook events, including PostToolUse/PostToolUseFailure, dispatch from plugin `hooks.json` — the earlier CC #24529 workaround (bootstrap → `settings.json`) was resolved in t-235 (2026-05-08).
 
 ### PreToolUse — Enforcement
 
-Three enforcement behaviors:
+Two enforcement behaviors:
 
-1. **SDD gate** (Write|Edit) — On `feat/*` branches in projects with `docs/decisions/`, blocks implementation files until spec/test activity exists on the branch. Deterministic enforcement where convention fails.
+1. **SDD gate** (Write|Edit) — `spec-gate.sh` is **advisory only** (always exits 0): warns once per branch when an M+ task edits implementation files without a feature spec. The blocking test-before-impl gate is `tdd-gate.sh`.
 
 2. **Cascade throttle** (Write|Edit) — After 3+ consecutive failures on the same target, injects an advisory warning: "This file has failed repeatedly. Stop and reassess." Does not block — warns.
-
-3. **Guard-explore** (Read|Grep|Glob) — Observes whether agents search before reading implementation files. Currently logging only (no blocking). Data collection for search-first enforcement evaluation. Strict profile only.
 
 ### Hook Profiles
 
