@@ -248,7 +248,7 @@ fn should_complete_link(outcome: &ProcessUrlOutcome) -> bool {
 ///
 /// Advisory only: this never calls `backlog set` (spec §Assumptions) — the
 /// operator decides what to cancel.
-pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
+pub fn cmd_process_url_batch(path: &std::path::Path, cookies: &kp::YtDlpCookies) -> Result<()> {
     let body = std::fs::read_to_string(path)
         .with_context(|| format!("reading batch file {}", path.display()))?;
     let entries = parse_batch_file(&body)?;
@@ -257,7 +257,7 @@ pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
     let mut failures = 0usize;
 
     for entry in &entries {
-        match process_one_url(&entry.url) {
+        match process_one_url(&entry.url, cookies) {
             Ok(outcome) => {
                 if is_cancellable(&outcome) {
                     cancellable.push(entry.id.clone());
@@ -322,6 +322,7 @@ pub fn cmd_drain_links(
     cap: usize,
     dry_run: bool,
     platform: Option<&str>,
+    cookies: &kp::YtDlpCookies,
 ) -> Result<()> {
     let tf = match file {
         Some(f) => f,
@@ -398,7 +399,7 @@ pub fn cmd_drain_links(
     let mut failures = 0usize;
     for c in &candidates {
         println!("\ndraining {}: {}", c.id, c.url);
-        match process_one_url(&c.url) {
+        match process_one_url(&c.url, cookies) {
             Ok(outcome) => {
                 if should_complete_link(&outcome) {
                     completable.push(c.id.clone());
@@ -457,14 +458,44 @@ pub fn cmd_drain_links(
 ///
 /// Never acquires the pipeline lock — this command's storage is independent
 /// of the tier1/2/3 pipeline (ADR-070 §Lock discipline).
-pub fn cmd_process_url(url: &str) -> Result<()> {
-    process_one_url(url).map(|_| ())
+pub fn cmd_process_url(url: &str, cookies: &kp::YtDlpCookies) -> Result<()> {
+    process_one_url(url, cookies).map(|_| ())
+}
+
+/// Map the `--cookies-from-browser` / `--cookies` flags to
+/// [`kp::YtDlpCookies`] (t-3033, feature spec §7) — the single place the
+/// CLI surface meets the core type. Fails early, before any yt-dlp call,
+/// with an error naming the path when a `--cookies` file is missing,
+/// unreadable by this process (cron user ≠ exporting user), or not UTF-8.
+/// The path is canonicalized because the yt-dlp child runs with
+/// `current_dir(<scratch work dir>)`, where a relative path would resolve
+/// against the wrong directory. clap makes the two flags mutually
+/// exclusive; both `None` is today's unauthenticated default.
+pub fn resolve_yt_dlp_cookies(
+    from_browser: Option<String>,
+    file: Option<PathBuf>,
+) -> Result<kp::YtDlpCookies> {
+    match (from_browser, file) {
+        (None, None) => Ok(kp::YtDlpCookies::None),
+        (Some(browser), None) => Ok(kp::YtDlpCookies::FromBrowser(browser)),
+        (_, Some(path)) => {
+            let abs = path
+                .canonicalize()
+                .with_context(|| format!("--cookies {}: file not found", path.display()))?;
+            std::fs::File::open(&abs)
+                .with_context(|| format!("--cookies {}: not readable by this process", abs.display()))?;
+            if abs.to_str().is_none() {
+                bail!("--cookies {}: path is not valid UTF-8", abs.display());
+            }
+            Ok(kp::YtDlpCookies::File(abs))
+        }
+    }
 }
 
 /// Process a single URL and report which branch it took. Shared by the
 /// single-URL command and the batch loop, so batch mode cannot drift from
 /// the semantics the single-URL tests pin down.
-fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
+fn process_one_url(url: &str, cookies: &kp::YtDlpCookies) -> Result<ProcessUrlOutcome> {
     let key = url_storage_key(url);
 
     let existing = ruflo_memory_get(&key, PROCESS_URL_NAMESPACE)
@@ -473,7 +504,7 @@ fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
     // Only fetch when the idempotency probe came back empty.
     let fetched = match existing {
         Some(_) => None,
-        None => kp::fetch_url_content(url).with_context(|| format!("fetching {url}"))?,
+        None => kp::fetch_url_content_with(url, cookies).with_context(|| format!("fetching {url}"))?,
     };
 
     let outcome = resolve_process_url_outcome(existing.is_some(), fetched.as_ref());
@@ -2063,10 +2094,16 @@ fn build_channel_link_task_json(channel_url: &str, video_url: &str) -> serde_jso
 /// The `--max` flag's own default (50) is the sanity cap the feature spec
 /// §3 calls for — mapped directly to `ChannelSelection::Range { end }`, so
 /// a caller who wants more must say so explicitly via `--max`.
-pub fn cmd_channel_backfill(channel_url: &str, tab: &str, max: u32, dry_run: bool) -> Result<()> {
+pub fn cmd_channel_backfill(
+    channel_url: &str,
+    tab: &str,
+    max: u32,
+    dry_run: bool,
+    cookies: &kp::YtDlpCookies,
+) -> Result<()> {
     let channel_tab = resolve_channel_tab(tab)?;
     let selection = kp::ChannelSelection::Range { start: None, end: Some(max) };
-    let urls = kp::fetch_youtube_channel_videos(channel_url, channel_tab, selection)
+    let urls = kp::fetch_youtube_channel_videos(channel_url, channel_tab, selection, cookies)
         .with_context(|| format!("enumerating channel {channel_url}"))?;
 
     if urls.is_empty() {
@@ -3461,6 +3498,72 @@ mod tests {
     // cmd_channel_backfill itself (network + subprocess shellout to `brana
     // backlog add`) stays untested here, same discipline as cmd_ingest and
     // feed.rs's "task" action.
+
+    // ── resolve_yt_dlp_cookies (t-3036, feature spec §7) ─────────────────
+
+    #[test]
+    fn resolve_yt_dlp_cookies_neither_flag_is_none() {
+        assert_eq!(resolve_yt_dlp_cookies(None, None).unwrap(), kp::YtDlpCookies::None);
+    }
+
+    #[test]
+    fn resolve_yt_dlp_cookies_browser_passes_value_verbatim() {
+        assert_eq!(
+            resolve_yt_dlp_cookies(Some("chrome+gnomekeyring:Default".into()), None).unwrap(),
+            kp::YtDlpCookies::FromBrowser("chrome+gnomekeyring:Default".into())
+        );
+    }
+
+    // Spec §7: the child runs with current_dir(work_dir), so a --cookies
+    // path must be canonicalized at resolve time. A `..` segment stands in
+    // for a relative path (chdir is process-global — unsafe under parallel
+    // tests) — canonicalize() resolves both the same way.
+    #[test]
+    fn resolve_yt_dlp_cookies_readable_file_is_canonicalized() {
+        let dir = tempfile::tempdir().unwrap();
+        let jar = dir.path().join("jar.txt");
+        std::fs::write(&jar, "# Netscape HTTP Cookie File\n").unwrap();
+        let dotted = dir.path().join("sub").join("..").join("jar.txt");
+        std::fs::create_dir(dir.path().join("sub")).unwrap();
+        match resolve_yt_dlp_cookies(None, Some(dotted)).unwrap() {
+            kp::YtDlpCookies::File(p) => {
+                assert!(p.is_absolute(), "{}", p.display());
+                assert!(!p.components().any(|c| c == std::path::Component::ParentDir));
+                assert_eq!(p, jar.canonicalize().unwrap());
+            }
+            other => panic!("expected File, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resolve_yt_dlp_cookies_missing_file_errs_naming_path() {
+        let err = resolve_yt_dlp_cookies(None, Some(PathBuf::from("/nonexistent/brana-jar.txt"))).unwrap_err();
+        assert!(err.to_string().contains("/nonexistent/brana-jar.txt"), "{err}");
+    }
+
+    // Existence alone misses the cron-user-can't-read case (challenger §7 #5).
+    #[cfg(unix)]
+    #[test]
+    fn resolve_yt_dlp_cookies_unreadable_file_errs() {
+        use std::os::unix::fs::PermissionsExt as _;
+        if unsafe { libc_geteuid() } == 0 {
+            return; // root ignores mode bits
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let jar = dir.path().join("locked.txt");
+        std::fs::write(&jar, "x").unwrap();
+        std::fs::set_permissions(&jar, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let err = resolve_yt_dlp_cookies(None, Some(jar.clone())).unwrap_err();
+        assert!(err.to_string().contains("locked.txt"), "{err}");
+    }
+
+    #[cfg(unix)]
+    unsafe fn libc_geteuid() -> u32 {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() }
+    }
 
     #[test]
     fn resolve_channel_tab_videos() {
