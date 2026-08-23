@@ -79885,7 +79885,7 @@
       "blocked_by": [],
       "branch": "spec-maintenance/chore/t-3032-reconcile-consistency",
       "context": null,
-      "notes": null,
+      "notes": "CON-1: clean — ARCHITECTURE.md:103 \"Haiku (9 agents), Sonnet (4)\" matches actual 9/4 (13 agents); other grep hits are scoped phase counts or historical. Actual: 41 skills, 50 hooks, 32 rules, 13 agents. CON-2: ADR-082 lacks YAML status on dev; fix already exists on brana-v3-redesign/design/t-2490 branch (commit 50a272dc, unmerged) — not re-fixed here, lands with t-2490 merge. Note: skill's 0c branch template `chore/reconcile-YYYYMMDD` is rejected by branch-name-guard (needs epic/type/t-NNN) — filed this task to comply; skill doc needs updating (finding).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
