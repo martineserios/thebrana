@@ -11,7 +11,7 @@ relates-to:
   - "[ADR-068](../architecture/decisions/ADR-068-v3-supersession.md) — retirement of Substrate/Orbit vocabulary; Accepted 2026-08-19; Q1 closed (front door = the-brana.md), Q2 routed to L2.1"
   - "[brana-etymology-naming](../../../brana-knowledge/dimensions/brana-etymology-naming.md) — brane physics = the one lens"
 ---
-> **START HERE (next session):** L0, L1, and L2 (SPACE) are fully ✅ — L2.1–L2.5 all decided. L2.2b remains blocked_by t-2834 but does not block closing L2 (open-but-gated pattern). L3 (CYCLE) is now mostly settled — see the Pocock-alignment matrix (`docs/research/2026-08-22-pocock-alignment-decision-matrix.md`) that scored every DECIDED bullet and OPEN node against Pocock's concrete cited practice. Resolved this session: L3.3 (blocked_by in the pull frontier — ADOPT Pocock, amend ADR-079 §2), L3.5 (beat record = markdown doc, matches L2.4), L3.6 (fresh-context-per-pull, no tension), plus the cross-skill readiness-state gap (ADOPT Pocock in principle, still execution-gated on t-2834). **Remaining before L3 closes:** L3.1's queue/pump/beat-unit/judge/memory-read-write columns (record column alone is resolved), L3.2 (`/goal` placement), L3.4 (two runners), and two genuinely undecided multi-agent-panel questions (JUDGE-step panel leans KEEP-brana on measured evidence; PLAN-step panel needs its own probe before t-2896 is built — see the matrix's rows 3–4). **L3 (CYCLE) closed 2026-08-22** — L3.1–L3.6 ✅; L3.7, the readiness-state field, the PLAN-panel probe, t-3018 and t-3019 ride inside as open-but-gated. **L4 (GATE) in progress:** L4.1 ✅ (rooms as queues — one store, `room` field, peek/pull/ack; t-3021 filed, blocked_by t-2834), L4.2 ✅ (`ask()` compile table — caller compiles; `none` degrades to `valve`; mid-task valve folded into t-3021), L4.3 ✅ (judge ladder = ADR-082 as shipped; "size 3–5" corrected), L4.4 ✅ (valve inventory + three-tier env rule; GitHub adopted at tier 2 only — t-3022, t-3023). L4.5/L4.6 are ⏸ parked by design. **Next: close L4 (open-but-gated: L4.5, L4.6), then L5 doc map.** Do not descend below a node until it is ✅. Persisted here 2026-08-18 by session thebrana-50; updated 2026-08-19 resolving L0.1–L0.3; updated 2026-08-21 locking L2.3; updated 2026-08-22 locking L2.4 (filed t-3007/t-3008/t-3009); updated 2026-08-22 locking L2.5 (filed t-3014 for cross-chapter scope); updated 2026-08-22 (2) resolving L3.3/L3.5/L3.6 via the Pocock-alignment matrix; updated 2026-08-22 (3) locking L3.1 (after `/brana:challenge`), L3.2, L3.4, adding L3.7, closing L3; updated 2026-08-22 (4) locking L4.1, L4.2, L4.3; updated 2026-08-23 locking L4.4 (tier rule, GitHub tier-2); scratchpad copies are dead.
+> **START HERE (next session):** L0, L1, and L2 (SPACE) are fully ✅ — L2.1–L2.5 all decided. L2.2b remains blocked_by t-2834 but does not block closing L2 (open-but-gated pattern). L3 (CYCLE) is now mostly settled — see the Pocock-alignment matrix (`docs/research/2026-08-22-pocock-alignment-decision-matrix.md`) that scored every DECIDED bullet and OPEN node against Pocock's concrete cited practice. Resolved this session: L3.3 (blocked_by in the pull frontier — ADOPT Pocock, amend ADR-079 §2), L3.5 (beat record = markdown doc, matches L2.4), L3.6 (fresh-context-per-pull, no tension), plus the cross-skill readiness-state gap (ADOPT Pocock in principle, still execution-gated on t-2834). **Remaining before L3 closes:** L3.1's queue/pump/beat-unit/judge/memory-read-write columns (record column alone is resolved), L3.2 (`/goal` placement), L3.4 (two runners), and two genuinely undecided multi-agent-panel questions (JUDGE-step panel leans KEEP-brana on measured evidence; PLAN-step panel needs its own probe before t-2896 is built — see the matrix's rows 3–4). **L3 (CYCLE) closed 2026-08-22** — L3.1–L3.6 ✅; L3.7, the readiness-state field, the PLAN-panel probe, t-3018 and t-3019 ride inside as open-but-gated. **L4 (GATE) in progress:** L4.1 ✅ (rooms as queues — one store, `room` field, peek/pull/ack; t-3021 filed, blocked_by t-2834), L4.2 ✅ (`ask()` compile table — caller compiles; `none` degrades to `valve`; mid-task valve folded into t-3021), L4.3 ✅ (judge ladder = ADR-082 as shipped; "size 3–5" corrected), L4.4 ✅ (valve inventory + three-tier env rule; GitHub adopted at tier 2 only — t-3022, t-3023). L4.5/L4.6 are ⏸ parked by design. **L4 (GATE) closed 2026-08-23** — L4.1–L4.4 ✅; L4.5/L4.6 ⏸ ride inside. **L5 (doc map) ✅ 2026-08-23** — concept→owner table; exposes: §Cycle/§Gate not yet landed in the-brana.md, two ownerless-by-design concepts (gated), wave-pipeline.md safe to absorb. **Next: L6 — file the tidy tasks (A index · B hygiene · C wave-pipeline absorb/stub/tag-sweep · D memory · E ADR housekeeping · F README sweep), then land §Cycle/§Gate.** Do not descend below a node until it is ✅. Persisted here 2026-08-18 by session thebrana-50; updated 2026-08-19 resolving L0.1–L0.3; updated 2026-08-21 locking L2.3; updated 2026-08-22 locking L2.4 (filed t-3007/t-3008/t-3009); updated 2026-08-22 locking L2.5 (filed t-3014 for cross-chapter scope); updated 2026-08-22 (2) resolving L3.3/L3.5/L3.6 via the Pocock-alignment matrix; updated 2026-08-22 (3) locking L3.1 (after `/brana:challenge`), L3.2, L3.4, adding L3.7, closing L3; updated 2026-08-22 (4) locking L4.1, L4.2, L4.3; updated 2026-08-23 locking L4.4 (tier rule, GitHub tier-2), closing L4, locking L5; scratchpad copies are dead.
 
 # The Brana — studio guide (top-down, living draft of `docs/architecture/the-brana.md`)
 
@@ -215,8 +215,36 @@ efficiency, legibility, speed, scalability) before locking. Full matrix, scores,
 
 ---
 
-## L5 · Components — the doc map
-Filled as L1–L4 settle: concept → owner doc → status → chapter. Seed = Appendix A + board §2–3.
+## L5 · Components — the doc map ✅ (2026-08-23)
+Concept-level (Appendix A stays per-file). **One owner per concept** — operator direction 2026-08-18. `the-brana.md` today has only §Cover · §Three chapters · §Space · §Vocabulary · §Reading map — **§Cycle and §Gate are not yet landed** from L3/L4; rows marked *to land* point there.
+
+| concept | owner (single) | status | ch. |
+|---|---|---|---|
+| The whole / lens / chapters | `the-brana.md` §Cover, §Three chapters | landed | L0–L1 |
+| Primitive table (queue·pump·valve·gauge) | `the-brana.md` §Space | landed | Space |
+| Station (= pump body), grain files, three homes | `the-brana.md` §Space → Grain files | landed | Space |
+| Handoff packet (AC real; spec/log/refs → t-3007/t-3008/t-3009) | `the-brana.md` §Space → Packet | landed | Space |
+| Skills-layer verdict (no atom schema; t-2278 intact) | ADR-085 (Proposed) ← `skills-loops-graphs.md` | hold | Space |
+| Vendored Pocock organs | ADR-084 (Accepted-pilot, WT t-2837) | land after guide | Space |
+| Context economy as compactification | `the-brana.md` §Space (L2.5) + `context-budget.md` (t-3014) | landed | Space |
+| Loop contract (7 laws, beat, ASSIMILATE/RESTART) | `features/loops-library.md` | shipped | Cycle |
+| Workflow-vs-loop rule | `the-brana.md` §Cycle | **to land** | Cycle |
+| Wave mechanics (graph, gate, drain, pull, leases) | ADR-079 + ADR-080; spec `plan-time-wave-graph.md` | shipped; L3.3 amend pending | Cycle |
+| Wave = human unit / task = agent unit | ADR-085→086 (t-2980, renumber D2) | hold | Cycle |
+| Beat record = markdown doc | `features/loops-library.md` + t-3008 | decided | Cycle |
+| Readiness state (cross-skill "next for whom") | **no owner yet** — resolves with t-2834; intended home: backlog-v3-schema.md + ADR amendment | gated | Cycle |
+| Two-bucket backlog lens + usage-lens correction | `the-brana.md` §Cycle + memory `feedback_backlog-field-usage-vs-feed-mechanism` | **to land** | Cycle |
+| Pocock alignment verdicts | `research/2026-08-22-pocock-alignment-decision-matrix.md` | landed | Cycle/Gate |
+| Two rooms + hands store (`room`) | ADR-063 (amend) ; build t-3021 | decided | Gate |
+| `ask()` compile table | runner-layer prose — **owner to create:** `system/loops/README.md` §ask (t-3021) | decided | Gate |
+| Judge ladder | ADR-082 + `_shared/judge-sizing.md` | shipped | Gate |
+| Valve inventory + three tiers; GitHub at tier 2 | `the-brana.md` §Gate; t-3022, t-3023 | **to land** | Gate |
+| Sandbox / capability isolation | ADR-062 + `runner-capability-isolation.md` | shipped | Gate |
+| Autonomy ladder / shape graduation | `brana-v3-redesign.md` + ADR-068 §3 | governing | Gate |
+| Orbit satellite · model/effort routing | ⏸ none (L4.5 / L4.6) | parked | Gate |
+| Vocabulary | `the-brana.md` §Vocabulary | landed | all |
+
+**Gaps the map exposes → L6 inputs (not decisions):** (1) `the-brana.md` needs §Cycle + §Gate written from guide L3/L4 — the largest tidy item; (2) two concepts have no owner by design (readiness state, `ask()` prose), both gated — intended homes recorded above so they aren't invented twice; (3) `drained/wave-pipeline.md` owns nothing after this map → D3 absorb + redirect stub is safe to execute.
 
 ## L6 · Hygiene — the tidy tasks
 Board §6: A index · B doc hygiene · C wave-pipeline absorb + stub + tag sweep · D memory tidy · E ADR housekeeping · F README sweep. Created after L0–L4 settle.
