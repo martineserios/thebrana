@@ -50,9 +50,24 @@ fi
 printf '0\t0\n' > "$HOME/.claude/session-score.tsv" 2>/dev/null || true
 
 # ── Temp files for parallel results ───────────────────────
-TMPDIR_SS="/tmp/brana-ss-${SESSION_ID}"
+# Suffixed with $$ (t-2969): makes the directory unique per invocation, not
+# just per session_id (tests, and a resumed session, routinely fire this
+# hook more than once with the same session_id).
+TMPDIR_SS="/tmp/brana-ss-${SESSION_ID}-$$"
 mkdir -p "$TMPDIR_SS" 2>/dev/null || true
-trap 'rm -rf "$TMPDIR_SS"' EXIT
+# No `trap ... EXIT` here (t-2969): an EXIT trap set here is inherited by
+# every backgrounded subshell forked below (Job 1/1b/1c, the Phase 3
+# per-job kill-timers), any of which can independently re-fire it — under
+# observed conditions, a kill-timer subshell terminated by its own `kill`
+# call re-ran the inherited trap and deleted $TMPDIR_SS out from under a
+# still-writing job, silently dropping its result (e.g. hybrid recall)
+# from additionalContext. Ownership of $TMPDIR_SS's lifecycle belongs
+# solely to the last reader — the Phase 5 background job below, which
+# `rm -rf`s it as its own final statement — so no other subshell can ever
+# inherit a trap that touches it. Tradeoff: an external SIGTERM/SIGKILL that
+# hits this process before Phase 5 runs leaks $TMPDIR_SS (a few small files
+# under /tmp) — accepted, since the only pre-Phase-5 `exit` in this script
+# is the early return above, before $TMPDIR_SS is even created.
 
 # ── Source cf-env.sh ──────────────────────────────────────
 if [ -f "$SCRIPT_DIR/lib/cf-env.sh" ]; then
@@ -1001,6 +1016,11 @@ _mark "hook-end"
     if [ -x "$SYNC_SCRIPT" ]; then
         "$SYNC_SCRIPT" push 2>/dev/null || true
     fi
+
+    # Last reader of $TMPDIR_SS (t-2969) — clean up here, once, after every
+    # other job's results have been consumed above. See the note by
+    # TMPDIR_SS's definition for why this isn't a `trap ... EXIT` instead.
+    rm -rf "$TMPDIR_SS" 2>/dev/null || true
 # stdout MUST be discarded: this block forks AFTER the JSON contract is emitted above,
 # and its children print to stdout (index-skills.sh "No skills to index.", brana memory
 # index "MEMORY.md updated"). Inheriting stdout appends those lines to the hook's JSON,
