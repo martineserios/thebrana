@@ -3462,6 +3462,72 @@ mod tests {
     // backlog add`) stays untested here, same discipline as cmd_ingest and
     // feed.rs's "task" action.
 
+    // ── resolve_yt_dlp_cookies (t-3036, feature spec §7) ─────────────────
+
+    #[test]
+    fn resolve_yt_dlp_cookies_neither_flag_is_none() {
+        assert_eq!(resolve_yt_dlp_cookies(None, None).unwrap(), kp::YtDlpCookies::None);
+    }
+
+    #[test]
+    fn resolve_yt_dlp_cookies_browser_passes_value_verbatim() {
+        assert_eq!(
+            resolve_yt_dlp_cookies(Some("chrome+gnomekeyring:Default".into()), None).unwrap(),
+            kp::YtDlpCookies::FromBrowser("chrome+gnomekeyring:Default".into())
+        );
+    }
+
+    // Spec §7: the child runs with current_dir(work_dir), so a --cookies
+    // path must be canonicalized at resolve time. A `..` segment stands in
+    // for a relative path (chdir is process-global — unsafe under parallel
+    // tests) — canonicalize() resolves both the same way.
+    #[test]
+    fn resolve_yt_dlp_cookies_readable_file_is_canonicalized() {
+        let dir = tempfile::tempdir().unwrap();
+        let jar = dir.path().join("jar.txt");
+        std::fs::write(&jar, "# Netscape HTTP Cookie File\n").unwrap();
+        let dotted = dir.path().join("sub").join("..").join("jar.txt");
+        std::fs::create_dir(dir.path().join("sub")).unwrap();
+        match resolve_yt_dlp_cookies(None, Some(dotted)).unwrap() {
+            kp::YtDlpCookies::File(p) => {
+                assert!(p.is_absolute(), "{}", p.display());
+                assert!(!p.components().any(|c| c == std::path::Component::ParentDir));
+                assert_eq!(p, jar.canonicalize().unwrap());
+            }
+            other => panic!("expected File, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resolve_yt_dlp_cookies_missing_file_errs_naming_path() {
+        let err = resolve_yt_dlp_cookies(None, Some(PathBuf::from("/nonexistent/brana-jar.txt"))).unwrap_err();
+        assert!(err.to_string().contains("/nonexistent/brana-jar.txt"), "{err}");
+    }
+
+    // Existence alone misses the cron-user-can't-read case (challenger §7 #5).
+    #[cfg(unix)]
+    #[test]
+    fn resolve_yt_dlp_cookies_unreadable_file_errs() {
+        use std::os::unix::fs::PermissionsExt as _;
+        if unsafe { libc_geteuid() } == 0 {
+            return; // root ignores mode bits
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let jar = dir.path().join("locked.txt");
+        std::fs::write(&jar, "x").unwrap();
+        std::fs::set_permissions(&jar, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let err = resolve_yt_dlp_cookies(None, Some(jar.clone())).unwrap_err();
+        assert!(err.to_string().contains("locked.txt"), "{err}");
+    }
+
+    #[cfg(unix)]
+    unsafe fn libc_geteuid() -> u32 {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() }
+    }
+
     #[test]
     fn resolve_channel_tab_videos() {
         assert_eq!(resolve_channel_tab("videos").unwrap(), kp::ChannelTab::Videos);
