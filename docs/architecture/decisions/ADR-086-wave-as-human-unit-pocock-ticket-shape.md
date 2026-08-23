@@ -2,8 +2,8 @@
 status: proposed
 ---
 
-# ADR-085: The Wave Is the Human's Unit — Backlog Speaks the Pocock Ticket Shape
-
+# ADR-086: The Wave Is the Human's Unit — Backlog Speaks the Pocock Ticket Shape
+ · **Renumbered 085→086** (2026-08-23, t-3030, board D2 — t-2490 holds ADR-085 skills-as-stations)
 **Status:** Proposed (2026-08-18) — pending `/brana:challenge`
 **Date:** 2026-08-18
 **Deciders:** Martín Rios
