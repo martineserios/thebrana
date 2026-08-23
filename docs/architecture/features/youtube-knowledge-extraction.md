@@ -442,8 +442,23 @@ absent → `None`; present 0600 → `File(canonical)`; present 0644 → `Err`
 containing the path and `chmod 600`; browser flag + present default →
 `FromBrowser` (flag wins); explicit `--cookies` + present default → the
 explicit file; present 0600 but unreadable (0000 — skipped as root) →
-`Err`. `resolve_yt_dlp_cookies(None, None)` keeps its existing test, which
-now also documents that it consults `$HOME`.
+`Err`. The pre-existing neither-flag test moves to the injectable form
+(`resolve_yt_dlp_cookies_with(None, None, None)`) so the suite stays
+hermetic once an operator's jar exists at the real default path
+(challenger finding). `default_yt_dlp_cookie_jar_in(home)`: absolute home
+→ `Some(<home>/.config/brana/yt-cookies.txt)`; empty or relative home →
+`None` (rung-2 panel finding C3: `util::home()` yields `""` when `$HOME`
+is unset, which would have made the default a cwd-relative path).
+
+**Rung-2 panel (2026-08-23).** Refuted at sev 1 (same-user trust
+boundary — the only party who can swap or loosen a file under
+`~/.config/brana` is the user who owns the credential): TOCTOU between
+the mode check and `open`, check-once-use-many across a batch, parent-dir
+permissions, ownership (factually wrong — a jar owned by another user
+fails `open` with EACCES), `#[cfg(unix)]` compile-out (no non-unix
+target). Revisit `openat(O_NOFOLLOW)` + `fstat` + `uid == geteuid()` only
+if the jar ever moves outside `$HOME`. Sibling outside the diff filed as
+t-3042 (`linear.env` reader has no mode check).
 
 ## What does NOT change
 

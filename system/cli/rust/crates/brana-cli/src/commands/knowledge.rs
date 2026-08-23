@@ -475,15 +475,29 @@ pub fn resolve_yt_dlp_cookies(
     from_browser: Option<String>,
     file: Option<PathBuf>,
 ) -> Result<kp::YtDlpCookies> {
-    resolve_yt_dlp_cookies_with(from_browser, file, Some(&default_yt_dlp_cookie_jar()))
+    resolve_yt_dlp_cookies_with(from_browser, file, default_yt_dlp_cookie_jar().as_deref())
 }
 
 /// The persisted cookie jar (feature spec §8, t-3038): consulted only when
 /// neither flag is given, so a scheduled `drain-links --platform youtube`
 /// needs no per-run flag. Lives outside every git repo and the synced
-/// `~/.claude/` tree, next to `linear.env`.
-pub fn default_yt_dlp_cookie_jar() -> PathBuf {
-    home().join(".config").join("brana").join("yt-cookies.txt")
+/// `~/.claude/` tree, next to `linear.env`. `None` when `$HOME` is unset
+/// or not absolute — see `default_yt_dlp_cookie_jar_in`.
+pub fn default_yt_dlp_cookie_jar() -> Option<PathBuf> {
+    default_yt_dlp_cookie_jar_in(&home())
+}
+
+/// `default_yt_dlp_cookie_jar` for an explicit home. A non-absolute home
+/// (notably the empty string `util::home()` yields when `$HOME` is unset)
+/// returns `None` rather than a cwd-relative `.config/brana/yt-cookies.txt`
+/// — in a stripped scheduler environment that relative path would let a
+/// planted file in the working directory pose as the trusted credential
+/// (t-3038 rung-2 panel finding).
+pub fn default_yt_dlp_cookie_jar_in(home: &std::path::Path) -> Option<PathBuf> {
+    if !home.is_absolute() {
+        return None;
+    }
+    Some(home.join(".config").join("brana").join("yt-cookies.txt"))
 }
 
 /// `resolve_yt_dlp_cookies` with the default-jar location injected, so tests
@@ -3556,7 +3570,10 @@ mod tests {
 
     #[test]
     fn resolve_yt_dlp_cookies_neither_flag_is_none() {
-        assert_eq!(resolve_yt_dlp_cookies(None, None).unwrap(), kp::YtDlpCookies::None);
+        // Hermetic: the `resolve_yt_dlp_cookies` wrapper consults the real
+        // `$HOME` default jar (spec §8), so the neither-flag contract is
+        // pinned on the injectable form (challenger finding, t-3038).
+        assert_eq!(resolve_yt_dlp_cookies_with(None, None, None).unwrap(), kp::YtDlpCookies::None);
     }
 
     #[test]
@@ -3727,9 +3744,18 @@ mod tests {
 
     #[test]
     fn default_yt_dlp_cookie_jar_is_under_config_brana() {
-        let p = default_yt_dlp_cookie_jar();
-        assert!(p.ends_with(".config/brana/yt-cookies.txt"), "{}", p.display());
-        assert!(p.is_absolute());
+        let p = default_yt_dlp_cookie_jar_in(std::path::Path::new("/home/someone")).unwrap();
+        assert_eq!(p, PathBuf::from("/home/someone/.config/brana/yt-cookies.txt"));
+    }
+
+    // Panel finding (t-3038 rung-2, C3): `home()` yields "" when $HOME is
+    // unset, which would make the default jar a cwd-relative path — a
+    // planted file in a stripped scheduler env would become the trusted
+    // credential. Non-absolute homes produce no default at all.
+    #[test]
+    fn default_yt_dlp_cookie_jar_requires_absolute_home() {
+        assert_eq!(default_yt_dlp_cookie_jar_in(std::path::Path::new("")), None);
+        assert_eq!(default_yt_dlp_cookie_jar_in(std::path::Path::new("relative/home")), None);
     }
 
     #[test]
