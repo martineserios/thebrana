@@ -104,6 +104,16 @@ brana knowledge drain-links --platform youtube --cookies ~/.config/brana/yt-cook
 browser holds an exclusive lock on its cookie DB — that is `yt-dlp`'s own
 behaviour and the error is shown as-is.
 
+**Troubleshooting `--cookies-from-browser chrome` on Linux (seen 2026-08-23).**
+`ERROR: secretstorage not available` → `pipx inject yt-dlp secretstorage`.
+`ERROR: Item does not exist!` / `cannot decrypt v11 cookies: no key found` →
+yt-dlp can't find Chrome's "Safe Storage" key in your keyring; try
+`chrome+gnomekeyring`, `chrome+kwallet`, or `chrome+basictext` explicitly, or
+export a jar from a browser whose cookies it *can* read. `No supported
+JavaScript runtime` → put `deno` on the `PATH` of the process that runs brana
+(the scheduler's, not just your shell's). Repeated failed attempts on one
+video trip `HTTP 429` for a while — wait before retrying.
+
 **The jar file is never modified.** `yt-dlp` rewrites whatever `--cookies`
 file it is given on exit; brana copies your jar into a per-call scratch
 directory (mode `0600`, deleted afterwards) and hands `yt-dlp` the copy, so
