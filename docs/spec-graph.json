@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-22T16:52:25Z",
+  "generated": "2026-08-23T15:14:11Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -12808,13 +12808,13 @@
     },
     {
       "from": "docs/architecture/hooks.md",
-      "to": "docs/reference/hooks.md",
+      "to": "docs/archive/posttooluse-workaround.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/hooks.md",
-      "to": "posttooluse-workaround.md",
+      "to": "docs/reference/hooks.md",
       "type": "references",
       "computed": false
     },
@@ -17095,6 +17095,6 @@
     "nodes": 595,
     "edges": 2152,
     "typed_edges": 686,
-    "orphans": 159
+    "orphans": 158
   }
 }
