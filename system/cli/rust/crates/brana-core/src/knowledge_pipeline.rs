@@ -3278,7 +3278,7 @@ id3
     // asserts the exact argv without spawning yt-dlp.
     #[test]
     fn test_build_yt_dlp_caption_args_includes_required_flags_and_separator() {
-        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw");
+        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw", &YtDlpCookies::None);
         assert!(args.contains(&"--write-sub".to_string()));
         assert!(args.contains(&"--write-auto-sub".to_string()));
         let langs_idx = args.iter().position(|a| a == "--sub-langs").expect("--sub-langs present");
@@ -3302,7 +3302,7 @@ id3
     // future edit can't drop it the way its absence went unnoticed here.
     #[test]
     fn test_build_yt_dlp_caption_args_includes_no_simulate_alongside_dump_json() {
-        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw");
+        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw", &YtDlpCookies::None);
         assert!(
             args.contains(&"--dump-json".to_string()),
             "sanity: --dump-json must still be present"
@@ -3373,10 +3373,116 @@ id3
     // would parse it as a flag (e.g. yt-dlp's own --exec <cmd>).
     #[test]
     fn test_build_yt_dlp_caption_args_dash_prefixed_url_never_precedes_separator() {
-        let args = build_yt_dlp_caption_args("-exec=rm -rf /");
+        let args = build_yt_dlp_caption_args("-exec=rm -rf /", &YtDlpCookies::None);
         let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
         assert_eq!(args[sep_idx + 1], "-exec=rm -rf /");
         assert!(args[..sep_idx].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
+    // ── yt-dlp cookie/auth passthrough (t-3033, feature spec §7) ────────
+    // YtDlpCookies::to_args and build_yt_dlp_caption_args are pure; the
+    // jar staging touches only a scratch dir — no yt-dlp, no network.
+
+    #[test]
+    fn test_yt_dlp_cookies_to_args_none_is_empty() {
+        assert!(YtDlpCookies::None.to_args().is_empty());
+    }
+
+    #[test]
+    fn test_yt_dlp_cookies_to_args_from_browser() {
+        assert_eq!(
+            YtDlpCookies::FromBrowser("chrome".to_string()).to_args(),
+            vec!["--cookies-from-browser".to_string(), "chrome".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_yt_dlp_cookies_to_args_file() {
+        assert_eq!(
+            YtDlpCookies::File(PathBuf::from("/p/c.txt")).to_args(),
+            vec!["--cookies".to_string(), "/p/c.txt".to_string()]
+        );
+    }
+
+    // Regression pin: the no-cookie argv must be exactly the pre-t-3033
+    // argv — backward compatibility is a frozen decision in spec §7.
+    #[test]
+    fn test_build_yt_dlp_caption_args_no_cookies_is_unchanged_argv() {
+        let url = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
+        let args = build_yt_dlp_caption_args(url, &YtDlpCookies::None);
+        let expected: Vec<String> = [
+            "--dump-json", "--no-simulate", "--skip-download", "--write-sub", "--write-auto-sub",
+            "--sub-langs", "en", "--sub-format", "vtt", "--socket-timeout", "30",
+            "-o", "video.%(ext)s", "--", url,
+        ].iter().map(|s| s.to_string()).collect();
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn test_build_yt_dlp_caption_args_cookie_pair_precedes_separator_url_still_last() {
+        let url = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
+        for cookies in [
+            YtDlpCookies::FromBrowser("firefox".to_string()),
+            YtDlpCookies::File(PathBuf::from("/tmp/jar.txt")),
+        ] {
+            let args = build_yt_dlp_caption_args(url, &cookies);
+            let pair = cookies.to_args();
+            let flag_idx = args.iter().position(|a| a == &pair[0]).expect("cookie flag present");
+            assert_eq!(args[flag_idx + 1], pair[1]);
+            let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+            assert!(flag_idx < sep_idx, "cookie flag must precede --");
+            assert_eq!(sep_idx, args.len() - 2);
+            assert_eq!(args[sep_idx + 1], url);
+        }
+    }
+
+    // Injection guard holds with cookies in play: a dash-prefixed URL
+    // still lands strictly after `--`.
+    #[test]
+    fn test_build_yt_dlp_caption_args_with_cookies_dash_url_never_precedes_separator() {
+        let args = build_yt_dlp_caption_args("-exec=rm -rf /", &YtDlpCookies::FromBrowser("chrome".into()));
+        let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+        assert_eq!(args[sep_idx + 1], "-exec=rm -rf /");
+        assert!(args[..sep_idx].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
+    // Spec §7: yt-dlp rewrites the `--cookies` jar on exit, so the
+    // operator's file must never be handed to yt-dlp — stage a copy in
+    // the scratch dir instead.
+    #[test]
+    fn test_stage_cookie_jar_copies_file_into_work_dir_and_leaves_original_untouched() {
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        let original = work.path.join("operator-jar.txt");
+        std::fs::write(&original, "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc\n").unwrap();
+        let staged = stage_cookie_jar(&YtDlpCookies::File(original.clone()), &work.path).unwrap();
+        let YtDlpCookies::File(staged_path) = &staged else { panic!("expected File, got {staged:?}") };
+        assert_ne!(staged_path, &original, "must not reuse the operator's path");
+        assert!(staged_path.starts_with(&work.path), "staged copy must live in work_dir");
+        assert_eq!(std::fs::read(staged_path).unwrap(), std::fs::read(&original).unwrap());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            assert_eq!(std::fs::metadata(staged_path).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+    }
+
+    #[test]
+    fn test_stage_cookie_jar_passes_none_and_browser_through_without_writing() {
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        assert!(matches!(stage_cookie_jar(&YtDlpCookies::None, &work.path).unwrap(), YtDlpCookies::None));
+        let b = stage_cookie_jar(&YtDlpCookies::FromBrowser("chrome".into()), &work.path).unwrap();
+        assert!(matches!(b, YtDlpCookies::FromBrowser(ref x) if x == "chrome"));
+        assert_eq!(std::fs::read_dir(&work.path).unwrap().count(), 0, "nothing written for non-File");
+    }
+
+    // Boundary: a File jar that vanished between resolve and stage is an
+    // Err naming the path, not a silent fallback to unauthenticated.
+    #[test]
+    fn test_stage_cookie_jar_missing_file_errs_naming_path() {
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        let gone = work.path.join("nope.txt");
+        let err = stage_cookie_jar(&YtDlpCookies::File(gone.clone()), &work.path).unwrap_err();
+        assert!(err.to_string().contains("nope.txt"), "{err}");
     }
 
     // ── YouTube rate-limit backoff/retry (t-2955, TDD-red pre-impl) ─────
