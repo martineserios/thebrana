@@ -93,12 +93,30 @@ through with one of two flags (mutually exclusive; `process-url` and
 brana knowledge drain-links --platform youtube --cookies-from-browser chrome
 # yt-dlp syntax is passed verbatim: firefox, chrome+gnomekeyring:Default, …
 
-# Scheduled: export a cookie jar once, then point the job at the file
+# Scheduled: export a cookie jar once to the persisted default path
+mkdir -p ~/.config/brana
 yt-dlp --cookies-from-browser chrome --cookies ~/.config/brana/yt-cookies.txt \
        --skip-download https://www.youtube.com/watch?v=jNQXAC9IVRw
 chmod 600 ~/.config/brana/yt-cookies.txt
-brana knowledge drain-links --platform youtube --cookies ~/.config/brana/yt-cookies.txt
+brana knowledge drain-links --platform youtube          # no flag needed
 ```
+
+**Persisted jar (no flag).** When neither flag is given, brana looks for
+`~/.config/brana/yt-cookies.txt` and, if it exists, uses it exactly as if
+you had passed `--cookies` — so the scheduler job
+`link-research-extraction-youtube` runs with its plain command. Rules:
+
+- The file must be mode `0600` (or stricter). Any group/other bit is a
+  hard error naming `chmod 600` — an implicitly picked-up credential must
+  be private; brana refuses rather than warns.
+- A jar that exists but can't be read is an error too (fail loud instead of
+  draining unauthenticated and burning yt-dlp's 429 budget). No file at
+  that path means today's unauthenticated behaviour.
+- Either flag overrides the default; `--cookies <path>` is not mode-checked
+  (your explicit choice). There is no opt-out flag: if you exported a jar
+  there, it's used.
+- The persisted file is never handed to `yt-dlp` directly — the same
+  scratch-copy rule below applies.
 
 `--cookies-from-browser` may prompt your keyring on Linux and fails if the
 browser holds an exclusive lock on its cookie DB — that is `yt-dlp`'s own
@@ -123,8 +141,9 @@ A missing or unreadable `--cookies` path is rejected before anything runs.
 **Treat the jar as a password.** It is a bearer credential for the Google
 account. brana never logs the path or its contents, but a scheduler that
 captures the job's full command line will show the path — keep the file
-`0600` and outside any synced folder. Persisted config for the flag (so an
-auto-drain job needs no flag) is deliberately not implemented yet.
+`0600` and outside any synced folder. `~/.config/brana/` is outside the
+synced `~/.claude/` tree and every git repo, which is why the persisted
+default lives there.
 
 ## Scheduling
 

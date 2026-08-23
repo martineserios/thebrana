@@ -394,6 +394,8 @@ pub enum KnowledgeCmd {
         /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
         /// --skip-download <any url>`). The file is never modified —
         /// brana stages a scratch copy per call. Scheduler-friendly path.
+        /// Without either flag, `~/.config/brana/yt-cookies.txt` is used
+        /// if present (must be mode 0600).
         #[arg(long, value_name = "FILE")]
         cookies: Option<PathBuf>,
     },
@@ -431,6 +433,8 @@ pub enum KnowledgeCmd {
         /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
         /// --skip-download <any url>`). The file is never modified —
         /// brana stages a scratch copy per call. Scheduler-friendly path.
+        /// Without either flag, `~/.config/brana/yt-cookies.txt` is used
+        /// if present (must be mode 0600).
         #[arg(long, value_name = "FILE")]
         cookies: Option<PathBuf>,
     },
@@ -531,6 +535,8 @@ pub enum KnowledgeCmd {
         /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
         /// --skip-download <any url>`). The file is never modified —
         /// brana stages a scratch copy per call. Scheduler-friendly path.
+        /// Without either flag, `~/.config/brana/yt-cookies.txt` is used
+        /// if present (must be mode 0600).
         #[arg(long, value_name = "FILE")]
         cookies: Option<PathBuf>,
     },

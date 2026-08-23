@@ -475,21 +475,74 @@ pub fn resolve_yt_dlp_cookies(
     from_browser: Option<String>,
     file: Option<PathBuf>,
 ) -> Result<kp::YtDlpCookies> {
+    resolve_yt_dlp_cookies_with(from_browser, file, Some(&default_yt_dlp_cookie_jar()))
+}
+
+/// The persisted cookie jar (feature spec §8, t-3038): consulted only when
+/// neither flag is given, so a scheduled `drain-links --platform youtube`
+/// needs no per-run flag. Lives outside every git repo and the synced
+/// `~/.claude/` tree, next to `linear.env`.
+pub fn default_yt_dlp_cookie_jar() -> PathBuf {
+    home().join(".config").join("brana").join("yt-cookies.txt")
+}
+
+/// `resolve_yt_dlp_cookies` with the default-jar location injected, so tests
+/// never touch the real `$HOME`. Precedence: explicit flag > default jar
+/// (if present) > `None`.
+///
+/// The implicit jar must be private: any group/other permission bit is a
+/// hard error naming `chmod 600` (a warning would leave the requirement
+/// unenforced — same stance as ssh on a loose private key). An explicit
+/// `--cookies` keeps §7's contract and is not mode-checked. A default jar
+/// that exists but cannot be read is also an error: the operator placed a
+/// file there, so failing loud beats silently draining unauthenticated.
+pub fn resolve_yt_dlp_cookies_with(
+    from_browser: Option<String>,
+    file: Option<PathBuf>,
+    default_jar: Option<&std::path::Path>,
+) -> Result<kp::YtDlpCookies> {
     match (from_browser, file) {
-        (None, None) => Ok(kp::YtDlpCookies::None),
         (Some(browser), None) => Ok(kp::YtDlpCookies::FromBrowser(browser)),
-        (_, Some(path)) => {
-            let abs = path
-                .canonicalize()
-                .with_context(|| format!("--cookies {}: file not found", path.display()))?;
-            std::fs::File::open(&abs)
-                .with_context(|| format!("--cookies {}: not readable by this process", abs.display()))?;
-            if abs.to_str().is_none() {
-                bail!("--cookies {}: path is not valid UTF-8", abs.display());
+        (_, Some(path)) => checked_jar(&path, "--cookies"),
+        (None, None) => match default_jar {
+            Some(jar) if jar.exists() => {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt as _;
+                    let mode = std::fs::metadata(jar)
+                        .with_context(|| format!("persisted cookie jar {}: cannot stat", jar.display()))?
+                        .permissions()
+                        .mode()
+                        & 0o777;
+                    if mode & 0o077 != 0 {
+                        bail!(
+                            "persisted cookie jar {}: mode {:04o} is readable by others — run `chmod 600 {}` (it is a Google bearer credential)",
+                            jar.display(),
+                            mode,
+                            jar.display()
+                        );
+                    }
+                }
+                checked_jar(jar, "persisted cookie jar")
             }
-            Ok(kp::YtDlpCookies::File(abs))
-        }
+            _ => Ok(kp::YtDlpCookies::None),
+        },
     }
+}
+
+/// §7's checks shared by both jar sources: canonicalize (the child runs
+/// with `current_dir(work_dir)`), open-for-read (existence alone misses the
+/// cron-user-can't-read case), and UTF-8 (so `to_args` never mangles).
+fn checked_jar(path: &std::path::Path, label: &str) -> Result<kp::YtDlpCookies> {
+    let abs = path
+        .canonicalize()
+        .with_context(|| format!("{label} {}: file not found", path.display()))?;
+    std::fs::File::open(&abs)
+        .with_context(|| format!("{label} {}: not readable by this process", abs.display()))?;
+    if abs.to_str().is_none() {
+        bail!("{label} {}: path is not valid UTF-8", abs.display());
+    }
+    Ok(kp::YtDlpCookies::File(abs))
 }
 
 /// Process a single URL and report which branch it took. Shared by the
