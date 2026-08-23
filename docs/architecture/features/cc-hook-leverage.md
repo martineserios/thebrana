@@ -39,7 +39,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 | `system/hooks/step-completed.sh` | TaskCompleted hook — logs CC Task step completion to session file, injects step name as context |
 | `system/hooks/subagent-context.sh` | SubagentStart hook — injects active task metadata into every spawned subagent |
 | `system/hooks/hooks.json` | Plugin hook registry — SubagentStart + TaskCompleted registered here |
-| `bootstrap.sh` | Identity layer — PostToolUse hooks + TaskCompleted registered in settings.json |
+| `bootstrap.sh` | Identity layer — rules/agents/CLAUDE.md; Step 4b strips leftover `.hooks` from settings.json (all hooks live in plugin hooks.json since t-235) |
 | `system/scripts/cc-changelog-check.sh` | Scheduled script — checks npm for CC version changes, writes report |
 | `system/hooks/session-start.sh` | Surfaces CC changelog report on session start |
 | `system/skills/*/SKILL.md` | 34 skills with `model:` frontmatter (19 haiku, 14 sonnet) |
@@ -97,7 +97,7 @@ brana backlog set t-XXX status completed
 
 ## Known Limitations
 
-- **PostToolUse plugin dispatch (CC #24529, unresolved as of 2026-05-31)** — PostToolUse/PostToolUseFailure hooks are registered in `plugin hooks.json` (migrated from bootstrap settings.json during E2026-05-31-2). However, `validate.sh` warns CC v2.1.x may not dispatch these events from plugin hooks. If post-tool-use hooks stop firing, re-add them to settings.json via bootstrap.sh until CC #24529 is confirmed resolved. TaskCompleted and SubagentStart are NOT PostToolUse and work reliably from plugin hooks.json.
+- **PostToolUse plugin dispatch (CC #24529 — resolved, t-235 2026-05-08)** — PostToolUse/PostToolUseFailure hooks are registered in plugin `hooks.json` and dispatch reliably; the settings.json workaround is retired (history: `docs/archive/posttooluse-workaround.md`).
 - **`args:[]` hook schema removed (E2026-05-31-2)** — All hook entries must use `"command": "bash script.sh"` (string), not `"args": ["bash", "script.sh"]` (array). The array form causes a silent load failure; `validate.sh` Check 51 now catches this at validation time.
 - **task-completed.sh uses grep matching** — detects `brana backlog set <id> status completed` via regex on Bash command. Fragile if CLI syntax changes. Native CC TaskCompleted fires for CC Tasks only, not brana backlog tasks.
 - **SubagentStart injection only works when a task is in_progress** — if no active task, hook returns silently. Agents spawned outside of task context don't receive injection.

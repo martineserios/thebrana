@@ -132,6 +132,100 @@ assert "exit 0" "[ $? -eq 0 ]"
 assert "valid JSON" "echo '$OUT' | jq -e '.continue == true' >/dev/null 2>&1"
 assert "no snapshot call for non-git cwd" "[ ! -s '$CALL_LOG' ]"
 
+# ── Widened commit-count window (t-3017, sibling of t-3004/t-3006) ──────────
+# Bug: COMMIT_COUNT here used a flat `--since="6 hours ago"`, identical to the
+# flaw t-3004/t-3006 already fixed in gate-and-evidence.md. A session whose
+# last commit landed >6h before compaction (clock skew, or a long session)
+# computed COMMIT_COUNT=0, so close-snapshot.sh (COMMIT_COUNT -le 0 -> silent
+# no-op) never queued the pre-compaction safety-net — undermining this hook's
+# own "nothing from this session is lost to compaction" guarantee. Fix: widen
+# using the same UNSCOPED_LAST_CLOSE-anchored, floored-at-6h formula, via
+# `$BRANA session read --all --json` (unlike gate-and-evidence.md's
+# RECENT_COMMITS sibling fix, this site has no LAST_CLOSE/anchor concept at
+# all, so the widening formula applies directly with no structural bound).
+#
+# Fake `brana` reads $FAKE_SESSIONS_JSON per invocation (env var, not a
+# mutated shared file) — env-var-per-subshell convention, same lesson t-3006's
+# own test rewrite applied (a sed+mv-per-case fake binary silently aliased
+# cases there; challenger finding).
+FAKE_BIN="$WORK/fakebin"
+mkdir -p "$FAKE_BIN"
+cat > "$FAKE_BIN/brana" <<'FAKE'
+#!/usr/bin/env bash
+if [ "$1" = "session" ] && [ "$2" = "read" ]; then
+    for a in "$@"; do [ "$a" = "--all" ] && ALL=1; done
+    if [ "${ALL:-0}" = "1" ]; then
+        printf '%s\n' "${FAKE_SESSIONS_JSON:-[]}"
+    fi
+    exit 0
+fi
+echo '[]'
+exit 0
+FAKE
+chmod +x "$FAKE_BIN/brana"
+
+mk_widen_repo() {   # mk_widen_repo <dir>
+    # Two commits, OLDEST FIRST (chronological parent->child order): one at
+    # 20h ago (outside flat 6h, inside a widened ~25h window) and one at 2h
+    # ago (inside flat 6h regardless of widening). The 2h-old commit is what
+    # makes the floor case discriminating — see run_widen_case below. An
+    # un-dated ("now") commit must NEVER be the FIRST commit here: `git log
+    # --since` prunes traversal once it hits a commit outside the range,
+    # assuming committer dates decrease monotonically toward the root: a
+    # "now"-dated root under a 20h-old child makes the history non-monotonic
+    # and silently hides the parent regardless of the window — bit the first
+    # draft of this test.
+    local dir="$1"
+    git init -q -b main "$dir"
+    echo old > "$dir/old.txt"
+    git -C "$dir" add old.txt
+    local old_date; old_date="$(date -d '20 hours ago' --iso-8601=seconds)"
+    GIT_AUTHOR_DATE="$old_date" GIT_COMMITTER_DATE="$old_date" \
+        git -C "$dir" -c user.email=t@t -c user.name=t -c commit.gpgsign=false commit -q -m "old work (t-600)"
+    echo recent >> "$dir/old.txt"
+    git -C "$dir" add old.txt
+    local recent_date; recent_date="$(date -d '2 hours ago' --iso-8601=seconds)"
+    GIT_AUTHOR_DATE="$recent_date" GIT_COMMITTER_DATE="$recent_date" \
+        git -C "$dir" -c user.email=t@t -c user.name=t -c commit.gpgsign=false commit -q -m "in-window work (t-600)"
+}
+
+# CLAUDE_PLUGIN_ROOT/CLAUDE_PLUGIN_DATA are unset in both runs below: this
+# suite runs inside a live Claude Code session that sets CLAUDE_PLUGIN_ROOT,
+# and resolve-brana.sh checks it BEFORE PATH — left set, it resolves $BRANA
+# to the real deployed binary and silently defeats this test's fake `brana`
+# on PATH (discovered live authoring this test, t-3017: the widened-window
+# assertion failed with --commit-count 0 even though the fix was already
+# applied and correct).
+run_widen_case() {   # run_widen_case <label> <sessions_json> <expect_count>
+    local label="$1" sessions="$2" expect="$3"
+    local repo="$WORK/widen-repo-$RANDOM"
+    mk_widen_repo "$repo"
+    : > "$CALL_LOG"
+    local out
+    out=$(printf '{"session_id":"sess-old","cwd":"%s","trigger":"auto"}' "$repo" | \
+        env -u CLAUDE_PLUGIN_ROOT -u CLAUDE_PLUGIN_DATA PATH="$FAKE_BIN:$PATH" \
+            FAKE_SESSIONS_JSON="$sessions" BRANA_SNAPSHOT_SCRIPT="$STUB" \
+            BRANA_PRECOMPACT_GUARD_DIR="$WORK/guards-$RANDOM" bash "$HOOK")
+    local rc=$?
+    echo "$label"
+    assert "$label: exit 0" "[ $rc -eq 0 ]"
+    assert "$label: valid JSON" "echo '$out' | jq -e '.continue == true' >/dev/null 2>&1"
+    assert "$label: snapshot script invoked" "[ \"\$(grep -c . '$CALL_LOG')\" = 1 ]"
+    assert "$label: commit-count is $expect" "grep -q -- '--commit-count $expect' '$CALL_LOG'"
+}
+
+echo ""
+OLD_CLOSE_TS="$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+run_widen_case "Widened window: both commits counted incl. the 20h-old one (clock-skew shape)" \
+    "[{\"epic\":\"(orphan)\",\"state\":{\"written_at\":\"$OLD_CLOSE_TS\"}}]" \
+    "2"
+
+echo ""
+RECENT_CLOSE_TS="$(date -u -d '5 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+run_widen_case "Floor at 6h: only the 2h-old commit counted — 20h-old one stays excluded, window not over-narrowed either" \
+    "[{\"epic\":\"(orphan)\",\"state\":{\"written_at\":\"$RECENT_CLOSE_TS\"}}]" \
+    "1"
+
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="
 

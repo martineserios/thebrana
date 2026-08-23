@@ -94,20 +94,31 @@ echo ""
 # would appear in `git log -20` even though they're 30h stale.
 OLD_COMMIT_DATE="$(date -d '30 hours ago' --iso-8601=seconds)"
 NEW_COMMIT_DATE="$(date -d '1 hour ago' --iso-8601=seconds)"
+# The prior close's own written_at (t-3004): sits BETWEEN the foreign 30h-old
+# commits and this session's own 1h-old commits — the realistic shape of "the
+# last close before this session began". Since t-3004, this value is
+# load-bearing: it is the widening anchor SESSION_EPICS borrows when it is
+# older than the flat 6h floor (15h old here, so it widens). A hardcoded
+# absolute date would rot the day it aged past "30 hours ago" and silently
+# turn this into the exact over-reach this test exists to catch — keep it
+# relative like the commit dates above.
+PRIOR_CLOSE_TS="$(date -u -d '15 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
 
 # ── Fake `brana` ─────────────────────────────────────────────────────────────
-# `session read` responses are unused by this assertion but required for the
-# block to run without error. `backlog get` resolves t-501 (old, foreign) to
-# epic "old-initiative" and t-500 (this session's own) to "brana-v3-redesign".
+# `backlog get` resolves t-501 (old, foreign) to epic "old-initiative" and
+# t-500 (this session's own) to "brana-v3-redesign". `session read` returns
+# PRIOR_CLOSE_TS as the sole (orphan) session-state file — since t-3004 this
+# is the SESSION_EPICS widening anchor (see comment above), not an inert
+# placeholder, so it must stay between the two commit timestamps above.
 mkdir -p "$TMPROOT/bin"
 cat > "$TMPROOT/bin/brana" <<'FAKE'
 #!/usr/bin/env bash
 if [ "$1" = "session" ] && [ "$2" = "read" ]; then
     for a in "$@"; do [ "$a" = "--all" ] && ALL=1; done
     if [ "${ALL:-0}" = "1" ]; then
-        echo '[{"epic":"(orphan)","state":{"written_at":"2026-08-11T00:00:00Z"}}]'
+        echo '[{"epic":"(orphan)","state":{"written_at":"__PRIOR_CLOSE_TS__"}}]'
     else
-        echo '{"written_at":"2026-08-11T00:00:00Z"}'
+        echo '{"written_at":"__PRIOR_CLOSE_TS__"}'
     fi
     exit 0
 fi
@@ -130,6 +141,7 @@ if [ "$1" = "backlog" ] && [ "$2" = "get" ]; then
 fi
 exit 0
 FAKE
+sed -i "s|__PRIOR_CLOSE_TS__|$PRIOR_CLOSE_TS|g" "$TMPROOT/bin/brana"
 chmod +x "$TMPROOT/bin/brana"
 
 # ── Fake close-classify.sh (the block pipes into it; unused by this assertion) ─

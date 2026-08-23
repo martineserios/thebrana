@@ -37,7 +37,7 @@ always-load: true
 
 ## Budget accounting
 
-`validate.sh` Check 5a sums the byte size of every `always-load: true` rule into the "always-loaded context budget" (cap: 28 KB). Path-scoped rules are excluded from this sum.
+`validate.sh` Check 5 (via `system/scripts/context-budget.sh`) sums the byte size of every `always-load: true` rule into the "always-loaded context budget" (cap: `AUTHORED_LIMIT` = 22528 bytes ≈ 22 KB). Path-scoped rules are excluded from this sum.
 
 ## Migration log
 

@@ -82,11 +82,10 @@ The table above is the ingredient list, unordered. For the walkable idea → shi
 - Changes propagate: dimension → reflection → roadmap (run `/brana:reconcile --scope propagation` to check for drift)
 - Spec changes push to implementation (`/brana:reconcile`)
 - Implementation changes update docs in the same commit (no separate back-propagation step)
-- **M+ effort tasks require a feature spec** in `docs/architecture/features/` before writing to `system/`, `src/`, `lib/`, or `bin/`. Advisory gate during pilot (target: 2026-07-28 — see `system/hooks/spec-gate.sh`).
+- **M+ effort tasks require a feature spec** in `docs/architecture/features/` before writing to `system/`, `src/`, `lib/`, or `bin/`. Advisory gate (`system/hooks/spec-gate.sh` — kept advisory by decision 2026-08-23; hardening is tier-2 PR+CI, t-3023).
 - When adding new docs, update `docs/README.md`
 - Ruflo namespaces: query `knowledge` + `pattern` in parallel (use `namespace: "all"` only with `threshold: 0.55` in v3.6 — session records score constant 0.5 and contaminate below that). `specs` namespace is unindexed — skip.
 - Use `.claude/CLAUDE.local.md` (gitignored) for personal/machine-specific overrides — loaded last, wins on conflict. Never commit it.
-- M+ tasks require a feature spec in `docs/architecture/features/` before implementation begins (advisory gate; see `system/hooks/spec-gate.sh`)
 
 <!-- Field Notes archived to ~/.claude/projects/*/memory/ and ruflo patterns. Query via /brana:memory. New gotchas go there, not here. -->
 

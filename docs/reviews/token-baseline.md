@@ -150,3 +150,19 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **token-monitor**: daily observations, haiku model, <200 tokens per run
 - **Architecture/knowledge audits**: 2 large files observed (17K, 9K) from 2026-06-10/11, trigger source unconfirmed
 - **Recommendation**: Both weekly-review and knowledge-review are stable and predictable (~1-2K tokens each, ~1-2 triggers weekly combined). Continue daily monitoring. Total estimated cost ~200-400 tokens/week across scheduled triggers + daily monitor.
+
+---
+
+## 2026-08-09 to 2026-08-15
+- Triggers fired: none (expected weekly-review on Fri 2026-08-09, did not fire)
+- New commits from agents (24h window): 0
+- New review files: none
+- This monitor session: offline
+
+## 2026-08-16 (Today)
+- Triggers fired in last 24h: none (expected weekly-review on Fri 2026-08-09 and today, neither fired)
+- New commits from agents (24h): 0
+- New review files: none
+- Last trigger observed: knowledge-review on 2026-08-01 (15 days ago)
+- This monitor session: haiku (minimal cost)
+- Status: ⚠️ weekly-review missed expected Fri 2026-08-09 firing; no fire since 2026-07-24 (23 days)

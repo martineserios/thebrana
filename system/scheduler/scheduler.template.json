@@ -142,6 +142,15 @@
       "timeoutSeconds": 1800,
       "type": "command"
     },
+    "link-research-extraction-youtube": {
+      "_comment": "t-2956 (feature spec §5, docs/architecture/features/youtube-knowledge-extraction.md): youtube is excluded from link-research-extraction's shared batch and drains here instead, its own --platform filter, own cap, own backoff/retry (yt-dlp's HTTP 429 handling lives inside fetch_youtube_content, not this job) — so a stuck or retrying youtube fetch can only starve this job's own slots, never LinkedIn/GitHub/Substack/arxiv's. Same project as link-research-extraction (the shared task source), offset 2h from it on the same 4h cadence so the two jobs don't race the tasks.json lock. Disabled pending a human enable once the yt-dlp fetch path (t-2950) has shipped and been validated live — see that task before flipping this on. Before enabling: YouTube's bot-check blocks unauthenticated yt-dlp (t-3033, spec §7), so export a cookie jar to the persisted default path ~/.config/brana/yt-cookies.txt at mode 0600 (recipe in docs/guide/features/knowledge-drain-links.md § YouTube needs an authenticated session) — brana picks it up with no flag (t-3038, spec §8) and refuses a jar readable by others. Without the jar, every run fails exactly as the unauthenticated drain did live on 2026-08-23. An explicit `--cookies <path>` still overrides the default.",
+      "command": "brana knowledge drain-links --cap 3 --platform youtube",
+      "enabled": false,
+      "project": "~/enter_thebrana/personal",
+      "schedule": "*-*-* 2/4:00:00",
+      "timeoutSeconds": 1800,
+      "type": "command"
+    },
     "lint-heal": {
       "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00). Enable only after --dry-run validation.",
       "captureOutput": true,

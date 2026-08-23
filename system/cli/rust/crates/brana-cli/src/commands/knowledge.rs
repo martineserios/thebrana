@@ -91,6 +91,35 @@ fn resolve_process_url_outcome(
     }
 }
 
+/// Compute the value to store and its tags for a `Store` outcome. Pure —
+/// takes the already-extracted insight rather than calling
+/// `kp::extract_insight` itself, so it's testable without that function's
+/// real agy/`claude -p` subprocess calls (same "test the decision, not the
+/// I/O" discipline as `resolve_process_url_outcome` above).
+///
+/// youtube skips summarization entirely and stores `content.text`
+/// unmodified, tagged `[platform, "transcript", caption_source]` — a short
+/// summary of a long transcript is only marginally less shallow than the
+/// HTML-shell bug this whole command exists to fix (feature spec §3,
+/// t-2950). Every other platform keeps the existing summarized-storage
+/// behavior, unchanged. `insight` must be `Some` for every non-youtube
+/// platform — the caller (`process_one_url`) only skips computing it for
+/// youtube.
+fn resolve_store_value(
+    content: &kp::FetchedContent,
+    insight: Option<&kp::ExtractedInsight>,
+) -> (String, Vec<String>) {
+    if content.platform == "youtube" {
+        let source = content.caption_source.unwrap_or("auto");
+        return (
+            content.text.clone(),
+            vec![content.platform.to_string(), "transcript".to_string(), source.to_string()],
+        );
+    }
+    let insight = insight.expect("non-youtube Store always has an extracted insight");
+    (insight.summary.clone(), vec![content.platform.to_string(), insight.topic.clone()])
+}
+
 /// One `{id, url}` record from a batch file.
 #[derive(Debug, Deserialize)]
 struct BatchEntry {
@@ -167,6 +196,36 @@ fn select_drain_batch(ids: &[String], cap: usize) -> Vec<String> {
     ids.iter().take(cap).cloned().collect()
 }
 
+/// Whether a drain-links candidate URL belongs in this run's batch, given
+/// an optional `--platform` filter (feature spec §5, t-2955 tests /
+/// t-2956 impl). `platform: None` is the existing shared job — excludes
+/// youtube (it runs its own separate job, its own cap, its own
+/// backoff/retry) so a stuck youtube fetch can never starve
+/// LinkedIn/GitHub/Substack/arxiv slots in the same batch. `platform:
+/// Some("youtube")` is the new youtube-only job.
+///
+/// This is the split point — `select_drain_batch` itself stays a bare
+/// `.take(cap)`, unmodified; the platform split lives entirely in the
+/// candidate filter that runs before it.
+///
+/// Reconciled onto `kp::classify_platform` (t-2950) — it inlined its own
+/// `youtube.com`/`youtu.be` match while classify_platform's youtube case
+/// was still a separate pending task (t-2956 Challenger finding: two
+/// places independently deciding what counts as a youtube URL). No
+/// behavior change; same URL patterns, single source of truth now.
+fn candidate_passes_platform_filter(url: &str, platform: Option<&str>) -> bool {
+    let is_youtube = kp::classify_platform(url) == "youtube";
+    match platform {
+        None => !is_youtube,
+        Some("youtube") => is_youtube,
+        // Fail closed: no other platform-specific job exists yet, so an
+        // unrecognized --platform value selects nothing rather than
+        // silently reusing the default job's set (which would include
+        // URLs the caller didn't ask for).
+        Some(_) => false,
+    }
+}
+
 /// Whether a drained link's tracking task may be marked completed.
 ///
 /// Delegates to [`is_cancellable`] deliberately — "the content reached the
@@ -189,7 +248,7 @@ fn should_complete_link(outcome: &ProcessUrlOutcome) -> bool {
 ///
 /// Advisory only: this never calls `backlog set` (spec §Assumptions) — the
 /// operator decides what to cancel.
-pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
+pub fn cmd_process_url_batch(path: &std::path::Path, cookies: &kp::YtDlpCookies) -> Result<()> {
     let body = std::fs::read_to_string(path)
         .with_context(|| format!("reading batch file {}", path.display()))?;
     let entries = parse_batch_file(&body)?;
@@ -198,7 +257,7 @@ pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
     let mut failures = 0usize;
 
     for entry in &entries {
-        match process_one_url(&entry.url) {
+        match process_one_url(&entry.url, cookies) {
             Ok(outcome) => {
                 if is_cancellable(&outcome) {
                     cancellable.push(entry.id.clone());
@@ -258,7 +317,13 @@ struct DrainCandidate {
 /// The tasks lock is taken twice and never held across the network: a batch
 /// of 27 links takes minutes, and holding the sidecar lock through it would
 /// stall every other writer of that backlog.
-pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Result<()> {
+pub fn cmd_drain_links(
+    file: Option<PathBuf>,
+    cap: usize,
+    dry_run: bool,
+    platform: Option<&str>,
+    cookies: &kp::YtDlpCookies,
+) -> Result<()> {
     let tf = match file {
         Some(f) => f,
         None => brana_core::util::find_tasks_file().context("tasks.json not found")?,
@@ -291,6 +356,12 @@ pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Resu
             }
         }
 
+        // Platform split (feature spec §5) — runs before select_drain_batch,
+        // which stays a bare .take(cap) unmodified. `platform: None` (the
+        // existing shared job) excludes youtube; `--platform youtube`
+        // selects only youtube.
+        with_urls.retain(|c| candidate_passes_platform_filter(&c.url, platform));
+
         let ids: Vec<String> = with_urls.iter().map(|c| c.id.clone()).collect();
         let selected = select_drain_batch(&ids, cap);
         with_urls.retain(|c| selected.contains(&c.id));
@@ -298,7 +369,20 @@ pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Resu
     };
 
     if candidates.is_empty() {
-        println!("No pending link tasks with a URL — nothing to drain.");
+        // An unrecognized --platform value fails closed (selects nothing,
+        // candidate_passes_platform_filter's `Some(_) => false` arm) —
+        // distinguish that from a legitimately empty batch rather than
+        // printing the same message either way (Challenger finding,
+        // t-2956 implementation gate).
+        match platform {
+            Some(p) if p != "youtube" => {
+                println!(
+                    "No candidates selected — \"{p}\" is not a recognized --platform value \
+                     (only \"youtube\" is supported today). Nothing was drained."
+                );
+            }
+            _ => println!("No pending link tasks with a URL — nothing to drain."),
+        }
         return Ok(());
     }
 
@@ -315,7 +399,7 @@ pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Resu
     let mut failures = 0usize;
     for c in &candidates {
         println!("\ndraining {}: {}", c.id, c.url);
-        match process_one_url(&c.url) {
+        match process_one_url(&c.url, cookies) {
             Ok(outcome) => {
                 if should_complete_link(&outcome) {
                     completable.push(c.id.clone());
@@ -374,14 +458,111 @@ pub fn cmd_drain_links(file: Option<PathBuf>, cap: usize, dry_run: bool) -> Resu
 ///
 /// Never acquires the pipeline lock — this command's storage is independent
 /// of the tier1/2/3 pipeline (ADR-070 §Lock discipline).
-pub fn cmd_process_url(url: &str) -> Result<()> {
-    process_one_url(url).map(|_| ())
+pub fn cmd_process_url(url: &str, cookies: &kp::YtDlpCookies) -> Result<()> {
+    process_one_url(url, cookies).map(|_| ())
+}
+
+/// Map the `--cookies-from-browser` / `--cookies` flags to
+/// [`kp::YtDlpCookies`] (t-3033, feature spec §7) — the single place the
+/// CLI surface meets the core type. Fails early, before any yt-dlp call,
+/// with an error naming the path when a `--cookies` file is missing,
+/// unreadable by this process (cron user ≠ exporting user), or not UTF-8.
+/// The path is canonicalized because the yt-dlp child runs with
+/// `current_dir(<scratch work dir>)`, where a relative path would resolve
+/// against the wrong directory. clap makes the two flags mutually
+/// exclusive; both `None` is today's unauthenticated default.
+pub fn resolve_yt_dlp_cookies(
+    from_browser: Option<String>,
+    file: Option<PathBuf>,
+) -> Result<kp::YtDlpCookies> {
+    resolve_yt_dlp_cookies_with(from_browser, file, default_yt_dlp_cookie_jar().as_deref())
+}
+
+/// The persisted cookie jar (feature spec §8, t-3038): consulted only when
+/// neither flag is given, so a scheduled `drain-links --platform youtube`
+/// needs no per-run flag. Lives outside every git repo and the synced
+/// `~/.claude/` tree, next to `linear.env`. `None` when `$HOME` is unset
+/// or not absolute — see `default_yt_dlp_cookie_jar_in`.
+pub fn default_yt_dlp_cookie_jar() -> Option<PathBuf> {
+    default_yt_dlp_cookie_jar_in(&home())
+}
+
+/// `default_yt_dlp_cookie_jar` for an explicit home. A non-absolute home
+/// (notably the empty string `util::home()` yields when `$HOME` is unset)
+/// returns `None` rather than a cwd-relative `.config/brana/yt-cookies.txt`
+/// — in a stripped scheduler environment that relative path would let a
+/// planted file in the working directory pose as the trusted credential
+/// (t-3038 rung-2 panel finding).
+pub fn default_yt_dlp_cookie_jar_in(home: &std::path::Path) -> Option<PathBuf> {
+    if !home.is_absolute() {
+        return None;
+    }
+    Some(home.join(".config").join("brana").join("yt-cookies.txt"))
+}
+
+/// `resolve_yt_dlp_cookies` with the default-jar location injected, so tests
+/// never touch the real `$HOME`. Precedence: explicit flag > default jar
+/// (if present) > `None`.
+///
+/// The implicit jar must be private: any group/other permission bit is a
+/// hard error naming `chmod 600` (a warning would leave the requirement
+/// unenforced — same stance as ssh on a loose private key). An explicit
+/// `--cookies` keeps §7's contract and is not mode-checked. A default jar
+/// that exists but cannot be read is also an error: the operator placed a
+/// file there, so failing loud beats silently draining unauthenticated.
+pub fn resolve_yt_dlp_cookies_with(
+    from_browser: Option<String>,
+    file: Option<PathBuf>,
+    default_jar: Option<&std::path::Path>,
+) -> Result<kp::YtDlpCookies> {
+    match (from_browser, file) {
+        (Some(browser), None) => Ok(kp::YtDlpCookies::FromBrowser(browser)),
+        (_, Some(path)) => checked_jar(&path, "--cookies"),
+        (None, None) => match default_jar {
+            Some(jar) if jar.exists() => {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt as _;
+                    let mode = std::fs::metadata(jar)
+                        .with_context(|| format!("persisted cookie jar {}: cannot stat", jar.display()))?
+                        .permissions()
+                        .mode()
+                        & 0o777;
+                    if mode & 0o077 != 0 {
+                        bail!(
+                            "persisted cookie jar {}: mode {:04o} is readable by others — run `chmod 600 {}` (it is a Google bearer credential)",
+                            jar.display(),
+                            mode,
+                            jar.display()
+                        );
+                    }
+                }
+                checked_jar(jar, "persisted cookie jar")
+            }
+            _ => Ok(kp::YtDlpCookies::None),
+        },
+    }
+}
+
+/// §7's checks shared by both jar sources: canonicalize (the child runs
+/// with `current_dir(work_dir)`), open-for-read (existence alone misses the
+/// cron-user-can't-read case), and UTF-8 (so `to_args` never mangles).
+fn checked_jar(path: &std::path::Path, label: &str) -> Result<kp::YtDlpCookies> {
+    let abs = path
+        .canonicalize()
+        .with_context(|| format!("{label} {}: file not found", path.display()))?;
+    std::fs::File::open(&abs)
+        .with_context(|| format!("{label} {}: not readable by this process", abs.display()))?;
+    if abs.to_str().is_none() {
+        bail!("{label} {}: path is not valid UTF-8", abs.display());
+    }
+    Ok(kp::YtDlpCookies::File(abs))
 }
 
 /// Process a single URL and report which branch it took. Shared by the
 /// single-URL command and the batch loop, so batch mode cannot drift from
 /// the semantics the single-URL tests pin down.
-fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
+fn process_one_url(url: &str, cookies: &kp::YtDlpCookies) -> Result<ProcessUrlOutcome> {
     let key = url_storage_key(url);
 
     let existing = ruflo_memory_get(&key, PROCESS_URL_NAMESPACE)
@@ -390,7 +571,7 @@ fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
     // Only fetch when the idempotency probe came back empty.
     let fetched = match existing {
         Some(_) => None,
-        None => kp::fetch_url_content(url).with_context(|| format!("fetching {url}"))?,
+        None => kp::fetch_url_content_with(url, cookies).with_context(|| format!("fetching {url}"))?,
     };
 
     let outcome = resolve_process_url_outcome(existing.is_some(), fetched.as_ref());
@@ -404,12 +585,22 @@ fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
         }
         ProcessUrlOutcome::Store => {
             let content = fetched.expect("Store outcome is only reachable with fetched content");
-            let insight = kp::extract_insight(&content.text, content.platform);
-            let tags = [content.platform, insight.topic.as_str()];
-            ruflo_memory_store(&key, &insight.summary, PROCESS_URL_NAMESPACE, &tags)
+            // youtube skips extract_insight entirely (feature spec §3) —
+            // don't pay for the LLM call at all when its result is discarded.
+            let insight = (content.platform != "youtube")
+                .then(|| kp::extract_insight(&content.text, content.platform));
+            let (value, tags) = resolve_store_value(&content, insight.as_ref());
+            let tag_refs: Vec<&str> = tags.iter().map(String::as_str).collect();
+            ruflo_memory_store(&key, &value, PROCESS_URL_NAMESPACE, &tag_refs)
                 .with_context(|| format!("storing {key}"))?;
             println!("Stored: {key}");
-            println!("{}", insight.summary);
+            if content.platform == "youtube" {
+                // A transcript can be hundreds of KB — printing it in full
+                // would flood the terminal on every drain-links run.
+                println!("{} chars of transcript stored (not printed in full)", value.chars().count());
+            } else {
+                println!("{value}");
+            }
         }
     }
     Ok(outcome)
@@ -1938,6 +2129,89 @@ pub fn cmd_ingest(
     Ok(())
 }
 
+/// Parse the `--tab` flag into [`kp::ChannelTab`]. Pure, no I/O.
+fn resolve_channel_tab(tab: &str) -> Result<kp::ChannelTab> {
+    match tab {
+        "videos" => Ok(kp::ChannelTab::Videos),
+        "shorts" => Ok(kp::ChannelTab::Shorts),
+        other => bail!("unknown --tab value \"{other}\" — expected \"videos\" or \"shorts\""),
+    }
+}
+
+/// Build the `brana backlog add --json` payload for one channel-backfilled
+/// video URL. Pure, no I/O — mirrors the `link`-tag / `"URL: {url}"`
+/// contract [`extract_capture_url`] parses on the drain side (feature spec
+/// §2: "queues each one as a `link`-tagged backlog task exactly the way any
+/// other link enters the queue today").
+fn build_channel_link_task_json(channel_url: &str, video_url: &str) -> serde_json::Value {
+    serde_json::json!({
+        "subject": format!("[channel-backfill] {channel_url} — {video_url}"),
+        "type": "task",
+        "tags": ["link", "channel-backfill"],
+        "context": format!("URL: {video_url}"),
+    })
+}
+
+/// `brana knowledge channel-backfill <channel_url> --tab videos --max N` —
+/// enumerate a channel tab via [`kp::fetch_youtube_channel_videos`] and
+/// queue each returned URL as a `link`-tagged backlog task (feature spec
+/// §1, §2). No new fetch/dedupe/store code: every queued URL drains
+/// through the existing `drain-links --platform youtube` path unchanged.
+///
+/// The `--max` flag's own default (50) is the sanity cap the feature spec
+/// §3 calls for — mapped directly to `ChannelSelection::Range { end }`, so
+/// a caller who wants more must say so explicitly via `--max`.
+pub fn cmd_channel_backfill(
+    channel_url: &str,
+    tab: &str,
+    max: u32,
+    dry_run: bool,
+    cookies: &kp::YtDlpCookies,
+) -> Result<()> {
+    let channel_tab = resolve_channel_tab(tab)?;
+    let selection = kp::ChannelSelection::Range { start: None, end: Some(max) };
+    let urls = kp::fetch_youtube_channel_videos(channel_url, channel_tab, selection, cookies)
+        .with_context(|| format!("enumerating channel {channel_url}"))?;
+
+    if urls.is_empty() {
+        println!("No videos found for {channel_url} ({tab} tab).");
+        return Ok(());
+    }
+
+    println!(
+        "\n  \x1b[1mbrana knowledge channel-backfill\x1b[0m{}",
+        if dry_run { " [dry-run]" } else { "" }
+    );
+    println!("  {} video(s) found on {channel_url} ({tab} tab)\n", urls.len());
+
+    let mut queued = 0usize;
+    for url in &urls {
+        let payload = build_channel_link_task_json(channel_url, url);
+        if dry_run {
+            println!("  [dry-run] would queue: {url}");
+        } else {
+            let status = Command::new("brana")
+                .args(["backlog", "add", "--json", &payload.to_string()])
+                .status()
+                .context("spawning brana backlog add")?;
+            if status.success() {
+                queued += 1;
+            } else {
+                eprintln!("  ⚠ failed to queue {url} (brana backlog add exited {status})");
+            }
+        }
+    }
+
+    if dry_run {
+        println!("\n  [dry-run] nothing queued.");
+    } else {
+        println!("\n  ✓ {queued} video(s) queued");
+        println!("  Next: brana knowledge drain-links --platform youtube");
+    }
+
+    Ok(())
+}
+
 /// Return cluster topics that have Tier2Clustered URLs but no Tier3Drafted URLs,
 /// sorted by source count descending (highest-signal clusters first).
 fn list_undrafted_clusters(state: &kp::PipelineState) -> Vec<String> {
@@ -2121,7 +2395,7 @@ mod tests {
 
     #[test]
     fn process_url_empty_content_stores_nothing() {
-        let fetched = kp::FetchedContent { text: String::new(), platform: "other" };
+        let fetched = kp::FetchedContent { text: String::new(), platform: "other", caption_source: None };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2133,7 +2407,8 @@ mod tests {
         // Boundary: strip_html_to_text on a JS-only page yields whitespace,
         // not an empty string. Storing that would poison the namespace with
         // an entry that looks real to search and contains nothing.
-        let fetched = kp::FetchedContent { text: "   \n\t  ".into(), platform: "other" };
+        let fetched =
+            kp::FetchedContent { text: "   \n\t  ".into(), platform: "other", caption_source: None };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2145,11 +2420,74 @@ mod tests {
         let fetched = kp::FetchedContent {
             text: "A genuine paragraph of fetched content worth keeping around.".into(),
             platform: "other",
+            caption_source: None,
         };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::Store
         );
+    }
+
+    // ── process-url Store arm: youtube bypasses extract_insight (t-2950) ──
+    // resolve_store_value takes the already-extracted insight as a parameter
+    // rather than calling kp::extract_insight itself, so these tests exercise
+    // the storage decision without extract_insight's real agy/claude -p
+    // subprocess calls (same "test the decision, not the I/O" discipline as
+    // resolve_process_url_outcome above).
+
+    #[test]
+    fn test_resolve_store_value_youtube_stores_text_unmodified_with_transcript_tags() {
+        let fetched = kp::FetchedContent {
+            text: "the full transcript text, unsummarized".into(),
+            platform: "youtube",
+            caption_source: Some("manual"),
+        };
+        let (value, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(value, "the full transcript text, unsummarized");
+        assert_eq!(tags, vec!["youtube", "transcript", "manual"]);
+    }
+
+    #[test]
+    fn test_resolve_store_value_youtube_auto_caption_source_tag() {
+        let fetched = kp::FetchedContent {
+            text: "auto-captioned transcript".into(),
+            platform: "youtube",
+            caption_source: Some("auto"),
+        };
+        let (_, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+    }
+
+    #[test]
+    fn test_resolve_store_value_non_youtube_uses_insight_summary_and_topic() {
+        // Regression guard (t-2950 AC): every non-youtube tier's existing
+        // extract_insight summarization behavior must stay unchanged.
+        let fetched = kp::FetchedContent {
+            text: "raw fetched content, never stored directly for this platform".into(),
+            platform: "github",
+            caption_source: None,
+        };
+        let insight = kp::ExtractedInsight {
+            summary: "a short summary".into(),
+            topic: "software".into(),
+            extraction_skipped: false,
+        };
+        let (value, tags) = resolve_store_value(&fetched, Some(&insight));
+        assert_eq!(value, "a short summary");
+        assert_eq!(tags, vec!["github", "software"]);
+    }
+
+    // Boundary (t-2950): caption_source should always be Some for a
+    // Store-reachable youtube FetchedContent (fetch_youtube_content only
+    // returns Some(FetchedContent) when it found captions), but the
+    // storage decision must not panic if that invariant is ever violated —
+    // fail safe to "auto" rather than crash the drain.
+    #[test]
+    fn test_resolve_store_value_youtube_missing_caption_source_defaults_to_auto() {
+        let fetched =
+            kp::FetchedContent { text: "transcript".into(), platform: "youtube", caption_source: None };
+        let (_, tags) = resolve_store_value(&fetched, None);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
     }
 
     // ── process-url batch mode (t-2451) ──────────────────────────────
@@ -2335,6 +2673,51 @@ mod tests {
         let ids = vec!["t-1".to_string(), "t-2".to_string()];
         assert_eq!(select_drain_batch(&ids, 99).len(), 2);
         assert!(select_drain_batch(&[], 3).is_empty());
+    }
+
+    // ── drain-links platform filter (t-2955, TDD-red pre-impl) ──────────
+    // AC: the split lives in cmd_drain_links's candidate filter, NOT
+    // select_drain_batch (which stays a bare .take(cap), asserted above
+    // unchanged by these three new tests existing alongside it).
+
+    #[test]
+    fn test_candidate_filter_excludes_youtube_from_default_batch() {
+        assert!(!candidate_passes_platform_filter(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            None
+        ));
+    }
+
+    #[test]
+    fn test_candidate_filter_includes_non_youtube_in_default_batch() {
+        assert!(candidate_passes_platform_filter("https://github.com/foo/bar", None));
+    }
+
+    #[test]
+    fn test_candidate_filter_platform_youtube_selects_only_youtube() {
+        assert!(candidate_passes_platform_filter(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            Some("youtube")
+        ));
+        assert!(!candidate_passes_platform_filter("https://github.com/foo/bar", Some("youtube")));
+    }
+
+    // Boundary (t-2956): youtu.be short links must match too — not just
+    // youtube.com/watch — and an unrecognized --platform value must select
+    // nothing rather than silently falling back to the default job's set.
+    #[test]
+    fn test_candidate_filter_matches_youtu_be_short_links() {
+        assert!(!candidate_passes_platform_filter("https://youtu.be/jNQXAC9IVRw", None));
+        assert!(candidate_passes_platform_filter("https://youtu.be/jNQXAC9IVRw", Some("youtube")));
+    }
+
+    #[test]
+    fn test_candidate_filter_unknown_platform_selects_nothing() {
+        assert!(!candidate_passes_platform_filter("https://github.com/foo/bar", Some("linkedin")));
+        assert!(!candidate_passes_platform_filter(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            Some("linkedin")
+        ));
     }
 
     #[test]
@@ -3174,6 +3557,251 @@ mod tests {
         assert!(prompt.contains("Respond with JSON only"), "prompt must request JSON response");
         assert!(prompt.contains("\"score\""), "prompt must mention score key");
         assert!(prompt.contains("\"reason\""), "prompt must mention reason key");
+    }
+
+    // ── channel-backfill CLI wiring (t-2999) ─────────────────────────────
+    // resolve_channel_tab / build_channel_link_task_json are pure — no
+    // subprocess, no I/O — the same split as extract_capture_url above.
+    // cmd_channel_backfill itself (network + subprocess shellout to `brana
+    // backlog add`) stays untested here, same discipline as cmd_ingest and
+    // feed.rs's "task" action.
+
+    // ── resolve_yt_dlp_cookies (t-3036, feature spec §7) ─────────────────
+
+    #[test]
+    fn resolve_yt_dlp_cookies_neither_flag_is_none() {
+        // Hermetic: the `resolve_yt_dlp_cookies` wrapper consults the real
+        // `$HOME` default jar (spec §8), so the neither-flag contract is
+        // pinned on the injectable form (challenger finding, t-3038).
+        assert_eq!(resolve_yt_dlp_cookies_with(None, None, None).unwrap(), kp::YtDlpCookies::None);
+    }
+
+    #[test]
+    fn resolve_yt_dlp_cookies_browser_passes_value_verbatim() {
+        assert_eq!(
+            resolve_yt_dlp_cookies(Some("chrome+gnomekeyring:Default".into()), None).unwrap(),
+            kp::YtDlpCookies::FromBrowser("chrome+gnomekeyring:Default".into())
+        );
+    }
+
+    // Spec §7: the child runs with current_dir(work_dir), so a --cookies
+    // path must be canonicalized at resolve time. A `..` segment stands in
+    // for a relative path (chdir is process-global — unsafe under parallel
+    // tests) — canonicalize() resolves both the same way.
+    #[test]
+    fn resolve_yt_dlp_cookies_readable_file_is_canonicalized() {
+        let dir = tempfile::tempdir().unwrap();
+        let jar = dir.path().join("jar.txt");
+        std::fs::write(&jar, "# Netscape HTTP Cookie File\n").unwrap();
+        let dotted = dir.path().join("sub").join("..").join("jar.txt");
+        std::fs::create_dir(dir.path().join("sub")).unwrap();
+        match resolve_yt_dlp_cookies(None, Some(dotted)).unwrap() {
+            kp::YtDlpCookies::File(p) => {
+                assert!(p.is_absolute(), "{}", p.display());
+                assert!(!p.components().any(|c| c == std::path::Component::ParentDir));
+                assert_eq!(p, jar.canonicalize().unwrap());
+            }
+            other => panic!("expected File, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resolve_yt_dlp_cookies_missing_file_errs_naming_path() {
+        let err = resolve_yt_dlp_cookies(None, Some(PathBuf::from("/nonexistent/brana-jar.txt"))).unwrap_err();
+        assert!(err.to_string().contains("/nonexistent/brana-jar.txt"), "{err}");
+    }
+
+    // Existence alone misses the cron-user-can't-read case (challenger §7 #5).
+    #[cfg(unix)]
+    #[test]
+    fn resolve_yt_dlp_cookies_unreadable_file_errs() {
+        use std::os::unix::fs::PermissionsExt as _;
+        if unsafe { libc_geteuid() } == 0 {
+            return; // root ignores mode bits
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let jar = dir.path().join("locked.txt");
+        std::fs::write(&jar, "x").unwrap();
+        std::fs::set_permissions(&jar, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let err = resolve_yt_dlp_cookies(None, Some(jar.clone())).unwrap_err();
+        assert!(err.to_string().contains("locked.txt"), "{err}");
+    }
+
+    #[cfg(unix)]
+    unsafe fn libc_geteuid() -> u32 {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() }
+    }
+
+    // ── resolve_yt_dlp_cookies_with — persisted default jar (t-3038, spec §8) ──
+
+    fn default_jar_in(dir: &std::path::Path, mode: u32) -> PathBuf {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        let jar = dir.join("yt-cookies.txt");
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(mode)
+            .open(&jar)
+            .unwrap();
+        std::io::Write::write_all(&mut f, b"# Netscape HTTP Cookie File\n").unwrap();
+        jar
+    }
+
+    #[test]
+    fn default_jar_absent_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join("yt-cookies.txt");
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&missing)).unwrap(),
+            kp::YtDlpCookies::None
+        );
+    }
+
+    #[test]
+    fn default_jar_no_default_is_none() {
+        assert_eq!(resolve_yt_dlp_cookies_with(None, None, None).unwrap(), kp::YtDlpCookies::None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_0600_is_used() {
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o600);
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap(),
+            kp::YtDlpCookies::File(jar.canonicalize().unwrap())
+        );
+    }
+
+    // Spec §8: an implicitly picked-up jar must be private — refuse, don't warn.
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_group_or_other_bits_errs_naming_chmod() {
+        for mode in [0o644, 0o640, 0o604, 0o660] {
+            let dir = tempfile::tempdir().unwrap();
+            let jar = default_jar_in(dir.path(), mode);
+            let err = resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap_err().to_string();
+            assert!(err.contains("chmod 600"), "mode {mode:o}: {err}");
+            assert!(err.contains(&jar.display().to_string()), "mode {mode:o}: {err}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_owner_only_stricter_modes_are_accepted() {
+        // 0400 is stricter than 0600 and still owner-only: accepted.
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o400);
+        assert!(matches!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap(),
+            kp::YtDlpCookies::File(_)
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn explicit_flags_win_over_present_default_jar() {
+        let dir = tempfile::tempdir().unwrap();
+        let default = default_jar_in(dir.path(), 0o600);
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(Some("firefox".into()), None, Some(&default)).unwrap(),
+            kp::YtDlpCookies::FromBrowser("firefox".into())
+        );
+        let explicit = dir.path().join("explicit.txt");
+        std::fs::write(&explicit, "x").unwrap();
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, Some(explicit.clone()), Some(&default)).unwrap(),
+            kp::YtDlpCookies::File(explicit.canonicalize().unwrap())
+        );
+    }
+
+    // A loose default jar must not poison an explicit flag: the mode check
+    // is only for the implicit path.
+    #[cfg(unix)]
+    #[test]
+    fn loose_default_jar_does_not_affect_explicit_flags() {
+        let dir = tempfile::tempdir().unwrap();
+        let default = default_jar_in(dir.path(), 0o644);
+        assert!(resolve_yt_dlp_cookies_with(Some("chrome".into()), None, Some(&default)).is_ok());
+    }
+
+    // 0000 passes the "no group/other bits" check but is unreadable: the
+    // operator placed a file there, so fail loud rather than drain unauthenticated.
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_unreadable_errs() {
+        if unsafe { libc_geteuid() } == 0 {
+            return; // root ignores mode bits
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o000);
+        let err = resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap_err().to_string();
+        assert!(err.contains("yt-cookies.txt"), "{err}");
+    }
+
+    #[test]
+    fn default_yt_dlp_cookie_jar_is_under_config_brana() {
+        let p = default_yt_dlp_cookie_jar_in(std::path::Path::new("/home/someone")).unwrap();
+        assert_eq!(p, PathBuf::from("/home/someone/.config/brana/yt-cookies.txt"));
+    }
+
+    // Panel finding (t-3038 rung-2, C3): `home()` yields "" when $HOME is
+    // unset, which would make the default jar a cwd-relative path — a
+    // planted file in a stripped scheduler env would become the trusted
+    // credential. Non-absolute homes produce no default at all.
+    #[test]
+    fn default_yt_dlp_cookie_jar_requires_absolute_home() {
+        assert_eq!(default_yt_dlp_cookie_jar_in(std::path::Path::new("")), None);
+        assert_eq!(default_yt_dlp_cookie_jar_in(std::path::Path::new("relative/home")), None);
+    }
+
+    #[test]
+    fn resolve_channel_tab_videos() {
+        assert_eq!(resolve_channel_tab("videos").unwrap(), kp::ChannelTab::Videos);
+    }
+
+    #[test]
+    fn resolve_channel_tab_shorts() {
+        assert_eq!(resolve_channel_tab("shorts").unwrap(), kp::ChannelTab::Shorts);
+    }
+
+    #[test]
+    fn resolve_channel_tab_rejects_unknown_value() {
+        let err = resolve_channel_tab("live").unwrap_err();
+        assert!(
+            err.to_string().contains("live"),
+            "error should name the invalid value, got: {err}"
+        );
+    }
+
+    #[test]
+    fn channel_link_task_json_carries_link_tag_and_url_marker() {
+        let json = build_channel_link_task_json(
+            "https://www.youtube.com/@example",
+            "https://www.youtube.com/watch?v=abc123",
+        );
+        assert_eq!(json["tags"], serde_json::json!(["link", "channel-backfill"]));
+        assert_eq!(json["type"], serde_json::json!("task"));
+        // extract_capture_url (drain-links' own parser, tested above) must
+        // round-trip the context this produces — the two functions share
+        // the "URL: {url}" contract without either importing the other.
+        assert_eq!(
+            extract_capture_url(json["context"].as_str().unwrap()),
+            Some("https://www.youtube.com/watch?v=abc123".to_string())
+        );
+    }
+
+    #[test]
+    fn channel_link_task_json_subject_names_the_source_channel() {
+        let json = build_channel_link_task_json(
+            "https://www.youtube.com/@example",
+            "https://www.youtube.com/watch?v=abc123",
+        );
+        let subject = json["subject"].as_str().unwrap();
+        assert!(subject.contains("https://www.youtube.com/@example"));
     }
 }
 

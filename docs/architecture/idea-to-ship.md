@@ -2,7 +2,7 @@
 
 > Companion to [Skills Architecture](skills.md) (the parts) and the [6 Jobs table](../../.claude/CLAUDE.md#the-6-jobs) (the ingredients, unordered). This is the walk.
 
-You don't remember all 40 skills, so here's the route. Most work travels one **main flow**; two **on-ramps** merge onto it. Codebase upkeep runs alongside it, not on it. Everything else is **standalone**, or a **vocabulary layer** underneath. Structure mirrors [mattpocock/skills](https://github.com/mattpocock/skills)' `ask-matt` — see [t-2830 research](../research/2026-08-13-matt-pocock-skill-system.md) §1, §4 P1 for the source comparison and why this doc adapts rather than imports it (§7: ADAPT, not DEPEND).
+You don't remember all 41 skills, so here's the route. Most work travels one **main flow**; two **on-ramps** merge onto it. Codebase upkeep runs alongside it, not on it. Everything else is **standalone**, or a **vocabulary layer** underneath. Structure mirrors [mattpocock/skills](https://github.com/mattpocock/skills)' `ask-matt` — see [t-2830 research](../research/2026-08-13-matt-pocock-skill-system.md) §1, §4 P1 for the source comparison and why this doc adapts rather than imports it (§7: ADAPT, not DEPEND).
 
 ## The main flow: idea → ship
 
@@ -14,7 +14,7 @@ You don't remember all 40 skills, so here's the route. Most work travels one **m
 
    Either way, `/brana:build`'s BUILD loop drives red-green-refactor per [sdd-tdd.md](../../system/rules/sdd-tdd.md), then runs whichever of its verification gates apply to the build's size and strategy (ISC, BUILD→CLOSE, Four Questions, evaluator, challenger — see [phases/verify-gates.md](../../system/skills/build/phases/verify-gates.md); most are size- or AC-gated, not unconditional), plus `/brana:docs` before CLOSE. Brana ships no standalone `/tdd` or `/code-review` skill of its own the way Pocock's flow has one — that discipline is folded into `/brana:build`'s BUILD and gates steps, not separately invocable (Claude Code's own built-in `/code-review` command is a different, harness-level thing).
 
-   CLOSE merges to `dev` — the integration buffer, not live (ADR-060). **Shipping** — `dev`→`main` promotion plus deploy — is a separate, human-gated, periodic step: CLOSE's own step 14, or **[`/brana:ship`](../../system/skills/ship/SKILL.md)** for the richer pre-flight/verify path. That's the "ship" this doc's title promises; it's deliberately decoupled from any one build.
+   CLOSE merges to `dev` — the integration buffer, not live (ADR-060). **Shipping** — `dev`→`main` promotion plus deploy — is a separate, human-gated, periodic step — not part of CLOSE: **[`/brana:ship`](../../system/skills/ship/SKILL.md)** for the richer pre-flight/verify path. That's the "ship" this doc's title promises; it's deliberately decoupled from any one build.
 
 ### Context hygiene
 

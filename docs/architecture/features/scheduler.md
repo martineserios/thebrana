@@ -433,6 +433,21 @@ under `system/cli/rust` on `origin/main` newer than the shipped commit
 (drift). An unreachable hub is a clean skip, so the laptop being off or the
 VM being down never false-alarms.
 
+## Split jobs draining one backlog tag (t-2956, 2026-08-18)
+
+Two independent jobs can legitimately drain the same backlog tag by
+disjoint filters — not a new mechanism, just an operational fact worth
+recording once it happens. `link-research-extraction` and
+`link-research-extraction-youtube` (`scheduler.template.json`) both select
+from `tag:"link", status:"pending"`, split by
+`classify_platform(url) == "youtube"`: the youtube job takes only youtube
+URLs, the shared job excludes them. This keeps a stuck or retrying youtube
+fetch from starving the other platforms' slots in the shared job's cap
+(ADR-070 §Amendment, `docs/architecture/features/youtube-knowledge-extraction.md`
+§5). Both jobs must stay pointed at the same `project` (`~/enter_thebrana/personal`
+— the link-capture backlog, not `thebrana`'s) or one of them drains against
+the wrong tasks.json.
+
 ## Open questions
 
 None remaining. All critical questions resolved.

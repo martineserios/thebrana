@@ -228,8 +228,11 @@ fi
 # ── Test 11: Context file survives after hook completes (not in trap cleanup) ──
 echo ""
 echo "Test 11: context file survives trap"
-TMPDIR_CHECK="/tmp/brana-ss-${SESSION_ID}"
-if [ ! -d "$TMPDIR_CHECK" ] && [ -f "$CONTEXT_FILE" ]; then
+# TMPDIR_SS is suffixed with the hook's own $$ (t-2969) — glob for it rather
+# than the old exact "${SESSION_ID}" path, which the hook no longer creates
+# and would otherwise make the "temp dir cleaned" branch below dead code.
+TMPDIR_CHECK=$(compgen -G "/tmp/brana-ss-${SESSION_ID}-*" 2>/dev/null | head -1) || TMPDIR_CHECK=""
+if [ -z "$TMPDIR_CHECK" ] && [ -f "$CONTEXT_FILE" ]; then
     PASS=$((PASS + 1))
     echo "  PASS: temp dir cleaned, context file survived"
 elif [ -f "$CONTEXT_FILE" ]; then
