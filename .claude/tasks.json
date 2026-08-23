@@ -79868,7 +79868,7 @@
     {
       "id": "t-3032",
       "subject": "Reconcile consistency run 2026-08-23 (spec↔impl drift)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -79885,7 +79885,7 @@
       "blocked_by": [],
       "branch": "spec-maintenance/chore/t-3032-reconcile-consistency",
       "context": null,
-      "notes": "CON-1: clean — ARCHITECTURE.md:103 \"Haiku (9 agents), Sonnet (4)\" matches actual 9/4 (13 agents); other grep hits are scoped phase counts or historical. Actual: 41 skills, 50 hooks, 32 rules, 13 agents. CON-2: ADR-082 lacks YAML status on dev; fix already exists on brana-v3-redesign/design/t-2490 branch (commit 50a272dc, unmerged) — not re-fixed here, lands with t-2490 merge. Note: skill's 0c branch template `chore/reconcile-YYYYMMDD` is rejected by branch-name-guard (needs epic/type/t-NNN) — filed this task to comply; skill doc needs updating (finding).",
+      "notes": "CON-1: clean — ARCHITECTURE.md:103 \"Haiku (9 agents), Sonnet (4)\" matches actual 9/4 (13 agents); other grep hits are scoped phase counts or historical. Actual: 41 skills, 50 hooks, 32 rules, 13 agents. CON-2: ADR-082 lacks YAML status on dev; fix already exists on brana-v3-redesign/design/t-2490 branch (commit 50a272dc, unmerged) — not re-fixed here, lands with t-2490 merge. Note: skill's 0c branch template `chore/reconcile-YYYYMMDD` is rejected by branch-name-guard (needs epic/type/t-NNN) — filed this task to comply; skill doc needs updating (finding).\n\nRUN 2026-08-23: 16 findings (hooks 5 collapsed from 12, rules/CLAUDE.md 4, skills 3, process/validate 4). Applied 14 in 6 commits on spec-maintenance/chore/t-3032-reconcile-consistency: hooks.md/ARCHITECTURE.md/cc-hook-leverage.md retire the resolved PostToolUse settings.json split (t-235); spec-gate described as advisory + PILOT DECISION recorded in sdd-spec-gate.md (stay advisory, no date; hardening = t-3023 tier-2); CLAUDE.md dedupe; rule count dropped; rules README cap 22528; build --fix / CLOSE step-14 phantom refs fixed; backlog argument-hint gains execute; validate.sh Check 27 matcher narrowed to *mcp*.sh (red→green + must-fire check); reconcile consistency.md branch template now branch-name-guard compliant + hook single-source note; reference docs regenerated (Check 29). DEFERRED (human): V2 merge t-2969 → dev (completed, merge-ready, 2 commits; causes Check 68 orphan + Check 70 flaky hybrid-recall). NOT fixed: ADR-082 status frontmatter (already on t-2490 branch).\n\nVERIFIED: full validate.sh rerun on branch — Errors 4→1 (remaining: Check 68 t-2969 orphan worktree, needs the t-2969 merge), Warnings 254 unchanged (pre-existing count-drift/AskUserQuestion candidates). Branch ready to merge --no-ff into dev.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -79896,7 +79896,7 @@
     {
       "id": "t-3033",
       "subject": "youtube caption fetch tier has no cookie/auth support — blocked by YouTube bot-check",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -79910,18 +79910,20 @@
       "priority": "P2",
       "parent": "t-2348",
       "created": "2026-08-23",
-      "started": null,
+      "started": "2026-08-23",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
-      "context": "Fix direction (not fully designed): add a --cookies-from-browser <browser> (and/or --cookies <path>) option, threaded from the CLI command down into build_yt_dlp_caption_args, defaulting to none (today's fixed-argv behavior) for backward compatibility.\n\nOpen design questions:\n(a) per-invocation flag vs persisted config — a channel subscription auto-drain (t-2995's auto-follow gap) wouldn't have a human passing flags each time\n(b) security/portability implications of reading a browser's cookie DB from an automated pipeline\n(c) whether to support --cookies <file> as an alternative that doesn't need live browser access (more scriptable/CI-friendly, e.g. exported via yt-dlp's own cookie export)\n\nTDD per project convention — build_yt_dlp_caption_args is already noted as \"pure — no I/O, no subprocess — so fixture-testable\" (t-2950), so the new flag's argv construction should stay in that same pure/testable shape.",
+      "branch": "knowledge-pipeline/feat/t-3033-yt-dlp-cookie-auth",
+      "context": "Fix direction (not fully designed): add a --cookies-from-browser <browser> (and/or --cookies <path>) option, threaded from the CLI command down into build_yt_dlp_caption_args, defaulting to none (today's fixed-argv behavior) for backward compatibility.\n\nOpen design questions:\n(a) per-invocation flag vs persisted config — a channel subscription auto-drain (t-2995's auto-follow gap) wouldn't have a human passing flags each time\n(b) security/portability implications of reading a browser's cookie DB from an automated pipeline\n(c) whether to support --cookies <file> as an alternative that doesn't need live browser access (more scriptable/CI-friendly, e.g. exported via yt-dlp's own cookie export)\n\nTDD per project convention — build_yt_dlp_caption_args is already noted as \"pure — no I/O, no subprocess — so fixture-testable\" (t-2950), so the new flag's argv construction should stay in that same pure/testable shape.\n2026-08-23: scope decided — both --cookies-from-browser <browser> and --cookies <file> flags on drain-links + channel-backfill, CLI-only, no persisted config (auto-drain config deferred to t-2995 follow-up).",
       "notes": null,
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature",
+      "build_step": "specify"
     }
   ],
   "version": 3,
