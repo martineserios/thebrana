@@ -68,7 +68,7 @@ at the exact moment the feature exists to make trustworthy (challenger finding,
 score 4).
 
 **Heuristics 7/9/10 execute subprocess commands — this is acting, not just reading, and
-must be labeled as such.** The gauge law ("never acts," [wave-pipeline.md](../../ideas/drained/wave-pipeline.md)
+must be labeled as such.** The gauge law ("never acts," [the-brana.md §Scale](../the-brana.md) — originally wave-pipeline.md, superseded 2026-08-23
 §skeleton match) is scoped to *task-field* writes in the feature spec's Constraints —
 running `cargo test`/`validate.sh`/a `demoable:` command as a grading side effect is a
 real action with real side effects (processes spawned, possibly files touched by the
