@@ -3565,6 +3565,120 @@ mod tests {
         unsafe { geteuid() }
     }
 
+    // ── resolve_yt_dlp_cookies_with — persisted default jar (t-3038, spec §8) ──
+
+    fn default_jar_in(dir: &std::path::Path, mode: u32) -> PathBuf {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        let jar = dir.join("yt-cookies.txt");
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(mode)
+            .open(&jar)
+            .unwrap();
+        std::io::Write::write_all(&mut f, b"# Netscape HTTP Cookie File\n").unwrap();
+        jar
+    }
+
+    #[test]
+    fn default_jar_absent_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join("yt-cookies.txt");
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&missing)).unwrap(),
+            kp::YtDlpCookies::None
+        );
+    }
+
+    #[test]
+    fn default_jar_no_default_is_none() {
+        assert_eq!(resolve_yt_dlp_cookies_with(None, None, None).unwrap(), kp::YtDlpCookies::None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_0600_is_used() {
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o600);
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap(),
+            kp::YtDlpCookies::File(jar.canonicalize().unwrap())
+        );
+    }
+
+    // Spec §8: an implicitly picked-up jar must be private — refuse, don't warn.
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_group_or_other_bits_errs_naming_chmod() {
+        for mode in [0o644, 0o640, 0o604, 0o660] {
+            let dir = tempfile::tempdir().unwrap();
+            let jar = default_jar_in(dir.path(), mode);
+            let err = resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap_err().to_string();
+            assert!(err.contains("chmod 600"), "mode {mode:o}: {err}");
+            assert!(err.contains(&jar.display().to_string()), "mode {mode:o}: {err}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_owner_only_stricter_modes_are_accepted() {
+        // 0400 is stricter than 0600 and still owner-only: accepted.
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o400);
+        assert!(matches!(
+            resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap(),
+            kp::YtDlpCookies::File(_)
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn explicit_flags_win_over_present_default_jar() {
+        let dir = tempfile::tempdir().unwrap();
+        let default = default_jar_in(dir.path(), 0o600);
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(Some("firefox".into()), None, Some(&default)).unwrap(),
+            kp::YtDlpCookies::FromBrowser("firefox".into())
+        );
+        let explicit = dir.path().join("explicit.txt");
+        std::fs::write(&explicit, "x").unwrap();
+        assert_eq!(
+            resolve_yt_dlp_cookies_with(None, Some(explicit.clone()), Some(&default)).unwrap(),
+            kp::YtDlpCookies::File(explicit.canonicalize().unwrap())
+        );
+    }
+
+    // A loose default jar must not poison an explicit flag: the mode check
+    // is only for the implicit path.
+    #[cfg(unix)]
+    #[test]
+    fn loose_default_jar_does_not_affect_explicit_flags() {
+        let dir = tempfile::tempdir().unwrap();
+        let default = default_jar_in(dir.path(), 0o644);
+        assert!(resolve_yt_dlp_cookies_with(Some("chrome".into()), None, Some(&default)).is_ok());
+    }
+
+    // 0000 passes the "no group/other bits" check but is unreadable: the
+    // operator placed a file there, so fail loud rather than drain unauthenticated.
+    #[cfg(unix)]
+    #[test]
+    fn default_jar_unreadable_errs() {
+        if unsafe { libc_geteuid() } == 0 {
+            return; // root ignores mode bits
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let jar = default_jar_in(dir.path(), 0o000);
+        let err = resolve_yt_dlp_cookies_with(None, None, Some(&jar)).unwrap_err().to_string();
+        assert!(err.contains("yt-cookies.txt"), "{err}");
+    }
+
+    #[test]
+    fn default_yt_dlp_cookie_jar_is_under_config_brana() {
+        let p = default_yt_dlp_cookie_jar();
+        assert!(p.ends_with(".config/brana/yt-cookies.txt"), "{}", p.display());
+        assert!(p.is_absolute());
+    }
+
     #[test]
     fn resolve_channel_tab_videos() {
         assert_eq!(resolve_channel_tab("videos").unwrap(), kp::ChannelTab::Videos);
