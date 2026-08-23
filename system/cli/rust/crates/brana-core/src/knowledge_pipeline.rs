@@ -663,6 +663,13 @@ pub struct FetchedContent {
 /// in `brana-cli/src/commands/knowledge.rs` and its brana-core companion
 /// below).
 pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
+    fetch_url_content_with(url, &YtDlpCookies::None)
+}
+
+/// [`fetch_url_content`] with an explicit yt-dlp cookie/auth choice
+/// (t-3033, feature spec §7). Only the youtube tier reads `cookies`;
+/// every other platform ignores it. Same lock-free contract.
+pub fn fetch_url_content_with(url: &str, cookies: &YtDlpCookies) -> Result<Option<FetchedContent>> {
     // /safety/go wrappers unwrap BEFORE platform routing — the wrapped
     // target is often not LinkedIn at all (t-2589).
     let unwrapped = unwrap_linkedin_safety_url(url);
@@ -673,7 +680,7 @@ pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
             .map(|text| FetchedContent { text, platform, caption_source: None }));
     }
     if platform == "youtube" {
-        return Ok(fetch_youtube_content(url)?.map(|(text, source)| FetchedContent {
+        return Ok(fetch_youtube_content(url, cookies)?.map(|(text, source)| FetchedContent {
             text,
             platform,
             caption_source: Some(source),
@@ -1738,8 +1745,14 @@ const YT_DLP_CAPTION_BASENAME: &str = "video";
 /// ground truth (Challenger finding, t-2950 iteration 1) — exactly the
 /// class of bug ("fetch appears to succeed, content never lands") this
 /// whole feature exists to fix, arriving through a different mechanism.
-fn build_yt_dlp_caption_args(url: &str) -> Vec<String> {
-    vec![
+///
+/// Cookie/auth passthrough (t-3033, feature spec §7): `cookies` args are
+/// inserted **before** the `--` separator so the URL stays the sole
+/// positional after it — the injection guard above is unchanged.
+/// `YtDlpCookies::None` yields the pre-t-3033 argv byte-for-byte
+/// (regression-pinned in this file's tests).
+fn build_yt_dlp_caption_args(url: &str, cookies: &YtDlpCookies) -> Vec<String> {
+    let mut args = vec![
         "--dump-json".to_string(),
         "--no-simulate".to_string(),
         "--skip-download".to_string(),
@@ -1753,9 +1766,74 @@ fn build_yt_dlp_caption_args(url: &str) -> Vec<String> {
         "30".to_string(),
         "-o".to_string(),
         format!("{YT_DLP_CAPTION_BASENAME}.%(ext)s"),
-        "--".to_string(),
-        url.to_string(),
-    ]
+    ];
+    args.extend(cookies.to_args());
+    args.push("--".to_string());
+    args.push(url.to_string());
+    args
+}
+
+/// How yt-dlp authenticates to YouTube (t-3033, feature spec §7).
+/// YouTube's bot-check ("Sign in to confirm you're not a bot", live
+/// 2026-08-23) blocks unauthenticated caption fetches even on a current
+/// yt-dlp with a JS runtime; an authenticated session is what works.
+///
+/// `None` is today's behaviour and the default everywhere. The browser
+/// value is passed verbatim — yt-dlp owns `browser[+keyring][:profile]`
+/// parsing. A `File` path must already be absolute and UTF-8 (the CLI
+/// resolver in `brana-cli` guarantees both before constructing it).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum YtDlpCookies {
+    #[default]
+    None,
+    /// `--cookies-from-browser <browser[+keyring][:profile]>`
+    FromBrowser(String),
+    /// `--cookies <path>` — a Netscape-format cookie jar.
+    File(PathBuf),
+}
+
+impl YtDlpCookies {
+    /// The yt-dlp flag pair for this value — the whole of the flag
+    /// knowledge lives here. Pure.
+    pub fn to_args(&self) -> Vec<String> {
+        match self {
+            YtDlpCookies::None => Vec::new(),
+            YtDlpCookies::FromBrowser(b) => vec!["--cookies-from-browser".to_string(), b.clone()],
+            YtDlpCookies::File(p) => {
+                vec!["--cookies".to_string(), p.to_string_lossy().into_owned()]
+            }
+        }
+    }
+}
+
+/// Basename of the staged cookie-jar copy inside a yt-dlp work dir.
+const YT_DLP_STAGED_JAR: &str = "cookies.txt";
+
+/// Stage `cookies` for one yt-dlp invocation in `work_dir`. yt-dlp's
+/// `--cookies FILE` both reads *and rewrites* the jar on exit, so handing
+/// it the operator's exported file would (a) race between overlapping
+/// lock-free runs (`fetch_url_content` holds no lock — ADR-070 §Lock
+/// discipline) and (b) let the kill-timeout in [`run_yt_dlp_captions`]
+/// SIGKILL yt-dlp mid-write and truncate a credential. So a `File` jar is
+/// copied to `{work_dir}/cookies.txt` (0600 on unix) and the copy — which
+/// dies with the [`ScopedYtDlpWorkDir`] guard — is what yt-dlp sees.
+/// `None`/`FromBrowser` pass through untouched; nothing is written.
+fn stage_cookie_jar(cookies: &YtDlpCookies, work_dir: &std::path::Path) -> Result<YtDlpCookies> {
+    let YtDlpCookies::File(src) = cookies else {
+        return Ok(cookies.clone());
+    };
+    let dst = work_dir.join(YT_DLP_STAGED_JAR);
+    let bytes = std::fs::read(src)
+        .with_context(|| format!("reading cookie jar {}", src.display()))?;
+    std::fs::write(&dst, bytes)
+        .with_context(|| format!("staging cookie jar at {}", dst.display()))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::set_permissions(&dst, std::fs::Permissions::from_mode(0o600))
+            .with_context(|| format!("restricting staged cookie jar {}", dst.display()))?;
+    }
+    Ok(YtDlpCookies::File(dst))
 }
 
 /// Resolve the `yt-dlp` binary via `PATH`. Unlike `linkedin-scraper-mcp`
@@ -1826,11 +1904,13 @@ const YT_DLP_TIMEOUT_SECS: u64 = 60;
 fn run_yt_dlp_captions(
     binary: &std::path::Path,
     url: &str,
+    cookies: &YtDlpCookies,
     work_dir: &std::path::Path,
 ) -> Result<(std::process::ExitStatus, String, String)> {
+    let staged = stage_cookie_jar(cookies, work_dir)?;
     let mut child = std::process::Command::new(binary)
         .current_dir(work_dir)
-        .args(build_yt_dlp_caption_args(url))
+        .args(build_yt_dlp_caption_args(url, &staged))
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
@@ -1907,9 +1987,10 @@ fn determine_youtube_caption_source(info: &serde_json::Value) -> Option<YoutubeC
 fn fetch_youtube_content_attempt(
     binary: &std::path::Path,
     url: &str,
+    cookies: &YtDlpCookies,
 ) -> Result<Option<(String, YoutubeCaptionSource)>> {
     let work_dir = ScopedYtDlpWorkDir::create()?;
-    let (status, stdout, stderr) = run_yt_dlp_captions(binary, url, &work_dir.path)?;
+    let (status, stdout, stderr) = run_yt_dlp_captions(binary, url, cookies, &work_dir.path)?;
 
     if !status.success() {
         bail!("{}", subprocess_diagnostic(&format!("yt-dlp exited with {status}"), &stdout, &stderr));
@@ -1952,11 +2033,14 @@ fn fetch_youtube_content_attempt(
 /// (dedup, manual/auto precedence, no-captions contract) lives in
 /// [`resolve_youtube_captions`], and the argv construction is covered by
 /// [`build_yt_dlp_caption_args`]'s own tests.
-pub fn fetch_youtube_content(url: &str) -> Result<Option<(String, YoutubeCaptionSource)>> {
+pub fn fetch_youtube_content(
+    url: &str,
+    cookies: &YtDlpCookies,
+) -> Result<Option<(String, YoutubeCaptionSource)>> {
     let binary = resolve_yt_dlp_binary()
         .ok_or_else(|| anyhow::anyhow!("yt-dlp not found on PATH — install it to fetch youtube captions"))?;
     run_with_youtube_backoff(|_attempt| {
-        fetch_youtube_content_attempt(&binary, url).map_err(|e| e.to_string())
+        fetch_youtube_content_attempt(&binary, url, cookies).map_err(|e| e.to_string())
     })
     .map_err(|e| anyhow::anyhow!(e))
 }
