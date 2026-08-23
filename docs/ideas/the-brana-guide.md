@@ -216,7 +216,7 @@ efficiency, legibility, speed, scalability) before locking. Full matrix, scores,
 ---
 
 ## L5 · Components — the doc map ✅ (2026-08-23)
-Concept-level (Appendix A stays per-file). **One owner per concept** — operator direction 2026-08-18. `the-brana.md` today has only §Cover · §Three chapters · §Space · §Vocabulary · §Reading map — **§Cycle and §Gate are not yet landed** from L3/L4; rows marked *to land* point there.
+Concept-level (Appendix A stays per-file). **One owner per concept** — operator direction 2026-08-18. `the-brana.md` §Cycle · §Gate · §Components landed 2026-08-23 (t-3026) from L3/L4/L5; the page's §Components is the canonical copy of this table.
 
 | concept | owner (single) | status | ch. |
 |---|---|---|---|
@@ -228,23 +228,23 @@ Concept-level (Appendix A stays per-file). **One owner per concept** — operato
 | Vendored Pocock organs | ADR-084 (Accepted-pilot, WT t-2837) | land after guide | Space |
 | Context economy as compactification | `the-brana.md` §Space (L2.5) + `context-budget.md` (t-3014) | landed | Space |
 | Loop contract (7 laws, beat, ASSIMILATE/RESTART) | `features/loops-library.md` | shipped | Cycle |
-| Workflow-vs-loop rule | `the-brana.md` §Cycle | **to land** | Cycle |
+| Workflow-vs-loop rule | `the-brana.md` §Cycle | landed (t-3026) | Cycle |
 | Wave mechanics (graph, gate, drain, pull, leases) | ADR-079 + ADR-080; spec `plan-time-wave-graph.md` | shipped; L3.3 amend pending | Cycle |
 | Wave = human unit / task = agent unit | ADR-085→086 (t-2980, renumber D2) | hold | Cycle |
 | Beat record = markdown doc | `features/loops-library.md` + t-3008 | decided | Cycle |
 | Readiness state (cross-skill "next for whom") | **no owner yet** — resolves with t-2834; intended home: backlog-v3-schema.md + ADR amendment | gated | Cycle |
-| Two-bucket backlog lens + usage-lens correction | `the-brana.md` §Cycle + memory `feedback_backlog-field-usage-vs-feed-mechanism` | **to land** | Cycle |
+| Two-bucket backlog lens + usage-lens correction | `the-brana.md` §Cycle + memory `feedback_backlog-field-usage-vs-feed-mechanism` | landed (t-3026) | Cycle |
 | Pocock alignment verdicts | `research/2026-08-22-pocock-alignment-decision-matrix.md` | landed | Cycle/Gate |
 | Two rooms + hands store (`room`) | ADR-063 (amend) ; build t-3021 | decided | Gate |
 | `ask()` compile table | runner-layer prose — **owner to create:** `system/loops/README.md` §ask (t-3021) | decided | Gate |
 | Judge ladder | ADR-082 + `_shared/judge-sizing.md` | shipped | Gate |
-| Valve inventory + three tiers; GitHub at tier 2 | `the-brana.md` §Gate; t-3022, t-3023 | **to land** | Gate |
+| Valve inventory + three tiers; GitHub at tier 2 | `the-brana.md` §Gate; t-3022, t-3023 | landed (t-3026) | Gate |
 | Sandbox / capability isolation | ADR-062 + `runner-capability-isolation.md` | shipped | Gate |
 | Autonomy ladder / shape graduation | `brana-v3-redesign.md` + ADR-068 §3 | governing | Gate |
 | Orbit satellite · model/effort routing | ⏸ none (L4.5 / L4.6) | parked | Gate |
 | Vocabulary | `the-brana.md` §Vocabulary | landed | all |
 
-**Gaps the map exposes → L6 inputs (not decisions):** (1) `the-brana.md` needs §Cycle + §Gate written from guide L3/L4 — the largest tidy item; (2) two concepts have no owner by design (readiness state, `ask()` prose), both gated — intended homes recorded above so they aren't invented twice; (3) `drained/wave-pipeline.md` owns nothing after this map → D3 absorb + redirect stub is safe to execute.
+**Gaps the map exposes → L6 inputs (not decisions):** (1) ✅ `the-brana.md` §Cycle + §Gate written from guide L3/L4 (t-3026, 2026-08-23); (2) two concepts have no owner by design (readiness state, `ask()` prose), both gated — intended homes recorded above so they aren't invented twice; (3) `drained/wave-pipeline.md` owns nothing after this map → D3 absorb + redirect stub is safe to execute.
 
 ## L6 · Hygiene — the tidy tasks ✅ (filed 2026-08-23, epic t-2337)
 **t-3026 A** land `the-brana.md` §Cycle + §Gate + §Components (M) · **t-3027 B** cluster hygiene per board §2–3 · **t-3028 C** wave-pipeline absorb + redirect stub + tag sweep (D3) · **t-3029 D** memory tidy per §4 · **t-3030 E** ADR housekeeping (086 renumber D2 · ADR-069 amend · ADR-079 §2 blocked_by-in-frontier L3.3 · ADR-063 `room` L4.1) · **t-3031 F** README coverage sweep (D5). B/C/E blocked_by A; D/F independent. ADR-068 already accepted 2026-08-19 (D1 done). Sequence: A → C+B → E → un-hold t-2490 (premortem → operator runs `/brana:challenge --deep` on ADR-085 → land → close against 5 ACs).

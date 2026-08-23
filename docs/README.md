@@ -81,6 +81,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 |------|----------|
 | [overview.md](architecture/overview.md) | System architecture overview |
 | [skills.md](architecture/skills.md) | Skills architecture -- 8 groups, design-level overview |
+| [the-brana.md](architecture/the-brana.md) | **The Brana** — front-door index: cover, Space / Cycle / Gate chapters (decided lines + refs), vocabulary, component→owner map. Supersedes the-orbit.md |
 | [idea-to-ship.md](architecture/idea-to-ship.md) | The walkable idea → ship narrative -- main flow, on-ramps, standalone skills, vocabulary layer |
 | [hooks.md](architecture/hooks.md) | Hooks architecture -- plugin/bootstrap split, design principles |
 | [agents.md](architecture/agents.md) | Agents architecture -- groups, routing, hook triggers |
