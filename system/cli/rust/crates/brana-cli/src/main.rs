@@ -252,21 +252,31 @@ fn main() {
             KnowledgeCmd::Ingest { sources, source, dry_run } => {
                 run_or_exit(commands::knowledge::cmd_ingest(sources, source, dry_run))
             }
-            KnowledgeCmd::DrainLinks { file, cap, dry_run, platform } => {
-                run_or_exit(commands::knowledge::cmd_drain_links(file, cap, dry_run, platform.as_deref()))
+            KnowledgeCmd::DrainLinks { file, cap, dry_run, platform, cookies_from_browser, cookies } => {
+                run_or_exit(
+                    commands::knowledge::resolve_yt_dlp_cookies(cookies_from_browser, cookies).and_then(|ck| {
+                        commands::knowledge::cmd_drain_links(file, cap, dry_run, platform.as_deref(), &ck)
+                    }),
+                )
             }
-            KnowledgeCmd::ProcessUrl { url, file } => match (url, file) {
-                (_, Some(path)) => {
-                    run_or_exit(commands::knowledge::cmd_process_url_batch(&path))
-                }
-                (Some(u), None) => run_or_exit(commands::knowledge::cmd_process_url(&u)),
-                // clap's required_unless_present guarantees this is unreachable.
-                (None, None) => run_or_exit(Err(anyhow::anyhow!(
-                    "provide a URL or --file <jsonl>"
-                ))),
-            },
-            KnowledgeCmd::ChannelBackfill { channel_url, tab, max, dry_run } => {
-                run_or_exit(commands::knowledge::cmd_channel_backfill(&channel_url, &tab, max, dry_run))
+            KnowledgeCmd::ProcessUrl { url, file, cookies_from_browser, cookies } => {
+                run_or_exit(
+                    commands::knowledge::resolve_yt_dlp_cookies(cookies_from_browser, cookies).and_then(|ck| {
+                        match (url, file) {
+                            (_, Some(path)) => commands::knowledge::cmd_process_url_batch(&path, &ck),
+                            (Some(u), None) => commands::knowledge::cmd_process_url(&u, &ck),
+                            // clap's required_unless_present guarantees this is unreachable.
+                            (None, None) => Err(anyhow::anyhow!("provide a URL or --file <jsonl>")),
+                        }
+                    }),
+                )
+            }
+            KnowledgeCmd::ChannelBackfill { channel_url, tab, max, dry_run, cookies_from_browser, cookies } => {
+                run_or_exit(
+                    commands::knowledge::resolve_yt_dlp_cookies(cookies_from_browser, cookies).and_then(|ck| {
+                        commands::knowledge::cmd_channel_backfill(&channel_url, &tab, max, dry_run, &ck)
+                    }),
+                )
             }
             KnowledgeCmd::Next => run_or_exit(commands::knowledge::cmd_next()),
             KnowledgeCmd::Run => run_or_exit(commands::knowledge::cmd_run()),

@@ -248,7 +248,7 @@ fn should_complete_link(outcome: &ProcessUrlOutcome) -> bool {
 ///
 /// Advisory only: this never calls `backlog set` (spec §Assumptions) — the
 /// operator decides what to cancel.
-pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
+pub fn cmd_process_url_batch(path: &std::path::Path, cookies: &kp::YtDlpCookies) -> Result<()> {
     let body = std::fs::read_to_string(path)
         .with_context(|| format!("reading batch file {}", path.display()))?;
     let entries = parse_batch_file(&body)?;
@@ -257,7 +257,7 @@ pub fn cmd_process_url_batch(path: &std::path::Path) -> Result<()> {
     let mut failures = 0usize;
 
     for entry in &entries {
-        match process_one_url(&entry.url) {
+        match process_one_url(&entry.url, cookies) {
             Ok(outcome) => {
                 if is_cancellable(&outcome) {
                     cancellable.push(entry.id.clone());
@@ -322,6 +322,7 @@ pub fn cmd_drain_links(
     cap: usize,
     dry_run: bool,
     platform: Option<&str>,
+    cookies: &kp::YtDlpCookies,
 ) -> Result<()> {
     let tf = match file {
         Some(f) => f,
@@ -398,7 +399,7 @@ pub fn cmd_drain_links(
     let mut failures = 0usize;
     for c in &candidates {
         println!("\ndraining {}: {}", c.id, c.url);
-        match process_one_url(&c.url) {
+        match process_one_url(&c.url, cookies) {
             Ok(outcome) => {
                 if should_complete_link(&outcome) {
                     completable.push(c.id.clone());
@@ -457,14 +458,44 @@ pub fn cmd_drain_links(
 ///
 /// Never acquires the pipeline lock — this command's storage is independent
 /// of the tier1/2/3 pipeline (ADR-070 §Lock discipline).
-pub fn cmd_process_url(url: &str) -> Result<()> {
-    process_one_url(url).map(|_| ())
+pub fn cmd_process_url(url: &str, cookies: &kp::YtDlpCookies) -> Result<()> {
+    process_one_url(url, cookies).map(|_| ())
+}
+
+/// Map the `--cookies-from-browser` / `--cookies` flags to
+/// [`kp::YtDlpCookies`] (t-3033, feature spec §7) — the single place the
+/// CLI surface meets the core type. Fails early, before any yt-dlp call,
+/// with an error naming the path when a `--cookies` file is missing,
+/// unreadable by this process (cron user ≠ exporting user), or not UTF-8.
+/// The path is canonicalized because the yt-dlp child runs with
+/// `current_dir(<scratch work dir>)`, where a relative path would resolve
+/// against the wrong directory. clap makes the two flags mutually
+/// exclusive; both `None` is today's unauthenticated default.
+pub fn resolve_yt_dlp_cookies(
+    from_browser: Option<String>,
+    file: Option<PathBuf>,
+) -> Result<kp::YtDlpCookies> {
+    match (from_browser, file) {
+        (None, None) => Ok(kp::YtDlpCookies::None),
+        (Some(browser), None) => Ok(kp::YtDlpCookies::FromBrowser(browser)),
+        (_, Some(path)) => {
+            let abs = path
+                .canonicalize()
+                .with_context(|| format!("--cookies {}: file not found", path.display()))?;
+            std::fs::File::open(&abs)
+                .with_context(|| format!("--cookies {}: not readable by this process", abs.display()))?;
+            if abs.to_str().is_none() {
+                bail!("--cookies {}: path is not valid UTF-8", abs.display());
+            }
+            Ok(kp::YtDlpCookies::File(abs))
+        }
+    }
 }
 
 /// Process a single URL and report which branch it took. Shared by the
 /// single-URL command and the batch loop, so batch mode cannot drift from
 /// the semantics the single-URL tests pin down.
-fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
+fn process_one_url(url: &str, cookies: &kp::YtDlpCookies) -> Result<ProcessUrlOutcome> {
     let key = url_storage_key(url);
 
     let existing = ruflo_memory_get(&key, PROCESS_URL_NAMESPACE)
@@ -473,7 +504,7 @@ fn process_one_url(url: &str) -> Result<ProcessUrlOutcome> {
     // Only fetch when the idempotency probe came back empty.
     let fetched = match existing {
         Some(_) => None,
-        None => kp::fetch_url_content(url).with_context(|| format!("fetching {url}"))?,
+        None => kp::fetch_url_content_with(url, cookies).with_context(|| format!("fetching {url}"))?,
     };
 
     let outcome = resolve_process_url_outcome(existing.is_some(), fetched.as_ref());
@@ -2063,10 +2094,16 @@ fn build_channel_link_task_json(channel_url: &str, video_url: &str) -> serde_jso
 /// The `--max` flag's own default (50) is the sanity cap the feature spec
 /// §3 calls for — mapped directly to `ChannelSelection::Range { end }`, so
 /// a caller who wants more must say so explicitly via `--max`.
-pub fn cmd_channel_backfill(channel_url: &str, tab: &str, max: u32, dry_run: bool) -> Result<()> {
+pub fn cmd_channel_backfill(
+    channel_url: &str,
+    tab: &str,
+    max: u32,
+    dry_run: bool,
+    cookies: &kp::YtDlpCookies,
+) -> Result<()> {
     let channel_tab = resolve_channel_tab(tab)?;
     let selection = kp::ChannelSelection::Range { start: None, end: Some(max) };
-    let urls = kp::fetch_youtube_channel_videos(channel_url, channel_tab, selection)
+    let urls = kp::fetch_youtube_channel_videos(channel_url, channel_tab, selection, cookies)
         .with_context(|| format!("enumerating channel {channel_url}"))?;
 
     if urls.is_empty() {

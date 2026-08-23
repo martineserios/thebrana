@@ -384,6 +384,18 @@ pub enum KnowledgeCmd {
         /// cancels anything itself.
         #[arg(long)]
         file: Option<PathBuf>,
+        /// Authenticate yt-dlp via a browser's live cookie store, e.g.
+        /// `chrome`, `firefox`, `chrome+gnomekeyring:Default` (yt-dlp
+        /// syntax, passed verbatim). YouTube's bot-check blocks
+        /// unauthenticated caption fetches (t-3033). Interactive path.
+        #[arg(long, value_name = "BROWSER", conflicts_with = "cookies")]
+        cookies_from_browser: Option<String>,
+        /// Authenticate yt-dlp via a Netscape-format cookie jar (export
+        /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
+        /// --skip-download <any url>`). The file is never modified —
+        /// brana stages a scratch copy per call. Scheduler-friendly path.
+        #[arg(long, value_name = "FILE")]
+        cookies: Option<PathBuf>,
     },
     /// Drain pending `link`-tagged backlog tasks through process-url,
     /// completing only those whose content reached the knowledge base.
@@ -409,6 +421,18 @@ pub enum KnowledgeCmd {
         /// slots. Omitted: the shared job, which excludes youtube.
         #[arg(long)]
         platform: Option<String>,
+        /// Authenticate yt-dlp via a browser's live cookie store, e.g.
+        /// `chrome`, `firefox`, `chrome+gnomekeyring:Default` (yt-dlp
+        /// syntax, passed verbatim). YouTube's bot-check blocks
+        /// unauthenticated caption fetches (t-3033). Interactive path.
+        #[arg(long, value_name = "BROWSER", conflicts_with = "cookies")]
+        cookies_from_browser: Option<String>,
+        /// Authenticate yt-dlp via a Netscape-format cookie jar (export
+        /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
+        /// --skip-download <any url>`). The file is never modified —
+        /// brana stages a scratch copy per call. Scheduler-friendly path.
+        #[arg(long, value_name = "FILE")]
+        cookies: Option<PathBuf>,
     },
     /// Show knowledge index status (entry count, last indexed)
     Status,
@@ -497,6 +521,18 @@ pub enum KnowledgeCmd {
         /// Print what would be queued without writing any tasks
         #[arg(long)]
         dry_run: bool,
+        /// Authenticate yt-dlp via a browser's live cookie store, e.g.
+        /// `chrome`, `firefox`, `chrome+gnomekeyring:Default` (yt-dlp
+        /// syntax, passed verbatim). YouTube's bot-check blocks
+        /// unauthenticated caption fetches (t-3033). Interactive path.
+        #[arg(long, value_name = "BROWSER", conflicts_with = "cookies")]
+        cookies_from_browser: Option<String>,
+        /// Authenticate yt-dlp via a Netscape-format cookie jar (export
+        /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
+        /// --skip-download <any url>`). The file is never modified —
+        /// brana stages a scratch copy per call. Scheduler-friendly path.
+        #[arg(long, value_name = "FILE")]
+        cookies: Option<PathBuf>,
     },
     /// Emit the single next pipeline command to run (state-aware, zero LLM calls)
     Next,
