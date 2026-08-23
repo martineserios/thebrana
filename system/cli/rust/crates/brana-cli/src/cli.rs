@@ -273,6 +273,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: ReceiptCmd,
     },
+    /// Active-effort time tracking, per-worktree serialized brackets (ADR-083)
+    Time {
+        #[command(subcommand)]
+        cmd: TimeCmd,
+    },
     /// Hybrid recall — FTS5 + ruflo parallel search, merged via RRF (ADR-058)
     Recall {
         /// Query string
@@ -379,6 +384,18 @@ pub enum KnowledgeCmd {
         /// cancels anything itself.
         #[arg(long)]
         file: Option<PathBuf>,
+        /// Authenticate yt-dlp via a browser's live cookie store, e.g.
+        /// `chrome`, `firefox`, `chrome+gnomekeyring:Default` (yt-dlp
+        /// syntax, passed verbatim). YouTube's bot-check blocks
+        /// unauthenticated caption fetches (t-3033). Interactive path.
+        #[arg(long, value_name = "BROWSER", conflicts_with = "cookies")]
+        cookies_from_browser: Option<String>,
+        /// Authenticate yt-dlp via a Netscape-format cookie jar (export
+        /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
+        /// --skip-download <any url>`). The file is never modified —
+        /// brana stages a scratch copy per call. Scheduler-friendly path.
+        #[arg(long, value_name = "FILE")]
+        cookies: Option<PathBuf>,
     },
     /// Drain pending `link`-tagged backlog tasks through process-url,
     /// completing only those whose content reached the knowledge base.
@@ -397,6 +414,25 @@ pub enum KnowledgeCmd {
         /// List what would be drained without fetching or writing.
         #[arg(long)]
         dry_run: bool,
+        /// Restrict the batch to one platform (feature spec §5, t-2956).
+        /// Only "youtube" is meaningful today — it runs as its own
+        /// scheduler job with its own cap, kept isolated from the shared
+        /// job so a stuck youtube fetch can't starve other platforms'
+        /// slots. Omitted: the shared job, which excludes youtube.
+        #[arg(long)]
+        platform: Option<String>,
+        /// Authenticate yt-dlp via a browser's live cookie store, e.g.
+        /// `chrome`, `firefox`, `chrome+gnomekeyring:Default` (yt-dlp
+        /// syntax, passed verbatim). YouTube's bot-check blocks
+        /// unauthenticated caption fetches (t-3033). Interactive path.
+        #[arg(long, value_name = "BROWSER", conflicts_with = "cookies")]
+        cookies_from_browser: Option<String>,
+        /// Authenticate yt-dlp via a Netscape-format cookie jar (export
+        /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
+        /// --skip-download <any url>`). The file is never modified —
+        /// brana stages a scratch copy per call. Scheduler-friendly path.
+        #[arg(long, value_name = "FILE")]
+        cookies: Option<PathBuf>,
     },
     /// Show knowledge index status (entry count, last indexed)
     Status,
@@ -467,6 +503,36 @@ pub enum KnowledgeCmd {
         /// Print planned actions without writing anything
         #[arg(long)]
         dry_run: bool,
+    },
+    /// Enumerate a YouTube channel tab and queue its videos as `link`-tagged
+    /// backlog tasks — each drains through the existing `drain-links`
+    /// path unchanged (docs/architecture/features/youtube-channel-ingestion.md).
+    ChannelBackfill {
+        /// Channel URL, e.g. https://www.youtube.com/@example
+        channel_url: String,
+        /// Which channel tab to enumerate
+        #[arg(long, default_value = "videos")]
+        tab: String,
+        /// Max videos to queue this run — position-range cap on the channel
+        /// listing. Sanity-capped by this flag's own default; pass a larger
+        /// value to override (feature spec §3 footgun note).
+        #[arg(long, default_value_t = 50)]
+        max: u32,
+        /// Print what would be queued without writing any tasks
+        #[arg(long)]
+        dry_run: bool,
+        /// Authenticate yt-dlp via a browser's live cookie store, e.g.
+        /// `chrome`, `firefox`, `chrome+gnomekeyring:Default` (yt-dlp
+        /// syntax, passed verbatim). YouTube's bot-check blocks
+        /// unauthenticated caption fetches (t-3033). Interactive path.
+        #[arg(long, value_name = "BROWSER", conflicts_with = "cookies")]
+        cookies_from_browser: Option<String>,
+        /// Authenticate yt-dlp via a Netscape-format cookie jar (export
+        /// once: `yt-dlp --cookies-from-browser chrome --cookies FILE
+        /// --skip-download <any url>`). The file is never modified —
+        /// brana stages a scratch copy per call. Scheduler-friendly path.
+        #[arg(long, value_name = "FILE")]
+        cookies: Option<PathBuf>,
     },
     /// Emit the single next pipeline command to run (state-aware, zero LLM calls)
     Next,
@@ -1657,5 +1723,25 @@ pub enum ReceiptCmd {
         /// Emit the verdict as JSON
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum TimeCmd {
+    /// Open a bracket for task_id — refuses if one is already open in this worktree
+    Start {
+        /// Task ID (e.g. t-2921)
+        task_id: String,
+    },
+    /// Close the open bracket for task_id: read the transcript, sum turn-deltas
+    /// (15-min idle cap), append a Close line, remove the worktree's open-bracket lock
+    Close {
+        /// Task ID (e.g. t-2921)
+        task_id: String,
+        /// Mark this bracket's duration as partial coverage — set when the session
+        /// delegated meaningful work to subagents/forks whose own time isn't summed
+        /// into this bracket (ADR-083; fan-out time is v1-excluded, not estimated)
+        #[arg(long)]
+        partial: bool,
     },
 }

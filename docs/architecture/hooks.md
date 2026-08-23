@@ -41,8 +41,8 @@ Both files accept the same hook entry schema (`command` string, not `args` array
 | | `~/.claude/settings.json` | `system/hooks/hooks.json` (plugin) |
 |---|---|---|
 | **Variable expansion** | No `${CLAUDE_PLUGIN_ROOT}` — use absolute paths only | `${CLAUDE_PLUGIN_ROOT}` available |
-| **Reliable events** | PostToolUse, PostToolUseFailure, UserPromptSubmit | PreToolUse, SessionStart, SessionEnd (CC bug #24529 drops PostToolUse from plugins) |
-| **When to use** | Plugin disabled, or for events the plugin can't fire | Normal operation with plugin enabled |
+| **Events** | Any (user-level fallback) | All events, including PostToolUse/PostToolUseFailure (CC #24529 resolved — t-235, 2026-05-08) |
+| **When to use** | Plugin disabled only | Normal operation — brana registers **every** hook here |
 
 **Common mistake (E2026-05-17-2):** Using `"args": ["bash", "script.sh"]` in `settings.json` causes CC to reject the entry with a validation error. The user-level settings.json schema requires `"command": "bash script.sh"` (string). The `args[]` form was only valid in older plugin hooks.json versions and is now removed everywhere.
 
@@ -54,20 +54,13 @@ Both files accept the same hook entry schema (`command` string, not `args` array
 { "type": "command", "command": "bash \"/home/user/.claude/hooks/my-hook.sh\"" }
 ```
 
-## Plugin/bootstrap split (CC bug #24529)
+## Single source: plugin `hooks.json`
 
-CC v2.1.x silently drops PostToolUse and PostToolUseFailure events from plugin `hooks.json`. Only PreToolUse, SessionStart, and SessionEnd fire reliably from plugins.
-
-| Installed via | Events | File |
-|--------------|--------|------|
-| Plugin `hooks.json` | PreToolUse, SessionStart, SessionEnd | `system/hooks/hooks.json` |
-| Bootstrap `settings.json` | PostToolUse, PostToolUseFailure | `~/.claude/settings.json` |
-
-When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Workaround](posttooluse-workaround.md) for details.
+All brana hooks — every event, including PostToolUse and PostToolUseFailure — are registered in `system/hooks/hooks.json`. The earlier plugin/bootstrap split (CC bug #24529 dropped PostToolUse from plugins; bootstrap installed those into `~/.claude/settings.json`) was **resolved in t-235 (2026-05-08)**; `bootstrap.sh` Step 4b now only *removes* any leftover `.hooks` from `settings.json`. History: [PostToolUse Workaround (archived)](../archive/posttooluse-workaround.md).
 
 ## Shared library
 
-**`lib/cf-env.sh`** -- Locates the `ruflo` binary. Source it to get `$CF`. Search order: nvm global install, PATH lookup, npx fallback. Used by session-start, session-end, session-start-venture, and post-sale hooks.
+**`lib/cf-env.sh`** -- Locates the `ruflo` binary. Source it to get `$CF`. Search order: nvm global install, PATH lookup, npx fallback. Used by session-start, session-end, and post-sale hooks.
 
 **`lib/ruflo-mcp.sh`** -- MCP server wrapper script that resolves the ruflo binary dynamically at launch time instead of hardcoding paths. Includes a PID lock (prevents concurrent SQLite corruption) and auto-restart on SIGTERM (up to 5 retries, mitigates CC bug #40207 which kills healthy MCP servers mid-session). `brana-mcp` uses a direct binary path in `.mcp.json` — no wrapper needed.
 
@@ -121,7 +114,9 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `pre-compact.sh` | PreCompact | `""` (all) | Inject active task, branch, build step, and AC lines into the post-compaction context window so the resumed session retains full state. Also silently runs `close-snapshot.sh` (idempotent per project+HEAD via guard markers in `~/.claude/sessions/.precompact-guards/`; never blocks compaction — ADR-053 §5 Layer 2, t-1988). Test seams: `BRANA_SNAPSHOT_SCRIPT`, `BRANA_PRECOMPACT_GUARD_DIR` |
 | `config-change-guard.sh` | ConfigChange | `""` (all) | Block in-session `ANTHROPIC_BASE_URL` manipulation (CVE-2026-21852 — redirects API calls to attacker-controlled endpoint). Exits 2 to block. |
 
-### Bootstrap hooks (settings.json)
+### Plugin hooks (hooks.json) — PostToolUse family
+
+Registered in `hooks.json` like the table above (moved from `settings.json` in t-235).
 
 | Hook | Event | Matcher | Purpose |
 |------|-------|---------|---------|
@@ -160,7 +155,7 @@ Invoked from `system/scripts/git-hooks/pre-commit` (deployed to `~/.config/git/h
 
 | Hook | Status |
 |------|--------|
-| `session-start-venture.sh` | Logic absorbed into `session-start.sh`. Kept for reference. |
+| `session-start-venture.sh` | Logic absorbed into `session-start.sh`; file deleted. |
 
 ## Hook profiles
 
@@ -169,7 +164,7 @@ Hooks support tiered execution via the `BRANA_HOOK_PROFILE` environment variable
 | Tier | What runs | Effort level | Use case |
 |------|-----------|-------------|----------|
 | `minimal` | Nothing (all profiled hooks skip) | `max` | Fast CI runs, debugging hook issues |
-| `standard` | `pre-tool-use.sh`, `worktree-gate.sh` | `high` | Default — production behavior, backward compatible |
+| `standard` | `pre-tool-use.sh`, `worktree-gate.sh`, `branch-name-warn.sh`, `branch-verify.sh`, `doc-gate.sh`, `main-guard.sh`, `rust-skills-guard.sh`, `spec-gate.sh`, `tdd-gate.sh` (every script calling `hook_should_run "standard"`) | `high` | Default — production behavior, backward compatible |
 | `strict` | All standard (reserved for future observability hooks) | `low` | Observation mode — guard-explore.sh deleted t-1943 |
 
 **Default:** `standard` (no env var needed, no behavior change from pre-profile state).

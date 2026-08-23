@@ -615,7 +615,8 @@ pub fn extract_urls_from_text(text: &str) -> Vec<String> {
 
 /// Classify a URL's platform.
 ///
-/// Returns one of: `"linkedin"`, `"github"`, `"substack"`, `"arxiv"`, `"other"`.
+/// Returns one of: `"linkedin"`, `"github"`, `"substack"`, `"arxiv"`,
+/// `"youtube"`, `"other"`.
 pub fn classify_platform(url: &str) -> &'static str {
     if url.contains("linkedin.com") {
         "linkedin"
@@ -625,44 +626,68 @@ pub fn classify_platform(url: &str) -> &'static str {
         "substack"
     } else if url.contains("arxiv.org") {
         "arxiv"
+    } else if url.contains("youtube.com") || url.contains("youtu.be") {
+        "youtube"
     } else {
         "other"
     }
 }
 
 /// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
+///
+/// `caption_source` is `Some("manual"|"auto")` only for `platform ==
+/// "youtube"` (feature spec §3's `caption_source` tag) — `None` for every
+/// other platform.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FetchedContent {
     pub text: String,
     pub platform: &'static str,
+    pub caption_source: Option<YoutubeCaptionSource>,
 }
 
 /// Fetch a URL's content via the tier appropriate to its platform: `ureq`
 /// for public URLs, a headless `claude -p --mcp-config` shell-out to
-/// `linkedin-scraper-mcp` for LinkedIn.
+/// `linkedin-scraper-mcp` for LinkedIn, `yt-dlp` for YouTube.
 ///
 /// Returns `Ok(None)` — distinct from `Err` — when a LinkedIn post could
 /// not be found in the author's fetched feed (ADR-070 §Tier-2 correction:
 /// `linkedin-scraper-mcp` has no arbitrary-URL fetch tool, only a fuzzy
-/// author-feed match). Public URLs never produce `Ok(None)`: they either
-/// fetch or error.
+/// author-feed match), or when a YouTube video has no captions in the
+/// requested language (feature spec §2's no-captions contract). Public
+/// URLs never produce `Ok(None)`: they either fetch or error.
 ///
 /// Never acquires [`lock_pipeline`] — this function is shared with a future
 /// t-1144 for populating `UrlEntry.fetched_content` inside the pipeline's
 /// locked `process_core` call graph, so it must stay lock-free itself
 /// (ADR-070 §Lock discipline; see `test_lock_discipline_source_tripwires`
-/// in `brana-cli/src/commands/knowledge.rs`).
+/// in `brana-cli/src/commands/knowledge.rs` and its brana-core companion
+/// below).
 pub fn fetch_url_content(url: &str) -> Result<Option<FetchedContent>> {
+    fetch_url_content_with(url, &YtDlpCookies::None)
+}
+
+/// [`fetch_url_content`] with an explicit yt-dlp cookie/auth choice
+/// (t-3033, feature spec §7). Only the youtube tier reads `cookies`;
+/// every other platform ignores it. Same lock-free contract.
+pub fn fetch_url_content_with(url: &str, cookies: &YtDlpCookies) -> Result<Option<FetchedContent>> {
     // /safety/go wrappers unwrap BEFORE platform routing — the wrapped
     // target is often not LinkedIn at all (t-2589).
     let unwrapped = unwrap_linkedin_safety_url(url);
     let url = unwrapped.as_str();
     let platform = classify_platform(url);
     if platform == "linkedin" {
-        return Ok(fetch_linkedin_content(url)?.map(|text| FetchedContent { text, platform }));
+        return Ok(fetch_linkedin_content(url)?
+            .map(|text| FetchedContent { text, platform, caption_source: None }));
+    }
+    if platform == "youtube" {
+        return Ok(fetch_youtube_content(url, cookies)?.map(|(text, source)| FetchedContent {
+            text,
+            platform,
+            caption_source: Some(source),
+        }));
     }
     let text = fetch_public_url(url)?;
-    Ok(Some(FetchedContent { text, platform }))
+    Ok(Some(FetchedContent { text, platform, caption_source: None }))
 }
 
 /// Timeout for one LinkedIn MCP `tools/call`, measured rather than guessed:
@@ -1601,6 +1626,739 @@ fn find_matching_post(feed_text: &str, title_signal: &str) -> Option<String> {
         .map(|(chunk, _)| chunk.trim().to_string())
 }
 
+// ── YouTube caption fetch (ADR-070 §Amendment) ──────────────────────────
+// Tests only as of t-2947 (TDD-red, pre-impl); the bodies below land in the
+// follow-up implementation task per
+// docs/architecture/features/youtube-knowledge-extraction.md §2, §Follow-up.
+
+/// Which yt-dlp caption track a subtitle file came from — human-authored
+/// (`"manual"`, `--write-sub`) or auto-generated (`"auto"`,
+/// `--write-auto-sub`). Feeds the `caption_source` tag on the stored entry.
+pub type YoutubeCaptionSource = &'static str;
+
+/// Resolve yt-dlp's caption output for one video into deduped plain text.
+///
+/// Pure — no I/O, no subprocess. `manual_vtt`/`auto_vtt` are the raw file
+/// contents yt-dlp would have written for `--write-sub`/`--write-auto-sub`
+/// respectively (`None` when that file wasn't written). This is the
+/// fixture-testable boundary for [`fetch_youtube_content`]'s subprocess
+/// wrapper (feature spec §2 "Tests"): tests exercise it directly against
+/// fixture VTT text instead of spawning `yt-dlp` or hitting the network —
+/// same discipline as `find_matching_post` relative to `mcp_call_tool`
+/// above.
+///
+/// - Both `None` — yt-dlp exited 0 with zero subtitle files written. This
+///   is the no-captions contract (spec §2): `Ok(None)`, never an error,
+///   never `Completed` downstream.
+/// - `manual_vtt` present — the human-authored track wins.
+/// - Otherwise `auto_vtt` — auto-generated fallback.
+pub fn resolve_youtube_captions(
+    manual_vtt: Option<&str>,
+    auto_vtt: Option<&str>,
+) -> Result<Option<(String, YoutubeCaptionSource)>> {
+    if let Some(vtt) = manual_vtt {
+        return Ok(Some((dedupe_vtt_cues(vtt), "manual")));
+    }
+    if let Some(vtt) = auto_vtt {
+        return Ok(Some((dedupe_vtt_cues(vtt), "auto")));
+    }
+    Ok(None)
+}
+
+/// Extract each cue's text from a VTT document, in order. Pure text
+/// parsing — no timestamp arithmetic needed, only "does this block have a
+/// `-->` line" to distinguish a cue block from the `WEBVTT` header or a
+/// bare cue identifier line.
+fn parse_vtt_cue_texts(vtt: &str) -> Vec<String> {
+    let mut cues = Vec::new();
+    for block in vtt.split("\n\n") {
+        let mut text_lines: Vec<&str> = Vec::new();
+        let mut seen_timing_line = false;
+        for line in block.lines() {
+            if line.contains("-->") {
+                seen_timing_line = true;
+                continue;
+            }
+            if seen_timing_line {
+                text_lines.push(line);
+            }
+        }
+        if seen_timing_line {
+            let text = text_lines.join(" ").trim().to_string();
+            if !text.is_empty() {
+                cues.push(text);
+            }
+        }
+    }
+    cues
+}
+
+/// Whether `cue` is `prefix` plus zero or more additional whole words —
+/// i.e. `prefix` is a growing run's earlier, shorter cue and `cue` is its
+/// next incremental reveal. Word-boundary-checked so `"the quick"` does not
+/// falsely match `"the quickest"`.
+fn extends_cue(cue: &str, prefix: &str) -> bool {
+    cue.strip_prefix(prefix).is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
+}
+
+/// Remove `yt-dlp` auto-caption's word-level cue duplication, producing
+/// plain text. Auto-generated VTT re-emits each line multiple times with
+/// incrementally revealed words (a live-caption rendering artifact) — this
+/// collapses each growing run down to its final, longest cue. Pure, no I/O;
+/// never store raw VTT (feature spec §2).
+pub fn dedupe_vtt_cues(vtt: &str) -> String {
+    let mut runs: Vec<String> = Vec::new();
+    for cue in parse_vtt_cue_texts(vtt) {
+        match runs.last() {
+            Some(prev) if extends_cue(&cue, prev) => {
+                let last = runs.last_mut().expect("checked Some above");
+                *last = cue;
+            }
+            _ => runs.push(cue),
+        }
+    }
+    runs.join(" ")
+}
+
+/// Fixed basename for yt-dlp's output template — deterministic regardless
+/// of the video's title/id, so the written caption file's path is always
+/// predictable (`{work_dir}/video.en.vtt`).
+const YT_DLP_CAPTION_BASENAME: &str = "video";
+
+/// Build the exact argv for the yt-dlp caption-fetch invocation (ADR-070
+/// §Amendment). Pure — no I/O, no subprocess — so the `--` separator and
+/// `--socket-timeout` are fixture-testable without spawning `yt-dlp`
+/// (regression guard, t-2950, per t-2947's Challenger finding that this
+/// argv construction had no test pinning either flag).
+///
+/// `--dump-json` prints video metadata (including `requested_subtitles`/
+/// `automatic_captions`, used by [`determine_youtube_caption_source`]) to
+/// stdout in the SAME invocation that writes the subtitle files — one
+/// subprocess call, not two, per the spec's "no new dependency, one
+/// subprocess call" constraint.
+///
+/// **`--no-simulate` is required** — `-j`/`--dump-json` implies
+/// `--simulate` on its own (yt-dlp's documented behavior for its
+/// info-only flags), which suppresses every disk write including
+/// `--write-sub`/`--write-auto-sub`. Without this flag every real
+/// invocation would silently resolve as "no captions" regardless of
+/// ground truth (Challenger finding, t-2950 iteration 1) — exactly the
+/// class of bug ("fetch appears to succeed, content never lands") this
+/// whole feature exists to fix, arriving through a different mechanism.
+///
+/// Cookie/auth passthrough (t-3033, feature spec §7): `cookies` args are
+/// inserted **before** the `--` separator so the URL stays the sole
+/// positional after it — the injection guard above is unchanged.
+/// `YtDlpCookies::None` yields the pre-t-3033 argv byte-for-byte
+/// (regression-pinned in this file's tests).
+fn build_yt_dlp_caption_args(url: &str, cookies: &YtDlpCookies) -> Vec<String> {
+    let mut args = vec![
+        "--dump-json".to_string(),
+        "--no-simulate".to_string(),
+        "--skip-download".to_string(),
+        "--write-sub".to_string(),
+        "--write-auto-sub".to_string(),
+        "--sub-langs".to_string(),
+        "en".to_string(),
+        "--sub-format".to_string(),
+        "vtt".to_string(),
+        "--socket-timeout".to_string(),
+        "30".to_string(),
+        "-o".to_string(),
+        format!("{YT_DLP_CAPTION_BASENAME}.%(ext)s"),
+    ];
+    args.extend(cookies.to_args());
+    args.push("--".to_string());
+    args.push(url.to_string());
+    args
+}
+
+/// How yt-dlp authenticates to YouTube (t-3033, feature spec §7).
+/// YouTube's bot-check ("Sign in to confirm you're not a bot", live
+/// 2026-08-23) blocks unauthenticated caption fetches even on a current
+/// yt-dlp with a JS runtime; an authenticated session is what works.
+///
+/// `None` is today's behaviour and the default everywhere. The browser
+/// value is passed verbatim — yt-dlp owns `browser[+keyring][:profile]`
+/// parsing. A `File` path must already be absolute and UTF-8 (the CLI
+/// resolver in `brana-cli` guarantees both before constructing it).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum YtDlpCookies {
+    #[default]
+    None,
+    /// `--cookies-from-browser <browser[+keyring][:profile]>`
+    FromBrowser(String),
+    /// `--cookies <path>` — a Netscape-format cookie jar.
+    File(PathBuf),
+}
+
+impl YtDlpCookies {
+    /// The yt-dlp flag pair for this value — the whole of the flag
+    /// knowledge lives here. Pure.
+    pub fn to_args(&self) -> Vec<String> {
+        match self {
+            YtDlpCookies::None => Vec::new(),
+            YtDlpCookies::FromBrowser(b) => vec!["--cookies-from-browser".to_string(), b.clone()],
+            YtDlpCookies::File(p) => {
+                vec!["--cookies".to_string(), p.to_string_lossy().into_owned()]
+            }
+        }
+    }
+}
+
+/// Basename of the staged cookie-jar copy inside a yt-dlp work dir.
+const YT_DLP_STAGED_JAR: &str = "cookies.txt";
+
+/// Stage `cookies` for one yt-dlp invocation in `work_dir`. yt-dlp's
+/// `--cookies FILE` both reads *and rewrites* the jar on exit, so handing
+/// it the operator's exported file would (a) race between overlapping
+/// lock-free runs (`fetch_url_content` holds no lock — ADR-070 §Lock
+/// discipline) and (b) let the kill-timeout in [`run_yt_dlp_captions`]
+/// SIGKILL yt-dlp mid-write and truncate a credential. So a `File` jar is
+/// copied to `{work_dir}/cookies.txt` (0600 on unix) and the copy — which
+/// dies with the [`ScopedYtDlpWorkDir`] guard — is what yt-dlp sees.
+/// `None`/`FromBrowser` pass through untouched; nothing is written.
+fn stage_cookie_jar(cookies: &YtDlpCookies, work_dir: &std::path::Path) -> Result<YtDlpCookies> {
+    let YtDlpCookies::File(src) = cookies else {
+        return Ok(cookies.clone());
+    };
+    let dst = work_dir.join(YT_DLP_STAGED_JAR);
+    let bytes = std::fs::read(src)
+        .with_context(|| format!("reading cookie jar {}", src.display()))?;
+    // Create at 0600 in the open() itself — a create-then-chmod sequence
+    // leaves a umask-mode window with the credential on disk (rung-2
+    // panel finding, TOCTOU). create_new: the scratch dir is ours, so an
+    // existing file here is a bug, not something to truncate over.
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        opts.mode(0o600);
+    }
+    let mut f = opts
+        .open(&dst)
+        .with_context(|| format!("staging cookie jar at {}", dst.display()))?;
+    {
+        use std::io::Write as _;
+        f.write_all(&bytes)
+            .with_context(|| format!("writing staged cookie jar {}", dst.display()))?;
+    }
+    Ok(YtDlpCookies::File(dst))
+}
+
+/// Resolve the `yt-dlp` binary via `PATH`. Unlike `linkedin-scraper-mcp`
+/// (a project-managed `uv tool install` with an env-var override and a
+/// well-known install dir), yt-dlp is an ambient system tool this project
+/// doesn't manage — `which` on PATH is the only resolution this needs.
+fn resolve_yt_dlp_binary() -> Option<PathBuf> {
+    let out = std::process::Command::new("which").arg("yt-dlp").output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    (!path.is_empty()).then(|| PathBuf::from(path))
+}
+
+/// Process-wide counter disambiguating scratch work-dir names for
+/// concurrent yt-dlp calls within the same process (batch mode calls
+/// [`fetch_youtube_content`] once per URL) — same shape as
+/// `MCP_STDERR_COUNTER` above.
+static YT_DLP_WORKDIR_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// RAII guard for a yt-dlp scratch directory — removed (recursively) on
+/// drop, including on early `?` returns, so a failed fetch never leaves
+/// downloaded subtitle files behind. `tempfile` is a dev-only workspace
+/// dependency (brana-core's `[dev-dependencies]`), so this hand-rolls the
+/// same disposable-directory shape `ScopedStderrLog` already uses above.
+struct ScopedYtDlpWorkDir {
+    path: PathBuf,
+}
+
+impl Drop for ScopedYtDlpWorkDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+impl ScopedYtDlpWorkDir {
+    fn create() -> Result<Self> {
+        let n = YT_DLP_WORKDIR_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!("brana-yt-dlp-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&path)
+            .with_context(|| format!("creating yt-dlp work dir at {}", path.display()))?;
+        // 0700: since t-3033 this dir can hold a staged cookie jar, so no
+        // other local account may list it (rung-2 panel finding).
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700))
+                .with_context(|| format!("restricting yt-dlp work dir {}", path.display()))?;
+        }
+        Ok(Self { path })
+    }
+}
+
+/// Outer kill-timeout for one yt-dlp invocation — generous against the
+/// 2-6s typical case measured live 2026-08-17 (feature spec §2), bounding
+/// the pathological hang yt-dlp's own default-10-retries can leave open.
+const YT_DLP_TIMEOUT_SECS: u64 = 60;
+
+/// Run one yt-dlp caption-fetch invocation in `work_dir`, bounded by
+/// [`YT_DLP_TIMEOUT_SECS`]. Returns `(exit status, stdout, stderr)` — the
+/// caller distinguishes "no captions" (exit 0, no subtitle file written)
+/// from a real failure, and classifies stderr via [`is_youtube_rate_limited`].
+///
+/// stdout/stderr are drained on their own threads while polling for exit —
+/// `--dump-json` output can be tens of KB, large enough to fill an unread
+/// pipe and deadlock a bare `try_wait` loop (same class `mcp_call_tool`'s
+/// stdout-reader thread above already guards against). On timeout the
+/// child is killed WITHOUT joining the reader threads — a hung yt-dlp
+/// process (or a grandchild) can hold a pipe open past the kill, and this
+/// call must not block on that (t-2568's original 240s-hang lesson).
+///
+/// The spawn itself stays untested here (verified live instead, same
+/// discipline as `mcp_call_tool` above) — [`build_yt_dlp_caption_args`]
+/// covers the argv construction.
+fn run_yt_dlp_captions(
+    binary: &std::path::Path,
+    url: &str,
+    cookies: &YtDlpCookies,
+    work_dir: &std::path::Path,
+) -> Result<(std::process::ExitStatus, String, String)> {
+    let staged = stage_cookie_jar(cookies, work_dir)?;
+    let mut child = std::process::Command::new(binary)
+        .current_dir(work_dir)
+        .args(build_yt_dlp_caption_args(url, &staged))
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .with_context(|| format!("spawning {}", binary.display()))?;
+
+    let mut stdout_pipe = child.stdout.take().context("yt-dlp stdout not piped")?;
+    let mut stderr_pipe = child.stderr.take().context("yt-dlp stderr not piped")?;
+    let stdout_handle = std::thread::spawn(move || {
+        use std::io::Read as _;
+        let mut buf = String::new();
+        let _ = stdout_pipe.read_to_string(&mut buf);
+        buf
+    });
+    let stderr_handle = std::thread::spawn(move || {
+        use std::io::Read as _;
+        let mut buf = String::new();
+        let _ = stderr_pipe.read_to_string(&mut buf);
+        buf
+    });
+
+    let timeout = std::time::Duration::from_secs(YT_DLP_TIMEOUT_SECS);
+    let started = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {
+                if started.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!("yt-dlp timed out after {YT_DLP_TIMEOUT_SECS}s");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("yt-dlp wait error: {e}"),
+        }
+    };
+
+    let stdout = stdout_handle.join().unwrap_or_default();
+    let stderr = stderr_handle.join().unwrap_or_default();
+    Ok((status, stdout, stderr))
+}
+
+/// Determine which caption track (manual vs auto) a fetch actually
+/// captured, from yt-dlp's `--dump-json` metadata (feature spec §2: "use
+/// `requested_subtitles` vs `automatic_captions`, not filename parsing").
+/// `None` when neither map contains the requested language — the
+/// no-captions case, or a `--dump-json` payload that failed to parse.
+///
+/// Precedence: `requested_subtitles` is checked first, so a video with
+/// both a manual and an auto-generated English track resolves as
+/// `"manual"`. This matches yt-dlp's documented field semantics —
+/// `requested_subtitles` is only populated when a subtitle yt-dlp
+/// actually wrote is present in it, and manual tracks are preferred over
+/// auto ones during writing — but it has **not** been live-verified
+/// against a real yt-dlp invocation in this sandbox (no network/yt-dlp
+/// access here; Challenger finding, t-2950 iteration 1). Verify against a
+/// real dual-track video once a task with live yt-dlp access runs
+/// (tracked for t-2953).
+fn determine_youtube_caption_source(info: &serde_json::Value) -> Option<YoutubeCaptionSource> {
+    let has = |key: &str| {
+        info.get(key).and_then(|v| v.as_object()).is_some_and(|o| o.contains_key("en"))
+    };
+    if has("requested_subtitles") {
+        Some("manual")
+    } else if has("automatic_captions") {
+        Some("auto")
+    } else {
+        None
+    }
+}
+
+/// One yt-dlp caption-fetch attempt — everything [`run_with_youtube_backoff`]
+/// retries on a rate-limit response.
+fn fetch_youtube_content_attempt(
+    binary: &std::path::Path,
+    url: &str,
+    cookies: &YtDlpCookies,
+) -> Result<Option<(String, YoutubeCaptionSource)>> {
+    let work_dir = ScopedYtDlpWorkDir::create()?;
+    let (status, stdout, stderr) = run_yt_dlp_captions(binary, url, cookies, &work_dir.path)?;
+
+    if !status.success() {
+        bail!("{}", subprocess_diagnostic(&format!("yt-dlp exited with {status}"), &stdout, &stderr));
+    }
+
+    let info: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap_or(serde_json::Value::Null);
+    let source = determine_youtube_caption_source(&info);
+
+    let vtt_path = work_dir.path.join(format!("{YT_DLP_CAPTION_BASENAME}.en.vtt"));
+    let vtt = std::fs::read_to_string(&vtt_path).ok();
+
+    let (manual_vtt, auto_vtt) = match (source, &vtt) {
+        (Some("manual"), Some(text)) => (Some(text.as_str()), None),
+        (Some("auto"), Some(text)) => (None, Some(text.as_str())),
+        // No-captions contract (feature spec §2): a written file yt-dlp's
+        // JSON doesn't attribute to either track, or no file at all, both
+        // resolve through the same Ok(None) path below.
+        _ => (None, None),
+    };
+
+    resolve_youtube_captions(manual_vtt, auto_vtt)
+}
+
+/// Fetch a YouTube video's captions via `yt-dlp` (ADR-070 §Amendment,
+/// docs/architecture/features/youtube-knowledge-extraction.md §2). Shells
+/// out once, never a Rust YouTube client library — same shape as the
+/// LinkedIn MCP client and `call_gemini_json` subprocess calls in this file.
+///
+/// `Ok(None)` — distinct from `Err` — when `yt-dlp` exits 0 with zero
+/// subtitle files written (no captions available for this video). Never
+/// acquires [`lock_pipeline`] (see [`fetch_url_content`]'s note — this
+/// function is subject to the same lock-discipline tripwire).
+///
+/// Retries through `HTTP 429` via [`run_with_youtube_backoff`]; any other
+/// failure (malformed URL, network down, `yt-dlp` missing) surfaces
+/// immediately.
+///
+/// The subprocess spawn itself stays untested here (verified live instead,
+/// same discipline as `mcp_call_tool` above) — the fixture-testable logic
+/// (dedup, manual/auto precedence, no-captions contract) lives in
+/// [`resolve_youtube_captions`], and the argv construction is covered by
+/// [`build_yt_dlp_caption_args`]'s own tests.
+pub fn fetch_youtube_content(
+    url: &str,
+    cookies: &YtDlpCookies,
+) -> Result<Option<(String, YoutubeCaptionSource)>> {
+    let binary = resolve_yt_dlp_binary()
+        .ok_or_else(|| anyhow::anyhow!("yt-dlp not found on PATH — install it to fetch youtube captions"))?;
+    run_with_youtube_backoff(|_attempt| {
+        fetch_youtube_content_attempt(&binary, url, cookies).map_err(|e| e.to_string())
+    })
+    .map_err(|e| anyhow::anyhow!(e))
+}
+
+// ── YouTube channel ingestion, Tier A (t-2997 tests, TDD-red pre-impl) ──
+// Tests only as of t-2997; bodies land in t-2999 per
+// docs/architecture/features/youtube-channel-ingestion.md §1, §Tests.
+// Spike source: t-2994 (live-probed against a real channel — position
+// range + duration match-filter confirmed cheap and correct under
+// `--flat-playlist`; date filters confirmed to silently no-op, hence
+// out of scope here — see ADR-070 §Amendment).
+
+/// Which channel tab to enumerate — caller picks explicitly, never
+/// inferred from the URL (feature spec §1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChannelTab {
+    Videos,
+    Shorts,
+}
+
+/// How to narrow a channel tab's video listing before mapping to URLs.
+/// Each variant maps to a distinct `yt-dlp --flat-playlist` flag —
+/// see [`build_channel_selection_args`] (feature spec §1).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChannelSelection {
+    /// `--playlist-start`/`--playlist-end` (1-indexed, either bound optional).
+    Range { start: Option<u32>, end: Option<u32> },
+    /// `--playlist-items "3,7,10"`.
+    Items(Vec<u32>),
+    /// `--match-filter "duration<N"` — **`Videos` tab only**. The spike
+    /// (t-2994) confirmed `duration` is unset on `Shorts`-tab flat
+    /// entries, so pairing this with `tab: Shorts` is a caller error,
+    /// not a silently-empty result (see [`build_channel_selection_args`]).
+    MaxDuration(u32),
+}
+
+/// Pure argv builder for `yt-dlp --flat-playlist` selection flags —
+/// no subprocess, no I/O (feature spec §1 "Tests": "pure
+/// argv-construction tests, no subprocess").
+///
+/// # Errors
+///
+/// Returns `Err` immediately for `ChannelSelection::MaxDuration` paired
+/// with `tab: ChannelTab::Shorts` — the spike (t-2994) confirmed
+/// `duration` is unset for Shorts-tab flat entries, so this combination
+/// can never be evaluated meaningfully. Callers (and this function's
+/// tests) must never reach a subprocess call for this case.
+pub fn build_channel_selection_args(tab: ChannelTab, selection: &ChannelSelection) -> Result<Vec<String>> {
+    match selection {
+        ChannelSelection::Range { start, end } => {
+            let mut args = Vec::new();
+            if let Some(s) = start {
+                args.push("--playlist-start".to_string());
+                args.push(s.to_string());
+            }
+            if let Some(e) = end {
+                args.push("--playlist-end".to_string());
+                args.push(e.to_string());
+            }
+            Ok(args)
+        }
+        ChannelSelection::Items(items) => {
+            let joined = items.iter().map(u32::to_string).collect::<Vec<_>>().join(",");
+            Ok(vec!["--playlist-items".to_string(), joined])
+        }
+        ChannelSelection::MaxDuration(max_secs) => {
+            if tab == ChannelTab::Shorts {
+                bail!(
+                    "MaxDuration selection is not supported on the Shorts tab — \
+                     yt-dlp's flat-playlist entries carry no duration field for Shorts"
+                );
+            }
+            Ok(vec!["--match-filter".to_string(), format!("duration<{max_secs}")])
+        }
+    }
+}
+
+/// Pure parser for `yt-dlp --flat-playlist --print "%(id)s"` stdout —
+/// one video ID per line, blank lines skipped. No subprocess, no I/O
+/// (feature spec §1 "Tests": "fixture-based flat-listing parse").
+///
+/// An empty or all-blank `output` returns an empty `Vec`, never an
+/// error — the empty-channel / zero-results fixture case (feature spec
+/// §1 "Tests") is a legitimate `Ok(vec![])`, not a failure.
+pub fn parse_flat_playlist_ids(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+/// Pure mapping: a bare video ID -> its full `youtube.com/watch` URL.
+/// No subprocess, no I/O (feature spec §1 "Tests": "unit tested
+/// independently of the subprocess call").
+pub fn youtube_video_id_to_url(id: &str) -> String {
+    format!("https://www.youtube.com/watch?v={id}")
+}
+
+/// [`fetch_youtube_channel_videos`]'s testable core — takes an injected
+/// `run` closure in place of the real `yt-dlp` subprocess spawn, same
+/// seam shape as [`run_with_youtube_backoff`]'s injected `attempt`
+/// closure above. Tests substitute a fixture-returning or
+/// invocation-asserting stub here instead of shelling out (feature spec
+/// §1 "Tests": "tested against a recorded/fixture `--flat-playlist`
+/// invocation, not live network", and "assert via a test double that
+/// fails the test if the subprocess mock is invoked" for the
+/// Shorts+MaxDuration caller-error case).
+///
+/// `run` receives the **full** yt-dlp argv built by
+/// [`build_channel_listing_args`] (cookies, selection flags, `--print`,
+/// `--`, listing URL) and returns `yt-dlp`'s stdout on success. Never
+/// called at all when [`build_channel_selection_args`] itself returns
+/// `Err` — the error path must short-circuit before `run` is invoked.
+/// Handing the whole argv to `run` (t-3035) is what lets the fixture
+/// tests observe the cookie args rather than leaving them "verified live".
+pub fn fetch_youtube_channel_videos_with_runner(
+    channel_url: &str,
+    tab: ChannelTab,
+    selection: ChannelSelection,
+    cookies: &YtDlpCookies,
+    run: impl FnOnce(&[String]) -> Result<String, String>,
+) -> Result<Vec<String>> {
+    let selection_args = build_channel_selection_args(tab, &selection)?;
+    let listing_url = channel_listing_url(channel_url, tab);
+    let args = build_channel_listing_args(cookies, &selection_args, &listing_url);
+    let output = run(&args).map_err(|e| anyhow::anyhow!(e))?;
+    Ok(parse_flat_playlist_ids(&output)
+        .iter()
+        .map(|id| youtube_video_id_to_url(id))
+        .collect())
+}
+
+/// `{channel_url}/{videos|shorts}` — the tab listing yt-dlp enumerates.
+fn channel_listing_url(channel_url: &str, tab: ChannelTab) -> String {
+    let tab_path = match tab {
+        ChannelTab::Videos => "videos",
+        ChannelTab::Shorts => "shorts",
+    };
+    format!("{}/{tab_path}", channel_url.trim_end_matches('/'))
+}
+
+/// Build the exact argv for the channel-listing yt-dlp invocation
+/// (feature spec §7). Pure. Cookie args precede the selection flags; the
+/// `--` separator before the listing URL applies §2's injection guard to
+/// the channel URL too — a gap the pre-t-3035 wrapper left open.
+pub fn build_channel_listing_args(
+    cookies: &YtDlpCookies,
+    selection_args: &[String],
+    listing_url: &str,
+) -> Vec<String> {
+    let mut args = vec!["--flat-playlist".to_string(), "--skip-download".to_string()];
+    args.extend(cookies.to_args());
+    args.extend(selection_args.iter().cloned());
+    args.push("--print".to_string());
+    args.push("%(id)s".to_string());
+    args.push("--".to_string());
+    args.push(listing_url.to_string());
+    args
+}
+
+/// Enumerate a YouTube channel tab's video URLs via `yt-dlp
+/// --flat-playlist`, narrowed by `selection`. Shells out once, same
+/// subprocess discipline as [`fetch_youtube_content`] — never acquires
+/// [`lock_pipeline`] (feature spec §1). `cookies` is staged into a
+/// scoped scratch dir exactly as the caption fetch does (§7) — the
+/// operator's jar is never handed to yt-dlp.
+///
+/// The subprocess spawn itself stays untested here (verified live
+/// instead, same discipline as `fetch_youtube_content` above) — the
+/// fixture-testable logic (argv construction, listing parse,
+/// ID-to-URL mapping, the Shorts+MaxDuration caller error) lives in
+/// [`build_channel_selection_args`], [`build_channel_listing_args`],
+/// [`parse_flat_playlist_ids`], [`youtube_video_id_to_url`], and
+/// [`fetch_youtube_channel_videos_with_runner`], which this delegates to.
+pub fn fetch_youtube_channel_videos(
+    channel_url: &str,
+    tab: ChannelTab,
+    selection: ChannelSelection,
+    cookies: &YtDlpCookies,
+) -> Result<Vec<String>> {
+    let work_dir = ScopedYtDlpWorkDir::create()?;
+    let staged = stage_cookie_jar(cookies, &work_dir.path)?;
+    let listing_url = channel_listing_url(channel_url, tab);
+
+    fetch_youtube_channel_videos_with_runner(channel_url, tab, selection, &staged, |args| {
+        let out = std::process::Command::new("yt-dlp")
+            .current_dir(&work_dir.path)
+            .args(args)
+            .output()
+            .map_err(|e| format!("spawning yt-dlp for {listing_url}: {e}"))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            return Err(format!("yt-dlp failed for {listing_url}: {stderr}"));
+        }
+        String::from_utf8(out.stdout).map_err(|e| format!("yt-dlp stdout not valid UTF-8: {e}"))
+    })
+}
+
+// ── YouTube rate-limit backoff/retry (t-2955 tests, TDD-red pre-impl) ───
+// Tests only as of t-2955; bodies land in t-2956 per
+// docs/architecture/features/youtube-knowledge-extraction.md §2, §5.
+// Rate limiting is confirmed real (HTTP 429 observed live 2026-08-17 on a
+// single video, 2 languages back-to-back) — this is not a hypothetical case.
+
+/// Whether a `yt-dlp` subprocess's stderr indicates HTTP 429 rate limiting —
+/// the ONLY failure class [`run_with_youtube_backoff`] should mask behind a
+/// retry. Any other failure (malformed URL, network down, no captions) must
+/// surface immediately, never be silently retried.
+///
+/// Matched on `yt-dlp`'s own error line shape (`HTTP Error <code>: <reason>`,
+/// observed live 2026-08-17), not a bare `"429"` substring — a URL or video
+/// ID containing the digits "429" must not false-positive into a retry.
+pub fn is_youtube_rate_limited(stderr: &str) -> bool {
+    stderr.contains("HTTP Error 429")
+}
+
+/// Maximum retry attempts for a rate-limited `yt-dlp` call before giving up.
+/// Bounded deliberately — this repo's other rate-limit retry precedent,
+/// `gh_create_issue` (`brana-cli/src/sync.rs:413-419`), has NO cap at all
+/// (unbounded recursion on every 429), which is a real defect class, not a
+/// hypothetical one (Challenger finding, t-2955 iteration 1).
+const YOUTUBE_BACKOFF_MAX_RETRIES: u32 = 5;
+
+/// Backoff delay before retry attempt `attempt` (0-indexed) of a
+/// rate-limited `yt-dlp` call. `None` once the retry budget
+/// ([`YOUTUBE_BACKOFF_MAX_RETRIES`]) is exhausted — [`run_with_youtube_backoff`]
+/// gives up rather than retrying forever.
+///
+/// Pure and deterministic — no sleep, no I/O — so pacing itself is
+/// fixture-testable without a real (and, under an unbounded or
+/// zero-abstraction design, potentially minutes-long) wait. This is the
+/// seam the feature spec's own Tests section asks for ("Backoff/retry
+/// unit — simulated HTTP 429, verifies pacing without a live network
+/// call") that the first draft of this function omitted.
+///
+/// Exponential, capped at 5 attempts: 1s, 2s, 4s, 8s, 16s — generous
+/// against a 429 that clears within seconds in practice (live-measured
+/// 2026-08-17), while keeping the *backoff/sleep* portion of a
+/// fully-exhausted retry budget (1+2+4+8+16 = 31s) well under a minute
+/// rather than open-ended.
+///
+/// This bounds only the sleeps this function contributes — it is NOT the
+/// worst-case latency of a full [`run_with_youtube_backoff`] call. Each
+/// retry attempt can also block for up to [`YT_DLP_TIMEOUT_SECS`] (60s)
+/// inside `run_yt_dlp_captions` before backoff even runs, so a call that
+/// exhausts the whole retry budget can take up to
+/// `6 * YT_DLP_TIMEOUT_SECS + 31s ≈ 391s` (~6.5 minutes) end to end
+/// (Challenger finding, t-2950 iteration 1: the "well under a minute"
+/// framing read as a claim about total latency, not just this function's
+/// own sleep contribution).
+pub fn backoff_delay(attempt: u32) -> Option<std::time::Duration> {
+    if attempt >= YOUTUBE_BACKOFF_MAX_RETRIES {
+        return None;
+    }
+    Some(std::time::Duration::from_secs(1u64 << attempt))
+}
+
+/// Actually wait out a computed backoff delay. A private seam so tests can
+/// exercise [`run_with_youtube_backoff`]'s retry/give-up control flow
+/// without incurring [`backoff_delay`]'s real multi-second-to-31-second
+/// exponential schedule — pacing itself is already verified deterministically
+/// by `backoff_delay`'s own tests; re-sleeping the full schedule here would
+/// only slow the suite (t-2955 Challenger iteration 2 finding 1: the
+/// pacing-call commitment needed to be more than doc-comment-only, but
+/// "more than doc-comment-only" means gated, not literally executed, in
+/// test builds).
+#[cfg(not(test))]
+fn youtube_backoff_wait(delay: std::time::Duration) {
+    std::thread::sleep(delay);
+}
+#[cfg(test)]
+fn youtube_backoff_wait(_delay: std::time::Duration) {}
+
+/// Run `attempt` (given its 0-indexed attempt number) until it succeeds or
+/// [`backoff_delay`]'s retry budget is exhausted, retrying only when the
+/// error looks rate-limited per [`is_youtube_rate_limited`], sleeping
+/// [`backoff_delay`] between retries. A non-rate-limited failure returns
+/// immediately on the first attempt — never masked behind a retry loop.
+pub fn run_with_youtube_backoff<T>(
+    mut attempt: impl FnMut(u32) -> Result<T, String>,
+) -> Result<T, String> {
+    let mut n = 0u32;
+    loop {
+        match attempt(n) {
+            Ok(v) => return Ok(v),
+            Err(e) if is_youtube_rate_limited(&e) => match backoff_delay(n) {
+                Some(delay) => {
+                    youtube_backoff_wait(delay);
+                    n += 1;
+                }
+                None => return Err(e),
+            },
+            Err(e) => return Err(e),
+        }
+    }
+}
+
 /// Tier 1: plain HTTP GET + HTML-to-text, for public (non-LinkedIn) URLs.
 /// Uses `ureq` (already a workspace dependency, ADR-024 convention) — no
 /// new HTTP client dependency.
@@ -2364,6 +3122,719 @@ mod tests {
         let content = result.unwrap().expect("public URLs never produce Ok(None)");
         assert_eq!(content.text, "hi");
         assert_eq!(content.platform, "other");
+    }
+
+    // Companion to knowledge.rs's test_lock_discipline_source_tripwires
+    // (t-2950 AC): that test scans brana-cli's knowledge.rs via
+    // include_str! and cannot see fetch_url_content/fetch_youtube_content,
+    // which live here in brana-core. Structural guarantee: neither ever
+    // acquires the pipeline lock (ADR-070 §Lock discipline) — a lock held
+    // across fetch_youtube_content's yt-dlp subprocess call would stall
+    // every other pipeline writer for the duration of a network fetch.
+    #[test]
+    fn test_lock_discipline_source_tripwires_youtube_fetch() {
+        let src = include_str!("knowledge_pipeline.rs");
+
+        let fuc_start = src.find("pub fn fetch_url_content").expect("fetch_url_content exists");
+        let fuc_end = src[fuc_start..]
+            .find("\nconst LINKEDIN_MCP_TIMEOUT_SECS")
+            .map(|i| fuc_start + i)
+            .expect("LINKEDIN_MCP_TIMEOUT_SECS follows fetch_url_content");
+        assert!(
+            !src[fuc_start..fuc_end].contains("lock_pipeline("),
+            "fetch_url_content must never acquire the pipeline lock (ADR-070 §Lock discipline)"
+        );
+
+        // Covers the whole youtube-fetch helper chain, not just the public
+        // fetch_youtube_content entry point — build_yt_dlp_caption_args,
+        // resolve_yt_dlp_binary, ScopedYtDlpWorkDir, run_yt_dlp_captions,
+        // and determine_youtube_caption_source all live BEFORE
+        // fetch_youtube_content in source order, so a narrower scan
+        // anchored only on the pub fn would miss them.
+        let fyc_start =
+            src.find("const YT_DLP_CAPTION_BASENAME").expect("youtube fetch helper block exists");
+        let fyc_end = src[fyc_start..]
+            .find("\n// ── YouTube rate-limit backoff/retry (t-2955 tests")
+            .map(|i| fyc_start + i)
+            .expect("the backoff/retry section follows the youtube fetch helper block");
+        assert!(
+            !src[fyc_start..fyc_end].contains("lock_pipeline("),
+            "fetch_youtube_content and its helpers must never acquire the pipeline lock — \
+             it spawns a yt-dlp subprocess and must not stall other pipeline writers"
+        );
+    }
+
+    // ── YouTube caption fetch (t-2947, TDD-red pre-impl) ────────────────
+    // dedupe_vtt_cues / resolve_youtube_captions are pure — no subprocess,
+    // no network — so they're exercised directly against fixture VTT text,
+    // per feature spec §2 "Tests". fetch_youtube_content's actual yt-dlp
+    // spawn stays untested here, same discipline as mcp_call_tool above.
+
+    /// A fixture auto-caption VTT with the real word-level cue-duplication
+    /// artifact: each cue repeats the prior cue's words plus one more,
+    /// reset once for a second run. Modeled on the shape observed
+    /// live 2026-08-17 against https://www.youtube.com/watch?v=jNQXAC9IVRw.
+    const FIXTURE_VTT_WORD_LEVEL_DUPLICATION: &str = "\
+WEBVTT
+
+00:00:00.000 --> 00:00:02.000
+the quick
+
+00:00:01.000 --> 00:00:03.000
+the quick brown
+
+00:00:02.000 --> 00:00:04.000
+the quick brown fox
+
+00:00:04.000 --> 00:00:06.000
+jumps over
+
+00:00:05.000 --> 00:00:07.000
+jumps over the lazy dog
+";
+
+    #[test]
+    fn test_dedupe_vtt_cues_collapses_word_level_duplication() {
+        assert_eq!(
+            dedupe_vtt_cues(FIXTURE_VTT_WORD_LEVEL_DUPLICATION),
+            "the quick brown fox jumps over the lazy dog"
+        );
+    }
+
+    #[test]
+    fn test_dedupe_vtt_cues_empty_input_is_empty() {
+        assert_eq!(dedupe_vtt_cues("WEBVTT\n"), "");
+    }
+
+    #[test]
+    fn test_resolve_youtube_captions_prefers_manual_over_auto() {
+        let manual = "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nmanual track text\n";
+        let auto = "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nauto track text\n";
+        let (text, source) = resolve_youtube_captions(Some(manual), Some(auto)).unwrap().unwrap();
+        assert_eq!(text, "manual track text");
+        assert_eq!(source, "manual");
+    }
+
+    #[test]
+    fn test_resolve_youtube_captions_falls_back_to_auto_when_no_manual_track() {
+        let auto = "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nauto track text\n";
+        let (text, source) = resolve_youtube_captions(None, Some(auto)).unwrap().unwrap();
+        assert_eq!(text, "auto track text");
+        assert_eq!(source, "auto");
+    }
+
+    // AC (t-2947): yt-dlp exit 0 with zero subtitle files written must
+    // produce Ok(None), not an error and not (downstream) Completed —
+    // reproduces the original t-1349 bug shape one layer deeper if
+    // unhandled. Asserted directly here, not just documented as a case.
+    #[test]
+    fn test_resolve_youtube_captions_no_captions_returns_ok_none() {
+        assert_eq!(resolve_youtube_captions(None, None).unwrap(), None);
+    }
+
+    // ── YouTube channel ingestion, Tier A (t-2997, TDD-red pre-impl) ────
+    // build_channel_selection_args / parse_flat_playlist_ids /
+    // youtube_video_id_to_url are pure — no subprocess, no network — per
+    // feature spec §1 "Tests". fetch_youtube_channel_videos_with_runner
+    // exercises the subprocess-shaped seam against an injected closure
+    // instead of a real `yt-dlp` spawn (same discipline as
+    // run_with_youtube_backoff's injected `attempt` closure above).
+
+    #[test]
+    fn test_build_channel_selection_args_range_both_bounds() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: Some(1), end: Some(20) })
+                .unwrap();
+        assert_eq!(
+            args,
+            vec!["--playlist-start", "1", "--playlist-end", "20"]
+        );
+    }
+
+    // Boundary (Challenger, t-2997 build gate): Range with neither bound
+    // set is a legitimate "no restriction" selection, not a caller
+    // error — must produce an empty argv, not a spurious flag.
+    #[test]
+    fn test_build_channel_selection_args_range_no_bounds_is_empty_args() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: None, end: None })
+                .unwrap();
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(args, empty);
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_range_start_only() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: Some(5), end: None })
+                .unwrap();
+        assert_eq!(args, vec!["--playlist-start", "5"]);
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_range_end_only() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Range { start: None, end: Some(10) })
+                .unwrap();
+        assert_eq!(args, vec!["--playlist-end", "10"]);
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_items() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::Items(vec![3, 7, 10])).unwrap();
+        assert_eq!(args, vec!["--playlist-items", "3,7,10"]);
+    }
+
+    #[test]
+    fn test_build_channel_selection_args_max_duration_on_videos_tab() {
+        let args =
+            build_channel_selection_args(ChannelTab::Videos, &ChannelSelection::MaxDuration(600)).unwrap();
+        assert_eq!(args, vec!["--match-filter", "duration<600"]);
+    }
+
+    // AC (t-2994 spike / feature spec §1): Shorts-tab flat entries carry
+    // no duration field — MaxDuration paired with Shorts must fail before
+    // any argv is used to spawn a subprocess, not silently produce an
+    // unfiltered or nonsensical filter.
+    #[test]
+    fn test_build_channel_selection_args_max_duration_on_shorts_tab_errs() {
+        let result = build_channel_selection_args(ChannelTab::Shorts, &ChannelSelection::MaxDuration(60));
+        assert!(result.is_err(), "MaxDuration on Shorts must be a caller error, not silently accepted");
+    }
+
+    #[test]
+    fn test_parse_flat_playlist_ids_multiple_lines() {
+        assert_eq!(
+            parse_flat_playlist_ids("abc123
+def456
+ghi789
+"),
+            vec!["abc123", "def456", "ghi789"]
+        );
+    }
+
+    #[test]
+    fn test_parse_flat_playlist_ids_skips_blank_lines() {
+        assert_eq!(parse_flat_playlist_ids("abc123
+
+
+def456
+"), vec!["abc123", "def456"]);
+    }
+
+    // AC (feature spec §1 "Tests"): empty-channel / zero-results is a
+    // legitimate Ok(vec![]), never an error.
+    #[test]
+    fn test_parse_flat_playlist_ids_empty_output_is_empty_vec() {
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(parse_flat_playlist_ids(""), empty);
+    }
+
+    #[test]
+    fn test_parse_flat_playlist_ids_whitespace_only_output_is_empty_vec() {
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(parse_flat_playlist_ids("   
+
+  
+"), empty);
+    }
+
+    #[test]
+    fn test_youtube_video_id_to_url_maps_bare_id() {
+        assert_eq!(
+            youtube_video_id_to_url("dQw4w9WgXcQ"),
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        );
+    }
+
+    // AC (feature spec §1 "Tests"): "tested against a recorded/fixture
+    // --flat-playlist invocation, not live network" — the injected `run`
+    // closure stands in for the subprocess spawn.
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_maps_fixture_listing_to_urls() {
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@example",
+            ChannelTab::Videos,
+            ChannelSelection::Range { start: Some(1), end: Some(3) },
+            &YtDlpCookies::None,
+            |_argv| Ok::<String, String>("id1
+id2
+id3
+".to_string()),
+        );
+        assert_eq!(
+            result.unwrap(),
+            vec![
+                "https://www.youtube.com/watch?v=id1",
+                "https://www.youtube.com/watch?v=id2",
+                "https://www.youtube.com/watch?v=id3",
+            ]
+        );
+    }
+
+    // AC (feature spec §1 "Tests"): empty-channel / zero-results fixture
+    // returns Ok(vec![]), not an error.
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_empty_channel_returns_ok_empty() {
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@empty-channel",
+            ChannelTab::Videos,
+            ChannelSelection::Range { start: None, end: None },
+            &YtDlpCookies::None,
+            |_argv| Ok::<String, String>(String::new()),
+        );
+        let empty: Vec<String> = Vec::new();
+        assert_eq!(result.unwrap(), empty);
+    }
+
+    // AC (feature spec §1 "Tests"): "MaxDuration on tab:Shorts returns Err
+    // immediately with no subprocess call made (assert via a test double
+    // that fails if invoked)" — the closure panics if it is ever called,
+    // which fails this test rather than silently passing.
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_max_duration_on_shorts_never_invokes_runner() {
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@example",
+            ChannelTab::Shorts,
+            ChannelSelection::MaxDuration(60),
+            &YtDlpCookies::None,
+            |_argv| -> Result<String, String> {
+                panic!("subprocess runner must not be invoked for MaxDuration on Shorts")
+            },
+        );
+        assert!(result.is_err(), "MaxDuration on Shorts must fail before reaching the runner");
+    }
+
+    // Regression (t-2950, Challenger finding carried from t-2947 iteration 1):
+    // fetch_youtube_content's yt-dlp argv construction had no test pinning the
+    // `--` separator or --socket-timeout, so a future edit could silently drop
+    // either. build_yt_dlp_caption_args is pure — no subprocess — so this
+    // asserts the exact argv without spawning yt-dlp.
+    #[test]
+    fn test_build_yt_dlp_caption_args_includes_required_flags_and_separator() {
+        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw", &YtDlpCookies::None);
+        assert!(args.contains(&"--write-sub".to_string()));
+        assert!(args.contains(&"--write-auto-sub".to_string()));
+        let langs_idx = args.iter().position(|a| a == "--sub-langs").expect("--sub-langs present");
+        assert_eq!(args[langs_idx + 1], "en");
+        let timeout_idx =
+            args.iter().position(|a| a == "--socket-timeout").expect("--socket-timeout present");
+        assert_eq!(args[timeout_idx + 1], "30");
+        // -- separator must be the second-to-last arg, URL last — argv-injection
+        // guard (t-2947 Challenger finding): attacker-influenced URL input must
+        // never be parsed as a yt-dlp flag.
+        let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+        assert_eq!(sep_idx, args.len() - 2);
+        assert_eq!(args[sep_idx + 1], "https://www.youtube.com/watch?v=jNQXAC9IVRw");
+    }
+
+    // Regression (Challenger, t-2950 iteration 1, severity 5): --dump-json
+    // implies --simulate on its own, which suppresses every disk write —
+    // including --write-sub/--write-auto-sub. Without --no-simulate,
+    // fetch_youtube_content would silently resolve every video as
+    // "no captions" regardless of ground truth. This pins the flag so a
+    // future edit can't drop it the way its absence went unnoticed here.
+    #[test]
+    fn test_build_yt_dlp_caption_args_includes_no_simulate_alongside_dump_json() {
+        let args = build_yt_dlp_caption_args("https://www.youtube.com/watch?v=jNQXAC9IVRw", &YtDlpCookies::None);
+        assert!(
+            args.contains(&"--dump-json".to_string()),
+            "sanity: --dump-json must still be present"
+        );
+        assert!(
+            args.contains(&"--no-simulate".to_string()),
+            "--dump-json implies --simulate on its own — without --no-simulate, \
+             --write-sub/--write-auto-sub silently write nothing to disk"
+        );
+    }
+
+    // determine_youtube_caption_source (Challenger, t-2950 iteration 1,
+    // severity 3): pins the assumed manual-over-auto precedence contract
+    // as an executable spec, since it can't be live-verified against real
+    // yt-dlp output in this sandbox — see the function's own doc comment.
+    #[test]
+    fn test_determine_youtube_caption_source_manual_only() {
+        let info = serde_json::json!({"requested_subtitles": {"en": {}}});
+        assert_eq!(determine_youtube_caption_source(&info), Some("manual"));
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_auto_only() {
+        let info = serde_json::json!({"automatic_captions": {"en": {}}});
+        assert_eq!(determine_youtube_caption_source(&info), Some("auto"));
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_manual_takes_precedence_over_auto() {
+        let info = serde_json::json!({
+            "requested_subtitles": {"en": {}},
+            "automatic_captions": {"en": {}},
+        });
+        assert_eq!(
+            determine_youtube_caption_source(&info),
+            Some("manual"),
+            "a video with both tracks must resolve as manual, not auto"
+        );
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_neither_track_is_none() {
+        let info = serde_json::json!({"requested_subtitles": {}, "automatic_captions": {}});
+        assert_eq!(determine_youtube_caption_source(&info), None);
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_wrong_language_is_none() {
+        let info = serde_json::json!({
+            "requested_subtitles": {"es": {}},
+            "automatic_captions": {"fr": {}},
+        });
+        assert_eq!(
+            determine_youtube_caption_source(&info),
+            None,
+            "only the requested language (en) counts as a captured track"
+        );
+    }
+
+    #[test]
+    fn test_determine_youtube_caption_source_malformed_json_is_none() {
+        assert_eq!(determine_youtube_caption_source(&serde_json::Value::Null), None);
+    }
+
+    // Boundary (t-2950): a URL-shaped string starting with "-" (attacker
+    // influenced, per t-2589's LinkedIn precedent for the same class of bug)
+    // must land strictly after the -- separator, never before it where yt-dlp
+    // would parse it as a flag (e.g. yt-dlp's own --exec <cmd>).
+    #[test]
+    fn test_build_yt_dlp_caption_args_dash_prefixed_url_never_precedes_separator() {
+        let args = build_yt_dlp_caption_args("-exec=rm -rf /", &YtDlpCookies::None);
+        let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+        assert_eq!(args[sep_idx + 1], "-exec=rm -rf /");
+        assert!(args[..sep_idx].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
+    // ── channel listing argv + cookies (t-3035, feature spec §7) ────────
+
+    #[test]
+    fn test_build_channel_listing_args_no_cookies_has_separator_before_url() {
+        let sel = vec!["--playlist-end".to_string(), "3".to_string()];
+        let args = build_channel_listing_args(&YtDlpCookies::None, &sel, "https://www.youtube.com/@x/videos");
+        let expected: Vec<String> = [
+            "--flat-playlist", "--skip-download", "--playlist-end", "3", "--print", "%(id)s",
+            "--", "https://www.youtube.com/@x/videos",
+        ].iter().map(|s| s.to_string()).collect();
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn test_build_channel_listing_args_cookies_precede_selection_args() {
+        let sel = vec!["--playlist-items".to_string(), "1,2".to_string()];
+        let args = build_channel_listing_args(
+            &YtDlpCookies::File(PathBuf::from("/tmp/jar.txt")),
+            &sel,
+            "https://www.youtube.com/@x/videos",
+        );
+        let c = args.iter().position(|a| a == "--cookies").expect("--cookies present");
+        assert_eq!(args[c + 1], "/tmp/jar.txt");
+        let p = args.iter().position(|a| a == "--playlist-items").unwrap();
+        assert!(c < p, "cookie args must precede selection args");
+        let sep = args.iter().position(|a| a == "--").unwrap();
+        assert_eq!(sep, args.len() - 2);
+    }
+
+    // Injection guard (§2 applied to the listing URL — pre-existing gap
+    // closed by t-3035): a dash-prefixed listing URL lands after `--`.
+    #[test]
+    fn test_build_channel_listing_args_dash_prefixed_url_never_precedes_separator() {
+        let args = build_channel_listing_args(&YtDlpCookies::None, &[], "-exec=rm -rf /");
+        let sep = args.iter().position(|a| a == "--").unwrap();
+        assert_eq!(args[sep + 1], "-exec=rm -rf /");
+        assert!(args[..sep].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
+    // The injected runner must observe the cookie args — otherwise the
+    // cookie insertion is covered only "verified live" (challenger §7 #2).
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_passes_cookie_args_to_runner() {
+        let seen = std::cell::RefCell::new(Vec::new());
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@example",
+            ChannelTab::Videos,
+            ChannelSelection::Range { start: None, end: Some(2) },
+            &YtDlpCookies::FromBrowser("chrome".to_string()),
+            |argv| {
+                seen.borrow_mut().extend(argv.iter().cloned());
+                Ok::<String, String>("id1\n".to_string())
+            },
+        );
+        assert_eq!(result.unwrap(), vec!["https://www.youtube.com/watch?v=id1"]);
+        let argv = seen.into_inner();
+        let c = argv.iter().position(|a| a == "--cookies-from-browser").expect("cookie flag reached runner");
+        assert_eq!(argv[c + 1], "chrome");
+        assert!(argv.contains(&"--playlist-end".to_string()));
+        assert_eq!(argv.last().unwrap(), "https://www.youtube.com/@example/videos");
+    }
+
+    // ── yt-dlp cookie/auth passthrough (t-3033, feature spec §7) ────────
+    // YtDlpCookies::to_args and build_yt_dlp_caption_args are pure; the
+    // jar staging touches only a scratch dir — no yt-dlp, no network.
+
+    #[test]
+    fn test_yt_dlp_cookies_to_args_none_is_empty() {
+        assert!(YtDlpCookies::None.to_args().is_empty());
+    }
+
+    #[test]
+    fn test_yt_dlp_cookies_to_args_from_browser() {
+        assert_eq!(
+            YtDlpCookies::FromBrowser("chrome".to_string()).to_args(),
+            vec!["--cookies-from-browser".to_string(), "chrome".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_yt_dlp_cookies_to_args_file() {
+        assert_eq!(
+            YtDlpCookies::File(PathBuf::from("/p/c.txt")).to_args(),
+            vec!["--cookies".to_string(), "/p/c.txt".to_string()]
+        );
+    }
+
+    // Regression pin: the no-cookie argv must be exactly the pre-t-3033
+    // argv — backward compatibility is a frozen decision in spec §7.
+    #[test]
+    fn test_build_yt_dlp_caption_args_no_cookies_is_unchanged_argv() {
+        let url = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
+        let args = build_yt_dlp_caption_args(url, &YtDlpCookies::None);
+        let expected: Vec<String> = [
+            "--dump-json", "--no-simulate", "--skip-download", "--write-sub", "--write-auto-sub",
+            "--sub-langs", "en", "--sub-format", "vtt", "--socket-timeout", "30",
+            "-o", "video.%(ext)s", "--", url,
+        ].iter().map(|s| s.to_string()).collect();
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn test_build_yt_dlp_caption_args_cookie_pair_precedes_separator_url_still_last() {
+        let url = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
+        for cookies in [
+            YtDlpCookies::FromBrowser("firefox".to_string()),
+            YtDlpCookies::File(PathBuf::from("/tmp/jar.txt")),
+        ] {
+            let args = build_yt_dlp_caption_args(url, &cookies);
+            let pair = cookies.to_args();
+            let flag_idx = args.iter().position(|a| a == &pair[0]).expect("cookie flag present");
+            assert_eq!(args[flag_idx + 1], pair[1]);
+            let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+            assert!(flag_idx < sep_idx, "cookie flag must precede --");
+            assert_eq!(sep_idx, args.len() - 2);
+            assert_eq!(args[sep_idx + 1], url);
+        }
+    }
+
+    // Injection guard holds with cookies in play: a dash-prefixed URL
+    // still lands strictly after `--`.
+    #[test]
+    fn test_build_yt_dlp_caption_args_with_cookies_dash_url_never_precedes_separator() {
+        let args = build_yt_dlp_caption_args("-exec=rm -rf /", &YtDlpCookies::FromBrowser("chrome".into()));
+        let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
+        assert_eq!(args[sep_idx + 1], "-exec=rm -rf /");
+        assert!(args[..sep_idx].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
+    // Spec §7: yt-dlp rewrites the `--cookies` jar on exit, so the
+    // operator's file must never be handed to yt-dlp — stage a copy in
+    // the scratch dir instead.
+    #[test]
+    fn test_stage_cookie_jar_copies_file_into_work_dir_and_leaves_original_untouched() {
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        let original = work.path.join("operator-jar.txt");
+        std::fs::write(&original, "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc\n").unwrap();
+        let staged = stage_cookie_jar(&YtDlpCookies::File(original.clone()), &work.path).unwrap();
+        let YtDlpCookies::File(staged_path) = &staged else { panic!("expected File, got {staged:?}") };
+        assert_ne!(staged_path, &original, "must not reuse the operator's path");
+        assert!(staged_path.starts_with(&work.path), "staged copy must live in work_dir");
+        assert_eq!(std::fs::read(staged_path).unwrap(), std::fs::read(&original).unwrap());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            assert_eq!(std::fs::metadata(staged_path).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+    }
+
+    // Panel finding (t-3033 rung-2 concurrency-lock): the scratch dir holds a
+    // credential now, so it must be 0700 — not the umask default 0755.
+    #[cfg(unix)]
+    #[test]
+    fn test_scoped_yt_dlp_work_dir_is_private() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        assert_eq!(std::fs::metadata(&work.path).unwrap().permissions().mode() & 0o777, 0o700);
+    }
+
+    #[test]
+    fn test_stage_cookie_jar_passes_none_and_browser_through_without_writing() {
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        assert!(matches!(stage_cookie_jar(&YtDlpCookies::None, &work.path).unwrap(), YtDlpCookies::None));
+        let b = stage_cookie_jar(&YtDlpCookies::FromBrowser("chrome".into()), &work.path).unwrap();
+        assert!(matches!(b, YtDlpCookies::FromBrowser(ref x) if x == "chrome"));
+        assert_eq!(std::fs::read_dir(&work.path).unwrap().count(), 0, "nothing written for non-File");
+    }
+
+    // Boundary: a File jar that vanished between resolve and stage is an
+    // Err naming the path, not a silent fallback to unauthenticated.
+    #[test]
+    fn test_stage_cookie_jar_missing_file_errs_naming_path() {
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        let gone = work.path.join("nope.txt");
+        let err = stage_cookie_jar(&YtDlpCookies::File(gone.clone()), &work.path).unwrap_err();
+        assert!(err.to_string().contains("nope.txt"), "{err}");
+    }
+
+    // ── YouTube rate-limit backoff/retry (t-2955, TDD-red pre-impl) ─────
+    // is_youtube_rate_limited / run_with_youtube_backoff are pure and take
+    // no subprocess, no network — a simulated HTTP 429 is a plain string,
+    // per feature spec §2/§5's "not a live network call" discipline.
+
+    /// A yt-dlp stderr fixture as observed live 2026-08-17 against a real
+    /// video hit twice in quick succession (2 caption languages).
+    const FIXTURE_STDERR_HTTP_429: &str =
+        "ERROR: unable to download video subtitles for en: HTTP Error 429: Too Many Requests";
+
+    #[test]
+    fn test_is_youtube_rate_limited_matches_http_429() {
+        assert!(is_youtube_rate_limited(FIXTURE_STDERR_HTTP_429));
+    }
+
+    #[test]
+    fn test_is_youtube_rate_limited_false_for_unrelated_failure() {
+        assert!(!is_youtube_rate_limited("ERROR: Unsupported URL: not-a-real-url"));
+    }
+
+    // Boundary (t-2956): a bare "429" substring — e.g. incidentally present
+    // in a video length or id — must not false-positive into a retry. Only
+    // yt-dlp's actual HTTP-error line shape counts.
+    #[test]
+    fn test_is_youtube_rate_limited_false_for_bare_429_substring() {
+        assert!(!is_youtube_rate_limited("video is 429 seconds long"));
+    }
+
+    #[test]
+    fn test_is_youtube_rate_limited_empty_input_is_false() {
+        assert!(!is_youtube_rate_limited(""));
+    }
+
+    // Boundary (t-2956): success on the very first attempt must not enter
+    // the retry loop at all — no backoff, no sleep, one call.
+    #[test]
+    fn test_youtube_backoff_succeeds_immediately_without_retry() {
+        let mut calls = 0u32;
+        let result = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Ok::<u32, String>(42)
+        });
+        assert_eq!(result, Ok(42));
+        assert_eq!(calls, 1);
+    }
+
+    // Regression (Challenger, t-2956 implementation gate): a non-429 error
+    // on a LATER retry attempt (after at least one genuine 429) must still
+    // return immediately, not get masked by the retry loop continuing on
+    // the strength of the earlier 429. Guards the `Err(e) if
+    // is_youtube_rate_limited(&e) => ... / Err(e) => return Err(e)` control
+    // flow against a future refactor silently reordering those arms.
+    #[test]
+    fn test_youtube_backoff_non_429_after_retry_still_returns_immediately() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|attempt| {
+            calls += 1;
+            if attempt == 0 {
+                Err(FIXTURE_STDERR_HTTP_429.to_string())
+            } else {
+                Err("ERROR: Unsupported URL".to_string())
+            }
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 2, "must stop at the first non-429 failure, not keep retrying past it");
+    }
+
+    // AC (t-2955): a simulated HTTP 429 must trigger backoff/retry, not an
+    // immediate error — asserted via call count, not just documented.
+    #[test]
+    fn test_youtube_backoff_retries_on_simulated_429() {
+        let mut calls = 0u32;
+        let result = run_with_youtube_backoff(|attempt| {
+            calls += 1;
+            if attempt < 2 {
+                Err(FIXTURE_STDERR_HTTP_429.to_string())
+            } else {
+                Ok(calls)
+            }
+        });
+        assert_eq!(result, Ok(3));
+        assert_eq!(calls, 3, "must retry through the 429s rather than erroring immediately");
+    }
+
+    #[test]
+    fn test_youtube_backoff_does_not_retry_non_429_failures() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Err("ERROR: Unsupported URL".to_string())
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 1, "a non-429 failure must surface immediately, not be masked by retries");
+    }
+
+    #[test]
+    fn test_youtube_backoff_gives_up_after_bounded_retries_on_persistent_429() {
+        let mut calls = 0u32;
+        let result: Result<u32, String> = run_with_youtube_backoff(|_attempt| {
+            calls += 1;
+            Err(FIXTURE_STDERR_HTTP_429.to_string())
+        });
+        assert!(result.is_err(), "must eventually give up, not retry forever");
+        assert!(calls <= 10, "retry count must be bounded, not unbounded");
+    }
+
+    // Pacing itself, fixture-tested without sleeping (Challenger finding,
+    // t-2955 iteration 1: the spec's Tests section requires verifying
+    // pacing, not just call count — these are fast and deterministic
+    // because backoff_delay is pure).
+
+    #[test]
+    fn test_backoff_delay_grows_monotonically() {
+        let d0 = backoff_delay(0).expect("attempt 0 is within budget");
+        let d1 = backoff_delay(1).expect("attempt 1 is within budget");
+        let d2 = backoff_delay(2).expect("attempt 2 is within budget");
+        assert!(d0 < d1, "delay must grow between retries, not stay flat");
+        assert!(d1 < d2, "delay must grow between retries, not stay flat");
+    }
+
+    #[test]
+    fn test_backoff_delay_none_once_retry_budget_exhausted() {
+        assert_eq!(
+            backoff_delay(YOUTUBE_BACKOFF_MAX_RETRIES),
+            None,
+            "must give up at the retry budget, not retry forever"
+        );
+    }
+
+    #[test]
+    fn test_backoff_delay_bounded_total_wait() {
+        // Bounds only the backoff/sleep portion of a fully-exhausted retry
+        // budget — NOT the full run_with_youtube_backoff worst case, which
+        // also includes up to YT_DLP_TIMEOUT_SECS per attempt and can run
+        // to several minutes (see backoff_delay's doc comment; Challenger
+        // finding, t-2950 iteration 1).
+        let total: std::time::Duration = (0..YOUTUBE_BACKOFF_MAX_RETRIES)
+            .filter_map(backoff_delay)
+            .sum();
+        assert!(
+            total < std::time::Duration::from_secs(60),
+            "backoff-only wait across the whole retry budget must stay well under a minute, got {total:?}"
+        );
     }
 
     // ── LinkedIn Tier 2: find_matching_post (fuzzy fallback, ADR-070) ───
@@ -4069,6 +5540,16 @@ mod tests {
     #[test]
     fn test_classify_platform_other() {
         assert_eq!(classify_platform("https://example.com/article"), "other");
+    }
+
+    // TDD-red as of t-2947 (pre-impl): classify_platform has no youtube
+    // case yet, so this fails today. Implementation lands in the follow-up
+    // task per docs/architecture/features/youtube-knowledge-extraction.md §1.
+    #[test]
+    fn test_classify_platform_youtube() {
+        assert_eq!(classify_platform("https://www.youtube.com/watch?v=jNQXAC9IVRw"), "youtube");
+        assert_eq!(classify_platform("https://www.youtube.com/shorts/abc123"), "youtube");
+        assert_eq!(classify_platform("https://youtu.be/jNQXAC9IVRw"), "youtube");
     }
 
     // ── ingest_urls ───────────────────────────────────────────────────────

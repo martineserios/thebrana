@@ -148,6 +148,10 @@ Update `system/skills/build/phases/specify.md` line ~69:
 - Current: `docs/features/{slug}.md` or `docs/architecture/features/{slug}.md`
 - Change: canonicalize to `docs/architecture/features/{slug}.md` — remove the fork
 
+## Pilot outcome (2026-08-23)
+
+Pilot target date (2026-07-28) passed with no graduation. **Decision: stay advisory, no new date.** Rationale: per the L4.4 valve/tier rule (`docs/ideas/the-brana-guide.md`, `t-2490`), strictness scales with the tier a write lands in — a per-write blocking gate on tier-0 workbench branches is ceremony; hardening goes to tier 2 (`dev→main` PR + required CI, t-3023). `spec-gate.sh` remains the advisory nudge it is today. Reconcile run t-3032.
+
 ## Boundaries
 
 | Always | Ask First | Never |

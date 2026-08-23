@@ -104,6 +104,9 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [features/judge-escalation-valve.md](architecture/features/judge-escalation-valve.md) | ADR-082 sizing valve implementation spec (t-2895) — ladder wiring, hard signals, funnel, hash pinning; authority block lives in system/skills/_shared/judge-sizing.md |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
 | [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
+| [features/youtube-knowledge-extraction.md](architecture/features/youtube-knowledge-extraction.md) | YouTube knowledge extraction Phase 1 (t-2946) — single video/shorts transcript fetch tier spec |
+| [features/youtube-channel-ingestion.md](architecture/features/youtube-channel-ingestion.md) | YouTube channel ingestion Phase 3 Tier A (t-2993) — channel backfill selection surface spec |
+| [features/youtube-channel-backfill.md](architecture/features/youtube-channel-backfill.md) | `brana knowledge channel-backfill` tech doc (t-2998) — CLI flags, Tier A selection surface, Tier B boundary |
 
 ### Extending brana
 
@@ -225,6 +228,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [operating-model.md](architecture/features/operating-model.md) | Operating model: auto-learning loop, 6-job taxonomy, unified maintenance, knowledge graph |
 | [pipeline-digest.md](architecture/features/pipeline-digest.md) | L0 Reporter gauge — read-only pipeline digest, loop-first epic |
 | [worktree-task-divergence.md](architecture/features/worktree-task-divergence.md) | validate.sh Check 68 — detects worktrees whose branch and task record have diverged (t-2545) |
+| [youtube-channel-backfill.md](architecture/features/youtube-channel-backfill.md) | `brana knowledge channel-backfill` tech doc (t-2998) — CLI command, Tier A selection surface, Tier B boundary |
 
 ## Conventions (docs/conventions/)
 

@@ -152,7 +152,7 @@ One command: `/brana:build "description"`
 - Root cause or candidates
 - Recommended action: fix, refactor, accept, defer
 - Store findings via /brana:retrospective
-- If fix needed → leads to /brana:build --fix
+- If fix needed → leads to a bug-fix build (`/brana:build` auto-detects the `bug-fix` strategy) or `/brana:fix`
 
 **CLOSE** (all strategies except spike and investigation):
 - Validate acceptance criteria

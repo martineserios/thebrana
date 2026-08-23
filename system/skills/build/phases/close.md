@@ -210,6 +210,12 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - {field notes captured, assumptions verified, changelogs updated}
    ```
 
+13.5. **Time tracking CLOSE marker** (ADR-083, Metric 1 — task_id known only, all effort sizes; skip for freeform builds): close the bracket this task's LOAD step opened. Fires here — after Report, not right after AC validation — so the measured window covers this build's own full CLOSE work (decision log, retrospective, docs generation, task update, GitHub sync, merge, post-merge validate, reconcile, living-docs update, report). Step 14 (Ship to main) is deliberately excluded: it's periodic/human-gated, batches multiple builds together, and is not this task's own effort.
+   ```bash
+   brana time close {task_id} 2>/dev/null || true
+   ```
+   Best-effort and never blocks CLOSE. Reads the transcript recorded at START forward, computes turn-delta-summed active time (15-min idle cap), appends a Close marker to `$(git rev-parse --git-common-dir)/brana/time/{task_id}.jsonl`, and removes the worktree's open-bracket lock. If this session delegated meaningful work to subagents/forks (their own active time isn't summed into this bracket — v1 excludes fan-out), pass `--partial` so the stored duration is flagged `coverage: partial` rather than read as the task's full effort.
+
 14. **Ship to main** (human-gated; periodic — NOT every build) — offer, do NOT auto-execute:
    `dev` is the integration buffer; **shipping promotes it to production and deploys** (ADR-060:
    "merge `dev`→`main` = ship, then `bootstrap.sh`"). Do this deliberately when `dev` is stable
