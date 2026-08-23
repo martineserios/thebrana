@@ -367,6 +367,14 @@ Threading, lowest layer first:
   for — the alternative (threading only through drain-links) would fork
   `process_one_url`.
 
+**Rung-2 judge panel (2026-08-23, concurrency-lock finder):** staged jar
+was create-then-chmod (umask-mode window) → now created at 0600 in the
+`open()` itself with `create_new`; scratch dir was umask 0755 → now 0700 at
+creation. Accepted limitation: on the kill-timeout path a grandchild of
+yt-dlp that already read the staged jar keeps those bytes in its own
+memory past `remove_dir_all` — unlink can't recall what a process has
+read; bounded by the same t-2568 "hung grandchild" edge case.
+
 **Challenger findings (2026-08-23, 8 raised, 8 accepted):** jar write-back
 → staged copy; `_with_runner` unchanged contradicted the promised test →
 now takes cookies; `cmd_process_url_batch` omitted → threaded; relative

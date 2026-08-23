@@ -1825,13 +1825,24 @@ fn stage_cookie_jar(cookies: &YtDlpCookies, work_dir: &std::path::Path) -> Resul
     let dst = work_dir.join(YT_DLP_STAGED_JAR);
     let bytes = std::fs::read(src)
         .with_context(|| format!("reading cookie jar {}", src.display()))?;
-    std::fs::write(&dst, bytes)
-        .with_context(|| format!("staging cookie jar at {}", dst.display()))?;
+    // Create at 0600 in the open() itself — a create-then-chmod sequence
+    // leaves a umask-mode window with the credential on disk (rung-2
+    // panel finding, TOCTOU). create_new: the scratch dir is ours, so an
+    // existing file here is a bug, not something to truncate over.
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create_new(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt as _;
-        std::fs::set_permissions(&dst, std::fs::Permissions::from_mode(0o600))
-            .with_context(|| format!("restricting staged cookie jar {}", dst.display()))?;
+        use std::os::unix::fs::OpenOptionsExt as _;
+        opts.mode(0o600);
+    }
+    let mut f = opts
+        .open(&dst)
+        .with_context(|| format!("staging cookie jar at {}", dst.display()))?;
+    {
+        use std::io::Write as _;
+        f.write_all(&bytes)
+            .with_context(|| format!("writing staged cookie jar {}", dst.display()))?;
     }
     Ok(YtDlpCookies::File(dst))
 }
@@ -1876,6 +1887,14 @@ impl ScopedYtDlpWorkDir {
         let path = std::env::temp_dir().join(format!("brana-yt-dlp-{}-{n}", std::process::id()));
         std::fs::create_dir_all(&path)
             .with_context(|| format!("creating yt-dlp work dir at {}", path.display()))?;
+        // 0700: since t-3033 this dir can hold a staged cookie jar, so no
+        // other local account may list it (rung-2 panel finding).
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700))
+                .with_context(|| format!("restricting yt-dlp work dir {}", path.display()))?;
+        }
         Ok(Self { path })
     }
 }
@@ -3642,6 +3661,16 @@ id3
             use std::os::unix::fs::PermissionsExt as _;
             assert_eq!(std::fs::metadata(staged_path).unwrap().permissions().mode() & 0o777, 0o600);
         }
+    }
+
+    // Panel finding (t-3033 rung-2 concurrency-lock): the scratch dir holds a
+    // credential now, so it must be 0700 — not the umask default 0755.
+    #[cfg(unix)]
+    #[test]
+    fn test_scoped_yt_dlp_work_dir_is_private() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let work = ScopedYtDlpWorkDir::create().unwrap();
+        assert_eq!(std::fs::metadata(&work.path).unwrap().permissions().mode() & 0o777, 0o700);
     }
 
     #[test]
