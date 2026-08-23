@@ -1,6 +1,6 @@
 # The Brana
 
-**Status:** draft (cover locked; body fills in as [the-brana-guide.md](../ideas/the-brana-guide.md) walk L1–L6 settles) · **Owner:** Martín Rios
+**Status:** draft (cover locked; §Space/§Cycle/§Gate/§Components landed from [the-brana-guide.md](../ideas/the-brana-guide.md) L0–L5; open items ride inside their chapters) · **Owner:** Martín Rios
 **Type:** Index — the front door to the whole system. Companion to [Idea → Ship: The Skill Flow](idea-to-ship.md) (how work flows through it); the two mutually point at each other. Supersedes [the-orbit.md](the-orbit.md) (retired vocabulary — see [ADR-068](decisions/ADR-068-v3-supersession.md)).
 
 ## Cover
@@ -18,7 +18,7 @@ The rest of the physics vocabulary — open/closed strings in detail, the KK fre
 - **Gate** — who decides: human decisions and where they're placed.
 - **Scale** — the axis across all three: the same skeleton at every ring, warped.
 
-Full chapter content and the component map fill in as [the-brana-guide.md](../ideas/the-brana-guide.md)'s walk (L1 → L6) settles, one node at a time. The vocabulary table below is this page's canonical copy — [glossary.md](glossary.md) points here rather than duplicating it (see L0's one-owner-per-concept rule).
+Each chapter below is the index of its decisions — one line per decided point, with refs; the component docs own the detail. Open items ride inside their chapter and are tracked in [the-brana-guide.md](../ideas/the-brana-guide.md). The vocabulary table below is this page's canonical copy — [glossary.md](glossary.md) points here rather than duplicating it (see L0's one-owner-per-concept rule).
 
 ## Space — the primitive table
 
@@ -83,6 +83,72 @@ Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L2.4. [backlog-v3-schem
 
 The `log` resolution is closer to Pocock's own model than the original design was: he has no per-task structured log either — decisions are their own markdown documents, referenced by a task, not schema fields embedded in it.
 
+## Cycle — what it does
+
+Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L3. Work moves through queues by pumps and returns. Loop = closed string (returns; the only thing that crosses branes). Workflow = open string (runs once, pinned). Graph-as-data (waves + `gate:`, tasks + `blocked_by`) walked over days by a loop; graph-as-code (`Workflow` scripts) runs to completion in one call. Rings micro → beat → epic → knowledge. Every bullet below was scored against Pocock's cited practice before locking — verdicts and per-row rationale live in [2026-08-22-pocock-alignment-decision-matrix.md](../research/2026-08-22-pocock-alignment-decision-matrix.md); only rows #3 (JUDGE panel) and #4 (PLAN panel) remain genuinely undecided.
+
+### The two-bucket lens (how v3 machinery is judged)
+
+Standing direction: adapt toward Pocock's lighter structure, not the reverse default — but **don't judge a mechanism by raw field-usage counts** (low usage conflates "nobody wants this" with "nothing was ever built to feed it"; confirmed for `spec`/`log` — 0% usage, zero producer code, not zero demand). Judge each piece by the capability it unlocks, then weigh that against Pocock's equivalent. v3's machinery splits into two buckets, weighed separately:
+
+- **Bucket 1 — unattended-loop safety** (`ac_state`/approval, dead-letter, leases, judge sizing): what Pocock's model doesn't need because nothing there runs unattended at volume. This is where "opt-in overlay, not universal schema" belongs — ~92% of tasks stay Pocock-lite (title/description/status/tags) and a task *earns* the heavy machinery only when a loop will touch it unattended. Test: capability-unlocked vs cost.
+- **Bucket 2 — planning ergonomics** (epic hierarchy, `blocked_by`, waves-as-selectors, tags, effort roll-up for quoting): the operator's own planning/organizing/client-billing infrastructure, which Pocock's tool was never scoped to solve. Stays out of the "simplify toward Pocock" pressure. Test: planning value on its own terms.
+
+`[the-brana-guide.md L3 standing direction · memory feedback_backlog-field-usage-vs-feed-mechanism · matrix]`
+
+### Decided
+
+- **Workflow-vs-loop rule:** runs once → `Workflow` script; walked with humans between nodes → data + `/loop`. No Pocock analogue for either half — his system has no loop primitive ("the loop is a human habit") and no graph-as-code. `[skills-loops-graphs.md §Loop vs graph · memory pattern_loop-traverses-graph-workflow-is-graph · matrix row 1]`
+- **Loop contract** = [features/loops-library.md](features/loops-library.md) + `system/loops/` (frontmatter, beat record, denied verbs, pull interface). KEEP brana (row 1): denied verbs / pull interface are unattended-safety scaffolding real production crons need. `[features/loops-library.md · system/loops/{README,drain-loop,epic-drain,pipeline-digest}.md · system/scripts/loops-lint.py · matrix rows 1, 8]`
+- **Wave mechanics** — split by verdict, not one bloc: `ac_state` approval KEEP (row 5 — routes *and* gates, unlike Pocock's readiness state; 0.8% usage reads as early load-bearing infra under the corrected lens) · leases KEEP (row 6 — hard dependency the moment wave-level parallelism lands, to avoid re-running t-2216/t-2206) · gate graph / `blocked_by` in the pull frontier **ADOPT Pocock** (row 10, largest margin in the matrix — his `to-tickets` frontier rule open ∧ unblocked ∧ unclaimed fixes a confirmed live bug; amend [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md) §2). Epic-drain supersedes drain-loop for epics. `[ADR-079 §2 · ADR-080 · ADR-065 · features/plan-time-wave-graph.md, wave-board.md, wave-gate-enforcement.md, ac-state-forward-slice.md · guide/workflows/epic-drain.md, drain-loop.md · features/backlog-v3-schema.md · memory pattern_wave-pull-ignores-blocked-by-ordering · matrix rows 5, 6, 10]`
+- **Wave-level parallelism** (independent unblocked tickets → concurrent agents) — ADOPT Pocock (row 2). Not yet built; leases are a prerequisite, ship together. `[ideas/loop-task-multiagent.md Round 1 · t-2889 · matrix row 2]`
+- **Seven laws** — brana's own derivation, no Pocock analogue, no matrix row. `[memory project_loop-operating-laws · drained/wave-pipeline.md §seven laws]`
+- **Four mechanics primitives** queue / pump / valve / gauge (+ backpressure, dead-letter), closed set. Dead-letter KEEP (row 7): Pocock's `wontfix` is human-only classification; t-2587 (LinkedIn-miss starvation) is exactly what automatic dead-letter prevents. `[drained/wave-pipeline.md · drained/loop-first-redesign.md L188–203 · memory pattern_pipeline-primitives-* · t-2587 · matrix row 7]`
+- **Task = agent's unit; wave = human's unit** — KEEP brana by override (row 11): raw score slightly favors Pocock's unified ticket, but billing a client for a defined chunk of work is a must-have filter none of the six criteria capture (Bucket 2). `[WT t-2980 ADR (→086) · memory project_pocock-adoption-ideas-2026-08-18 · matrix row 11]`
+- **Chains are an anti-pattern** (39–70% worse than single-agent; context loss per hop). Fan-out + synthesis only at JUDGE (leans KEEP, row 3 — 4 verified misses across 6 diffs, 2.5–3.5× cost, escalation-gated) — PLAN-step panels **not settled** (row 4; needs the same retrospective probe before t-2896). `[ideas/loop-task-multiagent.md · research/2026-08-14-multiagent-orchestration-lessons.md · memory pattern_multiagent-belongs-at-judgment-not-execution · matrix rows 3, 4]`
+- **Ring table** (L3.1, locked after `/brana:challenge` deep) — per ring: queue · act · cycle unit · record · gauge · valve · memory read/write, with ✓ proven / ◇ design-only / ⚠ contested markers. Beat is the only fully-exercised ring; Epic's record and exit-write are design-only; the whole Knowledge row is design-only. Table lives in the guide, not restated here. `[the-brana-guide.md L3.1 · drained/wave-pipeline.md §layer test · features/loops-library.md §beat record · ADR-080 §3, §7 · t-3018 · L3.7]`
+- **`/goal` placement** (L3.2) — the Micro→Beat seam: owns the Micro ring's red→green cycle, stops at Beat's valve; lives *inside* Beat's Act cell, never across its valve. Bucket 1, KEEP — it is what lets a task auto-complete with nobody watching. `[ADR-061 §1, §2, §4 · features/goal-binding-build-tdd.md (stale → pointer, L6) · t-3018 · t-2981]`
+- **Two runners, one seam: presence** (L3.4) — epic runner (`inside`/`valve`) and autonomous runner (`none`) walk the same beat; converge the autonomous runner onto `epic-drain` as its `presence: none` mode (t-3019, blocked_by t-2982). The satellite keeps the eligibility layer + headless executor. `[ADR-080 · features/autonomous-runner.md · drained/orbit-evidence-first.md · ADR-085 · t-3019 · t-2982]`
+- **Beat record = markdown document** referenced by the task/beat, not a schema field (L3.5, row 8 — matches L2.4's `log` resolution, t-3008). A build receipt is one *instance* of that document type. `[features/loops-library.md · features/build-receipts.md · ADR-076 · matrix row 8]`
+- **Fresh context per pull** is the default once unattended lands (L3.6, row 12, no tension). t-2982 proceeds as planned. `[t-2982 · guide/workflows/epic-drain.md step 4 · ADR-060 · matrix row 12]`
+
+### Open, riding inside the chapter (not blocking)
+
+- **L3.7 Epic-ring gauge** — a self-similar machine gauge per ring, Epic first; three rungs (observational → gate for reversible outcomes → earned auto-advance), promoted by clean runs; rung 1 only in scope, needs a retrospective probe against shipped waves; ships together with presence `none` (t-3019). No Pocock analogue. `[ADR-080 §7 · the-brana-guide.md L3.7]`
+- **Cross-skill readiness state** ("what's next, and for whom") — ADOPT Pocock's single 5-role field (`needs-triage`→`needs-info`→`ready-for-agent`→`ready-for-human`→`wontfix`) decisively in principle (row 9, clearest win in the matrix); brana's `status`/`ac_state`/`build_step` trio can't hand off headless across time. **No owner yet** — intended home: [features/backlog-v3-schema.md](features/backlog-v3-schema.md) + an ADR amendment, resolved together with L2.2b once t-2834's evidence lands; don't design two fields for one problem. `[L2.2b · t-2834 · ADR-074 · system/skills/backlog/phases/triage-sync.md · matrix row 9]`
+- t-3018 (refactor placement, inside L3.1) · PLAN-step panel probe (before t-2896).
+
+## Gate — who decides
+
+Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L4; absorbs [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms + §Spectrum. Valves = human gates placed by reversibility: machine judges own reversible outcomes; the human valve is mandatory for irreversible ones (approve · merge · ship). Two rooms: **studio** (needs thinking → agenda) and **cockpit** (rubber-stamps → digest). Autonomy = altitude L0→L3; L3 hard-gated on the sandbox.
+
+### Decided
+
+- **Caller owns human mode**; station suggests a closed-enum default; grants default-deny; presence interlock; ambiguous → agenda; irreversible → no default. `[t-2490 context · skills-loops-graphs.md §Operator decision · ADR-061 Inv.1 · drained/loop-first-redesign.md challenger #1 · drained/runner-capability-isolation.md (lethal trifecta) · Pocock research (diagnosing-bugs Ph3 default; wizard confirm) · memory pattern_dual-mode-gap-resolves-at-runner-layer]`
+- **Panels at JUDGE/PLAN only**; judge = policy arming on hard signals (t-2894); same-model self-review weakest; split verdicts are their own signal. `[ideas/loop-task-multiagent.md · research 2026-08-14-judge-panel-probe.md, 2026-08-14-llm-judge-panels.md · ADR-082 · features/judge-escalation-valve.md · system/agents/CALIBRATION.md · memory pattern_llm-judge-panel-design-rules]`
+- **Autonomy = routing, not smarter agents**; promotion by evidence, auto-demotion by shape. `[drained/loop-first-redesign.md L200 · drained/brana-v3-redesign.md principles 5–6 · ADR-068 §3]`
+- **Gate armed by an actor external to the loop.** `[drained/wave-pipeline.md · memory pattern_gate-armed-by-the-party-it-constrains · guide/workflows/epic-drain.md (3)]`
+- **L3 hard-gated on ADR-062**; `tools:` deny = tripwire. `[ADR-062 · t-2173 · drained/runner-capability-isolation.md]`
+- **Two rooms as one store, two trays** (L4.1) — [ADR-063](decisions/ADR-063-pending-questions-store.md)'s `pending-questions.json` is the only queue; add `room ∈ cockpit | studio`, set by the valve-feeder at stop-time by a cheap rule (irreversible or ambiguous or unsure → studio; else cockpit), never an LLM classifier. Three verbs: `peek` (gauge) · `pull` (lease) · `ack` (the valve). KEEP two rooms, ADOPT Pocock's shape (state on the item, not a parallel queue). `brana hands` is Accepted, never built → t-3021, blocked_by t-2834. `[ADR-063 (amend §1 schema: room) · features/pipeline-digest.md · ideas/statusline-pipeline-awareness.md · t-2825 · t-3021 · t-2587]`
+- **`ask()` compile table** (L4.2) — the station writes the question once; the caller compiles it: `inside` → `AskUserQuestion` · `valve` → raise a hand into ADR-063's store with `room`, stop the beat with `needs_judgment` · `none` → take `suggested_default` only if the grant covers it (closed enum, default-deny), logged as an assumption. **`none` degrades to `valve`, never to a guess.** Prose at the runner layer, single owner, no schema (ADR-085 D2) — owner to create: `system/loops/README.md` §ask (t-3021). Today `valve` is paper (`autonomous-runner.sh plan_task` up-front NEEDSHUMAN is the stopgap). `[ADR-062 · ADR-063 · ADR-085 D2 · guide/workflows/epic-drain.md (8) · system/scripts/autonomous-runner.sh · t-3021]`
+- **Judge ladder** (L4.3) — shipped: [ADR-082](decisions/ADR-082-multi-agent-sizing-function.md) + [`_shared/judge-sizing.md`](../../system/skills/_shared/judge-sizing.md) (single live authority). Deterministic ladder on hard pipeline signals: rung 0 single fresh-context challenger → rung 1 + sibling-path finder → rung 2 full funnel. Signals only raise; no rung persists past its beat; Claude-only; triggered never standing. KEEP — the one mechanism here with measured evidence. `[ADR-082 · t-2894 · t-2895 · features/judge-escalation-valve.md · research 2026-08-14-judge-panel-probe.md · features/stacked-verdict-at-the-valve.md + ADR-081]`
+- **Valve inventory + three-tier rule** (L4.4) — five human valves, strictness a function of the tier they write into, not of who asks:
+
+  | valve | reversible | verb (today) | surfaced (today) |
+  |---|---|---|---|
+  | AC approve | yes | `backlog ac-approve` · `wave approve --confirm_ids ≤10` | nowhere |
+  | Wave ship | mostly | `wave set status shipped` → `wave ship` (t-3022) | digest "contract likely met" |
+  | Merge → dev | yes | `git merge --no-ff` by hand | digest unmerged list |
+  | Ship → main | **no** (deploys `~/.claude/`) | `ff-only + bootstrap.sh + push` → PR + required CI (t-3023) | **nowhere** |
+  | Re-arm runner | yes (Esc) | `/loop epic-drain` (launch = arm) | n/a |
+
+  **Tiers:** tier 0 *workbench* = feature/worktree/runner branches, nothing live, fast · tier 1 *buffer* = `dev`, integrated not deployed, human merge valve, judge ladder arms by signal · tier 2 *production* = `main` → `~/.claude/`, human-only, recorded, never a runner, never a default. Every valve is already default-deny; all five are cockpit items and four are surfaced nowhere → `peek --room cockpit` (t-3021) is the single surfacing point. Ship→main was the one irreversible valve and the only one unsurfaced — that asymmetry is the defect. **GitHub is a mirror, not a gate today** (last PR merged 2026-03-16; no required checks). KEEP brana's five; ADOPT Pocock at **tier 2 only**: `dev→main` via PR + required CI + enforce_admins (t-3023), and greppable valve verbs (t-3022). NOT adopted: tickets→issues, PR per feature branch, a staging tier, machine defaults on any valve. `[ADR-079 · ADR-080 §3/§6 · ADR-060 · ADR-082 · CLAUDE.md §Integration model · guide/workflows/branching.md · system/hooks/spec-gate.sh · .github/workflows/ci.yml · memory G/pattern_challenge-wave-pipeline-valve-order-2026-08-14 · t-3021 · t-3022 · t-3023 · research 2026-08-13-matt-pocock-skill-system.md]`
+
+### Parked
+
+- ⏸ **L4.5 Orbit satellite** — what, when, own component doc. `[features/autonomous-runner.md · ADR-068 · drained/orbit-evidence-first.md]`
+- ⏸ **L4.6 Model/effort routing** — compute routing (which primitive) is decided in `delegation-routing.md`; which capability tier a primitive runs at is not, beyond JUDGE's `judge-sizing.md`. Operator brings more knowledge later; no forced rule. `[~/.claude/rules/delegation-routing.md · ruflo-stub-guard.md · judge-sizing.md · ADR-082]`
+
 ## Vocabulary
 
 Term → one line → owner doc. Every term here traces back to a node in [the-brana-guide.md](../ideas/the-brana-guide.md) — check there for the full discussion, refs, and any flagged seams.
@@ -133,6 +199,38 @@ Term → one line → owner doc. Every term here traces back to a node in [the-b
 | **Low-pass filter** | The human's relationship to ring frequency — only slow rings reach them directly. | [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §Spectrum |
 | **Inhabitant** | The human's role: lives in Cycle, decides at Gate, senses via memory. | memory `user_creative-vs-operative-modes` |
 | **Orbit / Orbit** | Plain word inside Cycle now; capital-O = a future satellite component, on evidence. | [ADR-068](decisions/ADR-068-v3-supersession.md), [features/autonomous-runner.md](features/autonomous-runner.md) |
+
+## Components — the doc map
+
+Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L5 (2026-08-23). Concept-level; the guide's Appendix A stays per-file. **One owner per concept.**
+
+| concept | owner (single) | status | ch. |
+|---|---|---|---|
+| The whole / lens / chapters | this page §Cover, §Three chapters | landed | L0–L1 |
+| Primitive table (queue·pump·valve·gauge) | this page §Space | landed | Space |
+| Station (= pump body), grain files, three homes | this page §Space → Grain files | landed | Space |
+| Handoff packet (AC real; spec/log/refs → t-3007/t-3008/t-3009) | this page §Space → Packet | landed | Space |
+| Skills-layer verdict (no atom schema; t-2278 intact) | [ADR-085](decisions/ADR-085-skills-as-stations-no-atom-schema.md) (Proposed) ← [skills-loops-graphs.md](../ideas/skills-loops-graphs.md) | hold | Space |
+| Vendored Pocock organs | ADR-084 (Accepted-pilot, WT t-2837 — not yet on this branch) | land after guide | Space |
+| Context economy as compactification | this page §Space (L2.5) + [context-budget.md](context-budget.md) (t-3014) | landed | Space |
+| Loop contract (7 laws, beat, ASSIMILATE/RESTART) | [features/loops-library.md](features/loops-library.md) | shipped | Cycle |
+| Workflow-vs-loop rule | this page §Cycle | landed | Cycle |
+| Wave mechanics (graph, gate, drain, pull, leases) | [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md) + [ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md); spec [plan-time-wave-graph.md](features/plan-time-wave-graph.md) | shipped; L3.3 amend pending | Cycle |
+| Wave = human unit / task = agent unit | ADR-085→086 (t-2980, renumber D2) | hold | Cycle |
+| Beat record = markdown doc | [features/loops-library.md](features/loops-library.md) + t-3008 | decided | Cycle |
+| Readiness state (cross-skill "next for whom") | **no owner yet** — resolves with t-2834; intended home: [backlog-v3-schema.md](features/backlog-v3-schema.md) + ADR amendment | gated | Cycle |
+| Two-bucket backlog lens + usage-lens correction | this page §Cycle + memory `feedback_backlog-field-usage-vs-feed-mechanism` | landed | Cycle |
+| Pocock alignment verdicts | [research/2026-08-22-pocock-alignment-decision-matrix.md](../research/2026-08-22-pocock-alignment-decision-matrix.md) | landed | Cycle/Gate |
+| Two rooms + hands store (`room`) | [ADR-063](decisions/ADR-063-pending-questions-store.md) (amend); build t-3021 | decided | Gate |
+| `ask()` compile table | runner-layer prose — **owner to create:** [`system/loops/README.md`](../../system/loops/README.md) §ask (t-3021) | decided | Gate |
+| Judge ladder | [ADR-082](decisions/ADR-082-multi-agent-sizing-function.md) + [`_shared/judge-sizing.md`](../../system/skills/_shared/judge-sizing.md) | shipped | Gate |
+| Valve inventory + three tiers; GitHub at tier 2 | this page §Gate; t-3022, t-3023 | landed | Gate |
+| Sandbox / capability isolation | [ADR-062](decisions/ADR-062-runner-executor-sandbox.md) + [runner-capability-isolation.md](../ideas/drained/runner-capability-isolation.md) | shipped | Gate |
+| Autonomy ladder / shape graduation | [brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md) + [ADR-068](decisions/ADR-068-v3-supersession.md) §3 | governing | Gate |
+| Orbit satellite · model/effort routing | ⏸ none (L4.5 / L4.6) | parked | Gate |
+| Vocabulary | this page §Vocabulary | landed | all |
+
+Two concepts have no owner by design (readiness state, `ask()` prose) — both gated; intended homes are recorded above so they aren't invented twice. `drained/wave-pipeline.md` owns nothing after this map.
 
 ## Reading map
 
