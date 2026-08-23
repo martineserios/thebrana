@@ -105,6 +105,7 @@ Absorbed from `drained/wave-pipeline.md` (D3, 2026-08-23); this page is now the 
 | **Queue** | Durable state holding work between pumps — the loop's only memory | waves, `inbox/`, branches (`ready/*`), URL jsonl, ADR-063's hands store |
 | **Pump** | A loop moving work exactly one stage forward; a *station* is the body of a pump | `wave pull`, drain loop, epic-drain, cleanup |
 | **Valve** | A human gate between stages — never automated, never armed by the party it constrains | `ac approve`, merge→dev, ship→main, `wave … shipped` (full inventory: §Gate L4.4) |
+| **Human mode** | The caller-set compile target for a station's asks: `inside` (AskUserQuestion) · `valve` (raise a hand, stop the beat) · `none` (granted default). "Presence" in §Gate's interlock bullet is the same axis. Set by the caller, never the station. | this page §Gate (L4.2) |
 | **Gauge** | A readout on a queue or the pumps — never acts, makes the next decision cheap | wave board, watchdog, beat telemetry |
 
 Every queue answers five verbs — `peek / pull / ack / dead-letter / depth` — with its store's native atomic primitive doing `pull` (lock+write for waves, `mv` for dirs, `update-ref` for git). Native stores stay authoritative; the abstraction lives only at the verb interface ([features/loops-library.md](features/loops-library.md) has the contract).
