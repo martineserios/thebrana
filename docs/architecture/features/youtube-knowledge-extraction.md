@@ -15,7 +15,7 @@ doc covering usage is tracked separately as t-2953 (pending).
 
 ## Changelog
 - 2026-08-21: youtube fetch tier implemented and merged (t-2950).
-- 2026-08-23: §7 cookie/auth passthrough specified (t-3033) — live bot-check blocks unauthenticated yt-dlp.
+- 2026-08-23: §7 cookie/auth passthrough specified and implemented (t-3033) — live bot-check blocks unauthenticated yt-dlp.
 
 ## Problem
 

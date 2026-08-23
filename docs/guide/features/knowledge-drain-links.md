@@ -23,6 +23,9 @@ brana knowledge drain-links --dry-run
 | `--file` | current project's `tasks.json` | Which backlog to drain |
 | `--cap` | `3` | Max links this run; the rest stay pending |
 | `--dry-run` | off | List selections and exit |
+| `--platform` | shared job | Restrict to one platform (`youtube` runs as its own job) |
+| `--cookies-from-browser` | off | YouTube auth via a browser's cookie store (see below) |
+| `--cookies` | off | YouTube auth via an exported cookie jar (see below) |
 
 ## What it does
 
@@ -76,6 +79,42 @@ backlog, including the capture script feeding it.
 > at 240s even with a valid session, so LinkedIn links fail and stay pending.
 > `drain-links` behaves correctly under this — nothing is falsely completed —
 > but it cannot yet drain the LinkedIn backlog. Public URLs are unaffected.
+
+## YouTube needs an authenticated session
+
+YouTube's bot-check ("Sign in to confirm you're not a bot") blocks
+unauthenticated `yt-dlp` caption fetches — even a current `yt-dlp` with a JS
+runtime for its PO-token challenge fails (live, 2026-08-23). Pass cookies
+through with one of two flags (mutually exclusive; `process-url` and
+`channel-backfill` accept the same two):
+
+```bash
+# Interactive: read the live cookie store of a browser you're signed into
+brana knowledge drain-links --platform youtube --cookies-from-browser chrome
+# yt-dlp syntax is passed verbatim: firefox, chrome+gnomekeyring:Default, …
+
+# Scheduled: export a cookie jar once, then point the job at the file
+yt-dlp --cookies-from-browser chrome --cookies ~/.config/brana/yt-cookies.txt \
+       --skip-download https://www.youtube.com/watch?v=jNQXAC9IVRw
+chmod 600 ~/.config/brana/yt-cookies.txt
+brana knowledge drain-links --platform youtube --cookies ~/.config/brana/yt-cookies.txt
+```
+
+`--cookies-from-browser` may prompt your keyring on Linux and fails if the
+browser holds an exclusive lock on its cookie DB — that is `yt-dlp`'s own
+behaviour and the error is shown as-is.
+
+**The jar file is never modified.** `yt-dlp` rewrites whatever `--cookies`
+file it is given on exit; brana copies your jar into a per-call scratch
+directory (mode `0600`, deleted afterwards) and hands `yt-dlp` the copy, so
+overlapping runs can't race on it and a killed fetch can't truncate it.
+A missing or unreadable `--cookies` path is rejected before anything runs.
+
+**Treat the jar as a password.** It is a bearer credential for the Google
+account. brana never logs the path or its contents, but a scheduler that
+captures the job's full command line will show the path — keep the file
+`0600` and outside any synced folder. Persisted config for the flag (so an
+auto-drain job needs no flag) is deliberately not implemented yet.
 
 ## Scheduling
 
