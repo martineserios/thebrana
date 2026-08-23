@@ -3309,6 +3309,7 @@ def456
             "https://www.youtube.com/@example",
             ChannelTab::Videos,
             ChannelSelection::Range { start: Some(1), end: Some(3) },
+            &YtDlpCookies::None,
             |_argv| Ok::<String, String>("id1
 id2
 id3
@@ -3332,6 +3333,7 @@ id3
             "https://www.youtube.com/@empty-channel",
             ChannelTab::Videos,
             ChannelSelection::Range { start: None, end: None },
+            &YtDlpCookies::None,
             |_argv| Ok::<String, String>(String::new()),
         );
         let empty: Vec<String> = Vec::new();
@@ -3348,6 +3350,7 @@ id3
             "https://www.youtube.com/@example",
             ChannelTab::Shorts,
             ChannelSelection::MaxDuration(60),
+            &YtDlpCookies::None,
             |_argv| -> Result<String, String> {
                 panic!("subprocess runner must not be invoked for MaxDuration on Shorts")
             },
@@ -3461,6 +3464,68 @@ id3
         let sep_idx = args.iter().position(|a| a == "--").expect("-- separator present");
         assert_eq!(args[sep_idx + 1], "-exec=rm -rf /");
         assert!(args[..sep_idx].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
+    // ── channel listing argv + cookies (t-3035, feature spec §7) ────────
+
+    #[test]
+    fn test_build_channel_listing_args_no_cookies_has_separator_before_url() {
+        let sel = vec!["--playlist-end".to_string(), "3".to_string()];
+        let args = build_channel_listing_args(&YtDlpCookies::None, &sel, "https://www.youtube.com/@x/videos");
+        let expected: Vec<String> = [
+            "--flat-playlist", "--skip-download", "--playlist-end", "3", "--print", "%(id)s",
+            "--", "https://www.youtube.com/@x/videos",
+        ].iter().map(|s| s.to_string()).collect();
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn test_build_channel_listing_args_cookies_precede_selection_args() {
+        let sel = vec!["--playlist-items".to_string(), "1,2".to_string()];
+        let args = build_channel_listing_args(
+            &YtDlpCookies::File(PathBuf::from("/tmp/jar.txt")),
+            &sel,
+            "https://www.youtube.com/@x/videos",
+        );
+        let c = args.iter().position(|a| a == "--cookies").expect("--cookies present");
+        assert_eq!(args[c + 1], "/tmp/jar.txt");
+        let p = args.iter().position(|a| a == "--playlist-items").unwrap();
+        assert!(c < p, "cookie args must precede selection args");
+        let sep = args.iter().position(|a| a == "--").unwrap();
+        assert_eq!(sep, args.len() - 2);
+    }
+
+    // Injection guard (§2 applied to the listing URL — pre-existing gap
+    // closed by t-3035): a dash-prefixed listing URL lands after `--`.
+    #[test]
+    fn test_build_channel_listing_args_dash_prefixed_url_never_precedes_separator() {
+        let args = build_channel_listing_args(&YtDlpCookies::None, &[], "-exec=rm -rf /");
+        let sep = args.iter().position(|a| a == "--").unwrap();
+        assert_eq!(args[sep + 1], "-exec=rm -rf /");
+        assert!(args[..sep].iter().all(|a| a != "-exec=rm -rf /"));
+    }
+
+    // The injected runner must observe the cookie args — otherwise the
+    // cookie insertion is covered only "verified live" (challenger §7 #2).
+    #[test]
+    fn test_fetch_youtube_channel_videos_with_runner_passes_cookie_args_to_runner() {
+        let seen = std::cell::RefCell::new(Vec::new());
+        let result = fetch_youtube_channel_videos_with_runner(
+            "https://www.youtube.com/@example",
+            ChannelTab::Videos,
+            ChannelSelection::Range { start: None, end: Some(2) },
+            &YtDlpCookies::FromBrowser("chrome".to_string()),
+            |argv| {
+                seen.borrow_mut().extend(argv.iter().cloned());
+                Ok::<String, String>("id1\n".to_string())
+            },
+        );
+        assert_eq!(result.unwrap(), vec!["https://www.youtube.com/watch?v=id1"]);
+        let argv = seen.into_inner();
+        let c = argv.iter().position(|a| a == "--cookies-from-browser").expect("cookie flag reached runner");
+        assert_eq!(argv[c + 1], "chrome");
+        assert!(argv.contains(&"--playlist-end".to_string()));
+        assert_eq!(argv.last().unwrap(), "https://www.youtube.com/@example/videos");
     }
 
     // ── yt-dlp cookie/auth passthrough (t-3033, feature spec §7) ────────
