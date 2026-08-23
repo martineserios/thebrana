@@ -2151,19 +2151,23 @@ pub fn youtube_video_id_to_url(id: &str) -> String {
 /// fails the test if the subprocess mock is invoked" for the
 /// Shorts+MaxDuration caller-error case).
 ///
-/// `run` receives the argv built by [`build_channel_selection_args`]
-/// (flags only — the channel URL/tab suffix is appended separately)
-/// and returns `yt-dlp`'s stdout on success. Never called at all when
-/// [`build_channel_selection_args`] itself returns `Err` — the error
-/// path must short-circuit before `run` is invoked.
+/// `run` receives the **full** yt-dlp argv built by
+/// [`build_channel_listing_args`] (cookies, selection flags, `--print`,
+/// `--`, listing URL) and returns `yt-dlp`'s stdout on success. Never
+/// called at all when [`build_channel_selection_args`] itself returns
+/// `Err` — the error path must short-circuit before `run` is invoked.
+/// Handing the whole argv to `run` (t-3035) is what lets the fixture
+/// tests observe the cookie args rather than leaving them "verified live".
 pub fn fetch_youtube_channel_videos_with_runner(
     channel_url: &str,
     tab: ChannelTab,
     selection: ChannelSelection,
+    cookies: &YtDlpCookies,
     run: impl FnOnce(&[String]) -> Result<String, String>,
 ) -> Result<Vec<String>> {
-    let _ = channel_url; // only the real subprocess wrapper needs it, to build the full yt-dlp URL
-    let args = build_channel_selection_args(tab, &selection)?;
+    let selection_args = build_channel_selection_args(tab, &selection)?;
+    let listing_url = channel_listing_url(channel_url, tab);
+    let args = build_channel_listing_args(cookies, &selection_args, &listing_url);
     let output = run(&args).map_err(|e| anyhow::anyhow!(e))?;
     Ok(parse_flat_playlist_ids(&output)
         .iter()
@@ -2171,37 +2175,62 @@ pub fn fetch_youtube_channel_videos_with_runner(
         .collect())
 }
 
+/// `{channel_url}/{videos|shorts}` — the tab listing yt-dlp enumerates.
+fn channel_listing_url(channel_url: &str, tab: ChannelTab) -> String {
+    let tab_path = match tab {
+        ChannelTab::Videos => "videos",
+        ChannelTab::Shorts => "shorts",
+    };
+    format!("{}/{tab_path}", channel_url.trim_end_matches('/'))
+}
+
+/// Build the exact argv for the channel-listing yt-dlp invocation
+/// (feature spec §7). Pure. Cookie args precede the selection flags; the
+/// `--` separator before the listing URL applies §2's injection guard to
+/// the channel URL too — a gap the pre-t-3035 wrapper left open.
+pub fn build_channel_listing_args(
+    cookies: &YtDlpCookies,
+    selection_args: &[String],
+    listing_url: &str,
+) -> Vec<String> {
+    let mut args = vec!["--flat-playlist".to_string(), "--skip-download".to_string()];
+    args.extend(cookies.to_args());
+    args.extend(selection_args.iter().cloned());
+    args.push("--print".to_string());
+    args.push("%(id)s".to_string());
+    args.push("--".to_string());
+    args.push(listing_url.to_string());
+    args
+}
+
 /// Enumerate a YouTube channel tab's video URLs via `yt-dlp
 /// --flat-playlist`, narrowed by `selection`. Shells out once, same
 /// subprocess discipline as [`fetch_youtube_content`] — never acquires
-/// [`lock_pipeline`] (feature spec §1).
+/// [`lock_pipeline`] (feature spec §1). `cookies` is staged into a
+/// scoped scratch dir exactly as the caption fetch does (§7) — the
+/// operator's jar is never handed to yt-dlp.
 ///
 /// The subprocess spawn itself stays untested here (verified live
 /// instead, same discipline as `fetch_youtube_content` above) — the
 /// fixture-testable logic (argv construction, listing parse,
 /// ID-to-URL mapping, the Shorts+MaxDuration caller error) lives in
-/// [`build_channel_selection_args`], [`parse_flat_playlist_ids`],
-/// [`youtube_video_id_to_url`], and [`fetch_youtube_channel_videos_with_runner`],
-/// which this delegates to.
+/// [`build_channel_selection_args`], [`build_channel_listing_args`],
+/// [`parse_flat_playlist_ids`], [`youtube_video_id_to_url`], and
+/// [`fetch_youtube_channel_videos_with_runner`], which this delegates to.
 pub fn fetch_youtube_channel_videos(
     channel_url: &str,
     tab: ChannelTab,
     selection: ChannelSelection,
+    cookies: &YtDlpCookies,
 ) -> Result<Vec<String>> {
-    let tab_path = match tab {
-        ChannelTab::Videos => "videos",
-        ChannelTab::Shorts => "shorts",
-    };
-    let listing_url = format!("{}/{tab_path}", channel_url.trim_end_matches('/'));
+    let work_dir = ScopedYtDlpWorkDir::create()?;
+    let staged = stage_cookie_jar(cookies, &work_dir.path)?;
+    let listing_url = channel_listing_url(channel_url, tab);
 
-    fetch_youtube_channel_videos_with_runner(channel_url, tab, selection, |args| {
-        let mut cmd = std::process::Command::new("yt-dlp");
-        cmd.arg("--flat-playlist").arg("--skip-download");
-        cmd.args(args);
-        cmd.arg("--print").arg("%(id)s");
-        cmd.arg(&listing_url);
-
-        let out = cmd
+    fetch_youtube_channel_videos_with_runner(channel_url, tab, selection, &staged, |args| {
+        let out = std::process::Command::new("yt-dlp")
+            .current_dir(&work_dir.path)
+            .args(args)
             .output()
             .map_err(|e| format!("spawning yt-dlp for {listing_url}: {e}"))?;
         if !out.status.success() {
