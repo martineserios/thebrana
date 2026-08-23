@@ -4,13 +4,13 @@ status: accepted
 
 # ADR-084: Upstream Skill Band — Vendored Pocock Cognitive Skills Over Brana Orchestration Shells
 
-**Status:** Accepted — pilot-only (2026-08-17)
+**Status:** Accepted — pilot-only (2026-08-17); challenge findings applied 2026-08-23 (see Challenge record)
 **Date:** 2026-08-17
 **Deciders:** Martín Rios
-**Tags:** skills, mattpocock-mining, wave-pipeline, adr, upstream-band
+**Tags:** skills, mattpocock-mining, the-brana, adr, upstream-band
 **Tasks:** t-2837 (this ADR) · t-2830 (source research) · t-2834 (pilot beat: diagnosing-bugs) · t-2835, t-2836 (gated on pilot) · t-2833, t-2831, t-2832 (already shipped, unaffected)
 **Relates:** [t-2830 research](../research/2026-08-13-matt-pocock-skill-system.md) (comparison table, §4 proposals, §7 integration modes) ·
-[wave-pipeline.md](../../ideas/drained/wave-pipeline.md) (§The spectrum, §The skeleton match — the layer test this ADR applies) ·
+[the-brana.md §Scale](../the-brana.md) (the layer test / spectrum / skeleton match this ADR applies — absorbed from `drained/wave-pipeline.md`, t-3028) · [ADR-085](ADR-085-skills-as-stations-no-atom-schema.md) (adapter-as-station reading, D3/D6 — lands after this ADR) ·
 [ADR-078](ADR-078-stale-task-park-via-tag.md) (`parked` tag mechanism used to gate t-2835/t-2836) ·
 [ADR-012](ADR-012-acquire-skills.md) (existing vendoring precedent: `.agents/skills/` + `skills-lock.json`, reused here rather than reinvented) ·
 [docs/reference/skill-writing-craft.md](../../reference/skill-writing-craft.md) (t-2833's shipped ADAPT-mode doc, ratified as final for `writing-for-agents` below) ·
@@ -45,7 +45,7 @@ epic's blocked children need before code starts.
 
 ### 1. The layer test — this is a new band, not a new skill format
 
-Per wave-pipeline.md's admission rule ("a proposed band is real iff you can name its queue,
+Per the layer test owned by [the-brana.md §Scale](../the-brana.md) ("a proposed band is real iff you can name its queue,
 pump, valve, gauge, and memory contract — admission stays graded, a band exists once
 something has actually cycled in it with records emitted"), the upstream band is specified
 as follows and admitted **pilot-only** (§5) pending its first real beat:
@@ -59,7 +59,10 @@ as follows and admitted **pilot-only** (§5) pending its first real beat:
 | **Memory** | This ADR (read-on-entry) + each adapter's own header (source repo, pinned tag, last-sync-check date) — write-on-exit is the sync report landing in the adapter's context. |
 
 The band is **not** materialized by this ADR alone — per the layer test's own admission
-rule, it materializes only once the pilot beat (§5) actually cycles.
+rule, it materializes only once the pilot beat (§5) actually cycles. The table above is this
+ADR's *instance* of the test; the test itself, and the station reading of "adapter" (a thin
+user-invoked wrapper over a model-invoked organ), are owned by the-brana.md §Scale and
+ADR-085 D3/D6 respectively — not restated here.
 
 ### 2. Vendoring mechanism — reuse `.agents/skills/` + `skills-lock.json`, not native plugin install
 
@@ -71,10 +74,18 @@ Two mechanisms exist in the repo already; neither needs inventing:
   queue/pump/valve model requires. **Rejected** for this band.
 - **File-copy vendoring** (`.agents/skills/<name>/`, symlinked at `.claude/skills/<name>`,
   tracked in `skills-lock.json` with `source`, `sourceType`, `skillPath`, `computedHash`) —
-  already proven for 15 acquired thinking-skills (ADR-012). **Adopted.** Extend the
-  existing schema with one field: `pinnedRef` (the upstream git tag, e.g. `"v1.2.3"`) —
-  `computedHash` alone tells a machine whether content changed; it doesn't tell a human how
-  far behind the pin is, which the gauge (§1) needs to report.
+  already proven for 15 acquired thinking-skills (ADR-012). **Adopted, with two schema
+  extensions** (challenge finding #2, 2026-08-23):
+  - `pinnedRef` (the upstream git tag, e.g. `"v1.2.3"`) — `computedHash` alone tells a
+    machine whether content changed; it doesn't tell a human how far behind the pin is, which
+    the gauge (§1) needs to report.
+  - **`computedHash` covers the whole vendored directory**, not `SKILL.md` alone: hash of
+    every file under `.agents/skills/<name>/` (sorted path + content), with the hashed paths
+    recorded in a `files[]` list. Today's lock hashes one file per skill, so companion files
+    (`diagnosing-bugs` ships `agents/` and `scripts/hitl-loop.template.sh`) would drift
+    invisibly — the §1 gauge would be blind to exactly the files most likely to break the
+    adapter. The 15 existing single-file entries stay valid (their directory *is* one file);
+    `files[]` is required only for multi-file skills.
 
 Each vendored organ lands at `.agents/skills/<pocock-name>/` verbatim (SKILL.md +
 sub-files: `agents/`, `scripts/`, or companion `.md` references, whatever the upstream skill
@@ -104,7 +115,11 @@ updates." Its contract:
   (`/setup-matt-pocock-skills` → adapter always pre-supplies the issue-tracker answer, so
   this path never fires). This redirect table lives **in the adapter**, not upstream — it
   is exactly the part that silently breaks on a `git pull`-style bump if not re-checked at
-  every valve turn (§1 pump/valve).
+  every valve turn (§1 pump/valve). **Artifact (challenge finding #4):** the adapter
+  commits the table as a checkable list — every upstream slash-reference (`/name`) found in
+  the vendored skill's text, mapped to its brana redirect or explicit no-op. The §1 pump
+  re-greps upstream's slash-refs on every bump and diffs them against this list; an unmapped
+  ref is a reported drift, not a silent break. t-2834 ships the first list.
 - **`CONTEXT.md` assumption.** Upstream skills read a repo-root `CONTEXT.md` glossary file
   brana does not maintain. The adapter substitutes brana's own memory system
   (`docs/architecture/`, `~/.claude/projects/.../memory/`) — pass the relevant glossary
@@ -163,21 +178,33 @@ skill-system gap). `setup-ts-deep-modules` — N/A (not portable, brana is Rust/
 
 Three same-day artifacts (t-2830 §7's DEPEND/ADAPT/SKIP tables, the studio dialogue
 recorded in t-2837's context, and each task's own AC) disagreed with each other in three
-places. This ADR is the settling authority per its own AC; the resolutions, summarized:
+places. This ADR is the settling authority per its own AC. **One tie-break rule, applied to
+all three** (challenge finding #1 — the draft mixed recency for conflict 1 with specificity
+for conflict 2, and §7 is dated *later* than §4, so "later wins" would have flipped conflict
+2; the rule below is document-order-independent):
 
-1. **`code-review` (t-2835): ADAPT → VENDOR+WRAP.** Studio dialogue (more specific, same
-   day, explicitly named this task) overrides §7's table entry.
-2. **`resolving-merge-conflicts`: DEPEND (table) → SKIP.** §4's explicit, reasoned P9
-   reject (same document, more specific than the table) overrides the table entry. No task
-   was ever filed for it — the reject was never actually reversed, just inconsistently
-   re-listed.
-3. **`wizard` (t-2836): ambiguous → confirmed VENDOR+WRAP, in scope.** §7's DEPEND table
-   is explicit; the studio note's silence is read as omission per its own hedge language
-   ("this may be an omission... flag for the ADR's author").
+> **R1.** An explicit, *reasoned* rejection is never reversed by a later table that merely
+> re-lists the item without new reasoning.
+> **R2.** A note that *names the specific task* overrides a generic table entry that does not.
+>
+> Neither clause asks which artifact is dated later.
+
+The resolutions, each with the clause that decides it:
+
+1. **`code-review` (t-2835): ADAPT → VENDOR+WRAP.** *R2:* the studio dialogue names
+   t-2835 explicitly; §7's ADAPT entry is a generic table row. (Recency is irrelevant.)
+2. **`resolving-merge-conflicts`: DEPEND (table) → SKIP.** *R1:* §4 P9 is a reasoned
+   rejection; §7's DEPEND row re-lists it with no new reasoning. No task was ever filed —
+   the reject was never reversed, just inconsistently re-listed. (That §7 is dated later
+   changes nothing under R1.)
+3. **`wizard` (t-2836): ambiguous → confirmed VENDOR+WRAP, in scope.** *Neither clause
+   fires against the table:* the studio note neither rejects `wizard` (no R1 trigger) nor
+   names t-2836 (no R2 trigger) — it is silent, and its own hedge language reads that
+   silence as omission. The only explicit statement (§7's DEPEND row) stands.
 
 ### 6. Decision — **pilot-only**, not a standing band yet
 
-Per wave-pipeline.md's graded-admission rule and the loop-first discipline (t-1994: "redesign
+Per the graded-admission rule (the-brana.md §Scale) and the loop-first discipline (t-1994: "redesign
 follows observed loop failures, not upfront design" — never a big-bang rewrite), this ADR
 approves:
 
@@ -222,6 +249,19 @@ band is materialized) if, at evaluation:
 **Pilot-only, evidence held open** if neither threshold is clearly crossed at 30 days —
 extend the observation window once, do not default to expand.
 
+**Pre-registered proxies** (challenge finding #3 — the t-2591 precedent computed its
+threshold three ways *before* looking; these are fixed now, before t-2834 starts):
+- `adapter_churn` — commits touching the adapter (`system/skills/<brana-name>/SKILL.md` +
+  its redirect list) *after its first working version*, from `git log --follow` on those
+  paths at evaluation time. **Kill signal: ≥2 such commits** without an upstream bump
+  driving them (the wrapper is being rewritten to keep working — `churn_share`'s analog).
+- `invocations` — count of records emitted by the adapter in the window (grep on the
+  records path the adapter writes). **Kill signal: 0.** Expand's "changed outcome" test
+  is judged on those same records, not on recollection.
+- `upstream_delta` — `git log v1.2.3..<latest-tag> -- skills/engineering/diagnosing-bugs/`
+  in the upstream repo at evaluation. Reviewable diff = expand-eligible; rename or
+  restructure = maintainability signal for kill.
+
 ## Consequences
 
 - **Positive:** the six-task wave-3 batch is unblocked with an explicit, reconciled
@@ -255,11 +295,25 @@ extend the observation window once, do not default to expand.
 
 - [t-2830 research doc](../research/2026-08-13-matt-pocock-skill-system.md) §1 (comparison
   table), §4 (scored proposals), §7 (integration modes)
-- [wave-pipeline.md](../../ideas/drained/wave-pipeline.md) §The spectrum (layer test),
-  §The skeleton match
+- [the-brana.md §Scale](../the-brana.md) (layer test, spectrum, skeleton match — absorbed
+  from `drained/wave-pipeline.md`, t-3028) · [ADR-085](ADR-085-skills-as-stations-no-atom-schema.md)
+  (adapter-as-station, D3/D6)
 - [ADR-012](ADR-012-acquire-skills.md) (vendoring precedent reused, §2)
 - [ADR-078](ADR-078-stale-task-park-via-tag.md) (`parked` tag mechanism, §6)
 - [gentle-ai-adoption-ladder.md §Rung 3](../../ideas/drained/gentle-ai-adoption-ladder.md) /
   t-2591 (kill-threshold precedent reused in §7)
 - Upstream: [github.com/mattpocock/skills](https://github.com/mattpocock/skills) `v1.2.3`,
   MIT license (confirmed via `gh api`, no clearance blocker — same finding as t-2833)
+
+## Challenge record
+
+- 2026-08-18: `/brana:challenge` — the merged 3-agent synthesis never landed; the interim
+  direct-analysis report is the report of record. Findings: (1) CRITICAL §5 tie-break
+  inconsistent; (2) CRITICAL §2 lock hashes one file per skill; (3) WARN §7 kill/expand
+  uninstrumented; (4) WARN §3 name-remap re-check has no artifact; (5) OBS wizard resolution
+  lowest-risk. Operator HOLD placed 2026-08-18 pending idea consolidation.
+- 2026-08-23: hold lifted (consolidation landed as the-brana.md). Findings 1–4 applied in
+  place (§5 rule R1/R2; §2 dir-level `computedHash` + `files[]`; §7 pre-registered proxies;
+  §3 redirect-check artifact); 5 accepted. t-2834 AC widened to match §2/§3/§7. §1/§3/refs
+  repointed from `drained/wave-pipeline.md` to the-brana.md §Scale and ADR-085 (t-3028
+  absorb). ADR-085 declares a landing dependency on this ADR; this lands first.
