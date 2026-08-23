@@ -16,6 +16,7 @@ doc covering usage is tracked separately as t-2953 (pending).
 ## Changelog
 - 2026-08-21: youtube fetch tier implemented and merged (t-2950).
 - 2026-08-23: §7 cookie/auth passthrough specified and implemented (t-3033) — live bot-check blocks unauthenticated yt-dlp.
+- 2026-08-23: §8 persisted cookie jar (default path, t-3038) — scheduled drain needs no per-run flag.
 
 ## Problem
 
@@ -325,9 +326,9 @@ Threading, lowest layer first:
   documented behaviour and surfaces through the existing
   `subprocess_diagnostic` error path unchanged.
 - The persisted-config form (so an auto-drain/auto-follow job needs no
-  human flag — t-2995's gap) is **deliberately out of scope**: it is a
-  config-schema decision, not a flag-threading one. Tracked as a follow-up
-  filed at CLOSE.
+  human flag — t-2995's gap) was out of scope for t-3033 (a config-schema
+  decision, not a flag-threading one). Specified and implemented in §8
+  (t-3038).
 - Security: a cookie jar is a bearer credential for the Google account.
   The path is never logged by brana and never stored in tasks.json; the
   staged copy is 0600 in a per-process scratch dir and removed on drop.
@@ -382,6 +383,82 @@ now takes cookies; `cmd_process_url_batch` omitted → threaded; relative
 open-for-read; missing `--` in channel wrapper → closed via
 `build_channel_listing_args`; "byte-identical to §2" wording → pinned to
 shipped code; non-UTF-8 path → rejected at resolve.
+
+### 8. Persisted cookie jar — the default path (t-3038)
+
+**Problem.** §7's two flags are CLI-only. The scheduler job
+`link-research-extraction-youtube` (`brana knowledge drain-links --cap 3
+--platform youtube`) and any future auto-follow/auto-drain (t-2995) cannot
+pass a flag per run, so every scheduled youtube drain fails the bot-check
+exactly as the unauthenticated live run did on 2026-08-23. The job's
+`_comment` has said "DO NOT enable" since t-3033.
+
+**Options considered.**
+- *JSON config key* (`~/.config/brana/knowledge.json` → `yt_dlp_cookies_file`):
+  introduces a config loader for one key. Rejected — heaviest surface.
+- *Env var only* (`BRANA_YT_DLP_COOKIES=<path>`): matches the
+  `BRANA_KNOWLEDGE_ROOT` precedent, but scheduler jobs run under a systemd
+  user timer and `brana-scheduler-runner.sh` sources no env file *before*
+  the job (`cf-env.sh` is sourced only afterwards, for the memory write) —
+  the var would need new runner plumbing or `systemctl --user
+  set-environment` to reach the job. Rejected for v1.
+- *Well-known default path*: chosen. Zero-config for the scheduler; the
+  path is the one the user guide already told operators to export to.
+
+**Decision (frozen 2026-08-23).** `~/.config/brana/yt-cookies.txt` is the
+persisted jar. `resolve_yt_dlp_cookies` (`commands/knowledge.rs`) becomes
+a thin wrapper over `resolve_yt_dlp_cookies_with(from_browser, file,
+default_jar: Option<&Path>)`:
+
+| Inputs | Result |
+|---|---|
+| `--cookies-from-browser B` | `FromBrowser(B)` — flags always win; the default path is not consulted |
+| `--cookies F` | `File(canonical F)` with §7's existing checks (canonicalize, open-for-read, UTF-8) |
+| neither, default path absent | `None` — today's behaviour, unchanged |
+| neither, default path present, mode has any group/other bit | `Err` naming the path and `chmod 600` — the jar is a Google bearer credential; an implicitly picked-up file must be private. Not a warning: refusing is the only way the requirement is enforced (same stance as `ssh` on a loose private key) |
+| neither, default path present, 0600 but unreadable/non-UTF-8 | `Err` — the operator placed a file there; failing loud beats silently draining unauthenticated and burning yt-dlp's 429 budget |
+| neither, default path present, 0600, readable | `File(canonical path)` — then §7's `stage_cookie_jar` copies it into the scratch dir as before; the persisted file is never handed to yt-dlp |
+
+The mode check applies only to the *implicit* default; an explicit
+`--cookies F` keeps §7's contract (operator's explicit choice, documented
+as their responsibility). `$HOME` resolution reuses `brana_core::util::home`;
+the default path is a parameter so tests never touch the real home.
+
+**Consequences.**
+- Scheduler: `link-research-extraction-youtube`'s command is unchanged;
+  its `_comment` now says "export the jar to the default path, then
+  enable". Enabling stays a human action (the job is still `enabled:false`).
+- Where the jar lives: `~/.config/brana/` is already the home of
+  `linear.env` (0600) — per-user, outside the synced `~/.claude/` tree and
+  outside every git repo.
+- No opt-out flag (`--no-cookies`) in v1: an operator who exported a jar to
+  the documented path wants it used. Revisit if a real case appears.
+- Not logged: the resolver prints nothing on the happy path; the path
+  appears only in its own error messages (the location is documented, not
+  secret — the contents are).
+
+**Tests (TDD).** `resolve_yt_dlp_cookies_with` against a tempdir default:
+absent → `None`; present 0600 → `File(canonical)`; present 0644 → `Err`
+containing the path and `chmod 600`; browser flag + present default →
+`FromBrowser` (flag wins); explicit `--cookies` + present default → the
+explicit file; present 0600 but unreadable (0000 — skipped as root) →
+`Err`. The pre-existing neither-flag test moves to the injectable form
+(`resolve_yt_dlp_cookies_with(None, None, None)`) so the suite stays
+hermetic once an operator's jar exists at the real default path
+(challenger finding). `default_yt_dlp_cookie_jar_in(home)`: absolute home
+→ `Some(<home>/.config/brana/yt-cookies.txt)`; empty or relative home →
+`None` (rung-2 panel finding C3: `util::home()` yields `""` when `$HOME`
+is unset, which would have made the default a cwd-relative path).
+
+**Rung-2 panel (2026-08-23).** Refuted at sev 1 (same-user trust
+boundary — the only party who can swap or loosen a file under
+`~/.config/brana` is the user who owns the credential): TOCTOU between
+the mode check and `open`, check-once-use-many across a batch, parent-dir
+permissions, ownership (factually wrong — a jar owned by another user
+fails `open` with EACCES), `#[cfg(unix)]` compile-out (no non-unix
+target). Revisit `openat(O_NOFOLLOW)` + `fstat` + `uid == geteuid()` only
+if the jar ever moves outside `$HOME`. Sibling outside the diff filed as
+t-3042 (`linear.env` reader has no mode check).
 
 ## What does NOT change
 
