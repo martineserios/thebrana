@@ -184,8 +184,8 @@ Term → one line → owner doc. Every term here traces back to a node in [the-b
 | Term | One-line | Owner |
 |---|---|---|
 | **Valve** | A human gate, placed by reversibility. | this page (absorbing [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md)) |
-| **Studio** | The room for slow, high-thinking design work. | [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms |
-| **Cockpit** | The room for fast, low-thinking approvals. | [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms |
+| **Studio** | The room for slow, high-thinking design work. | this page §Gate (absorbed from [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms) |
+| **Cockpit** | The room for fast, low-thinking approvals. | this page §Gate (absorbed from [drained/wave-pipeline.md](../ideas/drained/wave-pipeline.md) §two rooms) |
 | **Judge** | The machine or panel that owns a reversible-outcome decision. | [ADR-082](decisions/ADR-082-multi-agent-sizing-function.md) |
 | **Autonomy rung** | L1 report-only / L2 assisted / L3 unattended — gated by AC coverage ("Non-AC fallback: stays L2"). *Not* this guide's L0–L6 walk levels — same letter, different axis. | [drained/brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md) §graduated autonomy ladder |
 | **AC** | Machine-checkable definition of done; gates `/goal` and L3 eligibility. | [ADR-047](decisions/ADR-047-acceptance-criteria-schema.md), [ac-grammar.md](ac-grammar.md) |
