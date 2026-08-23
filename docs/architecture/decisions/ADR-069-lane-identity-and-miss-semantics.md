@@ -3,7 +3,7 @@ status: proposed
 ---
 # ADR-069: Lane Identity, Miss Semantics, and the Unbuilt Axes of v3
 
-- **Status:** Proposed — **two of six decisions require redesign before Accepted** (t-2516
+- **Status:** Proposed, **partially superseded** (2026-08-23, t-3030 — see §Amendment): D3.2 and D3b are retracted per t-2516; the remaining decisions stand as Proposed. Original line (its "six" count is stale — the Decision section itself lists D0, D0b, D1–D6 with sub-items; retraction is by label, not by count): **two of six decisions require redesign before Accepted** (t-2516
   verification, 2026-07-28). The *diagnosis* is unchanged and holds; **D3.2** (reflog
   attribution) and **D3b** (missing pin ⇒ fail loud) rest on mechanisms that verification
   contradicted. See the inline VERIFIED blocks in D3.2, D3b and D1's consequences.
@@ -522,3 +522,13 @@ wave 1 never ran. An ADR that ships schema without cleanup repeats that failure 
 - **One merged fix for all five symptoms.** Rejected: an earlier framing in the t-2488
   session claimed "one missing primitive, five symptoms." It was too neat. Identity and
   atomicity are independent (D4).
+
+## Amendment (2026-08-23, t-3030): partial supersession after t-2516
+
+t-2516 (2026-07-28, merged 7a7638a9) verified this ADR's three open mechanism questions and left the status deliberately Proposed. The-brana consolidation (board §3, guide L6 task E) resolves that hanging state explicitly rather than leaving the reader to infer it from inline VERIFIED blocks:
+
+- **Retracted:** **D3.2** (reflog attribution — the reflog is destroyed by the mandated worktree cleanup; attribution must be recorded at commit time, not reconstructed at close) and **D3b** (missing pin ⇒ fail loud — the autonomous sandbox cannot fire SessionStart, so fail-loud would break the secure default and reward disabling the sandbox). Neither is to be implemented as written; any redesign is a new ADR, not an edit here.
+- **Stand as Proposed:** D0, D0b, D1, D2, D3 (items other than 3.2), D4, D5, D6, and the Context diagnosis (Findings A/B, both reproductions).
+- **Frontmatter** stays `status: proposed` — the repo has no partial-supersession enum and this ADR is not superseded as a whole. The header line carries the qualifier.
+
+Refs: t-2516 notes · guide L6/E · board §3 ("amend or mark partially superseded").

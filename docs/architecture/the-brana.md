@@ -268,13 +268,13 @@ Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L5 (2026-08-23). Concep
 | Context economy as compactification | this page §Space (L2.5) + [context-budget.md](context-budget.md) (t-3014) | landed | Space |
 | Loop contract (7 laws, beat, ASSIMILATE/RESTART) | [features/loops-library.md](features/loops-library.md) | shipped | Cycle |
 | Workflow-vs-loop rule | this page §Cycle | landed | Cycle |
-| Wave mechanics (graph, gate, drain, pull, leases) | [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md) + [ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md); spec [plan-time-wave-graph.md](features/plan-time-wave-graph.md) | shipped; L3.3 amend pending | Cycle |
-| Wave = human unit / task = agent unit | ADR-085→086 (t-2980, renumber D2) | hold | Cycle |
+| Wave mechanics (graph, gate, drain, pull, leases) | [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md) + [ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md); spec [plan-time-wave-graph.md](features/plan-time-wave-graph.md) | shipped; ADR-079 amended 2026-08-23 (t-3030, L3.3) → impl t-3043 | Cycle |
+| Wave = human unit / task = agent unit | ADR-086 `decisions/ADR-086-wave-as-human-unit-pocock-ticket-shape.md` — file lives on t-2980's branch (88cde449), not yet on this one; link it when t-2980 lands | hold | Cycle |
 | Beat record = markdown doc | [features/loops-library.md](features/loops-library.md) + t-3008 | decided | Cycle |
 | Readiness state (cross-skill "next for whom") | **no owner yet** — resolves with t-2834; intended home: [backlog-v3-schema.md](features/backlog-v3-schema.md) + ADR amendment | gated | Cycle |
 | Two-bucket backlog lens + usage-lens correction | this page §Cycle + memory `feedback_backlog-field-usage-vs-feed-mechanism` | landed | Cycle |
 | Pocock alignment verdicts | [research/2026-08-22-pocock-alignment-decision-matrix.md](../research/2026-08-22-pocock-alignment-decision-matrix.md) | landed | Cycle/Gate |
-| Two rooms + hands store (`room`) | [ADR-063](decisions/ADR-063-pending-questions-store.md) (amend); build t-3021 | decided | Gate |
+| Two rooms + hands store (`room`) | [ADR-063](decisions/ADR-063-pending-questions-store.md) (amended 2026-08-23, t-3030 §Amendment: `room`); build t-3021 | decided | Gate |
 | `ask()` compile table | runner-layer prose — **owner to create:** [`system/loops/README.md`](../../system/loops/README.md) §ask (t-3021) | decided | Gate |
 | Judge ladder | [ADR-082](decisions/ADR-082-multi-agent-sizing-function.md) + [`_shared/judge-sizing.md`](../../system/skills/_shared/judge-sizing.md) | shipped | Gate |
 | Valve inventory + three tiers; GitHub at tier 2 | this page §Gate; t-3022, t-3023 | landed | Gate |
