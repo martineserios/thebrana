@@ -5718,6 +5718,79 @@ id3
         assert!(state.urls.contains_key(inner.as_str()));
     }
 
+    // ── migrate_urls_to_canonical_keys (t-3182, one-time key migration) ───
+
+    #[test]
+    fn test_migrate_keys_rewrites_decorated_keys() {
+        let mut state = PipelineState::default();
+        let raw = "https://example.com/post?utm_source=share&rcm=ACoAA";
+        state.urls.insert(raw.to_string(), UrlEntry {
+            status: UrlStatus::Tier1Passed,
+            tier1_score: Some(4),
+            ..UrlEntry::new_unprocessed(None)
+        });
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.rewritten, 1);
+        assert_eq!(result.merged, 0);
+        assert_eq!(state.urls.len(), 1);
+        let entry = &state.urls["https://example.com/post"];
+        assert_eq!(entry.status, UrlStatus::Tier1Passed);
+        assert_eq!(entry.tier1_score, Some(4), "entry data must survive re-keying");
+    }
+
+    #[test]
+    fn test_migrate_keys_collision_keeps_more_advanced_incoming() {
+        // Decorated key holds the advanced entry; canonical key holds a
+        // fresher Unprocessed duplicate — the advanced one must win.
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://example.com/post?utm_source=share".to_string(),
+            UrlEntry { status: UrlStatus::Tier2Clustered, ..UrlEntry::new_unprocessed(None) },
+        );
+        state.urls.insert(
+            "https://example.com/post".to_string(),
+            UrlEntry::new_unprocessed(None),
+        );
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.merged, 1);
+        assert_eq!(state.urls.len(), 1);
+        assert_eq!(state.urls["https://example.com/post"].status, UrlStatus::Tier2Clustered);
+    }
+
+    #[test]
+    fn test_migrate_keys_collision_keeps_more_advanced_existing() {
+        // Canonical key already holds the advanced entry; the decorated
+        // duplicate is Unprocessed — the advanced one must survive.
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://example.com/post".to_string(),
+            UrlEntry { status: UrlStatus::Tier3Drafted, ..UrlEntry::new_unprocessed(None) },
+        );
+        state.urls.insert(
+            "https://example.com/post?utm_source=share".to_string(),
+            UrlEntry::new_unprocessed(None),
+        );
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.merged, 1);
+        assert_eq!(state.urls.len(), 1);
+        assert_eq!(state.urls["https://example.com/post"].status, UrlStatus::Tier3Drafted);
+    }
+
+    #[test]
+    fn test_migrate_keys_idempotent_on_canonical_state() {
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw".to_string(),
+            UrlEntry::new_unprocessed(None),
+        );
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.rewritten, 0);
+        assert_eq!(result.merged, 0);
+        assert_eq!(state.urls.len(), 1);
+        let again = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(again.rewritten, 0, "second run must be a no-op");
+    }
+
     // ── PlatformAdapter dispatch (t-3170, ADR-087 content-shape adapters) ─
 
     #[test]
