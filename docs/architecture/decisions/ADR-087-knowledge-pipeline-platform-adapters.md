@@ -3,6 +3,7 @@
 **Status:** Proposed
 **Date:** 2026-08-24
 **Task:** t-3151
+**Depends on:** [ADR-042](ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md)
 
 ## Context
 
@@ -69,18 +70,30 @@ the adapter abstraction is being built regardless, and the fix is prompt-wording
 only — no new adapter kind, no behavior change to LinkedIn's actual scoring/clustering
 logic.
 
+**Wiring mechanism: extend `ingest`, do not add a second writer (ADR-042 compliance,
+resolved during DECOMPOSE impact analysis, 2026-08-24).** ADR-042 §1 is explicit:
+*"All URLs enter `pipeline-state.json` through `brana knowledge ingest`. No other
+code path writes URLs directly to pipeline state."* This ADR's earlier draft left
+"`drain-links` writing into both stores" as a candidate wiring mechanism — that
+would violate ADR-042 §1 by creating a second writer. Resolved: `ingest` itself is
+extended to accept an already-processed ruflo `knowledge:url:*` key (or the raw
+long-form URL) and, when `fetched_content` is available from ruflo at ingest time,
+populate `UrlEntry.fetched_content` directly. `ingest` remains the sole writer into
+`PipelineState`; long-form content flows through it, not around it.
+
 **Required: shared URL identity across both stores (challenger finding, 2026-08-24,
-score 4).** `ingest_urls` keys `PipelineState.urls` by the raw literal URL string.
-Ruflo's side (`process_one_url`/`url_storage_key`) canonicalizes first —
-`canonicalize_url()` strips tracking params, unwraps `/safety/go`-style redirects,
-drops fragments — before deriving the storage key. Whatever wiring mechanism
-DECOMPOSE picks (a new `queue-for-dimensions` step, or `drain-links` writing into
-both stores) **must key `PipelineState` entries by the same canonicalized identity
-ruflo uses**, not the raw URL. Without this, a tracking-param variant of a URL merges
+score 4) — solved by the same change.** `ingest_urls` keys `PipelineState.urls` by
+the raw literal URL string. Ruflo's side (`process_one_url`/`url_storage_key`)
+canonicalizes first — `canonicalize_url()` strips tracking params, unwraps
+`/safety/go`-style redirects, drops fragments — before deriving the storage key.
+`ingest`'s own key derivation must switch to call the same `canonicalize_url()`
+function ruflo uses, rather than keying by the raw URL. This is a decision
+requirement, not an open risk: without it, a tracking-param variant of a URL merges
 into one ruflo entry but splits into two `PipelineState` entries, silently
 misattaching or duplicating `fetched_content` — defeating the entire point of
-`LongFormAdapter`'s grounded Tier3. This is a decision requirement, not an open
-risk: the wiring mechanism is not acceptable without it.
+`LongFormAdapter`'s grounded Tier3. Fixing `ingest`'s key derivation fixes this for
+every future ingest call, not just the long-form path — a byproduct improvement to
+LinkedIn's own dedup accuracy in `ingest_urls`'s `contains_key` check.
 
 ## Consequences
 

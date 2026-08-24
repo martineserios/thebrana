@@ -16,7 +16,11 @@ context.
 
 See [ADR-087](../decisions/ADR-087-knowledge-pipeline-platform-adapters.md) — the
 architectural decision (enum-dispatched `PlatformAdapter`, shared pipeline skeleton,
-per-step overrides) is frozen there. This spec covers implementation scope only.
+per-step overrides) is frozen there. ADR-087 depends on
+[ADR-042](../decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md)
+(Accepted) — `ingest` is the canonical, sole writer into `PipelineState`; this
+feature's wiring must extend `ingest`, not add a second writer. This spec covers
+implementation scope only.
 
 ## Constraints
 
@@ -24,6 +28,10 @@ per-step overrides) is frozen there. This spec covers implementation scope only.
   generalizes for non-LinkedIn `ShortSignalAdapter` platforms).
 - No podcast/audio-transcription fetch mechanism — out of scope.
 - Does not touch or unblock t-1144.
+- Per ADR-042 §1: no code path other than `brana knowledge ingest` may write
+  directly into `PipelineState`. Caught during this task's own DECOMPOSE impact
+  analysis — an earlier SPECIFY-stage draft of ADR-087 left "`drain-links` writing
+  into both stores" as a candidate, which would have violated this.
 
 ## Scope (v1)
 
@@ -37,15 +45,18 @@ per-step overrides) is frozen there. This spec covers implementation scope only.
     LLM call for this adapter only.
   - Tier3: draft prompt includes real excerpts from `fetched_content`, not just
     metadata.
-- Wiring: a path from `drain-links`'s already-fetched `knowledge:url:*` transcripts
-  into `PipelineState.urls` with `fetched_content` populated. (Mechanism TBD in
-  DECOMPOSE — could be a new `queue-for-dimensions` step reading existing ruflo
-  entries, or `drain-links` itself writing into both stores.) **Whichever mechanism
-  is chosen must key `PipelineState` entries by the same canonicalized URL identity
-  ruflo uses (`canonicalize_url()`/`url_storage_key()`), not the raw literal URL
-  `ingest_urls` currently keys by** — see ADR-087's "Required: shared URL identity"
-  section. This is a hard requirement on DECOMPOSE's chosen mechanism, not a
-  nice-to-have.
+- Wiring (resolved, not TBD — ADR-042 compliance forced the choice): extend
+  `brana knowledge ingest` to accept an already-processed ruflo `knowledge:url:*`
+  key or a long-form URL directly, and populate `UrlEntry.fetched_content` from
+  ruflo when available at ingest time. `ingest` stays the sole writer into
+  `PipelineState` (ADR-042 §1) — no new writer, no `drain-links`-writes-both-stores
+  path.
+- `ingest`'s key derivation switches to `canonicalize_url()` (the same function
+  ruflo's `url_storage_key()` uses) instead of the raw literal URL. This is a hard
+  requirement (ADR-087's "Required: shared URL identity" section), and improves
+  LinkedIn's own dedup accuracy in `ingest_urls`'s `contains_key` check as a
+  byproduct — not scope creep, a direct consequence of fixing the identity bug at
+  its actual source.
 - **Sibling touch point, not itself in scope:** `backfill_linkedin_fields`
   unconditionally calls `parse_linkedin_url` on any `UrlEntry` missing `author`/
   `title_signal`, regardless of platform. Harmless no-op for non-LinkedIn URLs
@@ -134,10 +145,17 @@ Tier2-quality open risks from ADR-087 have owners.
       content-shape/adapter concept introduced here. (Named in the idea doc's
       Engineering Disciplines section; restored here after the challenger caught it
       dropped from this Plan — see Challenger findings below.)
-- [ ] **Existing docs to update** — `docs/architecture/features/youtube-channel-ingestion.md`
-      (doesn't mention Tier1/2/3 today) and
-      `docs/architecture/features/knowledge-architecture-v2.md` (doesn't mention
-      YouTube today).
+- [ ] **Existing docs to update (impact-analysis-confirmed via spec-graph `impl_files`,
+      supersedes an earlier unconfirmed guess)** —
+      `docs/architecture/features/inbox-to-dimensions-pipeline.md` (the actual tech
+      doc for Tier1/2/3 — directly describes the pipeline this feature modifies,
+      including the ADR-042 architecture diagram that needs a `LongFormAdapter`
+      branch added) and `docs/architecture/features/youtube-channel-backfill.md`
+      (impl_files match on both `knowledge.rs` and `knowledge_pipeline.rs`).
+      `youtube-channel-ingestion.md` and `knowledge-architecture-v2.md` were an
+      earlier guess before impact analysis ran — worth a quick check in DECOMPOSE
+      for whether they also need touching, but not confirmed the way the two above
+      are.
 - [ ] **User guide** — only if `brana knowledge process` gains new user-visible
       flags; TBD in DECOMPOSE.
 
