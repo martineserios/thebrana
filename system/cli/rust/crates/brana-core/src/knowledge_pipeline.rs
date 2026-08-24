@@ -681,14 +681,32 @@ pub const DRAFT_EXCERPT_CHARS: usize = 1500;
 /// real drained transcripts once a full cycle has run.
 pub const LONG_FORM_NEW_TOPIC_THRESHOLD: f32 = 0.35;
 
+/// The single adapter-routing authority for a URL (t-3183): every tier
+/// partitions on this — a second inline predicate is how cross-adapter
+/// leakage would creep in.
+pub fn is_long_form_url(url: &str) -> bool {
+    PlatformAdapter::for_platform(classify_platform(url)) == PlatformAdapter::LongForm
+}
+
+/// A cluster routes through the LongForm Tier3 draft path only when every
+/// member is LongForm; a mixed cluster keeps the metadata prompt.
+pub fn cluster_is_long_form<'a>(urls: impl IntoIterator<Item = &'a str>) -> bool {
+    let mut any = false;
+    for url in urls {
+        if !is_long_form_url(url) {
+            return false;
+        }
+        any = true;
+    }
+    any
+}
+
 /// Split a Tier1 batch by adapter: LongForm entries auto-pass (never sent
 /// to the LLM scorer), short-signal entries take the existing LLM path.
 /// Callers apply this *after* the semantic-dedup filter — dedup runs for
 /// every adapter (ADR-087: Tier1 for LongForm is dedup-only).
 pub fn tier1_partition(batch: Vec<UrlEventEntry>) -> (Vec<UrlEventEntry>, Vec<UrlEventEntry>) {
-    batch.into_iter().partition(|e| {
-        PlatformAdapter::for_platform(classify_platform(&e.url)) == PlatformAdapter::LongForm
-    })
+    batch.into_iter().partition(|e| is_long_form_url(&e.url))
 }
 
 /// The auto-passed [`UrlEntry`] for a LongForm Tier1 candidate: fixed
@@ -6203,7 +6221,8 @@ id3
     #[test]
     fn test_mixed_fixture_tier1_no_cross_adapter_leakage() {
         let state = mixed_fixture_state(UrlStatus::Unprocessed);
-        let batch = extract_unprocessed_urls(&state).unwrap();
+        let empty_projects = tempfile::tempdir().unwrap();
+        let batch = extract_unprocessed_urls_in(&state, empty_projects.path()).unwrap();
         assert_eq!(batch.len(), 4, "fixture must surface all four entries");
         let (auto_pass, llm) = tier1_partition(batch);
         assert_eq!(auto_pass.len(), 2);

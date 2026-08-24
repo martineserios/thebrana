@@ -1534,9 +1534,8 @@ fn run_tier2(
     // ── LongForm embedding clustering (t-3179, ADR-087 Tier2 row) ─────────────
     // LongForm entries cluster by embedding similarity against dimension
     // topics — no LLM call. Short-signal entries continue on the LLM path.
-    let (long_form, candidates): (Vec<_>, Vec<_>) = candidates.into_iter().partition(|(url, ..)| {
-        kp::PlatformAdapter::for_platform(kp::classify_platform(url)) == kp::PlatformAdapter::LongForm
-    });
+    let (long_form, candidates): (Vec<_>, Vec<_>) =
+        candidates.into_iter().partition(|(url, ..)| kp::is_long_form_url(url));
     if !long_form.is_empty() {
         println!("  Long-form: {} URL(s) → embedding cluster (no LLM)", long_form.len());
         let dim_topic_texts: Vec<(String, String)> = dimension_slugs
@@ -1747,9 +1746,8 @@ fn run_tier3(
     // anything else keeps the metadata-line prompt. Empty/missing content
     // skips that source (never draft from nothing) and leaves its entry
     // Tier2Clustered for a later re-draft.
-    let all_long_form = cluster_urls.iter().all(|(url, _, _, _, _)| {
-        kp::PlatformAdapter::for_platform(kp::classify_platform(url)) == kp::PlatformAdapter::LongForm
-    });
+    let all_long_form =
+        kp::cluster_is_long_form(cluster_urls.iter().map(|(url, _, _, _, _)| url.as_str()));
 
     let (prompt, drafted_urls): (String, Vec<String>) = if all_long_form {
         let raw_sources: Vec<(String, Option<String>)> = cluster_urls
