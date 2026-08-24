@@ -281,3 +281,6 @@ the pre-registered review checkpoint.
 **Implementation:** t-3043 (TDD in `wave.rs`, drain-loop/epic-drain doc filter text, memory marked fixed). Until it lands, the `parked` workaround stands.
 
 Refs: guide L3.3 · the-brana.md §Cycle → Decided (wave mechanics) · research/2026-08-22-pocock-alignment-decision-matrix.md row 10 · memory pattern_wave-pull-ignores-blocked-by-ordering · t-2919/t-2920 · t-3043.
+
+## Changelog
+- 2026-08-24: §2 amendment implemented — `unmet_blockers`/`resolves_blocker` become the single blocked_by resolver; `cancelled` never resolves; `wave_pull_decision` skips blocked tasks and reports a `blocked` count; lint, run-gate, blocked_chain and rollups routed through it (t-3043, t-3166; commits ba439c08, 072d82a7, 9f9f6846)
