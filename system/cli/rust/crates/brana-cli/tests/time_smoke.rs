@@ -537,3 +537,71 @@ fn e1_legacy_encoded_project_dir_transcript_still_resolves() {
         .assert()
         .success();
 }
+
+// ---- Group F: worktree transcript resolution + wall-clock fallback (t-3044) ------
+
+/// t-3044 (4/4 reproduction, 2026-08-23/24): a real CC session's transcript is keyed
+/// by the SESSION's cwd — the main checkout (cwd-discipline) — but build commands run
+/// inside a `git worktree`, whose `--show-toplevel` encodes to a project directory
+/// that never exists. START silently recorded no transcript; CLOSE then refused with
+/// "no transcript was resolved when this bracket opened". Resolution must fall back
+/// to the main-checkout root (`--git-common-dir`'s parent) when the worktree-keyed
+/// directory yields nothing. The transcript here exists ONLY under the main
+/// checkout's encoded key — exactly the on-disk shape every worktree build hits.
+#[test]
+fn f1_start_in_worktree_resolves_main_checkout_transcript() {
+    let tmp = repo();
+    let wt = add_worktree(tmp.path(), "wtf1", "fix/t-3044-f1");
+    let home = tempfile::TempDir::new().unwrap();
+    add_fake_transcript(home.path(), tmp.path());
+
+    brana_with_home(&wt, home.path()).args(["time", "start", "t-1"]).assert().success();
+
+    // The worktree's own lock must carry the resolved (main-checkout-keyed) path —
+    // the snapshot CLOSE reads back verbatim.
+    let wt_git_dir = git_ok(&wt, &["rev-parse", "--absolute-git-dir"]);
+    let lock_raw =
+        std::fs::read_to_string(PathBuf::from(wt_git_dir).join("brana-time-open-bracket.json"))
+            .unwrap();
+    assert!(
+        lock_raw.contains("transcript_path"),
+        "START in a worktree must snapshot the main-checkout-keyed transcript; lock was: {lock_raw}"
+    );
+
+    brana_with_home(&wt, home.path()).args(["time", "close", "t-1"]).assert().success();
+}
+
+/// t-3044 second half: when START genuinely cannot resolve any transcript, it must
+/// say so loudly on stderr (not silently record nothing), and CLOSE must fall back
+/// to wall-clock between the Start marker and now — annotated `partial` with
+/// `turn_count: 0` (the wall-clock signature) — instead of refusing and losing the
+/// bracket entirely. `d3` still covers the recorded-but-deleted path, which keeps
+/// failing closed: evidence that existed and vanished stays a refusal.
+#[test]
+fn f2_close_without_resolved_transcript_falls_back_to_wall_clock() {
+    let tmp = repo();
+    let home = tempfile::TempDir::new().unwrap(); // no transcript fixture anywhere
+
+    let out = brana_with_home(tmp.path(), home.path())
+        .args(["time", "start", "t-1"])
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "START must not block on an unresolvable transcript");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("wall-clock"),
+        "START must warn loudly when no transcript resolves; stderr was: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    brana_with_home(tmp.path(), home.path()).args(["time", "close", "t-1"]).assert().success();
+
+    let store = std::fs::read_to_string(data_store_path(tmp.path(), "t-1")).unwrap();
+    let close_line = store
+        .lines()
+        .find(|l| l.contains("\"close\""))
+        .expect("a Close line must be appended by the wall-clock fallback");
+    assert!(
+        close_line.contains("\"coverage\":\"partial\"") && close_line.contains("\"turn_count\":0"),
+        "wall-clock close must be annotated partial with turn_count 0; line was: {close_line}"
+    );
+}
