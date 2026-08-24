@@ -99,10 +99,28 @@ fn encode_project_path_legacy(root: &Path) -> String {
 /// encoding, no `.jsonl` files) — START does not require a resolvable transcript
 /// (Boundaries table).
 fn resolve_newest_transcript() -> Option<PathBuf> {
-    let root = brana_core::util::find_project_root()?;
     let base = brana_core::util::home().join(".claude/projects");
-    newest_jsonl_in(&base.join(encode_project_path(&root)))
-        .or_else(|| newest_jsonl_in(&base.join(encode_project_path_legacy(&root))))
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Some(root) = brana_core::util::find_project_root() {
+        candidates.push(root);
+    }
+    // Worktree fallback (t-3044): CC keys a transcript directory by the SESSION's
+    // cwd — the main checkout — while build commands run inside a linked worktree
+    // whose toplevel encodes to a directory that never exists on disk. The main
+    // checkout is the common dir's parent; for a plain checkout it collapses to the
+    // same root as above, so this only changes behavior in worktrees.
+    if let Ok(common) = resolve_git_path("--git-common-dir") {
+        if let Some(main_root) = common.parent() {
+            let main_root = main_root.to_path_buf();
+            if !candidates.contains(&main_root) {
+                candidates.push(main_root);
+            }
+        }
+    }
+    candidates.iter().find_map(|root| {
+        newest_jsonl_in(&base.join(encode_project_path(root)))
+            .or_else(|| newest_jsonl_in(&base.join(encode_project_path_legacy(root))))
+    })
 }
 
 fn newest_jsonl_in(dir: &Path) -> Option<PathBuf> {
@@ -195,6 +213,15 @@ pub fn cmd_start(task_id: &str) -> Result<()> {
 
     let opened_at = Utc::now();
     let transcript_path = resolve_newest_transcript();
+    if transcript_path.is_none() {
+        // Loud, not blocking (t-3044): START still must not fail on an unresolvable
+        // transcript (Boundaries table), but recording nothing silently is how four
+        // consecutive worktree builds lost their brackets before anyone noticed.
+        eprintln!(
+            "⚠ brana time start {task_id}: no CC transcript resolved for this project — \
+             close will fall back to wall-clock between markers"
+        );
+    }
     let session_label = std::env::var("BRANA_SESSION_ID").ok();
 
     let lock = OpenBracketLock {
@@ -240,13 +267,32 @@ pub fn cmd_close(task_id: &str, partial: bool) -> Result<()> {
         );
     }
 
-    // Fail closed: no resolvable transcript at CLOSE time means no evidence to
-    // compute a duration from (Boundaries table — this is CLOSE-only; START never
-    // required a resolvable transcript).
-    let transcript_path = lock
-        .transcript_path
-        .as_ref()
-        .ok_or_else(|| anyhow!("no transcript was resolved when this bracket opened — cannot close {task_id}"))?;
+    // No transcript was ever resolved at START (t-3044): fall back to wall-clock
+    // between the Start marker and now, honestly annotated — coverage `partial`,
+    // `turn_count: 0` (the wall-clock signature; a transcript-based close with zero
+    // turns computes duration 0, so a nonzero duration + zero turns is unambiguous).
+    // A recorded-but-deleted transcript still fails closed below: evidence that
+    // existed and vanished stays a refusal (time_smoke.rs::d3).
+    let Some(transcript_path) = lock.transcript_path.as_ref() else {
+        let now = Utc::now();
+        let close_line = BracketLine::Close {
+            version: 1,
+            task_id: task_id.to_string(),
+            ts: now,
+            duration_capped_secs: (now - lock.opened_at).num_seconds().max(0),
+            turn_count: 0,
+            gaps_capped: 0,
+            coverage: Coverage::Partial,
+        };
+        append_line(&data_store_path(task_id)?, &close_line)?;
+        std::fs::remove_file(&lock_path)
+            .with_context(|| format!("removing {}", lock_path.display()))?;
+        eprintln!(
+            "⚠ brana time close {task_id}: no transcript was resolved when this bracket \
+             opened — recorded wall-clock duration, coverage partial"
+        );
+        return Ok(());
+    };
     let transcript_path = PathBuf::from(transcript_path);
     if !transcript_path.exists() {
         bail!(

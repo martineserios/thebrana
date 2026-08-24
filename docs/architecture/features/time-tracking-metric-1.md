@@ -110,12 +110,16 @@ brana-cli/tests/time_smoke.rs     — integration: real tempdir repos, real tran
 
 Presence of this file = a bracket is open in this worktree; absence = none open. Written/removed under the same `lock_sidecar`-protected read-modify-write critical section that guards the check-then-write invariant (the file itself is a plain locked-rewrite, `queue.rs`/`remind.rs`-shaped — not the blind-append shape used for the data store). `transcript_path` is resolved once at `START` (newest-mtime `.jsonl` in the project directory) and read back verbatim at `CLOSE` — see the "which transcript file" Assumption above.
 
+**Worktree resolution fallback (t-3044, 2026-08-24):** CC keys a transcript directory by the *session's* cwd — the main checkout (cwd-discipline) — but builds run `time start` inside a linked worktree, whose `--show-toplevel` encodes to a project directory that never exists on disk. Resolution therefore tries the invoking root first (covers sessions genuinely started inside a worktree, e.g. ADR-060 runners), then falls back to the main-checkout root (`--git-common-dir`'s parent; identical to the invoking root in a plain checkout). Before this fallback, every worktree-based build silently recorded no transcript and lost its bracket at CLOSE (4/4 reproduction, t-3038/t-3097/t-3096/t-3168).
+
+**Scoped out (t-3191):** the same worktree-blind `find_project_root()` keying exists in `commands/handoff.rs::resolve_handoff_path` and `brana_core::session.rs`'s path helpers (consumed by log.rs, memory.rs, session_initiative.rs). Deliberately not fixed here — some of those consumers may *want* worktree-scoped paths, so each needs a per-call-site decision (tracked as t-3191, challenger S4 finding on t-3044).
+
 ## Boundaries
 
 | Always | Ask First | Never |
 |--------|-----------|-------|
 | Atomic writes: single `write_all` append to `brana/time/`, locked read-modify-write to the per-worktree lock file | Changing the 15-min idle-cap constant (ADR-083 locked it) | Write to `~/.claude/run-state/{task_id}.jsonl` (resume-checkpoint's file) |
-| **CLOSE only**: fail closed when the recorded `transcript_path` no longer resolves | Adding a new git-common-dir resolution helper (reuse `receipt.rs`'s pattern) | Use `util::find_tasks_file`/`git_common_root` for this path (unscrubbed), depend on `$BRANA_SESSION_ID` for correctness, or re-resolve "newest mtime" at CLOSE instead of reading the path START recorded |
+| **CLOSE only**: fail closed when the recorded `transcript_path` existed but no longer resolves (evidence that vanished stays a refusal — `time_smoke.rs::d3`). When START recorded *no* transcript at all (`transcript_path` absent), CLOSE instead falls back to wall-clock between the Start marker and now, annotated `coverage: partial` with `turn_count: 0` (the wall-clock signature) — t-3044: better an honest upper bound than losing the bracket. START warns loudly on stderr when resolution fails, but still opens the bracket | Adding a new git-common-dir resolution helper (reuse `receipt.rs`'s pattern) | Use `util::find_tasks_file`/`git_common_root` for this path (unscrubbed), depend on `$BRANA_SESSION_ID` for correctness, or re-resolve "newest mtime" at CLOSE instead of reading the path START recorded |
 | **START does NOT require a resolvable transcript** — clarified during BUILD verify (2026-08-17, iteration-2 catch): the row above previously read ambiguously as "no `.jsonl` found at START" also failing closed, but 6 of 9 tests already assumed START succeeds unconditionally (it only needs to record a `transcript_path`, best-effort — a `null`/absent value there is CLOSE's problem to fail on, not START's). Avoids a chicken-and-egg bootstrap case (a brand-new project's very first session has no prior transcript yet at the moment LOAD fires). | — | Block bracket-open on transcript resolvability |
 
 ## Testing Strategy
@@ -130,6 +134,10 @@ Presence of this file = a bracket is open in this worktree; absence = none open.
 - [x] **Tech doc** — this file, `docs/architecture/features/time-tracking-metric-1.md`
 - [ ] **User guide** — deferred to t-2925+ (the query/aggregation command); this task has no user-facing surface yet (LOAD/CLOSE markers are internal)
 - [x] **Existing docs to update** — `docs/ideas/task-time-tracking.md` Next Steps #3/#4 status, marked DONE (2026-08-18)
+
+## Changelog
+
+- 2026-08-24: worktree transcript resolution fixed (main-checkout fallback via `--git-common-dir` parent), START warns loudly on unresolvable transcript, CLOSE falls back to wall-clock (`coverage: partial`, `turn_count: 0`) when no transcript was recorded; recorded-but-deleted still fails closed (t-3044, 467b62a6). Sibling worktree-blind helpers scoped out to t-3191; close idempotence + coverage cells to t-3193.
 
 ## Challenger findings
 
