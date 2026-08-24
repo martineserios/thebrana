@@ -175,7 +175,23 @@ pub fn ruflo_memory_search_raw(
 /// `ruflo_memory_search_raw`, storage failures are surfaced to the caller
 /// rather than failing open — a silent store failure would let a URL be
 /// re-processed forever without ever landing in knowledge memory.
-pub fn ruflo_memory_store(key: &str, value: &str, namespace: &str, tags: &[&str]) -> Result<()> {
+///
+/// `scan_on_write` gates ruflo's MemPoison injection scan (t-2755,
+/// RUFLO_MEMORY_SCAN_ON_WRITE). Pass `false` only for callers that ingest
+/// fetched content rather than agent-authored memory (t-3097): the scanner
+/// matches phrases ("system prompt", "jailbreak", "override") without intent,
+/// so it refuses legitimate transcripts *about* prompting — exactly the
+/// content `brana knowledge process-url` exists to store. `false` sets an
+/// explicit `RUFLO_MEMORY_SCAN_ON_WRITE=0` override on this subprocess only;
+/// `true` leaves the var unset so the wrapper's own hardened default (1)
+/// applies, unchanged for every other caller.
+pub fn ruflo_memory_store(
+    key: &str,
+    value: &str,
+    namespace: &str,
+    tags: &[&str],
+    scan_on_write: bool,
+) -> Result<()> {
     let ruflo = resolve_ruflo_binary()
         .context("ruflo binary not found (RUFLO_BIN/CF unset, not on PATH)")?;
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
@@ -186,6 +202,9 @@ pub fn ruflo_memory_store(key: &str, value: &str, namespace: &str, tags: &[&str]
         .current_dir(&home)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
+    if !scan_on_write {
+        cmd.env("RUFLO_MEMORY_SCAN_ON_WRITE", "0");
+    }
     let tags_csv;
     if !tags.is_empty() {
         tags_csv = tags.join(",");
@@ -333,7 +352,8 @@ mod tests {
     fn store_success_returns_ok() {
         let dir = TempDir::new().unwrap();
         let fake = make_fake_ruflo_cli(&dir, "exit 0");
-        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[])) };
+        let result =
+            unsafe { with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[], true)) };
         assert!(result.is_ok(), "expected Ok, got {result:?}");
     }
 
@@ -342,9 +362,52 @@ mod tests {
     fn store_failure_returns_err_with_stderr() {
         let dir = TempDir::new().unwrap();
         let fake = make_fake_ruflo_cli(&dir, "echo 'disk full' >&2; exit 1");
-        let result = unsafe { with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[])) };
+        let result =
+            unsafe { with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[], true)) };
         let err = result.expect_err("expected Err on nonzero exit");
         assert!(err.to_string().contains("disk full"), "error should surface stderr, got: {err}");
+    }
+
+    /// t-3097: the MemPoison write-scan (t-2755, RUFLO_MEMORY_SCAN_ON_WRITE=1
+    /// hardcoded in ruflo-cli.sh) false-positives on legitimate content that
+    /// discusses prompting ("system prompt", "jailbreak", "override") —
+    /// exactly the videos process-url exists to ingest. `scan_on_write: false`
+    /// must reach the subprocess as an explicit env override; the wrapper
+    /// script (not exercised by this fake-binary test — see the wrapper's own
+    /// test suite) is responsible for honoring rather than clobbering it.
+    #[test]
+    #[serial]
+    fn store_with_scan_disabled_sets_env_override_to_zero() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "echo \"SCAN=$RUFLO_MEMORY_SCAN_ON_WRITE\" >&2; exit 1");
+        let result = unsafe {
+            with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[], false))
+        };
+        let err = result.expect_err("fake binary always exits 1");
+        assert!(
+            err.to_string().contains("SCAN=0"),
+            "scan_on_write:false must set RUFLO_MEMORY_SCAN_ON_WRITE=0 on the subprocess, got: {err}"
+        );
+    }
+
+    /// The default (scan_on_write: true) path must NOT force the var —
+    /// leaving it unset lets the wrapper's own default (1, hardened) apply.
+    /// Forcing "1" here would work too, but forcing anything is what this
+    /// test guards against for the *disabled* path above; this test guards
+    /// the enabled path never regresses to always-clobber-to-0.
+    #[test]
+    #[serial]
+    fn store_with_scan_enabled_does_not_force_env_to_zero() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(&dir, "echo \"SCAN=$RUFLO_MEMORY_SCAN_ON_WRITE\" >&2; exit 1");
+        let result = unsafe {
+            with_ruflo_bin(&fake, || ruflo_memory_store("k", "v", "knowledge", &[], true))
+        };
+        let err = result.expect_err("fake binary always exits 1");
+        assert!(
+            !err.to_string().contains("SCAN=0"),
+            "scan_on_write:true must not force RUFLO_MEMORY_SCAN_ON_WRITE=0, got: {err}"
+        );
     }
 
     #[test]
