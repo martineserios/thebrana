@@ -272,7 +272,7 @@ Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L5 (2026-08-23). Concep
 | Loop contract (7 laws, beat, ASSIMILATE/RESTART) | [features/loops-library.md](features/loops-library.md) | shipped | Cycle |
 | Workflow-vs-loop rule | this page §Cycle | landed | Cycle |
 | Wave mechanics (graph, gate, drain, pull, leases) | [ADR-079](decisions/ADR-079-backlog-drain-loop-handoff.md) + [ADR-080](decisions/ADR-080-plan-time-wave-graphs-epic-runner.md); spec [plan-time-wave-graph.md](features/plan-time-wave-graph.md) | shipped; ADR-079 amended 2026-08-23 (t-3030, L3.3) → impl t-3043 | Cycle |
-| Wave = human unit / task = agent unit | [ADR-086](decisions/ADR-086-wave-as-human-unit-pocock-ticket-shape.md) — Accepted 2026-08-24 (challenged, 12 findings applied)| hold | Cycle |
+| Wave = human unit / task = agent unit | [ADR-086](decisions/ADR-086-wave-as-human-unit-pocock-ticket-shape.md) — Accepted 2026-08-24 (challenged, 12 findings applied) | landed | Cycle |
 | Beat record = markdown doc | [features/loops-library.md](features/loops-library.md) + t-3008 | decided | Cycle |
 | Readiness state (cross-skill "next for whom") | **no owner yet** — resolves with t-2834; intended home: [backlog-v3-schema.md](features/backlog-v3-schema.md) + ADR amendment | gated | Cycle |
 | Two-bucket backlog lens + usage-lens correction | this page §Cycle + memory `feedback_backlog-field-usage-vs-feed-mechanism` | landed | Cycle |
