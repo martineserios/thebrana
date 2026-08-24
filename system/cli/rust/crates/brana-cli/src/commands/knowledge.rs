@@ -2132,6 +2132,42 @@ pub fn cmd_ingest(
     Ok(())
 }
 
+/// One-time key migration (t-3182): rewrite `state.urls` keys through
+/// `canonicalize_url()` so pre-t-3173 raw-keyed entries share ingest's
+/// canonical identity. Backs up the pre-migration state file next to it
+/// before writing; a no-op run writes nothing.
+pub fn cmd_migrate_keys(dry_run: bool) -> Result<()> {
+    let state_path = kp::pipeline_state_path();
+    println!(
+        "\n  \x1b[1mbrana knowledge migrate-keys\x1b[0m{}",
+        if dry_run { " [dry-run]" } else { "" }
+    );
+
+    // Load→modify→save on the shared state file — lock it (t-2247).
+    let _lock = kp::lock_pipeline()?;
+    let mut state = kp::load_state(&state_path)?;
+    let before = state.urls.len();
+    let result = kp::migrate_urls_to_canonical_keys(&mut state);
+
+    println!("  {} entr(ies) scanned", before);
+    println!("  ✓ {} key(s) rewritten to canonical form", result.rewritten);
+    println!("  ✓ {} collision(s) merged (more-advanced status kept)", result.merged);
+
+    if dry_run {
+        println!("  [dry-run] state not written.");
+    } else if result.rewritten + result.merged > 0 {
+        let backup = state_path.with_extension("json.pre-migrate-keys.bak");
+        std::fs::copy(&state_path, &backup)
+            .with_context(|| format!("backing up {} to {}", state_path.display(), backup.display()))?;
+        kp::save_state(&state_path, &state)?;
+        println!("  Backup: {}", backup.display());
+    } else {
+        println!("  Already canonical — nothing to write.");
+    }
+
+    Ok(())
+}
+
 /// Parse the `--tab` flag into [`kp::ChannelTab`]. Pure, no I/O.
 fn resolve_channel_tab(tab: &str) -> Result<kp::ChannelTab> {
     match tab {

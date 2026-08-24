@@ -252,6 +252,9 @@ fn main() {
             KnowledgeCmd::Ingest { sources, source, dry_run } => {
                 run_or_exit(commands::knowledge::cmd_ingest(sources, source, dry_run))
             }
+            KnowledgeCmd::MigrateKeys { dry_run } => {
+                run_or_exit(commands::knowledge::cmd_migrate_keys(dry_run))
+            }
             KnowledgeCmd::DrainLinks { file, cap, dry_run, platform, cookies_from_browser, cookies } => {
                 run_or_exit(
                     commands::knowledge::resolve_yt_dlp_cookies(cookies_from_browser, cookies).and_then(|ck| {

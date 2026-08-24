@@ -2495,6 +2495,62 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     result
 }
 
+/// Result of a [`migrate_urls_to_canonical_keys`] run.
+pub struct KeyMigrationResult {
+    /// Entries moved from a decorated key to their canonical key.
+    pub rewritten: usize,
+    /// Key collisions resolved by keeping the more-advanced entry.
+    pub merged: usize,
+}
+
+/// Pipeline advancement rank for collision merging — later tiers rank
+/// higher; `Irrelevant` outranks `Unprocessed` (a Tier1 decision was made).
+fn status_rank(status: &UrlStatus) -> u8 {
+    match status {
+        UrlStatus::Unprocessed => 0,
+        UrlStatus::Irrelevant => 1,
+        UrlStatus::Tier1Passed => 2,
+        UrlStatus::Tier2Clustered => 3,
+        UrlStatus::Tier3Drafted => 4,
+    }
+}
+
+/// One-time migration (t-3182): rewrite every `state.urls` key through
+/// [`canonicalize_url`] so pre-t-3173 raw-keyed entries share the canonical
+/// identity ingest now uses. Collisions (a decorated and a canonical key for
+/// the same page) keep the entry with the more-advanced [`UrlStatus`] — ties
+/// keep the entry already under the canonical key. Idempotent: canonical
+/// keys map to themselves.
+pub fn migrate_urls_to_canonical_keys(state: &mut PipelineState) -> KeyMigrationResult {
+    let mut result = KeyMigrationResult { rewritten: 0, merged: 0 };
+    let keys: Vec<String> = state.urls.keys().cloned().collect();
+
+    for key in keys {
+        let canonical = canonicalize_url(&key);
+        if canonical == key {
+            continue;
+        }
+        let Some(entry) = state.urls.remove(&key) else { continue };
+        match state.urls.get(&canonical) {
+            Some(existing) if status_rank(&existing.status) >= status_rank(&entry.status) => {
+                // Existing canonical entry is at least as advanced — drop
+                // the decorated duplicate, counted as a merge.
+                result.merged += 1;
+            }
+            Some(_) => {
+                state.urls.insert(canonical, entry);
+                result.merged += 1;
+            }
+            None => {
+                state.urls.insert(canonical, entry);
+                result.rewritten += 1;
+            }
+        }
+    }
+
+    result
+}
+
 // ── Insight extraction (ADR-070 three-tier fallback: agy → claude -p → raw) ──
 
 /// Extracted insight from fetched URL content.

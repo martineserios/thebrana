@@ -508,6 +508,14 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// One-time migration (t-3182): rewrite pipeline-state URL keys through
+    /// canonicalize_url() so pre-existing raw-keyed entries share the
+    /// canonical identity ingest now uses. Backs up the state file first.
+    MigrateKeys {
+        /// Report planned rewrites/merges without writing anything
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Enumerate a YouTube channel tab and queue its videos as `link`-tagged
     /// backlog tasks — each drains through the existing `drain-links`
     /// path unchanged (docs/architecture/features/youtube-channel-ingestion.md).
