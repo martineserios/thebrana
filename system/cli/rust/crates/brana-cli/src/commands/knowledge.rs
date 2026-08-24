@@ -2367,6 +2367,33 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_adr042_ingest_sole_pipeline_state_writer_tripwire() {
+        // ADR-042 §1: ingest is the sole ingestion write path into
+        // PipelineState. drain-links and process-url store into ruflo only —
+        // neither may save pipeline state nor queue entries into it
+        // (t-3174: the ruflo→fetched_content bridge lives in ingest, not in
+        // a second drain-links-writes-both-stores path).
+        let src = include_str!("knowledge.rs");
+
+        for (fn_start, fn_name) in [
+            ("pub fn cmd_drain_links", "cmd_drain_links"),
+            ("pub fn cmd_process_url", "cmd_process_url"),
+        ] {
+            let start = src.find(fn_start).unwrap_or_else(|| panic!("{fn_name} exists"));
+            let end = src[start + 10..]
+                .find("\npub fn ")
+                .map(|i| start + 10 + i)
+                .unwrap_or(src.len());
+            let body = &src[start..end];
+            assert!(
+                !body.contains("save_state") && !body.contains("ingest_urls(")
+                    && !body.contains("populate_fetched_content"),
+                "{fn_name} must not write into PipelineState (ADR-042 §1 — ingest is the sole writer)"
+            );
+        }
+    }
+
     // ── process-url: key derivation + outcome decision (t-2450) ──────
 
     #[test]

@@ -5774,6 +5774,48 @@ id3
         assert!(state.urls.contains_key(inner.as_str()));
     }
 
+    // ── populate_fetched_content (t-3174/t-3177, ingest ruflo wiring) ─────
+
+    #[test]
+    fn test_populate_fetched_content_updates_existing_entry() {
+        // A decorated variant of an already-queued URL must land its content
+        // on the one canonical entry — same identity rules as ingest.
+        let mut state = PipelineState::default();
+        ingest_urls(
+            &["https://www.youtube.com/watch?v=jNQXAC9IVRw".to_string()],
+            None,
+            &mut state,
+        );
+        let outcome = populate_fetched_content(
+            &mut state,
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw&si=share123",
+            "full transcript text",
+        );
+        assert_eq!(outcome, PopulateOutcome::Updated);
+        assert_eq!(state.urls.len(), 1);
+        let entry = &state.urls["https://www.youtube.com/watch?v=jNQXAC9IVRw"];
+        assert_eq!(entry.fetched_content.as_deref(), Some("full transcript text"));
+        assert_eq!(entry.status, UrlStatus::Unprocessed, "populate must not advance status");
+    }
+
+    #[test]
+    fn test_populate_fetched_content_creates_entry_when_absent() {
+        // An already-processed ruflo URL not yet in pipeline state gets a
+        // fresh Unprocessed entry, platform-tagged like any ingested URL.
+        let mut state = PipelineState::default();
+        let outcome = populate_fetched_content(
+            &mut state,
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            "full transcript text",
+        );
+        assert_eq!(outcome, PopulateOutcome::Created);
+        let entry = &state.urls["https://www.youtube.com/watch?v=jNQXAC9IVRw"];
+        assert_eq!(entry.fetched_content.as_deref(), Some("full transcript text"));
+        assert_eq!(entry.status, UrlStatus::Unprocessed);
+        assert_eq!(entry.platform.as_deref(), Some("youtube"));
+        assert!(entry.author.is_some(), "signals derive like ingest_urls");
+    }
+
     // ── migrate_urls_to_canonical_keys (t-3182, one-time key migration) ───
 
     #[test]
