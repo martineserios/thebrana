@@ -61,7 +61,11 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 let report = session::write_state(&root, &state).map_err(|e| e.to_string())?;
 
                 let branch = state.branch.as_deref().unwrap_or("");
-                let state_path = session::epic_scoped_state_path(&root, branch);
+                // t-3169: must match write_state's own routing (unit_scoped_state_path,
+                // which consults `state.epic` including the orphan sentinel) — the
+                // branch-only epic_scoped_state_path this used to call can report a path
+                // the write never touched.
+                let state_path = session::unit_scoped_state_path(&root, state.epic.as_deref(), branch);
                 // next[] accounting is always reported: a caller must be able to see that
                 // what it submitted is not what landed (t-2506 — this write path previously
                 // returned a bare ok:true while silently discarding entries).
@@ -157,5 +161,42 @@ mod tests {
         assert!(!out["written_at"].as_str().unwrap_or("").is_empty(), "written_at must be auto-filled");
         let path = out["path"].as_str().expect("path must be a string");
         assert!(std::path::Path::new(path).exists(), "state file must actually exist on disk: {path}");
+    }
+
+    // t-3169 (challenger + second-variant finder, corroborated by both): the reported
+    // `path` field was computed via branch-only `epic_scoped_state_path`, ignoring the
+    // payload's `epic` field entirely — while the actual write (via `write_state`) routes
+    // through `unit_scoped_state_path`, which DOES consult `epic` (including the new orphan
+    // sentinel). A branch that parses as an epic on its own, combined with an explicit
+    // `epic` that routes elsewhere, exposed the divergence: the write landed correctly, but
+    // the reported path pointed at a file that was never written.
+    #[tokio::test]
+    async fn test_write_session_state_reports_path_matching_explicit_epic_not_branch() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({"payload": {
+                    "version": 1,
+                    "branch": "close/fix/t-9999-dummy",
+                    "epic": session::ORPHAN_EPIC_SENTINEL,
+                    "accomplished": ["orphan write from an epic-shaped branch"]
+                }}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("write must succeed");
+
+        assert_eq!(out["ok"], true);
+        let path = out["path"].as_str().expect("path must be a string");
+        assert!(
+            std::path::Path::new(path).exists(),
+            "reported path must be where the write actually landed: {path}"
+        );
+        assert!(
+            path.ends_with("session-state.json") && !path.contains("session-state-close"),
+            "reported path must reflect the explicit orphan epic, not the branch-derived one: {path}"
+        );
     }
 }
