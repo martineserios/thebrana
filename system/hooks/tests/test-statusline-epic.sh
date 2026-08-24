@@ -1,23 +1,18 @@
 #!/usr/bin/env bash
-# Tests for statusline epic resolution (t-2467).
+# Tests for statusline epic resolution (t-2467, revised ADR-088/t-3196).
 #
-# The epic segment used to come only from thebrana's 3-segment branch
-# convention ({epic}/{work-type}/t-NNN-slug), so it never rendered in
-# clients/ventures, which use 2-segment branches and sit on main/dev.
-# A project-local active_epic fallback fills that gap.
+# The epic segment comes from exactly two sources now, no config file
+# involved: (1) the 3-segment branch convention ({epic}/{work-type}/t-NNN-
+# slug), or (2) the most-recently-started in_progress task's flat `.epic`
+# field (the pre-v3 schema client/venture projects use) when the branch
+# doesn't carry a 3-segment epic. thebrana's own v3 parent-chain epics are
+# not resolved here (hot-path render, not the place for a multi-hop lookup)
+# and simply show no epic on dev/main, same as before.
 #
-# ADR-066: active_epic is project-scoped with exactly one authoritative
-# source -- the resolving project's own config. The global
-# ~/.claude/tasks-config.json is NEVER a valid source for this key (T7).
-#
-# Tests:
-#   T1 -- 3-segment task branch yields the branch epic
-#   T2 -- on dev with project-local .claude/ active_epic -> that epic
-#   T3 -- branch epic wins over active_epic (precedence unchanged)
-#   T4 -- no config -> no epic segment
-#   T5 -- malformed config -> no epic segment, still exits 0
-#   T6 -- thebrana layout (system/state/) active_epic -> that epic
-#   T7 -- global ~/.claude/tasks-config.json is never read
+# ADR-088 (t-3196): the static tasks-config.json active_epic fallback this
+# test file used to exercise is retired entirely, along with the shared
+# config file itself. No config path — local, global, or thebrana's
+# system/state/ layout — is ever read for this anymore.
 
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -34,7 +29,8 @@ check() {
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# A fake HOME carrying a global active_epic. Nothing may ever read it (T7).
+# A fake HOME carrying a leftover global active_epic (simulating a pre-ADR-088
+# config that was never cleaned up). Nothing may ever read it.
 mkdir -p "$TMP/fakehome/.claude"
 printf '{"active_epic":"GLOBAL-LEAK","theme":"emoji"}\n' \
     > "$TMP/fakehome/.claude/tasks-config.json"
@@ -61,55 +57,61 @@ epic_of() {
     echo "$out" | grep -o '🎯 [^│]*' | sed -e 's/^🎯 //' -e 's/[[:space:]]*$//'
 }
 
-echo "=== statusline epic resolution (t-2467) ==="
+echo "=== statusline epic resolution (t-2467, revised t-3196) ==="
 
-# T1 -- branch-derived epic still works (no config present)
+# T1 -- branch-derived epic still works
 R=$(make_repo t1 "myepic/feat/t-1-do-thing")
 [ "$(epic_of "$R")" = "myepic" ]; check "T1: 3-segment branch yields branch epic" $?
 
-# T2 -- the gap this task closes: 2-segment convention, sitting on dev
+# T2 -- no config, no in_progress task -> no epic segment at all
 R=$(make_repo t2 dev)
-mkdir -p "$R/.claude"
-printf '{"active_epic":"alpha-epic","theme":"emoji"}\n' > "$R/.claude/tasks-config.json"
-[ "$(epic_of "$R")" = "alpha-epic" ]; check "T2: project-local .claude/ active_epic on dev" $?
+[ -z "$(epic_of "$R")" ]; check "T2: nothing to resolve -> no epic segment" $?
 
-# T3 -- precedence: branch epic must win when both are available
+# T3 -- precedence: branch epic wins over the dynamic in_progress task epic
+# when both are available (branch check happens first, unconditionally).
 R=$(make_repo t3 "branchepic/feat/t-9-x")
 mkdir -p "$R/.claude"
-printf '{"active_epic":"config-epic"}\n' > "$R/.claude/tasks-config.json"
-[ "$(epic_of "$R")" = "branchepic" ]; check "T3: branch epic wins over active_epic" $?
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"dyn-epic","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R")" = "branchepic" ]; check "T3: branch epic wins over dynamic in_progress epic" $?
 
-# T4 -- nothing to resolve: slot must be omitted entirely
+# T4 -- nothing to resolve: slot must be omitted entirely (duplicate of T2's
+# intent kept for numbering stability with the pre-t-3196 suite)
 R=$(make_repo t4 dev)
-[ -z "$(epic_of "$R")" ]; check "T4: no config -> no epic segment" $?
+[ -z "$(epic_of "$R")" ]; check "T4: no tasks.json -> no epic segment" $?
 
-# T5 -- malformed JSON must degrade silently, not error or leak jq noise
+# T5 -- a leftover/malformed tasks-config.json anywhere must be inert: never
+# read, never causes an error, never surfaces its value.
 R=$(make_repo t5 dev)
 mkdir -p "$R/.claude"
 printf '{ this is not json\n' > "$R/.claude/tasks-config.json"
 OUT=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
     | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null); RC=$?
 [ "$RC" = "0" ] && [ -z "$(epic_of "$R")" ]
-check "T5: malformed config -> no epic, exit 0" $?
+check "T5: malformed tasks-config.json is inert, exit 0" $?
 
-# T6 -- thebrana keeps its config at system/state/, not .claude/
+# T6 -- thebrana's own system/state/tasks-config.json layout is equally inert
 R=$(make_repo t6 dev)
 mkdir -p "$R/system/state"
 printf '{"active_epic":"harness-core"}\n' > "$R/system/state/tasks-config.json"
-[ "$(epic_of "$R")" = "harness-core" ]; check "T6: system/state/ layout active_epic" $?
+[ -z "$(epic_of "$R")" ]; check "T6: system/state/ config layout never read" $?
 
-# T7 -- ADR-066 guard: a global value must never surface
+# T7 -- neither local nor global tasks-config.json is ever read (strengthened
+# from the pre-t-3196 global-only guard: local active_epic must not surface
+# either, since the fallback that used to read it no longer exists).
 R=$(make_repo t7 dev)
-[ "$(epic_of "$R")" != "GLOBAL-LEAK" ]; check "T7: global ~/.claude config never read" $?
+mkdir -p "$R/.claude"
+printf '{"active_epic":"LOCAL-LEAK"}\n' > "$R/.claude/tasks-config.json"
+OUT="$(epic_of "$R")"
+[ "$OUT" != "GLOBAL-LEAK" ] && [ "$OUT" != "LOCAL-LEAK" ] && [ -z "$OUT" ]
+check "T7: neither local nor global tasks-config.json ever surfaces" $?
 
-# T8 -- dynamic derivation (t-2639): most-recently-started in_progress task's
-# .epic field wins over a stale static active_epic on main/dev.
+# T8 -- a single in_progress task's dynamic .epic field renders on dev
 R=$(make_repo t8 dev)
 mkdir -p "$R/.claude"
-printf '{"active_epic":"stale-epic"}\n' > "$R/.claude/tasks-config.json"
 printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"dyn-epic","started":"2026-08-01"}]}\n' \
     > "$R/.claude/tasks.json"
-[ "$(epic_of "$R")" = "dyn-epic" ]; check "T8: dynamic in_progress epic wins over stale active_epic" $?
+[ "$(epic_of "$R")" = "dyn-epic" ]; check "T8: single in_progress task's dynamic epic renders" $?
 
 # T9 -- among several in_progress tasks, the latest `started` timestamp wins
 R=$(make_repo t9 dev)
@@ -121,24 +123,23 @@ printf '{"tasks":[
 ]}\n' > "$R/.claude/tasks.json"
 [ "$(epic_of "$R")" = "newer-epic" ]; check "T9: latest-started in_progress task wins (status filter applied)" $?
 
-# T10 -- in_progress tasks with no epic field are skipped; static active_epic
-# is still the fallback when none of them carry one
+# T10 -- in_progress task with no epic field, and nothing else to fall back
+# to -> no epic segment (the static fallback that used to catch this is gone)
 R=$(make_repo t10 dev)
 mkdir -p "$R/.claude"
-printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
 printf '{"tasks":[{"id":"t-1","status":"in_progress","started":"2026-08-01"}]}\n' \
     > "$R/.claude/tasks.json"
-[ "$(epic_of "$R")" = "fallback-epic" ]; check "T10: no-epic in_progress task falls back to active_epic" $?
+[ -z "$(epic_of "$R")" ]; check "T10: no-epic in_progress task, no fallback left -> no epic segment" $?
 
-# T11 -- malformed tasks.json degrades silently to the static fallback, exit 0
+# T11 -- malformed tasks.json degrades silently to no epic segment, exit 0
+# (previously fell back to active_epic; that fallback no longer exists)
 R=$(make_repo t11 dev)
 mkdir -p "$R/.claude"
-printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
 printf '{ this is not json\n' > "$R/.claude/tasks.json"
 OUT=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
     | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null); RC=$?
-[ "$RC" = "0" ] && [ "$(epic_of "$R")" = "fallback-epic" ]
-check "T11: malformed tasks.json -> falls back to active_epic, exit 0" $?
+[ "$RC" = "0" ] && [ -z "$(epic_of "$R")" ]
+check "T11: malformed tasks.json -> no epic segment, exit 0" $?
 
 # T12 -- same-day tie among in_progress tasks (production `.started` is
 # date-only, so this is a realistic occurrence, not a rare edge, t-2639
@@ -162,89 +163,69 @@ printf '{\n  "tasks": [\n    {\n      "id": "t-1",\n      "status": "in_progress
     > "$R/.claude/tasks.json"
 [ "$(epic_of "$R")" = "pretty-epic" ]; check "T13: pre-check matches pretty-printed JSON (space after colon)" $?
 
-# T14 -- pre-check correctly skips the jq scan (falls to static fallback)
-# when tasks.json has no "epic" key at all, not even null -- the shape
-# thebrana's own tasks.json actually has (v3 schema, key entirely absent).
+# T14 -- pre-check correctly skips the jq scan (no epic to find) when
+# tasks.json has no "epic" key at all, not even null -- the shape thebrana's
+# own tasks.json actually has (v3 schema, key entirely absent). No fallback
+# left to catch this, so the result is simply no epic segment.
 R=$(make_repo t14 dev)
 mkdir -p "$R/.claude"
-printf '{"active_epic":"fallback-epic"}\n' > "$R/.claude/tasks-config.json"
 printf '{"tasks":[{"id":"t-1","status":"in_progress","started":"2026-08-05"}]}\n' \
     > "$R/.claude/tasks.json"
-[ "$(epic_of "$R")" = "fallback-epic" ]; check "T14: no epic key anywhere -> pre-check skips jq, falls back correctly" $?
+[ -z "$(epic_of "$R")" ]; check "T14: no epic key anywhere -> pre-check skips jq, no epic segment" $?
 
 echo ""
 echo "--- boundaries ---"
 
-# B1 -- empty-string active_epic must not render an empty slot
+# B1 -- CC is opened inside subdirectories too; resolution is GIT_ROOT-relative
+# (retargeted from active_epic config to the dynamic in_progress task path —
+# the only remaining non-branch source).
 R=$(make_repo b1 dev)
-mkdir -p "$R/.claude"
-printf '{"active_epic":""}\n' > "$R/.claude/tasks-config.json"
-[ -z "$(epic_of "$R")" ]; check "B1: empty active_epic -> no epic segment" $?
-
-# B2 -- explicit JSON null must behave like absent
-R=$(make_repo b2 dev)
-mkdir -p "$R/.claude"
-printf '{"active_epic":null}\n' > "$R/.claude/tasks-config.json"
-[ -z "$(epic_of "$R")" ]; check "B2: null active_epic -> no epic segment" $?
-
-# B3 -- .claude/ exists but lacks the key; system/state/ has it. The loop must
-# fall through to the second path rather than stopping at the first file found.
-R=$(make_repo b3 dev)
-mkdir -p "$R/.claude" "$R/system/state"
-printf '{"theme":"emoji"}\n' > "$R/.claude/tasks-config.json"
-printf '{"active_epic":"second-path"}\n' > "$R/system/state/tasks-config.json"
-[ "$(epic_of "$R")" = "second-path" ]; check "B3: keyless first config falls through to second" $?
-
-# B4 -- CC is opened inside subdirectories too; resolution is GIT_ROOT-relative
-R=$(make_repo b4 dev)
 mkdir -p "$R/.claude" "$R/deep/nested/dir"
-printf '{"active_epic":"from-subdir"}\n' > "$R/.claude/tasks-config.json"
-[ "$(epic_of "$R/deep/nested/dir")" = "from-subdir" ]; check "B4: resolves from a subdirectory" $?
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"from-subdir","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
+[ "$(epic_of "$R/deep/nested/dir")" = "from-subdir" ]; check "B1: resolves from a subdirectory" $?
 
-# B5 -- outside any git repo: no GIT_ROOT, must not error or emit an epic
+# B2 -- outside any git repo: no GIT_ROOT, must not error or emit an epic,
+# even with a dynamic in_progress task sitting in an unreachable .claude/
 NOGIT="$TMP/nogit"; mkdir -p "$NOGIT/.claude"
-printf '{"active_epic":"not-a-repo"}\n' > "$NOGIT/.claude/tasks-config.json"
-[ -z "$(epic_of "$NOGIT")" ]; check "B5: non-git dir -> no epic segment" $?
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"not-a-repo","started":"2026-08-01"}]}\n' \
+    > "$NOGIT/.claude/tasks.json"
+[ -z "$(epic_of "$NOGIT")" ]; check "B2: non-git dir -> no epic segment" $?
 
-# B6 -- the output is printf '%b', so backslash escapes in a config value would
-# be interpreted; a newline would break the single-line statusline contract.
-R=$(make_repo b6 dev)
+# B3 -- the output is printf '%b', so backslash escapes in an epic value
+# would be interpreted; a newline would break the single-line statusline
+# contract. Retargeted to the dynamic task .epic field (the only source that
+# can still carry an attacker/typo-controlled string).
+R=$(make_repo b3 dev)
 mkdir -p "$R/.claude"
-printf '{"active_epic":"bad\\\\nvalue"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"bad\\\\nvalue","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
 LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
     | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
-[ "$LINES" = "1" ]; check "B6: escape sequence in active_epic stays single-line" $?
+[ "$LINES" = "1" ]; check "B3: escape sequence in dynamic epic stays single-line" $?
 
-# B7 -- same contract for a real embedded newline (jq -r emits it verbatim)
-R=$(make_repo b7 dev)
+# B4 -- same contract for a real embedded newline (jq -r emits it verbatim)
+R=$(make_repo b4 dev)
 mkdir -p "$R/.claude"
-printf '{"active_epic":"bad\\nvalue"}\n' > "$R/.claude/tasks-config.json"
+printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"bad\\nvalue","started":"2026-08-01"}]}\n' \
+    > "$R/.claude/tasks.json"
 LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
     | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
-[ "$LINES" = "1" ]; check "B7: literal newline in active_epic stays single-line" $?
+[ "$LINES" = "1" ]; check "B4: literal newline in dynamic epic stays single-line" $?
 
-# B8 -- a raw control byte delivered via a JSON \u001b (ESC) escape has no
+# B5 -- a raw control byte delivered via a JSON  (ESC) escape has no
 # backslash character left after jq decodes it, so the backslash-strip alone
 # can't catch it; the scrub must also strip raw control bytes directly
-# (t-2639 challenger: pre-existing gap on active_epic, now closed).
-R=$(make_repo b8 dev)
-mkdir -p "$R/.claude"
-printf '{"active_epic":"bad\\u001bvalue"}\n' > "$R/.claude/tasks-config.json"
-LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
-    | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
-[ "$LINES" = "1" ] && [ "$(epic_of "$R")" = "badvalue" ]
-check "B8: raw ESC byte (JSON \\u001b escape) in active_epic is stripped" $?
-
-# B9 -- same class, but through the new dynamic source (t-2639 widened the
-# shared scrub's reach to every task's .epic field, any write path).
-R=$(make_repo b9 dev)
+# (t-2639 challenger, via the dynamic task .epic field — the only remaining
+# source since the config-fed B8 case was retired with the config fallback).
+R=$(make_repo b5 dev)
 mkdir -p "$R/.claude"
 printf '{"tasks":[{"id":"t-1","status":"in_progress","epic":"bad\\u001bvalue","started":"2026-08-01"}]}\n' \
     > "$R/.claude/tasks.json"
 LINES=$(printf '{"model":{"display_name":"T"},"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":10}}' "$R" \
     | HOME="$TMP/fakehome" bash "$STATUSLINE" 2>/dev/null | wc -l)
 [ "$LINES" = "1" ] && [ "$(epic_of "$R")" = "badvalue" ]
-check "B9: raw ESC byte in dynamic task .epic field is stripped" $?
+check "B5: raw ESC byte in dynamic task .epic field is stripped" $?
 
 echo ""; echo "$PASS/$TOTAL passed"
 [ "$FAIL" -eq 0 ] || exit 1

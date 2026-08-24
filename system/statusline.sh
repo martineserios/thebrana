@@ -42,14 +42,11 @@ BRANCH=$(cd "$CWD" 2>/dev/null && git branch --show-current 2>/dev/null)
 # `.epic` field — the pre-v3 schema still used by client/venture projects;
 # thebrana's own v3 parent-chain epics aren't resolved here, a hot-path
 # statusline render isn't the place for a multi-hop lookup, so those degrade
-# to the static fallback below same as before, t-2639). A stale active_epic
-# config value otherwise lingers indefinitely once you stop cutting task
-# branches for a while.
-# Static fallback, project-local only (ADR-066): active_epic has exactly one
-# authoritative source, the resolving project's config — the global
-# ~/.claude copy is never valid for this key. thebrana keeps its copy at
-# system/state/, others at .claude/; both are project-local, so check each
-# in turn.
+# to no epic shown, same as before, t-2639).
+# ADR-088 (t-3196): the static tasks-config.json fallback that used to sit
+# here is retired along with the shared config file itself — resolution is
+# task-derived only (branch segment, then dynamic in-progress task), matching
+# brana-core's resolve_focus_epic(). No config file is read for this anymore.
 EPIC=""
 if [[ "$BRANCH" == */*/t-* ]]; then
     EPIC="${BRANCH%%/*}"
@@ -87,14 +84,6 @@ elif [ -n "$GIT_ROOT" ]; then
             | reverse
             | .[0].epic // empty
         ' "$GIT_ROOT/.claude/tasks.json" 2>/dev/null)
-    fi
-    if [ -z "$EPIC" ]; then
-        for cfg in "$GIT_ROOT/.claude/tasks-config.json" \
-                   "$GIT_ROOT/system/state/tasks-config.json"; do
-            [ -f "$cfg" ] || continue
-            EPIC=$(jq -r '.active_epic // empty' "$cfg" 2>/dev/null)
-            [ -n "$EPIC" ] && break
-        done
     fi
     # The output below goes through printf '%b', which interprets backslash
     # escapes; a literal or escaped newline would break the one-line contract.
