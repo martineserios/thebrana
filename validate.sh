@@ -1192,7 +1192,7 @@ all_edges = graph.get('edges', [])
 typed_edges = [e for e in all_edges if e.get('type')]
 issues = 0
 
-# Check 1: orphaned typed edges (from/to reference non-existent nodes)
+# Sub-check A: orphaned typed edges (from/to reference non-existent nodes)
 for edge in typed_edges:
     fr = edge.get('from', '')
     to = edge.get('to', '')
@@ -1204,7 +1204,7 @@ for edge in typed_edges:
         issues += 1
         print(f'  Orphaned edge source: {fr}', file=sys.stderr)
 
-# Check 2: assumption refs in typed_edges not in any doc's ## Assumptions
+# Sub-check B: assumption refs in typed_edges not in any doc's ## Assumptions
 assumption_ids = set()
 for edge in typed_edges:
     to = edge.get('to', '')
