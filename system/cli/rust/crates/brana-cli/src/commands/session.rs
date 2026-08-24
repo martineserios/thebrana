@@ -9,8 +9,8 @@ use anyhow::{Context, Result};
 pub use brana_core::session::mark_consumed;
 use brana_core::session::{
     compute_insights, current_branch, epic_scoped_state_path, read_history, read_state,
-    render_text, resolve_memory_dir, session_history_path, write_state, Blocker, NextCategory,
-    NextItem, SessionState,
+    read_state_from_unit, render_text, resolve_memory_dir, session_history_path, write_state,
+    Blocker, NextCategory, NextItem, SessionState,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use std::fs;
@@ -53,6 +53,15 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
     // session's initiative/focus marker so the handoff lands in its unit bucket instead of
     // orphaning. If still unresolved AND we're on the production/default branch, warn loudly —
     // a silent orphan from `main` is exactly the mis-routing this guards against.
+    //
+    // t-3169: a caller that explicitly wants no epic routing passes
+    // `epic: brana_core::session::ORPHAN_EPIC_SENTINEL` rather than omitting the field —
+    // omitting it is indistinguishable from "let the CLI infer one," and the focus marker
+    // always won that inference even after the close skill's own corroboration gate had
+    // just rejected it. The sentinel is a non-empty string, so it already fails the
+    // `is_empty()` check below and skips this fallback entirely with no extra branch needed
+    // here; `unit_scoped_state_path` and `SessionState::sanitize` carry the rest (routing
+    // straight to the orphan file, stripping the sentinel back to `None` before persistence).
     if state.epic.as_deref().map(str::trim).unwrap_or("").is_empty() {
         if let Some(slug) = brana_core::session_initiative::read_initiative_marker(&root)
             .or_else(|| brana_core::session_initiative::read_focus_marker(&root))
@@ -93,15 +102,23 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
     Ok(())
 }
 
-/// `brana session read [--json] [--all] [--since YYYY-MM-DD]`
-pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>) -> anyhow::Result<()> {
+/// `brana session read [--json] [--all] [--since YYYY-MM-DD] [--epic SLUG]`
+pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>, epic: Option<String>) -> anyhow::Result<()> {
     let root = require_project_root()?;
 
     if all {
         return cmd_session_read_all(&root, json_output, since);
     }
 
-    match read_state(&root) {
+    // t-3185: read's mirror of write's unit-key routing — an explicit `--epic` (including
+    // the orphan sentinel) resolves by that unit, not by guessing from the current branch.
+    // Omitted (the default): unchanged branch-only behavior.
+    let resolved = match epic {
+        Some(ref slug) => read_state_from_unit(&root, Some(slug), &current_branch().unwrap_or_default()),
+        None => read_state(&root),
+    };
+
+    match resolved {
         Some(state) => {
             if json_output {
                 println!("{}", serde_json::to_string_pretty(&state)?);
@@ -458,8 +475,14 @@ fn extract_field(body: &str, field: &str) -> Option<String> {
 pub fn cmd_epic_upsert(slug: &str, completed_csv: &str, resolved_texts_json: &str) -> anyhow::Result<()> {
     use brana_core::session_initiative::{upsert_initiative, ResolvedTextInput};
     let root = require_project_root()?;
-    let state = read_state(&root)
-        .ok_or_else(|| anyhow::anyhow!("No session state found — run `brana session write` first"))?;
+    // t-3185: read by the SLUG this upsert is for, not by the current branch's guess — the
+    // caller (close skill Step 9c) already resolved which epic this session's state belongs
+    // to, which can diverge from a branch-name parse (e.g. epic resolved from commit-
+    // referenced task IDs). Branch-only `read_state()` could fold an unrelated session's
+    // content into this epic's accumulator.
+    let branch = current_branch().unwrap_or_default();
+    let state = read_state_from_unit(&root, Some(slug), &branch)
+        .ok_or_else(|| anyhow::anyhow!("No session state found for epic {slug:?} — run `brana session write` first"))?;
     let completed: Vec<String> = completed_csv
         .split(',')
         .map(|s| s.trim().to_string())
@@ -600,7 +623,7 @@ pub fn cmd_epic_status(json_output: bool) -> anyhow::Result<()> {
 mod tests {
     use super::*;
     use brana_core::session::{mark_consumed_for, read_state_from, render_text, resolve_memory_dir,
-        session_history_path, write_state, Backprop, DocDrift, SessionMeta, SessionMetrics,
+        write_state, Backprop, DocDrift, SessionMeta, SessionMetrics,
         TestStatus};
     use serial_test::serial;
     use std::env;
@@ -923,5 +946,101 @@ mod tests {
             .to_string();
         // Should not error
         cmd_session_read_all(root, false, Some(since_date)).unwrap();
+    }
+
+    // t-3169: live-reproduces the 2026-08-23 mis-routing incident — a Tier 0 focus marker
+    // is set, and the caller (the close skill's Tier 3 "Skip") explicitly does not want epic
+    // routing. Before the fix, omitting `epic` from the payload was the only way to express
+    // that, and it fell straight into the focus-marker fallback below. The fix is the
+    // explicit `ORPHAN_EPIC_SENTINEL` payload value, which the "if empty" guard already
+    // treats as non-empty (real intent, not "let the CLI infer one") — see
+    // `unit_scoped_state_path` / `SessionState::sanitize` in brana-core for the routing and
+    // persistence halves of this fix.
+    #[test]
+    #[serial]
+    fn cmd_session_write_explicit_orphan_sentinel_bypasses_focus_marker() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        brana_core::session_initiative::write_focus_marker(project_root.path(), "knowledge-pipeline")
+            .unwrap();
+
+        let payload_path = project_root.path().join("payload.json");
+        fs::write(
+            &payload_path,
+            serde_json::json!({
+                "version": 1,
+                "written_at": "",
+                "epic": brana_core::session::ORPHAN_EPIC_SENTINEL,
+                "accomplished": ["did the orphan thing"],
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let result = cmd_session_write(Some(payload_path), false);
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+        result.unwrap();
+
+        let orphan_path = brana_core::session::session_state_path(project_root.path());
+        assert!(orphan_path.exists(), "write must land on the orphan file, not the focus-marker bucket");
+
+        let focus_marker_path = resolve_memory_dir(project_root.path()).join("session-state-knowledge-pipeline.json");
+        assert!(!focus_marker_path.exists(), "focus marker's session-state file must not be touched");
+
+        let written: SessionState = serde_json::from_str(&fs::read_to_string(&orphan_path).unwrap()).unwrap();
+        assert_eq!(written.epic, None, "sentinel must not be persisted as a real epic slug");
+        assert_eq!(written.accomplished, vec!["did the orphan thing"]);
+    }
+
+    // t-3185 (second-variant finder, corroborated): cmd_epic_upsert took a `slug` argument
+    // but read the CURRENT session state via branch-only `read_state`, ignoring `slug`
+    // entirely — so it could fold the wrong session's content into an epic's accumulator
+    // whenever the branch-derived guess diverged from the epic the caller actually meant
+    // (e.g. Tier 2a/2b resolved the true epic from commit-referenced task IDs, not the
+    // branch name). Reproduces that divergence directly: a decoy state sits at the
+    // branch-derived path, the real content sits under the explicit slug.
+    #[test]
+    #[serial]
+    fn cmd_epic_upsert_reads_state_by_given_slug_not_current_branch() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        // Decoy: no explicit epic, so it lands wherever THIS test process's real
+        // `current_branch()` parses to (or the orphan file, if it doesn't match the epic
+        // convention) — exactly the file the pre-fix branch-only `read_state()` would find.
+        let branch = brana_core::session::current_branch().unwrap_or_default();
+        let mut decoy = sample_state();
+        decoy.session_label = Some("decoy — must NOT be used".into());
+        decoy.accomplished = vec!["decoy accomplishment".into()];
+        decoy.epic = None;
+        decoy.branch = Some(branch.clone());
+        write_state(project_root.path(), &decoy).unwrap();
+
+        // Real content, explicitly under the slug cmd_epic_upsert is being asked to upsert —
+        // deliberately NOT the branch-derived epic, reproducing the divergence.
+        let mut real = sample_state();
+        real.session_label = Some("real content for totally-different-test-epic".into());
+        real.accomplished = vec!["real accomplishment".into()];
+        real.epic = Some("totally-different-test-epic".into());
+        real.branch = Some(branch);
+        write_state(project_root.path(), &real).unwrap();
+
+        let result = cmd_epic_upsert("totally-different-test-epic", "", "[]");
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+        result.unwrap();
+
+        let acc = brana_core::session_initiative::read_initiative(project_root.path(), "totally-different-test-epic")
+            .expect("accumulator must be created");
+        assert!(
+            acc.accomplished.iter().any(|a| a == "real accomplishment"),
+            "accumulator must fold in the state written under the given slug: {:?}", acc.accomplished
+        );
+        assert!(
+            !acc.accomplished.iter().any(|a| a == "decoy accomplishment"),
+            "accumulator must NOT pick up the branch-derived decoy state: {:?}", acc.accomplished
+        );
     }
 }

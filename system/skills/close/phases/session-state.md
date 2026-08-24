@@ -487,7 +487,17 @@ AskUserQuestion(
   options: ["<detected slugs if any>", "Skip"]
 )
 ```
-If the user skips: proceed to Step 10 without writing an epic file.
+If the user skips: set `INITIATIVE_SLUG` to the literal sentinel string `(orphan)` —
+**do not** leave it empty or omit `epic` from the Step 9 payload (t-3169). Omitting the field
+is indistinguishable to `brana session write` from "let the CLI infer one," and it infers the
+persistent Tier 0 focus marker even after that same marker was just rejected by Tier 0's own
+corroboration gate above — the write silently lands in the focus marker's file instead of the
+orphan one the user actually chose. The sentinel (`brana_core::session::ORPHAN_EPIC_SENTINEL`)
+overrides the focus-marker fallback and routes straight to the orphan file, and is stripped
+back to `null` before persistence, so it never shows up as a fake epic slug later. Skip Pass 2
+and the "Write accumulator" step below entirely (no `brana session epic upsert` call) — the
+sentinel only affects the Step 9 payload's `epic` field, there is no accumulator for "no
+epic." Proceed to Step 10.
 
 **Pass 2 — LLM pruning of text-only next[] items (run before upsert):**
 

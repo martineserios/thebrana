@@ -41,6 +41,20 @@ pub fn session_state_path(project_root: &Path) -> PathBuf {
     resolve_memory_dir(project_root).join("session-state.json")
 }
 
+/// Explicit "no epic" sentinel for the `epic` field of a `brana session write` payload
+/// (t-3169). Omitting `epic` is indistinguishable from "let the CLI infer one" — the
+/// persistent focus marker (`brana session epic focus`) always wins that inference when
+/// set, even after a caller has deliberately decided no epic applies. Passing this literal
+/// string instead opts out of both the focus-marker fallback (`cmd_session_write`) and the
+/// branch-name epic parsing (`unit_scoped_state_path` below), landing unconditionally on the
+/// orphan/default file. Never persisted: `SessionState::sanitize` strips it back to `None`
+/// before the state reaches disk, so it can never be mistaken for a real epic slug by
+/// `session_initiative` or sitrep. Chosen to match the existing read-side display label for
+/// the same file (`cmd_session_read_all`'s `"(orphan)"` epic tag) — a real epic slug can
+/// never collide with it, since `resolve_epic_ancestor` only accepts
+/// `^[a-z0-9]+(-[a-z0-9]+)*$`, which parens fail.
+pub const ORPHAN_EPIC_SENTINEL: &str = "(orphan)";
+
 /// Resolve the session state path scoped to the epic slug extracted from `branch`.
 ///
 /// Branch convention: `{epic}/{type}/t-{N}-{slug}` where type ∈ {feat,fix,chore,...}.
@@ -68,9 +82,41 @@ pub fn epic_scoped_state_path(project_root: &Path, branch: &str) -> PathBuf {
 /// session belongs to) when present, else the epic parsed from the branch name. This decouples
 /// handoff routing from the volatile current branch — closing from `main` or a sibling epic's
 /// branch no longer mis-files the handoff (ADR-060 / t-2152, t-2154).
+/// Whether `slug` is safe to interpolate into a bare filename component
+/// (`session-state-{slug}.json`) with no further sanitization. Matches the same slug
+/// convention `resolve_epic_ancestor` already enforces elsewhere
+/// (`^[a-z0-9]+(-[a-z0-9]+)*$`) — no `/`, no `.`, no leading/trailing/repeated dashes.
+///
+/// t-3169 rung-2 (second-variant finder, verified independently by direct reproduction):
+/// this is the single choke point every caller — write, and now read — funnels an
+/// externally-supplied epic string through. Without this check, a slug containing `../`
+/// segments produces a first path component that doesn't exist yet
+/// (`session-state-..`) — `fs::create_dir_all` on the write path happily creates it,
+/// then walks the real `..` components from inside it, escaping `resolve_memory_dir`
+/// entirely (confirmed: reaches real writes outside the memory directory). Pre-existing
+/// (reachable via `write_state`'s payload `epic` field before this fix existed at all);
+/// this is the first place any validation was ever applied to it.
+pub(crate) fn is_safe_epic_slug(slug: &str) -> bool {
+    static RE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").expect("slug regex is valid"))
+        .is_match(slug)
+}
+
 pub fn unit_scoped_state_path(project_root: &Path, epic: Option<&str>, branch: &str) -> PathBuf {
+    // t-3169: explicit "no epic" wins outright — skip branch-name parsing too, so a caller
+    // that opted out of epic routing isn't silently re-routed just because the current
+    // branch happens to look epic-shaped (e.g. closing "no epic" from an epic-prefixed
+    // feature branch).
+    if epic.map(str::trim) == Some(ORPHAN_EPIC_SENTINEL) {
+        return session_state_path(project_root);
+    }
     if let Some(slug) = epic.map(str::trim).filter(|s| !s.is_empty()) {
-        return resolve_memory_dir(project_root).join(format!("session-state-{slug}.json"));
+        // Invalid slugs (including any path-traversal attempt) are treated the same as no
+        // epic at all — silently-safe and consistent with resolve_epic_ancestor's own
+        // "malformed slug degrades to not-found" convention, not a new error surface.
+        if is_safe_epic_slug(slug) {
+            return resolve_memory_dir(project_root).join(format!("session-state-{slug}.json"));
+        }
     }
     epic_scoped_state_path(project_root, branch)
 }
@@ -307,6 +353,12 @@ impl SessionState {
         self.consumed_at = None;
         // Invariant: the CAS token is a request parameter, never persisted (t-2506).
         self.base_written_at = None;
+        // Invariant: the orphan-routing sentinel is a request-time signal for
+        // unit_scoped_state_path, never a real epic slug — strip it before persistence so
+        // session_initiative/sitrep never mistake it for one (t-3169).
+        if self.epic.as_deref() == Some(ORPHAN_EPIC_SENTINEL) {
+            self.epic = None;
+        }
         if let Some(ref mut drift) = self.doc_drift {
             drift.stale_docs.retain(|p| Path::new(p).exists());
         }
@@ -345,6 +397,16 @@ impl SessionState {
 pub fn read_state_from(project_root: &Path, branch: &str) -> Option<SessionState> {
     let path = epic_scoped_state_path(project_root, branch);
     read_state_at(&path)
+}
+
+/// Read session state by the same UNIT key `write_state` resolves by (t-3185): an explicit
+/// `epic` (including [`ORPHAN_EPIC_SENTINEL`]) when present, else branch-name parsing —
+/// identical fallback order to [`unit_scoped_state_path`]. `read_state_from` stays
+/// branch-only for backward compatibility (its many existing callers have no epic to give);
+/// use this instead when the caller has — or wants to force — an explicit epic, mirroring
+/// how `write_state` already accepts one on the payload.
+pub fn read_state_from_unit(project_root: &Path, epic: Option<&str>, branch: &str) -> Option<SessionState> {
+    read_state_at(&unit_scoped_state_path(project_root, epic, branch))
 }
 
 /// Read the current session state, if it exists.
@@ -507,8 +569,20 @@ pub fn write_state_with_base(
             })
             .unwrap_or(false);
         let same_branch = existing.branch == state.branch;
+        // t-3169 rung-2: an EXPLICIT orphan-sentinel write intentionally targets the shared,
+        // multi-tenant "no epic" bucket regardless of branch — unlike an ordinary
+        // non-conforming-branch fallback onto the same physical file (pre-existing, unrelated
+        // behavior this fix leaves alone), where same-branch/different-day still means "one
+        // continuous session, replace is fine" (see test_write_archives_previous). Only the
+        // sentinel declares "I have no single owner"; key on the INCOMING write's own intent,
+        // not on which file it happens to resolve to, and check it before sanitize() strips
+        // it. A different-branch collision on the sentinel-declared bucket is the NORMAL
+        // case, not a "wrong epic detected" red flag (t-2263) — it must always merge, never
+        // ReplaceStale, which would silently let one unrelated session's close destroy
+        // another's.
+        let is_explicit_orphan_write = state.epic.as_deref() == Some(ORPHAN_EPIC_SENTINEL);
 
-        if same_day && same_branch {
+        if is_explicit_orphan_write || (same_day && same_branch) {
             let base_matches = base.is_some_and(|b| b == existing.written_at);
             let mut merged = merge_states(&existing, state);
             if base_matches {
@@ -1253,10 +1327,82 @@ mod tests {
         assert_eq!(history[0].written_at, "2026-04-06T10:00:00Z");
     }
 
+    // t-3169: explicit "(orphan)" sentinel must route straight to the legacy
+    // session-state.json, bypassing branch-name epic parsing entirely — a caller that
+    // deliberately opted out of epic routing must not have a branch that happens to look
+    // epic-shaped (e.g. "close/fix/t-3169-...") silently re-route it anyway.
+    #[test]
+    fn unit_scoped_state_path_orphan_sentinel_bypasses_branch_parsing() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let epic_shaped_branch = "close/fix/t-3169-no-epic-skip-routing";
+        let path = unit_scoped_state_path(root, Some(ORPHAN_EPIC_SENTINEL), epic_shaped_branch);
+
+        assert_eq!(path, session_state_path(root));
+    }
+
+    // t-3169: the sentinel is a routing signal only — it must never be persisted into the
+    // stored state's `epic` field (which session_initiative/sitrep readers treat as a real
+    // epic slug). sanitize() runs on every write path, so this is the single choke point.
+    #[test]
+    fn sanitize_strips_orphan_epic_sentinel() {
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+
+        let sanitized = state.sanitize();
+
+        assert_eq!(sanitized.epic, None);
+    }
+
+    #[test]
+    fn sanitize_keeps_real_epic_slug() {
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some("close".to_string());
+
+        let sanitized = state.sanitize();
+
+        assert_eq!(sanitized.epic, Some("close".to_string()));
+    }
+
     #[test]
     fn read_state_missing_returns_none() {
         let dir = tempdir().unwrap();
         assert!(read_state_from(dir.path(), "main").is_none());
+    }
+
+    // t-3185: read's mirror of write's unit_scoped_state_path. A state written under an
+    // explicit epic (including the orphan sentinel) must be found by epic, not by
+    // branch-name guessing — even when the branch parses to a DIFFERENT epic-shaped slug.
+    #[test]
+    fn read_state_from_unit_finds_state_by_explicit_epic_not_branch() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+        state.branch = Some("close/fix/t-3185-epic-shaped-branch".to_string());
+        write_state(root, &state).unwrap();
+
+        // Branch-only read looks in the WRONG file (parses "close" from the branch).
+        assert!(read_state_from(root, "close/fix/t-3185-epic-shaped-branch").is_none());
+
+        // Unit-aware read, given the explicit epic, finds the right one.
+        let loaded = read_state_from_unit(root, Some(ORPHAN_EPIC_SENTINEL), "close/fix/t-3185-epic-shaped-branch")
+            .expect("must find state written under the orphan sentinel");
+        assert_eq!(loaded.accomplished, vec!["did thing A"]);
+    }
+
+    #[test]
+    fn read_state_from_unit_falls_back_to_branch_when_epic_absent() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let state = make_state("2026-04-06T10:00:00Z");
+        write_state(root, &state).unwrap();
+
+        let loaded = read_state_from_unit(root, None, "main").expect("branch fallback must still work");
+        assert_eq!(loaded.written_at, "2026-04-06T10:00:00Z");
     }
 
     #[test]
@@ -1705,6 +1851,54 @@ mod tests {
         };
         let merged = merge_states(&existing, &new);
         assert_eq!(merged.blockers.len(), 2);
+    }
+
+    // t-3169 rung-2 (concurrency-lock finder, corroborated): the orphan sentinel
+    // (ORPHAN_EPIC_SENTINEL) intentionally funnels every "no epic" close onto ONE shared
+    // file, unconditionally, regardless of branch. write_state_with_base's only collision
+    // protection (`same_day && same_branch`) is essentially always false for this traffic —
+    // two different unrelated sessions closing with no epic have two different branches by
+    // construction — so every such collision used to hit ReplaceStale, a full overwrite
+    // that silently destroyed the first session's accomplished/learnings/next[] (recoverable
+    // from session-history.jsonl, but with no warning surfaced anywhere). The orphan file is
+    // multi-tenant BY DESIGN, unlike an epic-scoped file where a different-branch write is a
+    // genuine "wrong epic detected" red flag (t-2263) — so it must always merge, never
+    // ReplaceStale, regardless of branch or day.
+    #[test]
+    fn orphan_sentinel_writes_from_different_branches_union_not_replace() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut first = make_state("2026-04-06T10:00:00Z");
+        first.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+        first.branch = Some("harness/chore/t-1717-first-session".to_string());
+        first.accomplished = vec!["first session's work".to_string()];
+        write_state(root, &first).unwrap();
+
+        let mut second = make_state("2026-04-06T14:00:00Z");
+        second.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+        second.branch = Some("close/fix/t-3169-second-session".to_string());
+        second.accomplished = vec!["second session's work".to_string()];
+        // No base_written_at — second session never read the first's state (the exact
+        // scenario: two unrelated sessions, neither aware of the other, both close "no
+        // epic" the same day).
+        let report = write_state_with_base(root, &second, None).unwrap();
+
+        assert_ne!(
+            report.next_mode, NextMergeMode::ReplaceStale,
+            "orphan file must never be replaced outright — it's shared across unrelated branches by design"
+        );
+
+        let loaded = read_state_from_unit(root, Some(ORPHAN_EPIC_SENTINEL), "close/fix/t-3169-second-session")
+            .expect("orphan state must exist");
+        assert!(
+            loaded.accomplished.contains(&"first session's work".to_string()),
+            "first session's accomplished must survive a different-branch collision: {:?}", loaded.accomplished
+        );
+        assert!(
+            loaded.accomplished.contains(&"second session's work".to_string()),
+            "second session's accomplished must also land: {:?}", loaded.accomplished
+        );
     }
 
     #[test]
@@ -2211,6 +2405,40 @@ mod tests {
         let path = epic_scoped_state_path(dir.path(), "myepic/fix/t-42-something");
         assert!(path.to_str().unwrap().ends_with("session-state-myepic.json"),
             "fix/ branch should use epic slug: {:?}", path);
+    }
+
+    // t-3169 rung-2 (second-variant finder round 2, verified independently — the finder's
+    // read-side traversal claim does NOT reproduce, but the SAME unvalidated slug reaches
+    // fs::create_dir_all on the write side, which DOES escape): unit_scoped_state_path did
+    // `format!("session-state-{slug}.json")` with zero validation. A slug embedding "../"
+    // segments produces a path whose first component ("session-state-..") is a bogus,
+    // normally-nonexistent directory name — fs::create_dir_all happily CREATES it, then
+    // walks the real ".." components from inside it, escaping resolve_memory_dir entirely.
+    // Confirmed live (outside this test suite) that this reaches real arbitrary file writes.
+    // This sink was already reachable pre-t-3169 via write_state's payload `epic` field; the
+    // fix (validate against the same slug convention resolve_epic_ancestor already
+    // enforces) closes it at the single choke point every caller — read and write — funnels
+    // through.
+    #[test]
+    fn unit_scoped_state_path_rejects_slug_with_path_traversal() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some("../../../../../../../../tmp/t-3169-traversal-poc/evil".to_string());
+        state.branch = Some("main".to_string());
+
+        write_state(root, &state).unwrap();
+
+        assert!(
+            !std::path::Path::new("/tmp/t-3169-traversal-poc").exists(),
+            "malicious epic slug must not escape the memory directory"
+        );
+        // Rejected as invalid — falls through to branch-name resolution, same as an absent
+        // epic, rather than silently vanishing the write.
+        let loaded = read_state_from(root, "main").expect("write must still land somewhere safe");
+        assert_eq!(loaded.accomplished, vec!["did thing A"]);
+
+        let _ = std::fs::remove_dir_all("/tmp/t-3169-traversal-poc");
     }
 
     #[test]

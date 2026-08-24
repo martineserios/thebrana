@@ -208,7 +208,7 @@ fn main() {
         },
         Commands::Session { cmd } => match cmd {
             SessionCmd::Write { file, minimal } => run_or_exit(commands::session::cmd_session_write(file, minimal)),
-            SessionCmd::Read { json, all, since } => run_or_exit(commands::session::cmd_session_read(json, all, since)),
+            SessionCmd::Read { json, all, since, epic } => run_or_exit(commands::session::cmd_session_read(json, all, since, epic)),
             SessionCmd::History { limit } => run_or_exit(commands::session::cmd_session_history(limit)),
             SessionCmd::Path => run_or_exit(commands::session::cmd_session_path()),
             SessionCmd::Migrate => run_or_exit(commands::session::cmd_session_migrate()),
