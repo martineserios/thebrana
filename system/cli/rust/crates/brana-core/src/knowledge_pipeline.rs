@@ -5633,6 +5633,40 @@ id3
         assert_eq!(result.duplicates, 1);
     }
 
+    // ── ingest_urls canonical keying (t-3171, ADR-087 shared URL identity) ─
+
+    #[test]
+    fn test_ingest_urls_tracking_variants_dedupe_to_one_entry() {
+        // Two tracking-param decorations of the same page must not create two
+        // pipeline entries — the second must count as a duplicate.
+        let mut state = PipelineState::default();
+        let plain = "https://www.linkedin.com/posts/someone_post-7437448165403852801-F5RX".to_string();
+        let decorated = format!("{plain}?utm_source=share&utm_medium=member_ios&rcm=ACoAA");
+        let first = ingest_urls(&[plain], None, &mut state);
+        let second = ingest_urls(&[decorated], None, &mut state);
+        assert_eq!(first.queued, 1);
+        assert_eq!(second.queued, 0, "tracking-param variant of an ingested URL must dedupe");
+        assert_eq!(second.duplicates, 1);
+        assert_eq!(state.urls.len(), 1);
+    }
+
+    #[test]
+    fn test_ingest_urls_keys_state_by_canonicalize_url() {
+        // The stored key must be canonicalize_url(raw), matching the key
+        // derivation ruflo's url_storage_key() applies — not the raw literal.
+        let mut state = PipelineState::default();
+        let raw = "https://www.youtube.com/watch?v=jNQXAC9IVRw&si=tracking123&utm_source=share".to_string();
+        let canonical = canonicalize_url(&raw);
+        assert_ne!(raw, canonical, "fixture must actually carry tracking params");
+        ingest_urls(&[raw.clone()], None, &mut state);
+        assert!(
+            state.urls.contains_key(canonical.as_str()),
+            "entry must be keyed by canonicalize_url(), got keys: {:?}",
+            state.urls.keys().collect::<Vec<_>>()
+        );
+        assert!(!state.urls.contains_key(raw.as_str()), "raw literal URL must not be a key");
+    }
+
     // ── append_event_log_entry_at ─────────────────────────────────────────
 
     #[test]
