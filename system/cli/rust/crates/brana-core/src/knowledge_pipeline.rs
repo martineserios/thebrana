@@ -337,18 +337,24 @@ pub fn parse_event_log(
             continue;
         }
 
-        let url = match line.split_whitespace().find(|t| t.starts_with("https://")) {
-            Some(u) => u.trim_end_matches(')').trim_end_matches(',').to_string(),
+        let raw = match line.split_whitespace().find(|t| t.starts_with("https://")) {
+            Some(u) => u.trim_end_matches(')').trim_end_matches(','),
             None => continue,
         };
 
-        if known_urls.contains(&url) {
+        // Canonical from the moment of extraction (t-3151 challenger
+        // finding): these entries are run_tier1's first write into
+        // PipelineState, so a raw key here reopens the side door t-3173
+        // closed in ingest. Signals still parse from the raw form.
+        let url = canonicalize_url(raw);
+
+        if known_urls.contains(&url) || entries.iter().any(|e: &UrlEventEntry| e.url == url) {
             continue;
         }
 
-        let (author, title_signal) = match parse_linkedin_url(&url) {
+        let (author, title_signal) = match parse_linkedin_url(raw) {
             Some(pair) => pair,
-            None => url_fallback_signals(&url),
+            None => url_fallback_signals(raw),
         };
 
         let tags = extract_tags_from_line(line);
