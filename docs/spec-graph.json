@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-18T12:53:16Z",
+  "generated": "2026-08-23T23:52:13Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1954,6 +1954,18 @@
         "system/skills/backlog/phases/display-themes.md"
       ]
     },
+    "docs/architecture/features/terminal-diagrams.md": {
+      "title": "Feature: Terminal diagrams — proactive inline visual explanations",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/backlog/phases/display-themes.md",
+        "system/rules/work-preferences.md",
+        "system/skills/terminal-diagrams/SKILL.md",
+        "system/rules/terminal-diagrams.md",
+        "system/rules/README.md",
+        "system/scripts/context-budget.sh"
+      ]
+    },
     "docs/architecture/features/test-lint-feedback-hook.md": {
       "title": "Feature: Test/Lint Feedback Hook",
       "type": "Roadmap",
@@ -2004,6 +2016,25 @@
         "system/hooks/session-end-drift.sh",
         "system/scripts/check-worktree-divergence.sh"
       ]
+    },
+    "docs/architecture/features/youtube-channel-backfill.md": {
+      "title": "YouTube channel backfill — Tier A tech doc (t-2998)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
+        "system/cli/rust/crates/brana-cli/src/cli.rs",
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs"
+      ]
+    },
+    "docs/architecture/features/youtube-channel-ingestion.md": {
+      "title": "YouTube channel ingestion — Phase 3, Tier A (t-2993)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/architecture/features/youtube-knowledge-extraction.md": {
+      "title": "YouTube knowledge extraction — Phase 1 (t-2946)",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/field-notes/fts5-memory-recall.md": {
       "title": "FTS5 Memory Recall Seam",
@@ -3601,7 +3632,9 @@
     "docs/ideas/task-time-tracking.md": {
       "title": "Project time & cost tracking — active effort and calendar cycle time",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/skills/build/phases/load.md`/"
+      ]
     },
     "docs/ideas/venture-playbook-product-management.md": {
       "title": "Venture Playbook & Product Management Layer",
@@ -10873,6 +10906,24 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/youtube-channel-backfill.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/youtube-channel-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/youtube-knowledge-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/hooks.md",
       "type": "references",
       "computed": false
@@ -12714,14 +12765,56 @@
       "computed": false
     },
     {
-      "from": "docs/architecture/hooks.md",
-      "to": "docs/reference/hooks.md",
+      "from": "docs/architecture/features/youtube-channel-backfill.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-channel-backfill.md",
+      "to": "youtube-channel-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-channel-backfill.md",
+      "to": "youtube-knowledge-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-channel-ingestion.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-channel-ingestion.md",
+      "to": "youtube-knowledge-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-knowledge-extraction.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/youtube-knowledge-extraction.md",
+      "to": "docs/ideas/youtube-knowledge-extraction.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/hooks.md",
-      "to": "posttooluse-workaround.md",
+      "to": "docs/archive/posttooluse-workaround.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/hooks.md",
+      "to": "docs/reference/hooks.md",
       "type": "references",
       "computed": false
     },
@@ -14940,6 +15033,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/knowledge-process-url.md",
+      "to": "knowledge-drain-links.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/plan-time-wave-graph.md",
       "to": "docs/guide/workflows/drain-loop.md",
       "type": "references",
@@ -16999,9 +17098,9 @@
     }
   ],
   "stats": {
-    "nodes": 591,
-    "edges": 2142,
+    "nodes": 595,
+    "edges": 2153,
     "typed_edges": 686,
-    "orphans": 159
+    "orphans": 158
   }
 }

@@ -238,6 +238,12 @@ fi
 # - SCAN_ON_WRITE: MemPoison/ChannelGuard injection scan before persisting to a
 #   store that ingests agent output (memory store exits 2 on a finding —
 #   hook callers already tolerate and log non-zero stores).
+#   Kept unconditional here, unlike ruflo-cli.sh's default-if-unset form
+#   (t-3097): this process is the long-lived MCP server, not spawned per call,
+#   so there's no per-call caller to grant a scoped exemption to. The CLI path
+#   (`brana knowledge process-url`, ruflo-cli.sh) needs the override because a
+#   single Rust call site there ingests fetched content rather than
+#   agent-authored memory and the scanner false-positives on it.
 # - RUFLO_FUNNEL=0: kill switch for funnel telemetry, including the promo-message
 #   fetch to funnel.ruv.io that is otherwise ON by default (opt-out upstream).
 export RUFLO_REQUIRE_REAL_EMBEDDINGS=1

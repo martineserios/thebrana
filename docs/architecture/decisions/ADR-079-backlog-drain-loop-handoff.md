@@ -262,3 +262,22 @@ rejected at the shared layer); self-approval was structurally possible (now deni
 runner manifest); plus minor items: overlapping-selector semantics, mid-drain selector-edit
 rejection, the re-tag WIP-slot leak named as accepted limitation, ADR-067 name-scoping, and
 the pre-registered review checkpoint.
+
+## Amendment (2026-08-23, t-3030): `blocked_by` joins the pull frontier (guide L3.3)
+
+§2's eligibility filter — `status:pending ∧ ac_state:approved ∧ ¬tag:parked`, then the WIP bound — has no dependency term. `wave_pull_decision` (`brana-core/src/tasks/wave.rs`, the §2 resolver's consumer) implements exactly that and therefore ignores `blocked_by`: two tasks matching one selector, both approved, one blocked by the other, and the pull can select the **blocked** one first. Confirmed live opening wave-11 (2026-08-17, t-2919 pulled ahead of t-2920; memory `pattern_wave-pull-ignores-blocked-by-ordering`). The workaround in use — tag the blocked task `parked` by hand — is the human doing the DAG's job.
+
+**Decision (ADOPT Pocock — [the-brana.md](../the-brana.md) §Cycle, matrix row 10, the largest margin in the alignment matrix):** his `to-tickets` frontier rule is *open ∧ unblocked ∧ unclaimed*. §2's filter becomes
+
+`status:pending ∧ ac_state:approved ∧ ¬tag:parked ∧ ∀ b ∈ blocked_by · status(b) = completed`, then the WIP bound (§3).
+
+- **"Unblocked" = every blocker `completed`** — the same rule `/brana:backlog start` step 3 already applies on the interactive path, so the loop and the human agree. A `cancelled` blocker does **not** count as resolved; it must be removed from `blocked_by` explicitly (cancelling a parent never auto-cancels children, `task-convention.md`).
+- **Report, don't hide:** `NoneEligible` gains a `blocked` count beside `unapproved` / `parked`, so "matched but blocked" stays visible in `wave drain`'s report (§2: drain's report and the pull set may differ; this is one more expected difference, not a bug).
+- **Gate graphs are unchanged.** [ADR-080](ADR-080-plan-time-wave-graphs-epic-runner.md)'s wave-level `gate:` edges order *waves*; this term orders *tasks inside one wave*. Same DAG, two grains — the plan-time graph already derives `gate:` from cross-milestone `blocked_by` ([plan-time-wave-graph.md](../features/plan-time-wave-graph.md)); intra-wave edges were the gap.
+- **Unclaimed** is already covered by the atomic pull + leases (ADR-080 §3); nothing new there.
+
+**Not adopted:** topological *ordering* of the pull set (Pocock doesn't; frontier membership is enough — any unblocked task is a correct next pull) · treating `cancelled` as resolved · a separate "ready" flag (the cross-skill readiness state is a different field, gated on t-2834 — guide L2.2b).
+
+**Implementation:** t-3043 (TDD in `wave.rs`, drain-loop/epic-drain doc filter text, memory marked fixed). Until it lands, the `parked` workaround stands.
+
+Refs: guide L3.3 · the-brana.md §Cycle → Decided (wave mechanics) · research/2026-08-22-pocock-alignment-decision-matrix.md row 10 · memory pattern_wave-pull-ignores-blocked-by-ordering · t-2919/t-2920 · t-3043.

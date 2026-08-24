@@ -23,6 +23,9 @@ brana knowledge drain-links --dry-run
 | `--file` | current project's `tasks.json` | Which backlog to drain |
 | `--cap` | `3` | Max links this run; the rest stay pending |
 | `--dry-run` | off | List selections and exit |
+| `--platform` | shared job | Restrict to one platform (`youtube` runs as its own job) |
+| `--cookies-from-browser` | off | YouTube auth via a browser's cookie store (see below) |
+| `--cookies` | off | YouTube auth via an exported cookie jar (see below) |
 
 ## What it does
 
@@ -76,6 +79,71 @@ backlog, including the capture script feeding it.
 > at 240s even with a valid session, so LinkedIn links fail and stay pending.
 > `drain-links` behaves correctly under this — nothing is falsely completed —
 > but it cannot yet drain the LinkedIn backlog. Public URLs are unaffected.
+
+## YouTube needs an authenticated session
+
+YouTube's bot-check ("Sign in to confirm you're not a bot") blocks
+unauthenticated `yt-dlp` caption fetches — even a current `yt-dlp` with a JS
+runtime for its PO-token challenge fails (live, 2026-08-23). Pass cookies
+through with one of two flags (mutually exclusive; `process-url` and
+`channel-backfill` accept the same two):
+
+```bash
+# Interactive: read the live cookie store of a browser you're signed into
+brana knowledge drain-links --platform youtube --cookies-from-browser chrome
+# yt-dlp syntax is passed verbatim: firefox, chrome+gnomekeyring:Default, …
+
+# Scheduled: export a cookie jar once to the persisted default path
+mkdir -p ~/.config/brana
+yt-dlp --cookies-from-browser chrome --cookies ~/.config/brana/yt-cookies.txt \
+       --skip-download https://www.youtube.com/watch?v=jNQXAC9IVRw
+chmod 600 ~/.config/brana/yt-cookies.txt
+brana knowledge drain-links --platform youtube          # no flag needed
+```
+
+**Persisted jar (no flag).** When neither flag is given, brana looks for
+`~/.config/brana/yt-cookies.txt` and, if it exists, uses it exactly as if
+you had passed `--cookies` — so the scheduler job
+`link-research-extraction-youtube` runs with its plain command. Rules:
+
+- The file must be mode `0600` (or stricter). Any group/other bit is a
+  hard error naming `chmod 600` — an implicitly picked-up credential must
+  be private; brana refuses rather than warns.
+- A jar that exists but can't be read is an error too (fail loud instead of
+  draining unauthenticated and burning yt-dlp's 429 budget). No file at
+  that path means today's unauthenticated behaviour.
+- Either flag overrides the default; `--cookies <path>` is not mode-checked
+  (your explicit choice). There is no opt-out flag: if you exported a jar
+  there, it's used.
+- The persisted file is never handed to `yt-dlp` directly — the same
+  scratch-copy rule below applies.
+
+`--cookies-from-browser` may prompt your keyring on Linux and fails if the
+browser holds an exclusive lock on its cookie DB — that is `yt-dlp`'s own
+behaviour and the error is shown as-is.
+
+**Troubleshooting `--cookies-from-browser chrome` on Linux (seen 2026-08-23).**
+`ERROR: secretstorage not available` → `pipx inject yt-dlp secretstorage`.
+`ERROR: Item does not exist!` / `cannot decrypt v11 cookies: no key found` →
+yt-dlp can't find Chrome's "Safe Storage" key in your keyring; try
+`chrome+gnomekeyring`, `chrome+kwallet`, or `chrome+basictext` explicitly, or
+export a jar from a browser whose cookies it *can* read. `No supported
+JavaScript runtime` → put `deno` on the `PATH` of the process that runs brana
+(the scheduler's, not just your shell's). Repeated failed attempts on one
+video trip `HTTP 429` for a while — wait before retrying.
+
+**The jar file is never modified.** `yt-dlp` rewrites whatever `--cookies`
+file it is given on exit; brana copies your jar into a per-call scratch
+directory (mode `0600`, deleted afterwards) and hands `yt-dlp` the copy, so
+overlapping runs can't race on it and a killed fetch can't truncate it.
+A missing or unreadable `--cookies` path is rejected before anything runs.
+
+**Treat the jar as a password.** It is a bearer credential for the Google
+account. brana never logs the path or its contents, but a scheduler that
+captures the job's full command line will show the path — keep the file
+`0600` and outside any synced folder. `~/.config/brana/` is outside the
+synced `~/.claude/` tree and every git repo, which is why the persisted
+default lives there.
 
 ## Scheduling
 

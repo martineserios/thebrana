@@ -1,4 +1,5 @@
 ---
+status: shipped
 produced_by: docs/research/2026-04-08-url-batch-findings.md
 depends_on:
   - docs/architecture/features/build-loop-redesign.md

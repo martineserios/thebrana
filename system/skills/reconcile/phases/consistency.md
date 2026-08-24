@@ -35,23 +35,25 @@ Run `git status` in thebrana. If there are uncommitted changes, warn the user:
 
 Wait for confirmation before proceeding.
 
-#### 0c: Create branch
+#### 0c: File the run task + create branch
 
-Before any edits, create a worktree branch:
+`branch-name-guard` requires `{epic}/{type}/t-{NNN}-{slug}` (t-2540) — the old `chore/reconcile-YYYYMMDD` template is rejected. File a task for the run under the `spec-maintenance` epic (t-2371), then cut the worktree from it:
 
 ```bash
-BRANCH="chore/reconcile-$(date +%Y%m%d)"
-cd $THEBRANA && git worktree add "$THEBRANA/../thebrana-$BRANCH" -b "$BRANCH"
+ID=$(brana backlog add "Reconcile consistency run $(date +%F)" --kind ops --work-type chore --effort S --parent t-2371 --tags reconcile,spec-maintenance | grep -oE 't-[0-9]+')
+BRANCH="spec-maintenance/chore/$ID-reconcile-consistency"
+cd $THEBRANA && git worktree add "$THEBRANA/../thebrana-$ID" -b "$BRANCH"
+brana backlog set $ID status in_progress && brana backlog set $ID branch "$BRANCH"
 ```
 
-If a branch with that name already exists (second reconcile in one day), append a counter: `-2`, `-3`, etc.
+Findings and applied fixes go on the task's `notes`; it is completed at REPORT.
 
 #### 0d: Assert branch
 
 After worktree creation, verify the worktree is on the expected branch before doing any work:
 
 ```bash
-ACTUAL=$(git -C "$THEBRANA/../thebrana-$BRANCH" branch --show-current 2>/dev/null)
+ACTUAL=$(git -C "$THEBRANA/../thebrana-$ID" branch --show-current 2>/dev/null)
 if [ "$ACTUAL" != "$BRANCH" ]; then
   echo "ABORT: worktree is on '$ACTUAL', expected '$BRANCH'. Run git switch -c $BRANCH inside the worktree." >&2
   exit 1
@@ -109,7 +111,7 @@ For each file, extract the same kind of concrete claims: "skill build-phase exis
 
 **Implementation awareness notes** (prevents false positives):
 
-- **Hook dual-wiring:** Hooks are split between `system/hooks/hooks.json` (plugin: PreToolUse, SessionStart, SessionEnd, SubagentStart, SubagentStop, TaskCompleted, StopFailure) and `~/.claude/settings.json` (bootstrap: PostToolUse, PostToolUseFailure — CC bug #24529 workaround). When verifying hook claims, check BOTH locations. A PostToolUse hook in settings.json is NOT missing from hooks.json — it's intentionally there.
+- **Hook single-sourcing:** Every hook event, including PostToolUse/PostToolUseFailure, is registered in `system/hooks/hooks.json` (CC #24529 resolved, t-235 2026-05-08). `~/.claude/settings.json` carries no hooks — `bootstrap.sh` Step 4b strips leftovers. A doc that still describes a settings.json split is STALE drift, not an awareness note.
 - **Rust CLI:** The `brana` CLI is a compiled Rust binary at `system/cli/rust/`. Subcommands (backlog, session, handoff, skills, knowledge, transcribe, files, feed, inbox) are Rust code, not shell scripts. Don't flag CLI subcommands as "unimplemented" because there's no matching `.sh` file.
 - **Plugin binary sync:** The brana binary is auto-synced to `${CLAUDE_PLUGIN_DATA}/brana` via SessionStart hook. Scripts resolve it via `system/hooks/lib/resolve-brana.sh`.
 
@@ -219,7 +221,7 @@ If ruflo is unavailable, append to `~/.claude/projects/*/memory/MEMORY.md`.
 ## Reconcile Complete
 
 **Date:** YYYY-MM-DD
-**Branch:** chore/reconcile-YYYYMMDD
+**Branch:** spec-maintenance/chore/t-NNN-reconcile-consistency
 
 ### Applied
 - [N] auto-fixes across [M] areas
@@ -237,9 +239,9 @@ If ruflo is unavailable, append to `~/.claude/projects/*/memory/MEMORY.md`.
 To merge:
 ```
 cd ~/enter_thebrana/thebrana
-git merge --no-ff chore/reconcile-YYYYMMDD
-git worktree remove ../thebrana-chore/reconcile-YYYYMMDD
-git branch -d chore/reconcile-YYYYMMDD
+git merge --no-ff spec-maintenance/chore/t-NNN-reconcile-consistency
+git worktree remove ../thebrana-t-NNN
+git branch -d spec-maintenance/chore/t-NNN-reconcile-consistency
 ```
 
 To deploy:

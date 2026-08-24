@@ -88,6 +88,27 @@ post not found in the author's recent feed: https://linkedin.com/posts/...
 cancellation. Full rationale in
 [ADR-070](../../architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md).
 
+## YouTube URLs: pass cookies
+
+YouTube blocks unauthenticated caption fetches with a bot-check. Both
+single-URL and `--file` batch mode accept `--cookies-from-browser <browser>`
+or `--cookies <jar-file>` (mutually exclusive) and forward them to `yt-dlp`:
+
+```bash
+brana knowledge process-url --cookies-from-browser chrome https://www.youtube.com/watch?v=…
+brana knowledge process-url --file batch.jsonl --cookies ~/.config/brana/yt-cookies.txt
+```
+
+With neither flag, `process-url` uses the persisted jar at
+`~/.config/brana/yt-cookies.txt` if it exists — the same resolver as
+`drain-links`, so the same rules apply: the file must be mode `0600` (any
+group/other bit is a hard error, even for a non-YouTube URL, because the
+check runs at argument resolution), and either flag overrides it.
+
+Export, security and scheduling notes live in
+[`knowledge-drain-links.md` § YouTube needs an authenticated session](knowledge-drain-links.md#youtube-needs-an-authenticated-session).
+Non-YouTube URLs ignore the cookies.
+
 ## Batch mode
 
 Drain many links at once from a JSONL file — one `{"id","url"}` record per line:

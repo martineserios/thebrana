@@ -9,7 +9,7 @@ produced_by: [docs/ideas/loop-first-redesign.md]
 # Loops Library
 
 > Brainstormed 2026-08-13, shaped 2026-08-14. **Division of labor:**
-> [wave-pipeline.md](wave-pipeline.md) owns the philosophy (four rings, four primitives,
+> [the-brana.md](../../architecture/the-brana.md) owns the philosophy (absorbed from wave-pipeline.md 2026-08-23, now a redirect stub) (four rings, four primitives,
 > seven laws, two rooms); **this doc owns the contract** — entry schema, queue types,
 > pull-interface verbs, per-beat records, and the proof-of-life acceptance bar; **t-2828**
 > owns the convergence design (ADR extending [ADR-079](../architecture/decisions/ADR-079-backlog-drain-loop-handoff.md),
@@ -59,7 +59,7 @@ Example pipeline (URLs): `/brana:log` enqueues → feed-digester pump drains N/b
 
 Dimension axes for generating more: primitive (gauge/pump/valve-feeder) × pacing (time/work/event) × boundedness × scope (repo/portfolio/business/personal) × autonomy (L0–L3) × **frequency band** (sub-second … session … season — see [wave-pipeline.md](wave-pipeline.md) §The spectrum: bands already cycling uninstrumented are loop candidates). Sparse grid corners generate ideas mechanically.
 
-## Philosophy — defer to wave-pipeline.md
+## Philosophy — defer to the-brana.md (was wave-pipeline.md, superseded 2026-08-23)
 
 The seven operating laws, the studio/cockpit two-rooms split (and its "needs human is not one queue" consequence), the four primitives, the four rings, and the continuous-spectrum frequency lens that generalizes the rings (§The spectrum — rings as sample points, the layer test, the try→feedback→improve fundamental) are canonical in [wave-pipeline.md](wave-pipeline.md) — not duplicated here. This doc adds exactly one library-specific principle on top: **records are always emitted; verbosity is a render toggle** — records feed the TUI (t-2825): bounded → progress bar, unbounded → heartbeat.
 

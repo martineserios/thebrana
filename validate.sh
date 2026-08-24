@@ -1506,7 +1506,10 @@ if should_run 27; then
 # Background pattern (`binary & wait`) breaks JSON-RPC stdin delivery;
 # exec is required to keep the pipe alive for MCP stdio.
 echo "Checking MCP wrapper scripts for exec pattern..."
-MCP_WRAPPERS=$(grep -rl "exec " "$SCRIPT_DIR/system/scripts/" --include="*.sh" 2>/dev/null | xargs grep -l "mcp\|ruflo\|claude-flow" 2>/dev/null || true)
+# Wrappers are identified by role (filename *mcp*.sh), not by keyword presence —
+# the keyword heuristic matched autonomous-runner.sh, which backgrounds an egress
+# proxy with stdin </dev/null and is not an MCP stdio wrapper (t-3032).
+MCP_WRAPPERS=$(ls "$SCRIPT_DIR"/system/scripts/*mcp*.sh 2>/dev/null | xargs grep -l "exec " 2>/dev/null || true)
 WRAPPER_OK=true
 WRAPPER_ANTI=()
 for wrapper in $MCP_WRAPPERS; do
@@ -2735,6 +2738,21 @@ else
             printf '%s\n' "$C71_OUT" | grep -E ': FAIL' | sed 's/^/  /'
             fail "Check 71: loops-library entry lint failed — see above"
         fi
+    fi
+fi
+echo ""
+
+# Check 72: docs/README.md coverage — every ADR and feature doc has a row, no dead links (t-3031)
+echo "Checking docs/README.md coverage..."
+C72_SCRIPT="$SCRIPT_DIR/system/scripts/readme-coverage.sh"
+if [ ! -f "$C72_SCRIPT" ]; then
+    warn "Check 72: $C72_SCRIPT not found — skipping"
+else
+    if C72_OUT=$(bash "$C72_SCRIPT" 2>&1); then
+        pass "Check 72: docs/README.md coverage — every ADR and feature doc has a row, no dead links"
+    else
+        printf '%s\n' "$C72_OUT" | sed 's/^/  /'
+        fail "Check 72: docs/README.md coverage gaps — see above (run: system/scripts/readme-coverage.sh)"
     fi
 fi
 echo ""

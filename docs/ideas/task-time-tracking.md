@@ -23,7 +23,7 @@ Neither exists today:
 - Tasks already have `started`/`completed` fields (task-convention.md), but they are
   **date-only** (no time-of-day) and only populated on **536 of 2,789 tasks (19%)** —
   nothing currently auto-writes them, and nothing captures a pre-task "quoting" phase.
-- Waves (`{selector, contract, gate, status}`, per `project_wave-pipeline-vocabulary`)
+- Waves (`{selector, contract, gate, status}`, per `project_wave-mechanics-vocabulary`)
   have **no time fields at all**.
 - `build-cost-tracking.md` (t-648) designed a session-transcript-anchoring mechanism for
   per-build **token cost**, but it was never implemented, and covers effort only — not
@@ -269,14 +269,18 @@ filed as follow-up, not core scope.
 2. **Idle-cap re-validation — DONE (t-2920, 2026-08-17):** checked the 15-minute
    threshold against 5 real sessions spanning build/bug/research kinds. Confirmed safe;
    see the re-validation block under Metric 1 above.
-3. **Tests before implementation** (blocked_by ADR): turn-delta summation with idle-gap
-   capping (including a synthetic overnight-gap case); many-sub-spans rollup across
-   multiple transcript files for one task_id; serialized-bracket rejection (second START
-   while one is open); atomic concurrent-write stress test (two sessions, same
-   `brana/time/` store, no corruption/loss); coverage-annotation output shape.
-4. **Implementation — Metric 1** (blocked_by tests): START/CLOSE marker writes in
-   `build.md`'s LOAD/CLOSE steps, keyed by `task_id`, atomic writes to
+3. **Tests before implementation — DONE (t-2921, 2026-08-17):** turn-delta summation with
+   idle-gap capping (including a synthetic overnight-gap case); many-sub-spans rollup
+   across multiple transcript files for one task_id; serialized-bracket rejection,
+   redesigned per-worktree during SPECIFY (second START while one is open in the same
+   worktree, sequential AND genuinely concurrent); atomic concurrent-write stress test
+   (distinct-`task_id` and same-`task_id` variants, no corruption/loss); coverage-
+   annotation output shape. See `docs/architecture/features/time-tracking-metric-1.md`.
+4. **Implementation — Metric 1 — DONE (t-2922, 2026-08-18):** START/CLOSE marker writes
+   wired into `build.md`'s LOAD/CLOSE steps (`system/skills/build/phases/load.md`/
+   `close.md`), keyed by `task_id`, atomic writes to
    `$(git rev-parse --git-common-dir)/brana/time/<task_id>.jsonl`, git-env scrubbed.
+   `brana time start|close` in `brana-cli`/`brana-core`; 25/25 tests green.
 5. **Implementation — Metric 2** (can start independently, no dependency on 1-4): add
    `quote_started`/`kickoff_date`/`delivered_date` fields to the epic/task schema, plus
    derived-fallback logic for `kickoff_date`, `delivered_date`, and the approximate

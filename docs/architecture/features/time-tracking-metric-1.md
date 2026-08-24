@@ -1,7 +1,7 @@
 # Feature: Time Tracking — Metric 1 (Active Effort)
 
 **Date:** 2026-08-17
-**Status:** building
+**Status:** shipped
 **Task:** t-2921 (tests, this spec) · t-2922 (implementation)
 
 ## Problem
@@ -129,8 +129,33 @@ Presence of this file = a bracket is open in this worktree; absence = none open.
 
 - [x] **Tech doc** — this file, `docs/architecture/features/time-tracking-metric-1.md`
 - [ ] **User guide** — deferred to t-2925+ (the query/aggregation command); this task has no user-facing surface yet (LOAD/CLOSE markers are internal)
-- [ ] **Existing docs to update** — `docs/ideas/task-time-tracking.md` Next Steps #3/#4 status, once t-2921/t-2922 complete
+- [x] **Existing docs to update** — `docs/ideas/task-time-tracking.md` Next Steps #3/#4 status, marked DONE (2026-08-18)
 
 ## Challenger findings
 
-{populated after challenger review, per the SPECIFY draft-signal step}
+**Iteration 1 (2026-08-18), RECONSIDER, 2 sev-4 — both fixed:**
+1. CLOSE marker fired at `close.md` step 1.5 (right after AC validation), truncating the
+   measured window before steps 2-14 (docs, merge, ship, etc.) ran, with no
+   `coverage:partial` flag to signal the gap. Fixed: moved to step 13.5 (after Report,
+   before the periodic/human-gated Ship-to-main step).
+2. `time.rs::encode_project_path` was a 3rd hand-rolled copy of the CC path-encoding
+   scheme, missing the legacy-encoding fallback `commands/handoff.rs` already proved
+   necessary. Fixed: added `encode_project_path_legacy` + dual-try resolution, mirroring
+   `handoff.rs::resolve_handoff_path`; covered by a dedicated test (`e1_...`) after a
+   sev-3 iteration-2 follow-up flagged the fallback branch itself as untested.
+
+**Iteration 2 (2026-08-18): PROCEED WITH CHANGES.**
+
+**Correction to Decision #4 above (2026-08-18, post-freeze addendum — the Decision
+Record itself is not edited per its own "do not modify after acceptance" rule):**
+its claim that `brana_core::util::find_tasks_file`/`git_common_root` "resolve via an
+*unscrubbed* `git rev-parse`" is now stale — a second-variant finder during this task's
+Challenger gate confirmed `util.rs`'s `git_common_root_in`/`git_toplevel_in` both already
+call `scrub_git_env` (the t-2617 fix landed repo-wide since this spec was drafted).
+Decision #4's actual conclusion (replicate `receipt.rs`'s scrubbed inline pattern rather
+than reuse those helpers) still stands for an unrelated reason worth restating precisely:
+`find_tasks_file`/`find_project_root` prioritize the `CLAUDE_PROJECT_DIR` env-var hint
+over the scrubbed git resolution, which is a different (and separately real) way a
+caller-controlled environment variable could redirect resolution — not the "unscrubbed
+git rev-parse" mechanism originally cited. A future reader should not treat
+`find_tasks_file`/`git_common_root` as unsafe for the reason this doc originally gave.

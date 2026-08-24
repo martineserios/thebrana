@@ -1,4 +1,5 @@
 ---
+status: shipped
 depends_on:
   - docs/architecture/features/brana-cli.md
   - docs/architecture/features/task-management-system.md

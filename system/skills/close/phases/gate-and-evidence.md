@@ -10,10 +10,56 @@ Call `/goal "session closed: errata filed, learnings stored, tasks.json committe
 
 Assess what happened this session:
 
+<!-- GATE-WINDOW-BLOCK -->
 ```bash
+# Widen the "both empty -> read-only" wall-clock window the same way t-3004
+# widened SESSION_EPICS's window (CLOSE-ANCHOR-BLOCK below) — anchored on the
+# newest session-state write across all epic files (UNSCOPED_LAST_CLOSE),
+# floored at 6h so it only ever WIDENS, never narrows (a concurrent lane's
+# fresher close can't shrink this window below the safe default — same
+# narrowing-hazard invariant as t-3004; see that block's comment for the full
+# rationale). Deliberately self-contained (does not source CLOSE-ANCHOR-BLOCK)
+# so this gate stays independently testable and the "both empty" decision
+# below stays purely wall-clock-derived — it still never consults the
+# anchored COMMIT_COUNT, so t-2502's decoupling (see the note right after
+# this block) is unaffected: widening the clock is not the same as trusting
+# the anchor.
+#
+# Bug closed by this (t-3006, live 2026-08-22, this session's own close): the
+# system clock had jumped ~20h overnight relative to this session's own
+# commit timestamps. This flat `--since="6 hours ago"` came back empty even
+# though the session had 7 of its own commits and had just merged 3 completed
+# tasks — the "both empty -> write minimal handoff, skip to Step 9" shortcut
+# below would have silently discarded a substantial, non-read-only session as
+# if nothing happened. Caught only because CLOSE-ANCHOR-BLOCK's SESSION_EPICS
+# (fixed in t-3004) was cross-checked manually; this gate had no equivalent
+# safeguard of its own.
+GATE_ALL_SESSIONS_JSON=$(brana session read --all --json 2>/dev/null)
+GATE_UNSCOPED_LAST_CLOSE=$(echo "$GATE_ALL_SESSIONS_JSON" \
+  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+GATE_SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null)
+GATE_UNSCOPED_LAST_CLOSE_EPOCH=""
+[ -n "$GATE_UNSCOPED_LAST_CLOSE" ] && GATE_UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$GATE_UNSCOPED_LAST_CLOSE" +%s 2>/dev/null)
+if [ -n "$GATE_UNSCOPED_LAST_CLOSE_EPOCH" ] && [ -n "$GATE_SIX_HOURS_AGO_EPOCH" ] \
+   && [ "$GATE_UNSCOPED_LAST_CLOSE_EPOCH" -lt "$GATE_SIX_HOURS_AGO_EPOCH" ]; then
+  GATE_SINCE="@$GATE_UNSCOPED_LAST_CLOSE_EPOCH"
+else
+  GATE_SINCE="6 hours ago"
+fi
+
 git diff --stat HEAD~5..HEAD 2>/dev/null
-git log --oneline --since="6 hours ago" 2>/dev/null
+git log --oneline --since="$GATE_SINCE" 2>/dev/null
 ```
+<!-- /GATE-WINDOW-BLOCK -->
+
+> `GATE-WINDOW-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-step1-window.sh`
+> (t-3006). Keep the markers and fences intact. It duplicates ~10 lines of t-3004's
+> UNSCOPED_LAST_CLOSE/floor-at-6h formula from CLOSE-ANCHOR-BLOCK rather than sourcing it,
+> because CLOSE-ANCHOR-BLOCK is extracted and run in isolation by five other tests
+> (test-close-gate-epic-anchor.sh, test-close-gate-foreign-epic.sh,
+> test-close-gate-concurrent-anchor.sh, test-close-gate-session-epics-window.sh,
+> test-close-gate-session-epics-duration.sh) — an inter-block dependency would silently
+> break their isolated sourcing. If the widening formula changes, update both copies.
 
 **State-file dirty check:** After the git commands above, also run:
 
@@ -40,14 +86,14 @@ git add system/state/
 git commit -m "chore(state): commit state files at session close"
 ```
 
-**If both empty** (no commits, no changes in 6 hours):
-- This branch is decided by the wall-clock 6h listing above, NOT by the anchored
-  `COMMIT_COUNT` — so a concurrent lane's close truncating the anchor (t-2502) can never
-  route you here. That case surfaces instead inside the CLOSE-ANCHOR-BLOCK below as the
-  `⚠ close window is EMPTY` warning with `ANCHOR_ZERO_WINDOW=1`: recent commits exist,
-  the anchored window is empty, and Step 1b would queue nothing. When you see it, give
-  Step 1b an explicit `--git-range <first-own-commit>^..HEAD` rather than trusting the
-  computed window.
+**If both empty** (no commits, no changes in the widened window above):
+- This branch is decided by the wall-clock listing above (GATE_SINCE — widened same as
+  SESSION_EPICS, floored at 6h; t-3006), NOT by the anchored `COMMIT_COUNT` — so a
+  concurrent lane's close truncating the anchor (t-2502) can never route you here. That
+  case surfaces instead inside the CLOSE-ANCHOR-BLOCK below as the `⚠ close window is
+  EMPTY` warning with `ANCHOR_ZERO_WINDOW=1`: recent commits exist, the anchored window
+  is empty, and Step 1b would queue nothing. When you see it, give Step 1b an explicit
+  `--git-range <first-own-commit>^..HEAD` rather than trusting the computed window.
 - Write a minimal handoff entry: `## YYYY-MM-DD — read-only session`
 - Add only a **Next:** section from conversation context
 - Skip to Step 9 (Write handoff note)
@@ -114,44 +160,71 @@ which only happens to resolve when the git-root IS thebrana itself.
 # Read ../../_shared/epic-ancestor-walk.md for resolve_epic_ancestor() if not
 # already sourced this session.
 #
-# SESSION_EPICS runs BEFORE LAST_CLOSE exists (it feeds LAST_CLOSE's own file
-# filter above) so it cannot bound itself on LAST_CLOSE — a chicken-and-egg. Use
-# the same 6h fallback window this block's own first-session-fallback comment
-# already documents, not a flat commit-count window (t-2784): a low-commit
-# session's `-20` tail has no relationship to session boundaries and can
-# overflow into an unrelated PRIOR close's commits, resolving that close's epic
-# as if it were this session's own (confirmed live 2026-08-12, this session's
-# own close).
+# SESSION_EPICS used to run BEFORE LAST_CLOSE existed, bounded by a flat
+# `--since="6 hours ago"` (t-2784), because the epic-SCOPED LAST_CLOSE below
+# depends on SESSION_EPICS and can't be used to bound it — a chicken-and-egg.
+# But the UNSCOPED max computed for AC2 further below has NO such dependency
+# (it doesn't reference SESSION_EPICS at all) — it's just "the newest write
+# across every session-state file, any epic" — so it's hoisted above
+# SESSION_EPICS (t-3004) and reused as a widening signal, breaking the
+# chicken-and-egg without inventing new state.
 #
-# Stopgap, not a fix for the class (t-2784): bounding by time closes the
-# overflow-into-an-older-close failure above, but per ADR-069 (D0-D3, not yet
-# shipped) no window — time or count — prevents a CONCURRENT session's commits
-# landing on the shared `dev` checkout within the same window from being picked
-# up here too (confirmed live twice more the same day: t-2764's close and this
-# session's own close). That class needs per-commit/per-lane attribution
-# (ADR-069 D3), not a narrower window. A clean SESSION_EPICS here is not proof
-# this session's epics are uncontaminated in a shared checkout.
+# Bug closed by this (t-3004, live 2026-08-20 and 2026-08-21, this session's
+# own close both times): a session whose own commits landed 6.5h, then 16h,
+# before close time fell entirely outside the flat 6h window — SESSION_EPICS
+# resolved empty, LAST_CLOSE fell back to an orphan file 3 weeks stale, and
+# COMMIT_COUNT computed as the entire history since that stale anchor (679,
+# then 686 commits). This is exactly the tradeoff flagged below as
+# "disclosed... not yet observed live" — now confirmed live twice.
 #
-# Second tradeoff, disclosed (challenger gate, t-2784): trading a count window
-# for a time window doesn't just close over-reach, it opens the opposite
-# failure — a session running LONGER than 6h whose epic-identifying commit
-# landed near session start now falls OUTSIDE the window, so that epic never
-# enters SESSION_EPICS and its session-state file loses corroboration here.
-# Not yet observed live; flagged so it isn't mistaken for solved.
-#
-# Sibling instance still open: session-state.md's Step 9c COMPLETED
-# accumulator has the identical flat `-20` shape and is tracked separately as
-# t-2480 (concurrent-session over-reach; not fixed by this change).
-SESSION_EPICS=$(git log --oneline --since="6 hours ago" 2>/dev/null \
-  | grep -oE 't-[0-9]+' | sort -u \
-  | while read -r id; do resolve_epic_ancestor "$id" 2>/dev/null; done \
-  | sort -u | grep -v '^$')
-
 # `--all` surfaces every session file; the default one appears as epic "(orphan)".
 # Sort on the first 19 chars: writers emit UTC in two shapes ("...:01Z" and
 # "...:31.372637410+00:00") which order correctly by their fixed-width
 # YYYY-MM-DDTHH:MM:SS prefix but not as whole strings.
 ALL_SESSIONS_JSON=$(brana session read --all --json 2>/dev/null)
+UNSCOPED_LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
+  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+
+# Floor at 6h, never narrow below it — do NOT just use UNSCOPED_LAST_CLOSE
+# directly as SESSION_EPICS's `--since`. UNSCOPED_LAST_CLOSE can also be
+# NEWER than 6h ago (e.g. a concurrent session on the shared checkout closes
+# 5 minutes ago while this session's own commits landed 40 minutes ago).
+# Anchoring on that closer timestamp would shrink the window to 5 minutes and
+# silently drop this session's own 40-minute-old commits from corroboration —
+# reintroducing, in smaller form, exactly the concurrency-narrowing class
+# ADR-069 rejects anchor heuristics for (t-2502; see
+# test-close-gate-concurrent-anchor.sh Case A, which exercises this and must
+# keep passing). Taking the OLDER of {6h ago, UNSCOPED_LAST_CLOSE} only ever
+# WIDENS the window, never narrows it — a concurrent close can widen the
+# search but can never shrink it below the safe 6h default.
+SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null)
+UNSCOPED_LAST_CLOSE_EPOCH=""
+[ -n "$UNSCOPED_LAST_CLOSE" ] && UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$UNSCOPED_LAST_CLOSE" +%s 2>/dev/null)
+if [ -n "$UNSCOPED_LAST_CLOSE_EPOCH" ] && [ -n "$SIX_HOURS_AGO_EPOCH" ] \
+   && [ "$UNSCOPED_LAST_CLOSE_EPOCH" -lt "$SIX_HOURS_AGO_EPOCH" ]; then
+  SESSION_EPICS_SINCE="@$UNSCOPED_LAST_CLOSE_EPOCH"
+else
+  SESSION_EPICS_SINCE="6 hours ago"
+fi
+
+# Stopgap, not a fix for the class (t-2784, still true after t-3004): bounding
+# by time — flat or widened — closes the overflow-into-an-older-close failure,
+# but per ADR-069 (D0-D3, not yet shipped) no window prevents a CONCURRENT
+# session's commits landing on the shared `dev` checkout within the same
+# window from being picked up here too (confirmed live twice more the same
+# day: t-2764's close and a prior close of this same session). That class
+# needs per-commit/per-lane attribution (ADR-069 D3), not a wider window. A
+# clean SESSION_EPICS here is not proof this session's epics are
+# uncontaminated in a shared checkout.
+#
+# Sibling instance still open: session-state.md's Step 9c COMPLETED
+# accumulator has the identical flat `-20` shape and is tracked separately as
+# t-2480 (concurrent-session over-reach; not fixed by this change).
+SESSION_EPICS=$(git log --oneline --since="$SESSION_EPICS_SINCE" 2>/dev/null \
+  | grep -oE 't-[0-9]+' | sort -u \
+  | while read -r id; do resolve_epic_ancestor "$id" 2>/dev/null; done \
+  | sort -u | grep -v '^$')
+
 LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
   | jq -r --arg epics "$SESSION_EPICS" '
       ($epics | split("\n") | map(select(. != ""))) as $mine |
@@ -162,11 +235,10 @@ LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
 
 # AC2 (t-2603): don't trust the scoped anchor silently — the epic-scope filter
 # above is a heuristic (a session whose commits reference no task IDs degrades
-# to the orphan-only window, which is often but not always right). Compute the
-# pre-t-2603 UNSCOPED max too and surface a visible warning on divergence,
-# rather than reporting success either way. This never blocks the close.
-UNSCOPED_LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
-  | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
+# to the orphan-only window, which is often but not always right). Compare
+# against UNSCOPED_LAST_CLOSE (computed above, ahead of SESSION_EPICS since
+# t-3004) and surface a visible warning on divergence, rather than reporting
+# success either way. This never blocks the close.
 if [ -n "$UNSCOPED_LAST_CLOSE" ] && [ "${UNSCOPED_LAST_CLOSE:0:19}" != "${LAST_CLOSE:0:19}" ]; then
     EXCLUDED_EPICS=$(echo "$ALL_SESSIONS_JSON" \
       | jq -r --arg epics "$SESSION_EPICS" '
@@ -200,14 +272,38 @@ COMMIT_COUNT=$(git log --oneline --since="${LAST_CLOSE:-6 hours ago}" 2>/dev/nul
 #     --git-range). Quiet when there are no recent commits at all (nothing
 #     could have been truncated — that is the genuine read-only case, which
 #     Step 1's wall-clock listing above already routes).
-RECENT_COMMITS=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
+# Widened flat fallback (24h, t-3017) — NOT the UNSCOPED_LAST_CLOSE-anchored
+# formula t-3004/t-3006 use elsewhere in this block. That formula cannot fix
+# this specific check: LAST_CLOSE is always <= UNSCOPED_LAST_CLOSE by
+# construction (LAST_CLOSE is chosen from a subset of the same
+# ALL_SESSIONS_JSON that UNSCOPED_LAST_CLOSE maxes over), so whenever
+# COMMIT_COUNT==0 below (the only case RECENT_COMMITS matters for),
+# LAST_CLOSE already postdates every recent commit — and so does
+# UNSCOPED_LAST_CLOSE. No UNSCOPED_LAST_CLOSE-anchored widening can ever
+# reach back further than the very anchor that caused the zero window in the
+# first place (verified by direct construction, not just argued — see
+# test-close-gate-recent-commits-window.sh). A generous FLAT fallback,
+# independent of any session-state anchor, is the only mechanism that can
+# actually widen this specific check. Safe because RECENT_COMMITS is
+# diagnostic-only: it feeds the stderr warning below, never gates real
+# behavior. 24h comfortably covers both live clock-skew magnitudes recorded
+# so far (16h t-3004, 20h t-3006) with margin; widen further if a session
+# exceeds it.
+#
+# Disclosed tradeoff (challenger review, t-3017): the mirror image of fixing
+# the silent-miss case is that the ⚠ EMPTY warning below now fires on more
+# shared-checkout noise too — any commit from ANY lane in the last 24h can
+# trigger it, not just the last 6h. Acceptable: the guard is stderr-only,
+# advisory, and never blocks (same accepted tradeoff shape as the
+# over-reach guard right below this one).
+RECENT_COMMITS=$(git log --oneline --since="24 hours ago" 2>/dev/null | wc -l | tr -d ' ')
 ANCHOR_ZERO_WINDOW=0
 if [ "${COMMIT_COUNT:-0}" -eq 0 ] && [ -n "$LAST_CLOSE" ] && [ "${RECENT_COMMITS:-0}" -gt 0 ]; then
     ANCHOR_ZERO_WINDOW=1
     LAST_CLOSE_EPIC=$(echo "$ALL_SESSIONS_JSON" \
       | jq -r --arg ts "${LAST_CLOSE:0:19}" \
           '[.[] | select((.state.written_at // "")[0:19] == $ts) | .epic] | unique | join(",")' 2>/dev/null)
-    echo "⚠ close window is EMPTY: anchor $LAST_CLOSE (session-state epic: ${LAST_CLOSE_EPIC:-unknown}) post-dates all $RECENT_COMMITS commit(s) of the last 6h. If any of those commits are this session's, a CONCURRENT lane's close truncated the window (t-2502 — do not re-file). Do NOT treat this as a read-only session on this signal alone: confirm this session made no commits, or re-run Step 1b with an explicit --git-range <first-own-commit>^..HEAD (git log --since='6 hours ago' to find it)." >&2
+    echo "⚠ close window is EMPTY: anchor $LAST_CLOSE (session-state epic: ${LAST_CLOSE_EPIC:-unknown}) post-dates all $RECENT_COMMITS commit(s) of the last 24h. If any of those commits are this session's, a CONCURRENT lane's close truncated the window (t-2502 — do not re-file) or this session's clock/commits are older than 6h (t-3006/t-3017 — do not re-file that either). Do NOT treat this as a read-only session on this signal alone: confirm this session made no commits, or re-run Step 1b with an explicit --git-range <first-own-commit>^..HEAD (git log --since='24 hours ago' to find it)." >&2
 fi
 
 # (b) OVER-REACH. On the shared checkout the window contains other lanes'
@@ -228,9 +324,12 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.
 <!-- /CLOSE-ANCHOR-BLOCK -->
 
 > `CLOSE-ANCHOR-BLOCK` is extracted verbatim by `tests/procedures/test-close-gate-epic-anchor.sh`,
-> `tests/procedures/test-close-gate-foreign-epic.sh` and
-> `tests/procedures/test-close-gate-concurrent-anchor.sh` (t-2502 visibility guards). Keep the
-> markers and fences intact.
+> `tests/procedures/test-close-gate-foreign-epic.sh`,
+> `tests/procedures/test-close-gate-concurrent-anchor.sh` (t-2502 visibility guards),
+> `tests/procedures/test-close-gate-session-epics-window.sh` (t-2784 overflow-exclusion),
+> `tests/procedures/test-close-gate-session-epics-duration.sh` (t-3004 long-session widening) and
+> `tests/procedures/test-close-gate-recent-commits-window.sh` (t-3017 RECENT_COMMITS widened
+> fallback). Keep the markers and fences intact.
 > This block calls `resolve_epic_ancestor` — the extracting test must source
 > `system/skills/_shared/epic-ancestor-walk.md`'s `EPIC-WALK-BLOCK` first.
 

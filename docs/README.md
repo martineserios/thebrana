@@ -12,7 +12,7 @@ Source of truth for every component. Read these when you need exact behavior.
 | [hooks.md](reference/hooks.md) | All 10 hooks with I/O JSON specs, event types, matcher patterns |
 | [agents.md](reference/agents.md) | All 11 agents with models, tools, auto-fire triggers, behavior specs |
 | [rules.md](reference/rules.md) | All 12 rules with full content |
-| [commands.md](reference/commands.md) | Agent commands (maintain-specs, apply-errata, etc.) |
+| [commands.md](reference/commands.md) | Agent commands (`repo-cleanup`; `maintain-specs`/`apply-errata` retired with t-455) |
 | [scripts.md](reference/scripts.md) | Shell scripts (bootstrap.sh, validate.sh, etc.) |
 | [configuration.md](reference/configuration.md) | Config files: plugin.json, hooks.json, settings.json, scheduler.json |
 | [brana-cli.md](reference/brana-cli.md) | brana CLI — backlog triage-stale, stale, burndown subcommands |
@@ -81,6 +81,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 |------|----------|
 | [overview.md](architecture/overview.md) | System architecture overview |
 | [skills.md](architecture/skills.md) | Skills architecture -- 8 groups, design-level overview |
+| [the-brana.md](architecture/the-brana.md) | **The Brana** — front-door index: cover, Space / Cycle / Gate chapters (decided lines + refs), vocabulary, component→owner map. Supersedes the-orbit.md |
 | [idea-to-ship.md](architecture/idea-to-ship.md) | The walkable idea → ship narrative -- main flow, on-ramps, standalone skills, vocabulary layer |
 | [hooks.md](architecture/hooks.md) | Hooks architecture -- plugin/bootstrap split, design principles |
 | [agents.md](architecture/agents.md) | Agents architecture -- groups, routing, hook triggers |
@@ -89,7 +90,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [plugin-lifecycle.md](architecture/plugin-lifecycle.md) | Session startup sequence, skill invocation, hook execution flow |
 | [bootstrap.md](architecture/bootstrap.md) | bootstrap.sh reference — steps, flags, troubleshooting |
 | [testing-validation.md](architecture/testing-validation.md) | Testing and validation approach |
-| [posttooluse-workaround.md](architecture/posttooluse-workaround.md) | CC bug #24529 workaround details |
+| [posttooluse-workaround.md](archive/posttooluse-workaround.md) | CC bug #24529 workaround details |
 | [building-methodology.md](architecture/building-methodology.md) | How brana is built (DDD/SDD/TDD) |
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
@@ -103,6 +104,9 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [features/judge-escalation-valve.md](architecture/features/judge-escalation-valve.md) | ADR-082 sizing valve implementation spec (t-2895) — ladder wiring, hard signals, funnel, hash pinning; authority block lives in system/skills/_shared/judge-sizing.md |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
 | [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
+| [features/youtube-knowledge-extraction.md](architecture/features/youtube-knowledge-extraction.md) | YouTube knowledge extraction Phase 1 (t-2946) — single video/shorts transcript fetch tier spec |
+| [features/youtube-channel-ingestion.md](architecture/features/youtube-channel-ingestion.md) | YouTube channel ingestion Phase 3 Tier A (t-2993) — channel backfill selection surface spec |
+| [features/youtube-channel-backfill.md](architecture/features/youtube-channel-backfill.md) | `brana knowledge channel-backfill` tech doc (t-2998) — CLI flags, Tier A selection surface, Tier B boundary |
 
 ### Extending brana
 
@@ -162,9 +166,31 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-042](architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md) | Knowledge pipeline — `ingest` as canonical URL entry point + Gemini routing for Tier 1/2 |
 | [ADR-043](architecture/decisions/ADR-043-session-labels-breadcrumb.md) | session_labels breadcrumb array for same-day multi-session merges |
 | [ADR-044](architecture/decisions/ADR-044-initiative-accumulator.md) | Initiative accumulator — cross-day session continuity per initiative |
+| [ADR-045](architecture/decisions/ADR-045-backlog-ui-transport.md) | Backlog web UI transport: CLI shell-out vs axum sidecar |
+| [ADR-046](architecture/decisions/ADR-046-smart-search-load-default.md) | Keep `smart:false` as the LOAD default (`smart:true` MMR reranking deferred — degrades precision) |
+| [ADR-047](architecture/decisions/ADR-047-acceptance-criteria-schema.md) | `acceptance_criteria` schema — the canonical, machine-checkable done-signal that gates `/goal` auto-loops |
+| [ADR-048](architecture/decisions/ADR-048-memory-consolidation-trigger-model.md) | Memory consolidation trigger model and scope split (brana-owned, not CC `autoDream`) |
+| [ADR-049](architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md) | Mandatory challenger gate at the BUILD→CLOSE boundary (sizing valve added by ADR-082) |
+| [ADR-050](architecture/decisions/ADR-050-loop-request-protocol.md) | Loop-request protocol — suggest-and-confirm, no auto-spawn; loops session-scoped by default |
+| [ADR-051](architecture/decisions/ADR-051-reminder-store-architecture.md) | Reminder store — Rust-owned writes, two-layer sources |
+| [ADR-052](architecture/decisions/ADR-052-close-queue-architecture.md) | Close queue — Rust-owned writes, agy extraction contract (30-second close, nightly extraction) |
+| [ADR-053](architecture/decisions/ADR-053-close-oriented-modes.md) | Oriented close modes — orientation forces weight, flag wins over classification |
+| [ADR-054](architecture/decisions/ADR-054-reminder-delivery-channels.md) | Reminder delivery channels — notify context, timed dispatch |
+| [ADR-055](architecture/decisions/ADR-055-tech-stack-feed-tracking.md) | Tech-stack changelog tracking in the intelligence feed |
+| [ADR-056](architecture/decisions/ADR-056-propagate-close-step.md) | PROPAGATE close step — layered propagation-debt audit |
+| [ADR-057](architecture/decisions/ADR-057-unit-of-knowledge.md) | Unit of knowledge — one schema, three consumers (brana-ontology.yaml) |
+| [ADR-058](architecture/decisions/ADR-058-search-provider-hybrid-recall.md) | `SearchProvider` trait + `HybridProvider` recall (FTS5 + ruflo knowledge, RRF merge — `brana recall`) |
+| [ADR-059](architecture/decisions/ADR-059-multi-agent-substrate-selection.md) | Multi-agent substrate selection — native CC (Workflow/Agent/loop) over ruflo agentic layer and agy; ruflo = memory/recall only |
+| [ADR-060](architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md) | Branch strategy for quality work at speed & scale — two-tier `dev`/`main`, worktree isolation, universal invariants + per-project policy |
+| [ADR-061](architecture/decisions/ADR-061-goal-integration-three-primitive.md) | `/goal` integration — three-primitive composition (loop POLL · goal ITERATE · workflow FAN-OUT), presence interlock, grader immutability |
+| [ADR-062](architecture/decisions/ADR-062-runner-executor-sandbox.md) | Sandbox the autonomous runner's executor — capability isolation via bubblewrap (hard gate for unattended L3) |
+| [ADR-063](architecture/decisions/ADR-063-pending-questions-store.md) | Pending-questions store — raised-hand queue for autonomous workflows (`room` field amendment 2026-08-23, t-3030) |
+| [ADR-064](architecture/decisions/ADR-064-retrieval-routing-graphify.md) | Retrieval routing — structural repo queries via graphify; Explore for open-ended; recall for decisions |
+| [ADR-065](architecture/decisions/ADR-065-epic-as-hierarchy-top.md) | Epic as the sole hierarchy top node (reverses v2 initiative-as-top; flat `epic` field retired; WIP cap retired 2026-08-12) |
 | [ADR-066](architecture/decisions/ADR-066-active-epic-project-scoped-only.md) | active_epic/active_initiative resolve project-local only — closes skill-procedure and sync-state.sh bleed vectors |
 | [ADR-067](architecture/decisions/ADR-067-retired-fields-write-guard.md) | Write-time RETIRED_FIELDS guard in brana-core — hard-refuse writes of sealed schema fields, binary-version-agnostic |
 | [ADR-068](architecture/decisions/ADR-068-v3-supersession.md) | v3 supersession — retires the Orbit/Substrate doc cluster into the v3 design, folds forward 8 mechanics, scopes the ADR-060 "agent never merges" amendment |
+| [ADR-069](architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md) | Lane identity, miss semantics, and the unbuilt axes of v3 — Proposed, partially superseded (D3.2/D3b retracted per t-2516) |
 | [ADR-070](architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md) | `brana knowledge process-url` headless-first fetch — ureq for public URLs, `claude -p --mcp-config` → linkedin-scraper-mcp for LinkedIn |
 | [ADR-071](architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md) | Scheduler as a thin layer over systemd timers (was ADR-002 — renumbered t-2507) |
 | [ADR-072](architecture/decisions/ADR-072-full-rust-mcp-architecture.md) | **Full Rust + MCP architecture** (Cargo workspace, pmcp, Python elimination) (was ADR-026 — renumbered t-2507) |
@@ -172,12 +198,18 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-074](architecture/decisions/ADR-074-step-state-contract.md) | Step-state contract — derive `{next_step, gate_pending}` from a static step registry + the run-state log (was ADR-062 — renumbered t-2507) |
 | [ADR-075](architecture/decisions/ADR-075-ship-on-deploy-surface-change.md) | Ship on deploy-surface change, not batch size or schedule — commit count is uncorrelated with blast radius (t-2547) |
 | [ADR-076](architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md) | Build receipts as executed evidence — `mint` runs the tests and hashes its own output; enforced delegation deferred, killed by its own falsifier (t-2592) |
+| [ADR-077](architecture/decisions/ADR-077-validate-remedy-registry.md) | Remedy registry for `validate.sh` — bound fixes, not just findings |
 | [ADR-078](architecture/decisions/ADR-078-stale-task-park-via-tag.md) | Park stale tasks via the existing `parked` tag, not a new `status` value — reuses `classify()`'s already-tested synthetic state (t-2773) |
 | [ADR-079](architecture/decisions/ADR-079-backlog-drain-loop-handoff.md) | `ac_state` approval verb, wave-drain→loop handoff contract, and WIP enforcement moved to waves at pull time (amends ADR-065; unblocks the backlog-drain epic, t-2811) |
+| [ADR-080](architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) | Plan-time wave graphs, the epic runner, and leases with evidence-gated reclaim (extends ADR-079) |
+| [ADR-081](architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md) | Stacked-verdict evidence composition — extraction boundary and the notes contract (gauge, never a gate) |
+| [ADR-082](architecture/decisions/ADR-082-multi-agent-sizing-function.md) | Graded multi-agent sizing — judge-panel ladder (rung 0/1/2 on hard signals) and build-team role separation (extends ADR-080) |
 | [ADR-083](architecture/decisions/ADR-083-time-tracking-mechanism.md) | Unified project time & cost tracking — active-effort bracket model on `brana/time/`, calendar cycle-time milestone fields, folds in t-648, incorporates the re-validated 15-min idle cap (t-2919/t-2920) |
+| [ADR-084](architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md) | Upstream skill band — vendor pinned mattpocock/skills grains (file-copy, not native plugin install) wrapped by thin brana adapters; pilot-only decision gated on t-2834's diagnosing-bugs beat (t-2837) |
+| [ADR-085](architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md) | Skills stay whole stations composed via loops (`system/loops/`, waves) and graphs (`Workflow`, `blocked_by`/`gate`) — no station/grain schema; two-tier (wrapper → model-invoked station) for new/adapted skills; ≥2-callers-or-headless extraction floor; dual-mode resolves at the runner layer; t-2278 left as planned (t-2490) |
 | [ADR-086](architecture/decisions/ADR-086-wave-as-human-unit-pocock-ticket-shape.md) | Wave as the human's unit (task:AC :: wave:contract) — backlog speaks the Pocock ticket shape: derived triage roles, `ready-for-agent` as the single pull bit, `blocked_by` in the frontier, standing wave, `CHECK:` contracts, tracker doc + CONTEXT.md seam (t-2980, proposed) |
 
-> Note: this table is missing several ADRs between 045-065 and ADR-077, and 080-082 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
+> Coverage is checked by `system/scripts/readme-coverage.sh` (t-3031) — run it before adding a doc; `tests/scripts/test-readme-coverage.sh` fails when a row is missing or dead.
 
 ### Domain model (docs/domain/)
 
@@ -189,6 +221,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 
 | File | Contents |
 |------|----------|
+| [ac-state-forward-slice.md](architecture/features/ac-state-forward-slice.md) | `ac_state` forward-only slice — v3 schema MVP, wave-0 (implemented) |
 | [build-receipts.md](architecture/features/build-receipts.md) | Build receipts: `mint` executes the tests and hashes its own output, `validate` re-derives from git; three-valued gate, promotion-time enforcement (ADR-076) |
 | [t-2001-feed-tech-stack.md](architecture/features/t-2001-feed-tech-stack.md) | Intelligence feed: staleness detection, tech-stack changelogs, Kapso scraper, adoption step |
 | [build-loop-redesign.md](architecture/features/build-loop-redesign.md) | Build loop: 42->25 skills, 4-step loop, 7 strategies |
@@ -220,10 +253,59 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [context-budget-real-limits.md](architecture/features/context-budget-real-limits.md) | Context budget real-world limits |
 | [acquire-skills-guide.md](architecture/features/acquire-skills-guide.md) | Acquire skills implementation guide |
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
+| [backlog-lint.md](architecture/features/backlog-lint.md) | `brana backlog lint` — Definition-of-Ready checker for wave-eligible tasks (shipped; distinct from the `guide/features/` how-to of the same name) |
+| [backlog-project-scoping.md](architecture/features/backlog-project-scoping.md) | Per-project backlog scoping + cross-project task creation (built) |
+| [backlog-v3-schema.md](architecture/features/backlog-v3-schema.md) | Backlog v3 — three-axis schema (subject · tags · waves), `ac_state`, wave-drain handoff (shipped, the canonical spec) |
+| [brana-cli.md](architecture/features/brana-cli.md) | Brana CLI — standalone terminal interface architecture (shipped; see also [reference/brana-cli.md](../reference/brana-cli.md) for the command reference) |
+| [brana-feed-inbox.md](architecture/features/brana-feed-inbox.md) | `brana feed` + `brana inbox` CLI subcommands (shipped) |
+| [build-close-auto-docs.md](architecture/features/build-close-auto-docs.md) | Auto-generate tech docs + user guide in CLOSE (shipped) |
+| [build-cost-tracking.md](architecture/features/build-cost-tracking.md) | Build cost tracking — per-build token cost (superseded by ADR-083 time & cost tracking) |
+| [cc-hook-leverage.md](architecture/features/cc-hook-leverage.md) | CC hook leverage — expanded event coverage (TaskCompleted, SubagentStart, per-skill model routing); shipped |
+| [chat-agents-monitoring.md](architecture/features/chat-agents-monitoring.md) | Chat-agents monitoring & logging architecture (ADR-019 scope; investigation — Session Manager not built) |
+| [checkpoint-resume.md](architecture/features/checkpoint-resume.md) | Checkpoint/resume for skill procedures (shipped) |
+| [cli-composable-tool.md](architecture/features/cli-composable-tool.md) | CLI as composable tool — write commands so skills stop reading all of tasks.json (planning; largely realised by the Rust CLI) |
+| [close-oriented-modes.md](architecture/features/close-oriented-modes.md) | Oriented close modes — implementation spec for ADR-053 (shipped, 2026-06-12) |
+| [doc-frontmatter-spec.md](architecture/features/doc-frontmatter-spec.md) | Doc frontmatter specification — SemVerDoc + confidence tiers (ADR-021 self-reporting metadata) |
+| [github-issues-sync.md](architecture/features/github-issues-sync.md) | GitHub Issues sync — tasks.json ↔ Issues visibility (`gh-sync.sh`); shipped |
+| [goal-binding-build-tdd.md](architecture/features/goal-binding-build-tdd.md) | `/goal` binding — `/brana:build` TDD loop as ADR-061 Stage 2 (status header stale: Stage 2 shipped t-2205/t-2206/t-2216) |
+| [golden-path-snapshot.md](architecture/features/golden-path-snapshot.md) | Golden path snapshot format — JSON record of a skill execution (schema only, no tooling) |
+| [hook-test-sweep.md](architecture/features/hook-test-sweep.md) | Hook test sweep — validate.sh Check 70 runs every suite under `system/hooks/tests/`; shipped |
+| [inbox-to-dimensions-pipeline.md](architecture/features/inbox-to-dimensions-pipeline.md) | Inbox → dimensions pipeline — tiered research from logged URLs to Layer-2 knowledge (specced) |
+| [knowledge-architecture-v2.md](architecture/features/knowledge-architecture-v2.md) | Knowledge Architecture v2 — implementation spec for ADR-021 (in-progress; not to be confused with ADR-021 itself) |
+| [knowledge-pipeline-compute.md](architecture/features/knowledge-pipeline-compute.md) | Knowledge pipeline compute routing — `brana knowledge ingest` as the single URL writer (shipped, t-1665) |
+| [knowledge-process-url.md](architecture/features/knowledge-process-url.md) | `brana knowledge process-url` — headless-first fetch architecture, implementation spec for ADR-070 (building) |
+| [linkedin-content-implementation.md](architecture/features/linkedin-content-implementation.md) | LinkedIn content pipeline — implementation design (designing) |
+| [lint-heal-deterministic.md](architecture/features/lint-heal-deterministic.md) | Lint+Heal L2 — deterministic memory consolidation (specced) |
+| [living-docs.md](architecture/features/living-docs.md) | Living documentation system — composable `/brana:docs`, spec-graph routed; shipped |
+| [local-vector-recall.md](architecture/features/local-vector-recall.md) | Local vector recall — own retrieval, drop the index (built) |
+| [loops-library.md](architecture/features/loops-library.md) | Loops library — `system/loops/` catalog of committed loop definitions (shipped; not the drained idea doc of the same name) |
+| [memory-migration-manifest.md](architecture/features/memory-migration-manifest.md) | Memory migration manifest — Phase A file-by-file routing (awaiting human review) |
+| [memory-pattern-redesign.md](architecture/features/memory-pattern-redesign.md) | Memory pattern learning redesign — transferability filter on the pattern write path (specifying) |
+| [memory-taxonomy-ddd.md](architecture/features/memory-taxonomy-ddd.md) | Memory taxonomy — domain design (draft; types superseded by ADR-038) |
+| [memory-taxonomy-sdd.md](architecture/features/memory-taxonomy-sdd.md) | Memory taxonomy — solution design (classify() interface, write path; type taxonomy superseded by ADR-038) |
+| [mission-control-cli.md](architecture/features/mission-control-cli.md) | Mission control CLI — spawn/monitor agents across projects through the backlog (shipped) |
+| [neix-ai-consulting-proposal.md](architecture/features/neix-ai-consulting-proposal.md) | NEIX AI consulting — one-pager & benefit-unit model (shaping; venture doc parked here) |
 | [skill-routing-in-backlog-start.md](architecture/features/skill-routing-in-backlog-start.md) | Semantic skill suggestion at task start (ADR-026, t-833) |
 | [operating-model.md](architecture/features/operating-model.md) | Operating model: auto-learning loop, 6-job taxonomy, unified maintenance, knowledge graph |
+| [personal-bot-oci-deploy.md](architecture/features/personal-bot-oci-deploy.md) | Personal bot on Oracle Cloud free tier — OCI CLI deployment script |
 | [pipeline-digest.md](architecture/features/pipeline-digest.md) | L0 Reporter gauge — read-only pipeline digest, loop-first epic |
+| [plan-time-wave-graph.md](architecture/features/plan-time-wave-graph.md) | Plan-time wave graph — `brana backlog plan` emits waves + `gate:` edges from `blocked_by` (implemented t-2843, ADR-080) |
+| [propagate-close-step.md](architecture/features/propagate-close-step.md) | PROPAGATE close step — layered propagation-debt audit, implementation spec for ADR-056 (shipped) |
+| [resilient-pattern-store.md](architecture/features/resilient-pattern-store.md) | Resilient pattern store — recovery path for ruflo patterns after the 2026-03-31 DB corruption |
+| [ruflo-mcp-tool-classification.md](architecture/features/ruflo-mcp-tool-classification.md) | Ruflo MCP surface — real / theater / broken classification of ~370 tools under subscription (t-2759) |
+| [ruflo-upgrade-memory-reliability.md](architecture/features/ruflo-upgrade-memory-reliability.md) | Ruflo upgrade v3.10.39 → v3.34.0 and memory-reliability re-verification (implemented) |
+| [sdd-spec-gate.md](architecture/features/sdd-spec-gate.md) | SDD spec gate — feature spec template + advisory gate for M+ tasks (`spec-gate.sh`; kept advisory 2026-08-23, hardening t-3023) |
+| [stacked-verdict-at-the-valve.md](architecture/features/stacked-verdict-at-the-valve.md) | Stacked verdict at the valve — `brana backlog stacked-verdict` composes AC grammar + evaluator + challenger evidence at `ac approve`/merge (ADR-081; shipped) |
+| [statusline-test-coverage.md](architecture/features/statusline-test-coverage.md) | Statusline test coverage — which suites are wired into validate.sh vs run by hand |
+| [t-527-next-limit.md](architecture/features/t-527-next-limit.md) | t-527: `backlog next` `--limit` and filter flags |
+| [t-601-tdd-gate.md](architecture/features/t-601-tdd-gate.md) | t-601: TDD enforcement gate — test-before-implementation hook |
+| [terminal-diagrams.md](architecture/features/terminal-diagrams.md) | Terminal diagrams — proactive inline box-drawing explanations (skill + rule; shipped) |
+| [time-tracking-metric-1.md](architecture/features/time-tracking-metric-1.md) | Time tracking — Metric 1 active effort, Rust implementation of ADR-083 (shipped) |
+| [user-journey-gap-analysis.md](architecture/features/user-journey-gap-analysis.md) | User journey map & gap analysis — discovery → install → first value |
+| [validate-remedy-binding.md](architecture/features/validate-remedy-binding.md) | Remedy binding for validate.sh findings — implementation of ADR-077 (shipped) |
+| [wave-board.md](architecture/features/wave-board.md) | Wave board — `brana backlog wave board` gauge over wave state (implemented t-2844, ADR-080) |
 | [worktree-task-divergence.md](architecture/features/worktree-task-divergence.md) | validate.sh Check 68 — detects worktrees whose branch and task record have diverged (t-2545) |
+| [youtube-channel-backfill.md](architecture/features/youtube-channel-backfill.md) | `brana knowledge channel-backfill` tech doc (t-2998) — CLI command, Tier A selection surface, Tier B boundary |
 
 ## Conventions (docs/conventions/)
 
@@ -242,7 +324,7 @@ The idea pool — where creative/studio work lands, and what the backlog drains 
 | [construction-budget-automation.md](ideas/construction-budget-automation.md) | Construction budget automation — deferred 2026-08-14 (waiting on sample CAD/PDF files) |
 | [prompt-patterns-brana-enrichment.md](ideas/prompt-patterns-brana-enrichment.md) | Prompt patterns → brana enrichment — open draft, ~half shipped/mooted (see its 2026-08-14 review header); live remainder: persona + user-facing scout |
 | [venture-playbook-product-management.md](ideas/venture-playbook-product-management.md) | Venture playbook & product management layer — open; 2026-08-14 review: marketplace skills now cover most frameworks, Sheets/Airtable MCP unblock G14/G16 |
-| [drained/](ideas/drained/) | 73 idea docs converted to tasks or absorbed (incl. brana-efficiency-without-power-loss.md — all proposals shipped elsewhere) — notable: [wave-pipeline.md](ideas/drained/wave-pipeline.md) (ADR-079, t-2828), [wave-pipeline-infographic-prompt.md](ideas/drained/wave-pipeline-infographic-prompt.md) (t-2867), [loops-library.md](ideas/drained/loops-library.md) (t-2826), [loop-first-redesign.md](ideas/drained/loop-first-redesign.md) (epic t-2820), [skills-as-loops.md](ideas/drained/skills-as-loops.md), [brana-whatsapp-agent.md](ideas/drained/brana-whatsapp-agent.md), [brana-agency-growth-machine.md](ideas/drained/brana-agency-growth-machine.md) (t-2249) |
+| [drained/](ideas/drained/) | 73 idea docs converted to tasks or absorbed (incl. brana-efficiency-without-power-loss.md — all proposals shipped elsewhere) — notable: [wave-pipeline.md](ideas/drained/wave-pipeline.md) (superseded 2026-08-23 → [the-brana.md](architecture/the-brana.md), D3/t-3028), [wave-pipeline-infographic-prompt.md](ideas/drained/wave-pipeline-infographic-prompt.md) (t-2867), [loops-library.md](ideas/drained/loops-library.md) (t-2826), [loop-first-redesign.md](ideas/drained/loop-first-redesign.md) (epic t-2820), [skills-as-loops.md](ideas/drained/skills-as-loops.md), [brana-whatsapp-agent.md](ideas/drained/brana-whatsapp-agent.md), [brana-agency-growth-machine.md](ideas/drained/brana-agency-growth-machine.md) (t-2249) |
 
 ## Content (docs/content/)
 

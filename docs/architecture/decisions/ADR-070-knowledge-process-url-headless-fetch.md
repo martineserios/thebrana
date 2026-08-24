@@ -505,6 +505,68 @@ reachable, just not fully semantic-searchable end to end.
   test in `brana-core`) to cover that file is worth doing alongside this
   work, not deferred indefinitely.
 
+## Amendment (2026-08-19, t-2994): Channel ingestion — selection surface
+
+Spike findings (live-probed against a real channel, `@Fireship`, yt-dlp
+2026.03.17), grounding the selection surface for Phase 3 channel-crawl
+(t-2993) instead of assuming one.
+
+**What `--flat-playlist` gives cheaply — one HTTP call for the whole
+channel page, no per-video cost:**
+
+- Position-range slicing: `--playlist-start`/`--playlist-end`, or an
+  explicit index list `--playlist-items "3,7,10"`. Confirmed live.
+- Per-video fields on the `/videos` tab: `id`, `title`, `duration`
+  (numeric seconds) — enough for a duration `--match-filter` (e.g.
+  excluding sub-60s clips) entirely within the cheap flat listing,
+  confirmed live (`duration<100000` matched all 5 probed videos;
+  `duration<60` correctly matched zero on a tab with no shorts).
+- The `/shorts` tab is a **separate URL** (`.../shorts` vs `.../videos`)
+  requiring its own `--flat-playlist` call — and its flat entries carry
+  `duration: None` (unlike `/videos`), so a shorts listing cannot be
+  duration-filtered without a full per-video fetch. A "crawl this
+  channel" selection must independently choose which tab(s) to walk.
+
+**What requires a full (non-flat) per-video fetch — real cost, not a flag
+flip:**
+
+- `upload_date`, `timestamp`, `view_count`, `tags`, `categories`,
+  `availability` are all `None`/unset under `--flat-playlist` — confirmed
+  live across both the `/videos` and `/shorts` tabs.
+- `--dateafter`/`--datebefore` **silently no-op under `--flat-playlist`**
+  — confirmed live: 8 videos requested with `--dateafter 20260101`
+  returned all 8, `upload_date` still `NA` for each, no filtering applied
+  and no error raised. Date-range selection is unusable in the cheap path;
+  it degrades silently to "no filter," not to an error a caller could
+  detect.
+- Dropping `--flat-playlist` for one video (`--skip-download -j` against
+  a direct video URL) populates all of the above — confirmed live,
+  ~1.6s per video (real `tags`, `upload_date`, `view_count` returned). At
+  channel scale this is one yt-dlp subprocess spawn per video, not a
+  single request — a 300-video channel is ~300 spawns (~8 minutes serial,
+  before any of `run_with_youtube_backoff`'s 429 pacing), the same cost
+  class the transcript fetch itself already pays per video.
+
+**Decision — tiered selection surface, cheap-first:**
+
+- **Tier A (default, cheap):** position range (`--playlist-end N` /
+  `--playlist-items`) and duration `--match-filter`, both answerable from
+  one flat listing call per tab (`/videos`, `/shorts` — caller picks one
+  or both explicitly, never inferred). This is the only tier Phase 3's
+  first cut needs to implement.
+- **Tier B (opt-in, expensive, deferred beyond this spike):**
+  date-range or tag/category selection requires the full per-video fetch
+  path — do not build this by paying for a full fetch per video and
+  post-filtering (wasteful: pays the full cost for videos it then
+  discards); if built, it needs its own design pass on where in the
+  pipeline the full-metadata call happens and how it shares
+  `run_with_youtube_backoff`'s pacing against the transcript fetch's own
+  429 budget for the same channel. Not decided here — flagged as
+  out-of-scope for Tier A's implementation, not silently dropped.
+- Tag/keyword-based selection (the "via tags" option raised when this
+  channel-ingestion feature was scoped) is **Tier B, not Tier A** — flat
+  listing carries no tag data at all, confirmed live.
+
 ## Non-Actions
 
 - Does not implement t-1144 (pipeline tier1/2/3 wiring of `fetched_content`).
@@ -516,7 +578,10 @@ reachable, just not fully semantic-searchable end to end.
 - Does not implement Phase 2 (directory-bundle `raw/`/`sources/`/`concepts/`/`entities/`
   storage, concepts/entities synthesis, timestamp-anchored citations) —
   gated on Phase 1 proving out in practice AND `t-2937` resolving first.
-- Does not implement Phase 3 (channel-crawl via `yt-dlp --flat-playlist`).
+- Does not implement Phase 3 (channel-crawl) — the above amendment decides
+  the Tier A selection surface only (t-2994); Tier B (date/tag selection)
+  and the actual implementation (`fetch_youtube_channel_videos()`, queue
+  wiring) remain undecided/unbuilt, tracked under `t-2993`.
 - Does not decide brana-wide OKF adoption (`t-2937`) — this amendment only
   borrows OKF's frontmatter conventions where free, per
   `docs/ideas/youtube-knowledge-extraction.md` §Scope.
@@ -546,3 +611,8 @@ reachable, just not fully semantic-searchable end to end.
   vector-sync/caption-command WARNINGs in iteration 2 — plus an earlier
   `/brana:challenge` pass against
   `docs/ideas/youtube-knowledge-extraction.md`). See §Amendment.
+- 2026-08-19: Channel-ingestion (Phase 3) selection surface decided,
+  live-probed against a real channel — cheap Tier A (position range +
+  duration filter, one flat listing call per tab) vs. expensive Tier B
+  (date/tag selection, requires a full per-video fetch; deferred,
+  undecided) (t-2994). See §Amendment.

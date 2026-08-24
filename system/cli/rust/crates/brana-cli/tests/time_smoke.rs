@@ -49,7 +49,14 @@ fn brana(dir: &Path) -> Command {
 
 /// A bare-bones repo on `dev` with one commit — no tasks.json/AC needed for these tests.
 fn repo() -> tempfile::TempDir {
-    let tmp = tempfile::TempDir::new().unwrap();
+    repo_named("time-smoke-")
+}
+
+/// Same fixture, with a caller-chosen tempdir prefix — lets a test control whether the
+/// resolved project root contains `_` (relevant for `e1`, below: `encode_project_path`
+/// vs. `encode_project_path_legacy` only actually differ when the path has one).
+fn repo_named(prefix: &str) -> tempfile::TempDir {
+    let tmp = tempfile::Builder::new().prefix(prefix).tempdir().unwrap();
     let p = tmp.path();
     git_ok(p, &["init", "-q", "-b", "dev"]);
     git_ok(p, &["config", "user.email", "t@t"]);
@@ -63,8 +70,16 @@ fn repo() -> tempfile::TempDir {
 
 /// Add a second worktree off `base`'s `dev` branch — a genuinely separate `--git-dir`
 /// from `base`'s own, sharing the same `--git-common-dir`. Returns the worktree path.
+///
+/// `base.parent()` is `/tmp` itself (tempfile creates its tempdirs directly there), a
+/// namespace shared across every test run — a fixed literal `name` (e.g. "wt2") landed
+/// two different runs' worktrees on the same path and made `git worktree add` fail
+/// against leftover state from a prior run (the linked worktree directory isn't owned
+/// by either `base`'s or its own `tempfile::TempDir`, so nothing cleans it up on drop).
+/// Suffixing with `base`'s own random tempdir name keeps every run's path unique.
 fn add_worktree(base: &Path, name: &str, branch: &str) -> PathBuf {
-    let wt_path = base.parent().unwrap().join(name);
+    let unique = base.file_name().and_then(|n| n.to_str()).unwrap_or("wt");
+    let wt_path = base.parent().unwrap().join(format!("{name}-{unique}"));
     git_ok(base, &[
         "worktree", "add", wt_path.to_str().unwrap(), "-b", branch,
     ]);
@@ -79,6 +94,12 @@ fn data_store_path(repo_root: &Path, task_id: &str) -> PathBuf {
 /// transcript file" resolution): `/` and `_` both become `-`.
 fn encode_project_path(project_root: &str) -> String {
     project_root.replace('/', "-").replace('_', "-")
+}
+
+/// Legacy CC encoding (`/` only, underscores preserved) — matches
+/// `commands/time.rs::encode_project_path_legacy` / `commands/handoff.rs::encode_path_legacy`.
+fn encode_project_path_legacy(project_root: &str) -> String {
+    project_root.replace('/', "-")
 }
 
 /// Fabricate a Claude Code session transcript for `worktree_root`'s own resolved
@@ -96,6 +117,22 @@ fn add_fake_transcript(home: &Path, worktree_root: &Path) {
         r#"{"timestamp":"2026-08-17T10:00:00.000Z","type":"user"}"#,
         r#"{"timestamp":"2026-08-17T10:00:05.000Z","type":"assistant"}"#,
         r#"{"timestamp":"2026-08-17T10:00:12.000Z","type":"assistant"}"#,
+    ];
+    std::fs::write(project_dir.join("fake-session.jsonl"), lines.join("\n") + "\n").unwrap();
+}
+
+/// Same as [`add_fake_transcript`], but under the LEGACY encoding only (`/`-only,
+/// underscores preserved) — for `e1`, which asserts the fallback path in
+/// `commands/time.rs::resolve_newest_transcript` actually resolves a transcript when
+/// only the legacy-encoded directory exists.
+fn add_fake_transcript_legacy(home: &Path, worktree_root: &Path) {
+    let project_root = git_ok(worktree_root, &["rev-parse", "--show-toplevel"]);
+    let encoded = encode_project_path_legacy(&project_root);
+    let project_dir = home.join(".claude/projects").join(&encoded);
+    std::fs::create_dir_all(&project_dir).unwrap();
+    let lines = [
+        r#"{"timestamp":"2026-08-17T10:00:00.000Z","type":"user"}"#,
+        r#"{"timestamp":"2026-08-17T10:00:05.000Z","type":"assistant"}"#,
     ];
     std::fs::write(project_dir.join("fake-session.jsonl"), lines.join("\n") + "\n").unwrap();
 }
@@ -462,6 +499,39 @@ fn d4_close_reads_recorded_transcript_not_newest_mtime() {
     std::thread::sleep(std::time::Duration::from_millis(10));
     std::fs::write(project_dir.join("newer-but-broken-session.jsonl"), "not a transcript at all").unwrap();
 
+    brana_with_home(tmp.path(), home.path())
+        .args(["time", "close", "t-1"])
+        .assert()
+        .success();
+}
+
+// ---- Group E: legacy-encoding fallback (Challenger iteration-1 finding) ----------
+
+/// Challenger iteration-1 finding (2026-08-18): `resolve_newest_transcript` added a
+/// legacy-encoding fallback (`/`-only, underscores preserved) mirroring
+/// `commands/handoff.rs`'s proven `encode_path`/`encode_path_legacy` pattern, but
+/// nothing exercised the fallback branch itself — the repo fixture never produced a
+/// project root containing `_`, so current- and legacy-encoded paths were always
+/// identical in every other test. `repo_named` with an underscore-bearing prefix
+/// forces them to differ; only the legacy-encoded directory gets a transcript, so
+/// `time close` succeeding here is possible only via the fallback branch.
+#[test]
+fn e1_legacy_encoded_project_dir_transcript_still_resolves() {
+    let tmp = repo_named("time_smoke_legacy_");
+    let home = tempfile::TempDir::new().unwrap();
+    add_fake_transcript_legacy(home.path(), tmp.path());
+
+    // Sanity: this fixture's project root really does contain `_`, so current and
+    // legacy encodings genuinely differ — otherwise this test would pass for the
+    // wrong reason (both paths resolving to the same directory).
+    let project_root = git_ok(tmp.path(), &["rev-parse", "--show-toplevel"]);
+    assert_ne!(
+        encode_project_path(&project_root),
+        encode_project_path_legacy(&project_root),
+        "fixture project root has no '_' — this test can't distinguish the fallback from the primary path"
+    );
+
+    brana_with_home(tmp.path(), home.path()).args(["time", "start", "t-1"]).assert().success();
     brana_with_home(tmp.path(), home.path())
         .args(["time", "close", "t-1"])
         .assert()

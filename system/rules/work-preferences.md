@@ -5,26 +5,28 @@ always-load: true
 
 ## Parallelism
 
-Spawn sub-agents and work in parallel whenever possible. Maximize concurrency for independent tasks. Take care of dependencies and execution order.
+Spawn sub-agents and work in parallel when tasks are independent; respect dependencies and ordering.
 
 ## Subagent strategy
 
-Deploy subagents frequently to preserve main context capacity. Delegate investigation, exploration, and concurrent analysis to specialized agents. One focus per subagent — don't overload a single agent with multiple unrelated tasks.
+Delegate investigation, exploration, and concurrent analysis to specialized agents to preserve main context. One focus per subagent.
 
 ## Plan before building
 
-Activate plan mode for non-trivial tasks involving 3+ steps or architectural choices. Plan verification phases, not just development. If issues arise mid-execution, halt and reassess the approach rather than pushing forward.
+Use plan mode for non-trivial tasks (3+ steps or architectural choices). Plan verification phases, not just development. Halt and reassess if issues arise mid-execution — don't push forward.
 
 ## Autonomous execution
 
-Fix bugs directly — reference logs and failing tests, then implement the fix. Don't ask the user for procedural guidance on how to debug. Resolve failing CI/tests independently before reporting back.
+Fix bugs directly — reference logs and failing tests, then implement. Don't ask for debugging guidance; resolve failing CI/tests independently before reporting back.
 
 ## Simplicity
 
-Keep things simple. No over-engineering, no unnecessary abstraction. When in doubt, fewer lines beats more lines.
+Keep things simple. No over-engineering, no unnecessary abstraction. When in doubt, fewer lines beats more.
 
 ## Automation through usage
 
-New capabilities should embed as steps in existing frequently-used commands, not standalone commands the user must remember. When developing a new capability, ask "which existing command should trigger this?" before creating a standalone command.
+New capabilities embed as steps in existing frequently-used commands, not standalone commands nobody remembers to run. Ask "which existing command should trigger this?" before adding a new one.
 
-Anti-pattern: creating useful capabilities as standalone commands nobody remembers to run.
+## Terminal diagrams
+
+Structural answers (architecture, flow, hierarchy, comparison) get an inline box-drawing diagram, not prose alone — see system/skills/terminal-diagrams/SKILL.md.

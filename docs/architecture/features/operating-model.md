@@ -1,4 +1,5 @@
 ---
+status: shipped
 depends_on:
   - docs/architecture/decisions/ADR-027-auto-learning-loop.md
   - docs/architecture/decisions/ADR-028-ontology-v2.md
@@ -9,6 +10,8 @@ depends_on:
 ---
 
 # Operating Model — Technical Documentation
+
+> The 6-job taxonomy (ADR-029) is still current — it's the source for CLAUDE.md's "The 6 Jobs" table (DECIDE/UNDERSTAND/BUILD/SHIP/MAINTAIN/GROW). This doc is the technical record of that + the surrounding auto-learning-loop machinery, not superseded.
 
 ## Overview
 The operating model implements a 6-step auto-learning loop (LOAD->WORK->EXTRACT->EVALUATE->PERSIST->DECAY) across 4 thinking skills, a 6-job taxonomy, unified maintenance, and ontology-aware knowledge graph.

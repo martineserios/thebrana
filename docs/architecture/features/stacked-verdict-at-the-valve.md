@@ -33,7 +33,7 @@ Scope below.
 
 ## Constraints
 
-- **Gauge law (wave-pipeline.md §skeleton match):** "MEASURE — external validators —
+- **Gauge law ([the-brana.md §Scale](../the-brana.md), skeleton match):** "MEASURE — external validators —
   objective readout; **never self-assessment, never acts**." `stacked-verdict` never
   writes to `acceptance_criteria`, `ac_state`, `status`, or any other task field —
   verified by a boundary test asserting zero writes in the code path (mirrors t-2844's

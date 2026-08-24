@@ -1,6 +1,7 @@
 # Feature Spec — Native Cross-Model Consensus Primitive
 
-**Task:** t-2143 · **Status:** DESIGN ONLY (no implementation) · **Date:** 2026-06-20
+**Task:** t-2143 · **Status:** superseded (design-only, never built) · **Date:** 2026-06-20
+**Superseded by:** [ADR-082](../decisions/ADR-082-multi-agent-sizing-function.md) — the general finding that standing multi-agent panels cost 3–10× tokens for equivalent tasks and lose to single agents under equal budget dissolved the case for a distinct always-on consensus primitive; JUDGE-shaped decisions (the GO/NO-GO case this spec targeted) route through `verify-findings.js`'s judge panel + `judge-sizing.md`'s rung selection instead of a separate GO/NO-GO primitive.
 **Basis:** [ADR-059](../decisions/ADR-059-multi-agent-substrate-selection.md) · `.claude/workflows/` (hive-mind, verify-findings, sweep)
 
 ## Problem

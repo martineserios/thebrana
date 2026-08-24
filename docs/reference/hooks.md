@@ -389,7 +389,7 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `session-end.sh` | `/tmp/brana-metrics-XXXXXX.env` | ── Phase 1: Compute metrics ────────────────────────────── |
 | `session-start.sh` | `/tmp/brana-startup-timing.log.` | in parallel (2s timeout), collect results, emit JSON. Fork logging |
 | `session-start.sh` | `/tmp/brana-startup-timing.log` | ── Startup timing (diagnostic) ───────────────────────── |
-| `session-start.sh` | `/tmp/brana-ss-${SESSION_ID}` | ── Temp files for parallel results ─────────────────────── |
+| `session-start.sh` | `/tmp/brana-ss-${SESSION_ID}-$$` | hook more than once with the same session_id). |
 | `session-start.sh` | `/tmp/brana-skills-index-mtime` | Invalidate skills mtime marker — plugin updated, skills may have changed |
 | `session-start.sh` | `/tmp/brana-claims` | ── Stale file claim cleanup ───────────────────────────── |
 | `session-start.sh` | `/tmp/brana-bootstrap-pending-restart` | ── Bootstrap restart sentinel ─────────────────────────── |

@@ -7,10 +7,16 @@
 > Challenger against this ADR — see that doc's §Challenge findings and ADR-070's
 > §Amendment for what each pass corrected).
 
-Status: **spec — not yet decomposed into implementation tasks.** This is the
-M-effort spec-gate artifact `t-2940` (the YouTube phase) requires before any
-`system/`, `src/`, `lib/`, or `bin/` write can begin. Once reviewed, file
-implementation tasks under `t-2942` (Phase 1 milestone) per §Follow-up below.
+Status: **shipped** (t-2950, 2026-08-21) — the youtube fetch tier described
+below is implemented and merged: `classify_platform()` has a youtube case,
+`fetch_youtube_content()` shells out to yt-dlp per §Fix below, and
+`process_one_url`'s Store arm bypasses `extract_insight` for youtube. Tech
+doc covering usage is tracked separately as t-2953 (pending).
+
+## Changelog
+- 2026-08-21: youtube fetch tier implemented and merged (t-2950).
+- 2026-08-23: §7 cookie/auth passthrough specified and implemented (t-3033) — live bot-check blocks unauthenticated yt-dlp.
+- 2026-08-23: §8 persisted cookie jar (default path, t-3038) — scheduled drain needs no per-run flag.
 
 ## Problem
 
@@ -247,6 +253,213 @@ work inside `vector.rs`/`knowledge-vector-sync` — a shared consumer of four
 other platforms' entries too, not youtube-specific. Tracked as `t-2970`.
 Phase 1 ships with this documented, not silent.
 
+### 7. Cookie/auth passthrough — `--cookies-from-browser` / `--cookies` (t-3033)
+
+**Problem (live-confirmed 2026-08-23).** `drain-links --platform youtube`
+fails every video with yt-dlp's `Sign in to confirm you're not a bot`,
+even on yt-dlp 2026.08.19 with a JS runtime (deno) installed for the
+PO-token challenge — the challenge runs and still fails on
+`Missing required Visitor Data`. `yt-dlp --cookies-from-browser chrome
+<url>` succeeds against the same video. YouTube's anti-bot layer now
+effectively requires an authenticated session; a fresh yt-dlp alone is not
+enough. §2's fixed argv (`build_yt_dlp_caption_args`) has no way to pass
+that session through, and neither does the channel listing in §Tier A
+(`fetch_youtube_channel_videos`).
+
+**Decision (frozen 2026-08-23).** Add a pure value type in
+`brana-core/src/knowledge_pipeline.rs`:
+
+```rust
+pub enum YtDlpCookies {
+    None,                       // today's behavior — default
+    FromBrowser(String),        // --cookies-from-browser <browser[+keyring][:profile]>
+    File(PathBuf),              // --cookies <path>  (Netscape cookie jar, absolute)
+}
+impl YtDlpCookies { pub fn to_args(&self) -> Vec<String> }
+```
+
+`to_args()` is the whole of the yt-dlp flag knowledge — `None` → `[]`,
+`FromBrowser(b)` → `["--cookies-from-browser", b]`, `File(p)` →
+`["--cookies", p]`. The browser value is passed verbatim (yt-dlp owns
+`browser+keyring:profile` parsing; we do not validate browser names).
+`File` paths must be UTF-8 — the CLI resolver rejects non-UTF-8 paths
+rather than lossily mangling them in `to_args`.
+
+**The jar is mutable; the pipeline stays read-only by copying it.**
+yt-dlp's documented `--cookies FILE` semantics are *read from and dump
+the cookie jar back into* — every run rewrites the file. Pointing yt-dlp
+at the operator's exported jar would (a) race between overlapping
+lock-free runs (`fetch_url_content` is lock-free by ADR-070 §Lock
+discipline, and drain-links/channel-backfill may share one jar), and
+(b) let `run_yt_dlp_captions`'s kill-timeout SIGKILL yt-dlp mid-write,
+truncating a credential file. So the subprocess wrappers never hand the
+operator's path to yt-dlp: `stage_cookie_jar(&cookies, work_dir) ->
+Result<YtDlpCookies>` copies a `File` jar to `{work_dir}/cookies.txt`
+(0600) and returns `File(<that copy>)`; `None`/`FromBrowser` pass
+through. The copy dies with the `ScopedYtDlpWorkDir` guard. The channel
+listing gains the same scoped work dir for the same reason.
+
+Threading, lowest layer first:
+
+| Layer | Change |
+|---|---|
+| `build_yt_dlp_caption_args(url)` → `build_yt_dlp_caption_args(url, &cookies)` | cookie args are inserted **before** the `--` separator (§2's injection guard stays intact — the URL remains the only positional after `--`). Stays pure/fixture-testable. |
+| `run_yt_dlp_captions` | stages the jar into `work_dir` (above) and passes the staged value to the builder. |
+| `fetch_youtube_content(url)` → `fetch_youtube_content(url, &cookies)`; `fetch_url_content(url)` → `fetch_url_content_with(url, &cookies)` with `fetch_url_content(url)` kept as the `YtDlpCookies::None` wrapper | non-youtube platforms ignore the value. Lock discipline unchanged — still lock-free. |
+| `build_channel_listing_args(&cookies, &selection_args, listing_url) -> Vec<String>` (new, pure) | `--flat-playlist --skip-download <cookies> <selection> --print %(id)s -- <url>`. Closes the pre-existing missing-`--` gap in the channel wrapper (§2's injection guard applied to the listing URL). |
+| `fetch_youtube_channel_videos_with_runner(.., &cookies, run)` | now builds the full argv via `build_channel_listing_args` and hands it to `run`, so the injected runner sees the cookie args and fixture tests can assert them. `fetch_youtube_channel_videos(.., &cookies)` stages the jar and spawns. |
+| `brana-cli` `process_one_url(url, &cookies)`; `cmd_process_url`, `cmd_process_url_batch` (the `--file` loop), `cmd_drain_links`, `cmd_channel_backfill` all take and forward `&cookies` | all three `process_one_url` call sites honor the flag — the batch loop included. |
+| clap: `ProcessUrl`, `DrainLinks`, `ChannelBackfill` each gain `--cookies-from-browser <BROWSER>` and `--cookies <FILE>`, `conflicts_with` each other | `fn resolve_yt_dlp_cookies(from_browser: Option<String>, file: Option<PathBuf>) -> Result<YtDlpCookies>` in `commands/knowledge.rs` is the single mapping: canonicalizes the file path (the child runs with `current_dir(work_dir)`, so a relative path would resolve against the scratch dir), opens it for read (existence alone misses the cron-user-can't-read case), rejects non-UTF-8 — each failure a clear error naming the path, before any yt-dlp call. |
+
+**Consequences.**
+- Backward compatible: every existing call site passes `None`; the
+  no-flag argv is identical to the pre-t-3033 shipped
+  `build_yt_dlp_caption_args` output (regression-pinned by test; note §2's
+  prose predates the `--dump-json`/`--no-simulate`/`-o` additions
+  recorded in §Assumptions).
+- `--cookies <file>` is the scriptable/scheduler path (export once via
+  `yt-dlp --cookies-from-browser chrome --cookies ~/yt.txt …`, point the
+  job at the file; the file is never modified by brana).
+  `--cookies-from-browser` is the interactive path and reads the live
+  browser cookie DB — on Linux Chrome that may prompt the keyring and
+  fails if the browser holds an exclusive lock; that is yt-dlp's
+  documented behaviour and surfaces through the existing
+  `subprocess_diagnostic` error path unchanged.
+- The persisted-config form (so an auto-drain/auto-follow job needs no
+  human flag — t-2995's gap) was out of scope for t-3033 (a config-schema
+  decision, not a flag-threading one). Specified and implemented in §8
+  (t-3038).
+- Security: a cookie jar is a bearer credential for the Google account.
+  The path is never logged by brana and never stored in tasks.json; the
+  staged copy is 0600 in a per-process scratch dir and removed on drop.
+  The scheduler job's own stderr capture may still echo the argv on
+  failure; that is the operator's file-permission responsibility,
+  documented in the user guide.
+
+**Tests (TDD).**
+- `YtDlpCookies::to_args`: `None` → empty; `FromBrowser("chrome")` →
+  `["--cookies-from-browser","chrome"]`; `File("/p/c.txt")` →
+  `["--cookies","/p/c.txt"]`.
+- `build_yt_dlp_caption_args(url, &None)` equals the pre-t-3033 argv
+  exactly (regression pin); with `FromBrowser`/`File`, the cookie pair is
+  present, appears before `--`, and the URL is still the sole token after
+  `--` (extends the existing dash-prefixed-URL injection test).
+- `stage_cookie_jar`: `File` → returns a path inside `work_dir` with the
+  same bytes, original untouched; `None`/`FromBrowser` → returned as-is,
+  nothing written.
+- `build_channel_listing_args`: no cookies → today's argv plus `--`
+  before the URL; with cookies → pair precedes the selection args; a
+  dash-prefixed listing URL lands after `--`.
+- `fetch_youtube_channel_videos_with_runner`: the injected runner
+  observes the cookie args.
+- `resolve_yt_dlp_cookies`: both `None` → `None`; browser →
+  `FromBrowser`; readable file (relative) → `File(<absolute>)`; missing
+  file → `Err` naming the path; unreadable file (0000, skipped as root)
+  → `Err`.
+- Subprocess spawn stays "verified live" (same discipline as §2).
+
+**Assumptions.**
+- The channel-listing call succeeded unauthenticated on 2026-08-23, so
+  `channel-backfill` cookies are forward-protection, not a confirmed
+  blocker. Chose to thread them anyway because the task scope names both
+  commands and the listing uses the same yt-dlp.
+- `process-url` (both single and `--file`) gains the flags because it is
+  the shared implementation under drain-links, not because it was asked
+  for — the alternative (threading only through drain-links) would fork
+  `process_one_url`.
+
+**Rung-2 judge panel (2026-08-23, concurrency-lock finder):** staged jar
+was create-then-chmod (umask-mode window) → now created at 0600 in the
+`open()` itself with `create_new`; scratch dir was umask 0755 → now 0700 at
+creation. Accepted limitation: on the kill-timeout path a grandchild of
+yt-dlp that already read the staged jar keeps those bytes in its own
+memory past `remove_dir_all` — unlink can't recall what a process has
+read; bounded by the same t-2568 "hung grandchild" edge case.
+
+**Challenger findings (2026-08-23, 8 raised, 8 accepted):** jar write-back
+→ staged copy; `_with_runner` unchanged contradicted the promised test →
+now takes cookies; `cmd_process_url_batch` omitted → threaded; relative
+`--cookies` path vs scratch cwd → canonicalized; existence-only check →
+open-for-read; missing `--` in channel wrapper → closed via
+`build_channel_listing_args`; "byte-identical to §2" wording → pinned to
+shipped code; non-UTF-8 path → rejected at resolve.
+
+### 8. Persisted cookie jar — the default path (t-3038)
+
+**Problem.** §7's two flags are CLI-only. The scheduler job
+`link-research-extraction-youtube` (`brana knowledge drain-links --cap 3
+--platform youtube`) and any future auto-follow/auto-drain (t-2995) cannot
+pass a flag per run, so every scheduled youtube drain fails the bot-check
+exactly as the unauthenticated live run did on 2026-08-23. The job's
+`_comment` has said "DO NOT enable" since t-3033.
+
+**Options considered.**
+- *JSON config key* (`~/.config/brana/knowledge.json` → `yt_dlp_cookies_file`):
+  introduces a config loader for one key. Rejected — heaviest surface.
+- *Env var only* (`BRANA_YT_DLP_COOKIES=<path>`): matches the
+  `BRANA_KNOWLEDGE_ROOT` precedent, but scheduler jobs run under a systemd
+  user timer and `brana-scheduler-runner.sh` sources no env file *before*
+  the job (`cf-env.sh` is sourced only afterwards, for the memory write) —
+  the var would need new runner plumbing or `systemctl --user
+  set-environment` to reach the job. Rejected for v1.
+- *Well-known default path*: chosen. Zero-config for the scheduler; the
+  path is the one the user guide already told operators to export to.
+
+**Decision (frozen 2026-08-23).** `~/.config/brana/yt-cookies.txt` is the
+persisted jar. `resolve_yt_dlp_cookies` (`commands/knowledge.rs`) becomes
+a thin wrapper over `resolve_yt_dlp_cookies_with(from_browser, file,
+default_jar: Option<&Path>)`:
+
+| Inputs | Result |
+|---|---|
+| `--cookies-from-browser B` | `FromBrowser(B)` — flags always win; the default path is not consulted |
+| `--cookies F` | `File(canonical F)` with §7's existing checks (canonicalize, open-for-read, UTF-8) |
+| neither, default path absent | `None` — today's behaviour, unchanged |
+| neither, default path present, mode has any group/other bit | `Err` naming the path and `chmod 600` — the jar is a Google bearer credential; an implicitly picked-up file must be private. Not a warning: refusing is the only way the requirement is enforced (same stance as `ssh` on a loose private key) |
+| neither, default path present, 0600 but unreadable/non-UTF-8 | `Err` — the operator placed a file there; failing loud beats silently draining unauthenticated and burning yt-dlp's 429 budget |
+| neither, default path present, 0600, readable | `File(canonical path)` — then §7's `stage_cookie_jar` copies it into the scratch dir as before; the persisted file is never handed to yt-dlp |
+
+The mode check applies only to the *implicit* default; an explicit
+`--cookies F` keeps §7's contract (operator's explicit choice, documented
+as their responsibility). `$HOME` resolution reuses `brana_core::util::home`;
+the default path is a parameter so tests never touch the real home.
+
+**Consequences.**
+- Scheduler: `link-research-extraction-youtube`'s command is unchanged;
+  its `_comment` now says "export the jar to the default path, then
+  enable". Enabling stays a human action (the job is still `enabled:false`).
+- Where the jar lives: `~/.config/brana/` is already the home of
+  `linear.env` (0600) — per-user, outside the synced `~/.claude/` tree and
+  outside every git repo.
+- No opt-out flag (`--no-cookies`) in v1: an operator who exported a jar to
+  the documented path wants it used. Revisit if a real case appears.
+- Not logged: the resolver prints nothing on the happy path; the path
+  appears only in its own error messages (the location is documented, not
+  secret — the contents are).
+
+**Tests (TDD).** `resolve_yt_dlp_cookies_with` against a tempdir default:
+absent → `None`; present 0600 → `File(canonical)`; present 0644 → `Err`
+containing the path and `chmod 600`; browser flag + present default →
+`FromBrowser` (flag wins); explicit `--cookies` + present default → the
+explicit file; present 0600 but unreadable (0000 — skipped as root) →
+`Err`. The pre-existing neither-flag test moves to the injectable form
+(`resolve_yt_dlp_cookies_with(None, None, None)`) so the suite stays
+hermetic once an operator's jar exists at the real default path
+(challenger finding). `default_yt_dlp_cookie_jar_in(home)`: absolute home
+→ `Some(<home>/.config/brana/yt-cookies.txt)`; empty or relative home →
+`None` (rung-2 panel finding C3: `util::home()` yields `""` when `$HOME`
+is unset, which would have made the default a cwd-relative path).
+
+**Rung-2 panel (2026-08-23).** Refuted at sev 1 (same-user trust
+boundary — the only party who can swap or loosen a file under
+`~/.config/brana` is the user who owns the credential): TOCTOU between
+the mode check and `open`, check-once-use-many across a batch, parent-dir
+permissions, ownership (factually wrong — a jar owned by another user
+fails `open` with EACCES), `#[cfg(unix)]` compile-out (no non-unix
+target). Revisit `openat(O_NOFOLLOW)` + `fstat` + `uid == geteuid()` only
+if the jar ever moves outside `$HOME`. Sibling outside the diff filed as
+t-3042 (`linear.env` reader has no mode check).
+
 ## What does NOT change
 
 - Tier 1 (public HTTP), Tier 2 (LinkedIn), Tier 3 (GitHub/Substack/arxiv via
@@ -331,3 +544,46 @@ testable per §Tests above:
 
 Effort per task: S (each is a focused, independently-testable unit).
 Suggested wave selector once filed: `parent:t-2942`.
+
+## Assumptions
+
+Implementation decisions this spec explicitly deferred to DECOMPOSE-time
+(t-2950), recorded here rather than left implicit:
+
+- **`--dump-json` combined with `--write-sub`/`--write-auto-sub` in the
+  SAME `yt-dlp` invocation** — the spec's "distinguish manual vs.
+  auto-generated" note said "use `--dump-json`'s fields, not filename
+  parsing" without fixing how, given the design's own "one subprocess
+  call, not two" constraint. Chose: `yt-dlp` supports printing JSON
+  metadata to stdout while ALSO writing the requested subtitle files to
+  disk in one call — `requested_subtitles`/`automatic_captions` on that
+  JSON determine `caption_source`, the actual `.vtt` file is read
+  separately from disk. Needs confirmation: verified against `yt-dlp`'s
+  documented flag semantics, not live-tested (no `yt-dlp`/network access
+  in this build's sandbox) — same "verified live instead" discipline this
+  file already applies to `mcp_call_tool` and the LinkedIn fetch.
+- **Fixed `-o "video.%(ext)s"` output template** — makes the caption
+  file's path deterministic (`{work_dir}/video.en.vtt`) regardless of the
+  video's actual title/id, avoiding a second `yt-dlp --dump-json` parse
+  just to locate the file yt-dlp wrote.
+- **`caption_source` plumbing**: added `pub caption_source:
+  Option<YoutubeCaptionSource>` to `FetchedContent` (`None` for every
+  non-youtube platform) — the "sibling return value" option the spec
+  left open, chosen over overloading `platform` or a second return type
+  from `fetch_url_content`.
+- **`fetch_youtube_content`'s own return type** changed from the spec's
+  original `Result<Option<String>>` sketch to `Result<Option<(String,
+  YoutubeCaptionSource)>>` — nothing depended on the original signature
+  (no test called it directly; t-2947 only pinned `resolve_youtube_captions`
+  and `dedupe_vtt_cues`'s shapes), so this was a free choice at
+  implementation time, not a breaking change.
+- **`resolve_store_value` pure-function extraction** in `process_one_url`'s
+  Store arm — factors the storage decision (value + tags) out from the
+  `extract_insight`/`ruflo_memory_store` I/O so the youtube-bypass branch
+  is unit-testable without real agy/`claude -p` subprocess calls, matching
+  this file's established "test the decision, not the I/O" pattern
+  (`resolve_process_url_outcome`, `candidate_passes_platform_filter`).
+- **Tech doc deferred to t-2953**, not written here — t-2950's own
+  approved acceptance criteria don't require doc changes, and t-2953
+  ("Docs: tech doc for the youtube fetch tier") is the dedicated
+  downstream task, gated on this one.

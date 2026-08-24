@@ -1,4 +1,5 @@
 ---
+status: shipped
 depends_on:
   - docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md
 informs:
@@ -7,7 +8,7 @@ informs:
 # Feature: Build Loop Redesign
 
 **Date:** 2026-03-07
-**Status:** specifying
+**Status:** shipped — this design is what `/brana:build` runs today; the "specifying" line below is a stale point-in-time snapshot from drafting, not current state. The §Challenger Gate diagram is the origin of the mandatory gate later formalized as [ADR-049](../decisions/ADR-049-mandatory-challenger-gate.md) and implemented in [system/skills/_shared/challenger-gate.md](../../../system/skills/_shared/challenger-gate.md) — that file is the live single source for the gate's mechanics, this doc is history.
 **Task:** t-214
 
 ## Problem
@@ -151,7 +152,7 @@ One command: `/brana:build "description"`
 - Root cause or candidates
 - Recommended action: fix, refactor, accept, defer
 - Store findings via /brana:retrospective
-- If fix needed → leads to /brana:build --fix
+- If fix needed → leads to a bug-fix build (`/brana:build` auto-detects the `bug-fix` strategy) or `/brana:fix`
 
 **CLOSE** (all strategies except spike and investigation):
 - Validate acceptance criteria

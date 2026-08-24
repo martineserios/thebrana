@@ -1,5 +1,7 @@
 # Adversarial Review
 
+> The fixed "two models, always" framing below is superseded by [ADR-082](../../architecture/decisions/ADR-082-multi-agent-sizing-function.md): panel size/composition is now a graded sizing function (`judge-sizing.md`), not a constant two-voter shape — `/brana:challenge --deep` in particular routes through the native fan-out + `verify-findings.js` judge panel, sized per ADR-082, not this doc's Opus+Gemini pair. The skill itself is live and unaffected; only this description of its mechanism is dated.
+
 `/brana:challenge` stress-tests a plan, architecture decision, or approach before you commit to it. Two AI models review independently — Opus reasons about problems, Gemini retrieves documented constraints — then findings are merged and tiered by confidence.
 
 ## Quick start

@@ -102,8 +102,18 @@ assert_not_contains "T5b: never execs bin/ruflo directly" "bin/ruflo " "$OUT"
 OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory store -k "a" -v "b" 2>&1)
 assert_not_contains "T6: store passes through unmodified" "--threshold" "$OUT"
 
+# T9 — inherited RUFLO_MEMORY_SCAN_ON_WRITE=0 survives the hardening block
+# (t-3097): a caller-set override must not be clobbered by the guard.
+OUT=$(RUFLO_MEMORY_SCAN_ON_WRITE=0 RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory store -k "a" -v "b" 2>&1)
+assert_contains "T9: inherited scan-on-write override (0) is honored" "RUFLO_MEMORY_SCAN_ON_WRITE=0" "$OUT"
+
+# T10 — unset RUFLO_MEMORY_SCAN_ON_WRITE still defaults to the hardened 1
+# (t-2755 behavior preserved for every caller that doesn't opt out).
+OUT=$(env -u RUFLO_MEMORY_SCAN_ON_WRITE RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory store -k "a" -v "b" 2>&1)
+assert_contains "T10: default scan-on-write stays 1 when unset" "RUFLO_MEMORY_SCAN_ON_WRITE=1" "$OUT"
+
 else
-    echo "  SKIP: ruflo not installed (npm i -g ruflo) — T2-T6 argv/resolution tests"
+    echo "  SKIP: ruflo not installed (npm i -g ruflo) — T2-T6, T9-T10 argv/resolution tests"
 fi
 
 # T7 — cf-env variants route through the wrapper

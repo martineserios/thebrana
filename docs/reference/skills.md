@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**40 skills** loaded from `system/skills/`.
+**41 skills** loaded from `system/skills/`.
 
 This index is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../architecture/idea-to-ship.md).
 
@@ -62,6 +62,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, run remote agents on cron. Use whe |
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
+| `/brana:terminal-diagrams` | domain | Reference for drawing any diagram (flow, tree, comparison, architecture) as plai |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
 | `/brana:web-design-guidelines` | domain | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
@@ -77,7 +78,7 @@ Find and install skills for what you're doing — tech or reasoning gaps. Matche
 
 Manage the backlog — plan, track, navigate phases and epics. Use when planning phases, viewing roadmaps, or restructuring work.
 
-**Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
+**Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync|execute] [args] (execute: [scope] [--dry-run] [--max-parallel N] [--retry])`
 
 **Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_mark-stealable, TaskCreate, TaskList, TaskUpdate, ToolSearch
 
@@ -193,6 +194,12 @@ DDD tactical patterns — entities, value objects, aggregates, domain services, 
 Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
 
 **Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
+
+### `/brana:terminal-diagrams`
+
+Reference for drawing any diagram (flow, tree, comparison, architecture) as plain monospace terminal text — box-drawing/ASCII, no external renderer. Read directly when work-preferences.md's proactive trigger fires.
+
+**Allowed tools:** Read
 
 ### `/brana:web-design-guidelines`
 

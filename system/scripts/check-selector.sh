@@ -82,8 +82,17 @@ for file in "${files[@]}"; do
         system/scripts/feed-summarize.sh)
             core; checks+=(41)
             ;;
+        system/scripts/readme-coverage.sh)
+            core; checks+=(72)       # core(11), README coverage script itself (t-3031)
+            ;;
         system/scripts/*.sh)
             core                     # core(11)
+            ;;
+        docs/README.md)
+            core; checks+=(15 16 72) # core(13), assumption freshness, changelog currency, README coverage (t-3031)
+            ;;
+        docs/architecture/decisions/ADR-*.md|docs/architecture/features/*.md)
+            core; checks+=(15 16 72) # core(13), new/changed ADR or feature doc must have a README row (t-3031)
             ;;
         docs/spec-graph.json)
             checks+=(18 19 20 21)
