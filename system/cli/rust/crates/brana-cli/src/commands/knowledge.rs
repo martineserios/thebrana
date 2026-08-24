@@ -3401,6 +3401,21 @@ mod tests {
     }
 
     #[test]
+    fn test_url_reset_state_canonicalizes_decorated_input() {
+        // Rung-2 finder (t-3151): state keys are canonical, so a decorated
+        // real-world share-sheet URL passed to --reset-url must still hit
+        // the canonical entry — the write-side identity fix, delete-side.
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://example.com/post".into(), make_entry(UrlStatus::Tier1Passed));
+        let new_state =
+            url_reset_state(state, "https://example.com/post?utm_source=share&rcm=ACoAA");
+        assert!(
+            !new_state.urls.contains_key("https://example.com/post"),
+            "decorated variant must remove the canonical entry"
+        );
+    }
+
+    #[test]
     fn test_url_reset_state_missing_url_is_noop() {
         let mut state = kp::PipelineState::default();
         state.urls.insert("https://kept.com".into(), make_entry(UrlStatus::Tier1Passed));
