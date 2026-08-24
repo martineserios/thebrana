@@ -48,26 +48,38 @@ brana-knowledge/drafts-archive/            ← rejected/stale drafts
 
 ## Architecture
 
+Every entry is routed by content shape via `PlatformAdapter` (ADR-087):
+`ShortSignal` (linkedin, github, substack, arxiv, catch-all) vs `LongForm`
+(youtube, long articles). `is_long_form_url()` is the single routing
+authority all three tiers partition on (t-3183). The orchestration loop is
+shared — adapters diverge only on the steps below.
+
 ```
-Event log (~/.claude/projects/*/memory/event-log.md)
-    ↓  [parse — extract LinkedIn URLs not in processed-index]
+Event log (~/.claude/projects/*/memory/event-log.md) + brana knowledge ingest
+    ↓  [parse — extract URLs not in processed-index; keys canonicalized (t-3173)]
     ↓  [Scheduler — batch cap 50 URLs/run, nightly]
 Tier 1 — Relevance filter
-    Fetch URL title + first paragraph (HTTP HEAD + snippet)
-    LLM scores relevance 1-5 against known dimension topics
-    score < 3  → mark "irrelevant" in pipeline state, skip
-    score ≥ 3  → mark "tier1-passed", advance to Tier 2 queue
+    Semantic dedup (both adapters)
+    ├─ ShortSignal: LLM scores relevance 1-5 against known dimension topics
+    │     score < 3  → mark "irrelevant" in pipeline state, skip
+    │     score ≥ 3  → mark "tier1-passed", advance to Tier 2 queue
+    └─ LongForm: auto-pass with fixed score/reason — no LLM call
+          (content was curated at ingestion; t-3179)
     ↓
 Tier 2 — Cluster assignment
-    Fetch full content for each tier1-passed URL
-    LLM assigns to nearest existing dimension OR flags "new-topic"
+    ├─ ShortSignal: LLM assigns to nearest existing dimension OR flags "new-topic"
+    └─ LongForm: embedding cosine similarity vs dimension topics (ruflo ONNX,
+          no LLM); below LONG_FORM_NEW_TOPIC_THRESHOLD → "new-topic"
     Produces cluster report: ~/.claude/knowledge-pipeline-report.md
     State: URLs marked "tier2-clustered" with cluster_topic + dimension_target
     ↓  [manual gate — user reviews report, runs: brana knowledge process --draft <topic>]
 Tier 3 — Draft synthesis
-    LLM synthesizes all URLs in approved cluster into draft dimension addition
+    ├─ ShortSignal: LLM synthesizes from author/title/tags metadata lines
+    └─ LongForm (pure cluster only): prompt grounded in truncated
+          fetched_content excerpts; empty-content sources skip with a log
+          line and stay tier2-clustered
     Output: brana-knowledge/drafts/YYYY-MM-DD-{topic-slug}.md
-    State: URLs marked "tier3-drafted", draft path recorded
+    State: drafted URLs marked "tier3-drafted", draft path recorded
 ```
 
 ## CLI subcommand: `brana knowledge process`
@@ -100,7 +112,8 @@ invoke identically; no session-specific behavior.
       "cluster_topic": "agent-memory",
       "dimension_target": "dimensions/21-memory-patterns.md",
       "draft_path": "drafts/2026-04-12-agent-memory.md",
-      "logged_date": "2026-04-08"
+      "logged_date": "2026-04-08",
+      "fetched_content": "(optional — drained transcript/article text, attached at ingest; t-3177)"
     }
   }
 }
@@ -108,6 +121,19 @@ invoke identically; no session-specific behavior.
 
 Idempotency: URLs already in `urls` map are skipped. `--reset-url` removes
 the entry to force reprocessing.
+
+**Canonical keys (t-3173/t-3182):** `urls` is keyed by `canonicalize_url()`
+— the same derivation ruflo's `url_storage_key()` uses — so tracking-param
+and `/safety/go` variants of one page dedupe to a single entry. Pre-existing
+raw-keyed state migrates once via `brana knowledge migrate-keys` (backs up
+the file, merges collisions preferring the more-advanced status; idempotent).
+
+**Ingest ruflo bridge (t-3177):** at ingest time, LongForm URLs best-effort
+probe ruflo's `knowledge:url:*` store and attach found content as
+`fetched_content`; `brana knowledge ingest <url> --from-ruflo <key>`
+attaches from an explicit key (exactly one URL — key slugs are lossy, the
+URL cannot be recovered from them). Ingest remains the sole PipelineState
+ingestion writer (ADR-042 §1, locked by a source tripwire test).
 
 ### Draft frontmatter (SD-B locked)
 
