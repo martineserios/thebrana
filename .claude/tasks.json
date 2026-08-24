@@ -80234,7 +80234,7 @@
         "memory pattern_wave-pull-ignores-blocked-by-ordering marked fixed"
       ],
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/fix/t-3166-cancelled-blocker-resolution",
       "completed": null,
       "context": "2026-08-24: ADR-086 Accepted — its §4 now reads 'every blocked_by completed' and names THIS task as the implementation (its T2 row points here, no duplicate filed). Close against §4 wording. Related: K-task (classify() cancelled-blocker semantics) reconciles the other consumers; keep the resolution in one shared function.",
       "created": "2026-08-23",
@@ -80248,8 +80248,8 @@
       "order": 0,
       "parent": "t-2337",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-24",
+      "status": "in_progress",
       "subject": "wave pull: exclude tasks with unmet blocked_by from the pull frontier (ADR-079 §2 amendment, guide L3.3)",
       "tags": [
         "backlog",
@@ -80258,7 +80258,9 @@
         "t-2490-followup"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "build_step": "classify",
+      "strategy": "bug-fix"
     },
     {
       "ac_state": "none",
@@ -83657,8 +83659,8 @@
     {
       "ac_state": "none",
       "blocked_by": [],
-      "branch": null,
-      "build_step": null,
+      "branch": "brana-v3-redesign/fix/t-3166-cancelled-blocker-resolution",
+      "build_step": "classify",
       "completed": null,
       "context": "AC: failing test first: classify() treats a cancelled blocker as unresolved\nAC: single blocked_by-resolution function used by classify, wave_pull_decision (t-3043), next/focus/board\nAC: ADR-079 amendment cites the function as owner; the 4 pending tasks with cancelled blockers listed for manual cleanup",
       "created": "2026-08-23",
@@ -83672,9 +83674,9 @@
       "order": null,
       "parent": "t-2337",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-08-24",
+      "status": "in_progress",
+      "strategy": "bug-fix",
       "subject": "K. Reconcile brana-core classify() cancelled-blocker semantics with ADR-079 amendment (cancelled ≠ resolved)",
       "tags": [
         "the-brana-closeout",
@@ -83691,7 +83693,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "skill_gap_checked: true (0 results, user chose: skip)\n2026-08-23: Config wiring DONE — link-research-extraction-youtube added to ~/.claude/scheduler/scheduler.json (enabled:false, backup at scheduler.json.bak-t3167) and deployed via brana-scheduler deploy; systemd timer generated, confirmed disabled/inactive. No repo changes needed (job only lives in deployed config, not the git-tracked template). Cookie export BLOCKED: tried yt-dlp --cookies-from-browser chrome (default, +gnomekeyring, +basictext) against this host's Chrome profile (329 cookies) — 0 decrypted every time, \"Item does not exist!\"/\"no key found\" (Chrome Safe Storage key unavailable on this host's keyring, per docs/guide/features/knowledge-drain-links.md troubleshooting section). No Firefox profile exists on this host either (never logged in). Deleted the resulting non-functional jar rather than leave a broken file at the persisted default path (a jar that exists but carries 0 real cookies would look done but silently fail every scheduled run). Needs a machine with a real, already-authenticated browser session (your own laptop/desktop) to export a working jar, then transfer ~/.config/brana/yt-cookies.txt (mode 600) here — or run drain-links --cookies-from-browser chrome directly on that machine instead of via the scheduler. Recipe: docs/guide/features/knowledge-drain-links.md § YouTube needs an authenticated session. Once a working jar lands at the default path, flip enabled:true for link-research-extraction-youtube in ~/.claude/scheduler/scheduler.json and re-run brana-scheduler deploy.",
+      "context": "skill_gap_checked: true (0 results, user chose: skip)\n2026-08-23: Config wiring DONE — link-research-extraction-youtube added to ~/.claude/scheduler/scheduler.json (enabled:false, backup at scheduler.json.bak-t3167) and deployed via brana-scheduler deploy; systemd timer generated, confirmed disabled/inactive. No repo changes needed (job only lives in deployed config, not the git-tracked template). Cookie export BLOCKED: tried yt-dlp --cookies-from-browser chrome (default, +gnomekeyring, +basictext) against this host's Chrome profile (329 cookies) — 0 decrypted every time, \"Item does not exist!\"/\"no key found\" (Chrome Safe Storage key unavailable on this host's keyring, per docs/guide/features/knowledge-drain-links.md troubleshooting section). No Firefox profile exists on this host either (never logged in). Deleted the resulting non-functional jar rather than leave a broken file at the persisted default path (a jar that exists but carries 0 real cookies would look done but silently fail every scheduled run). Needs a machine with a real, already-authenticated browser session (your own laptop/desktop) to export a working jar, then transfer ~/.config/brana/yt-cookies.txt (mode 600) here — or run drain-links --cookies-from-browser chrome directly on that machine instead of via the scheduler. Recipe: docs/guide/features/knowledge-drain-links.md § YouTube needs an authenticated session. Once a working jar lands at the default path, flip enabled:true for link-research-extraction-youtube in ~/.claude/scheduler/scheduler.json and re-run brana-scheduler deploy.\n2026-08-24: User confirms this is the one follow-up only they can move — requires a machine with a decryptable browser session to export the yt-dlp cookie jar. Blocked on user action, not further research/design.",
       "created": "2026-08-23",
       "description": "Export a cookie jar to ~/.config/brana/yt-cookies.txt (chmod 600) from a browser yt-dlp can decrypt (Chrome keyring lacks Safe Storage on this host). Add link-research-extraction-youtube from scheduler.template.json to ~/.claude/scheduler/scheduler.json (job currently absent there) with enabled:true, then brana-scheduler deploy. t-3024/t-3025 drained 2026-08-23 WITHOUT a jar (bot-check did not fire that run) — the jar is still the only defense when it does fire.",
       "effort": "S",
@@ -84539,7 +84541,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "t-3020 root-cause follow-up (2026-08-24): the hybrid-recall flake traced to /tmp tmpfs starvation (5.6GB of leaked test binaries). session-start.sh creates TMPDIR_SS with `mkdir -p ... || true` and every job writes results behind silent failure — ANY future /tmp pressure source silently drops hybrid-recall/cf-context/corrections from additionalContext again (the no-patches next-worst-thing). Harden: if mkdir or a result write fails, emit a visible warning line into additionalContext (the hook must still exit 0 / continue=true). Keep best-effort semantics; make degradation observable. Touches system/hooks (challenger mandatory, careful path).",
+      "context": "t-3020 root-cause follow-up (2026-08-24): the hybrid-recall flake traced to /tmp tmpfs starvation (5.6GB of leaked test binaries). session-start.sh creates TMPDIR_SS with `mkdir -p ... || true` and every job writes results behind silent failure — ANY future /tmp pressure source silently drops hybrid-recall/cf-context/corrections from additionalContext again (the no-patches next-worst-thing). Harden: if mkdir or a result write fails, emit a visible warning line into additionalContext (the hook must still exit 0 / continue=true). Keep best-effort semantics; make degradation observable. Touches system/hooks (challenger mandatory, careful path).\n2026-08-24: User watch condition — if the hybrid-recall hook test flakes again with /tmp at 6% free, the starvation theory (this task's premise) is wrong, and t-3195 becomes the lead investigation instead of a downstream fix.",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -84579,7 +84581,7 @@
       "work_type": null,
       "ac_state": "none",
       "strategy": "feature",
-      "build_step": "classify"
+      "build_step": "specify"
     },
     {
       "id": "t-3197",
