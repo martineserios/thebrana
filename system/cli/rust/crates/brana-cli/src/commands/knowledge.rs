@@ -2531,6 +2531,28 @@ mod tests {
     }
 
     #[test]
+    fn test_cmd_ingest_no_ruflo_calls_under_pipeline_lock() {
+        // Rung-2 concurrency finding (t-3151): ruflo_memory_get spawns a
+        // subprocess with a 15s timeout; N LongForm URLs probed while the
+        // exclusive pipeline lock is held serializes every other pipeline
+        // command behind a possibly-hung ruflo binary. All ruflo probes in
+        // cmd_ingest must complete BEFORE lock_pipeline is acquired.
+        let src = include_str!("knowledge.rs");
+        let start = src.find("pub fn cmd_ingest").expect("cmd_ingest exists");
+        let end = src[start + 10..]
+            .find("\npub fn ")
+            .map(|i| start + 10 + i)
+            .unwrap_or(src.len());
+        let body = &src[start..end];
+        let lock_pos = body.find("lock_pipeline").expect("cmd_ingest takes the pipeline lock");
+        let after_lock = &body[lock_pos..];
+        assert!(
+            !after_lock.contains("ruflo_memory_get"),
+            "cmd_ingest must finish all ruflo probes before acquiring the pipeline lock"
+        );
+    }
+
+    #[test]
     fn test_adr042_ingest_sole_pipeline_state_writer_tripwire() {
         // ADR-042 §1: ingest is the sole ingestion write path into
         // PipelineState. drain-links and process-url store into ruflo only —
