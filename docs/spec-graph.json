@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24T19:25:14Z",
+  "generated": "2026-08-24T21:02:31Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1259,6 +1259,18 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-088-session-scoped-epic-focus.md": {
+      "title": "ADR-088: Epic Focus Resolves Per-Session, Not Via a Shared `active_epic` File",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/_shared/epic-ancestor-walk.md"
+      ]
+    },
+    "docs/architecture/decisions/ADR-089-integral-temporal-model.md": {
+      "title": "ADR-089: Integral Temporal Model — Shared Primitives, Separate Entities",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1866,6 +1878,16 @@
         "system/hooks/spec-gate.sh"
       ]
     },
+    "docs/architecture/features/session-scoped-epic-focus.md": {
+      "title": "Feature: Session-Scoped Epic Focus",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/backlog/SKILL.md",
+        "system/skills/backlog/phases/views.md",
+        "system/scripts/migrate/audit-orphaned-active-epic.py",
+        "system/skills/_shared/epic-ancestor-walk.md"
+      ]
+    },
     "docs/architecture/features/skill-routing-in-backlog-start.md": {
       "title": "Feature: Skill Routing in Backlog Start",
       "type": "Roadmap",
@@ -1928,7 +1950,7 @@
         "system/statusline.sh",
         "system/hooks/post-tasks-validate.sh",
         "system/hooks/tests/",
-        "system/state/tasks-config.json"
+        "system/state/"
       ]
     },
     "docs/architecture/features/t-2001-feed-tech-stack.md": {
@@ -2381,6 +2403,32 @@
         "system/procedures/backlog.md"
       ]
     },
+    "docs/archive/agent-interaction-architecture.md": {
+      "title": "Agent Interaction Architecture",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/rules/delegation-routing.md",
+        "system/",
+        "system/scripts/evaluator-spike.py"
+      ]
+    },
+    "docs/archive/agent-observability-learning.md": {
+      "title": "Agent Observability & Learning Extraction",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/archive/dynamic-skill-routing.md": {
+      "title": "Dynamic Skill Routing — Investigation Report (t-608)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/mcp/skill-registry/"
+      ]
+    },
+    "docs/archive/enforcement-vs-injection.md": {
+      "title": "Enforcement vs Injection — The Harness Architecture Fork",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/archive/posttooluse-workaround.md": {
       "title": "PostToolUse Workaround (CC #24529) — RESOLVED",
       "type": "Roadmap",
@@ -2402,6 +2450,18 @@
       "title": "Session-Aware Loop Integration for Brana",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/archive/skill-auto-router.md": {
+      "title": "Skill Auto-Router",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/archive/statusline-v2-backlog-intelligence.md": {
+      "title": "Statusline v2 — Backlog-Aware Intelligence",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/statusline-slow-cache.sh"
+      ]
     },
     "docs/backlog-urls.md": {
       "title": "Backlog URLs — AI Systems & Claude Code Enhancement",
@@ -3026,6 +3086,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/session-scoped-epic-focus.md": {
+      "title": "Backlog: Session-Scoped Epic Focus",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/wave-board.md": {
       "title": "Wave board",
       "type": "Roadmap",
@@ -3214,21 +3279,6 @@
         "system/agents/"
       ]
     },
-    "docs/ideas/drained/agent-interaction-architecture.md": {
-      "title": "Agent Interaction Architecture",
-      "type": "Roadmap",
-      "impl_files": [
-        "docs/system/rules/delegation-routing.md",
-        "system/rules/delegation-routing.md",
-        "system/",
-        "system/scripts/evaluator-spike.py"
-      ]
-    },
-    "docs/ideas/drained/agent-observability-learning.md": {
-      "title": "Agent Observability & Learning Extraction",
-      "type": "Roadmap",
-      "impl_files": []
-    },
     "docs/ideas/drained/agent-skills-brana-enhancements.md": {
       "title": "Brana Enhancements from addyosmani/agent-skills Analysis",
       "type": "Roadmap",
@@ -3339,6 +3389,7 @@
       "title": "Build Skill Gate Hardening — Step 4a",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/build/phases/verify-gates.md",
         "system/procedures/build.md",
         "system/cli/rust/Cargo.toml"
       ]
@@ -3366,10 +3417,10 @@
       "title": "Claude-Gemini Orchestrator-Worker Integration",
       "type": "Roadmap",
       "impl_files": [
+        "system/rules/delegation-routing.md",
         "system/",
         "system/scheduler/outputs/",
-        "system/scheduler/templates/",
-        "system/rules/delegation-routing.md"
+        "system/scheduler/templates/"
       ]
     },
     "docs/ideas/drained/close-oriented-modes.md": {
@@ -3420,24 +3471,12 @@
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/drained/dynamic-skill-routing.md": {
-      "title": "Dynamic Skill Routing — Investigation Report (t-608)",
-      "type": "Roadmap",
-      "impl_files": [
-        "system/mcp/skill-registry/"
-      ]
-    },
     "docs/ideas/drained/enforced-delegation.md": {
       "title": "Enforced Delegation — orchestrator/executor split for build phases",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/_shared/orchestrator-gate.md"
       ]
-    },
-    "docs/ideas/drained/enforcement-vs-injection.md": {
-      "title": "Enforcement vs Injection — The Harness Architecture Fork",
-      "type": "Roadmap",
-      "impl_files": []
     },
     "docs/ideas/drained/fast-cold-start.md": {
       "title": "Fast Cold Start for Brana Plugin",
@@ -3463,7 +3502,7 @@
       ]
     },
     "docs/ideas/drained/goal-adoption-brana-skills.md": {
-      "title": "/goal Adoption — brana Skills",
+      "title": "/goal Adoption — brana Skills → goal-integration-three-primitive",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3476,7 +3515,7 @@
       ]
     },
     "docs/ideas/drained/goal-integration-three-primitive.md": {
-      "title": "/goal integration — three-primitive composition",
+      "title": "/goal integration — three-primitive composition → The Brana",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3599,11 +3638,6 @@
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/drained/skill-auto-router.md": {
-      "title": "Skill Auto-Router",
-      "type": "Roadmap",
-      "impl_files": []
-    },
     "docs/ideas/drained/skill-lifecycle-manager.md": {
       "title": "Skill Lifecycle Manager — Revised Design",
       "type": "Roadmap",
@@ -3632,13 +3666,6 @@
       "title": "Skills as Loops",
       "type": "Roadmap",
       "impl_files": []
-    },
-    "docs/ideas/drained/statusline-v2-backlog-intelligence.md": {
-      "title": "Statusline v2 — Backlog-Aware Intelligence",
-      "type": "Roadmap",
-      "impl_files": [
-        "system/scripts/statusline-slow-cache.sh"
-      ]
     },
     "docs/ideas/drained/telegram-link-capture.md": {
       "title": "Telegram Link Capture",
@@ -5480,6 +5507,48 @@
     {
       "from": "docs/architecture/decisions/ADR-057-unit-of-knowledge.md",
       "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/domain/MODEL-001-brana-core.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": true
     },
@@ -7652,6 +7721,12 @@
     {
       "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/ideas/drained/reminders-schedule-tasks-integral.md",
       "type": "informs",
       "computed": false
     },
@@ -10969,6 +11044,18 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-088-session-scoped-epic-focus.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-089-integral-temporal-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -11395,6 +11482,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/session-scoped-epic-focus.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/skill-routing-in-backlog-start.md",
       "type": "references",
       "computed": false
@@ -11779,6 +11872,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "guide/features/session-scoped-epic-focus.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "guide/getting-started.md",
       "type": "references",
       "computed": false
@@ -12078,6 +12177,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/agentic-primitives.md",
+      "to": "the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/agents.md",
       "to": "docs/reference/agents.md",
       "type": "references",
@@ -12318,8 +12423,20 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "to": "ADR-089-integral-temporal-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
       "to": "ADR-041-agy-invocation-contract.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "to": "ADR-089-integral-temporal-model.md",
       "type": "references",
       "computed": false
     },
@@ -12470,6 +12587,12 @@
     {
       "from": "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
       "to": ".claude/memory",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
+      "to": "ADR-088-session-scoped-epic-focus.md",
       "type": "references",
       "computed": false
     },
@@ -12746,6 +12869,12 @@
     {
       "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "to": "ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "docs/architecture/features/autonomous-runner.md",
       "type": "references",
       "computed": false
     },
@@ -13038,6 +13167,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-088-session-scoped-epic-focus.md",
+      "to": ".claude/memory",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-088-session-scoped-epic-focus.md",
+      "to": "ADR-066-active-epic-project-scoped-only.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "to": "docs/ideas/drained/reminders-schedule-tasks-integral.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -13104,6 +13251,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/ac-state-forward-slice.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/.claude/tasks.json",
       "type": "references",
@@ -13118,6 +13271,12 @@
     {
       "from": "docs/architecture/features/active-epic-project-scoping-cleanup.md",
       "to": "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/active-epic-project-scoping-cleanup.md",
+      "to": "session-scoped-epic-focus.md",
       "type": "references",
       "computed": false
     },
@@ -13147,6 +13306,18 @@
     },
     {
       "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
       "to": "docs/research/substrate-leverage-audit.md",
       "type": "references",
       "computed": false
@@ -13160,6 +13331,12 @@
     {
       "from": "docs/architecture/features/backlog-project-scoping.md",
       "to": "docs/guide/features/backlog-project-scoping.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/backlog-project-scoping.md",
+      "to": "session-scoped-epic-focus.md",
       "type": "references",
       "computed": false
     },
@@ -13351,7 +13528,19 @@
     },
     {
       "from": "docs/architecture/features/goal-binding-build-tdd.md",
+      "to": ".claude/tasks.json",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/goal-binding-build-tdd.md",
       "to": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/goal-binding-build-tdd.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -13584,6 +13773,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/session-scoped-epic-focus.md",
+      "to": "docs/architecture/decisions/ADR-088-session-scoped-epic-focus.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/skill-utilization-tracking.md",
       "to": "docs/.claude/tasks.json",
       "type": "references",
@@ -13610,12 +13805,6 @@
     {
       "from": "docs/architecture/features/staleness-and-memory-pipeline.md",
       "to": "docs/architecture/25-self-documentation.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/architecture/features/statusline-test-coverage.md",
-      "to": "docs/architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
       "type": "references",
       "computed": false
     },
@@ -14023,6 +14212,12 @@
     },
     {
       "from": "docs/architecture/substrate-primitives.md",
+      "to": "the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/substrate-primitives.md",
       "to": "the-orbit.md",
       "type": "references",
       "computed": false
@@ -14204,6 +14399,12 @@
     {
       "from": "docs/architecture/the-brana.md",
       "to": "docs/research/2026-08-22-pocock-alignment-decision-matrix.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "docs/research/2026-08-23-skill-tier-mapping.md",
       "type": "references",
       "computed": false
     },
@@ -14568,6 +14769,36 @@
       "computed": false
     },
     {
+      "from": "docs/archive/agent-interaction-architecture.md",
+      "to": "docs/architecture/features/brana-v2-compute-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/agent-observability-learning.md",
+      "to": "docs/architecture/features/chat-agents-monitoring.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/agent-observability-learning.md",
+      "to": "docs/ideas/drained/brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/dynamic-skill-routing.md",
+      "to": "docs/ideas/drained/brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/enforcement-vs-injection.md",
+      "to": "docs/ideas/drained/brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/archive/reflections/14-mastermind-architecture.md",
       "to": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
       "type": "references",
@@ -14708,6 +14939,18 @@
     {
       "from": "docs/archive/session-aware-loop-integration.md",
       "to": "docs/ideas/drained/brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/skill-auto-router.md",
+      "to": "docs/ideas/drained/brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/statusline-v2-backlog-intelligence.md",
+      "to": "docs/ideas/statusline-pipeline-awareness.md",
       "type": "references",
       "computed": false
     },
@@ -16122,8 +16365,20 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/backlog-project-scoping.md",
+      "to": "session-scoped-epic-focus.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/backlog-v3-schema.md",
       "to": "docs/guide/workflows/drain-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/backlog-v3-schema.md",
+      "to": "session-scoped-epic-focus.md",
       "type": "references",
       "computed": false
     },
@@ -16190,6 +16445,30 @@
     {
       "from": "docs/guide/features/reminder-system.md",
       "to": "docs/architecture/features/reminder-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/session-scoped-epic-focus.md",
+      "to": "docs/architecture/decisions/ADR-088-session-scoped-epic-focus.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/wave-board.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/wave-board.md",
+      "to": "docs/architecture/features/wave-board.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/wave-board.md",
+      "to": "plan-time-wave-graph.md",
       "type": "references",
       "computed": false
     },
@@ -16362,20 +16641,14 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/drained/agent-interaction-architecture.md",
-      "to": "docs/ideas/architecture/features/brana-v2-compute-model.md",
+      "from": "docs/ideas/drained/agent-definition-gaps.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
     {
-      "from": "docs/ideas/drained/agent-observability-learning.md",
-      "to": "brana-operating-model.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/drained/agent-observability-learning.md",
-      "to": "docs/ideas/architecture/features/chat-agents-monitoring.md",
+      "from": "docs/ideas/drained/agent-skills-brana-enhancements.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -16400,6 +16673,12 @@
     {
       "from": "docs/ideas/drained/async-first-close.md",
       "to": "docs/ideas/architecture/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/backlog-v3-lane-identity.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -16422,8 +16701,20 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/drained/brana-operating-model.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/brana-v3-redesign.md",
       "to": "brana-v3-design.html",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/brana-v3-redesign.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -16483,6 +16774,12 @@
     },
     {
       "from": "docs/ideas/drained/build-receipts.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/build-receipts.md",
       "to": "docs/ideas/architecture/decisions/ADR-076-build-receipts-as-executed-evidence.md",
       "type": "references",
       "computed": false
@@ -16496,6 +16793,12 @@
     {
       "from": "docs/ideas/drained/build-receipts.md",
       "to": "gentle-ai-adoption-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/challenger-outer-loop-gate.md",
+      "to": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate.md",
       "type": "references",
       "computed": false
     },
@@ -16530,20 +16833,14 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/drained/dynamic-skill-routing.md",
-      "to": "brana-operating-model.md",
+      "from": "docs/ideas/drained/enforced-delegation.md",
+      "to": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/ideas/drained/enforced-delegation.md",
       "to": "gentle-ai-adoption-ladder.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/drained/enforcement-vs-injection.md",
-      "to": "brana-operating-model.md",
       "type": "references",
       "computed": false
     },
@@ -16567,6 +16864,12 @@
     },
     {
       "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
       "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
       "type": "references",
       "computed": false
@@ -16574,6 +16877,48 @@
     {
       "from": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
       "to": "enforced-delegation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/goal-adoption-brana-skills.md",
+      "to": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/goal-adoption-brana-skills.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/goal-adoption-brana-skills.md",
+      "to": "goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/goal-completion-heuristics-h5-h8.md",
+      "to": "docs/architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/goal-integration-three-primitive.md",
+      "to": "docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/goal-integration-three-primitive.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/goal-integration-three-primitive.md",
+      "to": "goal-adoption-brana-skills.md",
       "type": "references",
       "computed": false
     },
@@ -16621,6 +16966,18 @@
     },
     {
       "from": "docs/ideas/drained/loop-first-redesign.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/loop-first-redesign.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/loop-first-redesign.md",
       "to": "docs/ideas/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "type": "references",
       "computed": false
@@ -16652,6 +17009,18 @@
     {
       "from": "docs/ideas/drained/loop-first-redesign.md",
       "to": "wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/loop-goal-native-planning.md",
+      "to": "docs/architecture/ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/loops-library.md",
+      "to": "docs/architecture/features/loops-library.md",
       "type": "references",
       "computed": false
     },
@@ -16734,6 +17103,36 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/drained/mission-control.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/mission-control.md",
+      "to": "docs/ideas/statusline-pipeline-awareness.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/orbit-evidence-first.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/phase0-preregistration.md",
+      "to": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/reminders-schedule-tasks-integral.md",
+      "to": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/resilient-pattern-store.md",
       "to": "brana-operating-model.md",
       "type": "references",
@@ -16764,6 +17163,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/drained/runner-capability-isolation.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/session-continuity-multi-session.md",
       "to": "docs/ideas/drained/session-memory-cc-alignment.md",
       "type": "references",
@@ -16788,8 +17193,20 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/drained/skill-auto-router.md",
-      "to": "brana-operating-model.md",
+      "from": "docs/ideas/drained/skill-lifecycle-manager.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/skill-lifecycle-manager.md",
+      "to": "skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/skill-semantic-validation.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -16800,8 +17217,26 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/drained/skill-tiering.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/skill-tiering.md",
+      "to": "docs/research/2026-08-23-skill-tier-mapping.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/skills-as-loops.md",
       "to": "brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -16850,6 +17285,18 @@
     {
       "from": "docs/ideas/drained/skills-as-loops.md",
       "to": "docs/ideas/research/skills-primitive-audit-preview-2026-07.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/skills-as-loops.md",
+      "to": "skill-lifecycle-manager.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/universal-doc-graph.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -16915,6 +17362,12 @@
     },
     {
       "from": "docs/ideas/loop-task-multiagent.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/loop-task-multiagent.md",
       "to": "docs/research/2026-08-14-judge-panel-probe.md",
       "type": "references",
       "computed": false
@@ -16958,6 +17411,24 @@
     {
       "from": "docs/ideas/skills-loops-graphs.md",
       "to": "drained/skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/statusline-pipeline-awareness.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/statusline-pipeline-awareness.md",
+      "to": "drained/mission-control.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/task-time-tracking.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -18349,9 +18820,9 @@
     }
   ],
   "stats": {
-    "nodes": 612,
-    "edges": 2337,
-    "typed_edges": 686,
-    "orphans": 157
+    "nodes": 616,
+    "edges": 2411,
+    "typed_edges": 694,
+    "orphans": 140
   }
 }
