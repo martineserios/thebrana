@@ -51842,24 +51842,24 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "reminders/design/t-2074-adr-integral-temporal-model",
       "build_step": null,
       "completed": null,
-      "context": "Source: docs/ideas/reminders-schedule-tasks-integral.md (brainstorm 2026-06-12, 3 challenge rounds). Scope decision: only Stage 0 + this ADR in backlog now; Stages 1-4 stay in the idea doc until the soak gate proves demand.\nAC: ADR file in docs/architecture/decisions/ with all listed decisions\nAC: cross-referenced from ADR-051 and ADR-054 changelogs\nAC: idea doc status updated to reference the ADR",
+      "context": "Source: docs/ideas/reminders-schedule-tasks-integral.md (brainstorm 2026-06-12, 3 challenge rounds). Scope decision: only Stage 0 + this ADR in backlog now; Stages 1-4 stay in the idea doc until the soak gate proves demand.\nAC: ADR file in docs/architecture/decisions/ with all listed decisions\nAC: cross-referenced from ADR-051 and ADR-054 changelogs\nAC: idea doc status updated to reference the ADR\nskill_gap_checked: true (score < 0.3, user chose: Skip)",
       "created": "2026-06-12",
       "description": "Write the ADR consolidating the brainstormed integral design: kind-split (task=work, reminder=attention, job=process), unified eligibility predicate (status in {pending,snoozed} AND due<=now AND (dispatched_at null OR dispatched_at<due)), compute-dont-copy (materialize only at dispatch), snooze!=deadline firewall, stale-snooze terminal refire, per-priority lead times (P0 T-3d/T-1d/T-0; P1 T-1d/T-0; else T-0), recurrence as trigger expression with skip-missed advancement, staged rollout with soak gates. Extends ADR-051/ADR-054, respects ADR-002.",
       "effort": "S",
       "execution": "code",
-      "github_issue": null,
+      "github_issue": "1060",
       "id": "t-2074",
       "kind": "design",
       "notes": null,
       "order": null,
       "parent": "t-2358",
       "priority": "P0",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-08-24",
+      "status": "in_progress",
+      "strategy": "feature",
       "subject": "ADR: integral temporal model — shared primitives, separate entities (reminders/scheduler/tasks)",
       "tags": [
         "adr",
@@ -51868,7 +51868,12 @@
         "backlog"
       ],
       "type": "task",
-      "work_type": "design"
+      "work_type": "design",
+      "acceptance_criteria": [
+        "ADR file in docs/architecture/decisions/ with all listed decisions",
+        "cross-referenced from ADR-051 and ADR-054 changelogs",
+        "idea doc status updated to reference the ADR"
+      ]
     },
     {
       "blocked_by": [
@@ -79746,12 +79751,12 @@
       "github_issue": null,
       "id": "t-3027",
       "kind": "docs",
-      "notes": null,
+      "notes": "Evaluator: PASS (2026-08-24), 3 criteria checked",
       "order": 0,
       "parent": "t-2337",
       "priority": "P3",
       "started": "2026-08-23",
-      "status": "pending",
+      "status": "in_progress",
       "strategy": "feature",
       "subject": "B. Cluster doc hygiene — headers/pointers/merges/archives per board §2–3",
       "tags": [
@@ -84553,7 +84558,7 @@
     {
       "id": "t-3196",
       "subject": "Session-scoped epic focus — retire shared active_epic in favor of per-session resolution",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -84569,11 +84574,11 @@
       "parent": "t-2366",
       "created": "2026-08-24",
       "started": "2026-08-24",
-      "completed": null,
+      "completed": "2026-08-24",
       "blocked_by": [],
       "branch": "session/feat/t-3196-session-scoped-epic-focus",
-      "context": "User feedback 2026-08-24: repo-global active_epic (.claude/tasks-config.json, ADR-066) is bad for the actual workflow — two+ concurrent sessions opened FROM THE SAME DIR, each working a DIFFERENT epic (everyday pattern). Shared mutable state for a session-scoped concept; one write redirects every session's focus (proven: test pollution broke focus repo-wide; also session-write epic-poisoning pattern class). Proposed resolution order for `brana backlog focus` (and anything reading active epic): (1) explicit --epic flag; (2) current branch's {epic-slug}/ first segment validated against epic nodes — covers worktree sessions; (3) the invoking session's own active in_progress task's epic ancestor (same-dir sessions distinguish themselves by what they started — session state is already branch/epic-keyed); (4) none → P0/P1 ordering. Retire or demote the config file to explicit-override-only; the GOAL is deleting the shared write path (set-active), not choosing a better default (no-patches-root-cause). Needs: ADR amending ADR-066, decision on set-active deprecation path, statusline implications (statusline reads focus?), and sweep of every active_epic consumer (focus, sync-state.sh guard t-2469, close gate epic-keyed state). Design first (M+ gate): feature spec before touching system/.\n2026-08-24 (from sessions thebrana-91 + thebrana-6d, neither owns this task): your ADR-088-session-scoped-epic-focus.md + docs/architecture/features/session-scoped-epic-focus.md are UNTRACKED in the MAIN checkout (~/enter_thebrana/thebrana on dev), not in ../thebrana-t-3196 (clean at c3828615) — absolute-path edits bypassed the worktree cwd. validate.sh Check 72 fails on dev until they move. Fix from the main checkout: `git mv`-style — copy both files into ../thebrana-t-3196/docs/... and delete the strays from main, then commit in the worktree. Nobody else will touch them.\nSprint contract 2026-08-24: Scope: retire the shared active_epic write path, replace focus resolution with task-derived per-session resolution (resolve_focus_epic()) across brana-core, brana-cli, brana-mcp, sync-state.sh, statusline.sh, and skill/user docs. ISC: [resolve_focus_epic() implemented+unit-tested (v2/v3/no-match/explicit-arg); cmd_focus+MCP backlog_focus both call it; cmd_set_active+CLI subcommand removed; PROJECT_SCOPED_CONFIG_KEYS no longer references active_epic; all 6 pre-existing active_epic/set-active cli_smoke.rs tests pass or are intentionally removed, with the set_active_hard_stop test specifically asserting real error content not just exit code; sync-state.sh active_epic guards removed both directions, test suite green; statusline.sh dead config-read fallback removed, test-statusline-epic.sh green; SKILL.md table+prose and skill procedures updated; user guide exists; cargo build/test clean]. Out of scope: active_initiative, new session-identity mechanism, audit-orphaned-active-epic.py retirement (implementer judgment). Challenger review (2 rounds): round 1 caught ISC#4 lacked a mechanized gate for the exact failure mode ADR-088 names -> added explicit AC to t-3205. Round 2 (re-verify): PROCEED WITH CHANGES confirmed applied; ADR-066 superseding-pointer gap flagged was a false positive -- already committed during SPECIFY.",
-      "notes": "2026-08-24: SPECIFY drafted — ADR-088 (amends ADR-066) and feature spec docs/architecture/features/session-scoped-epic-focus.md written. Key finding during research: original tier-3 design (same-checkout multi-session disambiguation via session identity) is not buildable — $BRANA_SESSION_ID propagation to Bash-tool subprocesses independently reproduced as unverified/contradictory (t-2921 precedent, re-confirmed live). User chose to drop tier 3 rather than build a new session registry. Resolution collapses to: --epic flag > branch-derived epic-slug segment > none (P0/P1 fallback). Challenger review dispatched, awaiting verdict before SPECIFY->DECOMPOSE gate.",
+      "context": "User feedback 2026-08-24: repo-global active_epic (.claude/tasks-config.json, ADR-066) is bad for the actual workflow — two+ concurrent sessions opened FROM THE SAME DIR, each working a DIFFERENT epic (everyday pattern). Shared mutable state for a session-scoped concept; one write redirects every session's focus (proven: test pollution broke focus repo-wide; also session-write epic-poisoning pattern class). Proposed resolution order for `brana backlog focus` (and anything reading active epic): (1) explicit --epic flag; (2) current branch's {epic-slug}/ first segment validated against epic nodes — covers worktree sessions; (3) the invoking session's own active in_progress task's epic ancestor (same-dir sessions distinguish themselves by what they started — session state is already branch/epic-keyed); (4) none → P0/P1 ordering. Retire or demote the config file to explicit-override-only; the GOAL is deleting the shared write path (set-active), not choosing a better default (no-patches-root-cause). Needs: ADR amending ADR-066, decision on set-active deprecation path, statusline implications (statusline reads focus?), and sweep of every active_epic consumer (focus, sync-state.sh guard t-2469, close gate epic-keyed state). Design first (M+ gate): feature spec before touching system/.\n2026-08-24 (from sessions thebrana-91 + thebrana-6d, neither owns this task): your ADR-088-session-scoped-epic-focus.md + docs/architecture/features/session-scoped-epic-focus.md are UNTRACKED in the MAIN checkout (~/enter_thebrana/thebrana on dev), not in ../thebrana-t-3196 (clean at c3828615) — absolute-path edits bypassed the worktree cwd. validate.sh Check 72 fails on dev until they move. Fix from the main checkout: `git mv`-style — copy both files into ../thebrana-t-3196/docs/... and delete the strays from main, then commit in the worktree. Nobody else will touch them.\nSprint contract 2026-08-24: Scope: retire the shared active_epic write path, replace focus resolution with task-derived per-session resolution (resolve_focus_epic()) across brana-core, brana-cli, brana-mcp, sync-state.sh, statusline.sh, and skill/user docs. ISC: [resolve_focus_epic() implemented+unit-tested (v2/v3/no-match/explicit-arg); cmd_focus+MCP backlog_focus both call it; cmd_set_active+CLI subcommand removed; PROJECT_SCOPED_CONFIG_KEYS no longer references active_epic; all 6 pre-existing active_epic/set-active cli_smoke.rs tests pass or are intentionally removed, with the set_active_hard_stop test specifically asserting real error content not just exit code; sync-state.sh active_epic guards removed both directions, test suite green; statusline.sh dead config-read fallback removed, test-statusline-epic.sh green; SKILL.md table+prose and skill procedures updated; user guide exists; cargo build/test clean]. Out of scope: active_initiative, new session-identity mechanism, audit-orphaned-active-epic.py retirement (implementer judgment). Challenger review (2 rounds): round 1 caught ISC#4 lacked a mechanized gate for the exact failure mode ADR-088 names -> added explicit AC to t-3205. Round 2 (re-verify): PROCEED WITH CHANGES confirmed applied; ADR-066 superseding-pointer gap flagged was a false positive -- already committed during SPECIFY.\n2026-08-24: Challenger Gate iteration 1 (rung 1, effort M). Both the challenger and the parallel second-variant finder independently caught tests/scripts/test-sync-state-active-epic.sh (the original t-2469 guard test, CI-wired via tests/*/*.sh, distinct dir from system/scripts/tests/ which was all t-3207 swept) still asserting deleted guard behavior -- fixed by rewriting it in place, removed the redundant unreachable duplicate I'd created. Second-variant finder additionally found 3 doc siblings not yet touched: docs/architecture/features/active-epic-project-scoping-cleanup.md, docs/architecture/features/backlog-project-scoping.md (architecture counterpart), docs/architecture/features/statusline-test-coverage.md (stale Epic Resolution Ladder + test count), docs/guide/features/backlog-v3-schema.md (stale fail-loud example). Challenger separately flagged validate.sh (stale comment) and docs/reference/brana-cli.md (hand-authored despite generated-banner -- no working generator covers it; fixed directly). All fixed and committed.",
+      "notes": "2026-08-24: SPECIFY drafted — ADR-088 (amends ADR-066) and feature spec docs/architecture/features/session-scoped-epic-focus.md written. Key finding during research: original tier-3 design (same-checkout multi-session disambiguation via session identity) is not buildable — $BRANA_SESSION_ID propagation to Bash-tool subprocesses independently reproduced as unverified/contradictory (t-2921 precedent, re-confirmed live). User chose to drop tier 3 rather than build a new session registry. Resolution collapses to: --epic flag > branch-derived epic-slug segment > none (P0/P1 fallback). Challenger review dispatched, awaiting verdict before SPECIFY->DECOMPOSE gate.\nChallenger: RECONSIDER (2026-08-24), 1 sev-4 finding, max severity 4\nChallenger: PROCEED (2026-08-24, iteration 2), 0 finding(s), max severity 0\n2026-08-24: CLOSE step resumed (task was build_step=build, all 9 subtasks completed by prior sessions, no active run-state checkpoint found). Verified: cargo build --release clean (0 errors, 8 pre-existing warnings unrelated to this task); cargo test -p brana-core -p brana-cli -p brana-mcp: 1672 passed, 2 ignored; all ISC sprint-contract items spot-checked against code and confirmed satisfied; shell guard tests green (test-statusline-epic.sh 19/19, test-sync-state-active-epic.sh 4/4, test-no-flat-epic-field-reads.sh, test-no-raw-global-active-epic-read.sh). Fixed a pre-existing off-by-one in tests/scripts/test-sync-state-active-epic.sh (double-counted TOTAL on first check, reported 5 instead of 4 — cosmetic, not a real failure). Challenger already ran 2 rounds in a prior session (documented in context) — not re-run. Evaluator gate skipped (no AC: lines in context). validate.sh running now as final BUILD→CLOSE gate check.\nRetrospective: (1) Absolute-path Write/Edit during SPECIFY landed 3 files in the main checkout instead of the worktree -- caught independently by two concurrent sessions AND by validate.sh, self-corrected before commit. (2) Original 4-tier resolution design (branch-string parsing for same-checkout disambiguation) had two real gaps: tier-3 unbuildable ($BRANA_SESSION_ID unverifiable, t-2921 precedent re-confirmed live) and tier-2's branch-string form silently dropped client/venture (2-segment convention) coverage -- both caught by challenger review before DECOMPOSE, redesigned to task-derived resolution reusing statusline.sh's existing v2/v3 fallback shape. (3) exit-contract-lint.sh false-positived on a same-named Rust function (cross-language name collision, no file-extension scoping) -- filed t-3212 follow-up, root cause not patched around. (4) BUILD-stage Challenger Gate (rung 1, effort M) + parallel second-variant finder both independently caught a CI-wired sibling test file (tests/scripts/test-sync-state-active-epic.sh) in a directory the implementation subtask never swept -- fixed; iteration 2 came back clean (PROCEED, 0 findings). Two reusable patterns written to project memory: retiring-shared-state-sweep-all-sibling-tests, exit-contract-lint-cross-language-false-positive. Final: 11 commits, 30 files touched, cargo test 1015/1015 (brana-core+mcp) + 44/44 (cli_smoke) + 5 shell/python suites all green, validate.sh 0 errors.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -84581,7 +84586,7 @@
       "work_type": null,
       "ac_state": "none",
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-3197",
@@ -84900,7 +84905,7 @@
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": [
-        "AC: \"bash system/scripts/tests/test-sync-state-pull-guard.sh\" passes",
+        "AC: \"bash tests/scripts/test-sync-state-active-epic.sh\" passes",
         "AC: \"bash system/scripts/tests/test-no-raw-global-active-epic-read.sh\" passes"
       ],
       "work_type": "implement",
@@ -84909,7 +84914,7 @@
     {
       "id": "t-3208",
       "subject": "Implement: remove active_epic contamination guards from sync-state.sh (cmd_push + cmd_pull)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "subtask",
       "kind": "feature",
       "tags": [],
@@ -84931,7 +84936,7 @@
       "execution": "code",
       "acceptance_criteria": [
         "AC: file system/scripts/sync-state.sh does not contain \"active_epic\"",
-        "AC: \"bash system/scripts/tests/test-sync-state-pull-guard.sh\" passes"
+        "AC: \"bash tests/scripts/test-sync-state-active-epic.sh\" passes"
       ],
       "work_type": "implement",
       "ac_state": "none"
@@ -84939,7 +84944,7 @@
     {
       "id": "t-3209",
       "subject": "Remove statusline.sh dead active_epic config-read fallback",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "feature",
       "tags": [],
@@ -84969,7 +84974,7 @@
     {
       "id": "t-3210",
       "subject": "Docs: SKILL.md (table row + prose) and skill procedures — remove set-active references",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "docs",
       "tags": [],
@@ -84999,7 +85004,7 @@
     {
       "id": "t-3211",
       "subject": "Docs: user guide for session-scoped epic focus",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "docs",
       "tags": [],
@@ -85023,6 +85028,31 @@
         "AC: docs/guide/features/session-scoped-epic-focus.md exists",
         "AC: changes to docs/guide/features/session-scoped-epic-focus.md committed"
       ],
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-3212",
+      "subject": "exit-contract-lint.sh false-positives on same-named Rust functions (no language scoping)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-08-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Discovered during t-3196's Challenger Gate mechanical pre-check (2026-08-24). system/scripts/exit-contract-lint.sh's registry is populated purely by function NAME extracted from the `# Exit contract` marker in system/skills/_shared/*.md — no file-extension or language scoping. resolve_epic_ancestor exists as BOTH a bash function (epic-ancestor-walk.md, the documented 3-outcome contract) AND a same-named Rust function (brana-core/src/tasks/query.rs) with a different, weaker contract (Option<String> only, no separate failure state — its own `?` on `by_id.get(id)` already collapses \\\"lookup failed\\\" into None). The lint's branch-detection regex is shell-syntax-specific (if/elif/while/until/||/\\\\$?) and has no way to validate a real Rust contract; it happened to pass on this task only because \\\"if let\\\" contains the literal token \\\"if\\\" followed by whitespace, satisfying the regex by accident of Rust syntax, not because the lint actually verified anything about Rust semantics. Root-cause fix: scope the registry/call-site matching by file extension (e.g. only lint .sh files against bash-marked helpers) so a same-named Rust function is never treated as a policed shell helper — or add a parallel Rust-aware contract marker convention if Rust helpers with real fail-loud contracts need equivalent lint coverage.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
       "work_type": "chore",
       "ac_state": "none"
     }
