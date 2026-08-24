@@ -3122,6 +3122,7 @@ mod tests {
         let content = result.unwrap().expect("public URLs never produce Ok(None)");
         assert_eq!(content.text, "hi");
         assert_eq!(content.platform, "other");
+        assert_eq!(content.image_url, None, "image_url is LinkedIn-only metadata (t-3187)");
     }
 
     // Companion to knowledge.rs's test_lock_discipline_source_tripwires
@@ -4516,6 +4517,184 @@ id3
         );
     }
 
+    // ── extract_linkedin_public_text comment/image extraction (t-3187) ──
+    //
+    // Probe-validated 2026-08-24 (t-3151 session): the public post HTML
+    // embeds ld+json `comment[]` (top ~10 comments, full text + author.name
+    // — including the post author's own "link in first comment") and
+    // `image.url`. See pattern_linkedin-public-ldjson-carries-comments-and-image.
+
+    fn ldjson_html(value: &serde_json::Value) -> String {
+        format!(
+            r#"<html><head><script type="application/ld+json">{value}</script></head><body>authwall</body></html>"#
+        )
+    }
+
+    #[test]
+    fn public_extract_appends_comments_post_author_first() {
+        let value = serde_json::json!({
+            "@type": "SocialMediaPosting",
+            "articleBody": "Sharing my new open source project.",
+            "author": {"@type": "Person", "name": "Jane Doe"},
+            "comment": [
+                {"@type": "Comment", "text": "Great post!", "author": {"@type": "Person", "name": "Random Reader"}},
+                {"@type": "Comment", "text": "Link: https://github.com/example-org/patterns-repo", "author": {"@type": "Person", "name": "Jane Doe"}},
+                {"@type": "Comment", "text": "Nice work.", "author": {"@type": "Person", "name": "Another Reader"}}
+            ]
+        });
+        let html = ldjson_html(&value);
+        let expected = "Sharing my new open source project.\n\nComments:\n\
+                         Jane Doe: Link: https://github.com/example-org/patterns-repo\n\
+                         Random Reader: Great post!\n\
+                         Another Reader: Nice work.";
+        assert_eq!(extract_linkedin_public_text(&html).as_deref(), Some(expected));
+    }
+
+    #[test]
+    fn public_extract_no_ldjson_bot_shell_succeeds_without_comments() {
+        // AC boundary (a): bot-shell HTML with no ld+json at all must still
+        // succeed with base (og:description) behavior — no comments
+        // appended, no error.
+        let html = r#"<meta property="og:description" content="Post preview text"/>"#;
+        assert_eq!(extract_linkedin_public_text(html).as_deref(), Some("Post preview text"));
+    }
+
+    #[test]
+    fn public_extract_ldjson_present_comment_key_absent_no_block() {
+        // AC boundary (b): ld+json present but no `comment` key at all.
+        let value = serde_json::json!({"articleBody": "Body text only, no comment key at all."});
+        let html = ldjson_html(&value);
+        assert_eq!(
+            extract_linkedin_public_text(&html).as_deref(),
+            Some("Body text only, no comment key at all.")
+        );
+    }
+
+    #[test]
+    fn public_extract_ldjson_present_comment_array_empty_no_block() {
+        // AC boundary (b): ld+json present, `comment` key present but empty.
+        let value = serde_json::json!({"articleBody": "Body text.", "comment": []});
+        let html = ldjson_html(&value);
+        assert_eq!(extract_linkedin_public_text(&html).as_deref(), Some("Body text."));
+    }
+
+    #[test]
+    fn public_extract_comment_missing_author_name_falls_back_gracefully() {
+        // AC: a comment with a missing author name must not panic and must
+        // still be appended, attributed as "(unknown)".
+        let value = serde_json::json!({
+            "articleBody": "Body text.",
+            "comment": [
+                {"text": "Anonymous comment with no author object at all."},
+                {"text": "Comment with an author object but no name field.", "author": {"@type": "Person"}}
+            ]
+        });
+        let html = ldjson_html(&value);
+        let expected = "Body text.\n\nComments:\n\
+                         (unknown): Anonymous comment with no author object at all.\n\
+                         (unknown): Comment with an author object but no name field.";
+        assert_eq!(extract_linkedin_public_text(&html).as_deref(), Some(expected));
+    }
+
+    #[test]
+    fn public_extract_realistic_fixture_link_in_first_comment() {
+        // Realistic captured shape (t-3151 probe, 2026-08-24): headline,
+        // author, articleBody, image.url, commentCount, and top comment[]
+        // entries — including the post author's own "link in first
+        // comment" (the classic LinkedIn pattern for sharing an external
+        // link without the algorithm's outbound-link penalty).
+        let html = r#"<html><head>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SocialMediaPosting",
+  "headline": "Sharing a new open-source pattern library",
+  "articleBody": "Just published a set of reusable engineering patterns. Link is in the first comment below — LinkedIn buries posts with outbound links.",
+  "commentCount": 42,
+  "author": {"@type": "Person", "name": "Priya Shah"},
+  "image": {"@type": "ImageObject", "url": "https://media.licdn.com/dms/image/D4E22AQ_example/feedshare-shrink/0"},
+  "comment": [
+    {"@type": "Comment", "text": "Link in first comment: https://github.com/example-org/patterns-repo", "author": {"@type": "Person", "name": "Priya Shah"}},
+    {"@type": "Comment", "text": "This is incredibly useful, thank you for sharing!", "author": {"@type": "Person", "name": "Marcus Lee"}},
+    {"@type": "Comment", "text": "Bookmarking this for the team.", "author": {"@type": "Person", "name": "Grace Kim"}},
+    {"@type": "Comment", "text": "Do you have a Rust example too?", "author": {"@type": "Person", "name": "Marcus Lee"}}
+  ]
+}
+</script>
+</head><body>authwall</body></html>"#;
+
+        let extracted = extract_linkedin_public_text(html).expect("realistic fixture must extract");
+        assert!(
+            extracted.starts_with(
+                "Just published a set of reusable engineering patterns. Link is in the first \
+                 comment below \u{2014} LinkedIn buries posts with outbound links."
+            ),
+            "base article body must lead: {extracted}"
+        );
+        let comment_block = extracted
+            .split("\n\nComments:\n")
+            .nth(1)
+            .expect("a Comments: block must be appended");
+        let lines: Vec<&str> = comment_block.lines().collect();
+        assert_eq!(
+            lines[0],
+            "Priya Shah: Link in first comment: https://github.com/example-org/patterns-repo",
+            "the post author's link-in-comment must be ordered first"
+        );
+        assert_eq!(lines.len(), 4, "all four comments must be appended: {lines:?}");
+        assert!(
+            lines[1..].iter().any(|l| l.contains("Marcus Lee") && l.contains("incredibly useful")),
+            "non-author comments must still be present"
+        );
+
+        assert_eq!(
+            extract_linkedin_public_image_url(html),
+            Some("https://media.licdn.com/dms/image/D4E22AQ_example/feedshare-shrink/0".to_string())
+        );
+    }
+
+    // ── extract_linkedin_public_image_url (t-3187) ──────────────────────
+
+    #[test]
+    fn public_extract_image_url_present() {
+        let value = serde_json::json!({
+            "articleBody": "Body",
+            "image": {"@type": "ImageObject", "url": "https://media.licdn.com/dms/image/abc123"}
+        });
+        let html = ldjson_html(&value);
+        assert_eq!(
+            extract_linkedin_public_image_url(&html),
+            Some("https://media.licdn.com/dms/image/abc123".to_string())
+        );
+    }
+
+    #[test]
+    fn public_extract_image_url_absent_is_none() {
+        let value = serde_json::json!({"articleBody": "Body, no image field."});
+        let html = ldjson_html(&value);
+        assert_eq!(extract_linkedin_public_image_url(&html), None);
+    }
+
+    #[test]
+    fn public_extract_image_url_no_ldjson_bot_shell_is_none() {
+        assert_eq!(
+            extract_linkedin_public_image_url("<html><body>authwall</body></html>"),
+            None
+        );
+    }
+
+    #[test]
+    fn public_extract_image_url_nested_under_graph() {
+        // LinkedIn nests directly or under @graph depending on post type
+        // (same tolerance as collect_article_bodies).
+        let html =
+            r#"<script type="application/ld+json">{"@graph":[{"image":{"url":"https://media.licdn.com/nested.jpg"}}]}</script>"#;
+        assert_eq!(
+            extract_linkedin_public_image_url(html),
+            Some("https://media.licdn.com/nested.jpg".to_string())
+        );
+    }
+
     // ── resolve_tiered_linkedin_fetch (t-2589 tier inversion) ──────────
 
     fn long_public(n: usize) -> String {
@@ -4596,14 +4775,42 @@ id3
         let started = std::time::Instant::now();
         let got = fetch_linkedin_public_extract(url).expect("transport must not fail");
         let elapsed = started.elapsed();
-        let text = got.expect("a live post must have public preview text");
-        println!("live extract: {} chars in {:?}", text.chars().count(), elapsed);
+        let (text, image_url) = got.expect("a live post must have public preview text");
+        println!(
+            "live extract: {} chars in {:?}, image_url={image_url:?}",
+            text.chars().count(),
+            elapsed
+        );
         assert!(
             text.chars().count() >= LINKEDIN_PUBLIC_MIN_CHARS,
             "live post extract under threshold: {} chars",
             text.chars().count()
         );
         assert!(elapsed.as_secs() < 10, "public extract took {elapsed:?} — should be ~1s");
+    }
+
+    // ── fetch_linkedin_public_extract text+image tuple wiring (t-3187) ──
+
+    #[test]
+    fn fetch_linkedin_public_extract_returns_text_and_image_tuple() {
+        let body = r#"<html><head><script type="application/ld+json">{"articleBody":"hi there","image":{"url":"https://media.licdn.com/x.jpg"}}</script></head><body>authwall</body></html>"#;
+        let (addr, handle) = serve_once("HTTP/1.1 200 OK", body);
+        let result = fetch_linkedin_public_extract(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        let (text, image_url) = result.unwrap().expect("must extract from mock server");
+        assert_eq!(text, "hi there");
+        assert_eq!(image_url.as_deref(), Some("https://media.licdn.com/x.jpg"));
+    }
+
+    #[test]
+    fn fetch_linkedin_public_extract_no_image_is_none() {
+        let body = r#"<html><head><script type="application/ld+json">{"articleBody":"hi there, no image"}</script></head><body>authwall</body></html>"#;
+        let (addr, handle) = serve_once("HTTP/1.1 200 OK", body);
+        let result = fetch_linkedin_public_extract(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        let (text, image_url) = result.unwrap().expect("must extract from mock server");
+        assert_eq!(text, "hi there, no image");
+        assert_eq!(image_url, None);
     }
 
     // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────
