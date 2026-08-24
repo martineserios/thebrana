@@ -50,7 +50,6 @@ run_sync() {
 
 echo "=== sync-state active_epic guard retirement (ADR-088, t-3196) ==="
 
-TOTAL=$((TOTAL + 1))
 if grep -q "active_epic" "$SYNC"; then
     bad "sync-state.sh still references active_epic"
 else
