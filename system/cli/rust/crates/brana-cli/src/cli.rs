@@ -900,7 +900,8 @@ pub enum BacklogCmd {
         /// Filter by work type: implement, research, design, infra, chore, review
         #[arg(long, value_enum)]
         work_type: Option<TaskWorkType>,
-        /// Override active epic slug (defaults to tasks-config.json active_epic)
+        /// Override the resolved epic slug (ADR-088: normally task-derived —
+        /// the most-recently-started in_progress task's epic)
         #[arg(long)]
         epic: Option<String>,
     },
@@ -1021,12 +1022,6 @@ pub enum BacklogCmd {
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,
-    },
-    /// Set the active epic in tasks-config.json
-    #[command(name = "set-active")]
-    SetActive {
-        /// Epic slug (e.g. "cc-alignment", "backlog-schema-v2")
-        slug: String,
     },
     /// Add a new task from JSON or shorthand flags
     Add {

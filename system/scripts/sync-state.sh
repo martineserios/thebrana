@@ -121,13 +121,6 @@ cmd_push() {
     ensure_state_dir
     local changed=false
 
-    # Capture repo's active_epic before sync — used by the contamination guard below (t-1883)
-    local _repo_epic_before=""
-    local _tasks_config_repo="$STATE_DIR/tasks-config.json"
-    if [ -f "$_tasks_config_repo" ] && command -v jq &>/dev/null; then
-        _repo_epic_before=$(jq -r '.active_epic // empty' "$_tasks_config_repo" 2>/dev/null || true)
-    fi
-
     # Global files
     for i in "${!CACHE_PATHS[@]}"; do
         local base
@@ -142,40 +135,6 @@ cmd_push() {
             fi
         fi
     done
-
-    # active_epic cross-project contamination guard (t-1883):
-    # ~/.claude/tasks-config.json is global — any project's session can overwrite active_epic.
-    # If the cache value differs from what the repo had before this push, revert active_epic
-    # to the repo's previous value and warn. To change active_epic intentionally, use
-    # `brana backlog active <slug>` which writes to both cache and repo simultaneously.
-    # t-2469: the `!= before` comparison must NOT additionally require the incoming
-    # value to be non-empty. A cache that LACKS active_epic is the case that
-    # actually loses data: the whole-file copy above already dropped the key from
-    # the repo, and an `[ -n "$_cache_epic" ]` precondition then short-circuits so
-    # the guard restores nothing. ADR-066 gap 4 correctly cleared active_epic from
-    # the global copy as orphaned, which made every push silently blank
-    # thebrana's own active_epic. Empty is a value here, not a reason to skip.
-    #
-    # First-run seeding is still unblocked by the outer `-n "$_repo_epic_before"`:
-    # a repo with no prior value takes whatever the cache offers.
-    if [ -n "$_repo_epic_before" ] && [ -f "$_tasks_config_repo" ] && command -v jq &>/dev/null; then
-        local _cache_epic
-        _cache_epic=$(jq -r '.active_epic // empty' "$HOME/.claude/tasks-config.json" 2>/dev/null || true)
-        if [ "$_cache_epic" != "$_repo_epic_before" ]; then
-            if [ -z "$_cache_epic" ]; then
-                log "⚠ active_epic drop blocked: cache has no active_epic, repo='$_repo_epic_before'"
-            else
-                log "⚠ active_epic cross-project contamination blocked: cache='$_cache_epic' != repo='$_repo_epic_before'"
-            fi
-            log "  Preserving repo value '$_repo_epic_before'. Use 'brana backlog active <slug>' to change explicitly."
-            local _tmp="${_tasks_config_repo}.guard.$$"
-            if jq --arg epic "$_repo_epic_before" '.active_epic = $epic' "$_tasks_config_repo" > "$_tmp" 2>/dev/null; then
-                mv "$_tmp" "$_tasks_config_repo"
-            else
-                rm -f "$_tmp"
-            fi
-        fi
-    fi
 
     # Companion files per project (via tasks-portfolio.json)
     local portfolio="$HOME/.claude/tasks-portfolio.json"
@@ -234,14 +193,6 @@ cmd_push() {
 cmd_pull() {
     ensure_state_dir
 
-    # Capture the cache's active_epic before pulling — used by the contamination
-    # guard below (t-2297 / ADR-066, mirrors cmd_push's t-1883 guard, reversed).
-    local _cache_epic_before=""
-    local _tasks_config_cache="$HOME/.claude/tasks-config.json"
-    if [ -f "$_tasks_config_cache" ] && command -v jq &>/dev/null; then
-        _cache_epic_before=$(jq -r '.active_epic // empty' "$_tasks_config_cache" 2>/dev/null || true)
-    fi
-
     # Global files (reverse direction)
     for i in "${!CACHE_PATHS[@]}"; do
         if [ -f "${REPO_PATHS[$i]}" ]; then
@@ -249,35 +200,6 @@ cmd_pull() {
             sync_file "${REPO_PATHS[$i]}" "${CACHE_PATHS[$i]}" || true
         fi
     done
-
-    # active_epic cross-project contamination guard (t-2297 / ADR-066):
-    # active_epic is project-scoped — it should never live authoritatively in the
-    # global cache. If a foreign value was already sitting there before this pull,
-    # don't let thebrana's own repo value silently clobber it. Single-repo
-    # before/after diff, same shape as cmd_push's guard — not a portfolio-wide
-    # comparison (that design was considered and rejected, see ADR-066: it would
-    # never converge to a no-op and would block legitimate first-run seeding).
-    # t-2469: mirrors the cmd_push fix — a repo that LACKS active_epic must not
-    # silently drop the cache's value via the whole-file copy above. See the
-    # comment on cmd_push's guard for why `-n` on the incoming value is wrong.
-    if [ -n "$_cache_epic_before" ] && [ -f "$_tasks_config_cache" ] && command -v jq &>/dev/null; then
-        local _repo_epic
-        _repo_epic=$(jq -r '.active_epic // empty' "$STATE_DIR/tasks-config.json" 2>/dev/null || true)
-        if [ "$_repo_epic" != "$_cache_epic_before" ]; then
-            if [ -z "$_repo_epic" ]; then
-                log "⚠ active_epic drop blocked: repo has no active_epic, cache='$_cache_epic_before'"
-            else
-                log "⚠ active_epic cross-project contamination blocked: repo='$_repo_epic' != cache='$_cache_epic_before'"
-            fi
-            log "  Preserving cache value '$_cache_epic_before'. Use 'brana backlog set-active <slug>' to change explicitly."
-            local _tmp="${_tasks_config_cache}.guard.$$"
-            if jq --arg epic "$_cache_epic_before" '.active_epic = $epic' "$_tasks_config_cache" > "$_tmp" 2>/dev/null; then
-                mv "$_tmp" "$_tasks_config_cache"
-            else
-                rm -f "$_tmp"
-            fi
-        fi
-    fi
 
     # Companion files per project
     local portfolio="$STATE_DIR/tasks-portfolio.json"

@@ -16,7 +16,7 @@ All live in `system/hooks/tests/`. Only the epic suite is wired into `validate.s
 | `test-statusline-width.sh` | Width detection, progressive segment dropping | 15 | 15/15 |
 | `test-session-score.sh` | Session score counter lifecycle, statusline segment | 14 | 11/14 — drifted |
 | `test-statusline-integration.sh` | End-to-end: cache flow, session lifecycle, staleness recovery, empty state, width+segments | 74 | 37/74 — drifted |
-| `test-statusline-epic.sh` | Epic resolution ladder: branch epic → dynamic in_progress-task epic → project-local `active_epic`; ADR-066 global-isolation guard; malformed/empty/null config; subdirectory resolution; same-day tie-break; control-byte scrub (t-2467, t-2639) | 21 | 21/21 |
+| `test-statusline-epic.sh` | Epic resolution ladder: branch epic → dynamic in_progress-task epic → nothing (no config fallback, ADR-088); local/global config always inert; malformed tasks/config files; subdirectory resolution; same-day tie-break; control-byte scrub (t-2467, t-2639, revised t-3196) | 19 | 19/19 |
 
 ## Integration Test Scenarios
 
@@ -27,7 +27,7 @@ All live in `system/hooks/tests/`. Only the epic suite is wired into `validate.s
 5. **Empty/missing state** — no tasks.json, no cache, no score file; statusline renders cleanly with exit 0
 6. **Width + segments combined** — narrow terminal with task data drops low-priority segments while keeping model and CTX%
 
-## Epic Resolution Ladder (t-2467, t-2639)
+## Epic Resolution Ladder (t-2467, t-2639, revised t-3196/ADR-088)
 
 The `🎯` slot resolves in strict order, first hit wins:
 
@@ -38,30 +38,39 @@ The `🎯` slot resolves in strict order, first hit wins:
    pre-v3 flat `.epic` field is read — thebrana's own tasks.json has none (v3 moved epics to
    parent-chain ancestors, ADR-065/t-2284), so this step is a confirmed permanent no-op for
    thebrana's own repo and only fires for client/venture projects still on the flat schema.
-   Exists to stop the next fallback going stale once focus shifts epics without cutting a
-   task branch.
-3. **Project-local `active_epic`** — `$GIT_ROOT/.claude/tasks-config.json`, then
-   `$GIT_ROOT/system/state/tasks-config.json` (thebrana's layout; it has no `.claude/` copy).
-4. **Nothing** — the slot is omitted entirely.
+3. **Nothing** — the slot is omitted entirely.
 
-The global `~/.claude/tasks-config.json` is **never** consulted: per
-[ADR-066](../decisions/ADR-066-active-epic-project-scoped-only.md), `active_epic` is
-project-scoped with exactly one authoritative source. `test-statusline-epic.sh` T7 pins
-this by pointing `HOME` at a fixture whose global config carries a sentinel value. ADR-066
-governs step 3's own source only — it doesn't need to know about steps 2 or 4, since it never
-touches `active_epic`'s resolution, only adds a fallback ahead of it in the same display layer.
+**The static `tasks-config.json`/`active_epic` fallback step is retired** (ADR-088, t-3196) —
+`active_epic` is no longer a config-file concept anywhere in the codebase, statusline included.
+Neither the project-local config (`.claude/` or thebrana's `system/state/` layout) nor the
+global `~/.claude/tasks-config.json` is ever consulted for this slot; `test-statusline-epic.sh`
+T5-T7 pin this (malformed/leftover config files are inert, local AND global both never surface).
+This mirrors `resolve_focus_epic()` in `brana-core` — the same task-derived resolution,
+expressed twice (shell for the hot-path render, Rust for `cmd_focus`/MCP), not unified into one
+code path (a `brana`-subprocess-per-render would very likely blow the statusline's latency
+budget).
 
-Values from either config source are scrubbed of backslashes and all raw control bytes before
-rendering — the output path uses `printf '%b'`, which interprets backslash escapes, so an
-unscrubbed value could break the one-line contract. Branch names cannot carry these (git
-forbids them in refs), but both config sources are hand-edited or automation-written JSON.
-The scrub originally stripped only literal `\n`/`\r` sequences; t-2639 widened it to strip
-all control bytes after the challenger gate found a raw control byte decoded from a JSON
-string escape has no backslash character left for the narrower strip to catch, and the same
-diff routed a second, more automation-reachable source (every task's `.epic` field) through
-the same scrub.
+Values from the dynamic task-derived source are scrubbed of backslashes and all raw control
+bytes before rendering — the output path uses `printf '%b'`, which interprets backslash
+escapes, so an unscrubbed value could break the one-line contract. Branch names cannot carry
+these (git forbids them in refs), but a task's `.epic` field is automation-written JSON. The
+scrub originally stripped only literal `\n`/`\r` sequences; t-2639 widened it to strip all
+control bytes after the challenger gate found a raw control byte decoded from a JSON string
+escape has no backslash character left for the narrower strip to catch.
 
 ## Field Notes
+
+### 2026-08-24: Static active_epic fallback removed — retired along with the config file it read (ADR-088, t-3196)
+The step-3 static fallback added 2026-08-05 (below) is gone — not just deprioritized, deleted
+entirely. `active_epic` stopped being a config-file concept anywhere in the codebase (session-
+scoped, task-derived resolution replaces it — see `session-scoped-epic-focus.md`), so the two-
+path `tasks-config.json` lookup this fallback did (`.claude/`, then `system/state/`) had nothing
+left to read. No new statusline logic was needed: steps 1-2 already implemented the exact
+resolution `resolve_focus_epic()` (brana-core) generalizes into Rust for `cmd_focus`/MCP
+`backlog_focus` — this file's own dynamic-fallback design (2026-08-05 entry) turned out to be
+the correct long-term mechanism, just not yet reused elsewhere until this build. Test suite
+went from 21 to 19 assertions (2 tests whose entire purpose was the now-deleted config-read path
+were removed rather than retargeted — no equivalent behavior exists to test).
 
 ### 2026-08-11: Added a session-id segment (🪪); a first close mistakenly marked the task done before it was ever built
 `system/statusline.sh` gained a `🪪 {8-char-session-id-prefix}` segment, sourced from the

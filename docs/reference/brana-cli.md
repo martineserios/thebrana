@@ -105,9 +105,9 @@ brana backlog focus [--top <N>] [--json] [--work-type <TYPE>] [--epic <SLUG>]
 | `--top` | 3 | Number of tasks to show |
 | `--json` | false | Output JSON array |
 | `--work-type` | — | Filter by cognitive mode: implement, research, design, ops, review |
-| `--epic` | — | Override active epic (defaults to tasks-config.json `active_epic`) |
+| `--epic` | — | Override the resolved epic slug (defaults to the most-recently-started `in_progress` task's epic — session-scoped, task-derived, ADR-088) |
 
-When `active_epic` is set, focus shows ★-marked tasks from that epic first, then P0/P1 overflow from other epics.
+When an epic resolves (explicit `--epic` or task-derived), focus shows ★-marked tasks from that epic first, then P0/P1 overflow from other epics.
 
 ### Examples
 
@@ -155,24 +155,6 @@ brana backlog epics --json
 ```
 
 Excludes `type=initiative` tasks from counts (initiative tasks are the grouping key, not children).
-
----
-
-## brana backlog set active
-
-Set the active epic for the current session and beyond.
-
-```
-brana backlog set active <SLUG>
-```
-
-### Examples
-
-```bash
-brana backlog set active cc-alignment
-```
-
-Writes `active_epic` to `~/.claude/tasks-config.json`.
 
 ---
 

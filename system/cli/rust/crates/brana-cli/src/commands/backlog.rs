@@ -281,10 +281,9 @@ pub fn cmd_focus(
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
-    let cfg = load_tasks_config();
-    let active = epic_override
-        .map(|s| s.to_string())
-        .or_else(|| cfg["active_epic"].as_str().map(|s| s.to_string()));
+    // ADR-088 (t-3196): session-scoped, task-derived resolution — replaces
+    // the retired shared active_epic config file entirely.
+    let active = tasks::resolve_focus_epic(epic_override, &data.tasks);
 
     // t-2314 (ADR-065): fail loud rather than silently no-op-ing the
     // epic-scoped boost/view when active_epic doesn't resolve to anything.
@@ -516,54 +515,6 @@ pub fn cmd_context(task_id: &str, theme: &themes::Theme) -> anyhow::Result<()> {
         }
     }
     println!();
-    Ok(())
-}
-
-// ── config helpers ──────────────────────────────────────────────────────
-
-/// Resolve the tasks-config.json path to write: project-local when a repo root is
-/// found, else the global `~/.claude/tasks-config.json`.
-fn tasks_config_path() -> std::path::PathBuf {
-    crate::util::find_tasks_config().unwrap_or_else(crate::util::global_tasks_config_path)
-}
-
-/// Load tasks-config with per-repo scoping (delegates to the shared core resolver).
-///
-/// Doubles as seed-on-create: with no project-local file, this returns global minus the
-/// project-scoped keys, so `cmd_set_active` carries theme/github_sync defaults into the new
-/// local file while never inheriting a foreign `active_epic`.
-fn load_tasks_config() -> serde_json::Value {
-    crate::util::load_tasks_config()
-}
-
-/// Save tasks-config to the project-local path, creating `.claude/` if needed.
-fn save_tasks_config(cfg: &serde_json::Value) -> anyhow::Result<()> {
-    let path = tasks_config_path();
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir).ok();
-    }
-    let content = serde_json::to_string_pretty(cfg).unwrap() + "\n";
-    std::fs::write(&path, content)
-        .with_context(|| format!("failed to write {}", path.display()))
-}
-
-/// Set active_epic in tasks-config.json.
-///
-/// Hard-stops instead of falling back to the global config when no project root is
-/// determinable (ADR-066): `active_epic` is project-scoped by definition, so there is
-/// no correct project-local file to write when no project can be resolved — silently
-/// writing global would reintroduce the cross-project bleed this ADR closes.
-pub fn cmd_set_active(slug: &str) -> anyhow::Result<()> {
-    if crate::util::find_tasks_config().is_none() {
-        anyhow::bail!(
-            "no project root found (not in a git repo, and no local .claude/ present) — \
-             cannot resolve a scoped config path for set-active"
-        );
-    }
-    let mut cfg = load_tasks_config();
-    cfg["active_epic"] = serde_json::Value::String(slug.to_string());
-    save_tasks_config(&cfg)?;
-    println!("{}", serde_json::json!({"ok": true, "active_epic": slug}));
     Ok(())
 }
 

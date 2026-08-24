@@ -1553,6 +1553,139 @@ mod tests {
         assert!(assert_active_epic_resolves(&[], "harness-core").is_err());
     }
 
+    // ── t-3203 (ADR-088): resolve_focus_epic() — session-scoped focus,
+    // task-derived (not branch-derived), covering v2 (client/venture flat
+    // `.epic`) and v3 (thebrana parent-chain) schemas via one helper ──
+
+    #[test]
+    fn test_resolve_focus_epic_explicit_arg_short_circuits() {
+        // Explicit --epic always wins, even with tasks present that would
+        // resolve to something else.
+        let tasks = vec![json!({
+            "id": "t-1", "type": "task", "status": "in_progress",
+            "started": "2026-08-20", "epic": "other-epic"
+        })];
+        assert_eq!(
+            resolve_focus_epic(Some("explicit-epic"), &tasks),
+            Some("explicit-epic".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_v2_flat_field() {
+        // Client/venture schema: most-recently-started in_progress task
+        // carries a flat `.epic` field directly (no parent-chain to walk).
+        let tasks = vec![json!({
+            "id": "t-1", "type": "task", "status": "in_progress",
+            "started": "2026-08-20", "epic": "env-hardening"
+        })];
+        assert_eq!(
+            resolve_focus_epic(None, &tasks),
+            Some("env-hardening".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_v3_parent_chain() {
+        // thebrana schema: no flat `.epic`, resolve via parent-chain to a
+        // real `type: "epic"` node ancestor — reuses resolve_epic_ancestor().
+        let tasks = vec![
+            json!({"id": "in-002", "type": "epic", "subject": "cc-alignment"}),
+            json!({
+                "id": "t-1", "type": "task", "status": "in_progress",
+                "started": "2026-08-20", "parent": "in-002"
+            }),
+        ];
+        assert_eq!(
+            resolve_focus_epic(None, &tasks),
+            Some("cc-alignment".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_no_in_progress_task_returns_none() {
+        let tasks = vec![json!({
+            "id": "t-1", "type": "task", "status": "pending", "epic": "harness-core"
+        })];
+        assert_eq!(resolve_focus_epic(None, &tasks), None);
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_unresolvable_epic_returns_none_not_error() {
+        // In-progress task exists but its epic (flat or parent-chain) doesn't
+        // resolve to anything real — non-fatal, unlike assert_active_epic_resolves.
+        let tasks = vec![json!({
+            "id": "t-1", "type": "task", "status": "in_progress",
+            "started": "2026-08-20", "parent": "does-not-exist"
+        })];
+        assert_eq!(resolve_focus_epic(None, &tasks), None);
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_most_recently_started_wins() {
+        // Two in_progress tasks — later `started` date wins.
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task", "status": "in_progress", "started": "2026-08-10", "epic": "old-epic"}),
+            json!({"id": "t-2", "type": "task", "status": "in_progress", "started": "2026-08-20", "epic": "new-epic"}),
+        ];
+        assert_eq!(
+            resolve_focus_epic(None, &tasks),
+            Some("new-epic".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_tie_break_by_numeric_id_descending() {
+        // Same `started` date (realistic — date-only granularity) — higher
+        // numeric task ID (created later) wins, matching statusline.sh's
+        // own tie-break (statusline.sh:78-89).
+        let tasks = vec![
+            json!({"id": "t-100", "type": "task", "status": "in_progress", "started": "2026-08-20", "epic": "epic-a"}),
+            json!({"id": "t-3196", "type": "task", "status": "in_progress", "started": "2026-08-20", "epic": "epic-b"}),
+        ];
+        assert_eq!(
+            resolve_focus_epic(None, &tasks),
+            Some("epic-b".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_empty_task_list_returns_none() {
+        assert_eq!(resolve_focus_epic(None, &[]), None);
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_empty_flat_epic_falls_through_to_parent_chain() {
+        // Boundary: an empty-string `.epic` field must not short-circuit as
+        // "resolved" — it should fall through to the parent-chain walk.
+        let tasks = vec![
+            json!({"id": "in-002", "type": "epic", "subject": "cc-alignment"}),
+            json!({
+                "id": "t-1", "type": "task", "status": "in_progress",
+                "started": "2026-08-20", "epic": "", "parent": "in-002"
+            }),
+        ];
+        assert_eq!(
+            resolve_focus_epic(None, &tasks),
+            Some("cc-alignment".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_rejects_non_slug_epic_subject() {
+        // Boundary: a pre-v3 epic marker with a full-sentence subject
+        // (in-001..in-004 shape) must not leak through as a resolved slug —
+        // resolve_epic_ancestor()'s is_epic_slug() gate already rejects it.
+        let tasks = vec![
+            json!({"id": "in-001", "type": "epic", "subject": "Backlog UI — rich task views"}),
+            json!({
+                "id": "t-1", "type": "task", "status": "in_progress",
+                "started": "2026-08-20", "parent": "in-001"
+            }),
+        ];
+        assert_eq!(resolve_focus_epic(None, &tasks), None);
+    }
+
     // ── t-2377: TaskFilter.epic must resolve via parent-chain ancestor,
     // not the retired flat `epic` field (ADR-065, t-2284; sealed t-2310) ──
 
