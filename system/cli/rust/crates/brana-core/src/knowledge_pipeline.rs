@@ -633,6 +633,36 @@ pub fn classify_platform(url: &str) -> &'static str {
     }
 }
 
+/// Content-shape adapter for the Tier1/2/3 pipeline (ADR-087): a closed
+/// 2-variant enum matched inline, not a `dyn Trait` — the adapter set is
+/// small and closed, unlike `SearchProvider`'s open-ended provider set.
+///
+/// The pipeline skeleton (queue → Tier1 → Tier2 → Tier3 → draft/promote)
+/// is shared; an adapter diverges only on the steps that depend on content
+/// shape. Dispatch is by [`UrlEntry::platform`] (via [`classify_platform`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlatformAdapter {
+    /// Short, signal-dense items (linkedin, github, substack, arxiv):
+    /// Tier1 LLM relevance-scores from author/title/tags.
+    ShortSignal,
+    /// Long-form content (youtube transcripts, long articles): already
+    /// curated at ingestion — Tier1 auto-passes, Tier2 clusters by
+    /// embedding similarity, Tier3 drafts grounded in `fetched_content`.
+    LongForm,
+}
+
+impl PlatformAdapter {
+    /// Adapter for a [`classify_platform`] platform tag. Unknown platforms
+    /// (the `"other"` catch-all) keep today's implicit short-signal
+    /// treatment — there is deliberately no third case.
+    pub fn for_platform(platform: &str) -> Self {
+        match platform {
+            "youtube" => PlatformAdapter::LongForm,
+            _ => PlatformAdapter::ShortSignal,
+        }
+    }
+}
+
 /// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
 ///
 /// `caption_source` is `Some("manual"|"auto")` only for `platform ==
@@ -5699,6 +5729,15 @@ id3
         // "other" (classify_platform's catch-all) keeps today's implicit
         // behavior — short-signal treatment, no third adapter kind.
         assert_eq!(PlatformAdapter::for_platform("other"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_boundary_unexpected_tags_fall_back() {
+        // Tags classify_platform never emits (empty, casing, garbage) must
+        // not panic and must take the short-signal fallback.
+        assert_eq!(PlatformAdapter::for_platform(""), PlatformAdapter::ShortSignal);
+        assert_eq!(PlatformAdapter::for_platform("YouTube"), PlatformAdapter::ShortSignal);
+        assert_eq!(PlatformAdapter::for_platform("tiktok"), PlatformAdapter::ShortSignal);
     }
 
     // ── append_event_log_entry_at ─────────────────────────────────────────
