@@ -248,6 +248,25 @@ assert_not_num  "mixed → no 1" "1" "$OUT"
 OUT=$(runm "docs/spec-graph.json" "docs/spec-graph.json")
 assert_count_eq "duplicate spec-graph → one '18'" 1 "18" "$OUT"
 
+echo "--- README coverage routing (t-3031) ---"
+
+OUT=$(runm "docs/README.md")
+assert_has_num "docs/README.md → 72" "72" "$OUT"
+assert_has_num "docs/README.md → 15" "15" "$OUT"
+
+OUT=$(runm "system/scripts/readme-coverage.sh")
+assert_has_num "readme-coverage.sh itself → 72" "72" "$OUT"
+
+OUT=$(runm "docs/architecture/decisions/ADR-090-example.md")
+assert_has_num "new ADR doc → 72" "72" "$OUT"
+
+OUT=$(runm "docs/architecture/features/example.md")
+assert_has_num "new feature doc → 72" "72" "$OUT"
+
+# ADR doc + README both changed together → one '72', not two
+OUT=$(runm "docs/architecture/decisions/ADR-090-example.md" "docs/README.md")
+assert_count_eq "ADR + README together → exactly one '72'" 1 "72" "$OUT"
+
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed, $TOTAL total ==="
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1

@@ -119,7 +119,7 @@ Front-door rule: the-brana.md = what it is; idea-to-ship.md = flow view; ADR-068
 | C. ✅ wave-pipeline → the-brana: absorb philosophy, redirect stub, tag sweep, README rows (t-3028, 2026-08-23) | chore · S | A |
 | D. ✅ (t-3029, 2026-08-23) Memory tidy per §4 (+ MEMORY.md index lines) | chore · S | — |
 | E. ✅ (t-3030, 2026-08-23) ADR housekeeping: accept ADR-068, renumber t-2980's to 086, status headers (082/080/065/build-cost-tracking), ADR-069 amend | chore · S | D1/D2 |
-| F. docs/README.md full coverage sweep (repo-wide, 19 ADRs + 41 features + 2 dead rows) | chore · S | — |
+| F. ✅ (t-3031, 2026-08-23) docs/README.md full coverage sweep — 26 ADRs + 37 features + 1 dead row + retired command row; script + validate.sh Check 72 | chore · S | — |
 | (existing) t-2490 design → un-hold after A; t-2981–2985 follow-ups; t-2834 evidence beat; t-2985 organ single-sourcing (+ Pair C fix task to add) | | |
 
 Sequence: D1–D5 → A (operator shapes) → C + B → E → un-hold t-2490 (premortem → challenge → ADRs land).

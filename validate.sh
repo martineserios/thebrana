@@ -2742,6 +2742,21 @@ else
 fi
 echo ""
 
+# Check 72: docs/README.md coverage — every ADR and feature doc has a row, no dead links (t-3031)
+echo "Checking docs/README.md coverage..."
+C72_SCRIPT="$SCRIPT_DIR/system/scripts/readme-coverage.sh"
+if [ ! -f "$C72_SCRIPT" ]; then
+    warn "Check 72: $C72_SCRIPT not found — skipping"
+else
+    if C72_OUT=$(bash "$C72_SCRIPT" 2>&1); then
+        pass "Check 72: docs/README.md coverage — every ADR and feature doc has a row, no dead links"
+    else
+        printf '%s\n' "$C72_OUT" | sed 's/^/  /'
+        fail "Check 72: docs/README.md coverage gaps — see above (run: system/scripts/readme-coverage.sh)"
+    fi
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
