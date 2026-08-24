@@ -79,28 +79,52 @@ fn repo_with_ac_grade() -> tempfile::TempDir {
     tmp
 }
 
+/// Stage the just-compiled `brana` under a fresh tempdir so resolve-brana.sh
+/// (sourced by ac-grade.sh, a subprocess `brana` spawns) finds it via
+/// CLAUDE_PLUGIN_DATA — deterministic regardless of the ambient dev session's
+/// own plugin env vars.
+///
+/// MUST symlink, never copy (t-3020): the binary is ~150MB and this dir is
+/// deliberately leaked (`std::mem::forget` in `brana()` keeps it alive for the
+/// command's lifetime). Copying leaked 2×146MB per test run into the quota'd
+/// /tmp tmpfs until it filled — 38 leaked binaries / 5.6GB found on this host —
+/// which is what made these tests fail with EDQUOT "Disk quota exceeded". A
+/// symlink leaks one inode and executes identically.
+fn stage_brana_bin() -> tempfile::TempDir {
+    let bin_dir = tempfile::tempdir().unwrap();
+    let bin_path = bin_dir.path().join("brana");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(assert_cmd::cargo::cargo_bin("brana"), &bin_path).unwrap();
+    #[cfg(not(unix))]
+    std::fs::copy(assert_cmd::cargo::cargo_bin("brana"), &bin_path).unwrap();
+    bin_dir
+}
+
 fn brana(dir: &Path) -> Command {
     let mut cmd = Command::cargo_bin("brana").unwrap();
     cmd.current_dir(dir);
     for k in GIT_ENV {
         cmd.env_remove(k);
     }
-    // Point resolve-brana.sh (sourced by ac-grade.sh, a subprocess this same `brana`
-    // spawns) at the just-compiled binary via its own env-inherited CLAUDE_PLUGIN_DATA
-    // — deterministic regardless of the ambient dev session's own plugin env vars.
-    let bin_dir = tempfile::tempdir().unwrap();
-    let bin_path = bin_dir.path().join("brana");
-    std::fs::copy(assert_cmd::cargo::cargo_bin("brana"), &bin_path).unwrap();
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&bin_path).unwrap().permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(&bin_path, perms).unwrap();
-    }
+    let bin_dir = stage_brana_bin();
     cmd.env("CLAUDE_PLUGIN_DATA", bin_dir.path());
     std::mem::forget(bin_dir); // keep the tempdir alive for the command's lifetime
     cmd
+}
+
+/// Regression guard for the EDQUOT leak class (t-3020): the staged binary must
+/// be a symlink to the cargo-built `brana`, not a copy — a copy re-introduces
+/// the 146MB-per-run permanent /tmp leak (the staging dir is intentionally
+/// forgotten, so its contents are never cleaned up).
+#[cfg(unix)]
+#[test]
+fn staged_plugin_bin_is_symlinked_not_copied() {
+    let bin_dir = stage_brana_bin();
+    let meta = std::fs::symlink_metadata(bin_dir.path().join("brana")).unwrap();
+    assert!(
+        meta.file_type().is_symlink(),
+        "stage_brana_bin must symlink the 150MB binary, never copy it into /tmp"
+    );
 }
 
 #[test]
