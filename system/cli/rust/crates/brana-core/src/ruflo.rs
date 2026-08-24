@@ -171,6 +171,30 @@ pub fn ruflo_memory_search_raw(
     Some(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
+/// Linux caps a single argv/env string at `MAX_ARG_STRLEN` — 32 pages
+/// (128 KiB = 131072 bytes) — independent of the much larger aggregate
+/// `ARG_MAX` (t-3096). `ruflo memory store`'s CLI (`@claude-flow/cli`) reads
+/// its value only from `--value`/positional argv (`ctx.flags.value ||
+/// ctx.args[0]`, verified against the installed package — no stdin or
+/// `--file` alternative exists), so a value anywhere near that ceiling makes
+/// `Command::spawn()` fail with E2BIG before the subprocess even starts.
+/// 100000 bytes leaves ~28 KiB of headroom under the cap for the marker this
+/// module appends when it truncates.
+const MAX_ARGV_VALUE_BYTES: usize = 100_000;
+
+/// Truncate `s` to at most `max_bytes`, backing off to the nearest earlier
+/// UTF-8 char boundary so a multi-byte code point is never split.
+fn truncate_utf8_safe(s: &str, max_bytes: usize) -> &str {
+    if s.len() <= max_bytes {
+        return s;
+    }
+    let mut end = max_bytes;
+    while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    &s[..end]
+}
+
 /// Store a value in ruflo memory under an exact key (ADR-070). Unlike
 /// `ruflo_memory_search_raw`, storage failures are surfaced to the caller
 /// rather than failing open — a silent store failure would let a URL be
@@ -185,6 +209,12 @@ pub fn ruflo_memory_search_raw(
 /// explicit `RUFLO_MEMORY_SCAN_ON_WRITE=0` override on this subprocess only;
 /// `true` leaves the var unset so the wrapper's own hardened default (1)
 /// applies, unchanged for every other caller.
+///
+/// A `value` over [`MAX_ARGV_VALUE_BYTES`] (t-3096: a long raw transcript,
+/// any caller — not just YouTube) is truncated with an explicit in-band
+/// marker rather than crashing the spawn with E2BIG; a warning is also
+/// printed so the loss is visible in the CLI's own output, not just the
+/// stored value.
 pub fn ruflo_memory_store(
     key: &str,
     value: &str,
@@ -196,8 +226,24 @@ pub fn ruflo_memory_store(
         .context("ruflo binary not found (RUFLO_BIN/CF unset, not on PATH)")?;
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
 
+    let stored_value: std::borrow::Cow<'_, str> = if value.len() > MAX_ARGV_VALUE_BYTES {
+        let original_len = value.len();
+        let head = truncate_utf8_safe(value, MAX_ARGV_VALUE_BYTES);
+        eprintln!(
+            "warning: value for key {key:?} is {original_len} bytes — exceeds ruflo CLI's \
+             {MAX_ARGV_VALUE_BYTES}-byte argv transport limit (t-3096); truncating and storing \
+             a marker instead of failing the store"
+        );
+        std::borrow::Cow::Owned(format!(
+            "{head}\n\n…[truncated by brana: original was {original_len} bytes, ruflo CLI's \
+             argv transport caps a single store at {MAX_ARGV_VALUE_BYTES} bytes — t-3096]"
+        ))
+    } else {
+        std::borrow::Cow::Borrowed(value)
+    };
+
     let mut cmd = std::process::Command::new(&ruflo);
-    cmd.args(["memory", "store", "-k", key, "--value", value, "-n", namespace, "--upsert"])
+    cmd.args(["memory", "store", "-k", key, "--value", &stored_value, "-n", namespace, "--upsert"])
         .env("HOME", &home)
         .current_dir(&home)
         .stdout(std::process::Stdio::piped())
@@ -407,6 +453,81 @@ mod tests {
         assert!(
             !err.to_string().contains("SCAN=0"),
             "scan_on_write:true must not force RUFLO_MEMORY_SCAN_ON_WRITE=0, got: {err}"
+        );
+    }
+
+    /// t-3096: Linux caps a single argv/env string at MAX_ARG_STRLEN (128 KiB,
+    /// 32 pages) — independent of the much larger aggregate ARG_MAX. A long
+    /// transcript passed whole via `--value` blows past that per-string cap and
+    /// `spawn()` fails with E2BIG before the process even starts. The fix must
+    /// keep the `--value` argv string comfortably under that ceiling.
+    #[test]
+    #[serial]
+    fn store_truncates_value_exceeding_argv_limit() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(
+            &dir,
+            r#"
+prev=""
+for a in "$@"; do
+  if [ "$prev" = "--value" ]; then
+    len=$(printf '%s' "$a" | wc -c)
+    echo "VALUE_LEN=$len" >&2
+    tail=$(printf '%s' "$a" | tail -c 200)
+    echo "VALUE_TAIL=$tail" >&2
+  fi
+  prev="$a"
+done
+exit 1
+"#,
+        );
+        let big = "x".repeat(200_000);
+        let result =
+            unsafe { with_ruflo_bin(&fake, || ruflo_memory_store("k", &big, "knowledge", &[], true)) };
+        let err = result.expect_err("fake binary always exits 1");
+        let msg = err.to_string();
+        let len: usize = msg
+            .split("VALUE_LEN=")
+            .nth(1)
+            .and_then(|s| s.split_whitespace().next())
+            .and_then(|s| s.trim().parse().ok())
+            .unwrap_or_else(|| panic!("fake binary should report VALUE_LEN, got: {msg}"));
+        assert!(
+            len < 131_072,
+            "the --value argv string must fit under Linux's 131072-byte MAX_ARG_STRLEN cap, got {len} bytes"
+        );
+        assert!(
+            msg.contains("truncated"),
+            "a truncated value must carry an explicit marker so the loss isn't silent, got: {msg}"
+        );
+    }
+
+    /// A value already under the argv cap must reach the subprocess byte-for-byte
+    /// — the truncation guard must not touch values that don't need it.
+    #[test]
+    #[serial]
+    fn store_leaves_small_value_untouched() {
+        let dir = TempDir::new().unwrap();
+        let fake = make_fake_ruflo_cli(
+            &dir,
+            r#"
+prev=""
+for a in "$@"; do
+  if [ "$prev" = "--value" ]; then
+    printf '%s' "$a" >&2
+  fi
+  prev="$a"
+done
+exit 1
+"#,
+        );
+        let result = unsafe {
+            with_ruflo_bin(&fake, || ruflo_memory_store("k", "hello world", "knowledge", &[], true))
+        };
+        let err = result.expect_err("fake binary always exits 1");
+        assert!(
+            err.to_string().contains("hello world"),
+            "a small value must pass through unchanged, got: {err}"
         );
     }
 
