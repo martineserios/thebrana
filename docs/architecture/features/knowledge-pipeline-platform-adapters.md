@@ -1,7 +1,7 @@
 # Feature: PlatformAdapter for the knowledge pipeline
 
 **Date:** 2026-08-24
-**Status:** built
+**Status:** shipped
 **Task:** t-3151
 
 ## Problem
