@@ -112,6 +112,8 @@ Presence of this file = a bracket is open in this worktree; absence = none open.
 
 **Worktree resolution fallback (t-3044, 2026-08-24):** CC keys a transcript directory by the *session's* cwd — the main checkout (cwd-discipline) — but builds run `time start` inside a linked worktree, whose `--show-toplevel` encodes to a project directory that never exists on disk. Resolution therefore tries the invoking root first (covers sessions genuinely started inside a worktree, e.g. ADR-060 runners), then falls back to the main-checkout root (`--git-common-dir`'s parent; identical to the invoking root in a plain checkout). Before this fallback, every worktree-based build silently recorded no transcript and lost its bracket at CLOSE (4/4 reproduction, t-3038/t-3097/t-3096/t-3168).
 
+**Scoped out (t-3191):** the same worktree-blind `find_project_root()` keying exists in `commands/handoff.rs::resolve_handoff_path` and `brana_core::session.rs`'s path helpers (consumed by log.rs, memory.rs, session_initiative.rs). Deliberately not fixed here — some of those consumers may *want* worktree-scoped paths, so each needs a per-call-site decision (tracked as t-3191, challenger S4 finding on t-3044).
+
 ## Boundaries
 
 | Always | Ask First | Never |
