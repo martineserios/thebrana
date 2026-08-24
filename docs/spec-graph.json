@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24T21:18:22Z",
+  "generated": "2026-08-24T22:58:59Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1632,7 +1632,9 @@
     "docs/architecture/features/knowledge-pipeline-platform-adapters.md": {
       "title": "Feature: PlatformAdapter for the knowledge pipeline",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs"
+      ]
     },
     "docs/architecture/features/knowledge-process-url.md": {
       "title": "Feature: `brana knowledge process-url`",
@@ -13581,6 +13583,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/knowledge-pipeline-platform-adapters.md",
+      "to": "inbox-to-dimensions-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/knowledge-process-url.md",
       "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
       "type": "references",
@@ -17488,6 +17496,12 @@
     },
     {
       "from": "docs/reference/brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/brana-cli.md",
       "to": "docs/architecture/features/async-close.md",
       "type": "references",
       "computed": false
@@ -17495,6 +17509,12 @@
     {
       "from": "docs/reference/brana-cli.md",
       "to": "docs/architecture/features/reminder-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/brana-cli.md",
+      "to": "docs/guide/features/knowledge-process-url.md",
       "type": "references",
       "computed": false
     },
@@ -18821,7 +18841,7 @@
   ],
   "stats": {
     "nodes": 616,
-    "edges": 2411,
+    "edges": 2414,
     "typed_edges": 694,
     "orphans": 140
   }
