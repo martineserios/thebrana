@@ -199,8 +199,8 @@ pub fn find_project_root_from(
     git_root.or(cwd)
 }
 
-/// Find the project-local `tasks-config.json` (active_epic, theme, etc.), scoped per
-/// repo the same way `find_tasks_file()` scopes task data.
+/// Find the project-local `tasks-config.json` (active_initiative, theme, etc.),
+/// scoped per repo the same way `find_tasks_file()` scopes task data.
 ///
 /// Resolution order (mirrors `find_tasks_file()`): git common-dir root → git toplevel →
 /// `CLAUDE_PROJECT_DIR`/CWD fallback (only when `.claude/` already exists there). Returns
@@ -223,19 +223,23 @@ pub fn global_tasks_config_path() -> PathBuf {
 }
 
 /// Keys that belong to exactly one project and must NEVER inherit from the global
-/// config. An epic lives in one repo, so a global `active_epic` is almost always wrong
-/// in a different project — inheriting it is the cross-project bleed bug (t-2158).
-pub const PROJECT_SCOPED_CONFIG_KEYS: &[&str] = &["active_epic", "active_initiative"];
+/// config. An initiative lives in one repo, so a global `active_initiative` is almost
+/// always wrong in a different project — inheriting it is the cross-project bleed bug
+/// (t-2158). `active_epic` was removed from this list by ADR-088 (t-3196): it is no
+/// longer a config-file concept at all — `resolve_focus_epic()` resolves it from task
+/// state instead, so there is nothing left here to scope.
+pub const PROJECT_SCOPED_CONFIG_KEYS: &[&str] = &["active_initiative"];
 
 /// Load the resolved tasks-config as a JSON value, applying per-repo scoping:
 ///
 /// - A project-local config file is **authoritative** (no merge with global).
 /// - With no project-local file, inherit ONLY non-project-scoped keys from global
-///   (theme, github_sync). `active_epic`/`active_initiative` resolve to absent — they
-///   never bleed across projects.
+///   (theme, github_sync). `active_initiative` resolves to absent — it never bleeds
+///   across projects. (`active_epic` is no longer read from this file at all —
+///   ADR-088, t-3196.)
 ///
-/// Shared by brana-cli (`backlog focus`, `set-active`) and brana-mcp (`backlog_focus`)
-/// so the scoping rule lives in exactly one place.
+/// Shared by brana-cli (`backlog focus`) and brana-mcp (`backlog_focus`) for the
+/// remaining project-scoped/non-scoped keys this file still carries.
 pub fn load_tasks_config() -> serde_json::Value {
     let read = |p: &PathBuf| -> serde_json::Value {
         std::fs::read_to_string(p)

@@ -12,7 +12,8 @@ pub struct Input {
     /// Optional tag filter
     pub tag: Option<String>,
 
-    /// Override active epic slug (defaults to tasks-config.json active_epic)
+    /// Override the resolved epic slug (ADR-088: normally task-derived —
+    /// the most-recently-started in_progress task's epic)
     pub epic: Option<String>,
 
     /// Filter by work_type: implement, research, design, ops, review
@@ -33,13 +34,12 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     .ok_or_else(|| "tasks.json not found".to_string())?;
                 let data = brana_core::tasks::load_tasks(&tf)?;
 
-                // Load active_epic with per-repo scoping (t-2158): a project with no local
-                // config does NOT inherit the global/foreign active_epic.
-                let active: Option<String> = input.epic.clone().or_else(|| {
-                    brana_core::util::load_tasks_config()["active_epic"]
-                        .as_str()
-                        .map(|s| s.to_string())
-                });
+                // ADR-088 (t-3196): session-scoped, task-derived resolution —
+                // replaces the retired shared active_epic config file entirely.
+                // Shares one core helper with the CLI's cmd_focus, closing the
+                // shape-divergence class ADR-066's own spec found between them.
+                let active: Option<String> =
+                    brana_core::tasks::resolve_focus_epic(input.epic.as_deref(), &data.tasks);
 
                 // t-2314 (ADR-065): fail loud rather than silently no-op-ing the
                 // epic-scoped boost/view when active_epic doesn't resolve to anything.
