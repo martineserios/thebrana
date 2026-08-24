@@ -563,13 +563,33 @@ mod tests {
         assert_eq!(classify(&tasks[4], &tasks), "parked");
     }
 
+    // ADR-079 (amended 2026-08-23) / ADR-086 §4: a cancelled blocker is NOT
+    // resolved — it must be removed from blocked_by explicitly. Every consumer
+    // (classify → next/focus/blocked/board, wave_pull_decision) shares
+    // `unmet_blockers`, so this one test pins the semantics for all of them.
     #[test]
-    fn test_cancelled_blocker_unblocks() {
+    fn test_cancelled_blocker_stays_blocked() {
         let tasks = vec![
             json!({"id": "t-a", "status": "cancelled", "tags": [], "blocked_by": []}),
             json!({"id": "t-b", "status": "pending", "type": "task", "tags": [], "blocked_by": ["t-a"]}),
         ];
-        assert_eq!(classify(&tasks[1], &tasks), "pending");
+        assert_eq!(classify(&tasks[1], &tasks), "blocked");
+        let by_id = wave::task_index(&tasks);
+        assert_eq!(unmet_blockers(&tasks[1], &by_id), vec!["t-a"]);
+    }
+
+    #[test]
+    fn test_unmet_blockers_resolves_only_on_completed_or_epic_done() {
+        let tasks = vec![
+            json!({"id": "t-done", "status": "completed", "tags": [], "blocked_by": []}),
+            json!({"id": "t-canc", "status": "cancelled", "tags": [], "blocked_by": []}),
+            json!({"id": "in-done", "status": "done", "type": "epic", "tags": [], "blocked_by": []}),
+            json!({"id": "t-x", "status": "pending", "type": "task", "tags": [],
+                   "blocked_by": ["t-done", "t-canc", "in-done", "t-ghost"]}),
+        ];
+        let by_id = wave::task_index(&tasks);
+        // cancelled and unknown ids stay unmet; completed and epic-done resolve
+        assert_eq!(unmet_blockers(&tasks[3], &by_id), vec!["t-canc", "t-ghost"]);
     }
 
     // ── t-2313 (ADR-065): epic blocked_by gate uses epic-vocab terminal states ──
@@ -1865,8 +1885,46 @@ mod tests {
         let d = wave_pull_decision(&wave, &tasks).unwrap();
         assert_eq!(
             d,
-            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1 },
+            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1, blocked: 0 },
             "matched-but-not-eligible is visible and expected, not a bug"
+        );
+    }
+
+    // t-3043 (ADR-079 §2 amendment, ADR-086 §4): the pull frontier is
+    // open ∧ unblocked — a task with an unmet blocked_by is never pulled,
+    // even when it is approved and sits first in array order. Live miss this
+    // pins: wave-11 pulled t-2919 before its blocker t-2920.
+    #[test]
+    fn test_wave_pull_decision_skips_blocked_task_pulls_its_blocker() {
+        let wave = pull_wave("draining", None);
+        let mut blocked = pull_task("t-2", "pending", Some("approved"), &["w1"]);
+        blocked["blocked_by"] = json!(["t-1"]);
+        let tasks = vec![
+            blocked,                                                 // first in order, but blocked
+            pull_task("t-1", "pending", Some("approved"), &["w1"]), // its blocker — the correct pull
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
+    }
+
+    #[test]
+    fn test_wave_pull_decision_reports_blocked_count_and_cancelled_is_unmet() {
+        let wave = pull_wave("draining", None);
+        let mut b1 = pull_task("t-2", "pending", Some("approved"), &["w1"]);
+        b1["blocked_by"] = json!(["t-1"]);
+        let mut b2 = pull_task("t-3", "pending", Some("approved"), &["w1"]);
+        b2["blocked_by"] = json!(["t-canc"]); // cancelled blocker ≠ resolved
+        let tasks = vec![
+            b1,
+            b2,
+            pull_task("t-1", "in_progress", Some("approved"), &["w1"]),
+            json!({"id": "t-canc", "status": "cancelled", "tags": [], "blocked_by": []}),
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(
+            d,
+            PullDecision::NoneEligible { matched: 2, unapproved: 0, parked: 0, blocked: 2 },
+            "matched-but-blocked must be reported, not hidden"
         );
     }
 
