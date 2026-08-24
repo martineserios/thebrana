@@ -202,6 +202,22 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+echo "=== language-scoped: non-shell files are exempt from shell contracts (t-3212) ==="
+# The registry is built from function NAMES only (extracted from a bash `#
+# Exit contract` marker). A same-named function can exist in a completely
+# different language with different semantics — e.g. a Rust tail-expression
+# returning Option<String>, which has no exit-status/branch-on-failure concept
+# at all (its own `?` operator already collapses failure into None). Such a
+# line can accidentally satisfy the shell-syntax heuristics (start-of-line
+# position, no guarding keyword) and get flagged as if it dropped a bash exit
+# contract it was never subject to. Real-world case: resolve_epic_ancestor
+# exists both as the marked bash helper (system/skills/_shared/epic-ancestor-walk.md)
+# and as an unrelated Rust fn in brana-core/src/tasks/query.rs.
+run_lint "$(mkdiff foo.rs '+    frob_widget(id)')"
+assert_exit "same-named call in a .rs file -> exit 0 (not shell, not policed)" 0 "$RC"
+run_lint "$(mkdiff foo.py '+    frob_widget(id)')"
+assert_exit "same-named call in a .py file -> exit 0 (not shell, not policed)" 0 "$RC"
+
 echo "=== registry failure is fail-CLOSED ==="
 EMPTY="$TMPDIR_T/empty"; mkdir -p "$EMPTY"
 OUT=$(bash "$LINT" --stdin --registry-dir "$EMPTY" <<<"$(mkdiff foo.md '+x=1')" 2>&1); RC=$?
