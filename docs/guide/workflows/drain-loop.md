@@ -54,8 +54,10 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
 /loop Wave-N drain pump (supervised, ADR-079 §2b). Each beat:
 (1) PREFLIGHT (cheap, no-op fast): `brana backlog wave pull wave-N`.
     - pulled:null + at_limit    → report "at limit (live/limit)", back off 20+ min.
-    - pulled:null + none_eligible → report the counts (matched/unapproved/parked);
-      if matched is 0 the wave may be done — tell the human, back off 30+ min.
+    - pulled:null + none_eligible → report the counts (matched/unapproved/parked/blocked);
+      eligibility is pending ∧ approved ∧ ¬parked ∧ every blocked_by `completed`
+      (a cancelled blocker does NOT resolve — remove it from blocked_by; ADR-079 §2 amendment).
+      If matched is 0 the wave may be done — tell the human, back off 30+ min.
     - error "not draining"      → the wave was requeued/shipped — STOP the loop.
 (2) If a task id was pulled: work it through the FULL build framework —
     /brana:backlog start <id> (worktree cut from dev, TDD, gates, challenger).
