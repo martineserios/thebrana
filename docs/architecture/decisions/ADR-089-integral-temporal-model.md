@@ -13,7 +13,7 @@ status: accepted
 
 **Date:** 2026-08-24
 **Status:** Accepted
-**Tasks:** t-2074 (this ADR), t-1999 (Stage 0 dispatch job, shipped), t-2000 (docs sweep, pending)
+**Tasks:** t-2074 (this ADR), t-1999 (Stage 0 dispatch job, shipped), t-2000 (docs sweep, pending), t-2075 (Stage 0 soak-gate review + Stages 1-4 go/no-go decision, pending — unblocked since t-1999 shipped 2026-07-22, not yet started)
 **Source:** Reminders/scheduler/tasks brainstorm 2026-06-12 (3 adversarial challenge rounds); consolidated 2026-08-24
 
 ## Context
@@ -90,12 +90,12 @@ Recurrence is a field on the reminder (`recur: Option<String>`, v1 keywords: `da
 The full design layers on the dispatch loop, which had zero operational hours when this decision was shaped. Rather than build all five layers before any of them run in production, each stage ships, soaks, and proves itself before the next begins:
 
 - **Stage 0 — dispatch MVP.** Predicate v0: `status = pending AND due ≤ now AND dispatched_at IS NULL`. Shipped and merged (t-1999, 2026-07-22): reminder-dispatch scheduler job wired every 30 minutes, notify-channels registry created, first-run backfill handled, verified end-to-end in production.
-- **Stage 1 — harden the loop.** Upgrade to the full predicate in §2 (adds the `status ∈ {pending, snoozed}` guard and the recurrence-shaped dispatched_at comparison); snooze/resolve round-trip through dispatch. Not yet started.
+- **Stage 1 — harden the loop.** Upgrade to the full predicate in §2 (adds the `status ∈ {pending, snoozed}` guard and the recurrence-shaped dispatched_at comparison); snooze/resolve round-trip through dispatch. *Gate: snooze → refire works in production.* Not yet started.
 - **Stage 2 — recurrence.** §7's `recur` field and skip-missed advancement. Gate: a daily reminder runs correctly for a week including one deliberate missed-day catch-up test. Not yet started.
 - **Stage 3 — task linkage.** `due_date` on tasks, per-priority lead times (§6) materializing pings at dispatch via `dedup_key: task:t-NNN:due` (§3). Gate: a real task deadline produces the correct ping sequence end-to-end. Not yet started.
 - **Stage 4 — full semantics + consolidation.** Stale-snooze terminal refire (§5), docs sweep, ADR/feature-doc finalization. Not yet started.
 
-Per the original scope decision (idea doc, 2026-06-12): only Stage 0 and this ADR entered the backlog at brainstorm time — Stages 1–4 stay documented in the idea doc and enter the backlog only when the prior stage's soak gate proves demand. Backlog gravity is real; tasks are not created for unproven layers. Stage 0 having since shipped and soaked does not retroactively backlog Stage 1 — that remains a deliberate follow-on decision, not an automatic unlock.
+Per the original scope decision (idea doc, 2026-06-12): only Stage 0 and this ADR entered the backlog at brainstorm time — Stages 1–4 stay documented in the idea doc and enter the backlog only when the prior stage's soak gate proves demand. Backlog gravity is real; tasks are not created for unproven layers. Stage 0 having since shipped and soaked does not retroactively backlog Stage 1 — that remains a deliberate follow-on decision, not an automatic unlock. The decision mechanism itself is a backlog task, not just this ADR's prose: **t-2075** ("Stage 0 soak gate: review dispatch operation, decide Stages 1-4 entry") reviews the dispatch logs, triages the pre-existing reminder backlog, and records the explicit go/no-go for Stages 1-4. It has been unblocked since t-1999 shipped (2026-07-22) and is pending as of this writing.
 
 ### 9. One-directional references, no cross-store transactions
 
