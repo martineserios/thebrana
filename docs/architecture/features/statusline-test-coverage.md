@@ -60,6 +60,18 @@ escape has no backslash character left for the narrower strip to catch.
 
 ## Field Notes
 
+### 2026-08-24: Static active_epic fallback removed — retired along with the config file it read (ADR-088, t-3196)
+The step-3 static fallback added 2026-08-05 (below) is gone — not just deprioritized, deleted
+entirely. `active_epic` stopped being a config-file concept anywhere in the codebase (session-
+scoped, task-derived resolution replaces it — see `session-scoped-epic-focus.md`), so the two-
+path `tasks-config.json` lookup this fallback did (`.claude/`, then `system/state/`) had nothing
+left to read. No new statusline logic was needed: steps 1-2 already implemented the exact
+resolution `resolve_focus_epic()` (brana-core) generalizes into Rust for `cmd_focus`/MCP
+`backlog_focus` — this file's own dynamic-fallback design (2026-08-05 entry) turned out to be
+the correct long-term mechanism, just not yet reused elsewhere until this build. Test suite
+went from 21 to 19 assertions (2 tests whose entire purpose was the now-deleted config-read path
+were removed rather than retargeted — no equivalent behavior exists to test).
+
 ### 2026-08-11: Added a session-id segment (🪪); a first close mistakenly marked the task done before it was ever built
 `system/statusline.sh` gained a `🪪 {8-char-session-id-prefix}` segment, sourced from the
 statusline hook's own stdin JSON (`.session_id`) — never `BRANA_SESSION_ID`, which is set
