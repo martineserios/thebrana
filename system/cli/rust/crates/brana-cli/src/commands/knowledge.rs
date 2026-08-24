@@ -1310,8 +1310,25 @@ fn run_tier1(
         kp::save_state(state_path, state)?;
         println!("  Dedup: {} URL(s) skipped (topic already in knowledge base)", dedup_filtered);
     }
+
+    // ── LongForm auto-pass (t-3179, ADR-087 Tier1 row) ────────────────────────
+    // After dedup (which runs for every adapter), LongForm entries skip the
+    // LLM relevance call entirely — content was curated at ingestion.
+    let (auto_pass, llm_batch) = kp::tier1_partition(llm_batch);
+    if !auto_pass.is_empty() {
+        for e in &auto_pass {
+            println!("  ✓ [long-form auto-pass] {} — {}", e.author, e.title_signal);
+            state.urls.insert(e.url.clone(), kp::long_form_tier1_entry(e));
+        }
+        kp::save_state(state_path, state)?;
+        println!(
+            "  Long-form: {} URL(s) auto-passed (dedup-only Tier1, no LLM call)",
+            auto_pass.len()
+        );
+    }
+
     if llm_batch.is_empty() {
-        println!("  Tier 1: all URLs filtered by semantic dedup.");
+        println!("  Tier 1: no URLs left for LLM scoring.");
         return Ok(());
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -1514,6 +1531,58 @@ fn run_tier2(
     let mut dim_targets: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
 
+    // ── LongForm embedding clustering (t-3179, ADR-087 Tier2 row) ─────────────
+    // LongForm entries cluster by embedding similarity against dimension
+    // topics — no LLM call. Short-signal entries continue on the LLM path.
+    let (long_form, candidates): (Vec<_>, Vec<_>) = candidates.into_iter().partition(|(url, ..)| {
+        kp::PlatformAdapter::for_platform(kp::classify_platform(url)) == kp::PlatformAdapter::LongForm
+    });
+    if !long_form.is_empty() {
+        println!("  Long-form: {} URL(s) → embedding cluster (no LLM)", long_form.len());
+        let dim_topic_texts: Vec<(String, String)> = dimension_slugs
+            .iter()
+            .map(|slug| {
+                let head: String = std::fs::read_to_string(
+                    knowledge_root.join("dimensions").join(format!("{slug}.md")),
+                )
+                .map(|c| c.chars().take(500).collect())
+                .unwrap_or_default();
+                (slug.clone(), format!("{slug}\n{head}"))
+            })
+            .collect();
+        let entries: Vec<(String, String)> = long_form
+            .iter()
+            .map(|(url, _, title_signal, _)| {
+                // Cluster on fetched_content when present; fall back to the
+                // title signal so a content-less entry still routes somewhere.
+                let text = state
+                    .urls
+                    .get(url)
+                    .and_then(|e| e.fetched_content.clone())
+                    .filter(|c| !c.trim().is_empty())
+                    .unwrap_or_else(|| title_signal.clone());
+                (url.clone(), text)
+            })
+            .collect();
+        let assignments = kp::cluster_long_form_entries(
+            &entries,
+            &dim_topic_texts,
+            &brana_core::vector::RufloEmbedder,
+            kp::LONG_FORM_NEW_TOPIC_THRESHOLD,
+        );
+        for a in assignments {
+            println!("  → [{}] {} (sim {:.2})", a.cluster_topic, a.url, a.similarity);
+            clusters.entry(a.cluster_topic.clone()).or_default().push(a.url.clone());
+            dim_targets.insert(a.cluster_topic.clone(), a.dimension_target.clone());
+            if let Some(entry) = state.urls.get_mut(&a.url) {
+                entry.status = UrlStatus::Tier2Clustered;
+                entry.cluster_topic = Some(a.cluster_topic);
+                entry.dimension_target = Some(a.dimension_target);
+            }
+        }
+        kp::save_state(state_path, state)?;
+    }
+
     // Build work queue: (url, author, prompt) triples
     let tasks: Vec<(String, String, String)> = candidates
         .iter()
@@ -1673,24 +1742,69 @@ fn run_tier3(
         }
     };
 
-    let sources_block: String = cluster_urls
-        .iter()
-        .map(|(url, author, title_signal, tags, _)| {
-            format!("- Author: {author}, Title: {title_signal}, Tags: {}, URL: {url}", tags.join(" "))
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
+    // ── Adapter-aware draft prompt (t-3179, ADR-087 Tier3 row) ────────────────
+    // A pure-LongForm cluster drafts grounded in fetched_content excerpts;
+    // anything else keeps the metadata-line prompt. Empty/missing content
+    // skips that source (never draft from nothing) and leaves its entry
+    // Tier2Clustered for a later re-draft.
+    let all_long_form = cluster_urls.iter().all(|(url, _, _, _, _)| {
+        kp::PlatformAdapter::for_platform(kp::classify_platform(url)) == kp::PlatformAdapter::LongForm
+    });
 
-    let prompt = format!(
-        "You are writing an addition to a knowledge base dimension document.\n\n\
+    let (prompt, drafted_urls): (String, Vec<String>) = if all_long_form {
+        let raw_sources: Vec<(String, Option<String>)> = cluster_urls
+            .iter()
+            .map(|(url, _, _, _, _)| {
+                (url.clone(), state.urls.get(url).and_then(|e| e.fetched_content.clone()))
+            })
+            .collect();
+        let (with_content, skipped) = kp::partition_draft_sources(raw_sources);
+        for url in &skipped {
+            println!("  ⚠ skipping {url} — empty/missing fetched_content (drain + re-ingest first)");
+        }
+        if with_content.is_empty() {
+            bail!(
+                "cluster '{topic}' has no sources with fetched_content — nothing to draft. \
+                 Drain the links, then re-ingest so content attaches (t-3177)."
+            );
+        }
+        let sources: Vec<(String, String, String, String)> = with_content
+            .into_iter()
+            .map(|(url, content)| {
+                let (author, title) = cluster_urls
+                    .iter()
+                    .find(|(u, _, _, _, _)| *u == url)
+                    .map(|(_, a, t, _, _)| (a.clone(), t.clone()))
+                    .unwrap_or_default();
+                (url, author, title, content)
+            })
+            .collect();
+        let drafted = sources.iter().map(|(u, _, _, _)| u.clone()).collect();
+        (
+            kp::build_long_form_draft_prompt(topic, &dim_target, &dim_summary, &sources),
+            drafted,
+        )
+    } else {
+        let sources_block: String = cluster_urls
+            .iter()
+            .map(|(url, author, title_signal, tags, _)| {
+                format!("- Author: {author}, Title: {title_signal}, Tags: {}, URL: {url}", tags.join(" "))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let prompt = format!(
+            "You are writing an addition to a knowledge base dimension document.\n\n\
 Dimension: {dim_target}\nExisting content summary:\n{dim_summary}\n\n\
 Source posts ({n} posts, approved cluster: {topic}):\n{sources_block}\n\n\
 Write a new section to add to this dimension. Use markdown. \
 Cite each source post inline as [author, date]. \
 Do not repeat content already in the dimension. Focus on new insights only.\n\n\
 Output: markdown section only (no frontmatter, no preamble).",
-        n = cluster_urls.len(),
-    );
+            n = cluster_urls.len(),
+        );
+        (prompt, cluster_urls.iter().map(|(u, _, _, _, _)| u.clone()).collect())
+    };
 
     if dry_run {
         println!("  [dry-run] would draft '{topic}' → dimensions/{dim_target}.md");
@@ -1709,9 +1823,9 @@ Output: markdown section only (no frontmatter, no preamble).",
         d.format("%Y-%m-%d").to_string()
     };
 
-    let sources_yaml: String = cluster_urls
+    let sources_yaml: String = drafted_urls
         .iter()
-        .map(|(url, _, _, _, _)| format!("  - url: {url}\n    logged: unknown"))
+        .map(|url| format!("  - url: {url}\n    logged: unknown"))
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -1725,8 +1839,9 @@ Output: markdown section only (no frontmatter, no preamble).",
     std::fs::create_dir_all(draft_path.parent().unwrap())?;
     std::fs::write(&draft_path, &draft_content)?;
 
-    // Update state
-    for (url, _, _, _, _) in &cluster_urls {
+    // Update state — only sources that actually fed the draft advance;
+    // content-skipped entries stay Tier2Clustered for a later re-draft.
+    for url in &drafted_urls {
         if let Some(entry) = state.urls.get_mut(url) {
             entry.status = UrlStatus::Tier3Drafted;
             entry.draft_path = Some(draft_path.to_string_lossy().to_string());

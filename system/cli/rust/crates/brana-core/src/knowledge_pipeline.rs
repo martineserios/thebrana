@@ -663,6 +663,173 @@ impl PlatformAdapter {
     }
 }
 
+// ── LongFormAdapter tier logic (t-3179, ADR-087) ─────────────────────────────
+
+/// Fixed Tier1 score for LongForm auto-pass entries. 3 = "relevant, worth
+/// reading" on the live rubric — content was already curated at ingestion
+/// (channel-backfill + manual filtering), so re-scoring is wasted LLM cost.
+pub const LONG_FORM_AUTO_SCORE: u8 = 3;
+
+/// Character budget per source excerpt in a LongForm Tier3 draft prompt.
+/// Full transcripts run tens of thousands of chars; the draft grounds in
+/// the opening excerpt, not the whole text.
+pub const DRAFT_EXCERPT_CHARS: usize = 1500;
+
+/// Cosine similarity below which a LongForm entry is flagged `new-topic`
+/// instead of assigned to its nearest dimension. The spec names embedding-
+/// clustering quality as an unverified assumption — recalibrate against
+/// real drained transcripts once a full cycle has run.
+pub const LONG_FORM_NEW_TOPIC_THRESHOLD: f32 = 0.35;
+
+/// Split a Tier1 batch by adapter: LongForm entries auto-pass (never sent
+/// to the LLM scorer), short-signal entries take the existing LLM path.
+/// Callers apply this *after* the semantic-dedup filter — dedup runs for
+/// every adapter (ADR-087: Tier1 for LongForm is dedup-only).
+pub fn tier1_partition(batch: Vec<UrlEventEntry>) -> (Vec<UrlEventEntry>, Vec<UrlEventEntry>) {
+    batch.into_iter().partition(|e| {
+        PlatformAdapter::for_platform(classify_platform(&e.url)) == PlatformAdapter::LongForm
+    })
+}
+
+/// The auto-passed [`UrlEntry`] for a LongForm Tier1 candidate: fixed
+/// score + reason, no LLM call (ADR-087 Tier1 row).
+pub fn long_form_tier1_entry(e: &UrlEventEntry) -> UrlEntry {
+    UrlEntry {
+        status: UrlStatus::Tier1Passed,
+        tier1_score: Some(LONG_FORM_AUTO_SCORE),
+        tier1_reason: Some(
+            "long-form auto-pass: content curated at ingestion (ADR-087)".to_string(),
+        ),
+        logged_date: Some(e.logged_date.clone()),
+        author: Some(e.author.clone()),
+        title_signal: Some(e.title_signal.clone()),
+        tags: e.tags.clone(),
+        platform: Some(classify_platform(&e.url).to_string()),
+        ..UrlEntry::new_unprocessed(None)
+    }
+}
+
+/// One LongForm Tier2 cluster decision.
+#[derive(Debug, Clone)]
+pub struct LongFormClusterAssignment {
+    pub url: String,
+    /// Nearest dimension slug, or `"new-topic"` below threshold.
+    pub dimension_target: String,
+    /// Cluster label — the dimension slug (or `"new-topic"`), matching how
+    /// tier3 groups by `cluster_topic`.
+    pub cluster_topic: String,
+    pub similarity: f32,
+}
+
+fn cosine_sim(a: &[f32], b: &[f32]) -> f32 {
+    if a.len() != b.len() || a.is_empty() {
+        return 0.0;
+    }
+    let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+    let na: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let nb: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if na == 0.0 || nb == 0.0 { 0.0 } else { dot / (na * nb) }
+}
+
+/// Tier2 for LongForm entries: nearest-dimension assignment by embedding
+/// cosine similarity — no LLM call (ADR-087 Tier2 row). `entries` are
+/// `(url, text)` where text is `fetched_content` (or the title fallback the
+/// caller chose); `dim_topics` are `(slug, topic text)`. An entry whose
+/// best similarity falls below `new_topic_threshold` — or whose embedding
+/// fails — is flagged `new-topic` rather than force-assigned. n=1 input is
+/// valid, matching the LinkedIn path's single-source handling.
+pub fn cluster_long_form_entries(
+    entries: &[(String, String)],
+    dim_topics: &[(String, String)],
+    embedder: &dyn crate::vector::Embedder,
+    new_topic_threshold: f32,
+) -> Vec<LongFormClusterAssignment> {
+    let dim_vecs: Vec<(&str, Option<Vec<f32>>)> = dim_topics
+        .iter()
+        .map(|(slug, text)| (slug.as_str(), embedder.embed(text)))
+        .collect();
+
+    entries
+        .iter()
+        .map(|(url, text)| {
+            let best = embedder.embed(text).and_then(|ev| {
+                dim_vecs
+                    .iter()
+                    .filter_map(|(slug, dv)| {
+                        dv.as_ref().map(|dv| (*slug, cosine_sim(&ev, dv)))
+                    })
+                    .max_by(|a, b| a.1.total_cmp(&b.1))
+                    .map(|(slug, sim)| (slug.to_string(), sim))
+            });
+            match best {
+                Some((slug, sim)) if sim >= new_topic_threshold => LongFormClusterAssignment {
+                    url: url.clone(),
+                    cluster_topic: slug.clone(),
+                    dimension_target: slug,
+                    similarity: sim,
+                },
+                other => LongFormClusterAssignment {
+                    url: url.clone(),
+                    dimension_target: "new-topic".to_string(),
+                    cluster_topic: "new-topic".to_string(),
+                    similarity: other.map(|(_, s)| s).unwrap_or(0.0),
+                },
+            }
+        })
+        .collect()
+}
+
+/// Split Tier3 draft sources into `(url, content)` pairs with real content
+/// and the URLs skipped for empty/missing `fetched_content` (feature spec
+/// edge case: never draft from nothing — callers log the skips).
+pub fn partition_draft_sources(
+    sources: Vec<(String, Option<String>)>,
+) -> (Vec<(String, String)>, Vec<String>) {
+    let mut with_content = Vec::new();
+    let mut skipped = Vec::new();
+    for (url, content) in sources {
+        match content {
+            Some(c) if !c.trim().is_empty() => with_content.push((url, c)),
+            _ => skipped.push(url),
+        }
+    }
+    (with_content, skipped)
+}
+
+/// Tier3 draft prompt for a LongForm cluster — grounded in real (truncated)
+/// `fetched_content` excerpts, not just author/title/tags (ADR-087 Tier3
+/// row). `sources` are `(url, author, title, content)`.
+pub fn build_long_form_draft_prompt(
+    topic: &str,
+    dim_target: &str,
+    dim_summary: &str,
+    sources: &[(String, String, String, String)],
+) -> String {
+    let sources_block: String = sources
+        .iter()
+        .map(|(url, author, title, content)| {
+            let excerpt: String = content.chars().take(DRAFT_EXCERPT_CHARS).collect();
+            format!(
+                "### Source: {title} — {author}\nURL: {url}\nTranscript excerpt:\n{excerpt}"
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
+
+    format!(
+        "You are writing an addition to a knowledge base dimension document from \
+long-form source material.\n\n\
+Dimension: {dim_target}\nExisting content summary:\n{dim_summary}\n\n\
+Source material ({n} source(s), cluster: {topic}):\n\n{sources_block}\n\n\
+Write a new section to add to this dimension, grounded in the transcript \
+excerpts above — quote or paraphrase specific claims, do not invent beyond \
+them. Use markdown. Cite each source inline as [author]. \
+Do not repeat content already in the dimension. Focus on new insights only.\n\n\
+Output: markdown section only (no frontmatter, no preamble).",
+        n = sources.len(),
+    )
+}
+
 /// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
 ///
 /// `caption_source` is `Some("manual"|"auto")` only for `platform ==
