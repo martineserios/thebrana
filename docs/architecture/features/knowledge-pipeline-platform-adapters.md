@@ -40,7 +40,9 @@ implementation scope only.
 - `ShortSignalAdapter`: generalize `build_tier1_prompt`/`build_tier2_prompt` wording
   per platform (linkedin/github/substack/arxiv) — no logic change.
 - `LongFormAdapter`:
-  - Tier1: auto-pass (score fixed, reason "pre-curated at ingestion").
+  - Tier1: semantic-dedup pre-filter still runs (unchanged, no LLM cost); only the
+    LLM relevance-scoring call is skipped — auto-pass with a fixed score and
+    reason "pre-curated at ingestion".
   - Tier2: embedding-similarity clustering via ruflo semantic search, replacing the
     LLM call for this adapter only.
   - Tier3: draft prompt includes real excerpts from `fetched_content`, not just
@@ -84,11 +86,11 @@ boundary later).
 - Embedding-similarity clustering will produce comparable-or-better cluster quality
   than the existing LLM-based Tier2 for long-form content. **Unverified — candidate
   for a small spike before full implementation.**
-- `LongFormAdapter`'s Tier1 auto-pass still needs to decide whether it runs through
-  the existing semantic-dedup pre-filter (`check_semantic_dedup`, t-1668) or skips
-  straight to Tier2. **Unresolved — see ADR-087; skipping it risks duplicate
-  long-form topics reaching the expensive Tier3 drafting step instead of being
-  cheaply filtered.**
+- `LongFormAdapter`'s Tier1 auto-pass still runs through the existing semantic-dedup
+  pre-filter (`check_semantic_dedup`, t-1668) — only the LLM relevance-scoring call
+  is skipped, not the dedup check, since dedup costs no LLM call and skipping it
+  would let duplicate topics reach the expensive Tier3 step. **Resolved — see
+  ADR-087.**
 
 ## Behavior
 
@@ -156,8 +158,11 @@ Tier2-quality open risks from ADR-087 have owners.
       earlier guess before impact analysis ran — worth a quick check in DECOMPOSE
       for whether they also need touching, but not confirmed the way the two above
       are.
-- [ ] **User guide** — only if `brana knowledge process` gains new user-visible
-      flags; TBD in DECOMPOSE.
+- [ ] **User guide** — resolved (was TBD, challenger caught it unresolved on the
+      sprint-contract pass): `ingest` gains a user-visible `--from-ruflo <key>` flag
+      (ADR-087, matching ADR-042 §3's `--source telegram` precedent) — document it
+      wherever `ingest`'s existing flags are documented. `process` itself gains no
+      new flags.
 
 ## Challenger findings
 
@@ -185,6 +190,29 @@ canonicalized identity ruflo uses.
 - "Tier2 stops producing a reason string; UI/report code needs a fallback"
   overstated the surface — `reason` isn't persisted anywhere, only printed once.
   Corrected in ADR-087.
+
+---
+
+**Sprint-contract review, second pass, 2026-08-24 (context-isolated agent).**
+Verdict: **RECONSIDER** — two critical gaps in the 12-subtask decomposition itself,
+both fixed before presenting the plan for approval:
+
+1. **The mixed LinkedIn+YouTube integration test named in the Testing Strategy and
+   the sprint contract's own success criteria had no owning subtask** — all 12
+   original subtasks could complete green without it ever running. Fixed: added
+   t-3183, blocked_by both adapter implementations, blocking the docs task.
+2. **No migration for `~/.swarm/knowledge-pipeline-state.json`'s existing production
+   data** once the canonicalization key fix ships — a differently-decorated re-ingest
+   of an already-seen URL would silently duplicate it. Fixed: added t-3182
+   (one-time re-key migration with collision handling), blocked_by the key fix,
+   blocking the ingest-wiring implementation task.
+
+Warnings from this pass, also addressed: ADR-087 flipped from Proposed to Accepted
+(stabilized after two full challenger passes); the `--from-ruflo <key>` CLI surface
+for ingest was left ambiguous — resolved via an explicit user decision rather than
+picked silently (see ADR-087); `backfill_linkedin_fields` was confirmed low-risk by
+reading `ingest_urls`'s actual fallback-signal logic rather than asserted; the user
+guide's "TBD" item resolved to documenting the new flag.
 - `backfill_linkedin_fields` touches every platform unconditionally, unnamed in the
   original scope — now a named sibling touch point in this spec's Scope section.
 

@@ -1,6 +1,6 @@
 # ADR-087: PlatformAdapter for the knowledge pipeline
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-24
 **Task:** t-3151
 **Depends on:** [ADR-042](ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md)
@@ -75,11 +75,23 @@ resolved during DECOMPOSE impact analysis, 2026-08-24).** ADR-042 §1 is explici
 *"All URLs enter `pipeline-state.json` through `brana knowledge ingest`. No other
 code path writes URLs directly to pipeline state."* This ADR's earlier draft left
 "`drain-links` writing into both stores" as a candidate wiring mechanism — that
-would violate ADR-042 §1 by creating a second writer. Resolved: `ingest` itself is
-extended to accept an already-processed ruflo `knowledge:url:*` key (or the raw
-long-form URL) and, when `fetched_content` is available from ruflo at ingest time,
-populate `UrlEntry.fetched_content` directly. `ingest` remains the sole writer into
-`PipelineState`; long-form content flows through it, not around it.
+would violate ADR-042 §1 by creating a second writer. Resolved: `ingest` gains a
+`--from-ruflo <key>` flag (matching ADR-042 §3's `--source telegram` precedent) to
+accept an already-processed ruflo `knowledge:url:*` key and, when `fetched_content`
+is available from ruflo at ingest time, populate `UrlEntry.fetched_content`
+directly. `ingest` remains the sole writer into `PipelineState`; long-form content
+flows through it, not around it.
+
+**Migration required for existing production state (sprint-contract challenger
+finding, 2026-08-24).** `~/.swarm/knowledge-pipeline-state.json` is live, populated
+data — LinkedIn/GitHub/Substack/arxiv URLs have been flowing through `ingest` in
+production before this ADR. Switching `ingest_urls`'s key derivation to
+`canonicalize_url()` without re-keying existing entries means a differently-decorated
+re-ingest of an already-seen URL misses its old raw-keyed entry and silently
+duplicates it, orphaning completed Tier1-3 work. A one-time migration (rewrite
+existing keys through `canonicalize_url()`, merge collisions preferring the
+more-advanced `UrlStatus`) must run before any post-fix `ingest` call touches the
+live state file.
 
 **Required: shared URL identity across both stores (challenger finding, 2026-08-24,
 score 4) — solved by the same change.** `ingest_urls` keys `PipelineState.urls` by
@@ -108,13 +120,14 @@ LinkedIn's own dedup accuracy in `ingest_urls`'s `contains_key` check.
   field exists) — it's only printed once via `println!` in `run_tier2`'s loop. The
   actual touch point is that one printline needing an embedding-clustering-aware
   message, nothing more.
-- **Open question for DECOMPOSE (challenger finding, 2026-08-24):** `run_tier1`'s
-  semantic-dedup pre-filter (`check_semantic_dedup`, t-1668) currently runs before
-  any LLM scoring, for every platform. This ADR does not decide whether
-  `LongFormAdapter`'s Tier1 auto-pass still goes through that dedup check or skips
-  straight to Tier2. Skipping it means duplicate long-form topics reach the
-  expensive Tier3 drafting step instead of being cheaply filtered at Tier1 — the
-  opposite of what auto-pass exists to save.
+- **Resolved (was an open question, challenger finding 2026-08-24):**
+  `LongFormAdapter`'s Tier1 auto-pass still runs through the existing
+  semantic-dedup pre-filter (`check_semantic_dedup`, t-1668) before skipping the
+  LLM-scoring call. Auto-pass exists to save the *LLM* cost of relevance scoring on
+  content already known to be relevant — it says nothing about the dedup check,
+  which is a free ruflo similarity lookup with no LLM involved. Skipping dedup too
+  would let duplicate long-form topics reach the expensive Tier3 drafting step
+  instead of being cheaply filtered here, the opposite of what auto-pass is for.
 - **Open risk, deliberately not resolved by this ADR:** Tier1 auto-pass assumes
   ingestion-time curation always holds. It's true for this session's manual
   channel-backfill filtering; it isn't guaranteed for a future bulk-queued long-form
