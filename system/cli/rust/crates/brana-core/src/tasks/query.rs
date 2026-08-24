@@ -119,8 +119,61 @@ pub fn assert_active_epic_resolves(all: &[Value], active_epic: &str) -> Result<(
         return Ok(());
     }
     Err(format!(
-        "active_epic {active_epic:?} does not resolve to any epic node or task — check tasks-config.json's active_epic, or run `brana backlog set-active` with a real epic"
+        "active_epic {active_epic:?} does not resolve to any epic node or task — pass --epic with a real epic slug, or start a task under that epic"
     ))
+}
+
+/// Session-scoped focus resolution (ADR-088, t-3196) — replaces the retired
+/// shared `active_epic` config file. Resolution order:
+/// 1. `explicit` (the `--epic` flag) always wins.
+/// 2. Else, the epic of the most-recently-started `in_progress` task —
+///    v2 schema (client/venture): its flat `epic` field directly; v3 schema
+///    (thebrana): `resolve_epic_ancestor()`'s parent-chain walk. This
+///    generalizes the fallback `statusline.sh` (lines 36-90) already
+///    implements for its own epic badge into one reusable core function,
+///    rather than parsing the current branch name — a 2-segment
+///    `{work-type}/t-{NNN}-{desc}` branch (the client/venture convention)
+///    has no epic segment to parse at all.
+/// 3. No match (no in-progress task, or its epic doesn't resolve) → `None`,
+///    non-fatal — unlike `assert_active_epic_resolves`, which is fail-loud
+///    for an explicit `--epic` that didn't resolve.
+pub fn resolve_focus_epic(explicit: Option<&str>, all: &[Value]) -> Option<String> {
+    if let Some(e) = explicit {
+        return Some(e.to_string());
+    }
+
+    fn numeric_id_suffix(task: &Value) -> u64 {
+        task["id"]
+            .as_str()
+            .unwrap_or("")
+            .rsplit('-')
+            .next()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0)
+    }
+
+    let candidate = all
+        .iter()
+        .filter(|t| t["status"].as_str() == Some("in_progress"))
+        .max_by(|a, b| {
+            let started_a = a["started"].as_str().unwrap_or("");
+            let started_b = b["started"].as_str().unwrap_or("");
+            started_a
+                .cmp(started_b)
+                .then_with(|| numeric_id_suffix(a).cmp(&numeric_id_suffix(b)))
+        })?;
+
+    if let Some(epic) = candidate["epic"].as_str() {
+        if !epic.is_empty() {
+            return Some(epic.to_string());
+        }
+    }
+
+    let by_id: HashMap<&str, &Value> = all
+        .iter()
+        .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
+        .collect();
+    resolve_epic_ancestor(candidate, &by_id)
 }
 
 /// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.

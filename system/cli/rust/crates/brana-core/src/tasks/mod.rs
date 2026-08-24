@@ -1634,6 +1634,38 @@ mod tests {
         assert_eq!(resolve_focus_epic(None, &[]), None);
     }
 
+    #[test]
+    fn test_resolve_focus_epic_empty_flat_epic_falls_through_to_parent_chain() {
+        // Boundary: an empty-string `.epic` field must not short-circuit as
+        // "resolved" — it should fall through to the parent-chain walk.
+        let tasks = vec![
+            json!({"id": "in-002", "type": "epic", "subject": "cc-alignment"}),
+            json!({
+                "id": "t-1", "type": "task", "status": "in_progress",
+                "started": "2026-08-20", "epic": "", "parent": "in-002"
+            }),
+        ];
+        assert_eq!(
+            resolve_focus_epic(None, &tasks),
+            Some("cc-alignment".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_focus_epic_rejects_non_slug_epic_subject() {
+        // Boundary: a pre-v3 epic marker with a full-sentence subject
+        // (in-001..in-004 shape) must not leak through as a resolved slug —
+        // resolve_epic_ancestor()'s is_epic_slug() gate already rejects it.
+        let tasks = vec![
+            json!({"id": "in-001", "type": "epic", "subject": "Backlog UI — rich task views"}),
+            json!({
+                "id": "t-1", "type": "task", "status": "in_progress",
+                "started": "2026-08-20", "parent": "in-001"
+            }),
+        ];
+        assert_eq!(resolve_focus_epic(None, &tasks), None);
+    }
+
     // ── t-2377: TaskFilter.epic must resolve via parent-chain ancestor,
     // not the retired flat `epic` field (ADR-065, t-2284; sealed t-2310) ──
 
