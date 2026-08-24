@@ -1,4 +1,10 @@
+---
+status: draft
+---
+
 # Skill Semantic Validation Layer
+
+> **Component of The Brana** · owns: skill validation · see [the-brana.md](../../architecture/the-brana.md) §Space
 
 > Brainstormed 2026-03-30. Status: idea.
 

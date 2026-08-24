@@ -1,4 +1,11 @@
+---
+status: idea
+merged_into: docs/ideas/drained/skills-as-loops.md
+---
+
 # Skill Lifecycle Manager — Revised Design
+
+> **Merged (t-3027, 2026-08-24)** into [skills-as-loops.md](skills-as-loops.md), which owns skill-routing classification (see [the-brana.md](../../architecture/the-brana.md) §Space). This doc stays as the detailed unbuilt design for the `brana skills suggest/search` CLI — not yet built, cited from there rather than duplicated.
 
 > Brainstormed 2026-03-21. Challenged and revised same session.
 > Status: ready for decompose.

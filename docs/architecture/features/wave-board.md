@@ -1,3 +1,6 @@
+---
+status: shipped
+---
 # Wave board (t-2844)
 
 > Implements [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §6f.

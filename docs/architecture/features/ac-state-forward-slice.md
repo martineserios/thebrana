@@ -12,6 +12,8 @@ related:
 
 # ac_state forward-only slice — v3 schema MVP (wave-0)
 
+> **Note (2026-08-24):** the approval flow described here is superseded by [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md) (`ac_state` propose→approve→pull, now the live mechanism).
+
 > The smallest real slice of `backlog-v3-schema.md` that a running loop exercises.
 > Not the full schema, not the 2,100-task migration. One field, shipped safely, pulled by one consumer.
 

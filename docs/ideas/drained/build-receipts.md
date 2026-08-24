@@ -5,6 +5,8 @@ created: 2026-08-01
 ---
 # Build receipts
 
+> **Component of The Brana** · owns: proof-of-done receipts; a beat-record instance (see features/loops-library.md) · see [the-brana.md](../../architecture/the-brana.md) §Cycle
+
 > Input spec for **t-2592** (ADR) and **t-2595** (feature spec). Consolidates research done
 > 2026-08-01 against gentle-ai's Receipt-Driven Development, so the findings live somewhere
 > discoverable rather than only in task context.

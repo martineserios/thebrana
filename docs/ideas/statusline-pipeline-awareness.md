@@ -5,6 +5,10 @@ created: 2026-08-14
 ---
 # Statusline Pipeline Awareness
 
+> **Component of The Brana** · owns: pipeline visibility in statusline · see [the-brana.md](../architecture/the-brana.md) §Gate
+>
+> **Merged in (t-3027, 2026-08-24):** [drained/mission-control.md](drained/mission-control.md)'s agent-orchestration/monitoring design (`brana run`/`agents`/`queue`) — unbuilt, print-first philosophy compatible with this doc's gauge-only stance. That doc stays as the detailed unbuilt design; this doc is where it's cited from as pipeline-visibility's owner.
+
 > Brainstormed 2026-08-14. Successor to the drained `statusline-v2-backlog-intelligence`
 > idea (2026-04-07) — that idea predates the wave mechanics of The Brana (ADR-080, shipped
 > 2026-08-13/14) it would now be built around. Status: draft, ready for backlog planning.

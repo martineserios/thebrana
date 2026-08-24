@@ -1,12 +1,15 @@
 ---
 title: Challenger as Mandatory Outer Loop Gate in /brana:build
-status: implemented
+status: superseded
 created: 2026-06-08
 task: t-1856
 tags: [build, challenger, loop, reflexion, quality-gate]
+superseded_by: [docs/architecture/decisions/ADR-049-mandatory-challenger-gate.md]
 ---
 
 # Challenger as Mandatory Outer Loop Gate in /brana:build
+
+> **Superseded — content absorbed into** [ADR-049](../../architecture/decisions/ADR-049-mandatory-challenger-gate.md). This file stays as historical reference; do not add new content here.
 
 > Brainstormed 2026-06-08 from t-1856.
 

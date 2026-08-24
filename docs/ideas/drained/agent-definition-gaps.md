@@ -1,4 +1,10 @@
+---
+status: draft
+---
+
 # Agent Definition Gaps — Unused CC Frontmatter Fields
+
+> **Component of The Brana** · owns: native agent frontmatter fields (skills:/tools:/memory:/isolation:/maxTurns:) · see [the-brana.md](../../architecture/the-brana.md) §Space
 
 > Researched 2026-04-13. Source: Claude Code official docs + community analysis.
 > Status: ideas — none implemented.

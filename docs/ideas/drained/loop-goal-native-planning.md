@@ -1,4 +1,10 @@
+---
+status: superseded
+superseded_by: [docs/architecture/ac-grammar.md]
+---
 # Loop+Goal-Native Backlog Planning
+
+> **Superseded — content absorbed into** [ac-grammar.md](../../architecture/ac-grammar.md). This file stays as historical reference; do not add new content here.
 
 > Brainstormed 2026-06-21. Status: **implemented** (phase t-2198 complete, 2026-06-21).
 > Shipped: `docs/architecture/ac-grammar.md`, `system/scripts/ac-lint.sh`, `plan.md` step 11b,

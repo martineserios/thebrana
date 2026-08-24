@@ -1,9 +1,12 @@
 ---
 title: Enforced Delegation — orchestrator/executor split for build phases
-status: draft
+status: superseded
 created: 2026-08-01
+superseded_by: [docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md]
 ---
 # Enforced Delegation — orchestrator/executor split for build phases
+
+> **Killed — superseded by** [ADR-059](../../architecture/decisions/ADR-059-multi-agent-substrate-selection.md)'s routing rule. This file stays as historical reference; do not add new content here.
 
 > Brainstormed 2026-08-01. Status: draft — shaped, challenged (2 rounds + pre-mortem),
 > capabilities verified against CC docs, then **descoped by adversarial review**.

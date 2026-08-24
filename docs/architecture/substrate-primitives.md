@@ -1,4 +1,10 @@
+---
+status: superseded
+superseded_by: docs/architecture/the-brana.md
+---
 # Agent Substrate — Primitives & Composition
+
+> **Superseded** — §1's primitive set is now live in [the-brana.md](the-brana.md) §Space (extraction closes ADR-068's open Q2). This file stays as historical reference for how that set was originally derived.
 
 **Status:** superseded (2026-07-24) — historical design record; was: Design (2026-06-21, t-2184) · **Owner:** Martín Rios
 **Superseded by:** [ADR-068](decisions/ADR-068-v3-supersession.md) — superseded by the v3 design ([brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md)) for the autonomy model. §2b's task contract (one definition of done, the task's `AC:` lines) and its security invariant (*the checker must live outside the agent's control* — grader from a pinned base-ref) are carried forward into v3's principle 2 and wave-3 gate stack; see ADR-068 §Decision item 3. **Note:** §1–§3 (the primitive set, the composed-block library, Workflow durability/trust, the cost gate) are still-accurate reference material that v3 uses without restating — ADR-068 §Open questions item 2 tracks extracting them into a live doc.

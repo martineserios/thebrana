@@ -1,4 +1,11 @@
+---
+status: idea
+merged_into: docs/ideas/statusline-pipeline-awareness.md
+---
+
 # Brana Mission Control
+
+> **Merged (t-3027, 2026-08-24)** into [statusline-pipeline-awareness.md](../statusline-pipeline-awareness.md), which owns pipeline-visibility-in-statusline (see [the-brana.md](../../architecture/the-brana.md) §Gate). This doc stays as the detailed unbuilt design for `brana run`/`agents`/`queue` orchestration — not yet built, cited from there rather than duplicated.
 
 > Brainstormed 2026-03-16. Challenged 2026-03-16 (simplicity). Status: idea.
 > Related: t-525, investigation doc.

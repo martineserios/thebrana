@@ -1,6 +1,8 @@
 # Enforcement vs Injection — The Harness Architecture Fork
 
-> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+> **Archived 2026-08-24** — dead/superseded; moved from docs/ideas/drained/ during the-brana consolidation (t-3027). Kept for historical reference only.
+
+> **Superseded by [Brana Operating Model](../ideas/drained/brana-operating-model.md).** This doc is preserved for historical context.
 
 > Brainstormed 2026-03-26. Status: draft. Source: t-651 (SuperClaude investigation).
 

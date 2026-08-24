@@ -271,11 +271,13 @@ Adversarial review with two modes. **Standard:** three native challenger subagen
 7. **Log findings to decision log** (before storing to memory):
 
    ```bash
-   brana decisions log --agent challenger --entry-type concern \
-     --content "{target}: {key finding summary}" \
+   brana decisions log challenger concern "{target}: {key finding summary}" \
      --severity "{highest finding severity}" \
-     --refs "{task-id if applicable}" 2>/dev/null || true
+     --refs "{task-id if applicable}" \
+     --target "{target}" 2>/dev/null || true
    ```
+
+   Positional args are `<AGENT> <TYPE> <CONTENT>` (t-3027, 2026-08-24 — corrected drift from an earlier `--agent`/`--entry-type`/`--content` flag form that the CLI never implemented; run `brana decisions log --help` to re-verify if this drifts again).
 
    Log one entry per CRITICAL or WARNING finding. OBSERVATION-level findings are not logged.
 

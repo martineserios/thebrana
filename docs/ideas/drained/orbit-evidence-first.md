@@ -11,6 +11,8 @@ relates:
 
 # Orbit — Evidence Before Infrastructure
 
+> **Component of The Brana** · owns: evidence-before-infrastructure · see [the-brana.md](../../architecture/the-brana.md) §Gate
+
 > Brainstormed 2026-06-22, after a full session spent on the t-2173 egress sandbox.
 > Trigger: "maybe we are overengineering the thing and we should start smaller."
 

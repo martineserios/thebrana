@@ -1,10 +1,13 @@
 ---
 title: Claude-Gemini Orchestrator-Worker Integration
-status: idea
+status: superseded
 created: 2026-05-22
+superseded_by: [system/rules/delegation-routing.md]
 ---
 
 # Claude-Gemini Orchestrator-Worker Integration
+
+> **Superseded — content absorbed into** the `delegation-routing.md` rule. This file stays as historical reference; do not add new content here.
 
 > Brainstormed 2026-05-22. Status: idea.
 

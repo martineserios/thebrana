@@ -1,5 +1,7 @@
 # Wave board
 
+> Implements [ADR-080](../../architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §6f; renders [docs/architecture/features/wave-board.md](../../architecture/features/wave-board.md)'s mechanics. See also [plan-time-wave-graph.md](plan-time-wave-graph.md) for how waves get created in the first place.
+
 `brana backlog wave board` is a read-only cockpit gauge: one glance at every
 wave's place in the gate chain, plus how many of its matched tasks are
 pending, in flight, or AC-approved.

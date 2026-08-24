@@ -1,3 +1,6 @@
+---
+status: shipped
+---
 # Plan-time wave graph (t-2843)
 
 > Implements [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §2.

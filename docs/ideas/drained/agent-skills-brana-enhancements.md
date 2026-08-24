@@ -1,4 +1,10 @@
+---
+status: draft
+---
+
 # Brana Enhancements from addyosmani/agent-skills Analysis
+
+> **Component of The Brana** · owns: skill packaging enhancements (not the W/A/A?/C tiering table — that's owned by docs/research/2026-08-23-skill-tier-mapping.md) · see [the-brana.md](../../architecture/the-brana.md) §Space
 
 > Researched 2026-04-13 from https://github.com/addyosmani/agent-skills (Addy Osmani, Google Chrome DevRel).
 > Status: ideas for adoption — none implemented yet.

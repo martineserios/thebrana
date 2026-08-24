@@ -1,5 +1,7 @@
 # Loops Library
 
+This README is a catalog index of loop instances (drain-loop, epic-drain, pipeline-digest); the loop *contract* itself (frontmatter, beat record, denied verbs, pull interface) is owned by [docs/architecture/features/loops-library.md](../../docs/architecture/features/loops-library.md) — cite that doc, don't restate it here.
+
 A catalog of committed loop definitions — parallel to the skills library
 (`system/skills/`). A loop is *trigger + committed prompt + a termination
 check the agent can't game* (docs/guide/workflows/drain-loop.md's own
@@ -19,22 +21,9 @@ beat-record schema, proof-of-life bar): [docs/architecture/features/loops-librar
 
 ## Frontmatter contract
 
-Every entry declares:
-
-```yaml
-name: <loop-name>
-cadence: <default pacing>       # or pacing: {active_delay, waiting_delay, empty_delay}
-autonomy: L0-L3
-supervised: true                # false is unreachable until ADR-062 lands
-drains: []                      # queue references this loop pulls from
-fills: []                       # queue references this loop writes to
-spawns: []                      # other loops/runners this loop may launch
-records: "<pointer string>"     # reference to the beat-record schema — never redefine it inline
-```
-
-Body: beat procedure, cheap no-op-fast preflight, explicit STOP conditions
-(real signals — exit codes, error strings, never self-assessed confidence),
-and a `## Denied verbs` section for any entry with `autonomy` above L0.
+Entry frontmatter shape (required keys, body requirements) is single-sourced in
+[loops-library.md §Design](../../docs/architecture/features/loops-library.md#design) —
+see there, not restated here.
 
 ## Wrapper entries
 

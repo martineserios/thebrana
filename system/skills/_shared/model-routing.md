@@ -52,16 +52,14 @@ Agent(subagent_type: "claude", model: model, prompt: "{subtask description + TDD
 
 ## Logging
 
-Log every routing decision:
+Log every routing decision (positional `<AGENT> <TYPE> <CONTENT>` — corrected t-3027, 2026-08-24, drifted `--agent`/`--entry-type`/`--content` flags never existed on the CLI):
 ```
-brana decisions log --agent build --entry-type cost \
-  --content "t-NNN routed to {model} (score: {score:.2f})"
+brana decisions log build cost "t-NNN routed to {model} (score: {score:.2f})"
 ```
 
 Log overrides separately:
 ```
-brana decisions log --agent build --entry-type cost \
-  --content "t-NNN override: computed={model1} (score: {score:.2f}), using {model2}"
+brana decisions log build cost "t-NNN override: computed={model1} (score: {score:.2f}), using {model2}"
 ```
 
 After 10+ overrides in one direction, `/brana:review routing` flags it as a threshold adjustment signal.
