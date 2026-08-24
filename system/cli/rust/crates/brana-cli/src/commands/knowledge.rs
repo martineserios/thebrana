@@ -591,7 +591,10 @@ fn process_one_url(url: &str, cookies: &kp::YtDlpCookies) -> Result<ProcessUrlOu
                 .then(|| kp::extract_insight(&content.text, content.platform));
             let (value, tags) = resolve_store_value(&content, insight.as_ref());
             let tag_refs: Vec<&str> = tags.iter().map(String::as_str).collect();
-            ruflo_memory_store(&key, &value, PROCESS_URL_NAMESPACE, &tag_refs)
+            // t-3097: fetched content (not agent-authored memory) is exempt from
+            // the MemPoison write-scan (t-2755) — it false-positives on legitimate
+            // transcripts that discuss prompting, e.g. "system prompt", "jailbreak".
+            ruflo_memory_store(&key, &value, PROCESS_URL_NAMESPACE, &tag_refs, false)
                 .with_context(|| format!("storing {key}"))?;
             println!("Stored: {key}");
             if content.platform == "youtube" {

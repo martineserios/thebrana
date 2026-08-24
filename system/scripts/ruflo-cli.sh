@@ -68,12 +68,24 @@ fi
 
 # ── Hardening (t-2755 — same three guards as ruflo-mcp.sh, see comments there) ──
 export RUFLO_REQUIRE_REAL_EMBEDDINGS=1
-export RUFLO_MEMORY_SCAN_ON_WRITE=1
+# t-3097: default-if-unset, not unconditional export. The MemPoison write-scan
+# (t-2755) matches phrases like "system prompt"/"jailbreak" without judging intent,
+# so it refuses legitimate content that discusses prompting — exactly what
+# `brana knowledge process-url` exists to store. Rust callers that ingest fetched
+# content (not agent-authored memory) set RUFLO_MEMORY_SCAN_ON_WRITE=0 on this
+# subprocess's env before spawning; every other caller inherits nothing here and
+# gets the same hardened default (1) as before this change.
+: "${RUFLO_MEMORY_SCAN_ON_WRITE:=1}"
+export RUFLO_MEMORY_SCAN_ON_WRITE
 export RUFLO_FUNNEL=0
 
 # ── Execute (always from $HOME so ruflo uses ~/.swarm/memory.db) ──────────
 if [ "${RUFLO_CLI_DRYRUN:-0}" = "1" ]; then
     echo "$NODE_BIN $RUFLO_JS ${args[*]}"
+    # Surfaces the post-guard hardening state for DRYRUN-mode testing (t-3097) —
+    # the default-if-unset guard above only proves itself if something outside
+    # the script can observe what it resolved to.
+    echo "[ruflo-cli] RUFLO_MEMORY_SCAN_ON_WRITE=$RUFLO_MEMORY_SCAN_ON_WRITE" >&2
     exit 0
 fi
 cd "$HOME"
