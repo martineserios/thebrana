@@ -1208,9 +1208,22 @@ pub fn cmd_process(
 const TIER1_BATCH: usize = 50;
 const TIER1_CONCURRENCY: usize = 5;
 
+/// Article + content-kind label for platform-aware prompt wording
+/// (t-3178, ADR-087 Context #2). The catch-all keeps neutral wording.
+fn platform_content_label(platform: &str) -> &'static str {
+    match platform {
+        "linkedin" => "a LinkedIn post",
+        "github" => "a GitHub repository",
+        "substack" => "a Substack article",
+        "arxiv" => "an arXiv paper",
+        _ => "a shared link",
+    }
+}
+
 fn build_tier1_prompt(entry: &kp::UrlEventEntry, dim_list: &str) -> String {
+    let label = platform_content_label(kp::classify_platform(&entry.url));
     format!(
-        "You are classifying a LinkedIn post for relevance to a personal knowledge base \
+        "You are classifying {label} for relevance to a personal knowledge base \
 about AI systems, agent design, developer tooling, and knowledge management.\n\n\
 Author: {}\nTitle signal: {}\nTags: {}\n\n\
 Score the relevance 1-5 where:\n\
@@ -1394,13 +1407,15 @@ const TIER2_CONCURRENCY: usize = 3;
 
 /// Build the cluster-assignment prompt for a single URL.
 fn build_tier2_prompt(
+    platform: &str,
     author: &str,
     title_signal: &str,
     tags: &[String],
     dim_list: &str,
 ) -> String {
+    let label = platform_content_label(platform);
     format!(
-        "You are assigning a LinkedIn post to the nearest topic in a knowledge base.\n\n\
+        "You are assigning {label} to the nearest topic in a knowledge base.\n\n\
 Author: {author}\nTitle signal: {title_signal}\nTags: {}\n\n\
 Existing dimension topics:\n{dim_list}\n\n\
 Assign this post to the best-matching dimension, or flag as \"new-topic\" \
@@ -1503,7 +1518,8 @@ fn run_tier2(
     let tasks: Vec<(String, String, String)> = candidates
         .iter()
         .map(|(url, author, title_signal, tags)| {
-            let prompt = build_tier2_prompt(author, title_signal, tags, &dim_list_str);
+            let prompt =
+                build_tier2_prompt(kp::classify_platform(url), author, title_signal, tags, &dim_list_str);
             (url.clone(), author.clone(), prompt)
         })
         .collect();
@@ -3551,7 +3567,7 @@ mod tests {
     #[test]
     fn test_build_tier2_prompt_contains_author_and_title() {
         let tags = vec!["rust".to_string(), "cli".to_string()];
-        let prompt = build_tier2_prompt("Alice", "Building CLIs in Rust", &tags, "- cli-tooling\n- agent-memory");
+        let prompt = build_tier2_prompt("linkedin", "Alice", "Building CLIs in Rust", &tags, "- cli-tooling\n- agent-memory");
         assert!(prompt.contains("Alice"), "prompt must contain author");
         assert!(prompt.contains("Building CLIs in Rust"), "prompt must contain title_signal");
         assert!(prompt.contains("rust cli"), "prompt must contain joined tags");
@@ -3560,7 +3576,7 @@ mod tests {
 
     #[test]
     fn test_build_tier2_prompt_requests_json_response() {
-        let prompt = build_tier2_prompt("Bob", "AI agents", &[], "- agent-memory");
+        let prompt = build_tier2_prompt("linkedin", "Bob", "AI agents", &[], "- agent-memory");
         assert!(prompt.contains("Respond with JSON only"), "prompt must request JSON response");
         assert!(prompt.contains("dimension_target"), "prompt must mention dimension_target key");
         assert!(prompt.contains("cluster_topic"), "prompt must mention cluster_topic key");
