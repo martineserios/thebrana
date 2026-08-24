@@ -41,6 +41,20 @@ pub fn session_state_path(project_root: &Path) -> PathBuf {
     resolve_memory_dir(project_root).join("session-state.json")
 }
 
+/// Explicit "no epic" sentinel for the `epic` field of a `brana session write` payload
+/// (t-3169). Omitting `epic` is indistinguishable from "let the CLI infer one" — the
+/// persistent focus marker (`brana session epic focus`) always wins that inference when
+/// set, even after a caller has deliberately decided no epic applies. Passing this literal
+/// string instead opts out of both the focus-marker fallback (`cmd_session_write`) and the
+/// branch-name epic parsing (`unit_scoped_state_path` below), landing unconditionally on the
+/// orphan/default file. Never persisted: `SessionState::sanitize` strips it back to `None`
+/// before the state reaches disk, so it can never be mistaken for a real epic slug by
+/// `session_initiative` or sitrep. Chosen to match the existing read-side display label for
+/// the same file (`cmd_session_read_all`'s `"(orphan)"` epic tag) — a real epic slug can
+/// never collide with it, since `resolve_epic_ancestor` only accepts
+/// `^[a-z0-9]+(-[a-z0-9]+)*$`, which parens fail.
+pub const ORPHAN_EPIC_SENTINEL: &str = "(orphan)";
+
 /// Resolve the session state path scoped to the epic slug extracted from `branch`.
 ///
 /// Branch convention: `{epic}/{type}/t-{N}-{slug}` where type ∈ {feat,fix,chore,...}.
@@ -69,6 +83,13 @@ pub fn epic_scoped_state_path(project_root: &Path, branch: &str) -> PathBuf {
 /// handoff routing from the volatile current branch — closing from `main` or a sibling epic's
 /// branch no longer mis-files the handoff (ADR-060 / t-2152, t-2154).
 pub fn unit_scoped_state_path(project_root: &Path, epic: Option<&str>, branch: &str) -> PathBuf {
+    // t-3169: explicit "no epic" wins outright — skip branch-name parsing too, so a caller
+    // that opted out of epic routing isn't silently re-routed just because the current
+    // branch happens to look epic-shaped (e.g. closing "no epic" from an epic-prefixed
+    // feature branch).
+    if epic.map(str::trim) == Some(ORPHAN_EPIC_SENTINEL) {
+        return session_state_path(project_root);
+    }
     if let Some(slug) = epic.map(str::trim).filter(|s| !s.is_empty()) {
         return resolve_memory_dir(project_root).join(format!("session-state-{slug}.json"));
     }
@@ -307,6 +328,12 @@ impl SessionState {
         self.consumed_at = None;
         // Invariant: the CAS token is a request parameter, never persisted (t-2506).
         self.base_written_at = None;
+        // Invariant: the orphan-routing sentinel is a request-time signal for
+        // unit_scoped_state_path, never a real epic slug — strip it before persistence so
+        // session_initiative/sitrep never mistake it for one (t-3169).
+        if self.epic.as_deref() == Some(ORPHAN_EPIC_SENTINEL) {
+            self.epic = None;
+        }
         if let Some(ref mut drift) = self.doc_drift {
             drift.stale_docs.retain(|p| Path::new(p).exists());
         }

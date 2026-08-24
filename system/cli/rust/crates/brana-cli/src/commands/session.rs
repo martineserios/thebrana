@@ -53,6 +53,15 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
     // session's initiative/focus marker so the handoff lands in its unit bucket instead of
     // orphaning. If still unresolved AND we're on the production/default branch, warn loudly —
     // a silent orphan from `main` is exactly the mis-routing this guards against.
+    //
+    // t-3169: a caller that explicitly wants no epic routing passes
+    // `epic: brana_core::session::ORPHAN_EPIC_SENTINEL` rather than omitting the field —
+    // omitting it is indistinguishable from "let the CLI infer one," and the focus marker
+    // always won that inference even after the close skill's own corroboration gate had
+    // just rejected it. The sentinel is a non-empty string, so it already fails the
+    // `is_empty()` check below and skips this fallback entirely with no extra branch needed
+    // here; `unit_scoped_state_path` and `SessionState::sanitize` carry the rest (routing
+    // straight to the orphan file, stripping the sentinel back to `None` before persistence).
     if state.epic.as_deref().map(str::trim).unwrap_or("").is_empty() {
         if let Some(slug) = brana_core::session_initiative::read_initiative_marker(&root)
             .or_else(|| brana_core::session_initiative::read_focus_marker(&root))
@@ -600,7 +609,7 @@ pub fn cmd_epic_status(json_output: bool) -> anyhow::Result<()> {
 mod tests {
     use super::*;
     use brana_core::session::{mark_consumed_for, read_state_from, render_text, resolve_memory_dir,
-        session_history_path, write_state, Backprop, DocDrift, SessionMeta, SessionMetrics,
+        write_state, Backprop, DocDrift, SessionMeta, SessionMetrics,
         TestStatus};
     use serial_test::serial;
     use std::env;
@@ -923,5 +932,51 @@ mod tests {
             .to_string();
         // Should not error
         cmd_session_read_all(root, false, Some(since_date)).unwrap();
+    }
+
+    // t-3169: live-reproduces the 2026-08-23 mis-routing incident — a Tier 0 focus marker
+    // is set, and the caller (the close skill's Tier 3 "Skip") explicitly does not want epic
+    // routing. Before the fix, omitting `epic` from the payload was the only way to express
+    // that, and it fell straight into the focus-marker fallback below. The fix is the
+    // explicit `ORPHAN_EPIC_SENTINEL` payload value, which the "if empty" guard already
+    // treats as non-empty (real intent, not "let the CLI infer one") — see
+    // `unit_scoped_state_path` / `SessionState::sanitize` in brana-core for the routing and
+    // persistence halves of this fix.
+    #[test]
+    #[serial]
+    fn cmd_session_write_explicit_orphan_sentinel_bypasses_focus_marker() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        brana_core::session_initiative::write_focus_marker(project_root.path(), "knowledge-pipeline")
+            .unwrap();
+
+        let payload_path = project_root.path().join("payload.json");
+        fs::write(
+            &payload_path,
+            serde_json::json!({
+                "version": 1,
+                "written_at": "",
+                "epic": brana_core::session::ORPHAN_EPIC_SENTINEL,
+                "accomplished": ["did the orphan thing"],
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let result = cmd_session_write(Some(payload_path), false);
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+        result.unwrap();
+
+        let orphan_path = brana_core::session::session_state_path(project_root.path());
+        assert!(orphan_path.exists(), "write must land on the orphan file, not the focus-marker bucket");
+
+        let focus_marker_path = resolve_memory_dir(project_root.path()).join("session-state-knowledge-pipeline.json");
+        assert!(!focus_marker_path.exists(), "focus marker's session-state file must not be touched");
+
+        let written: SessionState = serde_json::from_str(&fs::read_to_string(&orphan_path).unwrap()).unwrap();
+        assert_eq!(written.epic, None, "sentinel must not be persisted as a real epic slug");
+        assert_eq!(written.accomplished, vec!["did the orphan thing"]);
     }
 }
