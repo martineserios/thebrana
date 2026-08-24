@@ -341,7 +341,9 @@ pub fn blocked_chain<'a>(
             if let Some(dep_id) = dep.as_str() {
                 let blocker = all.iter().find(|t| t["id"].as_str() == Some(dep_id));
                 if let Some(b) = blocker {
-                    if classify(b, all) != "done" {
+                    // "not yet done" here means "still blocks" — a cancelled
+                    // blocker is over but unresolved, so it stays in the tree.
+                    if !resolves_blocker(b) {
                         chain.extend(blocked_chain(dep_id, all, depth + 1, visited));
                     }
                 }

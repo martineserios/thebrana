@@ -590,17 +590,15 @@ pub fn validate_task_runnable(task: &Value, all: &[Value]) -> Result<(), String>
     if status != "pending" {
         return Err(format!("{id} is {status}, not pending"));
     }
-    if let Some(deps) = task["blocked_by"].as_array() {
-        for dep in deps {
-            if let Some(dep_id) = dep.as_str() {
-                if let Some(bt) = all.iter().find(|t| t["id"].as_str() == Some(dep_id)) {
-                    if bt["status"].as_str() != Some("completed") {
-                        let bs = bt["status"].as_str().unwrap_or("?");
-                        return Err(format!("{id} blocked by {dep_id} ({bs})"));
-                    }
-                }
-            }
-        }
+    // Same resolver as classify/wave pull (t-3166): cancelled never resolves,
+    // a missing blocker id is unmet, epic terminal states resolve.
+    let by_id = super::wave::task_index(all);
+    if let Some(dep_id) = super::query::unmet_blockers(task, &by_id).first() {
+        let bs = by_id
+            .get(dep_id)
+            .and_then(|b| b["status"].as_str())
+            .unwrap_or("missing");
+        return Err(format!("{id} blocked by {dep_id} ({bs})"));
     }
     Ok(())
 }

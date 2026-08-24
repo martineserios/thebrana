@@ -102,12 +102,13 @@ pub fn lint_task(task: &Value, all_tasks: &[Value]) -> LintReport {
     LintReport { ready, checks, warnings }
 }
 
-/// True if a blocker id resolves to a completed or cancelled task.
-/// Conservative: an id we can't find counts as unresolved.
+/// True if a blocker id resolves — the shared rule (`resolves_blocker`,
+/// ADR-079 amendment): `completed`, or an epic's own terminal state; never
+/// `cancelled`. Conservative: an id we can't find counts as unresolved.
 fn blocker_resolved(id: &str, all_tasks: &[Value]) -> bool {
     all_tasks.iter()
         .find(|t| t["id"].as_str() == Some(id))
-        .map(|t| matches!(t["status"].as_str(), Some("completed" | "cancelled")))
+        .map(crate::tasks::resolves_blocker)
         .unwrap_or(false)
 }
 
@@ -307,11 +308,21 @@ mod tests {
 
     #[test]
     fn resolved_blockers_pass_check_four() {
-        let t = base_task(READY_CTX, Some("S"), vec!["t-100", "t-101"]);
+        let t = base_task(READY_CTX, Some("S"), vec!["t-100", "in-1"]);
         let done = json!({"id": "t-100", "status": "completed"});
-        let cancelled = json!({"id": "t-101", "status": "cancelled"});
-        let r = lint_task(&t, &[done, cancelled]);
+        let epic_done = json!({"id": "in-1", "status": "done", "type": "epic"});
+        let r = lint_task(&t, &[done, epic_done]);
         assert!(check(&r, "no-open-ambiguity").pass);
+    }
+
+    // ADR-079 amendment / t-3166: lint must agree with classify — a cancelled
+    // blocker is NOT resolved (remove it from blocked_by explicitly).
+    #[test]
+    fn cancelled_blocker_fails_check_four() {
+        let t = base_task(READY_CTX, Some("S"), vec!["t-101"]);
+        let cancelled = json!({"id": "t-101", "status": "cancelled"});
+        let r = lint_task(&t, &[cancelled]);
+        assert!(!check(&r, "no-open-ambiguity").pass);
     }
 
     // ── warnings (non-gating, t-1991 findings 2 + 3) ─────────────────────

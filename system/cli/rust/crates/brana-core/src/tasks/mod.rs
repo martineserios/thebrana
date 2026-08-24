@@ -2563,6 +2563,36 @@ mod tests {
         assert!(validate_task_runnable(&tasks[0], &tasks).is_ok());
     }
 
+    // t-3166: the run gate shares the blocked_by resolver with classify —
+    // cancelled and missing blockers stay unmet; a done epic resolves.
+    #[test]
+    fn test_validate_runnable_cancelled_blocker_still_blocks() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "blocked_by": ["t-002"]}),
+            json!({"id": "t-002", "status": "cancelled", "blocked_by": []}),
+        ];
+        let err = validate_task_runnable(&tasks[0], &tasks).unwrap_err();
+        assert!(err.contains("blocked by t-002"), "{err}");
+    }
+
+    #[test]
+    fn test_validate_runnable_missing_blocker_blocks() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "blocked_by": ["t-ghost"]}),
+        ];
+        let err = validate_task_runnable(&tasks[0], &tasks).unwrap_err();
+        assert!(err.contains("blocked by t-ghost"), "{err}");
+    }
+
+    #[test]
+    fn test_validate_runnable_done_epic_blocker_resolves() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "blocked_by": ["in-1"]}),
+            json!({"id": "in-1", "status": "done", "type": "epic", "blocked_by": []}),
+        ];
+        assert!(validate_task_runnable(&tasks[0], &tasks).is_ok());
+    }
+
     // ── t-528: load_raw normalization ─────────────────────────────────
 
     #[test]
