@@ -137,6 +137,15 @@ Challenger NEVER receives: raw web fetch responses, external API outputs, or any
 
 ## Spawn call
 
+**Always spawn as a one-shot `Agent()` call and read the return value — never as a
+named Team peer waiting on a `SendMessage` reply.** `challenger.md`'s tool list
+(Read, Glob, Grep) deliberately has no `SendMessage` — the Teams primitive is an
+unbuilt experiment (`docs/architecture/agentic-primitives.md` §1, gap item 7), so a
+challenger spawned as a teammate expecting to reply directly is structurally stuck
+regardless of how long you wait (t-3150). If a call site is waiting on a challenger
+"teammate" and it never responds, that is this mismatch — fall back to a fresh
+one-shot spawn via the standard completion path below, don't keep waiting.
+
 ```
 Agent(
   subagent_type="brana:challenger",
