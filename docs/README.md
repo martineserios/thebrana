@@ -212,6 +212,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-086](architecture/decisions/ADR-086-wave-as-human-unit-pocock-ticket-shape.md) | Wave as the human's unit (task:AC :: wave:contract) — backlog speaks the Pocock ticket shape: derived triage roles, `ready-for-agent` as the single pull bit, `blocked_by` in the frontier, standing wave, `CHECK:` contracts, tracker doc + CONTEXT.md seam (t-2980, proposed) |
 | [ADR-087](architecture/decisions/ADR-087-knowledge-pipeline-platform-adapters.md) | Knowledge-pipeline PlatformAdapter (t-3151) — content-shape dispatch via a closed 2-variant enum (ShortSignal / LongForm): LongForm Tier1 auto-pass, Tier2 embedding clustering, Tier3 excerpt-grounded drafts; shared canonical URL identity |
 | [ADR-088](architecture/decisions/ADR-088-session-scoped-epic-focus.md) | Epic focus resolves per-session (task-derived), not via a shared `active_epic` file — retires the write path ADR-066/t-2158 project-scoped; `active_initiative` untouched |
+| [ADR-089](architecture/decisions/ADR-089-integral-temporal-model.md) | Integral temporal model — task/reminder/scheduler-job kind-split, unified eligibility predicate, compute-don't-copy, snooze≠deadline firewall, per-priority lead times, recurrence as trigger expression, staged soak-gated rollout (extends ADR-051/ADR-054, respects ADR-002/ADR-071) |
 
 > Coverage is checked by `system/scripts/readme-coverage.sh` (t-3031) — run it before adding a doc; `tests/scripts/test-readme-coverage.sh` fails when a row is missing or dead.
 

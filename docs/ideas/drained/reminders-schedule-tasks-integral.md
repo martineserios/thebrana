@@ -1,12 +1,14 @@
 ---
 title: "Reminders, Scheduling, Tasks — Integral Design Model"
-status: draft
+status: promoted
+promoted_to: docs/architecture/decisions/ADR-089-integral-temporal-model.md
 created: 2026-06-12
 ---
 
 # Reminders, Scheduling, Tasks — Integral Design Model
 
 > Brainstormed 2026-06-12. Exploring unified data model across three tightly coupled systems.
+> Promoted to [ADR-089](../../architecture/decisions/ADR-089-integral-temporal-model.md) on 2026-08-24 — the ADR consolidates every decision below (kind-split, eligibility predicate, compute-don't-copy, snooze≠deadline firewall, per-priority lead times, recurrence, staged rollout) as the canonical record. This doc remains the design-reference source for Stages 1–4 below, which stay out of the backlog until each prior stage's soak gate proves demand (per the Backlog planning decision below) — Stage 0 shipped 2026-07-22 (t-1999).
 
 ## Problem
 
