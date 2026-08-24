@@ -374,6 +374,16 @@ pub fn read_state_from(project_root: &Path, branch: &str) -> Option<SessionState
     read_state_at(&path)
 }
 
+/// Read session state by the same UNIT key `write_state` resolves by (t-3185): an explicit
+/// `epic` (including [`ORPHAN_EPIC_SENTINEL`]) when present, else branch-name parsing —
+/// identical fallback order to [`unit_scoped_state_path`]. `read_state_from` stays
+/// branch-only for backward compatibility (its many existing callers have no epic to give);
+/// use this instead when the caller has — or wants to force — an explicit epic, mirroring
+/// how `write_state` already accepts one on the payload.
+pub fn read_state_from_unit(project_root: &Path, epic: Option<&str>, branch: &str) -> Option<SessionState> {
+    read_state_at(&unit_scoped_state_path(project_root, epic, branch))
+}
+
 /// Read the current session state, if it exists.
 /// Uses the current git branch to resolve the epic-scoped state file.
 pub fn read_state(project_root: &Path) -> Option<SessionState> {
@@ -1322,6 +1332,40 @@ mod tests {
     fn read_state_missing_returns_none() {
         let dir = tempdir().unwrap();
         assert!(read_state_from(dir.path(), "main").is_none());
+    }
+
+    // t-3185: read's mirror of write's unit_scoped_state_path. A state written under an
+    // explicit epic (including the orphan sentinel) must be found by epic, not by
+    // branch-name guessing — even when the branch parses to a DIFFERENT epic-shaped slug.
+    #[test]
+    fn read_state_from_unit_finds_state_by_explicit_epic_not_branch() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+        state.branch = Some("close/fix/t-3185-epic-shaped-branch".to_string());
+        write_state(root, &state).unwrap();
+
+        // Branch-only read looks in the WRONG file (parses "close" from the branch).
+        assert!(read_state_from(root, "close/fix/t-3185-epic-shaped-branch").is_none());
+
+        // Unit-aware read, given the explicit epic, finds the right one.
+        let loaded = read_state_from_unit(root, Some(ORPHAN_EPIC_SENTINEL), "close/fix/t-3185-epic-shaped-branch")
+            .expect("must find state written under the orphan sentinel");
+        assert_eq!(loaded.accomplished, vec!["did thing A"]);
+    }
+
+    #[test]
+    fn read_state_from_unit_falls_back_to_branch_when_epic_absent() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let state = make_state("2026-04-06T10:00:00Z");
+        write_state(root, &state).unwrap();
+
+        let loaded = read_state_from_unit(root, None, "main").expect("branch fallback must still work");
+        assert_eq!(loaded.written_at, "2026-04-06T10:00:00Z");
     }
 
     #[test]

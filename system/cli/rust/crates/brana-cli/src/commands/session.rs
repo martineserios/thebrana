@@ -9,8 +9,8 @@ use anyhow::{Context, Result};
 pub use brana_core::session::mark_consumed;
 use brana_core::session::{
     compute_insights, current_branch, epic_scoped_state_path, read_history, read_state,
-    render_text, resolve_memory_dir, session_history_path, write_state, Blocker, NextCategory,
-    NextItem, SessionState,
+    read_state_from_unit, render_text, resolve_memory_dir, session_history_path, write_state,
+    Blocker, NextCategory, NextItem, SessionState,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use std::fs;
@@ -102,15 +102,23 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
     Ok(())
 }
 
-/// `brana session read [--json] [--all] [--since YYYY-MM-DD]`
-pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>) -> anyhow::Result<()> {
+/// `brana session read [--json] [--all] [--since YYYY-MM-DD] [--epic SLUG]`
+pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>, epic: Option<String>) -> anyhow::Result<()> {
     let root = require_project_root()?;
 
     if all {
         return cmd_session_read_all(&root, json_output, since);
     }
 
-    match read_state(&root) {
+    // t-3185: read's mirror of write's unit-key routing — an explicit `--epic` (including
+    // the orphan sentinel) resolves by that unit, not by guessing from the current branch.
+    // Omitted (the default): unchanged branch-only behavior.
+    let resolved = match epic {
+        Some(ref slug) => read_state_from_unit(&root, Some(slug), &current_branch().unwrap_or_default()),
+        None => read_state(&root),
+    };
+
+    match resolved {
         Some(state) => {
             if json_output {
                 println!("{}", serde_json::to_string_pretty(&state)?);
@@ -467,8 +475,14 @@ fn extract_field(body: &str, field: &str) -> Option<String> {
 pub fn cmd_epic_upsert(slug: &str, completed_csv: &str, resolved_texts_json: &str) -> anyhow::Result<()> {
     use brana_core::session_initiative::{upsert_initiative, ResolvedTextInput};
     let root = require_project_root()?;
-    let state = read_state(&root)
-        .ok_or_else(|| anyhow::anyhow!("No session state found — run `brana session write` first"))?;
+    // t-3185: read by the SLUG this upsert is for, not by the current branch's guess — the
+    // caller (close skill Step 9c) already resolved which epic this session's state belongs
+    // to, which can diverge from a branch-name parse (e.g. epic resolved from commit-
+    // referenced task IDs). Branch-only `read_state()` could fold an unrelated session's
+    // content into this epic's accumulator.
+    let branch = current_branch().unwrap_or_default();
+    let state = read_state_from_unit(&root, Some(slug), &branch)
+        .ok_or_else(|| anyhow::anyhow!("No session state found for epic {slug:?} — run `brana session write` first"))?;
     let completed: Vec<String> = completed_csv
         .split(',')
         .map(|s| s.trim().to_string())
@@ -978,5 +992,55 @@ mod tests {
         let written: SessionState = serde_json::from_str(&fs::read_to_string(&orphan_path).unwrap()).unwrap();
         assert_eq!(written.epic, None, "sentinel must not be persisted as a real epic slug");
         assert_eq!(written.accomplished, vec!["did the orphan thing"]);
+    }
+
+    // t-3185 (second-variant finder, corroborated): cmd_epic_upsert took a `slug` argument
+    // but read the CURRENT session state via branch-only `read_state`, ignoring `slug`
+    // entirely — so it could fold the wrong session's content into an epic's accumulator
+    // whenever the branch-derived guess diverged from the epic the caller actually meant
+    // (e.g. Tier 2a/2b resolved the true epic from commit-referenced task IDs, not the
+    // branch name). Reproduces that divergence directly: a decoy state sits at the
+    // branch-derived path, the real content sits under the explicit slug.
+    #[test]
+    #[serial]
+    fn cmd_epic_upsert_reads_state_by_given_slug_not_current_branch() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        // Decoy: no explicit epic, so it lands wherever THIS test process's real
+        // `current_branch()` parses to (or the orphan file, if it doesn't match the epic
+        // convention) — exactly the file the pre-fix branch-only `read_state()` would find.
+        let branch = brana_core::session::current_branch().unwrap_or_default();
+        let mut decoy = sample_state();
+        decoy.session_label = Some("decoy — must NOT be used".into());
+        decoy.accomplished = vec!["decoy accomplishment".into()];
+        decoy.epic = None;
+        decoy.branch = Some(branch.clone());
+        write_state(project_root.path(), &decoy).unwrap();
+
+        // Real content, explicitly under the slug cmd_epic_upsert is being asked to upsert —
+        // deliberately NOT the branch-derived epic, reproducing the divergence.
+        let mut real = sample_state();
+        real.session_label = Some("real content for totally-different-test-epic".into());
+        real.accomplished = vec!["real accomplishment".into()];
+        real.epic = Some("totally-different-test-epic".into());
+        real.branch = Some(branch);
+        write_state(project_root.path(), &real).unwrap();
+
+        let result = cmd_epic_upsert("totally-different-test-epic", "", "[]");
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+        result.unwrap();
+
+        let acc = brana_core::session_initiative::read_initiative(project_root.path(), "totally-different-test-epic")
+            .expect("accumulator must be created");
+        assert!(
+            acc.accomplished.iter().any(|a| a == "real accomplishment"),
+            "accumulator must fold in the state written under the given slug: {:?}", acc.accomplished
+        );
+        assert!(
+            !acc.accomplished.iter().any(|a| a == "decoy accomplishment"),
+            "accumulator must NOT pick up the branch-derived decoy state: {:?}", acc.accomplished
+        );
     }
 }

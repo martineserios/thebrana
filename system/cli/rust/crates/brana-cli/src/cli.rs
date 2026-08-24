@@ -633,6 +633,10 @@ pub enum SessionCmd {
         /// Filter sessions since this date (YYYY-MM-DD). Requires --all.
         #[arg(long)]
         since: Option<String>,
+        /// Read by explicit epic slug instead of guessing from the current branch
+        /// (pass "(orphan)" for the default/no-epic file). Ignored with --all.
+        #[arg(long)]
+        epic: Option<String>,
     },
     /// List past sessions from history
     History {
