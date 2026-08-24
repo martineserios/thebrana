@@ -28,7 +28,7 @@
       "type": "command"
     },
     "cc-changelog-review": {
-      "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)",
+      "_comment": "Weekly CC changelog diff \u2014 writes ~/.claude/cc-changelog-report.md if changes found (t-512)",
       "captureOutput": true,
       "command": "./system/scripts/cc-changelog-check.sh",
       "enabled": true,
@@ -39,7 +39,7 @@
       "type": "command"
     },
     "close-extraction": {
-      "_comment": "ADR-052 Track 2: nightly extraction — agy pass per queued close snapshot, learnings to reminders, daily summary.",
+      "_comment": "ADR-052 Track 2: nightly extraction \u2014 agy pass per queued close snapshot, learnings to reminders, daily summary.",
       "captureOutput": true,
       "command": "./system/cron/close-extraction.sh",
       "enabled": true,
@@ -62,7 +62,7 @@
       "type": "command"
     },
     "feed-index": {
-      "_comment": "t-1009: daily intelligence digest — feed-log.jsonl → ~/.claude/intelligence-feed-digest.md",
+      "_comment": "t-1009: daily intelligence digest \u2014 feed-log.jsonl \u2192 ~/.claude/intelligence-feed-digest.md",
       "captureOutput": true,
       "command": "./system/scripts/feed-index.sh",
       "enabled": true,
@@ -82,7 +82,7 @@
       "type": "command"
     },
     "feed-ruflo-index": {
-      "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Timeout 3600: indexing runs ~2 sections/s; backfill bulges (2026-06-12: 1783 sections ≈ 20min) blow a 300s cap",
+      "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Timeout 3600: indexing runs ~2 sections/s; backfill bulges (2026-06-12: 1783 sections \u2248 20min) blow a 300s cap",
       "captureOutput": true,
       "command": "./system/scripts/feed-ruflo-index.sh",
       "enabled": true,
@@ -92,7 +92,7 @@
       "type": "command"
     },
     "feed-summarize": {
-      "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p → feed-summaries.jsonl (feed-index joins at 19:00). Timeout 3600: backfill bulges (2026-06-12: 230 entries × ~15s) blow a 300s cap",
+      "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p \u2192 feed-summaries.jsonl (feed-index joins at 19:00). Timeout 3600: backfill bulges (2026-06-12: 230 entries \u00d7 ~15s) blow a 300s cap",
       "captureOutput": true,
       "command": "./system/scripts/feed-summarize.sh",
       "enabled": true,
@@ -113,7 +113,7 @@
       "type": "command"
     },
     "link-research-extraction": {
-      "_comment": "t-2306: capped pass over pending link-tagged tasks from telegram link-capture. t-2560 (2026-07-31): repointed from ./deploy/research-extraction.sh to the Rust subcommand, which completes a task ONLY after its content reaches the knowledge base — the gate the old script lacked (it marked completed on `claude -p` exit 0 while persisting nothing; personal-repo t-1366, P0, 6 links burned). STILL DISABLED pending a human enable: see t-2560. t-1364 (2026-08-01): wrapped in drain-links.sh — pull before drain, commit+push results after; preserves drain rc.",
+      "_comment": "t-2306: capped pass over pending link-tagged tasks from telegram link-capture. t-2560 (2026-07-31): repointed from ./deploy/research-extraction.sh to the Rust subcommand, which completes a task ONLY after its content reaches the knowledge base \u2014 the gate the old script lacked (it marked completed on `claude -p` exit 0 while persisting nothing; personal-repo t-1366, P0, 6 links burned). STILL DISABLED pending a human enable: see t-2560. t-1364 (2026-08-01): wrapped in drain-links.sh \u2014 pull before drain, commit+push results after; preserves drain rc.",
       "command": "~/enter_thebrana/personal/deploy/drain-links.sh",
       "enabled": true,
       "project": "~/enter_thebrana/personal",
@@ -122,7 +122,7 @@
       "type": "command"
     },
     "lint-heal": {
-      "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00).",
+      "_comment": "t-1075: weekly L2 memory lint+heal \u2014 dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00).",
       "captureOutput": true,
       "command": "./system/scripts/lint-heal.sh",
       "enabled": true,
@@ -132,7 +132,7 @@
       "type": "command"
     },
     "memory-consolidation": {
-      "_comment": "t-1834: threshold-triggered L3 consolidation — debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter).",
+      "_comment": "t-1834: threshold-triggered L3 consolidation \u2014 debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter).",
       "captureOutput": true,
       "command": "./system/scripts/memory-consolidation.sh",
       "enabled": true,
@@ -151,7 +151,7 @@
       "type": "command"
     },
     "reindex-knowledge": {
-      "_comment": "Weekly full reindex — runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)",
+      "_comment": "Weekly full reindex \u2014 runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)",
       "captureOutput": true,
       "command": "./system/scripts/index-knowledge.sh",
       "enabled": true,
@@ -162,7 +162,7 @@
       "type": "command"
     },
     "reindex-patterns": {
-      "_comment": "Weekly pattern namespace reindex — runs at 3am (after knowledge reindex), ~1h max (t-857)",
+      "_comment": "Weekly pattern namespace reindex \u2014 runs at 3am (after knowledge reindex), ~1h max (t-857)",
       "captureOutput": true,
       "command": "./system/scripts/index-patterns.sh",
       "enabled": true,
@@ -201,7 +201,7 @@
       "type": "command"
     },
     "sync-state": {
-      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos",
+      "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos",
       "captureOutput": true,
       "command": "./system/scripts/sync-state.sh push --auto-commit",
       "enabled": true,
@@ -211,7 +211,7 @@
       "type": "command"
     },
     "oracle-brana-drift": {
-      "_comment": "t-2501: audits oracle-hub brana manifest (ship-brana-oracle.sh provenance) — UNMANAGED/SWAPPED/DRIFT exit 1 -> FAILED job = the visible signal. Unreachable hub is a clean skip (exit 0). noProjectLock: read-only wrt shared state (ssh + own git fetch); also avoids the 600s lock-wait vs 180s TimeoutStartSec kill window (seen 2026-08-02 smoke run).",
+      "_comment": "t-2501: audits oracle-hub brana manifest (ship-brana-oracle.sh provenance) \u2014 UNMANAGED/SWAPPED/DRIFT exit 1 -> FAILED job = the visible signal. Unreachable hub is a clean skip (exit 0). noProjectLock: read-only wrt shared state (ssh + own git fetch); also avoids the 600s lock-wait vs 180s TimeoutStartSec kill window (seen 2026-08-02 smoke run).",
       "type": "command",
       "command": "~/enter_thebrana/thebrana/system/scripts/check-oracle-brana-drift.sh",
       "project": "~/enter_thebrana/thebrana",
@@ -227,6 +227,15 @@
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 0/4:20:00",
       "timeoutSeconds": 600,
+      "type": "command"
+    },
+    "link-research-extraction-youtube": {
+      "_comment": "t-2956 (feature spec \u00a75, docs/architecture/features/youtube-knowledge-extraction.md): youtube is excluded from link-research-extraction's shared batch and drains here instead, its own --platform filter, own cap, own backoff/retry (yt-dlp's HTTP 429 handling lives inside fetch_youtube_content, not this job) \u2014 so a stuck or retrying youtube fetch can only starve this job's own slots, never LinkedIn/GitHub/Substack/arxiv's. Same project as link-research-extraction (the shared task source), offset 2h from it on the same 4h cadence so the two jobs don't race the tasks.json lock. Disabled pending a human enable once the yt-dlp fetch path (t-2950) has shipped and been validated live \u2014 see that task before flipping this on. Before enabling: YouTube's bot-check blocks unauthenticated yt-dlp (t-3033, spec \u00a77), so export a cookie jar to the persisted default path ~/.config/brana/yt-cookies.txt at mode 0600 (recipe in docs/guide/features/knowledge-drain-links.md \u00a7 YouTube needs an authenticated session) \u2014 brana picks it up with no flag (t-3038, spec \u00a78) and refuses a jar readable by others. Without the jar, every run fails exactly as the unauthenticated drain did live on 2026-08-23. An explicit `--cookies <path>` still overrides the default.",
+      "command": "brana knowledge drain-links --cap 3 --platform youtube",
+      "enabled": false,
+      "project": "~/enter_thebrana/personal",
+      "schedule": "*-*-* 2/4:00:00",
+      "timeoutSeconds": 1800,
       "type": "command"
     }
   },
