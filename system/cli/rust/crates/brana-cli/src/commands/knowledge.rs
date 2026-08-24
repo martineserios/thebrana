@@ -2075,6 +2075,7 @@ pub fn cmd_next() -> Result<()> {
 pub fn cmd_ingest(
     sources: Vec<String>,
     source_tag: Option<String>,
+    from_ruflo: Option<String>,
     dry_run: bool,
 ) -> Result<()> {
     let mut raw_text = String::new();
@@ -2127,6 +2128,13 @@ pub fn cmd_ingest(
     );
     println!("  {} URL(s) extracted\n", extracted.len());
 
+    if from_ruflo.is_some() && extracted.len() != 1 {
+        bail!(
+            "--from-ruflo names one stored entry, so it takes exactly one URL (got {})",
+            extracted.len()
+        );
+    }
+
     let state_path = kp::pipeline_state_path();
     // t-2247: dedup-against-state + queue is a load→modify→save — lock it.
     let _lock = kp::lock_pipeline()?;
@@ -2138,9 +2146,45 @@ pub fn cmd_ingest(
         println!("  · {} duplicate(s) skipped", result.duplicates);
     }
 
+    // t-3177: attach already-drained ruflo content at ingest time — ingest
+    // stays the sole PipelineState writer (ADR-042 §1). Explicit key first;
+    // otherwise best-effort probe, LongForm URLs only (short-signal tiers
+    // never read fetched_content, and a ruflo round-trip per URL would
+    // drag on big WA-dump batches).
+    let mut populated = 0usize;
+    if !dry_run {
+        if let Some(key) = &from_ruflo {
+            let content = ruflo_memory_get(key, PROCESS_URL_NAMESPACE)
+                .with_context(|| format!("reading {key}"))?
+                .ok_or_else(|| anyhow::anyhow!("no ruflo entry stored at {key}"))?;
+            kp::populate_fetched_content(&mut state, &extracted[0], &content);
+            populated += 1;
+        } else {
+            for url in &extracted {
+                let adapter = kp::PlatformAdapter::for_platform(kp::classify_platform(url));
+                if adapter != kp::PlatformAdapter::LongForm {
+                    continue;
+                }
+                match ruflo_memory_get(&url_storage_key(url), PROCESS_URL_NAMESPACE) {
+                    Ok(Some(content)) => {
+                        kp::populate_fetched_content(&mut state, url, &content);
+                        populated += 1;
+                    }
+                    Ok(None) => {}
+                    // Best-effort enrichment: a ruflo outage must not block
+                    // queueing — the entry just stays content-less.
+                    Err(e) => eprintln!("  warning: ruflo probe failed for {url}: {e}"),
+                }
+            }
+        }
+        if populated > 0 {
+            println!("  ✓ {populated} entr(ies) enriched with drained content");
+        }
+    }
+
     if dry_run {
         println!("  [dry-run] state not written.");
-    } else if result.queued > 0 {
+    } else if result.queued > 0 || populated > 0 {
         kp::save_state(&state_path, &state)?;
         println!("\n  Next: brana knowledge process --status");
     }

@@ -2495,6 +2495,46 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     result
 }
 
+/// Outcome of [`populate_fetched_content`].
+#[derive(Debug, PartialEq, Eq)]
+pub enum PopulateOutcome {
+    /// No entry existed under the canonical key — a fresh `Unprocessed`
+    /// entry was created, platform-tagged like any ingested URL.
+    Created,
+    /// The existing canonical entry's `fetched_content` was set.
+    Updated,
+}
+
+/// Attach already-fetched content (e.g. a drained YouTube transcript read
+/// back from ruflo) to the canonical-keyed [`UrlEntry`], creating the entry
+/// if the URL was never queued (t-3174/t-3177). Part of the ingest family —
+/// ADR-042 §1 keeps ingest the sole writer into [`PipelineState`], so
+/// drain-links/process-url must never call this (locked by the
+/// `test_adr042_ingest_sole_pipeline_state_writer_tripwire` source scan).
+/// Never advances `status`: content attachment is not tier progress.
+pub fn populate_fetched_content(
+    state: &mut PipelineState,
+    url: &str,
+    content: &str,
+) -> PopulateOutcome {
+    let key = canonicalize_url(url);
+    if let Some(entry) = state.urls.get_mut(&key) {
+        entry.fetched_content = Some(content.to_string());
+        return PopulateOutcome::Updated;
+    }
+    let (author, title_signal) =
+        parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
+    let entry = UrlEntry {
+        author: Some(author),
+        title_signal: Some(title_signal),
+        platform: Some(classify_platform(url).to_string()),
+        fetched_content: Some(content.to_string()),
+        ..UrlEntry::new_unprocessed(None)
+    };
+    state.urls.insert(key, entry);
+    PopulateOutcome::Created
+}
+
 /// Result of a [`migrate_urls_to_canonical_keys`] run.
 pub struct KeyMigrationResult {
     /// Entries moved from a decorated key to their canonical key.

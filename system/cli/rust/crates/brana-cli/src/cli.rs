@@ -504,6 +504,11 @@ pub enum KnowledgeCmd {
         /// Provenance tag stored on each new URL entry (e.g. telegram)
         #[arg(long)]
         source: Option<String>,
+        /// Attach the content stored at this ruflo knowledge:url:* key to the
+        /// (single) ingested URL's entry, instead of deriving the key from
+        /// the URL (t-3177)
+        #[arg(long, value_name = "KEY")]
+        from_ruflo: Option<String>,
         /// Print planned actions without writing anything
         #[arg(long)]
         dry_run: bool,

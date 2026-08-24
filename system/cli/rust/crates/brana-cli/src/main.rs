@@ -249,8 +249,8 @@ fn main() {
             KnowledgeCmd::Promote { draft_path, dry_run } => {
                 run_or_exit(commands::knowledge::cmd_promote(draft_path, dry_run))
             }
-            KnowledgeCmd::Ingest { sources, source, dry_run } => {
-                run_or_exit(commands::knowledge::cmd_ingest(sources, source, dry_run))
+            KnowledgeCmd::Ingest { sources, source, from_ruflo, dry_run } => {
+                run_or_exit(commands::knowledge::cmd_ingest(sources, source, from_ruflo, dry_run))
             }
             KnowledgeCmd::MigrateKeys { dry_run } => {
                 run_or_exit(commands::knowledge::cmd_migrate_keys(dry_run))
