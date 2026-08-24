@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24T01:06:49Z",
+  "generated": "2026-08-24T01:23:58Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -628,7 +628,9 @@
     "docs/architecture/agentic-primitives.md": {
       "title": "Agentic Primitives — Taxonomy and the Target Process Loop",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/skills/_shared/challenger-gate.md"
+      ]
     },
     "docs/architecture/agents.md": {
       "title": "Agents Architecture",
