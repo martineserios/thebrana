@@ -5814,6 +5814,196 @@ id3
         assert!(state.urls.contains_key(inner.as_str()));
     }
 
+    // ── LongFormAdapter tiers (t-3176/t-3179, ADR-087) ────────────────────
+
+    /// Deterministic bag-of-words embedder: shared vocabulary → high cosine.
+    /// Mirrors vector.rs's FakeEmbedder pattern — no ruflo in unit tests.
+    struct BagOfWordsEmbedder;
+    impl crate::vector::Embedder for BagOfWordsEmbedder {
+        fn embed(&self, text: &str) -> Option<Vec<f32>> {
+            let mut v = vec![0f32; 64];
+            for word in text.to_ascii_lowercase().split_whitespace() {
+                let mut h = 0usize;
+                for b in word.bytes() {
+                    h = h.wrapping_mul(31).wrapping_add(b as usize);
+                }
+                v[h % 64] += 1.0;
+            }
+            let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if norm > 0.0 {
+                for x in &mut v {
+                    *x /= norm;
+                }
+            }
+            Some(v)
+        }
+    }
+
+    fn yt_event_entry(url: &str) -> UrlEventEntry {
+        UrlEventEntry {
+            url: url.to_string(),
+            author: "channel".to_string(),
+            title_signal: "some video".to_string(),
+            tags: vec![],
+            logged_date: "2026-08-24".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_tier1_partition_routes_long_form_to_auto_pass() {
+        // LongForm entries must never reach the LLM scoring batch (ADR-087:
+        // re-scoring curated content is wasted LLM cost); short-signal
+        // entries must all still go to the LLM.
+        let batch = vec![
+            yt_event_entry("https://www.youtube.com/watch?v=abc"),
+            yt_event_entry("https://linkedin.com/posts/x_y-123"),
+            yt_event_entry("https://github.com/foo/bar"),
+        ];
+        let (auto_pass, llm) = tier1_partition(batch);
+        assert_eq!(auto_pass.len(), 1);
+        assert!(auto_pass[0].url.contains("youtube"));
+        assert_eq!(llm.len(), 2);
+        assert!(llm.iter().all(|e| !e.url.contains("youtube")));
+    }
+
+    #[test]
+    fn test_long_form_tier1_entry_auto_passes_with_fixed_score() {
+        let e = yt_event_entry("https://www.youtube.com/watch?v=abc");
+        let entry = long_form_tier1_entry(&e);
+        assert_eq!(entry.status, UrlStatus::Tier1Passed);
+        assert_eq!(entry.tier1_score, Some(LONG_FORM_AUTO_SCORE));
+        let reason = entry.tier1_reason.expect("auto-pass must carry a reason");
+        assert!(reason.contains("auto-pass"), "reason must say it auto-passed, got: {reason}");
+        assert_eq!(entry.platform.as_deref(), Some("youtube"));
+    }
+
+    #[test]
+    fn test_cluster_long_form_assigns_nearest_dimension() {
+        // Fixture-based quality check (spec Testing Strategy): known-similar
+        // transcripts cluster to the matching dimension, dissimilar don't
+        // cross over. Embedding similarity only — no LLM call in the seam.
+        let entries = vec![
+            (
+                "https://www.youtube.com/watch?v=mem".to_string(),
+                "agent memory systems store recall context for agents \
+                 memory retrieval and agent context windows"
+                    .to_string(),
+            ),
+            (
+                "https://www.youtube.com/watch?v=cli".to_string(),
+                "rust cli tooling cargo commands terminal rust tooling \
+                 building cli apps in rust"
+                    .to_string(),
+            ),
+        ];
+        let dims = vec![
+            (
+                "agent-memory".to_string(),
+                "agent memory recall context storage retrieval".to_string(),
+            ),
+            (
+                "cli-tooling".to_string(),
+                "rust cli cargo terminal tooling commands".to_string(),
+            ),
+        ];
+        let assignments =
+            cluster_long_form_entries(&entries, &dims, &BagOfWordsEmbedder, 0.1);
+        assert_eq!(assignments.len(), 2);
+        let by_url: std::collections::HashMap<_, _> = assignments
+            .iter()
+            .map(|a| (a.url.as_str(), a.dimension_target.as_str()))
+            .collect();
+        assert_eq!(by_url["https://www.youtube.com/watch?v=mem"], "agent-memory");
+        assert_eq!(by_url["https://www.youtube.com/watch?v=cli"], "cli-tooling");
+    }
+
+    #[test]
+    fn test_cluster_long_form_dissimilar_flags_new_topic() {
+        let entries = vec![(
+            "https://www.youtube.com/watch?v=cook".to_string(),
+            "sourdough bread baking hydration flour starter oven".to_string(),
+        )];
+        let dims = vec![(
+            "agent-memory".to_string(),
+            "agent memory recall context storage retrieval".to_string(),
+        )];
+        let assignments =
+            cluster_long_form_entries(&entries, &dims, &BagOfWordsEmbedder, 0.5);
+        assert_eq!(assignments.len(), 1);
+        assert_eq!(assignments[0].dimension_target, "new-topic");
+    }
+
+    #[test]
+    fn test_cluster_long_form_single_source_still_assigns() {
+        // n=1 clusters are valid, matching LinkedIn's existing single-source
+        // handling — no minimum cluster size.
+        let entries = vec![(
+            "https://www.youtube.com/watch?v=mem".to_string(),
+            "agent memory recall context storage".to_string(),
+        )];
+        let dims = vec![(
+            "agent-memory".to_string(),
+            "agent memory recall context storage retrieval".to_string(),
+        )];
+        let assignments =
+            cluster_long_form_entries(&entries, &dims, &BagOfWordsEmbedder, 0.1);
+        assert_eq!(assignments.len(), 1);
+        assert_eq!(assignments[0].dimension_target, "agent-memory");
+    }
+
+    #[test]
+    fn test_partition_draft_sources_skips_empty_content() {
+        // Edge case (feature spec): empty/missing fetched_content skips with
+        // a log line rather than drafting from nothing.
+        let sources = vec![
+            ("https://a".to_string(), Some("real transcript text".to_string())),
+            ("https://b".to_string(), Some("   ".to_string())),
+            ("https://c".to_string(), None),
+        ];
+        let (with_content, skipped) = partition_draft_sources(sources);
+        assert_eq!(with_content.len(), 1);
+        assert_eq!(with_content[0].0, "https://a");
+        assert_eq!(skipped, vec!["https://b".to_string(), "https://c".to_string()]);
+    }
+
+    #[test]
+    fn test_long_form_draft_prompt_includes_excerpts() {
+        let sources = vec![(
+            "https://www.youtube.com/watch?v=mem".to_string(),
+            "channel".to_string(),
+            "agent memory deep dive".to_string(),
+            "transcripts show that agent memory decays without consolidation".to_string(),
+        )];
+        let prompt = build_long_form_draft_prompt(
+            "agent-memory-deep-dives",
+            "agent-memory",
+            "(existing summary)",
+            &sources,
+        );
+        assert!(
+            prompt.contains("agent memory decays without consolidation"),
+            "draft prompt must ground in real fetched_content excerpts, got: {prompt}"
+        );
+        assert!(prompt.contains("channel"), "prompt keeps author attribution");
+    }
+
+    #[test]
+    fn test_long_form_draft_prompt_truncates_excerpts() {
+        let long_content = "word ".repeat(5000); // ~25k chars
+        let sources = vec![(
+            "https://www.youtube.com/watch?v=long".to_string(),
+            "channel".to_string(),
+            "very long video".to_string(),
+            long_content.clone(),
+        )];
+        let prompt = build_long_form_draft_prompt("t", "d", "(s)", &sources);
+        assert!(
+            prompt.len() < long_content.len(),
+            "excerpts must be truncated, not full transcripts"
+        );
+        assert!(prompt.len() < DRAFT_EXCERPT_CHARS + 2000, "prompt stays within excerpt budget");
+    }
+
     // ── populate_fetched_content (t-3174/t-3177, ingest ruflo wiring) ─────
 
     #[test]
