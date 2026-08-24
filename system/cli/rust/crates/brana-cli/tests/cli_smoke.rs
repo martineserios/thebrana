@@ -262,7 +262,7 @@ const FOCUS_FIXTURE: &str = r#"{
   "version": "1",
   "project": "test",
   "tasks": [
-    {"id":"t-001","subject":"epic task","type":"task","status":"pending","priority":"P2","effort":"S","epic":"cc-alignment","work_type":"implement","tags":[],"created":"2026-01-01"},
+    {"id":"t-001","subject":"epic task","type":"task","status":"in_progress","started":"2026-08-20","priority":"P2","effort":"S","epic":"cc-alignment","work_type":"implement","tags":[],"created":"2026-01-01"},
     {"id":"t-002","subject":"overflow task","type":"task","status":"pending","priority":"P1","effort":"S","tags":[],"created":"2026-01-01"},
     {"id":"t-003","subject":"research task","type":"task","status":"pending","priority":"P2","effort":"M","work_type":"research","tags":[],"created":"2026-01-01"}
   ]
@@ -270,14 +270,13 @@ const FOCUS_FIXTURE: &str = r#"{
 
 #[test]
 fn backlog_focus_shows_epic_header() {
+    // ADR-088: epic focus is task-derived — the most-recently-started
+    // in_progress task's flat .epic field (v2 schema) — not read from
+    // tasks-config.json. No config file involved at all.
     let tmp = tempfile::tempdir().unwrap();
     let claude_dir = tmp.path().join(".claude");
     std::fs::create_dir_all(&claude_dir).unwrap();
     std::fs::write(claude_dir.join("tasks.json"), FOCUS_FIXTURE).unwrap();
-    std::fs::write(
-        claude_dir.join("tasks-config.json"),
-        r#"{"active_epic":"cc-alignment"}"#,
-    ).unwrap();
     brana()
         .args(["backlog", "focus"])
         .current_dir(tmp.path())
@@ -288,53 +287,28 @@ fn backlog_focus_shows_epic_header() {
 }
 
 #[test]
-fn backlog_set_active_writes_project_local_not_global() {
-    // Per-repo config (t-2158): set-active writes to the project-local .claude/,
-    // never to the global $HOME/.claude/. HOME and CWD are distinct dirs so the
-    // test can prove which one received the write.
-    let home = tempfile::tempdir().unwrap();
-    let proj = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
-    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
-    brana()
-        .args(["backlog", "set-active", "test-initiative"])
-        .env("HOME", home.path())
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .current_dir(proj.path())
-        .assert()
-        .success();
-    let local = proj.path().join(".claude/tasks-config.json");
-    let global = home.path().join(".claude/tasks-config.json");
-    assert!(local.exists(), "project-local tasks-config.json should be created");
-    assert!(!global.exists(), "global config must NOT be written");
-    let cfg: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(&local).unwrap()).unwrap();
-    assert_eq!(cfg["active_epic"].as_str(), Some("test-initiative"));
-}
-
-#[test]
-fn set_active_hard_stop_when_no_project_root_determinable() {
-    // t-2296 / ADR-066: when no git repo and no pre-existing local .claude/ can be
-    // found, set-active must fail loudly rather than silently write active_epic to
-    // the global $HOME/.claude/tasks-config.json (the exact bleed vector this ADR
-    // exists to close). CWD is a bare tempdir outside any git repo, with no .claude/.
-    let home = tempfile::tempdir().unwrap();
-    let proj = tempfile::tempdir().unwrap();
+fn set_active_subcommand_no_longer_exists() {
+    // ADR-088: set-active is removed entirely (clean removal, not a
+    // deprecated no-op) — writing it is actively misleading once nothing
+    // reads active_epic. Assert the actual clap error content, not just a
+    // non-zero exit — a bare exit-code check can't distinguish this from
+    // any other failure mode (challenger finding, 2026-08-24).
     brana()
         .args(["backlog", "set-active", "test-epic"])
-        .env("HOME", home.path())
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .current_dir(proj.path())
         .assert()
-        .failure();
-    let global = home.path().join(".claude/tasks-config.json");
-    assert!(!global.exists(), "must not write active_epic to the global config on fallback");
+        .failure()
+        .stderr(predicate::str::contains("unrecognized subcommand").or(
+            predicate::str::contains("set-active"),
+        ));
 }
 
 #[test]
-fn config_inherits_theme_but_not_active_epic_from_global() {
-    // On first set-active, theme seeds from global (inheritable) but a foreign
-    // active_epic does NOT bleed in (project-scoped key never inherits).
+fn focus_ignores_stale_active_epic_in_config_json() {
+    // A leftover active_epic key (from before this ADR shipped) in either
+    // local or global tasks-config.json is now a harmless, inert orphan —
+    // focus must never surface it, because nothing reads that key anymore.
+    // With no in_progress task in the fixture, focus must show no epic at
+    // all, proving the config value isn't a fallback source.
     let home = tempfile::tempdir().unwrap();
     let proj = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
@@ -344,37 +318,14 @@ fn config_inherits_theme_but_not_active_epic_from_global() {
         r#"{"active_epic":"foreign-epic","theme":"emoji"}"#,
     )
     .unwrap();
-    brana()
-        .args(["backlog", "set-active", "proj-epic"])
-        .env("HOME", home.path())
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .current_dir(proj.path())
-        .assert()
-        .success();
-    let local: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(proj.path().join(".claude/tasks-config.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(local["active_epic"].as_str(), Some("proj-epic"), "local epic set");
-    assert_eq!(local["theme"].as_str(), Some("emoji"), "theme seeded from global");
-}
-
-#[test]
-fn focus_does_not_inherit_global_active_epic() {
-    // THE BLEED FIX: focus in a project with no local config must NOT surface the
-    // global (foreign) active_epic. Reproduces the original bug from a client repo.
-    let home = tempfile::tempdir().unwrap();
-    let proj = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
-    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
     std::fs::write(
-        home.path().join(".claude/tasks-config.json"),
-        r#"{"active_epic":"foreign-epic","theme":"emoji"}"#,
+        proj.path().join(".claude/tasks-config.json"),
+        r#"{"active_epic":"stale-local-epic"}"#,
     )
     .unwrap();
     std::fs::write(
         proj.path().join(".claude/tasks.json"),
-        r#"{"version":"1","project":"proj","tasks":[]}"#,
+        r#"{"version":"1","project":"proj","tasks":[{"id":"t-1","subject":"x","type":"task","status":"pending","tags":[],"blocked_by":[]}]}"#,
     )
     .unwrap();
     brana()
@@ -384,26 +335,25 @@ fn focus_does_not_inherit_global_active_epic() {
         .current_dir(proj.path())
         .assert()
         .success()
-        .stdout(predicate::str::contains("foreign-epic").not());
+        .stdout(predicate::str::contains("foreign-epic").not())
+        .stdout(predicate::str::contains("stale-local-epic").not());
 }
 
 #[test]
-fn focus_fails_loud_when_active_epic_resolves_to_nothing() {
-    // t-2314 (ADR-065): a project-local active_epic that doesn't resolve to
-    // any task or epic node must error, not silently produce a no-boost view.
+fn focus_fails_loud_when_explicit_epic_flag_resolves_to_nothing() {
+    // t-2314 (ADR-065) behavior preserved for the EXPLICIT --epic path only:
+    // resolve_focus_epic()'s task-derived tier is non-fatal (falls through to
+    // no-boost), but assert_active_epic_resolves() stays fail-loud when the
+    // caller explicitly asked for an epic that doesn't exist.
     let home = tempfile::tempdir().unwrap();
     let proj = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
-    std::fs::write(
-        proj.path().join(".claude/tasks-config.json"),
-        r#"{"active_epic":"nonexistent-epic"}"#,
-    ).unwrap();
     std::fs::write(
         proj.path().join(".claude/tasks.json"),
         r#"{"version":"1","project":"proj","tasks":[{"id":"t-1","subject":"x","type":"task","status":"pending","tags":[],"blocked_by":[],"epic":"a-different-epic"}]}"#,
     ).unwrap();
     brana()
-        .args(["backlog", "focus"])
+        .args(["backlog", "focus", "--epic", "nonexistent-epic"])
         .env("HOME", home.path())
         .env_remove("CLAUDE_PROJECT_DIR")
         .current_dir(proj.path())
@@ -536,41 +486,6 @@ fn backlog_add_without_project_writes_to_current_project() {
         1,
         "no --project flag → task lands in the current project's tasks.json"
     );
-}
-
-#[test]
-fn focus_local_config_without_active_epic_shows_no_foreign_epic() {
-    // Challenger finding 1, partial-key path: a project-local config that EXISTS but has
-    // no active_epic key must not fall back to the global active_epic (local is
-    // authoritative wholesale). Distinct code path from the no-file-at-all fallback.
-    let home = tempfile::tempdir().unwrap();
-    let proj = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(proj.path().join(".claude")).unwrap();
-    std::fs::create_dir_all(home.path().join(".claude")).unwrap();
-    // Global has a foreign active_epic; local exists with only a theme (no active_epic).
-    std::fs::write(
-        home.path().join(".claude/tasks-config.json"),
-        r#"{"active_epic":"foreign-epic","theme":"emoji"}"#,
-    )
-    .unwrap();
-    std::fs::write(
-        proj.path().join(".claude/tasks-config.json"),
-        r#"{"theme":"classic"}"#,
-    )
-    .unwrap();
-    std::fs::write(
-        proj.path().join(".claude/tasks.json"),
-        r#"{"version":"1","project":"proj","tasks":[]}"#,
-    )
-    .unwrap();
-    brana()
-        .args(["backlog", "focus", "--json"])
-        .env("HOME", home.path())
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .current_dir(proj.path())
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("foreign-epic").not());
 }
 
 #[test]
