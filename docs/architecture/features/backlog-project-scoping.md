@@ -1,5 +1,12 @@
 # Feature: Per-Project Backlog Scoping + Cross-Project Task Creation
 
+> **Superseded in part by [session-scoped-epic-focus.md](session-scoped-epic-focus.md)
+> (2026-08-24, ADR-088, t-3196).** Everything below about `active_epic`/
+> `set-active`/`PROJECT_SCOPED_KEYS` describes the retired project-scoped-config
+> design — `active_epic` is no longer a config-file concept at all. The
+> cross-project task creation (`--project` flag) content is still current and
+> unaffected.
+
 **Date:** 2026-06-20
 **Status:** built
 **Task:** t-2155 (subtasks t-2157..t-2160)

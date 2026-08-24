@@ -1,5 +1,11 @@
 # Feature: Active-Epic Project Scoping — Cleanup + Enforcement
 
+> **Superseded by [session-scoped-epic-focus.md](session-scoped-epic-focus.md)
+> (2026-08-24, ADR-088, t-3196).** The `active_epic` config-file mechanism this
+> spec cleans up and enforces is retired entirely — session-scoped, task-derived
+> resolution replaces it. This doc's `set-active`/`active_epic` content
+> describes a design that no longer exists; kept for historical record.
+
 **Date:** 2026-07-22
 **Status:** shipped
 **Task:** t-2281

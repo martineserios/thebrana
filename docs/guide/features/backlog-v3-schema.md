@@ -21,12 +21,14 @@ Epics have no WIP cap — an epic is an unbounded grouping of "what we're buildi
 
 `blocked_by` works on epics the same way it works on tasks — an epic blocked on a prior epic stays `blocked` until that epic reaches `done` or `archived`.
 
-## `active_epic` fails loud now
+## Explicit `--epic` fails loud; task-derived resolution doesn't
 
-`backlog focus` (and the MCP `backlog_focus` tool) used to silently produce an unscored, no-boost view if `active_epic` (in `tasks-config.json`) didn't match anything. It now errors instead:
+`backlog focus` (and the MCP `backlog_focus` tool) resolves its epic per-session now — the most-recently-started `in_progress` task's epic, not a config file (ADR-088, t-3196; see [session-scoped-epic-focus.md](session-scoped-epic-focus.md)). That resolution is non-fatal: if no task is in progress, or its epic doesn't resolve to anything real, `focus` just falls through to plain priority order — no error.
+
+Passing `--epic` explicitly is different: an epic slug you name yourself that doesn't resolve to anything real still errors loudly, same as before:
 
 ```bash
-brana backlog focus
+brana backlog focus --epic nonexistent-epic
 # {"ok":false,"error":"active_epic \"nonexistent-epic\" does not resolve to any epic node or task — ..."}
 ```
 
@@ -89,7 +91,7 @@ Rules worth knowing:
 The mechanical collapse (`level` → `type`, flat `epic` → epic nodes) has a script — `system/scripts/migrate/collapse-level-epic-v3.py` — but it has **not been run against live data yet**. Until it runs:
 
 - `level` and `epic` are sealed as write fields (you can't set them anymore — `--epic` is a deprecated no-op, a JSON payload containing `level`/`epic` is rejected)
-- existing tasks still carry their old `level`/flat-`epic` values, and `active_epic` resolution/`backlog focus` fall back to reading the flat tag for compatibility
+- existing tasks still carry their old `level`/flat-`epic` values, and `backlog focus`'s task-derived epic resolution reads the flat tag directly for these (v2-schema compatibility)
 - `validate.sh` Check 63 will flag any task still carrying `level`/`epic` once the migration is expected to have run
 
 Once the migration runs (`--write`), 1,108 previously-unparented tasks re-home under their epic node automatically; 714 tasks that already sit under a milestone/phase keep that parent and just lose the flat `epic` tag (see the tech doc for why).
