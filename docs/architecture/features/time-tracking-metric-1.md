@@ -135,6 +135,10 @@ Presence of this file = a bracket is open in this worktree; absence = none open.
 - [ ] **User guide** — deferred to t-2925+ (the query/aggregation command); this task has no user-facing surface yet (LOAD/CLOSE markers are internal)
 - [x] **Existing docs to update** — `docs/ideas/task-time-tracking.md` Next Steps #3/#4 status, marked DONE (2026-08-18)
 
+## Changelog
+
+- 2026-08-24: worktree transcript resolution fixed (main-checkout fallback via `--git-common-dir` parent), START warns loudly on unresolvable transcript, CLOSE falls back to wall-clock (`coverage: partial`, `turn_count: 0`) when no transcript was recorded; recorded-but-deleted still fails closed (t-3044, 467b62a6). Sibling worktree-blind helpers scoped out to t-3191; close idempotence + coverage cells to t-3193.
+
 ## Challenger findings
 
 **Iteration 1 (2026-08-18), RECONSIDER, 2 sev-4 — both fixed:**
