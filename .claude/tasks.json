@@ -80287,7 +80287,8 @@
       ],
       "type": "task",
       "work_type": "implement",
-      "strategy": "bug-fix"
+      "strategy": "bug-fix",
+      "build_step": "build"
     },
     {
       "ac_state": "none",
@@ -84307,6 +84308,39 @@
       "notes": null,
       "order": 0,
       "github_issue": "1058",
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-3188",
+      "subject": "Refactor ingestion pipeline for structured entity-aware extraction (per t-3186 topology)",
+      "status": "pending",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [
+        "knowledge",
+        "ontology",
+        "entities",
+        "pipeline"
+      ],
+      "description": "Once t-3186 designs the entity topology (people, companies, software as first-class linked entities), re-read the whole ingestion path end to end — ingest, process-url/drain-links fetch layer, extract_insight summarization, Tier1/2/3 (post-t-3151 PlatformAdapter shape) — and refactor it so that whatever enters via ingestion (LinkedIn post, YouTube transcript, article, bare link) has its knowledge extracted STRUCTURALLY against the designed topology, not as free-text blobs: entities identified and linked at extraction time, stored in whatever entity store t-3186 selects, so cross-content learnings (same person across posts/videos/tools, same company across products) accumulate instead of staying locked in isolated text.\n\nThis is the implementation counterpart to t-3186's research: t-3186 decides WHAT the topology is and where entities live; this task rebuilds extraction to actually populate it. Scope is deliberately end-to-end (a refactor of the extraction contract, not a bolt-on step) — expect it to decompose into its own subtask tree via /brana:build SPECIFY/DECOMPOSE when started.",
+      "effort": "L",
+      "priority": null,
+      "parent": "t-2348",
+      "created": "2026-08-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-3186",
+        "t-3151"
+      ],
+      "branch": null,
+      "context": "2026-08-24: filed by user immediately after t-3186 (entity topology research) and t-3187 (LinkedIn comment/image extraction) — the third leg: topology design (t-3186) -> richer raw capture (t-3187) -> this refactor makes extraction structural against the topology. Hard-blocked by t-3186 (cannot structure extraction around an undesigned topology). Soft dependency on t-3151 (PlatformAdapter) — the adapter-shaped pipeline is the structure this refactors into; starting before t-3151 lands would refactor a moving target.",
+      "notes": null,
+      "order": 0,
+      "github_issue": "1059",
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
