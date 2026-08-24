@@ -2254,8 +2254,40 @@ pub fn cmd_ingest(
         );
     }
 
+    // t-3177 ruflo prefetch — BEFORE the pipeline lock (rung-2 concurrency
+    // finding): ruflo_memory_get spawns a subprocess with a 15s timeout, so
+    // probing under the exclusive lock would serialize every concurrent
+    // pipeline command behind a possibly-hung ruflo binary. Explicit key
+    // first; otherwise best-effort probe, LongForm URLs only (short-signal
+    // tiers never read fetched_content, and a ruflo round-trip per URL
+    // would drag on big WA-dump batches).
+    let mut prefetched: Vec<(String, String)> = Vec::new();
+    if !dry_run {
+        if let Some(key) = &from_ruflo {
+            let content = ruflo_memory_get(key, PROCESS_URL_NAMESPACE)
+                .with_context(|| format!("reading {key}"))?
+                .ok_or_else(|| anyhow::anyhow!("no ruflo entry stored at {key}"))?;
+            prefetched.push((extracted[0].clone(), content));
+        } else {
+            for url in &extracted {
+                let adapter = kp::PlatformAdapter::for_platform(kp::classify_platform(url));
+                if adapter != kp::PlatformAdapter::LongForm {
+                    continue;
+                }
+                match ruflo_memory_get(&url_storage_key(url), PROCESS_URL_NAMESPACE) {
+                    Ok(Some(content)) => prefetched.push((url.clone(), content)),
+                    Ok(None) => {}
+                    // Best-effort enrichment: a ruflo outage must not block
+                    // queueing — the entry just stays content-less.
+                    Err(e) => eprintln!("  warning: ruflo probe failed for {url}: {e}"),
+                }
+            }
+        }
+    }
+
     let state_path = kp::pipeline_state_path();
     // t-2247: dedup-against-state + queue is a load→modify→save — lock it.
+    // Only fast in-memory work happens in this span.
     let _lock = kp::lock_pipeline()?;
     let mut state = kp::load_state(&state_path)?;
     let result = kp::ingest_urls(&extracted, source_tag.as_deref(), &mut state);
@@ -2265,40 +2297,15 @@ pub fn cmd_ingest(
         println!("  · {} duplicate(s) skipped", result.duplicates);
     }
 
-    // t-3177: attach already-drained ruflo content at ingest time — ingest
-    // stays the sole PipelineState writer (ADR-042 §1). Explicit key first;
-    // otherwise best-effort probe, LongForm URLs only (short-signal tiers
-    // never read fetched_content, and a ruflo round-trip per URL would
-    // drag on big WA-dump batches).
+    // Apply prefetched content under the lock — ingest stays the sole
+    // PipelineState writer (ADR-042 §1).
     let mut populated = 0usize;
-    if !dry_run {
-        if let Some(key) = &from_ruflo {
-            let content = ruflo_memory_get(key, PROCESS_URL_NAMESPACE)
-                .with_context(|| format!("reading {key}"))?
-                .ok_or_else(|| anyhow::anyhow!("no ruflo entry stored at {key}"))?;
-            kp::populate_fetched_content(&mut state, &extracted[0], &content);
-            populated += 1;
-        } else {
-            for url in &extracted {
-                let adapter = kp::PlatformAdapter::for_platform(kp::classify_platform(url));
-                if adapter != kp::PlatformAdapter::LongForm {
-                    continue;
-                }
-                match ruflo_memory_get(&url_storage_key(url), PROCESS_URL_NAMESPACE) {
-                    Ok(Some(content)) => {
-                        kp::populate_fetched_content(&mut state, url, &content);
-                        populated += 1;
-                    }
-                    Ok(None) => {}
-                    // Best-effort enrichment: a ruflo outage must not block
-                    // queueing — the entry just stays content-less.
-                    Err(e) => eprintln!("  warning: ruflo probe failed for {url}: {e}"),
-                }
-            }
-        }
-        if populated > 0 {
-            println!("  ✓ {populated} entr(ies) enriched with drained content");
-        }
+    for (url, content) in &prefetched {
+        kp::populate_fetched_content(&mut state, url, content);
+        populated += 1;
+    }
+    if populated > 0 {
+        println!("  ✓ {populated} entr(ies) enriched with drained content");
     }
 
     if dry_run {
