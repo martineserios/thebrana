@@ -62,7 +62,7 @@ Tasks keep one v3 metadata field:
 |-------|--------|---------|
 | `work_type` | `implement` / `research` / `design` / `infra` / `review` / `chore` | Cognitive mode — what kind of work this is. Note: `kind: refactor` tasks use `work_type: implement`. |
 
-**Active epic** is set in the project-local `.claude/tasks-config.json` → `active_epic` (per-repo, never the global `~/.claude/tasks-config.json` — ADR-066, t-2158). It stores the epic *slug* — i.e. an epic node's `subject`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
+**Active epic** is resolved per-session, not from a shared config file (ADR-088, t-3196 — supersedes ADR-066/t-2158's project-scoped `active_epic` config). Resolution order: explicit `--epic <slug>` flag → the epic of the most-recently-started `in_progress` task (its flat `epic` field for v2/client-venture schema, or its parent-chain epic-node ancestor for v3/thebrana) → no boost. There is no dedicated pin-the-epic command anymore — starting a task under an epic (or its worktree branch) is what "activates" it for that session. When an epic resolves, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
 
 ### MCP tools (preferred)
 
@@ -107,7 +107,7 @@ Tasks keep one v3 metadata field:
 | Filter by parent | `brana backlog query --parent ph-001 --type task` |
 | Get full task | `brana backlog get <id>` |
 | Get single field | `brana backlog get <id> --field status` |
-| Focus (active epic) | `brana backlog focus` |
+| Focus (session-resolved epic) | `brana backlog focus` — epic resolved per-session from the most-recently-started in_progress task (ADR-088), no config file |
 | Focus by work type | `brana backlog focus --work-type research` |
 | Focus override epic | `brana backlog focus --epic cc-alignment` — read-only; epic resolved from nodes, not the retired flat field (ADR-065) |
 
@@ -118,7 +118,6 @@ Tasks keep one v3 metadata field:
 | Set any field | `brana backlog set <id> <field> <value>` |
 | Assign to epic | `brana backlog set <id> parent <epic-node-id>` (membership = parent chain, ADR-065; `set <id> epic <slug>` is retired → `unknown field: epic`) |
 | Set work type | `brana backlog set <id> work_type implement` |
-| **Set active epic** | `brana backlog set-active <slug>` (per-repo — writes project-local `.claude/tasks-config.json`, t-2155) |
 | Set to null | `brana backlog set <id> priority null` |
 | Append to text | `brana backlog set <id> context --append "note"` |
 | Add/remove tag | `brana backlog set <id> tags +newtag` / `tags -oldtag` |
