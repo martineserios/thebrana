@@ -5667,6 +5667,40 @@ id3
         assert!(!state.urls.contains_key(raw.as_str()), "raw literal URL must not be a key");
     }
 
+    // ── PlatformAdapter dispatch (t-3170, ADR-087 content-shape adapters) ─
+
+    #[test]
+    fn test_platform_adapter_linkedin_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("linkedin"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_github_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("github"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_substack_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("substack"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_arxiv_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("arxiv"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_youtube_is_long_form() {
+        assert_eq!(PlatformAdapter::for_platform("youtube"), PlatformAdapter::LongForm);
+    }
+
+    #[test]
+    fn test_platform_adapter_other_falls_back_to_short_signal() {
+        // "other" (classify_platform's catch-all) keeps today's implicit
+        // behavior — short-signal treatment, no third adapter kind.
+        assert_eq!(PlatformAdapter::for_platform("other"), PlatformAdapter::ShortSignal);
+    }
+
     // ── append_event_log_entry_at ─────────────────────────────────────────
 
     #[test]
