@@ -466,6 +466,41 @@ is sent to Gemini with the list of known dimension slugs and asked to assign a
 
 ---
 
+## brana knowledge process-url
+
+Fetch a single URL (or a batch of them), extract an insight, and store it in the ruflo
+`knowledge` namespace — independent of the `ingest`/`process`/`run` pipeline above (no shared
+state, no pipeline lock). See
+[the feature guide](../guide/features/knowledge-process-url.md) for the full walkthrough
+(LinkedIn one-time login, YouTube cookies, nightly cron wiring) and
+[ADR-070](../architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md) for the
+fetch-tier design.
+
+### Usage
+
+```bash
+brana knowledge process-url https://example.com/some-post
+brana knowledge process-url --file links.jsonl
+brana knowledge process-url --cookies-from-browser chrome https://www.youtube.com/watch?v=…
+```
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `<url>` | — | Single URL to fetch and process (mutually exclusive with `--file`) |
+| `--file <PATH>` | — | JSONL file of `{"id","url"}` records to process in sequence |
+| `--cookies-from-browser <BROWSER>` | — | Authenticate YouTube caption fetch via a browser's live cookie store (yt-dlp syntax); mutually exclusive with `--cookies` |
+| `--cookies <FILE>` | — | Authenticate via a Netscape-format cookie jar; falls back to `~/.config/brana/yt-cookies.txt` (mode `0600` required) if neither flag is given |
+
+Platform routing is automatic by URL: generic HTTP GET for most URLs, headless
+`linkedin-scraper-mcp` for `linkedin.com`, `yt-dlp` caption fetch for `youtube.com`/`youtu.be`
+(YouTube skips insight extraction and stores the transcript verbatim). Idempotent — an
+already-stored URL is skipped without re-fetching. Batch mode's cancellation list is advisory
+only; it never calls `brana backlog set`.
+
+---
+
 ## brana knowledge run
 
 Auto-advance tier1 and tier2 automatically; stops at human gates (cluster report, draft

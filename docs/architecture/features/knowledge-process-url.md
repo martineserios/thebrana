@@ -148,6 +148,31 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 > `comment[]`, or a bot-shell page with no ld+json at all, leaves the base
 > extract and the tiered-fetch fallback decision unchanged.
 
+> **YouTube tier (2026-08-17, t-2945/t-2950 — ADR-070 Amendment; doc sync
+> 2026-08-24, t-3214):** `fetch_url_content()` gained a fourth platform
+> branch, `youtube` (`classify_platform` matches `youtube.com`/`youtu.be`,
+> including `/shorts/`), shelling out to `yt-dlp --skip-download
+> --write-sub --write-auto-sub` instead of either existing tier —
+> YouTube's captions aren't present in the fetched HTML at all, so neither
+> the Tier-1 GET nor the Tier-2 LinkedIn MCP client applies. `process-url`
+> (single-URL and `--file` batch) gained `--cookies-from-browser <browser>`
+> / `--cookies <jar>` flags (mutually exclusive, forwarded to `yt-dlp`);
+> with neither, `~/.config/brana/yt-cookies.txt` is used if present (mode
+> `0600` required, checked at argument resolution even for non-YouTube
+> URLs). The Store arm skips `extract_insight` entirely when
+> `platform == "youtube"` and stores caption text verbatim, tagged
+> `[youtube, transcript, manual|auto]` in place of the usual
+> `[platform, topic]` shape — captions are already the content, nothing to
+> summarize. A zero-caption `yt-dlp` exit is treated as `EmptyContent`,
+> same as any other tier's empty-fetch case. Unattended *bulk* YouTube
+> draining (its own cap, its own backoff/retry so a stuck fetch can't
+> starve other platforms) lives in the separate `drain-links --platform
+> youtube` job — out of this command's and this doc's scope, see
+> `knowledge-drain-links.md`; `process-url --file` itself applies no
+> platform filter and processes YouTube URLs inline like any other
+> platform. Full design: ADR-070 §Amendment (2026-08-17, t-2945). User-facing
+> usage: `docs/guide/features/knowledge-process-url.md` § YouTube URLs.
+
 - New `brana-core` module or extension to `knowledge_pipeline.rs`:
   `fetch_url_content(url: &str) -> Result<FetchedContent>` — three-tier
   dispatch (`ureq` / `linkedin-scraper-mcp` shell-out via a new
@@ -214,20 +239,34 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 
 ## Documentation Plan
 
-- [ ] **User guide** — `docs/guide/features/knowledge-process-url.md`:
+- [x] **User guide** — `docs/guide/features/knowledge-process-url.md`:
       command usage, `--login` one-time setup, batch file format, nightly
-      cron wiring example.
-- [ ] **Tech doc** — this file (`docs/architecture/features/knowledge-process-url.md`),
-      kept in sync with implementation.
-- [ ] **Existing docs to update** — the `fetched_content` field comment in
-      `knowledge_pipeline.rs` (point at ADR-070 alongside t-1144);
-      `docs/reference/skills.md` if a CLI reference table exists there; the
-      t-1144 backlog task's `context` field currently (as of 2026-07-24)
-      describes the pre-ADR-070 design ("shared function using the ruflo MCP
-      browser agent") — refresh it to match the actual decision (headless
-      `claude -p --mcp-config` shell-out, not the browser-extension MCP
-      tools) so a future engineer picking up t-1144 doesn't read stale
-      guidance.
+      cron wiring example. Verified 2026-08-24 (t-3214): exists, and covers
+      all of the above plus the later YouTube/`--cookies*` addition and
+      per-outcome troubleshooting table — current with implementation.
+- [x] **Tech doc** — this file (`docs/architecture/features/knowledge-process-url.md`),
+      kept in sync with implementation. Verified 2026-08-24 (t-3214): was
+      stale — missing the Tier-4 YouTube branch (ADR-070 Amendment,
+      2026-08-17, t-2945/t-2950) that a `knowledge.rs` code comment already
+      assumed this doc described ("feature spec §3"). Added a dated Design
+      amendment covering the YouTube tier, its `--cookies*` flags, and the
+      `extract_insight`-skipping Store arm; now in sync.
+- [x] **Existing docs to update** — verified 2026-08-24 (t-3214), item by item:
+      - `fetched_content` field comment in `knowledge_pipeline.rs` (line ~93)
+        — already points at ADR-070 alongside t-1144's gated-decision status.
+        Done, no change needed.
+      - t-1144's backlog `context` field — already corrected (2026-07-24,
+        re-corrected 2026-07-29 for the ADR-068→ADR-070 renumber) to point at
+        `fetch_url_content()`/ADR-070 instead of the superseded browser-MCP
+        design. Done, no change needed.
+      - `docs/reference/skills.md` — re-checked and corrected: that file is
+        the *skill* reference (`/brana:*` slash commands), not a CLI
+        reference table, so it was never the right place for this and has no
+        `process-url` entry to add. The actual CLI reference table is
+        `docs/reference/brana-cli.md`, which *was* missing a `process-url`
+        section (only `ingest`/`next`/`process`/`run`/`search`/`vector-sync`
+        existed) — added a `## brana knowledge process-url` section there
+        covering usage, flags, and platform routing.
 
 ## Challenger findings
 
