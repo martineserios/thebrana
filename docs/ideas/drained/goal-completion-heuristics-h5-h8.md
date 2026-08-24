@@ -1,4 +1,10 @@
+---
+status: superseded
+superseded_by: [docs/architecture/ac-grammar.md]
+---
 # Goal-Completion Heuristics H5–H8 + AC: Authoring Guide
+
+> **Superseded — content absorbed into** [ac-grammar.md](../../architecture/ac-grammar.md). This file stays as historical reference; do not add new content here.
 
 > Brainstormed 2026-06-03. Status: idea.
 > Spawned from: t-1821 (wire active-goal.json into fix/brainstorm/ship)

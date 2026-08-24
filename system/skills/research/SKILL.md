@@ -295,10 +295,11 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__brana__agy_delegate,mcp__ruflo
 11. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
 
    ```bash
-   brana decisions log --agent scout --entry-type finding \
-     --content "{finding title}: {detail}" \
+   brana decisions log scout finding "{finding title}: {detail}" \
      --severity HIGH --refs "{affected doc numbers}" 2>/dev/null || true
    ```
+
+   Positional args are `<AGENT> <TYPE> <CONTENT>` (t-3027, 2026-08-24 — corrected drift from a `--agent`/`--entry-type`/`--content` flag form the CLI never implemented).
 
    This preserves research findings across sessions (session-start.sh reads HIGH findings). Only log HIGH — MEDIUM/LOW stay in the report only.
 

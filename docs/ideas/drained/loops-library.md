@@ -1,12 +1,15 @@
 ---
 title: Loops Library — catalog of committed loop definitions
-status: idea
+status: superseded
 created: 2026-08-13
 task: t-2826
 related: [t-2820, t-2825, t-2813, ADR-079, t-2828]
 produced_by: [docs/ideas/loop-first-redesign.md]
+superseded_by: [docs/architecture/features/loops-library.md]
 ---
 # Loops Library
+
+> **Superseded — content absorbed into** [features/loops-library.md](../../architecture/features/loops-library.md). This file stays as historical reference; do not add new content here.
 
 > Brainstormed 2026-08-13, shaped 2026-08-14. **Division of labor:**
 > [the-brana.md](../../architecture/the-brana.md) owns the philosophy (absorbed from wave-pipeline.md 2026-08-23, now a redirect stub) (four rings, four primitives,

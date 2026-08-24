@@ -1,4 +1,10 @@
+---
+status: superseded
+superseded_by: [system/skills/build/phases/verify-gates.md]
+---
 # Build Skill Gate Hardening — Step 4a
+
+> **Superseded — content absorbed into** the build skill's verify-gates phase, [system/skills/build/phases/verify-gates.md](../../../system/skills/build/phases/verify-gates.md). This file stays as historical reference; do not add new content here.
 
 > Brainstormed 2026-05-19. Status: implemented.
 

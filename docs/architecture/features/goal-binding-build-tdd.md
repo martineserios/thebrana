@@ -1,4 +1,9 @@
+---
+status: parked
+---
 # Feature: /goal binding — /brana:build TDD loop (ADR-061 Stage 2)
+
+> **Parked 2026-08-24** — stale since drafting; revisit once [t-2981](../../../.claude/tasks.json) (ADR-084 second-pilot: vendor Pocock's tdd skill) lands or is explicitly deprioritized. See [the-brana.md](../the-brana.md) §Cycle L3.2 for how `/goal` currently binds to TDD without this spec.
 
 **Date:** 2026-06-21
 **Status:** specifying

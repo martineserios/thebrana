@@ -7,6 +7,8 @@ task: t-2488
 
 # Lane identity and the unbuilt axes of backlog v3
 
+> **Component of The Brana** · owns: lane identity, unbuilt v3 axes · see [the-brana.md](../../architecture/the-brana.md) §Cycle
+
 > Brainstormed 2026-07-28 from t-2488, seeded by a t-2502 build that halted at DIAGNOSE.
 > Status: idea — no ADR written yet, no implementation started.
 

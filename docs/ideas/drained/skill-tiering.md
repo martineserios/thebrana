@@ -1,4 +1,10 @@
+---
+status: idea
+---
+
 # Skill Tiering — Core Plugin + On-Demand Procedures
+
+> **Component of The Brana** · owns: cold-start/plugin-loading performance (core-plugin vs on-demand split) — **not** the W/A/A?/C packaging-tier table, that's [research/2026-08-23-skill-tier-mapping.md](../../research/2026-08-23-skill-tier-mapping.md) (corrected 2026-08-24, was previously misattributed here) · see [the-brana.md](../../architecture/the-brana.md) §Space
 
 > Brainstormed 2026-04-06. Status: idea.
 

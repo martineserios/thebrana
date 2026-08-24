@@ -8,6 +8,8 @@ supersedes_framing_of: open-threads-lifecycle.md
 
 # Universal Doc Graph
 
+> **Component of The Brana** · owns: doc graph substrate — the graphify-based tool used to build the-brana-consolidation-board.md itself · see [the-brana.md](../../architecture/the-brana.md) §meta
+
 > Brainstormed 2026-06-22. Status: idea (big — epic-scale).
 > The open-threads feature (open-threads-lifecycle.md / t-2222) is the **first
 > application** that proves this substrate. This doc is the substrate itself.

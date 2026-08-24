@@ -7,6 +7,8 @@ task: t-2173
 
 # Autonomous Runner — Capability Isolation
 
+> **Component of The Brana** · owns: sandbox, lethal trifecta, tripwire-not-boundary · see [the-brana.md](../../architecture/the-brana.md) §Gate
+
 > Brainstormed 2026-06-21. Status: idea. Backs task t-2173.
 
 ## Problem

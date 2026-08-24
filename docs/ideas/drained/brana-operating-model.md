@@ -1,4 +1,10 @@
+---
+status: idea
+---
+
 # Brana Operating Model
+
+> **Pointer-hub component of The Brana** — kept as the historical consolidation point for the 6 idea docs listed in §14 Supersedes below (4 of which are now archived at `docs/archive/`, per the-brana-consolidation-board.md). See [the-brana.md](../../architecture/the-brana.md) for the current, live index; this doc is not itself superseded — sections not covered by an ADR/spec (Smart Router, Memory Hierarchy, Documentation Discipline) remain this doc's own content.
 
 > Designed 2026-04-04. Status: idea.
 > Research: 18 sources (Karpathy x2, Letta, AnimaWorks, Anthropic official, 12-Factor Agents, Sirchmunk, Cognee, Knwler, CC memory, harness engineering, autoresearch adoption, KG patterns, context engineering).

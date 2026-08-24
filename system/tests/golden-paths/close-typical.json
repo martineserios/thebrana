@@ -96,7 +96,7 @@
       "tool_calls": [
         {
           "tool": "Bash",
-          "params": { "command": "brana decisions log --agent main --entry-type session-close --content '...'" },
+          "params": { "command": "brana decisions log main decision '...'" },
           "success": true
         }
       ],

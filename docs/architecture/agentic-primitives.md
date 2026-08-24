@@ -1,4 +1,9 @@
+---
+status: live
+---
 # Agentic Primitives — Taxonomy and the Target Process Loop
+
+> Concept-level ownership lives in [the-brana.md](the-brana.md) §Space — the primitive table. This doc stays the detailed reference the-brana.md's table points to, not a duplicate of it.
 
 > **Date:** 2026-07-19 · Synthesis of the 2026 research sweep ([gap analysis](../research/agentic-engineering-2026-gap-analysis.md), [loop-engineering + Pi](../research/loop-engineering-and-pi.md), [gentle-ai extraction](../research/gentle-ai-productization-extraction.md)).
 > **Objective:** one clear model of every primitive — what it is, when to use it — composing into a designed, self-evolving process loop that parallelizes, judges, challenges, and improves work on the go.

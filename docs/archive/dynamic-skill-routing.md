@@ -1,6 +1,8 @@
 # Dynamic Skill Routing — Investigation Report (t-608)
 
-> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+> **Archived 2026-08-24** — dead/superseded; moved from docs/ideas/drained/ during the-brana consolidation (t-3027). Kept for historical reference only.
+
+> **Superseded by [Brana Operating Model](../ideas/drained/brana-operating-model.md).** This doc is preserved for historical context.
 
 > Investigated 2026-03-21. Status: recommendation ready.
 

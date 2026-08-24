@@ -1,11 +1,13 @@
 ---
 title: Loop-First Operation of thebrana
-status: historical
+status: superseded
 created: 2026-08-13
 informs: [docs/ideas/loops-library.md]
-superseded_by: [docs/ideas/wave-pipeline.md]
+superseded_by: [docs/architecture/the-brana.md, docs/architecture/features/loops-library.md]
 ---
 # Loop-First Operation of thebrana
+
+> **Superseded — content absorbed into** [the-brana.md](../../architecture/the-brana.md) and [loops-library.md](../../architecture/features/loops-library.md). This file stays as historical reference; do not add new content here.
 
 > **Historical — reasoning ledger, not current state.** Current-state philosophy lives in
 > [wave-pipeline.md](wave-pipeline.md); the contract in [loops-library.md](loops-library.md);

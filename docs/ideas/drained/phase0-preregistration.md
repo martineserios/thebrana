@@ -1,9 +1,12 @@
 ---
 title: Phase 0 pre-registration — build context measurement (t-2591)
-status: pre-registered
+status: superseded
 created: 2026-08-01
+superseded_by: [docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md]
 ---
 # Phase 0 pre-registration
+
+> **Killed — superseded by** [ADR-059](../../architecture/decisions/ADR-059-multi-agent-substrate-selection.md)'s routing rule. This file stays as historical reference; do not add new content here.
 
 > **Written and committed BEFORE any data was aggregated.** The adversarial review of
 > `enforced-delegation.md` found the original falsifier anchored and sunk-cost-biased. This

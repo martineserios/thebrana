@@ -87,6 +87,11 @@ Nothing requires plan-born waves: `wave add` stays for hand-rolled ones.
 > current, maintained procedure (including post-t-2845 fixes not reflected here), read the
 > committed doc, not this ADR.
 
+> **See also:** distinct from the *future* autonomous/Orbit satellite runner described in
+> [features/autonomous-runner.md](../features/autonomous-runner.md) — this ADR's epic runner
+> is the current supervised pump (presence `inside`/`valve`); the two converge later via
+> `epic-drain`'s `presence: none` mode (see [the-brana.md](../the-brana.md) §Cycle L3.4).
+
 A second committed loop entry, **`epic-drain`** (loops library). Beat procedure:
 
 1. **PREFLIGHT (cheap):** resolve the epic's waves — waves whose selector root

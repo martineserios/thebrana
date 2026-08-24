@@ -1,6 +1,8 @@
 # Skill Auto-Router
 
-> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+> **Archived 2026-08-24** — dead/superseded; moved from docs/ideas/drained/ during the-brana consolidation (t-3027). Kept for historical reference only.
+
+> **Superseded by [Brana Operating Model](../ideas/drained/brana-operating-model.md).** This doc is preserved for historical context.
 
 > Brainstormed 2026-04-01. Status: idea. Supersedes dynamic-skill-routing.md (t-608).
 > Challenger review 2026-04-01: RECONSIDER → revised to dual-path (CLI fast + HNSW smart).

@@ -5,6 +5,8 @@ created: 2026-08-17
 ---
 # Project time & cost tracking — active effort and calendar cycle time
 
+> **Component of The Brana** · owns: beat-level timing (ADR-083) · see [the-brana.md](../architecture/the-brana.md) §Cycle
+
 > Brainstormed 2026-08-17. Reviewed by 3-worker adversarial challenge; all findings
 > resolved below before backlog planning.
 

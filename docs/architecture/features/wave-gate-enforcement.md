@@ -1,3 +1,6 @@
+---
+status: shipped
+---
 # Wave gate enforcement (t-2744)
 
 > Extended 2026-08-14 by [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §1

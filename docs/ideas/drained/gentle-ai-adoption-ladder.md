@@ -6,6 +6,8 @@ revised: 2026-08-01 (six-hats challenge — verdict RECONSIDER; corrections appl
 ---
 # gentle-ai adoption ladder
 
+> **Component of The Brana** · owns: cheap-rung adoption ladder; ladder owner = drained/brana-v3-redesign.md, this doc cites it · see [the-brana.md](../../architecture/the-brana.md) §Gate
+
 > Companion to [enforced-delegation.md](enforced-delegation.md), which shaped the *full*
 > orchestrator/executor design and had it broken by adversarial review. This doc is the
 > corrected approach: small rungs, each useful alone, each producing the evidence that

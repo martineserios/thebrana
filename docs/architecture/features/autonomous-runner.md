@@ -3,6 +3,8 @@
 **Task:** t-2140 · **Status:** Stages 1-3 built + worktree isolation (t-2146, ADR-060) · Stage 4 = t-2142 · **Date:** 2026-06-20
 **Basis:** ADR-059 (substrate selection) · [substrate-leverage-audit](../../research/substrate-leverage-audit.md) · ADR-050 (autonomy caps) · [ADR-060](../decisions/ADR-060-branch-strategy-autonomous-agents.md) (branch strategy: agents cut from `dev` in ephemeral worktrees, PR to `dev`, human promotes `dev`→`main`)
 
+Distinguish from [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md)'s epic runner: that is the current supervised pump (presence `inside`/`valve`), already shipped. This doc describes the *future* satellite runner (presence `none`) — see [the-brana.md](../the-brana.md) §Cycle "Two runners, one seam" (L3.4) for how they converge onto the same beat via `epic-drain`'s `presence: none` mode.
+
 ## Problem
 
 brana needs an autonomous tier — "keep working through the backlog until done / overnight." The substrate audit settled the *how*: **native `/loop + claude -p` over the backlog**, not ruflo (autopilot/`--claude`/MCP are redundant or hollow under subscription). This spec defines a *safe, staged* runner that integrates with existing brana machinery instead of reinventing it.

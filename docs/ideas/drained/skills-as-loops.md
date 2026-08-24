@@ -16,6 +16,10 @@ relates-to:
 
 # Skills as Loops
 
+> **Component of The Brana** · owns: station/packet/conveyor, stop_condition/verifier/queue trio, palette, boundary test · see [the-brana.md](../../architecture/the-brana.md) §Space
+>
+> **Merged in (t-3027, 2026-08-24):** [skill-lifecycle-manager.md](skill-lifecycle-manager.md)'s skill-suggestion design (`brana skills suggest/search`, frontmatter enrichment, `/brana:backlog start` integration) — unbuilt, this doc's classification work (station/packet/conveyor) is the prerequisite it was missing. That doc stays as the detailed unbuilt design; this doc is where it's cited from as skill-routing's owner.
+
 > Seed from the 2026-07-20 session (post schema-challenge discussion). Not yet brainstormed — park here, shape via `/brana:brainstorm skills-as-loops`, graduate into the v3 epic plan.
 
 ## The reframe

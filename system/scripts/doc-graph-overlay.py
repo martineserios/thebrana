@@ -4,7 +4,9 @@
 graphify >=0.8.43 already ingests inline/reference md links and [[wikilinks]]
 (#1376). This overlay adds only the residual, still-deterministic edges:
 
-  - frontmatter keys: produced_by:/supersedes: (single value or [a, b] list)
+  - frontmatter keys: produced_by:/supersedes:/superseded_by: (single value or [a, b] list;
+    superseded_by: added t-3027 2026-08-24 — the repo's actual dominant convention on
+    redirect-stub docs, previously unrecognized here despite 8+ pre-existing uses)
   - textual ADR-NNN references, resolved to docs/architecture/decisions/ADR-NNN-*.md
 
 Edges are emitted as relation "references" (the only doc relation `graphify
@@ -25,7 +27,7 @@ import re
 import sys
 from pathlib import Path
 
-FRONTMATTER_KEYS = ("produced_by", "supersedes")
+FRONTMATTER_KEYS = ("produced_by", "supersedes", "superseded_by")
 DOC_GLOBS = ("docs/**/*.md", "system/**/*.md")
 ADR_REF = re.compile(r"\bADR-(\d{3})\b")
 

@@ -7,6 +7,8 @@ related: t-2889 (wave-level parallelism follow-on), t-2826 (loops library), ADR-
 ---
 # Multi-agent orchestration in the loop/wave pipeline
 
+> **Component of The Brana** · owns: judgment panels at JUDGE/PLAN, diversity axes, probe GO · see [the-brana.md](../architecture/the-brana.md) §Gate
+
 > Brainstormed 2026-08-14. Work in progress. Retargeted mid-session (Round 2) — see
 > Discussion below. Original framing (task-execution/ACT-step panels) is preserved in
 > git history for this file; it was explicitly rejected, not the current scope.

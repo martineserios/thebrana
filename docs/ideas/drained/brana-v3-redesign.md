@@ -6,6 +6,8 @@ created: 2026-07-19
 
 # Brana v3 — The Graduated Self-Evolving Process Loop
 
+> **Component of The Brana** · owns: ladder L1/L2/L3, outcome ledger, shapes (governing design per ADR-068) · see [the-brana.md](../../architecture/the-brana.md) §Gate
+
 > Brainstormed + adversarially challenged 2026-07-19; second-pass challenged 2026-07-21. Status: draft v3.3 (integrated).
 > Foundation: [agentic-primitives.md](../architecture/agentic-primitives.md) · [2026 gap analysis](../research/agentic-engineering-2026-gap-analysis.md) · [loop-engineering + Pi](../research/loop-engineering-and-pi.md) · [gentle-ai extraction](../research/gentle-ai-productization-extraction.md) · challenges: [2026-07-19](../reviews/brana-v3-challenge-2026-07-19.md) · [2026-07-21](../reviews/brana-v3-challenge-2026-07-21.md)
 > Elaborations (2026-07-20): [backlog-v3 schema](../architecture/features/backlog-v3-schema.md) + [ADR-065](../architecture/decisions/ADR-065-epic-as-hierarchy-top.md) (the task-contract backbone) · [skills-as-loops](skills-as-loops.md) (waves 4–5 elaboration + deferred pipeline north star, → t-2278)

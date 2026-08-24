@@ -1,4 +1,11 @@
+---
+status: archived
+superseded_by: docs/ideas/statusline-pipeline-awareness.md
+---
+
 # Statusline v2 — Backlog-Aware Intelligence
+
+> **Archived 2026-08-24** — dead/superseded by [statusline-pipeline-awareness.md](../ideas/statusline-pipeline-awareness.md); moved from docs/ideas/drained/ during the-brana consolidation (t-3027). Kept for historical reference only.
 
 > Brainstormed 2026-04-07. Challenged 2026-04-07. **Partially implemented**: only Phase 2 (`system/scripts/statusline-slow-cache.sh`) actually shipped. The revised Phase 1 (jq→brana-query, build_step bracket, session score, self-populating cache, width detection) is in neither the current statusline script nor its git history — re-verify before relying on any Phase 1 claim (t-459, 2026-08-12).
 

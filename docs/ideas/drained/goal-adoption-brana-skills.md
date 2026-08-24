@@ -1,11 +1,15 @@
 ---
-title: /goal Adoption — brana Skills
-status: idea
+title: /goal Adoption — brana Skills — merged
+status: superseded
+superseded_by: docs/ideas/drained/goal-integration-three-primitive.md
 created: 2026-05-24
+merged: 2026-08-24
 related: cc-feature-adoption-v2.1.136-142.md
 ---
 
-# /goal Adoption — brana Skills
+# /goal Adoption — brana Skills → goal-integration-three-primitive
+
+Redirect stub (t-3027 MERGE-INTO). This was a pre-ADR-061 rollout audit (2026-05-24) of which skills lacked `/goal`. Superseded by [goal-integration-three-primitive.md](goal-integration-three-primitive.md)'s eligibility criteria and Stage 2–4 build sequencing, itself now a redirect stub → [the-brana.md](../../architecture/the-brana.md) §Space/§Cycle + [ADR-061](../../architecture/decisions/ADR-061-goal-integration-three-primitive.md). For current per-skill `/goal` status, check each skill's SKILL.md directly rather than this audit.
 
 > Brainstormed 2026-05-24.
 

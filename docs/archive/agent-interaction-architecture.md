@@ -1,5 +1,7 @@
 # Agent Interaction Architecture
 
+> **Archived 2026-08-24** — dead/superseded; moved from docs/ideas/drained/ during the-brana consolidation (t-3027). Kept for historical reference only.
+
 > Brainstormed 2026-03-26. Status: spike approved → superseded by brana v2 Compute Model (2026-05-24).
 > See [Current Implementation](#current-implementation-2026-05-24) for the authoritative compute shape.
 

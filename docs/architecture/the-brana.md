@@ -285,6 +285,7 @@ Closes [the-brana-guide.md](../ideas/the-brana-guide.md) L5 (2026-08-23). Concep
 | Autonomy ladder / shape graduation | [brana-v3-redesign.md](../ideas/drained/brana-v3-redesign.md) + [ADR-068](decisions/ADR-068-v3-supersession.md) §3 | governing | Gate |
 | Orbit satellite · model/effort routing | ⏸ none (L4.5 / L4.6) | parked | Gate |
 | Vocabulary | this page §Vocabulary | landed | all |
+| Skill packaging tiers (W/A/A?/C) | [research/2026-08-23-skill-tier-mapping.md](../research/2026-08-23-skill-tier-mapping.md) (ADR-085 D3) — corrected 2026-08-24, was misattributed to `drained/skill-tiering.md` (a cold-start-perf doc, unrelated) | measured | Space |
 
 Two concepts have no owner by design (readiness state, `ask()` prose) — both gated; intended homes are recorded above so they aren't invented twice. `drained/wave-pipeline.md` is a redirect stub (D3, t-3028) — everything it owned is on this page.
 
