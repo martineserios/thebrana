@@ -1192,7 +1192,7 @@ all_edges = graph.get('edges', [])
 typed_edges = [e for e in all_edges if e.get('type')]
 issues = 0
 
-# Check 1: orphaned typed edges (from/to reference non-existent nodes)
+# Sub-check A: orphaned typed edges (from/to reference non-existent nodes)
 for edge in typed_edges:
     fr = edge.get('from', '')
     to = edge.get('to', '')
@@ -1204,7 +1204,7 @@ for edge in typed_edges:
         issues += 1
         print(f'  Orphaned edge source: {fr}', file=sys.stderr)
 
-# Check 2: assumption refs in typed_edges not in any doc's ## Assumptions
+# Sub-check B: assumption refs in typed_edges not in any doc's ## Assumptions
 assumption_ids = set()
 for edge in typed_edges:
     to = edge.get('to', '')
@@ -2758,18 +2758,26 @@ fi
 echo ""
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
+# Labeled Check 73 below — this block used to collide with the real, always-
+# run "MCP wrapper exec pattern" check that legitimately owns number 27
+# (mislabeled here too, plus one branch further typo'd to number 25); neither
+# number belonged to this block (t-3168). 73 is the next number after the
+# highest counted header in this file. Deliberately NOT given its own
+# "# Check N" header comment (unlike the ACTUAL_CHECKS-counted checks above)
+# since it's optional/--golden-gated and was never counted — keeping it
+# uncounted avoids touching the checks= total for an unrelated fix.
 if $RUN_GOLDEN; then
-    echo "Check 27: Golden-path drift..."
+    echo "Check 73: Golden-path drift..."
     if [ -x "$SCRIPT_DIR/system/scripts/golden-path-diff.sh" ]; then
         if "$SCRIPT_DIR/system/scripts/golden-path-diff.sh" 2>&1 | sed 's/^/  /'; then
-            pass "Check 27: Golden-path drift — none"
+            pass "Check 73: Golden-path drift — none"
         else
             # Drift in golden paths is a warning, not a hard error: snapshots may
             # legitimately lag procedure changes. The signal is "review the diff".
-            warn "Check 27: Golden-path drift detected — see output above"
+            warn "Check 73: Golden-path drift detected — see output above"
         fi
     else
-        warn "Check 25: golden-path-diff.sh not found at $SCRIPT_DIR/system/scripts/ (skipped)"
+        warn "Check 73: golden-path-diff.sh not found at $SCRIPT_DIR/system/scripts/ (skipped)"
     fi
     echo ""
 fi
