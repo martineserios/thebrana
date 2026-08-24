@@ -1253,6 +1253,44 @@ mod tests {
         assert_eq!(history[0].written_at, "2026-04-06T10:00:00Z");
     }
 
+    // t-3169: explicit "(orphan)" sentinel must route straight to the legacy
+    // session-state.json, bypassing branch-name epic parsing entirely — a caller that
+    // deliberately opted out of epic routing must not have a branch that happens to look
+    // epic-shaped (e.g. "close/fix/t-3169-...") silently re-route it anyway.
+    #[test]
+    fn unit_scoped_state_path_orphan_sentinel_bypasses_branch_parsing() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let epic_shaped_branch = "close/fix/t-3169-no-epic-skip-routing";
+        let path = unit_scoped_state_path(root, Some(ORPHAN_EPIC_SENTINEL), epic_shaped_branch);
+
+        assert_eq!(path, session_state_path(root));
+    }
+
+    // t-3169: the sentinel is a routing signal only — it must never be persisted into the
+    // stored state's `epic` field (which session_initiative/sitrep readers treat as a real
+    // epic slug). sanitize() runs on every write path, so this is the single choke point.
+    #[test]
+    fn sanitize_strips_orphan_epic_sentinel() {
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+
+        let sanitized = state.sanitize();
+
+        assert_eq!(sanitized.epic, None);
+    }
+
+    #[test]
+    fn sanitize_keeps_real_epic_slug() {
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some("close".to_string());
+
+        let sanitized = state.sanitize();
+
+        assert_eq!(sanitized.epic, Some("close".to_string()));
+    }
+
     #[test]
     fn read_state_missing_returns_none() {
         let dir = tempdir().unwrap();
