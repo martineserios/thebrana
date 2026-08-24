@@ -15,7 +15,7 @@ status: proposed
 [ADR-080](ADR-080-plan-time-wave-graphs-epic-runner.md) (wave graphs, epic runner) ·
 [ADR-084](ADR-084-upstream-skill-band-vendored-pocock-skills.md) (§3 name-remap contract — this ADR supplies its tracker half) ·
 [backlog-v3-schema.md](../features/backlog-v3-schema.md) (D2 contract prompt, D3 wave object, D5 `context` conventions) ·
-[wave-pipeline.md](../../ideas/drained/wave-pipeline.md) (§The spectrum — human as low-pass filter; §Four primitives) ·
+[the-brana.md](../the-brana.md) (§Scale — human as low-pass filter; §Cycle → Mechanics — four primitives; absorbed from the retired wave-pipeline.md, t-3028) ·
 [drain-loop.md](../../guide/workflows/drain-loop.md) (runbook to update) ·
 Upstream: [mattpocock/skills](https://github.com/mattpocock/skills) `v1.2.3` — `to-tickets`, `setup-matt-pocock-skills` (`issue-tracker-{github,gitlab,local}.md`), `triage`, `wayfinder`, `CONTEXT.md`
 
@@ -28,7 +28,7 @@ Upstream: [mattpocock/skills](https://github.com/mattpocock/skills) `v1.2.3` —
 - A **task** is sized to one fresh context window — a vertical slice an agent can build end-to-end without losing the thread — and it is tested by its **acceptance criteria**.
 - A **wave** is sized to one human attention cycle — what you can hand off, walk away from, and verify at the next sitting — and it is tested by its **contract**.
 
-`task : AC :: wave : contract`. Same shape one level up: a testable promise, approved before work starts, graded when it ends. The wave is the AC of the batch, and the batch is the thing you can delegate as a whole and stop thinking about — wave-pipeline.md's "human as low-pass filter" made concrete: couple to the wave (slow), sample the tasks (fast), stay out of the beats.
+`task : AC :: wave : contract`. Same shape one level up: a testable promise, approved before work starts, graded when it ends. The wave is the AC of the batch, and the batch is the thing you can delegate as a whole and stop thinking about — the-brana.md §Scale's "human as low-pass filter" (ex wave-pipeline.md) made concrete: couple to the wave (slow), sample the tasks (fast), stay out of the beats.
 
 This is also the exact gap in Matt Pocock's model that brana fills. His AFK loop *is* "put it to work and focus elsewhere" — but unnamed and unbounded: it drains everything `ready-for-agent`, and "did it work?" has no unit to attach to except each ticket. The wave gives the delegation a boundary and a test. Everything below follows from taking his ticket as the agent's unit verbatim, and keeping the wave as the human's unit above it.
 
@@ -160,17 +160,17 @@ Phase and milestone creation is frozen (backlog-v3-schema already says so; this 
 - **Negative (accepted):** the standing wave changes what "draining" means for the whole backlog — any approved, unparked, unblocked task is now eligible for a *supervised* puller by default (headless pullers still need `execution:autonomous`, §3). That is the intended semantics of `ready-for-agent`; the human valve moves fully to `ac approve`, which is where ADR-079 already put it. If that proves too eager, the standing wave's `wip_limit` and `status` are the knobs — no rollback needed.
 - **Negative (accepted):** `CONTEXT.md` and `docs/agents/issue-tracker.md` are two more generated files that can go stale if the generator isn't run; both are reconcile outputs, so drift shows in the same gauge as every other doc.
 
-## Candidate tasks (each S/M, one wave slot; to be created on acceptance)
+## Candidate tasks (each S/M, one wave slot) — filed 2026-08-24 under epic t-2337, tag `the-brana-closeout`; verifier follow-up **t-3166** (classify() cancelled-blocker semantics)
 
 | # | Task | Effort | Amends |
 |---|---|---|---|
-| T1 | Derived triage roles + `role:` selector term + `--role` query; `role` rejected as a write field. **`blocked_by t-2834`** (F2) | M | brana-core query, wave selector parser (ADR-080 §1 single parse point — one `Role` arm, all consumers route through it) |
-| T2 | — **is t-3043** (filed from ADR-079's amendment; not duplicated here — F8). Close t-3043 against §4's wording | S | ADR-079 §2 |
-| T3 | Standing wave: create `wave-standing` (selector `role:ready-for-agent`, provisional `wip_limit` 2, priority-then-age ordering), precedence rule for bespoke selectors, drain-loop.md. **`blocked_by T1`** (F2) | S | drain-loop.md, ADR-080 §3 |
-| T4 | `CHECK:` lines in wave contract (allowlisted vocabulary); `wave ship` shows check status; `contract` added to runner denied verbs; D2 prompt wiring; D5 amended. **`blocked_by` the L3.7 retrospective probe** and t-3022 (F5/F7) | M | backlog-v3-schema D2/D5, runner-verb-guard.sh |
-| T5 | `docs/agents/issue-tracker.md` for thebrana + `/brana:align` generator; `CONTEXT.md` generator in `/brana:reconcile` — **both generators are new** (`/brana:reconcile` has no generator phase today; F11) | M | ADR-084 §3 (supplies its tracker half) |
-| T6 | Structured-field usage audit (`brana backlog query --output json`, fill rate per field, `context`/`notes`/`description`/AC excluded); report only, diet decided after | S | backlog-v3-schema §Relationship |
-| T7 | Sizing rules + pointer discipline written into `drain-loop.md`, `tactical-context.md`, `task-convention.md`; phase/milestone-creation warning in the CLI | S | task-convention.md, tactical-context.md |
+| T1 (**t-3160**) | Derived triage roles + `role:` selector term + `--role` query; `role` rejected as a write field. **`blocked_by t-2834`** (F2) | M | brana-core query, wave selector parser (ADR-080 §1 single parse point — one `Role` arm, all consumers route through it) |
+| T2 (**t-3043**) | — (filed from ADR-079's amendment; not duplicated here — F8). Close t-3043 against §4's wording | S | ADR-079 §2 |
+| T3 (**t-3161**) | Standing wave: create `wave-standing` (selector `role:ready-for-agent`, provisional `wip_limit` 2, priority-then-age ordering), precedence rule for bespoke selectors, drain-loop.md. **`blocked_by T1`** (F2) | S | drain-loop.md, ADR-080 §3 |
+| T4 (**t-3162**) | `CHECK:` lines in wave contract (allowlisted vocabulary); `wave ship` shows check status; `contract` added to runner denied verbs; D2 prompt wiring; D5 amended. **`blocked_by` the L3.7 retrospective probe** and t-3022 (F5/F7) | M | backlog-v3-schema D2/D5, runner-verb-guard.sh |
+| T5 (**t-3163**) | `docs/agents/issue-tracker.md` for thebrana + `/brana:align` generator; `CONTEXT.md` generator in `/brana:reconcile` — **both generators are new** (`/brana:reconcile` has no generator phase today; F11) | M | ADR-084 §3 (supplies its tracker half) |
+| T6 (**t-3164**) | Structured-field usage audit (`brana backlog query --output json`, fill rate per field, `context`/`notes`/`description`/AC excluded); report only, diet decided after | S | backlog-v3-schema §Relationship |
+| T7 (**t-3165**) | Sizing rules + pointer discipline written into `drain-loop.md`, `tactical-context.md`, `task-convention.md`; phase/milestone-creation warning in the CLI | S | task-convention.md, tactical-context.md |
 
 `brana merge <task-id>` (the merge-valve tool) is not listed — it is already t-2838's top friction item and stays there.
 
