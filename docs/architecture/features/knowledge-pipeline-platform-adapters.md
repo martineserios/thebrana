@@ -129,9 +129,39 @@ Build-time assumptions (t-3151 BUILD, 2026-08-24 — need confirmation):
 
 ## Design
 
-Technical approach to be filled in during DECOMPOSE, once the wiring mechanism
-(new command vs. `drain-links` writing to both stores) and the Tier1-curation /
-Tier2-quality open risks from ADR-087 have owners.
+As shipped (`system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs`):
+
+- `PlatformAdapter` is a closed, `Copy` 2-variant enum (`ShortSignal` | `LongForm`)
+  matched inline, not a `dyn Trait`. `PlatformAdapter::for_platform(platform: &str)`
+  maps `classify_platform`'s `"youtube"` tag to `LongForm` and everything else
+  (including the `"other"` catch-all) to `ShortSignal` — there is deliberately no
+  third case.
+- `is_long_form_url(url: &str) -> bool` is the single routing authority; every
+  tier partitions on it (`tier1_partition`, `cluster_is_long_form`) rather than
+  re-deriving the platform check inline (t-3183 — this was added specifically to
+  close a cross-adapter-leakage risk found in review).
+- Tier1: `tier1_partition` splits a batch into LongForm (auto-pass, no LLM call)
+  and ShortSignal (existing LLM scoring) after the shared semantic-dedup filter
+  runs for both. LongForm auto-pass uses fixed constants `LONG_FORM_AUTO_SCORE = 3`
+  and reason `"pre-curated at ingestion"`.
+- Tier2: LongForm clusters via cosine similarity against dimension-topic
+  embeddings (ruflo ONNX, no LLM); below `LONG_FORM_NEW_TOPIC_THRESHOLD = 0.35`
+  an entry is flagged `new-topic`. ShortSignal keeps the existing LLM-assignment
+  path unchanged.
+- Tier3: `cluster_is_long_form` gates the draft path per cluster — only a pure
+  LongForm cluster drafts from `fetched_content` excerpts (`DRAFT_EXCERPT_CHARS
+  = 1500` per source); a mixed or pure-ShortSignal cluster keeps the metadata
+  prompt.
+- Wiring: `brana knowledge ingest` (the sole `PipelineState` writer, ADR-042 §1)
+  gained the `--from-ruflo <key>` flag and an automatic best-effort ruflo probe
+  for LongForm URLs, populating `UrlEntry.fetched_content` at ingest time — no
+  second writer, no `drain-links`-writes-both-stores path. Key derivation
+  switched to `canonicalize_url()`; a one-time re-key migration
+  (`migrate_urls_to_canonical_keys`, t-3182) handled pre-existing raw-keyed
+  production state, merging collisions by preferring the more-advanced status.
+
+Full architecture diagram and CLI flag reference:
+[inbox-to-dimensions-pipeline.md](inbox-to-dimensions-pipeline.md).
 
 ## Boundaries
 
@@ -155,28 +185,30 @@ Tier2-quality open risks from ADR-087 have owners.
 
 ## Documentation Plan
 
-- [ ] **Tech doc** — this file: design section to be completed in DECOMPOSE.
-- [ ] **Domain glossary** — `docs/domain/MODEL-001-brana-core.md` doesn't document
-      `UrlEntry`/`PipelineState` at all today; add a small glossary entry for the
-      content-shape/adapter concept introduced here. (Named in the idea doc's
-      Engineering Disciplines section; restored here after the challenger caught it
-      dropped from this Plan — see Challenger findings below.)
-- [ ] **Existing docs to update (impact-analysis-confirmed via spec-graph `impl_files`,
-      supersedes an earlier unconfirmed guess)** —
-      `docs/architecture/features/inbox-to-dimensions-pipeline.md` (the actual tech
-      doc for Tier1/2/3 — directly describes the pipeline this feature modifies,
-      including the ADR-042 architecture diagram that needs a `LongFormAdapter`
-      branch added) and `docs/architecture/features/youtube-channel-backfill.md`
-      (impl_files match on both `knowledge.rs` and `knowledge_pipeline.rs`).
-      `youtube-channel-ingestion.md` and `knowledge-architecture-v2.md` were an
-      earlier guess before impact analysis ran — worth a quick check in DECOMPOSE
-      for whether they also need touching, but not confirmed the way the two above
-      are.
-- [ ] **User guide** — resolved (was TBD, challenger caught it unresolved on the
-      sprint-contract pass): `ingest` gains a user-visible `--from-ruflo <key>` flag
-      (ADR-087, matching ADR-042 §3's `--source telegram` precedent) — document it
-      wherever `ingest`'s existing flags are documented. `process` itself gains no
-      new flags.
+- [x] **Tech doc** — this file's Design section above now describes the
+      as-shipped implementation (enum dispatch, tier logic, wiring) instead of
+      the DECOMPOSE placeholder.
+- [x] **Domain glossary** — done. `docs/domain/MODEL-001-brana-core.md` §11
+      "Knowledge Pipeline" (lines 403-416) documents `PipelineState` (aggregate
+      root), `UrlEntry` (entity), and `PlatformAdapter`/`UrlStatus`/canonical-URL
+      identity (value objects); the Ubiquitous Language table also carries
+      `PipelineState`/`UrlEntry`/`PlatformAdapter` entries (lines 438-440).
+- [x] **Existing docs to update** — verified against current file contents, both
+      confirmed-in-scope docs are updated:
+      `docs/architecture/features/inbox-to-dimensions-pipeline.md`'s Architecture
+      section carries the full `PlatformAdapter`-routed Tier1/2/3 diagram
+      (ShortSignal vs. LongForm at each tier) plus the `--from-ruflo` ingest-bridge
+      writeup; `docs/architecture/features/youtube-channel-backfill.md`'s "Onward
+      path: dimension-doc synthesis (t-3151)" section describes the LongFormAdapter
+      hand-off. The two earlier-guessed files were checked and don't need touching:
+      `youtube-channel-ingestion.md` covers channel/video enumeration only (no
+      Tier1/2/3 or PlatformAdapter surface), and `knowledge-architecture-v2.md`
+      (ADR-021, 2026-03-14, pre-dates this feature) doesn't describe the
+      Tier1/2/3 pipeline at the level this feature touches.
+- [x] **User guide** — done. `docs/architecture/features/inbox-to-dimensions-pipeline.md`
+      documents `--from-ruflo <key>` alongside the rest of `ingest`'s flags
+      (the "Ingest ruflo bridge (t-3177)" paragraph); ADR-087 and ADR-042 also
+      reference it. `process` itself gained no new flags, as scoped.
 
 ## Challenger findings
 
