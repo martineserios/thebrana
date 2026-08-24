@@ -6171,6 +6171,90 @@ id3
         assert!(prompt.len() < DRAFT_EXCERPT_CHARS + 2000, "prompt stays within excerpt budget");
     }
 
+    // ── mixed-fixture cross-adapter leakage (t-3183) ──────────────────────
+
+    /// Fixture: 2 LinkedIn + 2 YouTube entries at the given status.
+    fn mixed_fixture_state(status: UrlStatus) -> PipelineState {
+        let mut state = PipelineState::default();
+        for url in [
+            "https://www.linkedin.com/posts/alice_agents-111",
+            "https://www.linkedin.com/posts/bob_tooling-222",
+            "https://www.youtube.com/watch?v=vidA",
+            "https://www.youtube.com/watch?v=vidB",
+        ] {
+            let (author, title_signal) =
+                parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
+            state.urls.insert(
+                url.to_string(),
+                UrlEntry {
+                    status: status.clone(),
+                    author: Some(author),
+                    title_signal: Some(title_signal),
+                    platform: Some(classify_platform(url).to_string()),
+                    fetched_content: url.contains("youtube")
+                        .then(|| format!("transcript for {url}")),
+                    ..UrlEntry::new_unprocessed(None)
+                },
+            );
+        }
+        state
+    }
+
+    #[test]
+    fn test_mixed_fixture_tier1_no_cross_adapter_leakage() {
+        let state = mixed_fixture_state(UrlStatus::Unprocessed);
+        let batch = extract_unprocessed_urls(&state).unwrap();
+        assert_eq!(batch.len(), 4, "fixture must surface all four entries");
+        let (auto_pass, llm) = tier1_partition(batch);
+        assert_eq!(auto_pass.len(), 2);
+        assert!(auto_pass.iter().all(|e| is_long_form_url(&e.url)), "only youtube auto-passes");
+        assert_eq!(llm.len(), 2);
+        assert!(llm.iter().all(|e| !is_long_form_url(&e.url)), "linkedin never auto-passes");
+    }
+
+    #[test]
+    fn test_mixed_fixture_tier2_partition_no_leakage() {
+        // run_tier2 splits Tier1Passed candidates with is_long_form_url —
+        // the same authority tier1 partitions on. From the mixed fixture,
+        // the long-form side must be exactly the youtube set.
+        let state = mixed_fixture_state(UrlStatus::Tier1Passed);
+        let long_form: Vec<&String> = state
+            .urls
+            .keys()
+            .filter(|url| is_long_form_url(url))
+            .collect();
+        assert_eq!(long_form.len(), 2);
+        assert!(long_form.iter().all(|u| u.contains("youtube")));
+        let short: Vec<&String> = state
+            .urls
+            .keys()
+            .filter(|url| !is_long_form_url(url))
+            .collect();
+        assert!(short.iter().all(|u| u.contains("linkedin")));
+    }
+
+    #[test]
+    fn test_mixed_fixture_tier3_cluster_routing_no_leakage() {
+        // A pure-youtube cluster takes the excerpt-grounded LongForm prompt;
+        // any cluster containing a LinkedIn entry keeps the metadata prompt.
+        let pure_yt = ["https://www.youtube.com/watch?v=vidA", "https://www.youtube.com/watch?v=vidB"];
+        let mixed = ["https://www.youtube.com/watch?v=vidA", "https://www.linkedin.com/posts/alice_agents-111"];
+        assert!(cluster_is_long_form(pure_yt.iter().copied()));
+        assert!(!cluster_is_long_form(mixed.iter().copied()));
+
+        // And the LongForm prompt actually grounds in content while the
+        // metadata prompt shape (asserted via its builder in brana-cli
+        // tests) never sees fetched_content.
+        let sources = vec![(
+            "https://www.youtube.com/watch?v=vidA".to_string(),
+            "channel".to_string(),
+            "vid A".to_string(),
+            "unique transcript marker phrase".to_string(),
+        )];
+        let prompt = build_long_form_draft_prompt("t", "d", "(s)", &sources);
+        assert!(prompt.contains("unique transcript marker phrase"));
+    }
+
     // ── populate_fetched_content (t-3174/t-3177, ingest ruflo wiring) ─────
 
     #[test]
