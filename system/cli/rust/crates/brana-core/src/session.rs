@@ -544,8 +544,20 @@ pub fn write_state_with_base(
             })
             .unwrap_or(false);
         let same_branch = existing.branch == state.branch;
+        // t-3169 rung-2: an EXPLICIT orphan-sentinel write intentionally targets the shared,
+        // multi-tenant "no epic" bucket regardless of branch — unlike an ordinary
+        // non-conforming-branch fallback onto the same physical file (pre-existing, unrelated
+        // behavior this fix leaves alone), where same-branch/different-day still means "one
+        // continuous session, replace is fine" (see test_write_archives_previous). Only the
+        // sentinel declares "I have no single owner"; key on the INCOMING write's own intent,
+        // not on which file it happens to resolve to, and check it before sanitize() strips
+        // it. A different-branch collision on the sentinel-declared bucket is the NORMAL
+        // case, not a "wrong epic detected" red flag (t-2263) — it must always merge, never
+        // ReplaceStale, which would silently let one unrelated session's close destroy
+        // another's.
+        let is_explicit_orphan_write = state.epic.as_deref() == Some(ORPHAN_EPIC_SENTINEL);
 
-        if same_day && same_branch {
+        if is_explicit_orphan_write || (same_day && same_branch) {
             let base_matches = base.is_some_and(|b| b == existing.written_at);
             let mut merged = merge_states(&existing, state);
             if base_matches {
@@ -1814,6 +1826,54 @@ mod tests {
         };
         let merged = merge_states(&existing, &new);
         assert_eq!(merged.blockers.len(), 2);
+    }
+
+    // t-3169 rung-2 (concurrency-lock finder, corroborated): the orphan sentinel
+    // (ORPHAN_EPIC_SENTINEL) intentionally funnels every "no epic" close onto ONE shared
+    // file, unconditionally, regardless of branch. write_state_with_base's only collision
+    // protection (`same_day && same_branch`) is essentially always false for this traffic —
+    // two different unrelated sessions closing with no epic have two different branches by
+    // construction — so every such collision used to hit ReplaceStale, a full overwrite
+    // that silently destroyed the first session's accomplished/learnings/next[] (recoverable
+    // from session-history.jsonl, but with no warning surfaced anywhere). The orphan file is
+    // multi-tenant BY DESIGN, unlike an epic-scoped file where a different-branch write is a
+    // genuine "wrong epic detected" red flag (t-2263) — so it must always merge, never
+    // ReplaceStale, regardless of branch or day.
+    #[test]
+    fn orphan_sentinel_writes_from_different_branches_union_not_replace() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut first = make_state("2026-04-06T10:00:00Z");
+        first.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+        first.branch = Some("harness/chore/t-1717-first-session".to_string());
+        first.accomplished = vec!["first session's work".to_string()];
+        write_state(root, &first).unwrap();
+
+        let mut second = make_state("2026-04-06T14:00:00Z");
+        second.epic = Some(ORPHAN_EPIC_SENTINEL.to_string());
+        second.branch = Some("close/fix/t-3169-second-session".to_string());
+        second.accomplished = vec!["second session's work".to_string()];
+        // No base_written_at — second session never read the first's state (the exact
+        // scenario: two unrelated sessions, neither aware of the other, both close "no
+        // epic" the same day).
+        let report = write_state_with_base(root, &second, None).unwrap();
+
+        assert_ne!(
+            report.next_mode, NextMergeMode::ReplaceStale,
+            "orphan file must never be replaced outright — it's shared across unrelated branches by design"
+        );
+
+        let loaded = read_state_from_unit(root, Some(ORPHAN_EPIC_SENTINEL), "close/fix/t-3169-second-session")
+            .expect("orphan state must exist");
+        assert!(
+            loaded.accomplished.contains(&"first session's work".to_string()),
+            "first session's accomplished must survive a different-branch collision: {:?}", loaded.accomplished
+        );
+        assert!(
+            loaded.accomplished.contains(&"second session's work".to_string()),
+            "second session's accomplished must also land: {:?}", loaded.accomplished
+        );
     }
 
     #[test]
