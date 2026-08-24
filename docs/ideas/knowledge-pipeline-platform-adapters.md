@@ -1,6 +1,6 @@
 ---
 title: PlatformAdapter for the knowledge pipeline
-status: draft
+status: shipped
 created: 2026-08-24
 ---
 
