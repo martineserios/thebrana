@@ -92,6 +92,20 @@ boundary later).
   would let duplicate topics reach the expensive Tier3 step. **Resolved — see
   ADR-087.**
 
+Build-time assumptions (t-3151 BUILD, 2026-08-24 — need confirmation):
+
+- `--from-ruflo <key>` requires exactly one URL alongside the key: chose this
+  because `knowledge:url:*` slugs are lossy (lowercased, punctuation collapsed)
+  so the URL cannot be recovered from a key.
+- Ingest's automatic ruflo probe runs for LongForm URLs only: chose this because
+  short-signal tiers never read `fetched_content`, and a per-URL ruflo round-trip
+  would drag hundred-URL WA-dump batches.
+- `LONG_FORM_NEW_TOPIC_THRESHOLD = 0.35` (embedding cosine): a documented guess —
+  the clustering-quality assumption above is unverified; recalibrate after the
+  first real drained-transcript cycle.
+- Tier3 mixed clusters (LinkedIn + YouTube under one topic label) keep the
+  metadata prompt: only pure-LongForm clusters take the excerpt-grounded path.
+
 ## Behavior
 
 - Running `brana knowledge process --tier1` on a queue containing YouTube URLs:
