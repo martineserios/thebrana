@@ -137,8 +137,9 @@ pub enum PullDecision {
     Pulled { task_id: String },
     /// Live in_progress selector-matches ≥ wip_limit — skip this cycle.
     AtLimit { live: usize, limit: u64 },
-    /// Selector matched, but nothing is pending ∧ approved ∧ ¬parked.
-    NoneEligible { matched: usize, unapproved: usize, parked: usize },
+    /// Selector matched, but nothing is pending ∧ approved ∧ ¬parked ∧ unblocked.
+    /// `blocked` = matched tasks with an unmet `blocked_by` (ADR-079 §2 amendment).
+    NoneEligible { matched: usize, unapproved: usize, parked: usize, blocked: usize },
 }
 
 /// t-2813: pure pull decision over in-memory state — the loop runner's whole
@@ -186,6 +187,7 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
 
     let mut unapproved = 0;
     let mut parked = 0;
+    let mut blocked = 0;
     let mut first: Option<String> = None;
     for t in &matched {
         if t["ac_state"].as_str() != Some("approved") {
@@ -200,6 +202,12 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
             parked += 1;
             continue;
         }
+        // Frontier = open ∧ unblocked (ADR-079 §2 amendment, ADR-086 §4): the
+        // same resolver `classify` uses, so pump and human agree.
+        if !super::query::unmet_blockers(t, &by_id).is_empty() {
+            blocked += 1;
+            continue;
+        }
         if first.is_none() {
             first = Some(t["id"].as_str().unwrap_or("?").to_string());
         }
@@ -210,6 +218,7 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
             matched: matched.len(),
             unapproved,
             parked,
+            blocked,
         }),
     }
 }

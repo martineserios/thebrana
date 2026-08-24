@@ -1046,9 +1046,9 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, fil
                         "ok": true, "id": wave_id, "would_pull": null,
                         "at_limit": {"live": live, "limit": limit}
                     }),
-                    tasks::PullDecision::NoneEligible { matched, unapproved, parked } => serde_json::json!({
+                    tasks::PullDecision::NoneEligible { matched, unapproved, parked, blocked } => serde_json::json!({
                         "ok": true, "id": wave_id, "would_pull": null,
-                        "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked}
+                        "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "blocked": blocked}
                     }),
                 };
                 out["dry_run"] = serde_json::json!(true);
@@ -1076,10 +1076,10 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, fil
             }));
             Ok(())
         }
-        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked }) => {
+        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked, blocked }) => {
             println!("{}", serde_json::json!({
                 "ok": true, "id": wave_id, "pulled": null,
-                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked}
+                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "blocked": blocked}
             }));
             Ok(())
         }
@@ -1993,10 +1993,7 @@ pub fn collect_initiative_stats(tasks: &[serde_json::Value]) -> Vec<InitiativeSt
         let p1 = children.iter().filter(|t| t["priority"].as_str() == Some("P1")).count();
         let p2 = children.iter().filter(|t| t["priority"].as_str() == Some("P2")).count();
         let p3 = children.iter().filter(|t| t["priority"].as_str() == Some("P3")).count();
-        let blocked = children.iter().filter(|t| {
-            t["blocked_by"].as_array().map_or(false, |b| !b.is_empty())
-                && t["status"].as_str() != Some("completed")
-        }).count();
+        let blocked = children.iter().filter(|t| tasks::classify(t, tasks) == "blocked").count();
         let done = children.iter().filter(|t| t["status"].as_str() == Some("completed")).count();
 
         stats.push(InitiativeStat { id, slug, subject, priority, status, total, p1, p2, p3, blocked, done });
@@ -2026,10 +2023,9 @@ pub fn collect_epic_stats(tasks: &[serde_json::Value]) -> Vec<EpicStat> {
         let total = members.len();
         let p1 = members.iter().filter(|t| t["priority"].as_str() == Some("P1")).count();
         let p2 = members.iter().filter(|t| t["priority"].as_str() == Some("P2")).count();
-        let blocked = members.iter().filter(|t| {
-            t["blocked_by"].as_array().map_or(false, |b| !b.is_empty())
-                && t["status"].as_str() != Some("completed")
-        }).count();
+        // Same resolver as next/focus/board (t-3166) — a rollup must never
+        // count a task "blocked" that the board would show as pending.
+        let blocked = members.iter().filter(|t| tasks::classify(t, tasks) == "blocked").count();
         let done = members.iter().filter(|t| t["status"].as_str() == Some("completed")).count();
         EpicStat { slug: slug.clone(), total, p1, p2, blocked, done }
     }).collect()
@@ -2409,7 +2405,9 @@ mod tests {
             json!({"id":"ep-memory-arch","type":"epic","subject":"memory-arch","status":"pending","parent":null,"blocked_by":[]}),
             json!({"id":"in-001","type":"initiative","subject":"Backlog UI","status":"in_progress","priority":"P1","parent":"ep-backlog-ui","blocked_by":[]}),
             json!({"id":"t-10","type":"task","subject":"Task A","status":"completed","priority":"P1","parent":"in-001","blocked_by":[]}),
-            json!({"id":"t-11","type":"task","subject":"Task B","status":"pending","priority":"P2","parent":"in-001","blocked_by":["t-10"]}),
+            // blocked by a PENDING sibling — a completed blocker (t-10) would
+            // resolve and must not count as blocked (t-3166 rollup fix)
+            json!({"id":"t-11","type":"task","subject":"Task B","status":"pending","priority":"P2","parent":"in-001","blocked_by":["t-12"]}),
             json!({"id":"t-12","type":"task","subject":"Task C","status":"pending","priority":"P3","parent":"in-001","blocked_by":[]}),
             json!({"id":"in-002","type":"initiative","subject":"Memory Arch","status":"pending","priority":"P2","parent":"ep-memory-arch","blocked_by":[]}),
             json!({"id":"t-20","type":"task","subject":"Task M","status":"pending","priority":"P1","parent":"in-002","blocked_by":[]}),
@@ -2427,7 +2425,7 @@ mod tests {
         assert_eq!(bu.p1, 1);
         assert_eq!(bu.p2, 1);
         assert_eq!(bu.p3, 1);
-        assert_eq!(bu.blocked, 1); // t-11 has non-empty blocked_by and is not completed
+        assert_eq!(bu.blocked, 1); // t-11 is blocked by pending t-12 (resolved via classify)
     }
 
     #[test]

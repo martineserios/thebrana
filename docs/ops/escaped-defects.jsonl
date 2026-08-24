@@ -9,3 +9,4 @@
 {"date":"2026-08-24","area":"time-tracking/brana-cli","signal":"RECONSIDER_SEV4","rung_armed":2,"verified_findings":3,"cost_tokens":420000,"control_arm":{"rung1_findings":2,"panel_findings":3}}
 {"date":"2026-08-24","area":"knowledge-pipeline","signal":"EFFORT_M","rung_armed":1,"verified_findings":1,"cost_tokens":120000}
 {"date":"2026-08-24","area":"knowledge-pipeline","signal":"SIBLING_VERDICT","rung_armed":2,"verified_findings":2,"cost_tokens":180000}
+{"date":"2026-08-24","area":"system/cli/rust/crates/brana-core/src/tasks","signal":"CRITICAL_PATH","rung_armed":2,"verified_findings":4,"cost_tokens":638000,"control_arm":{"rung1_findings":3,"panel_findings":4},"task":"t-3166","note":"blocked_by resolver centralisation: second-variant finder caught 3 unrouted siblings (lint blocker_resolved sev5, validate_task_runnable sev4, blocked_chain sev2); challenger caught stats rollups (sev4); iter-2 PROCEED; runner/session-start shell siblings -> t-3201"}
