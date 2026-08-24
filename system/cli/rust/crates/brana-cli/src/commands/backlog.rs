@@ -1046,9 +1046,9 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, fil
                         "ok": true, "id": wave_id, "would_pull": null,
                         "at_limit": {"live": live, "limit": limit}
                     }),
-                    tasks::PullDecision::NoneEligible { matched, unapproved, parked } => serde_json::json!({
+                    tasks::PullDecision::NoneEligible { matched, unapproved, parked, blocked } => serde_json::json!({
                         "ok": true, "id": wave_id, "would_pull": null,
-                        "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked}
+                        "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "blocked": blocked}
                     }),
                 };
                 out["dry_run"] = serde_json::json!(true);
@@ -1076,10 +1076,10 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, fil
             }));
             Ok(())
         }
-        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked }) => {
+        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked, blocked }) => {
             println!("{}", serde_json::json!({
                 "ok": true, "id": wave_id, "pulled": null,
-                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked}
+                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "blocked": blocked}
             }));
             Ok(())
         }

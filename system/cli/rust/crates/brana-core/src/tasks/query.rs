@@ -17,6 +17,38 @@ pub fn is_finished(task: &Value) -> bool {
     }
 }
 
+/// True when `blocker` satisfies a `blocked_by` entry that names it. Distinct
+/// from `is_finished`: a task being *over* is not the same as it having
+/// *delivered* what its dependents wait on. ADR-079 (amended 2026-08-23) /
+/// ADR-086 §4: only `completed` resolves — `cancelled` never does, it has to
+/// be removed from `blocked_by` explicitly (cancelling a parent never
+/// auto-cancels children). Epic nodes resolve on their own terminal states
+/// (`done`/`archived`, ADR-065).
+pub fn resolves_blocker(blocker: &Value) -> bool {
+    match blocker["status"].as_str() {
+        Some("completed") => true,
+        Some("done") | Some("archived") => blocker["type"].as_str() == Some("epic"),
+        _ => false,
+    }
+}
+
+/// The single `blocked_by` resolution point (t-3166): every consumer —
+/// `classify` (→ `next`/`focus`/`blocked`/status/roadmap), `wave_pull_decision`
+/// (t-3043), the MCP focus tool — asks this, so the loop and the human can
+/// never disagree on what "unblocked" means. An id absent from `by_id` is
+/// unmet, not ignored.
+pub fn unmet_blockers<'a>(task: &'a Value, by_id: &HashMap<&str, &Value>) -> Vec<&'a str> {
+    task["blocked_by"]
+        .as_array()
+        .map(|deps| {
+            deps.iter()
+                .filter_map(|d| d.as_str())
+                .filter(|id| !by_id.get(id).map_or(false, |b| resolves_blocker(b)))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// Classify a task's effective status.
 pub fn classify(task: &Value, all: &[Value]) -> &'static str {
     if is_finished(task) {
@@ -25,19 +57,10 @@ pub fn classify(task: &Value, all: &[Value]) -> &'static str {
     match task["status"].as_str().unwrap_or("") {
         "in_progress" => "active",
         _ => {
-            if let Some(deps) = task["blocked_by"].as_array() {
-                if !deps.is_empty() {
-                    let done_ids: HashSet<&str> = all
-                        .iter()
-                        .filter(|t| is_finished(t))
-                        .filter_map(|t| t["id"].as_str())
-                        .collect();
-                    if !deps
-                        .iter()
-                        .all(|d| done_ids.contains(d.as_str().unwrap_or("")))
-                    {
-                        return "blocked";
-                    }
+            if task["blocked_by"].as_array().map_or(false, |d| !d.is_empty()) {
+                let by_id = super::wave::task_index(all);
+                if !unmet_blockers(task, &by_id).is_empty() {
+                    return "blocked";
                 }
             }
             if task["tags"]

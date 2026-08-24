@@ -12,7 +12,6 @@
 use clap::Parser;
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::HashSet;
 use std::io::{self, Read};
 use std::path::PathBuf;
 
@@ -62,32 +61,11 @@ struct TasksFile {
     tasks: Vec<Value>,
 }
 
+// Effective-status classification is owned by brana-core (t-3166): this binary
+// used to carry its own copy that treated a cancelled blocker as resolved,
+// contradicting `brana backlog next`/`focus` on the same tasks.json.
 fn classify(task: &Value, all: &[Value]) -> &'static str {
-    match task["status"].as_str().unwrap_or("") {
-        "completed" | "cancelled" => "done",
-        "in_progress" => "active",
-        _ => {
-            if let Some(deps) = task["blocked_by"].as_array() {
-                if !deps.is_empty() {
-                    let done_ids: HashSet<&str> = all
-                        .iter()
-                        .filter(|t| matches!(t["status"].as_str(), Some("completed" | "cancelled")))
-                        .filter_map(|t| t["id"].as_str())
-                        .collect();
-                    if !deps.iter().all(|d| done_ids.contains(d.as_str().unwrap_or(""))) {
-                        return "blocked";
-                    }
-                }
-            }
-            if task["tags"]
-                .as_array()
-                .map_or(false, |t| t.iter().any(|v| v.as_str() == Some("parked")))
-            {
-                return "parked";
-            }
-            "pending"
-        }
-    }
+    brana_core::tasks::classify(task, all)
 }
 
 fn text_match(task: &Value, needle: &str) -> bool {
