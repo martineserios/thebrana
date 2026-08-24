@@ -263,13 +263,13 @@ context, decision, and consequences live there, not duplicated here.
 
 ## Documentation Plan
 
-- [ ] **User guide** — `docs/guide/features/session-scoped-epic-focus.md`
+- [x] **User guide** — `docs/guide/features/session-scoped-epic-focus.md`
   (or fold into an existing backlog/focus guide page if one covers `focus`
   already): explain the new resolution order, that `set-active` is gone, and
   how to get epic-boosted focus (start a task under the epic, or pass
   `--epic`).
 - [x] **Tech doc** — this file, plus ADR-088.
-- [ ] **Existing docs to update**: `system/skills/backlog/SKILL.md` — both
+- [x] **Existing docs to update**: `system/skills/backlog/SKILL.md` — both
   the CLI/MCP table rows referencing `set-active` (remove) AND the separate
   prose paragraph (~line 65) describing project-local `active_epic`
   resolution (rewrite for task-derived resolution) — these are two distinct
