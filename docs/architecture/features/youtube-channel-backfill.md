@@ -132,6 +132,19 @@ as `t-2950` (merged 2026-08-21, after this doc's first draft) — a
 channel-backfilled URL now gets real caption extraction on drain, the same
 as any manually captured youtube URL, not the generic-scrape fallback.
 
+## Onward path: dimension-doc synthesis (t-3151)
+
+Drained transcripts no longer terminate in ruflo memory. `brana knowledge
+ingest <video-url>` now attaches the drained transcript to the pipeline
+entry's `fetched_content` (auto-probing ruflo's `knowledge:url:*` key, or
+explicitly via `--from-ruflo <key>`), after which the Tier1/2/3 pipeline
+routes it through the `LongFormAdapter` (ADR-087): Tier1 auto-passes
+(dedup-only, no LLM re-scoring of already-curated content), Tier2 clusters
+by embedding similarity against dimension topics, and Tier3 drafts a
+dimension addition grounded in transcript excerpts. See
+[inbox-to-dimensions-pipeline.md](inbox-to-dimensions-pipeline.md) and
+[knowledge-pipeline-platform-adapters.md](knowledge-pipeline-platform-adapters.md).
+
 ## Out of scope
 
 - **Tier B** (date/tag selection) — see above; needs its own design pass.

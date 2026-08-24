@@ -40,6 +40,10 @@ writes URLs directly to pipeline state.
 - File input (WA exports, plain URL lists, any text): `brana knowledge ingest inbox/dump.txt`
 - Stdin: `cat urls.txt | brana knowledge ingest`
 - Source-tagged input (Phase 2): `brana knowledge ingest --source telegram <url>`
+- Ruflo-content attach (t-3177): `brana knowledge ingest <url> --from-ruflo <knowledge:url:key>`
+  populates the entry's `fetched_content` from an already-drained ruflo store entry
+  (exactly one URL — key slugs are lossy). Without the flag, LongForm URLs
+  best-effort probe `url_storage_key(url)` automatically at ingest.
 
 URL extraction is regex-based (`https?://[^\s<>]+`) applied to any input text. Platform
 tagging (`linkedin | github | substack | arxiv | other`) is assigned at ingest time.

@@ -337,18 +337,24 @@ pub fn parse_event_log(
             continue;
         }
 
-        let url = match line.split_whitespace().find(|t| t.starts_with("https://")) {
-            Some(u) => u.trim_end_matches(')').trim_end_matches(',').to_string(),
+        let raw = match line.split_whitespace().find(|t| t.starts_with("https://")) {
+            Some(u) => u.trim_end_matches(')').trim_end_matches(','),
             None => continue,
         };
 
-        if known_urls.contains(&url) {
+        // Canonical from the moment of extraction (t-3151 challenger
+        // finding): these entries are run_tier1's first write into
+        // PipelineState, so a raw key here reopens the side door t-3173
+        // closed in ingest. Signals still parse from the raw form.
+        let url = canonicalize_url(raw);
+
+        if known_urls.contains(&url) || entries.iter().any(|e: &UrlEventEntry| e.url == url) {
             continue;
         }
 
-        let (author, title_signal) = match parse_linkedin_url(&url) {
+        let (author, title_signal) = match parse_linkedin_url(raw) {
             Some(pair) => pair,
-            None => url_fallback_signals(&url),
+            None => url_fallback_signals(raw),
         };
 
         let tags = extract_tags_from_line(line);
@@ -631,6 +637,221 @@ pub fn classify_platform(url: &str) -> &'static str {
     } else {
         "other"
     }
+}
+
+/// Content-shape adapter for the Tier1/2/3 pipeline (ADR-087): a closed
+/// 2-variant enum matched inline, not a `dyn Trait` — the adapter set is
+/// small and closed, unlike `SearchProvider`'s open-ended provider set.
+///
+/// The pipeline skeleton (queue → Tier1 → Tier2 → Tier3 → draft/promote)
+/// is shared; an adapter diverges only on the steps that depend on content
+/// shape. Dispatch is by [`UrlEntry::platform`] (via [`classify_platform`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlatformAdapter {
+    /// Short, signal-dense items (linkedin, github, substack, arxiv):
+    /// Tier1 LLM relevance-scores from author/title/tags.
+    ShortSignal,
+    /// Long-form content (youtube transcripts, long articles): already
+    /// curated at ingestion — Tier1 auto-passes, Tier2 clusters by
+    /// embedding similarity, Tier3 drafts grounded in `fetched_content`.
+    LongForm,
+}
+
+impl PlatformAdapter {
+    /// Adapter for a [`classify_platform`] platform tag. Unknown platforms
+    /// (the `"other"` catch-all) keep today's implicit short-signal
+    /// treatment — there is deliberately no third case.
+    pub fn for_platform(platform: &str) -> Self {
+        match platform {
+            "youtube" => PlatformAdapter::LongForm,
+            _ => PlatformAdapter::ShortSignal,
+        }
+    }
+}
+
+// ── LongFormAdapter tier logic (t-3179, ADR-087) ─────────────────────────────
+
+/// Fixed Tier1 score for LongForm auto-pass entries. 3 = "relevant, worth
+/// reading" on the live rubric — content was already curated at ingestion
+/// (channel-backfill + manual filtering), so re-scoring is wasted LLM cost.
+pub const LONG_FORM_AUTO_SCORE: u8 = 3;
+
+/// Character budget per source excerpt in a LongForm Tier3 draft prompt.
+/// Full transcripts run tens of thousands of chars; the draft grounds in
+/// the opening excerpt, not the whole text.
+pub const DRAFT_EXCERPT_CHARS: usize = 1500;
+
+/// Cosine similarity below which a LongForm entry is flagged `new-topic`
+/// instead of assigned to its nearest dimension. The spec names embedding-
+/// clustering quality as an unverified assumption — recalibrate against
+/// real drained transcripts once a full cycle has run.
+pub const LONG_FORM_NEW_TOPIC_THRESHOLD: f32 = 0.35;
+
+/// The single adapter-routing authority for a URL (t-3183): every tier
+/// partitions on this — a second inline predicate is how cross-adapter
+/// leakage would creep in.
+pub fn is_long_form_url(url: &str) -> bool {
+    PlatformAdapter::for_platform(classify_platform(url)) == PlatformAdapter::LongForm
+}
+
+/// A cluster routes through the LongForm Tier3 draft path only when every
+/// member is LongForm; a mixed cluster keeps the metadata prompt.
+pub fn cluster_is_long_form<'a>(urls: impl IntoIterator<Item = &'a str>) -> bool {
+    let mut any = false;
+    for url in urls {
+        if !is_long_form_url(url) {
+            return false;
+        }
+        any = true;
+    }
+    any
+}
+
+/// Split a Tier1 batch by adapter: LongForm entries auto-pass (never sent
+/// to the LLM scorer), short-signal entries take the existing LLM path.
+/// Callers apply this *after* the semantic-dedup filter — dedup runs for
+/// every adapter (ADR-087: Tier1 for LongForm is dedup-only).
+pub fn tier1_partition(batch: Vec<UrlEventEntry>) -> (Vec<UrlEventEntry>, Vec<UrlEventEntry>) {
+    batch.into_iter().partition(|e| is_long_form_url(&e.url))
+}
+
+/// The auto-passed [`UrlEntry`] for a LongForm Tier1 candidate: fixed
+/// score + reason, no LLM call (ADR-087 Tier1 row).
+pub fn long_form_tier1_entry(e: &UrlEventEntry) -> UrlEntry {
+    UrlEntry {
+        status: UrlStatus::Tier1Passed,
+        tier1_score: Some(LONG_FORM_AUTO_SCORE),
+        tier1_reason: Some(
+            "long-form auto-pass: content curated at ingestion (ADR-087)".to_string(),
+        ),
+        logged_date: Some(e.logged_date.clone()),
+        author: Some(e.author.clone()),
+        title_signal: Some(e.title_signal.clone()),
+        tags: e.tags.clone(),
+        platform: Some(classify_platform(&e.url).to_string()),
+        ..UrlEntry::new_unprocessed(None)
+    }
+}
+
+/// One LongForm Tier2 cluster decision.
+#[derive(Debug, Clone)]
+pub struct LongFormClusterAssignment {
+    pub url: String,
+    /// Nearest dimension slug, or `"new-topic"` below threshold.
+    pub dimension_target: String,
+    /// Cluster label — the dimension slug (or `"new-topic"`), matching how
+    /// tier3 groups by `cluster_topic`.
+    pub cluster_topic: String,
+    pub similarity: f32,
+}
+
+fn cosine_sim(a: &[f32], b: &[f32]) -> f32 {
+    if a.len() != b.len() || a.is_empty() {
+        return 0.0;
+    }
+    let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+    let na: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let nb: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if na == 0.0 || nb == 0.0 { 0.0 } else { dot / (na * nb) }
+}
+
+/// Tier2 for LongForm entries: nearest-dimension assignment by embedding
+/// cosine similarity — no LLM call (ADR-087 Tier2 row). `entries` are
+/// `(url, text)` where text is `fetched_content` (or the title fallback the
+/// caller chose); `dim_topics` are `(slug, topic text)`. An entry whose
+/// best similarity falls below `new_topic_threshold` — or whose embedding
+/// fails — is flagged `new-topic` rather than force-assigned. n=1 input is
+/// valid, matching the LinkedIn path's single-source handling.
+pub fn cluster_long_form_entries(
+    entries: &[(String, String)],
+    dim_topics: &[(String, String)],
+    embedder: &dyn crate::vector::Embedder,
+    new_topic_threshold: f32,
+) -> Vec<LongFormClusterAssignment> {
+    let dim_vecs: Vec<(&str, Option<Vec<f32>>)> = dim_topics
+        .iter()
+        .map(|(slug, text)| (slug.as_str(), embedder.embed(text)))
+        .collect();
+
+    entries
+        .iter()
+        .map(|(url, text)| {
+            let best = embedder.embed(text).and_then(|ev| {
+                dim_vecs
+                    .iter()
+                    .filter_map(|(slug, dv)| {
+                        dv.as_ref().map(|dv| (*slug, cosine_sim(&ev, dv)))
+                    })
+                    .max_by(|a, b| a.1.total_cmp(&b.1))
+                    .map(|(slug, sim)| (slug.to_string(), sim))
+            });
+            match best {
+                Some((slug, sim)) if sim >= new_topic_threshold => LongFormClusterAssignment {
+                    url: url.clone(),
+                    cluster_topic: slug.clone(),
+                    dimension_target: slug,
+                    similarity: sim,
+                },
+                other => LongFormClusterAssignment {
+                    url: url.clone(),
+                    dimension_target: "new-topic".to_string(),
+                    cluster_topic: "new-topic".to_string(),
+                    similarity: other.map(|(_, s)| s).unwrap_or(0.0),
+                },
+            }
+        })
+        .collect()
+}
+
+/// Split Tier3 draft sources into `(url, content)` pairs with real content
+/// and the URLs skipped for empty/missing `fetched_content` (feature spec
+/// edge case: never draft from nothing — callers log the skips).
+pub fn partition_draft_sources(
+    sources: Vec<(String, Option<String>)>,
+) -> (Vec<(String, String)>, Vec<String>) {
+    let mut with_content = Vec::new();
+    let mut skipped = Vec::new();
+    for (url, content) in sources {
+        match content {
+            Some(c) if !c.trim().is_empty() => with_content.push((url, c)),
+            _ => skipped.push(url),
+        }
+    }
+    (with_content, skipped)
+}
+
+/// Tier3 draft prompt for a LongForm cluster — grounded in real (truncated)
+/// `fetched_content` excerpts, not just author/title/tags (ADR-087 Tier3
+/// row). `sources` are `(url, author, title, content)`.
+pub fn build_long_form_draft_prompt(
+    topic: &str,
+    dim_target: &str,
+    dim_summary: &str,
+    sources: &[(String, String, String, String)],
+) -> String {
+    let sources_block: String = sources
+        .iter()
+        .map(|(url, author, title, content)| {
+            let excerpt: String = content.chars().take(DRAFT_EXCERPT_CHARS).collect();
+            format!(
+                "### Source: {title} — {author}\nURL: {url}\nTranscript excerpt:\n{excerpt}"
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
+
+    format!(
+        "You are writing an addition to a knowledge base dimension document from \
+long-form source material.\n\n\
+Dimension: {dim_target}\nExisting content summary:\n{dim_summary}\n\n\
+Source material ({n} source(s), cluster: {topic}):\n\n{sources_block}\n\n\
+Write a new section to add to this dimension, grounded in the transcript \
+excerpts above — quote or paraphrase specific claims, do not invent beyond \
+them. Use markdown. Cite each source inline as [author]. \
+Do not repeat content already in the dimension. Focus on new insights only.\n\n\
+Output: markdown section only (no frontmatter, no preamble).",
+        n = sources.len(),
+    )
 }
 
 /// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
@@ -2437,7 +2658,12 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     let mut result = IngestResult { queued: 0, duplicates: 0 };
 
     for url in urls {
-        if state.urls.contains_key(url.as_str()) {
+        // Key by canonical URL identity — the same derivation ruflo's
+        // url_storage_key() applies — so tracking-param variants of one
+        // page dedupe to a single entry (t-3173, ADR-087 shared URL
+        // identity). Signals are still parsed from the raw URL.
+        let key = canonicalize_url(url);
+        if state.urls.contains_key(key.as_str()) {
             result.duplicates += 1;
             continue;
         }
@@ -2453,8 +2679,104 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
             ..UrlEntry::new_unprocessed(None)
         };
 
-        state.urls.insert(url.clone(), entry);
+        state.urls.insert(key, entry);
         result.queued += 1;
+    }
+
+    result
+}
+
+/// Outcome of [`populate_fetched_content`].
+#[derive(Debug, PartialEq, Eq)]
+pub enum PopulateOutcome {
+    /// No entry existed under the canonical key — a fresh `Unprocessed`
+    /// entry was created, platform-tagged like any ingested URL.
+    Created,
+    /// The existing canonical entry's `fetched_content` was set.
+    Updated,
+}
+
+/// Attach already-fetched content (e.g. a drained YouTube transcript read
+/// back from ruflo) to the canonical-keyed [`UrlEntry`], creating the entry
+/// if the URL was never queued (t-3174/t-3177). Part of the ingest family —
+/// ADR-042 §1 keeps ingest the sole writer into [`PipelineState`], so
+/// drain-links/process-url must never call this (locked by the
+/// `test_adr042_ingest_sole_pipeline_state_writer_tripwire` source scan).
+/// Never advances `status`: content attachment is not tier progress.
+pub fn populate_fetched_content(
+    state: &mut PipelineState,
+    url: &str,
+    content: &str,
+) -> PopulateOutcome {
+    let key = canonicalize_url(url);
+    if let Some(entry) = state.urls.get_mut(&key) {
+        entry.fetched_content = Some(content.to_string());
+        return PopulateOutcome::Updated;
+    }
+    let (author, title_signal) =
+        parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
+    let entry = UrlEntry {
+        author: Some(author),
+        title_signal: Some(title_signal),
+        platform: Some(classify_platform(url).to_string()),
+        fetched_content: Some(content.to_string()),
+        ..UrlEntry::new_unprocessed(None)
+    };
+    state.urls.insert(key, entry);
+    PopulateOutcome::Created
+}
+
+/// Result of a [`migrate_urls_to_canonical_keys`] run.
+pub struct KeyMigrationResult {
+    /// Entries moved from a decorated key to their canonical key.
+    pub rewritten: usize,
+    /// Key collisions resolved by keeping the more-advanced entry.
+    pub merged: usize,
+}
+
+/// Pipeline advancement rank for collision merging — later tiers rank
+/// higher; `Irrelevant` outranks `Unprocessed` (a Tier1 decision was made).
+fn status_rank(status: &UrlStatus) -> u8 {
+    match status {
+        UrlStatus::Unprocessed => 0,
+        UrlStatus::Irrelevant => 1,
+        UrlStatus::Tier1Passed => 2,
+        UrlStatus::Tier2Clustered => 3,
+        UrlStatus::Tier3Drafted => 4,
+    }
+}
+
+/// One-time migration (t-3182): rewrite every `state.urls` key through
+/// [`canonicalize_url`] so pre-t-3173 raw-keyed entries share the canonical
+/// identity ingest now uses. Collisions (a decorated and a canonical key for
+/// the same page) keep the entry with the more-advanced [`UrlStatus`] — ties
+/// keep the entry already under the canonical key. Idempotent: canonical
+/// keys map to themselves.
+pub fn migrate_urls_to_canonical_keys(state: &mut PipelineState) -> KeyMigrationResult {
+    let mut result = KeyMigrationResult { rewritten: 0, merged: 0 };
+    let keys: Vec<String> = state.urls.keys().cloned().collect();
+
+    for key in keys {
+        let canonical = canonicalize_url(&key);
+        if canonical == key {
+            continue;
+        }
+        let Some(entry) = state.urls.remove(&key) else { continue };
+        match state.urls.get(&canonical) {
+            Some(existing) if status_rank(&existing.status) >= status_rank(&entry.status) => {
+                // Existing canonical entry is at least as advanced — drop
+                // the decorated duplicate, counted as a merge.
+                result.merged += 1;
+            }
+            Some(_) => {
+                state.urls.insert(canonical, entry);
+                result.merged += 1;
+            }
+            None => {
+                state.urls.insert(canonical, entry);
+                result.rewritten += 1;
+            }
+        }
     }
 
     result
@@ -5631,6 +5953,522 @@ id3
         let result = ingest_urls(&[url], None, &mut state);
         assert_eq!(result.queued, 0);
         assert_eq!(result.duplicates, 1);
+    }
+
+    // ── ingest_urls canonical keying (t-3171, ADR-087 shared URL identity) ─
+
+    #[test]
+    fn test_ingest_urls_tracking_variants_dedupe_to_one_entry() {
+        // Two tracking-param decorations of the same page must not create two
+        // pipeline entries — the second must count as a duplicate.
+        let mut state = PipelineState::default();
+        let plain = "https://www.linkedin.com/posts/someone_post-7437448165403852801-F5RX".to_string();
+        let decorated = format!("{plain}?utm_source=share&utm_medium=member_ios&rcm=ACoAA");
+        let first = ingest_urls(&[plain], None, &mut state);
+        let second = ingest_urls(&[decorated], None, &mut state);
+        assert_eq!(first.queued, 1);
+        assert_eq!(second.queued, 0, "tracking-param variant of an ingested URL must dedupe");
+        assert_eq!(second.duplicates, 1);
+        assert_eq!(state.urls.len(), 1);
+    }
+
+    #[test]
+    fn test_ingest_urls_keys_state_by_canonicalize_url() {
+        // The stored key must be canonicalize_url(raw), matching the key
+        // derivation ruflo's url_storage_key() applies — not the raw literal.
+        let mut state = PipelineState::default();
+        let raw = "https://www.youtube.com/watch?v=jNQXAC9IVRw&si=tracking123&utm_source=share".to_string();
+        let canonical = canonicalize_url(&raw);
+        assert_ne!(raw, canonical, "fixture must actually carry tracking params");
+        ingest_urls(&[raw.clone()], None, &mut state);
+        assert!(
+            state.urls.contains_key(canonical.as_str()),
+            "entry must be keyed by canonicalize_url(), got keys: {:?}",
+            state.urls.keys().collect::<Vec<_>>()
+        );
+        assert!(!state.urls.contains_key(raw.as_str()), "raw literal URL must not be a key");
+    }
+
+    #[test]
+    fn test_ingest_urls_safety_wrapper_dedupes_against_inner_url() {
+        // Boundary: a LinkedIn /safety/go wrap of an already-ingested URL
+        // must dedupe against the inner target, not queue a second entry.
+        let mut state = PipelineState::default();
+        let inner = "https://example.com/article".to_string();
+        let wrapped =
+            "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Farticle".to_string();
+        ingest_urls(&[inner.clone()], None, &mut state);
+        let second = ingest_urls(&[wrapped], None, &mut state);
+        assert_eq!(second.queued, 0, "safety-wrapped variant must dedupe");
+        assert_eq!(second.duplicates, 1);
+        assert_eq!(state.urls.len(), 1);
+        assert!(state.urls.contains_key(inner.as_str()));
+    }
+
+    // ── LongFormAdapter tiers (t-3176/t-3179, ADR-087) ────────────────────
+
+    /// Deterministic bag-of-words embedder: shared vocabulary → high cosine.
+    /// Mirrors vector.rs's FakeEmbedder pattern — no ruflo in unit tests.
+    struct BagOfWordsEmbedder;
+    impl crate::vector::Embedder for BagOfWordsEmbedder {
+        fn embed(&self, text: &str) -> Option<Vec<f32>> {
+            let mut v = vec![0f32; 64];
+            for word in text.to_ascii_lowercase().split_whitespace() {
+                let mut h = 0usize;
+                for b in word.bytes() {
+                    h = h.wrapping_mul(31).wrapping_add(b as usize);
+                }
+                v[h % 64] += 1.0;
+            }
+            let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if norm > 0.0 {
+                for x in &mut v {
+                    *x /= norm;
+                }
+            }
+            Some(v)
+        }
+    }
+
+    fn yt_event_entry(url: &str) -> UrlEventEntry {
+        UrlEventEntry {
+            url: url.to_string(),
+            author: "channel".to_string(),
+            title_signal: "some video".to_string(),
+            tags: vec![],
+            logged_date: "2026-08-24".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_tier1_partition_routes_long_form_to_auto_pass() {
+        // LongForm entries must never reach the LLM scoring batch (ADR-087:
+        // re-scoring curated content is wasted LLM cost); short-signal
+        // entries must all still go to the LLM.
+        let batch = vec![
+            yt_event_entry("https://www.youtube.com/watch?v=abc"),
+            yt_event_entry("https://linkedin.com/posts/x_y-123"),
+            yt_event_entry("https://github.com/foo/bar"),
+        ];
+        let (auto_pass, llm) = tier1_partition(batch);
+        assert_eq!(auto_pass.len(), 1);
+        assert!(auto_pass[0].url.contains("youtube"));
+        assert_eq!(llm.len(), 2);
+        assert!(llm.iter().all(|e| !e.url.contains("youtube")));
+    }
+
+    #[test]
+    fn test_long_form_tier1_entry_auto_passes_with_fixed_score() {
+        let e = yt_event_entry("https://www.youtube.com/watch?v=abc");
+        let entry = long_form_tier1_entry(&e);
+        assert_eq!(entry.status, UrlStatus::Tier1Passed);
+        assert_eq!(entry.tier1_score, Some(LONG_FORM_AUTO_SCORE));
+        let reason = entry.tier1_reason.expect("auto-pass must carry a reason");
+        assert!(reason.contains("auto-pass"), "reason must say it auto-passed, got: {reason}");
+        assert_eq!(entry.platform.as_deref(), Some("youtube"));
+    }
+
+    #[test]
+    fn test_cluster_long_form_assigns_nearest_dimension() {
+        // Fixture-based quality check (spec Testing Strategy): known-similar
+        // transcripts cluster to the matching dimension, dissimilar don't
+        // cross over. Embedding similarity only — no LLM call in the seam.
+        let entries = vec![
+            (
+                "https://www.youtube.com/watch?v=mem".to_string(),
+                "agent memory systems store recall context for agents \
+                 memory retrieval and agent context windows"
+                    .to_string(),
+            ),
+            (
+                "https://www.youtube.com/watch?v=cli".to_string(),
+                "rust cli tooling cargo commands terminal rust tooling \
+                 building cli apps in rust"
+                    .to_string(),
+            ),
+        ];
+        let dims = vec![
+            (
+                "agent-memory".to_string(),
+                "agent memory recall context storage retrieval".to_string(),
+            ),
+            (
+                "cli-tooling".to_string(),
+                "rust cli cargo terminal tooling commands".to_string(),
+            ),
+        ];
+        let assignments =
+            cluster_long_form_entries(&entries, &dims, &BagOfWordsEmbedder, 0.1);
+        assert_eq!(assignments.len(), 2);
+        let by_url: std::collections::HashMap<_, _> = assignments
+            .iter()
+            .map(|a| (a.url.as_str(), a.dimension_target.as_str()))
+            .collect();
+        assert_eq!(by_url["https://www.youtube.com/watch?v=mem"], "agent-memory");
+        assert_eq!(by_url["https://www.youtube.com/watch?v=cli"], "cli-tooling");
+    }
+
+    #[test]
+    fn test_cluster_long_form_dissimilar_flags_new_topic() {
+        let entries = vec![(
+            "https://www.youtube.com/watch?v=cook".to_string(),
+            "sourdough bread baking hydration flour starter oven".to_string(),
+        )];
+        let dims = vec![(
+            "agent-memory".to_string(),
+            "agent memory recall context storage retrieval".to_string(),
+        )];
+        let assignments =
+            cluster_long_form_entries(&entries, &dims, &BagOfWordsEmbedder, 0.5);
+        assert_eq!(assignments.len(), 1);
+        assert_eq!(assignments[0].dimension_target, "new-topic");
+    }
+
+    #[test]
+    fn test_cluster_long_form_single_source_still_assigns() {
+        // n=1 clusters are valid, matching LinkedIn's existing single-source
+        // handling — no minimum cluster size.
+        let entries = vec![(
+            "https://www.youtube.com/watch?v=mem".to_string(),
+            "agent memory recall context storage".to_string(),
+        )];
+        let dims = vec![(
+            "agent-memory".to_string(),
+            "agent memory recall context storage retrieval".to_string(),
+        )];
+        let assignments =
+            cluster_long_form_entries(&entries, &dims, &BagOfWordsEmbedder, 0.1);
+        assert_eq!(assignments.len(), 1);
+        assert_eq!(assignments[0].dimension_target, "agent-memory");
+    }
+
+    #[test]
+    fn test_partition_draft_sources_skips_empty_content() {
+        // Edge case (feature spec): empty/missing fetched_content skips with
+        // a log line rather than drafting from nothing.
+        let sources = vec![
+            ("https://a".to_string(), Some("real transcript text".to_string())),
+            ("https://b".to_string(), Some("   ".to_string())),
+            ("https://c".to_string(), None),
+        ];
+        let (with_content, skipped) = partition_draft_sources(sources);
+        assert_eq!(with_content.len(), 1);
+        assert_eq!(with_content[0].0, "https://a");
+        assert_eq!(skipped, vec!["https://b".to_string(), "https://c".to_string()]);
+    }
+
+    #[test]
+    fn test_long_form_draft_prompt_includes_excerpts() {
+        let sources = vec![(
+            "https://www.youtube.com/watch?v=mem".to_string(),
+            "channel".to_string(),
+            "agent memory deep dive".to_string(),
+            "transcripts show that agent memory decays without consolidation".to_string(),
+        )];
+        let prompt = build_long_form_draft_prompt(
+            "agent-memory-deep-dives",
+            "agent-memory",
+            "(existing summary)",
+            &sources,
+        );
+        assert!(
+            prompt.contains("agent memory decays without consolidation"),
+            "draft prompt must ground in real fetched_content excerpts, got: {prompt}"
+        );
+        assert!(prompt.contains("channel"), "prompt keeps author attribution");
+    }
+
+    #[test]
+    fn test_long_form_draft_prompt_truncates_excerpts() {
+        let long_content = "word ".repeat(5000); // ~25k chars
+        let sources = vec![(
+            "https://www.youtube.com/watch?v=long".to_string(),
+            "channel".to_string(),
+            "very long video".to_string(),
+            long_content.clone(),
+        )];
+        let prompt = build_long_form_draft_prompt("t", "d", "(s)", &sources);
+        assert!(
+            prompt.len() < long_content.len(),
+            "excerpts must be truncated, not full transcripts"
+        );
+        assert!(prompt.len() < DRAFT_EXCERPT_CHARS + 2000, "prompt stays within excerpt budget");
+    }
+
+    // ── parse_event_log canonical keys (challenger-gate finding, t-3151) ──
+
+    #[test]
+    fn test_parse_event_log_canonicalizes_urls() {
+        // Event-log discovery is a second entry point into PipelineState
+        // (run_tier1 inserts these entries) — it must emit canonical URLs
+        // or raw-keyed entries reappear through the side door t-3173 closed.
+        let log = "## 2026-08-24\n- 10:00 — https://www.youtube.com/watch?v=abc&si=track123&utm_source=share #ai\n";
+        let known = std::collections::HashSet::new();
+        let entries = parse_event_log(log, &known);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].url, "https://www.youtube.com/watch?v=abc");
+    }
+
+    #[test]
+    fn test_parse_event_log_dedupes_decorated_variant_of_known() {
+        let log = "## 2026-08-24\n- 10:00 — https://example.com/post?utm_source=share\n";
+        let mut known = std::collections::HashSet::new();
+        known.insert("https://example.com/post".to_string());
+        let entries = parse_event_log(log, &known);
+        assert!(entries.is_empty(), "decorated variant of a known canonical key must dedupe");
+    }
+
+    #[test]
+    fn test_parse_event_log_collapses_variants_within_one_log() {
+        let log = "## 2026-08-24\n\
+- 10:00 — https://example.com/post?utm_source=share\n\
+- 11:00 — https://example.com/post?utm_medium=member_ios\n";
+        let known = std::collections::HashSet::new();
+        let entries = parse_event_log(log, &known);
+        assert_eq!(entries.len(), 1, "two decorations of one URL are one entry");
+    }
+
+    // ── mixed-fixture cross-adapter leakage (t-3183) ──────────────────────
+
+    /// Fixture: 2 LinkedIn + 2 YouTube entries at the given status.
+    fn mixed_fixture_state(status: UrlStatus) -> PipelineState {
+        let mut state = PipelineState::default();
+        for url in [
+            "https://www.linkedin.com/posts/alice_agents-111",
+            "https://www.linkedin.com/posts/bob_tooling-222",
+            "https://www.youtube.com/watch?v=vidA",
+            "https://www.youtube.com/watch?v=vidB",
+        ] {
+            let (author, title_signal) =
+                parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
+            state.urls.insert(
+                url.to_string(),
+                UrlEntry {
+                    status: status.clone(),
+                    author: Some(author),
+                    title_signal: Some(title_signal),
+                    platform: Some(classify_platform(url).to_string()),
+                    fetched_content: url.contains("youtube")
+                        .then(|| format!("transcript for {url}")),
+                    ..UrlEntry::new_unprocessed(None)
+                },
+            );
+        }
+        state
+    }
+
+    #[test]
+    fn test_mixed_fixture_tier1_no_cross_adapter_leakage() {
+        let state = mixed_fixture_state(UrlStatus::Unprocessed);
+        let empty_projects = tempfile::tempdir().unwrap();
+        let batch = extract_unprocessed_urls_in(&state, empty_projects.path()).unwrap();
+        assert_eq!(batch.len(), 4, "fixture must surface all four entries");
+        let (auto_pass, llm) = tier1_partition(batch);
+        assert_eq!(auto_pass.len(), 2);
+        assert!(auto_pass.iter().all(|e| is_long_form_url(&e.url)), "only youtube auto-passes");
+        assert_eq!(llm.len(), 2);
+        assert!(llm.iter().all(|e| !is_long_form_url(&e.url)), "linkedin never auto-passes");
+    }
+
+    #[test]
+    fn test_mixed_fixture_tier2_partition_no_leakage() {
+        // run_tier2 splits Tier1Passed candidates with is_long_form_url —
+        // the same authority tier1 partitions on. From the mixed fixture,
+        // the long-form side must be exactly the youtube set.
+        let state = mixed_fixture_state(UrlStatus::Tier1Passed);
+        let long_form: Vec<&String> = state
+            .urls
+            .keys()
+            .filter(|url| is_long_form_url(url))
+            .collect();
+        assert_eq!(long_form.len(), 2);
+        assert!(long_form.iter().all(|u| u.contains("youtube")));
+        let short: Vec<&String> = state
+            .urls
+            .keys()
+            .filter(|url| !is_long_form_url(url))
+            .collect();
+        assert!(short.iter().all(|u| u.contains("linkedin")));
+    }
+
+    #[test]
+    fn test_mixed_fixture_tier3_cluster_routing_no_leakage() {
+        // A pure-youtube cluster takes the excerpt-grounded LongForm prompt;
+        // any cluster containing a LinkedIn entry keeps the metadata prompt.
+        let pure_yt = ["https://www.youtube.com/watch?v=vidA", "https://www.youtube.com/watch?v=vidB"];
+        let mixed = ["https://www.youtube.com/watch?v=vidA", "https://www.linkedin.com/posts/alice_agents-111"];
+        assert!(cluster_is_long_form(pure_yt.iter().copied()));
+        assert!(!cluster_is_long_form(mixed.iter().copied()));
+
+        // And the LongForm prompt actually grounds in content while the
+        // metadata prompt shape (asserted via its builder in brana-cli
+        // tests) never sees fetched_content.
+        let sources = vec![(
+            "https://www.youtube.com/watch?v=vidA".to_string(),
+            "channel".to_string(),
+            "vid A".to_string(),
+            "unique transcript marker phrase".to_string(),
+        )];
+        let prompt = build_long_form_draft_prompt("t", "d", "(s)", &sources);
+        assert!(prompt.contains("unique transcript marker phrase"));
+    }
+
+    // ── populate_fetched_content (t-3174/t-3177, ingest ruflo wiring) ─────
+
+    #[test]
+    fn test_populate_fetched_content_updates_existing_entry() {
+        // A decorated variant of an already-queued URL must land its content
+        // on the one canonical entry — same identity rules as ingest.
+        let mut state = PipelineState::default();
+        ingest_urls(
+            &["https://www.youtube.com/watch?v=jNQXAC9IVRw".to_string()],
+            None,
+            &mut state,
+        );
+        let outcome = populate_fetched_content(
+            &mut state,
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw&si=share123",
+            "full transcript text",
+        );
+        assert_eq!(outcome, PopulateOutcome::Updated);
+        assert_eq!(state.urls.len(), 1);
+        let entry = &state.urls["https://www.youtube.com/watch?v=jNQXAC9IVRw"];
+        assert_eq!(entry.fetched_content.as_deref(), Some("full transcript text"));
+        assert_eq!(entry.status, UrlStatus::Unprocessed, "populate must not advance status");
+    }
+
+    #[test]
+    fn test_populate_fetched_content_creates_entry_when_absent() {
+        // An already-processed ruflo URL not yet in pipeline state gets a
+        // fresh Unprocessed entry, platform-tagged like any ingested URL.
+        let mut state = PipelineState::default();
+        let outcome = populate_fetched_content(
+            &mut state,
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            "full transcript text",
+        );
+        assert_eq!(outcome, PopulateOutcome::Created);
+        let entry = &state.urls["https://www.youtube.com/watch?v=jNQXAC9IVRw"];
+        assert_eq!(entry.fetched_content.as_deref(), Some("full transcript text"));
+        assert_eq!(entry.status, UrlStatus::Unprocessed);
+        assert_eq!(entry.platform.as_deref(), Some("youtube"));
+        assert!(entry.author.is_some(), "signals derive like ingest_urls");
+    }
+
+    // ── migrate_urls_to_canonical_keys (t-3182, one-time key migration) ───
+
+    #[test]
+    fn test_migrate_keys_rewrites_decorated_keys() {
+        let mut state = PipelineState::default();
+        let raw = "https://example.com/post?utm_source=share&rcm=ACoAA";
+        state.urls.insert(raw.to_string(), UrlEntry {
+            status: UrlStatus::Tier1Passed,
+            tier1_score: Some(4),
+            ..UrlEntry::new_unprocessed(None)
+        });
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.rewritten, 1);
+        assert_eq!(result.merged, 0);
+        assert_eq!(state.urls.len(), 1);
+        let entry = &state.urls["https://example.com/post"];
+        assert_eq!(entry.status, UrlStatus::Tier1Passed);
+        assert_eq!(entry.tier1_score, Some(4), "entry data must survive re-keying");
+    }
+
+    #[test]
+    fn test_migrate_keys_collision_keeps_more_advanced_incoming() {
+        // Decorated key holds the advanced entry; canonical key holds a
+        // fresher Unprocessed duplicate — the advanced one must win.
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://example.com/post?utm_source=share".to_string(),
+            UrlEntry { status: UrlStatus::Tier2Clustered, ..UrlEntry::new_unprocessed(None) },
+        );
+        state.urls.insert(
+            "https://example.com/post".to_string(),
+            UrlEntry::new_unprocessed(None),
+        );
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.merged, 1);
+        assert_eq!(state.urls.len(), 1);
+        assert_eq!(state.urls["https://example.com/post"].status, UrlStatus::Tier2Clustered);
+    }
+
+    #[test]
+    fn test_migrate_keys_collision_keeps_more_advanced_existing() {
+        // Canonical key already holds the advanced entry; the decorated
+        // duplicate is Unprocessed — the advanced one must survive.
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://example.com/post".to_string(),
+            UrlEntry { status: UrlStatus::Tier3Drafted, ..UrlEntry::new_unprocessed(None) },
+        );
+        state.urls.insert(
+            "https://example.com/post?utm_source=share".to_string(),
+            UrlEntry::new_unprocessed(None),
+        );
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.merged, 1);
+        assert_eq!(state.urls.len(), 1);
+        assert_eq!(state.urls["https://example.com/post"].status, UrlStatus::Tier3Drafted);
+    }
+
+    #[test]
+    fn test_migrate_keys_idempotent_on_canonical_state() {
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw".to_string(),
+            UrlEntry::new_unprocessed(None),
+        );
+        let result = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(result.rewritten, 0);
+        assert_eq!(result.merged, 0);
+        assert_eq!(state.urls.len(), 1);
+        let again = migrate_urls_to_canonical_keys(&mut state);
+        assert_eq!(again.rewritten, 0, "second run must be a no-op");
+    }
+
+    // ── PlatformAdapter dispatch (t-3170, ADR-087 content-shape adapters) ─
+
+    #[test]
+    fn test_platform_adapter_linkedin_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("linkedin"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_github_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("github"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_substack_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("substack"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_arxiv_is_short_signal() {
+        assert_eq!(PlatformAdapter::for_platform("arxiv"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_youtube_is_long_form() {
+        assert_eq!(PlatformAdapter::for_platform("youtube"), PlatformAdapter::LongForm);
+    }
+
+    #[test]
+    fn test_platform_adapter_other_falls_back_to_short_signal() {
+        // "other" (classify_platform's catch-all) keeps today's implicit
+        // behavior — short-signal treatment, no third adapter kind.
+        assert_eq!(PlatformAdapter::for_platform("other"), PlatformAdapter::ShortSignal);
+    }
+
+    #[test]
+    fn test_platform_adapter_boundary_unexpected_tags_fall_back() {
+        // Tags classify_platform never emits (empty, casing, garbage) must
+        // not panic and must take the short-signal fallback.
+        assert_eq!(PlatformAdapter::for_platform(""), PlatformAdapter::ShortSignal);
+        assert_eq!(PlatformAdapter::for_platform("YouTube"), PlatformAdapter::ShortSignal);
+        assert_eq!(PlatformAdapter::for_platform("tiktok"), PlatformAdapter::ShortSignal);
     }
 
     // ── append_event_log_entry_at ─────────────────────────────────────────

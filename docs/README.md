@@ -107,6 +107,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [features/youtube-knowledge-extraction.md](architecture/features/youtube-knowledge-extraction.md) | YouTube knowledge extraction Phase 1 (t-2946) — single video/shorts transcript fetch tier spec |
 | [features/youtube-channel-ingestion.md](architecture/features/youtube-channel-ingestion.md) | YouTube channel ingestion Phase 3 Tier A (t-2993) — channel backfill selection surface spec |
 | [features/youtube-channel-backfill.md](architecture/features/youtube-channel-backfill.md) | `brana knowledge channel-backfill` tech doc (t-2998) — CLI flags, Tier A selection surface, Tier B boundary |
+| [features/knowledge-pipeline-platform-adapters.md](architecture/features/knowledge-pipeline-platform-adapters.md) | PlatformAdapter feature spec (t-3151, ADR-087) — LongForm youtube path through Tier1/2/3, ingest ruflo bridge, canonical-key migration |
 
 ### Extending brana
 
@@ -208,6 +209,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-084](architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md) | Upstream skill band — vendor pinned mattpocock/skills grains (file-copy, not native plugin install) wrapped by thin brana adapters; pilot-only decision gated on t-2834's diagnosing-bugs beat (t-2837) |
 | [ADR-085](architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md) | Skills stay whole stations composed via loops (`system/loops/`, waves) and graphs (`Workflow`, `blocked_by`/`gate`) — no station/grain schema; two-tier (wrapper → model-invoked station) for new/adapted skills; ≥2-callers-or-headless extraction floor; dual-mode resolves at the runner layer; t-2278 left as planned (t-2490) |
 | [ADR-086](architecture/decisions/ADR-086-wave-as-human-unit-pocock-ticket-shape.md) | Wave as the human's unit (task:AC :: wave:contract) — backlog speaks the Pocock ticket shape: derived triage roles, `ready-for-agent` as the single pull bit, `blocked_by` in the frontier, standing wave, `CHECK:` contracts, tracker doc + CONTEXT.md seam (t-2980, proposed) |
+| [ADR-087](architecture/decisions/ADR-087-knowledge-pipeline-platform-adapters.md) | Knowledge-pipeline PlatformAdapter (t-3151) — content-shape dispatch via a closed 2-variant enum (ShortSignal / LongForm): LongForm Tier1 auto-pass, Tier2 embedding clustering, Tier3 excerpt-grounded drafts; shared canonical URL identity |
 
 > Coverage is checked by `system/scripts/readme-coverage.sh` (t-3031) — run it before adding a doc; `tests/scripts/test-readme-coverage.sh` fails when a row is missing or dead.
 

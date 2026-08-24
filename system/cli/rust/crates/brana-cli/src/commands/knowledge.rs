@@ -1159,6 +1159,10 @@ pub fn cmd_process(
     // ── --reset-url ───────────────────────────────────────────────────
     // Short-lived lock: just this load→modify→save (t-2247).
     if let Some(url) = reset_url {
+        // Canonical identity on the delete side too (rung-2 finding): the
+        // user pastes the decorated share-sheet form; the state key is the
+        // canonical form.
+        let url = kp::canonicalize_url(&url);
         let _lock = kp::lock_pipeline()?;
         let mut state = kp::load_state(&state_path)?;
         if state.urls.remove(&url).is_some() {
@@ -1208,9 +1212,22 @@ pub fn cmd_process(
 const TIER1_BATCH: usize = 50;
 const TIER1_CONCURRENCY: usize = 5;
 
+/// Article + content-kind label for platform-aware prompt wording
+/// (t-3178, ADR-087 Context #2). The catch-all keeps neutral wording.
+fn platform_content_label(platform: &str) -> &'static str {
+    match platform {
+        "linkedin" => "a LinkedIn post",
+        "github" => "a GitHub repository",
+        "substack" => "a Substack article",
+        "arxiv" => "an arXiv paper",
+        _ => "a shared link",
+    }
+}
+
 fn build_tier1_prompt(entry: &kp::UrlEventEntry, dim_list: &str) -> String {
+    let label = platform_content_label(kp::classify_platform(&entry.url));
     format!(
-        "You are classifying a LinkedIn post for relevance to a personal knowledge base \
+        "You are classifying {label} for relevance to a personal knowledge base \
 about AI systems, agent design, developer tooling, and knowledge management.\n\n\
 Author: {}\nTitle signal: {}\nTags: {}\n\n\
 Score the relevance 1-5 where:\n\
@@ -1297,8 +1314,25 @@ fn run_tier1(
         kp::save_state(state_path, state)?;
         println!("  Dedup: {} URL(s) skipped (topic already in knowledge base)", dedup_filtered);
     }
+
+    // ── LongForm auto-pass (t-3179, ADR-087 Tier1 row) ────────────────────────
+    // After dedup (which runs for every adapter), LongForm entries skip the
+    // LLM relevance call entirely — content was curated at ingestion.
+    let (auto_pass, llm_batch) = kp::tier1_partition(llm_batch);
+    if !auto_pass.is_empty() {
+        for e in &auto_pass {
+            println!("  ✓ [long-form auto-pass] {} — {}", e.author, e.title_signal);
+            state.urls.insert(e.url.clone(), kp::long_form_tier1_entry(e));
+        }
+        kp::save_state(state_path, state)?;
+        println!(
+            "  Long-form: {} URL(s) auto-passed (dedup-only Tier1, no LLM call)",
+            auto_pass.len()
+        );
+    }
+
     if llm_batch.is_empty() {
-        println!("  Tier 1: all URLs filtered by semantic dedup.");
+        println!("  Tier 1: no URLs left for LLM scoring.");
         return Ok(());
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -1394,13 +1428,15 @@ const TIER2_CONCURRENCY: usize = 3;
 
 /// Build the cluster-assignment prompt for a single URL.
 fn build_tier2_prompt(
+    platform: &str,
     author: &str,
     title_signal: &str,
     tags: &[String],
     dim_list: &str,
 ) -> String {
+    let label = platform_content_label(platform);
     format!(
-        "You are assigning a LinkedIn post to the nearest topic in a knowledge base.\n\n\
+        "You are assigning {label} to the nearest topic in a knowledge base.\n\n\
 Author: {author}\nTitle signal: {title_signal}\nTags: {}\n\n\
 Existing dimension topics:\n{dim_list}\n\n\
 Assign this post to the best-matching dimension, or flag as \"new-topic\" \
@@ -1499,11 +1535,63 @@ fn run_tier2(
     let mut dim_targets: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
 
+    // ── LongForm embedding clustering (t-3179, ADR-087 Tier2 row) ─────────────
+    // LongForm entries cluster by embedding similarity against dimension
+    // topics — no LLM call. Short-signal entries continue on the LLM path.
+    let (long_form, candidates): (Vec<_>, Vec<_>) =
+        candidates.into_iter().partition(|(url, ..)| kp::is_long_form_url(url));
+    if !long_form.is_empty() {
+        println!("  Long-form: {} URL(s) → embedding cluster (no LLM)", long_form.len());
+        let dim_topic_texts: Vec<(String, String)> = dimension_slugs
+            .iter()
+            .map(|slug| {
+                let head: String = std::fs::read_to_string(
+                    knowledge_root.join("dimensions").join(format!("{slug}.md")),
+                )
+                .map(|c| c.chars().take(500).collect())
+                .unwrap_or_default();
+                (slug.clone(), format!("{slug}\n{head}"))
+            })
+            .collect();
+        let entries: Vec<(String, String)> = long_form
+            .iter()
+            .map(|(url, _, title_signal, _)| {
+                // Cluster on fetched_content when present; fall back to the
+                // title signal so a content-less entry still routes somewhere.
+                let text = state
+                    .urls
+                    .get(url)
+                    .and_then(|e| e.fetched_content.clone())
+                    .filter(|c| !c.trim().is_empty())
+                    .unwrap_or_else(|| title_signal.clone());
+                (url.clone(), text)
+            })
+            .collect();
+        let assignments = kp::cluster_long_form_entries(
+            &entries,
+            &dim_topic_texts,
+            &brana_core::vector::RufloEmbedder,
+            kp::LONG_FORM_NEW_TOPIC_THRESHOLD,
+        );
+        for a in assignments {
+            println!("  → [{}] {} (sim {:.2})", a.cluster_topic, a.url, a.similarity);
+            clusters.entry(a.cluster_topic.clone()).or_default().push(a.url.clone());
+            dim_targets.insert(a.cluster_topic.clone(), a.dimension_target.clone());
+            if let Some(entry) = state.urls.get_mut(&a.url) {
+                entry.status = UrlStatus::Tier2Clustered;
+                entry.cluster_topic = Some(a.cluster_topic);
+                entry.dimension_target = Some(a.dimension_target);
+            }
+        }
+        kp::save_state(state_path, state)?;
+    }
+
     // Build work queue: (url, author, prompt) triples
     let tasks: Vec<(String, String, String)> = candidates
         .iter()
         .map(|(url, author, title_signal, tags)| {
-            let prompt = build_tier2_prompt(author, title_signal, tags, &dim_list_str);
+            let prompt =
+                build_tier2_prompt(kp::classify_platform(url), author, title_signal, tags, &dim_list_str);
             (url.clone(), author.clone(), prompt)
         })
         .collect();
@@ -1657,24 +1745,68 @@ fn run_tier3(
         }
     };
 
-    let sources_block: String = cluster_urls
-        .iter()
-        .map(|(url, author, title_signal, tags, _)| {
-            format!("- Author: {author}, Title: {title_signal}, Tags: {}, URL: {url}", tags.join(" "))
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
+    // ── Adapter-aware draft prompt (t-3179, ADR-087 Tier3 row) ────────────────
+    // A pure-LongForm cluster drafts grounded in fetched_content excerpts;
+    // anything else keeps the metadata-line prompt. Empty/missing content
+    // skips that source (never draft from nothing) and leaves its entry
+    // Tier2Clustered for a later re-draft.
+    let all_long_form =
+        kp::cluster_is_long_form(cluster_urls.iter().map(|(url, _, _, _, _)| url.as_str()));
 
-    let prompt = format!(
-        "You are writing an addition to a knowledge base dimension document.\n\n\
+    let (prompt, drafted_urls): (String, Vec<String>) = if all_long_form {
+        let raw_sources: Vec<(String, Option<String>)> = cluster_urls
+            .iter()
+            .map(|(url, _, _, _, _)| {
+                (url.clone(), state.urls.get(url).and_then(|e| e.fetched_content.clone()))
+            })
+            .collect();
+        let (with_content, skipped) = kp::partition_draft_sources(raw_sources);
+        for url in &skipped {
+            println!("  ⚠ skipping {url} — empty/missing fetched_content (drain + re-ingest first)");
+        }
+        if with_content.is_empty() {
+            bail!(
+                "cluster '{topic}' has no sources with fetched_content — nothing to draft. \
+                 Drain the links, then re-ingest so content attaches (t-3177)."
+            );
+        }
+        let sources: Vec<(String, String, String, String)> = with_content
+            .into_iter()
+            .map(|(url, content)| {
+                let (author, title) = cluster_urls
+                    .iter()
+                    .find(|(u, _, _, _, _)| *u == url)
+                    .map(|(_, a, t, _, _)| (a.clone(), t.clone()))
+                    .unwrap_or_default();
+                (url, author, title, content)
+            })
+            .collect();
+        let drafted = sources.iter().map(|(u, _, _, _)| u.clone()).collect();
+        (
+            kp::build_long_form_draft_prompt(topic, &dim_target, &dim_summary, &sources),
+            drafted,
+        )
+    } else {
+        let sources_block: String = cluster_urls
+            .iter()
+            .map(|(url, author, title_signal, tags, _)| {
+                format!("- Author: {author}, Title: {title_signal}, Tags: {}, URL: {url}", tags.join(" "))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let prompt = format!(
+            "You are writing an addition to a knowledge base dimension document.\n\n\
 Dimension: {dim_target}\nExisting content summary:\n{dim_summary}\n\n\
 Source posts ({n} posts, approved cluster: {topic}):\n{sources_block}\n\n\
 Write a new section to add to this dimension. Use markdown. \
 Cite each source post inline as [author, date]. \
 Do not repeat content already in the dimension. Focus on new insights only.\n\n\
 Output: markdown section only (no frontmatter, no preamble).",
-        n = cluster_urls.len(),
-    );
+            n = cluster_urls.len(),
+        );
+        (prompt, cluster_urls.iter().map(|(u, _, _, _, _)| u.clone()).collect())
+    };
 
     if dry_run {
         println!("  [dry-run] would draft '{topic}' → dimensions/{dim_target}.md");
@@ -1693,9 +1825,9 @@ Output: markdown section only (no frontmatter, no preamble).",
         d.format("%Y-%m-%d").to_string()
     };
 
-    let sources_yaml: String = cluster_urls
+    let sources_yaml: String = drafted_urls
         .iter()
-        .map(|(url, _, _, _, _)| format!("  - url: {url}\n    logged: unknown"))
+        .map(|url| format!("  - url: {url}\n    logged: unknown"))
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -1709,8 +1841,9 @@ Output: markdown section only (no frontmatter, no preamble).",
     std::fs::create_dir_all(draft_path.parent().unwrap())?;
     std::fs::write(&draft_path, &draft_content)?;
 
-    // Update state
-    for (url, _, _, _, _) in &cluster_urls {
+    // Update state — only sources that actually fed the draft advance;
+    // content-skipped entries stay Tier2Clustered for a later re-draft.
+    for url in &drafted_urls {
         if let Some(entry) = state.urls.get_mut(url) {
             entry.status = UrlStatus::Tier3Drafted;
             entry.draft_path = Some(draft_path.to_string_lossy().to_string());
@@ -1812,7 +1945,9 @@ fn count_by_tier(state: &kp::PipelineState) -> TierCounts {
 }
 
 fn url_reset_state(mut state: kp::PipelineState, url: &str) -> kp::PipelineState {
-    state.urls.remove(url);
+    // Keys are canonical (t-3173) — resolve the caller's possibly-decorated
+    // URL to the same identity before removing.
+    state.urls.remove(kp::canonicalize_url(url).as_str());
     state
 }
 
@@ -2059,6 +2194,7 @@ pub fn cmd_next() -> Result<()> {
 pub fn cmd_ingest(
     sources: Vec<String>,
     source_tag: Option<String>,
+    from_ruflo: Option<String>,
     dry_run: bool,
 ) -> Result<()> {
     let mut raw_text = String::new();
@@ -2111,8 +2247,47 @@ pub fn cmd_ingest(
     );
     println!("  {} URL(s) extracted\n", extracted.len());
 
+    if from_ruflo.is_some() && extracted.len() != 1 {
+        bail!(
+            "--from-ruflo names one stored entry, so it takes exactly one URL (got {})",
+            extracted.len()
+        );
+    }
+
+    // t-3177 ruflo prefetch — BEFORE the pipeline lock (rung-2 concurrency
+    // finding): ruflo_memory_get spawns a subprocess with a 15s timeout, so
+    // probing under the exclusive lock would serialize every concurrent
+    // pipeline command behind a possibly-hung ruflo binary. Explicit key
+    // first; otherwise best-effort probe, LongForm URLs only (short-signal
+    // tiers never read fetched_content, and a ruflo round-trip per URL
+    // would drag on big WA-dump batches).
+    let mut prefetched: Vec<(String, String)> = Vec::new();
+    if !dry_run {
+        if let Some(key) = &from_ruflo {
+            let content = ruflo_memory_get(key, PROCESS_URL_NAMESPACE)
+                .with_context(|| format!("reading {key}"))?
+                .ok_or_else(|| anyhow::anyhow!("no ruflo entry stored at {key}"))?;
+            prefetched.push((extracted[0].clone(), content));
+        } else {
+            for url in &extracted {
+                let adapter = kp::PlatformAdapter::for_platform(kp::classify_platform(url));
+                if adapter != kp::PlatformAdapter::LongForm {
+                    continue;
+                }
+                match ruflo_memory_get(&url_storage_key(url), PROCESS_URL_NAMESPACE) {
+                    Ok(Some(content)) => prefetched.push((url.clone(), content)),
+                    Ok(None) => {}
+                    // Best-effort enrichment: a ruflo outage must not block
+                    // queueing — the entry just stays content-less.
+                    Err(e) => eprintln!("  warning: ruflo probe failed for {url}: {e}"),
+                }
+            }
+        }
+    }
+
     let state_path = kp::pipeline_state_path();
     // t-2247: dedup-against-state + queue is a load→modify→save — lock it.
+    // Only fast in-memory work happens in this span.
     let _lock = kp::lock_pipeline()?;
     let mut state = kp::load_state(&state_path)?;
     let result = kp::ingest_urls(&extracted, source_tag.as_deref(), &mut state);
@@ -2122,11 +2297,58 @@ pub fn cmd_ingest(
         println!("  · {} duplicate(s) skipped", result.duplicates);
     }
 
+    // Apply prefetched content under the lock — ingest stays the sole
+    // PipelineState writer (ADR-042 §1).
+    let mut populated = 0usize;
+    for (url, content) in &prefetched {
+        kp::populate_fetched_content(&mut state, url, content);
+        populated += 1;
+    }
+    if populated > 0 {
+        println!("  ✓ {populated} entr(ies) enriched with drained content");
+    }
+
     if dry_run {
         println!("  [dry-run] state not written.");
-    } else if result.queued > 0 {
+    } else if result.queued > 0 || populated > 0 {
         kp::save_state(&state_path, &state)?;
         println!("\n  Next: brana knowledge process --status");
+    }
+
+    Ok(())
+}
+
+/// One-time key migration (t-3182): rewrite `state.urls` keys through
+/// `canonicalize_url()` so pre-t-3173 raw-keyed entries share ingest's
+/// canonical identity. Backs up the pre-migration state file next to it
+/// before writing; a no-op run writes nothing.
+pub fn cmd_migrate_keys(dry_run: bool) -> Result<()> {
+    let state_path = kp::pipeline_state_path();
+    println!(
+        "\n  \x1b[1mbrana knowledge migrate-keys\x1b[0m{}",
+        if dry_run { " [dry-run]" } else { "" }
+    );
+
+    // Load→modify→save on the shared state file — lock it (t-2247).
+    let _lock = kp::lock_pipeline()?;
+    let mut state = kp::load_state(&state_path)?;
+    let before = state.urls.len();
+    let result = kp::migrate_urls_to_canonical_keys(&mut state);
+
+    println!("  {} entr(ies) scanned", before);
+    println!("  ✓ {} key(s) rewritten to canonical form", result.rewritten);
+    println!("  ✓ {} collision(s) merged (more-advanced status kept)", result.merged);
+
+    if dry_run {
+        println!("  [dry-run] state not written.");
+    } else if result.rewritten + result.merged > 0 {
+        let backup = state_path.with_extension("json.pre-migrate-keys.bak");
+        std::fs::copy(&state_path, &backup)
+            .with_context(|| format!("backing up {} to {}", state_path.display(), backup.display()))?;
+        kp::save_state(&state_path, &state)?;
+        println!("  Backup: {}", backup.display());
+    } else {
+        println!("  Already canonical — nothing to write.");
     }
 
     Ok(())
@@ -2313,6 +2535,55 @@ mod tests {
             !src[run_start..run_end].contains("cmd_process("),
             "cmd_run must call process_core, not cmd_process — cmd_process acquires the lock cmd_run already holds"
         );
+    }
+
+    #[test]
+    fn test_cmd_ingest_no_ruflo_calls_under_pipeline_lock() {
+        // Rung-2 concurrency finding (t-3151): ruflo_memory_get spawns a
+        // subprocess with a 15s timeout; N LongForm URLs probed while the
+        // exclusive pipeline lock is held serializes every other pipeline
+        // command behind a possibly-hung ruflo binary. All ruflo probes in
+        // cmd_ingest must complete BEFORE lock_pipeline is acquired.
+        let src = include_str!("knowledge.rs");
+        let start = src.find("pub fn cmd_ingest").expect("cmd_ingest exists");
+        let end = src[start + 10..]
+            .find("\npub fn ")
+            .map(|i| start + 10 + i)
+            .unwrap_or(src.len());
+        let body = &src[start..end];
+        let lock_pos = body.find("lock_pipeline").expect("cmd_ingest takes the pipeline lock");
+        let after_lock = &body[lock_pos..];
+        assert!(
+            !after_lock.contains("ruflo_memory_get"),
+            "cmd_ingest must finish all ruflo probes before acquiring the pipeline lock"
+        );
+    }
+
+    #[test]
+    fn test_adr042_ingest_sole_pipeline_state_writer_tripwire() {
+        // ADR-042 §1: ingest is the sole ingestion write path into
+        // PipelineState. drain-links and process-url store into ruflo only —
+        // neither may save pipeline state nor queue entries into it
+        // (t-3174: the ruflo→fetched_content bridge lives in ingest, not in
+        // a second drain-links-writes-both-stores path).
+        let src = include_str!("knowledge.rs");
+
+        for (fn_start, fn_name) in [
+            ("pub fn cmd_drain_links", "cmd_drain_links"),
+            ("pub fn cmd_process_url", "cmd_process_url"),
+        ] {
+            let start = src.find(fn_start).unwrap_or_else(|| panic!("{fn_name} exists"));
+            let end = src[start + 10..]
+                .find("\npub fn ")
+                .map(|i| start + 10 + i)
+                .unwrap_or(src.len());
+            let body = &src[start..end];
+            assert!(
+                !body.contains("save_state") && !body.contains("ingest_urls(")
+                    && !body.contains("populate_fetched_content"),
+                "{fn_name} must not write into PipelineState (ADR-042 §1 — ingest is the sole writer)"
+            );
+        }
     }
 
     // ── process-url: key derivation + outcome decision (t-2450) ──────
@@ -3165,6 +3436,21 @@ mod tests {
     }
 
     #[test]
+    fn test_url_reset_state_canonicalizes_decorated_input() {
+        // Rung-2 finder (t-3151): state keys are canonical, so a decorated
+        // real-world share-sheet URL passed to --reset-url must still hit
+        // the canonical entry — the write-side identity fix, delete-side.
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://example.com/post".into(), make_entry(UrlStatus::Tier1Passed));
+        let new_state =
+            url_reset_state(state, "https://example.com/post?utm_source=share&rcm=ACoAA");
+        assert!(
+            !new_state.urls.contains_key("https://example.com/post"),
+            "decorated variant must remove the canonical entry"
+        );
+    }
+
+    #[test]
     fn test_url_reset_state_missing_url_is_noop() {
         let mut state = kp::PipelineState::default();
         state.urls.insert("https://kept.com".into(), make_entry(UrlStatus::Tier1Passed));
@@ -3515,7 +3801,7 @@ mod tests {
     #[test]
     fn test_build_tier2_prompt_contains_author_and_title() {
         let tags = vec!["rust".to_string(), "cli".to_string()];
-        let prompt = build_tier2_prompt("Alice", "Building CLIs in Rust", &tags, "- cli-tooling\n- agent-memory");
+        let prompt = build_tier2_prompt("linkedin", "Alice", "Building CLIs in Rust", &tags, "- cli-tooling\n- agent-memory");
         assert!(prompt.contains("Alice"), "prompt must contain author");
         assert!(prompt.contains("Building CLIs in Rust"), "prompt must contain title_signal");
         assert!(prompt.contains("rust cli"), "prompt must contain joined tags");
@@ -3524,7 +3810,7 @@ mod tests {
 
     #[test]
     fn test_build_tier2_prompt_requests_json_response() {
-        let prompt = build_tier2_prompt("Bob", "AI agents", &[], "- agent-memory");
+        let prompt = build_tier2_prompt("linkedin", "Bob", "AI agents", &[], "- agent-memory");
         assert!(prompt.contains("Respond with JSON only"), "prompt must request JSON response");
         assert!(prompt.contains("dimension_target"), "prompt must mention dimension_target key");
         assert!(prompt.contains("cluster_topic"), "prompt must mention cluster_topic key");
@@ -3560,6 +3846,92 @@ mod tests {
         assert!(prompt.contains("Respond with JSON only"), "prompt must request JSON response");
         assert!(prompt.contains("\"score\""), "prompt must mention score key");
         assert!(prompt.contains("\"reason\""), "prompt must mention reason key");
+    }
+
+    // ── platform-aware prompt wording (t-3175/t-3178, ADR-087 Context #2) ──
+
+    fn make_url_event_entry_at(url: &str, author: &str, title_signal: &str) -> kp::UrlEventEntry {
+        kp::UrlEventEntry {
+            url: url.to_string(),
+            author: author.to_string(),
+            title_signal: title_signal.to_string(),
+            tags: vec![],
+            logged_date: "2026-08-24".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_github_wording() {
+        let entry = make_url_event_entry_at("https://github.com/foo/bar", "foo", "bar");
+        let prompt = build_tier1_prompt(&entry, "- cli-tooling");
+        assert!(prompt.contains("GitHub repository"), "github entries must be labeled as such, got: {prompt}");
+        assert!(!prompt.contains("LinkedIn post"), "github entries must not be mislabeled LinkedIn");
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_substack_wording() {
+        let entry = make_url_event_entry_at("https://foo.substack.com/p/bar", "foo", "bar");
+        let prompt = build_tier1_prompt(&entry, "- cli-tooling");
+        assert!(prompt.contains("Substack article"), "substack entries must be labeled as such");
+        assert!(!prompt.contains("LinkedIn post"));
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_arxiv_wording() {
+        let entry = make_url_event_entry_at("https://arxiv.org/abs/2408.01234", "arxiv", "2408.01234");
+        let prompt = build_tier1_prompt(&entry, "- cli-tooling");
+        assert!(prompt.contains("arXiv paper"), "arxiv entries must be labeled as such");
+        assert!(!prompt.contains("LinkedIn post"));
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_linkedin_regression_lock() {
+        // Byte-exact lock on LinkedIn's live Tier1 prompt (t-3175): the
+        // platform generalization must not change LinkedIn output at all.
+        let entry = make_url_event_entry_at(
+            "https://linkedin.com/posts/carol_agents-7437",
+            "carol",
+            "agent memory",
+        );
+        let prompt = build_tier1_prompt(&entry, "agent-memory, cli-tooling");
+        let expected = "You are classifying a LinkedIn post for relevance to a personal knowledge base \
+about AI systems, agent design, developer tooling, and knowledge management.\n\n\
+Author: carol\nTitle signal: agent memory\nTags: \n\n\
+Score the relevance 1-5 where:\n\
+1 = personal update, marketing, unrelated\n\
+2 = tangentially related, low signal\n\
+3 = relevant, worth reading\n\
+4 = directly relevant to known topics (memory, agents, CLI tooling, CC patterns)\n\
+5 = high-signal, likely new dimension content\n\n\
+Known dimension topics: agent-memory, cli-tooling\n\n\
+Respond with JSON only: {\"score\": N, \"reason\": \"one sentence\"}";
+        assert_eq!(prompt, expected, "LinkedIn Tier1 prompt must stay byte-identical");
+    }
+
+    #[test]
+    fn test_build_tier2_prompt_platform_wording() {
+        let tags: Vec<String> = vec![];
+        let prompt = build_tier2_prompt("github", "foo", "bar", &tags, "- cli-tooling");
+        assert!(prompt.contains("GitHub repository"), "tier2 github wording, got: {prompt}");
+        assert!(!prompt.contains("LinkedIn post"));
+        let prompt = build_tier2_prompt("arxiv", "arxiv", "2408.01234", &tags, "- cli-tooling");
+        assert!(prompt.contains("arXiv paper"));
+    }
+
+    #[test]
+    fn test_build_tier2_prompt_linkedin_regression_lock() {
+        // Locks LinkedIn's live Tier2 prompt text (t-3175) — identical to
+        // the pre-generalization literal, only the platform param is new.
+        let tags = vec!["agents".to_string()];
+        let prompt = build_tier2_prompt("linkedin", "carol", "agent memory", &tags, "- agent-memory");
+        let expected = "You are assigning a LinkedIn post to the nearest topic in a knowledge base.\n\n\
+Author: carol\nTitle signal: agent memory\nTags: agents\n\n\
+Existing dimension topics:\n- agent-memory\n\n\
+Assign this post to the best-matching dimension, or flag as \"new-topic\" \
+if it doesn't fit any existing dimension.\n\n\
+Respond with JSON only:\n\
+{\"dimension_target\": \"slug or new-topic\", \"cluster_topic\": \"short label\", \"reason\": \"one sentence\"}";
+        assert_eq!(prompt, expected, "LinkedIn Tier2 prompt must stay byte-identical");
     }
 
     // ── channel-backfill CLI wiring (t-2999) ─────────────────────────────

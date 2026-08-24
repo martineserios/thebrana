@@ -504,7 +504,20 @@ pub enum KnowledgeCmd {
         /// Provenance tag stored on each new URL entry (e.g. telegram)
         #[arg(long)]
         source: Option<String>,
+        /// Attach the content stored at this ruflo knowledge:url:* key to the
+        /// (single) ingested URL's entry, instead of deriving the key from
+        /// the URL (t-3177)
+        #[arg(long, value_name = "KEY")]
+        from_ruflo: Option<String>,
         /// Print planned actions without writing anything
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// One-time migration (t-3182): rewrite pipeline-state URL keys through
+    /// canonicalize_url() so pre-existing raw-keyed entries share the
+    /// canonical identity ingest now uses. Backs up the state file first.
+    MigrateKeys {
+        /// Report planned rewrites/merges without writing anything
         #[arg(long)]
         dry_run: bool,
     },

@@ -400,6 +400,23 @@ All other contexts are independent:
 
 ---
 
+### 11. Knowledge Pipeline (`core::knowledge_pipeline`)
+
+The Tier1/2/3 dimension-synthesis pipeline (ADR-042, ADR-087) — relevance filter → cluster assignment → grounded draft.
+
+**Aggregate root:** `PipelineState` (owns `~/.swarm/knowledge-pipeline-state.json`; `ingest` is the sole ingestion writer — ADR-042 §1)
+
+**Entity:** `UrlEntry` — per-URL pipeline record: `status` (Unprocessed → Irrelevant | Tier1Passed → Tier2Clustered → Tier3Drafted), tier scores/reasons, cluster assignment, optional `fetched_content` (drained transcript/article text attached at ingest, t-3177)
+
+**Value objects:**
+- `PlatformAdapter` — ShortSignal (linkedin, github, substack, arxiv, catch-all) | LongForm (youtube, long articles). Content-shape dispatch per ADR-087: a closed 2-variant enum; `is_long_form_url()` is the single routing authority every tier partitions on (t-3183)
+- `UrlStatus` — the pipeline advancement ladder above; `migrate_urls_to_canonical_keys` merges key collisions by preferring the more-advanced status (t-3182)
+- Canonical URL identity — `canonicalize_url()` keys both `PipelineState.urls` and ruflo's `knowledge:url:*` store, so tracking-param/safety-wrapper variants dedupe to one entry (t-3173)
+
+**Context boundary:** `process-url`/`drain-links` store into ruflo only and never write `PipelineState` (locked by a source tripwire); ingest bridges ruflo content into `fetched_content` at ingest time.
+
+---
+
 ## Ubiquitous Language
 
 | Term | Definition | Context |
@@ -418,6 +435,9 @@ All other contexts are independent:
 | **Propagation gap** | A knowledge artifact (spec status, doc checkbox, promise, memory claim) contradicting the system's actual state after work completes | Close / Knowledge |
 | **Knowledge debt** | Accumulated undetected propagation gaps — docs claiming a state the system is no longer in (ADR-056) | Close / Knowledge |
 | **Classification** | Computed status: done, active, blocked, parked, pending | Backlog |
+| **PipelineState** | The knowledge pipeline's aggregate root — canonical-URL-keyed map of `UrlEntry` records; `ingest` is its sole ingestion writer (ADR-042 §1) | Knowledge Pipeline |
+| **UrlEntry** | Per-URL pipeline record: tier status ladder, scores, cluster assignment, optional drained `fetched_content` | Knowledge Pipeline |
+| **PlatformAdapter** | Content-shape dispatch (ADR-087): ShortSignal (LLM-scored metadata) vs LongForm (dedup-only Tier1, embedding-clustered Tier2, excerpt-grounded Tier3) | Knowledge Pipeline |
 | **Feed** | An RSS/Atom source being monitored for new entries | Feeds |
 | **Conditional poll** | HTTP request with ETag/Last-Modified to avoid re-fetching unchanged feeds | Feeds |
 | **Subscription** | A newsletter sender being tracked within an inbox account | Inbox |

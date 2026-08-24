@@ -7,3 +7,5 @@
 {"date": "2026-08-23", "area": "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs", "signal": "ESCAPED_DEFECT_AREA", "rung_armed": 2, "verified_findings": 3, "cost_tokens": 0, "task": "t-3038", "note": "persisted cookie jar: challenger sev3 non-hermetic test (fixed); concurrency-lock C3 HOME-unset relative default path (fixed); second-variant stale process-url doc (fixed) + linear.env unenforced 0600 sibling -> t-3042; C1/C2/C4 refuted sev1 (same-user boundary)"}
 {"date":"2026-08-23","area":"services/kapso-functions/src (project events, ADR-085)","signal":"RUNG1_EFFORT_L","rung_armed":1,"verified_findings":6,"cost_tokens":0}
 {"date":"2026-08-24","area":"time-tracking/brana-cli","signal":"RECONSIDER_SEV4","rung_armed":2,"verified_findings":3,"cost_tokens":420000,"control_arm":{"rung1_findings":2,"panel_findings":3}}
+{"date":"2026-08-24","area":"knowledge-pipeline","signal":"EFFORT_M","rung_armed":1,"verified_findings":1,"cost_tokens":120000}
+{"date":"2026-08-24","area":"knowledge-pipeline","signal":"SIBLING_VERDICT","rung_armed":2,"verified_findings":2,"cost_tokens":180000}
