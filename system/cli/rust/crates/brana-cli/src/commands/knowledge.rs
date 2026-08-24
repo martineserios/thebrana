@@ -1159,6 +1159,10 @@ pub fn cmd_process(
     // ── --reset-url ───────────────────────────────────────────────────
     // Short-lived lock: just this load→modify→save (t-2247).
     if let Some(url) = reset_url {
+        // Canonical identity on the delete side too (rung-2 finding): the
+        // user pastes the decorated share-sheet form; the state key is the
+        // canonical form.
+        let url = kp::canonicalize_url(&url);
         let _lock = kp::lock_pipeline()?;
         let mut state = kp::load_state(&state_path)?;
         if state.urls.remove(&url).is_some() {
@@ -1941,7 +1945,9 @@ fn count_by_tier(state: &kp::PipelineState) -> TierCounts {
 }
 
 fn url_reset_state(mut state: kp::PipelineState, url: &str) -> kp::PipelineState {
-    state.urls.remove(url);
+    // Keys are canonical (t-3173) — resolve the caller's possibly-decorated
+    // URL to the same identity before removing.
+    state.urls.remove(kp::canonicalize_url(url).as_str());
     state
 }
 
