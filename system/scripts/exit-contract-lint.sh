@@ -119,6 +119,19 @@ lint_diff() {
                    || [[ "$REGISTRY_DIR" == */"$file_dir" || "$REGISTRY_DIR" == "$file_dir" ]]; then
                     skip_file=1
                 fi
+                # Language scope: the registry is built from bash function
+                # NAMES only, with no notion of language. A same-named
+                # function can exist in an unrelated language with different
+                # semantics (e.g. a Rust fn returning Option<T>, no exit-status
+                # concept at all) — resolve_epic_ancestor is both the marked
+                # bash helper AND an unrelated Rust fn in brana-core (t-3212).
+                # Only lint files where a bash call site can plausibly occur:
+                # shell scripts and markdown skill docs (which embed bash
+                # code fences, per the existing test fixtures/registry).
+                case "$file" in
+                    *.sh|*.bash|*.md) ;;
+                    *) skip_file=1 ;;
+                esac
                 continue ;;
             ---*|diff\ *|index\ *) continue ;;
             @@*)
