@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-23T23:52:13Z",
+  "generated": "2026-08-24T00:43:25Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -606,7 +606,10 @@
       "title": "Documentation Index",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/_shared/judge-sizing.md"
+        "system/skills/_shared/judge-sizing.md",
+        "system/loops/",
+        "system/scripts/readme-coverage.sh",
+        "system/hooks/tests/"
       ]
     },
     "docs/architecture/ac-grammar.md": {
@@ -1225,6 +1228,25 @@
         "system/hooks/red-verification.sh"
       ]
     },
+    "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md": {
+      "title": "ADR-084: Upstream Skill Band — Vendored Pocock Cognitive Skills Over Brana Orchestration Shells",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/<brana-name>/SKILL.md"
+      ]
+    },
+    "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md": {
+      "title": "ADR-085: Skills as stations — composition via loops and graphs, no atom schema",
+      "type": "ADR",
+      "impl_files": [
+        "system/loops/",
+        "system/agents/",
+        "system/agents/build-evaluator.md:55-67",
+        "system/agents/build-evaluator.md",
+        "system/agents/build-evaluator/rubric.md",
+        "system/loops/README.md"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1416,6 +1438,7 @@
       "title": "Feature: Build Loop Redesign",
       "type": "Roadmap",
       "impl_files": [
+        "system/skills/_shared/challenger-gate.md",
         "system/scripts/check-selector.sh"
       ]
     },
@@ -2264,6 +2287,23 @@
         "system/rules/",
         "system/state/schema-removals.json",
         "system/scripts/check-adr-uniqueness.sh"
+      ]
+    },
+    "docs/architecture/the-brana.md": {
+      "title": "The Brana",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/",
+        "system/agents/<agent>/",
+        "system/agents/",
+        "system/loops/",
+        "system/scripts/loops-lint.py",
+        "system/skills/backlog/phases/triage-sync.md",
+        "system/agents/CALIBRATION.md",
+        "system/loops/README.md",
+        "system/scripts/autonomous-runner.sh",
+        "system/skills/_shared/judge-sizing.md",
+        "system/hooks/spec-gate.sh"
       ]
     },
     "docs/architecture/the-orbit.md": {
@@ -3606,7 +3646,7 @@
       "impl_files": []
     },
     "docs/ideas/drained/wave-pipeline.md": {
-      "title": "The Wave Pipeline",
+      "title": "The Wave Pipeline → The Brana",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3622,6 +3662,17 @@
         "system/"
       ]
     },
+    "docs/ideas/skills-loops-graphs.md": {
+      "title": "Skills, loops, graphs — where each primitive lives",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/",
+        "system/loops/epic-drain",
+        "system/agents/",
+        "system/agents/build-evaluator.md:55-67",
+        "system/agents/CALIBRATION.md:25-28"
+      ]
+    },
     "docs/ideas/statusline-pipeline-awareness.md": {
       "title": "Statusline Pipeline Awareness",
       "type": "Roadmap",
@@ -3634,6 +3685,39 @@
       "type": "Roadmap",
       "impl_files": [
         "system/skills/build/phases/load.md`/"
+      ]
+    },
+    "docs/ideas/the-brana-consolidation-board.md": {
+      "title": "The Brana — consolidation board (2026-08-18, draft for approval)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/README.md"
+      ]
+    },
+    "docs/ideas/the-brana-guide.md": {
+      "title": "The Brana — studio guide (top-down, living draft of `docs/architecture/the-brana.md`)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/build-evaluator.md:55-67",
+        "system/agents/CALIBRATION.md:25-28",
+        "system/skills/_shared/judge-sizing.md",
+        "system/agents/",
+        "system/agents/CALIBRATION.md",
+        "system/skills/log/SKILL.md",
+        "system/skills/backlog/phases/triage-sync.md",
+        "system/skills/build/",
+        "system/loops/",
+        "system/scripts/loops-lint.py",
+        "system/hooks/goal-completion.sh",
+        "system/hooks/red-verification.sh",
+        "system/loops/epic-drain.md",
+        "system/loops/pipeline-digest.md",
+        "system/scripts/autonomous-runner.sh",
+        "system/hooks/spec-gate.sh",
+        "system/loops/README.md",
+        "system/scripts/readme-coverage.sh",
+        "system/skills/_shared/",
+        "system/cli/rust/crates/brana-cli/src/commands/"
       ]
     },
     "docs/ideas/venture-playbook-product-management.md": {
@@ -3972,7 +4056,8 @@
       "type": "Roadmap",
       "impl_files": [
         "system/skills/_shared/smart-router.md",
-        "system/skills/challenge/SKILL.md"
+        "system/skills/challenge/SKILL.md",
+        "system/skills/backlog/phases/triage-sync.md"
       ]
     },
     "docs/research/2026-08-14-agent-work-contracts.md": {
@@ -3992,6 +4077,28 @@
     },
     "docs/research/2026-08-14-multiagent-orchestration-lessons.md": {
       "title": "Multi-Agent Orchestration: 2024–2026 Lessons Learned",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-08-18-pocock-methodology-synthesis.md": {
+      "title": "Pocock Methodology Synthesis — Public Content vs. brana's Core Five",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-08-22-pocock-alignment-decision-matrix.md": {
+      "title": "Pocock-alignment decision matrix — L3 CYCLE mechanisms",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-08-23-adr-085-premortem.md": {
+      "title": "Pre-mortem: ADR-085 (skills as stations, no atom schema) — before landing",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/build-evaluator/rubric.md"
+      ]
+    },
+    "docs/research/2026-08-23-skill-tier-mapping.md": {
+      "title": "Skill tier mapping — 41 first-party skills against ADR-085 D3's atom/wrapper split",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -10564,6 +10671,132 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-045-backlog-ui-transport.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-046-smart-search-load-default.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-047-acceptance-criteria-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-048-memory-consolidation-trigger-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-053-close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-055-tech-stack-feed-tracking.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-056-propagate-close-step.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-057-unit-of-knowledge.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-058-search-provider-hybrid-recall.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-063-pending-questions-store.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-064-retrieval-routing-graphify.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-066-active-epic-project-scoped-only.md",
       "type": "references",
       "computed": false
@@ -10577,6 +10810,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
       "type": "references",
       "computed": false
     },
@@ -10624,6 +10863,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-077-validate-remedy-registry.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-078-stale-task-park-via-tag.md",
       "type": "references",
       "computed": false
@@ -10636,7 +10881,37 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-082-multi-agent-sizing-function.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
       "type": "references",
       "computed": false
     },
@@ -10667,6 +10942,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/extending.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/ac-state-forward-slice.md",
       "type": "references",
       "computed": false
     },
@@ -10708,7 +10989,49 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/backlog-lint.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/backlog-project-scoping.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/brana-cli.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/brana-feed-inbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/brana-v2-compute-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/build-close-auto-docs.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/build-cost-tracking.md",
       "type": "references",
       "computed": false
     },
@@ -10732,7 +11055,37 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/cc-hook-leverage.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/chat-agents-monitoring.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/checkpoint-resume.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/claude-gemini-orchestration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/cli-composable-tool.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/close-oriented-modes.md",
       "type": "references",
       "computed": false
     },
@@ -10750,7 +11103,43 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/doc-frontmatter-spec.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/event-log.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/github-issues-sync.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/goal-binding-build-tdd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/golden-path-snapshot.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/hook-test-sweep.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/inbox-to-dimensions-pipeline.md",
       "type": "references",
       "computed": false
     },
@@ -10762,7 +11151,91 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/knowledge-architecture-v2.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/knowledge-pipeline-compute.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/learned-eligibility.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/linkedin-content-implementation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/lint-heal-deterministic.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/living-docs.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/local-vector-recall.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/memory-migration-manifest.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/memory-pattern-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/memory-taxonomy-ddd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/memory-taxonomy-sdd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/mission-control-cli.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/neix-ai-consulting-proposal.md",
       "type": "references",
       "computed": false
     },
@@ -10774,7 +11247,19 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/personal-bot-oci-deploy.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/pipeline-digest.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/plan-time-wave-graph.md",
       "type": "references",
       "computed": false
     },
@@ -10792,6 +11277,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/propagate-close-step.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/reminder-system.md",
       "type": "references",
       "computed": false
@@ -10804,7 +11295,25 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/resilient-pattern-store.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/ruflo-integration-map.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/ruflo-mcp-tool-classification.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/ruflo-upgrade-memory-reliability.md",
       "type": "references",
       "computed": false
     },
@@ -10817,6 +11326,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/scheduler.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/sdd-spec-gate.md",
       "type": "references",
       "computed": false
     },
@@ -10840,6 +11355,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/stacked-verdict-at-the-valve.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/stale-task-lifecycle-policy.md",
       "type": "references",
       "computed": false
@@ -10852,6 +11373,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/statusline-test-coverage.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/t-2001-feed-tech-stack.md",
       "type": "references",
       "computed": false
@@ -10859,6 +11386,18 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/t-2385-retired-fields-write-guard.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/t-527-next-limit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/t-601-tdd-gate.md",
       "type": "references",
       "computed": false
     },
@@ -10888,7 +11427,37 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/terminal-diagrams.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/test-lint-feedback-hook.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/time-tracking-metric-1.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/user-journey-gap-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/validate-remedy-binding.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/wave-board.md",
       "type": "references",
       "computed": false
     },
@@ -10960,12 +11529,6 @@
     },
     {
       "from": "docs/README.md",
-      "to": "architecture/posttooluse-workaround.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/README.md",
       "to": "architecture/rules-design.md",
       "type": "references",
       "computed": false
@@ -11002,6 +11565,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/the-orbit.md",
       "type": "references",
       "computed": false
@@ -11009,6 +11578,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/workflow-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "archive/posttooluse-workaround.md",
       "type": "references",
       "computed": false
     },
@@ -11800,7 +12375,19 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
       "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-065-epic-as-hierarchy-top.md",
+      "to": "ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
       "computed": false
     },
@@ -11866,6 +12453,12 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
       "to": "docs/architecture/the-orbit.md",
       "type": "references",
       "computed": false
@@ -11873,6 +12466,12 @@
     {
       "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
       "to": "docs/ideas/drained/brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "to": "docs/ideas/the-brana-guide.md",
       "type": "references",
       "computed": false
     },
@@ -12034,13 +12633,31 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "to": "docs/architecture/features/backlog-v3-schema.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "docs/architecture/features/plan-time-wave-graph.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "to": "docs/architecture/features/wave-gate-enforcement.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -12071,6 +12688,12 @@
     {
       "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "to": "ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -12118,7 +12741,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
-      "to": "docs/ideas/drained/wave-pipeline.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -12167,6 +12790,132 @@
     {
       "from": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
       "to": "docs/ideas/task-time-tracking.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "ADR-012-acquire-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "ADR-078-stale-task-park-via-tag.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "ADR-085-skills-as-stations-no-atom-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "docs/architecture/research/2026-08-13-matt-pocock-skill-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "docs/ideas/drained/gentle-ai-adoption-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "docs/reference/skill-writing-craft.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "ADR-063-pending-questions-store.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "ADR-069-lane-identity-and-miss-semantics.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "docs/ideas/drained/skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "docs/ideas/skills-loops-graphs.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "docs/research/2026-08-23-adr-085-premortem.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "to": "docs/research/2026-08-23-skill-tier-mapping.md",
       "type": "references",
       "computed": false
     },
@@ -12387,8 +13136,20 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/brana-v2-compute-model.md",
+      "to": "decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/build-cost-tracking.md",
       "to": "docs/architecture/decisions/ADR-083-time-tracking-mechanism.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/build-loop-redesign.md",
+      "to": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate.md",
       "type": "references",
       "computed": false
     },
@@ -12431,6 +13192,12 @@
     {
       "from": "docs/architecture/features/consensus-primitive.md",
       "to": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/consensus-primitive.md",
+      "to": "docs/architecture/decisions/ADR-082-multi-agent-sizing-function.md",
       "type": "references",
       "computed": false
     },
@@ -12574,13 +13341,13 @@
     },
     {
       "from": "docs/architecture/features/loops-library.md",
-      "to": "docs/ideas/drained/loops-library.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/architecture/features/loops-library.md",
-      "to": "docs/ideas/drained/wave-pipeline.md",
+      "to": "docs/ideas/drained/loops-library.md",
       "type": "references",
       "computed": false
     },
@@ -12689,6 +13456,12 @@
     {
       "from": "docs/architecture/features/stacked-verdict-at-the-valve.md",
       "to": "docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/stacked-verdict-at-the-valve.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -12807,6 +13580,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/glossary.md",
+      "to": "the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/hooks.md",
       "to": "docs/archive/posttooluse-workaround.md",
       "type": "references",
@@ -12863,6 +13642,12 @@
     {
       "from": "docs/architecture/idea-to-ship.md",
       "to": "skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/idea-to-ship.md",
+      "to": "the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -13143,6 +13928,186 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/the-brana.md",
+      "to": "ac-grammar.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "agentic-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "brana-knowledge/dimensions/brana-etymology-naming.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "context-budget.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-047-acceptance-criteria-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-062-runner-executor-sandbox.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-063-pending-questions-store.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-082-multi-agent-sizing-function.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "docs/ideas/drained/runner-capability-isolation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "docs/ideas/drained/skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "docs/ideas/skills-loops-graphs.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "docs/ideas/the-brana-guide.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "docs/research/2026-08-22-pocock-alignment-decision-matrix.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "features/autonomous-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "features/backlog-v3-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "features/plan-time-wave-graph.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "glossary.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "idea-to-ship.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "substrate-primitives.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "the-orbit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/the-brana.md",
+      "to": "workflow-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/the-orbit.md",
       "to": "decisions/ADR-050-loop-request-protocol.md",
       "type": "references",
@@ -13235,6 +14200,12 @@
     {
       "from": "docs/architecture/workflow-primitive.md",
       "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/workflow-primitive.md",
+      "to": "the-brana.md",
       "type": "references",
       "computed": false
     },
@@ -15183,6 +16154,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/workflows/challenge.md",
+      "to": "docs/architecture/decisions/ADR-082-multi-agent-sizing-function.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/workflows/drain-loop.md",
       "to": "docs/architecture/features/loops-library.md",
       "type": "references",
@@ -15197,6 +16174,12 @@
     {
       "from": "docs/guide/workflows/drain-loop.md",
       "to": "docs/ideas/drained/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/drain-loop.md",
+      "to": "epic-drain.md",
       "type": "references",
       "computed": false
     },
@@ -15520,6 +16503,12 @@
     },
     {
       "from": "docs/ideas/drained/loops-library.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/loops-library.md",
       "to": "docs/ideas/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
       "computed": false
@@ -15718,43 +16707,43 @@
     },
     {
       "from": "docs/ideas/drained/wave-pipeline-infographic-prompt.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/wave-pipeline-infographic-prompt.md",
       "to": "wave-pipeline.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/ideas/drained/wave-pipeline.md",
-      "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/ideas/drained/wave-pipeline.md",
-      "to": "docs/ideas/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/ideas/drained/wave-pipeline.md",
-      "to": "docs/ideas/guide/workflows/drain-loop.md",
+      "to": "docs/architecture/features/loops-library.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/ideas/drained/wave-pipeline.md",
-      "to": "docs/ideas/research/2026-08-13-matt-pocock-skill-system.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/ideas/drained/wave-pipeline.md",
       "to": "loop-first-redesign.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/drained/wave-pipeline.md",
-      "to": "loops-library.md",
       "type": "references",
       "computed": false
     },
@@ -15785,6 +16774,72 @@
     {
       "from": "docs/ideas/loop-task-multiagent.md",
       "to": "docs/research/2026-08-14-multiagent-orchestration-lessons.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-loops-graphs.md",
+      "to": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-loops-graphs.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-loops-graphs.md",
+      "to": "docs/architecture/idea-to-ship.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-loops-graphs.md",
+      "to": "docs/research/2026-08-13-matt-pocock-skill-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/skills-loops-graphs.md",
+      "to": "drained/skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/the-brana-consolidation-board.md",
+      "to": "the-brana-guide.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/the-brana-guide.md",
+      "to": "brana-knowledge/dimensions/brana-etymology-naming.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/the-brana-guide.md",
+      "to": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/the-brana-guide.md",
+      "to": "drained/wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/the-brana-guide.md",
+      "to": "skills-loops-graphs.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/the-brana-guide.md",
+      "to": "the-brana-consolidation-board.md",
       "type": "references",
       "computed": false
     },
@@ -16941,6 +17996,30 @@
       "computed": false
     },
     {
+      "from": "docs/research/2026-08-23-adr-085-premortem.md",
+      "to": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-08-23-adr-085-premortem.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-08-23-adr-085-premortem.md",
+      "to": "docs/ideas/skills-loops-graphs.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-08-23-skill-tier-mapping.md",
+      "to": "docs/ideas/drained/skills-as-loops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/agentic-engineering-2026-gap-analysis.md",
       "to": "gentle-ai-productization-extraction.md",
       "type": "references",
@@ -17098,9 +18177,9 @@
     }
   ],
   "stats": {
-    "nodes": 595,
-    "edges": 2153,
+    "nodes": 605,
+    "edges": 2315,
     "typed_edges": 686,
-    "orphans": 158
+    "orphans": 156
   }
 }
