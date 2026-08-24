@@ -2467,7 +2467,12 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     let mut result = IngestResult { queued: 0, duplicates: 0 };
 
     for url in urls {
-        if state.urls.contains_key(url.as_str()) {
+        // Key by canonical URL identity — the same derivation ruflo's
+        // url_storage_key() applies — so tracking-param variants of one
+        // page dedupe to a single entry (t-3173, ADR-087 shared URL
+        // identity). Signals are still parsed from the raw URL.
+        let key = canonicalize_url(url);
+        if state.urls.contains_key(key.as_str()) {
             result.duplicates += 1;
             continue;
         }
@@ -2483,7 +2488,7 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
             ..UrlEntry::new_unprocessed(None)
         };
 
-        state.urls.insert(url.clone(), entry);
+        state.urls.insert(key, entry);
         result.queued += 1;
     }
 
@@ -5695,6 +5700,22 @@ id3
             state.urls.keys().collect::<Vec<_>>()
         );
         assert!(!state.urls.contains_key(raw.as_str()), "raw literal URL must not be a key");
+    }
+
+    #[test]
+    fn test_ingest_urls_safety_wrapper_dedupes_against_inner_url() {
+        // Boundary: a LinkedIn /safety/go wrap of an already-ingested URL
+        // must dedupe against the inner target, not queue a second entry.
+        let mut state = PipelineState::default();
+        let inner = "https://example.com/article".to_string();
+        let wrapped =
+            "https://www.linkedin.com/safety/go?url=https%3A%2F%2Fexample.com%2Farticle".to_string();
+        ingest_urls(&[inner.clone()], None, &mut state);
+        let second = ingest_urls(&[wrapped], None, &mut state);
+        assert_eq!(second.queued, 0, "safety-wrapped variant must dedupe");
+        assert_eq!(second.duplicates, 1);
+        assert_eq!(state.urls.len(), 1);
+        assert!(state.urls.contains_key(inner.as_str()));
     }
 
     // ── PlatformAdapter dispatch (t-3170, ADR-087 content-shape adapters) ─
