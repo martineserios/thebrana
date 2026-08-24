@@ -82,6 +82,26 @@ pub fn epic_scoped_state_path(project_root: &Path, branch: &str) -> PathBuf {
 /// session belongs to) when present, else the epic parsed from the branch name. This decouples
 /// handoff routing from the volatile current branch — closing from `main` or a sibling epic's
 /// branch no longer mis-files the handoff (ADR-060 / t-2152, t-2154).
+/// Whether `slug` is safe to interpolate into a bare filename component
+/// (`session-state-{slug}.json`) with no further sanitization. Matches the same slug
+/// convention `resolve_epic_ancestor` already enforces elsewhere
+/// (`^[a-z0-9]+(-[a-z0-9]+)*$`) — no `/`, no `.`, no leading/trailing/repeated dashes.
+///
+/// t-3169 rung-2 (second-variant finder, verified independently by direct reproduction):
+/// this is the single choke point every caller — write, and now read — funnels an
+/// externally-supplied epic string through. Without this check, a slug containing `../`
+/// segments produces a first path component that doesn't exist yet
+/// (`session-state-..`) — `fs::create_dir_all` on the write path happily creates it,
+/// then walks the real `..` components from inside it, escaping `resolve_memory_dir`
+/// entirely (confirmed: reaches real writes outside the memory directory). Pre-existing
+/// (reachable via `write_state`'s payload `epic` field before this fix existed at all);
+/// this is the first place any validation was ever applied to it.
+pub(crate) fn is_safe_epic_slug(slug: &str) -> bool {
+    static RE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").expect("slug regex is valid"))
+        .is_match(slug)
+}
+
 pub fn unit_scoped_state_path(project_root: &Path, epic: Option<&str>, branch: &str) -> PathBuf {
     // t-3169: explicit "no epic" wins outright — skip branch-name parsing too, so a caller
     // that opted out of epic routing isn't silently re-routed just because the current
@@ -91,7 +111,12 @@ pub fn unit_scoped_state_path(project_root: &Path, epic: Option<&str>, branch: &
         return session_state_path(project_root);
     }
     if let Some(slug) = epic.map(str::trim).filter(|s| !s.is_empty()) {
-        return resolve_memory_dir(project_root).join(format!("session-state-{slug}.json"));
+        // Invalid slugs (including any path-traversal attempt) are treated the same as no
+        // epic at all — silently-safe and consistent with resolve_epic_ancestor's own
+        // "malformed slug degrades to not-found" convention, not a new error surface.
+        if is_safe_epic_slug(slug) {
+            return resolve_memory_dir(project_root).join(format!("session-state-{slug}.json"));
+        }
     }
     epic_scoped_state_path(project_root, branch)
 }
@@ -2380,6 +2405,40 @@ mod tests {
         let path = epic_scoped_state_path(dir.path(), "myepic/fix/t-42-something");
         assert!(path.to_str().unwrap().ends_with("session-state-myepic.json"),
             "fix/ branch should use epic slug: {:?}", path);
+    }
+
+    // t-3169 rung-2 (second-variant finder round 2, verified independently — the finder's
+    // read-side traversal claim does NOT reproduce, but the SAME unvalidated slug reaches
+    // fs::create_dir_all on the write side, which DOES escape): unit_scoped_state_path did
+    // `format!("session-state-{slug}.json")` with zero validation. A slug embedding "../"
+    // segments produces a path whose first component ("session-state-..") is a bogus,
+    // normally-nonexistent directory name — fs::create_dir_all happily CREATES it, then
+    // walks the real ".." components from inside it, escaping resolve_memory_dir entirely.
+    // Confirmed live (outside this test suite) that this reaches real arbitrary file writes.
+    // This sink was already reachable pre-t-3169 via write_state's payload `epic` field; the
+    // fix (validate against the same slug convention resolve_epic_ancestor already
+    // enforces) closes it at the single choke point every caller — read and write — funnels
+    // through.
+    #[test]
+    fn unit_scoped_state_path_rejects_slug_with_path_traversal() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let mut state = make_state("2026-04-06T10:00:00Z");
+        state.epic = Some("../../../../../../../../tmp/t-3169-traversal-poc/evil".to_string());
+        state.branch = Some("main".to_string());
+
+        write_state(root, &state).unwrap();
+
+        assert!(
+            !std::path::Path::new("/tmp/t-3169-traversal-poc").exists(),
+            "malicious epic slug must not escape the memory directory"
+        );
+        // Rejected as invalid — falls through to branch-name resolution, same as an absent
+        // epic, rather than silently vanishing the write.
+        let loaded = read_state_from(root, "main").expect("write must still land somewhere safe");
+        assert_eq!(loaded.accomplished, vec!["did thing A"]);
+
+        let _ = std::fs::remove_dir_all("/tmp/t-3169-traversal-poc");
     }
 
     #[test]

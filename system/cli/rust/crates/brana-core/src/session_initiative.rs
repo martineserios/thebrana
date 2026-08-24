@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-use crate::session::{resolve_memory_dir, NextItem, SessionState};
+use crate::session::{is_safe_epic_slug, resolve_memory_dir, NextItem, SessionState};
 
 // ── Path helpers ─────────────────────────────────────────────────────────
 
@@ -217,6 +217,15 @@ pub fn maybe_write_initiative_marker(
 }
 
 pub fn read_initiative(project_root: &Path, slug: &str) -> Option<InitiativeAccumulator> {
+    // t-3169 rung-2: initiative_path has no fixed prefix (unlike unit_scoped_state_path's
+    // "session-state-"), so a slug embedding ".." segments walks initiative_dir's real,
+    // already-existing ancestor chain with no create_dir_all trick needed — reachable once
+    // initiative_dir exists at all (true for any project that ever upserted one epic).
+    // Reject before touching the filesystem; malformed = not-found, same convention
+    // resolve_epic_ancestor already uses.
+    if !is_safe_epic_slug(slug) {
+        return None;
+    }
     let path = initiative_path(project_root, slug);
     std::fs::read_to_string(&path)
         .ok()
@@ -329,6 +338,13 @@ pub fn upsert_initiative(
 
 /// Archive an initiative (move to archive/ subdirectory with datestamp).
 pub fn archive_initiative(project_root: &Path, slug: &str) -> Result<()> {
+    // t-3169 rung-2: same unvalidated-slug sink as read_initiative, but here rename() would
+    // MOVE (not just read) whatever the traversal reaches. Reject outright — no safe
+    // fallback exists for "archive this" the way there is for "read this or treat it as
+    // absent".
+    if !is_safe_epic_slug(slug) {
+        anyhow::bail!("invalid initiative slug: {slug:?}");
+    }
     let src = initiative_path(project_root, slug);
     if !src.exists() {
         anyhow::bail!("initiative file not found: {}", src.display());
@@ -391,6 +407,65 @@ mod tests {
             task_id: task_id.map(|s| s.to_string()),
             category: NextCategory::FollowUp,
         }
+    }
+
+    // t-3169 rung-2 (second-variant finder, verified independently): initiative_path does
+    // `format!("{slug}.json")` with zero prefix and zero validation — unlike
+    // unit_scoped_state_path's "session-state-" prefix (which at least forces the first path
+    // component to be bogus), a slug here that IS itself "../../../..." produces a real,
+    // immediately-resolvable ParentDir chain from initiative_dir's already-existing
+    // ancestors — no create_dir_all trick even needed (confirmed by direct standalone
+    // reproduction outside this suite: a `/`-embedding slug walks initiative_dir's real,
+    // already-existing ancestor chain and lands wherever those `..` segments point, with no
+    // dependency on `$HOME`'s actual depth). A slug containing `/` is never valid under the
+    // `^[a-z0-9]+(-[a-z0-9]+)*$` convention regardless of what it resolves to — reject any
+    // slug that isn't a bare, safe token, don't try to prove a specific traversal target.
+    #[test]
+    fn read_initiative_rejects_slug_with_path_separator() {
+        let dir = tempdir().unwrap();
+        // Realistic precondition: any project that has ever upserted one epic accumulator
+        // already has a real, existing initiative_dir (write_initiative create_dir_all's
+        // it) — walking ".." from an already-existing directory needs no fabricated-prefix
+        // trick at all, unlike the write-side case. Pre-create it so the traversal path is
+        // genuinely resolvable, proving rejection is real and not a coincidental
+        // file-not-found for an unreachable target.
+        std::fs::create_dir_all(initiative_dir(dir.path())).unwrap();
+
+        let planted_dir = std::path::Path::new("/tmp/t-3169-read-initiative-poc");
+        std::fs::create_dir_all(planted_dir).unwrap();
+        std::fs::write(
+            planted_dir.join("evil.json"),
+            r#"{"slug":"evil","started_at":"","last_closed":"","sessions_count":1,"accomplished":["PWNED"],"learnings":[],"session_labels":[],"next":[],"resolved":[]}"#,
+        )
+        .unwrap();
+
+        let malicious_slug = "../../../../../../../../../tmp/t-3169-read-initiative-poc/evil";
+        let result = read_initiative(dir.path(), malicious_slug);
+
+        let _ = std::fs::remove_dir_all(planted_dir);
+
+        assert!(
+            result.is_none(),
+            "slug containing '/' must be rejected, never read outside the memory directory: {result:?}"
+        );
+    }
+
+    #[test]
+    fn archive_initiative_rejects_slug_with_path_separator() {
+        let dir = tempdir().unwrap();
+        // Plant a real file at the traversal-adjacent-looking slug's OWN literal path (not
+        // the traversal target) so a bare ".exists()" check alone can't produce a coincidental
+        // Err("not found") that would make this test pass without real validation.
+        let path = initiative_path(dir.path(), "legit-slug");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, "{}").unwrap();
+
+        let err = archive_initiative(dir.path(), "../../../../tmp/t-3169-archive-poc")
+            .expect_err("malicious slug must be rejected outright");
+        assert!(
+            !err.to_string().contains("not found"),
+            "must be rejected by validation, not coincidentally fail existence check: {err}"
+        );
     }
 
     #[test]
