@@ -173,7 +173,11 @@ pub fn resolve_focus_epic(explicit: Option<&str>, all: &[Value]) -> Option<Strin
         .iter()
         .filter_map(|t| t["id"].as_str().map(|id| (id, t)))
         .collect();
-    resolve_epic_ancestor(candidate, &by_id)
+    if let Some(slug) = resolve_epic_ancestor(candidate, &by_id) {
+        Some(slug)
+    } else {
+        None
+    }
 }
 
 /// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
