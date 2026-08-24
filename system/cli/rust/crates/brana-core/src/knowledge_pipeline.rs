@@ -6189,6 +6189,39 @@ id3
         assert!(prompt.len() < DRAFT_EXCERPT_CHARS + 2000, "prompt stays within excerpt budget");
     }
 
+    // ── parse_event_log canonical keys (challenger-gate finding, t-3151) ──
+
+    #[test]
+    fn test_parse_event_log_canonicalizes_urls() {
+        // Event-log discovery is a second entry point into PipelineState
+        // (run_tier1 inserts these entries) — it must emit canonical URLs
+        // or raw-keyed entries reappear through the side door t-3173 closed.
+        let log = "## 2026-08-24\n- 10:00 — https://www.youtube.com/watch?v=abc&si=track123&utm_source=share #ai\n";
+        let known = std::collections::HashSet::new();
+        let entries = parse_event_log(log, &known);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].url, "https://www.youtube.com/watch?v=abc");
+    }
+
+    #[test]
+    fn test_parse_event_log_dedupes_decorated_variant_of_known() {
+        let log = "## 2026-08-24\n- 10:00 — https://example.com/post?utm_source=share\n";
+        let mut known = std::collections::HashSet::new();
+        known.insert("https://example.com/post".to_string());
+        let entries = parse_event_log(log, &known);
+        assert!(entries.is_empty(), "decorated variant of a known canonical key must dedupe");
+    }
+
+    #[test]
+    fn test_parse_event_log_collapses_variants_within_one_log() {
+        let log = "## 2026-08-24\n\
+- 10:00 — https://example.com/post?utm_source=share\n\
+- 11:00 — https://example.com/post?utm_medium=member_ios\n";
+        let known = std::collections::HashSet::new();
+        let entries = parse_event_log(log, &known);
+        assert_eq!(entries.len(), 1, "two decorations of one URL are one entry");
+    }
+
     // ── mixed-fixture cross-adapter leakage (t-3183) ──────────────────────
 
     /// Fixture: 2 LinkedIn + 2 YouTube entries at the given status.
