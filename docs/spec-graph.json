@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-23T15:14:11Z",
+  "generated": "2026-08-23T23:52:13Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -15033,6 +15033,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/knowledge-process-url.md",
+      "to": "knowledge-drain-links.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/plan-time-wave-graph.md",
       "to": "docs/guide/workflows/drain-loop.md",
       "type": "references",
@@ -17093,7 +17099,7 @@
   ],
   "stats": {
     "nodes": 595,
-    "edges": 2152,
+    "edges": 2153,
     "typed_edges": 686,
     "orphans": 158
   }
