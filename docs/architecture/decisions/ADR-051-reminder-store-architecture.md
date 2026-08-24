@@ -97,3 +97,4 @@ Rejected — self-contradictory: the failure mode (lost appends) leaves valid JS
 ## Changelog
 
 - 2026-06-15: Added `task_id` field to Reminder and `--task-id` flag to `brana remind write`; session-start now surfaces past-due task-linked reminders as action recommendations (t-2116, commit e37d2c5b)
+- 2026-08-24: [ADR-089](ADR-089-integral-temporal-model.md) consolidates this ADR's store/lock/schema-evolution decisions with ADR-054's dispatch semantics into a cross-cutting temporal model (unified eligibility predicate, compute-don't-copy, snooze≠deadline firewall, staged rollout) — this ADR is unchanged, ADR-089 names the shared machinery on top of it (t-2074)
