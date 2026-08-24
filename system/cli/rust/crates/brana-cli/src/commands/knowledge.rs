@@ -2398,7 +2398,12 @@ mod tests {
 
     #[test]
     fn process_url_empty_content_stores_nothing() {
-        let fetched = kp::FetchedContent { text: String::new(), platform: "other", caption_source: None };
+        let fetched = kp::FetchedContent {
+            text: String::new(),
+            platform: "other",
+            caption_source: None,
+            image_url: None,
+        };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2410,8 +2415,12 @@ mod tests {
         // Boundary: strip_html_to_text on a JS-only page yields whitespace,
         // not an empty string. Storing that would poison the namespace with
         // an entry that looks real to search and contains nothing.
-        let fetched =
-            kp::FetchedContent { text: "   \n\t  ".into(), platform: "other", caption_source: None };
+        let fetched = kp::FetchedContent {
+            text: "   \n\t  ".into(),
+            platform: "other",
+            caption_source: None,
+            image_url: None,
+        };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
             ProcessUrlOutcome::EmptyContent
@@ -2424,6 +2433,7 @@ mod tests {
             text: "A genuine paragraph of fetched content worth keeping around.".into(),
             platform: "other",
             caption_source: None,
+            image_url: None,
         };
         assert_eq!(
             resolve_process_url_outcome(false, Some(&fetched)),
@@ -2444,6 +2454,7 @@ mod tests {
             text: "the full transcript text, unsummarized".into(),
             platform: "youtube",
             caption_source: Some("manual"),
+            image_url: None,
         };
         let (value, tags) = resolve_store_value(&fetched, None);
         assert_eq!(value, "the full transcript text, unsummarized");
@@ -2456,6 +2467,7 @@ mod tests {
             text: "auto-captioned transcript".into(),
             platform: "youtube",
             caption_source: Some("auto"),
+            image_url: None,
         };
         let (_, tags) = resolve_store_value(&fetched, None);
         assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
@@ -2469,6 +2481,7 @@ mod tests {
             text: "raw fetched content, never stored directly for this platform".into(),
             platform: "github",
             caption_source: None,
+            image_url: None,
         };
         let insight = kp::ExtractedInsight {
             summary: "a short summary".into(),
@@ -2487,8 +2500,12 @@ mod tests {
     // fail safe to "auto" rather than crash the drain.
     #[test]
     fn test_resolve_store_value_youtube_missing_caption_source_defaults_to_auto() {
-        let fetched =
-            kp::FetchedContent { text: "transcript".into(), platform: "youtube", caption_source: None };
+        let fetched = kp::FetchedContent {
+            text: "transcript".into(),
+            platform: "youtube",
+            caption_source: None,
+            image_url: None,
+        };
         let (_, tags) = resolve_store_value(&fetched, None);
         assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
     }

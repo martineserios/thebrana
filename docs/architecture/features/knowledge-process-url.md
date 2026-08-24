@@ -137,6 +137,17 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 > `classify_platform` routing. The bullets below predate the inversion (and
 > the t-2568 transport amendment); tier ordering is as ADR-070 now states.
 
+> **Comment/image enrichment (2026-08-24, t-3187):** the public extract's
+> ld+json also carries `comment[]` (top ~10 comments, full text +
+> `author.name`) and `image.url`. `extract_linkedin_public_text` now
+> appends attributed comment text to the post body, with the post author's
+> own comments (the classic "link in first comment" pattern) ordered
+> first; a missing author name renders as `"(unknown)"`. `image.url`
+> travels as best-effort metadata on `FetchedContent.image_url` — the
+> image itself is never fetched or OCR'd. Both are additive: absent/empty
+> `comment[]`, or a bot-shell page with no ld+json at all, leaves the base
+> extract and the tiered-fetch fallback decision unchanged.
+
 - New `brana-core` module or extension to `knowledge_pipeline.rs`:
   `fetch_url_content(url: &str) -> Result<FetchedContent>` — three-tier
   dispatch (`ureq` / `linkedin-scraper-mcp` shell-out via a new

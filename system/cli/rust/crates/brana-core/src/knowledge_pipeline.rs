@@ -643,6 +643,11 @@ pub struct FetchedContent {
     pub text: String,
     pub platform: &'static str,
     pub caption_source: Option<YoutubeCaptionSource>,
+    /// The post's image URL (ld+json `image.url`), LinkedIn-only,
+    /// best-effort metadata (t-3187). The image itself is never fetched or
+    /// OCR'd. `None` for every other platform, and for LinkedIn posts whose
+    /// ld+json carried no image.
+    pub image_url: Option<String>,
 }
 
 /// Fetch a URL's content via the tier appropriate to its platform: `ureq`
@@ -676,18 +681,23 @@ pub fn fetch_url_content_with(url: &str, cookies: &YtDlpCookies) -> Result<Optio
     let url = unwrapped.as_str();
     let platform = classify_platform(url);
     if platform == "linkedin" {
-        return Ok(fetch_linkedin_content(url)?
-            .map(|text| FetchedContent { text, platform, caption_source: None }));
+        return Ok(fetch_linkedin_content(url)?.map(|(text, image_url)| FetchedContent {
+            text,
+            platform,
+            caption_source: None,
+            image_url,
+        }));
     }
     if platform == "youtube" {
         return Ok(fetch_youtube_content(url, cookies)?.map(|(text, source)| FetchedContent {
             text,
             platform,
             caption_source: Some(source),
+            image_url: None,
         }));
     }
     let text = fetch_public_url(url)?;
-    Ok(Some(FetchedContent { text, platform, caption_source: None }))
+    Ok(Some(FetchedContent { text, platform, caption_source: None, image_url: None }))
 }
 
 /// Timeout for one LinkedIn MCP `tools/call`, measured rather than guessed:
@@ -1189,8 +1199,22 @@ const PUBLIC_FETCH_MAX_BYTES: u64 = 10 * 1024 * 1024;
 /// authenticated feed scrape for the common case; the tier-2 MCP client
 /// (t-2568) runs only when the public extract is below
 /// [`LINKEDIN_PUBLIC_MIN_CHARS`].
-fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
-    resolve_tiered_linkedin_fetch(fetch_linkedin_public_extract(url), || {
+///
+/// Returns `(text, image_url)` — `image_url` is best-effort metadata from
+/// the public extract's ld+json `image.url` (t-3187), carried alongside
+/// whichever text source (public or tier-2) the tiered decision below
+/// picked; tier-2 (the MCP scrape) never supplies an image URL. The tiered
+/// decision itself is untouched — `image_url` rides beside it, it does not
+/// participate in it.
+fn fetch_linkedin_content(url: &str) -> Result<Option<(String, Option<String>)>> {
+    let public = fetch_linkedin_public_extract(url);
+    let (public_text, image_url): (Result<Option<String>>, Option<String>) = match public {
+        Ok(Some((text, image_url))) => (Ok(Some(text)), image_url),
+        Ok(None) => (Ok(None), None),
+        Err(e) => (Err(e), None),
+    };
+
+    let text = resolve_tiered_linkedin_fetch(public_text, || {
         let (author, title_signal) =
             parse_linkedin_url(url).unwrap_or_else(|| url_fallback_signals(url));
 
@@ -1210,7 +1234,9 @@ fn fetch_linkedin_content(url: &str) -> Result<Option<String>> {
         .and_then(|result| extract_posts_section(&result));
 
         resolve_linkedin_fetch(feed, &title_signal)
-    })
+    })?;
+
+    Ok(text.map(|t| (t, image_url)))
 }
 
 /// Decide the tiered LinkedIn fetch outcome from the public-extract result,
@@ -1275,16 +1301,19 @@ fn resolve_tiered_linkedin_fetch(
     }
 }
 
-/// GET the post URL and extract its public preview text.
+/// GET the post URL and extract its public preview text plus, best-effort,
+/// its ld+json `image.url` (t-3187 — the image itself is never fetched or
+/// OCR'd).
 ///
-/// - `Ok(Some(text))` — extracted (any length; the caller applies the
-///   usability threshold).
+/// - `Ok(Some((text, image_url)))` — extracted (any length; the caller
+///   applies the usability threshold). `image_url` is `None` when the
+///   ld+json carried no image.
 /// - `Ok(None)` — the page answered but carries no post body (deleted post,
 ///   authwall-only markup, or an HTTP status error such as 404/999 — status
 ///   errors are "no public content", not transport failures, so the tier-2
 ///   fallback still gets its chance).
 /// - `Err` — transport failure (DNS, connect, read).
-fn fetch_linkedin_public_extract(url: &str) -> Result<Option<String>> {
+fn fetch_linkedin_public_extract(url: &str) -> Result<Option<(String, Option<String>)>> {
     let response = match ureq::get(url)
         .config()
         .timeout_global(Some(std::time::Duration::from_secs(PUBLIC_FETCH_TIMEOUT_SECS)))
@@ -1305,27 +1334,166 @@ fn fetch_linkedin_public_extract(url: &str) -> Result<Option<String>> {
         .limit(PUBLIC_FETCH_MAX_BYTES)
         .read_to_string()
         .with_context(|| format!("failed to read public LinkedIn response body: {url}"))?;
-    Ok(extract_linkedin_public_text(&html))
+    Ok(extract_linkedin_public_text(&html)
+        .map(|text| (text, extract_linkedin_public_image_url(&html))))
 }
 
 /// Extract the post body from public LinkedIn HTML:
 /// `max(ld+json articleBody, og:description)` by char count — never
 /// `articleBody` alone (t-2589 spike: og wins outright on 2 of 15 posts;
-/// each source is individually incomplete).
+/// each source is individually incomplete) — with ld+json `comment[]` text
+/// appended, attributed by author name, post-author comments ordered first
+/// (t-3187: surfaces the classic "link in first comment" pattern). Comments
+/// are best-effort enrichment: absent/empty `comment[]`, or no ld+json at
+/// all (LinkedIn's bot-shell), leaves the base text unchanged — never an
+/// error, never a change to the underlying tiered-fetch decision.
 fn extract_linkedin_public_text(html: &str) -> Option<String> {
     let mut candidates: Vec<String> = Vec::new();
+    let mut comments: Vec<LinkedInComment> = Vec::new();
     for block in ld_json_blocks(html) {
         if let Ok(value) = serde_json::from_str::<serde_json::Value>(block) {
             collect_article_bodies(&value, &mut candidates);
+            collect_linkedin_comments(&value, &mut comments);
         }
     }
     if let Some(og) = extract_meta_content(html, "og:description") {
         candidates.push(decode_html_entities(&og));
     }
-    candidates
+    let base = candidates
         .into_iter()
         .filter(|c| !c.trim().is_empty())
-        .max_by_key(|c| c.chars().count())
+        .max_by_key(|c| c.chars().count())?;
+    Some(match format_linkedin_comments(comments) {
+        Some(block) => format!("{base}{block}"),
+        None => base,
+    })
+}
+
+/// One ld+json `comment[]` entry, attributed by author name when present.
+/// `is_post_author` marks a comment whose author name matches the `author`
+/// at the same JSON nesting level as the `comment` array — the post's own
+/// author — so callers can surface the classic "link in first comment"
+/// pattern first (t-3187).
+#[derive(Debug, Clone, PartialEq)]
+struct LinkedInComment {
+    author: Option<String>,
+    text: String,
+    is_post_author: bool,
+}
+
+/// Collect every `comment[]` entry found anywhere in a JSON-LD value.
+/// Mirrors [`collect_article_bodies`]'s `@graph` tolerance — LinkedIn nests
+/// `comment` directly on the post object or under `@graph` depending on
+/// post type. A comment missing `text`, or with blank `text`, is dropped;
+/// a missing/unnamed `author` is kept with `author: None` (rendered
+/// "(unknown)" by [`format_linkedin_comments`]) rather than dropped.
+fn collect_linkedin_comments(value: &serde_json::Value, out: &mut Vec<LinkedInComment>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            if let Some(serde_json::Value::Array(items)) = map.get("comment") {
+                let post_author = map.get("author").and_then(linkedin_json_author_name);
+                for item in items {
+                    let Some(text) = item.get("text").and_then(|v| v.as_str()) else { continue };
+                    if text.trim().is_empty() {
+                        continue;
+                    }
+                    let author = item.get("author").and_then(linkedin_json_author_name);
+                    let is_post_author = matches!(
+                        (&author, &post_author),
+                        (Some(a), Some(p)) if a == p
+                    );
+                    out.push(LinkedInComment { author, text: text.to_string(), is_post_author });
+                }
+            }
+            for val in map.values() {
+                collect_linkedin_comments(val, out);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                collect_linkedin_comments(item, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// The `name` of an author value — LinkedIn's ld+json represents an author
+/// either as a bare string or as a `Person`/`Organization` object carrying
+/// a `name` field.
+fn linkedin_json_author_name(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::String(s) => Some(s.clone()),
+        serde_json::Value::Object(map) => {
+            map.get("name").and_then(|n| n.as_str()).map(str::to_string)
+        }
+        _ => None,
+    }
+}
+
+/// Render collected comments into the block appended after the post body:
+/// post-author comments first (their original relative order preserved via
+/// a stable sort; same for the rest), each line `"{author}: {text}"` with
+/// `"(unknown)"` standing in for a missing author name. `None` when there
+/// is nothing to append — the caller must leave the base text untouched.
+fn format_linkedin_comments(mut comments: Vec<LinkedInComment>) -> Option<String> {
+    if comments.is_empty() {
+        return None;
+    }
+    comments.sort_by_key(|c| !c.is_post_author);
+    let mut block = String::from("\n\nComments:");
+    for c in &comments {
+        let author = c.author.as_deref().unwrap_or("(unknown)");
+        block.push('\n');
+        block.push_str(author);
+        block.push_str(": ");
+        block.push_str(&c.text);
+    }
+    Some(block)
+}
+
+/// The public post's `image.url` from ld+json, when present — best-effort
+/// metadata surfaced alongside the body text (t-3187). The image itself is
+/// never fetched or OCR'd; that is out of scope. `None` for a bot-shell
+/// page with no ld+json, or ld+json carrying no `image` field.
+fn extract_linkedin_public_image_url(html: &str) -> Option<String> {
+    let mut urls = Vec::new();
+    for block in ld_json_blocks(html) {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(block) {
+            collect_linkedin_image_urls(&value, &mut urls);
+        }
+    }
+    urls.into_iter().find(|u| !u.trim().is_empty())
+}
+
+/// Collect every `image.url` (or bare-string `image`) anywhere in a JSON-LD
+/// value. Mirrors [`collect_article_bodies`]'s `@graph` tolerance.
+fn collect_linkedin_image_urls(value: &serde_json::Value, out: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, val) in map {
+                if key == "image" {
+                    match val {
+                        serde_json::Value::Object(img) => {
+                            if let Some(url) = img.get("url").and_then(|u| u.as_str()) {
+                                out.push(url.to_string());
+                            }
+                        }
+                        serde_json::Value::String(s) => out.push(s.clone()),
+                        _ => {}
+                    }
+                } else {
+                    collect_linkedin_image_urls(val, out);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                collect_linkedin_image_urls(item, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// The raw contents of every `<script type="application/ld+json">` block.
@@ -4303,6 +4471,11 @@ id3
             "fn resolve_tiered_linkedin_fetch",
             "fn fetch_linkedin_public_extract",
             "fn extract_linkedin_public_text",
+            "fn collect_linkedin_comments",
+            "fn linkedin_json_author_name",
+            "fn format_linkedin_comments",
+            "fn extract_linkedin_public_image_url",
+            "fn collect_linkedin_image_urls",
             "fn ld_json_blocks",
             "fn collect_article_bodies",
             "fn extract_meta_content",
