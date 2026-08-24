@@ -3,6 +3,13 @@ status: accepted
 ---
 # ADR-066: `active_epic`/`active_initiative` Resolve Project-Local Only
 
+> **Superseded for `active_epic` by [ADR-088](ADR-088-session-scoped-epic-focus.md)
+> (2026-08-24).** Project-local scoping was the right fix for cross-*project*
+> bleed, but epic focus turned out to be a per-*session* concept even within
+> one project — ADR-088 retires the shared `active_epic` file entirely in
+> favor of session-scoped resolution. This ADR's `active_initiative`
+> provisions are untouched and remain current.
+
 - **Status:** Accepted
 - **Date:** 2026-07-22
 - **Evidence:** t-2158 (commit `44e584fd`, 2026-06-20) already implemented this in code; t-2281 (this task) formalizes it as policy and closes the residual gaps found during audit
