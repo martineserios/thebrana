@@ -1,7 +1,7 @@
 # Feature: Session-Scoped Epic Focus
 
 **Date:** 2026-08-24
-**Status:** building
+**Status:** shipped
 **Task:** t-3196
 
 ## Problem

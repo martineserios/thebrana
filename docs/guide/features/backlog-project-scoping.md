@@ -2,6 +2,12 @@
 
 **Status:** stable · **Task:** t-2155 · **Since:** 2026-06-20
 
+> **Superseded in part by [Session-Scoped Epic Focus](session-scoped-epic-focus.md)
+> (2026-08-24).** Everything below about `active_epic`/`set-active` describes the
+> retired project-scoped-config design (ADR-066) — `active_epic` is no longer a
+> config-file concept at all (ADR-088). The cross-project task creation and
+> `--project` sections below are still current and unaffected.
+
 Each project (thebrana, every client, every venture) keeps its **own** backlog and its
 **own** backlog config. This guide covers how scoping works and how to file a task into a
 *different* project when you spot something mid-work.

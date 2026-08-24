@@ -51,6 +51,7 @@ User-facing documentation. Start here.
 | [pipeline-digest.md](guide/features/pipeline-digest.md) | Pipeline digest — L0 read-only gauge run via /loop |
 | [backlog-lint.md](guide/features/backlog-lint.md) | Backlog lint — is this task ready for autonomous dispatch? |
 | [backlog-project-scoping.md](guide/features/backlog-project-scoping.md) | Per-project scoping and cross-project tasks |
+| [session-scoped-epic-focus.md](guide/features/session-scoped-epic-focus.md) | How `backlog focus` picks an epic — session-scoped, task-derived |
 | [brana-feed-inbox.md](guide/features/brana-feed-inbox.md) | `brana feed` + `brana inbox` |
 | [reminder-system.md](guide/features/reminder-system.md) | Reminders — `brana remind` |
 | [cc-changelog-check.md](guide/features/cc-changelog-check.md) | CC changelog check |
@@ -256,6 +257,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [backlog-lint.md](architecture/features/backlog-lint.md) | `brana backlog lint` — Definition-of-Ready checker for wave-eligible tasks (shipped; distinct from the `guide/features/` how-to of the same name) |
 | [backlog-project-scoping.md](architecture/features/backlog-project-scoping.md) | Per-project backlog scoping + cross-project task creation (built) |
 | [backlog-v3-schema.md](architecture/features/backlog-v3-schema.md) | Backlog v3 — three-axis schema (subject · tags · waves), `ac_state`, wave-drain handoff (shipped, the canonical spec) |
+| [session-scoped-epic-focus.md](architecture/features/session-scoped-epic-focus.md) | Session-scoped, task-derived epic focus — retires the shared `active_epic` config file (shipped, see [ADR-088](decisions/ADR-088-session-scoped-epic-focus.md)) |
 | [brana-cli.md](architecture/features/brana-cli.md) | Brana CLI — standalone terminal interface architecture (shipped; see also [reference/brana-cli.md](../reference/brana-cli.md) for the command reference) |
 | [brana-feed-inbox.md](architecture/features/brana-feed-inbox.md) | `brana feed` + `brana inbox` CLI subcommands (shipped) |
 | [build-close-auto-docs.md](architecture/features/build-close-auto-docs.md) | Auto-generate tech docs + user guide in CLOSE (shipped) |
