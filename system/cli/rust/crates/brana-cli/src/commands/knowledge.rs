@@ -3598,6 +3598,92 @@ mod tests {
         assert!(prompt.contains("\"reason\""), "prompt must mention reason key");
     }
 
+    // ── platform-aware prompt wording (t-3175/t-3178, ADR-087 Context #2) ──
+
+    fn make_url_event_entry_at(url: &str, author: &str, title_signal: &str) -> kp::UrlEventEntry {
+        kp::UrlEventEntry {
+            url: url.to_string(),
+            author: author.to_string(),
+            title_signal: title_signal.to_string(),
+            tags: vec![],
+            logged_date: "2026-08-24".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_github_wording() {
+        let entry = make_url_event_entry_at("https://github.com/foo/bar", "foo", "bar");
+        let prompt = build_tier1_prompt(&entry, "- cli-tooling");
+        assert!(prompt.contains("GitHub repository"), "github entries must be labeled as such, got: {prompt}");
+        assert!(!prompt.contains("LinkedIn post"), "github entries must not be mislabeled LinkedIn");
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_substack_wording() {
+        let entry = make_url_event_entry_at("https://foo.substack.com/p/bar", "foo", "bar");
+        let prompt = build_tier1_prompt(&entry, "- cli-tooling");
+        assert!(prompt.contains("Substack article"), "substack entries must be labeled as such");
+        assert!(!prompt.contains("LinkedIn post"));
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_arxiv_wording() {
+        let entry = make_url_event_entry_at("https://arxiv.org/abs/2408.01234", "arxiv", "2408.01234");
+        let prompt = build_tier1_prompt(&entry, "- cli-tooling");
+        assert!(prompt.contains("arXiv paper"), "arxiv entries must be labeled as such");
+        assert!(!prompt.contains("LinkedIn post"));
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_linkedin_regression_lock() {
+        // Byte-exact lock on LinkedIn's live Tier1 prompt (t-3175): the
+        // platform generalization must not change LinkedIn output at all.
+        let entry = make_url_event_entry_at(
+            "https://linkedin.com/posts/carol_agents-7437",
+            "carol",
+            "agent memory",
+        );
+        let prompt = build_tier1_prompt(&entry, "agent-memory, cli-tooling");
+        let expected = "You are classifying a LinkedIn post for relevance to a personal knowledge base \
+about AI systems, agent design, developer tooling, and knowledge management.\n\n\
+Author: carol\nTitle signal: agent memory\nTags: \n\n\
+Score the relevance 1-5 where:\n\
+1 = personal update, marketing, unrelated\n\
+2 = tangentially related, low signal\n\
+3 = relevant, worth reading\n\
+4 = directly relevant to known topics (memory, agents, CLI tooling, CC patterns)\n\
+5 = high-signal, likely new dimension content\n\n\
+Known dimension topics: agent-memory, cli-tooling\n\n\
+Respond with JSON only: {\"score\": N, \"reason\": \"one sentence\"}";
+        assert_eq!(prompt, expected, "LinkedIn Tier1 prompt must stay byte-identical");
+    }
+
+    #[test]
+    fn test_build_tier2_prompt_platform_wording() {
+        let tags: Vec<String> = vec![];
+        let prompt = build_tier2_prompt("github", "foo", "bar", &tags, "- cli-tooling");
+        assert!(prompt.contains("GitHub repository"), "tier2 github wording, got: {prompt}");
+        assert!(!prompt.contains("LinkedIn post"));
+        let prompt = build_tier2_prompt("arxiv", "arxiv", "2408.01234", &tags, "- cli-tooling");
+        assert!(prompt.contains("arXiv paper"));
+    }
+
+    #[test]
+    fn test_build_tier2_prompt_linkedin_regression_lock() {
+        // Locks LinkedIn's live Tier2 prompt text (t-3175) — identical to
+        // the pre-generalization literal, only the platform param is new.
+        let tags = vec!["agents".to_string()];
+        let prompt = build_tier2_prompt("linkedin", "carol", "agent memory", &tags, "- agent-memory");
+        let expected = "You are assigning a LinkedIn post to the nearest topic in a knowledge base.\n\n\
+Author: carol\nTitle signal: agent memory\nTags: agents\n\n\
+Existing dimension topics:\n- agent-memory\n\n\
+Assign this post to the best-matching dimension, or flag as \"new-topic\" \
+if it doesn't fit any existing dimension.\n\n\
+Respond with JSON only:\n\
+{\"dimension_target\": \"slug or new-topic\", \"cluster_topic\": \"short label\", \"reason\": \"one sentence\"}";
+        assert_eq!(prompt, expected, "LinkedIn Tier2 prompt must stay byte-identical");
+    }
+
     // ── channel-backfill CLI wiring (t-2999) ─────────────────────────────
     // resolve_channel_tab / build_channel_link_task_json are pure — no
     // subprocess, no I/O — the same split as extract_capture_url above.
