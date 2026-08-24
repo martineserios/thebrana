@@ -7,6 +7,7 @@ status: accepted
 - **Date:** 2026-07-20
 - **Evidence:** [backlog-v3-schema.md](../features/backlog-v3-schema.md) D1; live task-shape inspection (2,156 tasks); [brana-backlog-v2-schema.md](../../ideas/drained/brana-backlog-v2-schema.md); operator decision 2026-07-20
 - **Related:** ADR-002 (tasks-as-data-layer), ADR-047 (AC schema), [brana-v3 redesign](../../ideas/drained/brana-v3-redesign.md)
+- **Amended by:** [ADR-079](ADR-079-backlog-drain-loop-handoff.md) — retires this ADR's epic WIP-cap language; WIP moves to waves (waves select from epics, don't own them, D3 unchanged).
 
 ## Context
 

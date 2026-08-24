@@ -81,6 +81,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 |------|----------|
 | [overview.md](architecture/overview.md) | System architecture overview |
 | [skills.md](architecture/skills.md) | Skills architecture -- 8 groups, design-level overview |
+| [the-brana.md](architecture/the-brana.md) | **The Brana** — front-door index: cover, Space / Cycle / Gate chapters (decided lines + refs), vocabulary, component→owner map. Supersedes the-orbit.md |
 | [idea-to-ship.md](architecture/idea-to-ship.md) | The walkable idea → ship narrative -- main flow, on-ramps, standalone skills, vocabulary layer |
 | [hooks.md](architecture/hooks.md) | Hooks architecture -- plugin/bootstrap split, design principles |
 | [agents.md](architecture/agents.md) | Agents architecture -- groups, routing, hook triggers |
@@ -178,7 +179,8 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-078](architecture/decisions/ADR-078-stale-task-park-via-tag.md) | Park stale tasks via the existing `parked` tag, not a new `status` value — reuses `classify()`'s already-tested synthetic state (t-2773) |
 | [ADR-079](architecture/decisions/ADR-079-backlog-drain-loop-handoff.md) | `ac_state` approval verb, wave-drain→loop handoff contract, and WIP enforcement moved to waves at pull time (amends ADR-065; unblocks the backlog-drain epic, t-2811) |
 | [ADR-083](architecture/decisions/ADR-083-time-tracking-mechanism.md) | Unified project time & cost tracking — active-effort bracket model on `brana/time/`, calendar cycle-time milestone fields, folds in t-648, incorporates the re-validated 15-min idle cap (t-2919/t-2920) |
-| [ADR-084](architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md) | Upstream skill band — vendor pinned mattpocock/skills organs (file-copy, not native plugin install) wrapped by thin brana adapters; pilot-only decision gated on t-2834's diagnosing-bugs beat (t-2837) |
+| [ADR-084](architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md) | Upstream skill band — vendor pinned mattpocock/skills grains (file-copy, not native plugin install) wrapped by thin brana adapters; pilot-only decision gated on t-2834's diagnosing-bugs beat (t-2837) |
+| [ADR-085](architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md) | Skills stay whole stations composed via loops (`system/loops/`, waves) and graphs (`Workflow`, `blocked_by`/`gate`) — no station/grain schema; two-tier (wrapper → model-invoked station) for new/adapted skills; ≥2-callers-or-headless extraction floor; dual-mode resolves at the runner layer; t-2278 left as planned (t-2490) |
 
 > Note: this table is missing several ADRs between 045-065 and ADR-077, and 080-082 (pre-existing drift, not backfilled here — out of scope for t-2281). Worth a `/brana:reconcile` pass.
 
@@ -246,7 +248,7 @@ The idea pool — where creative/studio work lands, and what the backlog drains 
 | [construction-budget-automation.md](ideas/construction-budget-automation.md) | Construction budget automation — deferred 2026-08-14 (waiting on sample CAD/PDF files) |
 | [prompt-patterns-brana-enrichment.md](ideas/prompt-patterns-brana-enrichment.md) | Prompt patterns → brana enrichment — open draft, ~half shipped/mooted (see its 2026-08-14 review header); live remainder: persona + user-facing scout |
 | [venture-playbook-product-management.md](ideas/venture-playbook-product-management.md) | Venture playbook & product management layer — open; 2026-08-14 review: marketplace skills now cover most frameworks, Sheets/Airtable MCP unblock G14/G16 |
-| [drained/](ideas/drained/) | 73 idea docs converted to tasks or absorbed (incl. brana-efficiency-without-power-loss.md — all proposals shipped elsewhere) — notable: [wave-pipeline.md](ideas/drained/wave-pipeline.md) (ADR-079, t-2828), [wave-pipeline-infographic-prompt.md](ideas/drained/wave-pipeline-infographic-prompt.md) (t-2867), [loops-library.md](ideas/drained/loops-library.md) (t-2826), [loop-first-redesign.md](ideas/drained/loop-first-redesign.md) (epic t-2820), [skills-as-loops.md](ideas/drained/skills-as-loops.md), [brana-whatsapp-agent.md](ideas/drained/brana-whatsapp-agent.md), [brana-agency-growth-machine.md](ideas/drained/brana-agency-growth-machine.md) (t-2249) |
+| [drained/](ideas/drained/) | 73 idea docs converted to tasks or absorbed (incl. brana-efficiency-without-power-loss.md — all proposals shipped elsewhere) — notable: [wave-pipeline.md](ideas/drained/wave-pipeline.md) (superseded 2026-08-23 → [the-brana.md](architecture/the-brana.md), D3/t-3028), [wave-pipeline-infographic-prompt.md](ideas/drained/wave-pipeline-infographic-prompt.md) (t-2867), [loops-library.md](ideas/drained/loops-library.md) (t-2826), [loop-first-redesign.md](ideas/drained/loop-first-redesign.md) (epic t-2820), [skills-as-loops.md](ideas/drained/skills-as-loops.md), [brana-whatsapp-agent.md](ideas/drained/brana-whatsapp-agent.md), [brana-agency-growth-machine.md](ideas/drained/brana-agency-growth-machine.md) (t-2249) |
 
 ## Content (docs/content/)
 

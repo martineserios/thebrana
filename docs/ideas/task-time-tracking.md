@@ -23,7 +23,7 @@ Neither exists today:
 - Tasks already have `started`/`completed` fields (task-convention.md), but they are
   **date-only** (no time-of-day) and only populated on **536 of 2,789 tasks (19%)** —
   nothing currently auto-writes them, and nothing captures a pre-task "quoting" phase.
-- Waves (`{selector, contract, gate, status}`, per `project_wave-pipeline-vocabulary`)
+- Waves (`{selector, contract, gate, status}`, per `project_wave-mechanics-vocabulary`)
   have **no time fields at all**.
 - `build-cost-tracking.md` (t-648) designed a session-transcript-anchoring mechanism for
   per-build **token cost**, but it was never implemented, and covers effort only — not

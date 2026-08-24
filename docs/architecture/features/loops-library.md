@@ -52,7 +52,7 @@ Like skills, loops need a library: versioned, discoverable, reviewable, with a s
 ## Research
 
 - [loops-library.md (idea)](../../ideas/drained/loops-library.md) — entry schema draft, queue-type table, pull-interface verbs, risks/pre-mortem, shape approval
-- [wave-pipeline.md](../../ideas/drained/wave-pipeline.md) — canonical philosophy (seven laws, two rooms, four primitives/rings) — not duplicated here
+- [the-brana.md](../the-brana.md) §Cycle → Mechanics, §Scale — canonical philosophy (four primitives, seven laws, rings); §Gate — two rooms. Not duplicated here. (`drained/wave-pipeline.md` is a redirect stub since t-3028.)
 - [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md) — drain-loop handoff contract, denied-verbs pattern this catalog's lint borrows
 - [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §3, §6 — epic-drain's beat procedure (currently prose-only) and the loop-first/backlog-drain scope split
 - `system/loops/pipeline-digest.md` (t-2823) — live precedent for an L0 gauge entry, pre-schema

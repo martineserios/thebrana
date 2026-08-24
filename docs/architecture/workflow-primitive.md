@@ -1,6 +1,11 @@
+---
+status: live
+---
 # Workflow Primitive — Verified API Surface
 
 > Field note, 2026-06-11. Source: direct observation of the `Workflow` tool contract in a live Claude Code session, plus smoke-test run `wf_859926e3-bd2` (below). Created to resolve challenger finding C3 on the [loop-native redesign](../research/2026-06-11-loop-native-redesign.md): the primitive had zero references in brana's corpus, so agents grepping for it concluded it might not exist. It does.
+>
+> Cited as the detailed reference for `Workflow` (Cycle — open string) by [the-brana.md](the-brana.md)'s Space primitive table (L2.1) — this doc stays the API-surface detail, the-brana.md owns the concept-level placement.
 
 ## What it is
 

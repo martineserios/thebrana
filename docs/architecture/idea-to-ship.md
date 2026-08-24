@@ -1,6 +1,6 @@
 # Idea → Ship: The Skill Flow
 
-> Companion to [Skills Architecture](skills.md) (the parts) and the [6 Jobs table](../../.claude/CLAUDE.md#the-6-jobs) (the ingredients, unordered). This is the walk.
+> Companion to [The Brana](the-brana.md) (what it is — read that first) and [Skills Architecture](skills.md) (the parts) and the [6 Jobs table](../../.claude/CLAUDE.md#the-6-jobs) (the ingredients, unordered). This is the walk.
 
 You don't remember all 41 skills, so here's the route. Most work travels one **main flow**; two **on-ramps** merge onto it. Codebase upkeep runs alongside it, not on it. Everything else is **standalone**, or a **vocabulary layer** underneath. Structure mirrors [mattpocock/skills](https://github.com/mattpocock/skills)' `ask-matt` — see [t-2830 research](../research/2026-08-13-matt-pocock-skill-system.md) §1, §4 P1 for the source comparison and why this doc adapts rather than imports it (§7: ADAPT, not DEPEND).
 

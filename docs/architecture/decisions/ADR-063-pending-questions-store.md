@@ -211,3 +211,24 @@ The derive-block-from-store redesign was put through a second, dedicated adversa
 | R4 | TOCTOU between `has_pending` and subprocess spawn (run.rs:263) — no spanning lock | sev2 | **Fixed (documented)** — §4: bounded, mitigated by `dedup_key` re-raise |
 | R5 | Orphaned `pending` entry for a completed/cancelled task blocks it forever (not terminal → never pruned) | sev3 | **Fixed** — §5: `brana hands doctor` orphan sweep auto-cancels such entries |
 | R6 | Missing/unreadable store behavior unspecified (fail-open vs fail-closed) | sev2 | **Fixed** — §4: explicit fail-open contract (missing = empty store; corruption surfaced by `doctor`) |
+
+## Amendment (2026-08-23, t-3030): `room` field — two rooms, one store (guide L4.1)
+
+[the-brana.md](../the-brana.md) §Gate L4.1 decided that "needs human" is **not one queue** but must stay **one store**: this ADR's `pending-questions.json` remains the only queue, and the split into rooms lives as state *on the entry*, not as a parallel queue (Pocock's shape — state on the item — adopted; brana's two rooms kept, because unattended operation splits his single `ready-for-human`/`needs-info` tray naturally).
+
+**§2 entry schema gains one field:**
+
+```json
+"room": "cockpit"   // ∈ cockpit | studio — required from v2 entries; absent ⇒ studio
+```
+
+- **Set by the valve-feeder at raise time** (the crew, when it still has the context — a view-at-peek would throw that context away), by a **cheap rule, never an LLM classifier**: irreversible outcome, or ambiguous, or unsure → `studio`; else `cockpit`. Under-escalating a design question into a rubber-stamp is the worse failure (t-2587), so the default is `studio`.
+- **`category` stays orthogonal** (§2's `gate | unverifiable-ac | failed-verify | ambiguity` is *what kind* of hand; `room` is *which posture answers it*).
+- **Three verbs only:** `peek` (gauge — surfaced by pipeline-digest / statusline; TUI t-2825 later) · `pull` (lease) · `ack` (the valve; unblocks dispatch per §4). `ack` maps onto §5's `answer`; no new transaction. **`peek`/`pull` semantics are deferred to t-3021** — this amendment adds no lease field or state; whether `pull` reuses ADR-080's task-lease shape (`{claimant, expires}`) or is a no-op on a single-operator store is t-3021's call, decided against evidence, not here.
+- **Mid-task raise** (the `valve` human-mode of guide L4.2's `ask()` compile table) is a *second producer* into this same store — the beat stops with `needs_judgment` after raising. Today only the up-front `plan_task` NEEDSHUMAN path exists.
+
+**Not adopted:** two stores · a third room · LLM classification of room.
+
+**Build:** t-3021 (`brana hands` — Accepted here 2026-06-21, never built; grounded 2026-08-22 against `cli.rs`), **blocked_by t-2834** so `room` and the cross-skill readiness state (guide L2.2b/L3) don't become two overlapping "next for whom" fields. Schema text only in this amendment; §1's Rust-owned-mutation rule applies unchanged.
+
+Refs: the-brana.md §Gate (L4.1, L4.2) · guide L4.1 · matrix row 9 · t-2587 · t-3021 · t-2834.

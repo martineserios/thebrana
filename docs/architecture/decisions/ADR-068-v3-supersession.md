@@ -1,9 +1,9 @@
 ---
-status: proposed
+status: accepted
 ---
 # ADR-068: v3 Supersession — Retiring the Orbit/Substrate Doc Cluster into the v3 Design
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-08-19 — accepted as lived reality: three docs already treated it as superseded-by; see [the-brana-guide.md](../../ideas/the-brana-guide.md) L0.3 / D1)
 - **Date:** 2026-07-24
 - **Evidence:** [brana-v3-redesign.md](../../ideas/drained/brana-v3-redesign.md) §"Lessons encoded" (the fold-in list) · wave-1 ground-truth diagnoses t-2395 (scheduler timeout + one dead close-queue entry) and t-2396 (challenger prompt ambiguity, 48 recurring read-fails) · challenge finding "unreconciled prior architecture" ([2026-07-19](../../reviews/brana-v3-challenge-2026-07-19.md) §1)
 - **Related:** t-2397 (this ADR) · ADR-059 (substrate selection — retained) · [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (branch strategy — retained, amendment scoped below) · [ADR-050](ADR-050-loop-request-protocol.md) (blast-radius constants — retained) · ADR-065 / [backlog-v3-schema](../features/backlog-v3-schema.md) (the task contract) · t-2439, t-2444 (wave-1 diagnosis follow-ups)
@@ -215,11 +215,17 @@ The amendment must decide:
    for the cluster. v3 has no equivalent index doc yet; `brana-v3-redesign.md` is a
    design, not a reading map. Whether v3 needs a front door is a wave-5 (core/packs cut)
    question.
+   **Resolved 2026-08-19:** replaced by [`docs/architecture/the-brana.md`](../the-brana.md)
+   (front door; `the-orbit.md` stays as a superseded pointer-only index, the model for
+   the-brana.md's own reading map).
 2. **Do the retired capstones' *unabsorbed* parts survive anywhere?** substrate-primitives
    §1–§3 (the primitive set, the composed-block library, the Workflow durability/trust
    notes, the cost gate) are reference material that v3 uses but does not restate. If
    they matter operationally, they should be extracted into a live reference doc rather
    than read out of a superseded one.
+   **Resolved 2026-08-20:** landed as [the-brana.md](../the-brana.md)'s §Space primitive
+   table — [the-brana-guide.md](../../ideas/the-brana-guide.md) L2.1. One residual
+   sub-question (hooks' chapter placement) stays open there; doesn't block this Q2 closure.
 3. **What ends "v3 is draft"?** `brana-v3-redesign.md` is still `status: draft` while
    this ADR treats it as governing. Challenge finding #5 ("what does v3-done mean")
    remains open at the epic level.

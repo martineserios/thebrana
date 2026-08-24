@@ -4,7 +4,7 @@ status: accepted
 # ADR-080: Plan-Time Wave Graphs, the Epic Runner, and Leases (extends ADR-079)
 
 **Status:** Accepted (2026-08-14; challenged twice + studio-synced same session — see §Challenge record)
-**Date:** 2026-08-13
+**Date:** 2026-08-13 (drafted; accepted the following day — not a typo, see Status line)
 **Deciders:** Martín Rios
 **Tags:** backlog, waves, loop, planning, epic-entry
 **Tasks:** t-2828 (design), t-2811 (epic backlog-drain), t-2820 (epic loop-first — reconciled here), t-2859 (§8 review-budget amendment)
@@ -23,7 +23,7 @@ not be pointed at one wave. Two epics were independently designing adjacent mach
 both sessions flagged the scope overlap for reconciliation here (§6).
 
 Design constraint carried throughout: **the vocabulary is closed** — queue, pump, valve,
-gauge ([wave-pipeline.md](../../ideas/drained/wave-pipeline.md)). Every capability below is an
+gauge ([the-brana.md §Cycle → Mechanics](../the-brana.md); originally wave-pipeline.md, superseded 2026-08-23). Every capability below is an
 arrangement of those four; none adds a fifth primitive. The seven operating laws are the
 acceptance lens (§7).
 
@@ -135,7 +135,7 @@ A second committed loop entry, **`epic-drain`** (loops library). Beat procedure:
    default under uncertainty (under-escalating a design question into a rubber-stamp
    is the worse failure).
 
-**The beat is the seven-step skeleton, deliberately** (wave-pipeline.md §The skeleton
+**The beat is the seven-step skeleton, deliberately** ([the-brana.md §Scale](../the-brana.md), originally wave-pipeline.md §The skeleton
 match — the runner is designed against the merged model): preflight re-read = ORIENT ·
 atomic pull = SELECT (externalized queue-side, unbypassable) · build framework = ACT ·
 gates/tests = MEASURE · JUDGE split by reversibility — machine judges for reversible

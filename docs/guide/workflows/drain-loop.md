@@ -8,6 +8,8 @@ produced_by: [docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md]
 ---
 # Wave Drain Loop
 
+> **Superseded for epics** by [epic-drain.md](epic-drain.md) (ADR-080) — that loop generalizes this one from "one wave, hand-armed" to "walk an epic's wave graph, arm each wave as its gate clears." This file stays live and is still the single source for what happens *inside* one wave once it's armed (full build framework, human merge valve, denied verbs) — epic-drain inherits that, it doesn't reimplement it. Use this file directly only for a single hand-armed wave outside any epic-drain walk.
+>
 > First entry of the loops library. Catalog entry: [system/loops/drain-loop.md](../../../system/loops/drain-loop.md)
 > (frontmatter + pointer back here — this file stays the single source for the procedure).
 > Contract: [loops-library.md](../../architecture/features/loops-library.md). Shape/approach:
