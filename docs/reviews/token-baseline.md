@@ -166,3 +166,12 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - Last trigger observed: knowledge-review on 2026-08-01 (15 days ago)
 - This monitor session: haiku (minimal cost)
 - Status: ⚠️ weekly-review missed expected Fri 2026-08-09 firing; no fire since 2026-07-24 (23 days)
+
+## 2026-08-25
+- Triggers fired in last 24h: none
+- New commits from agents (24h): 0
+- New review files: none
+- Last trigger observed: knowledge-review on 2026-08-01 (24 days ago)
+- Missed triggers: weekly-review on 2026-08-09, 2026-08-16, 2026-08-23 (3 expected fires not observed)
+- This monitor session: haiku (minimal cost)
+- Status: ⚠️ weekly-review offline for 18 days (since 2026-07-24)
