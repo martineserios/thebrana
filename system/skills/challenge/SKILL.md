@@ -17,7 +17,6 @@ allowed-tools:
   - mcp__brana__agy_delegate
   - AskUserQuestion
   - ToolSearch
-disable-model-invocation: true
 status: stable
 growth_stage: evergreen
 ---
