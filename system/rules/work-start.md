@@ -15,11 +15,11 @@ If the user accepted a "continue with t-XXX?" or "start t-XXX?" suggestion, invo
 
 **3. Assess lifecycle gates.**
 State which disciplines apply — even for S-effort fixes:
-- **DDD**: `docs/domain/` exists AND task introduces/refines a domain entity → apply
 - **SDD**: behavioral decision with architectural trade-offs (ADR needed) → apply
 - **TDD**: code that can be tested → apply
+- **DDD**: `docs/domain/` exists → apply if the task touches a domain entity, else skip with reason. Absent but task has real domain vocabulary → suggest bootstrapping `docs/domain/glossary.md`. Otherwise say NOTHING (a perpetual "skip" line is noise).
 
-One line per discipline: `DDD: skip — <reason>` / `SDD: apply — <reason>` / `TDD: apply`.
+One line per applicable discipline: `SDD: apply — <reason>` / `TDD: apply`.
 
 **4. Ask about skills.**
 Present the detected workflow skill + domain skill via AskUserQuestion before loading either. Never silently invoke. Options: workflow only / domain only / both (default) / skip. Skip the ask if the skill was already loaded this session for this task.
