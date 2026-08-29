@@ -85509,6 +85509,36 @@
       "acceptance_criteria": null,
       "work_type": null,
       "ac_state": "none"
+    },
+    {
+      "subject": "close-classify.sh orientation matching requires dashed flags — real slash-command $ARGUMENTS arrives undashed",
+      "kind": "fix",
+      "type": "task",
+      "tags": [
+        "close",
+        "orientation",
+        "adr-053"
+      ],
+      "description": "close-classify.sh's orientation-forcing loop (for ORIENT in continue finish patterns abort; if [[ \"$ARGUMENTS\" == *--$ORIENT* ]]) requires the dashed form (--finish, --continue, etc) literally present in $ARGUMENTS. But when a user actually types /brana:close finish or /brana:close continue in Claude Code, the real invocation delivers the bare word without dashes -- confirmed twice live in the same proyecto_anita session tonight (2026-08-29): the skill's own <command-args> block showed literally 'finish' and later 'continue', no dashes. The orientation-forcing loop never matched either time; the first time it silently fell through to file-based auto-classification and computed NANO instead of the correct forced INSTANT (caught manually only because the resulting commit-count/file-list looked implausibly small for a 13-commit session). The gate-and-evidence.md doc's own line 336 announcement format and every field-note example in this skill assume the dashed form is what arrives, but nothing in the actual call chain (the slash command definition -> gate-and-evidence.md Step 1 -> close-classify.sh) normalizes a bare orientation word to its dashed form before the match.",
+      "effort": "S",
+      "parent": "t-2340",
+      "priority": "P2",
+      "context": "AC: reproduce first -- confirm exactly how Claude Code's slash-command <command-args> block delivers an argument like '/brana:close finish' (bare word observed twice live tonight, not yet root-caused to a specific slash-command definition file).\nAC: fix at the earliest correct point in the chain -- either (a) close-classify.sh's own orientation_weight matching accepts both 'finish' and '--finish' (strip a leading -- if present, or match on the bare word too), or (b) gate-and-evidence.md's Step 1 normalizes $ARGUMENTS before calling close-classify.sh (prepend -- to a bare recognized orientation word). Prefer fixing close-classify.sh itself since it is the single source of truth other callers (tests/procedures/test-close-weight-adaptive.sh) also depend on -- fixing only the doc-level call site would leave the CLI itself still broken for any other caller passing the bare word.\nAC: add a test case to tests/procedures/test-close-weight-adaptive.sh (or a sibling) asserting --arguments 'finish' (no dashes) forces INSTANT identically to --arguments '--finish' -- this is exactly the kind of regression a replicated-logic-rot class doc (t-1978's own comment) warns about, and it's currently unguarded.\nAC: do NOT weaken the escape-hatch matching for --light/--full/--nano in the same pass unless they show the identical live gap -- scope this to the 4 orientation flags only, confirmed broken.\nRepro evidence: this session's own /brana:close invocations -- first with ARGUMENTS literally 'finish' (close-classify.sh returned NANO instead of INSTANT, corrected manually by re-running with '--finish'), second with ARGUMENTS literally 'continue' (caught proactively this time before it affected classification).",
+      "work_type": "implement",
+      "id": "t-3229",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-08-29",
+      "blocked_by": [],
+      "ac_state": "none",
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3,
