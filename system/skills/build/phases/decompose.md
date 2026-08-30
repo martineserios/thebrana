@@ -49,6 +49,17 @@
      # Full reference: docs/conventions/ac-criteria.md
      ```
    - Dependencies are explicit
+   - **Consumer-sweep child (MANDATORY when identity/contract changes — t-3197):** if any
+     child changes an identity, key, field, or contract (renames/retires a field, changes a
+     stored ID or enum, alters a schema or CLI/API shape), the breakdown MUST include a
+     dedicated consumer-sweep child that greps for the RAW field/identity across ALL
+     consumers — read paths, serializers, scripts, and hooks, not just write paths — and
+     lists every touch point before the change lands. Probe evidence (t-3156): both
+     validated plan-time misses across 6 measured decompositions were this one class;
+     t-2284's retired-field read-path stragglers cost 5–6 follow-up fix tasks after
+     escaping every gate. See memory `pattern_second-variant-audit-every-raw-consumer`,
+     `pattern_sibling-field-validation-gap`, and
+     `pattern_tightened-precondition-must-sweep-concrete-instances`.
    - **Include documentation tasks** — for feature/greenfield/migration strategies, the task breakdown MUST include:
      - A user guide task (`docs/guide/features/{slug}.md`)
      - A tech doc task (`docs/architecture/features/{slug}.md`)
