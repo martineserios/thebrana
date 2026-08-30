@@ -61,8 +61,39 @@ impl Role {
 /// `¬tag:parked` clause, not ready-for-human without `tag:human`, and not
 /// needs-triage/needs-info since it's already approved) rather than forcing
 /// the task into the nearest role.
-pub fn derive_role(_task: &Value) -> Option<Role> {
-    todo!("t-3241: implement ADR-086 §3's derivation table")
+pub fn derive_role(task: &Value) -> Option<Role> {
+    match task["status"].as_str() {
+        Some("in_progress") => return Some(Role::Claimed),
+        Some("completed") => return Some(Role::Resolved),
+        Some("cancelled") => return Some(Role::Wontfix),
+        _ => {}
+    }
+
+    // Everything below is the `status:pending` (or unset/other-non-terminal)
+    // branch. `ac_state` absent-or-null is first-class `needs-triage`, not an
+    // edge case — t-3164's field audit found 58.1% of pending tasks (533/917)
+    // carry no `ac_state` key at all.
+    let tags: Vec<&str> = task["tags"]
+        .as_array()
+        .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+        .unwrap_or_default();
+    let is_parked = tag_matches(&tags, "parked");
+    let is_human = tag_matches(&tags, "human");
+
+    match task["ac_state"].as_str() {
+        None | Some("none") => Some(Role::NeedsTriage),
+        Some("proposed") => Some(Role::NeedsInfo),
+        Some("approved") => {
+            if is_human {
+                Some(Role::ReadyForHuman)
+            } else if is_parked {
+                None
+            } else {
+                Some(Role::ReadyForAgent)
+            }
+        }
+        _ => None,
+    }
 }
 
 #[cfg(test)]
