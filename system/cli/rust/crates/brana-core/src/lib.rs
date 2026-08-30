@@ -21,3 +21,4 @@ pub mod tasks;
 pub mod time_tracking;
 pub mod util;
 pub mod vector;
+pub mod wave_ship;
