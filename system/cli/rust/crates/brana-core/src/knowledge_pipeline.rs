@@ -2631,6 +2631,16 @@ pub fn build_channel_listing_args(
 /// [`build_channel_selection_args`], [`build_channel_listing_args`],
 /// [`parse_flat_playlist_ids`], [`youtube_video_id_to_url`], and
 /// [`fetch_youtube_channel_videos_with_runner`], which this delegates to.
+/// yt-dlp's stdout is external-process output, not guaranteed valid UTF-8
+/// (t-3237 second-variant finding: the same "assume clean UTF-8 from an
+/// untrusted source" class as the HTTP fetchers' `.lossy_utf8(true)` fix
+/// above). Lossy-decode rather than hard-failing the whole channel listing
+/// over one bad byte in one video's metadata. Extracted so the decode is
+/// testable without spawning a real `yt-dlp` process.
+fn decode_yt_dlp_stdout(bytes: &[u8]) -> Result<String, String> {
+    Ok(String::from_utf8_lossy(bytes).into_owned())
+}
+
 pub fn fetch_youtube_channel_videos(
     channel_url: &str,
     tab: ChannelTab,
@@ -2651,7 +2661,7 @@ pub fn fetch_youtube_channel_videos(
             let stderr = String::from_utf8_lossy(&out.stderr);
             return Err(format!("yt-dlp failed for {listing_url}: {stderr}"));
         }
-        String::from_utf8(out.stdout).map_err(|e| format!("yt-dlp stdout not valid UTF-8: {e}"))
+        decode_yt_dlp_stdout(&out.stdout)
     })
 }
 
@@ -3871,6 +3881,17 @@ def456
             youtube_video_id_to_url("dQw4w9WgXcQ"),
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         );
+    }
+
+    #[test]
+    fn decode_yt_dlp_stdout_replaces_invalid_utf8_instead_of_erroring() {
+        // t-3237 second-variant finding: yt-dlp's stdout is untrusted
+        // subprocess output, same class as the HTTP fetchers above — a
+        // single bad byte anywhere in the listing must not fail the whole
+        // channel scan.
+        let bytes: &[u8] = b"id1\nid2\xed\nid3";
+        let text = decode_yt_dlp_stdout(bytes).expect("invalid utf-8 must be replaced, not error");
+        assert!(text.contains("id1") && text.contains("id3"), "got: {text:?}");
     }
 
     // AC (feature spec §1 "Tests"): "tested against a recorded/fixture
