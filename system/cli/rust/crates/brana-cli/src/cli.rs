@@ -1270,9 +1270,10 @@ pub enum WaveCmd {
         file: Option<PathBuf>,
     },
     /// Pull one task from a draining wave (ADR-079 §2/§3): re-resolve the
-    /// selector, filter pending ∧ ac_state:approved ∧ ¬parked, respect
-    /// wip_limit, set the first eligible task in_progress — atomically.
-    /// At-limit / none-eligible are normal ok outcomes (skip this cycle).
+    /// selector, filter to tasks deriving role:ready-for-agent (ADR-086 §3 —
+    /// approved ∧ ¬parked ∧ ¬tag:human) ∧ unblocked, respect wip_limit, set
+    /// the first eligible task in_progress — atomically. At-limit /
+    /// none-eligible are normal ok outcomes (skip this cycle).
     Pull {
         wave_id: String,
         /// Lease claimant identity (ADR-080 §5): loop name + session id.
