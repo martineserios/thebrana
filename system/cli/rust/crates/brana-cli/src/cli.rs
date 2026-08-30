@@ -866,9 +866,14 @@ pub enum BacklogCmd {
         /// Shorthand for --output json (alias for scripting ergonomics)
         #[arg(long)]
         json: bool,
-        /// Filter by type (task, subtask, phase, milestone, initiative)
-        #[arg(long = "type", value_enum)]
-        task_type: Option<TaskType>,
+        /// Filter by type — comma-separated for multiple (task, subtask, phase,
+        /// milestone, initiative, epic). Default scope (when omitted) is
+        /// task,subtask only — pass e.g. "task,subtask,phase,milestone,epic"
+        /// to include everything (t-3233: the single-value enum this used to
+        /// be could never express more than one type, so there was no way to
+        /// widen the default scope from the CLI at all).
+        #[arg(long = "type")]
+        task_type: Option<String>,
         /// Filter by parent ID
         #[arg(long)]
         parent: Option<String>,
@@ -1704,9 +1709,10 @@ mod tests {
     use super::*;
 
     /// t-2377: backlog-v3's epic-as-top nodes (`type: "epic"`) were never
-    /// added to TaskType's `--type` enum, so `brana backlog query --type
-    /// epic` errored even though real `type:"epic"` tasks exist and are
-    /// returned fine by the MCP equivalent.
+    /// added to TaskType's `--type` enum. `Query`'s own `--type` moved off
+    /// this enum entirely to a validated free-text comma list (t-3233 —
+    /// `VALID_TASK_TYPES` in brana-core, which already includes "epic");
+    /// `Next`'s `--type` still uses this enum, so it must stay complete.
     #[test]
     fn task_type_value_enum_includes_epic() {
         let names: Vec<String> = TaskType::value_variants()

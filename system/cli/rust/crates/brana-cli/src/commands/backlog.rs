@@ -152,12 +152,32 @@ pub fn cmd_query(
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
-    // Determine type filter
+    // Determine type filter. Free-text comma list (t-3233 — the arg used to
+    // be a single-value clap enum, unable to express more than one type at
+    // all) validated against the recognized vocabulary so a typo errors
+    // loudly instead of silently matching nothing.
     let types: Vec<&str> = if let Some(ref tp) = task_type {
-        tp.split(',').collect()
+        tasks::validate_task_types(tp).map_err(|e| {
+            eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+            anyhow::anyhow!(e)
+        })?
     } else {
         vec!["task", "subtask"]
     };
+
+    // t-3233: the default type scope silently dropped every phase/milestone/
+    // epic node (and the epic-only status vocabulary they carry) with no
+    // indication anything was excluded. Report it on stderr — stdout output
+    // shape (json array / ids / count / themed) is unchanged for every
+    // existing consumer; only an explicit --type opts out of the note.
+    if task_type.is_none() {
+        let excluded = tasks::excluded_by_type_count(&data.tasks, &types);
+        if excluded > 0 {
+            eprintln!(
+                "note: {excluded} task(s) of other types excluded by the default --type task,subtask scope — pass --type task,subtask,phase,milestone,epic to include them"
+            );
+        }
+    }
 
     // Multi-tag support: split by comma for AND logic
     let tag_list: Option<Vec<&str>> = tag.as_deref().map(|t| t.split(',').collect());
