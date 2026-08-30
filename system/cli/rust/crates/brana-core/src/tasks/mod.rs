@@ -8,6 +8,7 @@ use std::path::Path;
 
 mod validation;
 mod query;
+mod role;
 mod rollup;
 mod stats;
 mod wave;
@@ -15,6 +16,7 @@ mod wave;
 
 pub use validation::*;
 pub use query::*;
+pub use role::*;
 pub use rollup::*;
 pub use stats::*;
 pub use wave::*;
