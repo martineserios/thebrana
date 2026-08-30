@@ -317,6 +317,29 @@ struct DrainCandidate {
 /// The tasks lock is taken twice and never held across the network: a batch
 /// of 27 links takes minutes, and holding the sidecar lock through it would
 /// stall every other writer of that backlog.
+/// Count of tag:link + pending tasks whose `type` falls outside
+/// `cmd_drain_links`'s default `["task", "subtask"]` scope (t-3236, mirrors
+/// t-3233's `excluded_by_type_count` pattern). `cmd_drain_links` has no
+/// `--type` override at all, so a link-tagged phase/milestone/epic node
+/// would otherwise be silently excluded from the drain queue with no
+/// indication anything was skipped.
+fn count_type_excluded_link_candidates(all: &[serde_json::Value]) -> usize {
+    let scoped = tasks::filter_tasks_by(
+        all, all,
+        &tasks::TaskFilter { tag: Some("link"), status: Some("pending"), ..Default::default() },
+    );
+    let unscoped = tasks::filter_tasks_by(
+        all, all,
+        &tasks::TaskFilter {
+            tag: Some("link"),
+            status: Some("pending"),
+            types: brana_core::tasks::VALID_TASK_TYPES.to_vec(),
+            ..Default::default()
+        },
+    );
+    unscoped.len().saturating_sub(scoped.len())
+}
+
 pub fn cmd_drain_links(
     file: Option<PathBuf>,
     cap: usize,
@@ -342,6 +365,17 @@ pub fn cmd_drain_links(
             ..Default::default()
         };
         let pending = tasks::filter_tasks_by(all, all, &filter);
+
+        // t-3236 (mirrors t-3233's fix pattern): no --type override exists
+        // on this command at all, so a link-tagged phase/milestone/epic
+        // node would otherwise vanish from the drain queue with zero
+        // signal. Report it, never drop it silently.
+        let excluded = count_type_excluded_link_candidates(all);
+        if excluded > 0 {
+            eprintln!(
+                "note: {excluded} tag:link pending task(s) of other types excluded by the default task,subtask scope — no --type override exists on drain-links yet"
+            );
+        }
 
         // Skip-with-reason, never silently: a link whose context carries no
         // URL is a capture bug, and dropping it quietly is how this pipeline
@@ -2465,6 +2499,36 @@ pub(crate) fn sanitize_topic_slug(topic: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── cmd_drain_links default-type-scope exclusion (t-3236) ──────────
+    // cmd_drain_links built its TaskFilter via ..Default::default(),
+    // inheriting types: ["task","subtask"] with no override at all — a
+    // link-tagged phase/milestone/epic node would be silently excluded
+    // from the drain queue. Mirrors t-3233's fix pattern: report, never
+    // silently drop.
+
+    #[test]
+    fn test_excluded_link_candidates_counts_non_default_types() {
+        let all = vec![
+            serde_json::json!({"id": "t-1", "type": "task", "status": "pending", "tags": ["link"]}),
+            serde_json::json!({"id": "ph-1", "type": "phase", "status": "pending", "tags": ["link"]}),
+            serde_json::json!({"id": "in-1", "type": "epic", "status": "pending", "tags": ["link"]}),
+            // not tag:link — must not be counted
+            serde_json::json!({"id": "ph-2", "type": "phase", "status": "pending", "tags": []}),
+            // tag:link but not pending — must not be counted
+            serde_json::json!({"id": "ph-3", "type": "phase", "status": "completed", "tags": ["link"]}),
+        ];
+        assert_eq!(count_type_excluded_link_candidates(&all), 2);
+    }
+
+    #[test]
+    fn test_excluded_link_candidates_zero_when_all_default_scope() {
+        let all = vec![
+            serde_json::json!({"id": "t-1", "type": "task", "status": "pending", "tags": ["link"]}),
+            serde_json::json!({"id": "st-1", "type": "subtask", "status": "pending", "tags": ["link"]}),
+        ];
+        assert_eq!(count_type_excluded_link_candidates(&all), 0);
+    }
 
     // ── process_core composition guard (t-2247) ───────────────────────
 
