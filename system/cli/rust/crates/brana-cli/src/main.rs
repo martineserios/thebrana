@@ -51,7 +51,7 @@ fn main() {
                 task_type, parent, branch, work_type, epic, ac_state, sort,
             } => {
                 if json { output = "json".to_string(); }
-                run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&kind), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch, ve_str(&work_type), epic, ve_str(&ac_state), ve_str(&sort)))
+                run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&kind), ve_str(&priority), ve_str(&effort), search, count, output, &theme, task_type, parent, branch, ve_str(&work_type), epic, ve_str(&ac_state), ve_str(&sort)))
             },
             BacklogCmd::Focus { top, json, work_type, epic } => run_or_exit(commands::backlog::cmd_focus(&theme, top, json, ve_str(&work_type).as_deref(), epic.as_deref())),
             BacklogCmd::Search { text, json } => run_or_exit(commands::backlog::cmd_search(&text, &theme, json)),

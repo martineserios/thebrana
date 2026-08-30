@@ -344,6 +344,50 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
         .collect()
 }
 
+/// The recognized `type` values (matches CLI `TaskType`/ADR-065's `epic` node type).
+pub const VALID_TASK_TYPES: &[&str] = &["task", "subtask", "phase", "milestone", "initiative", "epic"];
+
+/// Parse and validate a comma-separated `--type`/`task_type` spec (t-3233).
+/// The CLI's `--type` used to be a single-value `clap` enum, which could
+/// never express more than one type at all — the query undercount fix's own
+/// "pass --type task,subtask,phase,milestone,epic to include everything"
+/// advice was unreachable until that arg became free text. Free text
+/// reintroduces the exact silent-drop failure class this task fixes (a
+/// typo'd type token would match nothing and return zero results with no
+/// error) unless validated here — the single validator both `cmd_query`
+/// (CLI) and `backlog_query` (MCP) call, so neither surface can regress
+/// independently.
+pub fn validate_task_types(spec: &str) -> Result<Vec<&str>, String> {
+    let types: Vec<&str> = spec.split(',').map(str::trim).collect();
+    for t in &types {
+        if !VALID_TASK_TYPES.contains(t) {
+            return Err(format!(
+                "invalid --type value {t:?} — must be one of: {}",
+                VALID_TASK_TYPES.join(", ")
+            ));
+        }
+    }
+    Ok(types)
+}
+
+/// Count of tasks in `all` whose `type` is not present in `used_types` — the
+/// exact population `filter_tasks_by`'s default scope (`["task", "subtask"]`)
+/// silently drops when a caller never passes an explicit type filter (t-3233).
+/// That population carries the epic-only status vocabulary (`next`/`active`/
+/// `archived`, ADR-065) a default-scoped query never surfaces at all — an
+/// audit found `brana backlog query --output json` (no `--type`) returning
+/// 2861 of 3111 tasks with no indication anything was excluded
+/// (docs/research/2026-08-29-field-usage-audit.md). Pure counting function
+/// over the whole file, independent of any other filter — callers decide
+/// how/when to surface it (CLI: a stderr note; MCP: a result field) and only
+/// when the type scope was NOT explicitly chosen by the caller. Never
+/// changes what `filter_tasks_by` itself returns.
+pub fn excluded_by_type_count(all: &[Value], used_types: &[&str]) -> usize {
+    all.iter()
+        .filter(|t| !used_types.contains(&t["type"].as_str().unwrap_or("task")))
+        .count()
+}
+
 /// Filter tasks by multiple criteria (AND logic).
 /// Thin wrapper around `filter_tasks_by` — prefer that for new call sites.
 pub fn filter_tasks<'a>(

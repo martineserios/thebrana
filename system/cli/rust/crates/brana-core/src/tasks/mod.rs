@@ -807,6 +807,65 @@ mod tests {
         assert!(ids.contains(&"t-1") && ids.contains(&"t-3"));
     }
 
+    // ── t-3233: default-type-scope exclusion is counted, never silent ────
+
+    #[test]
+    fn test_excluded_by_type_count_mixed_types() {
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task"}),
+            json!({"id": "t-2", "type": "subtask"}),
+            json!({"id": "ph-1", "type": "phase"}),
+            json!({"id": "ms-1", "type": "milestone"}),
+            json!({"id": "in-1", "type": "epic"}),
+        ];
+        assert_eq!(excluded_by_type_count(&tasks, &["task", "subtask"]), 3);
+    }
+
+    #[test]
+    fn test_excluded_by_type_count_all_matching_is_zero() {
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task"}),
+            json!({"id": "t-2", "type": "subtask"}),
+        ];
+        assert_eq!(excluded_by_type_count(&tasks, &["task", "subtask"]), 0);
+    }
+
+    #[test]
+    fn test_validate_task_types_accepts_comma_separated_valid_list() {
+        let types = validate_task_types("task,subtask,phase,milestone,epic").unwrap();
+        assert_eq!(types, vec!["task", "subtask", "phase", "milestone", "epic"]);
+    }
+
+    #[test]
+    fn test_validate_task_types_trims_whitespace() {
+        let types = validate_task_types("task, phase").unwrap();
+        assert_eq!(types, vec!["task", "phase"]);
+    }
+
+    #[test]
+    fn test_validate_task_types_rejects_typo_loudly() {
+        // t-3233: a typo must error, never silently return zero results.
+        let err = validate_task_types("taks").unwrap_err();
+        assert!(err.contains("\"taks\""), "must name the bad token: {err}");
+        assert!(err.contains("task"), "must list valid values: {err}");
+    }
+
+    #[test]
+    fn test_validate_task_types_rejects_one_bad_token_in_a_list() {
+        let err = validate_task_types("task,bogus,phase").unwrap_err();
+        assert!(err.contains("\"bogus\""));
+    }
+
+    #[test]
+    fn test_excluded_by_type_count_missing_type_defaults_to_task() {
+        // Untyped entries default to "task" (the same convention `filter_tasks_by`
+        // uses via `t["type"].as_str().unwrap_or("task")`) — must not be
+        // double-counted as excluded when "task" is in scope.
+        let tasks = vec![json!({"id": "t-1"})];
+        assert_eq!(excluded_by_type_count(&tasks, &["task", "subtask"]), 0);
+        assert_eq!(excluded_by_type_count(&tasks, &["phase"]), 1);
+    }
+
     #[test]
     fn test_validate_work_type_valid() {
         for v in &["implement", "research", "design", "infra", "chore", "review", "null", ""] {

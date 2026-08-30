@@ -12,6 +12,19 @@ Read-only audit of field fill rates across the brana backlog (ADR-086 T6). Data 
 returns only 2861 tasks — it silently drops legacy statuses (`next`: 55, `active`: 4,
 `archived`: 1) plus ~190 others; the file is ground truth for this audit.
 
+**Root-caused and fixed 2026-08-30 (t-3233).** Not a status-parsing defect: `query`'s
+default `--type` scope is `task,subtask` only, unconditionally excluding every
+`phase`/`milestone`/`epic`/`initiative` node — 250 of the file's 3114 tasks at fix
+time (50 phase + 139 milestone + 61 epic), which happen to be exactly where the legacy
+`next`/`active`/`archived` vocabulary lives (only epic nodes use it, ADR-065). Re-verified:
+`--output json` (default scope) returns 2864 with a new stderr note reporting the 250
+excluded; `--type task,subtask,phase,milestone,epic,initiative` returns all 3114. Changing
+the default scope was judged too risky (every existing consumer assumes it); the fix makes
+the exclusion explicit instead (CLI: stderr note; MCP `backlog_query`: `excluded_by_default_type`
+field) and, as a directly-adjacent fix, validates `--type`/`task_type` tokens so a typo
+errors loudly instead of silently returning zero results — the same failure class, triggered
+a different way, that this task exists to close.
+
 **Total: 3111 tasks** — 1881 completed, 917 pending, 241 cancelled, 55 next (legacy),
 12 in_progress, 4 active (legacy), 1 archived (legacy).
 
