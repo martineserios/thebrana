@@ -1,6 +1,6 @@
 ---
 name: terminal-diagrams
-description: "Reference for drawing any diagram (flow, tree, comparison, architecture) as plain monospace terminal text — box-drawing/ASCII, no external renderer. Read directly when work-preferences.md's proactive trigger fires."
+description: "Reference for drawing any diagram as plain monospace terminal text — box-drawing/ASCII, no external renderer. Read when work-preferences.md's trigger fires."
 keywords: [diagram, ascii, terminal, visualization, box-drawing, architecture, flowchart, tree, comparison]
 group: domain
 allowed-tools:

@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**42 skills** loaded from `system/skills/`.
+**44 skills** loaded from `system/skills/`.
 
 This index is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../architecture/idea-to-ship.md).
 
@@ -55,6 +55,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list. Us |
 | `/brana:product-brainstorming` | thinking | Brainstorm product ideas, explore problem spaces, and challenge assumptions as a |
+| `/brana:provisioning-wizard` | core | Bash wizard for human-only setup. |
 | `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagatio |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce fi |
 | `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after disc |
@@ -63,7 +64,8 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, run remote agents on cron. Use whe |
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
-| `/brana:terminal-diagrams` | domain | Reference for drawing any diagram (flow, tree, comparison, architecture) as plai |
+| `/brana:terminal-diagrams` | domain | Reference for drawing any diagram as plain monospace terminal text — box-drawing |
+| `/brana:two-axis-review` | core | Two-axis review: Standards vs Spec, unmerged. |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
 | `/brana:web-design-guidelines` | domain | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
@@ -173,6 +175,12 @@ Generate and update living documentation — tech docs, user guides, philosophy 
 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skill
 
+### `/brana:provisioning-wizard`
+
+Bash wizard for human-only setup.
+
+**Allowed tools:** [Read, Bash, Skill, Write]
+
 ### `/brana:sitrep`
 
 Situational awareness — where am I, what was I doing, what's next. Context recovery after compression, confusion, or mid-session reorientation.
@@ -180,6 +188,12 @@ Situational awareness — where am I, what was I doing, what's next. Context rec
 **Arguments:** `[--tag <tag>] [--stream <stream>] [--kind <kind>] [--priority <p>]`
 
 **Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__memory_search_unified, mcp__brana__session_history, ToolSearch
+
+### `/brana:two-axis-review`
+
+Two-axis review: Standards vs Spec, unmerged.
+
+**Allowed tools:** [Read, Bash, Skill]
 
 
 ## domain
@@ -204,7 +218,7 @@ Use when the user wants to design, redesign, shape, critique, audit, polish, cla
 
 ### `/brana:terminal-diagrams`
 
-Reference for drawing any diagram (flow, tree, comparison, architecture) as plain monospace terminal text — box-drawing/ASCII, no external renderer. Read directly when work-preferences.md's proactive trigger fires.
+Reference for drawing any diagram as plain monospace terminal text — box-drawing/ASCII, no external renderer. Read when work-preferences.md's trigger fires.
 
 **Allowed tools:** Read
 
