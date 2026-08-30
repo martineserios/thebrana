@@ -85869,7 +85869,7 @@
       "blocked_by": [],
       "branch": "knowledge-pipeline/fix/t-3238-vtt-caption-read-failure",
       "context": "Root cause: same family as t-3237 (assuming external/network-adjacent content is clean UTF-8), but the fix isn't a 1-line lossy-decode swap — read_to_string().ok() already can't distinguish \"file missing\" from \"file unreadable\" from \"bad encoding\", so fixing this properly means either lossy-decoding the VTT read (simple, but then a genuinely garbled caption file silently becomes garbled text - passed through - instead of \"no captions\") or adding a distinct error path that logs/surfaces the distinction instead of collapsing to None. Needs a real design decision, not just this fix's mechanical lossy_utf8 swap — hence filed separately.",
-      "notes": null,
+      "notes": "Challenger: PROCEED (2026-08-30), 0 finding(s), max severity 1. Second-variant finder (rung 1): SIBLINGS: no.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
