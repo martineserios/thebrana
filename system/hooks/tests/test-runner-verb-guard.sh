@@ -77,6 +77,8 @@ assert_deny "CLI wave ship via full path" 1 "$(bash_input '/usr/local/bin/brana 
 assert_deny "MCP wave_set status=shipped" 1 "$(mcp_input mcp__brana__backlog_wave_set '{"wave_id":"wave-3","field":"status","value":"shipped"}')"
 assert_deny "MCP wave_set gate" 1 "$(mcp_input mcp__brana__backlog_wave_set '{"wave_id":"wave-3","field":"gate","value":"wave-2"}')"
 assert_deny "MCP wave_set selector" 1 "$(mcp_input mcp__brana__backlog_wave_set '{"wave_id":"wave-3","field":"selector","value":"tag:x"}')"
+assert_deny "CLI wave set contract (t-3162)" 1 "$(bash_input 'brana backlog wave set wave-3 contract \"CHECK: merged to dev\"')"
+assert_deny "MCP wave_set contract (t-3162)" 1 "$(mcp_input mcp__brana__backlog_wave_set '{"wave_id":"wave-3","field":"contract","value":"CHECK: merged to dev"}')"
 assert_allow "MCP wave_set wip_limit stays allowed" 1 "$(mcp_input mcp__brana__backlog_wave_set '{"wave_id":"wave-3","field":"wip_limit","value":"1"}')"
 assert_allow "MCP wave_set status=draining stays allowed" 1 "$(mcp_input mcp__brana__backlog_wave_set '{"wave_id":"wave-3","field":"status","value":"draining"}')"
 assert_allow "CLI wave set wip_limit stays allowed" 1 "$(bash_input 'brana backlog wave set wave-3 wip_limit 1')"
