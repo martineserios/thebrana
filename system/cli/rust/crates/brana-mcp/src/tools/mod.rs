@@ -13,6 +13,7 @@ pub mod backlog_wave_add;
 pub mod backlog_wave_get;
 pub mod backlog_wave_list;
 pub mod backlog_wave_set;
+pub mod backlog_wave_drain;
 pub mod backlog_wave_approve;
 pub mod session_write;
 pub mod session_read;
