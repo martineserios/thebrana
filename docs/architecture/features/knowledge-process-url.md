@@ -306,3 +306,32 @@ as proof of fabrication.
 
 Also flagged (Observation): reuse `classify_platform()` for platform
 detection instead of reimplementing — addressed in Design.
+
+## Field Notes
+
+### 2026-08-30: a declared UTF-8 charset is not a guarantee — pair `with_config()` with `lossy_utf8(true)`
+
+`fetch_public_url` and `fetch_linkedin_public_extract` both read the ureq
+response body via `.into_body().with_config().limit(N).read_to_string()`.
+ureq 3.x's `with_config()` path defaults `lossy_utf8` to `false` (strict
+UTF-8, hard error on the first invalid byte) — unlike ureq's own no-config
+`Body::read_to_string()`, which hardcodes `lossy_utf8(true)`. Any call site
+that opted into `with_config()` purely to set a size `limit()` silently lost
+that lossy-decode safety net.
+
+Hit live via a `share.google/aimode` Telegram-captured link (t-1689,
+personal repo, 2026-08-30): the redirect chain lands on a Google Search
+results page whose `Content-Type` header claims `charset=UTF-8` but whose
+body contains a raw Latin-1 byte (`0xED`, part of "aquí"). The fetch
+hard-failed with `io: stream did not contain valid UTF-8` over that one
+byte, discarding an otherwise-usable page. Fixed (t-3237) by adding
+`.lossy_utf8(true)` to both call sites — matching ureq's own designed
+default for exactly this case — plus a third sibling found by the
+Challenger gate's second-variant finder: `fetch_youtube_channel_videos`
+used strict `String::from_utf8()` on yt-dlp's subprocess stdout, the same
+"assume clean UTF-8 from an untrusted external source" class.
+
+`grep -rn "with_config()" system/cli/rust/` to find every such call site
+when auditing this pattern again — confirmed (2026-08-30) that the two
+fixed here were the only ones in the workspace; `brana-cli/src/commands/feed.rs`'s
+fetch already uses the no-config path and was unaffected.

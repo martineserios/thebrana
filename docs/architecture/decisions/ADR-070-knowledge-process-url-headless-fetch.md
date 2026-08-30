@@ -616,3 +616,10 @@ flip:**
   duration filter, one flat listing call per tab) vs. expensive Tier B
   (date/tag selection, requires a full per-video fetch; deferred,
   undecided) (t-2994). See §Amendment.
+- 2026-08-30: `fetch_public_url` and `fetch_linkedin_public_extract` no
+  longer hard-fail when a server's declared `charset=UTF-8` lies — added
+  `.lossy_utf8(true)` to both (ureq's `with_config()` path defaults it to
+  `false`, unlike the crate's own no-config default). Same class fixed in
+  `fetch_youtube_channel_videos`'s yt-dlp stdout decode (t-3237, found by
+  the Challenger gate's second-variant finder). See
+  [knowledge-process-url.md §Field Notes](../features/knowledge-process-url.md#field-notes).
