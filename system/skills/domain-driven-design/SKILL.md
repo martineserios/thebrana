@@ -1,6 +1,6 @@
 ---
 name: domain-driven-design
-description: "DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript). Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure."
+description: "DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript)."
 group: domain
 keywords: [ddd, domain-modeling, entities, value-objects, bounded-contexts, aggregates, python]
 allowed-tools: [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
