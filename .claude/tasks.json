@@ -85762,7 +85762,7 @@
     {
       "id": "t-3235",
       "subject": "MCP has no backlog_wave_drain tool — no MCP path enforces check_wave_gate",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -85779,11 +85779,11 @@
       "parent": "t-2337",
       "created": "2026-08-30",
       "started": "2026-08-30",
-      "completed": null,
+      "completed": "2026-08-30",
       "blocked_by": [],
       "branch": "brana-v3-redesign/feat/t-3235-mcp-wave-drain-tool",
       "context": "Found by t-3234's rung-1 second-variant finder during its challenger gate (2026-08-30), flagged severity 4. Independently downgraded from blocking for t-3234 — the existing behavior (raw setter skips gate) is documented-deliberate and pre-existing (CLI's own raw `wave set status draining` shows the identical behavior; only the dedicated `wave drain` verb enforces it), not a regression introduced by t-3234's diff. The real gap is narrower: MCP's tool surface has no dedicated-verb equivalent of `wave drain` at all, so no MCP caller can get gate enforcement on a draining transition today, unlike the shipped/CHECK case which t-3234 just closed.\nAC: MCP has some path (new tool or existing tool amendment) that runs check_wave_gate before a wave transitions to draining\nAC: failing test first\nAC: docs updated if behavior claims change",
-      "notes": null,
+      "notes": "Challenger: PROCEED (2026-08-30), 0 finding(s), max severity 0. All 3 AC verified: check_wave_gate called before draining (gate-block + gate-pass tests both traced), mirrors cmd_wave_drain line-for-line (same rejection message, same idempotent-on-draining behavior, same report shape), docs amended. No scope creep (4 files, all in-scope). No OWASP issues, no new attack surface. SIBLINGS: no — runner-verb-guard.sh and drain-loop.md's denied-verbs table checked directly: wave drain is correctly a normal runner-usable step (not a human trust boundary like wave ship/approve), so backlog_wave_drain correctly needed no guard entry.\nRetrospective: mirroring an existing, well-tested CLI command against its own brana-core functions (no reimplementation) made this a clean, low-risk S-effort add — the whole task was \"does the MCP surface have a front door to code that already exists,\" and the answer was just \"add one.\"",
       "order": 0,
       "github_issue": null,
       "execution": "code",
