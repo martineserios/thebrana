@@ -83686,7 +83686,7 @@
       "blocked_by": [],
       "branch": "brana-v3-redesign/docs/t-3165-sizing-pointer-discipline",
       "build_step": null,
-      "completed": null,
+      "completed": "2026-08-29",
       "context": "AC: three docs updated with the exact rules, cross-citing ADR-086\nAC: failing test first for the CLI warning; warning shown, creation still allowed",
       "created": "2026-08-23",
       "description": "ADR-086 §1/§7/§9. Write task=one-context-window / wave=one-AFK-cycle into drain-loop.md; the pointer-not-paste home-of-record table into system/rules/tactical-context.md and task-convention.md; `brana backlog add --type phase|milestone` prints a warning (creation frozen per backlog-v3-schema; existing nodes stay). TDD for the CLI warning.",
@@ -83700,7 +83700,7 @@
       "parent": "t-2337",
       "priority": "P3",
       "started": "2026-08-29",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "J. ADR-086 T7 — sizing rules + pointer discipline into drain-loop.md, tactical-context.md, task-convention.md; phase/milestone creation warning in CLI",
       "tags": [
@@ -83716,11 +83716,7 @@
       "acceptance_criteria": [
         "three docs updated with the exact rules, cross-citing ADR-086 (drain-loop.md, tactical-context.md, task-convention.md)",
         "failing test first for the CLI warning; warning shown on --type phase|milestone, creation still allowed"
-      ],
-      "lease": {
-        "claimant": "wave-pull:pid-2573777",
-        "expires": "2026-08-30T23:29:05.963039481-03:00"
-      }
+      ]
     },
     {
       "ac_state": "none",
