@@ -35,7 +35,7 @@ Unified maintenance command for the brana system. Four domains, one entry point.
 
 | Domain | Scope flag | What it checks |
 |--------|-----------|---------------|
-| **Consistency** | `--scope consistency` | Spec docs vs `system/` implementation drift (default) |
+| **Consistency** | `--scope consistency` | Spec docs vs `system/` implementation drift; CONTEXT.md vs `docs/domain/` (default) |
 | **Security** | `--scope security` | Secrets, permissions, MCP tax, dangerous settings, credential files, acquired skill safety |
 | **Propagation** | `--scope propagation` | Doc fitness checks, reflection gaps, spec-graph consistency |
 | **Knowledge** | `--scope knowledge` | Stale dimensions, event log bloat, ruflo noise (DECAY) |

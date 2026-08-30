@@ -115,6 +115,22 @@ For each file, extract the same kind of concrete claims: "skill build-phase exis
 - **Rust CLI:** The `brana` CLI is a compiled Rust binary at `system/cli/rust/`. Subcommands (backlog, session, handoff, skills, knowledge, transcribe, files, feed, inbox) are Rust code, not shell scripts. Don't flag CLI subcommands as "unimplemented" because there's no matching `.sh` file.
 - **Plugin binary sync:** The brana binary is auto-synced to `${CLAUDE_PLUGIN_DATA}/brana` via SessionStart hook. Scripts resolve it via `system/hooks/lib/resolve-brana.sh`.
 
+### Step 2b: CONTEXT.md gauge (t-3163, ADR-086 §8)
+
+`CONTEXT.md` at the repo root is **generated** from `docs/domain/`'s Ubiquitous
+Language sections — never hand-maintained. Check it like any other doc drift:
+
+```bash
+python3 system/scripts/generate-context-md.py . --check
+```
+
+- Exit 0 → current (or no `docs/domain/` — the script is silent when the repo
+  hasn't opted in). Nothing to report.
+- Exit 1 → add a drift row to the Step 4 report under `#### CONTEXT.md`:
+  "CONTEXT.md stale vs docs/domain — regenerate". The Step 5 fix is rerunning
+  the script without `--check` (deterministic: unchanged domain docs regenerate
+  byte-identical).
+
 ### Step 3: Diff — identify drift
 
 Compare the "should" claims (Step 1) against the "is" claims (Step 2). Classify each discrepancy:
@@ -159,6 +175,9 @@ Show the user a structured plan:
 
 #### Config ([N] findings)
 ...
+
+#### CONTEXT.md ([N] findings)
+- [ ] CONTEXT.md stale vs docs/domain — regenerate: `python3 system/scripts/generate-context-md.py .`
 
 #### CLAUDE.md ([N] findings)
 ...
