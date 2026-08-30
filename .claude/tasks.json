@@ -85721,7 +85721,7 @@
       "ac_state": "none",
       "acceptance_criteria": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/fix/t-3234-mcp-wave-set-gauge-skip",
       "completed": null,
       "context": "Challenger finding 3 on t-3162 (sev 3, confirmed): brana-mcp's backlog_wave_set (src/tools/backlog_wave_set.rs) calls set_wave_field + save_tasks directly — setting status=shipped via MCP flips the wave with ZERO CHECK: evaluation or display, silently skipping the gauge t-3162 built for the CLI wave ship path. The docs only claim the CLI verb evaluates (accurate), but the functional gap between the two ship surfaces means the surface most used interactively shows no signal. Fix direction: either route MCP status=shipped through the same parse/evaluate/report path (return the report in the tool result), or make the MCP path warn in its output that the gauge was skipped and name the CLI verb. Root-cause note: prefer one shared ship function both surfaces call (single owner), not a second inline evaluation.\nAC: failing test first: MCP wave_set status=shipped either returns the check report or an explicit gauge-skipped warning\nAC: no second evaluation implementation — shared path with cmd_wave_ship\nAC: docs updated if behavior claims change",
       "created": "2026-08-29",
@@ -85735,8 +85735,8 @@
       "order": 0,
       "parent": "t-2337",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-30",
+      "status": "in_progress",
       "subject": "MCP backlog_wave_set status=shipped skips the CHECK: gauge — route through or warn (t-3162 fast-follow)",
       "tags": [
         "the-brana-closeout",
@@ -85747,7 +85747,8 @@
         "t-3162-followup"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "bug-fix"
     }
   ],
   "version": 3,
