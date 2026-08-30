@@ -81,7 +81,10 @@ fn text_match(task: &Value, needle: &str) -> bool {
 
 fn main() {
     let args = Args::parse();
-    let types: Vec<&str> = args.types.split(',').collect();
+    let types: Vec<&str> = brana_core::tasks::validate_task_types(&args.types).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
 
     let input = match &args.file {
         Some(p) => std::fs::read_to_string(p).unwrap_or_else(|e| {
@@ -156,5 +159,27 @@ fn main() {
         }
     } else {
         println!("{}", serde_json::to_string(&results).unwrap());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // t-3236: this binary's own --types flag defaulted to "task,subtask" and
+    // comma-split with ZERO validation (unlike t-3233's fix on the CLI and
+    // MCP query surfaces) — a typo silently returned zero results instead of
+    // erroring. Locks in the shared brana-core validator is now wired here.
+
+    #[test]
+    fn valid_types_spec_parses() {
+        let types = brana_core::tasks::validate_task_types("task,subtask,phase").unwrap();
+        assert_eq!(types, vec!["task", "subtask", "phase"]);
+    }
+
+    #[test]
+    fn typo_in_types_spec_errors_loudly() {
+        let err = brana_core::tasks::validate_task_types("taks").unwrap_err();
+        assert!(err.contains("\"taks\""), "must name the bad token: {err}");
     }
 }

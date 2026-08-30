@@ -7,6 +7,14 @@ use serde::Deserialize;
 pub struct Input {
     /// Free-text search query (searches subject, description, context, notes, tags)
     pub query: String,
+
+    /// Filter by type: task, subtask, phase, milestone, initiative, epic
+    /// (comma-separated). An unrecognized value errors rather than silently
+    /// matching nothing (t-3236, mirrors t-3233's backlog_query fix).
+    /// Default scope (when omitted) is task,subtask,phase,milestone — pass
+    /// e.g. "task,subtask,phase,milestone,initiative,epic" to include
+    /// everything.
+    pub task_type: Option<String>,
 }
 
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
@@ -22,20 +30,37 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     .ok_or_else(|| "tasks.json not found".to_string())?;
                 let data = brana_core::tasks::load_tasks(&tf)?;
 
+                let types: Vec<&str> = match input.task_type.as_deref() {
+                    Some(spec) => brana_core::tasks::validate_task_types(spec)?,
+                    None => vec!["task", "subtask", "phase", "milestone"],
+                };
+
                 let results = brana_core::tasks::filter_tasks_by(
                     &data.tasks, &data.tasks,
                     &brana_core::tasks::TaskFilter {
                         search: Some(&input.query),
-                        types: vec!["task", "subtask", "phase", "milestone"],
+                        types: types.clone(),
                         ..Default::default()
                     },
                 );
 
-                Ok(serde_json::json!({
+                let mut out = serde_json::json!({
                     "query": input.query,
                     "count": results.len(),
                     "tasks": results,
-                }))
+                });
+                // t-3236 (mirrors t-3233's backlog_query fix): the default
+                // type scope excludes epic/initiative nodes — report the
+                // exclusion, never drop it silently, but only when the
+                // caller didn't explicitly choose a narrower scope.
+                if input.task_type.is_none() {
+                    let excluded = brana_core::tasks::excluded_by_type_count(&data.tasks, &types);
+                    if excluded > 0 {
+                        out["excluded_by_default_type"] = serde_json::json!(excluded);
+                    }
+                }
+
+                Ok(out)
             })
             .await
             .map_err(|e| pmcp::Error::validation(format!("blocking task panicked: {e}")))?;
@@ -43,7 +68,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             result.map_err(pmcp::Error::validation)
         })
     })
-    .with_description("Search all tasks by free text across subject, description, context, notes, and tags.")
+    .with_description("Search all tasks by free text across subject, description, context, notes, and tags. With no task_type given, the default scope is task/subtask/phase/milestone — if that excludes any epic/initiative nodes, their count is reported under excluded_by_default_type (t-3236); pass task_type explicitly (e.g. \"task,subtask,phase,milestone,initiative,epic\") to include everything.")
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -96,6 +121,14 @@ mod tests {
         {"id":"t-2","subject":"unrelated task","status":"pending","type":"task","tags":[]}
     ]}"#;
 
+    // t-3236: 1 task + 1 epic, both matching the search text — default
+    // scope (no task_type) hardcoded types: ["task","subtask","phase",
+    // "milestone"], excluding epic/initiative with zero signal.
+    const FIXTURE_WITH_EPIC: &str = r#"{"project":"test","tasks":[
+        {"id":"t-1","subject":"fix the wobble in the frobnicator","status":"pending","type":"task","tags":[]},
+        {"id":"in-1","subject":"frobnicator epic","status":"next","type":"epic","tags":[]}
+    ]}"#;
+
     /// t-2631: backlog_search's handler runs its (file-read + filter) body via
     /// spawn_blocking, matching backlog_add/recall's established pattern, so a
     /// slow or contended read can never freeze pmcp's fully-serialized stdio
@@ -128,5 +161,59 @@ mod tests {
 
         assert_eq!(out["count"], 0);
         assert!(out["tasks"].as_array().unwrap().is_empty());
+    }
+
+    // ── t-3236: default-type-scope exclusion is reported, never silent ──
+
+    #[tokio::test]
+    async fn test_default_search_reports_excluded_by_type_count() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::with_tasks(FIXTURE_WITH_EPIC);
+
+        let out = build()
+            .handle(json!({"query": "frobnicator"}), pmcp::RequestHandlerExtra::default())
+            .await
+            .expect("search must succeed");
+
+        assert_eq!(out["count"], 1, "default scope still excludes epic nodes");
+        assert_eq!(
+            out["excluded_by_default_type"], 1,
+            "the epic match excluded by the default scope must be reported, not silently dropped"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_explicit_task_type_widens_scope_and_omits_exclusion_field() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::with_tasks(FIXTURE_WITH_EPIC);
+
+        let out = build()
+            .handle(
+                json!({"query": "frobnicator", "task_type": "task,subtask,phase,milestone,initiative,epic"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("search must succeed");
+
+        assert_eq!(out["count"], 2, "explicit type list covering everything returns everything");
+        assert!(
+            out.get("excluded_by_default_type").is_none(),
+            "an explicit task_type must not carry an exclusion note"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_search_rejects_typo_task_type_loudly() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::with_tasks(FIXTURE_WITH_EPIC);
+
+        let err = build()
+            .handle(
+                json!({"query": "frobnicator", "task_type": "taks"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect_err("a typo'd task_type must error, not silently match nothing");
+        assert!(format!("{err}").contains("taks"));
     }
 }

@@ -28,6 +28,20 @@ pub(crate) fn select_next<'a>(
     epic: Option<&str>,
     limit: usize,
 ) -> Vec<&'a serde_json::Value> {
+    // t-3236 judgment call (deliberate skip, not an oversight): this
+    // default type scope (task/subtask only) is the same one t-3233/t-3236
+    // fixed at cmd_search/backlog_search/brana-query/cmd_drain_links, but
+    // "next" is semantically "what actionable pending work should I do
+    // next" — a phase/milestone/epic node is an organizational container,
+    // not a unit of work someone picks up and does, so silently excluding
+    // it here is the intended behavior rather than an accidental narrowing.
+    // Unlike those four sites, `select_next`/`cmd_next` already exposes an
+    // explicit `--type`/`task_type` override (below) for a caller who
+    // disagrees, so there is no missing escape hatch either. Left
+    // unvalidated free-text (unlike t-3233's `validate_task_types`) for the
+    // same reason: widening this scope is off the happy path by design,
+    // so a typo here degrades to "no organizational nodes" rather than
+    // "silently narrower than every caller assumes."
     let types: Vec<&str> = match task_type {
         Some(tp) => tp.split(',').collect(),
         None => vec!["task", "subtask"],
@@ -389,17 +403,53 @@ pub fn cmd_focus(
     Ok(())
 }
 
-pub fn cmd_search(text: &str, theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
-    let tf = find_tasks_file().context("tasks.json not found")?;
-    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+/// Pure search core (t-3236): mirrors `select_next`'s already-established
+/// split between a testable filter core and a thin I/O wrapper, so the
+/// default-type-scope exclusion (t-3233's fix pattern) can be locked down
+/// without touching tasks.json. Returns (matches, types used, excluded
+/// count) — `excluded` is only ever non-zero when `task_type` was `None`
+/// (an explicit scope choice by the caller is never a silent drop).
+pub(crate) fn search_core<'a>(
+    all: &'a [serde_json::Value],
+    text: &str,
+    task_type: Option<&'a str>,
+) -> Result<(Vec<&'a serde_json::Value>, Vec<&'a str>, usize), String> {
+    let types: Vec<&str> = match task_type {
+        Some(tp) => tasks::validate_task_types(tp)?,
+        None => vec!["task", "subtask"],
+    };
     let results = tasks::filter_tasks_by(
-        &data.tasks, &data.tasks,
+        all, all,
         &tasks::TaskFilter {
             search: Some(text),
-            types: vec!["task", "subtask"],
+            types: types.clone(),
             ..Default::default()
         },
     );
+    let excluded = if task_type.is_none() {
+        tasks::excluded_by_type_count(all, &types)
+    } else {
+        0
+    };
+    Ok((results, types, excluded))
+}
+
+pub fn cmd_search(text: &str, theme: &themes::Theme, json_out: bool, task_type: Option<String>) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let (results, _types, excluded) = search_core(&data.tasks, text, task_type.as_deref())
+        .map_err(|e| anyhow::anyhow!(e))?;
+
+    // t-3233's fix pattern applied here (t-3236): cmd_search used to
+    // hardcode types: ["task","subtask"] with no --type override and no
+    // signal that phase/milestone/epic matches were dropped. Report, never
+    // silently drop.
+    if excluded > 0 {
+        eprintln!(
+            "note: {excluded} task(s) of other types excluded by the default --type task,subtask scope — pass --type task,subtask,phase,milestone,epic to include them"
+        );
+    }
+
     if json_out {
         println!("{}", serde_json::to_string(&results).unwrap());
         return Ok(());
@@ -2182,6 +2232,42 @@ mod tests {
         val["tasks"].as_array().unwrap().iter()
             .find(|t| t["id"].as_str() == Some(task_id))
             .and_then(|t| t["parent"].as_str().map(String::from))
+    }
+
+    // ── cmd_search default-type-scope exclusion (t-3236) ──────────────
+    // Mirrors t-3233's fix pattern: cmd_search hardcoded types:
+    // ["task","subtask"] with no --type override at all and no signal that
+    // phase/milestone/epic nodes matching the search text were dropped.
+
+    fn search_fixture() -> Vec<serde_json::Value> {
+        vec![
+            json!({"id": "t-1", "type": "task", "subject": "frobnicate the widget", "status": "pending", "tags": []}),
+            json!({"id": "ph-1", "type": "phase", "subject": "frobnicate rollout", "status": "pending", "tags": []}),
+            json!({"id": "in-1", "type": "epic", "subject": "frobnicate epic", "status": "next", "tags": []}),
+        ]
+    }
+
+    #[test]
+    fn search_core_default_scope_reports_excluded_count() {
+        let tasks = search_fixture();
+        let (results, _types, excluded) = search_core(&tasks, "frobnicate", None).unwrap();
+        assert_eq!(results.len(), 1, "default scope still returns only task/subtask");
+        assert_eq!(excluded, 2, "phase + epic matches excluded by default scope must be reported, not silently dropped");
+    }
+
+    #[test]
+    fn search_core_explicit_type_widens_scope_and_reports_no_exclusion() {
+        let tasks = search_fixture();
+        let (results, _types, excluded) = search_core(&tasks, "frobnicate", Some("task,subtask,phase,epic")).unwrap();
+        assert_eq!(results.len(), 3, "explicit type list covering everything returns everything");
+        assert_eq!(excluded, 0, "an explicit --type must not report an exclusion");
+    }
+
+    #[test]
+    fn search_core_rejects_typo_loudly() {
+        let tasks = search_fixture();
+        let err = search_core(&tasks, "frobnicate", Some("taks")).unwrap_err();
+        assert!(err.contains("\"taks\""), "must name the bad token: {err}");
     }
 
     // ── delete tests ────────────────────────────────────────────────
