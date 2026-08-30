@@ -1553,6 +1553,12 @@ fn fetch_linkedin_public_extract(url: &str) -> Result<Option<(String, Option<Str
         .into_body()
         .with_config()
         .limit(PUBLIC_FETCH_MAX_BYTES)
+        // A server-declared UTF-8 charset is not a guarantee (t-3237: a
+        // Google Search results page served raw Latin-1 bytes despite
+        // `charset=UTF-8`). Replace invalid bytes with `?` rather than
+        // erroring the whole fetch over one mis-encoded character —
+        // matches ureq's own no-config Body::read_to_string() default.
+        .lossy_utf8(true)
         .read_to_string()
         .with_context(|| format!("failed to read public LinkedIn response body: {url}"))?;
     Ok(extract_linkedin_public_text(&html)
@@ -2763,6 +2769,10 @@ fn fetch_public_url(url: &str) -> Result<String> {
         .into_body()
         .with_config()
         .limit(PUBLIC_FETCH_MAX_BYTES)
+        // See the matching comment on fetch_linkedin_public_extract (t-3237):
+        // a declared UTF-8 charset can lie, and one bad byte anywhere in the
+        // page must not fail the whole fetch.
+        .lossy_utf8(true)
         .read_to_string()
         .with_context(|| format!("failed to read response body: {url}"))?;
     Ok(strip_html_to_text(&body))
@@ -3562,7 +3572,9 @@ mod tests {
 
     /// Minimal local HTTP/1.1 server for one request — avoids adding a mock
     /// HTTP crate as a new dependency (spec Design: check before adding).
-    fn serve_once(status_line: &str, body: &'static str) -> (std::net::SocketAddr, std::thread::JoinHandle<()>) {
+    /// Bytes variant so a test can serve a body that is not valid UTF-8
+    /// (t-3237: a server-declared `charset=UTF-8` that lies).
+    fn serve_once_bytes(status_line: &str, body: &'static [u8]) -> (std::net::SocketAddr, std::thread::JoinHandle<()>) {
         use std::io::{Read, Write};
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
@@ -3571,14 +3583,19 @@ mod tests {
             let (mut stream, _) = listener.accept().unwrap();
             let mut buf = [0u8; 1024];
             let _ = stream.read(&mut buf);
-            let response = format!(
-                "{status_line}\r\nContent-Length: {}\r\nContent-Type: text/html\r\n\r\n{}",
-                body.len(),
-                body
-            );
-            let _ = stream.write_all(response.as_bytes());
+            let mut response = format!(
+                "{status_line}\r\nContent-Length: {}\r\nContent-Type: text/html\r\n\r\n",
+                body.len()
+            )
+            .into_bytes();
+            response.extend_from_slice(body);
+            let _ = stream.write_all(&response);
         });
         (addr, handle)
+    }
+
+    fn serve_once(status_line: &str, body: &'static str) -> (std::net::SocketAddr, std::thread::JoinHandle<()>) {
+        serve_once_bytes(status_line, body.as_bytes())
     }
 
     #[test]
@@ -3602,6 +3619,23 @@ mod tests {
         // Boundary: nothing listening on this port — must not panic.
         let result = fetch_public_url("http://127.0.0.1:1/");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn fetch_public_url_replaces_invalid_utf8_instead_of_erroring() {
+        // t-3237: a share.google/aimode redirect resolves to a Google Search
+        // results page that declares `charset=UTF-8` but actually contains
+        // raw Latin-1 bytes (observed live, 2026-08-30 — byte 0xed inside
+        // "aqu\xedi" = Spanish "aquí"). ureq's with_config().read_to_string()
+        // defaults to strict UTF-8 and hard-errors on the first bad byte,
+        // which failed the whole fetch over one mis-encoded character deep
+        // in unrelated boilerplate.
+        let body: &'static [u8] = b"<p>before \xed after</p>";
+        let (addr, handle) = serve_once_bytes("HTTP/1.1 200 OK", body);
+        let result = fetch_public_url(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        let text = result.expect("invalid utf-8 must be replaced, not hard-fail the fetch");
+        assert!(text.contains("before") && text.contains("after"), "got: {text:?}");
     }
 
     #[test]
@@ -5306,6 +5340,20 @@ id3
         let (text, image_url) = result.unwrap().expect("must extract from mock server");
         assert_eq!(text, "hi there, no image");
         assert_eq!(image_url, None);
+    }
+
+    #[test]
+    fn fetch_linkedin_public_extract_replaces_invalid_utf8_instead_of_erroring() {
+        // Same class as fetch_public_url (t-3237): a non-English LinkedIn
+        // post page can carry a stray non-UTF-8 byte despite a UTF-8
+        // Content-Type. The public-extract tier must not hard-fail the
+        // whole fetch over it.
+        let body: &'static [u8] =
+            b"<html><head><script type=\"application/ld+json\">{\"articleBody\":\"hi \xed there\"}</script></head><body>authwall</body></html>";
+        let (addr, handle) = serve_once_bytes("HTTP/1.1 200 OK", body);
+        let result = fetch_linkedin_public_extract(&format!("http://{addr}/"));
+        handle.join().unwrap();
+        assert!(result.is_ok(), "invalid utf-8 must be replaced, not hard-fail the fetch: {result:?}");
     }
 
     // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────
