@@ -85912,6 +85912,35 @@
       "work_type": "implement",
       "ac_state": "none",
       "strategy": "bug-fix"
+    },
+    {
+      "id": "t-3240",
+      "subject": "session_read test leaks ambient git branch name, fails whenever repo is checked out on branch \\\"dev\\\"",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "rust",
+        "test-hermeticity",
+        "brana-mcp"
+      ],
+      "description": "test_session_read_explicit_epic_finds_state_branch_guess_would_miss (system/cli/rust/crates/brana-mcp/src/tools/session_read.rs) fails whenever the outer repository's actual checked-out branch is literally named \\\"dev\\\" -- confirmed pre-existing and unrelated to any recent change: reproduces identically at commit 277a27f0 (before t-3236's merge) and at f4739ea5 (after). Its own log line during failure: `brana: branch \\\"dev\\\" does not match epic convention, falling back to session-state.json`.\\n\\nRoot cause hypothesis: the test's Hermetic fixture (session_read.rs ~line 91-117) only isolates HOME and CLAUDE_PROJECT_DIR env vars -- it does NOT create an isolated git repo or otherwise mock branch detection. The epic-resolution code under test appears to fall back to real `git branch --show-current` against the ambient/outer repo when no other signal is available, so whichever branch the actual developer/session has checked out (here, literally \\\"dev\\\") leaks into the test's expected-branch assertion (`close/fix/t-9999-dummy`), causing a false failure whenever that ambient branch happens to be \\\"dev\\\" (or any other value the test's assertions don't anticipate).\\n\\nAC: Hermetic fixture in session_read.rs isolates git branch detection (e.g. init a throwaway git repo under the tempdir and check out the fixture's intended branch, or inject branch via an override the production code already supports) so the test's result no longer depends on the outer checkout's actual branch\\nAC: test passes regardless of which branch the surrounding repository has checked out (verified by running it from a worktree checked out on branch \\\"dev\\\" and one checked out on a non-\\\"dev\\\" branch)\\nAC: no other test in the same file/crate relies on the same unisolated ambient-branch fallback (grep sibling tests for the same Hermetic pattern)",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2337",
+      "created": "2026-08-30",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3,
