@@ -967,6 +967,15 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
     }
 }
 
+/// Ship a wave (t-3022, guide L4.4): named alias for `wave set status shipped`
+/// — the human ship valve gets a greppable verb (Pocock: "valve verbs are
+/// greppable nouns"). Pure delegation: identical validation, locking, and
+/// output to `cmd_wave_set`; never touches matched tasks (ADR-080 §6).
+/// Runner-denied like the underlying set (drain-loop.md denied verbs).
+pub fn cmd_wave_ship(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    cmd_wave_set(wave_id, "status", "shipped", file)
+}
+
 /// Drain a wave (t-2775, wave-gate-enforcement.md): gate check → selector
 /// resolution → report matched tasks + set wave status to "draining". Does
 /// NOT execute anything or touch matched tasks. Draining an already-draining
@@ -3102,6 +3111,23 @@ mod tests {
         assert_eq!(w["selector"], "shape:mechanical");
         assert_eq!(w["contract"], "ship criteria");
         assert_eq!(w["gate"], "wave-0");
+    }
+
+    // ── t-3022: wave ship — named alias for `wave set status shipped` ────
+
+    #[test]
+    fn cmd_wave_ship_flips_status_to_shipped() {
+        let f = empty_tasks_file();
+        cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_ship("wave-1", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "shipped");
+    }
+
+    #[test]
+    fn cmd_wave_ship_missing_wave_errors_like_set() {
+        let f = empty_tasks_file();
+        // identical validation path to `wave set status shipped`: unknown wave errors
+        assert!(cmd_wave_ship("wave-99", Some(f.path().to_path_buf())).is_err());
     }
 
     // ── t-2775: wave drain (gate enforcement + tag: selector) ────────────

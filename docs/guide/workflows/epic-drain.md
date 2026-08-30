@@ -176,7 +176,7 @@ verbs this loop's wider blast radius makes newly reachable:
 | `brana backlog wave approve <wave-id>` / MCP `backlog_wave_approve` (with `confirm_ids`) | Same trust boundary, batched (ADR-080 §4). The loop may surface that a wave has `ac_state:proposed` tasks; it must never supply `confirm_ids` itself. |
 | `git merge` into `dev`/`main`, any push to production | ADR-060: executors return branches; a human integrates and ships. |
 | `brana backlog set <id> status completed` (outside build CLOSE) | Completion is graded, not asserted. |
-| `brana backlog wave set <id> status shipped` | **New at epic scope.** No auto-ship — one human ship decision per wave is what makes epic-looping safe (ADR-080 §3.6, unchanged from ADR-079 §1.4). Empty pull ≠ done; contract-met is an announcement, never a self-executed advance. |
+| `brana backlog wave set <id> status shipped` / `brana backlog wave ship <id>` (t-3022 alias) | **New at epic scope.** No auto-ship — one human ship decision per wave is what makes epic-looping safe (ADR-080 §3.6, unchanged from ADR-079 §1.4). Empty pull ≠ done; contract-met is an announcement, never a self-executed advance. The alias is the same valve — denied identically. |
 | `brana backlog wave set <id> gate` / `brana backlog wave set <id> selector` | **New at epic scope.** The loop reads the gate chain to topo-sort; it must never rewrite it — a runner that can edit its own dependency graph could route around a human-authored gate. |
 | Inline self-review in place of a spawned challenger/evaluator | **New at epic scope.** Step 7 (JUDGE) above — the machine half of judgment must be a fresh-context worker per beat, never this loop reviewing its own pull. |
 
