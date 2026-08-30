@@ -241,6 +241,42 @@ assert_eq "session scrub: raw ESC byte stays single-line" "1" "$LINE_COUNT4B"
 assert_contains "session scrub: ESC byte stripped from segment" "bad1234" "$STRIPPED4B"
 
 echo ""
+echo "--- 4c. Fleet name lookup: prefers ~/.claude/sessions/<pid>.json .name when sessionId matches (t-3246) ---"
+
+FAKE_HOME="$TMPDIR/fakehome"
+mkdir -p "$FAKE_HOME/.claude/sessions"
+cat > "$FAKE_HOME/.claude/sessions/9999.json" <<'JSON'
+{"pid":9999,"sessionId":"cafe1234-0000-0000-0000-000000000000","name":"testproj-7"}
+JSON
+
+OUTPUT4C=$(make_statusline_input "$DIR4" "cafe1234-0000-0000-0000-000000000000" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    HOME="$FAKE_HOME" \
+    CLAUDE_PID=9999 \
+    bash "$STATUSLINE" 2>/dev/null)
+STRIPPED4C=$(strip_ansi "$OUTPUT4C")
+
+assert_contains "fleet name: shows session registry name" "testproj-7" "$STRIPPED4C"
+assert_not_contains "fleet name: does not leak uuid prefix instead" "cafe1234" "$STRIPPED4C"
+
+echo ""
+echo "--- 4d. Fleet name lookup: falls back when sessionId mismatches (stale/foreign pid file) ---"
+
+cat > "$FAKE_HOME/.claude/sessions/8888.json" <<'JSON'
+{"pid":8888,"sessionId":"deadbeef-0000-0000-0000-000000000000","name":"otherproj-1"}
+JSON
+
+OUTPUT4D=$(make_statusline_input "$DIR4" "abcd0000-1111-2222-3333-444455556666" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    HOME="$FAKE_HOME" \
+    CLAUDE_PID=8888 \
+    bash "$STATUSLINE" 2>/dev/null)
+STRIPPED4D=$(strip_ansi "$OUTPUT4D")
+
+assert_contains "fleet name mismatch: falls back to uuid prefix" "abcd0000" "$STRIPPED4D"
+assert_not_contains "fleet name mismatch: does not use foreign name" "otherproj-1" "$STRIPPED4D"
+
+echo ""
 echo "--- 5. Missing session id degrades gracefully ---"
 
 OUTPUT5B=$(make_statusline_input "$DIR4" | env \
