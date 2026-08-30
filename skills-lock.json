@@ -108,6 +108,18 @@
       "sourceType": "github",
       "skillPath": "skills/systems-thinking/SKILL.md",
       "computedHash": "52e35d31292c3954e15bcc306e9162f5b552d7ec84be4c20f73569b0e99d8b0d"
+    },
+    "wizard": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/wizard/SKILL.md",
+      "pinnedRef": "v1.2.3",
+      "computedHash": "bfe21d44ccc37d4f7ce4000ca1bb74fc1d5685afb95b80ea7d8b687d2fd15bc3",
+      "files": [
+        "SKILL.md",
+        "agents/openai.yaml",
+        "template.sh"
+      ]
     }
   }
 }

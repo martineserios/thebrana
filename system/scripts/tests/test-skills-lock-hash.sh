@@ -68,6 +68,16 @@ with open('$REPO_ROOT/skills-lock.json') as f:
 check "regenerated hash matches skills-lock.json's recorded diagnosing-bugs hash" "$LOCK_DIAG" "$DIAG_ACTUAL"
 
 echo ""
+echo "== skills-lock-hash.sh: wizard multi-file dir matches skills-lock.json (t-2836) =="
+WIZARD_ACTUAL=$("$HASH_SCRIPT" "$REPO_ROOT/.agents/skills/wizard")
+LOCK_WIZARD=$(python3 -c "
+import json
+with open('$REPO_ROOT/skills-lock.json') as f:
+    print(json.load(f)['skills']['wizard']['computedHash'])
+")
+check "regenerated hash matches skills-lock.json's recorded wizard hash" "$LOCK_WIZARD" "$WIZARD_ACTUAL"
+
+echo ""
 echo "== skills-lock-hash.sh: errors on missing/empty dir =="
 "$HASH_SCRIPT" "$REPO_ROOT/no-such-skill-dir" >/dev/null 2>&1
 RC=$?
