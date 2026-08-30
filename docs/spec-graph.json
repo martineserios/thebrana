@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-30T14:30:00Z",
+  "generated": "2026-08-30T16:54:58Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1243,7 +1243,11 @@
       "title": "ADR-084: Upstream Skill Band — Vendored Pocock Cognitive Skills Over Brana Orchestration Shells",
       "type": "ADR",
       "impl_files": [
-        "system/skills/<brana-name>/SKILL.md"
+        "system/skills/<brana-name>/SKILL.md",
+        "system/skills/diagnose-hard-bug/",
+        "system/scripts/skills-lock-hash.sh",
+        "system/scripts/tests/test-skills-lock-hash.sh",
+        "system/skills/diagnose-hard-bug/SKILL.md"
       ]
     },
     "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md": {
