@@ -22,6 +22,7 @@ allowed-tools:
   - ToolSearch
   - TaskCreate
   - TaskList
+  - Skill
 status: stable
 growth_stage: evergreen
 ---
@@ -121,6 +122,8 @@ printf '{"step":"REPRODUCE","completed":"%s","task":"%s"}\n' "$(date -u +%Y-%m-%
 ### Step 2: DIAGNOSE
 
 Goal: state a specific hypothesis about root cause — not a symptom.
+
+**Hard bug or performance regression, third+ attempt already failed, or no obvious single hypothesis?** Before the single-hypothesis flow below, invoke `Skill(skill: "diagnose-hard-bug")` (ADR-084 vendor+wrap pilot, t-2834) — a stricter discipline: tight red-capable feedback loop first, then 3-5 ranked falsifiable hypotheses shown to the user before any instrumentation, tagged `[DEBUG-xxxx]` logs. Skip it for ordinary bugs where the first hypothesis below is obviously right — it's overhead a simple fix doesn't need.
 
 1. **Read the failing test output carefully.** Note the exact error message, line, and stack.
 2. **Trace the call path.** Follow the code from the failing assertion back to where the bad value or wrong path originates.

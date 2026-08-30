@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**41 skills** loaded from `system/skills/`.
+**42 skills** loaded from `system/skills/`.
 
 This index is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../architecture/idea-to-ship.md).
 
@@ -37,6 +37,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
 | `/brana:design-system` | domain | Token architecture and component specs: three-layer tokens (primitive→semantic→c |
+| `/brana:diagnose-hard-bug` | core | Hard-bug diagnosis: tight loop, ranked hypotheses. |
 | `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
@@ -152,6 +153,12 @@ Capture events — links, calls, meetings, ideas — into an append-only log. Bu
 
 ## core
 
+### `/brana:diagnose-hard-bug`
+
+Hard-bug diagnosis: tight loop, ranked hypotheses.
+
+**Allowed tools:** [Read, Bash, Skill]
+
 ### `/brana:discover`
 
 Runtime catalog — list all installed skills, agents, and active hooks. Use when you want to know what's available.
@@ -185,7 +192,7 @@ Token architecture and component specs: three-layer tokens (primitive→semantic
 
 ### `/brana:domain-driven-design`
 
-DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript). Use when building rich domain models, enforcing invariants, or separating domain logic from infrastructure.
+DDD tactical patterns — entities, value objects, aggregates, domain services, repositories, specifications, bounded contexts (Python/TypeScript).
 
 **Allowed tools:** [Read, Glob, Grep]  # Community tier — quarantined (no WebFetch/WebSearch)
 
@@ -254,7 +261,7 @@ Structured bug fix — reproduce (failing test), diagnose, fix (minimal change),
 
 **Depends on:** `/brana:backlog`
 
-**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent, ToolSearch, TaskCreate, TaskList
+**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent, ToolSearch, TaskCreate, TaskList, Skill
 
 ### `/brana:gemini`
 

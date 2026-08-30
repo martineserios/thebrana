@@ -262,6 +262,83 @@ threshold three ways *before* looking; these are fixed now, before t-2834 starts
   in the upstream repo at evaluation. Reviewable diff = expand-eligible; rename or
   restructure = maintainability signal for kill.
 
+### 7a. Pilot outcome (t-2834, evaluated 2026-08-30) — **EXPAND**
+
+The pilot beat completed (vendored, wrapped in `/brana:fix`'s DIAGNOSE step, run on a real
+bug) inside the 30-day window, so evaluation ran against the pilot beat rather than the
+timeout. All three pre-registered proxies read expand-eligible:
+
+- `adapter_churn` = **0** commits touching `system/skills/diagnose-hard-bug/` after its
+  first working version (`git log --oneline -- system/skills/diagnose-hard-bug/` shows one
+  commit total) — well under the ≥2 kill signal. The remap table (§3) needed no mid-flight
+  rewrite.
+- `invocations` = **1** valid (`~/.claude/run-state/pocock-diagnosing-bugs.jsonl`) — above
+  the 0 kill signal. **Correction (this pilot's own challenger gate, base challenger,
+  2026-08-30, severity 4):** the original entry this bullet cited (task t-3212, an
+  exit-contract-lint.sh cross-language false positive) was invalid — t-3212 had already
+  been independently diagnosed and fixed on a separate branch and merged to `dev` the same
+  day (commit `01e7ab41`) before this pilot's own run, so the "fix" this pilot's run
+  produced was dead code duplicating an already-shipped case-statement; reverted
+  (`exit-contract-lint.sh` and its test file now match `dev` exactly again, no diff). The
+  jsonl log carries a `SUPERSEDED` correction entry rather than a silent rewrite. The
+  replacement evidence is the `diagnosing-bugs.computedHash` mismatch found during this same
+  task's own AC1 work (below): a real, then-undiagnosed bug, diagnosed with a tight
+  red/green loop (`test-skills-lock-hash.sh`) and 4 ranked hypotheses (H1 confirmed: hash
+  never actually computed from real content under any tested algorithm; H2 disproven:
+  under-scoping to SKILL.md alone; H3 out-of-scope: hashing-tool version skew; H4 rejected
+  design alternative: treat the hash as advisory) before being fixed — the same shape of
+  discipline the adapter prescribes, run inline rather than through a separately logged
+  invocation.
+- `upstream_delta` — upstream (`gh api repos/mattpocock/skills/tags`) is still at `v1.2.3`,
+  no newer tag. Zero drift is at least as expand-eligible as a reviewable clean bump; there
+  is nothing to review because nothing moved.
+
+No kill signal fired. Per §7: **expand** — t-2835 and t-2836 unparked and their
+`blocked_by: [t-2834]` cleared as part of this same evaluation (verified live via
+`backlog_get`, not merely narrated — the base challenger's initial pass caught this
+sentence stated present-tense before the write had happened; both fields confirmed cleared
+before this ADR was finalized), and this pilot's mechanism (file-copy vendoring +
+dir-level `computedHash`/`files[]`/`pinnedRef` in `skills-lock.json`, thin adapter, redirect-
+check artifact) is confirmed as the pattern for both. The queue/pump/valve/gauge instruments
+(§1) and the `reconcile --scope pocock-sync` pump stay **not built** — this evaluation
+authorizes unparking the two gated tasks, not materializing the standing band; that remains
+a separate follow-up ADR/amendment per §"Negative (accepted)" above.
+
+One correction made during this evaluation, not a new finding against the pilot's design:
+`skills-lock.json`'s `diagnosing-bugs.computedHash` was hand-typed and did not actually match
+sha256 over the vendored directory's sorted-path+content (verified by recomputing against the
+established single-file precedent — confirmed by independently reproducing it on one existing
+entry, `inversion`: `sha256("SKILL.md" + content)`). Fixed in place and backed by a
+regeneratable script (`system/scripts/skills-lock-hash.sh`, tested in
+`system/scripts/tests/test-skills-lock-hash.sh`) so `diagnosing-bugs`'s hash specifically is
+actually checkable going forward, not just asserted once.
+
+**Scope correction (this pilot's own challenger gate, rung-2 second-variant finder,
+2026-08-30):** the sentence above originally claimed "the existing 15 lock entries
+independently confirm" the single-file convention — false; only one entry was actually
+checked. Running the new script against the rest of `skills-lock.json` found 9 more
+multi-file vendored skills (`cold-start-problem`, `decision-matrix`, `domain-driven-design`,
+`impeccable`, `jobs-to-be-done`, `marketplace-fundamentals`,
+`marketplace-liquidity-take-rates`, `supply-demand-balance`, `systems-thinking`) whose
+`computedHash` doesn't match their real content under any convention tested — pre-existing
+drift this pilot's tool now makes *visible* but did not itself introduce or fix. The 7
+entries that do validate turn out to be genuine single-file skills (no sub-files), so the
+convention holds for them by construction, not because anyone verified it. Filed as t-3239.
+`skills-lock-hash.sh` is confirmed correct (independently reproduced from first principles
+against `inversion` and against a synthetic fixture) — the gap is in the *other* lock
+entries' stale values, not in the tool this task shipped to check them.
+
+**AC5 checklist re-verification (recorded here as a committed artifact, not only in the
+task's backlog notes — the base challenger's tool access is diff/ADR-only and couldn't see
+the backlog note):** `skill-validation-checklist.md` item 4 (explicit control flow) checked
+against `system/skills/diagnose-hard-bug/SKILL.md` — steps numbered 1–4 and complete; an
+early-exit condition is stated explicitly at step 3; resume-after-compaction behavior is
+stated explicitly ("no state to lose across compaction"). Item 4: pass. (A reviewer noted the
+adjacent parenthetical "steps 1-2 below are the whole procedure" reads as inconsistent with
+the actual 4-step list beneath it — the parenthetical refers to the *load-then-remap* pair of
+steps carrying no persistent state between them, not a claim that steps 3–4 don't exist;
+worth rewording on the next touch of this file, not blocking.)
+
 ## Consequences
 
 - **Positive:** the six-task wave-3 batch is unblocked with an explicit, reconciled

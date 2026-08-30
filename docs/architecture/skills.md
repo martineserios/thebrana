@@ -166,6 +166,7 @@ Scope note: `system/skills/` is not the only model-invokable skill surface in th
 | reconcile | brana | model-invoked | Fixes detected drift, but scope is repo-local and git-reversible — explicitly routine hygiene per this file's own CLAUDE.md cross-reference. |
 | rust-skills | brana | model-invoked | Not quarantined (`allowed-tools` includes Edit/Write), but scope is repo-local Rust source and git-reversible — model-invoked is still the right call, just not for the "quarantined advisory, no write" reason that applies to the rows below it. |
 | verify-docs | brana | model-invoked | `allowed-tools: Bash, Read, AskUserQuestion` — no Write/Edit; runs `validate.sh` and samples for review only. |
+| **diagnose-hard-bug** | core | **user-invoked-only** | Thin adapter (t-2834, ADR-084 vendor+wrap pilot) wrapping the vendored `diagnosing-bugs` organ; kept out of ambient trigger-description consideration so it doesn't add to every-turn context, and reached only via `fix`'s explicit `Skill(skill: "diagnose-hard-bug")` call for hard bugs, not by autonomous firing. |
 | discover | core | model-invoked | Read-only catalog listing of skills/agents/hooks. |
 | docs | core | model-invoked | Generates/updates doc files, git-reversible, explicitly a composable CLOSE building block. |
 | sitrep | core | model-invoked | Read-only situational-awareness/status recovery. |
