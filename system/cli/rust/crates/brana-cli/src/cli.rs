@@ -916,6 +916,14 @@ pub enum BacklogCmd {
         /// Output JSON array instead of themed list
         #[arg(long)]
         json: bool,
+        /// Filter by type — comma-separated for multiple (task, subtask,
+        /// phase, milestone, initiative, epic). Default scope (when
+        /// omitted) is task,subtask only — pass e.g.
+        /// "task,subtask,phase,milestone,epic" to include everything
+        /// (t-3236: cmd_search used to hardcode this scope with no
+        /// override and no signal anything was excluded).
+        #[arg(long = "type")]
+        task_type: Option<String>,
     },
     /// Portfolio or project status
     Status {
