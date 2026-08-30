@@ -72,6 +72,22 @@ the correct long-term mechanism, just not yet reused elsewhere until this build.
 went from 21 to 19 assertions (2 tests whose entire purpose was the now-deleted config-read path
 were removed rather than retargeted — no equivalent behavior exists to test).
 
+### 2026-08-30: Session-id segment prefers CC's own fleet name over the raw UUID prefix
+The 🪪 segment (previous entry below) showed `{8-char-session-id-prefix}` — not the
+identifier CC's own multi-agent addressing (`ListAgents`/`SendMessage`) uses for the
+same session, a per-project fleet name like `thebrana-53` stored in
+`~/.claude/sessions/<pid>.json` under `.name`. `system/statusline.sh` now looks that
+name up via `$CLAUDE_PID` — a single keyed file read, never a scan of the
+495+-file `sessions/` directory — and cross-checks the file's `.sessionId` against
+the input `session_id` before trusting `.name`, so an ambient/leaked `CLAUDE_PID`
+(e.g. inherited by a test subprocess) degrades safely to the old UUID-prefix
+behavior instead of showing a foreign session's name. Falls back to the UUID
+prefix whenever `CLAUDE_PID` is unset, the sessions file is missing, or the
+`sessionId` doesn't match. `test-statusline-integration.sh` gained 2 new
+scenarios (fleet-name-shown-on-match, fallback-on-mismatch) — 24 → 26 assertions,
+still 26/26.
+Source: t-3246, session 2026-08-30
+
 ### 2026-08-11: Added a session-id segment (🪪); a first close mistakenly marked the task done before it was ever built
 `system/statusline.sh` gained a `🪪 {8-char-session-id-prefix}` segment, sourced from the
 statusline hook's own stdin JSON (`.session_id`) — never `BRANA_SESSION_ID`, which is set
