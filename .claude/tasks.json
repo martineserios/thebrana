@@ -85825,6 +85825,35 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-3237",
+      "subject": "Handle share.google/aimode links in knowledge fetch pipeline",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "knowledge-pipeline",
+        "fetch",
+        "telegram"
+      ],
+      "description": "brana knowledge process-url / drain-links fails on share.google/aimode/* URLs (Google AI Mode conversation share links) with \"failed to read response body: io: stream did not contain valid UTF-8\". Hit live 2026-08-30 via telegram link-capture (personal repo t-1689) — had to paste the page content manually and hand-store the insight to work around it.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2348",
+      "created": "2026-08-30",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Root cause: classify_platform() in system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs buckets unrecognized hosts (including share.google) as \"other\" and fetches with the plain ureq-based fetcher, which expects UTF-8 HTML/text. share.google/aimode pages apparently return content the fetcher can't decode as UTF-8 (likely compressed/binary or a non-text content-type from a JS-rendered share page).\n\nFix options to evaluate:\n1. Detect non-UTF-8 / failed decode and fall back to a headless/rendered fetch tier (mirrors the linkedin public-extract -> authenticated tier-2 fallback pattern already in the file) instead of hard-failing.\n2. Special-case share.google (and similar AI-mode/conversation-share hosts) in classify_platform() and either skip auto-fetch (mark task as needs-manual-content rather than FAILED) or route through agy/claude for a rendered fetch.\n3. At minimum: on UTF-8 decode failure, leave the task pending with a clearer message (\"content not fetchable — needs manual paste\") instead of a raw io error, so drain-links output is actionable without digging into the CLI error.\n\nConfirmed the pipeline itself is otherwise healthy: 355/356 historical link tasks verified as actually present in the knowledge namespace (not just marked complete) during t-1689 investigation (2026-08-30).",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3,
