@@ -88,7 +88,7 @@ distinguish from the framework's own CLOSE and stays procedural.
 |---|---|
 | `brana backlog ac <id> approve` / MCP `backlog_ac_approve` | Approval is the human trust boundary between selector-match and autonomous execution. A gate armed by the party it constrains is no gate (ADR-079 §1; ADR-076 D4). The loop may run `ac-propose`; only a human approves. |
 | `brana backlog wave approve <wave-id>` / MCP `backlog_wave_approve` (with `confirm_ids`) | Same trust boundary as `ac approve`, batched (ADR-080 §4, t-2842) — a coarser valve is still the human's valve, not the runner's. The runner may surface that a wave has `ac_state:proposed` tasks (visible in a preview call); it must never supply `confirm_ids` itself. |
-| `brana backlog wave set <id> status shipped` | No auto-ship (wave-gate-enforcement §1.4). Empty pull ≠ done. |
+| `brana backlog wave set <id> status shipped` / `brana backlog wave ship <id>` (t-3022 alias) | No auto-ship (wave-gate-enforcement §1.4). Empty pull ≠ done. The alias is the same valve — denied identically. |
 | `git merge` into `dev`/`main`, any push to production | ADR-060: executors return branches; a human integrates and ships. |
 | `brana backlog set <id> status completed` (outside build CLOSE) | Completion is graded (acceptance criteria, gates), not asserted. |
 

@@ -1281,6 +1281,15 @@ pub enum WaveCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Ship a wave (t-3022): named alias for `wave set <id> status shipped` —
+    /// identical validation; the human ship valve as a greppable verb.
+    /// Denied to the drain-loop runner like the underlying set.
+    Ship {
+        wave_id: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Drain a wave (t-2775): gate check + selector resolution (tag:<name>
     /// or parent:<id>, ADR-080). Reports matched pending tasks and sets
     /// status to "draining" — does NOT execute anything or touch matched

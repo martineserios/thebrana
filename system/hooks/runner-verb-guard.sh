@@ -21,6 +21,7 @@
 #     (MCP preview — no confirm_ids — stays allowed)
 #   - brana backlog wave set <id> status shipped / gate / selector
 #                                              / MCP backlog_wave_set (same fields)
+#   - brana backlog wave ship <id>             (t-3022 alias of set status shipped)
 #   - git merge ... / git push ...             (ADR-060: executors return
 #     branches; a human integrates and ships)
 #
@@ -114,6 +115,11 @@ if grep -qE 'backlog[[:space:]]+wave[[:space:]]+set[[:space:]]+[^[:space:]]+[[:s
 fi
 if grep -qE 'backlog[[:space:]]+wave[[:space:]]+set[[:space:]]+[^[:space:]]+[[:space:]]+status[[:space:]]+["'"'"']?shipped' <<<"$COMMAND"; then
     deny "no auto-ship: one human ship decision per wave (ADR-080 §3.6). Empty pull ≠ done."
+fi
+# t-3022: `wave ship <id>` is a named alias for `wave set <id> status shipped`
+# — same valve, same denial, or the alias silently bypasses this guard.
+if grep -qE 'backlog[[:space:]]+wave[[:space:]]+ship([[:space:]]|$)' <<<"$COMMAND"; then
+    deny "no auto-ship: one human ship decision per wave (ADR-080 §3.6; wave ship = wave set status shipped, t-3022)."
 fi
 # git merge / git push — executors return branches; a human integrates and
 # ships (ADR-060). Word-anchored on `git` so prose/paths don't false-match.

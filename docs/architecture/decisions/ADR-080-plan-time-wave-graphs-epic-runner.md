@@ -131,7 +131,9 @@ A second committed loop entry, **`epic-drain`** (loops library). Beat procedure:
    "wave matched zero tasks — needs a look," never to the ship digest (challenge
    finding 5). The runner **never ships** — one human ship decision per wave is what
    makes epic-looping safe (unchanged from ADR-079 / §1.4).
-6. **Advance:** a human `wave set <id> status shipped` unlocks the next wave; the next
+6. **Advance:** a human `wave set <id> status shipped` (or its named alias
+   `wave ship <id>`, t-3022 — identical validation, denied to the runner identically)
+   unlocks the next wave; the next
    beat finds it via step 2. All waves shipped → epic drained → STOP (real signal).
 7. **Escalation routing (two rooms):** anything the runner is unsure about — scope
    questions, conflicting AC, design doubts, **and any item it cannot confidently
