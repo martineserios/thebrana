@@ -202,6 +202,11 @@ Skip if `.claude/settings.local.json` already has both `attribution.commit` and 
 **S3:** Verify PreToolUse hook is installed (run `deploy.sh` if needed).
 **S4-S5:** Verify skill availability, document convention.
 
+### Code DDD items
+
+**D1 — Glossary:** If domain-nature docs exist (specs that freeze business vocabulary — entity definitions, pricing formulas, process rules), create `docs/domain/glossary.md` as a **thin index**: term, one-line definition, pointer to the canonical spec section. Never move or duplicate source docs. Glossary header states the update convention: *changed in the same commit as the spec that changes a term*. No domain vocabulary (infra/tooling repos) → mark D1-D4 **n/a**, not missing.
+**D2-D4:** Bounded contexts, ubiquitous language notes, domain model (`docs/domain/MODEL-NNN-*.md`) — only when domain complexity warrants; the glossary alone satisfies baseline DDD.
+
 ### Code TDD items
 
 **T1:** Detect/initialize test framework from stack.

@@ -279,6 +279,7 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 ### For code projects (additionally)
 - Detect tech stack from manifests
 - Check SDD setup: `docs/architecture/decisions/` exists (or legacy `docs/decisions/`) → "SDD enforcement: active"
+- Check DDD setup: `docs/domain/` exists → "DDD: active". Absent → inventory `docs/` for domain-nature specs (docs that define/freeze business vocabulary: entity definitions, pricing formulas, process rules) and list them as glossary candidates for the gap report
 - Check TDD setup: test framework configured, `tdd-guard` available
 - Scan project structure: entry points, key directories, config files
 
@@ -332,6 +333,7 @@ Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` and `~/.claude/memory/por
 **For code projects** — assess against alignment checklist:
 - Foundation (git, CLAUDE.md, rules, commits, attribution)
 - SDD (architecture/decisions/, ADR, PreToolUse hook)
+- DDD (docs/domain/; if absent but domain-nature candidates were found in Step 2, offer bootstrapping a thin `docs/domain/glossary.md` — term, one-line definition, pointer to the canonical spec section; never move or duplicate the source docs. No candidates → omit the row, don't report a gap)
 - TDD (test framework, runner, coverage)
 
 For attribution: check `cat .claude/settings.local.json 2>/dev/null | uv run python3 -c "import json,sys; s=json.load(sys.stdin); print('ok' if s.get('attribution',{}).get('commit','x')=='' and s.get('attribution',{}).get('pr','x')=='' else 'missing')"`. Flag as **missing** if absent or not empty strings.
