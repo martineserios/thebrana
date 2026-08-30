@@ -1,4 +1,5 @@
 pub mod backlog;
+pub mod wave_check;
 pub mod close_queue;
 pub mod decisions;
 pub mod doctor;

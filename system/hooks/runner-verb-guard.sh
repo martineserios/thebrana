@@ -91,6 +91,9 @@ case "$TOOL_NAME" in
             gate|selector)
                 deny "the runner must never rewrite its own dependency graph (wave $FIELD) — ADR-080 §3."
                 ;;
+            contract)
+                deny "wave contract carries CHECK: lines the ship gauge evaluates — a gate must not be armed by the party it constrains (ADR-086 §6, t-3162)."
+                ;;
             status)
                 [ "$VALUE" = "shipped" ] && deny "no auto-ship: one human ship decision per wave (ADR-080 §3.6). Empty pull ≠ done."
                 ;;
@@ -112,6 +115,10 @@ if grep -qE 'backlog[[:space:]]+wave[[:space:]]+approve' <<<"$COMMAND"; then
 fi
 if grep -qE 'backlog[[:space:]]+wave[[:space:]]+set[[:space:]]+[^[:space:]]+[[:space:]]+(gate|selector)([[:space:]]|$)' <<<"$COMMAND"; then
     deny "the runner must never rewrite its own dependency graph (wave gate/selector) — ADR-080 §3."
+fi
+# t-3162 (ADR-086 §6): contract carries CHECK: lines the ship gauge evaluates.
+if grep -qE 'backlog[[:space:]]+wave[[:space:]]+set[[:space:]]+[^[:space:]]+[[:space:]]+contract([[:space:]]|$)' <<<"$COMMAND"; then
+    deny "wave contract carries CHECK: lines the ship gauge evaluates — a gate must not be armed by the party it constrains (ADR-086 §6, t-3162)."
 fi
 if grep -qE 'backlog[[:space:]]+wave[[:space:]]+set[[:space:]]+[^[:space:]]+[[:space:]]+status[[:space:]]+["'"'"']?shipped' <<<"$COMMAND"; then
     deny "no auto-ship: one human ship decision per wave (ADR-080 §3.6). Empty pull ≠ done."
