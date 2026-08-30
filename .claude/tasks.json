@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-08-23T12:07:13.264854663-03:00",
+  "last_modified": "2026-08-29T21:41:52.844900503-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -78342,7 +78342,7 @@
       "work_type": "design"
     },
     {
-      "ac_state": "none",
+      "ac_state": "proposed",
       "acceptance_criteria": null,
       "blocked_by": [
         "t-2834"
@@ -78369,10 +78369,17 @@
         "v3",
         "adr-085",
         "adr-084",
-        "mattpocock-mining"
+        "mattpocock-mining",
+        "wave:co-keystone"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "proposed_acceptance_criteria": [
+        "tdd vendored pinned per ADR-084 pin+sync policy, adapter ≤ ~15 lines mapping brana inputs (task packet, worktree) to its expectations",
+        "build-loop.md's TDD step invokes the adapter; /brana:fix can invoke the same adapter (≥2 callers proven)",
+        "one real build run through the wrapped tdd with the run recorded in task notes",
+        "station-admission checklist answered for this binding in the adapter's header comment"
+      ]
     },
     {
       "ac_state": "none",
@@ -79554,7 +79561,7 @@
       "build_step": null
     },
     {
-      "ac_state": "none",
+      "ac_state": "proposed",
       "acceptance_criteria": null,
       "blocked_by": [
         "t-2834"
@@ -79580,14 +79587,27 @@
         "t-2490-followup",
         "gate",
         "loop-safety",
-        "brana-hands"
+        "brana-hands",
+        "wave:co-keystone"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "proposed_acceptance_criteria": [
+        "brana hands raise|peek|pull|ack exist in brana-cli with room field persisted",
+        "peek --room studio|cockpit filters; unsure-classified items land in studio",
+        "pending entry blocks dispatch at all three runner sites + backlog_focus (ADR-063 §5)",
+        "ADR-063 amended with room field; guide L4.1 refs updated",
+        "a beat can raise a hand mid-task (valve mode) and exit with needs_judgment; task excluded from dispatch until ack",
+        "ask() contract documented as prose at the runner layer (single owner doc), referenced not restated by skills"
+      ]
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "brana wave ship <id> flips status to shipped with identical validation to wave set status shipped",
+        "alias listed in runner denied verbs (drain-loop.md, epic-drain.md)",
+        "ADR-080 §6 and guide L4.4 refs mention the verb"
+      ],
       "blocked_by": [],
       "branch": null,
       "completed": null,
@@ -79609,7 +79629,8 @@
       "tags": [
         "t-2490-followup",
         "gate",
-        "cli"
+        "cli",
+        "wave:co-cli"
       ],
       "type": "task",
       "work_type": "implement"
@@ -83462,7 +83483,7 @@
       "work_type": "research"
     },
     {
-      "ac_state": "none",
+      "ac_state": "proposed",
       "blocked_by": [
         "t-2834"
       ],
@@ -83491,13 +83512,20 @@
         "backlog",
         "waves",
         "rust",
-        "adr-086"
+        "adr-086",
+        "wave:co-keystone"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "proposed_acceptance_criteria": [
+        "failing tests first in brana-core (roles derived for each status/ac_state/tag combo; role: selector parses; set role rejected)",
+        "wave_pull_decision calls the shared derivation — no second inline predicate",
+        "--role query + get output; docs: backlog-v3-schema.md role view section, ADR-086 T1 row flipped",
+        "validate.sh + cargo test green"
+      ]
     },
     {
-      "ac_state": "none",
+      "ac_state": "proposed",
       "blocked_by": [
         "t-3160"
       ],
@@ -83526,13 +83554,19 @@
         "backlog",
         "waves",
         "rust",
-        "adr-086"
+        "adr-086",
+        "wave:co-keystone"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "proposed_acceptance_criteria": [
+        "failing test first: standing-wave pull order is priority then created, bespoke precedence honoured",
+        "wave-standing exists and drains via the normal pump",
+        "drain-loop.md carries sizing rule + standing wave; ADR-086 T3 row flipped"
+      ]
     },
     {
-      "ac_state": "none",
+      "ac_state": "approved",
       "blocked_by": [
         "t-3022"
       ],
@@ -83562,13 +83596,20 @@
         "waves",
         "rust",
         "adr-086",
-        "gauge"
+        "gauge",
+        "wave:co-cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "acceptance_criteria": [
+        "failing tests first: allowlist parser rejects non-vocabulary lines; wave ship never mutates status",
+        "runner-verb-guard denies wave set contract (hook test)",
+        "CHECK-EXEMPT: t-NNN carve-outs supported (probe amendment A1); unparsed contract prose renders as unevaluated — needs you (A2)",
+        "D5 amended; ADR-086 T4 row flipped; guide L3.7 rung 1 marked shipped"
+      ]
     },
     {
-      "ac_state": "none",
+      "ac_state": "approved",
       "blocked_by": [],
       "branch": null,
       "build_step": null,
@@ -83594,10 +83635,16 @@
         "t-2490-followup",
         "mattpocock-mining",
         "adr-086",
-        "docs"
+        "docs",
+        "wave:co-parallel"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "acceptance_criteria": [
+        "docs/agents/issue-tracker.md exists for thebrana with every operation mapped to a real CLI verb (verified by running each)",
+        "/brana:align emits the file for a target repo; /brana:reconcile emits CONTEXT.md from docs/domain",
+        "regenerate = no diff when domain docs unchanged (drift shows in reconcile's gauge)"
+      ]
     },
     {
       "ac_state": "none",
@@ -83626,13 +83673,14 @@
         "t-2490-followup",
         "backlog",
         "schema",
-        "audit"
+        "audit",
+        "wave:co-parallel"
       ],
       "type": "task",
       "work_type": "research"
     },
     {
-      "ac_state": "none",
+      "ac_state": "approved",
       "blocked_by": [],
       "branch": null,
       "build_step": null,
@@ -83658,10 +83706,15 @@
         "t-2490-followup",
         "backlog",
         "docs",
-        "adr-086"
+        "adr-086",
+        "wave:co-cli"
       ],
       "type": "task",
-      "work_type": "chore"
+      "work_type": "chore",
+      "acceptance_criteria": [
+        "three docs updated with the exact rules, cross-citing ADR-086 (drain-loop.md, tactical-context.md, task-convention.md)",
+        "failing test first for the CLI warning; warning shown on --type phase|milestone, creation still allowed"
+      ]
     },
     {
       "ac_state": "none",
@@ -84600,7 +84653,8 @@
         "the-brana-closeout",
         "t-2490-followup",
         "probe",
-        "decompose"
+        "decompose",
+        "wave:co-parallel"
       ],
       "description": "Probe t-3156 measured that both validated plan-time misses across 6 decompositions were one class: a child changes an identity/key/field/contract and no child owns the exhaustive consumer/sibling sweep (t-2284's retired-field read-path stragglers cost 5-6 follow-up fix tasks after escaping every gate). Add a checklist line to system/skills/build/phases/decompose.md: if any child changes an identity, key, field, or contract, a consumer-sweep child (read paths + serializers + scripts/hooks, not just write paths) is mandatory — cite pattern_second-variant-audit-every-raw-consumer / pattern_sibling-field-validation-gap. Zero recurring cost; ships independent of t-2896.",
       "effort": "S",
@@ -84616,9 +84670,13 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "system/skills/build/phases/decompose.md carries a checklist line: any child changing an identity/key/field/contract requires a mandatory consumer-sweep child (read paths + serializers + scripts/hooks)",
+        "The line cites pattern_second-variant-audit-every-raw-consumer and pattern_sibling-field-validation-gap",
+        "No behavior change elsewhere; docs-only diff"
+      ],
       "work_type": "chore",
-      "ac_state": "none"
+      "ac_state": "approved"
     },
     {
       "id": "t-3198",
@@ -85539,6 +85597,93 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-3230",
+      "subject": "work-start: DDD gate line conditional — silent unless docs/domain/ exists",
+      "status": "completed",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "rules",
+        "dx"
+      ],
+      "description": "The lifecycle gate in work-start.md step 3 prints \"DDD: skip — no docs/domain/\" in nearly every session, since almost no project opts into docs/domain/. A line that says skip 95% of the time is noise that trains the user to ignore the whole lifecycle block. Change: only state the DDD line when docs/domain/ exists in the project; SDD/TDD lines unchanged.",
+      "effort": "XS",
+      "priority": null,
+      "parent": null,
+      "created": "2026-08-29",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": "Merged to dev (f4f3aa19). work-start.md step 3: DDD line now conditional — apply/skip only when docs/domain/ exists, bootstrap-glossary nudge when a task carries real domain vocabulary without docs/domain/, silent otherwise. Deploys to ~/.claude/rules/ at next ship (main merge + bootstrap.sh). Populate candidates identified: dgrx docs/domain/glossary.md from cotizador-full.md (do in dgrx session).",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-3231",
+      "subject": "DDD bootstrap path: onboard detects domain-nature docs, align implements glossary",
+      "status": "completed",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "skills",
+        "ddd",
+        "onboard",
+        "align"
+      ],
+      "description": "DDD is declared (align checklist D1-D4, m-plus-discipline-enforcement rule, work-start gate) but bootstrapped nowhere: onboard scan checks SDD/TDD setup but not DDD, and align has Code SDD/TDD item procedures but no Code DDD items section. Result: ~every project has zero domain docs and the DDD gate never fires. Fix: (1) onboard Step 2 code scan gets a DDD check — docs/domain/ exists → active; absent → inventory docs/ for domain-nature specs (docs defining business vocabulary) as candidates; (2) onboard Step 4 gap report gets a DDD row offering glossary bootstrap; (3) align gets Code DDD items: D1 = thin docs/domain/glossary.md indexing terms with pointers to canonical specs (no doc relocation, no duplication), updated in the same commit as the spec that changes a term; D2-D4 only when warranted.",
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-08-29",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "User direction 2026-08-29: populate docs/domain/ during onboard, keep up to date via same-commit convention; existing docs often already have domain nature (e.g. dgrx cotizador-full.md) — the gap is classification/indexing, not creation. Glossary = thin index pointing at canonical docs, never move/duplicate them.",
+      "notes": "Merged to dev (46c11f91). onboard scan: DDD check in Step 2 (docs/domain/ active, else inventory docs/ for domain-nature specs) + DDD gap row in Step 4 (glossary bootstrap offer; no candidates → row omitted). align: new Code DDD items section — D1 thin glossary index (term/definition/pointer, same-commit update convention, n/a for infra repos), D2-D4 when warranted. Complements t-3230 (silent gate). First real application candidate: dgrx (cotizador-full.md → docs/domain/glossary.md).",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-3232",
+      "subject": "Domain-docs sweep: bootstrap docs/domain/glossary.md across clients + ventures",
+      "status": "completed",
+      "type": "task",
+      "kind": "docs",
+      "tags": [
+        "ddd",
+        "portfolio",
+        "docs"
+      ],
+      "description": "Apply the t-3231 DDD bootstrap path portfolio-wide: survey every repo under clients/ and ventures/ for domain-nature docs, then create thin pointer-only glossaries (term + one-liner + link to canonical spec section) in BOOTSTRAP-verdict projects. Hard constraints from user: (1) no repeated info — glossary never duplicates definitions, canonical doc stays authoritative; (2) no deletion of original docs in this pass (so no re-referencing risk); any future consolidation that deletes an original requires an inbound-reference sweep first. Each glossary commits in its own repo on a branch per that repo's convention.",
+      "effort": "M",
+      "priority": null,
+      "parent": null,
+      "created": "2026-08-29",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-08-29: survey ran via 4 parallel Explore agents. Verdicts: BOOTSTRAP / N/A / EMPTY per repo. Only BOOTSTRAP repos get glossaries, one repo at a time with user confirmation. Duplicated-definition terms flagged in survey are the priority entries (they are the stale-doc risk the glossary resolves by naming ONE canonical source).\n2026-08-29 survey complete (4 Explore agents, 30 repos). Template: ventures/proyecto_anita/docs/domain/glossary.md (| Term | Definition | NOT (common confusion) | + ADR citation per row). Already done: proyecto_anita (reference), mya (docs/glossary.md exists — only relocate to docs/domain/). BOOTSTRAP (16): cosmos-trading (CRITICAL: margen formula conflict cotizador-full.md:47 vs cotizador-manuel.md:21; piso de margen 8% vs \"sin piso\" — resolve before cotizador build), las-lupes (solucion-tecnica v1/v2/v3 side by side, v2 taxonomy obsolete), batrade (ASSUMED_PAID 15-vs-20-day drift), bemol (salary formula contradiction shipping in app), crea (UTA two expansions), somos_mirada (5 lifecycle-stage copies, PROJECT.md contradicts CRM), valentina (commission brackets only in code), unlock (llamada efectiva 2 definitions), psilea (pricing in 12 files), tinyhomes (take rate in 11 files), maker-hub (cleanest, pricing rule ×2), truper, lexia (services list diverged), ai-native-education (ES/EN split), dnp (shaping/fichas pairs ×8), curso-papa (2 \"current\" hypothesis versions), trade_prof_man (ON HOLD), dgrx (thin — relocate technical-solution.md §10 Glosario), palco (weak — vocabulary in PDFs). NEEDS RECONCILIATION FIRST: nexeye (5 vs 6 bounded contexts, two conflicting maps). N/A/EMPTY: acrelec, mandawa, sunflower, epicentro, brapsoclaw, linkedin, mcp-mercadolibre, mobile-sandbox, thebrana-web. CORRECTION: cotizador-full.md + ADR-003 live in cosmos-trading, NOT dgrx (earlier t-3230/3231 notes said dgrx).",
+      "notes": "Survey complete (4 Explore agents, 30 repos); per user direction, work distributed as one task per project backlog instead of executing here. Filed: batrade t-38, bemol t-192, crea t-19, curso-papa t-1, somos_mirada t-202, unlock t-41, trade_prof_man t-44 (P3, on hold), truper t-45, nexeye/eyedetect t-214 (reconcile maps first), proyecto_anita group t-1 (cosmos-trading P1 URGENT margen/piso conflict), t-2 (las-lupes), t-3 (dnp), t-4 (dgrx XS), t-5 (palco), t-6 (mya XS relocate); valentina t-1, maker-hub t-2, psilea t-64 (M), tinyhomes t-58, lexia t-95, ai-native-education t-42. N/A/EMPTY (no task): acrelec, mandawa, sunflower, epicentro, brapsoclaw, linkedin, mcp-mercadolibre, mobile-sandbox, thebrana-web. Template for all: ventures/proyecto_anita/docs/domain/glossary.md.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3,
@@ -85691,6 +85836,36 @@
       "selector": "parent:t-2942",
       "status": "draining",
       "wip_limit": 1
+    },
+    {
+      "id": "wave-17",
+      "name": "closeout-parallel",
+      "selector": "tag:wave:co-parallel",
+      "contract": "t-3197 + t-3164 + t-3163 drained: gates green, merged to dev, tasks completed. All three have disjoint file surfaces (decompose.md · research audit doc · skill generators/md) — designed for true concurrent pulls, no Rust code touched. Independent of the other two closeout waves; ships on its own.",
+      "gate": null,
+      "status": "draining",
+      "created": "2026-08-29",
+      "wip_limit": 3
+    },
+    {
+      "id": "wave-18",
+      "name": "closeout-cli",
+      "selector": "tag:wave:co-cli",
+      "contract": "t-3022 → t-3165 → t-3162 drained serially (wip_limit 1 — all three touch brana-cli/cli.rs; serializing avoids cli.rs merge conflicts): wave ship alias lands first (unblocks t-3162 via blocked_by frontier), then the phase/milestone creation warning + docs, then T4 CHECK: lines (allowlisted vocabulary, evaluated-and-shown, contract denied to runner, D5 amended). Ship when all three completed + merged to dev + cargo test -p brana-cli green. Cross-wave caution: co-keystone's t-3160/t-3161 also touch brana-core — human merges serially at the dev valve.",
+      "gate": null,
+      "status": "draining",
+      "created": "2026-08-29",
+      "wip_limit": 1
+    },
+    {
+      "id": "wave-19",
+      "name": "closeout-keystone",
+      "selector": "tag:wave:co-keystone",
+      "contract": "The t-2834-gated chain: t-3160 (T1 derived roles) → t-3161 (T3 standing wave) serialize via blocked_by; t-3021 (ADR-063 hands store + room) and t-2981 (vendor Pocock tdd) may run alongside t-3160 (disjoint surfaces: hooks/store vs brana-core vs skills — wip_limit 2). Frontier self-arms when t-2834 completes (blocked_by respected per t-3043/ADR-079 amendment) — no manual re-queue needed. PRECONDITION per guide L2.2b: before pulling t-3160, check t-2834's admission-bar findings for amendments to the §3 role derivations. Ship when all four completed + merged to dev + cargo test green + ADR-086 T1/T3 rows flipped.",
+      "gate": null,
+      "status": "queued",
+      "created": "2026-08-29",
+      "wip_limit": 2
     }
   ]
 }
