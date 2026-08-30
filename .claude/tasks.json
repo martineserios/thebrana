@@ -79609,7 +79609,7 @@
         "ADR-080 §6 and guide L4.4 refs mention the verb"
       ],
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/feat/t-3022-wave-ship-alias",
       "completed": null,
       "context": "Decided 2026-08-23 in the-brana-guide.md L4.4 (worktree thebrana-t-2490). Pocock lens: valve verbs should be nouns you can grep. ADR-080 §6 semantics unchanged (one wave, one ship, never batched, never the runner). Denied-verbs lists in drain-loop.md/epic-drain.md must include the new alias.\nAC: `brana wave ship <id>` flips status to shipped with identical validation to `wave set status shipped`\nAC: alias listed in runner denied verbs (drain-loop.md, epic-drain.md)\nAC: ADR-080 §6 and guide L4.4 refs mention the verb\n2026-08-24: ADR-086 §6 (Accepted) depends on this alias — `wave ship` will also evaluate-and-show allowlisted CHECK: lines (task G / ADR-086 T4, blocked_by this + the Epic-gauge probe t-3159).",
       "created": "2026-08-23",
@@ -79623,8 +79623,8 @@
       "order": 0,
       "parent": "t-2490",
       "priority": "P3",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-29",
+      "status": "in_progress",
       "subject": "Add `brana wave ship <id>` as a named alias for `wave set status shipped` (valve legibility)",
       "tags": [
         "t-2490-followup",
@@ -79633,7 +79633,8 @@
         "wave:co-cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "feature"
     },
     {
       "ac_state": "none",
