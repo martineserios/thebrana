@@ -1049,18 +1049,29 @@ fn exec_ship_check(
             };
             let by_id = brana_core::tasks::task_index(all_tasks);
             let mut open: Vec<String> = Vec::new();
+            let mut gone: Vec<String> = Vec::new();
             for t in all_tasks.iter().filter(|t| sel.matches(t, &by_id)) {
                 let Some(tb) = t["branch"].as_str().filter(|b| !b.is_empty()) else { continue };
+                // `--` before ref args: a branch value starting with `-` must
+                // never be parsed by git as a flag (challenger t-3162 f1 —
+                // defense-in-depth; the value comes from a runner-writable field).
                 let exists = std::process::Command::new("git")
-                    .args(["-C", &root.to_string_lossy(), "rev-parse", "--verify", "--quiet", tb])
+                    .args(["-C", &root.to_string_lossy(), "rev-parse", "--verify", "--quiet", "--end-of-options", tb])
                     .output();
                 match exists {
                     Err(e) => return CheckOutcome::Unevaluated(format!("git unavailable: {e}")),
-                    Ok(o) if !o.status.success() => continue, // deleted → merged-and-cleaned
+                    Ok(o) if !o.status.success() => {
+                        // Absent locally: merged-and-cleaned and typo'd/never-created
+                        // are indistinguishable here — report as unverifiable, never
+                        // as a silent PASS (challenger t-3162 f2: false confidence at
+                        // the exact moment the gauge exists to inform).
+                        gone.push(tb.to_string());
+                        continue;
+                    }
                     Ok(_) => {}
                 }
                 let anc = std::process::Command::new("git")
-                    .args(["-C", &root.to_string_lossy(), "merge-base", "--is-ancestor", tb, branch])
+                    .args(["-C", &root.to_string_lossy(), "merge-base", "--is-ancestor", "--end-of-options", tb, branch])
                     .status();
                 match anc {
                     Ok(s) if s.success() => {}
@@ -1068,10 +1079,14 @@ fn exec_ship_check(
                     Err(e) => return CheckOutcome::Unevaluated(format!("git unavailable: {e}")),
                 }
             }
-            if open.is_empty() {
-                CheckOutcome::Pass
-            } else {
-                CheckOutcome::Fail(format!("not ancestors of {branch}: {}", open.join(", ")))
+            match (open.is_empty(), gone.is_empty()) {
+                (true, true) => CheckOutcome::Pass,
+                (true, false) => CheckOutcome::Unevaluated(format!(
+                    "existing branches all ancestors of {branch}; {} unverifiable (deleted or never existed): {}",
+                    gone.len(),
+                    gone.join(", ")
+                )),
+                (false, _) => CheckOutcome::Fail(format!("not ancestors of {branch}: {}", open.join(", "))),
             }
         }
         CheckKind::ValidateCheck { n } => {
@@ -3268,6 +3283,39 @@ mod tests {
         assert_eq!(read_waves(&f)[0]["status"], "shipped", "red check must not gate the flip");
         // and the evaluation touched nothing else
         assert_eq!(read_tasks_arr(&f)[0]["status"], "pending", "evaluation path must be pure");
+    }
+
+    #[test]
+    fn exec_ship_check_missing_branch_is_unverifiable_not_pass() {
+        // challenger t-3162 f2: a branch field naming a ref that doesn't exist
+        // locally (typo, never created, or merged-and-deleted) must NOT read
+        // as a silent PASS — the gauge reports it unverifiable instead.
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let run = |args: &[&str]| {
+            std::process::Command::new("git").args(args).current_dir(root).output().unwrap()
+        };
+        run(&["init", "-q", "-b", "dev"]);
+        run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "root"]);
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[{"id":"t-1","subject":"a","status":"completed","tags":["mm"],"blocked_by":[],"branch":"no/such-branch"}]"#,
+        )
+        .unwrap();
+        let wave: serde_json::Value =
+            serde_json::from_str(r#"{"id":"wave-1","selector":"tag:mm"}"#).unwrap();
+        let out = exec_ship_check(
+            &wave_check::CheckKind::MergedTo { branch: "dev".into() },
+            &[],
+            &tasks,
+            &wave,
+            Some(root),
+        );
+        match out {
+            wave_check::CheckOutcome::Unevaluated(why) => {
+                assert!(why.contains("no/such-branch"), "must name the unverifiable branch: {why}")
+            }
+            other => panic!("expected Unevaluated, got {other:?}"),
+        }
     }
 
     #[test]
