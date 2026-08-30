@@ -156,7 +156,27 @@ pub enum PullDecision {
     /// (t-3160/T1: the role vocabulary is shared, not the unattended safety
     /// gate — a `ready-for-human` task is never pull-eligible for an agent).
     /// `blocked` = matched tasks with an unmet `blocked_by` (ADR-079 §2 amendment).
-    NoneEligible { matched: usize, unapproved: usize, parked: usize, human: usize, blocked: usize },
+    /// `deferred` = matched tasks left to a draining bespoke wave (ADR-086 §5
+    /// precedence, t-3161/T3) — always 0 for a bespoke wave's own pull.
+    NoneEligible { matched: usize, unapproved: usize, parked: usize, human: usize, blocked: usize, deferred: usize },
+}
+
+/// t-3161/T3 (ADR-086 §5 F4): the standing wave's ordering key — priority
+/// rank (P0 first; absent/unknown priority after P3) then `created`
+/// ascending (absent `created` after any dated task). Bespoke waves never
+/// use this — they keep tasks.json array order (hand-picked by the operator).
+fn standing_order_key(t: &Value) -> (u8, bool, String) {
+    let rank = match t["priority"].as_str() {
+        Some("P0") => 0,
+        Some("P1") => 1,
+        Some("P2") => 2,
+        Some("P3") => 3,
+        _ => 4,
+    };
+    match t["created"].as_str() {
+        Some(c) => (rank, false, c.to_string()),
+        None => (rank, true, String::new()),
+    }
 }
 
 /// t-2813: pure pull decision over in-memory state — the loop runner's whole
@@ -167,9 +187,15 @@ pub enum PullDecision {
 ///   matches), then `ac_state:approved` and not tagged `parked` (ADR-078);
 /// - live = in_progress selector-matches; `wip_limit` null/absent = unbounded,
 ///   0 = pause; at limit → `AtLimit` before any candidate is considered;
-/// - first eligible in array order wins (deterministic, no priority logic —
-///   that's the operator's job via ordering/waves, not the pump's).
-pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision, String> {
+/// - bespoke waves (tag:/parent: selector): first eligible in array order wins
+///   (deterministic, no priority logic — that's the operator's job via
+///   ordering/waves, not the pump's);
+/// - standing waves (role: selector — t-3161/T3, ADR-086 §5): candidates
+///   matched by any OTHER draining bespoke wave are deferred to that wave
+///   (bespoke precedence), the rest sort by priority (P0 first) then
+///   `created` ascending before the first eligible is taken. `waves` is the
+///   full waves array, needed for the precedence check; bespoke pulls ignore it.
+pub fn wave_pull_decision(wave: &Value, tasks: &[Value], waves: &[Value]) -> Result<PullDecision, String> {
     let wid = wave["id"].as_str().unwrap_or("?");
     let status = wave["status"].as_str().unwrap_or("unknown");
     if status != "draining" {
@@ -180,14 +206,47 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
 
     let matched = resolve_wave_selector(wave, tasks)?;
 
-    // Live count: in_progress selector-matches, via the SAME parse point and
-    // matcher as membership (ADR-080 §1 — a hand-stripped "tag:" here counted
-    // live=0 forever on parent: waves, silently defeating wip_limit).
     let sel = parse_wave_selector(wave["selector"].as_str().unwrap_or(""))?;
     let by_id = task_index(tasks);
+
+    // Standing wave = role selector (ADR-086 §5). Bespoke draining selectors
+    // take precedence over it — collect them via the single parse point. An
+    // unparsable selector on another wave is skipped here, not fatal: that
+    // wave fails loud on its own drain/pull, and deferring to a wave that can
+    // never pull would strand its tasks forever.
+    let standing = matches!(sel, WaveSelector::Role(_));
+    let bespoke: Vec<WaveSelector> = if standing {
+        waves
+            .iter()
+            .filter(|w| w["id"].as_str() != Some(wid) && w["status"].as_str() == Some("draining"))
+            .filter_map(|w| parse_wave_selector(w["selector"].as_str().unwrap_or("")).ok())
+            .filter(|s| !matches!(s, WaveSelector::Role(_)))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let bespoke_matched = |t: &Value| bespoke.iter().any(|s| s.matches(t, &by_id));
+
+    // Live count: in_progress selector-matches, via the SAME parse point and
+    // matcher as membership (ADR-080 §1 — a hand-stripped "tag:" here counted
+    // live=0 forever on parent: waves, silently defeating wip_limit). Role
+    // selectors are status-derived (an in_progress task derives `claimed`,
+    // never `ready-for-agent`), so a naive selector match would count live=0
+    // forever and wip_limit could never bind on the standing wave — instead,
+    // count in_progress tasks that WOULD match were they pending, minus
+    // bespoke-owned ones (the same precedence rule, applied to the live side).
     let live = tasks
         .iter()
-        .filter(|t| t["status"].as_str() == Some("in_progress") && sel.matches(t, &by_id))
+        .filter(|t| t["status"].as_str() == Some("in_progress"))
+        .filter(|t| {
+            if standing {
+                let mut as_pending = (*t).clone();
+                as_pending["status"] = Value::String("pending".into());
+                sel.matches(&as_pending, &by_id) && !bespoke_matched(t)
+            } else {
+                sel.matches(t, &by_id)
+            }
+        })
         .count();
 
     let limit = match wave.get("wip_limit") {
@@ -202,12 +261,35 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
         }
     }
 
+    // Candidate order: bespoke waves keep array order; the standing wave
+    // defers bespoke-owned tasks and sorts the rest by priority then created
+    // (ADR-086 §5 F4 — array order is wrong for a backlog-wide pool).
+    let mut deferred = 0;
+    let candidates: Vec<&Value> = if standing {
+        let mut c: Vec<&Value> = matched
+            .iter()
+            .copied()
+            .filter(|t| {
+                if bespoke_matched(t) {
+                    deferred += 1;
+                    false
+                } else {
+                    true
+                }
+            })
+            .collect();
+        c.sort_by_key(|t| standing_order_key(t)); // stable: array order breaks ties
+        c
+    } else {
+        matched.clone()
+    };
+
     let mut unapproved = 0;
     let mut parked = 0;
     let mut human = 0;
     let mut blocked = 0;
     let mut first: Option<String> = None;
-    for t in &matched {
+    for t in &candidates {
         // Eligibility is the shared derivation (t-3160/T1, ADR-086 §3) — no
         // second inline ac_state/parked/human check. `derive_role` already
         // encodes ¬tag:parked and ¬tag:human into `ready-for-agent`.
@@ -247,6 +329,7 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
             parked,
             human,
             blocked,
+            deferred,
         }),
     }
 }
@@ -261,14 +344,15 @@ pub fn pull_wave_task(path: &Path, wave_id: &str, claimant: &str) -> Result<Pull
     let _lock = lock_tasks(path)?;
     let mut val = load_raw(path)?;
 
-    let wave = val["waves"]
-        .as_array()
-        .and_then(|ws| ws.iter().find(|w| w["id"].as_str() == Some(wave_id)))
+    let waves_snapshot = val["waves"].as_array().cloned().unwrap_or_default();
+    let wave = waves_snapshot
+        .iter()
+        .find(|w| w["id"].as_str() == Some(wave_id))
         .cloned()
         .ok_or_else(|| format!("wave {wave_id} not found"))?;
     let tasks_snapshot = val["tasks"].as_array().cloned().unwrap_or_default();
 
-    let decision = wave_pull_decision(&wave, &tasks_snapshot)?;
+    let decision = wave_pull_decision(&wave, &tasks_snapshot, &waves_snapshot)?;
 
     if let PullDecision::Pulled { task_id } = &decision {
         let tasks = val["tasks"].as_array_mut().ok_or("tasks is not an array")?;
@@ -304,9 +388,10 @@ pub fn dry_run_wave_pull(path: &Path, wave_id: &str) -> Result<(PullDecision, bo
     let _lock = lock_tasks(path)?;
     let val = load_raw(path)?;
 
-    let wave = val["waves"]
-        .as_array()
-        .and_then(|ws| ws.iter().find(|w| w["id"].as_str() == Some(wave_id)))
+    let waves_snapshot = val["waves"].as_array().cloned().unwrap_or_default();
+    let wave = waves_snapshot
+        .iter()
+        .find(|w| w["id"].as_str() == Some(wave_id))
         .cloned()
         .ok_or_else(|| format!("wave {wave_id} not found"))?;
     let tasks_snapshot = val["tasks"].as_array().cloned().unwrap_or_default();
@@ -317,9 +402,9 @@ pub fn dry_run_wave_pull(path: &Path, wave_id: &str) -> Result<(PullDecision, bo
     let decision = if simulated {
         let mut as_if = wave.clone();
         as_if["status"] = Value::String("draining".into());
-        wave_pull_decision(&as_if, &tasks_snapshot)?
+        wave_pull_decision(&as_if, &tasks_snapshot, &waves_snapshot)?
     } else {
-        wave_pull_decision(&wave, &tasks_snapshot)?
+        wave_pull_decision(&wave, &tasks_snapshot, &waves_snapshot)?
     };
     Ok((decision, simulated))
 }
@@ -713,7 +798,7 @@ mod tests {
             json!({"id": "t-2", "subject": "s", "status": "pending",
                    "tags": [], "parent": "ms-1", "ac_state": "approved"}),
         ];
-        let d = wave_pull_decision(&w, &tasks).unwrap();
+        let d = wave_pull_decision(&w, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::AtLimit { live: 1, limit: 1 },
             "parent: wave at wip_limit must AtLimit, not pull");
     }
@@ -729,7 +814,7 @@ mod tests {
             json!({"id": "t-2", "subject": "s", "status": "pending",
                    "tags": [], "parent": "ms-1", "ac_state": "approved"}),
         ];
-        let d = wave_pull_decision(&w, &tasks).unwrap();
+        let d = wave_pull_decision(&w, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
     }
 
