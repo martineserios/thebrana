@@ -126,6 +126,32 @@ Key-value, many per task. The rule for **node vs tag**:
 
 Same dimension is never both (no double-bookkeeping). **This is a net-new schema change, not adopt-don't-build:** no existing doc proposes key:value, and — a correction from the 2026-07-20 challenge — tags are **not** uniformly flat string arrays today: 2,071 tasks store an array, **84 store a comma-joined plain string, 1 stores null** (the CLI's read paths use `.as_array()` and silently skip the string-typed ones already). **Precondition before D8 lands:** a one-pass normalization of the 85 non-array `tags` values plus a `validate.sh` type-homogeneity check, so the key:value parser is never run over a string-typed field. The migration can then be gentle — a `key:value` string convention with query support for `--tag key` / `--tag key:value`, bare tags still valid — but it *is* a decision (see D8), not a free convention.
 
+### Role view — derived triage roles (ADR-086 §3, t-3160)
+
+Not a field. A **pure, computed view** over `status`/`ac_state`/`tags`, added 2026-08-30 — ADR-078's lesson holds: two stored signals for one state drift, so the vocabulary is derived-only and adds no field. `backlog_set(field: "role")` is rejected the same way `epic` is (`brana-core/src/tasks/mod.rs`'s `set_field`, allowlist-by-construction).
+
+| Role | Derived from |
+|---|---|
+| `needs-triage` | `status:pending ∧ ac_state:none-or-absent` — the dominant case, not an edge: a 2026-08-29 field-usage audit found 58.1% of pending tasks (533/917) carry no `ac_state` key at all |
+| `needs-info` | `status:pending ∧ ac_state:proposed` |
+| `ready-for-agent` | `status:pending ∧ ac_state:approved ∧ ¬tag:parked ∧ ¬tag:human` — the pull-eligibility bit `wave_pull_decision` reads |
+| `ready-for-human` | `status:pending ∧ ac_state:approved ∧ tag:human` |
+| `wontfix` | `status:cancelled` |
+| `claimed` | `status:in_progress` |
+| `resolved` | `status:completed` |
+
+A task can derive **no role at all** — the one real gap in the table above: `ac_state:approved ∧ tag:parked ∧ ¬tag:human` matches none of the five named roles (not unapproved, not ready-for-human, not ready-for-agent). `derive_role()` returns this honestly (`Option<Role>::None`) rather than forcing the nearest fit.
+
+**Surfaces:**
+- `role:<name>` — a wave `selector` form alongside `tag:<name>` and `parent:<id>` (single parse point: `parse_wave_selector`, `brana-core/src/tasks/wave.rs`). `wave_pull_decision`'s eligibility check calls `derive_role(t) == Some(Role::ReadyForAgent)` directly — no second inline `ac_state`/`parked` predicate.
+- `brana backlog query --role <name>` — a `TaskFilter.role` field, checked the same way `ac_state` is.
+- `brana backlog get <id>` — shows the computed `role` key (added to the display copy only; never written to `tasks.json`).
+
+```
+brana backlog query --role ready-for-agent          # what an agent could pull right now
+brana backlog wave add --selector "role:ready-for-agent" --name standing   # T3's standing wave (§5)
+```
+
 ### Wave = Queue — the process overlay
 
 A wave is **not** a tree level and **not** a subject. It is a named, drainable **selector** over `tree-scope ∧ tags ∧ computed-attributes`. Membership may be an **explicit tag** (`wave:v3-w1`) or a **live query** (`shape:mechanical ∧ ac_state:approved`). A loop runs `while wave.next(): work()` — drain-to-empty falls out.

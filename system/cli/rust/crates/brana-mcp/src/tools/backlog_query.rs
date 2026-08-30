@@ -38,6 +38,11 @@ pub struct Input {
     /// Filter by ac_state (v3): none, proposed, approved. Matches only tasks whose
     /// ac_state key is present; legacy tasks (key absent) never match.
     pub ac_state: Option<String>,
+
+    /// Filter by derived role (ADR-086 §3): needs-triage, needs-info,
+    /// ready-for-agent, ready-for-human, wontfix, claimed, resolved. Never a
+    /// stored field — computed from status/ac_state/tags.
+    pub role: Option<String>,
 }
 
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
@@ -60,6 +65,20 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 let tag_list: Option<Vec<&str>> = input.tag.as_deref()
                     .map(|t| t.split(',').collect());
 
+                // t-3160/t-3244 sibling gap: --role has no MCP parity without
+                // this. Unknown names are rejected loud, same as task_type.
+                let role_filter = input.role
+                    .as_deref()
+                    .map(|r| {
+                        brana_core::tasks::Role::parse(r).ok_or_else(|| {
+                            format!(
+                                "unknown role {r:?} — must be one of needs-triage, needs-info, \
+                                 ready-for-agent, ready-for-human, wontfix, claimed, resolved"
+                            )
+                        })
+                    })
+                    .transpose()?;
+
                 let mut results = brana_core::tasks::filter_tasks_by(
                     &data.tasks, &data.tasks,
                     &brana_core::tasks::TaskFilter {
@@ -71,6 +90,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                         epic: input.epic.as_deref(),
                         work_type: input.work_type.as_deref(),
                         ac_state: input.ac_state.as_deref(),
+                        role: role_filter,
                         ..Default::default()
                     },
                 );
@@ -226,6 +246,39 @@ mod tests {
             out.get("excluded_by_default_type").is_none(),
             "nothing excluded — the field should not appear at all (0 is not worth reporting)"
         );
+    }
+
+    #[tokio::test]
+    async fn test_role_filters_by_derived_role_not_stored_field() {
+        // t-3160/t-3244 sibling gap (second-variant finder): the CLI's
+        // --role has no MCP backlog_query parity. This pins it.
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new(
+            r#"{"project":"test","tasks":[
+                {"id":"t-1","subject":"a","type":"task","status":"pending","ac_state":"approved","tags":[]},
+                {"id":"t-2","subject":"b","type":"task","status":"pending","ac_state":"proposed","tags":[]}
+            ],"waves":[]}"#,
+        );
+
+        let out = build()
+            .handle(json!({"role": "ready-for-agent"}), pmcp::RequestHandlerExtra::default())
+            .await
+            .unwrap();
+
+        assert_eq!(out["count"], 1);
+        assert_eq!(out["tasks"][0]["id"], "t-1");
+    }
+
+    #[tokio::test]
+    async fn test_role_rejects_unknown_name() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new(&fixture());
+
+        let err = build()
+            .handle(json!({"role": "bogus"}), pmcp::RequestHandlerExtra::default())
+            .await
+            .expect_err("an unrecognized role name must error, not silently match nothing");
+        assert!(err.to_string().contains("bogus"), "error must name the bad value: {err}");
     }
 
     #[tokio::test]

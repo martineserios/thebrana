@@ -893,6 +893,11 @@ pub enum BacklogCmd {
         /// Sort output: status (lifecycle) or priority
         #[arg(long, value_enum)]
         sort: Option<SortKey>,
+        /// Filter by derived role (ADR-086 §3): needs-triage, needs-info,
+        /// ready-for-agent, ready-for-human, wontfix, claimed, resolved.
+        /// Never a stored field — computed from status/ac_state/tags.
+        #[arg(long)]
+        role: Option<String>,
     },
     /// Smart daily pick
     Focus {
@@ -1265,9 +1270,10 @@ pub enum WaveCmd {
         file: Option<PathBuf>,
     },
     /// Pull one task from a draining wave (ADR-079 §2/§3): re-resolve the
-    /// selector, filter pending ∧ ac_state:approved ∧ ¬parked, respect
-    /// wip_limit, set the first eligible task in_progress — atomically.
-    /// At-limit / none-eligible are normal ok outcomes (skip this cycle).
+    /// selector, filter to tasks deriving role:ready-for-agent (ADR-086 §3 —
+    /// approved ∧ ¬parked ∧ ¬tag:human) ∧ unblocked, respect wip_limit, set
+    /// the first eligible task in_progress — atomically. At-limit /
+    /// none-eligible are normal ok outcomes (skip this cycle).
     Pull {
         wave_id: String,
         /// Lease claimant identity (ADR-080 §5): loop name + session id.

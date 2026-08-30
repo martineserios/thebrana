@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use super::query::tag_matches;
+use super::role::{derive_role, Role};
 use super::{load_raw, lock_tasks, save_tasks};
 
 /// Parsed selector — the single owner of selector-string semantics (ADR-080
@@ -24,6 +25,10 @@ pub enum WaveSelector {
     /// `parent:<id>` — tasks whose parent chain contains `<id>` (ADR-065 D3:
     /// waves select, they don't own; membership computed at resolution time).
     Parent(String),
+    /// `role:<name>` — tasks whose derived role (ADR-086 §3, `derive_role`)
+    /// equals `<name>`. A task deriving no role (`derive_role` returns
+    /// `None`) never matches any role selector.
+    Role(Role),
 }
 
 /// The single parse point. Unknown forms are rejected loud, never silently
@@ -37,8 +42,16 @@ pub fn parse_wave_selector(selector: &str) -> Result<WaveSelector, String> {
     if let Some(id) = s.strip_prefix("parent:").filter(valid) {
         return Ok(WaveSelector::Parent(id.to_string()));
     }
+    if let Some(name) = s.strip_prefix("role:").filter(valid) {
+        return Role::parse(name).map(WaveSelector::Role).ok_or_else(|| {
+            format!(
+                "unknown role {name:?} — must be one of needs-triage, needs-info, \
+                 ready-for-agent, ready-for-human, wontfix, claimed, resolved"
+            )
+        });
+    }
     Err(format!(
-        "selector form not supported — resolves tag:<name> or parent:<id> (got: {s:?})"
+        "selector form not supported — resolves tag:<name>, parent:<id>, or role:<name> (got: {s:?})"
     ))
 }
 
@@ -73,6 +86,7 @@ impl WaveSelector {
                 }
                 false
             }
+            WaveSelector::Role(target) => derive_role(task) == Some(*target),
         }
     }
 }
@@ -137,9 +151,12 @@ pub enum PullDecision {
     Pulled { task_id: String },
     /// Live in_progress selector-matches ≥ wip_limit — skip this cycle.
     AtLimit { live: usize, limit: u64 },
-    /// Selector matched, but nothing is pending ∧ approved ∧ ¬parked ∧ unblocked.
+    /// Selector matched, but nothing derives `role:ready-for-agent`
+    /// (ADR-086 §3) ∧ unblocked. `human` = matched tasks tagged `human`
+    /// (t-3160/T1: the role vocabulary is shared, not the unattended safety
+    /// gate — a `ready-for-human` task is never pull-eligible for an agent).
     /// `blocked` = matched tasks with an unmet `blocked_by` (ADR-079 §2 amendment).
-    NoneEligible { matched: usize, unapproved: usize, parked: usize, blocked: usize },
+    NoneEligible { matched: usize, unapproved: usize, parked: usize, human: usize, blocked: usize },
 }
 
 /// t-2813: pure pull decision over in-memory state — the loop runner's whole
@@ -187,19 +204,29 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
 
     let mut unapproved = 0;
     let mut parked = 0;
+    let mut human = 0;
     let mut blocked = 0;
     let mut first: Option<String> = None;
     for t in &matched {
-        if t["ac_state"].as_str() != Some("approved") {
-            unapproved += 1;
-            continue;
-        }
-        let is_parked = t["tags"]
-            .as_array()
-            .map(|a| a.iter().any(|v| v.as_str() == Some("parked")))
-            .unwrap_or(false);
-        if is_parked {
-            parked += 1;
+        // Eligibility is the shared derivation (t-3160/T1, ADR-086 §3) — no
+        // second inline ac_state/parked/human check. `derive_role` already
+        // encodes ¬tag:parked and ¬tag:human into `ready-for-agent`.
+        if derive_role(t) != Some(Role::ReadyForAgent) {
+            // Diagnostic categorization of an already-known-ineligible task,
+            // not a re-implementation of eligibility. Priority mirrors
+            // derive_role's own (human checked before parked) so counts and
+            // gating never disagree on a task tagged both.
+            let tags: Vec<&str> = t["tags"]
+                .as_array()
+                .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                .unwrap_or_default();
+            if tag_matches(&tags, "human") {
+                human += 1;
+            } else if tag_matches(&tags, "parked") {
+                parked += 1;
+            } else {
+                unapproved += 1;
+            }
             continue;
         }
         // Frontier = open ∧ unblocked (ADR-079 §2 amendment, ADR-086 §4): the
@@ -218,6 +245,7 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
             matched: matched.len(),
             unapproved,
             parked,
+            human,
             blocked,
         }),
     }
@@ -551,6 +579,53 @@ mod tests {
                    WaveSelector::Parent("ms-12".into()));
         assert_eq!(parse_wave_selector("  parent:t-2839  ").unwrap(),
                    WaveSelector::Parent("t-2839".into()));
+    }
+
+    // ── role:<name> selector (t-3242, ADR-086 §3) ───────────────────────
+
+    #[test]
+    fn parse_selector_role_form_all_names() {
+        for name in ["needs-triage", "needs-info", "ready-for-agent",
+                      "ready-for-human", "wontfix", "claimed", "resolved"] {
+            assert_eq!(parse_wave_selector(&format!("role:{name}")).unwrap(),
+                       WaveSelector::Role(Role::parse(name).unwrap()));
+        }
+    }
+
+    #[test]
+    fn parse_selector_role_form_trims_whitespace() {
+        assert_eq!(parse_wave_selector("  role:ready-for-agent  ").unwrap(),
+                   WaveSelector::Role(Role::ReadyForAgent));
+    }
+
+    #[test]
+    fn parse_selector_rejects_unknown_role_name() {
+        let err = parse_wave_selector("role:bogus").unwrap_err();
+        assert!(err.contains("bogus"), "error must name the bad value: {err}");
+    }
+
+    #[test]
+    fn role_selector_matches_only_tasks_deriving_that_role() {
+        let by_id: HashMap<&str, &Value> = HashMap::new();
+        let ready = task("t-1", "pending", &[]); // ac_state absent -> needs-triage, not ready
+        let mut approved = task("t-2", "pending", &[]);
+        approved["ac_state"] = json!("approved");
+        let sel = WaveSelector::Role(Role::ReadyForAgent);
+        assert!(!sel.matches(&ready, &by_id), "needs-triage task must not match ready-for-agent");
+        assert!(sel.matches(&approved, &by_id), "approved+unparked+non-human task must match ready-for-agent");
+    }
+
+    #[test]
+    fn role_selector_status_agnostic_like_other_selectors() {
+        // WaveSelector::matches is documented status-agnostic (callers apply
+        // their own status filter) -- an in_progress task still derives
+        // `claimed` and role:claimed must see it, even though
+        // resolve_wave_selector's own pending-only filter would exclude it
+        // upstream. This guards the doc comment's contract, not resolve's.
+        let by_id: HashMap<&str, &Value> = HashMap::new();
+        let claimed = task("t-1", "in_progress", &[]);
+        let sel = WaveSelector::Role(Role::Claimed);
+        assert!(sel.matches(&claimed, &by_id));
     }
 
     fn ptask(id: &str, status: &str, parent: Option<&str>) -> Value {

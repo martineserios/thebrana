@@ -161,10 +161,27 @@ pub fn cmd_query(
     count: bool, output: String, theme: &themes::Theme,
     task_type: Option<String>, parent: Option<String>, branch: Option<String>,
     work_type: Option<String>, epic: Option<String>, ac_state: Option<String>,
-    sort: Option<String>,
+    sort: Option<String>, role: Option<String>,
 ) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    // t-3244 (ADR-086 §3): --role filters by derived role, never a stored
+    // field. Unknown role names are rejected loud, same discipline as
+    // --type (t-3233).
+    let role_filter = role
+        .as_deref()
+        .map(|r| {
+            tasks::Role::parse(r).ok_or_else(|| {
+                let err = format!(
+                    "unknown role {r:?} — must be one of needs-triage, needs-info, \
+                     ready-for-agent, ready-for-human, wontfix, claimed, resolved"
+                );
+                eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&err).unwrap());
+                anyhow::anyhow!(err)
+            })
+        })
+        .transpose()?;
 
     // Determine type filter. Free-text comma list (t-3233 — the arg used to
     // be a single-value clap enum, unable to express more than one type at
@@ -207,6 +224,7 @@ pub fn cmd_query(
             epic: epic.as_deref(),
             work_type: work_type.as_deref(),
             ac_state: ac_state.as_deref(),
+            role: role_filter,
             ..Default::default()
         },
     );
@@ -907,11 +925,14 @@ pub fn cmd_get(task_id: &str, field: Option<String>) -> anyhow::Result<()> {
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id))
         .ok_or_else(|| anyhow::anyhow!("task {task_id} not found"))?;
+    // t-3244 (ADR-086 §3): `role` is derived, never stored — added to the
+    // display copy only, so both whole-object and --field output show it.
+    let display = tasks::task_with_derived_role(task);
 
     if let Some(f) = field {
-        println!("{}", serde_json::to_string(&task[f.as_str()]).unwrap());
+        println!("{}", serde_json::to_string(&display[f.as_str()]).unwrap());
     } else {
-        println!("{}", serde_json::to_string_pretty(task).unwrap());
+        println!("{}", serde_json::to_string_pretty(&display).unwrap());
     }
     Ok(())
 }
@@ -1130,9 +1151,9 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, fil
                         "ok": true, "id": wave_id, "would_pull": null,
                         "at_limit": {"live": live, "limit": limit}
                     }),
-                    tasks::PullDecision::NoneEligible { matched, unapproved, parked, blocked } => serde_json::json!({
+                    tasks::PullDecision::NoneEligible { matched, unapproved, parked, human, blocked } => serde_json::json!({
                         "ok": true, "id": wave_id, "would_pull": null,
-                        "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "blocked": blocked}
+                        "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "human": human, "blocked": blocked}
                     }),
                 };
                 out["dry_run"] = serde_json::json!(true);
@@ -1160,10 +1181,10 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, fil
             }));
             Ok(())
         }
-        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked, blocked }) => {
+        Ok(tasks::PullDecision::NoneEligible { matched, unapproved, parked, human, blocked }) => {
             println!("{}", serde_json::json!({
                 "ok": true, "id": wave_id, "pulled": null,
-                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "blocked": blocked}
+                "none_eligible": {"matched": matched, "unapproved": unapproved, "parked": parked, "human": human, "blocked": blocked}
             }));
             Ok(())
         }
