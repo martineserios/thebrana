@@ -96,6 +96,19 @@ pub fn derive_role(task: &Value) -> Option<Role> {
     }
 }
 
+/// Augment `task`'s JSON with its derived `role` (t-3244) for `get` output —
+/// `role` is never a stored field, so it is added to a clone, never written
+/// back to storage. `None` renders as JSON `null`, matching every other
+/// absent-value field in `get` output.
+pub fn task_with_derived_role(task: &Value) -> Value {
+    let mut out = task.clone();
+    out["role"] = match derive_role(task) {
+        Some(r) => Value::String(r.as_str().to_string()),
+        None => Value::Null,
+    };
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,5 +225,30 @@ mod tests {
         assert_eq!(Role::parse("bogus-role"), None);
         assert_eq!(Role::parse(""), None);
         assert_eq!(Role::parse("Ready-For-Agent"), None); // case-sensitive
+    }
+
+    #[test]
+    fn task_with_derived_role_adds_role_key_without_mutating_input() {
+        let t = task("pending", Some("approved"), &[]);
+        let out = task_with_derived_role(&t);
+        assert_eq!(out["role"], "ready-for-agent");
+        assert!(t.get("role").is_none(), "original task must not be mutated");
+    }
+
+    #[test]
+    fn task_with_derived_role_renders_none_as_json_null() {
+        let t = task("pending", Some("approved"), &["parked"]);
+        let out = task_with_derived_role(&t);
+        assert_eq!(out["role"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn task_with_derived_role_preserves_every_other_field() {
+        let mut t = task("in_progress", Some("approved"), &["x"]);
+        t["subject"] = json!("hello");
+        let out = task_with_derived_role(&t);
+        assert_eq!(out["subject"], "hello");
+        assert_eq!(out["status"], "in_progress");
+        assert_eq!(out["role"], "claimed");
     }
 }

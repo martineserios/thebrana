@@ -893,6 +893,11 @@ pub enum BacklogCmd {
         /// Sort output: status (lifecycle) or priority
         #[arg(long, value_enum)]
         sort: Option<SortKey>,
+        /// Filter by derived role (ADR-086 §3): needs-triage, needs-info,
+        /// ready-for-agent, ready-for-human, wontfix, claimed, resolved.
+        /// Never a stored field — computed from status/ac_state/tags.
+        #[arg(long)]
+        role: Option<String>,
     },
     /// Smart daily pick
     Focus {

@@ -218,6 +218,10 @@ pub struct TaskFilter<'a> {
     /// whose `ac_state` key is PRESENT and equals this value; legacy tasks (key
     /// absent) never match.
     pub ac_state: Option<&'a str>,
+    /// t-3244 (ADR-086 §3): filter by derived role (`derive_role`), never a
+    /// stored field. A task deriving no role (the approved+parked+¬human gap)
+    /// never matches any role filter.
+    pub role: Option<super::role::Role>,
 }
 
 impl Default for TaskFilter<'_> {
@@ -232,6 +236,7 @@ impl Default for TaskFilter<'_> {
             epic: None,
             work_type: None,
             ac_state: None,
+            role: None,
         }
     }
 }
@@ -339,6 +344,11 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
                     return false;
                 }
             }
+            if let Some(role) = filter.role {
+                if super::role::derive_role(t) != Some(role) {
+                    return false;
+                }
+            }
             true
         })
         .collect()
@@ -412,6 +422,7 @@ pub fn filter_tasks<'a>(
         epic,
         work_type,
         ac_state: None,
+        role: None,
     })
 }
 

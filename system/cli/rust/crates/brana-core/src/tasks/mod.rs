@@ -1232,6 +1232,17 @@ mod tests {
     }
 
     #[test]
+    fn test_set_field_rejects_role() {
+        // t-3244 (ADR-086 §3): role is derived-only, never stored — rejected
+        // the same way epic is (allowlist-by-construction: set_field's
+        // exhaustive match has no "role" arm, so the catch-all already
+        // covers it; this pins that guarantee against regression).
+        let mut task = json!({"id": "t-1"});
+        assert!(set_field(&mut task, "role", "ready-for-agent", false).is_err());
+        assert!(task.get("role").is_none(), "role must not be written");
+    }
+
+    #[test]
     fn test_set_field_rejects_stream() {
         // ADR-065: stream is retired — the 3-value dev/ops/research taxonomy
         // was superseded by tags/epic. set_field must reject it, not
@@ -3776,6 +3787,31 @@ mod tests {
         let filter = TaskFilter { ac_state: Some("none"), ..Default::default() };
         let out = filter_tasks_by(&tasks, &tasks, &filter);
         assert!(out.is_empty(), "absent-key task must never match --ac-state");
+    }
+
+    #[test]
+    fn test_filter_by_role_matches_derived_role_only() {
+        // t-3244: --role filters via derive_role(), not a stored field.
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","status":"pending","ac_state":"approved","tags":[]}), // ready-for-agent
+            json!({"id":"t-2","type":"task","status":"pending","ac_state":"proposed","tags":[]}),  // needs-info
+            json!({"id":"t-3","type":"task","status":"pending","tags":[]}),                        // needs-triage (key absent)
+        ];
+        let filter = TaskFilter { role: Some(Role::ReadyForAgent), ..Default::default() };
+        let out = filter_tasks_by(&tasks, &tasks, &filter);
+        let ids: Vec<&str> = out.iter().filter_map(|t| t["id"].as_str()).collect();
+        assert_eq!(ids, vec!["t-1"]);
+    }
+
+    #[test]
+    fn test_filter_by_role_excludes_tasks_with_no_derived_role() {
+        // approved + parked + ¬human derives no role at all -- must never
+        // match any --role filter, including a hypothetical future one.
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","status":"pending","ac_state":"approved","tags":["parked"]}),
+        ];
+        let filter = TaskFilter { role: Some(Role::ReadyForAgent), ..Default::default() };
+        assert!(filter_tasks_by(&tasks, &tasks, &filter).is_empty());
     }
 
     #[test]
