@@ -328,6 +328,13 @@ convention holds for them by construction, not because anyone verified it. Filed
 against `inversion` and against a synthetic fixture) — the gap is in the *other* lock
 entries' stale values, not in the tool this task shipped to check them.
 
+**t-3239 closure (2026-08-30):** all 9 entries above corrected in place (`computedHash`
+recomputed, `files[]` added) and `test-skills-lock-hash.sh` extended to loop over every
+`skills-lock.json` entry generically, not a hardcoded pair — a future drifted entry is
+caught by that loop without a new test being written. To regenerate any entry's
+`computedHash` by hand, run `system/scripts/skills-lock-hash.sh <skill-dir>` — that script,
+not manual computation, is the authoritative source of truth for this field.
+
 **AC5 checklist re-verification (recorded here as a committed artifact, not only in the
 task's backlog notes — the base challenger's tool access is diff/ADR-only and couldn't see
 the backlog note):** `skill-validation-checklist.md` item 4 (explicit control flow) checked

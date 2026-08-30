@@ -16,7 +16,15 @@
       "source": "wondelai/skills",
       "sourceType": "github",
       "skillPath": "cold-start-problem/SKILL.md",
-      "computedHash": "f76cefa4fb1c1cb70d2fa34359993647b6bf57c5365f628ad1693b2ca26dc47d"
+      "computedHash": "1252645d33a1d4a37a1537b299171623a6de28777c3895f03872f9b35b83e0a2",
+      "files": [
+        "SKILL.md",
+        "references/atomic-networks.md",
+        "references/case-studies.md",
+        "references/hard-side.md",
+        "references/scale-ceiling-moat.md",
+        "references/tipping-playbooks.md"
+      ]
     },
     "critical-thinking-logical-reasoning": {
       "source": "sammcj/agentic-coding",
@@ -28,7 +36,13 @@
       "source": "lyndonkl/claude",
       "sourceType": "github",
       "skillPath": "skills/decision-matrix/SKILL.md",
-      "computedHash": "e23423fb6b804d05943dc37e1886a6e82198fdca6bc0c622ba49235fca99093d"
+      "computedHash": "16fb71a6672eae4312f695d43f3a9f9f612415e270845b9214271157133e4ece",
+      "files": [
+        "SKILL.md",
+        "resources/evaluators/rubric_decision_matrix.json",
+        "resources/methodology.md",
+        "resources/template.md"
+      ]
     },
     "diagnosing-bugs": {
       "source": "mattpocock/skills",
@@ -46,7 +60,24 @@
       "source": "yonatangross/orchestkit",
       "sourceType": "github",
       "skillPath": "plugins/ork/skills/domain-driven-design/SKILL.md",
-      "computedHash": "60be10b278730b425620775f8b7f430abcfa2276d2739d503a79a7098d6a6152"
+      "computedHash": "202e8d698bc72facb6b6f5042cee8b1523e184341dc10acb9554928b1fbb704d",
+      "files": [
+        "SKILL.md",
+        "checklists/ddd-checklist.md",
+        "references/bounded-contexts.md",
+        "references/domain-events.md",
+        "references/entities-value-objects.md",
+        "references/repositories.md",
+        "rules/_sections.md",
+        "rules/_template.md",
+        "rules/aggregate-boundaries.md",
+        "rules/aggregate-invariants.md",
+        "rules/aggregate-sizing.md",
+        "scripts/entity-template.py",
+        "scripts/repository-template.py",
+        "scripts/value-object-template.py",
+        "test-cases.json"
+      ]
     },
     "first-principles": {
       "source": "guia-matthieu/clawfu-skills",
@@ -58,7 +89,49 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "051984124b25179c17bfb812fb605d7a8f3f9b0768e7534dd137f76a0cc52a26"
+      "computedHash": "ced095919842c680f3b53386bc4b17699d0d9654013aaee3d2d74d45ad48243b",
+      "files": [
+        "SKILL.md",
+        "reference/adapt.md",
+        "reference/adapt.native.md",
+        "reference/android.md",
+        "reference/animate.md",
+        "reference/audit.md",
+        "reference/audit.native.md",
+        "reference/bolder.md",
+        "reference/clarify.md",
+        "reference/colorize.md",
+        "reference/craft-floor.md",
+        "reference/craft.md",
+        "reference/critique.md",
+        "reference/degraded/asset-producer.md",
+        "reference/degraded/documenter.md",
+        "reference/degraded/finish-reviewer.md",
+        "reference/degraded/manual-edit-applier.md",
+        "reference/delight.md",
+        "reference/distill.md",
+        "reference/doctor.md",
+        "reference/document.md",
+        "reference/extract.md",
+        "reference/harden.md",
+        "reference/hooks.md",
+        "reference/init.md",
+        "reference/ios.md",
+        "reference/layout.md",
+        "reference/live-setup.md",
+        "reference/live.md",
+        "reference/new-work.md",
+        "reference/onboard.md",
+        "reference/operate.md",
+        "reference/optimize.md",
+        "reference/overdrive.md",
+        "reference/polish.md",
+        "reference/quieter.md",
+        "reference/routing.md",
+        "reference/shape.md",
+        "reference/typeset.md",
+        "reference/visualize.md"
+      ]
     },
     "inversion": {
       "source": "guia-matthieu/clawfu-skills",
@@ -70,19 +143,37 @@
       "source": "wondelai/skills",
       "sourceType": "github",
       "skillPath": "jobs-to-be-done/SKILL.md",
-      "computedHash": "d2d74d9dafd1a2d7da3542fa330a907d465833689c11a6d6daf214ff4f265fb5"
+      "computedHash": "38fecea0c6ca2238869eeb091b7d076634b487dcb6c3ba263bca8b148478b210",
+      "files": [
+        "SKILL.md",
+        "references/case-studies.md",
+        "references/competitive-strategy.md",
+        "references/diagnostics.md",
+        "references/innovation-process.md",
+        "references/organizational-change.md"
+      ]
     },
     "marketplace-fundamentals": {
       "source": "refoundai/lenny-skills",
       "sourceType": "github",
       "skillPath": "skills/marketplace-fundamentals/SKILL.md",
-      "computedHash": "eb14c969fa315aef0f5c2da1c44f3905fe86474f2516969a1d75b9b18732581b"
+      "computedHash": "481a084bb226dacb575a4c241909d7762cee2cef6f4fb96712e60cef01b9c8f5",
+      "files": [
+        "SKILL.md",
+        "references/artifacts.md",
+        "references/guest-insights.md"
+      ]
     },
     "marketplace-liquidity-take-rates": {
       "source": "refoundai/lenny-skills",
       "sourceType": "github",
       "skillPath": "skills/marketplace-liquidity-take-rates/SKILL.md",
-      "computedHash": "b122cdb4c6900b6c168bd40020fc84c6f9cb0139054b8cfdfcf536b7a45b6e31"
+      "computedHash": "d434707fd2b2cea3151914332c95f8ae128a3188d918178e09c03044270c23a0",
+      "files": [
+        "SKILL.md",
+        "references/artifacts.md",
+        "references/guest-insights.md"
+      ]
     },
     "pre-mortem": {
       "source": "guia-matthieu/clawfu-skills",
@@ -106,7 +197,12 @@
       "source": "refoundai/lenny-skills",
       "sourceType": "github",
       "skillPath": "skills/supply-demand-balance/SKILL.md",
-      "computedHash": "37c335fc9a54268e97efa254e0035f5d30a42835d1cb5858eb14682761ec66e0"
+      "computedHash": "402e45bf6e3d3dd248dbe4c270f90b07c8fb81e22bdc18eae03e52ebc9f37f35",
+      "files": [
+        "SKILL.md",
+        "references/artifacts.md",
+        "references/guest-insights.md"
+      ]
     },
     "swot-analysis": {
       "source": "phuryn/pm-skills",
@@ -118,7 +214,11 @@
       "source": "refoundai/lenny-skills",
       "sourceType": "github",
       "skillPath": "skills/systems-thinking/SKILL.md",
-      "computedHash": "52e35d31292c3954e15bcc306e9162f5b552d7ec84be4c20f73569b0e99d8b0d"
+      "computedHash": "3bcf7c9a55e3d9e8c7c2220e6d0ca329f15f642ea0fbd0e112fa6e435fb2cb3b",
+      "files": [
+        "SKILL.md",
+        "references/guest-insights.md"
+      ]
     },
     "wizard": {
       "source": "mattpocock/skills",
