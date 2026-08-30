@@ -73890,12 +73890,10 @@
         "Missing-spec case handled explicitly (Spec axis skips, reports 'no spec available')",
         "If t-2834's pilot kills instead of expands: this task reverts to its original pre-ADR-084 port framing (native two-axis review built directly, no vendoring) — do not build under either AC set until the pilot's kill/expand decision is logged"
       ],
-      "blocked_by": [
-        "t-2834"
-      ],
+      "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P6. Pocock's code-review (github.com/mattpocock/skills/skills/engineering/code-review/SKILL.md) runs two parallel sub-agents — Standards (repo conventions + a documented Fowler-derived smell baseline, always a judgement call, repo overrides baseline) and Spec (diff vs originating issue/spec: missing, scope-creep, wrong-looking) — and reports them under separate headings, deliberately never merged or reranked, because \"a change can pass one axis and fail the other.\" brana's pr-reviewer and challenger agents currently blend correctness/style/spec-fit into one pass.\n\nSCOPE BOUNDARY: cross-check against challenger-calibration.md so this doesn't duplicate challenger's job — challenger is for plan/architecture stress-testing before commitment; this is for diff review after code exists. State the boundary explicitly in the implementation.\nAC: pr-reviewer (or a new build VERIFY-phase step) runs two parallel sub-agent reviews - Standards and Spec - reported under separate un-merged, un-reranked headings\nAC: a documented smell baseline (Fowler Ch.3 derived, always a judgement call, repo-documented standards override it) is written once and reused rather than duplicated per invocation\nAC: scope boundary against challenger/challenger-calibration.md stated explicitly in the skill doc\nAC: missing-spec case handled explicitly (Spec axis skips and reports 'no spec available')\n2026-08-17: parked proactively (before wave-6 pull) — same premise conflict as t-2834: current AC describe the pre-§7 \"port\" reading (build a two-axis review as a brana pr-reviewer/build-VERIFY step), but research doc §7 explicitly lists t-2835 among the tasks that \"flip from port to vendor+wrap.\" t-2837 (pending, unapproved ADR) would decide this. Human already made the same call for the identical t-2834 conflict (skip/park rather than build under stale AC) — applying it here without re-asking. Tagged parked (ADR-078) + blocked_by t-2837 (documentation; not load-bearing for wave-pull's eligibility filter, which checks tag:parked only). Revisit after t-2837 ships or is rejected.\n2026-08-17: t-2837/ADR-084 decided PILOT-ONLY. code-review reconciled ADAPT (t-2830 §7 table)→VENDOR+WRAP (per 2026-08-14 studio dialogue, which was more specific and later than §7's table entry). Stays parked, blocked_by re-pointed t-2837→t-2834 (gated on the pilot beat's kill/expand evaluation, ADR-084 §7). AC rewritten to conditional vendor+wrap framing.",
+      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P6. Pocock's code-review (github.com/mattpocock/skills/skills/engineering/code-review/SKILL.md) runs two parallel sub-agents — Standards (repo conventions + a documented Fowler-derived smell baseline, always a judgement call, repo overrides baseline) and Spec (diff vs originating issue/spec: missing, scope-creep, wrong-looking) — and reports them under separate headings, deliberately never merged or reranked, because \"a change can pass one axis and fail the other.\" brana's pr-reviewer and challenger agents currently blend correctness/style/spec-fit into one pass.\n\nSCOPE BOUNDARY: cross-check against challenger-calibration.md so this doesn't duplicate challenger's job — challenger is for plan/architecture stress-testing before commitment; this is for diff review after code exists. State the boundary explicitly in the implementation.\nAC: pr-reviewer (or a new build VERIFY-phase step) runs two parallel sub-agent reviews - Standards and Spec - reported under separate un-merged, un-reranked headings\nAC: a documented smell baseline (Fowler Ch.3 derived, always a judgement call, repo-documented standards override it) is written once and reused rather than duplicated per invocation\nAC: scope boundary against challenger/challenger-calibration.md stated explicitly in the skill doc\nAC: missing-spec case handled explicitly (Spec axis skips and reports 'no spec available')\n2026-08-17: parked proactively (before wave-6 pull) — same premise conflict as t-2834: current AC describe the pre-§7 \"port\" reading (build a two-axis review as a brana pr-reviewer/build-VERIFY step), but research doc §7 explicitly lists t-2835 among the tasks that \"flip from port to vendor+wrap.\" t-2837 (pending, unapproved ADR) would decide this. Human already made the same call for the identical t-2834 conflict (skip/park rather than build under stale AC) — applying it here without re-asking. Tagged parked (ADR-078) + blocked_by t-2837 (documentation; not load-bearing for wave-pull's eligibility filter, which checks tag:parked only). Revisit after t-2837 ships or is rejected.\n2026-08-17: t-2837/ADR-084 decided PILOT-ONLY. code-review reconciled ADAPT (t-2830 §7 table)→VENDOR+WRAP (per 2026-08-14 studio dialogue, which was more specific and later than §7's table entry). Stays parked, blocked_by re-pointed t-2837→t-2834 (gated on the pilot beat's kill/expand evaluation, ADR-084 §7). AC rewritten to conditional vendor+wrap framing.\n2026-08-30: t-2834 pilot EXPANDED (ADR-084 §7a) — unparked, blocked_by cleared. AC's first bullet (\"IF t-2834's pilot expands\") is now the operative branch; build against that AC set.",
       "created": "2026-08-13",
       "description": null,
       "effort": "M",
@@ -73913,8 +73911,7 @@
       "tags": [
         "skills",
         "wave:drain-3",
-        "mattpocock-mining",
-        "parked"
+        "mattpocock-mining"
       ],
       "type": "task",
       "work_type": "implement"
@@ -73928,12 +73925,10 @@
         "Generated script passes bash -n and shellcheck where available before hand-off",
         "If t-2834's pilot kills instead of expands: this task reverts to its original pre-ADR-084 port framing (native generator modeled on template.sh's pattern, no vendoring) — do not build under either AC set until the pilot's kill/expand decision is logged"
       ],
-      "blocked_by": [
-        "t-2834"
-      ],
+      "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P7. Pocock's wizard (github.com/mattpocock/skills/skills/engineering/wizard/SKILL.md + template.sh) generates a stage-by-stage interactive bash script for steps only a human can perform: opens each URL, says exactly what to click/copy, captures values, writes .env/gh secrets, confirms before irreversible actions, shows progress. Model-invoked (agent reaches for it the moment it hits a wall only a human can pass), ephemeral by default (scratch/ path, committed only if repeatable). brana has recurring manual-provisioning needs (client onboarding secrets, meta-templates WhatsApp BSP setup, venture scaffolding) with no standardized generator — currently ad hoc prose instructions per skill.\nAC: a skill or build-composable step generates an interactive bash script (stage-by-stage, confirm gates before irreversible actions, .env/secret writes, cross-platform URL opening) modeled on wizard's template.sh pattern\nAC: at least one real brana provisioning flow (e.g. client onboarding secret, or meta-templates BSP setup) exercised end-to-end via static trace (not executed — it blocks on human input) as acceptance proof\nAC: generated script is ephemeral by default (scratch/ or /tmp path per cwd-discipline.md) and committed only when the user wants a repeatable setup path\nAC: script passes bash -n and shellcheck where available before hand-off\n2026-08-17: parked (wave-6 pull) — same premise-conflict class as t-2834/t-2835. This task's own AC explicitly model the generator \"on wizard's template.sh pattern\" (the ADAPT/port reading), but research doc §7's DEPEND-mode table explicitly lists \"wizard\" among the artifact-shaped organs to vendor+pin+wrap thin, not port. t-2837's own point-4 reshape list (context field) doesn't name t-2836 explicitly — only t-2834/t-2835/t-2833/t-2831 — so this may be an omission in that dialogue note rather than a deliberate exclusion; §7's DEPEND table is the more authoritative source and it does include wizard. Applying the same human-approved resolution (skip/park rather than build under a possibly-superseded AC) as t-2834/t-2835, without re-asking — same conflict shape, same decision rule. Tagged parked (ADR-078) + blocked_by t-2837 (documentation only). Flag for t-2837's author: the ADR should explicitly confirm or deny whether t-2836/wizard is in scope, since its own reshape list and its own DEPEND table disagree on this one.\n2026-08-17: t-2837/ADR-084 decided PILOT-ONLY. wizard's scope ambiguity RESOLVED — ADR-084 §4/§5 confirms wizard IS in scope as VENDOR+WRAP (§7's DEPEND table is explicit; the studio reshape note's silence on t-2836 read as omission, not exclusion). Stays parked, blocked_by re-pointed t-2837→t-2834 (gated on pilot kill/expand). AC rewritten to conditional vendor+wrap framing.",
+      "context": "Source: t-2830 research (2026-08-13), docs/research/2026-08-13-matt-pocock-skill-system.md §4 P7. Pocock's wizard (github.com/mattpocock/skills/skills/engineering/wizard/SKILL.md + template.sh) generates a stage-by-stage interactive bash script for steps only a human can perform: opens each URL, says exactly what to click/copy, captures values, writes .env/gh secrets, confirms before irreversible actions, shows progress. Model-invoked (agent reaches for it the moment it hits a wall only a human can pass), ephemeral by default (scratch/ path, committed only if repeatable). brana has recurring manual-provisioning needs (client onboarding secrets, meta-templates WhatsApp BSP setup, venture scaffolding) with no standardized generator — currently ad hoc prose instructions per skill.\nAC: a skill or build-composable step generates an interactive bash script (stage-by-stage, confirm gates before irreversible actions, .env/secret writes, cross-platform URL opening) modeled on wizard's template.sh pattern\nAC: at least one real brana provisioning flow (e.g. client onboarding secret, or meta-templates BSP setup) exercised end-to-end via static trace (not executed — it blocks on human input) as acceptance proof\nAC: generated script is ephemeral by default (scratch/ or /tmp path per cwd-discipline.md) and committed only when the user wants a repeatable setup path\nAC: script passes bash -n and shellcheck where available before hand-off\n2026-08-17: parked (wave-6 pull) — same premise-conflict class as t-2834/t-2835. This task's own AC explicitly model the generator \"on wizard's template.sh pattern\" (the ADAPT/port reading), but research doc §7's DEPEND-mode table explicitly lists \"wizard\" among the artifact-shaped organs to vendor+pin+wrap thin, not port. t-2837's own point-4 reshape list (context field) doesn't name t-2836 explicitly — only t-2834/t-2835/t-2833/t-2831 — so this may be an omission in that dialogue note rather than a deliberate exclusion; §7's DEPEND table is the more authoritative source and it does include wizard. Applying the same human-approved resolution (skip/park rather than build under a possibly-superseded AC) as t-2834/t-2835, without re-asking — same conflict shape, same decision rule. Tagged parked (ADR-078) + blocked_by t-2837 (documentation only). Flag for t-2837's author: the ADR should explicitly confirm or deny whether t-2836/wizard is in scope, since its own reshape list and its own DEPEND table disagree on this one.\n2026-08-17: t-2837/ADR-084 decided PILOT-ONLY. wizard's scope ambiguity RESOLVED — ADR-084 §4/§5 confirms wizard IS in scope as VENDOR+WRAP (§7's DEPEND table is explicit; the studio reshape note's silence on t-2836 read as omission, not exclusion). Stays parked, blocked_by re-pointed t-2837→t-2834 (gated on pilot kill/expand). AC rewritten to conditional vendor+wrap framing.\n2026-08-30: t-2834 pilot EXPANDED (ADR-084 §7a) — unparked, blocked_by cleared. AC's first bullet (\"IF t-2834's pilot expands\") is now the operative branch; build against that AC set.",
       "created": "2026-08-13",
       "description": null,
       "effort": "M",
@@ -73951,8 +73946,7 @@
       "tags": [
         "skills",
         "wave:drain-3",
-        "mattpocock-mining",
-        "parked"
+        "mattpocock-mining"
       ],
       "type": "task",
       "work_type": "implement"
@@ -73977,7 +73971,7 @@
       "github_issue": null,
       "id": "t-2837",
       "kind": "design",
-      "notes": "2026-08-23: ADR-084 landed on dev via --no-ff merge (thebrana-7f, operator pause #1 approved). Accepted — pilot-only; challenge findings applied a5861b2c; hooks.md regen eb7e559e. validate.sh Check 70 flake (test-session-start budget, ruflo-mcp sweep) pre-existing on dev, unrelated (branch touched 0 system/tests files). Worktree ../thebrana-t-2837 + branch removed.",
+      "notes": "2026-08-23: ADR-084 landed on dev via --no-ff merge (thebrana-7f, operator pause #1 approved). Accepted — pilot-only; challenge findings applied a5861b2c; hooks.md regen eb7e559e. validate.sh Check 70 flake (test-session-start budget, ruflo-mcp sweep) pre-existing on dev, unrelated (branch touched 0 system/tests files). Worktree ../thebrana-t-2837 + branch removed.\n2026-08-30: t-2834 pilot evaluated — EXPAND (all 3 pre-registered §7 proxies expand-eligible: adapter_churn=0, invocations=1 real bug t-3212, upstream_delta=0/still v1.2.3). Outcome recorded in ADR-084 §7a. t-2835/t-2836 unparked, blocked_by cleared.",
       "order": 0,
       "parent": "in-002",
       "priority": "P2",
@@ -85829,7 +85823,7 @@
     {
       "id": "t-3237",
       "subject": "Handle share.google/aimode links in knowledge fetch pipeline",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -85842,11 +85836,41 @@
       "priority": "P3",
       "parent": "t-2348",
       "created": "2026-08-30",
+      "started": "2026-08-30",
+      "completed": null,
+      "blocked_by": [],
+      "branch": "knowledge-pipeline/fix/t-3237-handle-share-google-aimode",
+      "context": "Root cause: classify_platform() in system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs buckets unrecognized hosts (including share.google) as \"other\" and fetches with the plain ureq-based fetcher, which expects UTF-8 HTML/text. share.google/aimode pages apparently return content the fetcher can't decode as UTF-8 (likely compressed/binary or a non-text content-type from a JS-rendered share page).\n\nFix options to evaluate:\n1. Detect non-UTF-8 / failed decode and fall back to a headless/rendered fetch tier (mirrors the linkedin public-extract -> authenticated tier-2 fallback pattern already in the file) instead of hard-failing.\n2. Special-case share.google (and similar AI-mode/conversation-share hosts) in classify_platform() and either skip auto-fetch (mark task as needs-manual-content rather than FAILED) or route through agy/claude for a rendered fetch.\n3. At minimum: on UTF-8 decode failure, leave the task pending with a clearer message (\"content not fetchable — needs manual paste\") instead of a raw io error, so drain-links output is actionable without digging into the CLI error.\n\nConfirmed the pipeline itself is otherwise healthy: 355/356 historical link tasks verified as actually present in the knowledge namespace (not just marked complete) during t-1689 investigation (2026-08-30).\n2026-08-30: Second-variant finder (challenger gate) confirmed a third sibling — fetch_youtube_channel_videos's strict String::from_utf8() on yt-dlp stdout — fixed in this task (decode_yt_dlp_stdout, lossy). Found a fourth, differently-shaped issue (VTT caption read .ok()-swallow) — filed separately as t-3238 since it needs a design decision, not a mechanical fix.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none",
+      "strategy": "bug-fix",
+      "build_step": "classify"
+    },
+    {
+      "id": "t-3238",
+      "subject": "VTT caption read failure indistinguishable from \"no captions\" (silent .ok() swallow)",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "knowledge-pipeline",
+        "youtube"
+      ],
+      "description": "Second-variant finder (challenger gate, t-3237) found a related-but-different issue: in fetch_youtube_content_attempt (system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs:2411), std::fs::read_to_string(&vtt_path).ok() silently converts a decode failure (e.g. non-UTF-8 bytes in a downloaded YouTube caption VTT) into None — indistinguishable downstream from \"this video genuinely has no captions.\" Different failure shape than t-3237's hard-fail class (this one silently swallows instead of erroring), so it wasn't folded into that fix.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2348",
+      "created": "2026-08-30",
       "started": null,
       "completed": null,
       "blocked_by": [],
       "branch": null,
-      "context": "Root cause: classify_platform() in system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs buckets unrecognized hosts (including share.google) as \"other\" and fetches with the plain ureq-based fetcher, which expects UTF-8 HTML/text. share.google/aimode pages apparently return content the fetcher can't decode as UTF-8 (likely compressed/binary or a non-text content-type from a JS-rendered share page).\n\nFix options to evaluate:\n1. Detect non-UTF-8 / failed decode and fall back to a headless/rendered fetch tier (mirrors the linkedin public-extract -> authenticated tier-2 fallback pattern already in the file) instead of hard-failing.\n2. Special-case share.google (and similar AI-mode/conversation-share hosts) in classify_platform() and either skip auto-fetch (mark task as needs-manual-content rather than FAILED) or route through agy/claude for a rendered fetch.\n3. At minimum: on UTF-8 decode failure, leave the task pending with a clearer message (\"content not fetchable — needs manual paste\") instead of a raw io error, so drain-links output is actionable without digging into the CLI error.\n\nConfirmed the pipeline itself is otherwise healthy: 355/356 historical link tasks verified as actually present in the knowledge namespace (not just marked complete) during t-1689 investigation (2026-08-30).",
+      "context": "Root cause: same family as t-3237 (assuming external/network-adjacent content is clean UTF-8), but the fix isn't a 1-line lossy-decode swap — read_to_string().ok() already can't distinguish \"file missing\" from \"file unreadable\" from \"bad encoding\", so fixing this properly means either lossy-decoding the VTT read (simple, but then a genuinely garbled caption file silently becomes garbled text - passed through - instead of \"no captions\") or adding a distinct error path that logs/surfaces the distinction instead of collapsing to None. Needs a real design decision, not just this fix's mechanical lossy_utf8 swap — hence filed separately.",
       "notes": null,
       "order": 0,
       "github_issue": null,
