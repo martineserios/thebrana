@@ -85852,7 +85852,7 @@
     {
       "id": "t-3238",
       "subject": "VTT caption read failure indistinguishable from \"no captions\" (silent .ok() swallow)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -85865,11 +85865,11 @@
       "parent": "t-2348",
       "created": "2026-08-30",
       "started": "2026-08-30",
-      "completed": null,
+      "completed": "2026-08-30",
       "blocked_by": [],
       "branch": "knowledge-pipeline/fix/t-3238-vtt-caption-read-failure",
       "context": "Root cause: same family as t-3237 (assuming external/network-adjacent content is clean UTF-8), but the fix isn't a 1-line lossy-decode swap — read_to_string().ok() already can't distinguish \"file missing\" from \"file unreadable\" from \"bad encoding\", so fixing this properly means either lossy-decoding the VTT read (simple, but then a genuinely garbled caption file silently becomes garbled text - passed through - instead of \"no captions\") or adding a distinct error path that logs/surfaces the distinction instead of collapsing to None. Needs a real design decision, not just this fix's mechanical lossy_utf8 swap — hence filed separately.",
-      "notes": "Challenger: PROCEED (2026-08-30), 0 finding(s), max severity 1. Second-variant finder (rung 1): SIBLINGS: no.",
+      "notes": "Challenger: PROCEED (2026-08-30), 0 finding(s), max severity 1. Second-variant finder (rung 1): SIBLINGS: no.\nRetrospective: mirrored t-3237's precedent exactly (decode_yt_dlp_stdout → decode_vtt_bytes). Only new wrinkle: used the Cow::Owned discriminant to detect lossy substitution instead of scanning for U+FFFD, avoiding a false-positive on legitimately-present replacement chars — captured as a project pattern memory. Docs: field note + ADR-070 changelog appended (commit d3f570b5), mirroring t-3237's doc commit shape.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -85877,7 +85877,7 @@
       "work_type": "implement",
       "ac_state": "none",
       "strategy": "bug-fix",
-      "build_step": "classify"
+      "build_step": null
     },
     {
       "id": "t-3239",
