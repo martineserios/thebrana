@@ -587,6 +587,21 @@ pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Opti
     }
 }
 
+/// t-3165 (ADR-086 §9): advisory warning for frozen node types. phase/milestone
+/// creation is frozen per backlog-v3-schema (existing nodes stay; new grouping
+/// levels are epic nodes + the parent chain, ADR-065). Warn-only by design —
+/// creation is never blocked.
+fn frozen_type_warning(task_type: &str) -> Option<String> {
+    match task_type {
+        "phase" | "milestone" => Some(format!(
+            "warning: type \"{task_type}\" creation is frozen (backlog-v3-schema; ADR-086 §9) — \
+             existing nodes stay, but new grouping belongs on an epic node + parent chain \
+             (ADR-065). Creating it anyway."
+        )),
+        _ => None,
+    }
+}
+
 pub fn cmd_add(
     json: Option<String>,
     subject: Option<String>,
@@ -798,6 +813,14 @@ pub fn cmd_add(
     }
 
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
+
+    // t-3165 (ADR-086 §9): phase/milestone creation is frozen (backlog-v3-schema
+    // D6/D8 keep existing nodes; new grouping = epic + parent chain). Advisory:
+    // warn on the FINAL merged type — covers --type, JSON, and stdin paths alike
+    // (second-variant lesson: gate the merged object, not one input flag).
+    if let Some(w) = frozen_type_warning(new_task["type"].as_str().unwrap_or("")) {
+        eprintln!("{w}");
+    }
 
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
@@ -2716,6 +2739,39 @@ mod tests {
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         data["tasks"][0].clone()
+    }
+
+    #[test]
+    fn frozen_type_warning_fires_for_phase_and_milestone_only() {
+        // t-3165 (ADR-086 §9): phase/milestone creation is frozen per
+        // backlog-v3-schema — warn, but never block (existing nodes stay).
+        for frozen in ["phase", "milestone"] {
+            let w = frozen_type_warning(frozen);
+            assert!(w.is_some(), "{frozen} must warn");
+            assert!(w.unwrap().contains("frozen"), "{frozen} warning names the freeze");
+        }
+        for fine in ["task", "subtask", "epic", "initiative"] {
+            assert!(frozen_type_warning(fine).is_none(), "{fine} must not warn");
+        }
+    }
+
+    #[test]
+    fn cmd_add_phase_warns_but_still_creates() {
+        // creation stays allowed — the warning is advisory, both input paths
+        let f = empty_tasks_file();
+        cmd_add(
+            None, Some("a phase via shorthand".into()), None, Some("phase".into()),
+            None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        assert_eq!(read_first_task(&f)["type"].as_str(), Some("phase"));
+        let f2 = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"a milestone via json","type":"milestone"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f2.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        assert_eq!(read_first_task(&f2)["type"].as_str(), Some("milestone"));
     }
 
     #[test]

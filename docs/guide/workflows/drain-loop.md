@@ -21,6 +21,21 @@ termination check the agent can't game*, and this is the middle piece. The
 durable state (tasks.json: wave status, task status, `ac_state`) is the loop's
 memory; each beat re-reads it and trusts nothing from prior beats.
 
+## Sizing rules (ADR-086 §1, t-3165)
+
+Two cut rules govern what enters this loop — apply them at plan/decompose
+time, not after a pull goes wrong:
+
+- **A task is one fresh context window.** If an agent can't carry the task
+  from pull to report inside a single context, it's cut wrong — decompose it
+  (Pocock's "task = one fresh context window" rule, adopted in ADR-086 §1).
+  Under-decomposition shows up later as judge-panel escalations; the fix is
+  the cut, not a bigger panel.
+- **A wave is one AFK cycle.** A wave's selector should match what a human
+  expects to review and ship after one away-from-keyboard stretch — the
+  human ship valve is the throttle, so a wave sized past one sitting just
+  queues at the valve.
+
 ## Prerequisites (the pipeline, front to back)
 
 ```

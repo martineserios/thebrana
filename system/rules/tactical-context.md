@@ -19,15 +19,14 @@ After giving actionable advice related to a task (workaround, constraint, deadli
 
 ## Scope
 
-Format: `YYYY-MM-DD: <1-2 lines>`. Current project only. Don't duplicate existing context. Don't append generic programming advice, status updates, or code explanations.
+Format: `YYYY-MM-DD: <1-2 lines>`. Current project only. No duplicates; no generic advice, status updates, or code explanations.
 
 ```
-Example:
-
-  User: "the Stripe webhook needs to be tested with the CLI, not ngrok"
-  Active task: t-320 (in_progress, subject: "Stripe payment integration")
-  → brana backlog set t-320 context --append "2026-03-30: test webhooks with Stripe CLI, not ngrok"
-  → (appended to t-320 context)
-
-  NOT appended: "Stripe is a payment processor" (generic, not tactical)
+"test the Stripe webhook with the CLI, not ngrok" + active t-320 (Stripe) →
+  set t-320 context --append "2026-03-30: test webhooks with Stripe CLI, not ngrok"
+NOT appended: "Stripe is a payment processor" (generic, not tactical)
 ```
+
+## Pointer, not paste (ADR-086 §7)
+
+Name the **home of record** + one-line gist, never restate; only task-local tactics live inline. Table: `docs/agents/issue-tracker.md`.
