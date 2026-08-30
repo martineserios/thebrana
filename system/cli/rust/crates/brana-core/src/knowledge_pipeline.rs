@@ -2396,6 +2396,23 @@ fn determine_youtube_caption_source(info: &serde_json::Value) -> Option<YoutubeC
     }
 }
 
+/// Decode a downloaded VTT caption file's bytes to text, and whether the
+/// decode had to substitute any invalid UTF-8 byte. The file is written by
+/// `yt-dlp`, the same "untrusted external byte stream" class as its stdout
+/// (t-3237's `decode_yt_dlp_stdout` above) — `fetch_youtube_content_attempt`
+/// used to read it with `std::fs::read_to_string(..).ok()`, which collapsed
+/// a decode failure into the exact same `None` the genuine no-captions case
+/// returns (t-3238). Lossy-decoding here (rather than hard-failing or
+/// dropping the caption) keeps a real caption track with one bad byte from
+/// being lost entirely; returning the `lossy` flag lets the caller warn
+/// loudly instead of the corruption going unnoticed. Pure — testable
+/// without a filesystem or a real download.
+fn decode_vtt_bytes(bytes: &[u8]) -> (String, bool) {
+    let decoded = String::from_utf8_lossy(bytes);
+    let lossy = matches!(decoded, std::borrow::Cow::Owned(_));
+    (decoded.into_owned(), lossy)
+}
+
 /// One yt-dlp caption-fetch attempt — everything [`run_with_youtube_backoff`]
 /// retries on a rate-limit response.
 fn fetch_youtube_content_attempt(
@@ -2414,7 +2431,16 @@ fn fetch_youtube_content_attempt(
     let source = determine_youtube_caption_source(&info);
 
     let vtt_path = work_dir.path.join(format!("{YT_DLP_CAPTION_BASENAME}.en.vtt"));
-    let vtt = std::fs::read_to_string(&vtt_path).ok();
+    let vtt = std::fs::read(&vtt_path).ok().map(|bytes| {
+        let (text, lossy) = decode_vtt_bytes(&bytes);
+        if lossy {
+            eprintln!(
+                "  ⚠ VTT caption file at {} had invalid UTF-8 bytes; lossy-decoded and continuing",
+                vtt_path.display()
+            );
+        }
+        text
+    });
 
     let (manual_vtt, auto_vtt) = match (source, &vtt) {
         (Some("manual"), Some(text)) => (Some(text.as_str()), None),
@@ -4046,6 +4072,31 @@ id3
     #[test]
     fn test_determine_youtube_caption_source_malformed_json_is_none() {
         assert_eq!(determine_youtube_caption_source(&serde_json::Value::Null), None);
+    }
+
+    // decode_vtt_bytes (t-3238): the VTT file `fetch_youtube_content_attempt`
+    // reads is downloaded by yt-dlp, same "untrusted external byte stream"
+    // class as its stdout (t-3237's decode_yt_dlp_stdout above) — must not
+    // collapse a decode failure into the same `None` the genuine
+    // no-captions case returns.
+    #[test]
+    fn test_decode_vtt_bytes_valid_utf8_is_not_lossy() {
+        let bytes = b"WEBVTT\n\n00:00.000 --> 00:01.000\nHello world\n";
+        let (text, lossy) = decode_vtt_bytes(bytes);
+        assert_eq!(text, "WEBVTT\n\n00:00.000 --> 00:01.000\nHello world\n");
+        assert!(!lossy);
+    }
+
+    #[test]
+    fn test_decode_vtt_bytes_invalid_utf8_lossy_decodes_instead_of_dropping() {
+        let mut bytes = b"WEBVTT\n\nHello ".to_vec();
+        bytes.push(0xFF); // never valid as a UTF-8 lead byte
+        bytes.extend_from_slice(b" world\n");
+        let (text, lossy) = decode_vtt_bytes(&bytes);
+        assert!(lossy, "invalid byte must be flagged, not silently dropped");
+        assert!(text.contains('\u{FFFD}'));
+        assert!(text.starts_with("WEBVTT"));
+        assert!(text.ends_with("world\n"));
     }
 
     // Boundary (t-2950): a URL-shaped string starting with "-" (attacker

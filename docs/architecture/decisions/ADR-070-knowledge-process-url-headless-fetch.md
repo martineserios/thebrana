@@ -623,3 +623,9 @@ flip:**
   `fetch_youtube_channel_videos`'s yt-dlp stdout decode (t-3237, found by
   the Challenger gate's second-variant finder). See
   [knowledge-process-url.md §Field Notes](../features/knowledge-process-url.md#field-notes).
+- 2026-08-30: `fetch_youtube_content_attempt`'s VTT caption read no longer
+  swallows a decode failure into the same `None` as genuine no-captions —
+  extracted `decode_vtt_bytes`, which always lossy-decodes and flags
+  substitution via the `Cow::Owned` discriminant (t-3238, the silent-swallow
+  sibling t-3237's second-variant finder flagged but didn't fold in). See
+  [knowledge-process-url.md §Field Notes](../features/knowledge-process-url.md#field-notes).
