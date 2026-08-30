@@ -89,6 +89,43 @@ impl WaveSelector {
             WaveSelector::Role(target) => derive_role(task) == Some(*target),
         }
     }
+
+    /// Membership as-if-pending — the status-agnostic test for ROLE selectors
+    /// (t-3161 repair, panel finding 1). Roles are status-derived (an
+    /// in_progress task derives `claimed`, a completed one `resolved`), so
+    /// plain `matches` can never see a role wave's in-flight members; this
+    /// tests the task with its status overridden to `pending`. Tag/Parent
+    /// selectors are already status-agnostic — identical to `matches`. Both
+    /// the pump's wip live-count and `wave_counts` route through this, so the
+    /// board gauge and `wip_limit` can never disagree on who is live.
+    pub fn matches_as_pending(&self, task: &Value, by_id: &HashMap<&str, &Value>) -> bool {
+        match self {
+            WaveSelector::Role(_) => {
+                if task["status"].as_str() == Some("pending") {
+                    return self.matches(task, by_id);
+                }
+                let mut as_pending = task.clone();
+                as_pending["status"] = Value::String("pending".into());
+                self.matches(&as_pending, by_id)
+            }
+            _ => self.matches(task, by_id),
+        }
+    }
+}
+
+/// Draining bespoke (`tag:`/`parent:`) selectors other than `wid`'s own — the
+/// precedence set a standing (role-selector) wave defers to (ADR-086 §5,
+/// t-3161). An unparsable selector on another wave is skipped, not fatal:
+/// that wave fails loud on its own drain/pull, and deferring to a wave that
+/// can never pull would strand its tasks forever. Single owner — the pump's
+/// candidate deferral, its live count, and `wave_counts` all call this.
+pub fn bespoke_draining_selectors(wid: &str, waves: &[Value]) -> Vec<WaveSelector> {
+    waves
+        .iter()
+        .filter(|w| w["id"].as_str() != Some(wid) && w["status"].as_str() == Some("draining"))
+        .filter_map(|w| parse_wave_selector(w["selector"].as_str().unwrap_or("")).ok())
+        .filter(|s| !matches!(s, WaveSelector::Role(_)))
+        .collect()
 }
 
 /// id→task index for `WaveSelector::matches` parent-chain walks.
@@ -215,16 +252,8 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value], waves: &[Value]) -> Res
     // wave fails loud on its own drain/pull, and deferring to a wave that can
     // never pull would strand its tasks forever.
     let standing = matches!(sel, WaveSelector::Role(_));
-    let bespoke: Vec<WaveSelector> = if standing {
-        waves
-            .iter()
-            .filter(|w| w["id"].as_str() != Some(wid) && w["status"].as_str() == Some("draining"))
-            .filter_map(|w| parse_wave_selector(w["selector"].as_str().unwrap_or("")).ok())
-            .filter(|s| !matches!(s, WaveSelector::Role(_)))
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let bespoke: Vec<WaveSelector> =
+        if standing { bespoke_draining_selectors(wid, waves) } else { Vec::new() };
     let bespoke_matched = |t: &Value| bespoke.iter().any(|s| s.matches(t, &by_id));
 
     // Live count: in_progress selector-matches, via the SAME parse point and
@@ -232,17 +261,17 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value], waves: &[Value]) -> Res
     // live=0 forever on parent: waves, silently defeating wip_limit). Role
     // selectors are status-derived (an in_progress task derives `claimed`,
     // never `ready-for-agent`), so a naive selector match would count live=0
-    // forever and wip_limit could never bind on the standing wave — instead,
-    // count in_progress tasks that WOULD match were they pending, minus
-    // bespoke-owned ones (the same precedence rule, applied to the live side).
+    // forever and wip_limit could never bind on the standing wave —
+    // `matches_as_pending` counts in_progress tasks that WOULD match were
+    // they pending, minus bespoke-owned ones (the same precedence rule,
+    // applied to the live side). `wave_counts` uses the same pair, so the
+    // board gauge agrees with this bound.
     let live = tasks
         .iter()
         .filter(|t| t["status"].as_str() == Some("in_progress"))
         .filter(|t| {
             if standing {
-                let mut as_pending = (*t).clone();
-                as_pending["status"] = Value::String("pending".into());
-                sel.matches(&as_pending, &by_id) && !bespoke_matched(t)
+                sel.matches_as_pending(t, &by_id) && !bespoke_matched(t)
             } else {
                 sel.matches(t, &by_id)
             }
@@ -485,15 +514,31 @@ pub struct WaveCounts {
 
 /// Compute `WaveCounts` for one wave. **Zero direct selector string
 /// parsing** — routes exclusively through `parse_wave_selector` +
-/// `WaveSelector::matches`, the single parse point and status-agnostic
-/// matcher (ADR-080 §1), the same authority `resolve_wave_selector` and the
-/// wip live-count use. Read-only: takes `&[Value]`, never `&mut`.
-pub fn wave_counts(wave: &Value, tasks: &[Value]) -> Result<WaveCounts, String> {
+/// `WaveSelector` matching, the single parse point (ADR-080 §1), the same
+/// authority `resolve_wave_selector` and the wip live-count use. For a
+/// standing (role-selector) wave, membership is `matches_as_pending` minus
+/// bespoke-owned tasks (`bespoke_draining_selectors`) — the exact pair the
+/// pump's live count uses (t-3161 repair, panel finding 1), so the board's
+/// `in_progress` gauge and `wip_limit` enforcement can never disagree.
+/// `waves` is the full waves array for that precedence check; bespoke waves
+/// ignore it. Read-only: takes `&[Value]`, never `&mut`.
+pub fn wave_counts(wave: &Value, tasks: &[Value], waves: &[Value]) -> Result<WaveCounts, String> {
     let sel = parse_wave_selector(wave["selector"].as_str().unwrap_or(""))?;
     let by_id = task_index(tasks);
+    let standing = matches!(sel, WaveSelector::Role(_));
+    let bespoke: Vec<WaveSelector> = if standing {
+        bespoke_draining_selectors(wave["id"].as_str().unwrap_or("?"), waves)
+    } else {
+        Vec::new()
+    };
     let mut counts = WaveCounts { matched: 0, pending: 0, in_progress: 0, approved: 0 };
     for t in tasks {
-        if !sel.matches(t, &by_id) {
+        let member = if standing {
+            sel.matches_as_pending(t, &by_id) && !bespoke.iter().any(|s| s.matches(t, &by_id))
+        } else {
+            sel.matches(t, &by_id)
+        };
+        if !member {
             continue;
         }
         counts.matched += 1;
@@ -540,7 +585,7 @@ pub fn wave_board(waves: &[Value], tasks: &[Value]) -> Result<Vec<WaveBoardRow>,
             let wave = by_id
                 .get(id.as_str())
                 .ok_or_else(|| format!("wave {id} vanished during board render"))?;
-            let counts = wave_counts(wave, tasks)?;
+            let counts = wave_counts(wave, tasks, waves)?;
             Ok(WaveBoardRow {
                 id: id.clone(),
                 name: wave["name"].as_str().unwrap_or("").to_string(),
@@ -919,7 +964,7 @@ mod tests {
             counted_task("t-4", "completed", Some("ms-1"), Some("approved")),
             counted_task("t-5", "pending", Some("other-ms"), Some("approved")), // different subtree
         ];
-        let counts = wave_counts(&w, &tasks).unwrap();
+        let counts = wave_counts(&w, &tasks, &[]).unwrap();
         assert_eq!(counts.matched, 4, "t-1..t-4 match parent:ms-1; ms-1 and t-5 don't");
         assert_eq!(counts.pending, 2, "t-1, t-2");
         assert_eq!(counts.in_progress, 1, "t-3");
@@ -929,7 +974,7 @@ mod tests {
     #[test]
     fn wave_counts_zero_matches_is_ok_not_error() {
         let w = json!({"id": "wave-1", "name": "w", "selector": "tag:nothing", "status": "queued"});
-        let counts = wave_counts(&w, &[]).unwrap();
+        let counts = wave_counts(&w, &[], &[]).unwrap();
         assert_eq!(counts.matched, 0);
         assert_eq!(counts.pending, 0);
         assert_eq!(counts.in_progress, 0);
@@ -942,8 +987,45 @@ mod tests {
         // exclusively" (well, its single parse point) — an unsupported
         // selector form must reject loud here too, not silently count 0.
         let w = json!({"id": "wave-1", "name": "w", "selector": "status:pending", "status": "queued"});
-        let err = wave_counts(&w, &[]).unwrap_err();
+        let err = wave_counts(&w, &[], &[]).unwrap_err();
         assert!(err.contains("selector form not supported"));
+    }
+
+    #[test]
+    fn wave_counts_role_selector_counts_in_progress_via_as_pending_derivation() {
+        // t-3161 repair (panel finding 1): roles are status-derived — an
+        // in_progress task derives `claimed`, so the naive selector match
+        // showed the board's in_progress gauge as 0 while the pump reported
+        // AtLimit{live:N} for the same wave. Board and pump must agree.
+        let w = json!({"id":"wave-std","name":"wave-standing","selector":"role:ready-for-agent","status":"draining"});
+        let tasks = vec![
+            json!({"id":"t-1","status":"pending","ac_state":"approved","tags":[]}),
+            json!({"id":"t-2","status":"in_progress","ac_state":"approved","tags":[]}), // claimed from the pool
+            json!({"id":"t-3","status":"in_progress","ac_state":"proposed","tags":[]}), // never a member
+        ];
+        let waves = vec![w.clone()];
+        let counts = wave_counts(&w, &tasks, &waves).unwrap();
+        assert_eq!(counts.matched, 2, "t-1 + t-2 (would-be-pending member)");
+        assert_eq!(counts.pending, 1);
+        assert_eq!(counts.in_progress, 1, "the pump's live gauge, not 0");
+        assert_eq!(counts.approved, 2);
+    }
+
+    #[test]
+    fn wave_counts_role_selector_excludes_bespoke_owned_from_pool() {
+        // Same precedence rule as the pump's live count: a task owned by a
+        // draining bespoke wave is not part of the standing pool.
+        let w = json!({"id":"wave-std","name":"wave-standing","selector":"role:ready-for-agent","status":"draining"});
+        let bespoke = json!({"id":"wave-1","name":"w1","selector":"tag:w1","status":"draining"});
+        let tasks = vec![
+            json!({"id":"t-1","status":"in_progress","ac_state":"approved","tags":["w1"]}),
+            json!({"id":"t-2","status":"pending","ac_state":"approved","tags":[]}),
+        ];
+        let waves = vec![w.clone(), bespoke];
+        let counts = wave_counts(&w, &tasks, &waves).unwrap();
+        assert_eq!(counts.matched, 1, "t-1 is bespoke-owned — not in the standing pool");
+        assert_eq!(counts.in_progress, 0);
+        assert_eq!(counts.pending, 1);
     }
 
     // ── wave_board (t-2844, ADR-080 §6f) ────────────────────────────────────

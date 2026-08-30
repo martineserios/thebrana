@@ -59,7 +59,9 @@ implemented in `wave_pull_decision` (`brana-core/src/tasks/wave.rs`):
   `wip_limit`, same as the tag-wave precedent.
 
 Everything else is identical: same pump (`wave pull`), same denied verbs, same
-human valves. Latency note (ADR-086 F12): the standing frontier is small while
+human valves. Reading a standing `none_eligible` report: `unapproved`/`parked`/
+`human` are structurally always 0 (role membership already implies approved ∧
+¬parked ∧ ¬human) — only `blocked` and `deferred` carry signal. Latency note (ADR-086 F12): the standing frontier is small while
 `ac approve` adoption grows — the human approve valve is the throttle, and
 that is the design, not a stall.
 
