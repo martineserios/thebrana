@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-30T00:58:34Z",
+  "generated": "2026-08-30T11:58:43Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -609,7 +609,16 @@
         "system/skills/_shared/judge-sizing.md",
         "system/loops/",
         "system/scripts/readme-coverage.sh",
+        "system/scripts/generate-context-md.py",
         "system/hooks/tests/"
+      ]
+    },
+    "docs/agents/issue-tracker.md": {
+      "title": "Issue tracker — how agents use the brana backlog",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/_shared/issue-tracker-template.md",
+        "system/hooks/runner-verb-guard.sh"
       ]
     },
     "docs/architecture/ac-grammar.md": {
@@ -4170,6 +4179,15 @@
       "title": "PLAN-panel probe — retrospective measurement (t-3156)",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/research/2026-08-29-field-usage-audit.md": {
+      "title": "Structured-field usage audit — tasks.json",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/",
+        "system/skills/",
+        "system/scripts/"
+      ]
     },
     "docs/research/agentic-engineering-2026-gap-analysis.md": {
       "title": "Gap Analysis: Agentic Engineering Feb–Jul 2026 vs brana",
@@ -10489,6 +10507,12 @@
     {
       "from": "docs/39-architecture-redesign.md",
       "to": "reflections/14-mastermind-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "agents/issue-tracker.md",
       "type": "references",
       "computed": false
     },
@@ -18840,9 +18864,9 @@
     }
   ],
   "stats": {
-    "nodes": 616,
-    "edges": 2414,
+    "nodes": 618,
+    "edges": 2415,
     "typed_edges": 694,
-    "orphans": 140
+    "orphans": 142
   }
 }
