@@ -13,12 +13,8 @@ When starting research on any topic:
 Never launch web research and doc reading in parallel. Web results without doc context produce generic findings instead of project-specific ones.
 
 ```
-Example — researching "should we use Redis for caching?"
-
-WRONG: WebSearch("redis caching best practices") → generic article → "use Redis"
-RIGHT:
-  1. Grep project for "cache", "redis", "memcached" → find docs/decisions/003-caching.md
-  2. Read it → team chose in-memory LRU, Redis rejected for ops complexity
-  3. WebSearch("LRU cache eviction strategies") → project-specific findings
-  4. Cross-reference: finding X answers open question in 003-caching.md
+Example — "should we use Redis for caching?"
+WRONG: WebSearch("redis caching best practices") → generic "use Redis"
+RIGHT: grep project → docs/decisions/003-caching.md chose in-memory LRU →
+       search LRU eviction instead; cross-ref findings back into the doc
 ```

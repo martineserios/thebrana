@@ -11,6 +11,8 @@ Fields: id, subject, description, tags, status, kind, type, parent, priority, ef
 
 `epic` isn't a field (`set_field`/`add` reject it) — membership is `parent` → nearest `type:"epic"` task, resolved live, no cache. See: [backlog-v3-schema.md](../../docs/architecture/features/backlog-v3-schema.md).
 
+**ADR-086:** task = one context window, wave = one AFK cycle (§1); no new `phase`/`milestone` — CLI warns, use epic+`parent` (§9); appends = pointer-not-paste (§7).
+
 Cancelling a parent does NOT auto-cancel children — manually cancel/re-parent. `brana backlog tree <parent-id>` shows the subtree.
 
 Reads free; writes confirm first.
