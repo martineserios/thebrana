@@ -1,10 +1,17 @@
 //! t-3162 (ADR-086 §6 / T4, guide L3.7 rung 1): `CHECK:` lines in a wave's
 //! `contract`, parsed against an ALLOWLISTED vocabulary only and evaluated at
-//! `wave ship` time — evaluated-and-SHOWN, never a gate. The evaluation path
-//! is pure (mutates nothing); a red check informs the human and never blocks
+//! ship time — evaluated-and-SHOWN, never a gate. The evaluation path is
+//! pure (mutates nothing); a red check informs the human and never blocks
 //! or causes the flip (operator decision 2026-08-29 on t-3162; ADR-080 §7's
 //! no-auto-advance reservation intact). `contract` itself is runner-denied
 //! (runner-verb-guard.sh) so the gauge is not armed by the party it constrains.
+//!
+//! Moved here from brana-cli (t-3234): the CLI's `cmd_wave_ship` and the MCP
+//! `backlog_wave_set` tool are two independent ship surfaces over the same
+//! wave state — living in brana-cli, this evaluation was reachable from only
+//! one of them, so MCP callers flipped `status: shipped` with zero CHECK:
+//! evaluation. `build_ship_report` is now the single owner both surfaces
+//! call — a divergent-behavior class fix, not a per-surface patch.
 //!
 //! Vocabulary v1 (docs/research/2026-08-24-epic-gauge-probe.md):
 //!   CHECK: all selector tasks completed
@@ -141,7 +148,7 @@ pub enum CheckOutcome {
 
 /// Evaluate the task-state checks (SelectorCompleted / SelectorCount) against
 /// already-resolved selector matches. Pure — takes data, returns outcomes;
-/// the git / subprocess checks live in the CLI shell (cmd_wave_ship), not here.
+/// the git / subprocess checks live in `exec_check`, not here.
 pub fn eval_selector_check(kind: &CheckKind, matched_statuses: &[String]) -> Option<CheckOutcome> {
     match kind {
         CheckKind::SelectorCompleted => {
@@ -178,7 +185,7 @@ pub fn eval_selector_check(kind: &CheckKind, matched_statuses: &[String]) -> Opt
 
 /// Render the ship-time report. Pure over its inputs: selector checks are
 /// evaluated here from `matched_statuses`; every other check kind is handed
-/// to `exec` (the CLI shell injects git/subprocess evaluation there, tests
+/// to `exec` (the caller injects git/subprocess evaluation there, tests
 /// inject canned outcomes). Returns display lines; NOTHING here mutates
 /// state and no outcome influences the caller's flip (observational rung 1).
 pub fn build_report(
@@ -229,6 +236,138 @@ fn describe(kind: &CheckKind) -> String {
         CheckKind::ValidateCheck { n } => format!("validate.sh --check {n} green"),
         CheckKind::CargoTest { crate_name } => format!("cargo test -p {crate_name} green"),
     }
+}
+
+/// Evaluate the non-selector check kinds for ship time. Each arm only ever
+/// runs the exact allowlisted form — the parser already rejected anything
+/// else. Failures to evaluate (no git, no repo root) degrade to
+/// Unevaluated, never to a guess.
+pub fn exec_check(
+    kind: &CheckKind,
+    _matched_statuses: &[String],
+    all_tasks: &[serde_json::Value],
+    wave: &serde_json::Value,
+    repo_root: Option<&std::path::Path>,
+) -> CheckOutcome {
+    let Some(root) = repo_root else {
+        return CheckOutcome::Unevaluated("no repo root resolved".into());
+    };
+    match kind {
+        CheckKind::MergedTo { branch } => {
+            // every matched task's `branch` is an ancestor of <branch> or deleted
+            let sel = match crate::tasks::parse_wave_selector(wave["selector"].as_str().unwrap_or("")) {
+                Ok(s) => s,
+                Err(e) => return CheckOutcome::Unevaluated(format!("selector unparseable: {e}")),
+            };
+            let by_id = crate::tasks::task_index(all_tasks);
+            let mut open: Vec<String> = Vec::new();
+            let mut gone: Vec<String> = Vec::new();
+            for t in all_tasks.iter().filter(|t| sel.matches(t, &by_id)) {
+                let Some(tb) = t["branch"].as_str().filter(|b| !b.is_empty()) else { continue };
+                // `--` before ref args: a branch value starting with `-` must
+                // never be parsed by git as a flag (challenger t-3162 f1 —
+                // defense-in-depth; the value comes from a runner-writable field).
+                let exists = std::process::Command::new("git")
+                    .args(["-C", &root.to_string_lossy(), "rev-parse", "--verify", "--quiet", "--end-of-options", tb])
+                    .output();
+                match exists {
+                    Err(e) => return CheckOutcome::Unevaluated(format!("git unavailable: {e}")),
+                    Ok(o) if !o.status.success() => {
+                        // Absent locally: merged-and-cleaned and typo'd/never-created
+                        // are indistinguishable here — report as unverifiable, never
+                        // as a silent PASS (challenger t-3162 f2: false confidence at
+                        // the exact moment the gauge exists to inform).
+                        gone.push(tb.to_string());
+                        continue;
+                    }
+                    Ok(_) => {}
+                }
+                let anc = std::process::Command::new("git")
+                    .args(["-C", &root.to_string_lossy(), "merge-base", "--is-ancestor", "--end-of-options", tb, branch])
+                    .status();
+                match anc {
+                    Ok(s) if s.success() => {}
+                    Ok(_) => open.push(tb.to_string()),
+                    Err(e) => return CheckOutcome::Unevaluated(format!("git unavailable: {e}")),
+                }
+            }
+            match (open.is_empty(), gone.is_empty()) {
+                (true, true) => CheckOutcome::Pass,
+                (true, false) => CheckOutcome::Unevaluated(format!(
+                    "existing branches all ancestors of {branch}; {} unverifiable (deleted or never existed): {}",
+                    gone.len(),
+                    gone.join(", ")
+                )),
+                (false, _) => CheckOutcome::Fail(format!("not ancestors of {branch}: {}", open.join(", "))),
+            }
+        }
+        CheckKind::ValidateCheck { n } => {
+            let script = root.join("validate.sh");
+            if !script.is_file() {
+                return CheckOutcome::Unevaluated("validate.sh not found at repo root".into());
+            }
+            match std::process::Command::new("bash")
+                .args([&script.to_string_lossy() as &str, "--check", &n.to_string()])
+                .current_dir(root)
+                .output()
+            {
+                Ok(o) if o.status.success() => CheckOutcome::Pass,
+                Ok(_) => CheckOutcome::Fail(format!("validate.sh --check {n} exited non-zero")),
+                Err(e) => CheckOutcome::Unevaluated(format!("could not run validate.sh: {e}")),
+            }
+        }
+        CheckKind::CargoTest { crate_name } => {
+            let manifest_dir = root.join("system/cli/rust");
+            if !manifest_dir.join("Cargo.toml").is_file() {
+                return CheckOutcome::Unevaluated("system/cli/rust workspace not found".into());
+            }
+            match std::process::Command::new("cargo")
+                .args(["test", "-p", crate_name, "--quiet"])
+                .current_dir(&manifest_dir)
+                .output()
+            {
+                Ok(o) if o.status.success() => CheckOutcome::Pass,
+                Ok(_) => CheckOutcome::Fail(format!("cargo test -p {crate_name} exited non-zero")),
+                Err(e) => CheckOutcome::Unevaluated(format!("could not run cargo: {e}")),
+            }
+        }
+        // selector kinds were handled by eval_selector_check before exec
+        _ => CheckOutcome::Unevaluated("internal: selector check routed to exec".into()),
+    }
+}
+
+/// Build the full ship-time report for `wave`: parses its `contract`,
+/// resolves the selector against `all_tasks`, and evaluates every check
+/// line. The single implementation both `cmd_wave_ship` (CLI) and
+/// `backlog_wave_set` (MCP, on field=status value=shipped) call — the two
+/// ship surfaces can no longer diverge on what "evaluated" means (t-3234).
+/// Returns an empty vec when the contract has no CHECK:/prose lines at all
+/// (distinct from the surfaces never calling this — always call it).
+pub fn build_ship_report(
+    wave: &serde_json::Value,
+    all_tasks: &[serde_json::Value],
+    repo_root: Option<&std::path::Path>,
+) -> Vec<String> {
+    let contract = wave["contract"].as_str().unwrap_or("");
+    let lines = parse_contract(contract);
+    if lines.is_empty() {
+        return Vec::new();
+    }
+    let matched_statuses: Vec<String> = match crate::tasks::parse_wave_selector(wave["selector"].as_str().unwrap_or("")) {
+        Ok(sel) => {
+            let by_id = crate::tasks::task_index(all_tasks);
+            all_tasks
+                .iter()
+                .filter(|t| sel.matches(t, &by_id))
+                .map(|t| t["status"].as_str().unwrap_or("").to_string())
+                .collect()
+        }
+        Err(_) => Vec::new(),
+    };
+    let exec = |kind: &CheckKind| -> CheckOutcome {
+        exec_check(kind, &matched_statuses, all_tasks, wave, repo_root)
+    };
+    build_report(&lines, &matched_statuses, &exec)
 }
 
 #[cfg(test)]
@@ -365,12 +504,61 @@ mod tests {
 
     #[test]
     fn non_selector_checks_return_none_from_selector_eval() {
-        // merge-base / subprocess checks are the CLI shell's job, not this
-        // pure module's — eval_selector_check must not pretend to know them.
+        // merge-base / subprocess checks are exec_check's job, not this pure
+        // module's — eval_selector_check must not pretend to know them.
         assert_eq!(
             eval_selector_check(&CheckKind::MergedTo { branch: "dev".into() }, &[]),
             None
         );
         assert_eq!(eval_selector_check(&CheckKind::ValidateCheck { n: 1 }, &[]), None);
+    }
+
+    #[test]
+    fn exec_check_missing_branch_is_unverifiable_not_pass() {
+        // challenger t-3162 f2: a branch field naming a ref that doesn't exist
+        // locally (typo, never created, or merged-and-deleted) must NOT read
+        // as a silent PASS — the gauge reports it unverifiable instead.
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let run = |args: &[&str]| {
+            std::process::Command::new("git").args(args).current_dir(root).output().unwrap()
+        };
+        run(&["init", "-q", "-b", "dev"]);
+        run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "root"]);
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[{"id":"t-1","subject":"a","status":"completed","tags":["mm"],"blocked_by":[],"branch":"no/such-branch"}]"#,
+        )
+        .unwrap();
+        let wave: serde_json::Value =
+            serde_json::from_str(r#"{"id":"wave-1","selector":"tag:mm"}"#).unwrap();
+        let out = exec_check(&CheckKind::MergedTo { branch: "dev".into() }, &[], &tasks, &wave, Some(root));
+        match out {
+            CheckOutcome::Unevaluated(why) => {
+                assert!(why.contains("no/such-branch"), "must name the unverifiable branch: {why}")
+            }
+            other => panic!("expected Unevaluated, got {other:?}"),
+        }
+    }
+
+    // ── orchestration: build_ship_report is the single owner (t-3234) ────
+
+    #[test]
+    fn build_ship_report_empty_contract_is_empty_not_absent() {
+        let wave: serde_json::Value = serde_json::from_str(r#"{"id":"wave-1","selector":"tag:x","contract":""}"#).unwrap();
+        assert_eq!(build_ship_report(&wave, &[], None), Vec::<String>::new());
+    }
+
+    #[test]
+    fn build_ship_report_evaluates_selector_checks_end_to_end() {
+        let wave: serde_json::Value = serde_json::from_str(
+            r#"{"id":"wave-1","selector":"tag:shipme","contract":"CHECK: all selector tasks completed\nCHECK: selector count == 1"}"#,
+        )
+        .unwrap();
+        let tasks: Vec<serde_json::Value> =
+            serde_json::from_str(r#"[{"id":"t-1","subject":"a","status":"pending","tags":["shipme"],"blocked_by":[]}]"#).unwrap();
+        let report = build_ship_report(&wave, &tasks, None);
+        let joined = report.join("\n");
+        assert!(joined.contains("FAIL"), "pending task must fail selector-completed:\n{joined}");
+        assert!(joined.contains("PASS"), "count == 1 must pass:\n{joined}");
     }
 }

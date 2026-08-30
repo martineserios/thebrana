@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 
-use crate::commands::wave_check;
 use crate::tasks;
 use crate::themes;
 use crate::util::find_tasks_file;
@@ -1008,143 +1007,27 @@ pub fn cmd_wave_ship(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()>
     };
     // Read-only pass for the gauge display; missing wave falls through to
     // cmd_wave_set for the identical not-found error path (t-3022 parity).
+    // The evaluation itself is brana_core::wave_ship::build_ship_report — the
+    // single owner the MCP backlog_wave_set tool also calls (t-3234), so the
+    // two ship surfaces cannot diverge on what "evaluated" means.
     if let Ok(val) = tasks::load_raw(&tf) {
         let wave = val["waves"]
             .as_array()
             .and_then(|arr| arr.iter().find(|w| w["id"].as_str() == Some(wave_id)));
         if let Some(wave) = wave {
-            let contract = wave["contract"].as_str().unwrap_or("");
-            let lines = wave_check::parse_contract(contract);
-            if !lines.is_empty() {
-                let empty = Vec::new();
-                let all_tasks = val["tasks"].as_array().unwrap_or(&empty);
-                // Same single parse point as every selector consumer
-                // (ADR-080 §1): WaveSelector::matches over ALL statuses —
-                // ship checks ask about completed tasks, not the pull frontier.
-                let matched_statuses: Vec<String> = match brana_core::tasks::parse_wave_selector(
-                    wave["selector"].as_str().unwrap_or(""),
-                ) {
-                    Ok(sel) => {
-                        let by_id = brana_core::tasks::task_index(all_tasks);
-                        all_tasks
-                            .iter()
-                            .filter(|t| sel.matches(t, &by_id))
-                            .map(|t| t["status"].as_str().unwrap_or("").to_string())
-                            .collect()
-                    }
-                    Err(_) => Vec::new(),
-                };
-                let repo_root = tf.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf());
-                let exec = |kind: &wave_check::CheckKind| -> wave_check::CheckOutcome {
-                    exec_ship_check(kind, &matched_statuses, all_tasks, wave, repo_root.as_deref())
-                };
+            let empty = Vec::new();
+            let all_tasks = val["tasks"].as_array().unwrap_or(&empty);
+            let repo_root = tf.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf());
+            let report = brana_core::wave_ship::build_ship_report(wave, all_tasks, repo_root.as_deref());
+            if !report.is_empty() {
                 println!("── wave {wave_id} contract checks (observational — display only) ──");
-                for line in wave_check::build_report(&lines, &matched_statuses, &exec) {
+                for line in report {
                     println!("{line}");
                 }
             }
         }
     }
     cmd_wave_set(wave_id, "status", "shipped", file)
-}
-
-/// Evaluate the non-selector check kinds for `wave ship` (t-3162). Each arm
-/// only ever runs the exact allowlisted form — the parser already rejected
-/// anything else. Failures to evaluate (no git, no repo root) degrade to
-/// Unevaluated, never to a guess.
-fn exec_ship_check(
-    kind: &wave_check::CheckKind,
-    _matched_statuses: &[String],
-    all_tasks: &[serde_json::Value],
-    wave: &serde_json::Value,
-    repo_root: Option<&std::path::Path>,
-) -> wave_check::CheckOutcome {
-    use wave_check::{CheckKind, CheckOutcome};
-    let Some(root) = repo_root else {
-        return CheckOutcome::Unevaluated("no repo root resolved".into());
-    };
-    match kind {
-        CheckKind::MergedTo { branch } => {
-            // every matched task's `branch` is an ancestor of <branch> or deleted
-            let sel = match brana_core::tasks::parse_wave_selector(wave["selector"].as_str().unwrap_or("")) {
-                Ok(s) => s,
-                Err(e) => return CheckOutcome::Unevaluated(format!("selector unparseable: {e}")),
-            };
-            let by_id = brana_core::tasks::task_index(all_tasks);
-            let mut open: Vec<String> = Vec::new();
-            let mut gone: Vec<String> = Vec::new();
-            for t in all_tasks.iter().filter(|t| sel.matches(t, &by_id)) {
-                let Some(tb) = t["branch"].as_str().filter(|b| !b.is_empty()) else { continue };
-                // `--` before ref args: a branch value starting with `-` must
-                // never be parsed by git as a flag (challenger t-3162 f1 —
-                // defense-in-depth; the value comes from a runner-writable field).
-                let exists = std::process::Command::new("git")
-                    .args(["-C", &root.to_string_lossy(), "rev-parse", "--verify", "--quiet", "--end-of-options", tb])
-                    .output();
-                match exists {
-                    Err(e) => return CheckOutcome::Unevaluated(format!("git unavailable: {e}")),
-                    Ok(o) if !o.status.success() => {
-                        // Absent locally: merged-and-cleaned and typo'd/never-created
-                        // are indistinguishable here — report as unverifiable, never
-                        // as a silent PASS (challenger t-3162 f2: false confidence at
-                        // the exact moment the gauge exists to inform).
-                        gone.push(tb.to_string());
-                        continue;
-                    }
-                    Ok(_) => {}
-                }
-                let anc = std::process::Command::new("git")
-                    .args(["-C", &root.to_string_lossy(), "merge-base", "--is-ancestor", "--end-of-options", tb, branch])
-                    .status();
-                match anc {
-                    Ok(s) if s.success() => {}
-                    Ok(_) => open.push(tb.to_string()),
-                    Err(e) => return CheckOutcome::Unevaluated(format!("git unavailable: {e}")),
-                }
-            }
-            match (open.is_empty(), gone.is_empty()) {
-                (true, true) => CheckOutcome::Pass,
-                (true, false) => CheckOutcome::Unevaluated(format!(
-                    "existing branches all ancestors of {branch}; {} unverifiable (deleted or never existed): {}",
-                    gone.len(),
-                    gone.join(", ")
-                )),
-                (false, _) => CheckOutcome::Fail(format!("not ancestors of {branch}: {}", open.join(", "))),
-            }
-        }
-        CheckKind::ValidateCheck { n } => {
-            let script = root.join("validate.sh");
-            if !script.is_file() {
-                return CheckOutcome::Unevaluated("validate.sh not found at repo root".into());
-            }
-            match std::process::Command::new("bash")
-                .args([&script.to_string_lossy() as &str, "--check", &n.to_string()])
-                .current_dir(root)
-                .output()
-            {
-                Ok(o) if o.status.success() => CheckOutcome::Pass,
-                Ok(_) => CheckOutcome::Fail(format!("validate.sh --check {n} exited non-zero")),
-                Err(e) => CheckOutcome::Unevaluated(format!("could not run validate.sh: {e}")),
-            }
-        }
-        CheckKind::CargoTest { crate_name } => {
-            let manifest_dir = root.join("system/cli/rust");
-            if !manifest_dir.join("Cargo.toml").is_file() {
-                return CheckOutcome::Unevaluated("system/cli/rust workspace not found".into());
-            }
-            match std::process::Command::new("cargo")
-                .args(["test", "-p", crate_name, "--quiet"])
-                .current_dir(&manifest_dir)
-                .output()
-            {
-                Ok(o) if o.status.success() => CheckOutcome::Pass,
-                Ok(_) => CheckOutcome::Fail(format!("cargo test -p {crate_name} exited non-zero")),
-                Err(e) => CheckOutcome::Unevaluated(format!("could not run cargo: {e}")),
-            }
-        }
-        // selector kinds were handled by eval_selector_check before exec
-        _ => CheckOutcome::Unevaluated("internal: selector check routed to exec".into()),
-    }
 }
 
 /// Drain a wave (t-2775, wave-gate-enforcement.md): gate check → selector
@@ -3341,38 +3224,9 @@ mod tests {
         assert_eq!(read_tasks_arr(&f)[0]["status"], "pending", "evaluation path must be pure");
     }
 
-    #[test]
-    fn exec_ship_check_missing_branch_is_unverifiable_not_pass() {
-        // challenger t-3162 f2: a branch field naming a ref that doesn't exist
-        // locally (typo, never created, or merged-and-deleted) must NOT read
-        // as a silent PASS — the gauge reports it unverifiable instead.
-        let dir = tempfile::tempdir().unwrap();
-        let root = dir.path();
-        let run = |args: &[&str]| {
-            std::process::Command::new("git").args(args).current_dir(root).output().unwrap()
-        };
-        run(&["init", "-q", "-b", "dev"]);
-        run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "root"]);
-        let tasks: Vec<serde_json::Value> = serde_json::from_str(
-            r#"[{"id":"t-1","subject":"a","status":"completed","tags":["mm"],"blocked_by":[],"branch":"no/such-branch"}]"#,
-        )
-        .unwrap();
-        let wave: serde_json::Value =
-            serde_json::from_str(r#"{"id":"wave-1","selector":"tag:mm"}"#).unwrap();
-        let out = exec_ship_check(
-            &wave_check::CheckKind::MergedTo { branch: "dev".into() },
-            &[],
-            &tasks,
-            &wave,
-            Some(root),
-        );
-        match out {
-            wave_check::CheckOutcome::Unevaluated(why) => {
-                assert!(why.contains("no/such-branch"), "must name the unverifiable branch: {why}")
-            }
-            other => panic!("expected Unevaluated, got {other:?}"),
-        }
-    }
+    // exec_check_missing_branch_is_unverifiable_not_pass moved to
+    // brana-core::wave_ship::tests (t-3234) — the function it tests now
+    // lives there, as the single shared implementation.
 
     #[test]
     fn cmd_wave_ship_missing_wave_errors_like_set() {
