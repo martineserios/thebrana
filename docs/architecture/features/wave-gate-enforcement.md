@@ -17,13 +17,21 @@ already-draining/shipped wave) was decided during implementation:
 **draining → idempotent** (re-resolves and re-reports, fits ADR-079's
 re-resolve-each-cycle model), **shipped → rejected, fail loud**.
 
+**Amended 2026-08-30 (t-3235):** MCP had no equivalent of `cmd_wave_drain` at all —
+only the generic `backlog_wave_set`, whose `set_wave_field` deliberately never
+enforces `check_wave_gate` (documented at `validation.rs`, "that's the intent-CLI's
+job"). Added `backlog_wave_drain` MCP tool calling the identical
+`check_wave_gate`/`resolve_wave_selector` functions this doc describes, so an MCP
+caller now has the same gate-enforced draining path a CLI caller always had.
+
 ## Problem
 
-Wave CRUD landed in full (t-2315, ADR-065): 4 MCP tools
+Wave CRUD landed in full (t-2315, ADR-065): originally 4 MCP tools
 (`backlog_wave_{add,get,list,set}`), matching CLI subcommands
 (`brana backlog wave {add,get,list,set}`), storage (`waves` sibling array
 in `tasks.json`, `next_wave_id`/`validate_wave_status`/`set_wave_field` in
-`brana-core/src/tasks/{mod,validation}.rs` post-t-2745 split). But a
+`brana-core/src/tasks/{mod,validation}.rs` post-t-2745 split) — since grown to 6
+(`backlog_wave_approve` t-2842, `backlog_wave_drain` t-3235). But a
 2026-08-12 audit found: zero waves exist in live data, no task carries any
 wave-referencing field, and `gate` (a wave id that should block draining
 until the gated wave ships) is stored but read by nothing — confirmed by
