@@ -14,6 +14,22 @@ IFS=$'\t' read -r MODEL CWD CTX_PCT SESSION_ID <<< \
 
 CTX_PCT=${CTX_PCT:-0}
 SESSION_SHORT="${SESSION_ID:0:8}"
+
+# Prefer the fleet name CC's own multi-agent addressing (ListAgents/SendMessage)
+# uses for this session — a single keyed file read (~/.claude/sessions/$CLAUDE_PID.json),
+# never a scan of the whole sessions/ directory (t-3246: 495+ files there already).
+# Cross-check .sessionId against the input's session_id before trusting .name: this
+# is what makes the lookup no-op safely under a leaked/ambient CLAUDE_PID that
+# doesn't belong to the session being rendered (e.g. inside these very tests).
+if [ -n "$CLAUDE_PID" ] && [ -n "$SESSION_ID" ]; then
+  SESSION_REG_FILE="$HOME/.claude/sessions/${CLAUDE_PID}.json"
+  if [ -r "$SESSION_REG_FILE" ]; then
+    IFS=$'\t' read -r REG_SID REG_NAME <<< \
+      "$(jq -r '[(.sessionId // ""), (.name // "")] | @tsv' "$SESSION_REG_FILE" 2>/dev/null)"
+    [ -n "$REG_NAME" ] && [ "$REG_SID" = "$SESSION_ID" ] && SESSION_SHORT="$REG_NAME"
+  fi
+fi
+
 # Scrub before the printf '%b' render sink, same as EPIC below (t-2731 challenger
 # finding): %b interprets backslash escapes, and a stray one or raw control byte
 # would break the one-line contract.
