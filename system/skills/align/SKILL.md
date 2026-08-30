@@ -195,6 +195,15 @@ Skip if `.claude/settings.local.json` already has both `attribution.commit` and 
 - Ensure `.claude/memory/MEMORY.md` exists; if missing: `mkdir -p .claude/memory && echo "# Memory Index — {slug}" > .claude/memory/MEMORY.md` (link CLAUDE.md and key docs).
 - Verify brana + ruflo MCP servers load from the project dir: `claude mcp list | grep -E "brana|ruflo"`. They are registered at **user scope** in `~/.claude.json` (bootstrap.sh Step 6b). If missing, re-run `./bootstrap.sh` in thebrana — do **not** add brana/ruflo to a per-client `.mcp.json` (that file is only for client-specific servers, e.g. supabase, playwright, respond-io). Note: `mcpServers` in any `settings.local.json` is silently ignored by Claude Code.
 
+**F8 — Issue tracker doc (t-3163, ADR-086 §8):** if the target repo uses a brana
+backlog (`.claude/tasks.json` exists), emit `docs/agents/issue-tracker.md` from
+the shared template `system/skills/_shared/issue-tracker-template.md`: replace
+`{{PROJECT}}`, then **run and verify every verb in the operations table against
+the target repo** — a row that doesn't verify gets corrected or dropped, never
+shipped unverified; drop the wave/runner rows when the repo has no wave
+machinery. Skip silently when there is no brana backlog. (thebrana's own copy is
+the hand-verified reference instance — never fork the template's wording.)
+
 ### Code SDD items
 
 **S1:** `mkdir -p docs/architecture/decisions`

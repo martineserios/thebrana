@@ -222,6 +222,14 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 |------|----------|
 | [MODEL-001-brana-core.md](domain/MODEL-001-brana-core.md) | 9 bounded contexts, ubiquitous language, domain events for brana-core |
 
+### Agent-facing docs (docs/agents/)
+
+| File | Contents |
+|------|----------|
+| [issue-tracker.md](agents/issue-tracker.md) | Tracker vocabulary map — generic tracker operations → real brana verbs, home-of-record table (t-3163, ADR-086 §8; emitted for other repos by /brana:align) |
+
+`CONTEXT.md` at the repo root is generated from docs/domain/ by `system/scripts/generate-context-md.py` (drift checked by /brana:reconcile) — never edit it by hand.
+
 ### Feature briefs (docs/architecture/features/)
 
 | File | Contents |
