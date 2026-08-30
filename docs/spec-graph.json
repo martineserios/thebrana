@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-30T13:42:43Z",
+  "generated": "2026-08-30T14:30:00Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -12725,6 +12725,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "to": "docs/architecture/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "to": "docs/architecture/dimensions/05-claude-flow-v3-analysis.md",
       "type": "references",
@@ -18865,7 +18871,7 @@
   ],
   "stats": {
     "nodes": 618,
-    "edges": 2415,
+    "edges": 2416,
     "typed_edges": 694,
     "orphans": 142
   }
