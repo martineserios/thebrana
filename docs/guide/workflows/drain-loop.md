@@ -36,6 +36,33 @@ time, not after a pull goes wrong:
   human ship valve is the throttle, so a wave sized past one sitting just
   queues at the valve.
 
+## The standing wave (ADR-086 §5, t-3161)
+
+One wave, `wave-standing` (selector `role:ready-for-agent`, no contract, no
+gate, provisional `wip_limit` 2 — revise from real drain records), is **always
+draining**: Pocock's AFK loop expressed as a wave. Singletons never need a
+bespoke wave — an `ac approve` alone puts a task on the standing frontier.
+Its pull differs from a bespoke (tag:/parent:) wave in three ways, all
+implemented in `wave_pull_decision` (`brana-core/src/tasks/wave.rs`):
+
+- **Ordering:** candidates sort by `priority` (P0 first, absent last) then
+  `created` ascending before the first eligible is taken. Bespoke waves keep
+  tasks.json array order — hand-picked sets stay the operator's sequencing.
+- **Bespoke precedence:** a task matched by another *draining* tag:/parent:
+  wave is pulled by that wave first — the standing pull defers it (visible as
+  the `deferred` count in a `none_eligible` report). A merely `queued` bespoke
+  wave does not shadow the standing pool.
+- **WIP live count:** roles are status-derived (an `in_progress` task derives
+  `claimed`), so the standing wave counts as live the `in_progress` tasks that
+  *would* derive its role were they pending, minus bespoke-owned ones. Manual
+  `backlog start` on an approved task therefore counts against the standing
+  `wip_limit`, same as the tag-wave precedent.
+
+Everything else is identical: same pump (`wave pull`), same denied verbs, same
+human valves. Latency note (ADR-086 F12): the standing frontier is small while
+`ac approve` adoption grows — the human approve valve is the throttle, and
+that is the design, not a stall.
+
 ## Prerequisites (the pipeline, front to back)
 
 ```
@@ -69,9 +96,10 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
 /loop Wave-N drain pump (supervised, ADR-079 §2b). Each beat:
 (1) PREFLIGHT (cheap, no-op fast): `brana backlog wave pull wave-N`.
     - pulled:null + at_limit    → report "at limit (live/limit)", back off 20+ min.
-    - pulled:null + none_eligible → report the counts (matched/unapproved/parked/blocked);
+    - pulled:null + none_eligible → report the counts (matched/unapproved/parked/blocked/deferred);
       eligibility is pending ∧ approved ∧ ¬parked ∧ every blocked_by `completed`
-      (a cancelled blocker does NOT resolve — remove it from blocked_by; ADR-079 §2 amendment).
+      (a cancelled blocker does NOT resolve — remove it from blocked_by; ADR-079 §2 amendment;
+      deferred = left to a draining bespoke wave, standing-wave pulls only — ADR-086 §5).
       If matched is 0 the wave may be done — tell the human, back off 30+ min.
     - error "not draining"      → the wave was requeued/shipped — STOP the loop.
 (2) If a task id was pulled: work it through the FULL build framework —

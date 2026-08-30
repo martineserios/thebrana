@@ -130,8 +130,9 @@ budget across epics.
     - pulled:null + at_limit    → report "at limit (live/limit)", back off
       20+ min (state:"waiting").
     - pulled:null + none_eligible → report counts (matched/unapproved/
-      parked/blocked — blocked = unmet blocked_by; a cancelled blocker never
-      resolves, ADR-079 §2 amendment). If matched is 0, do NOT report "wave done" — see step 5's
+      parked/blocked/deferred — blocked = unmet blocked_by; a cancelled blocker never
+      resolves, ADR-079 §2 amendment; deferred is standing-wave-only, ADR-086 §5,
+      always 0 for the parent: waves this loop walks). If matched is 0, do NOT report "wave done" — see step 5's
       empty-matched-set rule. Back off 30+ min (state:"waiting" or
       state:"empty").
     - pulled:<id> → work it through the FULL build framework, identical to
