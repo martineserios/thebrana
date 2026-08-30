@@ -2079,7 +2079,7 @@ mod tests {
         let d = wave_pull_decision(&wave, &tasks).unwrap();
         assert_eq!(
             d,
-            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1, blocked: 0 },
+            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1, human: 0, blocked: 0 },
             "matched-but-not-eligible is visible and expected, not a bug"
         );
     }
@@ -2117,8 +2117,43 @@ mod tests {
         let d = wave_pull_decision(&wave, &tasks).unwrap();
         assert_eq!(
             d,
-            PullDecision::NoneEligible { matched: 2, unapproved: 0, parked: 0, blocked: 2 },
+            PullDecision::NoneEligible { matched: 2, unapproved: 0, parked: 0, human: 0, blocked: 2 },
             "matched-but-blocked must be reported, not hidden"
+        );
+    }
+
+    // t-3160/T1 (ADR-086 §3, §4 amendment via derive_role): a task tagged
+    // `human` is `ready-for-human`, never `ready-for-agent` — the role
+    // vocabulary is shared, not the unattended safety gate. The pre-t-3160
+    // inline check (ac_state==approved && !tag:parked) never looked at
+    // tag:human at all, so this is a genuine behavior fix, not just a
+    // refactor: a human-tagged approved task could previously be
+    // autonomously pulled.
+    #[test]
+    fn test_wave_pull_decision_excludes_human_tagged_task_counts_separately() {
+        let wave = pull_wave("draining", None);
+        let tasks = vec![
+            pull_task("t-1", "pending", Some("approved"), &["w1", "human"]),
+            pull_task("t-2", "pending", Some("proposed"), &["w1"]), // unapproved, for contrast
+        ];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(
+            d,
+            PullDecision::NoneEligible { matched: 2, unapproved: 1, parked: 0, human: 1, blocked: 0 },
+            "human-tagged task must be excluded from pull and counted separately, not folded into unapproved"
+        );
+    }
+
+    #[test]
+    fn test_wave_pull_decision_human_tag_takes_priority_over_parked_in_counting() {
+        // Priority mirrors derive_role's own (human checked before parked) so
+        // gating and diagnostic counts never disagree on a task tagged both.
+        let wave = pull_wave("draining", None);
+        let tasks = vec![pull_task("t-1", "pending", Some("approved"), &["w1", "human", "parked"])];
+        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        assert_eq!(
+            d,
+            PullDecision::NoneEligible { matched: 1, unapproved: 0, parked: 0, human: 1, blocked: 0 }
         );
     }
 

@@ -151,9 +151,12 @@ pub enum PullDecision {
     Pulled { task_id: String },
     /// Live in_progress selector-matches ≥ wip_limit — skip this cycle.
     AtLimit { live: usize, limit: u64 },
-    /// Selector matched, but nothing is pending ∧ approved ∧ ¬parked ∧ unblocked.
+    /// Selector matched, but nothing derives `role:ready-for-agent`
+    /// (ADR-086 §3) ∧ unblocked. `human` = matched tasks tagged `human`
+    /// (t-3160/T1: the role vocabulary is shared, not the unattended safety
+    /// gate — a `ready-for-human` task is never pull-eligible for an agent).
     /// `blocked` = matched tasks with an unmet `blocked_by` (ADR-079 §2 amendment).
-    NoneEligible { matched: usize, unapproved: usize, parked: usize, blocked: usize },
+    NoneEligible { matched: usize, unapproved: usize, parked: usize, human: usize, blocked: usize },
 }
 
 /// t-2813: pure pull decision over in-memory state — the loop runner's whole
@@ -201,19 +204,29 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
 
     let mut unapproved = 0;
     let mut parked = 0;
+    let mut human = 0;
     let mut blocked = 0;
     let mut first: Option<String> = None;
     for t in &matched {
-        if t["ac_state"].as_str() != Some("approved") {
-            unapproved += 1;
-            continue;
-        }
-        let is_parked = t["tags"]
-            .as_array()
-            .map(|a| a.iter().any(|v| v.as_str() == Some("parked")))
-            .unwrap_or(false);
-        if is_parked {
-            parked += 1;
+        // Eligibility is the shared derivation (t-3160/T1, ADR-086 §3) — no
+        // second inline ac_state/parked/human check. `derive_role` already
+        // encodes ¬tag:parked and ¬tag:human into `ready-for-agent`.
+        if derive_role(t) != Some(Role::ReadyForAgent) {
+            // Diagnostic categorization of an already-known-ineligible task,
+            // not a re-implementation of eligibility. Priority mirrors
+            // derive_role's own (human checked before parked) so counts and
+            // gating never disagree on a task tagged both.
+            let tags: Vec<&str> = t["tags"]
+                .as_array()
+                .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                .unwrap_or_default();
+            if tag_matches(&tags, "human") {
+                human += 1;
+            } else if tag_matches(&tags, "parked") {
+                parked += 1;
+            } else {
+                unapproved += 1;
+            }
             continue;
         }
         // Frontier = open ∧ unblocked (ADR-079 §2 amendment, ADR-086 §4): the
@@ -232,6 +245,7 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value]) -> Result<PullDecision,
             matched: matched.len(),
             unapproved,
             parked,
+            human,
             blocked,
         }),
     }
