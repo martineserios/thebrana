@@ -79634,7 +79634,8 @@
       ],
       "type": "task",
       "work_type": "implement",
-      "strategy": "feature"
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "ac_state": "none",
@@ -85619,7 +85620,7 @@
       "blocked_by": [],
       "branch": null,
       "context": null,
-      "notes": "Merged to dev (f4f3aa19). work-start.md step 3: DDD line now conditional — apply/skip only when docs/domain/ exists, bootstrap-glossary nudge when a task carries real domain vocabulary without docs/domain/, silent otherwise. Deploys to ~/.claude/rules/ at next ship (main merge + bootstrap.sh). Populate candidates identified: dgrx docs/domain/glossary.md from cotizador-full.md (do in dgrx session).",
+      "notes": "Merged to dev (f4f3aa19). work-start.md step 3: DDD line now conditional — apply/skip only when docs/domain/ exists, bootstrap-glossary nudge when a task carries real domain vocabulary without docs/domain/, silent otherwise. Deploys to ~/.claude/rules/ at next ship (main merge + bootstrap.sh). CORRECTION 2026-08-29: cotizador-full.md lives in cosmos-trading (proyecto-anita group), not dgrx — glossary task filed there (proyecto_anita t-1, P1).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -85649,7 +85650,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "User direction 2026-08-29: populate docs/domain/ during onboard, keep up to date via same-commit convention; existing docs often already have domain nature (e.g. dgrx cotizador-full.md) — the gap is classification/indexing, not creation. Glossary = thin index pointing at canonical docs, never move/duplicate them.",
-      "notes": "Merged to dev (46c11f91). onboard scan: DDD check in Step 2 (docs/domain/ active, else inventory docs/ for domain-nature specs) + DDD gap row in Step 4 (glossary bootstrap offer; no candidates → row omitted). align: new Code DDD items section — D1 thin glossary index (term/definition/pointer, same-commit update convention, n/a for infra repos), D2-D4 when warranted. Complements t-3230 (silent gate). First real application candidate: dgrx (cotizador-full.md → docs/domain/glossary.md).",
+      "notes": "Merged to dev (46c11f91). onboard scan: DDD check in Step 2 (docs/domain/ active, else inventory docs/ for domain-nature specs) + DDD gap row in Step 4 (glossary bootstrap offer; no candidates → row omitted). align: new Code DDD items section — D1 thin glossary index (term/definition/pointer, same-commit update convention, n/a for infra repos), D2-D4 when warranted. Complements t-3230 (silent gate). CORRECTION 2026-08-29: first application candidate is cosmos-trading (cotizador-full.md is there, not dgrx) — 21 per-project tasks filed via t-3232 sweep.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
