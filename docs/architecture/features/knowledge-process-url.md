@@ -335,3 +335,26 @@ used strict `String::from_utf8()` on yt-dlp's subprocess stdout, the same
 when auditing this pattern again — confirmed (2026-08-30) that the two
 fixed here were the only ones in the workspace; `brana-cli/src/commands/feed.rs`'s
 fetch already uses the no-config path and was unaffected.
+
+### 2026-08-30: a swallowed decode failure needs its own fix, not just a lossy-decode swap
+
+t-3237's second-variant finder flagged a related-but-different bug in
+`fetch_youtube_content_attempt`: the downloaded VTT caption file was read
+via `std::fs::read_to_string(&vtt_path).ok()`, which collapsed a decode
+failure (non-UTF-8 bytes in the caption file) into the exact same `None`
+the genuine no-captions case returns — silently indistinguishable, unlike
+t-3237's class which hard-failed loudly. Filed separately (t-3238) because
+the fix wasn't a 1-line `.lossy_utf8(true)` swap: `read_to_string().ok()`
+already conflates "file missing" with "file unreadable" with "bad
+encoding", so a real design decision was needed.
+
+Fixed by extracting `decode_vtt_bytes(bytes: &[u8]) -> (String, bool)` —
+always lossy-decodes (same precedent as `decode_yt_dlp_stdout` above), and
+reports whether substitution happened via the `Cow::Owned` discriminant on
+`String::from_utf8_lossy`'s return value rather than scanning for U+FFFD
+(which would false-positive on legitimately-present replacement characters
+in otherwise-valid text). The call site switched from `read_to_string` to
+raw `std::fs::read`, and `eprintln!`s a warning naming the file path only
+when substitution actually occurred — so a corrupted download stays
+visible in the run log instead of reading as an unremarkable no-captions
+video, while a real caption track with one bad byte isn't lost entirely.
