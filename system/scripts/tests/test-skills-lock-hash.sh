@@ -68,6 +68,39 @@ with open('$REPO_ROOT/skills-lock.json') as f:
 check "regenerated hash matches skills-lock.json's recorded diagnosing-bugs hash" "$LOCK_DIAG" "$DIAG_ACTUAL"
 
 echo ""
+echo "== skills-lock.json: every entry's computedHash matches a live recomputation (t-3239) =="
+# t-3239: t-2834's original test only ever checked 2 hand-picked entries
+# (inversion, diagnosing-bugs). That missed 9 more entries whose
+# computedHash was hand-typed/stale and never re-verified. This loop covers
+# every entry in skills-lock.json generically, so a 10th drifted entry is
+# caught automatically without anyone remembering to add a new check.
+ALL_NAMES=$(python3 -c "
+import json
+with open('$REPO_ROOT/skills-lock.json') as f:
+    for name in json.load(f)['skills']:
+        print(name)
+")
+while IFS= read -r name; do
+  [ -n "$name" ] || continue
+  if [ -d "$REPO_ROOT/.agents/skills/$name" ]; then
+    SKILL_DIR="$REPO_ROOT/.agents/skills/$name"
+  elif [ -d "$REPO_ROOT/system/skills/$name" ]; then
+    SKILL_DIR="$REPO_ROOT/system/skills/$name"
+  else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: $name -> no vendored directory found under .agents/skills/ or system/skills/"
+    continue
+  fi
+  LIVE_HASH=$("$HASH_SCRIPT" "$SKILL_DIR")
+  LOCK_HASH=$(python3 -c "
+import json
+with open('$REPO_ROOT/skills-lock.json') as f:
+    print(json.load(f)['skills']['$name']['computedHash'])
+")
+  check "$name: computedHash matches live recomputation ($SKILL_DIR)" "$LOCK_HASH" "$LIVE_HASH"
+done <<< "$ALL_NAMES"
+
+echo ""
 echo "== skills-lock-hash.sh: errors on missing/empty dir =="
 "$HASH_SCRIPT" "$REPO_ROOT/no-such-skill-dir" >/dev/null 2>&1
 RC=$?
