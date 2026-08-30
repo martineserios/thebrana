@@ -85691,7 +85691,7 @@
       "ac_state": "none",
       "acceptance_criteria": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/fix/t-3233-query-drops-legacy-statuses",
       "completed": null,
       "context": "Found by t-3164's audit (docs/research/2026-08-29-field-usage-audit.md): `brana backlog query --output json` returns 2861 tasks vs 3111 in tasks.json. Silently dropped: status next (55), active (4), archived (1), plus ~190 others across completed/pending/cancelled — root-cause the full gap, not just the legacy-status arm. Any audit, wave selector preview, or stats consumer running through the query tool sees a smaller backlog than exists. Decide: normalize legacy statuses in the store (migration) OR make query pass them through (with a legacy flag) — either way, no silent drops; unknown statuses surface, never vanish (cf. t-2857 unknown-routing rule). AC: failing test first reproducing the undercount; query returns every task in the file or explicitly reports what it excluded; audit doc count re-verified.",
       "created": "2026-08-29",
@@ -85705,8 +85705,8 @@
       "order": 0,
       "parent": "t-2337",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-30",
+      "status": "in_progress",
       "subject": "brana backlog query silently drops legacy statuses — 2861 of 3111 tasks visible (next/active/archived + ~190 more)",
       "tags": [
         "the-brana-closeout",
@@ -85715,7 +85715,8 @@
         "t-3164-followup"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "bug-fix"
     },
     {
       "ac_state": "none",
