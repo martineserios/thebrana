@@ -92,7 +92,7 @@ Abandoned builds leave a file — this is intentional. The user can manually del
 
 ## Design
 
-**Location:** `system/procedures/build.md` — procedure-level change, no CLI code needed.
+**Location:** `system/skills/build/phases/load.md` (Step 0c RESUME CHECK) and `system/skills/build/phases/close.md` (cleanup) — procedure-level change, no CLI code needed. (Originally landed in the pre-reorg monolithic `system/procedures/build.md`; split into the phased `system/skills/build/` structure since.)
 
 **Pattern used:** Blockquote callouts (`> **☑ Checkpoint — STEP_NAME**`) visually distinct from procedure body. The `>` prefix keeps them from blending into the step instructions. The `☑` icon makes them scannable.
 
