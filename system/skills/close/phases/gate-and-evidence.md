@@ -125,6 +125,27 @@ the convention already used elsewhere in this skill (`cf-env.sh`,
 notes-and-ideation.md) — never `$(git rev-parse --show-toplevel)/system/scripts/`,
 which only happens to resolve when the git-root IS thebrana itself.
 
+**Bare orientation word normalization (t-3247).** close-classify.sh's
+`--arguments` path only recognizes an orientation as a literal `--flag`
+substring (e.g. `--continue`) — a bare word (`/brana:close continue`, no
+leading `--`) silently misses that scan and falls through to the file/commit-
+count heuristics below, with no error. Normalize before the invocation:
+
+<!-- ORIENTATION-NORMALIZE-BLOCK -->
+```bash
+# Only the four exact bare orientation words normalize — free-form focus text
+# ($ARGUMENTS used as a Step 2 hint, e.g. "/brana:close hooks") passes through
+# untouched, and an already-flagged $ARGUMENTS (e.g. "--continue") is left as-is.
+case "$ARGUMENTS" in
+    continue|finish|patterns|abort) ARGUMENTS="--$ARGUMENTS" ;;
+esac
+```
+<!-- /ORIENTATION-NORMALIZE-BLOCK -->
+
+> `ORIENTATION-NORMALIZE-BLOCK` is extracted verbatim by
+> `tests/procedures/test-close-orientation-normalize.sh`. Keep the markers and
+> fences intact.
+
 <!-- CLOSE-ANCHOR-BLOCK -->
 ```bash
 # Window anchored on the previous close's session-state written_at (t-1979 #11) —
