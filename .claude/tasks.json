@@ -86330,7 +86330,7 @@
     {
       "id": "t-3254",
       "subject": "memory_write silently ignores scope for type=pattern",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": null,
       "tags": [
@@ -86349,7 +86349,7 @@
       "blocked_by": [],
       "branch": null,
       "context": null,
-      "notes": null,
+      "notes": "Root cause: brana-core/src/memory.rs::resolve_dest's (\"pattern\", _) match arm used a wildcard for scope, silently accepting and discarding any scope value (including the tool's own default \"project\") and always routing to the global pattern_{slug}.md. Every other type (feedback/project/user) exact-matches its valid ADR-038 (type,scope) combo and falls through to the existing bail catch-all for mismatches; pattern was the only type skipping that validation.\n\nThis was a real implementation bug, not a docs/schema mismatch: ADR-038 §A's routing table lists exactly one valid scope for pattern (cross-project), same as user's single valid scope (global) which IS already exact-matched and rejects \"project\". Fix: changed the arm to exact-match (\"pattern\", \"cross-project\"), mirroring (\"user\", \"global\"), so scope=project/global now correctly errors \"unsupported type/scope combination\" instead of silently succeeding at the wrong-seeming (but coincidentally correct-destination) path.\n\nAlso updated the MCP tool description (was missing \"cross-project\" as a valid scope value entirely) and added an Implementation Notes entry to ADR-038 documenting the fix (satisfies repo's doc gate).\n\nTDD: added failing tests first in brana-core/src/memory.rs (routing_tests mod), brana-mcp/src/tools/memory_write.rs, and brana-cli/tests/memory_smoke.rs — confirmed RED (2 failed) before the fix, GREEN after. Full suite: cargo test -p brana-core -p brana-mcp -p brana-cli → 1853 passed, 2 ignored, 0 failed. cargo clippy shows no new warnings (all pre-existing, unrelated files).\n\nNo production skill hardcodes scope for type=pattern writes, so no real call site broken by requiring explicit scope=cross-project.\n\nCommit: e820e350 on branch memory/fix/t-3254-pattern-scope-wildcard.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
