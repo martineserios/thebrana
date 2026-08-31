@@ -8,6 +8,34 @@ Call `/goal "session closed: errata filed, learnings stored, tasks.json committe
 
 ### Step 1: Gate check
 
+**Bare orientation word normalization (t-3247).** Every orientation check in
+this step — the close-classify.sh `--arguments` scan below, the HARD GUARD,
+and the `ORIENTATION` derivation — matches on a literal `--flag` substring
+(e.g. `--continue`). A bare word (`/brana:close continue`, no leading `--`)
+silently misses all three and falls through to weaker fallback behavior with
+no error: close-classify.sh degrades to file/commit-count heuristics, the
+HARD GUARD fails to skip the picker it exists to skip, and `ORIENTATION`
+derives `auto` instead of the intended flag (session-state.md and
+cleanup.md key task-state transitions and cleanup skip-rules off that
+derived value — the highest-blast-radius of the three). Normalize once,
+here, before any of them run, so all three see the same corrected value for
+the rest of Step 1:
+
+<!-- ORIENTATION-NORMALIZE-BLOCK -->
+```bash
+# Only the four exact bare orientation words normalize — free-form focus text
+# ($ARGUMENTS used as a Step 2 hint, e.g. "/brana:close hooks") passes through
+# untouched, and an already-flagged $ARGUMENTS (e.g. "--continue") is left as-is.
+case "$ARGUMENTS" in
+    continue|finish|patterns|abort) ARGUMENTS="--$ARGUMENTS" ;;
+esac
+```
+<!-- /ORIENTATION-NORMALIZE-BLOCK -->
+
+> `ORIENTATION-NORMALIZE-BLOCK` is extracted verbatim by
+> `tests/procedures/test-close-orientation-normalize.sh`. Keep the markers and
+> fences intact.
+
 Assess what happened this session:
 
 <!-- GATE-WINDOW-BLOCK -->
@@ -333,7 +361,7 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.
 > This block calls `resolve_epic_ancestor` — the extracting test must source
 > `system/skills/_shared/epic-ancestor-walk.md`'s `EPIC-WALK-BLOCK` first.
 
-**Orientation flags (ADR-053, t-1980).** `$ARGUMENTS` may carry an orientation — `--continue`, `--finish`, `--patterns`, `--abort` — saying WHY the session is closing. close-classify.sh maps orientation to a forced weight (continue/finish → INSTANT, patterns → LIGHT-INLINE, abort → NANO); the call above already passes `--arguments`, so the orientation reaches the classifier with no extra wiring (programmatic callers can equivalently pass `--mode-override <orientation>` — same mapping, same precedence). Set `ORIENTATION` to the flag name when present, `auto` otherwise.
+**Orientation flags (ADR-053, t-1980).** `$ARGUMENTS` (already normalized to `--flag` form above, t-3247 — a bare word typed here would derive `auto` and silently lose the intended task-state/cleanup routing below) may carry an orientation — `--continue`, `--finish`, `--patterns`, `--abort` — saying WHY the session is closing. close-classify.sh maps orientation to a forced weight (continue/finish → INSTANT, patterns → LIGHT-INLINE, abort → NANO); the call above already passes `--arguments`, so the orientation reaches the classifier with no extra wiring (programmatic callers can equivalently pass `--mode-override <orientation>` — same mapping, same precedence). Set `ORIENTATION` to the flag name when present, `auto` otherwise.
 
 | Orientation | Weight | Task state (Step 9, session-state.md) | Cleanup (Steps 11b/11d) |
 |---|---|---|---|
@@ -344,7 +372,7 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$HOME/.claude/scripts/close-classify.
 
 **`--finish` runs the in-session L2 propagation audit** (Step 8b, ADR-056) even though its weight is INSTANT — expect a short LLM pass over touched specs/memories before the handoff. This is the one deliberate exception to "INSTANT = no in-session LLM work"; surface it in the picker's `--finish` description so the user isn't surprised by the latency. Other INSTANT closes run only the ~1s deterministic L1 checks and defer the deep audit to the nightly cron.
 
-**HARD GUARD — flag given means decision made.** If `$ARGUMENTS` contains ANY orientation or weight flag (`--continue`, `--finish`, `--patterns`, `--abort`, `--light`, `--full`, `--nano`): SKIP the entire "Bare-invocation detection and picker" block below. Do not show a picker, do not run detection — execute the flagged close immediately.
+**HARD GUARD — flag given means decision made.** If `$ARGUMENTS` (normalized above) contains ANY orientation or weight flag (`--continue`, `--finish`, `--patterns`, `--abort`, `--light`, `--full`, `--nano`): SKIP the entire "Bare-invocation detection and picker" block below. Do not show a picker, do not run detection — execute the flagged close immediately.
 
 **Bare-invocation detection and picker** (no flag in `$ARGUMENTS` only):
 
