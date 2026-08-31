@@ -200,3 +200,15 @@ brana memory migrate [--dry-run] [--scope project|global]
   when the CLI is available.
 - **No reclassification of existing `feedback_*.md` content in bulk.** That is ADR-037's
   on-encounter migration. This ADR only renames the files to dated format.
+
+## Implementation Notes
+
+- **t-3254 (2026-08-31):** `resolve_dest`'s `pattern` match arm implemented `(pattern, _)`
+  — a wildcard accepting any `scope` value and always routing to the global
+  `~/.claude/memory/pattern_{slug}.md` destination, silently discarding whatever `scope`
+  the caller passed (including the tool's own `scope=project` default). Every other type
+  in the table above exact-matches its valid `(type, scope)` combo and rejects anything
+  else. Fixed to exact-match `(pattern, cross-project)` — the only combination this ADR
+  specifies for `pattern` — so `scope=project`/`scope=global` for `type=pattern` is now
+  rejected with the same "unsupported type/scope combination" error every other invalid
+  combo already produced, instead of being silently ignored.

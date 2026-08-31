@@ -58,7 +58,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             result.map_err(pmcp::Error::validation)
         })
     })
-    .with_description("Write a memory entry — routes to the correct destination by type and scope (ADR-038). Types: feedback (dated, parallel-safe), project (upsert), user (upsert), pattern (upsert). Scope: project | global.")
+    .with_description("Write a memory entry — routes to the correct destination by type and scope (ADR-038). Types: feedback (dated, parallel-safe; scope project|global), project (upsert; scope project), user (upsert; scope global), pattern (upsert; scope MUST be cross-project — project/global are rejected, not silently ignored).")
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -137,6 +137,49 @@ mod tests {
         assert!(path.ends_with("project_t2631-test.md"), "unexpected path: {path}");
         let written = std::fs::read_to_string(path).expect("file must exist");
         assert_eq!(written, "hello memory");
+    }
+
+    /// t-3254: type=pattern with scope="project" (the tool's own default!)
+    /// must be rejected, not silently routed to the global pattern file.
+    /// ADR-038 §A's routing table lists only pattern+cross-project.
+    #[tokio::test]
+    async fn test_write_rejects_pattern_with_project_scope() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new();
+
+        let err = build()
+            .handle(
+                json!({"type": "pattern", "scope": "project", "slug": "x", "content": "y"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect_err("scope=project must be rejected for type=pattern, not silently coerced");
+
+        assert!(
+            err.to_string().contains("unsupported type/scope combination"),
+            "error must name the combo as unsupported: {err}"
+        );
+    }
+
+    /// The ADR-038-sanctioned combination still works end-to-end through the tool.
+    #[tokio::test]
+    async fn test_write_pattern_with_cross_project_scope_succeeds() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new();
+
+        let out = build()
+            .handle(
+                json!({"type": "pattern", "scope": "cross-project", "slug": "t3254-test", "content": "pattern body"}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("scope=cross-project must succeed for type=pattern");
+
+        assert_eq!(out["ok"], true);
+        let path = out["path"].as_str().expect("path must be a string");
+        assert!(path.ends_with("pattern_t3254-test.md"), "unexpected path: {path}");
+        let written = std::fs::read_to_string(path).expect("file must exist");
+        assert_eq!(written, "pattern body");
     }
 
     #[tokio::test]

@@ -16,7 +16,7 @@ use crate::util::home;
 /// - feedback + global   → {global_memory}/feedback_{slug}_{ts}.md   (dated)
 /// - project  + project  → {project_memory}/project_{slug}.md        (upsert)
 /// - user     + global   → {global_memory}/user_{slug}.md            (upsert)
-/// - pattern  + any      → {global_memory}/pattern_{slug}.md         (upsert, git-first)
+/// - pattern  + cross-project → {global_memory}/pattern_{slug}.md    (upsert, git-first)
 pub fn write_memory(
     memory_type: &str,
     scope: &str,
@@ -56,7 +56,12 @@ fn resolve_dest(
             let dir = home().join(".claude/memory");
             Ok(dir.join(format!("user_{}.md", slug)))
         }
-        ("pattern", _) => {
+        // t-3254: exact-match, mirroring ("user", "global") — ADR-038 §A lists
+        // exactly one valid scope for pattern (cross-project). A wildcard here
+        // let ANY scope (e.g. "project") pass through silently discarded,
+        // always landing on the same global destination without telling the
+        // caller their scope was ignored.
+        ("pattern", "cross-project") => {
             let dir = home().join(".claude/memory");
             Ok(dir.join(format!("pattern_{}.md", slug)))
         }
@@ -90,6 +95,62 @@ fn validate_type(t: &str) -> Result<()> {
 
 fn timestamp_now() -> String {
     Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string()
+}
+
+#[cfg(test)]
+mod routing_tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    /// t-3254: ADR-038 §A lists exactly one valid scope for `pattern` —
+    /// `cross-project`. Every other type (feedback/project/user) exact-matches
+    /// its valid (type, scope) combos and rejects anything else via the
+    /// catch-all bail. Before the fix, `("pattern", _)` was a wildcard that
+    /// silently accepted (and ignored) ANY scope — including "project" — and
+    /// always routed to the global destination. This must now be rejected the
+    /// same way `("user", "project")` already is, not silently coerced.
+    #[test]
+    fn pattern_with_project_scope_is_rejected_not_silently_coerced() {
+        let tmp = tempdir().unwrap();
+        let root = tmp.path().join("project");
+        std::fs::create_dir_all(&root).unwrap();
+
+        let err = resolve_dest("pattern", "project", "some-slug", &root)
+            .expect_err("scope=project is not a valid combination for type=pattern per ADR-038");
+        assert!(
+            err.to_string().contains("unsupported type/scope combination"),
+            "error must explain the combo is unsupported, per the same message every \
+             other type/scope mismatch uses: {err}"
+        );
+    }
+
+    /// Symmetric case for scope=global — also not in the ADR-038 table for pattern.
+    #[test]
+    fn pattern_with_global_scope_is_rejected() {
+        let tmp = tempdir().unwrap();
+        let root = tmp.path().join("project");
+        std::fs::create_dir_all(&root).unwrap();
+
+        let err = resolve_dest("pattern", "global", "some-slug", &root)
+            .expect_err("scope=global is not a valid combination for type=pattern per ADR-038");
+        assert!(err.to_string().contains("unsupported type/scope combination"));
+    }
+
+    /// The one combination ADR-038 actually specifies for pattern must still work.
+    #[test]
+    fn pattern_with_cross_project_scope_still_resolves_to_global_memory_dir() {
+        let tmp = tempdir().unwrap();
+        let root = tmp.path().join("project");
+        std::fs::create_dir_all(&root).unwrap();
+
+        let dest = resolve_dest("pattern", "cross-project", "some-slug", &root)
+            .expect("scope=cross-project is the ADR-038-sanctioned combination for pattern");
+        assert!(
+            dest.ends_with("pattern_some-slug.md"),
+            "unexpected path: {}",
+            dest.display()
+        );
+    }
 }
 
 /// Regenerate MEMORY.md from the filesystem (ADR-038 §D).
