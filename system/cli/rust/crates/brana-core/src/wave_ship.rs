@@ -262,7 +262,10 @@ pub fn exec_check(
             let by_id = crate::tasks::task_index(all_tasks);
             let mut open: Vec<String> = Vec::new();
             let mut gone: Vec<String> = Vec::new();
-            for t in all_tasks.iter().filter(|t| sel.matches(t, &by_id)) {
+            // t-3249: as-pending membership — roles are status-derived, so
+            // bare `matches` drops a role wave's completed/in-flight members
+            // and this check passes vacuously. Identical for tag:/parent:.
+            for t in all_tasks.iter().filter(|t| sel.matches_as_pending(t, &by_id)) {
                 let Some(tb) = t["branch"].as_str().filter(|b| !b.is_empty()) else { continue };
                 // `--` before ref args: a branch value starting with `-` must
                 // never be parsed by git as a flag (challenger t-3162 f1 —
@@ -353,12 +356,17 @@ pub fn build_ship_report(
     if lines.is_empty() {
         return Vec::new();
     }
+    // t-3249: collect via as-pending membership — for a role: selector, bare
+    // `matches` can never see completed (resolved) or in-flight (claimed)
+    // members, so "all selector tasks completed" failed while any frontier
+    // existed and passed vacuously once it drained. matches_as_pending is
+    // identical to matches for tag:/parent: selectors (status-agnostic).
     let matched_statuses: Vec<String> = match crate::tasks::parse_wave_selector(wave["selector"].as_str().unwrap_or("")) {
         Ok(sel) => {
             let by_id = crate::tasks::task_index(all_tasks);
             all_tasks
                 .iter()
-                .filter(|t| sel.matches(t, &by_id))
+                .filter(|t| sel.matches_as_pending(t, &by_id))
                 .map(|t| t["status"].as_str().unwrap_or("").to_string())
                 .collect()
         }
@@ -546,6 +554,80 @@ mod tests {
     fn build_ship_report_empty_contract_is_empty_not_absent() {
         let wave: serde_json::Value = serde_json::from_str(r#"{"id":"wave-1","selector":"tag:x","contract":""}"#).unwrap();
         assert_eq!(build_ship_report(&wave, &[], None), Vec::<String>::new());
+    }
+
+    // ── t-3249: role-selector waves evaluate against as-pending membership ──
+    // Roles are status-derived (completed → resolved, in_progress → claimed),
+    // so bare `matches` can never see a role wave's completed or in-flight
+    // members: "all selector tasks completed" passed vacuously once the
+    // frontier drained and failed while any frontier existed — it never
+    // certified actual completion.
+
+    #[test]
+    fn role_wave_selector_completed_not_vacuous_with_in_flight_member() {
+        let wave: serde_json::Value = serde_json::from_str(
+            r#"{"id":"wave-1","selector":"role:ready-for-agent","contract":"CHECK: all selector tasks completed"}"#,
+        )
+        .unwrap();
+        // t-1 done, t-2 still in flight — under bare `matches` neither derives
+        // ready-for-agent (resolved/claimed), membership is empty, and the
+        // check passes vacuously while work is literally in progress.
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[{"id":"t-1","subject":"a","status":"completed","tags":[],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"in_progress","tags":[],"blocked_by":[],"ac_state":"approved"}]"#,
+        )
+        .unwrap();
+        let report = build_ship_report(&wave, &tasks, None);
+        let joined = report.join("\n");
+        assert!(joined.contains("FAIL") && joined.contains("1 selector task(s) not completed"),
+            "in-flight member must fail selector-completed, not vanish from membership:\n{joined}");
+    }
+
+    #[test]
+    fn role_wave_selector_completed_passes_when_all_members_done() {
+        let wave: serde_json::Value = serde_json::from_str(
+            r#"{"id":"wave-1","selector":"role:ready-for-agent","contract":"CHECK: all selector tasks completed\nCHECK: selector count >= 2"}"#,
+        )
+        .unwrap();
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[{"id":"t-1","subject":"a","status":"completed","tags":[],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"completed","tags":[],"blocked_by":[],"ac_state":"approved"}]"#,
+        )
+        .unwrap();
+        let report = build_ship_report(&wave, &tasks, None);
+        let joined = report.join("\n");
+        assert!(!joined.contains("FAIL"),
+            "all members completed must pass both checks (count sees as-pending membership):\n{joined}");
+    }
+
+    #[test]
+    fn role_wave_merged_to_sees_completed_members() {
+        // A completed member whose branch is NOT merged must fail merged-to —
+        // under bare `matches` the completed task derived `resolved`, dropped
+        // out of membership, and the check passed vacuously.
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let run = |args: &[&str]| {
+            std::process::Command::new("git").args(args).current_dir(root).output().unwrap()
+        };
+        run(&["init", "-q", "-b", "dev"]);
+        run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "root"]);
+        run(&["checkout", "-q", "-b", "feat/x"]);
+        run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "ahead"]);
+        run(&["checkout", "-q", "dev"]);
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[{"id":"t-1","subject":"a","status":"completed","tags":[],"blocked_by":[],"ac_state":"approved","branch":"feat/x"}]"#,
+        )
+        .unwrap();
+        let wave: serde_json::Value =
+            serde_json::from_str(r#"{"id":"wave-1","selector":"role:ready-for-agent"}"#).unwrap();
+        let out = exec_check(&CheckKind::MergedTo { branch: "dev".into() }, &[], &tasks, &wave, Some(root));
+        match out {
+            CheckOutcome::Fail(why) => {
+                assert!(why.contains("feat/x"), "must name the unmerged branch: {why}")
+            }
+            other => panic!("unmerged completed member must FAIL merged-to, got {other:?}"),
+        }
     }
 
     #[test]
