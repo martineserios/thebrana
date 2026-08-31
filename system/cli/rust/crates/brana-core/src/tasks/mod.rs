@@ -1980,6 +1980,24 @@ mod tests {
         assert_eq!(wave["gate"], "wave-0");
     }
 
+    // ── t-3250: selector edits reject roles the pull step can never drain ──
+
+    #[test]
+    fn test_set_wave_field_selector_rejects_non_pullable_role() {
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        let err = set_wave_field(&mut wave, "selector", "role:needs-triage").unwrap_err();
+        assert!(err.contains("needs-triage") && err.contains("ready-for-agent"),
+            "error must name the rejected role and the only pullable one: {err}");
+        assert!(wave["selector"].is_null(), "rejected write must not mutate");
+    }
+
+    #[test]
+    fn test_set_wave_field_selector_accepts_ready_for_agent_role() {
+        let mut wave = json!({"id": "wave-1", "status": "queued"});
+        set_wave_field(&mut wave, "selector", "role:ready-for-agent").unwrap();
+        assert_eq!(wave["selector"], "role:ready-for-agent");
+    }
+
     // ── t-2782 (ADR-079 §3): wip_limit integer arm + draining-edit rejection ──
 
     #[test]
