@@ -52,6 +52,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 // shared function, so this surface can never silently skip
                 // it again. Display-only; never blocks the flip above.
                 let check_report = if is_ship {
+                    // The flip is already persisted — nothing between save and
+                    // here may fail, or the client would see an error for a
+                    // write that succeeded. This re-lookup can't miss (same
+                    // in-memory val the mutation block found), keep it that way.
                     let wave = val["waves"].as_array()
                         .and_then(|arr| arr.iter().find(|w| w["id"].as_str() == Some(&input.wave_id)))
                         .ok_or_else(|| format!("wave {} not found", input.wave_id))?;
