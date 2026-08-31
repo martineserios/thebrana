@@ -85917,8 +85917,8 @@
       "ac_state": "none",
       "acceptance_criteria": null,
       "blocked_by": [],
-      "branch": null,
-      "completed": null,
+      "branch": "brana-v3-redesign/fix/t-3240-session-read-test-leaks",
+      "completed": "2026-08-31",
       "context": "2026-08-31 (from cancelled dup t-3253): reproduced again on dev after merging t-3249/t-3250 (wave-only diffs — verified unrelated; same tree passed in epic-shaped worktrees). Root cause confirmed: Hermetic pins HOME+CLAUDE_PROJECT_DIR but not the ambient branch; on dev the branch-guess falls back to session-state.json and finds the orphan-routed state the test wrote (found:true vs expected false). Fix shape: pin branch context — chdir into a temp git repo on a known branch (or non-git dir asserting the no-repo path); same ambient-git-state class as t-3249's GIT_DIR scrub (fb8c56f) and [[pattern_worktree-green-can-flip-on-integration-checkout]].",
       "created": "2026-08-30",
       "description": "test_session_read_explicit_epic_finds_state_branch_guess_would_miss (system/cli/rust/crates/brana-mcp/src/tools/session_read.rs) fails whenever the outer repository's actual checked-out branch is literally named \\\"dev\\\" -- confirmed pre-existing and unrelated to any recent change: reproduces identically at commit 277a27f0 (before t-3236's merge) and at f4739ea5 (after). Its own log line during failure: `brana: branch \\\"dev\\\" does not match epic convention, falling back to session-state.json`.\\n\\nRoot cause hypothesis: the test's Hermetic fixture (session_read.rs ~line 91-117) only isolates HOME and CLAUDE_PROJECT_DIR env vars -- it does NOT create an isolated git repo or otherwise mock branch detection. The epic-resolution code under test appears to fall back to real `git branch --show-current` against the ambient/outer repo when no other signal is available, so whichever branch the actual developer/session has checked out (here, literally \\\"dev\\\") leaks into the test's expected-branch assertion (`close/fix/t-9999-dummy`), causing a false failure whenever that ambient branch happens to be \\\"dev\\\" (or any other value the test's assertions don't anticipate).\\n\\nAC: Hermetic fixture in session_read.rs isolates git branch detection (e.g. init a throwaway git repo under the tempdir and check out the fixture's intended branch, or inject branch via an override the production code already supports) so the test's result no longer depends on the outer checkout's actual branch\\nAC: test passes regardless of which branch the surrounding repository has checked out (verified by running it from a worktree checked out on branch \\\"dev\\\" and one checked out on a non-\\\"dev\\\" branch)\\nAC: no other test in the same file/crate relies on the same unisolated ambient-branch fallback (grep sibling tests for the same Hermetic pattern)",
@@ -85927,12 +85927,12 @@
       "github_issue": null,
       "id": "t-3240",
       "kind": "fix",
-      "notes": null,
+      "notes": "Fixed: session_read.rs's Hermetic test fixture only isolated HOME/CLAUDE_PROJECT_DIR, not the ambient git branch. session::current_branch() shells to git against the process cwd (not CLAUDE_PROJECT_DIR), so on any checkout literally named \"dev\" the branch-guess default path collapsed onto the same file the orphan sentinel routes to, producing a false found:true. Fix: Hermetic now inits a throwaway git repo checked out on branch \"close/fix/t-9999-dummy\" and chdirs into it for the fixture's lifetime, restoring cwd on drop. Verified green from both a non-dev worktree and one checked out on dev; full brana-mcp + brana-core suites pass (1162 passed). Confirmed session_write.rs's sibling tests supply branch explicitly (never hit current_branch()), so no other test shares this leak. Commit a0ebe059 on brana-v3-redesign/fix/t-3240-session-read-test-leaks.",
       "order": 0,
       "parent": "t-2337",
       "priority": "P3",
-      "started": null,
-      "status": "pending",
+      "started": "2026-08-31",
+      "status": "completed",
       "subject": "session_read test leaks ambient git branch name, fails whenever repo is checked out on branch \\\"dev\\\"",
       "tags": [
         "rust",
@@ -85940,7 +85940,8 @@
         "brana-mcp"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "bug-fix"
     },
     {
       "ac_state": "none",
