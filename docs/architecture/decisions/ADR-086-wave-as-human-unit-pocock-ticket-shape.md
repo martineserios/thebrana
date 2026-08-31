@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # ADR-086: The Wave Is the Human's Unit — Backlog Speaks the Pocock Ticket Shape
