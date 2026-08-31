@@ -23,22 +23,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 let _lock = brana_core::tasks::lock_tasks_timeout(&tf)?;
                 let mut val = brana_core::tasks::load_raw(&tf)?;
 
-                // t-3234: field=status value=shipped must evaluate the same
-                // CHECK: gauge the CLI's `wave ship` runs — computed before
-                // the mutation below, from the same shared function, so this
-                // surface can never silently skip it again.
                 let is_ship = input.field == "status" && input.value == "shipped";
-                let check_report = if is_ship {
-                    let wave = val["waves"].as_array()
-                        .and_then(|arr| arr.iter().find(|w| w["id"].as_str() == Some(&input.wave_id)))
-                        .ok_or_else(|| format!("wave {} not found", input.wave_id))?;
-                    let empty = Vec::new();
-                    let all_tasks = val["tasks"].as_array().unwrap_or(&empty);
-                    let repo_root = tf.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf());
-                    Some(brana_core::wave_ship::build_ship_report(wave, all_tasks, repo_root.as_deref()))
-                } else {
-                    None
-                };
 
                 let actual_value = {
                     let waves = val["waves"].as_array_mut()
@@ -54,6 +39,29 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 };
 
                 brana_core::tasks::save_tasks(&tf, &val)?;
+                // t-3249 panel (concurrency finder): the report below may
+                // shell out git per matched member (MergedTo), and role-wave
+                // as-pending membership can span the whole completed backlog
+                // — never do that under the tasks.json flock. Report content
+                // is unchanged: it reads only this snapshot, not the file,
+                // and no CHECK: kind reads the wave's own status.
+                drop(_lock);
+
+                // t-3234: field=status value=shipped must evaluate the same
+                // CHECK: gauge the CLI's `wave ship` runs — from the same
+                // shared function, so this surface can never silently skip
+                // it again. Display-only; never blocks the flip above.
+                let check_report = if is_ship {
+                    let wave = val["waves"].as_array()
+                        .and_then(|arr| arr.iter().find(|w| w["id"].as_str() == Some(&input.wave_id)))
+                        .ok_or_else(|| format!("wave {} not found", input.wave_id))?;
+                    let empty = Vec::new();
+                    let all_tasks = val["tasks"].as_array().unwrap_or(&empty);
+                    let repo_root = tf.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf());
+                    Some(brana_core::wave_ship::build_ship_report(wave, all_tasks, repo_root.as_deref()))
+                } else {
+                    None
+                };
 
                 let mut out = serde_json::json!({
                     "ok": true,
