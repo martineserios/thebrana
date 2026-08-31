@@ -248,6 +248,16 @@ pub fn upsert_initiative(
 
     acc.validate()?;
 
+    // Self-heal (t-3248): a pre-fix accumulator can carry the same item in both
+    // next[] and resolved[] simultaneously (live evidence: session-epics/close.json
+    // had 4 such duplicates). Restore the invariant — next[] never contains an
+    // item already present in resolved[] — before this call's own passes run.
+    acc.next.retain(|item| {
+        !acc.resolved.iter().any(|r| {
+            (item.task_id.is_some() && r.task_id == item.task_id) || r.text == item.text
+        })
+    });
+
     let now = Utc::now().to_rfc3339();
     acc.last_closed = now.clone();
     acc.sessions_count += 1;
@@ -297,8 +307,19 @@ pub fn upsert_initiative(
         surviving_next.push(item);
     }
 
-    // Merge new next[] from session: dedup by task_id or text
+    // Merge new next[] from session: dedup by task_id or text, and never
+    // reintroduce an item this same call just resolved (t-3248). state.next is
+    // composed by the caller as "everything still live from the read, plus
+    // what's new" — that read happens BEFORE this call's completed_task_ids/
+    // resolved_texts are known, so state.next reliably still carries the exact
+    // items Pass 1/2 above just pruned; without this check they were pushed
+    // straight back in.
     for item in &state.next {
+        let just_resolved = (item.task_id.is_some() && completed_task_ids.contains(item.task_id.as_ref().unwrap()))
+            || resolved_texts.iter().any(|r| r.text == item.text);
+        if just_resolved {
+            continue;
+        }
         let dup = surviving_next.iter().any(|x| {
             (item.task_id.is_some() && x.task_id == item.task_id)
                 || x.text == item.text
@@ -742,5 +763,97 @@ mod tests {
         let acc = read_initiative(dir.path(), "slug").unwrap();
         assert!(acc.next.iter().any(|n| n.text == "carry forward"), "text-only item must carry forward when resolved_texts is empty");
         assert!(acc.resolved.iter().all(|r| r.text != "carry forward"), "text-only item must NOT be in resolved[] when not flagged");
+    }
+
+    // ── t-3248: --resolved-texts unions instead of pruning ──────────────────
+    //
+    // Live bug (session-epics/close.json): session-state.md instructs the caller
+    // to compose state.next as "everything still live from the read, plus what's
+    // new" — that read happens BEFORE this call's own resolved_texts is known, so
+    // state.next reliably still carries the exact text this same call is about to
+    // resolve. The old merge loop deduped incoming state.next only against
+    // surviving_next (the post-prune list), never against acc.resolved, so the
+    // just-pruned item was immediately pushed back into acc.next.
+
+    #[test]
+    fn pass2_resolved_text_not_reintroduced_by_same_call_next() {
+        let dir = tempdir().unwrap();
+        let s1 = make_session("S1", &[], vec![make_next("run knowledge reindex", None)], &[]);
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+
+        // S2's own next[] still carries the item — the caller composed it from
+        // the pre-call read, before this call's resolved_texts pruned it.
+        let s2 = make_session("S2", &[], vec![make_next("run knowledge reindex", None)], &[]);
+        let resolved = vec![ResolvedTextInput {
+            text: "run knowledge reindex".to_string(),
+            resolution: "done this session via brana knowledge reindex".to_string(),
+        }];
+        upsert_initiative(dir.path(), "slug", &s2, &[], &resolved).unwrap();
+
+        let acc = read_initiative(dir.path(), "slug").unwrap();
+        assert!(
+            acc.next.iter().all(|n| n.text != "run knowledge reindex"),
+            "resolved text item must not be reintroduced by the caller's own next[] in the same call"
+        );
+        assert_eq!(
+            acc.resolved.iter().filter(|r| r.text == "run knowledge reindex").count(),
+            1,
+            "resolved item must appear exactly once, not duplicated"
+        );
+    }
+
+    #[test]
+    fn pass1_completed_task_not_reintroduced_by_same_call_next() {
+        let dir = tempdir().unwrap();
+        let s1 = make_session("S1", &[], vec![make_next("ship the thing", Some("t-9001"))], &[]);
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+
+        let s2 = make_session("S2", &[], vec![make_next("ship the thing", Some("t-9001"))], &[]);
+        upsert_initiative(dir.path(), "slug", &s2, &["t-9001".to_string()], &[]).unwrap();
+
+        let acc = read_initiative(dir.path(), "slug").unwrap();
+        assert!(
+            acc.next.iter().all(|n| n.task_id.as_deref() != Some("t-9001")),
+            "completed-task item must not be reintroduced by the caller's own next[] in the same call"
+        );
+        assert_eq!(
+            acc.resolved.iter().filter(|r| r.task_id.as_deref() == Some("t-9001")).count(),
+            1,
+            "resolved item must appear exactly once, not duplicated"
+        );
+    }
+
+    #[test]
+    fn already_corrupted_accumulator_self_heals_on_next_upsert() {
+        // Simulates a file left over from before the fix: the same text present
+        // in both next[] and resolved[] simultaneously (live evidence in
+        // session-epics/close.json). An unrelated upsert must prune it from
+        // next[] without touching or duplicating resolved[].
+        let dir = tempdir().unwrap();
+        let mut acc = InitiativeAccumulator::new("slug");
+        acc.next.push(make_next("stale dangling item", None));
+        acc.resolved.push(ResolvedItem {
+            text: "stale dangling item".to_string(),
+            task_id: None,
+            resolved_at: "2026-08-23T00:03:11Z".to_string(),
+            resolved_by: "pass2-llm".to_string(),
+            resolution: Some("addressed previously".to_string()),
+        });
+        write_initiative(dir.path(), &acc).unwrap();
+
+        let s2 = make_session("S2", &[], vec![make_next("unrelated new item", None)], &[]);
+        upsert_initiative(dir.path(), "slug", &s2, &[], &[]).unwrap();
+
+        let acc = read_initiative(dir.path(), "slug").unwrap();
+        assert!(
+            acc.next.iter().all(|n| n.text != "stale dangling item"),
+            "pre-existing corrupted next[] entry must be pruned once already present in resolved[]"
+        );
+        assert_eq!(
+            acc.resolved.iter().filter(|r| r.text == "stale dangling item").count(),
+            1,
+            "self-heal must not duplicate the existing resolved[] entry"
+        );
+        assert!(acc.next.iter().any(|n| n.text == "unrelated new item"), "unrelated new next[] item must still be added");
     }
 }
