@@ -104,6 +104,9 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
       deferred = left to a draining bespoke wave, standing-wave pulls only — ADR-086 §5).
       If matched is 0 the wave may be done — tell the human, back off 30+ min.
     - error "not draining"      → the wave was requeued/shipped — STOP the loop.
+    - error "can never drain"   → the wave's role: selector isn't ready-for-agent
+      (t-3250 valve guard, legacy data) — STOP and tell the human to fix the wave's
+      selector; re-pulling cannot succeed.
 (2) If a task id was pulled: work it through the FULL build framework —
     /brana:backlog start <id> (worktree cut from dev, TDD, gates, challenger).
 (3) At build CLOSE: present the merge command and WAIT — never merge to dev
