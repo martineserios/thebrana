@@ -87,10 +87,18 @@ mod tests {
 
     /// RAII guard: isolates HOME and CLAUDE_PROJECT_DIR to a tempdir, so
     /// session state reads never touch the real `~/.claude/projects/...`
-    /// tree. Callers must hold CWD_LOCK for its lifetime.
+    /// tree. Also pins the process's ambient git branch (`session::current_branch()`
+    /// shells out to `git rev-parse --abbrev-ref HEAD` against the *process cwd*, not
+    /// `CLAUDE_PROJECT_DIR`) by chdir-ing into a throwaway repo checked out on a fixed
+    /// branch — without this, the branch-guess default path leaks whatever branch the
+    /// outer checkout happens to be on (t-3240: false failure whenever that branch is
+    /// literally "dev", since "dev" doesn't parse as an epic-shaped branch either and
+    /// collapses onto the same default file the orphan sentinel routes to). Callers
+    /// must hold CWD_LOCK for its lifetime.
     struct Hermetic {
         orig_home: Option<String>,
         orig_project_dir: Option<String>,
+        orig_cwd: std::path::PathBuf,
         _dir: tempfile::TempDir,
     }
 
@@ -99,6 +107,32 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let project_root = dir.path().join("project");
             std::fs::create_dir_all(&project_root).unwrap();
+
+            // Throwaway repo purely to control what `git rev-parse --abbrev-ref HEAD`
+            // reports for the duration of the test. Separate from `project_root` above —
+            // `find_project_root()` resolves via `CLAUDE_PROJECT_DIR` first (t-3169 hint
+            // pattern), so it never sees this repo; only branch detection does.
+            let branch_repo = dir.path().join("branch-repo");
+            std::fs::create_dir_all(&branch_repo).unwrap();
+            let run = |args: &[&str]| {
+                let status = std::process::Command::new("git")
+                    .current_dir(&branch_repo)
+                    .args(args)
+                    .status()
+                    .expect("git command should spawn");
+                assert!(status.success(), "git {args:?} failed");
+            };
+            run(&["init", "-q"]);
+            run(&["config", "user.email", "hermetic-test@example.com"]);
+            run(&["config", "user.name", "hermetic-test"]);
+            run(&["commit", "-q", "--allow-empty", "-m", "init"]);
+            // Same branch name the test's written fixture state uses, so a bug that
+            // makes branch-guess reuse the wrong file is reproduced deterministically
+            // rather than depending on whatever branch the real checkout happens to be on.
+            run(&["checkout", "-q", "-b", "close/fix/t-9999-dummy"]);
+
+            let orig_cwd = std::env::current_dir().unwrap();
+            std::env::set_current_dir(&branch_repo).unwrap();
 
             let orig_home = std::env::var("HOME").ok();
             let orig_project_dir = std::env::var("CLAUDE_PROJECT_DIR").ok();
@@ -109,7 +143,7 @@ mod tests {
                 std::env::set_var("CLAUDE_PROJECT_DIR", &project_root);
             }
 
-            Self { orig_home, orig_project_dir, _dir: dir }
+            Self { orig_home, orig_project_dir, orig_cwd, _dir: dir }
         }
 
         fn project_root(&self) -> std::path::PathBuf {
@@ -130,6 +164,7 @@ mod tests {
                     None => std::env::remove_var("CLAUDE_PROJECT_DIR"),
                 }
             }
+            let _ = std::env::set_current_dir(&self.orig_cwd);
         }
     }
 
