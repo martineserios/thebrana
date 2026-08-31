@@ -532,6 +532,12 @@ pub fn set_wave_field(wave: &mut Value, field: &str, value: &str) -> Result<(), 
                      pull cycle; requeue first (set status queued), then edit {field}"
                 ));
             }
+            // t-3250: a role: selector the pull step can never drain is a
+            // permanent silent stall — reject at the valve. Non-role
+            // selectors stay opaque here (bespoke forms fail at resolve).
+            if field == "selector" && value != "null" {
+                crate::tasks::validate_wave_selector_role(value)?;
+            }
             if value == "null" {
                 wave[field] = Value::Null;
             } else {

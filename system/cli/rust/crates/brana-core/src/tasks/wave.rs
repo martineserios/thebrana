@@ -55,6 +55,33 @@ pub fn parse_wave_selector(selector: &str) -> Result<WaveSelector, String> {
     ))
 }
 
+/// Valve guard for `role:` selectors at wave add / selector edit / drain
+/// (t-3250). The pull step's eligibility filter (`wave_pull_decision`) only
+/// ever pulls tasks deriving `role:ready-for-agent` — its unattended safety
+/// filter, by design (t-3160/T1). A wave stored with any other role selector
+/// matches candidates yet can never pull: a permanent silent stall. Reject
+/// loud at the owning wave, per `parse_wave_selector`'s own principle.
+///
+/// Owns ONLY the `role:` arm: non-role selectors (tag:/parent:/bespoke
+/// strings) pass untouched and keep their existing behavior — bespoke forms
+/// still fail at resolution time, not here.
+pub fn validate_wave_selector_role(selector: &str) -> Result<(), String> {
+    if !selector.trim().starts_with("role:") {
+        return Ok(());
+    }
+    match parse_wave_selector(selector)? {
+        WaveSelector::Role(Role::ReadyForAgent) => Ok(()),
+        WaveSelector::Role(other) => Err(format!(
+            "role:{} wave can never drain — the pull step only pulls \
+             role:ready-for-agent (its unattended safety filter), so this wave \
+             would stall forever; use role:ready-for-agent or a tag:/parent: selector",
+            other.as_str()
+        )),
+        // role:-prefixed input always parses to Role or errors above.
+        _ => Ok(()),
+    }
+}
+
 impl WaveSelector {
     /// Status-agnostic membership test — callers apply their own status
     /// filter (resolver: pending; wip live-count: in_progress). `by_id` is
@@ -240,6 +267,12 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value], waves: &[Value]) -> Res
             "wave {wid} is {status}, not draining — only draining waves may be pulled from"
         ));
     }
+
+    // t-3250 (panel verify): guard the interpreter, not just the producers.
+    // A legacy pre-guard role: selector can still reach draining via a bare
+    // status write (deliberately unguarded), and the eligibility filter below
+    // would then return Ok(NoneEligible) forever — fail loud here instead.
+    validate_wave_selector_role(wave["selector"].as_str().unwrap_or(""))?;
 
     let matched = resolve_wave_selector(wave, tasks)?;
 
@@ -732,6 +765,40 @@ mod tests {
     fn parse_selector_rejects_unknown_role_name() {
         let err = parse_wave_selector("role:bogus").unwrap_err();
         assert!(err.contains("bogus"), "error must name the bad value: {err}");
+    }
+
+    // ── validate_wave_selector_role — the valve guard (t-3250) ──────────
+
+    #[test]
+    fn selector_role_guard_accepts_ready_for_agent() {
+        assert!(validate_wave_selector_role("role:ready-for-agent").is_ok());
+        assert!(validate_wave_selector_role("  role:ready-for-agent  ").is_ok());
+    }
+
+    #[test]
+    fn selector_role_guard_rejects_every_other_role() {
+        for name in ["needs-triage", "needs-info", "ready-for-human",
+                      "wontfix", "claimed", "resolved"] {
+            let err = validate_wave_selector_role(&format!("role:{name}")).unwrap_err();
+            assert!(err.contains(name), "error must name the rejected role: {err}");
+            assert!(err.contains("ready-for-agent"),
+                "error must name the only pullable role: {err}");
+        }
+    }
+
+    #[test]
+    fn selector_role_guard_rejects_unknown_role_name() {
+        let err = validate_wave_selector_role("role:bogus").unwrap_err();
+        assert!(err.contains("bogus"), "error must name the bad value: {err}");
+    }
+
+    #[test]
+    fn selector_role_guard_passes_non_role_selectors_untouched() {
+        // tag:/parent: are valid; bespoke strings keep failing at resolution
+        // time, not here — this guard owns only the role: arm.
+        for sel in ["tag:bugfix", "parent:ms-1", "shape:mechanical", ""] {
+            assert!(validate_wave_selector_role(sel).is_ok(), "{sel:?} must pass");
+        }
     }
 
     #[test]

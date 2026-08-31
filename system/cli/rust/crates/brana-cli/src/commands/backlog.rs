@@ -947,6 +947,10 @@ pub fn cmd_wave_add(
     gate: Option<String>,
     file: Option<PathBuf>,
 ) -> anyhow::Result<()> {
+    // t-3250: reject role: selectors the pull step can never drain, before
+    // anything is stored — a role:needs-triage wave stalls forever.
+    tasks::validate_wave_selector_role(&selector).map_err(|e| anyhow::anyhow!("{e}"))?;
+
     let tf = match file {
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
@@ -1225,6 +1229,10 @@ pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()
         eprintln!("{}", serde_json::json!({"ok": false, "error": msg}));
         anyhow::anyhow!(msg)
     };
+    // t-3250: stored waves predating the add-time guard must still fail loud
+    // here — draining a non-pullable role selector is a permanent stall.
+    tasks::validate_wave_selector_role(wave["selector"].as_str().unwrap_or(""))
+        .map_err(fail)?;
     tasks::check_wave_gate(wave, &waves).map_err(fail)?;
 
     let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
@@ -3297,6 +3305,32 @@ mod tests {
     }
 
     #[test]
+    fn cmd_wave_add_rejects_non_pullable_role_selector() {
+        // t-3250: a role:needs-triage wave matches candidates but the pull
+        // step only pulls role:ready-for-agent — permanent silent stall.
+        // Reject at the valve, before anything is stored.
+        let f = empty_tasks_file();
+        let err = cmd_wave_add(
+            "w".into(), "role:needs-triage".into(),
+            None, None, Some(f.path().to_path_buf()),
+        ).unwrap_err();
+        assert!(err.to_string().contains("needs-triage")
+            && err.to_string().contains("ready-for-agent"), "got: {err}");
+        assert!(read_waves(&f).as_array().map(|a| a.is_empty()).unwrap_or(true),
+            "rejected add must not store a wave");
+    }
+
+    #[test]
+    fn cmd_wave_add_accepts_ready_for_agent_role_selector() {
+        let f = empty_tasks_file();
+        cmd_wave_add(
+            "standing".into(), "role:ready-for-agent".into(),
+            None, None, Some(f.path().to_path_buf()),
+        ).unwrap();
+        assert_eq!(read_waves(&f)[0]["selector"], "role:ready-for-agent");
+    }
+
+    #[test]
     fn cmd_wave_add_increments_id_across_waves() {
         let f = empty_tasks_file();
         cmd_wave_add("w1".into(), "s1".into(), None, None, Some(f.path().to_path_buf())).unwrap();
@@ -3494,6 +3528,31 @@ mod tests {
         assert!(err.to_string().contains("selector form not supported"),
             "unsupported selector must be rejected, not silently no-op'd: {err}");
         assert_eq!(read_waves(&f)[0]["status"], "queued", "rejected drain must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_drain_rejects_non_pullable_role_selector() {
+        // t-3250: pre-existing stored wave (created before the add-time guard)
+        // must still fail loud at drain, not enter a permanent silent stall.
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"w","selector":"role:needs-triage","gate":null,"status":"queued"}]"#,
+        );
+        let err = cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("needs-triage")
+            && err.to_string().contains("ready-for-agent"), "got: {err}");
+        assert_eq!(read_waves(&f)[0]["status"], "queued", "rejected drain must not persist");
+    }
+
+    #[test]
+    fn cmd_wave_drain_allows_ready_for_agent_role_selector() {
+        // AC: wave-standing (role:ready-for-agent) unaffected.
+        let f = drain_fixture(
+            "[]",
+            r#"[{"id":"wave-1","name":"standing","selector":"role:ready-for-agent","gate":null,"status":"queued"}]"#,
+        );
+        cmd_wave_drain("wave-1", Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(read_waves(&f)[0]["status"], "draining");
     }
 
     #[test]

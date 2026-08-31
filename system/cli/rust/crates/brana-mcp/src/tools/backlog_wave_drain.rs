@@ -41,6 +41,11 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     return Err(format!("wave {} already shipped — nothing to drain", input.wave_id));
                 }
 
+                // t-3250: stored waves predating the add-time guard must
+                // still fail loud here — mirrors cmd_wave_drain.
+                brana_core::tasks::validate_wave_selector_role(
+                    wave["selector"].as_str().unwrap_or(""),
+                )?;
                 brana_core::tasks::check_wave_gate(wave, &waves)?;
 
                 let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
@@ -186,6 +191,28 @@ mod tests {
             .await
             .expect_err("already-shipped wave must not be drainable");
         assert!(err.to_string().contains("already shipped"), "got: {err}");
+    }
+
+    #[tokio::test]
+    async fn test_drain_rejects_non_pullable_role_selector() {
+        // t-3250: a stored role:needs-triage wave (pre-guard data) must fail
+        // loud at drain instead of draining into a permanent silent stall.
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let h = Hermetic::new(
+            r#"{"project":"test","tasks":[],
+                "waves":[{"id":"wave-1","name":"w","selector":"role:needs-triage","gate":null,"status":"queued"}]}"#,
+        );
+
+        let err = build()
+            .handle(json!({"wave_id": "wave-1"}), pmcp::RequestHandlerExtra::default())
+            .await
+            .expect_err("non-pullable role selector must block drain");
+        let msg = err.to_string();
+        assert!(msg.contains("needs-triage") && msg.contains("ready-for-agent"), "got: {msg}");
+
+        let reloaded: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(h.tasks_file()).unwrap()).unwrap();
+        assert_eq!(reloaded["waves"][0]["status"], "queued", "blocked drain must not mutate status");
     }
 
     #[tokio::test]
