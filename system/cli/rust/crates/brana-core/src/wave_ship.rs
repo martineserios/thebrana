@@ -270,8 +270,13 @@ pub fn exec_check(
                 // `--` before ref args: a branch value starting with `-` must
                 // never be parsed by git as a flag (challenger t-3162 f1 —
                 // defense-in-depth; the value comes from a runner-writable field).
+                // Scrub hook-exported GIT_DIR/GIT_WORK_TREE — they override
+                // `-C` and silently resolve a FOREIGN repo (t-2617/t-2501
+                // class; util.rs git helpers scrub the same pair).
                 let exists = std::process::Command::new("git")
                     .args(["-C", &root.to_string_lossy(), "rev-parse", "--verify", "--quiet", "--end-of-options", tb])
+                    .env_remove("GIT_DIR")
+                    .env_remove("GIT_WORK_TREE")
                     .output();
                 match exists {
                     Err(e) => return CheckOutcome::Unevaluated(format!("git unavailable: {e}")),
@@ -287,6 +292,8 @@ pub fn exec_check(
                 }
                 let anc = std::process::Command::new("git")
                     .args(["-C", &root.to_string_lossy(), "merge-base", "--is-ancestor", "--end-of-options", tb, branch])
+                    .env_remove("GIT_DIR")
+                    .env_remove("GIT_WORK_TREE")
                     .status();
                 match anc {
                     Ok(s) if s.success() => {}
@@ -528,8 +535,15 @@ mod tests {
         // as a silent PASS — the gauge reports it unverifiable instead.
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
+        // env_remove: same fixture-poisoning guard as the merged-to tests.
         let run = |args: &[&str]| {
-            std::process::Command::new("git").args(args).current_dir(root).output().unwrap()
+            std::process::Command::new("git")
+                .args(args)
+                .current_dir(root)
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .output()
+                .unwrap()
         };
         run(&["init", "-q", "-b", "dev"]);
         run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "root"]);
@@ -607,8 +621,16 @@ mod tests {
         // out of membership, and the check passed vacuously.
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
+        // env_remove: fixture setup must not be poisonable by parallel tests
+        // that export GIT_DIR/GIT_WORK_TREE (util.rs's env-mutating tests).
         let run = |args: &[&str]| {
-            std::process::Command::new("git").args(args).current_dir(root).output().unwrap()
+            std::process::Command::new("git")
+                .args(args)
+                .current_dir(root)
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .output()
+                .unwrap()
         };
         run(&["init", "-q", "-b", "dev"]);
         run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "root"]);
@@ -627,6 +649,71 @@ mod tests {
                 assert!(why.contains("feat/x"), "must name the unmerged branch: {why}")
             }
             other => panic!("unmerged completed member must FAIL merged-to, got {other:?}"),
+        }
+    }
+
+    // Serializes tests that mutate process-global GIT_DIR/GIT_WORK_TREE —
+    // same pattern as util.rs's GIT_ENV_LOCK (env vars are process-wide,
+    // #[test] fns run on parallel threads).
+    static GIT_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn exec_check_merged_to_ignores_leaked_git_dir() {
+        // t-2617/t-2501 class: a git hook's exported GIT_DIR/GIT_WORK_TREE
+        // overrides `-C`, so exec_check's subprocesses silently resolve the
+        // FOREIGN repo and every branch reads unverifiable. Surfaced as a
+        // parallel-test flake (util.rs env-mutating tests poisoned this
+        // file's merged-to fixture); the scrub fixes the live class too.
+        let _guard = GIT_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let dir = tempfile::tempdir().unwrap();
+        let foreign = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let run = |args: &[&str]| {
+            std::process::Command::new("git")
+                .args(args)
+                .current_dir(root)
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .output()
+                .unwrap()
+        };
+        run(&["init", "-q", "-b", "dev"]);
+        run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "root"]);
+        run(&["checkout", "-q", "-b", "feat/x"]);
+        run(&["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "ahead"]);
+        run(&["checkout", "-q", "dev"]);
+        std::process::Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(foreign.path())
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .output()
+            .unwrap();
+
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[{"id":"t-1","subject":"a","status":"completed","tags":[],"blocked_by":[],"ac_state":"approved","branch":"feat/x"}]"#,
+        )
+        .unwrap();
+        let wave: serde_json::Value =
+            serde_json::from_str(r#"{"id":"wave-1","selector":"role:ready-for-agent"}"#).unwrap();
+
+        unsafe {
+            std::env::set_var("GIT_DIR", foreign.path().join(".git"));
+            std::env::set_var("GIT_WORK_TREE", foreign.path());
+        }
+        let out = exec_check(&CheckKind::MergedTo { branch: "dev".into() }, &[], &tasks, &wave, Some(root));
+        unsafe {
+            std::env::remove_var("GIT_DIR");
+            std::env::remove_var("GIT_WORK_TREE");
+        }
+
+        match out {
+            CheckOutcome::Fail(why) => {
+                assert!(why.contains("feat/x"), "must still see the real repo's branch: {why}")
+            }
+            other => panic!(
+                "leaked GIT_DIR must not blind the check (expected Fail naming feat/x), got {other:?}"
+            ),
         }
     }
 
