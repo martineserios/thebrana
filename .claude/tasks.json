@@ -86269,7 +86269,7 @@
     {
       "id": "t-3252",
       "subject": "Decide standing-wave ship-certificate membership: board wave_counts excludes bespoke-owned, ship report includes them",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "design",
       "tags": [
@@ -86283,18 +86283,19 @@
       "priority": "P3",
       "parent": "t-2337",
       "created": "2026-08-31",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-31",
+      "completed": "2026-08-31",
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/design/t-3252-decide-standing-wave-ship",
       "context": "AC: decision recorded in ADR-086 §5 (amendment note) or wave_counts doc comment\nAC: if code alignment chosen, board matched and ship selector-count agree on the same wave, with a test",
-      "notes": null,
+      "notes": "Resolved by documentation: ADR-086 §5 amendment (2026-08-31) states ship-certificate membership (bespoke-inclusive) and wave_counts pull membership (bespoke-exclusive) answer different questions by design — pull precedence vs. ship-time completeness. No code change; excluding bespoke-owned tasks from ship certs would recreate the vacuous-PASS class t-3249 closed. Commit 36fc7851 on brana-v3-redesign/design/t-3252-decide-standing-wave-ship.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": null,
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "feature"
     },
     {
       "id": "t-3253",
