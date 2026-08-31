@@ -1,21 +1,35 @@
 #!/usr/bin/env bash
 # Regression test: /brana:close Step 1 must normalize a bare orientation word
-# (e.g. `/brana:close continue`, no leading `--`) to its --flag form before
-# passing $ARGUMENTS to close-classify.sh's --arguments string-contains scan
-# (t-3247).
+# (e.g. `/brana:close continue`, no leading `--`) to its --flag form BEFORE
+# any of Step 1's three orientation checks run (t-3247).
 #
-# Bug: close-classify.sh's --arguments path only recognizes "--continue" etc
-# as a substring (close-classify.sh:60-65). A bare word reaching gate-and-
-# evidence.md's Step 1 invocation (line ~321) silently misses that scan and
-# falls through to the file/commit-count heuristics — classification degrades
-# without any error. The --mode-override path (close-classify.sh:32-39, 56-59)
-# is the opposite convention (bare word, no --) and is not what Step 1 calls.
+# Bug: three separate points in gate-and-evidence.md's Step 1 all match
+# orientation as a literal "--flag" substring on raw $ARGUMENTS: the
+# close-classify.sh --arguments scan (close-classify.sh:60-65), the HARD
+# GUARD ("if $ARGUMENTS contains ANY orientation flag, skip the picker"),
+# and the ORIENTATION derivation ("set ORIENTATION to the flag name when
+# present, auto otherwise" — consumed by session-state.md/cleanup.md for
+# task-state transitions and cleanup skip-rules). A bare word reaching any
+# of them silently misses the same substring scan: close-classify.sh falls
+# through to file/commit-count heuristics, the HARD GUARD fails to skip the
+# picker it exists to skip, and ORIENTATION derives "auto" instead of the
+# intended flag — no error in any case (adversarial review, t-3247 challenger
+# gate: patching only the close-classify.sh call site left the other two
+# sibling sites broken by the identical mechanism). The --mode-override path
+# (close-classify.sh:32-39, 56-59) is the opposite convention (bare word, no
+# --) and is not what Step 1 calls.
 #
-# Fix: Step 1 normalizes bare orientation words to --flag form BEFORE the
-# close-classify.sh invocation (ORIENTATION-NORMALIZE-BLOCK in gate-and-
-# evidence.md), so both entry conventions converge on one string. Free-form
-# focus text ($ARGUMENTS used as a Step 2 hint, e.g. "/brana:close hooks")
-# must NOT be touched — only the four exact bare orientation words normalize.
+# Fix: Step 1 normalizes bare orientation words to --flag form ONCE, at the
+# very top of Step 1 (ORIENTATION-NORMALIZE-BLOCK in gate-and-evidence.md),
+# before any of the three checks below it run — all three then operate on
+# the same corrected value. Free-form focus text ($ARGUMENTS used as a Step 2
+# hint, e.g. "/brana:close hooks") must NOT be touched — only the four exact
+# bare orientation words normalize. This test exercises the normalize step
+# feeding close-classify.sh's identical substring-scan mechanism; the HARD
+# GUARD and ORIENTATION derivation use that same mechanism on the same
+# post-normalization value, so a passing scan here is the direct proxy for
+# both (they are prose steps evaluated by the LLM, not separately
+# shell-testable).
 #
 # The snippet is EXTRACTED from system/skills/close/phases/gate-and-evidence.md
 # so the test exercises the shipped procedure text, not a copy (t-1978 rot class).
