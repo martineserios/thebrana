@@ -203,3 +203,8 @@ Verifier nuance recorded, not applied here: brana-core `classify()` (`test_cance
 - [ADR-084](ADR-084-upstream-skill-band-vendored-pocock-skills.md) §3 — the adapter contract this ADR's §8 completes
 - `brana-core/src/tasks/wave.rs` — `wave_pull_decision` (current filter, no `blocked_by`)
 - t-2828 context — brainstorm items (b) standing waves, (e) machine-checkable contracts, (f) wave board, landed here as §5, §6; others deferred
+
+## Changelog
+
+- 2026-08-31: §5's pull-side safety filter is now enforced at every wave valve — `role:` selectors other than `ready-for-agent` are rejected at add / selector edit / drain AND at the pull consumer itself (`validate_wave_selector_role`, guard-the-interpreter backstop for bare status writes). Previously a `role:needs-triage` wave drained into a permanent silent `NoneEligible` stall (t-3250, commits 747f614/91248dc).
+- 2026-08-31: ship-time CHECK evaluation (`wave_ship.rs`) collects role-selector membership as-pending (`matches_as_pending`), so `all selector tasks completed` / `selector count` / `merged to` certify the wave's real membership instead of passing vacuously once the frontier drains; MCP `backlog_wave_set` now builds the ship report after releasing the tasks.json lock, and `exec_check`'s git calls scrub hook-exported `GIT_DIR`/`GIT_WORK_TREE` (t-3249, commits 193222c/eec7e4a/fb8c56f). Open decision: ship-certificate membership is bespoke-inclusive while `wave_counts` is bespoke-exclusive — t-3252 (panel SPLIT verdict).
