@@ -86,6 +86,16 @@ Nothing requires plan-born waves: `wave add` stays for hand-rolled ones.
 > (t-2826/t-2933). The prose below is preserved as the original decision record — for the
 > current, maintained procedure (including post-t-2845 fixes not reflected here), read the
 > committed doc, not this ADR.
+>
+> **Addendum (2026-08-30, t-3161 — ADR-086 §5):** the epic runner now coexists with the
+> **standing wave** (`wave-standing`, selector `role:ready-for-agent`, always draining).
+> Precedence is one-directional and drain-scoped: a task matched by a *draining* bespoke
+> (`tag:`/`parent:`) wave — including any wave this runner has armed — is deferred by the
+> standing pull, so an armed epic wave never loses tasks to the standing pump. A still
+> **queued** (gate-unmet) epic wave does not shadow the standing pool: its approved,
+> unblocked tasks remain standing-frontier eligible (the overlap-accepted semantics of §5;
+> gates order *shipping*, `blocked_by` orders execution). The runner's own pulls are
+> unchanged — `parent:` waves keep array order and report `deferred: 0`.
 
 > **See also:** distinct from the *future* autonomous/Orbit satellite runner described in
 > [features/autonomous-runner.md](../features/autonomous-runner.md) — this ADR's epic runner

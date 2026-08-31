@@ -2072,7 +2072,7 @@ mod tests {
             pull_task("t-2", "pending", Some("approved"), &["w1"]), // first eligible
             pull_task("t-3", "pending", Some("approved"), &["w1"]),
         ];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
     }
 
@@ -2087,10 +2087,10 @@ mod tests {
             pull_task("t-2", "pending", None, &["w1"]),                    // legacy, no ac_state
             pull_task("t-3", "pending", Some("approved"), &["w1", "parked"]),
         ];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(
             d,
-            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1, human: 0, blocked: 0 },
+            PullDecision::NoneEligible { matched: 3, unapproved: 2, parked: 1, human: 0, blocked: 0, deferred: 0 },
             "matched-but-not-eligible is visible and expected, not a bug"
         );
     }
@@ -2108,7 +2108,7 @@ mod tests {
             blocked,                                                 // first in order, but blocked
             pull_task("t-1", "pending", Some("approved"), &["w1"]), // its blocker — the correct pull
         ];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
     }
 
@@ -2125,10 +2125,10 @@ mod tests {
             pull_task("t-1", "in_progress", Some("approved"), &["w1"]),
             json!({"id": "t-canc", "status": "cancelled", "tags": [], "blocked_by": []}),
         ];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(
             d,
-            PullDecision::NoneEligible { matched: 2, unapproved: 0, parked: 0, human: 0, blocked: 2 },
+            PullDecision::NoneEligible { matched: 2, unapproved: 0, parked: 0, human: 0, blocked: 2, deferred: 0 },
             "matched-but-blocked must be reported, not hidden"
         );
     }
@@ -2147,10 +2147,10 @@ mod tests {
             pull_task("t-1", "pending", Some("approved"), &["w1", "human"]),
             pull_task("t-2", "pending", Some("proposed"), &["w1"]), // unapproved, for contrast
         ];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(
             d,
-            PullDecision::NoneEligible { matched: 2, unapproved: 1, parked: 0, human: 1, blocked: 0 },
+            PullDecision::NoneEligible { matched: 2, unapproved: 1, parked: 0, human: 1, blocked: 0, deferred: 0 },
             "human-tagged task must be excluded from pull and counted separately, not folded into unapproved"
         );
     }
@@ -2161,10 +2161,10 @@ mod tests {
         // gating and diagnostic counts never disagree on a task tagged both.
         let wave = pull_wave("draining", None);
         let tasks = vec![pull_task("t-1", "pending", Some("approved"), &["w1", "human", "parked"])];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(
             d,
-            PullDecision::NoneEligible { matched: 1, unapproved: 0, parked: 0, human: 1, blocked: 0 }
+            PullDecision::NoneEligible { matched: 1, unapproved: 0, parked: 0, human: 1, blocked: 0, deferred: 0 }
         );
     }
 
@@ -2175,7 +2175,7 @@ mod tests {
             pull_task("t-1", "in_progress", Some("approved"), &["w1"]), // live
             pull_task("t-2", "pending", Some("approved"), &["w1"]),     // eligible but capped
         ];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::AtLimit { live: 1, limit: 1 });
     }
 
@@ -2187,7 +2187,7 @@ mod tests {
             pull_task("t-2", "in_progress", Some("approved"), &["w1"]),
             pull_task("t-3", "pending", Some("approved"), &["w1"]),
         ];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::Pulled { task_id: "t-3".into() });
     }
 
@@ -2196,7 +2196,7 @@ mod tests {
         // wip_limit 0 = pause pulling (t-2782) — always at limit.
         let wave = pull_wave("draining", Some(0));
         let tasks = vec![pull_task("t-1", "pending", Some("approved"), &["w1"])];
-        let d = wave_pull_decision(&wave, &tasks).unwrap();
+        let d = wave_pull_decision(&wave, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::AtLimit { live: 0, limit: 0 });
     }
 
@@ -2204,12 +2204,159 @@ mod tests {
     fn test_wave_pull_decision_refuses_non_draining_wave() {
         for status in ["queued", "shipped"] {
             let wave = pull_wave(status, None);
-            let err = wave_pull_decision(&wave, &[]).unwrap_err();
+            let err = wave_pull_decision(&wave, &[], &[]).unwrap_err();
             assert!(
                 err.contains("draining"),
                 "pull from a {status} wave must refuse, naming the required state: {err}"
             );
         }
+    }
+
+    // ── t-3161/T3 (ADR-086 §5): standing wave — role selector, priority-then-
+    // created ordering, bespoke-draining precedence, role-aware wip live count ──
+
+    fn standing_wave(wip: Option<u64>) -> Value {
+        let mut w = json!({
+            "id":"wave-std","name":"wave-standing",
+            "selector":"role:ready-for-agent","status":"draining"
+        });
+        if let Some(n) = wip {
+            w["wip_limit"] = json!(n);
+        }
+        w
+    }
+
+    fn std_task(id: &str, status: &str, prio: Option<&str>, created: Option<&str>, tags: &[&str]) -> Value {
+        let mut t = pull_task(id, status, Some("approved"), tags);
+        if let Some(p) = prio {
+            t["priority"] = json!(p);
+        }
+        if let Some(c) = created {
+            t["created"] = json!(c);
+        }
+        t
+    }
+
+    #[test]
+    fn test_standing_wave_pull_orders_by_priority_then_created() {
+        // ADR-086 §5 (F4): array order is wrong for a backlog-wide pool — the
+        // standing wave sorts matched by priority (P0 first) then created
+        // ascending. Array order here is deliberately adversarial.
+        let wave = standing_wave(None);
+        let tasks = vec![
+            std_task("t-1", "pending", Some("P2"), Some("2026-01-01"), &[]),
+            std_task("t-2", "pending", Some("P0"), Some("2026-01-03"), &[]),
+            std_task("t-3", "pending", Some("P0"), Some("2026-01-02"), &[]), // P0, oldest → pull
+            std_task("t-4", "pending", None, Some("2025-01-01"), &[]),       // no priority → last
+        ];
+        let waves = vec![wave.clone()];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-3".into() });
+    }
+
+    #[test]
+    fn test_standing_wave_priority_tie_breaks_by_created_ascending() {
+        let wave = standing_wave(None);
+        let tasks = vec![
+            std_task("t-1", "pending", Some("P1"), Some("2026-02-02"), &[]),
+            std_task("t-2", "pending", Some("P1"), Some("2026-02-01"), &[]), // older → pull
+            std_task("t-3", "pending", Some("P1"), None, &[]),               // no created → last
+        ];
+        let waves = vec![wave.clone()];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
+    }
+
+    #[test]
+    fn test_standing_wave_defers_to_draining_bespoke_wave() {
+        // ADR-086 §5: a task matched by a draining bespoke wave is pulled by
+        // that wave first — the standing pull skips it even at higher priority.
+        let wave = standing_wave(None);
+        let bespoke = json!({"id":"wave-1","name":"w1","selector":"tag:w1","status":"draining"});
+        let tasks = vec![
+            std_task("t-1", "pending", Some("P0"), Some("2026-01-01"), &["w1"]), // bespoke's
+            std_task("t-2", "pending", Some("P2"), Some("2026-01-02"), &[]),     // standing's
+        ];
+        let waves = vec![wave.clone(), bespoke];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
+    }
+
+    #[test]
+    fn test_standing_wave_reports_deferred_count_when_all_candidates_bespoke() {
+        let wave = standing_wave(None);
+        let bespoke = json!({"id":"wave-1","name":"w1","selector":"tag:w1","status":"draining"});
+        let tasks = vec![std_task("t-1", "pending", Some("P0"), None, &["w1"])];
+        let waves = vec![wave.clone(), bespoke];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(
+            d,
+            PullDecision::NoneEligible {
+                matched: 1, unapproved: 0, parked: 0, human: 0, blocked: 0, deferred: 1
+            },
+            "bespoke-deferred tasks must be visible in the stall report, not silently dropped"
+        );
+    }
+
+    #[test]
+    fn test_standing_wave_ignores_queued_bespoke_wave() {
+        // Precedence belongs to DRAINING bespoke waves only — a queued wave
+        // has not opened its queue and must not shadow the standing pool.
+        let wave = standing_wave(None);
+        let bespoke = json!({"id":"wave-1","name":"w1","selector":"tag:w1","status":"queued"});
+        let tasks = vec![std_task("t-1", "pending", Some("P0"), None, &["w1"])];
+        let waves = vec![wave.clone(), bespoke];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
+    }
+
+    #[test]
+    fn test_standing_wave_wip_limit_counts_in_progress_pool() {
+        // The live count for a role selector must count in_progress tasks that
+        // WOULD derive the role were they pending — derive_role on an
+        // in_progress task returns Claimed, so a naive selector match counts
+        // live=0 forever and wip_limit never binds (the §5 provisional
+        // wip_limit 2 would be a no-op).
+        let wave = standing_wave(Some(2));
+        let tasks = vec![
+            pull_task("t-1", "in_progress", Some("approved"), &[]),
+            pull_task("t-2", "in_progress", Some("approved"), &[]),
+            std_task("t-3", "pending", Some("P0"), None, &[]),
+        ];
+        let waves = vec![wave.clone()];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(d, PullDecision::AtLimit { live: 2, limit: 2 });
+    }
+
+    #[test]
+    fn test_standing_wave_live_count_excludes_bespoke_matched_tasks() {
+        // An in_progress task belonging to a draining bespoke wave counts
+        // against THAT wave's wip_limit, not the standing wave's — same
+        // precedence rule as candidate selection, applied to the live count.
+        let wave = standing_wave(Some(1));
+        let bespoke = json!({"id":"wave-1","name":"w1","selector":"tag:w1","status":"draining"});
+        let tasks = vec![
+            pull_task("t-1", "in_progress", Some("approved"), &["w1"]), // bespoke's live
+            std_task("t-2", "pending", Some("P0"), None, &[]),
+        ];
+        let waves = vec![wave.clone(), bespoke];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
+    }
+
+    #[test]
+    fn test_bespoke_wave_pull_unaffected_by_standing_wave_presence() {
+        // Precedence is one-directional: bespoke waves pull their matches in
+        // array order regardless of any standing wave in the file.
+        let wave = pull_wave("draining", None);
+        let standing = standing_wave(None);
+        let tasks = vec![
+            pull_task("t-1", "pending", Some("approved"), &["w1"]),
+            pull_task("t-2", "pending", Some("approved"), &["w1"]),
+        ];
+        let waves = vec![standing, wave.clone()];
+        let d = wave_pull_decision(&wave, &tasks, &waves).unwrap();
+        assert_eq!(d, PullDecision::Pulled { task_id: "t-1".into() });
     }
 
     #[test]
