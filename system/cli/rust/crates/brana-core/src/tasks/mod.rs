@@ -2230,6 +2230,19 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_pull_from_non_pullable_role_wave_fails_loud() {
+        // t-3250 panel (verify: CONFIRMED): a legacy wave with a pre-guard
+        // role:needs-triage selector can still be armed to draining via
+        // `wave set status draining` (status writes are deliberately
+        // unguarded), bypassing drain's check. The pull consumer must fail
+        // loud — not return Ok(NoneEligible) forever (the silent stall).
+        let wave = json!({"id":"wave-1","name":"w","selector":"role:needs-triage","status":"draining"});
+        let err = wave_pull_decision(&wave, &[], &[]).unwrap_err();
+        assert!(err.contains("needs-triage") && err.contains("ready-for-agent"),
+            "pull must reject the non-pullable role loud: {err}");
+    }
+
     // ── t-3161/T3 (ADR-086 §5): standing wave — role selector, priority-then-
     // created ordering, bespoke-draining precedence, role-aware wip live count ──
 

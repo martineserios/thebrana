@@ -268,6 +268,12 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value], waves: &[Value]) -> Res
         ));
     }
 
+    // t-3250 (panel verify): guard the interpreter, not just the producers.
+    // A legacy pre-guard role: selector can still reach draining via a bare
+    // status write (deliberately unguarded), and the eligibility filter below
+    // would then return Ok(NoneEligible) forever — fail loud here instead.
+    validate_wave_selector_role(wave["selector"].as_str().unwrap_or(""))?;
+
     let matched = resolve_wave_selector(wave, tasks)?;
 
     let sel = parse_wave_selector(wave["selector"].as_str().unwrap_or(""))?;
