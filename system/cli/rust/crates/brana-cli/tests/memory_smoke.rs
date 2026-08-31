@@ -532,3 +532,55 @@ fn memory_write_feedback_global_scope_creates_file_in_global_dir() {
         "global feedback file should have dated prefix, got: {name}"
     );
 }
+
+// ── Pattern type scope validation (t-3254) ─────────────────────────────────
+//
+// ADR-038 §A lists exactly one valid scope for `pattern`: cross-project. The
+// CLI (like the MCP tool) previously accepted ANY --scope for --type pattern
+// and silently discarded it, always writing to the global pattern file. That
+// bypassed the same validation every other type already enforces.
+
+#[test]
+fn memory_write_pattern_with_project_scope_is_rejected() {
+    let home = assert_fs::TempDir::new().unwrap();
+    let project = assert_fs::TempDir::new().unwrap();
+
+    brana()
+        .args([
+            "memory", "write",
+            "--type", "pattern",
+            "--scope", "project",
+            "--slug", "some-pattern",
+            "--content", "hello",
+        ])
+        .env("HOME", home.path())
+        .current_dir(project.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unsupported type/scope combination"));
+}
+
+#[test]
+fn memory_write_pattern_with_cross_project_scope_writes_to_global_dir() {
+    let home = assert_fs::TempDir::new().unwrap();
+    let project = assert_fs::TempDir::new().unwrap();
+
+    brana()
+        .args([
+            "memory", "write",
+            "--type", "pattern",
+            "--scope", "cross-project",
+            "--slug", "some-pattern",
+            "--content", "hello",
+        ])
+        .env("HOME", home.path())
+        .current_dir(project.path())
+        .assert()
+        .success();
+
+    let global_dir = global_memory_dir(home.path());
+    assert!(
+        global_dir.join("pattern_some-pattern.md").exists(),
+        "pattern file should land in global memory dir under cross-project scope"
+    );
+}
