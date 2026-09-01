@@ -86430,7 +86430,7 @@
     {
       "id": "t-3257",
       "subject": "Runner escape battery tests a stub claude, not real claude -p — Check 61 is green-but-blind (repeats June PARK regression)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -86444,12 +86444,12 @@
       "priority": "P3",
       "parent": "t-2173",
       "created": "2026-08-31",
-      "started": null,
-      "completed": null,
+      "started": "2026-08-31",
+      "completed": "2026-09-01",
       "blocked_by": [],
-      "branch": null,
+      "branch": "orbit/fix/t-3257-runner-escape-battery-real",
       "context": "2026-08-31: The test that is supposed to guard this task's whole safety story does not exercise the real binary. Highest-stakes possible 'test doesn't test the real thing' case.",
-      "notes": null,
+      "notes": "Added test-autonomous-runner-real-claude-compat.sh: a real (non-stub) claude -p dispatch through the actual shipped sandbox_claude() (extracted via new SANDBOX-CLAUDE-BLOCK markers, not reimplemented — same convention as EPIC-WALK-BLOCK/BRANCH-PREFIX-BLOCK). PART A asserts real claude authenticates + replies correctly inside the jail (rc=0 + expected output). PART B runs the same dispatch with no creds staged (simulated auth break) and asserts it fails loudly with a recognizable \"not logged in\" signature — proves the check discriminates pass/fail rather than being structurally unable to fail. Both verified live: PART A real API call succeeded (real PONG reply), PART B correctly failed. Opt-in via RUNNER_LIVE_CLAUDE_TEST=1 (one real API call, network+auth dependent) — never part of default validate.sh sweep; wired into Check 61 with a WARN pointing to the opt-in and documented cadence (before unattended --run-batch use, after any sandbox_claude() change, after a claude CLI upgrade).\n\nFound + fixed a real pre-existing bug while wiring this in: Check 61's own escape-battery block used a bare `C61_OUT=$(...); C61_RC=$?` under validate.sh's `set -euo pipefail` — reproduced empirically that this aborts the whole script silently on an actual breach, before the FAIL message ever prints (confirmed via a mutated fake-failing test script: script died with exit 1 and zero diagnostic output). This load-bearing security check had never actually been proven to report failure correctly. Fixed with the same guarded `if VAR=$(cmd); then` pattern already used elsewhere in the file (Check 67/68); re-verified the mutation now correctly reports FAIL and completes the full summary. Stored as pattern:thebrana:set-e-bare-command-substitution-assignment-aborts-silently — cross-project bash gotcha, worth a parallel-bash.md rule addition (human-gated, not done here).\n\nMerged --no-ff to dev (bc via orbit/fix/t-3257-runner-escape-battery-real). Targeted post-merge validate (Checks 1, 15, 16, 61, 72) all green. Not yet shipped to main — pending user decision to ship this batch.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -86459,7 +86459,8 @@
         "kept cheap enough to run in validate.sh (single trivial prompt) or gated behind an explicit opt-in check with documented cadence"
       ],
       "work_type": null,
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-3258",
