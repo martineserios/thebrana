@@ -186,6 +186,7 @@ fn collect_hook_paths_rec(
                 let resolved = cmd.replace("${CLAUDE_PLUGIN_ROOT}", &plugin_root.to_string_lossy());
                 let home = std::env::var("HOME").unwrap_or_default();
                 let resolved = resolved.replace("$HOME", &home);
+                let resolved = resolved.replace("~/", &format!("{home}/"));
                 let path = extract_script_path(&resolved).unwrap_or(resolved);
                 out.insert(PathBuf::from(path));
             }
@@ -202,29 +203,37 @@ fn collect_hook_paths_rec(
     }
 }
 
-/// Extract the script path from a shell command string like `bash "/path/to/script.sh"`.
-/// Also handles `bash -c '... /path/to/script.sh ...'` by searching for the .sh path.
+/// Extract the script/binary path from a shell command string.
+/// Handles `bash "/path/to/script.sh"`, `bash -c '... /path/to/script.sh ...'`,
+/// and a bare (possibly quoted) binary invocation with trailing args, e.g.
+/// `"$HOME/.local/bin/rtk" hook claude` (t-3259).
 fn extract_script_path(cmd: &str) -> Option<String> {
     let cmd = cmd.trim();
-    let rest = if cmd.starts_with("bash ") || cmd.starts_with("sh ") {
-        cmd.splitn(2, ' ').nth(1)?.trim()
-    } else {
-        return None;
-    };
-    // bash -c: scan the full command for a .sh path (e.g. f="$HOME/.../script.sh")
-    if rest.starts_with("-c") {
-        return extract_sh_path_from_inline(cmd);
+    if cmd.starts_with("bash ") || cmd.starts_with("sh ") {
+        let rest = cmd.splitn(2, ' ').nth(1)?.trim();
+        // bash -c: scan the full command for a .sh path (e.g. f="$HOME/.../script.sh")
+        if rest.starts_with("-c") {
+            return extract_sh_path_from_inline(cmd);
+        }
+        return Some(extract_leading_token(rest));
     }
-    if rest.starts_with('"') {
-        let inner = &rest[1..];
+    // Bare command: quote-strip the leading token, dropping any trailing args.
+    Some(extract_leading_token(cmd))
+}
+
+/// Extract the leading token of a command string, stripping surrounding
+/// quotes (`"path" args...` / `'path' args...`) or, unquoted, taking the
+/// first whitespace-delimited word.
+fn extract_leading_token(s: &str) -> String {
+    let s = s.trim();
+    if let Some(inner) = s.strip_prefix('"') {
         let end = inner.find('"').unwrap_or(inner.len());
-        Some(inner[..end].to_string())
-    } else if rest.starts_with('\'') {
-        let inner = &rest[1..];
+        inner[..end].to_string()
+    } else if let Some(inner) = s.strip_prefix('\'') {
         let end = inner.find('\'').unwrap_or(inner.len());
-        Some(inner[..end].to_string())
+        inner[..end].to_string()
     } else {
-        Some(rest.split_whitespace().next()?.to_string())
+        s.split_whitespace().next().unwrap_or(s).to_string()
     }
 }
 
@@ -650,6 +659,29 @@ mod tests {
         let hooks_json = format!(
             r#"{{"hooks": {{"SessionStart": [{{"matcher": "", "hooks": [{{"type": "command", "command": "{}/hooks/session-start.sh", "timeout": 5000}}]}}]}}}}"#,
             tmp.path().display()
+        );
+        create_file(&tmp, "hooks/hooks.json", &hooks_json);
+
+        let result = check_hooks(tmp.path());
+        assert!(result.passed, "expected pass, got: {:?}", result.detail);
+        assert!(result.detail.contains("1/1"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_check_hooks_quoted_binary_with_args() {
+        // t-3259: a hook command that is a bare quoted binary invocation with
+        // trailing args (no bash/sh wrapper), e.g. `"$HOME/.local/bin/rtk" hook claude`.
+        // Uses the resolved absolute path directly — $HOME substitution is a
+        // plain string replace unrelated to this bug, so no need to touch the
+        // process-global HOME env var (unsafe under parallel test threads).
+        let tmp = TempDir::new().unwrap();
+        let script = create_file(&tmp, "bin/rtk", "#!/bin/bash\necho hi");
+        make_executable(&script);
+
+        let hooks_json = format!(
+            r#"{{"hooks": {{"SessionStart": [{{"matcher": "", "hooks": [{{"type": "command", "command": "\"{}\" hook claude", "timeout": 5000}}]}}]}}}}"#,
+            script.display()
         );
         create_file(&tmp, "hooks/hooks.json", &hooks_json);
 
