@@ -130,34 +130,48 @@ EGRESS_PORT="${RUNNER_EGRESS_PORT:-18080}"
 #      (guards the cross-project secret-leak blast radius; disable with RUNNER_SECRET_SCAN=0)
 verify_diff() {
   local wd="$1" base="$2"
-  if [ -z "$(git -C "$wd" status --porcelain 2>/dev/null)" ]; then
+  # Hardened, read-only git: neutralise every git config surface that runs a command
+  # (fsmonitor, hooks, file-protocol, quoting). The gitlink-tamper guard in run_task is the
+  # primary defence; these flags are defence-in-depth so verify_diff cannot execute code even
+  # if reached another way. Never mutates the index (no add/checkout) — pure inspection.
+  local -a G=(git -C "$wd" -c core.fsmonitor= -c core.hooksPath=/dev/null
+              -c protocol.file.allow=never -c core.quotePath=false)
+  if [ -z "$("${G[@]}" status --porcelain 2>/dev/null)" ]; then
     echo "[autonomous-runner] verify: empty diff" >&2; return 1
   fi
-  # Make NEW (untracked) files visible to `git diff` — the runner commits them via `git add -A`,
-  # so the gate must inspect them too. Intent-to-add records the paths without staging content.
-  git -C "$wd" add -N -A >/dev/null 2>&1 || true
-  if ! git -C "$wd" diff --check "$base" >/dev/null 2>&1; then
+  # Size guard: bound the work so one giant diff can't hang/balloon the batch loop.
+  local addln; addln=$("${G[@]}" diff --numstat "$base" 2>/dev/null | awk '{s+=$1} END{print s+0}')
+  if [ "${addln:-0}" -gt "${RUNNER_MAX_DIFF_LINES:-20000}" ]; then
+    echo "[autonomous-runner] verify: diff too large ($addln added lines > ${RUNNER_MAX_DIFF_LINES:-20000}) — parking for human review" >&2; return 1
+  fi
+  if ! "${G[@]}" diff --check "$base" >/dev/null 2>&1; then
     echo "[autonomous-runner] verify: git diff --check failed (conflict markers or whitespace errors)" >&2; return 1
   fi
+  # Changed paths = tracked (vs base) + untracked new files — the runner commits both (git add -A).
+  local changed; changed="$({ "${G[@]}" diff --name-only "$base" 2>/dev/null; "${G[@]}" ls-files --others --exclude-standard 2>/dev/null; } | sort -u)"
   local deny="${RUNNER_DENY_PATHS:-}"
   if [ -n "$deny" ]; then
-    local p
+    local p pat; local -a _pats
+    IFS='|' read -ra _pats <<< "$deny"
     while IFS= read -r p; do
       [ -z "$p" ] && continue
-      local pat
-      # shellcheck disable=SC2086
-      IFS='|' read -ra _pats <<< "$deny"
       for pat in "${_pats[@]}"; do
         # shellcheck disable=SC2254
         case "$p" in $pat) echo "[autonomous-runner] verify: change touches denied path '$p' (RUNNER_DENY_PATHS='$deny')" >&2; return 1 ;; esac
       done
-    done <<< "$(git -C "$wd" diff --name-only "$base" 2>/dev/null)"
+    done <<< "$changed"
   fi
   if [ "${RUNNER_SECRET_SCAN:-1}" = "1" ]; then
-    local added; added="$(git -C "$wd" diff "$base" 2>/dev/null | grep '^+' | grep -v '^+++')"
+    # Scan added lines: tracked diff additions + full content of untracked new files.
+    local added; added="$("${G[@]}" diff "$base" 2>/dev/null | grep '^+' | grep -v '^+++')"
+    local f
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      added+=$'\n'"$(cat "$wd/$f" 2>/dev/null)"
+    done <<< "$("${G[@]}" ls-files --others --exclude-standard 2>/dev/null)"
     if printf '%s' "$added" | grep -qE 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
        || printf '%s' "$added" | grep -qiE '(api[_-]?key|secret|token|passwd|password)["'"'"' ]*[:=][ "'"'"']*[A-Za-z0-9/+_-]{20,}'; then
-      echo "[autonomous-runner] verify: possible secret introduced in the diff — parking for human review (set RUNNER_SECRET_SCAN=0 to disable)" >&2; return 1
+      echo "[autonomous-runner] verify: possible secret in the diff — discarding, task stays pending (set RUNNER_SECRET_SCAN=0 to disable)" >&2; return 1
     fi
   fi
   return 0
@@ -350,6 +364,12 @@ run_task() {
     emit "$ID" "$SUBJ" failed "could not create worktree off $BASE_REF"
     echo "[autonomous-runner] run-task: ABORT $ID — worktree add failed (base $BASE_REF)"; return 1
   fi
+  # Pin the trusted gitlink NOW, before the executor ever touches the worktree (t-3256,
+  # challenger finding). $WT/.git is a plain writable file inside the jail's rw bind — a
+  # prompt-injected executor could redirect it at a fake git dir whose config (core.fsmonitor,
+  # textconv, …) runs code on the HOST during any later `git -C "$WT"` call. We compare against
+  # this snapshot after dispatch and refuse a tampered gitlink rather than run git through it.
+  TRUSTED_GITLINK="$(cat "$WT/.git" 2>/dev/null)"
 
   CB="$(resolve_claude)"
   if [ -z "$CB" ]; then cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "no claude binary"; return 1; fi
@@ -370,6 +390,12 @@ If it needs a human decision first (ambiguous, risky, owner's choice), make NO c
   if printf '%s' "$DOUT" | grep -q "NEEDSHUMAN:"; then
     REASON_H="$(printf '%s' "$DOUT" | sed -n 's/.*NEEDSHUMAN: *//p' | head -1)"
     cleanup_worktree "$WT" "$BRANCH"; park "$ID" "$SUBJ" "${REASON_H:-needs human decision}"; return 2
+  fi
+  # Gitlink-tamper guard (t-3256): a rewritten $WT/.git means an injection tried to point our
+  # host-side git at attacker-controlled config — refuse before ANY `git -C "$WT"` runs below.
+  if [ "$(cat "$WT/.git" 2>/dev/null)" != "$TRUSTED_GITLINK" ]; then
+    cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "worktree .git gitlink tampered — refusing (injection, t-3256)"
+    echo "[autonomous-runner] run-task: FAILED $ID (gitlink tampered) — worktree removed, base '$BASE_BRANCH' pristine"; return 1
   fi
   if [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ]; then
     cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "no changes produced"
@@ -404,11 +430,13 @@ If it needs a human decision first (ambiguous, risky, owner's choice), make NO c
   if ! git -C "$WT" commit -q --no-verify -m "feat(auto): ${SUBJ} (${ID})"; then
     cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "commit rejected (hooks?)"; return 1
   fi
-  emit "$ID" "$SUBJ" ran "committed on $BRANCH (validate ✓), awaiting human review"
+  # Report the gate that actually ran: inspection always; execution only when opted in (t-3256).
+  GATE_DESC="inspected"; [ -n "$VALIDATE_CMD" ] && GATE_DESC="inspected + '$VALIDATE_CMD'"
+  emit "$ID" "$SUBJ" ran "committed on $BRANCH ($GATE_DESC), awaiting human review"
 
   if [ "$PUSH" = "1" ] && command -v gh >/dev/null 2>&1; then
     git -C "$WT" push -u origin "$BRANCH" -q 2>/dev/null && \
-      gh pr create --title "auto: ${SUBJ} (${ID})" --body "Autonomous runner. Task ${ID}. Verified by ${VALIDATE_CMD}. Human review + merge required." --base "$BASE_BRANCH" >/dev/null 2>&1 \
+      gh pr create --title "auto: ${SUBJ} (${ID})" --body "Autonomous runner. Task ${ID}. Gate: ${GATE_DESC} (inspection only — tests/build are the reviewer's job). Human review + merge required." --base "$BASE_BRANCH" >/dev/null 2>&1 \
       && echo "[autonomous-runner] run-task: PR opened for $ID (base $BASE_BRANCH)" \
       || echo "[autonomous-runner] run-task: committed but PR push failed — branch $BRANCH is local"
   fi

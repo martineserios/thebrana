@@ -194,9 +194,16 @@ no worktree code on the host. Either failing is the load-bearing signal that a b
 caught on the next validate rather than six months later.
 
 **Verify gate is inspection, not execution (t-3256, ADR-062 C2).** The per-task gate
-(`verify_diff`) reads the diff with trusted `git` only — it never runs the worktree's own code,
-closing the host-RCE twin of the `.git/hooks` exploit. `RUNNER_VALIDATE_CMD` (an execution
-check) is opt-in and off by default; when set it runs worktree code on the host and warns.
+(`verify_diff`) reads the diff with hardened, read-only `git` only (`core.fsmonitor=`,
+`core.hooksPath=/dev/null`, `protocol.file.allow=never`) — it never runs the worktree's own
+code, closing the host-RCE twin of the `.git/hooks` exploit. Because the worktree's `.git`
+gitlink is itself executor-writable, `run_task` pins it at creation and **refuses a tampered
+gitlink** after dispatch (a redirect at a fake git dir would otherwise run its config's
+`core.fsmonitor`/textconv on the host). `RUNNER_VALIDATE_CMD` (an execution check) is opt-in and
+off by default; when set it runs worktree code on the host and warns. The secret-scan
+(`RUNNER_SECRET_SCAN`) is a best-effort courtesy net — it catches obvious keys, not a
+determined exfiltrator (cross-line splits, non-standard tokens evade it); the human diff review
+is the actual boundary.
 
 **Scope note (2026-08-31).** The remaining OS-hardening (a fully bombproof executor jail —
 docker-vs-bwrap mechanism, t-2173) is deferred to phase-2: it gates only **headless, unattended
