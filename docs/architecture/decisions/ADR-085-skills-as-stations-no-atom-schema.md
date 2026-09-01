@@ -1,3 +1,7 @@
+---
+status: accepted
+---
+
 # ADR-085: Skills as stations — composition via loops and graphs, no atom schema
 
 **Status:** Accepted (2026-08-23) — challenged 2026-08-23 (`/brana:challenge --deep`: PROCEED WITH CHANGES, applied; see Challenge record). Landing dependency satisfied: ADR-084 landed on `dev` (t-2837, closed) before this ADR.
