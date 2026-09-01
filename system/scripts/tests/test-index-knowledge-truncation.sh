@@ -108,5 +108,19 @@ check "full census with errors is not 'truncated' (error-rate gate fires instead
 grep -qi "truncat" "$TMP/out.log"
 check "error-rate failure does not claim truncation" "1" "$?"
 
+# 5. bulk-index.mjs itself exits non-zero (e.g. "ruflo not found"): the
+#    real error output must reach the log, and the script must exit with
+#    bulk-index.mjs's own exit code — not be silently swallowed by set -e
+#    on the unguarded `INDEXER_OUTPUT=$(...)` assignment (t-3261).
+cat > "$TMP/stub-out" <<'OUT'
+ERROR: Cannot find ruflo installation. Install with: npm install -g ruflo
+OUT
+export STUB_EXIT=1
+rc=$(run_indexer)
+check "bulk-index.mjs failure propagates its exit code" "1" "$rc"
+grep -q "Cannot find ruflo installation" "$TMP/out.log"
+check "bulk-index.mjs failure output reaches the log" "0" "$?"
+unset STUB_EXIT
+
 echo "== $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]
