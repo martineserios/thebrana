@@ -3,8 +3,8 @@ status: accepted
 ---
 # ADR-062: Sandbox the Autonomous Runner's Executor — Capability Isolation via bubblewrap
 
-**Status:** Accepted (2026-06-21; spike-gated — bwrap proven to run `claude -p` to completion before this ADR was committed)
-**Date:** 2026-06-21
+**Status:** Accepted (2026-06-21; spike-gated — bwrap proven to run `claude -p` to completion before this ADR was committed). Amended 2026-08-31: docker fallback (Amendment 1, not adopted, t-2173 P3); verify gate = trusted inspection, C2 §1 superseded (Amendment 2, shipped, t-3256); supervised is the supported model, headless is phase-2.
+**Date:** 2026-06-21 (amended 2026-08-31)
 **Deciders:** Martín Rios
 **Tags:** security, runner, autonomy, sandbox, adr-060, lethal-trifecta
 **Tasks:** t-2173 (this ADR + impl) · gates unattended `--run-batch` on real tasks
@@ -94,9 +94,13 @@ Decisions encoded:
 
 A network-blocked agent still gets **host RCE** by writing a malicious file the host then
 executes. The runner must therefore:
-1. Run `validate.sh` from a **pinned base-ref copy**, not the worktree's (line ~209
-   `eval "$VALIDATE_CMD"` currently executes the agent's own validate).
-2. `git commit --no-verify` (line ~216 currently runs the worktree's `.git/hooks`).
+1. ~~Run `validate.sh` from a **pinned base-ref copy**, not the worktree's~~ — **superseded
+   2026-08-31, see Amendment 2 (t-3256).** The base-ref-copy idea proved fragile (`validate.sh`
+   is a 72-check whole-repo suite that self-sources dozens of files and needs the host git
+   dir). Replaced by a **trusted inspection gate**: the runner never executes worktree code as
+   the gate at all — `verify_diff` reads the diff with hardened read-only git; tests/build run
+   at PR review. `RUNNER_VALIDATE_CMD` became opt-in/off.
+2. `git commit --no-verify` (shipped — the worktree's `.git/hooks` never run on the host).
 
 This also makes the escape test non-circular (it cannot be defeated by the very code under
 test).
@@ -232,9 +236,58 @@ V5/V6 (egress/DNS) graduate from documented KNOWN GAP to **hard asserts**: an in
 that `curl`s a non-allowlisted host must be **blocked**, while the allowlisted endpoint is
 reachable. Runs in `validate.sh` Check 61 so egress erosion fails loudly.
 
+## Amendment 1 (2026-08-31): docker executor jail — documented fallback, NOT adopted
+
+A `/brana:challenge` deep review (3 lenses, all RECONSIDER on docker) evaluated replacing the
+in-tree bwrap jail with a docker-container executor. **Decision: keep bwrap (Option A); docker
+is a documented fallback for privileged/future hosts, same standing as srt/nft above — not
+adopted now.**
+
+- **Spiked and proven (2026-08-31):** a real subscription `claude -p` runs to completion
+  (`PONG`, rc=0) inside a `--internal` docker network reaching Anthropic only through the same
+  committed `runner-egress-proxy.py` (host socat→unix bridge); direct container egress blocked;
+  proxy audit identical to the bwrap config (ALLOW `api.anthropic.com`, DENY the rest). Docker
+  sidesteps the AppArmor nested-userns wall that blocks nft/slirp4netns/srt on this host.
+- **Why not adopt:** the user is in the `docker` group on a **rootful** daemon = root-equivalent
+  host capability, which **reopens the exact unprivileged-host-RCE leg this ADR was written to
+  close** — the *orchestrator* holds standing root regardless of what any container mounts.
+  bwrap's proven worst case is worktree-scoped; docker's is host root. The spike also proved
+  only the egress leg — not the worktree-write path, secret isolation, or an escape battery.
+- **If ever adopted** (rootless podman/docker provisioned): hard constraints — never mount
+  `docker.sock` into the jail; never build `docker` argv from task-controlled fields; carry a
+  docker escape-battery analogue in Check 61. Tracked as **t-2173** (P3, phase-2).
+
+## Amendment 2 (2026-08-31, t-3256): verify gate is trusted inspection, not host execution
+
+The C2 §1 fix above (base-ref validate copy) was **reconceived and shipped differently.** Root
+cause of the host-RCE was not *which* validate ran but that the gate executed executor-writable
+worktree code on the host at all. The fix removes execution from the gate:
+
+- **`verify_diff`** (always on) inspects the diff with **hardened read-only git**
+  (`core.fsmonitor=`, `core.hooksPath=/dev/null`, `protocol.file.allow=never`): `git diff
+  --check`, deny-paths (`RUNNER_DENY_PATHS`), a best-effort secret-scan (`RUNNER_SECRET_SCAN`),
+  and a size guard. It never runs worktree code and never mutates the index.
+- **Gitlink-tamper guard:** the worktree's `.git` gitlink is executor-writable, so a redirect at
+  a fake git dir would run its config's `core.fsmonitor`/textconv on the host during any
+  `git -C "$WT"` call. `run_task` pins the gitlink at creation and refuses a tampered one after
+  dispatch, before any host git runs (challenger finding; `test-…-validate-jail.sh` V7d).
+- **`RUNNER_VALIDATE_CMD`** is now opt-in and off by default; when set it runs worktree code on
+  the host and warns — safe only for a trusted command or a sandboxed runner.
+- Correctness (tests/build) moves to **PR review**, which always happens: `--run-batch` never
+  auto-merges. Machine-checked by `validate.sh` Check 61 (a second, always-on assertion).
+
+## Scope note (2026-08-31): supervised is the supported model; headless is phase-2
+
+The full OS jail (Amendment 1 / t-2173) gates only **headless, unattended `--run-batch`**. The
+supported model today is **supervised** drain — in-session workers + worktrees, a human present
+and operating the merge valve — where task text is the operator's own and the prompt-injection
+threat is bounded. Keep `brana orbit` in `observe`; do not run `--run-batch` walk-away until
+t-2173 lands. Amendment 2 (the inspection gate) is a real hardening that ships regardless, since
+it also removes a class of bug and simplifies the runner.
+
 ## Sources
 
 Simon Willison — The Lethal Trifecta for AI agents (2025-06) · Trail of Bits — Prompt
 injection to RCE (2025-10) · Backslash Security — The Denylist Delusion · Anthropic —
 sandboxing Claude Code · OpenAI Codex — Landlock + seccomp · OWASP — AI Agent Security
-Cheat Sheet · ArchWiki Bubblewrap.
+Cheat Sheet · ArchWiki Bubblewrap · Matt Pocock — sandcastle (container-provider agent isolation).
