@@ -23,7 +23,13 @@
 #   RUNNER_LEDGER      ledger path (default ~/.claude/scheduler/runner-ledger-<date>.jsonl)
 #   CLAUDE_BIN         claude binary (default ~/.local/bin/claude)
 # Env (--run-one adds):
-#   RUNNER_VALIDATE_CMD  verification command (default ./validate.sh); non-zero = task failed
+#   RUNNER_VALIDATE_CMD  OPT-IN execution check, OFF by default (t-3256). When set it runs the
+#                        worktree's command on the HOST — safe only for a trusted command or a
+#                        sandboxed runner (ADR-062). The always-on gate is verify_diff (trusted
+#                        inspection: git diff --check + deny-paths + secret-scan), which executes
+#                        no worktree code; tests/build run at PR review (never auto-merged).
+#   RUNNER_DENY_PATHS    pipe-separated globs the diff may not touch (default: none)
+#   RUNNER_SECRET_SCAN   1=park a diff that introduces an obvious secret (default 1)
 #   RUNNER_BRANCH_PREFIX per-task branch namespace (default runner/auto)
 #   RUNNER_PUSH          1=open a PR via gh after commit (default 0 = local branch only)
 #   RUNNER_BASE_BRANCH   integration branch to cut from (ADR-060). Default resolution:
@@ -45,7 +51,7 @@ MAX_TASKS="${RUNNER_MAX_TASKS:-5}"
 PLAN="${RUNNER_PLAN:-1}"
 CLAUDE_BIN="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
 LEDGER="${RUNNER_LEDGER:-$HOME/.claude/scheduler/runner-ledger-$(date -u +%Y%m%d).jsonl}"
-VALIDATE_CMD="${RUNNER_VALIDATE_CMD:-./validate.sh}"
+VALIDATE_CMD="${RUNNER_VALIDATE_CMD:-}"   # OPT-IN execution check, off by default (t-3256, ADR-062 C2); inspection gate always runs
 BRANCH_PREFIX="${RUNNER_BRANCH_PREFIX:-runner/auto}"
 PUSH="${RUNNER_PUSH:-0}"
 MAX_FAILS="${RUNNER_MAX_FAILS:-3}"
@@ -112,6 +118,51 @@ SANDBOX="${RUNNER_SANDBOX:-1}"
 EGRESS="${RUNNER_EGRESS:-1}"
 EGRESS_ALLOW="${RUNNER_EGRESS_ALLOW:-api.anthropic.com}"
 EGRESS_PORT="${RUNNER_EGRESS_PORT:-18080}"
+# Trusted, inspection-only per-task gate (ADR-062 C2, t-3256). Runs on the host but executes
+# NO worktree code — only trusted `git` reads over the diff against the base ref. This is the
+# root-cause close for the host-RCE class: the gate can never run executor-written code.
+# Answers "is this a sane, safe diff worth a human's review?", not "is it correct" (tests and
+# build run at PR review — the runner never auto-merges). Returns 0 = pass, 1 = park/fail.
+#   1. non-empty diff (a real change exists)
+#   2. git diff --check — no conflict markers or whitespace errors
+#   3. deny-paths (opt-in, RUNNER_DENY_PATHS = pipe-separated globs) — refuse sensitive paths
+#   4. secret-scan on ADDED lines — obvious keys/tokens are parked for a human, not committed
+#      (guards the cross-project secret-leak blast radius; disable with RUNNER_SECRET_SCAN=0)
+verify_diff() {
+  local wd="$1" base="$2"
+  if [ -z "$(git -C "$wd" status --porcelain 2>/dev/null)" ]; then
+    echo "[autonomous-runner] verify: empty diff" >&2; return 1
+  fi
+  # Make NEW (untracked) files visible to `git diff` — the runner commits them via `git add -A`,
+  # so the gate must inspect them too. Intent-to-add records the paths without staging content.
+  git -C "$wd" add -N -A >/dev/null 2>&1 || true
+  if ! git -C "$wd" diff --check "$base" >/dev/null 2>&1; then
+    echo "[autonomous-runner] verify: git diff --check failed (conflict markers or whitespace errors)" >&2; return 1
+  fi
+  local deny="${RUNNER_DENY_PATHS:-}"
+  if [ -n "$deny" ]; then
+    local p
+    while IFS= read -r p; do
+      [ -z "$p" ] && continue
+      local pat
+      # shellcheck disable=SC2086
+      IFS='|' read -ra _pats <<< "$deny"
+      for pat in "${_pats[@]}"; do
+        # shellcheck disable=SC2254
+        case "$p" in $pat) echo "[autonomous-runner] verify: change touches denied path '$p' (RUNNER_DENY_PATHS='$deny')" >&2; return 1 ;; esac
+      done
+    done <<< "$(git -C "$wd" diff --name-only "$base" 2>/dev/null)"
+  fi
+  if [ "${RUNNER_SECRET_SCAN:-1}" = "1" ]; then
+    local added; added="$(git -C "$wd" diff "$base" 2>/dev/null | grep '^+' | grep -v '^+++')"
+    if printf '%s' "$added" | grep -qE 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+       || printf '%s' "$added" | grep -qiE '(api[_-]?key|secret|token|passwd|password)["'"'"' ]*[:=][ "'"'"']*[A-Za-z0-9/+_-]{20,}'; then
+      echo "[autonomous-runner] verify: possible secret introduced in the diff — parking for human review (set RUNNER_SECRET_SCAN=0 to disable)" >&2; return 1
+    fi
+  fi
+  return 0
+}
+
 sandbox_claude() {
   local wd="$1"; shift
   local cb; cb="$(resolve_claude)"
@@ -324,9 +375,25 @@ If it needs a human decision first (ambiguous, risky, owner's choice), make NO c
     cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "no changes produced"
     echo "[autonomous-runner] run-task: FAILED $ID (no changes) — worktree removed, base '$BASE_BRANCH' pristine"; return 1
   fi
-  if ! ( cd "$WT" && eval "$VALIDATE_CMD" ) >/dev/null 2>&1; then
-    cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "verification failed ($VALIDATE_CMD)"
-    echo "[autonomous-runner] run-task: FAILED $ID (validate) — worktree removed, base '$BASE_BRANCH' pristine"; return 1
+  # Trusted inspection gate (ADR-062 C2, t-3256). NEVER execute the worktree's own code as
+  # the gate: it is executor-writable, so a prompt-injected task could plant a malicious
+  # verify script and get host RCE (the git-hooks twin was already closed via --no-verify).
+  # verify_diff reads the diff with trusted git only — no worktree code runs. It answers
+  # "is this a sane, safe diff worth a human's review?"; correctness (tests/build) is the
+  # human/CI job at PR review, since --run-batch never auto-merges.
+  if ! verify_diff "$WT" "$BASE_REF"; then
+    cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "diff inspection failed"
+    echo "[autonomous-runner] run-task: FAILED $ID (inspection) — worktree removed, base '$BASE_BRANCH' pristine"; return 1
+  fi
+  # Optional execution check (RUNNER_VALIDATE_CMD) — OFF by default. When set it runs the
+  # worktree's command ON THE HOST, which is only safe for a trusted command or under an OS
+  # sandbox (ADR-062, t-2173). Kept as an escape hatch, never the default.
+  if [ -n "$VALIDATE_CMD" ]; then
+    echo "[autonomous-runner] WARN: RUNNER_VALIDATE_CMD set — executing worktree code on the host ('$VALIDATE_CMD'). Safe only for a trusted command or a sandboxed runner (ADR-062)." >&2
+    if ! ( cd "$WT" && eval "$VALIDATE_CMD" ) >/dev/null 2>&1; then
+      cleanup_worktree "$WT" "$BRANCH"; emit "$ID" "$SUBJ" failed "verification failed ($VALIDATE_CMD)"
+      echo "[autonomous-runner] run-task: FAILED $ID (validate) — worktree removed, base '$BASE_BRANCH' pristine"; return 1
+    fi
   fi
 
   # Commit on the task branch (inside the worktree) — hooks run. Never merge, never mark completed.

@@ -2488,6 +2488,16 @@ else
         fail "Check 61: runner sandbox BREACHED — an escape vector succeeded (boundary eroded, ADR-062)"
     fi
 fi
+# Verify-gate host-exec containment (t-3256, ADR-062 C2) — needs no bwrap: the runner's
+# per-task gate must never execute worktree-written code on the host. Always testable.
+C61B_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-validate-jail.sh"
+if [ ! -f "$C61B_TEST" ]; then
+    warn "Check 61: verify-gate containment test not found at $C61B_TEST — skipping"
+elif bash "$C61B_TEST" >/dev/null 2>&1; then
+    pass "Check 61: runner verify gate executes no worktree code on the host ✓ (t-3256)"
+else
+    fail "Check 61: runner verify gate ran executor-written code on the host (host-RCE, ADR-062 C2, t-3256)"
+fi
 echo ""
 fi  # should_run 61
 

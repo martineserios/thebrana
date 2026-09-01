@@ -89,8 +89,17 @@ Runs with `RUNNER_PLAN=0` (no `claude` call) for a hermetic, fast test.
 **Verification gate (all must hold to commit):**
 1. dispatch did not return `NEEDSHUMAN:` (else park + abort, no commit),
 2. the working tree actually changed (empty diff = nothing done → abort),
-3. `RUNNER_VALIDATE_CMD` (default `./validate.sh`) passes,
-4. (best-effort) AC check if the task has `AC:` lines.
+3. **trusted inspection** (`verify_diff`, always on) passes — `git diff --check`, deny-paths
+   (`RUNNER_DENY_PATHS`), and a secret-scan (`RUNNER_SECRET_SCAN`, on by default). This executes
+   **no worktree code** — only trusted `git` reads (t-3256, ADR-062 C2). It answers "is this a
+   sane, safe diff worth a human's review?"; correctness (tests/build) runs at PR review, since
+   the runner never auto-merges.
+4. **optional execution check** — `RUNNER_VALIDATE_CMD`, **OFF by default**. When set it runs the
+   worktree's command *on the host* and warns; safe only for a trusted command or under an OS
+   sandbox (ADR-062). It is never the default because the worktree is executor-writable — a
+   prompt-injected `validate.sh` run on the host is RCE (the same class as the `.git/hooks` twin
+   already closed via `--no-verify`).
+5. (best-effort) AC check if the task has `AC:` lines.
 
 **Worktree isolation (t-2146, ADR-060):** `run_task` no longer touches the live working tree. It
 resolves the integration branch (`RUNNER_BASE_BRANCH` → `.claude/CLAUDE.md` `integration=` → `dev` →
@@ -172,19 +181,29 @@ dispatch (spike-validated 2026-06-21):
 orchestration tests or environments without user namespaces — the runner then warns loudly
 and runs unsandboxed. `RUNNER_DISPATCH_TIMEOUT` (default 600) bounds the jailed run.
 
-**The boundary is machine-checked.** `validate.sh` Check 61 runs the escape battery
-(`test-autonomous-runner-sandbox.sh`): a prompt-injected stub attempts secret-read, env-leak,
-and host writes; the test fails LOUDLY if any succeeds. This is the load-bearing mitigation
-for the top risk — an operator loosening the jail under compatibility friction is caught on
-the next validate, not six months later.
+- **Egress allowlist (shipped 2026-08-14)** → `--unshare-net` + a bind-mounted unix socket to a
+  host CONNECT proxy (`runner-egress-proxy.py`) that permits `api.anthropic.com` only; every
+  other host is refused. nftables/slirp4netns were infeasible unprivileged on this host
+  (AppArmor `apparmor_restrict_unprivileged_userns`), so the unix-socket bridge is the boundary.
 
-**Known gap (tracked).** **Network egress is not yet restricted** — the spike used the shared
-host net namespace, so the executor can still reach arbitrary hosts. The egress allowlist
-(`--unshare-net` + slirp4netns/proxy to `api.anthropic.com:443`, or an nftables filter) is the
-remaining Layer-1 item. **Until it lands, do not run `--run-batch` unattended on untrusted
-tasks** — keep the scheduler job default-deny (`brana orbit` in `observe`). The OBSERVE
-planner (line ~80, tools `Read,Grep,Glob` only — no Bash/network leg) is lower risk and its
-sandboxing is deferred with the egress work.
+**The boundary is machine-checked.** `validate.sh` Check 61 runs two always-loud tests:
+(a) the OS-jail escape battery (`test-autonomous-runner-sandbox.sh`) — a prompt-injected stub
+attempts secret-read, env-leak, host writes, and egress; and (b) the verify-gate containment
+test (`test-autonomous-runner-validate-jail.sh`, t-3256) — asserts the per-task gate executes
+no worktree code on the host. Either failing is the load-bearing signal that a boundary eroded,
+caught on the next validate rather than six months later.
+
+**Verify gate is inspection, not execution (t-3256, ADR-062 C2).** The per-task gate
+(`verify_diff`) reads the diff with trusted `git` only — it never runs the worktree's own code,
+closing the host-RCE twin of the `.git/hooks` exploit. `RUNNER_VALIDATE_CMD` (an execution
+check) is opt-in and off by default; when set it runs worktree code on the host and warns.
+
+**Scope note (2026-08-31).** The remaining OS-hardening (a fully bombproof executor jail —
+docker-vs-bwrap mechanism, t-2173) is deferred to phase-2: it gates only **headless, unattended
+`--run-batch`**. The supported model today is **supervised** drain (in-session workers +
+worktrees, human present, human merges), where task text is your own and the injection threat is
+bounded — keep `brana orbit` in `observe` and do not run `--run-batch` walk-away until t-2173
+lands. The OBSERVE planner (tools `Read,Grep,Glob` only, no Bash/network leg) is lower risk.
 
 ## Follow-ups
 
