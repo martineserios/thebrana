@@ -331,7 +331,7 @@ system/skills/          → Skills invoked across all clients
 system/agents/          → Subagents available everywhere
 system/commands/        → Slash commands available everywhere
 system/rules/           → Always-loaded rules
-system/settings.json    → Hook configurations
+system/hooks/hooks.json → Hook configurations
 ```
 
 This is the recursive magic: when you `cd ~/projects/brana && claude`, the mastermind loads its own global identity AND the project-specific context for developing itself. It knows it's doing brain surgery.

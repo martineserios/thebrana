@@ -384,7 +384,7 @@ After Phase 1:
 
 ### The Three Hooks
 
-Wire these into `system/settings.json` per the design in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md). See [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) for the hook JSON format, all 14 events, stdin/stdout contracts, and async constraints.
+Wire these into `system/hooks/hooks.json` per the design in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md). See [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) for the hook JSON format, all 14 events, stdin/stdout contracts, and async constraints.
 
 #### Hook 1: SessionStart — "Remember what you know"
 
@@ -983,7 +983,7 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 □ Create system/CLAUDE.md (mastermind identity v0.1)
 □ Create system/rules/universal-quality.md
 □ Create system/rules/git-discipline.md
-□ Create system/settings.json (empty hooks)
+□ Create system/hooks/hooks.json (empty hooks)
 □ Create tests/validate-syntax.sh        ← build this FIRST (safety before code)
 □ Create tests/validate-context-budget.sh
 □ Create deploy.sh
