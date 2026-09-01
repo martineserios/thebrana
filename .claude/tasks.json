@@ -86584,6 +86584,34 @@
       ],
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-3262",
+      "subject": "Reconcile consistency run 2026-09-01",
+      "status": "completed",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "reconcile",
+        "spec-maintenance"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2371",
+      "created": "2026-08-31",
+      "started": null,
+      "completed": "2026-09-01",
+      "blocked_by": [],
+      "branch": "spec-maintenance/chore/t-3262-reconcile-consistency",
+      "context": null,
+      "notes": "Full multi-agent reconcile --scope consistency sweep: 5 parallel scout agents (skills, hooks, rules, agents+config, CLAUDE.md+deploy), graph-scoped via docs/spec-graph.json. 10 verified findings, all fixed, 6 commits:\n\n1. FUNCTIONAL — .claude/skills/wizard symlink was missing entirely, breaking Skill(skill:\"wizard\") as instructed by provisioning-wizard/SKILL.md step 1. .claude/skills/code-review was a full tracked copy (not a symlink), undermining ADR-084's vendoring guarantee — confirmed byte-identical before replacing. Both now symlink to .agents/skills/<name> like the other 17 vendored entries.\n2. hooks.md: post-tool-use.sh/post-tool-use-failure.sh matcher claims corrected (empty/all-events, not Write|Edit|Bash); added missing cc-changelog-check.sh SessionStart row.\n3. Two reflection docs (08-diagnosis.md, 14-mastermind-architecture.md) cited nonexistent system/rules/skill-routing.md — corrected to work-start.md §4 (the rule was renamed/merged, refs never updated).\n4. 6 docs (config reference + 5 roadmap/guide docs) referenced system/settings.json as an editable in-repo file; corrected to system/hooks/hooks.json (CC #24529 resolved 2026-05-08) — one live extending.md snippet also lacked the required bash \"...\" command wrapper.\n5. Rust bug: generate_agents() counted CALIBRATION.md (type:reference) as an agent — \"14 agents\" should be 13. TDD'd (red/green), fixed, regenerated agents.md + hooks.md (latter was pre-existing unrelated Check 29 drift, picked up as a side effect).\n6. ARCHITECTURE.md's \"bootstrap.sh is NOT deployment...only new machine\" contradicted CLAUDE.md's own accurate Integration model (bootstrap.sh runs at every ship). Corrected. docs/15 and docs/17's extensive symlink-based deploy.sh sections got a historical-superseded pointer note (not a full rewrite — deploy.sh already self-documents DEPRECATED, removal in v0.8.0) rather than in-place rewrite, per materiality/cost tradeoff.\n\nMerged --no-ff to dev. Not yet shipped to main.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3,
