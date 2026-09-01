@@ -286,7 +286,15 @@ else
         exit 0
     fi
 
+    set +e
     INDEXER_OUTPUT=$($NODE "$BULK_INDEXER" $CLEANUP_FLAG "$JSONL_FILE" 2>&1)
+    BULK_EXIT=$?
+    set -e
+    if [ "$BULK_EXIT" -ne 0 ]; then
+        echo "$INDEXER_OUTPUT"
+        echo "ERROR: $BULK_INDEXER exited $BULK_EXIT" >&2
+        exit "$BULK_EXIT"
+    fi
 fi
 
 echo "$INDEXER_OUTPUT"
