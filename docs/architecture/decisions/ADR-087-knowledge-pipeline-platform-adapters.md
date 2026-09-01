@@ -1,3 +1,7 @@
+---
+status: accepted
+---
+
 # ADR-087: PlatformAdapter for the knowledge pipeline
 
 **Status:** Accepted
