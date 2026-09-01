@@ -2477,8 +2477,18 @@ if [ ! -f "$C61_TEST" ]; then
 elif ! command -v bwrap >/dev/null 2>&1; then
     warn "Check 61: bwrap not installed — runner sandbox unenforced + untestable here (ADR-062)"
 else
-    C61_OUT=$(bash "$C61_TEST" 2>&1)
-    C61_RC=$?
+    # Guarded substitution, as Check 67/68 do: validate.sh runs `set -euo pipefail`, so a
+    # bare `C61_OUT=$(...); C61_RC=$?` aborts the whole run on the FIRST real breach this
+    # check ever catches — silently, with no FAIL line and no summary (found while wiring
+    # t-3257: the exact "reports green when it should scream" class this task exists to
+    # close, one layer deeper than the stub gap). The `if VAR=$(cmd); then` form keeps the
+    # substitution's exit status out of errexit's path (it's the if-condition, not a bare
+    # simple command).
+    if C61_OUT=$(bash "$C61_TEST" 2>&1); then
+        C61_RC=0
+    else
+        C61_RC=$?
+    fi
     echo "$C61_OUT" | tail -3 | sed 's/^/  /'
     if [ "$C61_RC" -eq 0 ]; then
         pass "Check 61: runner executor sandbox contains all escape vectors ✓"
@@ -2497,6 +2507,35 @@ elif bash "$C61B_TEST" >/dev/null 2>&1; then
     pass "Check 61: runner verify gate executes no worktree code on the host ✓ (t-3256)"
 else
     fail "Check 61: runner verify gate ran executor-written code on the host (host-RCE, ADR-062 C2, t-3256)"
+fi
+# Real (non-stub) claude -p compat check (t-3257, ADR-062) — proves sandbox_claude() can
+# actually authenticate and run the REAL subscription binary, not just contain the stub used
+# by the two checks above. OPT-IN (RUNNER_LIVE_CLAUDE_TEST=1) — makes one real API call, so it
+# is never part of the default sweep. Run it before enabling unattended --run-batch use, after
+# any sandbox_claude() change, or after a claude CLI upgrade (the exact regression class this
+# guards: 2026-06-22, sandbox looked green on the stub while real claude failed to auth).
+C61C_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-real-claude-compat.sh"
+if [ "${RUNNER_LIVE_CLAUDE_TEST:-0}" = "1" ]; then
+    if [ ! -f "$C61C_TEST" ]; then
+        warn "Check 61: real-claude compat test not found at $C61C_TEST — skipping"
+    else
+        # Guarded substitution (same reasoning as Check 61 above) — a bare
+        # `C61C_OUT=$(...); C61C_RC=$?` aborts the whole run under set -e on the first
+        # real failure. `if VAR=$(cmd); then` keeps it out of errexit's path.
+        if C61C_OUT=$(bash "$C61C_TEST" 2>&1); then
+            C61C_RC=0
+        else
+            C61C_RC=$?
+        fi
+        echo "$C61C_OUT" | tail -6 | sed 's/^/  /'
+        if [ "$C61C_RC" -eq 0 ]; then
+            pass "Check 61: real claude authenticates and runs inside sandbox_claude() ✓ (t-3257)"
+        else
+            fail "Check 61: real-claude compat check reported failures — see output above (t-3257)"
+        fi
+    fi
+else
+    warn "Check 61: real-claude compat check skipped (opt-in — RUNNER_LIVE_CLAUDE_TEST=1 to run; see $C61C_TEST header for cadence)"
 fi
 echo ""
 fi  # should_run 61

@@ -69,6 +69,12 @@ else
   TASKS_JSON="$(brana backlog query --status pending --output json 2>/dev/null || echo '[]')"
 fi
 
+# SANDBOX-CLAUDE-BLOCK — t-3257: test-autonomous-runner-real-claude-compat.sh extracts
+# exactly this span and sources it, so the opt-in real-claude compat check always exercises
+# the shipped sandbox_claude() rather than a reimplementation (same convention as
+# EPIC-WALK-BLOCK / BRANCH-PREFIX-BLOCK). Do not remove or rename these markers; keep the
+# fences inside them. The extracting test re-sets RUNNER_SCRIPT_DIR after sourcing (it would
+# otherwise resolve to the temp extraction file's directory, not this script's).
 resolve_claude() { local cb="$CLAUDE_BIN"; [ -x "$cb" ] || cb="$(command -v claude 2>/dev/null || true)"; echo "$cb"; }
 
 RUNNER_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -245,6 +251,7 @@ EOF
   rm -rf "$rhome" 2>/dev/null
   return $rc
 }
+# /SANDBOX-CLAUDE-BLOCK
 
 emit() { # id subject decision reason
   jq -cn --arg id "$1" --arg s "$2" --arg d "$3" --arg r "$4" --arg ts "$TS" \
