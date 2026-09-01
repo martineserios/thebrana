@@ -194,7 +194,7 @@ Same `export-knowledge.sh` from [doc 17](17-implementation-roadmap.md). Build it
 
 ### Three Hooks
 
-Wire into `system/settings.json`. See [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) for the hook JSON format, all 14 events, and async constraints.
+Wire into `system/hooks/hooks.json`. See [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) for the hook JSON format, all 14 events, and async constraints.
 
 #### SessionStart — "Remember what you know"
 
@@ -543,11 +543,11 @@ set -euo pipefail
 
 **Graceful degradation:** If any git command fails (stderr), the hook outputs `{"continue": true}` and exits 0. Never block the user due to a hook error.
 
-**Performance:** All operations are local git commands (<100ms total). Timeout: 5000ms (settings.json).
+**Performance:** All operations are local git commands (<100ms total). Timeout: 5000ms (hooks.json).
 
-### WI-4: settings.json Update
+### WI-4: hooks.json Update
 
-**File:** `system/settings.json`
+**File:** `system/hooks/hooks.json`
 
 Add PreToolUse entry. Full resulting file:
 ```json
@@ -559,7 +559,7 @@ Add PreToolUse entry. Full resulting file:
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/pre-tool-use.sh",
+            "command": "bash \"$HOME/.claude/hooks/pre-tool-use.sh\"",
             "timeout": 5000
           }
         ]

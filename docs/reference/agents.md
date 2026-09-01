@@ -2,11 +2,10 @@
 
 # Agent Reference
 
-**14 agents** defined in `system/agents/`.
+**13 agents** defined in `system/agents/`.
 
 | Agent | Model | Memory | Color | Description |
 |-------|-------|--------|-------|-------------|
-| challenger-calibration | inherit | — | — | Severity scoring guide with few-shot examples and hard thresholds for the challe |
 | archiver | haiku | — | gray | Archive project patterns and knowledge when retiring. Categorize as transferable |
 | build-evaluator | sonnet | — | yellow | Grade completed implementation against task acceptance criteria. Use at close st |
 | challenger | sonnet | — | red | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
@@ -20,13 +19,6 @@
 | pr-reviewer | sonnet | — | orange | Review PR diffs for code quality, bugs, and style issues. Auto-triggered on PR c |
 | scout | haiku | — | yellow | Fast research for codebase exploration and web search. Use when finding files, s |
 | venture-scanner | haiku | — | cyan | Diagnose a business project — classify stage, recommend frameworks, identify g |
-
-## challenger-calibration
-
-Severity scoring guide with few-shot examples and hard thresholds for the challenger agent.
-
-**Model:** inherits from parent
-
 
 ## archiver
 

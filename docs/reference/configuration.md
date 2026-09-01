@@ -342,10 +342,9 @@ Hooks can be defined in two places. Both use the same entry format but differ in
 
 ### settings.json vs hooks.json
 
-| | `~/.claude/settings.json` | Plugin `hooks.json` (`system/hooks/hooks.json`) |
-|---|---|---|
-| **Path variables** | Absolute paths only — `${CLAUDE_PLUGIN_ROOT}` not expanded | `${CLAUDE_PLUGIN_ROOT}` available |
-| **Reliable events** | PostToolUse, PostToolUseFailure, UserPromptSubmit | PreToolUse, SessionStart, SessionEnd (CC bug #24529 drops PostToolUse from plugins) |
-| **When to use** | Plugin disabled, or events the plugin can't fire reliably | Normal operation with brana plugin enabled |
-
-For brana: PostToolUse hooks (task-completed, post-tool-use, etc.) live in `settings.json`; PreToolUse gates (branch-verify, main-guard, etc.) live in `system/hooks/hooks.json`. See [docs/architecture/hooks.md](../architecture/hooks.md) for the full inventory.
+CC bug #24529 (which used to drop PostToolUse from plugin-registered hooks) was resolved
+2026-05-08 (t-235). Every brana hook event, PostToolUse included, is now registered in the
+plugin's `system/hooks/hooks.json` — `~/.claude/settings.json` carries no hook entries;
+`bootstrap.sh` strips any leftovers on deploy. `${CLAUDE_PLUGIN_ROOT}` is available for path
+variables there. See [docs/architecture/hooks.md](../architecture/hooks.md) for the full
+inventory, including the two SessionStart hooks and the full PostToolUse family.

@@ -143,9 +143,12 @@ echo '{"continue": true, "additionalContext": "Hook found something relevant."}'
 - **Fast exit** — check the tool name first, return `{"continue": true}` for irrelevant calls
 - **Timeout-aware** — keep execution under the configured timeout (typically 5,000ms)
 
-### 3. Register in settings.json
+### 3. Register in hooks.json
 
-Add to `system/settings.json` under the appropriate event:
+Every hook event, PostToolUse included, is registered in the plugin's
+`system/hooks/hooks.json` — not `~/.claude/settings.json`, which carries no hook entries
+(CC bug #24529 resolved 2026-05-08, t-235; `bootstrap.sh` strips any leftovers on deploy).
+Add an entry under the appropriate event, with `command` as a full shell invocation string:
 
 ```json
 {
@@ -156,7 +159,7 @@ Add to `system/settings.json` under the appropriate event:
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/my-hook.sh",
+            "command": "bash \"$HOME/.claude/hooks/my-hook.sh\"",
             "timeout": 5000
           }
         ]
