@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-31T20:21:25Z",
+  "generated": "2026-09-01T00:53:01Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1516,7 +1516,10 @@
       "title": "Feature: Checkpoint/Resume for Skill Procedures",
       "type": "Roadmap",
       "impl_files": [
-        "system/procedures/build.md"
+        "system/procedures/build.md",
+        "system/skills/build/phases/load.md",
+        "system/skills/build/phases/close.md",
+        "system/skills/build/"
       ]
     },
     "docs/architecture/features/claude-gemini-orchestration.md": {
@@ -2187,6 +2190,11 @@
         "system/skills/onboard/SKILL.md",
         "system/skills/align/SKILL.md"
       ]
+    },
+    "docs/architecture/knowledge-pipeline.md": {
+      "title": "Knowledge pipeline — fetch tiers and the YouTube tier",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/knowledge-system-extending.md": {
       "title": "Extending the Knowledge System",
@@ -11693,6 +11701,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/knowledge-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/memory-backup.md",
       "type": "references",
       "computed": false
@@ -14040,6 +14054,18 @@
     {
       "from": "docs/architecture/idea-to-ship.md",
       "to": "the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/knowledge-pipeline.md",
+      "to": "features/youtube-channel-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/knowledge-pipeline.md",
+      "to": "features/youtube-knowledge-extraction.md",
       "type": "references",
       "computed": false
     },
@@ -18923,8 +18949,8 @@
     }
   ],
   "stats": {
-    "nodes": 619,
-    "edges": 2423,
+    "nodes": 620,
+    "edges": 2426,
     "typed_edges": 694,
     "orphans": 142
   }
