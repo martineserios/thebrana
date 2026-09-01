@@ -101,6 +101,15 @@ The `brana/` project lives alongside your other clients. The mastermind manages 
 
 ## The Deploy Pipeline
 
+> **Historical — superseded by bootstrap.sh.** This section describes the original
+> symlink-based `deploy.sh` design. `deploy.sh` still runs but prints its own DEPRECATED
+> banner and will be removed in v0.8.0; today plugin content (skills/agents/commands)
+> deploys by `git merge` alone (CC loads `system/` directly, no copy step), and the identity
+> layer (CLAUDE.md, rules, hooks, scripts, scheduler) deploys via `./bootstrap.sh`
+> (idempotent `rsync`, not symlinks — run at every ship, not just once). See CLAUDE.md
+> §Integration model and `docs/reflections/ARCHITECTURE.md` §Deployment Model for the
+> current mechanism. Kept below for the design rationale, not as current instructions.
+
 All changes flow through the system project. Never edit `~/.claude/` directly.
 
 ```

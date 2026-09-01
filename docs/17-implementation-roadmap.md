@@ -218,6 +218,9 @@ cd "$HOME" && npx ruflo memory search --query "test"
 
 ### Deploy Pipeline
 
+> **Historical — superseded by bootstrap.sh.** See the equivalent note in
+> [15-self-development-workflow.md](./15-self-development-workflow.md#the-deploy-pipeline).
+
 Wire up the symlink deploy from [15-self-development-workflow.md](./15-self-development-workflow.md):
 - `deploy.sh`: validate → symlink `system/*` → `~/.claude/*` → tag
 - `rollback.sh`: checkout previous tag → re-deploy

@@ -200,7 +200,12 @@ worktree (staging) → git merge → main (deployed)
 | Plugin | `system/` → `~/.claude/` | Plugin dir; CC loads at session start |
 | Context | `project/.claude/` | CC loads for active project |
 
-**`./bootstrap.sh` is NOT deployment** — it installs the identity layer to `~/.claude/` on a new machine. Deployment of new skills, hooks, or rules is a plain `git merge`.
+**Plugin content (skills/agents/commands) needs no deploy step** — `system/` loads directly
+as CC's plugin dir, so merging to `main` IS deploying it. The identity layer (CLAUDE.md,
+rules, hooks, scripts, scheduler) is different: the plugin cannot serve those, so
+`./bootstrap.sh` copies them to `~/.claude/` — and it runs at **every ship**
+(`git merge --ff-only dev && ./bootstrap.sh && git push`, CLAUDE.md §Integration model), not
+just once on a new machine. It's idempotent and safe to re-run.
 
 ---
 
