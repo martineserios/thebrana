@@ -193,6 +193,20 @@ test (`test-autonomous-runner-validate-jail.sh`, t-3256) — asserts the per-tas
 no worktree code on the host. Either failing is the load-bearing signal that a boundary eroded,
 caught on the next validate rather than six months later.
 
+**The two tests above only prove the jail CONTAINS an adversary — not that it can run the
+REAL executor at all.** That gap is exactly how the 2026-06-22 regression hid: the sandbox
+looked green against a stub `claude` while the real subscription binary failed to
+authenticate inside it (a read-only cred bind — `claude` rewrites `~/.claude.json` on
+startup, so a `--ro-bind` bails "Not logged in"). A third check
+(`test-autonomous-runner-real-claude-compat.sh`, t-3257) closes it: a real, non-stub
+`claude -p` dispatch through the actual `sandbox_claude()`, asserting rc=0 + expected output,
+paired with a simulated no-creds run that must fail loudly (proving the assertion actually
+discriminates pass/fail, not a check that can only ever go green). It makes one real API
+call, so unlike (a)/(b) it is **opt-in** — `RUNNER_LIVE_CLAUDE_TEST=1` — never part of the
+default `validate.sh` sweep. Run it before enabling any unattended `--run-batch` use, after
+any change to `sandbox_claude()`/`stage_runner_home()`/the egress proxy, or after a Claude
+Code CLI upgrade (auth/config file shape can change, as it did in June).
+
 **Verify gate is inspection, not execution (t-3256, ADR-062 C2).** The per-task gate
 (`verify_diff`) reads the diff with hardened, read-only `git` only (`core.fsmonitor=`,
 `core.hooksPath=/dev/null`, `protocol.file.allow=never`) — it never runs the worktree's own
@@ -219,3 +233,13 @@ lands. The OBSERVE planner (tools `Read,Grep,Glob` only, no Bash/network leg) is
 - **t-2173 remaining:** egress allowlist (the open Layer-1 item), validate-from-base-ref copy
   (ADR-062 C2 — the second half, prevents host exec via a written `validate.sh`), sandbox the
   OBSERVE planner, and the compatibility soak (real rust/shell/python tasks).
+- t-3257 (opt-in real-claude compat check) — done, see Check 61's third test above.
+
+## Changelog
+
+- 2026-08-31: Check 61's real-claude compat check added (t-3257) — closes the gap where the
+  stub-based escape battery could stay green while real `claude -p` failed to authenticate in
+  the jail (the 2026-06-22 regression class). Opt-in (`RUNNER_LIVE_CLAUDE_TEST=1`), not part of
+  the default `validate.sh` sweep. Also fixed a pre-existing `set -e` bug in Check 61's own
+  wiring (bare `VAR=$(cmd); RC=$?` aborted validate.sh silently on a real breach, before the
+  FAIL message could ever print) — found while wiring the new check next to it.
