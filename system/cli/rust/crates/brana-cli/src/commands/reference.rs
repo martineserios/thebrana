@@ -266,6 +266,11 @@ fn generate_agents(root: &Path) -> Result<String> {
         if fm_str(&fm, "name").is_empty() {
             continue;
         }
+        // `type: reference` docs (e.g. CALIBRATION.md) document an agent, they aren't one —
+        // exclude them from the count and table (t-3262, reconcile).
+        if fm_str(&fm, "type") == "reference" {
+            continue;
+        }
         agents.push(fm);
     }
 
@@ -751,6 +756,45 @@ mod tests {
     // hooks.json uses {"hooks": {"EventName": [...entries...]}}.
     // These tests guard against regression to a flat {"EventName": [...]} lookup,
     // which would silently produce no output.
+
+    // generate_agents() must exclude `type: reference` docs (e.g. CALIBRATION.md, which
+    // documents challenger severity scoring but is not itself an invocable agent) from the
+    // agent count and table — t-3262 (reconcile). Before this fix it counted "14 agents"
+    // for 13 real agents + 1 reference doc.
+    fn make_agents_root(files: &[(&str, &str)]) -> tempfile::TempDir {
+        let dir = tempfile::TempDir::new().unwrap();
+        let agents_dir = dir.path().join("system").join("agents");
+        fs::create_dir_all(&agents_dir).unwrap();
+        for (name, content) in files {
+            fs::write(agents_dir.join(name), content).unwrap();
+        }
+        dir
+    }
+
+    #[test]
+    fn test_generate_agents_excludes_reference_type() {
+        let root = make_agents_root(&[
+            (
+                "scout.md",
+                "---\nname: scout\ndescription: Fast research agent.\n---\nbody",
+            ),
+            (
+                "CALIBRATION.md",
+                "---\nname: challenger-calibration\ndescription: Severity scoring guide.\ntype: reference\n---\nbody",
+            ),
+        ]);
+        let output = generate_agents(root.path()).unwrap();
+        assert!(
+            output.contains("**1 agents**") || output.contains("**1 agent**"),
+            "count must exclude the type:reference doc, got: {}",
+            output.lines().find(|l| l.contains("agents**")).unwrap_or("<no count line>")
+        );
+        assert!(output.contains("scout"), "real agent must still appear");
+        assert!(
+            !output.contains("challenger-calibration"),
+            "type:reference doc must not appear in the agent table"
+        );
+    }
 
     fn make_hooks_root(hooks_json: &str) -> tempfile::TempDir {
         let dir = tempfile::TempDir::new().unwrap();
