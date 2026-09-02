@@ -75578,9 +75578,9 @@
       "blocked_by": [
         "t-2894"
       ],
-      "branch": null,
-      "completed": null,
-      "context": "2026-08-14: split off t-2887 (task-level multi-agent orchestration) during brainstorm — user explicitly wants this filed as a named follow-on so it isn't forgotten, but scoped OUT of t-2887's current exploration.\n\nThis is the other half of the \"add parallelism to the drain loop\" idea: multiple *different* wave tasks each getting their own worktree/branch/build-framework instance running concurrently (raising or removing wip_limit), as opposed to t-2887's task-level orchestrator-workers panel inside one pulled task.\n\nReal tension to resolve before touching wip_limit: the documented tasks.json/worktree race incidents (t-2216/t-2206 — concurrent sessions racing on tasks.json writes and branch creation) are exactly what wip_limit + atomic locked pull (ADR-079 §3) exist to prevent. Also: can the human merge valve (ADR-060/079 — human reviews every build-CLOSE) actually absorb N concurrent build-CLOSE reviews without conflating them? User's stated position (2026-08-14): doesn't see the benefit of the current wip_limit default and wants this explored seriously, not dismissed — see docs/ideas/loop-task-multiagent.md for the full discussion thread this split from.\n\nSee docs/ideas/loop-task-multiagent.md — idea doc for the sibling task-level exploration, includes the Round 1 discussion that produced this split.\n2026-08-14: t-2887 closed with GO verdict (probe report docs/research/2026-08-14-judge-panel-probe.md). Blocker updated: now gated on t-2894 (escalation-valve ADR), which defines the signal vocabulary this wave-level exploration should reuse.\n2026-09-02: Sandcastle (mattpocock/sandcastle) is now a working reference implementation of this task's scope — Docker+worktree per task, planner/implementer/reviewer/merger roles. Full writeup + Beat-ring-scoped mechanism comparison: docs/research/2026-09-02-pocock-sandcastle-video-findings.md §3. Key framing (don't collapse this): this task's wip_limit/concurrency question is Epic-ring (which wave-graph tasks run concurrently); Sandcastle's merger-agent is Beat-ring (per-task merge automation). They're independent decisions — raising concurrency here does NOT require adopting his auto-merge; the spec should note explicitly why brana keeps the human Beat-ring valve (pattern_gate-armed-by-the-party-it-constrains) rather than silently omitting an auto-merge option. Also worth weighing: Docker-per-task as an optional isolation layer on top of the existing worktree, not instead of it.",
+      "branch": "backlog-drain/research/t-2889-explore-wave-level-parallelism",
+      "completed": "2026-09-02",
+      "context": "2026-08-14: split off t-2887 (task-level multi-agent orchestration) during brainstorm — user explicitly wants this filed as a named follow-on so it isn't forgotten, but scoped OUT of t-2887's current exploration.\n\nThis is the other half of the \"add parallelism to the drain loop\" idea: multiple *different* wave tasks each getting their own worktree/branch/build-framework instance running concurrently (raising or removing wip_limit), as opposed to t-2887's task-level orchestrator-workers panel inside one pulled task.\n\nReal tension to resolve before touching wip_limit: the documented tasks.json/worktree race incidents (t-2216/t-2206 — concurrent sessions racing on tasks.json writes and branch creation) are exactly what wip_limit + atomic locked pull (ADR-079 §3) exist to prevent. Also: can the human merge valve (ADR-060/079 — human reviews every build-CLOSE) actually absorb N concurrent build-CLOSE reviews without conflating them? User's stated position (2026-08-14): doesn't see the benefit of the current wip_limit default and wants this explored seriously, not dismissed — see docs/ideas/loop-task-multiagent.md for the full discussion thread this split from.\n\nSee docs/ideas/loop-task-multiagent.md — idea doc for the sibling task-level exploration, includes the Round 1 discussion that produced this split.\n2026-08-14: t-2887 closed with GO verdict (probe report docs/research/2026-08-14-judge-panel-probe.md). Blocker updated: now gated on t-2894 (escalation-valve ADR), which defines the signal vocabulary this wave-level exploration should reuse.\n2026-09-02: Sandcastle (mattpocock/sandcastle) is now a working reference implementation of this task's scope — Docker+worktree per task, planner/implementer/reviewer/merger roles. Full writeup + Beat-ring-scoped mechanism comparison: docs/research/2026-09-02-pocock-sandcastle-video-findings.md §3. Key framing (don't collapse this): this task's wip_limit/concurrency question is Epic-ring (which wave-graph tasks run concurrently); Sandcastle's merger-agent is Beat-ring (per-task merge automation). They're independent decisions — raising concurrency here does NOT require adopting his auto-merge; the spec should note explicitly why brana keeps the human Beat-ring valve (pattern_gate-armed-by-the-party-it-constrains) rather than silently omitting an auto-merge option. Also worth weighing: Docker-per-task as an optional isolation layer on top of the existing worktree, not instead of it.\n2026-09-02 SPIKE FINDING: wip_limit has zero practical effect above 1 today — the epic-runner (docs/guide/workflows/epic-drain.md, ADR-080 §3) calls `wave pull` exactly once per beat, so raising wip_limit alone changes nothing without a fan-out dispatcher. Safety substrate (leases t-2841/ADR-080 §5, wip_limit live-count via resolve_wave_selector/ADR-080 §1) is already shipped and correct — the gap is purely execution-side. Recommendation from full spike pass: build option (a) — same-wave/same-runner parallel dispatch (pull up to min(wip_limit-live, N) tasks per beat, fan out via Agent/Task in-session or N claude -p processes headless, each in its own worktree per ADR-060, batched human-valve digest per L4.4's already-named review-budget gap). Explicitly NOT option (b) — cross-wave multi-instance wave-claim stays out of scope, matching ADR-080 §2.2's own stance; no evidence of a real cross-wave bottleneck exists. Beat-record schema needs a backward-compatible extension (array of pulled task IDs per beat), not a redefinition. Next concrete step: ADR amendment (extends ADR-079/ADR-080) before any implementation task, per m-plus-discipline-enforcement.md — this is genuinely M+ effort. Reusable pattern captured: memory pattern_concurrency-axis-must-match-safety-substrate-scope.",
       "created": "2026-08-14",
       "description": null,
       "effort": "S",
@@ -75588,12 +75588,12 @@
       "github_issue": null,
       "id": "t-2889",
       "kind": "research",
-      "notes": null,
+      "notes": "Spike complete (full pass). Verdict: yes, scoped to same-wave/same-runner parallel dispatch (option a). Cross-wave multi-instance (option b) stays out of scope per ADR-080 §2.2. Follow-on ADR-amendment task filed: t-3264. Pattern captured: pattern_concurrency-axis-must-match-safety-substrate-scope.",
       "order": 0,
       "parent": "t-2811",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-02",
+      "status": "completed",
       "subject": "Explore wave-level parallelism — raise/remove wip_limit for concurrent wave-drain tasks",
       "tags": [
         "loop",
@@ -75603,7 +75603,8 @@
       ],
       "type": "task",
       "work_type": "research",
-      "strategy": "spike"
+      "strategy": "spike",
+      "build_step": null
     },
     {
       "ac_state": "none",
@@ -86640,6 +86641,37 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "research",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-3264",
+      "subject": "ADR amendment: same-wave parallel dispatch (extends ADR-079/ADR-080)",
+      "status": "pending",
+      "type": "task",
+      "kind": "design",
+      "tags": [
+        "loop",
+        "waves",
+        "wip",
+        "parallelism",
+        "adr"
+      ],
+      "description": null,
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2811",
+      "created": "2026-09-02",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Follow-on from t-2889's spike (2026-09-02, full pass, verdict: yes — see t-2889 context for the complete analysis). Scope, precisely:\n\nIN SCOPE — same-wave/same-runner parallel dispatch:\n- Epic-runner pulls up to min(wip_limit-live, N) tasks per beat instead of exactly one (today: docs/guide/workflows/epic-drain.md calls `wave pull` once per beat — confirmed by reading the runner doc + wave.rs source, not inferred)\n- Dispatch mechanism: in-session via Agent/Task fan-out; headless (Orbit/t-3019) via N `claude -p` processes, each in its own worktree per ADR-060's existing isolation contract — this is a parallelization of the existing per-task pattern, not a new isolation primitive\n- Beat-record schema: backward-compatible extension (array of pulled task IDs per beat) — NOT a redefinition of what a beat is\n- Human merge valve: batched digest for N concurrent build-CLOSEs, fulfilling the review-budget gap already named in the-brana-guide.md L4.4 (\"no arbitration mechanism today — a visible tray lets the human batch; revisit only on visible overflow\") — this task is that overflow evidence\n- Leases (t-2841/ADR-080 §5) and wip_limit live-count (ADR-080 §1) are prerequisites already shipped correctly — this ADR amendment builds ON them, does not touch them\n\nEXPLICITLY OUT OF SCOPE — do not silently expand into this:\n- Cross-wave multi-instance draining (two epic-drain instances against the same epic) — ADR-080 §2.2 already declared this out of scope pending a wave-claim design that doesn't exist; no evidence of a real bottleneck here yet. If this resurfaces, it needs its own separate ADR, not folded into this one.\n- Automating the Beat-ring merge valve (Sandcastle-style auto-merger) — human merge valve stays human; see pattern_gate-armed-by-the-party-it-constrains and docs/research/2026-09-02-pocock-sandcastle-video-findings.md §3c.\n\nReference implementation to read before drafting: mattpocock/sandcastle (Docker+worktree per task, planner/implementer/reviewer/merger roles) — Beat-ring analog, see the Sandcastle findings doc §3 for the exact mechanism comparison. Docker-per-task is worth weighing as an optional isolation layer on top of the worktree, not instead of it — open question, not settled by this note.\n\nAC (draft, refine when drafting the ADR):\nAC: ADR amendment drafted extending ADR-079/ADR-080, covering parallel-pull-per-beat contract, beat-record schema extension, and batched human-valve digest\nAC: explicitly documents why cross-wave multi-instance stays out of scope\nAC: explicitly documents why the human merge valve is not automated\nAC: challenged (per m-plus-discipline-enforcement.md M+ gate) before any implementation task is filed under it",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "design",
       "ac_state": "none"
     }
   ],
