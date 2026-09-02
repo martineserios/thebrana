@@ -10,6 +10,7 @@ status: proposed
 - **Date:** 2026-07-28
 - **Evidence:** [backlog-v3-lane-identity.md](../../ideas/drained/backlog-v3-lane-identity.md) (t-2488 brainstorm); live reproductions 2026-07-28 (below); t-2502 diagnosis (3 reproductions); t-2506 mechanism; t-2495 hypothesis + refutation; live store audit (24 session-state files, 54 epic nodes)
 - **Related:** [ADR-065](ADR-065-epic-as-hierarchy-top.md) (epic as hierarchy top), [ADR-068](ADR-068-v3-supersession.md) (v3 supersession), [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (branch strategy), [backlog-v3-schema.md](../features/backlog-v3-schema.md) D4/D8
+- **Implementation spec:** [lane-identity.md](../features/lane-identity.md) (t-2517, 2026-09-02) — surface-by-surface implementation contract for D0/D0b/D1/D2/D3(excl. 3.2), gating t-2520/t-2521/t-2524
 - **Task:** t-2488
 
 ## Context
