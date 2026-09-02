@@ -396,6 +396,46 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value], waves: &[Value]) -> Res
     }
 }
 
+/// t-3268 (ADR-090 §1): pull up to N tasks within one beat instead of
+/// exactly one. Pure — loops the same in-memory contract as
+/// `wave_pull_decision`: each iteration re-derives `live` from a locally
+/// mutated task snapshot (the pulled task flipped to `in_progress`,
+/// mirroring what `pull_wave_task`'s real write does), so `wip_limit` binds
+/// correctly across pulls within the same beat, not just once at entry.
+/// Stops after `n` pulls, or on the first non-`Pulled` decision (`AtLimit`/
+/// `NoneEligible`), appended as the final element so the caller always
+/// knows why the beat stopped short of `n`. No new locking primitive —
+/// this function only decides; `pull_wave_task` remains the sole atomic
+/// write path, called once per real pull by the beat's caller.
+pub fn wave_pull_decision_n(
+    wave: &Value,
+    tasks: &[Value],
+    waves: &[Value],
+    n: usize,
+) -> Result<Vec<PullDecision>, String> {
+    let mut working: Vec<Value> = tasks.to_vec();
+    let mut decisions = Vec::with_capacity(n);
+    for _ in 0..n {
+        let decision = wave_pull_decision(wave, &working, waves)?;
+        match &decision {
+            PullDecision::Pulled { task_id } => {
+                if let Some(t) = working
+                    .iter_mut()
+                    .find(|t| t["id"].as_str() == Some(task_id.as_str()))
+                {
+                    t["status"] = Value::String("in_progress".into());
+                }
+                decisions.push(decision);
+            }
+            PullDecision::AtLimit { .. } | PullDecision::NoneEligible { .. } => {
+                decisions.push(decision);
+                break;
+            }
+        }
+    }
+    Ok(decisions)
+}
+
 /// t-2813 (ADR-079 §3): the atomic pull — ONE lock_tasks critical section:
 /// lock → fresh read → decide (`wave_pull_decision` on the just-read state) →
 /// write in_progress + started → save. Count-then-pull as two calls is the
