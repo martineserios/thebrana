@@ -86646,7 +86646,7 @@
     {
       "id": "t-3264",
       "subject": "ADR amendment: same-wave parallel dispatch (extends ADR-079/ADR-080)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "design",
       "tags": [
@@ -86661,19 +86661,25 @@
       "priority": "P2",
       "parent": "t-2811",
       "created": "2026-09-02",
-      "started": null,
-      "completed": null,
+      "started": "2026-09-02",
+      "completed": "2026-09-02",
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-drain/design/t-3264-adr-amendment-same-wave",
       "context": "Follow-on from t-2889's spike (2026-09-02, full pass, verdict: yes — see t-2889 context for the complete analysis). Scope, precisely:\n\nIN SCOPE — same-wave/same-runner parallel dispatch:\n- Epic-runner pulls up to min(wip_limit-live, N) tasks per beat instead of exactly one (today: docs/guide/workflows/epic-drain.md calls `wave pull` once per beat — confirmed by reading the runner doc + wave.rs source, not inferred)\n- Dispatch mechanism: in-session via Agent/Task fan-out; headless (Orbit/t-3019) via N `claude -p` processes, each in its own worktree per ADR-060's existing isolation contract — this is a parallelization of the existing per-task pattern, not a new isolation primitive\n- Beat-record schema: backward-compatible extension (array of pulled task IDs per beat) — NOT a redefinition of what a beat is\n- Human merge valve: batched digest for N concurrent build-CLOSEs, fulfilling the review-budget gap already named in the-brana-guide.md L4.4 (\"no arbitration mechanism today — a visible tray lets the human batch; revisit only on visible overflow\") — this task is that overflow evidence\n- Leases (t-2841/ADR-080 §5) and wip_limit live-count (ADR-080 §1) are prerequisites already shipped correctly — this ADR amendment builds ON them, does not touch them\n\nEXPLICITLY OUT OF SCOPE — do not silently expand into this:\n- Cross-wave multi-instance draining (two epic-drain instances against the same epic) — ADR-080 §2.2 already declared this out of scope pending a wave-claim design that doesn't exist; no evidence of a real bottleneck here yet. If this resurfaces, it needs its own separate ADR, not folded into this one.\n- Automating the Beat-ring merge valve (Sandcastle-style auto-merger) — human merge valve stays human; see pattern_gate-armed-by-the-party-it-constrains and docs/research/2026-09-02-pocock-sandcastle-video-findings.md §3c.\n\nReference implementation to read before drafting: mattpocock/sandcastle (Docker+worktree per task, planner/implementer/reviewer/merger roles) — Beat-ring analog, see the Sandcastle findings doc §3 for the exact mechanism comparison. Docker-per-task is worth weighing as an optional isolation layer on top of the worktree, not instead of it — open question, not settled by this note.\n\nAC (draft, refine when drafting the ADR):\nAC: ADR amendment drafted extending ADR-079/ADR-080, covering parallel-pull-per-beat contract, beat-record schema extension, and batched human-valve digest\nAC: explicitly documents why cross-wave multi-instance stays out of scope\nAC: explicitly documents why the human merge valve is not automated\nAC: challenged (per m-plus-discipline-enforcement.md M+ gate) before any implementation task is filed under it\nskill_gap_checked: true (score < 0.3, user chose: Skip)",
-      "notes": null,
+      "notes": "ADR-090 drafted, challenger-reviewed (2 MAJOR + 4 MINOR, no BLOCKER, all incorporated), Accepted 2026-09-02. Decisions: parallel-pull-per-beat contract, dispatch via Agent/Task fan-out or N claude -p processes, net-new pulled_task_ids beat-record field, batched human valve via existing cockpit digest. Cross-wave multi-instance and merge automation explicitly stay out of scope. New named risk from challenger review: ac_state approval valve may bottleneck faster than merge valve once parallel dispatch ships (mitigation: existing wave approve --confirm_ids batching, cap 10). Pattern captured: pattern_throughput-fix-check-the-mirror-valve. Implementation tasks may now be filed against this ADR.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "acceptance_criteria": null,
+      "acceptance_criteria": [
+        "ADR amendment drafted extending ADR-079/ADR-080, covering parallel-pull-per-beat contract, beat-record schema extension, and batched human-valve digest",
+        "explicitly documents why cross-wave multi-instance stays out of scope",
+        "explicitly documents why the human merge valve is not automated",
+        "challenged (per m-plus-discipline-enforcement.md M+ gate) before any implementation task is filed under it"
+      ],
       "work_type": "design",
       "ac_state": "none",
-      "strategy": "feature"
+      "strategy": "feature",
+      "build_step": null
     }
   ],
   "version": 3,
