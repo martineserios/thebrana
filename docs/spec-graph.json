@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-02T13:45:10Z",
+  "generated": "2026-09-02T22:16:24Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1281,6 +1281,11 @@
     },
     "docs/architecture/decisions/ADR-089-integral-temporal-model.md": {
       "title": "ADR-089: Integral Temporal Model — Shared Primitives, Separate Entities",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md": {
+      "title": "ADR-090: Same-Wave Parallel Dispatch (extends ADR-079 §3, ADR-080 §2/§3/§8)",
       "type": "ADR",
       "impl_files": []
     },
@@ -5595,6 +5600,24 @@
       "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "depends_on",
+      "computed": false
     },
     {
       "from": "docs/architecture/features/acquire-skills-guide.md",
@@ -13247,6 +13270,42 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/research/2026-08-22-pocock-alignment-decision-matrix.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/research/2026-09-02-pocock-sandcastle-video-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -18978,9 +19037,9 @@
     }
   ],
   "stats": {
-    "nodes": 621,
-    "edges": 2430,
-    "typed_edges": 694,
+    "nodes": 622,
+    "edges": 2439,
+    "typed_edges": 697,
     "orphans": 141
   }
 }
