@@ -930,6 +930,108 @@ mod tests {
         assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
     }
 
+    // ── wave_pull_decision_n — N-task pull per beat (ADR-090 §1, t-3267) ────
+
+    fn eligible(id: &str, parent: &str) -> Value {
+        json!({"id": id, "subject": format!("s-{id}"), "status": "pending",
+               "tags": [], "parent": parent, "ac_state": "approved"})
+    }
+
+    #[test]
+    fn n_task_pull_pulls_n_when_headroom_covers_n() {
+        // wip_limit - live (3 - 0 = 3) >= N (2) — pulls exactly N, no
+        // AtLimit/NoneEligible tail; the beat simply stops once N is reached.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 3});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+            eligible("t-3", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 2).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::Pulled { task_id: "t-2".into() },
+            ],
+            "headroom >= N must pull exactly N tasks, nothing more"
+        );
+    }
+
+    #[test]
+    fn n_task_pull_stops_at_headroom_when_less_than_n() {
+        // wip_limit - live (2 - 1 = 1) < N (3) — pulls exactly the headroom,
+        // then reports AtLimit so the caller knows why it stopped short of N.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 2});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            ptask("t-0", "in_progress", Some("ms-1")), // pre-existing live=1
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 3).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::AtLimit { live: 2, limit: 2 },
+            ],
+            "headroom (1) < N (3) must pull exactly the headroom, then name why it stopped"
+        );
+    }
+
+    #[test]
+    fn n_task_pull_unbounded_wip_limit_pulls_exactly_n() {
+        // No `wip_limit` field at all == unbounded (ADR-079 §3 default) —
+        // the bound collapses to N directly, per ADR-090 §1.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining"});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+            eligible("t-3", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 2).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::Pulled { task_id: "t-2".into() },
+            ],
+            "unbounded (null/absent) wip_limit must pull exactly N directly"
+        );
+    }
+
+    #[test]
+    fn n_task_pull_recomputes_live_between_sequential_pulls() {
+        // live starts at 0 (nothing pre-existing in_progress); each pull
+        // within the beat must be reflected before the next candidate is
+        // decided, or this would never hit AtLimit and would over-pull past
+        // wip_limit within a single beat.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 2});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+            eligible("t-3", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 3).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::Pulled { task_id: "t-2".into() },
+                PullDecision::AtLimit { live: 2, limit: 2 },
+            ],
+            "live must be recomputed after each pull within the beat, not read once at entry"
+        );
+    }
+
     #[test]
     fn tag_selector_still_resolves_through_parse_point() {
         // tag: behavior unchanged by the parse-point refactor.
