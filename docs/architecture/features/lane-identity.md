@@ -136,7 +136,7 @@ Out of scope for this spec (explicitly, per ADR-069 Non-Actions / Amendment):
 ## Assumptions
 
 - **`git_common_root()` is a shared, tested primitive already used by `find_tasks_config()`**
-  (`util.rs:158-165`) and can be reused for session-state resolution without modification —
+  (`util.rs:210-213`) and can be reused for session-state resolution without modification —
   needs confirmation against current `brana-core/src/util.rs` before t-2520 starts (ADR-069
   is dated 2026-07-28; verify the function still exists at that signature).
 - **The lane pin's file location is under the shared common-root tree** (not per-worktree),
@@ -153,7 +153,7 @@ via three tasks the ADR predates):
 
 - **`dedup_next_items` (session.rs:175) and `merge_states` (session.rs:712)'s `next[]`
   handling are ALREADY FIXED** by t-2506 — both dedupe by case-folded trimmed *text*
-  (`next_item_key`, session.rs:181), not `task_id`, exactly matching D0/D2's own reasoning
+  (`next_item_key`, session.rs:185), not `task_id`, exactly matching D0/D2's own reasoning
   about `task_id` being a reference, not a key. **Do not re-fix.** What ADR-069's
   Consequences actually names as the still-open decision is narrower: whether
   `merge_states`'s *same-day-merge code path itself* should be retired once D2 gives every
@@ -188,7 +188,7 @@ current `brana-core/src/session.rs` before implementing, per Assumptions above):
 | Read | `read_state` → `read_state_from` → `epic_scoped_state_path` | `session.rs:414,397,63` | branch-only (the asymmetry) | switch the default to call `read_state_from_unit` (session.rs:408, already exists, t-3185) with the lane pin's key; miss → non-zero exit (D1) |
 | Read (opt-in, already exists) | `read_state_from_unit` → `unit_scoped_state_path` | `session.rs:408,105` | resolves by the same unit key `write_state` uses, when caller supplies an explicit `epic` | promote from opt-in to the default path's resolver (see Read row) |
 | Consume | `mark_consumed_for` → `epic_scoped_state_path` | `session.rs:881,63` | branch-only, and **writes** | same key function as write/read; a miss here must never write `consumed_at` onto another lane's file |
-| Third resolution surface | `brana session path` | `brana-cli/src/commands/session.rs:242-247` | resolves branch-first, independent of the above | must resolve via the same key function — this is the mechanism that produced ADR-069 Reproduction 1's orphan-stub read (session-end hook probes with `path`, writes with `write`, reads a different file than it wrote) |
+| Third resolution surface | `brana session path` → `cmd_session_path` | `brana-cli/src/commands/session.rs:275-280` (re-verified 2026-09-02) | resolves branch-first via `epic_scoped_state_path`, independent of the above | must resolve via the same key function — this is the mechanism that produced ADR-069 Reproduction 1's orphan-stub read (session-end hook probes with `path`, writes with `write`, reads a different file than it wrote) |
 
 **D0b — store scoping:**
 
@@ -203,7 +203,7 @@ current `brana-core/src/session.rs` before implementing, per Assumptions above):
 | Surface | File:line | Current miss behavior | Required |
 |---|---|---|---|
 | `session-state.json` fallthrough | `brana-core/src/session.rs:56-64` | returns another lane's state | non-zero exit, actionable message |
-| `handoff last` fallback | `brana-cli/src/commands/session.rs:96-100` | prints legacy markdown, `Ok(())` — exit 0 | non-zero exit on a real miss |
+| `handoff last` fallback | `brana-cli/src/commands/session.rs:106-135` (`cmd_session_read`, miss branch at 130 calls `handoff::cmd_handoff_last(1)`, re-verified 2026-09-02) | prints legacy markdown, `Ok(())` at line 134 regardless — exit 0 | non-zero exit on a real miss |
 | MCP `session_read` | `brana-mcp/src/tools/session_read.rs:16-40` (re-verified 2026-09-02 — already has an opt-in `epic` param, t-3185; default path is still the branch-only guess) | `{"found": false}` on the default path — no exit code, and a caller cannot distinguish "genuinely nothing yet" from "wrong key, real state exists elsewhere" | the MCP tool result must carry an unambiguous typed miss signal distinguishing those two cases, on both the default and explicit-`epic` paths |
 | `mark_consumed` | `session.rs:881` (`mark_consumed_for`) | writes to the mis-resolved file | see D0 row above |
 | Shell caller idiom | `system/hooks/session-start.sh:514`, `session-end.sh:109` | `2>/dev/null \|\| VAR=""` converts loud failure back into silence | remove the swallow; handle the non-zero exit explicitly (log + documented degraded behavior, never silent empty-string substitution) |
@@ -229,7 +229,7 @@ current `brana-core/src/session.rs` before implementing, per Assumptions above):
   below already shipped a partial fix (t-2506) and must not be re-fixed; the decision each
   still needs is narrower than "fix the bug":**
   - `dedup_next_items` (`session.rs:175`) and `merge_states`'s `next[]` handling
-    (`session.rs:712`, key fn `next_item_key` at `session.rs:181`) **already dedupe by
+    (`session.rs:712`, key fn `next_item_key` at `session.rs:185`) **already dedupe by
     case-folded text, not `task_id` (t-2506) — this half is done.**
   - **Still open:** ADR-069 names "the same-day merge branch [i.e. `merge_states`'s own code
     path] stops firing" as one of exactly **two** live behaviors D2 silently retires (the
@@ -372,3 +372,18 @@ stated and open to correction before t-2521 starts.
 Two Observations addressed: `--adopt-path`'s argument shape flagged as undecided (default
 proposed, resolve at t-2524); the context-economy NFR restated as an explicit, testable
 Constraint.
+
+**Iteration 2 (2026-09-02, final): PROCEED WITH CHANGES.** Verification-only pass confirmed
+both Critical fixes and all three Warning fixes against live code, with one exact-match
+regression test found supporting the `session_read` miss-signal claim
+(`test_session_read_explicit_epic_finds_state_branch_guess_would_miss`). Found the identical
+stale-citation class one bullet outside the first fix's aperture — `find_tasks_config`'s
+`git_common_root()` call site was cited as `util.rs:158-165`, actually `util.rs:210-213` —
+plus two more drifted `brana-cli/src/commands/session.rs` line ranges and a
+`next_item_key`/`dedup_next_items` off-by-4 (181→185). **All four fixed in this revision,
+re-verified directly:** `cmd_session_path` (the `brana session path` surface) is at
+`session.rs:275-280`; the `handoff last` fallback is `cmd_session_read`'s miss branch at
+`session.rs:106-135`, calling `handoff::cmd_handoff_last(1)` at line 130 and returning
+`Ok(())` regardless at line 134 — substance of both ADR claims confirmed exactly, only line
+numbers had drifted. No RECONSIDER-severity finding in either iteration. Repair loop closed
+at 2/2 iterations per the hard cap.
