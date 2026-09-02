@@ -75580,7 +75580,7 @@
       ],
       "branch": null,
       "completed": null,
-      "context": "2026-08-14: split off t-2887 (task-level multi-agent orchestration) during brainstorm — user explicitly wants this filed as a named follow-on so it isn't forgotten, but scoped OUT of t-2887's current exploration.\n\nThis is the other half of the \"add parallelism to the drain loop\" idea: multiple *different* wave tasks each getting their own worktree/branch/build-framework instance running concurrently (raising or removing wip_limit), as opposed to t-2887's task-level orchestrator-workers panel inside one pulled task.\n\nReal tension to resolve before touching wip_limit: the documented tasks.json/worktree race incidents (t-2216/t-2206 — concurrent sessions racing on tasks.json writes and branch creation) are exactly what wip_limit + atomic locked pull (ADR-079 §3) exist to prevent. Also: can the human merge valve (ADR-060/079 — human reviews every build-CLOSE) actually absorb N concurrent build-CLOSE reviews without conflating them? User's stated position (2026-08-14): doesn't see the benefit of the current wip_limit default and wants this explored seriously, not dismissed — see docs/ideas/loop-task-multiagent.md for the full discussion thread this split from.\n\nSee docs/ideas/loop-task-multiagent.md — idea doc for the sibling task-level exploration, includes the Round 1 discussion that produced this split.\n2026-08-14: t-2887 closed with GO verdict (probe report docs/research/2026-08-14-judge-panel-probe.md). Blocker updated: now gated on t-2894 (escalation-valve ADR), which defines the signal vocabulary this wave-level exploration should reuse.",
+      "context": "2026-08-14: split off t-2887 (task-level multi-agent orchestration) during brainstorm — user explicitly wants this filed as a named follow-on so it isn't forgotten, but scoped OUT of t-2887's current exploration.\n\nThis is the other half of the \"add parallelism to the drain loop\" idea: multiple *different* wave tasks each getting their own worktree/branch/build-framework instance running concurrently (raising or removing wip_limit), as opposed to t-2887's task-level orchestrator-workers panel inside one pulled task.\n\nReal tension to resolve before touching wip_limit: the documented tasks.json/worktree race incidents (t-2216/t-2206 — concurrent sessions racing on tasks.json writes and branch creation) are exactly what wip_limit + atomic locked pull (ADR-079 §3) exist to prevent. Also: can the human merge valve (ADR-060/079 — human reviews every build-CLOSE) actually absorb N concurrent build-CLOSE reviews without conflating them? User's stated position (2026-08-14): doesn't see the benefit of the current wip_limit default and wants this explored seriously, not dismissed — see docs/ideas/loop-task-multiagent.md for the full discussion thread this split from.\n\nSee docs/ideas/loop-task-multiagent.md — idea doc for the sibling task-level exploration, includes the Round 1 discussion that produced this split.\n2026-08-14: t-2887 closed with GO verdict (probe report docs/research/2026-08-14-judge-panel-probe.md). Blocker updated: now gated on t-2894 (escalation-valve ADR), which defines the signal vocabulary this wave-level exploration should reuse.\n2026-09-02: Sandcastle (mattpocock/sandcastle) is now a working reference implementation of this task's scope — Docker+worktree per task, planner/implementer/reviewer/merger roles. Full writeup + Beat-ring-scoped mechanism comparison: docs/research/2026-09-02-pocock-sandcastle-video-findings.md §3. Key framing (don't collapse this): this task's wip_limit/concurrency question is Epic-ring (which wave-graph tasks run concurrently); Sandcastle's merger-agent is Beat-ring (per-task merge automation). They're independent decisions — raising concurrency here does NOT require adopting his auto-merge; the spec should note explicitly why brana keeps the human Beat-ring valve (pattern_gate-armed-by-the-party-it-constrains) rather than silently omitting an auto-merge option. Also worth weighing: Docker-per-task as an optional isolation layer on top of the existing worktree, not instead of it.",
       "created": "2026-08-14",
       "description": null,
       "effort": "S",
@@ -75602,7 +75602,8 @@
         "parallelism"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "strategy": "spike"
     },
     {
       "ac_state": "none",
@@ -86611,6 +86612,34 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-3263",
+      "subject": "Quarterly recheck: Pocock's living practice for new adoption-worthy changes",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "pocock",
+        "recurring"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-09-02",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Recurring check, same cadence pattern as verify-docs (quarterly) — not a full research pass each time, just: did anything ship on his live sources (see memory reference_pocock-live-sources) that would flip a KEEP/ADOPT verdict in docs/research/2026-08-22-pocock-alignment-decision-matrix.md, or add a new mechanism worth scoring.\n\nSources to check: github.com/mattpocock/skills, github.com/mattpocock/sandcastle, youtube.com/@mattpocockuk.\n\nBefore scoring anything found: apply the ring-fit filter first (matrix doc §0, memory pattern_pocock-comparisons-must-ring-fit-first) — place any new mechanism on a brana ring (Micro/Beat/Epic/Knowledge) before comparing it, don't assume box-count correspondence.\n\nTrigger evidence for this cadence: research already found real drift in a 2-week window (his \"smart zone\" token figure moved 140K → ~100K between the 2026-08-18 and 2026-09-02 passes) and a whole new working system (Sandcastle) that three prior research passes never surfaced. Treat prior dated docs as potentially stale, not current fact.\n\nOn completion: file a new dated docs/research/YYYY-MM-DD-pocock-recheck.md only if something material changed; otherwise a short note in this task's notes is enough, then reschedule (file the next quarter's instance of this task).",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "research",
       "ac_state": "none"
     }
   ],
