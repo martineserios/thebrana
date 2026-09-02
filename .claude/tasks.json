@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-09-02T19:17:07.800218403-03:00",
+  "last_modified": "2026-09-02T19:29:05.252720480-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -78026,8 +78026,13 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "A concurrent-writer stress test exists (N threads appending decision entries to the same JSONL store via decisions.rs's writeln! path)",
+        "Test asserts no corrupted or interleaved lines after concurrent writes",
+        "If corruption is reproduced: writeln! is replaced with a single pre-serialized write_all per line (matching the write-once pattern already used by time-tracking-metric-1's data store)",
+        "Test passes reliably across repeated runs (not flaky) — at least 3 consecutive green runs"
+      ],
       "blocked_by": [],
       "branch": null,
       "completed": null,
@@ -78043,12 +78048,12 @@
       "order": 0,
       "parent": "t-2811",
       "priority": "P2",
+      "work_type": "chore",
       "started": null,
       "status": "pending",
       "subject": "Concurrency-test decisions.rs's writeln! append pattern (never stress-tested)",
       "tags": [],
-      "type": "task",
-      "work_type": "chore"
+      "type": "task"
     },
     {
       "ac_state": "none",
@@ -78284,8 +78289,13 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "autonomous-runner.sh's background+wait pattern is replaced with exec",
+        "validate.sh Check 27 passes with zero errors for autonomous-runner.sh",
+        "stdin remains reachable for MCP stdio after the fix (verified by inspection or a smoke test, per the check's own stated rationale)",
+        "No regression in the script's other documented behavior"
+      ],
       "blocked_by": [],
       "branch": null,
       "completed": null,
@@ -78301,12 +78311,12 @@
       "order": 0,
       "parent": "t-2811",
       "priority": "P2",
+      "work_type": "implement",
       "started": null,
       "status": "pending",
       "subject": "Fix validate.sh Check 27: autonomous-runner.sh background+wait anti-pattern",
       "tags": [],
-      "type": "task",
-      "work_type": "implement"
+      "type": "task"
     },
     {
       "ac_state": "none",
@@ -78505,8 +78515,13 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "current_repo_root() in stacked_verdict.rs calls scrub_git_env before invoking `git rev-parse --show-toplevel`",
+        "Matches the fix pattern already applied at the t-2617/t-2501 call sites (same H2 class)",
+        "A test demonstrates that GIT_DIR/GIT_WORK_TREE set in the environment no longer leak into the resolved repo root",
+        "No regression: `ac approve`'s grading-bundle (compute_bundle) still resolves correctly in the normal (unset env) case"
+      ],
       "blocked_by": [],
       "branch": null,
       "completed": null,
@@ -78522,12 +78537,12 @@
       "order": 0,
       "parent": "t-2811",
       "priority": "P2",
+      "work_type": "implement",
       "started": null,
       "status": "pending",
       "subject": "Add scrub_git_env to stacked_verdict.rs::current_repo_root (H2 gap)",
       "tags": [],
-      "type": "task",
-      "work_type": "implement"
+      "type": "task"
     },
     {
       "ac_state": "none",
@@ -86751,23 +86766,23 @@
         "New tests added to the existing wave.rs test module (no new test file), and fail (red) against unmodified wave.rs"
       ],
       "blocked_by": [],
-      "branch": null,
-      "completed": null,
+      "branch": "backlog-drain/feat/t-3267-n-task-pull-tests",
+      "completed": "2026-09-02",
       "context": "Per sdd-tdd.md: test before implementation. Extend the existing test module in wave.rs (e.g. at_limit_fires_on_parent_wave_at_wip_limit precedent) with cases for: pulling N tasks in one beat when wip_limit-live >= N; pulling fewer than N when wip_limit-live < N; unbounded (null) wip_limit pulls exactly N; live-count correctly recomputed between sequential pulls within one beat (already verified structurally sound by ADR-090's challenger review, but needs an explicit test, not just code-reading verification).",
       "created": "2026-09-02",
-      "description": null,
+      "description": "Extend wave.rs's existing test module with TDD failing tests for N-task-per-beat pull: bounded (wip_limit-live >= N and < N), unbounded (null wip_limit), and live-count recomputation between sequential pulls within one beat. Precedent: at_limit_fires_on_parent_wave_at_wip_limit.",
       "effort": "S",
       "execution": "code",
       "github_issue": null,
       "id": "t-3267",
       "kind": "feature",
-      "notes": null,
+      "notes": "Red state confirmed: 4 new tests calling wave_pull_decision_n (not-yet-existing) fail to compile against unmodified wave.rs (4x E0425). Committed red on branch backlog-drain/feat/t-3267-n-task-pull-tests (a983e2d). t-3268 continues in the same worktree/branch to implement and turn green — the pair merges to dev together as one unit rather than landing a red commit alone.",
       "order": 0,
       "parent": "t-3266",
       "priority": null,
-      "work_type": "implement",
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-02",
+      "status": "completed",
+      "strategy": "feature",
       "subject": "TDD: failing tests for N-task pull (bounded + unbounded wip_limit) in wave.rs",
       "tags": [
         "loop",
@@ -86776,7 +86791,8 @@
         "parallelism",
         "tdd"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "ac_state": "approved",
@@ -86790,7 +86806,7 @@
       "blocked_by": [
         "t-3267"
       ],
-      "branch": null,
+      "branch": "backlog-drain/feat/t-3267-n-task-pull-tests",
       "completed": null,
       "context": "Makes the failing tests green. ADR-090 §1: min(wip_limit-live, N) tasks per beat, each pull still inside the existing atomic lock_tasks critical section (no new locking primitive). N is operator-set config, not schema (no-guessed-default posture).",
       "created": "2026-09-02",
@@ -86804,9 +86820,9 @@
       "order": 0,
       "parent": "t-3266",
       "priority": null,
-      "work_type": "implement",
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-02",
+      "status": "in_progress",
+      "strategy": "feature",
       "subject": "Implement N-task pull to satisfy tests",
       "tags": [
         "loop",
@@ -86814,7 +86830,8 @@
         "wip",
         "parallelism"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "ac_state": "none",
