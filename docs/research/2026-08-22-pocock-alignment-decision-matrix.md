@@ -15,6 +15,28 @@ runs real unattended production loops today (knowledge-pipeline, link-pipeline c
 (quoting/billing), cares about token cost and legibility, has already suffered concurrency-race incidents
 (t-2216/t-2206).
 
+## 0. Ring-fit filter — apply before scoring any new mechanism (added 2026-09-02)
+
+A 2026-09-02 pass on Sandcastle (`mattpocock/sandcastle` — see
+[2026-09-02-pocock-sandcastle-video-findings.md](2026-09-02-pocock-sandcastle-video-findings.md))
+initially laid a 4-role Pocock pipeline and 4 brana mechanisms out as a flat, position-matched
+comparison — a category error, since brana's own model already separates work by frequency into
+**rings** (Micro/Beat/Epic/Knowledge, `the-brana-guide.md` §L3.1), and the two systems don't
+occupy the same rings. Before scoring *any* future Pocock/Sandcastle mechanism in the matrix
+below, answer these three questions first — they took one correction pass to derive here, no
+reason to re-derive them next time:
+
+1. **Which ring does it belong to?** If the answer isn't obvious, stop and place it before
+   comparing anything — don't let box-count symmetry substitute for a real ring match.
+2. **Does it feed an existing brana valve, or try to remove one?** Feeding it (sharper gauge,
+   better queue rule, richer isolation) is adoptable near-automatically. Removing one
+   (Epic-ring `wave ship`, Beat-ring human merge) needs its own explicit decision every time —
+   never a side-effect of "he does it that way."
+3. **Does his side even have a ring there, or is it ephemeral?** If his version re-derives the
+   same decision fresh, in-memory, every invocation (e.g. his planner's parallel-grouping call),
+   that's evidence brana's persisted version is answering a question his scope never had to —
+   a difference to keep, not a gap to close.
+
 ## Criteria and weights (operator's judgment call, not objective)
 
 | Criterion | Weight | Why this weight |
