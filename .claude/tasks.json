@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-09-02T19:29:05.252720480-03:00",
+  "last_modified": "2026-09-03T13:23:50.303512475-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -64232,7 +64232,7 @@
       "blocked_by": [
         "t-2528"
       ],
-      "branch": null,
+      "branch": "brana-v3-redesign/fix/t-2520-session-store-common-root",
       "build_step": null,
       "completed": null,
       "context": "ADR-069 D0b — PRECONDITION for D0/D1/D2. Without it, D1's fail-loud fires on every worktree lane on day 1 AND its own escape hatches (--all, --lane legacy:<slug>) point at a directory that does not hold the handoff.\nMirror find_tasks_config's approach (util.rs:158-165). Migrate or explicitly adopt existing per-worktree stores as legacy: lanes — at least one exists (feat-t-798).\nCRITICAL FRAMING: ADR-069's Reproduction 1 was measured on dev in the MAIN CHECKOUT, the one environment where this defect is invisible. Any keying work done before this lands is done in the wrong coordinate system.",
@@ -64243,12 +64243,12 @@
       "github_issue": null,
       "id": "t-2520",
       "kind": "fix",
-      "notes": null,
+      "notes": "2026-09-03: shipped e67de7c8 + docs 15d81421 (merged to dev via aa8dfe62). find_session_root() -> git_common_root_in(hint) > git_toplevel_in > hint/cwd; CLAUDE_PROJECT_DIR stays the hint. Orphans adopted read-only as legacy:<slug> lanes via session::find_legacy_stores (no migrate command: destructive, per-store decision). Callers moved: cli session/handoff/log/memory/run(marker only) + mcp session_read/write/history, memory_write/index; file-path callers stay on find_project_root. Proof: session read --all = 19 from worktree, scratch worktree, and CLAUDE_PROJECT_DIR-keyed run (was 0 from worktree). Tests: core 1053, mcp 118, cli 688, clippy baseline.",
       "order": null,
       "parent": "t-2488",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Resolve session state via git_common_root + adopt orphaned per-worktree stores",
       "tags": [
@@ -64276,7 +64276,7 @@
       "branch": null,
       "build_step": null,
       "completed": null,
-      "context": "Ships as ONE change — D1 alone is unusable (every read on dev exits non-zero; dev is 15 of 24 state files).\nD0: read/write/consume through one key function.\nD1: miss = non-zero, never a substitution.\nD2: write keys by BRANA_SESSION_ID captured at session start; RESUME IS A QUERY, not a key lookup — a fresh session has no state under its own id, so key-lookup resolution makes a miss the UNIVERSAL case and D1 would make every session start fatal.\nPin discovery: BRANA_SESSION_ID is set but NOT exported (verified: child bash prints UNSET), so the pin cannot be found by id. cwd IS inherited — discover by worktree_path, carry session_id inside.\nAutonomous bootstrap: claude -p and cron fire no interactive SessionStart, so provide 'brana session lane init --session-id' and degrade to autonomous:<run-id> rather than hard-failing.\nBLOCKED BY the D0b store fix and the G1 verification.\n\n2026-07-28 t-2516 G2 VERIFIED — your autonomous-bootstrap assumption is confirmed, and the\nproblem is WORSE than \"no SessionStart fires\".\n\nConfirmed against source (system/scripts/autonomous-runner.sh:80-103, grepped exhaustively):\nsandbox_claude() runs `claude -p` under bwrap with `--tmpfs /home`, bind-mounting only\n~/.cargo, ~/.gitconfig and ~/.claude/.credentials.json beneath it. settings.json and hooks/\nare NOT mounted; the process runs under `env -i`; no CLAUDE_CONFIG_DIR or --settings anywhere.\nSo SessionStart has no config and no script — it cannot fire. This validates the planned\n`brana session lane init --session-id` escape hatch.\n\nTWO ADDITIONS THAT CHANGE THE DESIGN, not just the rationale:\n\n(1) ~/.claude/projects/ IS ALSO UNMOUNTED. So a sandboxed `claude -p` cannot read OR write\nsession state at all — the store resolves onto the tmpfs and evaporates with the jail. A lane\npin alone does not make the autonomous surface work; there is no durable store inside the\nsandbox to pin TO. `lane init` must run on the HOST (the runner has host access as it builds\nthe jail), or the store must be explicitly bind-mounted. Decide which before implementing D2.\n\n(2) PERVERSE INCENTIVE. Lines 83-86 fall back to UNSANDBOXED execution when bwrap is missing\nor RUNNER_SANDBOX=0, and that path has a full HOME, so hooks DO fire and a pin WOULD exist.\nUnder \"missing pin -> fail loud\" the sandboxed (default, secure) path fails while the degraded\nunsandboxed path works — the rule would reward turning the sandbox off. Degrading to\n`autonomous:<run-id>` (already planned here) avoids this; hard-failing would not. Keep the\ndegrade, and make sure it is the sandboxed path that gets it.\n\nAlso re-confirmed: BRANA_SESSION_ID is set but never exported, so even without `env -i` a\nchild sees it UNSET. Discovery by cwd/worktree_path (already the plan) is the only viable route.\n\n\n\n2026-07-31 — LIVE REPRODUCTION of the D0 read/write key mismatch, during a /brana:close --continue on branch dev. Caught by the t-2506 CAS warning, which is exactly what made it visible.\n\nWHAT HAPPENED. Step 9b says \"read the base from the SAME key the write will use\". I read the base from the orphan file (session-state.json, written_at 20:09:57Z) because branch=dev does not match the epic convention and a bare read resolves there. The write then routed to session-state-harness.json (written_at 21:14:24Z). Base mismatch -> CAS declined replace:\n\n  next: {incoming:7, written:11, dropped_duplicates:0, retained_from_existing:4, mode:\"union-stale-base\"}\n  WARNING: concurrent write detected — another session wrote at 21:14:24Z after you read.\n           Unioned instead of replaced; 4 existing entries retained, nothing removed.\n\nSo a reader and a writer in the SAME process, one step apart, resolved two different keys. That is D0 stated as cheaply as it can be stated — no concurrency required to trigger it, only a branch that does not match the epic convention.\n\nTWO FINDINGS BEYOND THE RESTATEMENT.\n\n1. THE ORPHAN KEEPS THE STALE LIST, AND THAT IS WHAT dev READS. My handoff landed on the `harness` key; the orphan still holds the previous close's 6 entries, two of them now false (t-2571 is completed, and a \"tasks.json left uncommitted\" note whose tree is now clean). The next session on dev will bare-read the ORPHAN and get the stale list, not the fresh one. sitrep's staleness filter rescues the t-2571 entry (it has a task_id and can be suppressed) but not the null-id one. So the mismatch does not merely misfile a write — it splits the handoff in two, and the half that gets read is the older half.\n\n2. REPLACE SEMANTICS ARE DANGEROUS ON A SHARED KEY — worth weighing before D2 lands. Of the 11 resulting entries, 4 belonged to a DIFFERENT lane (the harness lane's count-drift, spec-graph, PROPAGATE-candidate and t-2173-idle items). Had my base matched, replace would have REMOVED all four, silently, because omission-plus-valid-token means \"withdraw\". The CAS token authenticates that the writer read current state; it does not establish that the writer OWNS the entries it is omitting. On a per-lane key that distinction collapses and replace is safe. On a shared key it is a cross-lane clobber waiting for a base to happen to match — the union degradation is the only thing preventing it today.\n   Implication for D2: per-lane keying is not just a correctness fix for reads, it is the PRECONDITION that makes t-2506's replace semantics safe to use at all. Shipping replace broadly before lane keys exist would trade a visible union-staleness problem for an invisible data-loss one.\n\nNO WORKAROUND APPLIED, deliberately. Re-writing with the correct base would have replaced and taken the other lane's 4 entries with it. Union was accepted as the safe outcome. Recording this because \"the warning fired and I did NOT retry\" is the correct response and is not obvious from the warning text, which says \"re-read and write again if you meant to withdraw an entry\" — that advice is only safe when every entry on the key is yours.\n2026-08-17: t-2502 (close anchor truncated by concurrent close) shipped only its visibility slice; its AC#1 — 'a session's close window is not truncated by an unrelated concurrent session's close' — is DEFERRED HERE: the lane pin (head_at_start / session-start HEAD) is the primitive that lets CLOSE-ANCHOR-BLOCK derive the window from this lane's own commits. When implementing, remove/downgrade the ANCHOR_ZERO_WINDOW + multi-epic warnings in close/phases/gate-and-evidence.md only once the pin makes them redundant.",
+      "context": "Ships as ONE change — D1 alone is unusable (every read on dev exits non-zero; dev is 15 of 24 state files).\nD0: read/write/consume through one key function.\nD1: miss = non-zero, never a substitution.\nD2: write keys by BRANA_SESSION_ID captured at session start; RESUME IS A QUERY, not a key lookup — a fresh session has no state under its own id, so key-lookup resolution makes a miss the UNIVERSAL case and D1 would make every session start fatal.\nPin discovery: BRANA_SESSION_ID is set but NOT exported (verified: child bash prints UNSET), so the pin cannot be found by id. cwd IS inherited — discover by worktree_path, carry session_id inside.\nAutonomous bootstrap: claude -p and cron fire no interactive SessionStart, so provide 'brana session lane init --session-id' and degrade to autonomous:<run-id> rather than hard-failing.\nBLOCKED BY the D0b store fix and the G1 verification.\n\n2026-07-28 t-2516 G2 VERIFIED — your autonomous-bootstrap assumption is confirmed, and the\nproblem is WORSE than \"no SessionStart fires\".\n\nConfirmed against source (system/scripts/autonomous-runner.sh:80-103, grepped exhaustively):\nsandbox_claude() runs `claude -p` under bwrap with `--tmpfs /home`, bind-mounting only\n~/.cargo, ~/.gitconfig and ~/.claude/.credentials.json beneath it. settings.json and hooks/\nare NOT mounted; the process runs under `env -i`; no CLAUDE_CONFIG_DIR or --settings anywhere.\nSo SessionStart has no config and no script — it cannot fire. This validates the planned\n`brana session lane init --session-id` escape hatch.\n\nTWO ADDITIONS THAT CHANGE THE DESIGN, not just the rationale:\n\n(1) ~/.claude/projects/ IS ALSO UNMOUNTED. So a sandboxed `claude -p` cannot read OR write\nsession state at all — the store resolves onto the tmpfs and evaporates with the jail. A lane\npin alone does not make the autonomous surface work; there is no durable store inside the\nsandbox to pin TO. `lane init` must run on the HOST (the runner has host access as it builds\nthe jail), or the store must be explicitly bind-mounted. Decide which before implementing D2.\n\n(2) PERVERSE INCENTIVE. Lines 83-86 fall back to UNSANDBOXED execution when bwrap is missing\nor RUNNER_SANDBOX=0, and that path has a full HOME, so hooks DO fire and a pin WOULD exist.\nUnder \"missing pin -> fail loud\" the sandboxed (default, secure) path fails while the degraded\nunsandboxed path works — the rule would reward turning the sandbox off. Degrading to\n`autonomous:<run-id>` (already planned here) avoids this; hard-failing would not. Keep the\ndegrade, and make sure it is the sandboxed path that gets it.\n\nAlso re-confirmed: BRANA_SESSION_ID is set but never exported, so even without `env -i` a\nchild sees it UNSET. Discovery by cwd/worktree_path (already the plan) is the only viable route.\n\n\n\n2026-07-31 — LIVE REPRODUCTION of the D0 read/write key mismatch, during a /brana:close --continue on branch dev. Caught by the t-2506 CAS warning, which is exactly what made it visible.\n\nWHAT HAPPENED. Step 9b says \"read the base from the SAME key the write will use\". I read the base from the orphan file (session-state.json, written_at 20:09:57Z) because branch=dev does not match the epic convention and a bare read resolves there. The write then routed to session-state-harness.json (written_at 21:14:24Z). Base mismatch -> CAS declined replace:\n\n  next: {incoming:7, written:11, dropped_duplicates:0, retained_from_existing:4, mode:\"union-stale-base\"}\n  WARNING: concurrent write detected — another session wrote at 21:14:24Z after you read.\n           Unioned instead of replaced; 4 existing entries retained, nothing removed.\n\nSo a reader and a writer in the SAME process, one step apart, resolved two different keys. That is D0 stated as cheaply as it can be stated — no concurrency required to trigger it, only a branch that does not match the epic convention.\n\nTWO FINDINGS BEYOND THE RESTATEMENT.\n\n1. THE ORPHAN KEEPS THE STALE LIST, AND THAT IS WHAT dev READS. My handoff landed on the `harness` key; the orphan still holds the previous close's 6 entries, two of them now false (t-2571 is completed, and a \"tasks.json left uncommitted\" note whose tree is now clean). The next session on dev will bare-read the ORPHAN and get the stale list, not the fresh one. sitrep's staleness filter rescues the t-2571 entry (it has a task_id and can be suppressed) but not the null-id one. So the mismatch does not merely misfile a write — it splits the handoff in two, and the half that gets read is the older half.\n\n2. REPLACE SEMANTICS ARE DANGEROUS ON A SHARED KEY — worth weighing before D2 lands. Of the 11 resulting entries, 4 belonged to a DIFFERENT lane (the harness lane's count-drift, spec-graph, PROPAGATE-candidate and t-2173-idle items). Had my base matched, replace would have REMOVED all four, silently, because omission-plus-valid-token means \"withdraw\". The CAS token authenticates that the writer read current state; it does not establish that the writer OWNS the entries it is omitting. On a per-lane key that distinction collapses and replace is safe. On a shared key it is a cross-lane clobber waiting for a base to happen to match — the union degradation is the only thing preventing it today.\n   Implication for D2: per-lane keying is not just a correctness fix for reads, it is the PRECONDITION that makes t-2506's replace semantics safe to use at all. Shipping replace broadly before lane keys exist would trade a visible union-staleness problem for an invisible data-loss one.\n\nNO WORKAROUND APPLIED, deliberately. Re-writing with the correct base would have replaced and taken the other lane's 4 entries with it. Union was accepted as the safe outcome. Recording this because \"the warning fired and I did NOT retry\" is the correct response and is not obvious from the warning text, which says \"re-read and write again if you meant to withdraw an entry\" — that advice is only safe when every entry on the key is yours.\n2026-08-17: t-2502 (close anchor truncated by concurrent close) shipped only its visibility slice; its AC#1 — 'a session's close window is not truncated by an unrelated concurrent session's close' — is DEFERRED HERE: the lane pin (head_at_start / session-start HEAD) is the primitive that lets CLOSE-ANCHOR-BLOCK derive the window from this lane's own commits. When implementing, remove/downgrade the ANCHOR_ZERO_WINDOW + multi-epic warnings in close/phases/gate-and-evidence.md only once the pin makes them redundant.\n2026-09-03: D0b precondition SHIPPED (t-2520, dev aa8dfe62): session store now keys on git common root; legacy per-worktree stores surface as legacy:<slug> lanes. Keying work for D0/D1/D2 can now be done in the right coordinate system. Still blocked by t-2529/t-2516/t-2517.",
       "created": "2026-07-28",
       "description": null,
       "effort": "L",
@@ -64527,7 +64527,7 @@
         "test fails against current code before the t-2520 fix"
       ],
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/fix/t-2520-session-store-common-root",
       "build_step": null,
       "completed": null,
       "context": "RED TODAY. Measured 2026-07-28: 'brana session read --all --json | jq length' returns 24 from the main checkout and 0 from a linked worktree.\nCause: find_project_root() -> git_toplevel() (brana-core/src/util.rs:124-130) gives a per-worktree store, while find_tasks_config() -> git_common_root() first (util.rs:158-165) deliberately shares tasks.json across worktrees. Session state never got the same treatment.\nReal orphaned store in the wild: ~/.claude/projects/-home-martineserios-enter-thebrana-thebrana-feat-t-798/\nTDD gate for t-2520.",
@@ -64538,12 +64538,12 @@
       "github_issue": null,
       "id": "t-2528",
       "kind": "fix",
-      "notes": null,
+      "notes": "2026-09-03: shipped 5ee5b74f (merged to dev via aa8dfe62). RED confirmed first: tests/session_store_worktree.rs asserted main-checkout vs linked-worktree store equality and failed (repo vs repo-lane). Added BRANA_SESSION_STORE_ROOT seam + session::lane_state_paths choke point.",
       "order": null,
       "parent": "t-2488",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Test: session store resolves identically from main checkout and worktree",
       "tags": [
@@ -74334,7 +74334,7 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
+      "ac_state": "approved",
       "acceptance_criteria": [
         "watchdog entry is strictly read-only — surfaces expired leases + last-beat ages in its digest",
         "reclaimer resets a task ONLY when lease expired AND no branch commits in the TTL window; appends a reclaim note",
@@ -74347,7 +74347,7 @@
       ],
       "branch": null,
       "completed": null,
-      "context": "ADR-080 §5/§6 (backlog-drain lands the lease schema in t-2841; this task consumes it). TWO catalog entries, not one — the watchdog is a pure gauge (never acts); the reclaimer is a separate tiny pump acting on what the watchdog surfaces (four-primitive discipline, round-1 challenge MAJOR 4). Reclaim is evidence-gated: lease expired AND no commits on the task's branch within the TTL window — gate the destructive act on proof, not a timer (pattern_gate-destructive-capability-on-proof-not-assertion). Designed backstops if a presumed-dead executor returns: deterministic branch name makes a second worktree add fail loudly; reclaim note travels to the merge valve. Open question stays named, not solved: who reclaims the reclaimer (SPOF). Relates: t-2823 (L0 reporter precedent), t-2824 (autonomy ladder ADR).",
+      "context": "ADR-080 §5/§6 (backlog-drain lands the lease schema in t-2841; this task consumes it). TWO catalog entries, not one — the watchdog is a pure gauge (never acts); the reclaimer is a separate tiny pump acting on what the watchdog surfaces (four-primitive discipline, round-1 challenge MAJOR 4). Reclaim is evidence-gated: lease expired AND no commits on the task's branch within the TTL window — gate the destructive act on proof, not a timer (pattern_gate-destructive-capability-on-proof-not-assertion). Designed backstops if a presumed-dead executor returns: deterministic branch name makes a second worktree add fail loudly; reclaim note travels to the merge valve. Open question stays named, not solved: who reclaims the reclaimer (SPOF). Relates: t-2823 (L0 reporter precedent), t-2824 (autonomy ladder ADR).\n2026-09-03: t-2841 completed → unblocked. AC moved to proposed (copied verbatim from the legacy acceptance_criteria field) so it enters the ADR-079 valve; approve via brana backlog ac approve t-2847. Gates t-2846.",
       "created": "2026-08-14",
       "description": null,
       "effort": "M",
@@ -74549,12 +74549,18 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "doc-class taxonomy with one generic shape per class, able to classify every existing docs/ideas + docs/research file",
+        "ledger decision made explicit — adopt/extend Changelog-footer convention or design a dedicated ledger, with rationale",
+        "frontmatter contract defined (status lifecycle, superseded_by, produced_by, changelog) and validated against ≥5 existing docs",
+        "draft docs-current-state rule written for system/rules/ (human places/commits it)",
+        "user-shared open-knowledge-format URLs read and cross-referenced against the internal docs — conflicts/extensions named"
+      ],
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Trigger: 2026-08-14 studio session — user: \"docs always keep last/current state; many steps/versions of reasoning confuse future sessions; maybe a decision/temporal ledger if valuable; generic structures to map any doc created and guide doc creation.\" Worked examples to generalize from: wave-pipeline.md (current-state + Changelog footer), loop-first-redesign.md (status: historical + superseded_by + do-not-update banner), research doc §7 addendum pattern. Research-discipline: read internal docs above BEFORE any web research on open knowledge formats; then pull the user's shared URLs from the feed/inbox queue.\nAC: doc-class taxonomy with one generic shape per class, able to classify every existing docs/ideas + docs/research file\nAC: ledger decision made explicit — adopt/extend Changelog-footer convention or design a dedicated ledger, with rationale\nAC: frontmatter contract defined (status lifecycle, superseded_by, produced_by, changelog) and validated against ≥5 existing docs\nAC: draft docs-current-state rule written for system/rules/ (human places/commits it)\nAC: user-shared open-knowledge-format URLs read and cross-referenced against the internal docs — conflicts/extensions named\n2026-08-14 (valve-order challenge): P3→P1 — zero blockers today, and it now gates t-2846 (doc-sync writes into the shapes this task defines). Run in parallel with the wave-3 drain; landing it before the ADR-080 doc churn (t-2846, t-2855's schema-doc refresh) is the whole point.",
+      "context": "Trigger: 2026-08-14 studio session — user: \"docs always keep last/current state; many steps/versions of reasoning confuse future sessions; maybe a decision/temporal ledger if valuable; generic structures to map any doc created and guide doc creation.\" Worked examples to generalize from: wave-pipeline.md (current-state + Changelog footer), loop-first-redesign.md (status: historical + superseded_by + do-not-update banner), research doc §7 addendum pattern. Research-discipline: read internal docs above BEFORE any web research on open knowledge formats; then pull the user's shared URLs from the feed/inbox queue.\nAC: doc-class taxonomy with one generic shape per class, able to classify every existing docs/ideas + docs/research file\nAC: ledger decision made explicit — adopt/extend Changelog-footer convention or design a dedicated ledger, with rationale\nAC: frontmatter contract defined (status lifecycle, superseded_by, produced_by, changelog) and validated against ≥5 existing docs\nAC: draft docs-current-state rule written for system/rules/ (human places/commits it)\nAC: user-shared open-knowledge-format URLs read and cross-referenced against the internal docs — conflicts/extensions named\n2026-08-14 (valve-order challenge): P3→P1 — zero blockers today, and it now gates t-2846 (doc-sync writes into the shapes this task defines). Run in parallel with the wave-3 drain; landing it before the ADR-080 doc churn (t-2846, t-2855's schema-doc refresh) is the whole point.\n2026-09-03: AC: lines promoted to proposed_acceptance_criteria (ac_state proposed) so the task enters the ADR-079 valve; approve via brana backlog ac approve t-2854. Gates t-2846.",
       "created": "2026-08-14",
       "description": "Design the doc-system conventions that tonight's consolidation (commit 7ce62acb) applied ad hoc: (1) idea docs always hold last/current state — no dialogue-layer accretion, no parallel rethink docs; (2) a temporal/decision ledger for tracking how thinking changed — evaluate the per-doc Changelog footer + git + ADRs + task contexts against a richer ledger before inventing anything; (3) generic doc structures/shapes that can MAP any doc we already created and GUIDE new doc creation (frontmatter contract: status lifecycle active/historical + superseded_by, produced_by lineage, changelog; shape templates per doc class — concept, contract, research snapshot, ADR, runbook, ledger). New inputs to incorporate: user-shared URLs on open knowledge formats (check the URL/feed queue for recent captures) and prior internal work — docs/ideas/universal-doc-graph.md, knowledge-base-redesign.md, dated-memory-files.md, open-threads-lifecycle.md. Deliverable includes a draft system/rules/ entry for docs-current-state (the feedback-gate correctly blocked storing it as legacy memory — it should be born as a rule through this task).",
       "effort": "M",
@@ -78048,12 +78054,12 @@
       "order": 0,
       "parent": "t-2811",
       "priority": "P2",
-      "work_type": "chore",
       "started": null,
       "status": "pending",
       "subject": "Concurrency-test decisions.rs's writeln! append pattern (never stress-tested)",
       "tags": [],
-      "type": "task"
+      "type": "task",
+      "work_type": "chore"
     },
     {
       "ac_state": "none",
@@ -78311,12 +78317,12 @@
       "order": 0,
       "parent": "t-2811",
       "priority": "P2",
-      "work_type": "implement",
       "started": null,
       "status": "pending",
       "subject": "Fix validate.sh Check 27: autonomous-runner.sh background+wait anti-pattern",
       "tags": [],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "ac_state": "none",
@@ -78537,12 +78543,12 @@
       "order": 0,
       "parent": "t-2811",
       "priority": "P2",
-      "work_type": "implement",
       "started": null,
       "status": "pending",
       "subject": "Add scrub_git_env to stacked_verdict.rs::current_repo_root (H2 gap)",
       "tags": [],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "ac_state": "none",
@@ -78576,7 +78582,7 @@
       "ac_state": "none",
       "acceptance_criteria": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-drain/fix/t-2988-session-start-timing-budget",
       "completed": null,
       "context": "Discovered 2026-08-18/19 during t-2969 close verification. Repro: `time (echo '{\"session_id\":\"x\",\"cwd\":\"$PWD\"}' | bash system/hooks/session-start.sh)` under load; compare against `git show dev:system/hooks/session-start.sh` run the same way — both took ~33s. Options: (a) raise the budget generously, (b) skip the timing assertion under high load (check /proc/loadavg), (c) mock out the real ruflo/CF/brana calls in this specific test so it measures the hook's own overhead, not external tool latency.",
       "created": "2026-08-19",
@@ -78586,12 +78592,12 @@
       "github_issue": null,
       "id": "t-2988",
       "kind": "fix",
-      "notes": null,
+      "notes": "2026-09-03: shipped 1e0e365e (merged to dev --no-ff). Root cause was the hook, not the budget: ~75s of unbounded synchronous work — two O(sessions-ever) scans of ~/.claude/projects (45s each), brana skills usage --days 30 (29.5s, 15.8K file opens), untimed brana/git/config-drift calls, two serial waits (5s+3s), and SCRIPT_DIR resolved after cd /tmp. Fix: cache-served memory-dir + skill hints (system/scripts/memory-dir-cache.sh, skill-hints-refresh.sh), timeouts on every sync external, single ms-clock deadline, reminder block extracted (reminder-context.sh) to stay under the 50KB hook cap. Test 6: 85s -> 3-8s; load guard prints labelled SKIP (>2x oversubscribed), never PASS. 36/36 tests, all 26 hook suites green, validate.sh 0 errors. Verified by lead at loadavg 30: Test 6 PASS 5090ms, Test 12 SKIP. Deployed hook in ~/.claude/hooks not updated by this task — run make hooks-deploy.",
       "order": 0,
       "parent": "t-2811",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "tests/hooks/test-session-start.sh timing budget too tight under system load",
       "tags": [
         "hooks",
@@ -87057,34 +87063,34 @@
       "work_type": "implement"
     },
     {
+      "ac_state": "none",
+      "acceptance_criteria": null,
+      "blocked_by": [],
+      "branch": "backlog-drain/feat/t-3276-dry-run-wave-pull-n",
+      "completed": null,
+      "context": "Challenger finding (t-3267/t-3268 gate, 2026-09-02, score 3): dry_run_wave_pull (wave.rs) is the existing \"law 6\" rehearsal primitive that docs/guide/workflows/drain-loop.md recommends running before every real wave pull. N-fan-out (this ADR-090 dispatch mechanism) ships with no N-capable equivalent — an operator can rehearse a single pull before arming, but not a full N-task beat, at N× the blast radius per beat of an unrehearsed single pull. Add dry_run_wave_pull_n (parallel to wave_pull_decision_n, same simulated-as-if-draining treatment for queued waves) and wire it into the drain-loop/epic-drain rehearsal step.",
+      "created": "2026-09-02",
+      "description": null,
+      "effort": "XS",
+      "execution": "code",
+      "github_issue": null,
       "id": "t-3276",
-      "subject": "Add dry_run_wave_pull_n — N-capable rehearsal sibling",
-      "status": "pending",
-      "type": "task",
       "kind": "feature",
+      "notes": "2026-09-03: shipped f7ec9964 (merged to dev --no-ff). dry_run_wave_pull_n(path, wave_id, n) -> (Vec<PullDecision>, simulated_draining). CLI: wave pull <id> --dry-run -n N (n>1 without --dry-run refuses: real N-wide pull beat not wired yet; n==0 is a caller error). Docs: drain-loop.md + epic-drain.md rehearsal steps. Tests: brana-core 1058 pass, brana-cli 690 pass, clippy clean.",
+      "order": 0,
+      "parent": "t-3269",
+      "priority": null,
+      "started": null,
+      "status": "completed",
+      "subject": "Add dry_run_wave_pull_n — N-capable rehearsal sibling",
       "tags": [
         "loop",
         "waves",
         "wip",
         "parallelism"
       ],
-      "description": null,
-      "effort": "XS",
-      "priority": null,
-      "parent": "t-3269",
-      "created": "2026-09-02",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "Challenger finding (t-3267/t-3268 gate, 2026-09-02, score 3): dry_run_wave_pull (wave.rs) is the existing \"law 6\" rehearsal primitive that docs/guide/workflows/drain-loop.md recommends running before every real wave pull. N-fan-out (this ADR-090 dispatch mechanism) ships with no N-capable equivalent — an operator can rehearse a single pull before arming, but not a full N-task beat, at N× the blast radius per beat of an unrehearsed single pull. Add dry_run_wave_pull_n (parallel to wave_pull_decision_n, same simulated-as-if-draining treatment for queued waves) and wire it into the drain-loop/epic-drain rehearsal step.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
-      "execution": "code",
-      "acceptance_criteria": null,
-      "work_type": "implement",
-      "ac_state": "none"
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": 3,
