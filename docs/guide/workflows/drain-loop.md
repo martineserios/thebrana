@@ -83,6 +83,10 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
    reports the would-pull decision and writes nothing. Works on a still-queued
    wave by simulating as-if-draining (labeled `simulated_draining` in the
    output), so a graph can be checked before arming.
+   Add `-n <N>` to rehearse a full N-wide beat (ADR-090 §1): the output lists
+   every task the beat would claim under `would_pull`, plus the `at_limit` /
+   `none_eligible` tail that stopped it short of N. Rehearsal only — `-n`
+   above 1 without `--dry-run` is refused, not quietly narrowed to one pull.
 6. Open the queue: `brana backlog wave drain wave-N`
 
 7. **Arm the verb guard:** launch the runner session with `BRANA_RUNNER=1` in

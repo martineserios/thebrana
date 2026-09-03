@@ -1133,7 +1133,13 @@ pub fn cmd_wave_ship(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()>
 /// t-2813 (ADR-079 §2/§3): `backlog wave pull <id>` — one atomic pull cycle.
 /// The decision logic lives in brana_core (wave_pull_decision under
 /// pull_wave_task's lock); this is the CLI shell reporting the outcome.
-pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, file: Option<PathBuf>) -> anyhow::Result<()> {
+/// t-3276 (ADR-090 §1): `n` is the fan-out width to rehearse. n == 1 keeps
+/// the single-pull path byte-identical; n > 1 with `--dry-run` reports the
+/// whole beat via `dry_run_wave_pull_n`, and n > 1 without `--dry-run` is
+/// refused rather than silently pulling one — the real N-wide pull beat is
+/// not wired yet, and quietly under-delivering is how an operator ends up
+/// believing a fan-out ran.
+pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, n: usize, claimant: Option<String>, file: Option<PathBuf>) -> anyhow::Result<()> {
     // ADR-080 §5: claimant = loop name + session id. Flag wins; else derive.
     let claimant = claimant.unwrap_or_else(|| match std::env::var("BRANA_SESSION_ID") {
         Ok(sid) if !sid.is_empty() => format!("wave-pull:{sid}"),
@@ -1143,6 +1149,46 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, claimant: Option<String>, fil
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
+    if !dry_run && n > 1 {
+        let msg = format!(
+            "--n {n} is rehearsal-only: pass --dry-run to rehearse a {n}-wide beat \
+             (the real N-wide pull beat is not wired yet)"
+        );
+        eprintln!("{}", serde_json::json!({"ok": false, "error": msg}));
+        anyhow::bail!(msg);
+    }
+    if dry_run && n > 1 {
+        // N-capable shadow drain (ADR-090 §1, t-3276): report every pull the
+        // beat would make plus the tail decision that stopped it short of n.
+        return match tasks::dry_run_wave_pull_n(&tf, wave_id, n) {
+            Ok((decisions, simulated)) => {
+                let mut would_pull: Vec<String> = Vec::new();
+                let mut out = serde_json::json!({"ok": true, "id": wave_id, "n": n});
+                for d in decisions {
+                    match d {
+                        tasks::PullDecision::Pulled { task_id } => would_pull.push(task_id),
+                        tasks::PullDecision::AtLimit { live, limit } => {
+                            out["at_limit"] = serde_json::json!({"live": live, "limit": limit});
+                        }
+                        tasks::PullDecision::NoneEligible { matched, unapproved, parked, human, blocked, deferred } => {
+                            out["none_eligible"] = serde_json::json!({"matched": matched, "unapproved": unapproved, "parked": parked, "human": human, "blocked": blocked, "deferred": deferred});
+                        }
+                    }
+                }
+                out["would_pull"] = serde_json::json!(would_pull);
+                out["dry_run"] = serde_json::json!(true);
+                if simulated {
+                    out["simulated_draining"] = serde_json::json!(true);
+                }
+                println!("{out}");
+                Ok(())
+            }
+            Err(e) => {
+                eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+                Err(anyhow::anyhow!("{e}"))
+            }
+        };
+    }
     if dry_run {
         // Shadow drain (ADR-080, t-2862): report the would-pull, write nothing.
         return match tasks::dry_run_wave_pull(&tf, wave_id) {
@@ -3587,7 +3633,7 @@ mod tests {
             r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
         );
-        cmd_wave_pull("wave-1", false, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_pull("wave-1", false, 1, None, Some(f.path().to_path_buf())).unwrap();
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"][0]["status"], "in_progress");
@@ -3601,7 +3647,7 @@ mod tests {
                 {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":1}]"#,
         );
-        cmd_wave_pull("wave-1", false, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_pull("wave-1", false, 1, None, Some(f.path().to_path_buf())).unwrap();
         let data: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(data["tasks"][1]["status"], "pending", "at-limit must not pull");
@@ -3613,7 +3659,7 @@ mod tests {
             "[]",
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued"}]"#,
         );
-        let err = cmd_wave_pull("wave-1", false, None, Some(f.path().to_path_buf())).unwrap_err();
+        let err = cmd_wave_pull("wave-1", false, 1, None, Some(f.path().to_path_buf())).unwrap_err();
         assert!(err.to_string().contains("draining"), "{err}");
     }
 
@@ -3626,9 +3672,39 @@ mod tests {
             r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued","wip_limit":1}]"#,
         );
         let before = std::fs::read_to_string(f.path()).unwrap();
-        cmd_wave_pull("wave-1", true, None, Some(f.path().to_path_buf())).unwrap();
+        cmd_wave_pull("wave-1", true, 1, None, Some(f.path().to_path_buf())).unwrap();
         assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
             "dry-run must not rewrite tasks.json");
+    }
+
+    #[test]
+    fn cmd_wave_pull_n_dry_run_rehearses_the_beat_and_writes_nothing() {
+        // t-3276 (ADR-090 §1): the N-wide rehearsal is still a shadow drain —
+        // two eligible tasks, n=2, zero writes (both stay pending).
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued","wip_limit":2}]"#,
+        );
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        cmd_wave_pull("wave-1", true, 2, None, Some(f.path().to_path_buf())).unwrap();
+        assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
+            "an N-wide dry-run must not rewrite tasks.json either");
+    }
+
+    #[test]
+    fn cmd_wave_pull_n_without_dry_run_is_refused() {
+        // Refusing beats silently pulling one: an operator who asked for a
+        // 3-wide beat must not be told "ok" after a single-task pull.
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining"}]"#,
+        );
+        let before = std::fs::read_to_string(f.path()).unwrap();
+        let err = cmd_wave_pull("wave-1", false, 3, None, Some(f.path().to_path_buf())).unwrap_err();
+        assert!(err.to_string().contains("rehearsal-only"), "{err}");
+        assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
+            "a refused N pull must not pull anything");
     }
 
     // ── t-2842 (ADR-080 §4): CLI wave approve — batch AC valve ───────────
