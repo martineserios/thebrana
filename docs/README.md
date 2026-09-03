@@ -290,6 +290,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [knowledge-architecture-v2.md](architecture/features/knowledge-architecture-v2.md) | Knowledge Architecture v2 — implementation spec for ADR-021 (in-progress; not to be confused with ADR-021 itself) |
 | [knowledge-pipeline-compute.md](architecture/features/knowledge-pipeline-compute.md) | Knowledge pipeline compute routing — `brana knowledge ingest` as the single URL writer (shipped, t-1665) |
 | [knowledge-process-url.md](architecture/features/knowledge-process-url.md) | `brana knowledge process-url` — headless-first fetch architecture, implementation spec for ADR-070 (building) |
+| [lane-identity.md](architecture/features/lane-identity.md) | Lane identity — session-state key unification and miss semantics, implementation spec for ADR-069 (specifying) |
 | [linkedin-content-implementation.md](architecture/features/linkedin-content-implementation.md) | LinkedIn content pipeline — implementation design (designing) |
 | [lint-heal-deterministic.md](architecture/features/lint-heal-deterministic.md) | Lint+Heal L2 — deterministic memory consolidation (specced) |
 | [living-docs.md](architecture/features/living-docs.md) | Living documentation system — composable `/brana:docs`, spec-graph routed; shipped |
