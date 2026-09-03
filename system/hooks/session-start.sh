@@ -48,6 +48,23 @@ fi
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || echo "$CWD")
 PROJECT=$(basename "$GIT_ROOT")
 
+# ── Helper resolution (t-3277) ──
+# Helpers live in system/scripts/. Relative to this file that is ../scripts in
+# the repo, but hooks.json runs the COPY in ~/.claude/hooks, whose sibling
+# scripts/ is not deployed by anything — so every helper vanished only on the
+# live surface. Try the sibling, then the plugin root, then the session's repo.
+# BRANA_HOOK_TRACE=1 reports each resolution on stderr (tests read it).
+_helper() {
+    local d
+    for d in "$SCRIPT_DIR/../scripts" "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/scripts" "$GIT_ROOT/system/scripts"; do
+        if [ -x "$d/$1" ]; then
+            [ -n "${BRANA_HOOK_TRACE:-}" ] && echo "[helper] $1 -> $d/$1" >&2
+            echo "$d/$1"; return 0
+        fi
+    done
+    return 1
+}
+
 # Source profile library for effort level
 source "$SCRIPT_DIR/lib/profile.sh" 2>/dev/null || true
 
@@ -412,7 +429,7 @@ unset _BRANA_BIN _BIN_MTIME _LAST_CLI_CT _BIN_DATE _COMMIT_DATE
 # rather than being trimmed to fit (t-2988). Timeout-bounded like every other
 # synchronous external on this path.
 REMINDER_CONTEXT=""
-_REM_SCRIPT="$SCRIPT_DIR/../scripts/reminder-context.sh"
+_REM_SCRIPT=$(_helper reminder-context.sh) || _REM_SCRIPT=""
 if [ -x "$_REM_SCRIPT" ]; then
     REMINDER_CONTEXT=$(timeout -k 1 10 "$_REM_SCRIPT" "${BRANA_BIN:-}" 2>/dev/null) || REMINDER_CONTEXT=""
 fi
@@ -952,7 +969,7 @@ _mark "hook-end"
 
     # Refresh the skill-hints cache the Phase 2 read serves from (t-2988):
     # expensive, so it runs here, after the JSON contract is emitted.
-    HINTS_REFRESH="$SCRIPT_DIR/../scripts/skill-hints-refresh.sh"
+    HINTS_REFRESH=$(_helper skill-hints-refresh.sh) || HINTS_REFRESH=""
     if [ -x "$HINTS_REFRESH" ] && [ -n "$BRANA_BIN" ]; then
         "$HINTS_REFRESH" "$BRANA_BIN" "$GIT_ROOT" \
             "$SKILL_HINTS_CACHE" "$SKILL_HINTS_MAX_AGE_MIN" 2>/dev/null || true
@@ -960,14 +977,14 @@ _mark "hook-end"
 
     # Same deal for the auto-memory dir lookup (t-2988): O(sessions-ever), so
     # the Phase 2 read is cache-only and the scan happens here.
-    MEMDIR_REFRESH="$SCRIPT_DIR/../scripts/memory-dir-cache.sh"
+    MEMDIR_REFRESH=$(_helper memory-dir-cache.sh) || MEMDIR_REFRESH=""
     if [ -x "$MEMDIR_REFRESH" ]; then
         "$MEMDIR_REFRESH" "$PROJECT" "$LAYER0_CACHE" \
             "$LAYER0_MAX_AGE_MIN" 2>/dev/null || true
     fi
 
     # Index skills into ruflo memory (only changed since last run)
-    INDEX_SKILLS="$SCRIPT_DIR/../scripts/index-skills.sh"
+    INDEX_SKILLS=$(_helper index-skills.sh) || INDEX_SKILLS=""
     if [ -x "$INDEX_SKILLS" ]; then
         "$INDEX_SKILLS" --changed 2>/dev/null || true
     fi
@@ -980,7 +997,7 @@ _mark "hook-end"
     fi
 
     # ADR-015: sync operational state from cache to repos (push)
-    SYNC_SCRIPT="$SCRIPT_DIR/../scripts/sync-state.sh"
+    SYNC_SCRIPT=$(_helper sync-state.sh) || SYNC_SCRIPT=""
     if [ -x "$SYNC_SCRIPT" ]; then
         "$SYNC_SCRIPT" push 2>/dev/null || true
     fi

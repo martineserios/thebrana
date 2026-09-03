@@ -493,7 +493,9 @@ REFRESH_ON_HOT_PATH=""
 for script in skill-hints-refresh.sh memory-dir-cache.sh; do
     # Drop comment lines. The filter has to allow for grep -n's "NNN:" prefix —
     # the Phase 2 read comments point at these scripts by name too.
-    line=$(grep -n "scripts/$script" "$HOOKS_DIR/session-start.sh" \
+    # Sites reach helpers through the resolver (t-3277): match `_helper <name>`
+    # as well as a literal scripts/<name> path.
+    line=$(grep -nE "(scripts/|_helper )$script" "$HOOKS_DIR/session-start.sh" \
         | grep -vE '^[0-9]+:[[:space:]]*#' | head -1 | cut -d: -f1) || line=""
     if [ -z "$line" ]; then
         REFRESH_ON_HOT_PATH="${REFRESH_ON_HOT_PATH:+$REFRESH_ON_HOT_PATH, }$script (not referenced)"
@@ -508,6 +510,39 @@ if [ -z "$REFRESH_ON_HOT_PATH" ]; then
 else
     FAIL=$((FAIL + 1))
     echo "  FAIL: $REFRESH_ON_HOT_PATH"
+fi
+
+# ── Test 23: helpers resolve from a hook copy that has no sibling scripts/ ──
+# hooks.json invokes $HOME/.claude/hooks/session-start.sh — a deployed COPY.
+# Every helper used to be reached as $SCRIPT_DIR/../scripts/<name>, which is
+# system/scripts/ in the repo but ~/.claude/scripts/ once deployed, and nothing
+# deploys that directory. Each [ -x ] guard then failed silently and the feature
+# vanished only on the live surface (t-3277). Two assertions close the class:
+# a behavioural one (a copy with no scripts/ sibling still finds the helper in
+# the session's repo) and a structural one (no site bypasses the resolver).
+echo ""
+echo "Test 23: helpers resolve when the hook runs from a deployed copy"
+DEPLOY_DIR=$(mktemp -d)
+cp "$HOOK" "$DEPLOY_DIR/session-start.sh"
+cp -r "$HOOKS_DIR/lib" "$DEPLOY_DIR/lib"
+DEPLOY_OUT=$(
+    cd "$DEPLOY_DIR" && env -u CLAUDE_PLUGIN_ROOT BRANA_HOOK_TRACE=1 \
+    bash -c 'echo "{\"session_id\":\"'"${SESSION_ID}-deploy"'\",\"cwd\":\"'"$REPO_ROOT"'\"}" \
+        | bash "$0" 2>&1' "$DEPLOY_DIR/session-start.sh"
+)
+rm -rf "$DEPLOY_DIR"
+rm -f "/tmp/brana-session-${SESSION_ID}-deploy.jsonl" "/tmp/brana-context-${SESSION_ID}-deploy.md"
+assert_contains "deployed copy resolves reminder-context.sh via the repo" \
+    "$DEPLOY_OUT" "[helper] reminder-context.sh -> $REPO_ROOT/system/scripts/reminder-context.sh"
+DIRECT_REFS=$(grep -n 'SCRIPT_DIR/\.\./scripts/' "$HOOKS_DIR/session-start.sh" \
+    | grep -vE '^[0-9]+:[[:space:]]*#' || true)
+if [ -z "$DIRECT_REFS" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: no helper site bypasses the resolver"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: direct \$SCRIPT_DIR/../scripts references remain:"
+    echo "$DIRECT_REFS" | sed 's/^/        /'
 fi
 
 # ── Cleanup ──
