@@ -87091,6 +87091,36 @@
       ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "ac_state": "none",
+      "blocked_by": [],
+      "branch": "backlog-drain/fix/t-3277-session-start-helper-resolution",
+      "build_step": null,
+      "completed": null,
+      "context": "Fix the class, not the four sites: one resolver that tries the sibling scripts dir, then ${CLAUDE_PLUGIN_ROOT}/scripts, then $GIT_ROOT/system/scripts, used by every helper site. Test: run the hook from a temp copy with no ../scripts and assert the helpers still resolve (trace seam). Then make hooks-deploy and verify by reading the deployed file. AC: all four helper sites go through the resolver\nAC: test runs the hook from a directory with no sibling scripts/ and proves resolution\nAC: make hooks-check clean after deploy",
+      "created": "2026-09-03",
+      "description": "Found 2026-09-03 while closing t-2988: the hook resolves four helper scripts as $SCRIPT_DIR/../scripts/<name>. In the repo that is system/scripts/; deployed to ~/.claude/hooks (the path hooks.json actually invokes) it becomes ~/.claude/scripts/, which nothing deploys (74 files, none of the t-2988 helpers; index-skills.sh affected since before t-2988). Every [ -x ] guard then fails silently and the feature vanishes only on the deployed surface, exactly the surface the tests never exercise.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-3277",
+      "kind": "fix",
+      "notes": "2026-09-03: shipped (merged to dev --no-ff). _helper() resolver: sibling scripts/ > $CLAUDE_PLUGIN_ROOT/scripts > $GIT_ROOT/system/scripts; all 5 sites (reminder-context, skill-hints-refresh, memory-dir-cache, index-skills, sync-state) routed through it. Test 23 (deployed-copy behavioural + no-bypass structural) RED 2 failed -> GREEN 38/38; validate.sh 0 errors; hook 50928B under 51200 cap. Deploy + live verification recorded below.\nDeployed via make hooks-deploy; deployed file == repo (diff -q), make hooks-check clean; live run of ~/.claude/hooks/session-start.sh with CLAUDE_PLUGIN_ROOT unset resolved reminder-context.sh to $GIT_ROOT/system/scripts (trace), valid JSON emitted.",
+      "order": null,
+      "parent": "t-2811",
+      "priority": "P1",
+      "started": null,
+      "status": "completed",
+      "strategy": null,
+      "subject": "session-start.sh helpers resolve only via SCRIPT_DIR/../scripts — deployed ~/.claude/hooks copy silently loses reminder-context, skill-hints, memory-dir-cache, index-skills",
+      "tags": [
+        "hooks",
+        "deploy",
+        "tests"
+      ],
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": 3,
