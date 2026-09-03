@@ -55,6 +55,34 @@ fn find_tasks_file_with_hint(
     find_tasks_file_from(common_root, toplevel, effective_cwd)
 }
 
+/// Make a path git printed absolute, against the directory git ran in.
+///
+/// `git rev-parse --git-common-dir` prints a RELATIVE path (plain `.git`) when it finds
+/// the repo by walking up from cwd — i.e. every invocation from inside the main checkout.
+/// Left unresolved, `.parent()` of `.git` is the empty path, and that empty path keyed the
+/// session store at `~/.claude/projects/memory/` and turned the legacy-store prefix into
+/// a bare `-` matching every store on the machine (t-3278). The base is the explicit cwd
+/// when the caller set one, else the process cwd — the same directory git itself used.
+fn absolutize_git_output(raw: PathBuf, base: Option<&Path>) -> Option<PathBuf> {
+    if raw.as_os_str().is_empty() {
+        return None;
+    }
+    if raw.is_absolute() {
+        return Some(raw);
+    }
+    let base = match base {
+        Some(b) => b.to_path_buf(),
+        None => std::env::current_dir().ok()?,
+    };
+    Some(base.join(raw))
+}
+
+/// A root that can key a per-project store: absolute and non-empty. Anything else is a
+/// miss to report, never a place to read from or write to (ADR-069 D1).
+fn is_usable_root(p: &Path) -> bool {
+    p.is_absolute() && !p.as_os_str().is_empty()
+}
+
 fn git_common_root() -> Option<PathBuf> {
     git_common_root_in(None)
 }
@@ -73,16 +101,11 @@ fn git_common_root_in(cwd: Option<&Path>) -> Option<PathBuf> {
         .and_then(|o| {
             if o.status.success() {
                 let raw = PathBuf::from(String::from_utf8_lossy(&o.stdout).trim().to_string());
-                // git prints a path relative to the cwd it ran in when the common dir
-                // is discovered via directory traversal (e.g. plain ".git"). Resolve
-                // that against the cwd we actually asked it to run in, when we set one
-                // explicitly — otherwise it's silently wrong the moment the caller's
-                // ambient process cwd differs from where the string is later joined.
-                let common_git = match cwd {
-                    Some(dir) if raw.is_relative() => dir.join(raw),
-                    _ => raw,
-                };
-                common_git.parent().map(|p| p.to_path_buf())
+                let common_git = absolutize_git_output(raw, cwd)?;
+                common_git
+                    .parent()
+                    .map(|p| p.to_path_buf())
+                    .filter(|p| is_usable_root(p))
             } else {
                 None
             }
@@ -105,9 +128,8 @@ fn git_toplevel_in(cwd: Option<&Path>) -> Option<PathBuf> {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                Some(PathBuf::from(
-                    String::from_utf8_lossy(&o.stdout).trim().to_string(),
-                ))
+                let raw = PathBuf::from(String::from_utf8_lossy(&o.stdout).trim().to_string());
+                absolutize_git_output(raw, cwd).filter(|p| is_usable_root(p))
             } else {
                 None
             }
@@ -253,6 +275,9 @@ fn find_session_root_resolved(hint: Option<PathBuf>) -> Option<PathBuf> {
         .or_else(|| git_toplevel_in(git_cwd))
         .or_else(|| hint.filter(|p| p.is_dir()))
         .or_else(|| std::env::current_dir().ok())
+        // Never key a store under a relative or empty root (t-3278): a miss here must
+        // surface as None, not as `<store_root>/memory/`.
+        .filter(|p| is_usable_root(p))
 }
 
 /// Find the project-local `tasks-config.json` (active_initiative, theme, etc.),
@@ -856,6 +881,46 @@ mod tests {
             Some(cwd_dir.path().to_path_buf()),
         );
         assert_eq!(result, Some(f));
+    }
+
+    // ── Relative git output (t-3278) ────────────────────────────────────────
+    // `git rev-parse --git-common-dir` prints a RELATIVE `.git` when run inside the
+    // main checkout. Left unresolved, its parent is the empty path, which then keyed
+    // the session store at `~/.claude/projects/memory/` and turned the legacy-store
+    // prefix into a bare `-` that matched every store on the machine.
+
+    #[test]
+    fn relative_git_output_resolves_against_explicit_cwd() {
+        let base = tmp();
+        let got = super::absolutize_git_output(PathBuf::from(".git"), Some(base.path()));
+        assert_eq!(got, Some(base.path().join(".git")));
+    }
+
+    #[test]
+    fn relative_git_output_resolves_against_process_cwd_when_no_explicit_cwd() {
+        let cwd = std::env::current_dir().unwrap();
+        let got = super::absolutize_git_output(PathBuf::from(".git"), None);
+        assert_eq!(got, Some(cwd.join(".git")));
+    }
+
+    #[test]
+    fn absolute_git_output_passes_through_untouched() {
+        let got = super::absolutize_git_output(PathBuf::from("/abs/repo/.git"), None);
+        assert_eq!(got, Some(PathBuf::from("/abs/repo/.git")));
+    }
+
+    #[test]
+    fn empty_git_output_is_a_miss_not_a_root() {
+        assert_eq!(super::absolutize_git_output(PathBuf::new(), None), None);
+    }
+
+    #[test]
+    fn session_root_rejects_relative_or_empty_candidates() {
+        // ADR-069 D1: a miss is loud, never a substitution — an unusable root must
+        // surface as None, not as a store keyed under the empty string.
+        assert!(!super::is_usable_root(std::path::Path::new("")));
+        assert!(!super::is_usable_root(std::path::Path::new("relative/dir")));
+        assert!(super::is_usable_root(std::path::Path::new("/abs/dir")));
     }
 
     // ── GIT_DIR leak (t-2617) ────────────────────────────────────────────────

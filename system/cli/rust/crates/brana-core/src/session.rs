@@ -92,6 +92,11 @@ pub struct LegacyStore {
 /// lane in `--all` is strictly better than a silently stranded one.
 pub fn find_legacy_stores(store_root: &Path, project_root: &Path) -> Vec<LegacyStore> {
     let canonical = encode_path(project_root);
+    if canonical.is_empty() {
+        // An empty canonical root would make the prefix a bare `-`, i.e. every store on
+        // the machine (t-3278). The caller has no project; it has no orphans either.
+        return Vec::new();
+    }
     let prefix = format!("{canonical}-");
     let Ok(entries) = fs::read_dir(store_root) else {
         return Vec::new();
