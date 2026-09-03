@@ -177,6 +177,25 @@ fn orphaned_per_worktree_store_is_discovered_as_a_legacy_lane() {
     );
 }
 
+/// t-3278: an empty canonical root must match nothing. When the project root resolved to
+/// the empty path (relative `.git` from the main checkout, left unresolved), the prefix
+/// collapsed to a bare `-` and every store on the machine — 13,000+ of them, from
+/// unrelated projects — came back as a `legacy:` lane.
+#[test]
+fn empty_project_root_discovers_no_legacy_stores() {
+    use brana_core::session::find_legacy_stores;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let store = tmp.path().join("store");
+    write_lane(&store, Path::new("/some/unrelated/project"), "session-state.json", None);
+    write_lane(&store, Path::new("/tmp/.tmpXYZ"), "session-state.json", None);
+
+    assert!(
+        find_legacy_stores(&store, Path::new("")).is_empty(),
+        "an empty canonical root must not be treated as a prefix of every store"
+    );
+}
+
 /// A live linked worktree that already wrote state under the old per-worktree keying is
 /// the same orphan case — it must surface too, and the canonical store must be unaffected.
 #[test]
