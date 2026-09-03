@@ -488,27 +488,68 @@ pub fn pull_wave_task(path: &Path, wave_id: &str, claimant: &str) -> Result<Pull
 /// `shipped` wave remains a caller error.
 pub fn dry_run_wave_pull(path: &Path, wave_id: &str) -> Result<(PullDecision, bool), String> {
     let _lock = lock_tasks(path)?;
-    let val = load_raw(path)?;
+    let (wave, tasks_snapshot, waves_snapshot, simulated) =
+        rehearsal_target(&load_raw(path)?, wave_id)?;
+    let decision = wave_pull_decision(&wave, &tasks_snapshot, &waves_snapshot)?;
+    Ok((decision, simulated))
+}
 
+/// t-3276 (ADR-090 §1): the N-capable rehearsal — `dry_run_wave_pull`'s
+/// sibling for the fan-out beat, exactly as `wave_pull_decision_n` is
+/// `wave_pull_decision`'s. Computes the WHOLE beat's decisions on a fresh
+/// read and writes NOTHING, with the same `queued` → as-if-draining
+/// simulation (returned bool = simulated).
+///
+/// Why a sibling rather than "run the single dry-run and assume N of it":
+/// an N-beat's blast radius is N worktrees and N branches, and the beat can
+/// stop short of N for reasons only the loop surfaces (`wip_limit` binding
+/// mid-beat, the eligible pool running dry). Rehearsing one pull reports a
+/// fraction of what arming would actually claim — the operator would be
+/// sizing `N` against a decision that never modeled `N`.
+///
+/// `n` must be at least 1: an `n` of 0 would loop zero times and return an
+/// empty "all clear" without ever validating the wave, so a shipped (never
+/// rehearsable) wave would come back Ok. Fail loud instead.
+pub fn dry_run_wave_pull_n(
+    path: &Path,
+    wave_id: &str,
+    n: usize,
+) -> Result<(Vec<PullDecision>, bool), String> {
+    if n == 0 {
+        return Err(format!(
+            "n must be at least 1 to rehearse wave {wave_id} — 0 rehearses nothing"
+        ));
+    }
+    let _lock = lock_tasks(path)?;
+    let (wave, tasks_snapshot, waves_snapshot, simulated) =
+        rehearsal_target(&load_raw(path)?, wave_id)?;
+    let decisions = wave_pull_decision_n(&wave, &tasks_snapshot, &waves_snapshot, n)?;
+    Ok((decisions, simulated))
+}
+
+/// Shared setup for the dry-run pair (t-3276): locate the wave in a
+/// just-read snapshot and apply the ONE simulation rule — only `queued` is
+/// rehearsed as-if-draining. Single home so the single-pull and N-beat
+/// rehearsals can never drift on what "rehearsable" means. Everything else
+/// (shipped included) is handed to the strict decision functions unchanged
+/// and errors through them.
+fn rehearsal_target(
+    val: &Value,
+    wave_id: &str,
+) -> Result<(Value, Vec<Value>, Vec<Value>, bool), String> {
     let waves_snapshot = val["waves"].as_array().cloned().unwrap_or_default();
-    let wave = waves_snapshot
+    let mut wave = waves_snapshot
         .iter()
         .find(|w| w["id"].as_str() == Some(wave_id))
         .cloned()
         .ok_or_else(|| format!("wave {wave_id} not found"))?;
     let tasks_snapshot = val["tasks"].as_array().cloned().unwrap_or_default();
 
-    // Only `queued` is rehearsed as-if-draining; `wave_pull_decision` stays
-    // strict, so anything else (shipped included) errors through it unchanged.
     let simulated = wave["status"].as_str() == Some("queued");
-    let decision = if simulated {
-        let mut as_if = wave.clone();
-        as_if["status"] = Value::String("draining".into());
-        wave_pull_decision(&as_if, &tasks_snapshot, &waves_snapshot)?
-    } else {
-        wave_pull_decision(&wave, &tasks_snapshot, &waves_snapshot)?
-    };
-    Ok((decision, simulated))
+    if simulated {
+        wave["status"] = Value::String("draining".into());
+    }
+    Ok((wave, tasks_snapshot, waves_snapshot, simulated))
 }
 
 /// t-2844 (ADR-080 §6f): topologically order waves by gate dependency

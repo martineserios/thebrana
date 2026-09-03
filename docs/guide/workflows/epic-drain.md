@@ -38,7 +38,10 @@ plan WAVES step emits parent:<ms-id> waves under an epic ──▶ YOU: /loop ep
    `brana backlog wave pull <fixture-wave-id> --dry-run` at the point the
    procedure below would arm — confirms the topo order and, if you built a
    deliberately cyclic gate chain into the fixture, confirms PREFLIGHT stops
-   loud instead of stalling silently.
+   loud instead of stalling silently. If you intend to run the beat with
+   fan-out, rehearse at that width: `--dry-run -n <N>` reports the whole
+   N-wide beat (ADR-090 §1), so the rehearsal covers the same blast radius
+   the real beat would claim rather than its first task only.
 4. Launch: `/loop epic-drain <epic-slug>`. **This is the arming act** — see
    PREFLIGHT step 3 below for why launching the loop, not plan-approval, is
    the human authorization boundary (ADR-080 §3.3).
