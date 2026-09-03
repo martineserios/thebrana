@@ -199,6 +199,56 @@ pub fn find_project_root_from(
     git_root.or(cwd)
 }
 
+/// Root directory of the Claude Code per-project store (`~/.claude/projects`), under
+/// which each project gets `<encoded-root>/memory/`.
+///
+/// `BRANA_SESSION_STORE_ROOT` overrides it. That seam exists so tests (and an
+/// operator-run migration) can point the store at a temp dir without mutating `HOME`,
+/// which is process-global and races every other test in the binary.
+pub fn session_store_root() -> PathBuf {
+    match std::env::var("BRANA_SESSION_STORE_ROOT") {
+        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
+        _ => home().join(".claude/projects"),
+    }
+}
+
+/// Find the project root that **keys the session/memory store** under
+/// `~/.claude/projects/<encoded-root>/memory/`.
+///
+/// Deliberately separate from [`find_project_root`]: that one answers "which checkout am
+/// I editing files in" (per-worktree, correct for `docs/`, `system/`, script paths); this
+/// one answers "which project's session lanes am I part of" — a question every linked
+/// worktree of one repo must answer identically (ADR-069 D0b).
+pub fn find_session_root() -> Option<PathBuf> {
+    find_session_root_in(None)
+}
+
+/// Testable variant of [`find_session_root`]. An explicit `cwd` pins the directory git is
+/// asked about *and* replaces the `CLAUDE_PROJECT_DIR` hint, so a test never inherits the
+/// ambient CC-injected value.
+pub fn find_session_root_in(cwd: Option<&Path>) -> Option<PathBuf> {
+    let hint = match cwd {
+        Some(p) => Some(p.to_path_buf()),
+        None => std::env::var("CLAUDE_PROJECT_DIR")
+            .ok()
+            .map(PathBuf::from)
+            .filter(|p| p.is_dir()),
+    };
+    find_session_root_resolved(hint)
+}
+
+/// t-2528: current (pre-fix) resolution, stated explicitly so the t-2520 change is a
+/// one-function diff. `CLAUDE_PROJECT_DIR` wins outright, then git show-toplevel, then
+/// CWD — every branch of which is *per-worktree*, which is the bug.
+fn find_session_root_resolved(hint: Option<PathBuf>) -> Option<PathBuf> {
+    let git_cwd = hint.as_deref();
+    hint.clone()
+        .filter(|p| p.is_dir())
+        .or_else(|| git_toplevel_in(git_cwd))
+        .or(hint)
+        .or_else(|| std::env::current_dir().ok())
+}
+
 /// Find the project-local `tasks-config.json` (active_initiative, theme, etc.),
 /// scoped per repo the same way `find_tasks_file()` scopes task data.
 ///

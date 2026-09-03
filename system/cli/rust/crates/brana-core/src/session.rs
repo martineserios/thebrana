@@ -30,10 +30,40 @@ fn encode_path(project_root: &Path) -> String {
 
 /// Resolve the CC project memory dir for a given project root.
 pub fn resolve_memory_dir(project_root: &Path) -> PathBuf {
-    util::home()
-        .join(".claude/projects")
-        .join(encode_path(project_root))
-        .join("memory")
+    resolve_memory_dir_in(&util::session_store_root(), project_root)
+}
+
+/// Testable variant: the store root is injected instead of read from `HOME`.
+///
+/// Every path under the store is derived through here, so a test can hand it a tempdir
+/// and exercise real enumeration without touching (or racing on) the real
+/// `~/.claude/projects` tree.
+pub fn resolve_memory_dir_in(store_root: &Path, project_root: &Path) -> PathBuf {
+    store_root.join(encode_path(project_root)).join("memory")
+}
+
+/// Enumerate every session-state lane file in a memory dir.
+///
+/// The single choke point for "what lanes does this store hold" — `session read --all`
+/// and the worktree-parity tests both go through it, so they can never disagree about
+/// what enumeration means. Sorted for determinism; callers that care about presentation
+/// order re-sort by `written_at`.
+pub fn lane_state_paths(memory_dir: &Path) -> Vec<PathBuf> {
+    let mut paths: Vec<PathBuf> = Vec::new();
+    let Ok(entries) = fs::read_dir(memory_dir) else {
+        return paths;
+    };
+    for entry in entries.flatten() {
+        let p = entry.path();
+        let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if name.starts_with("session-state") && name.ends_with(".json") {
+            paths.push(p);
+        }
+    }
+    paths.sort();
+    paths
 }
 
 /// Resolve the session-state.json path for the current project (legacy fallback).
