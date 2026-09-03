@@ -237,15 +237,21 @@ pub fn find_session_root_in(cwd: Option<&Path>) -> Option<PathBuf> {
     find_session_root_resolved(hint)
 }
 
-/// t-2528: current (pre-fix) resolution, stated explicitly so the t-2520 change is a
-/// one-function diff. `CLAUDE_PROJECT_DIR` wins outright, then git show-toplevel, then
-/// CWD — every branch of which is *per-worktree*, which is the bug.
+/// Resolution order (ADR-069 D0b — mirrors [`find_tasks_config`], which already shares
+/// `tasks.json` across worktrees):
+/// 1. Git common-dir root — the main checkout, identical from every linked worktree
+/// 2. Git show-toplevel — repos where common-dir == toplevel, and non-worktree checkouts
+/// 3. The hint (`CLAUDE_PROJECT_DIR`) / CWD — non-git projects
+///
+/// `CLAUDE_PROJECT_DIR` still wins as the *hint*: it decides which directory git is asked
+/// about, so an MCP server whose process CWD is elsewhere still resolves the CC-injected
+/// project. What it no longer does is short-circuit the answer — taking it verbatim is
+/// exactly what pinned the store to the worktree, since CC injects the worktree path.
 fn find_session_root_resolved(hint: Option<PathBuf>) -> Option<PathBuf> {
-    let git_cwd = hint.as_deref();
-    hint.clone()
-        .filter(|p| p.is_dir())
+    let git_cwd = hint.as_deref().filter(|p| p.is_dir());
+    git_common_root_in(git_cwd)
         .or_else(|| git_toplevel_in(git_cwd))
-        .or(hint)
+        .or_else(|| hint.filter(|p| p.is_dir()))
         .or_else(|| std::env::current_dir().ok())
 }
 

@@ -143,3 +143,62 @@ fn six_worktree_lanes_share_one_store_and_are_visible_from_every_lane() {
         );
     }
 }
+
+/// t-2520 AC: a per-worktree store orphaned by the move to common-root keying must be
+/// discoverable, not silently stranded. This is the shape of the real one in the wild:
+/// `<canonical>-feat-t-798/memory/` holding a state file whose worktree no longer exists.
+#[test]
+fn orphaned_per_worktree_store_is_discovered_as_a_legacy_lane() {
+    use brana_core::session::{find_legacy_stores, LegacyStore};
+
+    let tmp = tempfile::tempdir().unwrap();
+    let store = tmp.path().join("store");
+    let main = init_repo(&tmp.path().join("repo"));
+
+    // Canonical store — must never be reported as its own orphan.
+    write_lane(&store, &main, "session-state.json", None);
+
+    // Orphan: the encoded dir of a worktree that has since been removed.
+    let ghost = main.parent().unwrap().join("repo-feat-t-798");
+    write_lane(&store, &ghost, "session-state.json", None);
+
+    // A sibling store with no state files at all is not a lane and must be skipped.
+    std::fs::create_dir_all(resolve_memory_dir_in(&store, &main.parent().unwrap().join("repo-empty")))
+        .unwrap();
+
+    let found = find_legacy_stores(&store, &main);
+    assert_eq!(
+        found,
+        vec![LegacyStore {
+            slug: "feat-t-798".to_string(),
+            memory_dir: resolve_memory_dir_in(&store, &ghost),
+        }],
+        "the orphaned per-worktree store must be surfaced, and only it"
+    );
+}
+
+/// A live linked worktree that already wrote state under the old per-worktree keying is
+/// the same orphan case — it must surface too, and the canonical store must be unaffected.
+#[test]
+fn live_worktree_orphan_surfaces_without_polluting_the_canonical_store() {
+    use brana_core::session::find_legacy_stores;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let store = tmp.path().join("store");
+    let main = init_repo(&tmp.path().join("repo"));
+    let lane = add_worktree(&main, &tmp.path().join("repo-old"), "old/feat/t-2-x");
+
+    write_lane(&store, &main, "session-state.json", None);
+    write_lane(&store, &lane, "session-state-old.json", Some("old"));
+
+    let slugs: Vec<String> = find_legacy_stores(&store, &main)
+        .into_iter()
+        .map(|s| s.slug)
+        .collect();
+    assert_eq!(slugs, vec!["old".to_string()]);
+    assert_eq!(
+        lane_names(&store, &main),
+        vec!["session-state.json".to_string()],
+        "the canonical store must not absorb legacy files implicitly"
+    );
+}

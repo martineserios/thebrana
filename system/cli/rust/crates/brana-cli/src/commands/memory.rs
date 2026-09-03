@@ -172,7 +172,10 @@ pub fn cmd_memory_search(query: &str, limit: usize, json: bool, db: Option<Strin
     Ok(())
 }
 
+/// Project-scope memory writes land in the same `~/.claude/projects/<root>/memory/`
+/// directory as session state, so they must key off the same root (t-2520). Leaving
+/// this on `find_project_root` would split one store across two directories.
 fn require_project_root() -> Result<PathBuf> {
-    crate::util::find_project_root()
+    crate::util::find_session_root()
         .context("could not resolve project root (not in git repo and CLAUDE_PROJECT_DIR not set)")
 }

@@ -103,7 +103,7 @@ pub fn parse_entries(content: &str) -> Vec<HandoffEntry> {
 // ── Commands ────────────────────────────────────────────────────────────
 
 pub fn cmd_handoff_last(n: usize) -> Result<()> {
-    let root = util::find_project_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
+    let root = util::find_session_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
     let path = resolve_handoff_path(&root);
     let content = std::fs::read_to_string(&path)
         .with_context(|| format!("No handoff file found at {}", path.display()))?;
@@ -125,7 +125,7 @@ pub fn cmd_handoff_last(n: usize) -> Result<()> {
 }
 
 pub fn cmd_handoff_list() -> Result<()> {
-    let root = util::find_project_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
+    let root = util::find_session_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
     let path = resolve_handoff_path(&root);
     let content = std::fs::read_to_string(&path)
         .with_context(|| format!("No handoff file found at {}", path.display()))?;
@@ -142,7 +142,7 @@ pub fn cmd_handoff_list() -> Result<()> {
 }
 
 pub fn cmd_handoff_path() -> Result<()> {
-    let root = util::find_project_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
+    let root = util::find_session_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
     let path = resolve_handoff_path(&root);
     println!("{}", path.display());
     Ok(())

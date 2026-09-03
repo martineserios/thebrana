@@ -32,7 +32,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             // a read, so a stall here is the highest-cost instance of the
             // pattern in the tool set.
             let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
-                let root = brana_core::util::find_project_root()
+                let root = brana_core::util::find_session_root()
                     .ok_or_else(|| "could not resolve project root".to_string())?;
 
                 let dest = brana_core::memory::write_memory(

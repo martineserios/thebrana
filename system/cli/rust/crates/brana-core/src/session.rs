@@ -66,6 +66,62 @@ pub fn lane_state_paths(memory_dir: &Path) -> Vec<PathBuf> {
     paths
 }
 
+/// A per-worktree session store left behind by the move to a shared, common-root-keyed
+/// store (ADR-069 D0b). Read-only: surfaced by `session read --all` under a
+/// `legacy:<slug>` lane label, never an implicit fallback target for a single-lane read
+/// (ADR-069 D1 — "addressable only via `--all` + explicit `--lane legacy:<slug>`").
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegacyStore {
+    /// Suffix distinguishing the orphan from the canonical store — for a worktree at
+    /// `<repo>-feat-t-798`, the slug is `feat-t-798`.
+    pub slug: String,
+    pub memory_dir: PathBuf,
+}
+
+/// Find per-worktree stores orphaned by the switch to common-root keying.
+///
+/// Worktrees are cut as siblings of the main checkout (`git worktree add ../repo-shortname`
+/// — the project's own git-discipline rule), so an orphan's encoded directory name is the
+/// canonical name plus a `-<suffix>`. That prefix relation is the only link left once the
+/// worktree itself is gone: `git worktree list` cannot see a removed worktree, and the
+/// real orphan in the wild (`...-thebrana-feat-t-798`, 2 state files) is exactly that case.
+///
+/// Consequence of using the name and not git: a *different* repo that happens to live at
+/// a sibling path also matches. That is acceptable because the result is only ever
+/// displayed under an explicit `legacy:` label and never written to — a mislabelled extra
+/// lane in `--all` is strictly better than a silently stranded one.
+pub fn find_legacy_stores(store_root: &Path, project_root: &Path) -> Vec<LegacyStore> {
+    let canonical = encode_path(project_root);
+    let prefix = format!("{canonical}-");
+    let Ok(entries) = fs::read_dir(store_root) else {
+        return Vec::new();
+    };
+    let mut found: Vec<LegacyStore> = Vec::new();
+    for entry in entries.flatten() {
+        let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        let Some(slug) = name.strip_prefix(&prefix) else {
+            continue;
+        };
+        let memory_dir = entry.path().join("memory");
+        if lane_state_paths(&memory_dir).is_empty() {
+            continue;
+        }
+        found.push(LegacyStore {
+            slug: slug.to_string(),
+            memory_dir,
+        });
+    }
+    found.sort_by(|a, b| a.slug.cmp(&b.slug));
+    found
+}
+
+/// Legacy stores for the live project, resolved against the real store root.
+pub fn legacy_stores_for(project_root: &Path) -> Vec<LegacyStore> {
+    find_legacy_stores(&util::session_store_root(), project_root)
+}
+
 /// Resolve the session-state.json path for the current project (legacy fallback).
 pub fn session_state_path(project_root: &Path) -> PathBuf {
     resolve_memory_dir(project_root).join("session-state.json")
