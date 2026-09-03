@@ -25,7 +25,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             // other tool for its duration. Read + parse is fast today, but
             // nothing here should ever run inline on that task.
             let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
-                let root = brana_core::util::find_project_root()
+                let root = brana_core::util::find_session_root()
                     .ok_or_else(|| "not in a git repository".to_string())?;
 
                 let limit = input.limit.unwrap_or(5) as usize;
@@ -60,7 +60,7 @@ mod tests {
     use serde_json::json;
 
     /// RAII guard: isolates HOME and CLAUDE_PROJECT_DIR to a tempdir, so
-    /// `find_project_root()`/`resolve_memory_dir()` resolve entirely inside
+    /// `find_session_root()`/`resolve_memory_dir()` resolve entirely inside
     /// the fixture rather than the real `~/.claude/projects/...` tree.
     /// Callers must hold CWD_LOCK for its lifetime.
     struct Hermetic {

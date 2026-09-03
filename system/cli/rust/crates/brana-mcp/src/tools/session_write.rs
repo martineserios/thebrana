@@ -52,7 +52,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     .map_err(|e| format!("invalid session payload: {e}"))?;
 
                 // Find project root
-                let root = brana_core::util::find_project_root()
+                let root = brana_core::util::find_session_root()
                     .ok_or_else(|| "not in a git repository".to_string())?;
 
                 // Write (archives previous, validates, atomic rename).

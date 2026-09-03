@@ -9,7 +9,8 @@ use anyhow::{Context, Result};
 pub use brana_core::session::mark_consumed;
 use brana_core::session::{
     compute_insights, current_branch, epic_scoped_state_path, read_history, read_state,
-    read_state_from_unit, render_text, resolve_memory_dir, session_history_path, write_state,
+    lane_state_paths, read_state_from_unit, render_text, resolve_memory_dir,
+    session_history_path, write_state,
     Blocker, NextCategory, NextItem, SessionState,
 };
 use chrono::{DateTime, NaiveDate, Utc};
@@ -18,8 +19,11 @@ use std::path::PathBuf;
 
 // ── CLI utility ──────────────────────────────────────────────────────────
 
+/// The root that keys the session store — `find_session_root`, not `find_project_root`
+/// (t-2520 / ADR-069 D0b). Every linked worktree of a repo must resolve the same store,
+/// the way `tasks.json` already does; the per-worktree root silently forked it.
 pub fn require_project_root() -> anyhow::Result<PathBuf> {
-    crate::util::find_project_root()
+    crate::util::find_session_root()
         .ok_or_else(|| anyhow::anyhow!("Not in a git repository"))
 }
 
@@ -140,8 +144,6 @@ pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>, epi
 /// Scans all `session-state*.json` files in the memory dir, filters by date,
 /// sorts descending by `written_at`, and renders one block per file.
 fn cmd_session_read_all(root: &std::path::Path, json_output: bool, since: Option<String>) -> anyhow::Result<()> {
-    use std::collections::HashSet;
-
     let memory_dir = resolve_memory_dir(root);
 
     // Compute cutoff date
@@ -155,29 +157,17 @@ fn cmd_session_read_all(root: &std::path::Path, json_output: bool, since: Option
         Utc::now() - chrono::Duration::days(30)
     };
 
-    // Collect candidate paths: glob session-state*.json
-    let mut paths: Vec<std::path::PathBuf> = Vec::new();
-    let mut seen: HashSet<std::path::PathBuf> = HashSet::new();
-
-    // Always include the orphan file explicitly
-    let orphan_path = memory_dir.join("session-state.json");
-    if orphan_path.exists() {
-        seen.insert(orphan_path.clone());
-        paths.push(orphan_path);
-    }
-
-    // Glob epic-scoped files
-    if memory_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&memory_dir) {
-            for entry in entries.flatten() {
-                let p = entry.path();
-                if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
-                    if name.starts_with("session-state") && name.ends_with(".json") && !seen.contains(&p) {
-                        seen.insert(p.clone());
-                        paths.push(p);
-                    }
-                }
-            }
+    // Canonical (shared) store lanes, plus any per-worktree store orphaned by the move
+    // to common-root keying (t-2520). Orphans are read-through under an explicit
+    // `legacy:<slug>` label so they are visible but never mistaken for a live lane.
+    let mut paths: Vec<(Option<String>, std::path::PathBuf)> = lane_state_paths(&memory_dir)
+        .into_iter()
+        .map(|p| (None, p))
+        .collect();
+    let legacy_stores = brana_core::session::legacy_stores_for(root);
+    for store in &legacy_stores {
+        for p in lane_state_paths(&store.memory_dir) {
+            paths.push((Some(store.slug.clone()), p));
         }
     }
 
@@ -189,7 +179,7 @@ fn cmd_session_read_all(root: &std::path::Path, json_output: bool, since: Option
     }
 
     let mut entries: Vec<EpicEntry> = Vec::new();
-    for path in &paths {
+    for (legacy_slug, path) in &paths {
         let epic = path
             .file_name()
             .and_then(|n| n.to_str())
@@ -204,6 +194,10 @@ fn cmd_session_read_all(root: &std::path::Path, json_output: bool, since: Option
                 }
             })
             .unwrap_or_else(|| "(orphan)".to_string());
+        let epic = match legacy_slug {
+            Some(slug) => format!("legacy:{slug}/{epic}"),
+            None => epic,
+        };
 
         let Ok(data) = fs::read_to_string(path) else { continue };
         let Ok(state): Result<SessionState, _> = serde_json::from_str(&data) else { continue };
@@ -216,6 +210,21 @@ fn cmd_session_read_all(root: &std::path::Path, json_output: bool, since: Option
         }
 
         entries.push(EpicEntry { epic, state });
+    }
+
+    // A legacy store whose every state predates the window would otherwise be exactly
+    // what t-2520 set out to prevent: silently stranded. Name it on stderr (never on
+    // stdout — `--json` output stays machine-parseable) with the flag that reveals it.
+    if !legacy_stores.is_empty()
+        && !entries.iter().any(|e| e.epic.starts_with("legacy:"))
+    {
+        let slugs: Vec<&str> = legacy_stores.iter().map(|s| s.slug.as_str()).collect();
+        eprintln!(
+            "brana: {} orphaned per-worktree session store(s) outside this date range: {}. \
+             Re-run with --since YYYY-MM-DD to read them (lanes are labelled legacy:<slug>).",
+            legacy_stores.len(),
+            slugs.join(", ")
+        );
     }
 
     // Sort descending by written_at

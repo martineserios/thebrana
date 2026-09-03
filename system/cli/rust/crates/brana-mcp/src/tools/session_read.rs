@@ -28,7 +28,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             // fully-serialized stdio dispatch task (t-2305) freezes every
             // other tool for its duration.
             let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
-                let root = brana_core::util::find_project_root()
+                let root = brana_core::util::find_session_root()
                     .ok_or_else(|| "not in a git repository".to_string())?;
 
                 // t-3185: read's mirror of write's unit-key routing — an explicit `epic`
@@ -110,8 +110,9 @@ mod tests {
 
             // Throwaway repo purely to control what `git rev-parse --abbrev-ref HEAD`
             // reports for the duration of the test. Separate from `project_root` above —
-            // `find_project_root()` resolves via `CLAUDE_PROJECT_DIR` first (t-3169 hint
-            // pattern), so it never sees this repo; only branch detection does.
+            // `find_session_root()` resolves the CLAUDE_PROJECT_DIR hint's repo (t-2520:
+            // via git common-dir, so worktrees share one store), so it never sees this
+            // repo; only branch detection does.
             let branch_repo = dir.path().join("branch-repo");
             std::fs::create_dir_all(&branch_repo).unwrap();
             let run = |args: &[&str]| {
