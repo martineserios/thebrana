@@ -1,12 +1,21 @@
 ---
-status: proposed
+status: accepted
 ---
 # ADR-069: Lane Identity, Miss Semantics, and the Unbuilt Axes of v3
 
-- **Status:** Proposed, **partially superseded** (2026-08-23, t-3030 — see §Amendment): D3.2 and D3b are retracted per t-2516; the remaining decisions stand as Proposed. Original line (its "six" count is stale — the Decision section itself lists D0, D0b, D1–D6 with sub-items; retraction is by label, not by count): **two of six decisions require redesign before Accepted** (t-2516
-  verification, 2026-07-28). The *diagnosis* is unchanged and holds; **D3.2** (reflog
-  attribution) and **D3b** (missing pin ⇒ fail loud) rest on mechanisms that verification
-  contradicted. See the inline VERIFIED blocks in D3.2, D3b and D1's consequences.
+- **Status:** Accepted (2026-09-03, t-2517) — D0, D0b, D1, D2, D3.1/D3.3, D4, D5, D6 stand as
+  decided. D3.2 (reflog attribution) and D3b's original "missing pin ⇒ fail loud" row remain
+  retracted per the 2026-08-23 Amendment (t-3030) and are not implemented as written; a
+  commit-time attribution mechanism is out of scope here and would need its own ADR. Nothing
+  else was left open by t-2516's verification (2026-07-28) — the two mechanism questions it
+  raised were resolved by the Amendment, and the implementation spec
+  ([lane-identity.md](../features/lane-identity.md), t-2517) re-verified every cited surface
+  against live code before this flip. Original line (its "six" count is stale — the Decision
+  section itself lists D0, D0b, D1–D6 with sub-items; retraction is by label, not by count):
+  **two of six decisions required redesign before Accepted** (t-2516 verification,
+  2026-07-28). The *diagnosis* is unchanged and holds; **D3.2** (reflog attribution) and
+  **D3b** (missing pin ⇒ fail loud) rested on mechanisms that verification contradicted. See
+  the inline VERIFIED blocks in D3.2, D3b and D1's consequences.
 - **Date:** 2026-07-28
 - **Evidence:** [backlog-v3-lane-identity.md](../../ideas/drained/backlog-v3-lane-identity.md) (t-2488 brainstorm); live reproductions 2026-07-28 (below); t-2502 diagnosis (3 reproductions); t-2506 mechanism; t-2495 hypothesis + refutation; live store audit (24 session-state files, 54 epic nodes)
 - **Related:** [ADR-065](ADR-065-epic-as-hierarchy-top.md) (epic as hierarchy top), [ADR-068](ADR-068-v3-supersession.md) (v3 supersession), [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (branch strategy), [backlog-v3-schema.md](../features/backlog-v3-schema.md) D4/D8

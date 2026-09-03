@@ -1,9 +1,9 @@
 # Feature: Lane Identity — Session-State Key Unification and Miss Semantics
 
-**Date:** 2026-09-02
-**Status:** specifying
+**Date:** 2026-09-02 (ADR Accepted 2026-09-03)
+**Status:** decomposing (t-2520/t-2521/t-2524 already filed; spec approved, ADR Accepted, ready to build)
 **Task:** t-2517 (spec) — gates t-2520, t-2521, t-2524
-**Governing ADR:** [ADR-069](../decisions/ADR-069-lane-identity-and-miss-semantics.md) (Proposed, partially superseded — D3.2 and D3b retracted; D0, D0b, D1, D2, D3.1/D3.3, D4, D5, D6 stand)
+**Governing ADR:** [ADR-069](../decisions/ADR-069-lane-identity-and-miss-semantics.md) (**Accepted** 2026-09-03 — D3.2 and D3b's original fail-loud row retracted; D0, D0b, D1, D2, D3.1/D3.3, D4, D5, D6 stand)
 
 ## Problem
 
@@ -56,11 +56,11 @@ under it — a rollback/migration script is a required deliverable, not a contin
   write" for the lane pin must add no tokens to session start — a file write, not a context
   injection. Testable: session-start output/context payload size must be unchanged by this
   work.
-- **Precondition: ADR-069 must flip to Accepted before t-2520/t-2521/t-2524 start.** It is
-  still `status: proposed` (the 2026-08-23 Amendment only resolved which decisions survive
-  t-2516's verification — it did not accept the ADR). This spec treats the surviving
-  decisions (D0, D0b, D1, D2, D3.1/D3.3, D4, D5, D6) as settled content to implement, but the
-  M+ SDD gate requires the ADR itself be Accepted first, not decided by silence.
+- **Precondition MET (2026-09-03):** ADR-069 flipped to Accepted as part of closing this
+  task — t-2516's verification (2026-07-28) plus the 2026-08-23 Amendment had already
+  resolved every open mechanism question; nothing remained pending a human call once this
+  spec's own re-verification against live code (both challenger iterations) confirmed the
+  surviving decisions' surfaces still exist as described. t-2520/t-2521/t-2524 are unblocked.
 - **Do not touch `save_tasks`, `write_atomic`, or `lock_tasks`.** D4 refuted the torn-read
   hypothesis against these; they are correct. This spec is about *which key* resolves a file,
   never about the write mechanics of the file itself.
