@@ -194,9 +194,9 @@ current `brana-core/src/session.rs` before implementing, per Assumptions above):
 
 | Surface | File:line | Current | Required |
 |---|---|---|---|
-| Session state root | `find_project_root()` → `git_toplevel()` | `brana-core/src/util.rs:124-130` | per-worktree | resolve via `git_common_root()`, matching `find_tasks_config()` |
+| Session state root | **SHIPPED t-2520** — `find_session_root()` → `git_common_root_in()` | `brana-core/src/util.rs` (`find_session_root_resolved`) | shared across worktrees | done; `find_project_root()` stays per-worktree for file-editing callers |
 | Reference (already correct) | `find_tasks_config()` → `git_common_root()` | `brana-core/src/util.rs:158-165` | shared | no change — this is the pattern to copy |
-| Known orphan | `~/.claude/projects/-home-martineserios-enter-thebrana-thebrana-feat-t-798/` | — | orphaned per-worktree store | migrate or explicitly adopt as a `legacy:` lane during D0b rollout |
+| Known orphan | `~/.claude/projects/-home-martineserios-enter-thebrana-thebrana-feat-t-798/` | — | **SHIPPED t-2520** — adopted read-only | surfaced by `session read --all` as `legacy:feat-t-798/<lane>` via `session::find_legacy_stores`; never an implicit fallback target; stderr note when every legacy state falls outside the date window |
 
 **D1 — every fallback surface must close, not just the first:**
 
