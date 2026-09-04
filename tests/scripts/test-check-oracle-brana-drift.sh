@@ -36,7 +36,10 @@ fail() { echo "  FAIL: $1 -- $2"; ((FAIL++)) || true; }
 # produces false DRIFT for a crate the shipped binary doesn't contain).
 make_repo() {
   local root="$1"
-  git init -q --bare "$root/origin.git"
+  # Pin the branch name: the script under test fetches `origin main`, and a bare
+  # init without -b follows init.defaultBranch — unset on GitHub's runners, so
+  # the fixture came up as `master` and every fetch failed in CI only (t-3023).
+  git init -q --bare -b main "$root/origin.git"
   git clone -q "$root/origin.git" "$root/repo" 2>/dev/null
   (cd "$root/repo" \
     && git config user.email t@t && git config user.name t \

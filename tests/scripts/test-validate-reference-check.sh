@@ -34,7 +34,11 @@ EOF
 
 run_validate() {
     # Prepend FAKE_BIN so our mock brana shadows the real one
-    PATH="$FAKE_BIN:$PATH" bash "$REPO_ROOT/validate.sh" 2>&1 || true
+    # --check 29 runs only the check under test: the full gate took two ~5-minute
+# passes (Check 70's sweep, twice) and, with stdin inherited from the CI
+# runner, hung on a brana|jq pipeline inside it (t-3023). stdin from /dev/null
+# so no inner command can block on the caller's stdin.
+PATH="$FAKE_BIN:$PATH" bash "$REPO_ROOT/validate.sh" --check 29 </dev/null 2>&1 || true
 }
 
 assert_contains() {

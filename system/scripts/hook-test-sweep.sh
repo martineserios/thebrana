@@ -28,6 +28,11 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CONCURRENCY="${HOOK_TEST_SWEEP_CONCURRENCY:-1}"
+# Lines of a failing suite's output to surface under its FAIL line. 5 is enough
+# locally (the suite's own "N passed, M failed" summary), too little in CI where
+# this is the only view of the suite (t-3023: main was red for a week with no
+# failing assertion visible anywhere). CI sets it higher.
+TAIL_LINES="${HOOK_TEST_SWEEP_TAIL:-5}"
 
 # Already run individually by validate.sh Check 65/66 (statusline suites,
 # t-2467/t-2470) — excluded ONLY from the no-args default so the default
@@ -117,7 +122,7 @@ for f in "${FILES[@]}"; do
     else
         FAILED+=("$base")
         echo "FAIL: $base"
-        tail -5 "$RESULTS_DIR/$i.log" 2>/dev/null | sed 's/^/  /'
+        tail -n "$TAIL_LINES" "$RESULTS_DIR/$i.log" 2>/dev/null | sed 's/^/  /'
     fi
     i=$((i + 1))
 done

@@ -41,6 +41,19 @@ RC2=$?
 if [ "$RC2" -ne 0 ]; then ok "one red suite exits nonzero"; else bad "one red suite should exit nonzero"; fi
 if echo "$OUT2" | grep -q "FAIL: test-b.sh"; then ok "red suite named in output"; else bad "red suite not named — got: $OUT2"; fi
 
+# ── Test 2b: failing suite output is surfaced, and HOOK_TEST_SWEEP_TAIL bounds it ──
+# (t-3023) CI's only view of a red suite is this tail; the default 5 was hiding
+# the failing assertion behind the suite's own summary lines.
+D2B="$WORK/tail"
+mkdir -p "$D2B"
+printf '#!/usr/bin/env bash\nfor i in 1 2 3 4 5 6 7 8; do echo "line$i"; done; echo "ASSERT-FAILED"; echo "summary"; exit 1\n' > "$D2B/test-t.sh"
+OUT2B=$(bash "$SWEEP" "$D2B" 2>&1)
+if echo "$OUT2B" | grep -q "ASSERT-FAILED"; then ok "red suite tail surfaced by default"; else bad "red suite tail missing — got: $OUT2B"; fi
+OUT2C=$(HOOK_TEST_SWEEP_TAIL=1 bash "$SWEEP" "$D2B" 2>&1)
+if echo "$OUT2C" | grep -q "summary" && ! echo "$OUT2C" | grep -q "ASSERT-FAILED"; then ok "HOOK_TEST_SWEEP_TAIL bounds the surfaced tail"; else bad "HOOK_TEST_SWEEP_TAIL not honoured — got: $OUT2C"; fi
+OUT2D=$(HOOK_TEST_SWEEP_TAIL=40 bash "$SWEEP" "$D2B" 2>&1)
+if echo "$OUT2D" | grep -q "line1"; then ok "HOOK_TEST_SWEEP_TAIL=40 shows the whole short suite"; else bad "tail=40 should show line1 — got: $OUT2D"; fi
+
 # ── Test 3: explicit file args (not just directories) ─────────────────────
 D3="$WORK/explicit"
 mkdir -p "$D3"

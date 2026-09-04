@@ -359,7 +359,10 @@ echo ""
 
 # Check 6: No secrets
 echo "Checking for secrets..."
-SECRETS_FOUND=$(grep -rn -E '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' "$SYSTEM_DIR" 2>/dev/null | grep -v -E '(\.sh:|#|example|placeholder|never commit|/state/)' || true)
+# Skip build/dependency dirs: not source, gitignored, and system/cli/rust/target
+# alone is tens of GB — crawling it made this check (and every test that runs
+# validate.sh) take minutes once CI built the binary in-tree (t-3023).
+SECRETS_FOUND=$(grep -rn --exclude-dir=target --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=__pycache__ -E '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' "$SYSTEM_DIR" 2>/dev/null | grep -v -E '(\.sh:|#|example|placeholder|never commit|/state/)' || true)
 if [ -n "$SECRETS_FOUND" ]; then
     fail "Potential secrets found:"
     echo "$SECRETS_FOUND"
@@ -2769,7 +2772,10 @@ else
         C70_SUMMARY=$(printf '%s\n' "$C70_OUT" | tail -1)
         pass "Check 70: $C70_SUMMARY"
     else
-        printf '%s\n' "$C70_OUT" | grep -E '^FAIL:' | sed 's/^/  /'
+        # Print the sweep's FAIL blocks (name + the suite's tail), not just the
+        # names — the tail is the only place the failing assertion is visible
+        # when this runs in CI (t-3023).
+        printf '%s\n' "$C70_OUT" | awk '/^PASS:/{p=0;next} /^FAIL:/{p=1} p' | sed 's/^/  /'
         fail "Check 70: hook test sweep — see failures above"
     fi
 fi
