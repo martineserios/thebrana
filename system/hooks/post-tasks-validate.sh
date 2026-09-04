@@ -20,6 +20,27 @@ esac
 
 [ ! -f "$FILE_PATH" ] && { echo '{"continue": true}'; exit 0; }
 
+# Resolve to the canonical, git-common-dir-anchored tasks.json — same rule as
+# the CLI's find_tasks_file()/resolve_tasks_file_override (t-3286, ADR-091
+# decision 4). A Write/Edit inside a linked worktree still reports its own
+# worktree-local path; trusting that raw path validates/mutates a stale
+# disposable copy instead of the one file every `brana` invocation reads.
+# Read-only lookup (no auto-create here, unlike the Rust resolver — this is
+# an advisory hook, not the place to spray a fresh tasks.json into a
+# resolved root that turns out to be the wrong context).
+FILE_DIR=$(dirname "$FILE_PATH")
+COMMON_DIR=$(git -C "$FILE_DIR" rev-parse --git-common-dir 2>/dev/null) || COMMON_DIR=""
+if [ -n "$COMMON_DIR" ]; then
+    case "$COMMON_DIR" in
+        /*) ;;
+        *) COMMON_DIR="$FILE_DIR/$COMMON_DIR" ;;
+    esac
+    CANON_ROOT=$(cd "$(dirname "$COMMON_DIR")" 2>/dev/null && pwd) || CANON_ROOT=""
+    if [ -n "$CANON_ROOT" ] && [ -f "$CANON_ROOT/.claude/tasks.json" ]; then
+        FILE_PATH="$CANON_ROOT/.claude/tasks.json"
+    fi
+fi
+
 # Locate Rust CLI binary
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/resolve-brana.sh"
@@ -96,7 +117,16 @@ if [ "$USE_RUST" = true ]; then
         fi
     fi
 else
-    # Fallback: jq rollup
+    # Fallback: jq rollup. Serialize the read-modify-write against concurrent
+    # writers the same way the Rust CLI's lock_tasks()/lock_sidecar() do — an
+    # exclusive flock on a `<file>.json.lock` sidecar, held across the entire
+    # read+write (t-3286, ADR-091 decision 4: this was the one unlocked writer
+    # independent of the --file bypass). Sidecar naming matches
+    # PathBuf::with_extension("json.lock") in brana-core/src/util.rs exactly.
+    LOCK_FILE="${FILE_PATH%.json}.json.lock"
+    exec 8>"$LOCK_FILE"
+    flock -x 8
+
     ROLLUP_NEEDED=$(jq -r '
       [.tasks[] | select(.parent != null)] as $children |
       [.tasks[] | select(.type == "milestone" or .type == "phase")] as $parents |
@@ -138,6 +168,8 @@ else
         fi
         rm -f "$TMP_FILE"
     fi
+    flock -u 8
+    exec 8>&-
 fi
 
 # ── Step 4: Write statusline cache (async, non-blocking) ─
