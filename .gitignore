@@ -10,6 +10,13 @@ system/state/decisions/
 # Local Claude Code config
 .claude/settings.json
 
+# Shared backlog ledger — resolved to one canonical file per repo via
+# git-common-dir (find_tasks_file_from()), already lock+atomic-write protected.
+# Untracked per ADR-091/t-3285: git-tracking it per-worktree only produced stale
+# divergent checkout copies. History is preserved via periodic snapshot instead
+# (system/state/tasks-snapshot.json, t-3287).
+.claude/tasks.json
+
 # Obsidian local config (created on vault open)
 .obsidian/
 

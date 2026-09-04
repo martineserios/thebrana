@@ -200,42 +200,27 @@ else
 fi
 
 echo ""
-echo "=== 10. Non-behavioral dirty files (tasks.json only): warn not deny ==="
+echo "=== 10. tasks.json dirty (t-3285: carve-out retired — untracked now, denies like any other file) ==="
 
-assert_warn() {
-    local desc="$1" input="$2" pattern="$3"
-    TOTAL=$((TOTAL + 1))
-    local result ctx
-    result=$(echo "$input" | bash "$HOOK" 2>/dev/null) || true
-    ctx=$(echo "$result" | jq -r '.additionalContext // empty' 2>/dev/null)
-    if echo "$result" | jq -e '.continue == true' >/dev/null 2>&1 && \
-       grep -qi "$pattern" <<< "$ctx"; then
-        PASS=$((PASS + 1))
-        echo "  PASS: $desc"
-    else
-        FAIL=$((FAIL + 1))
-        echo "  FAIL: $desc — expected warn with '$pattern', got: $result"
-    fi
-}
-
-# Setup: only .claude/tasks.json is dirty
+# Setup: only .claude/tasks.json is dirty. The warn-not-deny carve-out (t-2xxx)
+# existed because tasks.json was git-tracked and routinely showed dirty; ADR-091
+# untracks it repo-wide, so this scenario becomes unreachable in a real repo, and
+# the hook no longer special-cases it — same as any other tracked file, dirty denies.
 mkdir -p "$TMPDIR/repo/.claude"
 echo '{"tasks":[]}' > "$TMPDIR/repo/.claude/tasks.json"
 git -C "$TMPDIR/repo" add .claude/tasks.json >/dev/null 2>&1
 git -C "$TMPDIR/repo" commit -m "add tasks.json" >/dev/null 2>&1
 echo '{"tasks":["modified"]}' > "$TMPDIR/repo/.claude/tasks.json"
 
-assert_warn "checkout -b when only tasks.json dirty → warn, not deny" \
-    "$(make_input 'git checkout -b feat/tasks-only-dirty')" \
-    "tasks.json"
+assert_deny "checkout -b when only tasks.json dirty → deny (carve-out retired)" \
+    "$(make_input 'git checkout -b feat/tasks-only-dirty')"
 
 git -C "$TMPDIR/repo" checkout -- .claude/tasks.json >/dev/null 2>&1 || true
 
 # switch -c variant
 echo '{"tasks":["modified"]}' > "$TMPDIR/repo/.claude/tasks.json"
-assert_warn "switch -c when only tasks.json dirty → warn, not deny" \
-    "$(make_input 'git switch -c feat/switch-tasks-dirty')" \
-    "tasks.json"
+assert_deny "switch -c when only tasks.json dirty → deny (carve-out retired)" \
+    "$(make_input 'git switch -c feat/switch-tasks-dirty')"
 git -C "$TMPDIR/repo" checkout -- .claude/tasks.json >/dev/null 2>&1 || true
 
 # Mixed: tasks.json + a behavioral file dirty → still deny
