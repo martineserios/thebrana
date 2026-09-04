@@ -5,6 +5,8 @@ depends_on:
 informs:
   - docs/ideas/drained/async-first-close.md
   - docs/architecture/features/reminder-system.md
+amended_by:
+  - docs/architecture/decisions/ADR-053-close-oriented-modes.md
 status: accepted
 ---
 
@@ -132,3 +134,30 @@ t-1972 (queue CLI) must not start until this ADR's status is **Accepted** (chall
 - The cron is a thin orchestrator: all state mutation lives in two already-tested Rust surfaces (`brana close-queue`, `brana remind`)
 - Extraction quality is bounded by Gemini Flash until the revisit trigger fires; the cost of being wrong is review noise, not corrupted memory
 - close gets faster for every mode without losing the FULL escape hatch
+
+## Amendment (2026-09-04, t-2410): §5 close-mode matrix superseded by ADR-053
+
+§5's close-mode matrix (NANO/LIGHT/FULL, auto-classified) described the state
+at this ADR's acceptance. ADR-053 (2026-06-11, one day later) replaced
+auto-classified weight with the orientation model and changed the *default*
+weight for ordinary code sessions from FULL to **INSTANT**
+(`close-classify.sh`'s own comment: `INSTANT (was auto-FULL pre-Track-1)`).
+Recording the resolution here since this ADR is what a reader lands on first
+when asking "does close still run a full sync debrief by default":
+
+- **Default (bare invocation, ≥2 commits or any code/behavioral file changed):
+  INSTANT.** Snapshot + `brana close-queue append` + handoff only — zero
+  in-session LLM extraction. All extraction is deferred to the nightly
+  `close-extraction` cron (Track 2, §6–7 above), which now carries the full
+  weight this ADR's §5 originally split between LIGHT and FULL.
+- **FULL is preserved as an explicit escape hatch only** (`--full` flag,
+  `close-mode-and-evidence.md` Step 3) — it still spawns a synchronous
+  `debrief-analyst` pass for a full in-session debrief, unchanged from §5's
+  description, but is no longer reachable by auto-classification.
+- **No cron/scheduler change**: `close-extraction`'s invocation trigger
+  (`system/state/scheduler.json`, nightly `02:00:00`, unconditional) is
+  unaffected by this shift — FULL's reduction is a *session-time* weight
+  change, not a queueing or cron-scheduling change. §5's "FULL queues too"
+  clause still holds when `--full` is invoked.
+- See ADR-053 §1 for the full orientation→weight matrix and the rationale
+  (orientation forces weight, not two independent axes).

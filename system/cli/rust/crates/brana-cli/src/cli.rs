@@ -248,6 +248,12 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: DecisionsCmd,
     },
+    /// ADR (architecture decision record) number reservation — collision-safe
+    /// across concurrent sessions and git worktrees (t-3294)
+    Adr {
+        #[command(subcommand)]
+        cmd: AdrCmd,
+    },
     /// Append one or more URLs (or free-text notes) to the project's event-log.md
     Log {
         /// URL(s) or text to append. Duplicate URLs are silently skipped.
@@ -354,6 +360,17 @@ pub enum DecisionsCmd {
         /// Show what would be archived without moving files
         #[arg(long)]
         dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AdrCmd {
+    /// Reserve the next ADR number and create a placeholder file at
+    /// docs/architecture/decisions/ADR-{NNN}-{slug}.md — safe under concurrent sessions
+    /// and separate git worktrees (t-3294; see brana-core::adr for the mechanism).
+    Reserve {
+        /// Kebab-case topic slug, e.g. "backfill-retry-policy"
+        slug: String,
     },
 }
 
@@ -676,6 +693,35 @@ pub enum SessionCmd {
     Epic {
         #[command(subcommand)]
         cmd: EpicCmd,
+    },
+    /// Lane pin — session-identity pin and resume-query resolution (ADR-069 D2)
+    Lane {
+        #[command(subcommand)]
+        cmd: LaneCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum LaneCmd {
+    /// Write this session's lane pin. The autonomous-bootstrap path: the sandboxed
+    /// runner calls this from the host before launching `claude -p`, since no
+    /// `SessionStart` hook fires inside the jail to write a pin any other way.
+    Init {
+        /// Stable id for this session (e.g. `$BRANA_SESSION_ID`)
+        #[arg(long)]
+        session_id: String,
+        /// Task this session is working, if known
+        #[arg(long)]
+        task_id: Option<String>,
+    },
+    /// Resolve at most one lane to resume into, ranked worktree_path > branch > task_id
+    Resume {
+        /// Task id to match at the weakest rank, if worktree_path and branch both miss
+        #[arg(long)]
+        task_id: Option<String>,
+        /// Output raw JSON instead of human-readable text
+        #[arg(long)]
+        json: bool,
     },
 }
 

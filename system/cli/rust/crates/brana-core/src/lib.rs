@@ -3,8 +3,10 @@
 //! This crate contains all domain logic used by both `brana-cli` (terminal) and
 //! `brana-mcp` (MCP server). It has no CLI framework or protocol dependencies.
 
+pub mod adr;
 pub mod files;
 pub mod knowledge_pipeline;
+pub mod learn;
 pub mod ruflo;
 pub mod lint;
 pub mod memory;
@@ -16,6 +18,7 @@ pub mod remind;
 pub mod scheduler;
 pub mod session;
 pub mod session_initiative;
+pub mod session_lane;
 pub mod sync;
 pub mod tasks;
 pub mod time_tracking;

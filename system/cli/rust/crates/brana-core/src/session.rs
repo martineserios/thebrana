@@ -187,7 +187,12 @@ pub fn epic_scoped_state_path(project_root: &Path, branch: &str) -> PathBuf {
 /// entirely (confirmed: reaches real writes outside the memory directory). Pre-existing
 /// (reachable via `write_state`'s payload `epic` field before this fix existed at all);
 /// this is the first place any validation was ever applied to it.
-pub(crate) fn is_safe_epic_slug(slug: &str) -> bool {
+///
+/// `pub` (not `pub(crate)`) since t-3294: also reused by `brana-cli`'s `brana adr reserve
+/// <slug>` to validate an externally-supplied slug embedded in a filename — same risk
+/// shape (a `../`-bearing string reaching a filesystem write), same fix, one hardened
+/// implementation instead of a second hand-rolled one.
+pub fn is_safe_epic_slug(slug: &str) -> bool {
     static RE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
     RE.get_or_init(|| Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").expect("slug regex is valid"))
         .is_match(slug)
@@ -501,9 +506,25 @@ pub fn read_state_from_unit(project_root: &Path, epic: Option<&str>, branch: &st
 }
 
 /// Read the current session state, if it exists.
-/// Uses the current git branch to resolve the epic-scoped state file.
+///
+/// ADR-069 D0: a read must resolve through the same key a write actually used.
+/// `cmd_session_write` routes an epic-less payload through the initiative/focus marker
+/// before falling back to branch parsing (t-2154/ADR-060) — so a bare read has to check
+/// the same markers first, or it misses every state a write routed that way (the
+/// asymmetry this spec exists to close: on `dev`, branch-only parsing never matches an
+/// epic-routed write). Falls back to the branch-only guess when no marker is set, or
+/// when the marker-keyed file doesn't exist — no worse than today's behavior, strictly
+/// better when it resolves.
 pub fn read_state(project_root: &Path) -> Option<SessionState> {
-    read_state_from(project_root, &current_branch().unwrap_or_default())
+    let branch = current_branch().unwrap_or_default();
+    let marker = crate::session_initiative::read_initiative_marker(project_root)
+        .or_else(|| crate::session_initiative::read_focus_marker(project_root));
+    if let Some(epic) = marker
+        && let Some(state) = read_state_from_unit(project_root, Some(&epic), &branch)
+    {
+        return Some(state);
+    }
+    read_state_from(project_root, &branch)
 }
 
 /// How `next[]` was resolved on a write (t-2506). Reported so that no discard, and no
@@ -963,6 +984,40 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
     merged
 }
 
+/// Resolve the session-state file that actually holds `branch`'s lane, by content rather
+/// than by re-deriving a filename from the branch string alone (ADR-069 D0 "Consume" row,
+/// t-2521). `epic_scoped_state_path` itself stays a pure branch-regex guesser — several
+/// tests key on it never becoming content-aware (see `mark_consumed_diverges_from_write_
+/// when_explicit_epic_present`'s own sanity assertion) — so this scan lives in the
+/// mark-consumed path only, the one D0 surface where "guess a filename" was always the
+/// wrong tool: the file to update is whichever one `write_state` already wrote for this
+/// branch, findable by its content regardless of what unit key its filename encodes.
+///
+/// Exactly one match: use it (this is also the common case — a branch with no divergent
+/// explicit epic has exactly one lane file, found here just as reliably as by the old
+/// guess). No match: fall back to the branch-only guessed path, preserving prior miss
+/// behavior (the guessed file doesn't exist, so the caller's read fails as before — D1).
+/// Two or more matches is ambiguity, and per D1 that is a miss too, never a coin-flip pick.
+fn resolve_consume_path(project_root: &Path, branch: &str) -> Result<PathBuf> {
+    let memory_dir = resolve_memory_dir(project_root);
+    let matches: Vec<PathBuf> = lane_state_paths(&memory_dir)
+        .into_iter()
+        .filter(|p| {
+            read_state_at(p)
+                .map(|s| s.branch.as_deref() == Some(branch))
+                .unwrap_or(false)
+        })
+        .collect();
+    match matches.len() {
+        1 => Ok(matches.into_iter().next().expect("len checked above")),
+        0 => Ok(epic_scoped_state_path(project_root, branch)),
+        n => anyhow::bail!(
+            "ambiguous session state for branch {branch:?}: {n} lanes match by content — \
+             refusing to guess which one to mark consumed"
+        ),
+    }
+}
+
 /// Set consumed_at on the current state (atomic in-place update).
 ///
 /// Intentionally bypasses `write_state()` — `sanitize()` always strips `consumed_at`,
@@ -970,7 +1025,7 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
 /// guarantee. Does NOT append to history (consumed_at is a read-side marker, not a
 /// new session write).
 pub fn mark_consumed_for(project_root: &Path, branch: &str) -> Result<()> {
-    let path = epic_scoped_state_path(project_root, branch);
+    let path = resolve_consume_path(project_root, branch)?;
     let content = fs::read_to_string(&path).context("reading session-state.json")?;
     let mut state: SessionState = serde_json::from_str(&content).context("parsing session-state.json")?;
 
@@ -986,18 +1041,7 @@ pub fn mark_consumed_for(project_root: &Path, branch: &str) -> Result<()> {
 
 pub fn mark_consumed(project_root: &Path) -> Result<()> {
     let branch = current_branch().unwrap_or_default();
-    let path = epic_scoped_state_path(project_root, &branch);
-    let content = fs::read_to_string(&path).context("reading session-state.json")?;
-    let mut state: SessionState = serde_json::from_str(&content).context("parsing session-state.json")?;
-
-    state.consumed_at = Some(Utc::now().to_rfc3339());
-
-    let tmp = path.with_extension("tmp");
-    let json = serde_json::to_string_pretty(&state)?;
-    fs::write(&tmp, &json)?;
-    fs::rename(&tmp, &path)?;
-
-    Ok(())
+    mark_consumed_for(project_root, &branch)
 }
 
 /// Render session state as human-readable text (pure formatting, no I/O).
@@ -1325,12 +1369,103 @@ fn branch_has_active_worktree(project_root: &Path, branch: &str) -> bool {
     (Utc::now().timestamp() - commit_ts) < ACTIVE_WORKTREE_WINDOW_SECS
 }
 
+// ── Resume query (ADR-069 D2) ───────────────────────────────────────────────
+//
+// `brana session resume` must resolve AT MOST ONE lane from the current process's
+// worktree_path, branch, and task_id, ranked worktree_path > branch > task_id, and
+// report which rule matched. Ambiguity at a rank (2+ equally-ranked candidates) is a
+// miss, not a fall-through to a weaker rank — a rank with signal but no unique answer
+// must never be silently downgraded to a guess that might resolve by coincidence.
+//
+// NOT YET IMPLEMENTED (t-2521). This is a stub: a real signature so t-2529's tests
+// compile and fail LOUD (panic) rather than not compiling at all — a compile failure
+// here would break every other test in this crate before t-2521 lands, which is a much
+// bigger blast radius than this TDD-gate task's scope.
+
+/// A candidate session lane for a resume query (ADR-069 D2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LaneCandidate {
+    /// Reporting label — not part of the ranking, just what a caller shows the user.
+    pub label: String,
+    pub worktree_path: Option<String>,
+    pub branch: Option<String>,
+    pub task_id: Option<String>,
+}
+
+/// Which signal a resume query matched on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResumeMatchRule {
+    WorktreePath,
+    Branch,
+    TaskId,
+}
+
+/// At a single rank, decide whether to resolve, fall through, or miss outright.
+///
+/// Zero matches: no signal at this rank — try the next one. Exactly one: resolved.
+/// Two or more: ambiguous — an immediate miss (`None`), never a fall-through to a
+/// weaker rank that might resolve by coincidence (ADR-069 D2).
+fn rank_match<'a>(
+    candidates: &'a [LaneCandidate],
+    field: impl Fn(&LaneCandidate) -> Option<&str>,
+    want: Option<&str>,
+    rule: ResumeMatchRule,
+) -> Option<Option<(&'a LaneCandidate, ResumeMatchRule)>> {
+    let want = want?;
+    let matches: Vec<&LaneCandidate> = candidates
+        .iter()
+        .filter(|c| field(c) == Some(want))
+        .collect();
+    match matches.len() {
+        0 => None,                                    // no signal — try next rank
+        1 => Some(Some((matches[0], rule))),           // resolved
+        _ => Some(None),                               // ambiguous — miss, stop here
+    }
+}
+
+/// Resolve at most one lane to resume into. See module doc above for the ranking and
+/// ambiguity contract (ADR-069 D2, t-2521).
+pub fn resolve_resume_lane(
+    candidates: &[LaneCandidate],
+    worktree_path: Option<&str>,
+    branch: Option<&str>,
+    task_id: Option<&str>,
+) -> Option<(LaneCandidate, ResumeMatchRule)> {
+    rank_match(candidates, |c| c.worktree_path.as_deref(), worktree_path, ResumeMatchRule::WorktreePath)
+        .or_else(|| rank_match(candidates, |c| c.branch.as_deref(), branch, ResumeMatchRule::Branch))
+        .or_else(|| rank_match(candidates, |c| c.task_id.as_deref(), task_id, ResumeMatchRule::TaskId))
+        .flatten()
+        .map(|(c, rule)| (c.clone(), rule))
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
+
+    /// t-3279: point `BRANA_SESSION_STORE_ROOT` at a scratch dir under the OS temp
+    /// dir instead of leaving every `write_state`/`read_state*`/`mark_consumed*` call
+    /// below fall through to the operator's real `~/.claude/projects` — 13,439 leaked
+    /// `-tmp-*` store dirs were found live there, this module's own tests among the
+    /// writers (each uses a distinct `root` *project* path already, but never
+    /// overrode the STORE root itself, which is the actual leak vector).
+    ///
+    /// `Once`, not per-test set/restore + `#[serial]`: every test here already varies
+    /// `root`, so a single shared, non-real store root set exactly one time for the
+    /// whole process is sufficient isolation — there is no cross-test env-var value
+    /// to race on, unlike a caller that needs a *different* store root per test.
+    fn ensure_test_store_root() {
+        static INIT: std::sync::Once = std::sync::Once::new();
+        INIT.call_once(|| {
+            let root = std::env::temp_dir()
+                .join(format!("brana-core-test-session-store-{}", std::process::id()));
+            // SAFETY: Once guarantees this runs exactly one time, before any test
+            // proceeds past the call site — no concurrent writer to race.
+            unsafe { std::env::set_var("BRANA_SESSION_STORE_ROOT", &root) };
+        });
+    }
 
     fn make_state(written_at: &str) -> SessionState {
         SessionState {
@@ -1390,6 +1525,7 @@ mod tests {
 
     #[test]
     fn write_and_read_roundtrip() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let state = make_state("2026-04-06T10:00:00Z");
@@ -1404,6 +1540,7 @@ mod tests {
 
     #[test]
     fn write_archives_to_history() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1424,6 +1561,7 @@ mod tests {
     // epic-shaped (e.g. "close/fix/t-3169-...") silently re-route it anyway.
     #[test]
     fn unit_scoped_state_path_orphan_sentinel_bypasses_branch_parsing() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1458,6 +1596,7 @@ mod tests {
 
     #[test]
     fn read_state_missing_returns_none() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         assert!(read_state_from(dir.path(), "main").is_none());
     }
@@ -1467,6 +1606,7 @@ mod tests {
     // branch-name guessing — even when the branch parses to a DIFFERENT epic-shaped slug.
     #[test]
     fn read_state_from_unit_finds_state_by_explicit_epic_not_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1486,6 +1626,7 @@ mod tests {
 
     #[test]
     fn read_state_from_unit_falls_back_to_branch_when_epic_absent() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1505,6 +1646,7 @@ mod tests {
 
     #[test]
     fn history_limit_respected() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1727,6 +1869,7 @@ mod tests {
 
     #[test]
     fn stale_docs_nonexistent_paths_filtered_on_write() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1753,6 +1896,7 @@ mod tests {
 
     #[test]
     fn stale_docs_all_nonexistent_yields_empty_vec() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1774,6 +1918,7 @@ mod tests {
 
     #[test]
     fn stale_docs_all_existing_kept_intact() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1957,6 +2102,7 @@ mod tests {
     // ReplaceStale, regardless of branch or day.
     #[test]
     fn orphan_sentinel_writes_from_different_branches_union_not_replace() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1994,6 +2140,7 @@ mod tests {
 
     #[test]
     fn write_state_clears_consumed_at_on_different_day_write() {
+        ensure_test_store_root();
         // Simulates MCP surface: no call-site guard, state arrives with consumed_at set,
         // written_at is in the past (different day → no same-day merge path).
         let dir = tempdir().unwrap();
@@ -2062,6 +2209,7 @@ mod tests {
 
     #[test]
     fn session_state_missing_written_at_deserializes() {
+        ensure_test_store_root();
         // Verifies #[serde(default)] on written_at — JSON without the field must deserialize
         // successfully so read_state() can handle old/partial session files.
         let json = r#"{"version":1,"accomplished":["did x"]}"#;
@@ -2198,6 +2346,7 @@ mod tests {
 
     #[test]
     fn write_state_deduplicates_next_within_payload() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Write a state with duplicate next items (different day → no same-day merge)
@@ -2233,6 +2382,7 @@ mod tests {
 
     #[test]
     fn write_with_matching_base_replaces_next() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -2260,6 +2410,7 @@ mod tests {
 
     #[test]
     fn write_with_matching_base_can_correct_an_entry_text() {
+        ensure_test_store_root();
         // The t-2502 scenario: an earlier close wrote guidance, a later close learned it
         // was wrong. Before this fix the incumbent won and the correction was discarded.
         let dir = tempdir().unwrap();
@@ -2281,6 +2432,7 @@ mod tests {
 
     #[test]
     fn write_with_stale_base_unions_and_reports_concurrency() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -2306,6 +2458,7 @@ mod tests {
 
     #[test]
     fn write_without_base_unions() {
+        ensure_test_store_root();
         // t-1461 regression guard: a caller that never read current state must not be
         // able to remove anything by omission.
         let dir = tempdir().unwrap();
@@ -2326,6 +2479,7 @@ mod tests {
 
     #[test]
     fn minimal_same_day_write_cannot_wipe_next() {
+        ensure_test_store_root();
         // The session-end safety net writes SessionState::minimal(), whose next[] is
         // empty and which never reads current state. Under an unconditional replace this
         // would zero a full handoff. It must be structurally impossible.
@@ -2352,6 +2506,7 @@ mod tests {
 
     #[test]
     fn write_report_surfaces_dropped_duplicates() {
+        ensure_test_store_root();
         // AC2: no discard is silent, including within-payload text duplicates.
         let dir = tempdir().unwrap();
         let root = dir.path();
@@ -2371,6 +2526,7 @@ mod tests {
 
     #[test]
     fn base_written_at_is_never_persisted() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -2484,6 +2640,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_conforming_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "thebrana/feat/t-1630-slug-extract");
         assert!(path.to_str().unwrap().ends_with("session-state-thebrana.json"),
@@ -2492,6 +2649,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_conforming_other_type() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "myepic/fix/t-42-something");
         assert!(path.to_str().unwrap().ends_with("session-state-myepic.json"),
@@ -2512,6 +2670,7 @@ mod tests {
     // through.
     #[test]
     fn unit_scoped_state_path_rejects_slug_with_path_traversal() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let mut state = make_state("2026-04-06T10:00:00Z");
@@ -2534,6 +2693,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_old_style_falls_back() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "feat/t-123-foo");
         assert!(path.to_str().unwrap().ends_with("session-state.json"),
@@ -2542,6 +2702,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_main_falls_back() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "main");
         assert!(path.to_str().unwrap().ends_with("session-state.json"),
@@ -2550,6 +2711,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_empty_falls_back() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "");
         assert!(path.to_str().unwrap().ends_with("session-state.json"),
@@ -2558,6 +2720,7 @@ mod tests {
 
     #[test]
     fn write_state_uses_epic_scoped_path() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let state = SessionState {
@@ -2574,6 +2737,7 @@ mod tests {
 
     #[test]
     fn mark_consumed_stamps_same_path_as_write_state() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Use current branch so mark_consumed (which calls current_branch()) agrees with write_state.
@@ -2592,6 +2756,7 @@ mod tests {
 
     #[test]
     fn write_state_merges_on_same_day_same_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // First close: one accomplished item, one next item.
@@ -2620,6 +2785,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_on_different_day() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Yesterday's close.
@@ -2643,6 +2809,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_on_different_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Same day but different epic branches — no cross-branch merge.
@@ -2699,6 +2866,7 @@ mod tests {
 
     #[test]
     fn write_state_blocks_overwrite_when_target_branch_worktree_active() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let orbit_branch = "orbit/feat/t-2173-thing";
@@ -2747,6 +2915,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_when_target_branch_worktree_gone() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let orbit_branch = "orbit/feat/t-2173-thing";
@@ -2775,6 +2944,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_when_target_branch_worktree_stale() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let orbit_branch = "orbit/feat/t-2173-thing";
@@ -2810,5 +2980,237 @@ mod tests {
 
         let loaded = read_state_from(root, orbit_branch).expect("state must exist after replace");
         assert!(loaded.accomplished.contains(&"unrelated work".to_string()));
+    }
+
+    // ── ADR-069 D0/D1/D2 — TDD gate for t-2521 (t-2529) ──────────────────────────
+
+    // D0: read, write and mark_consumed must all resolve through the SAME key function.
+    // write_state already resolves through the UNIT key (explicit `epic` first, falling
+    // back to branch parsing — t-2152/t-3169). mark_consumed_for still resolves through
+    // branch-only `epic_scoped_state_path`. When a write carries an explicit epic that
+    // diverges from what the branch alone would parse to, mark_consumed_for cannot find
+    // the file write_state actually wrote — the "has this session's handoff been
+    // consumed" marker silently never lands on the real file.
+    //
+    // RED until t-2521 gives mark_consumed/mark_consumed_for the same unit-key
+    // resolution write_state and read_state_from_unit already have.
+    #[test]
+    fn mark_consumed_diverges_from_write_when_explicit_epic_present() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        // Branch alone parses to epic "harness" (matches the {epic}/{type}/t-N- regex);
+        // the payload's explicit epic overrides that to a different unit.
+        let branch = "harness/fix/t-9001-something";
+        let state = SessionState {
+            branch: Some(branch.to_string()),
+            epic: Some("totally-different-unit".to_string()),
+            ..make_state("2026-09-04T10:00:00Z")
+        };
+        write_state(root, &state).unwrap();
+
+        // Sanity: write_state actually wrote under the UNIT key (explicit epic), and
+        // that path genuinely diverges from the branch-only guess.
+        let unit_path = unit_scoped_state_path(root, Some("totally-different-unit"), branch);
+        assert!(unit_path.exists(), "sanity: write must land on the unit-keyed file");
+        let branch_only_path = epic_scoped_state_path(root, branch);
+        assert_ne!(
+            unit_path, branch_only_path,
+            "sanity: this test needs the two keys to diverge"
+        );
+
+        // mark_consumed_for only knows the branch — it must consume the SAME file
+        // write_state wrote to, not silently miss it via a branch-only guess.
+        let _ = mark_consumed_for(root, branch);
+
+        let unit_state: SessionState =
+            serde_json::from_str(&fs::read_to_string(&unit_path).unwrap()).unwrap();
+        assert!(
+            unit_state.consumed_at.is_some(),
+            "mark_consumed must consume the file write_state actually wrote to, not a \
+             branch-only guess that diverges from it"
+        );
+    }
+
+    // Boundary: no lane file recorded for this branch at all (nothing written yet) — must
+    // fail loud (D1), never fabricate a file to "succeed" against.
+    #[test]
+    fn mark_consumed_for_no_lane_recorded_is_an_error() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let result = mark_consumed_for(root, "nothing/fix/t-1-written-here");
+        assert!(
+            result.is_err(),
+            "no lane file matches this branch — must error, not silently no-op success"
+        );
+    }
+
+    // Boundary: two lane files both record the same branch (a stranded legacy file plus a
+    // live one, or any other accumulation) — ambiguity must be a miss (D1), never a
+    // coin-flip pick of one file over the other.
+    #[test]
+    fn mark_consumed_for_ambiguous_branch_match_is_an_error() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let branch = "shared/fix/t-2-two-lanes-same-branch";
+
+        let a = SessionState {
+            branch: Some(branch.to_string()),
+            epic: Some("lane-a".to_string()),
+            ..make_state("2026-09-04T10:00:00Z")
+        };
+        write_state(root, &a).unwrap();
+        let b = SessionState {
+            branch: Some(branch.to_string()),
+            epic: Some("lane-b".to_string()),
+            ..make_state("2026-09-04T10:00:00Z")
+        };
+        write_state(root, &b).unwrap();
+
+        let result = mark_consumed_for(root, branch);
+        assert!(
+            result.is_err(),
+            "two lane files both claim this branch — must error rather than guess which one \
+             to mark consumed"
+        );
+    }
+
+    // D2: resume-query resolution. `brana session resume` (t-2521) must rank candidate
+    // lanes worktree_path > branch > task_id, return AT MOST ONE lane, report which rule
+    // matched, and treat ambiguity at any rank (2+ equally-ranked matches) as a miss —
+    // never fall through to a weaker rank just because a stronger one had signal but no
+    // unique answer (that would silently trade a real "I don't know" for a guess).
+    //
+    // The function does not exist yet — [`resolve_resume_lane`] is a stub (`todo!()`) so
+    // these tests compile and fail LOUD (panic) rather than not compiling at all, which
+    // would break every other test in this crate before t-2521 lands. RED until t-2521
+    // implements the real ranking.
+    #[test]
+    fn resume_query_unique_worktree_path_match_wins() {
+        let candidates = vec![
+            LaneCandidate {
+                label: "a".into(),
+                worktree_path: Some("/repo".into()),
+                branch: Some("main".into()),
+                task_id: None,
+            },
+            LaneCandidate {
+                label: "b".into(),
+                worktree_path: Some("/repo-other".into()),
+                branch: Some("main".into()),
+                task_id: None,
+            },
+        ];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        let (lane, rule) = result.expect("a unique worktree_path match must resolve");
+        assert_eq!(lane.label, "a");
+        assert_eq!(rule, ResumeMatchRule::WorktreePath);
+    }
+
+    #[test]
+    fn resume_query_ambiguous_worktree_path_is_a_miss_not_a_fallthrough() {
+        let candidates = vec![
+            LaneCandidate {
+                label: "a".into(),
+                worktree_path: Some("/repo".into()),
+                branch: Some("main".into()),
+                task_id: None,
+            },
+            LaneCandidate {
+                label: "b".into(),
+                worktree_path: Some("/repo".into()),
+                branch: Some("other".into()),
+                task_id: None,
+            },
+        ];
+        // Two candidates both match worktree_path "/repo" — ambiguous at the top rank.
+        // Must miss outright, not fall through to branch (where "main" would uniquely
+        // match candidate "a" and silently paper over the ambiguity).
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        assert!(
+            result.is_none(),
+            "ambiguity at the worktree_path rank must be a miss, not a fall-through to branch"
+        );
+    }
+
+    #[test]
+    fn resume_query_falls_through_to_branch_when_worktree_path_has_no_match() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo-elsewhere".into()),
+            branch: Some("main".into()),
+            task_id: None,
+        }];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        let (lane, rule) = result.expect("no worktree_path match must fall through to branch");
+        assert_eq!(lane.label, "a");
+        assert_eq!(rule, ResumeMatchRule::Branch);
+    }
+
+    #[test]
+    fn resume_query_falls_through_to_task_id_when_worktree_path_and_branch_miss() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo-elsewhere".into()),
+            branch: Some("other-branch".into()),
+            task_id: Some("t-500".into()),
+        }];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), Some("t-500"));
+        let (lane, rule) = result.expect("no worktree_path/branch match must fall through to task_id");
+        assert_eq!(lane.label, "a");
+        assert_eq!(rule, ResumeMatchRule::TaskId);
+    }
+
+    #[test]
+    fn resume_query_no_signal_matches_anything_is_a_miss() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo-elsewhere".into()),
+            branch: Some("other-branch".into()),
+            task_id: Some("t-999".into()),
+        }];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), Some("t-500"));
+        assert!(result.is_none(), "no matching signal at any rank must be a miss");
+    }
+
+    #[test]
+    fn resume_query_returns_at_most_one_lane() {
+        // Structural check on the return type itself: Option<(LaneCandidate,
+        // ResumeMatchRule)> can never hold more than one lane by construction — pinned
+        // here so a future refactor to Vec<...> (which COULD return multiple) is a
+        // deliberate, visible signature change, not a silent widening of the contract.
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo".into()),
+            branch: Some("main".into()),
+            task_id: None,
+        }];
+        let result: Option<(LaneCandidate, ResumeMatchRule)> =
+            resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        assert!(result.is_some());
+    }
+
+    // Boundary: no lane store at all — must miss cleanly, not panic on an empty slice.
+    #[test]
+    fn resume_query_empty_candidate_list_is_a_miss() {
+        let result = resolve_resume_lane(&[], Some("/repo"), Some("main"), Some("t-1"));
+        assert!(result.is_none(), "no candidates at all must be a miss");
+    }
+
+    // Boundary: the query itself carries no signal (all None) — must miss, never match
+    // a candidate whose own fields happen to also be None.
+    #[test]
+    fn resume_query_no_query_signal_at_all_is_a_miss() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: None,
+            branch: None,
+            task_id: None,
+        }];
+        let result = resolve_resume_lane(&candidates, None, None, None);
+        assert!(
+            result.is_none(),
+            "a query with no signal must never match a candidate by coincidental None==None"
+        );
     }
 }

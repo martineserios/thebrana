@@ -48,6 +48,7 @@ User-facing documentation. Start here.
 | [build-close-auto-docs.md](guide/features/build-close-auto-docs.md) | Auto-generated feature docs |
 | [checkpoint-resume.md](guide/features/checkpoint-resume.md) | Checkpoint/resume for long builds |
 | [backlog-v3-schema.md](guide/features/backlog-v3-schema.md) | Backlog v3 schema — epics, key:value tags, waves |
+| [lane-identity.md](guide/features/lane-identity.md) | Lane identity (ADR-069) — session-state key unification, miss-is-an-error, lane pin, `lane init`/`lane resume` |
 | [pipeline-digest.md](guide/features/pipeline-digest.md) | Pipeline digest — L0 read-only gauge run via /loop |
 | [backlog-lint.md](guide/features/backlog-lint.md) | Backlog lint — is this task ready for autonomous dispatch? |
 | [backlog-project-scoping.md](guide/features/backlog-project-scoping.md) | Per-project scoping and cross-project tasks |
@@ -102,9 +103,11 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [cc-tasks-bridge-research.md](architecture/cc-tasks-bridge-research.md) | CC native Tasks (`CLAUDE_CODE_TASK_LIST_ID`) research — recommendation: batch-scoped ephemeral mirror only, never a full/bidirectional backlog sync |
 | [substrate-end-state.md](architecture/substrate-end-state.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — the Orbit capstone (operation): tiers, runner stages, safety net, branch strategy; historical |
 | [substrate-primitives.md](architecture/substrate-primitives.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — agent substrate primitives & composition; §1–§3 (primitive set, composed blocks, durability/trust) still accurate as reference |
+| [features/adr-number-reservation.md](architecture/features/adr-number-reservation.md) | ADR number reservation (t-3294) — flock-based reservation across worktrees, prevents collisions on concurrently-authored ADRs; shipped |
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
 | [features/judge-escalation-valve.md](architecture/features/judge-escalation-valve.md) | ADR-082 sizing valve implementation spec (t-2895) — ladder wiring, hard signals, funnel, hash pinning; authority block lives in system/skills/_shared/judge-sizing.md |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
+| [features/learn-worker-compute-chain.md](architecture/features/learn-worker-compute-chain.md) | LEARN worker compute-chain contract (t-2404, v3 wave 2) — agy-first, Claude engine-switch, per-run token ceiling, checkpoint/resume (design only) |
 | [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
 | [features/youtube-knowledge-extraction.md](architecture/features/youtube-knowledge-extraction.md) | YouTube knowledge extraction Phase 1 (t-2946) — single video/shorts transcript fetch tier spec |
 | [features/youtube-channel-ingestion.md](architecture/features/youtube-channel-ingestion.md) | YouTube channel ingestion Phase 3 Tier A (t-2993) — channel backfill selection surface spec |
@@ -215,6 +218,8 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-088](architecture/decisions/ADR-088-session-scoped-epic-focus.md) | Epic focus resolves per-session (task-derived), not via a shared `active_epic` file — retires the write path ADR-066/t-2158 project-scoped; `active_initiative` untouched |
 | [ADR-089](architecture/decisions/ADR-089-integral-temporal-model.md) | Integral temporal model — task/reminder/scheduler-job kind-split, unified eligibility predicate, compute-don't-copy, snooze≠deadline firewall, per-priority lead times, recurrence as trigger expression, staged soak-gated rollout (extends ADR-051/ADR-054, respects ADR-002/ADR-071) |
 | [ADR-090](architecture/decisions/ADR-090-same-wave-parallel-dispatch.md) | Same-wave parallel dispatch — epic runner pulls up to `min(wip_limit-live, N)` tasks per beat instead of exactly one; supervised Agent/Task or headless N-process `claude -p` dispatch; net-new `pulled_task_ids` beat-record field (extends ADR-079 §3, ADR-080 §2/§3/§8) |
+| [ADR-091](architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md) | Untrack `.claude/tasks.json` from git; canonical file resolved via git-common-dir + periodic snapshot commit, closing the per-worktree divergence and the unlocked `post-tasks-validate.sh` writer (amends ADR-002, extends ADR-060) |
+| [ADR-092](architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md) | Graduated loop-autonomy ladder — L0 Reporter / L1 Preparer / L2 trivially-safe Merger / L3 Autonomous, promotion gated on 5 clean runs + a pre-written denied-verbs boundary + human confirmation, asymmetric unconditional demotion; retroactively validates shipped `pipeline-digest` (L0) and `drain-loop`/`epic-drain` (L1); reconciles ADR-050's durable:false/kill-sweep/machine-verifiable-prompt clauses across every rung |
 
 > Coverage is checked by `system/scripts/readme-coverage.sh` (t-3031) — run it before adding a doc; `tests/scripts/test-readme-coverage.sh` fails when a row is missing or dead.
 

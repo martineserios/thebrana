@@ -13,8 +13,10 @@
 # Same class as pattern_zsh-for-loop-no-word-split. The phase file's own Step 11c
 # already works around this; Step 1b did not.
 #
-# The snippet is EXTRACTED from system/skills/close/phases/gate-and-evidence.md so
-# the test exercises the shipped procedure text, not a copy (t-1978 rot class).
+# The snippet is EXTRACTED from system/skills/close/phases/close-mode-and-evidence.md
+# so the test exercises the shipped procedure text, not a copy (t-1978 rot class).
+# (Step 1b lived in gate-and-evidence.md until t-3280 split that file at the
+# 400-line phase-layout cap; SNAPSHOT-INVOCATION-BLOCK moved with it.)
 #
 # Run: bash tests/procedures/test-close-gate-zsh-argv.sh
 
@@ -31,7 +33,7 @@ echo "=== test-close-gate-zsh-argv.sh ==="
 echo ""
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PHASE_MD="$REPO_ROOT/system/skills/close/phases/gate-and-evidence.md"
+PHASE_MD="$REPO_ROOT/system/skills/close/phases/close-mode-and-evidence.md"
 
 [ -f "$PHASE_MD" ] || { echo "ERROR: $PHASE_MD not found"; exit 1; }
 

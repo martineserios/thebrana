@@ -1,7 +1,10 @@
 # Feature: Lane Identity — Session-State Key Unification and Miss Semantics
 
 **Date:** 2026-09-02 (ADR Accepted 2026-09-03)
-**Status:** decomposing (t-2520/t-2521/t-2524 already filed; spec approved, ADR Accepted, ready to build)
+**Status:** t-2520 shipped (D0b, dev aa8dfe62) and t-2521 shipped 2026-09-04 (D0+D1+D2, 7 subtasks
+t-3292/t-3293/t-3295/t-3296/t-3297/t-3298/t-3299 — see the Retirement Decisions and Rollback
+subsections below for two scope decisions made during implementation). **t-2524 (D3) not started**
+— shared-checkout guards remain future work.
 **Task:** t-2517 (spec) — gates t-2520, t-2521, t-2524
 **Governing ADR:** [ADR-069](../decisions/ADR-069-lane-identity-and-miss-semantics.md) (**Accepted** 2026-09-03 — D3.2 and D3b's original fail-loud row retracted; D0, D0b, D1, D2, D3.1/D3.3, D4, D5, D6 stand)
 
@@ -304,9 +307,56 @@ handoff came from; ambiguity there is the ADR's own named operator-visible sympt
 | Always | Ask First | Never |
 |--------|-----------|-------|
 | Resolve session-state read/write/consume through one key function | Redesigning D3.2 (reflog attribution) as a commit-time mechanism — that's new-ADR scope, not this spec | Touch `save_tasks`, `write_atomic`, or `lock_tasks` |
-| Fail loud (non-zero exit) on a session-state key miss | Dropping or re-providing the `branch_has_active_worktree` guard's guarantee (`session.rs:1191`, t-2263) — must be an explicit decision, not silent | Silently substitute another lane's file, or an empty stub, for a miss |
-| Ship the D2 rollback/migration script alongside D2 itself | Dropping or re-providing `merge_states`'s same-day-merge code path (`session.rs:712`) once per-session-id files remove its collision case — this is the *other* of the ADR's named two silently-retired behaviors; do not decide by omission | Implement D3b's original "missing pin ⇒ fail loud" for the autonomous surface (retracted) |
+| Fail loud (non-zero exit) on a session-state key miss | ~~Dropping or re-providing the `branch_has_active_worktree` guard's guarantee~~ — **DECIDED 2026-09-04 (t-3296): KEPT, unmodified.** See Retirement Decisions below. | Silently substitute another lane's file, or an empty stub, for a miss |
+| Ship the D2 rollback/migration script alongside D2 itself | ~~Dropping or re-providing `merge_states`'s same-day-merge code path~~ — **DECIDED 2026-09-04 (t-3296): KEPT, unmodified.** See Retirement Decisions below. | Implement D3b's original "missing pin ⇒ fail loud" for the autonomous surface (retracted) |
 | Reuse `write_state_with_base`'s existing CAS logic, `is_safe_epic_slug`'s existing slug guard, and `read_state_from_unit`'s existing unit-keyed read for D0/D2 | Choosing the lane pin's exact file path/format if it diverges from the Assumptions section | Re-implement CAS matching, slug validation, or unit-keyed reads from scratch when a correct primitive already exists (t-2506/t-3169/t-3185) |
+
+### Retirement Decisions (t-3296, 2026-09-04)
+
+Both decisions this spec flagged as "must be explicit, not silent by omission" turned out
+to hinge on one fact discovered while implementing t-3292/t-3295: **this implementation
+did not rekey session-state files by `session_id`.** D0's Read/path rows and D2's lane
+pin were both implemented via the *existing* initiative/focus-marker mechanism
+(`session_initiative::read_focus_marker`/`read_initiative_marker`) rather than by
+changing `unit_scoped_state_path`'s naming scheme — see t-2521's context log for the full
+rationale (a genuine test contradiction between two already-merged RED tests made the
+literal "lane pin's key" reading unsafe to implement as an epic/session-id rekeying; the
+conservative, test-verified fix was chosen instead). Session-state files are therefore
+still keyed by epic/branch, exactly as before this spec — **not** one file per session id.
+
+Both retirement candidates were premised on "once every session writes its own
+per-session-id file" — a precondition that never became true here. Consequently:
+
+- **`merge_states`'s same-day-merge code path (`session.rs:803`, called from
+  `write_state_with_base`): KEPT, unmodified.** Multiple sessions can still land writes on
+  the exact same file (same epic/branch, same day) exactly as before D0/D1/D2 shipped —
+  the collision case this code resolves is unchanged and still live.
+- **`branch_has_active_worktree` clobber guard (`session.rs:1282`, t-2263): KEPT,
+  unmodified.** Files are still shared per-unit, not per-session, so a mis-detected epic
+  can still route a write into another still-live session's file — the guard's guarantee
+  is still needed for the same reason it was added.
+
+If a future task *does* rekey session-state files by session_id (the D2 "Also affected"
+bullets' original premise), both of these decisions must be revisited — they are sound
+only under "files are shared per-unit," which remains this implementation's actual state.
+
+### Rollback (t-3297, 2026-09-04)
+
+The spec's rollback/migration script requirement was premised on session-state
+*filenames* becoming session-id-keyed and therefore unreadable by a reverted
+branch-regex-based reader. Per the Retirement Decisions above, that rekeying never
+happened here — `session-state.json`/`session-state-{epic}.json` naming is byte-for-byte
+unchanged from before this spec. The only new persistent artifact is the lane pin store
+(`{memory_dir}/lanes/*.json`), which is purely additive: no existing file was renamed,
+moved, or reformatted to create it.
+
+**Consequence: no migration script is needed.** Reverting D2 is `rm -rf
+{memory_dir}/lanes/` (or simply reverting the code — `session-start.sh`'s `lane init`
+call and the `brana session lane init/resume` CLI surface) plus removing the SessionStart
+hook's call to it; every session-state file underneath is untouched and immediately
+readable by pre-D2 code with zero data loss. No script was built for a migration that
+does not exist — the AC as originally written assumed a precondition (t-2521 context has
+the full record of why it wasn't implemented) that turned out false.
 
 ## Testing Strategy
 
@@ -329,12 +379,13 @@ handoff came from; ambiguity there is the ADR's own named operator-visible sympt
 
 ## Documentation Plan
 
-- [ ] **User guide** — `docs/guide/features/lane-identity.md`: what a session sees differently
-  (lane pin exists, resume states its matching rule, a miss is now an error not silence),
-  `brana session lane init`/`brana session lanes --prune` usage, the shared-checkout
-  `git commit -a` rejection and how to use `--adopt-path`.
-- [ ] **Tech doc** — this file doubles as the tech doc (design rationale + surfaces are
-  already here); update the "Status" line to `implemented` once t-2520/t-2521/t-2524 ship.
+- [x] **User guide** — `docs/guide/features/lane-identity.md` (2026-09-04): lane pin
+  existence, resume's matching-rule reporting, miss-is-an-error, `lane init`/`lane resume`
+  usage. `lanes --prune` and the shared-checkout `git commit -a`/`--adopt-path` material
+  are D3 (t-2524) scope, not built here — the guide says so rather than documenting
+  commands that don't exist yet.
+- [x] **Tech doc** — this file doubles as the tech doc; Status line updated 2026-09-04
+  to reflect t-2520+t-2521 shipped, t-2524 (D3) not started.
 - [ ] **Existing docs to update** — `docs/guide/workflows/drain-loop.md` and
   `docs/guide/workflows/epic-drain.md`'s close-anchor language (once D2 lands, `t-2502`'s
   epic-scoped anchor workaround should be revisited per ADR-069 Consequences: "t-2502

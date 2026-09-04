@@ -90,7 +90,15 @@ if [ -z "$RUFLO_PATH" ]; then
     fi
 fi
 
-assert "ruflo findable via at least one strategy" "true" "$([ -n "$RUFLO_PATH" ] && echo true || echo false)"
+# Ground truth for "is ruflo installed at all" — a runner that never ran
+# `npm i -g ruflo` (CI) is a genuinely different, non-failing case from a
+# real bug where all three of bulk-index.mjs's own resolution strategies
+# come up empty despite ruflo being present (t-3280).
+if command -v ruflo >/dev/null 2>&1 || [ -n "$NPM_ROOT" ]; then
+    assert "ruflo findable via at least one strategy" "true" "$([ -n "$RUFLO_PATH" ] && echo true || echo false)"
+else
+    echo "  SKIP: ruflo not installed on this runner (npm i -g ruflo) — Test 3/4 need a real install"
+fi
 
 if [ -n "$RUFLO_PATH" ]; then
     echo "Test 4: ruflo deps exist at resolved path ($RUFLO_PATH)"

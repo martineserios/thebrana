@@ -228,6 +228,10 @@ fn main() {
                 EpicCmd::Unfocus => run_or_exit(commands::session::cmd_epic_unfocus()),
                 EpicCmd::Status { json } => run_or_exit(commands::session::cmd_epic_status(json)),
             },
+            SessionCmd::Lane { cmd } => match cmd {
+                LaneCmd::Init { session_id, task_id } => run_or_exit(commands::session::cmd_lane_init(&session_id, task_id)),
+                LaneCmd::Resume { task_id, json } => run_or_exit(commands::session::cmd_lane_resume(task_id, json)),
+            },
         },
         Commands::Knowledge { cmd } => match cmd {
             KnowledgeCmd::Reindex { changed, patterns, files } => {
@@ -290,6 +294,7 @@ fn main() {
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),
         Commands::Decisions { cmd } => run_or_exit(commands::decisions::cmd_decisions(cmd)),
+        Commands::Adr { cmd } => run_or_exit(commands::adr::cmd_adr(cmd)),
         Commands::Log { entries, tags } => {
             run_or_exit(commands::log::cmd_log(&entries, tags.as_deref()))
         }

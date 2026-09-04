@@ -1,6 +1,7 @@
 # Runtime state (ruflo / agentdb)
 .swarm/
 .claude/memory.db
+.claude/adr-registry.json
 agentdb.rvf*
 .claude-flow/
 .hive-mind/

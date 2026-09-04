@@ -23,6 +23,19 @@ fail() { echo "FAIL: $1"; FAIL=$((FAIL+1)); }
 
 echo "=== ruflo version resolution (t-2627) ==="
 
+# This whole suite exists to catch a stale PINNED ruflo install, not to
+# require one — a runner with no ruflo at all (e.g. CI, which doesn't npm
+# install it) is a genuinely different, non-failing case (t-3280). Detect it
+# via the wrapper's own resolution (nvm-aware, unlike a plain `command -v`)
+# rather than duplicating its lookup logic here.
+_probe_stderr="$("$MCP_SCRIPT" --version 2>&1 >/dev/null)"
+if printf '%s' "$_probe_stderr" | grep -q "ruflo not found in nvm or PATH"; then
+    echo "  SKIP: ruflo not installed on this runner (npm i -g ruflo to exercise this suite)"
+    echo ""
+    echo "Results: 0 passed, 0 failed"
+    exit 0
+fi
+
 # Test 1: ruflo-mcp.sh no longer reports the pinned stale version.
 mcp_version="$("$MCP_SCRIPT" --version 2>/dev/null | tr -d '[:space:]')"
 if [ -n "$mcp_version" ] && [ "$mcp_version" != "$PINNED_VERSION" ] && [[ "$mcp_version" != *"$PINNED_VERSION"* ]]; then

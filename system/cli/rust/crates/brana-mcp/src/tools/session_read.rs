@@ -43,7 +43,20 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 };
 
                 match resolved {
-                    None => Ok(serde_json::json!({ "found": false })),
+                    None => {
+                        // ADR-069 D1: a caller must be able to tell "genuinely nothing
+                        // written yet" apart from "wrong key — state exists elsewhere in
+                        // this store" (e.g. an explicit --epic/branch guess that missed a
+                        // file that DOES exist under a different key). `found: false` alone
+                        // collapses that distinction; `miss_kind` restores it without
+                        // breaking existing `found` consumers.
+                        let any_state_exists =
+                            !session::lane_state_paths(&session::resolve_memory_dir(&root)).is_empty();
+                        Ok(serde_json::json!({
+                            "found": false,
+                            "miss_kind": if any_state_exists { "wrong_key" } else { "no_state" },
+                        }))
+                    }
                     Some(state) => {
                         let as_value = serde_json::to_value(&state).map_err(|e| e.to_string())?;
 
@@ -206,5 +219,46 @@ mod tests {
             .unwrap();
         assert_eq!(explicit_out["found"], true);
         assert_eq!(explicit_out["accomplished"], json!(["written under the orphan sentinel"]));
+    }
+
+    // ADR-069 D1: a miss must carry a typed signal distinguishing "genuinely nothing
+    // written yet" from "wrong key — state exists elsewhere in this store". The
+    // scenario above (branch-guess misses the orphan-routed state) is the "wrong_key"
+    // case; this test covers the "no_state" case, an empty store.
+    #[tokio::test]
+    async fn test_session_read_miss_kind_distinguishes_no_state_from_wrong_key() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new();
+
+        // Nothing written anywhere in the store.
+        let no_state_out = build()
+            .handle(json!({}), pmcp::RequestHandlerExtra::default())
+            .await
+            .unwrap();
+        assert_eq!(no_state_out["found"], false);
+        assert_eq!(no_state_out["miss_kind"], "no_state");
+
+        // Now write SOMETHING (under an unrelated explicit epic), so the store is
+        // non-empty but the default branch-only guess still misses it.
+        let root = _h.project_root();
+        session::write_state(
+            &root,
+            &serde_json::from_value(json!({
+                "version": 1,
+                "written_at": "2026-09-04T00:00:00Z",
+                "branch": "close/fix/t-9999-dummy",
+                "epic": "some-other-unit",
+                "accomplished": ["exists under a different key"]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let wrong_key_out = build()
+            .handle(json!({}), pmcp::RequestHandlerExtra::default())
+            .await
+            .unwrap();
+        assert_eq!(wrong_key_out["found"], false);
+        assert_eq!(wrong_key_out["miss_kind"], "wrong_key");
     }
 }
