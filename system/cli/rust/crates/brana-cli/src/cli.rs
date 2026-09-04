@@ -1285,6 +1285,14 @@ pub enum WaveCmd {
         /// the output); a shipped wave remains an error.
         #[arg(long)]
         dry_run: bool,
+        /// Fan-out width (ADR-090 §1 `N`). With --dry-run, report the
+        /// WHOLE beat's decisions — every task an N-wide beat would claim,
+        /// plus why it stops short of N. Without --dry-run and n > 1, run
+        /// the real beat (t-3271): N sequential atomic pulls, each with its
+        /// own lock and lease, reporting `pulled_task_ids` and why it
+        /// stopped. n = 1 keeps the single-pull output unchanged.
+        #[arg(short = 'n', long = "n", default_value = "1", value_parser = clap::value_parser!(usize))]
+        n: usize,
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,

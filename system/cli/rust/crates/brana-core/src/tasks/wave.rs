@@ -396,6 +396,46 @@ pub fn wave_pull_decision(wave: &Value, tasks: &[Value], waves: &[Value]) -> Res
     }
 }
 
+/// t-3268 (ADR-090 §1): pull up to N tasks within one beat instead of
+/// exactly one. Pure — loops the same in-memory contract as
+/// `wave_pull_decision`: each iteration re-derives `live` from a locally
+/// mutated task snapshot (the pulled task flipped to `in_progress`,
+/// mirroring what `pull_wave_task`'s real write does), so `wip_limit` binds
+/// correctly across pulls within the same beat, not just once at entry.
+/// Stops after `n` pulls, or on the first non-`Pulled` decision (`AtLimit`/
+/// `NoneEligible`), appended as the final element so the caller always
+/// knows why the beat stopped short of `n`. No new locking primitive —
+/// this function only decides; `pull_wave_task` remains the sole atomic
+/// write path, called once per real pull by the beat's caller.
+pub fn wave_pull_decision_n(
+    wave: &Value,
+    tasks: &[Value],
+    waves: &[Value],
+    n: usize,
+) -> Result<Vec<PullDecision>, String> {
+    let mut working: Vec<Value> = tasks.to_vec();
+    let mut decisions = Vec::with_capacity(n);
+    for _ in 0..n {
+        let decision = wave_pull_decision(wave, &working, waves)?;
+        match &decision {
+            PullDecision::Pulled { task_id } => {
+                if let Some(t) = working
+                    .iter_mut()
+                    .find(|t| t["id"].as_str() == Some(task_id.as_str()))
+                {
+                    t["status"] = Value::String("in_progress".into());
+                }
+                decisions.push(decision);
+            }
+            PullDecision::AtLimit { .. } | PullDecision::NoneEligible { .. } => {
+                decisions.push(decision);
+                break;
+            }
+        }
+    }
+    Ok(decisions)
+}
+
 /// t-2813 (ADR-079 §3): the atomic pull — ONE lock_tasks critical section:
 /// lock → fresh read → decide (`wave_pull_decision` on the just-read state) →
 /// write in_progress + started → save. Count-then-pull as two calls is the
@@ -441,6 +481,96 @@ pub fn pull_wave_task(path: &Path, wave_id: &str, claimant: &str) -> Result<Pull
     Ok(decision)
 }
 
+/// t-3271 (ADR-090 §1/§2): why the beat stopped. `ReachedN` is the only
+/// terminal state that is not a `PullDecision` — the fan-out cap binding is
+/// the beat's own bound, invisible to a single pull, so it has no
+/// single-pull equivalent to reuse.
+#[derive(Debug, PartialEq, Eq)]
+pub enum BeatStop {
+    /// `n` pulls completed. The operator's fan-out cap bound, not the wave.
+    ReachedN,
+    /// `wip_limit` bound before `n` was reached (possibly mid-beat).
+    AtLimit { live: usize, limit: u64 },
+    /// The eligible pool ran dry before `n` was reached.
+    NoneEligible { matched: usize, unapproved: usize, parked: usize, human: usize, blocked: usize, deferred: usize },
+}
+
+/// t-3271: one N-wide pull beat's result — the ids actually claimed, plus
+/// why the beat ended. Both matter to the caller: the ids are what it
+/// dispatches worktrees for, and the stop reason is the difference between
+/// "the operator's cap is too small" and "the approval queue is empty"
+/// (ADR-090 §5's named risk — invisible if only the count were returned).
+#[derive(Debug, PartialEq, Eq)]
+pub struct BeatPull {
+    pub pulled: Vec<String>,
+    pub stop: BeatStop,
+}
+
+/// t-3271 (ADR-090 §1): the REAL N-wide pull beat — `n` sequential
+/// `pull_wave_task` calls, each taking its OWN `lock_tasks` critical section
+/// and writing its own lease, stopping early on the first non-`Pulled`
+/// decision.
+///
+/// Deliberately NOT built on `wave_pull_decision_n` (t-3268): that function
+/// is a pure in-memory simulation over a locally mutated snapshot — it never
+/// locks and never writes, so dispatching against its ids would hand N
+/// worktrees tasks that no lease protects and no concurrent pump can see
+/// claimed. The ids here come from real writes only.
+///
+/// Equally deliberately NOT one lock around N writes: batching would put the
+/// whole beat in one critical section and re-open the TOCTOU that ADR-080 §5
+/// closed per pull. Sequential-with-its-own-lock also gives the property the
+/// batched form cannot have — pull `k` reads the `in_progress` rows pulls
+/// `1..k-1` committed, so `wip_limit` binds *inside* the beat.
+///
+/// `n` must be at least 1, for the same reason `dry_run_wave_pull_n` requires
+/// it: a 0-beat would return an empty success without ever validating the
+/// wave.
+///
+/// On an error partway through, the ids already claimed are named in the
+/// error — they are `in_progress` under a live lease and would otherwise be
+/// silently orphaned by a caller that only sees `Err`.
+pub fn pull_wave_tasks_n(
+    path: &Path,
+    wave_id: &str,
+    claimant: &str,
+    n: usize,
+) -> Result<BeatPull, String> {
+    if n == 0 {
+        return Err(format!(
+            "n must be at least 1 to pull from wave {wave_id} — 0 pulls nothing"
+        ));
+    }
+    let mut pulled: Vec<String> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let decision = pull_wave_task(path, wave_id, claimant).map_err(|e| {
+            if pulled.is_empty() {
+                e
+            } else {
+                format!(
+                    "{e} — beat already claimed {} task(s) ({}); they are in_progress under a \
+                     live lease and need acking or reclaiming",
+                    pulled.len(),
+                    pulled.join(", ")
+                )
+            }
+        })?;
+        match decision {
+            PullDecision::Pulled { task_id } => pulled.push(task_id),
+            PullDecision::AtLimit { live, limit } => {
+                return Ok(BeatPull { pulled, stop: BeatStop::AtLimit { live, limit } })
+            }
+            PullDecision::NoneEligible { matched, unapproved, parked, human, blocked, deferred } => {
+                return Ok(BeatPull {
+                    pulled,
+                    stop: BeatStop::NoneEligible { matched, unapproved, parked, human, blocked, deferred },
+                })
+            }
+        }
+    }
+    Ok(BeatPull { pulled, stop: BeatStop::ReachedN })
+}
+
 /// t-2862 (ADR-080 §1/§6c): shadow drain — the rehearsal primitive. Computes
 /// the full pull decision on a fresh read and writes NOTHING. A `queued` wave
 /// is simulated as-if-draining (returned bool = simulated) so a graph can be
@@ -448,27 +578,68 @@ pub fn pull_wave_task(path: &Path, wave_id: &str, claimant: &str) -> Result<Pull
 /// `shipped` wave remains a caller error.
 pub fn dry_run_wave_pull(path: &Path, wave_id: &str) -> Result<(PullDecision, bool), String> {
     let _lock = lock_tasks(path)?;
-    let val = load_raw(path)?;
+    let (wave, tasks_snapshot, waves_snapshot, simulated) =
+        rehearsal_target(&load_raw(path)?, wave_id)?;
+    let decision = wave_pull_decision(&wave, &tasks_snapshot, &waves_snapshot)?;
+    Ok((decision, simulated))
+}
 
+/// t-3276 (ADR-090 §1): the N-capable rehearsal — `dry_run_wave_pull`'s
+/// sibling for the fan-out beat, exactly as `wave_pull_decision_n` is
+/// `wave_pull_decision`'s. Computes the WHOLE beat's decisions on a fresh
+/// read and writes NOTHING, with the same `queued` → as-if-draining
+/// simulation (returned bool = simulated).
+///
+/// Why a sibling rather than "run the single dry-run and assume N of it":
+/// an N-beat's blast radius is N worktrees and N branches, and the beat can
+/// stop short of N for reasons only the loop surfaces (`wip_limit` binding
+/// mid-beat, the eligible pool running dry). Rehearsing one pull reports a
+/// fraction of what arming would actually claim — the operator would be
+/// sizing `N` against a decision that never modeled `N`.
+///
+/// `n` must be at least 1: an `n` of 0 would loop zero times and return an
+/// empty "all clear" without ever validating the wave, so a shipped (never
+/// rehearsable) wave would come back Ok. Fail loud instead.
+pub fn dry_run_wave_pull_n(
+    path: &Path,
+    wave_id: &str,
+    n: usize,
+) -> Result<(Vec<PullDecision>, bool), String> {
+    if n == 0 {
+        return Err(format!(
+            "n must be at least 1 to rehearse wave {wave_id} — 0 rehearses nothing"
+        ));
+    }
+    let _lock = lock_tasks(path)?;
+    let (wave, tasks_snapshot, waves_snapshot, simulated) =
+        rehearsal_target(&load_raw(path)?, wave_id)?;
+    let decisions = wave_pull_decision_n(&wave, &tasks_snapshot, &waves_snapshot, n)?;
+    Ok((decisions, simulated))
+}
+
+/// Shared setup for the dry-run pair (t-3276): locate the wave in a
+/// just-read snapshot and apply the ONE simulation rule — only `queued` is
+/// rehearsed as-if-draining. Single home so the single-pull and N-beat
+/// rehearsals can never drift on what "rehearsable" means. Everything else
+/// (shipped included) is handed to the strict decision functions unchanged
+/// and errors through them.
+fn rehearsal_target(
+    val: &Value,
+    wave_id: &str,
+) -> Result<(Value, Vec<Value>, Vec<Value>, bool), String> {
     let waves_snapshot = val["waves"].as_array().cloned().unwrap_or_default();
-    let wave = waves_snapshot
+    let mut wave = waves_snapshot
         .iter()
         .find(|w| w["id"].as_str() == Some(wave_id))
         .cloned()
         .ok_or_else(|| format!("wave {wave_id} not found"))?;
     let tasks_snapshot = val["tasks"].as_array().cloned().unwrap_or_default();
 
-    // Only `queued` is rehearsed as-if-draining; `wave_pull_decision` stays
-    // strict, so anything else (shipped included) errors through it unchanged.
     let simulated = wave["status"].as_str() == Some("queued");
-    let decision = if simulated {
-        let mut as_if = wave.clone();
-        as_if["status"] = Value::String("draining".into());
-        wave_pull_decision(&as_if, &tasks_snapshot, &waves_snapshot)?
-    } else {
-        wave_pull_decision(&wave, &tasks_snapshot, &waves_snapshot)?
-    };
-    Ok((decision, simulated))
+    if simulated {
+        wave["status"] = Value::String("draining".into());
+    }
+    Ok((wave, tasks_snapshot, waves_snapshot, simulated))
 }
 
 /// t-2844 (ADR-080 §6f): topologically order waves by gate dependency
@@ -928,6 +1099,108 @@ mod tests {
         ];
         let d = wave_pull_decision(&w, &tasks, &[]).unwrap();
         assert_eq!(d, PullDecision::Pulled { task_id: "t-2".into() });
+    }
+
+    // ── wave_pull_decision_n — N-task pull per beat (ADR-090 §1, t-3267) ────
+
+    fn eligible(id: &str, parent: &str) -> Value {
+        json!({"id": id, "subject": format!("s-{id}"), "status": "pending",
+               "tags": [], "parent": parent, "ac_state": "approved"})
+    }
+
+    #[test]
+    fn n_task_pull_pulls_n_when_headroom_covers_n() {
+        // wip_limit - live (3 - 0 = 3) >= N (2) — pulls exactly N, no
+        // AtLimit/NoneEligible tail; the beat simply stops once N is reached.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 3});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+            eligible("t-3", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 2).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::Pulled { task_id: "t-2".into() },
+            ],
+            "headroom >= N must pull exactly N tasks, nothing more"
+        );
+    }
+
+    #[test]
+    fn n_task_pull_stops_at_headroom_when_less_than_n() {
+        // wip_limit - live (2 - 1 = 1) < N (3) — pulls exactly the headroom,
+        // then reports AtLimit so the caller knows why it stopped short of N.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 2});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            ptask("t-0", "in_progress", Some("ms-1")), // pre-existing live=1
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 3).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::AtLimit { live: 2, limit: 2 },
+            ],
+            "headroom (1) < N (3) must pull exactly the headroom, then name why it stopped"
+        );
+    }
+
+    #[test]
+    fn n_task_pull_unbounded_wip_limit_pulls_exactly_n() {
+        // No `wip_limit` field at all == unbounded (ADR-079 §3 default) —
+        // the bound collapses to N directly, per ADR-090 §1.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining"});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+            eligible("t-3", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 2).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::Pulled { task_id: "t-2".into() },
+            ],
+            "unbounded (null/absent) wip_limit must pull exactly N directly"
+        );
+    }
+
+    #[test]
+    fn n_task_pull_recomputes_live_between_sequential_pulls() {
+        // live starts at 0 (nothing pre-existing in_progress); each pull
+        // within the beat must be reflected before the next candidate is
+        // decided, or this would never hit AtLimit and would over-pull past
+        // wip_limit within a single beat.
+        let w = json!({"id": "wave-2", "name": "w", "selector": "parent:ms-1",
+                       "status": "draining", "wip_limit": 2});
+        let tasks = vec![
+            ptask("ms-1", "pending", None),
+            eligible("t-1", "ms-1"),
+            eligible("t-2", "ms-1"),
+            eligible("t-3", "ms-1"),
+        ];
+        let decisions = wave_pull_decision_n(&w, &tasks, &[], 3).unwrap();
+        assert_eq!(
+            decisions,
+            vec![
+                PullDecision::Pulled { task_id: "t-1".into() },
+                PullDecision::Pulled { task_id: "t-2".into() },
+                PullDecision::AtLimit { live: 2, limit: 2 },
+            ],
+            "live must be recomputed after each pull within the beat, not read once at entry"
+        );
     }
 
     #[test]

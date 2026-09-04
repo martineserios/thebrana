@@ -94,3 +94,18 @@ Sources: talksintel.ai AIE-EU-2026 walkthrough · blog.alexrusin.com (main flow;
 ## 7. Addendum (2026-08-18) — the tracker seam, read at v1.2.3
 
 `to-tickets` publishes to "the configured tracker": `/setup-matt-pocock-skills` writes `docs/agents/issue-tracker.md` (GitHub via `gh` with native issue dependencies · GitLab via `glab` · local `.scratch/<feature>/issues/NN-<slug>.md` · **Other = freeform prose describing your workflow**). Ticket = title · what-to-build (end-to-end, no file paths) · AC checkboxes · Blocked by · Status. Readiness = one label `ready-for-agent`; five roles. Frontier = open ∧ **unblocked** ∧ unclaimed; claim = first write; resolve = answer + close + *gist+link* to the map. brana backlog fits the "Other" slot; concept map ticket→task, Blocked by→blocked_by, ready-for-agent→ac_state:approved∧¬parked∧wave, frontier→wave_pull_decision (which today ignores blocked_by — the one place his loop is stricter), comments→context dated appends, map→epic node.
+
+## 8. Addendum (2026-09-02) — video content, Sandcastle
+
+A follow-on pass fetched what a search-only pass couldn't reach: his Apr-24-2026 workshop
+"Full Walkthrough: Workflow for AI Coding." The headline finding is **Sandcastle**
+(mattpocock/sandcastle) — a working library implementing the AFK loop's parallelism as
+Docker container + git worktree per task, with planner/implementer/reviewer/merger agent
+roles. This reinforces, doesn't overturn, the KEEP-SPINE verdict above and the decision
+matrix's row #2 ADOPT call. Also surfaces a minor unresolved discrepancy: this workshop's
+"smart zone" figure (~100K tokens) vs. the ~140K cited in §6 above (from a search-only pass,
+not the video itself) — flagged, not resolved. This pass also confirmed only one substantive
+methodology video exists on his channel findable via search (§1 of the linked doc) — not a
+systematic channel enumeration. Full writeup, including a direct Sandcastle-vs-ADR-079
+mechanism comparison:
+[2026-09-02-pocock-sandcastle-video-findings.md](2026-09-02-pocock-sandcastle-video-findings.md).

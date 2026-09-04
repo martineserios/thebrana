@@ -146,6 +146,7 @@ Detect the deploy method from project files, then execute.
 
 | Indicator | Method | Command |
 |-----------|--------|---------|
+| `main` is branch-protected with required checks (`gh api repos/{owner}/{repo}/branches/main/protection` returns `required_status_checks`) | **Tier-2 PR ship** (thebrana, t-3023) | see *Tier-2 PR ship* below, then `./bootstrap.sh` from `main` |
 | `bootstrap.sh` in repo root | Bootstrap | `./bootstrap.sh` |
 | `railway.json` or `railway.toml` | Railway | `railway up` |
 | `Dockerfile` | Docker | `docker build -t <name> . && docker push <name>` |
@@ -153,6 +154,26 @@ Detect the deploy method from project files, then execute.
 | `Cargo.toml` with `publish = true` (or no `publish = false`) | Cargo publish | `cargo publish` |
 | `deploy.sh` in repo root | Custom script | `./deploy.sh` |
 | None detected | Manual | AskUserQuestion for deploy command |
+
+**Tier-2 PR ship** (`dev` → `main` through GitHub, ADR-060 tier 2). Direct pushes to `main`
+are rejected by branch protection, so the ship *is* the PR:
+
+```bash
+git push origin dev
+PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number')
+[ -z "$PR" ] && PR=$(gh pr create --base main --head dev \
+    --title "ship: dev→main $(date +%F)" \
+    --body "$(git log --oneline main..dev | head -40)" --json number -q .number 2>/dev/null \
+    || gh pr view --json number -q .number)
+gh pr checks "$PR" --watch          # required: validate, rust — refuse to continue on failure
+gh pr merge "$PR" --merge           # merge commit; GitHub refuses until checks are green
+git fetch origin && git checkout main && git merge --ff-only origin/main
+./bootstrap.sh                      # from-main guard passes here
+git checkout dev && git merge --ff-only main && git push origin dev
+```
+
+Record: the merged PR (`gh pr view "$PR" --json url,mergedAt,mergeCommit`) is the ship
+record — put its URL in the task notes / changelog entry in Step 3.
 
 **Run the detected command.** Capture stdout and stderr — they feed into the verify step.
 
@@ -192,6 +213,7 @@ Run post-deploy checks to confirm the deploy succeeded.
 | Web service | `curl -sf <health-endpoint>` if URL is known |
 | npm package | `npm view <package>@latest version` |
 | Cargo crate | `cargo search <crate> --limit 1` |
+| Tier-2 PR ship | `gh pr view <n> --json state,mergedAt` shows MERGED, `git rev-parse main origin/main` agree, then `./bootstrap.sh --check` |
 | Bootstrap | `./bootstrap.sh --check` if supported |
 | Docker | `docker run <image> --version` or health check |
 | Custom | Ask user for verification command |

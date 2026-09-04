@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-01T00:53:01Z",
+  "generated": "2026-09-02T22:16:24Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -451,6 +451,7 @@
       "title": "15 - Self-Development Workflow: The System That Maintains Itself",
       "type": "Roadmap",
       "impl_files": [
+        "system/",
         "system/skills/memory/SKILL.md",
         "system/commands/pattern-confidence.md",
         "system/agents/system-reviewer.md"
@@ -461,7 +462,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/skill-catalog.yaml",
-        "system/settings.json"
+        "system/hooks/hooks.json"
       ]
     },
     "docs/18-lean-roadmap.md": {
@@ -469,7 +470,6 @@
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/hooks.json",
-        "system/settings.json",
         "system/skills/decide/SKILL.md",
         "system/rules/sdd-tdd.md",
         "system/hooks/pre-tool-use.sh",
@@ -1284,6 +1284,11 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md": {
+      "title": "ADR-090: Same-Wave Parallel Dispatch (extends ADR-079 §3, ADR-080 §2/§3/§8)",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1336,7 +1341,7 @@
         "system/skills/my-skill/SKILL.md",
         "system/rules/my-rule.md",
         "system/hooks/my-hook.sh",
-        "system/settings.json",
+        "system/hooks/hooks.json",
         "system/agents/my-agent.md",
         "system/rules/delegation-routing.md",
         "system/plugin.json",
@@ -3992,7 +3997,7 @@
       "type": "Reflection",
       "impl_files": [
         "system/skills/",
-        "system/rules/skill-routing.md"
+        "system/rules/work-start.md"
       ]
     },
     "docs/reflections/14-mastermind-architecture.md": {
@@ -4000,7 +4005,7 @@
       "type": "Reflection",
       "impl_files": [
         "system/",
-        "system/rules/skill-routing.md",
+        "system/rules/work-start.md",
         "system/rules/",
         "system/hooks/hooks.json",
         "system/scripts/decisions.py",
@@ -4207,6 +4212,11 @@
       "impl_files": [
         "system/skills/_shared/judge-sizing.md"
       ]
+    },
+    "docs/research/2026-09-02-pocock-sandcastle-video-findings.md": {
+      "title": "Pocock video content — Sandcastle and net-new findings vs. prior research",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/research/agentic-engineering-2026-gap-analysis.md": {
       "title": "Gap Analysis: Agentic Engineering Feb–Jul 2026 vs brana",
@@ -5590,6 +5600,24 @@
       "to": "docs/ideas/drained/async-close-design.md",
       "type": "depends_on",
       "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "depends_on",
+      "computed": false
     },
     {
       "from": "docs/architecture/features/acquire-skills-guide.md",
@@ -13242,6 +13270,42 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/research/2026-08-22-pocock-alignment-decision-matrix.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "to": "docs/research/2026-09-02-pocock-sandcastle-video-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -18726,6 +18790,18 @@
       "computed": false
     },
     {
+      "from": "docs/research/2026-08-18-pocock-methodology-synthesis.md",
+      "to": "2026-09-02-pocock-sandcastle-video-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-08-22-pocock-alignment-decision-matrix.md",
+      "to": "2026-09-02-pocock-sandcastle-video-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/2026-08-23-adr-085-premortem.md",
       "to": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
       "type": "references",
@@ -18788,6 +18864,18 @@
     {
       "from": "docs/research/2026-08-30-model-effort-routing.md",
       "to": "docs/ideas/the-brana-guide.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-09-02-pocock-sandcastle-video-findings.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-09-02-pocock-sandcastle-video-findings.md",
+      "to": "docs/architecture/decisions/ADR-086-wave-as-human-unit-pocock-ticket-shape.md",
       "type": "references",
       "computed": false
     },
@@ -18949,9 +19037,9 @@
     }
   ],
   "stats": {
-    "nodes": 620,
-    "edges": 2426,
-    "typed_edges": 694,
-    "orphans": 142
+    "nodes": 622,
+    "edges": 2439,
+    "typed_edges": 697,
+    "orphans": 141
   }
 }

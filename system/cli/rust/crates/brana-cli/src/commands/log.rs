@@ -75,8 +75,10 @@ fn parse_tags(tags: Option<&str>) -> Vec<String> {
     }
 }
 
+/// `event-log.md` lives in the session/memory store, so it resolves via
+/// `find_session_root` (t-2520) — one log per repo, not one per worktree.
 fn require_project_root() -> Result<PathBuf> {
-    crate::util::find_project_root()
+    crate::util::find_session_root()
         .context("could not resolve project root (not in git repo and CLAUDE_PROJECT_DIR not set)")
 }
 

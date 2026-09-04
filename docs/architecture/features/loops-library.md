@@ -109,6 +109,7 @@ Every committed loop entry emits one record per beat, always — verbosity is a 
   "timestamp": "2026-08-14T18:02:11Z",
   "state": "active",
   "what_happened": "pulled t-2847 from wave-adr080-consumers, build framework entered (SPECIFY)",
+  "pulled_task_ids": ["t-2847"],
   "progress": {
     "kind": "bounded",
     "remaining": 4,
@@ -125,10 +126,21 @@ Field notes:
 - `beat` — 1-based sequence number, monotonic per running instance.
 - `state` — `active` (work found and pumped), `waiting` (blocked on a human valve or gate), `empty` (queue drained, nothing eligible), `stopped` (a real termination signal fired).
 - `what_happened` — free-text summary of what the beat actually did (or found), one to two sentences.
+- `pulled_task_ids` — the task ids this beat pulled from its queue, as an array, in pull order (the order `wave pull` claimed them, which is the order their leases were taken). Always an array, never a bare string: a single-task beat records an array of length 1 (`["t-2847"]`). Emitted on every record like every other field. A beat that pulled nothing records `[]` — that covers every `waiting`, `empty`, and `stopped` beat, and any `active` beat that only advanced work an earlier beat pulled. `[]` ("this beat pulled zero tasks") and a **missing key** ("this record predates the field", see below) are different answers and consumers must not conflate them. This is the record's only machine-readable task-id field; `what_happened` may still name the same ids in prose, but prose is never the source consumers parse. Under single-task dispatch the array is length ≤ 1; under [ADR-090](../decisions/ADR-090-same-wave-parallel-dispatch.md) §1 parallel dispatch one beat may hold up to `min(wip_limit − live, N)` ids.
 - `progress.kind` — `bounded` (known denominator, render a progress bar) or `unbounded` (no denominator, render a heartbeat). Declared once per entry, not re-derived per beat.
 - `progress.remaining` / `progress.total` — bounded only; null when unbounded.
 - `escalations` — zero or more `{room: "digest"|"agenda", note: "..."}` entries raised this beat.
 - `next_wake` — ISO-8601 duration (or absolute timestamp) before the next beat.
+
+**Backfill of prose-only historical records: none (decided 2026-09-03, t-3274 — the open question ADR-090 §3 left to this task).** Records written before `pulled_task_ids` existed keep their prose exactly as it is; the key stays absent rather than being reconstructed. Three reasons, checked against the repo rather than assumed:
+
+1. **Nothing reads beat records structurally today, so a backfill would ship with zero consumers.** No script writes or parses one. `system/scripts/pipeline-digest.sh:151-152` writes that loop's own delta-detection state (`latest.md` plus a `history.jsonl` of `{ts, unmerged, stale_merged, inbox}`) — a different shape, not a beat record. `system/scheduler/brana-scheduler-digest.sh` summarizes scheduler runs and never touches them. Records are emitted by the loop session itself (`docs/guide/workflows/epic-drain.md:166`, step 9 ASSIMILATE) into its own render, and transcribed into task `notes` when they serve as proof-of-life.
+
+   **Superseded as of 2026-09-04 (t-3275) — the no-backfill decision still stands.** Structural consumers now exist: `autonomous-runner.sh --run-beat` appends a record per beat to `~/.claude/scheduler/beats.jsonl` (`RUNNER_BEATS_FILE`), and both digests read `pulled_task_ids` from it to present one parallel beat's close-outs as a single batched entry (ADR-090 §4) — `system/scripts/pipeline-digest.sh` and `system/scheduler/brana-scheduler-digest.sh`, both via `BRANA_BEATS_FILE`. This changes nothing about the backfill: those consumers read only records that CARRY `pulled_task_ids`, and treat an absent key as "this record predates the field" rather than as `[]` — exactly the distinction reason 3 protects. The three prose-only historical records stay as they are.
+2. **The historical corpus is three records in one task's notes.** The only committed beat log is `epic-drain`'s proof-of-life run under t-2845 (one fixture beat plus two real beats against the `backlog-drain` epic), held as prose in `.claude/tasks.json`. That is a hand-edit of one field, not a migration — and it buys nothing until a consumer exists.
+3. **Writing `[]` onto an old record would assert a measurement the beat never took.** Those three beats are `stopped`/`waiting`/`waiting`, so `[]` would even be *correct* — which is exactly the trap. Leaving the key absent preserves the difference between "recorded zero" and "never recorded," which is the semantics the field note above makes load-bearing. A consumer meeting an old record falls back to `what_happened` prose and knows to.
+
+The absent-key case is closed-ended and shrinking, not growing: every record emitted from ADR-090 onward carries the field. If a consumer ever needs the full history structurally, backfill becomes a scoped one-off against a known three-record set, decided with that consumer's requirements in hand instead of guessed at now.
 
 This is the single source for the shape above — every catalog entry and ADR-080 reference it, never redefine their own copy.
 

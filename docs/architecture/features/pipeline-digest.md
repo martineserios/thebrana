@@ -59,9 +59,40 @@ per the graduated-autonomy ladder in
    - output: markdown to stdout + `$BRANA_DIGEST_DIR/latest.md`, one JSON line
      appended to `history.jsonl`.
    - env: `BRANA_DIGEST_DIR` (default `~/.claude/run-state/pipeline-digest`),
-     `BRANA_DIGEST_BASE` (default `dev`).
+     `BRANA_DIGEST_BASE` (default `dev`), `BRANA_BEATS_FILE` (default
+     `~/.claude/scheduler/beats.jsonl`).
+
+### Parallel-beat batching (t-3275, ADR-090 §4)
+
+N concurrent build-CLOSEs from one parallel beat land in this one queue, where
+they would otherwise read as N unrelated review items — the conflation ADR-090
+§4 names. The unmerged-branches section groups them: a beat's branches become
+ONE entry listing every task id, with the branch rows nested beneath it.
+
+Attribution comes from the append-only beat log `autonomous-runner --run-beat`
+writes (`~/.claude/scheduler/beats.jsonl`, the
+[loops-library](loops-library.md) §Beat record schema shape). Only records that
+carry `pulled_task_ids` count — a record missing the key predates the field and
+says nothing about what it pulled, which is not the same answer as an empty
+array. Task ids are read off branch names as whole tokens, so `t-9001` never
+matches `st-9001` or `t-90015`.
+
+Batching applies only to a beat that pulled **two or more** ids. One branch has
+nothing to be conflated with, so a zero- or single-task beat leaves the render
+byte-identical to its pre-t-3275 output.
 
 ## Testing
+
+`tests/scripts/test-digest-multi-task-beats.sh` — 25 checks covering both
+digest consumers and the runner that produces the records: a three-id beat
+rendering as one batched entry, a single-task beat rendering byte-identically
+to the no-beat render, `[]` versus an absent `pulled_task_ids` key staying
+distinct, a malformed log line being skipped rather than voiding the beat, and
+`--run-beat` appending a schema-shaped record. Run:
+
+```bash
+./tests/scripts/test-digest-multi-task-beats.sh
+```
 
 `tests/scripts/test-pipeline-digest.sh` — 17 checks against a fixture repo:
 section presence, artifact production, inbox names-only (a planted

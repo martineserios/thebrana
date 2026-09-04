@@ -359,7 +359,10 @@ echo ""
 
 # Check 6: No secrets
 echo "Checking for secrets..."
-SECRETS_FOUND=$(grep -rn -E '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' "$SYSTEM_DIR" 2>/dev/null | grep -v -E '(\.sh:|#|example|placeholder|never commit|/state/)' || true)
+# Skip build/dependency dirs: not source, gitignored, and system/cli/rust/target
+# alone is tens of GB — crawling it made this check (and every test that runs
+# validate.sh) take minutes once CI built the binary in-tree (t-3023).
+SECRETS_FOUND=$(grep -rn --exclude-dir=target --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=__pycache__ -E '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' "$SYSTEM_DIR" 2>/dev/null | grep -v -E '(\.sh:|#|example|placeholder|never commit|/state/)' || true)
 if [ -n "$SECRETS_FOUND" ]; then
     fail "Potential secrets found:"
     echo "$SECRETS_FOUND"
@@ -2508,6 +2511,18 @@ elif bash "$C61B_TEST" >/dev/null 2>&1; then
 else
     fail "Check 61: runner verify gate ran executor-written code on the host (host-RCE, ADR-062 C2, t-3256)"
 fi
+# Headless N-process fan-out (t-3271, ADR-090 §1/§2) — needs no bwrap. Wired into the same
+# check as the isolation battery on purpose: the fan-out's whole safety claim is that it
+# invokes the EXISTING per-task ADR-060 contract N times rather than sharing one worktree
+# between N executors. If that ever erodes into a shared tree, this is where it screams.
+C61D_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-beat.sh"
+if [ ! -f "$C61D_TEST" ]; then
+    warn "Check 61: run-beat fan-out test not found at $C61D_TEST — skipping"
+elif bash "$C61D_TEST" >/dev/null 2>&1; then
+    pass "Check 61: run-beat dispatches N executors in N isolated worktrees ✓ (t-3271, ADR-090)"
+else
+    fail "Check 61: run-beat fan-out broke per-task worktree isolation or dispatch width (ADR-090 §2, t-3271)"
+fi
 # Real (non-stub) claude -p compat check (t-3257, ADR-062) — proves sandbox_claude() can
 # actually authenticate and run the REAL subscription binary, not just contain the stub used
 # by the two checks above. OPT-IN (RUNNER_LIVE_CLAUDE_TEST=1) — makes one real API call, so it
@@ -2757,7 +2772,10 @@ else
         C70_SUMMARY=$(printf '%s\n' "$C70_OUT" | tail -1)
         pass "Check 70: $C70_SUMMARY"
     else
-        printf '%s\n' "$C70_OUT" | grep -E '^FAIL:' | sed 's/^/  /'
+        # Print the sweep's FAIL blocks (name + the suite's tail), not just the
+        # names — the tail is the only place the failing assertion is visible
+        # when this runs in CI (t-3023).
+        printf '%s\n' "$C70_OUT" | awk '/^PASS:/{p=0;next} /^FAIL:/{p=1} p' | sed 's/^/  /'
         fail "Check 70: hook test sweep — see failures above"
     fi
 fi

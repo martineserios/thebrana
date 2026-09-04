@@ -12,6 +12,13 @@
 #               consecutive-failure KILL at RUNNER_MAX_FAILS (ADR-050), and a kill-switch
 #               file (RUNNER_KILL_SWITCH). Reports ALLDONE when nothing is eligible.
 #               PR-per-task; never merges, never marks tasks completed.
+#   --run-beat  STAGE 4 (ADR-090 §1/§2, t-3271): ONE beat of a draining WAVE at fan-out
+#               width N — pull up to N tasks via `brana backlog wave pull -n N` (N real
+#               sequential atomic pulls, each with its own lease), then dispatch N
+#               `claude -p` processes IN PARALLEL, one per pulled id, each in its own
+#               ephemeral worktree. Same ADR-060 isolation contract as --run-one, invoked
+#               N times instead of once — no new isolation primitive (ADR-090 §2). Needs
+#               --wave <id> (or RUNNER_WAVE). Never merges, never marks tasks completed.
 #
 # Native only — no ruflo. Modelled on system/scripts/feed-summarize.sh.
 #
@@ -40,12 +47,37 @@
 #   RUNNER_MAX_FAILS     consecutive-failure kill threshold (default 3, ADR-050 cap)
 #   RUNNER_KILL_SWITCH   abort if this file exists (default ~/.claude/scheduler/runner.stop)
 #   RUNNER_LOCK_FILE     flock path serializing batch runs (default ~/.claude/scheduler/locks/autonomous-runner.lock)
+# Env (--run-beat adds; also honours KILL_SWITCH + LOCK_FILE above):
+#   RUNNER_WAVE          wave id to pull from (or --wave <id>). No default — a beat with no
+#                        wave is a caller error, never a fall-through to another mode.
+#   RUNNER_FANOUT        ADR-090 §1's `N`: fan-out width for the beat (default 1 = today's
+#                        single dispatch). The real width is min(wip_limit - live, N) —
+#                        the wave's wip_limit still bounds it, per pull.
+#   RUNNER_CLAIMANT      lease claimant for the beat's pulls (default runner:beat-<pid>)
+#   RUNNER_TASKS_FILE    tasks.json to pull against (passed to `wave pull --file`); default
+#                        is the CLI's own auto-detection
+#   BRANA_BIN            brana binary used for the wave pull / task read (default: brana)
+#   RUNNER_BEATS_FILE    beat-record log the digests read (default ~/.claude/scheduler/beats.jsonl,
+#                        t-3275). Append-only, loops-library schema, one line per beat.
+#   RUNNER_WT_LOCK       flock serializing git worktree ADMIN mutations across the fan-out
+#                        (default <RUNNER_WORKTREE_DIR>/.worktree-admin.lock)
 #
 # Eligibility: status==pending ∧ execution==autonomous ∧ priority!=P0 ∧ blocked_by empty.
 set -u
 
 MODE="observe"
-for a in "$@"; do case "$a" in --observe) MODE="observe" ;; --run-one) MODE="run-one" ;; --run-batch) MODE="run-batch" ;; esac; done
+WAVE_ID="${RUNNER_WAVE:-}"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --observe)   MODE="observe" ;;
+    --run-one)   MODE="run-one" ;;
+    --run-batch) MODE="run-batch" ;;
+    --run-beat)  MODE="run-beat" ;;
+    --wave)      shift; WAVE_ID="${1:-}" ;;
+    --wave=*)    WAVE_ID="${1#--wave=}" ;;
+  esac
+  shift 2>/dev/null || break
+done
 
 MAX_TASKS="${RUNNER_MAX_TASKS:-5}"
 PLAN="${RUNNER_PLAN:-1}"
@@ -57,6 +89,15 @@ PUSH="${RUNNER_PUSH:-0}"
 MAX_FAILS="${RUNNER_MAX_FAILS:-3}"
 KILL_SWITCH="${RUNNER_KILL_SWITCH:-$HOME/.claude/scheduler/runner.stop}"
 RUN_LOCK="${RUNNER_LOCK_FILE:-$HOME/.claude/scheduler/locks/autonomous-runner.lock}"
+# Beat records (t-3275, ADR-090 §4). APPEND-only, one line per beat, in the runner's existing
+# run-state dir alongside LEDGER/KILL_SWITCH/RUN_LOCK — and the same dir the scheduler digest
+# already reads. Deliberately NOT $LEDGER: that file is truncated at every invocation (`: >`
+# below), so it can only ever describe the newest run, while the digests must attribute every
+# beat whose branches are still waiting at the merge valve.
+BEATS_FILE="${RUNNER_BEATS_FILE:-$HOME/.claude/scheduler/beats.jsonl}"
+FANOUT="${RUNNER_FANOUT:-1}"              # ADR-090 §1 `N` — operator-set fan-out cap
+BRANA_BIN="${BRANA_BIN:-brana}"
+CLAIMANT="${RUNNER_CLAIMANT:-runner:beat-$$}"
 FIXTURE_MODE=0; [ -n "${RUNNER_TASKS_JSON:-}" ] && FIXTURE_MODE=1
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
@@ -258,6 +299,27 @@ emit() { # id subject decision reason
     '{id:$id,subject:$s,decision:$d,reason:$r,ts:$ts}' >> "$LEDGER"
 }
 
+# emit_beat <instance> <state> <what_happened> [id...] — one loops-library beat record
+# (docs/architecture/features/loops-library.md §Beat record schema). `pulled_task_ids` is
+# always an array in pull order; a beat that pulled nothing records `[]`, which is a different
+# answer from a record that predates the field and consumers must not conflate them — so the
+# key is written on every record, never omitted.
+emit_beat() {
+  local inst="$1" state="$2" what="$3"; shift 3
+  local ids prev
+  if [ "$#" -eq 0 ]; then ids='[]'; else ids="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"; fi
+  mkdir -p "$(dirname "$BEATS_FILE")" 2>/dev/null || true
+  # `beat` is 1-based and monotonic per running instance — continue this instance's sequence.
+  # Line-at-a-time fromjson so a corrupt line can never break numbering for the next beat.
+  prev="$(jq -rR --arg i "$inst" 'fromjson? // empty | select(.instance == $i) | .beat // empty' \
+            "$BEATS_FILE" 2>/dev/null | sort -n | tail -1)"
+  jq -cn --arg loop autonomous-runner --arg i "$inst" --argjson b "$(( ${prev:-0} + 1 ))" \
+         --arg ts "$TS" --arg st "$state" --arg w "$what" --argjson ids "$ids" \
+    '{loop:$loop,instance:$i,beat:$b,timestamp:$ts,state:$st,what_happened:$w,
+      pulled_task_ids:$ids,progress:{kind:"unbounded",remaining:null,total:null},
+      escalations:[],next_wake:null}' >> "$BEATS_FILE"
+}
+
 plan_task() { # id subject -> "would-run <reason>" | "would-park <reason>"
   local id="$1" subj="$2"
   if [ "$PLAN" != "1" ]; then echo "would-run eligible"; return; fi
@@ -318,7 +380,20 @@ resolve_base_branch() {
 
 # cleanup_worktree <path> <branch> — remove an ephemeral worktree and its branch. The live
 # working tree and the base branch are NEVER touched (that is the isolation boundary, ADR-060).
-cleanup_worktree() {
+# t-3271 (ADR-090 §2): under --run-beat, N run_task children share ONE repo, and the git
+# worktree ADMIN state (.git/worktrees entries, prune, branch refs) is the one thing they
+# genuinely contend on — a `worktree prune` from one child can strip a sibling's
+# half-registered entry. Serialize only those mutations; the builds themselves stay fully
+# parallel, which is the whole point of the fan-out. At fan-out 1 this is an uncontended
+# flock, so --run-one/--run-batch behaviour is unchanged.
+WT_LOCK="${RUNNER_WT_LOCK:-${RUNNER_WORKTREE_DIR:-/tmp/brana-runner}/.worktree-admin.lock}"
+git_wt() {
+  mkdir -p "$(dirname "$WT_LOCK")" 2>/dev/null || true
+  if command -v flock >/dev/null 2>&1; then ( flock 8; "$@" ) 8>"$WT_LOCK"; else "$@"; fi
+}
+
+cleanup_worktree() { git_wt _cleanup_worktree_locked "$1" "$2"; }
+_cleanup_worktree_locked() {
   git worktree remove --force "$1" 2>/dev/null || rm -rf "$1" 2>/dev/null || true
   git worktree prune 2>/dev/null || true
   [ -n "$2" ] && git branch -D "$2" -q 2>/dev/null || true
@@ -367,7 +442,7 @@ run_task() {
   cleanup_worktree "$WT" "$BRANCH"
 
   # Isolated worktree off the base ref — its own .git/index, parallel-safe, base untouched.
-  if ! git worktree add -q "$WT" -b "$BRANCH" "$BASE_REF" 2>/dev/null; then
+  if ! git_wt git worktree add -q "$WT" -b "$BRANCH" "$BASE_REF" 2>/dev/null; then
     emit "$ID" "$SUBJ" failed "could not create worktree off $BASE_REF"
     echo "[autonomous-runner] run-task: ABORT $ID — worktree add failed (base $BASE_REF)"; return 1
   fi
@@ -463,6 +538,128 @@ if [ "$MODE" = "run-one" ]; then
   if [ -z "$TASK" ]; then echo "[autonomous-runner] run-one: no eligible task — nothing to do"; exit 0; fi
   run_task "$TASK"; rc=$?
   [ "$rc" = "1" ] && exit 1 || exit 0   # ran/parked = clean (0); only true failure is non-zero
+fi
+
+# ═════════════ STAGE 4: RUN-BEAT — headless N-process fan-out (ADR-090) ═══════
+# One beat of ONE draining wave at fan-out width N (ADR-090 §1/§2, t-3271).
+#
+# Pull: `brana backlog wave pull <wave> -n N` = N REAL sequential atomic pulls, each in its
+# own lock_tasks critical section taking its own lease (t-3271's pull_wave_tasks_n) — not a
+# simulation and not one batched claim. That matters here specifically: we fan out worktrees
+# against these ids, so every id must already be leased, or a concurrent pump could hand the
+# same task to a second executor.
+#
+# Dispatch: one `claude -p` per pulled id, each through the SAME run_task the single-task
+# path uses — its own ephemeral worktree off the integration branch, its own bwrap jail, its
+# own branch, its own inspection gate. ADR-090 §2 is explicit that this adds no new isolation
+# primitive: the ADR-060 contract is invoked N times instead of once. The known gap it
+# inherits N times over is the jail mounting no ~/.claude/projects (t-2516) — unchanged here.
+#
+# Never merges and never marks a task completed: the beat leaves N branches for the human
+# merge valve (ADR-090 §4's batched digest), exactly as --run-one leaves one.
+if [ "$MODE" = "run-beat" ]; then
+  if [ -z "$WAVE_ID" ]; then
+    echo "[autonomous-runner] run-beat: no wave — pass --wave <id> or set RUNNER_WAVE" >&2
+    exit 1
+  fi
+  case "$FANOUT" in ''|*[!0-9]*)
+    echo "[autonomous-runner] run-beat: RUNNER_FANOUT must be a positive integer (got '$FANOUT')" >&2
+    exit 1 ;;
+  esac
+  if [ "$FANOUT" -lt 1 ]; then
+    echo "[autonomous-runner] run-beat: RUNNER_FANOUT must be >= 1 (got $FANOUT)" >&2; exit 1
+  fi
+  # Kill-switch BEFORE the pull, not after: a beat that pulled and then aborted would leave
+  # N tasks in_progress under live leases with no executor behind them.
+  if [ -f "$KILL_SWITCH" ]; then
+    echo "[autonomous-runner] run-beat: kill-switch present ($KILL_SWITCH) — aborting before any work"
+    exit 0
+  fi
+  # Same non-blocking flock --run-batch uses: two overlapping beats on one repo would double
+  # the real fan-out width the operator asked for.
+  mkdir -p "$(dirname "$RUN_LOCK")" 2>/dev/null || true
+  exec 9>"$RUN_LOCK" 2>/dev/null || true
+  if command -v flock >/dev/null 2>&1 && ! flock -n 9; then
+    echo "[autonomous-runner] run-beat: another run holds the lock ($RUN_LOCK) — exiting"; exit 0
+  fi
+
+  PULL_ARGS=(backlog wave pull "$WAVE_ID" -n "$FANOUT" --claimant "$CLAIMANT")
+  [ -n "${RUNNER_TASKS_FILE:-}" ] && PULL_ARGS+=(--file "$RUNNER_TASKS_FILE")
+  # Keep the CLI's stderr: a beat that fails PARTWAY through has already claimed tasks, and
+  # `pull_wave_tasks_n` names them in its error precisely so they are not silently orphaned
+  # in_progress under a live lease. Swallowing it would turn a reclaimable failure into an
+  # invisible one — so surface the CLI's own message rather than asserting nothing happened.
+  PULL_ERR="$(mktemp "${TMPDIR:-/tmp}/brana-beat-pullerr-XXXXXX")"
+  if ! PULL_OUT="$("$BRANA_BIN" "${PULL_ARGS[@]}" 2>"$PULL_ERR")"; then
+    echo "[autonomous-runner] run-beat: wave pull failed for $WAVE_ID — no executor dispatched." >&2
+    echo "[autonomous-runner] run-beat: any task the CLI names below was CLAIMED before the failure and needs acking or reclaiming:" >&2
+    sed 's/^/  /' "$PULL_ERR" >&2
+    rm -f "$PULL_ERR"
+    exit 1
+  fi
+  rm -f "$PULL_ERR"
+  # n=1 keeps the single-pull output shape ({"pulled": id|null}); n>1 reports the array plus
+  # a `stopped` reason. Accept both so RUNNER_FANOUT=1 needs no special case.
+  BEAT_IDS="$(printf '%s' "$PULL_OUT" | jq -r '(.pulled_task_ids // [.pulled]) | map(select(. != null)) | .[]' 2>/dev/null)"
+  BEAT_STOP="$(printf '%s' "$PULL_OUT" | jq -r '.stopped // (if .at_limit then "at_limit" elif .none_eligible then "none_eligible" else "reached_n" end)' 2>/dev/null)"
+  if [ -z "$BEAT_IDS" ]; then
+    emit_beat "$WAVE_ID" empty "wave $WAVE_ID claimed nothing (stopped=${BEAT_STOP:-unknown})"
+    echo "[autonomous-runner] run-beat: ALLDONE — wave $WAVE_ID claimed nothing (stopped=${BEAT_STOP:-unknown})"
+    echo "[autonomous-runner] ledger: $LEDGER"
+    exit 0
+  fi
+
+  # Resolve a pulled id to its task object. The pull just flipped these to in_progress, so
+  # the top-of-script pending query never contains them — read each one directly.
+  beat_task_json() {
+    if [ -n "${RUNNER_TASKS_JSON:-}" ]; then
+      printf '%s' "$TASKS_JSON" | jq -c --arg id "$1" '.[] | select(.id==$id)' 2>/dev/null | head -1
+    else
+      "$BRANA_BIN" backlog get "$1" 2>/dev/null | jq -c '.' 2>/dev/null
+    fi
+  }
+
+  BEATDIR="$(mktemp -d "${TMPDIR:-/tmp}/brana-runner-beat-XXXXXX")"
+  BEAT_PIDS=(); BEAT_DIDS=()
+  for BID in $BEAT_IDS; do
+    BTASK="$(beat_task_json "$BID")"
+    if [ -z "$BTASK" ]; then
+      # Claimed but unreadable: say so loudly — the task is in_progress under a live lease
+      # with no executor, which is the reclaimer's problem, not a silent skip.
+      emit "$BID" "" failed "pulled but not readable — in_progress under a live lease, needs acking or reclaiming"
+      echo "[autonomous-runner] run-beat: WARN $BID pulled but not readable — left claimed, needs reclaiming" >&2
+      continue
+    fi
+    # Per-child output is buffered to a file and replayed in pull order, so N interleaved
+    # run_task logs stay readable.
+    run_task "$BTASK" >"$BEATDIR/$BID.log" 2>&1 &
+    BEAT_PIDS+=("$!"); BEAT_DIDS+=("$BID")
+  done
+
+  RAN=0; PARKED=0; FAILED=0
+  if [ "${#BEAT_PIDS[@]}" -gt 0 ]; then
+    for i in "${!BEAT_PIDS[@]}"; do
+      wait "${BEAT_PIDS[$i]}"; rc=$?
+      cat "$BEATDIR/${BEAT_DIDS[$i]}.log" 2>/dev/null
+      case "$rc" in
+        0) RAN=$((RAN+1)) ;;
+        2) PARKED=$((PARKED+1)) ;;
+        *) FAILED=$((FAILED+1)) ;;
+      esac
+    done
+  fi
+  rm -rf "$BEATDIR"
+  # The beat record is what lets both digests present these N close-outs as ONE review item
+  # instead of N unrelated ones (ADR-090 §4). Every id the beat CLAIMED goes in, including any
+  # that failed to dispatch — they are in_progress under this beat's lease either way, so the
+  # digest must still show them as this beat's.
+  emit_beat "$WAVE_ID" active \
+    "fan-out $FANOUT: dispatched ${#BEAT_PIDS[@]}, ran $RAN, parked $PARKED, failed $FAILED (stopped=${BEAT_STOP:-unknown})" \
+    $BEAT_IDS
+  echo "[autonomous-runner] run-beat: wave=$WAVE_ID fanout=$FANOUT dispatched=${#BEAT_PIDS[@]} ran=$RAN parked=$PARKED failed=$FAILED (pull stopped=${BEAT_STOP:-unknown})"
+  echo "[autonomous-runner] run-beat: NOT merged — each task sits on its own branch awaiting human review."
+  echo "[autonomous-runner] ledger: $LEDGER"
+  exit 0
 fi
 
 # ════════════════════════════════ STAGE 3: RUN-BATCH ══════════════════════════

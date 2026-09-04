@@ -53,14 +53,36 @@ assert_valid_json() {
     fi
 }
 
+# Is this machine oversubscribed badly enough that a wall-clock measurement
+# says nothing about the code under test? Threshold is 2x the core count: the
+# hook is mostly waiting on subprocesses, so it tolerates a load equal to nproc
+# without trouble (measured: 34/34 green at load 17-19 on 8 cores).
+_severely_loaded() {
+    local cores load
+    cores=$(nproc 2>/dev/null) || cores=""
+    load=$(cut -d' ' -f1 /proc/loadavg 2>/dev/null | cut -d. -f1) || load=""
+    case "${cores}${load}" in *[!0-9]*|"") return 1 ;; esac
+    [ "$load" -gt $(( cores * 2 )) ]
+}
+
 assert_timing() {
     local label="$1" elapsed="$2" max_ms="$3"
     if [ "$elapsed" -le "$max_ms" ]; then
         PASS=$((PASS + 1))
         echo "  PASS: $label (${elapsed}ms <= ${max_ms}ms)"
+    elif _severely_loaded; then
+        # Belt and braces, never a substitute for the fix (t-2988): the budget
+        # is met because the hook's synchronous path is bounded, not because
+        # this guard is here. It fires only on a measurement that already
+        # failed, and only when the box is more than 2x oversubscribed — a
+        # regression on an idle or normally busy machine still reports FAIL.
+        # Deliberately neither PASS nor FAIL: a timing sample taken under
+        # thrashing is missing data, and counting it as a pass would let a real
+        # regression through whenever CI happened to be busy.
+        echo "  SKIP: $label — took ${elapsed}ms (max ${max_ms}ms) at load $(cut -d' ' -f1 /proc/loadavg) on $(nproc) cores; machine oversubscribed >2x, wall-clock not meaningful"
     else
         FAIL=$((FAIL + 1))
-        echo "  FAIL: $label — took ${elapsed}ms, max ${max_ms}ms"
+        echo "  FAIL: $label — took ${elapsed}ms, max ${max_ms}ms (load $(cut -d' ' -f1 /proc/loadavg), $(nproc) cores)"
     fi
 }
 
@@ -113,7 +135,18 @@ else
     echo "  SKIP: no tasks.json in project"
 fi
 
-# ── Test 6: Hook completes within 8s (budget for parallel CF searches) ──
+# ── Test 6: Hook completes within 8s ──
+# The 8000ms is not a magic number: Phase 3 waits on its parallel jobs against
+# a declared 5000ms deadline (pinned independently by Test 15), so this budget
+# says the hook's own synchronous half must stay under ~3s on top of that.
+#
+# It used to fail routinely — 33s in the t-2988 report, 85s and 109s when that
+# task was picked up — and was read as an over-tight budget flaking under load.
+# It was not. The hook was doing ~75s of unbounded synchronous work before it
+# emitted a byte: two O(sessions-ever-started) scans of ~/.claude/projects
+# (Test 19) and an unbounded `brana skills usage` (Test 20), plus 5s and 3s of
+# back-to-back waiting where one 5s deadline was meant. Those are fixed in the
+# hook, so this assertion measures what it always claimed to.
 echo ""
 echo "Test 6: timing (must complete within 8000ms)"
 INPUT=$(jq -n --arg sid "$SESSION_ID-timing" --arg cwd "$(pwd)" '{session_id: $sid, cwd: $cwd}')
@@ -248,6 +281,11 @@ fi
 # t-1937 added a parallel job and raised the wait to 5000ms. This runs the same
 # un-trimmed hook as Test 6, so it is held to the same 8s budget; the 7000ms
 # figure was a leftover that the hook now legitimately exceeds (~7.2s measured).
+#
+# Worth keeping distinct from Test 6 rather than deduplicating: it is the second
+# invocation in one test run, which is where the t-2622 orphaned-stdout hang and
+# the per-invocation $TMPDIR_SS collision of t-2969 both showed up. A repeat run
+# exercises state the first one leaves behind.
 echo ""
 echo "Test 12: repeat timing (must complete within 8000ms)"
 INPUT=$(jq -n --arg sid "$SESSION_ID-trim" --arg cwd "$(pwd)" '{session_id: $sid, cwd: $cwd}')
@@ -316,30 +354,196 @@ INPUT=$(jq -n --arg sid "$SESSION_ID-nocf" --arg cwd "/tmp" '{session_id: $sid, 
 OUTPUT=$(CF="" bash "$HOOKS_DIR/session-start.sh" <<< "$INPUT" 2>/dev/null | grep '^{' | head -1) || OUTPUT='{"continue":true}'
 assert_valid_json "no ruflo → valid JSON" "$OUTPUT"
 
-# ── Test 18: Skill hints section emitted when brana available ──
+# ── Test 18: Skill hints section emitted from the hints cache ──
 echo ""
 echo "Test 18: skill hints appear in additionalContext"
 # cwd was hardcoded to the author's checkout — the path does not exist on CI,
 # so the hook emitted no skill hints and all three assertions failed there.
 #
-# The hints themselves come from `brana skills usage --days 30`, i.e. accumulated
-# telemetry under $HOME. A clean runner has none, so the hook correctly emits no
-# [Skill hints] section and these assertions cannot pass there. Skip loudly on an
-# unprovisioned runner rather than fail — and keep asserting on a machine that
-# does have usage data, where a regression would be real.
-HAVE_USAGE=$(cd "$REPO_ROOT" && brana skills usage --days 30 --json 2>/dev/null \
-    | jq -r '[.skills[].name] | length' 2>/dev/null) || HAVE_USAGE=0
-if [ "${HAVE_USAGE:-0}" -gt 0 ]; then
+# Source of the hints changed in t-2988. It used to be a live
+# `brana skills usage --days 30` on the hook's synchronous path; that call walks
+# every transcript under ~/.claude/projects (29.5s measured) and was half of why
+# Tests 6/12 blew their budget. The hook now reads a cache that its own Phase 5
+# background block refreshes, so this test gates on the cache — the input the
+# read path actually has — instead of re-running the expensive query itself.
+# A clean runner has no cache yet and correctly emits no section: skip loudly
+# there rather than fail, and keep asserting where a regression would be real.
+#
+# The old assertions looked for /brana:close and /brana:build anywhere in
+# additionalContext. Both also occur in unrelated sections ("Consider running
+# /brana:close to extract learnings"), so they passed without the hints section
+# containing either. Assert against the section's own text and the cache's real
+# contents instead.
+HINTS_CACHE="$HOME/.claude/cache/skill-hints.txt"
+if [ -s "$HINTS_CACHE" ]; then
     INPUT=$(jq -n --arg sid "$SESSION_ID-hints" --arg cwd "$REPO_ROOT" '{session_id: $sid, cwd: $cwd}')
     OUTPUT=$(bash "$HOOKS_DIR/session-start.sh" <<< "$INPUT" 2>/dev/null) || OUTPUT='{"continue":true}'
     CTX=$(echo "$OUTPUT" | grep '^{' | head -1 | jq -r '.additionalContext // ""' 2>/dev/null) || CTX=""
     assert_contains "skill hints section present" "$CTX" "[Skill hints]"
-    assert_contains "skill hints contains /brana:close" "$CTX" "/brana:close"
-    assert_contains "skill hints contains /brana:build" "$CTX" "/brana:build"
+    assert_contains "skill hints has usage heading" "$CTX" "Top skills (by usage):"
+    # Every cached hint line must reach additionalContext verbatim.
+    HINTS_MISSING=""
+    while IFS= read -r hint_line; do
+        case "$hint_line" in /*) ;; *) continue ;; esac
+        [[ "$CTX" == *"$hint_line"* ]] || HINTS_MISSING="${HINTS_MISSING:+$HINTS_MISSING, }$hint_line"
+    done < "$HINTS_CACHE"
+    if [ -z "$HINTS_MISSING" ]; then
+        PASS=$((PASS + 1))
+        echo "  PASS: all cached hint lines present in additionalContext"
+    else
+        FAIL=$((FAIL + 1))
+        echo "  FAIL: cached hint lines missing from additionalContext: $HINTS_MISSING"
+    fi
 else
-    echo "  SKIP: no skill-usage telemetry under \$HOME — hints cannot be emitted"
+    echo "  SKIP: no skill-hints cache under \$HOME — hints cannot be emitted"
 fi
 rm -f "/tmp/brana-session-${SESSION_ID}-hints.jsonl" "/tmp/brana-context-${SESSION_ID}-hints.md"
+
+# ── Test 19: no O(all-sessions) scan of ~/.claude/projects on the hot path ──
+# t-2988 root cause. ~/.claude/projects gains one directory per CC session ever
+# started (14,676 on the machine where Tests 6/12 were failing) while only ~57
+# of them hold a memory/MEMORY.md. The hook used to walk every entry with a
+# `[ -d ]` stat per iteration — 45s of pure stat() churn per scan, run twice,
+# synchronously. That, not "system load", is where the 33-109s went.
+#
+# The invariant: resolve the auto-memory dir by globbing the MEMORY.md files
+# themselves (visits ~57 paths), never by iterating the session-dir glob. This
+# is a source-shape assertion because the cost is invisible on a fresh $HOME —
+# a timing test alone would go green on any machine that has not accumulated
+# thousands of session dirs, i.e. exactly the machines where CI runs.
+echo ""
+echo "Test 19: no full ~/.claude/projects directory scan in hook"
+# Strip comment lines first: the fix above documents the pattern it removed,
+# and a shape assertion must read code, not the prose explaining it.
+DIR_SCANS=$(grep -v '^[[:space:]]*#' "$HOOKS_DIR/session-start.sh" 2>/dev/null \
+    | grep -cE 'for [A-Za-z_]+ in "\$HOME"/\.claude/projects/\*/;') || DIR_SCANS=0
+if [ "$DIR_SCANS" -eq 0 ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: no session-dir glob loop (memory files globbed directly)"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: $DIR_SCANS loop(s) iterate every ~/.claude/projects entry — O(sessions-ever-started)"
+fi
+
+# ── Test 20: every synchronous external CLI call is timeout-bounded ──
+# Second half of the t-2988 root cause, and the one that generalises: the hook
+# emits its JSON contract synchronously, so any un-timed external invocation on
+# that path is an unbounded stall. `brana skills usage --days 30` measured 29.5s
+# here (it walks the same 14k session dirs from inside the Rust CLI). A bigger
+# magic number in Tests 6/12 would have hidden that; a bound on each call fixes
+# the class — no external tool's latency can blow the hook budget again.
+#
+# Scope is the critical path only: everything after the PHASE 5 marker runs
+# backgrounded and disowned, after the JSON is already on stdout, so it is
+# deliberately exempt.
+echo ""
+echo "Test 20: synchronous external CLI calls are timeout-wrapped"
+P5_LINE=$(grep -n 'PHASE 5:' "$HOOKS_DIR/session-start.sh" | head -1 | cut -d: -f1) || P5_LINE=""
+if [ -z "$P5_LINE" ]; then
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: PHASE 5 marker not found — cannot delimit the critical path"
+else
+    UNBOUNDED=$(sed -n "1,${P5_LINE}p" "$HOOKS_DIR/session-start.sh" \
+        | grep -nE '"\$(BRANA_BIN|BRANA_QUERY|_BRANA_REM|BRANA_RECALL)"' \
+        | grep -vE '\[ -[xzn] ' \
+        | grep -v 'timeout ') || UNBOUNDED=""
+    if [ -z "$UNBOUNDED" ]; then
+        PASS=$((PASS + 1))
+        echo "  PASS: all synchronous brana invocations are timeout-bounded"
+    else
+        FAIL=$((FAIL + 1))
+        echo "  FAIL: unbounded synchronous invocation(s):"
+        echo "$UNBOUNDED" | sed 's/^/    /'
+    fi
+fi
+
+# ── Test 21: SCRIPT_DIR resolves before the hook changes directory ──
+# The hook cds to /tmp early, then reaches lib/ and scripts/ helpers through
+# SCRIPT_DIR. That assignment used to come after the cd, so `dirname` of a
+# relative $0 could no longer be cd'd into and SCRIPT_DIR came out empty —
+# every helper behind it silently did nothing. Invisible in practice because CC
+# and this file both invoke the hook by absolute path, and invisible in output
+# because the helpers are all best-effort (t-2988).
+#
+# Asserted on source order rather than by running the hook twice: a behavioural
+# check would have to diff two additionalContext blobs whose recall and flywheel
+# sections legitimately differ between runs.
+echo ""
+echo "Test 21: SCRIPT_DIR assigned before the cd"
+SD_LINE=$(grep -n '^SCRIPT_DIR=' "$HOOKS_DIR/session-start.sh" | head -1 | cut -d: -f1) || SD_LINE=""
+CD_LINE=$(grep -n '^cd /tmp' "$HOOKS_DIR/session-start.sh" | head -1 | cut -d: -f1) || CD_LINE=""
+if [ -n "$SD_LINE" ] && [ -n "$CD_LINE" ] && [ "$SD_LINE" -lt "$CD_LINE" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: SCRIPT_DIR set at line $SD_LINE, before cd at line $CD_LINE"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: SCRIPT_DIR at line ${SD_LINE:-?} must precede cd at line ${CD_LINE:-?}"
+fi
+
+# ── Test 22: the two O(sessions-ever) lookups are cache reads, not scans ──
+# Both the skill hints and the auto-memory dir are resolved by walking every
+# entry under ~/.claude/projects. Neither can be made cheap in place — you
+# cannot tell which of 14,676 session dirs qualifies without touching all of
+# them — so the fix is that the hook's synchronous path never does it: Phase 5
+# refreshes each cache in the background and Phase 2 only reads (t-2988).
+echo ""
+echo "Test 22: expensive lookups refreshed in background, not on the hot path"
+P5_START=$(grep -n 'PHASE 5:' "$HOOKS_DIR/session-start.sh" | head -1 | cut -d: -f1) || P5_START=""
+REFRESH_ON_HOT_PATH=""
+for script in skill-hints-refresh.sh memory-dir-cache.sh; do
+    # Drop comment lines. The filter has to allow for grep -n's "NNN:" prefix —
+    # the Phase 2 read comments point at these scripts by name too.
+    # Sites reach helpers through the resolver (t-3277): match `_helper <name>`
+    # as well as a literal scripts/<name> path.
+    line=$(grep -nE "(scripts/|_helper )$script" "$HOOKS_DIR/session-start.sh" \
+        | grep -vE '^[0-9]+:[[:space:]]*#' | head -1 | cut -d: -f1) || line=""
+    if [ -z "$line" ]; then
+        REFRESH_ON_HOT_PATH="${REFRESH_ON_HOT_PATH:+$REFRESH_ON_HOT_PATH, }$script (not referenced)"
+    elif [ -z "$P5_START" ] || [ "$line" -lt "$P5_START" ]; then
+        REFRESH_ON_HOT_PATH="${REFRESH_ON_HOT_PATH:+$REFRESH_ON_HOT_PATH, }$script (line $line, before PHASE 5)"
+    fi
+    [ -x "$HOOKS_DIR/../scripts/$script" ] || REFRESH_ON_HOT_PATH="${REFRESH_ON_HOT_PATH:+$REFRESH_ON_HOT_PATH, }$script (not executable)"
+done
+if [ -z "$REFRESH_ON_HOT_PATH" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: both cache refreshes run in the PHASE 5 background block"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: $REFRESH_ON_HOT_PATH"
+fi
+
+# ── Test 23: helpers resolve from a hook copy that has no sibling scripts/ ──
+# hooks.json invokes $HOME/.claude/hooks/session-start.sh — a deployed COPY.
+# Every helper used to be reached as $SCRIPT_DIR/../scripts/<name>, which is
+# system/scripts/ in the repo but ~/.claude/scripts/ once deployed, and nothing
+# deploys that directory. Each [ -x ] guard then failed silently and the feature
+# vanished only on the live surface (t-3277). Two assertions close the class:
+# a behavioural one (a copy with no scripts/ sibling still finds the helper in
+# the session's repo) and a structural one (no site bypasses the resolver).
+echo ""
+echo "Test 23: helpers resolve when the hook runs from a deployed copy"
+DEPLOY_DIR=$(mktemp -d)
+cp "$HOOK" "$DEPLOY_DIR/session-start.sh"
+cp -r "$HOOKS_DIR/lib" "$DEPLOY_DIR/lib"
+DEPLOY_OUT=$(
+    cd "$DEPLOY_DIR" && env -u CLAUDE_PLUGIN_ROOT BRANA_HOOK_TRACE=1 \
+    bash -c 'echo "{\"session_id\":\"'"${SESSION_ID}-deploy"'\",\"cwd\":\"'"$REPO_ROOT"'\"}" \
+        | bash "$0" 2>&1' "$DEPLOY_DIR/session-start.sh"
+)
+rm -rf "$DEPLOY_DIR"
+rm -f "/tmp/brana-session-${SESSION_ID}-deploy.jsonl" "/tmp/brana-context-${SESSION_ID}-deploy.md"
+assert_contains "deployed copy resolves reminder-context.sh via the repo" \
+    "$DEPLOY_OUT" "[helper] reminder-context.sh -> $REPO_ROOT/system/scripts/reminder-context.sh"
+DIRECT_REFS=$(grep -n 'SCRIPT_DIR/\.\./scripts/' "$HOOKS_DIR/session-start.sh" \
+    | grep -vE '^[0-9]+:[[:space:]]*#' || true)
+if [ -z "$DIRECT_REFS" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: no helper site bypasses the resolver"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: direct \$SCRIPT_DIR/../scripts references remain:"
+    echo "$DIRECT_REFS" | sed 's/^/        /'
+fi
 
 # ── Cleanup ──
 rm -f "$CONTEXT_FILE"

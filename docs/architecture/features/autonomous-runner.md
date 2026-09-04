@@ -1,6 +1,6 @@
 # Feature Spec — Autonomous Task Runner
 
-**Task:** t-2140 · **Status:** Stages 1-3 built + worktree isolation (t-2146, ADR-060) · Stage 4 = t-2142 · **Date:** 2026-06-20
+**Task:** t-2140 · **Status:** Stages 1-3 built + worktree isolation (t-2146, ADR-060) · beat mode built (t-3271, ADR-090) · Stage 4 (learned eligibility) = t-2142 · **Date:** 2026-06-20
 **Basis:** ADR-059 (substrate selection) · [substrate-leverage-audit](../../research/substrate-leverage-audit.md) · ADR-050 (autonomy caps) · [ADR-060](../decisions/ADR-060-branch-strategy-autonomous-agents.md) (branch strategy: agents cut from `dev` in ephemeral worktrees, PR to `dev`, human promotes `dev`→`main`)
 
 Distinguish from [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md)'s epic runner: that is the current supervised pump (presence `inside`/`valve`), already shipped. This doc describes the *future* satellite runner (presence `none`) — see [the-brana.md](../the-brana.md) §Cycle "Two runners, one seam" (L3.4) for how they converge onto the same beat via `epic-drain`'s `presence: none` mode.
@@ -36,6 +36,13 @@ Stage 2  SINGLE-TASK    ← runs ONE eligible task → PR → stops. Human revie
 Stage 3  BOUNDED BATCH  ← many tasks/run, all bounds + kill-switch, PR-per-task. ← BUILT
 Stage 4  LEARNED        ← graduates task shapes to auto-eligible from track record. (t-2142)
 ```
+
+**Beat mode is a fourth *mode*, not this ladder's Stage 4.** `--run-beat`
+(ADR-090, t-3271, built) is labelled `STAGE 4` in the script's own header because
+it is the script's fourth mode; it adds *width* to the Stage 2 executor and does
+not touch eligibility. The ladder's Stage 4 (LEARNED, t-2142) is still unbuilt.
+The collision is named here rather than silently renumbered on either side — see
+**Beat mode** below.
 
 Each stage is gated by the prior earning trust. Stage 1 proves *judgment* (right task pick, right done-vs-park call) **before** the runner can touch a file.
 
@@ -155,6 +162,56 @@ N tasks on N branches (base pristine); `RUNNER_MAX_TASKS` cap respected; 3-conse
 kill stops the batch (4th never attempted); kill-switch file aborts; `ALLDONE` on empty
 backlog; mid-batch `NEEDSHUMAN` parks without counting as a failure.
 
+## Beat mode — headless N-wide fan-out (`--run-beat`, ADR-090)
+
+`system/scripts/autonomous-runner.sh --run-beat --wave <wave-id>`
+
+**Does:** one beat of ONE draining wave at fan-out width `N` — the headless half
+of [ADR-090](../decisions/ADR-090-same-wave-parallel-dispatch.md) §1/§2, whose
+supervised half is `/loop epic-drain`
+([epic-drain.md](../../guide/workflows/epic-drain.md) §Fan-out width `N`, the
+operator-facing guide). It pulls with `brana backlog wave pull <wave> -n N` — N
+**real sequential atomic pulls**, each in its own `lock_tasks` section taking its
+own lease, not a simulation and not one batched claim — then dispatches one
+`claude -p` per pulled id **in parallel**, each through the same `run_task` the
+single-task path uses: its own ephemeral worktree off the integration branch, its
+own bwrap jail, its own branch, its own inspection gate. ADR-090 §2 is explicit
+that this adds **no new isolation primitive**: the ADR-060 contract is invoked N
+times instead of once, and it inherits the same known gaps N times over.
+
+**Env** (adds to the shared set; also honours `RUNNER_KILL_SWITCH` and
+`RUNNER_LOCK_FILE`):
+- `RUNNER_WAVE` — wave to pull from, or `--wave <id>`. No default: a beat with no
+  wave is a caller error, never a fall-through to another mode.
+- `RUNNER_FANOUT` — ADR-090 §1's `N` (default 1 = today's single dispatch). Real
+  width is `min(wip_limit − live, N)` — the wave's `wip_limit` still bounds it.
+- `RUNNER_CLAIMANT` — lease claimant for the beat's pulls (default `runner:beat-<pid>`).
+- `RUNNER_TASKS_FILE` — tasks.json to pull against (passed to `wave pull --file`).
+- `BRANA_BIN` — brana binary for the pull / task read (default `brana`).
+- `RUNNER_WT_LOCK` — flock serializing git worktree **admin** mutations across the
+  fan-out (default `<RUNNER_WORKTREE_DIR>/.worktree-admin.lock`) — N children share
+  one repo, so worktree add/remove is serialized while the builds run in parallel.
+
+**Ordering guarantees:** the kill-switch is checked **before** the pull, never
+after — a beat that claimed and then aborted would leave N tasks `in_progress`
+under live leases with no executor behind them. The same non-blocking `flock` as
+`--run-batch` serializes whole beats, so two overlapping beats can't double the
+width the operator asked for. A pull that fails partway surfaces the CLI's own
+stderr, which names the ids already claimed, rather than asserting nothing
+happened.
+
+**Outcomes:** `ALLDONE` when the pull claims nothing (`pulled_task_ids: []` with
+its `stopped` reason). Otherwise a per-child ledger row, children's logs replayed
+in pull order, and a summary line with `dispatched / ran / parked / failed` plus
+the pull's stop reason. Like every other mode it **never merges and never marks a
+task completed** — the beat leaves N branches for the human merge valve
+(ADR-090 §4's batched digest), exactly as `--run-one` leaves one.
+
+**Tests:** `test-autonomous-runner-beat.sh`, gated in `validate.sh` as Check 61 —
+N executors in N isolated worktrees, `RUNNER_FANOUT=1` byte-compatible with the
+single-pull output shape, zero-pull `ALLDONE`, missing-wave error, kill-switch
+before pull.
+
 ## Capability isolation (the OS boundary) — t-2173, ADR-062
 
 A git worktree isolates *tracked files in a checkout*, not the *OS process*. The executor
@@ -237,6 +294,10 @@ lands. The OBSERVE planner (tools `Read,Grep,Glob` only, no Bash/network leg) is
 
 ## Changelog
 
+- 2026-09-03: Beat mode (`--run-beat`) documented as the script's fourth mode
+  (t-3272, docs-only; the mode itself shipped in t-3271 under ADR-090). Names the
+  Stage-4 numbering collision with the still-unbuilt learned-eligibility rung
+  instead of renumbering either side.
 - 2026-08-31: Check 61's real-claude compat check added (t-3257) — closes the gap where the
   stub-based escape battery could stay green while real `claude -p` failed to authenticate in
   the jail (the 2026-06-22 regression class). Opt-in (`RUNNER_LIVE_CLAUDE_TEST=1`), not part of

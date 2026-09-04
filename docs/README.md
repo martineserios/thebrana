@@ -214,6 +214,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-087](architecture/decisions/ADR-087-knowledge-pipeline-platform-adapters.md) | Knowledge-pipeline PlatformAdapter (t-3151) — content-shape dispatch via a closed 2-variant enum (ShortSignal / LongForm): LongForm Tier1 auto-pass, Tier2 embedding clustering, Tier3 excerpt-grounded drafts; shared canonical URL identity |
 | [ADR-088](architecture/decisions/ADR-088-session-scoped-epic-focus.md) | Epic focus resolves per-session (task-derived), not via a shared `active_epic` file — retires the write path ADR-066/t-2158 project-scoped; `active_initiative` untouched |
 | [ADR-089](architecture/decisions/ADR-089-integral-temporal-model.md) | Integral temporal model — task/reminder/scheduler-job kind-split, unified eligibility predicate, compute-don't-copy, snooze≠deadline firewall, per-priority lead times, recurrence as trigger expression, staged soak-gated rollout (extends ADR-051/ADR-054, respects ADR-002/ADR-071) |
+| [ADR-090](architecture/decisions/ADR-090-same-wave-parallel-dispatch.md) | Same-wave parallel dispatch — epic runner pulls up to `min(wip_limit-live, N)` tasks per beat instead of exactly one; supervised Agent/Task or headless N-process `claude -p` dispatch; net-new `pulled_task_ids` beat-record field (extends ADR-079 §3, ADR-080 §2/§3/§8) |
 
 > Coverage is checked by `system/scripts/readme-coverage.sh` (t-3031) — run it before adding a doc; `tests/scripts/test-readme-coverage.sh` fails when a row is missing or dead.
 
@@ -289,6 +290,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [knowledge-architecture-v2.md](architecture/features/knowledge-architecture-v2.md) | Knowledge Architecture v2 — implementation spec for ADR-021 (in-progress; not to be confused with ADR-021 itself) |
 | [knowledge-pipeline-compute.md](architecture/features/knowledge-pipeline-compute.md) | Knowledge pipeline compute routing — `brana knowledge ingest` as the single URL writer (shipped, t-1665) |
 | [knowledge-process-url.md](architecture/features/knowledge-process-url.md) | `brana knowledge process-url` — headless-first fetch architecture, implementation spec for ADR-070 (building) |
+| [lane-identity.md](architecture/features/lane-identity.md) | Lane identity — session-state key unification and miss semantics, implementation spec for ADR-069 (specifying) |
 | [linkedin-content-implementation.md](architecture/features/linkedin-content-implementation.md) | LinkedIn content pipeline — implementation design (designing) |
 | [lint-heal-deterministic.md](architecture/features/lint-heal-deterministic.md) | Lint+Heal L2 — deterministic memory consolidation (specced) |
 | [living-docs.md](architecture/features/living-docs.md) | Living documentation system — composable `/brana:docs`, spec-graph routed; shipped |

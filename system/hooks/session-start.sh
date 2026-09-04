@@ -9,12 +9,27 @@
 # in parallel (2s timeout), collect results, emit JSON. Fork logging
 # to background after response. Timing marks in /tmp/brana-startup-timing.log.
 
+# Resolve our own directory BEFORE the cd below (t-2988). This used to sit
+# further down, after `cd /tmp`, so a relative invocation (`bash
+# system/hooks/session-start.sh`) left SCRIPT_DIR empty: dirname gives a
+# relative path, and cd-ing to it from /tmp fails. Everything reached through
+# SCRIPT_DIR then silently did nothing — lib/venture.sh, and now the scripts/
+# helpers this hook delegates to. CC and the tests both invoke by absolute path,
+# which is why it went unnoticed.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+
 # Ensure valid CWD
 cd /tmp 2>/dev/null || true
 
 # ── Startup timing (diagnostic) ─────────────────────────
 _TIMING_LOG="/tmp/brana-startup-timing.log"
-_ts() { echo $(( $(date +%s) * 1000 )); }
+# Epoch ms. NOT `date +%s%3N` — the %N width is silently ignored here, yielding
+# nanoseconds. A failed read gives 0, floored by the Phase 3 wait loop so it
+# degrades to per-job budgets rather than killing every job instantly (t-2988).
+_ts() {
+    local ns; ns=$(date +%s%N 2>/dev/null) || { echo 0; return; }
+    case "$ns" in *[!0-9]*|"") echo 0 ;; *) echo $(( ns / 1000000 )) ;; esac
+}
 _mark() { echo "[brana-diag] $1 $(_ts)" >> "$_TIMING_LOG" 2>/dev/null || true; }
 _mark "hook-start"
 
@@ -33,7 +48,22 @@ fi
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || echo "$CWD")
 PROJECT=$(basename "$GIT_ROOT")
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ── Helper resolution (t-3277) ──
+# Helpers live in system/scripts/. Relative to this file that is ../scripts in
+# the repo, but hooks.json runs the COPY in ~/.claude/hooks, whose sibling
+# scripts/ is not deployed by anything — so every helper vanished only on the
+# live surface. Try the sibling, then the plugin root, then the session's repo.
+# BRANA_HOOK_TRACE=1 reports each resolution on stderr (tests read it).
+_helper() {
+    local d
+    for d in "$SCRIPT_DIR/../scripts" "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/scripts" "$GIT_ROOT/system/scripts"; do
+        if [ -x "$d/$1" ]; then
+            [ -n "${BRANA_HOOK_TRACE:-}" ] && echo "[helper] $1 -> $d/$1" >&2
+            echo "$d/$1"; return 0
+        fi
+    done
+    return 1
+}
 
 # Source profile library for effort level
 source "$SCRIPT_DIR/lib/profile.sh" 2>/dev/null || true
@@ -278,11 +308,10 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         fi
     # See the t-2622 note above the Job 1 subshell — same orphaned-stdout hang.
     ) >/dev/null 2>&1 &
-    # Not added to PIDS — the PIDS kill loop has a timing issue where
-    # date +%s%3N gives nanoseconds on Linux, making REMAINING_MS always
-    # negative and killing jobs before they write their results. Recall
-    # is waited on separately in Phase 3 with a proper 3s wall-clock guard.
-    RECALL_PID="$!"
+    # Waited on with every other job under Phase 3's single deadline. Held out
+    # of PIDS while the kill loop misread `date +%s%3N` as ms; that bug is gone,
+    # but its separate 3s wait ran AFTER the 5s one (t-2988).
+    PIDS="$PIDS $!"
 fi
 
 # ══════════════════════════════════════════════════════════
@@ -348,7 +377,8 @@ fi
 DRIFT_CONTEXT=""
 DRIFT_SCRIPT="$SCRIPT_DIR/config-drift.sh"
 if [ -f "$DRIFT_SCRIPT" ]; then
-    DRIFT_JSON=$(bash "$DRIFT_SCRIPT" </dev/null 2>/dev/null) || true
+    # Timeout-bounded like every synchronous external here (t-2988).
+    DRIFT_JSON=$(timeout -k 1 5 bash "$DRIFT_SCRIPT" </dev/null 2>/dev/null) || true
     DRIFT_STATUS=$(echo "$DRIFT_JSON" | jq -r '.status // empty' 2>/dev/null) || true
     if [ "$DRIFT_STATUS" = "drifted" ]; then
         DRIFT_COUNT=$(echo "$DRIFT_JSON" | jq -r '.count' 2>/dev/null) || DRIFT_COUNT=0
@@ -383,7 +413,7 @@ STALE_BINARY_WARNING=""
 _BRANA_BIN=$(command -v brana 2>/dev/null) || true
 if [ -n "${_BRANA_BIN:-}" ] && [ -x "$_BRANA_BIN" ]; then
     _BIN_MTIME=$(stat -c %Y "$_BRANA_BIN" 2>/dev/null) || _BIN_MTIME=0
-    _LAST_CLI_CT=$(git -C "$GIT_ROOT" log --format="%ct" -1 -- system/cli/ 2>/dev/null) || _LAST_CLI_CT=""
+    _LAST_CLI_CT=$(timeout -k 1 3 git -C "$GIT_ROOT" log --format="%ct" -1 -- system/cli/ 2>/dev/null) || _LAST_CLI_CT=""
     if [ -n "$_LAST_CLI_CT" ] && [ "${_BIN_MTIME:-0}" -lt "$_LAST_CLI_CT" ]; then
         _BIN_DATE=$(date -d "@$_BIN_MTIME" "+%Y-%m-%d %H:%M" 2>/dev/null) || _BIN_DATE="unknown"
         _COMMIT_DATE=$(date -d "@$_LAST_CLI_CT" "+%Y-%m-%d %H:%M" 2>/dev/null) || _COMMIT_DATE="unknown"
@@ -392,59 +422,18 @@ if [ -n "${_BRANA_BIN:-}" ] && [ -x "$_BRANA_BIN" ]; then
 fi
 unset _BRANA_BIN _BIN_MTIME _LAST_CLI_CT _BIN_DATE _COMMIT_DATE
 
-# ── Pending reminder count + past-due task links (t-1967/t-2116, ADR-051 §3) ──
-# Pending count: pure jq read — no Rust invocation (binary startup blows the
-# <50ms budget), no transition writes. Count may be slightly stale (can include
-# technically expired reminders) — accepted. Silent on missing/empty/corrupt store or 0.
-# Past-due task links: also pure jq on store; one brana invocation per due+linked
-# entry (rare) to look up task subject. Guarded — degrades silently if binary absent.
+# ── Pending reminders (t-1967/t-2116, ADR-051 §3) ──
+# Pure-jq read of the reminder store plus a per-past-due-entry task lookup.
+# Body lives in scripts/reminder-context.sh: session-start.sh is against the
+# repo's 50KB cap (validate.sh Check 8), so self-contained blocks move out
+# rather than being trimmed to fit (t-2988). Timeout-bounded like every other
+# synchronous external on this path.
 REMINDER_CONTEXT=""
-_REMINDER_STORE="$HOME/.claude/reminders.json"
-if [ -s "$_REMINDER_STORE" ]; then
-    _R_COUNTS=$(jq -r '[.reminders[]? | select(.status == "pending")] | "\(length) \([.[] | select(.priority == "high")] | length)"' "$_REMINDER_STORE" 2>/dev/null) || _R_COUNTS=""
-    _R_PENDING="${_R_COUNTS%% *}"
-    _R_HIGH="${_R_COUNTS##* }"
-    if [ -n "$_R_PENDING" ] && [ "$_R_PENDING" -gt 0 ] 2>/dev/null; then
-        REMINDER_CONTEXT="$_R_PENDING pending"
-        [ "${_R_HIGH:-0}" -gt 0 ] 2>/dev/null && REMINDER_CONTEXT="$REMINDER_CONTEXT ($_R_HIGH high)"
-        REMINDER_CONTEXT="$REMINDER_CONTEXT. brana remind list"
-    fi
-    # Past-due reminders linked to backlog tasks (t-2116)
-    # Filter: pending, never dispatched, due field in the past, task_id set.
-    # fromdateiso8601 parses RFC3339 → epoch seconds; now returns current epoch seconds.
-    _DUE_LINKED=$(jq -r '
-        [.reminders[]? |
-            select(
-                .status == "pending" and
-                .dispatched_at == null and
-                .due != null and
-                (.due | fromdateiso8601) <= now and
-                .task_id != null
-            ) |
-            "\(.id)\t\(.task_id)"
-        ] | .[]
-    ' "$_REMINDER_STORE" 2>/dev/null) || _DUE_LINKED=""
-    if [ -n "$_DUE_LINKED" ]; then
-        _BRANA_REM="${BRANA_BIN:-$(command -v brana 2>/dev/null || true)}"
-        while IFS=$'\t' read -r _RID _TID; do
-            [ -z "$_RID" ] && continue
-            _TSUBJECT=""
-            if [ -n "$_BRANA_REM" ] && [ -x "$_BRANA_REM" ]; then
-                _TSUBJECT=$("$_BRANA_REM" backlog get "$_TID" 2>/dev/null \
-                    | jq -r '.subject // empty' 2>/dev/null) || _TSUBJECT=""
-            fi
-            if [ -n "$_TSUBJECT" ]; then
-                _REC="$_RID is past due — linked to $_TID '$_TSUBJECT': consider /brana:backlog start $_TID"
-            else
-                _REC="$_RID is past due — linked to $_TID: consider /brana:backlog start $_TID"
-            fi
-            REMINDER_CONTEXT="${REMINDER_CONTEXT:+$REMINDER_CONTEXT
-}$_REC"
-        done <<< "$_DUE_LINKED"
-        unset _BRANA_REM _DUE_LINKED _RID _TID _TSUBJECT _REC
-    fi
+_REM_SCRIPT=$(_helper reminder-context.sh) || _REM_SCRIPT=""
+if [ -x "$_REM_SCRIPT" ]; then
+    REMINDER_CONTEXT=$(timeout -k 1 10 "$_REM_SCRIPT" "${BRANA_BIN:-}" 2>/dev/null) || REMINDER_CONTEXT=""
 fi
-unset _REMINDER_STORE _R_COUNTS _R_PENDING _R_HIGH
+unset _REM_SCRIPT
 
 # ── Daily extraction summary (t-1975, ADR-052) ────────────
 # Pure read of the newest of today's/yesterday's daily-summary file (the
@@ -480,10 +469,10 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
     [ -z "$BRANA_QUERY" ] && BRANA_QUERY="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana-query"
     if [ -x "$BRANA_QUERY" ]; then
         PROJ=$(jq -r '.project // "unknown"' "$TASKS_FILE" 2>/dev/null)
-        TOTAL=$("$BRANA_QUERY" --file "$TASKS_FILE" --count 2>/dev/null) || TOTAL=0
-        DONE=$("$BRANA_QUERY" --file "$TASKS_FILE" --status done --count 2>/dev/null) || DONE=0
-        BUGS=$("$BRANA_QUERY" --file "$TASKS_FILE" --stream bugs --status pending --count 2>/dev/null) || BUGS=0
-        NEXT_ID=$("$BRANA_QUERY" --file "$TASKS_FILE" --status pending --output ids 2>/dev/null | head -1) || NEXT_ID=""
+        TOTAL=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --count 2>/dev/null) || TOTAL=0
+        DONE=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --status done --count 2>/dev/null) || DONE=0
+        BUGS=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --stream bugs --status pending --count 2>/dev/null) || BUGS=0
+        NEXT_ID=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --status pending --output ids 2>/dev/null | head -1) || NEXT_ID=""
         NEXT_SUBJ=""
         NEXT_CTX=""
         if [ -n "$NEXT_ID" ]; then
@@ -558,7 +547,7 @@ if [ -z "${BRANA_RECAP_OFF:-}" ] && [ -n "$BRANA_BIN" ]; then
     # Try structured JSON first (new session-state.json)
     # brana session read resolves project from CWD; hook starts in /tmp so
     # we must run it from GIT_ROOT or it reads the wrong (-tmp) project.
-    SESSION_JSON=$(cd "$GIT_ROOT" 2>/dev/null && "$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
+    SESSION_JSON=$(cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
     # Discard auto-captured stub (session-end hook fallback, no useful next[])
     if echo "$SESSION_JSON" | grep -q '"auto-captured'; then SESSION_JSON=""; fi
     if [ -n "$SESSION_JSON" ]; then
@@ -579,10 +568,10 @@ Blockers: $HO_BLOCKERS"
         fi
 
         # Mark consumed (optimistic write-first) — must also run from GIT_ROOT
-        (cd "$GIT_ROOT" 2>/dev/null && "$BRANA_BIN" session mark-consumed 2>/dev/null) || true
+        (cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" session mark-consumed 2>/dev/null) || true
     else
         # Fallback: try legacy markdown handoff
-        HANDOFF_RAW=$(cd "$GIT_ROOT" 2>/dev/null && "$BRANA_BIN" handoff last 2>/dev/null) || true
+        HANDOFF_RAW=$(cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" handoff last 2>/dev/null) || true
         if [ -n "$HANDOFF_RAW" ]; then
             HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
             HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next[^*]*\*\*/,/^\*\*[A-Za-z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -10) || true
@@ -618,18 +607,24 @@ if [ -n "$BRANA_BIN" ] && [ -n "$SESSION_JSON" ]; then
     fi
 fi
 
+# ── Auto-memory dir for this project, from cache ──────────
+# t-2988: the two blocks below each resolved this by walking
+# "$HOME"/.claude/projects/*/ — one entry per CC session ever started, 14,676
+# here — costing 45s per scan, twice, synchronously, which is where session
+# start's 33-109s went. The lookup is inherently O(sessions-ever) (see
+# scripts/memory-dir-cache.sh), so it moved off the critical path entirely:
+# Phase 5 refreshes the cache, this reads it. Cold cache skips both blocks for
+# one session. See tests/hooks/test-session-start.sh Test 19.
+LAYER0_CACHE="$HOME/.claude/cache/memory-dir-${PROJECT}.path"
+LAYER0_MAX_AGE_MIN=720   # 12h
+LAYER0_DIR=""
+if [ -s "$LAYER0_CACHE" ]; then
+    LAYER0_DIR=$(head -1 "$LAYER0_CACHE" 2>/dev/null) || LAYER0_DIR=""
+    [ -n "$LAYER0_DIR" ] && [ -d "$LAYER0_DIR" ] || LAYER0_DIR=""
+fi
+
 # Fallback: check .needs-backprop flag file (legacy, during migration)
 if [ -z "$SESSION_JSON" ]; then
-    LAYER0_DIR=""
-    for projdir in "$HOME"/.claude/projects/*/; do
-        if [ -d "${projdir}memory" ]; then
-            if grep -qi "$PROJECT" "${projdir}memory/MEMORY.md" 2>/dev/null; then
-                LAYER0_DIR="${projdir}memory"
-                break
-            fi
-        fi
-    done
-
     if [ -n "$LAYER0_DIR" ]; then
         BACKPROP_FLAG="$LAYER0_DIR/.needs-backprop"
         if [ -f "$BACKPROP_FLAG" ]; then
@@ -648,16 +643,7 @@ if [ -z "$SESSION_JSON" ]; then
     fi
 fi
 
-# Check pending learnings (still uses auto memory dir)
-LAYER0_DIR=""
-for projdir in "$HOME"/.claude/projects/*/; do
-    if [ -d "${projdir}memory" ]; then
-        if grep -qi "$PROJECT" "${projdir}memory/MEMORY.md" 2>/dev/null; then
-            LAYER0_DIR="${projdir}memory"
-            break
-        fi
-    fi
-done
+# Check pending learnings (same auto-memory dir resolved above — not rescanned)
 if [ -n "$LAYER0_DIR" ] && [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
     PENDING_COUNT=$(grep -c '^## Session' "$LAYER0_DIR/pending-learnings.md" 2>/dev/null) || PENDING_COUNT=0
     if [ "$PENDING_COUNT" -gt 0 ]; then
@@ -667,24 +653,14 @@ if [ -n "$LAYER0_DIR" ] && [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
 fi
 
 # ── Session argument hints (top-6 skills by usage, t-1434 / t-1437) ──
+# Served from cache, never computed here (t-2988): `brana skills usage --days 30`
+# walks every transcript under ~/.claude/projects (~29.5s), unbounded, on the
+# synchronous path. Phase 5 refreshes it; see scripts/skill-hints-refresh.sh.
+SKILL_HINTS_CACHE="$HOME/.claude/cache/skill-hints.txt"
+SKILL_HINTS_MAX_AGE_MIN=720   # 12h
 SKILL_HINTS_CONTEXT=""
-if [ -n "$BRANA_BIN" ]; then
-    SKILLS_LIST_JSON=$(cd "$GIT_ROOT" && "$BRANA_BIN" skills list 2>/dev/null) || SKILLS_LIST_JSON=""
-    TOP_USAGE=$(cd "$GIT_ROOT" && "$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
-        | jq -r '[.skills[].name] | .[:6] | .[]' 2>/dev/null) || TOP_USAGE=""
-    if [ -n "$TOP_USAGE" ] && [ -n "$SKILLS_LIST_JSON" ]; then
-        HINT_LINES=""
-        while IFS= read -r skill_name; do
-            slug="${skill_name#brana:}"
-            slug="${slug#plugin:brana:}"
-            hint=$(echo "$SKILLS_LIST_JSON" | jq -r --arg n "$slug" \
-                '.[] | select(.name == $n) | .argument_hint // ""' 2>/dev/null | head -1) || hint=""
-            HINT_LINES="${HINT_LINES:+$HINT_LINES
-}/$skill_name${hint:+ $hint}"
-        done <<< "$TOP_USAGE"
-        [ -n "$HINT_LINES" ] && SKILL_HINTS_CONTEXT="Top skills (by usage):
-$HINT_LINES"
-    fi
+if [ -s "$SKILL_HINTS_CACHE" ]; then
+    SKILL_HINTS_CONTEXT=$(cat "$SKILL_HINTS_CACHE" 2>/dev/null) || SKILL_HINTS_CONTEXT=""
 fi
 
 # ── Recurring error detection (t-679) ────────────────────
@@ -739,17 +715,21 @@ fi
 # ══════════════════════════════════════════════════════════
 _mark "phase3-wait-start"
 
-# Wait for all parallel jobs with a hard deadline.
-# If any job is still running after the budget, kill it and proceed with
-# partial results. Budget 2s→5s (t-1937): a single ruflo CLI node startup
-# costs ~1.5-2s; with the recall job (ONNX load ~1.6s) and flywheel insight
-# running in parallel, 2s killed whichever job didn't overlap phase 2.
+# Wait for all parallel jobs — 1, 1b and 1c — against ONE hard deadline, then
+# kill whatever still runs and proceed with partial results. Budget 2s→5s
+# (t-1937): a ruflo CLI node startup costs ~1.5-2s; with recall (ONNX load
+# ~1.6s) and flywheel insight alongside, 2s killed whichever job didn't overlap
+# phase 2. Recall was waited on in a block after this one, so the waits ran back
+# to back for 5s + 3s — the whole budget spent waiting before Phase 2 counted
+# (t-2988); the jobs are concurrent, so one deadline covers all. The ms clock
+# matters here too: second-granularity reads plus a rounded-up per-job sleep
+# overshot 5000ms by ~2s.
 if [ -n "$PIDS" ]; then
-    WAIT_START=$(( $(date +%s) * 1000 ))
+    WAIT_START=$(_ts)
     for pid in $PIDS; do
         # Calculate remaining budget
-        NOW_MS=$(( $(date +%s) * 1000 ))
-        ELAPSED_MS=$((NOW_MS - WAIT_START))
+        ELAPSED_MS=$(( $(_ts) - WAIT_START ))
+        [ "$ELAPSED_MS" -lt 0 ] && ELAPSED_MS=0
         REMAINING_MS=$((5000 - ELAPSED_MS))
         if [ "$REMAINING_MS" -le 0 ]; then
             # Budget exhausted — kill remaining jobs
@@ -757,23 +737,12 @@ if [ -n "$PIDS" ]; then
             continue
         fi
         # Wait with per-job timeout (bash wait doesn't support timeout, use kill after delay)
-        ( sleep $(( (REMAINING_MS + 999) / 1000 )) && kill $pid 2>/dev/null ) &
+        ( sleep "$((REMAINING_MS / 1000)).$(printf '%03d' $((REMAINING_MS % 1000)))" && kill $pid 2>/dev/null ) &
         KILLER=$!
         wait $pid 2>/dev/null || true
         kill $KILLER 2>/dev/null || true
         wait $KILLER 2>/dev/null || true
     done
-fi
-
-# Wait for hybrid recall (Job 1c) — separate from PIDS to avoid the kill-loop
-# timing issue (date +%s%3N gives nanoseconds on Linux, not milliseconds).
-# 3-second wall-clock cap matches the timeout inside the subshell.
-if [ -n "${RECALL_PID:-}" ]; then
-    ( sleep 3 && kill "$RECALL_PID" 2>/dev/null ) &
-    _RECALL_KILLER=$!
-    wait "$RECALL_PID" 2>/dev/null || true
-    kill "$_RECALL_KILLER" 2>/dev/null || true
-    wait "$_RECALL_KILLER" 2>/dev/null || true
 fi
 
 # Read results from temp files
@@ -998,8 +967,24 @@ _mark "hook-end"
             '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
     fi
 
+    # Refresh the skill-hints cache the Phase 2 read serves from (t-2988):
+    # expensive, so it runs here, after the JSON contract is emitted.
+    HINTS_REFRESH=$(_helper skill-hints-refresh.sh) || HINTS_REFRESH=""
+    if [ -x "$HINTS_REFRESH" ] && [ -n "$BRANA_BIN" ]; then
+        "$HINTS_REFRESH" "$BRANA_BIN" "$GIT_ROOT" \
+            "$SKILL_HINTS_CACHE" "$SKILL_HINTS_MAX_AGE_MIN" 2>/dev/null || true
+    fi
+
+    # Same deal for the auto-memory dir lookup (t-2988): O(sessions-ever), so
+    # the Phase 2 read is cache-only and the scan happens here.
+    MEMDIR_REFRESH=$(_helper memory-dir-cache.sh) || MEMDIR_REFRESH=""
+    if [ -x "$MEMDIR_REFRESH" ]; then
+        "$MEMDIR_REFRESH" "$PROJECT" "$LAYER0_CACHE" \
+            "$LAYER0_MAX_AGE_MIN" 2>/dev/null || true
+    fi
+
     # Index skills into ruflo memory (only changed since last run)
-    INDEX_SKILLS="$SCRIPT_DIR/../scripts/index-skills.sh"
+    INDEX_SKILLS=$(_helper index-skills.sh) || INDEX_SKILLS=""
     if [ -x "$INDEX_SKILLS" ]; then
         "$INDEX_SKILLS" --changed 2>/dev/null || true
     fi
@@ -1012,7 +997,7 @@ _mark "hook-end"
     fi
 
     # ADR-015: sync operational state from cache to repos (push)
-    SYNC_SCRIPT="$SCRIPT_DIR/../scripts/sync-state.sh"
+    SYNC_SCRIPT=$(_helper sync-state.sh) || SYNC_SCRIPT=""
     if [ -x "$SYNC_SCRIPT" ]; then
         "$SYNC_SCRIPT" push 2>/dev/null || true
     fi
