@@ -2578,6 +2578,133 @@ mod tests {
         assert!(err.contains("at least 1"), "n=0 must fail loud: {err}");
     }
 
+    // ── pull_wave_tasks_n — the REAL N-wide pull beat (ADR-090 §1, t-3271) ──
+    //
+    // Distinct from `wave_pull_decision_n`/`dry_run_wave_pull_n`, which only
+    // simulate: this one performs N real sequential `pull_wave_task` calls,
+    // each taking its own `lock_tasks` critical section and its own lease.
+    // Nothing here batches the writes — batching is exactly what would
+    // reintroduce the TOCTOU that ADR-080 §5's per-pull lock closed.
+
+    #[test]
+    fn test_pull_wave_tasks_n_one_is_a_single_real_pull() {
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                     {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":null}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let beat = pull_wave_tasks_n(f.path(), "wave-1", "test-pump:s1", 1).unwrap();
+        assert_eq!(beat.pulled, vec!["t-1".to_string()]);
+        assert_eq!(beat.stop, BeatStop::ReachedN, "n=1 with headroom stops on n, not the pool");
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["tasks"][0]["status"], "in_progress");
+        assert_eq!(reloaded["tasks"][1]["status"], "pending", "n=1 must claim exactly one");
+    }
+
+    #[test]
+    fn test_pull_wave_tasks_n_beyond_the_pool_stops_at_none_eligible() {
+        // N (4) > eligible (2): the beat returns the PARTIAL list plus the
+        // reason it stopped. A caller that only got a count could not tell an
+        // exhausted pool from a bound one — it dispatches against the ids.
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                     {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                     {"id":"t-3","subject":"c","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"proposed"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":null}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let beat = pull_wave_tasks_n(f.path(), "wave-1", "test-pump:s1", 4).unwrap();
+        assert_eq!(beat.pulled, vec!["t-1".to_string(), "t-2".to_string()]);
+        assert_eq!(
+            beat.stop,
+            BeatStop::NoneEligible {
+                matched: 1, unapproved: 1, parked: 0, human: 0, blocked: 0, deferred: 0
+            },
+            "the tail decision must name the exhausted pool"
+        );
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["tasks"][2]["status"], "pending", "unapproved stays pending");
+    }
+
+    #[test]
+    fn test_pull_wave_tasks_n_wip_limit_binds_mid_beat() {
+        // The property a batched write could never have: pull 3 sees the
+        // in_progress rows pulls 1-2 committed, so `live` reaches wip_limit
+        // INSIDE the beat. Only real sequential pulls (each its own lock →
+        // fresh read) can observe this.
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                     {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                     {"id":"t-3","subject":"c","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":2}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let beat = pull_wave_tasks_n(f.path(), "wave-1", "test-pump:s1", 3).unwrap();
+        assert_eq!(beat.pulled, vec!["t-1".to_string(), "t-2".to_string()]);
+        assert_eq!(beat.stop, BeatStop::AtLimit { live: 2, limit: 2 });
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(reloaded["tasks"][2]["status"], "pending",
+            "wip_limit must bind mid-beat, not only at beat entry");
+    }
+
+    #[test]
+    fn test_pull_wave_tasks_n_leases_every_pulled_task_individually() {
+        // Each pull is its own atomic critical section, so each pulled task
+        // carries its OWN lease written with its own status flip — the
+        // reclaimer's unit of recovery is the task, never the beat.
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                     {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":null}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let beat = pull_wave_tasks_n(f.path(), "wave-1", "orbit:beat-42", 2).unwrap();
+        assert_eq!(beat.pulled.len(), 2);
+        let reloaded: Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        for i in 0..2 {
+            let t = &reloaded["tasks"][i];
+            assert_eq!(t["status"], "in_progress");
+            assert_eq!(t["lease"]["claimant"], "orbit:beat-42");
+            assert!(t["lease"]["expires"].is_string(),
+                "every pulled task needs its own lease, not one beat-wide lease");
+            assert!(t["started"].is_string());
+        }
+    }
+
+    #[test]
+    fn test_pull_wave_tasks_n_zero_is_a_caller_error() {
+        // Mirrors dry_run_wave_pull_n: n=0 would loop zero times and report a
+        // silent empty success on a wave that is not even pullable.
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p","tasks":[],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"shipped"}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let err = pull_wave_tasks_n(f.path(), "wave-1", "test-pump:s1", 0).unwrap_err();
+        assert!(err.contains("at least 1"), "n=0 must fail loud: {err}");
+    }
+
+    #[test]
+    fn test_pull_wave_tasks_n_non_draining_wave_is_a_caller_error() {
+        use std::io::Write;
+        let body = r#"{"version":1,"project":"p",
+            "tasks":[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}],
+            "waves":[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued","wip_limit":null}]}"#;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, "{body}").unwrap();
+        let err = pull_wave_tasks_n(f.path(), "wave-1", "test-pump:s1", 3).unwrap_err();
+        assert!(err.contains("draining"), "the real beat stays strict: {err}");
+    }
+
     #[test]
     fn test_pull_wave_task_unknown_wave_errors() {
         use std::io::Write;

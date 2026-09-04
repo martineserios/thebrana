@@ -1133,12 +1133,15 @@ pub fn cmd_wave_ship(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()>
 /// t-2813 (ADR-079 §2/§3): `backlog wave pull <id>` — one atomic pull cycle.
 /// The decision logic lives in brana_core (wave_pull_decision under
 /// pull_wave_task's lock); this is the CLI shell reporting the outcome.
-/// t-3276 (ADR-090 §1): `n` is the fan-out width to rehearse. n == 1 keeps
-/// the single-pull path byte-identical; n > 1 with `--dry-run` reports the
-/// whole beat via `dry_run_wave_pull_n`, and n > 1 without `--dry-run` is
-/// refused rather than silently pulling one — the real N-wide pull beat is
-/// not wired yet, and quietly under-delivering is how an operator ends up
-/// believing a fan-out ran.
+/// t-3276/t-3271 (ADR-090 §1): `n` is the fan-out width. n == 1 (or absent)
+/// keeps the single-pull path byte-identical — the same one-decision output
+/// every existing caller parses. n > 1 with `--dry-run` rehearses the whole
+/// beat via `dry_run_wave_pull_n`; n > 1 WITHOUT `--dry-run` runs the real
+/// beat via `pull_wave_tasks_n` (t-3271) — n sequential atomic pulls, each
+/// its own lock and lease — and reports `pulled_task_ids` plus why it
+/// stopped. It reports the ids, never just a count: the caller dispatches a
+/// worktree per id, and a short beat has to be distinguishable from a full
+/// one before it fans out.
 pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, n: usize, claimant: Option<String>, file: Option<PathBuf>) -> anyhow::Result<()> {
     // ADR-080 §5: claimant = loop name + session id. Flag wins; else derive.
     let claimant = claimant.unwrap_or_else(|| match std::env::var("BRANA_SESSION_ID") {
@@ -1149,14 +1152,6 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, n: usize, claimant: Option<St
         Some(f) => f,
         None => find_tasks_file().context("tasks.json not found")?,
     };
-    if !dry_run && n > 1 {
-        let msg = format!(
-            "--n {n} is rehearsal-only: pass --dry-run to rehearse a {n}-wide beat \
-             (the real N-wide pull beat is not wired yet)"
-        );
-        eprintln!("{}", serde_json::json!({"ok": false, "error": msg}));
-        anyhow::bail!(msg);
-    }
     if dry_run && n > 1 {
         // N-capable shadow drain (ADR-090 §1, t-3276): report every pull the
         // beat would make plus the tail decision that stopped it short of n.
@@ -1179,6 +1174,41 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, n: usize, claimant: Option<St
                 out["dry_run"] = serde_json::json!(true);
                 if simulated {
                     out["simulated_draining"] = serde_json::json!(true);
+                }
+                println!("{out}");
+                Ok(())
+            }
+            Err(e) => {
+                eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
+                Err(anyhow::anyhow!("{e}"))
+            }
+        };
+    }
+    if n > 1 {
+        // t-3271 (ADR-090 §1/§2): the real N-wide beat — `pull_wave_tasks_n`
+        // makes n sequential `pull_wave_task` calls, each its own atomic
+        // `lock_tasks` section and its own lease. NOT `wave_pull_decision_n`,
+        // which only simulates: dispatching worktrees against simulated ids
+        // would claim nothing, so a concurrent pump could hand the same task
+        // to a second executor.
+        return match tasks::pull_wave_tasks_n(&tf, wave_id, &claimant, n) {
+            Ok(beat) => {
+                let mut out = serde_json::json!({
+                    "ok": true, "id": wave_id, "n": n,
+                    "pulled_task_ids": beat.pulled,
+                });
+                match beat.stop {
+                    tasks::BeatStop::ReachedN => {
+                        out["stopped"] = serde_json::json!("reached_n");
+                    }
+                    tasks::BeatStop::AtLimit { live, limit } => {
+                        out["stopped"] = serde_json::json!("at_limit");
+                        out["at_limit"] = serde_json::json!({"live": live, "limit": limit});
+                    }
+                    tasks::BeatStop::NoneEligible { matched, unapproved, parked, human, blocked, deferred } => {
+                        out["stopped"] = serde_json::json!("none_eligible");
+                        out["none_eligible"] = serde_json::json!({"matched": matched, "unapproved": unapproved, "parked": parked, "human": human, "blocked": blocked, "deferred": deferred});
+                    }
                 }
                 println!("{out}");
                 Ok(())
@@ -3693,18 +3723,56 @@ mod tests {
     }
 
     #[test]
-    fn cmd_wave_pull_n_without_dry_run_is_refused() {
-        // Refusing beats silently pulling one: an operator who asked for a
-        // 3-wide beat must not be told "ok" after a single-task pull.
+    fn cmd_wave_pull_n_without_dry_run_runs_the_real_beat() {
+        // t-3271 (ADR-090 §1): the refusal t-3276 left here is gone — n > 1
+        // now claims for real. Three eligible, n=3, unbounded wave: all three
+        // land in_progress in one beat, each with its own lease.
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-3","subject":"c","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":null}]"#,
+        );
+        cmd_wave_pull("wave-1", false, 3, Some("orbit:beat-1".into()), Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        for i in 0..3 {
+            assert_eq!(data["tasks"][i]["status"], "in_progress", "task {i} must be claimed");
+            assert_eq!(data["tasks"][i]["lease"]["claimant"], "orbit:beat-1");
+        }
+    }
+
+    #[test]
+    fn cmd_wave_pull_n_real_beat_stops_at_the_wip_limit() {
+        // A short beat must stay a real, partial claim — not an error and not
+        // a silent full one. wip_limit 2 binds mid-beat: two claimed, one left.
+        let f = drain_fixture(
+            r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-2","subject":"b","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"},
+                {"id":"t-3","subject":"c","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining","wip_limit":2}]"#,
+        );
+        cmd_wave_pull("wave-1", false, 3, None, Some(f.path().to_path_buf())).unwrap();
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        assert_eq!(data["tasks"][0]["status"], "in_progress");
+        assert_eq!(data["tasks"][1]["status"], "in_progress");
+        assert_eq!(data["tasks"][2]["status"], "pending", "wip_limit must bind mid-beat");
+    }
+
+    #[test]
+    fn cmd_wave_pull_n_real_beat_on_a_non_draining_wave_errors() {
+        // The real beat is as strict as the single pull it loops: a queued
+        // wave is a caller error, and nothing is claimed.
         let f = drain_fixture(
             r#"[{"id":"t-1","subject":"a","status":"pending","type":"task","tags":["w1"],"blocked_by":[],"ac_state":"approved"}]"#,
-            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"draining"}]"#,
+            r#"[{"id":"wave-1","name":"w","selector":"tag:w1","gate":null,"status":"queued"}]"#,
         );
         let before = std::fs::read_to_string(f.path()).unwrap();
         let err = cmd_wave_pull("wave-1", false, 3, None, Some(f.path().to_path_buf())).unwrap_err();
-        assert!(err.to_string().contains("rehearsal-only"), "{err}");
+        assert!(err.to_string().contains("draining"), "{err}");
         assert_eq!(std::fs::read_to_string(f.path()).unwrap(), before,
-            "a refused N pull must not pull anything");
+            "a refused beat must not claim anything");
     }
 
     // ── t-2842 (ADR-080 §4): CLI wave approve — batch AC valve ───────────

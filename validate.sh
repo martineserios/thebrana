@@ -2508,6 +2508,18 @@ elif bash "$C61B_TEST" >/dev/null 2>&1; then
 else
     fail "Check 61: runner verify gate ran executor-written code on the host (host-RCE, ADR-062 C2, t-3256)"
 fi
+# Headless N-process fan-out (t-3271, ADR-090 §1/§2) — needs no bwrap. Wired into the same
+# check as the isolation battery on purpose: the fan-out's whole safety claim is that it
+# invokes the EXISTING per-task ADR-060 contract N times rather than sharing one worktree
+# between N executors. If that ever erodes into a shared tree, this is where it screams.
+C61D_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-beat.sh"
+if [ ! -f "$C61D_TEST" ]; then
+    warn "Check 61: run-beat fan-out test not found at $C61D_TEST — skipping"
+elif bash "$C61D_TEST" >/dev/null 2>&1; then
+    pass "Check 61: run-beat dispatches N executors in N isolated worktrees ✓ (t-3271, ADR-090)"
+else
+    fail "Check 61: run-beat fan-out broke per-task worktree isolation or dispatch width (ADR-090 §2, t-3271)"
+fi
 # Real (non-stub) claude -p compat check (t-3257, ADR-062) — proves sandbox_claude() can
 # actually authenticate and run the REAL subscription binary, not just contain the stub used
 # by the two checks above. OPT-IN (RUNNER_LIVE_CLAUDE_TEST=1) — makes one real API call, so it
