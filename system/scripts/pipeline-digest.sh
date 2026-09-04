@@ -16,6 +16,8 @@
 # Usage: pipeline-digest.sh [repo-path]
 #   BRANA_DIGEST_DIR  output dir (default ~/.claude/run-state/pipeline-digest)
 #   BRANA_DIGEST_BASE integration base branch (default dev)
+#   BRANA_BEATS_FILE  beat-record log used to batch one parallel beat's close-outs
+#                     (default ~/.claude/scheduler/beats.jsonl — t-3275, ADR-090 §4)
 
 set -uo pipefail
 
@@ -35,7 +37,8 @@ fi
 # Scratch object dir for the merge-tree conflict probe: new objects land here
 # (deleted on exit); existing objects are read via the alternates mechanism.
 OBJ_SCRATCH="$(mktemp -d)"
-trap 'rm -rf "$OBJ_SCRATCH"' EXIT
+BRANCH_ROWS="$(mktemp)"
+trap 'rm -rf "$OBJ_SCRATCH" "$BRANCH_ROWS"' EXIT
 REPO_OBJECTS="$(g rev-parse --path-format=absolute --git-common-dir)/objects"
 merge_probe() {  # merge_probe <base> <branch> — exit 0 clean, non-zero conflict
     GIT_OBJECT_DIRECTORY="$OBJ_SCRATCH" \
@@ -51,10 +54,56 @@ worktree_for_branch() {
         $1=="branch" && $2==b {print w; exit}'
 }
 
+# --- Beat attribution (t-3275, ADR-090 §4) --------------------------------------
+# N concurrent build-CLOSEs from one parallel beat land in this one queue. Without
+# attribution they read as N unrelated review items — the conflation ADR-090 §4
+# names. So a beat's branches are grouped into ONE entry that lists every task id.
+#
+# Source: the append-only beat log the runner's --run-beat writes (loops-library
+# §Beat record schema). Only records that CARRY `pulled_task_ids` count — a record
+# missing the key predates the field and says nothing about what it pulled, which is
+# a different answer from a record whose array is empty.
+#
+# A beat with fewer than two ids is not a batch and is skipped entirely: one branch
+# has nothing to be conflated with, so it keeps its pre-t-3275 row byte for byte.
+BEATS_FILE="${BRANA_BEATS_FILE:-$HOME/.claude/scheduler/beats.jsonl}"
+declare -a BEAT_LABEL=() BEAT_TASKS=()
+declare -A BEAT_OF_ID=()
+if [ -s "$BEATS_FILE" ] && command -v jq >/dev/null 2>&1; then
+    # Line-at-a-time fromjson: one corrupt line is skipped, it never voids the beat.
+    while IFS=$'\t' read -r b_num b_inst b_ids; do
+        [ -z "$b_ids" ] && continue
+        BEAT_LABEL+=("$b_num|$b_inst")
+        BEAT_TASKS+=("$b_ids")
+        for _id in $b_ids; do BEAT_OF_ID["$_id"]=$(( ${#BEAT_LABEL[@]} - 1 )); done
+    done < <(jq -rR '
+        fromjson? // empty
+        | select(type == "object" and has("pulled_task_ids"))
+        | select((.pulled_task_ids | type) == "array" and (.pulled_task_ids | length) >= 2)
+        | [ (if (.beat | type) == "number" then (.beat | tostring) else "?" end),
+            (.instance // .loop // "?"),
+            (.pulled_task_ids | join(" ")) ]
+        | @tsv' "$BEATS_FILE" 2>/dev/null)
+fi
+
+# beat_index_for <branch> — index into BEAT_LABEL, or "-" when no beat claims it.
+# Task ids are read off the branch name as whole tokens, so `t-9001` never matches
+# `st-9001` or `t-90015`.
+beat_index_for() {
+    local cand
+    [ "${#BEAT_LABEL[@]}" -eq 0 ] && { printf '%s' -; return; }
+    for cand in $(printf '%s' "$1" | grep -oE '(^|[^A-Za-z0-9])(st|t)-[0-9]+' \
+                                   | sed -E 's/^[^A-Za-z0-9]+//'); do
+        if [ -n "${BEAT_OF_ID[$cand]:-}" ]; then printf '%s' "${BEAT_OF_ID[$cand]}"; return; fi
+    done
+    printf '%s' -
+}
+
 unmerged_rows=""
 stale_rows=""
 n_unmerged=0
 n_stale=0
+: > "$BRANCH_ROWS"
 
 while IFS= read -r br; do
     [ -z "$br" ] && continue
@@ -83,9 +132,34 @@ while IFS= read -r br; do
             dirty=" · worktree $wt"
         fi
     fi
-    unmerged_rows="${unmerged_rows}- \`$br\` — ahead $ahead / behind $behind vs $BASE · merge: $conflict · last activity: $activity$dirty
-"
+    printf '%s\t%s\t- `%s` — ahead %s / behind %s vs %s · merge: %s · last activity: %s%s\n' \
+        "$(beat_index_for "$br")" "$br" "$br" "$ahead" "$behind" "$BASE" "$conflict" "$activity" "$dirty" \
+        >> "$BRANCH_ROWS"
 done < <(g for-each-ref refs/heads --format='%(refname:short)' --sort=-committerdate)
+
+# Assemble: an unattributed branch keeps exactly its pre-t-3275 row, in place. A beat is
+# emitted once, at the position of its first branch, with its members nested beneath it.
+declare -A BEAT_EMITTED=()
+while IFS=$'\t' read -r bidx br row; do
+    [ -z "$br" ] && continue
+    if [ "$bidx" = "-" ]; then
+        unmerged_rows="${unmerged_rows}${row}
+"
+        continue
+    fi
+    [ -n "${BEAT_EMITTED[$bidx]:-}" ] && continue
+    BEAT_EMITTED["$bidx"]=1
+    b_num="${BEAT_LABEL[$bidx]%%|*}"; b_inst="${BEAT_LABEL[$bidx]#*|}"
+    b_ids="${BEAT_TASKS[$bidx]}"
+    b_n=0; for _id in $b_ids; do b_n=$((b_n+1)); done
+    unmerged_rows="${unmerged_rows}- **beat $b_num** (\`$b_inst\`) — one parallel beat, $b_n tasks: $(printf '%s' "$b_ids" | sed 's/ /, /g')
+"
+    # members in branch order; a claimed task with no branch yet simply has no row
+    while IFS=$'\t' read -r m_idx m_br m_row; do
+        [ "$m_idx" = "$bidx" ] && unmerged_rows="${unmerged_rows}  ${m_row}
+"
+    done < "$BRANCH_ROWS"
+done < "$BRANCH_ROWS"
 
 # --- Inbox: names only, never contents ---
 inbox_rows=""

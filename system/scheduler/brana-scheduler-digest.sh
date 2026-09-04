@@ -6,6 +6,8 @@
 # Usage: brana-scheduler-digest.sh
 # Requires: ~/.hub-secrets (TELEGRAM_BOT_TOKEN, OWNER_CHAT_ID)
 #           SSH access to laptop (optional — degrades gracefully)
+# Env: BRANA_BEATS_FILE  beat-record log read to batch one parallel beat's close-outs
+#                        (default ~/.claude/scheduler/beats.jsonl — t-3275, ADR-090 §4)
 
 set -uo pipefail
 
@@ -101,6 +103,33 @@ MSG="${HEADER}
 
 ${ORACLE_SUMMARY}
 ${LAPTOP_SUMMARY}"
+
+# ── Parallel beats (t-3275, ADR-090 §4) ───────────────────────────────────
+# A beat that dispatched N tasks in parallel leaves N branches at the merge valve. They are
+# ONE review item, not N — so each such beat gets one line naming every task it pulled.
+# Only records that carry `pulled_task_ids` count: a record missing the key predates the
+# field and says nothing about what it pulled, which is not the same as an empty array.
+# A beat with fewer than two ids has nothing to conflate and adds no line, so a digest with
+# no multi-task beat is byte-identical to the pre-t-3275 message.
+BEATS_FILE="${BRANA_BEATS_FILE:-$HOME/.claude/scheduler/beats.jsonl}"
+BEAT_LINES=""
+if [ -s "$BEATS_FILE" ] && command -v jq >/dev/null 2>&1; then
+    # Line-at-a-time fromjson so one corrupt line cannot suppress the whole digest.
+    BEAT_LINES=$(jq -rR --arg d "$DATE" '
+        fromjson? // empty
+        | select(type == "object" and has("pulled_task_ids"))
+        | select((.pulled_task_ids | type) == "array" and (.pulled_task_ids | length) >= 2)
+        | select(((.timestamp // "") | tostring) | startswith($d))
+        | "  • beat \(.beat // "?") · \(.instance // .loop // "?") — \(.pulled_task_ids | length) tasks: \(.pulled_task_ids | join(", "))"
+        ' "$BEATS_FILE" 2>/dev/null | tail -10)
+fi
+
+if [ -n "$BEAT_LINES" ]; then
+    MSG="${MSG}
+
+🥁 *Parallel beats* ($(printf '%s\n' "$BEAT_LINES" | wc -l | tr -d ' '))
+${BEAT_LINES}"
+fi
 
 # Only send if there are failures, or always send (configurable)
 # Default: always send for visibility
