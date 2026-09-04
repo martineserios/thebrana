@@ -22,6 +22,17 @@ every committed loop, without forking `epic-drain.md`'s procedure content —
 same treatment as [drain-loop.md](drain-loop.md), the loop it generalizes
 (loops-library contract, §Boundaries).
 
+## Fan-out per beat (ADR-090)
+
+Each beat pulls up to `N` tasks from the active wave — `N` sequential atomic
+pulls, then **one build-loop instance per pulled task, each in its own
+worktree, dispatched via native Agent/Task fan-out and run in parallel within
+the beat** (ADR-090 §1/§2). `N` is an operator-set fan-out cap fixed at launch,
+not a wave field; the beat reports every id it pulled. Width, sequencing, and
+reporting are single-sourced in
+[docs/guide/workflows/epic-drain.md](../../docs/guide/workflows/epic-drain.md)
+§The loop prompt step 4 — not restated here.
+
 ## Denied verbs
 
 Single-sourced in [docs/guide/workflows/epic-drain.md](../../docs/guide/workflows/epic-drain.md)
