@@ -290,6 +290,7 @@ fn main() {
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),
         Commands::Decisions { cmd } => run_or_exit(commands::decisions::cmd_decisions(cmd)),
+        Commands::Adr { cmd } => run_or_exit(commands::adr::cmd_adr(cmd)),
         Commands::Log { entries, tags } => {
             run_or_exit(commands::log::cmd_log(&entries, tags.as_deref()))
         }

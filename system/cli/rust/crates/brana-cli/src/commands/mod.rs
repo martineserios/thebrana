@@ -1,3 +1,4 @@
+pub mod adr;
 pub mod backlog;
 pub mod close_queue;
 pub mod decisions;

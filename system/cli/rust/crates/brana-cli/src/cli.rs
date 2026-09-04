@@ -248,6 +248,12 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: DecisionsCmd,
     },
+    /// ADR (architecture decision record) number reservation — collision-safe
+    /// across concurrent sessions and git worktrees (t-3294)
+    Adr {
+        #[command(subcommand)]
+        cmd: AdrCmd,
+    },
     /// Append one or more URLs (or free-text notes) to the project's event-log.md
     Log {
         /// URL(s) or text to append. Duplicate URLs are silently skipped.
@@ -354,6 +360,17 @@ pub enum DecisionsCmd {
         /// Show what would be archived without moving files
         #[arg(long)]
         dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AdrCmd {
+    /// Reserve the next ADR number and create a placeholder file at
+    /// docs/architecture/decisions/ADR-{NNN}-{slug}.md — safe under concurrent sessions
+    /// and separate git worktrees (t-3294; see brana-core::adr for the mechanism).
+    Reserve {
+        /// Kebab-case topic slug, e.g. "backfill-retry-policy"
+        slug: String,
     },
 }
 
