@@ -1379,6 +1379,29 @@ pub enum ResumeMatchRule {
     TaskId,
 }
 
+/// At a single rank, decide whether to resolve, fall through, or miss outright.
+///
+/// Zero matches: no signal at this rank — try the next one. Exactly one: resolved.
+/// Two or more: ambiguous — an immediate miss (`None`), never a fall-through to a
+/// weaker rank that might resolve by coincidence (ADR-069 D2).
+fn rank_match<'a>(
+    candidates: &'a [LaneCandidate],
+    field: impl Fn(&LaneCandidate) -> Option<&str>,
+    want: Option<&str>,
+    rule: ResumeMatchRule,
+) -> Option<Option<(&'a LaneCandidate, ResumeMatchRule)>> {
+    let want = want?;
+    let matches: Vec<&LaneCandidate> = candidates
+        .iter()
+        .filter(|c| field(c) == Some(want))
+        .collect();
+    match matches.len() {
+        0 => None,                                    // no signal — try next rank
+        1 => Some(Some((matches[0], rule))),           // resolved
+        _ => Some(None),                               // ambiguous — miss, stop here
+    }
+}
+
 /// Resolve at most one lane to resume into. See module doc above for the ranking and
 /// ambiguity contract (ADR-069 D2, t-2521).
 pub fn resolve_resume_lane(
@@ -1387,8 +1410,11 @@ pub fn resolve_resume_lane(
     branch: Option<&str>,
     task_id: Option<&str>,
 ) -> Option<(LaneCandidate, ResumeMatchRule)> {
-    let _ = (candidates, worktree_path, branch, task_id);
-    todo!("t-2521: implement ranked resume-query resolution (ADR-069 D2) — see t-2529's tests for the contract")
+    rank_match(candidates, |c| c.worktree_path.as_deref(), worktree_path, ResumeMatchRule::WorktreePath)
+        .or_else(|| rank_match(candidates, |c| c.branch.as_deref(), branch, ResumeMatchRule::Branch))
+        .or_else(|| rank_match(candidates, |c| c.task_id.as_deref(), task_id, ResumeMatchRule::TaskId))
+        .flatten()
+        .map(|(c, rule)| (c.clone(), rule))
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────
@@ -3141,5 +3167,29 @@ mod tests {
         let result: Option<(LaneCandidate, ResumeMatchRule)> =
             resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
         assert!(result.is_some());
+    }
+
+    // Boundary: no lane store at all — must miss cleanly, not panic on an empty slice.
+    #[test]
+    fn resume_query_empty_candidate_list_is_a_miss() {
+        let result = resolve_resume_lane(&[], Some("/repo"), Some("main"), Some("t-1"));
+        assert!(result.is_none(), "no candidates at all must be a miss");
+    }
+
+    // Boundary: the query itself carries no signal (all None) — must miss, never match
+    // a candidate whose own fields happen to also be None.
+    #[test]
+    fn resume_query_no_query_signal_at_all_is_a_miss() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: None,
+            branch: None,
+            task_id: None,
+        }];
+        let result = resolve_resume_lane(&candidates, None, None, None);
+        assert!(
+            result.is_none(),
+            "a query with no signal must never match a candidate by coincidental None==None"
+        );
     }
 }
