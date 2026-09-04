@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-03T14:40:13Z",
+  "generated": "2026-09-04T20:23:54Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1008,7 +1008,9 @@
     "docs/architecture/decisions/ADR-052-close-queue-architecture.md": {
       "title": "ADR-052: Close Queue — Rust-Owned Writes, agy Extraction Contract",
       "type": "ADR",
-      "impl_files": []
+      "impl_files": [
+        "system/state/scheduler.json"
+      ]
     },
     "docs/architecture/decisions/ADR-053-close-oriented-modes.md": {
       "title": "ADR-053: Oriented Close Modes — Orientation Forces Weight, Flag Wins Over Classification",
@@ -1289,6 +1291,26 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md": {
+      "title": "ADR-091: Untrack `.claude/tasks.json` from git; canonical file + periodic snapshot",
+      "type": "ADR",
+      "impl_files": [
+        "system/cli/rust/crates/brana-core/src/util.rs",
+        "system/scripts/tasks-json-merge.sh",
+        "system/state/tasks-snapshot.json",
+        "system/scripts/tasks-json-snapshot.sh",
+        "system/state/"
+      ]
+    },
+    "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md": {
+      "title": "ADR-092: Graduated Loop-Autonomy Ladder (L0→L3, Promotion by Evidence)",
+      "type": "ADR",
+      "impl_files": [
+        "system/loops/pipeline-digest.md",
+        "system/loops/drain-loop.md",
+        "system/loops/epic-drain.md"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1373,6 +1395,15 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/migrate/audit-orphaned-active-epic.py"
+      ]
+    },
+    "docs/architecture/features/adr-number-reservation.md": {
+      "title": "ADR number reservation (t-3294)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-core/src/adr.rs",
+        "system/cli/rust/crates/brana-cli/src/commands/adr.rs",
+        "system/cli/rust/crates/brana-cli/src/cli.rs"
       ]
     },
     "docs/architecture/features/agentdb-v3-upgrade-evaluation.md": {
@@ -1722,6 +1753,9 @@
         "system/cli/rust/crates/brana-cli/src",
         "system/scripts/",
         "system/loops/README.md",
+        "system/scripts/pipeline-digest.sh:151-152",
+        "system/scheduler/brana-scheduler-digest.sh",
+        "system/scripts/pipeline-digest.sh",
         "system/loops/drain-loop.md"
       ]
     },
@@ -3031,6 +3065,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/adr-number-reservation.md": {
+      "title": "ADR Reservation — collision-safe ADR numbering",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/async-close.md": {
       "title": "Async Close — what changed about ending a session",
       "type": "Roadmap",
@@ -3106,6 +3145,15 @@
       "title": "`brana knowledge process-url` — turn a captured link into knowledge",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/guide/features/lane-identity.md": {
+      "title": "Lane Identity — what changed about session-state and resume",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/autonomous-runner.sh",
+        "system/hooks/session-start.sh",
+        "system/skills/close/phases/gate-and-evidence.md"
+      ]
     },
     "docs/guide/features/pipeline-digest.md": {
       "title": "Pipeline Digest (L0 Reporter)",
@@ -3238,7 +3286,8 @@
       "title": "Epic Drain Loop",
       "type": "Roadmap",
       "impl_files": [
-        "system/loops/epic-drain.md"
+        "system/loops/epic-drain.md",
+        "system/scripts/autonomous-runner.sh"
       ]
     },
     "docs/guide/workflows/fix.md": {
@@ -4356,6 +4405,11 @@
       "impl_files": [
         "system/agents/memory-curator.md"
       ]
+    },
+    "docs/reviews/knowledge-2026-09-01.md": {
+      "title": "Knowledge Health Review — 2026-09-01",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/reviews/knowledge-structure-audit-2026-06-11.md": {
       "title": "Knowledge Structure Audit — Ontology Analysis",
@@ -5631,6 +5685,90 @@
       "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
       "type": "depends_on",
       "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md",
+      "type": "depends_on",
+      "computed": true
     },
     {
       "from": "docs/architecture/features/acquire-skills-guide.md",
@@ -7807,6 +7945,24 @@
     {
       "from": "docs/architecture/decisions/ADR-089-integral-temporal-model.md",
       "to": "docs/ideas/drained/reminders-schedule-tasks-integral.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "to": "docs/domain/MODEL-001-brana-core.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/architecture/features/loops-library.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "to": "docs/guide/workflows/drain-loop.md",
       "type": "informs",
       "computed": false
     },
@@ -11148,6 +11304,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -11958,6 +12120,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "guide/features/lane-identity.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "guide/features/pipeline-digest.md",
       "type": "references",
       "computed": false
@@ -12355,6 +12523,12 @@
     {
       "from": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
       "to": "docs/architecture/25-self-documentation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "to": "ADR-091-tasks-json-untracked-canonical-snapshot.md",
       "type": "references",
       "computed": false
     },
@@ -13337,6 +13511,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "to": "ADR-002-tasks-as-data-layer.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "to": "ADR-071-scheduler-thin-layer-over-systemd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -13433,6 +13625,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/adr-number-reservation.md",
+      "to": "docs/architecture/decisions",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/async-close.md",
       "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
       "type": "references",
@@ -13464,7 +13662,19 @@
     },
     {
       "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
       "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/autonomous-runner.md",
+      "to": "docs/guide/workflows/epic-drain.md",
       "type": "references",
       "computed": false
     },
@@ -13836,6 +14046,18 @@
     },
     {
       "from": "docs/architecture/features/loops-library.md",
+      "to": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/loops-library.md",
+      "to": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/loops-library.md",
       "to": "docs/architecture/the-brana.md",
       "type": "references",
       "computed": false
@@ -13873,6 +14095,12 @@
     {
       "from": "docs/architecture/features/pipeline-digest.md",
       "to": "docs/ideas/drained/loop-first-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/pipeline-digest.md",
+      "to": "loops-library.md",
       "type": "references",
       "computed": false
     },
@@ -16607,6 +16835,18 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/lane-identity.md",
+      "to": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/lane-identity.md",
+      "to": "docs/architecture/features/lane-identity.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/plan-time-wave-graph.md",
       "to": "docs/guide/workflows/drain-loop.md",
       "type": "references",
@@ -16801,6 +17041,18 @@
     {
       "from": "docs/guide/workflows/drain-loop.md",
       "to": "epic-drain.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/epic-drain.md",
+      "to": "docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/workflows/epic-drain.md",
+      "to": "docs/architecture/features/autonomous-runner.md",
       "type": "references",
       "computed": false
     },
@@ -19074,9 +19326,9 @@
     }
   ],
   "stats": {
-    "nodes": 623,
-    "edges": 2443,
-    "typed_edges": 697,
-    "orphans": 141
+    "nodes": 629,
+    "edges": 2476,
+    "typed_edges": 714,
+    "orphans": 143
   }
 }
