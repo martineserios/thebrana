@@ -26,14 +26,22 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-# target/ is gitignored build output, not shared across worktrees — resolve
-# the main checkout (git-common-dir's parent) the same way find_tasks_file()
-# does, so this test runs from any worktree without its own cargo build.
-COMMON_DIR=$(git -C "$REPO_ROOT" rev-parse --git-common-dir 2>/dev/null) || COMMON_DIR=""
-MAIN_CHECKOUT="$REPO_ROOT"
-[ -n "$COMMON_DIR" ] && MAIN_CHECKOUT="$(cd "$(dirname "$COMMON_DIR")" && pwd)"
-BRANA="$MAIN_CHECKOUT/system/cli/rust/target/release/brana"
-[ -x "$BRANA" ] || BRANA="$REPO_ROOT/system/cli/rust/target/release/brana"
+# target/ is gitignored build output, not shared across worktrees. Prefer
+# THIS worktree's own build first — running pre-merge from a feature-branch
+# worktree with fixes not yet on the main checkout must not silently test
+# the main checkout's stale (pre-fix) binary instead (challenger finding,
+# t-3286 iteration 1, severity 3: the original main-checkout-first order did
+# exactly that and read a false-negative RED on an already-fixed worktree).
+# Fall back to the main checkout (git-common-dir's parent) only when this
+# worktree has no build of its own, so the test still runs from any worktree
+# without requiring its own cargo build.
+BRANA="$REPO_ROOT/system/cli/rust/target/release/brana"
+if [ ! -x "$BRANA" ]; then
+    COMMON_DIR=$(git -C "$REPO_ROOT" rev-parse --git-common-dir 2>/dev/null) || COMMON_DIR=""
+    MAIN_CHECKOUT="$REPO_ROOT"
+    [ -n "$COMMON_DIR" ] && MAIN_CHECKOUT="$(cd "$(dirname "$COMMON_DIR")" && pwd)"
+    BRANA="$MAIN_CHECKOUT/system/cli/rust/target/release/brana"
+fi
 
 PASS=0; FAIL=0; TOTAL=0
 check() {

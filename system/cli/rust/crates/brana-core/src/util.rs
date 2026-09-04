@@ -54,18 +54,34 @@ pub fn find_tasks_file() -> Option<PathBuf> {
 /// triggering Write/Edit reported) landed on that worktree's stale local copy
 /// instead of the one canonical file every other `brana` invocation reads/writes.
 ///
-/// Falls back to the literal override when it isn't inside a git repo (or repo
-/// resolution genuinely fails) — preserving `--file`'s role for out-of-repo test
-/// fixtures and other standalone use. This overrides WHICH repo/worktree to resolve
-/// from, not whether to resolve at all.
+/// Falls back to the literal override when it isn't inside a git repo, repo
+/// resolution genuinely fails, or the override isn't the conventional
+/// `.claude/tasks.json` filename relative to its own worktree — preserving
+/// `--file`'s role for out-of-repo test fixtures, custom-named files, and other
+/// standalone use. This overrides WHICH repo/worktree to resolve from, never
+/// WHICH filename: the divergence this exists to close (ADR-091) only ever
+/// applied to worktree-local copies of that one conventional filename, so
+/// remapping anything else would silently discard a caller-chosen target and
+/// auto-create an unrelated empty file in its place (severity-4 challenger
+/// finding, t-3286 iteration 1 — the original version of this function did
+/// exactly that).
 pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
     let anchor: &Path = match explicit.parent() {
         Some(p) if !p.as_os_str().is_empty() => p,
         _ => Path::new("."),
     };
-    let common_root = git_common_root_in(Some(anchor));
     let toplevel = git_toplevel_in(Some(anchor));
-    find_tasks_file_from(common_root, toplevel, None).unwrap_or_else(|| explicit.to_path_buf())
+    let common_root = git_common_root_in(Some(anchor));
+
+    if let (Some(top), Some(common)) = (&toplevel, &common_root) {
+        if explicit.strip_prefix(top) == Ok(Path::new(".claude/tasks.json")) {
+            if let Some(canon) = find_tasks_file_from(Some(common.clone()), None, None) {
+                return canon;
+            }
+        }
+    }
+
+    explicit.to_path_buf()
 }
 
 /// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
@@ -1098,6 +1114,34 @@ mod tests {
         assert_eq!(
             got, canon,
             "override anchored in a worktree must resolve to the main checkout's canonical file, not the worktree-local copy"
+        );
+    }
+
+    #[test]
+    fn resolve_override_preserves_custom_filename_inside_a_git_repo() {
+        // Challenger gate finding (t-3286 iteration 1, severity 4): a --file
+        // override was never limited to the conventional `.claude/tasks.json`
+        // filename — the pre-fix code trusted ANY explicit path verbatim,
+        // custom basenames included (test fixtures, alternate stores). The
+        // fix must remap ONLY the well-known filename across worktree
+        // divergence, never invent a different file the caller didn't ask
+        // for. A regression here means a custom --file target gets silently
+        // discarded and an empty .claude/tasks.json auto-created in its
+        // place instead — exactly what the challenger reproduced live.
+        let _guard = GIT_ENV_LOCK.lock().unwrap();
+        let repo = tmp();
+        git_init(repo.path());
+        let custom = repo.path().join("my-custom-tasks.json");
+        fs::write(&custom, b"{\"tasks\":[{\"id\":\"custom\"}]}").unwrap();
+
+        let result = super::resolve_tasks_file_override(&custom);
+        assert_eq!(
+            result, custom,
+            "a custom-named --file target inside a git repo must be honored literally, not silently redirected to .claude/tasks.json"
+        );
+        assert!(
+            !repo.path().join(".claude/tasks.json").exists(),
+            "must not auto-create .claude/tasks.json as a side effect of a custom-filename override"
         );
     }
 
