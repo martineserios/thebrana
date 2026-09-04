@@ -79677,12 +79677,12 @@
       "github_issue": null,
       "id": "t-3023",
       "kind": "ops",
-      "notes": null,
+      "notes": "2026-09-04: shipped (merged to dev). main branch protection live (gh api verified): required PR (0 approvals), required checks validate+rust strict, enforce_admins=true. Procedure in /brana:ship Step 2 (Tier-2 PR ship), branching.md, .claude/CLAUDE.md, ADR-060 amendment. CI validate green on the branch (run 33882339308) for the first time since 2026-08-31 after: sweep tail surfaced, brana built in the validate job, node-shim + default-branch fixture fixes, Check 6 no longer crawls target/ (29GB), reference-check test runs --check 29 with stdin /dev/null, per-suite 300s + job 45m ceilings, workflow_dispatch. tests/*/*.sh split into a non-required tests job (14 red → t-3280). claude-code-review.yml/claude.yml: kept, unwired as required checks (CLAUDE_CODE_OAUTH_TOKEN present; review workflow triggers on the dev→main PR, advisory only) — decision recorded here. Not yet done at close of this task: the first PR-gated ship itself (next step this session).",
       "order": 0,
       "parent": "t-2490",
       "priority": "P2",
       "started": "2026-09-03",
-      "status": "in_progress",
+      "status": "completed",
       "subject": "Tier-2 hardening: dev→main goes through a GitHub PR with required CI + enforce_admins (ship-to-main valve gets record/surfacing/verb)",
       "tags": [
         "t-2490-followup",
@@ -79692,11 +79692,7 @@
         "wave:deploy-gate"
       ],
       "type": "task",
-      "work_type": "infra",
-      "lease": {
-        "claimant": "wave-pull:lead-3aaba499",
-        "expires": "2026-09-04T17:02:05.264416635-03:00"
-      }
+      "work_type": "infra"
     },
     {
       "ac_state": "none",
@@ -87234,7 +87230,7 @@
       "effort": "M",
       "parent": "t-2811",
       "priority": "P1",
-      "context": "Run 33880255476 log has every failure. Buckets: (1) CI environment — no ruflo on the runner: tests/scripts/test-ruflo-version-resolution.sh, test_bulk_index_resolve.sh; brana not on PATH: test_knowledge_cli.sh (the tests job now builds brana and exports PATH — re-check); bootstrap HOME/hooks assumptions: tests/bootstrap/test-git-hook-effective-path.sh, test-hooks-deploy.sh, test-rules-deploy.sh (pass locally). (2) Genuinely red on dev: tests/procedures/test-validate-remedies.sh (remedy_62/63), test-validate-remedy-registry-completeness.sh, test-context-budget-split.sh (authored headroom 57B), test-pre-compact-snapshot.sh (clock-skew window), tests/skills/test_skill_phase_layout.sh (close/phases/gate-and-evidence.md 614 lines, session-state.md 533 > 400), tests/hooks/test-spec-first-gate.sh + tests/scripts/test-hooks.sh (spec-first deny not firing). (3) Fixture bug: tests/scripts/test-validate-rules-scoping.sh and test-validate-check2b-work-start-conflicts.sh copy validate.sh into a temp tree without system/scripts/validate-remedies.sh (validate.sh:62 sources it). (4) Slow: tests/scripts/test-verify-docs.sh timed out at 300s (verify-docs runs the full gate). Fix root causes, not the tests, where the test is right (e.g. the >400-line phase files, the spec-first gate).\nAC: every tests/*/*.sh suite passes in the CI tests job, or is explicitly marked as a local-only suite with a stated reason\nAC: main branch protection lists tests alongside validate and rust as required checks\nAC: no suite in the job takes longer than 300s",
+      "context": "Run 33880255476 log has every failure. Buckets: (1) CI environment — no ruflo on the runner: tests/scripts/test-ruflo-version-resolution.sh, test_bulk_index_resolve.sh; brana not on PATH: test_knowledge_cli.sh (the tests job now builds brana and exports PATH — re-check); bootstrap HOME/hooks assumptions: tests/bootstrap/test-git-hook-effective-path.sh, test-hooks-deploy.sh, test-rules-deploy.sh (pass locally). (2) Genuinely red on dev: tests/procedures/test-validate-remedies.sh (remedy_62/63), test-validate-remedy-registry-completeness.sh, test-context-budget-split.sh (authored headroom 57B), test-pre-compact-snapshot.sh (clock-skew window), tests/skills/test_skill_phase_layout.sh (close/phases/gate-and-evidence.md 614 lines, session-state.md 533 > 400), tests/hooks/test-spec-first-gate.sh + tests/scripts/test-hooks.sh (spec-first deny not firing). (3) Fixture bug: tests/scripts/test-validate-rules-scoping.sh and test-validate-check2b-work-start-conflicts.sh copy validate.sh into a temp tree without system/scripts/validate-remedies.sh (validate.sh:62 sources it). (4) Slow: tests/scripts/test-verify-docs.sh timed out at 300s (verify-docs runs the full gate). Fix root causes, not the tests, where the test is right (e.g. the >400-line phase files, the spec-first gate).\nAC: every tests/*/*.sh suite passes in the CI tests job, or is explicitly marked as a local-only suite with a stated reason\nAC: main branch protection lists tests alongside validate and rust as required checks\nAC: no suite in the job takes longer than 300s\n2026-09-04 run 33882339308 (tests job with brana on PATH): test_knowledge_cli.sh now passes; test-validate-check-filter.sh newly red; final list of 14: bootstrap/{git-hook-effective-path,hooks-deploy,rules-deploy}, procedures/{context-budget-split,pre-compact-snapshot,validate-remedies,validate-remedy-registry-completeness}, scripts/{ruflo-version-resolution,validate-check-filter,validate-check2b-work-start-conflicts,validate-rules-scoping,verify-docs,test_bulk_index_resolve}, skills/test_skill_phase_layout.",
       "work_type": "implement",
       "id": "t-3280",
       "status": "pending",
