@@ -129,14 +129,23 @@ pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>, epi
             } else {
                 print!("{}", render_text(&state));
             }
+            Ok(())
         }
         None => {
+            // ADR-069 D1: a miss exits non-zero and never reports success by silently
+            // substituting a different mechanism's content. The legacy handoff (if any)
+            // is still printed for backward-compat visibility -- it may be genuinely
+            // useful context -- but it is NOT what was asked for (session-state), so the
+            // command still reports the miss it is via a non-zero exit.
             if let Err(e) = handoff::cmd_handoff_last(1) {
                 eprintln!("{e:#}");
             }
+            Err(anyhow::anyhow!(
+                "no session state found for this unit — nothing to read (any legacy handoff \
+                 shown above is not a substitute; re-check the branch/epic this session is on)"
+            ))
         }
     }
-    Ok(())
 }
 
 /// Implementation of `brana session read --all`.
