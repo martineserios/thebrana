@@ -87219,6 +87219,37 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "subject": "CI tests job: 14 tests/*/*.sh suites red on GitHub runners — fix and promote the job to a required check",
+      "kind": "fix",
+      "type": "task",
+      "tags": [
+        "ci",
+        "tests",
+        "hooks",
+        "deploy"
+      ],
+      "description": "Found 2026-09-04 by t-3023's first CI rehearsal: the ci.yml 'Run tests' step (tests/*/*.sh, 133 suites) had never executed on main because the validate step failed first since 2026-08-31. Once reachable it showed 14 suites red. t-3023 moved the step into its own non-required 'tests' job so it is visible on every dev->main PR; the tier-2 required checks are validate + rust. This task makes 'tests' green in CI and then adds it to main's required status checks (gh api PUT branches/main/protection/required_status_checks).",
+      "effort": "M",
+      "parent": "t-2811",
+      "priority": "P1",
+      "context": "Run 33880255476 log has every failure. Buckets: (1) CI environment — no ruflo on the runner: tests/scripts/test-ruflo-version-resolution.sh, test_bulk_index_resolve.sh; brana not on PATH: test_knowledge_cli.sh (the tests job now builds brana and exports PATH — re-check); bootstrap HOME/hooks assumptions: tests/bootstrap/test-git-hook-effective-path.sh, test-hooks-deploy.sh, test-rules-deploy.sh (pass locally). (2) Genuinely red on dev: tests/procedures/test-validate-remedies.sh (remedy_62/63), test-validate-remedy-registry-completeness.sh, test-context-budget-split.sh (authored headroom 57B), test-pre-compact-snapshot.sh (clock-skew window), tests/skills/test_skill_phase_layout.sh (close/phases/gate-and-evidence.md 614 lines, session-state.md 533 > 400), tests/hooks/test-spec-first-gate.sh + tests/scripts/test-hooks.sh (spec-first deny not firing). (3) Fixture bug: tests/scripts/test-validate-rules-scoping.sh and test-validate-check2b-work-start-conflicts.sh copy validate.sh into a temp tree without system/scripts/validate-remedies.sh (validate.sh:62 sources it). (4) Slow: tests/scripts/test-verify-docs.sh timed out at 300s (verify-docs runs the full gate). Fix root causes, not the tests, where the test is right (e.g. the >400-line phase files, the spec-first gate).\nAC: every tests/*/*.sh suite passes in the CI tests job, or is explicitly marked as a local-only suite with a stated reason\nAC: main branch protection lists tests alongside validate and rust as required checks\nAC: no suite in the job takes longer than 300s",
+      "work_type": "implement",
+      "id": "t-3280",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-09-04",
+      "blocked_by": [],
+      "ac_state": "none",
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3,
