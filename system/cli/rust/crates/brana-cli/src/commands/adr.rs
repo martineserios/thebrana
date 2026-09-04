@@ -13,10 +13,25 @@ pub fn cmd_adr(cmd: AdrCmd) -> Result<()> {
     }
 }
 
-fn cmd_reserve(slug: &str) -> Result<()> {
+/// Reject anything but a bare kebab-case slug before it ever reaches a filename. Without
+/// this, `slug` flows unsanitized into `decisions_dir.join(format!("ADR-{n}-{slug}.md"))` —
+/// a slug containing `../` (or an absolute-path-like `/etc/passwd`) would let `PathBuf::join`
+/// escape `decisions_dir` entirely.
+fn validate_slug(slug: &str) -> Result<()> {
     if slug.trim().is_empty() {
         bail!("slug must not be empty");
     }
+    if !slug
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        bail!("slug must be kebab-case (letters, digits, '-', '_' only), got: {slug}");
+    }
+    Ok(())
+}
+
+fn cmd_reserve(slug: &str) -> Result<()> {
+    validate_slug(slug)?;
 
     let project_root = find_project_root().context("not in a git repository")?;
     let decisions_dir = project_root.join("docs/architecture/decisions");
@@ -40,4 +55,37 @@ fn cmd_reserve(slug: &str) -> Result<()> {
 
     println!("Reserved ADR-{number:03} -> {}", path.display());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_slug;
+
+    #[test]
+    fn accepts_plain_kebab_case() {
+        assert!(validate_slug("backfill-retry-policy").is_ok());
+        assert!(validate_slug("worktree_lock_registry").is_ok());
+        assert!(validate_slug("adr123").is_ok());
+    }
+
+    #[test]
+    fn rejects_empty_or_whitespace() {
+        assert!(validate_slug("").is_err());
+        assert!(validate_slug("   ").is_err());
+    }
+
+    #[test]
+    fn rejects_path_traversal_attempts() {
+        assert!(validate_slug("../../../etc/passwd").is_err());
+        assert!(validate_slug("foo/../bar").is_err());
+        assert!(validate_slug("/etc/passwd").is_err());
+        assert!(validate_slug("a/b").is_err());
+    }
+
+    #[test]
+    fn rejects_other_path_metacharacters() {
+        assert!(validate_slug("has spaces").is_err());
+        assert!(validate_slug("has.dot").is_err());
+        assert!(validate_slug("has\\backslash").is_err());
+    }
 }
