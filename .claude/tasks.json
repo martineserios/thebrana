@@ -87503,7 +87503,7 @@
       "selector": "tag:wave:deploy-gate",
       "contract": "dev->main ships only through a CI-gated PR with enforce_admins (t-3023) and /brana:ship drives it; N-wide dispatch is real for supervised and headless runners and documented (t-3270, t-3271, t-3272); beat records carry pulled_task_ids and both digests read them (t-3274, t-3275); all six merged to dev, dev shipped to main through the new valve, oracle-hub re-shipped from that main.",
       "gate": null,
-      "status": "draining",
+      "status": "shipped",
       "created": "2026-09-03",
       "wip_limit": 4
     }
