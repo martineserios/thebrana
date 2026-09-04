@@ -288,6 +288,86 @@ pub fn cmd_session_path() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// `brana session lane init --session-id <id> [--task-id <id>]`
+///
+/// Writes this session's lane pin (ADR-069 D2). The autonomous-bootstrap path: the
+/// sandboxed runner calls this from the host before launching `claude -p`, since the
+/// jail mounts no `~/.claude/hooks/`, so `SessionStart` never fires inside it to write
+/// a pin any other way.
+pub fn cmd_lane_init(session_id: &str, task_id: Option<String>) -> anyhow::Result<()> {
+    let root = require_project_root()?;
+    let worktree_path = std::env::current_dir()
+        .context("resolving cwd for lane pin")?
+        .to_string_lossy()
+        .to_string();
+
+    let pin = brana_core::session_lane::LanePin {
+        session_id: session_id.to_string(),
+        worktree_path,
+        branch: current_branch(),
+        task_id,
+        head_at_start: brana_core::session_lane::git_head_sha(),
+        dirty_at_start: brana_core::session_lane::git_dirty_paths(),
+        created_at: Utc::now().to_rfc3339(),
+    };
+    brana_core::session_lane::write_lane_pin(&root, &pin)?;
+
+    println!(
+        "{}",
+        serde_json::json!({
+            "ok": true,
+            "session_id": pin.session_id,
+            "worktree_path": pin.worktree_path,
+            "branch": pin.branch,
+        })
+    );
+    Ok(())
+}
+
+/// `brana session lane resume [--task-id <id>] [--json]`
+///
+/// Resolves at most one lane to resume into, ranked worktree_path > branch > task_id
+/// (ADR-069 D2). A miss (nothing resolves, or ambiguity at a rank) exits non-zero —
+/// never a silent guess.
+pub fn cmd_lane_resume(task_id: Option<String>, json_output: bool) -> anyhow::Result<()> {
+    let root = require_project_root()?;
+    let worktree_path = std::env::current_dir()
+        .context("resolving cwd for lane resume")?
+        .to_string_lossy()
+        .to_string();
+    let branch = current_branch();
+
+    match brana_core::session_lane::resolve_current_lane(
+        &root,
+        Some(&worktree_path),
+        branch.as_deref(),
+        task_id.as_deref(),
+    ) {
+        Some((pin, rule)) => {
+            if json_output {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": true,
+                        "matched_rule": format!("{rule:?}"),
+                        "pin": pin,
+                    })
+                );
+            } else {
+                println!(
+                    "resuming via {rule:?} match — session_id {}, worktree_path {}",
+                    pin.session_id, pin.worktree_path
+                );
+            }
+            Ok(())
+        }
+        None => Err(anyhow::anyhow!(
+            "no lane resolves for worktree_path={worktree_path:?} branch={branch:?} \
+             task_id={task_id:?} — no pin matches, or two+ pins tie at the same rank"
+        )),
+    }
+}
+
 /// `brana session migrate` — one-time migration from session-handoff.md
 pub fn cmd_session_migrate() -> anyhow::Result<()> {
     use anyhow::anyhow;
