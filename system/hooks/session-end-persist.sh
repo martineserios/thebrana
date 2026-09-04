@@ -237,9 +237,19 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
               cascade_rate:($cascade_rate|tonumber),
               delegation_count:$delegations}' 2>/dev/null) || METRICS_PATCH=""
         if [ -n "$METRICS_PATCH" ]; then
-            jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
-                > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
-                mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null || true
+            # Locked read-modify-write (t-2525, ADR-069 D4): the prior unlocked
+            # form can lose a concurrent writer's metrics patch under two
+            # sessions targeting the same session-state file (e.g. shared
+            # epic/branch key). flock pattern mirrors task-id-lock.sh — a
+            # sidecar lock file, short timeout, best-effort (this hook must
+            # never block or fail session-end; a missed patch this run is
+            # cheaper than a hang).
+            (
+                flock -w 2 201 || exit 0
+                jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
+                    > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
+                    mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null
+            ) 201>"${SESSION_STATE_PATH}.lock" 2>/dev/null || true
         fi
     fi
 

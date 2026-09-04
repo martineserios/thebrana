@@ -196,6 +196,77 @@ assert_contains "learning text in patterns.md" "$PATTERNS_CONTENT_4" "set -e plu
 assert_file_not_exists "pending-learnings.md NOT written" "$LAYER0_4/pending-learnings.md"
 rm -rf "$FAKE_HOME_4" "$LAYER0_4"
 
+# ── Test 5: locked metrics-patch RMW under lock contention (t-2525, ADR-069 D4) ──
+echo ""
+echo "Test 5: locked metrics-patch RMW does not clobber under contention, and respects the flock timeout"
+FAKE_HOME_5=$(mktemp -d /tmp/brana-test-home-5-XXXXXX)
+LAYER0_5=$(mktemp -d /tmp/brana-test-layer0-5-XXXXXX)
+mkdir -p "$FAKE_HOME_5/.claude/memory"
+STATE_DIR=$(mktemp -d /tmp/brana-test-state-5-XXXXXX)
+STATE_PATH="$STATE_DIR/session-state.json"
+TODAY=$(date +%Y-%m-%d)
+cat > "$STATE_PATH" <<JSON
+{"version":1,"written_at":"${TODAY}T00:00:00Z","metrics":{}}
+JSON
+
+FAKE_BIN=$(mktemp -d /tmp/brana-test-bin-5-XXXXXX)
+cat > "$FAKE_BIN/brana" <<'STUB'
+#!/usr/bin/env bash
+if [ "$1" = "session" ] && [ "$2" = "path" ]; then
+    echo "$FAKE_SESSION_STATE_PATH"
+    exit 0
+fi
+exit 0
+STUB
+chmod +x "$FAKE_BIN/brana"
+
+run_persist_5() {
+    export HOME="$FAKE_HOME_5"
+    export LAYER0_DIR="$LAYER0_5"
+    export STORED_L1=false
+    export PATTERN_LEARNINGS='[]'
+    export KNOWLEDGE_FINDINGS='[]'
+    export PROJECT=test SESSION_ID="$TEST_ID" TIMESTAMP=2026-01-01T00:00:00Z
+    export TOTAL=3 SUCCESSES=3 FAILURES=0 CORRECTIONS=0 TEST_WRITES=0 CASCADES=0 PR_CREATES=0
+    export TEST_PASSES=0 TEST_FAILS=0 LINT_PASSES=0 LINT_FAILS=0 EDITS=1 DELEGATIONS=0
+    export CORRECTION_RATE=0.00 AUTO_FIX_RATE=0.00 TEST_WRITE_RATE=0.00 CASCADE_RATE=0.00
+    export TEST_PASS_RATE=N/A LINT_PASS_RATE=N/A
+    export TOOLS=Bash FILES=""
+    export SUMMARY_JSON="{}"
+    export BRANA_CLI="$FAKE_BIN/brana"
+    export FAKE_SESSION_STATE_PATH="$STATE_PATH"
+    export GIT_ROOT=/tmp
+    bash "$SCRIPT" 2>/dev/null || true
+}
+
+# Hold the lock externally (simulating a concurrent writer) for the whole first run.
+LOCK_FILE="${STATE_PATH}.lock"
+exec 209>"$LOCK_FILE"
+flock 209
+
+START=$(date +%s)
+( run_persist_5 )
+END=$(date +%s)
+ELAPSED=$((END - START))
+
+flock -u 209
+exec 209>&-
+
+STATE_AFTER=$(cat "$STATE_PATH")
+assert_not_contains "metrics NOT patched while lock held (would clobber the concurrent writer)" "$STATE_AFTER" '"events": 3'
+if [ "$ELAPSED" -le 4 ]; then
+    PASS=$((PASS + 1)); echo "  PASS: hook returned promptly under lock contention (${ELAPSED}s, flock timeout=2s)"
+else
+    FAIL=$((FAIL + 1)); echo "  FAIL: hook took ${ELAPSED}s — did not respect the 2s flock timeout"
+fi
+
+# Lock now free — the same patch should land this time.
+( run_persist_5 )
+STATE_AFTER2=$(cat "$STATE_PATH")
+assert_contains "metrics patched once the lock is free" "$STATE_AFTER2" '"events": 3'
+
+rm -rf "$FAKE_HOME_5" "$LAYER0_5" "$STATE_DIR" "$FAKE_BIN"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
