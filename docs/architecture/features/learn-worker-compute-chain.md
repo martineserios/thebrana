@@ -1,7 +1,7 @@
 # Feature: LEARN Worker Compute-Chain Contract — agy-first, Claude engine-switch, token ceiling, checkpoint/resume
 
 **Date:** 2026-09-04
-**Status:** design (contract for t-2405/t-2406/t-2407/t-2408/t-2409 — not yet implemented)
+**Status:** partially shipped — t-2405 (core drain loop) landed in `brana-core::learn`; t-2406/t-2407/t-2408/t-2409 (checkpoint/ceiling, curation gate, Tier B test, remove skip-and-defer) remain design-only
 **Task:** t-2404
 **Decision:** [ADR-068](../decisions/ADR-068-v3-supersession.md) §Decision item 3, row "ADR-050 blast-radius constants" (frozen — this spec elaborates it, never restates it) · [brana-v3-redesign.md](../../ideas/drained/brana-v3-redesign.md) principle 7 (t-2286 resolution)
 
@@ -196,10 +196,14 @@ longer assumes-and-aborts the rest of the run.
 
 ## Implementation tasks
 
-| Task | Scope |
-|---|---|
-| t-2405 | Core drain loop (`brana-core::learn::drain_queue`) implementing this chain |
-| t-2406 | Checkpoint/resume: cooperative ceiling check + stop, mocked-token-accounting test |
-| t-2407 | Curation gate (dedup + decay) |
-| t-2408 | Tier B scoped-mutation observe-invariant test |
-| t-2409 | Remove the skip-and-defer stall path |
+| Task | Scope | Status |
+|---|---|---|
+| t-2405 | Core drain loop (`brana-core::learn::drain_queue`) implementing this chain | Shipped 2026-09-04 |
+| t-2406 | Checkpoint/resume: cooperative ceiling check + stop, mocked-token-accounting test | Design only |
+| t-2407 | Curation gate (dedup + decay) | Design only |
+| t-2408 | Tier B scoped-mutation observe-invariant test | Design only |
+| t-2409 | Remove the skip-and-defer stall path | Design only |
+
+## Changelog
+
+- 2026-09-04 (t-2405): `brana-core::learn` module shipped — `drain_queue`, `parse_learnings`, `build_prompt`, plus the `AgyError` quota/other split and per-entry `fail_entry` helper (adds two failure classes beyond the shell's own: `snapshot-unreadable`, `store-write-failed`; adds a terminal-failure escalation reminder the shell already had). No store call inside the loop uses bare `?` — a failure fails or defers only the one entry, never the whole run. Production wiring (a CLI/scheduler entry point calling `drain_queue` with `knowledge_pipeline::call_gemini_json`/`call_claude_json`) is not part of this task and remains open.
