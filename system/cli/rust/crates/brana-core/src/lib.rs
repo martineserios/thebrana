@@ -6,6 +6,7 @@
 pub mod adr;
 pub mod files;
 pub mod knowledge_pipeline;
+pub mod learn;
 pub mod ruflo;
 pub mod lint;
 pub mod memory;
