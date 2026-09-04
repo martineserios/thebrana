@@ -48,6 +48,7 @@ User-facing documentation. Start here.
 | [build-close-auto-docs.md](guide/features/build-close-auto-docs.md) | Auto-generated feature docs |
 | [checkpoint-resume.md](guide/features/checkpoint-resume.md) | Checkpoint/resume for long builds |
 | [backlog-v3-schema.md](guide/features/backlog-v3-schema.md) | Backlog v3 schema — epics, key:value tags, waves |
+| [lane-identity.md](guide/features/lane-identity.md) | Lane identity (ADR-069) — session-state key unification, miss-is-an-error, lane pin, `lane init`/`lane resume` |
 | [pipeline-digest.md](guide/features/pipeline-digest.md) | Pipeline digest — L0 read-only gauge run via /loop |
 | [backlog-lint.md](guide/features/backlog-lint.md) | Backlog lint — is this task ready for autonomous dispatch? |
 | [backlog-project-scoping.md](guide/features/backlog-project-scoping.md) | Per-project scoping and cross-project tasks |

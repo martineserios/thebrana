@@ -1,7 +1,10 @@
 # Feature: Lane Identity — Session-State Key Unification and Miss Semantics
 
 **Date:** 2026-09-02 (ADR Accepted 2026-09-03)
-**Status:** decomposing (t-2520/t-2521/t-2524 already filed; spec approved, ADR Accepted, ready to build)
+**Status:** t-2520 shipped (D0b, dev aa8dfe62) and t-2521 shipped 2026-09-04 (D0+D1+D2, 7 subtasks
+t-3292/t-3293/t-3295/t-3296/t-3297/t-3298/t-3299 — see the Retirement Decisions and Rollback
+subsections below for two scope decisions made during implementation). **t-2524 (D3) not started**
+— shared-checkout guards remain future work.
 **Task:** t-2517 (spec) — gates t-2520, t-2521, t-2524
 **Governing ADR:** [ADR-069](../decisions/ADR-069-lane-identity-and-miss-semantics.md) (**Accepted** 2026-09-03 — D3.2 and D3b's original fail-loud row retracted; D0, D0b, D1, D2, D3.1/D3.3, D4, D5, D6 stand)
 
@@ -376,12 +379,13 @@ the full record of why it wasn't implemented) that turned out false.
 
 ## Documentation Plan
 
-- [ ] **User guide** — `docs/guide/features/lane-identity.md`: what a session sees differently
-  (lane pin exists, resume states its matching rule, a miss is now an error not silence),
-  `brana session lane init`/`brana session lanes --prune` usage, the shared-checkout
-  `git commit -a` rejection and how to use `--adopt-path`.
-- [ ] **Tech doc** — this file doubles as the tech doc (design rationale + surfaces are
-  already here); update the "Status" line to `implemented` once t-2520/t-2521/t-2524 ship.
+- [x] **User guide** — `docs/guide/features/lane-identity.md` (2026-09-04): lane pin
+  existence, resume's matching-rule reporting, miss-is-an-error, `lane init`/`lane resume`
+  usage. `lanes --prune` and the shared-checkout `git commit -a`/`--adopt-path` material
+  are D3 (t-2524) scope, not built here — the guide says so rather than documenting
+  commands that don't exist yet.
+- [x] **Tech doc** — this file doubles as the tech doc; Status line updated 2026-09-04
+  to reflect t-2520+t-2521 shipped, t-2524 (D3) not started.
 - [ ] **Existing docs to update** — `docs/guide/workflows/drain-loop.md` and
   `docs/guide/workflows/epic-drain.md`'s close-anchor language (once D2 lands, `t-2502`'s
   epic-scoped anchor workaround should be revisited per ADR-069 Consequences: "t-2502
