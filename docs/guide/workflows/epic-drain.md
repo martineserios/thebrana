@@ -42,9 +42,13 @@ plan WAVES step emits parent:<ms-id> waves under an epic ──▶ YOU: /loop ep
    fan-out, rehearse at that width: `--dry-run -n <N>` reports the whole
    N-wide beat (ADR-090 §1), so the rehearsal covers the same blast radius
    the real beat would claim rather than its first task only.
-4. Launch: `/loop epic-drain <epic-slug>`. **This is the arming act** — see
-   PREFLIGHT step 3 below for why launching the loop, not plan-approval, is
-   the human authorization boundary (ADR-080 §3.3).
+4. Launch: `/loop epic-drain <epic-slug>`, naming the fan-out width `N` you
+   rehearsed at (step 3) — **launch is where the operator sets `N`**: it is a
+   value you substitute into the loop prompt below, not a wave field and not a
+   stored config key (ADR-090 §1), and it holds for the whole run. Omit it and
+   the beat runs one task wide, as before ADR-090. **This is the arming act**
+   — see PREFLIGHT step 3 below for why launching the loop, not plan-approval,
+   is the human authorization boundary (ADR-080 §3.3).
 
 ## Scope
 
@@ -61,7 +65,11 @@ finding 6).
 
 A single `epic-drain` instance drains **one wave at a time, in topo order,
 within one epic.** Ungated waves are order-free, not concurrent — two
-gate-satisfied waves still drain sequentially, first-ready wins.
+gate-satisfied waves still drain sequentially, first-ready wins. Parallelism
+lives one level down, inside the active wave: a beat may claim up to `N`
+tasks from it and build them concurrently (ADR-090, step 4 below). That is a
+Beat-ring change only — the wave object, its selector, its gate, and its ship
+valve are untouched.
 Multi-instance concurrent draining of one epic has no wave-level claim
 mechanism and is out of scope (ADR-080 §2.2, finding 7); running two
 `epic-drain` instances against the *same* epic is not a supported
@@ -72,7 +80,8 @@ budget across epics.
 ## The loop prompt (supervised)
 
 ```
-/loop Epic-drain pump for <epic-slug> (supervised, ADR-080 §3). Each beat:
+/loop Epic-drain pump for <epic-slug> at fan-out N=<N> (supervised, ADR-080 §3;
+ADR-090 §1/§2 for the N-wide beat). Each beat:
 
 (1) PREFLIGHT (cheap, no-op fast): fresh-read tasks.json + `brana backlog
     wave list`. For each wave, resolve its selector root's epic-ancestor via
@@ -129,19 +138,57 @@ budget across epics.
     human authorization for this autonomous arm is **launching this loop
     with this epic named** — a deliberate, temporally-proximate act, not
     stale plan-approval from weeks earlier (ADR-080 §3.3).
-(4) Pump: `brana backlog wave pull <active-wave-id>`.
-    - pulled:null + at_limit    → report "at limit (live/limit)", back off
+(4) Pump (N-wide, ADR-090 §1/§2):
+    `brana backlog wave pull <active-wave-id> -n <N>`.
+    - **What `<N>` is and where you set it.** `N` is this run's fan-out cap —
+      an operator-set value, **not** a wave field and not a stored config key
+      (ADR-090 §1 keeps the same no-guessed-default posture as `wip_limit`).
+      You fix it when you launch the loop, by substituting it into this
+      prompt exactly as you substitute `<epic-slug>`, and it stays fixed for
+      the run. Unstated, `-n` is 1 and the beat behaves exactly as it did
+      before ADR-090. Rehearse at the same width you intend to run
+      (Prerequisites step 3) — the N you rehearsed is the N you launch with.
+    - **The pulls are sequential; only the build work is parallel.** One call
+      makes up to N **sequential** atomic pulls — each takes its own
+      `lock_tasks` critical section and its own lease, unchanged from ADR-080
+      §5, and each sees the previous pull's `in_progress` write — so the beat
+      claims `min(wip_limit − live, N)` tasks, or just N when the wave's
+      `wip_limit` is null (unbounded, the ADR-079 §3 default). No new locking
+      primitive: this is the existing per-task mechanism run more than once.
+    - no ids pulled + at_limit    → report "at limit (live/limit)", back off
       20+ min (state:"waiting").
-    - pulled:null + none_eligible → report counts (matched/unapproved/
+    - no ids pulled + none_eligible → report counts (matched/unapproved/
       parked/blocked/deferred — blocked = unmet blocked_by; a cancelled blocker never
       resolves, ADR-079 §2 amendment; deferred is standing-wave-only, ADR-086 §5,
       always 0 for the parent: waves this loop walks). If matched is 0, do NOT report "wave done" — see step 5's
       empty-matched-set rule. Back off 30+ min (state:"waiting" or
       state:"empty").
-    - pulled:<id> → work it through the FULL build framework, identical to
-      drain-loop.md from here: `/brana:backlog start <id>` (worktree cut
-      from dev, TDD, gates, challenger). At build CLOSE: present the merge
-      command and WAIT — never merge to dev inside a beat.
+    - ids pulled → **report every id this beat claimed, always** — both in the
+      beat's own report and in the beat record (step 9), never a count, never
+      "and others". The call reports them in `pulled_task_ids` (the unstated-N
+      single-pull path keeps its existing `pulled` field). A **short beat is
+      normal**: when fewer than N come back, the `at_limit` / `none_eligible`
+      tail that stopped the pull short is reported *alongside* the ids, never
+      instead of them — a beat that names 2 ids and stays silent about why it
+      didn't get 3 looks identical to a beat that was capped at 2.
+    - Then **dispatch one build-loop instance per pulled id via native
+      Agent/Task fan-out — all of them in a single message, so they run in
+      parallel within the beat** (ADR-090 §2, supervised half). Each instance
+      takes exactly **one** id and works it through the FULL build framework,
+      identical to drain-loop.md: `/brana:backlog start <id>`, its own
+      worktree cut from dev, TDD, gates, challenger. Never two ids in one
+      instance and never two instances on one id — a task is one fresh context
+      window (ADR-086 §1), and the worktree-per-task isolation contract
+      (ADR-060) is invoked N times, not widened.
+    - Every dispatched instance inherits this loop's **Denied verbs**
+      unchanged, `status:completed` and `wave ship` included. At each build
+      CLOSE the instance presents its merge command and WAITS — the human is
+      still the merge valve, now N times per beat. Surface the N close-outs to
+      the **cockpit digest** as one batch (ADR-090 §4 — the same queue, no new
+      review-budget model). Same-wave branches can share file surface, so the
+      human may need a merge *order* across the N branches; the beat names
+      that when it sees it and never picks the order itself. Never merge to
+      dev inside a beat.
 (5) Contract-met announcement: derived from a FRESH tasks.json read at
     announce time (never a stale in-beat view — closure is derived, not
     asserted). If the active wave's matched set is non-empty and every
@@ -163,8 +210,11 @@ budget across epics.
     items (ship valve, merge valve surfacing) go to the **cockpit digest**.
     Under-escalating a design question into a rubber-stamp is the worse
     failure — when unsure, agenda.
-(9) ASSIMILATE: emit a structured beat record every beat, from beat 1 —
-    schema in loops-library.md, referenced not duplicated.
+(9) ASSIMILATE: emit **one** structured beat record every beat, from beat 1
+    — one record per beat, never one record per pulled task — schema in
+    loops-library.md, referenced not duplicated. An N-wide beat carries every
+    id it claimed in that single record's `pulled_task_ids` (ADR-090 §3), not
+    only inside the `what_happened` prose.
 (10) Pace (RESTART): short delays while actively building; 20-30 min
     waiting on a human valve, at-limit, or an empty-for-now queue.
 ```
