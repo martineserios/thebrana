@@ -213,7 +213,18 @@ pub fn drain_queue(
     let mut attempted: HashSet<String> = HashSet::new();
 
     loop {
-        let entries = queue::list(queue_path, true)?;
+        // Same discipline as every store call below: a failure here must
+        // not discard the DrainReport accumulated so far. Unlike a
+        // per-entry failure, a broken `list` has no single entry to blame,
+        // so it ends the run (nothing left to iterate) rather than
+        // `continue`ing — but it still returns Ok with what was done.
+        let entries = match queue::list(queue_path, true) {
+            Ok(e) => e,
+            Err(e) => {
+                report.errors.push(format!("queue::list failed, stopping run: {e}"));
+                break;
+            }
+        };
         let next = entries
             .into_iter()
             .find(|e| e.retry_count < max_retries && !attempted.contains(&e.id));
@@ -430,6 +441,7 @@ fn fail_entry(
                     marked.retry_count, entry.project, entry.branch, entry.git_range
                 ),
                 priority: Some(Priority::High),
+                action: Some("brana close-queue list --unprocessed".to_string()),
                 dedup_key: Some(format!("extraction-failed:{}", entry.id)),
                 project: Some(entry.project.clone()),
                 ..Default::default()
@@ -987,5 +999,24 @@ mod tests {
         assert_eq!(report.failed, 1);
         let entries = queue::list(&qp, false).unwrap();
         assert!(entries[0].error.as_deref().unwrap().contains("store-write-failed"));
+    }
+
+    #[test]
+    fn drain_queue_list_failure_returns_ok_with_partial_report_not_err() {
+        // Challenger iteration 2: queue::list's own `?` was the last
+        // remaining bare-propagation sibling of the sev-5 pattern fixed in
+        // iteration 1. A broken store must never make drain_queue itself
+        // return Err and discard whatever the report already knows.
+        let dir = tempfile::TempDir::new().unwrap();
+        let (qp, rp, sp) = tmp_paths(&dir);
+        std::fs::write(&qp, "{not valid json").unwrap();
+
+        let report = drain_queue(&qp, &rp, &sp, "CONTRACT", 3, 100_000, |_| unreachable!(), |_| unreachable!())
+            .expect("a broken store must not make drain_queue return Err");
+
+        assert_eq!(report.processed, 0);
+        assert_eq!(report.failed, 0);
+        assert!(!report.errors.is_empty());
+        assert!(report.errors[0].contains("queue::list failed"));
     }
 }
