@@ -129,6 +129,8 @@ declare -A REMEDY_REGISTRY=(
   [68]="NO_REMEDY:not-fixable — explicit author intent — the check's own message states it never auto-corrects, by design"
   [69]="NO_REMEDY:judgment-required — a non-canonical work_type/type value needs a per-task decision about which canonical value was intended"
   [70]="NO_REMEDY:not-fixable — test-suite failures need arbitrary code fixes in the failing hooks, same as Checks 65/66"
+  [71]="NO_REMEDY:judgment-required — a loops-library lint failure (missing/malformed catalog fields) needs authored entry content, not a mechanical fix"
+  [72]="NO_REMEDY:judgment-required — closing a docs/README.md coverage gap (missing row, dead link) needs authored content, can't be synthesized"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a

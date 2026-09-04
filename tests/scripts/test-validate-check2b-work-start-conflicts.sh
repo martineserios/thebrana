@@ -23,8 +23,9 @@ trap 'rm -rf "$TMPROOT"' EXIT
 
 mkdir -p "$TMPROOT/system/rules" "$TMPROOT/system/hooks" \
          "$TMPROOT/system/skills" "$TMPROOT/system/agents" \
-         "$TMPROOT/system/commands"
+         "$TMPROOT/system/commands" "$TMPROOT/system/scripts"
 cp "$REPO_ROOT/validate.sh" "$TMPROOT/validate.sh"
+cp "$REPO_ROOT/system/scripts/validate-remedies.sh" "$TMPROOT/system/scripts/validate-remedies.sh"
 
 assert_check2b_passes() {
     local desc="$1"

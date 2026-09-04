@@ -23,19 +23,10 @@ Code tasks: `/brana:backlog start` enters `/brana:build`; done via its CLOSE ste
 
 ## AC: prefix — acceptance criteria
 
-Lines in `context` starting with `AC:` are machine-readable acceptance criteria — `/brana:build` reads them to auto-generate a `/goal` string. Additive; unaffected without them.
-
-```
-context: "AC: all tests green\nAC: branch merged to main\nAC: tasks.json updated"
-```
+Lines in `context` starting with `AC:` (e.g. `AC: all tests green`) are machine-readable acceptance criteria — `/brana:build` reads them to auto-generate a `/goal` string. Additive; unaffected without them.
 
 ## Issue tracking
 
 - Check GitHub Issues before starting new work — avoid duplicating effort
 - Link commits: `fixes #N`, `relates to #N`
-- Don't create issues unless asked — check existing ones first
-
-```
-Example: user says "add rate limiting" → gh issue list --search "rate limit"
-→ found #42 → commit: "feat(api): add rate limiting (fixes #42)"
-```
+- Don't create issues unless asked — check existing ones first (e.g. `gh issue list --search "<keywords>"` before starting)

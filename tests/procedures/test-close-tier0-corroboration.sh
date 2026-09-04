@@ -19,7 +19,9 @@
 #
 # Both extracted blocks are sourced from the SHIPPED procedure docs (t-1978 rot
 # class) — system/skills/_shared/epic-ancestor-walk.md and
-# system/skills/close/phases/session-state.md — not copies.
+# system/skills/close/phases/initiative-accumulator.md — not copies.
+# (TIER0-CORROBORATION-BLOCK lived in session-state.md until t-3280 split that
+# file at the 400-line phase-layout cap; it moved with Step 9c.)
 #
 # Run: bash tests/procedures/test-close-tier0-corroboration.sh
 
@@ -58,7 +60,7 @@ echo ""
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WALK_MD="$REPO_ROOT/system/skills/_shared/epic-ancestor-walk.md"
-SS_MD="$REPO_ROOT/system/skills/close/phases/session-state.md"
+SS_MD="$REPO_ROOT/system/skills/close/phases/initiative-accumulator.md"
 [ -f "$WALK_MD" ] || { echo "ERROR: $WALK_MD not found"; exit 1; }
 [ -f "$SS_MD" ] || { echo "ERROR: $SS_MD not found"; exit 1; }
 
