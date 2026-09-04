@@ -605,10 +605,13 @@ else
     echo "  — git-hooks/pre-commit template not found in source"
 fi
 
-# --- Step 4e: tasks.json merge driver (t-2132) ---
-# Prevents task status regressions when git merges branches with divergent tasks.json.
-# The .gitattributes file (committed) declares the driver; this step wires
-# the driver path into the repo's local git config.
+# --- Step 4e: tasks.json snapshot merge driver (t-2132) ---
+# Prevents task status regressions when git merges branches with divergent
+# tasks-snapshot content. The .gitattributes file (committed) declares the
+# driver by name against system/state/tasks-snapshot.json (repointed from the
+# now-untracked .claude/tasks.json by t-3285/ADR-091); this step wires the
+# driver's script path into the repo's local git config — by config key name,
+# not by file path, so it needed no change for the repointing.
 echo "tasks.json merge driver:"
 TASKS_DRIVER_SRC="$SYSTEM_DIR/scripts/tasks-json-merge.sh"
 if [ -f "$TASKS_DRIVER_SRC" ]; then
