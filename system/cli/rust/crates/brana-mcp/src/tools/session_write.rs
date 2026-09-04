@@ -48,12 +48,26 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 }
 
                 // Deserialize and validate
-                let state: session::SessionState = serde_json::from_value(payload)
+                let mut state: session::SessionState = serde_json::from_value(payload)
                     .map_err(|e| format!("invalid session payload: {e}"))?;
 
                 // Find project root
                 let root = brana_core::util::find_session_root()
                     .ok_or_else(|| "not in a git repository".to_string())?;
+
+                // t-3298 (consumer sweep, ADR-069 D0): mirror cmd_session_write's own
+                // epic-less-payload fallback (t-2154/ADR-060) — an MCP write with no
+                // explicit epic used to skip the initiative/focus marker entirely and
+                // route straight to the branch-only guess, diverging from the CLI write
+                // path. Read now checks the marker first (t-3292/t-3295); a write path
+                // that doesn't populate it can land a marker-routed session's handoff
+                // somewhere read will never look.
+                if state.epic.as_deref().map(str::trim).unwrap_or("").is_empty()
+                    && let Some(slug) = brana_core::session_initiative::read_initiative_marker(&root)
+                        .or_else(|| brana_core::session_initiative::read_focus_marker(&root))
+                {
+                    state.epic = Some(slug);
+                }
 
                 // Write (archives previous, validates, atomic rename).
                 // A `base_written_at` on the payload acts as a compare-and-swap token and is
@@ -197,6 +211,39 @@ mod tests {
         assert!(
             path.ends_with("session-state.json") && !path.contains("session-state-close"),
             "reported path must reflect the explicit orphan epic, not the branch-derived one: {path}"
+        );
+    }
+
+    // t-3298 (consumer sweep, ADR-069 D0): an epic-less payload must route through the
+    // same initiative/focus marker `cmd_session_write` (the CLI path) already consults --
+    // otherwise a marker-routed write via MCP lands somewhere the read side (which now
+    // checks the marker first, t-3292/t-3295) will never find it.
+    #[tokio::test]
+    async fn test_write_session_state_no_epic_routes_via_focus_marker() {
+        let _g = CWD_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _h = Hermetic::new();
+        let root: std::path::PathBuf = std::env::var("CLAUDE_PROJECT_DIR").unwrap().into();
+
+        brana_core::session_initiative::write_focus_marker(&root, "mcp-write-marker-test").unwrap();
+
+        let out = build()
+            .handle(
+                json!({"payload": {
+                    "version": 1,
+                    "branch": "harness/fix/t-1234-dummy",
+                    "accomplished": ["routed via focus marker, no explicit epic in payload"]
+                }}),
+                pmcp::RequestHandlerExtra::default(),
+            )
+            .await
+            .expect("write must succeed");
+
+        assert_eq!(out["ok"], true);
+        let path = out["path"].as_str().expect("path must be a string");
+        assert!(
+            path.contains("session-state-mcp-write-marker-test.json"),
+            "an epic-less write must route through the focus marker, not branch-only \
+             guessing: {path}"
         );
     }
 }

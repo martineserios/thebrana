@@ -17,6 +17,7 @@ pub mod remind;
 pub mod scheduler;
 pub mod session;
 pub mod session_initiative;
+pub mod session_lane;
 pub mod sync;
 pub mod tasks;
 pub mod time_tracking;
