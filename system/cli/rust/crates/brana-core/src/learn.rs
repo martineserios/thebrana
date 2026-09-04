@@ -15,12 +15,32 @@
 //! mutation, only reminder-store + queue-bookkeeping writes that gate
 //! nothing until a human reviews `brana remind list`).
 //!
-//! One behavioral difference from the shell script by design: when both agy
-//! and the Claude fallback fail for an entry, this loop `fail_entry`s that
-//! one entry and continues to the next — it never `skip_entry`+`break`s the
-//! whole run. The shell script's skip-and-defer path (t-2409's removal
-//! target) assumed a double-engine failure predicts every remaining entry
-//! will fail identically; this implementation makes no such assumption.
+//! Two deliberate behavioral differences from the shell script:
+//!
+//! 1. When both agy and the Claude fallback fail for an entry, this loop
+//!    `fail_entry`s that one entry and continues to the next — it never
+//!    `skip_entry`+`break`s the whole run. The shell script's skip-and-defer
+//!    path (t-2409's removal target) assumed a double-engine failure
+//!    predicts every remaining entry will fail identically; this
+//!    implementation makes no such assumption.
+//! 2. Terminal-failure escalation (a high-priority reminder once an entry's
+//!    retry budget is exhausted, mirroring close-extraction.sh's own
+//!    `fail_entry`) is applied uniformly at every `fail_entry` call site
+//!    here, including the two new failure classes this port introduces
+//!    (`snapshot-unreadable`, `store-write-failed`) that have no shell-side
+//!    equivalent.
+//!
+//! Everything else that reaches `fail_entry` mirrors the shell script's own
+//! classification exactly: the Claude fallback is attempted ONLY on a
+//! quota signal (429/rate-limit/resource_exhausted, or agy exiting 0 with
+//! empty output — the t-2082 regression), never on a timeout or generic
+//! agy error, which fail the entry immediately instead.
+//!
+//! No store write inside the per-entry loop uses bare `?` — a transient
+//! reminder/summary/queue-bookkeeping write failure fails or defers only
+//! THIS entry (never aborts `drain_queue` and starves every later entry),
+//! matching close-extraction.sh's `write_reminder ... || true` discipline
+//! and its `set -uo pipefail` (deliberately no `-e`).
 
 use crate::queue::{self, Entry};
 use crate::remind::{self, NewReminder, Priority};
@@ -50,6 +70,23 @@ pub struct Learning {
 pub struct DrainReport {
     pub processed: usize,
     pub failed: usize,
+    /// Non-fatal issues that did not stop the run (a store-write failure,
+    /// or a best-effort escalation reminder that itself failed to write).
+    /// Each string names the entry id and what failed.
+    pub errors: Vec<String>,
+}
+
+/// Failure signal from the injected `agy` closure. Distinguishes a quota
+/// condition — worth a Claude fallback attempt — from everything else,
+/// mirroring close-extraction.sh's own classification (lines 205-233):
+/// only a 429/rate-limit/resource_exhausted match, or agy exiting 0 with
+/// empty stdout (the t-2082 regression), triggers the fallback. A timeout
+/// or any other agy failure fails the entry immediately — no fallback
+/// attempt, and the reason is not mislabeled `quota-exhausted:`.
+#[derive(Debug)]
+pub enum AgyError {
+    QuotaExhausted(String),
+    Other(String),
 }
 
 /// Validate an engine's raw extraction output against the contract in
@@ -165,7 +202,7 @@ pub fn drain_queue(
     contract: &str,
     max_retries: u64,
     max_diff_bytes: usize,
-    mut agy: impl FnMut(&str) -> Result<serde_json::Value, String>,
+    mut agy: impl FnMut(&str) -> Result<serde_json::Value, AgyError>,
     mut claude_fallback: impl FnMut(&str) -> Result<serde_json::Value, String>,
 ) -> Result<DrainReport, String> {
     let mut report = DrainReport::default();
@@ -184,17 +221,31 @@ pub fn drain_queue(
         attempted.insert(entry.id.clone());
 
         if !Path::new(&entry.snapshot_path).is_file() {
-            queue::mark_failed(
+            fail_entry(
                 queue_path,
-                &entry.id,
+                reminder_path,
+                &entry,
                 &format!("snapshot-missing: {}", entry.snapshot_path),
-            )?;
-            report.failed += 1;
+                max_retries,
+                &mut report,
+            );
             continue;
         }
 
-        let raw_diff = std::fs::read_to_string(&entry.snapshot_path)
-            .map_err(|e| format!("reading snapshot {}: {e}", entry.snapshot_path))?;
+        let raw_diff = match std::fs::read_to_string(&entry.snapshot_path) {
+            Ok(d) => d,
+            Err(e) => {
+                fail_entry(
+                    queue_path,
+                    reminder_path,
+                    &entry,
+                    &format!("snapshot-unreadable: {e}"),
+                    max_retries,
+                    &mut report,
+                );
+                continue;
+            }
+        };
 
         // Char-count truncation, not byte-slicing: safe against splitting a
         // UTF-8 boundary (raw `head -c` in the shell script risks that; the
@@ -230,23 +281,38 @@ pub fn drain_queue(
             note.as_deref(),
         );
 
-        // Engine chain: agy-first, Claude fallback on failure. Both failing
-        // fails THIS entry only (burns its retry budget) — it never stops
-        // the run. See module doc: this is the behavioral change from the
-        // shell script's skip-and-defer path (t-2409's removal target).
+        // Engine chain: agy-first, Claude fallback ONLY on a quota signal
+        // (matches close-extraction.sh: a timeout or generic agy error
+        // fails the entry immediately, no fallback attempt — only a
+        // 429/rate-limit match or empty-output exit tries claude). Both
+        // failing fails THIS entry only (burns its retry budget) — it
+        // never stops the run. See module doc.
         let extraction = match agy(&prompt) {
             Ok(v) => v,
-            Err(agy_err) => match claude_fallback(&prompt) {
+            Err(AgyError::Other(agy_err)) => {
+                fail_entry(
+                    queue_path,
+                    reminder_path,
+                    &entry,
+                    &format!("agy-error: {agy_err}"),
+                    max_retries,
+                    &mut report,
+                );
+                continue;
+            }
+            Err(AgyError::QuotaExhausted(agy_err)) => match claude_fallback(&prompt) {
                 Ok(v) => v,
                 Err(claude_err) => {
-                    queue::mark_failed(
+                    fail_entry(
                         queue_path,
-                        &entry.id,
+                        reminder_path,
+                        &entry,
                         &format!(
                             "quota-exhausted: agy failed ({agy_err}), claude fallback failed ({claude_err})"
                         ),
-                    )?;
-                    report.failed += 1;
+                        max_retries,
+                        &mut report,
+                    );
                     continue;
                 }
             },
@@ -255,42 +321,126 @@ pub fn drain_queue(
         let learnings = match parse_learnings(&extraction) {
             Ok(l) => l,
             Err(e) => {
-                queue::mark_failed(queue_path, &entry.id, &format!("schema-invalid: {e}"))?;
-                report.failed += 1;
+                fail_entry(
+                    queue_path,
+                    reminder_path,
+                    &entry,
+                    &format!("schema-invalid: {e}"),
+                    max_retries,
+                    &mut report,
+                );
                 continue;
             }
         };
 
-        for l in &learnings {
-            let priority = if l.size == "LARGE" {
-                Priority::High
-            } else {
-                Priority::Low
-            };
-            let slug = slugify(&l.title);
-            remind::write_reminder(
-                reminder_path,
-                NewReminder {
-                    text: format!("[{}/{}] {} — {}", l.kind, l.size, l.title, l.body),
-                    priority: Some(priority),
-                    dedup_key: Some(format!("extract:{}:{}:{}", entry.project, l.kind, slug)),
-                    project: Some(entry.project.clone()),
-                    tags: vec!["extraction".to_string(), l.kind.clone()],
-                    ..Default::default()
-                },
-            )?;
-        }
+        // Route learnings + append the summary. Any failure here fails only
+        // THIS entry (ADR-052: never partial writes, never
+        // skip-and-mark-processed) — it does not propagate out of the loop
+        // via `?`, so a transient store-write failure never starves every
+        // entry queued after this one.
+        let write_result: Result<(), String> = (|| {
+            for l in &learnings {
+                let priority = if l.size == "LARGE" {
+                    Priority::High
+                } else {
+                    Priority::Low
+                };
+                let slug = slugify(&l.title);
+                remind::write_reminder(
+                    reminder_path,
+                    NewReminder {
+                        text: format!("[{}/{}] {} — {}", l.kind, l.size, l.title, l.body),
+                        priority: Some(priority),
+                        dedup_key: Some(format!("extract:{}:{}:{}", entry.project, l.kind, slug)),
+                        project: Some(entry.project.clone()),
+                        tags: vec!["extraction".to_string(), l.kind.clone()],
+                        ..Default::default()
+                    },
+                )?;
+            }
+            append_daily_summary(summary_path, &entry, &learnings)
+        })();
 
-        append_daily_summary(summary_path, &entry, &learnings)?;
+        if let Err(e) = write_result {
+            fail_entry(
+                queue_path,
+                reminder_path,
+                &entry,
+                &format!("store-write-failed: {e}"),
+                max_retries,
+                &mut report,
+            );
+            continue;
+        }
 
         // Summary path is the same for every entry this run — matches the
         // shell script's single rolling SUMMARY_FILE, appended, never
         // replaced (ADR-052, challenger M9).
-        queue::mark_processed(queue_path, &entry.id, &summary_path.to_string_lossy())?;
-        report.processed += 1;
+        match queue::mark_processed(queue_path, &entry.id, &summary_path.to_string_lossy()) {
+            Ok(_) => report.processed += 1,
+            Err(e) => {
+                // The write above already succeeded (learnings are
+                // durable) — only the queue's own bookkeeping failed.
+                // Leave the entry unprocessed for a future run rather
+                // than aborting the whole drain or double-counting it.
+                report
+                    .errors
+                    .push(format!("mark_processed failed for {}: {e}", entry.id));
+            }
+        }
     }
 
     Ok(report)
+}
+
+/// Mark one entry failed (never lets that failure itself abort the run —
+/// recorded into `report.errors` instead) and, if the entry has now
+/// exhausted its retry budget, write a high-priority escalation reminder
+/// (best-effort; a failure to write it is also non-fatal) — mirrors
+/// close-extraction.sh's `fail_entry` (lines 137-154), which signals a
+/// human once retries are exhausted rather than letting the entry go
+/// silently stale.
+#[allow(clippy::too_many_arguments)]
+fn fail_entry(
+    queue_path: &Path,
+    reminder_path: &Path,
+    entry: &Entry,
+    reason: &str,
+    max_retries: u64,
+    report: &mut DrainReport,
+) {
+    let marked = match queue::mark_failed(queue_path, &entry.id, reason) {
+        Ok(e) => e,
+        Err(e) => {
+            report
+                .errors
+                .push(format!("mark_failed bookkeeping failed for {}: {e}", entry.id));
+            report.failed += 1;
+            return;
+        }
+    };
+    report.failed += 1;
+
+    if marked.retry_count >= max_retries {
+        let escalation = remind::write_reminder(
+            reminder_path,
+            NewReminder {
+                text: format!(
+                    "Extraction failed {}x for {} {} ({}): {reason}",
+                    marked.retry_count, entry.project, entry.branch, entry.git_range
+                ),
+                priority: Some(Priority::High),
+                dedup_key: Some(format!("extraction-failed:{}", entry.id)),
+                project: Some(entry.project.clone()),
+                ..Default::default()
+            },
+        );
+        if let Err(e) = escalation {
+            report
+                .errors
+                .push(format!("escalation reminder failed for {}: {e}", entry.id));
+        }
+    }
 }
 
 /// Lowercase, non-alnum -> `-`, collapsed, capped at 48 chars — mirrors
@@ -505,6 +655,7 @@ mod tests {
 
         assert_eq!(report.processed, 1);
         assert_eq!(report.failed, 0);
+        assert!(report.errors.is_empty());
 
         let entries = queue::list(&qp, false).unwrap();
         assert!(entries[0].processed);
@@ -520,7 +671,7 @@ mod tests {
     }
 
     #[test]
-    fn drain_queue_falls_back_to_claude_on_agy_failure() {
+    fn drain_queue_falls_back_to_claude_on_quota_signal() {
         let dir = tempfile::TempDir::new().unwrap();
         let (qp, rp, sp) = tmp_paths(&dir);
         let snap = dir.path().join("snap.diff");
@@ -533,13 +684,42 @@ mod tests {
             "CONTRACT",
             3,
             100_000,
-            |_prompt| Err("429 rate limited".to_string()),
+            |_prompt| Err(AgyError::QuotaExhausted("429 rate limited".to_string())),
             |_prompt| Ok(json!({"learnings": []})),
         )
         .unwrap();
 
         assert_eq!(report.processed, 1);
         assert_eq!(report.failed, 0);
+    }
+
+    #[test]
+    fn drain_queue_does_not_try_claude_on_non_quota_agy_error() {
+        // Mirrors close-extraction.sh: a timeout or generic agy error fails
+        // the entry immediately — no fallback attempt, no "quota-exhausted:"
+        // mislabeling of a cause that was never a quota issue.
+        let dir = tempfile::TempDir::new().unwrap();
+        let (qp, rp, sp) = tmp_paths(&dir);
+        let snap = dir.path().join("snap.diff");
+        seed_entry(&qp, "thebrana", "feat/x", "a..b", &snap);
+
+        let report = drain_queue(
+            &qp,
+            &rp,
+            &sp,
+            "CONTRACT",
+            3,
+            100_000,
+            |_prompt| Err(AgyError::Other("timed out after 120s".to_string())),
+            |_prompt| panic!("claude fallback must not be called for a non-quota agy error"),
+        )
+        .unwrap();
+
+        assert_eq!(report.failed, 1);
+        let entries = queue::list(&qp, false).unwrap();
+        let err = entries[0].error.as_deref().unwrap();
+        assert!(err.contains("agy-error"));
+        assert!(!err.contains("quota-exhausted"));
     }
 
     #[test]
@@ -564,7 +744,7 @@ mod tests {
             |_prompt| {
                 calls += 1;
                 if calls == 1 {
-                    Err("429 rate limited".to_string())
+                    Err(AgyError::QuotaExhausted("429 rate limited".to_string()))
                 } else {
                     Ok(json!({"learnings": []}))
                 }
@@ -573,7 +753,7 @@ mod tests {
         )
         .unwrap();
 
-        // Entry 1: agy fails, claude fallback fails too -> fail_entry, continue.
+        // Entry 1: agy fails (quota), claude fallback fails too -> fail_entry, continue.
         // Entry 2: agy succeeds outright.
         assert_eq!(report.processed, 1);
         assert_eq!(report.failed, 1);
@@ -677,5 +857,135 @@ mod tests {
 
         assert_eq!(report.processed, 3);
         assert_eq!(queue::list(&qp, true).unwrap().len(), 0); // none left unprocessed
+    }
+
+    #[test]
+    fn drain_queue_writes_escalation_reminder_when_retries_exhausted() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let (qp, rp, sp) = tmp_paths(&dir);
+        let snap = dir.path().join("snap.diff");
+        let entry = seed_entry(&qp, "thebrana", "feat/x", "a..b", &snap);
+        // Pre-exhaust to retry_count == 2 (a `failed`, unprocessed entry
+        // stays eligible — queue::list's unprocessed filter is `!processed`
+        // only). drain_queue's own fail_entry call below is the 3rd
+        // failure (max_retries == 3), crossing the escalation threshold.
+        queue::mark_failed(&qp, &entry.id, "e1").unwrap();
+        queue::mark_failed(&qp, &entry.id, "e2").unwrap();
+
+        let report = drain_queue(
+            &qp,
+            &rp,
+            &sp,
+            "CONTRACT",
+            3,
+            100_000,
+            |_| Ok(json!({"not_learnings": []})), // -> schema-invalid -> fail_entry, retry_count -> 3
+            |_| unreachable!(),
+        )
+        .unwrap();
+
+        assert_eq!(report.failed, 1);
+        let reminders = remind::list(&rp).unwrap();
+        assert_eq!(reminders.len(), 1);
+        assert_eq!(reminders[0].priority, Priority::High);
+        assert!(reminders[0].text.contains("Extraction failed 3x"));
+        assert!(reminders[0].text.contains("schema-invalid"));
+    }
+
+    #[test]
+    fn drain_queue_does_not_escalate_before_retries_exhausted() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let (qp, rp, sp) = tmp_paths(&dir);
+        let snap = dir.path().join("snap.diff");
+        seed_entry(&qp, "thebrana", "feat/x", "a..b", &snap);
+
+        drain_queue(
+            &qp,
+            &rp,
+            &sp,
+            "CONTRACT",
+            3,
+            100_000,
+            |_| Ok(json!({"not_learnings": []})), // retry_count -> 1, well under max_retries 3
+            |_| unreachable!(),
+        )
+        .unwrap();
+
+        assert!(remind::list(&rp).unwrap().is_empty());
+    }
+
+    #[test]
+    fn drain_queue_store_write_failure_fails_only_that_entry_not_the_whole_run() {
+        // The critical behavior this test locks in: a reminder-store write
+        // failure must not abort drain_queue via `?` and starve every
+        // entry queued after the failing one.
+        let dir = tempfile::TempDir::new().unwrap();
+        let (qp, _rp, sp) = tmp_paths(&dir);
+        // A directory in place of the reminder store file: write_reminder's
+        // underlying write/rename will fail cleanly (EISDIR-class error),
+        // giving a deterministic, non-racy way to force the failure path.
+        let bad_reminder_path = dir.path().join("reminders-is-a-dir");
+        std::fs::create_dir_all(&bad_reminder_path).unwrap();
+
+        let snap1 = dir.path().join("snap1.diff");
+        let snap2 = dir.path().join("snap2.diff");
+        seed_entry(&qp, "thebrana", "feat/x", "a..b", &snap1);
+        seed_entry(&qp, "thebrana", "feat/y", "c..d", &snap2);
+
+        let report = drain_queue(
+            &qp,
+            &bad_reminder_path,
+            &sp,
+            "CONTRACT",
+            3,
+            100_000,
+            |_| Ok(json!({"learnings": [
+                {"type": "pattern", "size": "SMALL", "title": "t", "body": "b", "confidence": 0.9}
+            ]})),
+            |_| unreachable!(),
+        )
+        .unwrap();
+
+        // Both entries hit the same write failure; the run itself completes
+        // and BOTH entries are visited — proof the first failure did not
+        // abort the loop.
+        assert_eq!(report.processed, 0);
+        assert_eq!(report.failed, 2);
+
+        let entries = queue::list(&qp, false).unwrap();
+        assert_eq!(entries.len(), 2);
+        for e in &entries {
+            assert!(e.failed);
+            assert!(!e.processed);
+            assert!(e.error.as_deref().unwrap().contains("store-write-failed"));
+        }
+    }
+
+    #[test]
+    fn drain_queue_summary_write_failure_fails_only_that_entry() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let (qp, rp, _sp) = tmp_paths(&dir);
+        let bad_summary_path = dir.path().join("summary-is-a-dir");
+        std::fs::create_dir_all(&bad_summary_path).unwrap();
+
+        let snap = dir.path().join("snap.diff");
+        seed_entry(&qp, "thebrana", "feat/x", "a..b", &snap);
+
+        let report = drain_queue(
+            &qp,
+            &rp,
+            &bad_summary_path,
+            "CONTRACT",
+            3,
+            100_000,
+            |_| Ok(json!({"learnings": []})),
+            |_| unreachable!(),
+        )
+        .unwrap();
+
+        assert_eq!(report.processed, 0);
+        assert_eq!(report.failed, 1);
+        let entries = queue::list(&qp, false).unwrap();
+        assert!(entries[0].error.as_deref().unwrap().contains("store-write-failed"));
     }
 }
