@@ -5,6 +5,7 @@ use anyhow::{bail, Context, Result};
 use std::fs;
 
 use crate::cli::AdrCmd;
+use brana_core::session::is_safe_epic_slug;
 use brana_core::util::find_project_root;
 
 pub fn cmd_adr(cmd: AdrCmd) -> Result<()> {
@@ -17,15 +18,16 @@ pub fn cmd_adr(cmd: AdrCmd) -> Result<()> {
 /// this, `slug` flows unsanitized into `decisions_dir.join(format!("ADR-{n}-{slug}.md"))` —
 /// a slug containing `../` (or an absolute-path-like `/etc/passwd`) would let `PathBuf::join`
 /// escape `decisions_dir` entirely.
+///
+/// Reuses [`is_safe_epic_slug`] rather than a second hand-rolled check — same risk shape
+/// (an externally-supplied slug reaching a filesystem write) this repo already hardened
+/// once (t-3169), flagged by the t-3294 challenger gate for exactly this reuse.
 fn validate_slug(slug: &str) -> Result<()> {
     if slug.trim().is_empty() {
         bail!("slug must not be empty");
     }
-    if !slug
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-    {
-        bail!("slug must be kebab-case (letters, digits, '-', '_' only), got: {slug}");
+    if !is_safe_epic_slug(slug) {
+        bail!("slug must be kebab-case (lowercase letters, digits, single '-' separators), got: {slug}");
     }
     Ok(())
 }
@@ -64,7 +66,7 @@ mod tests {
     #[test]
     fn accepts_plain_kebab_case() {
         assert!(validate_slug("backfill-retry-policy").is_ok());
-        assert!(validate_slug("worktree_lock_registry").is_ok());
+        assert!(validate_slug("worktree-lock-registry").is_ok());
         assert!(validate_slug("adr123").is_ok());
     }
 
@@ -87,5 +89,16 @@ mod tests {
         assert!(validate_slug("has spaces").is_err());
         assert!(validate_slug("has.dot").is_err());
         assert!(validate_slug("has\\backslash").is_err());
+    }
+
+    #[test]
+    fn rejects_uppercase_underscores_and_malformed_dashes() {
+        // is_safe_epic_slug's stricter convention (t-3169): lowercase only, single '-'
+        // separators, no leading/trailing/repeated dashes.
+        assert!(validate_slug("Has-Uppercase").is_err());
+        assert!(validate_slug("has_underscore").is_err());
+        assert!(validate_slug("-leading-dash").is_err());
+        assert!(validate_slug("trailing-dash-").is_err());
+        assert!(validate_slug("double--dash").is_err());
     }
 }

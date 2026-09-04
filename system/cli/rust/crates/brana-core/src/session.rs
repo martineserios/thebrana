@@ -187,7 +187,12 @@ pub fn epic_scoped_state_path(project_root: &Path, branch: &str) -> PathBuf {
 /// entirely (confirmed: reaches real writes outside the memory directory). Pre-existing
 /// (reachable via `write_state`'s payload `epic` field before this fix existed at all);
 /// this is the first place any validation was ever applied to it.
-pub(crate) fn is_safe_epic_slug(slug: &str) -> bool {
+///
+/// `pub` (not `pub(crate)`) since t-3294: also reused by `brana-cli`'s `brana adr reserve
+/// <slug>` to validate an externally-supplied slug embedded in a filename — same risk
+/// shape (a `../`-bearing string reaching a filesystem write), same fix, one hardened
+/// implementation instead of a second hand-rolled one.
+pub fn is_safe_epic_slug(slug: &str) -> bool {
     static RE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
     RE.get_or_init(|| Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").expect("slug regex is valid"))
         .is_match(slug)
