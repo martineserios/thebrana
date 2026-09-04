@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-09-03T13:23:50.303512475-03:00",
+  "last_modified": "2026-09-04T09:50:06.043688448-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -79658,10 +79658,16 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "gh api shows main protected: required status checks = the CI workflow's validate and rust jobs, strict=true, enforce_admins=true",
+        "system/skills/ship/SKILL.md deploy step opens a dev->main PR with gh, waits for required checks, merges it, then runs bootstrap.sh; a direct git push to main is documented as denied",
+        "CLAUDE.md §Integration model and docs/guide/workflows/branching.md describe the tier-2 valve in one paragraph each, same change",
+        "claude-code-review.yml and claude.yml are either wired to PRs targeting main or removed, and the decision is recorded in the task notes",
+        "a ship leaves a PR record findable with gh pr list --base main --state merged"
+      ],
       "blocked_by": [],
-      "branch": null,
+      "branch": "brana-v3-redesign/chore/t-3023-tier2-pr-gated-ship",
       "completed": null,
       "context": "Decided 2026-08-23 in the-brana-guide.md L4.4 + tier table (worktree thebrana-t-2490). Rule: valve strictness is a function of the tier it writes into. Pocock cite: PR-to-main + CI is his whole gate; brana adopts it at the one tier where the deployable is the operator's own runtime. NOT adopted: tickets→GitHub issues (Bucket 2 planning ergonomics stay in tasks.json), PRs per feature branch (round-trip cost, runner denied gh verbs per lethal trifecta). Touch: CLAUDE.md §Integration model, docs/guide/workflows/branching.md, system/skills/ship, ADR-060 amendment note, .github/branch protection (gh api). Risk: solo operator approving own PR — use required status checks, not required reviews.\nAC: branch protection on main: required check = ci.yml job(s), enforce_admins=true, verified via gh api\nAC: /brana:ship procedure opens/merges the PR and runs bootstrap.sh after; CLAUDE.md + branching.md updated in the same change\nAC: a ship produces a PR record (what/when/sha) discoverable via gh pr list\nAC: claude-code-review.yml / claude.yml either wired to the tier-2 PR or removed, with the decision recorded",
       "created": "2026-08-23",
@@ -79675,17 +79681,22 @@
       "order": 0,
       "parent": "t-2490",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-03",
+      "status": "in_progress",
       "subject": "Tier-2 hardening: dev→main goes through a GitHub PR with required CI + enforce_admins (ship-to-main valve gets record/surfacing/verb)",
       "tags": [
         "t-2490-followup",
         "gate",
         "github",
-        "hardening"
+        "hardening",
+        "wave:deploy-gate"
       ],
       "type": "task",
-      "work_type": "infra"
+      "work_type": "infra",
+      "lease": {
+        "claimant": "wave-pull:lead-3aaba499",
+        "expires": "2026-09-04T17:02:05.264416635-03:00"
+      }
     },
     {
       "ac_state": "none",
@@ -86872,12 +86883,16 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "system/loops/epic-drain.md and docs/guide/workflows/epic-drain.md pump step describe an N-wide beat: N sequential wave pull calls, then one build-loop instance per pulled task dispatched via native Agent/Task fan-out, each in its own worktree",
+        "the prompt states what N is, where the operator sets it, and that the beat reports every pulled id",
+        "validate.sh passes with the doc changes"
+      ],
       "blocked_by": [
         "t-3268"
       ],
-      "branch": null,
+      "branch": "backlog-drain/feat/t-3270-supervised-n-dispatch",
       "completed": null,
       "context": "system/loops/epic-drain.md + docs/guide/workflows/epic-drain.md pump step: dispatch each pulled task to its own worktree via native Agent/Task fan-out, one build-loop instance per task, run in parallel within the beat.",
       "created": "2026-09-02",
@@ -86887,29 +86902,35 @@
       "github_issue": null,
       "id": "t-3270",
       "kind": "feature",
-      "notes": null,
+      "notes": "2026-09-04: shipped 8776d4ec (merged to dev). epic-drain.md loop prompt step 4 is N-wide: wave pull -n N (N is operator-set at /loop launch, substituted into the prompt, not a wave field), sequential atomic pulls, one build-loop instance per pulled id via Agent fan-out in one message, every pulled id reported alongside the at_limit/none_eligible tail, human still the merge valve N times, close-outs batched to the cockpit digest. validate.sh --fast clean apart from the pre-existing Check 29 (fixed on dev 892a0aed).",
       "order": 0,
       "parent": "t-3269",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-03",
+      "status": "completed",
       "subject": "Supervised dispatch — update epic-drain.md loop prompt for N-task Agent/Task fan-out",
       "tags": [
         "loop",
         "waves",
         "wip",
-        "parallelism"
+        "parallelism",
+        "wave:deploy-gate"
       ],
       "type": "task",
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "a new brana-core function performs N real sequential pull_wave_task calls (each its own lock_tasks critical section) and returns the pulled task ids, stopping at at_limit or none_eligible; unit tests cover N=1, N>eligible, and wip_limit binding mid-beat",
+        "wave pull -n N without --dry-run now performs that real N-wide pull and prints pulled_task_ids; the refusal path is removed",
+        "the autonomous runner (system/scripts/autonomous-runner.sh) can dispatch N claude -p processes, one per pulled id, each in its own ephemeral worktree under the existing ADR-060 isolation contract, with a test or dry-run proving N processes are spawned",
+        "cargo test for brana-core and brana-cli green, clippy clean"
+      ],
       "blocked_by": [
         "t-3268"
       ],
-      "branch": null,
+      "branch": "backlog-drain/feat/t-3271-headless-n-dispatch",
       "completed": null,
       "context": "Orbit/autonomous runner (t-3019, presence:none) path: N separate claude -p processes, each in its own ephemeral worktree, same ADR-060 isolation contract invoked N times instead of once. Coordinate with t-3019's existing runner scope.\nChallenger finding (t-3267/t-3268 gate, 2026-09-02, score 3): this task must produce the real N-times sequential `pull_wave_task` loop (each call its own atomic lock_tasks — no batching), not wire dispatch directly against `wave_pull_decision_n` (that function is a pure in-memory simulation for testing/decision purposes only; it never locks or writes, per its own doc comment in wave.rs). The pulled task_ids this task's fan-out dispatches to must come from real sequential `pull_wave_task` calls.",
       "created": "2026-09-02",
@@ -86919,30 +86940,34 @@
       "github_issue": null,
       "id": "t-3271",
       "kind": "feature",
-      "notes": null,
+      "notes": "2026-09-04: shipped 14732c1f (merged to dev). brana-core pull_wave_tasks_n(path, wave_id, claimant, n) -> BeatPull{pulled, stop: ReachedN|AtLimit|NoneEligible} — loops the real pull_wave_task, one lock + lease per pull, partial claims named on error. CLI: wave pull -n N real path (refusal removed) prints pulled_task_ids + stopped; -n 1/absent byte-identical. Runner: --run-beat --wave <id> with RUNNER_FANOUT=N, one run_task per id in its own worktree/jail, worktree admin serialized behind a flock, kill-switch checked before the pull; test-autonomous-runner-beat.sh 22/22 wired into validate.sh Check 61. Tests: core+cli 1766 pass, clippy clean. Left: jail still mounts no ~/.claude/projects (t-2516), autonomous-runner.md feature doc (t-3272).",
       "order": 0,
       "parent": "t-3269",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-03",
+      "status": "completed",
       "subject": "Headless dispatch — N-process claude -p fan-out path",
       "tags": [
         "loop",
         "waves",
         "wip",
-        "parallelism"
+        "parallelism",
+        "wave:deploy-gate"
       ],
       "type": "task",
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "docs/guide/workflows/epic-drain.md documents N-task parallel pull, both dispatch mechanisms, and how an operator sets N, with a worked example of one beat",
+        "validate.sh passes"
+      ],
       "blocked_by": [
         "t-3270",
         "t-3271"
       ],
-      "branch": null,
+      "branch": "backlog-drain/docs/t-3272-epic-drain-n-guide",
       "completed": null,
       "context": "docs/guide/workflows/epic-drain.md — document the N-task parallel pull behavior, dispatch mechanism, and how an operator sets N. \"Shipped without docs means not shipped.\"",
       "created": "2026-09-02",
@@ -86956,18 +86981,23 @@
       "order": 0,
       "parent": "t-3269",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-04",
+      "status": "in_progress",
       "subject": "Docs — update epic-drain.md user-facing guide",
       "tags": [
         "loop",
         "waves",
         "wip",
         "parallelism",
-        "docs"
+        "docs",
+        "wave:deploy-gate"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "lease": {
+        "claimant": "wave-pull:lead-3aaba499",
+        "expires": "2026-09-05T09:50:05.965202294-03:00"
+      }
     },
     {
       "ac_state": "none",
@@ -87000,10 +87030,14 @@
       "work_type": "implement"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "docs/architecture/features/loops-library.md §Beat record schema gains a pulled_task_ids array field (length 1 for a single-task beat) with its semantics",
+        "the backfill question for prose-only historical records is answered in the same section with a stated decision",
+        "docs/ideas/drained/loops-library.md is untouched"
+      ],
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-drain/docs/t-3274-beat-record-pulled-task-ids",
       "completed": null,
       "context": "docs/architecture/features/loops-library.md §Beat record schema is the canonical live copy — do NOT edit docs/ideas/drained/loops-library.md (superseded, \"do not add new content here\"). Add net-new pulled_task_ids array field; a single-task beat is an array of length 1. Decide whether prose-only historical records need backfill for structural querying (ADR-090 §3 names this as an open design question for this task to resolve).",
       "created": "2026-09-02",
@@ -87013,30 +87047,35 @@
       "github_issue": null,
       "id": "t-3274",
       "kind": "docs",
-      "notes": null,
+      "notes": "2026-09-04: shipped f7c06cf1 (merged to dev). pulled_task_ids: array in pull (=lease) order, always an array, [] for zero-pull beats, missing key = predates the field (never conflate). Backfill: none — zero structural readers exist, corpus is 3 prose beats in t-2845 notes, writing [] would assert a measurement never taken. Finding for t-3275: no script writes or parses beat records today; pipeline-digest.sh history.jsonl is a different shape.",
       "order": 0,
       "parent": "t-3273",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-03",
+      "status": "completed",
       "subject": "Add pulled_task_ids field to loops-library.md Beat record schema",
       "tags": [
         "loop",
         "waves",
         "wip",
         "parallelism",
-        "schema"
+        "schema",
+        "wave:deploy-gate"
       ],
       "type": "task",
       "work_type": "design"
     },
     {
-      "ac_state": "none",
-      "acceptance_criteria": null,
+      "ac_state": "approved",
+      "acceptance_criteria": [
+        "system/scripts/pipeline-digest.sh and system/scheduler/brana-scheduler-digest.sh read pulled_task_ids and present a multi-task beat as one batched entry listing every task",
+        "a single-task beat renders exactly as before (regression test or fixture diff)",
+        "a fixture beat with three ids renders as one batched entry in a test"
+      ],
       "blocked_by": [
         "t-3274"
       ],
-      "branch": null,
+      "branch": "backlog-drain/feat/t-3275-digest-multi-task-beats",
       "completed": null,
       "context": "system/scripts/pipeline-digest.sh, system/scheduler/brana-scheduler-digest.sh — read pulled_task_ids to correctly present batched build-CLOSEs from one parallel beat, per ADR-090 §4 (batched digest, existing capacity model, no new mechanism).",
       "created": "2026-09-02",
@@ -87050,17 +87089,22 @@
       "order": 0,
       "parent": "t-3273",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-09-04",
+      "status": "in_progress",
       "subject": "Update digest consumers to read multi-task beats",
       "tags": [
         "loop",
         "waves",
         "wip",
-        "parallelism"
+        "parallelism",
+        "wave:deploy-gate"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "lease": {
+        "claimant": "wave-pull:lead-3aaba499",
+        "expires": "2026-09-05T09:50:06.043686267-03:00"
+      }
     },
     {
       "ac_state": "none",
@@ -87402,6 +87446,16 @@
       "name": "backlog-drain-dispatch-mechanism",
       "selector": "parent:t-3269",
       "status": "queued"
+    },
+    {
+      "id": "wave-24",
+      "name": "deploy-gate",
+      "selector": "tag:wave:deploy-gate",
+      "contract": "dev->main ships only through a CI-gated PR with enforce_admins (t-3023) and /brana:ship drives it; N-wide dispatch is real for supervised and headless runners and documented (t-3270, t-3271, t-3272); beat records carry pulled_task_ids and both digests read them (t-3274, t-3275); all six merged to dev, dev shipped to main through the new valve, oracle-hub re-shipped from that main.",
+      "gate": null,
+      "status": "draining",
+      "created": "2026-09-03",
+      "wip_limit": 4
     }
   ]
 }
