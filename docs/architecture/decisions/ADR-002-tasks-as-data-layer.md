@@ -51,3 +51,5 @@ GitHub Issues sync and markdown rendering are deferred — the JSON schema suppo
 - Convention rule adds ~80 lines to always-loaded rules budget
 
 **Schema evolution (v1.1):** `tags` (string[], optional) and `context` (string, optional) fields added post-v1 for flexible classification and rich task background. Both backward-compatible — existing tasks.json files pass validation unchanged. Hook validates types when present.
+
+**Amendment 2026-09-04 ([ADR-091](ADR-091-tasks-json-untracked-canonical-snapshot.md)):** the "Git merge conflicts on tasks.json (mitigated by convention: status changes on main only)" line above is superseded — that convention was never re-enforced after ADR-060's worktree-per-task model shipped, and a live cross-worktree divergence bug was found and reproduced as a result. ADR-091 replaces it with a structural fix: `.claude/tasks.json` is no longer git-tracked; a periodic snapshot (not the live file) carries history.
