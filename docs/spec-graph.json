@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-02T22:16:24Z",
+  "generated": "2026-09-03T14:40:13Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1662,6 +1662,19 @@
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/"
+      ]
+    },
+    "docs/architecture/features/lane-identity.md": {
+      "title": "Feature: Lane Identity — Session-State Key Unification and Miss Semantics",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/autonomous-runner.sh",
+        "system/hooks/session-start.sh:514",
+        "system/hooks/session-start.sh:575",
+        "system/hooks/session-end-persist.sh:240-242",
+        "system/scripts/git-hooks/pre-commit",
+        "system/skills/close/phases/gate-and-evidence.md",
+        "system/skills/close/phases/session-state.md"
       ]
     },
     "docs/architecture/features/learned-eligibility.md": {
@@ -11129,6 +11142,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-090-same-wave-parallel-dispatch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -11382,6 +11401,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/lane-identity.md",
       "type": "references",
       "computed": false
     },
@@ -12773,6 +12798,12 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "to": "docs/architecture/features/lane-identity.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
       "to": "docs/ideas/drained/backlog-v3-lane-identity.md",
       "type": "references",
       "computed": false
@@ -13716,6 +13747,12 @@
     {
       "from": "docs/architecture/features/knowledge-process-url.md",
       "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/lane-identity.md",
+      "to": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
       "type": "references",
       "computed": false
     },
@@ -19037,8 +19074,8 @@
     }
   ],
   "stats": {
-    "nodes": 622,
-    "edges": 2439,
+    "nodes": 623,
+    "edges": 2443,
     "typed_edges": 697,
     "orphans": 141
   }
