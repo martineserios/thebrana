@@ -1052,4 +1052,105 @@ mod tests {
             "accumulator must NOT pick up the branch-derived decoy state: {:?}", acc.accomplished
         );
     }
+
+    // ── ADR-069 D1 — miss semantics (t-2529, TDD gate for t-2521) ────────────────
+    //
+    // "A miss exits non-zero and NEVER substitutes another lane's state." Both tests
+    // below are RED today: `cmd_session_read`'s `None` arm falls through to
+    // `handoff::cmd_handoff_last(1)` and always returns `Ok(())` regardless of whether
+    // that fallback found anything — a genuine miss (nothing anywhere) and a
+    // silently-substituted stale legacy handoff both currently report success.
+
+    #[test]
+    #[serial]
+    fn cmd_session_read_pure_miss_must_error_not_exit_zero() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        // Nothing written anywhere: no session-state*.json, no session-handoff.md.
+        let result = cmd_session_read(false, false, None, None);
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+
+        assert!(
+            result.is_err(),
+            "a genuine miss (no state, no handoff) must exit non-zero, not silently Ok(())"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn cmd_session_read_miss_must_not_substitute_stale_handoff() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        // No session-state*.json for this unit at all — but a legacy handoff.md exists
+        // with real entries, from a different (pre-migration) era of this project.
+        let handoff_path = handoff::resolve_handoff_path(project_root.path());
+        fs::create_dir_all(handoff_path.parent().unwrap()).unwrap();
+        fs::write(
+            &handoff_path,
+            "## 2025-01-01\n\n**Accomplished:**\n- stale legacy work from a different lane\n",
+        )
+        .unwrap();
+
+        let result = cmd_session_read(false, false, None, None);
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+
+        assert!(
+            result.is_err(),
+            "a session-state miss must report as a miss even when a legacy handoff file \
+             exists — it must never silently substitute a different lane's (or era's) \
+             content and report success"
+        );
+    }
+
+    // `cmd_session_path` (D0 fallback surface #4): always resolves via branch-only
+    // `epic_scoped_state_path`, with no `--epic` option — divergent from
+    // `cmd_session_write`'s actual UNIT-keyed write path whenever a payload carries an
+    // explicit epic. `cmd_session_path` only prints (no return value to assert on), so
+    // this pins the underlying resolution it performs against where a real
+    // `cmd_session_write` call actually lands, via the CLI write command end-to-end
+    // (not the lower-level `write_state` directly, matching what `cmd_session_path`'s
+    // own caller would experience).
+    #[test]
+    #[serial]
+    fn cmd_session_path_diverges_from_cmd_session_write_when_explicit_epic_present() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        let branch = brana_core::session::current_branch().unwrap_or_default();
+        let payload_path = project_root.path().join("payload.json");
+        fs::write(
+            &payload_path,
+            serde_json::json!({
+                "version": 1,
+                "written_at": "",
+                "epic": "totally-different-unit-for-path-test",
+                "accomplished": ["did the thing"],
+            })
+            .to_string(),
+        )
+        .unwrap();
+        cmd_session_write(Some(payload_path), false).unwrap();
+
+        // What cmd_session_path actually resolves (branch-only) vs where the write above
+        // actually landed (UNIT key: explicit epic wins).
+        let path_command_resolves = epic_scoped_state_path(project_root.path(), &branch);
+        let where_write_landed = brana_core::session::unit_scoped_state_path(
+            project_root.path(),
+            Some("totally-different-unit-for-path-test"),
+            &branch,
+        );
+
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+
+        assert_eq!(
+            path_command_resolves, where_write_landed,
+            "cmd_session_path must report the same path cmd_session_write actually used \
+             (currently diverges: it guesses branch-only while write resolves the UNIT key)"
+        );
+    }
 }

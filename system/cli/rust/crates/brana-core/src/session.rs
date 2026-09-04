@@ -1325,6 +1325,49 @@ fn branch_has_active_worktree(project_root: &Path, branch: &str) -> bool {
     (Utc::now().timestamp() - commit_ts) < ACTIVE_WORKTREE_WINDOW_SECS
 }
 
+// ── Resume query (ADR-069 D2) ───────────────────────────────────────────────
+//
+// `brana session resume` must resolve AT MOST ONE lane from the current process's
+// worktree_path, branch, and task_id, ranked worktree_path > branch > task_id, and
+// report which rule matched. Ambiguity at a rank (2+ equally-ranked candidates) is a
+// miss, not a fall-through to a weaker rank — a rank with signal but no unique answer
+// must never be silently downgraded to a guess that might resolve by coincidence.
+//
+// NOT YET IMPLEMENTED (t-2521). This is a stub: a real signature so t-2529's tests
+// compile and fail LOUD (panic) rather than not compiling at all — a compile failure
+// here would break every other test in this crate before t-2521 lands, which is a much
+// bigger blast radius than this TDD-gate task's scope.
+
+/// A candidate session lane for a resume query (ADR-069 D2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LaneCandidate {
+    /// Reporting label — not part of the ranking, just what a caller shows the user.
+    pub label: String,
+    pub worktree_path: Option<String>,
+    pub branch: Option<String>,
+    pub task_id: Option<String>,
+}
+
+/// Which signal a resume query matched on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResumeMatchRule {
+    WorktreePath,
+    Branch,
+    TaskId,
+}
+
+/// Resolve at most one lane to resume into. See module doc above for the ranking and
+/// ambiguity contract (ADR-069 D2, t-2521).
+pub fn resolve_resume_lane(
+    candidates: &[LaneCandidate],
+    worktree_path: Option<&str>,
+    branch: Option<&str>,
+    task_id: Option<&str>,
+) -> Option<(LaneCandidate, ResumeMatchRule)> {
+    let _ = (candidates, worktree_path, branch, task_id);
+    todo!("t-2521: implement ranked resume-query resolution (ADR-069 D2) — see t-2529's tests for the contract")
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -2867,5 +2910,170 @@ mod tests {
 
         let loaded = read_state_from(root, orbit_branch).expect("state must exist after replace");
         assert!(loaded.accomplished.contains(&"unrelated work".to_string()));
+    }
+
+    // ── ADR-069 D0/D1/D2 — TDD gate for t-2521 (t-2529) ──────────────────────────
+
+    // D0: read, write and mark_consumed must all resolve through the SAME key function.
+    // write_state already resolves through the UNIT key (explicit `epic` first, falling
+    // back to branch parsing — t-2152/t-3169). mark_consumed_for still resolves through
+    // branch-only `epic_scoped_state_path`. When a write carries an explicit epic that
+    // diverges from what the branch alone would parse to, mark_consumed_for cannot find
+    // the file write_state actually wrote — the "has this session's handoff been
+    // consumed" marker silently never lands on the real file.
+    //
+    // RED until t-2521 gives mark_consumed/mark_consumed_for the same unit-key
+    // resolution write_state and read_state_from_unit already have.
+    #[test]
+    fn mark_consumed_diverges_from_write_when_explicit_epic_present() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        // Branch alone parses to epic "harness" (matches the {epic}/{type}/t-N- regex);
+        // the payload's explicit epic overrides that to a different unit.
+        let branch = "harness/fix/t-9001-something";
+        let state = SessionState {
+            branch: Some(branch.to_string()),
+            epic: Some("totally-different-unit".to_string()),
+            ..make_state("2026-09-04T10:00:00Z")
+        };
+        write_state(root, &state).unwrap();
+
+        // Sanity: write_state actually wrote under the UNIT key (explicit epic), and
+        // that path genuinely diverges from the branch-only guess.
+        let unit_path = unit_scoped_state_path(root, Some("totally-different-unit"), branch);
+        assert!(unit_path.exists(), "sanity: write must land on the unit-keyed file");
+        let branch_only_path = epic_scoped_state_path(root, branch);
+        assert_ne!(
+            unit_path, branch_only_path,
+            "sanity: this test needs the two keys to diverge"
+        );
+
+        // mark_consumed_for only knows the branch — it must consume the SAME file
+        // write_state wrote to, not silently miss it via a branch-only guess.
+        let _ = mark_consumed_for(root, branch);
+
+        let unit_state: SessionState =
+            serde_json::from_str(&fs::read_to_string(&unit_path).unwrap()).unwrap();
+        assert!(
+            unit_state.consumed_at.is_some(),
+            "mark_consumed must consume the file write_state actually wrote to, not a \
+             branch-only guess that diverges from it"
+        );
+    }
+
+    // D2: resume-query resolution. `brana session resume` (t-2521) must rank candidate
+    // lanes worktree_path > branch > task_id, return AT MOST ONE lane, report which rule
+    // matched, and treat ambiguity at any rank (2+ equally-ranked matches) as a miss —
+    // never fall through to a weaker rank just because a stronger one had signal but no
+    // unique answer (that would silently trade a real "I don't know" for a guess).
+    //
+    // The function does not exist yet — [`resolve_resume_lane`] is a stub (`todo!()`) so
+    // these tests compile and fail LOUD (panic) rather than not compiling at all, which
+    // would break every other test in this crate before t-2521 lands. RED until t-2521
+    // implements the real ranking.
+    #[test]
+    fn resume_query_unique_worktree_path_match_wins() {
+        let candidates = vec![
+            LaneCandidate {
+                label: "a".into(),
+                worktree_path: Some("/repo".into()),
+                branch: Some("main".into()),
+                task_id: None,
+            },
+            LaneCandidate {
+                label: "b".into(),
+                worktree_path: Some("/repo-other".into()),
+                branch: Some("main".into()),
+                task_id: None,
+            },
+        ];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        let (lane, rule) = result.expect("a unique worktree_path match must resolve");
+        assert_eq!(lane.label, "a");
+        assert_eq!(rule, ResumeMatchRule::WorktreePath);
+    }
+
+    #[test]
+    fn resume_query_ambiguous_worktree_path_is_a_miss_not_a_fallthrough() {
+        let candidates = vec![
+            LaneCandidate {
+                label: "a".into(),
+                worktree_path: Some("/repo".into()),
+                branch: Some("main".into()),
+                task_id: None,
+            },
+            LaneCandidate {
+                label: "b".into(),
+                worktree_path: Some("/repo".into()),
+                branch: Some("other".into()),
+                task_id: None,
+            },
+        ];
+        // Two candidates both match worktree_path "/repo" — ambiguous at the top rank.
+        // Must miss outright, not fall through to branch (where "main" would uniquely
+        // match candidate "a" and silently paper over the ambiguity).
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        assert!(
+            result.is_none(),
+            "ambiguity at the worktree_path rank must be a miss, not a fall-through to branch"
+        );
+    }
+
+    #[test]
+    fn resume_query_falls_through_to_branch_when_worktree_path_has_no_match() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo-elsewhere".into()),
+            branch: Some("main".into()),
+            task_id: None,
+        }];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        let (lane, rule) = result.expect("no worktree_path match must fall through to branch");
+        assert_eq!(lane.label, "a");
+        assert_eq!(rule, ResumeMatchRule::Branch);
+    }
+
+    #[test]
+    fn resume_query_falls_through_to_task_id_when_worktree_path_and_branch_miss() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo-elsewhere".into()),
+            branch: Some("other-branch".into()),
+            task_id: Some("t-500".into()),
+        }];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), Some("t-500"));
+        let (lane, rule) = result.expect("no worktree_path/branch match must fall through to task_id");
+        assert_eq!(lane.label, "a");
+        assert_eq!(rule, ResumeMatchRule::TaskId);
+    }
+
+    #[test]
+    fn resume_query_no_signal_matches_anything_is_a_miss() {
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo-elsewhere".into()),
+            branch: Some("other-branch".into()),
+            task_id: Some("t-999".into()),
+        }];
+        let result = resolve_resume_lane(&candidates, Some("/repo"), Some("main"), Some("t-500"));
+        assert!(result.is_none(), "no matching signal at any rank must be a miss");
+    }
+
+    #[test]
+    fn resume_query_returns_at_most_one_lane() {
+        // Structural check on the return type itself: Option<(LaneCandidate,
+        // ResumeMatchRule)> can never hold more than one lane by construction — pinned
+        // here so a future refactor to Vec<...> (which COULD return multiple) is a
+        // deliberate, visible signature change, not a silent widening of the contract.
+        let candidates = vec![LaneCandidate {
+            label: "a".into(),
+            worktree_path: Some("/repo".into()),
+            branch: Some("main".into()),
+            task_id: None,
+        }];
+        let result: Option<(LaneCandidate, ResumeMatchRule)> =
+            resolve_resume_lane(&candidates, Some("/repo"), Some("main"), None);
+        assert!(result.is_some());
     }
 }
