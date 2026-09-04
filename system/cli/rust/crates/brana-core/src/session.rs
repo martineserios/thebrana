@@ -963,6 +963,40 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
     merged
 }
 
+/// Resolve the session-state file that actually holds `branch`'s lane, by content rather
+/// than by re-deriving a filename from the branch string alone (ADR-069 D0 "Consume" row,
+/// t-2521). `epic_scoped_state_path` itself stays a pure branch-regex guesser — several
+/// tests key on it never becoming content-aware (see `mark_consumed_diverges_from_write_
+/// when_explicit_epic_present`'s own sanity assertion) — so this scan lives in the
+/// mark-consumed path only, the one D0 surface where "guess a filename" was always the
+/// wrong tool: the file to update is whichever one `write_state` already wrote for this
+/// branch, findable by its content regardless of what unit key its filename encodes.
+///
+/// Exactly one match: use it (this is also the common case — a branch with no divergent
+/// explicit epic has exactly one lane file, found here just as reliably as by the old
+/// guess). No match: fall back to the branch-only guessed path, preserving prior miss
+/// behavior (the guessed file doesn't exist, so the caller's read fails as before — D1).
+/// Two or more matches is ambiguity, and per D1 that is a miss too, never a coin-flip pick.
+fn resolve_consume_path(project_root: &Path, branch: &str) -> Result<PathBuf> {
+    let memory_dir = resolve_memory_dir(project_root);
+    let matches: Vec<PathBuf> = lane_state_paths(&memory_dir)
+        .into_iter()
+        .filter(|p| {
+            read_state_at(p)
+                .map(|s| s.branch.as_deref() == Some(branch))
+                .unwrap_or(false)
+        })
+        .collect();
+    match matches.len() {
+        1 => Ok(matches.into_iter().next().expect("len checked above")),
+        0 => Ok(epic_scoped_state_path(project_root, branch)),
+        n => anyhow::bail!(
+            "ambiguous session state for branch {branch:?}: {n} lanes match by content — \
+             refusing to guess which one to mark consumed"
+        ),
+    }
+}
+
 /// Set consumed_at on the current state (atomic in-place update).
 ///
 /// Intentionally bypasses `write_state()` — `sanitize()` always strips `consumed_at`,
@@ -970,7 +1004,7 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
 /// guarantee. Does NOT append to history (consumed_at is a read-side marker, not a
 /// new session write).
 pub fn mark_consumed_for(project_root: &Path, branch: &str) -> Result<()> {
-    let path = epic_scoped_state_path(project_root, branch);
+    let path = resolve_consume_path(project_root, branch)?;
     let content = fs::read_to_string(&path).context("reading session-state.json")?;
     let mut state: SessionState = serde_json::from_str(&content).context("parsing session-state.json")?;
 
@@ -986,18 +1020,7 @@ pub fn mark_consumed_for(project_root: &Path, branch: &str) -> Result<()> {
 
 pub fn mark_consumed(project_root: &Path) -> Result<()> {
     let branch = current_branch().unwrap_or_default();
-    let path = epic_scoped_state_path(project_root, &branch);
-    let content = fs::read_to_string(&path).context("reading session-state.json")?;
-    let mut state: SessionState = serde_json::from_str(&content).context("parsing session-state.json")?;
-
-    state.consumed_at = Some(Utc::now().to_rfc3339());
-
-    let tmp = path.with_extension("tmp");
-    let json = serde_json::to_string_pretty(&state)?;
-    fs::write(&tmp, &json)?;
-    fs::rename(&tmp, &path)?;
-
-    Ok(())
+    mark_consumed_for(project_root, &branch)
 }
 
 /// Render session state as human-readable text (pure formatting, no I/O).
@@ -2959,6 +2982,49 @@ mod tests {
             unit_state.consumed_at.is_some(),
             "mark_consumed must consume the file write_state actually wrote to, not a \
              branch-only guess that diverges from it"
+        );
+    }
+
+    // Boundary: no lane file recorded for this branch at all (nothing written yet) — must
+    // fail loud (D1), never fabricate a file to "succeed" against.
+    #[test]
+    fn mark_consumed_for_no_lane_recorded_is_an_error() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let result = mark_consumed_for(root, "nothing/fix/t-1-written-here");
+        assert!(
+            result.is_err(),
+            "no lane file matches this branch — must error, not silently no-op success"
+        );
+    }
+
+    // Boundary: two lane files both record the same branch (a stranded legacy file plus a
+    // live one, or any other accumulation) — ambiguity must be a miss (D1), never a
+    // coin-flip pick of one file over the other.
+    #[test]
+    fn mark_consumed_for_ambiguous_branch_match_is_an_error() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let branch = "shared/fix/t-2-two-lanes-same-branch";
+
+        let a = SessionState {
+            branch: Some(branch.to_string()),
+            epic: Some("lane-a".to_string()),
+            ..make_state("2026-09-04T10:00:00Z")
+        };
+        write_state(root, &a).unwrap();
+        let b = SessionState {
+            branch: Some(branch.to_string()),
+            epic: Some("lane-b".to_string()),
+            ..make_state("2026-09-04T10:00:00Z")
+        };
+        write_state(root, &b).unwrap();
+
+        let result = mark_consumed_for(root, branch);
+        assert!(
+            result.is_err(),
+            "two lane files both claim this branch — must error rather than guess which one \
+             to mark consumed"
         );
     }
 
