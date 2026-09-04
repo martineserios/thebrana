@@ -134,15 +134,30 @@ pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>, epi
         None => {
             // ADR-069 D1: a miss exits non-zero and never reports success by silently
             // substituting a different mechanism's content. The legacy handoff (if any)
-            // is still printed for backward-compat visibility -- it may be genuinely
-            // useful context -- but it is NOT what was asked for (session-state), so the
-            // command still reports the miss it is via a non-zero exit.
-            if let Err(e) = handoff::cmd_handoff_last(1) {
+            // is still printed for backward-compat visibility on the human-readable path
+            // -- it may be genuinely useful context -- but it is NOT what was asked for
+            // (session-state), so the command still reports the miss via a non-zero exit.
+            //
+            // Under --json, print nothing here: a caller parsing JSON must never receive
+            // markdown on stdout on a miss (the "chained legacy scan" bug this closes --
+            // system/hooks/session-start.sh assigns this stdout straight into a variable
+            // it later tests with `jq`/`[ -n ... ]`; markdown content made that variable
+            // non-empty-but-unparseable, which silently skipped the hook's OWN legacy
+            // markdown fallback branch further down, the exact opposite of what printing
+            // it here was meant to help with).
+            if !json_output
+                && let Err(e) = handoff::cmd_handoff_last(1)
+            {
                 eprintln!("{e:#}");
             }
             Err(anyhow::anyhow!(
-                "no session state found for this unit — nothing to read (any legacy handoff \
-                 shown above is not a substitute; re-check the branch/epic this session is on)"
+                "no session state found for this unit — nothing to read{}",
+                if json_output {
+                    ""
+                } else {
+                    " (any legacy handoff shown above is not a substitute; re-check the \
+                     branch/epic this session is on)"
+                }
             ))
         }
     }
@@ -1205,6 +1220,34 @@ mod tests {
              exists — it must never silently substitute a different lane's (or era's) \
              content and report success"
         );
+    }
+
+    // Boundary + the "chained legacy scan" D1 row (t-2521/t-3293): a --json miss must
+    // still error (same contract as the human-readable path above), and — the actual
+    // bug this closes — must NOT print the legacy-handoff markdown fallback to stdout.
+    // `system/hooks/session-start.sh` assigns this command's stdout straight into a
+    // variable it later feeds to `jq`; markdown content there made the variable
+    // non-empty-but-unparseable, which silently skipped the hook's OWN legacy-markdown
+    // fallback branch further down (empty JSON was the trigger it was waiting for).
+    #[test]
+    #[serial]
+    fn cmd_session_read_json_miss_does_not_print_markdown_fallback() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        let handoff_path = handoff::resolve_handoff_path(project_root.path());
+        fs::create_dir_all(handoff_path.parent().unwrap()).unwrap();
+        fs::write(
+            &handoff_path,
+            "## 2025-01-01\n\n**Accomplished:**\n- stale legacy work from a different lane\n",
+        )
+        .unwrap();
+
+        let result = cmd_session_read(true, false, None, None);
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+
+        assert!(result.is_err(), "a --json miss must still error, same as the text path");
     }
 
     // `cmd_session_path` (D0 fallback surface #4, t-2521/t-3295): originally pinned by
