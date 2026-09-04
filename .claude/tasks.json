@@ -86977,12 +86977,12 @@
       "github_issue": null,
       "id": "t-3272",
       "kind": "docs",
-      "notes": null,
+      "notes": "2026-09-04: shipped (merged to dev). epic-drain.md gained §Fan-out width N (what N is, supervised vs headless table, rehearsal relation, worked short-beat example with real CLI shapes); drain-loop.md step 5 refusal claim corrected; autonomous-runner.md gained §Beat mode (--run-beat) quoting the script header. Found: installed ~/.local/bin/brana --help still shows the pre-t-3271 refusal text (rebuild at ship); script header labels --run-beat STAGE 4 while the feature doc reserves Stage 4 for learned eligibility (t-2142) — naming collision to resolve when t-2142 lands.",
       "order": 0,
       "parent": "t-3269",
       "priority": null,
       "started": "2026-09-04",
-      "status": "in_progress",
+      "status": "completed",
       "subject": "Docs — update epic-drain.md user-facing guide",
       "tags": [
         "loop",
@@ -86993,11 +86993,7 @@
         "wave:deploy-gate"
       ],
       "type": "task",
-      "work_type": "implement",
-      "lease": {
-        "claimant": "wave-pull:lead-3aaba499",
-        "expires": "2026-09-05T09:50:05.965202294-03:00"
-      }
+      "work_type": "implement"
     },
     {
       "ac_state": "none",
@@ -87085,12 +87081,12 @@
       "github_issue": null,
       "id": "t-3275",
       "kind": "feature",
-      "notes": null,
+      "notes": "2026-09-04: shipped f4ec9cc9 (merged to dev). Source of pulled_task_ids: option (c) — --run-beat appends one loops-library-schema beat record per beat to ~/.claude/scheduler/beats.jsonl (RUNNER_BEATS_FILE override); (a) rejected: runner ledger truncates per run; (b) rejected: leases clear on any status write, gone exactly at build-CLOSE. pipeline-digest.sh groups unmerged branches of a ≥2-task beat into one entry naming every id; scheduler digest gains a Parallel beats section; single-task beats render byte-identical (806B / 112B proofs). Tests: digest-multi-task-beats 25/25 (RED 11/25 first), pipeline-digest 20/20, runner-beat 22/22, validate --fast 0 errors.",
       "order": 0,
       "parent": "t-3273",
       "priority": null,
       "started": "2026-09-04",
-      "status": "in_progress",
+      "status": "completed",
       "subject": "Update digest consumers to read multi-task beats",
       "tags": [
         "loop",
@@ -87100,11 +87096,7 @@
         "wave:deploy-gate"
       ],
       "type": "task",
-      "work_type": "implement",
-      "lease": {
-        "claimant": "wave-pull:lead-3aaba499",
-        "expires": "2026-09-05T09:50:06.043686267-03:00"
-      }
+      "work_type": "implement"
     },
     {
       "ac_state": "none",
