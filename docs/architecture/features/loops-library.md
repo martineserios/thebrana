@@ -4,7 +4,7 @@
 **Status:** shipped
 **Task:** t-2826
 **Source doc:** [loops-library.md (idea, shape approved 2026-08-14)](../../ideas/drained/loops-library.md)
-**Related ADRs:** [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md) (drain-loop substrate), [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §6 (scope split: loop-first owns "loops library catalog + entry schema + `records:` beat schema")
+**Related ADRs:** [ADR-079](../decisions/ADR-079-backlog-drain-loop-handoff.md) (drain-loop substrate), [ADR-080](../decisions/ADR-080-plan-time-wave-graphs-epic-runner.md) §6 (scope split: loop-first owns "loops library catalog + entry schema + `records:` beat schema"), [ADR-092](../decisions/ADR-092-graduated-loop-autonomy-ladder.md) (defines the `autonomy: L0-L3` frontmatter values and promotion-by-evidence rules)
 
 ## Problem
 
@@ -87,7 +87,7 @@ Per the no-silent-ambiguity rule — flagged, not picked:
 ```yaml
 name: <loop-name>
 cadence: <default pacing>       # or pacing: {active_delay, waiting_delay, empty_delay} for work-paced loops
-autonomy: L0-L3
+autonomy: L0-L3                 # levels + promotion-by-evidence rules: ADR-092
 supervised: true                # false is unreachable until ADR-062 lands
 drains: []                      # queue references this loop pulls from
 fills: []                       # queue references this loop writes to
