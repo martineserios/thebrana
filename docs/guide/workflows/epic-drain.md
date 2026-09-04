@@ -5,7 +5,7 @@ created: 2026-08-14
 task: t-2845
 adr: ADR-080
 produced_by: [docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md]
-related: [docs/guide/workflows/drain-loop.md, docs/architecture/features/loops-library.md]
+related: [docs/guide/workflows/drain-loop.md, docs/architecture/features/loops-library.md, docs/architecture/features/autonomous-runner.md, docs/architecture/decisions/ADR-090-same-wave-parallel-dispatch.md]
 ---
 # Epic Drain Loop
 
@@ -218,6 +218,116 @@ ADR-090 §1/§2 for the N-wide beat). Each beat:
 (10) Pace (RESTART): short delays while actively building; 20-30 min
     waiting on a human valve, at-limit, or an empty-for-now queue.
 ```
+
+## Fan-out width `N` — the operator's controls
+
+A **beat** is one turn of this loop: preflight, find the active wave, arm it if
+queued, pull, dispatch, announce, record. `N` is the **fan-out width of a single
+beat** — the most tasks that beat may claim from the active wave and build
+concurrently ([ADR-090](../../architecture/decisions/ADR-090-same-wave-parallel-dispatch.md)
+§1). It widens the Beat ring only. The wave object, its selector, its gate, and
+its ship valve are untouched, and the loop still walks **one wave at a time**
+(see **Scope** above) — `N` never makes it drain two.
+
+The real width of any beat is `min(wip_limit − live, N)`, or just `N` when the
+wave's `wip_limit` is null (unbounded — the ADR-079 §3 default). `N` is a
+per-run ceiling the operator sets; `wip_limit` is a per-wave bound its owner
+sets; the smaller wins. Raising `N` past a wave's `wip_limit` changes nothing.
+
+`N` is **operator-set config, never schema** — not a wave field, not a task
+field, not a stored config key, and with no guessed default (the same
+no-guessed-default posture `wip_limit` already holds, ADR-090 §1). Unstated it
+is 1, and the beat behaves exactly as it did before ADR-090.
+
+### Where you set it — two dispatch paths, one pull contract
+
+|  | Supervised (this loop) | Headless (satellite runner) |
+|---|---|---|
+| Who runs the beat | `/loop epic-drain <epic-slug>` in a live session | `system/scripts/autonomous-runner.sh --run-beat --wave <wave-id>` |
+| **Where `N` is set** | **substituted into the loop prompt at launch** — you replace `N=<N>` above exactly as you replace `<epic-slug>`, and it holds for the whole run | **`RUNNER_FANOUT=<N>` in the environment**; the wave comes from `--wave <id>` or `RUNNER_WAVE` |
+| The pull | `brana backlog wave pull <wave-id> -n <N>` | the same command, issued by the script |
+| What builds the tasks | native Agent/Task fan-out — one build-loop instance per pulled id, all dispatched in one message | one sandboxed `claude -p` per pulled id, worktree admin serialized behind a flock |
+| Isolation | one worktree per task (ADR-060), invoked N times | identical — ADR-060 invoked N times, no new primitive (ADR-090 §2) |
+| Merge | human merge valve, now N times per beat; close-outs batched to the **cockpit digest** | never merges — the beat leaves N branches for that same valve |
+
+Both paths make the **same** pull, and the pull is where the safety lives: N
+**sequential** atomic claims, each in its own `lock_tasks` section taking its own
+lease. The rows differ only in what carries the build work afterwards.
+
+**The headless row is the satellite runner's own stage, not permission to run
+this loop unattended.** That script has its own staged trust ladder
+([autonomous-runner.md](../../architecture/features/autonomous-runner.md)); this
+loop's **Unattended mode — NOT enabled** section below is unchanged and still
+governs `epic-drain` itself.
+
+Rehearse at the width you intend to run (Prerequisites step 3):
+`brana backlog wave pull <wave-id> --dry-run -n <N>` reports the whole N-wide
+beat under `would_pull` and writes nothing. The same `-n` without `--dry-run` is
+a **real claim** — that is the only difference between the rehearsal and the beat.
+
+### One beat, worked end to end
+
+Operator runs three wide against the `backlog-drain` epic. The active wave is
+`wave-12`, it carries `wip_limit 3`, and one task from an earlier beat is still
+live. Launch substitutes `N`:
+
+```
+/loop Epic-drain pump for backlog-drain at fan-out N=3 (supervised, ADR-080 §3; ...
+```
+
+Step 4 pulls once, for the whole beat:
+
+```
+$ brana backlog wave pull wave-12 -n 3 --claimant epic-drain:sess-4f2a
+{"ok":true,"id":"wave-12","n":3,"pulled_task_ids":["t-3301","t-3304"],"stopped":"at_limit","at_limit":{"live":3,"limit":3}}
+```
+
+**This is a short beat: 2 claimed, not 3.** Two sequential pulls succeeded; the
+third found `live` at the wave's `wip_limit` of 3 (the two just-claimed tasks
+plus the one already running) and stopped. `pulled_task_ids` and `stopped` are
+reported *together* — a beat that named 2 ids and stayed silent about the tail
+would be indistinguishable from a beat that was capped at 2 by design.
+
+The beat then dispatches **two** build-loop instances in one message, one per id,
+each taking exactly one task through the full build framework in its own
+worktree. It reports both ids plus the tail, and emits one record for the whole
+beat (schema in
+[loops-library.md](../../architecture/features/loops-library.md) §Beat record
+schema — never redefined here):
+
+```json
+{
+  "loop": "epic-drain",
+  "instance": "backlog-drain",
+  "beat": 7,
+  "timestamp": "2026-09-03T14:22:05Z",
+  "state": "active",
+  "what_happened": "wave-12: claimed 2 of N=3, stopped at_limit (live 3 / limit 3 — t-3298 still live from beat 6); dispatched one build-loop instance per id",
+  "pulled_task_ids": ["t-3301", "t-3304"],
+  "progress": { "kind": "bounded", "remaining": 5, "total": 9 },
+  "escalations": [],
+  "next_wake": "PT20M"
+}
+```
+
+One record for the beat, never one per pulled task. Both branches land in the
+cockpit digest together at their build CLOSEs; the human merges them one at a
+time, and the beat names a merge *order* if it sees the two branches touching the
+same files — it never picks the order itself.
+
+The headless path runs the identical beat, dispatching two `claude -p` processes
+instead of two Agent instances:
+
+```
+$ RUNNER_FANOUT=3 system/scripts/autonomous-runner.sh --run-beat --wave wave-12
+[autonomous-runner] run-beat: wave=wave-12 fanout=3 dispatched=2 ran=2 parked=0 failed=0 (pull stopped=at_limit)
+[autonomous-runner] run-beat: NOT merged — each task sits on its own branch awaiting human review.
+```
+
+A beat that claims **nothing** reports `"pulled_task_ids":[]` with its `stopped`
+reason (`at_limit` or `none_eligible`) and dispatches no one — headless, that is
+the `ALLDONE` line. Zero pulls is a normal outcome, not a finished wave: see step
+4's back-off rules and step 5's empty-matched-set rule.
 
 ## Denied verbs — the runner must never run these
 

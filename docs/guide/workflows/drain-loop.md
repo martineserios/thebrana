@@ -85,8 +85,14 @@ tasks tagged wave:<name> ──▶ ac-propose ──▶ YOU: brana backlog ac <i
    output), so a graph can be checked before arming.
    Add `-n <N>` to rehearse a full N-wide beat (ADR-090 §1): the output lists
    every task the beat would claim under `would_pull`, plus the `at_limit` /
-   `none_eligible` tail that stopped it short of N. Rehearsal only — `-n`
-   above 1 without `--dry-run` is refused, not quietly narrowed to one pull.
+   `none_eligible` tail that stopped it short of N.
+   **`-n` is no longer rehearsal-only (t-3271).** Without `--dry-run`, `-n <N>`
+   now runs the real N-wide beat — N sequential atomic pulls, each with its own
+   lock and lease — and reports `pulled_task_ids` plus why it stopped. So the
+   only difference between this rehearsal and the live beat is the flag that
+   makes the claims real, which is exactly why you rehearse at the width you
+   intend to run. Operator-facing detail on setting `N` and on both dispatch
+   paths: [epic-drain.md](epic-drain.md) §Fan-out width `N`.
 6. Open the queue: `brana backlog wave drain wave-N`
 
 7. **Arm the verb guard:** launch the runner session with `BRANA_RUNNER=1` in
