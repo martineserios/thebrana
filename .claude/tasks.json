@@ -87250,6 +87250,37 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "subject": "build/classify: add non-blocking \"Understood as: ...\" restatement to the S/XS fast path before the first Edit/Write",
+      "description": "Adopt the recommendation in proyecto_anita docs/ideas/per-task-alignment-gate.md (t-3086 there, 2026-09-02): S/XS tasks currently skip every per-task alignment checkpoint (M+ tasks get CLASSIFY lifecycle gate + APPROVE + SPECIFY). Fix sized to the gap: in system/skills/build/phases/classify.md, the APPROVE step **For S/XS tasks** block (currently just the Approve/Adjust/Cancel question, ~L122), require the agent to emit ONE informational line — `Understood as: {one-sentence interpretation of the task}. Proceeding.` — right before its first Edit/Write, with no extra AskUserQuestion round. Gives the human a chance to catch a misread task without brainstorm-scale ceremony; consistent with the TDD-no-size-exception precedent. Do NOT reuse /brana:brainstorm Phase 3 (wrong lifecycle stage, too heavy) and do NOT add a new gate for M+ (already covered). Blast radius: every project using the build skill — hence filed here, not in proyecto_anita.",
+      "kind": "docs",
+      "work_type": "chore",
+      "type": "task",
+      "effort": "XS",
+      "priority": "P3",
+      "tags": [
+        "skills",
+        "build",
+        "alignment",
+        "mattpocock-mining"
+      ],
+      "id": "t-3281",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-09-04",
+      "blocked_by": [],
+      "ac_state": "none",
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": 3,
