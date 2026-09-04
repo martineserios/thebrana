@@ -60724,7 +60724,7 @@
       "branch": "brana-v3-redesign/design/t-2404-learn-worker-compute-chain",
       "build_step": null,
       "completed": null,
-      "context": "Wave 2. Specifies: agy-first (free) -> on quota exhaustion switch engine to Claude (Agent SDK worker on included credit pool or claude -p Haiku/Sonnet) -> up to a hard per-run token ceiling -> on ceiling hit, checkpoint the queue cursor (last-processed entry ID) and stop; next scheduled run resumes from there. Per t-2286 resolution.\n2026-07-24: Real files this wave retrofits (confirmed to exist via find): system/cron/close-extraction.sh (the extraction cron), system/state/scheduler.json (job config/status), ~/.claude/close-queue.json (230KB+, the actual per-entry queue store). The contract doc this task produces must reference these concretely, not just \"the async worker\" in the abstract.",
+      "context": "Wave 2. Specifies: agy-first (free) -> on quota exhaustion switch engine to Claude (Agent SDK worker on included credit pool or claude -p Haiku/Sonnet) -> up to a hard per-run token ceiling -> on ceiling hit, checkpoint the queue cursor (last-processed entry ID) and stop; next scheduled run resumes from there. Per t-2286 resolution.\n2026-07-24: Real files this wave retrofits (confirmed to exist via find): system/cron/close-extraction.sh (the extraction cron), system/state/scheduler.json (job config/status), ~/.claude/close-queue.json (230KB+, the actual per-entry queue store). The contract doc this task produces must reference these concretely, not just \"the async worker\" in the abstract.\nChallenger finding (iteration 1, 2026-09-04): RECONSIDER, 2 findings sev 4 — (1) doc's \"Current reality\" and §2 ceiling-check only covered the main extraction pass's claude_fallback, missing the L3 propagation pass's 3 independent fallback sites (lines ~336/348/390) which would leak uncounted Claude spend; (2) doc's §3 checkpoint design (queue state IS the checkpoint, no cursor file) silently contradicted t-2406's still-live \"persists last-processed entry ID\" context/AC. Both fixed: doc now names all 4 claude_fallback sites and requires the ceiling check before each; §3 has an explicit \"Revises t-2406's original framing\" callout; t-2406's own acceptance_criteria and context updated to match the revised design. Also addressed 1 minor observation (curation gate §4 now covers both learnings and propagation gaps streams).\nChallenger iteration 2 (2026-09-04): RECONSIDER again, 2 findings. Finding 1 (real, sev 4): the iteration-1 fix undercounted — actual count is 6 claude_fallback call sites total (214, 228 main pass; 336, 348, 360, 390 propagation pass), not the 4 claimed (missed line 360, and wrongly cited line 331 as a fallback site when it's the propagation agy call itself). Fixed: doc now lists all 6 sites by exact line number in both \"Current reality\" and §2, verified against live `grep -n claude_fallback system/cron/close-extraction.sh` output. Finding 2 (false positive): challenger claimed t-2406's tasks.json was never actually updated — but it read the t-2404 WORKTREE's stale tasks.json copy (created before the backlog_set calls, which write via MCP to the main checkout's live store, not per-worktree). Verified directly via backlog_get(t-2406, field:context) against the live store: the update from iteration 1 IS present. Override: proceeding to CLOSE — the one real finding is fixed and re-verified against source; the other was a reviewer artifact of reading a stale worktree copy of tasks.json, not an actual defect. No further challenger iteration (hard cap: 2).",
       "created": "2026-07-24",
       "description": null,
       "effort": "S",
@@ -60732,7 +60732,7 @@
       "github_issue": null,
       "id": "t-2404",
       "kind": "design",
-      "notes": null,
+      "notes": "Challenger: RECONSIDER then override (2026-09-04), 2 finding(s) iteration 2, max severity 4",
       "order": null,
       "parent": "t-2391",
       "priority": "P2",
@@ -60786,7 +60786,8 @@
       "ac_state": "none",
       "acceptance_criteria": [
         "\"cargo test --manifest-path system/cli/rust/Cargo.toml\" passes",
-        "a test with mocked token accounting asserts the worker STOPS (not just resumes) once the configured per-run token ceiling is reached, and persists a resumable checkpoint at that point"
+        "a test with mocked token accounting asserts the worker STOPS (not just resumes) once the configured per-run token ceiling is reached, checked before every claude_fallback call site (main extraction pass AND all propagation-pass call sites) and before starting a new entry's agy pass",
+        "the last entry the worker touched before stopping is in a terminal queue state (mark-processed or mark-failed already called) — never a torn write, per docs/architecture/features/learn-worker-compute-chain.md §3"
       ],
       "blocked_by": [
         "t-2405"
@@ -60794,7 +60795,7 @@
       "branch": null,
       "build_step": null,
       "completed": null,
-      "context": "Wave 2. Persists last-processed entry ID on ceiling hit; next scheduled run resumes from the checkpoint rather than deferring to reset.",
+      "context": "Wave 2. Persists last-processed entry ID on ceiling hit; next scheduled run resumes from the checkpoint rather than deferring to reset.\n2026-09-04 (t-2404): This task's original framing (\"persists last-processed entry ID on ceiling hit\") is REVISED by docs/architecture/features/learn-worker-compute-chain.md §3 — the queue's own per-entry processed/retry_count state already serves as the checkpoint; no separate cursor file/field is needed. What this task actually builds: a cooperative ceiling check placed before every claude_fallback call site (the main extraction pass's, plus all three propagation-pass sites — see the doc's \"Not just one fallback site\" section) that stops the loop cleanly and guarantees the entry it was mid-processing lands in a terminal queue state before exit, rather than relying on the external scheduler timeout to do the stopping. AC updated to match.",
       "created": "2026-07-24",
       "description": null,
       "effort": "S",
@@ -87459,7 +87460,7 @@
     {
       "id": "t-3285",
       "subject": "Untrack tasks.json from git; retire merge driver + worktree-gate dirty-check",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -87472,14 +87473,14 @@
       "parent": "t-3282",
       "created": "2026-09-04",
       "started": "2026-09-04",
-      "completed": null,
+      "completed": "2026-09-04",
       "blocked_by": [
         "t-3283",
         "t-3284"
       ],
       "branch": "backlog-git-alignment/fix/t-3285-untrack-tasks-json-git",
       "context": "Root-cause fix for the LIVE reproduced bug: main checkout tasks.json (87,516 lines) vs thebrana-t-3280 worktree's tracked copy (87,511 lines) already diverged — this task removes the mechanism that lets that divergence exist at all, since find_tasks_file_from() already ignores per-worktree copies in favor of the git-common-dir-resolved canonical file.",
-      "notes": null,
+      "notes": "Challenger: PROCEED (2026-09-04), 3 finding(s), max severity MEDIUM (rung 1: challenger + second-variant finder, both PROCEED). Findings: (1) MEDIUM — docs/architecture/hooks.md:83 described the retired warn-carve-out as current; fixed in-task (commit e9df62af), not deferred to t-3288/t-3289 since neither named this file. (2)+(3) LOW/cosmetic — stale .claude/tasks.json path references in tasks-json-merge.sh's header, bootstrap.sh's Step 4e comment, and system/hooks/tests/test-tasks-json-merge.sh's header + run_driver() %P literal; all fixed (commits e9df62af, f989484e). SIBLINGS: yes — both agents independently confirmed only these two doc/comment sites; no functional siblings, no other hook/test implements the same carve-out pattern, bootstrap.sh's driver wiring is path-agnostic. No repair-loop iteration needed — findings folded in directly, no RECONSIDER.\nRetrospective: implementation followed ADR-091's actual decision (keep+repoint the merge driver) over the pre-ADR task text's literal \"retire\" instruction, per the task's own escape clause. bootstrap.sh Step 4e needed no change — verified it wires the driver by git-config name, not file path (`bash bootstrap.sh --check` confirmed). TDD: modified tests/hooks/test-worktree-gate.sh's carve-out section first (assert_warn → assert_deny), confirmed 2 failures against the unmodified hook, then removed the NON_BEHAVIORAL_ONLY branch to make it pass. Challenger gate (rung 1, two agents, both PROCEED): 3 findings, all doc/comment staleness (docs/architecture/hooks.md's now-false behavior description; stale .claude/tasks.json path literals in tasks-json-merge.sh, bootstrap.sh, and its test file) — all fixed in-task rather than deferred, since neither t-3288 nor t-3289 named these specific files. Process note: hit a real shell-portability gotcha mid-build (this harness runs zsh, not bash; unquoted variable expansion doesn't word-split by default in zsh, so directly `source`-ing judge-sizing.md's bash-authored helper block silently returned wrong criticality/rung values until re-run via `bash -c`) — already captured in memory as pattern:thebrana:judge-sizing-shell-functions-need-bash-not-zsh, no new memory entry needed. Commits: 4ac19c5d (core fix), e9df62af (doc-drift fix), f989484e (cosmetic test-comment sync), fd9cd20f (hooks.md changelog).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -87487,12 +87488,12 @@
       "work_type": "implement",
       "ac_state": "none",
       "strategy": "bug-fix",
-      "build_step": "classify"
+      "build_step": null
     },
     {
       "id": "t-3286",
       "subject": "Fix post-tasks-validate.sh to use lock_tasks/common-root resolution",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -87505,13 +87506,13 @@
       "priority": "P2",
       "parent": "t-3282",
       "created": "2026-09-04",
-      "started": null,
+      "started": "2026-09-04",
       "completed": null,
       "blocked_by": [
         "t-3283",
         "t-3284"
       ],
-      "branch": null,
+      "branch": "backlog-git-alignment/fix/t-3286-post-tasks-validate-lock",
       "context": "SCOPE CHANGE from t-3284's challenger gate (2026-09-04): the --file bypass defect is systemic, not local to rollup. brana-cli/src/commands/backlog.rs has 16 other cmd_* functions with the identical `Some(f) => f` pattern (file arg trusted verbatim, find_tasks_file() only called on None): cmd_ac_approve, cmd_set, cmd_wave_add, cmd_wave_list, cmd_wave_board, cmd_wave_set, cmd_wave_pull, cmd_wave_drain, cmd_wave_approve, cmd_lint, cmd_delete, cmd_move, cmd_archive, cmd_triage_stale, cmd_backlog_migrate_epic, cmd_ac_propose. Today only post-tasks-validate.sh:88 (rollup --file) is a live call site, but per no-patches-root-cause.md this task should fix --file resolution at the shared/parsing layer (e.g. always re-resolve via find_tasks_file()/git-common-dir regardless of whether --file was passed, or add a lint asserting no cmd_* trusts a raw file path) rather than patching cmd_rollup alone -- a narrow patch leaves the other 16 vulnerable to the same class of bug the moment any of them gets called with --file from a worktree. Bumped S->M for this reason. Two failing tests exist to drive this: system/hooks/tests/test-post-tasks-validate-canonical-resolution.sh (the --file bypass, via rollup) and system/hooks/tests/test-post-tasks-validate-fallback-lock.sh (the jq fallback path's missing lock, confirmed RED -- hook finishes ~1s before an externally-held lock releases).",
       "notes": null,
       "order": 0,
@@ -87519,7 +87520,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-3287",
@@ -88013,6 +88015,35 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "chore",
+      "ac_state": "none"
+    },
+    {
+      "id": "t-3303",
+      "subject": "Simplify CLOSE-ANCHOR-BLOCK and session-state.md's Tier 0-3 corroboration cascade now that D0-D2 exist",
+      "status": "pending",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [],
+      "description": null,
+      "effort": "M",
+      "priority": "P2",
+      "parent": "t-2521",
+      "created": "2026-09-04",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Flagged (not implemented) in docs/architecture/features/lane-identity.md's Documentation Plan and in t-2521's own close handoff, 2026-09-04. Per the spec's own instruction: \"flag for simplification, not deletion\" — this task is that flag turned into a tracked item, per the spec's own explicit direction not to attempt the simplification inside t-2521/t-3299 itself.\n\nBoth system/skills/close/phases/gate-and-evidence.md's CLOSE-ANCHOR-BLOCK (epic-scoped anchor resolution, visibility guards for zero-window/over-reach) and system/skills/close/phases/initiative-accumulator.md's Step 9c Tier 0-3 cascade (persistent focus corroboration, session-start marker, in-progress task epic walk, branch-name parse, ask-the-user fallback) exist because session-state resolution used to guess an epic from branch name or portfolio-wide task state, with no reliable way to know which lane a close's own commits actually belonged to on a shared checkout.\n\nt-2521 (ADR-069 D0/D1/D2, shipped 2026-09-04) closes part of this gap: reads/writes/consume now resolve through the same key, and a lane pin exists recording session_id/worktree_path/branch/task_id. It does NOT eliminate the need for epic-guessing at close time, though, because (per t-2521's own recorded scope decision) session-state files stayed epic/branch-keyed rather than being rekeyed by session_id or lane pin -- so CLOSE-ANCHOR-BLOCK and the Tier 0-3 cascade still have real work to do resolving which epic a close's own commits belong to. Live-tested during t-2521's own close (2026-09-04): the anchor over-reached across 4 epics on this shared checkout, and Tier 0's stale global focus marker had to be rejected by its own corroboration gate -- both mechanisms worked as designed, but both are still necessary, not obsolete.\n\nThis task is scoped as an OPEN QUESTION, not a prescribed fix: investigate whether the lane pin (once t-3301's autonomous wiring and any future session-id-based resolution land) can replace some or all of CLOSE-ANCHOR-BLOCK's heuristics and the Tier 0-3 cascade with a direct lane-pin lookup, or whether the two mechanisms are actually addressing different problems (close-time commit attribution vs. session-state file routing) that don't collapse into one fix. Read ADR-069's Consequences section and t-2521's full context log before scoping further -- do not assume simplification is straightforward.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "investigated whether the lane pin can replace CLOSE-ANCHOR-BLOCK's epic-guessing heuristics, with a documented finding either way",
+        "investigated whether the lane pin can replace the Tier 0-3 corroboration cascade, with a documented finding either way",
+        "if simplification is viable, a scoped follow-up spec or implementation plan is written; if not viable, the reason is recorded in ADR-069 or a successor decision doc so this doesn't get re-proposed on the same false premise"
+      ],
+      "work_type": "implement",
       "ac_state": "none"
     }
   ],
