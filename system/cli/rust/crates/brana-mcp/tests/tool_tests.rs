@@ -5,6 +5,7 @@
 //! by pmcp's own test suite.
 
 use serde_json::{json, Value};
+use serial_test::serial;
 use std::fs;
 use std::path::PathBuf;
 
@@ -412,13 +413,85 @@ fn test_server_builds_without_error() {
 
 // ── Session tool tests ───────────────────────────────────────────────────
 
-/// Create a fake project root with a memory dir for session tests.
-/// Returns a TempDir (must be kept alive) and the project root PathBuf.
-fn fixture_project_root() -> (tempfile::TempDir, PathBuf) {
+/// RAII guard: restores `BRANA_SESSION_STORE_ROOT` to its prior value on drop. Hold it
+/// for the duration of the test — the env var is process-global, so every caller of
+/// [`fixture_project_root`] must also run `#[serial]`.
+struct StoreRootGuard {
+    prev: Option<String>,
+}
+
+impl Drop for StoreRootGuard {
+    fn drop(&mut self) {
+        // SAFETY: caller holds #[serial] for the lifetime of this guard; no other
+        // test in this binary reads or writes BRANA_SESSION_STORE_ROOT concurrently.
+        unsafe {
+            match &self.prev {
+                Some(v) => std::env::set_var("BRANA_SESSION_STORE_ROOT", v),
+                None => std::env::remove_var("BRANA_SESSION_STORE_ROOT"),
+            }
+        }
+    }
+}
+
+/// Create a fake project root with a memory dir for session tests, and point
+/// `BRANA_SESSION_STORE_ROOT` at a subdir of that same tempdir so session writes never
+/// reach the operator's real `~/.claude/projects` (t-3279: 13,439 leaked `-tmp-*` store
+/// dirs found live, traced to this fixture never injecting the seam that exists
+/// exactly for this — `brana_core::util::session_store_root()`).
+/// Returns a TempDir (must be kept alive), the project root PathBuf, and the guard
+/// (must also be kept alive — dropping it early restores the env var mid-test).
+fn fixture_project_root() -> (tempfile::TempDir, PathBuf, StoreRootGuard) {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().to_path_buf();
-    // Pre-create the memory dir so tests can also check it is absent before writes
-    (dir, root)
+    let store_root = dir.path().join("store");
+    let prev = std::env::var("BRANA_SESSION_STORE_ROOT").ok();
+    // SAFETY: caller runs #[serial]; see StoreRootGuard.
+    unsafe { std::env::set_var("BRANA_SESSION_STORE_ROOT", &store_root) };
+    (dir, root, StoreRootGuard { prev })
+}
+
+/// t-3279 tripwire: session test fixtures must never write through to the real
+/// `~/.claude/projects` store. 13,439 leaked `-tmp-*` store dirs were found live
+/// there, traced to tests that called `write_state()`/friends against a bare
+/// tempdir root without injecting `BRANA_SESSION_STORE_ROOT` — the memory dir
+/// resolves under `encode_path(tempdir_path)`, which always starts with `-tmp-`
+/// since `tempfile::tempdir()` defaults under `/tmp`. Snapshot the real store,
+/// exercise a representative write through the fixture, and assert no new
+/// `-tmp-` entry appeared.
+#[test]
+#[serial]
+fn session_test_fixtures_never_leak_into_real_home_store() {
+    let real_store = brana_core::util::home().join(".claude/projects");
+    let snapshot = |dir: &std::path::Path| -> std::collections::HashSet<String> {
+        fs::read_dir(dir)
+            .map(|entries| {
+                entries
+                    .flatten()
+                    .filter_map(|e| e.file_name().into_string().ok())
+                    .filter(|n| n.contains("-tmp-"))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let before = snapshot(&real_store);
+
+    let (_dir, root, _guard) = fixture_project_root();
+    let state = brana_core::session::SessionState {
+        version: 1,
+        written_at: "2026-09-04T00:00:00Z".to_string(),
+        branch: Some("main".to_string()),
+        accomplished: vec!["tripwire write".to_string()],
+        ..Default::default()
+    };
+    brana_core::session::write_state(&root, &state).unwrap();
+
+    let after = snapshot(&real_store);
+    let new_entries: Vec<&String> = after.difference(&before).collect();
+    assert!(
+        new_entries.is_empty(),
+        "session test fixture leaked into the real store: {:?}",
+        new_entries
+    );
 }
 
 /// Build a minimal valid session state JSON value.
@@ -436,9 +509,10 @@ fn minimal_session_json(written_at: &str) -> Value {
 
 // ── session_write tests ──────────────────────────────────────────────────
 
+#[serial]
 #[test]
 fn test_session_write_creates_state_file() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     let payload: brana_core::session::SessionState =
         serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
@@ -449,11 +523,12 @@ fn test_session_write_creates_state_file() {
     assert!(state_path.exists(), "session-state.json should exist after write");
 }
 
+#[serial]
 #[test]
 fn test_session_write_auto_fills_written_at_on_empty() {
     // When written_at is a valid RFC3339, it passes through unchanged.
     // The MCP tool fills it if empty — we test the core function here.
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     let state = brana_core::session::SessionState {
         version: 1,
@@ -468,9 +543,10 @@ fn test_session_write_auto_fills_written_at_on_empty() {
     assert_eq!(loaded.accomplished, vec!["thing A"]);
 }
 
+#[serial]
 #[test]
 fn test_session_write_archives_previous_state() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     let state1: brana_core::session::SessionState =
         serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
@@ -487,9 +563,10 @@ fn test_session_write_archives_previous_state() {
     assert!(content.contains("2026-04-06T10:00:00"), "first state should be in history");
 }
 
+#[serial]
 #[test]
 fn test_session_write_rejects_invalid_version() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     let mut state: brana_core::session::SessionState =
         serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
@@ -501,15 +578,17 @@ fn test_session_write_rejects_invalid_version() {
 
 // ── session_read tests ───────────────────────────────────────────────────
 
+#[serial]
 #[test]
 fn test_session_read_returns_none_when_no_state() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
     assert!(brana_core::session::read_state_from(&root, "main").is_none());
 }
 
+#[serial]
 #[test]
 fn test_session_read_returns_full_state() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     let state: brana_core::session::SessionState =
         serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
@@ -521,9 +600,10 @@ fn test_session_read_returns_full_state() {
     assert_eq!(loaded.accomplished, vec!["implemented session tools"]);
 }
 
+#[serial]
 #[test]
 fn test_session_read_specific_field_via_json() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     let state: brana_core::session::SessionState =
         serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
@@ -538,16 +618,18 @@ fn test_session_read_specific_field_via_json() {
 
 // ── session_history tests ────────────────────────────────────────────────
 
+#[serial]
 #[test]
 fn test_session_history_empty_when_no_history() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
     let history = brana_core::session::read_history(&root, 5);
     assert!(history.is_empty());
 }
 
+#[serial]
 #[test]
 fn test_session_history_most_recent_first() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     // Write 3 states sequentially to build history (each write archives the previous)
     let s1: brana_core::session::SessionState =
@@ -568,9 +650,10 @@ fn test_session_history_most_recent_first() {
     assert!(history[0].written_at > history[1].written_at);
 }
 
+#[serial]
 #[test]
 fn test_session_history_limit_applied() {
-    let (_dir, root) = fixture_project_root();
+    let (_dir, root, _guard) = fixture_project_root();
 
     // Write 4 states to build 3-entry history
     for h in 8..=11u32 {
