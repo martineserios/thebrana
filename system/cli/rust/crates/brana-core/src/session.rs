@@ -501,9 +501,25 @@ pub fn read_state_from_unit(project_root: &Path, epic: Option<&str>, branch: &st
 }
 
 /// Read the current session state, if it exists.
-/// Uses the current git branch to resolve the epic-scoped state file.
+///
+/// ADR-069 D0: a read must resolve through the same key a write actually used.
+/// `cmd_session_write` routes an epic-less payload through the initiative/focus marker
+/// before falling back to branch parsing (t-2154/ADR-060) — so a bare read has to check
+/// the same markers first, or it misses every state a write routed that way (the
+/// asymmetry this spec exists to close: on `dev`, branch-only parsing never matches an
+/// epic-routed write). Falls back to the branch-only guess when no marker is set, or
+/// when the marker-keyed file doesn't exist — no worse than today's behavior, strictly
+/// better when it resolves.
 pub fn read_state(project_root: &Path) -> Option<SessionState> {
-    read_state_from(project_root, &current_branch().unwrap_or_default())
+    let branch = current_branch().unwrap_or_default();
+    let marker = crate::session_initiative::read_initiative_marker(project_root)
+        .or_else(|| crate::session_initiative::read_focus_marker(project_root));
+    if let Some(epic) = marker
+        && let Some(state) = read_state_from_unit(project_root, Some(&epic), &branch)
+    {
+        return Some(state);
+    }
+    read_state_from(project_root, &branch)
 }
 
 /// How `next[]` was resolved on a write (t-2506). Reported so that no discard, and no

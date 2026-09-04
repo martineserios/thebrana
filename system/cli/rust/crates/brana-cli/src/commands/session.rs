@@ -280,11 +280,23 @@ pub fn cmd_session_history(limit: usize) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Resolve the path `brana session path` reports: the same initiative/focus-marker
+/// check `cmd_session_write` applies to an epic-less payload, falling back to
+/// branch-only parsing (ADR-069 D0 — a read/path lookup must agree with what a write
+/// actually used). Split out from [`cmd_session_path`] so the resolution logic is
+/// testable without capturing stdout.
+fn resolve_session_path(root: &std::path::Path) -> PathBuf {
+    let branch = current_branch().unwrap_or_default();
+    brana_core::session_initiative::read_initiative_marker(root)
+        .or_else(|| brana_core::session_initiative::read_focus_marker(root))
+        .map(|epic| brana_core::session::unit_scoped_state_path(root, Some(&epic), &branch))
+        .unwrap_or_else(|| epic_scoped_state_path(root, &branch))
+}
+
 /// `brana session path`
 pub fn cmd_session_path() -> anyhow::Result<()> {
     let root = require_project_root()?;
-    let branch = current_branch().unwrap_or_default();
-    println!("{}", epic_scoped_state_path(&root, &branch).display());
+    println!("{}", resolve_session_path(&root).display());
     Ok(())
 }
 
@@ -1186,20 +1198,32 @@ mod tests {
         );
     }
 
-    // `cmd_session_path` (D0 fallback surface #4): always resolves via branch-only
-    // `epic_scoped_state_path`, with no `--epic` option — divergent from
-    // `cmd_session_write`'s actual UNIT-keyed write path whenever a payload carries an
-    // explicit epic. `cmd_session_path` only prints (no return value to assert on), so
-    // this pins the underlying resolution it performs against where a real
-    // `cmd_session_write` call actually lands, via the CLI write command end-to-end
-    // (not the lower-level `write_state` directly, matching what `cmd_session_path`'s
-    // own caller would experience).
+    // `cmd_session_path` (D0 fallback surface #4, t-2521/t-3295): originally pinned by
+    // t-2529 as `cmd_session_path_diverges_from_cmd_session_write_when_explicit_epic_present`,
+    // which compared `epic_scoped_state_path(root, branch)` directly against
+    // `unit_scoped_state_path(root, Some(explicit_epic), branch)` — an assertion that is
+    // provably unsatisfiable: `mark_consumed_diverges_from_write_when_explicit_epic_present`
+    // (brana-core/src/session.rs) has its own sanity check requiring those exact same two
+    // calls to stay UNEQUAL under the identical setup (write with a divergent explicit
+    // epic, then compare the two path helpers). No implementation can satisfy both.
+    // Confirmed by direct experiment during t-3295 and resolved by explicit decision
+    // (see t-2521 context, 2026-09-04): `epic_scoped_state_path` stays a pure branch-regex
+    // function; the real fix is that a read/path lookup must check the SAME
+    // initiative/focus marker `cmd_session_write` already consults for an epic-less
+    // payload (t-2154/ADR-060), not that the raw helpers must ever converge.
+    //
+    // Rewritten to exercise that actual mechanism: set the focus marker, write with NO
+    // explicit epic in the payload (so `cmd_session_write`'s own fallback routes it via
+    // the marker), and confirm `resolve_session_path` — the logic `cmd_session_path`
+    // prints — agrees with where that write actually landed.
     #[test]
     #[serial]
-    fn cmd_session_path_diverges_from_cmd_session_write_when_explicit_epic_present() {
+    fn cmd_session_path_agrees_with_cmd_session_write_via_focus_marker() {
         let _tmp = with_temp_home();
         let project_root = tempfile::tempdir().unwrap();
         unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        cmd_epic_focus("totally-different-unit-for-path-test").unwrap();
 
         let branch = brana_core::session::current_branch().unwrap_or_default();
         let payload_path = project_root.path().join("payload.json");
@@ -1208,7 +1232,6 @@ mod tests {
             serde_json::json!({
                 "version": 1,
                 "written_at": "",
-                "epic": "totally-different-unit-for-path-test",
                 "accomplished": ["did the thing"],
             })
             .to_string(),
@@ -1216,21 +1239,35 @@ mod tests {
         .unwrap();
         cmd_session_write(Some(payload_path), false).unwrap();
 
-        // What cmd_session_path actually resolves (branch-only) vs where the write above
-        // actually landed (UNIT key: explicit epic wins).
-        let path_command_resolves = epic_scoped_state_path(project_root.path(), &branch);
         let where_write_landed = brana_core::session::unit_scoped_state_path(
             project_root.path(),
             Some("totally-different-unit-for-path-test"),
             &branch,
         );
+        let resolved = resolve_session_path(project_root.path());
 
         unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
 
         assert_eq!(
-            path_command_resolves, where_write_landed,
-            "cmd_session_path must report the same path cmd_session_write actually used \
-             (currently diverges: it guesses branch-only while write resolves the UNIT key)"
+            resolved, where_write_landed,
+            "cmd_session_path must resolve the same file cmd_session_write actually used, \
+             via the same focus-marker mechanism"
         );
+    }
+
+    // Boundary: no marker set at all — must fall back to the branch-only guess exactly
+    // as before, not error or silently pick something else.
+    #[test]
+    #[serial]
+    fn cmd_session_path_falls_back_to_branch_only_when_no_marker_set() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        let branch = brana_core::session::current_branch().unwrap_or_default();
+        let resolved = resolve_session_path(project_root.path());
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+
+        assert_eq!(resolved, epic_scoped_state_path(project_root.path(), &branch));
     }
 }
