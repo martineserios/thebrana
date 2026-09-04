@@ -481,6 +481,96 @@ pub fn pull_wave_task(path: &Path, wave_id: &str, claimant: &str) -> Result<Pull
     Ok(decision)
 }
 
+/// t-3271 (ADR-090 §1/§2): why the beat stopped. `ReachedN` is the only
+/// terminal state that is not a `PullDecision` — the fan-out cap binding is
+/// the beat's own bound, invisible to a single pull, so it has no
+/// single-pull equivalent to reuse.
+#[derive(Debug, PartialEq, Eq)]
+pub enum BeatStop {
+    /// `n` pulls completed. The operator's fan-out cap bound, not the wave.
+    ReachedN,
+    /// `wip_limit` bound before `n` was reached (possibly mid-beat).
+    AtLimit { live: usize, limit: u64 },
+    /// The eligible pool ran dry before `n` was reached.
+    NoneEligible { matched: usize, unapproved: usize, parked: usize, human: usize, blocked: usize, deferred: usize },
+}
+
+/// t-3271: one N-wide pull beat's result — the ids actually claimed, plus
+/// why the beat ended. Both matter to the caller: the ids are what it
+/// dispatches worktrees for, and the stop reason is the difference between
+/// "the operator's cap is too small" and "the approval queue is empty"
+/// (ADR-090 §5's named risk — invisible if only the count were returned).
+#[derive(Debug, PartialEq, Eq)]
+pub struct BeatPull {
+    pub pulled: Vec<String>,
+    pub stop: BeatStop,
+}
+
+/// t-3271 (ADR-090 §1): the REAL N-wide pull beat — `n` sequential
+/// `pull_wave_task` calls, each taking its OWN `lock_tasks` critical section
+/// and writing its own lease, stopping early on the first non-`Pulled`
+/// decision.
+///
+/// Deliberately NOT built on `wave_pull_decision_n` (t-3268): that function
+/// is a pure in-memory simulation over a locally mutated snapshot — it never
+/// locks and never writes, so dispatching against its ids would hand N
+/// worktrees tasks that no lease protects and no concurrent pump can see
+/// claimed. The ids here come from real writes only.
+///
+/// Equally deliberately NOT one lock around N writes: batching would put the
+/// whole beat in one critical section and re-open the TOCTOU that ADR-080 §5
+/// closed per pull. Sequential-with-its-own-lock also gives the property the
+/// batched form cannot have — pull `k` reads the `in_progress` rows pulls
+/// `1..k-1` committed, so `wip_limit` binds *inside* the beat.
+///
+/// `n` must be at least 1, for the same reason `dry_run_wave_pull_n` requires
+/// it: a 0-beat would return an empty success without ever validating the
+/// wave.
+///
+/// On an error partway through, the ids already claimed are named in the
+/// error — they are `in_progress` under a live lease and would otherwise be
+/// silently orphaned by a caller that only sees `Err`.
+pub fn pull_wave_tasks_n(
+    path: &Path,
+    wave_id: &str,
+    claimant: &str,
+    n: usize,
+) -> Result<BeatPull, String> {
+    if n == 0 {
+        return Err(format!(
+            "n must be at least 1 to pull from wave {wave_id} — 0 pulls nothing"
+        ));
+    }
+    let mut pulled: Vec<String> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let decision = pull_wave_task(path, wave_id, claimant).map_err(|e| {
+            if pulled.is_empty() {
+                e
+            } else {
+                format!(
+                    "{e} — beat already claimed {} task(s) ({}); they are in_progress under a \
+                     live lease and need acking or reclaiming",
+                    pulled.len(),
+                    pulled.join(", ")
+                )
+            }
+        })?;
+        match decision {
+            PullDecision::Pulled { task_id } => pulled.push(task_id),
+            PullDecision::AtLimit { live, limit } => {
+                return Ok(BeatPull { pulled, stop: BeatStop::AtLimit { live, limit } })
+            }
+            PullDecision::NoneEligible { matched, unapproved, parked, human, blocked, deferred } => {
+                return Ok(BeatPull {
+                    pulled,
+                    stop: BeatStop::NoneEligible { matched, unapproved, parked, human, blocked, deferred },
+                })
+            }
+        }
+    }
+    Ok(BeatPull { pulled, stop: BeatStop::ReachedN })
+}
+
 /// t-2862 (ADR-080 §1/§6c): shadow drain — the rehearsal primitive. Computes
 /// the full pull decision on a fresh read and writes NOTHING. A `queued` wave
 /// is simulated as-if-draining (returned bool = simulated) so a graph can be
