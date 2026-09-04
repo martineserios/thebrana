@@ -337,6 +337,24 @@ If a future task *does* rekey session-state files by session_id (the D2 "Also af
 bullets' original premise), both of these decisions must be revisited — they are sound
 only under "files are shared per-unit," which remains this implementation's actual state.
 
+### Rollback (t-3297, 2026-09-04)
+
+The spec's rollback/migration script requirement was premised on session-state
+*filenames* becoming session-id-keyed and therefore unreadable by a reverted
+branch-regex-based reader. Per the Retirement Decisions above, that rekeying never
+happened here — `session-state.json`/`session-state-{epic}.json` naming is byte-for-byte
+unchanged from before this spec. The only new persistent artifact is the lane pin store
+(`{memory_dir}/lanes/*.json`), which is purely additive: no existing file was renamed,
+moved, or reformatted to create it.
+
+**Consequence: no migration script is needed.** Reverting D2 is `rm -rf
+{memory_dir}/lanes/` (or simply reverting the code — `session-start.sh`'s `lane init`
+call and the `brana session lane init/resume` CLI surface) plus removing the SessionStart
+hook's call to it; every session-state file underneath is untouched and immediately
+readable by pre-D2 code with zero data loss. No script was built for a migration that
+does not exist — the AC as originally written assumed a precondition (t-2521 context has
+the full record of why it wasn't implemented) that turned out false.
+
 ## Testing Strategy
 
 - **Unit:** the key-resolution function (D0) — read/write/consume must resolve identically
