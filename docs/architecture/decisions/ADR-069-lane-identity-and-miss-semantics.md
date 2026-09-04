@@ -542,3 +542,45 @@ t-2516 (2026-07-28, merged 7a7638a9) verified this ADR's three open mechanism qu
 - **Frontmatter** stays `status: proposed` — the repo has no partial-supersession enum and this ADR is not superseded as a whole. The header line carries the qualifier.
 
 Refs: t-2516 notes · guide L6/E · board §3 ("amend or mark partially superseded").
+
+## Amendment (2026-09-04, t-2526): D5 resolved — populate, not retire
+
+D5's own 2026-08-28 decision deadline passed without a formal verdict ever being
+recorded (no `brana remind` row was created for it — the gap D5 itself warned
+against). Recording the verdict now, six days late, rather than leaving it open
+indefinitely:
+
+**Verdict: populate as the HOW axis.** Live count at this writing: **25 wave
+instances** (`brana backlog wave list`), not the 0 D5 was decided against. The
+question was overtaken by events, not by a deliberate choice made in one
+sitting — ADR-079 (drain loop), ADR-080 (plan-time wave graphs + epic runner),
+and ADR-086 (derived roles + standing wave) each took a load-bearing dependency
+on the wave primitive between 2026-08-13 and 2026-08-30, before this decision
+was ever formally closed. D5's own guard — "until then, no design may take a
+dependency on the wave primitive" — was violated in practice by three
+accepted ADRs; documenting that here rather than pretending it didn't happen.
+
+- **Retirement is no longer the cheap option D5 described.** "Zero instances
+  means zero migration cost" no longer holds — retiring the primitive today
+  would mean unwinding three ADRs and the epic-drain loop this session used to
+  build itself. Populate is not just cheaper than retire; retire is no longer
+  a live option without a separate ADR reversing ADR-079/080/086.
+- **No new `brana remind` row for the deferral itself** — D5's original row
+  requirement guarded the *deferral period* (guard against the decision
+  quietly expiring unmade); that period is over, the decision is made, in
+  writing, right here. But this ADR's own D5 text also names a second,
+  separate case: *"if kept: a `brana remind` row (not prose) tracks the
+  population deadline."* This is the "kept" branch, so that row is created —
+  `r-c07fecdfdc0d946c`, task-linked to t-2526, due 2026-10-04, checking that
+  adoption held (wave count still >0, ADR-079/080/086 consumers still live)
+  rather than silently regressing back toward the 0-instance state D5 was
+  originally weighed against. A reminder pointed at an already-resolved
+  *decision* would be theatre; a reminder pointed at whether the resolved
+  decision's *outcome* held is not — that is the distinction between the two
+  rows this ADR ever asked for.
+- **Terminology hazard (D5's own flag) still holds**: this verdict concerns
+  the stored primitive only, not the v3 program-phase sense of "wave" used in
+  ADR-068.
+
+Refs: t-2526 · `brana backlog wave list` (25 instances, 2026-09-04) · ADR-079 ·
+ADR-080 · ADR-086.
