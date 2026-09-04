@@ -304,9 +304,38 @@ handoff came from; ambiguity there is the ADR's own named operator-visible sympt
 | Always | Ask First | Never |
 |--------|-----------|-------|
 | Resolve session-state read/write/consume through one key function | Redesigning D3.2 (reflog attribution) as a commit-time mechanism — that's new-ADR scope, not this spec | Touch `save_tasks`, `write_atomic`, or `lock_tasks` |
-| Fail loud (non-zero exit) on a session-state key miss | Dropping or re-providing the `branch_has_active_worktree` guard's guarantee (`session.rs:1191`, t-2263) — must be an explicit decision, not silent | Silently substitute another lane's file, or an empty stub, for a miss |
-| Ship the D2 rollback/migration script alongside D2 itself | Dropping or re-providing `merge_states`'s same-day-merge code path (`session.rs:712`) once per-session-id files remove its collision case — this is the *other* of the ADR's named two silently-retired behaviors; do not decide by omission | Implement D3b's original "missing pin ⇒ fail loud" for the autonomous surface (retracted) |
+| Fail loud (non-zero exit) on a session-state key miss | ~~Dropping or re-providing the `branch_has_active_worktree` guard's guarantee~~ — **DECIDED 2026-09-04 (t-3296): KEPT, unmodified.** See Retirement Decisions below. | Silently substitute another lane's file, or an empty stub, for a miss |
+| Ship the D2 rollback/migration script alongside D2 itself | ~~Dropping or re-providing `merge_states`'s same-day-merge code path~~ — **DECIDED 2026-09-04 (t-3296): KEPT, unmodified.** See Retirement Decisions below. | Implement D3b's original "missing pin ⇒ fail loud" for the autonomous surface (retracted) |
 | Reuse `write_state_with_base`'s existing CAS logic, `is_safe_epic_slug`'s existing slug guard, and `read_state_from_unit`'s existing unit-keyed read for D0/D2 | Choosing the lane pin's exact file path/format if it diverges from the Assumptions section | Re-implement CAS matching, slug validation, or unit-keyed reads from scratch when a correct primitive already exists (t-2506/t-3169/t-3185) |
+
+### Retirement Decisions (t-3296, 2026-09-04)
+
+Both decisions this spec flagged as "must be explicit, not silent by omission" turned out
+to hinge on one fact discovered while implementing t-3292/t-3295: **this implementation
+did not rekey session-state files by `session_id`.** D0's Read/path rows and D2's lane
+pin were both implemented via the *existing* initiative/focus-marker mechanism
+(`session_initiative::read_focus_marker`/`read_initiative_marker`) rather than by
+changing `unit_scoped_state_path`'s naming scheme — see t-2521's context log for the full
+rationale (a genuine test contradiction between two already-merged RED tests made the
+literal "lane pin's key" reading unsafe to implement as an epic/session-id rekeying; the
+conservative, test-verified fix was chosen instead). Session-state files are therefore
+still keyed by epic/branch, exactly as before this spec — **not** one file per session id.
+
+Both retirement candidates were premised on "once every session writes its own
+per-session-id file" — a precondition that never became true here. Consequently:
+
+- **`merge_states`'s same-day-merge code path (`session.rs:803`, called from
+  `write_state_with_base`): KEPT, unmodified.** Multiple sessions can still land writes on
+  the exact same file (same epic/branch, same day) exactly as before D0/D1/D2 shipped —
+  the collision case this code resolves is unchanged and still live.
+- **`branch_has_active_worktree` clobber guard (`session.rs:1282`, t-2263): KEPT,
+  unmodified.** Files are still shared per-unit, not per-session, so a mis-detected epic
+  can still route a write into another still-live session's file — the guard's guarantee
+  is still needed for the same reason it was added.
+
+If a future task *does* rekey session-state files by session_id (the D2 "Also affected"
+bullets' original premise), both of these decisions must be revisited — they are sound
+only under "files are shared per-unit," which remains this implementation's actual state.
 
 ## Testing Strategy
 

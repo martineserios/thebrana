@@ -237,9 +237,18 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
               cascade_rate:($cascade_rate|tonumber),
               delegation_count:$delegations}' 2>/dev/null) || METRICS_PATCH=""
         if [ -n "$METRICS_PATCH" ]; then
-            jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
-                > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
-                mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null || true
+            # ADR-069 D2 "Also affected": this read-modify-write used to run unlocked
+            # against the same file `brana session write`/`mark_consumed` write to --
+            # single-writer is the pin's own premise (D3b), but this writer sits outside
+            # the pin entirely. flock it, same convention as task-id-lock.sh's shared
+            # counter file. Best-effort: a missed lock (5s timeout) or failed patch
+            # degrades to skipping the metrics enrichment, never to a torn write.
+            (
+                flock -w 5 200 || exit 0
+                jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
+                    > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
+                    mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null
+            ) 200>"${SESSION_STATE_PATH}.lock" || true
         fi
     fi
 
