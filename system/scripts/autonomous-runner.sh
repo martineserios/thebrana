@@ -57,6 +57,8 @@
 #   RUNNER_TASKS_FILE    tasks.json to pull against (passed to `wave pull --file`); default
 #                        is the CLI's own auto-detection
 #   BRANA_BIN            brana binary used for the wave pull / task read (default: brana)
+#   RUNNER_BEATS_FILE    beat-record log the digests read (default ~/.claude/scheduler/beats.jsonl,
+#                        t-3275). Append-only, loops-library schema, one line per beat.
 #   RUNNER_WT_LOCK       flock serializing git worktree ADMIN mutations across the fan-out
 #                        (default <RUNNER_WORKTREE_DIR>/.worktree-admin.lock)
 #
@@ -87,6 +89,12 @@ PUSH="${RUNNER_PUSH:-0}"
 MAX_FAILS="${RUNNER_MAX_FAILS:-3}"
 KILL_SWITCH="${RUNNER_KILL_SWITCH:-$HOME/.claude/scheduler/runner.stop}"
 RUN_LOCK="${RUNNER_LOCK_FILE:-$HOME/.claude/scheduler/locks/autonomous-runner.lock}"
+# Beat records (t-3275, ADR-090 §4). APPEND-only, one line per beat, in the runner's existing
+# run-state dir alongside LEDGER/KILL_SWITCH/RUN_LOCK — and the same dir the scheduler digest
+# already reads. Deliberately NOT $LEDGER: that file is truncated at every invocation (`: >`
+# below), so it can only ever describe the newest run, while the digests must attribute every
+# beat whose branches are still waiting at the merge valve.
+BEATS_FILE="${RUNNER_BEATS_FILE:-$HOME/.claude/scheduler/beats.jsonl}"
 FANOUT="${RUNNER_FANOUT:-1}"              # ADR-090 §1 `N` — operator-set fan-out cap
 BRANA_BIN="${BRANA_BIN:-brana}"
 CLAIMANT="${RUNNER_CLAIMANT:-runner:beat-$$}"
@@ -289,6 +297,27 @@ EOF
 emit() { # id subject decision reason
   jq -cn --arg id "$1" --arg s "$2" --arg d "$3" --arg r "$4" --arg ts "$TS" \
     '{id:$id,subject:$s,decision:$d,reason:$r,ts:$ts}' >> "$LEDGER"
+}
+
+# emit_beat <instance> <state> <what_happened> [id...] — one loops-library beat record
+# (docs/architecture/features/loops-library.md §Beat record schema). `pulled_task_ids` is
+# always an array in pull order; a beat that pulled nothing records `[]`, which is a different
+# answer from a record that predates the field and consumers must not conflate them — so the
+# key is written on every record, never omitted.
+emit_beat() {
+  local inst="$1" state="$2" what="$3"; shift 3
+  local ids prev
+  if [ "$#" -eq 0 ]; then ids='[]'; else ids="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"; fi
+  mkdir -p "$(dirname "$BEATS_FILE")" 2>/dev/null || true
+  # `beat` is 1-based and monotonic per running instance — continue this instance's sequence.
+  # Line-at-a-time fromjson so a corrupt line can never break numbering for the next beat.
+  prev="$(jq -rR --arg i "$inst" 'fromjson? // empty | select(.instance == $i) | .beat // empty' \
+            "$BEATS_FILE" 2>/dev/null | sort -n | tail -1)"
+  jq -cn --arg loop autonomous-runner --arg i "$inst" --argjson b "$(( ${prev:-0} + 1 ))" \
+         --arg ts "$TS" --arg st "$state" --arg w "$what" --argjson ids "$ids" \
+    '{loop:$loop,instance:$i,beat:$b,timestamp:$ts,state:$st,what_happened:$w,
+      pulled_task_ids:$ids,progress:{kind:"unbounded",remaining:null,total:null},
+      escalations:[],next_wake:null}' >> "$BEATS_FILE"
 }
 
 plan_task() { # id subject -> "would-run <reason>" | "would-park <reason>"
@@ -574,6 +603,7 @@ if [ "$MODE" = "run-beat" ]; then
   BEAT_IDS="$(printf '%s' "$PULL_OUT" | jq -r '(.pulled_task_ids // [.pulled]) | map(select(. != null)) | .[]' 2>/dev/null)"
   BEAT_STOP="$(printf '%s' "$PULL_OUT" | jq -r '.stopped // (if .at_limit then "at_limit" elif .none_eligible then "none_eligible" else "reached_n" end)' 2>/dev/null)"
   if [ -z "$BEAT_IDS" ]; then
+    emit_beat "$WAVE_ID" empty "wave $WAVE_ID claimed nothing (stopped=${BEAT_STOP:-unknown})"
     echo "[autonomous-runner] run-beat: ALLDONE — wave $WAVE_ID claimed nothing (stopped=${BEAT_STOP:-unknown})"
     echo "[autonomous-runner] ledger: $LEDGER"
     exit 0
@@ -619,6 +649,13 @@ if [ "$MODE" = "run-beat" ]; then
     done
   fi
   rm -rf "$BEATDIR"
+  # The beat record is what lets both digests present these N close-outs as ONE review item
+  # instead of N unrelated ones (ADR-090 §4). Every id the beat CLAIMED goes in, including any
+  # that failed to dispatch — they are in_progress under this beat's lease either way, so the
+  # digest must still show them as this beat's.
+  emit_beat "$WAVE_ID" active \
+    "fan-out $FANOUT: dispatched ${#BEAT_PIDS[@]}, ran $RAN, parked $PARKED, failed $FAILED (stopped=${BEAT_STOP:-unknown})" \
+    $BEAT_IDS
   echo "[autonomous-runner] run-beat: wave=$WAVE_ID fanout=$FANOUT dispatched=${#BEAT_PIDS[@]} ran=$RAN parked=$PARKED failed=$FAILED (pull stopped=${BEAT_STOP:-unknown})"
   echo "[autonomous-runner] run-beat: NOT merged — each task sits on its own branch awaiting human review."
   echo "[autonomous-runner] ledger: $LEDGER"

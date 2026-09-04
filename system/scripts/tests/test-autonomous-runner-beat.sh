@@ -70,7 +70,7 @@ run_beat(){ # repo fanout ids... ; extra env via BEAT_ENV
   ( cd "$repo"
     env RUNNER_SANDBOX=0 CLAUDE_BIN="$STUB" BRANA_BIN="$BSTUB" \
         RUNNER_TASKS_JSON="${repo}.fix.json" RUNNER_PLAN=0 \
-        RUNNER_LEDGER="${repo}.ledger.jsonl" RUNNER_BASE_BRANCH="$base" \
+        RUNNER_LEDGER="${repo}.ledger.jsonl" RUNNER_BEATS_FILE="${repo}.beats.jsonl" RUNNER_BASE_BRANCH="$base" \
         RUNNER_WORKTREE_DIR="${repo}.wt" RUNNER_LOCK_FILE="${repo}.lock" \
         RUNNER_KILL_SWITCH="${repo}.nostop" RUNNER_FANOUT="$fanout" \
         STUB_TRACE="${repo}.trace" STUB_PULL_IDS="$*" \
@@ -118,7 +118,7 @@ rm -rf "$R" "${R}.wt"
 # 4. A beat with no wave is a caller error — never a silent fall-through to another mode.
 R="$(make_repo)"; FIXN "${R}.fix.json" 1
 ( cd "$R"; env RUNNER_SANDBOX=0 CLAUDE_BIN="$STUB" BRANA_BIN="$BSTUB" \
-    RUNNER_TASKS_JSON="${R}.fix.json" RUNNER_PLAN=0 RUNNER_LEDGER="${R}.l2.jsonl" \
+    RUNNER_TASKS_JSON="${R}.fix.json" RUNNER_PLAN=0 RUNNER_LEDGER="${R}.l2.jsonl" RUNNER_BEATS_FILE="${R}.b2.jsonl" \
     RUNNER_WORKTREE_DIR="${R}.wt" RUNNER_LOCK_FILE="${R}.lock" RUNNER_KILL_SWITCH="${R}.nostop" \
     bash "$RUNNER_SRC" --run-beat >"${R}.out2" 2>&1 )
 ok "no wave: non-zero exit" '[ "$?" != "0" ]'
@@ -129,7 +129,7 @@ rm -rf "$R" "${R}.wt"
 # 5. Kill-switch stops the beat BEFORE the pull — no task may be claimed and abandoned.
 R="$(make_repo)"; FIXN "${R}.fix.json" 3; touch "${R}.stop"
 ( cd "$R"; env RUNNER_SANDBOX=0 CLAUDE_BIN="$STUB" BRANA_BIN="$BSTUB" \
-    RUNNER_TASKS_JSON="${R}.fix.json" RUNNER_PLAN=0 RUNNER_LEDGER="${R}.l3.jsonl" \
+    RUNNER_TASKS_JSON="${R}.fix.json" RUNNER_PLAN=0 RUNNER_LEDGER="${R}.l3.jsonl" RUNNER_BEATS_FILE="${R}.b3.jsonl" \
     RUNNER_WORKTREE_DIR="${R}.wt" RUNNER_LOCK_FILE="${R}.lock" RUNNER_KILL_SWITCH="${R}.stop" \
     RUNNER_FANOUT=3 STUB_TRACE="${R}.trace" STUB_PULL_IDS="t-8001 t-8002 t-8003" \
     bash "$RUNNER_SRC" --run-beat --wave wave-1 >"${R}.out3" 2>&1 )
