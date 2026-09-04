@@ -129,14 +129,38 @@ pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>, epi
             } else {
                 print!("{}", render_text(&state));
             }
+            Ok(())
         }
         None => {
-            if let Err(e) = handoff::cmd_handoff_last(1) {
+            // ADR-069 D1: a miss exits non-zero and never reports success by silently
+            // substituting a different mechanism's content. The legacy handoff (if any)
+            // is still printed for backward-compat visibility on the human-readable path
+            // -- it may be genuinely useful context -- but it is NOT what was asked for
+            // (session-state), so the command still reports the miss via a non-zero exit.
+            //
+            // Under --json, print nothing here: a caller parsing JSON must never receive
+            // markdown on stdout on a miss (the "chained legacy scan" bug this closes --
+            // system/hooks/session-start.sh assigns this stdout straight into a variable
+            // it later tests with `jq`/`[ -n ... ]`; markdown content made that variable
+            // non-empty-but-unparseable, which silently skipped the hook's OWN legacy
+            // markdown fallback branch further down, the exact opposite of what printing
+            // it here was meant to help with).
+            if !json_output
+                && let Err(e) = handoff::cmd_handoff_last(1)
+            {
                 eprintln!("{e:#}");
             }
+            Err(anyhow::anyhow!(
+                "no session state found for this unit — nothing to read{}",
+                if json_output {
+                    ""
+                } else {
+                    " (any legacy handoff shown above is not a substitute; re-check the \
+                     branch/epic this session is on)"
+                }
+            ))
         }
     }
-    Ok(())
 }
 
 /// Implementation of `brana session read --all`.
@@ -280,12 +304,104 @@ pub fn cmd_session_history(limit: usize) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Resolve the path `brana session path` reports: the same initiative/focus-marker
+/// check `cmd_session_write` applies to an epic-less payload, falling back to
+/// branch-only parsing (ADR-069 D0 — a read/path lookup must agree with what a write
+/// actually used). Split out from [`cmd_session_path`] so the resolution logic is
+/// testable without capturing stdout.
+fn resolve_session_path(root: &std::path::Path) -> PathBuf {
+    let branch = current_branch().unwrap_or_default();
+    brana_core::session_initiative::read_initiative_marker(root)
+        .or_else(|| brana_core::session_initiative::read_focus_marker(root))
+        .map(|epic| brana_core::session::unit_scoped_state_path(root, Some(&epic), &branch))
+        .unwrap_or_else(|| epic_scoped_state_path(root, &branch))
+}
+
 /// `brana session path`
 pub fn cmd_session_path() -> anyhow::Result<()> {
     let root = require_project_root()?;
-    let branch = current_branch().unwrap_or_default();
-    println!("{}", epic_scoped_state_path(&root, &branch).display());
+    println!("{}", resolve_session_path(&root).display());
     Ok(())
+}
+
+/// `brana session lane init --session-id <id> [--task-id <id>]`
+///
+/// Writes this session's lane pin (ADR-069 D2). The autonomous-bootstrap path: the
+/// sandboxed runner calls this from the host before launching `claude -p`, since the
+/// jail mounts no `~/.claude/hooks/`, so `SessionStart` never fires inside it to write
+/// a pin any other way.
+pub fn cmd_lane_init(session_id: &str, task_id: Option<String>) -> anyhow::Result<()> {
+    let root = require_project_root()?;
+    let worktree_path = std::env::current_dir()
+        .context("resolving cwd for lane pin")?
+        .to_string_lossy()
+        .to_string();
+
+    let pin = brana_core::session_lane::LanePin {
+        session_id: session_id.to_string(),
+        worktree_path,
+        branch: current_branch(),
+        task_id,
+        head_at_start: brana_core::session_lane::git_head_sha(),
+        dirty_at_start: brana_core::session_lane::git_dirty_paths(),
+        created_at: Utc::now().to_rfc3339(),
+    };
+    brana_core::session_lane::write_lane_pin(&root, &pin)?;
+
+    println!(
+        "{}",
+        serde_json::json!({
+            "ok": true,
+            "session_id": pin.session_id,
+            "worktree_path": pin.worktree_path,
+            "branch": pin.branch,
+        })
+    );
+    Ok(())
+}
+
+/// `brana session lane resume [--task-id <id>] [--json]`
+///
+/// Resolves at most one lane to resume into, ranked worktree_path > branch > task_id
+/// (ADR-069 D2). A miss (nothing resolves, or ambiguity at a rank) exits non-zero —
+/// never a silent guess.
+pub fn cmd_lane_resume(task_id: Option<String>, json_output: bool) -> anyhow::Result<()> {
+    let root = require_project_root()?;
+    let worktree_path = std::env::current_dir()
+        .context("resolving cwd for lane resume")?
+        .to_string_lossy()
+        .to_string();
+    let branch = current_branch();
+
+    match brana_core::session_lane::resolve_current_lane(
+        &root,
+        Some(&worktree_path),
+        branch.as_deref(),
+        task_id.as_deref(),
+    ) {
+        Some((pin, rule)) => {
+            if json_output {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": true,
+                        "matched_rule": format!("{rule:?}"),
+                        "pin": pin,
+                    })
+                );
+            } else {
+                println!(
+                    "resuming via {rule:?} match — session_id {}, worktree_path {}",
+                    pin.session_id, pin.worktree_path
+                );
+            }
+            Ok(())
+        }
+        None => Err(anyhow::anyhow!(
+            "no lane resolves for worktree_path={worktree_path:?} branch={branch:?} \
+             task_id={task_id:?} — no pin matches, or two+ pins tie at the same rank"
+        )),
+    }
 }
 
 /// `brana session migrate` — one-time migration from session-handoff.md
@@ -1106,20 +1222,60 @@ mod tests {
         );
     }
 
-    // `cmd_session_path` (D0 fallback surface #4): always resolves via branch-only
-    // `epic_scoped_state_path`, with no `--epic` option — divergent from
-    // `cmd_session_write`'s actual UNIT-keyed write path whenever a payload carries an
-    // explicit epic. `cmd_session_path` only prints (no return value to assert on), so
-    // this pins the underlying resolution it performs against where a real
-    // `cmd_session_write` call actually lands, via the CLI write command end-to-end
-    // (not the lower-level `write_state` directly, matching what `cmd_session_path`'s
-    // own caller would experience).
+    // Boundary + the "chained legacy scan" D1 row (t-2521/t-3293): a --json miss must
+    // still error (same contract as the human-readable path above), and — the actual
+    // bug this closes — must NOT print the legacy-handoff markdown fallback to stdout.
+    // `system/hooks/session-start.sh` assigns this command's stdout straight into a
+    // variable it later feeds to `jq`; markdown content there made the variable
+    // non-empty-but-unparseable, which silently skipped the hook's OWN legacy-markdown
+    // fallback branch further down (empty JSON was the trigger it was waiting for).
     #[test]
     #[serial]
-    fn cmd_session_path_diverges_from_cmd_session_write_when_explicit_epic_present() {
+    fn cmd_session_read_json_miss_does_not_print_markdown_fallback() {
         let _tmp = with_temp_home();
         let project_root = tempfile::tempdir().unwrap();
         unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        let handoff_path = handoff::resolve_handoff_path(project_root.path());
+        fs::create_dir_all(handoff_path.parent().unwrap()).unwrap();
+        fs::write(
+            &handoff_path,
+            "## 2025-01-01\n\n**Accomplished:**\n- stale legacy work from a different lane\n",
+        )
+        .unwrap();
+
+        let result = cmd_session_read(true, false, None, None);
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+
+        assert!(result.is_err(), "a --json miss must still error, same as the text path");
+    }
+
+    // `cmd_session_path` (D0 fallback surface #4, t-2521/t-3295): originally pinned by
+    // t-2529 as `cmd_session_path_diverges_from_cmd_session_write_when_explicit_epic_present`,
+    // which compared `epic_scoped_state_path(root, branch)` directly against
+    // `unit_scoped_state_path(root, Some(explicit_epic), branch)` — an assertion that is
+    // provably unsatisfiable: `mark_consumed_diverges_from_write_when_explicit_epic_present`
+    // (brana-core/src/session.rs) has its own sanity check requiring those exact same two
+    // calls to stay UNEQUAL under the identical setup (write with a divergent explicit
+    // epic, then compare the two path helpers). No implementation can satisfy both.
+    // Confirmed by direct experiment during t-3295 and resolved by explicit decision
+    // (see t-2521 context, 2026-09-04): `epic_scoped_state_path` stays a pure branch-regex
+    // function; the real fix is that a read/path lookup must check the SAME
+    // initiative/focus marker `cmd_session_write` already consults for an epic-less
+    // payload (t-2154/ADR-060), not that the raw helpers must ever converge.
+    //
+    // Rewritten to exercise that actual mechanism: set the focus marker, write with NO
+    // explicit epic in the payload (so `cmd_session_write`'s own fallback routes it via
+    // the marker), and confirm `resolve_session_path` — the logic `cmd_session_path`
+    // prints — agrees with where that write actually landed.
+    #[test]
+    #[serial]
+    fn cmd_session_path_agrees_with_cmd_session_write_via_focus_marker() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        cmd_epic_focus("totally-different-unit-for-path-test").unwrap();
 
         let branch = brana_core::session::current_branch().unwrap_or_default();
         let payload_path = project_root.path().join("payload.json");
@@ -1128,7 +1284,6 @@ mod tests {
             serde_json::json!({
                 "version": 1,
                 "written_at": "",
-                "epic": "totally-different-unit-for-path-test",
                 "accomplished": ["did the thing"],
             })
             .to_string(),
@@ -1136,21 +1291,35 @@ mod tests {
         .unwrap();
         cmd_session_write(Some(payload_path), false).unwrap();
 
-        // What cmd_session_path actually resolves (branch-only) vs where the write above
-        // actually landed (UNIT key: explicit epic wins).
-        let path_command_resolves = epic_scoped_state_path(project_root.path(), &branch);
         let where_write_landed = brana_core::session::unit_scoped_state_path(
             project_root.path(),
             Some("totally-different-unit-for-path-test"),
             &branch,
         );
+        let resolved = resolve_session_path(project_root.path());
 
         unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
 
         assert_eq!(
-            path_command_resolves, where_write_landed,
-            "cmd_session_path must report the same path cmd_session_write actually used \
-             (currently diverges: it guesses branch-only while write resolves the UNIT key)"
+            resolved, where_write_landed,
+            "cmd_session_path must resolve the same file cmd_session_write actually used, \
+             via the same focus-marker mechanism"
         );
+    }
+
+    // Boundary: no marker set at all — must fall back to the branch-only guess exactly
+    // as before, not error or silently pick something else.
+    #[test]
+    #[serial]
+    fn cmd_session_path_falls_back_to_branch_only_when_no_marker_set() {
+        let _tmp = with_temp_home();
+        let project_root = tempfile::tempdir().unwrap();
+        unsafe { env::set_var("CLAUDE_PROJECT_DIR", project_root.path()) };
+
+        let branch = brana_core::session::current_branch().unwrap_or_default();
+        let resolved = resolve_session_path(project_root.path());
+        unsafe { env::remove_var("CLAUDE_PROJECT_DIR") };
+
+        assert_eq!(resolved, epic_scoped_state_path(project_root.path(), &branch));
     }
 }

@@ -677,6 +677,35 @@ pub enum SessionCmd {
         #[command(subcommand)]
         cmd: EpicCmd,
     },
+    /// Lane pin — session-identity pin and resume-query resolution (ADR-069 D2)
+    Lane {
+        #[command(subcommand)]
+        cmd: LaneCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum LaneCmd {
+    /// Write this session's lane pin. The autonomous-bootstrap path: the sandboxed
+    /// runner calls this from the host before launching `claude -p`, since no
+    /// `SessionStart` hook fires inside the jail to write a pin any other way.
+    Init {
+        /// Stable id for this session (e.g. `$BRANA_SESSION_ID`)
+        #[arg(long)]
+        session_id: String,
+        /// Task this session is working, if known
+        #[arg(long)]
+        task_id: Option<String>,
+    },
+    /// Resolve at most one lane to resume into, ranked worktree_path > branch > task_id
+    Resume {
+        /// Task id to match at the weakest rank, if worktree_path and branch both miss
+        #[arg(long)]
+        task_id: Option<String>,
+        /// Output raw JSON instead of human-readable text
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
