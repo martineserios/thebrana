@@ -106,6 +106,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [features/autonomous-runner.md](architecture/features/autonomous-runner.md) | Autonomous runner spec — observe/run-one/run-batch + worktree isolation |
 | [features/judge-escalation-valve.md](architecture/features/judge-escalation-valve.md) | ADR-082 sizing valve implementation spec (t-2895) — ladder wiring, hard signals, funnel, hash pinning; authority block lives in system/skills/_shared/judge-sizing.md |
 | [features/learned-eligibility.md](architecture/features/learned-eligibility.md) | Stage 4 learned eligibility (design only — gated on soak) |
+| [features/learn-worker-compute-chain.md](architecture/features/learn-worker-compute-chain.md) | LEARN worker compute-chain contract (t-2404, v3 wave 2) — agy-first, Claude engine-switch, per-run token ceiling, checkpoint/resume (design only) |
 | [features/consensus-primitive.md](architecture/features/consensus-primitive.md) | Native cross-model consensus primitive (design only) |
 | [features/youtube-knowledge-extraction.md](architecture/features/youtube-knowledge-extraction.md) | YouTube knowledge extraction Phase 1 (t-2946) — single video/shorts transcript fetch tier spec |
 | [features/youtube-channel-ingestion.md](architecture/features/youtube-channel-ingestion.md) | YouTube channel ingestion Phase 3 Tier A (t-2993) — channel backfill selection surface spec |
