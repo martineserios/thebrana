@@ -543,6 +543,16 @@ BRANA_BIN=""
 [ -z "$BRANA_BIN" ] && [ -x "${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana" ] && BRANA_BIN="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana"
 [ -z "$BRANA_BIN" ] && BRANA_BIN=$(command -v brana 2>/dev/null) || true
 
+# ── Lane pin (ADR-069 D2, t-2521) ──────────────────────────
+# Best-effort: a file write only, never blocks session start and adds no
+# context tokens (t-2521's own Constraint). Written unconditionally
+# (independent of BRANA_RECAP_OFF below, which only suppresses the recap
+# text) so every interactive session gets a pin the same way the
+# autonomous runner's own `lane init` call does for the sandboxed surface.
+if [ -n "$BRANA_BIN" ] && [ -n "$SESSION_ID" ]; then
+    (cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" session lane init --session-id "$SESSION_ID" >/dev/null 2>&1) || true
+fi
+
 if [ -z "${BRANA_RECAP_OFF:-}" ] && [ -n "$BRANA_BIN" ]; then
     # Try structured JSON first (new session-state.json)
     # brana session read resolves project from CWD; hook starts in /tmp so
