@@ -57,19 +57,21 @@ Deferred (post-v1): `--block`, `--handoff`, `--eod` — see ADR-053.
 
 The procedure body lives in per-phase files under `phases/` (this skill's base directory). **Never execute a phase from memory.** Three rules:
 
-1. **On skill entry:** Read `phases/gate-and-evidence.md` first — always. It classifies the close weight (NANO/LIGHT/FULL) and gathers evidence; everything downstream depends on it.
+1. **On skill entry:** Read `phases/gate-and-evidence.md` first — always. It classifies the close weight (NANO/LIGHT/FULL); everything downstream depends on it.
 2. **At every step boundary:** when a phase completes and the next begins, Read the next phase file from the PHASES registry below BEFORE doing any of its work. A phase you have not Read this session does not exist — do not improvise its steps.
 3. **On resume after compression:** identify your current step (CC TaskList `/brana:close — {STEP}` entries), then Read the phase file that owns that step before continuing. Previously loaded phase content did NOT survive compression. Re-read `../_shared/guided-execution.md` too.
 
 <!-- PHASES -->
 | Steps (registry names) | File | Load when |
 |------|------|-----------|
-| GATE, GATHER, EXTRACT, DOC-CHECK (Steps 0–3b) | phases/gate-and-evidence.md | Skill entry — always first |
+| GATE (Steps 0–1, CLOSE_MODE classification) | phases/gate-and-evidence.md | Skill entry — always first |
+| SNAPSHOT, GATHER, EXTRACT, DOC-CHECK (Steps 1b–3b) | phases/close-mode-and-evidence.md | Right after GATE — split from gate-and-evidence.md at the 400-line phase cap (t-3280), same step sequence |
 | ERRATA, PATTERNS (Steps 4–5) | phases/errata-and-patterns.md | Entering the parallel findings block (`--full`, LIGHT, and LIGHT-INLINE closes) |
 | FIELD-NOTES, IDEATE (Steps 6–7) | phases/notes-and-ideation.md | With the parallel findings block |
 | DRIFT (Step 8) | phases/doc-drift.md | With the parallel findings block |
 | PROPAGATE (Step 8b) | phases/propagate.md | Every close except NANO and `--abort` — after the findings block (or directly after Step 3 on INSTANT), before HANDOFF |
-| HANDOFF, RUFLO-SYNC (Steps 9–9c) | phases/session-state.md | After findings block completes |
+| HANDOFF, RUFLO-SYNC (Steps 9–9b) | phases/session-state.md | After findings block completes |
+| INITIATIVE-ACCUMULATOR (Step 9c) | phases/initiative-accumulator.md | Right after HANDOFF/RUFLO-SYNC — split from session-state.md at the 400-line phase cap (t-3280), same step sequence |
 | METADATA, MEMORY-REVIEW (Steps 10–11) | phases/metadata-and-memory.md | After session state is written |
 | WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT (Steps 11b–12 + session close) | phases/cleanup.md | Final phase — always last |
 <!-- /PHASES -->
@@ -84,7 +86,7 @@ In the deployed-plugin layout the same relative paths apply: `{base-dir}/phases/
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, PROPAGATE, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT.
+Register these steps: GATE, SNAPSHOT, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, PROPAGATE, HANDOFF, RUFLO-SYNC, INITIATIVE-ACCUMULATOR, METADATA, MEMORY-REVIEW, WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT.
 
 <!-- ruflo preamble -->
 ToolSearch("select:mcp__ruflo__memory_store,mcp__ruflo__memory_search,mcp__ruflo__claims_release,mcp__brana__memory_index")

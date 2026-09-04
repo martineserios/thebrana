@@ -23,10 +23,11 @@ TMPROOT=$(mktemp -d)
 trap 'rm -rf "$TMPROOT"' EXIT
 
 # Mirror only what validate.sh reads (system/rules + minimal scaffold).
-mkdir -p "$TMPROOT/system/rules" "$TMPROOT/system/hooks" "$TMPROOT/system/skills" "$TMPROOT/system/agents" "$TMPROOT/system/commands"
+mkdir -p "$TMPROOT/system/rules" "$TMPROOT/system/hooks" "$TMPROOT/system/skills" "$TMPROOT/system/agents" "$TMPROOT/system/commands" "$TMPROOT/system/scripts"
 # Give validate.sh the minimum it expects to exist so unrelated checks
 # succeed; we only care about the rules-scoping result.
 cp "$REPO_ROOT/validate.sh" "$TMPROOT/validate.sh"
+cp "$REPO_ROOT/system/scripts/validate-remedies.sh" "$TMPROOT/system/scripts/validate-remedies.sh"
 
 run_validate_check() {
     local tmp_output

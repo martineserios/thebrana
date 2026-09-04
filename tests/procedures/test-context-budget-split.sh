@@ -101,11 +101,16 @@ mk_fixture() {  # mk_fixture <dir> <rule_bytes> <desc_bytes>
     printf -- '---\npaths: ["x"]\n---\nnotloaded\n' > "$d/rules/scoped.md"
     # Skill description padded so `grep ^description: | wc -c` is exactly
     # $desc_bytes. "description: " is 13 chars and wc -c counts the newline,
-    # so the pad is desc_bytes - 14.
+    # so the pad is desc_bytes - 14. Real SKILL.md files always wrap
+    # frontmatter in `---` fences (context-budget.sh's skill loop scopes its
+    # grep to that span via `sed -n '/^---$/,/^---$/p'`, same as the agent
+    # loop below) — a fixture without them makes the sed span empty and the
+    # routing pool silently compute to 0 regardless of desc_bytes.
     {
+        printf -- '---\nname: alpha\n'
         printf 'description: '
         head -c "$((desc_bytes - 14))" /dev/zero | tr '\0' 'd'
-        printf '\n'
+        printf '\n---\n'
     } > "$d/skills/alpha/SKILL.md"
     # An agent with type: reference — must be EXCLUDED.
     printf -- '---\ntype: reference\ndescription: excluded-agent-description\n---\n' \
