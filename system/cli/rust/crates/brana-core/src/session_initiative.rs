@@ -401,6 +401,23 @@ mod tests {
     use crate::session::{NextCategory, NextItem, SessionState};
     use tempfile::tempdir;
 
+    /// t-3279: point `BRANA_SESSION_STORE_ROOT` at a scratch dir under the OS temp
+    /// dir — every function in this module resolves paths through
+    /// `resolve_memory_dir`, which without this falls through to the operator's real
+    /// `~/.claude/projects`. See `session.rs`'s `ensure_test_store_root` for the full
+    /// rationale (13,439 leaked `-tmp-*` store dirs found live; this module's tests
+    /// were among the writers).
+    fn ensure_test_store_root() {
+        static INIT: std::sync::Once = std::sync::Once::new();
+        INIT.call_once(|| {
+            let root = std::env::temp_dir()
+                .join(format!("brana-core-test-session-store-{}", std::process::id()));
+            // SAFETY: Once guarantees this runs exactly one time, before any test
+            // proceeds past the call site — no concurrent writer to race.
+            unsafe { std::env::set_var("BRANA_SESSION_STORE_ROOT", &root) };
+        });
+    }
+
     fn make_session(label: &str, accomplished: &[&str], next: Vec<NextItem>, learnings: &[&str]) -> SessionState {
         SessionState {
             version: 1,
@@ -443,6 +460,7 @@ mod tests {
     // slug that isn't a bare, safe token, don't try to prove a specific traversal target.
     #[test]
     fn read_initiative_rejects_slug_with_path_separator() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         // Realistic precondition: any project that has ever upserted one epic accumulator
         // already has a real, existing initiative_dir (write_initiative create_dir_all's
@@ -473,6 +491,7 @@ mod tests {
 
     #[test]
     fn archive_initiative_rejects_slug_with_path_separator() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         // Plant a real file at the traversal-adjacent-looking slug's OWN literal path (not
         // the traversal target) so a bare ".exists()" check alone can't produce a coincidental
@@ -491,6 +510,7 @@ mod tests {
 
     #[test]
     fn upsert_creates_new_accumulator() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let state = make_session("Session A", &["shipped thing X"], vec![], &[]);
         upsert_initiative(dir.path(), "rust-cli", &state, &[], &[]).unwrap();
@@ -504,6 +524,7 @@ mod tests {
 
     #[test]
     fn upsert_merges_on_second_call() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("Session A", &["did X"], vec![], &["learned Y"]);
         let s2 = make_session("Session B", &["did Z"], vec![], &["learned W"]);
@@ -519,6 +540,7 @@ mod tests {
 
     #[test]
     fn accomplished_deduplicates() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &["same thing"], vec![], &[]);
         let s2 = make_session("S2", &["same thing", "new thing"], vec![], &[]);
@@ -532,6 +554,7 @@ mod tests {
 
     #[test]
     fn pass1_pruning_moves_completed_tasks_to_resolved() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("do the thing", Some("t-999"))], &[]);
         upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
@@ -547,6 +570,7 @@ mod tests {
 
     #[test]
     fn next_deduplicates_by_text() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("do X", None)], &[]);
         let s2 = make_session("S2", &[], vec![make_next("do X", None), make_next("do Y", None)], &[]);
@@ -561,6 +585,7 @@ mod tests {
 
     #[test]
     fn learnings_dedup_by_prefix() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let long = "A".repeat(80);
         let s1 = make_session("S1", &[], vec![], &[&long]);
@@ -586,6 +611,7 @@ mod tests {
 
     #[test]
     fn archive_moves_file() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let state = make_session("S1", &["x"], vec![], &[]);
         upsert_initiative(dir.path(), "slug", &state, &[], &[]).unwrap();
@@ -602,6 +628,7 @@ mod tests {
 
     #[test]
     fn marker_write_read_roundtrip() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         write_initiative_marker(dir.path(), "session-continuity", "t-1681").unwrap();
         let slug = read_initiative_marker(dir.path());
@@ -610,6 +637,7 @@ mod tests {
 
     #[test]
     fn marker_clear_removes_file() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         write_initiative_marker(dir.path(), "rust-cli", "t-999").unwrap();
         assert!(read_initiative_marker(dir.path()).is_some());
@@ -619,6 +647,7 @@ mod tests {
 
     #[test]
     fn marker_read_returns_none_when_absent() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         assert!(read_initiative_marker(dir.path()).is_none());
         clear_initiative_marker(dir.path()).unwrap(); // no-op on missing file
@@ -626,6 +655,7 @@ mod tests {
 
     #[test]
     fn maybe_write_marker_when_epic_present_via_parent_chain() {
+        ensure_test_store_root();
         // t-2765: epic membership resolves via the parent chain to a
         // type:"epic" node, not a flat `epic` field.
         let dir = tempdir().unwrap();
@@ -638,6 +668,7 @@ mod tests {
 
     #[test]
     fn maybe_write_marker_noop_when_no_parent() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let task = serde_json::json!({"id": "t-999", "type": "task"});
         let all = vec![task.clone()];
@@ -647,6 +678,7 @@ mod tests {
 
     #[test]
     fn maybe_write_marker_noop_when_parent_is_not_an_epic() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let milestone = serde_json::json!({"id": "ms-1", "type": "milestone", "subject": "Milestone"});
         let task = serde_json::json!({"id": "t-999", "type": "task", "parent": "ms-1"});
@@ -659,6 +691,7 @@ mod tests {
 
     #[test]
     fn focus_write_read_roundtrip() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         write_focus_marker(dir.path(), "session-continuity").unwrap();
         let slug = read_focus_marker(dir.path());
@@ -667,6 +700,7 @@ mod tests {
 
     #[test]
     fn focus_clear_removes_file() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         write_focus_marker(dir.path(), "rust-cli").unwrap();
         assert!(read_focus_marker(dir.path()).is_some());
@@ -676,18 +710,21 @@ mod tests {
 
     #[test]
     fn focus_read_returns_none_when_absent() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         assert!(read_focus_marker(dir.path()).is_none());
     }
 
     #[test]
     fn focus_clear_noop_on_missing_file() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         clear_focus_marker(dir.path()).unwrap(); // must not error
     }
 
     #[test]
     fn focus_overwrite_replaces_slug() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         write_focus_marker(dir.path(), "epic-a").unwrap();
         write_focus_marker(dir.path(), "epic-b").unwrap();
@@ -714,6 +751,7 @@ mod tests {
 
     #[test]
     fn pass2_resolved_text_moved_to_resolved() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("run knowledge reindex", None)], &[]);
         upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
@@ -734,6 +772,7 @@ mod tests {
 
     #[test]
     fn pass2_unresolved_text_item_carries_forward() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("still pending work", None)], &[]);
         upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
@@ -752,6 +791,7 @@ mod tests {
 
     #[test]
     fn pass2_empty_resolved_texts_unchanged() {
+        ensure_test_store_root();
         // Backward compat: empty &[] leaves text-only items untouched.
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("carry forward", None)], &[]);
@@ -777,6 +817,7 @@ mod tests {
 
     #[test]
     fn pass2_resolved_text_not_reintroduced_by_same_call_next() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("run knowledge reindex", None)], &[]);
         upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
@@ -804,6 +845,7 @@ mod tests {
 
     #[test]
     fn pass1_completed_task_not_reintroduced_by_same_call_next() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("ship the thing", Some("t-9001"))], &[]);
         upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
@@ -825,6 +867,7 @@ mod tests {
 
     #[test]
     fn already_corrupted_accumulator_self_heals_on_next_upsert() {
+        ensure_test_store_root();
         // Simulates a file left over from before the fix: the same text present
         // in both next[] and resolved[] simultaneously (live evidence in
         // session-epics/close.json). An unrelated upsert must prune it from

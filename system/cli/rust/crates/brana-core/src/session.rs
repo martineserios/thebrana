@@ -1332,6 +1332,28 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
+    /// t-3279: point `BRANA_SESSION_STORE_ROOT` at a scratch dir under the OS temp
+    /// dir instead of leaving every `write_state`/`read_state*`/`mark_consumed*` call
+    /// below fall through to the operator's real `~/.claude/projects` — 13,439 leaked
+    /// `-tmp-*` store dirs were found live there, this module's own tests among the
+    /// writers (each uses a distinct `root` *project* path already, but never
+    /// overrode the STORE root itself, which is the actual leak vector).
+    ///
+    /// `Once`, not per-test set/restore + `#[serial]`: every test here already varies
+    /// `root`, so a single shared, non-real store root set exactly one time for the
+    /// whole process is sufficient isolation — there is no cross-test env-var value
+    /// to race on, unlike a caller that needs a *different* store root per test.
+    fn ensure_test_store_root() {
+        static INIT: std::sync::Once = std::sync::Once::new();
+        INIT.call_once(|| {
+            let root = std::env::temp_dir()
+                .join(format!("brana-core-test-session-store-{}", std::process::id()));
+            // SAFETY: Once guarantees this runs exactly one time, before any test
+            // proceeds past the call site — no concurrent writer to race.
+            unsafe { std::env::set_var("BRANA_SESSION_STORE_ROOT", &root) };
+        });
+    }
+
     fn make_state(written_at: &str) -> SessionState {
         SessionState {
             version: 1,
@@ -1390,6 +1412,7 @@ mod tests {
 
     #[test]
     fn write_and_read_roundtrip() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let state = make_state("2026-04-06T10:00:00Z");
@@ -1404,6 +1427,7 @@ mod tests {
 
     #[test]
     fn write_archives_to_history() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1424,6 +1448,7 @@ mod tests {
     // epic-shaped (e.g. "close/fix/t-3169-...") silently re-route it anyway.
     #[test]
     fn unit_scoped_state_path_orphan_sentinel_bypasses_branch_parsing() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1458,6 +1483,7 @@ mod tests {
 
     #[test]
     fn read_state_missing_returns_none() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         assert!(read_state_from(dir.path(), "main").is_none());
     }
@@ -1467,6 +1493,7 @@ mod tests {
     // branch-name guessing — even when the branch parses to a DIFFERENT epic-shaped slug.
     #[test]
     fn read_state_from_unit_finds_state_by_explicit_epic_not_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1486,6 +1513,7 @@ mod tests {
 
     #[test]
     fn read_state_from_unit_falls_back_to_branch_when_epic_absent() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1505,6 +1533,7 @@ mod tests {
 
     #[test]
     fn history_limit_respected() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1727,6 +1756,7 @@ mod tests {
 
     #[test]
     fn stale_docs_nonexistent_paths_filtered_on_write() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1753,6 +1783,7 @@ mod tests {
 
     #[test]
     fn stale_docs_all_nonexistent_yields_empty_vec() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1774,6 +1805,7 @@ mod tests {
 
     #[test]
     fn stale_docs_all_existing_kept_intact() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1957,6 +1989,7 @@ mod tests {
     // ReplaceStale, regardless of branch or day.
     #[test]
     fn orphan_sentinel_writes_from_different_branches_union_not_replace() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -1994,6 +2027,7 @@ mod tests {
 
     #[test]
     fn write_state_clears_consumed_at_on_different_day_write() {
+        ensure_test_store_root();
         // Simulates MCP surface: no call-site guard, state arrives with consumed_at set,
         // written_at is in the past (different day → no same-day merge path).
         let dir = tempdir().unwrap();
@@ -2062,6 +2096,7 @@ mod tests {
 
     #[test]
     fn session_state_missing_written_at_deserializes() {
+        ensure_test_store_root();
         // Verifies #[serde(default)] on written_at — JSON without the field must deserialize
         // successfully so read_state() can handle old/partial session files.
         let json = r#"{"version":1,"accomplished":["did x"]}"#;
@@ -2198,6 +2233,7 @@ mod tests {
 
     #[test]
     fn write_state_deduplicates_next_within_payload() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Write a state with duplicate next items (different day → no same-day merge)
@@ -2233,6 +2269,7 @@ mod tests {
 
     #[test]
     fn write_with_matching_base_replaces_next() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -2260,6 +2297,7 @@ mod tests {
 
     #[test]
     fn write_with_matching_base_can_correct_an_entry_text() {
+        ensure_test_store_root();
         // The t-2502 scenario: an earlier close wrote guidance, a later close learned it
         // was wrong. Before this fix the incumbent won and the correction was discarded.
         let dir = tempdir().unwrap();
@@ -2281,6 +2319,7 @@ mod tests {
 
     #[test]
     fn write_with_stale_base_unions_and_reports_concurrency() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -2306,6 +2345,7 @@ mod tests {
 
     #[test]
     fn write_without_base_unions() {
+        ensure_test_store_root();
         // t-1461 regression guard: a caller that never read current state must not be
         // able to remove anything by omission.
         let dir = tempdir().unwrap();
@@ -2326,6 +2366,7 @@ mod tests {
 
     #[test]
     fn minimal_same_day_write_cannot_wipe_next() {
+        ensure_test_store_root();
         // The session-end safety net writes SessionState::minimal(), whose next[] is
         // empty and which never reads current state. Under an unconditional replace this
         // would zero a full handoff. It must be structurally impossible.
@@ -2352,6 +2393,7 @@ mod tests {
 
     #[test]
     fn write_report_surfaces_dropped_duplicates() {
+        ensure_test_store_root();
         // AC2: no discard is silent, including within-payload text duplicates.
         let dir = tempdir().unwrap();
         let root = dir.path();
@@ -2371,6 +2413,7 @@ mod tests {
 
     #[test]
     fn base_written_at_is_never_persisted() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
 
@@ -2484,6 +2527,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_conforming_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "thebrana/feat/t-1630-slug-extract");
         assert!(path.to_str().unwrap().ends_with("session-state-thebrana.json"),
@@ -2492,6 +2536,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_conforming_other_type() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "myepic/fix/t-42-something");
         assert!(path.to_str().unwrap().ends_with("session-state-myepic.json"),
@@ -2512,6 +2557,7 @@ mod tests {
     // through.
     #[test]
     fn unit_scoped_state_path_rejects_slug_with_path_traversal() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let mut state = make_state("2026-04-06T10:00:00Z");
@@ -2534,6 +2580,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_old_style_falls_back() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "feat/t-123-foo");
         assert!(path.to_str().unwrap().ends_with("session-state.json"),
@@ -2542,6 +2589,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_main_falls_back() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "main");
         assert!(path.to_str().unwrap().ends_with("session-state.json"),
@@ -2550,6 +2598,7 @@ mod tests {
 
     #[test]
     fn epic_scoped_path_empty_falls_back() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let path = epic_scoped_state_path(dir.path(), "");
         assert!(path.to_str().unwrap().ends_with("session-state.json"),
@@ -2558,6 +2607,7 @@ mod tests {
 
     #[test]
     fn write_state_uses_epic_scoped_path() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let state = SessionState {
@@ -2574,6 +2624,7 @@ mod tests {
 
     #[test]
     fn mark_consumed_stamps_same_path_as_write_state() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Use current branch so mark_consumed (which calls current_branch()) agrees with write_state.
@@ -2592,6 +2643,7 @@ mod tests {
 
     #[test]
     fn write_state_merges_on_same_day_same_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // First close: one accomplished item, one next item.
@@ -2620,6 +2672,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_on_different_day() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Yesterday's close.
@@ -2643,6 +2696,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_on_different_branch() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         // Same day but different epic branches — no cross-branch merge.
@@ -2699,6 +2753,7 @@ mod tests {
 
     #[test]
     fn write_state_blocks_overwrite_when_target_branch_worktree_active() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let orbit_branch = "orbit/feat/t-2173-thing";
@@ -2747,6 +2802,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_when_target_branch_worktree_gone() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let orbit_branch = "orbit/feat/t-2173-thing";
@@ -2775,6 +2831,7 @@ mod tests {
 
     #[test]
     fn write_state_replaces_when_target_branch_worktree_stale() {
+        ensure_test_store_root();
         let dir = tempdir().unwrap();
         let root = dir.path();
         let orbit_branch = "orbit/feat/t-2173-thing";
