@@ -19,13 +19,7 @@ After giving actionable advice related to a task (workaround, constraint, deadli
 
 ## Scope
 
-Format: `YYYY-MM-DD: <1-2 lines>`. Current project only. No duplicates; no generic advice, status updates, or code explanations.
-
-```
-"test the Stripe webhook with the CLI, not ngrok" + active t-320 (Stripe) →
-  set t-320 context --append "2026-03-30: test webhooks with Stripe CLI, not ngrok"
-NOT appended: "Stripe is a payment processor" (generic, not tactical)
-```
+Format: `YYYY-MM-DD: <1-2 lines>`. Current project only. No duplicates; no generic advice, status updates, or code explanations (e.g. "Stripe is a payment processor" doesn't qualify — a workaround like "test the Stripe webhook with the CLI, not ngrok" does).
 
 ## Pointer, not paste (ADR-086 §7)
 

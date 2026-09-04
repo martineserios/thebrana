@@ -89,7 +89,13 @@ if [ -f "$ACTIVE/pre-commit" ]; then
         bad "active hook ($ACTIVE/pre-commit) is STALE — run ./bootstrap.sh"
     fi
 else
-    bad "no active pre-commit hook found at $ACTIVE/pre-commit"
+    # A checkout that never ran bootstrap.sh (e.g. CI's fresh actions/checkout,
+    # which validates via validate.sh/tests directly and never deploys a git
+    # hook into the checked-out repo) has no active hook at all — that's an
+    # unconfigured state, not the t-2468 staleness regression this test
+    # guards against. Only a STALE hook (present but missing the call) is a
+    # real failure; a genuinely un-bootstrapped repo is a local-only concern.
+    echo "  SKIP: no active pre-commit hook at $ACTIVE/pre-commit — repo never ran ./bootstrap.sh (expected on a bare CI checkout)"
 fi
 
 echo ""

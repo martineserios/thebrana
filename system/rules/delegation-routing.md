@@ -18,15 +18,13 @@ supersedes: ADR-040 (Gemini-first routing, retired 2026-06-19)
 8. Everything else → Claude inline.
 ```
 
-**Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` for execution — hollow under subscription (records + self-votes). **Never** use `mcp__ruflo__wasm_agent_prompt` — under no API key it returns a literal `echo: <input>` stub (this install errors even earlier — optional pkg missing). **Never** use `mcp__ruflo__terminal_execute` — unrestricted shell via MCP, no permission prompt (denied in settings, t-2755). No sanctioned ruflo MCP execution path exists: `testgen_tdd_repair` is a dead export, never registered on v3.34 or v3.38.3 — use `/brana:build`'s TDD loop instead (t-2753). CLI `--claude` spawn (no worktree isolation) and the Meta LLM Proxy (absent on our pinned version) are also closed (t-2763) — ruflo's sanctioned surface is memory/recall only. See `field-note_ruflo-agentic-layer-subscription-theater`, ADR-059.
-
-**t-2759**: more AgentDB/performance/guidance/wasm findings — see `ruflo-mcp-tool-classification.md`.
+**Never** use ruflo MCP `agent_execute`/`hive-mind_*`/`coordination_*` (hollow under subscription), `wasm_agent_prompt` (stub), or `terminal_execute` (unrestricted shell, no permission prompt). No sanctioned ruflo MCP execution path exists — `testgen_tdd_repair` is a dead export; use `/brana:build`'s TDD loop instead. CLI `--claude` spawn and the Meta LLM Proxy are also closed — ruflo's sanctioned surface is memory/recall only. Details/task-ids: `field-note_ruflo-agentic-layer-subscription-theater`, `ruflo-mcp-tool-classification.md`, ADR-059.
 
 Headless output (`claude -p`, agy) → `/tmp/` only; Claude applies via Write/Edit (cwd-discipline.md). agy never runs git.
 
 ## Retrieval (ADR-064)
 
-"What calls X"/impact/path queries → `graphify` CLI if `graphify-out/graph.json` exists; open-ended → Explore; decisions → recall. Table: retrieval-routing.md.
+"What calls X"/impact/path → `graphify` CLI if `graphify-out/graph.json` exists; open-ended → Explore; decisions → recall. Table: retrieval-routing.md.
 
 ## Skill Routing — which skill to invoke
 
@@ -38,7 +36,7 @@ Invoke directly, don't suggest; if declined, don't repeat. Never invoke a skill 
 | Planning new work | `/brana:backlog add` |
 | Session ending | `/brana:close` |
 | Big decision forming | `/brana:challenge` |
-| Deep adversarial review (high-stakes) | `/brana:challenge --deep` (native fan-out + verify-findings) |
+| Deep adversarial review (high-stakes) | `/brana:challenge --deep` |
 | New/unfamiliar codebase | `/brana:onboard` |
 | Research on a new topic | `/brana:research [topic]` |
 | Business health check | `/brana:review check` |

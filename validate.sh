@@ -2760,8 +2760,16 @@ if should_run 70; then
 # by just raising concurrency without first auditing each for shared-state
 # collisions). Full gates (BUILD->CLOSE, ship pre-flight) must run without
 # --fast; this exists for quick local `./validate.sh --fast` iteration only.
-if $RUN_FAST; then
-    warn "Check 70: skipped (--fast) — hook test sweep not run"
+#
+# Also skip under the other narrow-scan modes (--assumptions-only,
+# --semantic, --scale-triggers): each already opts out of the core 1-14
+# checks specifically to run one focused slice, so paying the full ~4min
+# sweep on every call defeats that narrowing. Found via verify-docs.sh (which
+# wraps `validate.sh --assumptions-only` for Check 15 alone) taking >150s per
+# invocation — this gate, not verify-docs.sh's own row-processing, was the
+# actual cost (t-3280).
+if $RUN_FAST || $RUN_ASSUMPTIONS_ONLY || $RUN_SEMANTIC_ONLY || $RUN_SCALE_TRIGGERS; then
+    warn "Check 70: skipped (--fast/--assumptions-only/--semantic/--scale-triggers) — hook test sweep not run"
 else
 echo "Check 70: hook test sweep (t-2622)..."
 C70_SWEEP="$SCRIPT_DIR/system/scripts/hook-test-sweep.sh"

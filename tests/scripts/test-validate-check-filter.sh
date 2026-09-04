@@ -82,7 +82,10 @@ assert_not_contains "T4: Check 31 absent"         "Check 31" "$OUT4"
 # ── T5: no --check flag → runs all checks (sanity) ─────────────────────────
 echo ""
 echo "T5: no --check → full run includes Check 1 and Check 31"
-OUT5=$(bash "$VALIDATE" 2>&1) || true
+# --fast: this suite only cares about check *presence/absence* under filters,
+# not Check 70's hook sweep — an unfiltered run without --fast takes ~4min
+# (t-2622, by design) and blew the CI tests job's per-suite budget.
+OUT5=$(bash "$VALIDATE" --fast 2>&1) || true
 assert_contains "T5: Check 1 present in full run"  "Checking skill frontmatter" "$OUT5"
 assert_contains "T5: Check 31 present in full run" "Check 31" "$OUT5"
 
@@ -109,7 +112,9 @@ assert_not_contains "T8: Check B absent with --check 31" "Check B:" "$OUT8"
 # ── T9: --semantic → Checks A-D present ─────────────────────────────────────
 echo ""
 echo "T9: --semantic → Checks A-D present"
-OUT9=$(bash "$VALIDATE" --semantic 2>&1) || true
+# --fast: --semantic alone doesn't skip Check 70 (its should_run/RUN_FAST gate
+# is independent of RUN_SEMANTIC_ONLY) — same ~4min hook-sweep cost as T5.
+OUT9=$(bash "$VALIDATE" --semantic --fast 2>&1) || true
 assert_contains "T9: Check A present with --semantic" "Check A:" "$OUT9"
 assert_contains "T9: Check B present with --semantic" "Check B:" "$OUT9"
 
