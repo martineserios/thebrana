@@ -44,6 +44,26 @@ so entry-level resume already exists structurally. What's missing is *run-level*
 resume: a way to stop cleanly mid-run on a compute budget, not a crash, and know
 exactly where to pick up next time.
 
+**Not just one fallback site — six, total, verified by line number.** The main
+extraction pass above is not the only place `close-extraction.sh`
+engine-switches to Claude. `grep -n claude_fallback` against the live source
+(2026-09-04) finds 6 call sites, not 2:
+
+- **Main extraction pass** (2 sites): line 214 (agy quota-exhausted retry),
+  line 228 (agy exited 0 with empty output — the t-2082 regression, retry).
+- **L3 propagation pass** (lines 275-403, entries flagged `propagate: true`
+  with `PROPAGATION_ENABLED=true`, the default — 4 sites, independently
+  repeating the same agy-first/Claude-fallback shape): line 336 (propagation
+  agy 429/quota retry), line 348 (propagation agy empty-output retry), line
+  360 (agentic-output-guard retry — agy went conversational instead of
+  returning JSON), line 390 (contract-validation retry — parsed `gaps`
+  payload failed schema validation).
+
+Any per-run token ceiling that only instruments the main pass's 2 sites
+undercounts every night with `propagate:true` entries — the exact spend the
+ceiling exists to bound would leak through the propagation pass's 4
+structurally identical sites.
+
 ## Contract
 
 ### 1. Engine chain (agy-first, Claude engine-switch)
@@ -71,10 +91,15 @@ is unreachable."
   against the Claude-credit ceiling directly, but a run that engine-switches to
   Claude for every entry must still stop — the ceiling exists to bound Claude
   spend specifically, since agy already self-limits via its own quota).
-- Checked **before** each entry's `claude_fallback` call and before starting a
-  new entry's agy pass (a coarse per-entry check, not mid-prompt — matching the
-  existing per-entry loop granularity; splitting a single agy/claude call
-  mid-stream is out of scope).
+- Checked **before every** `claude_fallback` call site — all 6, by line
+  number: 214, 228 (main extraction pass) and 336, 348, 360, 390 (L3
+  propagation pass) — per "Not just one fallback site — six, total, verified
+  by line number" above — and before starting a new entry's agy pass (a
+  coarse per-entry check, not mid-prompt — matching the existing per-entry
+  loop granularity; splitting a single agy/claude call mid-stream is out of
+  scope). A ceiling implementation that instruments only the main pass's 2
+  sites and misses any of the propagation pass's 4 does not satisfy this
+  contract.
 - On ceiling hit: log the stop reason, write the checkpoint (below), and exit
   0 — a ceiling stop is expected steady-state behavior, not a failure
   (`EXIT_CODE` stays whatever it was from completed entries; a ceiling stop by
@@ -87,6 +112,18 @@ is unreachable."
   then set the default from that measurement plus headroom, not before).
 
 ### 3. Checkpoint/resume (queue cursor persistence)
+
+> **Revises t-2406's original framing.** t-2406 was filed with the context
+> "persists last-processed entry ID on ceiling hit" and an AC requiring "a
+> resumable checkpoint" — written before this contract doc existed, echoing
+> v3-redesign's abstract "checkpoint the queue cursor (last-processed entry
+> ID)" phrasing. Having now read the real queue implementation, that literal
+> mechanism (a separate cursor file/field naming one entry ID) is unnecessary:
+> the queue's existing unprocessed/processed state already provides it for
+> free. This doc's decision **replaces** t-2406's cursor-file framing, not
+> just elaborates it — t-2406's own context/AC should be updated to match this
+> section before that task starts, so its AC no longer requires a mechanism
+> this doc says not to build.
 
 - **The queue's own per-entry `processed`/`retry_count` state already is the
   checkpoint.** A ceiling-stopped run has processed some prefix of eligible
@@ -118,7 +155,11 @@ route through the curation gate (dedup/decay) **before** `write_reminder`, not
 after — a duplicate-suppressed learning should never reach the reminder store
 and then get pruned; it should never be written. The gate consumes token
 budget too (if it uses a model call for near-duplicate detection) and must be
-accounted against the same per-run ceiling from #2.
+accounted against the same per-run ceiling from #2. The propagation pass's
+own `GAPS` stream (also routed through `write_reminder`, per the "Not just one
+fallback site" section above) is the same kind of write and belongs behind the
+same gate — t-2407 should treat `learnings` and propagation `gaps` as two
+streams into one curation gate, not assume `learnings` is the only input.
 
 ### 5. Tier B observe-invariant (t-2408) — interface only
 
