@@ -28,10 +28,13 @@ Special branches (no task ID required): `main`, `docs/{topic}` (spec-only, no `s
 
 **Integration model (ADR-060 two-tier):** feature branches cut from `dev` and merge to
 `dev` (integration buffer — nothing here is live). `main` is production — what
-`bootstrap.sh` deploys to `~/.claude/`. Deploy happens only at **ship**: `git checkout main
-&& git merge --ff-only dev && ./bootstrap.sh && git push origin main dev && git checkout dev`.
-Never commit to `main` or merge a feature branch into it. Session state commits on `dev`.
-Full doc: docs/guide/workflows/branching.md.
+`bootstrap.sh` deploys to `~/.claude/`. Deploy happens only at **ship**, and ship goes
+through the tier-2 valve (t-3023): `main` is branch-protected — a pull request is required,
+CI (`validate` + `rust`) must be green on the PR, and `enforce_admins` is on, so a direct
+push to `main` is rejected for everyone. Procedure: `/brana:ship` (push `dev`, `gh pr create
+--base main --head dev`, `gh pr checks --watch`, `gh pr merge --merge`, then `./bootstrap.sh`
+from `main` and fast-forward `dev` onto `main`). Never commit to `main` or merge a feature
+branch into it. Session state commits on `dev`. Full doc: docs/guide/workflows/branching.md.
 
 ## Inbox
 

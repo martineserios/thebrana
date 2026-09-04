@@ -12,7 +12,7 @@
 |--------|------|-----------------|
 | feature (`{epic}/{type}/t-NNN-slug`) | one unit of work | branched **off `dev`** |
 | **`dev`** | integration buffer — where humans + agents converge. **Nothing here is live.** | feature branches merge in (`--no-ff`); no deploy |
-| **`main`** | **production** — what `bootstrap.sh` deploys to live `~/.claude/`. | advances **only** at ship: `dev→main` fast-forward, then `bootstrap.sh` |
+| **`main`** | **production** — what `bootstrap.sh` deploys to live `~/.claude/`. | advances **only** at ship: PR `dev→main` with required CI (branch-protected, t-3023), then `bootstrap.sh` |
 
 **`main` lagging `dev` is the safety buffer** — that gap is the feature, not a problem to
 close eagerly. Work accumulates and is validated on `dev`; production only moves when you
@@ -23,16 +23,24 @@ deliberately ship.
 - **Never commit to `main` directly, and never merge a feature branch into `main`.**
   Feature branches integrate to `dev` only.
 - **Integration (per feature)** lands on `dev` — no deploy. `dev` is not live.
-- **Ship (periodic, human-gated)** promotes `dev` to production *and* deploys:
+- **Ship (periodic, human-gated, tier-2 valve — t-3023)** promotes `dev` to production
+  *and* deploys. `main` is branch-protected on GitHub: a pull request is required, the CI
+  workflow's `validate` and `rust` checks must pass on the PR head (strict: the PR must be
+  current with `main`), and `enforce_admins` is on — so a direct `git push origin main` is
+  rejected for everyone, including the repo owner. No review approval is required (solo
+  operator; the gate is the checks, not a rubber stamp). The procedure is `/brana:ship`:
   ```bash
-  git checkout main
-  git merge --ff-only dev          # dev→main stays a clean fast-forward
+  git push origin dev
+  gh pr create --base main --head dev --title "ship: dev→main $(date +%F)" --body "..."
+  gh pr checks --watch             # required: validate, rust
+  gh pr merge --merge              # merge commit onto main; refused until checks are green
+  git fetch origin && git checkout main && git merge --ff-only origin/main
   ./bootstrap.sh                   # deploy production → live ~/.claude (from-main guard passes here)
-  git push origin main dev         # publish the release + back up dev
-  git checkout dev                 # return to the integration branch
+  git checkout dev && git merge --ff-only main && git push origin dev   # fold the merge commit back: dev ⊇ main
   ```
-  If `--ff-only` is rejected, `main` was touched directly (a convention violation) —
-  **stop and investigate, do not force.**
+  Every ship therefore leaves a PR record (`gh pr list --base main --state merged`): what
+  shipped, when, which sha, which checks. If the last step's `--ff-only` is rejected,
+  `main` diverged from `dev` outside this procedure — **stop and investigate, do not force.**
 - **`bootstrap.sh` deploys from `main` only** — the from-main guard (ADR-060 / t-2151)
   refuses any other branch, so you cannot accidentally ship staged `dev` work. Deploy is
   a ship-time action, never an integration-time one.
@@ -48,6 +56,9 @@ deliberately ship.
 - `/brana:close` (`system/skills/close/phases/`) reaps worktrees merged into `dev` and
   reconciles tasks against `dev` commits (`dev ⊇ main`).
 - `bootstrap.sh` from-main guard (t-2151) blocks deploying from anything but `main`.
+- GitHub branch protection on `main` (t-3023): required pull request (0 approvals), required
+  status checks `validate` + `rust` (strict), `enforce_admins` — verifiable with
+  `gh api repos/{owner}/{repo}/branches/main/protection`.
 
 ## Ship cadence
 

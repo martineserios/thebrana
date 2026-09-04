@@ -209,10 +209,14 @@ assert_contains "Only chunk 1 sections indexed" "$(wc -l < "$STUB_SECTIONS" 2>/d
 # even though a working install existed under a later-sorting version.
 NVM_ROOT="$HOME/.nvm/versions/node"
 mkdir -p "$NVM_ROOT/v20.19.0/bin" "$NVM_ROOT/v20.20.2/bin" "$NVM_ROOT/v22.22.3/bin"
+# The fake `node` must exec whatever node this machine actually has — it was
+# hardcoded to /usr/bin/node, which does not exist on GitHub's runners
+# (/usr/local/bin/node), so the shim died with 127 in CI only (t-3023).
+REAL_NODE="$(command -v node || true)"
 for d in v20.19.0 v20.20.2 v22.22.3; do
-    cat > "$NVM_ROOT/$d/bin/node" <<'NODESTUB'
+    cat > "$NVM_ROOT/$d/bin/node" <<NODESTUB
 #!/usr/bin/env bash
-exec /usr/bin/node "$@"
+exec "${REAL_NODE:-/usr/bin/node}" "\$@"
 NODESTUB
     chmod +x "$NVM_ROOT/$d/bin/node"
 done

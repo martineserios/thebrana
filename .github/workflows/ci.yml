@@ -5,14 +5,39 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Manual runs on any ref — lets a branch prove CI green before it opens the
+  # dev->main PR (t-3023 tier-2 valve).
+  workflow_dispatch:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # A hung suite must fail the job with a name, not sit until GitHub's 6h
+    # limit: the first tier-2 rehearsal run (t-3023) spent 70+ minutes inside
+    # "Run tests" with no output available until the job ended.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: system/cli/rust
+
+      # validate.sh is the operator's full gate and its hook test sweep (Check 70)
+      # drives the real CLI: several suites resolve
+      # system/cli/rust/target/release/brana first and fall back to PATH. Without
+      # this build the sweep was red on every main run since 2026-08-31 with no
+      # assertion visible (t-3023). Same binary the operator's gate uses.
+      - name: Build brana CLI (release) for the hook test sweep
+        working-directory: system/cli/rust
+        run: cargo build --release -p brana-cli
+
       - name: Run validation
+        env:
+          # Surface enough of a failing suite to see the assertion, not just its name.
+          HOOK_TEST_SWEEP_TAIL: "40"
         run: ./validate.sh
 
       - name: Check plugin manifest
@@ -43,6 +68,30 @@ jobs:
           done
           echo "All hook scripts are executable"
 
+  # tests/*/*.sh — visible on every PR, NOT a required check yet (t-3023).
+  # This step never ran on main until 2026-09-04 (validate failed first for
+  # weeks), and its first run showed 14 suites red for reasons ranging from
+  # CI-environment gaps (no ruflo, brana not on PATH) to genuinely red tests on
+  # dev. Fixing them is t-3280; when that lands, add this job to main's
+  # required checks alongside validate and rust.
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: system/cli/rust
+
+      - name: Build brana CLI (release) and put it on PATH
+        working-directory: system/cli/rust
+        run: |
+          cargo build --release -p brana-cli
+          echo "$PWD/target/release" >> "$GITHUB_PATH"
+
       - name: Run tests
         run: |
           FAIL=0
@@ -58,10 +107,17 @@ jobs:
               tests/lib/*) echo "=== Skipping helper $test ==="; continue ;;
             esac
             echo "=== Running $test ==="
-            if bash "$test"; then
+            # Per-suite ceiling so one hang names itself instead of stalling the
+            # job (t-3023). 124 is timeout(1)'s exit code.
+            # stdin from /dev/null: a suite that (even indirectly) reads stdin
+            # blocks forever on the runner's open, never-closing stdin — that is
+            # how test-validate-reference-check.sh hung run 33873752281 with
+            # orphan brana|jq processes (t-3023).
+            if timeout 300 bash "$test" </dev/null; then
               echo "--- PASSED ---"
             else
-              echo "--- FAILED ---"
+              rc=$?
+              if [ "$rc" -eq 124 ]; then echo "--- TIMED OUT (300s) ---"; else echo "--- FAILED (exit $rc) ---"; fi
               FAIL=1
               FAILED_TESTS="$FAILED_TESTS $test"
             fi

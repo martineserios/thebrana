@@ -67,6 +67,16 @@ human promotes <integration> → <production>   = ship
 
 When a person joins, **flip settings on — topology unchanged**: require 1 PR approval, CODEOWNERS, branch-up-to-date, merge queue. Because agent PRs are *already* treated as a contributor's PRs, a human teammate is just another actor in the identical flow. **Today these are not configured** — `dev`→`main` currently has no automated gate beyond local pre-commit hooks; enforcement is deferred, not active.
 
+## Amendment 2026-09-04 (t-3023) — tier-2 valve is a PR with required CI
+
+brana's own `dev → main` ship (§brana's own policy) now goes through GitHub: `main` is
+branch-protected with a required pull request (no review approvals — solo operator), required
+status checks `validate` + `rust` (strict) and `enforce_admins`. Rationale (the-brana-guide L4.4):
+valve strictness is a function of the tier it writes into, and tier 2 deploys the operator's own
+runtime; a direct fast-forward push had no record and no gate. Not adopted: tickets → GitHub
+issues, PRs per feature branch (runner is denied `gh` verbs). Procedure lives in
+`docs/guide/workflows/branching.md` and `/brana:ship`.
+
 ## Consequences
 
 - **Portable by construction.** The runner gains `RUNNER_BASE_BRANCH` (per-project, default `dev`); `gh pr create` hardcodes `--base "$RUNNER_BASE_BRANCH"` with a preflight abort if that branch is absent (fixes the bug where `--base "$BASE"` could target `main` directly). Tracked in **t-2146**.
