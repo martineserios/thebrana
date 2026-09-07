@@ -320,14 +320,37 @@ emit_beat() {
       escalations:[],next_wake:null}' >> "$BEATS_FILE"
 }
 
-plan_task() { # id subject -> "would-run <reason>" | "would-park <reason>"
-  local id="$1" subj="$2"
+plan_task() { # id subject desc ctx ac ac_state -> "would-run <reason>" | "would-park <reason>"
+  local id="$1" subj="$2" desc="${3:-}" ctx="${4:-}" ac="${5:-}" ac_state="${6:-}"
   if [ "$PLAN" != "1" ]; then echo "would-run eligible"; return; fi
+  # ADR-079: ac_state=approved already passed a stronger judge (the human, at AC-approve time)
+  # than this haiku plan step ever could — treat the approval as the judgment and skip the
+  # gate rather than re-litigate a decision that has already been made (t-3315, t-3306).
+  if [ "$ac_state" = "approved" ]; then echo "would-run approved (ac_state approved — plan gate skipped, ADR-079)"; return; fi
   local cb; cb="$(resolve_claude)"
   if [ -z "$cb" ]; then echo "would-run eligible (no claude; plan skipped)"; return; fi
+  # Truncate generously (4k chars) so a verbose task can't blow the planning prompt's budget.
+  local detail=""
+  [ -n "$desc" ] && detail="Description: ${desc}"
+  [ -n "$ctx" ]  && detail="${detail}${detail:+$'\n'}Context: ${ctx}"
+  [ -n "$ac" ]   && detail="${detail}${detail:+$'\n'}Acceptance criteria: ${ac}"
+  detail="${detail:0:4000}"
   local prompt verdict
-  prompt="You are the PLANNING step of an autonomous task runner in OBSERVE mode — make NO changes, only assess. Task ${id}: \"${subj}\". Can an agent complete this with NO human input, or does it need a human decision first (ambiguous scope, irreversible/risky action, a choice only the owner can make)? Reply with exactly one line: AUTODOABLE: <why> or NEEDSHUMAN: <what decision is needed>."
-  verdict="$(printf '%s' "$prompt" | timeout 60 "$cb" -p --model haiku --allowedTools "Read,Grep,Glob" --output-format text 2>/dev/null)"
+  prompt="You are the PLANNING step of an autonomous task runner in OBSERVE mode — make NO changes, only assess. Task ${id}: \"${subj}\".
+${detail}
+Judge from the task's OWN stated decisions and scope above — a task whose description already spells out the decisions is autodoable even if the subject line alone sounds ambiguous. Can an agent complete this with NO further human input, or does it need a human decision first (ambiguous scope, irreversible/risky action, a choice only the owner can make)? Reply with exactly one line: AUTODOABLE: <why> or NEEDSHUMAN: <what decision is needed>."
+  # Route through the same bwrap capability jail as the executor dispatch (ADR-062, which
+  # names this exact call site — "OBSERVE planner line ~80" — as needing it). desc/ctx/ac
+  # above can originate externally (gh-sync.sh pull-context copies raw GitHub issue comment
+  # bodies into task context, unsanitized) and this call still carries real Read/Grep/Glob
+  # tools — an unsandboxed call would let a prompt-injected verdict reflect host secrets
+  # (t-3315 challenger finding). A fresh empty tmpdir as /workspace gives it nothing to read
+  # even if it tries; RUNNER_PLAN_TIMEOUT keeps the planning budget tight (default 60s, vs
+  # the 600s executor default) independent of RUNNER_DISPATCH_TIMEOUT.
+  local plan_wd; plan_wd="$(mktemp -d "${TMPDIR:-/tmp}/runner-plan-XXXXXX")"
+  verdict="$(printf '%s' "$prompt" | RUNNER_DISPATCH_TIMEOUT="${RUNNER_PLAN_TIMEOUT:-60}" \
+    sandbox_claude "$plan_wd" -p --model haiku --allowedTools "Read,Grep,Glob" --output-format text 2>/dev/null)"
+  rm -rf "$plan_wd" 2>/dev/null
   case "$verdict" in
     NEEDSHUMAN:*) echo "would-park ${verdict#NEEDSHUMAN: }" ;;
     AUTODOABLE:*) echo "would-run ${verdict#AUTODOABLE: }" ;;
@@ -349,7 +372,10 @@ if [ "$MODE" = "observe" ]; then
     if [ "$nblock" -gt 0 ];          then emit "$id" "$subj" excluded "blocked ($nblock blocker(s))"; EXCL=$((EXCL+1)); continue; fi
     ELIG=$((ELIG+1))
     if [ "$TAKEN" -ge "$MAX_TASKS" ]; then emit "$id" "$subj" excluded "cap (RUNNER_MAX_TASKS=$MAX_TASKS)"; EXCL=$((EXCL+1)); continue; fi
-    read -r decision reason < <(plan_task "$id" "$subj")
+    desc="$(echo "$t" | jq -r '.description // ""')"; ctx="$(echo "$t" | jq -r '.context // ""')"
+    ac="$(echo "$t" | jq -r '(.acceptance_criteria // []) | join("; ")')"
+    ac_state="$(echo "$t" | jq -r '.ac_state // ""')"
+    read -r decision reason < <(plan_task "$id" "$subj" "$desc" "$ctx" "$ac" "$ac_state")
     emit "$id" "$subj" "$decision" "$reason"; TAKEN=$((TAKEN+1))
     if [ "$decision" = "would-park" ]; then PARK=$((PARK+1)); else RUN=$((RUN+1)); fi
   done < <(echo "$TASKS_JSON" | jq -c '.[]' 2>/dev/null)
@@ -414,12 +440,14 @@ park() { # id subj reason — record a needs-human question and leave the task p
 # verify, commit one task. STOPS (no merge, no completed-mark). The live working tree and the base
 # branch are never touched. Returns: 0=ran, 2=parked (needs human), 1=failed (worktree removed).
 run_task() {
-  local TASK="$1" ID SUBJ DESC CTX DECISION REASON BASE_BRANCH BASE_REF FALLBACK WT BRANCH CB DPROMPT DOUT REASON_H gf
+  local TASK="$1" ID SUBJ DESC CTX AC AC_STATE DECISION REASON BASE_BRANCH BASE_REF FALLBACK WT BRANCH CB DPROMPT DOUT REASON_H gf
   ID="$(echo "$TASK" | jq -r '.id')"; SUBJ="$(echo "$TASK" | jq -r '.subject // ""')"
   DESC="$(echo "$TASK" | jq -r '.description // ""')"; CTX="$(echo "$TASK" | jq -r '.context // ""')"
+  AC="$(echo "$TASK" | jq -r '(.acceptance_criteria // []) | join("; ")')"
+  AC_STATE="$(echo "$TASK" | jq -r '.ac_state // ""')"
 
   # Plan gate: only run a would-run; park a would-park (clean outcome, not a failure).
-  read -r DECISION REASON < <(plan_task "$ID" "$SUBJ")
+  read -r DECISION REASON < <(plan_task "$ID" "$SUBJ" "$DESC" "$CTX" "$AC" "$AC_STATE")
   if [ "$DECISION" = "would-park" ]; then park "$ID" "$SUBJ" "$REASON"; return 2; fi
 
   # Resolve the integration branch (ADR-060) and a concrete base ref. Prefer origin/<b>, then
