@@ -83,8 +83,10 @@ than this haiku step, so it isn't re-litigated. Since that forwarded content can
 externally (e.g. `gh-sync.sh pull-context` copies raw GitHub issue comment bodies into a
 task's `context` field, unsanitized), the planning dispatch is routed through the same
 `sandbox_claude()` bwrap jail as the Stage 2 executor (ADR-062) — a fresh, empty tmpdir as
-`/workspace`, since the planner needs no writable state. `RUNNER_PLAN_TIMEOUT` (default 60s)
-bounds just this call, independent of the 600s executor default (`RUNNER_DISPATCH_TIMEOUT`).
+`/workspace`, since the planner needs no writable state. `RUNNER_PLAN_TIMEOUT` (default 90s,
+bumped from 60s in t-3318 for bwrap/egress-proxy setup headroom) bounds just this call,
+independent of the 600s executor default (`RUNNER_DISPATCH_TIMEOUT`) — a timeout here is
+fail-OPEN (falls through to "plan inconclusive", i.e. would-run), never fail-closed.
 
 **Eligibility (exact):** `status == "pending"` ∧ `execution == "autonomous"` ∧ `priority != "P0"` ∧ (`blocked_by` empty/null). Everything else → `excluded:<reason>`.
 
