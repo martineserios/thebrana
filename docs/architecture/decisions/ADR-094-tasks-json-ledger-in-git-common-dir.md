@@ -236,3 +236,13 @@ independent of the Rust changes and can land first.
   `/brana:challenge --deep` with the systems lens on decision 1's migration edge cases
   (two ledgers present; worktrees created before migration; non-git projects) and on decision
   3's collapse threshold (legitimate bulk archives).
+- 2026-09-07 (later), Gate 3 completeness review of the first ship after the incident:
+  **decisions 5 and 7 were implemented and enforced (validate.sh Check 74, the bootstrap
+  guard, the rewritten ship/close/branching/git-discipline text, the Gate 3 rule) while this
+  ADR was still `proposed`** — enforcement ran ahead of acceptance, under incident pressure.
+  Named here rather than hidden: both are narrow, incident-driven hardenings independent of
+  the contestable decisions (1–4), each shipped its replacement in the same commit, and the
+  reviewer judged them a strict improvement. If the decider amends or rejects 5 or 7, Check 74
+  and the guard must be revised in the same change — they are not free to drift from the ADR.
+  Also recorded from that review: the interim hourly backup job and the by-ref ship were
+  themselves put through the new non-overridable-class test (3/3 reviewers: none).
