@@ -854,6 +854,86 @@ Output: markdown section only (no frontmatter, no preamble).",
     )
 }
 
+// ── Project relevance scoring (idea doc §Layer 1 steps 1-2, ADR-093) ─────────
+
+/// Default cut-off for [`score_relevance`]: a project below this score is not
+/// emitted, so an entry with no good home stays untagged rather than filed
+/// under its least-bad match. Provisional — centroid-subtracted cosine is a
+/// different scale from plain cosine, and this is the operating point the
+/// contract tests pin, not a value calibrated against real portfolio
+/// descriptors. Recalibrate once a full scoring pass has run.
+pub const PROJECT_RELEVANCE_THRESHOLD: f32 = 0.5;
+
+/// Score one entry against every known project by *centroid-subtracted*
+/// cosine similarity, keeping only projects at or above `threshold`.
+///
+/// `project_vecs` are `(project, vector)`; the return is `(project, score)`
+/// sorted by score descending. Plain cosine over project vectors is dominated
+/// by the boilerplate every project shares (READMEs, setup/build/test prose),
+/// which floors every project's similarity high enough that a threshold either
+/// tags all of them or none. Subtracting the centroid of all project vectors
+/// from both sides first cancels that shared component, so what remains is the
+/// part of the entry that actually discriminates *between* projects.
+///
+/// Never forces a tag: an entry that clears the threshold for nothing returns
+/// an empty vec rather than its least-bad match. `threshold` has no default in
+/// the signature — callers pass [`PROJECT_RELEVANCE_THRESHOLD`] unless they
+/// have a calibrated one. Pure and deterministic — same input, same output, no
+/// I/O and no embedding call (the caller embeds).
+///
+/// **n=1 falls back to plain cosine** (t-3309 decision): with a single project
+/// the centroid *is* that project's vector, so every residual is the zero
+/// vector and nothing could ever score. There is nothing to discriminate
+/// *between* with one project, so plain cosine against it is the best signal
+/// available — and scoring nothing would make the whole feature a silent
+/// no-op until a second project is registered. The threshold still gates it.
+///
+/// Degenerate input yields no scores rather than wrong ones: no projects, an
+/// empty dimension, or vectors whose lengths disagree all return an empty vec.
+pub fn score_relevance(
+    entry_vec: &[f32],
+    project_vecs: &[(String, Vec<f32>)],
+    threshold: f32,
+) -> Vec<(String, f32)> {
+    let Some((first_project, first_vec)) = project_vecs.first() else {
+        return Vec::new();
+    };
+    let dim = first_vec.len();
+    if dim == 0 || entry_vec.len() != dim || project_vecs.iter().any(|(_, v)| v.len() != dim) {
+        return Vec::new();
+    }
+
+    let mut scored: Vec<(String, f32)> = if project_vecs.len() == 1 {
+        vec![(first_project.clone(), cosine_sim(entry_vec, first_vec))]
+    } else {
+        let mut centroid = vec![0.0f32; dim];
+        for (_, v) in project_vecs {
+            for (c, x) in centroid.iter_mut().zip(v) {
+                *c += *x;
+            }
+        }
+        let n = project_vecs.len() as f32;
+        for c in centroid.iter_mut() {
+            *c /= n;
+        }
+        let residual =
+            |v: &[f32]| -> Vec<f32> { v.iter().zip(&centroid).map(|(x, c)| x - c).collect() };
+        let entry_residual = residual(entry_vec);
+        project_vecs
+            .iter()
+            .map(|(project, v)| {
+                (project.clone(), cosine_sim(&entry_residual, &residual(v.as_slice())))
+            })
+            .collect()
+    };
+
+    scored.retain(|(_, score)| *score >= threshold);
+    // Stable sort: equal scores keep their input order, so a re-run over an
+    // unchanged project set never silently re-orders (determinism test).
+    scored.sort_by(|a, b| b.1.total_cmp(&a.1));
+    scored
+}
+
 /// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
 ///
 /// `caption_source` is `Some("manual"|"auto")` only for `platform ==
@@ -6693,6 +6773,158 @@ id3
             "excerpts must be truncated, not full transcripts"
         );
         assert!(prompt.len() < DRAFT_EXCERPT_CHARS + 2000, "prompt stays within excerpt budget");
+    }
+
+    // ── score_relevance (contract pinned by t-3308, green as of t-3309) ───
+    // Idea doc §Layer 1 steps 1-2: score a log entry against every known
+    // project by cosine over embeddings, but subtract the centroid of the
+    // project vectors first so the boilerplate every project shares (README
+    // prose, setup/build/test instructions) cancels instead of propping up
+    // every score. Contract pinned here: threshold filtering, descending
+    // order, empty-not-forced tagging, determinism — plus the n=1 fallback
+    // t-3309 decided. Vectors come from `BagOfWordsEmbedder` above, the same
+    // no-subprocess fake the LongForm tier tests use.
+
+    /// Prose every project's corpus carries — the noise centroid subtraction
+    /// is supposed to cancel.
+    const PROJECT_BOILERPLATE: &str =
+        "readme setup install usage license contributing build test run docs changelog";
+
+    fn project_corpus(topic: &str) -> String {
+        format!("{PROJECT_BOILERPLATE} {topic}")
+    }
+
+    /// The three projects an entry is scored against, embedded.
+    fn relevance_fixture() -> Vec<(String, Vec<f32>)> {
+        use crate::vector::Embedder;
+        [
+            ("billing", "invoicing billing payments stripe subscriptions refunds"),
+            ("infra", "kubernetes cluster deployment helm ingress terraform"),
+            ("bakery", "sourdough baking flour hydration starter oven"),
+        ]
+        .into_iter()
+        .map(|(slug, topic)| {
+            let v = BagOfWordsEmbedder
+                .embed(&project_corpus(topic))
+                .expect("fixture corpus embeds");
+            (slug.to_string(), v)
+        })
+        .collect()
+    }
+
+    /// A log entry that belongs to `billing`, written in the same
+    /// boilerplate-heavy register as the project corpora.
+    fn billing_entry_vec() -> Vec<f32> {
+        use crate::vector::Embedder;
+        BagOfWordsEmbedder
+            .embed(&format!(
+                "{PROJECT_BOILERPLATE} shipped stripe subscriptions billing invoicing \
+                 refunds today"
+            ))
+            .expect("fixture entry embeds")
+    }
+
+    #[test]
+    fn test_score_relevance_centroid_subtraction_cancels_shared_boilerplate() {
+        // The load-bearing property. Under plain cosine the shared
+        // boilerplate floors EVERY project above 0.5, so a 0.5 threshold
+        // tags an entry with all three projects — including sourdough
+        // baking. Subtracting the project centroid first must leave only
+        // the project the entry is actually about.
+        let projects = relevance_fixture();
+        let entry = billing_entry_vec();
+
+        let plain: Vec<&str> = projects
+            .iter()
+            .filter(|(_, v)| cosine_sim(&entry, v) >= 0.5)
+            .map(|(p, _)| p.as_str())
+            .collect();
+        assert_eq!(
+            plain.len(),
+            3,
+            "fixture precondition: plain cosine must over-tag (boilerplate floor), got {plain:?}"
+        );
+
+        let scored = score_relevance(&entry, &projects, 0.5);
+        assert_eq!(
+            scored.iter().map(|(p, _)| p.as_str()).collect::<Vec<_>>(),
+            vec!["billing"],
+            "centroid subtraction must cancel the shared boilerplate that made \
+             every project clear the threshold"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_returns_scores_sorted_descending() {
+        // A permissive threshold keeps every project, so ordering — not
+        // filtering — is what is under test: callers read the head of the
+        // list as the best match.
+        let projects = relevance_fixture();
+        let scored = score_relevance(&billing_entry_vec(), &projects, -1.0);
+        assert_eq!(scored.len(), 3, "a -1.0 threshold excludes nothing");
+        assert_eq!(scored[0].0, "billing", "the entry's own project ranks first");
+        for pair in scored.windows(2) {
+            assert!(
+                pair[0].1 >= pair[1].1,
+                "scores must be sorted descending, got {scored:?}"
+            );
+        }
+        assert!(
+            scored.iter().all(|(_, s)| (-1.0..=1.0).contains(s)),
+            "cosine scores stay in [-1, 1], got {scored:?}"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_empty_when_nothing_clears_threshold() {
+        // Never force a tag: an entry with no good home is untagged, not
+        // filed under its least-bad match.
+        let projects = relevance_fixture();
+        let scored = score_relevance(&billing_entry_vec(), &projects, 0.99);
+        assert!(
+            scored.is_empty(),
+            "nothing clears a 0.99 threshold — must return empty, not a best guess, got {scored:?}"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_no_projects_scores_nothing() {
+        // Degenerate input (no projects known yet) returns empty rather
+        // than panicking on an undefined centroid.
+        let scored = score_relevance(&billing_entry_vec(), &[], 0.0);
+        assert!(scored.is_empty(), "no projects to score against, got {scored:?}");
+    }
+
+    #[test]
+    fn test_score_relevance_single_project_falls_back_to_plain_cosine() {
+        // t-3309 decision: with one project the centroid IS its vector, so
+        // every residual is the zero vector and nothing could score. Scoring
+        // by plain cosine instead keeps the feature working before a second
+        // project is registered — the threshold still gates the result.
+        let projects: Vec<(String, Vec<f32>)> = relevance_fixture().into_iter().take(1).collect();
+        let entry = billing_entry_vec();
+
+        let scored = score_relevance(&entry, &projects, 0.5);
+        assert_eq!(
+            scored,
+            vec![("billing".to_string(), cosine_sim(&entry, &projects[0].1))],
+            "n=1 must score by plain cosine rather than return nothing"
+        );
+        assert!(
+            score_relevance(&entry, &projects, 0.99).is_empty(),
+            "the n=1 fallback is still threshold-gated, not an unconditional tag"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_is_deterministic() {
+        // Same entry, same projects, same threshold — byte-identical
+        // output, so a re-run never silently re-tags an entry.
+        let projects = relevance_fixture();
+        let entry = billing_entry_vec();
+        let first = score_relevance(&entry, &projects, 0.0);
+        let second = score_relevance(&entry, &projects, 0.0);
+        assert_eq!(first, second, "score_relevance must be pure and deterministic");
     }
 
     // ── parse_event_log canonical keys (challenger-gate finding, t-3151) ──

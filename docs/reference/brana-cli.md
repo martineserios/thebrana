@@ -583,6 +583,11 @@ Sync the brana-owned vector store (`~/.claude/memory/knowledge.db`) from ruflo
 dependency on the ruflo HNSW index — this is the local brute-force cosine
 recall path.
 
+Sync owns `content`, `tags`, `source`, `created_at` and `vec` only. The
+enrichment columns added in t-3310 — `relevant_projects`, `for_thebrana`,
+`entities`, `action_type` — are written by the post-sync passes and survive
+every re-sync of the same key untouched.
+
 ### Usage
 
 ```bash
