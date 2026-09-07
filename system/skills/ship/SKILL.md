@@ -178,11 +178,14 @@ are rejected by branch protection, so the ship *is* the PR:
 
 ```bash
 git push origin dev
-PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number')
-[ -z "$PR" ] && PR=$(gh pr create --base main --head dev \
-    --title "ship: dev→main $(date +%F)" \
-    --body "$(git log --oneline main..dev | head -40)" --json number -q .number 2>/dev/null \
-    || gh pr view --json number -q .number)
+PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
+if [ -z "$PR" ]; then                # `gh pr create` has no --json: it prints the URL; re-list for the number
+    gh pr create --base main --head dev \
+        --title "ship: dev→main $(date +%F)" \
+        --body "$(git log --oneline main..dev | head -40)"
+    PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
+fi
+[ -n "$PR" ] || { echo "no open dev→main PR found after create — stop"; exit 1; }
 gh pr checks "$PR" --watch          # required: validate, rust, tests — refuse to continue on failure
 gh pr merge "$PR" --merge           # merge commit; GitHub refuses until checks are green
 git branch --show-current           # must print: dev — the shared checkout never switches (ADR-094 d5)
