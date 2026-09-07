@@ -75,7 +75,11 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - Task parented under a milestone/phase instead: leave `parent` structural — epic membership flows through the chain. After creating, verify the chain reaches an epic node (`resolve_epic_ancestor`, [`../../_shared/epic-ancestor-walk.md`](../../_shared/epic-ancestor-walk.md)); if it does **not** (un-migrated ancestry, t-2698), tag the task `epic:{slug}` (`tags +epic:{slug}` — the namespaced lightweight marker, SKILL.md §Initiative Model) so membership isn't silently dropped.
    - No `active_epic` set: infer a candidate from subject/tags matched against existing epic-node subjects. If confident, set as the default suggestion in step 4.
    - No inference possible → add **Epic** to the first question batch in step 4. Options: epic-node subjects (sorted by recency) + "Create new…" (user types via Other input). Prefer an epic for every task; if none fits, the `epic:<slug>` tag-fallback beats a wrong parent.
-   - "Create new…" → accept slug from free-text input; confirm: "Create epic node '{slug}'? It will appear in backlog focus and filters." → `brana backlog add --subject "{slug}" --type epic` (`epic` is a valid add `--type`, t-2322), then set the new task's `parent` to it.
+   - "Create new…" → accept slug from free-text input; confirm: "Create epic node '{slug}'? It will appear in backlog focus and filters." → create via the MCP tool — **not** a shell-interpolated `brana backlog add` string. The slug is user-supplied free text; passing it through a raw double-quoted shell argument is an injection surface for any slug containing `"`, a backtick, or `$(...)`. Structured params avoid the shell entirely (same precedent as PROP-3, `../../reconcile/phases/propagation.md`):
+     ```
+     backlog_add(subject: "{slug}", task_type: "epic")
+     ```
+     (`epic` is a valid add `--type`, t-2322), then set the new task's `parent` to it.
    - Project has zero epic nodes (ADR-065 backfill never ran there — t-2698): create the epic node as above, or tag `epic:<slug>` as the interim marker. Never write the flat `epic` field.
 4. **First question batch** — use a single AskUserQuestion with up to 4 questions (omit Epic question if active_epic was auto-assigned in step 3a; omit Milestone if URL auto-detected or no active milestones):
    - **Kind** (skip if URL auto-detected): `feature`, `fix`, `refactor`, `research`, `docs`, `design`, `ops`. Header: "Kind"
