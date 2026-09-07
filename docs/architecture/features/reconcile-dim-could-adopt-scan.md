@@ -1,7 +1,7 @@
 # Feature: Reconcile propagation — scan dim "Could Adopt" sections into the backlog
 
 **Date:** 2026-09-07
-**Status:** decomposing
+**Status:** built
 **Task:** t-1706
 
 ## Problem
@@ -139,5 +139,16 @@ stays local to reconcile either way.
 
 ## Challenger findings
 
-_Not run — Small-scoped additive change to an existing, already-decided procedural pattern; no
-new architectural surface. Skipped per user approval in the build-plan gate (2026-09-07)._
+Run 2026-09-07 (effort M mandates the gate regardless of the earlier build-plan skip estimate).
+Verdict: **PROCEED WITH CHANGES** — 1 finding, max severity 3.
+
+- **Security (severity 3):** PROP-3 step 6 originally built a `brana backlog add --subject "..."`
+  shell command by interpolating dim-doc-sourced candidate text directly into a double-quoted
+  argument — an injection surface for candidate text containing `"`, a backtick, or `$(...)`.
+  Deviated from the step's own cited precedent (KNOW-1/2/3 use MCP tools, not shell CLI calls).
+  **Fixed:** replaced with a structured `mcp__brana__backlog_add(...)` call.
+- **Sibling (not fixed here):** `system/skills/backlog/phases/done-and-add.md:78` has the same
+  raw-CLI-interpolation pattern for a user-supplied epic slug — lower risk (direct user input,
+  not doc-scraped text) but same pattern class. Filed as t-3320, out of scope for this task.
+- AC coverage, spec/diff alignment, and the `--status` single-value fix: all confirmed correct,
+  no other findings.

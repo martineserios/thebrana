@@ -54,11 +54,19 @@ out. This step surfaces untracked ones into the backlog (t-1706).
    ```
    Options: one per candidate (dim doc + heading + truncated text), plus "Skip — take no
    action (Recommended)".
-6. For each selected candidate, create a task:
-   ```bash
-   brana backlog add --subject "{candidate text, trimmed to a subject-length summary}" \
-     --kind feature --tags "{dim-slug}" \
-     --context "Sourced from brana-knowledge/dimensions/{file} § {heading} via /brana:reconcile --scope propagation PROP-3 ({date})"
+6. For each selected candidate, create a task via the MCP tool — **not** a shell-interpolated
+   `brana backlog add` string. Candidate text originates from dimension-doc content; passing it
+   through a raw double-quoted shell argument is an injection surface for any candidate
+   containing `"`, a backtick, or `$(...)` (plausible in technical writing). Structured params
+   avoid the shell entirely, matching the same precedent this step is modeled on — KNOW-1/2/3
+   use `mcp__ruflo__memory_delete` / direct edits, never a shell-interpolated CLI call:
+   ```
+   backlog_add(
+     subject: "{candidate text, trimmed to a subject-length summary}",
+     kind: "feature",
+     tags: "{dim-slug}",
+     context: "Sourced from brana-knowledge/dimensions/{file} § {heading} via /brana:reconcile --scope propagation PROP-3 ({date})"
+   )
    ```
    Never edit the dim doc itself — this step is read-only against `brana-knowledge/`.
 
