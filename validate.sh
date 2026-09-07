@@ -2523,6 +2523,43 @@ elif bash "$C61D_TEST" >/dev/null 2>&1; then
 else
     fail "Check 61: run-beat fan-out broke per-task worktree isolation or dispatch width (ADR-090 §2, t-3271)"
 fi
+# OBSERVE-planner sandbox escape battery (t-3315, ADR-062) — the planning dispatch
+# (plan_task()) started forwarding description/context/acceptance_criteria into its
+# claude -p call, content that can originate externally (gh-sync.sh pull-context copies
+# raw GitHub issue comment bodies into task context, unsanitized), and was routed through
+# sandbox_claude() specifically to contain that. Same reasoning as Check 61 above: wired
+# HERE so any future loosening of that specific call site fails loudly on the next validate.
+C61E_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-observe-sandbox.sh"
+if [ ! -f "$C61E_TEST" ]; then
+    warn "Check 61: OBSERVE-planner escape battery not found at $C61E_TEST — skipping"
+elif ! command -v bwrap >/dev/null 2>&1; then
+    warn "Check 61: bwrap not installed — planner sandbox unenforced + untestable here (ADR-062)"
+else
+    if C61E_OUT=$(bash "$C61E_TEST" 2>&1); then
+        C61E_RC=0
+    else
+        C61E_RC=$?
+    fi
+    echo "$C61E_OUT" | tail -3 | sed 's/^/  /'
+    if [ "$C61E_RC" -eq 0 ]; then
+        pass "Check 61: OBSERVE planner sandbox contains all escape vectors ✓ (t-3315)"
+    elif echo "$C61E_OUT" | grep -qiE "bwrap:.*(namespace|permission|unshare|operation not permitted)"; then
+        warn "Check 61: bwrap cannot create namespaces in this env (CI/container) — sandbox untestable here"
+    else
+        fail "Check 61: OBSERVE planner sandbox BREACHED — an escape vector succeeded (t-3315, ADR-062)"
+    fi
+fi
+# Plan-gate decision logic (t-3315) — needs no bwrap: plan_task() must judge on the task's
+# actual description/context/acceptance_criteria, not the subject alone, and must skip the
+# LLM call entirely when ac_state=approved. Always testable.
+C61F_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-plan-gate.sh"
+if [ ! -f "$C61F_TEST" ]; then
+    warn "Check 61: plan-gate logic test not found at $C61F_TEST — skipping"
+elif bash "$C61F_TEST" >/dev/null 2>&1; then
+    pass "Check 61: plan-gate judges full task context and honors ac_state=approved ✓ (t-3315)"
+else
+    fail "Check 61: plan-gate regressed — subject-only judging or approved-skip broken (t-3315)"
+fi
 # Real (non-stub) claude -p compat check (t-3257, ADR-062) — proves sandbox_claude() can
 # actually authenticate and run the REAL subscription binary, not just contain the stub used
 # by the two checks above. OPT-IN (RUNNER_LIVE_CLAUDE_TEST=1) — makes one real API call, so it
