@@ -3,7 +3,7 @@
 **Status:** live (interim until t-3326's per-write rotation and t-3287's git snapshot land)
 **Script:** `system/scripts/tasks-json-backup.sh`
 **Schedule:** hourly at :07 via the `tasks-json-backup` scheduler job (ADR-071 thin layer)
-**Backups:** `~/.claude/tasks-json-backups/<repo>/tasks.json.<UTC>.json`, newest 48 kept
+**Backups:** `~/.claude/tasks-json-backups/<basename>-<sha1(path)[:8]>/tasks.json.<UTC>.json`, newest 48 kept — dir keyed by the repo's resolved path (a `.repo` marker inside records it; restore refuses on mismatch), dirs 700 / copies 600 via `umask 077`; `--restore` accepts only a filename inside that dir or `--latest`
 **Origin:** 2026-09-07 — a `git checkout main` in the shared main checkout silently overwrote the ignored,
 untracked `.claude/tasks.json` (3199 tasks) with a stale tracked blob; the fast-forward that
 followed deleted it. Recovered from a 7-hour-old commit. See

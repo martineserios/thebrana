@@ -18,22 +18,36 @@ three='{"id":"t-1"},{"id":"t-2"},{"id":"t-3"}'
 
 echo "=== tasks-json-backup.sh ==="
 
-# 1. first backup lands under <root>/<slug>/ with the task count reported
+# 1. first backup lands under <root>/<basename>-<pathhash>/ with the task count reported
 ledger "$three"
 OUT=$(bash "$SCRIPT" --repo "$R" 2>&1); rc=$?
 assert_true "backup exits 0 and reports 3 tasks"       "$([ $rc -eq 0 ] && echo "$OUT" | grep -q '(3 tasks)' && echo true || echo false)"
-assert_true "backup file created under <dir>/repo/"    "$([ "$(ls "$T/backups/repo"/tasks.json.*.json 2>/dev/null | wc -l)" -eq 1 ] && echo true || echo false)"
+BK=$(ls -d "$T"/backups/repo-* 2>/dev/null | head -n1)
+assert_true "backup dir is keyed by basename + path hash (repo-<8hex>)" "$(basename "${BK:-x}" | grep -qE '^repo-[0-9a-f]{8}$' && echo true || echo false)"
+assert_true "backup file created under that dir"       "$([ "$(ls "$BK"/tasks.json.*.json 2>/dev/null | wc -l)" -eq 1 ] && echo true || echo false)"
+assert_true "backup dir is 700 and copies are 600"     "$([ "$(stat -c %a "$BK")" = "700" ] && [ "$(stat -c %a "$BK"/tasks.json.*.json)" = "600" ] && echo true || echo false)"
+assert_true ".repo marker records the resolved repo path" "$([ "$(cat "$BK/.repo")" = "$R" ] && echo true || echo false)"
+
+# 1b. a differently-located repo with the SAME basename gets its own dir (no intermixing)
+R2="$T/other/repo"; mkdir -p "$R2/.claude"; git -C "$T/other" init -q "$R2"; printf '{"tasks":[{"id":"t-9"}]}' > "$R2/.claude/tasks.json"
+bash "$SCRIPT" --repo "$R2" >/dev/null 2>&1
+assert_true "same-basename repo backs up to a different dir" "$([ "$(ls -d "$T"/backups/repo-* | wc -l)" -eq 2 ] && echo true || echo false)"
 
 # 2. rotation keeps only MAX_BACKUPS newest
 for i in 1 2 3 4; do sleep 1; MAX_BACKUPS=3 bash "$SCRIPT" --repo "$R" >/dev/null 2>&1; done
-assert_true "rotation keeps MAX_BACKUPS=3 newest"      "$([ "$(ls "$T/backups/repo"/tasks.json.*.json | wc -l)" -eq 3 ] && echo true || echo false)"
+assert_true "rotation keeps MAX_BACKUPS=3 newest"      "$([ "$(ls "$BK"/tasks.json.*.json | wc -l)" -eq 3 ] && echo true || echo false)"
 
 # 3. a wiped ledger (0 tasks) must be REFUSED and must not rotate good copies out
 ledger ""
-before=$(ls "$T/backups/repo"/tasks.json.*.json | wc -l)
+before=$(ls "$BK"/tasks.json.*.json | wc -l)
 OUT=$(MAX_BACKUPS=3 bash "$SCRIPT" --repo "$R" 2>&1); rc=$?
 assert_true "wiped ledger is refused (exit 2)"          "$([ $rc -eq 2 ] && echo "$OUT" | grep -q REFUSED && echo true || echo false)"
-assert_true "good backups untouched after refusal"      "$([ "$(ls "$T/backups/repo"/tasks.json.*.json | wc -l)" -eq "$before" ] && echo true || echo false)"
+assert_true "good backups untouched after refusal"      "$([ "$(ls "$BK"/tasks.json.*.json | wc -l)" -eq "$before" ] && echo true || echo false)"
+
+# 3b. --restore never accepts a path outside the backup dir
+printf '{"tasks":[{"id":"t-evil"}]}' > "$T/evil.json"
+bash "$SCRIPT" --restore "$T/evil.json" --repo "$R" >/dev/null 2>&1; rc=$?
+assert_true "--restore rejects an arbitrary path outside the backup dir" "$([ $rc -ne 0 ] && echo true || echo false)"
 
 # 4. --check flags the collapse with exit 2
 bash "$SCRIPT" --check --repo "$R" >/dev/null 2>&1; rc=$?

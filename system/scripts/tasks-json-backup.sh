@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# The ledger carries task text that can be sensitive: everything this script creates
+# (dirs, copies, pre-restore copies) is owner-only from the moment it exists — no chmod-after.
+umask 077
 
 # tasks-json-backup.sh — Rotating backup of a repo's live backlog ledger (ADR-094, t-3326 interim).
 #
@@ -15,8 +18,12 @@ set -euo pipefail
 #   tasks-json-backup.sh --restore [--latest | <file>] [--repo <path>]
 #   tasks-json-backup.sh --check [--repo <path>]    # print ledger path/count/newest backup age; exit 2 on collapse
 #
-# Backups: $TASKS_JSON_BACKUP_DIR (default ~/.claude/tasks-json-backups)/<repo-slug>/tasks.json.<UTC>.json
-# Keeps the newest $MAX_BACKUPS (default 48 — two days at hourly cadence, ~250 MB at 5 MB each).
+# Backups: $TASKS_JSON_BACKUP_DIR (default ~/.claude/tasks-json-backups)/<basename>-<sha1(common-root)[:8]>/tasks.json.<UTC>.json
+# The dir is keyed by the repo's resolved path (hash), not its bare basename, so two repos that
+# share a name never intermix backups — and a `.repo` marker records the path; restore refuses on
+# mismatch. Dirs are 700, copies 600 (umask 077). Keeps the newest $MAX_BACKUPS (default 48 —
+# two days at hourly cadence, ~250 MB at 5 MB each). --restore accepts only a backup filename
+# inside that dir (or --latest), never an arbitrary path.
 #
 # Refusals (exit 2, backups untouched): source missing, source not valid JSON, source has 0 tasks
 # while the newest backup has >0 — a wiped ledger must never rotate the good copies out.
@@ -47,8 +54,11 @@ if [ -f "$common_dir/brana/tasks.json" ]; then
 else
     LEDGER="$common_root/.claude/tasks.json"
 fi
-SLUG=$(basename "$common_root")
+# Key by resolved path, not bare basename (Gate 3 security finding, 2026-09-07): two repos named
+# alike must never share — or restore across — a backup dir.
+SLUG="$(basename "$common_root")-$(printf '%s' "$common_root" | sha1sum | cut -c1-8)"
 DEST="$BACKUP_ROOT/$SLUG"
+MARKER="$DEST/.repo"
 
 count_tasks() {   # $1 = file → prints task count, or "invalid"
     python3 -c 'import json,sys
@@ -82,12 +92,16 @@ case "$MODE" in
         exit 0 ;;
     restore)
         [ -d "$DEST" ] || { echo "ERROR: no backups for $SLUG under $DEST" >&2; exit 1; }
-        if [ -z "$RESTORE_ARG" ] || [ "$RESTORE_ARG" = "--latest" ]; then src=$(newest_backup); else src="$RESTORE_ARG"; [ -f "$src" ] || src="$DEST/$RESTORE_ARG"; fi
-        [ -n "$src" ] && [ -f "$src" ] || { echo "ERROR: backup not found: ${RESTORE_ARG:-latest}" >&2; exit 1; }
+        if [ -f "$MARKER" ] && [ "$(cat "$MARKER")" != "$common_root" ]; then
+            echo "ERROR: $DEST belongs to $(cat "$MARKER"), not $common_root — refusing to restore across repos" >&2; exit 1
+        fi
+        # Only a filename inside $DEST (or --latest) — never an arbitrary path (no provenance otherwise).
+        if [ -z "$RESTORE_ARG" ] || [ "$RESTORE_ARG" = "--latest" ]; then src=$(newest_backup); else src="$DEST/$(basename "$RESTORE_ARG")"; fi
+        [ -n "$src" ] && [ -f "$src" ] || { echo "ERROR: backup not found in $DEST: ${RESTORE_ARG:-latest}" >&2; exit 1; }
         [ "$(count_tasks "$src")" != "invalid" ] || { echo "ERROR: backup is not valid JSON: $src" >&2; exit 1; }
-        if [ -f "$LEDGER" ]; then cp -p "$LEDGER" "$LEDGER.pre-restore.$(date -u +%Y%m%dT%H%M%SZ)"; fi
+        if [ -f "$LEDGER" ]; then cp "$LEDGER" "$LEDGER.pre-restore.$(date -u +%Y%m%dT%H%M%SZ)"; fi   # plain cp: 600 via umask, not the ledger's mode
         mkdir -p "$(dirname "$LEDGER")"
-        cp -p "$src" "$LEDGER.tmp.$$" && mv "$LEDGER.tmp.$$" "$LEDGER"
+        cp "$src" "$LEDGER.tmp.$$" && mv "$LEDGER.tmp.$$" "$LEDGER"
         echo "restored $LEDGER from $(basename "$src") ($(count_tasks "$LEDGER") tasks); previous copy kept as $LEDGER.pre-restore.*"
         exit 0 ;;
     backup)
@@ -102,9 +116,13 @@ case "$MODE" in
                 exit 2
             fi
         fi
-        mkdir -p "$DEST"
+        mkdir -p "$DEST"                       # 700 via umask 077
+        if [ -f "$MARKER" ] && [ "$(cat "$MARKER")" != "$common_root" ]; then
+            echo "REFUSED: $DEST belongs to $(cat "$MARKER"), not $common_root" >&2; exit 2
+        fi
+        [ -f "$MARKER" ] || printf '%s\n' "$common_root" > "$MARKER"
         out="$DEST/tasks.json.$(date -u +%Y%m%dT%H%M%SZ).json"
-        cp -p "$LEDGER" "$out.tmp" && mv "$out.tmp" "$out"
+        cp "$LEDGER" "$out.tmp" && mv "$out.tmp" "$out"   # plain cp: the copy is 600 regardless of the ledger's mode
         # rotate: keep newest MAX_BACKUPS
         ls -1t "$DEST"/tasks.json.*.json 2>/dev/null | tail -n +$((MAX_BACKUPS + 1)) | while IFS= read -r old; do rm -f "$old"; done
         kept=$(ls -1 "$DEST"/tasks.json.*.json 2>/dev/null | wc -l | tr -d ' ')
