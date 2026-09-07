@@ -7,7 +7,7 @@ use anyhow::Context;
 
 use crate::tasks;
 use crate::themes;
-use crate::util::find_tasks_file;
+use crate::util::{find_tasks_file, resolve_tasks_file_override};
 
 // ── backlog commands ────────────────────────────────────────────────────
 
@@ -613,7 +613,7 @@ pub fn cmd_context(task_id: &str, theme: &themes::Theme) -> anyhow::Result<()> {
 /// brana_core::tasks::perform_ac_approve; this is the CLI shell.
 pub fn cmd_ac_approve(task_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     match tasks::perform_ac_approve(&tf, task_id) {
@@ -646,7 +646,7 @@ pub fn cmd_ac_approve(task_id: &str, file: Option<PathBuf>) -> anyhow::Result<()
 
 pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -714,7 +714,7 @@ pub fn cmd_add(
             eprintln!("{{\"ok\":false,\"error\":\"--file and --project are mutually exclusive\"}}");
             anyhow::bail!("--file and --project are mutually exclusive");
         }
-        (Some(f), None) => f,
+        (Some(f), None) => resolve_tasks_file_override(&f),
         (None, Some(slug)) => crate::util::resolve_project_tasks_file(&slug).map_err(|e| {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
             anyhow::anyhow!("{e}")
@@ -952,7 +952,7 @@ pub fn cmd_wave_add(
     tasks::validate_wave_selector_role(&selector).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -1002,7 +1002,7 @@ pub fn cmd_wave_get(wave_id: &str, field: Option<String>) -> anyhow::Result<()> 
 /// task list is the intent-CLI's job, deferred.
 pub fn cmd_wave_list(file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -1016,7 +1016,7 @@ pub fn cmd_wave_list(file: Option<PathBuf>) -> anyhow::Result<()> {
 /// write — a plain `load_tasks` read, same as `cmd_wave_list`/`cmd_wave_get`.
 pub fn cmd_wave_board(theme: &themes::Theme, json_out: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -1057,7 +1057,7 @@ pub fn cmd_wave_board(theme: &themes::Theme, json_out: bool, file: Option<PathBu
 /// Set a field on a wave (t-2315): status/selector/contract/gate/name.
 pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -1097,7 +1097,7 @@ pub fn cmd_wave_set(wave_id: &str, field: &str, value: &str, file: Option<PathBu
 /// validation, locking, output. Runner-denied like the underlying set.
 pub fn cmd_wave_ship(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match &file {
-        Some(f) => f.clone(),
+        Some(f) => resolve_tasks_file_override(f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     // Read-only pass for the gauge display; missing wave falls through to
@@ -1149,7 +1149,7 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, n: usize, claimant: Option<St
         _ => format!("wave-pull:pid-{}", std::process::id()),
     });
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     if dry_run && n > 1 {
@@ -1277,7 +1277,7 @@ pub fn cmd_wave_pull(wave_id: &str, dry_run: bool, n: usize, claimant: Option<St
 
 pub fn cmd_wave_drain(wave_id: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -1347,7 +1347,7 @@ pub fn cmd_wave_approve(
     file: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let data = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -1464,7 +1464,7 @@ pub fn cmd_wave_approve(
 /// Returns Ok(ready); the caller maps not-ready to exit code 1.
 pub fn cmd_lint(task_id: &str, json_out: bool, file: Option<PathBuf>) -> anyhow::Result<bool> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -1830,7 +1830,7 @@ pub fn list_archivable(val: &serde_json::Value) -> Vec<serde_json::Value> {
 
 pub fn cmd_delete(task_id: &str, cascade: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -1851,7 +1851,7 @@ pub fn cmd_delete(task_id: &str, cascade: bool, file: Option<PathBuf>) -> anyhow
 
 pub fn cmd_move(task_id: &str, new_parent: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -1875,7 +1875,7 @@ pub fn cmd_move(task_id: &str, new_parent: &str, file: Option<PathBuf>) -> anyho
 
 pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -1941,7 +1941,7 @@ pub fn cmd_triage_stale(
 
     // 3. Load pending tasks
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     // NOTE (t-2166): deliberately NOT locked here. cmd_triage_stale runs an
@@ -3978,7 +3978,7 @@ mod tests {
 /// `brana backlog migrate-epic` — rename `initiative` field → `epic` across tasks.json (t-1614).
 pub fn cmd_backlog_migrate_epic(dry_run: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     let _lock = tasks::lock_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?; // t-2166: serialize RMW
@@ -4002,7 +4002,7 @@ pub fn cmd_backlog_migrate_epic(dry_run: bool, file: Option<PathBuf>) -> anyhow:
 
 pub fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
     match tasks::perform_rollup(&tf, dry_run) {
@@ -4032,7 +4032,7 @@ pub fn cmd_ac_propose(
     dry_run: bool,
 ) -> anyhow::Result<()> {
     let tf = match file {
-        Some(f) => f,
+        Some(f) => resolve_tasks_file_override(&f),
         None => find_tasks_file().context("tasks.json not found")?,
     };
 

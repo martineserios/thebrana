@@ -44,6 +44,60 @@ pub fn find_tasks_file() -> Option<PathBuf> {
     )
 }
 
+/// Resolve an explicit `--file` override the way [`find_tasks_file`] resolves the
+/// default — via git-common-dir — but anchored at the override path's own directory
+/// instead of the process cwd. Every `cmd_*` function in `brana-cli`'s `backlog.rs`
+/// that accepts a `--file: Option<PathBuf>` override must route the `Some(f)` arm
+/// through here (t-3286, ADR-091 decision 4): trusting the raw path verbatim was a
+/// systemic bug, not specific to any one command — a path handed in from a linked
+/// worktree (e.g. by `post-tasks-validate.sh`, which forwards whatever raw path the
+/// triggering Write/Edit reported) landed on that worktree's stale local copy
+/// instead of the one canonical file every other `brana` invocation reads/writes.
+///
+/// Falls back to the literal override when it isn't inside a git repo, repo
+/// resolution genuinely fails, or the override isn't the conventional
+/// `.claude/tasks.json` filename relative to its own worktree — preserving
+/// `--file`'s role for out-of-repo test fixtures, custom-named files, and other
+/// standalone use. This overrides WHICH repo/worktree to resolve from, never
+/// WHICH filename: the divergence this exists to close (ADR-091) only ever
+/// applied to worktree-local copies of that one conventional filename, so
+/// remapping anything else would silently discard a caller-chosen target and
+/// auto-create an unrelated empty file in its place (severity-4 challenger
+/// finding, t-3286 iteration 1 — the original version of this function did
+/// exactly that).
+pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
+    let anchor: &Path = match explicit.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p,
+        _ => Path::new("."),
+    };
+    let toplevel = git_toplevel_in(Some(anchor));
+    let common_root = git_common_root_in(Some(anchor));
+
+    if let (Some(top), Some(common)) = (&toplevel, &common_root) {
+        // strip_prefix only ever matches like-for-like absoluteness — a
+        // relative `explicit` can never strip-prefix-match `top` (always
+        // absolute, from git). Absolutize against cwd first so a relative
+        // --file path (e.g. `--file .claude/tasks.json`, cd'd into a
+        // worktree) is still recognized as the conventional filename instead
+        // of silently falling through to the literal (iteration-2 challenger
+        // finding, t-3286, non-blocking).
+        let absolute_explicit = if explicit.is_absolute() {
+            explicit.to_path_buf()
+        } else {
+            std::env::current_dir()
+                .map(|cwd| cwd.join(explicit))
+                .unwrap_or_else(|_| explicit.to_path_buf())
+        };
+        if absolute_explicit.strip_prefix(top) == Ok(Path::new(".claude/tasks.json")) {
+            if let Some(canon) = find_tasks_file_from(Some(common.clone()), None, None) {
+                return canon;
+            }
+        }
+    }
+
+    explicit.to_path_buf()
+}
+
 /// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
 fn find_tasks_file_with_hint(
     hint: Option<PathBuf>,
@@ -1009,6 +1063,174 @@ mod tests {
         let got = result.expect("show-toplevel resolves").canonicalize().unwrap();
         assert_ne!(got, canon_foreign, "leaked GIT_DIR+GIT_WORK_TREE were not scrubbed — resolved into the foreign repo");
         assert_eq!(got, canon_correct, "must resolve into the repo git was actually run in");
+    }
+
+    // ── resolve_tasks_file_override (t-3286, ADR-091 decision 4) ────────────
+    // The `--file` bypass: `cmd_*` functions in backlog.rs trusted an explicit
+    // --file path verbatim instead of routing it through find_tasks_file()'s
+    // git-common-dir resolution, so a path handed in from a linked worktree
+    // landed on that worktree's stale local copy instead of the one canonical
+    // file every other `brana` invocation reads/writes.
+
+    fn git_worktree_add(main_repo: &std::path::Path, wt_path: &std::path::Path, branch: &str) {
+        let mut cmd = std::process::Command::new("git");
+        super::scrub_git_env(&mut cmd);
+        let out = cmd
+            .current_dir(main_repo)
+            .args(["worktree", "add", "-q", "-b", branch, wt_path.to_str().unwrap()])
+            .output()
+            .expect("worktree add runs");
+        assert!(
+            out.status.success(),
+            "git worktree add failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    fn git_commit_all(dir: &std::path::Path) {
+        for args in [
+            vec!["config", "user.email", "t@t.com"],
+            vec!["config", "user.name", "t"],
+            vec!["add", "-A"],
+            vec!["commit", "-q", "-m", "init"],
+        ] {
+            let mut cmd = std::process::Command::new("git");
+            super::scrub_git_env(&mut cmd);
+            let out = cmd.current_dir(dir).args(&args).output().expect("git runs");
+            assert!(out.status.success(), "git {:?} failed: {}", args, String::from_utf8_lossy(&out.stderr));
+        }
+    }
+
+    #[test]
+    fn resolve_override_from_worktree_lands_on_canonical_common_dir_file() {
+        let _guard = GIT_ENV_LOCK.lock().unwrap();
+        let main = tmp();
+        git_init(main.path());
+        let claude = main.path().join(".claude");
+        fs::create_dir_all(&claude).unwrap();
+        let canonical = claude.join("tasks.json");
+        fs::write(&canonical, b"{\"tasks\":[{\"id\":\"canonical\"}]}").unwrap();
+        git_commit_all(main.path());
+
+        let wt_parent = tmp();
+        let wt_path = wt_parent.path().join("wt");
+        git_worktree_add(main.path(), &wt_path, "feature");
+
+        // The worktree checkout materializes its own tracked copy — a
+        // different physical file from the canonical one (the live
+        // divergence ADR-091 reproduced).
+        let wt_local = wt_path.join(".claude/tasks.json");
+        assert!(wt_local.exists(), "worktree checkout should carry its own tracked copy");
+
+        let result = super::resolve_tasks_file_override(&wt_local);
+        let canon = canonical.canonicalize().unwrap();
+        let got = result.canonicalize().expect("resolved path exists");
+        assert_eq!(
+            got, canon,
+            "override anchored in a worktree must resolve to the main checkout's canonical file, not the worktree-local copy"
+        );
+    }
+
+    #[test]
+    fn resolve_override_preserves_custom_filename_inside_a_git_repo() {
+        // Challenger gate finding (t-3286 iteration 1, severity 4): a --file
+        // override was never limited to the conventional `.claude/tasks.json`
+        // filename — the pre-fix code trusted ANY explicit path verbatim,
+        // custom basenames included (test fixtures, alternate stores). The
+        // fix must remap ONLY the well-known filename across worktree
+        // divergence, never invent a different file the caller didn't ask
+        // for. A regression here means a custom --file target gets silently
+        // discarded and an empty .claude/tasks.json auto-created in its
+        // place instead — exactly what the challenger reproduced live.
+        let _guard = GIT_ENV_LOCK.lock().unwrap();
+        let repo = tmp();
+        git_init(repo.path());
+        let custom = repo.path().join("my-custom-tasks.json");
+        fs::write(&custom, b"{\"tasks\":[{\"id\":\"custom\"}]}").unwrap();
+
+        let result = super::resolve_tasks_file_override(&custom);
+        assert_eq!(
+            result, custom,
+            "a custom-named --file target inside a git repo must be honored literally, not silently redirected to .claude/tasks.json"
+        );
+        assert!(
+            !repo.path().join(".claude/tasks.json").exists(),
+            "must not auto-create .claude/tasks.json as a side effect of a custom-filename override"
+        );
+    }
+
+    // Serializes tests that mutate the process-wide current directory —
+    // parallel #[test] threads would otherwise race std::env::set_current_dir.
+    static CWD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn resolve_override_relative_path_matches_conventional_filename() {
+        // Iteration-2 challenger finding (t-3286, non-blocking, PROCEED WITH
+        // CHANGES): `explicit.strip_prefix(top)` only ever matches when
+        // `explicit` is absolute — a relative path's Component iterator can
+        // never equal a prefix of an absolute one, in any Rust Path, always.
+        // A caller invoking `--file .claude/tasks.json` (relative, cd'd into
+        // a worktree — plausible, `--file` is a generic clap PathBuf, not
+        // documented as absolute-only) silently fell through to "return
+        // literal," reverting to the exact pre-ADR-091 divergence bug this
+        // function exists to close. Fix: absolutize against cwd before the
+        // compare.
+        let _cwd_guard = CWD_LOCK.lock().unwrap();
+        let _git_guard = GIT_ENV_LOCK.lock().unwrap();
+        let main = tmp();
+        git_init(main.path());
+        let claude = main.path().join(".claude");
+        fs::create_dir_all(&claude).unwrap();
+        let canonical = claude.join("tasks.json");
+        fs::write(&canonical, b"{\"tasks\":[{\"id\":\"canonical\"}]}").unwrap();
+        git_commit_all(main.path());
+
+        let wt_parent = tmp();
+        let wt_path = wt_parent.path().join("wt");
+        git_worktree_add(main.path(), &wt_path, "feature");
+        let wt_local = wt_path.join(".claude/tasks.json");
+        assert!(wt_local.exists(), "worktree checkout should carry its own tracked copy");
+
+        let original_cwd = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&wt_path).unwrap();
+        let result = super::resolve_tasks_file_override(std::path::Path::new(".claude/tasks.json"));
+        std::env::set_current_dir(original_cwd).unwrap();
+
+        let canon = canonical.canonicalize().unwrap();
+        let got = result.canonicalize().expect("resolved path exists");
+        assert_eq!(
+            got, canon,
+            "a relative --file path matching the conventional filename must still resolve to the canonical file, not fall through to the stale worktree-local literal"
+        );
+    }
+
+    #[test]
+    fn resolve_override_falls_back_to_literal_path_outside_git_repo() {
+        let dir = tmp();
+        let explicit = dir.path().join("some/nested/tasks.json");
+        let result = super::resolve_tasks_file_override(&explicit);
+        assert_eq!(
+            result, explicit,
+            "outside any git repo, the literal --file path must still work (non-git projects, standalone fixtures)"
+        );
+    }
+
+    #[test]
+    fn resolve_override_in_main_checkout_is_a_no_op() {
+        let _guard = GIT_ENV_LOCK.lock().unwrap();
+        let main = tmp();
+        git_init(main.path());
+        let claude = main.path().join(".claude");
+        fs::create_dir_all(&claude).unwrap();
+        let canonical = claude.join("tasks.json");
+        fs::write(&canonical, b"{\"tasks\":[]}").unwrap();
+
+        let result = super::resolve_tasks_file_override(&canonical);
+        assert_eq!(
+            result.canonicalize().unwrap(),
+            canonical.canonicalize().unwrap(),
+            "calling from the main checkout itself must resolve back to the same file, not move it"
+        );
     }
 }
 
