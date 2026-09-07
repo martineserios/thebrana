@@ -93,8 +93,12 @@ fi
 # Ground truth for "is ruflo installed at all" — a runner that never ran
 # `npm i -g ruflo` (CI) is a genuinely different, non-failing case from a
 # real bug where all three of bulk-index.mjs's own resolution strategies
-# come up empty despite ruflo being present (t-3280).
-if command -v ruflo >/dev/null 2>&1 || [ -n "$NPM_ROOT" ]; then
+# come up empty despite ruflo being present (t-3280). `npm root -g` prints a
+# path whether or not anything is actually installed under it, so checking
+# only "$NPM_ROOT non-empty" made this SKIP branch dead on any runner with
+# npm present — it never fired, and Test 3 hard-failed instead of skipping
+# on CI (t-3316). Require the ruflo dir to actually exist under that root.
+if command -v ruflo >/dev/null 2>&1 || { [ -n "$NPM_ROOT" ] && [ -d "$NPM_ROOT/ruflo" ]; }; then
     assert "ruflo findable via at least one strategy" "true" "$([ -n "$RUFLO_PATH" ] && echo true || echo false)"
 else
     echo "  SKIP: ruflo not installed on this runner (npm i -g ruflo) — Test 3/4 need a real install"
