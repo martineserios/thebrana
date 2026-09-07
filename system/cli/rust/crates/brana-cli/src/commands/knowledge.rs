@@ -22,6 +22,12 @@ use crate::util::{find_project_root, home};
 /// share or mutate `~/.swarm/knowledge-pipeline-state.json`.
 const PROCESS_URL_NAMESPACE: &str = "knowledge";
 
+/// Marks every `process-url` write as a link capture (t-3312, idea doc
+/// §Layer 1 step 6), so the link population is selectable by a marker rather
+/// than by guessing which platform tags imply a captured link. Carried on the
+/// ruflo row and lifted into `knowledge.db` by `vector-sync`.
+const LINK_CAPTURE_TAG: &str = "source:link-capture";
+
 /// Below this many non-whitespace characters, fetched content is treated as
 /// empty and stored nothing. A JS-only page or an auth wall strips down to a
 /// handful of characters; storing that yields a namespace entry that looks
@@ -97,8 +103,15 @@ fn resolve_process_url_outcome(
 /// real agy/`claude -p` subprocess calls (same "test the decision, not the
 /// I/O" discipline as `resolve_process_url_outcome` above).
 ///
+/// Every write, both branches, carries [`LINK_CAPTURE_TAG`]. The non-youtube
+/// branch additionally carries the t-3312 extraction fields as tags
+/// ([`extraction_tags`]): the ruflo row is the queue between this ingest pump
+/// and `vector-sync` (ADR-093 D2 — ingest holds no knowledge.db row yet), and
+/// tags are the only ruflo-side field this pipeline adds.
+///
 /// youtube skips summarization entirely and stores `content.text`
-/// unmodified, tagged `[platform, "transcript", caption_source]` — a short
+/// unmodified, tagged
+/// `[platform, "transcript", caption_source, source:link-capture]` — a short
 /// summary of a long transcript is only marginally less shallow than the
 /// HTML-shell bug this whole command exists to fix (feature spec §3,
 /// t-2950). Every other platform keeps the existing summarized-storage
@@ -113,11 +126,48 @@ fn resolve_store_value(
         let source = content.caption_source.unwrap_or("auto");
         return (
             content.text.clone(),
-            vec![content.platform.to_string(), "transcript".to_string(), source.to_string()],
+            vec![
+                content.platform.to_string(),
+                "transcript".to_string(),
+                source.to_string(),
+                LINK_CAPTURE_TAG.to_string(),
+            ],
         );
     }
     let insight = insight.expect("non-youtube Store always has an extracted insight");
-    (insight.summary.clone(), vec![content.platform.to_string(), insight.topic.clone()])
+    let mut tags = vec![
+        content.platform.to_string(),
+        insight.topic.clone(),
+        LINK_CAPTURE_TAG.to_string(),
+    ];
+    tags.extend(extraction_tags(insight));
+    (insight.summary.clone(), tags)
+}
+
+/// Encode the t-3312 extraction fields as ruflo tags — `action:{action_type}`
+/// plus one `entity:{name}` each — for `vector-sync` to lift back into
+/// `KnowledgeStore`'s `action_type` / `entities` columns
+/// (`vector.rs::extraction_from_tags`).
+///
+/// `action_type` is always tagged, `none` included: "extracted, nothing
+/// actionable" and "never extracted" are different states downstream, and only
+/// the tag distinguishes them.
+///
+/// Commas are stripped from entity names because ruflo takes the whole tag
+/// list as one CSV argv — an unstripped comma would silently split one entity
+/// into two.
+fn extraction_tags(insight: &kp::ExtractedInsight) -> Vec<String> {
+    use brana_core::vector::{ACTION_TAG_PREFIX, ENTITY_TAG_PREFIX};
+
+    let mut tags = vec![format!("{ACTION_TAG_PREFIX}{}", insight.action_type)];
+    for entity in &insight.entities {
+        let cleaned = entity.replace(',', " ");
+        let cleaned = cleaned.trim();
+        if !cleaned.is_empty() {
+            tags.push(format!("{ENTITY_TAG_PREFIX}{cleaned}"));
+        }
+    }
+    tags
 }
 
 /// One `{id, url}` record from a batch file.
@@ -2500,6 +2550,14 @@ pub(crate) fn sanitize_topic_slug(topic: &str) -> String {
 mod tests {
     use super::*;
 
+    #[test]
+    fn relevant_row_date_reads_ruflo_millisecond_timestamps() {
+        // ruflo's memory_entries.created_at is epoch ms; 1.788e12 ms = 2026-08-29.
+        assert_eq!(relevant_row_date(1_788_000_000_000).as_str(), "2026-08-29");
+        // fixtures and hand-written rows use epoch seconds and still render.
+        assert_eq!(relevant_row_date(1_788_000_000).as_str(), "2026-08-29");
+    }
+
     // ── cmd_drain_links default-type-scope exclusion (t-3236) ──────────
     // cmd_drain_links built its TaskFilter via ..Default::default(),
     // inheriting types: ["task","subtask"] with no override at all — a
@@ -2598,6 +2656,26 @@ mod tests {
         assert!(
             !src[run_start..run_end].contains("cmd_process("),
             "cmd_run must call process_core, not cmd_process — cmd_process acquires the lock cmd_run already holds"
+        );
+
+        // vector-sync's lock-freedom is what makes the post-sync scoring pass
+        // placeable at all (ADR-093 D2): it runs 20 minutes after the 4h drain
+        // cron, which holds lock_pipeline for its whole invocation. Taking the
+        // lock here would serialise a multi-thousand-row pass behind it.
+        // The needles are assembled at runtime: cmd_vector_sync is defined
+        // AFTER this tests module, so a verbatim literal here would be the
+        // first match and the scanned region would be this module itself
+        // (self-match — the same class as `pgrep -f` matching its own argv).
+        let vs_needle = format!("pub fn {}", "cmd_vector_sync");
+        let vs_marker = format!("\n// --- {}", "relevant");
+        let vs_start = src.find(&vs_needle).expect("cmd_vector_sync exists");
+        let vs_end = src[vs_start..]
+            .find(&vs_marker)
+            .map(|i| vs_start + i)
+            .expect("the relevant section follows cmd_vector_sync");
+        assert!(
+            !src[vs_start..vs_end].contains("lock_pipeline"),
+            "cmd_vector_sync must never acquire the pipeline lock — it and its scoring pass touch knowledge.db only"
         );
     }
 
@@ -2793,7 +2871,7 @@ mod tests {
         };
         let (value, tags) = resolve_store_value(&fetched, None);
         assert_eq!(value, "the full transcript text, unsummarized");
-        assert_eq!(tags, vec!["youtube", "transcript", "manual"]);
+        assert_eq!(tags, vec!["youtube", "transcript", "manual", LINK_CAPTURE_TAG]);
     }
 
     #[test]
@@ -2805,7 +2883,7 @@ mod tests {
             image_url: None,
         };
         let (_, tags) = resolve_store_value(&fetched, None);
-        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto", LINK_CAPTURE_TAG]);
     }
 
     #[test]
@@ -2821,11 +2899,59 @@ mod tests {
         let insight = kp::ExtractedInsight {
             summary: "a short summary".into(),
             topic: "software".into(),
+            entities: Vec::new(),
+            action_type: kp::ACTION_TYPE_NONE.into(),
             extraction_skipped: false,
         };
         let (value, tags) = resolve_store_value(&fetched, Some(&insight));
         assert_eq!(value, "a short summary");
-        assert_eq!(tags, vec!["github", "software"]);
+        assert_eq!(tags, vec!["github", "software", LINK_CAPTURE_TAG, "action:none"]);
+    }
+
+    // ── t-3312: extraction fields ride to the store as tags ───────────
+
+    #[test]
+    fn test_resolve_store_value_tags_entities_and_action_type() {
+        let fetched = kp::FetchedContent {
+            text: "raw fetched content".into(),
+            platform: "github",
+            caption_source: None,
+            image_url: None,
+        };
+        let insight = kp::ExtractedInsight {
+            summary: "a scraping framework".into(),
+            topic: "scraping".into(),
+            entities: vec!["Scrapy".into(), "Python".into()],
+            action_type: "tool-to-evaluate".into(),
+            extraction_skipped: false,
+        };
+        let (_, tags) = resolve_store_value(&fetched, Some(&insight));
+        assert_eq!(
+            tags,
+            vec![
+                "github",
+                "scraping",
+                LINK_CAPTURE_TAG,
+                "action:tool-to-evaluate",
+                "entity:Scrapy",
+                "entity:Python",
+            ]
+        );
+    }
+
+    #[test]
+    fn test_extraction_tags_strip_commas_from_entity_names() {
+        // Boundary: ruflo takes the tag list as one CSV argv, so a comma in
+        // an entity name would split it into two bogus tags.
+        let insight = kp::ExtractedInsight {
+            summary: "s".into(),
+            topic: "t".into(),
+            entities: vec!["Anthropic, Inc.".into(), "  ".into()],
+            action_type: "competitor-intel".into(),
+            extraction_skipped: false,
+        };
+        let tags = extraction_tags(&insight);
+        assert_eq!(tags, vec!["action:competitor-intel", "entity:Anthropic  Inc."]);
     }
 
     // Boundary (t-2950): caption_source should always be Some for a
@@ -2842,7 +2968,7 @@ mod tests {
             image_url: None,
         };
         let (_, tags) = resolve_store_value(&fetched, None);
-        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto", LINK_CAPTURE_TAG]);
     }
 
     // ── process-url batch mode (t-2451) ──────────────────────────────
@@ -4264,11 +4390,18 @@ Respond with JSON only:\n\
 // --- vector-sync (t-2620) ---------------------------------------------------
 
 /// `brana knowledge vector-sync` — sync the brana-owned vector store from
-/// ruflo `memory_entries` DBs (local-vector-recall.md). Idempotent: newest
-/// row per key wins across sources; unreadable sources are skipped loudly.
+/// ruflo `memory_entries` DBs (local-vector-recall.md), then score the synced
+/// link-capture and intelligence-feed rows for project relevance (t-3311).
+/// Idempotent: newest row per key wins across sources; unreadable sources are
+/// skipped loudly; the scoring pass is a full recompute.
+///
+/// Lock-free end to end (ADR-093 D2) — this handler sits outside every
+/// `lock_pipeline()` call site so it never contends with the 4h drain cron,
+/// and the scoring pass added here keeps that contract.
 pub fn cmd_vector_sync(
     sources: Vec<PathBuf>,
     dest: Option<PathBuf>,
+    tag_cap: Option<usize>,
     json: bool,
 ) -> Result<()> {
     let default_src = home().join(".swarm").join("memory.db");
@@ -4286,7 +4419,21 @@ pub fn cmd_vector_sync(
 
     let dest = dest.unwrap_or_else(brana_core::vector::knowledge_db_path);
     let stats = brana_core::vector::migrate_from_memory_entries(&readable, &dest)?;
-    let total = brana_core::vector::KnowledgeStore::open(&dest)?.count()?;
+    let store = brana_core::vector::KnowledgeStore::open(&dest)?;
+    let total = store.count()?;
+
+    // Scoring runs on committed rows, after the upsert — never inside it
+    // (ADR-093 D2). Same DB: `project_vectors` shares `knowledge.db`.
+    let projects = brana_core::project_vectors::ProjectVectorStore::open(&dest)?;
+    let tag_writer =
+        kp::RufloProjectTagWriter { namespace: PROCESS_URL_NAMESPACE.to_string() };
+    let scoring = kp::run_relevance_pass(
+        &store,
+        &projects,
+        &tag_writer,
+        kp::PROJECT_RELEVANCE_THRESHOLD,
+        tag_cap.unwrap_or(kp::PROJECT_TAG_CAP),
+    )?;
 
     if json {
         println!(
@@ -4300,6 +4447,16 @@ pub fn cmd_vector_sync(
                 "skipped_no_embedding": stats.skipped_no_embedding,
                 "deduped": stats.deduped,
                 "store_total": total,
+                "scoring": {
+                    "projects": scoring.projects,
+                    "rows_scanned": scoring.scanned,
+                    "scored": scoring.scored,
+                    "unscored": scoring.unscored,
+                    "tags_written": scoring.tags_written,
+                    "tags_deferred": scoring.tags_deferred,
+                    "tags_skipped": scoring.tags_skipped,
+                    "tag_failures": scoring.tag_failures,
+                },
             })
         );
     } else {
@@ -4308,6 +4465,240 @@ pub fn cmd_vector_sync(
             stats.scanned, readable.len(), stats.migrated, stats.deduped,
             stats.skipped_no_embedding, total, dest.display()
         );
+        if scoring.projects == 0 {
+            println!(
+                "scoring: no project vectors at {} — run `brana knowledge project-vectors` first (pass skipped)",
+                dest.display()
+            );
+        } else {
+            println!(
+                "scoring: {} row(s) against {} project vector(s) → {} scored, {} unscored; tags +{} ({} deferred by cap, {} skipped, {} failed)",
+                scoring.scanned, scoring.projects, scoring.scored, scoring.unscored,
+                scoring.tags_written, scoring.tags_deferred, scoring.tags_skipped,
+                scoring.tag_failures
+            );
+        }
+    }
+    Ok(())
+}
+
+// --- relevant (t-3313) ------------------------------------------------------
+
+/// Render a stored `created_at` as a bare date. `vector-sync` copies the value
+/// straight from ruflo's `memory_entries`, where it is epoch **milliseconds**
+/// (the status query above divides by 1000 for the same reason); fixtures and
+/// hand-written rows use epoch seconds. Anything past 1e11 cannot be a
+/// seconds timestamp for centuries, so treat it as milliseconds. An
+fn relevant_row_date(created_at: i64) -> String {
+    let secs = if created_at > 100_000_000_000 { created_at / 1000 } else { created_at };
+    chrono::DateTime::from_timestamp(secs, 0)
+        .map(|d| d.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| "?".to_string())
+}
+
+/// `brana knowledge relevant <project|thebrana> [--min-score N] [--json]` —
+/// list what the scoring pass tagged for one project, best score first.
+///
+/// Read-only by construction (idea doc §Layer 1 step 5): it opens the store,
+/// filters the committed `relevant_projects` / `for_thebrana` columns and
+/// prints them. No embedding, no LLM call, no synthesis and no proposal loop —
+/// Layer 2 stays deferred. This exists so Layer 1's tags are visible at all;
+/// without it they share t-1706's fate of being written and never read.
+///
+/// **`--min-score` has no non-zero default.** The task spec's provisional 0.5
+/// predates the 2026-09-07 live calibration, which measured a centroid-cosine
+/// ceiling of 0.39 across 2,705 rows — a 0.5 floor would print zero rows for
+/// every project, forever. The pass already gates its writes
+/// (`PROJECT_RELEVANCE_THRESHOLD` 0.25, `THEBRANA_RELEVANCE_THRESHOLD` 0.30),
+/// so showing everything stored is the honest default and the flag is the knob
+/// for narrowing while calibrating per-project thresholds.
+pub fn cmd_relevant(
+    project: &str,
+    min_score: Option<f32>,
+    dest: Option<PathBuf>,
+    json: bool,
+) -> Result<()> {
+    let dest = dest.unwrap_or_else(brana_core::vector::knowledge_db_path);
+    let min_score = min_score.unwrap_or(0.0);
+    let store = brana_core::vector::KnowledgeStore::open(&dest)?;
+    let rows = store.rows_relevant_to(project, min_score)?;
+
+    if json {
+        let items: Vec<_> = rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "key": r.key,
+                    // Rounded: serde_json has no f32, and the raw widening
+                    // renders 0.31 as 0.3100000023841858.
+                    "score": r.score_rounded(),
+                    "action_type": r.action_type,
+                    "summary": r.content,
+                    "created_at": r.created_at,
+                    "created_date": relevant_row_date(r.created_at),
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "project": project,
+                "min_score": brana_core::vector::round_reported_score(min_score),
+                "dest": dest,
+                "count": items.len(),
+                "rows": items,
+            })
+        );
+        return Ok(());
+    }
+
+    for r in &rows {
+        println!(
+            "{:.4}  {:18}  {}  {}",
+            r.score,
+            r.action_type.as_deref().unwrap_or("-"),
+            relevant_row_date(r.created_at),
+            r.key
+        );
+        println!("        {}", truncate(&r.content, 120));
+    }
+
+    if rows.is_empty() {
+        // "Nothing scored" and "this slug has no vector, so nothing could ever
+        // score" look identical in an empty list, and the second is the common
+        // case for a project missing from ~/.claude/tasks-portfolio.json.
+        let known = brana_core::project_vectors::ProjectVectorStore::open(&dest)?
+            .all()?
+            .iter()
+            .any(|p| p.slug == project);
+        if known {
+            println!(
+                "relevant: no rows for `{project}` at or above {min_score:.2} in {}",
+                dest.display()
+            );
+        } else {
+            println!(
+                "relevant: `{project}` has no project vector in {} — register it with a descriptor in ~/.claude/tasks-portfolio.json and run `brana knowledge project-vectors`, then `brana knowledge vector-sync`",
+                dest.display()
+            );
+        }
+    } else {
+        println!(
+            "relevant: {} row(s) for `{project}` at or above {min_score:.2} in {}",
+            rows.len(),
+            dest.display()
+        );
+    }
+    Ok(())
+}
+
+// --- project-vectors (t-3307) -----------------------------------------------
+
+/// `brana knowledge project-vectors` — embed one curated descriptor per
+/// portfolio project into the `project_vectors` table the link-scoring pass
+/// reads (project-descriptor-vectors.md).
+///
+/// Descriptors are authored by hand on the portfolio record; this command only
+/// embeds them, and only when the text changed since the last run.
+pub fn cmd_project_vectors(
+    portfolio: Option<PathBuf>,
+    dest: Option<PathBuf>,
+    docs: Option<PathBuf>,
+    force: bool,
+    list: bool,
+    json: bool,
+) -> Result<()> {
+    use brana_core::project_vectors as pv;
+
+    let dest = dest.unwrap_or_else(pv::project_vectors_db_path);
+    let store = pv::ProjectVectorStore::open(&dest)?;
+
+    if list {
+        let rows = store.all()?;
+        if json {
+            let items: Vec<_> = rows
+                .iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "slug": r.slug,
+                        "source": r.source,
+                        "updated_at": r.updated_at,
+                        "descriptor": r.descriptor,
+                        "descriptor_hash": r.descriptor_hash,
+                    })
+                })
+                .collect();
+            println!("{}", serde_json::json!({"dest": dest, "projects": items}));
+        } else if rows.is_empty() {
+            println!("project-vectors: no vectors stored at {}", dest.display());
+        } else {
+            for r in &rows {
+                println!("{:24} [{}] {}", r.slug, r.source, r.descriptor);
+            }
+            println!("project-vectors: {} vector(s) at {}", rows.len(), dest.display());
+        }
+        return Ok(());
+    }
+
+    let portfolio_path =
+        portfolio.unwrap_or_else(|| home().join(".claude").join("tasks-portfolio.json"));
+    let content = std::fs::read_to_string(&portfolio_path)
+        .with_context(|| format!("reading {}", portfolio_path.display()))?;
+    let parsed: serde_json::Value = serde_json::from_str(&content)
+        .with_context(|| format!("parsing {}", portfolio_path.display()))?;
+
+    let mut descriptors = pv::descriptors_from_portfolio(&parsed);
+    if descriptors.is_empty() {
+        eprintln!(
+            "⚠ no curated descriptors in {} — add a `descriptor` line per project",
+            portfolio_path.display()
+        );
+    }
+
+    // thebrana is the workshop, not a portfolio record: its vector is composed
+    // from the-brana.md plus the accepted ADRs.
+    let docs_root = docs
+        .or_else(|| find_project_root().map(|r| r.join("docs")))
+        .unwrap_or_else(|| PathBuf::from("docs"));
+    descriptors.push(pv::thebrana_descriptor(&docs_root));
+
+    let now = chrono::Utc::now().timestamp();
+    let stats = pv::sync_project_vectors(
+        &descriptors,
+        &store,
+        &brana_core::vector::RufloEmbedder,
+        now,
+        force,
+    )?;
+    let total = store.count()?;
+
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "dest": dest,
+                "portfolio": portfolio_path,
+                "docs": docs_root,
+                "embedded": stats.embedded,
+                "unchanged": stats.unchanged,
+                "failed": stats.failed,
+                "store_total": total,
+            })
+        );
+    } else {
+        println!(
+            "project-vectors: embedded {} · unchanged {} · failed {}. Store now holds {} vector(s) at {}",
+            stats.embedded.len(), stats.unchanged.len(), stats.failed.len(), total, dest.display()
+        );
+    }
+
+    if !stats.failed.is_empty() {
+        eprintln!("⚠ embedding unavailable for: {}", stats.failed.join(", "));
+        // Nothing landed and nothing was already current — the embedder is
+        // down, not a per-project quirk. Exit non-zero so the caller notices.
+        if stats.embedded.is_empty() && stats.unchanged.is_empty() {
+            bail!("no descriptor could be embedded — is ruflo reachable?");
+        }
     }
     Ok(())
 }

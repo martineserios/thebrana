@@ -854,6 +854,288 @@ Output: markdown section only (no frontmatter, no preamble).",
     )
 }
 
+// ── Project relevance scoring (idea doc §Layer 1 steps 1-2, ADR-093) ─────────
+
+/// Default cut-off for [`score_relevance`] over the *client* project vectors:
+/// a project below this score is not emitted, so an entry with no good home
+/// stays untagged rather than filed under its least-bad match.
+///
+/// Calibrated 2026-09-07 on the live store (2,705 link + feed rows, 12 client
+/// descriptors, centroid-subtracted cosine): best-score-per-row p50 0.12 ·
+/// p90 0.20 · p99 0.29 · max 0.39. 0.25 keeps the top ~3% of rows, and the
+/// known-relevant probes (agentic CRM → unlock, AI-Trader → trade_prof_man,
+/// MUZIM → eyedetect) all clear it while ordinary AI-tooling posts do not.
+/// The first draft's 0.5 admitted zero rows on this embedder.
+pub const PROJECT_RELEVANCE_THRESHOLD: f32 = 0.25;
+
+/// Cut-off for the `for_thebrana` score, which is **plain** cosine against
+/// thebrana's own vector — never part of the client centroid set. thebrana's
+/// descriptor (the-brana.md cover + ADR titles) is about agents and loops, and
+/// so is most of the captured corpus: inside the centroid set its residual
+/// dominated every row (p50 0.48) and no client could ever win. Scored apart,
+/// plain cosine p50 0.12 · p90 0.24 · p99 0.35 · max 0.44; 0.30 keeps the top
+/// ~3% (harness-engineering, agent-loop posts) and drops the rest.
+pub const THEBRANA_RELEVANCE_THRESHOLD: f32 = 0.30;
+
+/// Score one entry against every known project by *centroid-subtracted*
+/// cosine similarity, keeping only projects at or above `threshold`.
+///
+/// `project_vecs` are `(project, vector)`; the return is `(project, score)`
+/// sorted by score descending. Plain cosine over project vectors is dominated
+/// by the boilerplate every project shares (READMEs, setup/build/test prose),
+/// which floors every project's similarity high enough that a threshold either
+/// tags all of them or none. Subtracting the centroid of all project vectors
+/// from both sides first cancels that shared component, so what remains is the
+/// part of the entry that actually discriminates *between* projects.
+///
+/// Never forces a tag: an entry that clears the threshold for nothing returns
+/// an empty vec rather than its least-bad match. `threshold` has no default in
+/// the signature — callers pass [`PROJECT_RELEVANCE_THRESHOLD`] unless they
+/// have a calibrated one. Pure and deterministic — same input, same output, no
+/// I/O and no embedding call (the caller embeds).
+///
+/// **n=1 falls back to plain cosine** (t-3309 decision): with a single project
+/// the centroid *is* that project's vector, so every residual is the zero
+/// vector and nothing could ever score. There is nothing to discriminate
+/// *between* with one project, so plain cosine against it is the best signal
+/// available — and scoring nothing would make the whole feature a silent
+/// no-op until a second project is registered. The threshold still gates it.
+///
+/// Degenerate input yields no scores rather than wrong ones: no projects, an
+/// empty dimension, or vectors whose lengths disagree all return an empty vec.
+pub fn score_relevance(
+    entry_vec: &[f32],
+    project_vecs: &[(String, Vec<f32>)],
+    threshold: f32,
+) -> Vec<(String, f32)> {
+    let Some((first_project, first_vec)) = project_vecs.first() else {
+        return Vec::new();
+    };
+    let dim = first_vec.len();
+    if dim == 0 || entry_vec.len() != dim || project_vecs.iter().any(|(_, v)| v.len() != dim) {
+        return Vec::new();
+    }
+
+    let mut scored: Vec<(String, f32)> = if project_vecs.len() == 1 {
+        vec![(first_project.clone(), cosine_sim(entry_vec, first_vec))]
+    } else {
+        let mut centroid = vec![0.0f32; dim];
+        for (_, v) in project_vecs {
+            for (c, x) in centroid.iter_mut().zip(v) {
+                *c += *x;
+            }
+        }
+        let n = project_vecs.len() as f32;
+        for c in centroid.iter_mut() {
+            *c /= n;
+        }
+        let residual =
+            |v: &[f32]| -> Vec<f32> { v.iter().zip(&centroid).map(|(x, c)| x - c).collect() };
+        let entry_residual = residual(entry_vec);
+        project_vecs
+            .iter()
+            .map(|(project, v)| {
+                (project.clone(), cosine_sim(&entry_residual, &residual(v.as_slice())))
+            })
+            .collect()
+    };
+
+    scored.retain(|(_, score)| *score >= threshold);
+    // Stable sort: equal scores keep their input order, so a re-run over an
+    // unchanged project set never silently re-orders (determinism test).
+    scored.sort_by(|a, b| b.1.total_cmp(&a.1));
+    scored
+}
+
+// ── Post-sync relevance pass (idea doc §Layer 1 step 2, ADR-093 D2) ──────────
+
+/// Per-run cap on ruflo-side `project:<slug>` tag writes.
+///
+/// ruflo exposes no tag-only update — the tag CSV rides on `memory store
+/// --upsert`, so one tag costs a retrieve plus a store plus a re-embed.
+/// Uncapped, the first pass over a couple of thousand freshly scored rows
+/// would run for hours inside a 600s scheduler slot. Per-run cap rather than a
+/// watermark (pattern_per-run-cap-backlog-draining, t-2076): the pass is a
+/// full recompute and only writes tags a row is actually missing, so the
+/// remainder is picked up by the next run and the backlog drains over a few
+/// passes before settling at zero writes.
+pub const PROJECT_TAG_CAP: usize = 25;
+
+/// Ruflo-side tag write seam, mirroring [`crate::vector::Embedder`]: the pass
+/// stays testable without a `ruflo` binary or a live `memory.db`.
+pub trait ProjectTagWriter {
+    /// Rewrite `key`'s tag set to exactly `tags`.
+    ///
+    /// `Ok(false)` reports a benign skip — the entry is no longer in ruflo, or
+    /// its value cannot survive the round trip — as distinct from `Err`, which
+    /// is a write that should have worked and didn't.
+    fn write_tags(&self, key: &str, tags: &[String]) -> Result<bool>;
+}
+
+/// Production [`ProjectTagWriter`]: `ruflo memory store --upsert --tags`.
+pub struct RufloProjectTagWriter {
+    /// ruflo namespace the entries live in (`knowledge` in production).
+    pub namespace: String,
+}
+
+impl ProjectTagWriter for RufloProjectTagWriter {
+    fn write_tags(&self, key: &str, tags: &[String]) -> Result<bool> {
+        // The tag CSV only moves through `memory store`, which needs the
+        // value. Read it back from ruflo rather than replaying knowledge.db's
+        // mirrored copy, so adding a tag can never resurrect stale content.
+        let Some(value) = crate::ruflo::ruflo_memory_get(key, &self.namespace)? else {
+            return Ok(false);
+        };
+        // `memory store` transports the value through argv and truncates past
+        // this limit (t-3096). Losing the tail of a stored transcript is a
+        // real cost; a coarse `project:` tag is not worth paying it.
+        if value.len() > crate::ruflo::MAX_ARGV_VALUE_BYTES {
+            return Ok(false);
+        }
+        let refs: Vec<&str> = tags.iter().map(String::as_str).collect();
+        // scan_on_write=false for the same reason `process-url` passes it
+        // (t-3097): these rows are fetched content, and MemPoison's phrase
+        // scan false-positives on legitimate transcripts about prompting.
+        crate::ruflo::ruflo_memory_store(key, &value, &self.namespace, &refs, false)?;
+        Ok(true)
+    }
+}
+
+/// Counts from one [`run_relevance_pass`], logged per run.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct RelevancePassStats {
+    /// Project vectors the run scored against.
+    pub projects: usize,
+    /// Link-capture and intelligence-feed rows read.
+    pub scanned: usize,
+    /// Rows where at least one project cleared the threshold.
+    pub scored: usize,
+    /// Rows that cleared nothing — stored as an empty `relevant_projects`.
+    pub unscored: usize,
+    /// Ruflo entries that gained a `project:<slug>` tag this run.
+    pub tags_written: usize,
+    /// Rows still missing a tag, left for the next run by the cap.
+    pub tags_deferred: usize,
+    /// Rows the writer declined (gone from ruflo, or too large to round-trip).
+    pub tags_skipped: usize,
+    /// Tag writes that errored. Never fatal — the scores are already committed.
+    pub tag_failures: usize,
+}
+
+/// Scores are a gauge, not a measurement: four decimals is more precision than
+/// a cosine over 384 dims justifies, and it keeps the stored JSON readable —
+/// an `f32` widened to `f64` renders 0.71 as 0.7099999785423279.
+fn round_score(score: f32) -> f64 {
+    (score as f64 * 10_000.0).round() / 10_000.0
+}
+
+/// Score every link-capture and intelligence-feed row in `store` against the
+/// current project vectors, write `relevant_projects` / `for_thebrana`, and
+/// add `project:<slug>` tags on the ruflo side for rows over threshold.
+///
+/// **Full recompute every run** (ADR-093 D2): the project set is rebuilt from
+/// `projects` each time and every eligible row is re-scored, so a descriptor
+/// edit, a rename or an archived project needs no versioning, no partial
+/// re-score and no scrub step. ~300 link rows plus ~1,800 feed rows × 384 dims
+/// is milliseconds of vector math.
+///
+/// **Lock-free**: it reads and writes `knowledge.db` only, and reaches ruflo
+/// through its CLI — it never takes [`lock_pipeline`], which the 4h drain cron
+/// holds for a whole invocation.
+///
+/// `relevant_projects` is always written, `[]` included, so a NULL there means
+/// "the pass has not run for this row" and nothing else. `for_thebrana` holds
+/// thebrana's score only when it clears `threshold` — the pass records a
+/// below-threshold score no more than `relevant_projects` lists one.
+///
+/// Ruflo tags are additive: a slug that drops out of the portfolio vanishes
+/// from `relevant_projects` on the next run, but its old tag stays, since
+/// ADR-093 D2 takes no scrub step.
+pub fn run_relevance_pass(
+    store: &crate::vector::KnowledgeStore,
+    projects: &crate::project_vectors::ProjectVectorStore,
+    tag_writer: &dyn ProjectTagWriter,
+    threshold: f32,
+    tag_cap: usize,
+) -> Result<RelevancePassStats> {
+    use crate::project_vectors::THEBRANA_SLUG;
+
+    let all_vecs: Vec<(String, Vec<f32>)> =
+        projects.all()?.into_iter().map(|p| (p.slug, p.vec)).collect();
+    let mut stats = RelevancePassStats { projects: all_vecs.len(), ..Default::default() };
+    // thebrana is scored apart, by plain cosine against its own vector: its
+    // descriptor is about agents and loops, like most of the corpus, so inside
+    // the client centroid set its residual dominates every row and no client
+    // can win (live calibration 2026-09-07). Clients keep the centroid method.
+    let (thebrana_vecs, project_vecs): (Vec<_>, Vec<_>) =
+        all_vecs.into_iter().partition(|(slug, _)| slug.as_str() == THEBRANA_SLUG);
+    let thebrana_vec = thebrana_vecs.into_iter().next().map(|(_, v)| v);
+    // An empty table means `brana knowledge project-vectors` has not run yet,
+    // not that every project was archived. Wiping every stored score because a
+    // prerequisite job is missing is worse than leaving it as it was.
+    if project_vecs.is_empty() && thebrana_vec.is_none() {
+        return Ok(stats);
+    }
+
+    let rows = store.rows_with_vec(crate::vector::RowFilter::LinkAndFeed)?;
+    stats.scanned = rows.len();
+
+    let mut pending_tags: Vec<(String, Vec<String>)> = Vec::new();
+    for row in &rows {
+        let mut scored = score_relevance(&row.vec, &project_vecs, threshold);
+        let for_thebrana = thebrana_vec
+            .as_deref()
+            .map(|tb| crate::vector::cosine(&row.vec, tb))
+            .filter(|s| *s >= THEBRANA_RELEVANCE_THRESHOLD);
+        if let Some(s) = for_thebrana {
+            scored.push((THEBRANA_SLUG.to_string(), s));
+        }
+        let relevant: Vec<serde_json::Value> = scored
+            .iter()
+            .filter(|(slug, _)| slug.as_str() != THEBRANA_SLUG)
+            .map(|(project, score)| {
+                serde_json::json!({"project": project, "score": round_score(*score)})
+            })
+            .collect();
+        let json = serde_json::to_string(&relevant)
+            .with_context(|| format!("encoding relevant_projects for {}", row.key))?;
+        store.set_relevance(&row.key, Some(json.as_str()), for_thebrana)?;
+
+        if scored.is_empty() {
+            stats.unscored += 1;
+            continue;
+        }
+        stats.scored += 1;
+
+        let mut tags = crate::vector::parse_tags(row.tags.as_deref().unwrap_or(""));
+        let before = tags.len();
+        for (slug, _) in &scored {
+            let tag = format!("project:{slug}");
+            if !tags.contains(&tag) {
+                tags.push(tag);
+            }
+        }
+        if tags.len() > before {
+            pending_tags.push((row.key.clone(), tags));
+        }
+    }
+
+    stats.tags_deferred = pending_tags.len().saturating_sub(tag_cap);
+    for (key, tags) in pending_tags.into_iter().take(tag_cap) {
+        match tag_writer.write_tags(&key, &tags) {
+            Ok(true) => stats.tags_written += 1,
+            Ok(false) => stats.tags_skipped += 1,
+            // One unwritable entry must not abandon the rest of the slice, and
+            // the scores it belongs to are already committed either way.
+            Err(e) => {
+                eprintln!("⚠ project tag write failed for {key}: {e}");
+                stats.tag_failures += 1;
+            }
+        }
+    }
+    Ok(stats)
+}
+
 /// Result of a URL content fetch (ADR-070 three-tier fetch mechanism).
 ///
 /// `caption_source` is `Some("manual"|"auto")` only for `platform ==
@@ -3003,7 +3285,36 @@ pub fn migrate_urls_to_canonical_keys(state: &mut PipelineState) -> KeyMigration
 pub struct ExtractedInsight {
     pub summary: String,
     pub topic: String,
+    /// Named tools, products or people the content is about (t-3312).
+    /// Empty when the model omitted the field — which is every response
+    /// produced before the prompt started asking for it.
+    #[serde(default)]
+    pub entities: Vec<String>,
+    /// One of [`EXTRACTION_ACTION_TYPES`]; [`ACTION_TYPE_NONE`] when the model
+    /// omitted it or answered with a label outside the set (t-3312).
+    #[serde(default = "action_type_none")]
+    pub action_type: String,
     pub extraction_skipped: bool,
+}
+
+/// The `action_type` labels the extraction prompt offers (idea doc §Layer 1
+/// step 4). The parse normalizes anything else — an invented label, a missing
+/// field — to [`ACTION_TYPE_NONE`], so the stored column only ever holds one
+/// of these.
+pub const EXTRACTION_ACTION_TYPES: &[&str] =
+    &["tool-to-evaluate", "technique-to-adopt", "read-later", "competitor-intel", "none"];
+
+/// The `action_type` meaning "nothing actionable here" — also what an absent
+/// or unrecognized label reads as.
+pub const ACTION_TYPE_NONE: &str = "none";
+
+/// How many entities one response contributes, matching what the prompt asks
+/// for. A cap because the entities ride to the store as tags, and ruflo takes
+/// its whole tag list as a single argv (`ruflo.rs::ruflo_memory_store`).
+pub const EXTRACTION_MAX_ENTITIES: usize = 5;
+
+fn action_type_none() -> String {
+    ACTION_TYPE_NONE.to_string()
 }
 
 /// Truncation length for the raw-text fallback tier (both agy and claude -p failed).
@@ -3021,10 +3332,15 @@ pub fn extract_insight(content: &str, platform: &str) -> ExtractedInsight {
 }
 
 fn extraction_prompt(content: &str) -> String {
+    let action_types = EXTRACTION_ACTION_TYPES.join(" | ");
     format!(
         "Summarize the following content into a short knowledge-base insight. \
-         Respond ONLY with JSON of the shape {{\"summary\": \"...\", \"topic\": \"...\"}} \
-         (topic = a short 1-3 word category label). Content:\n\n{content}"
+         Respond ONLY with JSON of the shape {{\"summary\": \"...\", \"topic\": \"...\", \
+         \"entities\": [\"...\"], \"action_type\": \"...\"}} \
+         (topic = a short 1-3 word category label; \
+         entities = up to {EXTRACTION_MAX_ENTITIES} named tools, products or people the \
+         content is about, [] if none; \
+         action_type = exactly one of {action_types}). Content:\n\n{content}"
     )
 }
 
@@ -3050,13 +3366,22 @@ fn resolve_extraction(
         }
     }
     let truncated: String = content.chars().take(EXTRACTION_RAW_TRUNCATE_CHARS).collect();
-    ExtractedInsight { summary: truncated, topic: platform.to_string(), extraction_skipped: true }
+    ExtractedInsight {
+        summary: truncated,
+        topic: platform.to_string(),
+        entities: Vec::new(),
+        action_type: action_type_none(),
+        extraction_skipped: true,
+    }
 }
 
-/// Parses `{"summary": "...", "topic": "..."}` from a model JSON response.
-/// `summary` is required (`None` on a malformed/missing field — the caller
-/// then falls through to the next tier); `topic` defaults to `platform`
-/// when the model omits it.
+/// Parses `{"summary", "topic", "entities", "action_type"}` from a model JSON
+/// response. `summary` is required (`None` on a malformed/missing field — the
+/// caller then falls through to the next tier); `topic` defaults to
+/// `platform` when the model omits it, and the two t-3312 fields default to
+/// empty / [`ACTION_TYPE_NONE`]. Defaulting rather than requiring them is what
+/// keeps a response in the old two-field shape parsing: a model that ignores
+/// the new keys must never cost its tier the summary it did produce.
 fn parse_extraction_response(v: &serde_json::Value, platform: &str) -> Option<ExtractedInsight> {
     let summary = v.get("summary")?.as_str()?.to_string();
     let topic = v
@@ -3064,7 +3389,42 @@ fn parse_extraction_response(v: &serde_json::Value, platform: &str) -> Option<Ex
         .and_then(|t| t.as_str())
         .unwrap_or(platform)
         .to_string();
-    Some(ExtractedInsight { summary, topic, extraction_skipped: false })
+    Some(ExtractedInsight {
+        summary,
+        topic,
+        entities: parse_entities(v.get("entities")),
+        action_type: parse_action_type(v.get("action_type")),
+        extraction_skipped: false,
+    })
+}
+
+/// `entities` → at most [`EXTRACTION_MAX_ENTITIES`] trimmed, non-empty
+/// strings. A missing field, a non-array, or non-string array members all
+/// yield what they contribute — nothing — rather than failing the parse.
+fn parse_entities(v: Option<&serde_json::Value>) -> Vec<String> {
+    v.and_then(|e| e.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|e| e.as_str())
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .take(EXTRACTION_MAX_ENTITIES)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// `action_type` → one of [`EXTRACTION_ACTION_TYPES`]. An absent field or a
+/// label the model invented reads as [`ACTION_TYPE_NONE`], so downstream
+/// filters (Layer 2's `tool-to-evaluate` / `technique-to-adopt` sweep) never
+/// have to guess at a free-text value.
+fn parse_action_type(v: Option<&serde_json::Value>) -> String {
+    v.and_then(|a| a.as_str())
+        .map(str::trim)
+        .filter(|a| EXTRACTION_ACTION_TYPES.contains(a))
+        .unwrap_or(ACTION_TYPE_NONE)
+        .to_string()
 }
 
 // ── Gemini CLI shell-out (call_gemini_json — ADR-040 Tier1/Tier2 routing) ────
@@ -5430,6 +5790,9 @@ id3
 
     // ── resolve_extraction (agy → claude-p → raw fallback) ─────────────
 
+    /// A response in the pre-t-3312 two-field shape — still the majority of
+    /// what these tests exercise, because the new fields must never be what
+    /// decides whether a tier's answer is usable.
     fn valid_response(summary: &str, topic: &str) -> serde_json::Value {
         serde_json::json!({"summary": summary, "topic": topic})
     }
@@ -5450,6 +5813,44 @@ id3
         assert_eq!(insight.topic, "rust");
         assert!(!insight.extraction_skipped);
         assert!(!claude_called.get(), "agy succeeded — claude -p must not be invoked");
+    }
+
+    #[test]
+    fn resolve_extraction_carries_entities_and_action_type_through() {
+        let insight = resolve_extraction(
+            Ok(serde_json::json!({
+                "summary": "a scraping framework",
+                "topic": "scraping",
+                "entities": ["Scrapy", "Python"],
+                "action_type": "tool-to-evaluate",
+            })),
+            || bail!("should not be called"),
+            "raw content",
+            "github",
+        );
+        assert_eq!(insight.entities, vec!["Scrapy", "Python"]);
+        assert_eq!(insight.action_type, "tool-to-evaluate");
+    }
+
+    #[test]
+    fn resolve_extraction_old_two_field_response_still_parses() {
+        // Regression guard (t-3312): the two new fields are optional, so a
+        // model that ignores them keeps its summary instead of falling
+        // through to the next tier.
+        let claude_called = std::cell::Cell::new(false);
+        let insight = resolve_extraction(
+            Ok(valid_response("agy summary", "rust")),
+            || {
+                claude_called.set(true);
+                bail!("should not be called")
+            },
+            "raw content",
+            "other",
+        );
+        assert_eq!(insight.summary, "agy summary");
+        assert!(insight.entities.is_empty());
+        assert_eq!(insight.action_type, ACTION_TYPE_NONE);
+        assert!(!claude_called.get(), "a response without the new fields is not a failed tier");
     }
 
     #[test]
@@ -5488,6 +5889,8 @@ id3
         );
         assert_eq!(insight.summary, "the raw fetched content");
         assert_eq!(insight.topic, "linkedin", "topic falls back to platform when both fail");
+        assert!(insight.entities.is_empty(), "nothing extracted the fields, so nothing is claimed");
+        assert_eq!(insight.action_type, ACTION_TYPE_NONE);
         assert!(insight.extraction_skipped);
     }
 
@@ -5525,6 +5928,59 @@ id3
     fn parse_extraction_response_missing_summary_returns_none() {
         let v = serde_json::json!({"topic": "rust"});
         assert!(parse_extraction_response(&v, "other").is_none());
+    }
+
+    #[test]
+    fn parse_extraction_response_missing_new_fields_defaults() {
+        let v = serde_json::json!({"summary": "hi", "topic": "rust"});
+        let insight = parse_extraction_response(&v, "github").unwrap();
+        assert!(insight.entities.is_empty());
+        assert_eq!(insight.action_type, ACTION_TYPE_NONE);
+    }
+
+    #[test]
+    fn parse_extraction_response_unknown_action_type_normalizes_to_none() {
+        // Boundary: the model invents a label outside the enum. The column
+        // downstream filters read must never hold free text.
+        let v = serde_json::json!({"summary": "hi", "action_type": "buy-immediately"});
+        let insight = parse_extraction_response(&v, "other").unwrap();
+        assert_eq!(insight.action_type, ACTION_TYPE_NONE);
+    }
+
+    #[test]
+    fn parse_extraction_response_action_type_is_trimmed() {
+        let v = serde_json::json!({"summary": "hi", "action_type": " read-later "});
+        let insight = parse_extraction_response(&v, "other").unwrap();
+        assert_eq!(insight.action_type, "read-later");
+    }
+
+    #[test]
+    fn parse_extraction_response_entities_capped_and_cleaned() {
+        // Boundary: over-long list, blank members, and a non-string member —
+        // none of which may fail the parse or unbound the tag list.
+        let v = serde_json::json!({
+            "summary": "hi",
+            "entities": ["a", " b ", "", 7, "c", "d", "e", "f"],
+        });
+        let insight = parse_extraction_response(&v, "other").unwrap();
+        assert_eq!(insight.entities, vec!["a", "b", "c", "d", "e"]);
+        assert_eq!(insight.entities.len(), EXTRACTION_MAX_ENTITIES);
+    }
+
+    #[test]
+    fn parse_extraction_response_non_array_entities_is_empty() {
+        let v = serde_json::json!({"summary": "hi", "entities": "Scrapy"});
+        let insight = parse_extraction_response(&v, "other").unwrap();
+        assert!(insight.entities.is_empty());
+    }
+
+    #[test]
+    fn extraction_prompt_asks_for_both_new_fields() {
+        let prompt = extraction_prompt("body");
+        assert!(prompt.contains("entities"), "prompt must request entities: {prompt}");
+        for action_type in EXTRACTION_ACTION_TYPES {
+            assert!(prompt.contains(*action_type), "prompt must offer {action_type}: {prompt}");
+        }
     }
 
     // ── build_claude_args ─────────────────────────────────────────────
@@ -6693,6 +7149,509 @@ id3
             "excerpts must be truncated, not full transcripts"
         );
         assert!(prompt.len() < DRAFT_EXCERPT_CHARS + 2000, "prompt stays within excerpt budget");
+    }
+
+    // ── score_relevance (contract pinned by t-3308, green as of t-3309) ───
+    // Idea doc §Layer 1 steps 1-2: score a log entry against every known
+    // project by cosine over embeddings, but subtract the centroid of the
+    // project vectors first so the boilerplate every project shares (README
+    // prose, setup/build/test instructions) cancels instead of propping up
+    // every score. Contract pinned here: threshold filtering, descending
+    // order, empty-not-forced tagging, determinism — plus the n=1 fallback
+    // t-3309 decided. Vectors come from `BagOfWordsEmbedder` above, the same
+    // no-subprocess fake the LongForm tier tests use.
+
+    /// Prose every project's corpus carries — the noise centroid subtraction
+    /// is supposed to cancel.
+    const PROJECT_BOILERPLATE: &str =
+        "readme setup install usage license contributing build test run docs changelog";
+
+    fn project_corpus(topic: &str) -> String {
+        format!("{PROJECT_BOILERPLATE} {topic}")
+    }
+
+    /// The three projects an entry is scored against, embedded.
+    fn relevance_fixture() -> Vec<(String, Vec<f32>)> {
+        use crate::vector::Embedder;
+        [
+            ("billing", "invoicing billing payments stripe subscriptions refunds"),
+            ("infra", "kubernetes cluster deployment helm ingress terraform"),
+            ("bakery", "sourdough baking flour hydration starter oven"),
+        ]
+        .into_iter()
+        .map(|(slug, topic)| {
+            let v = BagOfWordsEmbedder
+                .embed(&project_corpus(topic))
+                .expect("fixture corpus embeds");
+            (slug.to_string(), v)
+        })
+        .collect()
+    }
+
+    /// A log entry that belongs to `billing`, written in the same
+    /// boilerplate-heavy register as the project corpora.
+    fn billing_entry_vec() -> Vec<f32> {
+        use crate::vector::Embedder;
+        BagOfWordsEmbedder
+            .embed(&format!(
+                "{PROJECT_BOILERPLATE} shipped stripe subscriptions billing invoicing \
+                 refunds today"
+            ))
+            .expect("fixture entry embeds")
+    }
+
+    #[test]
+    fn test_score_relevance_centroid_subtraction_cancels_shared_boilerplate() {
+        // The load-bearing property. Under plain cosine the shared
+        // boilerplate floors EVERY project above 0.5, so a 0.5 threshold
+        // tags an entry with all three projects — including sourdough
+        // baking. Subtracting the project centroid first must leave only
+        // the project the entry is actually about.
+        let projects = relevance_fixture();
+        let entry = billing_entry_vec();
+
+        let plain: Vec<&str> = projects
+            .iter()
+            .filter(|(_, v)| cosine_sim(&entry, v) >= 0.5)
+            .map(|(p, _)| p.as_str())
+            .collect();
+        assert_eq!(
+            plain.len(),
+            3,
+            "fixture precondition: plain cosine must over-tag (boilerplate floor), got {plain:?}"
+        );
+
+        let scored = score_relevance(&entry, &projects, 0.5);
+        assert_eq!(
+            scored.iter().map(|(p, _)| p.as_str()).collect::<Vec<_>>(),
+            vec!["billing"],
+            "centroid subtraction must cancel the shared boilerplate that made \
+             every project clear the threshold"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_returns_scores_sorted_descending() {
+        // A permissive threshold keeps every project, so ordering — not
+        // filtering — is what is under test: callers read the head of the
+        // list as the best match.
+        let projects = relevance_fixture();
+        let scored = score_relevance(&billing_entry_vec(), &projects, -1.0);
+        assert_eq!(scored.len(), 3, "a -1.0 threshold excludes nothing");
+        assert_eq!(scored[0].0, "billing", "the entry's own project ranks first");
+        for pair in scored.windows(2) {
+            assert!(
+                pair[0].1 >= pair[1].1,
+                "scores must be sorted descending, got {scored:?}"
+            );
+        }
+        assert!(
+            scored.iter().all(|(_, s)| (-1.0..=1.0).contains(s)),
+            "cosine scores stay in [-1, 1], got {scored:?}"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_empty_when_nothing_clears_threshold() {
+        // Never force a tag: an entry with no good home is untagged, not
+        // filed under its least-bad match.
+        let projects = relevance_fixture();
+        let scored = score_relevance(&billing_entry_vec(), &projects, 0.99);
+        assert!(
+            scored.is_empty(),
+            "nothing clears a 0.99 threshold — must return empty, not a best guess, got {scored:?}"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_no_projects_scores_nothing() {
+        // Degenerate input (no projects known yet) returns empty rather
+        // than panicking on an undefined centroid.
+        let scored = score_relevance(&billing_entry_vec(), &[], 0.0);
+        assert!(scored.is_empty(), "no projects to score against, got {scored:?}");
+    }
+
+    #[test]
+    fn test_score_relevance_single_project_falls_back_to_plain_cosine() {
+        // t-3309 decision: with one project the centroid IS its vector, so
+        // every residual is the zero vector and nothing could score. Scoring
+        // by plain cosine instead keeps the feature working before a second
+        // project is registered — the threshold still gates the result.
+        let projects: Vec<(String, Vec<f32>)> = relevance_fixture().into_iter().take(1).collect();
+        let entry = billing_entry_vec();
+
+        let scored = score_relevance(&entry, &projects, 0.5);
+        assert_eq!(
+            scored,
+            vec![("billing".to_string(), cosine_sim(&entry, &projects[0].1))],
+            "n=1 must score by plain cosine rather than return nothing"
+        );
+        assert!(
+            score_relevance(&entry, &projects, 0.99).is_empty(),
+            "the n=1 fallback is still threshold-gated, not an unconditional tag"
+        );
+    }
+
+    #[test]
+    fn test_score_relevance_is_deterministic() {
+        // Same entry, same projects, same threshold — byte-identical
+        // output, so a re-run never silently re-tags an entry.
+        let projects = relevance_fixture();
+        let entry = billing_entry_vec();
+        let first = score_relevance(&entry, &projects, 0.0);
+        let second = score_relevance(&entry, &projects, 0.0);
+        assert_eq!(first, second, "score_relevance must be pure and deterministic");
+    }
+
+    // ── run_relevance_pass (t-3311) ───────────────────────────────────────
+    // The post-sync pass ADR-093 D2 places inside `vector-sync`: read the
+    // link-capture and intelligence-feed rows out of knowledge.db, score them
+    // against the current project vectors, write the two enrichment columns,
+    // and tag the ruflo side in capped slices. Fixtures use `EMBED_DIM` unit
+    // vectors rather than `BagOfWordsEmbedder` (64 dims) because both stores
+    // reject anything that is not `EMBED_DIM` long.
+
+    use crate::project_vectors::{ProjectVectorStore, THEBRANA_SLUG};
+    use crate::vector::{EMBED_DIM, KnowledgeStore};
+
+    fn relevance_unit(dim_hot: usize) -> Vec<f32> {
+        let mut v = vec![0.0_f32; EMBED_DIM];
+        v[dim_hot] = 1.0;
+        v
+    }
+
+    /// Records what it was asked to write instead of shelling out to ruflo.
+    struct RecordingTagWriter {
+        writes: std::sync::Mutex<Vec<(String, Vec<String>)>>,
+        /// Keys the writer declines (the "gone from ruflo" / "too big" cases).
+        skip: Vec<String>,
+    }
+
+    impl RecordingTagWriter {
+        fn new() -> Self {
+            Self { writes: std::sync::Mutex::new(Vec::new()), skip: Vec::new() }
+        }
+        fn skipping(key: &str) -> Self {
+            Self { writes: std::sync::Mutex::new(Vec::new()), skip: vec![key.to_string()] }
+        }
+        fn writes(&self) -> Vec<(String, Vec<String>)> {
+            self.writes.lock().unwrap().clone()
+        }
+    }
+
+    impl ProjectTagWriter for RecordingTagWriter {
+        fn write_tags(&self, key: &str, tags: &[String]) -> Result<bool> {
+            if self.skip.iter().any(|k| k == key) {
+                return Ok(false);
+            }
+            self.writes.lock().unwrap().push((key.to_string(), tags.to_vec()));
+            Ok(true)
+        }
+    }
+
+    /// A knowledge.db holding three projects — one of them thebrana — plus
+    /// whatever `rows` the caller wants scored.
+    fn relevance_pass_fixture(
+        db: &Path,
+        rows: &[(&str, &str, Vec<f32>)],
+    ) -> (KnowledgeStore, ProjectVectorStore) {
+        let store = KnowledgeStore::open(db).unwrap();
+        let projects = ProjectVectorStore::open(db).unwrap();
+        for (slug, hot) in [("alpha", 0), ("beta", 1), (THEBRANA_SLUG, 2)] {
+            projects.upsert(slug, slug, "portfolio", 1, &relevance_unit(hot)).unwrap();
+        }
+        for (i, (key, tags, vec)) in rows.iter().enumerate() {
+            store
+                .upsert(key, "content", Some(*tags), Some("memory_entries"), i as i64, vec)
+                .unwrap();
+        }
+        (store, projects)
+    }
+
+    #[test]
+    fn test_relevance_pass_writes_columns_and_tags_over_threshold() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (store, projects) = relevance_pass_fixture(
+            &tmp.path().join("knowledge.db"),
+            &[("knowledge:url:alpha", "linkedin,agents", relevance_unit(0))],
+        );
+        let writer = RecordingTagWriter::new();
+
+        let stats = run_relevance_pass(
+            &store,
+            &projects,
+            &writer,
+            PROJECT_RELEVANCE_THRESHOLD,
+            PROJECT_TAG_CAP,
+        )
+        .unwrap();
+
+        assert_eq!(stats.projects, 3);
+        assert_eq!(stats.scanned, 1);
+        assert_eq!(stats.scored, 1);
+        assert_eq!(stats.unscored, 0);
+        assert_eq!(stats.tags_written, 1);
+
+        let e = store.enrichment("knowledge:url:alpha").unwrap().unwrap();
+        let relevant: serde_json::Value =
+            serde_json::from_str(e.relevant_projects.as_deref().unwrap()).unwrap();
+        assert_eq!(relevant.as_array().unwrap().len(), 1, "only alpha clears: {relevant}");
+        assert_eq!(relevant[0]["project"], "alpha");
+        assert_eq!(relevant[0]["score"], 1.0, "an exact match rounds to a clean 1.0");
+        assert_eq!(e.for_thebrana, None, "thebrana scored below threshold — not recorded");
+
+        // The tag is added to the existing CSV, never replacing it.
+        assert_eq!(
+            writer.writes(),
+            vec![(
+                "knowledge:url:alpha".to_string(),
+                vec!["linkedin".to_string(), "agents".to_string(), "project:alpha".to_string()]
+            )]
+        );
+    }
+
+    #[test]
+    fn test_relevance_pass_splits_thebrana_out_of_relevant_projects() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (store, projects) = relevance_pass_fixture(
+            &tmp.path().join("knowledge.db"),
+            &[("knowledge:url:brana", "github", relevance_unit(2))],
+        );
+        let writer = RecordingTagWriter::new();
+        run_relevance_pass(&store, &projects, &writer, PROJECT_RELEVANCE_THRESHOLD, PROJECT_TAG_CAP)
+            .unwrap();
+
+        let e = store.enrichment("knowledge:url:brana").unwrap().unwrap();
+        assert_eq!(
+            e.relevant_projects.as_deref(),
+            Some("[]"),
+            "thebrana belongs in for_thebrana, never in relevant_projects"
+        );
+        let score = e.for_thebrana.expect("thebrana cleared the threshold");
+        assert!((score - 1.0).abs() < 1e-5, "exact match scores ~1.0, got {score}");
+        assert_eq!(writer.writes()[0].1.last().unwrap(), "project:thebrana");
+    }
+
+    #[test]
+    fn test_relevance_pass_records_an_empty_list_when_nothing_clears() {
+        // `relevant_projects` is written on every scored row, `[]` included,
+        // so NULL means "the pass never ran here" and nothing else.
+        let tmp = tempfile::tempdir().unwrap();
+        let (store, projects) = relevance_pass_fixture(
+            &tmp.path().join("knowledge.db"),
+            &[("knowledge:url:offtopic", "substack", relevance_unit(9))],
+        );
+        let writer = RecordingTagWriter::new();
+
+        let stats = run_relevance_pass(
+            &store,
+            &projects,
+            &writer,
+            PROJECT_RELEVANCE_THRESHOLD,
+            PROJECT_TAG_CAP,
+        )
+        .unwrap();
+
+        assert_eq!(stats.scored, 0);
+        assert_eq!(stats.unscored, 1);
+        let e = store.enrichment("knowledge:url:offtopic").unwrap().unwrap();
+        assert_eq!(e.relevant_projects.as_deref(), Some("[]"));
+        assert_eq!(e.for_thebrana, None);
+        assert!(writer.writes().is_empty(), "an unscored row is never tagged");
+    }
+
+    #[test]
+    fn test_relevance_pass_never_scores_thebranas_own_doc_chunks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (store, projects) = relevance_pass_fixture(
+            &tmp.path().join("knowledge.db"),
+            &[
+                ("knowledge:url:link", "linkedin", relevance_unit(0)),
+                ("knowledge:doc:chunk", "doc,architecture", relevance_unit(0)),
+            ],
+        );
+        let writer = RecordingTagWriter::new();
+
+        let stats = run_relevance_pass(
+            &store,
+            &projects,
+            &writer,
+            PROJECT_RELEVANCE_THRESHOLD,
+            PROJECT_TAG_CAP,
+        )
+        .unwrap();
+
+        assert_eq!(stats.scanned, 1, "only the link capture is in the population");
+        assert_eq!(
+            store.enrichment("knowledge:doc:chunk").unwrap().unwrap().relevant_projects,
+            None,
+            "a doc chunk is left entirely unenriched"
+        );
+    }
+
+    #[test]
+    fn test_relevance_pass_is_a_full_recompute_and_settles_at_zero_tag_writes() {
+        // Law 4 (idempotent beats): the stored columns are a cache of a
+        // derivation, so a second run over unchanged input rewrites the same
+        // scores and asks for no new tags.
+        let tmp = tempfile::tempdir().unwrap();
+        let db = tmp.path().join("knowledge.db");
+        let (store, projects) = relevance_pass_fixture(
+            &db,
+            &[("knowledge:url:alpha", "linkedin", relevance_unit(0))],
+        );
+        let writer = RecordingTagWriter::new();
+        run_relevance_pass(&store, &projects, &writer, PROJECT_RELEVANCE_THRESHOLD, PROJECT_TAG_CAP)
+            .unwrap();
+        let first = store.enrichment("knowledge:url:alpha").unwrap().unwrap();
+
+        // The tag write landed on the ruflo side; the next `vector-sync` mirrors
+        // it back into knowledge.db's tags, which is what the re-run sees.
+        store
+            .upsert(
+                "knowledge:url:alpha",
+                "content",
+                Some("linkedin,project:alpha"),
+                Some("memory_entries"),
+                1,
+                &relevance_unit(0),
+            )
+            .unwrap();
+
+        let writer2 = RecordingTagWriter::new();
+        let stats = run_relevance_pass(
+            &store,
+            &projects,
+            &writer2,
+            PROJECT_RELEVANCE_THRESHOLD,
+            PROJECT_TAG_CAP,
+        )
+        .unwrap();
+
+        assert_eq!(stats.scored, 1);
+        assert_eq!(stats.tags_written, 0, "a row that already carries its tag is not rewritten");
+        assert_eq!(stats.tags_deferred, 0);
+        assert_eq!(
+            store.enrichment("knowledge:url:alpha").unwrap().unwrap(),
+            first,
+            "a full recompute over unchanged input reproduces the same columns"
+        );
+    }
+
+    #[test]
+    fn test_relevance_pass_drops_a_project_that_left_the_portfolio() {
+        // §Risks "Retired or renamed projects": the full recompute is the
+        // scrub step — no versioning, no separate cleanup pass.
+        let tmp = tempfile::tempdir().unwrap();
+        let db = tmp.path().join("knowledge.db");
+        let (store, projects) =
+            relevance_pass_fixture(&db, &[("knowledge:url:alpha", "linkedin", relevance_unit(0))]);
+        let writer = RecordingTagWriter::new();
+        run_relevance_pass(&store, &projects, &writer, PROJECT_RELEVANCE_THRESHOLD, PROJECT_TAG_CAP)
+            .unwrap();
+        assert!(
+            store.enrichment("knowledge:url:alpha").unwrap().unwrap().relevant_projects.unwrap()
+                != "[]"
+        );
+
+        // alpha is archived: it leaves the project table, so it must leave the
+        // stored column on the very next run.
+        rusqlite::Connection::open(&db)
+            .unwrap()
+            .execute("DELETE FROM project_vectors WHERE slug = 'alpha'", [])
+            .unwrap();
+
+        run_relevance_pass(&store, &projects, &writer, PROJECT_RELEVANCE_THRESHOLD, PROJECT_TAG_CAP)
+            .unwrap();
+        let relevant =
+            store.enrichment("knowledge:url:alpha").unwrap().unwrap().relevant_projects.unwrap();
+        assert!(!relevant.contains("alpha"), "an archived project must drop out, got {relevant}");
+    }
+
+    #[test]
+    fn test_relevance_pass_caps_tag_writes_and_defers_the_rest() {
+        // §Risks "Long pass under the pipeline lock": scoring is uncapped
+        // (it is milliseconds of vector math), only the subprocess-backed
+        // ruflo writes are sliced.
+        let tmp = tempfile::tempdir().unwrap();
+        let rows: Vec<(String, &str, Vec<f32>)> = (0..5)
+            .map(|i| (format!("knowledge:url:a{i}"), "linkedin", relevance_unit(0)))
+            .collect();
+        let row_refs: Vec<(&str, &str, Vec<f32>)> =
+            rows.iter().map(|(k, t, v)| (k.as_str(), *t, v.clone())).collect();
+        let (store, projects) =
+            relevance_pass_fixture(&tmp.path().join("knowledge.db"), &row_refs);
+        let writer = RecordingTagWriter::new();
+
+        let stats =
+            run_relevance_pass(&store, &projects, &writer, PROJECT_RELEVANCE_THRESHOLD, 2).unwrap();
+
+        assert_eq!(stats.scored, 5, "every row is scored regardless of the tag cap");
+        assert_eq!(stats.tags_written, 2);
+        assert_eq!(stats.tags_deferred, 3);
+        for (key, _, _) in &row_refs {
+            assert!(
+                store.enrichment(key).unwrap().unwrap().relevant_projects.is_some(),
+                "{key} must be scored even though its tag write was deferred"
+            );
+        }
+    }
+
+    #[test]
+    fn test_relevance_pass_counts_a_declined_tag_write_separately() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (store, projects) = relevance_pass_fixture(
+            &tmp.path().join("knowledge.db"),
+            &[("knowledge:url:alpha", "linkedin", relevance_unit(0))],
+        );
+        let writer = RecordingTagWriter::skipping("knowledge:url:alpha");
+
+        let stats = run_relevance_pass(
+            &store,
+            &projects,
+            &writer,
+            PROJECT_RELEVANCE_THRESHOLD,
+            PROJECT_TAG_CAP,
+        )
+        .unwrap();
+
+        assert_eq!(stats.tags_written, 0);
+        assert_eq!(stats.tags_skipped, 1, "a benign decline is not a failure");
+        assert_eq!(stats.tag_failures, 0);
+        assert!(
+            store.enrichment("knowledge:url:alpha").unwrap().unwrap().relevant_projects.is_some(),
+            "the score is committed whatever the ruflo side does"
+        );
+    }
+
+    #[test]
+    fn test_relevance_pass_with_no_project_vectors_leaves_scores_alone() {
+        // An empty table means `project-vectors` has not run, not that every
+        // project was archived — wiping every score over a missing
+        // prerequisite would be worse than leaving it stale.
+        let tmp = tempfile::tempdir().unwrap();
+        let db = tmp.path().join("knowledge.db");
+        let store = KnowledgeStore::open(&db).unwrap();
+        let projects = ProjectVectorStore::open(&db).unwrap();
+        store
+            .upsert("knowledge:url:a", "c", Some("linkedin"), Some("memory_entries"), 1, &relevance_unit(0))
+            .unwrap();
+        store.set_relevance("knowledge:url:a", Some(r#"[{"project":"alpha","score":0.9}]"#), Some(0.4)).unwrap();
+        let writer = RecordingTagWriter::new();
+
+        let stats = run_relevance_pass(
+            &store,
+            &projects,
+            &writer,
+            PROJECT_RELEVANCE_THRESHOLD,
+            PROJECT_TAG_CAP,
+        )
+        .unwrap();
+
+        assert_eq!(stats, RelevancePassStats::default(), "a no-project run does nothing at all");
+        let e = store.enrichment("knowledge:url:a").unwrap().unwrap();
+        assert_eq!(e.relevant_projects.as_deref(), Some(r#"[{"project":"alpha","score":0.9}]"#));
+        assert_eq!(e.for_thebrana, Some(0.4));
     }
 
     // ── parse_event_log canonical keys (challenger-gate finding, t-3151) ──

@@ -19,6 +19,55 @@ LinkedIn, and a `yt-dlp` subprocess for YouTube.
 For every non-YouTube tier, the `Store` arm runs `extract_insight()` (LLM
 summarization: agy → `claude -p` → truncated raw) and stores the summary.
 
+Since t-3312 the same single call also returns `entities` (up to 5 named tools,
+products or people) and `action_type` (`tool-to-evaluate | technique-to-adopt |
+read-later | competitor-intel | none`). Both are optional in the response — a
+model that ignores them keeps its summary rather than failing its tier — and
+both default to empty / `none`. They ride to the store as tags
+(`action:<value>`, `entity:<name>`) because the ingest pump has no
+`knowledge.db` row to write to yet; `vector-sync` lifts them into that store's
+`entities` / `action_type` columns when it commits the row
+(`vector.rs::extraction_from_tags`, ADR-093 D2). Not backfilled: historical
+entries never persisted the fetched page text.
+
+Every `process-url` write — YouTube included — also carries the tag
+`source:link-capture`, so the link population is selectable by a marker rather
+than by guessing from platform tags. `vector-sync`'s scoring pass matches it
+with or without the `source:` prefix, alongside `intelligence-feed`
+(`vector.rs::LINK_SOURCE_MARKERS`).
+
+## What happens to a stored row afterwards
+
+Storage is not the end of the row. `brana knowledge vector-sync` mirrors it
+into the brana-owned `~/.claude/memory/knowledge.db`, and four **enrichment
+columns** on that store carry everything the ingest pump could not write
+itself (t-3310, ADR-093):
+
+| Column | Filled by | Contents |
+|--------|-----------|----------|
+| `entities` | `vector-sync` lifting the `entity:<name>` tags | JSON `["<name>", …]` |
+| `action_type` | `vector-sync` lifting the `action:<value>` tag | `tool-to-evaluate \| technique-to-adopt \| read-later \| competitor-intel \| none` |
+| `relevant_projects` | the post-sync scoring pass | JSON `[{"project", "score"}]`, best first, `[]` when nothing cleared |
+| `for_thebrana` | the post-sync scoring pass | thebrana's own score, only when it clears its threshold |
+
+All four are nullable and added by ALTER-if-missing on store open; `NULL`
+means "that pass has not run for this row". They are real columns, never JSON
+inside `content` — recall prints `content` verbatim and FTS5 indexes it.
+
+The **scoring pass** rides inside the same `vector-sync` invocation, after the
+upsert, over committed rows — never at ingest, where no embedding is readable
+back (ADR-093 D2). It re-scores every link-capture and intelligence-feed row
+against the curated `project_vectors` descriptor table on each run (full
+recompute, lock-free, no LLM call), writes the two relevance columns, and adds
+a coarse `project:<slug>` tag on the ruflo side for rows over threshold — up to
+`--tag-cap` per run. `brana knowledge relevant <project|thebrana>` is the
+read-only listing over the result.
+
+Mechanism, thresholds and how to edit a project descriptor:
+[features/knowledge-pipeline-compute.md](features/knowledge-pipeline-compute.md)
+§Post-Sync Enrichment and
+[features/project-descriptor-vectors.md](features/project-descriptor-vectors.md).
+
 ## The YouTube tier
 
 YouTube URLs get a dedicated tier because the generic HTTP tier returns the SPA
@@ -30,8 +79,10 @@ the primary-language caption track, dedupes VTT word-reveal cues
 (`dedupe_vtt_cues`, pure), and stores the **raw transcript** — the youtube
 branch skips `extract_insight` entirely (summarizing a 2h video's 152K-char
 transcript into a blurb would reproduce t-1349 one layer deeper and strand
-Phase 2's raw-transcript dependency). Tags are the fixed triple
-`[youtube, transcript, <caption_source>]` with `caption_source` ∈
+Phase 2's raw-transcript dependency), so it carries neither `entities` nor
+`action_type` (ADR-093 §Non-Actions). Tags are the fixed triple
+`[youtube, transcript, <caption_source>]` (plus `source:link-capture`, t-3312)
+with `caption_source` ∈
 `manual`/`auto`, read from `yt-dlp --dump-json`'s `requested_subtitles` vs
 `automatic_captions` fields (`determine_youtube_caption_source`,
 `knowledge_pipeline.rs:2386`).

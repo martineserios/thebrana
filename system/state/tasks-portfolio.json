@@ -6,6 +6,7 @@
         {
           "slug": "proyecto_anita",
           "path": "~/enter_thebrana/clients/proyecto-anita",
+          "descriptor": "Multi-tenant campaign platform for Argentine food and consumer-goods distributors: schedule promo blasts to thousands of retail buyers, route the replies, and keep each tenant's contacts and templates separate.",
           "type": "hybrid",
           "stage": "growth",
           "tech_stack": [
@@ -26,6 +27,7 @@
         {
           "slug": "batrade",
           "path": "~/enter_thebrana/clients/batrade",
+          "descriptor": "Grain and oilseed brokerage: match Argentine sellers with buyers worldwide, draft the contracts, and follow shipment and collection across hundreds of concurrent deals so the urgent ones surface before they slip.",
           "tech_stack": [
             "nextjs",
             "typescript"
@@ -39,6 +41,7 @@
         {
           "slug": "bemol",
           "path": "~/enter_thebrana/clients/bemol",
+          "descriptor": "Administration for a home-visit music school: assign instructors to lessons at each student's home, bill per class, and reconcile monthly payments and instructor pay.",
           "tech_stack": [
             "nextjs",
             "supabase",
@@ -52,7 +55,8 @@
       "projects": [
         {
           "slug": "crea",
-          "path": "~/enter_thebrana/clients/crea"
+          "path": "~/enter_thebrana/clients/crea",
+          "descriptor": "Rebuild of a client's ageing in-house business system, porting the existing rules onto a maintained codebase; scope still awaiting the client's answers."
         }
       ]
     },
@@ -61,7 +65,8 @@
       "projects": [
         {
           "slug": "curso-papa-derecho-ia",
-          "path": "~/enter_thebrana/clients/curso-papa-derecho-ia"
+          "path": "~/enter_thebrana/clients/curso-papa-derecho-ia",
+          "descriptor": "Course teaching practising lawyers to use AI in day-to-day legal work: curriculum, exercises, and the working hypothesis of what a lawyer actually changes in their week."
         }
       ]
     },
@@ -70,7 +75,8 @@
       "projects": [
         {
           "slug": "mandawa",
-          "path": "~/enter_thebrana/clients/mandawa"
+          "path": "~/enter_thebrana/clients/mandawa",
+          "descriptor": "Archived client engagement; no active domain or scope on record."
         }
       ]
     },
@@ -80,6 +86,7 @@
         {
           "slug": "eyedetect",
           "path": "~/enter_thebrana/ventures/nexeye_eyedetect",
+          "descriptor": "Video surveillance for security operators: watch many live camera feeds at once and automatically flag the events a person would otherwise have to catch by staring at every stream.",
           "type": "hybrid",
           "stage": "growth",
           "tech_stack": [
@@ -100,6 +107,7 @@
         {
           "slug": "somos_mirada",
           "path": "~/enter_thebrana/clients/somos_mirada",
+          "descriptor": "Patient acquisition and follow-up for an eye-surgery practice: turn inbound enquiries into booked consultations and keep post-operative contact, so leads do not go cold in the inbox.",
           "type": "venture",
           "stage": "growth",
           "tech_stack": [
@@ -116,7 +124,8 @@
       "projects": [
         {
           "slug": "sunflower",
-          "path": "~/enter_thebrana/clients/sunflower"
+          "path": "~/enter_thebrana/clients/sunflower",
+          "descriptor": "Retired take-home exercise: a short AI-produced video advertisement for a sobriety app, made as a content-engineering job application."
         }
       ]
     },
@@ -126,6 +135,7 @@
         {
           "slug": "trade_prof_man",
           "path": "~/enter_thebrana/clients/trade_prof_man",
+          "descriptor": "Trading indicators for a discretionary chart trader, with alert-to-execution automation as the later goal — the client's own edge, not a product for sale.",
           "tech_stack": [
             "pinescript",
             "tradingview"
@@ -138,7 +148,8 @@
       "projects": [
         {
           "slug": "unlock",
-          "path": "~/enter_thebrana/clients/unlock"
+          "path": "~/enter_thebrana/clients/unlock",
+          "descriptor": "Client sales-operations work centred on measuring which calls actually reach a prospect; early scope."
         }
       ]
     },
@@ -148,6 +159,7 @@
         {
           "slug": "truper",
           "path": "~/enter_thebrana/ventures/truper",
+          "descriptor": "Moneyless barter marketplace: people post what they have and what they want, and the exchange is matched without currency, including multi-item swaps.",
           "type": "hybrid",
           "stage": "discovery",
           "tech_stack": [],

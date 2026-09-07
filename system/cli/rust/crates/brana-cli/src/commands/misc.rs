@@ -42,6 +42,9 @@ pub fn cmd_portfolio() -> anyhow::Result<()> {
                 "client": client_slug,
                 "project": proj_slug,
                 "path": resolved,
+                // Curated one-liner (domain, customer, problem) — the text
+                // `knowledge project-vectors` embeds. Absent when uncurated.
+                "descriptor": proj["descriptor"].as_str(),
                 "has_tasks": tasks_path.exists(),
             }));
         }

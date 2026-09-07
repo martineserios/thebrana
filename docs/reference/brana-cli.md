@@ -583,10 +583,49 @@ Sync the brana-owned vector store (`~/.claude/memory/knowledge.db`) from ruflo
 dependency on the ruflo HNSW index — this is the local brute-force cosine
 recall path.
 
+Sync owns `content`, `tags`, `source`, `created_at` and `vec` only. The
+enrichment columns added in t-3310 — `relevant_projects`, `for_thebrana`,
+`entities`, `action_type` — are written by the post-sync passes and survive
+every re-sync of the same key untouched.
+
+### Scoring pass (t-3311)
+
+After the upsert, the same invocation re-scores every link-capture and
+intelligence-feed row against the `project_vectors` table (`brana knowledge
+project-vectors`) and writes `relevant_projects` + `for_thebrana`. thebrana's
+own indexed doc chunks are never scored.
+
+- **Full recompute every run** (ADR-093 D2). ~300 link rows plus ~1,800 feed
+  rows × 384 dims is milliseconds, so a descriptor edit, a rename or an
+  archived project needs no versioning, no partial re-score and no scrub step
+  — the next run absorbs it.
+- **Rows are selected by tag**, since sync stamps every migrated row's `source`
+  as `memory_entries`: a platform tag (`linkedin`, `github`, `youtube`,
+  `substack`, `arxiv`, `twitter`) or an explicit `source:link-capture` /
+  `source:intelligence-feed` marker.
+- `relevant_projects` is written on every scored row, `[]` included, so a NULL
+  there means the pass has not run for that row. `for_thebrana` holds
+  thebrana's score only when it clears its own threshold.
+- **Clients and thebrana are scored by different methods.** Clients use
+  centroid-subtracted cosine, so the stack boilerplate sibling repos share
+  cancels; thebrana is scored apart by plain cosine against its own vector,
+  because inside the client centroid set its residual dominated every row.
+  Thresholds calibrated 2026-09-07 against 2,705 live rows:
+  `PROJECT_RELEVANCE_THRESHOLD` 0.25 and `THEBRANA_RELEVANCE_THRESHOLD` 0.30
+  (top ~3% each). The first draft's 0.5 admitted nothing on this embedder.
+- **Ruflo side:** rows over threshold get a coarse `project:<slug>` added to
+  the existing tags CSV. ruflo has no tag-only update, so each write costs a
+  retrieve plus a `memory store --upsert`; the writes are capped per run
+  (`--tag-cap`, default 25) and drain over successive runs before settling at
+  zero. Additive only — a slug that leaves the portfolio drops out of
+  `relevant_projects` but keeps its old tag.
+- No project vectors stored ⇒ the pass is skipped entirely rather than wiping
+  every score over a missing prerequisite.
+
 ### Usage
 
 ```bash
-brana knowledge vector-sync [--source <path>]... [--dest <path>] [--json]
+brana knowledge vector-sync [--source <path>]... [--dest <path>] [--tag-cap <n>] [--json]
 ```
 
 ### Options
@@ -594,14 +633,117 @@ brana knowledge vector-sync [--source <path>]... [--dest <path>] [--json]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--source <path>` | `~/.swarm/memory.db` | Source memory.db file(s). Repeatable. Rotated `memory.db.corrupt-*` files that pass `integrity_check` are valid sources. |
-| `--dest <path>` | `~/.claude/memory/knowledge.db` | Destination store. |
-| `--json` | off | Output migration stats as JSON. |
+| `--dest <path>` | `~/.claude/memory/knowledge.db` | Destination store. Also holds `project_vectors`. |
+| `--tag-cap <n>` | 25 | Per-run cap on ruflo-side `project:<slug>` tag writes. Scoring itself is never capped. |
+| `--json` | off | Output migration + scoring stats as JSON. |
 
 ### Scheduling
 
 Wired as the `knowledge-vector-sync` scheduler job (every 4h, 20min offset
 from `link-research-extraction`) so freshly drained links become
-topic-searchable without a manual run.
+topic-searchable without a manual run. The scoring pass rides in this job —
+no second job (ADR-093 D2). The whole handler is lock-free (pinned by
+`test_lock_discipline_source_tripwires`): it touches `knowledge.db` only, so
+it never contends with the drain cron's whole-invocation `lock_pipeline()`.
+
+---
+
+## brana knowledge project-vectors
+
+Embed one curated descriptor per portfolio project into the `project_vectors`
+table the link-scoring pass reads (t-3307). Descriptors are authored by hand on
+the portfolio record (`clients[].projects[].descriptor`) — domain, customer,
+problem, no stack words, because shared stack vocabulary is what cross-tags
+sibling client repos. thebrana gets its own vector, composed from
+`the-brana.md` plus the accepted ADR titles.
+
+A project is re-embedded only when its descriptor text changes. Full spec:
+[project-descriptor-vectors.md](../architecture/features/project-descriptor-vectors.md).
+
+### Usage
+
+```bash
+brana knowledge project-vectors [--portfolio <path>] [--dest <path>]
+                                [--docs <path>] [--force] [--list] [--json]
+```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--portfolio <path>` | `~/.claude/tasks-portfolio.json` | Portfolio registry to read descriptors from. |
+| `--dest <path>` | `~/.claude/memory/knowledge.db` | Store holding the `project_vectors` table. |
+| `--docs <path>` | `<repo>/docs` | Docs root thebrana's own vector is composed from. |
+| `--force` | off | Re-embed every project — for after an embedding model change, which the descriptor hash cannot see. |
+| `--list` | off | Print the stored table instead of embedding anything. |
+| `--json` | off | Output stats as JSON. |
+
+Projects with no `descriptor` are skipped: an uncurated project gets no vector
+rather than one built from boilerplate. A failed embedding leaves the
+previously stored vector in place. Slugs absent from the current descriptor set
+are pruned from the table, so blanking a descriptor is how a retired project
+stops being scored.
+
+Edit descriptors on the repo copy (`system/state/tasks-portfolio.json`, reaching
+`~/.claude/` via `sync-state.sh pull`) and re-run this command — nothing watches
+the file. The next `vector-sync` absorbs the change on its next full recompute.
+
+---
+
+## brana knowledge relevant
+
+List the `knowledge.db` rows the scoring pass tagged for one project — or for
+thebrana itself — best score first (t-3313). This is the read surface that makes
+the `relevant_projects` / `for_thebrana` columns visible; without it the pass
+writes tags nobody can see.
+
+**Read-only.** No embedding, no LLM call, no synthesis, no proposal loop — it
+opens the store, filters the columns the pass already committed, and prints
+them. Lock-free for the same reason `vector-sync` is.
+
+### Usage
+
+```bash
+brana knowledge relevant <project|thebrana> [--min-score <f>] [--dest <path>] [--json]
+```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `<project>` | required | Portfolio project slug, or `thebrana` to read the `for_thebrana` column (thebrana is scored apart and never appears in `relevant_projects`). |
+| `--min-score <f>` | `0.0` | Hide rows scoring below this (inclusive, like the pass's own threshold). |
+| `--dest <path>` | `~/.claude/memory/knowledge.db` | Store to read. |
+| `--json` | off | Emit the rows as JSON — the digest generator's input. |
+
+Each row prints as score, `action_type`, created date, key, then a 120-char
+summary snippet. JSON carries the same fields plus the raw `created_at` epoch,
+with scores rounded to four decimals (`serde_json` has no `f32`, and the raw
+widening renders 0.31 as 0.3100000023841858).
+
+### Why `--min-score` defaults to 0.0
+
+The originating task proposed 0.5. That predates the 2026-09-07 live
+calibration, which measured a centroid-cosine ceiling of 0.39 across 2,705 rows
+— a 0.5 floor would print zero rows for every project, forever, which is the
+exact failure this command exists to prevent. The pass already gates its writes
+(`PROJECT_RELEVANCE_THRESHOLD` 0.25, `THEBRANA_RELEVANCE_THRESHOLD` 0.30), so
+showing everything stored is the honest default and the flag is the knob for
+narrowing while calibrating per-project thresholds.
+
+### Empty output is two different states
+
+An empty list distinguishes them rather than leaving you to guess:
+
+- The slug **has** a project vector but nothing scored for it at this floor.
+- The slug **has no vector at all** — it is not registered in
+  `~/.claude/tasks-portfolio.json`, so nothing could ever score for it. The
+  fix is a descriptor on the portfolio record plus a `project-vectors` run
+  (measured 2026-09-07: `lexia`, `maker-hub`, `linkedin`, `brapsoclaw`,
+  `tinyhomes`, `ai-native-education`, `mcp-mercadolibre` and `thebrana-web`
+  are all in this state).
+
+Layer 2 — synthesis and the proposal loop — is deliberately **not** here.
 
 ---
 

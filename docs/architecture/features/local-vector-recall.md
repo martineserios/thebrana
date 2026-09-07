@@ -82,6 +82,7 @@ KEEP
 REPLACE
   ~/.claude/memory/knowledge.db      ← brana-owned, NOT ~/.swarm/
     key · content · tags · source · created_at · vec BLOB(1536B)
+      + relevant_projects · for_thebrana · entities · action_type  ← t-3310
             │
             ▼
   brute-force cosine                 ← no HNSW, no index to desync
@@ -167,6 +168,24 @@ embedding converted from JSON text to `f32` BLOB. The data already exists and is
 provably correct — the 1.0 self-match confirms embeddings and content agree.
 
 No re-fetch, no re-embed, no network.
+
+Since t-3310 the table also carries four nullable enrichment columns —
+`relevant_projects` (JSON `[{project, score}]`), `for_thebrana` (REAL),
+`entities` (JSON array), `action_type` — added by an idempotent ALTER-if-missing
+migration on every `KnowledgeStore::open`. They are written by the post-sync
+passes (ADR-093), never by sync itself: `upsert` is `ON CONFLICT DO UPDATE` on
+the synced columns rather than `INSERT OR REPLACE`, so re-running `vector-sync`
+refreshes content/tags/source/vec and leaves enrichment intact. Never inside
+`content` — recall prints content verbatim and FTS5 would index the JSON.
+
+t-3311 adds the bulk read those passes needed —
+`KnowledgeStore::rows_with_vec(RowFilter)`, returning `(key, tags, source, vec)`
+with the BLOB decoded and undecodable rows skipped rather than fatal — and the
+scoring pass that consumes it, `run_relevance_pass`, which runs inside
+`vector-sync` after the upsert. `RowFilter::LinkAndFeed` is the population
+ADR-093 D2 names: link captures and intelligence-feed items, never thebrana's
+own indexed doc chunks. It discriminates on **tags**, not the `source` column,
+because the migration stamps every row `source = "memory_entries"`.
 
 ## Sequencing
 

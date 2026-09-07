@@ -2,8 +2,8 @@
 title: Knowledge Pipeline — Compute Routing
 status: active
 created: 2026-05-24
-depends_on: ADR-042, ADR-040, ADR-041
-see_also: knowledge-architecture-v2.md
+depends_on: ADR-042, ADR-040, ADR-041, ADR-093
+see_also: knowledge-architecture-v2.md, project-descriptor-vectors.md
 ---
 
 # Knowledge Pipeline — Compute Routing
@@ -156,3 +156,136 @@ may hold the lock).
    works (regression).
 
 **Status:** implemented (t-2247)
+
+---
+
+## Post-Sync Enrichment (t-3310–t-3313)
+
+A fourth compute stage, added by the link-signal enrichment pipeline
+([ADR-093](../decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md),
+design record: [ideas/drained/link-signal-enrichment-pipeline.md](../../ideas/drained/link-signal-enrichment-pipeline.md)).
+Unlike the tiers above it makes **zero LLM calls** — it is vector math over
+rows the pipeline has already stored — so it is not in the tier table and has
+no per-URL cost.
+
+### Four enrichment columns on `knowledge.db`
+
+`KnowledgeStore` (`brana-core/src/vector.rs`) carries four nullable columns
+beyond sync's own `content` / `tags` / `source` / `created_at` / `vec`:
+
+| Column | Type | Written by | Contents |
+|--------|------|-----------|----------|
+| `relevant_projects` | TEXT | scoring pass (t-3311) | JSON `[{"project": "<slug>", "score": <f32>}]`, best score first, `[]` when nothing cleared |
+| `for_thebrana` | REAL | scoring pass (t-3311) | thebrana's own score, present only when it clears its threshold |
+| `entities` | TEXT | `vector-sync` lift (t-3312) | JSON `["<name>", …]` — up to 5 tools, products or people from the extraction call |
+| `action_type` | TEXT | `vector-sync` lift (t-3312) | `tool-to-evaluate \| technique-to-adopt \| read-later \| competitor-intel \| none` |
+
+Real columns, never JSON stuffed into `content` — recall prints `content`
+verbatim and FTS5 indexes it (ADR-093 §Non-Actions). The migration is
+ALTER-if-missing on every `KnowledgeStore::open` (`ENRICHMENT_COLUMNS`), so an
+older store upgrades in place. `NULL` means "that pass has not run for this
+row"; `relevant_projects` is written on every scored row including `[]`, which
+is what makes the distinction readable.
+
+`entities` / `action_type` reach the store indirectly: the ingest pump has no
+`knowledge.db` row to write to yet, so `extract_insight` emits them as
+`action:<value>` / `entity:<name>` tags and `vector-sync` lifts them into the
+columns (`vector.rs::extraction_from_tags`). Not backfilled — historical rows
+never persisted the fetched page text, and YouTube/LongForm rows bypass
+`extract_insight` entirely (ADR-087). See
+[knowledge-pipeline.md](../knowledge-pipeline.md) for the extraction side.
+
+### The scoring pass rides inside `vector-sync`
+
+Scoring runs **post-sync, over committed rows** — never at ingest, which is
+structurally impossible: `ruflo_memory_store` shells out and returns
+`Result<()>`, so the ingest path never sees an embedding (ADR-093 D2). The pass
+is therefore a step inside the existing `knowledge-vector-sync` scheduler job
+(every 4h, 20min offset from `link-research-extraction`), not a second job:
+
+```
+brana knowledge vector-sync
+  ├── migrate_from_memory_entries()   ← ruflo memory.db → knowledge.db (content, tags, vec)
+  │     └── extraction_from_tags()    ← lifts entities / action_type (t-3312)
+  └── run_relevance_pass()            ← after the upsert, on committed rows (t-3311)
+        ├── ProjectVectorStore::all() ← the descriptor table (t-3307)
+        ├── score_relevance()         ← centroid-subtracted cosine, pure (t-3308/t-3309)
+        ├── set_relevance()           ← relevant_projects + for_thebrana
+        └── ProjectTagWriter          ← coarse `project:<slug>` on the ruflo side, capped
+```
+
+- **Full recompute every run.** The project set is rebuilt from the descriptor
+  table each time and every eligible row re-scored — a few thousand 384-dim
+  vectors, milliseconds — so a descriptor edit, a rename or an archived project
+  needs no versioning, no partial re-score and no scrub step.
+- **Lock-free.** The whole handler sits outside every `lock_pipeline()` call
+  site and touches `knowledge.db` only, so it never contends with the 4h drain
+  cron's whole-invocation lock (pinned by `test_lock_discipline_source_tripwires`).
+- **Row selection is by marker, not by guessing.** `RowFilter::LinkAndFeed`
+  keeps rows carrying a platform tag (`linkedin`, `github`, `youtube`,
+  `substack`, `arxiv`, `twitter`) or an explicit `source:link-capture` /
+  `source:intelligence-feed` marker. thebrana's own indexed doc chunks are
+  never scored. Tags decide it rather than `source`, because sync stamps every
+  migrated row's `source` as `memory_entries`.
+- **Clients are scored by centroid-subtracted cosine**, so the stack
+  boilerplate sibling repos share cancels; **thebrana is scored apart** by
+  plain cosine against its own vector, because inside the client centroid set
+  its residual dominated every row. Thresholds, calibrated 2026-09-07 against
+  2,705 live rows: `PROJECT_RELEVANCE_THRESHOLD` 0.25,
+  `THEBRANA_RELEVANCE_THRESHOLD` 0.30 (top ~3% each).
+- **Empty project table ⇒ pass skipped**, not every score wiped: an empty table
+  means `project-vectors` has not run, not that every project was archived.
+- **Ruflo side gets tags only**, no schema change: rows over threshold gain a
+  coarse `project:<slug>` in the existing tags CSV, capped per run
+  (`--tag-cap`, default 25) because ruflo has no tag-only update. Additive —
+  a slug that leaves the portfolio drops out of `relevant_projects` but keeps
+  its old tag.
+
+### The `source:link-capture` marker
+
+Every `process-url` write — YouTube included — carries the tag
+`source:link-capture` (t-3312), so the link population is selectable by an
+explicit marker instead of by inferring it from platform tags. It is matched
+with or without the `source:` prefix (`LINK_SOURCE_MARKERS`), alongside
+`intelligence-feed`, which `feed-ruflo-index.sh` already wrote.
+
+### Descriptor table and how to edit it
+
+Scoring compares each row against `project_vectors(slug PK, descriptor,
+descriptor_hash, source, updated_at, vec)` — one **curated** line per portfolio
+project, in the same `knowledge.db`. Curated because cosine over each repo's
+raw `CLAUDE.md` cross-tags siblings on shared stack vocabulary.
+
+To change what a project matches:
+
+1. Edit `clients[].projects[].descriptor` on the portfolio record — domain, customer,
+   problem, **no stack words**. The repo copy is
+   `system/state/tasks-portfolio.json`; it reaches
+   `~/.claude/tasks-portfolio.json` via `sync-state.sh pull` (do not edit both
+   copies in one session — one direction overwrites the other).
+2. Run `brana knowledge project-vectors`. Nothing watches the file; a project
+   is re-embedded only when its descriptor text changes (SHA-256 of the exact
+   embedded text), and `--force` covers a changed embedding model, which the
+   hash cannot see. `--list` prints the stored table.
+3. The next `vector-sync` absorbs it — full recompute, no scrub step.
+
+Blanking a descriptor is how a project is retired: no descriptor ⇒ no vector,
+and `project-vectors` prunes any slug absent from the current descriptor set
+(`prune_except`), so the project leaves the table rather than lingering with a
+stale vector. thebrana is
+not a portfolio record — its vector is composed from `the-brana.md` plus the
+accepted ADR titles. Full spec:
+[project-descriptor-vectors.md](project-descriptor-vectors.md).
+
+### Query surface
+
+`brana knowledge relevant <project|thebrana> [--min-score <f>] [--dest <path>]
+[--json]` lists the scored rows, best first — read-only, no embedding, no LLM
+call, no synthesis. It exists so the pass's output is judgeable on evidence
+rather than invisible; `--min-score` defaults to 0.0 because the pass already
+applied its own threshold on the way in. Layer 2 (a synthesis pass and a
+scheduled proposal loop) is deliberately **not** here — deferred by ADR-093 D3,
+which fixes only its queue shape. Flags:
+[reference/brana-cli.md](../../reference/brana-cli.md#brana-knowledge-relevant).
+
+**Status:** implemented (t-3307–t-3313)

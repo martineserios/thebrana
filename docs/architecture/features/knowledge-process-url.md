@@ -173,6 +173,22 @@ gated decision; this ships a reusable fetch function t-1144 can later adopt.
 > platform. Full design: ADR-070 §Amendment (2026-08-17, t-2945). User-facing
 > usage: `docs/guide/features/knowledge-process-url.md` § YouTube URLs.
 
+> **Richer extraction + link-capture marker (2026-09-06, t-3312 — idea doc
+> §Layer 1 steps 4 and 6, ADR-093):** the one `extraction_prompt()` call now
+> also asks for `entities` (up to 5 named tools/products/people) and
+> `action_type` (`tool-to-evaluate | technique-to-adopt | read-later |
+> competitor-intel | none`), added to `ExtractedInsight` and
+> `parse_extraction_response` as *optional* fields — an old-shape response
+> keeps its summary instead of falling through to the next tier, and an
+> invented `action_type` normalizes to `none`. Every `process-url` write is
+> tagged `source:link-capture`; non-YouTube writes additionally carry
+> `action:<value>` and one `entity:<name>` per entity, which `vector-sync`
+> lifts into `KnowledgeStore`'s `entities` / `action_type` columns
+> (`vector.rs::extraction_from_tags`) — the ingest pump derives the fields but
+> holds no `knowledge.db` row to write them to, so the ruflo row is the queue
+> between the two (ADR-093 D2). Not backfilled; the YouTube branch, which
+> bypasses `extract_insight`, gets the `source:link-capture` tag only.
+
 - New `brana-core` module or extension to `knowledge_pipeline.rs`:
   `fetch_url_content(url: &str) -> Result<FetchedContent>` — three-tier
   dispatch (`ureq` / `linkedin-scraper-mcp` shell-out via a new

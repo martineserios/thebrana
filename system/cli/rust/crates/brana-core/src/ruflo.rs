@@ -180,7 +180,10 @@ pub fn ruflo_memory_search_raw(
 /// `Command::spawn()` fail with E2BIG before the subprocess even starts.
 /// 100000 bytes leaves ~28 KiB of headroom under the cap for the marker this
 /// module appends when it truncates.
-const MAX_ARGV_VALUE_BYTES: usize = 100_000;
+/// `pub` so callers that re-store an existing entry only to change its tags
+/// (t-3311's `project:<slug>` writes) can skip a value that would be
+/// truncated, instead of losing content to add a coarse tag.
+pub const MAX_ARGV_VALUE_BYTES: usize = 100_000;
 
 /// Truncate `s` to at most `max_bytes`, backing off to the nearest earlier
 /// UTF-8 char boundary so a multi-byte code point is never split.
