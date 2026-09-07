@@ -12,26 +12,22 @@ Every change starts on a branch. Always. No exceptions.
 - **Never commit directly to `main`/`master`.** Create the branch before the first edit.
 - **One branch per logical unit of work.** Merge with `--no-ff`, then delete.
 - **Never force-push** to main or master.
-- Branch naming: see task-convention.md. Prefixes: feat/, fix/, docs/, chore/, refactor/, test/, perf/.
+- Branch naming: task-convention.md (feat/ fix/ docs/ chore/ refactor/ test/ perf/).
 
 ## Worktrees, not checkout — HARD RULE
 
-**New branches use `git worktree add -b`, never `git checkout -b`** — every time, no exception, overriding any skill-procedure default. Concurrent sessions share the main checkout's `HEAD` + working tree, so a checkout-cut branch races their commits/merges/`tasks.json` writes (harm: t-2216/t-2206).
+**New branches use `git worktree add -b`, never `git checkout -b`** — no exceptions, whatever a skill says. Concurrent sessions share the main checkout's `HEAD` + working tree, so a checkout-cut branch races their commits/merges/`tasks.json` writes (harm: t-2216/t-2206).
 
-`cd` to the repo root first, `git worktree add ../repo-shortname -b prefix/name`, then `ls` a known file to verify the path before editing. After merge: `git worktree remove ../path && git branch -d prefix/name` — never `rm -rf`. In-session Task agents can't write to worktrees (compose in agent, write in main); runner `claude -p` writes in its own worktree (ADR-060).
+`cd` to the repo root first, `git worktree add ../repo-shortname -b prefix/name`, then `ls` a known file to verify the path before editing. After merge: `git worktree remove ../path && git branch -d prefix/name` — never `rm -rf`. Task agents can't write to worktrees; runner `claude -p` uses its own (ADR-060).
 
-**The shared main checkout stays on `dev` forever — never `git checkout`/`git switch` a branch or tag there**, not for a ship, not to look at an old release (ADR-094). Git overwrites *ignored* files without warning when checking out any ref that tracks the same path, and 145 tags/old branches still track `.claude/tasks.json`: a `git checkout main` in the main checkout wiped the live backlog ledger on 2026-09-07. Ship = `git fetch origin main:main` + `git merge --ff-only main` on `dev` in place (`/brana:ship`). Need another ref materialised? `git worktree add ../repo-<ref> <ref>`. Enforced by `validate.sh` Check 74 on the skills/rules/guide text.
+**The main checkout stays on `dev` — never `git checkout`/`switch` there** (ADR-094: checkout clobbers ignored live files; it wiped the ledger 2026-09-07). Ship via `/brana:ship`; other refs → worktrees. Check 74 enforces.
 
 ## Commits
 
 - **Conventional commits**: `type(scope): description`
 - **Atomic**: one logical change per commit. Messages explain WHY.
 - **`wip:` commits** allowed on feature branches — squash before merging.
-- After creating a worktree and writing the first file, commit immediately as `wip:` (survives context compression).
-
-```
-feat(auth): add JWT validation middleware
-```
+- First file in a new worktree → commit `wip:` immediately (survives context compression).
 
 ## Keep branches short-lived
 
@@ -39,8 +35,8 @@ Features: days. Fixes: hours. Docs: one session.
 
 ## agy (Gemini)
 
-agy never runs git commands. Output lands in `/tmp/` only — Claude applies via Write/Edit.
-Full isolation contract: cwd-discipline.md. Enforced by `agy_delegate`.
+agy never runs git. Output lands in `/tmp/` only — Claude applies it via Write/Edit.
+Contract: cwd-discipline.md; enforced by `agy_delegate`.
 
 ## Commit attribution — HARD RULE
 
