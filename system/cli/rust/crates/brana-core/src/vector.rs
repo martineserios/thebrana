@@ -230,6 +230,65 @@ impl KnowledgeStore {
         Ok(out)
     }
 
+    /// Every scored row whose relevance to `target` is at or above
+    /// `min_score`, best score first (t-3313).
+    ///
+    /// `target` is a portfolio slug read out of `relevant_projects`, or
+    /// [`crate::project_vectors::THEBRANA_SLUG`], which reads the separate
+    /// `for_thebrana` column — thebrana is scored by plain cosine and never
+    /// appears in `relevant_projects` (ADR-093 D2).
+    ///
+    /// Read-only and lock-free, like [`Self::rows_with_vec`]: this is a
+    /// listing over what the pass already committed, so it never re-scores,
+    /// never embeds and never writes. Rows the pass has not reached
+    /// (`relevant_projects IS NULL`) simply do not appear.
+    ///
+    /// Ties break on `key` so two runs over an unchanged store print the same
+    /// order.
+    pub fn rows_relevant_to(&self, target: &str, min_score: f32) -> Result<Vec<RelevantRow>> {
+        let for_thebrana = target == crate::project_vectors::THEBRANA_SLUG;
+        let conn = Connection::open_with_flags(
+            &self.db_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .with_context(|| format!("opening {}", self.db_path.display()))?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT key, content, created_at, action_type, relevant_projects, for_thebrana
+                 FROM knowledge",
+            )
+            .context("preparing relevance listing scan")?;
+        let rows = stmt.query_map([], |r| {
+            Ok(RelevantRowRaw {
+                key: r.get(0)?,
+                content: r.get(1)?,
+                created_at: r.get(2)?,
+                action_type: r.get(3)?,
+                relevant_projects: r.get(4)?,
+                for_thebrana: r.get(5)?,
+            })
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            let row = row?;
+            let score = if for_thebrana {
+                row.for_thebrana
+            } else {
+                row.relevant_projects.as_deref().and_then(|j| project_score(j, target))
+            };
+            let Some(score) = score.filter(|s| *s >= min_score) else { continue };
+            out.push(RelevantRow {
+                key: row.key,
+                score,
+                action_type: row.action_type,
+                content: row.content,
+                created_at: row.created_at,
+            });
+        }
+        out.sort_by(|a, b| b.score.total_cmp(&a.score).then_with(|| a.key.cmp(&b.key)));
+        Ok(out)
+    }
+
     /// Number of stored entries.
     pub fn count(&self) -> Result<usize> {
         let n: i64 = self
@@ -247,6 +306,66 @@ pub struct KnowledgeRow {
     pub tags: Option<String>,
     pub source: Option<String>,
     pub vec: Vec<f32>,
+}
+
+/// One scored row as [`KnowledgeStore::rows_relevant_to`] returns it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RelevantRow {
+    pub key: String,
+    /// The stored relevance of this row to the queried target.
+    pub score: f32,
+    /// `tool-to-evaluate | technique-to-adopt | …`, or `None` if the
+    /// extraction pass never reached the row.
+    pub action_type: Option<String>,
+    /// The stored `content` — the extracted summary for a link capture, the
+    /// transcript for a YouTube one. Callers snippet it.
+    pub content: String,
+    /// Unix epoch seconds.
+    pub created_at: i64,
+}
+
+impl RelevantRow {
+    /// The score at the precision it should be *reported* at — four decimals,
+    /// matching what `run_relevance_pass` stores.
+    ///
+    /// JSON needs this: `serde_json::Value` has no `f32`, so an unrounded
+    /// widening renders 0.31 as 0.3100000023841858. Comparisons stay on the
+    /// `f32` in [`Self::score`]; this is the display gauge only.
+    pub fn score_rounded(&self) -> f64 {
+        round_reported_score(self.score)
+    }
+}
+
+/// Four-decimal gauge for a reported cosine score. See
+/// [`RelevantRow::score_rounded`].
+pub fn round_reported_score(score: f32) -> f64 {
+    (score as f64 * 10_000.0).round() / 10_000.0
+}
+
+/// The columns one listing row is assembled from, before the target's score is
+/// resolved out of them.
+struct RelevantRowRaw {
+    key: String,
+    content: String,
+    created_at: i64,
+    action_type: Option<String>,
+    relevant_projects: Option<String>,
+    for_thebrana: Option<f32>,
+}
+
+/// The score a `relevant_projects` JSON blob records for `project`, if any.
+///
+/// Malformed JSON yields `None` rather than an error: the listing must stay
+/// readable over a store one bad row got into, and a row with no parseable
+/// score has no place in a score-ordered list anyway.
+pub fn project_score(relevant_projects: &str, project: &str) -> Option<f32> {
+    let parsed: serde_json::Value = serde_json::from_str(relevant_projects).ok()?;
+    for entry in parsed.as_array()? {
+        if entry.get("project").and_then(|p| p.as_str()) == Some(project) {
+            return entry.get("score").and_then(|s| s.as_f64()).map(|s| s as f32);
+        }
+    }
+    None
 }
 
 /// Which rows a bulk read selects.
@@ -893,6 +1012,86 @@ mod tests {
         assert_eq!(e.for_thebrana, Some(0.9));
         assert_eq!(e.entities.as_deref(), Some(r#"["a"]"#));
         assert_eq!(e.action_type.as_deref(), Some("read-later"));
+    }
+
+    // ── relevance listing (t-3313) ────────────────────────────────────────────
+
+    #[test]
+    fn project_score_reads_the_named_project_only() {
+        let json = r#"[{"project":"eyedetect","score":0.31},{"project":"crea","score":0.27}]"#;
+        assert_eq!(project_score(json, "eyedetect"), Some(0.31));
+        assert_eq!(project_score(json, "crea"), Some(0.27));
+        assert_eq!(project_score(json, "unlock"), None);
+        // A row the pass scored against nothing, and one it never reached.
+        assert_eq!(project_score("[]", "crea"), None);
+        assert_eq!(project_score("not json", "crea"), None);
+    }
+
+    /// A store with three scored rows plus one the pass never reached.
+    fn relevance_listing_fixture(db: &Path) -> KnowledgeStore {
+        let store = KnowledgeStore::open(db).unwrap();
+        let rows = [
+            ("knowledge:url:hi", "high scorer", 1_700_000_000_i64, "crea", 0.31_f32, Some("tool-to-evaluate")),
+            ("knowledge:url:lo", "low scorer", 1_700_086_400_i64, "crea", 0.26_f32, None),
+            ("knowledge:url:other", "other client", 1_700_172_800_i64, "eyedetect", 0.40_f32, Some("read-later")),
+        ];
+        for (key, content, created, project, score, action) in rows {
+            store.upsert(key, content, None, Some("link-capture"), created, &unit(0)).unwrap();
+            let json = format!(r#"[{{"project":"{project}","score":{score}}}]"#);
+            // thebrana's score is the same on every row, so ordering there is
+            // decided by the key tie-break alone.
+            store.set_relevance(key, Some(&json), Some(0.33)).unwrap();
+            store.set_extraction(key, None, action).unwrap();
+        }
+        store.upsert("knowledge:url:unscored", "never scored", None, Some("link-capture"), 5, &unit(1)).unwrap();
+        store
+    }
+
+    #[test]
+    fn relevant_rows_are_filtered_by_project_and_sorted_by_score() {
+        let tmp = tempdir().unwrap();
+        let store = relevance_listing_fixture(&tmp.path().join("knowledge.db"));
+
+        let rows = store.rows_relevant_to("crea", 0.0).unwrap();
+        assert_eq!(
+            rows.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(),
+            vec!["knowledge:url:hi", "knowledge:url:lo"],
+            "another client's rows and the unscored row must not appear"
+        );
+        assert_eq!(rows[0].score, 0.31);
+        assert_eq!(rows[0].action_type.as_deref(), Some("tool-to-evaluate"));
+        assert_eq!(rows[0].content, "high scorer");
+        assert_eq!(rows[0].created_at, 1_700_000_000);
+        assert_eq!(rows[1].action_type, None, "an unextracted row still lists");
+    }
+
+    #[test]
+    fn relevant_min_score_is_inclusive_and_narrows() {
+        let tmp = tempdir().unwrap();
+        let store = relevance_listing_fixture(&tmp.path().join("knowledge.db"));
+
+        // Inclusive, matching the scoring pass's own `>= threshold`.
+        assert_eq!(store.rows_relevant_to("crea", 0.31).unwrap().len(), 1);
+        assert_eq!(store.rows_relevant_to("crea", 0.26).unwrap().len(), 2);
+        // The spec's provisional 0.5 floor sits above this embedder's ceiling.
+        assert!(store.rows_relevant_to("crea", 0.5).unwrap().is_empty());
+        // An unregistered slug has no vector and therefore no scored rows.
+        assert!(store.rows_relevant_to("lexia", 0.0).unwrap().is_empty());
+    }
+
+    #[test]
+    fn relevant_thebrana_reads_its_own_column_and_ties_break_on_key() {
+        let tmp = tempdir().unwrap();
+        let store = relevance_listing_fixture(&tmp.path().join("knowledge.db"));
+
+        let rows = store.rows_relevant_to(crate::project_vectors::THEBRANA_SLUG, 0.0).unwrap();
+        assert_eq!(
+            rows.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(),
+            vec!["knowledge:url:hi", "knowledge:url:lo", "knowledge:url:other"],
+            "for_thebrana spans every scored row, and equal scores sort by key"
+        );
+        assert!(rows.iter().all(|r| r.score == 0.33));
+        assert!(store.rows_relevant_to("thebrana", 0.4).unwrap().is_empty());
     }
 
     // ── bulk read / row filter (t-3311) ───────────────────────────────────────

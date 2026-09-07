@@ -2659,12 +2659,12 @@ mod tests {
         // first match and the scanned region would be this module itself
         // (self-match — the same class as `pgrep -f` matching its own argv).
         let vs_needle = format!("pub fn {}", "cmd_vector_sync");
-        let vs_marker = format!("\n// --- {}", "project-vectors");
+        let vs_marker = format!("\n// --- {}", "relevant");
         let vs_start = src.find(&vs_needle).expect("cmd_vector_sync exists");
         let vs_end = src[vs_start..]
             .find(&vs_marker)
             .map(|i| vs_start + i)
-            .expect("the project-vectors section follows cmd_vector_sync");
+            .expect("the relevant section follows cmd_vector_sync");
         assert!(
             !src[vs_start..vs_end].contains("lock_pipeline"),
             "cmd_vector_sync must never acquire the pipeline lock — it and its scoring pass touch knowledge.db only"
@@ -4474,6 +4474,116 @@ pub fn cmd_vector_sync(
     Ok(())
 }
 
+// --- relevant (t-3313) ------------------------------------------------------
+
+/// Render a stored `created_at` as a bare date. `vector-sync` copies the value
+/// straight from ruflo's `memory_entries`, where it is epoch **milliseconds**
+/// (the status query above divides by 1000 for the same reason); fixtures and
+/// hand-written rows use epoch seconds. Anything past 1e11 cannot be a
+/// seconds timestamp for centuries, so treat it as milliseconds. An
+fn relevant_row_date(created_at: i64) -> String {
+    let secs = if created_at > 100_000_000_000 { created_at / 1000 } else { created_at };
+    chrono::DateTime::from_timestamp(secs, 0)
+        .map(|d| d.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| "?".to_string())
+}
+
+/// `brana knowledge relevant <project|thebrana> [--min-score N] [--json]` —
+/// list what the scoring pass tagged for one project, best score first.
+///
+/// Read-only by construction (idea doc §Layer 1 step 5): it opens the store,
+/// filters the committed `relevant_projects` / `for_thebrana` columns and
+/// prints them. No embedding, no LLM call, no synthesis and no proposal loop —
+/// Layer 2 stays deferred. This exists so Layer 1's tags are visible at all;
+/// without it they share t-1706's fate of being written and never read.
+///
+/// **`--min-score` has no non-zero default.** The task spec's provisional 0.5
+/// predates the 2026-09-07 live calibration, which measured a centroid-cosine
+/// ceiling of 0.39 across 2,705 rows — a 0.5 floor would print zero rows for
+/// every project, forever. The pass already gates its writes
+/// (`PROJECT_RELEVANCE_THRESHOLD` 0.25, `THEBRANA_RELEVANCE_THRESHOLD` 0.30),
+/// so showing everything stored is the honest default and the flag is the knob
+/// for narrowing while calibrating per-project thresholds.
+pub fn cmd_relevant(
+    project: &str,
+    min_score: Option<f32>,
+    dest: Option<PathBuf>,
+    json: bool,
+) -> Result<()> {
+    let dest = dest.unwrap_or_else(brana_core::vector::knowledge_db_path);
+    let min_score = min_score.unwrap_or(0.0);
+    let store = brana_core::vector::KnowledgeStore::open(&dest)?;
+    let rows = store.rows_relevant_to(project, min_score)?;
+
+    if json {
+        let items: Vec<_> = rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "key": r.key,
+                    // Rounded: serde_json has no f32, and the raw widening
+                    // renders 0.31 as 0.3100000023841858.
+                    "score": r.score_rounded(),
+                    "action_type": r.action_type,
+                    "summary": r.content,
+                    "created_at": r.created_at,
+                    "created_date": relevant_row_date(r.created_at),
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "project": project,
+                "min_score": brana_core::vector::round_reported_score(min_score),
+                "dest": dest,
+                "count": items.len(),
+                "rows": items,
+            })
+        );
+        return Ok(());
+    }
+
+    for r in &rows {
+        println!(
+            "{:.4}  {:18}  {}  {}",
+            r.score,
+            r.action_type.as_deref().unwrap_or("-"),
+            relevant_row_date(r.created_at),
+            r.key
+        );
+        println!("        {}", truncate(&r.content, 120));
+    }
+
+    if rows.is_empty() {
+        // "Nothing scored" and "this slug has no vector, so nothing could ever
+        // score" look identical in an empty list, and the second is the common
+        // case for a project missing from ~/.claude/tasks-portfolio.json.
+        let known = brana_core::project_vectors::ProjectVectorStore::open(&dest)?
+            .all()?
+            .iter()
+            .any(|p| p.slug == project);
+        if known {
+            println!(
+                "relevant: no rows for `{project}` at or above {min_score:.2} in {}",
+                dest.display()
+            );
+        } else {
+            println!(
+                "relevant: `{project}` has no project vector in {} — register it with a descriptor in ~/.claude/tasks-portfolio.json and run `brana knowledge project-vectors`, then `brana knowledge vector-sync`",
+                dest.display()
+            );
+        }
+    } else {
+        println!(
+            "relevant: {} row(s) for `{project}` at or above {min_score:.2} in {}",
+            rows.len(),
+            dest.display()
+        );
+    }
+    Ok(())
+}
+
 // --- project-vectors (t-3307) -----------------------------------------------
 
 /// `brana knowledge project-vectors` — embed one curated descriptor per
@@ -4583,4 +4693,12 @@ pub fn cmd_project_vectors(
         }
     }
     Ok(())
+
+    #[test]
+    fn relevant_row_date_reads_ruflo_millisecond_timestamps() {
+        // ruflo's memory_entries.created_at is epoch ms; 2026-09-06 ≈ 1.788e12.
+        assert_eq!(relevant_row_date(1_788_000_000_000), "2026-09-05");
+        // fixtures and hand-written rows use epoch seconds and still render.
+        assert_eq!(relevant_row_date(1_788_000_000), "2026-09-05");
+    }
 }

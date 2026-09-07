@@ -595,6 +595,29 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         json: bool,
     },
+    /// List the knowledge.db rows the scoring pass tagged as relevant to one
+    /// project — or to thebrana itself — best score first (t-3313).
+    ///
+    /// Read-only: no LLM call, no synthesis, no writes. This is the query
+    /// surface that makes the `relevant_projects` / `for_thebrana` columns
+    /// visible so per-project thresholds can be judged on evidence.
+    Relevant {
+        /// Portfolio project slug, or `thebrana` to read the `for_thebrana`
+        /// column (thebrana is scored apart and never listed in
+        /// `relevant_projects`).
+        project: String,
+        /// Hide rows scoring below this. Default: show everything stored —
+        /// the pass already applied its own threshold on the way in, so any
+        /// floor here only narrows further.
+        #[arg(long)]
+        min_score: Option<f32>,
+        /// Store to read (default: ~/.claude/memory/knowledge.db)
+        #[arg(long)]
+        dest: Option<PathBuf>,
+        /// Output the rows as JSON (the digest generator's input)
+        #[arg(long)]
+        json: bool,
+    },
     /// Embed one curated descriptor per portfolio project into the
     /// `project_vectors` table the link-scoring pass reads (t-3307).
     /// Re-embeds a project only when its descriptor text changes.

@@ -678,6 +678,63 @@ previously stored vector in place.
 
 ---
 
+## brana knowledge relevant
+
+List the `knowledge.db` rows the scoring pass tagged for one project — or for
+thebrana itself — best score first (t-3313). This is the read surface that makes
+the `relevant_projects` / `for_thebrana` columns visible; without it the pass
+writes tags nobody can see.
+
+**Read-only.** No embedding, no LLM call, no synthesis, no proposal loop — it
+opens the store, filters the columns the pass already committed, and prints
+them. Lock-free for the same reason `vector-sync` is.
+
+### Usage
+
+```bash
+brana knowledge relevant <project|thebrana> [--min-score <f>] [--dest <path>] [--json]
+```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `<project>` | required | Portfolio project slug, or `thebrana` to read the `for_thebrana` column (thebrana is scored apart and never appears in `relevant_projects`). |
+| `--min-score <f>` | `0.0` | Hide rows scoring below this (inclusive, like the pass's own threshold). |
+| `--dest <path>` | `~/.claude/memory/knowledge.db` | Store to read. |
+| `--json` | off | Emit the rows as JSON — the digest generator's input. |
+
+Each row prints as score, `action_type`, created date, key, then a 120-char
+summary snippet. JSON carries the same fields plus the raw `created_at` epoch,
+with scores rounded to four decimals (`serde_json` has no `f32`, and the raw
+widening renders 0.31 as 0.3100000023841858).
+
+### Why `--min-score` defaults to 0.0
+
+The originating task proposed 0.5. That predates the 2026-09-07 live
+calibration, which measured a centroid-cosine ceiling of 0.39 across 2,705 rows
+— a 0.5 floor would print zero rows for every project, forever, which is the
+exact failure this command exists to prevent. The pass already gates its writes
+(`PROJECT_RELEVANCE_THRESHOLD` 0.25, `THEBRANA_RELEVANCE_THRESHOLD` 0.30), so
+showing everything stored is the honest default and the flag is the knob for
+narrowing while calibrating per-project thresholds.
+
+### Empty output is two different states
+
+An empty list distinguishes them rather than leaving you to guess:
+
+- The slug **has** a project vector but nothing scored for it at this floor.
+- The slug **has no vector at all** — it is not registered in
+  `~/.claude/tasks-portfolio.json`, so nothing could ever score for it. The
+  fix is a descriptor on the portfolio record plus a `project-vectors` run
+  (measured 2026-09-07: `lexia`, `maker-hub`, `linkedin`, `brapsoclaw`,
+  `tinyhomes`, `ai-native-education`, `mcp-mercadolibre` and `thebrana-web`
+  are all in this state).
+
+Layer 2 — synthesis and the proposal loop — is deliberately **not** here.
+
+---
+
 ## brana session
 
 Unified session state management. Subcommands: `write`, `read`, `history`, `path`,
