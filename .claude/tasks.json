@@ -88493,7 +88493,7 @@
     {
       "id": "t-3317",
       "subject": "feed-summarize.sh's claude -p call is unsandboxed despite feeding externally-fetched content",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -88507,11 +88507,11 @@
       "parent": "t-2811",
       "created": "2026-09-07",
       "started": "2026-09-07",
-      "completed": null,
+      "completed": "2026-09-07",
       "blocked_by": [],
       "branch": "backlog-drain/fix/t-3317-feed-summarize-sandbox",
       "context": "Surfaced by the Challenger gate (iteration 2, PROCEED verdict) reviewing t-3315 on 2026-09-07: \"SIBLINGS: yes — system/scripts/feed-summarize.sh:216 (unsandboxed claude -p, no --allowedTools, externally-fetched feed content — separate task recommended, not blocking t-3315)\". Not blocking t-3315 (different subsystem, pre-existing, untouched by that diff) — filed as its own task per the reviewer's recommendation.",
-      "notes": null,
+      "notes": "Extracted resolve_claude()/stage_runner_home()/sandbox_claude() from autonomous-runner.sh into system/scripts/lib/sandbox-claude.sh; feed-summarize.sh now sources it and routes the summarize claude -p call through sandbox_claude() with an empty per-entry workdir and --allowedTools \"\". Added test-feed-summarize-sandbox.sh (hermetic escape battery, mirrors the OBSERVE-planner test) wired into validate.sh Check 61. Merged to dev.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -88523,7 +88523,7 @@
     {
       "id": "t-3318",
       "subject": "Harden t-3315's plan-gate sandboxing: RUNNER_PLAN_TIMEOUT margin + V4 test canary",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -88536,10 +88536,10 @@
       "priority": "P3",
       "parent": "t-2811",
       "created": "2026-09-07",
-      "started": null,
+      "started": "2026-09-07",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-drain/refactor/t-3318-harden-plan-gate-timeout",
       "context": "Filed 2026-09-07 from Ship Gate 3 (adversarial 3-lens pre-merge review) on the t-3315 dev→main ship. Not blocking — both source reviewers explicitly verdicted PROCEED WITH CHANGES.",
       "notes": null,
       "order": 0,
@@ -88547,7 +88547,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "refactor"
     }
   ],
   "version": 3,
