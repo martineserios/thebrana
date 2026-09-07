@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-04T20:39:34Z",
+  "generated": "2026-09-07T00:10:18Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1706,6 +1706,15 @@
         "system/scripts/git-hooks/pre-commit",
         "system/skills/close/phases/gate-and-evidence.md",
         "system/skills/close/phases/session-state.md"
+      ]
+    },
+    "docs/architecture/features/learn-worker-compute-chain.md": {
+      "title": "Feature: LEARN Worker Compute-Chain Contract — agy-first, Claude engine-switch, token ceiling, checkpoint/resume",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cron/close-extraction.sh",
+        "system/state/scheduler.json",
+        "system/cron/prompts/close-extraction.txt"
       ]
     },
     "docs/architecture/features/learned-eligibility.md": {
@@ -3639,6 +3648,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/drained/link-signal-enrichment-pipeline.md": {
+      "title": "Link Signal Enrichment Pipeline",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/pipeline-digest.md",
+        "system/loops/link-signal-digest.md"
+      ]
+    },
     "docs/ideas/drained/loop-first-redesign.md": {
       "title": "Loop-First Operation of thebrana",
       "type": "Roadmap",
@@ -3786,6 +3803,11 @@
     },
     "docs/ideas/knowledge-pipeline-platform-adapters.md": {
       "title": "PlatformAdapter for the knowledge pipeline",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/link-signal-enrichment-pipeline.md": {
+      "title": "Link Signal Enrichment Pipeline — moved",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -11574,6 +11596,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/learn-worker-compute-chain.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/learned-eligibility.md",
       "type": "references",
       "computed": false
@@ -12271,6 +12299,12 @@
     {
       "from": "docs/README.md",
       "to": "ideas/drained/brana-whatsapp-agent.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/drained/link-signal-enrichment-pipeline.md",
       "type": "references",
       "computed": false
     },
@@ -13963,6 +13997,18 @@
     {
       "from": "docs/architecture/features/lane-identity.md",
       "to": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learn-worker-compute-chain.md",
+      "to": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learn-worker-compute-chain.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -17801,6 +17847,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/link-signal-enrichment-pipeline.md",
+      "to": "drained/link-signal-enrichment-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/loop-task-multiagent.md",
       "to": "docs/architecture/the-brana.md",
       "type": "references",
@@ -19326,9 +19378,9 @@
     }
   ],
   "stats": {
-    "nodes": 629,
-    "edges": 2476,
+    "nodes": 632,
+    "edges": 2481,
     "typed_edges": 714,
-    "orphans": 143
+    "orphans": 144
   }
 }
