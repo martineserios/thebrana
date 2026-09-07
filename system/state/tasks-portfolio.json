@@ -6,7 +6,6 @@
         {
           "slug": "proyecto_anita",
           "path": "~/enter_thebrana/clients/proyecto-anita",
-          "descriptor": "Multi-tenant campaign platform for Argentine food and consumer-goods distributors: schedule promo blasts to thousands of retail buyers, route the replies, and keep each tenant's contacts and templates separate.",
           "type": "hybrid",
           "stage": "growth",
           "tech_stack": [
@@ -17,7 +16,8 @@
             "supabase",
             "gcp"
           ],
-          "created": "2025-10-01"
+          "created": "2025-10-01",
+          "descriptor": "Multi-tenant campaign platform for Argentine food and consumer-goods distributors: schedule promo blasts to thousands of retail buyers, route the replies, and keep each tenant's contacts and templates separate."
         }
       ]
     },
@@ -27,11 +27,11 @@
         {
           "slug": "batrade",
           "path": "~/enter_thebrana/clients/batrade",
-          "descriptor": "Grain and oilseed brokerage: match Argentine sellers with buyers worldwide, draft the contracts, and follow shipment and collection across hundreds of concurrent deals so the urgent ones surface before they slip.",
           "tech_stack": [
             "nextjs",
             "typescript"
-          ]
+          ],
+          "descriptor": "Grain and oilseed brokerage: match Argentine sellers with buyers worldwide, draft the contracts, and follow shipment and collection across hundreds of concurrent deals so the urgent ones surface before they slip."
         }
       ]
     },
@@ -41,12 +41,12 @@
         {
           "slug": "bemol",
           "path": "~/enter_thebrana/clients/bemol",
-          "descriptor": "Administration for a home-visit music school: assign instructors to lessons at each student's home, bill per class, and reconcile monthly payments and instructor pay.",
           "tech_stack": [
             "nextjs",
             "supabase",
             "rails"
-          ]
+          ],
+          "descriptor": "Administration for a home-visit music school: assign instructors to lessons at each student's home, bill per class, and reconcile monthly payments and instructor pay."
         }
       ]
     },
@@ -76,7 +76,7 @@
         {
           "slug": "mandawa",
           "path": "~/enter_thebrana/clients/mandawa",
-          "descriptor": "Archived client engagement; no active domain or scope on record."
+          "descriptor": ""
         }
       ]
     },
@@ -86,7 +86,6 @@
         {
           "slug": "eyedetect",
           "path": "~/enter_thebrana/ventures/nexeye_eyedetect",
-          "descriptor": "Video surveillance for security operators: watch many live camera feeds at once and automatically flag the events a person would otherwise have to catch by staring at every stream.",
           "type": "hybrid",
           "stage": "growth",
           "tech_stack": [
@@ -97,7 +96,8 @@
             "docker",
             "supabase"
           ],
-          "created": "2025-12-01"
+          "created": "2025-12-01",
+          "descriptor": "Video surveillance for security operators: watch many live camera feeds at once and automatically flag the events a person would otherwise have to catch by staring at every stream."
         }
       ]
     },
@@ -107,7 +107,6 @@
         {
           "slug": "somos_mirada",
           "path": "~/enter_thebrana/clients/somos_mirada",
-          "descriptor": "Patient acquisition and follow-up for an eye-surgery practice: turn inbound enquiries into booked consultations and keep post-operative contact, so leads do not go cold in the inbox.",
           "type": "venture",
           "stage": "growth",
           "tech_stack": [
@@ -115,7 +114,8 @@
             "whatsapp",
             "ai-agents"
           ],
-          "created": "2025-09-01"
+          "created": "2025-09-01",
+          "descriptor": "Patient acquisition and follow-up for an eye-surgery practice: turn inbound enquiries into booked consultations and keep post-operative contact, so leads do not go cold in the inbox."
         }
       ]
     },
@@ -125,7 +125,7 @@
         {
           "slug": "sunflower",
           "path": "~/enter_thebrana/clients/sunflower",
-          "descriptor": "Retired take-home exercise: a short AI-produced video advertisement for a sobriety app, made as a content-engineering job application."
+          "descriptor": ""
         }
       ]
     },
@@ -135,11 +135,11 @@
         {
           "slug": "trade_prof_man",
           "path": "~/enter_thebrana/clients/trade_prof_man",
-          "descriptor": "Trading indicators for a discretionary chart trader, with alert-to-execution automation as the later goal — the client's own edge, not a product for sale.",
           "tech_stack": [
             "pinescript",
             "tradingview"
-          ]
+          ],
+          "descriptor": "Trading indicators for a discretionary chart trader, with alert-to-execution automation as the later goal — the client's own edge, not a product for sale."
         }
       ]
     },
@@ -159,11 +159,123 @@
         {
           "slug": "truper",
           "path": "~/enter_thebrana/ventures/truper",
-          "descriptor": "Moneyless barter marketplace: people post what they have and what they want, and the exchange is matched without currency, including multi-item swaps.",
           "type": "hybrid",
           "stage": "discovery",
           "tech_stack": [],
-          "created": "2026-07-29"
+          "created": "2026-07-29",
+          "descriptor": "Moneyless barter marketplace: people post what they have and what they want, and the exchange is matched without currency, including multi-item swaps."
+        }
+      ]
+    },
+    {
+      "slug": "lexia",
+      "projects": [
+        {
+          "slug": "lexia",
+          "path": "/home/martineserios/enter_thebrana/ventures/lexia",
+          "type": "venture",
+          "stage": "growth",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "AI-assisted legal services for Argentine SMEs and startups: a supervising lawyer signs off while routine drafting and first-pass review are produced faster and cheaper than a traditional firm."
+        }
+      ]
+    },
+    {
+      "slug": "maker-hub",
+      "projects": [
+        {
+          "slug": "maker-hub",
+          "path": "/home/martineserios/enter_thebrana/ventures/maker-hub",
+          "type": "venture",
+          "stage": "discovery",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "STEM store, academy and community for an Argentine electronics and CNC/3D-printing business: membership-style pricing where the margin comes from the club, not the parts."
+        }
+      ]
+    },
+    {
+      "slug": "linkedin",
+      "projects": [
+        {
+          "slug": "linkedin",
+          "path": "/home/martineserios/enter_thebrana/ventures/linkedin",
+          "type": "venture",
+          "stage": "growth",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "Personal brand and consulting funnel: a content pipeline, profile positioning and network strategy for a builder who writes, bilingual Spanish and English."
+        }
+      ]
+    },
+    {
+      "slug": "brapsoclaw",
+      "projects": [
+        {
+          "slug": "brapsoclaw",
+          "path": "/home/martineserios/enter_thebrana/ventures/brapsoclaw",
+          "type": "venture",
+          "stage": "discovery",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "Conversational bot framework on the official WhatsApp Business API, replacing the unofficial web transport so customer-facing agents answer reliably."
+        }
+      ]
+    },
+    {
+      "slug": "tinyhomes",
+      "projects": [
+        {
+          "slug": "tinyhomes",
+          "path": "/home/martineserios/enter_thebrana/ventures/tinyhomes",
+          "type": "venture",
+          "stage": "discovery",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "Marketplace for alternative stays in Latin America (tiny homes, glamping, motorhomes), Argentina first; validation stage, paused pending a cofounder."
+        }
+      ]
+    },
+    {
+      "slug": "ai-native-education",
+      "projects": [
+        {
+          "slug": "ai-native-education",
+          "path": "/home/martineserios/enter_thebrana/ventures/ai-native-education",
+          "type": "venture",
+          "stage": "discovery",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "Education framework where using AI is the objective rather than cheating: pedagogy and assessment for learning to think with machines."
+        }
+      ]
+    },
+    {
+      "slug": "mcp-mercadolibre",
+      "projects": [
+        {
+          "slug": "mcp-mercadolibre",
+          "path": "/home/martineserios/enter_thebrana/ventures/mcp-mercadolibre",
+          "type": "venture",
+          "stage": "discovery",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "Tool server exposing the Mercado Libre marketplace to AI agents (listings, orders, buyer questions), with human confirmation before anything that spends money."
+        }
+      ]
+    },
+    {
+      "slug": "thebrana-web",
+      "projects": [
+        {
+          "slug": "thebrana-web",
+          "path": "/home/martineserios/enter_thebrana/ventures/thebrana-web",
+          "type": "venture",
+          "stage": "discovery",
+          "tech_stack": [],
+          "created": "2026-09-07",
+          "descriptor": "Public website for the brana system and consulting practice: what it is, who it is for, and how to start working together."
         }
       ]
     }
