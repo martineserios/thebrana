@@ -1,7 +1,7 @@
 # Feature: Reconcile propagation — scan dim "Could Adopt" sections into the backlog
 
 **Date:** 2026-09-07
-**Status:** built
+**Status:** shipped
 **Task:** t-1706
 
 ## Problem
@@ -135,7 +135,7 @@ stays local to reconcile either way.
 - [x] **User guide** — `system/skills/reconcile/SKILL.md` itself is the user-facing doc for this
   command; its domain table and step registry are updated in the same change (no separate
   `docs/guide/` page — reconcile has none for other scopes either).
-- [ ] **Existing docs to update** — none beyond SKILL.md/propagation.md themselves.
+- [x] **Existing docs to update** — none beyond SKILL.md/propagation.md themselves (both updated).
 
 ## Challenger findings
 
