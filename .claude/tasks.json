@@ -88464,7 +88464,7 @@
     {
       "id": "t-3316",
       "subject": "CI `tests` job red on main and dev (Run tests step) — not a required check, but every run shows FAIL",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "ops",
       "tags": [
@@ -88473,22 +88473,24 @@
         "validate"
       ],
       "description": "GitHub Actions job `tests` fails at step \"Run tests\" on the latest runs of both branches (dev run 33884158670, main run 33929239218) while `validate` and `rust` — the two checks branch protection requires — pass. Diagnose the failing suite from the job log, fix or quarantine it, and decide whether `tests` should join the required set (if it stays optional-and-red it is noise that hides real regressions). Separately, local ./validate.sh reports 3 errors CI does not (Check 8 file size on system/hooks/session-start.sh 51,590 B vs 51,200 limit; Check 72 README coverage rows missing for ADR-091 and features/adr-number-reservation.md; Check 68 worktree/task contradiction for t-3167 — worktree-local): reconcile so local and CI validate agree, and add the two README rows regardless.",
-      "effort": "S",
+      "effort": "M",
       "priority": "P2",
-      "parent": null,
+      "parent": "t-2344",
       "created": "2026-09-07",
-      "started": null,
-      "completed": null,
+      "started": "2026-09-07",
+      "completed": "2026-09-07",
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness/chore/t-3316-ci-tests-job-red",
       "context": "2026-09-07: found while preparing /brana:ship for the link-signal chain (t-3306..t-3314). Ship is not blocked (required checks green); filed so the red job stops being background noise. Log saved this session at scratchpad/ci-tests.log.\n2026-09-07 (later): PR #1070 (another session, backlog-git-alignment/chore/t-3284) already landed on main the README rows for ADR-091 + adr-number-reservation and the session-start.sh trim under 50KB, and held t-3284's two red hook tests off the ship. What remains of this task: the `tests` CI job itself (still non-required and red on prior runs) — diagnose from a fresh run now that the two RED tests are held, and decide whether it joins the required set.",
-      "notes": null,
+      "notes": "Challenger: RECONSIDER (2026-09-07), 1 finding, max severity 4. Finding: task's \"decide whether tests joins required set\" goal left with no tracking artifact + stale CI comment. Fixed: filed t-3319, repointed comment (commit 665fe22a). Two WARNING sibling-candidates investigated and confirmed false leads (validate-jq-encoding.sh/second-phase-check.sh not reachable from any CI job; test-validate-reference-check.sh and test-session-end-persist.sh don't use resolve-brana.sh's vulnerable resolution chain). Added missing test coverage for validate-remedies.sh's uv-absent fallback branch.\nChallenger iteration 2: PROCEED WITH CHANGES (2026-09-07). Tracking-artifact gap confirmed closed (t-3319 verified real, comment updated). One cheap hardening applied: fallback test now asserts its own PATH-stripping precondition instead of trusting outcome alone (commit afaa95aa).\nChallenger: PROCEED WITH CHANGES (2026-09-07), findings addressed across 2 follow-up commits (665fe22a, afaa95aa) — filed t-3319 to track the still-open required-check promotion, added test coverage for the bare-python3 fallback branch, hardened the fallback test's PATH-stripping precondition. Second-variant finder (rung 1): SIBLINGS: yes — system/hooks/session-start.sh:288-296 had the same missing-$BRANA-override gap, fixed (commit 4c288b96). Full CI run (34139817580, post all fixes) green on all 3 jobs.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "chore",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix",
+      "build_step": ""
     },
     {
       "id": "t-3317",
@@ -88549,6 +88551,35 @@
       "work_type": "implement",
       "ac_state": "none",
       "strategy": "refactor"
+    },
+    {
+      "id": "t-3319",
+      "subject": "Promote CI `tests` job to a required status check on main",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "ci",
+        "tests",
+        "branch-protection"
+      ],
+      "description": null,
+      "effort": "XS",
+      "priority": "P2",
+      "parent": "t-2344",
+      "created": "2026-09-07",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-09-07: t-3280 (completed 2026-09-04, PR #1062) carried \"main branch protection lists tests alongside validate and rust as required checks\" as an AC, but never actually flipped branch protection (ac_state was never verified) — it just fixed the 14 red suites. t-3316 (this task's predecessor) fixed a fresh regression of the same suites and confirmed `tests` green on a manually-dispatched CI run (run 34136651578, all 3 jobs success), but deliberately did NOT flip branch protection itself — that's a shared/high-blast-radius action (blocks every future PR to main) warranting its own explicit user confirmation, not a side effect of a CI bugfix PR. This is the second task in this chain to leave the flip undone; a challenger review on t-3316 flagged the stale `.github/workflows/ci.yml` comment (still named t-3280) as evidence nothing tracked the follow-through. Command: `gh api -X PUT repos/martineserios/thebrana/branches/main/protection/required_status_checks -f strict=true -f 'contexts[]=validate' -f 'contexts[]=rust' -f 'contexts[]=tests'` (verify current protection JSON first — this PUT replaces the whole required_status_checks object, don't drop validate/rust). Also update .github/workflows/ci.yml's stale \"Fixing them is t-3280\" comment near the tests job to point here instead.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "chore",
+      "ac_state": "none"
     }
   ],
   "version": 3,
