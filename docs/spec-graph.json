@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-07T11:48:29Z",
+  "generated": "2026-09-07T20:14:13Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1887,6 +1887,15 @@
         "system/cron/close-extraction.sh",
         "system/cli/rust/crates/brana-core/src/queue.rs",
         "system/skills/reconcile/SKILL.md"
+      ]
+    },
+    "docs/architecture/features/reconcile-dim-could-adopt-scan.md": {
+      "title": "Feature: Reconcile propagation — scan dim \"Could Adopt\" sections into the backlog",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/reconcile/phases/propagation.md",
+        "system/skills/reconcile/SKILL.md",
+        "system/skills/backlog/phases/done-and-add.md:78"
       ]
     },
     "docs/architecture/features/reminder-system.md": {
@@ -11899,6 +11908,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/reconcile-dim-could-adopt-scan.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/reminder-system.md",
       "type": "references",
       "computed": false
@@ -19681,9 +19696,9 @@
     }
   ],
   "stats": {
-    "nodes": 634,
-    "edges": 2529,
+    "nodes": 635,
+    "edges": 2530,
     "typed_edges": 738,
-    "orphans": 141
+    "orphans": 142
   }
 }
