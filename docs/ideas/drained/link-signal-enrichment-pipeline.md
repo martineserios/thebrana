@@ -4,10 +4,13 @@ status: drained
 created: 2026-09-06
 drained: 2026-09-06
 tasks: t-3306..t-3314 (epic knowledge-pipeline, t-2348)
+adr: docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md
 ---
 # Link Signal Enrichment Pipeline
 
 > Brainstormed 2026-09-06, following the three-week Telegram captures digest. **Drained 2026-09-06** into t-3306..t-3314 under epic `knowledge-pipeline` (t-2348). Layer 2 remains open and gets its own idea doc when Layer 1 has produced tagged data.
+>
+> **Decisions of record moved to [ADR-093](../../architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md)** — queue-vs-valve, post-sync scoring placement, and Layer 2's cap + dead-letter shape, including the 2026-09-07 threshold calibration that supersedes the provisional numbers below. Shipped mechanism: [features/knowledge-pipeline-compute.md](../../architecture/features/knowledge-pipeline-compute.md) §Post-Sync Enrichment · [features/project-descriptor-vectors.md](../../architecture/features/project-descriptor-vectors.md) · [knowledge-pipeline.md](../../architecture/knowledge-pipeline.md). This doc is the design record, not the current spec.
 
 ## Scope of this plan
 
