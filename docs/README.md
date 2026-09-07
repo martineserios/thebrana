@@ -96,6 +96,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [building-methodology.md](architecture/building-methodology.md) | How brana is built (DDD/SDD/TDD) |
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
+| [tasks-json-backup.md](architecture/tasks-json-backup.md) | Hourly backlog-ledger backup (ADR-094 interim): `tasks-json-backup.sh` copy/rotate/refuse-on-wipe/restore, recovery drill |
 | [knowledge-pipeline.md](architecture/knowledge-pipeline.md) | URL fetch tiers + YouTube tier decisions (flat storage, Ok(None) contract, own scheduler job) |
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
 | [the-orbit.md](architecture/the-orbit.md) | **Superseded ([ADR-068](architecture/decisions/ADR-068-v3-supersession.md))** — index & reading map for the Orbit/Substrate cluster; historical |
