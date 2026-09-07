@@ -150,6 +150,7 @@ Cross-client project registry. Located at `~/.claude/tasks-portfolio.json`.
 | `clients[].projects` | array | Yes | Project objects |
 | `clients[].projects[].slug` | string | Yes | Project identifier |
 | `clients[].projects[].path` | string | Yes | Path to project (supports `~/` prefix, resolved to `$HOME`) |
+| `clients[].projects[].descriptor` | string | No | Curated one-liner — domain, customer, problem, no stack words. Embedded by `brana knowledge project-vectors` ([spec](../architecture/features/project-descriptor-vectors.md)); projects without one get no vector |
 | `clients[].projects[].type` | string | No | Project type descriptor |
 | `clients[].projects[].stage` | string | No | Current stage |
 | `clients[].projects[].tech_stack` | string | No | Technologies used |

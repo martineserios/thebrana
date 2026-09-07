@@ -11,6 +11,7 @@ pub mod ruflo;
 pub mod lint;
 pub mod memory;
 pub mod notify;
+pub mod project_vectors;
 pub mod search;
 pub mod queue;
 pub mod receipt;

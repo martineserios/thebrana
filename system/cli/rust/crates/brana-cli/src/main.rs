@@ -290,6 +290,11 @@ fn main() {
             KnowledgeCmd::VectorSync { source, dest, json } => {
                 run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, json))
             }
+            KnowledgeCmd::ProjectVectors { portfolio, dest, docs, force, list, json } => {
+                run_or_exit(commands::knowledge::cmd_project_vectors(
+                    portfolio, dest, docs, force, list, json,
+                ))
+            }
         },
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),

@@ -4311,3 +4311,114 @@ pub fn cmd_vector_sync(
     }
     Ok(())
 }
+
+// --- project-vectors (t-3307) -----------------------------------------------
+
+/// `brana knowledge project-vectors` — embed one curated descriptor per
+/// portfolio project into the `project_vectors` table the link-scoring pass
+/// reads (project-descriptor-vectors.md).
+///
+/// Descriptors are authored by hand on the portfolio record; this command only
+/// embeds them, and only when the text changed since the last run.
+pub fn cmd_project_vectors(
+    portfolio: Option<PathBuf>,
+    dest: Option<PathBuf>,
+    docs: Option<PathBuf>,
+    force: bool,
+    list: bool,
+    json: bool,
+) -> Result<()> {
+    use brana_core::project_vectors as pv;
+
+    let dest = dest.unwrap_or_else(pv::project_vectors_db_path);
+    let store = pv::ProjectVectorStore::open(&dest)?;
+
+    if list {
+        let rows = store.all()?;
+        if json {
+            let items: Vec<_> = rows
+                .iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "slug": r.slug,
+                        "source": r.source,
+                        "updated_at": r.updated_at,
+                        "descriptor": r.descriptor,
+                        "descriptor_hash": r.descriptor_hash,
+                    })
+                })
+                .collect();
+            println!("{}", serde_json::json!({"dest": dest, "projects": items}));
+        } else if rows.is_empty() {
+            println!("project-vectors: no vectors stored at {}", dest.display());
+        } else {
+            for r in &rows {
+                println!("{:24} [{}] {}", r.slug, r.source, r.descriptor);
+            }
+            println!("project-vectors: {} vector(s) at {}", rows.len(), dest.display());
+        }
+        return Ok(());
+    }
+
+    let portfolio_path =
+        portfolio.unwrap_or_else(|| home().join(".claude").join("tasks-portfolio.json"));
+    let content = std::fs::read_to_string(&portfolio_path)
+        .with_context(|| format!("reading {}", portfolio_path.display()))?;
+    let parsed: serde_json::Value = serde_json::from_str(&content)
+        .with_context(|| format!("parsing {}", portfolio_path.display()))?;
+
+    let mut descriptors = pv::descriptors_from_portfolio(&parsed);
+    if descriptors.is_empty() {
+        eprintln!(
+            "⚠ no curated descriptors in {} — add a `descriptor` line per project",
+            portfolio_path.display()
+        );
+    }
+
+    // thebrana is the workshop, not a portfolio record: its vector is composed
+    // from the-brana.md plus the accepted ADRs.
+    let docs_root = docs
+        .or_else(|| find_project_root().map(|r| r.join("docs")))
+        .unwrap_or_else(|| PathBuf::from("docs"));
+    descriptors.push(pv::thebrana_descriptor(&docs_root));
+
+    let now = chrono::Utc::now().timestamp();
+    let stats = pv::sync_project_vectors(
+        &descriptors,
+        &store,
+        &brana_core::vector::RufloEmbedder,
+        now,
+        force,
+    )?;
+    let total = store.count()?;
+
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "dest": dest,
+                "portfolio": portfolio_path,
+                "docs": docs_root,
+                "embedded": stats.embedded,
+                "unchanged": stats.unchanged,
+                "failed": stats.failed,
+                "store_total": total,
+            })
+        );
+    } else {
+        println!(
+            "project-vectors: embedded {} · unchanged {} · failed {}. Store now holds {} vector(s) at {}",
+            stats.embedded.len(), stats.unchanged.len(), stats.failed.len(), total, dest.display()
+        );
+    }
+
+    if !stats.failed.is_empty() {
+        eprintln!("⚠ embedding unavailable for: {}", stats.failed.join(", "));
+        // Nothing landed and nothing was already current — the embedder is
+        // down, not a per-project quirk. Exit non-zero so the caller notices.
+        if stats.embedded.is_empty() && stats.unchanged.is_empty() {
+            bail!("no descriptor could be embedded — is ruflo reachable?");
+        }
+    }
+    Ok(())
+}

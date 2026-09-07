@@ -605,6 +605,42 @@ topic-searchable without a manual run.
 
 ---
 
+## brana knowledge project-vectors
+
+Embed one curated descriptor per portfolio project into the `project_vectors`
+table the link-scoring pass reads (t-3307). Descriptors are authored by hand on
+the portfolio record (`clients[].projects[].descriptor`) — domain, customer,
+problem, no stack words, because shared stack vocabulary is what cross-tags
+sibling client repos. thebrana gets its own vector, composed from
+`the-brana.md` plus the accepted ADR titles.
+
+A project is re-embedded only when its descriptor text changes. Full spec:
+[project-descriptor-vectors.md](../architecture/features/project-descriptor-vectors.md).
+
+### Usage
+
+```bash
+brana knowledge project-vectors [--portfolio <path>] [--dest <path>]
+                                [--docs <path>] [--force] [--list] [--json]
+```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--portfolio <path>` | `~/.claude/tasks-portfolio.json` | Portfolio registry to read descriptors from. |
+| `--dest <path>` | `~/.claude/memory/knowledge.db` | Store holding the `project_vectors` table. |
+| `--docs <path>` | `<repo>/docs` | Docs root thebrana's own vector is composed from. |
+| `--force` | off | Re-embed every project — for after an embedding model change, which the descriptor hash cannot see. |
+| `--list` | off | Print the stored table instead of embedding anything. |
+| `--json` | off | Output stats as JSON. |
+
+Projects with no `descriptor` are skipped: an uncurated project gets no vector
+rather than one built from boilerplate. A failed embedding leaves the
+previously stored vector in place.
+
+---
+
 ## brana session
 
 Unified session state management. Subcommands: `write`, `read`, `history`, `path`,
