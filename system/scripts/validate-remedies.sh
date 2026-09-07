@@ -135,10 +135,15 @@ declare -A REMEDY_REGISTRY=(
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
 # successful apply. Not a CLI --undo flag (out of v1 scope) — just what to copy-paste.
+#
+# 62/63/64: .claude/tasks.json was untracked from git by t-3285/ADR-091 — `git
+# restore` on it now fails ("did you forget to 'git add'?") on the real repo.
+# No automated backup exists yet either (t-3287, the periodic-snapshot follow-up,
+# is still pending) — until it lands, back up the file yourself before applying.
 declare -A REMEDY_UNDO_HINT=(
-  [62]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
-  [63]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
-  [64]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
+  [62]="no automated undo yet (t-3287 pending, ADR-091) — back up .claude/tasks.json before applying"
+  [63]="no automated undo yet (t-3287 pending, ADR-091) — back up .claude/tasks.json before applying"
+  [64]="no automated undo yet (t-3287 pending, ADR-091) — back up .claude/tasks.json before applying"
   [42]="cd \$SCRIPT_DIR && git restore system/agents/debrief-analyst.md"
   [29]="cd \$SCRIPT_DIR && git restore docs/reference/"
 )
