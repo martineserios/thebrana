@@ -22,16 +22,23 @@ SURFACE=(
     "system/skills"
     "system/rules"
     "system/procedures"
-    "docs/guide/workflows/branching.md"
+    "system/commands"
+    "docs/guide"
+    "docs/architecture"
     ".claude/CLAUDE.md"
     "bootstrap.sh"
     "system/cli/rust/crates/brana-cli/src/main.rs"
 )
 
 # Two shapes of "command line":
-#   1. a shell line: optional indent, optional "$ " prompt, then the command
+#   1. a shell line: optional indent, optional list marker ("2. " / "- "), optional "$ " prompt,
+#      then the command
 #   2. a printed hint: a string literal that starts with the command (brana deploy's println!)
-CMD_RE='^[[:space:]]*(\$[[:space:]]*)?git (checkout|switch) (main|dev)([[:space:]]|$|&|;|\|)'
+# There is deliberately NO exemption: the sanctioned alternatives never match these shapes —
+# `git worktree add …` has no checkout verb, and `git -C <worktree> checkout main` puts `-C`
+# between `git` and the verb. A same-line "worktree" mention used to exempt a line, which let
+# `git checkout main  # …worktree…` slip through (Gate 3 regression finding, 2026-09-07).
+CMD_RE='^[[:space:]]*(([0-9]+\.|[-*])[[:space:]]+)?(\$[[:space:]]*)?git (checkout|switch) (main|dev)([[:space:]]|$|&|;|\|)'
 STR_RE='["'"'"'][[:space:]]*git (checkout|switch) (main|dev)([[:space:]]|["'"'"']|$)'
 
 hits=0
@@ -39,10 +46,9 @@ for entry in "${SURFACE[@]}"; do
     path="$ROOT/$entry"
     [ -e "$path" ] || continue
     while IFS= read -r file; do
-        # grep -n both shapes; drop lines that name the sanctioned alternative.
+        # grep -n both shapes; every hit is a finding (no exemptions — see above).
         while IFS= read -r line; do
             [ -z "$line" ] && continue
-            case "$line" in *worktree*) continue ;; esac
             rel="${file#"$ROOT"/}"
             echo "  $rel:$line"
             hits=$((hits + 1))

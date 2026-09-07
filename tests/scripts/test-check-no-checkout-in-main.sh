@@ -49,12 +49,36 @@ bash "$CHECK" "$F3" >/dev/null 2>&1; rc=$?
 assert_true "does not fire on prose that mentions the command in backticks" "$([ $rc -eq 0 ] && echo true || echo false)"
 rm -rf "$F3"
 
-# 4. worktree lines must NOT fire
+# 4. the sanctioned alternatives must NOT fire: `git worktree add …` and `git -C <worktree> checkout …`
 F4=$(mktemp -d); mk_fixture "$F4"
-printf '%s\n' '```bash' 'git worktree add ../thebrana-main main' 'git checkout dev   # inside the worktree, not the main checkout' '```' > "$F4/system/skills/x/SKILL.md"
+printf '%s\n' '```bash' 'git worktree add ../thebrana-main main' 'git -C ../thebrana-main checkout main' '```' > "$F4/system/skills/x/SKILL.md"
 bash "$CHECK" "$F4" >/dev/null 2>&1; rc=$?
-assert_true "exempts lines that name the worktree alternative" "$([ $rc -eq 0 ] && echo true || echo false)"
+assert_true "does not fire on git worktree add / git -C <worktree> checkout" "$([ $rc -eq 0 ] && echo true || echo false)"
 rm -rf "$F4"
+
+# 4b. a bare checkout with an incidental "worktree" mention on the same line MUST fire
+#     (Gate 3 regression finding 2026-09-07: the old substring exemption let this through)
+F4B=$(mktemp -d); mk_fixture "$F4B"
+printf '%s\n' '```bash' 'git checkout main  # not really about a worktree but the word worktree is here' '```' > "$F4B/system/skills/x/SKILL.md"
+bash "$CHECK" "$F4B" >/dev/null 2>&1; rc=$?
+assert_true "fires on 'git checkout main' even when the line mentions worktree" "$([ $rc -ne 0 ] && echo true || echo false)"
+rm -rf "$F4B"
+
+# 4c. an un-backticked numbered-list instruction MUST fire
+F4C=$(mktemp -d); mk_fixture "$F4C"
+printf '%s\n' 'Steps:' '1. git fetch origin' '2. git checkout main' '3. ./bootstrap.sh' > "$F4C/system/rules/ship.md"
+bash "$CHECK" "$F4C" >/dev/null 2>&1; rc=$?
+assert_true "fires on a numbered-list '2. git checkout main' instruction" "$([ $rc -ne 0 ] && echo true || echo false)"
+rm -rf "$F4C"
+
+# 4d. system/commands and docs/architecture are in the scanned surface
+F4D=$(mktemp -d); mk_fixture "$F4D"; mkdir -p "$F4D/system/commands" "$F4D/docs/architecture"
+printf '%s\n' '```bash' 'git checkout dev' '```' > "$F4D/system/commands/x.md"
+bash "$CHECK" "$F4D" >/dev/null 2>&1; rc1=$?
+rm -f "$F4D/system/commands/x.md"; printf '%s\n' '```bash' 'git checkout main' '```' > "$F4D/docs/architecture/x.md"
+bash "$CHECK" "$F4D" >/dev/null 2>&1; rc2=$?
+assert_true "scans system/commands and docs/architecture" "$([ $rc1 -ne 0 ] && [ $rc2 -ne 0 ] && echo true || echo false)"
+rm -rf "$F4D"
 
 # 5. the live repo must be clean
 bash "$CHECK" "$REPO_ROOT" >/tmp/check74-live.log 2>&1; rc=$?
