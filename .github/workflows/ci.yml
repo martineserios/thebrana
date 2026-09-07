@@ -68,14 +68,13 @@ jobs:
           done
           echo "All hook scripts are executable"
 
-  # tests/*/*.sh — visible on every PR, NOT a required check yet (t-3023).
+  # tests/*/*.sh — required check on main as of t-3319 (2026-09-07).
   # This step never ran on main until 2026-09-04 (validate failed first for
   # weeks), and its first run showed 14 suites red for reasons ranging from
   # CI-environment gaps (no ruflo, brana not on PATH) to genuinely red tests on
   # dev. t-3280 (2026-09-04) fixed those 14; t-3316 (2026-09-07) fixed a fresh
-  # regression of the same suites plus one net-new one. Both left the actual
-  # branch-protection flip undone — that's tracked separately now as t-3319
-  # (don't let it lapse a third time).
+  # regression of the same suites plus one net-new one; t-3319 (2026-09-07)
+  # finally flipped branch protection so a red run here blocks merges to main.
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 45
