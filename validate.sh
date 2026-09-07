@@ -2560,6 +2560,40 @@ elif bash "$C61F_TEST" >/dev/null 2>&1; then
 else
     fail "Check 61: plan-gate regressed — subject-only judging or approved-skip broken (t-3315)"
 fi
+# Plan-timeout fail-open behavior (t-3318) — needs no bwrap: a timed-out plan dispatch must
+# degrade to would-run "plan inconclusive", never hang or fail closed. Always testable.
+C61H_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-plan-timeout.sh"
+if [ ! -f "$C61H_TEST" ]; then
+    warn "Check 61: plan-timeout fail-open test not found at $C61H_TEST — skipping"
+elif bash "$C61H_TEST" >/dev/null 2>&1; then
+    pass "Check 61: timed-out plan step fails open (would-run, no hang) ✓ (t-3318)"
+else
+    fail "Check 61: plan-timeout regressed — hangs, fails closed, or mis-parks on timeout (t-3318)"
+fi
+# feed-summarize.sh sandbox escape battery (t-3317, ADR-062) — the summarize call feeds
+# externally-fetched article content into claude -p; wired HERE (same reasoning as C61E
+# above) so any regression on this call site — or on the shared sandbox-claude.sh lib
+# both this and the runner depend on — fails loudly on the next validate.
+C61G_TEST="$SCRIPT_DIR/system/scripts/tests/test-feed-summarize-sandbox.sh"
+if [ ! -f "$C61G_TEST" ]; then
+    warn "Check 61: feed-summarize sandbox battery not found at $C61G_TEST — skipping"
+elif ! command -v bwrap >/dev/null 2>&1; then
+    warn "Check 61: bwrap not installed — feed-summarize sandbox unenforced + untestable here (ADR-062)"
+else
+    if C61G_OUT=$(bash "$C61G_TEST" 2>&1); then
+        C61G_RC=0
+    else
+        C61G_RC=$?
+    fi
+    echo "$C61G_OUT" | tail -3 | sed 's/^/  /'
+    if [ "$C61G_RC" -eq 0 ]; then
+        pass "Check 61: feed-summarize sandbox contains all escape vectors ✓ (t-3317)"
+    elif echo "$C61G_OUT" | grep -qiE "bwrap:.*(namespace|permission|unshare|operation not permitted)"; then
+        warn "Check 61: bwrap cannot create namespaces in this env (CI/container) — sandbox untestable here"
+    else
+        fail "Check 61: feed-summarize sandbox BREACHED — an escape vector succeeded (t-3317, ADR-062)"
+    fi
+fi
 # Real (non-stub) claude -p compat check (t-3257, ADR-062) — proves sandbox_claude() can
 # actually authenticate and run the REAL subscription binary, not just contain the stub used
 # by the two checks above. OPT-IN (RUNNER_LIVE_CLAUDE_TEST=1) — makes one real API call, so it

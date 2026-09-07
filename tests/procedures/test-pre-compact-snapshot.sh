@@ -195,7 +195,12 @@ mk_widen_repo() {   # mk_widen_repo <dir>
 # to the real deployed binary and silently defeats this test's fake `brana`
 # on PATH (discovered live authoring this test, t-3017: the widened-window
 # assertion failed with --commit-count 0 even though the fix was already
-# applied and correct).
+# applied and correct). Unsetting the plugin vars wasn't enough once CI
+# started building a release `brana` binary at the SCRIPT_DIR-relative path
+# (t-3023): that tier shadowed the PATH fake too. resolve-brana.sh now has a
+# `$BRANA` override tier (t-3316) that wins over every other source —
+# `run_widen_case` below pins it at the fake binary explicitly instead of
+# relying on env-var absence to fall through to PATH.
 run_widen_case() {   # run_widen_case <label> <sessions_json> <expect_count>
     local label="$1" sessions="$2" expect="$3"
     local repo="$WORK/widen-repo-$RANDOM"
@@ -204,6 +209,7 @@ run_widen_case() {   # run_widen_case <label> <sessions_json> <expect_count>
     local out
     out=$(printf '{"session_id":"sess-old","cwd":"%s","trigger":"auto"}' "$repo" | \
         env -u CLAUDE_PLUGIN_ROOT -u CLAUDE_PLUGIN_DATA PATH="$FAKE_BIN:$PATH" \
+            BRANA="$FAKE_BIN/brana" \
             FAKE_SESSIONS_JSON="$sessions" BRANA_SNAPSHOT_SCRIPT="$STUB" \
             BRANA_PRECOMPACT_GUARD_DIR="$WORK/guards-$RANDOM" bash "$HOOK")
     local rc=$?

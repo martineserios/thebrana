@@ -37,7 +37,7 @@ Unified maintenance command for the brana system. Four domains, one entry point.
 |--------|-----------|---------------|
 | **Consistency** | `--scope consistency` | Spec docs vs `system/` implementation drift; CONTEXT.md vs `docs/domain/` (default) |
 | **Security** | `--scope security` | Secrets, permissions, MCP tax, dangerous settings, credential files, acquired skill safety |
-| **Propagation** | `--scope propagation` | Doc fitness checks, reflection gaps, spec-graph consistency |
+| **Propagation** | `--scope propagation` | Doc fitness checks, reflection gaps, spec-graph consistency, dim "Could Adopt" → backlog scan |
 | **Knowledge** | `--scope knowledge` | Stale dimensions, event log bloat, ruflo noise (DECAY) |
 
 `--scope all` runs every domain sequentially.
@@ -110,7 +110,7 @@ Register steps based on scope:
 
 - **consistency:** ORIENT, ROUTE, SCAN-SPECS, SCAN-IMPL, DIFF, PRESENT, APPLY, LOG, REPORT
 - **security:** ORIENT, ROUTE, SEC-SCAN, SEC-REPORT
-- **propagation:** ORIENT, ROUTE, PROP-SCAN, PROP-APPLY, PROP-REPORT
+- **propagation:** ORIENT, ROUTE, PROP-SCAN, PROP-APPLY, PROP-3, PROP-REPORT
 - **knowledge:** ORIENT, ROUTE, KNOW-1, KNOW-2, KNOW-3, KNOW-REPORT
 - **all:** ORIENT, ROUTE, then all domain steps sequentially
 
@@ -202,3 +202,11 @@ Source: /brana:reconcile --scope propagation, 2026-06-03
 ### 2026-06-03: Errata same-day numbering can collide across concurrent sessions
 Multiple sessions closing on the same day independently assign E{date}-N starting from 1, producing duplicate IDs across client repos or parallel thebrana sessions. The Step 4 pre-write dedup check in close.md already documents querying `git show HEAD:errata-doc` for LAST_N — but this only works within one repo. Cross-repo errata written to the same file on the same day must also check the index table at the top of docs/24-roadmap-corrections.md, not just the latest commit.
 Source: /brana:reconcile --scope propagation merge conflict resolution, 2026-06-03
+
+### 2026-09-07: `brana backlog query --status` takes one value, not a comma list
+Unlike `--tag` (which supports `--tag "a,b"` for AND logic), `--status pending,in_progress` errors with `invalid value 'pending,in_progress'`. Any step diffing against "pending or in_progress" tasks must run two separate queries and merge, not one comma-joined call. Found building PROP-3 (dim Could Adopt scan, t-1706).
+Source: /brana:reconcile --scope propagation PROP-3, 2026-09-07
+
+### 2026-09-07: Dim doc "Could Adopt" items get struck through when implemented, not removed
+Dimension docs mark a completed Could Adopt item with `~~text~~`, usually followed by "Implemented t-NNN" (e.g. dim 46 §6.3: 2 of 8 items struck through). A scan that reads bullet items under a Could Adopt heading must skip struck-through text or it re-proposes already-done work as new candidates on every run.
+Source: /brana:reconcile --scope propagation PROP-3, 2026-09-07

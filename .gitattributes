@@ -1,9 +1,11 @@
 # .gitattributes — custom git behaviors for thebrana
 
-# tasks.json uses a custom merge driver that preserves the highest task status.
-# Never let a git merge downgrade a completed task to in_progress. (t-2132)
-# Driver configured by bootstrap.sh → system/scripts/tasks-json-merge.sh
-.claude/tasks.json merge=brana-tasks
+# Periodic tasks.json snapshot uses a custom merge driver that preserves the
+# highest task status. Never let a git merge downgrade a completed task to
+# in_progress. (t-2132; repointed from .claude/tasks.json by ADR-091/t-3285 —
+# the live ledger is untracked now, this driver guards the tracked snapshot's
+# cross-branch merges instead.) Driver configured by bootstrap.sh → system/scripts/tasks-json-merge.sh
+system/state/tasks-snapshot.json merge=brana-tasks
 
 # Escaped-defect log (ADR-082 §7): append-only JSONL written from concurrent
 # branches/sessions — union merge keeps both sides' appends instead of

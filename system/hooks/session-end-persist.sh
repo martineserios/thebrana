@@ -241,16 +241,18 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
             # against the same file `brana session write`/`mark_consumed` write to --
             # single-writer is the pin's own premise (D3b), but this writer sits outside
             # the pin entirely. flock it, same convention as task-id-lock.sh's shared
-            # counter file. Best-effort: a missed lock (5s timeout) or failed patch
-            # degrades to skipping the metrics enrichment, never to a torn write.
+            # counter file. Best-effort: a missed lock (2s timeout, ADR-069 D4) or failed
+            # patch degrades to skipping the metrics enrichment, never to a torn write.
             #
             # NOTE (2026-09-04): a second, functionally-equivalent lock was added
             # independently and concurrently by another session as t-2525/ADR-069 D4
             # (fd 201, 2s timeout) — this hunk is the merge resolution keeping this
             # (t-3296/ADR-069 D2) version, since it landed on origin/dev first via
-            # PR #1067. Duplicate-work collision noted for retrospective, not a bug.
+            # PR #1067. Duplicate-work collision noted for retrospective, not a bug —
+            # but the 2s timeout is ADR-069 D4's actual spec value (t-3316), so keep
+            # that number even though this hunk otherwise won the merge.
             (
-                flock -w 5 200 || exit 0
+                flock -w 2 200 || exit 0
                 jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
                     > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
                     mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null

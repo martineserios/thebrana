@@ -101,6 +101,31 @@ assert_true "remedy_62_undo: exact restoration (git diff --quiet)" \
     "$([ -z "$UNDO_DIFF" ] && echo true || echo false)"
 [ -n "$UNDO_DIFF" ] && echo "    residual diff: $UNDO_DIFF"
 
+# _run_migrate_script's bare-python3 fallback (t-3316) — exercised by hiding uv
+# from PATH, matching the runner condition (uv absent) that motivated it. Without
+# this, the fallback branch was untested dead code from a coverage standpoint.
+UV_DIR=$(command -v uv >/dev/null 2>&1 && dirname "$(command -v uv)" || echo "")
+if [ -n "$UV_DIR" ]; then
+    # grep -vxF: literal exact-line match, not a BRE pattern — a uv dir under
+    # ~/.local or ~/.cargo contains "." (a regex metachar) that -v alone would
+    # silently mismatch on, leaving uv reachable and the fallback unexercised.
+    NO_UV_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF "$UV_DIR" | paste -sd: -)
+    # Precondition check: if uv is *still* resolvable on the stripped PATH (a
+    # second install location), the apply call below silently takes the uv
+    # branch instead of the fallback and the assertion would pass for the
+    # wrong reason — assert the precondition explicitly instead of trusting it.
+    STILL_HAS_UV=$(PATH="$NO_UV_PATH" command -v uv 2>/dev/null || echo "")
+    assert_true "PATH-stripped subshell actually lacks uv (fallback precondition)" \
+        "$([ -z "$STILL_HAS_UV" ] && echo true || echo false)"
+    ( SCRIPT_DIR="$FIXTURE_REPO"; PATH="$NO_UV_PATH"; remedy_62_apply ) >/dev/null 2>&1
+    TAGS_TYPE_NOUV=$(jq -r '.tasks[] | select(.id=="t-1") | (.tags | type)' "$FIXTURE_TASKS_JSON")
+    assert_true "remedy_62_apply: falls back to bare python3 when uv absent from PATH" \
+        "$([ "$TAGS_TYPE_NOUV" = "array" ] && echo true || echo false)"
+    ( SCRIPT_DIR="$FIXTURE_REPO"; remedy_62_undo ) >/dev/null 2>&1
+else
+    echo "  SKIP: uv not installed on this runner — cannot exercise the fallback by hiding it"
+fi
+
 # ── Check 63 (level/epic) ────────────────────────────────────────────────────
 echo ""
 echo "=== Check 63 remedy: retired level/epic key removal ==="
@@ -274,6 +299,18 @@ else
 fi
 
 rm -rf "$FIXTURE29_REPO"
+
+# ── Check 62/63/64 undo hints must not point at a git-tracked tasks.json ──
+# t-3285/ADR-091 untracked .claude/tasks.json from git; `git restore` on that
+# path now fails ("did you forget to 'git add'?") on the real repo, even
+# though this test's own fixture repo still tracks its own copy and would
+# never catch that (isolation is deliberate, see file header). Guard the
+# hint text directly instead.
+for undo_check in 62 63 64; do
+    HINT="${REMEDY_UNDO_HINT[$undo_check]:-}"
+    assert_true "REMEDY_UNDO_HINT[$undo_check] does not reference a git-tracked tasks.json" \
+        "$(echo "$HINT" | grep -q 'git restore .claude/tasks.json' && echo false || echo true)"
+done
 
 echo ""
 echo "=== Summary ==="

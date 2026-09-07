@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# tasks-json-merge.sh — custom git merge driver for .claude/tasks.json
+# tasks-json-merge.sh — custom git merge driver for the tracked tasks.json
+# snapshot (system/state/tasks-snapshot.json; repointed from the now-untracked
+# .claude/tasks.json by t-3285/ADR-091 — see .gitattributes)
 #
 # Prevents task status regressions during git merges (t-2132).
 # Merge rule: status order is pending < in_progress < completed.

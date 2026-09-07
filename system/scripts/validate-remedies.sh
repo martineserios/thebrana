@@ -135,10 +135,15 @@ declare -A REMEDY_REGISTRY=(
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
 # successful apply. Not a CLI --undo flag (out of v1 scope) — just what to copy-paste.
+#
+# 62/63/64: .claude/tasks.json was untracked from git by t-3285/ADR-091 — `git
+# restore` on it now fails ("did you forget to 'git add'?") on the real repo.
+# No automated backup exists yet either (t-3287, the periodic-snapshot follow-up,
+# is still pending) — until it lands, back up the file yourself before applying.
 declare -A REMEDY_UNDO_HINT=(
-  [62]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
-  [63]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
-  [64]="cd \$SCRIPT_DIR && git restore .claude/tasks.json"
+  [62]="no automated undo yet (t-3287 pending, ADR-091) — back up .claude/tasks.json before applying"
+  [63]="no automated undo yet (t-3287 pending, ADR-091) — back up .claude/tasks.json before applying"
+  [64]="no automated undo yet (t-3287 pending, ADR-091) — back up .claude/tasks.json before applying"
   [42]="cd \$SCRIPT_DIR && git restore system/agents/debrief-analyst.md"
   [29]="cd \$SCRIPT_DIR && git restore docs/reference/"
 )
@@ -184,12 +189,24 @@ _tasks_json_violation_count() {
     jq -r "$jq_filter" "$tasks_file" 2>/dev/null || echo 0
 }
 
+# Prefer `uv run python3` (repo convention, Check 28), fall back to bare
+# python3 when uv isn't on PATH (e.g. a runner that never installed it) so
+# remedy apply() calls fail loudly instead of silently no-op'ing on a missing
+# tool's exit 127 (t-3316).
+_run_migrate_script() {
+    if command -v uv >/dev/null 2>&1; then
+        uv run python3 "$@"
+    else
+        python3 "$@"
+    fi
+}
+
 # Check 62 — tasks.json tags must be array (t-2309, ADR-065).
 remedy_62_apply() {
     local n
     n=$(_tasks_json_violation_count '[.tasks[] | select(.tags != null and (.tags | type) != "array")] | length')
     [ "$n" = "0" ] && return 0
-    ( cd "$SCRIPT_DIR" && uv run python3 system/scripts/migrate/normalize-tags.py --write )
+    ( cd "$SCRIPT_DIR" && _run_migrate_script system/scripts/migrate/normalize-tags.py --write )
 }
 remedy_62_undo() {
     ( cd "$SCRIPT_DIR" && git restore .claude/tasks.json )
@@ -200,7 +217,7 @@ remedy_63_apply() {
     local n
     n=$(_tasks_json_violation_count '[.tasks[] | select(has("level") or has("epic"))] | length')
     [ "$n" = "0" ] && return 0
-    ( cd "$SCRIPT_DIR" && uv run python3 system/scripts/migrate/collapse-level-epic-v3.py --write )
+    ( cd "$SCRIPT_DIR" && _run_migrate_script system/scripts/migrate/collapse-level-epic-v3.py --write )
 }
 remedy_63_undo() {
     ( cd "$SCRIPT_DIR" && git restore .claude/tasks.json )
@@ -211,7 +228,7 @@ remedy_64_apply() {
     local n
     n=$(_tasks_json_violation_count '[.tasks[] | select(has("stream"))] | length')
     [ "$n" = "0" ] && return 0
-    ( cd "$SCRIPT_DIR" && uv run python3 system/scripts/migrate/drop-stream-field-v3.py --write )
+    ( cd "$SCRIPT_DIR" && _run_migrate_script system/scripts/migrate/drop-stream-field-v3.py --write )
 }
 remedy_64_undo() {
     ( cd "$SCRIPT_DIR" && git restore .claude/tasks.json )

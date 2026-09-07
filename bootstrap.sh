@@ -203,7 +203,11 @@ echo ""
 # --- Pre-flight: CC version check (CVE-2026-21852, CVE-2025-59536) ---
 check_cc_version() {
   local ver
-  ver=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  # `|| true`: under `set -euo pipefail`, an absent `claude` binary makes this
+  # pipeline exit non-zero (pipefail), which would abort the whole script here
+  # — before Rules:/Hooks:/etc. ever print. The `if [ -z "$ver" ]` branch below
+  # already handles "not found"; let it, don't let set -e win the race.
+  ver=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true
   if [ -z "$ver" ]; then
     echo "  ! claude binary not found or version unreadable — skipping CVE check"
     return
@@ -605,10 +609,13 @@ else
     echo "  — git-hooks/pre-commit template not found in source"
 fi
 
-# --- Step 4e: tasks.json merge driver (t-2132) ---
-# Prevents task status regressions when git merges branches with divergent tasks.json.
-# The .gitattributes file (committed) declares the driver; this step wires
-# the driver path into the repo's local git config.
+# --- Step 4e: tasks.json snapshot merge driver (t-2132) ---
+# Prevents task status regressions when git merges branches with divergent
+# tasks-snapshot content. The .gitattributes file (committed) declares the
+# driver by name against system/state/tasks-snapshot.json (repointed from the
+# now-untracked .claude/tasks.json by t-3285/ADR-091); this step wires the
+# driver's script path into the repo's local git config — by config key name,
+# not by file path, so it needed no change for the repointing.
 echo "tasks.json merge driver:"
 TASKS_DRIVER_SRC="$SYSTEM_DIR/scripts/tasks-json-merge.sh"
 if [ -f "$TASKS_DRIVER_SRC" ]; then
