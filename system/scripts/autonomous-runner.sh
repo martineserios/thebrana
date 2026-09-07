@@ -227,10 +227,17 @@ Judge from the task's OWN stated decisions and scope above — a task whose desc
   # bodies into task context, unsanitized) and this call still carries real Read/Grep/Glob
   # tools — an unsandboxed call would let a prompt-injected verdict reflect host secrets
   # (t-3315 challenger finding). A fresh empty tmpdir as /workspace gives it nothing to read
-  # even if it tries; RUNNER_PLAN_TIMEOUT keeps the planning budget tight (default 60s, vs
+  # even if it tries; RUNNER_PLAN_TIMEOUT keeps the planning budget tight (default 90s, vs
   # the 600s executor default) independent of RUNNER_DISPATCH_TIMEOUT.
+  # Default was 60s before t-3315 routed this call through sandbox_claude(); that timeout
+  # now wraps bwrap namespace setup + the optional egress-proxy startup (up to ~5s poll) as
+  # well as the actual model call, tightening the effective planning budget vs. the prior
+  # unsandboxed call's shared 600s default. Bumped to 90s for headroom (t-3318) — a timeout
+  # here is still fail-OPEN (falls through to "plan inconclusive" below, caught by
+  # verify_diff/NEEDSHUMAN self-report/human PR review downstream), never fail-closed, so
+  # the bump is pure safety margin, not a correctness requirement.
   local plan_wd; plan_wd="$(mktemp -d "${TMPDIR:-/tmp}/runner-plan-XXXXXX")"
-  verdict="$(printf '%s' "$prompt" | RUNNER_DISPATCH_TIMEOUT="${RUNNER_PLAN_TIMEOUT:-60}" \
+  verdict="$(printf '%s' "$prompt" | RUNNER_DISPATCH_TIMEOUT="${RUNNER_PLAN_TIMEOUT:-90}" \
     sandbox_claude "$plan_wd" -p --model haiku --allowedTools "Read,Grep,Glob" --output-format text 2>/dev/null)"
   rm -rf "$plan_wd" 2>/dev/null
   case "$verdict" in

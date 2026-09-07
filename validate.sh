@@ -2560,6 +2560,16 @@ elif bash "$C61F_TEST" >/dev/null 2>&1; then
 else
     fail "Check 61: plan-gate regressed — subject-only judging or approved-skip broken (t-3315)"
 fi
+# Plan-timeout fail-open behavior (t-3318) — needs no bwrap: a timed-out plan dispatch must
+# degrade to would-run "plan inconclusive", never hang or fail closed. Always testable.
+C61H_TEST="$SCRIPT_DIR/system/scripts/tests/test-autonomous-runner-plan-timeout.sh"
+if [ ! -f "$C61H_TEST" ]; then
+    warn "Check 61: plan-timeout fail-open test not found at $C61H_TEST — skipping"
+elif bash "$C61H_TEST" >/dev/null 2>&1; then
+    pass "Check 61: timed-out plan step fails open (would-run, no hang) ✓ (t-3318)"
+else
+    fail "Check 61: plan-timeout regressed — hangs, fails closed, or mis-parks on timeout (t-3318)"
+fi
 # feed-summarize.sh sandbox escape battery (t-3317, ADR-062) — the summarize call feeds
 # externally-fetched article content into claude -p; wired HERE (same reasoning as C61E
 # above) so any regression on this call site — or on the shared sandbox-claude.sh lib
