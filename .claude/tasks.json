@@ -88523,7 +88523,7 @@
     {
       "id": "t-3318",
       "subject": "Harden t-3315's plan-gate sandboxing: RUNNER_PLAN_TIMEOUT margin + V4 test canary",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "refactor",
       "tags": [
@@ -88537,11 +88537,11 @@
       "parent": "t-2811",
       "created": "2026-09-07",
       "started": "2026-09-07",
-      "completed": null,
+      "completed": "2026-09-07",
       "blocked_by": [],
       "branch": "backlog-drain/refactor/t-3318-harden-plan-gate-timeout",
       "context": "Filed 2026-09-07 from Ship Gate 3 (adversarial 3-lens pre-merge review) on the t-3315 dev→main ship. Not blocking — both source reviewers explicitly verdicted PROCEED WITH CHANGES.",
-      "notes": null,
+      "notes": "RUNNER_PLAN_TIMEOUT bumped 60s->90s (fail-open safety margin for bwrap/egress-proxy setup overhead); added test-autonomous-runner-plan-timeout.sh proving timeout degrades to would-run, not a hang/fail-closed. Added a NONCE-scoped CANARY assertion to test-autonomous-runner-observe-sandbox.sh so V4's tmp-write check self-validates (proves the stub actually ran) instead of relying on V1's incidental coupling. Both wired into validate.sh Check 61. Merged to dev.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
