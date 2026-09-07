@@ -21,9 +21,11 @@
 #   - after any change to sandbox_claude() / stage_runner_home() / the egress proxy
 #   - after a Claude Code CLI upgrade (auth/config file shape can change, as it did in June)
 #
-# Extracts the shipped sandbox_claude() from autonomous-runner.sh (SANDBOX-CLAUDE-BLOCK
-# markers) rather than reimplementing it, so this test cannot drift from the real dispatch
-# path (same convention as EPIC-WALK-BLOCK / BRANCH-PREFIX-BLOCK, t-2494/t-2487).
+# Extracts the shipped sandbox_claude() from system/scripts/lib/sandbox-claude.sh
+# (SANDBOX-CLAUDE-BLOCK markers, t-3317) rather than reimplementing it, so this test
+# cannot drift from the real dispatch path (same convention as EPIC-WALK-BLOCK /
+# BRANCH-PREFIX-BLOCK, t-2494/t-2487). The lib is shared by autonomous-runner.sh and
+# feed-summarize.sh — both call sites this jail protects.
 #
 # Two assertions, both required (a test that can only ever pass is not a regression guard):
 #   PART A — real claude, real creds, through sandbox_claude(): rc=0 + expected output.
@@ -33,9 +35,10 @@
 #            (the failure mode of a check that "passes" no matter what happens inside the jail).
 set -u
 
-RUNNER_SRC="$(git rev-parse --show-toplevel 2>/dev/null)/system/scripts/autonomous-runner.sh"
-[ -f "$RUNNER_SRC" ] || { echo "FAIL: runner not found at $RUNNER_SRC"; exit 1; }
-REAL_SCRIPT_DIR="$(dirname "$RUNNER_SRC")"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+RUNNER_SRC="$REPO_ROOT/system/scripts/lib/sandbox-claude.sh"
+[ -f "$RUNNER_SRC" ] || { echo "FAIL: sandbox-claude lib not found at $RUNNER_SRC"; exit 1; }
+REAL_SCRIPT_DIR="$REPO_ROOT/system/scripts"
 
 echo "autonomous-runner real-claude sandbox compat check (t-3257, ADR-062)"
 

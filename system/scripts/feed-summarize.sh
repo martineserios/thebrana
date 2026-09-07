@@ -61,7 +61,13 @@ if [ "$DRY_RUN" != "1" ] && [ ! -x "$CLAUDE_BIN" ] && ! command -v claude &>/dev
     exit 0
 fi
 
-CLAUDE="${CLAUDE_BIN:-$(command -v claude)}"
+# t-3317: the summarize call below feeds fetch_and_strip's output — externally-fetched
+# article content from the entry's `link` — into `claude -p`. Same shape ADR-062 already
+# jails for the runner's OBSERVE planner (externally-sourced content into an unsandboxed
+# claude -p call). Reuse that exact implementation rather than a second one.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/sandbox-claude.sh
+source "$SCRIPT_DIR/lib/sandbox-claude.sh"
 
 # ── Watermark ─────────────────────────────────────────────────────────────────
 
@@ -213,11 +219,20 @@ $CONTENT
 
 Summary (2-3 sentences only, no preamble):"
 
-    SUMMARY=$(echo "$PROMPT" | timeout "$SUMMARIZE_TIMEOUT" "$CLAUDE" -p --output-format text 2>/dev/null) || {
+    # Sandboxed (t-3317, ADR-062): CONTENT above came from an external URL via
+    # fetch_and_strip, so this call gets an empty per-entry workdir (nothing on the host
+    # to read even if the fetched content tries prompt injection) and no tools at all —
+    # summarization needs none.
+    SUMMARIZE_WD="$(mktemp -d "${TMPDIR:-/tmp}/feed-summarize-wd-XXXXXX")"
+    SUMMARY=$(printf '%s' "$PROMPT" | RUNNER_DISPATCH_TIMEOUT="$SUMMARIZE_TIMEOUT" \
+        sandbox_claude "$SUMMARIZE_WD" -p --allowedTools "" --output-format text 2>/dev/null)
+    SUMMARIZE_RC=$?
+    rm -rf "$SUMMARIZE_WD" 2>/dev/null
+    if [ "$SUMMARIZE_RC" -ne 0 ]; then
         echo "[feed-summarize] claude failed (skipping): $TITLE"
         FAILED=$((FAILED + 1))
         continue
-    }
+    fi
 
     if [ -z "$SUMMARY" ]; then
         echo "[feed-summarize] empty summary (skipping): $TITLE"
