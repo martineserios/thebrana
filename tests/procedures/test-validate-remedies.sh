@@ -101,6 +101,21 @@ assert_true "remedy_62_undo: exact restoration (git diff --quiet)" \
     "$([ -z "$UNDO_DIFF" ] && echo true || echo false)"
 [ -n "$UNDO_DIFF" ] && echo "    residual diff: $UNDO_DIFF"
 
+# _run_migrate_script's bare-python3 fallback (t-3316) — exercised by hiding uv
+# from PATH, matching the runner condition (uv absent) that motivated it. Without
+# this, the fallback branch was untested dead code from a coverage standpoint.
+UV_DIR=$(command -v uv >/dev/null 2>&1 && dirname "$(command -v uv)" || echo "")
+if [ -n "$UV_DIR" ]; then
+    NO_UV_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v "^${UV_DIR}$" | paste -sd: -)
+    ( SCRIPT_DIR="$FIXTURE_REPO"; PATH="$NO_UV_PATH"; remedy_62_apply ) >/dev/null 2>&1
+    TAGS_TYPE_NOUV=$(jq -r '.tasks[] | select(.id=="t-1") | (.tags | type)' "$FIXTURE_TASKS_JSON")
+    assert_true "remedy_62_apply: falls back to bare python3 when uv absent from PATH" \
+        "$([ "$TAGS_TYPE_NOUV" = "array" ] && echo true || echo false)"
+    ( SCRIPT_DIR="$FIXTURE_REPO"; remedy_62_undo ) >/dev/null 2>&1
+else
+    echo "  SKIP: uv not installed on this runner — cannot exercise the fallback by hiding it"
+fi
+
 # ── Check 63 (level/epic) ────────────────────────────────────────────────────
 echo ""
 echo "=== Check 63 remedy: retired level/epic key removal ==="
