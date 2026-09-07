@@ -131,6 +131,7 @@ declare -A REMEDY_REGISTRY=(
   [70]="NO_REMEDY:not-fixable — test-suite failures need arbitrary code fixes in the failing hooks, same as Checks 65/66"
   [71]="NO_REMEDY:judgment-required — a loops-library lint failure (missing/malformed catalog fields) needs authored entry content, not a mechanical fix"
   [72]="NO_REMEDY:judgment-required — closing a docs/README.md coverage gap (missing row, dead link) needs authored content, can't be synthesized"
+  [74]="NO_REMEDY:judgment-required — a 'git checkout main|dev' command line in a procedure must be rewritten as the by-ref ship sequence or a worktree step (ADR-094 d5), which is authored prose, not a mechanical substitution"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
