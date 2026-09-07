@@ -339,7 +339,18 @@ plan_task() { # id subject desc ctx ac ac_state -> "would-run <reason>" | "would
   prompt="You are the PLANNING step of an autonomous task runner in OBSERVE mode — make NO changes, only assess. Task ${id}: \"${subj}\".
 ${detail}
 Judge from the task's OWN stated decisions and scope above — a task whose description already spells out the decisions is autodoable even if the subject line alone sounds ambiguous. Can an agent complete this with NO further human input, or does it need a human decision first (ambiguous scope, irreversible/risky action, a choice only the owner can make)? Reply with exactly one line: AUTODOABLE: <why> or NEEDSHUMAN: <what decision is needed>."
-  verdict="$(printf '%s' "$prompt" | timeout 60 "$cb" -p --model haiku --allowedTools "Read,Grep,Glob" --output-format text 2>/dev/null)"
+  # Route through the same bwrap capability jail as the executor dispatch (ADR-062, which
+  # names this exact call site — "OBSERVE planner line ~80" — as needing it). desc/ctx/ac
+  # above can originate externally (gh-sync.sh pull-context copies raw GitHub issue comment
+  # bodies into task context, unsanitized) and this call still carries real Read/Grep/Glob
+  # tools — an unsandboxed call would let a prompt-injected verdict reflect host secrets
+  # (t-3315 challenger finding). A fresh empty tmpdir as /workspace gives it nothing to read
+  # even if it tries; RUNNER_PLAN_TIMEOUT keeps the planning budget tight (default 60s, vs
+  # the 600s executor default) independent of RUNNER_DISPATCH_TIMEOUT.
+  local plan_wd; plan_wd="$(mktemp -d "${TMPDIR:-/tmp}/runner-plan-XXXXXX")"
+  verdict="$(printf '%s' "$prompt" | RUNNER_DISPATCH_TIMEOUT="${RUNNER_PLAN_TIMEOUT:-60}" \
+    sandbox_claude "$plan_wd" -p --model haiku --allowedTools "Read,Grep,Glob" --output-format text 2>/dev/null)"
+  rm -rf "$plan_wd" 2>/dev/null
   case "$verdict" in
     NEEDSHUMAN:*) echo "would-park ${verdict#NEEDSHUMAN: }" ;;
     AUTODOABLE:*) echo "would-run ${verdict#AUTODOABLE: }" ;;

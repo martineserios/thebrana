@@ -44,7 +44,11 @@ cat > "$FIX" <<'EOF'
 EOF
 LEDGER="$TMP/ledger.jsonl"
 
-RUNNER_TASKS_JSON="$FIX" RUNNER_PLAN=1 CLAUDE_BIN="$STUB" RUNNER_LEDGER="$LEDGER" RUNNER_MAX_TASKS=5 \
+# RUNNER_SANDBOX=0: this test is about plan_task()'s DECISION LOGIC (does it use desc/ctx/ac,
+# does it skip the call for ac_state=approved), not the bwrap jail — that's covered separately
+# by test-autonomous-runner-observe-sandbox.sh. The stub's CALL_LOG lives under the host /tmp,
+# which the jail's isolated tmpfs would hide from it, so route around the jail here.
+RUNNER_TASKS_JSON="$FIX" RUNNER_PLAN=1 CLAUDE_BIN="$STUB" RUNNER_SANDBOX=0 RUNNER_LEDGER="$LEDGER" RUNNER_MAX_TASKS=5 \
   bash "$RUNNER" --observe >/dev/null 2>&1
 RC=$?
 
