@@ -75,6 +75,8 @@ check "bootstrap.sh refuses to deploy off main" 'BRANA_BOOTSTRAP_FORCE|!= "main"
 # "HEAD is main's tip" (dev fast-forwarded onto main after the PR merge) — otherwise
 # every ship needs a `git checkout main` in the one directory that must never switch.
 check "bootstrap.sh accepts HEAD == main's tip without a checkout (ADR-094)" 'rev-parse main|_main_sha' "$BOOTSTRAP"
+# Gate 3 security finding (2026-09-07): a stale local main must not deploy as if current.
+check "bootstrap.sh refuses a local main that is not origin/main" 'origin/main' "$BOOTSTRAP"
 check_absent "ship skill never runs git checkout main|dev in the shared checkout (ADR-094)" '^ *git (checkout|switch) (main|dev)\b' "$SHIP"
 
 echo ""
