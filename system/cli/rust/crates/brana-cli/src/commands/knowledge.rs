@@ -2550,6 +2550,14 @@ pub(crate) fn sanitize_topic_slug(topic: &str) -> String {
 mod tests {
     use super::*;
 
+    #[test]
+    fn relevant_row_date_reads_ruflo_millisecond_timestamps() {
+        // ruflo's memory_entries.created_at is epoch ms; 1.788e12 ms = 2026-08-29.
+        assert_eq!(relevant_row_date(1_788_000_000_000).as_str(), "2026-08-29");
+        // fixtures and hand-written rows use epoch seconds and still render.
+        assert_eq!(relevant_row_date(1_788_000_000).as_str(), "2026-08-29");
+    }
+
     // ── cmd_drain_links default-type-scope exclusion (t-3236) ──────────
     // cmd_drain_links built its TaskFilter via ..Default::default(),
     // inheriting types: ["task","subtask"] with no override at all — a
@@ -4693,12 +4701,4 @@ pub fn cmd_project_vectors(
         }
     }
     Ok(())
-
-    #[test]
-    fn relevant_row_date_reads_ruflo_millisecond_timestamps() {
-        // ruflo's memory_entries.created_at is epoch ms; 2026-09-06 ≈ 1.788e12.
-        assert_eq!(relevant_row_date(1_788_000_000_000), "2026-09-05");
-        // fixtures and hand-written rows use epoch seconds and still render.
-        assert_eq!(relevant_row_date(1_788_000_000), "2026-09-05");
-    }
 }
