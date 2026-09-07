@@ -106,7 +106,17 @@ assert_true "remedy_62_undo: exact restoration (git diff --quiet)" \
 # this, the fallback branch was untested dead code from a coverage standpoint.
 UV_DIR=$(command -v uv >/dev/null 2>&1 && dirname "$(command -v uv)" || echo "")
 if [ -n "$UV_DIR" ]; then
-    NO_UV_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v "^${UV_DIR}$" | paste -sd: -)
+    # grep -vxF: literal exact-line match, not a BRE pattern — a uv dir under
+    # ~/.local or ~/.cargo contains "." (a regex metachar) that -v alone would
+    # silently mismatch on, leaving uv reachable and the fallback unexercised.
+    NO_UV_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF "$UV_DIR" | paste -sd: -)
+    # Precondition check: if uv is *still* resolvable on the stripped PATH (a
+    # second install location), the apply call below silently takes the uv
+    # branch instead of the fallback and the assertion would pass for the
+    # wrong reason — assert the precondition explicitly instead of trusting it.
+    STILL_HAS_UV=$(PATH="$NO_UV_PATH" command -v uv 2>/dev/null || echo "")
+    assert_true "PATH-stripped subshell actually lacks uv (fallback precondition)" \
+        "$([ -z "$STILL_HAS_UV" ] && echo true || echo false)"
     ( SCRIPT_DIR="$FIXTURE_REPO"; PATH="$NO_UV_PATH"; remedy_62_apply ) >/dev/null 2>&1
     TAGS_TYPE_NOUV=$(jq -r '.tasks[] | select(.id=="t-1") | (.tags | type)' "$FIXTURE_TASKS_JSON")
     assert_true "remedy_62_apply: falls back to bare python3 when uv absent from PATH" \
