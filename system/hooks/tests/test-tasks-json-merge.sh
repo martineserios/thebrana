@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Tests: system/scripts/tasks-json-merge.sh — custom merge driver for .claude/tasks.json
+# Tests: system/scripts/tasks-json-merge.sh — custom merge driver for the
+# tracked tasks.json snapshot (system/state/tasks-snapshot.json; repointed
+# from .claude/tasks.json by t-3285/ADR-091 — see .gitattributes)
 # Verifies that task statuses are never downgraded during a git merge.
 # Pattern: tasks-json-wip-lost-on-merge-theirs (t-2132)
 
@@ -54,8 +56,11 @@ tasks_json() {
 
 run_driver() {
     # Run the merge driver directly: ancestor ours theirs path
+    # %P is unused by the driver (comment in tasks-json-merge.sh), so this
+    # literal is illustrative only — kept in sync with .gitattributes' real
+    # attachment point (t-3285/ADR-091) rather than the old .claude/tasks.json.
     local ancestor="$1" ours="$2" theirs="$3"
-    bash "$DRIVER" "$ancestor" "$ours" "$theirs" ".claude/tasks.json"
+    bash "$DRIVER" "$ancestor" "$ours" "$theirs" "system/state/tasks-snapshot.json"
 }
 
 # ── Test 1: completed + in_progress merge → completed wins ────────────────────
