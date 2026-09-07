@@ -110,11 +110,32 @@ worktree of a repo.
    exists. Cross-project access via the portfolio slug (`project:` param) resolves through the
    same function and follows automatically. — *t-3324*
 
+   **Scope (portfolio):** `find_tasks_file_from()` is one shared binary used by every repo in
+   the portfolio (clients, ventures, personal), most of which still *git-track*
+   `.claude/tasks.json` and never had this hazard. The relocation applies **only where the
+   ledger is untracked** — the resolver checks `git ls-files --error-unmatch .claude/tasks.json`
+   in the common root: tracked → keep using it, no migration, no hazard; untracked/ignored (or
+   absent) → `.git/brana/tasks.json`. A repo adopts ADR-091 + ADR-094 as one explicit,
+   per-repo step (`git rm --cached` + `.gitignore` + migration in the same commit), never as a
+   side effect of upgrading the binary. — *t-3324*
+
 2. **Migration is explicit, idempotent and refuses ambiguity.** `bootstrap.sh` and the CLI's
    first use in a repo: if `.git/brana/tasks.json` is absent and `<common-root>/.claude/tasks.json`
    holds >0 tasks, *move* it (rename, with the lock sidecar) and say so; if both exist and
    differ, stop and print both paths and counts — never choose silently. The
    `.claude/tasks.json` `.gitignore` line stays one release as a net for stragglers. — *t-3324*
+
+   **Rollout (split-brain guard):** `brana-mcp` servers already running in other sessions
+   keep the *old* binary after a ship. Left alone, they would find `.claude/tasks.json` gone,
+   auto-create an empty ledger there and write to it while new binaries write to
+   `.git/brana/` — two diverging ledgers, silently. So the migration (a) leaves a **marker**
+   at the old path that is deliberately *not* valid ledger JSON
+   (`MOVED — see .git/brana/tasks.json (ADR-094); restart this Claude Code session`), which
+   old binaries fail to parse loudly instead of resurrecting an empty ledger, and which new
+   binaries recognise as "already migrated"; (b) runs from `bootstrap.sh` at ship time, which
+   prints "restart every Claude Code session" in red; and (c) `brana doctor` and the
+   session-start gauge (t-3332) warn while any `brana-mcp` process older than the installed
+   binary is alive. — *t-3324, t-3332*
 
 3. **Fail loud; never fabricate a ledger.** `find_tasks_file_from()` no longer creates
    `{"tasks":[]}` anywhere. A missing ledger in a git repo is an error naming the path and the
