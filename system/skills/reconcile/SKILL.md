@@ -37,7 +37,7 @@ Unified maintenance command for the brana system. Four domains, one entry point.
 |--------|-----------|---------------|
 | **Consistency** | `--scope consistency` | Spec docs vs `system/` implementation drift; CONTEXT.md vs `docs/domain/` (default) |
 | **Security** | `--scope security` | Secrets, permissions, MCP tax, dangerous settings, credential files, acquired skill safety |
-| **Propagation** | `--scope propagation` | Doc fitness checks, reflection gaps, spec-graph consistency |
+| **Propagation** | `--scope propagation` | Doc fitness checks, reflection gaps, spec-graph consistency, dim "Could Adopt" → backlog scan |
 | **Knowledge** | `--scope knowledge` | Stale dimensions, event log bloat, ruflo noise (DECAY) |
 
 `--scope all` runs every domain sequentially.
@@ -110,7 +110,7 @@ Register steps based on scope:
 
 - **consistency:** ORIENT, ROUTE, SCAN-SPECS, SCAN-IMPL, DIFF, PRESENT, APPLY, LOG, REPORT
 - **security:** ORIENT, ROUTE, SEC-SCAN, SEC-REPORT
-- **propagation:** ORIENT, ROUTE, PROP-SCAN, PROP-APPLY, PROP-REPORT
+- **propagation:** ORIENT, ROUTE, PROP-SCAN, PROP-APPLY, PROP-3, PROP-REPORT
 - **knowledge:** ORIENT, ROUTE, KNOW-1, KNOW-2, KNOW-3, KNOW-REPORT
 - **all:** ORIENT, ROUTE, then all domain steps sequentially
 
