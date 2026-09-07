@@ -129,12 +129,30 @@ Provide each worker: the diff summary, relevant changed files, and task AC (if a
 
 Collect (caller synthesizes — no separate consensus tool): await all 3, merge and dedup findings. Quorum threshold: **majority (2/3)**. ≥2 workers flagging the same concern = HIGH confidence (blocking). 1 worker only = OBSERVATION (informational).
 
-**If HIGH confidence finding raised:**
+**Classify every HIGH finding before asking (ADR-094 decision 7, t-3329).** A finding is
+**non-overridable** when the ship *removes or disables a safety or recovery mechanism* —
+a backup, a snapshot, a lock, a gate, a validation, a restore path — *whose replacement has
+not shipped*. "It's a documented trade-off", "the follow-up is already filed", "the ADR
+accepted it" do not downgrade it: a documented risk is still a live risk and a tracked task is
+not a mitigation. Origin: the 2026-09-07 ship carried ADR-091's untracking of the backlog
+ledger without its snapshot/restore half (t-3287, HIGH by 2/3 reviewers); the override was
+granted on exactly those grounds and the ship's own procedure wiped the ledger an hour later.
+
+**Non-overridable HIGH finding:**
+```
+AskUserQuestion: "Gate 3: this ship removes a safety mechanism before its replacement lands — {finding}. Land the replacement first?"
+Options: ["Fix before deploy", "Abort"]
+```
+No override option is offered. If Abort → stop.
+
+**Any other HIGH finding:**
 ```
 AskUserQuestion: "Gate 3 raised a blocking concern: {finding}. How to proceed?"
 Options: ["Fix before deploy", "Override and deploy anyway", "Abort"]
 ```
-If Abort → stop. If Override → proceed with finding noted.
+If Abort → stop. If Override → proceed with finding noted, and the synthesis MUST state which
+concrete operational paths were checked against the accepted trade-off — ship, close, runner,
+scheduler, fresh clone, branch switch in the shared checkout — not just the steady state.
 
 Fallback if Agent/Task cannot be spawned: see `adversarial-hive-mind.md`'s fallback section (Claude runs all three roles sequentially in main context; same gate logic applies).
 
