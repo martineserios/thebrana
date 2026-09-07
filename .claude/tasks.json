@@ -88493,7 +88493,7 @@
     {
       "id": "t-3317",
       "subject": "feed-summarize.sh's claude -p call is unsandboxed despite feeding externally-fetched content",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "fix",
       "tags": [
@@ -88506,10 +88506,10 @@
       "priority": "P2",
       "parent": "t-2811",
       "created": "2026-09-07",
-      "started": null,
+      "started": "2026-09-07",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "backlog-drain/fix/t-3317-feed-summarize-sandbox",
       "context": "Surfaced by the Challenger gate (iteration 2, PROCEED verdict) reviewing t-3315 on 2026-09-07: \"SIBLINGS: yes — system/scripts/feed-summarize.sh:216 (unsandboxed claude -p, no --allowedTools, externally-fetched feed content — separate task recommended, not blocking t-3315)\". Not blocking t-3315 (different subsystem, pre-existing, untouched by that diff) — filed as its own task per the reviewer's recommendation.",
       "notes": null,
       "order": 0,
@@ -88517,7 +88517,8 @@
       "execution": "code",
       "acceptance_criteria": null,
       "work_type": "implement",
-      "ac_state": "none"
+      "ac_state": "none",
+      "strategy": "bug-fix"
     },
     {
       "id": "t-3318",
