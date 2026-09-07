@@ -102,8 +102,10 @@ impl KnowledgeStore {
     ///
     /// Deliberately `ON CONFLICT DO UPDATE`, not `INSERT OR REPLACE`: replace
     /// deletes the row and reinserts it, which would null out the enrichment
-    /// columns on every `vector-sync` run. Sync owns the synced columns only;
-    /// enrichment survives untouched.
+    /// columns on every `vector-sync` run. This call owns the synced columns
+    /// only; enrichment survives untouched. (Sync itself additionally lifts
+    /// the extraction tags an ingest write carried — see
+    /// [`extraction_from_tags`] — but never through this method.)
     pub fn upsert(
         &self,
         key: &str,
@@ -152,7 +154,8 @@ impl KnowledgeStore {
 
     /// Write the extraction columns for an existing entry (t-3312).
     /// `entities` is a JSON array; `action_type` one of the extraction prompt's
-    /// enum values.
+    /// enum values. Called by sync for rows whose tags carry the fields
+    /// ([`extraction_from_tags`]).
     pub fn set_extraction(
         &self,
         key: &str,
@@ -187,6 +190,46 @@ impl KnowledgeStore {
         })
     }
 
+    /// Every row `filter` selects, with its vector decoded — the bulk read the
+    /// post-sync scoring pass runs on (t-3311).
+    ///
+    /// Read-only and lock-free by construction: the pass runs inside
+    /// `vector-sync`, which must never contend with the whole-invocation
+    /// `lock_pipeline()` the 4h drain cron holds (ADR-093 D2).
+    ///
+    /// Rows whose BLOB does not decode to `EMBED_DIM` floats are skipped
+    /// rather than failing the read — one unreadable row must not cost a
+    /// whole pass. Key-ordered, so a capped consumer slices the same rows in
+    /// the same order every run.
+    pub fn rows_with_vec(&self, filter: RowFilter) -> Result<Vec<KnowledgeRow>> {
+        let conn = Connection::open_with_flags(
+            &self.db_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .with_context(|| format!("opening {}", self.db_path.display()))?;
+        let mut stmt = conn
+            .prepare("SELECT key, tags, source, vec FROM knowledge ORDER BY key")
+            .context("preparing knowledge row scan")?;
+        let rows = stmt.query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, Option<String>>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, Vec<u8>>(3)?,
+            ))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            let (key, tags, source, blob) = row?;
+            if !filter.selects(tags.as_deref(), source.as_deref()) {
+                continue;
+            }
+            let Some(vec) = blob_to_vec(&blob) else { continue };
+            out.push(KnowledgeRow { key, tags, source, vec });
+        }
+        Ok(out)
+    }
+
     /// Number of stored entries.
     pub fn count(&self) -> Result<usize> {
         let n: i64 = self
@@ -194,6 +237,82 @@ impl KnowledgeStore {
             .query_row("SELECT COUNT(*) FROM knowledge", [], |r| r.get(0))?;
         Ok(n as usize)
     }
+}
+
+/// One `knowledge` row as [`KnowledgeStore::rows_with_vec`] returns it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KnowledgeRow {
+    pub key: String,
+    /// The stored tags field, verbatim — parse with [`parse_tags`].
+    pub tags: Option<String>,
+    pub source: Option<String>,
+    pub vec: Vec<f32>,
+}
+
+/// Which rows a bulk read selects.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RowFilter {
+    /// Every row with a decodable vector.
+    All,
+    /// Link captures and intelligence-feed items only — never thebrana's own
+    /// indexed doc chunks, which are ~2,800 of the store's rows and have no
+    /// project to be "relevant to" (ADR-093 D2 read path).
+    LinkAndFeed,
+}
+
+impl RowFilter {
+    pub fn selects(self, tags: Option<&str>, source: Option<&str>) -> bool {
+        match self {
+            RowFilter::All => true,
+            RowFilter::LinkAndFeed => is_link_or_feed_row(tags, source),
+        }
+    }
+}
+
+/// Platform tags a link capture carries, as `process-url` writes them
+/// (`resolve_store_value`) and as the ~300 historical captures that predate
+/// the explicit marker carry them. `other` — `classify_platform`'s catch-all —
+/// is deliberately absent: matching it would sweep in rows that are not link
+/// captures at all.
+pub const LINK_PLATFORM_TAGS: &[&str] =
+    &["linkedin", "github", "youtube", "substack", "arxiv", "twitter"];
+
+/// Explicit capture-source markers, matched with or without a `source:`
+/// prefix: the one `process-url` writes going forward (t-3312) and the one
+/// `feed-ruflo-index.sh` already writes on every feed item.
+pub const LINK_SOURCE_MARKERS: &[&str] = &["link-capture", "intelligence-feed"];
+
+/// Is this row a link capture or an intelligence-feed item?
+///
+/// Decided on tags first, because `vector-sync` stamps every migrated row's
+/// `source` as `memory_entries` — the discriminating marker lives in the tags
+/// CSV it copies across. A caller that does write a real `source`
+/// (`link-capture`) is honoured too rather than silently excluded.
+pub fn is_link_or_feed_row(tags: Option<&str>, source: Option<&str>) -> bool {
+    let mut tokens = parse_tags(tags.unwrap_or(""));
+    tokens.extend(parse_tags(source.unwrap_or("")));
+    tokens.iter().any(|token| {
+        let t = token.as_str();
+        let t = t.strip_prefix("source:").unwrap_or(t);
+        LINK_PLATFORM_TAGS.contains(&t) || LINK_SOURCE_MARKERS.contains(&t)
+    })
+}
+
+/// Split a stored tags field into tokens.
+///
+/// ruflo stores the `--tags` CSV verbatim on the `memory store` path, while
+/// the feed indexer writes a JSON array (`["type:feed", …]`), so both shapes
+/// are accepted. Anything else degrades to a CSV split rather than yielding
+/// nothing — an unparseable tags field must not silently drop a row out of
+/// the scoring population.
+pub fn parse_tags(raw: &str) -> Vec<String> {
+    let trimmed = raw.trim();
+    if trimmed.starts_with('[')
+        && let Ok(parsed) = serde_json::from_str::<Vec<String>>(trimmed)
+    {
+        return parsed.into_iter().map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect();
+    }
+    trimmed.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect()
 }
 
 /// The enrichment columns of one `knowledge` row, as stored. `None` on a field
@@ -405,6 +524,12 @@ pub struct MigrateStats {
 /// Re-runnable: for keys already in the destination this updates the synced
 /// columns in place, so enrichment written by later passes ([`Enrichment`])
 /// survives every sync.
+///
+/// One exception, and it is not a later pass: rows whose tags carry the
+/// t-3312 extraction fields get those lifted into the `entities` /
+/// `action_type` columns here ([`extraction_from_tags`]) — the ingest pump
+/// derived them but had no row to write them to. Idempotent: the same tags
+/// lift to the same columns on every run.
 pub fn migrate_from_memory_entries(sources: &[PathBuf], dest: &Path) -> Result<MigrateStats> {
     struct Candidate {
         content: String,
@@ -469,9 +594,76 @@ pub fn migrate_from_memory_entries(sources: &[PathBuf], dest: &Path) -> Result<M
     let store = KnowledgeStore::open(dest)?;
     for (key, c) in &best {
         store.upsert(key, &c.content, c.tags.as_deref(), Some("memory_entries"), c.created_at, &c.vec)?;
+        if let Some(x) = extraction_from_tags(c.tags.as_deref()) {
+            store.set_extraction(key, x.entities.as_deref(), x.action_type.as_deref())?;
+        }
         stats.migrated += 1;
     }
     Ok(stats)
+}
+
+/// Tag prefixes the extraction fields travel under, from the ingest write
+/// (`commands/knowledge.rs::extraction_tags`) to the lift below. Public so
+/// the writer and the reader share one definition of the protocol rather than
+/// two literals that can drift apart.
+pub const ACTION_TAG_PREFIX: &str = "action:";
+pub const ENTITY_TAG_PREFIX: &str = "entity:";
+
+/// Split a stored tag list into tags, accepting either encoding: the CSV the
+/// store call hands ruflo on the command line, or a JSON array if ruflo
+/// persisted it that way. Which one lands in the `tags` column is ruflo's
+/// business, and a wrong guess here would silently lift nothing.
+fn tag_list(tags: &str) -> Vec<String> {
+    if let Ok(parsed) = serde_json::from_str::<Vec<String>>(tags) {
+        return parsed.into_iter().map(|t| t.trim().to_string()).collect();
+    }
+    tags.split(',').map(|t| t.trim().to_string()).collect()
+}
+
+/// The extraction fields a synced row carried on its tags, in column shape.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct TaggedExtraction {
+    /// JSON array of entity strings.
+    pub entities: Option<String>,
+    pub action_type: Option<String>,
+}
+
+/// Read the t-3312 extraction tags off a synced row's stored tag list.
+///
+/// The ruflo row is the queue between the ingest pump and this one: ingest
+/// runs the LLM call but has no `knowledge.db` row to write to yet (the row is
+/// created here, up to 20 minutes later), so the fields travel as tags and are
+/// lifted into the columns on the sync that first commits the row.
+///
+/// `None` when the row carries neither tag — a row that was never extracted
+/// (every pre-t-3312 capture, every YouTube/LongForm row, every feed item)
+/// must leave the columns as they are rather than have them written NULL.
+pub(crate) fn extraction_from_tags(tags: Option<&str>) -> Option<TaggedExtraction> {
+    let tags = tag_list(tags?);
+    let mut action_type = None;
+    let mut entities: Vec<String> = Vec::new();
+    for tag in tags.iter().map(String::as_str) {
+        if let Some(a) = tag.strip_prefix(ACTION_TAG_PREFIX) {
+            // First wins — a row carrying two action tags is malformed, and
+            // picking one deterministically beats letting the last write win.
+            if action_type.is_none() {
+                action_type = Some(a.to_string());
+            }
+        } else if let Some(e) = tag.strip_prefix(ENTITY_TAG_PREFIX) {
+            if !e.is_empty() {
+                entities.push(e.to_string());
+            }
+        }
+    }
+    if action_type.is_none() && entities.is_empty() {
+        return None;
+    }
+    // An extracted row with no entities stores `[]`, not NULL: the extraction
+    // ran and found none, which is not the same as never having run.
+    Some(TaggedExtraction {
+        entities: Some(serde_json::to_string(&entities).unwrap_or_else(|_| "[]".to_string())),
+        action_type,
+    })
 }
 
 /// Cheap readability probe: can `path` be opened and its `memory_entries`
@@ -703,6 +895,100 @@ mod tests {
         assert_eq!(e.action_type.as_deref(), Some("read-later"));
     }
 
+    // ── bulk read / row filter (t-3311) ───────────────────────────────────────
+
+    #[test]
+    fn parse_tags_accepts_csv_json_and_junk() {
+        assert_eq!(parse_tags("linkedin,agents"), vec!["linkedin", "agents"]);
+        assert_eq!(parse_tags(" linkedin , agents "), vec!["linkedin", "agents"]);
+        // The feed indexer writes a JSON array, `memory store` writes a CSV.
+        assert_eq!(
+            parse_tags(r#"["type:feed","feed:simon","source:intelligence-feed"]"#),
+            vec!["type:feed", "feed:simon", "source:intelligence-feed"]
+        );
+        assert!(parse_tags("").is_empty());
+        assert!(parse_tags("  ").is_empty());
+        // Unparseable JSON degrades to a CSV split rather than dropping the row.
+        assert_eq!(parse_tags("[not json"), vec!["[not json"]);
+    }
+
+    #[test]
+    fn row_filter_selects_link_and_feed_rows_only() {
+        // Historical captures carry a bare platform tag …
+        assert!(is_link_or_feed_row(Some("linkedin,agents"), Some("memory_entries")));
+        assert!(is_link_or_feed_row(Some("youtube,transcript,auto"), Some("memory_entries")));
+        // … new ones carry the explicit marker (t-3312) …
+        assert!(is_link_or_feed_row(Some("source:link-capture,scraping"), Some("memory_entries")));
+        // … and feed items carry theirs, as a JSON array.
+        assert!(is_link_or_feed_row(
+            Some(r#"["type:feed","feed:simon","source:intelligence-feed"]"#),
+            Some("memory_entries")
+        ));
+        // A real `source` column is honoured too.
+        assert!(is_link_or_feed_row(None, Some("link-capture")));
+
+        // thebrana's own indexed doc chunks are the population this excludes.
+        assert!(!is_link_or_feed_row(Some("doc,architecture"), Some("memory_entries")));
+        assert!(!is_link_or_feed_row(None, None));
+        assert!(!is_link_or_feed_row(Some(""), Some("memory_entries")));
+        // `other` is classify_platform's catch-all, not a capture marker.
+        assert!(!is_link_or_feed_row(Some("other,notes"), Some("memory_entries")));
+    }
+
+    #[test]
+    fn rows_with_vec_returns_only_the_scorable_population() {
+        let tmp = tempdir().unwrap();
+        let store = KnowledgeStore::open(tmp.path().join("knowledge.db")).unwrap();
+        store
+            .upsert("knowledge:url:link", "a capture", Some("linkedin,agents"), Some("memory_entries"), 1, &unit(0))
+            .unwrap();
+        store
+            .upsert(
+                "knowledge:feed:item",
+                "a feed item",
+                Some(r#"["type:feed","source:intelligence-feed"]"#),
+                Some("memory_entries"),
+                2,
+                &unit(1),
+            )
+            .unwrap();
+        store
+            .upsert("knowledge:doc:chunk", "a doc chunk", Some("doc,architecture"), Some("memory_entries"), 3, &unit(2))
+            .unwrap();
+
+        let all = store.rows_with_vec(RowFilter::All).unwrap();
+        assert_eq!(all.len(), 3);
+
+        let scorable = store.rows_with_vec(RowFilter::LinkAndFeed).unwrap();
+        let keys: Vec<&str> = scorable.iter().map(|r| r.key.as_str()).collect();
+        assert_eq!(keys, vec!["knowledge:feed:item", "knowledge:url:link"], "key-ordered");
+        assert_eq!(scorable[0].vec.len(), EMBED_DIM, "the vector is decoded, not raw bytes");
+    }
+
+    #[test]
+    fn rows_with_vec_skips_an_undecodable_blob_instead_of_failing() {
+        let tmp = tempdir().unwrap();
+        let db = tmp.path().join("knowledge.db");
+        let store = KnowledgeStore::open(&db).unwrap();
+        store
+            .upsert("knowledge:url:good", "ok", Some("github"), Some("memory_entries"), 1, &unit(0))
+            .unwrap();
+
+        // A truncated BLOB — one bad row must not cost the whole pass.
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        conn.execute(
+            "INSERT INTO knowledge (key, content, tags, source, created_at, vec)
+             VALUES ('knowledge:url:bad', 'c', 'github', 'memory_entries', 2, ?1)",
+            rusqlite::params![vec![0u8; 8]],
+        )
+        .unwrap();
+        drop(conn);
+
+        let rows = store.rows_with_vec(RowFilter::LinkAndFeed).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].key, "knowledge:url:good");
+    }
+
     // ── provider ──────────────────────────────────────────────────────────────
 
     fn seeded_store(dir: &Path) -> PathBuf {
@@ -889,6 +1175,90 @@ mod tests {
         assert_eq!(e.for_thebrana, Some(0.31));
         assert_eq!(e.entities.as_deref(), Some(r#"["Scrapy"]"#));
         assert_eq!(e.action_type.as_deref(), Some("technique-to-adopt"));
+    }
+
+    // ── t-3312: extraction tags lifted into the columns by sync ───────────
+
+    /// Set the `tags` CSV on an already-inserted fake row.
+    fn tag_row(path: &Path, key: &str, tags: &str) {
+        rusqlite::Connection::open(path)
+            .unwrap()
+            .execute("UPDATE memory_entries SET tags = ?2 WHERE key = ?1", rusqlite::params![key, tags])
+            .unwrap();
+    }
+
+    #[test]
+    fn extraction_from_tags_reads_action_and_entities() {
+        let x = extraction_from_tags(Some(
+            "github,scraping,source:link-capture,action:tool-to-evaluate,entity:Scrapy,entity:Python",
+        ))
+        .expect("tags carry the fields");
+        assert_eq!(x.action_type.as_deref(), Some("tool-to-evaluate"));
+        assert_eq!(x.entities.as_deref(), Some(r#"["Scrapy","Python"]"#));
+    }
+
+    #[test]
+    fn extraction_from_tags_reads_a_json_array_tag_column_too() {
+        // The store call passes CSV, but the `tags` column belongs to ruflo —
+        // a JSON-array encoding must lift the same fields, not silently none.
+        let x = extraction_from_tags(Some(r#"["github","action:read-later","entity:Scrapy"]"#))
+            .expect("json-encoded tags carry the fields");
+        assert_eq!(x.action_type.as_deref(), Some("read-later"));
+        assert_eq!(x.entities.as_deref(), Some(r#"["Scrapy"]"#));
+    }
+
+    #[test]
+    fn extraction_from_tags_action_only_stores_empty_entity_array() {
+        // "extraction ran, found no entities" is not the same state as
+        // "never extracted", so this is `[]`, not NULL.
+        let x = extraction_from_tags(Some("linkedin,action:none")).expect("action tag alone counts");
+        assert_eq!(x.entities.as_deref(), Some("[]"));
+        assert_eq!(x.action_type.as_deref(), Some("none"));
+    }
+
+    #[test]
+    fn extraction_from_tags_none_when_row_was_never_extracted() {
+        assert_eq!(extraction_from_tags(None), None);
+        assert_eq!(extraction_from_tags(Some("")), None);
+        assert_eq!(extraction_from_tags(Some("youtube,transcript,source:link-capture")), None);
+    }
+
+    #[test]
+    fn migrate_lifts_extraction_tags_into_columns() {
+        let tmp = tempdir().unwrap();
+        let src = tmp.path().join("live.db");
+        let dest = tmp.path().join("knowledge.db");
+        fake_memory_entries(&src, &[("knowledge:url:a", "content a", Some(unit(0)), 100)]);
+        tag_row(&src, "knowledge:url:a", "github,scraping,source:link-capture,action:read-later,entity:Scrapy");
+
+        migrate_from_memory_entries(std::slice::from_ref(&src), &dest).unwrap();
+        let store = KnowledgeStore::open(&dest).unwrap();
+        let e = store.enrichment("knowledge:url:a").unwrap().unwrap();
+        assert_eq!(e.entities.as_deref(), Some(r#"["Scrapy"]"#));
+        assert_eq!(e.action_type.as_deref(), Some("read-later"));
+
+        // Idempotent: a second sync of the same row lifts the same values.
+        migrate_from_memory_entries(std::slice::from_ref(&src), &dest).unwrap();
+        assert_eq!(store.enrichment("knowledge:url:a").unwrap().unwrap(), e);
+    }
+
+    #[test]
+    fn migrate_leaves_columns_alone_for_untagged_rows() {
+        // A row that never carried the tags (pre-t-3312 captures, YouTube,
+        // feed items) must not have its columns written NULL by a sync.
+        let tmp = tempdir().unwrap();
+        let src = tmp.path().join("live.db");
+        let dest = tmp.path().join("knowledge.db");
+        fake_memory_entries(&src, &[("knowledge:url:a", "content a", Some(unit(0)), 100)]);
+        migrate_from_memory_entries(std::slice::from_ref(&src), &dest).unwrap();
+
+        let store = KnowledgeStore::open(&dest).unwrap();
+        store.set_extraction("knowledge:url:a", Some(r#"["Scrapy"]"#), Some("tool-to-evaluate")).unwrap();
+
+        migrate_from_memory_entries(std::slice::from_ref(&src), &dest).unwrap();
+        let e = store.enrichment("knowledge:url:a").unwrap().unwrap();
+        assert_eq!(e.entities.as_deref(), Some(r#"["Scrapy"]"#));
+        assert_eq!(e.action_type.as_deref(), Some("tool-to-evaluate"));
     }
 
     #[test]

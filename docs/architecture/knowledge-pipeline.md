@@ -19,6 +19,21 @@ LinkedIn, and a `yt-dlp` subprocess for YouTube.
 For every non-YouTube tier, the `Store` arm runs `extract_insight()` (LLM
 summarization: agy → `claude -p` → truncated raw) and stores the summary.
 
+Since t-3312 the same single call also returns `entities` (up to 5 named tools,
+products or people) and `action_type` (`tool-to-evaluate | technique-to-adopt |
+read-later | competitor-intel | none`). Both are optional in the response — a
+model that ignores them keeps its summary rather than failing its tier — and
+both default to empty / `none`. They ride to the store as tags
+(`action:<value>`, `entity:<name>`) because the ingest pump has no
+`knowledge.db` row to write to yet; `vector-sync` lifts them into that store's
+`entities` / `action_type` columns when it commits the row
+(`vector.rs::extraction_from_tags`, ADR-093 D2). Not backfilled: historical
+entries never persisted the fetched page text.
+
+Every `process-url` write — YouTube included — also carries the tag
+`source:link-capture`, so the link population is selectable by a marker rather
+than by guessing from platform tags.
+
 ## The YouTube tier
 
 YouTube URLs get a dedicated tier because the generic HTTP tier returns the SPA
@@ -30,8 +45,10 @@ the primary-language caption track, dedupes VTT word-reveal cues
 (`dedupe_vtt_cues`, pure), and stores the **raw transcript** — the youtube
 branch skips `extract_insight` entirely (summarizing a 2h video's 152K-char
 transcript into a blurb would reproduce t-1349 one layer deeper and strand
-Phase 2's raw-transcript dependency). Tags are the fixed triple
-`[youtube, transcript, <caption_source>]` with `caption_source` ∈
+Phase 2's raw-transcript dependency), so it carries neither `entities` nor
+`action_type` (ADR-093 §Non-Actions). Tags are the fixed triple
+`[youtube, transcript, <caption_source>]` (plus `source:link-capture`, t-3312)
+with `caption_source` ∈
 `manual`/`auto`, read from `yt-dlp --dump-json`'s `requested_subtitles` vs
 `automatic_captions` fields (`determine_youtube_caption_source`,
 `knowledge_pipeline.rs:2386`).

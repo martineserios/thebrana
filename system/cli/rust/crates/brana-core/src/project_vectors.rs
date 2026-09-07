@@ -203,6 +203,27 @@ impl ProjectVectorStore {
     }
 
     /// Number of stored project vectors.
+    /// Delete every vector whose slug is not in `keep`. The sync calls this so
+    /// a project that leaves the portfolio (archived, renamed, descriptor
+    /// blanked) leaves the table too — ADR-093 D2's "full recompute rebuilds
+    /// the project set from the current portfolio" is only true if the table
+    /// itself never carries stale slugs. Returns the removed slugs.
+    pub fn prune_except(&self, keep: &[String]) -> Result<Vec<String>> {
+        let conn = self.conn()?;
+        let present: Vec<String> = conn
+            .prepare("SELECT slug FROM project_vectors")?
+            .query_map([], |r| r.get::<_, String>(0))?
+            .collect::<std::result::Result<_, _>>()?;
+        let mut removed = Vec::new();
+        for slug in present {
+            if !keep.iter().any(|k| k == &slug) {
+                conn.execute("DELETE FROM project_vectors WHERE slug = ?1", params![slug])?;
+                removed.push(slug);
+            }
+        }
+        Ok(removed)
+    }
+
     pub fn count(&self) -> Result<usize> {
         let n: i64 = self
             .conn()?
@@ -367,6 +388,8 @@ pub struct SyncStats {
     /// Projects the embedder could not embed. Any previously stored vector is
     /// left in place rather than being replaced with nothing.
     pub failed: Vec<String>,
+    /// Slugs removed because no current descriptor names them.
+    pub pruned: Vec<String>,
 }
 
 /// Embed every descriptor whose text changed since it was last stored, and
@@ -395,6 +418,8 @@ pub fn sync_project_vectors(
         store.upsert(&d.slug, &d.descriptor, &d.source, now, &vec)?;
         stats.embedded.push(d.slug.clone());
     }
+    let keep: Vec<String> = descriptors.iter().map(|d| d.slug.clone()).collect();
+    stats.pruned = store.prune_except(&keep)?;
     Ok(stats)
 }
 
@@ -685,5 +710,24 @@ mod tests {
             d.descriptor.chars().count() <= THEBRANA_TEXT_BUDGET + 1,
             "budget + the ellipsis"
         );
+    }
+
+    #[test]
+    fn sync_prunes_slugs_no_longer_in_the_descriptor_set() {
+        let dir = tempdir().unwrap();
+        let store = ProjectVectorStore::open(dir.path().join("k.db")).unwrap();
+        let emb = CountingEmbedder::new();
+        let d = |slug: &str| ProjectDescriptor {
+            slug: slug.into(),
+            descriptor: format!("{slug} descriptor"),
+            source: "portfolio".into(),
+        };
+        sync_project_vectors(&[d("a"), d("b"), d("gone")], &store, &emb, 1, false).unwrap();
+        assert_eq!(store.count().unwrap(), 3);
+        let stats = sync_project_vectors(&[d("a"), d("b")], &store, &emb, 2, false).unwrap();
+        assert_eq!(stats.pruned, vec!["gone".to_string()]);
+        assert_eq!(stats.unchanged.len(), 2, "a and b unchanged, not re-embedded");
+        let left: Vec<String> = store.all().unwrap().into_iter().map(|p| p.slug).collect();
+        assert_eq!(left, vec!["a".to_string(), "b".to_string()]);
     }
 }

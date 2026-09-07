@@ -588,10 +588,38 @@ enrichment columns added in t-3310 — `relevant_projects`, `for_thebrana`,
 `entities`, `action_type` — are written by the post-sync passes and survive
 every re-sync of the same key untouched.
 
+### Scoring pass (t-3311)
+
+After the upsert, the same invocation re-scores every link-capture and
+intelligence-feed row against the `project_vectors` table (`brana knowledge
+project-vectors`) and writes `relevant_projects` + `for_thebrana`. thebrana's
+own indexed doc chunks are never scored.
+
+- **Full recompute every run** (ADR-093 D2). ~300 link rows plus ~1,800 feed
+  rows × 384 dims is milliseconds, so a descriptor edit, a rename or an
+  archived project needs no versioning, no partial re-score and no scrub step
+  — the next run absorbs it.
+- **Rows are selected by tag**, since sync stamps every migrated row's `source`
+  as `memory_entries`: a platform tag (`linkedin`, `github`, `youtube`,
+  `substack`, `arxiv`, `twitter`) or an explicit `source:link-capture` /
+  `source:intelligence-feed` marker.
+- `relevant_projects` is written on every scored row, `[]` included, so a NULL
+  there means the pass has not run for that row. `for_thebrana` holds
+  thebrana's score only when it clears the threshold (`PROJECT_RELEVANCE_THRESHOLD`,
+  provisional 0.5 — recalibrate against a live pass).
+- **Ruflo side:** rows over threshold get a coarse `project:<slug>` added to
+  the existing tags CSV. ruflo has no tag-only update, so each write costs a
+  retrieve plus a `memory store --upsert`; the writes are capped per run
+  (`--tag-cap`, default 25) and drain over successive runs before settling at
+  zero. Additive only — a slug that leaves the portfolio drops out of
+  `relevant_projects` but keeps its old tag.
+- No project vectors stored ⇒ the pass is skipped entirely rather than wiping
+  every score over a missing prerequisite.
+
 ### Usage
 
 ```bash
-brana knowledge vector-sync [--source <path>]... [--dest <path>] [--json]
+brana knowledge vector-sync [--source <path>]... [--dest <path>] [--tag-cap <n>] [--json]
 ```
 
 ### Options
@@ -599,14 +627,18 @@ brana knowledge vector-sync [--source <path>]... [--dest <path>] [--json]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--source <path>` | `~/.swarm/memory.db` | Source memory.db file(s). Repeatable. Rotated `memory.db.corrupt-*` files that pass `integrity_check` are valid sources. |
-| `--dest <path>` | `~/.claude/memory/knowledge.db` | Destination store. |
-| `--json` | off | Output migration stats as JSON. |
+| `--dest <path>` | `~/.claude/memory/knowledge.db` | Destination store. Also holds `project_vectors`. |
+| `--tag-cap <n>` | 25 | Per-run cap on ruflo-side `project:<slug>` tag writes. Scoring itself is never capped. |
+| `--json` | off | Output migration + scoring stats as JSON. |
 
 ### Scheduling
 
 Wired as the `knowledge-vector-sync` scheduler job (every 4h, 20min offset
 from `link-research-extraction`) so freshly drained links become
-topic-searchable without a manual run.
+topic-searchable without a manual run. The scoring pass rides in this job —
+no second job (ADR-093 D2). The whole handler is lock-free (pinned by
+`test_lock_discipline_source_tripwires`): it touches `knowledge.db` only, so
+it never contends with the drain cron's whole-invocation `lock_pipeline()`.
 
 ---
 
