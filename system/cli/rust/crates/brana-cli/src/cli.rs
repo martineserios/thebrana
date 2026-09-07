@@ -589,6 +589,31 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Embed one curated descriptor per portfolio project into the
+    /// `project_vectors` table the link-scoring pass reads (t-3307).
+    /// Re-embeds a project only when its descriptor text changes.
+    ProjectVectors {
+        /// Portfolio registry (default: ~/.claude/tasks-portfolio.json)
+        #[arg(long)]
+        portfolio: Option<PathBuf>,
+        /// Destination store (default: ~/.claude/memory/knowledge.db)
+        #[arg(long)]
+        dest: Option<PathBuf>,
+        /// Docs root thebrana's own vector is composed from — the-brana.md
+        /// plus the accepted ADRs (default: <repo>/docs)
+        #[arg(long)]
+        docs: Option<PathBuf>,
+        /// Re-embed every project, changed or not (use after an embedding
+        /// model change — the descriptor hash cannot see that)
+        #[arg(long)]
+        force: bool,
+        /// List the stored table instead of embedding anything
+        #[arg(long)]
+        list: bool,
+        /// Output stats as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]

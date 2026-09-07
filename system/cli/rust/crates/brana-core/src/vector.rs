@@ -107,7 +107,7 @@ impl KnowledgeStore {
 }
 
 /// Encode a vector as little-endian `f32` bytes.
-fn vec_to_blob(v: &[f32]) -> Vec<u8> {
+pub(crate) fn vec_to_blob(v: &[f32]) -> Vec<u8> {
     let mut out = Vec::with_capacity(v.len() * 4);
     for f in v {
         out.extend_from_slice(&f.to_le_bytes());
@@ -117,7 +117,7 @@ fn vec_to_blob(v: &[f32]) -> Vec<u8> {
 
 /// Decode a little-endian `f32` BLOB. `None` if the byte length is not a
 /// multiple of 4 or the dimensionality is wrong.
-fn blob_to_vec(blob: &[u8]) -> Option<Vec<f32>> {
+pub(crate) fn blob_to_vec(blob: &[u8]) -> Option<Vec<f32>> {
     if blob.len() != EMBED_DIM * 4 {
         return None;
     }
@@ -240,7 +240,7 @@ impl SearchProvider for VectorProvider {
 }
 
 /// Truncate at a char boundary, appending `…` when shortened.
-fn truncate_chars(s: &str, max: usize) -> String {
+pub(crate) fn truncate_chars(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         return s.to_string();
     }

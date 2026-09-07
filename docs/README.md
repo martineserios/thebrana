@@ -112,6 +112,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [features/youtube-channel-ingestion.md](architecture/features/youtube-channel-ingestion.md) | YouTube channel ingestion Phase 3 Tier A (t-2993) — channel backfill selection surface spec |
 | [features/youtube-channel-backfill.md](architecture/features/youtube-channel-backfill.md) | `brana knowledge channel-backfill` tech doc (t-2998) — CLI flags, Tier A selection surface, Tier B boundary |
 | [features/knowledge-pipeline-platform-adapters.md](architecture/features/knowledge-pipeline-platform-adapters.md) | PlatformAdapter feature spec (t-3151, ADR-087) — LongForm youtube path through Tier1/2/3, ingest ruflo bridge, canonical-key migration |
+| [features/project-descriptor-vectors.md](architecture/features/project-descriptor-vectors.md) | Project descriptor vectors (t-3307) — one curated line per project, embedded once via the RufloEmbedder seam into the `project_vectors` table |
 
 ### Extending brana
 
