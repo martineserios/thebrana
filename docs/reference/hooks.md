@@ -394,7 +394,7 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `session-start.sh` | `/tmp/brana-claims` | ── Stale file claim cleanup ───────────────────────────── |
 | `session-start.sh` | `/tmp/brana-bootstrap-pending-restart` | ── Bootstrap restart sentinel ─────────────────────────── |
 | `session-start.sh` | `/tmp/brana-context-${SESSION_ID}.md` | ── Write context readback file (survives context compression) ── |
-| `session-start.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ══════════════════════════════════════════════════════════ |
+| `session-start.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ════════════════════ |
 | `skill-sentinel.sh` | `/tmp/brana-rust-skills-loaded-{SESSION_ID}` | Currently gated skills: |
 | `skill-sentinel.sh` | `/tmp/brana-{slug}-loaded-{SESSION_ID}` | EXTENSIBILITY — to gate a new skill: |
 | `skill-sentinel.sh` | `/tmp/brana-rust-skills-loaded-${SESSION_ID}` | Add entries here when new guard hooks are introduced. |
