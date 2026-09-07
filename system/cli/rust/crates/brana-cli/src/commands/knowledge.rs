@@ -22,6 +22,12 @@ use crate::util::{find_project_root, home};
 /// share or mutate `~/.swarm/knowledge-pipeline-state.json`.
 const PROCESS_URL_NAMESPACE: &str = "knowledge";
 
+/// Marks every `process-url` write as a link capture (t-3312, idea doc
+/// §Layer 1 step 6), so the link population is selectable by a marker rather
+/// than by guessing which platform tags imply a captured link. Carried on the
+/// ruflo row and lifted into `knowledge.db` by `vector-sync`.
+const LINK_CAPTURE_TAG: &str = "source:link-capture";
+
 /// Below this many non-whitespace characters, fetched content is treated as
 /// empty and stored nothing. A JS-only page or an auth wall strips down to a
 /// handful of characters; storing that yields a namespace entry that looks
@@ -97,8 +103,15 @@ fn resolve_process_url_outcome(
 /// real agy/`claude -p` subprocess calls (same "test the decision, not the
 /// I/O" discipline as `resolve_process_url_outcome` above).
 ///
+/// Every write, both branches, carries [`LINK_CAPTURE_TAG`]. The non-youtube
+/// branch additionally carries the t-3312 extraction fields as tags
+/// ([`extraction_tags`]): the ruflo row is the queue between this ingest pump
+/// and `vector-sync` (ADR-093 D2 — ingest holds no knowledge.db row yet), and
+/// tags are the only ruflo-side field this pipeline adds.
+///
 /// youtube skips summarization entirely and stores `content.text`
-/// unmodified, tagged `[platform, "transcript", caption_source]` — a short
+/// unmodified, tagged
+/// `[platform, "transcript", caption_source, source:link-capture]` — a short
 /// summary of a long transcript is only marginally less shallow than the
 /// HTML-shell bug this whole command exists to fix (feature spec §3,
 /// t-2950). Every other platform keeps the existing summarized-storage
@@ -113,11 +126,48 @@ fn resolve_store_value(
         let source = content.caption_source.unwrap_or("auto");
         return (
             content.text.clone(),
-            vec![content.platform.to_string(), "transcript".to_string(), source.to_string()],
+            vec![
+                content.platform.to_string(),
+                "transcript".to_string(),
+                source.to_string(),
+                LINK_CAPTURE_TAG.to_string(),
+            ],
         );
     }
     let insight = insight.expect("non-youtube Store always has an extracted insight");
-    (insight.summary.clone(), vec![content.platform.to_string(), insight.topic.clone()])
+    let mut tags = vec![
+        content.platform.to_string(),
+        insight.topic.clone(),
+        LINK_CAPTURE_TAG.to_string(),
+    ];
+    tags.extend(extraction_tags(insight));
+    (insight.summary.clone(), tags)
+}
+
+/// Encode the t-3312 extraction fields as ruflo tags — `action:{action_type}`
+/// plus one `entity:{name}` each — for `vector-sync` to lift back into
+/// `KnowledgeStore`'s `action_type` / `entities` columns
+/// (`vector.rs::extraction_from_tags`).
+///
+/// `action_type` is always tagged, `none` included: "extracted, nothing
+/// actionable" and "never extracted" are different states downstream, and only
+/// the tag distinguishes them.
+///
+/// Commas are stripped from entity names because ruflo takes the whole tag
+/// list as one CSV argv — an unstripped comma would silently split one entity
+/// into two.
+fn extraction_tags(insight: &kp::ExtractedInsight) -> Vec<String> {
+    use brana_core::vector::{ACTION_TAG_PREFIX, ENTITY_TAG_PREFIX};
+
+    let mut tags = vec![format!("{ACTION_TAG_PREFIX}{}", insight.action_type)];
+    for entity in &insight.entities {
+        let cleaned = entity.replace(',', " ");
+        let cleaned = cleaned.trim();
+        if !cleaned.is_empty() {
+            tags.push(format!("{ENTITY_TAG_PREFIX}{cleaned}"));
+        }
+    }
+    tags
 }
 
 /// One `{id, url}` record from a batch file.
@@ -2599,6 +2649,26 @@ mod tests {
             !src[run_start..run_end].contains("cmd_process("),
             "cmd_run must call process_core, not cmd_process — cmd_process acquires the lock cmd_run already holds"
         );
+
+        // vector-sync's lock-freedom is what makes the post-sync scoring pass
+        // placeable at all (ADR-093 D2): it runs 20 minutes after the 4h drain
+        // cron, which holds lock_pipeline for its whole invocation. Taking the
+        // lock here would serialise a multi-thousand-row pass behind it.
+        // The needles are assembled at runtime: cmd_vector_sync is defined
+        // AFTER this tests module, so a verbatim literal here would be the
+        // first match and the scanned region would be this module itself
+        // (self-match — the same class as `pgrep -f` matching its own argv).
+        let vs_needle = format!("pub fn {}", "cmd_vector_sync");
+        let vs_marker = format!("\n// --- {}", "project-vectors");
+        let vs_start = src.find(&vs_needle).expect("cmd_vector_sync exists");
+        let vs_end = src[vs_start..]
+            .find(&vs_marker)
+            .map(|i| vs_start + i)
+            .expect("the project-vectors section follows cmd_vector_sync");
+        assert!(
+            !src[vs_start..vs_end].contains("lock_pipeline"),
+            "cmd_vector_sync must never acquire the pipeline lock — it and its scoring pass touch knowledge.db only"
+        );
     }
 
     #[test]
@@ -2793,7 +2863,7 @@ mod tests {
         };
         let (value, tags) = resolve_store_value(&fetched, None);
         assert_eq!(value, "the full transcript text, unsummarized");
-        assert_eq!(tags, vec!["youtube", "transcript", "manual"]);
+        assert_eq!(tags, vec!["youtube", "transcript", "manual", LINK_CAPTURE_TAG]);
     }
 
     #[test]
@@ -2805,7 +2875,7 @@ mod tests {
             image_url: None,
         };
         let (_, tags) = resolve_store_value(&fetched, None);
-        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto", LINK_CAPTURE_TAG]);
     }
 
     #[test]
@@ -2821,11 +2891,59 @@ mod tests {
         let insight = kp::ExtractedInsight {
             summary: "a short summary".into(),
             topic: "software".into(),
+            entities: Vec::new(),
+            action_type: kp::ACTION_TYPE_NONE.into(),
             extraction_skipped: false,
         };
         let (value, tags) = resolve_store_value(&fetched, Some(&insight));
         assert_eq!(value, "a short summary");
-        assert_eq!(tags, vec!["github", "software"]);
+        assert_eq!(tags, vec!["github", "software", LINK_CAPTURE_TAG, "action:none"]);
+    }
+
+    // ── t-3312: extraction fields ride to the store as tags ───────────
+
+    #[test]
+    fn test_resolve_store_value_tags_entities_and_action_type() {
+        let fetched = kp::FetchedContent {
+            text: "raw fetched content".into(),
+            platform: "github",
+            caption_source: None,
+            image_url: None,
+        };
+        let insight = kp::ExtractedInsight {
+            summary: "a scraping framework".into(),
+            topic: "scraping".into(),
+            entities: vec!["Scrapy".into(), "Python".into()],
+            action_type: "tool-to-evaluate".into(),
+            extraction_skipped: false,
+        };
+        let (_, tags) = resolve_store_value(&fetched, Some(&insight));
+        assert_eq!(
+            tags,
+            vec![
+                "github",
+                "scraping",
+                LINK_CAPTURE_TAG,
+                "action:tool-to-evaluate",
+                "entity:Scrapy",
+                "entity:Python",
+            ]
+        );
+    }
+
+    #[test]
+    fn test_extraction_tags_strip_commas_from_entity_names() {
+        // Boundary: ruflo takes the tag list as one CSV argv, so a comma in
+        // an entity name would split it into two bogus tags.
+        let insight = kp::ExtractedInsight {
+            summary: "s".into(),
+            topic: "t".into(),
+            entities: vec!["Anthropic, Inc.".into(), "  ".into()],
+            action_type: "competitor-intel".into(),
+            extraction_skipped: false,
+        };
+        let tags = extraction_tags(&insight);
+        assert_eq!(tags, vec!["action:competitor-intel", "entity:Anthropic  Inc."]);
     }
 
     // Boundary (t-2950): caption_source should always be Some for a
@@ -2842,7 +2960,7 @@ mod tests {
             image_url: None,
         };
         let (_, tags) = resolve_store_value(&fetched, None);
-        assert_eq!(tags, vec!["youtube", "transcript", "auto"]);
+        assert_eq!(tags, vec!["youtube", "transcript", "auto", LINK_CAPTURE_TAG]);
     }
 
     // ── process-url batch mode (t-2451) ──────────────────────────────
@@ -4264,11 +4382,18 @@ Respond with JSON only:\n\
 // --- vector-sync (t-2620) ---------------------------------------------------
 
 /// `brana knowledge vector-sync` — sync the brana-owned vector store from
-/// ruflo `memory_entries` DBs (local-vector-recall.md). Idempotent: newest
-/// row per key wins across sources; unreadable sources are skipped loudly.
+/// ruflo `memory_entries` DBs (local-vector-recall.md), then score the synced
+/// link-capture and intelligence-feed rows for project relevance (t-3311).
+/// Idempotent: newest row per key wins across sources; unreadable sources are
+/// skipped loudly; the scoring pass is a full recompute.
+///
+/// Lock-free end to end (ADR-093 D2) — this handler sits outside every
+/// `lock_pipeline()` call site so it never contends with the 4h drain cron,
+/// and the scoring pass added here keeps that contract.
 pub fn cmd_vector_sync(
     sources: Vec<PathBuf>,
     dest: Option<PathBuf>,
+    tag_cap: Option<usize>,
     json: bool,
 ) -> Result<()> {
     let default_src = home().join(".swarm").join("memory.db");
@@ -4286,7 +4411,21 @@ pub fn cmd_vector_sync(
 
     let dest = dest.unwrap_or_else(brana_core::vector::knowledge_db_path);
     let stats = brana_core::vector::migrate_from_memory_entries(&readable, &dest)?;
-    let total = brana_core::vector::KnowledgeStore::open(&dest)?.count()?;
+    let store = brana_core::vector::KnowledgeStore::open(&dest)?;
+    let total = store.count()?;
+
+    // Scoring runs on committed rows, after the upsert — never inside it
+    // (ADR-093 D2). Same DB: `project_vectors` shares `knowledge.db`.
+    let projects = brana_core::project_vectors::ProjectVectorStore::open(&dest)?;
+    let tag_writer =
+        kp::RufloProjectTagWriter { namespace: PROCESS_URL_NAMESPACE.to_string() };
+    let scoring = kp::run_relevance_pass(
+        &store,
+        &projects,
+        &tag_writer,
+        kp::PROJECT_RELEVANCE_THRESHOLD,
+        tag_cap.unwrap_or(kp::PROJECT_TAG_CAP),
+    )?;
 
     if json {
         println!(
@@ -4300,6 +4439,16 @@ pub fn cmd_vector_sync(
                 "skipped_no_embedding": stats.skipped_no_embedding,
                 "deduped": stats.deduped,
                 "store_total": total,
+                "scoring": {
+                    "projects": scoring.projects,
+                    "rows_scanned": scoring.scanned,
+                    "scored": scoring.scored,
+                    "unscored": scoring.unscored,
+                    "tags_written": scoring.tags_written,
+                    "tags_deferred": scoring.tags_deferred,
+                    "tags_skipped": scoring.tags_skipped,
+                    "tag_failures": scoring.tag_failures,
+                },
             })
         );
     } else {
@@ -4308,6 +4457,19 @@ pub fn cmd_vector_sync(
             stats.scanned, readable.len(), stats.migrated, stats.deduped,
             stats.skipped_no_embedding, total, dest.display()
         );
+        if scoring.projects == 0 {
+            println!(
+                "scoring: no project vectors at {} — run `brana knowledge project-vectors` first (pass skipped)",
+                dest.display()
+            );
+        } else {
+            println!(
+                "scoring: {} row(s) against {} project vector(s) → {} scored, {} unscored; tags +{} ({} deferred by cap, {} skipped, {} failed)",
+                scoring.scanned, scoring.projects, scoring.scored, scoring.unscored,
+                scoring.tags_written, scoring.tags_deferred, scoring.tags_skipped,
+                scoring.tag_failures
+            );
+        }
     }
     Ok(())
 }

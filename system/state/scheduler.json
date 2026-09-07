@@ -221,7 +221,7 @@
       "noProjectLock": true
     },
     "knowledge-vector-sync": {
-      "_comment": "t-2620: sync the brana-owned vector store (~/.claude/memory/knowledge.db) from ruflo memory_entries. Runs 20min after each drain-links pass so freshly drained links become topic-searchable. Idempotent (newest row per key wins); unreadable sources are skipped loudly.",
+      "_comment": "t-2620: sync the brana-owned vector store (~/.claude/memory/knowledge.db) from ruflo memory_entries. Runs 20min after each drain-links pass so freshly drained links become topic-searchable. Idempotent (newest row per key wins); unreadable sources are skipped loudly. t-3311 (ADR-093 D2): the same invocation then re-scores every link-capture and intelligence-feed row against the project_vectors table and writes relevant_projects/for_thebrana, plus capped project:<slug> tags on the ruflo side — a step in this job, deliberately not a second job. Both halves are lock-free, which is why this can run against the same knowledge base as the 4h drain cron that holds lock_pipeline for its whole invocation.",
       "command": "brana knowledge vector-sync",
       "enabled": true,
       "project": "~/enter_thebrana/thebrana",

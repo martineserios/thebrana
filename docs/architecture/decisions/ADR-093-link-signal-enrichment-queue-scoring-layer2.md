@@ -63,6 +63,20 @@ So scoring runs as its own pass:
 
 **This holds on mechanics grounds, not only API grounds.** Ingest is a pump (capture → knowledge row). Scoring is a pump (knowledge row → ranked candidate). Law 1: the two never call each other — the DB is the queue between them. Law 4: the scoring pass is idempotent, because it is a full recompute — the stored score is a cache of a derivation from the current corpus and descriptor table, never authoritative state. The vector read added by t-3310 does not reopen this decision: the placement argument (both sides of the comparison live post-sync) survives the API change.
 
+**Calibration amendment (2026-09-07, first live pass, t-3311 review).** Measured on
+2,705 link + feed rows against 12 curated client descriptors: centroid-subtracted
+best-score-per-row p50 0.12 · p99 0.29 · max 0.39, so the provisional 0.5 threshold
+admitted nothing and `PROJECT_RELEVANCE_THRESHOLD` is now 0.25 (top ~3%; the
+known-relevant probes clear it). Two structural corrections: (a) **thebrana is scored
+apart**, by plain cosine against its own vector with its own threshold
+(`THEBRANA_RELEVANCE_THRESHOLD` 0.30) — inside the client centroid set its residual
+dominated every row (p50 0.48) because its descriptor and the corpus are both about
+agents; (b) **the project-vector sync prunes slugs absent from the current descriptor
+set**, so a project that leaves the portfolio leaves the table — without that the
+"full recompute drops archived projects" claim above was false. Archived or retired
+projects are excluded by blanking their descriptor line, which the parser already
+treats as "no vector".
+
 **Scores are a gauge.** They rank candidates so the human valve is cheap to work. They never approve, never select, never flip `ac_state` — that would collapse Decision 2 into a violation of Decision 1.
 
 ### 3. Layer 2 stays deferred, but its queue shape is fixed now: `wip_limit` cap + untouched-N-days dead-letter

@@ -178,6 +178,15 @@ the synced columns rather than `INSERT OR REPLACE`, so re-running `vector-sync`
 refreshes content/tags/source/vec and leaves enrichment intact. Never inside
 `content` — recall prints content verbatim and FTS5 would index the JSON.
 
+t-3311 adds the bulk read those passes needed —
+`KnowledgeStore::rows_with_vec(RowFilter)`, returning `(key, tags, source, vec)`
+with the BLOB decoded and undecodable rows skipped rather than fatal — and the
+scoring pass that consumes it, `run_relevance_pass`, which runs inside
+`vector-sync` after the upsert. `RowFilter::LinkAndFeed` is the population
+ADR-093 D2 names: link captures and intelligence-feed items, never thebrana's
+own indexed doc chunks. It discriminates on **tags**, not the `source` column,
+because the migration stamps every row `source = "memory_entries"`.
+
 ## Sequencing
 
 1. **t-2619 first.** Stop the daily rotation loss. Small. Everything else is

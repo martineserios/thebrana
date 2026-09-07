@@ -287,8 +287,8 @@ fn main() {
             }
             KnowledgeCmd::Next => run_or_exit(commands::knowledge::cmd_next()),
             KnowledgeCmd::Run => run_or_exit(commands::knowledge::cmd_run()),
-            KnowledgeCmd::VectorSync { source, dest, json } => {
-                run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, json))
+            KnowledgeCmd::VectorSync { source, dest, tag_cap, json } => {
+                run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, tag_cap, json))
             }
             KnowledgeCmd::ProjectVectors { portfolio, dest, docs, force, list, json } => {
                 run_or_exit(commands::knowledge::cmd_project_vectors(
