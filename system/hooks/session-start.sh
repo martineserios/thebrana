@@ -200,9 +200,9 @@ if [ -f "$STALE_STATUS_FILE_HOOK" ]; then
     fi
 fi
 
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 # PHASE 1: Launch slow operations in parallel
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 _mark "phase1-start"
 
 CF_WARNING=""
@@ -286,8 +286,12 @@ fi
 # Skip on low effort — interactive recall budget is non-critical for quick tasks.
 if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
     (
+        # $BRANA override first (resolve-brana.sh convention, t-3316).
         BRANA_RECALL=""
-        if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -x "${CLAUDE_PLUGIN_DATA}/brana" ]; then
+        if [ -n "${BRANA:-}" ] && [ -x "${BRANA:-}" ]; then
+            BRANA_RECALL="$BRANA"
+        fi
+        if [ -z "$BRANA_RECALL" ] && [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -x "${CLAUDE_PLUGIN_DATA}/brana" ]; then
             BRANA_RECALL="${CLAUDE_PLUGIN_DATA}/brana"
         fi
         if [ -z "$BRANA_RECALL" ]; then
@@ -314,9 +318,9 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
     PIDS="$PIDS $!"
 fi
 
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 # PHASE 2: Fast local checks (while parallel jobs run)
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 _mark "phase2-start"
 
 # ── Stale file claim cleanup ─────────────────────────────
@@ -715,9 +719,9 @@ No weekly review found. Consider running /brana:review weekly."
     fi
 fi
 
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 # PHASE 3: Collect parallel results (max 5s combined wait)
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 _mark "phase3-wait-start"
 
 # Wait for all parallel jobs — 1, 1b and 1c — against ONE hard deadline, then
@@ -806,9 +810,9 @@ if [ -z "$CONTEXT" ]; then
 fi
 
 _mark "phase3-wait-done"
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 # PHASE 4: Assemble and emit JSON response
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 
 OUTPUT_PARTS=""
 if [ -n "$CONTEXT" ]; then
@@ -943,9 +947,9 @@ else
 fi
 
 _mark "hook-end"
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 # PHASE 5: Fork non-essential work to background
-# ══════════════════════════════════════════════════════════
+# ════════════════════
 
 (
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"

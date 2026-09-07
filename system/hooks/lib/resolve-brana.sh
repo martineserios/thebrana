@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 # Shared brana CLI binary resolution.
-# Sources: PLUGIN_DATA (persistent) > SCRIPT_DIR (dev) > PLUGIN_ROOT (cache) > PATH
+# Sources: $BRANA override > PLUGIN_DATA (persistent) > SCRIPT_DIR (dev) > PLUGIN_ROOT (cache) > PATH
 #
 # Usage: source this file, then use $BRANA
 # Expects: SCRIPT_DIR set by the calling hook
 
 _resolve_brana() {
     local candidate
+
+    # 0. Explicit override — same "$BRANA wins" convention already used by
+    # close-snapshot.sh ("$BRANA > sibling release build > PATH"). Lets
+    # dev/test callers pin a specific binary (e.g. a fake on PATH) without a
+    # real sibling release build shadowing it via tier 2 below (t-3316).
+    if [ -n "${BRANA:-}" ] && [ -x "${BRANA:-}" ]; then
+        echo "$BRANA"
+        return 0
+    fi
 
     # 1. PLUGIN_DATA — persistent across plugin updates
     if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then

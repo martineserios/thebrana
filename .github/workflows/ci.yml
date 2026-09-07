@@ -72,8 +72,10 @@ jobs:
   # This step never ran on main until 2026-09-04 (validate failed first for
   # weeks), and its first run showed 14 suites red for reasons ranging from
   # CI-environment gaps (no ruflo, brana not on PATH) to genuinely red tests on
-  # dev. Fixing them is t-3280; when that lands, add this job to main's
-  # required checks alongside validate and rust.
+  # dev. t-3280 (2026-09-04) fixed those 14; t-3316 (2026-09-07) fixed a fresh
+  # regression of the same suites plus one net-new one. Both left the actual
+  # branch-protection flip undone — that's tracked separately now as t-3319
+  # (don't let it lapse a third time).
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -85,6 +87,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: system/cli/rust
+
+      # Remedies 62/63/64 (test-validate-remedies.sh) shell out to
+      # `uv run python3 system/scripts/migrate/*.py --write`. GitHub's
+      # ubuntu-latest image doesn't ship uv, so those calls silently exit 127
+      # (swallowed by the test's >/dev/null 2>&1) and the remedy no-ops (t-3316).
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Build brana CLI (release) and put it on PATH
         working-directory: system/cli/rust

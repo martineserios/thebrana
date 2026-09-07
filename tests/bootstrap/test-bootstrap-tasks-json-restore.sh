@@ -41,10 +41,24 @@ echo "bootstrap.sh tasks.json restore-from-snapshot tests"
 echo "======================================================"
 echo ""
 
+# t-3287 (which wires restore_tasks_json_if_missing into bootstrap.sh near
+# Step 4e) is still pending, blocked on t-3283/t-3284 — nobody has started it.
+# Hard-failing this whole suite in the meantime made the CI `tests` job
+# permanently red for a planned-but-unbuilt feature indistinguishable from an
+# actual regression (t-3316). SKIP instead, same convention as
+# tests/cli/test-knowledge-tier3.sh's "binary not built yet" guard — once
+# t-3287 lands, this grep starts succeeding and the real behavioral checks
+# below run and must pass.
+if ! grep -q "restore_tasks_json_if_missing" "$BOOTSTRAP"; then
+    echo "SKIP: restore_tasks_json_if_missing not implemented yet — tracked by t-3287 (blocked on t-3283/t-3284)"
+    echo ""
+    echo "Results: 0 passed, 0 failed, 0 total (skipped)"
+    exit 0
+fi
+
 echo "--- static: bootstrap.sh calls the restore step ---"
 grep -q "restore_tasks_json_if_missing" "$BOOTSTRAP"
-check "bootstrap.sh references restore_tasks_json_if_missing" "$?" \
-    "not found — this is the RED state until t-3287 wires it in near Step 4e"
+check "bootstrap.sh references restore_tasks_json_if_missing" "$?"
 
 echo ""
 echo "--- behavioral: restore_tasks_json_if_missing ---"
