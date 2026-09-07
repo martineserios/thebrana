@@ -203,7 +203,11 @@ echo ""
 # --- Pre-flight: CC version check (CVE-2026-21852, CVE-2025-59536) ---
 check_cc_version() {
   local ver
-  ver=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  # `|| true`: under `set -euo pipefail`, an absent `claude` binary makes this
+  # pipeline exit non-zero (pipefail), which would abort the whole script here
+  # — before Rules:/Hooks:/etc. ever print. The `if [ -z "$ver" ]` branch below
+  # already handles "not found"; let it, don't let set -e win the race.
+  ver=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true
   if [ -z "$ver" ]; then
     echo "  ! claude binary not found or version unreadable — skipping CVE check"
     return
