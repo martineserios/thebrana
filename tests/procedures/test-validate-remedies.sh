@@ -300,6 +300,18 @@ fi
 
 rm -rf "$FIXTURE29_REPO"
 
+# ── Check 62/63/64 undo hints must not point at a git-tracked tasks.json ──
+# t-3285/ADR-091 untracked .claude/tasks.json from git; `git restore` on that
+# path now fails ("did you forget to 'git add'?") on the real repo, even
+# though this test's own fixture repo still tracks its own copy and would
+# never catch that (isolation is deliberate, see file header). Guard the
+# hint text directly instead.
+for undo_check in 62 63 64; do
+    HINT="${REMEDY_UNDO_HINT[$undo_check]:-}"
+    assert_true "REMEDY_UNDO_HINT[$undo_check] does not reference a git-tracked tasks.json" \
+        "$(echo "$HINT" | grep -q 'git restore .claude/tasks.json' && echo false || echo true)"
+done
+
 echo ""
 echo "=== Summary ==="
 echo "Total: $TOTAL | Passed: $PASS | Failed: $FAIL"
