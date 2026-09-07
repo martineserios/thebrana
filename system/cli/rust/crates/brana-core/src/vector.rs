@@ -30,16 +30,38 @@ pub fn knowledge_db_path() -> PathBuf {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
+/// Enrichment columns added after the original schema (t-3310), as
+/// `(name, type)` pairs. Added by ALTER-if-missing on every [`KnowledgeStore::open`].
+///
+/// All are nullable: `NULL` means "not enriched yet", which is what every row
+/// written by `vector-sync` looks like until the scoring pass (t-3311) and the
+/// richer extraction (t-3312) fill them in.
+const ENRICHMENT_COLUMNS: &[(&str, &str)] = &[
+    // JSON `[{"project": "<slug>", "score": <f32>}]` — link-signal relevance.
+    ("relevant_projects", "TEXT"),
+    // Relevance of the entry to thebrana itself.
+    ("for_thebrana", "REAL"),
+    // JSON `["<entity>", …]` from the extraction prompt.
+    ("entities", "TEXT"),
+    // `tool-to-evaluate | technique-to-adopt | read-later | competitor-intel | none`.
+    ("action_type", "TEXT"),
+];
+
 /// Brana-owned knowledge store at `~/.claude/memory/knowledge.db`.
 ///
-/// Schema: `knowledge(key PRIMARY KEY, content, tags, source, created_at, vec BLOB)`.
+/// Schema: `knowledge(key PRIMARY KEY, content, tags, source, created_at, vec BLOB,
+/// relevant_projects, for_thebrana, entities, action_type)`.
 /// `vec` is `EMBED_DIM` little-endian `f32`s (1,536 bytes).
+///
+/// The four enrichment columns are real columns on purpose (ADR-093): never
+/// JSON stuffed into `content`, which recall prints verbatim and FTS5 indexes.
 pub struct KnowledgeStore {
     db_path: PathBuf,
 }
 
 impl KnowledgeStore {
-    /// Open the store, creating the file and schema if absent.
+    /// Open the store, creating the file and schema if absent and running the
+    /// idempotent enrichment-column migration.
     ///
     /// Holds only the path — connections are opened per operation, matching
     /// `FTS5Provider`'s idiom (`rusqlite::Connection` is `!Send`).
@@ -62,6 +84,7 @@ impl KnowledgeStore {
             );",
         )
         .context("creating knowledge schema")?;
+        migrate_enrichment_columns(&conn)?;
         Ok(Self { db_path })
     }
 
@@ -74,7 +97,13 @@ impl KnowledgeStore {
             .with_context(|| format!("opening {}", self.db_path.display()))
     }
 
-    /// Insert or replace an entry. `vec` must be `EMBED_DIM` long.
+    /// Insert an entry, or update the synced columns of an existing one.
+    /// `vec` must be `EMBED_DIM` long.
+    ///
+    /// Deliberately `ON CONFLICT DO UPDATE`, not `INSERT OR REPLACE`: replace
+    /// deletes the row and reinserts it, which would null out the enrichment
+    /// columns on every `vector-sync` run. Sync owns the synced columns only;
+    /// enrichment survives untouched.
     pub fn upsert(
         &self,
         key: &str,
@@ -89,12 +118,73 @@ impl KnowledgeStore {
         }
         self.conn()?
             .execute(
-                "INSERT OR REPLACE INTO knowledge (key, content, tags, source, created_at, vec)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                "INSERT INTO knowledge (key, content, tags, source, created_at, vec)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                 ON CONFLICT(key) DO UPDATE SET
+                     content    = excluded.content,
+                     tags       = excluded.tags,
+                     source     = excluded.source,
+                     created_at = excluded.created_at,
+                     vec        = excluded.vec",
                 params![key, content, tags, source, created_at, vec_to_blob(vec)],
             )
             .with_context(|| format!("upserting {key}"))?;
         Ok(())
+    }
+
+    /// Write the scoring-pass columns for an existing entry (t-3311).
+    /// `relevant_projects` is JSON `[{"project", "score"}]`. Unknown keys are
+    /// a no-op — the pass scores rows it read from this same store.
+    pub fn set_relevance(
+        &self,
+        key: &str,
+        relevant_projects: Option<&str>,
+        for_thebrana: Option<f32>,
+    ) -> Result<()> {
+        self.conn()?
+            .execute(
+                "UPDATE knowledge SET relevant_projects = ?2, for_thebrana = ?3 WHERE key = ?1",
+                params![key, relevant_projects, for_thebrana],
+            )
+            .with_context(|| format!("setting relevance for {key}"))?;
+        Ok(())
+    }
+
+    /// Write the extraction columns for an existing entry (t-3312).
+    /// `entities` is a JSON array; `action_type` one of the extraction prompt's
+    /// enum values.
+    pub fn set_extraction(
+        &self,
+        key: &str,
+        entities: Option<&str>,
+        action_type: Option<&str>,
+    ) -> Result<()> {
+        self.conn()?
+            .execute(
+                "UPDATE knowledge SET entities = ?2, action_type = ?3 WHERE key = ?1",
+                params![key, entities, action_type],
+            )
+            .with_context(|| format!("setting extraction for {key}"))?;
+        Ok(())
+    }
+
+    /// The enrichment columns of one entry, if it exists.
+    pub fn enrichment(&self, key: &str) -> Result<Option<Enrichment>> {
+        let conn = self.conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT relevant_projects, for_thebrana, entities, action_type
+             FROM knowledge WHERE key = ?1",
+        )?;
+        let mut rows = stmt.query(params![key])?;
+        Ok(match rows.next()? {
+            Some(r) => Some(Enrichment {
+                relevant_projects: r.get(0)?,
+                for_thebrana: r.get(1)?,
+                entities: r.get(2)?,
+                action_type: r.get(3)?,
+            }),
+            None => None,
+        })
     }
 
     /// Number of stored entries.
@@ -104,6 +194,44 @@ impl KnowledgeStore {
             .query_row("SELECT COUNT(*) FROM knowledge", [], |r| r.get(0))?;
         Ok(n as usize)
     }
+}
+
+/// The enrichment columns of one `knowledge` row, as stored. `None` on a field
+/// means that pass has not run for the entry yet.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Enrichment {
+    /// JSON `[{"project", "score"}]`, or `None` if unscored.
+    pub relevant_projects: Option<String>,
+    pub for_thebrana: Option<f32>,
+    /// JSON array of entity strings, or `None` if not extracted.
+    pub entities: Option<String>,
+    pub action_type: Option<String>,
+}
+
+/// Add any missing [`ENRICHMENT_COLUMNS`] to an existing `knowledge` table.
+///
+/// Idempotent by construction: the column set is read from
+/// `PRAGMA table_info` first, so a fresh db and an already-migrated one both
+/// end up with exactly one copy of each column. SQLite has no
+/// `ADD COLUMN IF NOT EXISTS`, hence the pragma.
+fn migrate_enrichment_columns(conn: &Connection) -> Result<()> {
+    let existing: Vec<String> = {
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(knowledge)")
+            .context("reading knowledge table_info")?;
+        let names = stmt.query_map([], |r| r.get::<_, String>(1))?;
+        names
+            .collect::<rusqlite::Result<Vec<String>>>()
+            .context("reading knowledge columns")?
+    };
+    for (name, ty) in ENRICHMENT_COLUMNS {
+        if existing.iter().any(|c| c == name) {
+            continue;
+        }
+        conn.execute_batch(&format!("ALTER TABLE knowledge ADD COLUMN {name} {ty};"))
+            .with_context(|| format!("adding knowledge.{name}"))?;
+    }
+    Ok(())
 }
 
 /// Encode a vector as little-endian `f32` bytes.
@@ -273,6 +401,10 @@ pub struct MigrateStats {
 /// rotation passes `integrity_check` and carries the 3,801 embedded rows the
 /// live DB lost (t-2615). Rows without a parseable embedding are counted in
 /// `skipped_no_embedding`, never silently dropped.
+///
+/// Re-runnable: for keys already in the destination this updates the synced
+/// columns in place, so enrichment written by later passes ([`Enrichment`])
+/// survives every sync.
 pub fn migrate_from_memory_entries(sources: &[PathBuf], dest: &Path) -> Result<MigrateStats> {
     struct Candidate {
         content: String,
@@ -452,6 +584,125 @@ mod tests {
         assert_eq!(store.count().unwrap(), 2);
     }
 
+    // ── enrichment migration (t-3310) ─────────────────────────────────────────
+
+    /// Column names of the `knowledge` table, in declaration order.
+    fn knowledge_columns(db: &Path) -> Vec<String> {
+        let conn = rusqlite::Connection::open(db).unwrap();
+        let mut stmt = conn.prepare("PRAGMA table_info(knowledge)").unwrap();
+        let cols = stmt.query_map([], |r| r.get::<_, String>(1)).unwrap();
+        cols.map(|c| c.unwrap()).collect()
+    }
+
+    #[test]
+    fn migration_adds_enrichment_columns_to_a_fresh_db() {
+        let tmp = tempdir().unwrap();
+        let db = tmp.path().join("knowledge.db");
+        KnowledgeStore::open(&db).unwrap();
+
+        let cols = knowledge_columns(&db);
+        for (name, _) in ENRICHMENT_COLUMNS {
+            assert!(cols.iter().any(|c| c == name), "missing column {name} in {cols:?}");
+        }
+    }
+
+    #[test]
+    fn migration_is_idempotent_on_an_already_migrated_db() {
+        let tmp = tempdir().unwrap();
+        let db = tmp.path().join("knowledge.db");
+        KnowledgeStore::open(&db).unwrap();
+        let first = knowledge_columns(&db);
+
+        // Re-open twice more — ALTER-if-missing must not duplicate or fail.
+        KnowledgeStore::open(&db).unwrap();
+        let store = KnowledgeStore::open(&db).unwrap();
+        assert_eq!(knowledge_columns(&db), first, "re-open must not change the column set");
+
+        // And the store still works after the no-op migration.
+        store.upsert("knowledge:url:a", "content", None, None, 1, &unit(0)).unwrap();
+        assert_eq!(store.count().unwrap(), 1);
+    }
+
+    #[test]
+    fn migration_upgrades_a_pre_migration_db_in_place() {
+        let tmp = tempdir().unwrap();
+        let db = tmp.path().join("knowledge.db");
+        // The original schema, exactly as shipped before t-3310.
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE knowledge (
+                key        TEXT PRIMARY KEY,
+                content    TEXT NOT NULL,
+                tags       TEXT,
+                source     TEXT,
+                created_at INTEGER NOT NULL,
+                vec        BLOB NOT NULL
+            );",
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO knowledge (key, content, tags, source, created_at, vec)
+             VALUES ('knowledge:url:old', 'legacy row', NULL, 'url', 7, ?1)",
+            rusqlite::params![vec_to_blob(&unit(0))],
+        )
+        .unwrap();
+        drop(conn);
+
+        let store = KnowledgeStore::open(&db).unwrap();
+        for (name, _) in ENRICHMENT_COLUMNS {
+            assert!(knowledge_columns(&db).iter().any(|c| c == name), "missing {name}");
+        }
+        // The pre-existing row survives, unenriched.
+        assert_eq!(store.count().unwrap(), 1);
+        assert_eq!(
+            store.enrichment("knowledge:url:old").unwrap(),
+            Some(Enrichment::default()),
+            "an unenriched legacy row reads back as all-NULL"
+        );
+    }
+
+    #[test]
+    fn enrichment_writes_read_back_and_unknown_key_is_none() {
+        let tmp = tempdir().unwrap();
+        let store = KnowledgeStore::open(tmp.path().join("knowledge.db")).unwrap();
+        store.upsert("knowledge:url:a", "content", None, Some("link-capture"), 1, &unit(0)).unwrap();
+
+        store
+            .set_relevance("knowledge:url:a", Some(r#"[{"project":"truper","score":0.71}]"#), Some(0.42))
+            .unwrap();
+        store
+            .set_extraction("knowledge:url:a", Some(r#"["Scrapy"]"#), Some("tool-to-evaluate"))
+            .unwrap();
+
+        let e = store.enrichment("knowledge:url:a").unwrap().unwrap();
+        assert_eq!(e.relevant_projects.as_deref(), Some(r#"[{"project":"truper","score":0.71}]"#));
+        assert_eq!(e.for_thebrana, Some(0.42));
+        assert_eq!(e.entities.as_deref(), Some(r#"["Scrapy"]"#));
+        assert_eq!(e.action_type.as_deref(), Some("tool-to-evaluate"));
+
+        assert_eq!(store.enrichment("knowledge:url:missing").unwrap(), None);
+    }
+
+    #[test]
+    fn upsert_preserves_enrichment_and_updates_synced_columns() {
+        let tmp = tempdir().unwrap();
+        let store = KnowledgeStore::open(tmp.path().join("knowledge.db")).unwrap();
+        store.upsert("knowledge:url:a", "first", None, Some("url"), 1, &unit(0)).unwrap();
+        store.set_relevance("knowledge:url:a", Some("[]"), Some(0.9)).unwrap();
+        store.set_extraction("knowledge:url:a", Some(r#"["a"]"#), Some("read-later")).unwrap();
+
+        // A later sync of the same key rewrites content/tags/source/vec …
+        store.upsert("knowledge:url:a", "second", Some("t"), Some("url"), 2, &unit(1)).unwrap();
+        assert_eq!(store.count().unwrap(), 1);
+
+        // … and leaves the enrichment columns alone.
+        let e = store.enrichment("knowledge:url:a").unwrap().unwrap();
+        assert_eq!(e.relevant_projects.as_deref(), Some("[]"));
+        assert_eq!(e.for_thebrana, Some(0.9));
+        assert_eq!(e.entities.as_deref(), Some(r#"["a"]"#));
+        assert_eq!(e.action_type.as_deref(), Some("read-later"));
+    }
+
     // ── provider ──────────────────────────────────────────────────────────────
 
     fn seeded_store(dir: &Path) -> PathBuf {
@@ -598,6 +849,46 @@ mod tests {
             "newest duplicate must win, got: {}",
             hits[0].snippet
         );
+    }
+
+    #[test]
+    fn sync_round_trip_keeps_the_enrichment_columns() {
+        let tmp = tempdir().unwrap();
+        let src = tmp.path().join("live.db");
+        let dest = tmp.path().join("knowledge.db");
+        fake_memory_entries(&src, &[("knowledge:url:a", "content a", Some(unit(0)), 100)]);
+
+        // First sync, then a scoring/extraction pass writes the new columns.
+        migrate_from_memory_entries(std::slice::from_ref(&src), &dest).unwrap();
+        let store = KnowledgeStore::open(&dest).unwrap();
+        store
+            .set_relevance("knowledge:url:a", Some(r#"[{"project":"truper","score":0.6}]"#), Some(0.31))
+            .unwrap();
+        store
+            .set_extraction("knowledge:url:a", Some(r#"["Scrapy"]"#), Some("technique-to-adopt"))
+            .unwrap();
+
+        // A later sync sees a newer version of the same row.
+        fake_memory_entries(
+            &tmp.path().join("live2.db"),
+            &[("knowledge:url:a", "NEWER content a", Some(unit(0)), 200)],
+        );
+        let stats =
+            migrate_from_memory_entries(&[tmp.path().join("live2.db")], &dest).unwrap();
+        assert_eq!(stats.migrated, 1);
+
+        // Newest row won on the synced columns …
+        let provider = VectorProvider::new(&dest, Arc::new(FakeEmbedder));
+        let hits = provider.query("rust web scraping", 1);
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].snippet.contains("NEWER"), "newest row must win: {}", hits[0].snippet);
+
+        // … and the enrichment columns were not dropped by the upsert.
+        let e = store.enrichment("knowledge:url:a").unwrap().unwrap();
+        assert_eq!(e.relevant_projects.as_deref(), Some(r#"[{"project":"truper","score":0.6}]"#));
+        assert_eq!(e.for_thebrana, Some(0.31));
+        assert_eq!(e.entities.as_deref(), Some(r#"["Scrapy"]"#));
+        assert_eq!(e.action_type.as_deref(), Some("technique-to-adopt"));
     }
 
     #[test]
