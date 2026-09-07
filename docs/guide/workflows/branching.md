@@ -32,20 +32,32 @@ deliberately ship.
   ```bash
   git push origin dev
   gh pr create --base main --head dev --title "ship: dev→main $(date +%F)" --body "..."
-  gh pr checks --watch             # required: validate, rust
+  gh pr checks --watch             # required: validate, rust, tests
   gh pr merge --merge              # merge commit onto main; refused until checks are green
-  git fetch origin && git checkout main && git merge --ff-only origin/main
-  ./bootstrap.sh                   # deploy production → live ~/.claude (from-main guard passes here)
-  git checkout dev && git merge --ff-only main && git push origin dev   # fold the merge commit back: dev ⊇ main
+  git branch --show-current        # must print: dev — the shared checkout never switches (ADR-094)
+  git fetch origin main:main       # fast-forward local main BY REF; no working tree is touched
+  git merge --ff-only main         # on dev, in place: fold the merge commit back, dev == main
+  ./bootstrap.sh                   # deploy production → live ~/.claude (guard: HEAD == main's tip)
+  git push origin dev
   ```
   Every ship therefore leaves a PR record (`gh pr list --base main --state merged`): what
-  shipped, when, which sha, which checks. If the last step's `--ff-only` is rejected,
-  `main` diverged from `dev` outside this procedure — **stop and investigate, do not force.**
-- **`bootstrap.sh` deploys from `main` only** — the from-main guard (ADR-060 / t-2151)
-  refuses any other branch, so you cannot accidentally ship staged `dev` work. Deploy is
-  a ship-time action, never an integration-time one.
-- **Session state** (`.claude/tasks.json`, `docs/spec-graph.json`) commits on the current
-  branch — i.e. `dev` — never on `main`. (This was the original drift source.)
+  shipped, when, which sha, which checks. If the `--ff-only` is rejected, `main` diverged
+  from `dev` outside this procedure — **stop and investigate, do not force.**
+- **The shared main checkout stays on `dev` forever** ([ADR-094](../../architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md)
+  decision 5). Never `git checkout` / `git switch` a branch or tag in it — not for a ship,
+  not for archaeology. It holds every concurrent session's untracked/ignored live state, and
+  git overwrites *ignored* files without warning when checking out any ref that still tracks
+  the same path (145 tags and old branches track `.claude/tasks.json`): that sequence wiped the
+  backlog ledger on 2026-09-07. Need another ref materialised? `git worktree add ../thebrana-<ref> <ref>`.
+  `validate.sh` Check 74 fails on any `git checkout main|dev` command line in skills/rules/guide/bootstrap.
+- **`bootstrap.sh` deploys `main`'s content only** — the guard (ADR-060 / t-2151, widened by
+  ADR-094) accepts being on `main` *or* HEAD == `main`'s tip (which is what `dev` is right
+  after the ship's fast-forward), and refuses anything else, so you cannot accidentally ship
+  staged `dev` work. Deploy is a ship-time action, never an integration-time one.
+- **Session state** (`docs/spec-graph.json`, `system/state/`) commits on the current
+  branch — i.e. `dev` — never on `main`. (This was the original drift source.) The backlog
+  ledger itself is no longer git-tracked (ADR-091) and is moving under `.git/brana/` (ADR-094);
+  its history is the periodic snapshot (t-3287), not per-session commits.
 - Restart in-flight sessions after a ship — they still hold pre-deploy skill/hook state.
 
 ## Where it's enforced
@@ -55,9 +67,12 @@ deliberately ship.
   final, human-gated step.
 - `/brana:close` (`system/skills/close/phases/`) reaps worktrees merged into `dev` and
   reconciles tasks against `dev` commits (`dev ⊇ main`).
-- `bootstrap.sh` from-main guard (t-2151) blocks deploying from anything but `main`.
-- GitHub branch protection on `main` (t-3023): required pull request (0 approvals), required
-  status checks `validate` + `rust` (strict), `enforce_admins` — verifiable with
+- `bootstrap.sh` guard (t-2151, ADR-094) blocks deploying anything that is not `main`'s tip.
+- `validate.sh` Check 74 (`system/scripts/check-no-checkout-in-main.sh`, t-3327) fails on any
+  `git checkout main|dev` / `git switch main|dev` command line in `system/skills`, `system/rules`,
+  `system/procedures`, this guide, `.claude/CLAUDE.md`, `bootstrap.sh`, or the `brana deploy` hint.
+- GitHub branch protection on `main` (t-3023, t-3319): required pull request (0 approvals), required
+  status checks `validate` + `rust` + `tests` (strict), `enforce_admins` — verifiable with
   `gh api repos/{owner}/{repo}/branches/main/protection`.
 
 ## Ship cadence
@@ -84,13 +99,13 @@ A narrow exception to the ship cadence above, for one specific class of commit.
 - **What "fast-track" means concretely:** don't wait for the normal "end of a work
   batch" trigger from Ship cadence above. As soon as a schema-sealing commit lands on
   `dev`, run the same [ADR-060](../../architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md)
-  ship sequence promptly:
+  ship sequence promptly — through the PR valve, exactly as above (`/brana:ship`): push `dev`,
+  open/merge the CI-gated PR, then in place on `dev`:
   ```bash
-  git checkout main
-  git merge --ff-only dev
+  git fetch origin main:main       # by ref — never checkout
+  git merge --ff-only main
   ./bootstrap.sh
-  git push origin main dev
-  git checkout dev
+  git push origin dev
   ```
   Then restart any in-flight sessions holding an old MCP/CLI process — shipping alone
   doesn't reload a binary a session is already running.

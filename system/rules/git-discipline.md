@@ -20,6 +20,8 @@ Every change starts on a branch. Always. No exceptions.
 
 `cd` to the repo root first, `git worktree add ../repo-shortname -b prefix/name`, then `ls` a known file to verify the path before editing. After merge: `git worktree remove ../path && git branch -d prefix/name` — never `rm -rf`. In-session Task agents can't write to worktrees (compose in agent, write in main); runner `claude -p` writes in its own worktree (ADR-060).
 
+**The shared main checkout stays on `dev` forever — never `git checkout`/`git switch` a branch or tag there**, not for a ship, not to look at an old release (ADR-094). Git overwrites *ignored* files without warning when checking out any ref that tracks the same path, and 145 tags/old branches still track `.claude/tasks.json`: a `git checkout main` in the main checkout wiped the live backlog ledger on 2026-09-07. Ship = `git fetch origin main:main` + `git merge --ff-only main` on `dev` in place (`/brana:ship`). Need another ref materialised? `git worktree add ../repo-<ref> <ref>`. Enforced by `validate.sh` Check 74 on the skills/rules/guide text.
+
 ## Commits
 
 - **Conventional commits**: `type(scope): description`

@@ -124,9 +124,12 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - **If doc files present:** proceed silently.
    - **Bug fix / refactor branches:** skip this check entirely.
 
-10. **Integrate to dev** — present the command, do NOT auto-execute:
+10. **Integrate to dev** — present the command, do NOT auto-execute. The shared main
+   checkout is already on `dev` and **never switches branches** (ADR-094 — it holds every
+   concurrent session's live untracked state; a `git checkout` there wiped the backlog ledger
+   on 2026-09-07). Verify, then merge in place:
    ```bash
-   git checkout dev
+   git branch --show-current          # must print: dev — if not, STOP; do not checkout
    git merge --no-ff {branch-name} -m "{type}: {description}"
    git branch -d {branch-name}
    ```
@@ -224,17 +227,19 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    question: "dev is ahead of main by {N} commits. Ship dev→main and deploy?"
    options: ["Yes — ship + deploy", "Skip — keep accumulating on dev"]
    ```
-   On yes:
+   On yes: invoke `Skill(skill="brana:ship")` — the Tier-2 PR ship (t-3023, ADR-060 / ADR-094).
+   Direct pushes to `main` are rejected by branch protection, so the ship *is* the PR; after
+   the CI-gated merge it promotes `main` **by ref**, never by checkout, and deploys in place:
    ```bash
-   git checkout main
-   git merge --ff-only dev          # dev→main stays a clean fast-forward
-   ./bootstrap.sh                   # deploy production from main (the from-main guard passes here)
-   git push origin main dev         # publish the release + back up dev
-   git checkout dev                 # return to the integration branch
+   git fetch origin main:main       # fast-forward local main by ref — the shared checkout stays on dev
+   git merge --ff-only main         # on dev, in place: dev == main now
+   ./bootstrap.sh                   # from-main guard accepts HEAD == main's tip (ADR-094 d5)
+   git push origin dev
    ```
-   If `--ff-only` is rejected (someone committed to `main` directly — a convention violation),
-   STOP and investigate; do not force. Sessions in flight still hold pre-deploy skill/hook
-   state — remind to restart them. `/brana:ship` is the richer pre-flight/verify alternative.
+   Never `git checkout main` (or `dev`) in the shared main checkout — not for a ship, not for
+   anything (ADR-094; the 2026-09-07 ledger wipe was exactly this sequence). If `--ff-only`
+   is rejected (`main` diverged from `dev` outside the PR valve), STOP and investigate; do not
+   force. Sessions in flight still hold pre-deploy skill/hook state — remind to restart them.
 
 > **☑ Checkpoint cleanup — CLOSE:** Delete run-state on successful close (M+ builds with task_id):
 > ```bash

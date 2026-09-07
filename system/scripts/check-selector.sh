@@ -28,8 +28,11 @@ core() { checks+=(1); }   # 1-14 block (not individually filterable)
 for file in "${files[@]}"; do
     [ -z "$file" ] && continue
     case "$file" in
+        bootstrap.sh|docs/guide/workflows/branching.md|.claude/CLAUDE.md|system/cli/rust/crates/brana-cli/src/main.rs|system/scripts/check-no-checkout-in-main.sh)
+            core; checks+=(74)       # ADR-094 d5: no `git checkout main|dev` command lines (t-3327)
+            ;;
         system/skills/build/SKILL.md|system/skills/build/phases/*.md)
-            core; checks+=(33 23 36 40 45 52 54 56)  # build effective body (t-1942 phase split)
+            core; checks+=(33 23 36 40 45 52 54 56 74)  # build effective body (t-1942 phase split) + ADR-094 checkout guard
             ;;
         system/skills/close/SKILL.md|system/skills/close/phases/*.md)
             core; checks+=(33 23 36 40 43 44 45 55)  # close effective body (t-1942 phase split)
@@ -44,13 +47,13 @@ for file in "${files[@]}"; do
             core; checks+=(60)       # _shared/ tool coverage in consumer SKILL.md allowed-tools
             ;;
         system/skills/*/SKILL.md)
-            core; checks+=(33 60)    # core(1+5+7+12), SKILL.md keywords, _shared/ coverage
+            core; checks+=(33 60 74) # core(1+5+7+12), SKILL.md keywords, _shared/ coverage, ADR-094 checkout guard
             ;;
         system/skills/*)
-            core                     # core(1+5+8+12)
+            core; checks+=(74)       # core(1+5+8+12) + ADR-094 checkout guard
             ;;
         system/rules/*)
-            core                     # core(2)
+            core; checks+=(74)       # core(2) + ADR-094 checkout guard
             ;;
         system/settings.json)
             core                     # core(3)

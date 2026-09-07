@@ -165,12 +165,21 @@ PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].numbe
     --title "ship: dev→main $(date +%F)" \
     --body "$(git log --oneline main..dev | head -40)" --json number -q .number 2>/dev/null \
     || gh pr view --json number -q .number)
-gh pr checks "$PR" --watch          # required: validate, rust — refuse to continue on failure
+gh pr checks "$PR" --watch          # required: validate, rust, tests — refuse to continue on failure
 gh pr merge "$PR" --merge           # merge commit; GitHub refuses until checks are green
-git fetch origin && git checkout main && git merge --ff-only origin/main
-./bootstrap.sh                      # from-main guard passes here
-git checkout dev && git merge --ff-only main && git push origin dev
+git branch --show-current           # must print: dev — the shared checkout never switches (ADR-094 d5)
+git fetch origin main:main          # fast-forward local main BY REF; refuses non-ff; touches no working tree
+git merge --ff-only main            # on dev, in place: dev == main now (fold the merge commit back)
+./bootstrap.sh                      # from-main guard accepts HEAD == main's tip — no checkout needed
+git push origin dev
 ```
+
+**Never `git checkout main` / `git checkout dev` in the shared main checkout** — not for a
+ship, not for anything. It holds every concurrent session's live untracked/ignored state, and
+git silently overwrites *ignored* files when checking out any ref that tracks the same path:
+that exact sequence wiped the 3199-task backlog ledger on 2026-09-07 (ADR-094). Need another
+ref materialised? `git worktree add ../thebrana-<ref> <ref>`. `validate.sh` Check 74 fails on
+any `git checkout main|dev` command line in the skills, rules, guide, or bootstrap.
 
 Record: the merged PR (`gh pr view "$PR" --json url,mergedAt,mergeCommit`) is the ship
 record — put its URL in the task notes / changelog entry in Step 3.
@@ -213,7 +222,7 @@ Run post-deploy checks to confirm the deploy succeeded.
 | Web service | `curl -sf <health-endpoint>` if URL is known |
 | npm package | `npm view <package>@latest version` |
 | Cargo crate | `cargo search <crate> --limit 1` |
-| Tier-2 PR ship | `gh pr view <n> --json state,mergedAt` shows MERGED, `git rev-parse main origin/main` agree, then `./bootstrap.sh --check` |
+| Tier-2 PR ship | `gh pr view <n> --json state,mergedAt` shows MERGED, `git rev-parse HEAD main origin/main` all agree, `git branch --show-current` is still `dev`, the backlog ledger's task count is unchanged from before the ship (`brana backlog stats`), then `./bootstrap.sh --check` |
 | Bootstrap | `./bootstrap.sh --check` if supported |
 | Docker | `docker run <image> --version` or health check |
 | Custom | Ask user for verification command |
