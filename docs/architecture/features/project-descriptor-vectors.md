@@ -85,6 +85,10 @@ what the scoring pass consumes.
 
 - A project with no `descriptor` gets **no vector**. An uncurated project is
   better absent than represented by boilerplate — that is the whole point.
+- A slug absent from the current descriptor set is **pruned** from the table
+  (`prune_except`), so blanking a descriptor retires the project: without the
+  prune, the scoring pass's "full recompute drops archived projects" claim
+  would be false (ADR-093 D2 calibration amendment).
 - An embedding failure leaves the previously stored vector in place rather than
   replacing it with nothing; the slug is reported under `failed`.
 - If nothing could be embedded *and* nothing was already current, the command

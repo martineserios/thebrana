@@ -605,8 +605,14 @@ own indexed doc chunks are never scored.
   `source:intelligence-feed` marker.
 - `relevant_projects` is written on every scored row, `[]` included, so a NULL
   there means the pass has not run for that row. `for_thebrana` holds
-  thebrana's score only when it clears the threshold (`PROJECT_RELEVANCE_THRESHOLD`,
-  provisional 0.5 — recalibrate against a live pass).
+  thebrana's score only when it clears its own threshold.
+- **Clients and thebrana are scored by different methods.** Clients use
+  centroid-subtracted cosine, so the stack boilerplate sibling repos share
+  cancels; thebrana is scored apart by plain cosine against its own vector,
+  because inside the client centroid set its residual dominated every row.
+  Thresholds calibrated 2026-09-07 against 2,705 live rows:
+  `PROJECT_RELEVANCE_THRESHOLD` 0.25 and `THEBRANA_RELEVANCE_THRESHOLD` 0.30
+  (top ~3% each). The first draft's 0.5 admitted nothing on this embedder.
 - **Ruflo side:** rows over threshold get a coarse `project:<slug>` added to
   the existing tags CSV. ruflo has no tag-only update, so each write costs a
   retrieve plus a `memory store --upsert`; the writes are capped per run
@@ -674,7 +680,13 @@ brana knowledge project-vectors [--portfolio <path>] [--dest <path>]
 
 Projects with no `descriptor` are skipped: an uncurated project gets no vector
 rather than one built from boilerplate. A failed embedding leaves the
-previously stored vector in place.
+previously stored vector in place. Slugs absent from the current descriptor set
+are pruned from the table, so blanking a descriptor is how a retired project
+stops being scored.
+
+Edit descriptors on the repo copy (`system/state/tasks-portfolio.json`, reaching
+`~/.claude/` via `sync-state.sh pull`) and re-run this command — nothing watches
+the file. The next `vector-sync` absorbs the change on its next full recompute.
 
 ---
 
