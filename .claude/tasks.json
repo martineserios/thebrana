@@ -88518,6 +88518,35 @@
       "acceptance_criteria": null,
       "work_type": "implement",
       "ac_state": "none"
+    },
+    {
+      "id": "t-3318",
+      "subject": "Harden t-3315's plan-gate sandboxing: RUNNER_PLAN_TIMEOUT margin + V4 test canary",
+      "status": "pending",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [
+        "runner",
+        "adr-062",
+        "test-hardening"
+      ],
+      "description": "Two non-blocking fast-follow items surfaced by Ship Gate 3's regression and security reviewers on t-3315 (both rated PROCEED WITH CHANGES, not blocking): (1) RUNNER_PLAN_TIMEOUT (default 60s) starts counting only after sandbox_claude()'s bwrap namespace setup and optional egress-proxy startup (up to ~5s poll) complete, tightening the effective margin vs the prior unsandboxed call's shared 600s default — every downstream safety net (verify_diff, NEEDSHUMAN self-report, human PR review) still catches a fail-open \"plan inconclusive\" verdict, but add a slow-stub timing test to confirm the fail-open path degrades safely under this new margin, or bump the default with headroom. (2) test-autonomous-runner-observe-sandbox.sh's V4 tmp-write assertion isn't independently conclusive if bwrap silently failed to construct the namespace (the marker would never be created either way) — add a call-log canary (same technique test-autonomous-runner-plan-gate.sh already uses) so V4 self-validates without relying on V1 or validate.sh's separate bwrap-unavailable detection.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": "t-2811",
+      "created": "2026-09-07",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Filed 2026-09-07 from Ship Gate 3 (adversarial 3-lens pre-merge review) on the t-3315 dev→main ship. Not blocking — both source reviewers explicitly verdicted PROCEED WITH CHANGES.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "work_type": "implement",
+      "ac_state": "none"
     }
   ],
   "version": 3,
