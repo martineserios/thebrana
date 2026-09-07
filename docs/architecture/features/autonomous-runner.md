@@ -73,6 +73,19 @@ Each stage is gated by the prior earning trust. Stage 1 proves *judgment* (right
 - `RUNNER_PLAN` (0/1) — whether to call `claude -p` for per-task planning (default 1); `CLAUDE_BIN` overridable for tests
 - exit 0 always on a clean observe pass (it's read-only)
 
+**Plan step (t-3315):** the planning prompt judges on the task's own stated decisions, not
+the subject alone — `description`, `context`, and `acceptance_criteria` are forwarded
+(concatenated, truncated to 4000 chars) so a well-specified task isn't parked for
+"decisions not specified" when the decisions are right there in its description. When
+`ac_state == "approved"` the gate is skipped entirely (would-run immediately, no `claude`
+call) — the human's AC approval at approve-time (ADR-079) is already a stronger judgment
+than this haiku step, so it isn't re-litigated. Since that forwarded content can originate
+externally (e.g. `gh-sync.sh pull-context` copies raw GitHub issue comment bodies into a
+task's `context` field, unsanitized), the planning dispatch is routed through the same
+`sandbox_claude()` bwrap jail as the Stage 2 executor (ADR-062) — a fresh, empty tmpdir as
+`/workspace`, since the planner needs no writable state. `RUNNER_PLAN_TIMEOUT` (default 60s)
+bounds just this call, independent of the 600s executor default (`RUNNER_DISPATCH_TIMEOUT`).
+
 **Eligibility (exact):** `status == "pending"` ∧ `execution == "autonomous"` ∧ `priority != "P0"` ∧ (`blocked_by` empty/null). Everything else → `excluded:<reason>`.
 
 ## Testing

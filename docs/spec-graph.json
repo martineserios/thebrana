@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-04T20:39:34Z",
+  "generated": "2026-09-07T11:48:29Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1311,6 +1311,11 @@
         "system/loops/epic-drain.md"
       ]
     },
+    "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md": {
+      "title": "ADR-093: Link-Signal Enrichment — Backlog Fill Is a Queue, Scoring Runs Post-Sync, Layer 2's Queue Shape Is Fixed Now",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1679,7 +1684,9 @@
     "docs/architecture/features/knowledge-pipeline-compute.md": {
       "title": "Knowledge Pipeline — Compute Routing",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/state/tasks-portfolio.json"
+      ]
     },
     "docs/architecture/features/knowledge-pipeline-platform-adapters.md": {
       "title": "Feature: PlatformAdapter for the knowledge pipeline",
@@ -1706,6 +1713,15 @@
         "system/scripts/git-hooks/pre-commit",
         "system/skills/close/phases/gate-and-evidence.md",
         "system/skills/close/phases/session-state.md"
+      ]
+    },
+    "docs/architecture/features/learn-worker-compute-chain.md": {
+      "title": "Feature: LEARN Worker Compute-Chain Contract — agy-first, Claude engine-switch, token ceiling, checkpoint/resume",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cron/close-extraction.sh",
+        "system/state/scheduler.json",
+        "system/cron/prompts/close-extraction.txt"
       ]
     },
     "docs/architecture/features/learned-eligibility.md": {
@@ -1843,6 +1859,13 @@
         "system/rules/delegation-routing.md",
         "system/CLAUDE.md",
         "system/rules"
+      ]
+    },
+    "docs/architecture/features/project-descriptor-vectors.md": {
+      "title": "Project Descriptor Vectors",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/state/tasks-portfolio.json"
       ]
     },
     "docs/architecture/features/project-metadata.md": {
@@ -3639,6 +3662,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/drained/link-signal-enrichment-pipeline.md": {
+      "title": "Link Signal Enrichment Pipeline",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/loops/pipeline-digest.md",
+        "system/loops/link-signal-digest.md"
+      ]
+    },
     "docs/ideas/drained/loop-first-redesign.md": {
       "title": "Loop-First Operation of thebrana",
       "type": "Roadmap",
@@ -3789,6 +3820,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/link-signal-enrichment-pipeline.md": {
+      "title": "Link Signal Enrichment Pipeline — moved",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/loop-task-multiagent.md": {
       "title": "Multi-agent orchestration in the loop/wave pipeline",
       "type": "Roadmap",
@@ -3933,6 +3969,7 @@
       "impl_files": [
         "system/cli/rust/crates/brana-cli/",
         "system/skills/",
+        "system/state/tasks-portfolio.json",
         "system/hooks/lib/remind.sh",
         "system/scripts/close-snapshot.sh",
         "system/cron/close-extraction.sh"
@@ -5771,6 +5808,108 @@
       "computed": true
     },
     {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-062-runner-executor-sandbox.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-087-knowledge-pipeline-platform-adapters.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/ideas/drained/cc-feature-adoption-v2.1.76-81.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
       "type": "depends_on",
@@ -6319,6 +6458,36 @@
     {
       "from": "docs/architecture/features/plugin-packaging.md",
       "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/project-descriptor-vectors.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/project-descriptor-vectors.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/project-descriptor-vectors.md",
+      "to": "docs/architecture/features/local-vector-recall.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/project-descriptor-vectors.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/project-descriptor-vectors.md",
+      "to": "docs/architecture/features/tasks-portfolio.md",
       "type": "depends_on",
       "computed": false
     },
@@ -7963,6 +8132,18 @@
     {
       "from": "docs/architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
       "to": "docs/guide/workflows/drain-loop.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "informs",
       "computed": false
     },
@@ -11304,7 +11485,19 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-092-graduated-loop-autonomy-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
       "type": "references",
       "computed": false
     },
@@ -11359,6 +11552,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/active-epic-project-scoping-cleanup.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/adr-number-reservation.md",
       "type": "references",
       "computed": false
     },
@@ -11574,6 +11773,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/learn-worker-compute-chain.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/learned-eligibility.md",
       "type": "references",
       "computed": false
@@ -11671,6 +11876,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/plugin-packaging.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/project-descriptor-vectors.md",
       "type": "references",
       "computed": false
     },
@@ -12271,6 +12482,12 @@
     {
       "from": "docs/README.md",
       "to": "ideas/drained/brana-whatsapp-agent.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/drained/link-signal-enrichment-pipeline.md",
       "type": "references",
       "computed": false
     },
@@ -13529,6 +13746,30 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "ADR-079-backlog-drain-loop-handoff.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "ADR-080-plan-time-wave-graphs-epic-runner.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "ADR-092-graduated-loop-autonomy-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -13931,6 +14172,36 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/knowledge-pipeline-compute.md",
+      "to": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/knowledge-pipeline-compute.md",
+      "to": "docs/architecture/knowledge-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/knowledge-pipeline-compute.md",
+      "to": "docs/ideas/drained/link-signal-enrichment-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/knowledge-pipeline-compute.md",
+      "to": "docs/reference/brana-cli.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/knowledge-pipeline-compute.md",
+      "to": "project-descriptor-vectors.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/knowledge-pipeline-platform-adapters.md",
       "to": "docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md",
       "type": "references",
@@ -13963,6 +14234,18 @@
     {
       "from": "docs/architecture/features/lane-identity.md",
       "to": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learn-worker-compute-chain.md",
+      "to": "docs/architecture/decisions/ADR-068-v3-supersession.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/learn-worker-compute-chain.md",
+      "to": "docs/ideas/drained/brana-v3-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -14113,6 +14396,18 @@
     {
       "from": "docs/architecture/features/plan-time-wave-graph.md",
       "to": "wave-gate-enforcement.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/project-descriptor-vectors.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/project-descriptor-vectors.md",
+      "to": "local-vector-recall.md",
       "type": "references",
       "computed": false
     },
@@ -14383,6 +14678,18 @@
     {
       "from": "docs/architecture/idea-to-ship.md",
       "to": "the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/knowledge-pipeline.md",
+      "to": "features/knowledge-pipeline-compute.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/knowledge-pipeline.md",
+      "to": "features/project-descriptor-vectors.md",
       "type": "references",
       "computed": false
     },
@@ -17405,6 +17712,30 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/drained/link-signal-enrichment-pipeline.md",
+      "to": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/link-signal-enrichment-pipeline.md",
+      "to": "docs/architecture/features/knowledge-pipeline-compute.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/link-signal-enrichment-pipeline.md",
+      "to": "docs/architecture/features/project-descriptor-vectors.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/drained/link-signal-enrichment-pipeline.md",
+      "to": "docs/architecture/knowledge-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/loop-first-redesign.md",
       "to": "docs/architecture/features/loops-library.md",
       "type": "references",
@@ -17801,6 +18132,18 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/link-signal-enrichment-pipeline.md",
+      "to": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/link-signal-enrichment-pipeline.md",
+      "to": "drained/link-signal-enrichment-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/loop-task-multiagent.md",
       "to": "docs/architecture/the-brana.md",
       "type": "references",
@@ -17946,6 +18289,12 @@
     },
     {
       "from": "docs/reference/brana-cli.md",
+      "to": "docs/architecture/features/project-descriptor-vectors.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/brana-cli.md",
       "to": "docs/architecture/features/reminder-system.md",
       "type": "references",
       "computed": false
@@ -17953,6 +18302,12 @@
     {
       "from": "docs/reference/brana-cli.md",
       "to": "docs/guide/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/configuration.md",
+      "to": "docs/architecture/features/project-descriptor-vectors.md",
       "type": "references",
       "computed": false
     },
@@ -19326,9 +19681,9 @@
     }
   ],
   "stats": {
-    "nodes": 629,
-    "edges": 2476,
-    "typed_edges": 714,
-    "orphans": 143
+    "nodes": 634,
+    "edges": 2529,
+    "typed_edges": 738,
+    "orphans": 141
   }
 }
