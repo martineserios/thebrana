@@ -2904,6 +2904,23 @@ else
 fi
 echo ""
 
+# Check 74: no `git checkout main|dev` command line in the behavioral/guide surface (ADR-094 d5, t-3327)
+# The shared main checkout stays on dev forever — a checkout there overwrote ignored live state
+# and wiped the backlog ledger on 2026-09-07. Any procedure instructing it is a data-loss instruction.
+echo "Checking for 'git checkout main|dev' command lines (ADR-094)..."
+C74_SCRIPT="$SCRIPT_DIR/system/scripts/check-no-checkout-in-main.sh"
+if [ ! -f "$C74_SCRIPT" ]; then
+    warn "Check 74: $C74_SCRIPT not found — skipping"
+else
+    if C74_OUT=$(bash "$C74_SCRIPT" "$SCRIPT_DIR" 2>&1); then
+        pass "Check 74: no 'git checkout main|dev' command lines in skills/rules/guide/bootstrap (ADR-094 d5)"
+    else
+        printf '%s\n' "$C74_OUT" | sed 's/^/  /'
+        fail "Check 74: procedures still instruct a checkout in the shared main checkout — see above (ADR-094 d5)"
+    fi
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 # Labeled Check 73 below — this block used to collide with the real, always-
 # run "MCP wrapper exec pattern" check that legitimately owns number 27

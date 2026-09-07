@@ -181,13 +181,22 @@ case "${1:-}" in
 esac
 
 # Production guard (ADR-060 / t-2151): bootstrap deploys the working tree to live ~/.claude/,
-# so main IS production for brana. Refuse to deploy from any other branch (would ship staged
-# dev work). --check is read-only and always allowed; BRANA_BOOTSTRAP_FORCE=1 is the escape hatch.
+# so main IS production for brana. Refuse to deploy anything that is not main's content
+# (would ship staged dev work). --check is read-only and always allowed;
+# BRANA_BOOTSTRAP_FORCE=1 is the escape hatch.
+#
+# ADR-094 decision 5 (t-3327): the shared main checkout stays on `dev` forever — a
+# `git checkout main` there overwrote ignored live state and wiped the backlog ledger on
+# 2026-09-07. So "on branch main" is sufficient but no longer necessary: HEAD == main's tip
+# (dev fast-forwarded onto main after the PR merge) deploys exactly main's content and is
+# accepted too. What is refused is any HEAD that is NOT main's tip.
 if ! $CHECK_ONLY && [ "${BRANA_BOOTSTRAP_FORCE:-0}" != "1" ]; then
     _cur_branch="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-    if [ -n "$_cur_branch" ] && [ "$_cur_branch" != "main" ]; then
-        echo "ERROR: bootstrap deploys production (main → live ~/.claude/). You are on '$_cur_branch'."
-        echo "Promote to main first (merge dev → main), or override: BRANA_BOOTSTRAP_FORCE=1 ./bootstrap.sh"
+    _head_sha="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || true)"
+    _main_sha="$(git -C "$SCRIPT_DIR" rev-parse main 2>/dev/null || true)"
+    if [ -n "$_cur_branch" ] && [ "$_cur_branch" != "main" ] && { [ -z "$_main_sha" ] || [ "$_head_sha" != "$_main_sha" ]; }; then
+        echo "ERROR: bootstrap deploys production (main → live ~/.claude/). You are on '$_cur_branch' and HEAD (${_head_sha:0:8}) is not main's tip (${_main_sha:0:8})."
+        echo "Ship first — /brana:ship: git fetch origin main:main && git merge --ff-only main (on dev, no checkout) — or override: BRANA_BOOTSTRAP_FORCE=1 ./bootstrap.sh"
         exit 1
     fi
 fi
