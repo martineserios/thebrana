@@ -290,6 +290,9 @@ fn main() {
             KnowledgeCmd::VectorSync { source, dest, tag_cap, json } => {
                 run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, tag_cap, json))
             }
+            KnowledgeCmd::Relevant { project, min_score, dest, json } => {
+                run_or_exit(commands::knowledge::cmd_relevant(&project, min_score, dest, json))
+            }
             KnowledgeCmd::ProjectVectors { portfolio, dest, docs, force, list, json } => {
                 run_or_exit(commands::knowledge::cmd_project_vectors(
                     portfolio, dest, docs, force, list, json,
