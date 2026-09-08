@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: docs/architecture/decisions/ADR-002-tasks-as-data-layer.md
+amended_by: docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md
 extends: docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md
 informs: docs/domain/MODEL-001-brana-core.md
 ---
@@ -13,6 +14,7 @@ informs: docs/domain/MODEL-001-brana-core.md
 **Tags:** tasks-json, worktree, concurrency, git, harness
 **Tasks:** t-3283 (this ADR), t-3282 (umbrella), t-3284 (tests), t-3285 (untrack + retire), t-3286 (hook fix), t-3287 (snapshot step), t-3288/t-3289 (spec/docs sync)
 **Amends:** [ADR-002](ADR-002-tasks-as-data-layer.md) (tasks-as-data-layer) — supersedes its "status changes on main only" mitigation
+**Amended by:** [ADR-094](ADR-094-tasks-json-ledger-in-git-common-dir.md) (2026-09-07) — **decision 1's location is superseded.** Untracking + `.gitignore` withdrew git's untracked-file protection: git overwrites *ignored* files without warning when checking out any ref that still tracks the path (145 tags/old branches do), and the first `dev → main` ship after this ADR wiped the live ledger via its own `git checkout main`. The ledger moves to `$GIT_COMMON_DIR/brana/tasks.json`; decisions 2–5 below stand.
 **Extends:** [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (branch strategy, worktree-per-task) · [ADR-071](ADR-071-scheduler-thin-layer-over-systemd.md) (scheduler, for the snapshot job)
 
 ---

@@ -231,6 +231,16 @@
       "schedule": "*-*-* 2/4:00:00",
       "timeoutSeconds": 1800,
       "type": "command"
+    },
+    "tasks-json-backup": {
+      "_comment": "ADR-094 / t-3326 INTERIM: hourly rotating copy of the live backlog ledger to ~/.claude/tasks-json-backups/<repo>/ (keeps 48). The ledger is untracked from git (ADR-091) and, until t-3324 moves it under .git/brana/, a git checkout of any ref that tracks .claude/tasks.json silently overwrites it — this bounds that loss to one hour (2026-09-07 incident: 3199 tasks wiped, recovered from a 7h-old commit). Refuses to rotate good copies out when the ledger reads 0 tasks. Retire when t-3326's per-write backup rotation lands.",
+      "captureOutput": true,
+      "command": "./system/scripts/tasks-json-backup.sh",
+      "enabled": true,
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:07:00",
+      "timeoutSeconds": 30,
+      "type": "command"
     }
   },
   "defaults": {

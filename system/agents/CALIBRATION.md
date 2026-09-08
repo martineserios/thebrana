@@ -119,6 +119,34 @@ Confidence: MEDIUM
 
 **Why OBSERVATION:** No hard block (quota recovers after 1 hour). Rare scenario (only on large research tasks). Still worth flagging for future caching work.
 
+### Example 4: CRITICAL, non-overridable — a safety mechanism removed before its replacement (ADR-094 d7)
+
+**Scenario:** Ship gate on a batch that untracks the shared backlog ledger from git (ADR-091
+decision 1). The compensating snapshot/restore mechanism (t-3287) is filed but not built; the
+merge driver already points at a snapshot file that does not exist.
+
+**Flavor:** Completeness (Gate 3)
+
+```
+### Critical Findings
+1. **Safety half missing: the ledger loses git history with no replacement in place** --
+   .gitattributes/tasks-json-merge.sh point at system/state/tasks-snapshot.json, which does
+   not exist on dev; t-3287 is pending, never started. Until it lands there is no backup of
+   the live ledger and a fresh clone silently starts empty. CLASS: removes a recovery
+   mechanism before its replacement ships -> NON-OVERRIDABLE. Options: land t-3287 first, or
+   abort the ship. "ADR-091 accepts this as a trade-off" is not a downgrade.
+
+Confidence: HIGH (independently raised by regression + completeness)
+```
+
+**Why CRITICAL and non-overridable:** The finding is not "something might break" — it is
+"the thing that would let us recover is gone, and nothing replaced it". The 2026-09-07 ship
+overrode this exact finding as a documented trade-off; its own procedure then wiped the
+3199-task ledger within the hour. Score 5, and the question offered to the human has no
+"override" option. Always ask what *operational paths* (ship, close, runner, scheduler, fresh
+clone, branch switch in the shared checkout) the accepted trade-off was checked against —
+ADR-091's text covered fresh clones and disk loss, never the routine ship checkout.
+
 ## Calibration Maintenance
 
 - After each challenger review, check if findings match the rubric thresholds

@@ -23,6 +23,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/../lib/effective_body.sh"
 BUILD_BODY="$(effective_body_file build "$REPO_ROOT")"
 BOOTSTRAP="$REPO_ROOT/bootstrap.sh"
+SHIP="$REPO_ROOT/system/skills/ship/SKILL.md"
 
 PASS=0
 FAIL=0
@@ -46,7 +47,8 @@ check_absent() {
 echo "=== test-build-close-deploy.sh ==="
 
 # ── Integration targets dev, never main ──
-check "CLOSE integrates to dev"                        'git checkout dev'
+check "CLOSE integrates on dev without switching the shared checkout" 'git branch --show-current'
+check_absent "CLOSE never runs git checkout main|dev (ADR-094: the main checkout stays on dev)" '^ *git (checkout|switch) (main|dev)\b'
 check "CLOSE forbids merging a feature branch to main" '[Nn]ever merge a feature branch directly to main'
 check "CLOSE states dev is not live"                   'Nothing on|not live|staging buffer'
 check "CLOSE cites ADR-060 for the branch model"       'ADR-060'
@@ -60,15 +62,22 @@ check_absent "CLOSE never runs make hooks-deploy at integration" '^ *make hooks-
 check_absent "CLOSE never runs bootstrap --sync-plugin"          'bootstrap\.sh --sync-plugin'
 
 # ── Deploy happens only at ship (step 14) ──
-check "ship promotes dev to main"                      'git checkout main'
-check "dev→main is fast-forward only"                  'git merge --ff-only dev'
-check "ship deploys via bootstrap.sh from main"        '\./bootstrap\.sh'
+check "ship promotes main by ref, never by checkout"   'git fetch origin main:main'
+check "main→dev fold is fast-forward only, in place"   'git merge --ff-only main'
+check "ship deploys via bootstrap.sh once dev == main" '\./bootstrap\.sh'
 check "ship is human-gated, not automatic"             'do NOT auto-execute|human-gated'
 check "ship warns about in-flight sessions"            'in flight|in-flight'
 check "ff-only rejection stops rather than forces"     'STOP and investigate|do not force'
 
 # ── The guard that makes the above enforceable ──
 check "bootstrap.sh refuses to deploy off main" 'BRANA_BOOTSTRAP_FORCE|!= "main"' "$BOOTSTRAP"
+# ADR-094 decision 5: the shared checkout stays on dev, so the guard must accept
+# "HEAD is main's tip" (dev fast-forwarded onto main after the PR merge) — otherwise
+# every ship needs a `git checkout main` in the one directory that must never switch.
+check "bootstrap.sh accepts HEAD == main's tip without a checkout (ADR-094)" 'rev-parse main|_main_sha' "$BOOTSTRAP"
+# Gate 3 security finding (2026-09-07): a stale local main must not deploy as if current.
+check "bootstrap.sh refuses a local main that is not origin/main" 'origin/main' "$BOOTSTRAP"
+check_absent "ship skill never runs git checkout main|dev in the shared checkout (ADR-094)" '^ *git (checkout|switch) (main|dev)\b' "$SHIP"
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

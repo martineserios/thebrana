@@ -129,12 +129,30 @@ Provide each worker: the diff summary, relevant changed files, and task AC (if a
 
 Collect (caller synthesizes — no separate consensus tool): await all 3, merge and dedup findings. Quorum threshold: **majority (2/3)**. ≥2 workers flagging the same concern = HIGH confidence (blocking). 1 worker only = OBSERVATION (informational).
 
-**If HIGH confidence finding raised:**
+**Classify every HIGH finding before asking (ADR-094 decision 7, t-3329).** A finding is
+**non-overridable** when the ship *removes or disables a safety or recovery mechanism* —
+a backup, a snapshot, a lock, a gate, a validation, a restore path — *whose replacement has
+not shipped*. "It's a documented trade-off", "the follow-up is already filed", "the ADR
+accepted it" do not downgrade it: a documented risk is still a live risk and a tracked task is
+not a mitigation. Origin: the 2026-09-07 ship carried ADR-091's untracking of the backlog
+ledger without its snapshot/restore half (t-3287, HIGH by 2/3 reviewers); the override was
+granted on exactly those grounds and the ship's own procedure wiped the ledger an hour later.
+
+**Non-overridable HIGH finding:**
+```
+AskUserQuestion: "Gate 3: this ship removes a safety mechanism before its replacement lands — {finding}. Land the replacement first?"
+Options: ["Fix before deploy", "Abort"]
+```
+No override option is offered. If Abort → stop.
+
+**Any other HIGH finding:**
 ```
 AskUserQuestion: "Gate 3 raised a blocking concern: {finding}. How to proceed?"
 Options: ["Fix before deploy", "Override and deploy anyway", "Abort"]
 ```
-If Abort → stop. If Override → proceed with finding noted.
+If Abort → stop. If Override → proceed with finding noted, and the synthesis MUST state which
+concrete operational paths were checked against the accepted trade-off — ship, close, runner,
+scheduler, fresh clone, branch switch in the shared checkout — not just the steady state.
 
 Fallback if Agent/Task cannot be spawned: see `adversarial-hive-mind.md`'s fallback section (Claude runs all three roles sequentially in main context; same gate logic applies).
 
@@ -160,17 +178,29 @@ are rejected by branch protection, so the ship *is* the PR:
 
 ```bash
 git push origin dev
-PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number')
-[ -z "$PR" ] && PR=$(gh pr create --base main --head dev \
-    --title "ship: dev→main $(date +%F)" \
-    --body "$(git log --oneline main..dev | head -40)" --json number -q .number 2>/dev/null \
-    || gh pr view --json number -q .number)
-gh pr checks "$PR" --watch          # required: validate, rust — refuse to continue on failure
+PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
+if [ -z "$PR" ]; then                # `gh pr create` has no --json: it prints the URL; re-list for the number
+    gh pr create --base main --head dev \
+        --title "ship: dev→main $(date +%F)" \
+        --body "$(git log --oneline main..dev | head -40)"
+    PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
+fi
+[ -n "$PR" ] || { echo "no open dev→main PR found after create — stop"; exit 1; }
+gh pr checks "$PR" --watch          # required: validate, rust, tests — refuse to continue on failure
 gh pr merge "$PR" --merge           # merge commit; GitHub refuses until checks are green
-git fetch origin && git checkout main && git merge --ff-only origin/main
-./bootstrap.sh                      # from-main guard passes here
-git checkout dev && git merge --ff-only main && git push origin dev
+git branch --show-current           # must print: dev — the shared checkout never switches (ADR-094 d5)
+git fetch origin main:main          # fast-forward local main BY REF; refuses non-ff; touches no working tree
+git merge --ff-only main            # on dev, in place: dev == main now (fold the merge commit back)
+./bootstrap.sh                      # from-main guard accepts HEAD == main's tip — no checkout needed
+git push origin dev
 ```
+
+**Never `git checkout main` / `git checkout dev` in the shared main checkout** — not for a
+ship, not for anything. It holds every concurrent session's live untracked/ignored state, and
+git silently overwrites *ignored* files when checking out any ref that tracks the same path:
+that exact sequence wiped the 3199-task backlog ledger on 2026-09-07 (ADR-094). Need another
+ref materialised? `git worktree add ../thebrana-<ref> <ref>`. `validate.sh` Check 74 fails on
+any `git checkout main|dev` command line in the skills, rules, guide, or bootstrap.
 
 Record: the merged PR (`gh pr view "$PR" --json url,mergedAt,mergeCommit`) is the ship
 record — put its URL in the task notes / changelog entry in Step 3.
@@ -213,7 +243,7 @@ Run post-deploy checks to confirm the deploy succeeded.
 | Web service | `curl -sf <health-endpoint>` if URL is known |
 | npm package | `npm view <package>@latest version` |
 | Cargo crate | `cargo search <crate> --limit 1` |
-| Tier-2 PR ship | `gh pr view <n> --json state,mergedAt` shows MERGED, `git rev-parse main origin/main` agree, then `./bootstrap.sh --check` |
+| Tier-2 PR ship | `gh pr view <n> --json state,mergedAt` shows MERGED, `git rev-parse HEAD main origin/main` all agree, `git branch --show-current` is still `dev`, the backlog ledger's task count is unchanged from before the ship (`brana backlog stats`), then `./bootstrap.sh --check` |
 | Bootstrap | `./bootstrap.sh --check` if supported |
 | Docker | `docker run <image> --version` or health check |
 | Custom | Ask user for verification command |

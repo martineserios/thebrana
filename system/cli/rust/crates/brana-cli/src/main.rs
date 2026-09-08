@@ -307,13 +307,16 @@ fn main() {
             run_or_exit(commands::log::cmd_log(&entries, tags.as_deref()))
         }
         Commands::Deploy => {
-            println!("brana deploy = ship dev->main, then ./bootstrap.sh from main  (ADR-060)");
+            println!("brana deploy = ship dev->main through the PR valve, then ./bootstrap.sh once dev == main  (ADR-060 / ADR-094)");
             println!();
-            println!("  git checkout main");
-            println!("  git merge --ff-only dev      # promote the integration buffer to production");
-            println!("  ./bootstrap.sh               # deploy production -> live ~/.claude");
-            println!("  git push origin main dev");
-            println!("  git checkout dev             # back to the integration branch");
+            println!("  /brana:ship                  # PR dev->main; CI-gated merge (t-3023)");
+            println!("  git fetch origin main:main   # fast-forward local main BY REF -- never check it out");
+            println!("  git merge --ff-only main     # on dev, in place: dev == main");
+            println!("  ./bootstrap.sh               # guard accepts HEAD == main's tip; deploys -> live ~/.claude");
+            println!("  git push origin dev");
+            println!();
+            println!("The shared checkout stays on dev forever (ADR-094): a git checkout there overwrites");
+            println!("ignored live state -- it wiped the backlog ledger on 2026-09-07. Need another ref? git worktree add.");
             println!();
             println!("main is production (what bootstrap deploys); dev is the integration buffer,");
             println!("not live. main lagging dev is the safety buffer. No build step, no container.");

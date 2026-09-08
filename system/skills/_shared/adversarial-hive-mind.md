@@ -27,6 +27,22 @@ Await all 3 agents. The caller (Claude, main context) merges and dedups — ther
 | ≥2 of 3 workers agree | **HIGH** |
 | Single-worker finding | **OBSERVATION** |
 
+## Non-overridable findings (ADR-094 decision 7)
+
+Quorum says how *confident* the panel is; it does not say whether the caller may *override*.
+One class is never overridable, whatever the caller's reasoning: **the change removes or
+disables a safety or recovery mechanism** (backup, snapshot, lock, gate, validation, restore
+path) **whose replacement has not shipped**. The only paths are *fix first* or *abort*.
+Arguments that must NOT downgrade it: "the ADR documents this trade-off", "the follow-up task
+is already filed", "the steady state is fine". A single-worker OBSERVATION in this class is
+still presented as a blocking question — the confidence tier only decides whether the panel
+agrees, not whether the mechanism is gone.
+
+Whenever a caller *does* accept a trade-off on any other HIGH finding, the synthesis must
+name the concrete operational paths it checked against it (ship, close, runner, scheduler,
+fresh clone, branch switch in the shared checkout). Steady-state reasoning alone is how the
+2026-09-07 backlog-ledger wipe got through Gate 3.
+
 ## Optional: adversarial verification (deep mode)
 
 To kill plausible-but-wrong findings before presenting, pass the merged findings through the verify stage:
