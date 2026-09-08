@@ -57,3 +57,4 @@ system/state/patterns-export.json
 
 # graphify graph artifacts — build output, rebuilt locally (ADR-064, t-2275)
 graphify-out/
+f.txt
