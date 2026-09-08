@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 amends: docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md
 extends: docs/architecture/decisions/ADR-060-branch-strategy-autonomous-agents.md
 informs: docs/domain/MODEL-001-brana-core.md
@@ -7,7 +7,7 @@ informs: docs/domain/MODEL-001-brana-core.md
 
 # ADR-094: Move the live `tasks.json` ledger out of the working tree into `$GIT_COMMON_DIR/brana/`
 
-**Status:** Proposed (2026-09-07) — pending review by the decider; recommend `/brana:challenge` before acceptance
+**Status:** Accepted (2026-09-08) — challenged with `/brana:challenge --deep` on 2026-09-08 (see Review record), amended, then accepted by the decider
 **Date:** 2026-09-07
 **Deciders:** Martín Rios
 **Tags:** tasks-json, worktree, git, incident, harness, ship
