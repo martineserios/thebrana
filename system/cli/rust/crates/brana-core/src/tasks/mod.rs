@@ -4588,4 +4588,123 @@ mod tests {
         let err = perform_ac_approve(f.path(), "t-99").unwrap_err();
         assert!(err.contains("t-99"), "missing task must error with the id: {err}");
     }
+
+    // ── ADR-094 (t-3323, RED-first): collapse guard + per-write backups ──
+    //
+    // `#[ignore = "RED until t-3325/t-3326 (ADR-094)"]` tests fail against
+    // today's save_tasks() by design; run with
+    // `cargo test -p brana-core -- --ignored adr094`. The implementing task
+    // removes the attribute. Unmarked tests are boundary guards that already
+    // hold and must keep holding.
+
+    fn adr094_ledger_with(dir: &std::path::Path, n: usize) -> std::path::PathBuf {
+        let brana = dir.join(".git/brana");
+        std::fs::create_dir_all(&brana).unwrap();
+        let path = brana.join("tasks.json");
+        let tasks: Vec<Value> = (0..n).map(|i| json!({"id": format!("t-{i}")})).collect();
+        std::fs::write(&path, serde_json::to_string(&json!({"version": 3, "tasks": tasks})).unwrap()).unwrap();
+        path
+    }
+
+    fn adr094_payload(n: usize) -> Value {
+        let tasks: Vec<Value> = (0..n).map(|i| json!({"id": format!("n-{i}")})).collect();
+        json!({"version": 3, "tasks": tasks})
+    }
+
+    fn adr094_count_on_disk(path: &std::path::Path) -> usize {
+        load_tasks(path).expect("ledger parses").tasks.len()
+    }
+
+    #[test]
+    #[ignore = "RED until t-3325 (ADR-094 decision 3: refuse a write that empties the ledger)"]
+    fn adr094_save_refuses_collapse_to_zero_and_names_both_counts() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = adr094_ledger_with(dir.path(), 10);
+        let err = save_tasks(&path, &adr094_payload(0)).expect_err("10 → 0 must be refused without --force");
+        assert!(err.contains("10") && err.contains('0'), "message must carry both counts: {err}");
+        assert_eq!(adr094_count_on_disk(&path), 10, "refused write leaves the ledger untouched");
+    }
+
+    #[test]
+    #[ignore = "RED until t-3325 (ADR-094 decision 3: refuse a drop of more than 50%)"]
+    fn adr094_save_refuses_drop_over_half() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = adr094_ledger_with(dir.path(), 10);
+        let err = save_tasks(&path, &adr094_payload(4)).expect_err("10 → 4 (60% drop) must be refused");
+        assert!(err.contains("10") && err.contains('4'), "message must carry both counts: {err}");
+        assert_eq!(adr094_count_on_disk(&path), 10);
+    }
+
+    #[test]
+    fn adr094_save_accepts_exact_half_small_drops_and_growth() {
+        // Boundary guard: the ADR says "more than 50%". 10 → 5 is exactly 50%
+        // and must pass; so must 10 → 6 and 10 → 12. Green today; stays green.
+        for n in [5usize, 6, 12] {
+            let dir = tempfile::TempDir::new().unwrap();
+            let path = adr094_ledger_with(dir.path(), 10);
+            save_tasks(&path, &adr094_payload(n)).unwrap_or_else(|e| panic!("10 → {n} must be accepted: {e}"));
+            assert_eq!(adr094_count_on_disk(&path), n);
+        }
+    }
+
+    #[test]
+    fn adr094_save_on_absent_or_empty_ledger_accepts_any_write() {
+        // No prior count → nothing to collapse from. Green today; stays green.
+        let dir = tempfile::TempDir::new().unwrap();
+        let brana = dir.path().join(".git/brana");
+        std::fs::create_dir_all(&brana).unwrap();
+        let path = brana.join("tasks.json");
+        save_tasks(&path, &adr094_payload(0)).expect("absent ledger: any write accepted");
+        save_tasks(&path, &adr094_payload(3)).expect("empty ledger: any write accepted");
+        assert_eq!(adr094_count_on_disk(&path), 3);
+    }
+
+    fn adr094_backups(path: &std::path::Path) -> Vec<std::path::PathBuf> {
+        let dir = path.parent().unwrap().join("backups");
+        let mut v: Vec<_> = match std::fs::read_dir(&dir) {
+            Ok(rd) => rd.filter_map(|e| e.ok()).map(|e| e.path()).collect(),
+            Err(_) => vec![],
+        };
+        v.sort();
+        v
+    }
+
+    #[test]
+    #[ignore = "RED until t-3326 (ADR-094 decision 4: every write leaves a backup)"]
+    fn adr094_first_save_leaves_previous_ledger_in_backups() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = adr094_ledger_with(dir.path(), 10);
+        let before = std::fs::read_to_string(&path).unwrap();
+        save_tasks(&path, &adr094_payload(11)).unwrap();
+        let backups = adr094_backups(&path);
+        assert_eq!(backups.len(), 1, "exactly one backup after one save: {backups:?}");
+        let name = backups[0].file_name().unwrap().to_string_lossy().to_string();
+        assert!(
+            name.starts_with("tasks.json.") && name.ends_with(".json"),
+            "backup is named tasks.json.<UTC-ts>.json: {name}"
+        );
+        let saved: Value = serde_json::from_str(&std::fs::read_to_string(&backups[0]).unwrap()).unwrap();
+        let orig: Value = serde_json::from_str(&before).unwrap();
+        assert_eq!(saved, orig, "the backup is the PRE-write ledger");
+    }
+
+    #[test]
+    #[ignore = "RED until t-3326 (ADR-094 decision 4: keep the newest N=20 backups)"]
+    fn adr094_backup_rotation_keeps_newest_twenty() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = adr094_ledger_with(dir.path(), 10);
+        for n in 11..=32 {
+            save_tasks(&path, &adr094_payload(n)).unwrap();
+            // distinct timestamps: the backup name carries a UTC timestamp
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        let backups = adr094_backups(&path);
+        assert_eq!(backups.len(), 20, "22 saves → newest 20 kept, oldest pruned: {}", backups.len());
+        let newest: Value = serde_json::from_str(&std::fs::read_to_string(backups.last().unwrap()).unwrap()).unwrap();
+        assert_eq!(
+            newest["tasks"].as_array().unwrap().len(),
+            31,
+            "newest backup is the ledger as it was before the last save"
+        );
+    }
 }

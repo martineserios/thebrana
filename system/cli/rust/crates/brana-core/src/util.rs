@@ -1232,6 +1232,215 @@ mod tests {
             "calling from the main checkout itself must resolve back to the same file, not move it"
         );
     }
+    // ── ADR-094 (t-3323, RED-first): the ledger lives in <git-common-dir>/brana/ ──
+    //
+    // Written BEFORE t-3324 implements the relocation. Tests marked
+    // `#[ignore = "RED until t-3324 (ADR-094)"]` fail against today's resolver
+    // by design; run them with `cargo test -p brana-core -- --ignored adr094`.
+    // t-3324's AC removes the attribute. Unmarked tests in this section are
+    // regression guards that already hold and MUST keep holding after the move.
+
+    fn adr094_git(dir: &std::path::Path, args: &[&str]) -> std::process::Output {
+        let mut cmd = std::process::Command::new("git");
+        super::scrub_git_env(&mut cmd);
+        let out = cmd.current_dir(dir).args(args).output().expect("git runs");
+        assert!(
+            out.status.success(),
+            "git {args:?} failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        out
+    }
+
+    /// A repo that tracked `.claude/tasks.json` at tag `v-old`, then untracked
+    /// it (`rm --cached` + `.gitignore`) on `main` — the exact topology of
+    /// thebrana after ADR-091 (145 refs still track the path).
+    fn adr094_repo_untracked_on_main() -> TempDir {
+        let repo = tmp();
+        git_init(repo.path());
+        let claude = repo.path().join(".claude");
+        fs::create_dir_all(&claude).unwrap();
+        fs::write(claude.join("tasks.json"), b"{\"tasks\":[{\"id\":\"stale\"}]}").unwrap();
+        git_commit_all(repo.path());
+        adr094_git(repo.path(), &["tag", "v-old"]);
+        adr094_git(repo.path(), &["rm", "-q", "--cached", ".claude/tasks.json"]);
+        fs::write(repo.path().join(".gitignore"), b".claude/tasks.json\n").unwrap();
+        adr094_git(repo.path(), &["add", "-A"]);
+        adr094_git(repo.path(), &["commit", "-q", "-m", "untrack ledger (ADR-091)"]);
+        fs::remove_file(claude.join("tasks.json")).unwrap();
+        repo
+    }
+
+    fn adr094_common_dir(repo: &std::path::Path) -> PathBuf {
+        let out = adr094_git(repo, &["rev-parse", "--git-common-dir"]);
+        let raw = PathBuf::from(String::from_utf8_lossy(&out.stdout).trim());
+        super::absolutize_git_output(raw, Some(repo)).expect("common dir")
+    }
+
+    /// Resolve exactly the way `find_tasks_file()` does in production, but
+    /// anchored at `cwd` instead of the test process's ambient directory.
+    fn adr094_resolve_from(cwd: &std::path::Path) -> Option<PathBuf> {
+        super::find_tasks_file_with_hint(
+            None,
+            super::git_common_root_in(Some(cwd)),
+            super::git_toplevel_in(Some(cwd)),
+            Some(cwd.to_path_buf()),
+        )
+    }
+
+    fn adr094_canon(p: &std::path::Path) -> PathBuf {
+        p.canonicalize().unwrap_or_else(|_| p.to_path_buf())
+    }
+
+    #[test]
+    #[ignore = "RED until t-3324 (ADR-094 decision 1: ledger under <git-common-dir>/brana/)"]
+    fn adr094_resolver_prefers_git_brana_ledger_in_main_checkout() {
+        let _guard = GIT_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner()); // ignored siblings panic by design — tolerate poison
+        let repo = adr094_repo_untracked_on_main();
+        let brana_dir = adr094_common_dir(repo.path()).join("brana");
+        fs::create_dir_all(&brana_dir).unwrap();
+        let canonical = brana_dir.join("tasks.json");
+        fs::write(&canonical, b"{\"tasks\":[{\"id\":\"canonical\"}]}").unwrap();
+
+        let got = adr094_resolve_from(repo.path()).expect("resolves");
+        assert_eq!(
+            adr094_canon(&got),
+            adr094_canon(&canonical),
+            "ADR-094 d1: the canonical ledger is <git-common-dir>/brana/tasks.json"
+        );
+        assert!(
+            !repo.path().join(".claude/tasks.json").exists(),
+            "ADR-094 d3: nothing may be auto-created at the legacy path"
+        );
+    }
+
+    #[test]
+    #[ignore = "RED until t-3324 (ADR-094 decision 1: tracked-gate anchored at the common root)"]
+    fn adr094_resolver_from_tracking_ref_worktree_lands_on_common_dir_ledger() {
+        // The worktree is checked out at v-old, which still TRACKS the path,
+        // so its own index says "tracked" and git materialises a stale copy
+        // there. The gate must be answered at the common root (untracked),
+        // never from the invoking worktree's index (challenge 2026-09-08).
+        let _guard = GIT_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner()); // ignored siblings panic by design — tolerate poison
+        let repo = adr094_repo_untracked_on_main();
+        let brana_dir = adr094_common_dir(repo.path()).join("brana");
+        fs::create_dir_all(&brana_dir).unwrap();
+        let canonical = brana_dir.join("tasks.json");
+        fs::write(&canonical, b"{\"tasks\":[{\"id\":\"canonical\"}]}").unwrap();
+
+        let wt_parent = tmp();
+        let wt = wt_parent.path().join("archaeology");
+        adr094_git(repo.path(), &["worktree", "add", "-q", wt.to_str().unwrap(), "v-old"]);
+        let stale = wt.join(".claude/tasks.json");
+        assert!(stale.exists(), "fixture: v-old worktree carries a materialised stale copy");
+
+        let got = adr094_resolve_from(&wt).expect("resolves");
+        assert_eq!(
+            adr094_canon(&got),
+            adr094_canon(&canonical),
+            "from inside a tracking-ref worktree the resolver must still land on the common-dir ledger, not the worktree's stale copy"
+        );
+        assert_eq!(
+            fs::read_to_string(&stale).unwrap(),
+            "{\"tasks\":[{\"id\":\"stale\"}]}",
+            "the stale worktree copy is left untouched — never read, never rewritten"
+        );
+    }
+
+    #[test]
+    #[ignore = "RED until t-3324 (ADR-094 decision 3: never fabricate a ledger)"]
+    fn adr094_missing_ledger_in_git_repo_creates_nothing() {
+        let _guard = GIT_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner()); // ignored siblings panic by design — tolerate poison
+        let repo = adr094_repo_untracked_on_main();
+        let common = adr094_common_dir(repo.path());
+
+        let got = adr094_resolve_from(repo.path());
+        assert!(
+            got.is_none(),
+            "ADR-094 d3: a missing ledger is an error, not an empty file — got {got:?}"
+        );
+        assert!(!repo.path().join(".claude/tasks.json").exists(), "legacy path must not be auto-created");
+        assert!(!common.join("brana/tasks.json").exists(), "canonical path must not be auto-created");
+    }
+
+    #[test]
+    fn adr094_tracked_ledger_repo_is_left_exactly_as_is() {
+        // Portfolio scope (ADR-094 d1): a repo that still git-tracks the ledger
+        // never had the checkout hazard and must not be migrated. Green today;
+        // MUST stay green after t-3324.
+        let _guard = GIT_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner()); // ignored siblings panic by design — tolerate poison
+        let repo = tmp();
+        git_init(repo.path());
+        let claude = repo.path().join(".claude");
+        fs::create_dir_all(&claude).unwrap();
+        let tracked = claude.join("tasks.json");
+        fs::write(&tracked, b"{\"tasks\":[{\"id\":\"tracked\"}]}").unwrap();
+        git_commit_all(repo.path());
+        let common = adr094_common_dir(repo.path());
+
+        let got = adr094_resolve_from(repo.path()).expect("resolves");
+        assert_eq!(adr094_canon(&got), adr094_canon(&tracked));
+        assert!(!common.join("brana").exists(), "no .git/brana/ may appear in a repo that tracks its ledger");
+        assert_eq!(
+            fs::read_to_string(&tracked).unwrap(),
+            "{\"tasks\":[{\"id\":\"tracked\"}]}",
+            "tracked ledger content untouched (no marker, no move)"
+        );
+    }
+
+    const ADR094_MOVED_MARKER: &str =
+        "MOVED — see .git/brana/tasks.json (ADR-094); restart this Claude Code session\n";
+
+    #[test]
+    #[ignore = "RED until t-3324 (ADR-094 decision 2: MOVED marker means already migrated)"]
+    fn adr094_moved_marker_is_recognised_as_already_migrated() {
+        let _guard = GIT_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner()); // ignored siblings panic by design — tolerate poison
+        let repo = adr094_repo_untracked_on_main();
+        let brana_dir = adr094_common_dir(repo.path()).join("brana");
+        fs::create_dir_all(&brana_dir).unwrap();
+        let canonical = brana_dir.join("tasks.json");
+        fs::write(&canonical, b"{\"tasks\":[{\"id\":\"canonical\"}]}").unwrap();
+        let marker = repo.path().join(".claude/tasks.json");
+        fs::create_dir_all(marker.parent().unwrap()).unwrap();
+        fs::write(&marker, ADR094_MOVED_MARKER).unwrap();
+
+        let got = adr094_resolve_from(repo.path()).expect("resolves");
+        assert_eq!(adr094_canon(&got), adr094_canon(&canonical), "marker present → read the canonical ledger, do not re-migrate");
+        assert_eq!(
+            fs::read_to_string(&marker).unwrap(),
+            ADR094_MOVED_MARKER,
+            "the marker is left in place for still-running old binaries"
+        );
+    }
+
+    #[test]
+    fn adr094_old_binary_never_resurrects_an_empty_ledger_from_the_moved_marker() {
+        // Rollout guard (ADR-094 d2): whatever binary reads the legacy path
+        // after migration, a MOVED marker must produce a loud error or the
+        // canonical ledger — never an Ok(empty) that every tool then "works" on.
+        // Green today (the marker is not JSON, load fails); must stay green.
+        let _guard = GIT_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner()); // ignored siblings panic by design — tolerate poison
+        let repo = adr094_repo_untracked_on_main();
+        let marker = repo.path().join(".claude/tasks.json");
+        fs::create_dir_all(marker.parent().unwrap()).unwrap();
+        fs::write(&marker, ADR094_MOVED_MARKER).unwrap();
+
+        if let Some(p) = adr094_resolve_from(repo.path()) {
+            match crate::tasks::load_tasks(&p) {
+                Ok(tf) => assert!(
+                    !tf.tasks.is_empty(),
+                    "resolved {} to an EMPTY ledger behind a MOVED marker — the 2026-09-07 failure mode",
+                    p.display()
+                ),
+                Err(e) => assert!(!e.is_empty(), "error must name the problem"),
+            }
+        }
+        assert_eq!(
+            fs::read_to_string(&marker).unwrap(),
+            ADR094_MOVED_MARKER,
+            "resolution must never overwrite the marker with {{\"tasks\":[]}}"
+        );
+    }
 }
 
 // ── Shared JSON-store primitives (ADR-051/052 pattern) ─────────────────
@@ -1440,4 +1649,5 @@ mod lock_timeout_tests {
         // isn't needed further; the test process exiting reclaims it either way.
         drop(holder);
     }
+
 }
