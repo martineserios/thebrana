@@ -2920,6 +2920,80 @@ else
     fi
 fi
 echo ""
+# Check 75: ADR-094 RED-by-design suites — TDD_RED_UNTIL convention (t-3323)
+# TDD-first suites are committed RED before their implementation lands. This check runs
+# them under BRANA_TDD_SWEEP=1 (a red result exits 0 with "RED as expected (pending t-NNNN)")
+# so a ship is never blocked by a suite that is red by design — and enforces the two
+# forcing functions that keep "red by design" from rotting into "never runs":
+#   (a) a TDD_RED_UNTIL / #[ignore = "RED until t-NNNN"] marker whose task is `completed`
+#       is a FAIL — the implementer must delete the marker so the suite gates for real;
+#   (b) a suite that is GREEN while still carrying its marker is a FAIL for the same reason;
+#   (c) non-fast only: `cargo test -p brana-core -- --ignored adr094` must still FAIL while
+#       Rust markers exist (a gutted or prematurely-green ignored test is caught either way).
+# t-3331 generalises the convention to every suite and aligns CI's discovery.
+echo "Checking ADR-094 RED-by-design suites (TDD_RED_UNTIL convention, t-3323)..."
+C75_SUITES=(
+    "system/scripts/tests/test-adr094-ledger-in-git-dir.sh"
+    "system/scripts/tests/test-adr094-ledger-migration.sh"
+    "system/scripts/tests/test-post-checkout-ledger-backstop.sh"
+)
+C75_BRANA="brana"
+command -v brana >/dev/null 2>&1 || C75_BRANA="$SCRIPT_DIR/system/cli/rust/target/release/brana"
+c75_task_status() {   # $1 = t-NNNN → status or "" when brana is unavailable
+    [ -x "$(command -v "$C75_BRANA" 2>/dev/null || echo "$C75_BRANA")" ] || { echo ""; return; }
+    "$C75_BRANA" backlog get "$1" --field status 2>/dev/null | tr -d '"' || echo ""
+}
+C75_RED=0; C75_GREEN=0; C75_SKIP=0; C75_BAD=0
+for c75_suite in "${C75_SUITES[@]}"; do
+    if [ ! -f "$SCRIPT_DIR/$c75_suite" ]; then
+        fail "Check 75: $c75_suite missing"; C75_BAD=$((C75_BAD + 1)); continue
+    fi
+    if C75_OUT=$(BRANA_TDD_SWEEP=1 bash "$SCRIPT_DIR/$c75_suite" </dev/null 2>&1); then C75_RC=0; else C75_RC=$?; fi
+    c75_marker=$(printf '%s\n' "$C75_OUT" | sed -n 's/^TDD-RED-MARKER: //p' | head -1)
+    if [ -n "$c75_marker" ] && [ "$(c75_task_status "$c75_marker")" = "completed" ]; then
+        fail "Check 75: $c75_suite still declares TDD_RED_UNTIL=$c75_marker but $c75_marker is completed — delete the marker so the suite gates for real"
+        C75_BAD=$((C75_BAD + 1)); continue
+    fi
+    if printf '%s\n' "$C75_OUT" | grep -q '^SKIP:'; then
+        warn "Check 75: $c75_suite skipped — $(printf '%s\n' "$C75_OUT" | grep '^SKIP:' | head -1)"; C75_SKIP=$((C75_SKIP + 1))
+    elif printf '%s\n' "$C75_OUT" | grep -q '^GREEN — STALE-MARKER'; then
+        fail "Check 75: $c75_suite is GREEN but still declares TDD_RED_UNTIL=$c75_marker — delete the marker"; C75_BAD=$((C75_BAD + 1))
+    elif printf '%s\n' "$C75_OUT" | grep -q '^RED as expected'; then
+        C75_RED=$((C75_RED + 1)); echo "  RED-pending: $c75_suite ($c75_marker)"
+    elif [ "$C75_RC" -eq 0 ]; then
+        C75_GREEN=$((C75_GREEN + 1))
+    else
+        printf '%s\n' "$C75_OUT" | tail -5 | sed 's/^/  /'
+        fail "Check 75: $c75_suite failed outside the RED convention (rc=$C75_RC) — see above"; C75_BAD=$((C75_BAD + 1))
+    fi
+done
+# (a) for Rust: every `RED until t-NNNN` #[ignore] marker must name a task that is not completed
+# Attribute form only — `#[ignore = "RED until t-NNNN ..."]`. Prose comments that mention
+# "RED until t-NNNN" on tests that have since gone live (e.g. session.rs, t-2521) are not markers.
+C75_RUST_MARKERS=$(grep -rhoE '#\[ignore = "RED until t-[0-9]+' "$SCRIPT_DIR/system/cli/rust/crates/brana-core/src" 2>/dev/null | grep -oE 't-[0-9]+' | sort -u)
+for c75_task in $C75_RUST_MARKERS; do
+    if [ "$(c75_task_status "$c75_task")" = "completed" ]; then
+        fail "Check 75: brana-core still carries #[ignore = \"RED until $c75_task\"] tests but $c75_task is completed — remove the attribute"
+        C75_BAD=$((C75_BAD + 1))
+    fi
+done
+# (c) non-fast: the ignored Rust tests must still fail while their markers exist
+if ! $RUN_FAST && [ -n "$C75_RUST_MARKERS" ] && command -v cargo >/dev/null 2>&1; then
+    if cargo test -q -p brana-core --manifest-path "$SCRIPT_DIR/system/cli/rust/Cargo.toml" -- --ignored adr094 >/dev/null 2>&1; then
+        fail "Check 75: \`cargo test -p brana-core -- --ignored adr094\` PASSES while RED-until markers exist — remove the #[ignore] attributes (the tests are green) or restore the assertions"
+        C75_BAD=$((C75_BAD + 1))
+    else
+        echo "  RED-pending: brana-core ignored adr094 tests (markers: $(echo $C75_RUST_MARKERS | tr '\n' ' '))"
+    fi
+fi
+if [ "$C75_BAD" -gt 0 ]; then
+    : # fail lines already emitted
+elif [ "$C75_RED" -gt 0 ] || [ "$C75_SKIP" -gt 0 ]; then
+    warn "Check 75: ADR-094 suites — $C75_GREEN green, $C75_RED RED-pending, $C75_SKIP skipped (RED-pending suites turn into hard gates when their marker is removed)"
+else
+    pass "Check 75: ADR-094 suites — all $C75_GREEN green, no RED-until markers outstanding"
+fi
+echo ""
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 # Labeled Check 73 below — this block used to collide with the real, always-

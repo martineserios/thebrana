@@ -31,6 +31,12 @@ for file in "${files[@]}"; do
         bootstrap.sh|docs/guide/workflows/branching.md|.claude/CLAUDE.md|system/cli/rust/crates/brana-cli/src/main.rs|system/scripts/check-no-checkout-in-main.sh)
             core; checks+=(74)       # ADR-094 d5: no `git checkout main|dev` command lines (t-3327)
             ;;
+        system/scripts/tests/_tdd-red.sh|system/scripts/tests/test-adr094-*.sh|system/scripts/tests/test-post-checkout-ledger-backstop.sh|system/scripts/git-hooks/post-checkout|tests/scripts/test-adr094-ledger-suites.sh)
+            core; checks+=(75)       # ADR-094 RED-by-design suites + TDD_RED_UNTIL convention (t-3323)
+            ;;
+        system/cli/rust/crates/brana-core/src/util.rs|system/cli/rust/crates/brana-core/src/tasks/mod.rs)
+            core; checks+=(75)       # carries the #[ignore = "RED until t-NNNN"] ADR-094 tests (t-3323)
+            ;;
         system/skills/build/SKILL.md|system/skills/build/phases/*.md)
             core; checks+=(33 23 36 40 45 52 54 56 74)  # build effective body (t-1942 phase split) + ADR-094 checkout guard
             ;;
