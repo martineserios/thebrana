@@ -11,7 +11,7 @@ informs: docs/domain/MODEL-001-brana-core.md
 **Date:** 2026-09-07
 **Deciders:** Martín Rios
 **Tags:** tasks-json, worktree, git, incident, harness, ship
-**Tasks:** t-3322 (this ADR) · t-3323 (tests) · t-3324 (move + migration) · t-3325 (fail loud) · t-3326 (backups) · t-3327 (ship procedure) · t-3328 (post-checkout backstop) · t-3329 (Gate 3 rule) · t-3287 (git snapshot, re-scoped) · t-3288/t-3289 (docs sync) — all under umbrella t-3282
+**Tasks:** t-3322 (this ADR) · t-3323 (tests) · t-3324 (move + migration) · t-3325 (fail loud) · t-3326 (backups) · t-3327 (ship procedure) · t-3328 (post-checkout/post-merge backstop) · t-3329 (Gate 3 rule) · t-3333 (checkout deny hook) · t-3287 (git snapshot, re-scoped) · t-3288/t-3289 (docs sync) — all under umbrella t-3282
 **Amends:** [ADR-091](ADR-091-tasks-json-untracked-canonical-snapshot.md) — supersedes its decision 1 (*where* the untracked ledger lives); decisions 2–5 (locking, merge driver on the snapshot, snapshot ownership, event-triggered flush) stand unchanged
 **Extends:** [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (two-tier branch model — constrains how the ship touches the shared checkout)
 
@@ -113,8 +113,10 @@ worktree of a repo.
    **Scope (portfolio):** `find_tasks_file_from()` is one shared binary used by every repo in
    the portfolio (clients, ventures, personal), most of which still *git-track*
    `.claude/tasks.json` and never had this hazard. The relocation applies **only where the
-   ledger is untracked** — the resolver checks `git ls-files --error-unmatch .claude/tasks.json`
-   in the common root: tracked → keep using it, no migration, no hazard; untracked/ignored (or
+   ledger is untracked** — the resolver checks `git -C <common-root> ls-files --error-unmatch
+   .claude/tasks.json`, anchored at the common root explicitly: `ls-files` answers per worktree
+   index, and a linked worktree checked out at a tracking ref answers "tracked" for itself
+   (verified 2026-09-08). Tracked → keep using it, no migration, no hazard; untracked/ignored (or
    absent) → `.git/brana/tasks.json`. A repo adopts ADR-091 + ADR-094 as one explicit,
    per-repo step (`git rm --cached` + `.gitignore` + migration in the same commit), never as a
    side effect of upgrading the binary. — *t-3324*
@@ -141,8 +143,13 @@ worktree of a repo.
    `{"tasks":[]}` anywhere. A missing ledger in a git repo is an error naming the path and the
    two legitimate ways out (`brana backlog init` for a genuinely new project; restore a backup
    or the git snapshot). `save_tasks()` refuses a write that drops the task count to 0 or by
-   more than 50% unless explicitly forced (`--force` / `force: true`, denied to the runner
-   manifest and absent from every scheduler command). — *t-3325*
+   more than 50% unless explicitly forced (`--force` / `force: true`). The runner denial is a
+   code artifact, not a template omission: `system/hooks/runner-verb-guard.sh` (armed by
+   `BRANA_RUNNER=1`, ADR-079 §1) gains `backlog … --force` in its deny table, and `hooks.json`'s
+   MCP matcher is widened to every tool that can carry `force: true` (today it lists only
+   `backlog_ac_approve` / `wave_approve` / `wave_set`). No scheduler command carries `--force`.
+   The on-disk count stays the save guard's baseline — its job is in-process payload collapse
+   under the lock; substitution from outside is decision 6's and the gauge's job. — *t-3325*
 
 4. **Every write leaves a backup.** Before each successful save, the previous ledger is copied
    to `.git/brana/backups/tasks.json.<UTC-ts>.json`; the newest N (default 20, ~100 MB cap) are
@@ -153,15 +160,29 @@ worktree of a repo.
 5. **The shared main checkout stays on `dev`, forever.** The ship fast-forwards `main` by ref
    only (`git fetch origin main:main`), runs `bootstrap.sh` from a persistent `../thebrana-main`
    worktree, and fast-forwards `dev` in place. No `git checkout <branch|tag>` in the main
-   checkout, by anyone, for any reason — a `validate.sh` check greps the ship/build/close skills
-   for it, and `git-discipline.md` states the rule. This is defense in depth: even with the
-   ledger safe under `.git/`, the main checkout holds every concurrent session's other
-   untracked state. — *t-3327*
+   checkout, by anyone, for any reason. `validate.sh` Check 74 greps the ship/build/close skills
+   and the rules for such a command line — a **documentation lint**, not a runtime control: it
+   keeps the procedures honest and cannot intercept a command typed into a shell. The runtime
+   layer is a PreToolUse hook that **denies** `git checkout|switch <ref>` (and `gh pr checkout`)
+   when the cwd resolves to the main checkout and the ref is not the current branch, tags
+   included — today's `branch-checkout-warn.sh` is advisory and skips tags. A
+   `reference-transaction` abort is no substitute: it stops the ref update after the working
+   tree is already rewritten (verified 2026-09-08). Humans in a terminal are covered only by
+   decisions 1 and 6. This is defense in depth: even with the ledger safe under `.git/`, the
+   main checkout holds every concurrent session's other untracked state. — *t-3327, t-3333*
 
-6. **`post-checkout` backstop.** Git has no pre-checkout hook, so prevention at the git layer is
-   impossible; detection + restore is the strongest backstop available. After any HEAD change,
-   if the canonical ledger is missing or its count collapsed versus the newest backup, restore
-   that backup, print a banner naming the ref transition, exit non-zero. — *t-3328*
+6. **`post-checkout` + `post-merge` backstop.** Git has no pre-checkout hook, so prevention at
+   the git layer is impossible; detection + restore is the strongest backstop available. The
+   backstop script is installed under **both** hook names: a fast-forward merge — the step that
+   deleted the ledger on 2026-09-07, and the step the by-ref ship (decision 5) performs — fires
+   `post-merge` only, never `post-checkout` (git 2.53.0, verified 2026-09-08). `reset --hard`,
+   `stash pop` and `bisect start` fire neither; those are covered by decision 4's backups and
+   the t-3332 gauge, not by this hook. After any HEAD change, if the canonical ledger is missing
+   or its count collapsed versus the newest backup, restore that backup, print a banner naming
+   the ref transition, exit non-zero. The hook first re-derives decision 1's scope test (ledger
+   untracked in the common root and `.git/brana/` present) and no-ops otherwise, so a global
+   `core.hooksPath` never makes it fire in portfolio repos that still track their ledger.
+   — *t-3328*
 
 7. **Gate 3: a "removes a safety mechanism before its replacement lands" finding is not
    overridable.** The only paths are *fix before deploy* or *abort*. Any accepted trade-off in
@@ -189,6 +210,8 @@ independent of the Rust changes and can land first.
 - `.git/` is not a place people look. `brana doctor` and `brana backlog status` must print the
   resolved path, and `bootstrap.sh --check` must report ledger health, so the location is
   discoverable.
+- `git clone --mirror` and `git bundle` copy the object database only; neither captures
+  `.git/brana/`. Off-machine history is t-3287's snapshot and nothing else.
 - Deleting `.git/` (re-clone) deletes the ledger with it — the same as deleting the repo
   directory today. Decision 4 plus t-3287's snapshot are the recovery path; `bootstrap.sh`
   restores from the newest available source and never proceeds silently on an empty ledger.
@@ -224,6 +247,7 @@ independent of the Rust changes and can land first.
 | Keep `.claude/tasks.json`, add only fail-loud + backups + procedure + hook | Mitigates but does not close the class: 145 refs remain a permanent trigger; a single forgotten `git checkout` still destroys live state (now recoverable, still disruptive to every concurrent session). |
 | `.git/info/exclude` instead of `.gitignore` | Identical semantics — excluded files are still "ignored" and clobbered on checkout. |
 | Git `precious` attribute | Proposed upstream for years; not in mainline git as of 2.53. |
+| `git update-index --skip-worktree` on the ledger | Needs an index entry, which ADR-091 removed: on `dev` the flag cannot be set (`fatal: Unable to mark file`, verified 2026-09-08). Where the path *is* tracked it adds nothing over ordinary dirty-file protection, and it never helps a freshly added worktree. |
 | Symlink `.claude/tasks.json → ../.git/brana/tasks.json` | Checkout to a tracking ref replaces the symlink with a regular file; the data survives but the CLI would start writing to the wrong file until noticed. Adds a second thing that can be wrong. |
 | Procedure only ("never checkout in the main checkout") | Adopted as decision 5, but as defense in depth — procedures are the weakest layer (see `enforcement-systems-overbuild-then-revert` and the fact that the ship skill itself was the violator). |
 | Block the ship until t-3287 landed (what Gate 3 asked for) | Would have prevented *this* incident but not the class — t-3287's snapshot does not stop a checkout from wiping the live file; it only shortens the recovery. Adopted as decision 7 for the process gap it exposed. |
@@ -246,3 +270,16 @@ independent of the Rust changes and can land first.
   and the guard must be revised in the same change — they are not free to drift from the ADR.
   Also recorded from that review: the interim hourly backup job and the by-ref ship were
   themselves put through the new non-overridable-class test (3/3 reviewers: none).
+- 2026-09-08: `/brana:challenge --deep` — three native challengers (convergent · systems ·
+  critical), eight merged findings re-attacked by two skeptics each, plus scratch-repo
+  reproductions on git 2.53.0. Verdict: proceed with changes; decision 1 unchallenged. Held
+  (and amended above): a fast-forward merge never fires `post-checkout` (decision 6 now also
+  installs `post-merge` and carries a repo-scope guard); Check 74 is a documentation lint
+  (decision 5 now says so and adds the deny hook, t-3333); the `ls-files` gate must be
+  anchored at the common root (decision 1); the runner denial must name
+  `runner-verb-guard.sh` (decision 3); mirror/bundle never capture `.git/brana/`. Refuted:
+  an on-disk-baselined collapse guard is "defeatable" (the substituted file is never the
+  canonical ledger under decision 1); shell readers degrade silently on the MOVED marker
+  (t-3324 already repoints every one); `--skip-worktree` as a stopgap (no index entry on
+  `dev`). Also surfaced: the interim hourly backup missed ~9 h on 2026-09-08 because the
+  scheduler's per-project lock skipped the post-resume catch-up (t-3326 context).
