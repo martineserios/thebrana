@@ -20,7 +20,7 @@ Every change starts on a branch. Always. No exceptions.
 
 `cd` to the repo root first, `git worktree add ../repo-shortname -b prefix/name`, then `ls` a known file to verify the path before editing. After merge: `git worktree remove ../path && git branch -d prefix/name` — never `rm -rf`. Task agents can't write to worktrees; runner `claude -p` uses its own (ADR-060).
 
-**The main checkout stays on `dev` — never `git checkout`/`switch` there** (ADR-094: checkout clobbers ignored live files; it wiped the ledger 2026-09-07). Ship via `/brana:ship`; other refs → worktrees. Check 74 enforces.
+**The main checkout stays on `dev` — never `git checkout`/`switch` there** (ADR-094: checkout clobbers ignored live files; it wiped the ledger 2026-09-07). Ship via `/brana:ship`; other refs → worktrees. Check 74 lints; deny hook: t-3333.
 
 ## Commits
 
