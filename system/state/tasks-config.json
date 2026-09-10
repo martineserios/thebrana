@@ -1,14 +1,1 @@
-{
-  "github_sync": {
-    "enabled": true,
-    "labels": {
-      "priority": true,
-      "stream": false,
-      "tags": 2
-    },
-    "project": null,
-    "repo": null
-  },
-  "theme": "emoji",
-  "active_epic": "harness-core"
-}
+{"theme":"minimal","_test_marker":true}
