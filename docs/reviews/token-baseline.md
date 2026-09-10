@@ -141,15 +141,24 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 
 ---
 
-## Baseline Summary (124 days of observation)
+## Baseline Summary (157 days of observation)
 - **Total trigger fires observed**: 
-  - weekly-review: 5 confirmed fires (2026-04-17, 2026-06-19, 2026-06-26, 2026-07-03, 2026-07-24)
-  - knowledge-review: 1 confirmed fire (2026-08-01) ✓ Monthly trigger confirmed working
-- **weekly-review** pattern: Thursdays/Fridays cadence, ~6-7K output per run, estimated 1–2K tokens per execution
-- **knowledge-review** pattern: 1st of month, ~7.8K output per run, estimated 1–2K tokens per execution
+  - weekly-review: 5 confirmed fires (2026-04-17, 2026-06-19, 2026-06-26, 2026-07-03, 2026-07-24) — **OFFLINE since 2026-07-24** (45 days)
+  - knowledge-review: 2 confirmed fires (2026-08-01, 2026-09-01) ✓ Monthly trigger working normally
+- **weekly-review** pattern: **CRITICAL STATUS** — last fire 2026-07-24, expected ~5-6 fires missed in Aug-Sep window; estimated cost when active: Thursdays/Fridays cadence, ~6-7K output per run, 1–2K tokens per execution
+- **knowledge-review** pattern: 1st of month cadence confirmed, ~7.8K output per run, 1–2K tokens per execution
 - **token-monitor**: daily observations, haiku model, <200 tokens per run
-- **Architecture/knowledge audits**: 2 large files observed (17K, 9K) from 2026-06-10/11, trigger source unconfirmed
-- **Recommendation**: Both weekly-review and knowledge-review are stable and predictable (~1-2K tokens each, ~1-2 triggers weekly combined). Continue daily monitoring. Total estimated cost ~200-400 tokens/week across scheduled triggers + daily monitor.
+- **Actual cost (Sep 2026 YTD)**: 
+  - knowledge-review: 2 fires (Sept 1st + Aug 1st) = ~4K tokens
+  - weekly-review: 0 fires (offline)
+  - token-monitor: daily haiku = ~5K tokens for month
+  - **Total Sep YTD: ~9K tokens** (well below baseline; weekly-review outage reducing costs)
+- **Recommendation**: 
+  - **URGENT**: Investigate weekly-review trigger — no fires in 45 days (anomaly vs. historical pattern)
+  - Monitor continues daily to track recovery
+  - When weekly-review restarts, expect catch-up or regular cadence resumption
+  - Knowledge-review is stable; continue as-is
+  - Cost impact: weekly-review outage reducing spend; restart will add ~1-2K tokens/week back
 
 ---
 
@@ -175,3 +184,13 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - Missed triggers: weekly-review on 2026-08-09, 2026-08-16, 2026-08-23 (3 expected fires not observed)
 - This monitor session: haiku (minimal cost)
 - Status: ⚠️ weekly-review offline for 18 days (since 2026-07-24)
+
+## 2026-09-08
+- Triggers fired in last 24h: none
+- New commits from agents (24h): 0
+- New review files (today): none
+- Trigger activity (past 14 days): knowledge-review on 2026-09-01 ✓
+- Last trigger observed: knowledge-review on 2026-09-01 (7 days ago, monthly cadence confirmed)
+- Missed triggers: weekly-review (45 days offline since 2026-07-24; expected ~5-6 fires missed in Aug-Sep)
+- This monitor session: haiku (minimal cost)
+- Status: ⚠️ CRITICAL — weekly-review remains offline 45 days; knowledge-review working normally
