@@ -224,3 +224,12 @@ Tracking scheduled agent trigger costs to optimize resource usage.
   - Next milestone: 2026-10-01 knowledge-review trigger (verify monthly cadence continues to hold)
   - Knowledge-review is stable; no action needed
   - Cost impact: weekly-review outage saving ~1-2K tokens/week; full recovery would restore original ~8-9K tokens/week baseline
+
+## 2026-09-16
+- Triggers fired in last 24h: none
+- New commits from agents (24h): 0
+- New review files (today): none
+- Last trigger observed: knowledge-review on 2026-09-01 (15 days ago)
+- Missed triggers: weekly-review continues offline (52 days since 2026-07-24; ~7 expected fires missed)
+- This monitor session: haiku (minimal cost)
+- Status: ⚠️ CRITICAL — weekly-review remains offline; knowledge-review on schedule (next expected 2026-10-01)
