@@ -1,10 +1,10 @@
 # Research: Chatwoot + Kapso + servicios propios vs respond.io
 
-> **Origen:** clients/praia/sauma (concesionaria VW, post-venta, 4 números WhatsApp por área)
+> **Origen:** cliente de concesionaria automotriz (post-venta, 4 números WhatsApp por área)
 > **Fecha:** 2026-09-19 | **Estrategia:** evaluate | **Decisión del proyecto origen:** respond.io se mantiene (2026-09-20)
 > **Propósito de esta copia:** reuso en futuros proyectos que evalúen reemplazar respond.io por
 > Chatwoot, Kapso o un stack propio. Las secciones 4–10 son el análisis original con contexto
-> Sauma; lo transferible está resumido acá arriba.
+> del cliente; lo transferible está resumido acá arriba.
 
 ## Reuso: lo que vale para cualquier proyecto
 
@@ -43,7 +43,7 @@ Hallazgos que cambian el cálculo respecto a la intuición inicial:
 
 | Hallazgo | Impacto |
 |---|---|
-| Kapso Pro (USD 25/mes) incluye hasta **3 números**; Sauma tiene **4** → plan Platform USD 299/mes | Kapso deja de ser barato. Compite con respond.io Advanced (USD 279). |
+| Kapso Pro (USD 25/mes) incluye hasta **3 números**; el cliente tiene **4** → plan Platform USD 299/mes | Kapso deja de ser barato. Compite con respond.io Advanced (USD 279). |
 | Chatwoot **descarta las respuestas de WhatsApp Flows** (`nfm_reply` → content null), issue abierto | Las respuestas de Flows deben llegar al servicio propio, no vía Chatwoot. |
 | Chatwoot **ya envía campañas de WhatsApp** en lotes de 100 (PR mergeado 2026) | El gap de broadcast se cerró en gran parte. Menos motivo para Kapso. |
 | Kapso puede **reenviar el payload crudo de Meta** con clave de idempotencia | Kapso → Chatwoot no necesita traductor. |
@@ -52,7 +52,7 @@ Hallazgos que cambian el cálculo respecto a la intuición inicial:
 **Conclusión provisoria:** si se va por Chatwoot, la variante más simple y barata es
 **Chatwoot conectado directo a Meta + servicio propio**, sin Kapso. Kapso solo se justifica
 si se valoran sus Flows, salud de números y workflows por encima de USD 274/mes extra
-respecto al plan Pro (o si Sauma consolida a 3 números).
+respecto al plan Pro (o si el cliente consolida a 3 números).
 
 ---
 
@@ -94,7 +94,7 @@ respecto al plan Pro (o si Sauma consolida a 3 números).
 ### 4a. Variante recomendada: Chatwoot directo a Meta (sin Kapso)
 
 ```
-  WhatsApp user ──────────► Meta Cloud API (WABA Sauma, 4 números)
+  WhatsApp user ──────────► Meta Cloud API (WABA del cliente, 4 números)
   (4 números)                      │ webhook por número
                                    ▼
                           ┌──────────────────────────────┐
@@ -172,7 +172,7 @@ y no necesita reporting.
    pérdida de eventos en cold start.
 4. **Template desde job.** Enviar template aprobado desde un job programado y verificar que
    el mensaje saliente cae en la conversación correcta de Chatwoot, no huérfano.
-5. **Realidad Meta.** Estado de verificación de Meta Business de Sauma; ¿4 números bajo una
+5. **Realidad Meta.** Estado de verificación de Meta Business del cliente; ¿4 números bajo una
    WABA? Gatea todo. Puede que `t-5` ya tenga parte hecho.
 
 ---
@@ -206,7 +206,7 @@ y no necesita reporting.
 | Chatwoot + Kapso Platform (4b) | 299 | ~80–150 | 380–450 |
 | Kapso Platform solo (4c) | 299 | ~40 (servicio) | ~340 |
 
-Kapso Pro (USD 25) solo aplica si Sauma opera con ≤3 números. Cifras de infra son
+Kapso Pro (USD 25) solo aplica si el cliente opera con ≤3 números. Cifras de infra son
 estimaciones, no cotizaciones.
 
 ---
@@ -235,7 +235,7 @@ tipo (Disposición 60-E/2016, Res. AAIP 159/2018 y 198/2023). Implicancias:
   canal cubre esa parte en la práctica habitual, pero conviene términos explícitos.
 - Chatwoot self-hosted en `southamerica-east1` (GCP São Paulo) o `sa-east-1` (AWS) no es
   Argentina ni país "adecuado" según AAIP; sigue siendo transferencia internacional. Lo que
-  cambia es quién es el encargado: el propio Sauma vs respond.io/Kapso como terceros.
+  cambia es quién es el encargado: el propio cliente vs respond.io/Kapso como terceros.
 - **Esto es una pregunta legal, no de ingeniería.** Registrar la base ante AAIP y firmar
   cláusulas tipo con cada proveedor aplica en cualquiera de las opciones.
 
@@ -244,7 +244,7 @@ tipo (Disposición 60-E/2016, Res. AAIP 159/2018 y 198/2023). Implicancias:
 ## 10. Próximo paso sugerido
 
 Si la exploración avanza: spike 1 y 3 primero (una tarde cada uno). Si el spike 1 falla o
-Sauma no consolida a 3 números, descartar Kapso y quedarse con la variante 4a. Recién
+el cliente no consolida a 3 números, descartar Kapso y quedarse con la variante 4a. Recién
 después, ADR `t-7`-style comparando 4a contra respond.io con números reales de MAC.
 
 ---

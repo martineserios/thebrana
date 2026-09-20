@@ -139,7 +139,7 @@
             "pinescript",
             "tradingview"
           ],
-          "descriptor": "Trading indicators for a discretionary chart trader, with alert-to-execution automation as the later goal \u2014 the client's own edge, not a product for sale."
+          "descriptor": "Trading indicators for a discretionary chart trader, with alert-to-execution automation as the later goal — the client's own edge, not a product for sale."
         }
       ]
     },
@@ -276,23 +276,6 @@
           "tech_stack": [],
           "created": "2026-09-07",
           "descriptor": "Public website for the brana system and consulting practice: what it is, who it is for, and how to start working together."
-        }
-      ]
-    },
-    {
-      "slug": "tabz",
-      "projects": [
-        {
-          "slug": "tabz",
-          "path": "~/enter_thebrana/clients/tabz",
-          "type": "code",
-          "tech_stack": [
-            "snowflake",
-            "sigma",
-            "sql"
-          ],
-          "created": "2026-09-10",
-          "descriptor": "Data Team engagement for a pharmacy payments/commerce platform: mapped the Snowflake schema, cross-referenced the Jira reporting backlog, and confirmed refill-domain findings against live data for four open tickets."
         }
       ]
     }
