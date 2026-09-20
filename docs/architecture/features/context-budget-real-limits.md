@@ -24,6 +24,7 @@ Brana developers (us) — ensuring the budget guardrails match reality.
 - Instruction counting must be automatable (in validate.sh)
 - No new tools or runtime monitoring — keep it deploy-time
 - MCP overhead is outside brana's control; only advisory guidance
+- **Design constraint: keep eagerly-exposed MCP tools within 10-30.** Empirical evidence (t-781 spike, Swirlai CE 2026) shows model reasoning degrades above ~30 exposed tools; deferred tools do not count. Current eager count is 24 (brana only, `alwaysLoad`); ruflo and all other servers stay deferred. See [t-1852 audit](../field-notes/t-1852-mcp-tool-exposure-audit.md).
 
 ## Scope (v1)
 
