@@ -67,14 +67,51 @@ fn line_has_id(line: &str, task_id: &str) -> bool {
 /// Add the task id to the doc text. `None` when the doc already carries it on a
 /// `Backlog:` line (idempotent). Extends an existing `Backlog:` line, else appends one.
 pub fn link_doc_text(text: &str, task_id: &str) -> Option<String> {
-    let _ = (text, task_id);
-    unimplemented!("t-1770")
+    let is_link_line = |l: &str| l.trim_start().starts_with(DOC_LINK_PREFIX);
+    if text.lines().any(|l| is_link_line(l) && line_has_id(l, task_id)) {
+        return None;
+    }
+    if text.lines().any(is_link_line) {
+        let mut done = false;
+        let lines: Vec<String> = text
+            .lines()
+            .map(|l| {
+                if !done && is_link_line(l) {
+                    done = true;
+                    format!("{}, {task_id}", l.trim_end())
+                } else {
+                    l.to_string()
+                }
+            })
+            .collect();
+        let mut out = lines.join("\n");
+        if text.ends_with('\n') {
+            out.push('\n');
+        }
+        return Some(out);
+    }
+    let mut out = text.trim_end_matches('\n').to_string();
+    if !out.is_empty() {
+        out.push_str("\n\n");
+    }
+    out.push_str(&format!("{DOC_LINK_PREFIX} {task_id}\n"));
+    Some(out)
 }
 
 /// Add the doc path to the task's `context`. Returns whether it changed (idempotent).
 pub fn link_task_context(task: &mut Value, doc: &str) -> bool {
-    let _ = (task, doc);
-    unimplemented!("t-1770")
+    let cur = task["context"].as_str().unwrap_or("");
+    if cur.contains(doc) {
+        return false;
+    }
+    let line = format!("Idea doc: {doc}");
+    let new = if cur.trim().is_empty() {
+        line
+    } else {
+        format!("{}\n{line}", cur.trim_end())
+    };
+    task["context"] = Value::String(new);
+    true
 }
 
 /// Wire `doc` <-> `task_id`: lock + write tasks file, and write the idea doc under `root`.
@@ -85,8 +122,31 @@ pub fn perform_idea_link(
     doc: &str,
     task_id: &str,
 ) -> Result<LinkOutcome, String> {
-    let _ = (tasks_path, root, doc, task_id);
-    unimplemented!("t-1770")
+    let doc = normalize_doc(doc);
+    let doc_path = root.join(&doc);
+    let doc_text = std::fs::read_to_string(&doc_path)
+        .map_err(|e| format!("idea doc {doc} not readable under {}: {e}", root.display()))?;
+
+    let _lock = super::lock_tasks(tasks_path)?;
+    let mut val = super::load_raw(tasks_path)?;
+    let tasks = val["tasks"].as_array_mut().ok_or("tasks is not an array")?;
+    let task = tasks
+        .iter_mut()
+        .find(|t| t["id"].as_str() == Some(task_id))
+        .ok_or_else(|| format!("task {task_id} not found"))?;
+
+    let task_updated = link_task_context(task, &doc);
+    let new_doc = link_doc_text(&doc_text, task_id);
+
+    if task_updated {
+        val["last_modified"] = Value::String(chrono::Local::now().to_rfc3339());
+        super::save_tasks(tasks_path, &val).map_err(|e| format!("idea link write failed: {e}"))?;
+    }
+    let doc_updated = new_doc.is_some();
+    if let Some(t) = new_doc {
+        std::fs::write(&doc_path, t).map_err(|e| format!("writing {doc}: {e}"))?;
+    }
+    Ok(LinkOutcome { doc, task_id: task_id.to_string(), task_updated, doc_updated })
 }
 
 #[cfg(test)]
