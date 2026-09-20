@@ -104,6 +104,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
    - If the user provides text, store it in the `context` field
    - If skipped, proceed without context
+7a. **Idea doc link** — if kind/work_type is `research` or `spike` (or the task originates from a brainstorm): AskUserQuestion "Idea doc path for this task? (docs/ideas/*.md)" with options: user provides path via "Other", or "None yet". Header: "Idea doc". If given and the file exists, append `Idea doc: {path}` to the task `context`, and add the new task ID to the doc's frontmatter `tasks:` list (see brainstorm Phase 5b-link) so the reference is bidirectional. If skipped, proceed. (A validate.sh check requiring research tasks with a completed brainstorm to reference a doc is deferred, t-1767: tasks.json is gitignored/live so CI has no stable fixture; revisit with the CLI `backlog ideas`, t-1770.)
 8. Priority: **leave null** (user sets manually via `/brana:backlog triage` or direct edit)
 9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] epic:{epic-slug via parent chain, or `epic:<slug>` tag fallback} under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
 10. Write tasks.json

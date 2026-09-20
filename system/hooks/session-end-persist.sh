@@ -217,10 +217,13 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
     # Without this, both commands target -tmp- instead of the real project.
     SESSION_STATE_PATH=$(cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session path 2>/dev/null) || SESSION_STATE_PATH=""
     ALREADY_WRITTEN=false
-    if [ -n "$SESSION_STATE_PATH" ] && [ -f "$SESSION_STATE_PATH" ]; then
-        WRITTEN_AT=$(jq -r '.written_at // ""' "$SESSION_STATE_PATH" 2>/dev/null) || WRITTEN_AT=""
-        TODAY=$(date +%Y-%m-%d)
-        echo "$WRITTEN_AT" | grep -q "$TODAY" 2>/dev/null && ALREADY_WRITTEN=true
+    # t-2624: "already written" means a valid state object EXISTS -- not that it was
+    # written today. The old written_at==today test treated a prior close's rich handoff
+    # (a different day, or UTC-vs-local date skew) as absent, so the minimal safety-net
+    # object below replaced it wholesale. Invariant: an existing state file is only ever
+    # patched (metrics merge); the minimal write is reserved for absent/unparseable state.
+    if [ -n "$SESSION_STATE_PATH" ] && [ -s "$SESSION_STATE_PATH" ] && command -v jq &>/dev/null; then
+        jq -e 'type == "object"' "$SESSION_STATE_PATH" >/dev/null 2>&1 && ALREADY_WRITTEN=true
     fi
 
     if [ "$ALREADY_WRITTEN" = "true" ] && [ -n "$SESSION_STATE_PATH" ] && command -v jq &>/dev/null; then

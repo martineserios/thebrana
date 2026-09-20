@@ -135,3 +135,7 @@ You don't complete tasks manually for code work. The build CLOSE step does it. F
 - **Rich context beats bare subjects** -- effort M+ tasks need description + context
 - **`start` calls `build`** -- don't run both separately
 - **Triage weekly** -- stale priorities mislead `next`
+
+### Idea docs link both ways
+
+Research/spike tasks and brainstorm-born tasks reference their idea doc in `context` (`Idea doc: docs/ideas/{slug}.md`), and the doc lists the task in frontmatter (`tasks: [t-NNN]`). `/brana:backlog add` prompts for the doc path on research/spike tasks; `/brana:brainstorm` Phase 5 writes both sides. A validate.sh check enforcing this is deferred (t-1767).

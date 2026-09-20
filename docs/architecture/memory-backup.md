@@ -59,6 +59,20 @@ system/scripts/index-skills.sh
 
 Pattern entries (session closes, learnings, corrections) cannot be regenerated — they accumulate from `/brana:close` and `/brana:retrospective` sessions.
 
+### Layer 4: Off-site git backup (session close)
+
+**Script:** `~/enter_thebrana/brana-knowledge/backup.sh`
+**Trigger:** `/brana:close` Step 10, via `system/skills/_shared/backup-knowledge-invoke.md` → `~/.claude/scripts/backup-knowledge.sh` → `brana-knowledge/backup.sh`
+**Location:** private GitHub repo `martineserios/brana-knowledge`, `backup/swarm/` (git-tracked, free tier)
+
+Every session close, a hot `sqlite3 .backup` copy of `~/.swarm/memory.db` is taken locally, then exported to JSON (`memory-entries.json`, `patterns.json` — matches the current RuFlo V3 schema: `memory_entries.content`, `reasoning_patterns`). The JSON exports are committed and pushed to GitHub; also backs up the HNSW/RVF vector artifacts and global + per-project markdown auto-memory (`~/.claude/memory/`, `~/.claude/projects/*/memory/`).
+
+**Important:** the raw `backup/swarm/memory.db` binary itself is **local-only** — it is `.gitignore`'d and never pushed. (Until 2026-09-10 it *was* committed raw to git on every close; 50 versions of the ~130MB file bloated the repo's history to 8.7GB and eventually exceeded GitHub's 100MB single-file limit, silently failing every push. History was rewritten to purge it — see ADR/changelog below.) This means Layer 4's off-site copy is the JSON export only, which does **not** capture everything (no vector embeddings, no causal-graph tables) — a full-fidelity restore of the exact database is not possible from Layer 4 alone. See Layer 5.
+
+### Layer 5: Off-site raw db sync (planned — t-3342)
+
+Free, full-fidelity off-site copy of the raw `~/.swarm/memory.db` via `rclone` → Google Drive (15GB free tier), avoiding GitHub's size limit and LFS costs entirely. `rclone` is installed at `~/.local/bin/rclone`; wiring into `backup.sh` and the one-time interactive Google OAuth setup are tracked in t-3342, not yet complete.
+
 ## Recovery Procedures
 
 ### Corrupt DB (0-byte file)
@@ -105,13 +119,17 @@ cd ~ && ruflo memory init --force
 | `~/.swarm/backups/` | Binary backup rotation (7 days) |
 | `system/state/patterns-export.json` | JSON export (git-tracked) |
 | `.swarm/memory.db` | Project-local swarm DB (legacy, separate) |
+| `~/enter_thebrana/brana-knowledge/backup/swarm/memory.db` | Layer 4 local hot-backup copy (NOT git-tracked) |
+| `~/enter_thebrana/brana-knowledge/backup/swarm/{memory-entries,patterns}.json` | Layer 4 off-site export (git-tracked, free) |
 
 ## Changelog
 
 - 2026-06-08: t-1883 — `sync-state.sh push` now guards `active_epic` against cross-project contamination. See ADR-015 for details.
+- 2026-09-10: Fixed `brana-knowledge/backup.sh` — its JSON export queries referenced a pre-V3 schema (`memory_entries.value`, a `patterns` table) and had been silently writing empty `[]` files; corrected to match `memory_entries.content` / `reasoning_patterns`. Also stopped committing the raw `memory.db` binary to git (it had bloated the repo's history to 8.7GB and started exceeding GitHub's 100MB file limit, silently failing every push via a swallowed `2>/dev/null` chain — also fixed to fail loudly). History was rewritten to purge the old blobs. See Layer 4/5 above and t-3342 for the follow-up full-fidelity off-site sync.
 
 ## Known Issues
 
 - **Ruflo CLI `memory export`** delegates to non-existent MCP tool `memory_export`. Use `sync-state.sh export` instead.
 - **sql.js flush-to-disk** can truncate the DB to 0 bytes on process crash. Binary backup is the mitigation.
 - **MCP server caches DB in memory** on startup. Deleting the file requires `memory init --force` to take effect.
+- **Layer 4's off-site copy is JSON-only** (no raw db) — a lost machine loses vector embeddings and causal-graph data that aren't in the JSON export, until t-3342 (Layer 5) ships.

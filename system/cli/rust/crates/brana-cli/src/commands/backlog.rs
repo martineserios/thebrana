@@ -4103,3 +4103,56 @@ pub fn cmd_ac_propose(
     }
     Ok(())
 }
+
+/// `brana backlog ideas [--unlinked]` / `ideas link <doc> <task-id>` (t-1770).
+/// Lists top-level `docs/ideas/*.md` (`drained/` excluded — those are already
+/// drained into tasks). Root = `--root`, else the `--file` grandparent
+/// (`<root>/.claude/tasks.json`), else cwd.
+pub fn cmd_ideas(
+    unlinked: bool,
+    file: Option<PathBuf>,
+    root: Option<PathBuf>,
+    cmd: Option<crate::cli::IdeasCmd>,
+) -> anyhow::Result<()> {
+    let explicit_file = file.is_some();
+    let tf = match file {
+        Some(f) => resolve_tasks_file_override(&f),
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let root = match root {
+        Some(r) => r,
+        None if explicit_file => tf
+            .parent()
+            .and_then(|p| p.parent())
+            .map(PathBuf::from)
+            .context("cannot derive repo root from --file; pass --root")?,
+        None => std::env::current_dir()?,
+    };
+
+    match cmd {
+        Some(crate::cli::IdeasCmd::Link { doc, task_id }) => {
+            let out = tasks::perform_idea_link(&tf, &root, &doc, &task_id)
+                .map_err(|e| anyhow::anyhow!(e))?;
+            let state = |b: bool| if b { "linked" } else { "already linked" };
+            println!(
+                "{} <-> {}: task {}, doc {}",
+                out.doc,
+                out.task_id,
+                state(out.task_updated),
+                state(out.doc_updated)
+            );
+        }
+        None => {
+            let mut docs = tasks::list_idea_docs(&root).map_err(|e| anyhow::anyhow!(e))?;
+            if unlinked {
+                let val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!(e))?;
+                let all = val["tasks"].as_array().cloned().unwrap_or_default();
+                docs = tasks::unlinked_ideas(&docs, &all);
+            }
+            for d in docs {
+                println!("{d}");
+            }
+        }
+    }
+    Ok(())
+}
