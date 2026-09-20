@@ -14,6 +14,8 @@
 # Prints one of: NANO | LIGHT | LIGHT-INLINE | INSTANT | FULL
 #
 # Matrix (ADR-052 §5 Track 1 + ADR-053 §1 orientations):
+#   (exception t-2585: continue/finish on a state-only diff — tasks.json /
+#    docs/spec-graph.json — → NANO; machine-written state is never extractable)
 #   orientation (--continue/--finish/--patterns/--abort, via --arguments or
 #     --mode-override) wins over EVERYTHING — including --light/--full/--nano:
 #       continue → INSTANT   finish → INSTANT
@@ -50,22 +52,40 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# Orientation flags win over everything (ADR-053 §1). Explicit --mode-override
-# first (programmatic callers), then orientation flags inside --arguments —
-# same string-contains convention as the weight escape hatches below.
-if [ -n "$MODE_OVERRIDE" ]; then
-    orientation_weight "$MODE_OVERRIDE"
+# Read the changed-file list first: content can veto the QUEUE under
+# orientation (t-2585). Guarded so a caller with no piped stdin never blocks.
+if [ -t 0 ]; then CHANGED_FILES=""; else CHANGED_FILES=$(cat); fi
+FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
+
+# State-only diff (t-2585): every changed file is machine-written state
+# (tasks.json, generated spec-graph) — never extractable. Empty set is NOT
+# state-only. Such a diff must not queue a snapshot, whatever the orientation.
+is_state_only() {
+    [ "$FILE_COUNT" -gt 0 ] || return 1
+    ! echo "$CHANGED_FILES" | grep -v '^$' \
+        | grep -qvE '^(\.claude/tasks\.json|docs/spec-graph\.json)$'
+}
+
+# Orientation flags win over everything (ADR-053 §1) EXCEPT that continue/finish
+# (which force INSTANT = queue) yield NANO on a state-only diff. Explicit
+# --mode-override first (programmatic callers), then orientation flags inside
+# --arguments — same string-contains convention as the weight escape hatches.
+orient_exit() {
+    local w
+    w=$(orientation_weight "$1") || exit $?
+    if [ "$w" = "INSTANT" ] && is_state_only; then w="NANO"; fi
+    echo "$w"
     exit 0
+}
+if [ -n "$MODE_OVERRIDE" ]; then
+    orient_exit "$MODE_OVERRIDE"
 fi
 for ORIENT in continue finish patterns abort; do
     if [[ "$ARGUMENTS" == *"--$ORIENT"* ]]; then
-        orientation_weight "$ORIENT"
-        exit 0
+        orient_exit "$ORIENT"
     fi
 done
 
-CHANGED_FILES=$(cat)
-FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
 # Behavioral JSON: system/ or .claude/ JSON files, excluding tasks.json (state file)
 BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$' \
                  | grep -v '^\.claude/tasks\.json$' || true)

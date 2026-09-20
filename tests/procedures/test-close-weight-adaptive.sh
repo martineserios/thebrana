@@ -163,6 +163,29 @@ assert_mode "--abort forces NANO (auto would be INSTANT)" "NANO" "$MODE"
 MODE=$(classify 1 "src/main.rs" "--continue")
 assert_mode "--continue on code session stays INSTANT" "INSTANT" "$MODE"
 
+# t-2585: state-file diffs are machine-written, never extractable — content
+# vetoes the queue even under continue/finish orientation.
+MODE=$(classify 1 ".claude/tasks.json" "--continue")
+assert_mode "--continue + tasks.json only → NANO (t-2585)" "NANO" "$MODE"
+
+MODE=$(classify 1 ".claude/tasks.json" "")
+assert_mode "tasks.json only, no flag → NANO (same as --continue)" "NANO" "$MODE"
+
+MODE=$(classify 1 ".claude/tasks.json" "--finish")
+assert_mode "--finish + tasks.json only → NANO (t-2585)" "NANO" "$MODE"
+
+MODE=$(classify 1 ".claude/tasks.json
+docs/spec-graph.json" "--continue")
+assert_mode "--continue + tasks.json + spec-graph.json → NANO" "NANO" "$MODE"
+
+MODE=$(classify 1 ".claude/tasks.json
+src/main.rs" "--continue")
+assert_mode "--continue + tasks.json + code → INSTANT" "INSTANT" "$MODE"
+
+MODE=$(classify 1 ".claude/tasks.json
+docs/note.md" "--continue")
+assert_mode "--continue + tasks.json + .md → INSTANT (authored work)" "INSTANT" "$MODE"
+
 echo ""
 echo "Orientation precedence over weight escape hatches"
 MODE=$(classify 1 "docs/note.md" "--full --patterns")
