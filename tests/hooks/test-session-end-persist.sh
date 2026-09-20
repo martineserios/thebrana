@@ -267,6 +267,57 @@ assert_contains "metrics patched once the lock is free" "$STATE_AFTER2" '"events
 
 rm -rf "$FAKE_HOME_5" "$LAYER0_5" "$STATE_DIR" "$FAKE_BIN"
 
+# ── Test 6: prior-day rich handoff is patched, never replaced (t-2624) ──────────
+echo ""
+echo "Test 6: existing rich handoff (written_at NOT today) survives; only metrics patched"
+FAKE_HOME_6=$(mktemp -d /tmp/brana-test-home-6-XXXXXX)
+mkdir -p "$FAKE_HOME_6/.claude/memory"
+STATE_DIR6=$(mktemp -d /tmp/brana-test-state-6-XXXXXX)
+STATE_PATH6="$STATE_DIR6/session-state.json"
+cat > "$STATE_PATH6" <<'JSON'
+{"version":1,"written_at":"2020-01-01T10:00:00Z","branch":"feat/t-1-x","session_label":"rich close",
+ "accomplished":["shipped the thing"],"next":["do the next thing"],"handoff":{"sections":7},"metrics":{"propose_count":5}}
+JSON
+FAKE_BIN6=$(mktemp -d /tmp/brana-test-bin-6-XXXXXX)
+# Stub mirrors real `session write --file`: replaces the state file wholesale.
+cat > "$FAKE_BIN6/brana" <<'STUB'
+#!/usr/bin/env bash
+if [ "$1" = "session" ] && [ "$2" = "path" ]; then echo "$FAKE_SESSION_STATE_PATH"; exit 0; fi
+if [ "$1" = "session" ] && [ "$2" = "write" ]; then
+    if [ "$3" = "--file" ]; then cp "$4" "$FAKE_SESSION_STATE_PATH"; else echo '{"version":1}' > "$FAKE_SESSION_STATE_PATH"; fi
+    exit 0
+fi
+exit 0
+STUB
+chmod +x "$FAKE_BIN6/brana"
+run_persist_67() {
+    export HOME="$1" LAYER0_DIR="" STORED_L1=false PATTERN_LEARNINGS='[]' KNOWLEDGE_FINDINGS='[]'
+    export PROJECT=test SESSION_ID="$TEST_ID" TIMESTAMP=2026-01-01T00:00:00Z
+    export TOTAL=3 SUCCESSES=3 FAILURES=0 CORRECTIONS=0 TEST_WRITES=0 CASCADES=0 PR_CREATES=0
+    export TEST_PASSES=0 TEST_FAILS=0 LINT_PASSES=0 LINT_FAILS=0 EDITS=1 DELEGATIONS=0
+    export CORRECTION_RATE=0.00 AUTO_FIX_RATE=0.00 TEST_WRITE_RATE=0.00 CASCADE_RATE=0.00
+    export TEST_PASS_RATE=N/A LINT_PASS_RATE=N/A TOOLS=Bash FILES="" SUMMARY_JSON="{}"
+    export BRANA_CLI="$2" FAKE_SESSION_STATE_PATH="$3" GIT_ROOT=/tmp
+    bash "$SCRIPT" 2>/dev/null || true
+}
+( run_persist_67 "$FAKE_HOME_6" "$FAKE_BIN6/brana" "$STATE_PATH6" )
+assert_outcome "handoff 'next' preserved" "do the next thing" "$(jq -r '.next[0] // "MISSING"' "$STATE_PATH6")"
+assert_outcome "handoff section preserved" "7" "$(jq -r '.handoff.sections // "MISSING"' "$STATE_PATH6")"
+assert_outcome "session_label preserved (not auto-captured)" "rich close" "$(jq -r '.session_label // "MISSING"' "$STATE_PATH6")"
+assert_outcome "existing metrics preserved" "5" "$(jq -r '.metrics.propose_count // "MISSING"' "$STATE_PATH6")"
+assert_outcome "metrics patched" "3" "$(jq -r '.metrics.events // "MISSING"' "$STATE_PATH6")"
+
+# ── Test 7: absent state file -> minimal object still written (safety net) ──────
+echo ""
+echo "Test 7: absent state file still gets the minimal safety-net write"
+FAKE_HOME_7=$(mktemp -d /tmp/brana-test-home-7-XXXXXX)
+mkdir -p "$FAKE_HOME_7/.claude/memory"
+STATE_DIR7=$(mktemp -d /tmp/brana-test-state-7-XXXXXX)
+STATE_PATH7="$STATE_DIR7/session-state.json"
+( run_persist_67 "$FAKE_HOME_7" "$FAKE_BIN6/brana" "$STATE_PATH7" )
+assert_outcome "minimal object written when no state exists" "auto-captured (session-end hook)" "$(jq -r '.session_label // "MISSING"' "$STATE_PATH7" 2>/dev/null || echo MISSING)"
+rm -rf "$FAKE_HOME_6" "$STATE_DIR6" "$FAKE_BIN6" "$FAKE_HOME_7" "$STATE_DIR7"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
