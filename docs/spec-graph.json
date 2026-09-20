@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-07T20:14:13Z",
+  "generated": "2026-09-17T11:41:20Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1316,6 +1316,15 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md": {
+      "title": "ADR-094: Move the live `tasks.json` ledger out of the working tree into `$GIT_COMMON_DIR/brana/`",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/ship/SKILL.md",
+        "system/hooks/runner-verb-guard.sh",
+        "system/state/tasks-snapshot.json"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -2239,7 +2248,8 @@
         "system/cli/rust/crates/brana-core/src/",
         "system/hooks",
         "system/hooks/hooks-auto-deploy.sh",
-        "system/hooks/branch-checkout-warn.sh"
+        "system/hooks/branch-checkout-warn.sh",
+        "system/state/tasks-snapshot.json"
       ]
     },
     "docs/architecture/idea-to-ship.md": {
@@ -2298,7 +2308,8 @@
       "impl_files": [
         "system/scripts/backup-memory.sh",
         "system/scripts/sync-state.sh",
-        "system/state/patterns-export.json"
+        "system/state/patterns-export.json",
+        "system/skills/_shared/backup-knowledge-invoke.md"
       ]
     },
     "docs/architecture/overview.md": {
@@ -2409,6 +2420,14 @@
         "system/hooks/preflight-model.sh",
         "system/hooks/session-start.sh",
         "system/hooks/tests/"
+      ]
+    },
+    "docs/architecture/tasks-json-backup.md": {
+      "title": "Backlog ledger backup (interim, ADR-094)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/tasks-json-backup.sh",
+        "system/scripts/tests/test-tasks-json-backup.sh"
       ]
     },
     "docs/architecture/testing-validation.md": {
@@ -3279,8 +3298,13 @@
       "title": "Branching — two-tier dev → main (ADR-060)",
       "type": "Roadmap",
       "impl_files": [
+        "system/state/",
         "system/skills/build/phases/close.md",
-        "system/skills/close/phases/"
+        "system/skills/close/phases/",
+        "system/scripts/check-no-checkout-in-main.sh",
+        "system/skills",
+        "system/rules",
+        "system/procedures"
       ]
     },
     "docs/guide/workflows/build.md": {
@@ -8157,6 +8181,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "to": "docs/domain/MODEL-001-brana-core.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/acquire-skills.md",
       "to": "docs/architecture/features/acquire-skills-guide.md",
       "type": "informs",
@@ -11512,6 +11542,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -12197,6 +12233,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/system-documentation-map.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/tasks-json-backup.md",
       "type": "references",
       "computed": false
     },
@@ -13761,6 +13803,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "to": "ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
       "to": "ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
@@ -13781,6 +13829,18 @@
     {
       "from": "docs/architecture/decisions/ADR-093-link-signal-enrichment-queue-scoring-layer2.md",
       "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "to": "ADR-091-tasks-json-untracked-canonical-snapshot.md",
       "type": "references",
       "computed": false
     },
@@ -14571,6 +14631,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/worktree-task-divergence.md",
+      "to": "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/worktree-task-divergence.md",
+      "to": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/youtube-channel-backfill.md",
       "to": "docs/architecture/decisions/ADR-070-knowledge-process-url-headless-fetch.md",
       "type": "references",
@@ -14963,6 +15035,18 @@
     {
       "from": "docs/architecture/system-documentation-map.md",
       "to": "relative-path.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/tasks-json-backup.md",
+      "to": "decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/tasks-json-backup.md",
+      "to": "decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
       "type": "references",
       "computed": false
     },
@@ -17319,6 +17403,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/workflows/branching.md",
+      "to": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/workflows/build.md",
       "to": "docs/architecture/ac-grammar.md",
       "type": "references",
@@ -18928,6 +19018,18 @@
     },
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/architecture/decisions/ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "docs/decisions/ADR-002-tasks-as-data-layer.md",
       "type": "references",
       "computed": false
@@ -19696,9 +19798,9 @@
     }
   ],
   "stats": {
-    "nodes": 635,
-    "edges": 2530,
-    "typed_edges": 738,
-    "orphans": 142
+    "nodes": 637,
+    "edges": 2543,
+    "typed_edges": 739,
+    "orphans": 141
   }
 }
