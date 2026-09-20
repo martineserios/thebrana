@@ -517,9 +517,11 @@ DDD → TDD → impl → SDD + docs flow.
 Create a single task via `backlog_add()` (MCP) or `brana backlog add` with:
 - Subject from idea title
 - Description from problem + solution
-- Context linking to the idea doc
+- Context linking to the idea doc (`Idea doc: docs/ideas/{slug}.md`)
 - Tags inferred from the brainstorm content
 - Stream: roadmap (default) or research (if chosen)
+
+**5b-link. Bidirectional link (task <-> idea doc)** — once a task ID exists (planned phase/tasks or quick-add): (1) append `Idea doc: docs/ideas/{slug}.md` to the task `context`; (2) add the task ID to the idea doc frontmatter, creating the key if absent: `tasks: [t-NNN]` (extend the list, never duplicate). If a task was already known at brainstorm start, do this at 5a. No task created -> skip.
 
 **5c. Report**
 
