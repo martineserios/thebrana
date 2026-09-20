@@ -95,6 +95,7 @@ fn main() {
             BacklogCmd::MigrateEpic { dry_run, file } => run_or_exit(commands::backlog::cmd_backlog_migrate_epic(dry_run, file)),
             BacklogCmd::Initiatives { json } => run_or_exit(commands::backlog::cmd_initiatives(&theme, json)),
             BacklogCmd::Epics { json } => run_or_exit(commands::backlog::cmd_epics(&theme, json)),
+            BacklogCmd::Ideas { unlinked, file, root, cmd } => run_or_exit(commands::backlog::cmd_ideas(unlinked, file, root, cmd)),
             BacklogCmd::Wave { cmd } => match cmd {
                 WaveCmd::Add { name, selector, contract, gate, file } =>
                     run_or_exit(commands::backlog::cmd_wave_add(name, selector, contract, gate, file)),

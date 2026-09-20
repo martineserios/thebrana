@@ -1317,11 +1317,38 @@ pub enum BacklogCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Idea docs (t-1770): list `docs/ideas/*.md` (top level; `drained/` is
+    /// excluded), `--unlinked` for those no task references, or
+    /// `ideas link <doc> <task-id>` to wire doc <-> task (idempotent).
+    Ideas {
+        /// Only docs that no task references (context/notes/description)
+        #[arg(long)]
+        unlinked: bool,
+        /// Tasks file override (also anchors the repo root as its grandparent)
+        #[arg(long)]
+        file: Option<PathBuf>,
+        /// Repo root holding docs/ideas (default: cwd, or the --file grandparent)
+        #[arg(long)]
+        root: Option<PathBuf>,
+        #[command(subcommand)]
+        cmd: Option<IdeasCmd>,
+    },
     /// Wave — thin stored process object over the task tree (ADR-065). CRUD
     /// only in this slice: no selector resolution, no drain loop.
     Wave {
         #[command(subcommand)]
         cmd: WaveCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum IdeasCmd {
+    /// Write the doc path into the task context and the task ID into the doc
+    Link {
+        /// Idea doc (`docs/ideas/x.md` or bare `x.md`)
+        doc: String,
+        /// Task ID (e.g. t-1770)
+        task_id: String,
     },
 }
 
