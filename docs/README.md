@@ -276,6 +276,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [skill-utilization-tracking.md](architecture/features/skill-utilization-tracking.md) | Skill utilization tracking |
 | [staleness-and-memory-pipeline.md](architecture/features/staleness-and-memory-pipeline.md) | Staleness detection and memory pipeline |
 | [context-budget-real-limits.md](architecture/features/context-budget-real-limits.md) | Context budget real-world limits |
+| [t-1852-mcp-tool-exposure-audit.md](architecture/field-notes/t-1852-mcp-tool-exposure-audit.md) | MCP eager tool count (24) vs the 10-30 limit |
 | [acquire-skills-guide.md](architecture/features/acquire-skills-guide.md) | Acquire skills implementation guide |
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
 | [backlog-lint.md](architecture/features/backlog-lint.md) | `brana backlog lint` — Definition-of-Ready checker for wave-eligible tasks (shipped; distinct from the `guide/features/` how-to of the same name) |
