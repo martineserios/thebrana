@@ -129,20 +129,33 @@ else
     echo "  SKIP: no ruflo DB on this machine"
 fi
 
-if [ -d "$HOME/enter_thebrana/brana-knowledge" ]; then
-    IFS=$'\t' read -r _ _ _ _ KD _ < "$TMPDIR/slow-cache.tsv"
-    # Knowledge should have been updated within last 30 days
-    TOTAL=$((TOTAL + 1))
-    if (( KD <= 30 )); then
-        echo "  PASS: knowledge freshness within 30 days ($KD)"
-        PASS=$((PASS + 1))
-    else
-        echo "  FAIL: knowledge stale ($KD days)"
-        FAIL=$((FAIL + 1))
-    fi
-else
-    echo "  SKIP: no brana-knowledge on this machine"
-fi
+# Knowledge freshness is asserted on fixture repos, never on the machine's real
+# brana-knowledge (t-3356): live curated-content age is not a stable test input.
+make_knowledge_fixture() {
+    local dir="$1" when="$2"
+    mkdir -p "$dir/dimensions"
+    git -C "$dir" init -q
+    echo x > "$dir/dimensions/a.md"
+    git -C "$dir" add dimensions/a.md
+    GIT_AUTHOR_DATE="$when" GIT_COMMITTER_DATE="$when" \
+        git -C "$dir" -c user.name=t -c user.email=t@t commit -q -m fixture
+}
+
+echo ""
+echo "=== Scenario 4b: Knowledge freshness (fixtures) ==="
+
+FRESH="$TMPDIR/knowledge-fresh"
+STALE="$TMPDIR/knowledge-stale"
+make_knowledge_fixture "$FRESH" "$(date -d '2 days ago' --iso-8601=seconds)"
+make_knowledge_fixture "$STALE" "$(date -d '45 days ago' --iso-8601=seconds)"
+
+BRANA_SLOW_CACHE_FILE="$TMPDIR/kd-fresh.tsv" BRANA_KNOWLEDGE_DIR="$FRESH" bash "$SLOW_CACHE_SCRIPT" 2>/dev/null
+IFS=$'\t' read -r _ _ _ _ KD_FRESH _ < "$TMPDIR/kd-fresh.tsv"
+assert_eq "fresh fixture reports 2 days" "2" "$KD_FRESH"
+
+BRANA_SLOW_CACHE_FILE="$TMPDIR/kd-stale.tsv" BRANA_KNOWLEDGE_DIR="$STALE" bash "$SLOW_CACHE_SCRIPT" 2>/dev/null
+IFS=$'\t' read -r _ _ _ _ KD_STALE _ < "$TMPDIR/kd-stale.tsv"
+assert_eq "stale fixture reports 45 days (must-fire)" "45" "$KD_STALE"
 
 # ── Scenario 5: Idempotency ─────────────────────────────
 echo ""
