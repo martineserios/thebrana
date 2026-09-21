@@ -366,6 +366,30 @@ General notification infrastructure — channel registry and message delivery. D
 
 ---
 
+### 12. Reminders (`core::remind`)
+
+The reminder store (ADR-051) plus timed dispatch (ADR-054). The store predates this model; the context entry was added in t-2000.
+
+**Aggregate root:** `Store` — `{version, reminders[]}` in `~/.claude/reminders.json`, mutated only by the Rust binary under a sidecar lock (`reminders.json.lock`)
+
+**Entity:** `Reminder` — id, text, action, priority, status (pending/snoozed/resolved/expired), created/last_seen, occurrences, dedup_key, project, tags, snoozed_until, resolved_at, task_id, and (ADR-054 §3, all optional) `due`, `channels`, `dispatched_at`
+
+**Value objects:**
+- `DispatchReport` — selected, dispatched ids, failed ids
+
+**Operations:**
+- `write_reminder`, `list`, `resolve`, `snooze`
+- `parse_at(input) -> due` (RFC3339 | `HH:MM` local | `YYYY-MM-DD HH:MM` local -> UTC)
+- `due(path) -> Vec<Reminder>` (pending, past `due`, `dispatched_at` null)
+- `dispatch(path, registry, sender) -> DispatchReport` (select / send / commit; sender injected)
+
+**State files owned:**
+- `~/.claude/reminders.json` (schema version 1; ADR-054 fields are additive and optional)
+
+**Context boundary:** Consumes Notify (`resolve`, `send`) via the application layer only; Notify never touches the store. Dispatch runs from the scheduler as `brana remind due --dispatch`.
+
+---
+
 ## Agents (not a core context)
 
 Agent management (spawn, track, kill) is tightly coupled to the CLI's git worktree and tmux operations. It stays in `brana-cli`, not `brana-core`.
@@ -393,6 +417,7 @@ Agent management (spawn, track, kill) is tightly coupled to the CLI's git worktr
 All other contexts are independent:
 
   Inbox       Files       Scheduler     Decisions     Spec Graph     Reference
+  (Reminders -> Notify via app layer, ADR-054)
   (standalone) (standalone) (standalone)  (standalone)  (standalone)   (standalone)
 ```
 
@@ -432,6 +457,12 @@ The Tier1/2/3 dimension-synthesis pipeline (ADR-042, ADR-087) — relevance filt
 | **Blocked chain** | The transitive dependency path preventing a task from starting | Backlog |
 | **Burndown** | Time-bucketed view of created vs completed tasks | Backlog |
 | **Rollup** | Auto-completing a parent when all children are done | Backlog |
+| **Channel** | A named, configured delivery endpoint (telegram, desktop, ntfy) | Notify |
+| **Channel registry** | Hand-edited config owning channel definitions + routing defaults | Notify |
+| **Routing** | Resolving a reminder's target channels: explicit list > priority defaults | Notify |
+| **Broadcast** | Routing to every enabled channel (`channels: ["all"]`) | Notify |
+| **Dispatch** | The locked, idempotent act of sending a due reminder through its resolved channels | Reminders (app layer) |
+| **Due** | The instant after which a reminder is eligible for dispatch | Reminders |
 | **Propagation gap** | A knowledge artifact (spec status, doc checkbox, promise, memory claim) contradicting the system's actual state after work completes | Close / Knowledge |
 | **Knowledge debt** | Accumulated undetected propagation gaps — docs claiming a state the system is no longer in (ADR-056) | Close / Knowledge |
 | **Classification** | Computed status: done, active, blocked, parked, pending | Backlog |
