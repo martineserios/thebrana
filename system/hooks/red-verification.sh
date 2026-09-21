@@ -71,6 +71,15 @@ run_red() {
     [ -d "$dir" ] || { DECLINE="test directory missing"; return 1; }
     tmp="$dir/.red-verify-$$-$base"
     git -C "$ROOT" show ":$f" > "$tmp" 2>/dev/null || { rm -f "$tmp"; DECLINE="staged blob unreadable"; return 1; }
+    # Only files that IMPORT node:test are runnable red tests. GRADER_RE also matches helpers,
+    # seed scripts and other frameworks' files under tests/: running those would execute side
+    # effects, or fail for lack of a global (jest/vitest) and be registered "red" although they
+    # can never go green under `node --test` (Gate 3, t-3357).
+    if [ "$runner" = node ] && ! grep -q -E "node:test" "$tmp" 2>/dev/null; then
+        rm -f "$tmp"
+        DECLINE="not a node:test file (only files importing node:test are run; helpers and other frameworks are declined)"
+        return 1
+    fi
     # Working dir: repo root for bash; nearest package.json dir (bounded by ROOT) for node.
     pkg="$ROOT"
     if [ "$runner" = node ]; then

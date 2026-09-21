@@ -224,21 +224,31 @@ fn is_relevant(e: &Value) -> bool {
 
 /// Last `n` (capped at MAX_RELEVANT) relevant entries from active files in `dir`,
 /// oldest first. Archived files are not read.
+///
+/// Files are named by creation timestamp, so they are read NEWEST first and reading stops as
+/// soon as `n` relevant entries are in hand: an older file cannot hold a newer entry. Cost is
+/// therefore bounded by the recent tail, not by how many files have piled up (the directory is
+/// gitignored and only shrinks when `archive` is run).
 fn recent_relevant(dir: &std::path::Path, n: usize) -> Result<Vec<Value>> {
-    let mut entries: Vec<Value> = Vec::new();
-    if let Ok(rd) = fs::read_dir(dir) {
-        let mut paths: Vec<_> = rd
+    let n = n.min(MAX_RELEVANT);
+    let mut paths: Vec<_> = match fs::read_dir(dir) {
+        Ok(rd) => rd
             .filter_map(|e| e.ok())
             .map(|e| e.path())
             .filter(|p| p.is_file() && p.extension().map(|e| e == "jsonl").unwrap_or(false))
-            .collect();
-        paths.sort();
-        for path in &paths {
-            for line in BufReader::new(fs::File::open(path)?).lines() {
-                if let Ok(v) = serde_json::from_str::<Value>(line?.trim()) {
-                    if is_relevant(&v) {
-                        entries.push(v);
-                    }
+            .collect(),
+        Err(_) => Vec::new(),
+    };
+    paths.sort();
+    let mut entries: Vec<Value> = Vec::new();
+    for path in paths.iter().rev() {
+        if entries.len() >= n {
+            break;
+        }
+        for line in BufReader::new(fs::File::open(path)?).lines() {
+            if let Ok(v) = serde_json::from_str::<Value>(line?.trim()) {
+                if is_relevant(&v) {
+                    entries.push(v);
                 }
             }
         }
@@ -247,7 +257,6 @@ fn recent_relevant(dir: &std::path::Path, n: usize) -> Result<Vec<Value>> {
         let f = |v: &Value| v.get("ts").and_then(Value::as_str).unwrap_or("").to_string();
         f(a).cmp(&f(b))
     });
-    let n = n.min(MAX_RELEVANT);
     let len = entries.len();
     Ok(entries.into_iter().skip(len.saturating_sub(n)).collect())
 }
@@ -573,6 +582,27 @@ mod tests {
     fn test_format_relevant_line_short_entry_unchanged() {
         let e = serde_json::json!({"ts": "2026-03-21T10:00:00Z", "agent": "a", "type": "decision", "content": "use X over Y"});
         assert_eq!(format_relevant_line(&e), "[2026-03-21] a/decision: use X over Y");
+    }
+
+    #[test]
+    fn test_recent_relevant_stops_reading_once_quota_filled_from_newest_files() {
+        // Cost must not grow with the archive backlog: files are named by timestamp, so once
+        // the newest files supply `n` relevant entries, older files cannot contribute and must
+        // never be opened. An unreadable old file proves it (opening it would error).
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("2026-01-01-000000-old.jsonl");
+        fs::write(&old, "{\"ts\":\"2026-01-01T00:00:00Z\",\"type\":\"decision\",\"agent\":\"a\",\"content\":\"old\"}\n").unwrap();
+        fs::set_permissions(&old, fs::Permissions::from_mode(0o000)).unwrap();
+        let mut newest = String::new();
+        for i in 0..3 {
+            newest.push_str(&format!("{{\"ts\":\"2026-09-2{}T00:00:00Z\",\"type\":\"decision\",\"agent\":\"a\",\"content\":\"new {}\"}}\n", i, i));
+        }
+        fs::write(tmp.path().join("2026-09-21-000000-new.jsonl"), newest).unwrap();
+        let got = recent_relevant(tmp.path(), 3).expect("must not open the unreadable old file");
+        fs::set_permissions(&old, fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(got.len(), 3);
+        assert_eq!(got[2]["content"], "new 2");
     }
 
     #[test]

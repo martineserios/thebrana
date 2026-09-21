@@ -280,6 +280,30 @@ write_goal "$WT"
 ( cd "$WT" && NODE_OPTIONS=--no-warnings BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err17"
 if is_registered "services/pkg/tests/env.test.js"; then bad "NODE_OPTIONS leaked into the runner (test ran red)"; else ok "NODE_OPTIONS stripped; test ran green, not registered"; fi
 
+echo "Test 18: a .js helper under tests/ WITHOUT node:test is never executed or registered"
+cat > "$WT/services/pkg/tests/seed.js" <<'JS'
+import { writeFileSync } from 'node:fs';
+writeFileSync(new URL('./seeded.marker', import.meta.url), 'ran');
+process.exit(1);
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err18"
+if [ -e "$WT/services/pkg/tests/seeded.marker" ]; then bad "helper script was executed (side effect happened)"; else ok "helper script never executed"; fi
+if is_registered "services/pkg/tests/seed.js"; then bad "helper wrongly registered as a red test"; else ok "helper not registered"; fi
+rm -f "$WT/services/pkg/tests/seeded.marker"
+
+echo "Test 19: a vitest-style file is declined with a reason, not registered red"
+cat > "$WT/services/pkg/tests/vt.spec.js" <<'JS'
+import { describe, it, expect } from 'vitest';
+describe('x', () => { it('y', () => { expect(1).toBe(2); }); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err19"
+if is_registered "services/pkg/tests/vt.spec.js"; then bad "vitest file wrongly registered (cannot ever go green under node:test)"; else ok "vitest file not registered"; fi
+if grep -q 'not a node:test file' "$WORK/err19"; then ok "decline reason names node:test"; else bad "no node:test decline reason: $(cat "$WORK/err19")"; fi
+
 echo "Test 16: declining to register logs a one-line reason on stderr"
 reset_repo
 printf 'just data\n' > "$REPO/tests/data.test.txt"
