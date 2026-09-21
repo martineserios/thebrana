@@ -35,19 +35,24 @@ log() { echo "[backup-memory] $*" >&2; }
 CONTEXT_LOG_MAX_LINES=500
 log_corruption_context() {
     local ctx_log="$DB_DIR/corruption-context.log"
-    local pids count
+    local pids count old_umask
+    # Gate 3 (t-3357): owner-only. umask covers the new file and the rotation tmp; the chmod
+    # below tightens a log an earlier version already created with the default umask.
+    old_umask=$(umask); umask 077
     # [r] keeps awk's own command line from matching its pattern.
     pids=$(ps -eo pid,args 2>/dev/null | awk '/[r]uflo mcp start/ {print $1}' | tr '\n' ' ')
     count=$(echo "$pids" | wc -w | tr -d ' ')
     {
         echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) integrity_check failed: $DB_FILE ruflo mcp start processes: ${count:-0} pids: ${pids:-none}"
-    } >> "$ctx_log" 2>/dev/null || return 0
+    } >> "$ctx_log" 2>/dev/null || { umask "$old_umask"; return 0; }
+    chmod 600 "$ctx_log" 2>/dev/null || true
     local lines
     lines=$(wc -l < "$ctx_log" 2>/dev/null || echo 0)
     if [ "$lines" -gt "$CONTEXT_LOG_MAX_LINES" ]; then
         tail -n "$CONTEXT_LOG_MAX_LINES" "$ctx_log" > "$ctx_log.tmp" 2>/dev/null \
             && mv "$ctx_log.tmp" "$ctx_log" 2>/dev/null
     fi
+    umask "$old_umask"
     return 0
 }
 

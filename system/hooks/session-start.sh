@@ -88,7 +88,16 @@ TMPDIR_SS="${BRANA_SS_TMPROOT:-/tmp}/brana-ss-${SESSION_ID}-$$"
 # Every job result goes through _ss_put; a failed write leaves a marker that
 # Phase 3 turns into a [Hook warning]. The probe catches a dir we cannot use.
 SS_TMP_FAIL=""
-mkdir -p "$TMPDIR_SS" 2>/dev/null || true
+SS_TMP_SHOW="$TMPDIR_SS"
+mkdir -p -m 700 "$TMPDIR_SS" 2>/dev/null || true
+# Gate 3 (t-3357): the path is predictable and may sit in a shared /tmp. Results are READ BACK
+# from this dir into additionalContext, so a dir another user pre-created (or a symlink) would
+# let them inject context. Anything not owned by us is unusable: point at a path that cannot
+# exist (nothing is read or written; the final rm -rf is a no-op) and surface the warning.
+if [ -L "$TMPDIR_SS" ] || { [ -e "$TMPDIR_SS" ] && [ ! -O "$TMPDIR_SS" ]; }; then
+    TMPDIR_SS="/nonexistent/brana-ss-unowned"
+    SS_TMP_FAIL=1
+fi
 { : > "$TMPDIR_SS/.probe"; } 2>/dev/null || SS_TMP_FAIL=1
 _ss_put() {  # usage: <producer> | _ss_put <name>
     { cat > "$TMPDIR_SS/$1"; } 2>/dev/null || { : > "$TMPDIR_SS/.write-failed"; } 2>/dev/null || true
@@ -887,7 +896,7 @@ if [ -n "$CF_WARNING" ]; then
 fi
 if [ -n "$SS_TMP_FAIL" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
-}[Hook warning] session-start temp dir unusable ($TMPDIR_SS) — recall/corrections/flywheel context may be missing this session. Check /tmp space and permissions."
+}[Hook warning] session-start temp dir unusable ($SS_TMP_SHOW) — recall/corrections/flywheel context may be missing this session. Check /tmp space and permissions."
 fi
 if [ -n "$TMP_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
