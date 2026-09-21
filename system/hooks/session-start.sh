@@ -83,8 +83,10 @@ printf '0\t0\n' > "$HOME/.claude/session-score.tsv" 2>/dev/null || true
 # Suffixed with $$ (t-2969): makes the directory unique per invocation, not
 # just per session_id (tests, and a resumed session, routinely fire this
 # hook more than once with the same session_id).
-TMPDIR_SS="/tmp/brana-ss-${SESSION_ID}-$$"
-mkdir -p "$TMPDIR_SS" 2>/dev/null || true
+TMPDIR_SS="${BRANA_SS_TMPROOT:-/tmp}/brana-ss-${SESSION_ID}-$$"
+# Temp-dir setup + checked writer _ss_put (t-3195, t-3357): lib/ss-tmpdir.sh. The fallback keeps the
+# pre-hardening behaviour if the lib is missing from a deployed copy.
+source "$SCRIPT_DIR/lib/ss-tmpdir.sh" 2>/dev/null || { SS_TMP_FAIL=""; SS_TMP_SHOW="$TMPDIR_SS"; mkdir -p "$TMPDIR_SS" 2>/dev/null; _ss_put() { cat > "$TMPDIR_SS/$1" 2>/dev/null || true; }; }
 # No `trap ... EXIT` here (t-2969): an EXIT trap set here is inherited by
 # every backgrounded subshell forked below (Job 1/1b/1c, the Phase 3
 # per-job kill-timers), any of which can independently re-fire it — under
@@ -231,21 +233,21 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         # Format as readable lines; output shape is {results: [{key, score, preview}]}
         CONTEXT=$(echo "$CF_JSON" | jq -r '.results[]? | "- \(.key) (score \(.score * 100 | floor / 100)): \(.preview)"' 2>/dev/null) || CONTEXT=""
         if [ $CF_EXIT -eq 124 ]; then
-            echo "TIMEOUT" > "$TMPDIR_SS/cf-warning"
+            echo "TIMEOUT" | _ss_put cf-warning
         elif [ -z "$CF_JSON" ]; then
             # No JSON at all — invocation failed (loud, not silent: see t-1936/t-1938)
-            echo "FAILED" > "$TMPDIR_SS/cf-warning"
+            echo "FAILED" | _ss_put cf-warning
         fi
-        echo "$CONTEXT" > "$TMPDIR_SS/cf-context"
+        echo "$CONTEXT" | _ss_put cf-context
         # Extract corrections from same result (correction-keyed entries)
         CP_LINES=$(echo "$CF_JSON" | jq -r '.results[]? | select(.key | test("correction"; "i")) | (.key + ": " + .preview)' 2>/dev/null | head -3) || CP_LINES=""
         if [ -n "$CP_LINES" ]; then
-            echo "$CP_LINES" > "$TMPDIR_SS/corrections"
+            echo "$CP_LINES" | _ss_put corrections
         fi
         # Store recalled pattern keys for promotion tracking (t-203).
         # Everything returned is a pattern-namespace hit — collect all keys.
         RECALLED_KEYS=$(echo "$CF_JSON" | jq -c '[.results[]?.key] // []' 2>/dev/null) || RECALLED_KEYS="[]"
-        echo "$RECALLED_KEYS" > "$TMPDIR_SS/recalled-keys"
+        echo "$RECALLED_KEYS" | _ss_put recalled-keys
     # stdout/stderr MUST be discarded: this subshell writes its result to
     # $TMPDIR_SS/*, not stdout. Without the redirect it inherits the script's
     # own stdout (the pipe a caller's `$(...)` is reading), and an orphaned
@@ -258,7 +260,7 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
     PIDS="$PIDS $!"
 else
     CF_WARNING="ruflo not found. Memory recall unavailable. Install: npm i -g ruflo"
-    echo "" > "$TMPDIR_SS/cf-context"
+    echo "" | _ss_put cf-context
 fi
 
 # Job 1b: flywheel insight — read last session's metrics, surface one
@@ -272,7 +274,7 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         done
         if [ -n "$FW_SCRIPT" ]; then
             # -k 2 </dev/null: see the CF_OUTPUT timeout above (t-2622).
-            timeout -k 2 12 bash "$FW_SCRIPT" "$PROJECT" </dev/null > "$TMPDIR_SS/flywheel-insight" 2>/dev/null || true
+            timeout -k 2 12 bash "$FW_SCRIPT" "$PROJECT" </dev/null 2>/dev/null | _ss_put flywheel-insight || true
         fi
     # See the t-2622 note above the Job 1 subshell — same orphaned-stdout hang.
     ) >/dev/null 2>&1 &
@@ -307,7 +309,7 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
                     '.[] | (.doc.MemoryFile.slug // .doc.KnowledgeEntry.key // "?") as $k |
                      "- \($k): \(.snippet | gsub("\n"; " ") | .[0:120])"' \
                     2>/dev/null) || RECALL_LINES=""
-                [ -n "$RECALL_LINES" ] && echo "$RECALL_LINES" > "$TMPDIR_SS/hybrid-recall"
+                [ -n "$RECALL_LINES" ] && echo "$RECALL_LINES" | _ss_put hybrid-recall
             fi
         fi
     # See the t-2622 note above the Job 1 subshell — same orphaned-stdout hang.
@@ -755,6 +757,7 @@ if [ -n "$PIDS" ]; then
 fi
 
 # Read results from temp files
+[ -e "$TMPDIR_SS/.write-failed" ] && SS_TMP_FAIL=1
 CONTEXT=""
 if [ -f "$TMPDIR_SS/cf-context" ]; then
     CONTEXT=$(cat "$TMPDIR_SS/cf-context" 2>/dev/null) || true
@@ -875,6 +878,10 @@ fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Hook warning] $CF_WARNING"
+fi
+if [ -n "$SS_TMP_FAIL" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Hook warning] session-start temp dir unusable ($SS_TMP_SHOW) — recall/corrections/flywheel context may be missing this session. Check /tmp space and permissions."
 fi
 if [ -n "$TMP_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

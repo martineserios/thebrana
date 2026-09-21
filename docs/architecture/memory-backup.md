@@ -12,6 +12,8 @@ Ruflo uses sql.js (in-memory SQLite) for its memory store, flushing to disk ever
 
 Copies `memory.db` directly. Fastest restore path — just copy back.
 
+A corrupt DB is never copied into the backup set. When `PRAGMA integrity_check` fails, the script also appends one line to `~/.swarm/corruption-context.log`: a timestamp, how many `ruflo mcp start` processes were alive at that moment, and their PIDs (t-2805). This is per-event evidence for the concurrency root cause (t-2802); it is not a fix. The log keeps the newest 500 lines and never fails a backup.
+
 ```bash
 # Manual backup
 system/scripts/backup-memory.sh

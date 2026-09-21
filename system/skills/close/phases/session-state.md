@@ -1,7 +1,7 @@
 <!-- close phase: Steps 9-9b: session state, consolidation counter, ruflo mirror — continues in initiative-accumulator.md (Step 9c); loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__memory_store")
+ToolSearch("select:mcp__ruflo__memory_store")
 
 ### Step 9: Write session state via CLI
 
@@ -289,6 +289,8 @@ Skip silently if the state file directory doesn't exist or Python fails — non-
 > Local session state (Step 9) is the primary record. This step adds searchability and cross-session awareness.
 >
 > **Removed 2026-08-12 (t-2754):** a "Call 2 — Cross-session close announcement" used to run here via `hive-mind_memory(action:"set", key:"client:{PROJECT}:session:closed:...")`, claiming "other terminals see the session ended + what's next via `/brana:sitrep`." That claim went false the moment sitrep's reader for this exact key pattern was removed in the same task (sitrep's former "Source 7"): the store is in-memory and resets per MCP restart, so it never delivered cross-session awareness in the first place. Removed rather than left as a write nobody reads.
+>
+> **Removed 2026-09-20 (t-2963):** a "Task claim release" call (`claims_release`) used to run here, paired with `claims_claim` at `/brana:backlog start` step 7b and `claims_release` at `/brana:backlog done` step 6b. The ruflo claims board was stale (precision 1/6 in the 2026-08-17 audit): claimant = branch at claim time, but close/done rebuilt it from the branch checked out after merge (`dev`), so release never matched. Everything the board could show is already derivable from `tasks.json` (`in_progress` + `branch`), `git worktree list` and `~/.claude/run-state`. Retired, not repaired (ADR-059, delegation-routing: ruflo's sanctioned surface is memory/recall only). Do not re-add claims.
 
 **Call 1: Session state to ruflo (searchable mirror)**
 
@@ -303,22 +305,6 @@ mcp__ruflo__memory_store(
 ```
 
 This makes session history semantically searchable: `memory_search(namespace: "session", query: "JWT auth")` finds past sessions by topic.
-
-**Call 2: Task claim release (guarded)**
-
-Only if an active task was being worked on this session:
-
-```
-# SESSION_ID = current branch name (git branch --show-current)
-# claimant must match the value used at claims_claim time (backlog start step 7b)
-mcp__ruflo__claims_release(
-  issueId: "task:{active_task_id}",
-  claimant: "agent:{SESSION_ID}:session",
-  reason: "session closed"
-)
-```
-
-If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 **Fallback:** If any MCP call fails, log the failure and continue. The CLI-based session state from Step 9 is the authoritative record. MCP failures are non-fatal.
 

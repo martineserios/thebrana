@@ -2,6 +2,7 @@
 depends_on:
   - docs/architecture/decisions/ADR-052-close-queue-architecture.md
   - docs/architecture/features/reminder-system.md
+  - docs/architecture/decisions/ADR-054-reminder-delivery-channels.md
   - docs/ideas/drained/async-close-design.md
 informs:
   - docs/ideas/drained/async-first-close.md
@@ -60,9 +61,24 @@ Classification logic lives in `system/scripts/close-classify.sh` — the single 
 | Store | Owner | Lock |
 |-------|-------|------|
 | `~/.claude/close-queue.json` | `brana close-queue append/list/mark-processed/mark-failed/prune` | sidecar `close-queue.json.lock` |
-| `~/.claude/reminders.json` | `brana remind write/list/resolve/snooze` | sidecar `reminders.json.lock` |
+| `~/.claude/reminders.json` | `brana remind write/list/due/resolve/snooze` (schema: see Reminder store schema v1 below) | sidecar `reminders.json.lock` |
 
 The cron touches the queue **only** through CLI subcommands — zero direct JSON reads — and re-reads per iteration, so a session closing mid-run cannot be dropped (challenger C4).
+
+### Reminder store schema v1 — lifecycle
+
+`reminders.json` is `{"version": 1, "reminders": [...]}` (`STORE_VERSION = 1`, `brana-core/src/remind.rs`). ADR-054 (t-1997/t-1998) extended the entry **additively** — all new keys are optional and omitted from the JSON when unset, so the version stays 1 and pre-existing stores load unchanged. A store with `version` greater than 1 is refused ("upgrade brana").
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `due` | RFC3339 UTC, optional | When to push. Absent = pull-only reminder, never dispatched. Set via `brana remind write --at` (RFC3339, `HH:MM` today-local, or `YYYY-MM-DD HH:MM` local; stored as UTC) |
+| `channels` | string list, optional | Explicit routing (`--channels telegram,desktop`). Absent/empty = the registry's per-priority defaults; `["all"]` = broadcast |
+| `dispatched_at` | RFC3339 UTC, optional | Idempotency marker. Non-null = never dispatched again |
+| `task_id` | string, optional | Linked backlog task (t-2116) |
+
+Lifecycle with dispatch: `write` (with `--at`) -> `pending` -> **eligible** when `status = pending AND due <= now AND dispatched_at IS NULL` (`brana remind due`) -> `brana remind due --dispatch` -> `dispatched_at` set -> `resolve` / `snooze` / 30-day expiry as before. Snooze-expiry and expiry transitions settle under the store lock *before* the eligibility filter, so a snooze-expired entry with a past `due` is dispatched.
+
+Dispatch is two-phase and never holds the lock across network I/O: select (locked) -> send per resolved channel (unlocked) -> commit (locked re-read; `dispatched_at` set only for entries with at least one successful send whose marker is still null). Send-then-mark means a crash yields a duplicate ping, never a silent loss; if every channel fails the entry stays unmarked and retries next run. A reminder whose routing resolves to no channels (e.g. `low` priority with `low: []`) is skipped, left unmarked, and stays pull-only. The message is `⏰ {text}` plus `→ {action}` when an action is set. The channel registry (`~/.claude/notify-channels.json`) is hand-edited; without it dispatch is a no-op. See [ADR-054](../decisions/ADR-054-reminder-delivery-channels.md).
 
 ### Extraction contract (ADR-052 §6)
 

@@ -46,22 +46,48 @@ mapfile -t ADDED < <(git -C "$ROOT" diff --cached --name-only --diff-filter=A 2>
     | grep -E "$GRADER_RE" || true)
 [ "${#ADDED[@]}" -eq 0 ] && exit 0
 
+# Reason the last run_red declined (logged to stderr so a non-registration is never silent).
+DECLINE=""
+
 # Run the staged blob of $1 (repo-relative). Returns 0 iff it ran RED (exit != 0 and not
 # a timeout). Extracts the blob into the file's own directory under a temp name so the
-# test's own relative `source ../foo` resolves exactly as it will once committed.
-# Only `.sh` tests are runnable here (this repo's test suites are bash); any other type is
-# fail-closed (not registered → grader blocks → human completes manually).
+# test's own relative imports/`source ../foo` resolve exactly as they will once committed.
+# Runners by extension: .sh -> bash; .js/.mjs/.cjs -> `node --test`, executed from the
+# nearest ancestor dir holding a package.json (the nested package root, t-3345) — never
+# assumed to be the repo root. Any other type is fail-closed (not registered → grader
+# blocks → human completes manually) and the reason is logged.
 run_red() {
-    local f="$1" dir base tmp rc
+    local f="$1" dir base tmp rc runner pkg
+    DECLINE=""
     case "$f" in
-        *.sh) : ;;
-        *) return 1 ;;   # un-runnable type → fail-closed (treated as not-red)
+        *.sh) runner=bash ;;
+        *.js|*.mjs|*.cjs)
+            runner=node
+            command -v node >/dev/null 2>&1 || { DECLINE="node not on PATH"; return 1; } ;;
+        *) DECLINE="no runner for this file type (supported: .sh, .js, .mjs, .cjs)"; return 1 ;;
     esac
     dir=$(dirname "$ROOT/$f")
     base=$(basename "$f")
-    [ -d "$dir" ] || return 1
+    [ -d "$dir" ] || { DECLINE="test directory missing"; return 1; }
     tmp="$dir/.red-verify-$$-$base"
-    git -C "$ROOT" show ":$f" > "$tmp" 2>/dev/null || { rm -f "$tmp"; return 1; }
+    git -C "$ROOT" show ":$f" > "$tmp" 2>/dev/null || { rm -f "$tmp"; DECLINE="staged blob unreadable"; return 1; }
+    # Only files that IMPORT node:test are runnable red tests. GRADER_RE also matches helpers,
+    # seed scripts and other frameworks' files under tests/: running those would execute side
+    # effects, or fail for lack of a global (jest/vitest) and be registered "red" although they
+    # can never go green under `node --test` (Gate 3, t-3357).
+    if [ "$runner" = node ] && ! grep -q -E "node:test" "$tmp" 2>/dev/null; then
+        rm -f "$tmp"
+        DECLINE="not a node:test file (only files importing node:test are run; helpers and other frameworks are declined)"
+        return 1
+    fi
+    # Working dir: repo root for bash; nearest package.json dir (bounded by ROOT) for node.
+    pkg="$ROOT"
+    if [ "$runner" = node ]; then
+        pkg="$dir"
+        while [ "$pkg" != "$ROOT" ] && [ "$pkg" != "/" ] && [ ! -f "$pkg/package.json" ]; do
+            pkg=$(dirname "$pkg")
+        done
+    fi
     # Git exports GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE (and friends) into this hook's own
     # process. Those override path-based repo discovery, so any git commands the staged
     # test itself runs (e.g. `git init`/`commit` in a throwaway mktemp fixture) would
@@ -71,13 +97,22 @@ run_red() {
     # tests/scripts/test-check-oracle-brana-drift.sh, tests/scripts/test-ship-brana-oracle.sh,
     # and documented in docs/architecture/features/build-receipts.md — no shared source yet
     # (t-2602 challenger finding); update all four if the list ever changes.
-    ( cd "$ROOT" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
-        -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
-        timeout 60 bash "$tmp" ) >/dev/null 2>&1
+    if [ "$runner" = node ]; then
+        ( cd "$pkg" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+            -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
+            -u NODE_OPTIONS \
+            timeout -k 2 60 node --test "$tmp" ) >/dev/null 2>&1
+    else
+        ( cd "$ROOT" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+            -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
+            timeout -k 2 60 bash "$tmp" ) >/dev/null 2>&1
+    fi
     rc=$?
     rm -f "$tmp"
     # Timeout (124) is ambiguous, not a clean red → fail-closed.
-    [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]
+    if [ "$rc" -eq 124 ]; then DECLINE="timed out (ambiguous, not a clean red)"; return 1; fi
+    if [ "$rc" -eq 0 ]; then DECLINE="ran green (exit 0) — not red"; return 1; fi
+    return 0
 }
 
 registered=0
@@ -114,7 +149,10 @@ for f in "${ADDED[@]}"; do
             registered=$((registered + 1))
         else
             rm -f "$tmp"
+            echo "red-verification: not registering $f: could not update goal file" >&2
         fi
+    else
+        echo "red-verification: not registering $f: ${DECLINE:-not red}" >&2
     fi
 done
 

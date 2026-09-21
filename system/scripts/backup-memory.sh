@@ -26,6 +26,36 @@ MAX_BACKUPS=7
 
 log() { echo "[backup-memory] $*" >&2; }
 
+# Per-event evidence for the memory.db corruption root cause (t-2802, t-2805):
+# concurrent "ruflo mcp start" processes racing the WAL. When integrity_check
+# fails, record how many such processes are alive and their PIDs, so each
+# corruption can be correlated with concurrency instead of inferred after the
+# fact from a daemon.log that rotates too fast. Best-effort and bounded — the
+# log never grows past CONTEXT_LOG_MAX_LINES and can never fail a backup.
+CONTEXT_LOG_MAX_LINES=500
+log_corruption_context() {
+    local ctx_log="$DB_DIR/corruption-context.log"
+    local pids count old_umask
+    # Gate 3 (t-3357): owner-only. umask covers the new file and the rotation tmp; the chmod
+    # below tightens a log an earlier version already created with the default umask.
+    old_umask=$(umask); umask 077
+    # [r] keeps awk's own command line from matching its pattern.
+    pids=$(ps -eo pid,args 2>/dev/null | awk '/[r]uflo mcp start/ {print $1}' | tr '\n' ' ')
+    count=$(echo "$pids" | wc -w | tr -d ' ')
+    {
+        echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) integrity_check failed: $DB_FILE ruflo mcp start processes: ${count:-0} pids: ${pids:-none}"
+    } >> "$ctx_log" 2>/dev/null || { umask "$old_umask"; return 0; }
+    chmod 600 "$ctx_log" 2>/dev/null || true
+    local lines
+    lines=$(wc -l < "$ctx_log" 2>/dev/null || echo 0)
+    if [ "$lines" -gt "$CONTEXT_LOG_MAX_LINES" ]; then
+        tail -n "$CONTEXT_LOG_MAX_LINES" "$ctx_log" > "$ctx_log.tmp" 2>/dev/null \
+            && mv "$ctx_log.tmp" "$ctx_log" 2>/dev/null
+    fi
+    umask "$old_umask"
+    return 0
+}
+
 # A DB is healthy if PRAGMA integrity_check returns "ok". Real corruption is a
 # malformed PAGE in a normal-sized file, so a size check alone misses it (t-2236).
 # Degrade to healthy if sqlite3 is unavailable — never block backup on a missing
@@ -77,6 +107,7 @@ cmd_backup() {
     # unconditionally (t-2260 — the old skip-on-wal loophole let corruption
     # through unchecked for 10 days).
     if ! db_is_healthy "$DB_FILE"; then
+        log_corruption_context
         log "skip — $DB_FILE fails integrity_check (corrupt page). Not overwriting good backups."
         exit 0
     fi

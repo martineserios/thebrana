@@ -238,6 +238,82 @@ run_hook
 H3=$(jq -r '.tests_hashes["tests/test-red.sh"]' "$GOAL")
 if [ "$H3" = "$H2" ]; then ok "green re-stage does not re-pin"; else bad "green re-stage re-pinned ($H2 -> $H3)"; fi
 
+# ── t-3345: nested-package node --test file committed from a worktree ─────────
+# Root cause: run_red() only ran *.sh — a node --test file was "un-runnable type"
+# and declined silently, so goal auto-complete was never armed.
+echo "Test 14: red node --test file in nested package, committed from a worktree → registered"
+reset_repo
+WT="$WORK/wt"
+git -C "$REPO" worktree add -q -b wt-branch "$WT" HEAD
+mkdir -p "$WT/services/pkg/tests"
+printf '{"name":"pkg","type":"module"}\n' > "$WT/services/pkg/package.json"
+cat > "$WT/services/pkg/tests/thing.test.js" <<'JS'
+import { test } from 'node:test';
+import assert from 'node:assert';
+test('red', () => { assert.strictEqual(1, 2); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT/services/pkg" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err14"
+is_registered "services/pkg/tests/thing.test.js"; check $? "nested red node test registered from worktree"
+
+echo "Test 15: green node --test file in nested package → NOT registered (fail-closed)"
+cat > "$WT/services/pkg/tests/green.test.js" <<'JS'
+import { test } from 'node:test';
+import assert from 'node:assert';
+test('green', () => { assert.strictEqual(1, 1); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err15"
+if is_registered "services/pkg/tests/green.test.js"; then bad "green node test wrongly registered"; else ok "green node test left unregistered"; fi
+is_registered "services/pkg/tests/thing.test.js"; check $? "red sibling in same commit still registered"
+
+echo "Test 17: node runner does not inherit NODE_OPTIONS (green test stays unregistered)"
+cat > "$WT/services/pkg/tests/env.test.js" <<'JS'
+import { test } from 'node:test';
+import assert from 'node:assert';
+test('NODE_OPTIONS is not inherited', () => { assert.strictEqual(process.env.NODE_OPTIONS, undefined); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && NODE_OPTIONS=--no-warnings BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err17"
+if is_registered "services/pkg/tests/env.test.js"; then bad "NODE_OPTIONS leaked into the runner (test ran red)"; else ok "NODE_OPTIONS stripped; test ran green, not registered"; fi
+
+echo "Test 18: a .js helper under tests/ WITHOUT node:test is never executed or registered"
+cat > "$WT/services/pkg/tests/seed.js" <<'JS'
+import { writeFileSync } from 'node:fs';
+writeFileSync(new URL('./seeded.marker', import.meta.url), 'ran');
+process.exit(1);
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err18"
+if [ -e "$WT/services/pkg/tests/seeded.marker" ]; then bad "helper script was executed (side effect happened)"; else ok "helper script never executed"; fi
+if is_registered "services/pkg/tests/seed.js"; then bad "helper wrongly registered as a red test"; else ok "helper not registered"; fi
+rm -f "$WT/services/pkg/tests/seeded.marker"
+
+echo "Test 19: a vitest-style file is declined with a reason, not registered red"
+cat > "$WT/services/pkg/tests/vt.spec.js" <<'JS'
+import { describe, it, expect } from 'vitest';
+describe('x', () => { it('y', () => { expect(1).toBe(2); }); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err19"
+if is_registered "services/pkg/tests/vt.spec.js"; then bad "vitest file wrongly registered (cannot ever go green under node:test)"; else ok "vitest file not registered"; fi
+if grep -q 'not a node:test file' "$WORK/err19"; then ok "decline reason names node:test"; else bad "no node:test decline reason: $(cat "$WORK/err19")"; fi
+
+echo "Test 16: declining to register logs a one-line reason on stderr"
+reset_repo
+printf 'just data\n' > "$REPO/tests/data.test.txt"
+git -C "$REPO" add tests/data.test.txt
+write_goal
+( cd "$REPO" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err16"
+if grep -q 'red-verification: not registering tests/data.test.txt' "$WORK/err16"; then ok "decline reason logged"; else bad "no decline reason on stderr: $(cat "$WORK/err16")"; fi
+git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
+git -C "$REPO" branch -qD wt-branch 2>/dev/null
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed."

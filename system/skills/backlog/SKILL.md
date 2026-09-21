@@ -17,9 +17,6 @@ allowed-tools:
   - AskUserQuestion
   - Task
   - mcp__ruflo__memory_search
-  - mcp__ruflo__claims_claim
-  - mcp__ruflo__claims_release
-  - mcp__ruflo__claims_mark-stealable
   - TaskCreate
   - TaskList
   - TaskUpdate

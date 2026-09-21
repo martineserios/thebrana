@@ -98,11 +98,13 @@ Based on empirical testing (store-kill-recall, response inspection, source code 
 
 | Skill | Change |
 |-------|--------|
-| **close** | 3 additive MCP calls: session mirror (`agentdb_session-end`), hive-mind announce (`hive-mind_broadcast`), claims release (`claims_release`) |
+| **close** | Session mirror to ruflo. (Originally 3 additive MCP calls; the hive-mind announce was removed in t-2754 and the claims release in t-2963 — see the amendment below.) |
 | **sitrep** | Pattern-search as Source 6 (`hooks_intelligence_pattern-search`), hive-mind as Source 7 (`hive-mind_memory`) |
 | **research** | Phase 0 uses `memory_search(namespace: "all")` instead of 4 separate CLI calls |
-| **build** | Announces to hive-mind on start; backlog start/done claims tasks |
+| **build** | Announces to hive-mind on start. (Backlog start/done no longer claim tasks — t-2963.) |
 | **index-knowledge.sh** | Upgraded to 7 doc categories with tier tags |
+
+**AMENDMENT (2026-09-20, t-2963):** `claims_claim` / `claims_release` are retired from every skill (backlog start/done/execute, build load, close). The claims board was stale — precision 1/6 in the 2026-08-17 audit — because the claimant was the branch at claim time while close/done rebuilt it from the branch checked out after merge (`dev`), so releases never matched. What the board could show is already derivable from `tasks.json` (`in_progress` + `branch`), `git worktree list` and `~/.claude/run-state`, and ADR-059 limits ruflo's sanctioned surface to memory/recall. Retired rather than repaired; `tests/procedures/test-no-ruflo-claims-in-skills.sh` guards against re-adding them.
 | **index-skills.sh** | New script for skill frontmatter indexing |
 | **session-start hook** | Runs `index-skills.sh --changed` in background |
 

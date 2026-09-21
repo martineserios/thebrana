@@ -545,6 +545,30 @@ else
     echo "$DIRECT_REFS" | sed 's/^/        /'
 fi
 
+# ── t-3195: temp-dir failures must be visible, never fatal ──
+echo ""
+echo "Test t-3195: unwritable temp dir surfaces a warning"
+T3195_ROOT=$(mktemp -d)
+: > "$T3195_ROOT/blocker"   # a FILE: mkdir under it fails, even as root
+T3195_IN='{"session_id":"'"$SESSION_ID"'-t3195","cwd":"'"$REPO_ROOT"'"}'
+T3195_OUT=$(echo "$T3195_IN" | BRANA_SS_TMPROOT="$T3195_ROOT/blocker/sub" bash "$HOOK" 2>/dev/null | grep '^{' | head -1) || true
+assert_valid_json "unwritable tmp → valid JSON" "$T3195_OUT"
+assert_outcome "unwritable tmp → continue:true" "true" "$(echo "$T3195_OUT" | jq -r '.continue' 2>/dev/null)"
+T3195_CTX=$(echo "$T3195_OUT" | jq -r '.hookSpecificOutput.additionalContext // .additionalContext // ""' 2>/dev/null)
+assert_contains "unwritable tmp → visible warning" "$T3195_CTX" "[Hook warning] session-start temp dir"
+
+echo ""
+echo "Test t-3195: writable temp dir emits no temp-dir warning"
+T3195_OK=$(echo "$T3195_IN" | BRANA_SS_TMPROOT="$T3195_ROOT" bash "$HOOK" 2>/dev/null | grep '^{' | head -1) || true
+T3195_OKCTX=$(echo "$T3195_OK" | jq -r '.hookSpecificOutput.additionalContext // .additionalContext // ""' 2>/dev/null)
+if [[ "$T3195_OKCTX" == *"session-start temp dir"* ]]; then
+    FAIL=$((FAIL + 1)); echo "  FAIL: writable tmp produced a temp-dir warning"
+else
+    PASS=$((PASS + 1)); echo "  PASS: writable tmp → no temp-dir warning"
+fi
+rm -rf "$T3195_ROOT"
+rm -f "/tmp/brana-session-${SESSION_ID}-t3195.jsonl" "/tmp/brana-context-${SESSION_ID}-t3195.md"
+
 # ── Cleanup ──
 rm -f "$CONTEXT_FILE"
 rm -f "/tmp/brana-session-${SESSION_ID}.jsonl" "/tmp/brana-session-${SESSION_ID}-timing.jsonl" "/tmp/brana-session-${SESSION_ID}-nongit.jsonl" "/tmp/brana-session-${SESSION_ID}-trim.jsonl" "/tmp/brana-session-${SESSION_ID}-nocf.jsonl"

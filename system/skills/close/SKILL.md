@@ -22,7 +22,6 @@ allowed-tools:
   - Skill
   - mcp__ruflo__memory_store
   - mcp__ruflo__memory_search
-  - mcp__ruflo__claims_release
   - ToolSearch
 status: stable
 growth_stage: evergreen
@@ -89,7 +88,7 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 Register these steps: GATE, SNAPSHOT, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, PROPAGATE, HANDOFF, RUFLO-SYNC, INITIATIVE-ACCUMULATOR, METADATA, MEMORY-REVIEW, WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_store,mcp__ruflo__memory_search,mcp__ruflo__claims_release,mcp__brana__memory_index")
+ToolSearch("select:mcp__ruflo__memory_store,mcp__ruflo__memory_search,mcp__brana__memory_index")
 
 ## Rules
 
