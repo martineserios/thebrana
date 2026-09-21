@@ -62,3 +62,4 @@ Next session, the hook reads this and presents context automatically.
 - Say "done", "bye", or "closing" and brana auto-detects close mode
 - Read-only sessions (no commits) get a minimal handoff -- no full debrief
 - The system works even without ruflo -- handoff notes and auto memory are the fallback
+- If the hook cannot use its temp dir (full or read-only /tmp), session start still succeeds but adds a `[Hook warning] session-start temp dir unusable` line to the context, since recall/corrections/flywheel results would be missing. `BRANA_SS_TMPROOT` overrides the temp root (used by tests).
