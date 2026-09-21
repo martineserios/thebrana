@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-17T11:41:20Z",
+  "generated": "2026-09-21T18:27:02Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2219,6 +2219,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/field-notes/t-1852-mcp-tool-exposure-audit.md": {
+      "title": "Field Note: MCP Tool Exposure Audit vs the 10-30 Tool Limit",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/glossary.md": {
       "title": "Domain Glossary — Operating Model",
       "type": "Roadmap",
@@ -3328,7 +3333,8 @@
       "title": "Decision Log",
       "type": "Roadmap",
       "impl_files": [
-        "system/state/decisions/archive/"
+        "system/state/decisions/archive/",
+        "system/state/decisions/"
       ]
     },
     "docs/guide/workflows/drain-loop.md": {
@@ -4350,6 +4356,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/research/2026-09-19-chatwoot-kapso-vs-respondio.md": {
+      "title": "Research: Chatwoot + Kapso + servicios propios vs respond.io",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/research/agentic-engineering-2026-gap-analysis.md": {
       "title": "Gap Analysis: Agentic Engineering Feb–Jul 2026 vs brana",
       "type": "Roadmap",
@@ -4527,6 +4538,20 @@
       "title": "",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/reviews/weekly-2026-09-11.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/stale-lifecycle.sh"
+      ]
+    },
+    "docs/reviews/weekly-2026-09-18.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/ruflo-mcp.sh"
+      ]
     },
     "docs/skills-system.md": {
       "title": "Skills System Guide",
@@ -5986,9 +6011,27 @@
     },
     {
       "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
       "to": "docs/architecture/features/reminder-system.md",
       "type": "depends_on",
       "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/domain/MODEL-001-brana-core.md",
+      "type": "depends_on",
+      "computed": true
     },
     {
       "from": "docs/architecture/features/async-close.md",
@@ -12166,6 +12209,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/field-notes/t-1852-mcp-tool-exposure-audit.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/hooks.md",
       "type": "references",
       "computed": false
@@ -13954,6 +14003,12 @@
     },
     {
       "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
       "to": "docs/guide/features/async-close.md",
       "type": "references",
       "computed": false
@@ -14189,6 +14244,12 @@
     {
       "from": "docs/architecture/features/context-budget-real-limits.md",
       "to": "docs/architecture/dimensions/35-context-engineering-principles.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/context-budget-real-limits.md",
+      "to": "docs/architecture/field-notes/t-1852-mcp-tool-exposure-audit.md",
       "type": "references",
       "computed": false
     },
@@ -14693,6 +14754,18 @@
     {
       "from": "docs/architecture/features/youtube-knowledge-extraction.md",
       "to": "docs/ideas/youtube-knowledge-extraction.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/field-notes/t-1852-mcp-tool-exposure-audit.md",
+      "to": "docs/architecture/features/context-budget-real-limits.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/field-notes/t-1852-mcp-tool-exposure-audit.md",
+      "to": "t-1773-toolsearch-baseline.md",
       "type": "references",
       "computed": false
     },
@@ -19798,9 +19871,9 @@
     }
   ],
   "stats": {
-    "nodes": 637,
-    "edges": 2543,
-    "typed_edges": 739,
-    "orphans": 141
+    "nodes": 641,
+    "edges": 2551,
+    "typed_edges": 742,
+    "orphans": 144
   }
 }
