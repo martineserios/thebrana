@@ -52,6 +52,7 @@ if grep -q "ruflo mcp start" "$LOG" 2>/dev/null; then ok "entry names 'ruflo mcp
 if grep -qE "processes: 2\b" "$LOG" 2>/dev/null; then ok "process count is 2"; else bad "process count not 2 — got: $(cat "$LOG" 2>/dev/null)"; fi
 if grep -q "1234" "$LOG" 2>/dev/null && grep -q "5678" "$LOG" 2>/dev/null; then ok "both daemon PIDs recorded"; else bad "daemon PIDs missing"; fi
 if grep -q "9999" "$LOG" 2>/dev/null; then bad "unrelated PID leaked into log"; else ok "unrelated process not recorded"; fi
+if [ "$(stat -c %a "$LOG" 2>/dev/null)" = "600" ]; then ok "log created with mode 600"; else bad "log mode is $(stat -c %a "$LOG" 2>/dev/null), want 600"; fi
 if ls "$DATA/backups"/memory_*.db >/dev/null 2>&1; then bad "corrupt DB was backed up"; else ok "corrupt DB not backed up (existing behaviour intact)"; fi
 
 echo "=== Scenario 2: log is size-bounded (rotates) ==="
@@ -61,6 +62,7 @@ run_backup
 AFTER=$(wc -l < "$LOG")
 if [ "$AFTER" -lt "$BEFORE" ]; then ok "log shrank from $BEFORE to $AFTER lines"; else bad "log did not rotate ($BEFORE -> $AFTER)"; fi
 if [ "$AFTER" -le 500 ]; then ok "log bounded at <=500 lines ($AFTER)"; else bad "log unbounded ($AFTER lines)"; fi
+if [ "$(stat -c %a "$LOG" 2>/dev/null)" = "600" ]; then ok "log still mode 600 after rotation"; else bad "log mode after rotation is $(stat -c %a "$LOG" 2>/dev/null), want 600"; fi
 if grep -qE "processes: 2\b" "$LOG"; then ok "newest entry survives rotation"; else bad "newest entry lost in rotation"; fi
 
 echo "=== Scenario 3: healthy DB writes no corruption entry ==="
