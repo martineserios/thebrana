@@ -66,6 +66,14 @@ grep -E 'gh pr checks.*\|\|.*(exit|return)' "$SHIP" >/dev/null && ok "a failed '
 grep -qE 'Options: \["Abort[^]]*", "Merge now"\]' "$SHIP" && ok "merge gate lists Abort before 'Merge now'" || bad "merge gate does not put Abort first"
 grep -qE 'Every gate fails closed|every gate fails closed' "$SHIP" && ok "the fail-closed rule covers every gate, not only the last" || bad "fail-closed rule is not stated for every gate"
 
+# Round 3: the merge block itself must fail closed, and the surrounding steps must not contradict the Rules.
+MERGE_BLOCK=$(awk '/^```/{inb=!inb; if(inb){n++; blk[n]=""}; next} inb{blk[n]=blk[n] $0 "\n"} END{for(i=1;i<=n;i++) if (blk[i] ~ /gh pr merge/) printf "%s", blk[i]}' "$SHIP")
+echo "$MERGE_BLOCK" | grep -qE '^set -e' && ok "the merge block runs under set -e (a refused merge stops the sequence)" || bad "the merge block has no set -e — a refused merge would fall through to push"
+echo "$MERGE_BLOCK" | grep -qE '\[ -n "\$PR" \]' && echo "$MERGE_BLOCK" | grep -qE '\[ -n "\$SHA" \]' && ok "the merge block refuses an empty PR or SHA (no unpinned merge)" || bad "the merge block does not guard against an empty PR/SHA"
+[ "$(grep -c 'clear the goal' "$SHIP")" -ge 4 ] && ok "every stop path says to clear the goal ($(grep -c 'clear the goal' "$SHIP") mentions)" || bad "fewer than 4 stop paths mention clearing the goal"
+grep -q 're-run Step 1' "$SHIP" && ok "'Fix before deploy' says to re-run Step 1 so the human sees the new commits" || bad "'Fix before deploy' has no continuation (re-run Step 1)"
+grep -qiE 'before running the detected command' "$SHIP" && ok "non-PR deploys are gated before the detected command runs" || bad "the detected command still runs unconditionally for non-PR deploys"
+
 echo "=== Part B: docs audit table matches the frontmatter ==="
 # Scope to the audit table only: other tables in the doc (e.g. MCP usage) reuse skill names.
 AUDIT_ROWS=$(awk '/^\| Skill \| Group \| Classification \| Rationale \|/{t=1; next} t && /^\|/{print; next} t && NF{exit}' "$DOC")
