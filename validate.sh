@@ -2921,6 +2921,23 @@ else
 fi
 echo ""
 
+# Check 75: private state files must stay untracked + gitignored in this PUBLIC repo (t-3352)
+# system/state/portfolio.md and tasks-portfolio.json hold client/venture data (fees, ids, names);
+# sync-state.sh --auto-commit ran `git add system/state/` and published them for six months.
+echo "Checking private state files are untracked and gitignored (t-3352)..."
+C75_SCRIPT="$SCRIPT_DIR/system/scripts/check-private-state-untracked.sh"
+if [ ! -f "$C75_SCRIPT" ]; then
+    fail "Check 75: $C75_SCRIPT is missing — the private-state guard cannot run (t-3352)"
+else
+    if C75_OUT=$(bash "$C75_SCRIPT" "$SCRIPT_DIR" 2>&1); then
+        pass "Check 75: portfolio.md and tasks-portfolio.json are untracked and gitignored (public repo)"
+    else
+        printf '%s\n' "$C75_OUT" | sed 's/^/  /'
+        fail "Check 75: private state file(s) tracked or not gitignored in a public repo — see above (t-3352)"
+    fi
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 # Labeled Check 73 below — this block used to collide with the real, always-
 # run "MCP wrapper exec pattern" check that legitimately owns number 27
