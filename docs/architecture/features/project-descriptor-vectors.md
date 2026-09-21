@@ -107,10 +107,11 @@ what the scoring pass consumes.
 
 ## Operating notes
 
-- Descriptors live in the repo copy (`system/state/tasks-portfolio.json`) and
-  reach `~/.claude/tasks-portfolio.json` via `sync-state.sh pull`. Editing the
-  cache copy directly and then running `sync-state.sh push` is the other
-  direction — do not do both in one session or one will overwrite the other.
+- Descriptors live in `~/.claude/tasks-portfolio.json` (the cache, the source of truth
+  on a machine). There is no copy in the public thebrana repo (t-3352):
+  `sync-state.sh push` backs the file up to the private brana-knowledge repo
+  (`backup/state/`), and `sync-state.sh pull` restores it from there on a new machine.
+  Edit the cache file directly.
 - Re-run the command after editing any descriptor; nothing watches the file.
 
 ## Open

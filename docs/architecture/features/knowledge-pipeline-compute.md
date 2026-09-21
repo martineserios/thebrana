@@ -259,10 +259,9 @@ raw `CLAUDE.md` cross-tags siblings on shared stack vocabulary.
 To change what a project matches:
 
 1. Edit `clients[].projects[].descriptor` on the portfolio record — domain, customer,
-   problem, **no stack words**. The repo copy is
-   `system/state/tasks-portfolio.json`; it reaches
-   `~/.claude/tasks-portfolio.json` via `sync-state.sh pull` (do not edit both
-   copies in one session — one direction overwrites the other).
+   problem, **no stack words**. Edit `~/.claude/tasks-portfolio.json` directly;
+   there is no copy in the public thebrana repo (t-3352). `sync-state.sh push` backs
+   it up to the private brana-knowledge repo and `pull` restores it from there.
 2. Run `brana knowledge project-vectors`. Nothing watches the file; a project
    is re-embedded only when its descriptor text changes (SHA-256 of the exact
    embedded text), and `--force` covers a changed embedding model, which the
