@@ -42,7 +42,7 @@ GATES=$(grep -c "AskUserQuestion" "$SKILLS/ship/SKILL.md")
 # unattended: no merge gate existed. Counting AskUserQuestion strings cannot see that, so
 # assert the merge gate's position (before `gh pr merge`) and that it fails closed.
 SHIP="$SKILLS/ship/SKILL.md"
-GATE_LINE=$(grep -n "\*\*Merge gate (mandatory" "$SHIP" | head -1 | cut -d: -f1)   # the real gate paragraph, not the Rules bullet
+GATE_LINE=$(grep -nE "\*\*(B — )?Merge gate \(mandatory" "$SHIP" | head -1 | cut -d: -f1)   # the real gate paragraph, not the Rules bullet
 MERGE_LINE=$(grep -n 'gh pr merge "\$PR"' "$SHIP" | head -1 | cut -d: -f1)
 if [ -n "$GATE_LINE" ] && [ -n "$MERGE_LINE" ] && [ "$GATE_LINE" -lt "$MERGE_LINE" ]; then
     ok "ship has a Merge gate before 'gh pr merge' (line $GATE_LINE < $MERGE_LINE)"
@@ -52,6 +52,19 @@ fi
 sed -n "${GATE_LINE:-1},$((${GATE_LINE:-1} + 25))p" "$SHIP" | grep -qiE "fail(s)? closed" \
     && ok "the merge gate fails closed when AskUserQuestion is unavailable" \
     || bad "the merge gate does not state that it fails closed"
+
+# Structure (Gate 3 round 2): prose above ONE unbroken fence is not a gate — a faithful runner
+# executes the block as a single call and never asks. `gh pr checks` and `gh pr merge` must be
+# in DIFFERENT fenced code blocks, the merge must be pinned to the SHA shown at the gate, the
+# checks must abort the run on failure, and Abort must be listed before "Merge now" so a
+# first-option responder cannot fail open.
+BLOCKS=$(awk '/^```/{inb=!inb; if(inb)n++; next} inb && /gh pr checks/{c=n} inb && /gh pr merge/{m=n} END{print c" "m}' "$SHIP")
+set -- $BLOCKS
+if [ -n "${1:-}" ] && [ -n "${2:-}" ] && [ "$1" != "$2" ]; then ok "gh pr checks (block $1) and gh pr merge (block $2) are in different fenced blocks"; else bad "gh pr checks and gh pr merge share one fenced block (or one is missing): '$BLOCKS'"; fi
+grep -q -- '--match-head-commit' "$SHIP" && ok "merge is pinned with --match-head-commit" || bad "merge is not pinned to the reviewed head commit"
+grep -E 'gh pr checks.*\|\|.*(exit|return)' "$SHIP" >/dev/null && ok "a failed 'gh pr checks' aborts the run" || bad "'gh pr checks' has no '|| exit' — a red run would fall through"
+grep -qE 'Options: \["Abort[^]]*", "Merge now"\]' "$SHIP" && ok "merge gate lists Abort before 'Merge now'" || bad "merge gate does not put Abort first"
+grep -qE 'Every gate fails closed|every gate fails closed' "$SHIP" && ok "the fail-closed rule covers every gate, not only the last" || bad "fail-closed rule is not stated for every gate"
 
 echo "=== Part B: docs audit table matches the frontmatter ==="
 # Scope to the audit table only: other tables in the doc (e.g. MCP usage) reuse skill names.

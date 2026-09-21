@@ -33,12 +33,19 @@ for f in "${PRIVATE_FILES[@]}"; do
     else
         src=""
     fi
-    case "$src" in
-        .gitignore:*|*/.gitignore:*) ;;
-        *)
-            echo "NOT GITIGNORED (in a committed .gitignore): $f — add it to .gitignore so 'git add system/state/' cannot re-publish it"
-            BAD=1
-            ;;
+    # The rule's source must be a .gitignore that is itself TRACKED and repo-relative. An
+    # untracked nested .gitignore, or a global core.excludesFile (absolute path), protects only
+    # this clone/machine — a fresh clone or CI would not have it.
+    srcfile="${src%%:*}"
+    case "$srcfile" in
+        /*|"") ok_src=0 ;;
+        *.gitignore)
+            if git -C "$ROOT" ls-files --error-unmatch -- "$srcfile" >/dev/null 2>&1; then ok_src=1; else ok_src=0; fi ;;
+        *) ok_src=0 ;;
     esac
+    if [ "$ok_src" -ne 1 ]; then
+        echo "NOT GITIGNORED (in a TRACKED, repo-relative .gitignore): $f — add it to a committed .gitignore so 'git add system/state/' cannot re-publish it"
+        BAD=1
+    fi
 done
 exit "$BAD"

@@ -32,6 +32,7 @@ mk_fixture() {   # $1 = root; $2 = space-separated files to track; $3 = "ignore"
     echo "{}" > "$1/system/state/tasks-portfolio.json"
     if [ "${3:-}" = "ignore" ]; then
         printf '%s\n' 'system/state/portfolio.md' 'system/state/tasks-portfolio.json' > "$1/.gitignore"
+        git -C "$1" add .gitignore        # a real repo commits its .gitignore; an untracked one protects only this clone
     fi
     for f in $2; do git -C "$1" add -f "system/state/$f"; done
 }
@@ -79,6 +80,21 @@ printf '%s\n' '!system/state/portfolio.md' >> "$F7/.gitignore"
 run "$F7"; rc=$?
 assert_true "fires when a negation re-includes portfolio.md" "$([ $rc -ne 0 ] && echo true || echo false)"
 rm -rf "$F7"
+
+# 8. the rule sits in an UNTRACKED .gitignore: protects only this clone -> must fire
+F8=$(mktemp -d); mk_fixture "$F8" "" ignore
+git -C "$F8" rm -q --cached .gitignore
+run "$F8"; rc=$?
+assert_true "fires when the ignoring .gitignore is not tracked" "$([ $rc -ne 0 ] && echo true || echo false)"
+rm -rf "$F8"
+
+# 9. the rule comes from a global core.excludesFile (absolute path): protects only this machine -> must fire
+F9=$(mktemp -d); mk_fixture "$F9" "" ""
+printf '%s\n' 'system/state/portfolio.md' 'system/state/tasks-portfolio.json' > "$F9/global-excludes"
+git -C "$F9" config core.excludesFile "$F9/global-excludes"
+run "$F9"; rc=$?
+assert_true "fires when ignored only via a global core.excludesFile" "$([ $rc -ne 0 ] && echo true || echo false)"
+rm -rf "$F9"
 
 run "$REPO_ROOT"; rc=$?
 assert_true "live repo passes" "$([ $rc -eq 0 ] && echo true || echo false)"

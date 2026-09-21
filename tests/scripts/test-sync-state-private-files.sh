@@ -94,6 +94,9 @@ echo "readme" > "$FIX/README.md"                                  # init commit 
 git -C "$FIX" add -A && git -C "$FIX" commit -q -m init
 echo '{"theme":"new"}' > "$H/.claude/tasks-config.json"          # only tasks-config.json + event-log exist in the cache
 echo "SOMETHING-PRIVATE" > "$FIX/system/state/some-new-private-file.md"
+# A concurrent session may have STAGED something unrelated: the path-limited commit must not sweep it in.
+echo "staged-by-someone-else" > "$FIX/staged-elsewhere.txt"
+git -C "$FIX" add staged-elsewhere.txt
 BEFORE_N=$(git -C "$FIX" rev-list --count HEAD)
 HOME="$H" BRANA_PRIVATE_REPO="$PRIV" bash "$FIX/system/scripts/sync-state.sh" push --auto-commit >"$TMP/out6" 2>&1
 AFTER_N=$(git -C "$FIX" rev-list --count HEAD)
@@ -102,6 +105,8 @@ git -C "$FIX" log -1 --format=%s 2>/dev/null | grep -q "sync: push operational s
 NEWFILES=$(git -C "$FIX" show --name-only --format= HEAD 2>/dev/null)
 echo "$NEWFILES" | grep -q "^system/state/tasks-config.json$" && ok "allowlisted file is in the auto-commit" || bad "tasks-config.json missing from the auto-commit (got: $NEWFILES)"
 echo "$NEWFILES" | grep -q "some-new-private-file" && bad "unrelated new file was auto-committed" || ok "unrelated new file was NOT auto-committed"
+echo "$NEWFILES" | grep -q "staged-elsewhere" && bad "a file staged by another session was swept into the auto-commit" || ok "a file staged by another session was NOT swept in (path-limited commit)"
+git -C "$FIX" diff --cached --name-only | grep -q "staged-elsewhere.txt" && ok "the other session's staged file is still staged" || bad "the other session's staged file was lost from the index"
 git -C "$FIX" status --porcelain | grep -q "?? system/state/some-new-private-file.md" \
     && ok "unrelated file left untracked for a human to decide" \
     || bad "unrelated file state unexpected: $(git -C "$FIX" status --porcelain)"
