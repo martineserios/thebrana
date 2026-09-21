@@ -55,6 +55,12 @@ if [ -f "$HOME/.claude/plans/"*.md 2>/dev/null ]; then
   fi
 fi
 
+# 4. Recent decisions (t-1939): last <=3 relevant entries from system/state/decisions/.
+# `--relevant` skips session-end metrics lines and hard-caps at 3 (fixed, small cost).
+DECISIONS=$(cd "$GIT_ROOT" && timeout 5 "$BRANA" decisions read --relevant 2>/dev/null | head -3) || true
+[ -n "$DECISIONS" ] && CONTEXT_PARTS+=("Recent decisions:
+$DECISIONS")
+
 # Combine all parts with line breaks
 CONTEXT=$(IFS=$'\n'; echo "${CONTEXT_PARTS[*]}")
 ESCAPED=$(echo "$CONTEXT" | jq -Rs '.')
