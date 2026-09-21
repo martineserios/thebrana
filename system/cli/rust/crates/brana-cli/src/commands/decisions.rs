@@ -447,4 +447,83 @@ mod tests {
         // File should still exist — dry run doesn't move
         assert!(old_file.exists(), "dry-run should not move file");
     }
+
+    // ── t-1939: read path + archive policy (pure fns, temp dirs only) ─────────
+
+    fn write_session(dir: &std::path::Path, name: &str, lines: &[Value]) {
+        fs::create_dir_all(dir).unwrap();
+        let body: String = lines.iter().map(|l| format!("{}\n", l)).collect();
+        fs::write(dir.join(name), body).unwrap();
+    }
+
+    fn entry(ts: &str, agent: &str, ty: &str, content: &str) -> Value {
+        json!({"ts": ts, "agent": agent, "type": ty, "content": content})
+    }
+
+    #[test]
+    fn test_recent_relevant_returns_at_most_three() {
+        let tmp = TempDir::new().unwrap();
+        let lines: Vec<Value> = (1..=6)
+            .map(|i| entry(&format!("2026-03-1{}T00:00:00Z", i), "main", "decision", &format!("d{}", i)))
+            .collect();
+        write_session(tmp.path(), "2026-03-15-a.jsonl", &lines);
+        let got = recent_relevant(tmp.path(), 3).unwrap();
+        assert_eq!(got.len(), 3);
+        assert_eq!(got[2]["content"], "d6", "newest last");
+        assert_eq!(got[0]["content"], "d4");
+        // hard cap even if caller asks for more
+        assert_eq!(recent_relevant(tmp.path(), 50).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn test_recent_relevant_skips_metrics_only_lines() {
+        let tmp = TempDir::new().unwrap();
+        write_session(tmp.path(), "2026-03-15-a.jsonl", &[
+            entry("2026-03-15T01:00:00Z", "main", "decision", "chose JSONL"),
+            entry("2026-03-15T02:00:00Z", "session-end", "action",
+                  "Session metrics: corrections=0, test_writes=0, cascades=0, edits=1"),
+            entry("2026-03-15T03:00:00Z", "main", "decision", "   "),
+            entry("2026-03-15T04:00:00Z", "scout", "cost", "t-1 routed to opus"),
+        ]);
+        let got = recent_relevant(tmp.path(), 3).unwrap();
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0]["content"], "chose JSONL");
+    }
+
+    #[test]
+    fn test_recent_relevant_empty_when_only_metrics() {
+        let tmp = TempDir::new().unwrap();
+        write_session(tmp.path(), "2026-03-15-a.jsonl", &[
+            entry("2026-03-15T02:00:00Z", "session-end", "action", "Session metrics: edits=1"),
+        ]);
+        assert!(recent_relevant(tmp.path(), 3).unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_archive_dir_moves_stale_keeps_recent() {
+        let tmp = TempDir::new().unwrap();
+        let old = format!("{}-old.jsonl", (Utc::now() - chrono::Duration::days(60)).format("%Y-%m-%d"));
+        let new = format!("{}-new.jsonl", Utc::now().format("%Y-%m-%d"));
+        write_session(tmp.path(), &old, &[entry("t", "a", "decision", "x")]);
+        write_session(tmp.path(), &new, &[entry("t", "a", "decision", "y")]);
+        let n = archive_dir(tmp.path(), 30, false).unwrap();
+        assert_eq!(n, 1);
+        assert!(!tmp.path().join(&old).exists());
+        assert!(tmp.path().join("archive").join(&old).exists(), "moved, not deleted");
+        assert!(tmp.path().join(&new).exists());
+    }
+
+    #[test]
+    fn test_archive_dir_is_idempotent_and_never_overwrites() {
+        let tmp = TempDir::new().unwrap();
+        let old = format!("{}-old.jsonl", (Utc::now() - chrono::Duration::days(60)).format("%Y-%m-%d"));
+        write_session(tmp.path(), &old, &[entry("t", "a", "decision", "x")]);
+        assert_eq!(archive_dir(tmp.path(), 30, false).unwrap(), 1);
+        assert_eq!(archive_dir(tmp.path(), 30, false).unwrap(), 0, "second run is a no-op");
+        // name collision: a stale file with an already-archived name is left in place
+        write_session(tmp.path(), &old, &[entry("t", "a", "decision", "different")]);
+        assert_eq!(archive_dir(tmp.path(), 30, false).unwrap(), 0);
+        let kept = fs::read_to_string(tmp.path().join("archive").join(&old)).unwrap();
+        assert!(kept.contains("\"x\""), "archived content not overwritten");
+    }
 }
