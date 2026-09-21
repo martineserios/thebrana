@@ -48,6 +48,7 @@ ROLLBACK is conditional — only executed if VERIFY or MONITOR fails.
 ## Rules
 
 - **Never auto-deploy without user confirmation.** Pre-flight ends with an explicit gate.
+- **Merge gate is mandatory and fails closed.** The pre-flight "Deploy now" authorises the checks, not the merge. Before `gh pr merge` (and before any publish), ask again with the PR, CI results and what "Merge now" will do; if the question cannot be asked or is not answered "Merge now", stop and leave the PR open (t-3366).
 - **Pre-flight failure blocks deploy.** Hard gate — no override.
 - **Rollback is always optional and prompted.** Never auto-rollback.
 - **Project detection is best-effort.** Always offer manual override via AskUserQuestion when detection is ambiguous.
@@ -173,7 +174,21 @@ Detect the deploy method from project files, then execute.
 | None detected | Manual | AskUserQuestion for deploy command |
 
 **Tier-2 PR ship** (`dev` → `main` through GitHub, ADR-060 tier 2). Direct pushes to `main`
-are rejected by branch protection, so the ship *is* the PR:
+are rejected by branch protection, so the ship *is* the PR.
+
+**Merge gate (mandatory, fails closed).** After `gh pr checks` is green and *before* `gh pr merge`, ask — every time, even though "Deploy now" was answered at pre-flight (that answer authorises the *checks*, not the merge; without this gate one prompt used to cover push, merge and bootstrap unattended — found at the 2026-09-21 Gate 3, t-3366):
+
+```
+AskUserQuestion: "CI is green on PR #{n} ({url}). Merge dev → main and deploy?"
+  Show: the required checks and their results, the commit count and subjects of main..dev,
+        and what "Merge now" authorises: gh pr merge, fast-forward local main by ref,
+        ./bootstrap.sh (deploys to ~/.claude/), push dev.
+  Options: ["Merge now", "Abort — leave the PR open"]
+```
+
+**Fails closed:** if AskUserQuestion is unavailable (headless, non-interactive, no human present) or the answer is anything other than an explicit "Merge now", do **not** merge — stop and leave the PR open. The same gate precedes every non-PR publish in the detection table above (`npm publish`, `cargo publish`, `docker push`, `railway up`).
+
+The Tier-2 sequence:
 
 ```bash
 git push origin dev
@@ -186,6 +201,7 @@ if [ -z "$PR" ]; then                # `gh pr create` has no --json: it prints t
 fi
 [ -n "$PR" ] || { echo "no open dev→main PR found after create — stop"; exit 1; }
 gh pr checks "$PR" --watch          # required: validate, rust, tests — refuse to continue on failure
+# MERGE GATE: the question above must have been answered "Merge now" — never merge without it
 gh pr merge "$PR" --merge           # merge commit; GitHub refuses until checks are green
 git branch --show-current           # must print: dev — the shared checkout never switches (ADR-094 d5)
 git fetch origin main:main          # fast-forward local main BY REF; refuses non-ff; touches no working tree

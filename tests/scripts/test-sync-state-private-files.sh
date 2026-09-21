@@ -77,27 +77,35 @@ for f in system/state/portfolio.md system/state/tasks-portfolio.json; do
     git -C "$ROOT" check-ignore -q "$f" && ok "$f is gitignored" || bad "$f is not gitignored"
 done
 
-echo "=== Scenario 6: auto-commit is an allowlist, not a blanket 'git add system/state/' ==="
+echo "=== Scenario 6: auto-commit is a robust allowlist, not a blanket 'git add system/state/' ==="
 # Root cause of the leak was the capability (publish whatever lands in system/state/),
-# not the two file names. A NEW, unrelated file there must never be auto-committed.
+# not the two file names. Two properties, both asserted on COMMIT COUNT (asserting on HEAD
+# proved nothing: HEAD was the fixture's own init commit, which already held the file):
+#   (a) a NEW unrelated file in system/state/ is never auto-committed;
+#   (b) the allowlist still commits when some allowlisted files do not exist yet
+#       (git add aborts the whole command on a missing pathspec — a fresh clone or a
+#        partial state dir must not silently turn auto-commit into a no-op).
+export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
 FIX="$TMP/fixrepo"
 mkdir -p "$FIX/system/scripts" "$FIX/system/state"
 cp "$SCRIPT" "$FIX/system/scripts/sync-state.sh"
-export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
 git init -q "$FIX"
-echo '{"theme":"old"}' > "$FIX/system/state/tasks-config.json"
+echo "readme" > "$FIX/README.md"                                  # init commit deliberately holds NO state file
 git -C "$FIX" add -A && git -C "$FIX" commit -q -m init
-echo '{"theme":"new"}' > "$H/.claude/tasks-config.json"
+echo '{"theme":"new"}' > "$H/.claude/tasks-config.json"          # only tasks-config.json + event-log exist in the cache
 echo "SOMETHING-PRIVATE" > "$FIX/system/state/some-new-private-file.md"
+BEFORE_N=$(git -C "$FIX" rev-list --count HEAD)
 HOME="$H" BRANA_PRIVATE_REPO="$PRIV" bash "$FIX/system/scripts/sync-state.sh" push --auto-commit >"$TMP/out6" 2>&1
-COMMITTED=$(git -C "$FIX" show --name-only --format= HEAD 2>/dev/null)
-echo "$COMMITTED" | grep -q "system/state/tasks-config.json" && ok "allowlisted public file is auto-committed" || bad "tasks-config.json not auto-committed (got: $COMMITTED)"
-git -C "$FIX" ls-files --error-unmatch system/state/some-new-private-file.md >/dev/null 2>&1 \
-    && bad "unrelated new file in system/state/ was auto-committed" \
-    || ok "unrelated new file in system/state/ was NOT auto-committed"
+AFTER_N=$(git -C "$FIX" rev-list --count HEAD)
+[ "$AFTER_N" -eq $((BEFORE_N + 1)) ] && ok "auto-commit created exactly one commit ($BEFORE_N -> $AFTER_N)" || bad "expected one new commit, got $BEFORE_N -> $AFTER_N (log: $(tail -2 "$TMP/out6" | tr '\n' ' '))"
+git -C "$FIX" log -1 --format=%s 2>/dev/null | grep -q "sync: push operational state" && ok "the new commit is the auto-commit" || bad "HEAD is not the auto-commit (subject: $(git -C "$FIX" log -1 --format=%s))"
+NEWFILES=$(git -C "$FIX" show --name-only --format= HEAD 2>/dev/null)
+echo "$NEWFILES" | grep -q "^system/state/tasks-config.json$" && ok "allowlisted file is in the auto-commit" || bad "tasks-config.json missing from the auto-commit (got: $NEWFILES)"
+echo "$NEWFILES" | grep -q "some-new-private-file" && bad "unrelated new file was auto-committed" || ok "unrelated new file was NOT auto-committed"
 git -C "$FIX" status --porcelain | grep -q "?? system/state/some-new-private-file.md" \
     && ok "unrelated file left untracked for a human to decide" \
     || bad "unrelated file state unexpected: $(git -C "$FIX" status --porcelain)"
+grep -q "auto-committed" "$TMP/out6" && ok "log says auto-committed only because a commit happened" || bad "no auto-commit log line"
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="

@@ -37,6 +37,22 @@ grep -q "Never auto-deploy without user confirmation" "$SKILLS/ship/SKILL.md" \
 GATES=$(grep -c "AskUserQuestion" "$SKILLS/ship/SKILL.md")
 [ "$GATES" -ge 3 ] && ok "ship keeps its AskUserQuestion gates ($GATES references)" || bad "ship has too few AskUserQuestion gates ($GATES)"
 
+# The gate this whole unlock rests on must be REAL, not prose in a docs table. Gate 3
+# (2026-09-21) found that after one up-front 'Deploy?' prompt, push/merge/bootstrap ran
+# unattended: no merge gate existed. Counting AskUserQuestion strings cannot see that, so
+# assert the merge gate's position (before `gh pr merge`) and that it fails closed.
+SHIP="$SKILLS/ship/SKILL.md"
+GATE_LINE=$(grep -n "\*\*Merge gate (mandatory" "$SHIP" | head -1 | cut -d: -f1)   # the real gate paragraph, not the Rules bullet
+MERGE_LINE=$(grep -n 'gh pr merge "\$PR"' "$SHIP" | head -1 | cut -d: -f1)
+if [ -n "$GATE_LINE" ] && [ -n "$MERGE_LINE" ] && [ "$GATE_LINE" -lt "$MERGE_LINE" ]; then
+    ok "ship has a Merge gate before 'gh pr merge' (line $GATE_LINE < $MERGE_LINE)"
+else
+    bad "ship has no Merge gate before 'gh pr merge' (gate=${GATE_LINE:-none}, merge=${MERGE_LINE:-none})"
+fi
+sed -n "${GATE_LINE:-1},$((${GATE_LINE:-1} + 25))p" "$SHIP" | grep -qiE "fail(s)? closed" \
+    && ok "the merge gate fails closed when AskUserQuestion is unavailable" \
+    || bad "the merge gate does not state that it fails closed"
+
 echo "=== Part B: docs audit table matches the frontmatter ==="
 # Scope to the audit table only: other tables in the doc (e.g. MCP usage) reuse skill names.
 AUDIT_ROWS=$(awk '/^\| Skill \| Group \| Classification \| Rationale \|/{t=1; next} t && /^\|/{print; next} t && NF{exit}' "$DOC")

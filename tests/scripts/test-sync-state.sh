@@ -27,6 +27,10 @@ REPO_ROOT="$SANDBOX/repo"
 CLIENT="$SANDBOX/client"
 mkdir -p "$HOME/.claude/memory" "$HOME/.claude/scheduler" "$REPO_ROOT/system/scripts" "$REPO_ROOT/system/state" "$REPO_ROOT/.claude/memory" "$CLIENT/.claude/memory"
 cp "$REAL_REPO_ROOT/system/scripts/sync-state.sh" "$REPO_ROOT/system/scripts/sync-state.sh"
+# sync-state.sh sources ../hooks/lib/cf-env.sh (sets CF); without it cmd_import exits early and
+# its test would pass on the "or skipped" branch (Gate 3 regression review, t-3366).
+mkdir -p "$REPO_ROOT/system/hooks/lib"
+cp "$REAL_REPO_ROOT/system/hooks/lib/cf-env.sh" "$REPO_ROOT/system/hooks/lib/cf-env.sh" 2>/dev/null || true
 # Never let the sandbox reach a real private repo, and keep ruflo from resolving a store
 # relative to a real tree (ADR-026's CWD-relative path).
 export BRANA_PRIVATE_REPO="$SANDBOX/no-private-repo"
@@ -337,7 +341,15 @@ echo ""
 echo "import (with export file):"
 if [ -f "$EXPORT_FILE" ]; then
     output=$(run_sync import)
-    if [[ "$output" == *"import complete"* || "$output" == *"skipped"* ]]; then
+    if command -v ruflo >/dev/null 2>&1 && [ -f "$HOME/.swarm/memory.db" ]; then
+        # The sandbox seeded a fixture store, so import has nowhere to skip to: it must complete.
+        # (Accepting "skipped" here let the early-exit bug — no cf-env.sh in the sandbox — hide.)
+        if [[ "$output" == *"import complete"* ]]; then
+            pass "import completes against the fixture ruflo store"
+        else
+            fail "import did not complete against the fixture store: $output"
+        fi
+    elif [[ "$output" == *"import complete"* || "$output" == *"skipped"* ]]; then
         pass "import runs (completed or skipped if no claude-flow)"
     else
         fail "import unexpected output: $output"

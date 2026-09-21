@@ -25,7 +25,14 @@ for f in "${PRIVATE_FILES[@]}"; do
     fi
     # The ignore rule must live in a committed .gitignore. check-ignore -q also passes on
     # .git/info/exclude or a global core.excludesFile, which protect only THIS clone.
-    src=$(git -C "$ROOT" check-ignore -v "$f" 2>/dev/null | cut -f1)
+    # `check-ignore -q` exits 0 ONLY when the path is really ignored. `-v` alone exits 0 even
+    # when the matching rule is a NEGATED one ('!path'), which re-includes the file — so gate on
+    # -q first, then ask -v only for the source file of the rule.
+    if git -C "$ROOT" check-ignore -q "$f" 2>/dev/null; then
+        src=$(git -C "$ROOT" check-ignore -v "$f" 2>/dev/null | cut -f1)
+    else
+        src=""
+    fi
     case "$src" in
         .gitignore:*|*/.gitignore:*) ;;
         *)

@@ -72,6 +72,14 @@ run "$F6"; rc=$?
 assert_true "fires when ignored only via .git/info/exclude (not in .gitignore)" "$([ $rc -ne 0 ] && echo true || echo false)"
 rm -rf "$F6"
 
+# 7. a later negation ('!path') re-includes the file: git then does NOT ignore it, but
+#    `check-ignore -v` still prints the matching rule. Must fire (Gate 3 security review).
+F7=$(mktemp -d); mk_fixture "$F7" "" ignore
+printf '%s\n' '!system/state/portfolio.md' >> "$F7/.gitignore"
+run "$F7"; rc=$?
+assert_true "fires when a negation re-includes portfolio.md" "$([ $rc -ne 0 ] && echo true || echo false)"
+rm -rf "$F7"
+
 run "$REPO_ROOT"; rc=$?
 assert_true "live repo passes" "$([ $rc -eq 0 ] && echo true || echo false)"
 
