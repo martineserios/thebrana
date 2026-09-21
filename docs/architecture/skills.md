@@ -103,11 +103,11 @@ Several skills now use ruflo MCP calls as their preferred data path (2026-04-01)
 
 | Skill | MCP usage |
 |-------|-----------|
-| **close** | Step 9b: 3 MCP calls — `memory_store` (ns:session), `hive-mind_memory`, `claims_release`. Steps 5, 6, 10 prefer MCP paths over CLI fallbacks. |
+| **close** | Step 9b: `memory_store` (ns:session) session mirror. Steps 5, 6, 10 prefer MCP paths over CLI fallbacks. |
 | **sitrep** | Source 6: `hooks_intelligence_pattern-search` for recent patterns. Source 7: `hive-mind_memory list` for active swarm context. |
 | **research** | Phase 0: `memory_search` (ns:all) for prior findings. Phase 2: `embeddings_compare` for dedup against existing knowledge. |
 | **build** | `hive-mind` announce at strategy start and build completion for multi-agent coordination. |
-| **backlog** | `claims_claim`/`claims_release` at task start/done. Step 5: `memory_search` (ns:skills) for semantic skill suggestion — configurable thresholds (suggest >0.5, mention >0.3, gap <0.3 triggers marketplace). CLI `brana skills suggest` as fallback. See ADR-026, feature brief `skill-routing-in-backlog-start.md`. |
+| **backlog** | Step 5: `memory_search` (ns:skills) for semantic skill suggestion — configurable thresholds (suggest >0.5, mention >0.3, gap <0.3 triggers marketplace). CLI `brana skills suggest` as fallback. See ADR-026, feature brief `skill-routing-in-backlog-start.md`. |
 
 When ruflo is unavailable, every skill degrades gracefully to CLI or native memory fallbacks.
 

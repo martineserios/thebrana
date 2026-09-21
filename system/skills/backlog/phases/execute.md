@@ -1,7 +1,7 @@
 <!-- backlog phase: /brana:backlog execute — DAG-aware subagent execution, model routing — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_claim,mcp__ruflo__claims_mark-stealable,mcp__ruflo__claims_release,mcp__ruflo__memory_search")
+ToolSearch("select:mcp__ruflo__memory_search")
 
 ## /brana:backlog execute
 
@@ -55,12 +55,7 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
 6. **User confirms**
 7. **Execute batch-by-batch:**
 
-   **7a. Batch ID** (once per execute run, before first batch):
-   Derive a local batch identifier for claim ownership — no ruflo call needed (`swarm_init` is bookkeeping-only under subscription, ADR-059; it never created a real topology to init):
-   ```
-   swarmId = "{git branch --show-current}-{execute run timestamp}"
-   ```
-
+   **7a. Knowledge context** (best-effort):
    - **Knowledge injection (per task, before spawning):**
      Query ruflo for domain context related to the task:
      ```
@@ -73,16 +68,6 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
      ```
      - If results found (score >= 0.4): format as a `## Knowledge context` section with one bullet per result (`- {key}: {value preview}`). Prepend to the agent prompt.
      - If no results or ruflo unavailable: skip silently. Knowledge injection is best-effort — never blocks spawning.
-
-   **7b. Per-task claim** (before spawning each agent):
-   ```
-   mcp__ruflo__claims_claim(
-     issueId: "task:{task.id}",
-     claimant: "agent:{swarmId}:{task.id}",
-     context: "{task.subject}"
-   )
-   ```
-   If claim fails (another agent holds it), skip this task in the batch — it may be running in a parallel session.
 
    - For each task in the batch, spawn a subagent via the native Agent tool — `agent_spawn`/`coordination_orchestrate` are bookkeeping-only under subscription (ADR-059; `coordination_orchestrate` self-documents "records the request but does not execute it," source-confirmed 2026-08-12) and would silently no-op the entire batch if used as the execution path:
      - `subagent_type`: from `agent_config.type` (default: `"general-purpose"`)
@@ -102,16 +87,6 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
      - Task stays `in_progress`. Dependents remain blocked.
      - Log error and continue with remaining tasks in batch
 
-   **7c. Per-task release or mark-stealable** (after each task completes or fails):
-   - On completion:
-     ```
-     mcp__ruflo__claims_release(issueId: "task:{task.id}", claimant: "agent:{swarmId}:{task.id}", reason: "completed")
-     ```
-   - On failure (agent timed out or errored):
-     ```
-     mcp__ruflo__claims_mark-stealable(issueId: "task:{task.id}", reason: "stale", context: "{error summary}")
-     ```
-   Skip silently if ruflo unavailable — claims are advisory, never blocking.
 8. **Write-back phase** (code tasks, sequential):
    - For each completed code task:
      - Read `/tmp/task-{id}-output.json`

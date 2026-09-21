@@ -1,7 +1,7 @@
 <!-- backlog phase: /brana:backlog done, add, replan, archive, migrate — loaded per the PHASES registry in ../SKILL.md (t-1942) -->
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__claims_release,mcp__brana__backlog_focus,mcp__brana__backlog_query")
+ToolSearch("select:mcp__brana__backlog_focus,mcp__brana__backlog_query")
 
 ## /brana:backlog done
 
@@ -39,16 +39,6 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
      ```
      If user selects any doc option, generate using templates at `system/skills/build/templates/tech-doc.md` and/or `system/skills/build/templates/user-guide.md`. Output to `docs/architecture/features/{task-slug}.md` and/or `docs/guide/features/{task-slug}.md`.
 6. **Update task:** status → completed, completed → today's date, clear build_step
-6b. **Release task claim (best-effort):**
-   ```
-   # SESSION_ID = current branch name (git branch --show-current)
-   mcp__ruflo__claims_release(
-     issueId: "task:{id}",
-     claimant: "agent:{SESSION_ID}:session",
-     reason: "task completed"
-   )
-   ```
-   If MCP unavailable, skip silently.
 7. **Write tasks.json** — hook handles rollup + validation
 8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.
