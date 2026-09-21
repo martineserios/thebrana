@@ -178,8 +178,8 @@ Writers continue targeting `~/.claude/` paths. A sync step copies to git:
 | File | Runtime path (cache) | Git path (source of truth) | Sync trigger |
 |------|---------------------|---------------------------|-------------|
 | `event-log.md` | `~/.claude/memory/` | `thebrana/system/state/event-log.md` | session-start.sh (push: cache → repo) |
-| `portfolio.md` | `~/.claude/memory/` | `thebrana/system/state/portfolio.md` | session-start.sh (push: cache → repo, banner-protected) |
-| `tasks-portfolio.json` | `~/.claude/` | `thebrana/system/state/tasks-portfolio.json` | session-start.sh (push: cache → repo) |
+| `portfolio.md` | `~/.claude/memory/` | ~~`thebrana/system/state/portfolio.md`~~ — superseded 2026-09-20 (t-3352): private, backed up by brana-knowledge | — |
+| `tasks-portfolio.json` | `~/.claude/` | ~~`thebrana/system/state/tasks-portfolio.json`~~ — superseded 2026-09-20 (t-3352): private repo `brana-knowledge/backup/state/` | sync-state.sh push (cache → private repo) |
 | `tasks-config.json` | `~/.claude/` | `thebrana/system/state/tasks-config.json` | session-start.sh (push: cache → repo) |
 | `meta-whatsapp-templates.md` | `~/.claude/memory/` | `brana-knowledge/dimensions/meta-whatsapp-templates.md` | One-time move |
 
@@ -425,5 +425,6 @@ cd thebrana && ./bootstrap.sh
 
 ## Changelog
 
+- 2026-09-20: t-3352 split state files by git home. `portfolio.md` and `tasks-portfolio.json` hold private client/venture data and were being auto-committed into this PUBLIC repo by `cmd_push --auto-commit`; they are no longer synced to `system/state/`, are untracked and gitignored, and `tasks-portfolio.json` now travels to the private brana-knowledge repo (`backup/state/`). `portfolio.md` is already backed up there via `~/.claude/memory/`. The "git repos are the source of truth" principle above holds for public state only. No history rewrite. See features/private-state-sync.md.
 - 2026-06-08: t-1883 added active_epic contamination guard to `cmd_push`. Before the sync loop, captures the repo's `active_epic`; after syncing, reverts it if the cache value differs and warns. Prevents client project sessions from overwriting thebrana's active epic via the shared `~/.claude/tasks-config.json`. Use `brana backlog active <slug>` to change it intentionally.
 - 2026-03-31: t-614 reduced repo sync scope. `sessions.md`, `session-handoff.md`, and `MEMORY-snapshot.md` no longer copied to `.claude/memory/` in repo — they stay in auto memory only. `sync-state.sh snapshot` subcommand removed. Companion file sync limited to `event-log.md`. Handoff rotation added (keep last 10 entries). Rationale: `sessions.md` was 390KB of telemetry noise in git, `MEMORY-snapshot.md` was redundant (MEMORY.md always loaded by CC), and duplicated handoff files drifted apart.

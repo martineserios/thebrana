@@ -684,9 +684,9 @@ previously stored vector in place. Slugs absent from the current descriptor set
 are pruned from the table, so blanking a descriptor is how a retired project
 stops being scored.
 
-Edit descriptors on the repo copy (`system/state/tasks-portfolio.json`, reaching
-`~/.claude/` via `sync-state.sh pull`) and re-run this command — nothing watches
-the file. The next `vector-sync` absorbs the change on its next full recompute.
+Edit descriptors in `~/.claude/tasks-portfolio.json` (no copy lives in the public
+thebrana repo; `sync-state.sh push` backs it up to the private brana-knowledge repo)
+and re-run this command — nothing watches the file. The next `vector-sync` absorbs the change on its next full recompute.
 
 ---
 
