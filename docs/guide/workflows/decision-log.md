@@ -83,9 +83,11 @@ capped at 300 characters, and the block is labelled as untrusted history (entrie
 - The installed `brana` binary must be newer than this source. An older binary rejects `--relevant`;
   the hook then injects nothing and prints a one-line hint on stderr. `bootstrap.sh` (step 7d)
   reports a stale binary and prints the rebuild command.
-- The only things that write `decision`, `finding` or `concern` entries are manual
-  `brana decisions log ...` calls. The automatic writer (session-end) records metrics lines, which
-  the filter drops on purpose, so a log nobody writes to injects nothing.
+- Entries reach the log two ways. `task-completed.sh` writes a `decision` entry
+  ("Completed t-NNN (strategy): subject") every time a task is marked completed, so in practice the
+  three injected lines are usually the latest task completions. Anything richer (a real decision,
+  finding or concern) needs a manual `brana decisions log ...` call. Session-end writes metrics
+  lines, which the filter drops on purpose.
 - `system/state/decisions/` is gitignored, so a fresh checkout starts with no active entries.
 
 ## Entry schema
