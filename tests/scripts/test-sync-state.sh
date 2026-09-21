@@ -1,13 +1,59 @@
 #!/usr/bin/env bash
 # test-sync-state.sh — Validate sync-state.sh subcommands
 #
-# Tests all subcommands against real state files.
-# Saves and restores any modified files.
+# Tests all subcommands against a HERMETIC SANDBOX (t-3351): a temp HOME, a temp copy of
+# sync-state.sh + system/state, a fixture portfolio with one fixture client repo, and a
+# private-repo path that does not exist. Nothing real is read for write: not ~/.claude, not
+# system/state, not any client repo listed in a real portfolio, not the real ruflo store.
+#
+# History: this suite used to run against the REAL repo and HOME. Its fixture write
+# ({"theme":"minimal","_test_marker":true} into tasks-config.json) survived any interrupt,
+# `push` wrote into real client repos, and sync-state.sh --auto-commit then committed the
+# poisoned file. tests/scripts/test-sync-state-hermetic.sh guards this.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REAL_REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REAL_HOME="$HOME"
+
+# ── Hermetic sandbox ───────────────────────────────────────
+SANDBOX=$(mktemp -d)
+cleanup() { rm -rf "$SANDBOX" 2>/dev/null || true; }
+trap cleanup EXIT INT TERM
+
+export HOME="$SANDBOX/home"
+REPO_ROOT="$SANDBOX/repo"
+CLIENT="$SANDBOX/client"
+mkdir -p "$HOME/.claude/memory" "$HOME/.claude/scheduler" "$REPO_ROOT/system/scripts" "$REPO_ROOT/system/state" "$REPO_ROOT/.claude/memory" "$CLIENT/.claude/memory"
+cp "$REAL_REPO_ROOT/system/scripts/sync-state.sh" "$REPO_ROOT/system/scripts/sync-state.sh"
+# Never let the sandbox reach a real private repo, and keep ruflo from resolving a store
+# relative to a real tree (ADR-026's CWD-relative path).
+export BRANA_PRIVATE_REPO="$SANDBOX/no-private-repo"
+# ruflo resolves its store relative to the CWD, not $HOME (ADR-026), so live inside the sandbox home.
+cd "$HOME"
+
+# Seed READ-ONLY copies of the real small state files, so pull/push assertions see realistic content.
+for f in tasks-config.json event-log.md scheduler.json; do
+    [ -f "$REAL_REPO_ROOT/system/state/$f" ] && cp "$REAL_REPO_ROOT/system/state/$f" "$REPO_ROOT/system/state/$f" || true
+done
+[ -f "$REAL_HOME/.claude/tasks-config.json" ]   && cp "$REAL_HOME/.claude/tasks-config.json"   "$HOME/.claude/tasks-config.json"   || cp "$REPO_ROOT/system/state/tasks-config.json" "$HOME/.claude/tasks-config.json" 2>/dev/null || true
+[ -f "$REAL_HOME/.claude/memory/event-log.md" ] && cp "$REAL_HOME/.claude/memory/event-log.md" "$HOME/.claude/memory/event-log.md" || cp "$REPO_ROOT/system/state/event-log.md" "$HOME/.claude/memory/event-log.md" 2>/dev/null || true
+[ -f "$REAL_HOME/.claude/scheduler/scheduler.json" ] && cp "$REAL_HOME/.claude/scheduler/scheduler.json" "$HOME/.claude/scheduler/scheduler.json" || true
+# Fixture portfolio with one fixture client, so the companion-sync tests really run.
+printf '{"clients":[{"name":"fixture","projects":[{"slug":"client","path":"%s","type":"code"}]}]}\n' "$CLIENT" > "$HOME/.claude/tasks-portfolio.json"
+mkdir -p "$HOME/.claude/projects/-sandbox-client/memory"
+echo "client" > "$HOME/.claude/projects/-sandbox-client/memory/MEMORY.md"
+echo "fixture-client-event-log" > "$HOME/.claude/projects/-sandbox-client/memory/event-log.md"
+
+# Seed a FIXTURE ruflo store (best-effort) so the export/import/namespace tests exercise real
+# code instead of skipping. It lives under the sandbox HOME; the real store is never opened.
+if command -v ruflo >/dev/null 2>&1; then
+    ( timeout 90 ruflo memory init >/dev/null 2>&1 \
+      && timeout 60 ruflo memory store --key "fixture:knowledge-1" --value "fixture knowledge entry" --namespace knowledge >/dev/null 2>&1 \
+      && timeout 60 ruflo memory store --key "fixture:session-1" --value "fixture session entry" --namespace session >/dev/null 2>&1 ) || true
+fi
+
 SYNC_SCRIPT="$REPO_ROOT/system/scripts/sync-state.sh"
 
 PASS=0
@@ -17,20 +63,7 @@ pass() { PASS=$((PASS + 1)); echo "  ✓ $1"; }
 fail() { FAIL=$((FAIL + 1)); echo "  ✗ $1"; }
 skip() { echo "  ⊘ SKIP: $1"; }
 
-# This suite drives the real sync-state.sh against the real repo, so `export`
-# writes system/state/patterns-export.json into the working tree. Left behind, it
-# breaks an unrelated test: test-retire-when greps system/ for "retire-when:" and
-# the export embeds pattern prose describing that convention, so it counts as a
-# third annotated artifact. Remove the file on exit unless it was already there.
-EXPORT_PATH="$REPO_ROOT/system/state/patterns-export.json"
-EXPORT_PREEXISTED=false
-[ -f "$EXPORT_PATH" ] && EXPORT_PREEXISTED=true
-cleanup_export() {
-    if [ "$EXPORT_PREEXISTED" = false ]; then
-        rm -f "$EXPORT_PATH" 2>/dev/null || true
-    fi
-}
-trap cleanup_export EXIT
+# (The old patterns-export.json cleanup hack is gone: `export` now writes into the sandbox repo.)
 
 # Capture both stdout and stderr from a command
 run_sync() {
@@ -102,7 +135,7 @@ REPO_STATE="$REPO_ROOT/system/state"
 CACHE_CONFIG="$HOME/.claude/tasks-config.json"
 if [ -f "$REPO_STATE/tasks-config.json" ] && [ -f "$CACHE_CONFIG" ]; then
     # Save originals
-    cp "$CACHE_CONFIG" "/tmp/test-config-backup-$$.json"
+    cp "$CACHE_CONFIG" "$SANDBOX/config-backup.json"
     ORIGINAL=$(cat "$REPO_STATE/tasks-config.json")
 
     # Modify repo version to differ from cache
@@ -124,8 +157,8 @@ if [ -f "$REPO_STATE/tasks-config.json" ] && [ -f "$CACHE_CONFIG" ]; then
 
     # Restore originals
     echo "$ORIGINAL" > "$REPO_STATE/tasks-config.json"
-    cp "/tmp/test-config-backup-$$.json" "$CACHE_CONFIG"
-    rm -f "/tmp/test-config-backup-$$.json"
+    cp "$SANDBOX/config-backup.json" "$CACHE_CONFIG"
+    rm -f "$SANDBOX/config-backup.json"
 else
     pass "pull changed file — skipped (no config files)"
 fi
@@ -195,7 +228,7 @@ if [ -f "$PORTFOLIO" ]; then
             mkdir -p "$REPO_MEMORY" 2>/dev/null || true
 
             # Save original if exists
-            [ -f "$REPO_MEMORY/sessions.md" ] && cp "$REPO_MEMORY/sessions.md" "/tmp/test-sessions-backup-$$.md"
+            [ -f "$REPO_MEMORY/sessions.md" ] && cp "$REPO_MEMORY/sessions.md" "$SANDBOX/sessions-backup.md"
 
             output=$(run_sync push)
             if [ -f "$REPO_MEMORY/sessions.md" ]; then
@@ -209,8 +242,8 @@ if [ -f "$PORTFOLIO" ]; then
             fi
 
             # Restore original
-            if [ -f "/tmp/test-sessions-backup-$$.md" ]; then
-                mv "/tmp/test-sessions-backup-$$.md" "$REPO_MEMORY/sessions.md"
+            if [ -f "$SANDBOX/sessions-backup.md" ]; then
+                mv "$SANDBOX/sessions-backup.md" "$REPO_MEMORY/sessions.md"
             fi
         else
             pass "companion sync — skipped (no sessions.md in CC memory for $PROJECT_NAME)"
@@ -241,7 +274,7 @@ echo ""
 echo "import (no export file):"
 EXPORT_FILE="$REPO_ROOT/system/state/patterns-export.json"
 if [ -f "$EXPORT_FILE" ]; then
-    mv "$EXPORT_FILE" "/tmp/test-export-backup-$$.json"
+    mv "$EXPORT_FILE" "$SANDBOX/export-backup.json"
 fi
 output=$(run_sync import)
 if [[ "$output" == *"skipped"* ]]; then
@@ -249,7 +282,7 @@ if [[ "$output" == *"skipped"* ]]; then
 else
     fail "import should report missing export: $output"
 fi
-[ -f "/tmp/test-export-backup-$$.json" ] && mv "/tmp/test-export-backup-$$.json" "$EXPORT_FILE"
+[ -f "$SANDBOX/export-backup.json" ] && mv "$SANDBOX/export-backup.json" "$EXPORT_FILE"
 
 # --- Test 12: export produces non-empty data for populated namespaces ---
 echo ""
@@ -316,8 +349,8 @@ fi
 # --- Test 16: sanitize_export_json redacts gcloud OAuth tokens ---
 echo ""
 echo "sanitize_export_json (t-1458):"
-TOXIC="/tmp/test-toxic-$$.json"
-CLEAN="/tmp/test-clean-$$.json"
+TOXIC="$SANDBOX/toxic.json"
+CLEAN="$SANDBOX/clean.json"
 cat > "$TOXIC" <<'JSON'
 {"exported_at":"2026-01-01T00:00:00Z","namespaces":{"session":[{"key":"s","content":"curl -H 'Bearer ya29.a0AVvZVsojABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' https://storage.googleapis.com/bucket"}]}}
 JSON
@@ -345,8 +378,8 @@ rm -f "$TOXIC" "$CLEAN"
 # --- Test 17: sanitize_export_json redacts API_KEY/TOKEN/SECRET/PASSWORD/PRIVATE_KEY patterns (t-1460) ---
 echo ""
 echo "sanitize_export_json extended patterns (t-1460):"
-TOXIC2="/tmp/test-toxic2-$$.json"
-CLEAN2="/tmp/test-clean2-$$.json"
+TOXIC2="$SANDBOX/toxic2.json"
+CLEAN2="$SANDBOX/clean2.json"
 cat > "$TOXIC2" <<'JSON'
 {"exported_at":"2026-01-01T00:00:00Z","namespaces":{"pattern":[
   {"key":"p1","content":"KAPSO_API_KEY=placeholder-api-key-value"},
