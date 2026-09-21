@@ -19,49 +19,61 @@ The decision log captures semantic events — decisions, findings, concerns, and
 
 ```bash
 # Basic entry
-uv run python3 system/scripts/decisions.py log main decision "Chose feature strategy for t-348"
+brana decisions log main decision "Chose feature strategy for t-348"
 
 # With severity and references
-uv run python3 system/scripts/decisions.py log scout finding "Ruflo v3.5.15 released" --severity HIGH --refs doc-05,doc-06
+brana decisions log scout finding "Ruflo v3.5.15 released" --severity HIGH --refs doc-05,doc-06
 
 # With target (responding to another entry)
-uv run python3 system/scripts/decisions.py log challenger concern "MCP tool count claims inconsistent" --target scout-1:1
+brana decisions log challenger concern "MCP tool count claims inconsistent" --target scout-1:1
 ```
 
 ### Reading entries
 
 ```bash
 # Last 10 entries
-uv run python3 system/scripts/decisions.py read --last 10
+brana decisions read --last 10
 
 # Filter by severity
-uv run python3 system/scripts/decisions.py read --severity HIGH
+brana decisions read --severity HIGH
+
+# Last 3 relevant entries (what subagents receive)
+brana decisions read --relevant
 
 # Filter by type and agent
-uv run python3 system/scripts/decisions.py read --type finding --agent scout
+brana decisions read --type finding --agent scout
 
 # Raw JSON output
-uv run python3 system/scripts/decisions.py read --json
+brana decisions read --json
 ```
 
 ### Archiving
 
 ```bash
 # Archive files older than 30 days (default)
-uv run python3 system/scripts/decisions.py archive
+brana decisions archive
 
 # Preview what would be archived
-uv run python3 system/scripts/decisions.py archive --dry-run
+brana decisions archive --dry-run
 
 # Custom threshold
-uv run python3 system/scripts/decisions.py archive --days 14
+brana decisions archive --days 14
 ```
+
+**Archive policy (t-1939):** session files dated 30+ days ago are *moved* (never deleted)
+to `system/state/decisions/archive/`. Idempotent: a re-run moves nothing, and a file whose
+name already exists in `archive/` is left in place rather than overwritten. Run
+`brana decisions archive` periodically.
 
 ## How hooks use it
 
 **session-end.sh** writes a session summary entry (type: `action`, severity: `LOW`) with key metrics.
 
-**session-start.sh** reads the last 10 HIGH-severity findings and injects them as context for the new session.
+**subagent-context.sh** (SubagentStart) runs `brana decisions read --relevant` and injects the last
+3 relevant entries into every spawned subagent. "Relevant" = type `decision`, `finding` or `concern`,
+non-blank content, and not a `Session metrics:` line (session-end writes those; they carry no decision).
+Hard cap: 3 entries, active files only (archived entries are not read). If the active log holds
+only metrics lines, nothing is injected.
 
 ## Entry schema
 

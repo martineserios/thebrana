@@ -14,6 +14,11 @@ use std::path::PathBuf;
 use crate::cli::DecisionsCmd;
 use crate::util::find_project_root;
 
+/// Hard cap on entries injected into agent context (t-1939): fixed, small cost.
+const MAX_RELEVANT: usize = 3;
+/// Entry types that can carry decision content. `action`/`error`/`cost` are bookkeeping.
+const RELEVANT_TYPES: &[&str] = &["decision", "finding", "concern"];
+
 const VALID_TYPES: &[&str] = &["decision", "finding", "concern", "action", "error", "cost"];
 
 // ── State dir resolution ──────────────────────────────────────────────────────
@@ -57,7 +62,10 @@ pub fn cmd_decisions(cmd: DecisionsCmd) -> Result<()> {
         DecisionsCmd::Log { agent, entry_type, content, severity, refs, target } => {
             cmd_log(&agent, &entry_type, &content, severity.as_deref(), refs.as_deref(), target.as_deref())
         }
-        DecisionsCmd::Read { last, entry_type, agent, severity, json } => {
+        DecisionsCmd::Read { last, entry_type, agent, severity, json, relevant } => {
+            if relevant {
+                return cmd_read_relevant(last.unwrap_or(MAX_RELEVANT), json);
+            }
             cmd_read(last, entry_type.as_deref(), agent.as_deref(), severity.as_deref(), json)
         }
         DecisionsCmd::Archive { days, dry_run } => cmd_archive(days, dry_run),
@@ -198,50 +206,110 @@ fn cmd_read(
     Ok(())
 }
 
-// ── archive ───────────────────────────────────────────────────────────────────
+// ── relevant read (context injection) ─────────────────────────────────────────
 
-fn cmd_archive(days: u64, dry_run: bool) -> Result<()> {
-    let dir = state_dir()?;
-    ensure_dirs(&dir)?;
+/// An entry is relevant when it carries decision content: a decision-bearing type,
+/// non-blank content, and not a session-end metrics line.
+fn is_relevant(e: &Value) -> bool {
+    let ty = e.get("type").and_then(Value::as_str).unwrap_or("");
+    let content = e.get("content").and_then(Value::as_str).unwrap_or("").trim();
+    RELEVANT_TYPES.contains(&ty)
+        && !content.is_empty()
+        && !content.starts_with("Session metrics:")
+}
 
-    let archive_dir = dir.join("archive");
-    let today = Utc::now().date_naive();
-    let cutoff = today - chrono::Duration::days(days as i64);
-
-    let mut paths: Vec<_> = fs::read_dir(&dir)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| {
-            p.parent() == Some(dir.as_path())
-                && p.extension().map(|e| e == "jsonl").unwrap_or(false)
-        })
-        .collect();
-    paths.sort();
-
-    let mut count = 0usize;
-    for path in &paths {
-        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        // Expect YYYY-MM-DD prefix
-        if name.len() < 10 {
-            continue;
-        }
-        let date_part = &name[..10];
-        if let Ok(file_date) = NaiveDate::parse_from_str(date_part, "%Y-%m-%d") {
-            if file_date <= cutoff {
-                count += 1;
-                if !dry_run {
-                    fs::rename(path, archive_dir.join(path.file_name().unwrap()))?;
+/// Last `n` (capped at MAX_RELEVANT) relevant entries from active files in `dir`,
+/// oldest first. Archived files are not read.
+fn recent_relevant(dir: &std::path::Path, n: usize) -> Result<Vec<Value>> {
+    let mut entries: Vec<Value> = Vec::new();
+    if let Ok(rd) = fs::read_dir(dir) {
+        let mut paths: Vec<_> = rd
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|p| p.is_file() && p.extension().map(|e| e == "jsonl").unwrap_or(false))
+            .collect();
+        paths.sort();
+        for path in &paths {
+            for line in BufReader::new(fs::File::open(path)?).lines() {
+                if let Ok(v) = serde_json::from_str::<Value>(line?.trim()) {
+                    if is_relevant(&v) {
+                        entries.push(v);
+                    }
                 }
             }
         }
     }
+    entries.sort_by(|a, b| {
+        let f = |v: &Value| v.get("ts").and_then(Value::as_str).unwrap_or("").to_string();
+        f(a).cmp(&f(b))
+    });
+    let n = n.min(MAX_RELEVANT);
+    let len = entries.len();
+    Ok(entries.into_iter().skip(len.saturating_sub(n)).collect())
+}
 
+fn cmd_read_relevant(n: usize, as_json: bool) -> Result<()> {
+    let dir = state_dir()?;
+    for e in recent_relevant(&dir, n)? {
+        if as_json {
+            println!("{}", e);
+        } else {
+            let ts = e.get("ts").and_then(Value::as_str).unwrap_or("");
+            println!(
+                "[{}] {}/{}: {}",
+                ts.get(..10).unwrap_or(ts),
+                e.get("agent").and_then(Value::as_str).unwrap_or("?"),
+                e.get("type").and_then(Value::as_str).unwrap_or("?"),
+                e.get("content").and_then(Value::as_str).unwrap_or("")
+            );
+        }
+    }
+    Ok(())
+}
+
+// ── archive ───────────────────────────────────────────────────────────────────
+
+/// Move session files dated `days` or more ago into `dir/archive/`. Never deletes,
+/// never overwrites an existing archived file, idempotent. Returns files moved
+/// (or that would move, when `dry_run`).
+fn archive_dir(dir: &std::path::Path, days: u64, dry_run: bool) -> Result<usize> {
+    let archive_dir = dir.join("archive");
+    fs::create_dir_all(&archive_dir)?;
+    let cutoff = Utc::now().date_naive() - chrono::Duration::days(days as i64);
+
+    let mut count = 0usize;
+    for entry in fs::read_dir(dir)?.filter_map(|e| e.ok()) {
+        let path = entry.path();
+        if !path.is_file() || path.extension().map(|e| e != "jsonl").unwrap_or(true) {
+            continue;
+        }
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        let Some(date_part) = name.get(..10) else { continue };
+        let Ok(file_date) = NaiveDate::parse_from_str(date_part, "%Y-%m-%d") else { continue };
+        if file_date > cutoff {
+            continue;
+        }
+        let dest = archive_dir.join(name);
+        if dest.exists() {
+            continue; // never overwrite archived data
+        }
+        count += 1;
+        if !dry_run {
+            fs::rename(&path, &dest)?;
+        }
+    }
+    Ok(count)
+}
+
+fn cmd_archive(days: u64, dry_run: bool) -> Result<()> {
+    let dir = state_dir()?;
+    ensure_dirs(&dir)?;
+    let count = archive_dir(&dir, days, dry_run)?;
     if dry_run {
         println!("Would archive {} files", count);
     } else {
         println!("Archived {} files", count);
     }
-
     Ok(())
 }
 

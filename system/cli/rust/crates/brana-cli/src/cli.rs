@@ -351,6 +351,10 @@ pub enum DecisionsCmd {
         /// Output as JSONL (one entry per line)
         #[arg(long)]
         json: bool,
+        /// Context-injection mode: only entries carrying decision content
+        /// (skips session-end metrics lines), hard-capped at 3; --last lowers the cap
+        #[arg(long)]
+        relevant: bool,
     },
     /// Archive entries older than N days to archive/ subdirectory
     Archive {
