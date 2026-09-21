@@ -238,6 +238,47 @@ run_hook
 H3=$(jq -r '.tests_hashes["tests/test-red.sh"]' "$GOAL")
 if [ "$H3" = "$H2" ]; then ok "green re-stage does not re-pin"; else bad "green re-stage re-pinned ($H2 -> $H3)"; fi
 
+# ── t-3345: nested-package node --test file committed from a worktree ─────────
+# Root cause: run_red() only ran *.sh — a node --test file was "un-runnable type"
+# and declined silently, so goal auto-complete was never armed.
+echo "Test 14: red node --test file in nested package, committed from a worktree → registered"
+reset_repo
+WT="$WORK/wt"
+git -C "$REPO" worktree add -q -b wt-branch "$WT" HEAD
+mkdir -p "$WT/services/pkg/tests"
+printf '{"name":"pkg","type":"module"}\n' > "$WT/services/pkg/package.json"
+cat > "$WT/services/pkg/tests/thing.test.js" <<'JS'
+import { test } from 'node:test';
+import assert from 'node:assert';
+test('red', () => { assert.strictEqual(1, 2); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT/services/pkg" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err14"
+is_registered "services/pkg/tests/thing.test.js"; check $? "nested red node test registered from worktree"
+
+echo "Test 15: green node --test file in nested package → NOT registered (fail-closed)"
+cat > "$WT/services/pkg/tests/green.test.js" <<'JS'
+import { test } from 'node:test';
+import assert from 'node:assert';
+test('green', () => { assert.strictEqual(1, 1); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err15"
+if is_registered "services/pkg/tests/green.test.js"; then bad "green node test wrongly registered"; else ok "green node test left unregistered"; fi
+is_registered "services/pkg/tests/thing.test.js"; check $? "red sibling in same commit still registered"
+
+echo "Test 16: declining to register logs a one-line reason on stderr"
+reset_repo
+printf 'just data\n' > "$REPO/tests/data.test.txt"
+git -C "$REPO" add tests/data.test.txt
+write_goal
+( cd "$REPO" && BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err16"
+if grep -q 'red-verification: not registering tests/data.test.txt' "$WORK/err16"; then ok "decline reason logged"; else bad "no decline reason on stderr: $(cat "$WORK/err16")"; fi
+git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
+git -C "$REPO" branch -qD wt-branch 2>/dev/null
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed."
