@@ -576,6 +576,27 @@ mod tests {
     }
 
     #[test]
+    fn test_recent_relevant_stops_reading_once_quota_filled_from_newest_files() {
+        // Cost must not grow with the archive backlog: files are named by timestamp, so once
+        // the newest files supply `n` relevant entries, older files cannot contribute and must
+        // never be opened. An unreadable old file proves it (opening it would error).
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("2026-01-01-000000-old.jsonl");
+        fs::write(&old, "{\"ts\":\"2026-01-01T00:00:00Z\",\"type\":\"decision\",\"agent\":\"a\",\"content\":\"old\"}\n").unwrap();
+        fs::set_permissions(&old, fs::Permissions::from_mode(0o000)).unwrap();
+        let mut newest = String::new();
+        for i in 0..3 {
+            newest.push_str(&format!("{{\"ts\":\"2026-09-2{}T00:00:00Z\",\"type\":\"decision\",\"agent\":\"a\",\"content\":\"new {}\"}}\n", i, i));
+        }
+        fs::write(tmp.path().join("2026-09-21-000000-new.jsonl"), newest).unwrap();
+        let got = recent_relevant(tmp.path(), 3).expect("must not open the unreadable old file");
+        fs::set_permissions(&old, fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(got.len(), 3);
+        assert_eq!(got[2]["content"], "new 2");
+    }
+
+    #[test]
     fn test_recent_relevant_returns_at_most_three() {
         let tmp = TempDir::new().unwrap();
         let lines: Vec<Value> = (1..=6)
