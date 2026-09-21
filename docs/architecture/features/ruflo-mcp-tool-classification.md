@@ -308,6 +308,8 @@ Verify per-tool before depending on any of these.
 
 ## 7. Recommended routing updates
 
+> **Update 2026-09-20 (t-2963):** `claims_claim` / `claims_release` / `claims_mark-stealable` are no longer called by any skill. The claims board was stale (precision 1/6) because claimant identity drifted between claim time and release time; the WIP view it offered is already derivable from `tasks.json`, `git worktree list` and `~/.claude/run-state`. `claims_board` stays classed as REAL but is intentionally unused.
+
 **Add to `system/rules/delegation-routing.md` §1 never-use list:**
 - `agentdb_context-synthesize`, `agentdb_batch`, `agentdb_feedback`,
   `agentdb_session-start`/`-end`, `agentdb_consolidate` — same broken bridge as

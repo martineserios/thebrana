@@ -5,7 +5,7 @@
 Begin work on a task or freeform description. Accepts task IDs, phase IDs, or natural language. For code tasks, enters the `/brana:build` loop. This is the unified entry point — `/brana:do` is an alias for `start` with freeform text.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__claims_claim,mcp__brana__backlog_query")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__brana__backlog_query")
 
 ### Steps
 
@@ -155,15 +155,6 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__claims_claim,mcp__brana
    - `external`: set status + started date, show task description
    - `manual`: set status + started date, show checklist from description
 7. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
-7b. **Task claim (best-effort):**
-   ```
-   # SESSION_ID = current branch name (git branch --show-current)
-   mcp__ruflo__claims_claim(
-     issueId: "task:{id}",
-     claimant: "agent:{SESSION_ID}:session"
-   )
-   ```
-   If MCP unavailable or claim fails, continue — claims are advisory, not blocking.
 8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has no `github_issue`: run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
    - If task has `github_issue`: run `system/scripts/gh-sync.sh pull-context {issue-number}`. If comments returned, replace `## GitHub Comments` section in task's `context` field.
