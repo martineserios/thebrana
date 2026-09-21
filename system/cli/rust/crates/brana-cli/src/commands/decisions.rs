@@ -224,21 +224,31 @@ fn is_relevant(e: &Value) -> bool {
 
 /// Last `n` (capped at MAX_RELEVANT) relevant entries from active files in `dir`,
 /// oldest first. Archived files are not read.
+///
+/// Files are named by creation timestamp, so they are read NEWEST first and reading stops as
+/// soon as `n` relevant entries are in hand: an older file cannot hold a newer entry. Cost is
+/// therefore bounded by the recent tail, not by how many files have piled up (the directory is
+/// gitignored and only shrinks when `archive` is run).
 fn recent_relevant(dir: &std::path::Path, n: usize) -> Result<Vec<Value>> {
-    let mut entries: Vec<Value> = Vec::new();
-    if let Ok(rd) = fs::read_dir(dir) {
-        let mut paths: Vec<_> = rd
+    let n = n.min(MAX_RELEVANT);
+    let mut paths: Vec<_> = match fs::read_dir(dir) {
+        Ok(rd) => rd
             .filter_map(|e| e.ok())
             .map(|e| e.path())
             .filter(|p| p.is_file() && p.extension().map(|e| e == "jsonl").unwrap_or(false))
-            .collect();
-        paths.sort();
-        for path in &paths {
-            for line in BufReader::new(fs::File::open(path)?).lines() {
-                if let Ok(v) = serde_json::from_str::<Value>(line?.trim()) {
-                    if is_relevant(&v) {
-                        entries.push(v);
-                    }
+            .collect(),
+        Err(_) => Vec::new(),
+    };
+    paths.sort();
+    let mut entries: Vec<Value> = Vec::new();
+    for path in paths.iter().rev() {
+        if entries.len() >= n {
+            break;
+        }
+        for line in BufReader::new(fs::File::open(path)?).lines() {
+            if let Ok(v) = serde_json::from_str::<Value>(line?.trim()) {
+                if is_relevant(&v) {
+                    entries.push(v);
                 }
             }
         }
@@ -247,7 +257,6 @@ fn recent_relevant(dir: &std::path::Path, n: usize) -> Result<Vec<Value>> {
         let f = |v: &Value| v.get("ts").and_then(Value::as_str).unwrap_or("").to_string();
         f(a).cmp(&f(b))
     });
-    let n = n.min(MAX_RELEVANT);
     let len = entries.len();
     Ok(entries.into_iter().skip(len.saturating_sub(n)).collect())
 }
