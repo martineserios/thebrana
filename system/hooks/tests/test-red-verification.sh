@@ -269,6 +269,17 @@ write_goal "$WT"
 if is_registered "services/pkg/tests/green.test.js"; then bad "green node test wrongly registered"; else ok "green node test left unregistered"; fi
 is_registered "services/pkg/tests/thing.test.js"; check $? "red sibling in same commit still registered"
 
+echo "Test 17: node runner does not inherit NODE_OPTIONS (green test stays unregistered)"
+cat > "$WT/services/pkg/tests/env.test.js" <<'JS'
+import { test } from 'node:test';
+import assert from 'node:assert';
+test('NODE_OPTIONS is not inherited', () => { assert.strictEqual(process.env.NODE_OPTIONS, undefined); });
+JS
+git -C "$WT" add services
+write_goal "$WT"
+( cd "$WT" && NODE_OPTIONS=--no-warnings BRANA_GOAL_FILE="$GOAL" bash "$HOOK" ) >/dev/null 2>"$WORK/err17"
+if is_registered "services/pkg/tests/env.test.js"; then bad "NODE_OPTIONS leaked into the runner (test ran red)"; else ok "NODE_OPTIONS stripped; test ran green, not registered"; fi
+
 echo "Test 16: declining to register logs a one-line reason on stderr"
 reset_repo
 printf 'just data\n' > "$REPO/tests/data.test.txt"

@@ -91,11 +91,12 @@ run_red() {
     if [ "$runner" = node ]; then
         ( cd "$pkg" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
             -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
-            timeout 60 node --test "$tmp" ) >/dev/null 2>&1
+            -u NODE_OPTIONS \
+            timeout -k 2 60 node --test "$tmp" ) >/dev/null 2>&1
     else
         ( cd "$ROOT" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
             -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
-            timeout 60 bash "$tmp" ) >/dev/null 2>&1
+            timeout -k 2 60 bash "$tmp" ) >/dev/null 2>&1
     fi
     rc=$?
     rm -f "$tmp"
