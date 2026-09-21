@@ -58,9 +58,12 @@ sed -n "${GATE_LINE:-1},$((${GATE_LINE:-1} + 25))p" "$SHIP" | grep -qiE "fail(s)
 # in DIFFERENT fenced code blocks, the merge must be pinned to the SHA shown at the gate, the
 # checks must abort the run on failure, and Abort must be listed before "Merge now" so a
 # first-option responder cannot fail open.
-BLOCKS=$(awk '/^```/{inb=!inb; if(inb)n++; next} inb && /gh pr checks/{c=n} inb && /gh pr merge/{m=n} END{print c" "m}' "$SHIP")
-set -- $BLOCKS
-if [ -n "${1:-}" ] && [ -n "${2:-}" ] && [ "$1" != "$2" ]; then ok "gh pr checks (block $1) and gh pr merge (block $2) are in different fenced blocks"; else bad "gh pr checks and gh pr merge share one fenced block (or one is missing): '$BLOCKS'"; fi
+# No fenced block may contain BOTH `gh pr checks` and `gh pr merge` — checked per block, so a merge glued into
+# the checks fence cannot be masked by the legitimate one in Part C (mutation-tested: an earlier version
+# remembered only the LAST occurrence of each and missed a glued merge).
+SHARED=$(awk '/^```/{if(inb){if(hc&&hm)bad++}; inb=!inb; hc=0; hm=0; next} inb{if(/gh pr checks/)hc=1; if(/gh pr merge/)hm=1} END{print bad+0}' "$SHIP")
+HAS_MERGE=$(awk '/^```/{inb=!inb; next} inb && /gh pr merge/{f=1} END{print f+0}' "$SHIP")
+if [ "$SHARED" -eq 0 ] && [ "$HAS_MERGE" -eq 1 ]; then ok "no fenced block holds both 'gh pr checks' and 'gh pr merge' (merge is in its own fence)"; else bad "a fenced block holds both 'gh pr checks' and 'gh pr merge' (shared=$SHARED, merge-present=$HAS_MERGE)"; fi
 grep -q -- '--match-head-commit' "$SHIP" && ok "merge is pinned with --match-head-commit" || bad "merge is not pinned to the reviewed head commit"
 grep -E 'gh pr checks.*\|\|.*(exit|return)' "$SHIP" >/dev/null && ok "a failed 'gh pr checks' aborts the run" || bad "'gh pr checks' has no '|| exit' — a red run would fall through"
 grep -qE 'Options: \["Abort[^]]*", "Merge now"\]' "$SHIP" && ok "merge gate lists Abort before 'Merge now'" || bad "merge gate does not put Abort first"
