@@ -132,6 +132,7 @@ declare -A REMEDY_REGISTRY=(
   [71]="NO_REMEDY:judgment-required — a loops-library lint failure (missing/malformed catalog fields) needs authored entry content, not a mechanical fix"
   [72]="NO_REMEDY:judgment-required — closing a docs/README.md coverage gap (missing row, dead link) needs authored content, can't be synthesized"
   [74]="NO_REMEDY:judgment-required — a 'git checkout main|dev' command line in a procedure must be rewritten as the by-ref ship sequence or a worktree step (ADR-094 d5), which is authored prose, not a mechanical substitution"
+  [75]="NO_REMEDY:judgment-required — a private state file (portfolio.md, tasks-portfolio.json) that is tracked or not gitignored must be untracked and its .gitignore rule restored deliberately; auto-editing git index or ignore rules in a public repo is not a safe mechanical fix (t-3352)"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
