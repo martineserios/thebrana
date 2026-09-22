@@ -42,13 +42,15 @@ State files are split by where their git home is:
 |-------|-------|----------|
 | public | `event-log.md`, `tasks-config.json`, `scheduler.json` | `system/state/` (unchanged) |
 | private | `tasks-portfolio.json` | `$BRANA_PRIVATE_REPO/backup/state/` (default `~/enter_thebrana/brana-knowledge`, a private repo) |
-| private, already covered | `portfolio.md` | `brana-knowledge/backup/memory/portfolio.md`, written by `brana-knowledge/backup.sh` (which copies `~/.claude/memory/*.md`); restored by its `restore.sh` |
+| private, already covered | `portfolio.md` | `brana-knowledge/backup/memory/portfolio.md`, written by `brana-knowledge/backup.sh` (which copies `~/.claude/memory/*.md`); restore by copying it back — `brana-knowledge/restore.sh` reads `memory/`, `projects/` and `swarm/` at the repo root while `backup.sh` writes under `backup/`, so it currently restores nothing (tracked separately) |
 
 Rules:
 
 1. `push` writes private files only into the private repo's working tree.
-   `brana-knowledge/daily-push.sh` runs `git add -A`, so they are committed there
-   without changing that repo's scripts.
+   `brana-knowledge/backup.sh` commits everything in that repo with
+   `git add -A --ignore-errors` and pushes (1,100+ commits, several a day), so they
+   are committed there without changing that repo's scripts. (`daily-push.sh` also
+   exists but has never run and is not relied on.)
 2. The private destination is used **only if** `$BRANA_PRIVATE_REPO/.git` exists.
    If it doesn't, `push` logs a skip and exits 0. It **never falls back** to the
    public dir; a missing private repo must not degrade into a public write.
@@ -61,6 +63,22 @@ Rules:
    for them.
 5. Both public-repo paths are untracked and gitignored, and `validate.sh` fails if
    either becomes tracked again (a guard, with a must-fire test).
+
+## Restore on a new machine
+
+1. Clone brana-knowledge (or `git pull` an existing clone): `pull` reads that
+   working tree and does not fetch it, so a stale clone restores a stale registry.
+2. `sync-state.sh pull` restores `~/.claude/tasks-portfolio.json` from `backup/state/`.
+3. `portfolio.md`: copy `brana-knowledge/backup/memory/portfolio.md` to
+   `~/.claude/memory/` by hand until `restore.sh` is fixed.
+
+## Known gaps (not closed by this change)
+
+- Other tracked state files can name clients too (`system/state/event-log.md` is on the
+  auto-commit allowlist; `session-handoff.md` is tracked). Same class of exposure,
+  pre-existing; tracked as a separate task.
+- The private route only checks that `$BRANA_PRIVATE_REPO/.git` exists, not that the
+  repo is private.
 
 ## Non-goals
 
