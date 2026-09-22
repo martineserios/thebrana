@@ -35,7 +35,7 @@ REPO_PATHS=(
 # Private state (t-3352): client/venture data that must NEVER reach this PUBLIC repo.
 # portfolio.md is not synced here at all — brana-knowledge/backup.sh already backs up
 # ~/.claude/memory/*.md into the private repo. tasks-portfolio.json travels to the
-# private repo's working tree; brana-knowledge/daily-push.sh commits it (git add -A).
+# private repo's working tree; brana-knowledge/backup.sh commits it (git add -A --ignore-errors, several times a day).
 # The private destination is used ONLY when that repo exists — a missing private repo
 # must never degrade into a write to the public STATE_DIR.
 # See docs/architecture/features/private-state-sync.md.
@@ -483,14 +483,23 @@ auto_commit_state() {
     # auto-publish. The commit is path-limited too, so it never sweeps in whatever a
     # concurrent session happened to stage.
     local -a add_paths=()
-    local rp
+    local rp rel
     for rp in "${REPO_PATHS[@]}"; do
-        add_paths+=("${rp#"$THEBRANA_ROOT"/}")
+        rel="${rp#"$THEBRANA_ROOT"/}"
+        # `git add` aborts the WHOLE command on a pathspec that is neither on disk nor tracked
+        # (fresh clone, partial state dir) and the failure is swallowed below — so only list
+        # paths git can actually resolve, or the allowlist silently becomes a no-op.
+        if [ -e "$THEBRANA_ROOT/$rel" ] || git -C "$THEBRANA_ROOT" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then
+            add_paths+=("$rel")
+        fi
     done
-    if [ -n "$(git -C "$THEBRANA_ROOT" status --porcelain -- "${add_paths[@]}" 2>/dev/null)" ]; then
+    if [ "${#add_paths[@]}" -gt 0 ] && [ -n "$(git -C "$THEBRANA_ROOT" status --porcelain -- "${add_paths[@]}" 2>/dev/null)" ]; then
         git -C "$THEBRANA_ROOT" add -- "${add_paths[@]}" 2>/dev/null || true
-        git -C "$THEBRANA_ROOT" commit -m "$msg" --no-verify -- "${add_paths[@]}" 2>/dev/null || true
-        log "auto-committed state changes"
+        if git -C "$THEBRANA_ROOT" commit -m "$msg" --no-verify -- "${add_paths[@]}" >/dev/null 2>&1; then
+            log "auto-committed state changes"
+        else
+            log "auto-commit: nothing committed (add/commit failed or no staged change)"
+        fi
     fi
 
     # Also commit companion file changes in client repos

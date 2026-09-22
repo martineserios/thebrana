@@ -25,13 +25,27 @@ for f in "${PRIVATE_FILES[@]}"; do
     fi
     # The ignore rule must live in a committed .gitignore. check-ignore -q also passes on
     # .git/info/exclude or a global core.excludesFile, which protect only THIS clone.
-    src=$(git -C "$ROOT" check-ignore -v "$f" 2>/dev/null | cut -f1)
-    case "$src" in
-        .gitignore:*|*/.gitignore:*) ;;
-        *)
-            echo "NOT GITIGNORED (in a committed .gitignore): $f — add it to .gitignore so 'git add system/state/' cannot re-publish it"
-            BAD=1
-            ;;
+    # `check-ignore -q` exits 0 ONLY when the path is really ignored. `-v` alone exits 0 even
+    # when the matching rule is a NEGATED one ('!path'), which re-includes the file — so gate on
+    # -q first, then ask -v only for the source file of the rule.
+    if git -C "$ROOT" check-ignore -q "$f" 2>/dev/null; then
+        src=$(git -C "$ROOT" check-ignore -v "$f" 2>/dev/null | cut -f1)
+    else
+        src=""
+    fi
+    # The rule's source must be a .gitignore that is itself TRACKED and repo-relative. An
+    # untracked nested .gitignore, or a global core.excludesFile (absolute path), protects only
+    # this clone/machine — a fresh clone or CI would not have it.
+    srcfile="${src%%:*}"
+    case "$srcfile" in
+        /*|"") ok_src=0 ;;
+        *.gitignore)
+            if git -C "$ROOT" ls-files --error-unmatch -- "$srcfile" >/dev/null 2>&1; then ok_src=1; else ok_src=0; fi ;;
+        *) ok_src=0 ;;
     esac
+    if [ "$ok_src" -ne 1 ]; then
+        echo "NOT GITIGNORED (in a TRACKED, repo-relative .gitignore): $f — add it to a committed .gitignore so 'git add system/state/' cannot re-publish it"
+        BAD=1
+    fi
 done
 exit "$BAD"
