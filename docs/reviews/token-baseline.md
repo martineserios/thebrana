@@ -234,35 +234,16 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - This monitor session: haiku (minimal cost)
 - Status: ⚠️ CRITICAL — weekly-review remains offline; knowledge-review on schedule (next expected 2026-10-01)
 
-## 2026-09-23 (RECOVERY DETECTED)
-- Triggers fired in last 24h: none (today)
-- New commits from agents (24h): 0
-- New review files (today): none
-- **CRITICAL UPDATE**: weekly-review has RECOVERED from 52-day offline status
-  - 2026-09-11 20:04:06: weekly portfolio review (weekly-2026-09-11.md, ~6.7K)
-  - 2026-09-18 20:03:34: weekly portfolio review (weekly-2026-09-18.md, ~5.0K)
-- Last trigger observed: weekly-review on 2026-09-18 (5 days ago)
-- Next expected: weekly-review ~2026-09-25, knowledge-review ~2026-10-01
-- This monitor session: haiku (minimal cost)
-- Status: ✓ RECOVERY CONFIRMED — weekly-review back on weekly cadence; both triggers now healthy
-
----
-
-## Baseline Summary (177 days of observation, RECOVERY ACHIEVED)
-- **Total trigger fires observed**: 
-  - weekly-review: 7 confirmed fires (2026-04-17, 2026-06-19, 2026-06-26, 2026-07-03, 2026-07-24, 2026-09-11, 2026-09-18) — **BACK ONLINE** after 52-day outage (2026-07-24 → 2026-09-11)
-  - knowledge-review: 2 confirmed fires (2026-08-01, 2026-09-01) ✓ Monthly trigger working normally
-- **weekly-review** pattern: **RECOVERED** — offline 52 days (2026-07-24 to 2026-09-11), now back on Thursdays/Fridays cadence, ~5-7K output per run, 1–2K tokens per execution
-- **knowledge-review** pattern: 1st of month cadence stable, ~7.8K output per run, 1–2K tokens per execution, next expected 2026-10-01
-- **token-monitor**: daily observations via scheduled agent, haiku model, <200 tokens per run (164 entries tracked)
-- **Cost tracking (Sep 2026 YTD)**:
-  - knowledge-review: 1 fire (Sept 1st) = ~1.5K tokens
-  - weekly-review: 2 fires (Sept 11, Sept 18) = ~3K tokens
-  - token-monitor: 23 days observed = ~4.6K tokens
-  - **Total Sep YTD: ~9K tokens** (baseline restored as weekly-review comes back online)
-- **Recommendation**: 
-  - ✓ **RESOLUTION**: weekly-review outage resolved; trigger is now healthy and firing on schedule
-  - Monitor continues daily to confirm sustained recovery through September and October
-  - Both triggers now performing nominally; no action required unless outage recurs
-  - Cost baseline: weekly-review resumption adds ~1-2K tokens/week back; September trajectory: ~10-12K tokens for full month
-  - Next milestone: 2026-10-01 knowledge-review trigger (7 days away)
+## 2026-09-24 (Today)
+- **Triggers fired in last 24h**: none (but recovered trigger detected)
+- **New commits from agents (24h)**: 0 (recovered fires from 2026-09-11 and 2026-09-18)
+- **New review files (today)**: none
+- **CRITICAL RECOVERY**: weekly-review has resumed! 2 fires detected:
+  - weekly-2026-09-11.md (6.0K) — committed 2026-09-11
+  - weekly-2026-09-18.md (5.0K) — committed 2026-09-18
+- **Missed triggers resolved**: weekly-review offline period is over! Pattern has resumed (Thu cadence).
+- **Trigger activity (since last baseline summary on 2026-09-16)**:
+  - weekly-review: 2 fires recovered (Sept 11, Sept 18) — trigger is active again
+  - knowledge-review: last fire 2026-09-01 (on schedule for 2026-10-01)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ✅ **RESOLVED** — weekly-review trigger recovered after 52-day outage; monitoring continues to confirm stability

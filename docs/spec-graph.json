@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-22T01:31:45Z",
+  "generated": "2026-09-21T18:27:02Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1693,7 +1693,9 @@
     "docs/architecture/features/knowledge-pipeline-compute.md": {
       "title": "Knowledge Pipeline — Compute Routing",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/state/tasks-portfolio.json"
+      ]
     },
     "docs/architecture/features/knowledge-pipeline-platform-adapters.md": {
       "title": "Feature: PlatformAdapter for the knowledge pipeline",
@@ -1868,18 +1870,12 @@
         "system/rules"
       ]
     },
-    "docs/architecture/features/private-state-sync.md": {
-      "title": "Private state sync",
-      "type": "Roadmap",
-      "impl_files": [
-        "system/state/",
-        "system/state/event-log.md"
-      ]
-    },
     "docs/architecture/features/project-descriptor-vectors.md": {
       "title": "Project Descriptor Vectors",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/state/tasks-portfolio.json"
+      ]
     },
     "docs/architecture/features/project-metadata.md": {
       "title": "Feature: Project-Level Metadata",
@@ -4012,6 +4008,7 @@
       "impl_files": [
         "system/cli/rust/crates/brana-cli/",
         "system/skills/",
+        "system/state/tasks-portfolio.json",
         "system/hooks/lib/remind.sh",
         "system/scripts/close-snapshot.sh",
         "system/cron/close-extraction.sh"
@@ -11972,12 +11969,6 @@
     },
     {
       "from": "docs/README.md",
-      "to": "architecture/features/private-state-sync.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/README.md",
       "to": "architecture/features/project-descriptor-vectors.md",
       "type": "references",
       "computed": false
@@ -19880,9 +19871,9 @@
     }
   ],
   "stats": {
-    "nodes": 642,
-    "edges": 2552,
+    "nodes": 641,
+    "edges": 2551,
     "typed_edges": 742,
-    "orphans": 145
+    "orphans": 144
   }
 }
