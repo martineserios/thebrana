@@ -89,6 +89,7 @@ export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER
 FIX="$TMP/fixrepo"
 mkdir -p "$FIX/system/scripts" "$FIX/system/state"
 cp "$SCRIPT" "$FIX/system/scripts/sync-state.sh"
+mkdir -p "$FIX/system/hooks/lib" && cp "$(dirname "$SCRIPT")/../hooks/lib/portable.sh" "$FIX/system/hooks/lib/portable.sh"
 git init -q "$FIX"
 echo "readme" > "$FIX/README.md"                                  # init commit deliberately holds NO state file
 git -C "$FIX" add -A && git -C "$FIX" commit -q -m init

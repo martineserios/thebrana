@@ -23,6 +23,7 @@
 
 set +e
 
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 SESSION_FILE="${SESSION_FILE:-}"
 CORRECTION_RATE="${CORRECTION_RATE:-0.00}"
 CORRECTIONS="${CORRECTIONS:-0}"
@@ -69,7 +70,7 @@ while IFS= read -r KEY; do
     [ -z "$KEY" ] && continue
 
     # Fetch current pattern value
-    CURRENT_JSON=$(cd "$HOME" && timeout 3 $CF memory search \
+    CURRENT_JSON=$(cd "$HOME" && p_timeout 3 $CF memory search \
         --query "$KEY" --namespace pattern --format json 2>/dev/null \
         | jq -r --arg k "$KEY" '.[]? | select(.key == $k) | .value' 2>/dev/null | head -1) || CURRENT_JSON=""
 
@@ -122,7 +123,7 @@ while IFS= read -r KEY; do
 
     # Re-store with updated confidence
     TAGS="client:$PROJECT,type:pattern,confidence:$CONF_LABEL"
-    cd "$HOME" && timeout 5 $CF memory store -k "$KEY" -v "$NEW_VALUE" \
+    cd "$HOME" && p_timeout 5 $CF memory store -k "$KEY" -v "$NEW_VALUE" \
         --namespace pattern --tags "$TAGS" >/dev/null 2>&1 || true
 
     if [ "$ACTION" = "promote" ]; then

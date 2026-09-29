@@ -59,7 +59,7 @@ extract_steps_from_procedure() {
     {
         grep -oE '^## Step [0-9a-z]+: ([A-Z][A-Z\-]+)' "$proc_file" 2>/dev/null | sed 's/^## Step [0-9a-z]*: //'
         grep -oE '^### ([A-Z][A-Z\-]+)( |$)' "$proc_file" 2>/dev/null | sed 's/^### //; s/ *$//'
-        grep -oE '^[0-9]+\. \*\*[A-Z][A-Z\-]+\*\*' "$proc_file" 2>/dev/null | sed 's/^[0-9]\+\. \*\*//; s/\*\*//'
+        grep -oE '^[0-9]+\. \*\*[A-Z][A-Z\-]+\*\*' "$proc_file" 2>/dev/null | sed -E 's/^[0-9]+\. \*\*//; s/\*\*//'
     } | sort -u
 }
 

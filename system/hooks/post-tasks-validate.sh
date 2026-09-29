@@ -149,7 +149,7 @@ else
 
         for PID in "${PARENTS_TO_COMPLETE[@]}"; do
             [ -z "$PID" ] && continue
-            jq --arg pid "$PID" --arg today "$TODAY" --arg now "$(date -Iseconds)" '
+            jq --arg pid "$PID" --arg today "$TODAY" --arg now "$(p_date_iso)" '
               .tasks |= map(
                 if .id == $pid then
                   .status = "completed" | .completed = $today

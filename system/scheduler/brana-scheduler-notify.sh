@@ -14,6 +14,7 @@
 
 set -uo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 FAILED_UNIT="${1:?Usage: brana-scheduler-notify.sh <failed-unit-name>}"
 STATUS_FILE="$HOME/.claude/scheduler/last-status.json"
 SECRETS_FILE="$HOME/.hub-secrets"
@@ -46,7 +47,7 @@ write_status() {
     local tmp
     tmp=$(mktemp)
     local entry
-    entry=$(jq -n --arg job "$LOOKUP_NAME" --arg ts "$(date -Iseconds)" \
+    entry=$(jq -n --arg job "$LOOKUP_NAME" --arg ts "$(p_date_iso)" \
         '{($job): {status: "FAILED", exit_code: 1, timestamp: $ts, attempts: 1, notified: true}}')
     if [ -f "$STATUS_FILE" ]; then
         jq --argjson new "$entry" '. * $new' "$STATUS_FILE" > "$tmp" 2>/dev/null || echo "$entry" > "$tmp"

@@ -522,7 +522,7 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
         if echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
             # Old format: resolve plugin root
             SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$SYSTEM_DIR|g")
-        elif echo "$cmd" | grep -q '\$HOME\|'"$HOME"; then
+        elif echo "$cmd" | grep -qE '\$HOME|'"$HOME"; then
             # New deployed-path format: expand $HOME
             SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\$HOME|$HOME|g")
             # Fall back to the repo copy when the deployed copy is absent (t-2485).
@@ -600,7 +600,7 @@ if [ -d "$HOOK_LIB_DIR" ]; then
         for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
             [ -f "$hook_script" ] || continue
             hook_name=$(basename "$hook_script")
-            if grep -q 'resolve_lookup_dir\|extract_git_c_dir' "$hook_script"; then
+            if grep -qE 'resolve_lookup_dir|extract_git_c_dir' "$hook_script"; then
                 if grep -q 'git-helpers.sh' "$hook_script"; then
                     pass "hooks/$hook_name — sources git-helpers.sh"
                 else
@@ -739,7 +739,7 @@ ACTUAL_HOOKS=$(ls "$SYSTEM_DIR"/hooks/*.sh 2>/dev/null | wc -l | tr -d ' ')
 COUNT_DRIFT=0
 while IFS= read -r doc; do
     [ -f "$doc" ] || continue
-    docname=$(realpath --relative-to="$DOCS_DIR" "$doc" 2>/dev/null || basename "$doc")
+    docname=$(p_relpath "$DOCS_DIR" "$doc" 2>/dev/null || basename "$doc")
 
     while IFS=: read -r linenum num component; do
         [ -z "$component" ] && continue
@@ -1267,7 +1267,7 @@ PYEOF
 
     # Parse: last line is the count, preceding lines are details
     ISSUE_COUNT=$(echo "$INTEGRITY_ISSUES" | tail -1)
-    ISSUE_DETAILS=$(echo "$INTEGRITY_ISSUES" | head -n -1)
+    ISSUE_DETAILS=$(echo "$INTEGRITY_ISSUES" | sed '$d')
 
     if [ -n "$ISSUE_DETAILS" ]; then
         echo "$ISSUE_DETAILS"
@@ -1581,7 +1581,7 @@ UNWRAPPED_BRANA=$(
     {
         grep -rn '"$BRANA[^"]*" [a-z]' "$HOOK_DIR"/*.sh 2>/dev/null
         grep -rn '^\s*brana [a-z]' "$HOOK_DIR"/*.sh 2>/dev/null
-    } | grep -v '/lib/\|/tests/' \
+    } | grep -vE '/lib/|/tests/' \
       | grep -v ':[[:space:]]*#' \
       | grep -v 'cd ["\$]' \
     || true
@@ -2108,7 +2108,7 @@ if [ -f "$HJ" ]; then
         # Detect continue:false in non-comment, non-pass_through lines
         hits=$(grep -n '"continue"[[:space:]]*:[[:space:]]*false\|echo.*continue.*false' \
             "$SCRIPT_RESOLVED" 2>/dev/null \
-            | grep -v ':[[:space:]]*#\|pass_through\|# .*continue' \
+            | grep -vE ':[[:space:]]*#|pass_through|# .*continue' \
             || true)
         if [ -n "$hits" ]; then
             C47_HITS="${C47_HITS}  ${SCRIPT_NAME}:
@@ -2299,7 +2299,7 @@ echo "Check 54: build.md loop-suggestion step (ADR-050)..."
 BUILD_BODY54=$(effective_body build)
 if [ -z "$BUILD_BODY54" ]; then
     warn "Check 54: build effective body empty — skipping"
-elif grep -q "loop.*suggest\|suggest.*loop\|loop suggestion" <<< "$BUILD_BODY54" && grep -q "L/XL\|XL.*only\|effort.*L\|large.*build" <<< "$BUILD_BODY54"; then
+elif grep -qE "loop.*suggest|suggest.*loop|loop suggestion" <<< "$BUILD_BODY54" && grep -qE "L/XL|XL.*only|effort.*L|large.*build" <<< "$BUILD_BODY54"; then
     pass "Check 54: build body contains loop-suggestion step gated to L/XL effort"
 else
     fail "Check 54: build.md missing loop-suggestion step gated to L/XL effort (ADR-050 §Protocol, t-731)"
@@ -2332,7 +2332,7 @@ echo "Check 56: build.md loop-suggestion durable:false constraint (ADR-050)..."
 BUILD_BODY56=$(effective_body build)
 if [ -z "$BUILD_BODY56" ]; then
     warn "Check 56: build effective body empty — skipping"
-elif grep -q "durable.*false\|durable: false" <<< "$BUILD_BODY56"; then
+elif grep -qE "durable.*false|durable: false" <<< "$BUILD_BODY56"; then
     pass "Check 56: build body loop-suggestion states durable:false"
 else
     fail "Check 56: build.md loop-suggestion missing durable:false constraint — all skill-suggested loops must be session-scoped (ADR-050 §Protocol)"

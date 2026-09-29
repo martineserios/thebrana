@@ -224,3 +224,104 @@ p_lock_release() {
         rm -rf "$file.d"
     fi
 }
+
+# ── timeout ──────────────────────────────────────────────────────────────────
+# p_timeout [-k KILL_AFTER] SECS cmd args...   — rc 124 on timeout, else cmd's rc.
+# (GNU timeout returns 137 instead when -k had to escalate to KILL; the fallback returns 124.
+# Treat "timed out" as rc 124 or 137.)
+# GNU timeout(1) when present (Linux; Homebrew coreutils' gtimeout on macOS); otherwise a
+# bash watchdog: cmd runs in the background with stdin preserved, a watchdog TERMs it (and
+# its direct children) after SECS, then KILLs after KILL_AFTER. The watchdog's stdout/stderr
+# go to /dev/null so a surrounding $(...) never waits out the timeout.
+# The fallback signals the child and its direct children, not the whole process group as GNU
+# timeout does — grandchildren of a wrapper shell can outlive it.
+p_timeout() {
+    if   _p_have timeout;  then timeout "$@";  return $?
+    elif _p_have gtimeout; then gtimeout "$@"; return $?
+    fi
+    local kill_after="" secs pid wd rc=0 wrc=0
+    if [ "${1:-}" = "-k" ]; then kill_after="$2"; shift 2; fi
+    secs="$1"; shift
+    "$@" <&0 &
+    pid=$!
+    (
+        sleep "$secs"
+        if kill -0 "$pid" 2>/dev/null; then
+            pkill -TERM -P "$pid" 2>/dev/null; kill -TERM "$pid" 2>/dev/null
+            if [ -n "$kill_after" ]; then   # detached escalation: outlives this stage on purpose
+                ( sleep "$kill_after"; pkill -KILL -P "$pid" 2>/dev/null; kill -KILL "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+            fi
+            exit 124
+        fi
+        exit 0
+    ) >/dev/null 2>&1 &
+    wd=$!
+    wait "$pid" 2>/dev/null || rc=$?
+    pkill -P "$wd" 2>/dev/null; kill "$wd" 2>/dev/null
+    wait "$wd" 2>/dev/null || wrc=$?
+    [ "$wrc" -eq 124 ] && return 124
+    return "$rc"
+}
+
+# ── realpath ─────────────────────────────────────────────────────────────────
+# p_realpath_m PATH — `realpath -m`: absolute, `.`/`..` collapsed, symlinks in the existing
+# part resolved, nonexistent tail allowed. (Plain `realpath PATH` → p_readlink_f.)
+p_realpath_m() {
+    local p="$1" seg out="" res tail="" had_noglob=0 oldifs="$IFS"
+    case "$p" in /*) ;; *) p="$PWD/$p" ;; esac
+    case $- in *f*) had_noglob=1 ;; esac
+    set -f; IFS=/
+    for seg in $p; do
+        case "$seg" in
+            ""|.) ;;
+            ..)   out="${out%/*}" ;;
+            *)    out="$out/$seg" ;;
+        esac
+    done
+    IFS="$oldifs"; [ $had_noglob -eq 1 ] || set +f
+    res="$out"
+    while [ -n "$res" ] && [ ! -e "$res" ]; do tail="/${res##*/}$tail"; res="${res%/*}"; done
+    [ -n "$res" ] || res=/
+    res="$(p_readlink_f "$res")" || return 1
+    res="${res%/}$tail"
+    printf '%s\n' "${res:-/}"
+}
+
+# p_relpath BASE PATH — `realpath --relative-to=BASE PATH` (both may be nonexistent).
+p_relpath() {
+    local cur target up="" rest
+    cur="$(p_realpath_m "$1")" || return 1
+    target="$(p_realpath_m "$2")" || return 1
+    while [ "$cur" != / ] && [ "$target" != "$cur" ] && [ "${target#"$cur"/}" = "$target" ]; do
+        cur="$(dirname "$cur")"; up="../$up"
+    done
+    rest="${target#"$cur"}"; rest="${rest#/}"
+    rest="${up}${rest}"; rest="${rest%/}"
+    printf '%s\n' "${rest:-.}"
+}
+
+# ── date -Iseconds / nanosecond clock ────────────────────────────────────────
+# p_date_iso — `date -Iseconds` (local time, colon offset: 2026-09-29T14:18:03-03:00).
+# BSD date has no -I; GNU's %z has no colon.
+p_date_iso() {
+    local d
+    d="$(date +%Y-%m-%dT%H:%M:%S%z)"
+    printf '%s:%s\n' "${d%??}" "${d: -2}"
+}
+
+# p_now_ms — epoch milliseconds. bash >= 5 EPOCHREALTIME (no fork); else `date +%s%N`
+# (prints a literal N on BSD), then perl (ships with macOS), then whole seconds.
+p_now_ms() {
+    local n
+    if [ -n "${EPOCHREALTIME:-}" ]; then   # bash >= 5: no fork; separator follows the locale
+        n="${EPOCHREALTIME//[.,]/}"
+        echo $((n / 1000)); return 0
+    fi
+    n="$(date +%s%N 2>/dev/null)"
+    case "$n" in
+        ""|*[!0-9]*) ;;
+        *) echo $((n / 1000000)); return 0 ;;
+    esac
+    if _p_have perl; then perl -MTime::HiRes=time -e 'printf "%d\n", time()*1000'
+    else echo $(( $(date +%s) * 1000 )); fi
+}

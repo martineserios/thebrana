@@ -17,6 +17,7 @@
 
 set -u
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 PROJECT="${1:?usage: flywheel-insight.sh <project> [db_path]}"
 DB_PATH="${2:-$HOME/.swarm/memory.db}"
 
@@ -53,7 +54,7 @@ done
 LATEST_KEY=$(echo "$KEYS" | head -1)
 PRIOR_KEY=$(echo "$KEYS" | sed -n 2p)
 
-LATEST_JSON=$(cd "$HOME" && timeout 8 $CF memory retrieve -k "$LATEST_KEY" --namespace metrics --value-only --path "$DB_PATH" 2>/dev/null) || LATEST_JSON=""
+LATEST_JSON=$(cd "$HOME" && p_timeout 8 $CF memory retrieve -k "$LATEST_KEY" --namespace metrics --value-only --path "$DB_PATH" 2>/dev/null) || LATEST_JSON=""
 LATEST_JSON=$(echo "$LATEST_JSON" | sed -n '/^{/,$p' | head -1)
 
 # Known non-goal: if the session-start phase-3 kill fires between the

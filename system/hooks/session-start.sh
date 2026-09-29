@@ -28,8 +28,7 @@ _TIMING_LOG="/tmp/brana-startup-timing.log"
 # nanoseconds. A failed read gives 0, floored by the Phase 3 wait loop so it
 # degrades to per-job budgets rather than killing every job instantly (t-2988).
 _ts() {
-    local ns; ns=$(date +%s%N 2>/dev/null) || { echo 0; return; }
-    case "$ns" in *[!0-9]*|"") echo 0 ;; *) echo $(( ns / 1000000 )) ;; esac
+    p_now_ms 2>/dev/null || echo 0
 }
 _mark() { echo "[brana-diag] $1 $(_ts)" >> "$_TIMING_LOG" 2>/dev/null || true; }
 _mark "hook-start"
@@ -178,7 +177,7 @@ fi
 CQ_STALE_CONTEXT=""
 CQ_FILE="$HOME/.claude/close-queue.json"
 if [ -f "$CQ_FILE" ]; then
-    CQ_CUTOFF=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || CQ_CUTOFF=""
+    CQ_CUTOFF=$(p_date_d '3 days ago' %Y-%m-%dT%H:%M:%SZ 2>/dev/null) || CQ_CUTOFF=""
     if [ -n "$CQ_CUTOFF" ]; then
         # RFC3339 UTC timestamps compare correctly as strings at day granularity
         CQ_STALE=$(jq -r --arg cutoff "$CQ_CUTOFF" \
@@ -227,7 +226,7 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         # subshell's stdout). </dev/null: this is a non-interactive background
         # job — it must never block reading a stdin it inherited from the
         # invoking pipe.
-        CF_OUTPUT=$(cd "$HOME" && timeout -k 2 8 $CF memory search --query "$PROJECT build patterns corrections learnings" --namespace pattern --threshold 0.3 --limit 5 --format json </dev/null 2>&1)
+        CF_OUTPUT=$(cd "$HOME" && p_timeout -k 2 8 $CF memory search --query "$PROJECT build patterns corrections learnings" --namespace pattern --threshold 0.3 --limit 5 --format json </dev/null 2>&1)
         CF_EXIT=$?   # captured BEFORE any || true — was dead code reading 0 forever
         # CLI emits ONNX/INFO noise before the JSON object — keep JSON only.
         CF_JSON=$(echo "$CF_OUTPUT" | sed -n '/^{/,$p')
@@ -275,7 +274,7 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         done
         if [ -n "$FW_SCRIPT" ]; then
             # -k 2 </dev/null: see the CF_OUTPUT timeout above (t-2622).
-            timeout -k 2 12 bash "$FW_SCRIPT" "$PROJECT" </dev/null 2>/dev/null | _ss_put flywheel-insight || true
+            p_timeout -k 2 12 bash "$FW_SCRIPT" "$PROJECT" </dev/null 2>/dev/null | _ss_put flywheel-insight || true
         fi
     # See the t-2622 note above the Job 1 subshell — same orphaned-stdout hang.
     ) >/dev/null 2>&1 &
@@ -302,7 +301,7 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         fi
         if [ -n "$BRANA_RECALL" ] && [ -x "$BRANA_RECALL" ]; then
             # -k 1 </dev/null: see the CF_OUTPUT timeout above (t-2622).
-            RECALL_RAW=$(cd "$GIT_ROOT" && timeout -k 1 3 "$BRANA_RECALL" recall \
+            RECALL_RAW=$(cd "$GIT_ROOT" && p_timeout -k 1 3 "$BRANA_RECALL" recall \
                 "$PROJECT build patterns corrections learnings" \
                 --top 5 --json </dev/null 2>/dev/null) || RECALL_RAW=""
             if [ -n "$RECALL_RAW" ]; then
@@ -385,7 +384,7 @@ DRIFT_CONTEXT=""
 DRIFT_SCRIPT="$SCRIPT_DIR/config-drift.sh"
 if [ -f "$DRIFT_SCRIPT" ]; then
     # Timeout-bounded like every synchronous external here (t-2988).
-    DRIFT_JSON=$(timeout -k 1 5 bash "$DRIFT_SCRIPT" </dev/null 2>/dev/null) || true
+    DRIFT_JSON=$(p_timeout -k 1 5 bash "$DRIFT_SCRIPT" </dev/null 2>/dev/null) || true
     DRIFT_STATUS=$(echo "$DRIFT_JSON" | jq -r '.status // empty' 2>/dev/null) || true
     if [ "$DRIFT_STATUS" = "drifted" ]; then
         DRIFT_COUNT=$(echo "$DRIFT_JSON" | jq -r '.count' 2>/dev/null) || DRIFT_COUNT=0
@@ -420,7 +419,7 @@ STALE_BINARY_WARNING=""
 _BRANA_BIN=$(command -v brana 2>/dev/null) || true
 if [ -n "${_BRANA_BIN:-}" ] && [ -x "$_BRANA_BIN" ]; then
     _BIN_MTIME=$(p_stat_mtime "$_BRANA_BIN" 2>/dev/null) || _BIN_MTIME=0
-    _LAST_CLI_CT=$(timeout -k 1 3 git -C "$GIT_ROOT" log --format="%ct" -1 -- system/cli/ 2>/dev/null) || _LAST_CLI_CT=""
+    _LAST_CLI_CT=$(p_timeout -k 1 3 git -C "$GIT_ROOT" log --format="%ct" -1 -- system/cli/ 2>/dev/null) || _LAST_CLI_CT=""
     if [ -n "$_LAST_CLI_CT" ] && [ "${_BIN_MTIME:-0}" -lt "$_LAST_CLI_CT" ]; then
         _BIN_DATE=$(p_epoch_fmt "$_BIN_MTIME" "%Y-%m-%d %H:%M" 2>/dev/null) || _BIN_DATE="unknown"
         _COMMIT_DATE=$(p_epoch_fmt "$_LAST_CLI_CT" "%Y-%m-%d %H:%M" 2>/dev/null) || _COMMIT_DATE="unknown"
@@ -438,7 +437,7 @@ unset _BRANA_BIN _BIN_MTIME _LAST_CLI_CT _BIN_DATE _COMMIT_DATE
 REMINDER_CONTEXT=""
 _REM_SCRIPT=$(_helper reminder-context.sh) || _REM_SCRIPT=""
 if [ -x "$_REM_SCRIPT" ]; then
-    REMINDER_CONTEXT=$(timeout -k 1 10 "$_REM_SCRIPT" "${BRANA_BIN:-}" 2>/dev/null) || REMINDER_CONTEXT=""
+    REMINDER_CONTEXT=$(p_timeout -k 1 10 "$_REM_SCRIPT" "${BRANA_BIN:-}" 2>/dev/null) || REMINDER_CONTEXT=""
 fi
 unset _REM_SCRIPT
 
@@ -476,10 +475,10 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
     [ -z "$BRANA_QUERY" ] && BRANA_QUERY="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana-query"
     if [ -x "$BRANA_QUERY" ]; then
         PROJ=$(jq -r '.project // "unknown"' "$TASKS_FILE" 2>/dev/null)
-        TOTAL=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --count 2>/dev/null) || TOTAL=0
-        DONE=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --status done --count 2>/dev/null) || DONE=0
-        BUGS=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --stream bugs --status pending --count 2>/dev/null) || BUGS=0
-        NEXT_ID=$(timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --status pending --output ids 2>/dev/null | head -1) || NEXT_ID=""
+        TOTAL=$(p_timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --count 2>/dev/null) || TOTAL=0
+        DONE=$(p_timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --status done --count 2>/dev/null) || DONE=0
+        BUGS=$(p_timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --stream bugs --status pending --count 2>/dev/null) || BUGS=0
+        NEXT_ID=$(p_timeout -k 1 3 "$BRANA_QUERY" --file "$TASKS_FILE" --status pending --output ids 2>/dev/null | head -1) || NEXT_ID=""
         NEXT_SUBJ=""
         NEXT_CTX=""
         if [ -n "$NEXT_ID" ]; then
@@ -552,14 +551,14 @@ BRANA_BIN=""
 
 # Lane pin (ADR-069 D2, t-2521): best-effort, never blocks start.
 if [ -n "$BRANA_BIN" ] && [ -n "$SESSION_ID" ]; then
-    (cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" session lane init --session-id "$SESSION_ID" >/dev/null 2>&1) || true
+    (cd "$GIT_ROOT" 2>/dev/null && p_timeout -k 1 3 "$BRANA_BIN" session lane init --session-id "$SESSION_ID" >/dev/null 2>&1) || true
 fi
 
 if [ -z "${BRANA_RECAP_OFF:-}" ] && [ -n "$BRANA_BIN" ]; then
     # Try structured JSON first (new session-state.json)
     # brana session read resolves project from CWD; hook starts in /tmp so
     # we must run it from GIT_ROOT or it reads the wrong (-tmp) project.
-    SESSION_JSON=$(cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
+    SESSION_JSON=$(cd "$GIT_ROOT" 2>/dev/null && p_timeout -k 1 3 "$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
     # Discard auto-captured stub (session-end hook fallback, no useful next[])
     if echo "$SESSION_JSON" | grep -q '"auto-captured'; then SESSION_JSON=""; fi
     if [ -n "$SESSION_JSON" ]; then
@@ -580,10 +579,10 @@ Blockers: $HO_BLOCKERS"
         fi
 
         # Mark consumed (optimistic write-first) — must also run from GIT_ROOT
-        (cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" session mark-consumed 2>/dev/null) || true
+        (cd "$GIT_ROOT" 2>/dev/null && p_timeout -k 1 3 "$BRANA_BIN" session mark-consumed 2>/dev/null) || true
     else
         # Fallback: try legacy markdown handoff
-        HANDOFF_RAW=$(cd "$GIT_ROOT" 2>/dev/null && timeout -k 1 3 "$BRANA_BIN" handoff last 2>/dev/null) || true
+        HANDOFF_RAW=$(cd "$GIT_ROOT" 2>/dev/null && p_timeout -k 1 3 "$BRANA_BIN" handoff last 2>/dev/null) || true
         if [ -n "$HANDOFF_RAW" ]; then
             HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
             HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next[^*]*\*\*/,/^\*\*[A-Za-z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -10) || true
@@ -681,7 +680,7 @@ RECURRENCE_FILE="$HOME/.claude/logs/error-recurrence.jsonl"
 if [ -f "$RECURRENCE_FILE" ]; then
     # Extract unique hashes with count >= 3 (last entry per hash is authoritative)
     # Use tac + awk to get latest entry per hash, then filter by count
-    RECURRING=$(tac "$RECURRENCE_FILE" 2>/dev/null \
+    RECURRING=$(awk '{a[NR]=$0} END{for(i=NR;i>0;i--)print a[i]}' "$RECURRENCE_FILE" 2>/dev/null \
         | jq -r -c 'select(.count >= 3)' 2>/dev/null \
         | awk -F'"hash":"' '!seen[substr($2,1,16)]++' 2>/dev/null \
         | head -5 \
@@ -704,7 +703,7 @@ if [ -z "${BRANA_RECAP_OFF:-}" ] && [ "$IS_VENTURE" = true ]; then
 
     NEWEST_REVIEW=""
     if [ -d "$CWD/docs/reviews" ]; then
-        NEWEST_REVIEW=$(find "$CWD/docs/reviews" -name 'weekly-*.md' -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1 || true)
+        NEWEST_REVIEW=$(find "$CWD/docs/reviews" -name 'weekly-*.md' -type f 2>/dev/null | while IFS= read -r _f; do p_stat_mtime "$_f"; done | sort -rn | head -1 || true)
     fi
 
     if [ -n "$NEWEST_REVIEW" ]; then

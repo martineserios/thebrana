@@ -32,6 +32,7 @@ C="$T/client"        # stands in for a real client repo listed in the real portf
 mkdir -p "$R/tests/scripts" "$R/system/scripts" "$R/system/state" "$H/.claude/memory" "$H/.claude/projects/-fixture-client/memory" "$C/.claude/memory"
 cp "$SUITE_SRC" "$R/tests/scripts/test-sync-state.sh"
 cp "$SYNC_SRC"  "$R/system/scripts/sync-state.sh"
+mkdir -p "$R/system/hooks/lib" && cp "$(dirname "$SYNC_SRC")/../hooks/lib/portable.sh" "$R/system/hooks/lib/portable.sh"
 
 REAL_CONFIG='{"theme":"emoji","github_sync":{"enabled":true}}'
 echo "$REAL_CONFIG" > "$R/system/state/tasks-config.json"

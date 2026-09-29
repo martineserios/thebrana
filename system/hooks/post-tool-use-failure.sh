@@ -142,7 +142,7 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
                         --arg detail "$SIG_DETAIL" \
                         --argjson count "$NEW_COUNT" \
                         '{tool: $tool, error_cat: $error_cat, detail: $detail, count: $count, escalation: "rule-candidate"}')
-                    cd "$HOME" && timeout 5 $CF memory store \
+                    cd "$HOME" && p_timeout 5 $CF memory store \
                         --key "error-recurrence:$SIG_HASH" \
                         --namespace pattern \
                         --tags "type:error-recurrence,escalate:rule-candidate" \

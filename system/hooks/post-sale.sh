@@ -6,6 +6,7 @@
 # Output: stdout JSON with additionalContext on deal closure
 
 # Ensure valid CWD
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 cd /tmp 2>/dev/null || true
 
 INPUT=$(cat) || true
@@ -78,7 +79,7 @@ fi
 CF_WARNING=""
 if [ -n "$CF" ]; then
     STORE_KEY="deal-closed-$(date +%Y%m%d-%H%M%S 2>/dev/null || echo unknown)"
-    CF_ERR=$(cd "$HOME" && timeout 3 $CF memory store \
+    CF_ERR=$(cd "$HOME" && p_timeout 3 $CF memory store \
         -k "$STORE_KEY" \
         -v "$SNAPSHOT" \
         --namespace business \

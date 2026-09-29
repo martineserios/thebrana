@@ -15,6 +15,7 @@ set -euo pipefail
 # Design: unidirectional per subcommand. push always writes cache→repo.
 # pull always writes repo→cache. No bidirectional "newer-wins" logic.
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 THEBRANA_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 STATE_DIR="${BRANA_STATE_DIR:-$THEBRANA_ROOT/system/state}"
@@ -296,7 +297,7 @@ ruflo_list_all() {
 
     while true; do
         local page
-        page=$(timeout 30 $CF memory list --namespace "$ns" --limit "$limit" --offset "$offset" --format json 2>/dev/null) || break
+        page=$(p_timeout 30 $CF memory list --namespace "$ns" --limit "$limit" --offset "$offset" --format json 2>/dev/null) || break
 
         local entries
         entries=$(echo "$page" | jq -c '.entries // []' 2>/dev/null) || break
@@ -446,7 +447,7 @@ cmd_import() {
 
             [ -z "$key" ] && continue
 
-            if cd "$HOME" && timeout 5 $CF memory store --upsert -k "$key" -v "$value" --namespace "$ns" --tags "$tags" 2>/dev/null; then
+            if cd "$HOME" && p_timeout 5 $CF memory store --upsert -k "$key" -v "$value" --namespace "$ns" --tags "$tags" 2>/dev/null; then
                 ((imported++)) || true
             else
                 ((failed++)) || true
