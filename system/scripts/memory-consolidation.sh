@@ -20,6 +20,7 @@
 set -euo pipefail
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 STATE_FILE="${MEMORY_CONSOLIDATE_STATE_FILE:-$HOME/.swarm/lint-heal-state.json}"
 FLAGS_FILE="${MEMORY_CONSOLIDATE_FLAGS_FILE:-$HOME/.swarm/debrief-flags.jsonl}"
 MEMORY_ROOT="${MEMORY_CONSOLIDATE_MEMORY_ROOT:-$HOME/.claude/projects}"
@@ -124,7 +125,7 @@ normalize_frontmatter_dates() {
   [[ -f "$file" ]] || return
 
   local today; today=$(date +%Y-%m-%d)
-  local yesterday; yesterday=$(date -d "yesterday" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d 2>/dev/null || echo "")
+  local yesterday; yesterday=$(p_epoch_fmt $(( $(date +%s) - 86400 )) %Y-%m-%d 2>/dev/null || echo "")
 
   # Only normalize inside the YAML frontmatter block (between first --- and second ---)
   # Use Python for safe frontmatter-only substitution

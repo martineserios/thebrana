@@ -21,6 +21,7 @@
 
 set -uo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 REPO="${REPO:-$HOME/enter_thebrana/thebrana}"
 RUSTUP_BIN="${RUSTUP_BIN:-rustup}"
 CARGO_BIN="${CARGO_BIN:-cargo}"
@@ -66,7 +67,7 @@ log "building brana ($TARGET, release) from ${commit:0:12}..."
 "$FILE_BIN" "$BIN" | grep -qi "static" \
   || die "artifact is not statically linked ($("$FILE_BIN" "$BIN")) — glibc mismatch would break oracle-hub"
 
-sha="$(sha256sum "$BIN" | awk '{print $1}')"
+sha="$(p_sha256 "$BIN")"
 
 # --- ship: stage next to target, atomic rename, then manifest ----------------
 log "shipping to $OH_TARGET:$REMOTE_BIN (sha ${sha:0:12}...)"
@@ -78,7 +79,7 @@ remote "chmod +x $REMOTE_TMP && mv -f $REMOTE_TMP $REMOTE_BIN" || die "remote in
 # manifest is the drift check's ground truth, so it is written only for a
 # verified binary (challenger iteration 1, 2026-08-02). A verified-but-
 # manifest-less state self-reports as UNMANAGED on the next drift run.
-remote_sha="$(remote "sha256sum $REMOTE_BIN" | awk '{print $1}')"
+remote_sha="$(remote "sha256sum $REMOTE_BIN" | awk '{print $1}')"  # portable-ok: runs on the remote Linux host
 [[ "$remote_sha" == "$sha" ]] \
   || die "post-install verification failed: remote sha ${remote_sha:0:12}... != shipped ${sha:0:12}... (mismatch) — manifest NOT written"
 

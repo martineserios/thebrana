@@ -49,6 +49,7 @@ FIXTURE="$TMPDIR/fixture"
 mkdir -p "$FIXTURE/hooks/lib" "$FIXTURE/.claude"
 cp "$HOOK_SRC" "$FIXTURE/hooks/post-tasks-validate.sh"
 cp "$LIB_SRC" "$FIXTURE/hooks/lib/resolve-brana.sh"
+cp "$(dirname "$LIB_SRC")/portable.sh" "$FIXTURE/hooks/lib/portable.sh"
 chmod +x "$FIXTURE/hooks/post-tasks-validate.sh"
 
 TASKS_FILE="$FIXTURE/.claude/tasks.json"

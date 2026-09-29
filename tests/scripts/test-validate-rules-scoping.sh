@@ -27,6 +27,7 @@ mkdir -p "$TMPROOT/system/rules" "$TMPROOT/system/hooks" "$TMPROOT/system/skills
 # Give validate.sh the minimum it expects to exist so unrelated checks
 # succeed; we only care about the rules-scoping result.
 cp "$REPO_ROOT/validate.sh" "$TMPROOT/validate.sh"
+mkdir -p "$TMPROOT/system/hooks/lib" && cp "$REPO_ROOT/system/hooks/lib/portable.sh" "$TMPROOT/system/hooks/lib/portable.sh"
 cp "$REPO_ROOT/system/scripts/validate-remedies.sh" "$TMPROOT/system/scripts/validate-remedies.sh"
 
 run_validate_check() {

@@ -8,6 +8,7 @@
 # Output: stdout JSON (minimal — async hook)
 
 # Ensure valid CWD (may be in deleted worktree)
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 cd /tmp 2>/dev/null || true
 
 INPUT=$(cat) || true
@@ -103,7 +104,7 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     # Build signature: tool + category + normalized first token of detail
     SIG_DETAIL=$(echo "$DETAIL" | head -1 | cut -c1-80 | tr -d '\n' 2>/dev/null) || SIG_DETAIL=""
     SIG_INPUT="${TOOL_NAME}:${ERROR_CAT}:${SIG_DETAIL}"
-    SIG_HASH=$(echo -n "$SIG_INPUT" | md5sum 2>/dev/null | cut -c1-16) || SIG_HASH=""
+    SIG_HASH=$(echo -n "$SIG_INPUT" | p_md5 2>/dev/null | cut -c1-16) || SIG_HASH=""
 
     if [ -n "$SIG_HASH" ]; then
         # Read current count for this hash (last occurrence wins)
@@ -161,7 +162,7 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
             Edit|Write)
                 CASCADE_DIR="/tmp/brana-cascade"
                 mkdir -p "$CASCADE_DIR" 2>/dev/null || true
-                PATH_HASH=$(echo -n "$DETAIL" | md5sum 2>/dev/null | cut -c1-12) || PATH_HASH=$(echo "$DETAIL" | tr '/' '-' | sed 's/^-//')
+                PATH_HASH=$(echo -n "$DETAIL" | p_md5 2>/dev/null | cut -c1-12) || PATH_HASH=$(echo "$DETAIL" | tr '/' '-' | sed 's/^-//')
                 echo "$DETAIL" > "$CASCADE_DIR/${SESSION_ID}-${PATH_HASH}" 2>/dev/null || true
                 ;;
         esac

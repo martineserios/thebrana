@@ -32,6 +32,7 @@
 #   stale-lifecycle.sh --dry-run    # report only, no tag mutations
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 STATE_DIR="$PROJECT_DIR/system/state"
@@ -47,7 +48,7 @@ DRY_RUN=false
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=true
 
 TODAY="${STALE_TODAY:-$(date +%Y-%m-%d)}"
-cutoff() { date -d "$TODAY - $1 days" +%Y-%m-%d; }
+cutoff() { p_date_d "@$(( $(p_date_d "$TODAY") - $1 * 86400 ))" %Y-%m-%d; }
 
 mkdir -p "$(dirname "$LOG_FILE")" "$(dirname "$STATUS_FILE")" "$(dirname "$REPORT_FILE")"
 

@@ -5,6 +5,7 @@
 
 set -uo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 JOB_NAME="${1:?Usage: brana-scheduler-runner.sh <job-name>}"
 CONFIG="$HOME/.claude/scheduler/scheduler.json"
 LOG_BASE="$HOME/.claude/scheduler/logs"
@@ -142,8 +143,7 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
     # Persistent=true catch-up runs that collided with morning jobs at wake).
     # noProjectLock jobs skip it entirely — they contend on no shared state (t-2292).
     if [ "$NO_PROJECT_LOCK" != "true" ]; then
-        exec 9>"$LOCKFILE"
-        if ! flock -w "$LOCK_WAIT_SECS" 9; then
+        if ! p_lock_acquire 9 "$LOCKFILE" -w "$LOCK_WAIT_SECS"; then
             # On attempt >=2 a prior attempt already ran and failed — a SKIPPED/exit-0
             # here would discard that real failure (t-2588 challenger finding). Fall
             # through to the normal failure reporting with the prior attempt's exit code.
@@ -202,7 +202,7 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
 
     # Release lock between attempts (prevents blocking other jobs).
     # Skip for noProjectLock jobs — fd 9 was never opened (t-2292).
-    [ "$NO_PROJECT_LOCK" != "true" ] && flock -u 9
+    [ "$NO_PROJECT_LOCK" != "true" ] && p_lock_release 9 "$LOCKFILE"
 
     # Success — stop retrying
     if [ "$EXIT_CODE" -eq 0 ]; then

@@ -10,6 +10,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 CMD="${1:-}"
 REPO_PATH="${2:-}"
 PREFIX="${3:-t}"
@@ -28,7 +29,7 @@ COUNTER_FILE="$GIT_COMMON_DIR/.brana-task-counter"
 
 # Atomic ID generation with flock
 (
-    flock -w 5 200 || { echo "Error: could not acquire lock" >&2; exit 1; }
+    p_lock_acquire 200 "$LOCK_FILE" -w 5 || { echo "Error: could not acquire lock" >&2; exit 1; }
 
     # Read current counter (or initialize from tasks.json)
     if [ -f "$COUNTER_FILE" ]; then
@@ -52,4 +53,5 @@ COUNTER_FILE="$GIT_COMMON_DIR/.brana-task-counter"
     # Output the new ID
     echo "$NEXT"
 
-) 200>"$LOCK_FILE"
+    p_lock_release 200 "$LOCK_FILE"
+)

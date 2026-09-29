@@ -117,19 +117,9 @@ Offer to drop git stashes older than 7 days that reference completed or cancelle
 
 ```bash
 MAIN_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-git -C "$MAIN_ROOT" stash list --date=iso-strict 2>/dev/null \
-  | awk -v now="$(date +%s)" '
-      {
-        # Extract ISO date between parens; stashes are: stash@{N}: WIP on ... 2026-04-15T...
-        match($0, /[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]+/)
-        if (RSTART > 0) {
-          d = substr($0, RSTART, 10)
-          cmd = "date -d \"" d "\" +%s"
-          cmd | getline ts
-          close(cmd)
-          if (now - ts > 604800) print $0
-        }
-      }'
+# %ct = commit epoch (portable — no date(1) parsing); older than 7 days → list
+git -C "$MAIN_ROOT" stash list --format='%ct%x09%gd: %gs' 2>/dev/null \
+  | awk -F'\t' -v now="$(date +%s)" 'now - $1 > 604800 { print $2 }'
 ```
 
 **If any stashes returned:** list them, then prompt once:
