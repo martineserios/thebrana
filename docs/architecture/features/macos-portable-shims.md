@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 # macOS portable shell shims (t-3373, epic macos-portability t-3372)
 
