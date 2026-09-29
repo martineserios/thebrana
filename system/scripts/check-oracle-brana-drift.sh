@@ -67,7 +67,7 @@ if ! [[ "$m_commit" =~ ^[0-9a-fA-F]{7,40}$ ]] || ! [[ "$m_sha" =~ ^[0-9a-fA-F]{6
 fi
 
 # 3. Does the deployed binary match what the manifest says was shipped?
-actual_sha="$(remote "sha256sum $REMOTE_BIN 2>/dev/null" | awk '{print $1}')"
+actual_sha="$(remote "sha256sum $REMOTE_BIN 2>/dev/null" | awk '{print $1}')"  # portable-ok: runs on the remote Linux host
 if [[ "$actual_sha" != "$m_sha" ]]; then
   log "SWAPPED: binary sha256 does not match manifest (binary ${actual_sha:0:12}… vs manifest ${m_sha:0:12}…) — replaced out-of-band. Re-ship to restore provenance."
   exit 1

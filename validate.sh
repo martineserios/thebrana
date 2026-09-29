@@ -3,6 +3,7 @@ set -euo pipefail
 shopt -s nullglob  # TRAP: never store --include=*glob in a scalar var — use a bash array (see Check 50)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
 SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
@@ -1022,7 +1023,7 @@ check_assumption_freshness() {
         [ -z "$verified_date" ] && continue
         ASSUMPTION_CHECKED=$((ASSUMPTION_CHECKED + 1))
         local verified_epoch
-        verified_epoch=$(date -d "$verified_date" +%s 2>/dev/null || echo "0")
+        verified_epoch=$(p_date_d "$verified_date" 2>/dev/null || echo "0")
         [ "$verified_epoch" = "0" ] && continue
 
         # Per-row tier overrides doc-level tier when present
@@ -1111,9 +1112,9 @@ check_changelog_currency() {
 
     # Compare: if file was modified after the last changelog entry, flag it
     local commit_epoch
-    commit_epoch=$(date -d "$last_commit_date" +%s 2>/dev/null || echo "0")
+    commit_epoch=$(p_date_d "$last_commit_date" 2>/dev/null || echo "0")
     local changelog_epoch
-    changelog_epoch=$(date -d "$last_changelog_date" +%s 2>/dev/null || echo "0")
+    changelog_epoch=$(p_date_d "$last_changelog_date" 2>/dev/null || echo "0")
 
     if [ "$commit_epoch" -gt "$((changelog_epoch + 86400))" ]; then
         warn "Changelog stale in $label — last commit $last_commit_date, last changelog entry $last_changelog_date"
@@ -1156,7 +1157,7 @@ check_status_consistency() {
     local age=$((NOW_EPOCH - mod_epoch))
     if [ "$age" -gt "$TWELVE_MONTHS" ]; then
         local last_date
-        last_date=$(date -d "@$mod_epoch" +%Y-%m-%d 2>/dev/null)
+        last_date=$(p_epoch_fmt "$mod_epoch" %Y-%m-%d 2>/dev/null)
         warn "Status drift in $label — status: active but last modified $last_date (>12 months). Consider status: historic"
         STALE_ACTIVE=$((STALE_ACTIVE + 1))
     fi
@@ -2934,6 +2935,24 @@ else
     else
         printf '%s\n' "$C75_OUT" | sed 's/^/  /'
         fail "Check 75: private state file(s) tracked or not gitignored in a public repo — see above (t-3352)"
+    fi
+fi
+echo ""
+
+# Check 76: production shell scripts must use portable.sh shims, not GNU-only forms (t-3374)
+# flock / date -d / sha256sum / md5sum / stat -c / sed -i / readlink -f / grep -P break on macOS
+# (BSD userland). Escape hatch per line: `# portable-ok: <reason>`. Second-tier GNU-isms
+# (timeout, realpath, bash-4 features) are tracked separately under epic t-3372.
+echo "Checking production scripts use portable shims (t-3374)..."
+C76_SCRIPT="$SCRIPT_DIR/system/scripts/lint-portability.sh"
+if [ ! -f "$C76_SCRIPT" ]; then
+    fail "Check 76: $C76_SCRIPT is missing — the portability guard cannot run (t-3374)"
+else
+    if C76_OUT=$(bash "$C76_SCRIPT" "$SCRIPT_DIR" 2>&1); then
+        pass "Check 76: no GNU-only forms in production shell scripts (use system/hooks/lib/portable.sh)"
+    else
+        printf '%s\n' "$C76_OUT" | sed 's/^/  /'
+        fail "Check 76: GNU-only forms in production scripts — use p_* shims or add '# portable-ok: reason' (t-3374)"
     fi
 fi
 echo ""

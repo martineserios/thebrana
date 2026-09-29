@@ -17,6 +17,7 @@
 # helpers this hook delegates to. CC and the tests both invoke by absolute path,
 # which is why it went unnoticed.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 
 # Ensure valid CWD
 cd /tmp 2>/dev/null || true
@@ -418,11 +419,11 @@ fi
 STALE_BINARY_WARNING=""
 _BRANA_BIN=$(command -v brana 2>/dev/null) || true
 if [ -n "${_BRANA_BIN:-}" ] && [ -x "$_BRANA_BIN" ]; then
-    _BIN_MTIME=$(stat -c %Y "$_BRANA_BIN" 2>/dev/null) || _BIN_MTIME=0
+    _BIN_MTIME=$(p_stat_mtime "$_BRANA_BIN" 2>/dev/null) || _BIN_MTIME=0
     _LAST_CLI_CT=$(timeout -k 1 3 git -C "$GIT_ROOT" log --format="%ct" -1 -- system/cli/ 2>/dev/null) || _LAST_CLI_CT=""
     if [ -n "$_LAST_CLI_CT" ] && [ "${_BIN_MTIME:-0}" -lt "$_LAST_CLI_CT" ]; then
-        _BIN_DATE=$(date -d "@$_BIN_MTIME" "+%Y-%m-%d %H:%M" 2>/dev/null) || _BIN_DATE="unknown"
-        _COMMIT_DATE=$(date -d "@$_LAST_CLI_CT" "+%Y-%m-%d %H:%M" 2>/dev/null) || _COMMIT_DATE="unknown"
+        _BIN_DATE=$(p_epoch_fmt "$_BIN_MTIME" "%Y-%m-%d %H:%M" 2>/dev/null) || _BIN_DATE="unknown"
+        _COMMIT_DATE=$(p_epoch_fmt "$_LAST_CLI_CT" "%Y-%m-%d %H:%M" 2>/dev/null) || _COMMIT_DATE="unknown"
         STALE_BINARY_WARNING="brana binary (built $_BIN_DATE) predates last system/cli commit ($_COMMIT_DATE). Rebuild: cd system/cli/rust && cargo build --release"
     fi
 fi
@@ -446,7 +447,7 @@ unset _REM_SCRIPT
 # 2am cron writes today's date). Silent when absent or empty.
 YESTERDAY_CONTEXT=""
 _DS_FILE="$HOME/.claude/sessions/daily-summary-$(date +%F).md"
-[ -s "$_DS_FILE" ] || _DS_FILE="$HOME/.claude/sessions/daily-summary-$(date -d yesterday +%F 2>/dev/null).md"
+[ -s "$_DS_FILE" ] || _DS_FILE="$HOME/.claude/sessions/daily-summary-$(p_epoch_fmt $(( $(date +%s) - 86400 )) %F 2>/dev/null).md"
 if [ -s "$_DS_FILE" ]; then
     _DS_LEARN=$(grep -c '^- \[' "$_DS_FILE" 2>/dev/null) || _DS_LEARN=0
     if [ "${_DS_LEARN:-0}" -gt 0 ] 2>/dev/null; then

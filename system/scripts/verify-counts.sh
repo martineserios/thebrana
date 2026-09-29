@@ -22,7 +22,7 @@ check_category() {
   fi
 
   # Extract the bold count from the first line matching "**N ...**"
-  doc_count=$(grep -oP '\*\*\K[0-9]+(?= [a-z].*\*\*)' "$doc_file" | head -1)
+  doc_count=$(awk 'match($0,/\*\*[0-9]+ [a-z].*\*\*/){s=substr($0,RSTART+2,RLENGTH-2); sub(/ .*/,"",s); print s}' "$doc_file" | head -1)
 
   if [[ -z "$doc_count" ]]; then
     echo "  $category: MISMATCH — filesystem: $fs_count, documented: (no count found in $doc_file)"

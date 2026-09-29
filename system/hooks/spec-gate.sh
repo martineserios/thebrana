@@ -59,7 +59,7 @@ fi
 # Layer 2: branch name regex fallback
 if [ -z "$TASK_ID" ]; then
     BRANCH=$(git branch --show-current 2>/dev/null || true)
-    TASK_ID=$(echo "$BRANCH" | grep -oP 't-\d+' | head -1 || true)
+    TASK_ID=$(echo "$BRANCH" | grep -oE 't-[0-9]+' | head -1 || true)
 fi
 
 # Layer 3: no task context — silent skip

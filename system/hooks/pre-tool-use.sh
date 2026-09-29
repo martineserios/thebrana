@@ -7,6 +7,7 @@ cd /tmp 2>/dev/null || true
 
 # Profile gate: standard tier (skipped in minimal mode)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
 if ! hook_should_run "standard" 2>/dev/null; then
     echo '{"continue": true}'
@@ -91,7 +92,7 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
 # If post-tool-use-failure.sh flagged this file as cascading, inject a nudge (not a deny).
 CASCADE_CONTEXT=""
 if [ -n "$SESSION_ID" ] && [ -n "$FILE_PATH" ]; then
-    PATH_HASH=$(echo -n "$FILE_PATH" | md5sum 2>/dev/null | cut -c1-12) || PATH_HASH=$(echo "$FILE_PATH" | tr '/' '-' | sed 's/^-//')
+    PATH_HASH=$(echo -n "$FILE_PATH" | p_md5 2>/dev/null | cut -c1-12) || PATH_HASH=$(echo "$FILE_PATH" | tr '/' '-' | sed 's/^-//')
     CASCADE_FLAG="/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}"
     if [ -f "$CASCADE_FLAG" ]; then
         CASCADE_CONTEXT="[Cascade detected] This file has failed 3+ times consecutively. Stop and reassess your approach — the current strategy is not working. Consider: different edit strategy, reading the file first, or asking the user for guidance."

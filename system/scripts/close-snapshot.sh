@@ -23,6 +23,7 @@
 
 set -uo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 MAX_SNAPSHOT_BYTES=512000  # 500KB cap per ADR-052 §4
 
 GIT_ROOT="" BRANCH="" PROJECT="" COMMIT_COUNT="" GIT_RANGE_ARG=""
@@ -109,7 +110,7 @@ fi
 # the cap so no hunk is split mid-content. Record dropped file names.
 TRUNCATED_FLAG=""
 OMITTED_ARRAY=()
-SNAP_SIZE=$(stat -c %s "$SNAP_FILE" 2>/dev/null || echo 0)
+SNAP_SIZE=$(p_stat_size "$SNAP_FILE" 2>/dev/null || echo 0)
 if [ "$SNAP_SIZE" -gt "$MAX_SNAPSHOT_BYTES" ]; then
     # Find byte offset of the last "\ndiff --git " header that starts before the cap.
     # grep -b emits "OFFSET:match" for each hit; tail -1 picks the last one.

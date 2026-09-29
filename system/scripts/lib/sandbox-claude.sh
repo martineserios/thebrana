@@ -16,6 +16,7 @@
 # markers; keep the fences inside them. The extracting test re-sets RUNNER_SCRIPT_DIR
 # after sourcing (it would otherwise resolve to the temp extraction file's directory,
 # not this file's real location).
+source "$(dirname "${BASH_SOURCE[0]}")/../../hooks/lib/portable.sh"
 resolve_claude() { local cb="${CLAUDE_BIN:-}"; [ -x "$cb" ] || cb="$(command -v claude 2>/dev/null || true)"; echo "$cb"; }
 
 # RUNNER_SCRIPT_DIR anchors the egress proxy lookup below (runner-egress-proxy.py lives
@@ -77,7 +78,7 @@ sandbox_claude() {
     ( cd "$wd" && timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" "$cb" "$@" )
     return $?
   fi
-  local cbr; cbr="$(readlink -f "$cb")"
+  local cbr; cbr="$(p_readlink_f "$cb")"
   local rhome rsock="" proxy_pid=""
   rhome="$(mktemp -d "${TMPDIR:-/tmp}/runner-home-XXXXXX")"
   stage_runner_home "$rhome"

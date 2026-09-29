@@ -4,6 +4,7 @@
 # Input:  stdin JSON (session_id, transcript_path, cwd)
 # Output: {"continue": true, "additionalContext": "..."} or {"continue": true}
 
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 cd /tmp 2>/dev/null || true
 
 INPUT=$(cat) || true
@@ -13,7 +14,7 @@ GOAL_FILE="$HOME/.claude/run-state/active-goal.json"
 [ ! -f "$GOAL_FILE" ] && { echo '{"continue": true}'; exit 0; }
 
 # Stale guard — goal files older than 48h are from abandoned/crashed sessions
-[ $(( $(date +%s) - $(stat -c '%Y' "$GOAL_FILE" 2>/dev/null || echo 0) )) -gt 172800 ] && { rm -f "$GOAL_FILE"; echo '{"continue": true}'; exit 0; }
+[ $(( $(date +%s) - $(p_stat_mtime "$GOAL_FILE" 2>/dev/null || echo 0) )) -gt 172800 ] && { rm -f "$GOAL_FILE"; echo '{"continue": true}'; exit 0; }
 # Session binding — only fire for the session that set this goal
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // ""' 2>/dev/null) || SESSION_ID=""
 GOAL_SESSION=$(jq -r '.session_id // ""' "$GOAL_FILE" 2>/dev/null) || GOAL_SESSION=""
@@ -157,7 +158,7 @@ EOF
                             HASH_MISMATCH="$HASH_MISMATCH $hp(unpinned)"
                             continue
                         fi
-                        cur=$(sha256sum "$WORK_DIR/$hp" 2>/dev/null | cut -d' ' -f1) || cur=""
+                        cur=$(p_sha256 "$WORK_DIR/$hp" 2>/dev/null) || cur=""
                         [ "$cur" != "$hh" ] && HASH_MISMATCH="$HASH_MISMATCH $hp"
                     done <<EOF
 $TESTS_REQ

@@ -49,7 +49,7 @@ esac
 COMMIT_MSG=""
 
 # Try -m "..." or -m '...' patterns
-MSG_MATCH=$(echo "$COMMAND" | grep -oP '(?<=-m\s)["\047]([^"'\'']+)["\047]' 2>/dev/null | tr -d '"\047') || MSG_MATCH=""
+MSG_MATCH=$(echo "$COMMAND" | grep -oE -- "-m[[:space:]]+[\"']([^\"']+)[\"']" 2>/dev/null | sed -E 's/^-m[[:space:]]+//' | tr -d "\"'") || MSG_MATCH=""
 [ -n "$MSG_MATCH" ] && COMMIT_MSG="$MSG_MATCH"
 
 # Heredoc fallback: extract text between EOF markers

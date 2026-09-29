@@ -102,7 +102,7 @@ exclude_lines = [
 EOF
         
         # Replace placeholder in pyproject.toml
-        sed -i "s/PROJECT_NAME_PLACEHOLDER/$PROJECT_NAME/g" pyproject.toml
+        sed -i.bak "s/PROJECT_NAME_PLACEHOLDER/$PROJECT_NAME/g" pyproject.toml && rm -f pyproject.toml.bak  # .bak suffix: GNU and BSD sed both accept it
         
         # Create basic test file
         cat > tests/test_example.py << 'EOF'

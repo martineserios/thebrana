@@ -26,6 +26,7 @@ set -u
 # nvm candidates walked newest-first (sort -rV) — an unsorted glob here shadows
 # the intended version with whatever order the filesystem returns (t-2632 bug
 # class; unified with cf-env.sh's fallback resolvers, t-2754).
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 RUFLO_BIN=""
 for name in ruflo claude-flow; do
     while IFS= read -r _candidate; do
@@ -41,7 +42,7 @@ if [ -z "$RUFLO_BIN" ]; then
     exit 127
 fi
 
-RUFLO_JS="$(readlink -f "$RUFLO_BIN" 2>/dev/null || echo "$RUFLO_BIN")"
+RUFLO_JS="$(p_readlink_f "$RUFLO_BIN" 2>/dev/null || echo "$RUFLO_BIN")"
 
 # Prefer node from the same install tree as the bin (version match), then PATH.
 NODE_BIN="$(dirname "$RUFLO_BIN")/node"

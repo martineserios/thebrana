@@ -14,6 +14,7 @@ set -euo pipefail
 #   ./bootstrap.sh --help         Show this help
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/system/hooks/lib/portable.sh"
 SYSTEM_DIR="$SCRIPT_DIR/system"
 TARGET_DIR="$HOME/.claude"
 CHECK_ONLY=false
@@ -155,6 +156,28 @@ sync_plugin_cache() {
     echo "Plugin cache synced. Restart Claude Code to activate."
 }
 
+# Platform preflight (t-3378). Hooks run as `bash <script>`, so it is the bash on PATH that
+# matters, not the one running this script. 9 scripts use mapfile/declare -A (bash >= 4);
+# macOS ships bash 3.2 — Homebrew's bash must come first on PATH.
+# flock(1) is absent on stock macOS: p_flock/p_lock_* fall back to a mkdir lock that cannot
+# exclude the Rust CLI's flock(2) on tasks.json.lock (stopgap, see portable.sh / t-3374).
+platform_preflight() {
+    local os="${BRANA_TEST_OS:-$(uname -s)}" major
+    major="$(bash -c 'echo "${BASH_VERSINFO[0]}"' 2>/dev/null)"
+    if [ "${major:-0}" -lt 4 ]; then
+        echo "ERROR: the 'bash' on PATH is version ${major:-unknown}; brana hooks/scripts need bash >= 4." >&2
+        if [ "$os" = "Darwin" ]; then
+            echo "  macOS ships bash 3.2. Fix: brew install bash, and put \$(brew --prefix)/bin before /bin in PATH." >&2
+        fi
+        return 1
+    fi
+    if [ "$os" = "Darwin" ] && ! command -v flock >/dev/null 2>&1; then  # portable-ok: presence check, this is the warning itself
+        echo "WARN: flock(1) not found — shell locks fall back to mkdir locks that do not serialize against the brana CLI." >&2
+        echo "  Recommended: brew install discoteq/discoteq/flock" >&2
+    fi
+    return 0
+}
+
 # Parse args
 case "${1:-}" in
     --check)  CHECK_ONLY=true ;;
@@ -179,6 +202,8 @@ case "${1:-}" in
     "") ;;  # no args = full sync
     *)  echo "Unknown option: $1. Use --help for usage."; exit 1 ;;
 esac
+
+platform_preflight || exit 1
 
 # Production guard (ADR-060 / t-2151): bootstrap deploys the working tree to live ~/.claude/,
 # so main IS production for brana. Refuse to deploy anything that is not main's content
@@ -767,7 +792,8 @@ if [ -n "$CF_BIN" ]; then
         sync_file "$SCRIPT_DIR/.claude-flow/controller-registry-shim.js" "$CF_MEM_DIST/controller-registry-shim.js" "AgentDB shim"
         # Ensure index.js re-exports ControllerRegistry
         if ! $CHECK_ONLY && ! grep -q "controller-registry-shim" "$CF_MEM_DIST/index.js" 2>/dev/null; then
-            sed -i '1i // ===== ControllerRegistry Shim (bridges memory-bridge.js → AgentDB v3) =====\nexport { ControllerRegistry } from '\''./controller-registry-shim.js'\'';' "$CF_MEM_DIST/index.js"
+            { printf '%s\n' '// ===== ControllerRegistry Shim (bridges memory-bridge.js → AgentDB v3) =====' "export { ControllerRegistry } from './controller-registry-shim.js';"; cat "$CF_MEM_DIST/index.js"; } > "$CF_MEM_DIST/index.js.tmp" \
+                && mv "$CF_MEM_DIST/index.js.tmp" "$CF_MEM_DIST/index.js"
             echo "  ~ index.js patched (ControllerRegistry re-export)"
             CHANGES=$((CHANGES + 1))
         fi
@@ -888,8 +914,8 @@ fi
 # 7b: Symlink marketplace source (local repo → marketplace dir)
 MP_LINK="$PLUGINS_DIR/marketplaces/brana"
 if [ -L "$MP_LINK" ]; then
-    CURRENT_TARGET=$(readlink -f "$MP_LINK" 2>/dev/null || true)
-    if [ "$CURRENT_TARGET" = "$(readlink -f "$SCRIPT_DIR")" ]; then
+    CURRENT_TARGET=$(p_readlink_f "$MP_LINK" 2>/dev/null || true)
+    if [ "$CURRENT_TARGET" = "$(p_readlink_f "$SCRIPT_DIR")" ]; then
         echo "  = marketplaces/brana (symlink current)"
     else
         CHANGES=$((CHANGES + 1))

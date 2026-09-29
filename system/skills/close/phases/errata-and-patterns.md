@@ -27,7 +27,7 @@ For each **errata** finding:
    TODAY=$(date +%Y-%m-%d)
    # IDs already committed today
    COMMITTED_TODAY=$(git show HEAD:docs/24-roadmap-corrections.md 2>/dev/null \
-     | grep -oP "E${TODAY}-[0-9]+")
+     | grep -oE "E${TODAY}-[0-9]+")
    # For each errata finding from Step 3, check if its core problem phrase already appears
    # in the committed file. If yes, skip it (already filed). If no, proceed to write.
    ALREADY_FILED=$(git show HEAD:docs/24-roadmap-corrections.md 2>/dev/null \
@@ -40,7 +40,7 @@ For each **errata** finding:
    - Timestamp-based ID: `E{YYYY-MM-DD}-{N}` where N starts at 1 for the day
    - **Always auto-read the committed state to find the next N:**
      ```bash
-     LAST_N=$(echo "$COMMITTED_TODAY" | grep -oP "[0-9]+$" | sort -n | tail -1)
+     LAST_N=$(echo "$COMMITTED_TODAY" | grep -oE "[0-9]+$" | sort -n | tail -1)
      NEXT_N=$(( ${LAST_N:-0} + 1 ))
      # Use E${TODAY}-${NEXT_N} as the new errata ID
      ```

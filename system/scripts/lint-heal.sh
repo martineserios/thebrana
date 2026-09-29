@@ -18,6 +18,7 @@ set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────
 # LINT_HEAL_MEMORY_ROOT overrides $HOME/.claude/projects (used in tests)
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 MEMORY_ROOT="${LINT_HEAL_MEMORY_ROOT:-$HOME/.claude/projects}"
 PATTERNS_FILE="${LINT_HEAL_PATTERNS_FILE:-$HOME/.claude/memory/patterns.md}"
 STAGING_FILE="${LINT_HEAL_STAGING_FILE:-$HOME/.claude/memory/knowledge-staging.md}"
@@ -243,7 +244,7 @@ pass_dedup() {
             for p in "${paths[@]}"; do
                 [[ -f "$p" ]] || continue
                 local mtime
-                mtime=$(stat -c '%Y' "$p" 2>/dev/null || echo 9999999999)
+                mtime=$(p_stat_mtime "$p" 2>/dev/null || echo 9999999999)
                 if [[ "$mtime" -lt "$oldest_mtime" ]]; then
                     oldest_mtime=$mtime
                     oldest=$p
@@ -576,8 +577,8 @@ pass_staging_cap() {
     fi
 
     local warn_at cap count msg=""
-    warn_at=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oP 'warn-at: \K[0-9]+' || echo "20")
-    cap=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oP 'cap: \K[0-9]+' || echo "30")
+    warn_at=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oE 'warn-at: [0-9]+' | awk '{print $NF}' || echo "20")
+    cap=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oE 'cap: [0-9]+' | awk '{print $NF}' || echo "30")
     count=$(grep -c '^## ' "$STAGING_FILE" || true)
 
     if [[ "$count" -ge "$cap" ]]; then

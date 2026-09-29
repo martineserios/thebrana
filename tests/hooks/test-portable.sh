@@ -58,6 +58,7 @@ for mode in native bsd; do
 
     assert "$mode: p_stat_mtime" "1704164645" "$(run_in $mode "p_stat_mtime '$TMP/f.txt'")"
     assert "$mode: p_stat_size"  "6"          "$(run_in $mode "p_stat_size '$TMP/f.txt'")"
+    assert "$mode: p_stat_atime" "1704164645" "$(touch -a -d '2024-01-02 03:04:05 UTC' "$TMP/f.txt"; run_in $mode "p_stat_atime '$TMP/f.txt'")"
 
     assert "$mode: p_date_d @epoch"    "1704164645" "$(run_in $mode "p_date_d @1704164645")"
     assert "$mode: p_date_d ISO date"  "1704153600" "$(run_in $mode "p_date_d 2024-01-02")"
@@ -65,6 +66,14 @@ for mode in native bsd; do
     assert "$mode: p_date_d fmt"       "2024-01-02" "$(run_in $mode "p_date_d 2024-01-02T03:04:05Z %Y-%m-%d")"
     assert "$mode: p_date_d N days ago" "86400" \
         "$(run_in $mode "a=\$(p_date_d '2 days ago'); b=\$(p_date_d '1 day ago'); echo \$((b-a))")"
+    # git %ci style (space + numeric offset), colon offset, fractional seconds
+    assert "$mode: p_date_d git %ci offset"   "1704164645" "$(run_in $mode "p_date_d '2024-01-02 05:04:05 +0200'")"
+    assert "$mode: p_date_d colon offset"     "1704164645" "$(run_in $mode "p_date_d '2024-01-01T22:04:05-05:00'")"
+    assert "$mode: p_date_d fractional secs"  "1704164645" "$(run_in $mode "p_date_d '2024-01-02T03:04:05.987Z'")"
+    assert "$mode: p_date_d minutes only"     "1704164640" "$(run_in $mode "p_date_d '2024-01-02T03:04Z'")"
+    # local-time formatting (display use): honours TZ on both paths
+    assert "$mode: p_epoch_fmt local TZ"      "12:04" "$(run_in $mode "TZ=Asia/Tokyo p_epoch_fmt 1704164645 %H:%M")"
+    assert "$mode: p_epoch_fmt UTC"           "03:04" "$(run_in $mode "TZ=UTC p_epoch_fmt 1704164645 %H:%M")"
     assert "$mode: p_date_d garbage rc=1" "1" "$(run_in $mode "p_date_d 'not a date' >/dev/null 2>&1; echo \$?")"
 
     printf 'a b a\n' >"$TMP/s.txt"
@@ -79,6 +88,8 @@ for mode in native bsd; do
 
     # flock: runs command, returns its rc
     assert "$mode: p_flock runs cmd" "ran" "$(run_in $mode "p_flock '$TMP/l1.lock' echo ran")"
+    assert "$mode: p_flock runs shell functions" "fn-ran" \
+        "$(run_in $mode "f() { echo fn-ran; }; p_flock '$TMP/lf.lock' f")"
     assert "$mode: p_flock propagates rc" "7" "$(run_in $mode "p_flock '$TMP/l2.lock' bash -c 'exit 7'; echo \$?")"
     # mutual exclusion: while a holder sleeps, -n from another process fails with 1
     run_in $mode "p_flock '$TMP/l3.lock' sleep 2" >/dev/null &
@@ -86,6 +97,17 @@ for mode in native bsd; do
     assert "$mode: p_flock -n fails while held" "1" "$(run_in $mode "p_flock -n '$TMP/l3.lock' echo nope >/dev/null 2>&1; echo \$?")"
     wait $HOLDER
     assert "$mode: p_flock -n ok after release" "ok" "$(run_in $mode "p_flock -n '$TMP/l3.lock' echo ok")"
+    # fd-style locks: p_lock_acquire FD FILE [-n|-w SECS] / p_lock_release FD FILE
+    assert "$mode: lock acquire+release" "in out" \
+        "$(run_in $mode "p_lock_acquire 9 '$TMP/k1.lock' && echo -n in; p_lock_release 9 '$TMP/k1.lock' && echo ' out'")"
+    run_in $mode "p_lock_acquire 9 '$TMP/k2.lock'; sleep 2; p_lock_release 9 '$TMP/k2.lock'" >/dev/null &
+    HOLDER=$!; sleep 0.5
+    assert "$mode: lock -n fails while held"   "1" "$(run_in $mode "p_lock_acquire 8 '$TMP/k2.lock' -n; echo \$?")"
+    assert "$mode: lock -w 1 times out"        "1" "$(run_in $mode "p_lock_acquire 8 '$TMP/k2.lock' -w 1; echo \$?")"
+    assert "$mode: lock -w 5 waits then wins"  "0" "$(run_in $mode "p_lock_acquire 8 '$TMP/k2.lock' -w 5; echo \$?")"
+    wait $HOLDER
+    # lock is per-FILE, fd number is caller's business; released lock reacquirable
+    assert "$mode: lock reacquire after release" "0" "$(run_in $mode "p_lock_acquire 7 '$TMP/k2.lock' -n; echo \$?")"
     # stale lock (dead pid) must not wedge the fallback
     if [ "$mode" = bsd ]; then
         mkdir "$TMP/l4.lock.d"; echo 999999 >"$TMP/l4.lock.d/pid"

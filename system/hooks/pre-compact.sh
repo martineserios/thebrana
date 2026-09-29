@@ -9,6 +9,7 @@
 #
 # Output cap: target <4KB to stay well under the 10K file-redirect threshold.
 
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 cd /tmp 2>/dev/null || true
 
 INPUT=$(cat) || true
@@ -78,9 +79,9 @@ if [ -n "$HEAD_HASH" ] && [ -x "$SNAPSHOT_SCRIPT" ]; then
         if [ -x "$BRANA" ]; then
             UNSCOPED_LAST_CLOSE=$(cd "$GIT_ROOT" && "$BRANA" session read --all --json 2>/dev/null \
                 | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null) || UNSCOPED_LAST_CLOSE=""
-            SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null) || SIX_HOURS_AGO_EPOCH=""
+            SIX_HOURS_AGO_EPOCH=$(p_date_d '6 hours ago' 2>/dev/null) || SIX_HOURS_AGO_EPOCH=""
             if [ -n "$UNSCOPED_LAST_CLOSE" ] && [ -n "$SIX_HOURS_AGO_EPOCH" ]; then
-                UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$UNSCOPED_LAST_CLOSE" +%s 2>/dev/null) || UNSCOPED_LAST_CLOSE_EPOCH=""
+                UNSCOPED_LAST_CLOSE_EPOCH=$(p_date_d "$UNSCOPED_LAST_CLOSE" 2>/dev/null) || UNSCOPED_LAST_CLOSE_EPOCH=""
                 if [ -n "$UNSCOPED_LAST_CLOSE_EPOCH" ] && [ "$UNSCOPED_LAST_CLOSE_EPOCH" -lt "$SIX_HOURS_AGO_EPOCH" ]; then
                     SINCE="@$UNSCOPED_LAST_CLOSE_EPOCH"
                 fi

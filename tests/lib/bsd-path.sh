@@ -40,6 +40,10 @@ if [ "\$1" = "-u" ] && [ "\$2" = "-r" ]; then
   e="\$3"; shift 3
   exec "$rdate" -u -d "@\$e" "\$@"
 fi
+if [ "\$1" = "-r" ]; then
+  e="\$2"; shift 2
+  exec "$rdate" -d "@\$e" "\$@"
+fi
 exec "$rdate" "\$@"
 EOF
     cat >"$d/stat" <<EOF
@@ -47,7 +51,7 @@ EOF
 case "\$1" in
   -c) echo "stat: illegal option -- c" >&2; exit 1 ;;
   -f) fmt="\$2"; shift 2
-      case "\$fmt" in %m) exec "$rstat" -c %Y "\$@" ;; %z) exec "$rstat" -c %s "\$@" ;;
+      case "\$fmt" in %m) exec "$rstat" -c %Y "\$@" ;; %z) exec "$rstat" -c %s "\$@" ;; %a) exec "$rstat" -c %X "\$@" ;;
         *) exit 1 ;; esac ;;
 esac
 exec "$rstat" "\$@"

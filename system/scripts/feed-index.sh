@@ -13,6 +13,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 FEED_LOG="$HOME/.claude/scheduler/feed-log.jsonl"
 WATERMARK="$HOME/.claude/scheduler/state/feed-index-watermark"
 DIGEST="$HOME/.claude/intelligence-feed-digest.md"
@@ -64,7 +65,7 @@ NEW_COUNT=$((TOTAL_LINES - START_LINE + 1))
 # Unconditional: runs even when there are no new entries (a stalled feed is
 # precisely the no-new-entries case). Scans the FULL feed-log.jsonl — this read
 # is intentionally not watermark-gated; the watermark contract is untouched.
-# GNU `date -d` (Linux/systemd only — do not port to BSD `date -j`).
+# Dates parse via p_date_d (portable.sh) — GNU and BSD alike.
 
 NOW_EPOCH=$(date +%s)
 
@@ -90,7 +91,7 @@ while IFS=: read -r name threshold zero_notice; do
         [ "$zero_notice" = "1" ] && echo "- $name — no entries yet" >> "$TMP_STALE"
         continue
     fi
-    newest_epoch=$(date -d "$newest" +%s 2>/dev/null) || continue
+    newest_epoch=$(p_date_d "$newest" 2>/dev/null) || continue
     age_days=$(( (NOW_EPOCH - newest_epoch) / 86400 ))
     if [ "$age_days" -gt "$threshold" ]; then
         echo "- $name — last entry ${newest%%T*} (${age_days}d ago, threshold ${threshold}d)" >> "$TMP_STALE"

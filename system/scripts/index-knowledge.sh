@@ -307,8 +307,8 @@ if ! echo "$INDEXER_OUTPUT" | grep -q "Index Complete"; then
     echo "ERROR: truncated indexer run — no completion summary in output (killed mid-run?)" >&2
     exit 1
 fi
-STORED_N=$(echo "$INDEXER_OUTPUT" | grep -oP 'Stored:\s+\K\d+' | tail -1 || true)
-BULK_ERRORS=$(echo "$INDEXER_OUTPUT" | grep -oP 'Errors:\s+\K\d+' | tail -1 || true)
+STORED_N=$(echo "$INDEXER_OUTPUT" | grep -oE 'Stored:[[:space:]]+[0-9]+' | awk '{print $NF}' | tail -1 || true)
+BULK_ERRORS=$(echo "$INDEXER_OUTPUT" | grep -oE 'Errors:[[:space:]]+[0-9]+' | awk '{print $NF}' | tail -1 || true)
 BULK_ERRORS="${BULK_ERRORS:-0}"
 if [ -z "$STORED_N" ] || [ $((STORED_N + BULK_ERRORS)) -lt "$TOTAL_SECTIONS" ]; then
     echo "ERROR: truncated indexer run — stored ${STORED_N:-0} + errors ${BULK_ERRORS} accounts for fewer than ${TOTAL_SECTIONS} sections" >&2

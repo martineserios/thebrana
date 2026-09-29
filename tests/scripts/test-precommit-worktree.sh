@@ -67,6 +67,7 @@ git -C "$MAIN" config core.hooksPath "$HOOKDIR"
 # deployed-copy path explicitly.
 FAKEHOME="$TMP/home"; mkdir -p "$FAKEHOME/.claude/hooks"
 cp "$REPO_ROOT/system/hooks/red-verification.sh" "$FAKEHOME/.claude/hooks/"
+mkdir -p "$FAKEHOME/.claude/hooks/lib" && cp "$REPO_ROOT/system/hooks/lib/portable.sh" "$FAKEHOME/.claude/hooks/lib/"
 chmod +x "$FAKEHOME/.claude/hooks/red-verification.sh"
 
 WT="$TMP/wt"

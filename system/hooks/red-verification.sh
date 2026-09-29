@@ -23,6 +23,7 @@
 
 set -uo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 GOAL_FILE="${BRANA_GOAL_FILE:-$HOME/.claude/run-state/active-goal.json}"
 
 # No active /goal → nothing to register. jq is required to edit the goal file safely.
@@ -122,7 +123,7 @@ for f in "${ADDED[@]}"; do
     # path whose staged blob CHANGED falls through: redness must be re-earned and the
     # hash re-pinned (panel repair — without this, one edit after registration gated
     # forever with no recovery path).
-    blob_hash=$(git -C "$ROOT" show ":$f" 2>/dev/null | sha256sum | cut -d' ' -f1) || blob_hash=""
+    blob_hash=$(git -C "$ROOT" show ":$f" 2>/dev/null | p_sha256) || blob_hash=""
     # Fail-closed: no readable staged blob → no registration, no pin. A path
     # registered without a hash would be gated by goal-completion's missing-hash
     # rule anyway; never create that state deliberately.

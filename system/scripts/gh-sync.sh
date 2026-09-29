@@ -199,7 +199,7 @@ cmd_create() {
 
     # Extract issue number from URL (https://github.com/owner/repo/issues/42)
     local issue_number
-    issue_number="$(echo "$issue_url" | grep -oP '/issues/\K[0-9]+' || echo "")"
+    issue_number="$(echo "$issue_url" | grep -oE '/issues/[0-9]+' | sed 's#.*/##' || echo "")"
     if [[ -z "$issue_number" ]]; then
         warn "Could not extract issue number from: $issue_url"
         return 1

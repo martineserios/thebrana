@@ -65,6 +65,7 @@ trap 'rm -rf "$FIXTURE_REPO"' EXIT
 
 mkdir -p "$FIXTURE_REPO/system/scripts" "$FIXTURE_REPO/system/agents" "$FIXTURE_REPO/.claude" "$FIXTURE_REPO/docs"
 cp "$VALIDATE_SH" "$FIXTURE_REPO/validate.sh"
+mkdir -p "$FIXTURE_REPO/system/hooks/lib" && cp "$REPO_ROOT/system/hooks/lib/portable.sh" "$FIXTURE_REPO/system/hooks/lib/portable.sh"
 cp "$REPO_ROOT/system/scripts/validate-remedies.sh" "$FIXTURE_REPO/system/scripts/validate-remedies.sh"
 echo '{}' > "$FIXTURE_REPO/docs/spec-graph.json"
 echo '{"tasks":[]}' > "$FIXTURE_REPO/.claude/tasks.json"

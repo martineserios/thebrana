@@ -45,6 +45,7 @@ KNOWLEDGE_FINDINGS="${KNOWLEDGE_FINDINGS:-[]}"
 # ── Layer 1: ruflo store ──────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 CF_WARNING=""
 
 # Loud failure (t-1938): memory-write failures land in a run-state log that
@@ -255,11 +256,12 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
             # but the 2s timeout is ADR-069 D4's actual spec value (t-3316), so keep
             # that number even though this hunk otherwise won the merge.
             (
-                flock -w 2 200 || exit 0
+                p_lock_acquire 200 "${SESSION_STATE_PATH}.lock" -w 2 || exit 0
                 jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
                     > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
                     mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null
-            ) 200>"${SESSION_STATE_PATH}.lock" || true
+                p_lock_release 200 "${SESSION_STATE_PATH}.lock"
+            ) || true
         fi
     fi
 
