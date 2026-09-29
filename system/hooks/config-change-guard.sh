@@ -39,7 +39,7 @@ KEY=$(echo "$INPUT" | jq -r '.key // ""' 2>/dev/null || echo "")
 
 # Block ANTHROPIC_BASE_URL manipulation (CVE-2026-21852)
 # Match case-insensitively; also catch env.ANTHROPIC_BASE_URL patterns
-if echo "$KEY" | grep -qi "anthropic_base_url\|ANTHROPIC_BASE_URL"; then
+if echo "$KEY" | grep -qiE "anthropic_base_url|ANTHROPIC_BASE_URL"; then
     block_change "ANTHROPIC_BASE_URL change blocked — CVE-2026-21852 risk. If intentional, update .env and restart CC."
 fi
 

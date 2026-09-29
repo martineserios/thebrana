@@ -6,6 +6,7 @@
 # Functions do NOT increment global counters — the caller does that.
 
 # Known CC tool names (word-boundary matched in skill bodies)
+source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
 KNOWN_TOOLS="Read Write Edit Glob Grep Bash Agent AskUserQuestion WebSearch WebFetch EnterPlanMode ExitPlanMode TaskCreate TaskUpdate TaskList TaskGet TaskOutput TaskStop NotebookEdit Skill SendMessage LSP"
 
 # Valid enum values
@@ -127,7 +128,7 @@ check_file_path_references() {
     # Extract markdown link paths: [text](path)
     # Only match relative paths (not http/https/mailto/anchors)
     local paths
-    paths=$(echo "$prose" | grep -oE '\]\([^)]+' | sed 's/^](//' | grep -v '^https\?://' | grep -v '^mailto:' | grep -v '^#') || true
+    paths=$(echo "$prose" | grep -oE '\]\([^)]+' | sed 's/^](//' | grep -vE '^https?://' | grep -v '^mailto:' | grep -v '^#') || true
 
     [ -z "$paths" ] && return 0
 
@@ -148,14 +149,14 @@ check_file_path_references() {
         fi
         # Resolve relative to skill directory
         local resolved
-        resolved=$(cd "$skill_dir" && realpath -m "$ref_path" 2>/dev/null) || resolved=""
+        resolved=$(cd "$skill_dir" && p_realpath_m "$ref_path" 2>/dev/null) || resolved=""
         if [ -n "$resolved" ] && [ -e "$resolved" ]; then
             continue  # file exists, no problem
         fi
         # For cross-repo references (../../), try resolving from repo root's parent
         if [[ "$ref_path" == ../../* ]] && [ -n "$repo_root" ]; then
             local workspace_resolved
-            workspace_resolved=$(cd "$skill_dir" && realpath -m "$ref_path" 2>/dev/null | sed "s|$(realpath -m "$skill_dir")/../../|$(dirname "$repo_root")/|") || workspace_resolved=""
+            workspace_resolved=$(cd "$skill_dir" && p_realpath_m "$ref_path" 2>/dev/null | sed "s|$(p_realpath_m "$skill_dir")/../../|$(dirname "$repo_root")/|") || workspace_resolved=""
             if [ -n "$workspace_resolved" ] && [ -e "$workspace_resolved" ]; then
                 continue  # cross-repo file exists
             fi
@@ -247,7 +248,7 @@ check_step_registry() {
 
     # Parse step names (comma or space separated, after the colon)
     local registered_steps
-    registered_steps=$(echo "$steps_line" | sed 's/.*Register these steps:\s*//' | tr -d '.' | tr ',' '\n' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
+    registered_steps=$(echo "$steps_line" | sed 's/.*Register these steps:[[:space:]]*//' | tr -d '.' | tr ',' '\n' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
 
     [ -z "$registered_steps" ] && return 0
 

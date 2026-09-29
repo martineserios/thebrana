@@ -72,7 +72,7 @@ if [ "$STORED_L1" != "true" ]; then
         if [ "$FAILURES" -gt 0 ]; then OUTCOME="mixed"; else OUTCOME="success"; fi
         TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
 
-        CF_ERR=$(cd "$HOME" && timeout 5 $CF memory store -k "$KEY" -v "$VALUE" \
+        CF_ERR=$(cd "$HOME" && p_timeout 5 $CF memory store -k "$KEY" -v "$VALUE" \
             --namespace session --tags "$TAGS" 2>&1)
         CF_EXIT=$?   # captured BEFORE any || true — the old pattern read 0 forever (t-1938)
         if [ $CF_EXIT -eq 0 ]; then
@@ -104,7 +104,7 @@ if [ "$STORED_L1" != "true" ]; then
                   test_passes:$test_passes,test_fails:$test_fails,
                   lint_passes:$lint_passes,lint_fails:$lint_fails,
                   delegations:$delegations,edits:$edits,failures:$failures}' 2>/dev/null) || FW_VALUE="{}"
-            (cd "$HOME" && timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" \
+            (cd "$HOME" && p_timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" \
                 --namespace metrics --tags "client:$PROJECT,type:flywheel" 2>/dev/null)
             FW_EXIT=$?
             [ $FW_EXIT -ne 0 ] && log_persist_failure "flywheel metrics store FAILED exit $FW_EXIT (key $FW_KEY)"

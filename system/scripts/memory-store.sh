@@ -2,6 +2,7 @@
 # Usage: memory-store.sh -k KEY -v VALUE [-n NAMESPACE] [-t TAGS]
 # Wraps $CF memory store with auto-fallback to MEMORY.md append.
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 source "$(dirname "$0")/cf-env.sh"
 
 KEY="" VALUE="" NAMESPACE="patterns" TAGS=""
@@ -22,7 +23,7 @@ fi
 
 # Primary: ruflo memory store (timeout 5s — ruflo CLI hangs after completion)
 if [ -n "$CF" ]; then
-    STORE_CMD="cd $HOME && timeout 5 $CF memory store -k \"$KEY\" -v '$VALUE' --namespace $NAMESPACE"
+    STORE_CMD="cd $HOME && p_timeout 5 $CF memory store -k \"$KEY\" -v '$VALUE' --namespace $NAMESPACE"
     [ -n "$TAGS" ] && STORE_CMD="$STORE_CMD --tags \"$TAGS\""
     eval "$STORE_CMD" 2>/dev/null && exit 0
 fi

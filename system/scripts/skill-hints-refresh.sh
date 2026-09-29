@@ -15,6 +15,7 @@
 # Usage: skill-hints-refresh.sh <brana-bin> <git-root> <cache-path> [max-age-min]
 # Exit is always 0: this is best-effort enrichment, never a session blocker.
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 BRANA_BIN="${1:-}"
 GIT_ROOT="${2:-$PWD}"
 CACHE="${3:-$HOME/.claude/cache/skill-hints.txt}"
@@ -29,8 +30,8 @@ fi
 
 # Timeout-bounded even here: this runs disowned, so a hung CLI would otherwise
 # leave an orphan behind for the rest of the session.
-SKILLS_LIST_JSON=$(cd "$GIT_ROOT" && timeout -k 5 60 "$BRANA_BIN" skills list 2>/dev/null) || SKILLS_LIST_JSON=""
-TOP_USAGE=$(cd "$GIT_ROOT" && timeout -k 5 120 "$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
+SKILLS_LIST_JSON=$(cd "$GIT_ROOT" && p_timeout -k 5 60 "$BRANA_BIN" skills list 2>/dev/null) || SKILLS_LIST_JSON=""
+TOP_USAGE=$(cd "$GIT_ROOT" && p_timeout -k 5 120 "$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
     | jq -r '[.skills[].name] | .[:6] | .[]' 2>/dev/null) || TOP_USAGE=""
 
 [ -n "$TOP_USAGE" ] && [ -n "$SKILLS_LIST_JSON" ] || exit 0

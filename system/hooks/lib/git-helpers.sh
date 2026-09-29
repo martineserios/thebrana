@@ -14,7 +14,7 @@
 # Returns empty string if no -C flag is present.
 extract_git_c_dir() {
     local command="$1"
-    echo "$command" | sed -n 's/.*git[[:space:]]\+-C[[:space:]]\+\([^[:space:]]*\).*/\1/p'
+    echo "$command" | sed -nE 's/.*git[[:space:]]+-C[[:space:]]+([^[:space:]]*).*/\1/p'
 }
 
 # Extract the target of a leading `cd <path> &&` (or `;`, `||`) prefix.
@@ -23,7 +23,7 @@ extract_git_c_dir() {
 # next shell separator.
 extract_cd_prefix_dir() {
     local command="$1"
-    echo "$command" | sed -n 's/^[[:space:]]*cd[[:space:]]\+\([^[:space:]&;|]*\)[[:space:]]*\(&&\|;\|||\).*/\1/p'
+    echo "$command" | sed -nE 's/^[[:space:]]*cd[[:space:]]+([^[:space:]&;|]*)[[:space:]]*(&&|;|\|\|).*/\1/p'
 }
 
 # Return the directory to use for git operations in a PreToolUse hook.

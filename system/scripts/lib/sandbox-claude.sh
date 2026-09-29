@@ -75,7 +75,7 @@ sandbox_claude() {
   local cb; cb="$(resolve_claude)"
   if [ "$SANDBOX" = "0" ] || ! command -v bwrap >/dev/null 2>&1; then
     [ "$SANDBOX" != "0" ] && echo "[sandbox-claude] WARN: bwrap unavailable — dispatch running UNSANDBOXED (ADR-062)" >&2
-    ( cd "$wd" && timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" "$cb" "$@" )
+    ( cd "$wd" && p_timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" "$cb" "$@" )
     return $?
   fi
   local cbr; cbr="$(p_readlink_f "$cb")"
@@ -124,11 +124,11 @@ EOF
   fi
 
   if [ -n "$inner" ]; then
-    timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" bwrap "${B[@]}" \
+    p_timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" bwrap "${B[@]}" \
       env -i HOME=/home/sb PATH=/usr/sbin:/usr/bin:/bin TERM="${TERM:-dumb}" \
       bash -c "$inner" _ "$@"
   else
-    timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" bwrap "${B[@]}" \
+    p_timeout "${RUNNER_DISPATCH_TIMEOUT:-600}" bwrap "${B[@]}" \
       env -i HOME=/home/sb PATH=/usr/sbin:/usr/bin:/bin TERM="${TERM:-dumb}" \
       bash /home/sb/.sbx-inner.sh "$@"
   fi

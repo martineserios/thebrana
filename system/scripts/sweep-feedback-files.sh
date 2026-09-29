@@ -74,7 +74,7 @@ while IFS= read -r file; do
     fi
 
     ARCHIVED=$((ARCHIVED + 1))
-done < <(find "$MEMORY_DIR" -maxdepth 1 -name "feedback_*.md" -printf '%A@\t%p\n' 2>/dev/null | sort -n | cut -f2)
+done < <(find "$MEMORY_DIR" -maxdepth 1 -name "feedback_*.md" 2>/dev/null | while IFS= read -r _f; do printf '%s\t%s\n' "$(p_stat_atime "$_f")" "$_f"; done | sort -n | cut -f2)
 
 echo ""
 echo "Done: ${ARCHIVED} archived, ${SKIPPED} skipped (< ${STALE_DAYS}d old)"

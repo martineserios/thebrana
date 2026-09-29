@@ -34,7 +34,12 @@ suite exercise the BSD branches on Linux by shrinking `PATH`.
 | `p_stat_mtime FILE` / `p_stat_atime FILE` | `stat -c %Y` / `%X` | Epoch seconds. |
 | `p_stat_size FILE` | `stat -c %s` | Bytes. |
 | `p_sed_i SCRIPT FILE...` | `sed -i SCRIPT FILE` | In-place edit (temp-suffix + delete, valid on GNU and BSD). |
-| `p_readlink_f PATH` | `readlink -f` | Canonical absolute path, symlinks resolved. |
+| `p_readlink_f PATH` | `readlink -f`, plain `realpath` | Canonical absolute path, symlinks resolved. |
+| `p_realpath_m PATH` | `realpath -m` | Absolute, `.`/`..` collapsed, existing symlinks resolved, nonexistent tail allowed. |
+| `p_relpath BASE PATH` | `realpath --relative-to` | Relative path from BASE to PATH (either may not exist). |
+| `p_timeout [-k K] SECS cmd...` | `timeout` | GNU `timeout`, else `gtimeout`, else a bash watchdog (stdin preserved, TERM then optional KILL, rc 124; GNU returns 137 if it had to KILL — treat 124/137 as "timed out"). The fallback signals the child and its direct children, not the whole process group. |
+| `p_date_iso` | `date -Iseconds` | Local time with a colon offset (`2026-09-29T14:18:03-03:00`). |
+| `p_now_ms` | `date +%s%N` / 1e6 | Epoch ms: bash 5 `EPOCHREALTIME` (no fork), else `date %N`, else perl, else whole seconds. |
 
 ## Known limit — lock interop with the Rust CLI
 
@@ -51,8 +56,10 @@ behind; the next acquirer reclaims it once the holder pid is dead.
 
 ## Enforcement — `lint-portability.sh` (validate Check 76)
 
-`system/scripts/lint-portability.sh` fails on `flock`, `date -d`, `sha256sum`,
-`md5sum`, `stat -c`, `sed -i`, `readlink -f` and `grep -P` in tracked `*.sh` and
+`system/scripts/lint-portability.sh` fails on `flock`, `date -d/-I/%N`, `sha256sum`,
+`md5sum`, `stat -c`, `sed -i`, `readlink -f`, `grep -P`, `timeout`, `realpath`,
+`find -printf`, `tac`, `head -n -N`, and GNU-only BRE (`sed \+ \? \| \s \w`, `grep \| \+ \?`;
+use `-E`) in tracked `*.sh` and
 extensionless sh/bash-shebang files (skips `tests/`, `docs/`, `portable.sh`,
 itself; full-line comments ignored). Per-line escape hatch: `# portable-ok:
 <reason>` (used for remote-host commands, the systemd-only scheduler awaiting
@@ -88,8 +95,11 @@ pair where a real date must be parsed (brana writes UTC).
   Done per call site in the t-3374 sweep (13 sites rewritten; old/new output
   differential-tested on 81 inputs).
 - **systemd → launchd**: t-3375.
-- **Second-tier GNU-isms** (`timeout`, `realpath`, `ps etimes`, sed BRE `\+`/`\|`,
-  `find -printf`, `date %N`, `tac`, `head -n -N`, `/proc`): t-3377.
+- **Second-tier GNU-isms**: done in t-3377 (`timeout`, `realpath`, `find -printf`, `date -I`/`%N`,
+  `tac`, `head -n -N`, GNU-only BRE). Deliberately left, both already guarded and both scheduler
+  concerns owned by t-3375: `/proc/meminfo` in `brana-scheduler-runner.sh` (on macOS the read fails
+  and the memory guard is simply disabled) and `notify-send` in `brana-scheduler-notify.sh`
+  (a `command -v` guard; macOS needs `osascript`).
 - **Tests and remaining md snippets**: t-3379.
 
 ## Testing

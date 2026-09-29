@@ -79,19 +79,19 @@ dry_log() { echo "[DRY-RUN] would: $*" >&2; }
 assert_allowed() {
     local path="$1"
     local real_path
-    real_path=$(realpath -m "$path")
+    real_path=$(p_realpath_m "$path")
     local -a allowed=(
-        "$(realpath -m "$HOME/.claude/projects")"
-        "$(realpath -m "$HOME/.claude/memory/archive")"
-        "$(realpath -m "$HOME/.claude/memory/pre-lint-heal")"
-        "$(realpath -m "$HOME/.claude/lint-heal-report.md")"
-        "$(realpath -m "$HOME/.swarm/lint-heal-state.json")"
-        "$(realpath -m "$HOME/.swarm/lint-heal.lock")"
+        "$(p_realpath_m "$HOME/.claude/projects")"
+        "$(p_realpath_m "$HOME/.claude/memory/archive")"
+        "$(p_realpath_m "$HOME/.claude/memory/pre-lint-heal")"
+        "$(p_realpath_m "$HOME/.claude/lint-heal-report.md")"
+        "$(p_realpath_m "$HOME/.swarm/lint-heal-state.json")"
+        "$(p_realpath_m "$HOME/.swarm/lint-heal.lock")"
     )
     # Also allow MEMORY_ROOT if it's been overridden (tests)
     if [[ "$MEMORY_ROOT" != "$HOME/.claude/projects" ]]; then
-        allowed+=("$(realpath -m "$MEMORY_ROOT")")
-        allowed+=("$(realpath -m "$HOME/.claude/memory")")
+        allowed+=("$(p_realpath_m "$MEMORY_ROOT")")
+        allowed+=("$(p_realpath_m "$HOME/.claude/memory")")
     fi
     for pfx in "${allowed[@]}"; do
         [[ "$real_path" == "$pfx"* ]] && return 0

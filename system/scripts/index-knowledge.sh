@@ -17,6 +17,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimensions}"
 THEBRANA_DIR="${BRANA_THEBRANA_DIR:-$HOME/enter_thebrana/thebrana}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -274,7 +275,7 @@ else
             key=$(echo "$line" | jq -r '.key')
             value=$(echo "$line" | jq -r '.value')
             tags=$(echo "$line" | jq -r '.tags | join(",")')
-            output=$(cd "$HOME" && timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
+            output=$(cd "$HOME" && p_timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
             if [[ "$output" == *"stored successfully"* ]]; then
                 STORED=$((STORED + 1))
             else

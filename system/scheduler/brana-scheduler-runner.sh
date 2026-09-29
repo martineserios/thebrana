@@ -23,7 +23,7 @@ write_status() {
     local entry
     entry=$(jq -n --arg job "$JOB_NAME" --arg status "$status" \
         --argjson exit_code "$exit_code" --argjson attempts "$attempts" \
-        --arg ts "$(date -Iseconds)" \
+        --arg ts "$(p_date_iso)" \
         '{($job): {status: $status, exit_code: $exit_code, timestamp: $ts, attempts: $attempts}}')
     if [ -f "$STATUS_FILE" ]; then
         jq --argjson new "$entry" '. * $new' "$STATUS_FILE" > "$tmp" 2>/dev/null || echo "$entry" > "$tmp"
@@ -103,7 +103,7 @@ LOCKFILE="$LOCK_DIR/$PROJECT_SLUG.lock"
 
 {
     echo "=== brana-scheduler: $JOB_NAME ==="
-    echo "Time: $(date -Iseconds)"
+    echo "Time: $(p_date_iso)"
     echo "Type: $JOB_TYPE"
     echo "Project: $PROJECT"
     echo "Model: $MODEL"
@@ -175,7 +175,7 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
                 *)      MODEL_ID="$MODEL" ;;
             esac
 
-            timeout "$TIMEOUT_SECS" claude -p "$PROMPT" \
+            p_timeout "$TIMEOUT_SECS" claude -p "$PROMPT" \
                 --model "$MODEL_ID" \
                 --allowedTools "$ALLOWED_TOOLS" \
                 >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
@@ -183,12 +183,12 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
         command)
             COMMAND=$(echo "$JOB" | jq -r '.command')
             COMMAND_FALLBACK=$(echo "$JOB" | jq -r '.command_fallback // empty')
-            timeout "$TIMEOUT_SECS" bash -c "$COMMAND" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
+            p_timeout "$TIMEOUT_SECS" bash -c "$COMMAND" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
             # Fall back to alternate command on 127 (command not found)
             if [ "$EXIT_CODE" -eq 127 ] && [ -n "$COMMAND_FALLBACK" ]; then
                 echo "Primary command not found, using fallback: $COMMAND_FALLBACK" >> "$LOGFILE"
                 EXIT_CODE=0
-                timeout "$TIMEOUT_SECS" bash -c "$COMMAND_FALLBACK" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
+                p_timeout "$TIMEOUT_SECS" bash -c "$COMMAND_FALLBACK" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
             fi
             ;;
         *)
@@ -240,7 +240,7 @@ fi
     if [ "$ATTEMPT" -gt 1 ]; then
         echo "Attempts: $ATTEMPT/$MAX_ATTEMPTS"
     fi
-    echo "Finished: $(date -Iseconds)"
+    echo "Finished: $(p_date_iso)"
 } >> "$LOGFILE"
 
 # Write status for statusline and notifications
@@ -257,12 +257,12 @@ if [ "$CAPTURE_OUTPUT" = "true" ]; then
         MEMORY_VALUE=$(jq -nc \
             --arg job "$JOB_NAME" --arg status "$STATUS_LABEL" \
             --argjson exit_code "$EXIT_CODE" --argjson attempts "$ATTEMPT" \
-            --arg ts "$(date -Iseconds)" --arg summary "$SAFE_SUMMARY" \
+            --arg ts "$(p_date_iso)" --arg summary "$SAFE_SUMMARY" \
             '{job: $job, status: $status, exit_code: $exit_code, attempts: $attempts, timestamp: $ts, summary: $summary}')
         MEMORY_TAGS="job:${JOB_NAME},status:${STATUS_LABEL},type:scheduler-run"
 
         # Background with timeout — don't let ruflo store block the runner exit
-        (cd "$HOME" && timeout 30 "$CF" memory store --upsert \
+        (cd "$HOME" && p_timeout 30 "$CF" memory store --upsert \
             -k "$MEMORY_KEY" \
             -v "$MEMORY_VALUE" \
             --namespace scheduler-runs \

@@ -31,6 +31,7 @@ cp "$REAL_REPO_ROOT/system/scripts/sync-state.sh" "$REPO_ROOT/system/scripts/syn
 # its test would pass on the "or skipped" branch (Gate 3 regression review, t-3366).
 mkdir -p "$REPO_ROOT/system/hooks/lib"
 cp "$REAL_REPO_ROOT/system/hooks/lib/cf-env.sh" "$REPO_ROOT/system/hooks/lib/cf-env.sh" 2>/dev/null || true
+cp "$REAL_REPO_ROOT/system/hooks/lib/portable.sh" "$REPO_ROOT/system/hooks/lib/portable.sh"   # sync-state.sh sources it (t-3377)
 # Never let the sandbox reach a real private repo, and keep ruflo from resolving a store
 # relative to a real tree (ADR-026's CWD-relative path).
 export BRANA_PRIVATE_REPO="$SANDBOX/no-private-repo"

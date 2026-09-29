@@ -45,6 +45,8 @@ for mode in native bsd; do
             "$(PATH="$BSD_BIN"; date -d 2024-01-01 >/dev/null 2>&1; a=$?; stat -c %s /etc >/dev/null 2>&1; b=$?; sed -i s/a/b/ /dev/null >/dev/null 2>&1; c=$?; readlink -f / >/dev/null 2>&1; d=$?; echo $a$b$c$d)"
         assert "bsd: sanity — flock and sha256sum absent" "11" \
             "$(PATH="$BSD_BIN"; command -v flock >/dev/null 2>&1; a=$?; command -v sha256sum >/dev/null 2>&1; echo $a$?)"
+        assert "bsd: sanity — timeout/gtimeout/realpath/tac absent, date -I and %N unsupported" "11111" \
+            "$(PATH="$BSD_BIN"; a=1; for c in timeout gtimeout realpath tac; do command -v $c >/dev/null 2>&1 && a=0; done; date -Iseconds >/dev/null 2>&1; b=$?; [ "$(date +%N)" = N ]; c=$((1-$?)); echo $a$b$c$a$a)"
     fi
 
     assert "$mode: p_sha256 file" \
@@ -113,6 +115,46 @@ for mode in native bsd; do
         mkdir "$TMP/l4.lock.d"; echo 999999 >"$TMP/l4.lock.d/pid"
         assert "$mode: p_flock recovers stale lock" "ok" "$(run_in $mode "p_flock -n '$TMP/l4.lock' echo ok")"
     fi
+done
+
+# ── second-tier shims (t-3377) ─────────────────────────────────────────────
+mkdir -p "$TMP/rp/real/sub"; ln -s "$TMP/rp/real" "$TMP/rp/lnk"
+for mode in native bsd; do
+    echo "--- second tier: $mode ---"
+    # p_timeout
+    assert "$mode: p_timeout passes rc" "7" "$(run_in $mode "p_timeout 5 bash -c 'exit 7'; echo \$?")"
+    assert "$mode: p_timeout fast cmd output" "ok" "$(run_in $mode "p_timeout 5 echo ok")"
+    assert "$mode: p_timeout kills slow cmd, rc 124" "124" "$(run_in $mode "p_timeout 1 sleep 5; echo \$?")"
+    assert "$mode: p_timeout -k form" "124" "$(run_in $mode "p_timeout -k 1 1 sleep 5; echo \$?")"
+    # GNU timeout reports 137 when it had to KILL; the fallback reports 124 — either means "timed out".
+    assert "$mode: p_timeout -k escalates past a TERM-ignoring cmd" "timed-out" \
+        "$(rc=$(run_in $mode "p_timeout -k 1 1 bash -c 'trap \"\" TERM; sleep 9'; echo \$?"); case $rc in 124|137) echo timed-out;; *) echo "rc=$rc";; esac)"
+    assert "$mode: p_timeout preserves stdin" "piped" "$(printf 'piped\n' | PATH="$([ $mode = bsd ] && echo "$BSD_BIN" || echo "$PATH")" bash -c "source '$LIB'; p_timeout 5 cat")"
+    assert "$mode: p_timeout is silent on stderr" "" "$(run_in $mode "p_timeout 1 sleep 5" 2>&1)"
+    t0=$SECONDS; run_in $mode "x=\$(p_timeout 30 echo hi); echo \$x" >/dev/null; dt=$((SECONDS - t0))
+    assert "$mode: p_timeout in \$(...) does not wait out the timeout" "fast" "$([ $dt -lt 5 ] && echo fast || echo "slow:${dt}s")"
+    assert "$mode: p_timeout leaves no orphan watchdog sleeping" "0" \
+        "$(run_in $mode "p_timeout 40 true; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$2==40' | wc -l" | tr -d ' ')"
+    # p_realpath_m / p_relpath
+    RP="$(cd "$TMP/rp" && pwd -P)"
+    assert "$mode: p_realpath_m resolves symlink dir" "$RP/real/sub" "$(run_in $mode "p_realpath_m '$TMP/rp/lnk/sub'")"
+    assert "$mode: p_realpath_m nonexistent tail" "$RP/real/nope/x" "$(run_in $mode "p_realpath_m '$TMP/rp/lnk/nope/x'")"
+    assert "$mode: p_realpath_m collapses .. and ." "$RP/real" "$(run_in $mode "p_realpath_m '$TMP/rp/real/sub/../././'")"
+    assert "$mode: p_realpath_m relative" "$RP/real/sub" "$(run_in $mode "cd '$TMP/rp' && p_realpath_m real/sub")"
+    assert "$mode: p_realpath_m root" "/" "$(run_in $mode "p_realpath_m /")"
+    assert "$mode: p_relpath down"  "sub" "$(run_in $mode "p_relpath '$TMP/rp/real' '$TMP/rp/real/sub'")"
+    assert "$mode: p_relpath up"    "../.." "$(run_in $mode "p_relpath '$TMP/rp/real/sub' '$TMP/rp'")"
+    assert "$mode: p_relpath sideways" "../real/sub" "$(run_in $mode "mkdir -p '$TMP/rp/other'; p_relpath '$TMP/rp/other' '$TMP/rp/real/sub'")"
+    assert "$mode: p_relpath same" "." "$(run_in $mode "p_relpath '$TMP/rp/real' '$TMP/rp/real'")"
+    # p_date_iso — same shape as GNU `date -Iseconds` (colon offset), honours TZ
+    assert "$mode: p_date_iso shape" "yes" "$(run_in $mode "p_date_iso" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{2}$' && echo yes || echo no)"
+    assert "$mode: p_date_iso offset (India +05:30)" "+05:30" "$(run_in $mode "TZ=Asia/Kolkata p_date_iso" | grep -oE '[+-][0-9]{2}:[0-9]{2}$')"
+    assert "$mode: p_date_iso matches date -Iseconds offset (Sao Paulo)" \
+        "$(TZ=America/Sao_Paulo date -Iseconds | grep -oE '[+-][0-9]{2}:[0-9]{2}$')" "$(run_in $mode "TZ=America/Sao_Paulo p_date_iso" | grep -oE '[+-][0-9]{2}:[0-9]{2}$')"
+    # p_now_ms
+    assert "$mode: p_now_ms without EPOCHREALTIME (perl/date fallback)" "ok" \
+        "$(a=$(run_in $mode "unset EPOCHREALTIME; p_now_ms"); b=$(( $(date +%s) * 1000 )); d=$(( a - b )); [ ${#a} -eq 13 ] && [ $d -gt -5000 ] && [ $d -lt 5000 ] && echo ok || echo "bad:$a")"
+    assert "$mode: p_now_ms is epoch millis" "ok" "$(a=$(run_in $mode "p_now_ms"); b=$(( $(date +%s) * 1000 )); d=$(( a - b )); [ ${#a} -eq 13 ] && [ $d -gt -5000 ] && [ $d -lt 5000 ] && echo ok || echo "bad:$a")"
 done
 
 echo; echo "Results: $PASS passed, $FAIL failed"

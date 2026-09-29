@@ -99,14 +99,15 @@ run_red() {
     # and documented in docs/architecture/features/build-receipts.md — no shared source yet
     # (t-2602 challenger finding); update all four if the list ever changes.
     if [ "$runner" = node ]; then
-        ( cd "$pkg" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+        # p_timeout FIRST: it is a shell function, and env can only exec executables.
+        ( cd "$pkg" && p_timeout -k 2 60 env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
             -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
             -u NODE_OPTIONS \
-            timeout -k 2 60 node --test "$tmp" ) >/dev/null 2>&1
+            node --test "$tmp" ) >/dev/null 2>&1
     else
-        ( cd "$ROOT" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+        ( cd "$ROOT" && p_timeout -k 2 60 env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
             -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
-            timeout -k 2 60 bash "$tmp" ) >/dev/null 2>&1
+            bash "$tmp" ) >/dev/null 2>&1
     fi
     rc=$?
     rm -f "$tmp"

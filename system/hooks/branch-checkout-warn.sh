@@ -4,6 +4,7 @@
 # Narrowed per challenger W3: only fires on `git checkout <named-local-branch>`,
 # not on file restores, detached HEAD, or tag checkouts.
 
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 INPUT=$(cat)
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null)
 CWD=$(echo "$INPUT" | jq -r '.tool_input.cwd // ""' 2>/dev/null)
@@ -13,12 +14,12 @@ echo "$CMD" | grep -qE '^git\s+checkout\s+' || { echo '{"continue": true}'; exit
 
 # Only fire in the thebrana repo
 THEBRANA_ROOT="${CLAUDE_PLUGIN_ROOT%/system}"
-REAL_CWD=$(realpath "${CWD:-$(pwd)}" 2>/dev/null || echo "")
-REAL_ROOT=$(realpath "$THEBRANA_ROOT" 2>/dev/null || echo "")
+REAL_CWD=$(p_readlink_f "${CWD:-$(pwd)}" 2>/dev/null || echo "")
+REAL_ROOT=$(p_readlink_f "$THEBRANA_ROOT" 2>/dev/null || echo "")
 [[ "$REAL_CWD" == "$REAL_ROOT"* ]] || { echo '{"continue": true}'; exit 0; }
 
 # Extract the target argument (strip flags like -b, --track, -f)
-TARGET=$(echo "$CMD" | sed 's/git\s\+checkout\s*//' | tr -s ' ' | awk '{for(i=1;i<=NF;i++) if($i !~ /^-/) {print $i; exit}}')
+TARGET=$(echo "$CMD" | sed -E 's/git[[:space:]]+checkout[[:space:]]*//' | tr -s ' ' | awk '{for(i=1;i<=NF;i++) if($i !~ /^-/) {print $i; exit}}')
 [ -z "$TARGET" ] && { echo '{"continue": true}'; exit 0; }
 
 # Skip if it looks like a file path (contains / or .)

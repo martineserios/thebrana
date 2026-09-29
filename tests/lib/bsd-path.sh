@@ -4,7 +4,8 @@
 #
 # Omitted entirely (absent on stock macOS): flock, sha256sum, md5sum, realpath, gdate.
 # Wrapped to REJECT GNU-only forms, ACCEPT BSD forms:
-#   date  -d            -> error;  -u -r EPOCH +FMT ok
+#   date  -d / -I*      -> error;  -u -r EPOCH +FMT ok;  %N prints a literal N
+# Also absent: timeout, gtimeout, realpath, tac
 #   stat  -c            -> error;  -f %m (mtime), -f %z (size)
 #   sed   -i (no suffix)-> error;  -i SUFFIX ok
 #   readlink -f         -> error;  plain readlink ok
@@ -12,7 +13,7 @@
 
 _BSD_TOOLS="bash sh sed awk cat mkdir rmdir rm printf sleep kill mktemp dirname basename \
 cp mv ln tr head tail cut uname sort wc grep tee chmod touch ls id env true false test \
-expr seq xargs perl date stat readlink sha256sum md5sum"
+expr seq xargs perl pkill ps date stat readlink sha256sum md5sum"
 
 make_bsd_bin() {
     local d real
@@ -35,7 +36,8 @@ make_bsd_bin() {
     cat >"$d/date" <<EOF
 #!/bin/bash
 # BSD date emulation
-for a in "\$@"; do [ "\$a" = "-d" ] && { echo "date: illegal option -- d" >&2; exit 1; }; done
+for a in "\$@"; do case "\$a" in -d|-I*|--iso-8601*|--date*) echo "date: illegal option -- \$a" >&2; exit 1;; esac; done
+args=(); for a in "\$@"; do args+=("\${a//%N/N}"); done; set -- "\${args[@]}"
 if [ "\$1" = "-u" ] && [ "\$2" = "-r" ]; then
   e="\$3"; shift 3
   exec "$rdate" -u -d "@\$e" "\$@"

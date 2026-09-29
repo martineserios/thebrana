@@ -59,7 +59,7 @@ echo "$COMMAND" | grep -q '\-\-force-main' && pass_through
 # If the command creates a new branch (git switch -c / git checkout -b) BEFORE
 # git add, the add will execute on the new branch (not main). The branch-at-staging
 # check would be wrong here — the staging happens after the switch.
-pre_add=$(echo "$COMMAND" | sed 's/git[[:space:]]\+add.*//')
+pre_add=$(echo "$COMMAND" | sed -E 's/git[[:space:]]+add.*//')
 if echo "$pre_add" | grep -qE '(git[[:space:]]+switch[[:space:]]+-c|git[[:space:]]+checkout[[:space:]]+-b)[[:space:]]+\S+'; then
     pass_through
 fi
@@ -112,7 +112,7 @@ if echo "$COMMAND" | grep -qE 'git\s+add\s+(-A|--all|\.)(\s|$)'; then
     done < <(git -C "$GIT_ROOT" status --porcelain -uall 2>/dev/null)
 else
     # Explicit paths — strip the 'git add' prefix and any flags
-    args_str=$(echo "$COMMAND" | sed 's/.*git[[:space:]]\+add[[:space:]]*//')
+    args_str=$(echo "$COMMAND" | sed -E 's/.*git[[:space:]]+add[[:space:]]*//')
     while IFS= read -r arg; do
         [ -z "$arg" ] && continue
         case "$arg" in -*)  continue ;; esac
