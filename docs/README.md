@@ -26,6 +26,7 @@ User-facing documentation. Start here.
 | File | Contents |
 |------|----------|
 | [getting-started.md](guide/getting-started.md) | Install, first session, core workflow |
+| [macos-setup.md](guide/macos-setup.md) | Setting up brana on a Mac: Homebrew bash ≥ 4, no scheduler by decision, fallbacks, troubleshooting, how it is CI-tested |
 | [configuration.md](guide/configuration.md) | Configuring brana for your workflow |
 | [scheduler.md](guide/scheduler.md) | Setting up scheduled jobs |
 | [troubleshooting.md](guide/troubleshooting.md) | Common issues and fixes |
