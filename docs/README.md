@@ -260,6 +260,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [t-2385-retired-fields-write-guard.md](architecture/features/t-2385-retired-fields-write-guard.md) | RETIRED_FIELDS constant in brana-core::tasks — single source of truth replacing 3 independent retirement checks |
 | [stale-task-lifecycle-policy.md](architecture/features/stale-task-lifecycle-policy.md) | Spec only — auto-park stale P2/P3 (tag-based, reversible) + escalate stale P0/P1 at session-start; scheduled job design |
 | [wave-gate-enforcement.md](architecture/features/wave-gate-enforcement.md) | Spec only — minimal `wave drain` (gate check + `tag:` selector only, not the full v3 query grammar) to make ADR-065's unenforced `gate` field real |
+| [macos-scheduler-optout.md](architecture/features/macos-scheduler-optout.md) | Hosts with no systemd (the Mac) degrade gracefully instead of erroring/nagging; launchd backend deferred by decision (amends ADR-071) — t-3375 |
 | [macos-portable-shims.md](architecture/features/macos-portable-shims.md) | `system/hooks/lib/portable.sh` — capability-probed `p_*` wrappers (flock, date -d, sha256/md5, stat, sed -i, readlink -f) so scripts run on macOS/BSD userland; first task of epic macos-portability |
 | [acquire-skills.md](architecture/features/acquire-skills.md) | Acquire skills from external marketplaces |
 | [cascade-throttle.md](architecture/features/cascade-throttle.md) | Cascade throttle for failure detection |
