@@ -47,12 +47,20 @@ put s/bad.sh '# uses flock in a comment'; assert "full-line comment ignored" 0 "
 put s/bad.sh 'date -d x +%s || true  # portable-ok: guarded BSD fallback below'; assert "portable-ok escape hatch" 0 "$(run)"
 rm s/bad.sh; printf '#!/usr/bin/env bash\nsed -i s/a/b/ f\n' >s/noext; git add -A; assert "fires: extensionless bash script" 1 "$(run)"
 printf 'sed -i s/a/b/ f\n' >s/noext; git add -A; assert "extensionless non-shell file ignored" 0 "$(run)"
-rm s/noext; put tests/t.sh 'flock -n 9'; assert "tests/ excluded" 0 "$(run)"
-rm tests/t.sh; put system/hooks/lib/portable.sh 'flock -n 9'; assert "portable.sh itself excluded" 0 "$(run)"
-put s/ok.sh 'x=$(p_date_d 2024-01-02)'; assert "shim calls pass" 0 "$(run)"
+rm s/noext; put tests/t.sh 'flock -n 9'; assert "tests/ is scanned (t-3379)" 1 "$(run)"
+rm tests/t.sh; mkdir -p system/hooks/tests tests/hooks tests/lib tests/scripts; put system/hooks/tests/t.sh 'timeout 5 cmd'; assert "*/tests/ is scanned" 1 "$(run)"
+rm system/hooks/tests/t.sh; printf 'flock -n 9\n' >test-root.sh; git add -A; assert "root test*.sh is scanned" 1 "$(run)"; rm test-root.sh
+for f in tests/lib/bsd-path.sh tests/hooks/test-portable.sh tests/scripts/test-lint-portability.sh; do
+    printf 'flock -n 9\n' >"$f"; git add -A; assert "data file exempt by name: $f" 0 "$(run)"; rm "$f"
+done
+printf '# portable-ok-next: asserts flock is absent from the script under test\ngrep -q flock "$S"\n' >s/nx.sh; git add -A; assert "portable-ok-next covers the following line" 0 "$(run)"
+printf '# portable-ok-next: reason\n\nflock -n 9\n' >s/nx.sh; git add -A; assert "portable-ok-next does not reach past a blank line" 1 "$(run)"
+printf 'true\nflock -n 9\n' >s/nx.sh; git add -A; assert "no marker: still fires" 1 "$(run)"; rm s/nx.sh; git add -A
+put system/hooks/lib/portable.sh 'flock -n 9'; assert "portable.sh itself excluded" 0 "$(run)"
+put s/ok.sh 'source lib/portable.sh'$'\n''x=$(p_date_d 2024-01-02)'; assert "shim calls pass" 0 "$(run)"
 put s/ok.sh 'echo "reflow lockfile stats"'; assert "no substring false positives" 0 "$(run)"
 while IFS='|' read -r name code; do
-    put s/ok.sh "$code"; assert "passes: $name" 0 "$(run)"
+    put s/ok.sh "source lib/portable.sh"$'\n'"$code"; assert "passes: $name" 0 "$(run)"
 done <<'OKCASES'
 p_timeout|p_timeout 5 cmd
 sed -E ERE|sed -E 's/a+/b/' f
@@ -70,7 +78,7 @@ OKCASES
 # executable, so `env ... p_timeout ...` fails with 127 (t-3377: red-verification.sh took that
 # for "test ran red" and wrongly registered green tests). Continuations must be joined.
 while IFS='|' read -r name code; do
-    printf '%b\n' "$code" >s/wrap.sh; git add -A; assert "fires: $name" 1 "$(run)"
+    printf 'source lib/portable.sh\n%b\n' "$code" >s/wrap.sh; git add -A; assert "fires: $name" 1 "$(run)"
 done <<'WRAPCASES'
 env before p_timeout|env -u GIT_DIR p_timeout 5 cmd
 env then continuation|env -u A \\\n  -u B \\\n  p_timeout -k 2 60 node x
@@ -81,7 +89,7 @@ command p_timeout|command p_timeout 5 cmd
 setsid p_timeout|setsid p_timeout 5 cmd
 WRAPCASES
 while IFS='|' read -r name code; do
-    printf '%b\n' "$code" >s/wrap.sh; git add -A; assert "passes: $name" 0 "$(run)"
+    printf 'source lib/portable.sh\n%b\n' "$code" >s/wrap.sh; git add -A; assert "passes: $name" 0 "$(run)"
 done <<'WRAPOK'
 p_timeout then env|p_timeout 5 env -u A cmd
 p_timeout then env continuation|p_timeout -k 2 60 \\\n  env -u A \\\n  node x
@@ -90,5 +98,18 @@ env without shim|env -u A cmd
 env assignment then p_ in later command|env A=1 cmd; p_timeout 5 x
 WRAPOK
 rm -f s/wrap.sh; git add -A
+
+
+# A file that calls a p_* shim must actually source portable.sh, or the call dies with
+# "command not found" at runtime (hit twice in t-3374/t-3379: fixtures that COPY portable.sh
+# but never source it). Mentions in comments do not count; neither does `cp .../portable.sh`.
+printf 'x=$(p_date_d 2024-01-02)\n' >s/nosrc.sh; git add -A; assert "fires: shim used, portable.sh never sourced" 1 "$(run)"
+printf 'cp lib/portable.sh /tmp/x\nx=$(p_md5 f)\n' >s/nosrc.sh; git add -A; assert "fires: portable.sh only copied, not sourced" 1 "$(run)"
+printf 'source "$D/lib/portable.sh"\nx=$(p_md5 f)\n' >s/nosrc.sh; git add -A; assert "passes: sourced" 0 "$(run)"
+printf '. "$D/lib/portable.sh"\nx=$(p_md5 f)\n' >s/nosrc.sh; git add -A; assert "passes: dot-sourced" 0 "$(run)"
+printf '# uses p_date_d via the lib\necho hi\n' >s/nosrc.sh; git add -A; assert "passes: shim named only in a comment" 0 "$(run)"
+printf 'x=$(p_md5 f)  # portable-ok: sourced by the parent script\n' >s/nosrc.sh; git add -A; assert "passes: portable-ok on the use" 0 "$(run)"
+printf 'echo "p_timeout is documented"\n' >s/nosrc.sh; git add -A; assert "passes: prose in a string, no call shape" 0 "$(run)"
+rm -f s/nosrc.sh; git add -A
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

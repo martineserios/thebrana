@@ -18,6 +18,7 @@ _p_stat_init() { if stat -c %Y / >/dev/null 2>&1; then _P_STAT=gnu; else _P_STAT
 
 p_stat_mtime() { [ -n "$_P_STAT" ] || _p_stat_init; if [ "$_P_STAT" = gnu ]; then stat -c %Y "$1"; else stat -f %m "$1"; fi; }
 p_stat_atime() { [ -n "$_P_STAT" ] || _p_stat_init; if [ "$_P_STAT" = gnu ]; then stat -c %X "$1"; else stat -f %a "$1"; fi; }
+p_stat_mode()  { [ -n "$_P_STAT" ] || _p_stat_init; if [ "$_P_STAT" = gnu ]; then stat -c %a "$1"; else stat -f %Lp "$1"; fi; }
 p_stat_size()  { [ -n "$_P_STAT" ] || _p_stat_init; if [ "$_P_STAT" = gnu ]; then stat -c %s "$1"; else stat -f %z "$1"; fi; }
 
 # ── hashing ──────────────────────────────────────────────────────────────────

@@ -52,6 +52,7 @@ make_fake_binary() {
     chmod +x "$bin"
     # Set mtime to now minus age_seconds
     local target_time
+    # portable-ok-next: has a BSD date -v fallback on the next line
     target_time=$(date -d "@$(( $(date +%s) - age_seconds ))" "+%Y%m%d%H%M.%S" 2>/dev/null || \
                   date -v "-${age_seconds}S" "+%Y%m%d%H%M.%S" 2>/dev/null) || true
     [ -n "${target_time:-}" ] && touch -t "$target_time" "$bin" 2>/dev/null || true

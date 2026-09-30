@@ -17,6 +17,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -179,12 +180,12 @@ mk_widen_repo() {   # mk_widen_repo <dir>
     git init -q -b main "$dir"
     echo old > "$dir/old.txt"
     git -C "$dir" add old.txt
-    local old_date; old_date="$(date -d '20 hours ago' --iso-8601=seconds)"
+    local old_date; old_date="$(p_date_d '20 hours ago' %Y-%m-%dT%H:%M:%S+00:00)"
     GIT_AUTHOR_DATE="$old_date" GIT_COMMITTER_DATE="$old_date" \
         git -C "$dir" -c user.email=t@t -c user.name=t -c commit.gpgsign=false commit -q -m "old work (t-600)"
     echo recent >> "$dir/old.txt"
     git -C "$dir" add old.txt
-    local recent_date; recent_date="$(date -d '2 hours ago' --iso-8601=seconds)"
+    local recent_date; recent_date="$(p_date_d '2 hours ago' %Y-%m-%dT%H:%M:%S+00:00)"
     GIT_AUTHOR_DATE="$recent_date" GIT_COMMITTER_DATE="$recent_date" \
         git -C "$dir" -c user.email=t@t -c user.name=t -c commit.gpgsign=false commit -q -m "in-window work (t-600)"
 }
@@ -221,13 +222,13 @@ run_widen_case() {   # run_widen_case <label> <sessions_json> <expect_count>
 }
 
 echo ""
-OLD_CLOSE_TS="$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+OLD_CLOSE_TS="$(p_date_d '25 hours ago' %Y-%m-%dT%H:%M:%SZ)"
 run_widen_case "Widened window: both commits counted incl. the 20h-old one (clock-skew shape)" \
     "[{\"epic\":\"(orphan)\",\"state\":{\"written_at\":\"$OLD_CLOSE_TS\"}}]" \
     "2"
 
 echo ""
-RECENT_CLOSE_TS="$(date -u -d '5 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+RECENT_CLOSE_TS="$(p_date_d '5 minutes ago' %Y-%m-%dT%H:%M:%SZ)"
 run_widen_case "Floor at 6h: only the 2h-old commit counted — 20h-old one stays excluded, window not over-narrowed either" \
     "[{\"epic\":\"(orphan)\",\"state\":{\"written_at\":\"$RECENT_CLOSE_TS\"}}]" \
     "1"

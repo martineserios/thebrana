@@ -4,6 +4,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../goal-completion.sh"
 PASS=0
@@ -29,7 +30,7 @@ assert_continue() {
     TOTAL=$((TOTAL + 1))
     local out
     out=$(echo "$input" | bash "$HOOK" 2>/dev/null) || out=""
-    if echo "$out" | grep -q '"continue".*true\|"continue":true'; then
+    if echo "$out" | grep -qE '"continue".*true|"continue":true'; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else
@@ -367,7 +368,7 @@ read -r RG7 BR7 <<< "$(make_goal_repo)"
 fresh_presence
 echo "test('new', () => {})" > "$RG7/tests/new.test.js"   # build writes a new test...
 git -C "$RG7" add -A >/dev/null 2>&1; git -C "$RG7" commit -q -m "add red test" 2>/dev/null
-PIN7=$(sha256sum "$RG7/tests/new.test.js" | cut -d' ' -f1)
+PIN7=$(p_sha256 "$RG7/tests/new.test.js")
 cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
 {"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG7","base_ref":"$BR7","criteria":["app.js exists"],"tests_required":["tests/new.test.js"],"tests_hashes":{"tests/new.test.js":"$PIN7"}}
 EOF
@@ -403,7 +404,7 @@ read -r RG10 BR10 <<< "$(make_goal_repo)"
 fresh_presence
 echo "test('real assertion', () => {})" > "$RG10/tests/new.test.js"
 git -C "$RG10" add -A >/dev/null 2>&1; git -C "$RG10" commit -q -m "add red test" 2>/dev/null
-PINNED=$(sha256sum "$RG10/tests/new.test.js" | cut -d' ' -f1)
+PINNED=$(p_sha256 "$RG10/tests/new.test.js")
 echo "// weakened to a stub" > "$RG10/tests/new.test.js"   # builder guts the test post-registration
 git -C "$RG10" add -A >/dev/null 2>&1; git -C "$RG10" commit -q -m "weaken" 2>/dev/null
 cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
@@ -432,7 +433,7 @@ read -r RG11 BR11 <<< "$(make_goal_repo)"
 fresh_presence
 echo "test('real assertion', () => {})" > "$RG11/tests/new.test.js"
 git -C "$RG11" add -A >/dev/null 2>&1; git -C "$RG11" commit -q -m "add red test" 2>/dev/null
-PIN11=$(sha256sum "$RG11/tests/new.test.js" | cut -d' ' -f1)
+PIN11=$(p_sha256 "$RG11/tests/new.test.js")
 cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
 {"task_id":"t-999","session_id":"$GAME_SID","cwd":"$RG11","base_ref":"$BR11","criteria":["app.js exists"],"tests_required":["tests/new.test.js"],"tests_hashes":{"tests/new.test.js":"$PIN11"}}
 EOF

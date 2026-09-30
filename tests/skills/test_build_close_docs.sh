@@ -58,7 +58,7 @@ assert "no stale build/templates references in CLOSE phase" \
   bash -c '! grep -q "build/templates" "$0"' "$CLOSE_PHASE"
 
 # Strategy routing decides which docs a build gets
-assert "docs skill has strategy-aware generation" grep -q "feature.*greenfield\|Strategy.*Tech Doc\|strategy.*doc" "$DOCS_SKILL"
+assert "docs skill has strategy-aware generation" grep -qE "feature.*greenfield|Strategy.*Tech Doc|strategy.*doc" "$DOCS_SKILL"
 
 # Output directories
 assert "docs skill references docs/architecture/features/" grep -q "docs/architecture/features/" "$DOCS_SKILL"

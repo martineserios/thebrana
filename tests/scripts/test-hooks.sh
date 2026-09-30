@@ -12,6 +12,7 @@ set -euo pipefail
 # to the repo source that bootstrap copies verbatim — same bytes, and a regression
 # is then caught before deploy rather than after (t-2492).
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 if [ -d "$HOME/.claude/hooks" ]; then
     HOOKS_DIR="$HOME/.claude/hooks"
 else
@@ -46,7 +47,7 @@ test_hook() {
     # Run the hook, capture output and exit code
     local output
     local exit_code
-    output=$(echo "$input" | timeout 10 bash "$script" 2>/dev/null) && exit_code=0 || exit_code=$?
+    output=$(echo "$input" | p_timeout 10 bash "$script" 2>/dev/null) && exit_code=0 || exit_code=$?
 
     if [ "$exit_code" -ne 0 ]; then
         fail "$name — exited with code $exit_code"
@@ -135,7 +136,7 @@ if [ -n "$CF" ]; then
     # Run session-end hook
     echo '{}' | jq -c --arg sid "$META_SESSION_ID" --arg cwd "$HOME" \
         '{session_id: $sid, cwd: $cwd, hook_event_name: "SessionEnd"}' | \
-        timeout 15 bash "$HOOKS_DIR/session-end.sh" >/dev/null 2>&1 || true
+        p_timeout 15 bash "$HOOKS_DIR/session-end.sh" >/dev/null 2>&1 || true
 
     # Retrieve the stored value by key and verify quarantine metadata fields
     # session-end stores to namespace "patterns" with key "session:PROJECT:SESSION_ID"
@@ -144,7 +145,7 @@ if [ -n "$CF" ]; then
     META_PROJECT=$(basename "$META_PROJECT")
     META_KEY="session:${META_PROJECT}:${META_SESSION_ID}"
 
-    RETRIEVED=$(timeout 10 $CF memory retrieve -k "$META_KEY" --namespace patterns --format json 2>/dev/null || true)
+    RETRIEVED=$(p_timeout 10 $CF memory retrieve -k "$META_KEY" --namespace patterns --format json 2>/dev/null || true)
     if [ -z "$RETRIEVED" ] || echo "$RETRIEVED" | grep -q 'Key not found'; then
         fail "session-end metadata — stored value not found (key=$META_KEY)"
     else
@@ -166,7 +167,7 @@ if [ -n "$CF" ]; then
     fi
 
     # Clean up
-    timeout 10 $CF memory delete "$META_KEY" >/dev/null 2>&1 || true
+    p_timeout 10 $CF memory delete "$META_KEY" >/dev/null 2>&1 || true
     rm -f "$META_SESSION_FILE"
 else
     echo "  SKIP: ruflo not found — cannot test metadata storage"
@@ -186,7 +187,7 @@ else
 
 # Test helper for PreToolUse: run hook with given JSON, return output
 run_pre_hook() {
-    echo "$1" | timeout 10 bash "$PRE_HOOK" 2>/dev/null
+    echo "$1" | p_timeout 10 bash "$PRE_HOOK" 2>/dev/null
 }
 
 # Test 6: Allows spec files on feat/* branches
@@ -330,7 +331,7 @@ OUTPUT11=$(jq -n \
     --arg sid "test-compact-session" \
     --arg cwd "$HOME" \
     '{session_id: $sid, cwd: $cwd, trigger: "auto", hook_event_name: "PreCompact"}' | \
-    timeout 10 bash "$COMPACT_HOOK" 2>/dev/null)
+    p_timeout 10 bash "$COMPACT_HOOK" 2>/dev/null)
 if echo "$OUTPUT11" | jq -e '.continue == true and (.additionalContext | type == "string")' >/dev/null 2>&1; then
     pass "pre-compact — continue: true, additionalContext is a string"
 else
@@ -339,7 +340,7 @@ fi
 
 # Test 12: PreCompact handles missing CWD gracefully
 echo "  Test 12: pre-compact passes through on empty input..."
-OUTPUT12=$(echo '{}' | timeout 10 bash "$COMPACT_HOOK" 2>/dev/null)
+OUTPUT12=$(echo '{}' | p_timeout 10 bash "$COMPACT_HOOK" 2>/dev/null)
 if echo "$OUTPUT12" | jq -e '.continue == true' >/dev/null 2>&1; then
     pass "pre-compact — graceful pass-through on empty input"
 else

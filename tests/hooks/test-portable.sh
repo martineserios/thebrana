@@ -60,6 +60,8 @@ for mode in native bsd; do
 
     assert "$mode: p_stat_mtime" "1704164645" "$(run_in $mode "p_stat_mtime '$TMP/f.txt'")"
     assert "$mode: p_stat_size"  "6"          "$(run_in $mode "p_stat_size '$TMP/f.txt'")"
+    assert "$mode: p_stat_mode (octal perms)" "640" "$(chmod 640 "$TMP/f.txt"; run_in $mode "p_stat_mode '$TMP/f.txt'")"
+    assert "$mode: p_stat_mode dir" "750" "$(mkdir -p "$TMP/md" && chmod 750 "$TMP/md"; run_in $mode "p_stat_mode '$TMP/md'")"
     assert "$mode: p_stat_atime" "1704164645" "$(touch -a -d '2024-01-02 03:04:05 UTC' "$TMP/f.txt"; run_in $mode "p_stat_atime '$TMP/f.txt'")"
 
     assert "$mode: p_date_d @epoch"    "1704164645" "$(run_in $mode "p_date_d @1704164645")"

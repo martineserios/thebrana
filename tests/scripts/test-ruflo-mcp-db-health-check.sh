@@ -19,6 +19,7 @@
 # would run the exec and never return.
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 MCP_SCRIPT="$REPO_ROOT/system/scripts/ruflo-mcp.sh"
 PASS=0
@@ -91,7 +92,7 @@ kill "$HOLDER_PID" 2>/dev/null; wait "$HOLDER_PID" 2>/dev/null; HOLDER_PID=""
 # Corrupt a plain (non-WAL, no sidecar) DB by truncating it mid-file — the
 # function's non-WAL branch (plain PRAGMA integrity_check) must catch this.
 sqlite3 "$TESTDIR/corrupt.db" "CREATE TABLE t(x INTEGER); INSERT INTO t VALUES (1);" >/dev/null 2>&1
-FULL_SIZE=$(stat -c%s "$TESTDIR/corrupt.db" 2>/dev/null || stat -f%z "$TESTDIR/corrupt.db")
+FULL_SIZE=$(p_stat_size "$TESTDIR/corrupt.db" 2>/dev/null || stat -f%z "$TESTDIR/corrupt.db")
 truncate -s $((FULL_SIZE / 2)) "$TESTDIR/corrupt.db"
 
 if (eval "$FUNC_SRC"; ruflo_mcp_db_is_healthy "$TESTDIR/corrupt.db"); then

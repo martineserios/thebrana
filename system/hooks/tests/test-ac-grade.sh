@@ -93,7 +93,7 @@ export CLAUDE_PLUGIN_DATA="$STUBDIR"
 # ── Worktree resolution: branch → real worktree path ─────────────────────────
 echo "Test: worktree resolution finds the right path for a recorded branch"
 OUT=$(cd "$MAIN_REPO" && bash "$GRADER" t-fix --json 2>&1)
-assert "resolved and graded (no resolution error)" '! grep -qi "no worktree\|no branch\|error" <<<"$OUT" || echo "$OUT" | jq -e ".graded" >/dev/null 2>&1'
+assert "resolved and graded (no resolution error)" '! grep -qiE "no worktree|no branch|error" <<<"$OUT" || echo "$OUT" | jq -e ".graded" >/dev/null 2>&1'
 assert "counts.pass includes the file-exists heuristic (fixture.md present in worktree)" 'echo "$OUT" | jq -e ".counts.pass >= 1" >/dev/null 2>&1'
 
 echo "Test: task with no recorded branch → loud error, never defaults to caller cwd"

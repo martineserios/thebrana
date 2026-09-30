@@ -62,7 +62,7 @@ for name in $BIG_FOUR; do
     fi
 
     # 3. Step-boundary Read rule + resume protocol in SKILL.md
-    if grep -qi "read.*phase file\|read the next phase\|read its phase file" "$sk"; then
+    if grep -qiE "read.*phase file|read the next phase|read its phase file" "$sk"; then
         ok "$name: step-boundary Read rule present"
     else
         bad "$name: no step-boundary Read rule (model will free-run from memory)"

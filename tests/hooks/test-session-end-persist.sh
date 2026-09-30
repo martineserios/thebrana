@@ -12,6 +12,7 @@
 
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOKS_DIR="$(cd "$SCRIPT_DIR/../../system/hooks" && pwd)"
 SCRIPT="$HOOKS_DIR/session-end-persist.sh"
@@ -198,7 +199,7 @@ rm -rf "$FAKE_HOME_4" "$LAYER0_4"
 
 # ── Test 5: locked metrics-patch RMW under lock contention (t-2525, ADR-069 D4) ──
 echo ""
-echo "Test 5: locked metrics-patch RMW does not clobber under contention, and respects the flock timeout"
+echo "Test 5: locked metrics-patch RMW does not clobber under contention, and respects the lock timeout"
 FAKE_HOME_5=$(mktemp -d /tmp/brana-test-home-5-XXXXXX)
 LAYER0_5=$(mktemp -d /tmp/brana-test-layer0-5-XXXXXX)
 mkdir -p "$FAKE_HOME_5/.claude/memory"
@@ -241,23 +242,21 @@ run_persist_5() {
 
 # Hold the lock externally (simulating a concurrent writer) for the whole first run.
 LOCK_FILE="${STATE_PATH}.lock"
-exec 209>"$LOCK_FILE"
-flock 209
+p_lock_acquire 209 "$LOCK_FILE"
 
 START=$(date +%s)
 ( run_persist_5 )
 END=$(date +%s)
 ELAPSED=$((END - START))
 
-flock -u 209
-exec 209>&-
+p_lock_release 209 "$LOCK_FILE"
 
 STATE_AFTER=$(cat "$STATE_PATH")
 assert_not_contains "metrics NOT patched while lock held (would clobber the concurrent writer)" "$STATE_AFTER" '"events": 3'
 if [ "$ELAPSED" -le 4 ]; then
-    PASS=$((PASS + 1)); echo "  PASS: hook returned promptly under lock contention (${ELAPSED}s, flock timeout=2s)"
+    PASS=$((PASS + 1)); echo "  PASS: hook returned promptly under lock contention (${ELAPSED}s, lock timeout=2s)"
 else
-    FAIL=$((FAIL + 1)); echo "  FAIL: hook took ${ELAPSED}s — did not respect the 2s flock timeout"
+    FAIL=$((FAIL + 1)); echo "  FAIL: hook took ${ELAPSED}s — did not respect the 2s lock timeout"
 fi
 
 # Lock now free — the same patch should land this time.

@@ -4,6 +4,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../session-start.sh"
 PASS=0
@@ -66,7 +67,7 @@ run_hook() {
         CLAUDE_ENV_FILE="${CLAUDE_ENV_FILE:-}" \
         BRANA_RECAP_OFF="" \
         $extra_env \
-        timeout -k 2 15 bash "$HOOK" >"$out_file" 2>/dev/null
+        p_timeout -k 2 15 bash "$HOOK" >"$out_file" 2>/dev/null
     raw=$(cat "$out_file" 2>/dev/null)
     rm -f "$out_file"
     # The hook's own PIDS wait-loop budgets ~8s worst case (t-2622 comment in
@@ -569,7 +570,7 @@ assert_continue "No lock file → hook continues normally" \
 REPO_CQ="$TMPDIR/cq-proj"
 mkdir -p "$REPO_CQ"
 
-CQ_OLD=$(date -u -d '4 days ago' +%Y-%m-%dT%H:%M:%SZ)
+CQ_OLD=$(p_date_d '4 days ago' %Y-%m-%dT%H:%M:%SZ)
 CQ_FRESH=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 cq_entry() { # $1=id $2=timestamp $3=processed

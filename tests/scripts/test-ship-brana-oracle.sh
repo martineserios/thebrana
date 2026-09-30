@@ -16,6 +16,7 @@ set -uo pipefail
 # denylist also lives in system/hooks/red-verification.sh (the root fix,
 # t-2602) and docs/architecture/features/build-receipts.md — no shared
 # source yet; update all four if the list ever changes.
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 
 PASS=0
@@ -66,11 +67,12 @@ cmd="${@: -1}"
 case "$cmd" in
   true) exit 0 ;;
   *"cat >"*) cat >> "${TOOL_LOG:-/dev/null}"; exit 0 ;;   # manifest write via stdin
+  # portable-ok-next: case pattern matching the remote command text
   *sha256sum*)
     if [[ -n "${STUB_REMOTE_SHA:-}" ]]; then
       echo "$STUB_REMOTE_SHA  /home/ubuntu/.local/bin/brana"
     else
-      sha256sum "$STUB_BIN_FILE" | awk '{print $1 "  /home/ubuntu/.local/bin/brana"}'
+      { sha256sum "$STUB_BIN_FILE" 2>/dev/null || shasum -a 256 "$STUB_BIN_FILE"; } | awk '{print $1 "  /home/ubuntu/.local/bin/brana"}'  # portable-ok: stub, shasum fallback
     fi
     exit 0 ;;
   *--version*) echo "brana 9.9.9"; exit 0 ;;
@@ -107,7 +109,7 @@ rm -rf "$ROOT"
 ROOT="$(mktemp -d)"; make_fixture "$ROOT"
 OUT="$(run_ship "$ROOT" env STUB_BUILD_TAG=t2)"; RC=$?
 COMMIT="$(git -C "$ROOT/repo" rev-parse HEAD)"
-SHA="$(sha256sum "$ROOT/repo/system/cli/rust/target/x86_64-unknown-linux-musl/release/brana" | awk '{print $1}')"
+SHA="$(p_sha256 "$ROOT/repo/system/cli/rust/target/x86_64-unknown-linux-musl/release/brana")"
 LOG="$(cat "$ROOT/tool.log" 2>/dev/null)"
 ok=1
 [[ "$RC" -eq 0 ]] || ok=0

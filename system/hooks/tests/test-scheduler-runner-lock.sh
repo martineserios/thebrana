@@ -5,6 +5,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUNNER="$SCRIPT_DIR/../../scheduler/brana-scheduler-runner.sh"
 PASS=0; FAIL=0; TOTAL=0
@@ -42,7 +43,7 @@ hold_lock() {
     local home="$1" secs="$2"
     mkdir -p "$home/.claude/scheduler/locks"
     local lock="$home/.claude/scheduler/locks/project.lock"
-    ( exec 9>"$lock"; flock 9; sleep "$secs" ) &
+    ( p_lock_acquire 9 "$lock"; sleep "$secs"; p_lock_release 9 "$lock" ) &
     HOLDER_PID=$!
     sleep 0.3  # let the holder acquire before the runner starts
 }

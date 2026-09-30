@@ -59,6 +59,8 @@ mkdir -p "$TESTHOME/.claude/scheduler" "$TESTHOME/proj"
 # moment the runner releases it; attempt 2 then times out on the lock. The
 # runner must report the prior attempt's real failure, not a SKIPPED/exit-0.
 LOCKFILE="$TESTHOME/.claude/scheduler/locks/proj.lock"
+# The job's command runs in a child bash, which has no shim functions: source the lib inside it.
+HOLD_LOCK="source $REPO_ROOT/system/hooks/lib/portable.sh; p_lock_acquire 9 $LOCKFILE; sleep 6; p_lock_release 9 $LOCKFILE"  # portable-ok: shim names live in a child-shell string, not this shell
 cat > "$TESTHOME/.claude/scheduler/scheduler.json" <<JSON
 {
   "defaults": {"timeoutSeconds": 30, "maxRetries": 0, "logRetention": 5, "captureOutput": false},
@@ -66,7 +68,7 @@ cat > "$TESTHOME/.claude/scheduler/scheduler.json" <<JSON
     "fail-job":  {"type": "command", "project": "$TESTHOME/proj", "command": "exit 7"},
     "ok-job":    {"type": "command", "project": "$TESTHOME/proj", "command": "true"},
     "retry-job": {"type": "command", "project": "$TESTHOME/proj",
-                  "command": "( flock $LOCKFILE -c 'sleep 6' & ); exit 3",
+                  "command": "( bash -c '$HOLD_LOCK' & ); exit 3",
                   "maxRetries": 1, "retryBackoffSec": 1, "lockWaitSeconds": 1}
   }
 }

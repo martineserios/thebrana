@@ -9,7 +9,9 @@
 # Exit 1 on any violation. Escape hatch for a line that is already guarded or has
 # its own BSD branch: append `# portable-ok: <reason>` to that line.
 #
-# Scope: production scripts (*.sh and extensionless sh/bash-shebang files). Skips tests/, */tests/, docs/, portable.sh and this file.
+# Scope: all tracked *.sh and extensionless sh/bash-shebang files, tests included (three data
+# files that quote GNU forms on purpose are exempt by name). A hit is also exempt when the line
+# directly above is `# portable-ok-next: <reason>`. Skips tests/, */tests/, docs/, portable.sh and this file.
 # Full-line comments are ignored.
 set -u
 ROOT="${1:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -62,12 +64,18 @@ EXCL=(
 files="$( { git ls-files '*.sh'
             git ls-files | grep -vE '\.[A-Za-z0-9]+$' | while IFS= read -r f; do
                 [ -f "$f" ] && head -n1 "$f" 2>/dev/null | grep -qE '^#!.*(ba)?sh([[:space:]]|$)' && echo "$f"
-            done; } | sort -u | grep -vE '(^|/)tests?/|^docs/|^system/hooks/lib/portable\.sh$|^system/scripts/lint-portability\.sh$|^test[^/]*\.sh$')"
+            done; } | sort -u | grep -vE '^docs/|^system/hooks/lib/portable\.sh$|^system/scripts/lint-portability\.sh$|^tests/lib/bsd-path\.sh$|^tests/hooks/test-portable\.sh$|^tests/scripts/test-lint-portability\.sh$')"
 bad=0
 for i in "${!PATS[@]}"; do
     pat="${PATS[$i]}"; advice="${ADVICE[$i]}"
     while IFS= read -r line; do
         [ -n "$line" ] || continue
+        # `# portable-ok-next: reason` on the line directly above also exempts a hit.
+        _f="${line%%:*}"; _r="${line#*:}"; _n="${_r%%:*}"
+        if [ "${_n:-0}" -gt 1 ] 2>/dev/null \
+            && sed -n "$((_n - 1))p" "$_f" | grep -qE '^[[:space:]]*#[[:space:]]*portable-ok-next:'; then
+            continue
+        fi
         echo "$line  <-- $advice"
         bad=$((bad + 1))
     done < <(printf '%s\n' "$files" | xargs grep -nE -- "$pat" 2>/dev/null \
@@ -98,5 +106,19 @@ done < <(printf '%s\n' "$files" | while IFS= read -r f; do
     ' "$f"
 done)
 
-if [ "$bad" -eq 0 ]; then echo "OK: no GNU-only forms in production scripts"; exit 0; fi
+# A file that calls a p_* shim must source portable.sh itself, or the call dies with
+# "command not found" at runtime. A `cp .../portable.sh` (fixtures) does not count. Comments and
+# lines marked portable-ok are ignored; a call shape is required (shim name preceded by a
+# separator, not a quote), so prose in strings does not trip it.
+SHIM_RE='(^|[[:space:];|&(`])p_(timeout|flock|lock_acquire|lock_release|date_d|date_iso|epoch_fmt|sha256|md5|stat_mtime|stat_atime|stat_size|stat_mode|sed_i|readlink_f|realpath_m|relpath|now_ms)([[:space:]]|$|\))'
+while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    n="$(grep -vE '^[[:space:]]*#' "$f" | grep -v 'portable-ok' | grep -cE "$SHIM_RE")"
+    if [ "${n:-0}" -gt 0 ] && ! grep -qE '^[[:space:]]*(source|\.)[[:space:]].*portable\.sh' "$f"; then
+        echo "$f:1:  <-- calls p_* shim(s) ($n line(s)) but never sources portable.sh (a cp of it does not count)"
+        bad=$((bad + 1))
+    fi
+done <<< "$files"
+
+if [ "$bad" -eq 0 ]; then echo "OK: no GNU-only forms in shell scripts (tests included)"; exit 0; fi
 echo "$bad portability violation(s)"; exit 1

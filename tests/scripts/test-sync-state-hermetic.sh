@@ -14,6 +14,7 @@
 # the fixture and nothing in the fixture changes.
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SUITE_SRC="$ROOT/tests/scripts/test-sync-state.sh"
 SYNC_SRC="$ROOT/system/scripts/sync-state.sh"
@@ -45,7 +46,8 @@ echo "client-event-log" > "$H/.claude/projects/-fixture-client/memory/event-log.
 echo "client-repo-file" > "$C/.claude/memory/event-log.md"
 
 cd "$T"   # ruflo has a CWD-relative store path (ADR-026); never let it resolve inside a real tree
-snapshot() { (cd "$T" && find realrepo/system/state realhome/.claude client -type f -print0 | sort -z | xargs -0 md5sum); }
+# (while-read, not xargs: xargs can only exec executables and p_md5 is a shell function)
+snapshot() { (cd "$T" && find realrepo/system/state realhome/.claude client -type f -print0 | sort -z | while IFS= read -r -d '' _f; do printf '%s  %s\n' "$(p_md5 "$_f")" "$_f"; done); }
 BEFORE=$(snapshot)
 
 echo "=== Scenario 1: an interrupted run leaves the fixture 'real' state untouched ==="

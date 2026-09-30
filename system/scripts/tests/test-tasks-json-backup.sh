@@ -3,6 +3,7 @@
 # Isolated: scratch git repo + scratch TASKS_JSON_BACKUP_DIR; never touches the real ledger.
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../hooks/lib/portable.sh"
 PASS=0; FAIL=0
 assert_true() { local d="$1" c="$2"; if [ "$c" = "true" ]; then echo "  PASS: $d"; PASS=$((PASS+1)); else echo "  FAIL: $d"; FAIL=$((FAIL+1)); fi; }
 
@@ -25,7 +26,7 @@ assert_true "backup exits 0 and reports 3 tasks"       "$([ $rc -eq 0 ] && echo 
 BK=$(ls -d "$T"/backups/repo-* 2>/dev/null | head -n1)
 assert_true "backup dir is keyed by basename + path hash (repo-<8hex>)" "$(basename "${BK:-x}" | grep -qE '^repo-[0-9a-f]{8}$' && echo true || echo false)"
 assert_true "backup file created under that dir"       "$([ "$(ls "$BK"/tasks.json.*.json 2>/dev/null | wc -l)" -eq 1 ] && echo true || echo false)"
-assert_true "backup dir is 700 and copies are 600"     "$([ "$(stat -c %a "$BK")" = "700" ] && [ "$(stat -c %a "$BK"/tasks.json.*.json)" = "600" ] && echo true || echo false)"
+assert_true "backup dir is 700 and copies are 600"     "$([ "$(p_stat_mode "$BK")" = "700" ] && [ "$(p_stat_mode "$BK"/tasks.json.*.json)" = "600" ] && echo true || echo false)"
 assert_true ".repo marker records the resolved repo path" "$([ "$(cat "$BK/.repo")" = "$R" ] && echo true || echo false)"
 
 # 1b. a differently-located repo with the SAME basename gets its own dir (no intermixing)

@@ -8,6 +8,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 HASH_SCRIPT="$REPO_ROOT/system/scripts/skills-lock-hash.sh"
@@ -36,7 +37,7 @@ printf 'beta content\n' > "$FIXTURE/sub/helper.sh"
 # expected = sha256("SKILL.md" + "alpha content\n" + "sub/helper.sh" + "beta content\n")
 # (piped directly into sha256sum, not round-tripped through a $(...) capture,
 # which would strip the files' trailing newlines and silently corrupt the fixture)
-EXPECTED=$( { printf '%s' "SKILL.md"; cat "$FIXTURE/SKILL.md"; printf '%s' "sub/helper.sh"; cat "$FIXTURE/sub/helper.sh"; } | sha256sum | awk '{print $1}')
+EXPECTED=$( { printf '%s' "SKILL.md"; cat "$FIXTURE/SKILL.md"; printf '%s' "sub/helper.sh"; cat "$FIXTURE/sub/helper.sh"; } | p_sha256)
 ACTUAL=$("$HASH_SCRIPT" "$FIXTURE")
 check "fixture hash matches manual sha256 over sorted path+content" "$EXPECTED" "$ACTUAL"
 

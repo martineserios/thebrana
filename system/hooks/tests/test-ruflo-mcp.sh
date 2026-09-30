@@ -8,6 +8,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER="$SCRIPT_DIR/../../scripts/ruflo-mcp.sh"
 PASS=0
@@ -81,7 +82,7 @@ if [ -z "$RUFLO_BIN" ]; then
 else
     # Send JSON-RPC initialize request, expect a response within 10s
     INIT_JSON='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}'
-    RESPONSE=$(printf '%s\n' "$INIT_JSON" | timeout 10 bash "$WRAPPER" mcp start 2>/dev/null | head -1 || true)
+    RESPONSE=$(printf '%s\n' "$INIT_JSON" | p_timeout 10 bash "$WRAPPER" mcp start 2>/dev/null | head -1 || true)
 
     if [ -n "$RESPONSE" ] && echo "$RESPONSE" | jq -e '.jsonrpc' >/dev/null 2>&1; then
         assert_pass "live handshake returns jsonrpc response"

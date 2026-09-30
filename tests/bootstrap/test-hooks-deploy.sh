@@ -20,6 +20,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
@@ -44,7 +45,7 @@ grep -q 'SYSTEM_DIR/hooks' "$REPO_ROOT/bootstrap.sh"; check "T1: bootstrap deplo
 grep -E 'rsync -a --delete.*hooks' "$REPO_ROOT/bootstrap.sh" >/dev/null; check "T2: hooks deploy is recursive rsync -a --delete" $?
 
 # T3 — bootstrap --check has a Hooks: step (house style: "Rules:", "Scripts:")
-OUT=$(cd "$REPO_ROOT" && timeout 60 ./bootstrap.sh --check 2>/dev/null | grep -E '^Hooks:' | head -1)
+OUT=$(cd "$REPO_ROOT" && p_timeout 60 ./bootstrap.sh --check 2>/dev/null | grep -E '^Hooks:' | head -1)
 [[ "$OUT" == Hooks:* ]]; check "T3: bootstrap --check reports hooks deployment step" $? "$OUT"
 
 # T4 — sandboxed end-to-end: deploy into an empty fake dest via the same

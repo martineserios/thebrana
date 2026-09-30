@@ -53,7 +53,7 @@ EOF
 case "\$1" in
   -c) echo "stat: illegal option -- c" >&2; exit 1 ;;
   -f) fmt="\$2"; shift 2
-      case "\$fmt" in %m) exec "$rstat" -c %Y "\$@" ;; %z) exec "$rstat" -c %s "\$@" ;; %a) exec "$rstat" -c %X "\$@" ;;
+      case "\$fmt" in %m) exec "$rstat" -c %Y "\$@" ;; %z) exec "$rstat" -c %s "\$@" ;; %a) exec "$rstat" -c %X "\$@" ;; %Lp) exec "$rstat" -c %a "\$@" ;;
         *) exit 1 ;; esac ;;
 esac
 exec "$rstat" "\$@"

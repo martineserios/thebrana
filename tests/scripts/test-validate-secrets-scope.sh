@@ -28,7 +28,7 @@ ELAPSED=$(( $(date +%s) - START ))
 if grep -q "PASS: No secrets detected" <<<"$OUT"; then
   ok "a secret-shaped line under system/cli/rust/target/ is not reported"
 else
-  bad "Check 6 descended into a build dir" "$(grep -n 'planted\|Potential secrets' <<<"$OUT" | head -3)"
+  bad "Check 6 descended into a build dir" "$(grep -nE 'planted|Potential secrets' <<<"$OUT" | head -3)"
 fi
 if [ "$ELAPSED" -le 60 ]; then
   ok "Check 6 finished in ${ELAPSED}s (<= 60s)"

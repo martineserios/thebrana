@@ -42,6 +42,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -92,8 +93,8 @@ echo ""
 # this session's commits .... 1h ago   (the only commits this session made)
 # Total commit count = 5, well under a flat -20 window, so the old commits
 # would appear in `git log -20` even though they're 30h stale.
-OLD_COMMIT_DATE="$(date -d '30 hours ago' --iso-8601=seconds)"
-NEW_COMMIT_DATE="$(date -d '1 hour ago' --iso-8601=seconds)"
+OLD_COMMIT_DATE="$(p_date_d '30 hours ago' %Y-%m-%dT%H:%M:%S+00:00)"
+NEW_COMMIT_DATE="$(p_date_d '1 hour ago' %Y-%m-%dT%H:%M:%S+00:00)"
 # The prior close's own written_at (t-3004): sits BETWEEN the foreign 30h-old
 # commits and this session's own 1h-old commits — the realistic shape of "the
 # last close before this session began". Since t-3004, this value is
@@ -102,7 +103,7 @@ NEW_COMMIT_DATE="$(date -d '1 hour ago' --iso-8601=seconds)"
 # absolute date would rot the day it aged past "30 hours ago" and silently
 # turn this into the exact over-reach this test exists to catch — keep it
 # relative like the commit dates above.
-PRIOR_CLOSE_TS="$(date -u -d '15 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+PRIOR_CLOSE_TS="$(p_date_d '15 hours ago' %Y-%m-%dT%H:%M:%SZ)"
 
 # ── Fake `brana` ─────────────────────────────────────────────────────────────
 # `backlog get` resolves t-501 (old, foreign) to epic "old-initiative" and
@@ -141,7 +142,7 @@ if [ "$1" = "backlog" ] && [ "$2" = "get" ]; then
 fi
 exit 0
 FAKE
-sed -i "s|__PRIOR_CLOSE_TS__|$PRIOR_CLOSE_TS|g" "$TMPROOT/bin/brana"
+p_sed_i "s|__PRIOR_CLOSE_TS__|$PRIOR_CLOSE_TS|g" "$TMPROOT/bin/brana"
 chmod +x "$TMPROOT/bin/brana"
 
 # ── Fake close-classify.sh (the block pipes into it; unused by this assertion) ─

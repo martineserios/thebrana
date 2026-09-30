@@ -8,6 +8,7 @@ set -euo pipefail
 # claude-flow runs as an MCP server, but the CLI binary also works for testing.
 # We locate it via: nvm global bin → npx fallback.
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/system/hooks/lib/portable.sh"
 ERRORS=0
 PASSED=0
 
@@ -64,7 +65,7 @@ echo ""
 
 # Test 1: Ensure memory DB can be initialized
 echo "Testing memory init..."
-if timeout 15 $CF memory init --force >/dev/null 2>&1; then
+if p_timeout 15 $CF memory init --force >/dev/null 2>&1; then
     pass "memory init succeeded"
 else
     fail "memory init failed — DB may not exist"
@@ -76,7 +77,7 @@ TEST_KEY="test:roundtrip:$(date +%s)"
 TEST_VALUE="brana-health-check-$(date +%s)"
 
 echo "Testing memory store..."
-if timeout 10 $CF memory store -k "$TEST_KEY" -v "$TEST_VALUE" --namespace test --tags "type:health-check" >/dev/null 2>&1; then
+if p_timeout 10 $CF memory store -k "$TEST_KEY" -v "$TEST_VALUE" --namespace test --tags "type:health-check" >/dev/null 2>&1; then
     pass "memory store succeeded (key=$TEST_KEY)"
 else
     fail "memory store failed"
@@ -85,7 +86,7 @@ echo ""
 
 # Test 3: Search for the test pattern
 echo "Testing memory search..."
-SEARCH_RESULT=$(timeout 10 $CF memory search --query "$TEST_VALUE" 2>/dev/null || true)
+SEARCH_RESULT=$(p_timeout 10 $CF memory search --query "$TEST_VALUE" 2>/dev/null || true)
 
 if [ -z "$SEARCH_RESULT" ]; then
     fail "memory search returned empty — stored value not found"
@@ -103,9 +104,9 @@ echo "Testing metadata round-trip..."
 META_KEY="test:metadata:$(date +%s)"
 META_VALUE=$(jq -n -c '{problem: "test issue", solution: "test fix", confidence: 0.5, transferable: false, recall_count: 0}')
 
-if timeout 10 $CF memory store -k "$META_KEY" -v "$META_VALUE" --namespace test --tags "type:health-check,confidence:quarantine" >/dev/null 2>&1; then
+if p_timeout 10 $CF memory store -k "$META_KEY" -v "$META_VALUE" --namespace test --tags "type:health-check,confidence:quarantine" >/dev/null 2>&1; then
     # Retrieve by key and verify JSON fields survived the round-trip
-    META_RETRIEVED=$(timeout 10 $CF memory retrieve -k "$META_KEY" --namespace test --format json 2>/dev/null || true)
+    META_RETRIEVED=$(p_timeout 10 $CF memory retrieve -k "$META_KEY" --namespace test --format json 2>/dev/null || true)
     if [ -z "$META_RETRIEVED" ] || echo "$META_RETRIEVED" | grep -q 'Key not found'; then
         fail "metadata round-trip — retrieve returned empty (key=$META_KEY)"
     else
@@ -123,12 +124,12 @@ else
 fi
 
 # Clean up metadata test
-timeout 10 $CF memory delete "$META_KEY" >/dev/null 2>&1 || true
+p_timeout 10 $CF memory delete "$META_KEY" >/dev/null 2>&1 || true
 echo ""
 
 # Test 5: Clean up basic test data
 echo "Cleaning up test data..."
-timeout 10 $CF memory delete "$TEST_KEY" >/dev/null 2>&1 || true
+p_timeout 10 $CF memory delete "$TEST_KEY" >/dev/null 2>&1 || true
 echo ""
 
 # Summary

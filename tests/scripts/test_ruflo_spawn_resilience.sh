@@ -8,6 +8,7 @@
 
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TMPDIR=$(mktemp -d)
@@ -39,11 +40,11 @@ JSONL="$TMPDIR/one.jsonl"
 printf '{"key":"knowledge:test:spawn-resilience","value":"test","tags":["type:test"]}\n' > "$JSONL"
 
 echo "Test 1: mcp-index.mjs spawns CRLF/non-exec ruflo via node"
-OUT=$(timeout 20 env RUFLO_BIN="$FAKE" node "$REPO_ROOT/system/scripts/mcp-index.mjs" "$JSONL" 2>&1 || true)
+OUT=$(p_timeout 20 env RUFLO_BIN="$FAKE" node "$REPO_ROOT/system/scripts/mcp-index.mjs" "$JSONL" 2>&1 || true)
 assert_contains "mcp-index spawn survives broken bin" "FAKE_RUFLO_STARTED" "$OUT"
 
 echo "Test 2: ruflo-batch-store.mjs spawns CRLF/non-exec ruflo via node"
-OUT=$(printf '[{"key":"k","value":"v"}]' | timeout 20 env RUFLO_BIN="$FAKE" node "$REPO_ROOT/system/scripts/ruflo-batch-store.mjs" 2>&1 || true)
+OUT=$(printf '[{"key":"k","value":"v"}]' | p_timeout 20 env RUFLO_BIN="$FAKE" node "$REPO_ROOT/system/scripts/ruflo-batch-store.mjs" 2>&1 || true)
 assert_contains "batch-store spawn survives broken bin" "FAKE_RUFLO_STARTED" "$OUT"
 
 echo ""
