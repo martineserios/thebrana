@@ -42,6 +42,8 @@ After that, the rest of this guide will make sense.
 | Node.js | v18+ | `node --version` |
 | jq | any | `jq --version` |
 
+**On a Mac?** Follow [macos-setup.md](macos-setup.md) — it needs Homebrew bash ≥ 4 first on `PATH`, and the scheduler is not available there.
+
 Node.js is required for ruflo (the memory layer). jq is required by bootstrap, scheduler, and several hooks. Both are strongly recommended even if not strictly mandatory for the plugin alone.
 
 ## Installation
