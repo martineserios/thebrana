@@ -37,6 +37,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -169,9 +170,9 @@ commit_at() {   # commit_at <repo> <date> <msg>
 # 24h) catches it -> ANCHOR_ZERO_WINDOW=1, guard fires.
 echo "Case A — compound: 10h-old own commit + zero-window truncation"
 REPO_A="$TMPROOT/repo-a"; mk_repo "$REPO_A"
-OWN_TS_ISO="$(date -d '10 hours ago' --iso-8601=seconds)"
+OWN_TS_ISO="$(p_date_d '10 hours ago' %Y-%m-%dT%H:%M:%S+00:00)"
 commit_at "$REPO_A" "$OWN_TS_ISO" "fix(x): own1 (t-2618)"
-ORPHAN_TS="$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+ORPHAN_TS="$(p_date_d '2 hours ago' %Y-%m-%dT%H:%M:%SZ)"
 SESS_A="[{\"epic\":\"(orphan)\",\"state\":{\"written_at\":\"$ORPHAN_TS\"}}]"
 OUT="$(run_block "$REPO_A" "$SESS_A")"
 IFS='|' read -r A_COUNT A_ZERO <<< "$OUT"
@@ -190,7 +191,7 @@ echo ""
 # test-close-gate-concurrent-anchor.sh Case D.
 echo "Case B — genuinely read-only within 24h: guard stays quiet"
 REPO_B="$TMPROOT/repo-b"; mk_repo "$REPO_B"
-OLD_TS_ISO="$(date -d '3 days ago' --iso-8601=seconds)"
+OLD_TS_ISO="$(p_date_d '3 days ago' %Y-%m-%dT%H:%M:%S+00:00)"
 commit_at "$REPO_B" "$OLD_TS_ISO" "chore: ancient (t-2618)"
 OUT="$(run_block "$REPO_B" "$SESS_A")"
 IFS='|' read -r B_COUNT B_ZERO <<< "$OUT"

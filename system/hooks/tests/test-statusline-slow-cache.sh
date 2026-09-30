@@ -5,6 +5,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SLOW_CACHE_SCRIPT="$SCRIPT_DIR/../../scripts/statusline-slow-cache.sh"
 PASS=0
@@ -146,8 +147,8 @@ echo "=== Scenario 4b: Knowledge freshness (fixtures) ==="
 
 FRESH="$TMPDIR/knowledge-fresh"
 STALE="$TMPDIR/knowledge-stale"
-make_knowledge_fixture "$FRESH" "$(date -d '2 days ago' --iso-8601=seconds)"
-make_knowledge_fixture "$STALE" "$(date -d '45 days ago' --iso-8601=seconds)"
+make_knowledge_fixture "$FRESH" "$(p_date_d '2 days ago' %Y-%m-%dT%H:%M:%S+00:00)"
+make_knowledge_fixture "$STALE" "$(p_date_d '45 days ago' %Y-%m-%dT%H:%M:%S+00:00)"
 
 BRANA_SLOW_CACHE_FILE="$TMPDIR/kd-fresh.tsv" BRANA_KNOWLEDGE_DIR="$FRESH" bash "$SLOW_CACHE_SCRIPT" 2>/dev/null
 IFS=$'\t' read -r _ _ _ _ KD_FRESH _ < "$TMPDIR/kd-fresh.tsv"

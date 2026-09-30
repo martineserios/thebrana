@@ -39,6 +39,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -140,8 +141,8 @@ run_case() {
 # "@epoch" anchor, and the widened window must pick up this session's own
 # commit landed 20h ago (outside flat 6h, inside the widened 25h window).
 run_case "Case 1: long session, prior close 25h ago, own commit 20h ago" \
-    '[{"epic":"(orphan)","state":{"written_at":"'"$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)"'"}}]' \
-    "$(date -d '20 hours ago' --iso-8601=seconds)" \
+    '[{"epic":"(orphan)","state":{"written_at":"'"$(p_date_d '25 hours ago' %Y-%m-%dT%H:%M:%SZ)"'"}}]' \
+    "$(p_date_d '20 hours ago' %Y-%m-%dT%H:%M:%S+00:00)" \
     "@" \
     "1"
 echo ""
@@ -153,8 +154,8 @@ echo ""
 # SESSION_EPICS (t-2502). This session's commit landed 40 minutes ago and
 # must still be picked up by the (unwidened) flat 6h default.
 run_case "Case 2: floor at 6h — recent prior close doesn't narrow the window" \
-    '[{"epic":"(orphan)","state":{"written_at":"'"$(date -u -d '5 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"'"}}]' \
-    "$(date -d '40 minutes ago' --iso-8601=seconds)" \
+    '[{"epic":"(orphan)","state":{"written_at":"'"$(p_date_d '5 minutes ago' %Y-%m-%dT%H:%M:%SZ)"'"}}]' \
+    "$(p_date_d '40 minutes ago' %Y-%m-%dT%H:%M:%S+00:00)" \
     "6 hours ago" \
     "1"
 echo ""

@@ -9,6 +9,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -76,7 +77,7 @@ JSONRPC
 
 # ── Invoke MCP server ─────────────────────────────────────────────────────────
 
-MCP_OUTPUT=$(echo "$JSON_INPUT" | AGY_BIN="$FAKE_AGY" timeout 15 "$MCP_BIN" 2>/dev/null || true)
+MCP_OUTPUT=$(echo "$JSON_INPUT" | AGY_BIN="$FAKE_AGY" p_timeout 15 "$MCP_BIN" 2>/dev/null || true)
 
 if [ -z "$MCP_OUTPUT" ]; then
     assert_fail "MCP server produced output" "stdout was empty — server may have crashed"

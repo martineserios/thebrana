@@ -325,7 +325,7 @@ fi
 # has to be edited every time a parallel job is added or removed.
 echo ""
 echo "Test 15: parallel wait budget is bounded and under the hook budget"
-BUDGET=$(grep -oP 'REMAINING_MS=\$\(\(\K\d+' "$HOOKS_DIR/session-start.sh" 2>/dev/null | head -1) || BUDGET=""
+BUDGET=$(grep -oE 'REMAINING_MS=\$\(\([0-9]+' "$HOOKS_DIR/session-start.sh" 2>/dev/null | grep -oE '[0-9]+$' | head -1) || BUDGET=""
 if [ -n "$BUDGET" ] && [ "$BUDGET" -gt 0 ] && [ "$BUDGET" -le 8000 ]; then
     PASS=$((PASS + 1))
     echo "  PASS: wait budget is ${BUDGET}ms (bounded, <= 8000ms)"

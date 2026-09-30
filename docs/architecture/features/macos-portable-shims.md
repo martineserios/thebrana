@@ -33,6 +33,7 @@ suite exercise the BSD branches on Linux by shrinking `PATH`.
 | `p_md5 [FILE]` | `md5sum` | Same, md5. |
 | `p_stat_mtime FILE` / `p_stat_atime FILE` | `stat -c %Y` / `%X` | Epoch seconds. |
 | `p_stat_size FILE` | `stat -c %s` | Bytes. |
+| `p_stat_mode FILE` | `stat -c %a` | Octal permission bits (`640`). |
 | `p_sed_i SCRIPT FILE...` | `sed -i SCRIPT FILE` | In-place edit (temp-suffix + delete, valid on GNU and BSD). |
 | `p_readlink_f PATH` | `readlink -f`, plain `realpath` | Canonical absolute path, symlinks resolved. |
 | `p_realpath_m PATH` | `realpath -m` | Absolute, `.`/`..` collapsed, existing symlinks resolved, nonexistent tail allowed. |
@@ -60,8 +61,14 @@ behind; the next acquirer reclaims it once the holder pid is dead.
 `md5sum`, `stat -c`, `sed -i`, `readlink -f`, `grep -P`, `timeout`, `realpath`,
 `find -printf`, `tac`, `head -n -N`, and GNU-only BRE (`sed \+ \? \| \s \w`, `grep \| \+ \?`;
 use `-E`) in tracked `*.sh` and
-extensionless sh/bash-shebang files (skips `tests/`, `docs/`, `portable.sh`,
-itself; full-line comments ignored). Per-line escape hatch: `# portable-ok:
+extensionless sh/bash-shebang files — **tests included** since t-3379 (skips `docs/`,
+`portable.sh`, itself, and three files that quote GNU forms as data: `tests/lib/bsd-path.sh`,
+`tests/hooks/test-portable.sh`, `tests/scripts/test-lint-portability.sh`; full-line comments
+ignored). Per-line escape hatch: `# portable-ok: <reason>` on the line, or `# portable-ok-next: <reason>` on
+the line above (for lines that cannot carry a comment, e.g. case arms or continuations). Two
+structural rules besides the GNU forms: a shim after an exec wrapper (`env p_timeout`) and a file
+that calls a `p_*` shim without sourcing `portable.sh` (a `cp` of it does not count; both bit
+this effort). Per-line escape hatch (original wording): `# portable-ok:
 <reason>` (used for remote-host commands, the systemd-only scheduler awaiting
 t-3375, and `aliases.sh`, which is sourced into zsh where bash-only
 `portable.sh` cannot load). `tests/scripts/test-lint-portability.sh` is the
@@ -100,7 +107,8 @@ pair where a real date must be parsed (brana writes UTC).
   concerns owned by t-3375: `/proc/meminfo` in `brana-scheduler-runner.sh` (on macOS the read fails
   and the memory guard is simply disabled) and `notify-send` in `brana-scheduler-notify.sh`
   (a `command -v` guard; macOS needs `osascript`).
-- **Tests and remaining md snippets**: t-3379.
+- **Tests**: done in t-3379 (lint now scans them). Remaining md snippets `.claude/loop.md:75`
+  (user-specific path) and `judge-sizing.md:174` (already carries a BSD fallback) are left as is.
 
 ## Testing
 

@@ -5,6 +5,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../session-start.sh"
 PASS=0; FAIL=0; TOTAL=0
@@ -27,7 +28,7 @@ make_home() { mkdir -p "$1/.claude/projects/fake/memory" "$1/.claude/sessions"; 
 
 run_hook() {
     local cwd="$1" home="$2"
-    printf '{"session_id":"ys-%s","cwd":"%s","hook_event_name":"SessionStart","matcher":{}}' "$(date +%s%N)" "$cwd" | \
+    printf '{"session_id":"ys-%s","cwd":"%s","hook_event_name":"SessionStart","matcher":{}}' "$(p_now_ms)" "$cwd" | \
         PATH="$SAFE_PATH" HOME="$home" \
         CLAUDE_PLUGIN_DATA="" CLAUDE_PLUGIN_ROOT="" CLAUDE_ENV_FILE="" \
         BRANA_RECAP_OFF=1 BRANA_1M_WARN_OFF=1 BRANA_HOOK_PROFILE=standard \
@@ -47,7 +48,7 @@ assert_not() {
 
 REPO="$TMPDIR/repo"; setup_repo "$REPO"
 TODAY=$(date +%F)
-YESTERDAY=$(date -d yesterday +%F)
+YESTERDAY=$(p_epoch_fmt $(( $(date +%s) - 86400 )) %F)
 
 SUMMARY_BODY='## thebrana feat/x (a..b) — entry q-1
 - [pattern/LARGE] Sidecar locks beat inode locks: rename replaces inode.

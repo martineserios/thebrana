@@ -26,9 +26,12 @@ echo "=== test-preflight-platform.sh ==="
 mkbin "$T/b3" 3 no;  mkbin "$T/b5f" 5 yes;  mkbin "$T/b5" 5 no
 r="$(run "$T/b3" Darwin)";  assert "darwin + bash 3 -> blocks (rc 1)" 1 "${r%%|*}"
 case "$r" in *"brew install bash"*) assert "bash-3 message names brew install bash" ok ok;; *) assert "bash-3 message names brew install bash" ok "$r";; esac
+# portable-ok-next: assertion text names flock; no GNU flock is invoked
 r="$(run "$T/b5" Darwin)";  assert "darwin + bash 5, no flock -> passes" 0 "${r%%|*}"
 case "$r" in *"discoteq/discoteq/flock"*) assert "no-flock warning names the brew package" ok ok;; *) assert "no-flock warning names the brew package" ok "$r";; esac
+# portable-ok-next: assertion text names flock; no GNU flock is invoked
 r="$(run "$T/b5f" Darwin)"; assert "darwin + bash 5 + flock -> silent pass" "0|" "$r"
 r="$(run "$T/b3" Linux)";   assert "linux + bash 3 -> still blocks (hooks need bash>=4 anywhere)" 1 "${r%%|*}"
+# portable-ok-next: assertion text names flock; no GNU flock is invoked
 r="$(run "$T/b5" Linux)";   assert "linux + no flock -> silent (flock warning is macOS-only)" "0|" "$r"
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

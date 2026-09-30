@@ -16,6 +16,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 VALIDATE="$REPO_ROOT/validate.sh"
@@ -28,7 +29,7 @@ TASKS_CHECKS=(25 26 62 63 64)
 assert_no_unbound() {
     local check="$1" out
     TOTAL=$((TOTAL+1))
-    out="$(timeout 60 "$VALIDATE" --check "$check" 2>&1)"
+    out="$(p_timeout 60 "$VALIDATE" --check "$check" 2>&1)"
     if grep -q 'unbound variable' <<<"$out"; then
         FAIL=$((FAIL+1))
         echo "  FAIL: --check $check aborted with an unbound variable"

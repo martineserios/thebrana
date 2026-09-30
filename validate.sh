@@ -2939,7 +2939,7 @@ else
 fi
 echo ""
 
-# Check 76: production shell scripts must use portable.sh shims, not GNU-only forms (t-3374)
+# Check 76: shell scripts (tests included) must use portable.sh shims, not GNU-only forms (t-3374)
 # flock / date -d / sha256sum / md5sum / stat -c / sed -i / readlink -f / grep -P break on macOS
 # (BSD userland). Escape hatch per line: `# portable-ok: <reason>`. Second-tier GNU-isms
 # (timeout, realpath, bash-4 features) are tracked separately under epic t-3372.
@@ -2949,7 +2949,7 @@ if [ ! -f "$C76_SCRIPT" ]; then
     fail "Check 76: $C76_SCRIPT is missing — the portability guard cannot run (t-3374)"
 else
     if C76_OUT=$(bash "$C76_SCRIPT" "$SCRIPT_DIR" 2>&1); then
-        pass "Check 76: no GNU-only forms in production shell scripts (use system/hooks/lib/portable.sh)"
+        pass "Check 76: no GNU-only forms in shell scripts, tests included (use system/hooks/lib/portable.sh)"
     else
         printf '%s\n' "$C76_OUT" | sed 's/^/  /'
         fail "Check 76: GNU-only forms in production scripts — use p_* shims or add '# portable-ok: reason' (t-3374)"

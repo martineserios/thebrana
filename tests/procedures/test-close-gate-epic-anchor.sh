@@ -38,6 +38,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -91,10 +92,10 @@ echo ""
 # 3 commits ................. now-3h   (already queued by the earlier close)
 # epic-routed close ......... now-2h   (the REAL anchor — newest session state)
 # 2 commits ................. now-1h   (the only commits this close should see)
-STALE_TS="$(date -u -d '4 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-EPIC_TS="$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%S.123456789+00:00)"
-OLD_COMMIT_DATE="$(date -d '3 hours ago' --iso-8601=seconds)"
-NEW_COMMIT_DATE="$(date -d '1 hour ago' --iso-8601=seconds)"
+STALE_TS="$(p_date_d '4 hours ago' %Y-%m-%dT%H:%M:%SZ)"
+EPIC_TS="$(p_date_d '2 hours ago' %Y-%m-%dT%H:%M:%S.123456789+00:00)"
+OLD_COMMIT_DATE="$(p_date_d '3 hours ago' %Y-%m-%dT%H:%M:%S+00:00)"
+NEW_COMMIT_DATE="$(p_date_d '1 hour ago' %Y-%m-%dT%H:%M:%S+00:00)"
 
 # ── Fake `brana` ─────────────────────────────────────────────────────────────
 # Mirrors the real shapes: `session read --json` returns the DEFAULT state object;
@@ -134,7 +135,7 @@ if [ "\$1" = "backlog" ] && [ "\$2" = "get" ]; then
 fi
 exit 0
 FAKE
-sed -i "s|__EPIC_TS__|$EPIC_TS|g; s|__STALE_TS__|$STALE_TS|g" "$TMPROOT/bin/brana"
+p_sed_i "s|__EPIC_TS__|$EPIC_TS|g; s|__STALE_TS__|$STALE_TS|g" "$TMPROOT/bin/brana"
 chmod +x "$TMPROOT/bin/brana"
 
 # ── Fake close-classify.sh (the block pipes into it; we only assert the anchor) ─

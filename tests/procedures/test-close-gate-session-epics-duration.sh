@@ -30,6 +30,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -79,9 +80,9 @@ echo ""
 # stale orphan close ........... 3 weeks ago (what the bug falls back to)
 # true prior close (own epic) .. 20h ago     (the corroborated session boundary)
 # this session's own commits ... 16h ago     (outside flat 6h, inside 20h)
-STALE_ORPHAN_TS="$(date -u -d '21 days ago' +%Y-%m-%dT%H:%M:%SZ)"
-PRIOR_CLOSE_TS="$(date -u -d '20 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-OWN_COMMIT_DATE="$(date -d '16 hours ago' --iso-8601=seconds)"
+STALE_ORPHAN_TS="$(p_date_d '21 days ago' %Y-%m-%dT%H:%M:%SZ)"
+PRIOR_CLOSE_TS="$(p_date_d '20 hours ago' %Y-%m-%dT%H:%M:%SZ)"
+OWN_COMMIT_DATE="$(p_date_d '16 hours ago' %Y-%m-%dT%H:%M:%S+00:00)"
 
 # ── Fake `brana` ─────────────────────────────────────────────────────────────
 # `session read --all` returns TWO files: a weeks-stale orphan (always
@@ -120,7 +121,7 @@ if [ "$1" = "backlog" ] && [ "$2" = "get" ]; then
 fi
 exit 0
 FAKE
-sed -i "s|__STALE_ORPHAN_TS__|$STALE_ORPHAN_TS|g; s|__PRIOR_CLOSE_TS__|$PRIOR_CLOSE_TS|g" "$TMPROOT/bin/brana"
+p_sed_i "s|__STALE_ORPHAN_TS__|$STALE_ORPHAN_TS|g; s|__PRIOR_CLOSE_TS__|$PRIOR_CLOSE_TS|g" "$TMPROOT/bin/brana"
 chmod +x "$TMPROOT/bin/brana"
 
 # ── Fake close-classify.sh (the block pipes into it; unused by this assertion) ─

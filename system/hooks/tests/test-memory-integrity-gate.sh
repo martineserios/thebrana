@@ -20,6 +20,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_DIR="$SCRIPT_DIR/../../scripts"
 BACKUP_SH="$SCRIPTS_DIR/backup-memory.sh"
@@ -61,7 +62,7 @@ if [ -s "$SANITY" ] && ! is_ok "$SANITY"; then
     assert_pass "fixture: corrupt DB is non-zero and fails integrity_check"
 else
     assert_fail "fixture: corrupt DB is non-zero and fails integrity_check" \
-        "size=$(stat -c%s "$SANITY" 2>/dev/null) integrity=$(sqlite3 "$SANITY" 'PRAGMA integrity_check;' 2>&1 | head -1)"
+        "size=$(p_stat_size "$SANITY" 2>/dev/null) integrity=$(sqlite3 "$SANITY" 'PRAGMA integrity_check;' 2>&1 | head -1)"
 fi
 
 # --- Test 1: backup-memory.sh refuses to back up a corrupt (non-zero) DB ----

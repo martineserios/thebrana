@@ -8,6 +8,7 @@
 # 5. Fixture: an absolute-path link is never flagged as dead.
 # 6. Live repo: docs/README.md must be complete (the AC itself).
 set -u
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 ROOT=$(git rev-parse --show-toplevel); S=$ROOT/system/scripts/readme-coverage.sh
 pass=0; fail=0
 ok(){ pass=$((pass+1)); echo "  PASS: $1"; }; bad(){ fail=$((fail+1)); echo "  FAIL: $1"; }
@@ -23,7 +24,7 @@ cat > "$T/docs/README.md" <<'R'
 R
 out=$(cd "$T" && bash "$S"); rc=$?
 echo "$out" | grep -q 'MISSING architecture/decisions/ADR-002-y.md' && echo "$out" | grep -q 'DEAD architecture/gone.md' && [ $rc -eq 1 ] && ok "fixture: reports missing ADR + dead link, exit 1" || bad "fixture gap detection (rc=$rc): $out"
-echo '| [ADR-002](architecture/decisions/ADR-002-y.md) | y |' >> "$T/docs/README.md"; sed -i '/gone.md/d' "$T/docs/README.md"
+echo '| [ADR-002](architecture/decisions/ADR-002-y.md) | y |' >> "$T/docs/README.md"; p_sed_i '/gone.md/d' "$T/docs/README.md"
 (cd "$T" && bash "$S" --quiet) && ok "fixture: clean README exits 0" || bad "fixture clean README should exit 0"
 
 # Basename collision: two files named same-thing.md in different feature dirs.

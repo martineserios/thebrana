@@ -14,6 +14,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/system/scripts/ruflo-mcp.sh"
@@ -135,14 +136,14 @@ echo "Test 6: a second rotation the same day must not clobber the first"
 D5="$TMPROOT/case5"; make_condemned "$D5"; make_backup "$D5/backups/memory_20260801.db"
 ruflo_mcp_recover_db "$D5/memory.db" "$D5/backups" >/dev/null 2>&1
 FIRST=$(bare_rotated "$D5" | head -1)
-FIRST_SUM=$(md5sum "$FIRST" 2>/dev/null | cut -d' ' -f1)
+FIRST_SUM=$(p_md5 "$FIRST" 2>/dev/null)
 # Condemn again on the same day.
 make_condemned "$D5/re" >/dev/null 2>&1
 cp "$D5/re/memory.db" "$D5/memory.db"; : > "$D5/memory.db-wal"
 ruflo_mcp_recover_db "$D5/memory.db" "$D5/backups" >/dev/null 2>&1
 assert "first rotated file still exists" "true" "$([ -f "$FIRST" ] && echo true || echo false)"
 assert "first rotated file byte-identical (not overwritten)" "$FIRST_SUM" \
-    "$(md5sum "$FIRST" 2>/dev/null | cut -d' ' -f1)"
+    "$(p_md5 "$FIRST" 2>/dev/null)"
 assert "two distinct rotated files exist" "2" "$(bare_rotated "$D5" | wc -l)"
 assert "both salvage dumps preserved" "2" "$(ls "$D5"/memory.db.corrupt-*.dump.sql 2>/dev/null | wc -l)"
 
@@ -151,8 +152,9 @@ echo "Test 7: no flock, and a healthy db is never re-rotated"
 # live WAL writers); tests/scripts/test-ruflo-mcp-single-instance.sh enforces the
 # absence. Concurrency is mitigated lock-free — the health re-check below is the
 # part that keeps a losing racer from rotating a just-restored database.
-assert "no flock reintroduced" "false" \
-    "$(grep -qE '^[^#]*flock +-' "$SCRIPT" && echo true || echo false)"
+# portable-ok-next: asserts flock is absent from the script under test
+HAS_FLOCK="$(grep -qE '^[^#]*flock +-' "$SCRIPT" && echo true || echo false)"
+assert "no lock mutex reintroduced" "false" "$HAS_FLOCK"
 D6="$TMPROOT/case6"; make_condemned "$D6"; make_backup "$D6/backups/memory_20260801.db"
 ruflo_mcp_recover_db "$D6/memory.db" "$D6/backups" >/dev/null 2>&1
 BEFORE=$(bare_rotated "$D6" | wc -l)

@@ -4,6 +4,7 @@
 
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BULK_SCRIPT="$REPO_ROOT/system/scripts/bulk-index.mjs"
@@ -84,7 +85,7 @@ fi
 if [ -z "$RUFLO_PATH" ]; then
     RUFLO_BIN=$(command -v ruflo 2>/dev/null || echo "")
     if [ -n "$RUFLO_BIN" ]; then
-        REAL_RUFLO=$(readlink -f "$RUFLO_BIN" 2>/dev/null || echo "$RUFLO_BIN")
+        REAL_RUFLO=$(p_readlink_f "$RUFLO_BIN" 2>/dev/null || echo "$RUFLO_BIN")
         CAND=$(dirname "$(dirname "$REAL_RUFLO")")/node_modules
         [ -d "$CAND" ] && RUFLO_PATH="$CAND"
     fi

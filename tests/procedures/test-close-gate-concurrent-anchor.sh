@@ -40,6 +40,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -165,9 +166,9 @@ commit_at() {   # commit_at <repo> <date> <msg>
         git -C "$1" -c commit.gpgsign=false commit -qm "$3"
 }
 
-OWN_TS_ISO="$(date -d '40 minutes ago' --iso-8601=seconds)"
-OWN_CLOSE_TS="$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)"       # this session's own previous close
-FOREIGN_TS="$(date -u -d '5 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"       # concurrent lane closes AFTER our commits
+OWN_TS_ISO="$(p_date_d '40 minutes ago' %Y-%m-%dT%H:%M:%S+00:00)"
+OWN_CLOSE_TS="$(p_date_d '2 hours ago' %Y-%m-%dT%H:%M:%SZ)"       # this session's own previous close
+FOREIGN_TS="$(p_date_d '5 minutes ago' %Y-%m-%dT%H:%M:%SZ)"       # concurrent lane closes AFTER our commits
 
 # ── Case A: zero window — concurrent ORPHAN close post-dates all own commits ──
 # Timeline: own close (2h ago, epic harness-engineering) → own commits (40m ago,
@@ -228,7 +229,7 @@ echo ""
 # ── Case D: genuinely read-only — no commits at all in the fallback window ───
 echo "Case D — genuinely read-only session: zero-window guard stays quiet"
 REPO_D="$TMPROOT/repo-d"; mk_repo "$REPO_D"
-OLD_TS_ISO="$(date -d '2 days ago' --iso-8601=seconds)"
+OLD_TS_ISO="$(p_date_d '2 days ago' %Y-%m-%dT%H:%M:%S+00:00)"
 commit_at "$REPO_D" "$OLD_TS_ISO" "chore: ancient (t-2618)"
 OUT="$(run_block "$REPO_D" "$SESS_A")"
 IFS='|' read -r D_ANCHOR D_COUNT D_ZERO <<< "$OUT"

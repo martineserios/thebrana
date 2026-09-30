@@ -3,6 +3,7 @@
 # Source this file after setting HOOK in the caller.
 
 # Pipe $1 (JSON input) to the hook script, merging stderr into stdout.
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 run_hook() {
     local input="$1"
     echo "$input" | bash "$HOOK" 2>&1
@@ -23,12 +24,7 @@ run_hook_json() {
 # millisecond budget and reported a 7.9-second run as "7945758448ms" (92 days).
 # %s%N is unambiguous everywhere; divide explicitly.
 now_ms() {
-    local ns
-    ns=$(date +%s%N 2>/dev/null) || { echo 0; return; }
-    case "$ns" in
-        *[!0-9]*|"") echo 0 ;;
-        *) echo $(( ns / 1000000 )) ;;
-    esac
+    p_now_ms 2>/dev/null || echo 0   # always milliseconds, on any platform (see portable.sh)
 }
 
 # Timed JSON-extracting variant. Outputs "elapsed_ms|json_output".

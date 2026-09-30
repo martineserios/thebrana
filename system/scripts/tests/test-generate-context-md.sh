@@ -9,6 +9,7 @@
 #   4. no docs/domain/ → exit 0, no CONTEXT.md written (opt-in, silent)
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GEN="$SCRIPT_DIR/../generate-context-md.py"
 PASS=0; FAIL=0
@@ -61,7 +62,7 @@ echo "=== --check drift gauge ==="
 if python3 "$GEN" "$TMP" --check >/dev/null 2>&1; then ok "--check exits 0 when current"; else bad "--check nonzero on current file"; fi
 # insert INSIDE the Ubiquitous Language table (an append after '## Other
 # section' would land outside the extracted region — no drift, correctly)
-sed -i 's#| \*\*Wave\*\* | A drainable selector | Backlog |#| **Wave** | A drainable selector | Backlog |\n| **New** | A new term | Backlog |#' "$TMP/docs/domain/MODEL-001-test.md"
+p_sed_i 's#| \*\*Wave\*\* | A drainable selector | Backlog |#| **Wave** | A drainable selector | Backlog |\n| **New** | A new term | Backlog |#' "$TMP/docs/domain/MODEL-001-test.md"
 if python3 "$GEN" "$TMP" --check >/dev/null 2>&1; then bad "--check missed domain drift"; else ok "--check exits 1 on drift"; fi
 python3 "$GEN" "$TMP" >/dev/null 2>&1
 if python3 "$GEN" "$TMP" --check >/dev/null 2>&1; then ok "regenerate clears drift"; else bad "drift persists after regenerate"; fi

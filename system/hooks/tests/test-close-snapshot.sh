@@ -6,6 +6,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SNAP="$SCRIPT_DIR/../../scripts/close-snapshot.sh"
 PASS=0
@@ -76,7 +77,7 @@ HOME="$H2" BRANA="$REAL_BRANA" bash "$SNAP" --git-root "$R2" --branch feat/big -
 check "big diff exits 0" "0" "$?"
 check "truncated flag set" "1" "$(HOME="$H2" "$REAL_BRANA" close-queue list | grep -c '"snapshot_truncated": true')"
 BIGSNAP=$(ls "$H2/.claude/sessions/"snap-*.diff | head -1)
-SIZE=$(stat -c %s "$BIGSNAP")
+SIZE=$(p_stat_size "$BIGSNAP")
 check "snapshot capped at ~500KB" "1" "$([ "$SIZE" -le 512000 ] && echo 1 || echo 0)"
 
 # ── 4. zero commits → no snapshot, no queue entry, exit 0 ────────────

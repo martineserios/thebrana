@@ -10,6 +10,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../red-verification.sh"
 PASS=0
@@ -186,7 +187,7 @@ echo "Test 11: red registration writes tests_hashes[path] = staged-blob sha256"
 reset_repo
 printf '#!/usr/bin/env bash\nexit 1\n' > "$REPO/tests/test-red.sh"
 git -C "$REPO" add tests/test-red.sh
-EXPECTED_HASH=$(git -C "$REPO" show ":tests/test-red.sh" | sha256sum | cut -d' ' -f1)
+EXPECTED_HASH=$(git -C "$REPO" show ":tests/test-red.sh" | p_sha256)
 write_goal
 run_hook
 GOT_HASH=$(jq -r '.tests_hashes["tests/test-red.sh"] // ""' "$GOAL" 2>/dev/null)
@@ -221,7 +222,7 @@ run_hook
 H1=$(jq -r '.tests_hashes["tests/test-red.sh"]' "$GOAL")
 printf '#!/usr/bin/env bash\n# stronger assertion\nexit 1\n' > "$REPO/tests/test-red.sh"
 git -C "$REPO" add tests/test-red.sh
-EXPECT2=$(git -C "$REPO" show ":tests/test-red.sh" | sha256sum | cut -d' ' -f1)
+EXPECT2=$(git -C "$REPO" show ":tests/test-red.sh" | p_sha256)
 run_hook
 H2=$(jq -r '.tests_hashes["tests/test-red.sh"]' "$GOAL")
 if [ "$H2" = "$EXPECT2" ] && [ "$H2" != "$H1" ]; then

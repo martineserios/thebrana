@@ -33,9 +33,9 @@ fi
 # Strip comments first — the removal rationale in the header mentions "flock",
 # and matching it is what made the old assertion vacuous.
 if grep -v '^[[:space:]]*#' "$SCRIPT" | grep -q 'flock'; then
-    fail "flock mutex reintroduced — removed in t-2085 because the paired orphan sweep killed live WAL writers; SQLite WAL already serialises concurrent writes"
+    fail "lock mutex reintroduced — removed in t-2085 because the paired orphan sweep killed live WAL writers; SQLite WAL already serialises concurrent writes"
 else
-    pass "no flock mutex (t-2085: SQLite WAL handles concurrent sessions)"
+    pass "no lock mutex (t-2085: SQLite WAL handles concurrent sessions)"
 fi
 
 # Test 3: no orphan sweep — the half that actively caused corruption.
