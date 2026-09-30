@@ -268,16 +268,79 @@ pub fn cmd_ops_history(job_name: &str, last: usize, theme: &themes::Theme) -> an
     Ok(())
 }
 
-pub fn cmd_ops_run(job_name: &str) -> anyhow::Result<()> {
-    validate_job_name(job_name)?;
+// ── scheduler backend (t-3375, ADR-071 amendment) ───────────────────────────
+// A host has a scheduler backend iff `systemctl` is an executable on PATH (capability, not OS
+// name). `BRANA_SCHEDULER_BACKEND=none|systemd|auto` overrides. Mirrors
+// system/hooks/lib/scheduler-backend.sh — keep the wording in step (a test pins it).
+
+/// True iff an executable regular file `name` exists in one of the `path` dirs (empty entries
+/// are ignored). Pure over its arguments so tests never touch the process environment.
+fn on_path(name: &str, path: &str) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    path.split(':').filter(|d| !d.is_empty()).any(|d| {
+        std::fs::metadata(PathBuf::from(d).join(name))
+            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
+    })
+}
+
+fn backend_available_with(override_: Option<&str>, path: &str) -> bool {
+    match override_ {
+        Some("none") => false,
+        Some("systemd") => true,
+        _ => on_path("systemctl", path),
+    }
+}
+
+fn scheduler_backend_available() -> bool {
+    let ov = std::env::var("BRANA_SCHEDULER_BACKEND").ok();
+    backend_available_with(ov.as_deref(), &std::env::var("PATH").unwrap_or_default())
+}
+
+fn backend_note(override_: Option<&str>) -> String {
+    let why = if override_ == Some("none") {
+        "opted out via BRANA_SCHEDULER_BACKEND=none"
+    } else {
+        "systemctl not found"
+    };
+    format!("no scheduler backend on this host ({why}): unattended jobs run on the always-on host, not here — see ADR-071 amendment.")
+}
+
+fn current_note() -> String {
+    backend_note(std::env::var("BRANA_SCHEDULER_BACKEND").ok().as_deref())
+}
+
+fn run_unit_checked(available: bool, job_name: &str) -> anyhow::Result<()> {
+    if !available {
+        bail!("{}", current_note());
+    }
     let unit = format!("brana-sched-{job_name}.service");
     println!("\n  Starting {unit}...");
-    let status = Command::new("systemctl").args(["--user", "start", &unit]).status();
-    match status {
+    match Command::new("systemctl").args(["--user", "start", &unit]).status() {
         Ok(s) if s.success() => println!("  \x1b[32mTriggered. Check: brana ops logs {job_name}\x1b[0m\n"),
         _ => bail!("Failed to start {unit}"),
     }
     Ok(())
+}
+
+pub fn cmd_ops_run(job_name: &str) -> anyhow::Result<()> {
+    validate_job_name(job_name)?;
+    run_unit_checked(scheduler_backend_available(), job_name)
+}
+
+/// What `enable`/`disable` tells the user after `scheduler.json` was edited. Pure so the three
+/// outcomes are testable: no backend (nothing scheduled), timer changed (exit 0), timer change
+/// failed (the old code counted a merely-spawned `systemctl` as success).
+fn toggle_outcome(available: bool, enabled: bool, job_name: &str, systemctl_ok: bool) -> String {
+    let (verb, done) = if enabled { ("start", "started") } else { ("stop", "stopped") };
+    if !available {
+        let state = if enabled { "enabled" } else { "disabled" };
+        format!("'{job_name}' {state} in scheduler.json — nothing was scheduled here: {}", current_note())
+    } else if systemctl_ok {
+        format!("Timer {done}.")
+    } else {
+        format!("Timer {verb} FAILED — scheduler.json was updated but the systemd timer state was not changed. Check: systemctl --user status brana-sched-{job_name}.timer")
+    }
 }
 
 pub fn cmd_ops_toggle(job_name: &str, enabled: bool) -> anyhow::Result<()> {
@@ -296,11 +359,15 @@ pub fn cmd_ops_toggle(job_name: &str, enabled: bool) -> anyhow::Result<()> {
     let col = if enabled { "\x1b[32m" } else { "\x1b[33m" };
     println!("\n  {col}{action} '{job_name}'{}", themes::RESET);
 
-    let timer = format!("brana-sched-{job_name}.timer");
-    let cmd = if enabled { "start" } else { "stop" };
-    if Command::new("systemctl").args(["--user", cmd, &timer]).status().is_ok() {
-        println!("  {col}Timer {cmd}ed.{}\n", themes::RESET);
-    }
+    let available = scheduler_backend_available();
+    let ok = available && {
+        let timer = format!("brana-sched-{job_name}.timer");
+        let cmd = if enabled { "start" } else { "stop" };
+        Command::new("systemctl").args(["--user", cmd, &timer]).status().map(|s| s.success()).unwrap_or(false)
+    };
+    let msg = toggle_outcome(available, enabled, job_name, ok);
+    let msg_col = if available && !ok { "\x1b[31m" } else { col };
+    println!("  {msg_col}{msg}{}\n", themes::RESET);
     Ok(())
 }
 
@@ -425,3 +492,95 @@ fn validate_job_name(name: &str) -> anyhow::Result<()> {
     brana_core::scheduler::validate_job_name(name)
         .map_err(|e| anyhow::anyhow!("{e}"))
 }
+
+#[cfg(test)]
+mod scheduler_backend_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn dir_with(name: &str, mode: u32) -> tempfile::TempDir {
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join(name);
+        std::fs::write(&f, "#!/bin/sh\nexit 0\n").unwrap();
+        std::fs::set_permissions(&f, std::fs::Permissions::from_mode(mode)).unwrap();
+        d
+    }
+
+    #[test]
+    fn on_path_finds_an_executable() {
+        let d = dir_with("systemctl", 0o755);
+        assert!(on_path("systemctl", d.path().to_str().unwrap()));
+    }
+
+    #[test]
+    fn on_path_ignores_a_non_executable_file() {
+        let d = dir_with("systemctl", 0o644);
+        assert!(!on_path("systemctl", d.path().to_str().unwrap()));
+    }
+
+    #[test]
+    fn on_path_misses_when_absent_or_path_empty() {
+        let d = dir_with("other", 0o755);
+        assert!(!on_path("systemctl", d.path().to_str().unwrap()));
+        assert!(!on_path("systemctl", ""));
+    }
+
+    #[test]
+    fn on_path_searches_every_dir_in_order() {
+        let empty = tempfile::tempdir().unwrap();
+        let has = dir_with("systemctl", 0o755);
+        let path = format!("{}:{}", empty.path().display(), has.path().display());
+        assert!(on_path("systemctl", &path));
+    }
+
+    #[test]
+    fn override_none_beats_a_present_systemctl() {
+        let d = dir_with("systemctl", 0o755);
+        assert!(!backend_available_with(Some("none"), d.path().to_str().unwrap()));
+    }
+
+    #[test]
+    fn override_systemd_beats_an_absent_systemctl() {
+        assert!(backend_available_with(Some("systemd"), ""));
+    }
+
+    #[test]
+    fn auto_bogus_and_unset_probe_the_path() {
+        let d = dir_with("systemctl", 0o755);
+        let p = d.path().to_str().unwrap();
+        for o in [Some("auto"), Some("bogus"), None] {
+            assert!(backend_available_with(o, p), "{o:?} with systemctl");
+            assert!(!backend_available_with(o, ""), "{o:?} without systemctl");
+        }
+    }
+
+    #[test]
+    fn note_matches_the_shell_wording_and_names_an_opt_out() {
+        let plain = backend_note(None);
+        assert!(plain.contains("no scheduler backend on this host (systemctl not found)"));
+        assert!(plain.contains("always-on host") && plain.contains("ADR-071"));
+        assert!(backend_note(Some("none")).contains("BRANA_SCHEDULER_BACKEND=none"));
+    }
+
+    #[test]
+    fn run_bails_with_the_note_when_there_is_no_backend() {
+        let err = run_unit_checked(false, "job1").unwrap_err().to_string();
+        assert!(err.contains("no scheduler backend"), "{err}");
+    }
+
+    #[test]
+    fn toggle_reports_nothing_scheduled_when_there_is_no_backend() {
+        let msg = toggle_outcome(false, true, "job1", true);
+        assert!(msg.contains("nothing was scheduled") && msg.contains("no scheduler backend"), "{msg}");
+    }
+
+    #[test]
+    fn toggle_requires_a_zero_exit_when_a_backend_exists() {
+        // The old code treated Command::status().is_ok() (process spawned) as success.
+        let ok = toggle_outcome(true, true, "job1", true);
+        assert!(ok.contains("Timer started"), "{ok}");
+        let failed = toggle_outcome(true, true, "job1", false);
+        assert!(failed.contains("FAILED") && !failed.contains("Timer started"), "{failed}");
+    }
+}
+

@@ -7,7 +7,7 @@ status: accepted
 # ADR-071: Scheduler — thin layer over systemd timers
 
 **Date:** 2026-02-18
-**Status:** accepted (hardened 2026-02-19)
+**Status:** accepted (hardened 2026-02-19; amended 2026-09-30 — launchd deferred by decision, see Amendment)
 
 ## Context
 
@@ -101,3 +101,33 @@ A `/brana:scheduler` skill provides in-session management as a thin wrapper over
 - **Stale config**: user edits JSON but forgets `brana-scheduler deploy`. Mitigated by `validate` command; future: session-start hook that warns on config-newer-than-last-deploy.
 - **Skill invocation in headless mode**: VALIDATED — `claude -p "Execute /pattern-recall for scheduling"` successfully loaded and invoked the skill. Natural language prompts work.
 - **Concurrent access**: `flock` prevents concurrent scheduled jobs per project. Interactive sessions are not locked (separate process, read-only default).
+
+## Amendment 2026-09-30 — no launchd backend; hosts without systemd opt out (t-3375)
+
+**Decision.** The scheduler stays systemd-only. A launchd backend, listed above as "deferred", is
+**deferred by decision**, not by neglect: the Mac is a work laptop that sleeps, and unattended jobs
+stay on the always-on Linux host (owner's call, 2026-09-30). A scheduler on a machine that is asleep
+half the day would run jobs late or not at all and add a second code path — the exact bitrot the
+"no crontab fallback" argument above rejects.
+
+**Consequence — degrade, don't fail.** Every scheduler-adjacent surface must behave sensibly on a
+host with no `systemctl` instead of erroring cryptically or reporting a success that scheduled
+nothing. Detection is capability-based (`systemctl` on PATH), not `uname`. Behaviour matrix and
+tests: [macos-scheduler-optout](../features/macos-scheduler-optout.md).
+
+**Deferred design sketch (so it is not re-derived if a Mac ever needs unattended jobs).**
+- *Backend:* per-user **LaunchAgent** (`~/Library/LaunchAgents/`, `launchctl bootstrap gui/$UID`) — not a
+  LaunchDaemon (needs sudo, wrong blast radius). Runs only while the user is logged in (the analogue
+  of no `enable-linger`).
+- *Schedule:* keep `OnCalendar` as the one config dialect and translate to `StartCalendarInterval`
+  arrays. A **omitted key is a wildcard** in launchd, so `*:0/15` → four `{Minute}` dicts and `0/4:20`
+  → six `{Hour,Minute}` dicts (not 24×). Weekday `Sun` = 0/7. The 28 template jobs use only: fixed
+  times, weekday lists, comma hour lists and `a/b` steps. The translator must **fail loudly** on any
+  other form; a silently wrong schedule is worse than none. Pure text → unit-testable on Linux.
+- *Persistent=true:* launchd fires one coalesced missed run at wake, but nothing if the machine was
+  fully off — document, don't emulate.
+- *No `OnFailure=` / `journalctl`:* the plist `ProgramArguments` wraps runner + `brana-scheduler-notify.sh`
+  (`osascript` instead of `notify-send`); logs are the runner's own files.
+- *Rust side:* `ops.rs` should delegate to the bash CLI rather than call the init system itself, so
+  backend dispatch lives in one place.
+

@@ -15,6 +15,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/system/hooks/lib/portable.sh"
+source "$SCRIPT_DIR/system/hooks/lib/scheduler-backend.sh"
 SYSTEM_DIR="$SCRIPT_DIR/system"
 TARGET_DIR="$HOME/.claude"
 CHECK_ONLY=false
@@ -710,12 +711,18 @@ if [ -d "$SCHED_SRC" ]; then
 
     # Config template — only if user config doesn't exist
     if [ ! -f "$SCHED_DIR/scheduler.json" ] && [ -f "$SCHED_SRC/scheduler.template.json" ]; then
-        CHANGES=$((CHANGES + 1))
-        if ! $CHECK_ONLY; then
-            cp "$SCHED_SRC/scheduler.template.json" "$SCHED_DIR/scheduler.json"
-            echo "  + scheduler/scheduler.json (new — edit then run: brana-scheduler deploy)"
+        if sched_backend_available; then
+            CHANGES=$((CHANGES + 1))
+            if ! $CHECK_ONLY; then
+                cp "$SCHED_SRC/scheduler.template.json" "$SCHED_DIR/scheduler.json"
+                echo "  + scheduler/scheduler.json (new — edit then run: brana-scheduler deploy)"
+            else
+                echo "  + scheduler/scheduler.json (would create from template)"
+            fi
         else
-            echo "  + scheduler/scheduler.json (would create from template)"
+            # t-3375: no scheduler here (e.g. the Mac) — the template is full of Linux paths and
+            # nothing would run it. Not a change (no CHANGES bump): --check stays convergent.
+            echo "  - scheduler/scheduler.json not seeded: $(sched_backend_note)"
         fi
     fi
 

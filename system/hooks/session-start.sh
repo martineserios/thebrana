@@ -18,6 +18,7 @@
 # which is why it went unnoticed.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/scheduler-backend.sh"
 
 # Ensure valid CWD
 cd /tmp 2>/dev/null || true
@@ -184,7 +185,11 @@ if [ -f "$CQ_FILE" ]; then
             '[.entries[]? | select((.processed // false) | not) | select(.timestamp < $cutoff)] | length' \
             "$CQ_FILE" 2>/dev/null) || CQ_STALE=0
         if [ "${CQ_STALE:-0}" -gt 0 ] 2>/dev/null; then
+            if ! sched_backend_available; then
+                CQ_STALE_CONTEXT=$(sched_closequeue_nag "$CQ_STALE")
+            else
             CQ_STALE_CONTEXT="⚠ [Close queue] $CQ_STALE entr(ies) unprocessed >3 days — extraction cron dead, binary missing, or job unregistered. Check: brana ops logs close-extraction && brana close-queue list --unprocessed"
+            fi
         fi
     fi
 fi
