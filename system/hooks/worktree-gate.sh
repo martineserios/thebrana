@@ -162,7 +162,8 @@ fi
 WORKTREE_COUNT=$(git -C "$GIT_ROOT" worktree list --porcelain 2>/dev/null | grep -c '^worktree ' || echo "0")
 
 # Step 7: Extract branch name from the command for the suggestion
-BRANCH_NAME=$(echo "$CMD" | grep -oE '(checkout[[:space:]]+-b|switch[[:space:]]+-c)[[:space:]]+[^[:space:]]+' 2>/dev/null | awk '{print $NF}' || echo "branch-name")
+BRANCH_NAME=$(echo "$CMD" | grep -oE '(checkout[[:space:]]+-b|switch[[:space:]]+-c)[[:space:]]+[^[:space:]]+' 2>/dev/null | awk '{print $NF}')
+[ -n "$BRANCH_NAME" ] || BRANCH_NAME="branch-name"   # (an `|| echo` after the pipe never fires: awk's rc is 0)
 
 # Step 8: Decide
 USED_CMD="git checkout -b"

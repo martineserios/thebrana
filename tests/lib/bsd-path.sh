@@ -32,6 +32,7 @@ make_bsd_bin() {
     rreadlink="$(PATH="$_BSD_REAL_PATH" command -v readlink)"
     rsha="$(PATH="$_BSD_REAL_PATH" command -v sha256sum)"
     rmd5="$(PATH="$_BSD_REAL_PATH" command -v md5sum)"
+    rsha1="$(PATH="$_BSD_REAL_PATH" command -v sha1sum)"
 
     cat >"$d/date" <<EOF
 #!/bin/bash
@@ -71,6 +72,7 @@ EOF
     cat >"$d/shasum" <<EOF
 #!/bin/bash
 [ "\$1" = "-a" ] && [ "\$2" = "256" ] && { shift 2; exec "$rsha" "\$@"; }
+[ "\$1" = "-a" ] && [ "\$2" = "1" ] && { shift 2; exec "$rsha1" "\$@"; }
 exit 1
 EOF
     cat >"$d/md5" <<EOF

@@ -20,9 +20,10 @@ and unattended jobs stay on an always-on Linux host. Everything else (skills, ho
 | **bash ≥ 4 first on `PATH`** | macOS ships bash 3.2. Hooks run as `bash <script>` and 9 scripts use bash-4 features (`mapfile`, `declare -A`). `bootstrap.sh` refuses to run without it. | `brew install bash` |
 | `jq` | hooks, bootstrap, backlog helpers | `brew install jq` |
 | `git` | already present (Xcode CLT) | `xcode-select --install` |
-| Node.js ≥ 20 | ruflo (memory layer) | `brew install node` |
+| Node.js ≥ 20 | ruflo (memory layer) | `brew install node`, then `npm install -g ruflo` (bootstrap finds it under nvm **or** on `PATH`) |
 | Rust toolchain | build the `brana` CLI | `brew install rustup && rustup-init` |
 | `uv` | Python helper scripts | `brew install uv` |
+| `rsync` | bootstrap deploys hooks/scripts with it. macOS 15.4+ ships *openrsync*; if `./bootstrap.sh --check` reports "dry-run failed" the real deploy still works but `--check` cannot confirm convergence — `brew install rsync` fixes it | `brew install rsync` (only if needed) |
 | Claude Code | the plugin host | see Claude Code docs |
 
 **Put Homebrew first on `PATH`** — this is the single most common failure. On Apple Silicon:

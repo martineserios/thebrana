@@ -105,7 +105,7 @@ ok "concurrency: lock was actually held during the test" '[ "$held" = "1" ]'
 ok "concurrency: locked-out batch ran nothing" '[ ! -s "${R}.ledger.jsonl" ] || [ "$(led_count "${R}.ledger.jsonl" ran)" = "0" ]'
 ok "concurrency: locked-out batch created no branches" '! ( cd "$R"; git branch | grep -q runner/auto )'
 kill "$HOLDER" 2>/dev/null; wait "$HOLDER" 2>/dev/null   # single process, no orphan
-rm -rf "${R}.lock.d"   # mkdir-lock fallback leaves its dir when the holder is killed (native flock: no-op)
+rm -f "${R}.lock.lk"   # noclobber-lock fallback leaves its file when the holder is killed (native flock: no-op)
 rm -rf "$R" "${R}".*
 
 rm -rf "$STUBDIR"

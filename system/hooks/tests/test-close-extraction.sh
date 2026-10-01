@@ -4,6 +4,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CRON="$SCRIPT_DIR/../../cron/close-extraction.sh"
 PASS=0; FAIL=0; TOTAL=0
@@ -352,7 +353,7 @@ print(sum(1 for r in rs if (r.get('dedup_key') or '').startswith('weekly-learnin
 H15="$TMPDIR/h15"; mkdir -p "$H15/.claude/sessions"
 ORPHAN="$H15/.claude/sessions/snap-orphan.diff"
 FRESH="$H15/.claude/sessions/snap-fresh.diff"
-printf 'old' > "$ORPHAN"; touch -d '35 days ago' "$ORPHAN"
+printf 'old' > "$ORPHAN"; p_touch_at "$ORPHAN" "$(p_date_d '35 days ago')"
 printf 'new' > "$FRESH"
 seed_entry "$H15" feat-sweep a..b >/dev/null
 FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H15" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
@@ -364,13 +365,13 @@ H15F="$TMPDIR/h15f"; mkdir -p "$H15F"
 seed_entry "$H15F" feat-failsweep a..b >/dev/null
 run_cron "$H15F" env FAKE_AGY_EXIT=1 >/dev/null 2>&1
 SNAP15="$H15F/.claude/sessions/snap-seed-feat-failsweep.diff"
-touch -d '35 days ago' "$SNAP15"
+p_touch_at "$SNAP15" "$(p_date_d '35 days ago')"
 run_cron "$H15F" env FAKE_AGY_EXIT=1 >/dev/null 2>&1
 check "failed-entry snapshot swept at >30d" "no" "$([ -f "$SNAP15" ] && echo yes || echo no)"
 
 # ── 20. daily-summary 30d prune (t-1979 #9) ────────────────────────────
 OLD_SUMMARY="$H15/.claude/sessions/daily-summary-2026-01-01.md"
-printf 'old summary' > "$OLD_SUMMARY"; touch -d '35 days ago' "$OLD_SUMMARY"
+printf 'old summary' > "$OLD_SUMMARY"; p_touch_at "$OLD_SUMMARY" "$(p_date_d '35 days ago')"
 FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H15" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
 check "daily summary >30d pruned" "no" "$([ -f "$OLD_SUMMARY" ] && echo yes || echo no)"
 check "today's summary kept" "yes" "$(ls "$H15/.claude/sessions/"daily-summary-$(date +%Y-%m-%d).md >/dev/null 2>&1 && echo yes || echo no)"

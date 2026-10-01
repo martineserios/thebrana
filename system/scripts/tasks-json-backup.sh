@@ -57,7 +57,7 @@ else
 fi
 # Key by resolved path, not bare basename (Gate 3 security finding, 2026-09-07): two repos named
 # alike must never share — or restore across — a backup dir.
-SLUG="$(basename "$common_root")-$(printf '%s' "$common_root" | sha1sum | cut -c1-8)"
+SLUG="$(basename "$common_root")-$(printf '%s' "$common_root" | p_sha1 | cut -c1-8)"
 DEST="$BACKUP_ROOT/$SLUG"
 MARKER="$DEST/.repo"
 
