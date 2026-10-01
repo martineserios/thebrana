@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-22T01:31:45Z",
+  "generated": "2026-09-29T18:53:19Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -354,6 +354,11 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/jev-system-one-decision-models.md": {
+      "title": "Jev — System One Decision Models: What They Are, Where They Fit, How Brana Applies Them",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/knowledge-architecture.md": {
       "title": "Knowledge Architecture for AI Development Systems",
       "type": "Dimension",
@@ -610,6 +615,7 @@
         "system/loops/",
         "system/scripts/readme-coverage.sh",
         "system/scripts/generate-context-md.py",
+        "system/hooks/lib/portable.sh",
         "system/hooks/tests/"
       ]
     },
@@ -1780,6 +1786,14 @@
         "system/scheduler/brana-scheduler-digest.sh",
         "system/scripts/pipeline-digest.sh",
         "system/loops/drain-loop.md"
+      ]
+    },
+    "docs/architecture/features/macos-portable-shims.md": {
+      "title": "macOS portable shell shims (t-3373, epic macos-portability t-3372)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/lib/portable.sh",
+        "system/scripts/lint-portability.sh"
       ]
     },
     "docs/architecture/features/memory-migration-manifest.md": {
@@ -2971,6 +2985,11 @@
     },
     "docs/dimensions/feynman-methodology.md": {
       "title": "Feynman Methodology — Learning, Teaching, and Thinking",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/jev-system-one-decision-models.md": {
+      "title": "Jev — System One Decision Models: What They Are, Where They Fit, How Brana Applies Them",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -7753,6 +7772,24 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/36-claw-ecosystem-chat-interface.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/mcp-server-design-patterns.md",
       "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
@@ -8762,6 +8799,24 @@
     },
     {
       "from": "docs/dimensions/dynamic-form-flows-messaging.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/36-claw-ecosystem-chat-interface.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/jev-system-one-decision-models.md",
       "to": "dimensions/omnichannel-ai-agent-frameworks.md",
       "type": "informs",
       "computed": false
@@ -11901,6 +11956,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/macos-portable-shims.md",
       "type": "references",
       "computed": false
     },
@@ -19880,9 +19941,9 @@
     }
   ],
   "stats": {
-    "nodes": 642,
-    "edges": 2552,
-    "typed_edges": 742,
-    "orphans": 145
+    "nodes": 645,
+    "edges": 2559,
+    "typed_edges": 748,
+    "orphans": 146
   }
 }
