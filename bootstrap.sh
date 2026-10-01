@@ -896,7 +896,8 @@ if [ ! -f "$KNOWN_MP" ]; then
     fi
 fi
 if command -v jq &>/dev/null; then
-    BRANA_MP=$(jq -r '.brana // empty' "$KNOWN_MP" 2>/dev/null)
+    # (missing file => empty => 'would add brana'; without `|| true` jq's exit 2 killed --check on a fresh HOME)
+    BRANA_MP=$(jq -r '.brana // empty' "$KNOWN_MP" 2>/dev/null || true)
     if [ -z "$BRANA_MP" ]; then
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then
@@ -1036,7 +1037,7 @@ if command -v jq &>/dev/null; then
     # Get current git SHA for tracking
     GIT_SHA=$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
 
-    BRANA_INSTALLED=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key] // empty' "$INSTALLED" 2>/dev/null)
+    BRANA_INSTALLED=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key] // empty' "$INSTALLED" 2>/dev/null || true)
     if [ -z "$BRANA_INSTALLED" ] || [ "$BRANA_INSTALLED" = "null" ]; then
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then
@@ -1054,8 +1055,8 @@ if command -v jq &>/dev/null; then
         fi
     else
         # Update version/path/sha if changed
-        INSTALLED_VER=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key][0].version // ""' "$INSTALLED" 2>/dev/null)
-        INSTALLED_SHA=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key][0].gitCommitSha // ""' "$INSTALLED" 2>/dev/null)
+        INSTALLED_VER=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key][0].version // ""' "$INSTALLED" 2>/dev/null || true)
+        INSTALLED_SHA=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key][0].gitCommitSha // ""' "$INSTALLED" 2>/dev/null || true)
         if [ "$INSTALLED_VER" != "$PLUGIN_VERSION" ] || [ "$INSTALLED_SHA" != "$GIT_SHA" ]; then
             CHANGES=$((CHANGES + 1))
             if $CHECK_ONLY; then
@@ -1083,8 +1084,9 @@ fi
 # also has a brana entry so fresh installs pass `brana doctor`.
 SIMPLE_INSTALLED="$TARGET_DIR/installed_plugins.json"
 if command -v jq &>/dev/null; then
-    [ -f "$SIMPLE_INSTALLED" ] || echo '{}' > "$SIMPLE_INSTALLED"
-    CURRENT_VER=$(jq -r '.brana.version // empty' "$SIMPLE_INSTALLED" 2>/dev/null)
+    # (a dry run must not write: seed the file only on a real run — jq below tolerates its absence)
+    if ! $CHECK_ONLY; then [ -f "$SIMPLE_INSTALLED" ] || echo '{}' > "$SIMPLE_INSTALLED"; fi
+    CURRENT_VER=$(jq -r '.brana.version // empty' "$SIMPLE_INSTALLED" 2>/dev/null || true)
     if [ "$CURRENT_VER" != "$PLUGIN_VERSION" ]; then
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then

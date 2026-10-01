@@ -176,25 +176,14 @@ jobs:
           bash tests/scripts/test-lint-portability.sh
           bash tests/scripts/test-run-test-suites.sh
 
-      # First real macOS run: `bootstrap.sh --check` exited 2 silently right after the "ruflo:" header.
-      # Trace the discovery function under bootstrap's own strictness (set -euo pipefail) to see why.
-      # Diagnostic only (continue-on-error); remove once the cause is fixed.
-      - name: Diagnose ruflo discovery under strict mode (temporary)
-        continue-on-error: true
-        run: |
-          bash --version | head -1
-          bash -x -c 'set -euo pipefail; source system/hooks/lib/ruflo-discovery.sh; CF_BIN="$(ruflo_find_bin || true)"; echo "found=[$CF_BIN]"' 2>&1 | tail -40
-          echo "exit=$?"
-          echo "--- PATH entries:"; printf '%s\n' "$PATH" | tr ':' '\n' | head -30
-          echo "--- bootstrap --check traced, last 25 lines:"
-          bash -x ./bootstrap.sh --check 2>&1 | tail -25 || true
-
       - name: Platform preflight (bootstrap.sh --check)
         run: |
           # pipefail: without it the step's status is tee's, and a failing `bootstrap --check` (e.g. the
           # bash >= 4 preflight) could never fail this step.
           set -o pipefail
           ./bootstrap.sh --check 2>&1 | tee /tmp/bootstrap-check.log
+          # (On a fresh runner --check reports many pending changes and still exits 0. It used to die
+          # silently with exit 2 on an empty HOME — t-3385 — which is what this step caught first.)
           # A failing rsync dry-run (e.g. openrsync without --itemize-changes) makes --check report
           # changes forever though the real deploy works: surface it, don't fail the job for it.
           if grep -q 'dry-run failed' /tmp/bootstrap-check.log; then
