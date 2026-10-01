@@ -31,7 +31,7 @@ suite exercise the BSD branches on Linux by shrinking `PATH`.
 | Function | Replaces | Contract |
 |---|---|---|
 | `p_flock [-n] LOCK cmd...` | `flock file cmd` | Run `cmd` (or a shell function) holding `LOCK`. `-n` = fail (rc 1) instead of waiting. Fallback: a noclobber-file lock `LOCK.lk` with pid stale-detection (see below). |
-| `p_lock_acquire FD FILE [-n\|-w SECS]` / `p_lock_release FD FILE` | `exec N>f; flock [-w S] N` … `flock -u N` | fd-style exclusive lock held across a code region; FD is the caller's fd number. Same fallback as `p_flock`. `FD` must be an integer ≥ 3 (it reaches `eval`; anything else returns 2). |
+| `p_lock_acquire FD FILE [-n\|-w SECS]` / `p_lock_release FD FILE` | `exec N>f; flock [-w S] N` … `flock -u N` | fd-style exclusive lock held across a code region; FD is the caller's fd number. Same fallback as `p_flock`. `FD` must be an integer 3..254 (it reaches `eval`; anything else returns 2), `-w` needs a whole number of seconds (it reaches `$(( ))`), and a lock path that is a symlink/dir/device is **refused with rc 3**. |
 | `p_date_d STR [FMT]` | `date -d STR [+FMT]` | STR: `now`, `@epoch`, `YYYY-MM-DD`, ISO-8601 / git `%ci` with optional fraction and `Z`/`±HH[:]MM` offset, `N unit[s] ago`. Parsed in pure shell (no `date -d`). **UTC in, UTC out** (deterministic across TZ). Prints epoch seconds, or `date +FMT` if FMT given. rc 1 if unparseable. |
 | `p_epoch_fmt EPOCH FMT` | `date -d @E +FMT` | Local-time formatting for human display (honours `TZ`). |
 | `p_sha256 [FILE]` | `sha256sum` | Prints the bare hex digest (stdin if no FILE). |
@@ -55,11 +55,29 @@ Without `flock(1)` the lock is a file `LOCK.lk` holding the holder's pid, create
 noclobber redirect (`set -C; > file` = `open(O_CREAT|O_EXCL)`). It is deliberately **not** a `mkdir` lock:
 Ubuntu's default coreutils is now uutils, whose `mkdir` lets several concurrent callers "win" the same
 directory (reproduced on this repo's dev box; python's `os.mkdir` on the same kernel never double-granted).
-A lock must not depend on a coreutils binary's atomicity. A dead holder is reclaimed **only under a second
+A lock must not depend on a coreutils binary's atomicity. (Observed on one box — `mkdir (uutils coreutils) 0.8.0`,
+Ubuntu, kernel 7.0 — not a survey of all distributions.) A dead holder is reclaimed **only under a second
 lock (`LOCK.lk.reclaim`) and only if re-evaluated there against the current file** — the first, naive
-version let two waiters both "reclaim" and both hold the lock (Gate 3 review; 16-contender × 30-round stress
-test now shows 0 overlaps). An empty/garbage pid (`kill -0 0` and `-1` falsely report alive) counts as stale
+version let two waiters both "reclaim" and both hold the lock (Gate 3 review). `tests/hooks/test-lock-stress.sh` is the evidence: 16 contenders × 8 rounds, **every round
+starting from a stale lock** so the reclaim path runs each time, with a noclobber overlap detector. Mutation-checked:
+swapping in the naive reclaim (delete the stale lock, no second lock, no re-check) makes it fail on every run (54–62
+overlaps); the real code passes. An empty/garbage pid (`kill -0 0` and `-1` falsely report alive) counts as stale
 only after 10 s; "stat failed" is treated as *unknown, not stale*; release removes only a lock we still own.
+
+### Hardening contract, and its limits
+
+- **Non-regular lock path → refused (rc 3).** A symlink (a dangling one makes the O_EXCL create fail forever; one
+  to `/dev/null` makes noclobber "succeed" for *every* caller — mutual exclusion silently gone), a directory or a
+  device at `LOCK.lk` / `LOCK.lk.reclaim` is an attack or a mistake: it is refused with a message, never spun on.
+- **Lock paths belong in a user-private directory (0700).** The check cannot close a swap race in a shared directory
+  (an attacker replacing the file between our check and our create). `autonomous-runner.sh`'s default worktree lock is
+  under `/tmp/brana-runner/`; that is fine on a single-user laptop, not on a shared host.
+- A live process owned by *another user* makes `kill -0` fail with EPERM, so liveness also asks `ps -p`.
+- **Residual race, documented not fixed:** clearing a *wedged* `LOCK.lk.reclaim` (a reclaimer that crashed mid-reclaim,
+  >30 s old) is itself an unserialized remove-then-create. Triggering a double-grant needs a crash inside a ~1 ms
+  window *and* two waiters racing the clear. Closing it needs an atomic compare-and-delete, which shell lacks.
+- pid reuse after a crash can make a dead holder look alive (wedge) and a recycled pid can receive the `p_timeout`
+  escalation `kill -KILL` — more likely on macOS, where pids top out near 99999. Low practical likelihood.
 
 ## Known limit — lock interop with the Rust CLI
 
@@ -115,6 +133,16 @@ source `portable.sh` (bash-only). Use inline forms: arithmetic instead of
 `grep -E` instead of `grep -P`, `md5sum || md5 -q`, and a `date -d … || date -j -u -f …`
 pair where a real date must be parsed (brana writes UTC).
 
+## `p_date_d` is not a drop-in for `date -d`
+
+It is a pure-shell parser with a deliberately narrow grammar (`now`, `@epoch`, ISO-8601 / git `%ci` incl. fraction and
+`Z`/`±HH[:]MM`, `N unit[s] ago`). **Divergences from GNU, by design:** a naive timestamp is **UTC** (GNU: local time);
+impossible calendar dates (`2026-02-31`, hour 24, `:60`) are rc 1 (as GNU); and these are **rc 1 where GNU accepts
+them**: `yesterday`/`tomorrow`, `N month|year ago`, `3 days` (no "ago"), `+1 day`, `last monday`, a trailing `UTC`/`GMT`,
+short `+00` offsets, RFC-2822 dates. "N days ago" is `now − N·86400` s, not calendar days (differs by an hour across a DST
+change). Every converted call site was checked to feed in-grammar input (ISO written_at, git `%ci`, `YYYY-MM-DD`);
+`tests/hooks/test-portable.sh` compares it with GNU `date` on that corpus (on a GNU host).
+
 ## Known unverified on real macOS
 
 Things Linux testing cannot settle; the advisory `macos` CI job (and then a real Mac) must:
@@ -125,7 +153,7 @@ Things Linux testing cannot settle; the advisory `macos` CI job (and then a real
 | `rsync -a --delete --itemize-changes` (bootstrap) | macOS 15.4+ ships openrsync, whose option set may differ | the job prints `rsync --version` and warns if `bootstrap --check` reports a failed dry-run |
 | `sort -V -C` in bootstrap's version gate for the assistant CLI | BSD sort support assumed | first run on a machine with that CLI installed |
 | `osascript` desktop notification | untestable off macOS (the env/argv construction is unit-tested) | first reminder on a Mac |
-| `kill -0` for pids owned by another user | EPERM reads as "not alive" | only matters for other users' pids; agents/locks here are the user's own |
+| BSD `sed` and `\n` in a replacement | assumed to differ from GNU; deliberately **not** asserted either way in the lint tests | any `sed` that builds multi-line output, if one exists |
 | `native-tls` needs no OpenSSL on Apple targets | inferred from the crate's target-gated deps | the job's `cargo build --release` |
 
 ## Out of scope
@@ -146,7 +174,7 @@ Things Linux testing cannot settle; the advisory `macos` CI job (and then a real
 
 ## Testing
 
-`tests/hooks/test-portable.sh` (67 assertions) runs every shim twice: native PATH, and a
+`tests/hooks/test-portable.sh` runs every shim twice: native PATH, and a
 simulated-BSD PATH (`tests/lib/bsd-path.sh` builds a temp bin dir that
 omits `flock`/`sha256sum`/`md5sum`/`realpath` and wraps `date`/`stat`/`sed`/
 `readlink` to reject the GNU-only flag forms while accepting the BSD forms).

@@ -10,8 +10,9 @@
 # Exit 1 on any violation. Escape hatch for a line that is already guarded or has
 # its own BSD branch: append `# portable-ok: <reason>` to that line.
 #
-# Scope: all tracked *.sh and extensionless sh/bash-shebang files, tests included (three data
-# files that quote GNU forms on purpose are exempt by name). A hit is also exempt when the line
+# Scope: all tracked *.sh and extensionless sh/bash-shebang files, tests included. Exempt by name:
+# only files that merely QUOTE or EMULATE GNU forms (tests/lib/bsd-path.sh, this lint's own test) —
+# a test the macOS job RUNS must not be exempt (test-portable.sh was, and executed GNU `touch -d`). A hit is also exempt when the line
 # directly above is `# portable-ok-next: <reason>`. Skips tests/, */tests/, docs/, portable.sh and this file.
 # Full-line comments are ignored.
 set -u
@@ -23,7 +24,7 @@ PATS=(
   'date( -[a-zA-Z]+)* (-d|--date)'
   '(sha256sum|md5sum|sha1sum|sha512sum|sha384sum|sha224sum)'
   'stat -c'
-  'sed( +-[a-zA-Z]+)* +-[a-zA-Z]*i([[:space:]]|$)|sed .*--in-place'
+  'sed( +[^|;&]*)? +-[a-zA-Z]*i([[:space:]]|$)|sed .*--in-place'
   'readlink -f'
   'grep -[a-zA-Z]*P'
   '(^|[^A-Za-z_-])timeout[[:space:]]+(-|[0-9$"])'
@@ -71,7 +72,7 @@ EXCL=(
 files="$( { git ls-files '*.sh'
             git ls-files | grep -vE '\.[A-Za-z0-9]+$' | while IFS= read -r f; do
                 [ -f "$f" ] && head -n1 "$f" 2>/dev/null | grep -qE '^#!.*(ba)?sh([[:space:]]|$)' && echo "$f"
-            done; } | sort -u | grep -vE '^docs/|^system/hooks/lib/portable\.sh$|^system/scripts/lint-portability\.sh$|^tests/lib/bsd-path\.sh$|^tests/hooks/test-portable\.sh$|^tests/scripts/test-lint-portability\.sh$')"
+            done; } | sort -u | grep -vE '^docs/|^system/hooks/lib/portable\.sh$|^system/scripts/lint-portability\.sh$|^tests/lib/bsd-path\.sh$|^tests/scripts/test-lint-portability\.sh$')"
 bad=0
 for i in "${!PATS[@]}"; do
     pat="${PATS[$i]}"; advice="${ADVICE[$i]}"
@@ -130,7 +131,12 @@ done <<< "$files"
 # "command not found" at runtime. A `cp .../portable.sh` (fixtures) does not count. Comments and
 # lines marked portable-ok are ignored; a call shape is required (shim name preceded by a
 # separator, not a quote), so prose in strings does not trip it.
-SHIM_RE='(^|[[:space:];|&(`])p_(timeout|flock|lock_acquire|lock_release|date_d|date_iso|epoch_fmt|sha256|md5|stat_mtime|stat_atime|stat_size|stat_mode|sed_i|readlink_f|realpath_m|relpath|now_ms)([[:space:]]|$|\))'
+# Shim names come from portable.sh itself (the lint script's OWN repo — the scanned tree may be a
+# fixture), so a newly added shim cannot be left out: p_sha1 and p_touch_at were missing from the
+# hand-written list in the very commit that added them.
+SHIM_NAMES="$(grep -oE '^p_[a-z0-9_]+\(\)' "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh" | tr -d '()' | sed 's/^p_//' | paste -sd'|' -)"
+[ -n "$SHIM_NAMES" ] || { echo "lint-portability: cannot read shim names from portable.sh" >&2; exit 2; }
+SHIM_RE="(^|[[:space:];|&(\`])p_($SHIM_NAMES)([[:space:]]|$|\\))"
 while IFS= read -r f; do
     [ -f "$f" ] || continue
     n="$(grep -vE '^[[:space:]]*#' "$f" | grep -v 'portable-ok' | grep -cE "$SHIM_RE")"

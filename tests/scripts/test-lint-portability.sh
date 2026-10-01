@@ -61,7 +61,7 @@ printf 'sed -i s/a/b/ f\n' >s/noext; git add -A; assert "extensionless non-shell
 rm s/noext; put tests/t.sh 'flock -n 9'; assert "tests/ is scanned (t-3379)" 1 "$(run)"
 rm tests/t.sh; mkdir -p system/hooks/tests tests/hooks tests/lib tests/scripts; put system/hooks/tests/t.sh 'timeout 5 cmd'; assert "*/tests/ is scanned" 1 "$(run)"
 rm system/hooks/tests/t.sh; printf 'flock -n 9\n' >test-root.sh; git add -A; assert "root test*.sh is scanned" 1 "$(run)"; rm test-root.sh
-for f in tests/lib/bsd-path.sh tests/hooks/test-portable.sh tests/scripts/test-lint-portability.sh; do
+for f in tests/lib/bsd-path.sh tests/scripts/test-lint-portability.sh; do
     printf 'flock -n 9\n' >"$f"; git add -A; assert "data file exempt by name: $f" 0 "$(run)"; rm "$f"
 done
 printf '# portable-ok-next: asserts flock is absent from the script under test\ngrep -q flock "$S"\n' >s/nx.sh; git add -A; assert "portable-ok-next covers the following line" 0 "$(run)"
@@ -80,7 +80,6 @@ sed -n -E ERE|sed -n -E 's/x+//p' f
 grep -E alt|grep -qE 'a|b' f
 grep -qiE alt|grep -qiE 'a|b' f
 sed POSIX class|sed 's/[[:space:]]*$//' f
-sed literal backslash-n|sed 's/a/b\nc/' f
 timeout as a word in a string|echo "connect timeout exceeded"
 sed -i.bak (portable suffix form)|sed -i.bak 's/a/b/' f
 touch -t (portable)|touch -t 202401020304.05 f
@@ -127,6 +126,24 @@ printf 'echo "p_timeout is documented"\n' >s/nosrc.sh; git add -A; assert "passe
 rm -f s/nosrc.sh; git add -A
 
 
+# test-portable.sh used to be exempt BY NAME although the macOS job runs it and it executed GNU
+# `touch -d` (red on a real Mac). Exemptions are for files that only QUOTE or EMULATE GNU forms.
+printf 'touch -d "2 minutes ago" f\n' >tests/hooks/test-portable.sh; git add -A; assert "test-portable.sh is NOT exempt (it runs on macOS)" 1 "$(run)"; rm tests/hooks/test-portable.sh
+
+# SHIM_RE is generated from portable.sh itself, so a newly added shim cannot be left out of the
+# must-source rule (p_sha1 / p_touch_at were missing from the hand-written list in the same commit
+# that added them). The fixture repo has no real portable.sh: names come from the lint script's own repo.
+for shim in 'p_sha1 f' 'p_touch_at f 1' 'p_stat_mode f' 'p_relpath a b' 'p_realpath_m x' 'p_now_ms' 'p_date_iso'; do
+    printf 'x=$(%s)\n' "$shim" >s/nosrc.sh; git add -A; assert "fires: ${shim%% *} without sourcing portable.sh" 1 "$(run)"
+done
+rm -f s/nosrc.sh; git add -A
+
+# sed -i in ANY flag position
+for c in "sed 's/a/b/' -i f" "sed -e 's/a/b/' -i f" "sed -n -e p -i f"; do
+    printf '%s\n' "$c" >s/sedi.sh; git add -A; assert "fires: $c" 1 "$(run)"
+done
+rm -f s/sedi.sh; git add -A
+
 # Shebang: `#!/bin/bash` (and /bin/sh) run the script under macOS's bash 3.2 when it is executed
 # directly (statusline, MCP wrapper), bypassing bootstrap's PATH-bash >= 4 preflight. Use
 # `#!/usr/bin/env bash`. No escape hatch: a trailing comment on a shebang is not portable.
@@ -134,7 +151,7 @@ for sb in '#!/bin/bash' '#!/bin/sh'; do
     printf '%s\necho hi\n' "$sb" >s/sb.sh; git add -A; assert "fires: shebang $sb" 1 "$(run)"
 done
 printf '#!/usr/bin/env bash\necho hi\n' >s/sb.sh; git add -A; assert "passes: #!/usr/bin/env bash" 0 "$(run)"
-printf '#!/bin/bash\necho hi\n' >s/sb noext; mv "s/sb noext" s/sbnoext; git add -A; assert "fires: extensionless script with #!/bin/bash" 1 "$(run)"
+printf '#!/bin/bash\necho hi\n' >s/sbnoext; git add -A; assert "fires: extensionless script with #!/bin/bash" 1 "$(run)"
 rm -f s/sb.sh s/sbnoext; git add -A
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

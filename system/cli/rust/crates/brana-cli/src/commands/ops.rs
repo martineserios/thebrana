@@ -292,9 +292,24 @@ fn backend_available_with(override_: Option<&str>, path: &str) -> bool {
     }
 }
 
+/// PATH to probe: the environment's, or a standard default when it is unset/empty/non-UTF-8 — spawning
+/// `systemctl` would still resolve via the default search path, so the probe must not say "absent".
+fn path_or_default(path: Option<String>) -> String {
+    match path {
+        Some(p) if !p.is_empty() => p,
+        _ => "/usr/bin:/bin".to_string(),
+    }
+}
+
+/// Did `systemctl --user start|stop <timer>` achieve what the user asked? A zero exit does; so does
+/// exit 5 on STOP ("unit not loaded": disabling a never-deployed timer leaves it disabled).
+pub(crate) fn systemctl_succeeded(starting: bool, code: Option<i32>) -> bool {
+    matches!((starting, code), (_, Some(0)) | (false, Some(5)))
+}
+
 pub(crate) fn scheduler_backend_available() -> bool {
     let ov = std::env::var("BRANA_SCHEDULER_BACKEND").ok();
-    backend_available_with(ov.as_deref(), &std::env::var("PATH").unwrap_or_default())
+    backend_available_with(ov.as_deref(), &path_or_default(std::env::var("PATH").ok()))
 }
 
 fn backend_note(override_: Option<&str>) -> String {
@@ -363,7 +378,7 @@ pub fn cmd_ops_toggle(job_name: &str, enabled: bool) -> anyhow::Result<()> {
     let ok = available && {
         let timer = format!("brana-sched-{job_name}.timer");
         let cmd = if enabled { "start" } else { "stop" };
-        Command::new("systemctl").args(["--user", cmd, &timer]).status().map(|s| s.success()).unwrap_or(false)
+        Command::new("systemctl").args(["--user", cmd, &timer]).status().map(|s| systemctl_succeeded(enabled, s.code())).unwrap_or(false)
     };
     let msg = toggle_outcome(available, enabled, job_name, ok);
     let msg_col = if available && !ok { "\x1b[31m" } else { col };
@@ -560,6 +575,33 @@ mod scheduler_backend_tests {
         assert!(plain.contains("no scheduler backend on this host (systemctl not found)"));
         assert!(plain.contains("always-on host") && plain.contains("ADR-071"));
         assert!(backend_note(Some("none")).contains("BRANA_SCHEDULER_BACKEND=none"));
+    }
+
+    #[test]
+    fn systemctl_start_needs_a_zero_exit() {
+        assert!(systemctl_succeeded(true, Some(0)));
+        assert!(!systemctl_succeeded(true, Some(1)));
+        assert!(!systemctl_succeeded(true, Some(5)), "start of an unloaded unit is a real failure");
+        assert!(!systemctl_succeeded(true, None), "killed by signal / never ran");
+    }
+
+    #[test]
+    fn systemctl_stop_of_a_never_deployed_timer_is_not_a_failure() {
+        // `systemctl --user stop X.timer` exits 5 when the unit is not loaded: disabling a job whose
+        // timer was never deployed leaves it disabled — the user's goal is met.
+        assert!(systemctl_succeeded(false, Some(0)));
+        assert!(systemctl_succeeded(false, Some(5)));
+        assert!(!systemctl_succeeded(false, Some(1)));
+        assert!(!systemctl_succeeded(false, None));
+    }
+
+    #[test]
+    fn unset_path_falls_back_to_a_standard_one_instead_of_reading_as_no_backend() {
+        // With PATH unset, exec would still find systemctl via the default search path; the probe
+        // must agree (it used to see "" and report no backend, then enable/disable stopped touching timers).
+        assert_eq!(path_or_default(None), "/usr/bin:/bin");
+        assert_eq!(path_or_default(Some("/opt/x:/y".to_string())), "/opt/x:/y");
+        assert_eq!(path_or_default(Some(String::new())), "/usr/bin:/bin");
     }
 
     #[test]

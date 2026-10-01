@@ -775,7 +775,7 @@ if [ -n "$CF_BIN" ]; then
         CHANGES=$((CHANGES + 1))
         if ! $CHECK_ONLY; then
             echo "  Installing sql.js..."
-            npm install sql.js --prefix "$CF_PKG_DIR" --silent 2>/dev/null && echo "  + sql.js" || echo "  ! sql.js install failed"
+            npm install sql.js --prefix "$CF_PKG_DIR" --silent --ignore-scripts --no-audit --no-fund 2>/dev/null && echo "  + sql.js" || echo "  ! sql.js install failed"
         else
             echo "  + sql.js (would install)"
         fi

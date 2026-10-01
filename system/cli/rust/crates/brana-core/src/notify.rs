@@ -179,7 +179,8 @@ fn desktop_command_for(os: &str, message: &str) -> std::process::Command {
         cmd
     } else {
         let mut cmd = std::process::Command::new("notify-send");
-        cmd.arg("-u").arg("normal").arg("brana reminder").arg(message);
+        // `--` ends option parsing: a reminder starting with "-" must not be read as an option.
+        cmd.arg("-u").arg("normal").arg("--").arg("brana reminder").arg(message);
         cmd
     }
 }
@@ -441,6 +442,19 @@ this line is not a kv pair
         .map(|(k, v)| (k.to_string_lossy().into_owned(), v.map(|x| x.to_string_lossy().into_owned())))
         .collect();
     assert!(env.contains(&("BRANA_MSG".to_string(), Some(msg.to_string()))), "{env:?}");
+}
+
+#[test]
+fn notify_send_gets_a_double_dash_so_a_leading_dash_message_is_not_an_option() {
+    // "- review PR" / "--wait" as a reminder would otherwise be parsed by notify-send as an option
+    // (fails the notification, or with --wait hangs Command::output()).
+    for msg in ["- review PR", "--wait", "-u critical"] {
+        let cmd = desktop_command_for("linux", msg);
+        let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect();
+        let dd = args.iter().position(|a| a == "--").unwrap_or_else(|| panic!("no -- in {args:?}"));
+        let at = args.iter().position(|a| a == msg).unwrap_or_else(|| panic!("message missing in {args:?}"));
+        assert!(dd < at, "message must come AFTER the -- terminator: {args:?}");
+    }
 }
 
 #[test]
