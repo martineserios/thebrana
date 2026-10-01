@@ -180,7 +180,8 @@ _p_lock_stale() {
             case "$mt" in ''|*[!0-9]*) return 1 ;; esac
             age=$(( $(date +%s) - mt ))
             [ "$age" -gt 10 ] ;;
-        *)  ! kill -0 "$pid" 2>/dev/null ;;
+        *)  # kill -0 fails with EPERM for a LIVE process owned by another user — that is not "dead"
+            ! kill -0 "$pid" 2>/dev/null && ! ps -p "$pid" >/dev/null 2>&1 ;;
     esac
 }
 
@@ -189,8 +190,22 @@ _p_lock_stale() {
 # the same stale holder — otherwise two waiters that judged the same dead holder could each delete
 # the lock and each create it (two holders). A wedged .reclaim (reclaimer died mid-reclaim) is
 # cleared after 30s.
+# rc 3 = REFUSED: the lock path (or its .reclaim) already exists as something other than a plain file —
+# a symlink (a dangling one makes the O_EXCL create fail forever; one to /dev/null makes noclobber
+# "succeed" for EVERY caller, i.e. mutual exclusion silently gone), a directory, a device. That is an
+# attack or a mistake; spinning on it or winning through it are both wrong. This cannot close a swap
+# race in a shared directory: lock paths belong in a user-private directory (0700).
+_p_lock_not_plain() {
+    [ -e "$1" ] || [ -L "$1" ] || return 1
+    [ -f "$1" ] && [ ! -L "$1" ] && return 1
+    echo "p_lock: lock path $1 is not a regular file (symlink/dir/device) — refusing" >&2
+    return 0
+}
+
 _p_lock_take() {
     local lk="$1" rlk="$1.reclaim" pid mt age
+    _p_lock_not_plain "$lk" && return 3
+    _p_lock_not_plain "$rlk" && return 3
     _p_lock_create "$lk" && return 0
     _p_lock_stale "$lk" || return 1
     pid="$(cat "$lk" 2>/dev/null)"
@@ -220,8 +235,10 @@ p_flock() {
         else ( flock 8 || exit 1; "$@" ) 8>>"$lock"; fi
         return $?
     fi
-    local lk="$lock.lk"
+    local lk="$lock.lk" trc
     until _p_lock_take "$lk"; do
+        trc=$?
+        [ $trc -eq 3 ] && return 3
         [ $nb = 1 ] && return 1
         sleep 0.2
     done
@@ -242,7 +259,14 @@ p_flock() {
 p_lock_acquire() {
     local fd="$1" file="$2" mode="${3:-}" secs="${4:-}" rc
     # fd reaches eval: digits only, >= 3 (0/1/2 are stdio; a leading 0 is not a valid fd spec)
-    case "$fd" in ''|*[!0-9]*|0*|1|2) echo "p_lock_acquire: bad fd '$fd' (need an integer >= 3)" >&2; return 2 ;; esac
+    case "$fd" in ''|*[!0-9]*|0*|1|2) echo "p_lock_acquire: bad fd '$fd' (need an integer 3..254)" >&2; return 2 ;; esac
+    # (255 is bash's own script fd; huge values make `exec N>>` parse as a command)
+    if [ "${#fd}" -gt 3 ] || [ "$fd" -gt 254 ]; then echo "p_lock_acquire: fd '$fd' out of range 3..254" >&2; return 2; fi
+    case "$mode" in
+        ''|-n) ;;
+        -w) case "$secs" in ''|*[!0-9]*) echo "p_lock_acquire: -w needs a whole number of seconds, got '$secs'" >&2; return 2 ;; esac ;;
+        *)  echo "p_lock_acquire: unknown mode '$mode' (use -n or -w SECS)" >&2; return 2 ;;
+    esac
     if _p_have flock; then
         eval "exec $fd>>\"\$file\"" || return 1
         case "$mode" in
@@ -254,10 +278,12 @@ p_lock_acquire() {
         [ $rc -eq 0 ] || eval "exec $fd>&-"
         return $rc
     fi
-    local lk="$file.lk" tries=0 max=-1
+    local lk="$file.lk" tries=0 max=-1 trc
     [ "$mode" = "-n" ] && max=0
     [ "$mode" = "-w" ] && max=$((secs * 5))
     until _p_lock_take "$lk"; do
+        trc=$?
+        [ $trc -eq 3 ] && return 3
         [ $max -ge 0 ] && [ $tries -ge $max ] && return 1
         tries=$((tries + 1))
         sleep 0.2
@@ -267,7 +293,8 @@ p_lock_acquire() {
 
 p_lock_release() {
     local fd="$1" file="$2"
-    case "$fd" in ''|*[!0-9]*|0*|1|2) echo "p_lock_release: bad fd '$fd' (need an integer >= 3)" >&2; return 2 ;; esac
+    case "$fd" in ''|*[!0-9]*|0*|1|2) echo "p_lock_release: bad fd '$fd' (need an integer 3..254)" >&2; return 2 ;; esac
+    if [ "${#fd}" -gt 3 ] || [ "$fd" -gt 254 ]; then echo "p_lock_release: fd '$fd' out of range 3..254" >&2; return 2; fi
     if _p_have flock; then
         flock -u "$fd"
         eval "exec $fd>&-"
@@ -388,9 +415,10 @@ p_now_ms() {
 # ── touch ────────────────────────────────────────────────────────────────────
 # p_touch_at FILE EPOCH — set FILE's mtime (and atime) to EPOCH seconds, past or future.
 # `touch -d 'N days ago'` / `-d '+2 seconds'` are GNU-only (BSD touch -d wants ISO 8601);
-# `touch -t CCYYMMDDhhmm.SS` is the form both accept. Pair with p_date_d for "N days ago":
+# `touch -t CCYYMMDDhhmm.SS` is the form both accept; done in UTC because local time is ambiguous
+# for an hour a year (DST fall-back) and would set the wrong instant. Pair with p_date_d for "N days ago":
 #   p_touch_at "$f" "$(p_date_d '35 days ago')"
 p_touch_at() {
     case "${2:-}" in ''|*[!0-9]*) echo "p_touch_at: EPOCH must be a non-negative integer, got '${2:-}'" >&2; return 2 ;; esac
-    touch -t "$(p_epoch_fmt "$2" %Y%m%d%H%M.%S)" "$1"
+    TZ=UTC touch -t "$(TZ=UTC p_epoch_fmt "$2" %Y%m%d%H%M.%S)" "$1"
 }

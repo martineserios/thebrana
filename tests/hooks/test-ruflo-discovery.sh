@@ -35,4 +35,11 @@ assert "ruflo is preferred over claude-flow" "$T/a/bin/ruflo" "$(run "$H4" "$T/b
 
 H5="$T/home5"; mkdir -p "$H5"; mkdir -p "$T/noexec/bin"; printf 'x\n' >"$T/noexec/bin/ruflo"; chmod -x "$T/noexec/bin/ruflo"
 assert "a non-executable file named ruflo is not a binary" "" "$(run "$H5" "$T/noexec/bin:/usr/bin:/bin")"
+# PATH-planting: a RELATIVE PATH entry (".", "bin", "node_modules/.bin") resolves against whatever the
+# cwd is — and bootstrap then runs `npm install --prefix <dir derived from it>`. Only absolute dirs count.
+H6="$T/home6"; mkdir -p "$H6" "$T/cwd/bin" "$T/cwd/node_modules/.bin"; mk "$T/cwd/ruflo"; mk "$T/cwd/bin/ruflo"; mk "$T/cwd/node_modules/.bin/ruflo"
+assert "relative PATH entries ('.', 'bin', 'node_modules/.bin') are ignored" "" "$(cd "$T/cwd" && run "$H6" ".:bin:node_modules/.bin:/usr/bin:/bin")"
+assert "an empty PATH entry (means cwd) is ignored" "" "$(cd "$T/cwd" && run "$H6" ":/usr/bin:/bin")"
+assert "an absolute entry later in the same PATH is still found" "$T/brew/bin/ruflo" "$(cd "$T/cwd" && run "$H6" ".:$T/brew/bin:/usr/bin")"
+
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

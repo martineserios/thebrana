@@ -115,7 +115,7 @@ pub fn cmd_orbit_toggle(enabled: bool) -> anyhow::Result<()> {
     let ok = available && {
         let timer = format!("brana-sched-{JOB}.timer");
         let sub = if enabled { "start" } else { "stop" };
-        Command::new("systemctl").args(["--user", sub, &timer]).status().map(|s| s.success()).unwrap_or(false)
+        Command::new("systemctl").args(["--user", sub, &timer]).status().map(|s| super::ops::systemctl_succeeded(enabled, s.code())).unwrap_or(false)
     };
     let msg_col = if available && !ok { "\x1b[31m" } else { col };
     println!("  {msg_col}{}{}\n", super::ops::toggle_outcome(available, enabled, JOB, ok), themes::RESET);

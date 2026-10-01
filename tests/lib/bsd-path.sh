@@ -85,4 +85,28 @@ EOF
     echo "$d"
 }
 
+# ── GNU-host helpers (this file is exempt from the portability lint: it emulates/executes GNU forms) ──
+# test-portable.sh is RUN on real macOS by CI, so it must not contain GNU forms itself; anything that
+# needs a GNU host (the BSD simulation, oracle comparisons against GNU tools) lives here and is gated
+# on host_is_gnu.
+host_is_gnu() { date -d @0 +%s >/dev/null 2>&1; }
+
+# Guard the guard: the simulated PATH must really be BSD-shaped, or the fallback branches would be
+# silently untested. Each prints a digit string for the caller to compare.
+bsd_sanity_gnu_forms() {   # date -d / stat -c / sed -i / readlink -f must all FAIL under $BSD_BIN
+    local a b c d
+    ( PATH="$BSD_BIN"; date -d 2024-01-01 >/dev/null 2>&1; a=$?; stat -c %s /etc >/dev/null 2>&1; b=$?
+      sed -i s/a/b/ /dev/null >/dev/null 2>&1; c=$?; readlink -f / >/dev/null 2>&1; d=$?; echo "$a$b$c$d" )
+}
+bsd_sanity_absent() {      # tools stock macOS lacks must be ABSENT (1 = absent): the fallbacks only run if so
+    ( PATH="$BSD_BIN"; r=""; for c in flock sha256sum sha1sum md5sum timeout gtimeout realpath tac; do
+          command -v "$c" >/dev/null 2>&1; r="$r$(( $? == 0 ? 0 : 1 ))"; done; echo "$r" )
+}
+bsd_sanity_date() {        # date -I must fail and %N must print a literal N
+    ( PATH="$BSD_BIN"; date -Iseconds >/dev/null 2>&1; a=$?; [ "$(date +%N)" = N ]; b=$((1 - $?)); echo "$a$b" )
+}
+gnu_realpath_m() { realpath -m "$1"; }
+gnu_date_epoch() { TZ=UTC date -u -d "$1" +%s 2>/dev/null; }   # naive input = UTC, matching p_date_d's documented rule
+gnu_iso_offset() { TZ="$1" date -Iseconds | grep -oE '[+-][0-9]{2}:[0-9]{2}$'; }
+
 _BSD_REAL_PATH="${_BSD_REAL_PATH:-$PATH}"

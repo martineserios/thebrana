@@ -77,24 +77,28 @@ dry_log() { echo "[DRY-RUN] would: $*" >&2; }
 # Refuse to write any path outside these prefixes.
 # Uses $HOME (not ~) throughout — realpath -m does not expand ~.
 assert_allowed() {
-    local path="$1"
-    local real_path
-    real_path=$(p_realpath_m "$path")
-    local -a allowed=(
-        "$(p_realpath_m "$HOME/.claude/projects")"
-        "$(p_realpath_m "$HOME/.claude/memory/archive")"
-        "$(p_realpath_m "$HOME/.claude/memory/pre-lint-heal")"
-        "$(p_realpath_m "$HOME/.claude/lint-heal-report.md")"
-        "$(p_realpath_m "$HOME/.swarm/lint-heal-state.json")"
-        "$(p_realpath_m "$HOME/.swarm/lint-heal.lock")"
+    local path="$1" real_path pfx r
+    # Fail CLOSED (t-3383): an unresolvable path or allow-list root used to yield an EMPTY string, and
+    # `[[ $x == "" * ]]` matches everything — one symlink loop under a root opened the whole guard.
+    real_path="$(p_realpath_m "$path")" || { echo "FATAL: cannot resolve path: $path" >&2; exit 1; }
+    local -a roots=(
+        "$HOME/.claude/projects"
+        "$HOME/.claude/memory/archive"
+        "$HOME/.claude/memory/pre-lint-heal"
+        "$HOME/.claude/lint-heal-report.md"
+        "$HOME/.swarm/lint-heal-state.json"
+        "$HOME/.swarm/lint-heal.lock"
     )
     # Also allow MEMORY_ROOT if it's been overridden (tests)
     if [[ "$MEMORY_ROOT" != "$HOME/.claude/projects" ]]; then
-        allowed+=("$(p_realpath_m "$MEMORY_ROOT")")
-        allowed+=("$(p_realpath_m "$HOME/.claude/memory")")
+        roots+=("$MEMORY_ROOT" "$HOME/.claude/memory")
     fi
-    for pfx in "${allowed[@]}"; do
-        [[ "$real_path" == "$pfx"* ]] && return 0
+    for r in "${roots[@]}"; do
+        pfx="$(p_realpath_m "$r")" || { echo "FATAL: cannot resolve allow-list root: '$r'" >&2; exit 1; }
+        # an empty or filesystem-root entry would allow everything
+        [[ -n "$pfx" && "$pfx" != "/" ]] || { echo "FATAL: unusable allow-list root: '$r'" >&2; exit 1; }
+        # compare on a PATH BOUNDARY: `projects-evil/x` must not pass for `projects`
+        [[ "$real_path" == "$pfx" || "$real_path" == "$pfx"/* ]] && return 0
     done
     echo "FATAL: write outside Layer 2 allow-list: $path" >&2
     exit 1

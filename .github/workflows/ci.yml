@@ -9,6 +9,10 @@ on:
   # dev->main PR (t-3023 tier-2 valve).
   workflow_dispatch:
 
+# Least privilege (Gate 3, t-3383): none of these jobs writes to the repo or needs a token beyond read.
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -111,7 +115,7 @@ jobs:
   # protection) once it has been green on a few runs.
   #
   # The environment is a *stock Mac + Homebrew bash + jq* on purpose: NO flock(1), NO coreutils
-  # (no timeout/gtimeout). That is what the portable.sh fallbacks exist for — the mkdir lock and
+  # (no timeout/gtimeout). That is what the portable.sh fallbacks exist for — the noclobber-file lock and
   # the p_timeout watchdog — so those are what this job exercises. Nothing here installs a GNU tool
   # to make a test pass; a red test means a real portability gap.
   macos:
@@ -120,6 +124,8 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       # macOS ships bash 3.2; hooks run as `bash <script>` and 9 scripts need bash >= 4 (t-3378).
       - name: Homebrew bash + jq first on PATH
@@ -172,6 +178,9 @@ jobs:
 
       - name: Platform preflight (bootstrap.sh --check)
         run: |
+          # pipefail: without it the step's status is tee's, and a failing `bootstrap --check` (e.g. the
+          # bash >= 4 preflight) could never fail this step.
+          set -o pipefail
           ./bootstrap.sh --check 2>&1 | tee /tmp/bootstrap-check.log
           # A failing rsync dry-run (e.g. openrsync without --itemize-changes) makes --check report
           # changes forever though the real deploy works: surface it, don't fail the job for it.

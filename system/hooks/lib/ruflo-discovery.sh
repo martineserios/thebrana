@@ -7,6 +7,7 @@
 # Order: an nvm-managed install first (the original behaviour), then anything on PATH — Homebrew's
 # node (`/opt/homebrew/bin`), a custom npm prefix, a distro package. PATH is walked explicitly with
 # -x: bash's `command -v` also reports a NON-executable file as found. `ruflo` beats `claude-flow`.
+# Only absolute PATH entries are considered (a relative one is a PATH-planting vector).
 ruflo_find_bin() {
     local name candidate d IFS
     for name in ruflo claude-flow; do
@@ -15,7 +16,10 @@ ruflo_find_bin() {
         done
         IFS=:
         for d in $PATH; do
-            [ -n "$d" ] || continue
+            # ABSOLUTE entries only: "." / "bin" / "node_modules/.bin" / "" (= cwd) resolve against
+            # wherever bootstrap happens to run, and bootstrap then npm-installs into a dir derived
+            # from the binary it finds.
+            case "$d" in /*) ;; *) continue ;; esac
             candidate="$d/$name"
             [ -f "$candidate" ] && [ -x "$candidate" ] && { printf '%s\n' "$candidate"; return 0; }
         done
