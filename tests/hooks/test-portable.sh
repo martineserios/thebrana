@@ -135,8 +135,10 @@ for mode in $MODES; do
     assert "$mode: p_timeout kills slow cmd, rc 124" "124" "$(run_in $mode "p_timeout 1 sleep 5; echo \$?")"
     assert "$mode: p_timeout -k form" "124" "$(run_in $mode "p_timeout -k 1 1 sleep 5; echo \$?")"
     # GNU timeout reports 137 when it had to KILL; the fallback reports 124 — either means "timed out".
+    # On real GNU coreutils `timeout -k` kills its OWN process group on escalation, so the shell running it
+    # prints "Killed" to stderr: capture the rc with the group's stderr discarded (CI's ubuntu runner showed it).
     assert "$mode: p_timeout -k escalates past a TERM-ignoring cmd" "timed-out" \
-        "$(rc=$(run_in $mode "p_timeout -k 1 1 bash -c 'trap \"\" TERM; sleep 9'; echo \$?"); case $rc in 124|137) echo timed-out;; *) echo "rc=$rc";; esac)"
+        "$(rc=$(run_in $mode "{ p_timeout -k 1 1 bash -c 'trap \"\" TERM; sleep 9'; } 2>/dev/null; echo \$?"); case $rc in 124|137) echo timed-out;; *) echo "rc=$rc";; esac)"
     assert "$mode: p_timeout preserves stdin" "piped" "$(printf 'piped\n' | PATH="$([ $mode = bsd ] && echo "$BSD_BIN" || echo "$PATH")" bash -c "source '$LIB'; p_timeout 5 cat")"
     assert "$mode: p_timeout is silent on stderr" "" "$(run_in $mode "p_timeout 1 sleep 5" 2>&1)"
     t0=$SECONDS; run_in $mode "x=\$(p_timeout 30 echo hi); echo \$x" >/dev/null; dt=$((SECONDS - t0))
