@@ -45,7 +45,10 @@ end to end so the two implementations of one sentence cannot drift). Override:
 
 Unchanged: hosts with systemd behave exactly as before, apart from the `.is_ok()` → exit-status fix.
 
-Also fixed on the way: `ops enable/disable` used `Command::status().is_ok()`, which is true whenever
+Also fixed on the way (and again for the siblings the Gate 3 review found — `brana orbit` arm/disarm had the same
+`.is_ok()` bug and now shares the tested `ops` helpers; Rust `is_pid_alive` no longer reads `/proc`, which made every
+live pid look dead on macOS; desktop notifications use `osascript` on macOS with the text passed via the
+environment, never spliced into the script): `ops enable/disable` used `Command::status().is_ok()`, which is true whenever
 `systemctl` merely *spawned* — a non-zero exit still printed "Timer started" — and printed
 "Timer stoped." on disable.
 

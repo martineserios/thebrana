@@ -16,6 +16,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/system/hooks/lib/portable.sh"
 source "$SCRIPT_DIR/system/hooks/lib/scheduler-backend.sh"
+source "$SCRIPT_DIR/system/hooks/lib/ruflo-discovery.sh"
 SYSTEM_DIR="$SCRIPT_DIR/system"
 TARGET_DIR="$HOME/.claude"
 CHECK_ONLY=false
@@ -763,12 +764,7 @@ fi
 
 # --- Step 6: ruflo runtime ---
 echo "ruflo:"
-CF_BIN=""
-for name in ruflo claude-flow; do
-    for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
-        [ -x "$candidate" ] && CF_BIN="$candidate" && break 2
-    done
-done
+CF_BIN="$(ruflo_find_bin || true)"   # nvm first, then PATH (Homebrew / npm prefix) — t-3381
 
 if [ -n "$CF_BIN" ]; then
     CF_BIN_NAME="$(basename "$CF_BIN")"

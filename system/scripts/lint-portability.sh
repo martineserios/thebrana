@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # lint-portability.sh — fail on GNU-only userland forms in production shell scripts.
-# Classes: flock, date -d/-I/%N, sha/md5sum, stat -c, sed -i, readlink -f, grep -P,
+# Classes: flock, date -d/-I/%N, sha*/md5sum, stat -c, sed -i (any flag order), readlink -f, grep -P,
+# touch -d, getent, nproc, #!/bin/bash shebangs,
 # timeout, realpath, find -printf, tac, head -n -N, GNU-only BRE (sed \\+ \\s, grep \\|).
 # Every hit must use a p_* shim from system/hooks/lib/portable.sh instead
 # (spec: docs/architecture/features/macos-portable-shims.md, t-3374).
@@ -20,9 +21,9 @@ cd "$ROOT" || exit 2
 PATS=(
   '(^|[^A-Za-z_-])flock([[:space:]]|$)'
   'date( -[a-zA-Z]+)* (-d|--date)'
-  '(sha256sum|md5sum)'
+  '(sha256sum|md5sum|sha1sum|sha512sum|sha384sum|sha224sum)'
   'stat -c'
-  'sed -i([[:space:]]|$)'
+  'sed( +-[a-zA-Z]+)* +-[a-zA-Z]*i([[:space:]]|$)|sed .*--in-place'
   'readlink -f'
   'grep -[a-zA-Z]*P'
   '(^|[^A-Za-z_-])timeout[[:space:]]+(-|[0-9$"])'
@@ -34,13 +35,16 @@ PATS=(
   'head -n? ?-[0-9]'
   'sed .*\\[+?sSwW|]'
   "grep( -[a-zA-Z]+)* +['\"][^'\"]*\\\\[|+?]"
+  'touch( +-[a-zA-Z]+)* +(-d|--date)'
+  '(^|[^A-Za-z_-])getent([[:space:]]|$|[)|;&])'
+  '(^|[^A-Za-z_-])nproc([[:space:]]|$|[)|;&])'
 )
 ADVICE=(
   'use p_flock / p_lock_acquire'
   'use p_date_d / p_epoch_fmt'
-  'use p_sha256 / p_md5'
+  'use p_sha256 / p_md5 / p_sha1'
   'use p_stat_mtime / p_stat_size'
-  'use p_sed_i'
+  'use p_sed_i (or the portable sed -i.bak form)'
   'use p_readlink_f'
   'rewrite with grep -E / sed -E / awk (no PCRE on BSD grep)'
   'use p_timeout (macOS has no timeout(1))'
@@ -52,6 +56,9 @@ ADVICE=(
   "use sed '\$d' (BSD head has no negative counts)"
   'use sed -E with ERE (BSD sed BRE has no \\+ \\? \\| \\s \\w)'
   'use grep -E with ERE (\\| \\+ \\? are GNU BRE extensions)'
+  'use p_touch_at FILE EPOCH (touch -d is GNU-only; BSD wants ISO) — pair with p_date_d'
+  'macOS has no getent: for an unset HOME use "$(cd ~ && pwd)" (bash resolves ~ from passwd)'
+  'macOS has no nproc: use `nproc 2>/dev/null || sysctl -n hw.ncpu` and mark the line portable-ok'
 )
 # Per-rule lines to ignore after matching (same index as PATS; empty = none).
 EXCL=(
@@ -81,7 +88,7 @@ for i in "${!PATS[@]}"; do
     done < <(printf '%s\n' "$files" | xargs grep -nE -- "$pat" 2>/dev/null \
         | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
         | grep -v 'portable-ok:' \
-        | { if [ -n "${EXCL[$i]}" ]; then grep -vE -- "${EXCL[$i]}"; else cat; fi; } | cut -c1-200)
+        | { if [ -n "${EXCL[$i]:-}" ]; then grep -vE -- "${EXCL[$i]}"; else cat; fi; } | cut -c1-200)
 done
 
 # Shim functions cannot be exec'd. `env`/`nice`/`nohup`/`setsid`/`xargs`/`sudo`/`exec`/`command`
@@ -105,6 +112,19 @@ done < <(printf '%s\n' "$files" | while IFS= read -r f; do
           cur = "" }
     ' "$f"
 done)
+
+# Shebang: `#!/bin/bash` / `#!/bin/sh` run a directly-executed script under macOS's bash 3.2,
+# bypassing bootstrap's PATH-bash >= 4 preflight (statusline, the MCP wrapper). Use
+# `#!/usr/bin/env bash`. There is no escape hatch: a trailing comment on a shebang line is not portable.
+while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    first="$(head -n1 "$f" 2>/dev/null)"
+    case "$first" in
+        '#!/bin/bash'|'#!/bin/bash '*|'#!/bin/sh'|'#!/bin/sh '*)
+            echo "$f:1: $first  <-- use #!/usr/bin/env bash (a /bin/bash shebang runs under macOS's bash 3.2)"
+            bad=$((bad + 1)) ;;
+    esac
+done <<< "$files"
 
 # A file that calls a p_* shim must source portable.sh itself, or the call dies with
 # "command not found" at runtime. A `cp .../portable.sh` (fixtures) does not count. Comments and

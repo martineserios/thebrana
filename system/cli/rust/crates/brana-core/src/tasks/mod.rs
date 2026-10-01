@@ -369,9 +369,34 @@ pub fn save_agents(path: &Path, agents: &[Value]) -> Result<(), String> {
     std::fs::write(path, json).map_err(|e| format!("{}: {e}", path.display()))
 }
 
-/// Check if a PID is alive by testing /proc/{pid}/status.
+/// Check if a PID is alive. Linux: /proc. Elsewhere (macOS has no /proc — a /proc probe would call
+/// every live pid dead): kill(1). t-3381.
 pub fn is_pid_alive(pid: u32) -> bool {
-    Path::new(&format!("/proc/{pid}")).exists()
+    #[cfg(target_os = "linux")]
+    {
+        Path::new(&format!("/proc/{pid}")).exists()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        is_pid_alive_kill(pid)
+    }
+}
+
+/// Portable liveness probe: `kill -0 PID`. pid 0 is refused (it signals the whole process group and
+/// always "succeeds"). A pid owned by another user reads as not alive (EPERM exits non-zero) — fine
+/// for the agent/lock owners this guards, which are this user's own processes.
+pub fn is_pid_alive_kill(pid: u32) -> bool {
+    use std::process::{Command, Stdio};
+    if pid == 0 {
+        return false;
+    }
+    Command::new("kill")
+        .args(["-0", &pid.to_string()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }
 
 /// Remove dead agents from the list. Returns (alive, removed_count).
@@ -3005,6 +3030,31 @@ mod tests {
     fn test_is_pid_alive_bogus() {
         // PID 99999999 should not exist
         assert!(!is_pid_alive(99999999));
+    }
+
+    // t-3381: macOS has no /proc, so the /proc probe reports EVERY pid as dead there (a live lock or
+    // agent owner would be treated as stale). The kill(1)-based probe is what non-Linux hosts use;
+    // it is compiled everywhere so it is tested here too.
+    #[test]
+    fn test_is_pid_alive_kill_self_and_bogus() {
+        assert!(is_pid_alive_kill(std::process::id()));
+        assert!(!is_pid_alive_kill(99999999));
+    }
+
+    #[test]
+    fn test_is_pid_alive_kill_agrees_with_proc_on_a_live_child() {
+        let mut child = std::process::Command::new("sleep").arg("5").spawn().unwrap();
+        let pid = child.id();
+        assert!(is_pid_alive_kill(pid));
+        child.kill().unwrap();
+        child.wait().unwrap();
+        assert!(!is_pid_alive_kill(pid), "a reaped child must read as dead");
+    }
+
+    #[test]
+    fn test_is_pid_alive_kill_rejects_pid_zero() {
+        // kill -0 0 signals the whole process group and always "succeeds" — never a liveness answer.
+        assert!(!is_pid_alive_kill(0));
     }
 
     #[test]

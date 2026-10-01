@@ -142,6 +142,23 @@ jobs:
           for c in bash jq git python3 node uv cargo rsync flock timeout gtimeout; do
             printf '%-10s' "$c"; command -v "$c" || echo "(absent)"
           done
+          # macOS 15.4+ swapped rsync for openrsync, whose option set differs — bootstrap.sh drives
+          # `rsync -a --delete --itemize-changes`, so record which one this runner has.
+          rsync --version 2>&1 | head -2
+
+      # The whole point of this job is the fallbacks (mkdir-free lock, p_timeout watchdog). If the
+      # runner image ever ships flock/timeout/gtimeout the job would go green on the GNU fast path
+      # and test nothing — so fail loudly instead of passing for the wrong reason.
+      - name: Assert the environment is stock (fallbacks are what is under test)
+        run: |
+          bad=0
+          for c in flock timeout gtimeout; do
+            if command -v "$c" >/dev/null 2>&1; then
+              echo "::error::$c is present ($(command -v "$c")) — the BSD fallbacks would go untested"
+              bad=1
+            fi
+          done
+          [ "$bad" -eq 0 ]
 
       # Fast, no-build signals first.
       - name: Portability lint
@@ -154,7 +171,13 @@ jobs:
           bash tests/scripts/test-run-test-suites.sh
 
       - name: Platform preflight (bootstrap.sh --check)
-        run: ./bootstrap.sh --check
+        run: |
+          ./bootstrap.sh --check 2>&1 | tee /tmp/bootstrap-check.log
+          # A failing rsync dry-run (e.g. openrsync without --itemize-changes) makes --check report
+          # changes forever though the real deploy works: surface it, don't fail the job for it.
+          if grep -q 'dry-run failed' /tmp/bootstrap-check.log; then
+            echo "::warning::bootstrap --check: rsync dry-run failed on this runner (see the rsync version above)"
+          fi
 
       - name: Build brana CLI (release) and put it on PATH
         working-directory: system/cli/rust

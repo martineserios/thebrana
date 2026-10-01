@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Claude Code command to initialize a new project with CLAUDE.md template
 # Usage: claude init-project <project-name> [project-type]

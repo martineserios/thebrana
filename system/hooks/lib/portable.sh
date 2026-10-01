@@ -29,6 +29,14 @@ p_sha256() {
     elif _p_have openssl;   then openssl dgst -sha256 -r "$@" | awk '{print $1}'
     else echo "p_sha256: no sha256 tool found" >&2; return 127; fi
 }
+# p_sha1 [FILE] — bare hex sha1 (stdin if no FILE). Only for identifiers that already use sha1
+# (e.g. tasks-json-backup.sh's slug): switching algorithm would orphan existing backup dirs.
+p_sha1() {
+    if   _p_have sha1sum; then sha1sum "$@" | awk '{print $1}'
+    elif _p_have shasum;  then shasum -a 1 "$@" | awk '{print $1}'
+    elif _p_have openssl; then openssl dgst -sha1 -r "$@" | awk '{print $1}'
+    else echo "p_sha1: no sha1 tool found" >&2; return 127; fi
+}
 p_md5() {
     if   _p_have md5sum;  then md5sum "$@" | awk '{print $1}'
     elif _p_have md5;     then md5 -q "$@"
@@ -51,20 +59,11 @@ p_sed_i() {
 # ── readlink -f ──────────────────────────────────────────────────────────────
 # Canonical absolute path, symlinks resolved (last component need not exist).
 p_readlink_f() {
-    local p="$1" l n=0
-    [ -n "$p" ] || return 1
-    while [ -L "$p" ]; do
-        [ $((n += 1)) -gt 40 ] && { echo "p_readlink_f: too many symlinks: $1" >&2; return 1; }
-        l="$(readlink "$p")" || return 1
-        case "$l" in /*) p="$l" ;; *) p="$(dirname "$p")/$l" ;; esac
-    done
-    if [ -d "$p" ]; then
-        ( cd "$p" && pwd -P )
-    else
-        local d
-        d="$( cd "$(dirname "$p")" 2>/dev/null && pwd -P )" || return 1
-        printf '%s/%s\n' "${d%/}" "$(basename "$p")"
-    fi
+    local r
+    [ -n "${1:-}" ] || return 1
+    r="$(p_realpath_m "$1")" || return 1
+    [ "$r" = "/" ] || [ -d "${r%/*}" ] || [ -z "${r%/*}" ] || return 1
+    printf '%s\n' "$r"
 }
 
 # ── date -d ──────────────────────────────────────────────────────────────────
@@ -125,7 +124,14 @@ p_date_d() {
     elif [[ "$s" =~ ^@(-?[0-9]+)$ ]]; then
         e="${BASH_REMATCH[1]}"
     elif [[ "$s" =~ $re_iso ]]; then
-        local days
+        local days y=$((10#${BASH_REMATCH[1]})) mo=$((10#${BASH_REMATCH[2]})) dd=$((10#${BASH_REMATCH[3]})) dim
+        case $mo in 1|3|5|7|8|10|12) dim=31 ;; 4|6|9|11) dim=30 ;;
+            2) if { [ $((y % 4)) -eq 0 ] && [ $((y % 100)) -ne 0 ]; } || [ $((y % 400)) -eq 0 ]; then dim=29; else dim=28; fi ;;
+            *) echo "p_date_d: invalid month in '$s'" >&2; return 1 ;; esac
+        if [ "$dd" -lt 1 ] || [ "$dd" -gt "$dim" ] || [ $((10#${BASH_REMATCH[5]:-0})) -gt 23 ] \
+           || [ $((10#${BASH_REMATCH[6]:-0})) -gt 59 ] || [ $((10#${BASH_REMATCH[8]:-0})) -gt 59 ]; then
+            echo "p_date_d: invalid date/time '$s'" >&2; return 1
+        fi
         days="$(_p_days_from_civil "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")"
         e=$((days * 86400 + 10#${BASH_REMATCH[5]:-0} * 3600 + 10#${BASH_REMATCH[6]:-0} * 60 + 10#${BASH_REMATCH[8]:-0}))
         if [ -n "${BASH_REMATCH[12]}" ]; then   # numeric offset: local time = UTC + offset
@@ -147,8 +153,62 @@ p_date_d() {
 }
 
 # ── flock ────────────────────────────────────────────────────────────────────
+# ── mkdir-free fallback lock (no flock(1), e.g. stock macOS) ─────────────────────────────────
+# The atomic primitive is the SHELL's own noclobber redirect (`set -C; >file` = open(O_CREAT|O_EXCL)),
+# NOT mkdir: Ubuntu's default coreutils is now uutils, whose mkdir lets several concurrent callers
+# "win" the same directory (reproduced on this repo's dev box — a lock built on it double-granted),
+# while python os.mkdir on the same kernel never did. Nothing here depends on a coreutils binary's
+# atomicity. The lock is a file LOCK.lk holding the holder's pid.
+
+_p_lock_create() { ( set -C; printf '%s\n' "$$" >"$1" ) 2>/dev/null; }   # rc 0 iff WE created it
+
+# Release only a lock we still own (never delete one that was reclaimed and re-taken by someone else).
+_p_lock_drop() { [ "$(cat "$1" 2>/dev/null)" = "$$" ] && rm -f "$1"; return 0; }
+
+# _p_lock_stale FILE — rc 0 iff the holder is provably gone. Unknown is NOT stale: if the file
+# vanished or stat fails mid-check (a holder releasing / a new holder arriving) say "not stale" and
+# let the caller retry — "stat failed => age 0 => ancient" once let a reclaimer delete a live lock.
+# An empty/garbage pid (holder died between create and its pid write; `kill -0 0` / `-1` would
+# falsely say "alive") is stale only once the file is >10s old — a live holder writes within ms.
+_p_lock_stale() {
+    local f="$1" pid mt age
+    [ -f "$f" ] || return 1
+    pid="$(cat "$f" 2>/dev/null)"
+    case "$pid" in
+        ''|*[!0-9]*|0)
+            mt="$(p_stat_mtime "$f" 2>/dev/null)" || return 1
+            case "$mt" in ''|*[!0-9]*) return 1 ;; esac
+            age=$(( $(date +%s) - mt ))
+            [ "$age" -gt 10 ] ;;
+        *)  ! kill -0 "$pid" 2>/dev/null ;;
+    esac
+}
+
+# _p_lock_take FILE — one attempt; rc 0 = acquired, 1 = held. A dead holder is reclaimed ONLY under a
+# second lock (FILE.reclaim) and only if, re-evaluated THERE against the current file, it is still
+# the same stale holder — otherwise two waiters that judged the same dead holder could each delete
+# the lock and each create it (two holders). A wedged .reclaim (reclaimer died mid-reclaim) is
+# cleared after 30s.
+_p_lock_take() {
+    local lk="$1" rlk="$1.reclaim" pid mt age
+    _p_lock_create "$lk" && return 0
+    _p_lock_stale "$lk" || return 1
+    pid="$(cat "$lk" 2>/dev/null)"
+    if ! _p_lock_create "$rlk"; then
+        mt="$(p_stat_mtime "$rlk" 2>/dev/null)" || return 1
+        case "$mt" in ''|*[!0-9]*) return 1 ;; esac
+        age=$(( $(date +%s) - mt ))
+        [ "$age" -gt 30 ] || return 1            # a live reclaimer is at work: let it finish
+        rm -f "$rlk"
+        _p_lock_create "$rlk" || return 1        # cleared a wedged one: take it now, don't make -n callers give up
+    fi
+    if [ "$(cat "$lk" 2>/dev/null)" = "$pid" ] && _p_lock_stale "$lk"; then rm -f "$lk"; fi
+    rm -f "$rlk"
+    _p_lock_create "$lk"
+}
+
 # p_flock [-n] LOCK cmd args...  — run cmd (or shell function) holding LOCK; -n = rc 1 if held.
-# Native flock(1) when present; otherwise an atomic mkdir lock (LOCK.d) whose pid
+# Native flock(1) when present; otherwise the noclobber-file lock (LOCK.lk, see above) whose pid
 # file lets a crashed holder's lock be reclaimed instead of wedging forever.
 p_flock() {
     local nb=0 lock rc
@@ -160,20 +220,13 @@ p_flock() {
         else ( flock 8 || exit 1; "$@" ) 8>>"$lock"; fi
         return $?
     fi
-    local dir="$lock.d" pid
-    while ! mkdir "$dir" 2>/dev/null; do
-        pid="$(cat "$dir/pid" 2>/dev/null)"
-        # Empty pid = holder is between mkdir and writing its pid: not stale.
-        if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
-            rm -rf "$dir"
-            continue
-        fi
+    local lk="$lock.lk"
+    until _p_lock_take "$lk"; do
         [ $nb = 1 ] && return 1
         sleep 0.2
     done
-    echo $$ >"$dir/pid"
     "$@"; rc=$?
-    rm -rf "$dir"
+    _p_lock_drop "$lk"
     return $rc
 }
 
@@ -183,11 +236,13 @@ p_flock() {
 #   -n      fail immediately (rc 1) if held
 #   -w SECS wait up to SECS, then rc 1
 #   (none)  wait forever
-# Native flock(1) when present; else the same mkdir(FILE.d)+pid lock as p_flock.
-# On the fallback path a holder that exits without p_lock_release leaves FILE.d
+# Native flock(1) when present; else the same noclobber-file lock (FILE.lk) as p_flock.
+# On the fallback path a holder that exits without p_lock_release leaves FILE.lk
 # behind; the next acquirer reclaims it once the holder pid is dead.
 p_lock_acquire() {
     local fd="$1" file="$2" mode="${3:-}" secs="${4:-}" rc
+    # fd reaches eval: digits only, >= 3 (0/1/2 are stdio; a leading 0 is not a valid fd spec)
+    case "$fd" in ''|*[!0-9]*|0*|1|2) echo "p_lock_acquire: bad fd '$fd' (need an integer >= 3)" >&2; return 2 ;; esac
     if _p_have flock; then
         eval "exec $fd>>\"\$file\"" || return 1
         case "$mode" in
@@ -199,30 +254,25 @@ p_lock_acquire() {
         [ $rc -eq 0 ] || eval "exec $fd>&-"
         return $rc
     fi
-    local dir="$file.d" pid tries=0 max=-1
+    local lk="$file.lk" tries=0 max=-1
     [ "$mode" = "-n" ] && max=0
     [ "$mode" = "-w" ] && max=$((secs * 5))
-    while ! mkdir "$dir" 2>/dev/null; do
-        pid="$(cat "$dir/pid" 2>/dev/null)"
-        if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
-            rm -rf "$dir"
-            continue
-        fi
+    until _p_lock_take "$lk"; do
         [ $max -ge 0 ] && [ $tries -ge $max ] && return 1
         tries=$((tries + 1))
         sleep 0.2
     done
-    echo $$ >"$dir/pid"
     return 0
 }
 
 p_lock_release() {
     local fd="$1" file="$2"
+    case "$fd" in ''|*[!0-9]*|0*|1|2) echo "p_lock_release: bad fd '$fd' (need an integer >= 3)" >&2; return 2 ;; esac
     if _p_have flock; then
         flock -u "$fd"
         eval "exec $fd>&-"
     else
-        rm -rf "$file.d"
+        _p_lock_drop "$file.lk"
     fi
 }
 
@@ -265,27 +315,35 @@ p_timeout() {
 }
 
 # ── realpath ─────────────────────────────────────────────────────────────────
-# p_realpath_m PATH — `realpath -m`: absolute, `.`/`..` collapsed, symlinks in the existing
-# part resolved, nonexistent tail allowed. (Plain `realpath PATH` → p_readlink_f.)
+# p_realpath_m PATH — `realpath -m`: absolute; every symlink resolved AS IT IS MET, before the next
+# `..` is applied (physical, like GNU — `root/link/..` is the PARENT OF LINK'S TARGET, not `root`);
+# nonexistent tail allowed. A lexical `..` collapse here let a symlink escape a containment check
+# (lint-heal.sh's allowlist) — Gate 3, t-3381. rc 1 on a symlink loop (>40 links).
 p_realpath_m() {
-    local p="$1" seg out="" res tail="" had_noglob=0 oldifs="$IFS"
-    case "$p" in /*) ;; *) p="$PWD/$p" ;; esac
-    case $- in *f*) had_noglob=1 ;; esac
-    set -f; IFS=/
-    for seg in $p; do
+    local in="$1" cur="/" rest seg next target links=0
+    [ -n "$in" ] || return 1
+    case "$in" in /*) rest="${in#/}" ;; *) rest="${PWD#/}/$in" ;; esac
+    while [ -n "$rest" ]; do
+        seg="${rest%%/*}"
+        if [ "$seg" = "$rest" ]; then rest=""; else rest="${rest#*/}"; fi
         case "$seg" in
-            ""|.) ;;
-            ..)   out="${out%/*}" ;;
-            *)    out="$out/$seg" ;;
+            ""|.) continue ;;
+            ..)   cur="${cur%/*}"; [ -n "$cur" ] || cur="/"; continue ;;
         esac
+        next="${cur%/}/$seg"
+        if [ -L "$next" ]; then
+            links=$((links + 1))
+            [ "$links" -gt 40 ] && { echo "p_realpath_m: too many symlinks: $in" >&2; return 1; }
+            target="$(readlink "$next")" || return 1
+            case "$target" in
+                /*) cur="/"; rest="${target#/}${rest:+/$rest}" ;;
+                *)  rest="$target${rest:+/$rest}" ;;
+            esac
+        else
+            cur="$next"
+        fi
     done
-    IFS="$oldifs"; [ $had_noglob -eq 1 ] || set +f
-    res="$out"
-    while [ -n "$res" ] && [ ! -e "$res" ]; do tail="/${res##*/}$tail"; res="${res%/*}"; done
-    [ -n "$res" ] || res=/
-    res="$(p_readlink_f "$res")" || return 1
-    res="${res%/}$tail"
-    printf '%s\n' "${res:-/}"
+    printf '%s\n' "$cur"
 }
 
 # p_relpath BASE PATH — `realpath --relative-to=BASE PATH` (both may be nonexistent).
@@ -325,4 +383,14 @@ p_now_ms() {
     esac
     if _p_have perl; then perl -MTime::HiRes=time -e 'printf "%d\n", time()*1000'
     else echo $(( $(date +%s) * 1000 )); fi
+}
+
+# ── touch ────────────────────────────────────────────────────────────────────
+# p_touch_at FILE EPOCH — set FILE's mtime (and atime) to EPOCH seconds, past or future.
+# `touch -d 'N days ago'` / `-d '+2 seconds'` are GNU-only (BSD touch -d wants ISO 8601);
+# `touch -t CCYYMMDDhhmm.SS` is the form both accept. Pair with p_date_d for "N days ago":
+#   p_touch_at "$f" "$(p_date_d '35 days ago')"
+p_touch_at() {
+    case "${2:-}" in ''|*[!0-9]*) echo "p_touch_at: EPOCH must be a non-negative integer, got '${2:-}'" >&2; return 2 ;; esac
+    touch -t "$(p_epoch_fmt "$2" %Y%m%d%H%M.%S)" "$1"
 }

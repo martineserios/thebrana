@@ -292,7 +292,7 @@ fn backend_available_with(override_: Option<&str>, path: &str) -> bool {
     }
 }
 
-fn scheduler_backend_available() -> bool {
+pub(crate) fn scheduler_backend_available() -> bool {
     let ov = std::env::var("BRANA_SCHEDULER_BACKEND").ok();
     backend_available_with(ov.as_deref(), &std::env::var("PATH").unwrap_or_default())
 }
@@ -331,7 +331,7 @@ pub fn cmd_ops_run(job_name: &str) -> anyhow::Result<()> {
 /// What `enable`/`disable` tells the user after `scheduler.json` was edited. Pure so the three
 /// outcomes are testable: no backend (nothing scheduled), timer changed (exit 0), timer change
 /// failed (the old code counted a merely-spawned `systemctl` as success).
-fn toggle_outcome(available: bool, enabled: bool, job_name: &str, systemctl_ok: bool) -> String {
+pub(crate) fn toggle_outcome(available: bool, enabled: bool, job_name: &str, systemctl_ok: bool) -> String {
     let (verb, done) = if enabled { ("start", "started") } else { ("stop", "stopped") };
     if !available {
         let state = if enabled { "enabled" } else { "disabled" };

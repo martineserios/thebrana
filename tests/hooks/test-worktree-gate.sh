@@ -110,6 +110,10 @@ echo "dirty" >> "$TMPDIR/repo/file.txt"
 
 assert_deny "checkout -b with uncommitted changes" "$(make_input 'git checkout -b feat/dirty')"
 assert_reason_contains "reason mentions worktree" "$(make_input 'git checkout -b feat/dirty')" "worktree"
+# t-3381: when the branch name cannot be extracted (a flag sits between checkout and -b) the suggestion
+# must carry a placeholder, not an empty name ("../<repo>- -b "). The old `|| echo "branch-name"`
+# fallback sat behind `| awk` (always rc 0) and never fired.
+assert_reason_contains "unextractable branch name -> placeholder, not empty" "$(make_input 'git checkout --no-track -b feat/dirty2')" 'worktree add ../<repo>-branch-name -b branch-name'
 
 # Staged but uncommitted
 git add file.txt 2>/dev/null

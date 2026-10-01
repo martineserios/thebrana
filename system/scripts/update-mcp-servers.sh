@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Weekly MCP server update — keeps pinned binaries fresh.
 # Scheduled: Sunday 3am via brana-scheduler.
 # Manual: bash system/scripts/update-mcp-servers.sh

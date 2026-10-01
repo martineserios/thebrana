@@ -166,9 +166,22 @@ pub fn parse_secrets(content: &str) -> BTreeMap<String, String> {
 /// `Command::arg` — never a shell string (challenger F1: reminder text is
 /// user-controlled and may contain shell metacharacters).
 fn desktop_command(message: &str) -> std::process::Command {
-    let mut cmd = std::process::Command::new("notify-send");
-    cmd.arg("-u").arg("normal").arg("brana reminder").arg(message);
-    cmd
+    desktop_command_for(std::env::consts::OS, message)
+}
+
+/// `os` is `std::env::consts::OS` (a parameter so both branches are testable on any host).
+/// macOS has no notify-send: use osascript, with the text passed via the environment (see the test).
+fn desktop_command_for(os: &str, message: &str) -> std::process::Command {
+    if os == "macos" {
+        let mut cmd = std::process::Command::new("osascript");
+        cmd.args(["-e", r#"display notification (system attribute "BRANA_MSG") with title "brana reminder""#]);
+        cmd.env("BRANA_MSG", message);
+        cmd
+    } else {
+        let mut cmd = std::process::Command::new("notify-send");
+        cmd.arg("-u").arg("normal").arg("brana reminder").arg(message);
+        cmd
+    }
 }
 
 /// Telegram sendMessage form params. `parse_mode` is deliberately omitted —
@@ -413,7 +426,33 @@ this line is not a kv pair
     }
 
     #[test]
-    fn desktop_command_passes_metachars_as_single_arg() {
+    fn desktop_command_uses_osascript_on_macos_and_keeps_text_out_of_argv_and_script() {
+    // The reminder text is user-controlled. Splicing it into the AppleScript is injection; passing it
+    // as an argv entry lets osascript parse a leading "-" as an option. So it travels in the
+    // ENVIRONMENT and the script reads it with `system attribute` — no parsing, no splicing.
+    let msg = r#"-e x" & (do shell script "touch /tmp/pwned") & ""#;
+    let cmd = desktop_command_for("macos", msg);
+    assert_eq!(cmd.get_program(), "osascript");
+    let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect();
+    assert!(args.iter().all(|a| !a.contains("pwned") && a != msg), "message leaked into argv: {args:?}");
+    assert!(args.iter().any(|a| a.contains(r#"system attribute "BRANA_MSG""#)), "{args:?}");
+    let env: Vec<(String, Option<String>)> = cmd
+        .get_envs()
+        .map(|(k, v)| (k.to_string_lossy().into_owned(), v.map(|x| x.to_string_lossy().into_owned())))
+        .collect();
+    assert!(env.contains(&("BRANA_MSG".to_string(), Some(msg.to_string()))), "{env:?}");
+}
+
+#[test]
+fn desktop_command_uses_notify_send_elsewhere() {
+    for os in ["linux", "freebsd", ""] {
+        let cmd = desktop_command_for(os, "hello");
+        assert_eq!(cmd.get_program(), "notify-send", "os={os:?}");
+    }
+}
+
+#[test]
+fn desktop_command_passes_metachars_as_single_arg() {
         // challenger F1: shell metacharacters must arrive literally — one arg,
         // no shell interpolation anywhere in the construction.
         let msg = "review '$(rm -rf ~)' && `echo pwned`; *";

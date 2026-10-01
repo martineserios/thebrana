@@ -42,6 +42,17 @@ sed BRE plus|sed 's/a\+/b/' f
 sed BRE space|sed -n 's/x\s*//p' f
 sed BRE alt|sed 's/a\|b/c/' f
 grep BRE alt|grep -q 'a\|b' f
+sed -E -i|sed -E -i 's/a/b/' f
+sed -ri|sed -ri 's/a/b/' f
+sed -n -i|sed -n -i 'p' f
+sed --in-place|sed --in-place 's/a/b/' f
+sed -i empty suffix (BSD form)|sed -i '' 's/a/b/' f
+sha1sum|printf x | sha1sum
+sha512sum|sha512sum f
+touch -d|touch -d '35 days ago' f
+touch --date|touch --date='1 day ago' f
+getent|h=$(getent passwd 0)
+nproc|n=$(nproc)
 CASES
 put s/bad.sh '# uses flock in a comment'; assert "full-line comment ignored" 0 "$(run)"
 put s/bad.sh 'date -d x +%s || true  # portable-ok: guarded BSD fallback below'; assert "portable-ok escape hatch" 0 "$(run)"
@@ -71,6 +82,9 @@ grep -qiE alt|grep -qiE 'a|b' f
 sed POSIX class|sed 's/[[:space:]]*$//' f
 sed literal backslash-n|sed 's/a/b\nc/' f
 timeout as a word in a string|echo "connect timeout exceeded"
+sed -i.bak (portable suffix form)|sed -i.bak 's/a/b/' f
+touch -t (portable)|touch -t 202401020304.05 f
+p_sha1 shim|p_sha1 f
 OKCASES
 
 
@@ -111,5 +125,16 @@ printf '# uses p_date_d via the lib\necho hi\n' >s/nosrc.sh; git add -A; assert 
 printf 'x=$(p_md5 f)  # portable-ok: sourced by the parent script\n' >s/nosrc.sh; git add -A; assert "passes: portable-ok on the use" 0 "$(run)"
 printf 'echo "p_timeout is documented"\n' >s/nosrc.sh; git add -A; assert "passes: prose in a string, no call shape" 0 "$(run)"
 rm -f s/nosrc.sh; git add -A
+
+
+# Shebang: `#!/bin/bash` (and /bin/sh) run the script under macOS's bash 3.2 when it is executed
+# directly (statusline, MCP wrapper), bypassing bootstrap's PATH-bash >= 4 preflight. Use
+# `#!/usr/bin/env bash`. No escape hatch: a trailing comment on a shebang is not portable.
+for sb in '#!/bin/bash' '#!/bin/sh'; do
+    printf '%s\necho hi\n' "$sb" >s/sb.sh; git add -A; assert "fires: shebang $sb" 1 "$(run)"
+done
+printf '#!/usr/bin/env bash\necho hi\n' >s/sb.sh; git add -A; assert "passes: #!/usr/bin/env bash" 0 "$(run)"
+printf '#!/bin/bash\necho hi\n' >s/sb noext; mv "s/sb noext" s/sbnoext; git add -A; assert "fires: extensionless script with #!/bin/bash" 1 "$(run)"
+rm -f s/sb.sh s/sbnoext; git add -A
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

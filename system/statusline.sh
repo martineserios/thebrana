@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ─── Claude Code Statusline ─────────────────────────────
 # 🧠 Model │ 📂 project │ 🌿 branch │ 🎯 epic │ 🪪 session │ CTX NN%
 

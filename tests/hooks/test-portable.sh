@@ -114,7 +114,7 @@ for mode in native bsd; do
     assert "$mode: lock reacquire after release" "0" "$(run_in $mode "p_lock_acquire 7 '$TMP/k2.lock' -n; echo \$?")"
     # stale lock (dead pid) must not wedge the fallback
     if [ "$mode" = bsd ]; then
-        mkdir "$TMP/l4.lock.d"; echo 999999 >"$TMP/l4.lock.d/pid"
+        echo 999999 >"$TMP/l4.lock.lk"
         assert "$mode: p_flock recovers stale lock" "ok" "$(run_in $mode "p_flock -n '$TMP/l4.lock' echo ok")"
     fi
 done
@@ -158,6 +158,96 @@ for mode in native bsd; do
         "$(a=$(run_in $mode "unset EPOCHREALTIME; p_now_ms"); b=$(( $(date +%s) * 1000 )); d=$(( a - b )); [ ${#a} -eq 13 ] && [ $d -gt -5000 ] && [ $d -lt 5000 ] && echo ok || echo "bad:$a")"
     assert "$mode: p_now_ms is epoch millis" "ok" "$(a=$(run_in $mode "p_now_ms"); b=$(( $(date +%s) * 1000 )); d=$(( a - b )); [ ${#a} -eq 13 ] && [ $d -gt -5000 ] && [ $d -lt 5000 ] && echo ok || echo "bad:$a")"
 done
+
+
+# ── Gate 3 fixes (t-3381) ──────────────────────────────────────────────────────────────────────
+# p_realpath_m must resolve symlinks BEFORE applying `..` (physical, like GNU realpath -m).
+# Lexical collapsing let `root/link/..` escape a containment check (lint-heal.sh allowlist).
+G="$TMP/g3"; mkdir -p "$G/outside/deep/dir" "$G/root" "$G/real/sub"
+ln -s "$G/outside/deep/dir" "$G/root/link"          # absolute symlink to a deep dir
+ln -s ../real "$G/root/rel"                          # relative symlink
+ln -s /nonexistent/zz "$G/root/dang"                 # dangling
+ln -s "$G/real/sub" "$G/root/chain1"; ln -s chain1 "$G/root/chain2"   # chain of links
+GR="$(cd "$G" && pwd -P)"
+for mode in native bsd; do
+    echo "--- gate 3: $mode ---"
+    assert "$mode: realpath_m  link/..  resolves the link first (the bypass)" "$GR/outside/deep/x" "$(run_in $mode "p_realpath_m '$G/root/link/../x'")"
+    assert "$mode: realpath_m  rel link/.." "$GR/x" "$(run_in $mode "p_realpath_m '$G/root/rel/../x'")"
+    assert "$mode: realpath_m  dangling link then child" "/nonexistent/zz/child" "$(run_in $mode "p_realpath_m '$G/root/dang/child'")"
+    assert "$mode: realpath_m  link chain" "$GR/real/sub" "$(run_in $mode "p_realpath_m '$G/root/chain2'")"
+    assert "$mode: realpath_m  .. past root" "/x" "$(run_in $mode "p_realpath_m '/../../x'")"
+    assert "$mode: realpath_m  double slashes and trailing slash" "$GR/real/sub" "$(run_in $mode "p_realpath_m '$G//real///sub/'")"
+    assert "$mode: realpath_m  symlink loop fails (rc 1), does not hang" "1" "$(ln -sfn "$G/root/loopb" "$G/root/loopa"; ln -sfn "$G/root/loopa" "$G/root/loopb"; run_in $mode "p_realpath_m '$G/root/loopa' >/dev/null 2>&1; echo \$?")"
+    assert "$mode: readlink_f on a path through a link and .." "$GR/real" "$(run_in $mode "p_readlink_f '$G/root/rel/sub/..'")"
+    assert "$mode: readlink_f missing parent fails (rc 1)" "1" "$(run_in $mode "p_readlink_f '$G/nope/x' >/dev/null 2>&1; echo \$?")"
+done
+# Oracle: where GNU realpath exists, the shim must agree with it on every case above.
+if command -v realpath >/dev/null 2>&1 && realpath -m / >/dev/null 2>&1; then
+    for c in "$G/root/link/../x" "$G/root/rel/../x" "$G/root/dang/child" "$G/root/chain2" "/../../x" "$G//real///sub/" "$G/real/sub/../../root/link/y" "$G/root/./rel/./sub"; do
+        assert "oracle: p_realpath_m == realpath -m for $(printf '%s' "$c" | sed "s|$G|G|")" "$(realpath -m "$c")" "$(run_in native "p_realpath_m '$c'")"
+    done
+fi
+
+# p_date_d: calendar validation (GNU `date -d 2026-02-31` fails; the shim used to return a garbage epoch)
+for bad in 2026-02-31 2026-13-01 2026-00-10 2026-04-31 2025-02-29 0000-00-00 2026-01-01T24:00:00 2026-01-01T10:60:00 2026-01-01T10:00:61; do
+    assert "p_date_d rejects $bad (rc 1)" "1" "$(run_in native "p_date_d '$bad' >/dev/null 2>&1; echo \$?")"
+done
+for good in 2024-02-29 2026-12-31 2026-01-01T23:59:59Z 2000-02-29; do
+    assert "p_date_d accepts $good" "0" "$(run_in native "p_date_d '$good' >/dev/null 2>&1; echo \$?")"
+done
+
+# p_sha1 (tasks-json-backup.sh slug hash: must stay the SAME algorithm or existing backup dirs are orphaned)
+for mode in native bsd; do
+    assert "$mode: p_sha1 file"  "f572d396fae9206628714fb2ce00f72e94f2258f" "$(run_in $mode "p_sha1 '$TMP/f.txt'")"
+    assert "$mode: p_sha1 stdin" "f572d396fae9206628714fb2ce00f72e94f2258f" "$(run_in $mode "printf 'hello\n' | p_sha1")"
+    assert "$mode: p_sha1 -> first 8 chars as the backup slug uses it" "f572d396" "$(run_in $mode "printf 'hello\n' | p_sha1 | cut -c1-8")"
+    # p_touch_at FILE EPOCH : touch -d 'N days ago' is GNU-only (BSD touch -d wants ISO); touch -t is portable
+    printf x >"$TMP/touch.$mode"
+    run_in $mode "p_touch_at '$TMP/touch.$mode' 1704164645" >/dev/null 2>&1
+    assert "$mode: p_touch_at sets the mtime to the epoch" "1704164645" "$(run_in $mode "p_stat_mtime '$TMP/touch.$mode'")"
+    assert "$mode: p_touch_at rejects a non-numeric epoch (rc 2)" "2" "$(run_in $mode "p_touch_at '$TMP/touch.$mode' 'yesterday' >/dev/null 2>&1; echo \$?")"
+    assert "$mode: p_touch_at can set a FUTURE mtime" "yes" "$(n=$(date +%s); run_in $mode "p_touch_at '$TMP/touch.$mode' $((n + 3600))" >/dev/null 2>&1; m=$(run_in $mode "p_stat_mtime '$TMP/touch.$mode'"); [ "$m" -gt "$n" ] && echo yes || echo no)"
+done
+echo -n 'hello' | sha1sum >/dev/null   # (sanity: oracle tool exists on this box)
+
+# p_lock_acquire: fd must be a literal fd >= 3 (it reaches eval)
+assert "lock: non-numeric fd rejected (rc 2)" "2" "$(run_in native "p_lock_acquire '9;echo PWNED' '$TMP/fd.lock' >/dev/null 2>&1; echo \$?")"
+assert "lock: a hostile fd string is never evaluated" "no" "$(run_in native "p_lock_acquire '9;echo PWNED' '$TMP/fd.lock' 2>&1" | grep -q '^PWNED$' && echo yes || echo no)"
+assert "lock: fd 1 (stdout) rejected" "2" "$(run_in native "p_lock_acquire 1 '$TMP/fd.lock' >/dev/null 2>&1; echo \$?")"
+assert "lock: fd 2 (stderr) rejected" "2" "$(run_in native "p_lock_acquire 2 '$TMP/fd.lock' >/dev/null 2>&1; echo \$?")"
+assert "lock: empty fd rejected" "2" "$(run_in native "p_lock_acquire '' '$TMP/fd.lock' >/dev/null 2>&1; echo \$?")"
+
+# mkdir-lock fallback (BSD PATH has no flock): stale/garbage/empty pid handling and the reclaim race
+L="$TMP/lk"; mkdir -p "$L"
+old() { touch -d '2 minutes ago' "$1"; }
+echo 0  >"$L/g1.lock.lk"; old "$L/g1.lock.lk"
+assert "bsd lock: pid '0' (kill -0 0 always succeeds) in an OLD lock file is garbage -> reclaimed" "0" "$(run_in bsd "p_lock_acquire 9 '$L/g1.lock' -n; echo \$?")"
+echo -1 >"$L/g2.lock.lk"; old "$L/g2.lock.lk"
+assert "bsd lock: pid '-1' in an OLD lock file -> reclaimed" "0" "$(run_in bsd "p_lock_acquire 9 '$L/g2.lock' -n; echo \$?")"
+: >"$L/g3.lock.lk"; old "$L/g3.lock.lk"
+assert "bsd lock: EMPTY pid in an OLD lock file (holder died before writing it) -> reclaimed, not wedged" "0" "$(run_in bsd "p_lock_acquire 9 '$L/g3.lock' -n; echo \$?")"
+: >"$L/g4.lock.lk"
+assert "bsd lock: EMPTY pid in a FRESH lock file (holder mid-acquire) -> still held, not stolen" "1" "$(run_in bsd "p_lock_acquire 9 '$L/g4.lock' -n; echo \$?")"
+echo 999999 >"$L/g5.lock.lk"; echo 1 >"$L/g5.lock.lk.reclaim"; old "$L/g5.lock.lk.reclaim"
+assert "bsd lock: a wedged OLD .reclaim file does not block reclaim forever" "0" "$(run_in bsd "p_lock_acquire 9 '$L/g5.lock' -n; echo \$?")"
+assert "bsd lock: release removes only OUR lock (a stolen-and-retaken lock is left alone)" "kept" \
+    "$(echo 4242 >"$L/g6.lock.lk"; run_in bsd "p_lock_release 9 '$L/g6.lock'" >/dev/null 2>&1; [ -f "$L/g6.lock.lk" ] && echo kept || echo removed)"
+# the race: a stale lock, many contenders -> exactly one holder at a time, all eventually get in.
+# The overlap detector is noclobber-based too: uutils mkdir (this box's default) is not a safe detector.
+echo 999999 >"$L/race.lock.lk"
+: >"$L/race.count"; : >"$L/race.violations"
+race_worker() {
+    PATH="$BSD_BIN" "$(command -v bash)" -c "
+        source '$LIB'
+        p_lock_acquire 9 '$L/race.lock' -w 20 || { echo NOACQ >>'$L/race.violations'; exit 0; }
+        if ! ( set -C; : >'$L/race.inside' ) 2>/dev/null; then echo OVERLAP >>'$L/race.violations'; fi
+        echo x >>'$L/race.count'; sleep 0.05
+        rm -f '$L/race.inside'
+        p_lock_release 9 '$L/race.lock'"
+}
+for _ in 1 2 3 4 5 6 7 8; do race_worker & done; wait
+assert "bsd lock race: all 8 contenders acquired" "8" "$(wc -l <"$L/race.count" | tr -d ' ')"
+assert "bsd lock race: never two holders at once, none starved" "0" "$(wc -l <"$L/race.violations" | tr -d ' ')"
 
 echo; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
