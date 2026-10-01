@@ -174,7 +174,7 @@ platform_preflight() {
         return 1
     fi
     if [ "$os" = "Darwin" ] && ! command -v flock >/dev/null 2>&1; then  # portable-ok: presence check, this is the warning itself
-        echo "WARN: flock(1) not found — shell locks fall back to mkdir locks that do not serialize against the brana CLI." >&2
+        echo "WARN: flock(1) not found — shell locks fall back to file-based locks that do not serialize against the brana CLI." >&2
         echo "  Recommended: brew install discoteq/discoteq/flock" >&2
     fi
     return 0

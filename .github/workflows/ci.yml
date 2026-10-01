@@ -176,6 +176,19 @@ jobs:
           bash tests/scripts/test-lint-portability.sh
           bash tests/scripts/test-run-test-suites.sh
 
+      # First real macOS run: `bootstrap.sh --check` exited 2 silently right after the "ruflo:" header.
+      # Trace the discovery function under bootstrap's own strictness (set -euo pipefail) to see why.
+      # Diagnostic only (continue-on-error); remove once the cause is fixed.
+      - name: Diagnose ruflo discovery under strict mode (temporary)
+        continue-on-error: true
+        run: |
+          bash --version | head -1
+          bash -x -c 'set -euo pipefail; source system/hooks/lib/ruflo-discovery.sh; CF_BIN="$(ruflo_find_bin || true)"; echo "found=[$CF_BIN]"' 2>&1 | tail -40
+          echo "exit=$?"
+          echo "--- PATH entries:"; printf '%s\n' "$PATH" | tr ':' '\n' | head -30
+          echo "--- bootstrap --check traced, last 25 lines:"
+          bash -x ./bootstrap.sh --check 2>&1 | tail -25 || true
+
       - name: Platform preflight (bootstrap.sh --check)
         run: |
           # pipefail: without it the step's status is tee's, and a failing `bootstrap --check` (e.g. the
