@@ -18,6 +18,7 @@ set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────
 # LINT_HEAL_MEMORY_ROOT overrides $HOME/.claude/projects (used in tests)
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 MEMORY_ROOT="${LINT_HEAL_MEMORY_ROOT:-$HOME/.claude/projects}"
 PATTERNS_FILE="${LINT_HEAL_PATTERNS_FILE:-$HOME/.claude/memory/patterns.md}"
 STAGING_FILE="${LINT_HEAL_STAGING_FILE:-$HOME/.claude/memory/knowledge-staging.md}"
@@ -76,24 +77,28 @@ dry_log() { echo "[DRY-RUN] would: $*" >&2; }
 # Refuse to write any path outside these prefixes.
 # Uses $HOME (not ~) throughout — realpath -m does not expand ~.
 assert_allowed() {
-    local path="$1"
-    local real_path
-    real_path=$(realpath -m "$path")
-    local -a allowed=(
-        "$(realpath -m "$HOME/.claude/projects")"
-        "$(realpath -m "$HOME/.claude/memory/archive")"
-        "$(realpath -m "$HOME/.claude/memory/pre-lint-heal")"
-        "$(realpath -m "$HOME/.claude/lint-heal-report.md")"
-        "$(realpath -m "$HOME/.swarm/lint-heal-state.json")"
-        "$(realpath -m "$HOME/.swarm/lint-heal.lock")"
+    local path="$1" real_path pfx r
+    # Fail CLOSED (t-3383): an unresolvable path or allow-list root used to yield an EMPTY string, and
+    # `[[ $x == "" * ]]` matches everything — one symlink loop under a root opened the whole guard.
+    real_path="$(p_realpath_m "$path")" || { echo "FATAL: cannot resolve path: $path" >&2; exit 1; }
+    local -a roots=(
+        "$HOME/.claude/projects"
+        "$HOME/.claude/memory/archive"
+        "$HOME/.claude/memory/pre-lint-heal"
+        "$HOME/.claude/lint-heal-report.md"
+        "$HOME/.swarm/lint-heal-state.json"
+        "$HOME/.swarm/lint-heal.lock"
     )
     # Also allow MEMORY_ROOT if it's been overridden (tests)
     if [[ "$MEMORY_ROOT" != "$HOME/.claude/projects" ]]; then
-        allowed+=("$(realpath -m "$MEMORY_ROOT")")
-        allowed+=("$(realpath -m "$HOME/.claude/memory")")
+        roots+=("$MEMORY_ROOT" "$HOME/.claude/memory")
     fi
-    for pfx in "${allowed[@]}"; do
-        [[ "$real_path" == "$pfx"* ]] && return 0
+    for r in "${roots[@]}"; do
+        pfx="$(p_realpath_m "$r")" || { echo "FATAL: cannot resolve allow-list root: '$r'" >&2; exit 1; }
+        # an empty or filesystem-root entry would allow everything
+        [[ -n "$pfx" && "$pfx" != "/" ]] || { echo "FATAL: unusable allow-list root: '$r'" >&2; exit 1; }
+        # compare on a PATH BOUNDARY: `projects-evil/x` must not pass for `projects`
+        [[ "$real_path" == "$pfx" || "$real_path" == "$pfx"/* ]] && return 0
     done
     echo "FATAL: write outside Layer 2 allow-list: $path" >&2
     exit 1
@@ -243,7 +248,7 @@ pass_dedup() {
             for p in "${paths[@]}"; do
                 [[ -f "$p" ]] || continue
                 local mtime
-                mtime=$(stat -c '%Y' "$p" 2>/dev/null || echo 9999999999)
+                mtime=$(p_stat_mtime "$p" 2>/dev/null || echo 9999999999)
                 if [[ "$mtime" -lt "$oldest_mtime" ]]; then
                     oldest_mtime=$mtime
                     oldest=$p
@@ -576,8 +581,8 @@ pass_staging_cap() {
     fi
 
     local warn_at cap count msg=""
-    warn_at=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oP 'warn-at: \K[0-9]+' || echo "20")
-    cap=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oP 'cap: \K[0-9]+' || echo "30")
+    warn_at=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oE 'warn-at: [0-9]+' | awk '{print $NF}' || echo "20")
+    cap=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oE 'cap: [0-9]+' | awk '{print $NF}' || echo "30")
     count=$(grep -c '^## ' "$STAGING_FILE" || true)
 
     if [[ "$count" -ge "$cap" ]]; then

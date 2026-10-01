@@ -9,6 +9,10 @@ on:
   # dev->main PR (t-3023 tier-2 valve).
   workflow_dispatch:
 
+# Least privilege (Gate 3, t-3383): none of these jobs writes to the repo or needs a token beyond read.
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -100,42 +104,102 @@ jobs:
           cargo build --release -p brana-cli
           echo "$PWD/target/release" >> "$GITHUB_PATH"
 
+      # The loop lives in system/scripts/run-test-suites.sh (t-3376) so the macOS job shares it
+      # (stock macOS has no timeout(1)); its behaviour is the loop that used to be inline here:
+      # per-suite 300s ceiling, stdin from /dev/null, helper libs skipped, all failures listed.
       - name: Run tests
+        run: bash system/scripts/run-test-suites.sh tests/*/*.sh
+
+  # macOS (t-3376) — ADVISORY: not a required check on main, and continue-on-error keeps a red run
+  # from failing the workflow while still showing a red job. Promote it to required (branch
+  # protection) once it has been green on a few runs.
+  #
+  # The environment is a *stock Mac + Homebrew bash + jq* on purpose: NO flock(1), NO coreutils
+  # (no timeout/gtimeout). That is what the portable.sh fallbacks exist for — the noclobber-file lock and
+  # the p_timeout watchdog — so those are what this job exercises. Nothing here installs a GNU tool
+  # to make a test pass; a red test means a real portability gap.
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # macOS ships bash 3.2; hooks run as `bash <script>` and 9 scripts need bash >= 4 (t-3378).
+      - name: Homebrew bash + jq first on PATH
         run: |
-          FAIL=0
-          FAILED_TESTS=""
-          # Explicit one-level glob: CI runs bash without globstar, so `tests/**/*.sh`
-          # already expanded to exactly this. Spelled out so the pattern is not
-          # misread as recursive.
-          for test in tests/*/*.sh; do
-            # Skip sourced helper libraries — they define functions and are not
-            # standalone tests (tests/hooks/_helpers.sh, tests/lib/*).
-            case "$test" in
-              */_*) echo "=== Skipping helper $test ==="; continue ;;
-              tests/lib/*) echo "=== Skipping helper $test ==="; continue ;;
-            esac
-            echo "=== Running $test ==="
-            # Per-suite ceiling so one hang names itself instead of stalling the
-            # job (t-3023). 124 is timeout(1)'s exit code.
-            # stdin from /dev/null: a suite that (even indirectly) reads stdin
-            # blocks forever on the runner's open, never-closing stdin — that is
-            # how test-validate-reference-check.sh hung run 33873752281 with
-            # orphan brana|jq processes (t-3023).
-            if timeout 300 bash "$test" </dev/null; then
-              echo "--- PASSED ---"
-            else
-              rc=$?
-              if [ "$rc" -eq 124 ]; then echo "--- TIMED OUT (300s) ---"; else echo "--- FAILED (exit $rc) ---"; fi
-              FAIL=1
-              FAILED_TESTS="$FAILED_TESTS $test"
-            fi
-            echo ""
+          brew install bash jq
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: system/cli/rust
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Show the environment (what is absent matters as much as what is present)
+        run: |
+          bash --version | head -1
+          for c in bash jq git python3 node uv cargo rsync flock timeout gtimeout; do
+            printf '%-10s' "$c"; command -v "$c" || echo "(absent)"
           done
-          if [ -n "$FAILED_TESTS" ]; then
-            echo "Failed tests:"
-            for t in $FAILED_TESTS; do echo "  - $t"; done
+          # macOS 15.4+ swapped rsync for openrsync, whose option set differs — bootstrap.sh drives
+          # `rsync -a --delete --itemize-changes`, so record which one this runner has.
+          rsync --version 2>&1 | head -2
+
+      # The whole point of this job is the fallbacks (mkdir-free lock, p_timeout watchdog). If the
+      # runner image ever ships flock/timeout/gtimeout the job would go green on the GNU fast path
+      # and test nothing — so fail loudly instead of passing for the wrong reason.
+      - name: Assert the environment is stock (fallbacks are what is under test)
+        run: |
+          bad=0
+          for c in flock timeout gtimeout; do
+            if command -v "$c" >/dev/null 2>&1; then
+              echo "::error::$c is present ($(command -v "$c")) — the BSD fallbacks would go untested"
+              bad=1
+            fi
+          done
+          [ "$bad" -eq 0 ]
+
+      # Fast, no-build signals first.
+      - name: Portability lint
+        run: bash system/scripts/lint-portability.sh
+
+      - name: Shim + runner tests
+        run: |
+          bash tests/hooks/test-portable.sh
+          bash tests/scripts/test-lint-portability.sh
+          bash tests/scripts/test-run-test-suites.sh
+
+      - name: Platform preflight (bootstrap.sh --check)
+        run: |
+          # pipefail: without it the step's status is tee's, and a failing `bootstrap --check` (e.g. the
+          # bash >= 4 preflight) could never fail this step.
+          set -o pipefail
+          ./bootstrap.sh --check 2>&1 | tee /tmp/bootstrap-check.log
+          # (On a fresh runner --check reports many pending changes and still exits 0. It used to die
+          # silently with exit 2 on an empty HOME — t-3385 — which is what this step caught first.)
+          # A failing rsync dry-run (e.g. openrsync without --itemize-changes) makes --check report
+          # changes forever though the real deploy works: surface it, don't fail the job for it.
+          if grep -q 'dry-run failed' /tmp/bootstrap-check.log; then
+            echo "::warning::bootstrap --check: rsync dry-run failed on this runner (see the rsync version above)"
           fi
-          exit $FAIL
+
+      - name: Build brana CLI (release) and put it on PATH
+        working-directory: system/cli/rust
+        run: |
+          cargo build --release -p brana-cli
+          echo "$PWD/target/release" >> "$GITHUB_PATH"
+
+      - name: Run test suites
+        run: |
+          bash system/scripts/run-test-suites.sh \
+            tests/*/*.sh system/hooks/tests/*.sh system/scripts/tests/*.sh
 
   rust:
     runs-on: ubuntu-latest

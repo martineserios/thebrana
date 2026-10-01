@@ -13,6 +13,7 @@ set -euo pipefail
 # Keeps last 7 dated copies. Skips 0-byte source files.
 
 # Resolve DB path: ~/.swarm (current ruflo default) > ~/.claude-flow (legacy)
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 if [ -d "${HOME}/.swarm" ]; then
     DB_DIR="${RUFLO_DATA_DIR:-$HOME/.swarm}"
 elif [ -d "${HOME}/.claude-flow" ]; then
@@ -94,7 +95,7 @@ cmd_backup() {
     fi
 
     local size
-    size=$(stat -c%s "$DB_FILE" 2>/dev/null) || size=0
+    size=$(p_stat_size "$DB_FILE" 2>/dev/null) || size=0
     if [ "$size" -eq 0 ]; then
         log "skip — $DB_FILE is 0 bytes (corrupt). Not overwriting good backups."
         exit 0
@@ -142,7 +143,7 @@ cmd_restore() {
             exit 1
         fi
         local size
-        size=$(stat -c%s "$specific" 2>/dev/null) || size=0
+        size=$(p_stat_size "$specific" 2>/dev/null) || size=0
         if [ "$size" -eq 0 ]; then
             log "error — backup $target_date is 0 bytes"
             exit 1
@@ -158,7 +159,7 @@ cmd_restore() {
     local latest=""
     for f in $(find "$BACKUP_DIR" -name "memory_*.db" -type f 2>/dev/null | sort -r); do
         local size
-        size=$(stat -c%s "$f" 2>/dev/null) || size=0
+        size=$(p_stat_size "$f" 2>/dev/null) || size=0
         if [ "$size" -gt 0 ] && db_is_healthy "$f"; then
             latest="$f"
             break
@@ -171,7 +172,7 @@ cmd_restore() {
     fi
 
     local size
-    size=$(stat -c%s "$latest" 2>/dev/null) || size=0
+    size=$(p_stat_size "$latest" 2>/dev/null) || size=0
     cp "$latest" "$DB_FILE"
     log "restored: $(basename "$latest") ($size bytes)"
 }
@@ -185,7 +186,7 @@ cmd_list() {
     echo "Available backups:"
     find "$BACKUP_DIR" -name "memory_*.db" -type f 2>/dev/null | sort | while read -r f; do
         local size
-        size=$(stat -c%s "$f" 2>/dev/null) || size=0
+        size=$(p_stat_size "$f" 2>/dev/null) || size=0
         local name
         name=$(basename "$f")
         if [ "$size" -eq 0 ]; then

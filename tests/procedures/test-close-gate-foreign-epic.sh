@@ -29,6 +29,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -76,9 +77,9 @@ echo ""
 #
 # Bug (pre-fix): LAST_CLOSE = the foreign close's written_at (newest overall),
 # so `git log --since=$LAST_CLOSE` only sees the last 2 commits, not all 13.
-OWN_COMMIT_DATE="$(date -d '3 hours ago' --iso-8601=seconds)"
-FOREIGN_TS="$(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
-OWN_TAIL_DATE="$(date -d '5 minutes ago' --iso-8601=seconds)"
+OWN_COMMIT_DATE="$(p_date_d '3 hours ago' %Y-%m-%dT%H:%M:%S+00:00)"
+FOREIGN_TS="$(p_date_d '10 minutes ago' %Y-%m-%dT%H:%M:%SZ)"
+OWN_TAIL_DATE="$(p_date_d '5 minutes ago' %Y-%m-%dT%H:%M:%S+00:00)"
 
 mkdir -p "$TMPROOT/bin"
 cat > "$TMPROOT/bin/brana" <<FAKE
@@ -110,7 +111,7 @@ if [ "\$1" = "backlog" ] && [ "\$2" = "get" ]; then
 fi
 exit 0
 FAKE
-sed -i "s|__FOREIGN_TS__|$FOREIGN_TS|g" "$TMPROOT/bin/brana"
+p_sed_i "s|__FOREIGN_TS__|$FOREIGN_TS|g" "$TMPROOT/bin/brana"
 chmod +x "$TMPROOT/bin/brana"
 
 FAKE_HOME="$TMPROOT/home"

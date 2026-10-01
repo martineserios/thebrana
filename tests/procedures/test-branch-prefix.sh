@@ -133,7 +133,7 @@ done
 echo "=== start.md must reference the authority, not restate a mapping (AC1) ==="
 START_MD="$REPO_ROOT/system/skills/backlog/phases/start.md"
 TOTAL=$((TOTAL + 1))
-if grep -q "branch-prefix.md\|resolve_branch_prefix" "$START_MD"; then
+if grep -qE "branch-prefix.md|resolve_branch_prefix" "$START_MD"; then
     echo "  PASS: start.md references the shared authority"
     PASS=$((PASS + 1))
 else

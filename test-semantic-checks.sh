@@ -331,7 +331,7 @@ echo ""
 echo "Check D: step registry consistency..."
 
 output=$(check_step_registry "$FIXTURES/skills/guided-ok/SKILL.md" 2>&1) || true
-if echo "$output" | grep -q "FAIL\|WARN"; then
+if echo "$output" | grep -qE "FAIL|WARN"; then
     fail "guided-ok should have no issues (got: $output)"
 else
     pass "guided-ok: steps match sections"
@@ -358,7 +358,7 @@ fi
 
 # Non-guided skill should skip silently
 output=$(check_step_registry "$FIXTURES/skills/good-skill/SKILL.md" 2>&1) || true
-if echo "$output" | grep -q "FAIL\|WARN"; then
+if echo "$output" | grep -qE "FAIL|WARN"; then
     fail "good-skill (non-guided) should be skipped silently (got: $output)"
 else
     pass "good-skill: non-guided skill skipped"

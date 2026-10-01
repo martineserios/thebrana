@@ -2,6 +2,7 @@
 set -euo pipefail
 # The ledger carries task text that can be sensitive: everything this script creates
 # (dirs, copies, pre-restore copies) is owner-only from the moment it exists — no chmod-after.
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 umask 077
 
 # tasks-json-backup.sh — Rotating backup of a repo's live backlog ledger (ADR-094, t-3326 interim).
@@ -56,7 +57,7 @@ else
 fi
 # Key by resolved path, not bare basename (Gate 3 security finding, 2026-09-07): two repos named
 # alike must never share — or restore across — a backup dir.
-SLUG="$(basename "$common_root")-$(printf '%s' "$common_root" | sha1sum | cut -c1-8)"
+SLUG="$(basename "$common_root")-$(printf '%s' "$common_root" | p_sha1 | cut -c1-8)"
 DEST="$BACKUP_ROOT/$SLUG"
 MARKER="$DEST/.repo"
 
@@ -79,7 +80,7 @@ case "$MODE" in
         n=$( [ -f "$LEDGER" ] && count_tasks "$LEDGER" || echo missing )
         nb=$(newest_backup)
         if [ -n "$nb" ]; then
-            age=$(( $(date +%s) - $(stat -c %Y "$nb") ))
+            age=$(( $(date +%s) - $(p_stat_mtime "$nb") ))
             echo "ledger: $LEDGER · $n tasks · newest backup $(basename "$nb") ($(count_tasks "$nb") tasks, $((age/60)) min ago)"
             bn=$(count_tasks "$nb")
             if [ "$n" = "missing" ] || [ "$n" = "invalid" ] || { [ "$bn" != "invalid" ] && [ "$n" -lt $(( bn / 2 )) ]; }; then

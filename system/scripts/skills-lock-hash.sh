@@ -13,6 +13,7 @@
 # Prints the hex digest on stdout. Exit 1 if the directory has no files.
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 skill_dir="${1:?usage: skills-lock-hash.sh <skill-dir>}"
 [ -d "$skill_dir" ] || { echo "not a directory: $skill_dir" >&2; exit 1; }
 
@@ -27,7 +28,7 @@ hash=$(
   while IFS= read -r f; do
     printf '%s' "$f"
     cat -- "$f"
-  done <<< "$files" | sha256sum | awk '{print $1}'
+  done <<< "$files" | p_sha256
 )
 
 echo "$hash"

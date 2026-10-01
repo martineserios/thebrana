@@ -139,8 +139,10 @@ assert_eq "null literals from jq --field degrade safely" "yes" \
 
 echo "=== AC: the runner's waits are still the ones the formula models ==="
 # Guards against the formula drifting away from the runner it is meant to bound.
-assert_eq "runner still waits with flock -w \$LOCK_WAIT_SECS" "yes" \
-    "$(grep -q 'flock -w "\$LOCK_WAIT_SECS"' "$RUNNER" && echo yes || echo no)"
+# t-3374: the runner acquires via the portable p_lock_acquire (native flock -w on Linux,
+# mkdir-lock with the same bounded wait on macOS) — the bounded wait itself must survive.
+assert_eq "runner still waits with a bounded lock wait (-w \$LOCK_WAIT_SECS)" "yes" \
+    "$(grep -q 'p_lock_acquire 9 "\$LOCKFILE" -w "\$LOCK_WAIT_SECS"' "$RUNNER" && echo yes || echo no)"
 assert_eq "runner still backs off RETRY_BACKOFF * 2^(n-1)" "yes" \
     "$(grep -q 'RETRY_BACKOFF \* (1 << (ATTEMPT - 1))' "$RUNNER" && echo yes || echo no)"
 assert_eq "runner still skips the lock for noProjectLock" "yes" \

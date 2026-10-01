@@ -16,6 +16,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
@@ -53,7 +54,7 @@ done
 [ -z "$BAD" ]; check "T4: every rule declares paths: or always-load:" $? "$BAD"
 
 # T5 — bootstrap --check mentions rules
-OUT=$(cd "$REPO_ROOT" && timeout 60 ./bootstrap.sh --check 2>/dev/null | grep -i "rules" | head -2)
+OUT=$(cd "$REPO_ROOT" && p_timeout 60 ./bootstrap.sh --check 2>/dev/null | grep -i "rules" | head -2)
 [[ "$OUT" == *"rules"* ]]; check "T5: bootstrap --check reports rules deployment" $? "$OUT"
 
 echo ""

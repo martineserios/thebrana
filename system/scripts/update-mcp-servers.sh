@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Weekly MCP server update — keeps pinned binaries fresh.
 # Scheduled: Sunday 3am via brana-scheduler.
 # Manual: bash system/scripts/update-mcp-servers.sh
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 LOG="$HOME/.claude/mcp-update.log"
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
@@ -55,9 +56,9 @@ log "MCP server update complete"
 
 # Health check: warn if last update is >14 days old
 if [ -f "$LOG" ]; then
-    LAST_OK=$(grep "update complete" "$LOG" | tail -1 | grep -oP '\d{4}-\d{2}-\d{2}' | head -1)
+    LAST_OK=$(grep "update complete" "$LOG" | tail -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
     if [ -n "$LAST_OK" ]; then
-        DAYS_AGO=$(( ($(date +%s) - $(date -d "$LAST_OK" +%s 2>/dev/null || echo 0)) / 86400 )) 2>/dev/null || DAYS_AGO=0
+        DAYS_AGO=$(( ($(date +%s) - $(p_date_d "$LAST_OK" 2>/dev/null || echo 0)) / 86400 )) 2>/dev/null || DAYS_AGO=0
         if [ "$DAYS_AGO" -gt 14 ]; then
             log "ALERT: Last successful update was $DAYS_AGO days ago"
         fi

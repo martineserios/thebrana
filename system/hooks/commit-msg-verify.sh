@@ -32,9 +32,9 @@ esac
 
 # Extract the commit message from -m "..." or -m '...'
 # Handles: git commit -m "msg", git commit -m 'msg', git commit ... -m "$(cat <<'EOF' ... EOF)"
-MSG=$(echo "$command" | grep -oP '(?<=-m\s)"[^"]*"' | head -1 | tr -d '"')
+MSG=$(echo "$command" | grep -oE -- '-m[[:space:]]+"[^"]*"' | head -1 | sed -E 's/^-m[[:space:]]+//' | tr -d '"')
 if [ -z "$MSG" ]; then
-    MSG=$(echo "$command" | grep -oP "(?<=-m\s)'[^']*'" | head -1 | tr -d "'")
+    MSG=$(echo "$command" | grep -oE -- "-m[[:space:]]+'[^']*'" | head -1 | sed -E 's/^-m[[:space:]]+//' | tr -d "'")
 fi
 if [ -z "$MSG" ]; then
     # No parseable inline message (e.g. heredoc, --reuse-message) — skip

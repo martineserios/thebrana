@@ -8,6 +8,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CARGO_DIR="$SCRIPT_DIR/../cli/rust"
 REPORT="/tmp/brana-dep-versions.txt"
@@ -97,7 +98,7 @@ npm_latest() {
                 status=$(classify_update "$local_ver" "$latest")
                 printf "%-20s %-12s %-12s %s\n" "$local_name" "$local_ver" "$latest" "$status"
             fi
-        done < <(sed -n '/^\[workspace\.dependencies\]/,/^\[/p' "$CARGO_DIR/Cargo.toml" | head -n -1 | tail -n +2)
+        done < <(sed -n '/^\[workspace\.dependencies\]/,/^\[/p' "$CARGO_DIR/Cargo.toml" | sed '$d' | tail -n +2)
     else
         echo "(no Cargo.toml found at $CARGO_DIR)"
     fi
@@ -131,7 +132,7 @@ npm_latest() {
     for pjson_dir in "$SCRIPT_DIR/.." "$SCRIPT_DIR/../.."; do
         pjson="$pjson_dir/package.json"
         if [ -f "$pjson" ]; then
-            echo "## npm Dependencies ($(realpath "$pjson_dir"))"
+            echo "## npm Dependencies ($(p_readlink_f "$pjson_dir"))"
             echo ""
             (cd "$pjson_dir" && npm outdated --long 2>/dev/null) || echo "(npm outdated failed or no deps)"
             echo ""

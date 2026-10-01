@@ -17,6 +17,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 FAKE_HOME="$(mktemp -d /tmp/t1938-home-XXXX)"
@@ -66,7 +67,7 @@ fi
 RS_DIR="$FAKE_HOME/run-state-2"
 mkdir -p "$RS_DIR"
 echo "2026-06-10T00:00:00Z testproj L1 store failed (exit 1)" > "$RS_DIR/persist-failures.log"
-OUT=$(BRANA_RUN_STATE_DIR="$RS_DIR" BRANA_SCHED_STATUS=/nonexistent timeout 60 bash -c \
+OUT=$(BRANA_RUN_STATE_DIR="$RS_DIR" BRANA_SCHED_STATUS=/nonexistent p_timeout 60 bash -c \
     "echo '{\"session_id\":\"t1938-test\",\"cwd\":\"$REPO_ROOT\",\"hook_event_name\":\"SessionStart\",\"matcher\":\"startup\"}' | bash '$REPO_ROOT/system/hooks/session-start.sh'" 2>/dev/null | head -1)
 assert_contains "T2: persist failure surfaced at session start" "Memory persist" "$OUT"
 TOTAL=$((TOTAL+1))
@@ -82,7 +83,7 @@ cat > "$SCHED" <<'EOF'
 {"good-job": {"status": "SUCCESS", "exit_code": 0, "timestamp": "2026-06-10T08:00:00-03:00"},
  "broken-job": {"status": "FAILURE", "exit_code": 1, "timestamp": "2026-06-09T19:17:20-03:00"}}
 EOF
-OUT=$(BRANA_RUN_STATE_DIR="$RS_DIR" BRANA_SCHED_STATUS="$SCHED" timeout 60 bash -c \
+OUT=$(BRANA_RUN_STATE_DIR="$RS_DIR" BRANA_SCHED_STATUS="$SCHED" p_timeout 60 bash -c \
     "echo '{\"session_id\":\"t1938-test2\",\"cwd\":\"$REPO_ROOT\",\"hook_event_name\":\"SessionStart\",\"matcher\":\"startup\"}' | bash '$REPO_ROOT/system/hooks/session-start.sh'" 2>/dev/null | head -1)
 assert_contains "T3: failing scheduler job surfaced" "broken-job" "$OUT"
 

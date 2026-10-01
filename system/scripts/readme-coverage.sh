@@ -29,7 +29,7 @@ done
 while read -r p; do
   case "$p" in /*) continue ;; esac   # absolute path — not a docs/-relative link, skip
   [ -e "docs/$p" ] || { gaps=$((gaps+1)); [ $quiet = 1 ] || echo "DEAD $p"; }
-done < <(grep -o '\]([^)]*\.md\(#[^)]*\)\?)' "$README" | sed 's/^](//; s/)$//; s/#.*$//' | grep -v '^http' | grep -v '^\.\./' | sort -u)
+done < <(grep -oE '\]\([^)]*\.md(#[^)]*)?\)' "$README" | sed 's/^](//; s/)$//; s/#.*$//' | grep -v '^http' | grep -v '^\.\./' | sort -u)
 if [ $gaps -eq 0 ]; then [ $quiet = 1 ] || echo "OK: README covers every ADR and feature doc; no dead links"; exit 0; fi
 [ $quiet = 1 ] || echo "$gaps gap(s)"
 exit 1

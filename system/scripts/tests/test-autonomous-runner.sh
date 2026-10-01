@@ -5,6 +5,7 @@
 # (zero mutations). No network, no real backlog, no claude call.
 set -u
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../hooks/lib/portable.sh"
 REPO="$(git rev-parse --show-toplevel 2>/dev/null || echo "$(cd "$(dirname "$0")/../../.." && pwd)")"
 RUNNER="$REPO/system/scripts/autonomous-runner.sh"
 
@@ -25,7 +26,7 @@ cat > "$FIX" <<'EOF'
  {"id":"t-9005","subject":"eligible two","status":"pending","execution":"autonomous","priority":"P3","blocked_by":[]}
 ]
 EOF
-FIX_SUM_BEFORE="$(md5sum "$FIX" | awk '{print $1}')"
+FIX_SUM_BEFORE="$(p_md5 "$FIX")"
 LEDGER="$TMP/ledger.jsonl"
 
 RUNNER_TASKS_JSON="$FIX" RUNNER_PLAN=0 RUNNER_LEDGER="$LEDGER" RUNNER_MAX_TASKS=5 \
@@ -46,7 +47,7 @@ ok "t-9004 non-autonomous -> excluded" '[ "$(decision t-9004)" = "excluded" ] &&
 
 # Observe invariant: no mutation decisions ever emitted, fixture untouched.
 ok "no mutation decisions in ledger" '! jq -r .decision "$LEDGER" | grep -qE "^(done|completed|merged|parked)$"'
-ok "task source unchanged (read-only)" '[ "$(md5sum "$FIX" | awk "{print \$1}")" = "$FIX_SUM_BEFORE" ]'
+ok "task source unchanged (read-only)" '[ "$(p_md5 "$FIX")" = "$FIX_SUM_BEFORE" ]'
 
 # Bounds: batch cap.
 LEDGER2="$TMP/ledger2.jsonl"

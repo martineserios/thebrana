@@ -4,6 +4,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../session-start.sh"
 PASS=0
@@ -66,7 +67,7 @@ run_hook() {
         CLAUDE_ENV_FILE="${CLAUDE_ENV_FILE:-}" \
         BRANA_RECAP_OFF="" \
         $extra_env \
-        timeout -k 2 15 bash "$HOOK" >"$out_file" 2>/dev/null
+        p_timeout -k 2 15 bash "$HOOK" >"$out_file" 2>/dev/null
     raw=$(cat "$out_file" 2>/dev/null)
     rm -f "$out_file"
     # The hook's own PIDS wait-loop budgets ~8s worst case (t-2622 comment in
@@ -569,7 +570,7 @@ assert_continue "No lock file → hook continues normally" \
 REPO_CQ="$TMPDIR/cq-proj"
 mkdir -p "$REPO_CQ"
 
-CQ_OLD=$(date -u -d '4 days ago' +%Y-%m-%dT%H:%M:%SZ)
+CQ_OLD=$(p_date_d '4 days ago' %Y-%m-%dT%H:%M:%SZ)
 CQ_FRESH=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 cq_entry() { # $1=id $2=timestamp $3=processed
@@ -594,6 +595,37 @@ if echo "$OUT_CQ" | jq -r '.additionalContext // ""' 2>/dev/null | grep -q "Clos
 else
     echo "  PASS: Fresh close-queue entry → no dead-man warning"
     PASS=$((PASS + 1))
+fi
+
+# t-3375: host with no scheduler backend — the nag must name the real situation, not "cron dead"
+printf '{"version":1,"entries":[%s]}' "$(cq_entry cq4 "$CQ_OLD" false)" \
+    > "$FAKE_HOME/.claude/close-queue.json"
+CTX_NOSCHED=$(BRANA_SCHEDULER_BACKEND=none run_hook "$(make_session_input "sess-cq-nosched" "$REPO_CQ")" | jq -r '.additionalContext // ""' 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if echo "$CTX_NOSCHED" | grep -q "Close queue" && echo "$CTX_NOSCHED" | grep -q "no scheduler" && ! echo "$CTX_NOSCHED" | grep -q "cron dead"; then
+    echo "  PASS: No scheduler backend → close-queue nag says so (not 'cron dead')"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: No scheduler backend → close-queue nag says so (not 'cron dead') — got: $(echo "$CTX_NOSCHED" | grep 'Close queue' | cut -c1-200)"; FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if echo "$CTX_NOSCHED" | grep -q "close-extraction.sh"; then
+    echo "  PASS: No scheduler backend → nag names the manual extraction command"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: No scheduler backend → nag names the manual extraction command"; FAIL=$((FAIL + 1))
+fi
+CTX_SCHED=$(BRANA_SCHEDULER_BACKEND=systemd run_hook "$(make_session_input "sess-cq-sched" "$REPO_CQ")" | jq -r '.additionalContext // ""' 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if echo "$CTX_SCHED" | grep -q "extraction cron dead"; then
+    echo "  PASS: Scheduler backend present → original 'cron dead' wording unchanged"; PASS=$((PASS + 1))
+else
+    echo "  FAIL: Scheduler backend present → original 'cron dead' wording unchanged"; FAIL=$((FAIL + 1))
+fi
+printf '{"version":1,"entries":[%s]}' "$(cq_entry cq5 "$CQ_FRESH" false)" > "$FAKE_HOME/.claude/close-queue.json"
+TOTAL=$((TOTAL + 1))
+if BRANA_SCHEDULER_BACKEND=none run_hook "$(make_session_input "sess-cq-nosched-fresh" "$REPO_CQ")" | jq -r '.additionalContext // ""' 2>/dev/null | grep -q "Close queue"; then
+    echo "  FAIL: No scheduler backend + fresh entry → still no warning"; FAIL=$((FAIL + 1))
+else
+    echo "  PASS: No scheduler backend + fresh entry → still no warning"; PASS=$((PASS + 1))
 fi
 
 # old but processed entry → no warning

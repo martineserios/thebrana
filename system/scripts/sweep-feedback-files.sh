@@ -14,6 +14,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 MEMORY_DIR="${HOME}/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory"
 ARCHIVE_DIR="${MEMORY_DIR}/archive"
 DRY_RUN=false
@@ -53,7 +54,7 @@ while IFS= read -r file; do
     # Check access time (atime) — days since last access
     if command -v stat &>/dev/null; then
         # Linux stat
-        atime_epoch=$(stat -c %X "$file" 2>/dev/null) || atime_epoch=0
+        atime_epoch=$(p_stat_atime "$file" 2>/dev/null) || atime_epoch=0
         now_epoch=$(date +%s)
         age_days=$(( (now_epoch - atime_epoch) / 86400 ))
     else
@@ -73,7 +74,7 @@ while IFS= read -r file; do
     fi
 
     ARCHIVED=$((ARCHIVED + 1))
-done < <(find "$MEMORY_DIR" -maxdepth 1 -name "feedback_*.md" -printf '%A@\t%p\n' 2>/dev/null | sort -n | cut -f2)
+done < <(find "$MEMORY_DIR" -maxdepth 1 -name "feedback_*.md" 2>/dev/null | while IFS= read -r _f; do printf '%s\t%s\n' "$(p_stat_atime "$_f")" "$_f"; done | sort -n | cut -f2)
 
 echo ""
 echo "Done: ${ARCHIVED} archived, ${SKIPPED} skipped (< ${STALE_DAYS}d old)"

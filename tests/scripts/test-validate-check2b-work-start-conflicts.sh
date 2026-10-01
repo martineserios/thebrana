@@ -25,6 +25,7 @@ mkdir -p "$TMPROOT/system/rules" "$TMPROOT/system/hooks" \
          "$TMPROOT/system/skills" "$TMPROOT/system/agents" \
          "$TMPROOT/system/commands" "$TMPROOT/system/scripts"
 cp "$REPO_ROOT/validate.sh" "$TMPROOT/validate.sh"
+mkdir -p "$TMPROOT/system/hooks/lib" && cp "$REPO_ROOT/system/hooks/lib/portable.sh" "$TMPROOT/system/hooks/lib/portable.sh"
 cp "$REPO_ROOT/system/scripts/validate-remedies.sh" "$TMPROOT/system/scripts/validate-remedies.sh"
 
 assert_check2b_passes() {

@@ -37,9 +37,11 @@ alias bv='brana version'
 # These bypass Python entirely for maximum speed in scripts/pipelines
 
 _brana_rust_dir() {
-    local dir
+    local dir here
+    # portable-ok: macOS>=12.3 readlink supports -f; this file is sourced into zsh, where the bash-only portable.sh cannot load
+    here="$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")"  # portable-ok: see above
     for dir in \
-        "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/rust/target/release" \
+        "$here/rust/target/release" \
         "$HOME/.local/bin"; do
         [ -x "$dir/brana-query" ] && echo "$dir" && return 0
     done
@@ -75,7 +77,7 @@ bfqf() {
     [ -f "$tasks_file" ] || { echo "tasks.json not found"; return 1; }
 
     local themes_file
-    themes_file="$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/themes.json"
+    themes_file="$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/themes.json"  # portable-ok: see _brana_rust_dir
 
     "$rust_dir/brana-query" --file "$tasks_file" "${args[@]}" \
         | "$rust_dir/brana-fmt" --theme "$theme" --themes-file "$themes_file"

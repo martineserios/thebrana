@@ -8,6 +8,7 @@
 # 4. Non-cascade failures don't create flags
 # 5. Graceful degradation: missing flag dir doesn't break hooks
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOKS_DIR="$(cd "$SCRIPT_DIR/../../system/hooks" && pwd)"
 PASS=0
@@ -68,7 +69,7 @@ assert_file_not_exists() {
 flag_path() {
     local session="$1" filepath="$2"
     local hash
-    hash=$(echo -n "$filepath" | md5sum 2>/dev/null | cut -c1-12)
+    hash=$(echo -n "$filepath" | p_md5 2>/dev/null | cut -c1-12)
     echo "/tmp/brana-cascade/${session}-${hash}"
 }
 

@@ -21,6 +21,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0; FAIL=0; TOTAL=0
 
 assert_eq() {
@@ -134,7 +135,7 @@ assert_eq "case-insensitive"    "yes"     "$(parse_sibling_verdict 'siblings: YE
 echo "=== judge_area_weight: 30-day window + prefix match; absent file -> 0 ==="
 LOG="$TMPDIR_T/escaped.jsonl"
 recent=$(date +%Y-%m-%d)
-old=$(date -d '45 days ago' +%Y-%m-%d)
+old=$(p_date_d '45 days ago' %Y-%m-%d)
 cat > "$LOG" <<EOF
 {"date":"$recent","area":"system/cli/rust/crates/brana-core","signal":"probe","rung_armed":2,"verified_findings":1,"cost_tokens":100}
 {"date":"$recent","area":"system/hooks","signal":"probe","rung_armed":2,"verified_findings":1,"cost_tokens":100}
@@ -230,7 +231,7 @@ else
     echo "  FAIL: gate has no control_arm contract"; FAIL=$((FAIL + 1))
 fi
 TOTAL=$((TOTAL + 1))
-if grep -q 'judge-sizing.md\|resolve_judge_rung' "$GATE_MD"; then
+if grep -qE 'judge-sizing.md|resolve_judge_rung' "$GATE_MD"; then
     echo "  PASS: gate references the sizing authority (never restates the ladder)"; PASS=$((PASS + 1))
 else
     echo "  FAIL: gate does not reference judge-sizing.md"; FAIL=$((FAIL + 1))

@@ -74,13 +74,13 @@ SCAN=$(echo "$COMMAND" | sed "s/'[^']*'//g; s/\"[^\"]*\"//g")
 BRANCH=""
 if echo "$SCAN" | grep -qE 'git\s+worktree\s+add\s'; then
     # -b may sit anywhere after `add` (path usually precedes it).
-    BRANCH=$(echo "$SCAN" | sed -n 's/.*git[[:space:]]\+worktree[[:space:]]\+add[[:space:]]\+.*-b[[:space:]]\+\([^[:space:]]*\).*/\1/p')
+    BRANCH=$(echo "$SCAN" | sed -nE 's/.*git[[:space:]]+worktree[[:space:]]+add[[:space:]]+.*-b[[:space:]]+([^[:space:]]*).*/\1/p')
 elif echo "$SCAN" | grep -qE 'git\s+(switch\s+-c|checkout\s+-b)\s'; then
-    BRANCH=$(echo "$SCAN" | sed -n 's/.*git[[:space:]]\+\(switch[[:space:]]\+-c\|checkout[[:space:]]\+-b\)[[:space:]]\+\([^[:space:]]*\).*/\2/p')
+    BRANCH=$(echo "$SCAN" | sed -nE 's/.*git[[:space:]]+(switch[[:space:]]+-c|checkout[[:space:]]+-b)[[:space:]]+([^[:space:]]*).*/\2/p')
 elif echo "$SCAN" | grep -qE 'git\s+branch\s+[a-zA-Z0-9_]' && ! echo "$SCAN" | grep -qE '[|;&>]'; then
     # git branch <name> [start-point] — first non-flag arg is the name
     # Exclude piped/chained commands (git branch | grep ...) which are reads, not creates
-    BRANCH=$(echo "$SCAN" | sed -n 's/.*git[[:space:]]\+branch[[:space:]]\+\([^-][^[:space:]]*\).*/\1/p')
+    BRANCH=$(echo "$SCAN" | sed -nE 's/.*git[[:space:]]+branch[[:space:]]+([^-][^[:space:]]*).*/\1/p')
 fi
 
 [ -n "$BRANCH" ] || pass_through

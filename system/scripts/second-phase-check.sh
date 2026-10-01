@@ -11,6 +11,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TASKS_FILE="$PROJECT_DIR/.claude/tasks.json"
@@ -33,8 +34,8 @@ CHECKED=0
 # Helper: days between two dates (YYYY-MM-DD)
 days_between() {
     local d1 d2
-    d1=$(date -d "$1" +%s 2>/dev/null) || return 1
-    d2=$(date -d "$2" +%s 2>/dev/null) || return 1
+    d1=$(p_date_d "$1" 2>/dev/null) || return 1
+    d2=$(p_date_d "$2" 2>/dev/null) || return 1
     echo $(( (d2 - d1) / 86400 ))
 }
 

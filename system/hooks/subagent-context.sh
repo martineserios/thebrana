@@ -7,6 +7,7 @@
 # Output: stdout JSON {"continue": true, "additionalContext": "..."}
 
 # Resolve our own dir BEFORE cd (t-2988 class): a relative invocation would otherwise leave it empty.
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
 cd /tmp 2>/dev/null || true
 
@@ -66,7 +67,7 @@ fi
 # a poisoned one stays small). An installed brana older than this source rejects the flag; say so
 # on stderr instead of silently injecting nothing (bootstrap.sh prints the rebuild command).
 _ERRF=$(mktemp 2>/dev/null) || _ERRF=/dev/null
-DECISIONS=$(cd "$GIT_ROOT" && timeout 5 "$BRANA" decisions read --relevant 2>"$_ERRF" | head -3) || true
+DECISIONS=$(cd "$GIT_ROOT" && p_timeout 5 "$BRANA" decisions read --relevant 2>"$_ERRF" | head -3) || true
 if [ -z "$DECISIONS" ] && grep -q -i -E "unexpected argument|unrecognized" "$_ERRF" 2>/dev/null; then
   echo "[subagent-context] installed brana lacks 'decisions read --relevant'; decision injection is off until the binary is rebuilt (see bootstrap.sh 7d)" >&2
 fi

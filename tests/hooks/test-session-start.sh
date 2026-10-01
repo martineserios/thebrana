@@ -57,10 +57,16 @@ assert_valid_json() {
 # says nothing about the code under test? Threshold is 2x the core count: the
 # hook is mostly waiting on subprocesses, so it tolerates a load equal to nproc
 # without trouble (measured: 34/34 green at load 17-19 on 8 cores).
+# Core count / 1-minute load, with macOS fallbacks (no nproc, no /proc/loadavg there).
+_cores() { nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null; }   # portable-ok: nproc first, sysctl (macOS) fallback
+_load1() {
+    cut -d' ' -f1 /proc/loadavg 2>/dev/null \
+        || sysctl -n vm.loadavg 2>/dev/null | awk '{print $2}'   # macOS: "{ 1.23 1.45 1.50 }"
+}
 _severely_loaded() {
     local cores load
-    cores=$(nproc 2>/dev/null) || cores=""
-    load=$(cut -d' ' -f1 /proc/loadavg 2>/dev/null | cut -d. -f1) || load=""
+    cores=$(_cores) || cores=""
+    load=$(_load1 | cut -d. -f1) || load=""
     case "${cores}${load}" in *[!0-9]*|"") return 1 ;; esac
     [ "$load" -gt $(( cores * 2 )) ]
 }
@@ -79,10 +85,10 @@ assert_timing() {
         # Deliberately neither PASS nor FAIL: a timing sample taken under
         # thrashing is missing data, and counting it as a pass would let a real
         # regression through whenever CI happened to be busy.
-        echo "  SKIP: $label — took ${elapsed}ms (max ${max_ms}ms) at load $(cut -d' ' -f1 /proc/loadavg) on $(nproc) cores; machine oversubscribed >2x, wall-clock not meaningful"
+        echo "  SKIP: $label — took ${elapsed}ms (max ${max_ms}ms) at load $(_load1) on $(_cores) cores; machine oversubscribed >2x, wall-clock not meaningful"
     else
         FAIL=$((FAIL + 1))
-        echo "  FAIL: $label — took ${elapsed}ms, max ${max_ms}ms (load $(cut -d' ' -f1 /proc/loadavg), $(nproc) cores)"
+        echo "  FAIL: $label — took ${elapsed}ms, max ${max_ms}ms (load $(_load1), $(_cores) cores)"
     fi
 }
 
@@ -325,7 +331,7 @@ fi
 # has to be edited every time a parallel job is added or removed.
 echo ""
 echo "Test 15: parallel wait budget is bounded and under the hook budget"
-BUDGET=$(grep -oP 'REMAINING_MS=\$\(\(\K\d+' "$HOOKS_DIR/session-start.sh" 2>/dev/null | head -1) || BUDGET=""
+BUDGET=$(grep -oE 'REMAINING_MS=\$\(\([0-9]+' "$HOOKS_DIR/session-start.sh" 2>/dev/null | grep -oE '[0-9]+$' | head -1) || BUDGET=""
 if [ -n "$BUDGET" ] && [ "$BUDGET" -gt 0 ] && [ "$BUDGET" -le 8000 ]; then
     PASS=$((PASS + 1))
     echo "  PASS: wait budget is ${BUDGET}ms (bounded, <= 8000ms)"

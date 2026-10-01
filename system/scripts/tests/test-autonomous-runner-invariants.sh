@@ -6,6 +6,7 @@
 # live tree, a concurrent batch).
 set -u
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../hooks/lib/portable.sh"
 RUNNER_SRC="$(git rev-parse --show-toplevel 2>/dev/null)/system/scripts/autonomous-runner.sh"
 [ -f "$RUNNER_SRC" ] || { echo "FAIL: runner not found"; exit 1; }
 
@@ -93,7 +94,7 @@ mkfifo "${R}.fifo"
 # Holder = ONE process (read is a builtin → no child to orphan) that takes the exclusive lock,
 # signals via ${R}.held, then blocks on the FIFO. Killed cleanly at the end; stdout to /dev/null
 # so it never holds the suite's pipe.
-( exec 9>"${R}.lock"; flock -n 9 || exit 1; : > "${R}.held"; read -r _ <"${R}.fifo" ) >/dev/null 2>&1 &
+( p_lock_acquire 9 "${R}.lock" -n || exit 1; : > "${R}.held"; read -r _ <"${R}.fifo" ) >/dev/null 2>&1 &
 HOLDER=$!
 held=0; for _ in $(seq 1 500); do [ -f "${R}.held" ] && { held=1; break; }; done
 ( cd "$R"; env RUNNER_SANDBOX=0 CLAUDE_BIN="$STUB" RUNNER_TASKS_JSON="${R}.fix.json" RUNNER_PLAN=1 \
@@ -104,6 +105,7 @@ ok "concurrency: lock was actually held during the test" '[ "$held" = "1" ]'
 ok "concurrency: locked-out batch ran nothing" '[ ! -s "${R}.ledger.jsonl" ] || [ "$(led_count "${R}.ledger.jsonl" ran)" = "0" ]'
 ok "concurrency: locked-out batch created no branches" '! ( cd "$R"; git branch | grep -q runner/auto )'
 kill "$HOLDER" 2>/dev/null; wait "$HOLDER" 2>/dev/null   # single process, no orphan
+rm -f "${R}.lock.lk"   # noclobber-lock fallback leaves its file when the holder is killed (native flock: no-op)
 rm -rf "$R" "${R}".*
 
 rm -rf "$STUBDIR"

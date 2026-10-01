@@ -22,6 +22,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -79,7 +80,7 @@ mkdir -p "$FIX"
 git -C "$FIX" init -q
 git -C "$FIX" config user.email t@t.t
 git -C "$FIX" config user.name t
-OLD_DATE="$(date -d '3 days ago' --iso-8601=seconds 2>/dev/null || echo '2026-01-01T00:00:00')"
+OLD_DATE="$(p_date_d '3 days ago' %Y-%m-%dT%H:%M:%S+00:00 2>/dev/null || echo '2026-01-01T00:00:00')"
 echo base > "$FIX/f.txt"; git -C "$FIX" add -A
 GIT_AUTHOR_DATE="$OLD_DATE" GIT_COMMITTER_DATE="$OLD_DATE" git -C "$FIX" commit -qm base
 for i in 1 2 3; do

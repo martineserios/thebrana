@@ -43,6 +43,7 @@ fi
 
 # Locate Rust CLI binary
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 USE_RUST=false
 [ -x "$BRANA" ] && USE_RUST=true
@@ -124,8 +125,7 @@ else
     # independent of the --file bypass). Sidecar naming matches
     # PathBuf::with_extension("json.lock") in brana-core/src/util.rs exactly.
     LOCK_FILE="${FILE_PATH%.json}.json.lock"
-    exec 8>"$LOCK_FILE"
-    flock -x 8
+    p_lock_acquire 8 "$LOCK_FILE"
 
     ROLLUP_NEEDED=$(jq -r '
       [.tasks[] | select(.parent != null)] as $children |
@@ -149,7 +149,7 @@ else
 
         for PID in "${PARENTS_TO_COMPLETE[@]}"; do
             [ -z "$PID" ] && continue
-            jq --arg pid "$PID" --arg today "$TODAY" --arg now "$(date -Iseconds)" '
+            jq --arg pid "$PID" --arg today "$TODAY" --arg now "$(p_date_iso)" '
               .tasks |= map(
                 if .id == $pid then
                   .status = "completed" | .completed = $today
@@ -168,8 +168,7 @@ else
         fi
         rm -f "$TMP_FILE"
     fi
-    flock -u 8
-    exec 8>&-
+    p_lock_release 8 "$LOCK_FILE"
 fi
 
 # ── Step 4: Write statusline cache (async, non-blocking) ─

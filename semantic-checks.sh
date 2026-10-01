@@ -6,6 +6,7 @@
 # Functions do NOT increment global counters — the caller does that.
 
 # Known CC tool names (word-boundary matched in skill bodies)
+source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
 KNOWN_TOOLS="Read Write Edit Glob Grep Bash Agent AskUserQuestion WebSearch WebFetch EnterPlanMode ExitPlanMode TaskCreate TaskUpdate TaskList TaskGet TaskOutput TaskStop NotebookEdit Skill SendMessage LSP"
 
 # Valid enum values
@@ -69,7 +70,7 @@ if tools:
     # Does NOT match bare prose usage (e.g., "Read the docs", "Write a report")
     local body_tools=""
     for tool in $KNOWN_TOOLS; do
-        if echo "$body" | grep -qP "\`${tool}\`|(?<![a-zA-Z])${tool}\s*:|(?<![a-zA-Z])${tool}\s*\(|\"${tool}\""; then
+        if echo "$body" | grep -qE "\`${tool}\`|(^|[^a-zA-Z])${tool}[[:space:]]*:|(^|[^a-zA-Z])${tool}[[:space:]]*\(|\"${tool}\""; then
             body_tools="$body_tools $tool"
         fi
     done
@@ -127,7 +128,7 @@ check_file_path_references() {
     # Extract markdown link paths: [text](path)
     # Only match relative paths (not http/https/mailto/anchors)
     local paths
-    paths=$(echo "$prose" | grep -oP '\]\(\K[^)]+' | grep -v '^https\?://' | grep -v '^mailto:' | grep -v '^#') || true
+    paths=$(echo "$prose" | grep -oE '\]\([^)]+' | sed 's/^](//' | grep -vE '^https?://' | grep -v '^mailto:' | grep -v '^#') || true
 
     [ -z "$paths" ] && return 0
 
@@ -143,19 +144,19 @@ check_file_path_references() {
         esac
         # Skip template-style doc references like "NN-slug.md" without directory
         # that appear in [doc NN](NN-slug.md) patterns (no directory = template)
-        if echo "$ref_path" | grep -qP '^[0-9]+-[a-z].*\.md$' && [[ "$ref_path" != */* ]]; then
+        if echo "$ref_path" | grep -qE '^[0-9]+-[a-z].*\.md$' && [[ "$ref_path" != */* ]]; then
             continue
         fi
         # Resolve relative to skill directory
         local resolved
-        resolved=$(cd "$skill_dir" && realpath -m "$ref_path" 2>/dev/null) || resolved=""
+        resolved=$(cd "$skill_dir" && p_realpath_m "$ref_path" 2>/dev/null) || resolved=""
         if [ -n "$resolved" ] && [ -e "$resolved" ]; then
             continue  # file exists, no problem
         fi
         # For cross-repo references (../../), try resolving from repo root's parent
         if [[ "$ref_path" == ../../* ]] && [ -n "$repo_root" ]; then
             local workspace_resolved
-            workspace_resolved=$(cd "$skill_dir" && realpath -m "$ref_path" 2>/dev/null | sed "s|$(realpath -m "$skill_dir")/../../|$(dirname "$repo_root")/|") || workspace_resolved=""
+            workspace_resolved=$(cd "$skill_dir" && p_realpath_m "$ref_path" 2>/dev/null | sed "s|$(p_realpath_m "$skill_dir")/../../|$(dirname "$repo_root")/|") || workspace_resolved=""
             if [ -n "$workspace_resolved" ] && [ -e "$workspace_resolved" ]; then
                 continue  # cross-repo file exists
             fi
@@ -247,13 +248,13 @@ check_step_registry() {
 
     # Parse step names (comma or space separated, after the colon)
     local registered_steps
-    registered_steps=$(echo "$steps_line" | sed 's/.*Register these steps:\s*//' | tr -d '.' | tr ',' '\n' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
+    registered_steps=$(echo "$steps_line" | sed 's/.*Register these steps:[[:space:]]*//' | tr -d '.' | tr ',' '\n' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
 
     [ -z "$registered_steps" ] && return 0
 
     # Extract all ## and ### headers (the sections in the skill body)
     local all_headers
-    all_headers=$(echo "$body" | grep -P '^#{2,3}\s+' || true)
+    all_headers=$(echo "$body" | grep -E '^#{2,3}[[:space:]]+' || true)
 
     # Check: each registered step should appear (case-insensitive substring) in at least one header
     # This handles patterns like:
@@ -265,7 +266,7 @@ check_step_registry() {
         # Convert hyphenated step names: SCAN-SPECS → "scan.specs" for flexible matching
         local pattern
         pattern=$(echo "$step" | tr '[:upper:]' '[:lower:]' | sed 's/-/[ -]/g')
-        if ! echo "$all_headers" | grep -qiP "$pattern"; then
+        if ! echo "$all_headers" | grep -qiE "$pattern"; then
             echo "  WARN: skills/$skill_name — registered step '$step' has no matching section header"
         fi
     done <<< "$registered_steps"

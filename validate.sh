@@ -3,6 +3,7 @@ set -euo pipefail
 shopt -s nullglob  # TRAP: never store --include=*glob in a scalar var — use a bash array (see Check 50)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
 SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
@@ -521,7 +522,7 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
         if echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
             # Old format: resolve plugin root
             SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$SYSTEM_DIR|g")
-        elif echo "$cmd" | grep -q '\$HOME\|'"$HOME"; then
+        elif echo "$cmd" | grep -qE '\$HOME|'"$HOME"; then
             # New deployed-path format: expand $HOME
             SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\$HOME|$HOME|g")
             # Fall back to the repo copy when the deployed copy is absent (t-2485).
@@ -599,7 +600,7 @@ if [ -d "$HOOK_LIB_DIR" ]; then
         for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
             [ -f "$hook_script" ] || continue
             hook_name=$(basename "$hook_script")
-            if grep -q 'resolve_lookup_dir\|extract_git_c_dir' "$hook_script"; then
+            if grep -qE 'resolve_lookup_dir|extract_git_c_dir' "$hook_script"; then
                 if grep -q 'git-helpers.sh' "$hook_script"; then
                     pass "hooks/$hook_name — sources git-helpers.sh"
                 else
@@ -738,7 +739,7 @@ ACTUAL_HOOKS=$(ls "$SYSTEM_DIR"/hooks/*.sh 2>/dev/null | wc -l | tr -d ' ')
 COUNT_DRIFT=0
 while IFS= read -r doc; do
     [ -f "$doc" ] || continue
-    docname=$(realpath --relative-to="$DOCS_DIR" "$doc" 2>/dev/null || basename "$doc")
+    docname=$(p_relpath "$DOCS_DIR" "$doc" 2>/dev/null || basename "$doc")
 
     while IFS=: read -r linenum num component; do
         [ -z "$component" ] && continue
@@ -1022,7 +1023,7 @@ check_assumption_freshness() {
         [ -z "$verified_date" ] && continue
         ASSUMPTION_CHECKED=$((ASSUMPTION_CHECKED + 1))
         local verified_epoch
-        verified_epoch=$(date -d "$verified_date" +%s 2>/dev/null || echo "0")
+        verified_epoch=$(p_date_d "$verified_date" 2>/dev/null || echo "0")
         [ "$verified_epoch" = "0" ] && continue
 
         # Per-row tier overrides doc-level tier when present
@@ -1111,9 +1112,9 @@ check_changelog_currency() {
 
     # Compare: if file was modified after the last changelog entry, flag it
     local commit_epoch
-    commit_epoch=$(date -d "$last_commit_date" +%s 2>/dev/null || echo "0")
+    commit_epoch=$(p_date_d "$last_commit_date" 2>/dev/null || echo "0")
     local changelog_epoch
-    changelog_epoch=$(date -d "$last_changelog_date" +%s 2>/dev/null || echo "0")
+    changelog_epoch=$(p_date_d "$last_changelog_date" 2>/dev/null || echo "0")
 
     if [ "$commit_epoch" -gt "$((changelog_epoch + 86400))" ]; then
         warn "Changelog stale in $label — last commit $last_commit_date, last changelog entry $last_changelog_date"
@@ -1156,7 +1157,7 @@ check_status_consistency() {
     local age=$((NOW_EPOCH - mod_epoch))
     if [ "$age" -gt "$TWELVE_MONTHS" ]; then
         local last_date
-        last_date=$(date -d "@$mod_epoch" +%Y-%m-%d 2>/dev/null)
+        last_date=$(p_epoch_fmt "$mod_epoch" %Y-%m-%d 2>/dev/null)
         warn "Status drift in $label — status: active but last modified $last_date (>12 months). Consider status: historic"
         STALE_ACTIVE=$((STALE_ACTIVE + 1))
     fi
@@ -1266,7 +1267,7 @@ PYEOF
 
     # Parse: last line is the count, preceding lines are details
     ISSUE_COUNT=$(echo "$INTEGRITY_ISSUES" | tail -1)
-    ISSUE_DETAILS=$(echo "$INTEGRITY_ISSUES" | head -n -1)
+    ISSUE_DETAILS=$(echo "$INTEGRITY_ISSUES" | sed '$d')
 
     if [ -n "$ISSUE_DETAILS" ]; then
         echo "$ISSUE_DETAILS"
@@ -1580,7 +1581,7 @@ UNWRAPPED_BRANA=$(
     {
         grep -rn '"$BRANA[^"]*" [a-z]' "$HOOK_DIR"/*.sh 2>/dev/null
         grep -rn '^\s*brana [a-z]' "$HOOK_DIR"/*.sh 2>/dev/null
-    } | grep -v '/lib/\|/tests/' \
+    } | grep -vE '/lib/|/tests/' \
       | grep -v ':[[:space:]]*#' \
       | grep -v 'cd ["\$]' \
     || true
@@ -2107,7 +2108,7 @@ if [ -f "$HJ" ]; then
         # Detect continue:false in non-comment, non-pass_through lines
         hits=$(grep -n '"continue"[[:space:]]*:[[:space:]]*false\|echo.*continue.*false' \
             "$SCRIPT_RESOLVED" 2>/dev/null \
-            | grep -v ':[[:space:]]*#\|pass_through\|# .*continue' \
+            | grep -vE ':[[:space:]]*#|pass_through|# .*continue' \
             || true)
         if [ -n "$hits" ]; then
             C47_HITS="${C47_HITS}  ${SCRIPT_NAME}:
@@ -2298,7 +2299,7 @@ echo "Check 54: build.md loop-suggestion step (ADR-050)..."
 BUILD_BODY54=$(effective_body build)
 if [ -z "$BUILD_BODY54" ]; then
     warn "Check 54: build effective body empty — skipping"
-elif grep -q "loop.*suggest\|suggest.*loop\|loop suggestion" <<< "$BUILD_BODY54" && grep -q "L/XL\|XL.*only\|effort.*L\|large.*build" <<< "$BUILD_BODY54"; then
+elif grep -qE "loop.*suggest|suggest.*loop|loop suggestion" <<< "$BUILD_BODY54" && grep -qE "L/XL|XL.*only|effort.*L|large.*build" <<< "$BUILD_BODY54"; then
     pass "Check 54: build body contains loop-suggestion step gated to L/XL effort"
 else
     fail "Check 54: build.md missing loop-suggestion step gated to L/XL effort (ADR-050 §Protocol, t-731)"
@@ -2331,7 +2332,7 @@ echo "Check 56: build.md loop-suggestion durable:false constraint (ADR-050)..."
 BUILD_BODY56=$(effective_body build)
 if [ -z "$BUILD_BODY56" ]; then
     warn "Check 56: build effective body empty — skipping"
-elif grep -q "durable.*false\|durable: false" <<< "$BUILD_BODY56"; then
+elif grep -qE "durable.*false|durable: false" <<< "$BUILD_BODY56"; then
     pass "Check 56: build body loop-suggestion states durable:false"
 else
     fail "Check 56: build.md loop-suggestion missing durable:false constraint — all skill-suggested loops must be session-scoped (ADR-050 §Protocol)"
@@ -2934,6 +2935,24 @@ else
     else
         printf '%s\n' "$C75_OUT" | sed 's/^/  /'
         fail "Check 75: private state file(s) tracked or not gitignored in a public repo — see above (t-3352)"
+    fi
+fi
+echo ""
+
+# Check 76: shell scripts (tests included) must use portable.sh shims, not GNU-only forms (t-3374)
+# flock / date -d / sha256sum / md5sum / stat -c / sed -i / readlink -f / grep -P break on macOS
+# (BSD userland). Escape hatch per line: `# portable-ok: <reason>`. Second-tier GNU-isms
+# (timeout, realpath, bash-4 features) are tracked separately under epic t-3372.
+echo "Checking production scripts use portable shims (t-3374)..."
+C76_SCRIPT="$SCRIPT_DIR/system/scripts/lint-portability.sh"
+if [ ! -f "$C76_SCRIPT" ]; then
+    fail "Check 76: $C76_SCRIPT is missing — the portability guard cannot run (t-3374)"
+else
+    if C76_OUT=$(bash "$C76_SCRIPT" "$SCRIPT_DIR" 2>&1); then
+        pass "Check 76: no GNU-only forms in shell scripts, tests included (use system/hooks/lib/portable.sh)"
+    else
+        printf '%s\n' "$C76_OUT" | sed 's/^/  /'
+        fail "Check 76: GNU-only forms in production scripts — use p_* shims or add '# portable-ok: reason' (t-3374)"
     fi
 fi
 echo ""

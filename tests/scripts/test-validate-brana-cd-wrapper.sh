@@ -22,7 +22,7 @@ check30() {
     {
         /usr/bin/grep -rn '"$BRANA[^"]*" [a-z]' "$hook_dir"/*.sh 2>/dev/null
         /usr/bin/grep -rn '^\s*brana [a-z]' "$hook_dir"/*.sh 2>/dev/null
-    } | /usr/bin/grep -v '/lib/\|/tests/' \
+    } | /usr/bin/grep -vE '/lib/|/tests/' \
       | /usr/bin/grep -v ':[[:space:]]*#' \
       | /usr/bin/grep -v 'cd ["\$]' \
     || true

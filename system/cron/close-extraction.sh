@@ -23,7 +23,7 @@ set -uo pipefail
 
 # systemd/cron environments may not export HOME — everything below
 # (stores, summaries, write_reminder) depends on it (t-1979 #6).
-: "${HOME:=$(getent passwd "$(id -u)" | cut -d: -f6)}"
+: "${HOME:=$(cd ~ 2>/dev/null && pwd)}"   # bash resolves ~ from the passwd entry when HOME is unset — no lookup tool needed, works on macOS
 export HOME
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

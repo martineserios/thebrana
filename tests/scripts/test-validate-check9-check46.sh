@@ -91,7 +91,7 @@ check9_classify_cmd() {
     local SCRIPT_RESOLVED
     if echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
         SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$system_dir|g")
-    elif echo "$cmd" | grep -q '\$HOME\|'"$home_dir"; then
+    elif echo "$cmd" | grep -qE '\$HOME|'"$home_dir"; then
         SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\$HOME|$home_dir|g")
     else
         echo "fail:unknown-format:$SCRIPT_NAME"

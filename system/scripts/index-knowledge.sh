@@ -17,6 +17,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimensions}"
 THEBRANA_DIR="${BRANA_THEBRANA_DIR:-$HOME/enter_thebrana/thebrana}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -274,7 +275,7 @@ else
             key=$(echo "$line" | jq -r '.key')
             value=$(echo "$line" | jq -r '.value')
             tags=$(echo "$line" | jq -r '.tags | join(",")')
-            output=$(cd "$HOME" && timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
+            output=$(cd "$HOME" && p_timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
             if [[ "$output" == *"stored successfully"* ]]; then
                 STORED=$((STORED + 1))
             else
@@ -307,8 +308,8 @@ if ! echo "$INDEXER_OUTPUT" | grep -q "Index Complete"; then
     echo "ERROR: truncated indexer run — no completion summary in output (killed mid-run?)" >&2
     exit 1
 fi
-STORED_N=$(echo "$INDEXER_OUTPUT" | grep -oP 'Stored:\s+\K\d+' | tail -1 || true)
-BULK_ERRORS=$(echo "$INDEXER_OUTPUT" | grep -oP 'Errors:\s+\K\d+' | tail -1 || true)
+STORED_N=$(echo "$INDEXER_OUTPUT" | grep -oE 'Stored:[[:space:]]+[0-9]+' | awk '{print $NF}' | tail -1 || true)
+BULK_ERRORS=$(echo "$INDEXER_OUTPUT" | grep -oE 'Errors:[[:space:]]+[0-9]+' | awk '{print $NF}' | tail -1 || true)
 BULK_ERRORS="${BULK_ERRORS:-0}"
 if [ -z "$STORED_N" ] || [ $((STORED_N + BULK_ERRORS)) -lt "$TOTAL_SECTIONS" ]; then
     echo "ERROR: truncated indexer run — stored ${STORED_N:-0} + errors ${BULK_ERRORS} accounts for fewer than ${TOTAL_SECTIONS} sections" >&2

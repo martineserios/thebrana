@@ -30,6 +30,7 @@
 # This function blanks out heredoc regions first (preserving line count, so line
 # numbers in any future error message stay accurate), then matches with a
 # leading-whitespace-tolerant regex.
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 extract_check_ids() {
     local file="$1"
     # Matches the heredoc-open token anywhere on the line, not anchored to
@@ -44,7 +45,7 @@ extract_check_ids() {
         in_heredoc && /^PYEOF[[:space:]]*$/ { in_heredoc = 0; print ""; next }
         in_heredoc { print ""; next }
         { print }
-    ' "$file" | grep -oP '^\s*# Check \K[0-9]+[a-z]?'
+    ' "$file" | grep -oE '^[[:space:]]*# Check [0-9]+[a-z]?' | sed -E 's/^[[:space:]]*# Check //'
 }
 
 # REMEDY_REGISTRY[check_id] = "HAS_REMEDY" | "NO_REMEDY:<reason> — <one-line detail>"
@@ -133,6 +134,7 @@ declare -A REMEDY_REGISTRY=(
   [72]="NO_REMEDY:judgment-required — closing a docs/README.md coverage gap (missing row, dead link) needs authored content, can't be synthesized"
   [74]="NO_REMEDY:judgment-required — a 'git checkout main|dev' command line in a procedure must be rewritten as the by-ref ship sequence or a worktree step (ADR-094 d5), which is authored prose, not a mechanical substitution"
   [75]="NO_REMEDY:judgment-required — a private state file (portfolio.md, tasks-portfolio.json) that is tracked or not gitignored must be untracked and its .gitignore rule restored deliberately; auto-editing git index or ignore rules in a public repo is not a safe mechanical fix (t-3352)"
+  [76]="NO_REMEDY:judgment-required — replacing a GNU-only form needs the matching p_* shim (see system/hooks/lib/portable.sh) or an explicit '# portable-ok: <reason>'; grep -P sites need a per-site ERE/awk rewrite, not a mechanical substitution (t-3374)"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
@@ -247,9 +249,10 @@ remedy_42_apply() {
     current=$(grep -m1 '^model:' "$f" | awk '{print $2}' | tr -d '"')
     [ "$current" = "sonnet" ] && return 0
     if grep -q '^model:' "$f"; then
-        sed -i 's/^model:.*/model: sonnet/' "$f"
+        p_sed_i 's/^model:.*/model: sonnet/' "$f"
     else
-        sed -i '1a model: sonnet' "$f"
+        p_sed_i '1a\
+model: sonnet' "$f"
     fi
 }
 remedy_42_undo() {

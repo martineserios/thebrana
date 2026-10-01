@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Wrapper: ensures ruflo MCP server reads ~/.swarm/memory.db
 # instead of .swarm/ relative to whatever CWD CC launches from.
 # Resolves ruflo from nvm or PATH — no hardcoded paths.

@@ -6,7 +6,7 @@
 ## Quick Start
 
 ```bash
-# Build (requires OpenSSL headers — no pkg-config on this system)
+# Build (Linux: requires OpenSSL headers — no pkg-config on this system. macOS: no OpenSSL setup, see macos-setup.md)
 cd ~/enter_thebrana/thebrana/system/cli/rust
 OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu OPENSSL_INCLUDE_DIR=/usr/include/openssl cargo build --release
 

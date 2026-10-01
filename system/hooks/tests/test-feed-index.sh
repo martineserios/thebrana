@@ -4,6 +4,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT="$SCRIPT_DIR/../../scripts/feed-index.sh"
 PASS=0
@@ -143,8 +144,8 @@ assert_file_contains "Watermark written after run" "$WATERMARK" "1"
 
 FEEDS_JSON="$HOME/.claude/scheduler/feeds.json"
 NOW_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-OLD_TS=$(date -u -d "30 days ago" +%Y-%m-%dT%H:%M:%SZ)
-TEN_D_TS=$(date -u -d "10 days ago" +%Y-%m-%dT%H:%M:%SZ)
+OLD_TS=$(p_date_d "30 days ago" %Y-%m-%dT%H:%M:%SZ)
+TEN_D_TS=$(p_date_d "10 days ago" %Y-%m-%dT%H:%M:%SZ)
 
 feed_entry() { # name, published
     printf '{"feed":"%s","title":"t","link":"https://example.com","published":"%s","polled_at":"%s"}\n' "$1" "$2" "$2"

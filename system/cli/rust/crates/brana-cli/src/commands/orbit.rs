@@ -109,13 +109,16 @@ pub fn cmd_orbit_toggle(enabled: bool) -> anyhow::Result<()> {
     println!("\n  {col}{action} '{JOB}' ({mode}){}", themes::RESET);
 
     // Mirror `brana ops`: start/stop the systemd timer if present (best-effort).
-    let timer = format!("brana-sched-{JOB}.timer");
-    let sub = if enabled { "start" } else { "stop" };
-    if Command::new("systemctl").args(["--user", sub, &timer]).status().is_ok() {
-        println!("  {col}Timer {sub}ed.{}\n", themes::RESET);
-    } else {
-        println!();
-    }
+    // Same fix as `brana ops` (t-3381): success is a ZERO EXIT, not "the process spawned", and a host
+    // with no scheduler backend says so instead of printing nothing (or claiming a timer changed).
+    let available = super::ops::scheduler_backend_available();
+    let ok = available && {
+        let timer = format!("brana-sched-{JOB}.timer");
+        let sub = if enabled { "start" } else { "stop" };
+        Command::new("systemctl").args(["--user", sub, &timer]).status().map(|s| super::ops::systemctl_succeeded(enabled, s.code())).unwrap_or(false)
+    };
+    let msg_col = if available && !ok { "\x1b[31m" } else { col };
+    println!("  {msg_col}{}{}\n", super::ops::toggle_outcome(available, enabled, JOB, ok), themes::RESET);
     Ok(())
 }
 

@@ -45,6 +45,7 @@ KNOWLEDGE_FINDINGS="${KNOWLEDGE_FINDINGS:-[]}"
 # ── Layer 1: ruflo store ──────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 CF_WARNING=""
 
 # Loud failure (t-1938): memory-write failures land in a run-state log that
@@ -71,7 +72,7 @@ if [ "$STORED_L1" != "true" ]; then
         if [ "$FAILURES" -gt 0 ]; then OUTCOME="mixed"; else OUTCOME="success"; fi
         TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
 
-        CF_ERR=$(cd "$HOME" && timeout 5 $CF memory store -k "$KEY" -v "$VALUE" \
+        CF_ERR=$(cd "$HOME" && p_timeout 5 $CF memory store -k "$KEY" -v "$VALUE" \
             --namespace session --tags "$TAGS" 2>&1)
         CF_EXIT=$?   # captured BEFORE any || true — the old pattern read 0 forever (t-1938)
         if [ $CF_EXIT -eq 0 ]; then
@@ -103,7 +104,7 @@ if [ "$STORED_L1" != "true" ]; then
                   test_passes:$test_passes,test_fails:$test_fails,
                   lint_passes:$lint_passes,lint_fails:$lint_fails,
                   delegations:$delegations,edits:$edits,failures:$failures}' 2>/dev/null) || FW_VALUE="{}"
-            (cd "$HOME" && timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" \
+            (cd "$HOME" && p_timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" \
                 --namespace metrics --tags "client:$PROJECT,type:flywheel" 2>/dev/null)
             FW_EXIT=$?
             [ $FW_EXIT -ne 0 ] && log_persist_failure "flywheel metrics store FAILED exit $FW_EXIT (key $FW_KEY)"
@@ -255,11 +256,12 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
             # but the 2s timeout is ADR-069 D4's actual spec value (t-3316), so keep
             # that number even though this hunk otherwise won the merge.
             (
-                flock -w 2 200 || exit 0
+                p_lock_acquire 200 "${SESSION_STATE_PATH}.lock" -w 2 || exit 0
                 jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
                     > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
                     mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null
-            ) 200>"${SESSION_STATE_PATH}.lock" || true
+                p_lock_release 200 "${SESSION_STATE_PATH}.lock"
+            ) || true
         fi
     fi
 

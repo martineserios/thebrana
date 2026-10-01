@@ -8,6 +8,7 @@
 #
 # Usage: reminder-context.sh [brana-bin]
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 BRANA_BIN="${1:-}"
 [ -n "$BRANA_BIN" ] && [ -x "$BRANA_BIN" ] || BRANA_BIN=$(command -v brana 2>/dev/null || true)
 
@@ -49,7 +50,7 @@ if [ -s "$_REMINDER_STORE" ]; then
             [ -z "$_RID" ] && continue
             _TSUBJECT=""
             if [ -n "$_BRANA_REM" ] && [ -x "$_BRANA_REM" ]; then
-                _TSUBJECT=$(timeout -k 1 3 "$_BRANA_REM" backlog get "$_TID" 2>/dev/null \
+                _TSUBJECT=$(p_timeout -k 1 3 "$_BRANA_REM" backlog get "$_TID" 2>/dev/null \
                     | jq -r '.subject // empty' 2>/dev/null) || _TSUBJECT=""
             fi
             if [ -n "$_TSUBJECT" ]; then

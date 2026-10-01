@@ -67,6 +67,7 @@ case "$cmd" in
   *cat*manifest*)
     [[ -n "${STUB_MANIFEST:-}" && -f "${STUB_MANIFEST:-}" ]] || exit 1
     cat "$STUB_MANIFEST"; exit 0 ;;
+  # portable-ok-next: case pattern matching the remote command text
   *sha256sum*)
     echo "${STUB_BIN_SHA:-0000}  /home/ubuntu/.local/bin/brana"; exit 0 ;;
   *) exit 0 ;;

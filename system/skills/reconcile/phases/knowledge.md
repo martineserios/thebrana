@@ -38,7 +38,7 @@ Trim old event log entries with a digest summary.
 
 1. Resolve the event log path:
    ```bash
-   PROJECT_HASH=$(echo -n "$THEBRANA" | md5sum | cut -d' ' -f1)
+   PROJECT_HASH=$(echo -n "$THEBRANA" | { md5sum 2>/dev/null || md5 -q; } | cut -d' ' -f1)
    LOG="$HOME/.claude/projects/$PROJECT_HASH/memory/event-log.md"
    ```
    If the file doesn't exist, check `$HOME/.claude/projects/*/memory/event-log.md` via glob. If no log exists, skip KNOW-2.

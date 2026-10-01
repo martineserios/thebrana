@@ -13,6 +13,7 @@
 
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 DOCS_DIR="${BRANA_DOCS_DIR:-$(cd "$(dirname "$0")/../.." && pwd)/docs}"
 
 # Load ruflo
@@ -64,7 +65,7 @@ ERRORS=0
 
 store_entry() {
     local key="$1" value="$2" namespace="$3" tags="$4"
-    if cd "$HOME" && timeout 15 $CF memory store \
+    if cd "$HOME" && p_timeout 15 $CF memory store \
         -k "$key" \
         -v "${value:0:2000}" \
         --namespace "$namespace" \

@@ -23,6 +23,7 @@
 
 set -uo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/lib/portable.sh"
 GOAL_FILE="${BRANA_GOAL_FILE:-$HOME/.claude/run-state/active-goal.json}"
 
 # No active /goal → nothing to register. jq is required to edit the goal file safely.
@@ -98,14 +99,15 @@ run_red() {
     # and documented in docs/architecture/features/build-receipts.md — no shared source yet
     # (t-2602 challenger finding); update all four if the list ever changes.
     if [ "$runner" = node ]; then
-        ( cd "$pkg" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+        # p_timeout FIRST: it is a shell function, and env can only exec executables.
+        ( cd "$pkg" && p_timeout -k 2 60 env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
             -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
             -u NODE_OPTIONS \
-            timeout -k 2 60 node --test "$tmp" ) >/dev/null 2>&1
+            node --test "$tmp" ) >/dev/null 2>&1
     else
-        ( cd "$ROOT" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+        ( cd "$ROOT" && p_timeout -k 2 60 env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
             -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR \
-            timeout -k 2 60 bash "$tmp" ) >/dev/null 2>&1
+            bash "$tmp" ) >/dev/null 2>&1
     fi
     rc=$?
     rm -f "$tmp"
@@ -122,7 +124,7 @@ for f in "${ADDED[@]}"; do
     # path whose staged blob CHANGED falls through: redness must be re-earned and the
     # hash re-pinned (panel repair — without this, one edit after registration gated
     # forever with no recovery path).
-    blob_hash=$(git -C "$ROOT" show ":$f" 2>/dev/null | sha256sum | cut -d' ' -f1) || blob_hash=""
+    blob_hash=$(git -C "$ROOT" show ":$f" 2>/dev/null | p_sha256) || blob_hash=""
     # Fail-closed: no readable staged blob → no registration, no pin. A path
     # registered without a hash would be gated by goal-completion's missing-hash
     # rule anyway; never create that state deliberately.

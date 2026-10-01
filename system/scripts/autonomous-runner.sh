@@ -116,6 +116,7 @@ fi
 RUNNER_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/sandbox-claude.sh
 source "$RUNNER_SCRIPT_DIR/lib/sandbox-claude.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 
 # Trusted, inspection-only per-task gate (ADR-062 C2, t-3256). Runs on the host but executes
 # NO worktree code — only trusted `git` reads over the diff against the base ref. This is the
@@ -304,7 +305,7 @@ resolve_base_branch() {
 WT_LOCK="${RUNNER_WT_LOCK:-${RUNNER_WORKTREE_DIR:-/tmp/brana-runner}/.worktree-admin.lock}"
 git_wt() {
   mkdir -p "$(dirname "$WT_LOCK")" 2>/dev/null || true
-  if command -v flock >/dev/null 2>&1; then ( flock 8; "$@" ) 8>"$WT_LOCK"; else "$@"; fi
+  p_flock "$WT_LOCK" "$@"
 }
 
 cleanup_worktree() { git_wt _cleanup_worktree_locked "$1" "$2"; }
@@ -495,8 +496,7 @@ if [ "$MODE" = "run-beat" ]; then
   # Same non-blocking flock --run-batch uses: two overlapping beats on one repo would double
   # the real fan-out width the operator asked for.
   mkdir -p "$(dirname "$RUN_LOCK")" 2>/dev/null || true
-  exec 9>"$RUN_LOCK" 2>/dev/null || true
-  if command -v flock >/dev/null 2>&1 && ! flock -n 9; then
+  if ! p_lock_acquire 9 "$RUN_LOCK" -n; then
     echo "[autonomous-runner] run-beat: another run holds the lock ($RUN_LOCK) — exiting"; exit 0
   fi
 
@@ -589,8 +589,7 @@ fi
 # --run-batch exits cleanly rather than double-running a task (run_task leaves tasks pending, so
 # two batches over the same snapshot would otherwise both pick it). Released on process exit.
 mkdir -p "$(dirname "$RUN_LOCK")" 2>/dev/null || true
-exec 9>"$RUN_LOCK" 2>/dev/null || true
-if command -v flock >/dev/null 2>&1 && ! flock -n 9; then
+if ! p_lock_acquire 9 "$RUN_LOCK" -n; then
   echo "[autonomous-runner] run-batch: another batch holds the lock ($RUN_LOCK) — exiting"; exit 0
 fi
 ATTEMPTED=0; RAN=0; PARKED=0; FAILED=0; CONSEC=0

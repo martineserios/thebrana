@@ -18,6 +18,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 HOOK_SRC="$REPO_ROOT/system/hooks/post-tasks-validate.sh"
@@ -34,10 +35,6 @@ check() {
     fi
 }
 
-if ! command -v flock >/dev/null 2>&1; then
-    echo "SKIP: flock(1) not available on this system"
-    exit 0
-fi
 
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
@@ -49,6 +46,7 @@ FIXTURE="$TMPDIR/fixture"
 mkdir -p "$FIXTURE/hooks/lib" "$FIXTURE/.claude"
 cp "$HOOK_SRC" "$FIXTURE/hooks/post-tasks-validate.sh"
 cp "$LIB_SRC" "$FIXTURE/hooks/lib/resolve-brana.sh"
+cp "$(dirname "$LIB_SRC")/portable.sh" "$FIXTURE/hooks/lib/portable.sh"
 chmod +x "$FIXTURE/hooks/post-tasks-validate.sh"
 
 TASKS_FILE="$FIXTURE/.claude/tasks.json"
@@ -70,12 +68,15 @@ echo "=================================================="
 echo ""
 
 echo "--- external holder takes the lock, hook must wait for it ---"
-# External holder: exclusive flock for ~1.2s, then stamp the release time.
+# External holder: exclusive lock for ~1.2s, then stamp the release time. Runs under the SAME
+# stripped PATH as the hook below, so holder and hook both pick native flock or the mkdir
+# fallback identically (a Homebrew flock on the test's PATH must not split them).
 (
-    exec 9>"$LOCK_FILE"
-    flock -x 9
+    export PATH="/usr/bin:/bin"
+    p_lock_acquire 9 "$LOCK_FILE"
     sleep 1.2
-    date +%s.%N > "$RELEASED_AT"
+    p_now_ms > "$RELEASED_AT"
+    p_lock_release 9 "$LOCK_FILE"
 ) &
 HOLDER_PID=$!
 
@@ -89,7 +90,7 @@ sleep 0.2
     export PATH="/usr/bin:/bin"
     INPUT=$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s"}}' "$TASKS_FILE")
     echo "$INPUT" | "$FIXTURE/hooks/post-tasks-validate.sh" >/dev/null 2>&1
-    date +%s.%N > "$HOOK_DONE_AT"
+    p_now_ms > "$HOOK_DONE_AT"
 )
 
 wait "$HOLDER_PID" 2>/dev/null || true
@@ -97,8 +98,8 @@ wait "$HOLDER_PID" 2>/dev/null || true
 if [ -f "$RELEASED_AT" ] && [ -f "$HOOK_DONE_AT" ]; then
     RELEASED=$(cat "$RELEASED_AT")
     HOOK_DONE=$(cat "$HOOK_DONE_AT")
-    # hook_done >= released (within a small epsilon for clock granularity)
-    LATE_ENOUGH=$(awk -v a="$HOOK_DONE" -v b="$RELEASED" 'BEGIN{print (a >= b - 0.05) ? 1 : 0}')
+    # hook_done >= released (epoch ms; 50ms epsilon for clock granularity)
+    LATE_ENOUGH=$(awk -v a="$HOOK_DONE" -v b="$RELEASED" 'BEGIN{print (a >= b - 50) ? 1 : 0}')
     check "hook did not finish before the external lock was released" \
         "$([ "$LATE_ENOUGH" = "1" ] && echo 0 || echo 1)" \
         "hook finished at $HOOK_DONE, lock released at $RELEASED — hook returned before the lock it should have waited on was free, so its fallback read-modify-write was unlocked"

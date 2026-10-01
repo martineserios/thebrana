@@ -14,6 +14,9 @@
 
 set -euo pipefail
 
+# shellcheck source=../hooks/lib/scheduler-backend.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/scheduler-backend.sh"
+
 SCHEDULER_DIR="$HOME/.claude/scheduler"
 CONFIG="$SCHEDULER_DIR/scheduler.json"
 UNIT_DIR="$HOME/.config/systemd/user"
@@ -38,7 +41,7 @@ warn() { echo -e "${YELLOW}WARN:${NC} $*"; }
 
 # Check prerequisites
 check_jq() { command -v jq &>/dev/null || die "jq is required but not installed"; }
-check_systemd() { command -v systemctl &>/dev/null || die "systemd is required"; }
+check_systemd() { sched_backend_available || die "$(sched_backend_note)"; }  # defence in depth; the gate above main dispatch runs first
 check_config() { [ -f "$CONFIG" ] || die "Config not found: $CONFIG (run deploy first or copy template)"; }
 
 # -------------------------------------------------------------------
@@ -105,7 +108,7 @@ cmd_validate() {
     info "Checking prerequisites..."
     command -v jq &>/dev/null && ok "jq" || { warn "jq not found"; errors=$((errors + 1)); }
     command -v systemctl &>/dev/null && ok "systemctl" || { warn "systemd not found"; errors=$((errors + 1)); }
-    command -v flock &>/dev/null && ok "flock" || { warn "flock not found"; errors=$((errors + 1)); }
+    command -v flock &>/dev/null && ok "flock" || { warn "flock not found"; errors=$((errors + 1)); }  # portable-ok: systemd-only scheduler; launchd port is t-3375
     command -v claude &>/dev/null && ok "claude CLI" || { warn "claude CLI not found (skill jobs won't work)"; errors=$((errors + 1)); }
 
     # Check linger
@@ -339,7 +342,7 @@ cmd_status() {
             # Get next run from timer
             next_run=$(systemctl --user show "$timer_unit" --property=NextElapseUSecRealtime --value 2>/dev/null | head -1)
             if [ -n "$next_run" ] && [ "$next_run" != "n/a" ]; then
-                next_run=$(date -d "@$(($(date -d "$next_run" +%s 2>/dev/null || echo 0)))" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$next_run")
+                next_run=$(date -d "@$(($(date -d "$next_run" +%s 2>/dev/null || echo 0)))" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$next_run")  # portable-ok: systemd-only scheduler; launchd port is t-3375
             fi
         fi
 
@@ -511,6 +514,18 @@ cmd_teardown() {
     systemctl --user daemon-reload
     info "Teardown complete. Config and logs preserved."
 }
+
+# -------------------------------------------------------------------
+# No scheduler backend on this host (t-3375, ADR-071 amendment): say so once, before any
+# config/unit code runs. Informational commands succeed (nothing is wrong); action commands fail
+# (the requested thing cannot happen here). help/logs/unknown fall through unchanged.
+# -------------------------------------------------------------------
+if ! sched_backend_available; then
+    case "${1:-help}" in
+        status|validate)                    sched_backend_note;     exit 0 ;;
+        deploy|enable|disable|run|teardown) sched_backend_note >&2; exit 1 ;;
+    esac
+fi
 
 # -------------------------------------------------------------------
 # Main dispatch

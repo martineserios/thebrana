@@ -4,6 +4,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../post-tasks-validate.sh"
 STATUSLINE="$SCRIPT_DIR/../../statusline.sh"
@@ -165,7 +166,7 @@ write_tasks "$TASKS7" \
 
 CACHE7="${TASKS7%.json}.statusline.tsv"
 printf 'X\t99\t100\tsentinel task\t7\tTDD\n' > "$CACHE7"
-touch -d "+2 seconds" "$CACHE7"
+p_touch_at "$CACHE7" $(( $(date +%s) + 2 ))
 
 STATUSLINE_INPUT=$(cat <<JSON
 {

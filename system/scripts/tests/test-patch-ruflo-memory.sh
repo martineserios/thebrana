@@ -12,6 +12,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCHER="$SCRIPT_DIR/../patch-ruflo-memory-dup-export.sh"
 PASS=0
@@ -60,10 +61,10 @@ check "INIT_LEVELS export survives" "1" \
 check "backup written" "1" "$(ls "$TMP"/index.js.bak-* 2>/dev/null | wc -l | tr -d ' ')"
 
 # 2. Idempotent: second run exits 0, file unchanged, no second backup.
-sum_before=$(md5sum "$TMP/index.js" | cut -d' ' -f1)
+sum_before=$(p_md5 "$TMP/index.js")
 bash "$PATCHER" >"$TMP/out2.log" 2>&1
 check "second run exits 0" "0" "$?"
-check "second run leaves file unchanged" "$sum_before" "$(md5sum "$TMP/index.js" | cut -d' ' -f1)"
+check "second run leaves file unchanged" "$sum_before" "$(p_md5 "$TMP/index.js")"
 check "no second backup" "1" "$(ls "$TMP"/index.js.bak-* 2>/dev/null | wc -l | tr -d ' ')"
 
 # 3. Missing target: exit 0 with a warning — the patcher is wired into the

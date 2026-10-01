@@ -70,7 +70,7 @@ assert_contains "low confidence marketplace" "marketplace\|acquire-skills\|exter
 # ── Test 6: No auto-invoke ──
 echo "Test 6: No silent/auto routing"
 # Step 5 should NOT contain auto-invoke or silent route
-AUTO_INVOKE=$(grep -c "auto.invoke\|silent.*route\|auto.*run" "$BACKLOG_BODY" 2>/dev/null || true)
+AUTO_INVOKE=$(grep -cE "auto.invoke|silent.*route|auto.*run" "$BACKLOG_BODY" 2>/dev/null || true)
 assert "no auto-invoke in step 5" "0" "${AUTO_INVOKE:-0}"
 
 # ── Test 7: index-skills.sh exists and skills namespace is indexable ──

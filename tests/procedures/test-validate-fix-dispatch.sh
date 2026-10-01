@@ -11,6 +11,7 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -65,6 +66,7 @@ trap 'rm -rf "$FIXTURE_REPO"' EXIT
 
 mkdir -p "$FIXTURE_REPO/system/scripts" "$FIXTURE_REPO/system/agents" "$FIXTURE_REPO/.claude" "$FIXTURE_REPO/docs"
 cp "$VALIDATE_SH" "$FIXTURE_REPO/validate.sh"
+mkdir -p "$FIXTURE_REPO/system/hooks/lib" && cp "$REPO_ROOT/system/hooks/lib/portable.sh" "$FIXTURE_REPO/system/hooks/lib/portable.sh"
 cp "$REPO_ROOT/system/scripts/validate-remedies.sh" "$FIXTURE_REPO/system/scripts/validate-remedies.sh"
 echo '{}' > "$FIXTURE_REPO/docs/spec-graph.json"
 echo '{"tasks":[]}' > "$FIXTURE_REPO/.claude/tasks.json"
@@ -96,7 +98,7 @@ echo "=== Dispatch safety: HAS_REMEDY entry with no matching function must refus
 # apply function was never written (or was renamed/deleted by mistake). Dispatch
 # must detect this via declare -f and refuse cleanly — never construct-and-invoke
 # "remedy_${N}_apply" blindly (which would surface as a raw "command not found").
-sed -i 's/\[68\]="NO_REMEDY:not-fixable[^"]*"/[68]="HAS_REMEDY"/' "$FIXTURE_REPO/system/scripts/validate-remedies.sh"
+p_sed_i 's/\[68\]="NO_REMEDY:not-fixable[^"]*"/[68]="HAS_REMEDY"/' "$FIXTURE_REPO/system/scripts/validate-remedies.sh"
 OUT=$(bash "$FIXTURE_REPO/validate.sh" --fix 68 2>&1); RC=$?
 assert_true "drifted registry entry (HAS_REMEDY, no function) exits non-zero" "$([ "$RC" -ne 0 ] && echo true || echo false)"
 assert_true "drifted registry entry is refused with a clear message, not a raw 'command not found'" \

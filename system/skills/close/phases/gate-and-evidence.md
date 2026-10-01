@@ -65,9 +65,9 @@ Assess what happened this session:
 GATE_ALL_SESSIONS_JSON=$(brana session read --all --json 2>/dev/null)
 GATE_UNSCOPED_LAST_CLOSE=$(echo "$GATE_ALL_SESSIONS_JSON" \
   | jq -r '[.[].state.written_at // empty] | map(select(. != "")) | sort_by(.[0:19]) | last // empty' 2>/dev/null)
-GATE_SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null)
+GATE_SIX_HOURS_AGO_EPOCH=$(( $(date +%s) - 21600 ))
 GATE_UNSCOPED_LAST_CLOSE_EPOCH=""
-[ -n "$GATE_UNSCOPED_LAST_CLOSE" ] && GATE_UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$GATE_UNSCOPED_LAST_CLOSE" +%s 2>/dev/null)
+[ -n "$GATE_UNSCOPED_LAST_CLOSE" ] && GATE_UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$GATE_UNSCOPED_LAST_CLOSE" +%s 2>/dev/null || date -j -u -f '%Y-%m-%dT%H:%M:%S' "${GATE_UNSCOPED_LAST_CLOSE%%[.+Z]*}" +%s 2>/dev/null)  # 2nd form = BSD/macOS date; brana writes UTC
 if [ -n "$GATE_UNSCOPED_LAST_CLOSE_EPOCH" ] && [ -n "$GATE_SIX_HOURS_AGO_EPOCH" ] \
    && [ "$GATE_UNSCOPED_LAST_CLOSE_EPOCH" -lt "$GATE_SIX_HOURS_AGO_EPOCH" ]; then
   GATE_SINCE="@$GATE_UNSCOPED_LAST_CLOSE_EPOCH"
@@ -225,9 +225,9 @@ UNSCOPED_LAST_CLOSE=$(echo "$ALL_SESSIONS_JSON" \
 # keep passing). Taking the OLDER of {6h ago, UNSCOPED_LAST_CLOSE} only ever
 # WIDENS the window, never narrows it — a concurrent close can widen the
 # search but can never shrink it below the safe 6h default.
-SIX_HOURS_AGO_EPOCH=$(date -d '6 hours ago' +%s 2>/dev/null)
+SIX_HOURS_AGO_EPOCH=$(( $(date +%s) - 21600 ))
 UNSCOPED_LAST_CLOSE_EPOCH=""
-[ -n "$UNSCOPED_LAST_CLOSE" ] && UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$UNSCOPED_LAST_CLOSE" +%s 2>/dev/null)
+[ -n "$UNSCOPED_LAST_CLOSE" ] && UNSCOPED_LAST_CLOSE_EPOCH=$(date -d "$UNSCOPED_LAST_CLOSE" +%s 2>/dev/null || date -j -u -f '%Y-%m-%dT%H:%M:%S' "${UNSCOPED_LAST_CLOSE%%[.+Z]*}" +%s 2>/dev/null)  # BSD/macOS fallback; brana writes UTC
 if [ -n "$UNSCOPED_LAST_CLOSE_EPOCH" ] && [ -n "$SIX_HOURS_AGO_EPOCH" ] \
    && [ "$UNSCOPED_LAST_CLOSE_EPOCH" -lt "$SIX_HOURS_AGO_EPOCH" ]; then
   SESSION_EPICS_SINCE="@$UNSCOPED_LAST_CLOSE_EPOCH"

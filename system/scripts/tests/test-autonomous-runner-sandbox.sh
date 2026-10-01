@@ -63,7 +63,9 @@ if touch "/tmp/PWNED-${ESCAPE_NONCE:-x}" 2>/dev/null; then echo TMP_WRITE_OK; el
   echo "HTTPS_PROXY=${HTTPS_PROXY:-unset}"
   # hard-bound with `timeout`: curl's --max-time does not always cap a getaddrinfo() that
   # blocks inside --unshare-net (no resolver reachable), which would hang the dispatch.
+  # portable-ok-next: runs INSIDE the Linux-only bwrap sandbox — no shell functions exist there
   echo "VIAPROXY=$(timeout 8 curl -s -o /dev/null -w '%{http_code}' --max-time 6 https://example.com 2>/dev/null || echo fail)"
+  # portable-ok-next: same — inside the bwrap sandbox
   echo "DIRECT=$(timeout 8 curl -s -o /dev/null -w '%{http_code}' --noproxy '*' --max-time 6 https://example.com 2>/dev/null || echo fail)"
 } > escape-egress.txt
 echo "DONE: applied the fix"

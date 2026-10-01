@@ -13,6 +13,7 @@
 
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../system/hooks/lib/portable.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REAL_REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REAL_HOME="$HOME"
@@ -31,6 +32,7 @@ cp "$REAL_REPO_ROOT/system/scripts/sync-state.sh" "$REPO_ROOT/system/scripts/syn
 # its test would pass on the "or skipped" branch (Gate 3 regression review, t-3366).
 mkdir -p "$REPO_ROOT/system/hooks/lib"
 cp "$REAL_REPO_ROOT/system/hooks/lib/cf-env.sh" "$REPO_ROOT/system/hooks/lib/cf-env.sh" 2>/dev/null || true
+cp "$REAL_REPO_ROOT/system/hooks/lib/portable.sh" "$REPO_ROOT/system/hooks/lib/portable.sh"   # sync-state.sh sources it (t-3377)
 # Never let the sandbox reach a real private repo, and keep ruflo from resolving a store
 # relative to a real tree (ADR-026's CWD-relative path).
 export BRANA_PRIVATE_REPO="$SANDBOX/no-private-repo"
@@ -53,9 +55,9 @@ echo "fixture-client-event-log" > "$HOME/.claude/projects/-sandbox-client/memory
 # Seed a FIXTURE ruflo store (best-effort) so the export/import/namespace tests exercise real
 # code instead of skipping. It lives under the sandbox HOME; the real store is never opened.
 if command -v ruflo >/dev/null 2>&1; then
-    ( timeout 90 ruflo memory init >/dev/null 2>&1 \
-      && timeout 60 ruflo memory store --key "fixture:knowledge-1" --value "fixture knowledge entry" --namespace knowledge >/dev/null 2>&1 \
-      && timeout 60 ruflo memory store --key "fixture:session-1" --value "fixture session entry" --namespace session >/dev/null 2>&1 ) || true
+    ( p_timeout 90 ruflo memory init >/dev/null 2>&1 \
+      && p_timeout 60 ruflo memory store --key "fixture:knowledge-1" --value "fixture knowledge entry" --namespace knowledge >/dev/null 2>&1 \
+      && p_timeout 60 ruflo memory store --key "fixture:session-1" --value "fixture session entry" --namespace session >/dev/null 2>&1 ) || true
 fi
 
 SYNC_SCRIPT="$REPO_ROOT/system/scripts/sync-state.sh"

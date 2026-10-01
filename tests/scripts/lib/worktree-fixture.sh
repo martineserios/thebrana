@@ -16,6 +16,7 @@
 #   fixture_cleanup
 
 set -uo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../system/hooks/lib/portable.sh"
 prev_arg=""
 
 FIXTURE_ROOT=""
@@ -129,7 +130,7 @@ fixture_worktree() {
     # every commit 3 hours later than intended, and integer day-division then
     # truncated 39d to 38d and 15d to 14d, so a correct >14d threshold looked
     # broken. The bug was in this line, not in the check.
-    when=$(date -u -d "$days days ago" +"%Y-%m-%dT%H:%M:%S+00:00" 2>/dev/null) || return 1
+    when=$(p_date_d "$days days ago" %Y-%m-%dT%H:%M:%S+00:00 2>/dev/null) || return 1
     git -C "$path" add work.txt
     GIT_AUTHOR_DATE="$when" GIT_COMMITTER_DATE="$when" \
         git -C "$path" commit -q -m "work in $dir"
