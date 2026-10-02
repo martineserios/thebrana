@@ -93,6 +93,10 @@ brana doctor
 - `system/scripts/lint-portability.sh` (validate Check 76) fails on GNU-only forms in every shell
   script, tests included — see [macos-portable-shims](../architecture/features/macos-portable-shims.md).
 - `tests/hooks/test-portable.sh` runs each shim on a native PATH **and** a simulated-BSD PATH.
+- `system/scripts/run-test-suites.sh` (the CI loop, also what you run locally) gives every suite a
+  throwaway `HOME` inside your real one and removes it afterwards, so no suite can write into your
+  `~/.claude` — the first Mac run found test entries in the real `run-state/persist-failures.log`
+  (t-3389). `TEST_SUITE_KEEP_HOME=1` passes your real `HOME` through when you need to diagnose a suite.
 - The **`macos` job in `.github/workflows/ci.yml`** runs the shim tests, `bootstrap.sh --check`, builds
   the CLI and runs the shell test suites on a stock macOS runner (Homebrew bash + jq only — no `flock`,
   no coreutils, on purpose). It is **advisory** (`continue-on-error`, not a required check) until it has

@@ -22,11 +22,18 @@
 #
 # Prints one PASS/FAIL line per suite, then a summary. Exit 0 iff all ran
 # green (or nothing matched — an empty sweep is not a failure).
+#
+# Every suite runs under a throwaway HOME (lib/suite-home.sh, t-3389) — the same isolation as
+# run-test-suites.sh, so validate Check 70 can never write into the operator's ~/.claude either.
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$SCRIPT_DIR/lib/suite-home.sh"
+REAL_HOME="$HOME"
+suite_env_scrub
+suite_home_reap "$REAL_HOME"
 CONCURRENCY="${HOOK_TEST_SWEEP_CONCURRENCY:-1}"
 # Lines of a failing suite's output to surface under its FAIL line. 5 is enough
 # locally (the suite's own "N passed, M failed" summary), too little in CI where
@@ -85,12 +92,13 @@ if [ "${#FILES[@]}" -eq 0 ]; then
 fi
 
 RESULTS_DIR=$(mktemp -d)
-trap 'rm -rf "$RESULTS_DIR"' EXIT
+trap 'rm -rf "$RESULTS_DIR"; suite_home_drop_all "$REAL_HOME"' EXIT
 
 run_one() {
     local f="$1" idx="$2" out
     out="$RESULTS_DIR/$idx"
-    if bash "$f" >"$out.log" 2>&1; then
+    # run_one is a background job: its scratch HOME is dropped in this subshell when the suite ends
+    if run_suite_isolated "$REAL_HOME" bash "$f" >"$out.log" 2>&1; then
         echo "0" > "$out.rc"
     else
         echo "1" > "$out.rc"

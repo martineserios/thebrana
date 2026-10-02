@@ -11,6 +11,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 HOOK="$REPO_ROOT/system/hooks/feedback-gate.sh"
+# Fake HOME for the whole suite: the hook appends to $HOME/.claude/memory/override-log.md under
+# BRANA_MEMORY_OVERRIDE=1 (Test 7), and this suite used to write that into the operator's real log
+# whenever it ran outside the isolating runners (second-variant finding, t-3389). The paths handed to
+# the hook only use $HOME as a string prefix, so a scratch HOME changes nothing else.
+FAKE_HOME="$(mktemp -d)"; mkdir -p "$FAKE_HOME/.claude/memory"; export HOME="$FAKE_HOME"
+trap 'rm -rf "$FAKE_HOME"' EXIT
 ADR="$REPO_ROOT/docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md"
 SDD="$REPO_ROOT/docs/architecture/features/memory-taxonomy-sdd.md"
 
