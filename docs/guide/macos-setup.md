@@ -41,7 +41,7 @@ which bash                  # must be /opt/homebrew/bin/bash
 | `brew install discoteq/discoteq/flock` | a real `flock(1)`. Without it brana falls back to `mkdir`-based locks, which serialize brana's own scripts against each other but **cannot exclude the Rust `brana` CLI** on `tasks.json`. Fine for one-session use; install `flock` if you run several sessions at once. |
 | `brew install coreutils` | `gtimeout`. Without it brana uses a bash watchdog for timeouts (works, but signals the child and its direct children only, not the whole process group). |
 
-Neither is required — the fallbacks are what CI exercises.
+Neither is required — the fallbacks are what CI exercises. Installing them does not turn the portability tests red: `test-portable.sh` and `test-lock-stress.sh` run the fallback-lock assertions under a PATH that hides `flock` whatever is installed (t-3391), while the rest of `test-portable.sh` runs on your real PATH, so a brew `flock` also gets the real-flock path exercised.
 
 ## Install
 
