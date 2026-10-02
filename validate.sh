@@ -4,8 +4,15 @@ shopt -s nullglob  # TRAP: never store --include=*glob in a scalar var — use a
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/system/scripts/lib/suite-home.sh"   # suites validate runs directly get a scratch HOME (t-3389)
-suite_env_scrub; suite_home_reap "$HOME"; suite_home_init                       # same contract as the runners: no HOME-bypass overrides, leftovers reaped
+# Suites validate runs directly (Checks 65/66) get a scratch HOME — same contract as the runners (t-3389).
+# Guarded: tests copy validate.sh + portable.sh alone into fixture trees (test-validate-rules-scoping.sh
+# and friends), so the lib may be absent there — then run suites as before, never abort validate.
+SUITE_HOME_LIB="$(dirname "${BASH_SOURCE[0]}")/system/scripts/lib/suite-home.sh"
+if [ -f "$SUITE_HOME_LIB" ]; then
+    source "$SUITE_HOME_LIB"; suite_env_scrub; suite_home_reap "$HOME"; suite_home_init
+else
+    run_suite_isolated() { shift; "$@"; }; suite_home_drop_all() { :; }
+fi
 SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
