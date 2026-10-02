@@ -8,8 +8,9 @@
 # restart loops — that pattern silently broke JSON-RPC stdin delivery, so the
 # MCP handshake never completed and ruflo showed as "failed" in /mcp.
 # Restart on CC bug #40207 is handled by the user via /mcp reconnect.
-# Use CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) for project root so ruflo's
-# own CWD heuristic resolves correctly; fall back to HOME for ~/.swarm/memory.db.
+# Use CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) as the working directory
+# (project-root heuristics); fall back to HOME. The memory store itself is pinned
+# to $HOME/.swarm via CLAUDE_FLOW_MEMORY_PATH near the exec below, not by cwd.
 #
 # Multiple concurrent sessions: ruflo uses SQLite WAL mode, which serializes
 # concurrent writes safely. The prior flock mutex (c6a66b76) and orphan sweep
@@ -249,5 +250,15 @@ fi
 export RUFLO_REQUIRE_REAL_EMBEDDINGS=1
 export RUFLO_MEMORY_SCAN_ON_WRITE=1
 export RUFLO_FUNNEL=0
+
+# Pin the memory store to $HOME/.swarm regardless of cwd. We cd into
+# $CLAUDE_PROJECT_DIR above, and ruflo resolves its memory root as <cwd>/.swarm
+# unless CLAUDE_FLOW_MEMORY_PATH is set. The repo tracks .swarm as a symlink to
+# an absolute Linux home-dir path that dangles on every other machine ->
+# "Database not initialized" on each MCP memory call; and a project
+# whose .swarm is a real directory silently got a second, empty store.
+# Default-if-unset so an explicit caller override still wins.
+: "${CLAUDE_FLOW_MEMORY_PATH:=$HOME/.swarm}"
+export CLAUDE_FLOW_MEMORY_PATH
 
 exec "$RUFLO" "$@"
