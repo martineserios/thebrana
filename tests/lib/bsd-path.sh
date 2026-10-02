@@ -85,6 +85,27 @@ EOF
     echo "$d"
 }
 
+# ── no-flock PATH (any host) ───────────────────────────────────────────────────────────────────────
+# The host's OWN tools (no BSD wrappers), minus flock: a PATH under which portable.sh must take its
+# no-flock fallback whatever is installed. make_bsd_bin covers GNU hosts; this one is for a real
+# non-GNU host that HAS flock (a Mac after `brew install flock`) — there the "native" PATH runs the
+# real flock path and the fallback assertions went red / the stress test skipped (t-3391).
+# Usage: NOFLOCK_BIN=$(make_noflock_bin); PATH="$NOFLOCK_BIN" ...
+make_noflock_bin() {
+    local d t p
+    d="$(mktemp -d)"
+    for t in $_BSD_TOOLS; do
+        [ "$t" = flock ] && continue   # defensive: flock is not in _BSD_TOOLS today; keep the intent explicit
+        p="$(PATH="$_BSD_REAL_PATH" command -v "$t" 2>/dev/null)" || continue   # portable-ok: presence check
+        ln -s "$p" "$d/$t"
+    done
+    echo "$d"
+}
+# Guard the guard: flock must be ABSENT (1) and bash PRESENT (1) under the no-flock PATH -> "11".
+noflock_sanity() {
+    ( PATH="$1"; command -v flock >/dev/null 2>&1; a=$(( $? == 0 ? 0 : 1 )); command -v bash >/dev/null 2>&1; b=$(( $? == 0 ? 1 : 0 )); echo "$a$b" )   # portable-ok: presence checks
+}
+
 # ── GNU-host helpers (this file is exempt from the portability lint: it emulates/executes GNU forms) ──
 # test-portable.sh is RUN on real macOS by CI, so it must not contain GNU forms itself; anything that
 # needs a GNU host (the BSD simulation, oracle comparisons against GNU tools) lives here and is gated
