@@ -47,6 +47,46 @@ assert "stdin is /dev/null (a suite reading stdin gets EOF, never blocks)" yes "
 OUT="$(run)"; RC=$?
 assert "no suites given: exit 0 with a note (an empty glob is not a failure)" 0 "$RC"
 
+# ── every suite gets a throwaway HOME (t-3389): the full suite used to leave test entries in the REAL
+# ~/.claude/run-state/persist-failures.log, which the next session-start reported as real failures.
+# The scratch HOME also removes the operator's ~/.gitconfig from the picture, so the runner must hand
+# suites a git identity itself or every suite that commits would break where it used to work.
+REAL_HOME_FOR_TEST="$T/real-home"; mkdir -p "$REAL_HOME_FOR_TEST"
+cat >"$T/tests/a/test-home.sh" <<'SUITE'
+#!/usr/bin/env bash
+echo "HOME=$HOME"; echo "RUNSTATE=${BRANA_RUN_STATE_DIR:-unset}"
+touch "$HOME/marker-from-suite"
+# identity must come from the scratch HOME's gitconfig, not from GIT_* env (repo-local config must still win)
+unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL
+echo "IDENT=$(git var GIT_AUTHOR_IDENT 2>/dev/null | cut -d'<' -f1)"
+d="$(mktemp -d)"; git -C "$d" init -q && git -C "$d" config user.name fixture-user && : >"$d/f" && git -C "$d" add f && git -C "$d" commit -q -m x && echo "AUTHOR=$(git -C "$d" log -1 --format=%an)"; rm -rf "$d"
+SUITE
+runh() { ( cd "$T" && HOME="$REAL_HOME_FOR_TEST" TEST_SUITE_TIMEOUT=300 bash "$RUNNER" "$@" 2>&1 ); }
+OUT="$(runh tests/a/test-home.sh)"; RC=$?
+SUITE_HOME="$(printf '%s\n' "$OUT" | sed -n 's/^HOME=//p' | head -1)"
+assert "scratch HOME: the suite ran green" 0 "$RC"
+assert "scratch HOME: the suite's HOME is not the caller's" no "$([ "$SUITE_HOME" = "$REAL_HOME_FOR_TEST" ] && echo yes || echo no)"
+assert "scratch HOME: the suite's HOME is a real directory while it runs (it wrote there)" no "$(has 'touch: ' "$OUT")"
+assert "scratch HOME: nothing landed in the caller's HOME" no "$([ -e "$REAL_HOME_FOR_TEST/marker-from-suite" ] && echo yes || echo no)"
+assert "scratch HOME: removed after the suite" no "$([ -n "$SUITE_HOME" ] && [ -e "$SUITE_HOME" ] && echo yes || echo no)"
+# hooks pass /tmp/* through; suites that build fixtures under $HOME to escape that must keep escaping it
+assert "scratch HOME: lives inside the caller's HOME, not under /tmp" yes "$(case "$SUITE_HOME" in "$REAL_HOME_FOR_TEST"/*) echo yes;; *) echo no;; esac)"
+assert "scratch HOME: a git identity comes from the scratch ~/.gitconfig (GIT_* env unset)" yes "$(has 'IDENT=brana-tests' "$OUT")"
+assert "scratch HOME: a fixture's repo-local user.name still wins over the test identity" yes "$(has 'AUTHOR=fixture-user' "$OUT")"
+assert "scratch HOME: HOME-bypassing overrides (BRANA_RUN_STATE_DIR) are scrubbed" yes "$(BRANA_RUN_STATE_DIR=/nope; export BRANA_RUN_STATE_DIR; has 'RUNSTATE=unset' "$(runh tests/a/test-home.sh)")"
+unset BRANA_RUN_STATE_DIR
+TO=1 OUT="$(cd "$T" && HOME="$REAL_HOME_FOR_TEST" TEST_SUITE_KILL_AFTER=2 TEST_SUITE_TIMEOUT=1 bash "$RUNNER" tests/a/test-hang.sh 2>&1)"
+assert "scratch HOME: no scratch dir remains after a TIMED OUT suite" 0 "$(find "$REAL_HOME_FOR_TEST" -maxdepth 1 -name '.brana-test-home.*' | wc -l | tr -d ' ')"
+mkdir -p "$REAL_HOME_FOR_TEST/.brana-test-home.stale" && touch -t 202001010000 "$REAL_HOME_FOR_TEST/.brana-test-home.stale"
+runh tests/a/test-pass.sh >/dev/null 2>&1
+assert "scratch HOME: a stale leftover from a killed run is reaped at the next start" no "$([ -e "$REAL_HOME_FOR_TEST/.brana-test-home.stale" ] && echo yes || echo no)"
+OUT="$(cd "$T" && HOME="$REAL_HOME_FOR_TEST" TEST_SUITE_KEEP_HOME=1 TEST_SUITE_TIMEOUT=300 bash "$RUNNER" tests/a/test-home.sh 2>&1)"
+assert "TEST_SUITE_KEEP_HOME=1: the caller's HOME is passed through (diagnostic escape hatch)" "HOME=$REAL_HOME_FOR_TEST" "$(printf '%s\n' "$OUT" | sed -n 's/^\(HOME=.*\)$/\1/p' | head -1)"
+assert "TEST_SUITE_KEEP_HOME=1: announced loudly (isolation is OFF)" yes "$(has 'isolation is OFF' "$OUT")"
+OUT="$(cd "$T" && HOME="$REAL_HOME_FOR_TEST" CI=1 TEST_SUITE_KEEP_HOME=1 TEST_SUITE_TIMEOUT=300 bash "$RUNNER" tests/a/test-home.sh 2>&1)"; RC=$?
+assert "TEST_SUITE_KEEP_HOME=1 under CI: refused (exit 2)" 2 "$RC"
+rm -f "$REAL_HOME_FOR_TEST/marker-from-suite"
+
 # ── the same, on a BSD-shaped PATH with no timeout(1): only p_timeout's fallback can satisfy these ─
 _BSD_REAL_PATH="$PATH"
 source "$ROOT/tests/lib/bsd-path.sh"

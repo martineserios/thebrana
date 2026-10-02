@@ -4,6 +4,7 @@ shopt -s nullglob  # TRAP: never store --include=*glob in a scalar var — use a
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/system/scripts/lib/suite-home.sh"   # suites validate runs directly get a scratch HOME (t-3389)
 SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
@@ -2689,7 +2690,7 @@ if [ ! -f "$C65_TEST" ]; then
 elif ! command -v jq >/dev/null 2>&1; then
     warn "Check 65: jq not installed — statusline epic fallback untestable here"
 else
-    C65_OUT=$(bash "$C65_TEST" 2>&1)
+    C65_OUT=$(run_suite_isolated "$HOME" bash "$C65_TEST" 2>&1)   # scratch HOME: same isolation as the runners (t-3389)
     C65_RC=$?
     if [ "$C65_RC" -eq 0 ]; then
         pass "Check 65: statusline epic resolution — $(echo "$C65_OUT" | tail -1)"
@@ -2723,7 +2724,7 @@ else
             continue
         fi
         C66_RAN=$((C66_RAN + 1))
-        if C66_OUT=$(bash "$C66_DIR/$c66_t" 2>&1); then
+        if C66_OUT=$(run_suite_isolated "$HOME" bash "$C66_DIR/$c66_t" 2>&1); then   # scratch HOME (t-3389)
             :
         else
             C66_FAILED="$C66_FAILED $c66_t"

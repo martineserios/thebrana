@@ -158,8 +158,12 @@ echo "── session-end-persist.sh ──────────────�
 T4_LAYER0="$TMPDIR_ROOT/t4-layer0"
 mkdir -p "$T4_LAYER0"
 echo "# Auto Memory" > "$T4_LAYER0/MEMORY.md"
+# fake HOME: the hook's failure log lives under $HOME/.claude/run-state — this case used to write
+# 'test-proj / sess-t4' into the operator's real one (Mac run report, t-3389)
+T4_FAKE_HOME="$TMPDIR_ROOT/t4-home"; mkdir -p "$T4_FAKE_HOME/.claude/scripts"; echo 'CF=""' > "$T4_FAKE_HOME/.claude/scripts/cf-env.sh"
 
 EXIT_CODE=0
+HOME="$T4_FAKE_HOME" \
 PROJECT="test-proj" SESSION_ID="sess-t4" TIMESTAMP="2026-04-12T00:00:00Z" \
 SESSION_FILE="$TMPDIR_ROOT/dummy.jsonl" \
 TOTAL=9 SUCCESSES=3 FAILURES=2 CORRECTIONS=1 TEST_WRITES=1 CASCADES=0 \

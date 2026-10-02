@@ -31,6 +31,11 @@ The serial sweep takes ~4 minutes, which is why `--fast` exists: it's for
 quick local iteration, not for BUILD→CLOSE gates or ship pre-flight — those
 must run the full check.
 
+Every suite runs under a throwaway `HOME` inside your real one (`system/scripts/lib/suite-home.sh`,
+shared with `run-test-suites.sh`, t-3389), so a suite that forgets to fake `HOME` cannot write into
+your `~/.claude`. `TEST_SUITE_KEEP_HOME=1` passes the real `HOME` through for diagnosis (announced,
+refused under CI).
+
 ## Examples
 
 Run the sweep directly, outside validate.sh entirely:
