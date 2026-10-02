@@ -83,6 +83,15 @@ unrelated to each other, all masked by nothing running these suites):
     motivated this).
   - `HOOK_TEST_SWEEP_CONCURRENCY` (default `1`) bounds parallelism via
     plain bash job slots — no external tool dependency.
+  - Every suite runs under a throwaway `HOME` via `run_suite_isolated` from
+    `system/scripts/lib/suite-home.sh` (t-3389): a `mktemp` dir inside the
+    caller's HOME (not `/tmp` — hooks pass `/tmp/*` through, and suites build
+    fixture repos under `$HOME` to escape that), seeded with a `.gitconfig`
+    test identity, dropped by its pinned name after the suite; stale
+    leftovers are reaped at start. Shared with `run-test-suites.sh` so both
+    runners give the same isolation; `validate.sh` wraps its own direct suite
+    runs (Checks 65/66) the same way. `TEST_SUITE_KEEP_HOME=1` passes the
+    real HOME through for diagnosis (announced, refused under CI).
 - `validate.sh` Check 70 calls it with no args, prints its summary line
   through `pass`/`fail`, skips with a `warn` under `--fast`.
 
@@ -91,7 +100,8 @@ unrelated to each other, all masked by nothing running these suites):
 | File | Role |
 |------|------|
 | `system/scripts/hook-test-sweep.sh` | Discovery + execution engine |
-| `system/scripts/tests/test-hook-test-sweep.sh` | Tests for the sweep script itself |
+| `system/scripts/tests/test-hook-test-sweep.sh` | Tests for the sweep script itself (incl. Test 1b: HOME isolation) |
+| `system/scripts/lib/suite-home.sh` | Per-suite scratch HOME, shared with `run-test-suites.sh` (t-3389) |
 | `validate.sh` (Check 70, `--fast` flag) | Wiring into the validation gate |
 | `system/hooks/session-start.sh` | Real bug fix (background-job stdout leak) |
 | `system/hooks/tests/test-{tdd-gate,e2e-hooks,session-start,close-extraction}.sh` | Stale-fixture fixes |
@@ -112,3 +122,6 @@ unrelated to each other, all masked by nothing running these suites):
   sandbox load. Always passes in isolation.
 - Only the 4 suites blocking the sweep's initial green run were fixed.
   Other suites may have their own latent bugs not yet surfaced.
+
+## Changelog
+- 2026-10-02: suites run under a per-suite scratch HOME via `lib/suite-home.sh` (t-3389, d0e3c889)
