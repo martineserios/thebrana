@@ -307,27 +307,40 @@ p_lock_release() {
 # p_timeout [-k KILL_AFTER] SECS cmd args...   — rc 124 on timeout, else cmd's rc.
 # (GNU timeout returns 137 instead when -k had to escalate to KILL; the fallback returns 124.
 # Treat "timed out" as rc 124 or 137.)
-# GNU timeout(1) when present (Linux; Homebrew coreutils' gtimeout on macOS); otherwise a
-# bash watchdog: cmd runs in the background with stdin preserved, a watchdog TERMs it (and
-# its direct children) after SECS, then KILLs after KILL_AFTER. The watchdog's stdout/stderr
-# go to /dev/null so a surrounding $(...) never waits out the timeout.
-# The fallback signals the child and its direct children, not the whole process group as GNU
-# timeout does — grandchildren of a wrapper shell can outlive it.
+# Mechanism and why: see the next paragraph.
+# When perl is available (stock macOS and Linux both ship it) and the command is an executable, the
+# watchdog below is used EVEN IF timeout(1) exists: it runs the command in its own session (perl's
+# setsid) and signals the whole process GROUP, so a grandchild that outlives a killed wrapper cannot
+# keep the caller's output pipe open (`| tee`, `$(...)`) and block it long after the ceiling (t-3390: a
+# Mac suite run sat 16 min under a 300 s ceiling). timeout(1) is not enough on its own: uutils'
+# timeout (the Ubuntu default) signals only the direct child. A CONT follows the TERM so a stopped
+# process still receives it. Without perl, or for a shell function, timeout/gtimeout is used if present,
+# else a watchdog that signals the child and its direct children only.
 p_timeout() {
-    if   _p_have timeout;  then timeout "$@";  return $?
+    local kill_after="" secs pid wd rc=0 wrc=0 grp=0 a=("$@")
+    [ "${1:-}" = "-k" ] && a=("${a[@]:2}")
+    if [ "$(type -t "${a[1]:-}" 2>/dev/null)" = file ] && _p_have perl; then grp=1
+    elif _p_have timeout;  then timeout "$@";  return $?
     elif _p_have gtimeout; then gtimeout "$@"; return $?
     fi
-    local kill_after="" secs pid wd rc=0 wrc=0
     if [ "${1:-}" = "-k" ]; then kill_after="$2"; shift 2; fi
     secs="$1"; shift
-    "$@" <&0 &
+    if [ "$grp" = 1 ]; then
+        perl -e 'use POSIX (); POSIX::setsid(); exec { $ARGV[0] } @ARGV or exit 127' "$@" <&0 &
+    else
+        "$@" <&0 &
+    fi
     pid=$!
     (
         sleep "$secs"
         if kill -0 "$pid" 2>/dev/null; then
-            pkill -TERM -P "$pid" 2>/dev/null; kill -TERM "$pid" 2>/dev/null
+            if [ "$grp" = 1 ]; then kill -TERM -- "-$pid" 2>/dev/null; kill -CONT -- "-$pid" 2>/dev/null
+            else pkill -TERM -P "$pid" 2>/dev/null; fi
+            kill -TERM "$pid" 2>/dev/null; kill -CONT "$pid" 2>/dev/null
             if [ -n "$kill_after" ]; then   # detached escalation: outlives this stage on purpose
-                ( sleep "$kill_after"; pkill -KILL -P "$pid" 2>/dev/null; kill -KILL "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+                ( sleep "$kill_after"
+                  if [ "$grp" = 1 ]; then kill -KILL -- "-$pid" 2>/dev/null; else pkill -KILL -P "$pid" 2>/dev/null; fi
+                  kill -KILL "$pid" 2>/dev/null ) >/dev/null 2>&1 &
             fi
             exit 124
         fi

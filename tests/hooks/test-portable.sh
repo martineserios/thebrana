@@ -145,6 +145,11 @@ for mode in $MODES; do
     assert "$mode: p_timeout in \$(...) does not wait out the timeout" "fast" "$([ $dt -lt 5 ] && echo fast || echo "slow:${dt}s")"
     assert "$mode: p_timeout leaves no orphan watchdog sleeping" "0" \
         "$(run_in $mode "p_timeout 40 true; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$2==40' | wc -l" | tr -d ' ')"
+    # t-3390: the WHOLE process group must die, and a stopped process must not outlive the ceiling
+    assert "$mode: p_timeout kills a grandchild too (no survivor holding the pipe)" "0" \
+        "$(run_in $mode "{ p_timeout -k 1 1 bash -c '( sleep 43; true ) & wait'; } 2>/dev/null; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$2==43' | wc -l" | tr -d ' ')"
+    t0=$SECONDS; run_in $mode "{ p_timeout -k 2 1 bash -c 'kill -STOP \$\$; sleep 1'; } 2>/dev/null; echo \$?" >/dev/null; dt=$((SECONDS - t0))
+    assert "$mode: p_timeout ends a SIGSTOPped command (CONT follows TERM)" "fast" "$([ $dt -lt 8 ] && echo fast || echo "slow:${dt}s")"
     # p_realpath_m / p_relpath
     RP="$(cd "$TMP/rp" && pwd -P)"
     assert "$mode: p_realpath_m resolves symlink dir" "$RP/real/sub" "$(run_in $mode "p_realpath_m '$TMP/rp/lnk/sub'")"

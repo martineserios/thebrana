@@ -5,7 +5,11 @@
 #
 #   bash system/scripts/run-test-suites.sh tests/*/*.sh system/hooks/tests/*.sh
 #
-# Env: TEST_SUITE_TIMEOUT  per-suite ceiling in seconds (default 300)
+# Env: TEST_SUITE_TIMEOUT     per-suite ceiling in seconds (default 300)
+#      TEST_SUITE_KILL_AFTER  grace after the TERM at the ceiling before a KILL (default 10) — a suite
+#                             that ignores TERM must still end (t-3390)
+#      TEST_SUITE_HEARTBEAT   print a "still running" line every N seconds of a quiet suite (default 60),
+#                             so a stalled run names itself instead of looking like silence (t-3390)
 #
 # Behaviour carried over from the inline CI loop (t-3023 / t-3319):
 #  - per-suite ceiling so one hang names itself instead of stalling the job
@@ -17,6 +21,8 @@ set -u
 source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 
 TIMEOUT="${TEST_SUITE_TIMEOUT:-300}"
+KILL_AFTER="${TEST_SUITE_KILL_AFTER:-10}"
+HEARTBEAT="${TEST_SUITE_HEARTBEAT:-60}"
 FAIL=0
 FAILED_TESTS=""
 
@@ -31,8 +37,12 @@ for test in "$@"; do
         echo "--- MISSING (no such file — an unexpanded glob?) ---"
         FAIL=1; FAILED_TESTS="$FAILED_TESTS $test"; echo ""; continue
     fi
-    p_timeout "$TIMEOUT" bash "$test" </dev/null
+    # heartbeat: the ticker's sleep writes nowhere, so killing the ticker never leaves a child holding our stdout
+    ( n=0; while sleep 1 >/dev/null 2>&1; do n=$((n + 1)); [ $((n % HEARTBEAT)) -eq 0 ] && echo "--- still running: $test (${n}s) ---"; done ) &
+    TICKER=$!
+    p_timeout -k "$KILL_AFTER" "$TIMEOUT" bash "$test" </dev/null
     rc=$?
+    kill "$TICKER" 2>/dev/null; wait "$TICKER" 2>/dev/null
     if [ "$rc" -eq 0 ]; then
         echo "--- PASSED ---"
     else
