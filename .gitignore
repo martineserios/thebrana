@@ -62,3 +62,6 @@ system/state/tasks-portfolio.json
 
 # graphify graph artifacts — build output, rebuilt locally (ADR-064, t-2275)
 graphify-out/
+
+# Raw run logs and private reports (macOS port etc.) — local only
+.logs/

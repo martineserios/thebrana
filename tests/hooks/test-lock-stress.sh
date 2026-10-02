@@ -6,7 +6,9 @@
 # callers "win" one directory).
 #
 # Env: LOCK_STRESS_ROUNDS (default 8), LOCK_STRESS_WORKERS (default 16)
-# Where: on a GNU host the no-flock condition is simulated (BSD PATH); on real macOS (no flock) it is real.
+# Where: on a GNU host the no-flock condition is simulated (BSD PATH); on a non-GNU host it runs under
+# the host's own tools minus flock (make_noflock_bin) — so a Mac with `brew install flock` still
+# stress-tests the fallback instead of skipping (t-3391).
 # Run: bash tests/hooks/test-lock-stress.sh
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -19,11 +21,10 @@ assert() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "  PASS: $1"; else FA
 echo "=== test-lock-stress.sh (${WORKERS} contenders x ${ROUNDS} rounds) ==="
 
 T="$(mktemp -d)"; BSD_BIN=""
-if host_is_gnu; then BSD_BIN="$(make_bsd_bin)"; fi
+if host_is_gnu; then BSD_BIN="$(make_bsd_bin)"; else BSD_BIN="$(make_noflock_bin)"; fi
 trap 'rm -rf "$T" "$BSD_BIN"' EXIT
-if [ -z "$BSD_BIN" ] && command -v flock >/dev/null 2>&1; then   # portable-ok: presence check, not a use
-    echo "  SKIP: this host has flock(1) and is not GNU-simulable — the fallback would not be exercised"; exit 0
-fi
+# Guard the guard: the contenders' PATH must have no flock, or this stresses the wrong code path.
+assert "sanity: no flock under the contenders' PATH, bash present" "11" "$(noflock_sanity "$BSD_BIN")"   # portable-ok: presence check (guard the guard), not a flock use
 BASH_BIN="$(command -v bash)"
 
 total=0; overlaps=0; starved=0

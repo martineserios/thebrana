@@ -4,6 +4,15 @@ shopt -s nullglob  # TRAP: never store --include=*glob in a scalar var — use a
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
+# Suites validate runs directly (Checks 65/66) get a scratch HOME — same contract as the runners (t-3389).
+# Guarded: tests copy validate.sh + portable.sh alone into fixture trees (test-validate-rules-scoping.sh
+# and friends), so the lib may be absent there — then run suites as before, never abort validate.
+SUITE_HOME_LIB="$(dirname "${BASH_SOURCE[0]}")/system/scripts/lib/suite-home.sh"
+if [ -f "$SUITE_HOME_LIB" ]; then
+    source "$SUITE_HOME_LIB"; suite_env_scrub; suite_home_reap "$HOME"; suite_home_init
+else
+    run_suite_isolated() { shift; "$@"; }; suite_home_drop_all() { :; }
+fi
 SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
@@ -1930,7 +1939,7 @@ else
     TMP_FIXTURE=$(mktemp /tmp/validate-feed-fixture-XXXXXX.jsonl)
     TMP_SUMMARIES=$(mktemp /tmp/validate-feed-summaries-XXXXXX.jsonl)
     TMP_WATERMARK=$(mktemp /tmp/validate-feed-watermark-XXXXXX)
-    trap 'rm -f "$TMP_FIXTURE" "$TMP_SUMMARIES" "$TMP_WATERMARK"' EXIT
+    trap 'rm -f "$TMP_FIXTURE" "$TMP_SUMMARIES" "$TMP_WATERMARK"; suite_home_drop_all "$HOME"' EXIT
     printf '%s\n' \
         '{"feed":"anthropic-news","title":"Claude 4 Released","link":"https://www.anthropic.com/news/claude-4","published":"2026-01-01","polled_at":"2026-01-01T12:00:00Z"}' \
         '{"feed":"anthropic-news","title":"New API Features","link":"https://www.anthropic.com/news/api-features","published":"2026-01-02","polled_at":"2026-01-02T12:00:00Z"}' \
@@ -2689,7 +2698,7 @@ if [ ! -f "$C65_TEST" ]; then
 elif ! command -v jq >/dev/null 2>&1; then
     warn "Check 65: jq not installed — statusline epic fallback untestable here"
 else
-    C65_OUT=$(bash "$C65_TEST" 2>&1)
+    C65_OUT=$(run_suite_isolated "$HOME" bash "$C65_TEST" 2>&1)   # scratch HOME: same isolation as the runners (t-3389)
     C65_RC=$?
     if [ "$C65_RC" -eq 0 ]; then
         pass "Check 65: statusline epic resolution — $(echo "$C65_OUT" | tail -1)"
@@ -2723,7 +2732,7 @@ else
             continue
         fi
         C66_RAN=$((C66_RAN + 1))
-        if C66_OUT=$(bash "$C66_DIR/$c66_t" 2>&1); then
+        if C66_OUT=$(run_suite_isolated "$HOME" bash "$C66_DIR/$c66_t" 2>&1); then   # scratch HOME (t-3389)
             :
         else
             C66_FAILED="$C66_FAILED $c66_t"

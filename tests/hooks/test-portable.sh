@@ -14,7 +14,10 @@ source "$REPO_ROOT/system/hooks/lib/portable.sh"   # p_touch_at etc. for fixture
 # BSD simulation + GNU oracles only make sense ON a GNU host; on a real Mac "native" IS BSD.
 HOST_GNU=0; host_is_gnu && HOST_GNU=1
 MODES=native; [ "$HOST_GNU" = 1 ] && MODES="native bsd"
-LM=native; [ "$HOST_GNU" = 1 ] && LM=bsd   # which mode exercises the no-flock fallback lock
+# LM = the mode that exercises the no-flock fallback lock. GNU host: the BSD simulation (no flock in
+# it). Non-GNU host: "noflock" = the host's own tools minus flock — NOT "native", because a Mac with
+# `brew install flock` would then run the real flock path and the fallback assertions go red (t-3391).
+LM=noflock; [ "$HOST_GNU" = 1 ] && LM=bsd
 
 PASS=0; FAIL=0
 assert() {
@@ -24,7 +27,9 @@ assert() {
 }
 
 TMP="$(mktemp -d)"; BSD_BIN=""; [ "$HOST_GNU" = 1 ] && BSD_BIN="$(make_bsd_bin)"
-trap 'rm -rf "$TMP" "$BSD_BIN"' EXIT
+NOFLOCK_BIN=""; [ "$HOST_GNU" = 1 ] || NOFLOCK_BIN="$(make_noflock_bin)"
+LOCK_BIN="${BSD_BIN:-$NOFLOCK_BIN}"   # the PATH every fallback-lock contender runs under
+trap 'rm -rf "$TMP" "$BSD_BIN" "$NOFLOCK_BIN"' EXIT
 
 echo "=== test-portable.sh ==="
 [ -f "$LIB" ] || { echo "  FAIL: $LIB missing"; exit 1; }
@@ -35,6 +40,7 @@ wait_ready() { local i=0; while [ ! -e "$1" ] && [ $i -lt 200 ]; do sleep 0.05; 
 run_in() {
     local mode="$1" snippet="$2" path="$PATH"
     [ "$mode" = bsd ] && path="$BSD_BIN"
+    [ "$mode" = noflock ] && path="$NOFLOCK_BIN"
     PATH="$path" bash -c "source '$LIB'; $snippet" 2>&1
 }
 
@@ -118,11 +124,6 @@ for mode in $MODES; do
     wait $HOLDER
     # lock is per-FILE, fd number is caller's business; released lock reacquirable
     assert "$mode: lock reacquire after release" "0" "$(run_in $mode "p_lock_acquire 7 '$TMP/k2.lock' -n; echo \$?")"
-    # stale lock (dead pid) must not wedge the fallback
-    if [ "$mode" = bsd ]; then
-        echo 999999 >"$TMP/l4.lock.lk"
-        assert "$mode: p_flock recovers stale lock" "ok" "$(run_in $mode "p_flock -n '$TMP/l4.lock' echo ok")"
-    fi
 done
 
 # ── second-tier shims (t-3377) ─────────────────────────────────────────────
@@ -144,7 +145,24 @@ for mode in $MODES; do
     t0=$SECONDS; run_in $mode "x=\$(p_timeout 30 echo hi); echo \$x" >/dev/null; dt=$((SECONDS - t0))
     assert "$mode: p_timeout in \$(...) does not wait out the timeout" "fast" "$([ $dt -lt 5 ] && echo fast || echo "slow:${dt}s")"
     assert "$mode: p_timeout leaves no orphan watchdog sleeping" "0" \
-        "$(run_in $mode "p_timeout 40 true; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$2==40' | wc -l" | tr -d ' ')"
+        "$(run_in $mode "p_timeout 40 true; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==40' | wc -l" | tr -d ' ')"
+    # t-3390: the WHOLE process group must die, and a stopped process must not outlive the ceiling
+    assert "$mode: p_timeout kills a grandchild too (no survivor holding the pipe)" "0" \
+        "$(run_in $mode "{ p_timeout -k 1 1 bash -c '( sleep 43; true ) & wait'; } 2>/dev/null; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==43' | wc -l" | tr -d ' ')"
+    assert "$mode: p_timeout KILLs a TERM-ignoring grandchild even though its parent died on TERM" "0" \
+        "$(run_in $mode "{ p_timeout -k 1 1 bash -c '( trap \"\" TERM; sleep 45; true ) & wait'; } 2>/dev/null; sleep 0.5; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==45' | wc -l" | tr -d ' ')"
+# group mode WITHOUT -k: a survivor whose TERM handler needs a moment must get it (2s default grace) —
+# a hook's `p_timeout 5 $CF memory store` must not have its write KILLed the instant the leader dies
+rm -f "$TMP/grace.$mode"
+run_in $mode "p_timeout 1 bash -c '( trap \"sleep 1; touch $TMP/grace.$mode; exit 0\" TERM; sleep 40 ) & wait'" >/dev/null 2>&1
+sleep 1.5
+assert "$mode: p_timeout without -k still grants survivors a short grace before the group KILL" "present" "$([ -e "$TMP/grace.$mode" ] && echo present || echo absent)"
+    t0=$SECONDS; run_in $mode "{ p_timeout -k 1 1 bash -c 'trap \"\" TERM; sleep 9'; } 2>/dev/null" >/dev/null; dt=$((SECONDS - t0))
+    assert "$mode: p_timeout -k really escalates (ends in under 6s, not after the 9s sleep)" "fast" "$([ $dt -lt 6 ] && echo fast || echo "slow:${dt}s")"
+    assert "$mode: p_timeout 0 means no limit (GNU)" "hi" "$(run_in $mode "p_timeout 0 echo hi")"
+    assert "$mode: p_timeout rejects a bad interval with rc 125 instead of killing at once" "125" "$(run_in $mode "p_timeout abc true 2>/dev/null; echo \$?" | tail -1)"
+    t0=$SECONDS; run_in $mode "{ p_timeout -k 30 1 bash -c 'kill -STOP \$\$; sleep 1'; } 2>/dev/null; echo \$?" >/dev/null; dt=$((SECONDS - t0))
+    assert "$mode: p_timeout ends a SIGSTOPped command (CONT follows TERM)" "fast" "$([ $dt -lt 8 ] && echo fast || echo "slow:${dt}s")"
     # p_realpath_m / p_relpath
     RP="$(cd "$TMP/rp" && pwd -P)"
     assert "$mode: p_realpath_m resolves symlink dir" "$RP/real/sub" "$(run_in $mode "p_realpath_m '$TMP/rp/lnk/sub'")"
@@ -223,9 +241,18 @@ assert "lock: fd 1 (stdout) rejected" "2" "$(run_in native "p_lock_acquire 1 '$T
 assert "lock: fd 2 (stderr) rejected" "2" "$(run_in native "p_lock_acquire 2 '$TMP/fd.lock' >/dev/null 2>&1; echo \$?")"
 assert "lock: empty fd rejected" "2" "$(run_in native "p_lock_acquire '' '$TMP/fd.lock' >/dev/null 2>&1; echo \$?")"
 
-# mkdir-lock fallback (BSD PATH has no flock): stale/garbage/empty pid handling and the reclaim race
+# no-flock fallback lock (run under $LM — a PATH with NO flock): stale/garbage/empty pid handling and
+# the reclaim race. Guard the guard first: if flock were reachable here, every assertion below would
+# test the wrong code path (exactly the brew-flock Mac failure, t-3391).
+if [ "$LM" = noflock ]; then
+    assert "noflock: sanity — flock absent and bash present under the no-flock PATH" "11" "$(noflock_sanity "$NOFLOCK_BIN")"   # portable-ok: presence check (guard the guard), not a flock use
+fi
 L="$TMP/lk"; mkdir -p "$L"
 old() { p_touch_at "$1" $(( $(date +%s) - 120 )); }
+# stale lock (dead pid) must not wedge the fallback — under $LM, not `mode = bsd`: that guard meant the
+# assertion never ran on any Mac (challenger finding, t-3391)
+echo 999999 >"$L/l4.lock.lk"
+assert "fallback lock: p_flock recovers a stale lock (dead pid)" "ok" "$(run_in $LM "p_flock -n '$L/l4.lock' echo ok")"
 echo 0  >"$L/g1.lock.lk"; old "$L/g1.lock.lk"
 assert "fallback lock: pid '0' (kill -0 0 always succeeds) in an OLD lock file is garbage -> reclaimed" "0" "$(run_in $LM "p_lock_acquire 9 '$L/g1.lock' -n; echo \$?")"
 echo -1 >"$L/g2.lock.lk"; old "$L/g2.lock.lk"
@@ -243,7 +270,7 @@ assert "fallback lock: release removes only OUR lock (a stolen-and-retaken lock 
 echo 999999 >"$L/race.lock.lk"
 : >"$L/race.count"; : >"$L/race.violations"
 race_worker() {
-    PATH="${BSD_BIN:-$PATH}" "$(command -v bash)" -c "
+    PATH="${LOCK_BIN:-$PATH}" "$(command -v bash)" -c "
         source '$LIB'
         p_lock_acquire 9 '$L/race.lock' -w 20 || { echo NOACQ >>'$L/race.violations'; exit 0; }
         if ! ( set -C; : >'$L/race.inside' ) 2>/dev/null; then echo OVERLAP >>'$L/race.violations'; fi
@@ -252,8 +279,8 @@ race_worker() {
         p_lock_release 9 '$L/race.lock'"
 }
 for _ in 1 2 3 4 5 6 7 8; do race_worker & done; wait
-assert "bsd lock race: all 8 contenders acquired" "8" "$(wc -l <"$L/race.count" | tr -d ' ')"
-assert "bsd lock race: never two holders at once, none starved" "0" "$(wc -l <"$L/race.violations" | tr -d ' ')"
+assert "fallback lock race: all 8 contenders acquired" "8" "$(wc -l <"$L/race.count" | tr -d ' ')"
+assert "fallback lock race: never two holders at once, none starved" "0" "$(wc -l <"$L/race.violations" | tr -d ' ')"
 
 
 # ── Gate 3 round 2 (t-3383): lock-path hardening, secs/fd bounds, EPERM, DST ──────────────────────

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-21T18:27:02Z",
+  "generated": "2026-10-02T18:25:16Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -354,6 +354,11 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/jev-system-one-decision-models.md": {
+      "title": "Jev — System One Decision Models: What They Are, Where They Fit, How Brana Applies Them",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/knowledge-architecture.md": {
       "title": "Knowledge Architecture for AI Development Systems",
       "type": "Dimension",
@@ -610,6 +615,7 @@
         "system/loops/",
         "system/scripts/readme-coverage.sh",
         "system/scripts/generate-context-md.py",
+        "system/hooks/lib/portable.sh",
         "system/hooks/tests/"
       ]
     },
@@ -1325,6 +1331,13 @@
         "system/state/tasks-snapshot.json"
       ]
     },
+    "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md": {
+      "title": "ADR-095: Keep brana memory current across two machines working in parallel",
+      "type": "ADR",
+      "impl_files": [
+        "system/state/patterns-export.json"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1653,6 +1666,7 @@
       "impl_files": [
         "system/hooks/tests/",
         "system/scripts/hook-test-sweep.sh",
+        "system/scripts/lib/suite-home.sh",
         "system/scripts/tests/test-hook-test-sweep.sh",
         "system/hooks/session-start.sh",
         "system/hooks/tests/test-"
@@ -1693,9 +1707,7 @@
     "docs/architecture/features/knowledge-pipeline-compute.md": {
       "title": "Knowledge Pipeline — Compute Routing",
       "type": "Roadmap",
-      "impl_files": [
-        "system/state/tasks-portfolio.json"
-      ]
+      "impl_files": []
     },
     "docs/architecture/features/knowledge-pipeline-platform-adapters.md": {
       "title": "Feature: PlatformAdapter for the knowledge pipeline",
@@ -1784,6 +1796,23 @@
         "system/loops/drain-loop.md"
       ]
     },
+    "docs/architecture/features/macos-portable-shims.md": {
+      "title": "macOS portable shell shims (t-3373, epic macos-portability t-3372)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/lib/portable.sh",
+        "system/scripts/lint-portability.sh",
+        "system/hooks/tests"
+      ]
+    },
+    "docs/architecture/features/macos-scheduler-optout.md": {
+      "title": "macOS scheduler opt-out (t-3375, epic macos-portability t-3372)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/lib/scheduler-backend.sh",
+        "system/cron/close-extraction.sh"
+      ]
+    },
     "docs/architecture/features/memory-migration-manifest.md": {
       "title": "Memory Migration Manifest — Phase A",
       "type": "Roadmap",
@@ -1870,12 +1899,18 @@
         "system/rules"
       ]
     },
+    "docs/architecture/features/private-state-sync.md": {
+      "title": "Private state sync",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/state/",
+        "system/state/event-log.md"
+      ]
+    },
     "docs/architecture/features/project-descriptor-vectors.md": {
       "title": "Project Descriptor Vectors",
       "type": "Roadmap",
-      "impl_files": [
-        "system/state/tasks-portfolio.json"
-      ]
+      "impl_files": []
     },
     "docs/architecture/features/project-metadata.md": {
       "title": "Feature: Project-Level Metadata",
@@ -2970,6 +3005,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/jev-system-one-decision-models.md": {
+      "title": "Jev — System One Decision Models: What They Are, Where They Fit, How Brana Applies Them",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/knowledge-architecture.md": {
       "title": "Knowledge Architecture for AI Development Systems",
       "type": "Roadmap",
@@ -3182,7 +3222,8 @@
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/tests/",
-        "system/scripts/hook-test-sweep.sh"
+        "system/scripts/hook-test-sweep.sh",
+        "system/scripts/lib/suite-home.sh"
       ]
     },
     "docs/guide/features/judge-escalation-valve.md": {
@@ -3252,6 +3293,15 @@
       "title": "Knowledge System",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/guide/macos-setup.md": {
+      "title": "Setting up brana on a Mac",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cron/close-extraction.sh",
+        "system/scripts/lint-portability.sh",
+        "system/scripts/run-test-suites.sh"
+      ]
     },
     "docs/guide/onboarding.md": {
       "title": "Brana Onboarding — One-Command Install",
@@ -4008,7 +4058,6 @@
       "impl_files": [
         "system/cli/rust/crates/brana-cli/",
         "system/skills/",
-        "system/state/tasks-portfolio.json",
         "system/hooks/lib/remind.sh",
         "system/scripts/close-snapshot.sh",
         "system/cron/close-extraction.sh"
@@ -4489,6 +4538,11 @@
     },
     "docs/reviews/knowledge-2026-09-01.md": {
       "title": "Knowledge Health Review — 2026-09-01",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/reviews/knowledge-2026-10-01.md": {
+      "title": "Knowledge Health Review — 2026-10-01",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -7750,6 +7804,24 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/36-claw-ecosystem-chat-interface.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/mcp-server-design-patterns.md",
       "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
@@ -8226,6 +8298,12 @@
     {
       "from": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
       "to": "docs/domain/MODEL-001-brana-core.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
+      "to": "docs/architecture/decisions/ADR-038-memory-write-gateway.md",
       "type": "informs",
       "computed": false
     },
@@ -8759,6 +8837,24 @@
     },
     {
       "from": "docs/dimensions/dynamic-form-flows-messaging.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/36-claw-ecosystem-chat-interface.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/jev-system-one-decision-models.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/jev-system-one-decision-models.md",
       "to": "dimensions/omnichannel-ai-agent-frameworks.md",
       "type": "informs",
       "computed": false
@@ -11903,6 +11999,18 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/macos-portable-shims.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/macos-scheduler-optout.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/memory-migration-manifest.md",
       "type": "references",
       "computed": false
@@ -11964,6 +12072,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/plugin-packaging.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/private-state-sync.md",
       "type": "references",
       "computed": false
     },
@@ -12468,6 +12582,12 @@
     {
       "from": "docs/README.md",
       "to": "guide/getting-started.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/macos-setup.md",
       "type": "references",
       "computed": false
     },
@@ -13324,6 +13444,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "to": "docs/architecture/features/macos-scheduler-optout.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-074-step-state-contract.md",
       "to": "ADR-050-loop-request-protocol.md",
       "type": "references",
@@ -13890,6 +14016,24 @@
     {
       "from": "docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md",
       "to": "ADR-091-tasks-json-untracked-canonical-snapshot.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
+      "to": "ADR-015-state-consolidation-plugin-first.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
+      "to": "ADR-038-memory-write-gateway.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
+      "to": "ADR-058-search-provider-hybrid-recall.md",
       "type": "references",
       "computed": false
     },
@@ -14484,6 +14628,12 @@
     {
       "from": "docs/architecture/features/loops-library.md",
       "to": "docs/ideas/drained/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/macos-scheduler-optout.md",
+      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
       "type": "references",
       "computed": false
     },
@@ -17411,6 +17561,12 @@
     },
     {
       "from": "docs/guide/getting-started.md",
+      "to": "macos-setup.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/getting-started.md",
       "to": "scheduler.md",
       "type": "references",
       "computed": false
@@ -17454,6 +17610,18 @@
     {
       "from": "docs/guide/knowledge-system.md",
       "to": "path.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/macos-setup.md",
+      "to": "docs/architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/macos-setup.md",
+      "to": "docs/architecture/features/macos-portable-shims.md",
       "type": "references",
       "computed": false
     },
@@ -19871,9 +20039,9 @@
     }
   ],
   "stats": {
-    "nodes": 641,
-    "edges": 2551,
-    "typed_edges": 742,
-    "orphans": 144
+    "nodes": 649,
+    "edges": 2570,
+    "typed_edges": 749,
+    "orphans": 146
   }
 }

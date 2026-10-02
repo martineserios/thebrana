@@ -305,29 +305,47 @@ p_lock_release() {
 
 # ── timeout ──────────────────────────────────────────────────────────────────
 # p_timeout [-k KILL_AFTER] SECS cmd args...   — rc 124 on timeout, else cmd's rc.
+# In group mode without -k, survivors still get a 2s grace after the leader dies before the group KILL.
 # (GNU timeout returns 137 instead when -k had to escalate to KILL; the fallback returns 124.
 # Treat "timed out" as rc 124 or 137.)
-# GNU timeout(1) when present (Linux; Homebrew coreutils' gtimeout on macOS); otherwise a
-# bash watchdog: cmd runs in the background with stdin preserved, a watchdog TERMs it (and
-# its direct children) after SECS, then KILLs after KILL_AFTER. The watchdog's stdout/stderr
-# go to /dev/null so a surrounding $(...) never waits out the timeout.
-# The fallback signals the child and its direct children, not the whole process group as GNU
-# timeout does — grandchildren of a wrapper shell can outlive it.
+# Mechanism and why: see the next paragraph.
+# When perl is available (stock macOS and Linux both ship it) and the command is an executable, the
+# watchdog below is used EVEN IF timeout(1) exists: it runs the command in its own session (perl's
+# setsid) and signals the whole process GROUP, so a grandchild that outlives a killed wrapper cannot
+# keep the caller's output pipe open (`| tee`, `$(...)`) and block it long after the ceiling (t-3390: a
+# Mac suite run sat 16 min under a 300 s ceiling). timeout(1) is not enough on its own: uutils'
+# timeout (the Ubuntu default) signals only the direct child. A CONT follows the TERM so a stopped
+# process still receives it. Without perl, or for a shell function, timeout/gtimeout is used if present,
+# else a watchdog that signals the child and its direct children only.
 p_timeout() {
-    if   _p_have timeout;  then timeout "$@";  return $?
+    local kill_after="" secs pid wd rc=0 wrc=0 grp=0 a=("$@") flag n=0
+    [ "${1:-}" = "-k" ] && a=("${a[@]:2}")
+    if [ "$(type -t "${a[1]:-}" 2>/dev/null)" = file ] && _p_have perl; then grp=1
+    elif _p_have timeout;  then timeout "$@";  return $?
     elif _p_have gtimeout; then gtimeout "$@"; return $?
     fi
-    local kill_after="" secs pid wd rc=0 wrc=0
     if [ "${1:-}" = "-k" ]; then kill_after="$2"; shift 2; fi
     secs="$1"; shift
-    "$@" <&0 &
+    case "$secs$kill_after" in *[!0-9.]*) echo "p_timeout: invalid interval" >&2; return 125 ;; esac
+    [ "$secs" = 0 ] && { "$@"; return $?; }   # 0 = no limit, as GNU
+    flag="$(mktemp)" || return 125
+    if [ "$grp" = 1 ]; then
+        perl -e 'use POSIX (); POSIX::setsid(); exec { $ARGV[0] } @ARGV or exit 127' "$@" <&0 &
+    else
+        "$@" <&0 &
+    fi
     pid=$!
     (
         sleep "$secs"
         if kill -0 "$pid" 2>/dev/null; then
-            pkill -TERM -P "$pid" 2>/dev/null; kill -TERM "$pid" 2>/dev/null
-            if [ -n "$kill_after" ]; then   # detached escalation: outlives this stage on purpose
-                ( sleep "$kill_after"; pkill -KILL -P "$pid" 2>/dev/null; kill -KILL "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+            echo 1 >"$flag"                 # tells the caller this was a timeout, before any signal lands
+            if [ "$grp" = 1 ]; then kill -TERM -- "-$pid" 2>/dev/null; kill -CONT -- "-$pid" 2>/dev/null
+            else pkill -TERM -P "$pid" 2>/dev/null; fi
+            kill -TERM "$pid" 2>/dev/null; kill -CONT "$pid" 2>/dev/null
+            if [ -n "$kill_after" ]; then   # detached escalation (leader may ignore TERM): outlives this stage on purpose
+                ( sleep "$kill_after"
+                  if [ "$grp" = 1 ]; then kill -0 -- "-$pid" 2>/dev/null && kill -KILL -- "-$pid" 2>/dev/null
+                  else pkill -KILL -P "$pid" 2>/dev/null; kill -KILL "$pid" 2>/dev/null; fi ) >/dev/null 2>&1 &
             fi
             exit 124
         fi
@@ -335,8 +353,20 @@ p_timeout() {
     ) >/dev/null 2>&1 &
     wd=$!
     wait "$pid" 2>/dev/null || rc=$?
-    pkill -P "$wd" 2>/dev/null; kill "$wd" 2>/dev/null
-    wait "$wd" 2>/dev/null || wrc=$?
+    if [ -s "$flag" ]; then                 # timed out: let the watchdog finish what it started, never kill it mid-signal
+        wait "$wd" 2>/dev/null; wrc=124
+        if [ "$grp" = 1 ]; then             # the leader is gone; give survivors the grace, then KILL the group
+            # No -k given: still grant a short grace (2s) before the group KILL. Without it a caller such as
+            # `p_timeout 5 $CF memory store ...` would see its survivors KILLed mid-write the instant the
+            # leader died — the old timeout(1) path never KILLed at all (Gate 3 finding, 2026-10-02).
+            n=0; kill_after="${kill_after%%.*}"; kill_after="${kill_after:-2}"
+            while [ "$n" -lt "$kill_after" ] && kill -0 -- "-$pid" 2>/dev/null; do sleep 1; n=$((n + 1)); done
+            kill -0 -- "-$pid" 2>/dev/null && kill -KILL -- "-$pid" 2>/dev/null
+        fi
+    else
+        pkill -P "$wd" 2>/dev/null; kill "$wd" 2>/dev/null; wait "$wd" 2>/dev/null
+    fi
+    rm -f "$flag"
     [ "$wrc" -eq 124 ] && return 124
     return "$rc"
 }

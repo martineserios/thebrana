@@ -97,7 +97,7 @@ This copies files to `~/.claude/` -- Claude's global config directory. It is ide
 | `~/.claude/scripts/*.sh` | Helper scripts used by hooks and skills |
 | `~/.claude/statusline.sh` | Status bar showing branch, task, and context usage |
 | `~/.claude/scheduler/` | Scheduled jobs (systemd timers for recurring tasks) |
-| `~/.claude/settings.json` | PostToolUse hooks (workaround for CC plugin bug) |
+| `~/.claude/settings.json` | Idempotent key edits (the file is created only on a brand-new machine): wires `statusLine` to `statusline.sh` (a user-set custom command is kept), empties commit/PR attribution, sets `MCP_CONNECTION_NONBLOCKING`, writes `autoMode.hard_deny`, removes the legacy PostToolUse hook entries |
 | `~/.claude/plugins/` | Plugin cache and marketplace registration |
 
 Bootstrap also sets up ruflo (memory layer) if it is installed globally via npm.
