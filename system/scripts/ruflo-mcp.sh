@@ -250,4 +250,14 @@ export RUFLO_REQUIRE_REAL_EMBEDDINGS=1
 export RUFLO_MEMORY_SCAN_ON_WRITE=1
 export RUFLO_FUNNEL=0
 
+# Pin the memory store to $HOME/.swarm regardless of cwd. We cd into
+# $CLAUDE_PROJECT_DIR above, and ruflo resolves its memory root as <cwd>/.swarm
+# unless CLAUDE_FLOW_MEMORY_PATH is set. The repo tracks .swarm as a symlink to
+# /home/martineserios/.swarm (a Linux path) that dangles on every other
+# machine -> "Database not initialized" on each MCP memory call; and a project
+# whose .swarm is a real directory silently got a second, empty store.
+# Default-if-unset so an explicit caller override still wins.
+: "${CLAUDE_FLOW_MEMORY_PATH:=$HOME/.swarm}"
+export CLAUDE_FLOW_MEMORY_PATH
+
 exec "$RUFLO" "$@"
