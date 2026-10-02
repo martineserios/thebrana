@@ -3,10 +3,10 @@
 #
 # Bug: the wrapper cd's into $CLAUDE_PROJECT_DIR, and ruflo resolves its memory
 # root as <cwd>/.swarm unless CLAUDE_FLOW_MEMORY_PATH is set. The repo tracks
-# .swarm as a symlink to /home/martineserios/.swarm (a Linux path), so on any
+# .swarm as a symlink to an absolute Linux home path (a Linux path), so on any
 # other machine it dangles and every MCP memory call fails with "Database not
-# initialized". On a project whose .swarm is a real directory (clients/tabz) the
-# MCP silently used a second, empty store instead of ~/.swarm.
+# initialized". On a project whose .swarm is a real directory the MCP silently
+# used a second, empty store instead of ~/.swarm.
 #
 # Fix under test: the wrapper exports CLAUDE_FLOW_MEMORY_PATH=$HOME/.swarm,
 # default-if-unset so an explicit caller override still wins.
