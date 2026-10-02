@@ -90,7 +90,8 @@ assert "scratch HOME: a dir a survivor recreated is dropped again at exit" yes "
 mkdir -p "$REAL_HOME_FOR_TEST/.brana-test-home.stale" && touch -t 202001010000 "$REAL_HOME_FOR_TEST/.brana-test-home.stale"
 runh tests/a/test-pass.sh >/dev/null 2>&1
 assert "scratch HOME: a stale leftover from a killed run is reaped at the next start" no "$([ -e "$REAL_HOME_FOR_TEST/.brana-test-home.stale" ] && echo yes || echo no)"
-OUT="$(cd "$T" && HOME="$REAL_HOME_FOR_TEST" TEST_SUITE_KEEP_HOME=1 TEST_SUITE_TIMEOUT=300 bash "$RUNNER" tests/a/test-home.sh 2>&1)"
+# CI= : on a CI runner the inherited CI=1 would make KEEP_HOME refuse (asserted separately below)
+OUT="$(cd "$T" && HOME="$REAL_HOME_FOR_TEST" CI= TEST_SUITE_KEEP_HOME=1 TEST_SUITE_TIMEOUT=300 bash "$RUNNER" tests/a/test-home.sh 2>&1)"
 assert "TEST_SUITE_KEEP_HOME=1: the caller's HOME is passed through (diagnostic escape hatch)" "HOME=$REAL_HOME_FOR_TEST" "$(printf '%s\n' "$OUT" | sed -n 's/^\(HOME=.*\)$/\1/p' | head -1)"
 assert "TEST_SUITE_KEEP_HOME=1: announced loudly (isolation is OFF)" yes "$(has 'isolation is OFF' "$OUT")"
 OUT="$(cd "$T" && HOME="$REAL_HOME_FOR_TEST" CI=1 TEST_SUITE_KEEP_HOME=1 TEST_SUITE_TIMEOUT=300 bash "$RUNNER" tests/a/test-home.sh 2>&1)"; RC=$?
