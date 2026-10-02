@@ -62,4 +62,33 @@ assert "bsd PATH: failing suite named" yes "$(has '  - tests/a/test-fail.sh' "$O
 OUT="$(runb tests/a/test-stdin.sh)"
 assert "bsd PATH: stdin is /dev/null" yes "$(has 'got-eof' "$OUT")"
 
+# ── the watchdog must END a stuck suite, not just signal it (t-3390: a Mac run hung 16 min under a 300s ceiling) ──
+# term:   the suite ignores TERM (and so does its child) — only a KILL escalation ends it.
+# orphan: the suite's grandchild keeps the output pipe open after its parent is killed — a runner whose
+#         output is piped (`| tee`, `$(...)`) blocks until it exits unless the whole process GROUP is signalled.
+printf '#!/usr/bin/env bash\ntrap "" TERM\nsleep 40\n'          >"$T/tests/a/test-term.sh"
+printf '#!/usr/bin/env bash\n( sleep 40; true ) &\nwait\n'            >"$T/tests/a/test-orphan.sh"
+printf '#!/usr/bin/env bash\nsleep 4\necho quiet-done\n'         >"$T/tests/a/test-quiet.sh"
+printf '#!/usr/bin/env bash\n( trap "" TERM; sleep 40; true ) &\nwait\n' >"$T/tests/a/test-stubborn-child.sh"
+timed() { local t0=$SECONDS; OUT="$("$@")"; RC=$?; ELAPSED=$((SECONDS - t0)); }
+for mode in native bsd; do
+    if [ "$mode" = bsd ]; then runner=runb; else runner=run; fi
+    export TEST_SUITE_KILL_AFTER=2
+    TO=1 timed $runner tests/a/test-term.sh
+    assert "$mode: a TERM-ignoring suite ends within ceiling+grace (took ${ELAPSED}s, limit 12)" yes "$([ "$ELAPSED" -le 12 ] && echo yes || echo no)"
+    assert "$mode: a TERM-ignoring suite is reported TIMED OUT" yes "$(has '--- TIMED OUT (1s) ---' "$OUT")"
+    TO=1 timed $runner tests/a/test-stubborn-child.sh
+    assert "$mode: a TERM-ignoring grandchild of a suite that died on TERM is KILLed (took ${ELAPSED}s, limit 12)" yes "$([ "$ELAPSED" -le 12 ] && echo yes || echo no)"
+    TO=1 timed $runner tests/a/test-orphan.sh
+    assert "$mode: a grandchild holding stdout does not block the runner (took ${ELAPSED}s, limit 12)" yes "$([ "$ELAPSED" -le 12 ] && echo yes || echo no)"
+    assert "$mode: orphan suite is reported TIMED OUT" yes "$(has '--- TIMED OUT (1s) ---' "$OUT")"
+    unset TEST_SUITE_KILL_AFTER
+    TEST_SUITE_HEARTBEAT=1 TO=30 timed $runner tests/a/test-quiet.sh
+    assert "$mode: a long silent suite gets a heartbeat line" yes "$(has 'still running' "$OUT")"
+    assert "$mode: heartbeat names the suite" yes "$(has 'tests/a/test-quiet.sh' "$(printf '%s' "$OUT" | grep 'still running')")"
+    assert "$mode: heartbeat does not change the verdict" yes "$(has 'quiet-done' "$OUT")"
+    TEST_SUITE_HEARTBEAT=abc timed $runner tests/a/test-pass.sh
+    assert "$mode: a non-numeric heartbeat setting is ignored, not an error" no "$(has 'syntax error' "$OUT")"
+done
+
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

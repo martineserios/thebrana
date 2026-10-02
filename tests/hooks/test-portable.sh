@@ -144,7 +144,18 @@ for mode in $MODES; do
     t0=$SECONDS; run_in $mode "x=\$(p_timeout 30 echo hi); echo \$x" >/dev/null; dt=$((SECONDS - t0))
     assert "$mode: p_timeout in \$(...) does not wait out the timeout" "fast" "$([ $dt -lt 5 ] && echo fast || echo "slow:${dt}s")"
     assert "$mode: p_timeout leaves no orphan watchdog sleeping" "0" \
-        "$(run_in $mode "p_timeout 40 true; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$2==40' | wc -l" | tr -d ' ')"
+        "$(run_in $mode "p_timeout 40 true; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==40' | wc -l" | tr -d ' ')"
+    # t-3390: the WHOLE process group must die, and a stopped process must not outlive the ceiling
+    assert "$mode: p_timeout kills a grandchild too (no survivor holding the pipe)" "0" \
+        "$(run_in $mode "{ p_timeout -k 1 1 bash -c '( sleep 43; true ) & wait'; } 2>/dev/null; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==43' | wc -l" | tr -d ' ')"
+    assert "$mode: p_timeout KILLs a TERM-ignoring grandchild even though its parent died on TERM" "0" \
+        "$(run_in $mode "{ p_timeout -k 1 1 bash -c '( trap \"\" TERM; sleep 45; true ) & wait'; } 2>/dev/null; sleep 0.5; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==45' | wc -l" | tr -d ' ')"
+    t0=$SECONDS; run_in $mode "{ p_timeout -k 1 1 bash -c 'trap \"\" TERM; sleep 9'; } 2>/dev/null" >/dev/null; dt=$((SECONDS - t0))
+    assert "$mode: p_timeout -k really escalates (ends in under 6s, not after the 9s sleep)" "fast" "$([ $dt -lt 6 ] && echo fast || echo "slow:${dt}s")"
+    assert "$mode: p_timeout 0 means no limit (GNU)" "hi" "$(run_in $mode "p_timeout 0 echo hi")"
+    assert "$mode: p_timeout rejects a bad interval with rc 125 instead of killing at once" "125" "$(run_in $mode "p_timeout abc true 2>/dev/null; echo \$?" | tail -1)"
+    t0=$SECONDS; run_in $mode "{ p_timeout -k 30 1 bash -c 'kill -STOP \$\$; sleep 1'; } 2>/dev/null; echo \$?" >/dev/null; dt=$((SECONDS - t0))
+    assert "$mode: p_timeout ends a SIGSTOPped command (CONT follows TERM)" "fast" "$([ $dt -lt 8 ] && echo fast || echo "slow:${dt}s")"
     # p_realpath_m / p_relpath
     RP="$(cd "$TMP/rp" && pwd -P)"
     assert "$mode: p_realpath_m resolves symlink dir" "$RP/real/sub" "$(run_in $mode "p_realpath_m '$TMP/rp/lnk/sub'")"
