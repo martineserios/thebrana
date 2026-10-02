@@ -13,6 +13,7 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BOOTSTRAP="$ROOT/bootstrap.sh"
+source "$ROOT/system/hooks/lib/portable.sh"   # p_stat_mode
 PASS=0; FAIL=0
 assert() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "  PASS: $1"; else FAIL=$((FAIL+1)); echo "  FAIL: $1 (expected '$2', got '$3')"; fi; }
 has() { case "$2" in *"$1"*) echo yes;; *) echo no;; esac; }
@@ -88,6 +89,15 @@ else
     assert "T7: missing settings.json -> created, 1 change" 1 "${R%%|*}"
     assert "T7: created file has the status line" yes "$(has statusline.sh "$(jq -r '.statusLine.command // ""' "$S" 2>/dev/null)")"
     assert "T7: created file is valid JSON" yes "$(jq -e . "$S" >/dev/null 2>&1 && echo yes || echo no)"
+    # T7c: the created file is private (0600) and a dangling symlink where settings.json should be is not written through
+    assert "T7c: created settings.json is mode 600" 600 "$(p_stat_mode "$T/fresh/settings.json")"
+    S="$T/dangle/settings.json"; mkdir -p "$T/dangle"; ln -s "$T/nowhere.json" "$S"
+    R="$(run_fn "$S" false)"
+    assert "T7c: a dangling symlink at settings.json is not written through" no "$([ -e "$T/nowhere.json" ] && echo yes || echo no)"
+    # T2b: rewriting an existing 0600 settings.json keeps it 0600
+    S="$T/mode.json"; printf '{"statusLine":null}\n' >"$S"; chmod 600 "$S"
+    run_fn "$S" false >/dev/null
+    assert "T2b: an existing 0600 settings.json stays 0600 after the rewrite" 600 "$(p_stat_mode "$S")"
     # T7b: --check on a missing file does not create it
     S="$T/fresh2/settings.json"; mkdir -p "$T/fresh2"
     R="$(run_fn "$S" true)"

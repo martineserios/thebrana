@@ -305,6 +305,7 @@ p_lock_release() {
 
 # ── timeout ──────────────────────────────────────────────────────────────────
 # p_timeout [-k KILL_AFTER] SECS cmd args...   — rc 124 on timeout, else cmd's rc.
+# In group mode without -k, survivors still get a 2s grace after the leader dies before the group KILL.
 # (GNU timeout returns 137 instead when -k had to escalate to KILL; the fallback returns 124.
 # Treat "timed out" as rc 124 or 137.)
 # Mechanism and why: see the next paragraph.
@@ -355,7 +356,10 @@ p_timeout() {
     if [ -s "$flag" ]; then                 # timed out: let the watchdog finish what it started, never kill it mid-signal
         wait "$wd" 2>/dev/null; wrc=124
         if [ "$grp" = 1 ]; then             # the leader is gone; give survivors the grace, then KILL the group
-            n=0; kill_after="${kill_after%%.*}"; kill_after="${kill_after:-0}"
+            # No -k given: still grant a short grace (2s) before the group KILL. Without it a caller such as
+            # `p_timeout 5 $CF memory store ...` would see its survivors KILLed mid-write the instant the
+            # leader died — the old timeout(1) path never KILLed at all (Gate 3 finding, 2026-10-02).
+            n=0; kill_after="${kill_after%%.*}"; kill_after="${kill_after:-2}"
             while [ "$n" -lt "$kill_after" ] && kill -0 -- "-$pid" 2>/dev/null; do sleep 1; n=$((n + 1)); done
             kill -0 -- "-$pid" 2>/dev/null && kill -KILL -- "-$pid" 2>/dev/null
         fi
