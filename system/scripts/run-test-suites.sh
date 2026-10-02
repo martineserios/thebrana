@@ -23,6 +23,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../hooks/lib/portable.sh"
 TIMEOUT="${TEST_SUITE_TIMEOUT:-300}"
 KILL_AFTER="${TEST_SUITE_KILL_AFTER:-10}"
 HEARTBEAT="${TEST_SUITE_HEARTBEAT:-60}"
+case "$HEARTBEAT" in ""|0|*[!0-9]*) HEARTBEAT=60 ;; esac   # a non-numeric/zero value would make the ticker's modulo error
+RUNNER_PID=$$
 FAIL=0
 FAILED_TESTS=""
 
@@ -38,7 +40,8 @@ for test in "$@"; do
         FAIL=1; FAILED_TESTS="$FAILED_TESTS $test"; echo ""; continue
     fi
     # heartbeat: the ticker's sleep writes nowhere, so killing the ticker never leaves a child holding our stdout
-    ( n=0; while sleep 1 >/dev/null 2>&1; do n=$((n + 1)); [ $((n % HEARTBEAT)) -eq 0 ] && echo "--- still running: $test (${n}s) ---"; done ) &
+    # it also ends within a second of the runner dying (Ctrl-C, kill), so it can never hold a pipe open on its own
+    ( n=0; while kill -0 "$RUNNER_PID" 2>/dev/null && sleep 1 >/dev/null 2>&1; do n=$((n + 1)); [ $((n % HEARTBEAT)) -eq 0 ] && echo "--- still running: $test (${n}s) ---"; done ) &
     TICKER=$!
     p_timeout -k "$KILL_AFTER" "$TIMEOUT" bash "$test" </dev/null
     rc=$?

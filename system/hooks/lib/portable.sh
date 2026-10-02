@@ -317,7 +317,7 @@ p_lock_release() {
 # process still receives it. Without perl, or for a shell function, timeout/gtimeout is used if present,
 # else a watchdog that signals the child and its direct children only.
 p_timeout() {
-    local kill_after="" secs pid wd rc=0 wrc=0 grp=0 a=("$@")
+    local kill_after="" secs pid wd rc=0 wrc=0 grp=0 a=("$@") flag n=0
     [ "${1:-}" = "-k" ] && a=("${a[@]:2}")
     if [ "$(type -t "${a[1]:-}" 2>/dev/null)" = file ] && _p_have perl; then grp=1
     elif _p_have timeout;  then timeout "$@";  return $?
@@ -325,6 +325,9 @@ p_timeout() {
     fi
     if [ "${1:-}" = "-k" ]; then kill_after="$2"; shift 2; fi
     secs="$1"; shift
+    case "$secs$kill_after" in *[!0-9.]*) echo "p_timeout: invalid interval" >&2; return 125 ;; esac
+    [ "$secs" = 0 ] && { "$@"; return $?; }   # 0 = no limit, as GNU
+    flag="$(mktemp)" || return 125
     if [ "$grp" = 1 ]; then
         perl -e 'use POSIX (); POSIX::setsid(); exec { $ARGV[0] } @ARGV or exit 127' "$@" <&0 &
     else
@@ -334,13 +337,14 @@ p_timeout() {
     (
         sleep "$secs"
         if kill -0 "$pid" 2>/dev/null; then
+            echo 1 >"$flag"                 # tells the caller this was a timeout, before any signal lands
             if [ "$grp" = 1 ]; then kill -TERM -- "-$pid" 2>/dev/null; kill -CONT -- "-$pid" 2>/dev/null
             else pkill -TERM -P "$pid" 2>/dev/null; fi
             kill -TERM "$pid" 2>/dev/null; kill -CONT "$pid" 2>/dev/null
-            if [ -n "$kill_after" ]; then   # detached escalation: outlives this stage on purpose
+            if [ -n "$kill_after" ]; then   # detached escalation (leader may ignore TERM): outlives this stage on purpose
                 ( sleep "$kill_after"
-                  if [ "$grp" = 1 ]; then kill -KILL -- "-$pid" 2>/dev/null; else pkill -KILL -P "$pid" 2>/dev/null; fi
-                  kill -KILL "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+                  if [ "$grp" = 1 ]; then kill -0 -- "-$pid" 2>/dev/null && kill -KILL -- "-$pid" 2>/dev/null
+                  else pkill -KILL -P "$pid" 2>/dev/null; kill -KILL "$pid" 2>/dev/null; fi ) >/dev/null 2>&1 &
             fi
             exit 124
         fi
@@ -348,8 +352,17 @@ p_timeout() {
     ) >/dev/null 2>&1 &
     wd=$!
     wait "$pid" 2>/dev/null || rc=$?
-    pkill -P "$wd" 2>/dev/null; kill "$wd" 2>/dev/null
-    wait "$wd" 2>/dev/null || wrc=$?
+    if [ -s "$flag" ]; then                 # timed out: let the watchdog finish what it started, never kill it mid-signal
+        wait "$wd" 2>/dev/null; wrc=124
+        if [ "$grp" = 1 ]; then             # the leader is gone; give survivors the grace, then KILL the group
+            n=0; kill_after="${kill_after%%.*}"; kill_after="${kill_after:-0}"
+            while [ "$n" -lt "$kill_after" ] && kill -0 -- "-$pid" 2>/dev/null; do sleep 1; n=$((n + 1)); done
+            kill -0 -- "-$pid" 2>/dev/null && kill -KILL -- "-$pid" 2>/dev/null
+        fi
+    else
+        pkill -P "$wd" 2>/dev/null; kill "$wd" 2>/dev/null; wait "$wd" 2>/dev/null
+    fi
+    rm -f "$flag"
     [ "$wrc" -eq 124 ] && return 124
     return "$rc"
 }
