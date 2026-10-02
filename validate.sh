@@ -5,6 +5,7 @@ shopt -s nullglob  # TRAP: never store --include=*glob in a scalar var — use a
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(dirname "${BASH_SOURCE[0]}")/system/hooks/lib/portable.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/system/scripts/lib/suite-home.sh"   # suites validate runs directly get a scratch HOME (t-3389)
+suite_env_scrub; suite_home_reap "$HOME"; suite_home_init                       # same contract as the runners: no HOME-bypass overrides, leftovers reaped
 SYSTEM_DIR="$SCRIPT_DIR/system"
 DOCS_DIR="$SCRIPT_DIR/docs"
 KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
@@ -1931,7 +1932,7 @@ else
     TMP_FIXTURE=$(mktemp /tmp/validate-feed-fixture-XXXXXX.jsonl)
     TMP_SUMMARIES=$(mktemp /tmp/validate-feed-summaries-XXXXXX.jsonl)
     TMP_WATERMARK=$(mktemp /tmp/validate-feed-watermark-XXXXXX)
-    trap 'rm -f "$TMP_FIXTURE" "$TMP_SUMMARIES" "$TMP_WATERMARK"' EXIT
+    trap 'rm -f "$TMP_FIXTURE" "$TMP_SUMMARIES" "$TMP_WATERMARK"; suite_home_drop_all "$HOME"' EXIT
     printf '%s\n' \
         '{"feed":"anthropic-news","title":"Claude 4 Released","link":"https://www.anthropic.com/news/claude-4","published":"2026-01-01","polled_at":"2026-01-01T12:00:00Z"}' \
         '{"feed":"anthropic-news","title":"New API Features","link":"https://www.anthropic.com/news/api-features","published":"2026-01-02","polled_at":"2026-01-02T12:00:00Z"}' \

@@ -34,6 +34,7 @@ source "$SCRIPT_DIR/lib/suite-home.sh"
 REAL_HOME="$HOME"
 suite_env_scrub
 suite_home_reap "$REAL_HOME"
+suite_home_init   # the ledger file is what lets the EXIT trap see dirs created inside background run_one jobs
 CONCURRENCY="${HOOK_TEST_SWEEP_CONCURRENCY:-1}"
 # Lines of a failing suite's output to surface under its FAIL line. 5 is enough
 # locally (the suite's own "N passed, M failed" summary), too little in CI where

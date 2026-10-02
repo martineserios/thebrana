@@ -151,6 +151,12 @@ for mode in $MODES; do
         "$(run_in $mode "{ p_timeout -k 1 1 bash -c '( sleep 43; true ) & wait'; } 2>/dev/null; sleep 0.3; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==43' | wc -l" | tr -d ' ')"
     assert "$mode: p_timeout KILLs a TERM-ignoring grandchild even though its parent died on TERM" "0" \
         "$(run_in $mode "{ p_timeout -k 1 1 bash -c '( trap \"\" TERM; sleep 45; true ) & wait'; } 2>/dev/null; sleep 0.5; ps -eo comm,args | awk '\$1==\"sleep\" && \$3==45' | wc -l" | tr -d ' ')"
+# group mode WITHOUT -k: a survivor whose TERM handler needs a moment must get it (2s default grace) —
+# a hook's `p_timeout 5 $CF memory store` must not have its write KILLed the instant the leader dies
+rm -f "$TMP/grace.$mode"
+run_in $mode "p_timeout 1 bash -c '( trap \"sleep 1; touch $TMP/grace.$mode; exit 0\" TERM; sleep 40 ) & wait'" >/dev/null 2>&1
+sleep 1.5
+assert "$mode: p_timeout without -k still grants survivors a short grace before the group KILL" "present" "$([ -e "$TMP/grace.$mode" ] && echo present || echo absent)"
     t0=$SECONDS; run_in $mode "{ p_timeout -k 1 1 bash -c 'trap \"\" TERM; sleep 9'; } 2>/dev/null" >/dev/null; dt=$((SECONDS - t0))
     assert "$mode: p_timeout -k really escalates (ends in under 6s, not after the 9s sleep)" "fast" "$([ $dt -lt 6 ] && echo fast || echo "slow:${dt}s")"
     assert "$mode: p_timeout 0 means no limit (GNU)" "hi" "$(run_in $mode "p_timeout 0 echo hi")"

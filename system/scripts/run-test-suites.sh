@@ -34,6 +34,7 @@ RUNNER_PID=$$
 REAL_HOME="$HOME"
 suite_env_scrub
 suite_home_reap "$REAL_HOME"
+suite_home_init
 trap 'suite_home_drop_all "$REAL_HOME"' EXIT   # a killed runner (TERM/INT) leaves no scratch HOME behind; SIGKILL leftovers are reaped next start
 FAIL=0
 FAILED_TESTS=""

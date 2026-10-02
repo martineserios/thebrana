@@ -378,7 +378,7 @@ ensure_statusline_setting() {
     if ! command -v jq &>/dev/null; then
         echo "  ! jq not found (cannot wire statusLine)"; return 0
     fi
-    if [ ! -f "$SETTINGS_FILE" ]; then
+    if [ ! -e "$SETTINGS_FILE" ] && [ ! -L "$SETTINGS_FILE" ]; then
         # A brand-new machine runs bootstrap before the host ever wrote settings.json. Creating it
         # here also arms the later settings.json steps (4b-4c3), which skip on a missing file: on
         # such a machine the real run applies those too, so --check says so instead of
@@ -388,7 +388,11 @@ ensure_statusline_setting() {
             echo "  + settings.json (would create with statusLine -> $desired_cmd; the attribution/env/hard_deny steps below then apply on the real run)"
         else
             mkdir -p "$(dirname "$SETTINGS_FILE")"
-            jq -n --arg c "$desired_cmd" '{statusLine:{type:"command",command:$c}}' > "$SETTINGS_FILE"
+            # 0600 + O_EXCL: settings.json later carries env tokens, and a file that appeared between the
+            # test and the write (the host starting up) must not be truncated (Gate 3 security notes).
+            if ! ( umask 077; set -C; jq -n --arg c "$desired_cmd" '{statusLine:{type:"command",command:$c}}' > "$SETTINGS_FILE" ) 2>/dev/null; then
+                echo "  ! settings.json appeared while bootstrap ran — re-run bootstrap to wire statusLine"; return 0
+            fi
             echo "  + settings.json created (statusLine -> $desired_cmd)"
         fi
         return 0
@@ -408,8 +412,12 @@ ensure_statusline_setting() {
             if $CHECK_ONLY; then
                 echo "  ~ settings.json statusLine (would set -> $desired_cmd)"
             else
-                jq --arg c "$desired_cmd" '.statusLine = {type:"command",command:$c}' "$SETTINGS_FILE" \
-                    > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+                # tmp+mv replaces the inode: carry the old mode over so a 0600 settings.json stays 0600
+                if ! jq --arg c "$desired_cmd" '.statusLine = {type:"command",command:$c}' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"; then
+                    rm -f "$SETTINGS_FILE.tmp"; echo "  ! jq failed to rewrite settings.json (statusLine left as is)"; return 0
+                fi
+                chmod "$(p_stat_mode "$SETTINGS_FILE")" "$SETTINGS_FILE.tmp" 2>/dev/null || true
+                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
                 echo "  ~ settings.json statusLine (set -> $desired_cmd)"
             fi ;;
         */statusline.sh|statusline.sh) echo "  = settings.json statusLine (already wired: $current_cmd)" ;;

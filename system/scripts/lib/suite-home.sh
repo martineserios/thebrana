@@ -20,20 +20,30 @@
 #  - Deletion is pinned to the name pattern under the caller's HOME, never a bare rm -rf of a variable.
 #  - Leftovers happen (SIGKILL mid-suite; a detached survivor — ruflo was seen doing it — recreating
 #    $HOME/.claude-flow after its suite ended). suite_home_reap removes leftovers older than 2h at every
-#    runner start, and the runner re-drops every dir it created at exit.
+#    runner start, and the runner re-drops every dir it created at exit. The "created" list is a FILE
+#    (suite_home_init), not a shell variable: suite_home_make runs inside $(...) and the sweep runs
+#    suites as background jobs, so a variable append would be lost in the subshell (Gate 3 finding).
 #  - BRANA_RUN_STATE_DIR / BRANA_GOAL_FILE / BRANA_DIGEST_DIR are HOME-bypassing overrides read by hooks;
 #    suite_env_scrub unsets them so an operator's export cannot route a suite back to real state.
 #  - TEST_SUITE_KEEP_HOME=1 passes the caller's HOME through for diagnosis only: it is announced
 #    loudly and refused under CI (where it would silently disable the fix).
 #
-# Usage (sourced): suite_env_scrub; suite_home_reap "$HOME"
+# Usage (sourced): suite_env_scrub; suite_home_reap "$HOME"; suite_home_init
 #                  run_suite_isolated "$HOME" cmd args...   # cmd's exit status is returned
-#                  SUITE_HOME_CURRENT holds the live scratch dir for the caller's own EXIT trap.
+#                  trap 'suite_home_drop_all "$HOME"' EXIT  # re-drops every dir this run created
 SUITE_HOME_PREFIX=".brana-test-home."
 SUITE_HOME_CURRENT=""
-SUITE_HOME_CREATED=""
+SUITE_HOME_LEDGER=""
 
-suite_env_scrub() { unset BRANA_RUN_STATE_DIR BRANA_GOAL_FILE BRANA_DIGEST_DIR; }
+# suite_home_init — open the created-dirs ledger (a temp file; one path per line)
+suite_home_init() { [ -n "$SUITE_HOME_LEDGER" ] || SUITE_HOME_LEDGER="$(mktemp)"; }
+
+# Every HOME-bypassing override a hook reads (grep 'BRANA_[A-Z_]*_\(DIR\|FILE\|TMPROOT\)' system/hooks when adding one)
+suite_env_scrub() {
+    unset BRANA_RUN_STATE_DIR BRANA_GOAL_FILE BRANA_DIGEST_DIR \
+          BRANA_RATINGS_DIR BRANA_FAILURES_DIR BRANA_PRECOMPACT_GUARD_DIR BRANA_SS_TMPROOT \
+          BRANA_DEPLOY_DIR BRANA_SOURCE_DIR
+}
 
 # suite_home_keep -> 0 when the caller asked to keep the real HOME (announced once; refused under CI)
 suite_home_keep() {
@@ -59,7 +69,7 @@ suite_home_make() {
     local d
     d="$(mktemp -d "$1/${SUITE_HOME_PREFIX}XXXXXX")" || return 1
     printf '[user]\n\tname = brana-tests\n\temail = brana-tests@localhost\n' >"$d/.gitconfig"
-    SUITE_HOME_CREATED="$SUITE_HOME_CREATED $d"
+    [ -n "$SUITE_HOME_LEDGER" ] && printf '%s\n' "$d" >>"$SUITE_HOME_LEDGER"
     printf '%s' "$d"
 }
 
@@ -71,8 +81,12 @@ suite_home_drop() {
 # suite_home_drop_all REAL_HOME — second pass at exit: a survivor may have recreated a dir we dropped
 suite_home_drop_all() {
     local d
-    for d in $SUITE_HOME_CREATED; do suite_home_drop "$d" "$1"; done
-    suite_home_drop "$SUITE_HOME_CURRENT" "$1"
+    if [ -n "$SUITE_HOME_LEDGER" ] && [ -f "$SUITE_HOME_LEDGER" ]; then
+        while IFS= read -r d; do [ -n "$d" ] && suite_home_drop "$d" "$1"; done <"$SUITE_HOME_LEDGER"
+        rm -f "$SUITE_HOME_LEDGER"
+    fi
+    [ -n "$SUITE_HOME_CURRENT" ] && suite_home_drop "$SUITE_HOME_CURRENT" "$1"
+    return 0
 }
 
 # run_suite_isolated REAL_HOME cmd args... — run cmd under a scratch HOME; returns cmd's exit status

@@ -39,7 +39,7 @@ which bash                  # must be /opt/homebrew/bin/bash
 | Package | What it gives you |
 |---|---|
 | `brew install discoteq/discoteq/flock` | a real `flock(1)`. Without it brana falls back to `mkdir`-based locks, which serialize brana's own scripts against each other but **cannot exclude the Rust `brana` CLI** on `tasks.json`. Fine for one-session use; install `flock` if you run several sessions at once. |
-| `brew install coreutils` | `gtimeout`. Without it brana uses a bash watchdog for timeouts (works, but signals the child and its direct children only, not the whole process group). |
+| `brew install coreutils` | `gtimeout`. Optional: `p_timeout` already ends the whole process group on stock macOS (perl `setsid` watchdog, KILL escalation — t-3390); `gtimeout` only changes which tool enforces the ceiling. |
 
 Neither is required — the fallbacks are what CI exercises. Installing them does not turn the portability tests red: `test-portable.sh` and `test-lock-stress.sh` run the fallback-lock assertions under a PATH that hides `flock` whatever is installed (t-3391), while the rest of `test-portable.sh` runs on your real PATH, so a brew `flock` also gets the real-flock path exercised.
 
@@ -75,7 +75,7 @@ brana doctor
 | **Scheduler** | None. `brana-scheduler status`/`validate` say so and exit 0; `deploy`/`enable`/`run` exit 1 with the same one-line reason. `brana ops enable/disable` edit `scheduler.json` but tell you nothing was scheduled. `bootstrap.sh` does not seed a `scheduler.json`. |
 | **Close queue** | `/brana:close` queues entries for a nightly extraction job that lives on the always-on host. On the Mac nothing extracts them, so after 3 days session start says so and names the manual command: `./system/cron/close-extraction.sh` from the thebrana checkout (needs `agy`). Ignore it if you don't want async extraction on this machine. |
 | **Locks** | mkdir-based unless `flock` is installed (see above). |
-| **Timeouts** | bash watchdog unless `gtimeout` is installed. |
+| **Timeouts** | `p_timeout` runs the command in its own session and kills the whole group at the ceiling, with or without `gtimeout` (t-3390). |
 | **Dates** | Scripts use `p_date_d`/`p_epoch_fmt`; naive dates are treated as UTC. |
 
 ## Troubleshooting

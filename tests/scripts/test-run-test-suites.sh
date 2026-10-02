@@ -77,6 +77,16 @@ assert "scratch HOME: HOME-bypassing overrides (BRANA_RUN_STATE_DIR) are scrubbe
 unset BRANA_RUN_STATE_DIR
 TO=1 OUT="$(cd "$T" && HOME="$REAL_HOME_FOR_TEST" TEST_SUITE_KILL_AFTER=2 TEST_SUITE_TIMEOUT=1 bash "$RUNNER" tests/a/test-hang.sh 2>&1)"
 assert "scratch HOME: no scratch dir remains after a TIMED OUT suite" 0 "$(find "$REAL_HOME_FOR_TEST" -maxdepth 1 -name '.brana-test-home.*' | wc -l | tr -d ' ')"
+# the exit re-drop must see dirs created inside $(...) / background jobs: the ledger is a file, not a variable
+LEDGER_OUT="$(bash -c '
+  source "$1/system/scripts/lib/suite-home.sh"; suite_home_init
+  d="$(suite_home_make "$2")"; rm -rf "$d"; mkdir -p "$d/.claude-flow"     # a survivor recreated the dir after the drop
+  ( suite_home_make "$2" >/dev/null ) ; n=$(wc -l <"$SUITE_HOME_LEDGER" | tr -d " ")   # created inside a subshell too
+  suite_home_drop_all "$2"
+  echo "ledger=$n recreated_gone=$([ -e "$d" ] && echo no || echo yes) left=$(find "$2" -maxdepth 1 -name ".brana-test-home.*" | wc -l | tr -d " ")"
+' _ "$ROOT" "$REAL_HOME_FOR_TEST")"
+assert "scratch HOME: the created-dirs ledger records dirs made inside subshells" yes "$(has 'ledger=2' "$LEDGER_OUT")"
+assert "scratch HOME: a dir a survivor recreated is dropped again at exit" yes "$(has 'recreated_gone=yes left=0' "$LEDGER_OUT")"
 mkdir -p "$REAL_HOME_FOR_TEST/.brana-test-home.stale" && touch -t 202001010000 "$REAL_HOME_FOR_TEST/.brana-test-home.stale"
 runh tests/a/test-pass.sh >/dev/null 2>&1
 assert "scratch HOME: a stale leftover from a killed run is reaped at the next start" no "$([ -e "$REAL_HOME_FOR_TEST/.brana-test-home.stale" ] && echo yes || echo no)"
