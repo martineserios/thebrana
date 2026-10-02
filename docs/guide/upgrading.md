@@ -44,7 +44,7 @@ Run `./bootstrap.sh --check` first if you want to preview changes without applyi
 - `~/.claude/scripts/*.sh` -- helper scripts may have bug fixes
 - `~/.claude/statusline.sh` -- status bar improvements
 - `~/.claude/scheduler/` -- scheduler scripts and templates
-- `~/.claude/settings.json` -- PostToolUse hook paths may change
+- `~/.claude/settings.json` -- idempotent key edits may be added (`statusLine` wiring, attribution, env, `autoMode.hard_deny`); a custom `statusLine` command is never overwritten
 - `~/.claude/plugins/` -- plugin cache and registration metadata
 
 Bootstrap also removes stale directories from the pre-plugin era (`~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/agents/`) if they still exist.

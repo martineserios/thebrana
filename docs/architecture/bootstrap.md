@@ -66,6 +66,17 @@ Syncs `system/scripts/` → `~/.claude/scripts/`. All `.sh` files in the target 
 
 Copies `system/statusline.sh` → `~/.claude/statusline.sh` and makes it executable.
 
+### Step 4a: Wire the status line (t-3388)
+
+Runs only when Step 4 deployed the script. `ensure_statusline_setting` sets settings.json
+`statusLine` to `{"type":"command","command":"~/.claude/statusline.sh"}` when it is null or
+absent, and otherwise leaves it alone — an already-wired line keeps its extra keys (padding), a
+custom command is never clobbered, and a schema-invalid non-object value is kept and reported.
+Same idempotent shape as Steps 4c–4c3 (compare, count a change only when different, honour
+`--check`). On a brand-new machine with no settings.json yet it creates the file; because Steps
+4b–4c3 skip on a missing file, the real run on such a machine then applies those too, and
+`--check` says so. Found by the first real macOS run: the script was deployed but never ran.
+
 ### Step 4b: PostToolUse cleanup
 
 CC #24529 (PostToolUse hooks not firing from plugin) was resolved. This step removes the old workaround entries from `~/.claude/settings.json` `.hooks` field. If `jq` is not installed, this step is skipped with a warning.

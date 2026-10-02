@@ -368,6 +368,55 @@ sync_dir() {
     fi
 }
 
+# Wire the deployed statusline.sh into settings.json (t-3388). The first real macOS run deployed the
+# script but .statusLine stayed null, so the host never ran it. Same idempotent shape as the
+# attribution / env / autoMode edits in Step 4c: compare, count a change only when different, honour
+# --check. Never clobbers a status line the user wired themselves; extra keys (padding) survive.
+ensure_statusline_setting() {
+    local desired_cmd='~/.claude/statusline.sh' current_cmd
+    echo "Status line (settings.json statusLine):"
+    if ! command -v jq &>/dev/null; then
+        echo "  ! jq not found (cannot wire statusLine)"; return 0
+    fi
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        # A brand-new machine runs bootstrap before the host ever wrote settings.json. Creating it
+        # here also arms the later settings.json steps (4b-4c3), which skip on a missing file: on
+        # such a machine the real run applies those too, so --check says so instead of
+        # under-counting. Run 2 converges to 0 changes either way (t-2482 contract).
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  + settings.json (would create with statusLine -> $desired_cmd; the attribution/env/hard_deny steps below then apply on the real run)"
+        else
+            mkdir -p "$(dirname "$SETTINGS_FILE")"
+            jq -n --arg c "$desired_cmd" '{statusLine:{type:"command",command:$c}}' > "$SETTINGS_FILE"
+            echo "  + settings.json created (statusLine -> $desired_cmd)"
+        fi
+        return 0
+    fi
+    if ! jq -e . "$SETTINGS_FILE" >/dev/null 2>&1; then
+        echo "  ! settings.json is not valid JSON (skipping statusLine)"; return 0
+    fi
+    # Only a null/absent .statusLine is ours to fill. Any object the user put there — even one
+    # without a command field — is theirs and is kept as is.
+    # A non-object value (string, array, ...) is schema-invalid but still the user's: keep it, and
+    # never let the jq read abort the whole bootstrap under set -e.
+    current_cmd=$(jq -r '.statusLine | if . == null then "" elif type == "object" then (.command // "<no command field>") else "<non-object value>" end' \
+        "$SETTINGS_FILE" 2>/dev/null) || current_cmd="<unreadable>"
+    case "$current_cmd" in
+        "")
+            CHANGES=$((CHANGES + 1))
+            if $CHECK_ONLY; then
+                echo "  ~ settings.json statusLine (would set -> $desired_cmd)"
+            else
+                jq --arg c "$desired_cmd" '.statusLine = {type:"command",command:$c}' "$SETTINGS_FILE" \
+                    > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+                echo "  ~ settings.json statusLine (set -> $desired_cmd)"
+            fi ;;
+        */statusline.sh|statusline.sh) echo "  = settings.json statusLine (already wired: $current_cmd)" ;;
+        *)               echo "  = settings.json statusLine (custom command kept: $current_cmd)" ;;
+    esac
+}
+
 # --- Step 1: CLAUDE.md ---
 echo "Identity:"
 if [ -f "$TARGET_DIR/CLAUDE.md" ] && [ ! -f "$TARGET_DIR/CLAUDE.md.bootstrap-backup" ]; then
@@ -493,6 +542,9 @@ if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
     if ! $CHECK_ONLY; then
         chmod +x "$TARGET_DIR/statusline.sh" 2>/dev/null || true
     fi
+    # --- Step 4a: wire the deployed script into settings.json (t-3388) — only when it was deployed ---
+    SETTINGS_FILE="$TARGET_DIR/settings.json"
+    ensure_statusline_setting
 fi
 
 # --- Step 4b: Remove PostToolUse hooks from settings.json (cleanup) ---
