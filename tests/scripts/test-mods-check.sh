@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Must-fire tests for system/scripts/mods-check.sh --static (validate Check 77a, t-3445) and
+# Must-fire tests for system/scripts/mods-check.sh --static (Check 77a, t-3445), --engine (Check 77b,
+# t-3446, via a fake claude shim) and
 # system/scripts/mods-sync-shared.sh: every bad-* fixture under tests/fixtures/mods fires its
 # rule, the good fixture passes, the vendored-copy drift guard and the version-bump guard
 # fire, engine-written (gitignored) files are not scanned, test files are not scanned, and a
@@ -89,5 +90,80 @@ for d in "$FIX"/bad-*/; do
     rm -rf "$T/mods/$name"
 done
 assert "tree is clean again after the fixtures" 0 "$(run)"
+
+
+echo "--- --engine (fake claude shim; the required tests CI job has no claude)"
+# The shim answers `claude plugin validate --json <dir>` and `claude plugin test <dir>` from
+# files in $FAKE: validate.json/validate.rc, test.out/test.rc; every argv is appended to argv.log.
+FAKE="$T/fake"; mkdir -p "$FAKE/bin"
+cat > "$FAKE/bin/claude" <<'SHIM'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE/argv.log"
+case "$1 ${2:-}" in
+  "plugin validate") cat "$FAKE/validate.json"; exit "$(cat "$FAKE/validate.rc")" ;;
+  "plugin test")     cat "$FAKE/test.out";      exit "$(cat "$FAKE/test.rc")" ;;
+  "--version "*)     echo "2.1.288 (shim)" ;;
+esac
+SHIM
+chmod +x "$FAKE/bin/claude"
+GOLD="$FIX/captures/validate-backlog-pane.json"
+golden_validate() { sed '1d' "$GOLD" > "$FAKE/validate.json"; echo 0 > "$FAKE/validate.rc"; }   # drop the capture's comment line
+golden_test() { printf ' 16 pass\n 0 fail\nRan 16 tests across 1 file. [0.18s]\n' > "$FAKE/test.out"; echo 0 > "$FAKE/test.rc"; }
+engine() { : > "$FAKE/argv.log"; FAKE="$FAKE" PATH="$FAKE/bin:/usr/bin:/bin" bash "$CHECK" --engine "$T" >"$T/out" 2>&1; echo $?; }
+no_claude() { PATH="/usr/bin:/bin" bash "$CHECK" --engine "$T" >"$T/out" 2>&1; echo $?; }
+
+if PATH="/usr/bin:/bin" command -v claude >/dev/null 2>&1; then echo "  SKIP: a real claude sits in /usr/bin or /bin; the absent-CLI case cannot be staged here"; else
+assert "claude absent -> exit 1" 1 "$(no_claude)"
+assert "...with the documented message" yes "$(has 'claude CLI not on PATH — install it or run with --fast' "$(out)")"
+fi
+
+golden_validate; golden_test
+assert "golden validate (calls incl. '(via run)') + golden test trailer -> 0" 0 "$(engine)"
+assert "every mod under mods/ was validated" yes "$(has "plugin validate --json $T/mods/good-minimal" "$(cat "$FAKE/argv.log")")"
+assert "...and tested" yes "$(has "plugin test $T/mods/good-minimal" "$(cat "$FAKE/argv.log")")"
+assert "_shared is validated and tested like a mod" yes "$(has "plugin test $T/mods/_shared" "$(cat "$FAKE/argv.log")")"
+iso="$(grep -E '^plugin test .*good-minimal' "$FAKE/argv.log" | grep -v "$T/mods/good-minimal" | grep -v -c "$FIX")"
+assert "an isolated copy of the good fixture is exercised (not the fixture dir itself)" yes "$( [ "$iso" -ge 1 ] && echo yes || echo no)"
+assert "summary names the engine version" yes "$(has '2.1.288' "$(out)")"
+
+sed 's/\$\.ui\.open/$.http.fetch/' "$GOLD" | sed '1d' > "$FAKE/validate.json"
+assert "a call outside the allowed set fails" 1 "$(engine)"
+assert "...naming the call" yes "$(has 'http.fetch' "$(out)")"
+assert "...and the allowed set" yes "$(has 'allowed set' "$(out)")"
+
+golden_validate; python3 - "$FAKE/validate.json" <<'PY2'
+import json,sys
+p=sys.argv[1]; d=json.load(open(p))
+for c in d['contents']: c['notes']=[n for n in c['notes'] if 'calls:' not in n]
+json.dump(d,open(p,'w'))
+PY2
+assert "no calls: line at all fails (the structural proof is missing)" 1 "$(engine)"
+assert "...saying so" yes "$(has 'no calls: line' "$(out)")"
+
+golden_validate; python3 - "$FAKE/validate.json" <<'PY2'
+import json,sys
+p=sys.argv[1]; d=json.load(open(p)); d['success']=False; d['manifest']['errors']=[{"path":"root","message":"hooks.json must have hooks or modules"}]
+json.dump(d,open(p,'w'))
+PY2
+echo 1 > "$FAKE/validate.rc"
+assert "a failed plugin validate fails" 1 "$(engine)"
+assert "...quoting the error" yes "$(has 'hooks.json must have' "$(out)")"
+
+golden_validate; printf 'hooks/x.test.ts:\n(fail) boom\n 0 pass\n 1 fail\nRan 1 test across 1 file. [0.10s]\n' > "$FAKE/test.out"; echo 1 > "$FAKE/test.rc"
+assert "a red plugin test fails" 1 "$(engine)"
+assert "...showing the failing test" yes "$(has '(fail) boom' "$(out)")"
+
+printf 'claude plugin test: x: no hooks module to load; there is no hooks/hooks.json naming one in "modules"\n' > "$FAKE/test.out"; echo 0 > "$FAKE/test.rc"
+assert "plugin test exiting 0 with no 'Ran N tests' trailer fails (the engine skips a folder silently)" 1 "$(engine)"
+assert "...naming the trap" yes "$(has 'no tests ran' "$(out)")"
+printf ' 0 pass\n 0 fail\nRan 0 tests across 0 files. [0.01s]\n' > "$FAKE/test.out"
+assert "plugin test with Ran 0 tests fails" 1 "$(engine)"
+
+if command -v claude >/dev/null 2>&1 && [ -z "${CI:-}" ]; then
+    echo "--- --engine against the real claude on this machine (skipped in CI: the validate job runs it as Check 77b)"
+    bash "$CHECK" --engine "$ROOT" >"$T/real" 2>&1; rc=$?
+    assert "real claude: --engine passes on this checkout" 0 "$rc"
+    [ "$rc" = 0 ] || tail -20 "$T/real"
+fi
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]
