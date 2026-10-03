@@ -20,6 +20,7 @@ G() { git -C "$T" -c user.email=t@t -c user.name=t -c commit.gpgsign=false "$@";
 mkdir -p "$T/mods"
 cp -R "$ROOT/mods/_shared" "$T/mods/_shared"; cp "$ROOT/mods/package.json" "$T/mods/"; cp "$ROOT/.gitignore" "$T/.gitignore"
 cp -R "$FIX/good-minimal" "$T/mods/good-minimal"
+mkdir -p "$T/tests/fixtures/mods"; cp -R "$FIX/good-minimal" "$T/tests/fixtures/mods/good-minimal"; cp -R "$FIX/captures" "$T/tests/fixtures/mods/captures"   # a checkout has the fixture too: --engine assembles an isolated copy from it
 G init -q -b dev . && bash "$SYNC" "$T" >/dev/null 2>&1; G add -A && G commit -qm base
 G switch -q -c work
 run() { bash "$CHECK" --static "$T" >"$T/out" 2>&1; echo $?; }
@@ -119,10 +120,10 @@ fi
 
 golden_validate; golden_test
 assert "golden validate (calls incl. '(via run)') + golden test trailer -> 0" 0 "$(engine)"
-assert "every mod under mods/ was validated" yes "$(has "plugin validate --json $T/mods/good-minimal" "$(cat "$FAKE/argv.log")")"
-assert "...and tested" yes "$(has "plugin test $T/mods/good-minimal" "$(cat "$FAKE/argv.log")")"
-assert "_shared is validated and tested like a mod" yes "$(has "plugin test $T/mods/_shared" "$(cat "$FAKE/argv.log")")"
-iso="$(grep -E '^plugin test .*good-minimal' "$FAKE/argv.log" | grep -v "$T/mods/good-minimal" | grep -v -c "$FIX")"
+assert "every mod under mods/ was validated (paths relative to ROOT)" yes "$(has "plugin validate --json mods/good-minimal" "$(cat "$FAKE/argv.log")")"
+assert "...and tested" yes "$(has "plugin test mods/good-minimal" "$(cat "$FAKE/argv.log")")"
+assert "_shared is validated and tested like a mod" yes "$(has "plugin test mods/_shared" "$(cat "$FAKE/argv.log")")"
+iso="$(grep -E '^plugin test /.*/good-minimal$' "$FAKE/argv.log" | grep -v "$T/mods/" | grep -v -c "$FIX")"
 assert "an isolated copy of the good fixture is exercised (not the fixture dir itself)" yes "$( [ "$iso" -ge 1 ] && echo yes || echo no)"
 assert "summary names the engine version" yes "$(has '2.1.288' "$(out)")"
 

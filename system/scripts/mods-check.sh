@@ -27,7 +27,10 @@
 #                                            else origin/dev, else dev; none resolvable = FAIL,
 #                                            never a silent pass (CI fetches origin/dev first).
 #                   Must-fire fixtures: tests/fixtures/mods/bad-*; suite tests/scripts/test-mods-check.sh.
-# --engine [ROOT]   Needs `claude` (t-3446): plugin validate + calls allowed-set + plugin test.
+# --engine [ROOT]   Needs `claude` (FAILS without it). For every mods/<mod>/ and an isolated
+#                   vendored copy of tests/fixtures/mods/good-minimal: plugin validate --json
+#                   must pass, every `calls:` entry must be in ALLOWED (no calls: line = FAIL),
+#                   plugin test must exit 0 and report `Ran N tests` with N >= 1.
 #
 # Convention (validate.sh header): static assertions never live inside a check gated by --fast
 # or by an optional binary; the gated half FAILS when its binary is absent.
@@ -46,9 +49,81 @@ SHARED_SRC="mods/_shared/hooks"
 VIOL=0
 viol() { VIOL=$((VIOL + 1)); echo "  $1"; }
 
+# ============================== --engine (Check 77b) ===========================================
+# Needs the real engine: `claude plugin validate --json` must pass and its `calls:` lines must
+# stay inside ALLOWED (structural — catches indirection the greps miss); `claude plugin test`
+# must exit 0 AND report `Ran N tests` with N >= 1 (the engine exits 0 without running anything
+# when a folder has no hooks module — tests/fixtures/mods/captures/test-backlog-pane.txt, t-3446).
+# Targets: every mods/<mod>/ with a manifest (_shared included) plus an isolated, freshly
+# vendored copy of tests/fixtures/mods/good-minimal, so the pinned CLI in CI meets a real mod
+# even while mods/ holds none yet. `claude` absent = FAIL (never a silent pass).
+ALLOWED=(process.run prompt.fill ui.open ui.resolve ui.status ui.toast state.get state.set session.usage session.version command.register clock.now)
+SHARED_FILES=(allowlist run state probe snapshot)
 if [ "$MODE" = "--engine" ]; then
-    echo "mods-check --engine: not implemented yet (t-3446)" >&2
-    exit 2
+    if ! command -v claude >/dev/null 2>&1; then
+        echo "  FAIL: claude CLI not on PATH — install it or run with --fast"
+        exit 1
+    fi
+    CLAUDE_VER="$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+    targets=()
+    for mod in mods/*/; do mod="${mod%/}"; [ -f "$mod/.claude-plugin/plugin.json" ] && targets+=("$mod"); done
+    if [ -d tests/fixtures/mods/good-minimal ] && [ -d "$SHARED_SRC" ]; then
+        iso="$WORK/good-minimal"; cp -R tests/fixtures/mods/good-minimal "$iso"; mkdir -p "$iso/hooks/_shared"
+        for f in "${SHARED_FILES[@]}"; do cp "$SHARED_SRC/$f.ts" "$iso/hooks/_shared/$f.ts"; done
+        targets+=("$iso")
+    fi
+    [ "${#targets[@]}" -gt 0 ] || { echo "mods-check --engine: nothing to check"; exit 0; }
+    ntargets=0
+    for t in "${targets[@]}"; do
+        ntargets=$((ntargets + 1))
+        label="$t"; case "$t" in "$WORK"/*) label="tests/fixtures/mods/$(basename "$t") (isolated copy)";; esac
+        # -- validate + calls allowed-set
+        vjson="$WORK/validate.$ntargets.json"
+        claude plugin validate --json "$t" >"$vjson" 2>"$WORK/validate.err"; vrc=$?
+        report="$(python3 - "$vjson" "$vrc" "${ALLOWED[@]}" <<'PYV'
+import json, re, sys
+path, rc, allowed = sys.argv[1], int(sys.argv[2]), set(sys.argv[3:])
+try:
+    d = json.load(open(path))
+except Exception as e:
+    print(f"ERR validate output is not JSON (rc={rc}): {e}"); sys.exit(0)
+errs = []
+for sec in [d.get("manifest") or {}] + list(d.get("contents") or []):
+    for e in sec.get("errors") or []:
+        errs.append(f"{e.get('path','?')}: {e.get('message','')}")
+if not d.get("success") or rc != 0:
+    print("ERR validate failed (rc=%d): %s" % (rc, "; ".join(errs) or "no error text"))
+calls_lines = [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " calls: " in n]
+if not calls_lines:
+    print("ERR no calls: line in plugin validate output — the structural proof is missing (is hooks/hooks.json naming a module?)")
+for line in calls_lines:
+    body = line.split(" calls: ", 1)[1].strip()
+    if body.startswith("nothing"):
+        continue
+    for raw in body.split(","):
+        c = re.sub(r"\s*\(via [^)]*\)", "", raw).strip()
+        c = c[2:] if c.startswith("$.") else c
+        if c and c not in allowed:
+            print(f"ERR call {c} is outside the allowed set ({', '.join(sorted(allowed))})")
+print("OK calls: " + " | ".join(calls_lines) if calls_lines else "OK")
+PYV
+)"
+        while IFS= read -r line; do
+            case "$line" in ERR*) viol "$label: ${line#ERR }";; esac
+        done <<< "$report"
+        # -- plugin test: rc 0 and a real trailer
+        tout="$WORK/test.$ntargets.out"
+        claude plugin test "$t" >"$tout" 2>&1; trc=$?
+        ran="$(grep -oE 'Ran [0-9]+ tests? across' "$tout" | grep -oE '[0-9]+' | head -1)"
+        if [ "$trc" -ne 0 ]; then
+            viol "$label: plugin test failed (rc=$trc):"; grep -E '^\(fail\)|^  |^hooks/|^tests/|pass$|fail$|^Ran ' "$tout" | tail -25 | sed 's/^/      /'
+        elif [ -z "$ran" ] || [ "$ran" -eq 0 ]; then
+            viol "$label: no tests ran — plugin test exited 0 without a 'Ran N tests' trailer (N>=1): $(head -1 "$tout")"
+        fi
+    done
+    echo "mods-check --engine: claude $CLAUDE_VER, $ntargets target(s), violations: $VIOL"
+    [ "$VIOL" -eq 0 ]; exit $?
 fi
 
 [ -d mods ] || { echo "mods-check --static: no mods/ directory under $ROOT — nothing to check"; exit 0; }
