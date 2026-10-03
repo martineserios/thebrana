@@ -1,5 +1,5 @@
 ---
-status: specifying
+status: approved
 depends_on:
   - docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md
   - docs/architecture/decisions/ADR-063-pending-questions-store.md
@@ -21,7 +21,7 @@ impl_files:
 # Feature: Cockpit — tier 1 band + tier 2a Board pane
 
 **Date:** 2026-10-03
-**Status:** specifying
+**Status:** approved (2026-10-03, operator) — implementation tasks t-3427/28/29/87/32; becomes `shipped` when t-3387 lands
 **Task:** t-3425 · epic t-3422 `cockpit`
 **ADR:** [ADR-096](../decisions/ADR-096-cockpit-surface-claude-code-mods.md) — the six laws this spec implements. The laws are not restated here; every section names the law it serves.
 **Implements:** t-3427 (CI harness, `_shared`, bootstrap 7c/7d) · t-3428 (Rust verbs) · t-3429 (band) · t-3387 (pane shell + Board) · t-3432 (instrumentation + day-14 rule)
@@ -59,7 +59,9 @@ See ADR-096 (accepted 2026-10-03). This spec adds no decision; where it had to p
 - **validate.sh:** numbered blocks with `--fast` and narrow-mode skips; Check 70 delegates to a script so new suites need no edit; last check is 76. **ci.yml:** `validate` job builds the Rust CLI then runs `./validate.sh`; `macos` job asserts a stock environment and runs `--fast`; "Check version sync" reads `plugins[0]`; the uv incident (ci.yml ~line 96) is the exit-127 class. **bootstrap.sh** ~line 259 already tolerates a missing `claude` binary.
 - **Ecosystem:** `linear-mod`, ruv's `ruflo-console`, Anthropic's `blast-radius` — memory `reference_claude-code-mods-ecosystem`.
 
-## Assumptions (need confirmation)
+## Assumptions
+
+A1–A6 **confirmed by the operator 2026-10-03**; A7–A8 are verification items owned by t-3429 / t-3427.
 
 1. **CI installs the CLI from npm:** `npm install -g @anthropic-ai/claude-code@<pinned>` on ubuntu, because it is the documented path and pins exactly — **needs confirmation**; t-3427 verifies on the first run.
 2. **`claude plugin validate|test` run headless with no auth and no network** — the whole 77b proof rests on it (ADR-096 Q3); **needs verification** on the first CI run.
@@ -350,4 +352,4 @@ Row grammar: `PRI EFF id ⎇? subject…` — priority coloured, `⎇` when a br
 
 ## Changelog
 
-- 2026-10-03: spec drafted (t-3425) from ADR-096 + spike t-3426 + prototype; challenger pass applied.
+- 2026-10-03: spec drafted (t-3425) from ADR-096 + spike t-3426 + prototype; challenger pass applied; approved by the operator (A1–A6 confirmed).
