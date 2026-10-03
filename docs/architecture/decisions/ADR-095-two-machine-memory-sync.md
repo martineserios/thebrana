@@ -38,7 +38,7 @@ What is in the ruflo DB decides what is worth moving (audited 2026-10-03, all na
 | `knowledge` | 5,380 | **Derived** from `brana-knowledge/dimensions` by `index-knowledge.sh`; 83 mention another client | No: rebuild from docs |
 | `session`, `metrics`, `default` | 1,579 | Machine-local telemetry, more than half name other clients | Never |
 | `skills` | 69 | Derived from skill files; the plugin installs them | No |
-| `pattern` | 158 | 135 `error-recurrence:*` counters written by `post-tool-use-failure.sh`; 23 hand-curated `pattern:`/`spike:`/`challenge:` rows, of which 15 hold real content and all 15 have file echoes; 20 rows are key-only stubs written by `session-end-pattern-promotion.sh` when a read timed out (t-3455) | No |
+| `pattern` | 158 | 135 `error-recurrence:*` counters written by `post-tool-use-failure.sh`; 23 hand-curated `pattern:`/`spike:`/`challenge:` rows, of which 15 hold real content and all 15 have file echoes; 20 rows are key-only stubs written by `session-end-pattern-promotion.sh`, which read with `memory search` (an object with no value field) and so never found the entry it was updating (fixed, t-3455) | No |
 | `field-notes`, `decisions`, `assumptions`, `verification`, `hive-memory` | 9 | Hand-written but negligible | No (the same facts live in files) |
 
 **The valuable, irreplaceable memory is already files**: the 206 top-level notes in `~/.claude/memory` (48,034 files in total once archive snapshots are counted; only the top level is memory), per-project memory, and the docs in `brana-knowledge`. The ruflo DB is a rebuildable index plus telemetry.
