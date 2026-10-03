@@ -65,3 +65,7 @@ graphify-out/
 
 # Raw run logs and private reports (macOS port etc.) — local only
 .logs/
+
+# mods/ (ADR-096): the engine writes each mod's types and tsconfig; never commit them (cockpit.md §Layout, t-3427)
+mods/*/.claude-plugin/types/
+mods/*/tsconfig.json

@@ -1,0 +1,40 @@
+# Probe A — t-3450, 2026-10-03, claude 2.1.288 (Claude Code)
+# Fixture: marketplace 'fixture' with mods/probe-mod whose hooks/register.ts imports '../../_shared/hello'.
+# 1. claude plugin test <source tree> (import outside the plugin folder, in place):
+
+hooks/load.test.ts:
+(fail) the file did not load
+  hooks/load.test.ts: cannot import "../../_shared/hello" (from hooks/register.ts): it is outside the plugin's folder (<HOME>/mp/mods/probe-mod)
+
+ 0 pass
+ 1 fail
+Ran 1 test across 1 file. [0.12s]
+# 2. claude plugin install probe-mod@fixture --scope user -> cache holds ONLY the plugin dir:
+fixture/probe-mod/0.0.1/.claude-plugin/plugin.json
+fixture/probe-mod/0.0.1/hooks/hooks.json
+fixture/probe-mod/0.0.1/hooks/load.test.ts
+fixture/probe-mod/0.0.1/hooks/register.ts
+# 3. claude plugin test <installed cache copy>:
+
+hooks/load.test.ts:
+(fail) the file did not load
+  hooks/load.test.ts: cannot import "../../_shared/hello" (from hooks/register.ts): it is outside the plugin's folder (<HOME>/.claude/plugins/cache/fixture/probe-mod/0.0.1)
+
+ 0 pass
+ 1 fail
+Ran 1 test across 1 file. [0.12s]
+# 4. claude plugin validate <installed cache copy>:
+Validating plugin manifest: <HOME>/.claude/plugins/cache/fixture/probe-mod/0.0.1/.claude-plugin/plugin.json
+
+⚠ Found 1 warning:
+
+  ❯ author: No author information provided. Consider adding author details for plugin attribution
+
+Validating hooks: <HOME>/.claude/plugins/cache/fixture/probe-mod/0.0.1/hooks/hooks.json
+
+✘ Found 1 error:
+
+  ❯ modules../register.ts: 0.0.1: cannot import "../../_shared/hello" (from hooks/register.ts): it is outside the plugin's folder (<HOME>/.claude/plugins/cache/fixture/probe-mod/0.0.1)
+
+✘ Validation failed
+# Verdict: relative imports outside the plugin folder are refused by the engine at load (source tree AND cache). _shared must be vendored per mod.

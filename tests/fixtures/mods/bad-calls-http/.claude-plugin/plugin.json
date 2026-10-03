@@ -1,0 +1,8 @@
+{
+ "name": "bad-calls-http",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'http'.",
+ "author": {
+  "name": "brana"
+ }
+}

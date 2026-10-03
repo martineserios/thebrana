@@ -1,0 +1,8 @@
+{
+ "name": "bad-tool-check-hook",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'tool.check'.",
+ "author": {
+  "name": "brana"
+ }
+}

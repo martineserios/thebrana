@@ -1,0 +1,8 @@
+{
+ "name": "bad-destructured-http",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'destructure'.",
+ "author": {
+  "name": "brana"
+ }
+}

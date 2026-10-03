@@ -143,7 +143,7 @@ Brana uses a two-layer architecture. Understanding the split is important when a
 
 ### Mods Layer (`mods/`)
 
-**Installed per mod by `bootstrap.sh` 7c** from this repo's marketplace. Function-hook plugins that draw inside the session (ADR-096). Kept outside `system/` because `--sync-plugin` rsyncs `system/` with `--delete`; each mod bumps its own `plugin.json` version per change (the install copies into the plugin cache). Validated by Check 77a/77b. See [features/cockpit.md](features/cockpit.md).
+**Installed per mod by `bootstrap.sh` 7h** from this repo's marketplace (7g refuses the step while ruflo mods are enabled). Function-hook plugins that draw inside the session (ADR-096). Kept outside `system/` because `--sync-plugin` rsyncs `system/` with `--delete`; each mod bumps its own `plugin.json` version per change (the install copies into the plugin cache). Shared code lives in `mods/_shared/hooks/` and is vendored into each mod's `hooks/_shared/` by `system/scripts/mods-sync-shared.sh`, because the engine refuses imports outside a plugin's folder. Validated by Check 77a/77b. See [features/cockpit.md](features/cockpit.md).
 
 ### Identity Layer (`bootstrap.sh` -> `~/.claude/`)
 
@@ -169,7 +169,7 @@ When adding something new, ask:
 | Is it a hook on PostToolUse/PostToolUseFailure? | Yes | Bootstrap (via `bootstrap.sh`) until CC #24529 is fixed |
 | Is it a helper script used by hooks? | Yes | Plugin (`system/hooks/lib/`) with bootstrap fallback |
 | Does it need to exist without the plugin? | Yes | Bootstrap |
-| Is it a function-hook mod (a pane, band, or renderer of a hook's state)? | Yes | Mods layer: top-level `mods/<name>/`, its own `plugins[]` entry in `.claude-plugin/marketplace.json`, installed by bootstrap 7c — never under `system/` (ADR-096 Law 6; spec [features/cockpit.md](features/cockpit.md)) |
+| Is it a function-hook mod (a pane, band, or renderer of a hook's state)? | Yes | Mods layer: top-level `mods/<name>/`, its own `plugins[]` entry in `.claude-plugin/marketplace.json`, installed by bootstrap 7h — never under `system/` (ADR-096 Law 6; spec [features/cockpit.md](features/cockpit.md)) |
 
 ## Version Management
 

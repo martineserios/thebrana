@@ -12,6 +12,8 @@ impl_files:
   - mods/_shared/
   - system/cli/rust/crates/brana-cli/src/commands/cockpit.rs
   - system/scripts/mods-check.sh
+  - system/scripts/mods-sync-shared.sh
+  - system/scripts/marketplace-version-sync.sh
   - validate.sh
   - .github/workflows/ci.yml
   - .github/workflows/mods-drift.yml
@@ -24,7 +26,7 @@ impl_files:
 **Status:** approved (2026-10-03, operator) — implementation tasks t-3427/28/29/87/32; becomes `shipped` when t-3387 lands
 **Task:** t-3425 · epic t-3422 `cockpit`
 **ADR:** [ADR-096](../decisions/ADR-096-cockpit-surface-claude-code-mods.md) — the six laws this spec implements. The laws are not restated here; every section names the law it serves.
-**Implements:** t-3427 (CI harness, `_shared`, bootstrap 7c/7d) · t-3428 (Rust verbs) · t-3429 (band) · t-3387 (pane shell + Board) · t-3432 (instrumentation + day-14 rule)
+**Implements:** t-3427 (CI harness, `_shared`, bootstrap 7g/7h) · t-3428 (Rust verbs) · t-3429 (band) · t-3387 (pane shell + Board) · t-3432 (instrumentation + day-14 rule)
 **Evidence:** [ideas/brana-cockpit-mod.md](../../ideas/brana-cockpit-mod.md) (brainstorm, challenger quorum, spike t-3426) · prototype `backlog-pane` (session dev-mods, 16 tests)
 
 ## Problem
@@ -48,29 +50,29 @@ See ADR-096 (accepted 2026-10-03). This spec adds no decision; where it had to p
 
 ## Scope (v1 = tier 1 + 2a)
 
-**In:** `mods/_shared` (allowlist, run, state, probe, snapshot) · `mods/cockpit-band` · `mods/cockpit-pane` with the Board tab only · `brana cockpit snapshot --json`, `brana cockpit log-event`, `brana cockpit mark-shipped`, `brana ops cockpit` · `bootstrap.sh` 7c (install) + 7d (ruflo guard) · validate.sh Check 77a/77b + `system/scripts/mods-check.sh` · ci.yml pinned-CLI step + `mods-drift.yml` · the day-14 reminder.
+**In:** `mods/_shared` (allowlist, run, state, probe, snapshot) · `mods/cockpit-band` · `mods/cockpit-pane` with the Board tab only · `brana cockpit snapshot --json`, `brana cockpit log-event`, `brana cockpit mark-shipped`, `brana ops cockpit` · `bootstrap.sh` 7g (ruflo guard) + 7h (install) · validate.sh Check 77a/77b + `system/scripts/mods-check.sh` · ci.yml pinned-CLI step + `mods-drift.yml` · the day-14 reminder.
 **Out (2b, after the signal):** Wave/Orbit, Ops, Build, Valves tabs; any valve action; any pane spec beyond Board.
 
 ## Research
 
 - **Deploy route (spike t-3426):** a `plugins[]` entry with `"source": "./mods/<name>"` installs via `claude plugin install <name>@brana --scope user` and populates `enabledPlugins` + the plugin cache; hooks then run in every session kind including `claude -p`. `bootstrap.sh` Step 7a/7b registers the `brana` marketplace in `known_marketplaces.json` and **replaces the GitHub clone with a symlink** `~/.claude/plugins/marketplaces/brana` → this checkout — which is `dev` (ADR-094) — so an install from it takes `dev`'s mod code, and the install *copies* into the plugin cache (later edits do not propagate: the `plugin-cache-drift` class).
-- **Engine data (spike + types):** `session.measure` pushes `{ context: { tokens, window, percent }, rateLimits: [{ kind, percentUsed, resetsAt }], cost: { usd }, changed[] }`; `$.session.usage()` returns the same; `session.start` knows only `window`. `$.session.version()` → `{ version, version_base?, … }` (the `claude --version` string; a `-dev` build has `version_base` ending `-dev`). The `engine.create` hook's `e.plugins` lists the module names of the fold (managed first). `$.plugin` holds only `{ name, root }`. `AbovePrompt` gives `hasSurvey`, `isWorking`, `maxRows`, `bodyColumns` (the *transcript* width — narrower while a pane is docked). `Pane` gives its own `bodyColumns` and `placement: dock | inline`. `ui.close` carries `origin.kind ∈ plugin | person | unload`. A pane docks only under `/tui fullscreen`; `$.ui.open` returns `{ isPlaced, reason }`. A band Button with a `hotkey` is pressed by a bare digit in an empty composer (the survey mechanism); "two on one hotkey: later wins".
+- **Engine data (spike + types):** `session.measure` pushes `{ context: { tokens, window, percent }, rateLimits: [{ kind, percentUsed, resetsAt }], cost: { usd }, changed[] }`; `$.session.usage()` returns the same; `session.start` knows only `window`. `$.session.version()` → `{ version, base?, builtAt? }` (the `claude --version` string; the type names the release field `base` — analytics rows call it `version_base`; a `-dev` build has `base` ending `-dev`). The `engine.create` hook's `e.plugins` lists the module names of the fold (managed first). `$.plugin` holds only `{ name, root }`. `AbovePrompt` gives `hasSurvey`, `isWorking`, `maxRows`, `bodyColumns` (the *transcript* width — narrower while a pane is docked). `Pane` gives its own `bodyColumns` and `placement: dock | inline`. `ui.close` carries `origin.kind ∈ plugin | person | unload`. A pane docks only under `/tui fullscreen`; `$.ui.open` returns `{ isPlaced, reason }`. A band Button with a `hotkey` is pressed by a bare digit in an empty composer (the survey mechanism); "two on one hotkey: later wins".
 - **Prototype (`backlog-pane`):** pure logic in `board.ts` (parse, format, args, stale label, shape guard), adapter in `register.tsx`, 16 tests under `claude plugin test`; `claude plugin validate` prints `hooks:` and `calls:` lines. Lessons: a stale `$.state` shape threw inside `ui.render` and drew nothing; hotkeys need focus, so subcommands mirror them; the search box is an `Input` reached by Tab/click, not a `/` key; `claude plugin test` needs `hooks/hooks.json` even for pure-module tests.
-- **validate.sh:** numbered blocks with `--fast` and narrow-mode skips; Check 70 delegates to a script so new suites need no edit; last check is 76. **ci.yml:** `validate` job builds the Rust CLI then runs `./validate.sh`; `macos` job asserts a stock environment and runs `--fast`; "Check version sync" reads `plugins[0]`; the uv incident (ci.yml ~line 96) is the exit-127 class. **bootstrap.sh** ~line 259 already tolerates a missing `claude` binary.
+- **validate.sh:** numbered blocks with `--fast` and narrow-mode skips; Check 70 delegates to a script so new suites need no edit; last check is 76. **ci.yml:** `validate` job builds the Rust CLI then runs `./validate.sh`; `macos` job asserts a stock environment and runs the test suites (it never calls `validate.sh` — corrected by t-3427); "Check version sync" reads `plugins[0]`; the uv incident (ci.yml ~line 96) is the exit-127 class. **bootstrap.sh** ~line 259 already tolerates a missing `claude` binary.
 - **Ecosystem:** `linear-mod`, ruv's `ruflo-console`, Anthropic's `blast-radius` — memory `reference_claude-code-mods-ecosystem`.
 
 ## Assumptions
 
 A1–A6 **confirmed by the operator 2026-10-03**; A7–A8 are verification items owned by t-3429 / t-3427.
 
-1. **CI installs the CLI from npm:** `npm install -g @anthropic-ai/claude-code@<pinned>` on ubuntu, because it is the documented path and pins exactly — **needs confirmation**; t-3427 verifies on the first run.
-2. **`claude plugin validate|test` run headless with no auth and no network** — the whole 77b proof rests on it (ADR-096 Q3); **needs verification** on the first CI run.
-3. **Install from the symlinked marketplace is acceptable for the operator's own machine**, with the caveat that it installs `dev`'s code into the cache; `--check` therefore compares *versions*, not presence (see bootstrap 7c). **Needs confirmation** that "installed from dev, bumped per change" is the intended operator model (the public ship path stays `main` → GitHub marketplace).
+1. **CI installs the CLI from npm:** `npm install -g @anthropic-ai/claude-code@<pinned>` on ubuntu, because it is the documented path and pins exactly. t-3427: the pin `2.1.288` is published on npm; the install step asserts the binary and its version. First CI run (37140367665): installed and asserted `2.1.288` in the validate job — **confirmed**.
+2. **`claude plugin validate|test` run headless with no auth and no network** — the whole 77b proof rests on it (ADR-096 Q3). t-3427, locally: both ran in a fresh temp `HOME` with no credentials (probe A ran them against an installed cache copy; `claude -p` in the same HOME stopped at `Not logged in`, the plugin commands did not). First CI run (37140367665): 77b green with no credentials — **confirmed for auth**; network-free not proven (the runner has network).
+3. **Install from the symlinked marketplace is acceptable for the operator's own machine**, with the caveat that it installs `dev`'s code into the cache; `--check` therefore compares *versions*, not presence (see bootstrap 7h). **Needs confirmation** that "installed from dev, bumped per change" is the intended operator model (the public ship path stays `main` → GitHub marketplace).
 4. **Quota display:** percent + reset time only — `rateLimits` carries nothing finer. Confirm.
 5. **Keymap:** engine focus chord + `1/2/3/r/s/a/x/Esc`; search via Tab to the field; nothing else bound. Confirm.
 6. **Dev loop:** `claude --plugin-dir mods/<name>` (new-folder hot-load into dev-mods was not observed in the spike). Confirm, or spike hot-load separately.
 7. **"Interactive session" is detectable at `session.start`** (a surface/draw-capability field on the payload) so the `session` event is logged only for sessions that *could* open a pane; t-3429 pins the field. If no such field exists, the fallback is "log `session` from the first `ui.render` of the band" (a band that drew is interactive by definition). **Needs verification.**
-8. **`engine.create` is hookable by an ordinary mod and its `e.plugins` includes managed/other plugin names** — the types say so; the ruflo-gate detection below uses it *and* a run-error fallback, so the design holds either way. **Needs verification** (t-3427, with ruflo-mods enabled in a temp HOME; also records the exact refusal error text).
+8. ~~**`engine.create` is hookable by an ordinary mod and its `e.plugins` includes managed/other plugin names**~~ — **moot (t-3427 probe B, 2026-10-03).** ruflo-mods' gate hooks `plugin.register` and, under `modTrust=refuse-risky`, refuses a later user-tier mod that calls `process.run` *at load*: `cockpit-probe: refused by ruflo-mods: ruflo mod trust (modTrust=refuse-risky): cockpit-probe process.run (runs host commands); allow it by provenance (cockpit-probe@claude-plugin-test) in modTrustAllow`. A refused mod never runs a hook, so no in-mod layer (neither `engine.create` nor a `run()` error) can ever see it; under the test kit `engine.create` of a later plugin was not observed either. Bootstrap 7g is the only layer. ruflo's default policy is `observe` (one transcript line, the mod loads). Capture: `tests/fixtures/mods/captures/probe-b-ruflo-trust-gate.txt`.
 
 ## Behavior
 
@@ -86,8 +88,8 @@ A1–A6 **confirmed by the operator 2026-10-03**; A7–A8 are verification items
 - `$.ui.open` → `{ isPlaced: false, reason }`: reply with the reason; no retry loop; no `open` event logged.
 - `$.state` holds an older `schema`: discarded, reloaded, one dim line `cockpit-pane: state v1 discarded`.
 - `brana` exits non-zero / times out (15 s): board shows the error line in red with the age of the last good snapshot; band shows `guard ?` and nothing else changes.
-- `run()` refused by another mod's trust gate (error text matching the recorded refusal): band line `cockpit: ruflo-mods trust gate — statusline only`; pane reply the same. Bootstrap 7d is the guaranteed layer; this is the in-session explanation.
-- Untested engine version (`version_base` not in `SUPPORTED`, including any `-dev` build): band shows `cockpit: untested CC <ver> — statusline only`; pane command replies the same; no other draw.
+- ruflo-mods enabled with `modTrust=refuse-risky`: the engine refuses the mod at load and prints ruflo's refusal line in the transcript; the band and pane draw nothing because they never loaded (probe B). Bootstrap 7g prevents the state; there is no in-session layer. Under ruflo's default `observe` the mod loads and ruflo logs one line naming `process.run`.
+- Untested engine version (`base` not in `SUPPORTED`, including any `-dev` build): band shows `cockpit: engine <ver> untested (supported: …) — statusline only` (`UNTESTED_LINE` in `probe.ts`); pane command replies the same; no other draw.
 - Search results: replace the **Next** column (or tab) with `Search “q” N`; header gains `esc clears`; empty query restores Next.
 - Zero tasks in a column: `—`. Zero tasks everywhere: `backlog empty — brana backlog add`.
 - Selected task vanished after a refresh (completed/cancelled elsewhere): detail panel shows `t-NNN no longer listed · x` and nothing else.
@@ -102,24 +104,36 @@ A1–A6 **confirmed by the operator 2026-10-03**; A7–A8 are verification items
 ```
 mods/
 ├── package.json                 one dev dependency: typescript (pinned); nothing runtime
-├── _shared/                     pure, tested, imported by both mods — SCANNED by 77a like a mod
-│   ├── allowlist.ts             READ + WRITE argv lists (the only place verbs are named)
-│   ├── run.ts                   the ONLY file allowed to call $.process.run
-│   ├── state.ts                 atom schema:N + readValid($, atom, guard)
-│   ├── probe.ts                 engine-version probe → 'ok' | 'untested'; trust-gate classifier for run() errors
-│   ├── snapshot.ts              parse + age for `brana cockpit snapshot --json`
-│   └── *.test.ts
+├── _shared/                     plugin `cockpit-shared` (never installed): source of truth, VENDORED into each mod — SCANNED by 77a
+│   ├── .claude-plugin/plugin.json
+│   └── hooks/
+│       ├── hooks.json, register.ts   carries the canonical run adapter + /cockpit-shared-run so tests drive it through the engine
+│       ├── allowlist.ts             READ + WRITE argv lists (the only place verbs are named)
+│       ├── run.ts                   guard(argv, exec): allowlist gate + never-throw result (the adapter line lives in each mod)
+│       ├── state.ts                 atom schema:N + valid(value, guard)
+│       ├── probe.ts                 engine-version probe → 'ok' | 'untested'; failureLine() for host-level run() failures
+│       ├── snapshot.ts              parse + age for `brana cockpit snapshot --json`
+│       └── *.test.ts                42 tests, `claude plugin test mods/_shared`
 ├── cockpit-band/
 │   ├── .claude-plugin/plugin.json    name cockpit-band · version x.y.z · types ./types/index.d.ts
 │   ├── hooks/hooks.json              { "modules": ["./register.tsx"] }
-│   ├── hooks/register.tsx            thin adapter: hooks + draw only
+│   ├── hooks/register.tsx            thin adapter: hooks + draw only; the one canonical run adapter line
+│   ├── hooks/_shared/*.ts            vendored by system/scripts/mods-sync-shared.sh — byte-identical (77a drift guard)
 │   ├── hooks/band.ts                 pure: thresholds, labels, templates, layout at 60/80/120 cells
 │   ├── hooks/band.test.ts
 │   └── types/index.d.ts              PluginState['cockpit-band']
 └── cockpit-pane/                     the prototype, moved; same shape as cockpit-band
 ```
 
-Each mod is a complete plugin; `_shared` is imported by relative path (`../../_shared/run`) — no `node_modules` at runtime. `.claude-plugin/types/` (engine-written) and `tsconfig.json` are gitignored. **Every change to a mod bumps its `plugin.json` version** (validate 77a asserts the version differs from `dev`'s when the mod's files differ — the cache-drift guard, see bootstrap 7c).
+Each mod is a complete plugin with its `_shared` files **vendored** into `hooks/_shared/` — no `node_modules`, no import outside the plugin's folder. *(Amended by t-3427: the first draft imported `../../_shared/run`; the engine refuses any import that leaves the plugin's folder, in the source tree and in the install cache alike — `tests/fixtures/mods/captures/probe-a-shared-import.txt`.)* `system/scripts/mods-sync-shared.sh` copies `mods/_shared/hooks/{allowlist,run,state,probe,snapshot}.ts` into every mod that imports `./_shared/`; Check 77a fails on a copy that differs from its source or has none. `.claude-plugin/types/` (engine-written) and `tsconfig.json` are gitignored. **Every change to a mod bumps its `plugin.json` version** — a refreshed vendored copy counts (validate 77a asserts the version differs from the base ref's when the mod's files differ — the cache-drift guard, see bootstrap 7h).
+
+**The run adapter (amended by t-3427).** The engine's scanner refuses a hooks module that passes `$` to a function it did not declare at its own top level, so a shared `run($, argv)` cannot exist. `run.ts` exports the pure `guard(argv, exec)`; each mod's hooks module carries exactly this line, and Check 77a allows `$.process` nowhere else:
+
+```ts
+const run = ($: EngineInterface, argv: readonly string[]) => guard(argv, () => $.process.run(argv, { timeoutMs: DEFAULT_TIMEOUT_MS }))
+```
+
+`claude plugin validate` reports it as `$.process.run (via run)`, which Check 77b parses against the allowed set.
 
 ### Components
 
@@ -162,17 +176,17 @@ export const WRITE: readonly string[][] = [
 ]
 ```
 
-`run()` denies anything whose argv does not start with a READ or WRITE prefix (`{ denied: true, reason }`); the deny path has a must-fire test (`brana backlog set` denied; `brana backlog get` allowed; `brana backlog get; rm` denied as one token mismatch). Not on any list: `git`, `gh`, `brana recall|memory|agy`, `curl`, `claude`, `sh`. The valves verb is added to READ by t-3021's landing commit, nowhere else — **the READ list is asserted by exact equality in a test** that fails if any `hands`/valve argv appears before then.
+`guard()` (and so every mod's `run()`) denies anything whose argv does not start with a READ or WRITE prefix (`{ denied: true, reason }`), never reaching the host; the deny path has a must-fire test (`brana backlog set` denied; `brana backlog get` allowed; `brana backlog get; rm` denied as one token mismatch). Not on any list: `git`, `gh`, `brana recall|memory|agy`, `curl`, `claude`, `sh`. The valves verb is added to READ by t-3021's landing commit, nowhere else — **the READ list is asserted by exact equality in a test** that fails if any `hands`/valve argv appears before then.
 
 ### `_shared/state.ts` (Law 2)
 
-Every atom's value is `{ schema: N, ...data }`. `readValid($, atom, guard)` returns the data when `guard(value)` holds and `value.schema === SCHEMA`, else returns `null` after `update(atom, () => null)`. Tests: a v(N−1) fixture is discarded; a malformed value is discarded; a valid value passes through. Rule in code comment: *state is a cache — the CLI is the source of truth; never persist a decision or an in-flight action.*
+Every atom's value is `{ schema: N, ...data }` (`stamp(data)`). `valid(value, guard, schema = SCHEMA)` is pure: it returns the value when `value.schema === schema` and `guard(value)` holds, else `null`; the hooks module then clears the atom with `update($, atom, () => null)` — two engine calls in the module, since a shared `$`-taking `readValid` is refused by the scanner (amended by t-3427). Tests: a v(N−1) fixture is discarded; a malformed value is discarded; a valid value passes through. Rule in code comment: *state is a cache — the CLI is the source of truth; never persist a decision or an in-flight action.*
 
 ### `_shared/probe.ts` (Law 6)
 
-`probe(version: SessionVersion): 'ok' | 'untested'` is pure: `SUPPORTED: readonly string[]` (release cores, e.g. `2.1.287`) in the file; `version_base` absent, ending `-dev`, or ∉ SUPPORTED → `'untested'`. Called once from `session.start` with `await $.session.version()`; the result lives in a module variable; anything but `'ok'` → the band draws one line, the pane command replies it, every other hook returns `next(e)` untouched.
+`probe(version: SessionVersion): 'ok' | 'untested'` is pure: `SUPPORTED: readonly string[]` (release cores, e.g. `2.1.287`) in the file; `base` absent, ending `-dev`, or ∉ SUPPORTED → `'untested'`. `SUPPORTED = ['2.1.288']`, equal to ci.yml's `CC_VERSION` (asserted by `tests/scripts/test-ci-mods-harness.sh`). Called once from `session.start` with `await $.session.version()`; the result lives in a module variable; anything but `'ok'` → the band draws one line, the pane command replies it, every other hook returns `next(e)` untouched.
 
-**ruflo trust gate — two layers, neither inside `probe()`:** (1) `engine.create` hook: if `e.plugins` contains `ruflo-mods`, set the module flag `gate = 'ruflo-mods'` (Assumption 8 verifies this fires for an ordinary mod); (2) `classifyRunError(err)` in `probe.ts`: a `run()` rejection whose message matches the refusal text recorded by t-3427's temp-HOME spike sets the same flag. Either sets the band/pane line to `cockpit: ruflo-mods trust gate — statusline only`. Bootstrap 7d is the layer that *prevents* the state; these two only name it correctly instead of "brana unreachable".
+**ruflo trust gate — one layer (amended by t-3427 probe B).** The two in-mod layers first drawn here (an `engine.create` check and a `classifyRunError` keyed on the refusal text) cannot fire: the gate refuses the mod at `plugin.register`, before any of its hooks exist. Bootstrap 7g is the only layer. `probe.ts` keeps `failureLine(result)` for host-level failures only: denied argv, `brana` not on PATH (`cockpit: brana unreachable (not on PATH)`), timeouts.
 
 ### Rust verbs (Laws 1/2/3 — t-3428)
 
@@ -205,20 +219,20 @@ Cache `…/brana/cockpit/snapshot.json`: read when younger than `ttl_s` (20 s); 
 
 ### bootstrap.sh (Law 6 — t-3427)
 
-- **7c — Mods.** For each entry in `.claude-plugin/marketplace.json` whose `source` starts with `./mods/`: compare the installed cache's `plugin.json` version with the repo's; missing → `claude plugin install <name>@brana --scope user`; differing → `claude plugin update <name>@brana` (or uninstall+install if update is not idempotent — t-3427 picks); equal → `=`. **`--check` never runs `claude plugin …`**: it prints `+ would install` / `~ would update <old>→<new>` / `=` and counts a change. `claude` absent → the existing ~line-259 tolerance applies: `--check` prints `! claude missing — mods not verified` and counts a change; deploy prints the same and continues.
-- **7d — ruflo mods guard.** If `~/.claude/settings.json` `enabledPlugins` or the project `.claude/settings.json` lists `ruflo-mods|ruflo-swarm|ruflo-console`, `--check` **exits non-zero** naming the entry; deploy refuses the mods step and prints the same. Must-fire test: a temp HOME with a `ruflo-mods` entry makes `bootstrap.sh --check` exit non-zero.
+- **7h — Mods** (lettered 7g/7h because 7a–7f were taken; the draft said 7c/7d). For each entry in `.claude-plugin/marketplace.json` whose `source` starts with `./mods/`: compare the installed version (`plugins/installed_plugins.json`, key `<name>@brana`) with the repo's `plugin.json`; missing → `claude plugin install <name>@brana --scope user`; differing → `claude plugin update <name>@brana`, falling back to uninstall + install when the update fails; equal → `=`. **`--check` never runs `claude plugin …`**: it prints `+ would install` / `~ would update <old>→<new>` / `=` and counts a change. `claude` absent → the existing ~line-259 tolerance applies: `--check` prints `! claude missing — mods not verified` and counts a change; deploy prints the same and continues.
+- **7g — ruflo mods guard** (runs before 7h). If `~/.claude/settings.json`, the project `.claude/settings.json` or `.claude/settings.local.json` (`ruflo mods install` writes the local file) enables `ruflo-mods|ruflo-swarm|ruflo-console` (any `@<marketplace>`, value `true`), `--check` **exits 3** at the summary naming file and key; deploy prints the same and skips 7h. Both steps are column-0 functions (`mods_ruflo_guard`, `mods_install_step`) so `tests/bootstrap/test-mods-step.sh` drives deploy mode without a real deploy (32 assertions: three names × user/project files, `false` is not a hit, all 7h outcomes, absent CLI).
 - `CACHE_RSYNC_EXCLUDES` is untouched: `mods/` is outside `system/`.
 
 ### validate.sh — Check 77a / 77b (Laws 2/3/4/6 — t-3427)
 
 Both delegate to `system/scripts/mods-check.sh`, which takes `--static` or `--engine`.
 
-- **77a — static, always runs** (no `claude` needed; runs under `--fast` and on macOS). Scans **`mods/**`** (including `_shared`) for every `.ts`/`.tsx`: FAIL on `$.model`, `$.http`, `['model']`, `['http']`, `Reflect.get(`, destructured `{ model` / `{ http` / `{ process` from `$`, `fetch(`, `child_process`, `tasks.json`, `git-common-dir`, `$.fs`, `readFile`, `Bun.file`, `on('tool.call'` (Law 4), and `process.run(` anywhere but `mods/_shared/run.ts`. Also asserts each mod's `plugin.json` version was bumped when its files differ from `dev` (the cache-drift guard). Must-fire fixtures in `tests/fixtures/mods/bad-*` (one per grep); the script's own test proves each fires.
-- **77b — engine, skipped under `--fast` with a `warn`**, otherwise: `claude plugin validate <mod>` must pass; its `calls:` line is parsed and **every call must be in the allowed set** `{ process.run, prompt.fill, ui.open, ui.resolve, ui.status, ui.toast, state.get, state.set, session.usage, session.version, command.register, clock.now }` — structural, catches indirection the greps miss; then `claude plugin test <mod>` must pass; `claude` absent → **FAIL** with `claude CLI not on PATH — install it or run with --fast`.
+- **77a — static, always runs** (no `claude` needed; runs under `--fast` and on macOS). Scans every `.ts`/`.tsx` under `mods/` that git does not ignore (tracked or untracked — the engine writes types inside each mod; `*.test.ts(x)` never load in a session and are skipped), `_shared` included: FAIL on `$.model`, `$.http`, `['model']`, `['http']`, `Reflect.get(`, destructured `{ model` / `{ http` / `{ process` from `$`, `fetch(`, `child_process`, `tasks.json`, `git-common-dir`, `$.fs`, `readFile`, `Bun.file`, `on('tool.call'` and `on('tool.check'` (Law 4 — a permission verdict is enforcement), and any `$.process` other than the canonical adapter line (`spawn` included). Also: every vendored `hooks/_shared/*.ts` byte-identical to `mods/_shared/hooks/` (drift); and each mod's `plugin.json` version bumped when its files differ from the base ref (`MODS_BASE_REF`, else `origin/dev`, else `dev`; **none resolvable = FAIL**, so CI fetches `origin/dev` first). Must-fire fixtures `tests/fixtures/mods/bad-*` (20, one per rule) plus `good-minimal`; `tests/scripts/test-mods-check.sh` proves each fires (105 assertions, no `claude` needed).
+- **77b — engine, skipped under `--fast` with a `warn`**, otherwise: `claude plugin validate <mod>` must pass; its `calls:` line is parsed and **every call must be in the allowed set** `{ process.run, prompt.fill, ui.open, ui.resolve, ui.status, ui.toast, state.get, state.set, session.usage, session.version, command.register, clock.now }` — structural, catches indirection the greps miss; a missing `calls:` line is a FAIL; then `claude plugin test <mod>` must exit 0 **and** report `Ran N tests` with N ≥ 1 (the engine exits 0 without running anything on a folder with no hooks module); `claude` absent → **FAIL** with `claude CLI not on PATH — install it or run with --fast`. Targets: every `mods/<mod>/` plus an isolated vendored copy of `tests/fixtures/mods/good-minimal`, so the pinned CLI meets a real mod in CI before any band or pane exists.
 
 ### ci.yml (Law 6 — t-3427)
 
-`validate` job gains, before "Run validation": `Install pinned Claude Code CLI` (`npm install -g @anthropic-ai/claude-code@${{ env.CC_VERSION }}`; `claude --version` must print the pin; ubuntu only). "Check version sync" selects the `brana` entry **by name**, not `plugins[0]`, and additionally checks each `./mods/*` entry's version equals its `plugin.json`. The macOS job keeps `--fast`: 77a runs there (no CLI needed), 77b is skipped with its warn — the job comment says so. New workflow `mods-drift.yml`: weekly, installs *latest* `claude`, runs `mods-check.sh --engine`; a red run is the signal to bump `CC_VERSION` and `SUPPORTED`.
+`validate` job gains, before "Run validation": `Fetch origin/dev` (77a's base ref on a depth-1 checkout) and `Install pinned claude CLI` (`npm install -g "@anthropic-ai/claude-code@${CC_VERSION}"`, workflow-level `env.CC_VERSION`; the step itself fails when the binary is absent or `claude --version` is not the pin; ubuntu only). "Check version sync" runs `system/scripts/marketplace-version-sync.sh`: the `brana` entry **by name**, not `plugins[0]`, and each `./mods/*` entry against its `plugin.json`. The macOS job never calls `validate.sh` (corrected by t-3427): 77a's rules reach it through `tests/scripts/test-mods-check.sh`, 77b does not run there — the job comment says so. New workflow `mods-drift.yml`: weekly, installs *latest* `claude`, runs `mods-check.sh --engine`; a red run is the signal to bump `CC_VERSION` and `SUPPORTED`.
 
 ### Dev loop
 
@@ -314,7 +328,7 @@ Row grammar: `PRI EFF id ⎇? subject…` — priority coloured, `⎇` when a br
 
 ## Testing strategy
 
-- **Unit (≈ 70 %):** `_shared` — allowlist deny/allow incl. prefix abuse; exact-equality READ list; `state` schema discard; `probe` (`ok`, `untested`, `-dev`); `classifyRunError`; `snapshot` parse + age. `band.ts` — threshold → colour/message/buttons at 54/55/69/70/84/85; empty `rateLimits`; first turn; `guard ?`; layout at 60/80/120 and `maxRows` 1; no band Button has `hotkey`; template fill rejects a non-`t-NNN` id. `board.ts` — the prototype's 16 tests, kept, plus search-replaces-Next, vanished selection.
+- **Unit (≈ 70 %):** `_shared` — allowlist deny/allow incl. prefix abuse; exact-equality READ list; `state` schema discard; `probe` (`ok`, `untested`, `-dev`); `failureLine`; `snapshot` parse + age. `band.ts` — threshold → colour/message/buttons at 54/55/69/70/84/85; empty `rateLimits`; first turn; `guard ?`; layout at 60/80/120 and `maxRows` 1; no band Button has `hotkey`; template fill rejects a non-`t-NNN` id. `board.ts` — the prototype's 16 tests, kept, plus search-replaces-Next, vanished selection.
 - **Integration (≈ 25 %):** `claude plugin test` on each mod: band draws nothing with `hasSurvey`; band shows `guard ?` when `run()` errors and the gauge still draws; band logs `session` once; pane open → `log-event open` argv observed; `ui.close` → `log-event close` *and* `next(e)` called; stale-state fixture → one dim line, reload; `/board` registration. Rust: `cockpit snapshot` byte-identical tasks.json; TTL hit; non-blocking refresh (loser serves cache); temp+rename; run from a worktree resolves the common dir; `log-event` single-line append; `mark-shipped` refuses twice; `ops cockpit` fixture ratio and the denominator-0 message.
 - **E2E (≈ 5 %):** `mods-check.sh --static` on every `bad-*` fixture (each must fire); `bootstrap.sh --check` in a temp HOME reports installs and **exits non-zero** on a `ruflo-mods` entry; one CI run green with the pinned CLI; a temp-HOME spike with `ruflo-mods` enabled records the refusal text (Assumption 8).
 - **Mock policy:** real engine via the test kit; mock only the clock and `run()`'s process boundary.
@@ -324,17 +338,17 @@ Row grammar: `PRI EFF id ⎇? subject…` — priority coloured, `⎇` when a br
 | Law | Where enforced | Must-fire proof |
 |---|---|---|
 | 1 | `log-event session|open`; `mark-shipped`; `brana ops cockpit`; `brana remind cockpit:day14` | band test observes `session`; pane test observes `open`; `ops cockpit` fixture ratio; remind exists after t-3432 |
-| 2 | 77a greps `tasks.json`/`git-common-dir`/`$.fs`/`readFile`/`Bun.file`/non-adapter `process.run` over `mods/**`; `readValid` tests; snapshot is the only aggregate | `bad-reads-ledger`, `bad-fs-read` fixtures fail 77a |
+| 2 | 77a greps `tasks.json`/`git-common-dir`/`$.fs`/`readFile`/`Bun.file`/non-adapter `$.process` over `mods/**`; `valid` tests; snapshot is the only aggregate | `bad-reads-ledger`, `bad-fs-read` fixtures fail 77a |
 | 3 | 77a greps model/http/bracket/Reflect/destructure/fetch/child_process; 77b `calls:` allowed-set parse; `run()` deny test; template id test | `bad-calls-model`, `bad-destructured-http`, `bad-reflect-get` fixtures fail 77a; a mod calling `$.http.fetch` via a template-built path fails 77b; `brana backlog set` denied in test |
 | 4 | Band renders `guard` from the snapshot only; 77a greps `on('tool.call'` in `mods/**` | `bad-tool-call-hook` fixture fails 77a |
 | 5 | `valves.source = "none"` until t-3021; READ list exact-equality test | the READ test fails on any `hands`/valve argv before t-3021 |
-| 6 | bootstrap 7c (version compare, never installs under `--check`) / 7d (non-zero exit); 77b FAIL on absent CLI; ci pinned install + per-mod version sync; `mods-drift.yml`; probe degrade | temp-HOME `--check` tests (installs reported; ruflo entry → non-zero); CI run; probe unit tests |
+| 6 | bootstrap 7h (version compare, never installs under `--check`) / 7g (non-zero exit); 77b FAIL on absent CLI; ci pinned install + per-mod version sync; `mods-drift.yml`; probe degrade | temp-HOME `--check` tests (installs reported; ruflo entry → non-zero); CI run; probe unit tests |
 
 ## Task map
 
 | Section | Task |
 |---|---|
-| `_shared` (allowlist, run, state, probe, snapshot), `mods/package.json`, Check 77a/77b + `mods-check.sh` + fixtures, ci steps, `mods-drift.yml`, **bootstrap 7c/7d**, the ruflo-mods temp-HOME spike | t-3427 |
+| `_shared` (allowlist, run, state, probe, snapshot), `mods/package.json`, Check 77a/77b + `mods-check.sh` + `mods-sync-shared.sh` + fixtures, ci steps, `mods-drift.yml`, **bootstrap 7g/7h**, the ruflo-mods temp-HOME spike | t-3427 |
 | `cockpit snapshot`, `cockpit log-event`, `cockpit mark-shipped`, `ops cockpit`, cache + locks | t-3428 |
 | `cockpit-band` (incl. `session` event, interactive detection) | t-3429 |
 | `cockpit-pane` (prototype → `mods/`, `/brana` + `/board`, open/close events, search/vanished states) | t-3387 |
@@ -353,3 +367,5 @@ Row grammar: `PRI EFF id ⎇? subject…` — priority coloured, `⎇` when a br
 ## Changelog
 
 - 2026-10-03: spec drafted (t-3425) from ADR-096 + spike t-3426 + prototype; challenger pass applied; approved by the operator (A1–A6 confirmed).
+- 2026-10-03: t-3427 built the harness and amended four engine-falsified premises, each with a committed capture or test: (1) `_shared` is vendored per mod, not imported by relative path (probe A); (2) `run($, argv)` became `guard(argv, exec)` plus one canonical adapter line per hooks module, and `readValid` became the pure `valid` (the scanner refuses passing `$` to a function not declared in the module); (3) the in-mod ruflo-gate layers are dropped — a refused mod never loads, bootstrap 7g is the only layer (probe B, Assumption 8 moot); (4) bootstrap steps are 7g/7h, the macOS CI job never ran `validate.sh`. Additions: `tool.check` joins the Law-4 greps; 77b requires `Ran N ≥ 1 tests` and a `calls:` line; an isolated `good-minimal` copy is always a 77b target; the version guard fails without a base ref.
+- 2026-10-03: t-3427 judge panel (rung 2: challenger PROCEED WITH CHANGES + second-variant and concurrency finders, verified against the real engine). Fixed: the version guard never takes a base equal to the commit under test (the dev→main ship PR fetched `origin/dev` == HEAD) and diffs from the merge-base; 77a scans every module extension the engine loads (`.js/.mjs/.cjs/.mts/.cts/.jsx`) and code after a leading `/* … */`; 77b also parses the engine's `hooks:` line and fails on `tool.call|tool.check|plugin.register|prompt.compose|classic.*|*` (structural Law 4 — catches backtick and renamed registrations); 77b runs every mod from an isolated copy (the engine writes types into the folder it reads); 7g also reads managed settings, fails closed on an unparsable file or a missing `jq`; 7h compares the user-scope install, passes `--scope user` to update/uninstall, never lets `claude` read the loop's stdin, and says when a failed reinstall leaves a mod uninstalled; `mods-drift.yml` has two distinct red signals (engine breaks a mod / latest passes but is unsupported → bump). Refuted by engine probe: `$` spelling bypasses (bracket, optional chaining, aliasing and `node:` imports are refused at load; multi-line and `.mjs` forms surface in `calls:`) and network/fs bypasses (the mod runtime has no `fetch`, `XMLHttpRequest`, `WebSocket`, `Bun`, `process` or `require`).

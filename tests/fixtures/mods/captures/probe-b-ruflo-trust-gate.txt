@@ -1,0 +1,32 @@
+# Probe B — t-3450, 2026-10-03 — ruflo-mods trust gate vs a brana-style mod (process.run via run())
+# Engine: claude 2.1.288 (Claude Code). ruflo-mods source: github.com/ruvnet/ruflo @ 449ec2d45cbdad12c57fdb2f82f0828addaa095a, plugins/ruflo-mods/hooks/trust.ts (ADR-404).
+# Method: claude plugin test on the ruflo-mods checkout with an added test loading a later user-tier plugin 'cockpit-probe' that hooks engine.create and calls $.process.run in session.start. A live 'claude -p' session was NOT captured: this environment holds no token (CLAUDE_CODE_OAUTH_TOKEN/ANTHROPIC_API_KEY unset) and 'claude -p' exits 'Not logged in' before loading plugins.
+#
+# 1. Policy default = observe (loads, logs one line):
+ruflo mod trust: cockpit-probe (cockpit-probe@claude-plugin-test) loaded; process.run (runs host commands)
+#
+# 2. modTrust=refuse-risky — the module is refused AT LOAD (plugin.register); verbatim message the engine surfaces:
+cockpit-probe: refused by ruflo-mods: ruflo mod trust (modTrust=refuse-risky): cockpit-probe process.run (runs host commands); allow it by provenance (cockpit-probe@claude-plugin-test) in modTrustAllow
+#    could-not-judge variant (trust.ts .catch):
+ruflo mod trust could not judge <name> (<error>); refused (modTrust=refuse-risky)
+#    In a real install the provenance is <name>@<marketplace>, e.g. cockpit-band@brana; escape = pluginConfigs["ruflo-mods@ruflo"].options.modTrustAllow (user/managed settings only — project settings cannot set it, per the ruflo README).
+#
+# 3. modTrust=refuse-risky + modTrustAllow=cockpit-probe@claude-plugin-test: loads, no REFUSED line.
+#
+# 4. Assumption 8 (engine.create hookable by an ordinary later mod, e.plugins lists others): NOT OBSERVED under the kit — the later plugin's engine.create hook did not fire and its session.start hook did not run in that harness (kit scope: hooks of the plugin under test + the engine). Unverified in a live session. Structural answer: a REFUSED module never loads, so no hook of its own (engine.create included) and no run() rejection can ever report the refusal from inside the mod. Spec layers (1) engine.create e.plugins check and (2) classifyRunError cannot fire for the case they were designed for; bootstrap 7h (prevent) is the only effective layer.
+#
+# 5. IDs ruflo init writes (enabledPlugins, project .claude/settings.json by default; settings.local.json via 'ruflo mods install'): ruflo-mods@ruflo, ruflo-swarm@ruflo, ruflo-console@ruflo; plus env CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 (function hooks are on by default from CC 2.1.287).
+#
+# Raw kit output lines:
+PROBE2 engine.create did NOT fire
+PROBE2 session.start did NOT run
+PROBE2 logs=["ruflo mod trust: cockpit-probe (cockpit-probe@claude-plugin-test) loaded; process.run (runs host commands)"]
+PROBE observe logs:
+PROBE refusal message: cockpit-probe: refused by ruflo-mods: ruflo mod trust (modTrust=refuse-risky): cockpit-probe process.run (runs host commands); allow it by provenance (cockpit-probe@claude-plugin-test) in modTrustAllow
+PROBE allow logs:
+tests/zz-brana-probe.test.ts:
+(pass) PROBE observe: process.run mod loads; engine.create visibility [166.99ms]
+(pass) PROBE refuse-risky: process.run mod is refused at load — capture text [72.80ms]
+(pass) PROBE refuse-risky + modTrustAllow by provenance: loads [44.32ms]
+tests/zz-brana-probe2.test.ts:
+(pass) PROBE2 observe: engine.create + process.run from a later user-tier mod [160.60ms]
