@@ -29,8 +29,8 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 ## Scope (v1)
 
 - Union of `patterns.md` (121 sections) and `knowledge-staging.md` (6) across Linux live, Linux snapshot, merged `HEAD` and Mac tip `b04be875`, written to the Linux live files (pre-union copies archived) and carried to the repo by the next export.
-- `backup.sh` unions `patterns.md`, `knowledge-staging.md` and `portfolio.md` by heading with the tracked copy on export instead of copying over it; `restore.sh` fast-forwards through the same guard instead of a swallowed `git pull --rebase`.
-- `merge-snapshots.py`: the rule as a tool for JSON (identity + newest wins) and markdown (section union), with `--check`.
+- `backup.sh` unions `patterns.md` and `knowledge-staging.md` by heading with the tracked copy on export instead of copying over it, and keeps the tracked copy when the union cannot run; `restore.sh` fast-forwards through the same guard instead of a swallowed `git pull --rebase`.
+- `merge-snapshots.py`: the rule as a tool for JSON (identity + newest wins) and markdown (section union), with `--check`; it refuses inputs it has no identity rule for (markdown without `## ` headings, JSON rows keyed only by a per-machine id).
 - Fetch-first guard at the top of `backup.sh`, before any export.
 - Shell tests with a bare origin and two clones: guard (behind-only, diverged, daily-push.sh, offline, in-sync), union on export, and the merge rule itself.
 - ADR-095 amendment and t-3404 context pointer.
@@ -54,24 +54,24 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 
 ## Behavior
 
-- Running `backup.sh` while the remote has commits this machine lacks and this machine has none of its own: the script fast-forwards, exports, commits, pushes as usual.
-- Running it while both sides have commits: the script stops before exporting, prints the two tips and the command to resolve, exits non-zero. Nothing is committed.
+- Running `backup.sh` while the remote has commits this machine lacks and this machine has none of its own: if those commits touch only `backup/` data and add no symlink, the script fast-forwards, exports, commits, pushes as usual; otherwise it stops, lists the non-data paths and asks for a review before a by-hand `git merge --ff-only`.
+- Running it while both sides have commits: the script stops before exporting, prints the ahead/behind counts and the resolution recipe (union for the four stores with an identity rule, by-hand for the rest), exits 2. Nothing is committed.
 - Running it offline: a one-line warning, then the normal local commit; the push fails as it does today.
 
 ## Edge Cases
 
 - No `origin/<branch>` yet (first push ever) or the fetch fails: continue with a warning, behave as before.
-- Dirty working tree when fast-forward is needed: `--ff-only` fails; treat as diverged (refuse, print resolution).
+- Dirty working tree when fast-forward is needed: `--ff-only` fails; refuse with a commit-or-stash message, exit 2.
 - Branch name: taken from `HEAD` (`master` when detached); the remote is always `origin`.
 - `python3` missing (bare macOS without CLT): the union step falls back to a plain copy with a warning rather than failing the backup.
 
 ## Design
 
-- `lib/remote-guard.sh` → `ensure_remote_base [branch]`, sourced by `backup.sh` (right after `cd`, before any export) and `daily-push.sh`: `git fetch origin <branch>`; ahead/behind counted with `git rev-list --count`; behind-only → `git merge --ff-only`; diverged → recipe on stderr, return 2; fetch failure → warning, return 0.
-- Resolution recipe printed verbatim: `git merge origin/master`, then for each unmerged path `git show :2:` / `:3:` into temp files and `./merge-snapshots.py ours theirs -o <path>`, `git add`, commit, push. Names `--rebase` and `--force` as forbidden.
-- `backup.sh` step 4: `UNION_FILES="patterns.md knowledge-staging.md"` go through `merge-snapshots.py <live> <tracked> -o <tracked>`; every other `*.md` stays a plain copy; `ENTRIES`/`PATTERNS` default to 0 (a `set -u` crash when `memory.db` is absent, found by the test).
+- `lib/remote-guard.sh` → `ensure_remote_base [branch]`, sourced by `backup.sh` (right after `cd`, before any export), `daily-push.sh` and `restore.sh`: `git fetch origin <branch>`; ahead/behind counted with `git rev-list --count`; behind-only → `git merge --ff-only` only if `git diff --name-only HEAD..origin/<branch>` is all under `backup/` and `git diff --raw` shows no `120000` mode, else return 2 with the paths; diverged → recipe on stderr, return 2; fetch failure → warning, return 0.
+- Resolution recipe printed verbatim: `git merge origin/master`, then for each of the four known stores that is unmerged, `git show :2:` / `:3:` into a `mktemp -d` dir and `./merge-snapshots.py ours theirs -o <path>`, `git add`; remaining unmerged paths are listed for a by-hand merge keeping both sides; commit, push. Names `--rebase` and `--force` as forbidden.
+- `backup.sh` step 4: `UNION_FILES="patterns.md knowledge-staging.md"` go through `merge-snapshots.py <live> <tracked> -o <tracked>`; when python3 is missing or the union fails the tracked copy is kept and a WARNING names the file (never the plain copy — that is the clobber); every other `*.md` stays a plain copy; `ENTRIES`/`PATTERNS` default to 0 (a `set -u` crash when `memory.db` is absent, found by the test).
 - `merge-snapshots.py`: reads all inputs before writing (output may be an input), compact JSON, `--check` exits 3 when ours would change.
-- Tests in `brana-knowledge/tests/`: `test-merge-snapshots.sh` (23), `test-backup-guard.sh` (18), `test-backup-union.sh` (9); bare origin + clones A/B, `HOME` pointed at a scratch dir so the exports skip. All red first.
+- Tests in `brana-knowledge/tests/`: `test-merge-snapshots.sh` (31), `test-backup-guard.sh` (30: behind data-only, behind with a script, behind with a symlink, diverged for backup.sh and daily-push.sh, offline, in sync, restore.sh no-rebase), `test-backup-union.sh` (12: union, idempotence, failed union keeps tracked, portfolio.md excluded); bare origin + clones A/B, `HOME` pointed at a scratch dir so the exports skip. All red first.
 
 ## Boundaries
 
@@ -95,8 +95,8 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 
 ## Sibling sweep (ADR-082 rung 1, 2026-10-03)
 
-Fixed in this task: `restore.sh:29` swallowed `git pull --rebase` (class A); `portfolio.md` outside the union list (class B). Already tracked, left alone: `restore.sh` copying repo files over live memory and `sync-state.sh` copying `event-log.md` both ways — t-3405 / t-3367; HNSW/RVF index copies keyed by per-machine row ids — ADR-095 revision (t-3436); per-project memory `cp` becomes a two-writer clobber once t-3405's slug remap lands. Observed, not tracked: thebrana `dev` is pushed by both machines without a fetch (`ship`, `close`, `sync-state.sh`) — git rejects the non-fast-forward and a human resolves, so no cron retry stacks commits; the per-machine task-id counter (`task-id-lock.sh`, `tasks/mod.rs` max+1) can mint the same `t-NNN` on both machines before a sync, and `tasks-json-merge.sh` merges the tracked snapshot keyed on id keeping ours, so the other machine's task is dropped silently (class C, the task-id twin of the autoincrement defect) — filed as t-3441 (P1, under t-3372); ADR numbers share the flaw (t-3300). Section-keyed global files not added to the union list because one person edits them as documents: `meta-whatsapp-templates.md`, `llm-agent-test-strategy-patterns.md`.
+Fixed in this task: `restore.sh:29` swallowed `git pull --rebase` (class A). `portfolio.md` was added to the union list and then removed on the challenger's finding: its sections are containers of rows, so heading-union protects nothing there (row merge is t-3405). Already tracked, left alone: `restore.sh` copying repo files over live memory and `sync-state.sh` copying `event-log.md` both ways — t-3405 / t-3367; HNSW/RVF index copies keyed by per-machine row ids — ADR-095 revision (t-3436); per-project memory `cp` becomes a two-writer clobber once t-3405's slug remap lands. Observed, not tracked: thebrana `dev` is pushed by both machines without a fetch (`ship`, `close`, `sync-state.sh`) — git rejects the non-fast-forward and a human resolves, so no cron retry stacks commits; the per-machine task-id counter (`task-id-lock.sh`, `tasks/mod.rs` max+1) can mint the same `t-NNN` on both machines before a sync, and `tasks-json-merge.sh` merges the tracked snapshot keyed on id keeping ours, so the other machine's task is dropped silently (class C, the task-id twin of the autoincrement defect) — filed as t-3441 (P1, under t-3372); ADR numbers share the flaw (t-3300). Section-keyed global files not added to the union list because one person edits them as documents: `meta-whatsapp-templates.md`, `llm-agent-test-strategy-patterns.md`.
 
 ## Challenger findings
 
-_pending_
+Iteration 1 (2026-10-03): RECONSIDER, 2 × severity 4, 3 × severity 3 — recipe unioned files without an identity rule; unattended fast-forward imported and ran the other machine's scripts; AC1 wording vs the excluded telemetry rows; failed union fell back to the clobber; `portfolio.md` union protected nothing. All five fixed in brana-knowledge master (tests 31/30/12) and the AC1 text amended on the task. Observation taken: the live `patterns.md` is capped at 100 and was auto-pruned to 99 after the union — user kept the cap, repo copy is the archive. Iteration 2: _pending_.
