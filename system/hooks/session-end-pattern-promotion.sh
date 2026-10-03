@@ -93,14 +93,23 @@ while IFS= read -r KEY; do
     if [ -z "$READ_JSON" ]; then SKIPPED=$((SKIPPED + 1)); continue; fi
     # .content is the stored value: a JSON object, or a JSON-encoded string (double- or
     # triple-encoded rows exist). Decode strings until an object appears; anything else is skipped.
-    INNER=$(printf '%s' "$READ_JSON" | jq -c --arg k "$KEY" '
+    # -s: slurp, so a stray JSON noise document before the row cannot produce two outputs; the row
+    # is the first object whose .key matches. Numbers are coerced in jq so bash arithmetic never
+    # sees a fraction or a string. The row's own tags travel with it (see the store below).
+    ROW=$(printf '%s' "$READ_JSON" | jq -cs --arg k "$KEY" '
         def dec: if type == "string" then (fromjson? // .) else . end;
-        if type != "object" or .key != $k then null
-        else (.content | dec | dec | dec | if type == "object" then . else null end) end' 2>/dev/null) || INNER="null"
+        [.[] | select(type == "object" and .key == $k)] | first // null
+        | if . == null then null else {
+            inner: (.content | dec | dec | dec | if type == "object" then . else null end),
+            tags:  ((.tags // []) | if type == "string" then [.] else . end
+                    | map(tostring | gsub("[\\[\\]\"\\\\ ]"; "")) | map(select(length > 0 and (startswith("confidence:") | not))))
+          } end' 2>/dev/null) || ROW="null"
+    INNER=$(printf '%s' "$ROW" | jq -c '.inner // empty' 2>/dev/null)
     if [ -z "$INNER" ] || [ "$INNER" = "null" ]; then SKIPPED=$((SKIPPED + 1)); continue; fi
+    ROW_TAGS=$(printf '%s' "$ROW" | jq -r '.tags | join(",")' 2>/dev/null) || ROW_TAGS=""
 
-    CURRENT_CONF=$(printf '%s' "$INNER" | jq -r '.confidence // 0.5' 2>/dev/null) || CURRENT_CONF="0.5"
-    RECALL_COUNT=$(printf '%s' "$INNER" | jq -r '.recall_count // 0' 2>/dev/null) || RECALL_COUNT="0"
+    CURRENT_CONF=$(printf '%s' "$INNER" | jq -r '(.confidence // 0.5) | tonumber? // 0.5' 2>/dev/null) || CURRENT_CONF="0.5"
+    RECALL_COUNT=$(printf '%s' "$INNER" | jq -r '(.recall_count // 0) | (tonumber? // 0) | floor' 2>/dev/null) || RECALL_COUNT="0"
 
     # Compute new confidence (clamped 0.0–1.0)
     NEW_CONF=$(awk -v c="$CURRENT_CONF" -v d="$DELTA" 'BEGIN {
@@ -132,8 +141,10 @@ while IFS= read -r KEY; do
         '. + {confidence: $conf, recall_count: $rc, confidence_label: $label}' 2>/dev/null) || { SKIPPED=$((SKIPPED + 1)); continue; }
     NEW_VALUE="$UPDATED_INNER"
 
-    # Re-store with updated confidence
-    TAGS="client:$PROJECT,type:pattern,confidence:$CONF_LABEL"
+    # Re-store with updated confidence. Tags are the ROW's own tags plus the new confidence tag: the
+    # old `client:$PROJECT,type:pattern,...` relabelled a cosmos-trading row as client:thebrana when
+    # it was promoted from a thebrana session (gate finding). A row without tags gets the old default.
+    if [ -n "$ROW_TAGS" ]; then TAGS="$ROW_TAGS,confidence:$CONF_LABEL"; else TAGS="client:$PROJECT,type:pattern,confidence:$CONF_LABEL"; fi
     (cd "$HOME" && p_timeout 5 $CF memory store -k "$KEY" -v "$NEW_VALUE" \
         --namespace pattern --tags "$TAGS" --upsert >/dev/null 2>&1); STORE_RC=$?
     if [ "$STORE_RC" -ne 0 ]; then STORE_FAILED=$((STORE_FAILED + 1)); continue; fi   # a failed store is not a promotion
