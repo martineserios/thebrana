@@ -17,8 +17,19 @@
 //! mutex and the error replies are written from their own task: pmcp's
 //! transport actor drops a pending `receive()` whenever it has a frame to
 //! send, and a write started inside `receive()` would be cut mid-frame.
+//!
+//! **Draining at end of input (t-3462).** pmcp 2.22's transport actor stops on
+//! the first receive error, and end-of-input is one: a request it had already
+//! queued to the worker was then answered by nobody, because the actor is the
+//! only task that writes. So `receive()` counts the requests it hands over and
+//! `send()` counts the responses written; at EOF, `receive()` stays pending
+//! until every handed-over request has its response (or `DRAIN_TIMEOUT`
+//! passes), and only then reports the connection closed. While it waits, the
+//! actor keeps selecting on its outbound queue, so the responses still go out.
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use pmcp::async_trait;
 use pmcp::error::TransportError;
@@ -27,13 +38,25 @@ use pmcp::types::jsonrpc::{JSONRPCError, JSONRPCResponse, RequestId};
 use pmcp::Result;
 use tokio::io::{AsyncBufReadExt, BufReader, Lines, Stdin};
 use tokio::sync::Mutex;
+use tokio::time::Instant;
 
 const METHOD_NOT_FOUND: i32 = -32601;
+
+/// How long a closed input may wait for in-flight requests. Long enough for a
+/// slow tool (agy_delegate shells out), bounded so a handler that never
+/// answers cannot keep the process alive forever.
+const DRAIN_TIMEOUT: Duration = Duration::from_secs(30);
+const DRAIN_POLL: Duration = Duration::from_millis(10);
 
 #[derive(Debug)]
 pub struct LenientStdio {
     lines: Lines<BufReader<Stdin>>,
     writer: Arc<Mutex<StdioTransport>>,
+    /// Requests handed to pmcp whose response has not been written yet.
+    in_flight: Arc<AtomicUsize>,
+    /// When end of input was first seen; kept across `receive()` calls because
+    /// the actor drops and re-creates the future each time it sends a frame.
+    eof_at: Option<Instant>,
 }
 
 impl LenientStdio {
@@ -41,7 +64,28 @@ impl LenientStdio {
         Self {
             lines: BufReader::new(tokio::io::stdin()).lines(),
             writer: Arc::new(Mutex::new(StdioTransport::new())),
+            in_flight: Arc::new(AtomicUsize::new(0)),
+            eof_at: None,
         }
+    }
+
+    /// At end of input: wait until every handed-over request is answered or
+    /// the drain deadline passes. Cancellation safe — all state lives in
+    /// `self`, so a dropped future just resumes the wait on the next call.
+    async fn drain_then_close(&mut self) -> Result<TransportMessage> {
+        let since = *self.eof_at.get_or_insert_with(Instant::now);
+        while self.in_flight.load(Ordering::SeqCst) > 0 {
+            if since.elapsed() >= DRAIN_TIMEOUT {
+                eprintln!(
+                    "brana-mcp: input closed; {} request(s) still unanswered after {:?}, exiting",
+                    self.in_flight.load(Ordering::SeqCst),
+                    DRAIN_TIMEOUT
+                );
+                break;
+            }
+            tokio::time::sleep(DRAIN_POLL).await;
+        }
+        Err(TransportError::ConnectionClosed.into())
     }
 
     /// What to do with a line pmcp refused to parse.
@@ -103,21 +147,38 @@ enum Unparseable {
 #[async_trait]
 impl Transport for LenientStdio {
     async fn send(&mut self, message: TransportMessage) -> Result<()> {
-        self.writer.lock().await.send(message).await
+        let answers_request = matches!(message, TransportMessage::Response(_));
+        let sent = self.writer.lock().await.send(message).await;
+        if answers_request {
+            // Saturating: a response we did not count (a server-to-client
+            // round-trip reply) must never wrap the counter.
+            let _ = self
+                .in_flight
+                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1));
+        }
+        sent
     }
 
     async fn receive(&mut self) -> Result<TransportMessage> {
         loop {
             // `next_line` is cancellation safe: a line is never lost when the
             // transport actor drops this future to send something.
+            if self.eof_at.is_some() {
+                return self.drain_then_close().await;
+            }
             let Some(line) = self.lines.next_line().await.map_err(TransportError::from)? else {
-                return Err(TransportError::ConnectionClosed.into());
+                return self.drain_then_close().await;
             };
             if line.trim().is_empty() {
                 continue;
             }
             match StdioTransport::parse_message(line.as_bytes()) {
-                Ok(message) => return Ok(message),
+                Ok(message) => {
+                    if matches!(message, TransportMessage::Request { .. }) {
+                        self.in_flight.fetch_add(1, Ordering::SeqCst);
+                    }
+                    return Ok(message);
+                },
                 Err(_) => match Self::classify(&line) {
                     Unparseable::UnknownRequest { id, method } => {
                         self.reply_detached(Self::method_not_found(id, &method));
