@@ -26,8 +26,10 @@ export const UNTESTED_LINE = (v: SessionVersion): string =>
 // failure here: the CLI's own stderr is the message and the caller decides.
 //
 // Note (t-3450 probe B): the ruflo-mods trust gate refuses a mod at plugin.register,
-// before it loads, so no run() ever sees that case; bootstrap 7h is the layer that
-// prevents it. This classifier covers host-level failures only.
+// before it loads, so no run() ever sees that case; bootstrap 7g is the layer that
+// prevents it. The engine prints, verbatim (tests/fixtures/mods/captures/probe-b-ruflo-trust-gate.txt):
+//   <mod>: refused by ruflo-mods: ruflo mod trust (modTrust=refuse-risky): <mod> process.run (runs host commands); allow it by provenance (<mod>@<marketplace>) in modTrustAllow
+// This classifier covers host-level failures only.
 export function failureLine(r: RunResult): string | null {
   if (r.denied) return `cockpit: denied — ${r.reason}`
   if (!r.failed) return null
