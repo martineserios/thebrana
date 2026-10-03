@@ -180,8 +180,15 @@ semantics, bypass forms (`git -C`, aliases, `switch`, `restore`), the user's own
 "no fourth enforcement point" — but NOT on the premise that mods never load headless.
 `e.agentId` on `turn.step` suggests subagent calls are visible to mods too (unverified).
 
-**Q1 — context %: static YES, live pending.** `session.measure` carries
-`context: SessionContextUsage = { tokens?, window, percent?, breakdown? }` ("the status line's"
-window), and `$.session.usage()` returns the same on demand (plain call is free; `"full"` adds the
-breakdown). `percent` is optional — the live probe (`ctx-probe` dev-mod, dumps to
-`/tmp/spike-ctx-probe/`) decides whether it is populated on a subscription session.
+**Q1 — context %: YES (live-verified).** `session.measure` fires after each main-thread turn
+with `context: { tokens, window, percent }` (probe: `tokens 15884, window 1000000, percent 2` —
+the same window the status line uses), plus `rateLimits: [{ kind: five_hour|seven_day,
+percentUsed, resetsAt }]` and `cost: { usd }`; `changed[]` names which moved. `$.session.usage()`
+returns the identical shape on demand (free; `"full"` adds the `/context` breakdown); at
+`session.start` only `window` is known. **Decision: the context band is IN (t-3429).** Gauge law:
+the band reads `e.context.percent` as pushed — never recomputes — so it cannot drift from the
+status line's number. **Bonus:** the subscription 5-hour / 7-day windows are exposed — the band
+should carry them (`5h 23% · 7d 20%`); for a subscription-only operator that is the scarcer
+resource. Probe ran headless (`claude -p --plugin-dir ctx-probe`); the same module hot-loaded
+into the interactive session wrote nothing and raised no error — new-folder hot-load in
+dev-mods is unconfirmed; `--plugin-dir` and marketplace install are the proven routes.
