@@ -160,3 +160,35 @@ scored from t-3021's landing date, not from day 0.
 1. Epic `cockpit` under in-002 cc-alignment; ADR + feature spec; re-parent t-3387.
 2. Track A: band (guard state · valve doorbell · context gauge if the spike says readable); t-3333 ships as the shell hook it already is.
 3. Track B: `/brana` shell + Board (exists) + Wave/Orbit + Ops tabs. Valves tab stub, blocked_by t-3021 (linked, not absorbed).
+
+## Spike t-3426 — findings (2026-10-03)
+
+**Q2 — deploy route: YES.** A second `plugins[]` entry in the repo's `.claude-plugin/marketplace.json`
+(`"source": "./mods/<name>"`) installs in a clean `HOME` with `claude plugin marketplace add <repo>`
++ `claude plugin install <name>@brana --scope user`; `enabledPlugins` and the plugin cache are
+written by the CLI, and a `claude -p` turn ran the mod's `session.start` hook (marker file written).
+Consequences for t-3425: (a) mods live at top-level `mods/<name>/`, never under `system/`
+(bootstrap's `--sync-plugin` rsyncs `system/` only, with `--delete`); (b) bootstrap gains one
+step per mod: `claude plugin install <name>@brana --scope user` (idempotent) — no rsync;
+(c) the live brana marketplace is registered from GitHub (`extraKnownMarketplaces.brana.source
+= github:martineserios/thebrana`), so a mod ships when `main` moves, same as the plugin.
+
+**Correction to the challenger review:** mod hooks DO run under `claude -p` (verified: the
+no-op mod's `session.start` fired headless; docs: hooks run in every session kind, only
+drawing is terminal/Desktop). "Guard stays a shell hook" (t-3333) still stands — on fail-open
+semantics, bypass forms (`git -C`, aliases, `switch`, `restore`), the user's own terminal and
+"no fourth enforcement point" — but NOT on the premise that mods never load headless.
+`e.agentId` on `turn.step` suggests subagent calls are visible to mods too (unverified).
+
+**Q1 — context %: YES (live-verified).** `session.measure` fires after each main-thread turn
+with `context: { tokens, window, percent }` (probe: `tokens 15884, window 1000000, percent 2` —
+the same window the status line uses), plus `rateLimits: [{ kind: five_hour|seven_day,
+percentUsed, resetsAt }]` and `cost: { usd }`; `changed[]` names which moved. `$.session.usage()`
+returns the identical shape on demand (free; `"full"` adds the `/context` breakdown); at
+`session.start` only `window` is known. **Decision: the context band is IN (t-3429).** Gauge law:
+the band reads `e.context.percent` as pushed — never recomputes — so it cannot drift from the
+status line's number. **Bonus:** the subscription 5-hour / 7-day windows are exposed — the band
+should carry them (`5h 23% · 7d 20%`); for a subscription-only operator that is the scarcer
+resource. Probe ran headless (`claude -p --plugin-dir ctx-probe`); the same module hot-loaded
+into the interactive session wrote nothing and raised no error — new-folder hot-load in
+dev-mods is unconfirmed; `--plugin-dir` and marketplace install are the proven routes.
