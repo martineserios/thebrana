@@ -154,10 +154,14 @@ if echo "$@" | grep -q "memory retrieve"; then
         found2)   printf '{"key":"%s","namespace":"pattern","content":"\\"{\\\\\\"problem\\\\\\":\\\\\\"orig-problem\\\\\\",\\\\\\"confidence\\\\\\":0.5}\\""}\n' "$KEY"; exit 0 ;;
         foundobj) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem","confidence":0.5,"recall_count":1}}\n' "$KEY"; exit 0 ;;
         text)     printf '{"key":"%s","namespace":"pattern","content":"plain prose, not json"}\n' "$KEY"; exit 0 ;;
+        partial124) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem"}}\n' "$KEY"; exit 124 ;;  # JSON printed, then the ceiling
         missing)  echo "[WARN] Key not found: $KEY"; exit 0 ;;
     esac
 fi
 if echo "$@" | grep -q "memory search"; then echo '{"query":"x","results":[],"searchTime":"1ms"}'; fi
+if echo "$@" | grep -q "memory store"; then          # capture the stored value verbatim for strict assertions
+    while [ $# -gt 0 ]; do [ "$1" = "-v" ] && { printf '%s\n' "$2" > "$MOCK_LOG.value"; break; }; shift; done
+fi
 exit 0
 MOCK
 chmod +x "$MOCK_CF2"
@@ -195,8 +199,10 @@ assert_eq "wrong-key read → zero store calls" "$(store_calls)" "0"
 echo "Test 11: entry found, content is a JSON-encoded string → merged store keeps original fields"
 run_mode found "pattern:proj:key11"
 assert_eq "found entry → exactly one store call" "$(store_calls)" "1"
-assert_file_contains "stored value keeps original problem field" "$MOCK_LOG" 'orig-problem'
-assert_file_contains "stored value carries updated confidence" "$MOCK_LOG" '"confidence":0.6'
+stored_ok() { jq -e "$1" "$MOCK_LOG.value" >/dev/null 2>&1 && echo yes || echo no; }
+assert_eq "stored value is a JSON object with the ORIGINAL problem field (not a substring, not a wrapper)" \
+    "$(stored_ok '.problem == "orig-problem" and (has("_raw") | not)')" "yes"
+assert_eq "stored value has confidence 0.6 and recall_count bumped to 2" "$(stored_ok '.confidence == 0.6 and .recall_count == 2')" "yes"
 assert_file_contains "store is an explicit upsert" "$MOCK_LOG" '[-]-upsert'
 assert_eq "hook never uses memory search as a read" "$(grep -c 'memory search' "$MOCK_LOG" 2>/dev/null || true)" "0"
 
@@ -214,6 +220,16 @@ assert_eq "clean miss → zero store calls (no placeholder, ever)" "$(store_call
 assert_file_contains "clean miss counted as missing" "$TMPDIR_T/.claude/logs/pattern-promotion.jsonl" '"missing":1'
 run_mode text "pattern:proj:key13b"
 assert_eq "prose content → zero store calls" "$(store_calls)" "0"
+
+echo "Test 14: JSON printed but the read still exits 124 → the rc wins, NO store"
+run_mode partial124 "pattern:proj:key14"
+assert_eq "partial output + rc 124 → zero store calls" "$(store_calls)" "0"
+
+echo "Test 15: demote keeps recall_count and lowers confidence (bash arithmetic string-compare bug)"
+SF="$TMPDIR_T/session-demote-found.jsonl"; make_session_file "$SF" '["pattern:proj:key15"]'; rm -f "$MOCK_LOG" "$MOCK_LOG.value"
+MOCK_SEARCH_MODE=found SESSION_FILE="$SF" CORRECTION_RATE="0.30" CORRECTIONS="6" TOTAL="20" PROJECT="proj" bash "$HOOK" 2>/dev/null
+assert_eq "demote → one store call" "$(store_calls)" "1"
+assert_eq "demote → recall_count unchanged (1) and confidence 0.4" "$(stored_ok '.recall_count == 1 and .confidence == 0.4')" "yes"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""

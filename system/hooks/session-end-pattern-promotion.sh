@@ -107,7 +107,9 @@ while IFS= read -r KEY; do
     }' 2>/dev/null) || NEW_CONF="$CURRENT_CONF"
 
     # Increment recall_count on promote
-    NEW_RECALL=$(( RECALL_COUNT + (ACTION == "promote" ? 1 : 0) ))
+    # (bash arithmetic has no string compare: `ACTION == "promote"` read both sides as unset
+    #  variables → 0 == 0 → always true, so demotes also bumped recall_count — t-3455 gate finding)
+    if [ "$ACTION" = "promote" ]; then NEW_RECALL=$(( RECALL_COUNT + 1 )); else NEW_RECALL=$RECALL_COUNT; fi
 
     # Compute confidence label
     CONF_LABEL="unproven"
