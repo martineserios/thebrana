@@ -115,6 +115,27 @@ The first draft covered only "memory must not reach the public repo". That is on
 
 **Residual risks.** (Security: see *Threat model*.) Clock skew on same-key edits; a brana-knowledge push blocked by a large file (the memory DB stays gitignored; a size check belongs in export); the private repo as a single point of failure (it is also the backup).
 
+## Amendment 2026-10-03: the first live divergence (t-3435)
+
+The two machines diverged before any implementation task landed. On 2026-10-02 the Mac pushed four backup commits (0c84f77d..b04be875) while this machine held three unpushed ones (ed5dc2cd..6a6f0211); `backup.sh` kept committing on the stale base and its push failed at every close. A dry-run merge conflicted in exactly the whole-store snapshot files: `backup/swarm/memory-entries.json`, `backup/swarm/patterns.json`, `backup/memory/patterns.md`, `backup/memory/consolidation-log.md`.
+
+**What happened.** The merge was resolved by hand as `9cf4055f` ("keep newest local snapshot"): both histories kept, conflicted files taken from the Linux side. A key-level audit against the Mac tip found the real loss: 14 sections of `patterns.md`, 2 curated `pattern` entries (error-recurrence counters), and 4 machine-local rows (2 `session`, 2 `metrics`). `patterns.json` lost nothing by content and the Mac's 624 per-project memory files all survived.
+
+**Rule applied, retroactively, as this ADR prescribes.**
+
+| File | Merge key | Rule |
+|---|---|---|
+| `memory-entries.json` | `(namespace, key)` | union; same key, larger `updated_at` wins |
+| `patterns.json` | `approach` content, **not** `id` | union; `id` is a per-machine autoincrement and collides across machines |
+| `patterns.md`, `consolidation-log.md` | `## ` section heading | union by section |
+| `session`, `metrics` rows | — | not merged: machine-local (§2); they stay in git history |
+
+A union commit restored the 14 sections and 2 curated entries from `b04be875`. Counts per key after the merge are at least each side's; no duplicate keys.
+
+**Interim guard (until t-3404 and t-3405).** `backup.sh` now fetches before it exports. Behind-only (the other machine pushed, nothing local to lose) fast-forwards; true divergence (commits on both sides) refuses to commit and prints the resolution command; an offline fetch warns and continues so a local backup is never lost to a missing network. This surfaces a divergence at the first close instead of the third, which is all a whole-store snapshot can do.
+
+**Known limit.** The export is still a whole-store snapshot: the next export from either machine overwrites the repo copy with that machine's local store. The union is durable only once the per-entry export (t-3404) and the notes union (t-3405) land, and until then the Linux local `patterns.md` also received the 14 sections so this machine's next export does not drop them again.
+
 ## Open questions
 
 1. **Delete semantics:** keep tombstones forever, or expire them after N days?
@@ -136,5 +157,6 @@ The first draft covered only "memory must not reach the public repo". That is on
 10. **t-3418** — per-machine client allowlist and audit of the Mac's over-collection (T3).
 11. **t-3419** — signed commits per machine, verified before import (T4).
 12. **t-3420** — macOS setup security hygiene: scoped token, transfer media, synced folders (T5, T6).
+13. **t-3435** — one-time divergence merge of 2026-10-02/03 and the interim fetch-first guard in `backup.sh` (done; see *Amendment 2026-10-03*).
 
 Tasks 8 to 11 gate task 3 (session-start pull): importing without them would ship the sync with the poisoning path open.
