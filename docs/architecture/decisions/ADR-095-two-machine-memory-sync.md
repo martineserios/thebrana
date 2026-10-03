@@ -70,6 +70,8 @@ What is in the ruflo DB decides what is worth moving:
 
 A **separate** private repo (`brana-knowledge-shared`) holds only docs the owner has approved. A company-managed machine clones that repo with a fine-grained token scoped to it, and has no access to `brana-knowledge`. A sparse or filtered clone of the main repo was rejected: a token that can read the repo can fetch every blob. 31 of 85 files in `dimensions/` name a client, so the default is **exclude**; redaction only by explicit owner approval per file (t-3437).
 
+The full step-by-step flow (every node, trigger, failure path and freshness limit) is in [mac-knowledge-pack](../features/mac-knowledge-pack.md).
+
 ### 5. Remote query between owner-controlled machines: optional, later
 
 An SSH forced-command read-only wrapper over a mesh VPN (Tailscale, as used in the nexeye deployments) or a reverse tunnel can give one owner machine live access to another's index without copying it. Out of scope for the company-managed Mac. Not built until needed.
@@ -175,7 +177,8 @@ A union commit restored the 14 sections and 2 curated entries from `b04be875`. C
 10. **t-3418** — trust profiles and the company-managed rules; audit and remediation of the Mac (T3, T7).
 11. **t-3419** — signed commits per machine, verified before import (T4).
 12. **t-3420** — macOS setup security hygiene: scoped token, transfer media, synced folders, policy check (T5, T6, T7).
-13. **t-3437** — shared docs repo: review and publish only approved docs (T3).
+13. **t-3437** — pack repo: review which existing docs and notes may enter it, create the scoped repo (T3).
+    **t-3438** (scope default, scan, hold queue), **t-3439** (builder, manifest, signing, publish), **t-3440** (Mac pull, verify, apply, pack-age indicator): the flow in [mac-knowledge-pack](../features/mac-knowledge-pack.md).
 14. **t-3435** — one-time divergence merge of 2026-10-02/03 and the interim fetch-first guard in `backup.sh` (done by another session; see *Amendment 2026-10-03*).
 
 Tasks 8 to 11 gate task 3 (session-start pull): importing without them would ship the sync with the poisoning path open.
