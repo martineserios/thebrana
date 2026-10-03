@@ -86,8 +86,9 @@ brana doctor
 | `p_timeout: command not found`, `p_date_d: command not found` | a script is running under `sh`/`zsh` or an old copy of `~/.claude/hooks` — re-run `./bootstrap.sh`. |
 | Hooks seem to do nothing | `bash --version` inside the shell Claude Code launches, not your login shell. |
 | `brana ops run <job>` says *no scheduler backend* | expected — see the table above. |
+| The knowledge backup says `ahead by N commit(s) that change non-data paths — not fast-forwarding unattended` | expected whenever the other machine pushed a doc, draft or script to `brana-knowledge`. Run the two printed commands: review the paths outside `backup/`, then `git merge --ff-only <sha>`. Only `backup/` data fast-forwards on its own. |
 | Slow first CLI build | `cargo build --release` is ~10 minutes cold; it is cached afterwards. |
-| `/brana:close` reports `master has diverged from origin/master` from the knowledge backup | both machines pushed memory snapshots. Do not rebase or force-push. In `brana-knowledge`: `git merge origin/master`, union each conflicted file with `./merge-snapshots.py <ours> <theirs> -o <file>`, commit, push (the message prints the exact recipe; ADR-095 §Amendment 2026-10-03). After a divergence resolved on the other machine, `git pull --ff-only` is all the Mac needs. |
+| `/brana:close` reports `master has diverged from origin/master` from the knowledge backup | both machines pushed memory snapshots. Do not rebase or force-push. Follow the recipe the message prints: review what the other machine changed outside `backup/`, `git merge` the reviewed sha, union only the four stores with an identity rule via `./merge-snapshots.py` (`memory-entries.json`, `patterns.json`, `patterns.md`, `knowledge-staging.md`), resolve any other conflict by hand keeping both sides, commit, push (ADR-095 §Amendment 2026-10-03). After a divergence resolved on the other machine, `git pull --ff-only` is all the Mac needs. |
 
 ## How this is tested
 
