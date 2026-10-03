@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-02T18:25:16Z",
+  "generated": "2026-10-03T14:16:01Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -3469,6 +3469,14 @@
         "system/procedures/onboard.md"
       ]
     },
+    "docs/ideas/brana-cockpit-mod.md": {
+      "title": "The Brana cockpit as a Claude Code mod",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/mods/<name>/"
+      ]
+    },
     "docs/ideas/construction-budget-automation.md": {
       "title": "Construction Budget Automation",
       "type": "Roadmap",
@@ -4605,6 +4613,15 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/ruflo-mcp.sh"
+      ]
+    },
+    "docs/reviews/weekly-2026-10-02.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/state/stale-lifecycle-report.jsonl",
+        "system/scripts/ruflo-mcp.sh",
+        "system/scripts/stale-lifecycle.sh"
       ]
     },
     "docs/skills-system.md": {
@@ -11687,6 +11704,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-095-two-machine-memory-sync.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -17734,6 +17757,30 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "docs/architecture/features/mission-control-cli.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "docs/architecture/features/wave-board.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "statusline-pipeline-awareness.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/agent-definition-gaps.md",
       "to": "docs/architecture/the-brana.md",
       "type": "references",
@@ -20039,9 +20086,9 @@
     }
   ],
   "stats": {
-    "nodes": 649,
-    "edges": 2570,
+    "nodes": 651,
+    "edges": 2575,
     "typed_edges": 749,
-    "orphans": 146
+    "orphans": 147
   }
 }
