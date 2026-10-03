@@ -1,7 +1,7 @@
 # Feature: brana-knowledge divergence merge and fetch-first backup guard
 
 **Date:** 2026-10-03
-**Status:** built (2026-10-03) — gates pending
+**Status:** shipped (2026-10-03) — brana-knowledge master a7fb7592 live; docs integrate to dev on merge of this branch
 **Task:** t-3435 (epic t-3372 macos-portability)
 **ADR:** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) §Amendment 2026-10-03
 
