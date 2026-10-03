@@ -29,7 +29,7 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 ## Scope (v1)
 
 - Union of `patterns.md` (121 sections) and `knowledge-staging.md` (6) across Linux live, Linux snapshot, merged `HEAD` and Mac tip `b04be875`, written to the Linux live files (pre-union copies archived) and carried to the repo by the next export.
-- `backup.sh` unions `patterns.md` and `knowledge-staging.md` by heading with the tracked copy on export instead of copying over it.
+- `backup.sh` unions `patterns.md`, `knowledge-staging.md` and `portfolio.md` by heading with the tracked copy on export instead of copying over it; `restore.sh` fast-forwards through the same guard instead of a swallowed `git pull --rebase`.
 - `merge-snapshots.py`: the rule as a tool for JSON (identity + newest wins) and markdown (section union), with `--check`.
 - Fetch-first guard at the top of `backup.sh`, before any export.
 - Shell tests with a bare origin and two clones: guard (behind-only, diverged, daily-push.sh, offline, in-sync), union on export, and the merge rule itself.
@@ -92,6 +92,10 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 - [x] **Tech doc**: this file plus ADR-095 amendment.
 - [x] **User guide**: none; the guard's message is the guide. `docs/guide/macos-setup.md` has one line on what to do when a close reports divergence.
 - [x] **Existing docs to update**: `docs/README.md` entry for this spec; `docs/architecture/memory-backup.md` changelog line.
+
+## Sibling sweep (ADR-082 rung 1, 2026-10-03)
+
+Fixed in this task: `restore.sh:29` swallowed `git pull --rebase` (class A); `portfolio.md` outside the union list (class B). Already tracked, left alone: `restore.sh` copying repo files over live memory and `sync-state.sh` copying `event-log.md` both ways — t-3405 / t-3367; HNSW/RVF index copies keyed by per-machine row ids — ADR-095 revision (t-3436); per-project memory `cp` becomes a two-writer clobber once t-3405's slug remap lands. Observed, not tracked: thebrana `dev` is pushed by both machines without a fetch (`ship`, `close`, `sync-state.sh`) — git rejects the non-fast-forward and a human resolves, so no cron retry stacks commits; the per-machine task-id counter (`task-id-lock.sh`, `tasks/mod.rs` max+1) can mint the same `t-NNN` on both machines before a sync (class C).
 
 ## Challenger findings
 
