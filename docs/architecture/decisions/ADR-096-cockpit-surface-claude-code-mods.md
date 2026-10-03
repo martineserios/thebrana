@@ -116,13 +116,14 @@ Acting on a valve does **not** restate the classification: reversibility and the
 
 1. **Billing of `$.model`** — assumed to bill the API key rather than the subscription; unverified. Law 3 forbids the call either way; the answer only changes the severity of a leak.
 2. **`--safe-mode` / `disableAllHooks` scope** — the docs say they stop installed mods and settings hooks alike; unverified in this repo. Law 4 is written so as not to depend on it, and t-3333's spec should state what it does *not* survive.
-3. **CI needs of `claude plugin validate|test`** — whether either needs auth or network. Law 6 assumes neither; t-3427 verifies on the first CI run.
+3. **CI needs of `claude plugin validate|test`** — whether either needs auth or network. Law 6 assumes neither; t-3427 verifies on the first CI run. **Answered 2026-10-03 (t-3427, CI run 37140367665):** neither needs auth — the ubuntu `validate` job installed `@anthropic-ai/claude-code@2.1.288` with no credentials and Check 77b ran `plugin validate --json` + `plugin test` on two targets green. Network-free is not proven: the runner had network (only `npm install` is known to use it).
 4. **Dev loop** — new-folder hot-load into the session's dev-mods folder was not observed during the spike (the same module ran under `--plugin-dir`); t-3425 records which loop to use.
 5. **Subagent visibility** — whether subagent tool calls reach a mod's `tool.call` hook (`turn.step` carries `e.agentId`); irrelevant to Law 4, relevant to a future observability tab.
 6. **Desktop layout** — whether `bodyColumns`-based columns survive the Desktop app's Code tab; tier-2b concern.
 
 ## Review record
 
+- 2026-10-03 — t-3427 (harness): Open question 3 answered (no auth needed); the spec was amended where the engine falsified it — `_shared` vendored per mod, one canonical run adapter line per hooks module, the ruflo gate guarded only by bootstrap 7g (a refused mod never loads). Laws unchanged.
 - 2026-10-03 — brainstorm challenger quorum (3 lenses) on the idea doc: five HIGH findings accepted and encoded as Laws 1 (instrumented retention), 3 (source-level enforcement, allowlists), 4 (guard stays a hook), 5 (t-3021 linked not absorbed), 6 (CI install step, drift job, version probe). Of the six single-lens observations, five are encoded (deploy path, snapshot verb, state-as-cache → Laws 2/6; write path by reversibility → Law 5; context-% spike → done, t-3426); the sixth — "ADR + spec scoped to tier 1 only" — is **superseded** by tier 2a: a Board-only pane ships with tier 1 because the retention signal cannot be measured without a pane.
 - 2026-10-03 — spike t-3426: context % and 5h/7d quota readable; marketplace deploy route verified in a clean `HOME` including a headless run; **correction** — mods do run under `claude -p`; Law 4's rationale restated.
 - 2026-10-03 — accepted by the decider; Law 1 threshold (≥ 50 % of sessions, days 8–14) confirmed.
