@@ -85,7 +85,7 @@ fi
 NEW_COUNT=$((TOTAL_LINES - START_LINE + 1))
 [ "$NEW_COUNT" -le 0 ] && { echo "[feed-ruflo-index] No new entries since last run ($TOTAL_LINES total)"; exit 0; }
 
-echo "[feed-ruflo-index] Converting $NEW_COUNT new entries (lines $START_LINE–$TOTAL_LINES)"
+echo "[feed-ruflo-index] Converting $NEW_COUNT new entries (lines ${START_LINE}–$TOTAL_LINES)"
 
 if [ ! -f "$MCP_INDEXER" ]; then
     echo "[feed-ruflo-index] ERROR: mcp-index.mjs not found at $MCP_INDEXER"

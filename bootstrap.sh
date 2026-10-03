@@ -1256,13 +1256,13 @@ mods_install_step() {
         elif [ "$inst_ver" != "$repo_ver" ]; then
             CHANGES=$((CHANGES + 1))
             if $CHECK_ONLY; then
-                echo "  ~ $name (would update $inst_ver→$repo_ver)"
+                echo "  ~ $name (would update ${inst_ver}→${repo_ver})"
             elif claude plugin update "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
-                echo "  ~ $name (updated $inst_ver→$repo_ver)"
+                echo "  ~ $name (updated ${inst_ver}→${repo_ver})"
             elif ! claude plugin uninstall "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
                 echo "  ! $name: update and uninstall both failed — still at $inst_ver; run: claude plugin update $name@brana --scope user"
             elif claude plugin install "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
-                echo "  ~ $name (reinstalled $inst_ver→$repo_ver; update was not idempotent)"
+                echo "  ~ $name (reinstalled ${inst_ver}→${repo_ver}; update was not idempotent)"
             else
                 echo "  ! $name is now uninstalled — run: claude plugin install $name@brana --scope user"
             fi

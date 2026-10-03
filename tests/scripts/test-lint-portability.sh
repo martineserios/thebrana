@@ -54,6 +54,8 @@ touch --date|touch --date='1 day ago' f
 getent|h=$(getent passwd 0)
 nproc|n=$(nproc)
 CASES
+put s/bad.sh 'echo "$old→$new"'; assert "fires: unbraced \$var then a non-ASCII char (macOS bash reads it into the name)" 1 "$(run)"
+put s/bad.sh 'echo "${old}→${new}"'; assert "braced \${var} before a non-ASCII char is fine" 0 "$(run)"
 put s/bad.sh '# uses flock in a comment'; assert "full-line comment ignored" 0 "$(run)"
 put s/bad.sh 'date -d x +%s || true  # portable-ok: guarded BSD fallback below'; assert "portable-ok escape hatch" 0 "$(run)"
 rm s/bad.sh; printf '#!/usr/bin/env bash\nsed -i s/a/b/ f\n' >s/noext; git add -A; assert "fires: extensionless bash script" 1 "$(run)"
