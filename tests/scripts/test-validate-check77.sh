@@ -26,6 +26,14 @@ assert "check-selector maps a mods/ source to 77" yes "$(has 77 "$(printf '%s\n'
 assert "check-selector maps mods-check.sh to 77" yes "$(has 77 "$(printf '%s\n' system/scripts/mods-check.sh | bash system/scripts/check-selector.sh)")"
 assert "check-selector maps a bad-* fixture to 77" yes "$(has 77 "$(printf '%s\n' tests/fixtures/mods/bad-calls-model/hooks/register.ts | bash system/scripts/check-selector.sh)")"
 
+# validate.sh itself does not run to completion on macOS (pre-existing: test-validate-check-filter.sh
+# loses its later checks there the same way; the macOS CI job never calls validate.sh by design).
+# 77a's rules reach macOS through test-mods-check.sh; the validate-driven half below is Linux-proven.
+# On failure, show validate's tail so the cause is visible in CI logs (they only carry assertions).
+if [ "$(uname -s)" = Darwin ] && [ -z "${BRANA_VALIDATE_ON_DARWIN:-}" ]; then
+    echo "  SKIP: validate.sh runs on Linux only (see t-3463); static half covered by test-mods-check.sh"
+    echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]; exit
+fi
 echo "--- --fast: 77a runs, 77b warned"
 OUT="$(./validate.sh --check 77 --fast 2>&1)"
 assert "77a passes under --fast" yes "$(has 'PASS: Check 77a' "$OUT")"
@@ -47,4 +55,5 @@ assert "77b passes" yes "$(has 'PASS: Check 77b' "$OUT")"
 assert "validate exits zero" yes "$(has 'VALIDATION PASSED' "$OUT")"
 fi
 
+[ "$FAIL" -eq 0 ] || { echo "--- last validate output (tail)"; printf '%s\n' "${OUT:-}" | tail -25; }
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]
