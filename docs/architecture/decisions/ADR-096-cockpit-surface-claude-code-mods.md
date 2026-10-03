@@ -15,7 +15,7 @@ informs: docs/architecture/the-brana.md
 **Extends:** [ADR-063](ADR-063-pending-questions-store.md) (the one queue the Valves tab reads; `room ∈ cockpit | studio`)
 **Respects:** [ADR-094](ADR-094-tasks-json-ledger-in-git-common-dir.md) (the shared main checkout stays on `dev`; safety mechanisms are not removed before their replacement lands)
 **Informs:** [the-brana.md](../the-brana.md) §Gate (the cockpit room gains a surface; valve classes and verbs stay owned by L4.4)
-**Evidence:** [ideas/brana-cockpit-mod.md](../../ideas/brana-cockpit-mod.md) — brainstorm, 3-lens challenger review, spike t-3426 findings
+**Evidence:** [ideas/brana-cockpit-mod.md](../../ideas/brana-cockpit-mod.md) — brainstorm, 3-lens challenger review, spike t-3426 findings · memory `reference_claude-code-mods-ecosystem` (Anthropic samples, ruv's field guide + ruflo/RuView mods, the ruflo-mods trust-gate caveat) · memory `pattern_cc-mods-authoring-gotchas`
 
 ---
 
