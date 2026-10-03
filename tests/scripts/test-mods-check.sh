@@ -48,8 +48,10 @@ bump good-minimal
 assert "the same edit with a bumped version passes" 0 "$(run)"
 G add -A; G commit -qm bumped
 printf '\n// shared edit\n' >> "$T/mods/_shared/hooks/snapshot.ts"; bash "$SYNC" "$T" >/dev/null
-assert "a _shared edit lands in the vendored copy and so needs the mod's bump too" 1 "$(run)"
-assert "...naming good-minimal" yes "$(has 'good-minimal' "$(out)")"
+# base = the bumped commit, so the only change since base is the shared edit landing in the copy
+MODS_BASE_REF=HEAD bash "$CHECK" --static "$T" >"$T/out" 2>&1; assert "a _shared edit lands in the vendored copy and so needs the mod's bump too" 1 "$?"
+assert "...naming good-minimal" yes "$(has 'good-minimal/.claude-plugin/plugin.json' "$(out)")"
+assert "...and _shared itself" yes "$(has '_shared/.claude-plugin/plugin.json' "$(out)")"
 G reset -q --hard
 MODS_BASE_REF=refs/heads/nope bash "$CHECK" --static "$T" >"$T/out" 2>&1; assert "an unresolvable base ref fails (never passes silently)" 1 "$?"
 assert "...naming the base ref" yes "$(has 'base ref' "$(out)")"
