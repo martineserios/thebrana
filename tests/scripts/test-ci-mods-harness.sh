@@ -32,7 +32,7 @@ def idx(job, needle):
     return -1
 if what == 'env': print((wf.get('env') or {}).get('CC_VERSION', ''))
 elif what == 'install-before-validate':
-    i, j = idx('validate', 'npm install -g @anthropic-ai/claude-code@${{ env.CC_VERSION }}'), idx('validate', 'Run validation')
+    i, j = idx('validate', 'npm install -g "@anthropic-ai/claude-code@${CC_VERSION}"'), idx('validate', 'Run validation')
     print('yes' if 0 <= i < j else f'no (install={i}, validate={j})')
 elif what == 'install-asserts-version':
     i = idx('validate', 'npm install -g @anthropic-ai/claude-code@')
@@ -42,7 +42,7 @@ elif what == 'install-ubuntu-only':
     i = idx('validate', 'npm install -g @anthropic-ai/claude-code@')
     print('yes' if i >= 0 and wf['jobs']['validate']['runs-on'].startswith('ubuntu') and idx('macos', 'npm install -g @anthropic-ai/claude-code@') < 0 else 'no')
 elif what == 'fetch-dev-before-validate':
-    i, j = idx('validate', 'origin dev'), idx('validate', 'Run validation')
+    i, j = idx('validate', 'refs/heads/dev:refs/remotes/origin/dev'), idx('validate', 'Run validation')
     run = steps('validate')[i].get('run', '') if i >= 0 else ''
     print('yes' if 0 <= i < j and 'git fetch' in run else f'no (fetch={i}, validate={j})')
 elif what == 'version-sync-delegates':
