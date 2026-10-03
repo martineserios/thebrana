@@ -64,6 +64,7 @@ See ADR-096 (accepted 2026-10-03). This spec adds no decision; where it had to p
 3. **Quota display:** chose percent + reset time only (no token counts) because `rateLimits` carries `percentUsed` and `resetsAt`, nothing finer — confirm the band should not try to show more.
 4. **Keymap:** chose `ctrl+x tab` (engine focus chord) + `1/2/3/r/s/a/x/Esc` as in the prototype; nothing else bound — confirm.
 5. **Dev loop:** chose `claude --plugin-dir mods/<name>` as the documented loop (hot-load of a *new* folder into dev-mods was not observed in the spike) — confirm, or spike hot-load separately.
+6. ~~Engine version readable~~ — verified: `$.session.version()` and `engine.create`'s `e.plugins` exist; no assumption remains here.
 
 ## Behavior
 
@@ -151,7 +152,7 @@ Every atom's value is `{ schema: N, ...data }`. `readValid($, atom, guard)` retu
 
 ### `_shared/probe.ts` (Law 6)
 
-At `session.start`: read the engine version (from `$.plugin`/engine info as the types expose it — t-3429 pins the field); compare against `SUPPORTED: readonly string[]` in the file; detect `ruflo-mods` in the loaded plugin set if the engine lists it; return `'ok' | 'untested' | 'ruflo-gate'`. Anything but `'ok'` → both mods draw one line (band) / reply one line (pane) and otherwise return `next(e)`.
+Two inputs, both verified against the engine types (2026-10-03): `$.session.version()` → `{ version, version_base? }` (the `claude --version` string), and the `engine.create` hook's `e.plugins` (the names of every module loaded in this fold — managed plugins first). `probe(version, plugins)` is pure: `SUPPORTED: readonly string[]` (release cores, e.g. `2.1.287`) in the file; `version_base` ∉ SUPPORTED → `'untested'`; `plugins` containing `ruflo-mods` → `'ruflo-gate'` (checked first — it is the worse failure); else `'ok'`. Each mod calls it from `engine.create` (where `e.plugins` is available) and keeps the result in a module variable; anything but `'ok'` → the band draws one line and the pane command replies the same line; every other hook returns `next(e)` untouched.
 
 ### `brana cockpit snapshot --json` (Law 2, t-3428)
 
@@ -172,7 +173,7 @@ Cache: `$GIT_COMMON_DIR/brana/cockpit/snapshot.json`, rewritten when older than 
 
 ### `brana cockpit log-event` (Laws 1/3, t-3428/t-3432)
 
-`brana cockpit log-event --kind open|close --session <id> [--surface pane]` appends `{"at","kind","session","surface"}` to `$GIT_COMMON_DIR/brana/cockpit/events.jsonl` (append-only, locked like ADR-051 stores). `brana ops cockpit [--since 14d]` prints sessions seen, sessions with ≥ 1 open, the ratio, and the day-8–14 window ratio the ADR-096 rule reads. t-3432 creates the `brana remind` entry (due day 14, dedup key `cockpit:day14`) in the same commit that ships the log.
+`brana cockpit log-event --kind open|close --session <id> [--surface pane] [--origin person|plugin|unload]` appends `{"at","kind","session","surface","origin"}` to `$GIT_COMMON_DIR/brana/cockpit/events.jsonl` (append-only, locked like ADR-051 stores). `brana ops cockpit [--since 14d]` prints sessions seen, sessions with ≥ 1 open, the ratio, and the day-8–14 window ratio the ADR-096 rule reads. t-3432 creates the `brana remind` entry (due day 14, dedup key `cockpit:day14`) in the same commit that ships the log.
 
 ### bootstrap.sh (Law 6)
 
@@ -188,7 +189,7 @@ Shape of Check 70: skipped under `--fast`/narrow modes with a `warn`; otherwise 
 
 ### Instrumentation + rule (Law 1, t-3432)
 
-`cockpit-pane` calls `log-event open` after a successful `$.ui.open` and `log-event close` from its `ui.close` hook; both via `run()` (WRITE list). `brana ops cockpit` is the read-out; the `brana remind` entry is the owner; the rule text is quoted verbatim from ADR-096 Law 1 in the remind body.
+`cockpit-pane` calls `log-event open` after a successful `$.ui.open` and `log-event close` from its `ui.close` hook with `--origin person|plugin|unload` (the engine stamps `e.origin.kind`; `unload` is the session ending or a reload with the pane open) — both via `run()` (WRITE list). `brana ops cockpit` counts a session as "opened" on any `open`; close origin is kept for later analysis only. `brana ops cockpit` is the read-out; the `brana remind` entry is the owner; the rule text is quoted verbatim from ADR-096 Law 1 in the remind body.
 
 ### Dev loop
 
