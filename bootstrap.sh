@@ -1180,12 +1180,26 @@ fi
 # tests/bootstrap/test-mods-step.sh can extract it (a deploy refuses to run off main).
 mods_ruflo_guard() {
     RUFLO_GUARD_HIT=""
-    command -v jq &>/dev/null || return 0
+    if ! command -v jq &>/dev/null; then
+        # Fail closed when there is something to protect: without jq the enabledPlugins cannot be read.
+        if [ -f "$MODS_MP" ] && grep -q '"\./mods/' "$MODS_MP" 2>/dev/null; then
+            RUFLO_GUARD_HIT="jq missing — cannot verify enabledPlugins"
+            echo "Mods guard:"
+            echo "  ! $RUFLO_GUARD_HIT — install jq; the mods step is refused until then"
+        fi
+        return 0
+    fi
     local f keys
-    for f in "$TARGET_DIR/settings.json" "$PROJECT_SETTINGS_DIR/settings.json" "$PROJECT_SETTINGS_DIR/settings.local.json"; do
+    # Managed settings too: an org can enable ruflo-mods there (MANAGED_SETTINGS, per-OS default below).
+    for f in "$TARGET_DIR/settings.json" "$PROJECT_SETTINGS_DIR/settings.json" "$PROJECT_SETTINGS_DIR/settings.local.json" "${MANAGED_SETTINGS:-}"; do
         [ -f "$f" ] || continue
+        # An unparsable settings file cannot be cleared: fail closed (ADR-096 Law 6 "fails, not warns").
+        if ! jq empty "$f" >/dev/null 2>&1; then
+            RUFLO_GUARD_HIT="${RUFLO_GUARD_HIT:+$RUFLO_GUARD_HIT; }${f}: unparsable — cannot verify enabledPlugins"
+            continue
+        fi
         keys=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key | select(test("^ruflo-(mods|swarm|console)(@|$)"))' "$f" 2>/dev/null | tr '\n' ' ' || true)
-        [ -n "${keys// /}" ] && RUFLO_GUARD_HIT="${RUFLO_GUARD_HIT}${f}: ${keys}"
+        [ -n "${keys// /}" ] && RUFLO_GUARD_HIT="${RUFLO_GUARD_HIT:+$RUFLO_GUARD_HIT; }${f}: ${keys% }"
     done
     if [ -n "$RUFLO_GUARD_HIT" ]; then
         echo "Mods guard:"
@@ -1203,9 +1217,17 @@ mods_ruflo_guard() {
 # `claude` is reported and counted, never fatal (same tolerance as check_cc_version).
 # Reads MODS_MP, SCRIPT_DIR, INSTALLED, CHECK_ONLY, RUFLO_GUARD_HIT; adds to CHANGES.
 mods_install_step() {
-    command -v jq &>/dev/null && [ -f "$MODS_MP" ] || return 0
+    [ -f "$MODS_MP" ] || return 0
+    if ! command -v jq &>/dev/null; then
+        grep -q '"\./mods/' "$MODS_MP" 2>/dev/null || return 0
+        echo "Mods:"
+        echo "  ! mods step refused — ruflo mods guard (see above)"
+        CHANGES=$((CHANGES + 1))
+        return 0
+    fi
     local entries name src repo_ver inst_ver
-    entries=$(jq -r '.plugins[]? | select((.source // "") | startswith("./mods/")) | "\(.name) \(.source)"' "$MODS_MP" 2>/dev/null || true)
+    # object-form sources (github, url) are not local mods — skip them without a jq error
+    entries=$(jq -r '.plugins[]? | select((.source | type) == "string" and (.source | startswith("./mods/"))) | "\(.name) \(.source)"' "$MODS_MP" 2>/dev/null || true)
     [ -n "$entries" ] || return 0
     echo "Mods:"
     if [ -n "$RUFLO_GUARD_HIT" ]; then
@@ -1220,12 +1242,13 @@ mods_install_step() {
     while read -r name src; do
         [ -n "$name" ] || continue
         repo_ver=$(jq -r '.version // "0.0.0"' "$SCRIPT_DIR/$src/.claude-plugin/plugin.json" 2>/dev/null || echo "0.0.0")
-        inst_ver=$(jq -r --arg k "$name@brana" '.plugins[$k][0].version // empty' "$INSTALLED" 2>/dev/null || true)
+        # the user-scope install is the one 7h manages (--scope user); a project-scope entry must not mask it
+        inst_ver=$(jq -r --arg k "$name@brana" '[.plugins[$k][]? | select(.scope == "user")][0].version // empty' "$INSTALLED" 2>/dev/null || true)
         if [ -z "$inst_ver" ]; then
             CHANGES=$((CHANGES + 1))
             if $CHECK_ONLY; then
                 echo "  + $name (would install v$repo_ver)"
-            elif claude plugin install "$name@brana" --scope user >/dev/null 2>&1; then
+            elif claude plugin install "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
                 echo "  + $name (installed v$repo_ver)"
             else
                 echo "  ! $name: claude plugin install $name@brana failed — run it by hand to see why"
@@ -1234,12 +1257,14 @@ mods_install_step() {
             CHANGES=$((CHANGES + 1))
             if $CHECK_ONLY; then
                 echo "  ~ $name (would update $inst_ver→$repo_ver)"
-            elif claude plugin update "$name@brana" >/dev/null 2>&1; then
+            elif claude plugin update "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
                 echo "  ~ $name (updated $inst_ver→$repo_ver)"
-            elif claude plugin uninstall "$name@brana" >/dev/null 2>&1 && claude plugin install "$name@brana" --scope user >/dev/null 2>&1; then
+            elif ! claude plugin uninstall "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
+                echo "  ! $name: update and uninstall both failed — still at $inst_ver; run: claude plugin update $name@brana --scope user"
+            elif claude plugin install "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
                 echo "  ~ $name (reinstalled $inst_ver→$repo_ver; update was not idempotent)"
             else
-                echo "  ! $name: update and reinstall both failed — run claude plugin update $name@brana by hand"
+                echo "  ! $name is now uninstalled — run: claude plugin install $name@brana --scope user"
             fi
         else
             echo "  = $name (v$repo_ver)"
@@ -1249,8 +1274,11 @@ mods_install_step() {
 }
 
 # Test seams: BRANA_PROJECT_SETTINGS_DIR (default this checkout's .claude/), BRANA_MARKETPLACE_JSON
-# (default this checkout's .claude-plugin/marketplace.json).
+# (default this checkout's .claude-plugin/marketplace.json), BRANA_MANAGED_SETTINGS (default the
+# per-OS managed-settings path).
 PROJECT_SETTINGS_DIR="${BRANA_PROJECT_SETTINGS_DIR:-$SCRIPT_DIR/.claude}"
+if [ "$(uname -s)" = Darwin ]; then MANAGED_SETTINGS_DEFAULT="/Library/Application Support/ClaudeCode/managed-settings.json"; else MANAGED_SETTINGS_DEFAULT="/etc/claude-code/managed-settings.json"; fi
+MANAGED_SETTINGS="${BRANA_MANAGED_SETTINGS:-$MANAGED_SETTINGS_DEFAULT}"
 MODS_MP="${BRANA_MARKETPLACE_JSON:-$SCRIPT_DIR/.claude-plugin/marketplace.json}"
 mods_ruflo_guard
 mods_install_step

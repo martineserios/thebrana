@@ -2,9 +2,11 @@ name: mods-drift
 
 # Weekly drift job for the cockpit mods (ADR-096 Law 6; cockpit.md §ci.yml, t-3427). ci.yml pins
 # the claude CLI (env CC_VERSION) so validate is reproducible; this job installs the LATEST
-# release and re-runs the engine half of Check 77 against it. A red run is the signal to bump
-# CC_VERSION in ci.yml and SUPPORTED in mods/_shared/hooks/probe.ts (then let 77b prove the new
-# version), not a failure of dev. It never blocks a merge.
+# release and re-runs the engine half of Check 77 against it. It never blocks a merge. Two red
+# outcomes, each with its own message (challenger finding: one signal cannot mean both):
+#   - the engine check fails on latest  -> the new engine breaks a mod: fix the mod first;
+#   - the engine check passes but latest is not in SUPPORTED -> bump CC_VERSION in ci.yml and
+#     SUPPORTED in mods/_shared/hooks/probe.ts together (the job fails so someone is notified).
 
 on:
   schedule:
@@ -31,18 +33,20 @@ jobs:
           command -v claude || { echo "::error::claude not on PATH after install"; exit 1; }
           claude --version
 
-      - name: Compare the installed version with the supported list
+      - name: Engine check against the latest claude (Check 77b body)
         run: |
-          # Informational: names the gap before the engine check runs. SUPPORTED lives in
-          # mods/_shared/hooks/probe.ts; CC_VERSION in ci.yml. Both move together on a green bump.
+          if ! bash system/scripts/mods-check.sh --engine; then
+            echo "::error::the latest claude breaks a mod (Check 77b body) — fix the mod before bumping the pin"
+            exit 1
+          fi
+
+      - name: Bump signal — latest passes but is not in SUPPORTED
+        run: |
           installed="$(claude --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
           supported="$(grep -E '^export const SUPPORTED' mods/_shared/hooks/probe.ts)"
           echo "installed: $installed"
           echo "probe.ts:  $supported"
           case "$supported" in
-            *"'$installed'"*) echo "installed version is in SUPPORTED" ;;
-            *) echo "::warning::claude $installed is not in SUPPORTED — if the engine check below is green, bump CC_VERSION (ci.yml) and SUPPORTED (probe.ts)" ;;
+            *"'$installed'"*) echo "claude $installed is supported — nothing to do" ;;
+            *) echo "::error::claude $installed passes the engine check but is not in SUPPORTED — bump CC_VERSION (ci.yml) and SUPPORTED (probe.ts) together"; exit 1 ;;
           esac
-
-      - name: Engine check against the latest claude (Check 77b body)
-        run: bash system/scripts/mods-check.sh --engine

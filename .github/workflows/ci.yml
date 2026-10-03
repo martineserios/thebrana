@@ -15,8 +15,8 @@ permissions:
 
 env:
   # The claude CLI the validate job installs for Check 77b (claude plugin validate/test on
-  # mods/*). Pinned so validate is reproducible; mods-drift.yml tests the latest weekly and a
-  # green run there is the signal to bump this AND mods/_shared/hooks/probe.ts SUPPORTED
+  # mods/*). Pinned so validate is reproducible; mods-drift.yml tests the latest weekly and goes
+  # red with "bump CC_VERSION" when latest passes but is unsupported — then bump this AND mods/_shared/hooks/probe.ts SUPPORTED
   # together (tests/scripts/test-ci-mods-harness.sh asserts they agree). ADR-096 Law 6, t-3427.
   CC_VERSION: "2.1.288"
 

@@ -25,9 +25,14 @@ cp -R "$FIX/good-minimal" "$T/mods/good-minimal"
 mkdir -p "$T/tests/fixtures/mods"; cp -R "$FIX/good-minimal" "$T/tests/fixtures/mods/good-minimal"; cp -R "$FIX/captures" "$T/tests/fixtures/mods/captures"   # a checkout has the fixture too: --engine assembles an isolated copy from it
 G init -q -b dev . && bash "$SYNC" "$T" >/dev/null 2>&1; G add -A && G commit -qm base; G branch main
 G switch -q -c work
-run() { bash "$CHECK" --static "$T" >"$T/out" 2>&1; echo $?; }
+run() { bash "$CHECK" --static "$T" >"$T/out" 2>&1; local r=$?; [ -n "${DEBUG_MODS:-}" ] && cat "$T/out" >&2; echo $r; }
 out() { cat "$T/out"; }
-bump() { printf '%s\n' "$(sed -E 's/"version": "0\.1\.0"/"version": "0.1.1"/' "$T/mods/$1/.claude-plugin/plugin.json")" > "$T/mods/$1/.claude-plugin/plugin.json"; }
+bump() { python3 - "$T/mods/$1/.claude-plugin/plugin.json" <<'PYB'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); a, b, c = d["version"].split("."); d["version"] = f"{a}.{b}.{int(c) + 1}"
+json.dump(d, open(p, "w"))
+PYB
+}
 
 echo "=== test-mods-check.sh ==="
 echo "--- modes"
@@ -61,11 +66,12 @@ MODS_BASE_REF=refs/heads/nope bash "$CHECK" --static "$T" >"$T/out" 2>&1; assert
 assert "...naming the base ref" yes "$(has 'base ref' "$(out)")"
 
 echo "--- base ref never the commit under test (panel finding: dev->main PR fetched origin/dev == HEAD)"
+G branch -f main HEAD; G branch -f dev HEAD   # both bases at the last bumped commit
 printf '\n// unbumped\n' >> "$T/mods/good-minimal/hooks/register.ts"; G add -A; G commit -qm unbumped; G branch -f dev HEAD
 assert "dev == HEAD: the guard falls through to main and still fires" 1 "$(run)"
 assert "...naming main as the base ref" yes "$(has 'base ref: main' "$(out)")"
 G branch -f main HEAD
-assert "every candidate == HEAD: nothing can differ, pass" 0 "$(run)"
+assert "every candidate == HEAD on a clean tree: nothing can differ, pass" 0 "$(run)"
 assert "...saying no distinct base" yes "$(has 'no base distinct from HEAD' "$(out)")"
 G reset -q --hard HEAD~1; G branch -f dev HEAD; G branch -f main HEAD
 
@@ -89,6 +95,7 @@ mkdir -p "$T/mods/newmod/.claude-plugin" "$T/mods/newmod/hooks"; cp "$FIX/good-m
 assert "a mod absent from the base ref needs no bump (untracked files are scanned)" 0 "$(run)"
 printf "export const y = () => fetch('x')\n" > "$T/mods/newmod/hooks/y.ts"
 assert "an untracked, non-ignored file IS scanned" 1 "$(run)"
+rm -f "$T/mods/newmod/hooks/y.ts"
 for ext in mjs js cjs mts cts jsx; do
     printf "export const z = (\$: any) => \$.model.complete({})\n" > "$T/mods/newmod/hooks/z.$ext"
     assert "a .$ext module is scanned (the engine loads more than .ts)" 1 "$(run)"
@@ -113,7 +120,7 @@ for d in "$FIX"/bad-*/; do
     cp -R "$d" "$T/mods/$name"; bash "$SYNC" "$T" >/dev/null 2>&1
     rc="$(run)"
     assert "fires: $name -> exit 1" 1 "$rc"
-    assert "fires: $name names rule '$rule'" yes "$(has "$rule" "$(out)")"
+    assert "fires: $name names rule '$rule' (as ': $rule —', not via the fixture path)" yes "$(has ": $rule —" "$(out)")"
     assert "fires: $name points at the fixture file:line" yes "$(has "$name/hooks/register.ts:" "$(out)")"
     rm -rf "$T/mods/$name"
 done

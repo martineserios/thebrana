@@ -82,6 +82,11 @@ elif what == 'latest': print('yes' if '@anthropic-ai/claude-code@latest' in runs
 elif what == 'engine': print('yes' if 'mods-check.sh --engine' in runs else 'no')
 elif what == 'version-printed': print('yes' if 'claude --version' in runs else 'no')
 elif what == 'supported-compared': print('yes' if 'SUPPORTED' in runs and 'probe.ts' in runs else 'no')
+elif what == 'bump-fails':
+    steps = [s for j in wf['jobs'].values() for s in j['steps']]
+    i = next((k for k, s in enumerate(steps) if 'mods-check.sh --engine' in (s.get('run') or '')), -1)
+    j = next((k for k, s in enumerate(steps) if 'not in SUPPORTED' in (s.get('run') or '')), -1)
+    print('yes' if 0 <= i < j and 'exit 1' in steps[j]['run'] and 'exit 1' in steps[i]['run'] else f'no ({i},{j})')
 elif what == 'perms': print('yes' if (wf.get('permissions') or {}).get('contents') == 'read' else 'no')
 PY
 }
@@ -92,6 +97,7 @@ assert "runs mods-check.sh --engine" yes "$(D engine)"
 assert "prints the installed version" yes "$(D version-printed)"
 assert "compares the installed version with probe.ts SUPPORTED (the bump signal)" yes "$(D supported-compared)"
 assert "least privilege: contents read" yes "$(D perms)"
+assert "two distinct red signals: engine breaks a mod (first), then latest-passes-but-unsupported fails the job (bump)" yes "$(D bump-fails)"
 
 echo "--- marketplace-version-sync.sh"
 assert "script exists and is executable" yes "$( [ -x "$SYNC" ] && echo yes || echo no)"

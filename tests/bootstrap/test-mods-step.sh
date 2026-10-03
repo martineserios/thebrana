@@ -66,7 +66,7 @@ deploy() { # deploy [withclaude|noclaude] — runs 7g+7h as bootstrap does, CHEC
     local p="$NOCLAUDE_PATH"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"
     ( export PATH="$p" CLAUDE_SHIM_LOG="$H/argv.log"
       TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
-      PROJECT_SETTINGS_DIR="$PROJ"; MODS_MP="$MP"; CHECK_ONLY=false; CHANGES=0
+      PROJECT_SETTINGS_DIR="$PROJ"; MANAGED_SETTINGS="$T/none.json"; MODS_MP="$MP"; CHECK_ONLY=false; CHANGES=0
       eval "$FN"; mods_ruflo_guard; mods_install_step; echo "CHANGES=$CHANGES" ) >"$H/out" 2>&1; echo $?
 }
 newhome; rc="$(deploy)"
@@ -110,8 +110,27 @@ newhome; rc="$( ( export PATH="$SHIM:$NOJQ" CLAUDE_SHIM_LOG="$H/argv.log"
       TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
       PROJECT_SETTINGS_DIR="$PROJ"; MANAGED_SETTINGS="$T/none.json"; MODS_MP="$MP"; CHECK_ONLY=true; CHANGES=0
       eval "$FN"; mods_ruflo_guard; mods_install_step; echo "CHANGES=$CHANGES" ) >"$H/out" 2>&1; echo $?)"
-assert "jq absent: the guard says it did not run (never silent)" yes "$(has '! jq missing — ruflo mods guard not run' "$(out)")"
-assert "jq absent: the mods step says so and counts a change" yes "$(has '! jq missing — mods not verified' "$(out)")$(has 'CHANGES=0' "$(out)" | sed 's/no//; s/yes/(counted 0)/')"
+assert "jq absent with mods to install: the guard fails closed (cannot verify enabledPlugins)" yes "$(has 'jq missing — cannot verify enabledPlugins' "$(out)")"
+assert "...and the mods step is refused" yes "$(has 'mods step refused' "$(out)")"
+# (an unparsable USER settings.json already stops bootstrap in its earlier settings steps; the
+#  project files are read by 7g alone, so that is where fail-closed must be proven)
+newhome; printf '{ "enabledPlugins": { "ruflo-mods@ruflo": true, ' > "$PROJ/settings.local.json"; rc="$(boot --check)"; rm -f "$PROJ/settings.local.json"
+assert "an unparsable settings file fails closed (cannot verify) -> --check non-zero" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
+assert "...naming it unparsable" yes "$(has 'unparsable' "$(out)")"
+cat > "$T/failbin-claude" <<'EOS'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${CLAUDE_SHIM_LOG:?}"
+case "$1 ${2:-}" in "plugin update"|"plugin install") exit 1;; esac
+exit 0
+EOS
+chmod +x "$T/failbin-claude"; mkdir -p "$T/failbin"; ln -sf "$T/failbin-claude" "$T/failbin/claude"
+newhome; seed_installed 0.0.9
+( export PATH="$T/failbin:$NOCLAUDE_PATH" CLAUDE_SHIM_LOG="$H/argv.log"
+  TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
+  PROJECT_SETTINGS_DIR="$PROJ"; MANAGED_SETTINGS="$T/none.json"; MODS_MP="$MP"; CHECK_ONLY=false; CHANGES=0
+  eval "$FN"; mods_ruflo_guard; mods_install_step ) >"$H/out" 2>&1
+assert "update fails, uninstall succeeds, reinstall fails: says the mod is now NOT installed and how to reinstall" yes "$(has 'is now uninstalled — run: claude plugin install cockpit-shared@brana --scope user' "$(out)")"
+assert "update and uninstall name the user scope" yes "$(has 'plugin update cockpit-shared@brana --scope user' "$(cat "$H/argv.log")")$(has 'plugin uninstall cockpit-shared@brana --scope user' "$(cat "$H/argv.log")" | sed 's/yes//')"
 
 echo "--- 7g ruflo mods guard"
 for key in ruflo-mods@ruflo ruflo-swarm@ruflo ruflo-console@ruflo ruflo-mods; do

@@ -28,7 +28,7 @@ for mod in mods/*/; do
     mod="${mod%/}"; name="$(basename "$mod")"
     [ "$name" = "_shared" ] && continue
     [ -f "$mod/.claude-plugin/plugin.json" ] || continue
-    grep -qsE "from '\./_shared/" "$mod"/hooks/*.ts "$mod"/hooks/*.tsx 2>/dev/null || continue
+    grep -qsE "from ['\"]\./_shared/" "$mod"/hooks/*.ts "$mod"/hooks/*.tsx "$mod"/hooks/*.mts "$mod"/hooks/*.js "$mod"/hooks/*.mjs 2>/dev/null || continue
     for f in "${SHARED_FILES[@]}"; do
         src="$SRC/$f.ts"; dst="$mod/hooks/_shared/$f.ts"
         if [ -f "$dst" ] && cmp -s "$src" "$dst"; then continue; fi
@@ -36,7 +36,8 @@ for mod in mods/*/; do
         if $CHECK; then
             echo "  ~ $dst (would copy from $src)"
         else
-            mkdir -p "$mod/hooks/_shared" && cp "$src" "$dst" && echo "  + $dst"
+            # temp + rename: a concurrent mods-check --static never sees a half-written copy
+            mkdir -p "$mod/hooks/_shared" && cp "$src" "$dst.tmp.$$" && mv -f "$dst.tmp.$$" "$dst" && echo "  + $dst"
         fi
     done
 done
