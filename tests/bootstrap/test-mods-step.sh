@@ -13,6 +13,8 @@
 # Run: bash tests/bootstrap/test-mods-step.sh
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "$ROOT/tests/lib/path-without.sh"
+NOCLAUDE_PATH="$(path_without claude)"
 PASS=0; FAIL=0
 assert() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "  PASS: $1"; else FAIL=$((FAIL+1)); echo "  FAIL: $1 (expected '$2', got '$3')"; fi; }
 has() { case "$2" in *"$1"*) echo yes;; *) echo no;; esac; }
@@ -31,10 +33,10 @@ case "$1 ${2:-}" in "--version "*) echo "2.1.288 (shim)";; esac
 exit 0
 EOS
 chmod +x "$SHIM/claude"
-newhome() { H="$(mktemp -d -p "$T")"; mkdir -p "$H/.claude/plugins"; : > "$H/argv.log"; }
+newhome() { H="$(mktemp -d "$T/home.XXXXXX")"; mkdir -p "$H/.claude/plugins"; : > "$H/argv.log"; }
 seed_installed() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"x","version":"%s"}]}}\n' "$1" > "$H/.claude/plugins/installed_plugins.json"; }
 boot() { # boot --check [withclaude|noclaude] — the full script, dry run
-    local mode="$1" cl="${2:-withclaude}" p="/usr/bin:/bin"
+    local mode="$1" cl="${2:-withclaude}" p="$NOCLAUDE_PATH"
     [ "$cl" = withclaude ] && p="$SHIM:$p"
     local args=(); [ "$mode" = --check ] && args=(--check)
     (cd "$ROOT" && HOME="$H" PATH="$p" CLAUDE_SHIM_LOG="$H/argv.log" BRANA_SCHEDULER_BACKEND=none BRANA_MARKETPLACE_JSON="$MP" BRANA_PROJECT_SETTINGS_DIR="$PROJ" ./bootstrap.sh "${args[@]}" >"$H/out" 2>&1); echo $?
@@ -61,7 +63,7 @@ echo "--- 7h deploy outcomes (functions extracted: a real deploy refuses to run 
 FN="$(awk '/^mods_ruflo_guard\(\) \{/{f=1} /^mods_install_step\(\) \{/{f=1} f{print} f&&/^\}/{f=0}' "$ROOT/bootstrap.sh")"
 assert "both functions extract from bootstrap.sh" yes "$(has 'mods_install_step()' "$FN")$(has 'mods_ruflo_guard()' "$FN" | sed 's/yes//')"
 deploy() { # deploy [withclaude|noclaude] — runs 7g+7h as bootstrap does, CHECK_ONLY=false
-    local p="/usr/bin:/bin"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"
+    local p="$NOCLAUDE_PATH"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"
     ( export PATH="$p" CLAUDE_SHIM_LOG="$H/argv.log"
       TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
       PROJECT_SETTINGS_DIR="$PROJ"; MODS_MP="$MP"; CHECK_ONLY=false; CHANGES=0

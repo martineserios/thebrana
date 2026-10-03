@@ -11,6 +11,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CHECK="$ROOT/system/scripts/mods-check.sh"
 SYNC="$ROOT/system/scripts/mods-sync-shared.sh"
 FIX="$ROOT/tests/fixtures/mods"
+source "$ROOT/tests/lib/path-without.sh"
+NOCLAUDE_PATH="$(path_without claude)"
 PASS=0; FAIL=0
 assert() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "  PASS: $1"; else FAIL=$((FAIL+1)); echo "  FAIL: $1 (expected '$2', got '$3')"; fi; }
 has() { case "$2" in *"$1"*) echo yes;; *) echo no;; esac; }
@@ -110,13 +112,11 @@ chmod +x "$FAKE/bin/claude"
 GOLD="$FIX/captures/validate-backlog-pane.json"
 golden_validate() { sed '1d' "$GOLD" > "$FAKE/validate.json"; echo 0 > "$FAKE/validate.rc"; }   # drop the capture's comment line
 golden_test() { printf ' 16 pass\n 0 fail\nRan 16 tests across 1 file. [0.18s]\n' > "$FAKE/test.out"; echo 0 > "$FAKE/test.rc"; }
-engine() { : > "$FAKE/argv.log"; FAKE="$FAKE" PATH="$FAKE/bin:/usr/bin:/bin" bash "$CHECK" --engine "$T" >"$T/out" 2>&1; echo $?; }
-no_claude() { PATH="/usr/bin:/bin" bash "$CHECK" --engine "$T" >"$T/out" 2>&1; echo $?; }
+engine() { : > "$FAKE/argv.log"; FAKE="$FAKE" PATH="$FAKE/bin:$NOCLAUDE_PATH" bash "$CHECK" --engine "$T" >"$T/out" 2>&1; echo $?; }
+no_claude() { PATH="$NOCLAUDE_PATH" bash "$CHECK" --engine "$T" >"$T/out" 2>&1; echo $?; }
 
-if PATH="/usr/bin:/bin" command -v claude >/dev/null 2>&1; then echo "  SKIP: a real claude sits in /usr/bin or /bin; the absent-CLI case cannot be staged here"; else
 assert "claude absent -> exit 1" 1 "$(no_claude)"
 assert "...with the documented message" yes "$(has 'claude CLI not on PATH — install it or run with --fast' "$(out)")"
-fi
 
 golden_validate; golden_test
 assert "golden validate (calls incl. '(via run)') + golden test trailer -> 0" 0 "$(engine)"

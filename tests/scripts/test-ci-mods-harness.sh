@@ -14,6 +14,13 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PASS=0; FAIL=0
+# The workflow files are parsed with PyYAML. GitHub's ubuntu image ships it; stock macOS does
+# not (CI run 37140367665). The files are the same bytes on both, so the required ubuntu
+# `tests` job is the proof: there a missing PyYAML is a FAIL, on macOS a named SKIP.
+if ! python3 -c 'import yaml' 2>/dev/null; then
+    if [ "$(uname -s)" = Darwin ]; then echo "=== test-ci-mods-harness.sh ==="; echo "  SKIP: PyYAML absent on this macOS runner — the ubuntu tests job checks the workflow files"; exit 0; fi
+    echo "  FAIL: PyYAML (python3 -c 'import yaml') is required to parse the workflow files"; exit 1
+fi
 assert() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "  PASS: $1"; else FAIL=$((FAIL+1)); echo "  FAIL: $1 (expected '$2', got '$3')"; fi; }
 has() { case "$2" in *"$1"*) echo yes;; *) echo no;; esac; }
 cd "$ROOT" || exit 2
