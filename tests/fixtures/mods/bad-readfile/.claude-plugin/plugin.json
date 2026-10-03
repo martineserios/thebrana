@@ -1,0 +1,8 @@
+{
+ "name": "bad-readfile",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'readFile'.",
+ "author": {
+  "name": "brana"
+ }
+}

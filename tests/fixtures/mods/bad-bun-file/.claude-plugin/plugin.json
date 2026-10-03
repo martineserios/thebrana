@@ -1,0 +1,8 @@
+{
+ "name": "bad-bun-file",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'Bun.file'.",
+ "author": {
+  "name": "brana"
+ }
+}
