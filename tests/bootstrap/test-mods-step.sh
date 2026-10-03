@@ -33,7 +33,7 @@ EOS
 chmod +x "$SHIM/claude"
 newhome() { H="$(mktemp -d -p "$T")"; mkdir -p "$H/.claude/plugins"; : > "$H/argv.log"; }
 seed_installed() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"x","version":"%s"}]}}\n' "$1" > "$H/.claude/plugins/installed_plugins.json"; }
-boot() { # boot <--check|deploy> [withclaude|noclaude]
+boot() { # boot --check [withclaude|noclaude] — the full script, dry run
     local mode="$1" cl="${2:-withclaude}" p="/usr/bin:/bin"
     [ "$cl" = withclaude ] && p="$SHIM:$p"
     local args=(); [ "$mode" = --check ] && args=(--check)
@@ -57,15 +57,26 @@ assert "--check, claude absent: still exit 0" 0 "$rc"
 assert "...prints ! claude missing — mods not verified" yes "$(has '! claude missing — mods not verified' "$(out)")"
 assert "...reaches the summary" yes "$(has 'change(s) detected' "$(out)")"
 
-echo "--- 7h deploy outcomes (claude shim records argv)"
-newhome; rc="$(boot deploy)"
+echo "--- 7h deploy outcomes (functions extracted: a real deploy refuses to run off main)"
+FN="$(awk '/^mods_ruflo_guard\(\) \{/{f=1} /^mods_install_step\(\) \{/{f=1} f{print} f&&/^\}/{f=0}' "$ROOT/bootstrap.sh")"
+assert "both functions extract from bootstrap.sh" yes "$(has 'mods_install_step()' "$FN")$(has 'mods_ruflo_guard()' "$FN" | sed 's/yes//')"
+deploy() { # deploy [withclaude|noclaude] — runs 7g+7h as bootstrap does, CHECK_ONLY=false
+    local p="/usr/bin:/bin"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"
+    ( export PATH="$p" CLAUDE_SHIM_LOG="$H/argv.log"
+      TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
+      PROJECT_SETTINGS_DIR="$PROJ"; MODS_MP="$MP"; CHECK_ONLY=false; CHANGES=0
+      eval "$FN"; mods_ruflo_guard; mods_install_step; echo "CHANGES=$CHANGES" ) >"$H/out" 2>&1; echo $?
+}
+newhome; rc="$(deploy)"
 assert "deploy, not installed: runs claude plugin install <name>@brana --scope user" yes "$(has 'plugin install cockpit-shared@brana --scope user' "$(cat "$H/argv.log")")"
 assert "...prints + installed" yes "$(has '+ cockpit-shared (installed v0.1.0)' "$(out)")"
-newhome; seed_installed 0.0.9; rc="$(boot deploy)"
+newhome; seed_installed 0.0.9; rc="$(deploy)"
 assert "deploy, older installed: runs claude plugin update <name>@brana" yes "$(has 'plugin update cockpit-shared@brana' "$(cat "$H/argv.log")")"
-newhome; seed_installed 0.1.0; rc="$(boot deploy)"
+assert "...prints ~ updated old->new" yes "$(has '~ cockpit-shared (updated 0.0.9→0.1.0)' "$(out)")"
+newhome; seed_installed 0.1.0; rc="$(deploy)"
 assert "deploy, equal: no claude plugin command" 0 "$(plugin_calls)"
-newhome; rc="$(boot deploy noclaude)"
+assert "...counts no change" yes "$(has 'CHANGES=0' "$(out)")"
+newhome; rc="$(deploy noclaude)"
 assert "deploy, claude absent: prints the same ! line and continues (exit 0)" "0 yes" "$rc $(has '! claude missing — mods not verified' "$(out)")"
 
 echo "--- 7g ruflo mods guard"
@@ -81,7 +92,7 @@ for f in settings.json settings.local.json; do
 done
 newhome; printf '{ "enabledPlugins": { "ruflo-mods@ruflo": false, "brana@brana": true } }\n' > "$H/.claude/settings.json"; rc="$(boot --check)"
 assert "a ruflo entry set to false is not a hit" 0 "$rc"
-newhome; printf '{ "enabledPlugins": { "ruflo-swarm@ruflo": true } }\n' > "$H/.claude/settings.json"; rc="$(boot deploy)"
+newhome; printf '{ "enabledPlugins": { "ruflo-swarm@ruflo": true } }\n' > "$H/.claude/settings.json"; rc="$(deploy)"
 assert "deploy with a ruflo entry: refuses the mods step (no claude plugin command)" 0 "$(plugin_calls)"
 assert "...and prints the guard line" yes "$(has 'ruflo-swarm@ruflo' "$(out)")"
 
