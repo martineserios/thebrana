@@ -23,7 +23,7 @@ mkdir -p "$T/mods"
 cp -R "$ROOT/mods/_shared" "$T/mods/_shared"; cp "$ROOT/mods/package.json" "$T/mods/"; cp "$ROOT/.gitignore" "$T/.gitignore"
 cp -R "$FIX/good-minimal" "$T/mods/good-minimal"
 mkdir -p "$T/tests/fixtures/mods"; cp -R "$FIX/good-minimal" "$T/tests/fixtures/mods/good-minimal"; cp -R "$FIX/captures" "$T/tests/fixtures/mods/captures"   # a checkout has the fixture too: --engine assembles an isolated copy from it
-G init -q -b dev . && bash "$SYNC" "$T" >/dev/null 2>&1; G add -A && G commit -qm base
+G init -q -b dev . && bash "$SYNC" "$T" >/dev/null 2>&1; G add -A && G commit -qm base; G branch main
 G switch -q -c work
 run() { bash "$CHECK" --static "$T" >"$T/out" 2>&1; echo $?; }
 out() { cat "$T/out"; }
@@ -60,6 +60,15 @@ G reset -q --hard
 MODS_BASE_REF=refs/heads/nope bash "$CHECK" --static "$T" >"$T/out" 2>&1; assert "an unresolvable base ref fails (never passes silently)" 1 "$?"
 assert "...naming the base ref" yes "$(has 'base ref' "$(out)")"
 
+echo "--- base ref never the commit under test (panel finding: dev->main PR fetched origin/dev == HEAD)"
+printf '\n// unbumped\n' >> "$T/mods/good-minimal/hooks/register.ts"; G add -A; G commit -qm unbumped; G branch -f dev HEAD
+assert "dev == HEAD: the guard falls through to main and still fires" 1 "$(run)"
+assert "...naming main as the base ref" yes "$(has 'base ref: main' "$(out)")"
+G branch -f main HEAD
+assert "every candidate == HEAD: nothing can differ, pass" 0 "$(run)"
+assert "...saying no distinct base" yes "$(has 'no base distinct from HEAD' "$(out)")"
+G reset -q --hard HEAD~1; G branch -f dev HEAD; G branch -f main HEAD
+
 echo "--- vendored-copy drift"
 printf '\n// drift\n' >> "$T/mods/good-minimal/hooks/_shared/run.ts"; bump good-minimal
 assert "a vendored file that differs from mods/_shared fails" 1 "$(run)"
@@ -80,7 +89,23 @@ mkdir -p "$T/mods/newmod/.claude-plugin" "$T/mods/newmod/hooks"; cp "$FIX/good-m
 assert "a mod absent from the base ref needs no bump (untracked files are scanned)" 0 "$(run)"
 printf "export const y = () => fetch('x')\n" > "$T/mods/newmod/hooks/y.ts"
 assert "an untracked, non-ignored file IS scanned" 1 "$(run)"
+for ext in mjs js cjs mts cts jsx; do
+    printf "export const z = (\$: any) => \$.model.complete({})\n" > "$T/mods/newmod/hooks/z.$ext"
+    assert "a .$ext module is scanned (the engine loads more than .ts)" 1 "$(run)"
+    rm -f "$T/mods/newmod/hooks/z.$ext"
+done
+printf "/* note */ export const w = (\$: any) => \$.model.complete({})\n" > "$T/mods/newmod/hooks/w.ts"
+assert "code after a leading /* ... */ on the same line is scanned" 1 "$(run)"
+printf "/**\n * calls \$.model in prose only\n */\nexport const w = 1\n" > "$T/mods/newmod/hooks/w.ts"
+assert "JSDoc body lines are still comments" 0 "$(run)"
 rm -rf "$T/mods/newmod"
+
+echo "--- sync import detection"
+mkdir -p "$T/mods/dq/.claude-plugin" "$T/mods/dq/hooks"; cp "$FIX/good-minimal/.claude-plugin/plugin.json" "$T/mods/dq/.claude-plugin/"; printf '{ "modules": ["./register.ts"] }\n' > "$T/mods/dq/hooks/hooks.json"
+printf 'import { guard } from "./_shared/run"\nexport const register = () => { void guard }\n' > "$T/mods/dq/hooks/register.ts"
+bash "$SYNC" "$T" >/dev/null 2>&1
+assert "a double-quoted ./_shared import is synced too" yes "$( [ -f "$T/mods/dq/hooks/_shared/run.ts" ] && echo yes || echo no)"
+rm -rf "$T/mods/dq"
 
 echo "--- must-fire fixtures (one per rule)"
 for d in "$FIX"/bad-*/; do
@@ -120,9 +145,9 @@ assert "...with the documented message" yes "$(has 'claude CLI not on PATH — i
 
 golden_validate; golden_test
 assert "golden validate (calls incl. '(via run)') + golden test trailer -> 0" 0 "$(engine)"
-assert "every mod under mods/ was validated (paths relative to ROOT)" yes "$(has "plugin validate --json mods/good-minimal" "$(cat "$FAKE/argv.log")")"
-assert "...and tested" yes "$(has "plugin test mods/good-minimal" "$(cat "$FAKE/argv.log")")"
-assert "_shared is validated and tested like a mod" yes "$(has "plugin test mods/_shared" "$(cat "$FAKE/argv.log")")"
+assert "every mod is validated and tested from an isolated copy (the engine writes types/tsconfig into the folder it reads)" 0 "$(grep -E '^plugin (validate --json|test) ' "$FAKE/argv.log" | grep -c -E " (mods/|$T/mods/)")"
+assert "...one validate per mod under mods/ plus the good fixture" 3 "$(grep -c '^plugin validate --json ' "$FAKE/argv.log")"
+assert "...labelled by repo path in the report" yes "$(has 'mods/_shared' "$(out)")"
 iso="$(grep -E '^plugin test /.*/good-minimal$' "$FAKE/argv.log" | grep -v "$T/mods/" | grep -v -c "$FIX")"
 assert "an isolated copy of the good fixture is exercised (not the fixture dir itself)" yes "$( [ "$iso" -ge 1 ] && echo yes || echo no)"
 assert "summary names the engine version" yes "$(has '2.1.288' "$(out)")"
@@ -131,6 +156,14 @@ sed 's/\$\.ui\.open/$.http.fetch/' "$GOLD" | sed '1d' > "$FAKE/validate.json"
 assert "a call outside the allowed set fails" 1 "$(engine)"
 assert "...naming the call" yes "$(has 'http.fetch' "$(out)")"
 assert "...and the allowed set" yes "$(has 'allowed set' "$(out)")"
+
+golden_validate; sed -i.bak 's/register.tsx hooks: session.start/register.tsx hooks: tool.call, session.start/' "$FAKE/validate.json"   # portable-ok: BSD+GNU form with suffix
+assert "a hooked tool.call reported by the engine fails (structural Law 4 — catches backtick and renamed registrations)" 1 "$(engine)"
+assert "...naming the event" yes "$(has 'hooks event tool.call' "$(out)")"
+for ev in tool.check plugin.register prompt.compose 'classic.PreToolUse' '*'; do
+    golden_validate; sed -i.bak "s/register.tsx hooks: session.start/register.tsx hooks: $ev, session.start/" "$FAKE/validate.json"   # portable-ok: BSD+GNU form with suffix
+    assert "hooking $ev fails" 1 "$(engine)"
+done
 
 golden_validate; python3 - "$FAKE/validate.json" <<'PY2'
 import json,sys

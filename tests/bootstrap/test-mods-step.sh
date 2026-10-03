@@ -81,6 +81,38 @@ assert "...counts no change" yes "$(has 'CHANGES=0' "$(out)")"
 newhome; rc="$(deploy noclaude)"
 assert "deploy, claude absent: prints the same ! line and continues (exit 0)" "0 yes" "$rc $(has '! claude missing — mods not verified' "$(out)")"
 
+echo "--- panel findings: stdin, scope, object source, jq absent"
+MP2="$T/marketplace2.json"
+printf '{ "name": "brana", "plugins": [ { "name": "x", "version": "1.0.0", "source": { "source": "github", "repo": "a/b" } }, { "name": "cockpit-shared", "version": "0.1.0", "source": "./mods/_shared" }, { "name": "cockpit-shared-2", "version": "0.1.0", "source": "./mods/_shared" } ] }\n' > "$MP2"
+cat > "$SHIM/claude-stdin" <<'EOS'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${CLAUDE_SHIM_LOG:?}"
+cat >/dev/null   # a subcommand that reads stdin must not eat the caller's loop input
+exit 0
+EOS
+chmod +x "$SHIM/claude-stdin"
+newhome; mkdir -p "$T/stdinbin"; ln -sf "$SHIM/claude-stdin" "$T/stdinbin/claude"
+rc="$( ( export PATH="$T/stdinbin:$NOCLAUDE_PATH" CLAUDE_SHIM_LOG="$H/argv.log"
+      TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
+      PROJECT_SETTINGS_DIR="$PROJ"; MANAGED_SETTINGS="$T/none.json"; MODS_MP="$MP2"; CHECK_ONLY=false; CHANGES=0
+      eval "$FN"; mods_ruflo_guard; mods_install_step ) >"$H/out" 2>&1; echo $?)"
+assert "a claude that reads stdin cannot swallow later entries: both mods installed" 2 "$(grep -c '^plugin install' "$H/argv.log")"
+assert "an object-form source neither breaks the step nor is treated as a mod" no "$(has 'x@brana' "$(cat "$H/argv.log")")"
+newhome; printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"project","version":"0.1.0"},{"scope":"user","version":"0.0.9"}]}}\n' > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot --check)"
+assert "the USER-scope install is compared (a project-scope entry first does not mask it)" yes "$(has '~ cockpit-shared (would update 0.0.9→0.1.0)' "$(out)")"
+newhome; printf '{ "enabledPlugins": { "ruflo-mods@ruflo": true } }\n' > "$H/.claude/settings.json"; printf '{ "enabledPlugins": { "ruflo-swarm@ruflo": true } }\n' > "$PROJ/settings.json"; rc="$(boot --check)"; rm -f "$PROJ/settings.json"
+assert "two hit files are listed separately" yes "$(has 'ruflo-mods@ruflo; ' "$(out)")"
+newhome; printf '{ "enabledPlugins": { "ruflo-mods@ruflo": true } }\n' > "$T/managed.json"
+rc="$(cd "$ROOT" && HOME="$H" PATH="$SHIM:$NOCLAUDE_PATH" CLAUDE_SHIM_LOG="$H/argv.log" BRANA_SCHEDULER_BACKEND=none BRANA_MARKETPLACE_JSON="$MP" BRANA_PROJECT_SETTINGS_DIR="$PROJ" BRANA_MANAGED_SETTINGS="$T/managed.json" ./bootstrap.sh --check >"$H/out" 2>&1; echo $?)"; rm -f "$T/managed.json"
+assert "managed settings with ruflo-mods -> --check non-zero" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
+NOJQ="$(path_without jq)"
+newhome; rc="$( ( export PATH="$SHIM:$NOJQ" CLAUDE_SHIM_LOG="$H/argv.log"
+      TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
+      PROJECT_SETTINGS_DIR="$PROJ"; MANAGED_SETTINGS="$T/none.json"; MODS_MP="$MP"; CHECK_ONLY=true; CHANGES=0
+      eval "$FN"; mods_ruflo_guard; mods_install_step; echo "CHANGES=$CHANGES" ) >"$H/out" 2>&1; echo $?)"
+assert "jq absent: the guard says it did not run (never silent)" yes "$(has '! jq missing — ruflo mods guard not run' "$(out)")"
+assert "jq absent: the mods step says so and counts a change" yes "$(has '! jq missing — mods not verified' "$(out)")$(has 'CHANGES=0' "$(out)" | sed 's/no//; s/yes/(counted 0)/')"
+
 echo "--- 7g ruflo mods guard"
 for key in ruflo-mods@ruflo ruflo-swarm@ruflo ruflo-console@ruflo ruflo-mods; do
     newhome; printf '{ "enabledPlugins": { "%s": true } }\n' "$key" > "$H/.claude/settings.json"; rc="$(boot --check)"
