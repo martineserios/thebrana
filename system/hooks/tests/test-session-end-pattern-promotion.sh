@@ -144,7 +144,7 @@ MOCK_LOG="${RUFLO_MOCK_LOG:-/tmp/ruflo-mock-calls.log}"
 echo "$@" >> "$MOCK_LOG"
 if echo "$@" | grep -q "memory retrieve"; then
     KEY=$(echo "$@" | sed -n 's/.*-k \([^ ]*\).*/\1/p')
-    echo "Transformers.js loaded: Xenova/all-MiniLM-L6-v2"      # noise line precedes the JSON, as live
+    echo "Transformers.js loaded: Xenova/all-MiniLM-L6-v2" >&2  # model-load noise goes to stderr, as live
     case "${MOCK_SEARCH_MODE:-missing}" in
         ceiling)  exit 124 ;;                                   # the shim ceiling fired
         error)    echo "boom" >&2; exit 127 ;;                  # CF missing / crashed
@@ -155,12 +155,15 @@ if echo "$@" | grep -q "memory retrieve"; then
         foundobj) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem","confidence":0.5,"recall_count":1}}\n' "$KEY"; exit 0 ;;
         text)     printf '{"key":"%s","namespace":"pattern","content":"plain prose, not json"}\n' "$KEY"; exit 0 ;;
         partial124) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem"}}\n' "$KEY"; exit 124 ;;  # JSON printed, then the ceiling
-        missing)  echo "[WARN] Key not found: $KEY"; exit 0 ;;
+        missing)  echo "[WARN] Key not found: $KEY"; exit 1 ;;     # the pinned 3.34 CLI exits 1 on a miss
+        missing0) echo "[WARN] Key not found: $KEY"; exit 0 ;;     # a CLI that exits 0 on a miss must classify the same
+        storefail) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem","confidence":0.5,"recall_count":1}}\n' "$KEY"; exit 0 ;;
     esac
 fi
 if echo "$@" | grep -q "memory search"; then echo '{"query":"x","results":[],"searchTime":"1ms"}'; fi
 if echo "$@" | grep -q "memory store"; then          # capture the stored value verbatim for strict assertions
     while [ $# -gt 0 ]; do [ "$1" = "-v" ] && { printf '%s\n' "$2" > "$MOCK_LOG.value"; break; }; shift; done
+    [ "${MOCK_SEARCH_MODE:-}" = "storefail" ] && exit 124
 fi
 exit 0
 MOCK
@@ -214,10 +217,13 @@ run_mode foundobj "pattern:proj:key12b"
 assert_eq "object content → one store call" "$(store_calls)" "1"
 assert_file_contains "object content survives the merge" "$MOCK_LOG" 'orig-problem'
 
-echo "Test 13: clean miss (WARN Key not found, rc 0) and non-JSON content → NO store, counted"
+echo "Test 13: clean miss (WARN Key not found, rc 1 as live, and rc 0) and non-JSON content → NO store, counted as missing"
 run_mode missing "pattern:proj:key13"
-assert_eq "clean miss → zero store calls (no placeholder, ever)" "$(store_calls)" "0"
-assert_file_contains "clean miss counted as missing" "$TMPDIR_T/.claude/logs/pattern-promotion.jsonl" '"missing":1'
+assert_eq "clean miss (rc 1) → zero store calls (no placeholder, ever)" "$(store_calls)" "0"
+assert_eq "clean miss (rc 1) counted as missing, not unreadable" "$(last_audit | jq -r '"\(.missing)/\(.skipped_unreadable)"')" "1/0"
+run_mode missing0 "pattern:proj:key13a"
+assert_eq "clean miss (rc 0) → zero store calls" "$(store_calls)" "0"
+assert_eq "clean miss (rc 0) counted as missing too" "$(last_audit | jq -r '.missing')" "1"
 run_mode text "pattern:proj:key13b"
 assert_eq "prose content → zero store calls" "$(store_calls)" "0"
 
@@ -230,6 +236,10 @@ SF="$TMPDIR_T/session-demote-found.jsonl"; make_session_file "$SF" '["pattern:pr
 MOCK_SEARCH_MODE=found SESSION_FILE="$SF" CORRECTION_RATE="0.30" CORRECTIONS="6" TOTAL="20" PROJECT="proj" bash "$HOOK" 2>/dev/null
 assert_eq "demote → one store call" "$(store_calls)" "1"
 assert_eq "demote → recall_count unchanged (1) and confidence 0.4" "$(stored_ok '.recall_count == 1 and .confidence == 0.4')" "yes"
+
+echo "Test 16: store fails (rc 124) → not counted as promoted, counted as store_failed"
+run_mode storefail "pattern:proj:key16"
+assert_eq "failed store → promoted 0, store_failed 1" "$(last_audit | jq -r '"\(.promoted)/\(.store_failed)"')" "0/1"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
