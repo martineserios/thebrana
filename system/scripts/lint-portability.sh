@@ -114,6 +114,17 @@ done < <(printf '%s\n' "$files" | while IFS= read -r f; do
     ' "$f"
 done)
 
+# Unbraced `$var` directly followed by a non-ASCII byte: under the macOS runner's locale bash counts
+# that byte as part of the identifier, so `"$a→$b"` expands `$a→` (unset) and prints only `$b` — the
+# 7h `~ would update 0.0.9→0.1.0` line came out as `→0.1.0` on macOS CI (t-3427). Brace it: `${a}→`.
+UNBRACED_RE=$'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]'
+while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    echo "$line  <-- unbraced \$var before a non-ASCII char: write \${var} (macOS bash reads the byte into the name)"
+    bad=$((bad + 1))
+done < <(printf '%s\n' "$files" | LC_ALL=C xargs grep -nE -- "$UNBRACED_RE" 2>/dev/null \
+    | LC_ALL=C grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' | grep -v 'portable-ok:' | cut -c1-200)
+
 # Shebang: `#!/bin/bash` / `#!/bin/sh` run a directly-executed script under macOS's bash 3.2,
 # bypassing bootstrap's PATH-bash >= 4 preflight (statusline, the MCP wrapper). Use
 # `#!/usr/bin/env bash`. There is no escape hatch: a trailing comment on a shebang line is not portable.

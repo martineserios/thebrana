@@ -5,6 +5,7 @@ created: 2026-10-03
 epic: t-3422
 tasks: [t-3422, t-3424, t-3425, t-3426, t-3427, t-3428, t-3429, t-3387, t-3430, t-3431, t-3432, t-3433, t-3434]
 relates-to:
+  - "[ADR-096](../architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md) — the decision this idea became (accepted 2026-10-03)"
   - "[the-brana.md](../architecture/the-brana.md) §Gate — cockpit room (rubber-stamps → digest) vs studio"
   - "[statusline-pipeline-awareness.md](statusline-pipeline-awareness.md) — predecessor: two-tier display in the statusline"
   - "[mission-control-cli.md](../architecture/features/mission-control-cli.md) — shipped print-first `brana run/agents/queue`"
@@ -13,7 +14,7 @@ relates-to:
 ---
 # The Brana cockpit as a Claude Code mod
 
-> Brainstormed 2026-10-03. Status: draft — shaped, ready for backlog planning (epic `cockpit`).
+> Brainstormed 2026-10-03. Status: decided — ADR-096 accepted 2026-10-03; epic t-3422 `cockpit` carries the work.
 
 ## Seed
 

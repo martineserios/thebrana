@@ -1,0 +1,8 @@
+{
+ "name": "bad-git-common-dir",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'git-common-dir'.",
+ "author": {
+  "name": "brana"
+ }
+}

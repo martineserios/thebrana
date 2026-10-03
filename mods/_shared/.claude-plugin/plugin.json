@@ -1,0 +1,6 @@
+{
+  "name": "cockpit-shared",
+  "version": "0.1.0",
+  "description": "Source of truth for the code every brana cockpit mod carries (allowlist, run, state, probe, snapshot). Never installed: the engine refuses imports outside a plugin's folder, so system/scripts/mods-sync-shared.sh vendors these files into each mod's hooks/_shared/ and validate Check 77a asserts the copies are byte-identical.",
+  "author": { "name": "brana" }
+}

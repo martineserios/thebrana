@@ -1,0 +1,8 @@
+{
+ "name": "bad-bracket-model",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'bracket-model'.",
+ "author": {
+  "name": "brana"
+ }
+}
