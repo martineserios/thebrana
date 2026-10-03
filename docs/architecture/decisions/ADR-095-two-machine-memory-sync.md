@@ -117,24 +117,33 @@ The first draft covered only "memory must not reach the public repo". That is on
 
 ## Amendment 2026-10-03: the first live divergence (t-3435)
 
-The two machines diverged before any implementation task landed. On 2026-10-02 the Mac pushed four backup commits (0c84f77d..b04be875) while this machine held three unpushed ones (ed5dc2cd..6a6f0211); `backup.sh` kept committing on the stale base and its push failed at every close. A dry-run merge conflicted in exactly the whole-store snapshot files: `backup/swarm/memory-entries.json`, `backup/swarm/patterns.json`, `backup/memory/patterns.md`, `backup/memory/consolidation-log.md`.
+The two machines diverged before any implementation task landed. On 2026-10-02 the Mac pushed four backup commits (`0c84f77d..b04be875`) while this machine held three unpushed ones (`ed5dc2cd..6a6f0211`); `backup.sh` kept committing on the stale base and its push failed at every close. A dry-run merge conflicted in exactly the whole-store snapshot files: `backup/swarm/memory-entries.json`, `backup/swarm/patterns.json`, `backup/memory/patterns.md`, `backup/memory/consolidation-log.md`.
 
-**What happened.** The merge was resolved by hand as `9cf4055f` ("keep newest local snapshot"): both histories kept, conflicted files taken from the Linux side. A key-level audit against the Mac tip found the real loss: 14 sections of `patterns.md`, 2 curated `pattern` entries (error-recurrence counters), and 4 machine-local rows (2 `session`, 2 `metrics`). `patterns.json` lost nothing by content and the Mac's 624 per-project memory files all survived.
+**What happened.** The merge was resolved by hand as `9cf4055f` ("keep newest local snapshot"): both histories kept, conflicted files taken from the Linux side. A key-level audit against the Mac tip `b04be875` found that the real loss was in markdown, not in ruflo:
 
-**Rule applied, retroactively, as this ADR prescribes.**
+| Store | Audit result |
+|---|---|
+| `memory-entries.json` | 6 Mac-only keys: 2 `pattern` (`error-recurrence:*` tool-failure counters for Mac tools), 2 `session`, 2 `metrics`. 77 shared keys differed, 68 of them derived `skills`; the one key where the Mac was newer had identical content. |
+| `patterns.json` | 0 Mac-only rows by content identity (11,643 ∪ 11,539 rows = 11,596 identities). |
+| `patterns.md` | Four-way union of Linux snapshot (103 sections), Mac tip (110), Linux live file (104) and merged `HEAD` (103) = **121 sections**; the live Linux file lacked 17 of them. |
+| `knowledge-staging.md` | 1 Mac-authored section missing from the live Linux file. |
+| `consolidation-log.md`, per-project memories | 0 lost; all 624 Mac project files survived the merge. |
 
-| File | Merge key | Rule |
+**Rule applied (user decision 2026-10-03: keep as much as possible, no duplicates).**
+
+| File | Identity | Rule |
 |---|---|---|
 | `memory-entries.json` | `(namespace, key)` | union; same key, larger `updated_at` wins |
-| `patterns.json` | `approach` content, **not** `id` | union; `id` is a per-machine autoincrement and collides across machines |
-| `patterns.md`, `consolidation-log.md` | `## ` section heading | union by section |
-| `session`, `metrics` rows | — | not merged: machine-local (§2); they stay in git history |
+| `patterns.json` | `(task_type, approach, ts)`, **not** `id` | union; `id` is a per-machine SQLite `AUTOINCREMENT` and collides across machines; identical rows collapse, larger `uses` wins |
+| `patterns.md`, `knowledge-staging.md` | `## ` section heading | union by section: ours' order first, the other side's new sections appended; shared heading keeps ours' body |
+| `session`, `metrics` rows; `error-recurrence:*` counters | — | not merged: machine-local telemetry (§2); they stay in git history (`b04be875`) |
+| deletes | — | not propagated in this one-time pass (all 5 Mac deletions were `session`/`metrics`); tombstone semantics stay a question for acceptance |
 
-A union commit restored the 14 sections and 2 curated entries from `b04be875`. Counts per key after the merge are at least each side's; no duplicate keys.
+**What was done.** The rule ships as `brana-knowledge/merge-snapshots.py` (`tests/test-merge-snapshots.sh`). The live Linux `patterns.md` and `knowledge-staging.md` were unioned from all sides (pre-union copies in `~/.claude/memory/archive/*_2026-10-03-pre-union.md`), so this machine's next export carries the 121 sections. The Mac's step: `git pull --ff-only` in brana-knowledge, then copy `backup/memory/patterns.md` and `knowledge-staging.md` over its live files (safe: the union contains everything the Mac had).
 
-**Interim guard (until t-3404 and t-3405).** `backup.sh` now fetches before it exports. Behind-only (the other machine pushed, nothing local to lose) fast-forwards; true divergence (commits on both sides) refuses to commit and prints the resolution command; an offline fetch warns and continues so a local backup is never lost to a missing network. This surfaces a divergence at the first close instead of the third, which is all a whole-store snapshot can do.
+**Interim guard (until the ADR-095 revision's sync lands).** `backup.sh` and `daily-push.sh` now source `lib/remote-guard.sh` and fetch before anything else. Behind-only (the other machine pushed, nothing local to lose) fast-forwards; true divergence refuses to commit, exits 2 and prints the resolution recipe built on `merge-snapshots.py`; an offline fetch warns and continues so a local backup is never lost to a missing network (`tests/test-backup-guard.sh`). On export, `patterns.md` and `knowledge-staging.md` are unioned by heading with the tracked copy instead of copied over it (`tests/test-backup-union.sh`), which closes the clobber that caused the loss for the section-keyed notes. This surfaces a divergence at the first close instead of the third.
 
-**Known limit.** The export is still a whole-store snapshot: the next export from either machine overwrites the repo copy with that machine's local store. The union is durable only once the per-entry export (t-3404) and the notes union (t-3405) land, and until then the Linux local `patterns.md` also received the 14 sections so this machine's next export does not drop them again.
+**Known limit.** The two ruflo exports are still whole-store snapshots: each machine's export replaces the repo copy with its own database, so ruflo entries do not converge through the backup; `merge-snapshots.py` gives the one-time rule when they conflict, and the steady state is for the ADR-095 revision (t-3436; the per-entry export t-3404 was cancelled). The pull direction (repo copy into the live files) and the date/line logs (`event-log.md`, `override-log.md`, `consolidation-log.md`, where heading-union is wrong) belong to t-3405.
 
 ## Open questions
 

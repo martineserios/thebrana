@@ -1,13 +1,13 @@
 # Feature: brana-knowledge divergence merge and fetch-first backup guard
 
 **Date:** 2026-10-03
-**Status:** specifying
+**Status:** built (2026-10-03) — gates pending
 **Task:** t-3435 (epic t-3372 macos-portability)
 **ADR:** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) §Amendment 2026-10-03
 
 ## Problem
 
-Two machines run `backup.sh` against one `brana-knowledge/master`. The script commits a whole-store snapshot and pushes without fetching, so when the other machine has pushed first the push is rejected and every later close commits further onto the stale base. The first occurrence (2026-10-02) was resolved as "keep local", which silently dropped 14 `patterns.md` sections and 2 curated ruflo entries that only the Mac had.
+Two machines run `backup.sh` against one `brana-knowledge/master`. The script commits a whole-store snapshot and pushes without fetching, so when the other machine has pushed first the push is rejected and every later close commits further onto the stale base. The first occurrence (2026-10-02) was resolved as "keep local", which silently dropped the Mac-authored sections of `patterns.md` (17 missing from the Linux live file; four-way union 121) and one `knowledge-staging.md` section. The ruflo stores lost nothing curated.
 
 ## Decision Record (frozen 2026-10-03)
 
@@ -15,7 +15,9 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 
 **Context:** ADR-095 already fixes the steady-state rule (per-entry files, newest wins, union for append-only notes) but its implementation (t-3404, t-3405) is pending. This task applies that rule once by hand and adds the smallest guard that makes the next divergence visible at the first close.
 **Decision:** Restore the Mac-only notes and curated entries as a union commit keyed as ADR-095 prescribes. Make `backup.sh` fetch before exporting: fast-forward when only behind, refuse when diverged, warn and continue when offline. Record the applied rule in ADR-095 and in t-3404.
-**Consequences:** No memory lost from the first divergence except machine-local telemetry, which ADR-095 excludes by design. Future divergence fails loudly before a commit exists. Whole-store ping-pong between machines remains until t-3404/t-3405.
+**Consequences:** No memory lost from the first divergence except machine-local telemetry, which ADR-095 excludes by design. Future divergence fails loudly before a commit exists. Whole-store ping-pong between machines remains for the ruflo exports until the ADR-095 revision's sync lands (t-3436; t-3404 cancelled 2026-10-03); the section-keyed notes no longer ping-pong.
+
+**Amendment to the record (2026-10-03, user decision after the audit):** the restore is not a union *commit* but a union of the live Linux files plus union-on-export in `backup.sh` for the section-keyed notes, so the repo copy becomes the union at the next backup and stays one; the 2 `pattern`-namespace `error-recurrence:*` rows are Mac tool-failure counters and are treated as machine-local, not restored. Merge rule as chosen: "keep as much as possible, no duplicates" — union by identity, newest wins on a shared identity.
 
 ## Constraints
 
@@ -26,24 +28,28 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 
 ## Scope (v1)
 
-- Union restore commit on a brana-knowledge branch: 14 `patterns.md` sections, 2 `pattern`-namespace entries, from `b04be875`. Same 14 sections appended to the Linux local `~/.claude/memory/patterns.md`.
+- Union of `patterns.md` (121 sections) and `knowledge-staging.md` (6) across Linux live, Linux snapshot, merged `HEAD` and Mac tip `b04be875`, written to the Linux live files (pre-union copies archived) and carried to the repo by the next export.
+- `backup.sh` unions `patterns.md` and `knowledge-staging.md` by heading with the tracked copy on export instead of copying over it.
+- `merge-snapshots.py`: the rule as a tool for JSON (identity + newest wins) and markdown (section union), with `--check`.
 - Fetch-first guard at the top of `backup.sh`, before any export.
-- Shell test with a bare origin and two clones covering: behind-only, diverged, offline, in-sync.
+- Shell tests with a bare origin and two clones: guard (behind-only, diverged, daily-push.sh, offline, in-sync), union on export, and the merge rule itself.
 - ADR-095 amendment and t-3404 context pointer.
-- Out of scope: per-entry export, notes slug mapping, session-start pull (t-3404..t-3406).
+- Out of scope: ruflo-store convergence (ADR-095 revision, t-3436), notes slug mapping and pull direction (t-3405), session-start pull (t-3406).
 
 ## Research
 
-- Key audit of `9cf4055f` vs Mac tip `b04be875`: memory-entries 6 Mac-only keys (2 session, 2 metrics, 2 pattern); patterns.json 0 lost by content; patterns.md 14 sections; consolidation-log 0; project memories 624/624 kept.
-- `patterns.json` `id` is a per-machine autoincrement: unusable as a merge key. Content (`approach`) is the key.
+- Key audit of `9cf4055f` vs Mac tip `b04be875`: memory-entries 6 Mac-only keys (2 session, 2 metrics, 2 pattern error-recurrence counters); patterns.json 0 lost by content identity; patterns.md 121-section union with 17 missing from the Linux live file; knowledge-staging.md 1 section; consolidation-log 0; project memories 624/624 kept.
+- `patterns.json` `id` is `INTEGER PRIMARY KEY AUTOINCREMENT`: unusable as a merge key. Identity is `(task_type, approach, ts)`; `approach` alone is not unique (242 repeated pairs on one machine). Verified: 11,643 ∪ 11,539 rows → 11,596 identities, 0 Mac-only.
 - ADR-095 §2 classes `session` and `metrics` as machine-local, never synced.
 
 ## Assumptions
 
-- Behind-only is fast-forwarded silently rather than refused: chose fast-forward because refusing would fail every Linux close after any Mac push, with nothing local at risk. Needs confirmation.
-- Offline fetch continues to a local commit and the existing push-failure exit, as today. Needs confirmation.
-- The 4 session/metrics rows are not restored (ADR-095 §2). Confirmed by the user 2026-10-03.
-- The Mac pull after the restore is the user's step; the Mac's next export will overwrite the union in the repo copy until t-3404 lands (documented limit, not fixed here).
+- Behind-only is fast-forwarded (one line printed) rather than refused: chose fast-forward because refusing would fail every Linux close after any Mac push, with nothing local at risk. Confirmed by the user's plan approval 2026-10-03.
+- Offline fetch continues to a local commit and the existing push-failure exit, as today. Confirmed 2026-10-03.
+- Diverged exits 2 (integrity failure keeps exit 1) so callers can tell the two apart; `run_knowledge_backup()` treats both as a warning, not a halt.
+- Union order on export is live-first (this machine's section order and body win on a shared heading), the tracked copy's new sections are appended: chose live-first because the local file is what the machine's own sessions edit — needs no confirmation, the content is identical either way.
+- The 4 session/metrics rows and the 2 error-recurrence counters are not restored (ADR-095 §2). Confirmed by the user 2026-10-03.
+- The Mac pull is the user's step (`git pull --ff-only`, then copy `backup/memory/patterns.md` and `knowledge-staging.md` over its live files — safe, the union contains everything the Mac had). The Mac's next export unions too once it has pulled the new `backup.sh`.
 
 ## Behavior
 
@@ -53,16 +59,18 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 
 ## Edge Cases
 
-- No remote configured, or detached HEAD: skip the guard with a note, behave as before.
+- No `origin/<branch>` yet (first push ever) or the fetch fails: continue with a warning, behave as before.
 - Dirty working tree when fast-forward is needed: `--ff-only` fails; treat as diverged (refuse, print resolution).
-- Remote branch name differs from local: resolve via the upstream of HEAD, fall back to `origin/<branch>`.
+- Branch name: taken from `HEAD` (`master` when detached); the remote is always `origin`.
+- `python3` missing (bare macOS without CLT): the union step falls back to a plain copy with a warning rather than failing the backup.
 
 ## Design
 
-- `backup.sh` step 0, before "1. ReasoningBank": `git fetch origin <branch>` under a timeout; compare `HEAD` and `origin/<branch>` with `git merge-base --is-ancestor` in both directions to classify in-sync / ahead / behind / diverged.
-- Resolution message names the ADR-095 rule and the exact command: `git -C <repo> fetch origin && git merge origin/<branch>` then union the conflicted files by key.
-- Union restore done by a one-off Python step on the brana-knowledge branch, verified by the same key audit that found the loss.
-- Test at `brana-knowledge/tests/test-backup-diverged-guard.sh`: bare origin, clones A and B, `HOME` pointed at an empty scratch dir so exports skip. Red first against the unguarded script.
+- `lib/remote-guard.sh` → `ensure_remote_base [branch]`, sourced by `backup.sh` (right after `cd`, before any export) and `daily-push.sh`: `git fetch origin <branch>`; ahead/behind counted with `git rev-list --count`; behind-only → `git merge --ff-only`; diverged → recipe on stderr, return 2; fetch failure → warning, return 0.
+- Resolution recipe printed verbatim: `git merge origin/master`, then for each unmerged path `git show :2:` / `:3:` into temp files and `./merge-snapshots.py ours theirs -o <path>`, `git add`, commit, push. Names `--rebase` and `--force` as forbidden.
+- `backup.sh` step 4: `UNION_FILES="patterns.md knowledge-staging.md"` go through `merge-snapshots.py <live> <tracked> -o <tracked>`; every other `*.md` stays a plain copy; `ENTRIES`/`PATTERNS` default to 0 (a `set -u` crash when `memory.db` is absent, found by the test).
+- `merge-snapshots.py`: reads all inputs before writing (output may be an input), compact JSON, `--check` exits 3 when ours would change.
+- Tests in `brana-knowledge/tests/`: `test-merge-snapshots.sh` (23), `test-backup-guard.sh` (18), `test-backup-union.sh` (9); bare origin + clones A/B, `HOME` pointed at a scratch dir so the exports skip. All red first.
 
 ## Boundaries
 
@@ -73,16 +81,16 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 
 ## Testing Strategy
 
-- **Unit:** classification of the four git states via the shell test (behind, diverged, offline, in-sync).
-- **Integration:** full `backup.sh` run in clone B against the bare origin, asserting exit code, message, and that no commit was created on divergence.
+- **Unit:** merge rule (`test-merge-snapshots.sh`): identity, newest/largest-uses wins, section order, idempotence, `--check`.
+- **Integration:** full `backup.sh` and `daily-push.sh` runs in clone A against the bare origin (`test-backup-guard.sh`, `test-backup-union.sh`), asserting exit code, message, commit count and the unioned file.
 - **E2E:** one real run of `backup.sh` on this machine after merge, expecting a clean push.
 - **Mock policy:** real git repos in a scratch dir; no mocks.
 
 ## Documentation Plan
 
 - [x] **Tech doc**: this file plus ADR-095 amendment.
-- [ ] **User guide**: none; the guard's message is the guide. `docs/guide/macos-setup.md` gets one line on what to do when a close reports divergence.
-- [ ] **Existing docs to update**: `docs/README.md` entry for this spec.
+- [x] **User guide**: none; the guard's message is the guide. `docs/guide/macos-setup.md` has one line on what to do when a close reports divergence.
+- [x] **Existing docs to update**: `docs/README.md` entry for this spec; `docs/architecture/memory-backup.md` changelog line.
 
 ## Challenger findings
 

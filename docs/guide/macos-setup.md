@@ -87,6 +87,7 @@ brana doctor
 | Hooks seem to do nothing | `bash --version` inside the shell Claude Code launches, not your login shell. |
 | `brana ops run <job>` says *no scheduler backend* | expected — see the table above. |
 | Slow first CLI build | `cargo build --release` is ~10 minutes cold; it is cached afterwards. |
+| `/brana:close` reports `master has diverged from origin/master` from the knowledge backup | both machines pushed memory snapshots. Do not rebase or force-push. In `brana-knowledge`: `git merge origin/master`, union each conflicted file with `./merge-snapshots.py <ours> <theirs> -o <file>`, commit, push (the message prints the exact recipe; ADR-095 §Amendment 2026-10-03). |
 
 ## How this is tested
 
