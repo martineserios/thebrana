@@ -26,6 +26,14 @@
 //! until every handed-over request has its response (or `DRAIN_TIMEOUT`
 //! passes), and only then reports the connection closed. While it waits, the
 //! actor keeps selecting on its outbound queue, so the responses still go out.
+//! The `-32601` replies this transport writes itself count too, and a read
+//! error other than EOF drains the same way.
+//!
+//! SUNSET: workaround for pmcp 2.22.5's `run_transport_actor`, which `break`s
+//! on any receive error without flushing queued responses. Remove the drain
+//! when pmcp drains in-flight requests on transport close — re-check on every
+//! pmcp bump; `tests/stdio_eof_drain.rs` is the tripwire (it must stay green
+//! with the drain removed before the drain can go).
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -42,10 +50,19 @@ use tokio::time::Instant;
 
 const METHOD_NOT_FOUND: i32 = -32601;
 
-/// How long a closed input may wait for in-flight requests. Long enough for a
-/// slow tool (agy_delegate shells out), bounded so a handler that never
-/// answers cannot keep the process alive forever.
+/// How long a closed input may wait for in-flight requests. Requests are
+/// handled by ONE sequential worker, so this bounds all queued calls together;
+/// bounded so a handler that never answers cannot keep the process alive
+/// forever. `BRANA_MCP_DRAIN_TIMEOUT_MS` overrides it (tests; a slow host).
 const DRAIN_TIMEOUT: Duration = Duration::from_secs(30);
+
+fn drain_timeout() -> Duration {
+    std::env::var("BRANA_MCP_DRAIN_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(DRAIN_TIMEOUT)
+}
 const DRAIN_POLL: Duration = Duration::from_millis(10);
 
 #[derive(Debug)]
@@ -74,12 +91,13 @@ impl LenientStdio {
     /// `self`, so a dropped future just resumes the wait on the next call.
     async fn drain_then_close(&mut self) -> Result<TransportMessage> {
         let since = *self.eof_at.get_or_insert_with(Instant::now);
+        let limit = drain_timeout();
         while self.in_flight.load(Ordering::SeqCst) > 0 {
-            if since.elapsed() >= DRAIN_TIMEOUT {
+            if since.elapsed() >= limit {
                 eprintln!(
                     "brana-mcp: input closed; {} request(s) still unanswered after {:?}, exiting",
                     self.in_flight.load(Ordering::SeqCst),
-                    DRAIN_TIMEOUT
+                    limit
                 );
                 break;
             }
@@ -121,12 +139,17 @@ impl LenientStdio {
 
     /// Write a frame from a task of its own, so a cancelled `receive()` can
     /// never leave half a frame on stdout.
+    /// Counted in `in_flight` like any response, so EOF right after an
+    /// unknown method still waits for its reply.
     fn reply_detached(&self, message: TransportMessage) {
         let writer = Arc::clone(&self.writer);
+        let in_flight = Arc::clone(&self.in_flight);
+        in_flight.fetch_add(1, Ordering::SeqCst);
         tokio::spawn(async move {
             if let Err(e) = writer.lock().await.send(message).await {
                 eprintln!("brana-mcp: failed to write error reply: {e}");
             }
+            let _ = in_flight.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1));
         });
     }
 }
@@ -166,8 +189,15 @@ impl Transport for LenientStdio {
             if self.eof_at.is_some() {
                 return self.drain_then_close().await;
             }
-            let Some(line) = self.lines.next_line().await.map_err(TransportError::from)? else {
-                return self.drain_then_close().await;
+            let line = match self.lines.next_line().await {
+                Ok(Some(line)) => line,
+                Ok(None) => return self.drain_then_close().await,
+                Err(e) => {
+                    // Unreadable input (e.g. invalid UTF-8) ends the session the
+                    // same way EOF does — after the in-flight replies.
+                    eprintln!("brana-mcp: stdin read error, closing after in-flight replies: {e}");
+                    return self.drain_then_close().await;
+                },
             };
             if line.trim().is_empty() {
                 continue;
