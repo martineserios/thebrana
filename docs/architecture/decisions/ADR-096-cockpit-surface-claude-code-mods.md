@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 extends: docs/architecture/decisions/ADR-063-pending-questions-store.md
 respects: docs/architecture/decisions/ADR-094-tasks-json-ledger-in-git-common-dir.md
 informs: docs/architecture/the-brana.md
@@ -7,7 +7,7 @@ informs: docs/architecture/the-brana.md
 
 # ADR-096: The Brana's cockpit surface is Claude Code mods, under six laws
 
-**Status:** Proposed (2026-10-03) — one context-isolated challenger pass applied (PROCEED WITH CHANGES, 7 findings folded in); awaiting the decider
+**Status:** Accepted (2026-10-03 by Martín Rios) — brainstorm 3-lens quorum on the idea doc, spike t-3426 evidence, one context-isolated challenger pass on the ADR (PROCEED WITH CHANGES, 7 findings applied); kill threshold 50 % confirmed by the decider
 **Date:** 2026-10-03
 **Deciders:** Martín Rios
 **Tags:** cockpit, mods, gate, gauge, harness, cc-alignment
@@ -125,4 +125,5 @@ Acting on a valve does **not** restate the classification: reversibility and the
 
 - 2026-10-03 — brainstorm challenger quorum (3 lenses) on the idea doc: five HIGH findings accepted and encoded as Laws 1 (instrumented retention), 3 (source-level enforcement, allowlists), 4 (guard stays a hook), 5 (t-3021 linked not absorbed), 6 (CI install step, drift job, version probe). Of the six single-lens observations, five are encoded (deploy path, snapshot verb, state-as-cache → Laws 2/6; write path by reversibility → Law 5; context-% spike → done, t-3426); the sixth — "ADR + spec scoped to tier 1 only" — is **superseded** by tier 2a: a Board-only pane ships with tier 1 because the retention signal cannot be measured without a pane.
 - 2026-10-03 — spike t-3426: context % and 5h/7d quota readable; marketplace deploy route verified in a clean `HOME` including a headless run; **correction** — mods do run under `claude -p`; Law 4's rationale restated.
+- 2026-10-03 — accepted by the decider; Law 1 threshold (≥ 50 % of sessions, days 8–14) confirmed.
 - 2026-10-03 — context-isolated challenger pass on this ADR (PROCEED WITH CHANGES, 7 findings, all applied): Law 1 split into 2a/2b with a pre-registered threshold and owner; Law 3 gained the write allowlist and the bypass-form greps; `git` removed from mod reach; Law 4 rationale rewritten without the false premises and the three enforcement points named; Law 5 defers classification to L4.4 and adds the single-surfacing rule for the snapshot's valve count; band refresh includes `turn.complete`; spec-level mechanics moved to t-3425; Open questions 1–3 added; ruflo-mods check made failing.
