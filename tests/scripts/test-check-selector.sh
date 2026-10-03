@@ -248,6 +248,13 @@ assert_not_num  "mixed → no 1" "1" "$OUT"
 OUT=$(runm "docs/spec-graph.json" "docs/spec-graph.json")
 assert_count_eq "duplicate spec-graph → one '18'" 1 "18" "$OUT"
 
+echo "--- mods enforcement routing (ADR-096, t-3427) ---"
+OUT=$(runm "mods/_shared/hooks/run.ts");                     assert_has_num "mods/ source → 77" "77" "$OUT"
+OUT=$(runm "mods/cockpit-band/.claude-plugin/plugin.json");  assert_has_num "mod manifest → 77" "77" "$OUT"
+OUT=$(runm "tests/fixtures/mods/bad-calls-model/hooks/register.ts"); assert_has_num "bad-* fixture → 77" "77" "$OUT"
+OUT=$(runm "system/scripts/mods-check.sh");                  assert_has_num "mods-check.sh → 77" "77" "$OUT"
+OUT=$(runm "system/scripts/mods-sync-shared.sh");            assert_has_num "mods-sync-shared.sh → 77" "77" "$OUT"
+
 echo "--- README coverage routing (t-3031) ---"
 
 OUT=$(runm "docs/README.md")
