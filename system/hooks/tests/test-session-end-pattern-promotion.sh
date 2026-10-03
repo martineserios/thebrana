@@ -131,6 +131,138 @@ SESSION_FILE="$SF" CORRECTION_RATE="0.01" CORRECTIONS="0" TOTAL="20" PROJECT="pr
 STORE_CALLS=$(grep -c "memory store" "$MOCK_LOG" 2>/dev/null || echo 0)
 assert_eq "no keys → no store calls" "$STORE_CALLS" "0"
 
+
+# ── Tests 7-13: a failed or empty READ must never become a WRITE (t-3455) ─────────────
+# The real CLI: `memory retrieve -k KEY --format json` prints noise lines, then ONE JSON object on
+# a hit whose .content is the stored value (object, or a JSON-encoded string), or
+# "[WARN] Key not found: KEY" with rc 0 on a clean miss. `memory search --format json` returns
+# {results:[{key,score,preview}]} with no value — the hook must not use it as a read.
+MOCK_CF2="$TMPDIR_T/mock-ruflo-modes"
+cat > "$MOCK_CF2" <<'MOCK'
+#!/usr/bin/env bash
+MOCK_LOG="${RUFLO_MOCK_LOG:-/tmp/ruflo-mock-calls.log}"
+echo "$@" >> "$MOCK_LOG"
+if echo "$@" | grep -q "memory retrieve"; then
+    KEY=$(echo "$@" | sed -n 's/.*-k \([^ ]*\).*/\1/p')
+    echo "Transformers.js loaded: Xenova/all-MiniLM-L6-v2" >&2  # model-load noise goes to stderr, as live
+    MODE="${MOCK_SEARCH_MODE:-missing}"
+    if [ "$MODE" = "bykey" ]; then MODE="${KEY##*:m-}"; fi               # per-key mode: …:m-found, …:m-ceiling, …:m-missing
+    case "$MODE" in
+        ceiling)  exit 124 ;;                                   # the shim ceiling fired
+        error)    echo "boom" >&2; exit 127 ;;                  # CF missing / crashed
+        garbage)  echo "not json at all"; exit 0 ;;             # rc 0, no JSON, no WARN
+        wrongkey) printf '{"key":"pattern:other:key","namespace":"pattern","content":{"problem":"other"}}\n'; exit 0 ;;
+        found)    printf '{"key":"%s","namespace":"pattern","content":"{\\"problem\\":\\"orig-problem\\",\\"confidence\\":0.5,\\"recall_count\\":1}","tags":["[\\"client:cosmos-trading\\"","\\"type:pattern\\"","\\"confidence:quarantine\\"]"]}\n' "$KEY"; exit 0 ;;
+        noisy)    echo '{"info":"a json-shaped noise line"}'; printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem","confidence":"0.5","recall_count":1.0}}\n' "$KEY"; exit 0 ;;
+        found2)   printf '{"key":"%s","namespace":"pattern","content":"\\"{\\\\\\"problem\\\\\\":\\\\\\"orig-problem\\\\\\",\\\\\\"confidence\\\\\\":0.5}\\""}\n' "$KEY"; exit 0 ;;
+        foundobj) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem","confidence":0.5,"recall_count":1}}\n' "$KEY"; exit 0 ;;
+        text)     printf '{"key":"%s","namespace":"pattern","content":"plain prose, not json"}\n' "$KEY"; exit 0 ;;
+        partial124) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem"}}\n' "$KEY"; exit 124 ;;  # JSON printed, then the ceiling
+        missing)  echo "[WARN] Key not found: $KEY"; exit 1 ;;     # the pinned 3.34 CLI exits 1 on a miss
+        missing0) echo "[WARN] Key not found: $KEY"; exit 0 ;;     # a CLI that exits 0 on a miss must classify the same
+        storefail) printf '{"key":"%s","namespace":"pattern","content":{"problem":"orig-problem","confidence":0.5,"recall_count":1}}\n' "$KEY"; exit 0 ;;
+    esac
+fi
+if echo "$@" | grep -q "memory search"; then echo '{"query":"x","results":[],"searchTime":"1ms"}'; fi
+if echo "$@" | grep -q "memory store"; then          # capture the stored value verbatim for strict assertions
+    while [ $# -gt 0 ]; do
+        [ "$1" = "-v" ] && printf '%s\n' "$2" > "$MOCK_LOG.value"
+        [ "$1" = "--tags" ] && printf '%s\n' "$2" > "$MOCK_LOG.tags"
+        shift
+    done
+    [ "${MOCK_SEARCH_MODE:-}" = "storefail" ] && exit 124
+fi
+exit 0
+MOCK
+chmod +x "$MOCK_CF2"
+cat > "$TMPDIR_T/.claude/scripts/cf-env.sh" <<EOF
+export CF="$MOCK_CF2"
+EOF
+
+run_mode() {  # run_mode MODE KEY → runs a clean promote session with one recalled key
+    local mode="$1" key="$2" sf; sf="$TMPDIR_T/session-$mode.jsonl"
+    make_session_file "$sf" "[\"$key\"]"
+    rm -f "$MOCK_LOG"
+    MOCK_SEARCH_MODE="$mode" SESSION_FILE="$sf" CORRECTION_RATE="0.01" CORRECTIONS="0" TOTAL="20" PROJECT="proj" \
+        bash "$HOOK" 2>/dev/null
+}
+store_calls() { local n; n=$(grep -c "memory store" "$MOCK_LOG" 2>/dev/null); echo "${n:-0}"; }   # grep -c prints 0 AND exits 1 on no match
+last_audit() { tail -1 "$TMPDIR_T/.claude/logs/pattern-promotion.jsonl" 2>/dev/null; }
+
+echo "Test 7: read hits the shim ceiling (rc 124) → NO store (must-fire)"
+run_mode ceiling "pattern:proj:key7"
+assert_eq "ceiling read → zero store calls" "$(store_calls)" "0"
+assert_eq "ceiling read counted as skipped_unreadable in THIS run's audit line" "$(last_audit | jq -r '.skipped_unreadable')" "1"
+
+echo "Test 8: read exits 127 → NO store"
+run_mode error "pattern:proj:key8"
+assert_eq "errored read → zero store calls" "$(store_calls)" "0"
+
+echo "Test 9: rc 0 but no JSON and no WARN → NO store"
+run_mode garbage "pattern:proj:key9"
+assert_eq "garbage read → zero store calls" "$(store_calls)" "0"
+
+echo "Test 10: JSON for a different key → NO store"
+run_mode wrongkey "pattern:proj:key10"
+assert_eq "wrong-key read → zero store calls" "$(store_calls)" "0"
+
+echo "Test 11: entry found, content is a JSON-encoded string → merged store keeps original fields"
+run_mode found "pattern:proj:key11"
+assert_eq "found entry → exactly one store call" "$(store_calls)" "1"
+stored_ok() { jq -e "$1" "$MOCK_LOG.value" >/dev/null 2>&1 && echo yes || echo no; }
+assert_eq "stored value is a JSON object with the ORIGINAL problem field (not a substring, not a wrapper)" \
+    "$(stored_ok '.problem == "orig-problem" and (has("_raw") | not)')" "yes"
+assert_eq "stored value has confidence 0.6 and recall_count bumped to 2" "$(stored_ok '.confidence == 0.6 and .recall_count == 2')" "yes"
+assert_eq "store keeps the ROW's tags (client:cosmos-trading), swaps only the confidence tag" \
+    "$(cat "$MOCK_LOG.tags" 2>/dev/null)" "client:cosmos-trading,type:pattern,confidence:unproven"
+
+echo "Test 11b: a JSON-shaped noise line before the row, string confidence and float recall_count → still one clean merge"
+run_mode noisy "pattern:proj:key11b"
+assert_eq "noisy read → one store call" "$(store_calls)" "1"
+assert_eq "noisy read → coerced numbers: confidence 0.6, recall_count 2" "$(stored_ok '.confidence == 0.6 and .recall_count == 2')" "yes"
+assert_file_contains "store is an explicit upsert" "$MOCK_LOG" '[-]-upsert'
+assert_eq "hook never uses memory search as a read" "$(grep -c 'memory search' "$MOCK_LOG" 2>/dev/null || true)" "0"
+
+echo "Test 12: entry found, content double-encoded (live row shape) and as a bare object → both merge"
+run_mode found2 "pattern:proj:key12"
+assert_eq "double-encoded content → one store call" "$(store_calls)" "1"
+assert_file_contains "double-encoded content survives the merge" "$MOCK_LOG" 'orig-problem'
+run_mode foundobj "pattern:proj:key12b"
+assert_eq "object content → one store call" "$(store_calls)" "1"
+assert_file_contains "object content survives the merge" "$MOCK_LOG" 'orig-problem'
+
+echo "Test 13: clean miss (WARN Key not found, rc 1 as live, and rc 0) and non-JSON content → NO store, counted as missing"
+run_mode missing "pattern:proj:key13"
+assert_eq "clean miss (rc 1) → zero store calls (no placeholder, ever)" "$(store_calls)" "0"
+assert_eq "clean miss (rc 1) counted as missing, not unreadable" "$(last_audit | jq -r '"\(.missing)/\(.skipped_unreadable)"')" "1/0"
+run_mode missing0 "pattern:proj:key13a"
+assert_eq "clean miss (rc 0) → zero store calls" "$(store_calls)" "0"
+assert_eq "clean miss (rc 0) counted as missing too" "$(last_audit | jq -r '.missing')" "1"
+run_mode text "pattern:proj:key13b"
+assert_eq "prose content → zero store calls" "$(store_calls)" "0"
+
+echo "Test 14: JSON printed but the read still exits 124 → the rc wins, NO store"
+run_mode partial124 "pattern:proj:key14"
+assert_eq "partial output + rc 124 → zero store calls" "$(store_calls)" "0"
+
+echo "Test 15: demote keeps recall_count and lowers confidence (bash arithmetic string-compare bug)"
+SF="$TMPDIR_T/session-demote-found.jsonl"; make_session_file "$SF" '["pattern:proj:key15"]'; rm -f "$MOCK_LOG" "$MOCK_LOG.value"
+MOCK_SEARCH_MODE=found SESSION_FILE="$SF" CORRECTION_RATE="0.30" CORRECTIONS="6" TOTAL="20" PROJECT="proj" bash "$HOOK" 2>/dev/null
+assert_eq "demote → one store call" "$(store_calls)" "1"
+assert_eq "demote → recall_count unchanged (1) and confidence 0.4" "$(stored_ok '.recall_count == 1 and .confidence == 0.4')" "yes"
+
+echo "Test 17: mixed batch (ceiling, found, missing) in ONE run → one store, counters 1/1/1, later keys not dropped"
+SF="$TMPDIR_T/session-mixed.jsonl"
+make_session_file "$SF" '["pattern:proj:a:m-ceiling","pattern:proj:b:m-found","pattern:proj:c:m-missing"]'
+rm -f "$MOCK_LOG" "$MOCK_LOG.value" "$MOCK_LOG.tags"
+MOCK_SEARCH_MODE=bykey SESSION_FILE="$SF" CORRECTION_RATE="0.01" CORRECTIONS="0" TOTAL="20" PROJECT="proj" bash "$HOOK" 2>/dev/null
+assert_eq "mixed batch → exactly one store (the found key)" "$(store_calls)" "1"
+assert_eq "mixed batch → promoted/skipped/missing = 1/1/1" "$(last_audit | jq -r '"\(.promoted)/\(.skipped_unreadable)/\(.missing)"')" "1/1/1"
+
+echo "Test 16: store fails (rc 124) → not counted as promoted, counted as store_failed"
+run_mode storefail "pattern:proj:key16"
+assert_eq "failed store → promoted 0, store_failed 1" "$(last_audit | jq -r '"\(.promoted)/\(.store_failed)"')" "0/1"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"
