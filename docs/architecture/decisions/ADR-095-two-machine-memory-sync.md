@@ -10,7 +10,7 @@ informs: docs/architecture/decisions/ADR-038-memory-write-gateway.md
 **Date:** 2026-10-02
 **Deciders:** Martín Rios
 **Tags:** memory, ruflo, sync, git, macos, harness
-**Tasks:** t-3403 (this ADR) · implementation t-3404..t-3410 (see *Implementation*)
+**Tasks:** t-3403 (this ADR) · implementation t-3404..t-3410, security t-3416..t-3420 (see *Implementation*) · t-3415 (threat-model amendment)
 **Extends:** [ADR-015](ADR-015-state-consolidation-plugin-first.md) (cache-then-sync; git is the source of truth)
 **Respects:** [ADR-038](ADR-038-memory-write-gateway.md) (dated, parallel-safe note files) and [ADR-058](ADR-058-search-provider-hybrid-recall.md) (ruflo never auto-indexes `~/.claude/memory/`)
 
@@ -75,7 +75,24 @@ brana-knowledge records the ruflo version and embedding model that wrote the cur
 
 ### Privacy boundary
 
-Everything above goes to the **private** `brana-knowledge` repo only. The public thebrana repo never receives memory content (consistent with t-3352; `system/state/patterns-export.json` is already gitignored there). An export step that cannot reach the private repo does nothing; it never falls back to the public one.
+Everything above goes to the **private** `brana-knowledge` repo only (the public-repo half of the threat model; the other threats are in the section above). The public thebrana repo never receives memory content (consistent with t-3352; `system/state/patterns-export.json` is already gitignored there). An export step that cannot reach the private repo does nothing; it never falls back to the public one.
+
+## Threat model
+
+The first draft covered only "memory must not reach the public repo". That is one of six threats. Memory is not inert data: it is loaded into Claude's context at session start, so what is synced becomes instructions on every machine that imports it, and the two machines are not equally trusted (the Mac is a work laptop that sleeps and may be company-managed; the Linux laptop is the owner's).
+
+| # | Threat | How it happens | Mitigation (decision) | Task |
+|---|---|---|---|---|
+| T1 | **Memory poisoning** | Anything that can push to `brana-knowledge` (a compromised Mac, a stolen token, a bad import) plants an entry such as "ignore previous instructions" that persists on both machines | Every imported entry carries provenance (`origin_host`, source commit). Entries from a lower-trust host are quarantined: searchable, flagged, **not injected at session start** until approved from a one-screen import diff. Per-entry size and instruction-shape limits. | t-3416 |
+| T2 | **Secrets in memory** | A note or pattern holds a token or password (precedent: the 2026-06-03 handoff with `ANITA_ADMIN_SECRET`); sync copies it to GitHub and to the other machine | Secret scan **in the export/push path** (not only a commit hook). A hit blocks that entry and reports file and key, never the value. | t-3417 |
+| T3 | **Client confidentiality** | A machine receives clients it does not work on. The 2026-10-02 restore put all clients' notes and a 7,150-entry DB on a laptop used for one client | Each machine declares a **client allowlist**; export, pull and restore filter by it. Unscoped entries are general knowledge and sync. A one-off audit and remediation for the Mac's over-collection. | t-3418 |
+| T4 | **Account or token compromise** | A stolen GitHub token pushes forged entries to both machines | **Signed commits per machine** (own SSH signing key), verified against an allowed-signers file before import; unsigned or unknown signers are refused. | t-3419 |
+| T5 | **Excess credentials on the weaker machine** | `gh auth login` on the Mac granted access to every private repo | Fine-grained token or deploy keys limited to the repos that machine needs. | t-3420 |
+| T6 | **Transfer leftovers** | Raw client data and the DB copied to a synced Desktop folder (iCloud), to unencrypted USB media, install scripts of npm packages run with `--allow-scripts` | Never stage transfer files in a synced folder; encrypt or wipe media; list allowed install scripts knowingly; check MDM/company management first. | t-3420 |
+
+**Trust direction.** The rule is asymmetric on purpose: the owner's machine can push to the Mac freely, but entries flowing *from* the lower-trust machine back to the owner's pass through T1's quarantine until approved. If the Mac is company-managed, treat it as lower-trust by default.
+
+**Residual risk accepted:** a compromised owner machine can still poison the Mac; both machines share one private repo as a single point of failure (it is also the backup). The T1 to T4 mitigations bound the damage; they do not remove it.
 
 ## Options considered
 
@@ -96,7 +113,7 @@ Everything above goes to the **private** `brana-knowledge` repo only. The public
 - Both machines must run the pinned ruflo version.
 - Session start gains a bounded pull and import step; it must stay inside the session-start hook's size and time budgets (`session-start.sh` is already near its 50 KB gate, so the new step lives in its own script).
 
-**Residual risks.** Clock skew on same-key edits; a brana-knowledge push blocked by a large file (the memory DB stays gitignored; a size check belongs in export); the private repo as a single point of failure (it is also the backup).
+**Residual risks.** (Security: see *Threat model*.) Clock skew on same-key edits; a brana-knowledge push blocked by a large file (the memory DB stays gitignored; a size check belongs in export); the private repo as a single point of failure (it is also the backup).
 
 ## Open questions
 
@@ -114,3 +131,10 @@ Everything above goes to the **private** `brana-knowledge` repo only. The public
 5. **t-3408** — `brana memory restore` for a new machine (replaces the manual runbook).
 6. **t-3409** — privacy audit: prove no memory content can reach the public repo.
 7. **t-3410** — concurrency test: two homes writing in parallel, then converging.
+8. **t-3416** — provenance and quarantine for imported entries (T1).
+9. **t-3417** — secret scan on export (T2).
+10. **t-3418** — per-machine client allowlist and audit of the Mac's over-collection (T3).
+11. **t-3419** — signed commits per machine, verified before import (T4).
+12. **t-3420** — macOS setup security hygiene: scoped token, transfer media, synced folders (T5, T6).
+
+Tasks 8 to 11 gate task 3 (session-start pull): importing without them would ship the sync with the poisoning path open.
