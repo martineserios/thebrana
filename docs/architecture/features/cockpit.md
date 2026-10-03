@@ -11,8 +11,10 @@ impl_files:
   - mods/cockpit-pane/
   - mods/_shared/
   - system/cli/rust/crates/brana-cli/src/commands/cockpit.rs
+  - system/scripts/mods-check.sh
   - validate.sh
   - .github/workflows/ci.yml
+  - .github/workflows/mods-drift.yml
   - bootstrap.sh
   - .claude-plugin/marketplace.json
 ---
@@ -22,7 +24,7 @@ impl_files:
 **Status:** specifying
 **Task:** t-3425 · epic t-3422 `cockpit`
 **ADR:** [ADR-096](../decisions/ADR-096-cockpit-surface-claude-code-mods.md) — the six laws this spec implements. The laws are not restated here; every section names the law it serves.
-**Implements:** t-3427 (CI harness) · t-3428 (snapshot verb) · t-3429 (band) · t-3387 (pane shell + Board) · t-3432 (instrumentation + day-14 rule)
+**Implements:** t-3427 (CI harness, `_shared`, bootstrap 7c/7d) · t-3428 (Rust verbs) · t-3429 (band) · t-3387 (pane shell + Board) · t-3432 (instrumentation + day-14 rule)
 **Evidence:** [ideas/brana-cockpit-mod.md](../../ideas/brana-cockpit-mod.md) (brainstorm, challenger quorum, spike t-3426) · prototype `backlog-pane` (session dev-mods, 16 tests)
 
 ## Problem
@@ -46,43 +48,50 @@ See ADR-096 (accepted 2026-10-03). This spec adds no decision; where it had to p
 
 ## Scope (v1 = tier 1 + 2a)
 
-**In:** `mods/_shared` (allowlist, run, state, probe, log) · `mods/cockpit-band` · `mods/cockpit-pane` with the Board tab only · `brana cockpit snapshot --json` and `brana cockpit log-event` · `bootstrap.sh` install step + `--check` assertion · validate.sh Check 77 · ci.yml pinned-CLI step + scheduled drift job · `brana ops cockpit` read-out of the open/close log · the day-14 reminder.
+**In:** `mods/_shared` (allowlist, run, state, probe, snapshot) · `mods/cockpit-band` · `mods/cockpit-pane` with the Board tab only · `brana cockpit snapshot --json`, `brana cockpit log-event`, `brana cockpit mark-shipped`, `brana ops cockpit` · `bootstrap.sh` 7c (install) + 7d (ruflo guard) · validate.sh Check 77a/77b + `system/scripts/mods-check.sh` · ci.yml pinned-CLI step + `mods-drift.yml` · the day-14 reminder.
 **Out (2b, after the signal):** Wave/Orbit, Ops, Build, Valves tabs; any valve action; any pane spec beyond Board.
 
 ## Research
 
-- **Deploy route (spike t-3426):** a `plugins[]` entry with `"source": "./mods/<name>"` installs via `claude plugin install <name>@brana --scope user` and populates `enabledPlugins` + the plugin cache; hooks then run in every session kind including `claude -p`. `bootstrap.sh` Step 7a/7b already registers the `brana` marketplace in `known_marketplaces.json` and symlinks `~/.claude/plugins/marketplaces/brana` → this repo, so a mod install resolves against the live checkout.
-- **Engine data (spike):** `session.measure` pushes `{ context: { tokens, window, percent }, rateLimits: [{ kind, percentUsed, resetsAt }], cost: { usd }, changed[] }`; `$.session.usage()` returns the same; `session.start` knows only `window`. `AbovePrompt` gives `hasSurvey`, `isWorking`, `maxRows`, `bodyColumns`. A pane docks only under `/tui fullscreen`; `$.ui.open` returns `{ isPlaced, reason }`.
-- **Prototype (`backlog-pane`):** pure logic in `board.ts` (parse, format, args, stale label, shape guard), adapter in `register.tsx`, 16 tests under `claude plugin test`; `claude plugin validate` prints `hooks:` / `calls:` lines. Lessons: a stale `$.state` shape threw inside `ui.render` and drew nothing; hotkeys need focus, so subcommands mirror them; `claude plugin test` needs `hooks/hooks.json` even for pure-module tests.
-- **validate.sh:** checks are numbered blocks with `--fast` and narrow-mode skips; Check 70 delegates a sweep to a script so new suites need no edit — Check 77 copies that shape. **ci.yml:** `validate` job builds the Rust CLI then runs `./validate.sh`; `tests` and `macos` jobs exist; the uv incident (ci.yml ~line 96) is the exit-127 class.
-- **Ecosystem:** `linear-mod` (board → item → prompt buttons), ruv's `ruflo-console` (palette shows the exact command, then confirms; hotkeys mirrored as subcommands), Anthropic's `blast-radius` (hold + Proceed/Cancel) — memory `reference_claude-code-mods-ecosystem`.
+- **Deploy route (spike t-3426):** a `plugins[]` entry with `"source": "./mods/<name>"` installs via `claude plugin install <name>@brana --scope user` and populates `enabledPlugins` + the plugin cache; hooks then run in every session kind including `claude -p`. `bootstrap.sh` Step 7a/7b registers the `brana` marketplace in `known_marketplaces.json` and **replaces the GitHub clone with a symlink** `~/.claude/plugins/marketplaces/brana` → this checkout — which is `dev` (ADR-094) — so an install from it takes `dev`'s mod code, and the install *copies* into the plugin cache (later edits do not propagate: the `plugin-cache-drift` class).
+- **Engine data (spike + types):** `session.measure` pushes `{ context: { tokens, window, percent }, rateLimits: [{ kind, percentUsed, resetsAt }], cost: { usd }, changed[] }`; `$.session.usage()` returns the same; `session.start` knows only `window`. `$.session.version()` → `{ version, version_base?, … }` (the `claude --version` string; a `-dev` build has `version_base` ending `-dev`). The `engine.create` hook's `e.plugins` lists the module names of the fold (managed first). `$.plugin` holds only `{ name, root }`. `AbovePrompt` gives `hasSurvey`, `isWorking`, `maxRows`, `bodyColumns` (the *transcript* width — narrower while a pane is docked). `Pane` gives its own `bodyColumns` and `placement: dock | inline`. `ui.close` carries `origin.kind ∈ plugin | person | unload`. A pane docks only under `/tui fullscreen`; `$.ui.open` returns `{ isPlaced, reason }`. A band Button with a `hotkey` is pressed by a bare digit in an empty composer (the survey mechanism); "two on one hotkey: later wins".
+- **Prototype (`backlog-pane`):** pure logic in `board.ts` (parse, format, args, stale label, shape guard), adapter in `register.tsx`, 16 tests under `claude plugin test`; `claude plugin validate` prints `hooks:` and `calls:` lines. Lessons: a stale `$.state` shape threw inside `ui.render` and drew nothing; hotkeys need focus, so subcommands mirror them; the search box is an `Input` reached by Tab/click, not a `/` key; `claude plugin test` needs `hooks/hooks.json` even for pure-module tests.
+- **validate.sh:** numbered blocks with `--fast` and narrow-mode skips; Check 70 delegates to a script so new suites need no edit; last check is 76. **ci.yml:** `validate` job builds the Rust CLI then runs `./validate.sh`; `macos` job asserts a stock environment and runs `--fast`; "Check version sync" reads `plugins[0]`; the uv incident (ci.yml ~line 96) is the exit-127 class. **bootstrap.sh** ~line 259 already tolerates a missing `claude` binary.
+- **Ecosystem:** `linear-mod`, ruv's `ruflo-console`, Anthropic's `blast-radius` — memory `reference_claude-code-mods-ecosystem`.
 
 ## Assumptions (need confirmation)
 
-1. **CI installs the CLI from npm:** chose `npm install -g @anthropic-ai/claude-code@<pinned>` on ubuntu because it is the documented install path and gives an exact pin — **needs confirmation** (t-3427 verifies on the first run; ADR-096 Q3 asks whether `plugin validate|test` need auth/network).
-2. **Install against the symlinked marketplace:** chose to reuse bootstrap 7b's symlink (`marketplaces/brana` → repo) rather than a second directory-source marketplace, because the spike proved a directory source and the symlink *is* a directory — **needs confirmation** on first bootstrap run.
-3. **Quota display:** chose percent + reset time only (no token counts) because `rateLimits` carries `percentUsed` and `resetsAt`, nothing finer — confirm the band should not try to show more.
-4. **Keymap:** chose `ctrl+x tab` (engine focus chord) + `1/2/3/r/s/a/x/Esc` as in the prototype; nothing else bound — confirm.
-5. **Dev loop:** chose `claude --plugin-dir mods/<name>` as the documented loop (hot-load of a *new* folder into dev-mods was not observed in the spike) — confirm, or spike hot-load separately.
-6. ~~Engine version readable~~ — verified: `$.session.version()` and `engine.create`'s `e.plugins` exist; no assumption remains here.
+1. **CI installs the CLI from npm:** `npm install -g @anthropic-ai/claude-code@<pinned>` on ubuntu, because it is the documented path and pins exactly — **needs confirmation**; t-3427 verifies on the first run.
+2. **`claude plugin validate|test` run headless with no auth and no network** — the whole 77b proof rests on it (ADR-096 Q3); **needs verification** on the first CI run.
+3. **Install from the symlinked marketplace is acceptable for the operator's own machine**, with the caveat that it installs `dev`'s code into the cache; `--check` therefore compares *versions*, not presence (see bootstrap 7c). **Needs confirmation** that "installed from dev, bumped per change" is the intended operator model (the public ship path stays `main` → GitHub marketplace).
+4. **Quota display:** percent + reset time only — `rateLimits` carries nothing finer. Confirm.
+5. **Keymap:** engine focus chord + `1/2/3/r/s/a/x/Esc`; search via Tab to the field; nothing else bound. Confirm.
+6. **Dev loop:** `claude --plugin-dir mods/<name>` (new-folder hot-load into dev-mods was not observed in the spike). Confirm, or spike hot-load separately.
+7. **"Interactive session" is detectable at `session.start`** (a surface/draw-capability field on the payload) so the `session` event is logged only for sessions that *could* open a pane; t-3429 pins the field. If no such field exists, the fallback is "log `session` from the first `ui.render` of the band" (a band that drew is interactive by definition). **Needs verification.**
+8. **`engine.create` is hookable by an ordinary mod and its `e.plugins` includes managed/other plugin names** — the types say so; the ruflo-gate detection below uses it *and* a run-error fallback, so the design holds either way. **Needs verification** (t-3427, with ruflo-mods enabled in a temp HOME; also records the exact refusal error text).
 
 ## Behavior
 
-- **Band (tier 1):** every turn the band shows context fill, 5h/7d quota and the guard state. Past the context-budget thresholds (55 / 70 / 85 %) the gauge changes colour and offers the rule's action as a button that fills the prompt (`/compact`, `/brana:close --continue`). With no snapshot (brana unreachable, timeout, unknown CC version) the band shows one short degraded line or nothing — never stale numbers.
-- **Pane (tier 2a):** `/brana` (alias `/board`) opens the Board pane: In progress · Next · Blocked columns (stacked under 96 cells), rows pressable, a detail panel underneath, Start / Ask / Close buttons that only fill the prompt. Every open and close writes one line through `brana cockpit log-event`.
-- **Success is confirmed** by: the band's number equals the statusline's; `brana ops cockpit` lists opens per session; `./validate.sh --check 77` and CI are green; `bootstrap.sh --check` reports both mods installed.
+- **Band (tier 1):** every turn the band shows context fill, 5h/7d quota and the guard-file state. Past the context-budget thresholds (55 / 70 / 85 %) the gauge changes colour and offers the rule's action as a button that fills the prompt (`/compact`, `/brana:close --continue`). Gauge and quota come **from the engine event and never from the snapshot**, so they draw whenever `session.measure` has fired; a snapshot failure only dims the guard cell. On an untested engine version the band shows one line and nothing else.
+- **Pane (tier 2a):** `/brana` (alias `/board`) opens the Board pane: In progress · Next · Blocked columns (tabs under the width threshold), rows pressable, a detail panel underneath, Start / Ask / Close buttons that only fill the prompt. Every open writes one event line; close is best-effort.
+- **Success is confirmed** by: the band's percent equals the statusline's; `brana ops cockpit` prints the day-8–14 ratio with its denominator; `./validate.sh --check 77` and CI are green; `bootstrap.sh --check` reports both mods installed at the manifest version.
 
 ## Edge cases
 
-- `session.measure` not yet fired (first turn): band shows `ctx —` dims, no colour.
+- `session.measure` not yet fired (first turn): gauge and quota cells show `—`, dim; guard cell from the snapshot if available.
 - `rateLimits` empty (API-key session): quota cells show `—`; nothing is inferred.
-- Pane opened on the main screen (not fullscreen): seats inline above the prompt; the command's text reply says `inline — /tui fullscreen docks it right`.
-- `$.ui.open` → `{ isPlaced: false, reason }`: reply with the reason; no retry loop.
+- Pane opened on the main screen (not fullscreen): seats inline above the prompt; the reply says `inline — /tui fullscreen docks it right`.
+- `$.ui.open` → `{ isPlaced: false, reason }`: reply with the reason; no retry loop; no `open` event logged.
 - `$.state` holds an older `schema`: discarded, reloaded, one dim line `cockpit-pane: state v1 discarded`.
-- `brana` exits non-zero / times out (15 s): board shows the error line in red with the age of the last good snapshot; band shows `cockpit: brana unreachable` for one turn, then nothing.
-- Untested CC version: band shows `cockpit: untested CC <ver> — statusline only`; pane command replies the same; no other draw.
-- `ruflo-mods` enabled: `bootstrap.sh --check` fails naming the entry; the probe's degrade line says `ruflo-mods trust gate`.
-- Two sessions open the pane at once: each logs its own session id; the snapshot cache is shared read-only (last writer wins on refresh; no lock, counts only).
+- `brana` exits non-zero / times out (15 s): board shows the error line in red with the age of the last good snapshot; band shows `guard ?` and nothing else changes.
+- `run()` refused by another mod's trust gate (error text matching the recorded refusal): band line `cockpit: ruflo-mods trust gate — statusline only`; pane reply the same. Bootstrap 7d is the guaranteed layer; this is the in-session explanation.
+- Untested engine version (`version_base` not in `SUPPORTED`, including any `-dev` build): band shows `cockpit: untested CC <ver> — statusline only`; pane command replies the same; no other draw.
+- Search results: replace the **Next** column (or tab) with `Search “q” N`; header gains `esc clears`; empty query restores Next.
+- Zero tasks in a column: `—`. Zero tasks everywhere: `backlog empty — brana backlog add`.
+- Selected task vanished after a refresh (completed/cancelled elsewhere): detail panel shows `t-NNN no longer listed · x` and nothing else.
+- `r` pressed while the search `Input` has focus: it types into the field (engine behaviour) — the header's `refresh` Button is the way out; documented, not fought.
+- Orange/red band needing 2 rows with `maxRows` of 1: the action buttons move onto the first row after the message, truncating the quota cells first.
+- Two sessions open the pane at once: each logs its own session id; the snapshot cache is shared and refreshed under a non-blocking lock (loser serves the cached copy with its age).
 
 ## Design
 
@@ -90,46 +99,53 @@ See ADR-096 (accepted 2026-10-03). This spec adds no decision; where it had to p
 
 ```
 mods/
-├── _shared/                     pure, tested, imported by both mods
+├── package.json                 one dev dependency: typescript (pinned); nothing runtime
+├── _shared/                     pure, tested, imported by both mods — SCANNED by 77a like a mod
 │   ├── allowlist.ts             READ + WRITE argv lists (the only place verbs are named)
-│   ├── run.ts                   run($, argv, init) → checks allowlist, calls $.process.run
-│   ├── state.ts                 atom schema:N + readValid($, atom, guard, reload)
-│   ├── probe.ts                 engine-version probe → 'ok' | 'untested' | 'ruflo-gate'
-│   ├── snapshot.ts              parse + age/stale for `brana cockpit snapshot --json`
+│   ├── run.ts                   the ONLY file allowed to call $.process.run
+│   ├── state.ts                 atom schema:N + readValid($, atom, guard)
+│   ├── probe.ts                 engine-version probe → 'ok' | 'untested'; trust-gate classifier for run() errors
+│   ├── snapshot.ts              parse + age for `brana cockpit snapshot --json`
 │   └── *.test.ts
 ├── cockpit-band/
-│   ├── .claude-plugin/plugin.json    name cockpit-band · types ./types/index.d.ts
+│   ├── .claude-plugin/plugin.json    name cockpit-band · version x.y.z · types ./types/index.d.ts
 │   ├── hooks/hooks.json              { "modules": ["./register.tsx"] }
-│   ├── hooks/register.tsx            ≤ ~100 lines: hooks + draw only
-│   ├── hooks/band.ts                 pure: thresholds, labels, templates
+│   ├── hooks/register.tsx            thin adapter: hooks + draw only
+│   ├── hooks/band.ts                 pure: thresholds, labels, templates, layout at 60/80/120 cells
 │   ├── hooks/band.test.ts
 │   └── types/index.d.ts              PluginState['cockpit-band']
 └── cockpit-pane/                     the prototype, moved; same shape as cockpit-band
 ```
 
-Each mod is a complete plugin; `_shared` is imported by relative path (`../../_shared/run`) — no package manager, no `node_modules`. `.claude-plugin/types/` (engine-written) and `tsconfig.json` are gitignored.
+Each mod is a complete plugin; `_shared` is imported by relative path (`../../_shared/run`) — no `node_modules` at runtime. `.claude-plugin/types/` (engine-written) and `tsconfig.json` are gitignored. **Every change to a mod bumps its `plugin.json` version** (validate 77a asserts the version differs from `dev`'s when the mod's files differ — the cache-drift guard, see bootstrap 7c).
 
 ### Components
 
 ```
-┌──────────────────────── Claude Code session ────────────────────────┐
-│  cockpit-band (AbovePrompt)          cockpit-pane (/brana, Pane)     │
-│  session.measure ──▶ gauge + quota   command.run ──▶ open + load     │
-│  session.start   ──▶ probe + load    ui.render   ──▶ Board + detail  │
-│  turn.complete   ──▶ load            ui.close    ──▶ log-event close │
-│        │                                   │                          │
-│        └──────── _shared/run (allowlist) ──┘                          │
-└───────────────────────────────┬──────────────────────────────────────┘
-                                │ $.process.run (no shell, argv only)
-                ┌───────────────┴────────────────┐
-                ▼                                ▼
-  brana cockpit snapshot --json         brana cockpit log-event --kind open|close
-  (read; TTL cache; counts only)        (write allowlist; appends one JSONL line)
-                │                                │
-                ▼                                ▼
-  $GIT_COMMON_DIR/brana/tasks.json      $GIT_COMMON_DIR/brana/cockpit/events.jsonl
-  (read-only, load_tasks, never lock)   (read by `brana ops cockpit`)
+┌──────────────────────── Claude Code session (mods) ──────────────────────┐
+│  cockpit-band (AbovePrompt)            cockpit-pane (/brana, Pane)        │
+│  engine.create   ──▶ probe             command.run ──▶ open + load        │
+│  session.start   ──▶ log session·load  ui.render   ──▶ Board + detail     │
+│  session.measure ──▶ gauge + quota     ui.close    ──▶ log close (best-   │
+│  turn.complete   ──▶ load                                effort, next(e)) │
+│        │                                     │                            │
+│        └────────── _shared/run (READ|WRITE allowlist) ──┘                 │
+└────────────────────────────────┬─────────────────────────────────────────┘
+                                 │ $.process.run — argv only, no shell, no git
+   ──────────────────────────── CLI side (brana, Rust) ──────────────────────
+                ┌────────────────┴──────────────────┐
+                ▼                                   ▼
+  brana cockpit snapshot --json              brana cockpit log-event
+  read · TTL cache · counts only             --kind session|open|close
+  resolves $GIT_COMMON_DIR itself            single O_APPEND line
+                │                                   │
+                ▼                                   ▼
+  …/brana/tasks.json (load_tasks only)     …/brana/cockpit/events.jsonl
+  …/brana/cockpit/snapshot.json            …/brana/cockpit/shipped_at
+                                           (read by `brana ops cockpit`)
 ```
+
+The mod never knows a path: the CLI resolves `$GIT_COMMON_DIR` from its own cwd (which may be a worktree — tested).
 
 ### `_shared/allowlist.ts` (Law 3)
 
@@ -138,88 +154,101 @@ export const READ: readonly string[][] = [
   ['brana','cockpit','snapshot','--json'],
   ['brana','backlog','get'], ['brana','backlog','query'], ['brana','backlog','next'],
   ['brana','backlog','search'], ['brana','backlog','blocked'],
-]                                   // prefix match on argv; extra args allowed only after a listed prefix
+]   // prefix match on argv; extra args allowed only after a listed prefix
 export const WRITE: readonly string[][] = [
-  ['brana','cockpit','log-event'],  // each write verb: confirm button OR automatic-and-logged (log-event only)
+  ['brana','cockpit','log-event'],   // automatic-and-logged; the only write without a confirm button
 ]
 ```
 
-`run()` denies anything whose argv does not start with a READ or WRITE prefix (`{ denied: true, reason }`), and the deny path has a must-fire test. Not on any list: `git`, `gh`, `brana recall|memory|agy`, `curl`, `claude`, `sh`. The valves verb is added to READ by t-3021's landing commit, nowhere else.
+`run()` denies anything whose argv does not start with a READ or WRITE prefix (`{ denied: true, reason }`); the deny path has a must-fire test (`brana backlog set` denied; `brana backlog get` allowed; `brana backlog get; rm` denied as one token mismatch). Not on any list: `git`, `gh`, `brana recall|memory|agy`, `curl`, `claude`, `sh`. The valves verb is added to READ by t-3021's landing commit, nowhere else — **the READ list is asserted by exact equality in a test** that fails if any `hands`/valve argv appears before then.
 
 ### `_shared/state.ts` (Law 2)
 
-Every atom's value is `{ schema: N, ...data }`. `readValid($, atom, guard)` returns the data when `guard(value)` holds and `value.schema === SCHEMA`, else returns `null` after `update(atom, () => null)`. Tests: a v(N-1) fixture is discarded; a malformed value is discarded; a valid value passes through. Rule in code comment: *state is a cache — the CLI is the source of truth; never persist a decision or an in-flight action.*
+Every atom's value is `{ schema: N, ...data }`. `readValid($, atom, guard)` returns the data when `guard(value)` holds and `value.schema === SCHEMA`, else returns `null` after `update(atom, () => null)`. Tests: a v(N−1) fixture is discarded; a malformed value is discarded; a valid value passes through. Rule in code comment: *state is a cache — the CLI is the source of truth; never persist a decision or an in-flight action.*
 
 ### `_shared/probe.ts` (Law 6)
 
-Two inputs, both verified against the engine types (2026-10-03): `$.session.version()` → `{ version, version_base? }` (the `claude --version` string), and the `engine.create` hook's `e.plugins` (the names of every module loaded in this fold — managed plugins first). `probe(version, plugins)` is pure: `SUPPORTED: readonly string[]` (release cores, e.g. `2.1.287`) in the file; `version_base` ∉ SUPPORTED → `'untested'`; `plugins` containing `ruflo-mods` → `'ruflo-gate'` (checked first — it is the worse failure); else `'ok'`. Each mod calls it from `engine.create` (where `e.plugins` is available) and keeps the result in a module variable; anything but `'ok'` → the band draws one line and the pane command replies the same line; every other hook returns `next(e)` untouched.
+`probe(version: SessionVersion): 'ok' | 'untested'` is pure: `SUPPORTED: readonly string[]` (release cores, e.g. `2.1.287`) in the file; `version_base` absent, ending `-dev`, or ∉ SUPPORTED → `'untested'`. Called once from `session.start` with `await $.session.version()`; the result lives in a module variable; anything but `'ok'` → the band draws one line, the pane command replies it, every other hook returns `next(e)` untouched.
 
-### `brana cockpit snapshot --json` (Law 2, t-3428)
+**ruflo trust gate — two layers, neither inside `probe()`:** (1) `engine.create` hook: if `e.plugins` contains `ruflo-mods`, set the module flag `gate = 'ruflo-mods'` (Assumption 8 verifies this fires for an ordinary mod); (2) `classifyRunError(err)` in `probe.ts`: a `run()` rejection whose message matches the refusal text recorded by t-3427's temp-HOME spike sets the same flag. Either sets the band/pane line to `cockpit: ruflo-mods trust gate — statusline only`. Bootstrap 7d is the layer that *prevents* the state; these two only name it correctly instead of "brana unreachable".
 
-Read-only Rust verb in `brana-cli/src/commands/cockpit.rs`, mirroring wave board's pattern (`load_tasks`, never `lock_tasks`/`save_tasks`; a byte-identical-tasks.json test). Output:
+### Rust verbs (Laws 1/2/3 — t-3428)
+
+**`brana cockpit snapshot --json`** — read-only, `brana-cli/src/commands/cockpit.rs`, mirroring wave board (`load_tasks`, never `lock_tasks`/`save_tasks`; byte-identical-tasks.json test). Output:
 
 ```json
-{ "at": "2026-10-03T15:00:00Z", "ttl_s": 20,
+{ "at": "2026-10-03T15:00:00Z", "ttl_s": 20, "age_s": 3,
   "backlog": { "in_progress": 8, "next": 15, "blocked": 23 },
-  "valves": { "waiting": 0, "source": "none" },        // "none" until t-3021; then "hands"
+  "valves": { "waiting": 0, "source": "none" },          // "none" until t-3021; then "hands"
   "ops": { "health": "ok|warn|fail", "failing_jobs": [] },
   "orbit": { "armed": false, "kill_switch": false },
   "reminders_due": 2,
   "worktrees": 3,
-  "guard": { "checkout_deny": "installed|missing" } }    // presence of t-3333's hook file, nothing more
+  "guard": { "checkout_deny_file": "present|missing" } }  // file presence only — labelled so in the band
 ```
 
-Cache: `$GIT_COMMON_DIR/brana/cockpit/snapshot.json`, rewritten when older than `ttl_s` (20 s), read otherwise; concurrent sessions share it. Warm call ≤ 100 ms. **Field list is this spec's; adding a field is a spec change, not an ADR change.**
+Cache `…/brana/cockpit/snapshot.json`: read when younger than `ttl_s` (20 s); otherwise refresh under a **non-blocking** `flock` — the winner recomputes with a cold-path budget of 5 s (ops health is the slow part) and writes **temp file + rename** in the same directory; a loser (lock held) serves the cached copy with its `age_s`. Warm ≤ 100 ms, cold ≤ 5 s, always under the mod's 15 s. **Field list is this spec's; adding a field is a spec change, not an ADR change.**
 
-### `brana cockpit log-event` (Laws 1/3, t-3428/t-3432)
+**`brana cockpit log-event --kind session|open|close --session <id> [--surface pane] [--origin person|plugin|unload]`** — appends one JSON line to `…/brana/cockpit/events.jsonl` with a single `O_APPEND` write (< PIPE_BUF, atomic; no lock, so a mod call can never hang on it). `--kind session` is idempotent per `(session, day)`.
 
-`brana cockpit log-event --kind open|close --session <id> [--surface pane] [--origin person|plugin|unload]` appends `{"at","kind","session","surface","origin"}` to `$GIT_COMMON_DIR/brana/cockpit/events.jsonl` (append-only, locked like ADR-051 stores). `brana ops cockpit [--since 14d]` prints sessions seen, sessions with ≥ 1 open, the ratio, and the day-8–14 window ratio the ADR-096 rule reads. t-3432 creates the `brana remind` entry (due day 14, dedup key `cockpit:day14`) in the same commit that ships the log.
+**`brana cockpit mark-shipped`** — writes `…/brana/cockpit/shipped_at` once (refuses if present); run by t-3432 when tier 1 + 2a land. The day-8–14 window is anchored here, not on the first event.
 
-### bootstrap.sh (Law 6)
+**`brana ops cockpit [--window 8..14]`** — reads the two files and prints: interactive sessions seen (distinct ids with a `session` event), sessions with ≥ 1 `open`, the ratio, and the same three inside the window. **The ADR-096 rule reads `opens / sessions` within days 8–14 after `shipped_at`; closes are informational.** Fixture test: a synthetic log with known counts yields the known ratio; a log with no `session` events prints `denominator 0 — band not logging?` instead of a ratio.
 
-New step **7c — Mods**: for each entry in `.claude-plugin/marketplace.json` whose `source` starts with `./mods/`: `claude plugin install <name>@brana --scope user` when not in `enabledPlugins`, else `=` line; `--check` reports `+ would install` / `=`. Step 7d — **ruflo mods guard**: if `enabledPlugins` or `.claude/settings.json` lists `ruflo-mods|ruflo-swarm|ruflo-console`, `--check` **fails** with the entry named. `CACHE_RSYNC_EXCLUDES` is untouched because `mods/` is outside `system/`.
+### Instrumentation (Law 1 — t-3432)
 
-### validate.sh — Check 77 (Laws 2/3/6)
+- `cockpit-band` logs `--kind session` once per interactive session from `session.start` (Assumption 7 for the interactive test; fallback: from the band's first `ui.render`). Headless `claude -p` and runner sessions therefore never enter the denominator.
+- `cockpit-pane` logs `open` after `isPlaced: true`, and `close` from `ui.close` with the origin — **best-effort: the hook always calls `next(e)`, never blocks the close, and the rule does not depend on it.**
+- t-3432 ships, in one commit: `mark-shipped`, the `brana remind` entry (`cockpit:day14`, due `shipped_at + 14d`, body quoting ADR-096 Law 1 verbatim), and `ops cockpit`. The week-6 check reuses the same log and verb.
 
-Shape of Check 70: skipped under `--fast`/narrow modes with a `warn`; otherwise delegates to `system/scripts/mods-check.sh`, which for every `mods/*/` with a `.claude-plugin/plugin.json`: (a) static greps — fail on `$.model`, `$.http`, `['model']`, `['http']`, destructured `{ model` / `{ http` from `$`, `fetch(`, `child_process`, `tasks.json`, `git-common-dir`, and `process.run(` outside `mods/_shared/run.ts`; (b) `claude plugin validate <mod>` must pass; (c) `claude plugin test <mod>` must pass; (d) if `claude` is absent: **FAIL** (not skip) with `claude CLI not on PATH — install it or run with --fast`. Must-fire fixtures live in `tests/fixtures/mods/bad-*` and the script's own test proves each grep fires.
+### bootstrap.sh (Law 6 — t-3427)
 
-### ci.yml (Law 6)
+- **7c — Mods.** For each entry in `.claude-plugin/marketplace.json` whose `source` starts with `./mods/`: compare the installed cache's `plugin.json` version with the repo's; missing → `claude plugin install <name>@brana --scope user`; differing → `claude plugin update <name>@brana` (or uninstall+install if update is not idempotent — t-3427 picks); equal → `=`. **`--check` never runs `claude plugin …`**: it prints `+ would install` / `~ would update <old>→<new>` / `=` and counts a change. `claude` absent → the existing ~line-259 tolerance applies: `--check` prints `! claude missing — mods not verified` and counts a change; deploy prints the same and continues.
+- **7d — ruflo mods guard.** If `~/.claude/settings.json` `enabledPlugins` or the project `.claude/settings.json` lists `ruflo-mods|ruflo-swarm|ruflo-console`, `--check` **exits non-zero** naming the entry; deploy refuses the mods step and prints the same. Must-fire test: a temp HOME with a `ruflo-mods` entry makes `bootstrap.sh --check` exit non-zero.
+- `CACHE_RSYNC_EXCLUDES` is untouched: `mods/` is outside `system/`.
 
-`validate` job gains, before "Run validation": `Install pinned Claude Code CLI` (`npm install -g @anthropic-ai/claude-code@${{ env.CC_VERSION }}`, `claude --version` must print the pin) — ubuntu only; the macOS job keeps asserting a stock environment and Check 77 there reports FAIL→ the macOS job runs `./validate.sh --fast`, which skips 77 (document this in the job comment). New workflow `mods-drift.yml`: weekly schedule, installs *latest* `claude`, runs `system/scripts/mods-check.sh`, opens nothing — a red run is the signal to bump `CC_VERSION`.
+### validate.sh — Check 77a / 77b (Laws 2/3/4/6 — t-3427)
 
-### Instrumentation + rule (Law 1, t-3432)
+Both delegate to `system/scripts/mods-check.sh`, which takes `--static` or `--engine`.
 
-`cockpit-pane` calls `log-event open` after a successful `$.ui.open` and `log-event close` from its `ui.close` hook with `--origin person|plugin|unload` (the engine stamps `e.origin.kind`; `unload` is the session ending or a reload with the pane open) — both via `run()` (WRITE list). `brana ops cockpit` counts a session as "opened" on any `open`; close origin is kept for later analysis only. `brana ops cockpit` is the read-out; the `brana remind` entry is the owner; the rule text is quoted verbatim from ADR-096 Law 1 in the remind body.
+- **77a — static, always runs** (no `claude` needed; runs under `--fast` and on macOS). Scans **`mods/**`** (including `_shared`) for every `.ts`/`.tsx`: FAIL on `$.model`, `$.http`, `['model']`, `['http']`, `Reflect.get(`, destructured `{ model` / `{ http` / `{ process` from `$`, `fetch(`, `child_process`, `tasks.json`, `git-common-dir`, `$.fs`, `readFile`, `Bun.file`, `on('tool.call'` (Law 4), and `process.run(` anywhere but `mods/_shared/run.ts`. Also asserts each mod's `plugin.json` version was bumped when its files differ from `dev` (the cache-drift guard). Must-fire fixtures in `tests/fixtures/mods/bad-*` (one per grep); the script's own test proves each fires.
+- **77b — engine, skipped under `--fast` with a `warn`**, otherwise: `claude plugin validate <mod>` must pass; its `calls:` line is parsed and **every call must be in the allowed set** `{ process.run, prompt.fill, ui.open, ui.resolve, ui.status, ui.toast, state.get, state.set, session.usage, session.version, command.register, clock.now }` — structural, catches indirection the greps miss; then `claude plugin test <mod>` must pass; `claude` absent → **FAIL** with `claude CLI not on PATH — install it or run with --fast`.
+
+### ci.yml (Law 6 — t-3427)
+
+`validate` job gains, before "Run validation": `Install pinned Claude Code CLI` (`npm install -g @anthropic-ai/claude-code@${{ env.CC_VERSION }}`; `claude --version` must print the pin; ubuntu only). "Check version sync" selects the `brana` entry **by name**, not `plugins[0]`, and additionally checks each `./mods/*` entry's version equals its `plugin.json`. The macOS job keeps `--fast`: 77a runs there (no CLI needed), 77b is skipped with its warn — the job comment says so. New workflow `mods-drift.yml`: weekly, installs *latest* `claude`, runs `mods-check.sh --engine`; a red run is the signal to bump `CC_VERSION` and `SUPPORTED`.
 
 ### Dev loop
 
-`claude --plugin-dir mods/cockpit-band --plugin-dir mods/cockpit-pane` (Assumption 5). Tests: `claude plugin test mods/<name>` and `mods/_shared`; `tsc -p mods/<name>` once the engine has laid `.claude-plugin/types/` (pinned `typescript` dev dep in `mods/package.json`, used by nothing else).
+`claude --plugin-dir mods/cockpit-band --plugin-dir mods/cockpit-pane` (Assumption 6). Tests: `claude plugin test mods/<name>` and `mods/_shared`; `tsc -p mods/<name>` once the engine has laid `.claude-plugin/types/` (pinned `typescript` dev dep in `mods/package.json`).
 
 ## UI design
 
-Conventions: one accent colour per meaning only — **green** in-progress / ok, **cyan** next, **red** blocked / error / ≥ 85 %, **yellow** warn / stale / 70–85 %, **dim** metadata; P0 red bold, P1 yellow, P3 dim. Never animate; never redraw on a timer. Every hotkey has a slash-subcommand twin.
+Conventions: one accent colour per meaning — **green** in-progress / ok, **cyan** next, **red** blocked / error / ≥ 85 %, **yellow** warn / 70–85 %, **dim** metadata; P0 red bold, P1 yellow, P3 dim. Never animate; never redraw on a timer. Every pane hotkey has a slash-subcommand twin. **Band Buttons never set `hotkey`** (a bare digit in an empty composer would press them — the survey mechanism — and collide with the pane's `1/2/3`); asserted by a test.
 
-### Band — states (tier 1, AbovePrompt, 1 row; 2 rows only when an action is offered)
+### Band — states (tier 1, AbovePrompt; designed at 60 cells, tested at 60 / 80 / 120)
 
 ```
-normal      ctx ▓▓░░░░░░░░ 23%   5h 23% ↻18:10   7d 20% ↻Oct 9   guard ✓
-orange      ctx ▓▓▓▓▓▓▓░░░ 62% ⚠ prefer summaries, delegate next step        5h 41%  7d 22%  guard ✓
-            [ /brana:close --continue ]   [ /compact ]
-red         ctx ▓▓▓▓▓▓▓▓▓░ 88% ⛔ delegate to a fresh subagent               5h 67%  7d 25%  guard ✓
-            [ /brana:close --continue ]
-quota warn  ctx ▓▓▓░░░░░░░ 31%   5h ▓▓▓▓▓▓▓▓▓░ 91% ↻18:10 ⚠                  7d 44%  guard ✓
-first turn  ctx —           5h —   7d —   guard ✓                            (session.measure not yet fired)
-stale       ctx 62% · 7m ago · stale   (snapshot unavailable; last good shown dim, labelled)
-unreachable cockpit: brana unreachable — statusline only                     (one turn, then nothing)
-degraded    cockpit: untested CC 2.1.301 — statusline only
-            cockpit: ruflo-mods trust gate — statusline only
-guard ✗     … guard ✗ hook missing   (t-3333 hook file absent: shown, never enforced)
-survey      (nothing — hasSurvey yields the band)
+60 cells  ctx ▓▓░░░░░░░░ 23%  5h 23%↻18:10  7d 20%  guard file ✓
+80 cells  ctx ▓▓░░░░░░░░ 23%   5h 23% ↻18:10   7d 20% ↻Oct 9   guard file ✓
+orange    ctx ▓▓▓▓▓▓▓░░░ 62% ⚠ prefer summaries, delegate      5h 41%  7d 22%  guard file ✓
+          [ /brana:close --continue ]   [ /compact ]
+red       ctx ▓▓▓▓▓▓▓▓▓░ 88% ⛔ delegate to a fresh subagent     5h 67%  7d 25%  guard file ✓
+          [ /brana:close --continue ]
+maxRows 1 ctx ▓▓▓▓▓▓▓░░░ 62% ⚠ [ close --continue ] [ /compact ]  guard file ✓   (quota cells dropped first)
+quota ⚠   ctx ▓▓▓░░░░░░░ 31%  5h ▓▓▓▓▓▓▓▓▓░ 91% ↻18:10 ⚠  7d 44%  guard file ✓
+1st turn  ctx —   5h —   7d —   guard file ✓                       (session.measure not yet fired)
+guard ?   ctx ▓▓░░░░░░░░ 23%  5h 23%  7d 20%  guard ?              (snapshot unavailable — gauge unaffected)
+guard ✗   …  guard file ✗                                           (t-3333 hook file absent: shown, never enforced)
+untested  cockpit: untested CC 2.1.301 — statusline only
+gate      cockpit: ruflo-mods trust gate — statusline only
+survey    (nothing — hasSurvey yields the band)
+working   (whole row dim while isWorking)
 ```
 
-Rules: the bar is 10 cells, filled proportionally from `percent`; thresholds 55/70/85 colour the bar and switch the message to the context-budget rule's text; the quota cell only expands to a bar at ≥ 80 %; buttons appear only in orange/red and each **fills** the prompt (never submits); `isWorking` dims the whole row.
+Rules: the bar is 10 cells filled from `percent`; thresholds 55/70/85 colour the bar and switch the message to the context-budget rule's text; the quota cell expands to a bar only at ≥ 80 %; buttons appear only in orange/red, never carry `hotkey`, and each **fills** the prompt; at `bodyColumns < 60` the `7d` cell goes first, then the reset times, then the guard label shortens to `g ✓`. Gauge and quota never show "stale": they are the engine's own numbers for this turn.
 
-### Pane — Board (tier 2a), docked right under fullscreen, ≥ 96 cells → columns
+### Pane — Board (tier 2a). Width = the **Pane's** `bodyColumns` (not the band's); columns at ≥ 96, tabs below
 
 ```
 ┌ Backlog ─────────────────────────────────────────────────────────────┐
@@ -240,68 +269,74 @@ Rules: the bar is 10 cells, filled proportionally from `percent`; thresholds 55/
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-Narrow (< 96 cells) or inline: tabs replace columns —
+Search active (replaces the Next column/tab):
+
+```
+│ ╭ In progress 8 ─────╮ ╭ Search “worktree” 12 · esc clears ╮ ╭ Blocked 23 ╮│
+```
+
+Narrow (< 96 cells) or inline — tabs replace columns:
 
 ```
 │ [1 In progress 8] [2 Next 15] [3 Blocked 23]           12s ago  r   │
 │ P1 S t-3305 Fix worktree-toplevel-relative tasks.json resolution…    │
-│ …                                                                    │
 ```
 
-Row grammar: `PRI EFF id ⎇? subject…` — priority coloured, `⎇` when a branch exists, subject truncated to width. Header: counts with glyphs `▶ ○ ⛔`, age with `· stale` after 5 min in yellow. Detail panel border takes the task's priority colour. Empty column shows `—`. Error: a red line under the search field, the last good snapshot stays with its age.
+Row grammar: `PRI EFF id ⎇? subject…` — priority coloured, `⎇` when a branch exists, subject truncated to width. Header: counts with `▶ ○ ⛔`, snapshot age with `· stale` after 5 min in yellow (the pane's lists *are* snapshot data, so "stale" is honest here). Detail panel border takes the task's priority colour. Empty column `—`; empty board `backlog empty — brana backlog add`. Error: a red line under the search field; the last good lists stay with their age. Vanished selection: `t-NNN no longer listed · x`.
 
-### Keymap (pane focused via `ctrl+x tab` or click; `Esc` returns to the prompt)
+### Keymap (pane focused via the engine's focus chord or a click; `Esc` returns to the prompt)
 
 | Key | Action | Slash twin |
 |---|---|---|
-| `Tab` / arrows | move between rows and buttons | — |
+| `Tab` / arrows | move between rows, buttons and the search field | — |
 | `Enter` on a row | open detail | `/brana t-NNN` |
 | `1` `2` `3` | column / tab | `/brana progress` `next` `blocked` |
-| `r` | refresh (snapshot + lists) | `/brana r` |
-| `/` + text + Enter | search (empty → back to Next) | `/brana search <q>` |
+| `r` | refresh (snapshot + lists); **types into the field if the search field has focus** | `/brana r` |
+| `Tab` to the search field, type, `Enter` | search (empty → back to Next) | `/brana search <q>` |
 | `s` | fill `/brana:backlog start t-NNN` | — (detail only) |
 | `a` | fill the fixed "next step" prompt for t-NNN | — (detail only) |
 | `x` | close detail | — |
 | — | plain text dump (headless) | `/brana dump [column]` |
 
-### Command replies (what the transcript shows)
+`/board` is registered as a second command name answering the same hook (command-registration test; if the engine rejects two names for one module, `/board` becomes a one-line reply pointing at `/brana` — t-3387 decides from the first run).
 
-`/brana` → `Backlog opened (docked)` or `Backlog opened (inline — /tui fullscreen docks it right)`; refused → `Backlog pane not shown: <engine reason>`; degraded → the probe line. Replies are one line; usage on bad args.
+### Command replies
+
+`/brana` → `Backlog opened (docked)` or `Backlog opened (inline — /tui fullscreen docks it right)`; refused → `Backlog pane not shown: <engine reason>`; untested / gate → the probe line. One line each; usage on bad args.
 
 ## Boundaries
 
 | Always | Ask first | Never |
 |---|---|---|
-| Read via `run()` + allowlist; draw from the snapshot or an event; log open/close | Any new verb on either allowlist (spec change); any button that writes (confirm) | Call `$.model`/`$.http`; read `tasks.json`; run `git`; enforce anything; auto-submit a prompt; persist a decision in `$.state`; enable ruflo mods |
+| Read via `run()` + allowlist; draw gauge/quota from the event; draw lists from the snapshot; log session/open | Any new verb on either allowlist (spec change); any button that writes (confirm) | Call `$.model`/`$.http`; read `tasks.json` or any file; run `git`; enforce anything; auto-submit a prompt; persist a decision in `$.state`; set `hotkey` on a band Button; enable ruflo mods |
 
 ## Testing strategy
 
-- **Unit (≈ 70 %):** `_shared` — allowlist deny/allow incl. prefix abuse (`brana backlog set` denied, `brana backlog get` allowed); `state` schema discard; `probe` three outcomes; `snapshot` parse + age/stale. `band.ts` — threshold → colour/message/buttons at 54/55/69/70/84/85; empty `rateLimits`; first-turn; template fill rejects a non-`t-NNN` id. `board.ts` — the prototype's 16 tests, kept.
-- **Integration (≈ 25 %):** `claude plugin test` on each mod: band draws nothing with `hasSurvey`; band shows the unreachable line when `run()` returns an error; pane open → `log-event open` argv observed; `ui.close` → `log-event close`; stale-state fixture → one dim line, reload. Rust: `cockpit snapshot` byte-identical tasks.json; TTL cache hit; `log-event` appends under lock; `ops cockpit` ratio on a fixture log.
-- **E2E (≈ 5 %):** `mods-check.sh` on the `bad-*` fixtures (each grep must fire); `bootstrap.sh --check` in a temp HOME reports the two installs; one CI run green with the pinned CLI.
+- **Unit (≈ 70 %):** `_shared` — allowlist deny/allow incl. prefix abuse; exact-equality READ list; `state` schema discard; `probe` (`ok`, `untested`, `-dev`); `classifyRunError`; `snapshot` parse + age. `band.ts` — threshold → colour/message/buttons at 54/55/69/70/84/85; empty `rateLimits`; first turn; `guard ?`; layout at 60/80/120 and `maxRows` 1; no band Button has `hotkey`; template fill rejects a non-`t-NNN` id. `board.ts` — the prototype's 16 tests, kept, plus search-replaces-Next, vanished selection.
+- **Integration (≈ 25 %):** `claude plugin test` on each mod: band draws nothing with `hasSurvey`; band shows `guard ?` when `run()` errors and the gauge still draws; band logs `session` once; pane open → `log-event open` argv observed; `ui.close` → `log-event close` *and* `next(e)` called; stale-state fixture → one dim line, reload; `/board` registration. Rust: `cockpit snapshot` byte-identical tasks.json; TTL hit; non-blocking refresh (loser serves cache); temp+rename; run from a worktree resolves the common dir; `log-event` single-line append; `mark-shipped` refuses twice; `ops cockpit` fixture ratio and the denominator-0 message.
+- **E2E (≈ 5 %):** `mods-check.sh --static` on every `bad-*` fixture (each must fire); `bootstrap.sh --check` in a temp HOME reports installs and **exits non-zero** on a `ruflo-mods` entry; one CI run green with the pinned CLI; a temp-HOME spike with `ruflo-mods` enabled records the refusal text (Assumption 8).
 - **Mock policy:** real engine via the test kit; mock only the clock and `run()`'s process boundary.
 
 ## Enforcement matrix (AC1 — one line per law)
 
 | Law | Where enforced | Must-fire proof |
 |---|---|---|
-| 1 | `log-event` on open/close; `brana ops cockpit`; `brana remind cockpit:day14` | pane test observes both argv; remind exists after t-3432 |
-| 2 | Check 77 greps `tasks.json`/`git-common-dir`/non-adapter `process.run`; `readValid` tests; snapshot is the only aggregate | `bad-reads-ledger` fixture fails Check 77 |
-| 3 | Check 77 greps model/http/fetch/child_process; `run()` allowlist deny test; template id test | `bad-calls-model` + `bad-destructured-http` fixtures fail; `brana backlog set` denied in test |
-| 4 | Band renders `guard` from the snapshot only; no `tool.call` hook registered (Check 77 greps `on('tool.call'` in cockpit mods → fail) | `bad-tool-call-hook` fixture fails |
-| 5 | `valves.source = "none"` until t-3021; no valve argv on READ until then | snapshot test asserts `source` ∈ {none, hands} |
-| 6 | bootstrap 7c/7d; Check 77 (d) FAIL on absent CLI; ci pinned install; `mods-drift.yml`; probe degrade | `--check` temp-HOME test; CI run; probe unit tests |
+| 1 | `log-event session|open`; `mark-shipped`; `brana ops cockpit`; `brana remind cockpit:day14` | band test observes `session`; pane test observes `open`; `ops cockpit` fixture ratio; remind exists after t-3432 |
+| 2 | 77a greps `tasks.json`/`git-common-dir`/`$.fs`/`readFile`/`Bun.file`/non-adapter `process.run` over `mods/**`; `readValid` tests; snapshot is the only aggregate | `bad-reads-ledger`, `bad-fs-read` fixtures fail 77a |
+| 3 | 77a greps model/http/bracket/Reflect/destructure/fetch/child_process; 77b `calls:` allowed-set parse; `run()` deny test; template id test | `bad-calls-model`, `bad-destructured-http`, `bad-reflect-get` fixtures fail 77a; a mod calling `$.http.fetch` via a template-built path fails 77b; `brana backlog set` denied in test |
+| 4 | Band renders `guard` from the snapshot only; 77a greps `on('tool.call'` in `mods/**` | `bad-tool-call-hook` fixture fails 77a |
+| 5 | `valves.source = "none"` until t-3021; READ list exact-equality test | the READ test fails on any `hands`/valve argv before t-3021 |
+| 6 | bootstrap 7c (version compare, never installs under `--check`) / 7d (non-zero exit); 77b FAIL on absent CLI; ci pinned install + per-mod version sync; `mods-drift.yml`; probe degrade | temp-HOME `--check` tests (installs reported; ruflo entry → non-zero); CI run; probe unit tests |
 
 ## Task map
 
 | Section | Task |
 |---|---|
-| `_shared`, Check 77, `mods-check.sh`, ci steps, drift workflow, `tsc` dev dep | t-3427 |
-| `cockpit snapshot`, `cockpit log-event`, `ops cockpit`, cache | t-3428 |
-| `cockpit-band` | t-3429 |
-| `cockpit-pane` (prototype → `mods/`, `/brana` + `/board` alias, log-event calls) | t-3387 |
-| remind entry, day-14 review, week-6 re-eval | t-3432 |
-| bootstrap 7c/7d | t-3427 (infra) — or t-3387 if sequencing prefers; decide at DECOMPOSE of t-3427 |
+| `_shared` (allowlist, run, state, probe, snapshot), `mods/package.json`, Check 77a/77b + `mods-check.sh` + fixtures, ci steps, `mods-drift.yml`, **bootstrap 7c/7d**, the ruflo-mods temp-HOME spike | t-3427 |
+| `cockpit snapshot`, `cockpit log-event`, `cockpit mark-shipped`, `ops cockpit`, cache + locks | t-3428 |
+| `cockpit-band` (incl. `session` event, interactive detection) | t-3429 |
+| `cockpit-pane` (prototype → `mods/`, `/brana` + `/board`, open/close events, search/vanished states) | t-3387 |
+| remind entry, `mark-shipped` run, day-14 review, week-6 re-eval | t-3432 |
 
 ## Documentation plan
 
@@ -311,8 +346,8 @@ Row grammar: `PRI EFF id ⎇? subject…` — priority coloured, `⎇` when a br
 
 ## Challenger findings
 
-_(pending — context-isolated pass before user review)_
+2026-10-03 — context-isolated pass: PROCEED WITH CHANGES, 8 findings, all applied. **Critical:** (1) Check 77 would have skipped its greps under `--fast`/macOS/no-CLI and never scanned `_shared/` → split 77a (static, always, `mods/**`) / 77b (engine, `calls:` allowed-set parse); (2) the loaded-plugin set is not a `$` noun → probe is `ok|untested` from `$.session.version()`; ruflo-gate detection via `engine.create` `e.plugins` (Assumption 8) plus `classifyRunError`; bootstrap 7d is the guaranteed layer with a must-fire test; (3) the day-14 ratio had no denominator → band logs `session` for interactive sessions; `mark-shipped` anchors the window; close is best-effort and the rule reads opens. **Warnings:** gauge/quota draw from the engine event only (no "stale ctx"; `guard ?`; "guard file"); cache temp+rename + non-blocking refresh lock; `log-event` single `O_APPEND` line; CLI resolves the common dir (worktree test); bootstrap 7c compares versions, never installs under `--check`, tolerates a missing CLI; per-mod version bump asserted; ci version sync by name; macOS runs 77a only; keymap honesty (`Tab` to search, band Buttons never `hotkey`), band at 60 cells, five missing states added. **Observation:** 7c/7d assigned to t-3427; `/board` test; READ exact-equality test; diagram relabelled CLI-side; Assumption 2 (headless `plugin test`) added.
 
 ## Changelog
 
-- 2026-10-03: spec drafted (t-3425) from ADR-096 + spike t-3426 + prototype.
+- 2026-10-03: spec drafted (t-3425) from ADR-096 + spike t-3426 + prototype; challenger pass applied.
