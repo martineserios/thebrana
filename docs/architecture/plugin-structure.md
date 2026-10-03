@@ -141,6 +141,10 @@ Brana uses a two-layer architecture. Understanding the split is important when a
 | Hook scripts | `system/hooks/*.sh` | Referenced by hooks.json |
 | Plugin identity | `system/CLAUDE.md` | CC loads plugin CLAUDE.md |
 
+### Mods Layer (`mods/`)
+
+**Installed per mod by `bootstrap.sh` 7c** from this repo's marketplace. Function-hook plugins that draw inside the session (ADR-096). Kept outside `system/` because `--sync-plugin` rsyncs `system/` with `--delete`; each mod bumps its own `plugin.json` version per change (the install copies into the plugin cache). Validated by Check 77a/77b. See [features/cockpit.md](features/cockpit.md).
+
 ### Identity Layer (`bootstrap.sh` -> `~/.claude/`)
 
 **Deployed once via `bootstrap.sh`.** Survives across projects and sessions. Not tied to any specific plugin.
@@ -165,6 +169,7 @@ When adding something new, ask:
 | Is it a hook on PostToolUse/PostToolUseFailure? | Yes | Bootstrap (via `bootstrap.sh`) until CC #24529 is fixed |
 | Is it a helper script used by hooks? | Yes | Plugin (`system/hooks/lib/`) with bootstrap fallback |
 | Does it need to exist without the plugin? | Yes | Bootstrap |
+| Is it a function-hook mod (a pane, band, or renderer of a hook's state)? | Yes | Mods layer: top-level `mods/<name>/`, its own `plugins[]` entry in `.claude-plugin/marketplace.json`, installed by bootstrap 7c — never under `system/` (ADR-096 Law 6; spec [features/cockpit.md](features/cockpit.md)) |
 
 ## Version Management
 
