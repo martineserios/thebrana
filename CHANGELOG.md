@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 2026-10-02 — ship dev→main, PR #1083 (macOS portability, epic t-3372)
+
+### Fixed
+- `bootstrap.sh` wires `statusLine` into `settings.json` instead of only copying `statusline.sh`; creates a 0600 `settings.json` on a brand-new machine; never clobbers a custom value (t-3388)
+- Test suites run under a throwaway `HOME` in both runners and in `validate.sh` Checks 65/66 — no suite can write into the operator's `~/.claude` (t-3389, `system/scripts/lib/suite-home.sh`)
+- Portability tests force the no-flock fallback on every host; `test-lock-stress.sh` no longer skips on a Mac with brew `flock` (t-3391)
+- `p_timeout` ends the whole process group, escalates to KILL, prints a heartbeat; group mode without `-k` grants survivors a 2s grace (t-3390, Gate 3)
+- ruflo MCP memory store pinned to `$HOME/.swarm` (peer session)
+
+### Added
+- ADR-095 two-machine memory sync (proposed)
+- `tests/hooks/test-portable-flock-present.sh`, `tests/bootstrap/test-statusline-setting.sh`
+
 ## [1.0.0] - 2026-03-09
 
 ### Added
