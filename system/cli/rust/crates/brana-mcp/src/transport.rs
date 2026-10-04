@@ -17,8 +17,27 @@
 //! mutex and the error replies are written from their own task: pmcp's
 //! transport actor drops a pending `receive()` whenever it has a frame to
 //! send, and a write started inside `receive()` would be cut mid-frame.
+//!
+//! **Draining at end of input (t-3462).** pmcp 2.22's transport actor stops on
+//! the first receive error, and end-of-input is one: a request it had already
+//! queued to the worker was then answered by nobody, because the actor is the
+//! only task that writes. So `receive()` counts the requests it hands over and
+//! `send()` counts the responses written; at EOF, `receive()` stays pending
+//! until every handed-over request has its response (or `DRAIN_TIMEOUT`
+//! passes), and only then reports the connection closed. While it waits, the
+//! actor keeps selecting on its outbound queue, so the responses still go out.
+//! The `-32601` replies this transport writes itself count too, and a read
+//! error other than EOF drains the same way.
+//!
+//! SUNSET: workaround for pmcp 2.22.5's `run_transport_actor`, which `break`s
+//! on any receive error without flushing queued responses. Remove the drain
+//! when pmcp drains in-flight requests on transport close — re-check on every
+//! pmcp bump; `tests/stdio_eof_drain.rs` is the tripwire (it must stay green
+//! with the drain removed before the drain can go).
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use pmcp::async_trait;
 use pmcp::error::TransportError;
@@ -27,13 +46,34 @@ use pmcp::types::jsonrpc::{JSONRPCError, JSONRPCResponse, RequestId};
 use pmcp::Result;
 use tokio::io::{AsyncBufReadExt, BufReader, Lines, Stdin};
 use tokio::sync::Mutex;
+use tokio::time::Instant;
 
 const METHOD_NOT_FOUND: i32 = -32601;
+
+/// How long a closed input may wait for in-flight requests. Requests are
+/// handled by ONE sequential worker, so this bounds all queued calls together;
+/// bounded so a handler that never answers cannot keep the process alive
+/// forever. `BRANA_MCP_DRAIN_TIMEOUT_MS` overrides it (tests; a slow host).
+const DRAIN_TIMEOUT: Duration = Duration::from_secs(30);
+
+fn drain_timeout() -> Duration {
+    std::env::var("BRANA_MCP_DRAIN_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(DRAIN_TIMEOUT)
+}
+const DRAIN_POLL: Duration = Duration::from_millis(10);
 
 #[derive(Debug)]
 pub struct LenientStdio {
     lines: Lines<BufReader<Stdin>>,
     writer: Arc<Mutex<StdioTransport>>,
+    /// Requests handed to pmcp whose response has not been written yet.
+    in_flight: Arc<AtomicUsize>,
+    /// When end of input was first seen; kept across `receive()` calls because
+    /// the actor drops and re-creates the future each time it sends a frame.
+    eof_at: Option<Instant>,
 }
 
 impl LenientStdio {
@@ -41,7 +81,29 @@ impl LenientStdio {
         Self {
             lines: BufReader::new(tokio::io::stdin()).lines(),
             writer: Arc::new(Mutex::new(StdioTransport::new())),
+            in_flight: Arc::new(AtomicUsize::new(0)),
+            eof_at: None,
         }
+    }
+
+    /// At end of input: wait until every handed-over request is answered or
+    /// the drain deadline passes. Cancellation safe — all state lives in
+    /// `self`, so a dropped future just resumes the wait on the next call.
+    async fn drain_then_close(&mut self) -> Result<TransportMessage> {
+        let since = *self.eof_at.get_or_insert_with(Instant::now);
+        let limit = drain_timeout();
+        while self.in_flight.load(Ordering::SeqCst) > 0 {
+            if since.elapsed() >= limit {
+                eprintln!(
+                    "brana-mcp: input closed; {} request(s) still unanswered after {:?}, exiting",
+                    self.in_flight.load(Ordering::SeqCst),
+                    limit
+                );
+                break;
+            }
+            tokio::time::sleep(DRAIN_POLL).await;
+        }
+        Err(TransportError::ConnectionClosed.into())
     }
 
     /// What to do with a line pmcp refused to parse.
@@ -77,12 +139,17 @@ impl LenientStdio {
 
     /// Write a frame from a task of its own, so a cancelled `receive()` can
     /// never leave half a frame on stdout.
+    /// Counted in `in_flight` like any response, so EOF right after an
+    /// unknown method still waits for its reply.
     fn reply_detached(&self, message: TransportMessage) {
         let writer = Arc::clone(&self.writer);
+        let in_flight = Arc::clone(&self.in_flight);
+        in_flight.fetch_add(1, Ordering::SeqCst);
         tokio::spawn(async move {
             if let Err(e) = writer.lock().await.send(message).await {
                 eprintln!("brana-mcp: failed to write error reply: {e}");
             }
+            let _ = in_flight.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1));
         });
     }
 }
@@ -103,21 +170,45 @@ enum Unparseable {
 #[async_trait]
 impl Transport for LenientStdio {
     async fn send(&mut self, message: TransportMessage) -> Result<()> {
-        self.writer.lock().await.send(message).await
+        let answers_request = matches!(message, TransportMessage::Response(_));
+        let sent = self.writer.lock().await.send(message).await;
+        if answers_request {
+            // Saturating: a response we did not count (a server-to-client
+            // round-trip reply) must never wrap the counter.
+            let _ = self
+                .in_flight
+                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1));
+        }
+        sent
     }
 
     async fn receive(&mut self) -> Result<TransportMessage> {
         loop {
             // `next_line` is cancellation safe: a line is never lost when the
             // transport actor drops this future to send something.
-            let Some(line) = self.lines.next_line().await.map_err(TransportError::from)? else {
-                return Err(TransportError::ConnectionClosed.into());
+            if self.eof_at.is_some() {
+                return self.drain_then_close().await;
+            }
+            let line = match self.lines.next_line().await {
+                Ok(Some(line)) => line,
+                Ok(None) => return self.drain_then_close().await,
+                Err(e) => {
+                    // Unreadable input (e.g. invalid UTF-8) ends the session the
+                    // same way EOF does — after the in-flight replies.
+                    eprintln!("brana-mcp: stdin read error, closing after in-flight replies: {e}");
+                    return self.drain_then_close().await;
+                },
             };
             if line.trim().is_empty() {
                 continue;
             }
             match StdioTransport::parse_message(line.as_bytes()) {
-                Ok(message) => return Ok(message),
+                Ok(message) => {
+                    if matches!(message, TransportMessage::Request { .. }) {
+                        self.in_flight.fetch_add(1, Ordering::SeqCst);
+                    }
+                    return Ok(message);
+                },
                 Err(_) => match Self::classify(&line) {
                     Unparseable::UnknownRequest { id, method } => {
                         self.reply_detached(Self::method_not_found(id, &method));
