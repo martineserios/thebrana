@@ -132,6 +132,14 @@ newhome; seed_installed 0.0.9
 assert "update fails, uninstall succeeds, reinstall fails: says the mod is now NOT installed and how to reinstall" yes "$(has 'is now uninstalled — run: claude plugin install cockpit-shared@brana --scope user' "$(out)")"
 assert "update and uninstall name the user scope" yes "$(has 'plugin update cockpit-shared@brana --scope user' "$(cat "$H/argv.log")")$(has 'plugin uninstall cockpit-shared@brana --scope user' "$(cat "$H/argv.log")" | sed 's/yes//')"
 
+echo "--- 7g with nothing to protect (Gate 3 finding: exit 3 with no ./mods/ entry)"
+MP_NOMODS="$T/marketplace-nomods.json"
+printf '{ "name": "brana", "plugins": [ { "name": "brana", "version": "1.0.0", "source": "./system" } ] }\n' > "$MP_NOMODS"
+newhome; printf '{ "enabledPlugins": { "ruflo-mods@ruflo": true } }\n' > "$H/.claude/settings.json"
+rc="$(cd "$ROOT" && HOME="$H" PATH="$SHIM:$NOCLAUDE_PATH" CLAUDE_SHIM_LOG="$H/argv.log" BRANA_SCHEDULER_BACKEND=none BRANA_MARKETPLACE_JSON="$MP_NOMODS" BRANA_PROJECT_SETTINGS_DIR="$PROJ" BRANA_MANAGED_SETTINGS="$T/none.json" ./bootstrap.sh --check >"$H/out" 2>&1; echo $?)"
+assert "no ./mods/ entry in the marketplace: an enabled ruflo-mods does NOT fail --check" 0 "$rc"
+assert "...and prints no guard failure" no "$(has 'ruflo mods guard FAILED' "$(out)")"
+
 echo "--- 7g ruflo mods guard"
 for key in ruflo-mods@ruflo ruflo-swarm@ruflo ruflo-console@ruflo ruflo-mods; do
     newhome; printf '{ "enabledPlugins": { "%s": true } }\n' "$key" > "$H/.claude/settings.json"; rc="$(boot --check)"
