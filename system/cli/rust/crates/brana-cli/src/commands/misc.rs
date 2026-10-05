@@ -77,10 +77,14 @@ pub fn cmd_version() -> anyhow::Result<()> {
 
 // ── transcribe ──────────────────────────────────────────────────────────
 
-pub fn cmd_transcribe(file: &PathBuf, model: &str) -> anyhow::Result<()> {
-    let model_size: transcribe::ModelSize = model.parse()
-        .context("invalid model size")?;
-    let text = transcribe::transcribe(file.as_path(), &model_size)
+pub fn cmd_transcribe(
+    file: &PathBuf,
+    model: Option<String>,
+    frames: Option<PathBuf>,
+    every: u32,
+) -> anyhow::Result<()> {
+    let opts = transcribe::Options { model, frames_dir: frames, every };
+    let text = transcribe::transcribe(file.as_path(), &opts)
         .context("Transcription failed")?;
     println!("{text}");
     Ok(())

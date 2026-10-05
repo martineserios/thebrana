@@ -1,7 +1,7 @@
 # Feature: `brana transcribe` — any whisper model, video + frames
 
 **Date:** 2026-10-05
-**Status:** specifying
+**Status:** implemented (unit-tested; e2e smoke pending)
 **Task:** t-3470
 
 ## Problem

@@ -33,7 +33,9 @@ fn main() {
 
     match args.command {
         Commands::Version => run_or_exit(commands::misc::cmd_version()),
-        Commands::Transcribe { file, model } => run_or_exit(commands::misc::cmd_transcribe(&file, &model)),
+        Commands::Transcribe { file, model, frames, every } => {
+            run_or_exit(commands::misc::cmd_transcribe(&file, model, frames, every))
+        }
         Commands::Files { cmd } => run_or_exit(commands::files::cmd_files(cmd)),
         Commands::Doctor { validate } => commands::doctor::cmd_doctor(&theme, validate),
         Commands::Validate { file } => run_or_exit(commands::misc::cmd_validate(&file)),
