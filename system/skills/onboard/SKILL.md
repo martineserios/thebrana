@@ -286,9 +286,9 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 ### For venture clients (additionally)
 
 **Voice-first intake check (do this before the discovery interview):**
-If `inbox/` contains audio files (`*.ogg`, `*.mp3`, `*.m4a`, `*.wav`) and no `.claude/CLAUDE.md` exists, offer to transcribe before running the discovery interview:
+If `inbox/` contains audio or video files (`*.ogg`, `*.mp3`, `*.m4a`, `*.wav`, `*.mp4`, `*.mov`, `*.webm`; add `--frames <dir>` for video to also capture frames) and no `.claude/CLAUDE.md` exists, offer to transcribe before running the discovery interview:
 ```bash
-for f in inbox/*.ogg inbox/*.mp3 inbox/*.m4a inbox/*.wav; do
+for f in inbox/*.ogg inbox/*.mp3 inbox/*.m4a inbox/*.wav inbox/*.mp4 inbox/*.mov inbox/*.webm; do
   [ -f "$f" ] && LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe "$f"
 done
 ```

@@ -80,8 +80,10 @@ fn discover_models_in(dirs: &[PathBuf]) -> Vec<Model> {
             let Some(name) = file.strip_prefix("ggml-").and_then(|n| n.strip_suffix(".bin")) else {
                 continue;
             };
-            let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
-            if size <= 1000 || found.iter().any(|m| m.name == name) {
+            // Path::metadata follows symlinks (DirEntry::metadata does not).
+            let Ok(meta) = entry.path().metadata() else { continue };
+            let size = meta.len();
+            if !meta.is_file() || size <= 1000 || found.iter().any(|m| m.name == name) {
                 continue;
             }
             found.push(Model { name: name.to_string(), path: entry.path(), size });
@@ -91,8 +93,14 @@ fn discover_models_in(dirs: &[PathBuf]) -> Vec<Model> {
 }
 
 /// Largest model on disk is "best"; ties broken by name for determinism.
+/// English-only (`.en`) models are skipped while a multilingual one exists — the run uses
+/// `-l auto`, and an `.en` model would force-decode other languages as English.
 fn pick_default(models: &[Model]) -> Option<&Model> {
-    models.iter().max_by(|a, b| a.size.cmp(&b.size).then_with(|| b.name.cmp(&a.name)))
+    fn largest<'a>(it: impl Iterator<Item = &'a Model>) -> Option<&'a Model> {
+        it.max_by(|a, b| a.size.cmp(&b.size).then_with(|| b.name.cmp(&a.name)))
+    }
+    let english_only = |m: &&Model| m.name.ends_with(".en") || m.name.contains(".en-");
+    largest(models.iter().filter(|m| !english_only(m))).or_else(|| largest(models.iter()))
 }
 
 fn resolve_installed(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
@@ -119,10 +127,11 @@ fn resolve_model_with(
             Ok(p)
         }
         Some(name) => {
-            validate_model_name(name)?;
-            match resolve_installed(name, dirs) {
+            let name = name.to_lowercase();
+            validate_model_name(&name)?;
+            match resolve_installed(&name, dirs) {
                 Some(p) => Ok(p),
-                None => download(name),
+                None => download(&name),
             }
         }
         None => match pick_default(&discover_models_in(dirs)) {
@@ -149,19 +158,30 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
     }
 
     let url = download_url(name);
-    eprintln!("Downloading {}...", ggml_filename(name));
+    eprintln!("Downloading {} to {}...", ggml_filename(name), dir.display());
+    // Download to a per-process .part file and rename on success: an interrupted or
+    // concurrent download never leaves a truncated `ggml-*.bin` for discovery to pick up.
     // -f: fail on HTTP errors instead of saving the error page as the model.
+    let part = part_path(&model_path);
     let status = Command::new("curl")
         .args(["-fL", "-o"])
-        .arg(&model_path)
+        .arg(&part)
         .arg(&url)
         .status()
         .context("curl not found — install curl or manually download model")?;
     if !status.success() {
-        let _ = std::fs::remove_file(&model_path);
+        let _ = std::fs::remove_file(&part);
         bail!("failed to download model from {url}");
     }
+    std::fs::rename(&part, &model_path).context("failed to move downloaded model into place")?;
     Ok(model_path)
+}
+
+/// In-progress download path for `target` — never matches `ggml-*.bin` discovery.
+fn part_path(target: &Path) -> PathBuf {
+    let mut name = target.file_name().unwrap_or_default().to_os_string();
+    name.push(format!(".part-{}", std::process::id()));
+    target.with_file_name(name)
 }
 
 fn try_manifest_model(name: &str) -> Option<PathBuf> {
@@ -202,36 +222,66 @@ fn try_manifest_model(name: &str) -> Option<PathBuf> {
     None
 }
 
-/// Convert audio to WAV 16kHz mono if needed (whisper-cli needs wav for some formats).
-fn ensure_wav(path: &Path) -> Result<PathBuf> {
+/// Audio handed to whisper-cli: the input itself, or a converted temp file that is
+/// removed when dropped (on every return path, including errors).
+enum Wav {
+    Original(PathBuf),
+    Temp(tempfile::TempPath),
+}
+
+impl Wav {
+    fn path(&self) -> &Path {
+        match self {
+            Wav::Original(p) => p,
+            Wav::Temp(t) => t,
+        }
+    }
+}
+
+/// Convert audio (or a video's audio track) to WAV 16kHz mono if needed.
+fn ensure_wav(path: &Path) -> Result<Wav> {
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
     // whisper-cli handles wav, mp3, and ogg/vorbis natively
-    // But Opus-in-ogg and m4a need conversion
+    // But Opus-in-ogg, m4a and video containers need conversion
     match ext.to_lowercase().as_str() {
-        "wav" | "mp3" => Ok(path.to_path_buf()),
+        "wav" | "mp3" => Ok(Wav::Original(path.to_path_buf())),
         _ => {
-            // Convert to wav via ffmpeg
-            let tmp = std::env::temp_dir().join("brana-transcribe.wav");
+            // Unique per run (created exclusively), so concurrent runs never share a file.
+            let tmp = tempfile::Builder::new()
+                .prefix("brana-transcribe-")
+                .suffix(".wav")
+                .tempfile()
+                .context("failed to create temp wav")?
+                .into_temp_path();
             let status = Command::new("ffmpeg")
-                .args([
-                    "-i",
-                    path.to_str().ok_or_else(|| anyhow::anyhow!("invalid path"))?,
-                    "-ar", "16000",
-                    "-ac", "1",
-                    "-c:a", "pcm_s16le",
-                    "-y",
-                    "-v", "error",
-                ])
-                .arg(&tmp)
+                .args(["-v", "error", "-y", "-i"])
+                .arg(path)
+                .args(["-vn", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le"])
+                .arg(&*tmp)
                 .status()
                 .context("ffmpeg not found — install ffmpeg for this audio format")?;
             if !status.success() {
-                bail!("ffmpeg conversion failed");
+                bail!("ffmpeg conversion failed (no audio track?)");
             }
-            Ok(tmp)
+            Ok(Wav::Temp(tmp))
         }
     }
+}
+
+/// whisper-cli arguments. Transcript goes to stdout; segment timestamps only when asked.
+fn whisper_args(model: &Path, wav: &Path, timestamps: bool) -> Result<Vec<String>> {
+    let utf8 = |p: &Path| {
+        p.to_str()
+            .map(str::to_string)
+            .ok_or_else(|| anyhow::anyhow!("path is not valid UTF-8: {}", p.display()))
+    };
+    let mut args = vec!["-m".to_string(), utf8(model)?, "-f".to_string(), utf8(wav)?];
+    if !timestamps {
+        args.push("--no-timestamps".into());
+    }
+    args.extend(["-t", "4", "-l", "auto"].map(String::from));
+    Ok(args)
 }
 
 /// True for container formats that carry a video stream.
@@ -248,9 +298,15 @@ fn frames_ffmpeg_args(input: &Path, dir: &Path, every: u32) -> Vec<String> {
         "-v".into(), "error".into(),
         "-y".into(),
         "-i".into(), input.display().to_string(),
-        "-vf".into(), format!("fps=1/{every}"),
+        // `select` keeps the first frame at t=0, then the first frame >= N s after the last
+        // kept one, so frame k really is from k*N s. (`fps=1/N` rounds to the nearest tick
+        // and shifts every frame by up to N/2 s — measured, see frame_labels_match_* test.)
+        "-vf".into(),
+        format!("select='isnan(prev_selected_t)+gte(t-prev_selected_t\\,{every})'"),
+        "-fps_mode".into(), "vfr".into(),
         "-q:v".into(), "2".into(),
-        format!("{}/frame_%06d.jpg", dir.display()),
+        // `%` is ffmpeg's image2 pattern char — escape it in the directory part.
+        format!("{}/frame_%06d.jpg", dir.display().to_string().replace('%', "%%")),
     ]
 }
 
@@ -279,8 +335,22 @@ fn validate_options(opts: &Options, input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Refuse a frames dir that already holds frames: the index is built from the directory,
+/// so leftovers from an earlier run would be listed with timestamps they don't have.
+fn check_frames_dir(dir: &Path) -> Result<()> {
+    let Ok(rd) = std::fs::read_dir(dir) else { return Ok(()) };
+    let stale = rd
+        .flatten()
+        .any(|e| e.file_name().to_string_lossy().starts_with("frame_"));
+    if stale {
+        bail!("{} already contains frame_* files — use an empty or new --frames directory", dir.display());
+    }
+    Ok(())
+}
+
 /// Extract frames and return their index lines.
 fn extract_frames(input: &Path, dir: &Path, every: u32) -> Result<Vec<String>> {
+    check_frames_dir(dir)?;
     std::fs::create_dir_all(dir)?;
     let status = Command::new("ffmpeg")
         .args(frames_ffmpeg_args(input, dir, every))
@@ -310,47 +380,34 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     let model_path = resolve_model(opts.model.as_deref())?;
     eprintln!("Using model: {}", model_path.display());
 
-    // 3. Convert audio if needed (video → wav via ffmpeg)
-    eprintln!("Preparing audio...");
-    let wav_path = ensure_wav(audio_path)?;
-    let with_timestamps = opts.frames_dir.is_some();
+    // 3. Frames first — cheap, and fails fast (e.g. no video stream) before a long transcription.
+    let frame_lines = match &opts.frames_dir {
+        Some(dir) => {
+            eprintln!("Extracting frames...");
+            Some(extract_frames(audio_path, dir, opts.every)?)
+        }
+        None => None,
+    };
 
-    // 4. Run whisper-cli
+    // 4. Convert audio if needed (video → wav via ffmpeg)
+    eprintln!("Preparing audio...");
+    let wav = ensure_wav(audio_path)?;
+
+    // 5. Run whisper-cli
     eprintln!("Transcribing...");
-    let mut cmd = Command::new(&whisper);
-    cmd.env("LD_LIBRARY_PATH", whisper_ld_library_path()).args([
-        "-m",
-        model_path.to_str().unwrap(),
-        "-f",
-        wav_path.to_str().unwrap(),
-    ]);
-    if !with_timestamps {
-        cmd.arg("--no-timestamps");
-    }
-    let output = cmd
-        .args([
-            "-t", "4",
-            "-l", "auto",
-            "--print-special", "false",
-            "-otxt",         // output as text
-            "-of", "/dev/stdout", // to stdout
-        ])
+    let output = Command::new(&whisper)
+        .env("LD_LIBRARY_PATH", whisper_ld_library_path())
+        .args(whisper_args(&model_path, wav.path(), frame_lines.is_some())?)
         .output()
         .context("failed to run whisper-cli")?;
-
-    // Clean up temp file
-    if wav_path != audio_path {
-        let _ = std::fs::remove_file(&wav_path);
-    }
+    drop(wav);
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         bail!("whisper-cli failed: {stderr}");
     }
 
-    // whisper-cli outputs to stderr (model info) and stdout (text)
-    // With -otxt -of /dev/stdout, text goes to the output file
-    // But let's try parsing stdout first
+    // whisper-cli prints model info to stderr and the transcript to stdout
     let text = String::from_utf8_lossy(&output.stdout)
         .replace("[_EOT_]", "")
         .trim()
@@ -378,12 +435,14 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
         text
     };
 
-    match &opts.frames_dir {
-        Some(dir) => {
-            let index = extract_frames(audio_path, dir, opts.every)?;
-            Ok(format!("{text}\n\nFrames ({} every {}s):\n{}", dir.display(), opts.every, index.join("\n")))
-        }
-        None => Ok(text),
+    match (frame_lines, &opts.frames_dir) {
+        (Some(index), Some(dir)) => Ok(format!(
+            "{text}\n\nFrames ({} every {}s):\n{}",
+            dir.display(),
+            opts.every,
+            index.join("\n")
+        )),
+        _ => Ok(text),
     }
 }
 
@@ -545,9 +604,9 @@ mod tests {
         let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), 5);
         let joined = args.join(" ");
         assert!(joined.contains("-i in.mp4"));
-        assert!(joined.contains("fps=1/5"));
+        assert!(joined.contains("gte(t-prev_selected_t\\,5)"));
         assert!(joined.ends_with("out/frame_%06d.jpg"));
-        assert!(args.contains(&"-vn".to_string()) == false);
+        assert!(!args.contains(&"-vn".to_string()));
     }
 
     #[test]
@@ -630,5 +689,125 @@ mod tests {
         assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
         assert_eq!(index[1], "frame_000002.jpg @ 00:00:10");
         assert!(out.join("frame_000001.jpg").is_file());
+    }
+
+    // ── t-3470 challenger repair (iteration 1) ──────────────────────────
+
+    #[cfg(unix)]
+    #[test]
+    fn discover_follows_symlinked_models() {
+        let real = tempfile::tempdir().unwrap();
+        let d = tempfile::tempdir().unwrap();
+        write_model(real.path(), "ggml-large-v3.bin", 5000);
+        std::os::unix::fs::symlink(real.path().join("ggml-large-v3.bin"), d.path().join("ggml-large-v3.bin"))
+            .unwrap();
+        let models = discover_models_in(&[d.path().to_path_buf()]);
+        assert_eq!(models.len(), 1);
+        assert_eq!(models[0].size, 5000);
+    }
+
+    #[test]
+    fn default_skips_english_only_when_multilingual_exists() {
+        let d = tempfile::tempdir().unwrap();
+        write_model(d.path(), "ggml-small.bin", 4000);
+        write_model(d.path(), "ggml-medium.en.bin", 8000);
+        let models = discover_models_in(&[d.path().to_path_buf()]);
+        assert_eq!(pick_default(&models).unwrap().name, "small");
+    }
+
+    #[test]
+    fn default_uses_english_only_when_nothing_else() {
+        let d = tempfile::tempdir().unwrap();
+        write_model(d.path(), "ggml-base.en.bin", 2000);
+        let models = discover_models_in(&[d.path().to_path_buf()]);
+        assert_eq!(pick_default(&models).unwrap().name, "base.en");
+    }
+
+    #[test]
+    fn partial_downloads_are_not_models() {
+        let d = tempfile::tempdir().unwrap();
+        let target = d.path().join("ggml-large-v3.bin");
+        let part = part_path(&target);
+        assert_ne!(part, target);
+        std::fs::write(&part, vec![0u8; 5000]).unwrap();
+        assert!(discover_models_in(&[d.path().to_path_buf()]).is_empty());
+    }
+
+    #[test]
+    fn model_name_is_case_insensitive() {
+        let d = tempfile::tempdir().unwrap();
+        write_model(d.path(), "ggml-base.bin", 2000);
+        let p = resolve_model_with(Some("Base"), &[d.path().to_path_buf()], |_| panic!("no download"))
+            .unwrap();
+        assert_eq!(p, d.path().join("ggml-base.bin"));
+    }
+
+    #[test]
+    fn whisper_args_have_no_stray_print_special_value() {
+        let a = whisper_args(Path::new("m.bin"), Path::new("a.wav"), false).unwrap();
+        assert!(!a.iter().any(|x| x == "--print-special" || x == "false"));
+        assert!(a.iter().any(|x| x == "--no-timestamps"));
+        let t = whisper_args(Path::new("m.bin"), Path::new("a.wav"), true).unwrap();
+        assert!(!t.iter().any(|x| x == "--no-timestamps"));
+    }
+
+    #[test]
+    fn frames_dir_with_old_frames_is_refused() {
+        let d = tempfile::tempdir().unwrap();
+        assert!(check_frames_dir(d.path()).is_ok());
+        std::fs::write(d.path().join("notes.txt"), "x").unwrap();
+        assert!(check_frames_dir(d.path()).is_ok());
+        std::fs::write(d.path().join("frame_000001.jpg"), "x").unwrap();
+        assert!(check_frames_dir(d.path()).is_err());
+    }
+
+    #[test]
+    fn frames_pattern_escapes_percent() {
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), 5);
+        assert!(args.last().unwrap().ends_with("out%%d/frame_%06d.jpg"));
+    }
+
+    /// Mean RGB of a JPEG, decoded by ffmpeg to a single pixel.
+    fn jpg_rgb(path: &Path) -> (u8, u8, u8) {
+        let out = Command::new("ffmpeg")
+            .args(["-v", "error", "-i"])
+            .arg(path)
+            .args(["-vf", "scale=1:1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
+            .output()
+            .unwrap();
+        (out.stdout[0], out.stdout[1], out.stdout[2])
+    }
+
+    #[test]
+    fn frame_labels_match_frame_content_time() {
+        if Command::new("ffmpeg").arg("-version").output().is_err() {
+            eprintln!("skip: ffmpeg not installed");
+            return;
+        }
+        // 1s lime, 9s red, 1s blue, 9s white: the frame stamped 00:00:00 must come from
+        // [0,1) (lime) and the one stamped 00:00:10 from [10,11) (blue) — a 1s window.
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("c.mp4");
+        let ok = Command::new("ffmpeg")
+            .args([
+                "-v", "error", "-y",
+                "-f", "lavfi", "-i", "color=c=lime:s=64x48:r=5:d=1",
+                "-f", "lavfi", "-i", "color=c=red:s=64x48:r=5:d=9",
+                "-f", "lavfi", "-i", "color=c=blue:s=64x48:r=5:d=1",
+                "-f", "lavfi", "-i", "color=c=white:s=64x48:r=5:d=9",
+                "-filter_complex", "[0][1][2][3]concat=n=4:v=1[v]", "-map", "[v]",
+            ])
+            .arg(&video)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "fixture video generation failed");
+        let out = d.path().join("frames");
+        let index = extract_frames(&video, &out, 10).unwrap();
+        assert_eq!(index[1], "frame_000002.jpg @ 00:00:10");
+        let (r, g, b) = jpg_rgb(&out.join("frame_000001.jpg"));
+        assert!(g > 200 && r < 60 && b < 60, "frame @0s should be lime, got {r},{g},{b}");
+        let (r, g, b) = jpg_rgb(&out.join("frame_000002.jpg"));
+        assert!(b > 200 && r < 60 && g < 60, "frame @10s should be blue, got {r},{g},{b}");
     }
 }

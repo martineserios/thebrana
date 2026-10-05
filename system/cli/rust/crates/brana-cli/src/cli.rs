@@ -181,8 +181,8 @@ pub enum Commands {
         /// Video only: extract frames into DIR and print a timestamped transcript plus frame index
         #[arg(long, value_name = "DIR")]
         frames: Option<PathBuf>,
-        /// Seconds between extracted frames (with --frames)
-        #[arg(long, default_value_t = 10)]
+        /// Seconds between extracted frames (requires --frames)
+        #[arg(long, default_value_t = 10, requires = "frames")]
         every: u32,
     },
     /// Manage tracked large files (models, assets, datasets)

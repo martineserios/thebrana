@@ -17,6 +17,9 @@ models, or with video sources, cannot use them.
 better, robust to unknown/quantized names). Default = largest installed; none installed → `small`.
 **Consequences:** no hard-coded model list to maintain; a quantized large model can rank below an
 unquantized medium only if it is smaller on disk — accepted, `--model` overrides.
+English-only (`.en`) models are skipped by the default pick while a multilingual model exists:
+the run uses `-l auto`, and an `.en` model would force-decode other languages as English
+(challenger F6, 2026-10-05).
 
 ## Scope (v1)
 
@@ -28,9 +31,17 @@ unquantized medium only if it is smaller on disk — accepted, `--model` overrid
 - A named model that is not installed is downloaded from HuggingFace (name validated to
   `[A-Za-z0-9._-]`).
 - Video input (`mp4 mkv mov webm avi m4v`): audio extracted via ffmpeg (existing `ensure_wav`).
-- `--frames <DIR>`: extract JPEG frames with ffmpeg every `--every <SECS>` (default 10) into DIR.
+- `--frames <DIR>`: extract JPEG frames with ffmpeg every `--every <SECS>` (default 10; `--every`
+  requires `--frames`) into DIR. Frames are extracted with a `select` filter (first frame at t=0, then
+  the first frame ≥ N s after the last kept one), not `fps=1/N` — `fps` rounds to the nearest tick
+  and was measured shifting frames by several seconds.
   Transcript is then printed with segment timestamps, followed by a frame index
   (`frame_000001.jpg @ 00:00:00`) so frames and speech align.
+
+## Non-goals (v1)
+
+- Scene-change frame detection (task text mentioned "scene detect") — deferred to a follow-up
+  task: it needs real per-frame timestamps from ffmpeg rather than `index × N`.
 
 ## Assumptions
 
@@ -48,14 +59,23 @@ unquantized medium only if it is smaller on disk — accepted, `--model` overrid
 
 - `--frames` on an audio-only file → error ("--frames needs a video input").
 - `--every 0` → error.
-- Truncated/tiny model files (<1000 bytes) are ignored by discovery.
+- Model files of 1000 bytes or less, and in-progress `*.part-<pid>` downloads, are ignored by discovery.
+  Downloads go to a `.part` file and are renamed on success.
+- Symlinked model files are followed (size and file type are the target's).
+- `--frames DIR` that already contains `frame_*` files → error (the index is built from the directory).
+- Video input is detected by extension; frames are extracted before transcription, so a container
+  with no video stream fails fast. Model names are case-insensitive.
+- The converted temp wav is unique per run and removed on every exit path.
 - Unsafe model name (`../x`) → error.
 
 ## Design
 
 All in `system/cli/rust/crates/brana-cli/src/transcribe.rs`; CLI args in `cli.rs`; handler in
 `commands/misc.rs`. Pure, testable helpers: `discover_models_in(dirs)`, `pick_default(&[Model])`,
-`resolve_model_spec(spec)`, `frames_ffmpeg_args(...)`, `is_video(path)`, `format_ts(secs)`.
+`resolve_model_with(spec, dirs, download)` (downloader injected), `whisper_args(...)`,
+`frames_ffmpeg_args(...)`, `check_frames_dir(dir)`, `part_path(target)`, `is_video(path)`, `format_ts(secs)`.
+`--print-special false` was dropped from the whisper-cli call: `-ps` is a boolean flag, so `false`
+was being passed as a stray input file.
 
 ## Boundaries
 
@@ -67,4 +87,6 @@ All in `system/cli/rust/crates/brana-cli/src/transcribe.rs`; CLI args in `cli.rs
 ## Testing Strategy
 
 - **Unit (most):** discovery over a temp dir, ordering, name validation, ffmpeg arg building, timestamp format, video detection.
-- **E2E:** manual smoke with a real mp4 (ffmpeg installed).
+- **Integration (real ffmpeg, skipped if absent):** frame extraction on a generated colour-segment
+  video, asserting each frame's colour matches its timestamp label to within 1 s.
+- **E2E:** manual smoke with a real mp4 through whisper-cli.
