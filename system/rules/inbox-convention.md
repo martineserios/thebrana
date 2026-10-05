@@ -11,4 +11,4 @@ paths: ["inbox/**"]
 
 ## Audio files (.ogg, .opus, .mp3, .wav, .m4a)
 
-**Run `brana transcribe <file>` first.** Don't offer "paste the transcription manually" or "skip" as primary options — the CLI handles WhatsApp voice notes, other audio and video locally via whisper.cpp (largest installed model by default; downloads `small` if none; `--frames DIR` also extracts video frames). Only fall back to manual paste if `brana transcribe` errors (e.g. missing `LD_LIBRARY_PATH=/home/martineserios/.local/lib`, failed model download, or unsupported codec).
+**Run `brana transcribe <file>` first.** Don't offer "paste the transcription manually" or "skip" as primary options — the CLI handles voice notes, audio and video locally via whisper.cpp. Only fall back to manual paste if `brana transcribe` errors (e.g. missing `LD_LIBRARY_PATH=/home/martineserios/.local/lib`, bad model file, or unsupported codec).
