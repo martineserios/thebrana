@@ -1176,17 +1176,19 @@ fi
 # A refused mod never loads, so nothing inside it can report why: this is the only layer that
 # prevents the state. Checked in the user settings and both project settings files.
 # --check exits non-zero (3) at the summary; a deploy prints the same and skips 7h.
-# Reads TARGET_DIR, PROJECT_SETTINGS_DIR; sets RUFLO_GUARD_HIT. Column-0 function so
+# Reads TARGET_DIR, PROJECT_SETTINGS_DIR, MANAGED_SETTINGS, MODS_MP; sets RUFLO_GUARD_HIT. Column-0 function so
 # tests/bootstrap/test-mods-step.sh can extract it (a deploy refuses to run off main).
 mods_ruflo_guard() {
     RUFLO_GUARD_HIT=""
+    # Nothing to protect until a ./mods/ entry is in the marketplace: an enabled ruflo mod is then
+    # harmless, and failing --check for it would turn a post-ship check red for no reason (Gate 3
+    # finding, 2026-10-05). grep, not jq, so this gate holds with or without jq.
+    [ -f "$MODS_MP" ] && grep -q '"\./mods/' "$MODS_MP" 2>/dev/null || return 0
     if ! command -v jq &>/dev/null; then
-        # Fail closed when there is something to protect: without jq the enabledPlugins cannot be read.
-        if [ -f "$MODS_MP" ] && grep -q '"\./mods/' "$MODS_MP" 2>/dev/null; then
-            RUFLO_GUARD_HIT="jq missing — cannot verify enabledPlugins"
-            echo "Mods guard:"
-            echo "  ! $RUFLO_GUARD_HIT — install jq; the mods step is refused until then"
-        fi
+        # Fail closed: there is something to protect (checked above) and enabledPlugins cannot be read.
+        RUFLO_GUARD_HIT="jq missing — cannot verify enabledPlugins"
+        echo "Mods guard:"
+        echo "  ! $RUFLO_GUARD_HIT — install jq; the mods step is refused until then"
         return 0
     fi
     local f keys
