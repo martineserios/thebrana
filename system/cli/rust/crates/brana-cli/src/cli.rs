@@ -170,15 +170,16 @@ pub enum Commands {
     },
     /// Show version
     Version,
-    /// Transcribe an audio or video file to text (whisper.cpp, local — requires libwhisper.so.1 on LD_LIBRARY_PATH)
+    /// Transcribe an audio or video file to text (whisper.cpp, local; $HOME/.local/lib is added to LD_LIBRARY_PATH)
     Transcribe {
-        /// Path to audio or video file (.wav, .mp3, .ogg, .m4a, .mp4, .mkv, .mov, .webm)
+        /// Path to audio or video file (.wav, .mp3, .ogg, .m4a, .mp4, .mkv, .mov, .webm, .avi, .m4v)
         file: PathBuf,
         /// Whisper model: a name (tiny, base, small, medium, large-v3, ...) or a path to a ggml file.
         /// Default: the largest installed model; if none is installed, downloads small.
         #[arg(long)]
         model: Option<String>,
-        /// Video only: extract frames into DIR and print a timestamped transcript plus frame index
+        /// Video only: extract frames into DIR (must not already hold frame_* files) and print a
+        /// timestamped transcript plus frame index. Needs ffmpeg >= 5.1
         #[arg(long, value_name = "DIR")]
         frames: Option<PathBuf>,
         /// Seconds between extracted frames (requires --frames)
