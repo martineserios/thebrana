@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-03T15:09:14Z",
+  "generated": "2026-10-05T13:36:38Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1332,7 +1332,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md": {
-      "title": "ADR-095: Keep brana memory current across two machines working in parallel",
+      "title": "ADR-095: Keep brana memory current across machines, with trust profiles",
       "type": "ADR",
       "impl_files": [
         "system/state/patterns-export.json"
@@ -1515,6 +1515,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/brana-knowledge-divergence-guard.md": {
+      "title": "Feature: brana-knowledge divergence merge and fetch-first backup guard",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/backup-knowledge.sh",
+        "system/scripts/sync-state.sh"
+      ]
+    },
     "docs/architecture/features/brana-v2-compute-model.md": {
       "title": "brana v2 Compute Model",
       "type": "Roadmap",
@@ -1625,6 +1633,8 @@
       "impl_files": [
         "system/cli/rust/crates/brana-cli/src/commands/cockpit.rs",
         "system/scripts/mods-check.sh",
+        "system/scripts/mods-sync-shared.sh",
+        "system/scripts/marketplace-version-sync.sh",
         "system/"
       ]
     },
@@ -1811,6 +1821,11 @@
         "system/scripts/pipeline-digest.sh",
         "system/loops/drain-loop.md"
       ]
+    },
+    "docs/architecture/features/mac-knowledge-pack.md": {
+      "title": "Mac knowledge pack v0: a hand-curated bundle for a company-managed machine (t-3436, epic macos-portability t-3372)",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/macos-portable-shims.md": {
       "title": "macOS portable shell shims (t-3373, epic macos-portability t-3372)",
@@ -2397,6 +2412,7 @@
         "system/CLAUDE.md",
         "system/",
         "system/hooks/hooks.json",
+        "system/scripts/mods-sync-shared.sh",
         "system/hooks/lib/"
       ]
     },
@@ -3492,6 +3508,11 @@
         "system/",
         "system/mods/<name>/"
       ]
+    },
+    "docs/ideas/challenge-mac-sync-design-prompt.md": {
+      "title": "Prompt: deep challenge of the Mac / two-machine design (for a fresh session)",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/ideas/construction-budget-automation.md": {
       "title": "Construction Budget Automation",
@@ -11870,6 +11891,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/brana-knowledge-divergence-guard.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/brana-v2-compute-model.md",
       "type": "references",
       "computed": false
@@ -12075,6 +12102,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/mac-knowledge-pack.md",
       "type": "references",
       "computed": false
     },
@@ -14119,6 +14152,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
+      "to": "docs/architecture/features/mac-knowledge-pack.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
       "to": "ADR-063-pending-questions-store.md",
       "type": "references",
@@ -14421,6 +14460,12 @@
     {
       "from": "docs/architecture/features/brana-feed-inbox.md",
       "to": "t-2001-feed-tech-stack.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-knowledge-divergence-guard.md",
+      "to": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
       "type": "references",
       "computed": false
     },
@@ -14757,6 +14802,12 @@
     {
       "from": "docs/architecture/features/loops-library.md",
       "to": "docs/ideas/drained/loops-library.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/mac-knowledge-pack.md",
+      "to": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
       "type": "references",
       "computed": false
     },
@@ -20204,9 +20255,9 @@
     }
   ],
   "stats": {
-    "nodes": 653,
-    "edges": 2592,
+    "nodes": 656,
+    "edges": 2597,
     "typed_edges": 754,
-    "orphans": 146
+    "orphans": 147
   }
 }

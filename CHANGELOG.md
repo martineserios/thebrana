@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### 2026-10-05 — ship dev→main, PR #1091 (v1.85.2; cockpit mods harness, brana-mcp, hook fix, ADR-095)
+### 2026-10-05 — ship dev→main, PR #1091 (v1.86.0; brana-mcp drain also in PR #1092, v1.85.2; cockpit mods harness, brana-mcp, hook fix, ADR-095)
 
 ### Fixed
 - Pattern-promotion hook reads by exact key and never writes after a failed or empty read; stops stubbing every promoted pattern (t-3455)
