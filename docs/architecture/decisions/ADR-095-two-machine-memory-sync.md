@@ -142,28 +142,41 @@ Memory is not inert data: it is loaded into Claude's context at session start, s
 
 ## Amendment 2026-10-03: the first live divergence (t-3435)
 
-*Added from the t-3435 branch (another session); the live evidence it records is the reason the company-managed profile must not hold write access to the main repo: the Mac pushed four backup commits (631 files, including its project memories) straight into `brana-knowledge`, a repo that holds every client.*
+*The live evidence below is the reason the company-managed profile must not hold write access to the main repo: the Mac pushed backup commits (631 files, including its project memories) straight into `brana-knowledge`, a repo that holds every client.*
 
-The two machines diverged before any implementation task landed. On 2026-10-02 the Mac pushed four backup commits (0c84f77d..b04be875) while this machine held three unpushed ones (ed5dc2cd..6a6f0211); `backup.sh` kept committing on the stale base and its push failed at every close. A dry-run merge conflicted in exactly the whole-store snapshot files: `backup/swarm/memory-entries.json`, `backup/swarm/patterns.json`, `backup/memory/patterns.md`, `backup/memory/consolidation-log.md`.
+The two machines diverged before any implementation task landed. On 2026-10-02 the Mac pushed four backup commits (`0c84f77d..b04be875`) while the Linux machine held three unpushed ones (`ed5dc2cd..6a6f0211`); `backup.sh` kept committing on the stale base and its push failed at every close. A dry-run merge conflicted in exactly the whole-store snapshot files: `backup/swarm/memory-entries.json`, `backup/swarm/patterns.json`, `backup/memory/patterns.md`, `backup/memory/consolidation-log.md`.
 
-**What happened.** The merge was resolved by hand as `9cf4055f` ("keep newest local snapshot"): both histories kept, conflicted files taken from the Linux side. A key-level audit against the Mac tip found the real loss: 14 sections of `patterns.md`, 2 curated `pattern` entries (error-recurrence counters), and 4 machine-local rows (2 `session`, 2 `metrics`). `patterns.json` lost nothing by content and the Mac's 624 per-project memory files all survived. **Correction (t-3442):** those 624 files include tabz project memory under `backup/projects/-Users-martin-tabz-*`; keeping them in the owner's all-clients repo contradicts the tabz-only rule and is the outbound half of T3. t-3454 decides their fate after the company answers.
+**What happened.** The merge was resolved by hand as `9cf4055f` ("keep newest local snapshot"): both histories kept, conflicted files taken from the Linux side. A key-level audit against the Mac tip `b04be875` found the real loss was markdown, not ruflo:
 
-**Rule applied, retroactively.**
+| Store | Audit result |
+|---|---|
+| `memory-entries.json` | 6 Mac-only keys: 2 `pattern` (`error-recurrence:*` tool-failure counters), 2 `session`, 2 `metrics` — all machine-local telemetry, not restored (owner decision). |
+| `patterns.json` | 0 Mac-only rows by content identity (11,643 ∪ 11,539 rows = 11,596 identities). |
+| `patterns.md` | Four-way union (Linux snapshot, Mac tip, Linux live file, merged `HEAD`) = 121 sections; the Linux live file lacked 17. |
+| `knowledge-staging.md` | 1 Mac-authored section missing from the Linux live file. |
+| `consolidation-log.md`, per-project memories | 0 lost; all 624 Mac project files survived. **Correction (t-3442):** those include tabz project memory under `backup/projects/-Users-martin-tabz-*`; keeping them in the all-clients repo contradicts the tabz-only rule and is the outbound half of T3. t-3454 decides their fate after the company answers. |
 
-| File | Merge key | Rule |
+**Rule applied.**
+
+| File | Identity | Rule |
 |---|---|---|
 | `memory-entries.json` | `(namespace, key)` | union; same key, larger `updated_at` wins |
-| `patterns.json` | `approach` content, **not** `id` | union; `id` is a per-machine autoincrement and collides across machines |
-| `patterns.md`, `consolidation-log.md` | `## ` section heading | union by section |
-| `session`, `metrics` rows | — | not merged: machine-local (§2); they stay in git history |
+| `patterns.json` | `(task_type, approach, ts)`, **not** `id` and not `approach` alone | union; `id` is a per-machine SQLite `AUTOINCREMENT`; `approach` repeats 242 times on one host |
+| `patterns.md`, `knowledge-staging.md` | `## ` section heading | union by section, ours' order first, shared heading keeps ours' body |
+| line/date logs, vector files | — | no identity rule: merged by hand keeping both sides |
+| telemetry rows | — | not merged: machine-local, kept in git history |
 
-A union commit restored the 14 sections and 2 curated entries from `b04be875`. Counts per key after the merge are at least each side's; no duplicate keys.
+No union commit was made. The live Linux `patterns.md` and `knowledge-staging.md` were unioned from all sides (pre-union copies in `~/.claude/memory/archive/*_2026-10-03-pre-union.md`) and exported. The repo copy holds the union (126 sections after the Mac's last run); the live file is capped at 100 and was auto-pruned to 99, so the repo copy is the archive (owner decision). The 17 Mac-authored sections entered the owner's live file on the owner's approval of the heading list.
 
-**Guard.** `backup.sh` now fetches before it exports. Behind-only fast-forwards; true divergence refuses to commit and prints the resolution command; an offline fetch warns and continues so a local backup is never lost to a missing network. The section-union export covers `patterns.md` and `knowledge-staging.md`.
+**Guard (shipped in `brana-knowledge`).** `backup.sh`, `daily-push.sh` and `restore.sh` source `lib/remote-guard.sh`, which fetches first with an ssh connect timeout. Behind-only fast-forwards **only when the incoming commits touch `backup/` data and add no symlink**; anything else stops for review. True divergence refuses to commit (exit 2) and prints a recipe pinned to the reviewed sha: review first, then union only the four stores with an identity rule via `merge-snapshots.py`, everything else by hand. An offline fetch warns and continues. On export, `patterns.md` and `knowledge-staging.md` are unioned with the tracked copy; a union that cannot run keeps the tracked copy and exits 3 so `/brana:close` shows it. `merge-snapshots.py` merges only the four known stores by name and refuses anything without an identity rule. Tests: 36, 47, 14, including a verbatim replay of the printed recipe over a real conflict.
 
-**Known limit.** The export is still a whole-store snapshot from one machine. With decision 1 narrowed to one owner machine and the Mac's backup disabled under its profile (t-3454), there is no longer a second writer, and the snapshot shape is acceptable.
+**Mac state after the fix (owner decisions 2026-10-03).** The Mac ran the new `backup.sh` once (`092e401d`): its whole-store export replaced the owner's ruflo snapshots and two plain-copied logs in the repo copy, the known limit of a second writer; the Linux machine re-exported right after (`0dc3e5cd`). That push is also a breach of the company term recorded in t-3453 (the Mac must not push to the owner's personal private repo). The Mac then made `backup.sh` non-executable, so it no longer exports. It keeps its `brana-knowledge` clone and all its ruflo rows, and knowledge extraction runs on Linux only (`knowledge-pipeline-tier1`, `export-patterns` disabled on the Mac). Both differ from this ADR's company-managed profile (no clone, no full DB); see *Open questions*.
+
+**Known limit.** The ruflo export is still a whole-store snapshot. With one owner machine exporting, that is acceptable; a second exporter would clobber it again, which is why the Mac must stay non-exporting.
 
 ## Open questions
+
+- **Mac clone and ruflo rows vs the profile (owner, 2026-10-03).** The owner kept the `brana-knowledge` clone (export disabled) and all ruflo rows on the Mac, including session and metrics rows naming other clients (576 of 860 session rows on the Linux re-count). The profile says tabz only, no clone, no full DB; the company term says pulls only from the public harness and the pack repo. Either the profile text or the Mac state changes; t-3454 carries the decision.
 
 Answered 2026-10-03 after the t-3442 review:
 
