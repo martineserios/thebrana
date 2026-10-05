@@ -3,7 +3,9 @@ status: proposed
 ---
 # Mac knowledge pack v0: a hand-curated bundle for a company-managed machine (t-3436, epic macos-portability t-3372)
 
-Implements the access model of [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) (decisions 3, 4, 6). This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options considered and §Review.
+> **Parked (2026-10-05).** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) decision 5: generic learnings reach the Mac through public thebrana; this pack is built only if that proves insufficient (t-3437, t-3440, t-3417 parked). The spec below is kept for that case.
+
+Written against the access model of the 2026-10-03 ADR-095 revision (its decisions 3, 4, 6, now in git history). This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options considered and §Review.
 
 ## Problem
 
@@ -129,7 +131,7 @@ Pre-registered before the repo is created (memory pattern: a kill rule needs a t
 
 ## Out of scope
 
-Live access between machines for the company-managed Mac; syncing ruflo entries (ADR-095 decision 2: the `pattern` namespace is 135 error counters plus 15 curated rows that live in files); anything flowing from the Mac to Linux automatically; signing (deferred, t-3419 P3); a second owner machine.
+Live access between machines for the company-managed Mac; syncing ruflo entries (ADR-095 decision 8, no ruflo entry is synced: the `pattern` namespace is 135 error counters plus 15 curated rows that live in files); anything flowing from the Mac to Linux automatically; signing (deferred, t-3419 P3); a second owner machine.
 
 ## Implementation
 
