@@ -47,7 +47,7 @@ The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered
 | **Transfer leftovers** (iCloud Recently Deleted, Apple ID type) | Partly verified | t-3454 |
 | **Unencrypted Linux disk** holding every client and every credential | Open | t-3454, owner's call |
 | **Memory poisoning from the Mac** | Closed by design: no Mac write path. The one push (`092e401d`, 2026-10-03) predates the chmod; Linux re-exported after it | — |
-| **Account or token compromise** (signing) | Deferred | t-3419 (P3) |
+| **Account or token compromise** (signing) | Not built; low while nothing is pulled from a pack | t-3419 (pending, P3) |
 
 **Privacy boundary.** Memory content goes to private repos only; the public thebrana repo never receives it (`system/state/patterns-export.json` is gitignored there; audit t-3409).
 
@@ -83,9 +83,9 @@ On 2026-10-02 both machines pushed whole-store snapshots to `brana-knowledge` ma
 | Task | Status |
 |---|---|
 | t-3453 company answer (question 4) · t-3454 credentials and personal-store remediation | pending, P0 |
-| t-3466 backup: notes in git, DB off git · t-3467 ruflo spike | pending, P2 |
+| t-3466 backup: notes in git, DB off git · t-3467 ruflo spike · t-3342 off-site DB copy | pending, P2 |
 | t-3418 company-managed rules in the macOS guide · t-3420 setup hygiene · t-3409 privacy audit · t-3407 ruflo pin | pending |
 | t-3437 pack v0 · t-3440 Mac pack pull · t-3417 publish lint | parked with the pack (decision 5) |
-| t-3419 signing | deferred, P3 |
+| t-3419 signing | pending, P3 (not before v1 of any pack) |
 | t-3435 divergence guard · t-3436 revision · t-3442 deep challenge · t-3455 promotion-hook fix · t-3403 first draft | completed |
 | t-3404, t-3405, t-3406, t-3408, t-3410, t-3416, t-3438, t-3439 | cancelled |
