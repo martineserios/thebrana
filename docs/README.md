@@ -337,6 +337,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [t-527-next-limit.md](architecture/features/t-527-next-limit.md) | t-527: `backlog next` `--limit` and filter flags |
 | [t-601-tdd-gate.md](architecture/features/t-601-tdd-gate.md) | t-601: TDD enforcement gate — test-before-implementation hook |
 | [terminal-diagrams.md](architecture/features/terminal-diagrams.md) | Terminal diagrams — proactive inline box-drawing explanations (skill + rule; shipped) |
+| [transcribe-models-video.md](architecture/features/transcribe-models-video.md) | `brana transcribe` model discovery (largest installed default, small fallback) + video frame extraction (t-3470) |
 | [time-tracking-metric-1.md](architecture/features/time-tracking-metric-1.md) | Time tracking — Metric 1 active effort, Rust implementation of ADR-083 (shipped) |
 | [user-journey-gap-analysis.md](architecture/features/user-journey-gap-analysis.md) | User journey map & gap analysis — discovery → install → first value |
 | [validate-remedy-binding.md](architecture/features/validate-remedy-binding.md) | Remedy binding for validate.sh findings — implementation of ADR-077 (shipped) |

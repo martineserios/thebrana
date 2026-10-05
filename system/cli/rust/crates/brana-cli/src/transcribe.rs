@@ -101,6 +101,15 @@ fn resolve_installed(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
 
 /// Resolve the model to run: explicit path/name, else largest installed, else download small.
 fn resolve_model(spec: Option<&str>) -> Result<PathBuf> {
+    resolve_model_with(spec, &model_dirs(), ensure_model)
+}
+
+/// `resolve_model` with the search dirs and downloader injected (testable without network).
+fn resolve_model_with(
+    spec: Option<&str>,
+    dirs: &[PathBuf],
+    download: impl Fn(&str) -> Result<PathBuf>,
+) -> Result<PathBuf> {
     match spec {
         Some(s) if is_model_path(s) => {
             let p = PathBuf::from(s);
@@ -111,18 +120,15 @@ fn resolve_model(spec: Option<&str>) -> Result<PathBuf> {
         }
         Some(name) => {
             validate_model_name(name)?;
-            match resolve_installed(name, &model_dirs()) {
+            match resolve_installed(name, dirs) {
                 Some(p) => Ok(p),
-                None => ensure_model(name),
+                None => download(name),
             }
         }
-        None => {
-            let models = discover_models_in(&model_dirs());
-            match pick_default(&models) {
-                Some(m) => Ok(m.path.clone()),
-                None => ensure_model(FALLBACK_MODEL),
-            }
-        }
+        None => match pick_default(&discover_models_in(dirs)) {
+            Some(m) => Ok(m.path.clone()),
+            None => download(FALLBACK_MODEL),
+        },
     }
 }
 
@@ -566,5 +572,63 @@ mod tests {
         assert!(validate_options(&frames_audio, Path::new("a.mp4")).is_ok());
         let zero = Options { model: None, frames_dir: Some("o".into()), every: 0 };
         assert!(validate_options(&zero, Path::new("a.mp4")).is_err());
+    }
+
+    // ── t-3470: fallback download + real frame extraction ───────────────
+
+    #[test]
+    fn no_model_installed_downloads_small() {
+        let d = tempfile::tempdir().unwrap();
+        let asked = std::cell::RefCell::new(Vec::new());
+        let p = resolve_model_with(None, &[d.path().to_path_buf()], |n| {
+            asked.borrow_mut().push(n.to_string());
+            Ok(PathBuf::from(format!("/m/ggml-{n}.bin")))
+        })
+        .unwrap();
+        assert_eq!(asked.into_inner(), vec!["small"]);
+        assert_eq!(p, PathBuf::from("/m/ggml-small.bin"));
+    }
+
+    #[test]
+    fn installed_default_never_downloads() {
+        let d = tempfile::tempdir().unwrap();
+        write_model(d.path(), "ggml-base.bin", 2000);
+        let p = resolve_model_with(None, &[d.path().to_path_buf()], |_| panic!("no download"))
+            .unwrap();
+        assert_eq!(p, d.path().join("ggml-base.bin"));
+    }
+
+    #[test]
+    fn missing_named_model_is_downloaded_by_name() {
+        let d = tempfile::tempdir().unwrap();
+        let p = resolve_model_with(Some("large-v3"), &[d.path().to_path_buf()], |n| {
+            Ok(PathBuf::from(format!("/m/ggml-{n}.bin")))
+        })
+        .unwrap();
+        assert_eq!(p, PathBuf::from("/m/ggml-large-v3.bin"));
+        assert!(resolve_model_with(Some("../x"), &[], |_| panic!("no download")).is_err());
+    }
+
+    #[test]
+    fn extract_frames_from_real_video() {
+        if Command::new("ffmpeg").arg("-version").output().is_err() {
+            eprintln!("skip: ffmpeg not installed");
+            return;
+        }
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("t.mp4");
+        let ok = Command::new("ffmpeg")
+            .args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=25:s=64x48:r=5"])
+            .arg(&video)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "fixture video generation failed");
+        let out = d.path().join("frames");
+        let index = extract_frames(&video, &out, 10).unwrap();
+        assert!(index.len() >= 2, "expected >=2 frames, got {index:?}");
+        assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
+        assert_eq!(index[1], "frame_000002.jpg @ 00:00:10");
+        assert!(out.join("frame_000001.jpg").is_file());
     }
 }
