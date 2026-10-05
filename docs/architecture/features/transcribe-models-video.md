@@ -43,10 +43,10 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 
 ## Non-goals (v1)
 
-- Scene-change frame detection (task text mentioned "scene detect") — deferred to a follow-up
-  task. Real per-frame timestamps (its prerequisite) are already in place.
+- Scene-change frame detection (task text mentioned "scene detect") — deferred to t-3471. Real per-frame timestamps (its prerequisite) are already in place.
 - Sweeping `*.part-<pid>` files left by a killed download (they are ignored by discovery but use
-  disk), and a ggml magic-byte check in discovery — follow-up.
+  disk) — t-3473 (with the sibling `brana-core` `download_file` atomic-download fix); a ggml
+  magic-byte check in discovery — not tracked.
 
 ## Assumptions
 
@@ -54,10 +54,10 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 - no model installed: chose auto-download of small — confirmed by user.
 - frames via ffmpeg: confirmed by user.
 - frames are opt-in (`--frames DIR`), not produced for every video: chose opt-in because frame
-  extraction writes many files — needs confirmation.
-- scene detect deferred to a follow-up task — needs confirmation.
+  extraction writes many files — confirmed by user 2026-10-05.
+- scene detect deferred to a follow-up task (t-3471) — confirmed by user 2026-10-05.
 - when only `.en` models are installed they are used (with a stderr warning) rather than
-  auto-downloading `small` — needs confirmation.
+  auto-downloading `small` — confirmed by user 2026-10-05.
 
 ## Behavior
 
@@ -104,5 +104,5 @@ was being passed as a stray input file.
 - **Integration (real ffmpeg; skipped if absent, `BRANA_REQUIRE_FFMPEG=1` makes the skip fail):**
   colour-segment video (frame colour must match its label to within 1 s) and a sparse-VFR video
   (second frame comes from t=12 and must be labelled `00:00:12`). Note: CI's `rust` job does not
-  run `cargo test -p brana-cli` today — follow-up.
+  run `cargo test -p brana-cli` today — t-3472.
 - **E2E:** manual smoke with a real mp4 through whisper-cli.
