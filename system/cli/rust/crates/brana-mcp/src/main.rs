@@ -4,6 +4,7 @@
 //! All business logic comes from brana-core; this crate is a thin adapter.
 
 mod tools;
+mod transport;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -36,6 +37,6 @@ async fn main() -> anyhow::Result<()> {
         .tool("recall", tools::recall::build())
         .build()?;
 
-    server.run_stdio().await?;
+    server.run(transport::LenientStdio::new()).await?;
     Ok(())
 }
