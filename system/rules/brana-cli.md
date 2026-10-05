@@ -8,4 +8,4 @@ always-load: true
 - `brana backlog` — all task ops (get, set, query, search, add, status, roadmap, tree, tags, blocked, stale)
 - `brana ops` — scheduler (status, health, logs, run, enable/disable)
 - `brana doctor` — system health. `brana portfolio` — cross-client paths.
-- `brana transcribe` — audio. `brana files` — large files. `brana feed`/`brana inbox` — content.
+- `brana transcribe` — audio/video (`--frames DIR` for video frames). `brana files` — large files. `brana feed`/`brana inbox` — content.

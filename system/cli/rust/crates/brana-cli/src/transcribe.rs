@@ -99,8 +99,12 @@ fn pick_default(models: &[Model]) -> Option<&Model> {
     fn largest<'a>(it: impl Iterator<Item = &'a Model>) -> Option<&'a Model> {
         it.max_by(|a, b| a.size.cmp(&b.size).then_with(|| b.name.cmp(&a.name)))
     }
-    let english_only = |m: &&Model| m.name.ends_with(".en") || m.name.contains(".en-");
-    largest(models.iter().filter(|m| !english_only(m))).or_else(|| largest(models.iter()))
+    largest(models.iter().filter(|m| !is_english_only(&m.name))).or_else(|| largest(models.iter()))
+}
+
+/// `base.en`, `medium.en-q5_0`, ... — models that only transcribe English.
+fn is_english_only(name: &str) -> bool {
+    name.ends_with(".en") || name.contains(".en-")
 }
 
 fn resolve_installed(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
@@ -135,7 +139,16 @@ fn resolve_model_with(
             }
         }
         None => match pick_default(&discover_models_in(dirs)) {
-            Some(m) => Ok(m.path.clone()),
+            Some(m) => {
+                if is_english_only(&m.name) {
+                    eprintln!(
+                        "warning: only English-only models are installed ({}) — non-English audio \
+                         will be transcribed as English. Use --model small for other languages.",
+                        m.name
+                    );
+                }
+                Ok(m.path.clone())
+            }
             None => download(FALLBACK_MODEL),
         },
     }
@@ -293,16 +306,20 @@ fn is_video(path: &Path) -> bool {
 }
 
 /// ffmpeg arguments that sample one JPEG every `every` seconds into `dir`.
+/// `showinfo` logs each kept frame's real `pts_time` (at info level, hence `-loglevel info`),
+/// which labels the frames — sampling never decides the label.
+/// Requires ffmpeg >= 5.1 (`-fps_mode`).
 fn frames_ffmpeg_args(input: &Path, dir: &Path, every: u32) -> Vec<String> {
     vec![
-        "-v".into(), "error".into(),
+        "-hide_banner".into(),
+        "-nostdin".into(),
+        "-loglevel".into(), "info".into(),
         "-y".into(),
         "-i".into(), input.display().to_string(),
-        // `select` keeps the first frame at t=0, then the first frame >= N s after the last
-        // kept one, so frame k really is from k*N s. (`fps=1/N` rounds to the nearest tick
-        // and shifts every frame by up to N/2 s — measured, see frame_labels_match_* test.)
+        // `select` keeps the first frame, then the first frame >= N s after the last kept one.
+        // (`fps=1/N` rounds to the nearest tick and was measured shifting frames by seconds.)
         "-vf".into(),
-        format!("select='isnan(prev_selected_t)+gte(t-prev_selected_t\\,{every})'"),
+        format!("select='isnan(prev_selected_t)+gte(t-prev_selected_t\\,{every})',showinfo"),
         "-fps_mode".into(), "vfr".into(),
         "-q:v".into(), "2".into(),
         // `%` is ffmpeg's image2 pattern char — escape it in the directory part.
@@ -310,17 +327,51 @@ fn frames_ffmpeg_args(input: &Path, dir: &Path, every: u32) -> Vec<String> {
     ]
 }
 
+/// `pts_time` of every frame `showinfo` reported, in output order.
+fn parse_pts_times(stderr: &str) -> Vec<f64> {
+    stderr
+        .lines()
+        .filter(|l| l.contains("Parsed_showinfo"))
+        .filter_map(|l| l.split("pts_time:").nth(1))
+        .filter_map(|rest| rest.split_whitespace().next()?.parse().ok())
+        .collect()
+}
+
 fn format_ts(secs: u64) -> String {
     format!("{:02}:{:02}:{:02}", secs / 3600, (secs % 3600) / 60, secs % 60)
 }
 
-/// One `<file> @ HH:MM:SS` line per frame, aligned with the sampling interval.
-fn frame_index(files: &[String], every: u32) -> Vec<String> {
+/// One `<file> @ HH:MM:SS` line per frame, labelled with the frame's real time.
+fn frame_index(files: &[String], times: &[f64]) -> Vec<String> {
     files
         .iter()
-        .enumerate()
-        .map(|(i, f)| format!("{f} @ {}", format_ts(i as u64 * u64::from(every))))
+        .zip(times)
+        .map(|(f, t)| format!("{f} @ {}", format_ts(t.max(0.0) as u64)))
         .collect()
+}
+
+/// Frames written by this run; removed on drop unless `keep()` is called, so a run that
+/// fails after extraction leaves the directory as it found it (and the retry isn't refused).
+struct FramesGuard {
+    files: Vec<PathBuf>,
+}
+
+impl FramesGuard {
+    fn new(files: Vec<PathBuf>) -> Self {
+        FramesGuard { files }
+    }
+
+    fn keep(mut self) {
+        self.files.clear();
+    }
+}
+
+impl Drop for FramesGuard {
+    fn drop(&mut self) {
+        for f in &self.files {
+            let _ = std::fs::remove_file(f);
+        }
+    }
 }
 
 fn validate_options(opts: &Options, input: &Path) -> Result<()> {
@@ -348,24 +399,31 @@ fn check_frames_dir(dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Extract frames and return their index lines.
-fn extract_frames(input: &Path, dir: &Path, every: u32) -> Result<Vec<String>> {
+/// Extract frames; returns the index lines and a guard owning the written files.
+fn extract_frames(input: &Path, dir: &Path, every: u32) -> Result<(Vec<String>, FramesGuard)> {
     check_frames_dir(dir)?;
     std::fs::create_dir_all(dir)?;
-    let status = Command::new("ffmpeg")
+    let output = Command::new("ffmpeg")
         .args(frames_ffmpeg_args(input, dir, every))
-        .status()
-        .context("ffmpeg not found — install ffmpeg to extract frames")?;
-    if !status.success() {
-        bail!("ffmpeg frame extraction failed");
-    }
+        .output()
+        .context("ffmpeg not found — install ffmpeg (>= 5.1) to extract frames")?;
     let mut files: Vec<String> = std::fs::read_dir(dir)?
         .flatten()
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .filter(|n| n.starts_with("frame_") && n.ends_with(".jpg"))
         .collect();
     files.sort();
-    Ok(frame_index(&files, every))
+    let guard = FramesGuard::new(files.iter().map(|f| dir.join(f)).collect());
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let last = stderr.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("");
+        bail!("ffmpeg frame extraction failed: {last}");
+    }
+    let times = parse_pts_times(&String::from_utf8_lossy(&output.stderr));
+    if times.len() != files.len() {
+        bail!("ffmpeg reported {} frame times for {} frames", times.len(), files.len());
+    }
+    Ok((frame_index(&files, &times), guard))
 }
 
 /// Transcribe an audio or video file to text. With `frames_dir` set, segment timestamps are
@@ -381,7 +439,7 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     eprintln!("Using model: {}", model_path.display());
 
     // 3. Frames first — cheap, and fails fast (e.g. no video stream) before a long transcription.
-    let frame_lines = match &opts.frames_dir {
+    let frames = match &opts.frames_dir {
         Some(dir) => {
             eprintln!("Extracting frames...");
             Some(extract_frames(audio_path, dir, opts.every)?)
@@ -397,7 +455,7 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     eprintln!("Transcribing...");
     let output = Command::new(&whisper)
         .env("LD_LIBRARY_PATH", whisper_ld_library_path())
-        .args(whisper_args(&model_path, wav.path(), frame_lines.is_some())?)
+        .args(whisper_args(&model_path, wav.path(), frames.is_some())?)
         .output()
         .context("failed to run whisper-cli")?;
     drop(wav);
@@ -435,13 +493,16 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
         text
     };
 
-    match (frame_lines, &opts.frames_dir) {
-        (Some(index), Some(dir)) => Ok(format!(
+    match (frames, &opts.frames_dir) {
+        (Some((index, guard)), Some(dir)) => {
+            guard.keep();
+            Ok(format!(
             "{text}\n\nFrames ({} every {}s):\n{}",
             dir.display(),
             opts.every,
             index.join("\n")
-        )),
+            ))
+        }
         _ => Ok(text),
     }
 }
@@ -604,7 +665,7 @@ mod tests {
         let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), 5);
         let joined = args.join(" ");
         assert!(joined.contains("-i in.mp4"));
-        assert!(joined.contains("gte(t-prev_selected_t\\,5)"));
+        assert!(joined.contains("gte(t-prev_selected_t\\,5)',showinfo"));
         assert!(joined.ends_with("out/frame_%06d.jpg"));
         assert!(!args.contains(&"-vn".to_string()));
     }
@@ -617,9 +678,30 @@ mod tests {
     }
 
     #[test]
-    fn frame_index_lines_align_with_interval() {
-        let lines = frame_index(&["frame_000001.jpg".into(), "frame_000002.jpg".into()], 10);
-        assert_eq!(lines, vec!["frame_000001.jpg @ 00:00:00", "frame_000002.jpg @ 00:00:10"]);
+    fn frame_index_labels_use_real_frame_times() {
+        let lines = frame_index(&["frame_000001.jpg".into(), "frame_000002.jpg".into()], &[0.0, 12.4]);
+        assert_eq!(lines, vec!["frame_000001.jpg @ 00:00:00", "frame_000002.jpg @ 00:00:12"]);
+    }
+
+    #[test]
+    fn showinfo_pts_times_are_parsed_in_order() {
+        let stderr = "frame=    0 fps=0.0\n\
+[Parsed_showinfo_1 @ 0x5] n:   0 pts:      0 pts_time:0       duration:1\n\
+[Parsed_showinfo_1 @ 0x5] color_range:tv\n\
+[Parsed_showinfo_1 @ 0x5] n:   1 pts:  61440 pts_time:12.2    duration:1\n";
+        assert_eq!(parse_pts_times(stderr), vec![0.0, 12.2]);
+    }
+
+    #[test]
+    fn frames_guard_removes_frames_unless_kept() {
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("frame_000001.jpg");
+        std::fs::write(&f, "x").unwrap();
+        drop(FramesGuard::new(vec![f.clone()]));
+        assert!(!f.exists(), "failed run must not leave frames behind");
+        std::fs::write(&f, "x").unwrap();
+        FramesGuard::new(vec![f.clone()]).keep();
+        assert!(f.exists());
     }
 
     #[test]
@@ -670,8 +752,7 @@ mod tests {
 
     #[test]
     fn extract_frames_from_real_video() {
-        if Command::new("ffmpeg").arg("-version").output().is_err() {
-            eprintln!("skip: ffmpeg not installed");
+        if !ffmpeg_available() {
             return;
         }
         let d = tempfile::tempdir().unwrap();
@@ -684,7 +765,8 @@ mod tests {
             .success();
         assert!(ok, "fixture video generation failed");
         let out = d.path().join("frames");
-        let index = extract_frames(&video, &out, 10).unwrap();
+        let (index, guard) = extract_frames(&video, &out, 10).unwrap();
+        guard.keep();
         assert!(index.len() >= 2, "expected >=2 frames, got {index:?}");
         assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
         assert_eq!(index[1], "frame_000002.jpg @ 00:00:10");
@@ -767,6 +849,20 @@ mod tests {
         assert!(args.last().unwrap().ends_with("out%%d/frame_%06d.jpg"));
     }
 
+    /// Real-ffmpeg tests skip when ffmpeg is absent; BRANA_REQUIRE_FFMPEG=1 turns the skip
+    /// into a failure (same pattern as BRANA_REQUIRE_MCP_BIN) so CI can't skip silently.
+    fn ffmpeg_available() -> bool {
+        let present = Command::new("ffmpeg").arg("-version").output().is_ok();
+        if !present {
+            assert!(
+                std::env::var("BRANA_REQUIRE_FFMPEG").as_deref() != Ok("1"),
+                "ffmpeg required (BRANA_REQUIRE_FFMPEG=1) but not installed"
+            );
+            eprintln!("SKIP: ffmpeg not installed — frame tests not run");
+        }
+        present
+    }
+
     /// Mean RGB of a JPEG, decoded by ffmpeg to a single pixel.
     fn jpg_rgb(path: &Path) -> (u8, u8, u8) {
         let out = Command::new("ffmpeg")
@@ -780,8 +876,7 @@ mod tests {
 
     #[test]
     fn frame_labels_match_frame_content_time() {
-        if Command::new("ffmpeg").arg("-version").output().is_err() {
-            eprintln!("skip: ffmpeg not installed");
+        if !ffmpeg_available() {
             return;
         }
         // 1s lime, 9s red, 1s blue, 9s white: the frame stamped 00:00:00 must come from
@@ -803,11 +898,45 @@ mod tests {
             .success();
         assert!(ok, "fixture video generation failed");
         let out = d.path().join("frames");
-        let index = extract_frames(&video, &out, 10).unwrap();
+        let (index, guard) = extract_frames(&video, &out, 10).unwrap();
+        guard.keep();
         assert_eq!(index[1], "frame_000002.jpg @ 00:00:10");
         let (r, g, b) = jpg_rgb(&out.join("frame_000001.jpg"));
         assert!(g > 200 && r < 60 && b < 60, "frame @0s should be lime, got {r},{g},{b}");
         let (r, g, b) = jpg_rgb(&out.join("frame_000002.jpg"));
         assert!(b > 200 && r < 60 && g < 60, "frame @10s should be blue, got {r},{g},{b}");
+    }
+
+    #[test]
+    fn sparse_vfr_frames_are_labelled_with_their_real_time() {
+        if !ffmpeg_available() {
+            return;
+        }
+        // Frames exist only in [0,1) (lime) and [12,20) (white): the second sampled frame
+        // comes from t=12, so it must be labelled 00:00:12, not 00:00:10.
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("vfr.mp4");
+        let ok = Command::new("ffmpeg")
+            .args([
+                "-v", "error", "-y",
+                "-f", "lavfi", "-i", "color=c=lime:s=64x48:r=5:d=1",
+                "-f", "lavfi", "-i", "color=c=red:s=64x48:r=5:d=11",
+                "-f", "lavfi", "-i", "color=c=white:s=64x48:r=5:d=8",
+                "-filter_complex",
+                "[0][1][2]concat=n=3:v=1,select='lt(t\\,1)+gte(t\\,12)'[v]",
+                "-map", "[v]", "-fps_mode", "vfr",
+            ])
+            .arg(&video)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "fixture video generation failed");
+        let out = d.path().join("frames");
+        let (index, guard) = extract_frames(&video, &out, 10).unwrap();
+        guard.keep();
+        assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
+        assert_eq!(index[1], "frame_000002.jpg @ 00:00:12");
+        let (r, g, b) = jpg_rgb(&out.join("frame_000002.jpg"));
+        assert!(r > 200 && g > 200 && b > 200, "frame @12s should be white, got {r},{g},{b}");
     }
 }

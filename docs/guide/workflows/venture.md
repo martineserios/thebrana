@@ -70,8 +70,8 @@ Brana detects venture clients by looking for `docs/sops/`, `docs/okrs/`, `docs/m
 If the venture dir has audio files in `inbox/` but no CLAUDE.md — common when a founder describes their idea in WhatsApp voice notes — use `brana transcribe` before running `/brana:onboard`:
 
 ```bash
-# Transcribe all inbox audio
-for f in inbox/*.{ogg,mp3,m4a,wav}; do
+# Transcribe all inbox audio and video (add --frames <dir> to a video to also keep frames)
+for f in inbox/*.{ogg,mp3,m4a,wav,mp4,mov,webm}; do
   [ -f "$f" ] && LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe "$f"
 done
 # Consolidate → use as source for CLAUDE.md + ADR-001

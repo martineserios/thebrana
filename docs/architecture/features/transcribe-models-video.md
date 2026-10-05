@@ -1,7 +1,7 @@
 # Feature: `brana transcribe` — any whisper model, video + frames
 
 **Date:** 2026-10-05
-**Status:** implemented (unit-tested; e2e smoke pending)
+**Status:** implemented — unit + real-ffmpeg tests; e2e verified 2026-10-05 (video+frames via whisper-cli, real `--model tiny` download, no-audio rollback)
 **Task:** t-3470
 
 ## Problem
@@ -32,22 +32,32 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
   `[A-Za-z0-9._-]`).
 - Video input (`mp4 mkv mov webm avi m4v`): audio extracted via ffmpeg (existing `ensure_wav`).
 - `--frames <DIR>`: extract JPEG frames with ffmpeg every `--every <SECS>` (default 10; `--every`
-  requires `--frames`) into DIR. Frames are extracted with a `select` filter (first frame at t=0, then
-  the first frame ≥ N s after the last kept one), not `fps=1/N` — `fps` rounds to the nearest tick
-  and was measured shifting frames by several seconds.
+  requires `--frames`) into DIR. Frames are sampled with a `select` filter (first frame, then the
+  first frame ≥ N s after the last kept one), not `fps=1/N` — `fps` rounds to the nearest tick and was
+  measured shifting frames by several seconds. Each frame is **labelled with its real `pts_time`**
+  from ffmpeg's `showinfo`, never `index × N`, so sparse/variable-frame-rate sources (screen
+  recordings, static slides) stay correctly labelled. Requires ffmpeg ≥ 5.1 (`-fps_mode`).
+  Frames are opt-in: a video without `--frames` yields the transcript only.
   Transcript is then printed with segment timestamps, followed by a frame index
   (`frame_000001.jpg @ 00:00:00`) so frames and speech align.
 
 ## Non-goals (v1)
 
 - Scene-change frame detection (task text mentioned "scene detect") — deferred to a follow-up
-  task: it needs real per-frame timestamps from ffmpeg rather than `index × N`.
+  task. Real per-frame timestamps (its prerequisite) are already in place.
+- Sweeping `*.part-<pid>` files left by a killed download (they are ignored by discovery but use
+  disk), and a ggml magic-byte check in discovery — follow-up.
 
 ## Assumptions
 
 - largest installed: chose file size as the ranking because it generalises to any model name — confirmed by user ("largest = better").
 - no model installed: chose auto-download of small — confirmed by user.
 - frames via ffmpeg: confirmed by user.
+- frames are opt-in (`--frames DIR`), not produced for every video: chose opt-in because frame
+  extraction writes many files — needs confirmation.
+- scene detect deferred to a follow-up task — needs confirmation.
+- when only `.en` models are installed they are used (with a stderr warning) rather than
+  auto-downloading `small` — needs confirmation.
 
 ## Behavior
 
@@ -63,6 +73,7 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
   Downloads go to a `.part` file and are renamed on success.
 - Symlinked model files are followed (size and file type are the target's).
 - `--frames DIR` that already contains `frame_*` files → error (the index is built from the directory).
+  A run that fails after extracting frames removes the frames it wrote, so the retry is not refused.
 - Video input is detected by extension; frames are extracted before transcription, so a container
   with no video stream fails fast. Model names are case-insensitive.
 - The converted temp wav is unique per run and removed on every exit path.
@@ -73,7 +84,10 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 All in `system/cli/rust/crates/brana-cli/src/transcribe.rs`; CLI args in `cli.rs`; handler in
 `commands/misc.rs`. Pure, testable helpers: `discover_models_in(dirs)`, `pick_default(&[Model])`,
 `resolve_model_with(spec, dirs, download)` (downloader injected), `whisper_args(...)`,
-`frames_ffmpeg_args(...)`, `check_frames_dir(dir)`, `part_path(target)`, `is_video(path)`, `format_ts(secs)`.
+`frames_ffmpeg_args(...)`, `parse_pts_times(stderr)`, `frame_index(files, times)`, `check_frames_dir(dir)`,
+`part_path(target)`, `is_video(path)`, `format_ts(secs)`. Side-effecting: `ensure_model` (manifest →
+`.part` download → rename), `ensure_wav` → `Wav` (input or a drop-cleaned `tempfile::TempPath`, `-vn`),
+`extract_frames` → `FramesGuard` (rollback on error). `tempfile` moved from dev- to runtime dependency.
 `--print-special false` was dropped from the whisper-cli call: `-ps` is a boolean flag, so `false`
 was being passed as a stray input file.
 
@@ -87,6 +101,8 @@ was being passed as a stray input file.
 ## Testing Strategy
 
 - **Unit (most):** discovery over a temp dir, ordering, name validation, ffmpeg arg building, timestamp format, video detection.
-- **Integration (real ffmpeg, skipped if absent):** frame extraction on a generated colour-segment
-  video, asserting each frame's colour matches its timestamp label to within 1 s.
+- **Integration (real ffmpeg; skipped if absent, `BRANA_REQUIRE_FFMPEG=1` makes the skip fail):**
+  colour-segment video (frame colour must match its label to within 1 s) and a sparse-VFR video
+  (second frame comes from t=12 and must be labelled `00:00:12`). Note: CI's `rust` job does not
+  run `cargo test -p brana-cli` today — follow-up.
 - **E2E:** manual smoke with a real mp4 through whisper-cli.
