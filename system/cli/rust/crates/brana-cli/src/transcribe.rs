@@ -30,6 +30,20 @@ pub struct Options {
     pub every: u32,
 }
 
+/// First 4 bytes of every whisper.cpp ggml model file ("ggml" as a little-endian u32).
+const GGML_MAGIC: [u8; 4] = *b"lmgg";
+
+/// True if the file starts with the ggml magic — rejects error pages, captive-portal bodies
+/// and other non-model files that happen to be named `ggml-*.bin`.
+fn has_ggml_magic(path: &Path) -> bool {
+    use std::io::Read;
+    let mut head = [0u8; 4];
+    std::fs::File::open(path)
+        .and_then(|mut f| f.read_exact(&mut head))
+        .map(|_| head == GGML_MAGIC)
+        .unwrap_or(false)
+}
+
 const VIDEO_EXTS: [&str; 6] = ["mp4", "mkv", "mov", "webm", "avi", "m4v"];
 
 fn ggml_filename(name: &str) -> String {
@@ -84,6 +98,10 @@ fn discover_models_in(dirs: &[PathBuf]) -> Vec<Model> {
             let Ok(meta) = entry.path().metadata() else { continue };
             let size = meta.len();
             if !meta.is_file() || size <= 1000 || found.iter().any(|m| m.name == name) {
+                continue;
+            }
+            if !has_ggml_magic(&entry.path()) {
+                eprintln!("warning: skipping {} (not a ggml model file)", entry.path().display());
                 continue;
             }
             found.push(Model { name: name.to_string(), path: entry.path(), size });
@@ -166,7 +184,7 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
     std::fs::create_dir_all(&dir)?;
 
     let model_path = dir.join(ggml_filename(name));
-    if model_path.exists() && std::fs::metadata(&model_path).map(|m| m.len() > 1000).unwrap_or(false) {
+    if std::fs::metadata(&model_path).map(|m| m.len() > 1000).unwrap_or(false) && has_ggml_magic(&model_path) {
         return Ok(model_path);
     }
 
@@ -185,6 +203,11 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
     if !status.success() {
         let _ = std::fs::remove_file(&part);
         bail!("failed to download model from {url}");
+    }
+    // A 200 OK can still be a non-model body (captive portal, proxy error page).
+    if !has_ggml_magic(&part) {
+        let _ = std::fs::remove_file(&part);
+        bail!("downloaded {url} is not a ggml model file");
     }
     std::fs::rename(&part, &model_path).context("failed to move downloaded model into place")?;
     Ok(model_path)
@@ -268,7 +291,7 @@ fn ensure_wav(path: &Path) -> Result<Wav> {
                 .context("failed to create temp wav")?
                 .into_temp_path();
             let status = Command::new("ffmpeg")
-                .args(["-v", "error", "-y", "-i"])
+                .args(["-nostdin", "-v", "error", "-y", "-i"])
                 .arg(path)
                 .args(["-vn", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le"])
                 .arg(&*tmp)
@@ -426,6 +449,17 @@ fn extract_frames(input: &Path, dir: &Path, every: u32) -> Result<(Vec<String>, 
     Ok((frame_index(&files, &times), guard))
 }
 
+/// whisper-cli failed: name the model it was given (it may have been picked by default) and
+/// how to recover — a truncated model file passes discovery but fails to load.
+fn whisper_failure_message(model: &Path, stderr: &str) -> String {
+    format!(
+        "whisper-cli failed with model {}.\n\
+         If the model file is damaged (e.g. an interrupted download), delete it or pick another \
+         with --model <name|path>.\n{stderr}",
+        model.display()
+    )
+}
+
 /// Transcribe an audio or video file to text. With `frames_dir` set, segment timestamps are
 /// kept and a frame index is appended so speech and frames line up.
 pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
@@ -461,8 +495,7 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     drop(wav);
 
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("whisper-cli failed: {stderr}");
+        bail!("{}", whisper_failure_message(&model_path, &String::from_utf8_lossy(&output.stderr)));
     }
 
     // whisper-cli prints model info to stderr and the transcript to stdout
@@ -576,7 +609,9 @@ mod tests {
     // ── t-3470: model discovery / selection ─────────────────────────────
 
     fn write_model(dir: &Path, name: &str, bytes: usize) {
-        std::fs::write(dir.join(name), vec![0u8; bytes]).unwrap();
+        let mut data = vec![0u8; bytes];
+        data[..4].copy_from_slice(&GGML_MAGIC);
+        std::fs::write(dir.join(name), data).unwrap();
     }
 
     #[test]
@@ -938,5 +973,25 @@ mod tests {
         assert_eq!(index[1], "frame_000002.jpg @ 00:00:12");
         let (r, g, b) = jpg_rgb(&out.join("frame_000002.jpg"));
         assert!(r > 200 && g > 200 && b > 200, "frame @12s should be white, got {r},{g},{b}");
+    }
+
+    // ── t-3470 Gate 3: model file integrity ─────────────────────────────
+
+    #[test]
+    fn discovery_skips_files_without_ggml_magic() {
+        let d = tempfile::tempdir().unwrap();
+        write_model(d.path(), "ggml-base.bin", 2000);
+        // e.g. an HTML error page or captive-portal body saved as a model
+        std::fs::write(d.path().join("ggml-large-v3.bin"), vec![b'<'; 9000]).unwrap();
+        let names: Vec<String> = discover_models_in(&[d.path().to_path_buf()]).into_iter().map(|m| m.name).collect();
+        assert_eq!(names, vec!["base"]);
+    }
+
+    #[test]
+    fn whisper_failure_names_model_and_recovery() {
+        let msg = whisper_failure_message(Path::new("/m/ggml-small.bin"), "error: failed to load model");
+        assert!(msg.contains("/m/ggml-small.bin"));
+        assert!(msg.contains("--model"));
+        assert!(msg.contains("failed to load model"));
     }
 }

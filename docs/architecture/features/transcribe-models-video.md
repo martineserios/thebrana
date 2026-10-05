@@ -45,8 +45,7 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 
 - Scene-change frame detection (task text mentioned "scene detect") — deferred to t-3471. Real per-frame timestamps (its prerequisite) are already in place.
 - Sweeping `*.part-<pid>` files left by a killed download (they are ignored by discovery but use
-  disk) — t-3473 (with the sibling `brana-core` `download_file` atomic-download fix); a ggml
-  magic-byte check in discovery — not tracked.
+  disk) — t-3473 (with the sibling `brana-core` `download_file` atomic-download fix).
 
 ## Assumptions
 
@@ -72,6 +71,10 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 - Model files of 1000 bytes or less, and in-progress `*.part-<pid>` downloads, are ignored by discovery.
   Downloads go to a `.part` file and are renamed on success.
 - Symlinked model files are followed (size and file type are the target's).
+- Files without the ggml magic (`lmgg`) are not models: skipped by discovery (with a warning), not
+  trusted as an existing download, and a fresh download without it is discarded before the rename.
+  A truncated file with a valid header still passes; whisper's failure then names the model and the
+  recovery (`--model`, or delete the file) — Gate 3, 2026-10-05.
 - `--frames DIR` that already contains `frame_*` files → error (the index is built from the directory).
   A run that fails after extracting frames removes the frames it wrote, so the retry is not refused.
 - Video input is detected by extension; frames are extracted before transcription, so a container
