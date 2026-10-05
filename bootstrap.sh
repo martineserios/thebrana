@@ -1169,6 +1169,122 @@ else
     fi
 fi
 
+# 7g: ruflo mods guard (ADR-096 Law 6; cockpit.md §bootstrap, t-3427). ruflo >= 3.50's `ruflo init`
+# enables ruflo-mods@ruflo / ruflo-swarm@ruflo / ruflo-console@ruflo; ruflo-mods hooks
+# plugin.register and, under modTrust=refuse-risky, refuses any later user-tier mod that calls
+# process.run — every brana cockpit mod does (tests/fixtures/mods/captures/probe-b-ruflo-trust-gate.txt).
+# A refused mod never loads, so nothing inside it can report why: this is the only layer that
+# prevents the state. Checked in the user settings and both project settings files.
+# --check exits non-zero (3) at the summary; a deploy prints the same and skips 7h.
+# Reads TARGET_DIR, PROJECT_SETTINGS_DIR, MANAGED_SETTINGS, MODS_MP; sets RUFLO_GUARD_HIT. Column-0 function so
+# tests/bootstrap/test-mods-step.sh can extract it (a deploy refuses to run off main).
+mods_ruflo_guard() {
+    RUFLO_GUARD_HIT=""
+    # Nothing to protect until a ./mods/ entry is in the marketplace: an enabled ruflo mod is then
+    # harmless, and failing --check for it would turn a post-ship check red for no reason (Gate 3
+    # finding, 2026-10-05). grep, not jq, so this gate holds with or without jq.
+    [ -f "$MODS_MP" ] && grep -q '"\./mods/' "$MODS_MP" 2>/dev/null || return 0
+    if ! command -v jq &>/dev/null; then
+        # Fail closed: there is something to protect (checked above) and enabledPlugins cannot be read.
+        RUFLO_GUARD_HIT="jq missing — cannot verify enabledPlugins"
+        echo "Mods guard:"
+        echo "  ! $RUFLO_GUARD_HIT — install jq; the mods step is refused until then"
+        return 0
+    fi
+    local f keys
+    # Managed settings too: an org can enable ruflo-mods there (MANAGED_SETTINGS, per-OS default below).
+    for f in "$TARGET_DIR/settings.json" "$PROJECT_SETTINGS_DIR/settings.json" "$PROJECT_SETTINGS_DIR/settings.local.json" "${MANAGED_SETTINGS:-}"; do
+        [ -f "$f" ] || continue
+        # An unparsable settings file cannot be cleared: fail closed (ADR-096 Law 6 "fails, not warns").
+        if ! jq empty "$f" >/dev/null 2>&1; then
+            RUFLO_GUARD_HIT="${RUFLO_GUARD_HIT:+$RUFLO_GUARD_HIT; }${f}: unparsable — cannot verify enabledPlugins"
+            continue
+        fi
+        keys=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key | select(test("^ruflo-(mods|swarm|console)(@|$)"))' "$f" 2>/dev/null | tr '\n' ' ' || true)
+        [ -n "${keys// /}" ] && RUFLO_GUARD_HIT="${RUFLO_GUARD_HIT:+$RUFLO_GUARD_HIT; }${f}: ${keys% }"
+    done
+    if [ -n "$RUFLO_GUARD_HIT" ]; then
+        echo "Mods guard:"
+        echo "  ! ruflo mods enabled — their plugin.register trust gate refuses brana mods at load (ADR-096 Law 6): $RUFLO_GUARD_HIT"
+        echo "  ! disable them (claude plugin disable <id>, or remove the enabledPlugins key) — the mods step is refused until then"
+    fi
+    return 0
+}
+
+# 7h: Mods — install each ./mods/* marketplace entry at the repo's version (ADR-096 Law 6, t-3427).
+# `claude plugin install` COPIES the mod into the plugin cache keyed by version, so a changed
+# mod reaches a session only through a version bump (validate Check 77a enforces the bump);
+# the comparison is installed version (plugins/installed_plugins.json, <name>@brana) vs the
+# repo's plugin.json — never mere presence. --check runs no `claude plugin` command. A missing
+# `claude` is reported and counted, never fatal (same tolerance as check_cc_version).
+# Reads MODS_MP, SCRIPT_DIR, INSTALLED, CHECK_ONLY, RUFLO_GUARD_HIT; adds to CHANGES.
+mods_install_step() {
+    [ -f "$MODS_MP" ] || return 0
+    if ! command -v jq &>/dev/null; then
+        grep -q '"\./mods/' "$MODS_MP" 2>/dev/null || return 0
+        echo "Mods:"
+        echo "  ! mods step refused — ruflo mods guard (see above)"
+        CHANGES=$((CHANGES + 1))
+        return 0
+    fi
+    local entries name src repo_ver inst_ver
+    # object-form sources (github, url) are not local mods — skip them without a jq error
+    entries=$(jq -r '.plugins[]? | select((.source | type) == "string" and (.source | startswith("./mods/"))) | "\(.name) \(.source)"' "$MODS_MP" 2>/dev/null || true)
+    [ -n "$entries" ] || return 0
+    echo "Mods:"
+    if [ -n "$RUFLO_GUARD_HIT" ]; then
+        echo "  ! mods step refused — ruflo mods guard (see above)"
+        return 0
+    fi
+    if ! command -v claude >/dev/null 2>&1; then
+        echo "  ! claude missing — mods not verified"
+        CHANGES=$((CHANGES + 1))
+        return 0
+    fi
+    while read -r name src; do
+        [ -n "$name" ] || continue
+        repo_ver=$(jq -r '.version // "0.0.0"' "$SCRIPT_DIR/$src/.claude-plugin/plugin.json" 2>/dev/null || echo "0.0.0")
+        # the user-scope install is the one 7h manages (--scope user); a project-scope entry must not mask it
+        inst_ver=$(jq -r --arg k "$name@brana" '[.plugins[$k][]? | select(.scope == "user")][0].version // empty' "$INSTALLED" 2>/dev/null || true)
+        if [ -z "$inst_ver" ]; then
+            CHANGES=$((CHANGES + 1))
+            if $CHECK_ONLY; then
+                echo "  + $name (would install v$repo_ver)"
+            elif claude plugin install "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
+                echo "  + $name (installed v$repo_ver)"
+            else
+                echo "  ! $name: claude plugin install $name@brana failed — run it by hand to see why"
+            fi
+        elif [ "$inst_ver" != "$repo_ver" ]; then
+            CHANGES=$((CHANGES + 1))
+            if $CHECK_ONLY; then
+                echo "  ~ $name (would update ${inst_ver}→${repo_ver})"
+            elif claude plugin update "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
+                echo "  ~ $name (updated ${inst_ver}→${repo_ver})"
+            elif ! claude plugin uninstall "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
+                echo "  ! $name: update and uninstall both failed — still at $inst_ver; run: claude plugin update $name@brana --scope user"
+            elif claude plugin install "$name@brana" --scope user </dev/null >/dev/null 2>&1; then
+                echo "  ~ $name (reinstalled ${inst_ver}→${repo_ver}; update was not idempotent)"
+            else
+                echo "  ! $name is now uninstalled — run: claude plugin install $name@brana --scope user"
+            fi
+        else
+            echo "  = $name (v$repo_ver)"
+        fi
+    done <<< "$entries"
+    return 0
+}
+
+# Test seams: BRANA_PROJECT_SETTINGS_DIR (default this checkout's .claude/), BRANA_MARKETPLACE_JSON
+# (default this checkout's .claude-plugin/marketplace.json), BRANA_MANAGED_SETTINGS (default the
+# per-OS managed-settings path).
+PROJECT_SETTINGS_DIR="${BRANA_PROJECT_SETTINGS_DIR:-$SCRIPT_DIR/.claude}"
+if [ "$(uname -s)" = Darwin ]; then MANAGED_SETTINGS_DEFAULT="/Library/Application Support/ClaudeCode/managed-settings.json"; else MANAGED_SETTINGS_DEFAULT="/etc/claude-code/managed-settings.json"; fi
+MANAGED_SETTINGS="${BRANA_MANAGED_SETTINGS:-$MANAGED_SETTINGS_DEFAULT}"
+MODS_MP="${BRANA_MARKETPLACE_JSON:-$SCRIPT_DIR/.claude-plugin/marketplace.json}"
+mods_ruflo_guard
+mods_install_step
+
 # --- Summary ---
 echo ""
 if $CHECK_ONLY; then
@@ -1176,6 +1292,10 @@ if $CHECK_ONLY; then
         echo "=== $CHANGES change(s) detected. Run without --check to apply. ==="
     else
         echo "=== Everything up to date. ==="
+    fi
+    if [ -n "$RUFLO_GUARD_HIT" ]; then
+        echo "=== ruflo mods guard FAILED — see 'Mods guard' above (ADR-096 Law 6) ==="
+        exit 3
     fi
 else
     echo "=== Bootstrap Complete ($CHANGES change(s)) ==="

@@ -1,0 +1,23 @@
+# claude plugin test on the backlog-pane prototype — 16 pure tests; trailer format is what mods-check.sh --engine parses
+
+hooks/board.test.ts:
+(pass) parseTasks keeps the fields the pane draws and drops the rest [<t>]
+(pass) parseTasks tolerates the note brana prints before the JSON array [<t>]
+(pass) parseTasks returns [] on garbage or empty output [<t>]
+(pass) rowText formats id, priority/effort and a truncated subject [<t>]
+(pass) parseTask reads one task JSON object into a detail [<t>]
+(pass) startCommand builds the slash command for a task [<t>]
+(pass) wrapLines wraps a paragraph to the width [<t>]
+(pass) parseArgs maps /board subcommands [<t>]
+(pass) dumpText renders a plain listing for headless use [<t>]
+(pass) ageLabel marks data older than 5 minutes as stale [<t>]
+(pass) parseTasks carries branch and blocked_by for the board columns [<t>]
+(pass) onlyBlocked keeps pending tasks with unmet blockers [<t>]
+(pass) priorityColor maps P0/P1 loud, P3 dim, unknown plain [<t>]
+(pass) layoutFor picks columns only when the pane is wide enough [<t>]
+(pass) parseArgs accepts r/refresh as a refresh [<t>]
+(pass) isBoard rejects state left by an older shape of the mod [<t>]
+
+ 16 pass
+ 0 fail
+Ran 16 tests across 1 file. [<t>]

@@ -1,0 +1,8 @@
+{
+ "name": "bad-process-run-direct",
+ "version": "0.1.0",
+ "description": "Fixture: must fail Check 77a rule 'process'.",
+ "author": {
+  "name": "brana"
+ }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "brana-mods",
+  "private": true,
+  "description": "Claude Code mods for the brana cockpit (ADR-096, docs/architecture/features/cockpit.md). Dev-only: `typescript` for `tsc -p mods/<mod>` once the engine has written mods/<mod>/.claude-plugin/types/. Nothing here runs at session time — each mod is a complete plugin with its _shared files vendored in.",
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

@@ -88,6 +88,9 @@ for file in "${files[@]}"; do
         system/scripts/readme-coverage.sh)
             core; checks+=(72)       # core(11), README coverage script itself (t-3031)
             ;;
+        mods/*|tests/fixtures/mods/*|system/scripts/mods-check.sh|system/scripts/mods-sync-shared.sh|tests/scripts/test-mods-check.sh)
+            core; checks+=(77)       # core(11) for the scripts; 77a/77b mods enforcement harness (ADR-096, t-3427)
+            ;;
         system/scripts/*.sh)
             core                     # core(11)
             ;;

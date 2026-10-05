@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-02T18:25:16Z",
+  "generated": "2026-10-03T15:09:14Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1338,6 +1338,13 @@
         "system/state/patterns-export.json"
       ]
     },
+    "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md": {
+      "title": "ADR-096: The Brana's cockpit surface is Claude Code mods, under six laws",
+      "type": "ADR",
+      "impl_files": [
+        "system/"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1610,6 +1617,15 @@
         "system/skills/close/phases/errata-and-patterns.md",
         "system/skills/close/phases/cleanup.md",
         "system/hooks/pre-compact.sh"
+      ]
+    },
+    "docs/architecture/features/cockpit.md": {
+      "title": "Feature: Cockpit — tier 1 band + tier 2a Board pane",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/commands/cockpit.rs",
+        "system/scripts/mods-check.sh",
+        "system/"
       ]
     },
     "docs/architecture/features/consensus-primitive.md": {
@@ -3469,6 +3485,14 @@
         "system/procedures/onboard.md"
       ]
     },
+    "docs/ideas/brana-cockpit-mod.md": {
+      "title": "The Brana cockpit as a Claude Code mod",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/mods/<name>/"
+      ]
+    },
     "docs/ideas/construction-budget-automation.md": {
       "title": "Construction Budget Automation",
       "type": "Roadmap",
@@ -4605,6 +4629,15 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/ruflo-mcp.sh"
+      ]
+    },
+    "docs/reviews/weekly-2026-10-02.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/state/stale-lifecycle-report.jsonl",
+        "system/scripts/ruflo-mcp.sh",
+        "system/scripts/stale-lifecycle.sh"
       ]
     },
     "docs/skills-system.md": {
@@ -6336,6 +6369,24 @@
     {
       "from": "docs/architecture/features/cli-composable-tool.md",
       "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cockpit.md",
+      "to": "docs/architecture/decisions/ADR-063-pending-questions-store.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cockpit.md",
+      "to": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cockpit.md",
+      "to": "docs/architecture/plugin-structure.md",
       "type": "depends_on",
       "computed": false
     },
@@ -8308,6 +8359,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/acquire-skills.md",
       "to": "docs/architecture/features/acquire-skills-guide.md",
       "type": "informs",
@@ -8364,6 +8421,12 @@
     {
       "from": "docs/architecture/features/cc-hook-leverage.md",
       "to": "docs/architecture/features/skill-utilization-tracking.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cockpit.md",
+      "to": "docs/architecture/the-brana.md",
       "type": "informs",
       "computed": false
     },
@@ -11687,6 +11750,18 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-095-two-machine-memory-sync.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -11862,6 +11937,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/cockpit.md",
       "type": "references",
       "computed": false
     },
@@ -14038,6 +14119,36 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "to": "ADR-063-pending-questions-store.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "to": "ADR-094-tasks-json-ledger-in-git-common-dir.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "to": "docs/ideas/brana-cockpit-mod.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "to": "docs/ideas/statusline-pipeline-awareness.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -14364,6 +14475,24 @@
     {
       "from": "docs/architecture/features/close-oriented-modes.md",
       "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cockpit.md",
+      "to": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cockpit.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cockpit.md",
+      "to": "docs/ideas/brana-cockpit-mod.md",
       "type": "references",
       "computed": false
     },
@@ -15072,6 +15201,12 @@
     {
       "from": "docs/architecture/plugin-lifecycle.md",
       "to": "plugin-structure.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/plugin-structure.md",
+      "to": "features/cockpit.md",
       "type": "references",
       "computed": false
     },
@@ -17734,6 +17869,36 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "docs/architecture/features/mission-control-cli.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "docs/architecture/features/wave-board.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "docs/architecture/the-brana.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-cockpit-mod.md",
+      "to": "statusline-pipeline-awareness.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/drained/agent-definition-gaps.md",
       "to": "docs/architecture/the-brana.md",
       "type": "references",
@@ -20039,9 +20204,9 @@
     }
   ],
   "stats": {
-    "nodes": 649,
-    "edges": 2570,
-    "typed_edges": 749,
+    "nodes": 653,
+    "edges": 2592,
+    "typed_edges": 754,
     "orphans": 146
   }
 }

@@ -25,6 +25,13 @@ TASKS_FILE="$SCRIPT_DIR/.claude/tasks.json"
 ERRORS=0
 WARNINGS=0
 
+# CONVENTION — grouping assertions by what they need (t-3427, Check 77 class; pattern
+# split-enforcement-by-what-it-needs): static assertions (greps, file checks)
+# never live inside a check gated by --fast or by an optional binary; group assertions by
+# what they need, not by topic; the gated half FAILS (never passes silently) when its
+# binary is absent.
+# Check 70 is --fast-gated and is purely the sweep; Check 77 is split into 77a (static,
+# always) and 77b (engine, warned under --fast, FAIL without `claude`).
 # Flags
 RUN_ASSUMPTIONS_ONLY=false
 RUN_SCALE_TRIGGERS=false
@@ -2965,6 +2972,47 @@ else
     fi
 fi
 echo ""
+
+if should_run 77; then
+# Check 77a: mods static enforcement — ADR-096 Laws 2/3/4 token rules over mods/**, vendored-copy
+# drift against mods/_shared, version-bump guard against origin/dev|dev (t-3427; spec
+# docs/architecture/features/cockpit.md §Check 77a). ALWAYS runs: no `claude` needed, runs under
+# --fast and on macOS. Delegates to system/scripts/mods-check.sh --static; must-fire fixtures
+# tests/fixtures/mods/bad-*, suite tests/scripts/test-mods-check.sh.
+echo "Checking mods/ static enforcement (ADR-096, Check 77a)..."
+C77_SCRIPT="$SCRIPT_DIR/system/scripts/mods-check.sh"
+if [ ! -f "$C77_SCRIPT" ]; then
+    fail "Check 77a: $C77_SCRIPT is missing — the mods enforcement harness cannot run (t-3427)"
+else
+    if C77A_OUT=$(bash "$C77_SCRIPT" --static "$SCRIPT_DIR" 2>&1); then
+        pass "Check 77a: $(printf '%s\n' "$C77A_OUT" | tail -1)"
+    else
+        printf '%s\n' "$C77A_OUT" | sed 's/^/  /'
+        fail "Check 77a: mods/ violates ADR-096 Laws 2/3/4, a vendored copy drifted, or a changed mod kept its version — see above (t-3427)"
+    fi
+fi
+echo ""
+
+# Check 77b: mods engine enforcement — `claude plugin validate` must pass with every `calls:` entry in
+# the allowed set, `claude plugin test` must run >= 1 test green, per mods/* plus an isolated
+# vendored copy of tests/fixtures/mods/good-minimal (spec §Check 77b). Needs the real engine:
+# skipped with a WARN under --fast and the narrow modes (same rationale as Check 70), otherwise
+# `claude` absent is a FAIL — never a silent pass (the exit-127 class, ci.yml ~line 96).
+if $RUN_FAST || $RUN_ASSUMPTIONS_ONLY || $RUN_SEMANTIC_ONLY || $RUN_SCALE_TRIGGERS; then
+    warn "Check 77b: skipped (--fast/--assumptions-only/--semantic/--scale-triggers) — mods engine check (claude plugin validate/test) not run"
+else
+    echo "Checking mods/ engine enforcement (claude plugin validate/test, Check 77b)..."
+    if [ ! -f "$C77_SCRIPT" ]; then
+        fail "Check 77b: $C77_SCRIPT is missing — the mods enforcement harness cannot run (t-3427)"
+    elif C77B_OUT=$(bash "$C77_SCRIPT" --engine "$SCRIPT_DIR" 2>&1); then
+        pass "Check 77b: $(printf '%s\n' "$C77B_OUT" | tail -1)"
+    else
+        printf '%s\n' "$C77B_OUT" | sed 's/^/  /'
+        fail "Check 77b: mods engine check failed — plugin validate/test red, a call outside the allowed set, or no claude on PATH (t-3427)"
+    fi
+fi
+echo ""
+fi  # should_run 77
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 # Labeled Check 73 below — this block used to collide with the real, always-

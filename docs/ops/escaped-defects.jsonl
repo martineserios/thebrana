@@ -13,3 +13,4 @@
 {"date":"2026-08-31","area":"waves-pull","signal":"CRITICAL_PATH","rung_armed":2,"verified_findings":1,"cost_tokens":80000,"control_arm":{"rung1_findings":1,"panel_findings":1}}
 {"date":"2026-08-31","area":"waves-ship","signal":"CRITICAL_PATH","rung_armed":2,"verified_findings":1,"cost_tokens":80000,"control_arm":{"rung1_findings":1,"panel_findings":2}}
 {"date":"2026-10-02","area":"test-runner","signal":"effort-M","rung_armed":1,"verified_findings":3,"cost_tokens":41354}
+{"date":"2026-10-03","area":"hooks/pattern-promotion","signal":"critical-path","rung_armed":1,"verified_findings":6,"cost_tokens":0}

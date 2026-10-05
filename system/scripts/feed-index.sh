@@ -134,7 +134,7 @@ mv "$TMP_VALID" "$TMP_ENTRIES"
 ENTRY_COUNT=$(wc -l < "$TMP_ENTRIES" | tr -d ' ')
 [ "$ENTRY_COUNT" -eq 0 ] && { echo "[feed-index] No valid JSON entries after filtering"; exit 0; }
 
-echo "[feed-index] Processing $ENTRY_COUNT new entries (lines $START_LINE–$TOTAL_LINES)"
+echo "[feed-index] Processing $ENTRY_COUNT new entries (lines ${START_LINE}–$TOTAL_LINES)"
 
 # ── Build digest ──────────────────────────────────────────────────────────────
 

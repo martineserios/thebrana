@@ -1,0 +1,36 @@
+# claude plugin validate --json on the backlog-pane prototype
+{
+  "success": true,
+  "strict": false,
+  "target": "inbox/backlog-pane-prototype/.claude-plugin/plugin.json",
+  "manifest": {
+    "file": "inbox/backlog-pane-prototype/.claude-plugin/plugin.json",
+    "type": "plugin",
+    "errors": [],
+    "warnings": [
+      {
+        "path": "author",
+        "message": "No author information provided. Consider adding author details for plugin attribution",
+        "code": null
+      }
+    ],
+    "notes": [
+      "types ./types/index.d.ts declares on $: nothing (no EngineInterface member)",
+      "types ./types/index.d.ts declares state: backlog-pane.board, backlog-pane.detail, backlog-pane.filled, backlog-pane.column"
+    ]
+  },
+  "contents": [
+    {
+      "file": "inbox/backlog-pane-prototype/hooks/hooks.json",
+      "type": "hooks",
+      "errors": [],
+      "warnings": [],
+      "notes": [
+        "./register.tsx hooks: session.start, command.run{command=board}, ui.render{component=Pane, requestId=backlog-pane}",
+        "./register.tsx calls: $.clock.now, $.command.register, $.process.run (via run), $.prompt.fill, $.state.get, $.state.set, $.ui.open, $.ui.resolve",
+        "./register.tsx state writes: backlog-pane.board, backlog-pane.column, backlog-pane.detail, backlog-pane.filled",
+        "./register.tsx state reads: backlog-pane.board, backlog-pane.column, backlog-pane.detail, backlog-pane.filled"
+      ]
+    }
+  ]
+}

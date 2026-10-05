@@ -13,6 +13,13 @@ on:
 permissions:
   contents: read
 
+env:
+  # The claude CLI the validate job installs for Check 77b (claude plugin validate/test on
+  # mods/*). Pinned so validate is reproducible; mods-drift.yml tests the latest weekly and goes
+  # red with "bump CC_VERSION" when latest passes but is unsupported — then bump this AND mods/_shared/hooks/probe.ts SUPPORTED
+  # together (tests/scripts/test-ci-mods-harness.sh asserts they agree). ADR-096 Law 6, t-3427.
+  CC_VERSION: "2.1.288"
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -38,6 +45,30 @@ jobs:
         working-directory: system/cli/rust
         run: cargo build --release -p brana-cli
 
+      # Check 77a's version-bump guard diffs each mod against origin/dev; the depth-1 checkout
+      # has no such ref, and mods-check.sh FAILS loudly without one rather than passing silently.
+      - name: Fetch origin/dev for the mods version-bump guard (Check 77a)
+        run: git fetch --no-tags --depth=1 origin +refs/heads/dev:refs/remotes/origin/dev
+
+      # Check 77b runs `claude plugin validate` + `claude plugin test` on every mods/* with the
+      # real engine. The binary is pinned (env CC_VERSION) and its presence is asserted here:
+      # an absent or wrong binary is red in THIS step, not an exit-127 swallowed inside a
+      # later `>/dev/null 2>&1` (the uv incident below, t-3316). ubuntu only — the macOS job
+      # runs --fast-equivalent suites and never 77b (see its comment). ADR-096 Law 6, t-3427.
+      - name: Install pinned claude CLI (Check 77b)
+        run: |
+          npm install -g "@anthropic-ai/claude-code@${CC_VERSION}"
+          if ! command -v claude >/dev/null 2>&1; then
+            echo "::error::claude not on PATH after npm install -g @anthropic-ai/claude-code@${CC_VERSION}"
+            exit 1
+          fi
+          got="$(claude --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          if [ "$got" != "${CC_VERSION}" ]; then
+            echo "::error::claude --version printed ${got}, expected the pin ${CC_VERSION}"
+            exit 1
+          fi
+          echo "claude ${got} installed"
+
       - name: Run validation
         env:
           # Surface enough of a failing suite to see the assertion, not just its name.
@@ -52,15 +83,10 @@ jobs:
           python3 -c "import json; json.load(open('.claude-plugin/marketplace.json'))"
 
       - name: Check version sync
-        run: |
-          # plugin.json and marketplace.json versions must match
-          PLUGIN_VER=$(python3 -c "import json; print(json.load(open('system/.claude-plugin/plugin.json'))['version'])")
-          MARKET_VER=$(python3 -c "import json; print(json.load(open('.claude-plugin/marketplace.json'))['plugins'][0]['version'])")
-          if [ "$PLUGIN_VER" != "$MARKET_VER" ]; then
-            echo "Version mismatch: plugin.json=$PLUGIN_VER marketplace.json=$MARKET_VER"
-            exit 1
-          fi
-          echo "Versions match: $PLUGIN_VER"
+        # By name, never plugins[0] (the first mods entry would have become "brana" there), and
+        # every ./mods/* entry against its own plugin.json (t-3448). Tested in
+        # tests/scripts/test-ci-mods-harness.sh.
+        run: bash system/scripts/marketplace-version-sync.sh
 
       - name: Check hook scripts are executable
         run: |
@@ -119,6 +145,9 @@ jobs:
   # the p_timeout watchdog — so those are what this job exercises. Nothing here installs a GNU tool
   # to make a test pass; a red test means a real portability gap.
   macos:
+    # Mods harness on macOS (t-3427): this job runs the test suites, not validate.sh, so Check 77a's
+    # static greps reach it through tests/scripts/test-mods-check.sh (no claude needed) and 77b
+    # (the engine half) is NOT run here — only the ubuntu validate job installs the pinned CLI.
     runs-on: macos-latest
     timeout-minutes: 90
     continue-on-error: true

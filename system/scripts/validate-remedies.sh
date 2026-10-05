@@ -135,6 +135,8 @@ declare -A REMEDY_REGISTRY=(
   [74]="NO_REMEDY:judgment-required — a 'git checkout main|dev' command line in a procedure must be rewritten as the by-ref ship sequence or a worktree step (ADR-094 d5), which is authored prose, not a mechanical substitution"
   [75]="NO_REMEDY:judgment-required — a private state file (portfolio.md, tasks-portfolio.json) that is tracked or not gitignored must be untracked and its .gitignore rule restored deliberately; auto-editing git index or ignore rules in a public repo is not a safe mechanical fix (t-3352)"
   [76]="NO_REMEDY:judgment-required — replacing a GNU-only form needs the matching p_* shim (see system/hooks/lib/portable.sh) or an explicit '# portable-ok: <reason>'; grep -P sites need a per-site ERE/awk rewrite, not a mechanical substitution (t-3374)"
+  [77a]="NO_REMEDY:judgment-required — a mod calling \$.model/\$.http/fs, hooking tool.call, reading the ledger, or a drifted vendored copy needs an authored change (which call to drop, whether to re-run mods-sync-shared.sh, which version to bump) — never a mechanical edit of plugin code (t-3427)"
+  [77b]="NO_REMEDY:judgment-required — a failing claude plugin validate/test or a call outside the allowed set is a code defect in the mod; an absent claude is an environment gap to fix by installing the pinned CLI, not by editing the repo (t-3427)"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a

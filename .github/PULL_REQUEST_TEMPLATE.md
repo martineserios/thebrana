@@ -13,7 +13,7 @@
 ## Testing
 
 - [ ] Tested with `claude --plugin-dir ./system`
-- [ ] `./validate.sh` passes
+- [ ] `./validate.sh` passes (needs the `claude` CLI on PATH for Check 77b; without it use `./validate.sh --fast`, which warns instead — CI runs the full one)
 - [ ] Exercised the changed skill/hook/agent in a session
 
 ## Checklist
