@@ -286,10 +286,14 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 ### For venture clients (additionally)
 
 **Voice-first intake check (do this before the discovery interview):**
-If `inbox/` contains audio files (`*.ogg`, `*.mp3`, `*.m4a`, `*.wav`) and no `.claude/CLAUDE.md` exists, offer to transcribe before running the discovery interview:
+If `inbox/` contains audio or video files (`*.ogg`, `*.mp3`, `*.m4a`, `*.wav`, `*.mp4`, `*.mov`, `*.webm`; add `--frames <dir>` for video to also capture frames) and no `.claude/CLAUDE.md` exists, offer to transcribe before running the discovery interview:
 ```bash
-for f in inbox/*.ogg inbox/*.mp3 inbox/*.m4a inbox/*.wav; do
-  [ -f "$f" ] && LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe "$f"
+# One glob + case: an unmatched extension glob aborts a for-loop under zsh (NOMATCH).
+for f in inbox/*; do
+  case "$f" in
+    *.ogg|*.mp3|*.m4a|*.wav|*.mp4|*.mov|*.webm)
+      LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe "$f" ;;
+  esac
 done
 ```
 Consolidate transcripts → write to `inbox/transcripts-YYYY-MM-DD.md` → use as source for CLAUDE.md, ADR-001, and metrics scaffold. Every claim in derived docs must trace to a specific audio.

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-05 — ship dev→main, PR #1091 (v1.86.0; brana-mcp drain also in PR #1092, v1.85.2; cockpit mods harness, brana-mcp, hook fix, ADR-095)
+
+### Fixed
+- Pattern-promotion hook reads by exact key and never writes after a failed or empty read; stops stubbing every promoted pattern (t-3455)
+- `brana-mcp` answers unknown methods with `-32601` instead of going silent, and drains in-flight requests at stdin EOF (t-3414, t-3462)
+- `bootstrap.sh --check` no longer exits 3 when no `./mods/` entry exists; the 7g ruflo guard runs only once the marketplace lists a mod (t-3427, Gate 3)
+
+### Added
+- Cockpit mods enforcement harness: `mods/_shared`, `mods-check.sh --static/--engine`, validate Checks 77a/77b, bootstrap steps 7g/7h, pinned CLI in CI, `mods-drift.yml` (t-3443..t-3449)
+- ADR-096 cockpit surface as function-hook mods (accepted)
+- ADR-095 revised after the t-3442 challenge (one owner machine, company-managed Mac profile) with the t-3435 divergence amendment; brana-knowledge fetch-first guard and section-union export ship in that private repo
+
+### Notes
+- Deployed from a temporary worktree at main: local dev carried unshipped t-3470 commits and could not fast-forward. The advisory macOS CI job is red (test portability bugs, t-3469).
+
 ### 2026-10-02 — ship dev→main, PR #1083 (macOS portability, epic t-3372)
 
 ### Fixed

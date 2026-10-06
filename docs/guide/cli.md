@@ -143,7 +143,7 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana run <id> [--spawn]` | — | Create worktree + set in_progress, optionally spawn tmux |
 | `brana queue [--max 5] [--auto]` | — | Show next unblocked tasks with model recommendations |
 | `brana agents [kill <id>]` | — | List or kill active agents |
-| `brana transcribe <file> [--model base]` | — | Audio to text via whisper.cpp (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
+| `brana transcribe <file> [--model <name\|path>] [--frames DIR [--every N]]` | — | Audio/video to text via whisper.cpp. Default model = largest installed in `~/.cache/whisper-models` (or `$BRANA_WHISPER_MODELS`); none installed → downloads `small`. `--frames` (video, ffmpeg ≥ 5.1) extracts a JPEG every N s (default 10) and prints a timestamped transcript + frame index labelled with each frame's real time. Files without the ggml magic header are ignored as models. Use `--model base` for a fast draft (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
 | `brana version` | `bv` | Show CLI version |
 | `brana deploy` | — | Print deployment workflow (merge to main — no build step) |
 
@@ -260,6 +260,8 @@ system/cli/rust/src/
 ## Changelog
 
 - 2026-05-24: Knowledge tier-1/tier-2 pipeline added; `call_gemini_json()` routes eligible tasks to Gemini Flash (t-1667). `brana backlog focus --top N` propagated to CLI guide.
+- 2026-10-05: **After shipping, rebuild the binary** — `bootstrap.sh` does not build the CLI: `cd system/cli/rust && cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana`, then check `brana transcribe --help` lists `--frames` (t-3470).
+- 2026-10-05: `brana transcribe` accepts any whisper model (`--model <name|path>`), defaults to the largest installed (small auto-downloaded if none), and handles video with `--frames` (t-3470).
 - 2026-05-13: Backlog v2 schema: `kind` field replaces `stream`, `initiative` type added, `stream` deprecated. `brana backlog complete` alias documented.
 - 2026-05-06: `brana transcribe` now auto-injects `LD_LIBRARY_PATH=$HOME/.local/lib` — no manual env var needed (t-1282).
 - 2026-04-08: `find_tasks_file` auto-init: creates empty `{"tasks":[]}` on first use. CWD fallback added for non-git projects (t-1090).
