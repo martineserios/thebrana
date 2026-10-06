@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-06 — ship dev→main, PR #1093 (v1.87.0; `brana transcribe` models + video, t-3470)
+
+### Added
+- `brana transcribe --model <name|path>` accepts any whisper.cpp ggml model; default is the largest installed (English-only `.en` models skipped while a multilingual one exists), `small` downloaded when none is installed (t-3470)
+- Video input (`mp4 mkv mov webm avi m4v`) and `--frames DIR --every N`: frames sampled with ffmpeg `select` and labelled with each frame's real `pts_time`, appended as a frame index to a timestamped transcript; frames are rolled back if a later step fails (t-3470)
+
+### Fixed
+- Model discovery follows symlinks and only accepts files with the ggml magic; downloads go to `.part-<pid>` and are renamed only when complete and valid (t-3470)
+- Converted audio uses a unique per-run temp file (was a shared `/tmp/brana-transcribe.wav`); the stray `--print-special false` whisper-cli argument is gone (t-3470)
+
+### Notes
+- `bootstrap.sh` does not rebuild the CLI: rebuild `brana-cli` and copy it to `~/.local/bin/brana` on every machine (done on this one). `--frames` needs ffmpeg ≥ 5.1. Follow-ups: t-3471 (scene detect), t-3472 (CI runs brana-cli tests), t-3473 (atomic manifest downloads). Advisory macOS CI still red (t-3469).
+
 ### 2026-10-05 — ship dev→main, PR #1091 (v1.86.0; brana-mcp drain also in PR #1092, v1.85.2; cockpit mods harness, brana-mcp, hook fix, ADR-095)
 
 ### Fixed
