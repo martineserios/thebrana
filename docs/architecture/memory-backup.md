@@ -32,7 +32,7 @@ system/scripts/backup-memory.sh --restore --date 20260401
 
 **Script:** `system/scripts/sync-state.sh export`
 **Schedule:** Sundays at 08:30 UTC via `export-patterns` scheduler job
-**Location:** `system/state/patterns-export.json` (git-tracked)
+**Location:** `system/state/patterns-export.json` (gitignored since t-3352; local only)
 
 Exports all namespaces (pattern, decisions, knowledge, skills) via `ruflo memory list` with pagination. Portable and version-controlled.
 
@@ -119,7 +119,7 @@ cd ~ && ruflo memory init --force
 | `~/.swarm/memory.db` | Current ruflo memory store (primary) |
 | `~/.claude-flow/memory.db` | Legacy path (pre-ruflo rename) |
 | `~/.swarm/backups/` | Binary backup rotation (7 days) |
-| `system/state/patterns-export.json` | JSON export (git-tracked) |
+| `system/state/patterns-export.json` | JSON export (gitignored, local only) |
 | `.swarm/memory.db` | Project-local swarm DB (legacy, separate) |
 | `~/enter_thebrana/brana-knowledge/backup/swarm/memory.db` | Layer 4 local hot-backup copy (NOT git-tracked) |
 | `~/enter_thebrana/brana-knowledge/backup/swarm/{memory-entries,patterns}.json` | Layer 4 off-site export (git-tracked, free) |
