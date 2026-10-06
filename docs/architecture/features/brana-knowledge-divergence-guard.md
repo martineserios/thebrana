@@ -49,7 +49,7 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 - Diverged exits 2 (integrity failure keeps exit 1) so callers can tell the two apart; `run_knowledge_backup()` treats both as a warning, not a halt.
 - Union order on export is live-first (this machine's section order and body win on a shared heading), the tracked copy's new sections are appended: chose live-first because the local file is what the machine's own sessions edit — needs no confirmation, the content is identical either way.
 - The 4 session/metrics rows and the 2 error-recurrence counters are not restored (machine-local telemetry, ADR-095). Confirmed by the user 2026-10-03.
-- The Mac's step is `git pull --ff-only` only; its next export then unions instead of clobbering. The repo union is not copied onto the Mac's live files: the Mac is company-managed and tabz-only (ADR-095 revision, t-3436), so Linux-authored sections reach it only through the client allowlist (t-3418).
+- Superseded 2026-10-06 (ADR-095 decision 3): the Mac never exports. It pulls only, its clone's push URL is disabled, and the union stays a Linux-side mechanism. The two Mac pushes that happened (2026-10-03 `092e401d`, 2026-10-05 `6c102b37`) were reviewed and the owner's state re-exported on Linux.
 - Trust direction: the 17 Mac-authored sections merged into the owner machine's live `patterns.md` crossed lower-to-higher trust without the T1 import review (t-3416, not built). Accepted for this one-time pass on the user's approval of the heading list; reversible from `~/.claude/memory/archive/patterns_2026-10-03-pre-union.md`.
 
 ## Behavior

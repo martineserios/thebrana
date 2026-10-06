@@ -9,7 +9,7 @@ Written against the access model of the 2026-10-03 ADR-095 revision (its decisio
 
 ## Problem
 
-The owner works on a Linux laptop that is always on and accumulates knowledge (notes, research docs, a ruflo database, patterns) for many clients. A second machine, a Mac, is **company-managed** (Apple Business Manager / DEP, Rippling MDM) at a company that is HIPAA-compliant, and is used for one client, tabz. The Mac may benefit from a small set of the owner's general harness lessons. It must not receive other clients' data, nothing may link it to the owner's machines or services in a way the company has not sanctioned, and nothing may flow from it into the owner's personal stores.
+The owner works on a Linux laptop that is always on and accumulates knowledge (notes, research docs, a ruflo database, patterns) for many clients. A second machine, a Mac, is **company-managed** (enrolled in the employer's device management) at a company that is regulated, and is used for one client, tabz. The Mac may benefit from a small set of the owner's general harness lessons. It must not receive other clients' data, nothing may link it to the owner's machines or services in a way the company has not sanctioned, and nothing may flow from it into the owner's personal stores.
 
 Nobody has measured how much a Mac session working on tabz would actually recall from generic harness notes. The bundle therefore ships with a kill rule.
 
