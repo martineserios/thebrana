@@ -319,43 +319,43 @@ mod tests {
     #[test]
     fn no_notes_zero_judged() {
         let c = parse_judged_verdicts("");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn evaluator_pass_counts() {
         let c = parse_judged_verdicts("Evaluator: PASS (2026-08-14), 4 criteria checked");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn evaluator_pass_with_gaps_folds_into_pass() {
         let c = parse_judged_verdicts("Evaluator: PASS WITH GAPS (2026-08-14), 4 criteria checked");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn evaluator_fail_counts_as_fail() {
         let c = parse_judged_verdicts("Evaluator: FAIL (2026-08-14), 4 criteria checked");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 1 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 1, inconclusive: 0 });
     }
 
     #[test]
     fn challenger_proceed_counts() {
         let c = parse_judged_verdicts("Challenger: PROCEED (2026-08-14), 0 findings");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn challenger_proceed_with_changes_folds_into_pass() {
         let c = parse_judged_verdicts("Challenger: PROCEED WITH CHANGES (2026-08-14), 2 findings, max severity 3");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn challenger_reconsider_counts_as_fail() {
         let c = parse_judged_verdicts("Challenger: RECONSIDER (2026-08-14), 3 findings, max severity 4");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 1 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 1, inconclusive: 0 });
     }
 
     #[test]
@@ -363,7 +363,7 @@ mod tests {
         let c = parse_judged_verdicts(
             "Evaluator: PASS (2026-08-14), 4 criteria checked\nChallenger: PROCEED (2026-08-14), 0 findings",
         );
-        assert_eq!(c, JudgedCounts { pass: 2, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 2, fail: 0, inconclusive: 0 });
     }
 
     #[test]
@@ -373,13 +373,58 @@ mod tests {
         let c = parse_judged_verdicts(
             "Challenger: RECONSIDER (2026-08-14), 3 findings, max severity 4\nChallenger: PROCEED (2026-08-14), 0 findings",
         );
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 }, "later line supersedes the earlier one, not both counted");
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 }, "later line supersedes the earlier one, not both counted");
     }
 
     #[test]
     fn unrelated_notes_text_ignored() {
         let c = parse_judged_verdicts("Retrospective: what surprised — a challenger review caught a real bug");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 0 });
+    }
+
+    // ── INCONCLUSIVE (t-3494) — "the evidence does not decide this" is a
+    // first-class verdict: never judged-pass, never silently 0 judged. ──────
+
+    #[test]
+    fn evaluator_inconclusive_is_its_own_bucket_not_pass() {
+        let c = parse_judged_verdicts(
+            "Evaluator: INCONCLUSIVE (2026-10-07), 4 criteria checked, unverifiable: AC2, AC4",
+        );
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 1 });
+    }
+
+    #[test]
+    fn challenger_inconclusive_is_its_own_bucket_not_pass() {
+        let c = parse_judged_verdicts(
+            "Challenger: INCONCLUSIVE (2026-10-07), 2 finding(s), missing evidence: billing probe not run",
+        );
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 1 });
+    }
+
+    #[test]
+    fn inconclusive_superseded_by_later_verdict_per_source() {
+        // Evidence gathered, challenger re-run: the later PROCEED wins.
+        let c = parse_judged_verdicts(
+            "Challenger: INCONCLUSIVE (2026-10-07), missing evidence: X\nChallenger: PROCEED (2026-10-08), 0 findings",
+        );
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
+    }
+
+    #[test]
+    fn compose_line_surfaces_inconclusive_and_never_counts_it_as_pass() {
+        let grade = GradeCounts { pass: 1, fail: 0, unknown: 0 };
+        let judged = JudgedCounts { pass: 1, fail: 0, inconclusive: 1 };
+        let line = compose_line(&grade, judged, &ReceiptStatus::NoneMinted);
+        assert!(line.contains("1 judged-pass"), "inconclusive must not inflate judged-pass: {line}");
+        assert!(line.contains("1 inconclusive"), "inconclusive must be visible on the line: {line}");
+    }
+
+    #[test]
+    fn compose_line_unchanged_when_nothing_inconclusive() {
+        let grade = GradeCounts { pass: 1, fail: 0, unknown: 0 };
+        let judged = JudgedCounts { pass: 1, fail: 0, inconclusive: 0 };
+        let line = compose_line(&grade, judged, &ReceiptStatus::NoneMinted);
+        assert_eq!(line, "1/1 AC machine-green · 1 judged-pass (verdicts attached) · 0 needs-you · receipt: none minted");
     }
 
     // ── grade_counts_from_json ───────────────────────────────────────────
@@ -435,7 +480,7 @@ mod tests {
     #[test]
     fn compose_full_evidence() {
         let grade = GradeCounts { pass: 7, fail: 0, unknown: 2 };
-        let judged = JudgedCounts { pass: 2, fail: 0 };
+        let judged = JudgedCounts { pass: 2, fail: 0, inconclusive: 0 };
         let line = compose_line(&grade, judged, &ReceiptStatus::Allow);
         assert_eq!(
             line,
