@@ -3,11 +3,13 @@ status: proposed
 ---
 # Mac knowledge pack v0: a hand-curated bundle for a company-managed machine (t-3436, epic macos-portability t-3372)
 
-Implements the access model of [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) (decisions 3, 4, 6). This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options considered and §Review.
+> **Parked (2026-10-05).** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) decision 5: generic learnings reach the Mac through public thebrana; this pack is built only if that proves insufficient (t-3437, t-3440, t-3417 parked). The spec below is kept for that case.
+
+Written against the access model of the 2026-10-03 ADR-095 revision (its decisions 3, 4, 6, now in git history). This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options considered and §Review.
 
 ## Problem
 
-The owner works on a Linux laptop that is always on and accumulates knowledge (notes, research docs, a ruflo database, patterns) for many clients. A second machine, a Mac, is **company-managed** (Apple Business Manager / DEP, Rippling MDM) at a company that is HIPAA-compliant, and is used for one client, tabz. The Mac may benefit from a small set of the owner's general harness lessons. It must not receive other clients' data, nothing may link it to the owner's machines or services in a way the company has not sanctioned, and nothing may flow from it into the owner's personal stores.
+The owner works on a Linux laptop that is always on and accumulates knowledge (notes, research docs, a ruflo database, patterns) for many clients. A second machine, a Mac, is **company-managed** (enrolled in the employer's device management) at a company that is regulated, and is used for one client, tabz. The Mac may benefit from a small set of the owner's general harness lessons. It must not receive other clients' data, nothing may link it to the owner's machines or services in a way the company has not sanctioned, and nothing may flow from it into the owner's personal stores.
 
 Nobody has measured how much a Mac session working on tabz would actually recall from generic harness notes. The bundle therefore ships with a kill rule.
 
@@ -34,7 +36,7 @@ Nothing below is built until **t-3453** records the company's written answer to:
     session/metrics, backups                                          stays on the Mac
 ```
 
-- **A** code is public and flows one way: ship `dev` to `main`, the Mac runs `git pull` and `./bootstrap.sh`. This lane is unsigned and higher impact than any note; signing the bundle without signing this lane would be theatre (ADR-095 T4).
+- **A** code is public and flows one way: ship `dev` to `main`, the Mac runs `git pull` and `./bootstrap.sh`. This lane is unsigned and higher impact than any note; signing the bundle without signing this lane would be theatre (this lane is the code-lane row of the accepted ADR-095's threat table).
 - **B** is the new lane, one-way and read-only for the Mac.
 - **C** is not "company side today": tabz is on the owner's personal GitHub with a clone on Linux and its project memory in `brana-knowledge`. t-3454 moves or removes those per the company's answer. Until then no new tabz copy enters a personal store.
 - **D** is the only Mac-to-Linux path: a person pasting text. Every Mac finding so far arrived this way.
@@ -101,7 +103,7 @@ Pre-registered before the repo is created (memory pattern: a kill rule needs a t
 | Node | Holds | Written by | Read by |
 |---|---|---|---|
 | Linux notes and ruflo DB (full) | everything, all clients | owner, gateway, jobs | Linux only |
-| `brana-knowledge` (owner repo) | backups; tabz project memory **until t-3454 resolves it** | `backup.sh` (Linux only; refuses under the company-managed profile) | Linux only; the Mac never touches it |
+| `brana-knowledge` (owner repo) | backups; existing tabz project memory **until t-3454 resolves it** (no longer added, t-3475) | `backup.sh` (Linux only; the Mac's clone has its push URL disabled, ADR-095 decision 3) | Linux writes; the Mac keeps a read-only clone (accepted deviation) |
 | Allowlist file + lint list | approved paths with hashes; client names to veto | owner, by hand | `brana pack publish` |
 | Pack repo (private, deploy key read-only on the Mac) | the hand-picked files | `brana pack publish` on Linux | Mac |
 | Mac pack directory | the bundle | the Mac's pull step | Mac-Claude via FTS5 recall |
@@ -129,7 +131,7 @@ Pre-registered before the repo is created (memory pattern: a kill rule needs a t
 
 ## Out of scope
 
-Live access between machines for the company-managed Mac; syncing ruflo entries (ADR-095 decision 2: the `pattern` namespace is 135 error counters plus 15 curated rows that live in files); anything flowing from the Mac to Linux automatically; signing (deferred, t-3419 P3); a second owner machine.
+Live access between machines for the company-managed Mac; syncing ruflo entries (ADR-095 decision 8, no ruflo entry is synced: the `pattern` namespace is 135 error counters plus 15 curated rows that live in files); anything flowing from the Mac to Linux automatically; signing (deferred, t-3419 P3); a second owner machine.
 
 ## Implementation
 
