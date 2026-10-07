@@ -84,6 +84,19 @@ re-run from step 1, no state carried.
 | `/brana:fix` | FIX step 2 ("make the failing test pass") | calls `tdd-organ` with the REPRODUCE test as the red |
 | runner (`claude -p`) | via build, unchanged | headless path proven by the adapter having no prompt |
 
+### What the organ brings that brana's prose does not state (research 2026-10-07 §6 S8)
+
+Keep all four through the remap; none conflicts with ADR-061:
+
+- **Seam gate** — "No test goes at an unconfirmed seam": name the public boundary before any
+  test file exists; the adapter surfaces the seam in the task packet and stops for
+  confirmation only when the packet does not already name it.
+- **Tautology question** — "If the implementation were wrong, would this test still pass?"
+  asked of every red before it registers; a yes means the red is not a red.
+- **One test at a time** — watch red then green with the test unchanged; no horizontal layer
+  of tests written up front.
+- **Mock boundary** — "Mocks are for system boundaries only… never mock your own modules."
+
 ### Upstream step headings the adapter depends on
 
 Recorded so the pin-bump diff reviewer knows what to check: `## Steps` with the numbered

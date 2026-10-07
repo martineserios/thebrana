@@ -334,6 +334,57 @@ to answer, which is where brana's persisted substrate earns its weight.
 
 ---
 
+## 6. Deeper sweep, same day — 14 videos, 9 article pages, 12 posts/interviews
+
+**Method.** Three parallel researchers (two Haiku scouts, one Sonnet transcript miner over
+yt-dlp auto-subtitles), each tagging findings NEW or KNOWN against §2 and the three prior
+docs by section header. Raw outputs in the session scratchpad; this section keeps only what
+survived a second read. Attribution matters here: the social sweep surfaced five practices
+that are **Lauren Tan's pstack**, which Pocock analysed and endorsed, not his own — kept apart
+below.
+
+### 6a. New, Pocock's own, and adoptable
+
+| # | Practice | Source | Ring / valve | brana today |
+|---|---|---|---|---|
+| S1 | **Rules → deterministic hooks.** "CLAUDE.md rules are non-deterministic and burn instruction budget (~500 instructions before degradation). Negative rules are worst." A prompt converts each deterministic rule line into a `PreToolUse` hook that exits 2 with the correction, then *deletes the line*. Style rules become lint rules. | 3CSi8QAoN-s; `retro` category "coding standards: mechanical → deterministic check" | Knowledge / harness | 74 lints and many hooks exist, but always-load rules sit at the 1024 B headroom edge (t-3470 fixes this week). No audit asks "which of these lines could be a hook." |
+| S2 | **Triage repro gate.** Before `ready-for-agent`: reproduce from the reporter's steps; search the domain to confirm it is not already built; check `.out-of-scope/`. "It's being a little bit too credulous" — never trust the reporter's diagnosis. Brief is "durable rather than precise": types, signatures, behavioural contracts, never file paths. | MzWIIlx0Gpc; aihero.dev/skills-triage | Epic valve (`ac_state` approval) | ADR-086 §3 derived roles + `ac-propose` exist; nothing reproduces or checks redundancy before the role flips. No rejected-concept register (ADR Non-Actions are the nearest thing). |
+| S3 | **Post-build QA-plan brief.** After an AFK batch: "take the last five commits and create a QA plan… save that QA plan in a GitHub issue… step-by-step guide." Human walks it; human-only items are labelled so the loop skips them; the issue is closed afterwards so it leaves the agent's context. | hX7yG1KVYhI | Epic ring, wave-ship valve / cockpit digest | Close-outs are batched to the digest (epic-drain §Merge) but no QA artifact is produced; the human reads diffs, not a walkthrough. |
+| S4 | **File-size gate.** "Do not let a PR push a file from under 1K lines to over 1K lines without a very strong reason"; he splits files above ~5K tokens because filenames act as context pointers. | mh5XZ-L5SFQ | micro / pre-commit | instruction-density lint exists for skills; no file-size lint for `system/`, `src/`. |
+| S5 | **Fidelity routing in the interview.** Grillable = answerable at low fidelity (a route URL); ungrillable = must be seen. Ungrillable → hand off to a prototype session, return a handoff carrying only non-obvious learnings ("a DIY sub-agent"). Scope cap: break a scope down before a grill that would pass ~120K. Never clear context before writing the PRD. | UzMNBN6xLLA, dtAJ2dOd3ko | beat (brainstorm → spike) | brainstorm has an alignment gate; spike has no discipline (t-3012) and no round-trip contract (t-2984). |
+| S6 | **Slice lower bound.** Merge slices "too small… we pay the cost of kicking up an entire agent just to do number two." Four slices from six. | hX7yG1KVYhI | Epic (decompose) | ADR-086 §1 caps a task at one context window; there is no floor. |
+| S7 | **Model split.** "Use the smartest model to grill (parametric knowledge), a cheaper model to implement (contextual knowledge)." | UzMNBN6xLLA | compute routing | operator direction today (cheaper agents for research); maps to challenge/brainstorm on the main model, build/runner cheaper. |
+| S8 | **Tautology question + seam gate + one test at a time.** "If the implementation were wrong, would this test still pass?"; "No test goes at an unconfirmed seam"; "Mocks are for system boundaries only… never mock your own modules"; watch red then green with the test unchanged instead of reading tests. | x.com 2026-09, aihero.dev/skills-tdd, hYZdIwFIy-c | micro | arrives with the vendored `tdd` organ (ADR-097 D3); the adapter should keep all four. |
+
+### 6b. Known, reinforced
+
+Smart zone ≈100K (40% of window); tracer-bullet vertical slices; pointers not paste; Memento
+reader; `/compact` vs `/clear` vs handoff ranking ("use `/compact` unless something is
+travelling"); two-axis code review with citations; ADR only when hard to reverse, surprising
+without context, and a real trade-off; `research.md` has sprint lifetime ("research can go out
+of date… and cause our agent to take a wrong turn"); worktree branches must push by explicit
+branch name.
+
+### 6c. Lauren Tan / pstack — convergence evidence, not adoption
+
+"Agents perform much better in extremely locked down contexts"; "the owner agent that writes
+code cannot merge its own work"; "a generated skill that was never executed is a draft, not a
+deliverable"; prevention hierarchy architecture > types > tests > docs; only auto-merge
+reversible changes, revert in the morning and add a lint rule. brana already holds the first
+three structurally (runner manifests and denied verbs, the human merge valve, ADR-082's blind
+test-author). The one open item is the last: a **revert-and-tighten cycle** for whatever rung
+of the autonomy ladder is allowed to merge. The `pr` organ's Merge Danger call (two-way door,
+small blast radius) is precisely the predicate loop-first's "L2 trivially-safe Merger" needs —
+noted in ADR-097 D3.
+
+### 6d. Operating habits worth writing down, no task
+
+Day shift grills, night shift implements; at most two parallel grill sessions; ~100K budget per
+triage session; give the *why* with every instruction ("if it doesn't know the why, then it
+can't suggest alternatives"); "look harder" when the agent claims no tests exist; glossary
+updated and committed at the end of each grill; QA finds what specs cannot (the non-git-repo
+case left DB and disk out of sync).
+
 ## 5. Next recheck
 
 Due ~2027-01-07 (quarterly, t-3263 cadence). Watch specifically: whether `chief-of-staff` or

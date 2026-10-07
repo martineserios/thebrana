@@ -88,6 +88,13 @@ registration — the adapter notes the correspondence, it does not re-implement 
   reads the Merge Danger section as input and challenges it. Spec:
   [features/pr-body-organ.md](../features/pr-body-organ.md).
 
+**Merge Danger as a predicate.** The `pr` organ's door + blast-radius call is the first
+machine-readable reversibility statement brana will have per PR. It is recorded here as the
+intended input for loop-first's "L2 trivially-safe Merger" rung (t-2820): a rung that merges
+on its own may do so only for `two-way` doors with a small radius, and the morning review's
+revert-and-tighten cycle (pstack, research §6c) is the matching failure path. Not built here;
+named so the organ is shaped with that consumer in mind.
+
 ### D4 — Two `implement-spec` invariants enter the Beat contract; the skill does not
 
 brana's runner *is* his "deterministic loop," which he ranks above `implement-spec`
@@ -131,6 +138,31 @@ Wherever an upstream skill reads `GLOSSARY.md` / `GLOSSARY-MAP.md`, the adapter 
 and is not created by this ADR (t-3013 owns the glossary-building discipline). Adapters keep
 the "2–3 most relevant `docs/architecture/*.md` + the task's own context" fallback ADR-084 §3
 already prescribes.
+
+### D8 — Same-day sweep additions enter the plan, not the band
+
+The deeper sweep (research §6) found four adoptables that are practices, not skills to vendor.
+They join the penciled plan as P7–P10 (idea doc) and are decided here only to the extent of
+*where they land*:
+
+1. **Rules → hooks audit** (S1): each always-load rule line is tested with "could a hook exit 2
+   with this message?"; those that can become hooks and the line is deleted. Home: a
+   `/brana:reconcile --scope rules-to-hooks` pass, run once now and then on the `retro` cadence
+   (D5). This is the operational form of `retro`'s mechanical→check rule and of the
+   context-budget problem t-3470 just patched by hand.
+2. **Triage repro gate** (S2): `ac-propose` / the triage path reproduces or explicitly records
+   "not reproducible" and checks for an existing task before a role may flip to
+   `ready-for-agent`; briefs name contracts, never paths. Home: ADR-086 §3's role derivation
+   gains a precondition.
+3. **QA-plan brief** (S3): the wave-ship close-out emits a step-by-step QA plan from the wave's
+   commits as a `kind: review` task tagged human; the cockpit digest links it; it is completed
+   (leaves context) when walked. Home: epic-drain §Merge / wave ship.
+4. **File-size gate** (S4): a pre-commit lint refuses a diff that pushes a file past 1,000
+   lines without an override tag. Home: `validate.sh` fast path + pre-commit.
+
+Habits (S5–S8) are folded into existing tasks' context (t-3012, t-2984, t-2981, decompose
+phase) and into the delegation-routing rule the operator asked for today (cheaper models for
+read-and-extract agents; smartest model for the interview).
 
 ## Consequences
 

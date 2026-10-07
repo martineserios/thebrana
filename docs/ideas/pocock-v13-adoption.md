@@ -90,6 +90,28 @@ matrix flips.
 P1 → P2/P3 is the only hard order: bump the pin before adding organs at the new pin, so the
 whole band carries one `pinnedRef`.
 
+### Added by the same-day deeper sweep (research §6, ADR-097 D8)
+
+| # | Task | Kind | Effort | Blocked by | Source |
+|---|---|---|---|---|---|
+| P7 | Rules → hooks audit: test every always-load rule line with "could a `PreToolUse` hook exit 2 with this?"; convert, delete the line, re-measure headroom | refactor | S | — | §6 S1 |
+| P8 | Triage repro gate: reproduce-or-record + existing-task check before any role flips to `ready-for-agent`; brief names contracts, never paths | feature | S | — | §6 S2 |
+| P9 | QA-plan brief at wave ship: `kind: review` task from the wave's commits, tagged human, linked from the digest, completed when walked | feature | S | — | §6 S3 |
+| P10 | File-size gate: pre-commit lint, no file crosses 1,000 lines without an override tag | chore | XS | — | §6 S4 |
+
+Folded into existing tasks (context appends, no new task): fidelity routing + prototype
+round-trip → t-3012, t-2984 (§6 S5); slice lower bound → decompose phase note (§6 S6);
+tautology question, seam gate, one-test-at-a-time → `tdd-organ-build-loop.md` and t-2981
+(§6 S8). Rule proposal for the human to place in `delegation-routing.md`: smartest model for
+the interview and the challenge, cheaper models for build, runner and any read-and-extract
+fan-out (§6 S7, operator direction 2026-10-07).
+
+### Convergence evidence, not adoption (research §6c)
+
+Lauren Tan's pstack reached brana's runner-manifest + human-merge-valve design independently.
+The one open item on that side — revert-and-tighten for whatever rung may merge alone — is
+now named as the consumer of the `pr` organ's Merge Danger call (ADR-097 D3).
+
 ## Open questions for the ADR challenge
 
 - Does `pr` need its own adapter, or is a 20-line template inside `/brana:ship` cheaper and
