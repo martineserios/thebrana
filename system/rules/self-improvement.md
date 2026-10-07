@@ -20,7 +20,7 @@ Use `/brana:retrospective` to classify and route. The taxonomy:
 | Rule ("always/never") | `system/rules/` draft → human places | human |
 | Decision (why X over Y) | ADR stub → human commits | human |
 | Reference (where something lives) | `~/.claude/memory/portfolio.md` | auto |
-| Pattern (reusable solution) | `~/.claude/memory/patterns.md` (cap 50) | auto |
+| Pattern (reusable solution) | `~/.claude/memory/patterns.md` (cap 100) | auto |
 | Knowledge (domain fact, model) | `~/.claude/memory/knowledge-staging.md` (cap 30) | auto |
 | Session (resume-only state) | native memory dir — skip retrospective | auto |
 
