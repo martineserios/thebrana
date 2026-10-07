@@ -146,10 +146,15 @@ They join the penciled plan as P7–P10 (idea doc) and are decided here only to 
 *where they land*:
 
 1. **Rules → hooks audit** (S1): each always-load rule line is tested with "could a hook exit 2
-   with this message?"; those that can become hooks and the line is deleted. Home: a
-   `/brana:reconcile --scope rules-to-hooks` pass, run once now and then on the `retro` cadence
-   (D5). This is the operational form of `retro`'s mechanical→check rule and of the
-   context-budget problem t-3470 just patched by hand.
+   with this message?"; those that can become hooks and the line is deleted. The run-once pass
+   is a task (P7, filed on acceptance), not a sentence here, so the backlog and Check 68 can
+   see it; the recurring form is a `/brana:reconcile --scope rules-to-hooks` pass on the
+   `retro` cadence (D5). **Gauge the cadence reads:** authored-rules bytes and headroom as
+   printed by `system/scripts/context-budget.sh` (the number `tests/procedures/
+   test-context-budget-split.sh` AC4 asserts on the live tree), plus the rule line count; the
+   scope is working if headroom rises between runs without a hand trim. This is the class fix
+   behind t-3470's symptom trim (two rule files shortened by hand on 2026-10-06 to keep that
+   test green) and the operational form of `retro`'s mechanical→check rule.
 2. **Triage repro gate** (S2): `ac-propose` / the triage path reproduces or explicitly records
    "not reproducible" and checks for an existing task before a role may flip to
    `ready-for-agent`; briefs name contracts, never paths. Home: ADR-086 §3's role derivation

@@ -25,7 +25,12 @@ termination engine and no grader-immutability rule; his check is human code revi
 (task packet, worktree, `/goal` span) to its expectations and **cuts his loop at green**.
 Refactor runs in brana's existing post-green step, outside the `/goal` predicate.
 **Consequences:** ADR-061 invariants 2 (done-signal immutability) and 3 (span boundary) are
-re-asserted in the adapter, not inherited from upstream. The #1209 "prove the mutation
+re-asserted in the adapter, not inherited from upstream. His refactor step is **not dropped**:
+it inherits brana's existing post-green refactor step and its cap (ADR-061 §4 inv. 3,
+"refactor capped/optional, outside the predicate"). Running refactor inside the span with the
+grader frozen was considered and rejected: the predicate is already true at green, so the
+loop would have no termination signal to iterate toward (LoopTrap P7; second opinion from a
+peer session, 2026-10-07). The #1209 "prove the mutation
 landed" step is kept as-is — it strengthens inv. 2's spirit (a red that was never really red
 cannot register).
 
