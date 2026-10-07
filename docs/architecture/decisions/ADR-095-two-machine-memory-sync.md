@@ -12,7 +12,7 @@ informs: docs/architecture/decisions/ADR-038-memory-write-gateway.md
 **Tags:** memory, ruflo, backup, git, macos, security
 **Extends:** [ADR-015](ADR-015-state-consolidation-plugin-first.md) (git is the source of truth) · **Respects:** [ADR-038](ADR-038-memory-write-gateway.md), [ADR-058](ADR-058-search-provider-hybrid-recall.md)
 
-The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered repo, a curated pack); their text is in this public repo's git history. This version records what was decided once the second machine turned out to be a company laptop. Device and credential specifics are kept out of this public file, in a private note in `brana-knowledge`.
+The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered repo, a curated pack); their text is in this public repo's git history. This version records what was decided once the second machine turned out to be a company laptop. Device and credential specifics are kept out of this public file, in a private note in the owner's personal repo (not `brana-knowledge`, which the Mac clones).
 
 ## Context
 
@@ -46,7 +46,7 @@ The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered
 | **Other clients on the company Mac** (inbound) | Accepted deviations 3 and 4 | Owner; revisit if the company asks |
 | **A write from the Mac into the owner's stores** (poisoning, clobbering) | Reduced, not closed: push-URL disable requested, unconfirmed; in-script refusal and read-only key pending; Linux's wrapper now warns when `backup.sh` loses its exec bit. Two pushes happened (2026-10-03, 2026-10-05); both were reviewed and reverted to the owner's state on Linux | t-3454 |
 | **Device and credential hardening of both machines** | Open items, listed in the private note | t-3454, owner's call |
-| **The employer as reader and claimant** of what is stored or authored on its machine | Inherent to a company device: keep nothing personal of value on the Mac beyond the harness | — |
+| **The employer as reader and claimant** of what is stored or authored on its machine | Inherent to a company device. The accepted clone (decision 3) makes everything in `brana-knowledge` readable there, so nothing that must stay from the employer goes into that repo | — |
 | **Secrets in memory** | Secret-scan edit hook and validate check today; a publish-path lint only if the pack is revived | t-3417 (parked) |
 | **Account or token compromise** (signing) | Not built | t-3419 (pending, P3) |
 
