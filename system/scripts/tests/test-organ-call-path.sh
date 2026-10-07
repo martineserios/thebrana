@@ -123,6 +123,8 @@ for pair in $PAIRS; do
   adapter="${pair%%:*}"
   sf="$REPO_ROOT/system/skills/$adapter/SKILL.md"
   check "$adapter references organ-resolve.sh" "yes" "$(grep -q 'organ-resolve.sh' "$sf" && echo yes || echo no)"
+  check "$adapter calls the DEPLOYED resolver path (\$HOME/.claude/scripts), not a CWD-relative system/ path" "yes" "$(grep -q '\$HOME/.claude/scripts/organ-resolve.sh' "$sf" && ! grep -q '`system/scripts/organ-resolve.sh' "$sf" && echo yes || echo no)"
+  check "$adapter treats ANY non-zero resolver exit as fallback (127 in client repos)" "yes" "$(grep -qi 'any non-zero' "$sf" && echo yes || echo no)"
   check "$adapter references organ-record.sh" "yes" "$(grep -q 'organ-record.sh' "$sf" && echo yes || echo no)"
   desc_len=$(sed -n '/^---$/,/^---$/p' "$sf" | grep '^description:' | wc -c | tr -d ' ')
   check "$adapter description line <= 80 bytes (budget)" "yes" "$([ "$desc_len" -le 80 ] && echo yes || echo no)"

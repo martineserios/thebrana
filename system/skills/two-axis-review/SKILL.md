@@ -28,7 +28,7 @@ adapter, never by typing `/code-review` and hoping for the Pocock skill.
 
 Model-invocable on purpose: callers reach this adapter through the Skill tool, which `disable-model-invocation` blocks (ADR-076 verified finding #3) — the flag made the band unreachable until t-3489.
 
-0. **Resolve, then record** (ADR-097 P0, t-3489): run `system/scripts/organ-resolve.sh code-review`. Exit 1 means the organ is not vendored in this repo — say so and return to the caller's inline procedure; never improvise the organ from memory. Then `system/scripts/organ-record.sh code-review <t-NNN> <caller>` (the entry record ADR-084 §7's invocation proxy reads).
+0. **Resolve, then record** (ADR-097 P0, t-3489): run `"$HOME/.claude/scripts/organ-resolve.sh" code-review` (the deployed copy; in this repo's own checkout `system/scripts/` holds the source). **Any non-zero exit** — 1 (organ not vendored here) or 127 (script absent, as in a client repo) — means: say so and return to the caller's inline procedure; never improvise the organ from memory. Then `"$HOME/.claude/scripts/organ-record.sh" code-review <t-NNN> <caller>` (entry record for ADR-084 §7's invocation proxy; advisory, its exit status never aborts this skill).
 1. **Read the vendored skill**: `Skill(skill: "code-review")` — `.claude/skills/code-review/SKILL.md`,
    verbatim upstream, pinned `v1.2.3`, tracked in `skills-lock.json`. Follow its 5-step
    process as written (pin fixed point → identify spec source → identify standards
@@ -99,7 +99,7 @@ merge; a killed spike gets a `challenger` pre-mortem and never reaches a diff at
 
 ## Record on completion or early exit
 
-`system/scripts/organ-record.sh code-review <t-NNN> <caller> complete` (or `early-exit`) —
+`"$HOME/.claude/scripts/organ-record.sh" code-review <t-NNN> <caller> complete` (or `early-exit`) —
 the same one-line shape as the step-0 entry record, so the ADR-084 §7 invocation reader
 counts `event=entry` lines and never meets two shapes in one log. The script is advisory:
 its exit status never aborts this review. (Earlier drafts hand-rolled a richer printf here;

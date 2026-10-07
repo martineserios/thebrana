@@ -137,6 +137,7 @@ declare -A REMEDY_REGISTRY=(
   [76]="NO_REMEDY:judgment-required — replacing a GNU-only form needs the matching p_* shim (see system/hooks/lib/portable.sh) or an explicit '# portable-ok: <reason>'; grep -P sites need a per-site ERE/awk rewrite, not a mechanical substitution (t-3374)"
   [77a]="NO_REMEDY:judgment-required — a mod calling \$.model/\$.http/fs, hooking tool.call, reading the ledger, or a drifted vendored copy needs an authored change (which call to drop, whether to re-run mods-sync-shared.sh, which version to bump) — never a mechanical edit of plugin code (t-3427)"
   [77b]="NO_REMEDY:judgment-required — a failing claude plugin validate/test or a call outside the allowed set is a code defect in the mod; an absent claude is an environment gap to fix by installing the pinned CLI, not by editing the repo (t-3427)"
+  [78]="NO_REMEDY:judgment-required — a band adapter quarantined from the Skill tool, an organ that does not resolve, or a missing entry record is a design defect in the adapter or its caller (ADR-097 P0, t-3489); fix the adapter, never the test"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
