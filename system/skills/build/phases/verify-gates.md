@@ -116,7 +116,7 @@ Where `MODIFIED_FILES` = output of `git diff --name-only main...HEAD` (from the 
 
 Always log: `brana backlog set {task_id} notes --append "Evaluator: {verdict} ({date}), {N} criteria checked"`
 
-This line is **machine-read**, not just a human record (t-2857, ADR-081 D2) — `brana backlog stacked-verdict` and `ac approve` parse `Evaluator: {verdict}` out of `notes` as the judged evidence layer. `{verdict}` must be exactly `PASS`, `PASS WITH GAPS`, `FAIL`, or `INCONCLUSIVE` — no other wording — or the parser silently counts it as `0 judged` instead of erroring. For INCONCLUSIVE append the ids: `"Evaluator: INCONCLUSIVE ({date}), {N} criteria checked, unverifiable: {AC ids}"`.
+This line is **machine-read**, not just a human record (t-2857, ADR-081 D2) — `brana backlog stacked-verdict` and `ac approve` parse `Evaluator: {verdict}` out of `notes` as the judged evidence layer. `{verdict}` must be exactly `PASS`, `PASS WITH GAPS`, `FAIL`, or `INCONCLUSIVE` — no other wording — or the parser silently counts it as `0 judged` instead of erroring. For INCONCLUSIVE append the ids: `"Evaluator: INCONCLUSIVE ({date}), {N} criteria checked, unverifiable: {AC ids}"`. `{AC ids}` is single-line: no newline and no verdict token (`PASS`, `FAIL`, `INCONCLUSIVE`, `PROCEED`, `RECONSIDER`) inside it, or the latest-wins parser reads the wrong line.
 
 **INCONCLUSIVE** (t-3494) — present once:
 ```

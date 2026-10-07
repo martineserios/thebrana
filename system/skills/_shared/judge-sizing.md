@@ -23,6 +23,9 @@ no rung persists past the beat that armed it.
 # (pattern_set-u-empty-assoc-array-fails-open).
 JUDGE_SIGNALS="RECONSIDER_SEV4 PASS_WITH_GAPS CRITICAL_PATH SIBLING_VERDICT ESCAPED_DEFECT_AREA"
 JUDGE_SIGNALS_COUNT=5
+# INCONCLUSIVE arms no rung signal by design (t-3494): it blocks CLOSE and routes to the
+# human valve on its own; whether it should also raise the rung is ADR-082's decision,
+# recorded as open in the ADR-081 t-3494 amendment.
 
 # --- Rung-1 criticality: broad critical-section prefixes (ADR-082 §1 list). ---
 # Includes this file itself — the authority protecting the gate must protect

@@ -27,7 +27,7 @@
 | pipeline-tracker | Haiku | Pipeline tracking, deal events |
 | pr-reviewer | Sonnet | PR creation (auto-triggered via hook) |
 | gemini | Haiku | `/brana:gemini` skill invoked — research and doc delegation via agy |
-| build-evaluator | Sonnet | Auto-invoked at BUILD→CLOSE when `AC:` lines present in task context; grades MET/PARTIAL/MISSED per criterion |
+| build-evaluator | Sonnet | Auto-invoked at BUILD→CLOSE when `AC:` lines present in task context; grades MET/PARTIAL/MISSED/UNVERIFIABLE per criterion (overall PASS / PASS WITH GAPS / FAIL / INCONCLUSIVE, t-3494) |
 
 ## Agent Groups
 

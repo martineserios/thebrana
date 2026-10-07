@@ -12,7 +12,7 @@ field below cites the live pattern it generalizes:
 | Inputs (labelled, delimited) | `challenger-gate.md` §Input contract |
 | Scope boundary | `challenger-gate.md` §Input contract (read-trust boundary) + `agents/scout.md` frontmatter `tools:` allowlist |
 | Acceptance criteria | `verify-gates.md:95-96` (`AC_LINES`) |
-| Return contract | `challenger-gate.md` ("severity, ac_violated, description, file, spec_says") · `verify-gates.md:102` ("PASS, PASS WITH GAPS, or FAIL") |
+| Return contract | `challenger-gate.md` ("severity, ac_violated, description, file, spec_says") · `verify-gates.md:102` ("PASS, PASS WITH GAPS, FAIL, or INCONCLUSIVE" — the last is gate-only, see §5) |
 | TDD criteria | [`delegation-tdd-checklist.md`](delegation-tdd-checklist.md), included by reference |
 
 ## Why this exists
@@ -81,12 +81,17 @@ State a closed verdict vocabulary and the per-item fields. This is what lets the
 the result without re-reading the work.
 ```
 Return exactly:
-  VERDICT: {one of: PASS | PASS WITH GAPS | FAIL | INCONCLUSIVE}
+  VERDICT: {one of: PASS | PASS WITH GAPS | FAIL}
   Then, for each {finding|criterion}: {field1}, {field2}, {field3} — with file:line evidence.
 Report what you could NOT determine as well as what you could.
 ```
 That last line is from `agents/scout.md` ("Report what you found AND what you didn't find") — an
 agent that omits its gaps produces confident, incomplete work.
+
+INCONCLUSIVE is reserved for the two gates (`verify-gates.md` evaluator, `challenger-gate.md`
+challenger), whose callers block CLOSE on it (t-3494). No delegated-executor caller consumes
+it, so a general executor does not get it in its vocabulary: anything it could not verify
+goes under `Unresolved`, and the gate decides.
 
 ### 6. TDD criteria — for code output only
 Append [`delegation-tdd-checklist.md`](delegation-tdd-checklist.md) verbatim. Skip for
@@ -119,7 +124,7 @@ Do not modify: .claude/tasks.json, system/hooks/, docs/architecture/decisions/.
 Do not run: git commit, git merge, git push.
 
 Return exactly:
-  VERDICT: PASS | PASS WITH GAPS | FAIL | INCONCLUSIVE
+  VERDICT: PASS | PASS WITH GAPS | FAIL
   Files written: path — one-line purpose, per file
   Tests: name — PASSING|FAILING, and the command that proves it
   Unresolved: anything you could not determine, or 'none'

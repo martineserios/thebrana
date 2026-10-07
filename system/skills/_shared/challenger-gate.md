@@ -197,16 +197,23 @@ other wording. Findings themselves (the numbered list) may still be surfaced as 
 notes text alongside this line; the verdict line's exact wording is the contract. For
 INCONCLUSIVE the line carries the gap instead of a severity:
 `"Challenger: INCONCLUSIVE ({date}), {N} finding(s), missing evidence: {list}"`.
+`{list}` is single-line: no newline and no verdict token (`PROCEED`, `RECONSIDER`,
+`INCONCLUSIVE`, `PASS`, `FAIL`) inside it, or the latest-wins parser reads the wrong line
+(same class as `{structured findings}` below).
 
 **INCONCLUSIVE path** (t-3494) — present once, no repair loop (there is nothing to repair
-until the evidence exists):
+until the evidence exists). **Cap:** the INCONCLUSIVE run is iteration 1 of the max-2 rule
+below; the re-run after "Gather evidence" is iteration 2 and is the last Challenger run on
+this task. If that re-run is RECONSIDER it follows the iteration-2 branch (override or
+abandon, no further BUILD loop). A second INCONCLUSIVE offers override or abandon only.
+Total Challenger LLM runs never exceed 2.
 ```
 AskUserQuestion:
   question: "Challenger: INCONCLUSIVE. Findings rest on unverified evidence: {list}. How to proceed?"
   header: "Undecided"
   options:
     - label: "Gather evidence — run the named probe/measurement, then re-run Challenger (Recommended)"
-      description: "Missing evidence appended to task context. Challenger re-runs once it exists (counts as iteration 1)."
+      description: "Missing evidence appended to task context. Challenger re-runs once it exists (that re-run is iteration 2, the last)."
     - label: "Override — proceed anyway (reason required)"
       description: "Reason logged to task context. CLOSE proceeds with annotation."
     - label: "Abandon — mark task blocked"

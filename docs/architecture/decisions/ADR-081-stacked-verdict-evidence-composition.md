@@ -122,6 +122,14 @@ later verdict line supersedes it (latest-wins, unchanged). Source of the discipl
 Dream Machine's ACCEPT / REJECT / INCONCLUSIVE verdict set (ruvnet probe, 2026-10-07).
 Tests: `stacked_verdict.rs` unit tests, `stacked_verdict_smoke.rs`, and
 `tests/procedures/test-inconclusive-verdict.sh` (one must-fire check per surface).
+Precedence over CALIBRATION's >= 4 rule is stated in CALIBRATION.md §Verdict rules
+(INCONCLUSIVE only when verifying the premise would move the top finding across the >= 4
+line and no >= 4 finding stands on verified evidence; non-overridable classes never
+downgrade). Cap: the INCONCLUSIVE run is Challenger iteration 1; total runs stay ≤ 2.
+INCONCLUSIVE is gate-only (evaluator and challenger); delegated executors keep the
+three-verdict contract. **Open (owned by ADR-082, which has no open-questions section):**
+INCONCLUSIVE arms no judge-ladder rung signal by design today; whether it should is a
+sizing decision for ADR-082 §3.
 
 ## Consequences
 
