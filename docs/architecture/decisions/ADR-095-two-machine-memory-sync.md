@@ -12,7 +12,7 @@ informs: docs/architecture/decisions/ADR-038-memory-write-gateway.md
 **Tags:** memory, ruflo, backup, git, macos, security
 **Extends:** [ADR-015](ADR-015-state-consolidation-plugin-first.md) (git is the source of truth) · **Respects:** [ADR-038](ADR-038-memory-write-gateway.md), [ADR-058](ADR-058-search-provider-hybrid-recall.md)
 
-The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered repo, a curated pack); their text is in this public repo's git history. This version records what was decided once the second machine turned out to be a company laptop. Device and credential specifics are kept out of this public file, in a private note in the owner's personal repo (not `brana-knowledge`, which the Mac clones).
+The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered repo, a curated pack); this version replaces them and records what was decided once the second machine turned out to be a company laptop. Device and credential specifics are kept out of this public file, in a private note in the owner's personal repo (not `brana-knowledge`, which the Mac clones).
 
 ## Context
 
@@ -35,7 +35,7 @@ The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered
 7. **Backup: notes in git, the DB off git** (t-3466, planned). `brana-knowledge` keeps markdown notes under git with the t-3435 fetch-first guard and section-union export. The whole-store ruflo exports (`memory-entries.json`, `patterns.json`) and the vector files stop being committed — but only once an off-site DB copy is verified (t-3342, not done) or the t-3478 rebuild drill passes (drop the DB on a copy, re-index from files, every row type back). Until then the JSON in git is the only off-site copy and stays. Feed rows are disposable (re-fetchable news) unless t-3478 records otherwise.
 8. **ruflo is demoted to a rebuildable index over design docs** (owner decision 2026-10-07, spike t-3467). Over 20 real queries notes-only search answered 12 to 15 (strict to lenient) and ruflo's knowledge store 2 to 5; its clear wins were questions about dimension and feature docs, which the notes index does not cover. Feed and url items were ruflo's top hit in 9. The comparison used raw ruflo search, not the production recall path. Notes recall stays on the notes index. Two prerequisites first: the rows that exist only in ruflo (739 link-research insights, about 13 challenge and spike notes) get a markdown source of record (t-3478), and feed and url items leave default recall (t-3479). Until t-3478 lands the DB keeps its off-site copy. No ruflo entry is ever synced between machines.
 9. **Patterns archive.** The live `~/.claude/memory/patterns.md` holds the most recent sections up to the cap in its own header (100); validate Check 31a prunes the oldest quarantine entries at that cap in code, and the always-loaded rule and the creation template state the same cap (t-3476). The `brana-knowledge` copy unions on export and is the grow-only archive; a deliberate delete is made in both by hand.
-10. **This ADR is the short form.** The superseded drafts and their full threat analysis stay in git history.
+10. **This ADR is the short form.** It replaces the longer drafts, whose full threat analysis is not repeated here.
 
 ## Threats that remain live
 

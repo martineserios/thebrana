@@ -5,7 +5,7 @@ status: proposed
 
 > **Parked (2026-10-05).** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) decision 5: generic learnings reach the Mac through public thebrana; this pack is built only if that proves insufficient (t-3437, t-3440, t-3417 parked). The spec below is kept for that case.
 
-Written against the access model of the 2026-10-03 ADR-095 revision (its decisions 3, 4, 6, now in git history). This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options considered and §Review.
+Written against the access model of an earlier ADR-095 revision; the accepted ADR-095 supersedes it where they differ. This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options considered and §Review.
 
 ## Problem
 
@@ -103,7 +103,7 @@ Pre-registered before the repo is created (memory pattern: a kill rule needs a t
 | Node | Holds | Written by | Read by |
 |---|---|---|---|
 | Linux notes and ruflo DB (full) | everything, all clients | owner, gateway, jobs | Linux only |
-| `brana-knowledge` (owner repo) | backups; existing tabz project memory **until t-3454 resolves it** (no longer added, t-3475) | `backup.sh` (Linux only; the Mac's clone has its push URL disabled, ADR-095 decision 3) | Linux writes; the Mac keeps a read-only clone (accepted deviation) |
+| `brana-knowledge` (owner repo) | backups; existing tabz project memory **until t-3454 resolves it** (no longer added, t-3475) | `backup.sh` (Linux only; disabling the Mac clone's push URL is requested, ADR-095 decision 3) | Linux writes; the Mac keeps a read-only clone (accepted deviation) |
 | Allowlist file + lint list | approved paths with hashes; client names to veto | owner, by hand | `brana pack publish` |
 | Pack repo (private, deploy key read-only on the Mac) | the hand-picked files | `brana pack publish` on Linux | Mac |
 | Mac pack directory | the bundle | the Mac's pull step | Mac-Claude via FTS5 recall |

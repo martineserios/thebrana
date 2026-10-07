@@ -88,7 +88,7 @@ brana doctor
 | `brana ops run <job>` says *no scheduler backend* | expected — see the table above. |
 | The knowledge backup says `ahead by N commit(s) that change non-data paths — not fast-forwarding unattended` | expected whenever the other machine pushed a doc, draft or script to `brana-knowledge`. Run the two printed commands: review the paths outside `backup/`, then `git merge --ff-only <sha>`. Only `backup/` data fast-forwards on its own. |
 | Slow first CLI build | `cargo build --release` is ~10 minutes cold; it is cached afterwards. |
-| `/brana:close` reports `master has diverged from origin/master` from the knowledge backup | **On the Mac: stop and tell the owner** — the Mac never exports to `brana-knowledge` (ADR-095 decision 3; its push URL is disabled). On the owner's Linux machine: do not rebase or force-push; follow the recipe the message prints — review what changed outside `backup/`, `git merge` the reviewed sha, union only the four stores with an identity rule via `./merge-snapshots.py`, resolve anything else by hand keeping both sides, commit, push (ADR-095 §History). |
+| `/brana:close` reports `master has diverged from origin/master` from the knowledge backup | **On the Mac: stop and tell the owner** — the Mac never exports to `brana-knowledge` (ADR-095 decision 3; disabling the clone's push URL has been requested and is confirmed in t-3454). On the owner's Linux machine: do not rebase or force-push; follow the recipe the message prints — review what changed outside `backup/`, `git merge` the reviewed sha, union only the four stores with an identity rule via `./merge-snapshots.py`, resolve anything else by hand keeping both sides, commit, push (ADR-095 §History). |
 
 ## How this is tested
 
