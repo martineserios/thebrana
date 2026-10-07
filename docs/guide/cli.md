@@ -12,6 +12,8 @@ OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu OPENSSL_INCLUDE_DIR=/usr/include/opens
 
 # Symlink (one time)
 ln -sf $(pwd)/target/release/brana ~/.local/bin/brana
+# (/brana:ship's CLI step swaps in a regular file atomically; after a ship the symlink is gone —
+#  re-run the ln -sf above if you want "rebuild = live" for development again)
 
 # Load shell aliases
 source ~/enter_thebrana/thebrana/system/cli/aliases.sh
