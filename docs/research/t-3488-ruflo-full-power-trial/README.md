@@ -1,6 +1,6 @@
 ---
 title: Full-power ruflo trial — v3.55 scratch install, every dormant feature on
-status: setup-complete, runs-pending
+status: setup-complete — measured runs moved to t-3498
 task: t-3488
 produced_by: /brana:build spike (2026-10-07)
 depends_on: ADR-059, ADR-095 (d8), ADR-096
@@ -87,7 +87,10 @@ Pins: see `PIN.txt` in the trial dir (ruflo 3.55.0 · @claude-flow/guidance 3.0.
 | f | does a mod's `$.model` bill the plan | **answered** by thebrana-a7 2026-10-07: **yes**, invisible to cost/usage/rateLimits | — | — | ADR-096 OQ1 → a7 |
 | g | ruflo-mods `$.model`/`$.http` use + hidden spend | validate listing + grep at pinned SHA | — | **none; agent.spawn ×19; console http.fetch ×4** | |
 
-## Run-session checklist (outside interactive hours)
+## Run-session checklist (outside interactive hours) — owned by t-3498
+
+t-3488 closed with `--finish` after the setup phase; the measured runs below are **t-3498** (blocked on nothing,
+decide by 2026-10-14). $.model billing / measurement (g) is owned by **t-3493**.
 
 1. `bash setup.sh` — idempotent; re-asserts pins and prints the manual steps.
 2. **Manual, interactive terminal:** `cd ~/enter_thebrana/ruflo-trial/proj && HOME=~/enter_thebrana/ruflo-trial/home ../node_modules/.bin/ruflo policy init --mode enforce`, then add the 6 gate rules.
