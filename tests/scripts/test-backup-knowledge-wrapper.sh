@@ -21,5 +21,13 @@ grep -q "^ran$" "$T/o2" && bad "not executable -> script not run" "ran" || ok "n
 chmod 755 "$T/h2/enter_thebrana/brana-knowledge/backup.sh"; printf '#!/bin/bash\necho ran\nexit 3\n' > "$T/h2/enter_thebrana/brana-knowledge/backup.sh"
 HOME="$T/h2" bash "$WRAP" >"$T/o3" 2>&1; rc=$?
 grep -q "^ran$" "$T/o3" && [ "$rc" -eq 3 ] && ok "executable -> runs, exit code passed through" || bad "executable passthrough" "rc=$rc"
+# clone present but backup.sh MISSING (deleted/renamed) must not be silent (Gate 3 regression finding)
+mkdir -p "$T/h4/enter_thebrana/brana-knowledge"
+HOME="$T/h4" bash "$WRAP" >"$T/o4" 2>&1; rc=$?
+[ "$rc" -eq 1 ] && ok "MUST-FIRE: clone without backup.sh -> exit 1" || bad "clone without backup.sh -> exit 1" "rc=$rc"
+grep -q "WARNING.*backup.sh" "$T/o4" && ok "clone without backup.sh -> WARNING" || bad "missing-file warning" "$(cat "$T/o4")"
+# the warning must lead with the company-Mac instruction, not with chmod
+grep -q "DO NOT chmod" "$T/o2" && ok "not-executable warning says DO NOT chmod on a company Mac" || bad "warning leads with the Mac rule" "$(cat "$T/o2")"
+
 echo; echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
