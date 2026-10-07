@@ -45,11 +45,14 @@ S="$GH_STUB_DIR"
 case "$1 $2" in
   "pr checks")
     shift 2; shift   # drop PR number
+    [ "${1:-}" = "--required" ] && { shift; echo req >> "$S/required_flag"; }   # record that callers pass it
     if [ "${1:-}" = "--watch" ]; then exit "$(cat "$S/watch_rc")"; fi
-    if [ "${1:-}" = "--json" ]; then cat "$S/links"; exit 0; fi
+    # Real gh shape: `name<TAB>bucket<TAB>elapsed<TAB>url`. NO --json: this gh version rejects it.
+    if [ "${1:-}" = "--json" ]; then echo "unknown flag: --json" >&2; exit 1; fi
     n=$(cat "$S/calls" 2>/dev/null || echo 0); echo $((n+1)) > "$S/calls"
     if [ "$n" -lt "$(cat "$S/nochecks_n")" ]; then echo "no checks reported on the 'dev' branch"; exit 1; fi
-    echo "validate	pass"; exit 0 ;;
+    if [ -s "$S/links" ]; then awk '{ printf "job%d\tfail\t1m\t%s\n", NR, $0 }' "$S/links"; exit 1; fi
+    printf 'validate\tpass\t1m\thttps://github.com/o/r/actions/runs/1/job/9\n'; exit 0 ;;
   "api "*) jid=$(printf '%s' "$2" | sed -E 's#.*/check-runs/([0-9]+)/annotations.*#\1#')
     if grep -qx "$jid" "$S/infra_ids" 2>/dev/null; then echo "The job was not acquired by Runner of type hosted even after multiple attempts"; fi
     exit 0 ;;
@@ -78,6 +81,9 @@ assert "real test failure: returns 1, no rerun" "1|" "$(run_scenario real 0 1 "$
 assert "mixed real + infra failure: returns 1, no rerun" "1|" "$(run_scenario mixed 0 1 "$L" '111' 3)"
 assert "all failures are not-acquired: returns 3 and reruns run 900" "3|900," "$(run_scenario infra 0 1 "$L" '111
 222' 3)"
+
+echo "--- only required checks decide"
+assert "every executable gh pr checks call passes --required" "0" "$(awk '$0 !~ /^[ ]*#/ && /gh pr checks/ && !/--required/ { n++ } END { print n + 0 }' "$T/block.sh")"
 
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ]

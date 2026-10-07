@@ -237,20 +237,30 @@ still red, no rerun). Executed against a stubbed `gh` by `tests/procedures/test-
 
 <!-- SHIP-CHECKS-BLOCK -->
 ```bash
+# Failed/cancelled check URLs, one per line. Parses the plain tab-separated output
+# (name <TAB> bucket <TAB> elapsed <TAB> url) — `gh pr checks --json` does not exist in every gh
+# version (it errored "unknown flag: --json" here), and an error hidden behind 2>/dev/null would
+# silently disable the rerun logic below.
+ship_failed_links() {
+  gh pr checks "$1" --required 2>/dev/null | awk -F'\t' '$2 == "fail" || $2 == "cancel" { print $4 }'
+}
+
+# Only REQUIRED checks decide: advisory jobs (the macOS job) are red on main too and must not
+# block a ship (`--required`). Output is `name <TAB> bucket <TAB> elapsed <TAB> url`.
 # ship_checks_wait <pr>  ->  0 green | 1 red (a real failure) | 2 no checks ever appeared
 #                            | 3 red, but ONLY because jobs were never given a runner
 ship_checks_wait() {
   local pr="$1" tries="${SHIP_CHECKS_TRIES:-12}" gap="${SHIP_CHECKS_GAP:-10}" i=0 out
   while :; do
-    out=$(gh pr checks "$pr" 2>&1)
+    out=$(gh pr checks "$pr" --required 2>&1)
     case "$out" in *"no checks reported"*) ;; *) break ;; esac
     i=$((i + 1))
     [ "$i" -ge "$tries" ] && { echo "no checks reported on PR $pr after $tries polls" >&2; return 2; }
     sleep "$gap"
   done
-  gh pr checks "$pr" --watch >/dev/null 2>&1 && return 0
+  gh pr checks "$pr" --required --watch >/dev/null 2>&1 && return 0
   local links link jid infra=0 real=0
-  links=$(gh pr checks "$pr" --json bucket,link --jq '.[] | select(.bucket=="fail" or .bucket=="cancel") | .link' 2>/dev/null)
+  links=$(ship_failed_links "$pr")
   [ -n "$links" ] || return 1
   while IFS= read -r link; do
     [ -n "$link" ] || continue
@@ -274,7 +284,7 @@ ship_rerun_unacquired() {
     seen="$seen$rid "
     gh run rerun "$rid" --failed
   done <<EOF_RERUN
-$(gh pr checks "$pr" --json bucket,link --jq '.[] | select(.bucket=="fail" or .bucket=="cancel") | .link' 2>/dev/null)
+$(ship_failed_links "$pr")
 EOF_RERUN
 }
 ```
