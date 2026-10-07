@@ -88,6 +88,27 @@ Run all safety checks before touching anything external.
    | `Makefile` with `test` target | `make test` |
    | None detected | Skip with warning |
 
+2b. **CI-equivalent tests** (repos whose CI runs a `tests` job over `tests/*/*.sh` — thebrana) —
+   the project's own suite above is NOT what CI gates on. PR #1093 passed `cargo test` and a green
+   `validate.sh`, then CI's `tests` job failed on a rules-headroom budget (988 B < 1024 B) — the same
+   miss as PR #1076. Run CI's exact command in a **throwaway worktree** (never the shared checkout;
+   keep the worktree until the loop ends — removing it mid-run makes every later suite "fail"):
+
+   ```bash
+   git worktree add --detach ../thebrana-ship-sweep dev
+   (cd ../thebrana-ship-sweep && PATH="$PWD/system/cli/rust/target/release:$PATH" \
+       bash system/scripts/run-test-suites.sh tests/*/*.sh) > /tmp/ship-sweep.out 2>&1; echo "sweep rc=$?"
+   tail -n 15 /tmp/ship-sweep.out      # "Failed tests:" lists every red suite
+   git worktree remove --force ../thebrana-ship-sweep
+   ```
+
+   It takes minutes; start it in the background and run steps 3–5 meanwhile. A suite that fails the
+   same way on `main` (e.g. an environment-only failure) is noted in the gate summary, not a blocker.
+   **Targeted minimum** — if the sweep cannot run, `git diff --name-only main...dev` containing
+   `system/rules/` still requires `bash tests/procedures/test-context-budget-split.sh` to pass (the
+   exact CI check that failed), and one containing `.github/workflows/` requires the matching
+   `tests/scripts/test-ci-*.sh`.
+
 3. **Build** — does it compile/bundle?
 
    | Indicator | Command |
@@ -196,10 +217,68 @@ if [ -z "$PR" ]; then                # `gh pr create` has no --json: it prints t
     PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
 fi
 [ -n "$PR" ] || { echo "no open dev→main PR found after create — stop"; exit 1; }
-gh pr checks "$PR" --watch || { echo "CI is not green — stop, do NOT merge"; exit 1; }   # required: validate, rust, tests
+# required checks: validate, rust, tests. ship_checks_wait / ship_rerun_unacquired are defined below.
+ship_checks_wait "$PR"; rc=$?
+if [ "$rc" -eq 3 ]; then                       # every failure was "job never got a runner" — infra, not code
+    ship_rerun_unacquired "$PR" && sleep 20 && { ship_checks_wait "$PR"; rc=$?; }
+fi
+[ "$rc" -eq 0 ] || { echo "CI is not green (rc=$rc: 1=red 2=no checks 3=runner never acquired) — stop, do NOT merge"; exit 1; }
 SHA=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
 echo "PR=$PR SHA=$SHA"               # carry BOTH into the gate; shell variables do not survive between calls
 ```
+
+Paste the helpers into the same call, above the lines that use them. They exist because of two live
+failures on PR #1093: (1) `gh pr checks --watch` run right after `gh pr create` exits 1 with
+`no checks reported` — CI had not started, which looks exactly like "red"; (2) three required jobs
+ended `cancelled` with *"The job was not acquired by Runner of type hosted even after multiple
+attempts"* — GitHub never ran them, no test failed, and a re-run was the whole fix. The helpers
+retry the first and tell the second apart from a real failure (a mixed real + infra failure is
+still red, no rerun). Executed against a stubbed `gh` by `tests/procedures/test-ship-hardening.sh`.
+
+<!-- SHIP-CHECKS-BLOCK -->
+```bash
+# ship_checks_wait <pr>  ->  0 green | 1 red (a real failure) | 2 no checks ever appeared
+#                            | 3 red, but ONLY because jobs were never given a runner
+ship_checks_wait() {
+  local pr="$1" tries="${SHIP_CHECKS_TRIES:-12}" gap="${SHIP_CHECKS_GAP:-10}" i=0 out
+  while :; do
+    out=$(gh pr checks "$pr" 2>&1)
+    case "$out" in *"no checks reported"*) ;; *) break ;; esac
+    i=$((i + 1))
+    [ "$i" -ge "$tries" ] && { echo "no checks reported on PR $pr after $tries polls" >&2; return 2; }
+    sleep "$gap"
+  done
+  gh pr checks "$pr" --watch >/dev/null 2>&1 && return 0
+  local links link jid infra=0 real=0
+  links=$(gh pr checks "$pr" --json bucket,link --jq '.[] | select(.bucket=="fail" or .bucket=="cancel") | .link' 2>/dev/null)
+  [ -n "$links" ] || return 1
+  while IFS= read -r link; do
+    [ -n "$link" ] || continue
+    jid=${link##*/job/}; jid=${jid%%[!0-9]*}
+    if gh api "repos/{owner}/{repo}/check-runs/$jid/annotations" --jq '.[].message' 2>/dev/null \
+         | grep -q "not acquired by Runner"; then infra=$((infra + 1)); else real=$((real + 1)); fi
+  done <<EOF_LINKS
+$links
+EOF_LINKS
+  [ "$real" -eq 0 ] && [ "$infra" -gt 0 ] && return 3
+  return 1
+}
+
+# ship_rerun_unacquired <pr>  — re-run only the failed jobs of every workflow run that has one.
+ship_rerun_unacquired() {
+  local pr="$1" link rid seen=" "
+  while IFS= read -r link; do
+    [ -n "$link" ] || continue
+    rid=${link#*/runs/}; rid=${rid%%/*}
+    case "$seen" in *" $rid "*) continue ;; esac
+    seen="$seen$rid "
+    gh run rerun "$rid" --failed
+  done <<EOF_RERUN
+$(gh pr checks "$pr" --json bucket,link --jq '.[] | select(.bucket=="fail" or .bucket=="cancel") | .link' 2>/dev/null)
+EOF_RERUN
+}
+```
+<!-- /SHIP-CHECKS-BLOCK -->
 
 **B — Merge gate (mandatory, fails closed).** Ask every time, even though "Deploy now" was answered
 at pre-flight — that answer authorised the *checks and the push*, not the merge:
@@ -290,10 +369,25 @@ Run post-deploy checks to confirm the deploy succeeded.
 | Web service | `curl -sf <health-endpoint>` if URL is known |
 | npm package | `npm view <package>@latest version` |
 | Cargo crate | `cargo search <crate> --limit 1` |
-| Tier-2 PR ship | `gh pr view <n> --json state,mergedAt` shows MERGED, `git rev-parse HEAD main origin/main` all agree, `git branch --show-current` is still `dev`, the backlog ledger's task count is unchanged from before the ship (`brana backlog stats`), then `./bootstrap.sh --check` |
+| Tier-2 PR ship | `gh pr view <n> --json state,mergedAt` shows MERGED, `git rev-parse HEAD main origin/main` all agree, `git branch --show-current` is still `dev`, the backlog ledger's task count is unchanged from before the ship (`brana backlog stats`), then `./bootstrap.sh --check`, then **rebuild the CLI** (below) |
 | Bootstrap | `./bootstrap.sh --check` if supported |
 | Docker | `docker run <image> --version` or health check |
 | Custom | Ask user for verification command |
+
+**Tier-2 ship: rebuild and install the CLI.** `bootstrap.sh` deploys rules, skills and docs but does
+**not** build `brana`; it only prints "brana-cli binary may be stale". Until the binary is rebuilt, the
+just-deployed rules and docs advertise flags the installed binary rejects (live after PR #1093: the
+`--frames` flag existed in docs and rules, not in `~/.local/bin/brana`). If the merged diff touches
+`system/cli/` (`git diff --name-only <pre-ship main>..main`), ask once, then:
+
+```bash
+cd system/cli/rust && cargo build --release -p brana-cli
+cp ~/.local/bin/brana ~/.local/bin/brana.bak && cp target/release/brana ~/.local/bin/brana.new && mv -f ~/.local/bin/brana.new ~/.local/bin/brana
+brana --version && brana <changed-subcommand> --help     # verify the installed binary, not the build's exit code
+```
+
+Replacing `~/.local/bin/brana` affects every session on the machine, hence the ask and the `.bak`.
+Other machines need the same rebuild after pulling `main` — say so in the ship report.
 
 Report result:
 - **Success**: "Deploy verified — [details]"
