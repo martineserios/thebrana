@@ -174,7 +174,7 @@ deploy2() { local p="$NOCLAUDE_PATH"; [ "${1:-withclaude}" = withclaude ] && p="
       PROJECT_SETTINGS_DIR="$PROJ"; MANAGED_SETTINGS="$T/none.json"; MODS_MP="$MP"; CHECK_ONLY=false; CHANGES=0
       eval "$FN"; eval "$FN2"; mods_ruflo_guard; mods_installed_guard; mods_install_step ) >"$H/out" 2>&1; echo $?; }
 newhome; seed_billing; rc="$(deploy2 withclaude)"
-assert "deploy with a billing mod installed: refuses the mods step (no claude plugin install/update)" 0 "$(plugin_calls)"
+assert "deploy with a billing mod installed: refuses the mods step (no claude plugin install/update; the guard's own plugin validate is allowed)" 0 "$(grep -cE '^plugin (install|update|uninstall) ' "$H/argv.log" 2>/dev/null || true)"
 assert "...and prints the guard line" yes "$(has 'mods step refused' "$(out)")"
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

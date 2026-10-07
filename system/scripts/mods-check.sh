@@ -27,6 +27,17 @@
 #                                            else origin/dev, else dev; none resolvable = FAIL,
 #                                            never a silent pass (CI fetches origin/dev first).
 #                   Must-fire fixtures: tests/fixtures/mods/bad-*; suite tests/scripts/test-mods-check.sh.
+# --installed [CLAUDE_DIR]  Law 3 over the PLUGIN CACHE (t-3493). The engine loads mods from
+#                   <CLAUDE_DIR>/plugins/cache/..., from any marketplace — 77a never sees them. Reads
+#                   plugins/installed_plugins.json; every function-hook mod (hooks/hooks.json with a
+#                   `modules` key) is scanned for the model/http/bracket/destructure/Reflect/fetch rules,
+#                   and — when `claude` is on PATH — `plugin validate --json` must pass: a mod the engine
+#                   refuses at load still sits in the registry and in a headless init record's
+#                   `plugins[]` (probe 2026-10-07), so a refusal is a violation, never a pass. `claude`
+#                   absent: the static half runs and the summary SAYS the refusal half was skipped (the
+#                   deploy-side caller, bootstrap 7i, always has the binary). MODS_INSTALLED_STATIC_ONLY=1
+#                   skips the refusal half deliberately (validate --fast). Skills-only and classic-hook
+#                   plugins cannot call $ and are not mods: skipped, not scanned.
 # --engine [ROOT]   Needs `claude` (FAILS without it). For every mods/<mod>/ and an isolated
 #                   vendored copy of tests/fixtures/mods/good-minimal: plugin validate --json
 #                   must pass, every `calls:` entry must be in ALLOWED (no calls: line = FAIL),
@@ -40,7 +51,8 @@ MODE="${1:-}"
 ROOT="${2:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 case "$MODE" in
     --static|--engine) ;;
-    *) echo "usage: mods-check.sh --static|--engine [ROOT]" >&2; exit 2 ;;
+    --installed) CLAUDE_DIR="${2:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}}"; ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)" ;;
+    *) echo "usage: mods-check.sh --static|--engine [ROOT] | --installed [CLAUDE_DIR]" >&2; exit 2 ;;
 esac
 cd "$ROOT" || exit 2
 
@@ -48,6 +60,77 @@ ADAPTER='const run = ($: EngineInterface, argv: readonly string[]) => guard(argv
 SHARED_SRC="mods/_shared/hooks"
 VIOL=0
 viol() { VIOL=$((VIOL + 1)); echo "  $1"; }
+
+# Token rules (Law 2/3/4). --static applies all of them to mods/**; --installed applies the first
+# seven (Law 3: model, http, bracket-*, reflect, destructure, fetch) to the plugin cache.
+RULE_ID=(  model          http           bracket-model          bracket-http            reflect          destructure                                   fetch               child_process     tasks.json      git-common-dir                      fs            readFile          Bun.file       tool.call                         tool.check )
+RULE_PAT=( '\$\.model\b'  '\$\.http\b'   "\[['\"]model['\"]\]"  "\[['\"]http['\"]\]"    'Reflect\.get\(' '\{[^}]*\b(model|http|process)\b[^}]*\}[[:space:]]*=[[:space:]]*\$'  '(^|[^A-Za-z0-9_.$])fetch\(' 'child_process'   'tasks\.json'   '(git-common-dir|GIT_COMMON_DIR)'   '\$\.fs\b'    '\breadFile\b'    'Bun\.file'    "on\([[:space:]]*['\"]tool\.call['\"]"  "on\([[:space:]]*['\"]tool\.check['\"]" )
+RULE_WHY=( 'Law 3: no API-billed calls' 'Law 3: no network' 'Law 3: bracket access bypasses nothing' 'Law 3: bracket access bypasses nothing' 'Law 3: no reflective access to $' 'Law 3: do not pull model/http/process off $' 'Law 3: no global fetch' 'Law 3: no child processes outside run()' 'Law 2: the ledger is read by brana, never by a mod' 'Law 2: the CLI resolves the common dir' 'Law 2: no file reads' 'Law 2: no file reads' 'Law 2: no file reads' 'Law 4: mods render, never enforce' 'Law 4: mods render, never enforce' )
+LAW3_RULES=7
+# Comments cannot call anything: drop // and JSDoc-body (*) lines and a line that only opens a block
+# comment, but first strip a closed leading /* ... */ so code after it on the same line is still
+# scanned (panel finding: `/* x */ $.model...` was invisible). Prints "<line>:<text>".
+code_lines() { grep -n '' "$1" | sed -E 's#^([0-9]+:)[[:space:]]*/\*.*\*/#\1#' | grep -v -E '^[0-9]+:[[:space:]]*(//|\*|/\*)' || true; }
+
+# ============================== --installed (Check 77c, bootstrap 7i) ==========================
+if [ "$MODE" = "--installed" ]; then
+    REG="$CLAUDE_DIR/plugins/installed_plugins.json"
+    [ -f "$REG" ] || { echo "mods-check --installed: nothing installed ($REG absent)"; exit 0; }
+    ENTRIES="$(python3 - "$REG" <<'PYE'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception as e:
+    print("ERR " + str(e)); sys.exit(0)
+for name, entries in (d.get("plugins") or {}).items():
+    for e in entries if isinstance(entries, list) else [entries]:
+        p = (e or {}).get("installPath")
+        if p: print(name + "\t" + p)
+PYE
+)"
+    case "$ENTRIES" in ERR*) echo "  $REG: unparsable (${ENTRIES#ERR }) — cannot verify installed mods"; exit 1;; esac
+    HAVE_CLAUDE=false; command -v claude >/dev/null 2>&1 && [ -z "${MODS_INSTALLED_STATIC_ONLY:-}" ] && HAVE_CLAUDE=true
+    WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+    nmods=0
+    while IFS=$'\t' read -r name path; do
+        [ -n "$name" ] && [ -d "$path" ] || continue
+        [ -f "$path/hooks/hooks.json" ] && grep -q '"modules"' "$path/hooks/hooks.json" 2>/dev/null || continue
+        nmods=$((nmods + 1))
+        # the engine loads modules only from hooks/: scan that tree, never engine-written types or tests
+        while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            code="$(code_lines "$f")"; i=0
+            while [ "$i" -lt "$LAW3_RULES" ]; do
+                hits="$(printf '%s\n' "$code" | grep -E "${RULE_PAT[$i]}" | cut -d: -f1 || true)"
+                for ln in $hits; do viol "$name: ${f#$path/}:$ln: ${RULE_ID[$i]} — ${RULE_WHY[$i]}"; done
+                i=$((i + 1))
+            done
+        done < <(find "$path/hooks" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mts' -o -name '*.cts' -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) ! -path '*/node_modules/*' ! -path '*/.claude-plugin/types/*' ! -name '*.test.*' 2>/dev/null)
+        if $HAVE_CLAUDE; then
+            cpy="$WORK/$nmods"; cp -R "$path" "$cpy"; rm -rf "$cpy/.claude-plugin/types" "$cpy/tsconfig.json"
+            vjson="$WORK/validate.$nmods.json"
+            claude plugin validate --json "$cpy" >"$vjson" 2>"$WORK/validate.err"; vrc=$?
+            why="$(python3 - "$vjson" "$vrc" <<'PYV'
+import json, sys
+path, rc = sys.argv[1], int(sys.argv[2])
+try:
+    d = json.load(open(path))
+except Exception as e:
+    print(f"validate output is not JSON (rc={rc}): {e}"); sys.exit(0)
+if d.get("success") and rc == 0:
+    sys.exit(0)
+errs = [f"{e.get('path','?')}: {e.get('message','')}" for sec in [d.get("manifest") or {}] + list(d.get("contents") or []) for e in (sec.get("errors") or [])]
+print("rc=%d: %s" % (rc, "; ".join(errs)[:300] or "no error text"))
+PYV
+)"
+            [ -n "$why" ] && viol "$name: refused by the engine at load (plugin validate failed, $why) — yet listed in $REG, and a headless init record's plugins[] would list it as loaded (t-3493)"
+        fi
+    done <<< "$ENTRIES"
+    if $HAVE_CLAUDE; then half="refusal check ran (claude $(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1))"
+    else half="claude absent or MODS_INSTALLED_STATIC_ONLY: refusal check skipped"; fi
+    echo "mods-check --installed: $nmods mod(s) scanned in $REG, violations: $VIOL ($half)"
+    [ "$VIOL" -eq 0 ]; exit $?
+fi
 
 # ============================== --engine (Check 77b) ===========================================
 # Needs the real engine: `claude plugin validate --json` must pass and its `calls:` lines must
@@ -151,9 +234,6 @@ fi
 [ -d mods ] || { echo "mods-check --static: no mods/ directory under $ROOT — nothing to check"; exit 0; }
 
 # ---- 1. token rules over the git-visible, non-test sources ---------------------------------
-RULE_ID=(  model          http           bracket-model          bracket-http            reflect          destructure                                   fetch               child_process     tasks.json      git-common-dir                      fs            readFile          Bun.file       tool.call                         tool.check )
-RULE_PAT=( '\$\.model\b'  '\$\.http\b'   "\[['\"]model['\"]\]"  "\[['\"]http['\"]\]"    'Reflect\.get\(' '\{[^}]*\b(model|http|process)\b[^}]*\}[[:space:]]*=[[:space:]]*\$'  '(^|[^A-Za-z0-9_.$])fetch\(' 'child_process'   'tasks\.json'   '(git-common-dir|GIT_COMMON_DIR)'   '\$\.fs\b'    '\breadFile\b'    'Bun\.file'    "on\([[:space:]]*['\"]tool\.call['\"]"  "on\([[:space:]]*['\"]tool\.check['\"]" )
-RULE_WHY=( 'Law 3: no API-billed calls' 'Law 3: no network' 'Law 3: bracket access bypasses nothing' 'Law 3: bracket access bypasses nothing' 'Law 3: no reflective access to $' 'Law 3: do not pull model/http/process off $' 'Law 3: no global fetch' 'Law 3: no child processes outside run()' 'Law 2: the ledger is read by brana, never by a mod' 'Law 2: the CLI resolves the common dir' 'Law 2: no file reads' 'Law 2: no file reads' 'Law 2: no file reads' 'Law 4: mods render, never enforce' 'Law 4: mods render, never enforce' )
 
 # Every extension the engine will load as a module (probed: .js/.mjs pass `plugin validate`), not just .ts.
 FILES="$(git ls-files -co --exclude-standard -- mods 2>/dev/null | grep -E '\.(tsx?|mts|cts|jsx?|mjs|cjs)$' | grep -v -E '\.test\.(tsx?|mts|cts|jsx?|mjs|cjs)$' || true)"
@@ -161,10 +241,7 @@ nfiles=0
 while IFS= read -r f; do
     [ -n "$f" ] && [ -f "$f" ] || continue
     nfiles=$((nfiles + 1))
-    # Comments cannot call anything: drop // and JSDoc-body (*) lines and a line that only opens a
-    # block comment, but first strip a closed leading /* ... */ so code after it on the same line
-    # is still scanned (panel finding: `/* x */ $.model...` was invisible).
-    code="$(grep -n '' "$f" | sed -E 's#^([0-9]+:)[[:space:]]*/\*.*\*/#\1#' | grep -v -E '^[0-9]+:[[:space:]]*(//|\*|/\*)' || true)"
+    code="$(code_lines "$f")"
     i=0
     while [ "$i" -lt "${#RULE_ID[@]}" ]; do
         hits="$(printf '%s\n' "$code" | grep -E "${RULE_PAT[$i]}" | cut -d: -f1 || true)"
