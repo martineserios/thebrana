@@ -1223,7 +1223,9 @@ mods_installed_guard() {
     local chk="$SCRIPT_DIR/system/scripts/mods-check.sh" out
     [ -f "$chk" ] && [ -f "$TARGET_DIR/plugins/installed_plugins.json" ] || return 0
     if out="$(bash "$chk" --installed "$TARGET_DIR" 2>&1)"; then return 0; fi
-    MODS_GUARD_HIT="$(printf '%s\n' "$out" | tail -1)"
+    # any non-zero exit is a hit — a checker that died (rc 2, python3 missing, unreadable registry)
+    # must never pass the guard silently (challenger F2, t-3493)
+    MODS_GUARD_HIT="$(printf '%s\n' "$out" | tail -1)"; [ -n "$MODS_GUARD_HIT" ] || MODS_GUARD_HIT="mods-check --installed exited non-zero with no output"
     echo "Installed mods guard:"
     printf '%s\n' "$out" | grep -E '^  ' | sed 's/^  /  ! /'
     echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); the mods step is refused until then"

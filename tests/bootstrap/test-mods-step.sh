@@ -165,7 +165,10 @@ seed_billing() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope
 newhome; seed_billing; rc="$(boot --check noclaude)"
 assert "--check: an installed mod calling \$.model -> exits non-zero" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
 assert "...naming the mod" yes "$(has 'probe@other' "$(out)")"
-assert "...and the rule" yes "$(has 'model' "$(out)")"
+assert "...and the offending file:line" yes "$(has 'register.ts:' "$(out)")"
+# a checker that dies (exit 2, no violations printed) must still be a hit — the guard never fails open
+newhome; printf '[]' > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot --check noclaude)"
+assert "--check: an unreadable registry -> exits non-zero (fails closed)" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
 newhome; seed_installed 0.1.0; rc="$(boot --check noclaude)"
 assert "--check: registry without function-hook mods -> exit 0" 0 "$rc"
 deploy2() { local p="$NOCLAUDE_PATH"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"

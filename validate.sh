@@ -3009,7 +3009,7 @@ else
         pass "Check 77c: $(printf '%s\n' "$C77C_OUT" | tail -1)"
     else
         printf '%s\n' "$C77C_OUT" | sed 's/^/  /'
-        fail "Check 77c: an installed mod calls \$.model/\$.http or is refused by the engine at load — uninstall it: claude plugin uninstall <name> (t-3493)"
+        fail "Check 77c: an installed mod matches a Law 3 rule (\$.model/\$.http/bracket/Reflect/destructure/fetch), is refused by the engine at load, or the registry is unreadable — uninstall the mod: claude plugin uninstall <name> (t-3493)"
     fi
 fi
 echo ""

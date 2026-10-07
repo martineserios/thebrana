@@ -40,6 +40,13 @@ jobs:
             exit 1
           fi
 
+      - name: Refusal canary — the latest engine must still refuse the four t-3493 bypass spellings
+        run: |
+          if ! bash system/scripts/mods-check.sh --refusal-canary; then
+            echo "::error::the latest claude accepts a non-literal \$ spelling — ADR-096 Law 3's literal grep is no longer a sufficient guard (t-3493); re-prove before bumping the pin"
+            exit 1
+          fi
+
       - name: Bump signal — latest passes but is not in SUPPORTED
         run: |
           installed="$(claude --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
