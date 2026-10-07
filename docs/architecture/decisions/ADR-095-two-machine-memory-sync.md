@@ -7,7 +7,7 @@ informs: docs/architecture/decisions/ADR-038-memory-write-gateway.md
 # ADR-095: One owner machine, a company tabz Mac, and how brana memory is kept
 
 **Status:** Accepted (2026-10-05). Company question 4 (existing copies) still open; see *Open*.
-**Date:** 2026-10-02 (proposed) · 2026-10-03 (revised, t-3436; challenged, t-3442) · 2026-10-05 (rewritten and accepted, t-3468) · 2026-10-06 (review fixes, t-3468)
+**Date:** 2026-10-02 (proposed) · 2026-10-03 (revised, t-3436; challenged, t-3442) · 2026-10-05 (rewritten and accepted, t-3468) · 2026-10-06 (review fixes, t-3468) · 2026-10-07 (decision 8 settled, t-3467)
 **Deciders:** Martín Rios
 **Tags:** memory, ruflo, backup, git, macos, security
 **Extends:** [ADR-015](ADR-015-state-consolidation-plugin-first.md) (git is the source of truth) · **Respects:** [ADR-038](ADR-038-memory-write-gateway.md), [ADR-058](ADR-058-search-provider-hybrid-recall.md)
@@ -33,7 +33,7 @@ The earlier drafts designed a two-machine sync (per-entry ruflo sync, a filtered
 5. **Linux to Mac: through the public harness.** Generic learnings reach the Mac as rules, skills and hooks in public thebrana (`main`, after `/brana:ship`). The hand-curated pack (t-3437, with t-3440 and t-3417) is **parked**: something the Mac misses is first promoted into thebrana; the pack is built only if that proves insufficient.
 6. **Mac to Linux: by hand, generalised.** No automatic return path. A lesson learned on the Mac reaches Linux only as text the owner writes, free of tabz specifics.
 7. **Backup: notes in git, the DB off git** (t-3466, planned). `brana-knowledge` keeps markdown notes under git with the t-3435 fetch-first guard and section-union export. The whole-store ruflo exports (`memory-entries.json`, `patterns.json`) and the vector files stop being committed — but only once an off-site DB copy is verified (t-3342, not done) or the spike of decision 8 rules the DB rebuildable. Until then the JSON in git is the only off-site copy and stays.
-8. **ruflo's role is decided by a spike** (t-3467): ~20 real recall queries against notes-only search and against ruflo decide keep, demote to a rebuildable index, or drop. No ruflo entry is ever synced between machines.
+8. **ruflo is demoted to a rebuildable index over design docs** (owner decision 2026-10-07, spike t-3467). Over 20 real queries notes-only search answered 15 and ruflo's knowledge store 3, two of them uniquely (questions about dimension and feature docs, which the notes index does not cover); feed and url items outranked the answer in 9. Notes recall stays on the notes index. Two prerequisites first: the 739 link-research insights that exist only in ruflo get a markdown source of record (t-3478), and feed and url items leave default recall (t-3479). Until t-3478 lands the DB keeps its off-site copy. No ruflo entry is ever synced between machines.
 9. **Patterns archive.** The live `~/.claude/memory/patterns.md` holds the most recent sections up to the cap in its own header (100); validate Check 31a prunes the oldest quarantine entries at that cap in code, and the always-loaded rule and the creation template state the same cap (t-3476). The `brana-knowledge` copy unions on export and is the grow-only archive; a deliberate delete is made in both by hand.
 10. **This ADR is the short form.** The superseded drafts and their full threat analysis stay in git history.
 
@@ -93,9 +93,10 @@ On 2026-10-02 both machines pushed whole-store snapshots to `brana-knowledge` ma
 |---|---|
 | t-3453 company answer (question 4) · t-3454 Mac write path, credentials and personal-store remediation | pending, P0 |
 | t-3418 company-managed rules in the macOS guide | pending, P1 |
-| t-3466 backup: notes in git, DB off git · t-3467 ruflo spike · t-3342 off-site DB copy | pending, P2 |
+| t-3478 link-research source of record | pending, P1 |
+| t-3466 backup: notes in git, DB off git (blocked by t-3478) · t-3479 feed/url out of default recall · t-3342 off-site DB copy | pending, P2 |
 | t-3420 setup hygiene · t-3409 privacy audit · t-3407 ruflo pin | pending |
 | t-3437 pack v0 · t-3440 Mac pack pull · t-3417 publish lint | pending, P3, tagged `parked` (decision 5) |
 | t-3419 signing | pending, P3 |
-| t-3435 divergence guard · t-3475 tabz backup exclusion · t-3476 patterns cap · t-3436 revision · t-3442 deep challenge · t-3455 promotion-hook fix · t-3403 first draft | completed |
+| t-3435 divergence guard · t-3475 tabz backup exclusion · t-3476 patterns cap · t-3467 ruflo spike · t-3458 session JSON · t-3436 revision · t-3442 deep challenge · t-3455 promotion-hook fix · t-3403 first draft | completed |
 | t-3404, t-3405, t-3406, t-3408, t-3410, t-3416, t-3438, t-3439 | cancelled |
