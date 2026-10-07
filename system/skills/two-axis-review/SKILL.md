@@ -5,7 +5,6 @@ keywords: [code-review, review, diff, standards, spec, two-axis, pr-review]
 task_strategies: [review]
 group: core
 allowed-tools: [Read, Bash, Skill]
-disable-model-invocation: true
 status: experimental
 vendored_from: mattpocock/skills@v1.2.3
 ---
@@ -27,6 +26,9 @@ adapter, the user/model-facing entry point, its own name, exactly as `diagnose-h
 already does for `diagnosing-bugs` (t-2834). Invoke the vendored organ directly only via this
 adapter, never by typing `/code-review` and hoping for the Pocock skill.
 
+Model-invocable on purpose: callers reach this adapter through the Skill tool, which `disable-model-invocation` blocks (ADR-076 verified finding #3) — the flag made the band unreachable until t-3489.
+
+0. **Resolve, then record** (ADR-097 P0, t-3489): run `system/scripts/organ-resolve.sh code-review`. Exit 1 means the organ is not vendored in this repo — say so and return to the caller's inline procedure; never improvise the organ from memory. Then `system/scripts/organ-record.sh code-review <t-NNN> <caller>` (the entry record ADR-084 §7's invocation proxy reads).
 1. **Read the vendored skill**: `Skill(skill: "code-review")` — `.claude/skills/code-review/SKILL.md`,
    verbatim upstream, pinned `v1.2.3`, tracked in `skills-lock.json`. Follow its 5-step
    process as written (pin fixed point → identify spec source → identify standards

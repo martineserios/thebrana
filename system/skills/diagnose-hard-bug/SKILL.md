@@ -5,7 +5,6 @@ keywords: [debug, diagnose, bug, regression, hypothesis, hard-bug]
 task_strategies: [bug-fix]
 group: core
 allowed-tools: [Read, Bash, Skill]
-disable-model-invocation: true
 status: experimental
 vendored_from: mattpocock/skills@v1.2.3
 ---
@@ -14,6 +13,9 @@ vendored_from: mattpocock/skills@v1.2.3
 
 ADR-084 vendor+wrap pilot (t-2834). Thin adapter, not a copy — the actual discipline lives in the vendored organ, read fresh every invocation (no state to lose across compaction — steps 1-2 below are the whole procedure):
 
+Model-invocable on purpose: callers reach this adapter through the Skill tool, which `disable-model-invocation` blocks (ADR-076 verified finding #3) — the flag made the band unreachable until t-3489.
+
+0. **Resolve, then record** (ADR-097 P0, t-3489): run `system/scripts/organ-resolve.sh diagnosing-bugs`. Exit 1 means the organ is not vendored in this repo — say so and return to the caller's inline procedure; never improvise the organ from memory. Then `system/scripts/organ-record.sh diagnosing-bugs <t-NNN> <caller>` (the entry record ADR-084 §7's invocation proxy reads).
 1. **Read the vendored skill**: `Skill(skill: "diagnosing-bugs")` — `.claude/skills/diagnosing-bugs/SKILL.md`, verbatim upstream, pinned `v1.2.3`, tracked in `skills-lock.json`. Follow its six phases as written.
 2. **While following it, remap:**
    - "Issue tracker" / "issue" / "ticket" → this project's `tasks.json` / `t-NNN` task. Never prompt for `/setup-matt-pocock-skills` — not installed, not needed.

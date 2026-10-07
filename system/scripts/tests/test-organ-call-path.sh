@@ -33,17 +33,14 @@ check() {
   fi
 }
 
-# adapter -> organ it wraps
-declare -A ORGAN_OF=(
-  [diagnose-hard-bug]=diagnosing-bugs
-  [two-axis-review]=code-review
-  [provisioning-wizard]=wizard
-)
+# adapter:organ pairs (no associative arrays: macOS ships bash 3.2)
+PAIRS="diagnose-hard-bug:diagnosing-bugs two-axis-review:code-review provisioning-wizard:wizard"
 
 echo "test-organ-call-path: adapters are reachable, organs resolvable, entries recorded"
 
 # ── 1. no adapter carries the Skill-tool-blocking flag ──────────────────────
-for adapter in "${!ORGAN_OF[@]}"; do
+for pair in $PAIRS; do
+  adapter="${pair%%:*}"
   sf="$REPO_ROOT/system/skills/$adapter/SKILL.md"
   fm=$(sed -n '/^---$/,/^---$/p' "$sf")
   flag=$(echo "$fm" | grep -c '^disable-model-invocation:[[:space:]]*true' || true)
@@ -53,8 +50,8 @@ done
 # ── 2. resolver: present organ -> 0 + path; absent organ -> 1 + fallback hint ─
 check "organ-resolve.sh exists and is executable" "yes" "$([ -x "$RESOLVE" ] && echo yes || echo no)"
 if [ -x "$RESOLVE" ]; then
-  for adapter in "${!ORGAN_OF[@]}"; do
-    organ="${ORGAN_OF[$adapter]}"
+  for pair in $PAIRS; do
+    organ="${pair##*:}"
     out=$(cd "$REPO_ROOT" && "$RESOLVE" "$organ" 2>/dev/null); rc=$?
     check "resolve $organ in this repo exits 0" "0" "$rc"
     check "resolve $organ prints the SKILL.md path" "yes" "$([ -f "$out" ] && echo yes || echo no)"
@@ -87,7 +84,8 @@ if [ -x "$RECORD" ]; then
 fi
 
 # ── 4. every adapter calls both scripts and keeps its description short ──────
-for adapter in "${!ORGAN_OF[@]}"; do
+for pair in $PAIRS; do
+  adapter="${pair%%:*}"
   sf="$REPO_ROOT/system/skills/$adapter/SKILL.md"
   check "$adapter references organ-resolve.sh" "yes" "$(grep -q 'organ-resolve.sh' "$sf" && echo yes || echo no)"
   check "$adapter references organ-record.sh" "yes" "$(grep -q 'organ-record.sh' "$sf" && echo yes || echo no)"

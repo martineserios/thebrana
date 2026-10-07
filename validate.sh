@@ -3040,6 +3040,29 @@ if $RUN_GOLDEN; then
 fi
 
 # Summary
+# Check 78: the ADR-084 upstream band's call path is reachable (t-3489, ADR-097 P0).
+# `disable-model-invocation: true` blocks the Skill tool (ADR-076 #3), so an adapter that
+# carries it cannot be called by /brana:fix or build; organs must resolve or fall back;
+# every entry must be recorded so ADR-084 §7's invocation proxy is readable.
+echo ""
+echo "Check 78: upstream band call path (t-3489)..."
+C78_TEST="$SCRIPT_DIR/system/scripts/tests/test-organ-call-path.sh"
+if [ ! -f "$C78_TEST" ]; then
+    warn "Check 78: test not found at $C78_TEST — skipping"
+else
+    if C78_OUT=$(bash "$C78_TEST" 2>&1); then
+        C78_RC=0
+    else
+        C78_RC=$?
+    fi
+    echo "$C78_OUT" | grep -E "summary|FAIL" | sed 's/^/  /'
+    if [ "$C78_RC" -eq 0 ]; then
+        pass "Check 78: band adapters reachable, organs resolvable, entries recorded ✓"
+    else
+        fail "Check 78: upstream band call path broken — an adapter is quarantined from the Skill tool, an organ does not resolve, or no record is written"
+    fi
+fi
+
 echo "=== Validation Summary ==="
 echo "Errors: $ERRORS"
 echo "Warnings: $WARNINGS"
