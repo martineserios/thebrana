@@ -32,7 +32,7 @@ system/scripts/backup-memory.sh --restore --date 20260401
 
 **Script:** `system/scripts/sync-state.sh export`
 **Schedule:** Sundays at 08:30 UTC via `export-patterns` scheduler job
-**Location:** `system/state/patterns-export.json` (git-tracked)
+**Location:** `system/state/patterns-export.json` (gitignored since t-3352; local only)
 
 Exports all namespaces (pattern, decisions, knowledge, skills) via `ruflo memory list` with pagination. Portable and version-controlled.
 
@@ -119,7 +119,7 @@ cd ~ && ruflo memory init --force
 | `~/.swarm/memory.db` | Current ruflo memory store (primary) |
 | `~/.claude-flow/memory.db` | Legacy path (pre-ruflo rename) |
 | `~/.swarm/backups/` | Binary backup rotation (7 days) |
-| `system/state/patterns-export.json` | JSON export (git-tracked) |
+| `system/state/patterns-export.json` | JSON export (gitignored, local only) |
 | `.swarm/memory.db` | Project-local swarm DB (legacy, separate) |
 | `~/enter_thebrana/brana-knowledge/backup/swarm/memory.db` | Layer 4 local hot-backup copy (NOT git-tracked) |
 | `~/enter_thebrana/brana-knowledge/backup/swarm/{memory-entries,patterns}.json` | Layer 4 off-site export (git-tracked, free) |
@@ -127,7 +127,7 @@ cd ~ && ruflo memory init --force
 ## Changelog
 
 - 2026-06-08: t-1883 — `sync-state.sh push` now guards `active_epic` against cross-project contamination. See ADR-015 for details.
-- 2026-10-03: t-3435 — two machines diverged on `brana-knowledge/master` (whole-store snapshots from Linux and the Mac). `backup.sh` and `daily-push.sh` now fetch first (`lib/remote-guard.sh`): behind-only fast-forwards, diverged refuses to commit (exit 2) and prints a recipe built on `merge-snapshots.py` (union by identity, newest wins), offline warns and continues. `patterns.md` and `knowledge-staging.md` are unioned by `## ` heading with the tracked copy on export instead of copied over it (a union that cannot run keeps the tracked copy and the backup exits 3 so `/brana:close` shows the warning); the unattended fast-forward is allowed only for `backup/` data with no symlink, anything else stops for review; `restore.sh` fast-forwards through the same guard (no more swallowed `git pull --rebase`). Rule and audit: ADR-095 §Amendment 2026-10-03; spec `features/brana-knowledge-divergence-guard.md`.
+- 2026-10-03: t-3435 — two machines diverged on `brana-knowledge/master` (whole-store snapshots from Linux and the Mac). `backup.sh` and `daily-push.sh` now fetch first (`lib/remote-guard.sh`): behind-only fast-forwards, diverged refuses to commit (exit 2) and prints a recipe built on `merge-snapshots.py` (union by identity, newest wins), offline warns and continues. `patterns.md` and `knowledge-staging.md` are unioned by `## ` heading with the tracked copy on export instead of copied over it (a union that cannot run keeps the tracked copy and the backup exits 3 so `/brana:close` shows the warning); the unattended fast-forward is allowed only for `backup/` data with no symlink, anything else stops for review; `restore.sh` fast-forwards through the same guard (no more swallowed `git pull --rebase`). Rule and audit: ADR-095 §History; spec `features/brana-knowledge-divergence-guard.md`.
 - 2026-09-10: Fixed `brana-knowledge/backup.sh` — its JSON export queries referenced a pre-V3 schema (`memory_entries.value`, a `patterns` table) and had been silently writing empty `[]` files; corrected to match `memory_entries.content` / `reasoning_patterns`. Also stopped committing the raw `memory.db` binary to git (it had bloated the repo's history to 8.7GB and started exceeding GitHub's 100MB file limit, silently failing every push via a swallowed `2>/dev/null` chain — also fixed to fail loudly). History was rewritten to purge the old blobs. See Layer 4/5 above and t-3342 for the follow-up full-fidelity off-site sync.
 
 ## Known Issues

@@ -260,6 +260,7 @@ system/cli/rust/src/
 ## Changelog
 
 - 2026-05-24: Knowledge tier-1/tier-2 pipeline added; `call_gemini_json()` routes eligible tasks to Gemini Flash (t-1667). `brana backlog focus --top N` propagated to CLI guide.
+- 2026-10-07: CI's required `rust` job now runs `cargo test --workspace` (brana-cli, brana-core, brana-mcp; ffmpeg ≥ 5.1 installed and asserted, `BRANA_REQUIRE_FFMPEG=1` so the real-ffmpeg frame tests can't skip; 45 min job timeout). Before this, no CI job ran the Rust suites — Check 46 only compiles them. Pinned by `tests/scripts/test-ci-rust-tests.sh` (t-3472).
 - 2026-10-05: **After shipping, rebuild the binary** — `bootstrap.sh` does not build the CLI: `cd system/cli/rust && cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana`, then check `brana transcribe --help` lists `--frames` (t-3470).
 - 2026-10-05: `brana transcribe` accepts any whisper model (`--model <name|path>`), defaults to the largest installed (small auto-downloaded if none), and handles video with `--frames` (t-3470).
 - 2026-05-13: Backlog v2 schema: `kind` field replaces `stream`, `initiative` type added, `stream` deprecated. `brana backlog complete` alias documented.

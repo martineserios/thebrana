@@ -2,7 +2,9 @@
 # Tests for validate.sh Check 31a auto-prune logic (t-1453).
 #
 # Tests the prune_patterns() function which mirrors Check 31a:
-# when patterns.md >= cap (50), remove oldest quarantine entries
+# when patterns.md >= cap, remove oldest quarantine entries. The cap here (50/40) is a FIXTURE value that
+# exercises the algorithm; the real constants (validate.sh _P_CAP/_P_WARN, 100/80) are pinned against the rule
+# and the creation template by tests/scripts/test-patterns-cap-consistency.sh (t-3476).
 # (sorted by Added: date) until count < cap.
 #
 # Mirrors the exact awk used in validate.sh so any drift is a test failure.

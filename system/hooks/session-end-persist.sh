@@ -34,7 +34,9 @@ TEST_WRITE_RATE="${TEST_WRITE_RATE:-0.00}"
 CASCADE_RATE="${CASCADE_RATE:-0.00}"
 TEST_PASS_RATE="${TEST_PASS_RATE:-N/A}"
 LINT_PASS_RATE="${LINT_PASS_RATE:-N/A}"
-SUMMARY_JSON="${SUMMARY_JSON:-{}}"
+# Default in its own statement: a brace default inside ${VAR:-...} closes at the first brace and leaves a
+# literal "}", so every SET value gained a trailing brace (t-3458; 721 of 860 rows).
+[ -n "${SUMMARY_JSON:-}" ] || SUMMARY_JSON='{}'
 TOOLS="${TOOLS:-unknown}"; FILES="${FILES:-}"
 LAYER0_DIR="${LAYER0_DIR:-}"
 STORED_L1="${STORED_L1:-false}"
@@ -68,7 +70,13 @@ if [ "$STORED_L1" != "true" ]; then
 
     if [ -n "${CF:-}" ]; then
         KEY="session:${PROJECT}:${SESSION_ID}"
-        VALUE=$(echo "$SUMMARY_JSON" | jq -c '.' 2>/dev/null) || VALUE="$SUMMARY_JSON"
+        # Never store text that does not parse: a summary jq rejects is wrapped as {"raw": ...}
+# so the stored value stays JSON, and the wrap is logged so a producer regression is
+# visible next session instead of hiding in stored rows (t-3458).
+if ! VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -c '.' 2>/dev/null); then
+    VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -Rsc '{raw: .}')
+    log_persist_failure "session summary was not valid JSON — stored wrapped as {raw} (session $SESSION_ID)"
+fi
         if [ "$FAILURES" -gt 0 ]; then OUTCOME="mixed"; else OUTCOME="success"; fi
         TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
 
@@ -163,7 +171,7 @@ if command -v jq >/dev/null 2>&1; then
         PATTERNS_FILE="$MEMORY_DIR/patterns.md"
         if [ ! -f "$PATTERNS_FILE" ]; then
             mkdir -p "$MEMORY_DIR" 2>/dev/null || true
-            printf '# Pattern Store\n\n<!-- cap: 50 | warn-at: 40 | auto-pruned: oldest quarantine first -->\n' \
+            printf '# Pattern Store\n\n<!-- cap: 100 | warn-at: 80 | auto-pruned: oldest quarantine first -->\n' \
                 > "$PATTERNS_FILE" 2>/dev/null || true
         fi
         while IFS= read -r learning; do

@@ -2,7 +2,7 @@
 # Tests for validate.sh Check 31 — patterns.md + knowledge-staging.md cap checks (t-1451).
 #
 # Strategy: reproduce count+threshold logic inline (no full validate.sh run).
-# Logic under test: grep -c '^## ' counts entries; warn at 40/20; skip if absent.
+# Logic under test: grep -c "^## " counts entries; warn at a threshold; skip if absent. 40/50 below are FIXTURE values exercising the logic; the real constants (validate.sh _P_CAP/_P_WARN) are pinned by tests/scripts/test-patterns-cap-consistency.sh (t-3476).
 #
 # TDD markers: all green post t-1451
 

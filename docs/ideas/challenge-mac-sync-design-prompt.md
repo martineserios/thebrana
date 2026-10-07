@@ -17,7 +17,7 @@ anything, do NOT edit any file in the repo, do NOT merge or push. Output finding
 4. The shipped code (already on main): system/hooks/lib/portable.sh (p_timeout and the fallback lock),
    system/scripts/run-test-suites.sh, tests/hooks/test-portable.sh, tests/scripts/test-run-test-suites.sh.
 5. Facts about the situation (owner-stated, treat as true): the Mac used for client tabz is
-   company-managed (ABM/DEP, Rippling MDM), at a HIPAA-compliant company. The owner does NOT want to
+   company-managed (enrolled in the employer's device management), at a regulated company. The owner does NOT want to
    alarm the employer, and the assistant will not design anything to evade employer visibility.
    The Linux laptop is the owner's personal machine, always on, currently swapping heavily.
 
@@ -30,14 +30,14 @@ A. Is the premise right at all?
 B. Security and compliance reasoning
    - Personal IP and other clients' data on an employer-owned device, and personal GitHub credentials
      on it: ownership, discoverability, IP-assignment and MDM-escrow angles the ADR may have missed.
-   - Does a private repo + scoped token + signed pack actually satisfy a HIPAA-style environment, or
+   - Does a private repo + scoped token + signed pack actually satisfy a regulated environment, or
      is that framing wrong? What would the company's compliance contact object to first?
    - Scope tag + client deny-list scan + hold queue: how does a client leak through paraphrase, a
      description without a name, a doc quoting a schema? Will the owner rubber-stamp the hold queue
      (see memory pattern_enforcement-systems-overbuild-then-revert)? Fail-closed or fail-open in practice?
    - Signing: where does the allowed-signers file live, who provisions the verifier key to a company
      laptop, what happens on key compromise or rotation?
-   - tabz data in personal stores (personal GitHub repo, iCloud, USB, unencrypted Linux disk): is the
+   - tabz data in personal stores (personal GitHub repo, iCloud, USB, the Linux disk): is the
      remediation plan sufficient and in the right order?
 C. Evidence quality (verify, do not trust my numbers)
    - 'ruflo pattern namespace is auto-generated error-recurrence telemetry': this rests on a sample of

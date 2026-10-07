@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-05T13:36:38Z",
+  "generated": "2026-10-06T05:15:47Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2221,6 +2221,13 @@
       "impl_files": [
         "system/cli/rust/crates/brana-core/",
         "system/skills/build/phases/load.md`/`close.md"
+      ]
+    },
+    "docs/architecture/features/transcribe-models-video.md": {
+      "title": "Feature: `brana transcribe` — any whisper model, video + frames",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/transcribe.rs"
       ]
     },
     "docs/architecture/features/user-journey-gap-analysis.md": {
@@ -12389,6 +12396,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/transcribe-models-video.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/user-journey-gap-analysis.md",
       "type": "references",
       "computed": false
@@ -20255,9 +20268,9 @@
     }
   ],
   "stats": {
-    "nodes": 656,
-    "edges": 2597,
+    "nodes": 657,
+    "edges": 2598,
     "typed_edges": 754,
-    "orphans": 147
+    "orphans": 148
   }
 }

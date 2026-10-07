@@ -258,22 +258,58 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **This monitor session**: haiku (minimal cost)
 - **Status**: ✅ Monitoring shows stable recovery; both triggers operating normally
 
+## 2026-09-28 to 2026-09-30
+- **Triggers fired in last 24h**: none
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Trigger status**: knowledge-review expected 2026-10-01 (monthly cadence)
+- **This monitor session**: offline
+
+## 2026-10-01
+- **Triggers fired**: ✓ knowledge-review (expected monthly cadence, 1st of month)
+- **New commits from agents (24h)**: 1 (47536a4 docs(knowledge): monthly knowledge health review 2026-10-01)
+- **New review files**: knowledge-2026-10-01.md (9.3K markdown)
+- **Output size**: medium-large report (~1.5-2K tokens)
+- **This monitor session**: offline
+- **Status**: ✅ knowledge-review firing on schedule
+
+## 2026-10-02
+- **Triggers fired**: ✓ weekly-review (expected Thursday cadence)
+- **New commits from agents (24h)**: 1 (59ca96e docs(review): weekly portfolio review 2026-10-02)
+- **New review files**: weekly-2026-10-02.md (4.2K markdown)
+- **Output size**: medium report (~800-1K tokens)
+- **This monitor session**: offline
+- **Status**: ✅ weekly-review firing on schedule
+
+## 2026-10-03 to 2026-10-06 (Today)
+- **Triggers fired in last 24h**: none (next expected weekly-review Thu 2026-10-09)
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Recent trigger activity**: weekly-review on 2026-10-02, knowledge-review on 2026-10-01
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ✅ Both triggers confirmed firing on normal cadence
+
 ---
 
-## Baseline Summary (184 days of observation, recovery confirmed)
+## Baseline Summary (193 days of observation, October cycle confirmed)
 - **Total trigger fires observed**: 
-  - weekly-review: 7 confirmed fires (2026-04-17, 2026-06-19, 2026-06-26, 2026-07-03, 2026-07-24, 2026-09-11, 2026-09-18) — **FULLY RECOVERED**
-  - knowledge-review: 2 confirmed fires (2026-08-01, 2026-09-01) ✓ Monthly trigger stable
-- **weekly-review** pattern: **STABLE RECOVERY** — offline 2026-07-24 to 2026-09-11 (50 days), now firing Thursdays; output: ~6K chars per run, 1–2K tokens per execution
-- **knowledge-review** pattern: 1st of month cadence confirmed and stable, ~7.8K output per run, 1–2K tokens per execution
+  - weekly-review: 8 confirmed fires (2026-04-17, 2026-06-19, 2026-06-26, 2026-07-03, 2026-07-24, 2026-09-11, 2026-09-18, 2026-10-02) — **STABLE CADENCE**
+  - knowledge-review: 3 confirmed fires (2026-08-01, 2026-09-01, 2026-10-01) ✓ Monthly trigger confirmed
+- **weekly-review** pattern: **STABLE** — Thursday cadence resumed post-recovery; output: ~4-6K chars per run, 800–1.2K tokens per execution
+- **knowledge-review** pattern: **STABLE** — 1st of month cadence confirmed for 3 consecutive months; output: ~7-9K chars per run, 1.5–2K tokens per execution
 - **token-monitor**: daily observations via scheduled agent, haiku model, <200 tokens per run
-- **Current cost (Sep 2026)**:
-  - weekly-review: 2 fires (Sept 11 & 18) = ~4K tokens
-  - knowledge-review: 1 fire (Sept 1st) = ~2K tokens
-  - token-monitor: daily haiku observations = ~11K tokens (12+ days observed)
-  - **Total Sep: ~17K tokens** (recovery restoring normal cost baseline)
+- **Cost observed (Oct 2026 YTD)**:
+  - weekly-review: 1 fire (Oct 2nd) = ~1K tokens
+  - knowledge-review: 1 fire (Oct 1st) = ~2K tokens
+  - token-monitor: 6 days observed (Oct 1-6) ≈ ~1.2K tokens
+  - **Total Oct YTD: ~4.2K tokens**
+- **Monthly baseline (Sep final)**:
+  - weekly-review: 2 fires = ~2K tokens
+  - knowledge-review: 1 fire = ~2K tokens
+  - token-monitor: 27 days = ~5.4K tokens
+  - **Total Sep: ~9.4K tokens**
 - **Recommendation**: 
-  - ✅ Recovery is confirmed and stable — no action needed
-  - Continue daily monitoring through 2026-10-01 to verify knowledge-review fires on schedule
-  - Triggers are self-healing and functioning nominally
-  - Cost model: ~18-20K tokens/month baseline (weekly + monthly reviews + daily monitor)
+  - ✅ All triggers operating normally and predictably
+  - Observed cost model: ~9-10K tokens/month baseline (2 weekly + 1 monthly review + daily monitor)
+  - Next observation: 2026-10-09 (weekly-review expected Thu), 2026-11-01 (knowledge-review expected monthly)
+  - Triggers are stable; continue daily monitoring at current cadence

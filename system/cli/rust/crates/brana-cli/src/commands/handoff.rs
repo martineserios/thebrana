@@ -156,6 +156,8 @@ mod tests {
     use std::path::Path;
 
     #[test]
+    // Reads HOME twice; #[serial] orders it against the tests that set_var("HOME").
+    #[serial_test::serial]
     fn resolve_memory_dir_encodes_path() {
         let root = Path::new("/home/user/projects/myrepo");
         let dir = resolve_memory_dir(root);
@@ -165,6 +167,8 @@ mod tests {
     }
 
     #[test]
+    // Reads HOME twice; #[serial] orders it against the tests that set_var("HOME").
+    #[serial_test::serial]
     fn resolve_memory_dir_replaces_underscores() {
         let root = Path::new("/home/user/enter_thebrana/thebrana");
         let dir = resolve_memory_dir(root);

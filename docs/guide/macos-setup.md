@@ -10,7 +10,7 @@
 A Mac used interactively — a work laptop that sleeps. **It does not run scheduled jobs:** the
 scheduler is systemd-only by decision ([ADR-071 amendment](../architecture/decisions/ADR-071-scheduler-thin-layer-over-systemd.md)),
 and unattended jobs stay on an always-on Linux host. Everything else (skills, hooks, rules, the
-`brana` CLI, backlog, memory) is meant to work the same as on Linux.
+`brana` CLI, backlog, memory) is meant to work the same as on Linux, except that a company-managed Mac never exports memory to the owner's repos (ADR-095).
 
 ## Prerequisites
 
@@ -87,8 +87,9 @@ brana doctor
 | Hooks seem to do nothing | `bash --version` inside the shell Claude Code launches, not your login shell. |
 | `brana ops run <job>` says *no scheduler backend* | expected — see the table above. |
 | The knowledge backup says `ahead by N commit(s) that change non-data paths — not fast-forwarding unattended` | expected whenever the other machine pushed a doc, draft or script to `brana-knowledge`. Run the two printed commands: review the paths outside `backup/`, then `git merge --ff-only <sha>`. Only `backup/` data fast-forwards on its own. |
+| `/brana:close` prints `WARNING: …backup.sh is not executable — knowledge backup NOT run` | **On the Mac: expected, do nothing** — it never exports; do not chmod the file or run it. On the owner's Linux machine: `chmod +x` it and run `git -C ~/enter_thebrana/brana-knowledge log -1 -- backup.sh` to see which commit dropped the mode. |
 | Slow first CLI build | `cargo build --release` is ~10 minutes cold; it is cached afterwards. |
-| `/brana:close` reports `master has diverged from origin/master` from the knowledge backup | both machines pushed memory snapshots. Do not rebase or force-push. Follow the recipe the message prints: review what the other machine changed outside `backup/`, `git merge` the reviewed sha, union only the four stores with an identity rule via `./merge-snapshots.py` (`memory-entries.json`, `patterns.json`, `patterns.md`, `knowledge-staging.md`), resolve any other conflict by hand keeping both sides, commit, push (ADR-095 §Amendment 2026-10-03). After a divergence resolved on the other machine, `git pull --ff-only` is all the Mac needs. |
+| `/brana:close` reports `master has diverged from origin/master` from the knowledge backup | **On the Mac: stop and tell the owner** — the Mac never exports to `brana-knowledge` (ADR-095 decision 3; disabling the clone's push URL has been requested and is confirmed in t-3454). On the owner's Linux machine: do not rebase or force-push; follow the recipe the message prints — review what changed outside `backup/`, `git merge` the reviewed sha, union only the four stores with an identity rule via `./merge-snapshots.py`, resolve anything else by hand keeping both sides, commit, push (ADR-095 §History). |
 
 ## How this is tested
 

@@ -3,7 +3,7 @@
 **Date:** 2026-10-03
 **Status:** shipped (2026-10-03) — brana-knowledge master a7fb7592 live; docs integrate to dev on merge of this branch
 **Task:** t-3435 (epic t-3372 macos-portability)
-**ADR:** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) §Amendment 2026-10-03
+**ADR:** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) §History (accepted 2026-10-05; this spec is the full record of the divergence)
 
 ## Problem
 
@@ -34,13 +34,14 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 - Fetch-first guard at the top of `backup.sh`, before any export.
 - Shell tests with a bare origin and two clones: guard (behind-only, diverged, daily-push.sh, offline, in-sync), union on export, and the merge rule itself.
 - ADR-095 amendment and t-3404 context pointer.
+- Added later (t-3475, t-3487): `backup-exclude.txt` keeps tabz client project memory, and one named device-inventory note, out of the export (folder globs, `folder/file` globs, fail closed when the list is missing; tests in `tests/test-backup-exclude.sh`).
 - Out of scope: ruflo-store convergence (ADR-095 revision, t-3436), notes slug mapping and pull direction (t-3405), session-start pull (t-3406).
 
 ## Research
 
 - Key audit of `9cf4055f` vs Mac tip `b04be875`: memory-entries 6 Mac-only keys (2 session, 2 metrics, 2 pattern error-recurrence counters); patterns.json 0 lost by content identity; patterns.md 121-section union with 17 missing from the Linux live file; knowledge-staging.md 1 section; consolidation-log 0; project memories 624/624 kept.
 - `patterns.json` `id` is `INTEGER PRIMARY KEY AUTOINCREMENT`: unusable as a merge key. Identity is `(task_type, approach, ts)`; `approach` alone is not unique (242 repeated pairs on one machine). Verified: 11,643 ∪ 11,539 rows → 11,596 identities, 0 Mac-only.
-- ADR-095 §2 classes `session` and `metrics` as machine-local, never synced.
+- ADR-095 classes `session` and `metrics` as machine-local telemetry, never synced.
 
 ## Assumptions
 
@@ -48,8 +49,8 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 - Offline fetch continues to a local commit and the existing push-failure exit, as today. Confirmed 2026-10-03.
 - Diverged exits 2 (integrity failure keeps exit 1) so callers can tell the two apart; `run_knowledge_backup()` treats both as a warning, not a halt.
 - Union order on export is live-first (this machine's section order and body win on a shared heading), the tracked copy's new sections are appended: chose live-first because the local file is what the machine's own sessions edit — needs no confirmation, the content is identical either way.
-- The 4 session/metrics rows and the 2 error-recurrence counters are not restored (ADR-095 §2). Confirmed by the user 2026-10-03.
-- The Mac's step is `git pull --ff-only` only; its next export then unions instead of clobbering. The repo union is not copied onto the Mac's live files: the Mac is company-managed and tabz-only (ADR-095 revision, t-3436), so Linux-authored sections reach it only through the client allowlist (t-3418).
+- The 4 session/metrics rows and the 2 error-recurrence counters are not restored (machine-local telemetry, ADR-095). Confirmed by the user 2026-10-03.
+- Superseded 2026-10-06 (ADR-095 decision 3): the Mac never exports. It pulls only; disabling its clone's push URL has been requested (confirmed in t-3454); and the union stays a Linux-side mechanism. The two Mac pushes that happened (2026-10-03 `092e401d`, 2026-10-05 `6c102b37`) were reviewed and the owner's state re-exported on Linux.
 - Trust direction: the 17 Mac-authored sections merged into the owner machine's live `patterns.md` crossed lower-to-higher trust without the T1 import review (t-3416, not built). Accepted for this one-time pass on the user's approval of the heading list; reversible from `~/.claude/memory/archive/patterns_2026-10-03-pre-union.md`.
 
 ## Behavior

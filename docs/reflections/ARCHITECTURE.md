@@ -320,7 +320,7 @@ No shadow backlogs. Skills propose backlog items in reports. Users decide what g
 | Rule | "always X" / "never Y" — no context needed | `system/rules/` draft → human places | human |
 | Decision | why-we-chose-X, explicit tradeoffs | ADR stub → human commits | human |
 | Reference | pointer to where something lives | `~/.claude/memory/portfolio.md` | auto |
-| Pattern | reusable solution to a recurring shape | `~/.claude/memory/patterns.md` (cap 50) | auto |
+| Pattern | reusable solution to a recurring shape | `~/.claude/memory/patterns.md` (cap 100) | auto |
 | Knowledge | domain fact, model, research finding | `~/.claude/memory/knowledge-staging.md` (cap 30) | auto |
 | Session | resume-only state | native memory dir — skip retrospective | auto |
 
