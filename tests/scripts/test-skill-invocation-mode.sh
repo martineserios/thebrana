@@ -65,7 +65,9 @@ SHARED=$(awk '/^```/{if(inb){if(hc&&hm)bad++}; inb=!inb; hc=0; hm=0; next} inb{i
 HAS_MERGE=$(awk '/^```/{inb=!inb; next} inb && /gh pr merge/{f=1} END{print f+0}' "$SHIP")
 if [ "$SHARED" -eq 0 ] && [ "$HAS_MERGE" -eq 1 ]; then ok "no fenced block holds both 'gh pr checks' and 'gh pr merge' (merge is in its own fence)"; else bad "a fenced block holds both 'gh pr checks' and 'gh pr merge' (shared=$SHARED, merge-present=$HAS_MERGE)"; fi
 grep -q -- '--match-head-commit' "$SHIP" && ok "merge is pinned with --match-head-commit" || bad "merge is not pinned to the reviewed head commit"
-grep -E 'gh pr checks.*\|\|.*(exit|return)' "$SHIP" >/dev/null && ok "a failed 'gh pr checks' aborts the run" || bad "'gh pr checks' has no '|| exit' — a red run would fall through"
+# t-3483: the bare `gh pr checks --watch || exit` became ship_checks_wait (retry + rerun-unacquired);
+# the abort is now `[ "$rc" -eq 0 ] || { ...; exit 1; }` on its return code. Still must fail closed.
+grep -qE 'ship_checks_wait "\$PR"; rc=\$\?' "$SHIP" && grep -qE '\[ "\$rc" -eq 0 \] \|\| \{.*exit 1' "$SHIP" && ok "a failed 'gh pr checks' aborts the run" || bad "ship's CI wait is not followed by a fail-closed '[ \"\$rc\" -eq 0 ] || exit 1' — a red run would fall through"
 grep -qE 'Options: \["Abort[^]]*", "Merge now"\]' "$SHIP" && ok "merge gate lists Abort before 'Merge now'" || bad "merge gate does not put Abort first"
 grep -qE 'Every gate fails closed|every gate fails closed' "$SHIP" && ok "the fail-closed rule covers every gate, not only the last" || bad "fail-closed rule is not stated for every gate"
 

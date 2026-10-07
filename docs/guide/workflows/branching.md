@@ -25,14 +25,14 @@ deliberately ship.
 - **Integration (per feature)** lands on `dev` — no deploy. `dev` is not live.
 - **Ship (periodic, human-gated, tier-2 valve — t-3023)** promotes `dev` to production
   *and* deploys. `main` is branch-protected on GitHub: a pull request is required, the CI
-  workflow's `validate` and `rust` checks must pass on the PR head (strict: the PR must be
+  workflow's `validate`, `rust` and `tests` checks must pass on the PR head (strict: the PR must be
   current with `main`), and `enforce_admins` is on — so a direct `git push origin main` is
   rejected for everyone, including the repo owner. No review approval is required (solo
   operator; the gate is the checks, not a rubber stamp). The procedure is `/brana:ship`:
   ```bash
   git push origin dev
   gh pr create --base main --head dev --title "ship: dev→main $(date +%F)" --body "..."
-  gh pr checks --watch             # required: validate, rust, tests
+  gh pr checks --required --watch  # required: validate, rust, tests (the skill wraps this: retry on "no checks yet", rerun jobs GitHub never ran)
   gh pr merge --merge              # merge commit onto main; refused until checks are green
   git branch --show-current        # must print: dev — the shared checkout never switches (ADR-094)
   git fetch origin main:main       # fast-forward local main BY REF; no working tree is touched

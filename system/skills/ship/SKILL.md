@@ -95,16 +95,24 @@ Run all safety checks before touching anything external.
    keep the worktree until the loop ends — removing it mid-run makes every later suite "fail"):
 
    ```bash
-   git worktree add --detach ../thebrana-ship-sweep dev
-   (cd ../thebrana-ship-sweep && PATH="$PWD/system/cli/rust/target/release:$PATH" \
-       bash system/scripts/run-test-suites.sh tests/*/*.sh) > /tmp/ship-sweep.out 2>&1; echo "sweep rc=$?"
-   tail -n 15 /tmp/ship-sweep.out      # "Failed tests:" lists every red suite
-   git worktree remove --force ../thebrana-ship-sweep
+   cd "$(git rev-parse --show-toplevel)"                       # anchor: ../ below is relative to the repo root
+   (cd system/cli/rust && cargo build --release -p brana-cli)   # CI builds brana first; suites call it by PATH
+   BIN="$PWD/system/cli/rust/target/release"                    # the MAIN checkout's build — target/ is gitignored, a fresh worktree has none
+   SWEEP="../thebrana-ship-sweep"; OUT=$(mktemp)
+   git worktree remove --force "$SWEEP" 2>/dev/null; git worktree prune   # a previous aborted ship may have left it
+   git worktree add --detach "$SWEEP" dev
+   (cd "$SWEEP" && PATH="$BIN:$PATH" bash system/scripts/run-test-suites.sh tests/*/*.sh) > "$OUT" 2>&1; echo "sweep rc=$?"
+   tail -n 15 "$OUT"                                            # "Failed tests:" lists every red suite
+   git worktree remove --force "$SWEEP"
    ```
 
-   It takes minutes; start it in the background and run steps 3–5 meanwhile. A suite that fails the
-   same way on `main` (e.g. an environment-only failure) is noted in the gate summary, not a blocker.
-   **Targeted minimum** — if the sweep cannot run, `git diff --name-only main...dev` containing
+   It takes minutes; start it in the background and run steps 3–5 meanwhile. **A red suite blocks
+   unless shown to fail identically on `main`**: re-run that one suite in a `main` worktree
+   (`git worktree add --detach ../thebrana-main-check main`, remove it afterwards) and put both
+   outputs in the gate summary — "it's an environment issue" without that evidence is not a waiver.
+   The gate summary must also **say whether the sweep ran**; "skipped" is a stated, user-visible
+   choice, never silence. **Targeted minimum** — only if the sweep cannot run (say why),
+   `git diff --name-only main...dev` containing
    `system/rules/` still requires `bash tests/procedures/test-context-budget-split.sh` to pass (the
    exact CI check that failed), and one containing `.github/workflows/` requires the matching
    `tests/scripts/test-ci-*.sh`.
@@ -205,9 +213,74 @@ are rejected by branch protection, so the ship *is* the PR.
 runner executes each fenced block as ONE call. So the merge lives in its own block, reachable only
 after the human has answered "Merge now"; never merge it into the same block as the checks.
 
-**A — up to the gate** (nothing merges here; an open PR is reversible):
+**A — up to the gate** (nothing merges here; an open PR is reversible). **One call, helpers first**
+— the helpers and the lines that use them are one fence on purpose (a runner executes each fence as
+ONE call, so helpers in a later fence are `command not found`). `--watch` can outlast the Bash tool's
+timeout: run this call in the background and wait for its notification.
 
 ```bash
+# <!-- SHIP-CHECKS-BLOCK -->
+# Failed/cancelled check URLs, one per line. Parses the plain tab-separated output
+# (name <TAB> bucket <TAB> elapsed <TAB> url) — `gh pr checks --json` does not exist in every gh
+# version (it errored "unknown flag: --json" here), and an error hidden behind 2>/dev/null would
+# silently disable the rerun logic below.
+ship_failed_links() {
+  gh pr checks "$1" --required 2>/dev/null | awk -F'\t' '$2 == "fail" || $2 == "cancel" { print $4 }'
+}
+
+# True when the job never got a runner (GitHub infra, not a test failure): check-run annotation.
+ship_job_unacquired() {
+  gh api "repos/{owner}/{repo}/check-runs/$1/annotations" --jq '.[].message' 2>/dev/null \
+    | grep -q "not acquired by Runner"
+}
+
+# Only REQUIRED checks decide: advisory jobs (the macOS job) are red on main too and must not
+# block a ship (`--required`). With --required, gh words the empty case "no REQUIRED checks
+# reported" — the plain form says "no checks reported" — so match the common tail.
+# ship_checks_wait <pr>  ->  0 green | 1 red (a real failure) | 2 no checks ever appeared
+#                            | 3 red, but ONLY because jobs were never given a runner
+#                            | 4 --watch failed yet no failing check is listed (gh error): look
+ship_checks_wait() {
+  local pr="$1" tries="${SHIP_CHECKS_TRIES:-12}" gap="${SHIP_CHECKS_GAP:-10}" i=0 out
+  while :; do
+    out=$(gh pr checks "$pr" --required 2>&1)
+    case "$out" in *"checks reported"*) ;; *) break ;; esac
+    i=$((i + 1))
+    [ "$i" -ge "$tries" ] && { echo "PR $pr: '$out' after $tries polls" >&2; return 2; }
+    sleep "$gap"
+  done
+  gh pr checks "$pr" --required --watch >/dev/null 2>&1 && return 0
+  local links link jid infra=0 real=0
+  links=$(ship_failed_links "$pr")
+  [ -n "$links" ] || { echo "PR $pr: --watch failed but no failing check listed: $(printf '%s' "$out" | head -n 1)" >&2; return 4; }
+  while IFS= read -r link; do
+    [ -n "$link" ] || continue
+    jid=${link##*/job/}; jid=${jid%%[!0-9]*}
+    if [ -n "$jid" ] && ship_job_unacquired "$jid"; then infra=$((infra + 1)); else real=$((real + 1)); fi
+  done <<EOF_LINKS
+$links
+EOF_LINKS
+  [ "$real" -eq 0 ] && [ "$infra" -gt 0 ] && return 3
+  return 1
+}
+
+# ship_rerun_unacquired <pr>  — re-run ONLY the jobs that never got a runner (--job, not --failed:
+# --failed would also restart the advisory macOS job, 90 min, and may be refused while it runs).
+ship_rerun_unacquired() {
+  local pr="$1" link rid jid
+  while IFS= read -r link; do
+    [ -n "$link" ] || continue
+    jid=${link##*/job/}; jid=${jid%%[!0-9]*}
+    rid=${link#*/runs/}; rid=${rid%%/*}; rid=${rid%%[!0-9]*}
+    [ -n "$jid" ] && [ -n "$rid" ] || continue
+    ship_job_unacquired "$jid" && gh run rerun "$rid" --job "$jid"
+  done <<EOF_RERUN
+$(ship_failed_links "$pr")
+EOF_RERUN
+  return 0
+}
+# <!-- /SHIP-CHECKS-BLOCK -->
+
 git push origin dev || { echo "push failed — stop"; exit 1; }
 PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
 if [ -z "$PR" ]; then                # `gh pr create` has no --json: it prints the URL; re-list for the number
@@ -217,78 +290,26 @@ if [ -z "$PR" ]; then                # `gh pr create` has no --json: it prints t
     PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
 fi
 [ -n "$PR" ] || { echo "no open dev→main PR found after create — stop"; exit 1; }
-# required checks: validate, rust, tests. ship_checks_wait / ship_rerun_unacquired are defined below.
+# required checks: validate, rust, tests
 ship_checks_wait "$PR"; rc=$?
 if [ "$rc" -eq 3 ]; then                       # every failure was "job never got a runner" — infra, not code
-    ship_rerun_unacquired "$PR" && sleep 20 && { ship_checks_wait "$PR"; rc=$?; }
+    ship_rerun_unacquired "$PR"; sleep 30      # let the new attempt register before polling again
+    ship_checks_wait "$PR"; rc=$?
 fi
-[ "$rc" -eq 0 ] || { echo "CI is not green (rc=$rc: 1=red 2=no checks 3=runner never acquired) — stop, do NOT merge"; exit 1; }
+[ "$rc" -eq 0 ] || { echo "CI is not green (rc=$rc: 1=red 2=no checks 3=runner never acquired 4=gh error) — stop, do NOT merge"; exit 1; }
 SHA=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
 echo "PR=$PR SHA=$SHA"               # carry BOTH into the gate; shell variables do not survive between calls
 ```
 
-Paste the helpers into the same call, above the lines that use them. They exist because of two live
-failures on PR #1093: (1) `gh pr checks --watch` run right after `gh pr create` exits 1 with
-`no checks reported` — CI had not started, which looks exactly like "red"; (2) three required jobs
-ended `cancelled` with *"The job was not acquired by Runner of type hosted even after multiple
-attempts"* — GitHub never ran them, no test failed, and a re-run was the whole fix. The helpers
-retry the first and tell the second apart from a real failure (a mixed real + infra failure is
-still red, no rerun). Executed against a stubbed `gh` by `tests/procedures/test-ship-hardening.sh`.
-
-<!-- SHIP-CHECKS-BLOCK -->
-```bash
-# Failed/cancelled check URLs, one per line. Parses the plain tab-separated output
-# (name <TAB> bucket <TAB> elapsed <TAB> url) — `gh pr checks --json` does not exist in every gh
-# version (it errored "unknown flag: --json" here), and an error hidden behind 2>/dev/null would
-# silently disable the rerun logic below.
-ship_failed_links() {
-  gh pr checks "$1" --required 2>/dev/null | awk -F'\t' '$2 == "fail" || $2 == "cancel" { print $4 }'
-}
-
-# Only REQUIRED checks decide: advisory jobs (the macOS job) are red on main too and must not
-# block a ship (`--required`). Output is `name <TAB> bucket <TAB> elapsed <TAB> url`.
-# ship_checks_wait <pr>  ->  0 green | 1 red (a real failure) | 2 no checks ever appeared
-#                            | 3 red, but ONLY because jobs were never given a runner
-ship_checks_wait() {
-  local pr="$1" tries="${SHIP_CHECKS_TRIES:-12}" gap="${SHIP_CHECKS_GAP:-10}" i=0 out
-  while :; do
-    out=$(gh pr checks "$pr" --required 2>&1)
-    case "$out" in *"no checks reported"*) ;; *) break ;; esac
-    i=$((i + 1))
-    [ "$i" -ge "$tries" ] && { echo "no checks reported on PR $pr after $tries polls" >&2; return 2; }
-    sleep "$gap"
-  done
-  gh pr checks "$pr" --required --watch >/dev/null 2>&1 && return 0
-  local links link jid infra=0 real=0
-  links=$(ship_failed_links "$pr")
-  [ -n "$links" ] || return 1
-  while IFS= read -r link; do
-    [ -n "$link" ] || continue
-    jid=${link##*/job/}; jid=${jid%%[!0-9]*}
-    if gh api "repos/{owner}/{repo}/check-runs/$jid/annotations" --jq '.[].message' 2>/dev/null \
-         | grep -q "not acquired by Runner"; then infra=$((infra + 1)); else real=$((real + 1)); fi
-  done <<EOF_LINKS
-$links
-EOF_LINKS
-  [ "$real" -eq 0 ] && [ "$infra" -gt 0 ] && return 3
-  return 1
-}
-
-# ship_rerun_unacquired <pr>  — re-run only the failed jobs of every workflow run that has one.
-ship_rerun_unacquired() {
-  local pr="$1" link rid seen=" "
-  while IFS= read -r link; do
-    [ -n "$link" ] || continue
-    rid=${link#*/runs/}; rid=${rid%%/*}
-    case "$seen" in *" $rid "*) continue ;; esac
-    seen="$seen$rid "
-    gh run rerun "$rid" --failed
-  done <<EOF_RERUN
-$(ship_failed_links "$pr")
-EOF_RERUN
-}
-```
-<!-- /SHIP-CHECKS-BLOCK -->
+Why the helpers exist — two live failures on PR #1093: (1) `gh pr checks --watch` run right after
+`gh pr create` exits 1 with `no checks reported` — CI had not started, which looks exactly like
+"red"; (2) three required jobs ended `cancelled` with *"The job was not acquired by Runner of type
+hosted even after multiple attempts"* — GitHub never ran them, no test failed, and a re-run was the
+whole fix. The helpers retry the first and tell the second apart from a real failure (a mixed real +
+infra failure is still red, no rerun; the rerun is single-shot and must then reach green or the ship
+stops). Executed against a stubbed `gh` by `tests/procedures/test-ship-hardening.sh`, whose stub
+reproduces the real message wording and tab-separated shape — and was smoke-tested against the real
+`gh` (2.46).
 
 **B — Merge gate (mandatory, fails closed).** Ask every time, even though "Deploy now" was answered
 at pre-flight — that answer authorised the *checks and the push*, not the merge:
@@ -387,17 +408,25 @@ Run post-deploy checks to confirm the deploy succeeded.
 **Tier-2 ship: rebuild and install the CLI.** `bootstrap.sh` deploys rules, skills and docs but does
 **not** build `brana`; it only prints "brana-cli binary may be stale". Until the binary is rebuilt, the
 just-deployed rules and docs advertise flags the installed binary rejects (live after PR #1093: the
-`--frames` flag existed in docs and rules, not in `~/.local/bin/brana`). If the merged diff touches
-`system/cli/` (`git diff --name-only <pre-ship main>..main`), ask once, then:
+`--frames` flag existed in docs and rules, not in `~/.local/bin/brana`). Trigger: bootstrap printed
+that stale hint (it fires for any `*.rs` newer than the binary, so it also catches staleness left by
+an *earlier* ship), or `git diff --name-only main^1 main` touches `system/cli/`. Ask once, then:
 
 ```bash
-cd system/cli/rust && cargo build --release -p brana-cli
-cp ~/.local/bin/brana ~/.local/bin/brana.bak && cp target/release/brana ~/.local/bin/brana.new && mv -f ~/.local/bin/brana.new ~/.local/bin/brana
-brana --version && brana <changed-subcommand> --help     # verify the installed binary, not the build's exit code
+BIN=~/.local/bin/brana
+cp -L "$BIN" "$BIN.bak"        # FIRST — if $BIN is a symlink into target/release, the build below overwrites it
+(cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli) || { echo "build failed — nothing replaced"; exit 1; }
+system/cli/rust/target/release/brana --version || { echo "new binary does not run — nothing replaced"; exit 1; }
+cp system/cli/rust/target/release/brana "$BIN.new" && mv -f "$BIN.new" "$BIN"   # atomic rename: brana is never missing, running processes keep the old inode
+brana --version && brana <changed-subcommand> --help || { mv -f "$BIN.bak" "$BIN"; echo "verify failed — restored the previous binary"; exit 1; }
+brana backlog stats | head -c 120     # the ledger count must equal the pre-ship one (Step 4 table)
 ```
 
-Replacing `~/.local/bin/brana` affects every session on the machine, hence the ask and the `.bak`.
-Other machines need the same rebuild after pulling `main` — say so in the ship report.
+**Verify the installed binary, not the build's exit code** (the `--help` line above). Replacing
+`~/.local/bin/brana` affects every session on the machine, hence the ask, the `.bak` and the
+restore (a symlinked install becomes a regular file after the swap — say so). `LTO=off` mirrors
+`bootstrap.sh`'s own recipe: a cold full-LTO build can outlast the Bash tool's timeout — run it in the
+background. Other machines need the same rebuild after pulling `main` — say so in the ship report.
 
 Report result:
 - **Success**: "Deploy verified — [details]"
