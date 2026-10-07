@@ -61,7 +61,7 @@ case "$1 $2" in
   "api "*) jid=$(printf '%s' "$2" | sed -E 's#.*/check-runs/([0-9]+)/annotations.*#\1#')
     if grep -qx "$jid" "$S/infra_ids" 2>/dev/null; then echo "The job was not acquired by Runner of type hosted even after multiple attempts"; fi
     exit 0 ;;
-  "run rerun") echo "$3:$5" >> "$S/reruns"; exit 0 ;;   # gh run rerun <rid> --job <jid>
+  "run rerun") echo "$3:$5" >> "$S/reruns"; [ -f "$S/rerun_refuse" ] && { echo "run is still in progress" >&2; exit 1; }; exit 0 ;;   # gh run rerun <rid> --job <jid>
 esac
 exit 0
 STUB
@@ -88,6 +88,13 @@ assert "mixed real + infra failure: returns 1, no rerun" "1|" "$(run_scenario mi
 assert "all failures are not-acquired: returns 3 and reruns exactly those jobs (--job)" "3|900:111,900:222," "$(run_scenario infra 0 1 "$L" '111
 222' 3)"
 assert "gh errors with no failing check listed: returns 4 (unknown), not a false red/green" "4|" "$(GH_ERR=1 run_scenario gherr 0 1 '' '' 3)"
+
+echo "--- a refused rerun is announced, not swallowed"
+d="$T/sc/refuse"; mkdir -p "$d"; echo 0 > "$d/nochecks_n"; echo 1 > "$d/watch_rc"; : > "$d/rerun_refuse"; rm -f "$d/reruns"
+printf '%s' "$L" > "$d/links"; printf '111\n222' > "$d/infra_ids"
+REFUSAL=$(GH_STUB_DIR="$d" PATH="$T/bin:$PATH" bash -c "source '$T/block.sh'; ship_rerun_unacquired 7" 2>&1 >/dev/null | grep -c 'refused')
+assert "each refused rerun prints a 'refused' notice on stderr" "2" "$REFUSAL"
+assert "the .bak of the installed binary is taken in pre-flight, before the build" yes "$(awk '/cp -L ~\/.local\/bin\/brana ~\/.local\/bin\/brana.bak/ { a = NR } /cargo build --release -p brana-cli\)   # CI builds/ { b = NR } END { print (a && b && a < b) ? "yes" : "no" }' "$SKILL")"
 
 echo "--- helpers and their caller share ONE fenced block (a runner executes each fence as one call)"
 FENCE_HAS_BOTH=$(awk '/^```/ { infence = !infence; if (!infence) { if (h && u) ok_n++; h = u = 0 } next } infence && /^ship_checks_wait\(\)/ { h = 1 } infence && /ship_checks_wait "\$PR"/ { u = 1 } END { print ok_n + 0 }' "$SKILL")

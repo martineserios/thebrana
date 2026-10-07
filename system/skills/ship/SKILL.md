@@ -96,13 +96,16 @@ Run all safety checks before touching anything external.
 
    ```bash
    cd "$(git rev-parse --show-toplevel)"                       # anchor: ../ below is relative to the repo root
-   (cd system/cli/rust && cargo build --release -p brana-cli)   # CI builds brana first; suites call it by PATH
+   cp -L ~/.local/bin/brana ~/.local/bin/brana.bak 2>/dev/null || true   # FIRST: a symlinked install points at target/release, which the build below rewrites — Step 4 reuses this .bak
+   LEDGER_BEFORE=$(brana backlog stats 2>/dev/null | head -c 60)          # suites in a linked worktree share the git-common-dir ledger (ADR-094); compare after
+   (cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli)   # CI builds brana first; suites call it by PATH
    BIN="$PWD/system/cli/rust/target/release"                    # the MAIN checkout's build — target/ is gitignored, a fresh worktree has none
    SWEEP="../thebrana-ship-sweep"; OUT=$(mktemp)
    git worktree remove --force "$SWEEP" 2>/dev/null; git worktree prune   # a previous aborted ship may have left it
    git worktree add --detach "$SWEEP" dev
    (cd "$SWEEP" && PATH="$BIN:$PATH" bash system/scripts/run-test-suites.sh tests/*/*.sh) > "$OUT" 2>&1; echo "sweep rc=$?"
    tail -n 15 "$OUT"                                            # "Failed tests:" lists every red suite
+   [ "$LEDGER_BEFORE" = "$(brana backlog stats 2>/dev/null | head -c 60)" ] || echo "WARN: ledger stats changed during the sweep — check whether a suite touched it (other sessions also write)"
    git worktree remove --force "$SWEEP"
    ```
 
@@ -111,7 +114,9 @@ Run all safety checks before touching anything external.
    (`git worktree add --detach ../thebrana-main-check main`, remove it afterwards) and put both
    outputs in the gate summary — "it's an environment issue" without that evidence is not a waiver.
    The gate summary must also **say whether the sweep ran**; "skipped" is a stated, user-visible
-   choice, never silence. **Targeted minimum** — only if the sweep cannot run (say why),
+   choice, never silence. A non-zero rc with **no `Failed tests:` line** (memory kill, timeout, crash)
+   means **the sweep did not complete** — report it as such, never as green, and fall back to the
+   targeted minimum below (it was memory-killed at 43/169 suites on 2026-10-07). **Targeted minimum** — only if the sweep cannot run (say why),
    `git diff --name-only main...dev` containing
    `system/rules/` still requires `bash tests/procedures/test-context-budget-split.sh` to pass (the
    exact CI check that failed), and one containing `.github/workflows/` requires the matching
@@ -273,7 +278,9 @@ ship_rerun_unacquired() {
     jid=${link##*/job/}; jid=${jid%%[!0-9]*}
     rid=${link#*/runs/}; rid=${rid%%/*}; rid=${rid%%[!0-9]*}
     [ -n "$jid" ] && [ -n "$rid" ] || continue
-    ship_job_unacquired "$jid" && gh run rerun "$rid" --job "$jid"
+    ship_job_unacquired "$jid" || continue
+    gh run rerun "$rid" --job "$jid" \
+      || echo "rerun of job $jid refused (run $rid still in progress? e.g. the advisory macOS job) — wait for it to finish, then re-run /brana:ship" >&2
   done <<EOF_RERUN
 $(ship_failed_links "$pr")
 EOF_RERUN
@@ -410,16 +417,19 @@ Run post-deploy checks to confirm the deploy succeeded.
 just-deployed rules and docs advertise flags the installed binary rejects (live after PR #1093: the
 `--frames` flag existed in docs and rules, not in `~/.local/bin/brana`). Trigger: bootstrap printed
 that stale hint (it fires for any `*.rs` newer than the binary, so it also catches staleness left by
-an *earlier* ship), or `git diff --name-only main^1 main` touches `system/cli/`. Ask once, then:
+an *earlier* ship), or `git diff --name-only main^1 main` touches `system/cli/`. Ask first in the gate
+format — `AskUserQuestion` with **Abort listed first**, fail closed if it cannot be asked — then:
 
 ```bash
 BIN=~/.local/bin/brana
-cp -L "$BIN" "$BIN.bak"        # FIRST — if $BIN is a symlink into target/release, the build below overwrites it
+[ -f "$BIN.bak" ] || cp -L "$BIN" "$BIN.bak"   # normally already taken by pre-flight 2b, BEFORE its build touched a symlinked install
 (cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli) || { echo "build failed — nothing replaced"; exit 1; }
-system/cli/rust/target/release/brana --version || { echo "new binary does not run — nothing replaced"; exit 1; }
-cp system/cli/rust/target/release/brana "$BIN.new" && mv -f "$BIN.new" "$BIN"   # atomic rename: brana is never missing, running processes keep the old inode
-brana --version && brana <changed-subcommand> --help || { mv -f "$BIN.bak" "$BIN"; echo "verify failed — restored the previous binary"; exit 1; }
-brana backlog stats | head -c 120     # the ledger count must equal the pre-ship one (Step 4 table)
+NEW=system/cli/rust/target/release/brana
+"$NEW" --version || { echo "new binary does not run — nothing replaced"; exit 1; }
+cp "$NEW" "$BIN.new" && mv -f "$BIN.new" "$BIN" || { echo "install failed — previous binary kept"; exit 1; }   # atomic rename: brana is never missing, running processes keep the old inode
+cmp -s "$NEW" "$BIN" && "$BIN" --version && "$BIN" <changed-subcommand> --help >/dev/null \
+  || { mv -f "$BIN.bak" "$BIN"; echo "verify failed — restored the previous binary"; exit 1; }   # replace <changed-subcommand> with a real one before running
+"$BIN" backlog stats | head -c 120     # the ledger count must equal the pre-ship one (Step 4 table)
 ```
 
 **Verify the installed binary, not the build's exit code** (the `--help` line above). Replacing
