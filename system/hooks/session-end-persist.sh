@@ -34,7 +34,9 @@ TEST_WRITE_RATE="${TEST_WRITE_RATE:-0.00}"
 CASCADE_RATE="${CASCADE_RATE:-0.00}"
 TEST_PASS_RATE="${TEST_PASS_RATE:-N/A}"
 LINT_PASS_RATE="${LINT_PASS_RATE:-N/A}"
-SUMMARY_JSON="${SUMMARY_JSON:-{}}"
+# Default in its own statement: a brace default inside ${VAR:-...} closes at the first brace and leaves a
+# literal "}", so every SET value gained a trailing brace (t-3458; 721 of 860 rows).
+[ -n "${SUMMARY_JSON:-}" ] || SUMMARY_JSON='{}'
 TOOLS="${TOOLS:-unknown}"; FILES="${FILES:-}"
 LAYER0_DIR="${LAYER0_DIR:-}"
 STORED_L1="${STORED_L1:-false}"
@@ -68,7 +70,10 @@ if [ "$STORED_L1" != "true" ]; then
 
     if [ -n "${CF:-}" ]; then
         KEY="session:${PROJECT}:${SESSION_ID}"
-        VALUE=$(echo "$SUMMARY_JSON" | jq -c '.' 2>/dev/null) || VALUE="$SUMMARY_JSON"
+        # Never store text that does not parse: a summary jq rejects is wrapped as {"raw": ...}
+# so every consumer (flywheel-insight, rollups, recall previews) still reads JSON (t-3458).
+VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -c '.' 2>/dev/null) \
+    || VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -Rsc '{raw: .}')
         if [ "$FAILURES" -gt 0 ]; then OUTCOME="mixed"; else OUTCOME="success"; fi
         TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
 
