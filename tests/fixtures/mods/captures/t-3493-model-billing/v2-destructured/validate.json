@@ -1,0 +1,29 @@
+{
+  "success": false,
+  "strict": false,
+  "target": "/tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/1e8af577-1266-4cc3-9fb1-0cca113c8d15/scratchpad/modprobe/variants/v2-destructured/.claude-plugin/plugin.json",
+  "manifest": {
+    "file": "/tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/1e8af577-1266-4cc3-9fb1-0cca113c8d15/scratchpad/modprobe/variants/v2-destructured/.claude-plugin/plugin.json",
+    "type": "plugin",
+    "errors": [],
+    "warnings": [],
+    "notes": [],
+    "gatingHooks": []
+  },
+  "contents": [
+    {
+      "file": "/tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/1e8af577-1266-4cc3-9fb1-0cca113c8d15/scratchpad/modprobe/variants/v2-destructured/hooks/hooks.json",
+      "type": "hooks",
+      "errors": [
+        {
+          "path": "modules../register.ts",
+          "message": "v2-destructured: /tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/1e8af577-1266-4cc3-9fb1-0cca113c8d15/scratchpad/modprobe/variants/v2-destructured/hooks/register.ts, compiled line 7 `const { model } = $;`: $ itself is bound to a name (bound, passed, spread, returned or read); $ is always spelled $.noun.event(...) at the call site, on is always on(\"<event>\", hook), and next.to always n… [+19 chars]",
+          "code": null
+        }
+      ],
+      "warnings": [],
+      "notes": [],
+      "gatingHooks": []
+    }
+  ]
+}

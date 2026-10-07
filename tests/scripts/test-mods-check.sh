@@ -207,4 +207,46 @@ if command -v claude >/dev/null 2>&1 && [ -z "${CI:-}" ]; then
     [ "$rc" = 0 ] || tail -20 "$T/real"
 fi
 
+echo "--- --installed (Law 3 over the plugin cache + refused-mod guard, t-3493)"
+# A mod installed from ANY marketplace lands in <claude-dir>/plugins/cache/...; 77a never sees it.
+# --installed reads plugins/installed_plugins.json, scans each function-hook mod (hooks/hooks.json
+# with a modules key) for the Law 3 model/http rules, and — when `claude` is present — runs
+# `plugin validate` on it: a mod the engine refuses at load still sits in the registry (and in a
+# headless init record's plugins[]), so a refusal is a violation, never a pass.
+BILL="$FIX/captures/t-3493-model-billing/mod"
+H2="$T/home2"; mkdir -p "$H2/.claude/plugins"
+reg() { # reg name:path ... -> installed_plugins.json
+    python3 - "$H2/.claude/plugins/installed_plugins.json" "$@" <<'PYR'
+import json, sys
+out = {"version": 2, "plugins": {}}
+for a in sys.argv[2:]:
+    n, p = a.split(":", 1); out["plugins"][n + "@x"] = [{"scope": "user", "installPath": p, "version": "1.0.0"}]
+json.dump(out, open(sys.argv[1], "w"))
+PYR
+}
+inst() { PATH="$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1; echo $?; }
+inst_engine() { : > "$FAKE/argv.log"; FAKE="$FAKE" PATH="$FAKE/bin:$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1; echo $?; }
+rm -f "$H2/.claude/plugins/installed_plugins.json"
+assert "no registry -> exit 0, nothing installed" 0 "$(inst)"
+assert "...says so" yes "$(has 'nothing installed' "$(out)")"
+mkdir -p "$H2/skillsonly/skills/a"; echo "# a" > "$H2/skillsonly/skills/a/SKILL.md"
+mkdir -p "$H2/classic/hooks"; printf '{"hooks":{"PreToolUse":[]}}' > "$H2/classic/hooks/hooks.json"
+reg good:"$T/mods/good-minimal" skillsonly:"$H2/skillsonly" classic:"$H2/classic" gone:"$H2/does-not-exist"
+assert "good mod + skills-only + classic-hook plugin + missing path: exit 0 without claude" 0 "$(inst)"
+assert "...only the function-hook mod is scanned (1 mod)" yes "$(has '1 mod(s) scanned' "$(out)")"
+assert "...claude absent is said, not hidden" yes "$(has 'claude absent' "$(out)")"
+reg good:"$T/mods/good-minimal" billing:"$BILL"
+assert "an installed mod with a literal \$.model call fails" 1 "$(inst)"
+assert "...naming the model rule" yes "$(has 'model — Law 3' "$(out)")"
+assert "...and the mod" yes "$(has 'billing@x' "$(out)")"
+reg good:"$T/mods/good-minimal"
+golden_validate; golden_test
+assert "with claude: a validating mod passes" 0 "$(inst_engine)"
+assert "...plugin validate ran on the mod" yes "$(has 'plugin validate' "$(cat "$FAKE/argv.log")")"
+sed '1d' "$FIX/captures/t-3493-model-billing/v1-bracket/validate.json" > "$FAKE/validate.json" 2>/dev/null || cp "$FIX/captures/t-3493-model-billing/v1-bracket/validate.json" "$FAKE/validate.json"
+echo 1 > "$FAKE/validate.rc"
+assert "with claude: a mod the engine refuses at load fails (listed as installed, would show as loaded)" 1 "$(inst_engine)"
+assert "...naming the refusal" yes "$(has 'refused' "$(out)")"
+golden_validate
+
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

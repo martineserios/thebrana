@@ -1,0 +1,1 @@
+{ "name": "modprobe", "version": "0.1.0", "description": "ADR-096 OQ1 probe: does $.model.complete work keyless on a subscription session?", "author": { "name": "brana" } }
