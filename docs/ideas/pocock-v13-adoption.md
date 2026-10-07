@@ -1,0 +1,103 @@
+---
+title: Adopt Pocock's implementation discipline, v1.3 round — tdd, pr, two invariants, retro held
+status: draft
+created: 2026-10-07
+tasks: [t-3263, t-2981, t-3013, t-3477]
+relates-to:
+  - "[ADR-097](../architecture/decisions/ADR-097-upstream-band-standing-v1-3.md) — the decision this idea proposes (proposed 2026-10-07)"
+  - "[ADR-084](../architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md) — the band mechanism; §7a left materialization to 'a separate follow-up ADR'"
+  - "[2026-10-07-pocock-recheck.md](../research/2026-10-07-pocock-recheck.md) — evidence: skills v1.3, ring-fit, follow-ups F1–F6"
+  - "[2026-08-22-pocock-alignment-decision-matrix.md](../research/2026-08-22-pocock-alignment-decision-matrix.md) — §0 ring-fit filter, KEEP/ADOPT rows"
+  - "[tdd-organ-build-loop.md](../architecture/features/tdd-organ-build-loop.md) · [pr-body-organ.md](../architecture/features/pr-body-organ.md) · [upstream-band-pin-bump.md](../architecture/features/upstream-band-pin-bump.md) — the specs"
+---
+# Adopt Pocock's implementation discipline, v1.3 round
+
+> Shaped 2026-10-07 from the quarterly recheck (t-3263). Status: proposed — ADR-097 awaits
+> acceptance; nothing under `system/` moves until it does.
+
+## Seed
+
+Operator, 2026-10-07: "can we adopt something from him? he is very good implementing." Then:
+"start applying changes in the same way you build, starting from idea and ADR and specs —
+pure docs. Then we move it into the implementation."
+
+The standing premise has not changed since 2026-08-18: *his ergonomics on top, our substrate
+underneath, the ticket is the joint.* What changed is the evidence. Skills v1.3 (2026-10-04)
+graduated three skills, his band is at v1.3.1 while brana's three vendored organs are pinned at
+v1.2.3, and ADR-084's pilot already read **EXPAND** on 2026-08-30 without the band ever being
+declared standing. This round closes that gap and adds the two organs that most directly carry
+*how he implements*.
+
+## What "very good at implementing" actually names
+
+Not a vibe. Four concrete mechanisms, each already read off his repo at `main` 2026-10-07:
+
+| Mechanism | Where it lives upstream | What brana has today |
+|---|---|---|
+| **Red that is proven red.** One failing test; if the red was forced by a mutation, `diff` against a pristine copy before trusting it (PR #1209); smallest green; refactor after. | `tdd` | Discipline spread across `sdd-tdd.md`, `build-loop.md`, `red-verification.sh`; enforced as "a spec or test file exists," not "a red ran" |
+| **Evidence at the merge valve.** PR body = smallest visual + before/after evidence + one-way/two-way door + blast radius. "Without asking for hard evidence it's very easy for agents to say 'yeah that probably works.'" | `pr` | `/brana:ship` PR body is `git log --oneline`; feature PRs have no body shape; `pr-reviewer` never sees a danger call |
+| **Implementers never explore; merges always fast-forward.** One exploration subagent writes notes outside the repo once; each implementer merges the integration tip into its branch before reporting done. | `implement-spec` | Runner/build have no stated "sync before you say done" invariant; CLOSE presents a merge command the human may find conflicted |
+| **Environment retrospective from real logs.** Seven categories (navigation, unwired checks, mechanical→deterministic check, AGENTS.md weight, tool economy, no-ops, information access). Human applies; "you don't want to automate this." | `retro` | `/brana:retrospective` classifies a learning the operator already has; `/brana:close` extracts from the model's memory of the session; nothing reads logs or treats the environment as the subject |
+
+## Ring-fit before anything else (matrix §0)
+
+| Mechanism | Ring | Feeds a valve or removes one? | His side persists it? | Verdict |
+|---|---|---|---|---|
+| `tdd` | micro | feeds the Beat valve (red→green inside the `/goal` span) | n/a (stateless by design) | **vendor** — t-2981, already AC-approved |
+| `pr` | beat, at the human-merge valve | feeds it (gives the valve its brief) | n/a | **vendor** — new organ |
+| `implement-spec` invariants | beat | feeds the merge valve (conflict-free merges) | no — orchestrator dies with the session | **take the two invariants, not the skill**; brana's runner *is* his "deterministic loop" |
+| `retro` | knowledge | neither; emits proposals | no | **hold** — decide the home first (close EXTRACT vs quarterly run), carry his do-not-automate rule |
+| `chief-of-staff`, `loop-me` | epic-shaped, in-context | would remove the wave/epic persistence | no — in-progress, one session | **watch** until graduated |
+
+Nothing here removes a valve. Everything adoptable feeds one. No KEEP row in the 2026-08-22
+matrix flips.
+
+## Proposed shape (what ADR-097 decides)
+
+1. **The band is standing, not pilot.** ADR-084 §7a authorized unparking t-2835/t-2836 and
+   deferred "materializing the standing band" to a follow-up. This is that follow-up. Standing
+   means: a pin policy (one version for the whole band), a manual bump procedure (the pump,
+   still run by hand), and the §7 proxies re-used as the band's kill criteria.
+2. **Pin moves to v1.3.1 for all three existing organs** (`diagnosing-bugs`, `code-review`,
+   `wizard`). First measured drift on the pilot band; two of the three changed upstream
+   (`diagnosing-bugs` #1209 + GLOSSARY read; `code-review` standards-file search, foreground
+   sub-agents, tracker doc). Spec: `upstream-band-pin-bump.md`.
+3. **Admit `tdd` (organ 4) and `pr` (organ 5).** `tdd` is t-2981 as already approved, with
+   the ADR-061 invariants re-asserted in the adapter. `pr` is new: thin adapter, GLOSSARY.md
+   remapped to `docs/domain/`, three headings mandatory, `pr-reviewer` reads Merge Danger.
+   Specs: `tdd-organ-build-loop.md`, `pr-body-organ.md`.
+4. **Two invariants into the Beat contract, no vendoring:** (a) exploration once, pointers
+   after; (b) sync the integration tip before reporting done so the human merge is
+   fast-forward. Home: `/brana:close`'s merge-command step and the runner's close-out.
+5. **`retro` is not vendored this round.** A decision task picks its home; the constraint
+   travels with it: human-in-the-loop, sampled sessions, never a loop.
+6. **GLOSSARY remap.** Every adapter that upstream points at `GLOSSARY.md` maps to
+   `docs/domain/` (today `MODEL-001-brana-core.md`; a `glossary.md` does not exist yet —
+   t-3013's discipline is where it would come from). ADR-084 §3's CONTEXT.md sentence is
+   superseded.
+
+## Proposed backlog plan (penciled, not created — ADR acceptance first)
+
+| # | Task | Kind | Effort | Blocked by | Spec |
+|---|---|---|---|---|---|
+| P1 | Bump the three vendored organs to v1.3.1; re-verify each adapter's `redirect-check.md`; recompute hashes via `skills-lock-hash.sh` | chore | S | ADR-097 | upstream-band-pin-bump.md |
+| P2 | t-2981 as approved — vendor `tdd`, adapter ≤15 lines, build-loop + fix call it, ADR-061 invariants preserved | feature | M | P1 | tdd-organ-build-loop.md |
+| P3 | Vendor `pr`; adapter `system/skills/pr-body/`; `/brana:ship` and feature-branch close-out use it; `pr-reviewer` reads Merge Danger | feature | S | P1 | pr-body-organ.md |
+| P4 | CLOSE merge-command step: sync integration tip (`dev`) into the branch before presenting the command; runner close-out states the same | fix | XS | — | ADR-097 D4 |
+| P5 | Decide `retro`'s home (close EXTRACT step vs quarterly run vs out); write the spec if in | research | S | — | — |
+| P6 | Reword t-3013 + ADR-084 §3 from CONTEXT.md to GLOSSARY.md; decide whether `docs/domain/glossary.md` is bootstrapped there | docs | XS | — | — |
+
+P1 → P2/P3 is the only hard order: bump the pin before adding organs at the new pin, so the
+whole band carries one `pinnedRef`.
+
+## Open questions for the ADR challenge
+
+- Does `pr` need its own adapter, or is a 20-line template inside `/brana:ship` cheaper and
+  equally faithful? The ADR argues adapter: the organ is model-invoked and must fire on
+  feature-branch PRs too, not only the dev→main ship.
+- `tdd` on the `/goal` seam: his skill has no termination engine; the adapter re-asserts
+  ADR-061 invariants 2 and 3. Is "red→green only, refactor outside the predicate" compatible
+  with his refactor step, or does the adapter cut his loop at green? (Spec answers: cut at
+  green; refactor runs in brana's existing post-green step.)
+- Three organs bumped at once vs one at a time: the §7 proxies were pre-registered per organ.
+  The ADR bumps together but records proxies per organ.
