@@ -384,9 +384,9 @@ Uses `flock` on a shared lock file in `$GIT_COMMON_DIR` (shared across all workt
 |-------|-------|
 | **Purpose** | Trigger brana-knowledge backup |
 | **Usage** | `backup-knowledge.sh` |
-| **Dependencies** | `~/enter_thebrana/brana-knowledge/backup.sh` (skips silently if not found) |
+| **Dependencies** | `~/enter_thebrana/brana-knowledge/backup.sh` (no clone: skips silently, exit 0; clone present but `backup.sh` missing or not executable: warns on stderr, exit 1) |
 
-Thin wrapper that executes the brana-knowledge repo's own `backup.sh` script if it exists and is executable. Used by `/brana:maintain-specs` Step 8. No output or error if the script is absent.
+Thin wrapper that executes the brana-knowledge repo's own `backup.sh` script. Used by `/brana:close` and `/brana:maintain-specs`. With no clone on the machine it is silent. With a clone but a missing or non-executable `backup.sh` it prints a warning and exits 1, so a commit that drops the exec bit cannot switch backups off unnoticed; on a company-managed Mac that is intentional (it never exports) and the file must not be chmod-ed. Test: `tests/scripts/test-backup-knowledge-wrapper.sh`.
 
 ---
 

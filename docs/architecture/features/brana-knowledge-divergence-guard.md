@@ -34,6 +34,7 @@ Two machines run `backup.sh` against one `brana-knowledge/master`. The script co
 - Fetch-first guard at the top of `backup.sh`, before any export.
 - Shell tests with a bare origin and two clones: guard (behind-only, diverged, daily-push.sh, offline, in-sync), union on export, and the merge rule itself.
 - ADR-095 amendment and t-3404 context pointer.
+- Added later (t-3475, t-3487): `backup-exclude.txt` keeps tabz client project memory, and one named device-inventory note, out of the export (folder globs, `folder/file` globs, fail closed when the list is missing; tests in `tests/test-backup-exclude.sh`).
 - Out of scope: ruflo-store convergence (ADR-095 revision, t-3436), notes slug mapping and pull direction (t-3405), session-start pull (t-3406).
 
 ## Research

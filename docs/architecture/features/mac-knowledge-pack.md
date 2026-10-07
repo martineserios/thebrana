@@ -5,7 +5,7 @@ status: proposed
 
 > **Parked (2026-10-05).** [ADR-095](../decisions/ADR-095-two-machine-memory-sync.md) decision 5: generic learnings reach the Mac through public thebrana; this pack is built only if that proves insufficient (t-3437, t-3440, t-3417 parked). The spec below is kept for that case.
 
-Written against the access model of an earlier ADR-095 revision; the accepted ADR-095 supersedes it where they differ. This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options considered and §Review.
+Written against the access model of an earlier ADR-095 revision; the accepted ADR-095 supersedes it where they differ. This spec is the step-by-step flow; the ADR holds the decision and the threat model. Narrowed on 2026-10-03 after the t-3442 review: the builder, scope tags, hold queue, triggers, manifest and signing of the first version were removed. The reasons are in ADR-095 §Options rejected and §Non-actions.
 
 ## Problem
 
