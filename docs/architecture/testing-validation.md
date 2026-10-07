@@ -335,8 +335,8 @@ All hook scripts `cd /tmp` at startup. `brana` subcommands resolve the project f
 Counts `## ` (level-2 heading) entries in `~/.claude/memory/patterns.md` and `~/.claude/memory/knowledge-staging.md`. Warns when either file approaches its cap.
 
 **Check 31a — patterns.md:**
-- **PASS:** fewer than 40 `## ` entries
-- **WARN:** 40+ entries — "prune quarantine entries" (cap: 50, warn-at: 40)
+- **PASS:** fewer than 80 `## ` entries
+- **WARN:** 80+ entries — "prune quarantine entries" (cap: 100, warn-at: 80); at the cap the oldest quarantine entries are pruned in code (`_P_CAP`/`_P_WARN` in `validate.sh`, kept in step with the rule and the creation template by `tests/scripts/test-patterns-cap-consistency.sh`)
 - **SKIP:** file absent
 
 **Check 31b — knowledge-staging.md:**

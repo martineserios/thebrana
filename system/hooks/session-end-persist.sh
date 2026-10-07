@@ -163,7 +163,7 @@ if command -v jq >/dev/null 2>&1; then
         PATTERNS_FILE="$MEMORY_DIR/patterns.md"
         if [ ! -f "$PATTERNS_FILE" ]; then
             mkdir -p "$MEMORY_DIR" 2>/dev/null || true
-            printf '# Pattern Store\n\n<!-- cap: 50 | warn-at: 40 | auto-pruned: oldest quarantine first -->\n' \
+            printf '# Pattern Store\n\n<!-- cap: 100 | warn-at: 80 | auto-pruned: oldest quarantine first -->\n' \
                 > "$PATTERNS_FILE" 2>/dev/null || true
         fi
         while IFS= read -r learning; do
