@@ -3055,7 +3055,7 @@ else
     else
         C78_RC=$?
     fi
-    echo "$C78_OUT" | grep -E "summary|FAIL" | sed 's/^/  /'
+    echo "$C78_OUT" | grep -E "summary|FAIL" | sed 's/^/  /' || true   # a crashed test prints neither; never abort the run here
     if [ "$C78_RC" -eq 0 ]; then
         pass "Check 78: band adapters reachable, organs resolvable, entries recorded ✓"
     else

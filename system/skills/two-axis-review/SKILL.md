@@ -99,10 +99,8 @@ merge; a killed spike gets a `challenger` pre-mortem and never reaches a diff at
 
 ## Record on completion or early exit
 
-Append one line to `~/.claude/run-state/pocock-code-review.jsonl` via a single shell
-redirect — `printf '%s\n' '{"task_id":...}' >> ~/.claude/run-state/pocock-code-review.jsonl`
-— never read-then-rewrite-the-file; this is a cross-session shared log and a single `>>` of
-one line (well under `PIPE_BUF`) is the only append form safe against concurrent sessions
-racing on it. Fields: `{"task_id", "fixed_point", "spec_found", "standards_findings",
-"spec_findings", "date"}` — the invocation evidence a future kill/expand-style evaluation of
-this specific adapter would read, mirroring t-2834's own pre-registered proxies (ADR-084 §7).
+`system/scripts/organ-record.sh code-review <t-NNN> <caller> complete` (or `early-exit`) —
+the same one-line shape as the step-0 entry record, so the ADR-084 §7 invocation reader
+counts `event=entry` lines and never meets two shapes in one log. The script is advisory:
+its exit status never aborts this review. (Earlier drafts hand-rolled a richer printf here;
+richer per-run evidence belongs in the task's notes, not in the proxy log.)

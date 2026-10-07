@@ -56,7 +56,8 @@ if [ -x "$RESOLVE" ]; then
     check "resolve $organ in this repo exits 0" "0" "$rc"
     check "resolve $organ prints the SKILL.md path" "yes" "$([ -f "$out" ] && echo yes || echo no)"
   done
-  fixture=$(mktemp -d)
+  fixture=$(mktemp -d); trap 'rm -rf "$fixture"' EXIT
+  (cd "$fixture" && git init -q .)   # pin: never resolve a parent repo's organ by accident
   out=$(cd "$fixture" && "$RESOLVE" diagnosing-bugs 2>&1); rc=$?
   check "resolve in a repo without the organ exits 1" "1" "$rc"
   check "absent organ names the inline fallback" "yes" "$(echo "$out" | grep -qi 'fallback' && echo yes || echo no)"
@@ -80,8 +81,42 @@ if [ -x "$RECORD" ]; then
   check "second record appends, never rewrites" "2" "$(wc -l < "$log" | tr -d ' ')"
   out=$(HOME="$fakehome" "$RECORD" 2>&1); rc=$?
   check "record with missing args exits 2 (usage)" "2" "$rc"
+  # a log write must never abort the calling skill (finder: unwritable HOME, jail, CI)
+  ro="$fakehome/ro"; mkdir -p "$ro"; chmod 500 "$ro"
+  HOME="$ro" "$RECORD" diagnosing-bugs t-3489 fix >/dev/null 2>&1; rc=$?
+  check "record under an unwritable HOME exits 0 (advisory)" "0" "$rc"
+  chmod 700 "$ro"
+  ( unset HOME; "$RECORD" diagnosing-bugs t-3489 fix >/dev/null 2>&1 ); rc=$?
+  check "record with HOME unset exits 0 (advisory)" "0" "$rc"
+  # identifiers are capped and an organ that sanitises to nothing is rejected
+  long=$(printf 'a%.0s' $(seq 1 400))
+  HOME="$fakehome" "$RECORD" "$long" t-3489 fix >/dev/null 2>&1; rc=$?
+  check "record with a 400-char organ exits 2, writes nothing" "2" "$rc"
+  HOME="$fakehome" "$RECORD" '///' t-3489 fix >/dev/null 2>&1; rc=$?
+  check "record with an organ that sanitises to empty exits 2" "2" "$rc"
+  check "no stray pocock-.jsonl created" "no" "$([ -f "$fakehome/.claude/run-state/pocock-.jsonl" ] && echo yes || echo no)"
   rm -rf "$fakehome"
 fi
+
+# ── 3b. adapters record completion through the same script (one line shape) ─
+for pair in $PAIRS; do
+  adapter="${pair%%:*}"
+  sf="$REPO_ROOT/system/skills/$adapter/SKILL.md"
+  check "$adapter has no hand-rolled printf into run-state (one record shape)" "0" "$(grep -c "printf.*run-state/pocock" "$sf" || true)"
+done
+
+# ── 5. class detector: no quarantined skill may be a Skill-tool dependency ───
+viol=""
+for sf in "$REPO_ROOT"/system/skills/*/SKILL.md; do
+  name=$(basename "$(dirname "$sf")")
+  fm=$(sed -n '/^---$/,/^---$/p' "$sf")
+  echo "$fm" | grep -qE '^disable-model-invocation:[[:space:]]*true' || continue
+  callers=$(grep -rln "Skill(" "$REPO_ROOT/system" --include='*.md' 2>/dev/null \
+    | grep -v "/system/skills/$name/" \
+    | xargs grep -lE "Skill\([^)]*[\"'\`](brana:)?$name[\"'\`]" 2>/dev/null || true)
+  [ -n "$callers" ] && viol="$viol $name<-$(echo "$callers" | tr '\n' ',')"
+done
+check "no quarantined skill is called through the Skill tool anywhere in system/" "" "$viol"
 
 # ── 4. every adapter calls both scripts and keeps its description short ──────
 for pair in $PAIRS; do
