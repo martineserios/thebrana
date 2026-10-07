@@ -98,8 +98,8 @@ Acceptance criteria:
 Modified files (git diff --name-only main...HEAD):
 {MODIFIED_FILES}
 
-Grade each criterion MET / PARTIAL / MISSED with file:line evidence.
-Return structured verdict: PASS, PASS WITH GAPS, or FAIL."
+Grade each criterion MET / PARTIAL / MISSED / UNVERIFIABLE with file:line evidence.
+Return structured verdict: PASS, PASS WITH GAPS, FAIL, or INCONCLUSIVE (unverifiable AC ids listed)."
 )
 ```
 
@@ -112,10 +112,26 @@ Where `MODIFIED_FILES` = output of `git diff --name-only main...HEAD` (from the 
 | **PASS** | Log to task notes; proceed to Challenger Gate |
 | **PASS WITH GAPS** | Surface gaps inline; log to task notes; proceed to Challenger Gate |
 | **FAIL** | Block CLOSE — trigger repair loop below |
+| **INCONCLUSIVE** | Block CLOSE — no repair loop; present the unverifiable AC ids and ask (below). Never treated as PASS WITH GAPS (t-3494) |
 
 Always log: `brana backlog set {task_id} notes --append "Evaluator: {verdict} ({date}), {N} criteria checked"`
 
-This line is **machine-read**, not just a human record (t-2857, ADR-081 D2) — `brana backlog stacked-verdict` and `ac approve` parse `Evaluator: {verdict}` out of `notes` as the judged evidence layer. `{verdict}` must be exactly `PASS`, `PASS WITH GAPS`, or `FAIL` — no other wording — or the parser silently counts it as `0 judged` instead of erroring.
+This line is **machine-read**, not just a human record (t-2857, ADR-081 D2) — `brana backlog stacked-verdict` and `ac approve` parse `Evaluator: {verdict}` out of `notes` as the judged evidence layer. `{verdict}` must be exactly `PASS`, `PASS WITH GAPS`, `FAIL`, or `INCONCLUSIVE` — no other wording — or the parser silently counts it as `0 judged` instead of erroring. For INCONCLUSIVE append the ids: `"Evaluator: INCONCLUSIVE ({date}), {N} criteria checked, unverifiable: {AC ids}"`.
+
+**INCONCLUSIVE** (t-3494) — present once:
+```
+AskUserQuestion:
+  question: "Evaluator: INCONCLUSIVE. {N} criteria unverifiable from the artefacts: {AC ids}. How to proceed?"
+  header: "Undecided"
+  options:
+    - label: "Produce the evidence — capture the artefact, then re-run Evaluator (Recommended)"
+      description: "Unverifiable ids appended to task context. Evaluator re-runs once the artefact exists."
+    - label: "Override — proceed anyway (reason required)"
+      description: "Reason logged to task context. CLOSE proceeds with annotation."
+    - label: "Abandon — mark task blocked"
+      description: "Task status set to blocked."
+```
+If "Produce the evidence": `brana backlog set {task_id} context --append "Evaluator INCONCLUSIVE ({date}): unverifiable — {AC ids and artefact needed}"`; the later verdict line supersedes (latest-wins).
 
 #### Repair loop (max 2 iterations)
 

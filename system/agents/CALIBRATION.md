@@ -22,6 +22,15 @@ Severity scoring guide with few-shot examples and hard thresholds. Referenced by
 - ANY finding >= 4 --> verdict is **RECONSIDER**
 - All findings <= 2 with clear mitigations --> **PROCEED WITH CHANGES**
 - All findings <= 1 --> **PROCEED**
+- **INCONCLUSIVE** (t-3494): the highest-scored finding(s) depend on an **unverified
+  premise** (a probe not run, a number asserted but not measured, behaviour inferred
+  from docs rather than observed), or the evidence base is below a threshold the plan
+  itself pre-registered. Score the finding as if the premise holds, but issue
+  INCONCLUSIVE instead of RECONSIDER / PROCEED WITH CHANGES and **name the evidence**
+  that would resolve it. INCONCLUSIVE never auto-advances: it routes to the human
+  valve like RECONSIDER, with "gather evidence" as the recommended option.
+  Borrowed from Dream Machine's ACCEPT / REJECT / INCONCLUSIVE discipline — a judge
+  that cannot decide must say so rather than pick a side.
 - **SPLIT** (rung-2 panels only, ADR-082): the verification stage disagreed on a
   finding. Blocking impact = RECONSIDER for that finding's beat — a SPLIT is
   never auto-resolved, never counted as FALSE_POSITIVE; it routes to the human

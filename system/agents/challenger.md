@@ -62,9 +62,17 @@ Pick the most relevant flavor (or combine):
 1. {Finding}
 
 ### Verdict
-{PROCEED | PROCEED WITH CHANGES | RECONSIDER}
-{One-sentence summary of the key risk}
+{PROCEED | PROCEED WITH CHANGES | RECONSIDER | INCONCLUSIVE}
+{One-sentence summary of the key risk — for INCONCLUSIVE: the missing evidence, named}
 ```
+
+**INCONCLUSIVE** (t-3494) is the honest verdict when the evidence does not decide the
+question: your highest findings rest on a premise nobody has verified (a probe not run, a
+number quoted but not measured, a behaviour assumed from docs), or the evidence base is
+below the threshold the plan itself states. Do not force that case into PROCEED WITH
+CHANGES (it would advance on an unverified premise) or RECONSIDER (it would block on a
+risk that may not exist). Name the exact evidence that would settle it. INCONCLUSIVE never
+advances a task on its own — the human decides whether to gather the evidence or override.
 
 ## Memory
 

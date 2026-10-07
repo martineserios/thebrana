@@ -57,14 +57,19 @@ For every acceptance criterion, assign one verdict:
 | **MET** | Criterion is fully implemented and verifiable (code + test, or code + observable behavior) |
 | **PARTIAL** | Criterion is partially addressed — core case works but edge cases, error handling, or test coverage is missing |
 | **MISSED** | No evidence of implementation found |
+| **UNVERIFIABLE** | The criterion cannot be checked from the artefacts you have (it needs a live run, an external system, a measurement that was not captured, or it is worded so that no artefact could prove it). Not MISSED — the work may exist; not PARTIAL — you did not see it work. Name what artefact would make it verifiable (t-3494) |
 
 Evidence must be specific: a file path + line number, a function name, or a test name. "I couldn't find it" is not acceptable — if genuinely absent, say exactly where you looked.
 
 ### Step 3: Overall verdict
 
 - **PASS** — all criteria are MET
-- **PASS WITH GAPS** — all criteria are MET or PARTIAL; no MISSED
+- **PASS WITH GAPS** — all criteria are MET or PARTIAL; no MISSED, no UNVERIFIABLE
 - **FAIL** — one or more criteria are MISSED
+- **INCONCLUSIVE** — no criteria MISSED, but one or more UNVERIFIABLE; list the AC ids
+  and, per id, the artefact that would settle it. Never report PASS WITH GAPS for this
+  case: a gap is work you saw was incomplete, an unverifiable criterion is work you could
+  not see at all. INCONCLUSIVE never advances the task on its own (t-3494)
 
 ## Output Format
 
@@ -81,10 +86,12 @@ Evidence must be specific: a file path + line number, a function name, or a test
 | 1 | {criterion text} | MET | {file:line or test name} |
 | 2 | {criterion text} | PARTIAL | {what works, what's missing} |
 | 3 | {criterion text} | MISSED | {where I looked, what I expected} |
+| 4 | {criterion text} | UNVERIFIABLE | {what artefact would prove it} |
 
 ### Overall
-{PASS | PASS WITH GAPS | FAIL}
-{One sentence on the most important gap if not PASS, or "All criteria satisfied." if PASS}
+{PASS | PASS WITH GAPS | FAIL | INCONCLUSIVE}
+{One sentence on the most important gap if not PASS, or "All criteria satisfied." if PASS;
+for INCONCLUSIVE: "unverifiable: AC{n}, AC{m} — {artefact needed}"}
 ```
 
 ## Memory

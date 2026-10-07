@@ -23,32 +23,49 @@ use crate::util::find_tasks_file;
 pub struct JudgedCounts {
     pub pass: usize,
     pub fail: usize,
+    /// INCONCLUSIVE (t-3494): the judge could not decide from the evidence.
+    /// Its own bucket — never folded into `pass` (would auto-advance an
+    /// under-evidenced task) and never dropped to `0 judged` (would hide
+    /// that a judge ran and could not decide).
+    pub inconclusive: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Judged {
+    Pass,
+    Fail,
+    Inconclusive,
 }
 
 /// Parses `notes` for the Evaluator:/Challenger: convention (ADR-081 D2).
 /// Most-recent-per-source wins (a repair-loop's later iteration supersedes
 /// an earlier verdict). `PASS WITH GAPS` and `PROCEED WITH CHANGES` both
 /// fold into judged-pass — matches challenger-gate.md's own blocking-rule
-/// treatment (only `FAIL`/`RECONSIDER` blocks). No matching line for a
-/// source → that source contributes nothing (not an error — many tasks skip
-/// these gates by size/strategy).
+/// treatment (`FAIL`/`RECONSIDER` block; `INCONCLUSIVE` blocks too but is
+/// counted separately so the valve can tell "refuted" from "undecided").
+/// No matching line for a source → that source contributes nothing (not an
+/// error — many tasks skip these gates by size/strategy).
 pub fn parse_judged_verdicts(notes: &str) -> JudgedCounts {
-    let mut evaluator: Option<bool> = None; // Some(true) = pass, Some(false) = fail
-    let mut challenger: Option<bool> = None;
+    let mut evaluator: Option<Judged> = None;
+    let mut challenger: Option<Judged> = None;
 
     for line in notes.lines() {
         let line = line.trim();
         if let Some(rest) = line.strip_prefix("Evaluator: ") {
             if rest.starts_with("PASS WITH GAPS") || rest.starts_with("PASS") {
-                evaluator = Some(true);
+                evaluator = Some(Judged::Pass);
             } else if rest.starts_with("FAIL") {
-                evaluator = Some(false);
+                evaluator = Some(Judged::Fail);
+            } else if rest.starts_with("INCONCLUSIVE") {
+                evaluator = Some(Judged::Inconclusive);
             }
         } else if let Some(rest) = line.strip_prefix("Challenger: ") {
             if rest.starts_with("PROCEED WITH CHANGES") || rest.starts_with("PROCEED") {
-                challenger = Some(true);
+                challenger = Some(Judged::Pass);
             } else if rest.starts_with("RECONSIDER") {
-                challenger = Some(false);
+                challenger = Some(Judged::Fail);
+            } else if rest.starts_with("INCONCLUSIVE") {
+                challenger = Some(Judged::Inconclusive);
             }
         }
     }
@@ -56,8 +73,9 @@ pub fn parse_judged_verdicts(notes: &str) -> JudgedCounts {
     let mut counts = JudgedCounts::default();
     for v in [evaluator, challenger] {
         match v {
-            Some(true) => counts.pass += 1,
-            Some(false) => counts.fail += 1,
+            Some(Judged::Pass) => counts.pass += 1,
+            Some(Judged::Fail) => counts.fail += 1,
+            Some(Judged::Inconclusive) => counts.inconclusive += 1,
             None => {}
         }
     }
@@ -121,15 +139,24 @@ pub fn receipt_status_from_json(v: &Value) -> ReceiptStatus {
 
 /// Compose the one-line bundle. Pure — no I/O, directly testable.
 /// `"{X}/{N} AC machine-green · {Y} judged-pass{detail} · {Z} needs-you · receipt: {R}"`
+/// With any INCONCLUSIVE verdict (t-3494) a ` · {I} inconclusive` segment is
+/// inserted after judged-pass; the line is byte-identical to the pre-t-3494
+/// shape when the count is zero.
 pub fn compose_line(grade: &GradeCounts, judged: JudgedCounts, receipt: &ReceiptStatus) -> String {
     let total = grade.pass + grade.fail + grade.unknown;
     let detail = if judged.pass > 0 { " (verdicts attached)" } else { "" };
+    let inconclusive = if judged.inconclusive > 0 {
+        format!(" · {} inconclusive", judged.inconclusive)
+    } else {
+        String::new()
+    };
     format!(
-        "{}/{} AC machine-green · {} judged-pass{} · {} needs-you · receipt: {}",
+        "{}/{} AC machine-green · {} judged-pass{}{} · {} needs-you · receipt: {}",
         grade.pass,
         total,
         judged.pass,
         detail,
+        inconclusive,
         grade.unknown,
         receipt.render()
     )
@@ -147,7 +174,7 @@ pub fn cmd_stacked_verdict(task_id: &str, json: bool, file: Option<PathBuf>) -> 
             serde_json::json!({
                 "task_id": task_id,
                 "grade": {"pass": bundle.grade.pass, "fail": bundle.grade.fail, "unknown": bundle.grade.unknown},
-                "judged": {"pass": bundle.judged.pass, "fail": bundle.judged.fail},
+                "judged": {"pass": bundle.judged.pass, "fail": bundle.judged.fail, "inconclusive": bundle.judged.inconclusive},
                 "receipt": bundle.receipt.render(),
                 "line": bundle.line,
                 "graded": bundle.graded_detail,

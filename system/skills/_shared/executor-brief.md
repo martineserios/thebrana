@@ -81,7 +81,7 @@ State a closed verdict vocabulary and the per-item fields. This is what lets the
 the result without re-reading the work.
 ```
 Return exactly:
-  VERDICT: {one of: PASS | PASS WITH GAPS | FAIL}
+  VERDICT: {one of: PASS | PASS WITH GAPS | FAIL | INCONCLUSIVE}
   Then, for each {finding|criterion}: {field1}, {field2}, {field3} — with file:line evidence.
 Report what you could NOT determine as well as what you could.
 ```
@@ -119,7 +119,7 @@ Do not modify: .claude/tasks.json, system/hooks/, docs/architecture/decisions/.
 Do not run: git commit, git merge, git push.
 
 Return exactly:
-  VERDICT: PASS | PASS WITH GAPS | FAIL
+  VERDICT: PASS | PASS WITH GAPS | FAIL | INCONCLUSIVE
   Files written: path — one-line purpose, per file
   Tests: name — PASSING|FAILING, and the command that proves it
   Unresolved: anything you could not determine, or 'none'

@@ -107,6 +107,22 @@ preserve this exact wording (or update `stacked-verdict`'s regex in the same cha
 the two are now coupled. Recorded here specifically so a future editor finds the
 constraint before breaking it silently.
 
+**Amendment 2026-10-07 (t-3494) — INCONCLUSIVE is a third judged outcome on both
+sources.** The parsing contract becomes `^Evaluator: (PASS|PASS WITH GAPS|FAIL|INCONCLUSIVE)`
+and `^Challenger: (PROCEED(?: WITH CHANGES)?|RECONSIDER|INCONCLUSIVE)`. INCONCLUSIVE is
+emitted when the judge cannot decide from the evidence (challenger: top findings rest on an
+unverified premise or the evidence base is below the plan's stated threshold; evaluator: one
+or more criteria are UNVERIFIABLE from the artefacts, none MISSED). It is counted in its own
+bucket (`judged.inconclusive`, rendered as ` · {I} inconclusive` on the composed line only
+when non-zero, so the pre-amendment line shape is unchanged otherwise) — never folded into
+judged-pass, which would advance an under-evidenced task, and never dropped to `0 judged`,
+which would hide that a judge ran and could not decide. Both gates block CLOSE on it and
+route to the human valve with "gather the named evidence" as the recommended option; a
+later verdict line supersedes it (latest-wins, unchanged). Source of the discipline:
+Dream Machine's ACCEPT / REJECT / INCONCLUSIVE verdict set (ruvnet probe, 2026-10-07).
+Tests: `stacked_verdict.rs` unit tests, `stacked_verdict_smoke.rs`, and
+`tests/procedures/test-inconclusive-verdict.sh` (one must-fire check per surface).
+
 ## Consequences
 
 - `system/scripts/ac-lint.sh` changes from an independent classifier to a caller of
