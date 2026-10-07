@@ -117,12 +117,12 @@ now named as the consumer of the `pr` organ's Merge Danger call (ADR-097 D3).
 
 | # | Task | Kind | Effort | Blocked by | Why it survived |
 |---|---|---|---|---|---|
-| P0 | Fix the band's call path: drop `disable-model-invocation` from the two live adapters, add call-site records to all adapters, one resolution test per organ, re-read ADR-084 §7a against real records | fix | S | — | CRITICAL 1: the flag blocks the Skill tool; the pilot was never reachable |
-| P1 | Pin bump v1.2.3 → v1.3.1 with dated per-organ hold; `vendored_from:` updated; heading-presence + pin-equality tests created | chore | S | P0 | first measured drift; tests the specs assumed do not exist |
-| P2 | t-2981 corrected: `tdd` organ covers red + green only, callers keep 3d1/3d2, inline fallback, delegation checklist path named | feature | M | P1 | CRITICAL 2: no refactor step exists; registration commit must stay caller-owned |
-| P3 | PR-body template + `--body-file` in ship + runner body + `gh pr create` headings hook | feature | S | — | WARNING 4: both real PR paths are scripted; a template + hook covers them, an organ cannot |
-| P4 | Read-only merge-readiness probe at close.md step 10; one sentence in epic-drain §Merge; "explore once, point after" for the runner's exploration step | fix | XS | — | WARNING 6: no-ff merge, runner denies merge, close window must not widen |
-| P7 | One-shot rules → hooks audit, proposal-only, must-fire test per conversion, scoped by `rules-over-hooks-for-gates.md` | refactor | S | — | observed failure: CI headroom floor broke twice |
+| P0 (t-3489) | Fix the band's call path: drop `disable-model-invocation` from the two live adapters, add call-site records to all adapters, one resolution test per organ, re-read ADR-084 §7a against real records | fix | S | — | CRITICAL 1: the flag blocks the Skill tool; the pilot was never reachable |
+| P1 (t-3495) | Pin bump v1.2.3 → v1.3.1 with dated per-organ hold; `vendored_from:` updated; heading-presence + pin-equality tests created | chore | S | P0 | first measured drift; tests the specs assumed do not exist |
+| P2 (t-2981) | t-2981 corrected: `tdd` organ covers red + green only, callers keep 3d1/3d2, inline fallback, delegation checklist path named | feature | M | P1 | CRITICAL 2: no refactor step exists; registration commit must stay caller-owned |
+| P3 (t-3490) | PR-body template + `--body-file` in ship + runner body + `gh pr create` headings hook | feature | S | — | WARNING 4: both real PR paths are scripted; a template + hook covers them, an organ cannot |
+| P4 (t-3491) | Read-only merge-readiness probe at close.md step 10; one sentence in epic-drain §Merge; "explore once, point after" for the runner's exploration step | fix | XS | — | WARNING 6: no-ff merge, runner denies merge, close window must not widen |
+| P7 (t-3492) | One-shot rules → hooks audit, proposal-only, must-fire test per conversion, scoped by `rules-over-hooks-for-gates.md` | refactor | S | — | observed failure: CI headroom floor broke twice |
 
 **Parked, with the trigger that un-parks each** (Pocock's own `SCOPE.md` bar: an observed
 failure, not a hypothetical improvement):
