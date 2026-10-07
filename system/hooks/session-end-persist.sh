@@ -71,9 +71,12 @@ if [ "$STORED_L1" != "true" ]; then
     if [ -n "${CF:-}" ]; then
         KEY="session:${PROJECT}:${SESSION_ID}"
         # Never store text that does not parse: a summary jq rejects is wrapped as {"raw": ...}
-# so every consumer (flywheel-insight, rollups, recall previews) still reads JSON (t-3458).
-VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -c '.' 2>/dev/null) \
-    || VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -Rsc '{raw: .}')
+# so the stored value stays JSON, and the wrap is logged so a producer regression is
+# visible next session instead of hiding in stored rows (t-3458).
+if ! VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -c '.' 2>/dev/null); then
+    VALUE=$(printf '%s' "$SUMMARY_JSON" | jq -Rsc '{raw: .}')
+    log_persist_failure "session summary was not valid JSON — stored wrapped as {raw} (session $SESSION_ID)"
+fi
         if [ "$FAILURES" -gt 0 ]; then OUTCOME="mixed"; else OUTCOME="success"; fi
         TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
 

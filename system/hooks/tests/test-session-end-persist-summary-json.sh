@@ -35,11 +35,12 @@ run() { # $1 = SUMMARY_JSON value, or __UNSET__
 echo "session-end-persist summary JSON"
 out=$(run '{"a":1,"b":"x"}')
 echo "$out" | jq -e . >/dev/null 2>&1 && ok "MUST-FIRE: a set valid summary is stored as valid JSON" || bad "set summary parses" "stored [$out]"
-[ "$(echo "$out" | jq -c . 2>/dev/null)" = '{"a":1,"b":"x"}' ] && ok "a set summary round-trips unchanged" || bad "round-trip" "stored [$out]"
+[ "$out" = '{"a":1,"b":"x"}' ] && ok "a set summary is stored byte-for-byte (compact)" || bad "round-trip bytes" "stored [$out]"
 out=$(run __UNSET__)
 [ "$out" = "{}" ] && ok "an unset summary stores {}" || bad "unset -> {}" "stored [$out]"
 out=$(run 'not json {')
 echo "$out" | jq -e . >/dev/null 2>&1 && ok "an invalid summary is never stored raw (stored value parses)" || bad "invalid summary wrapped" "stored [$out]"
 [ "$(echo "$out" | jq -r '.raw // empty' 2>/dev/null)" = "not json {" ] && ok "an invalid summary keeps its text under .raw" || bad ".raw keeps text" "stored [$out]"
+grep -q "not valid JSON" "$T/rs/persist-failures.log" 2>/dev/null && ok "the wrap is logged to persist-failures.log (surfaced next session)" || bad "wrap logged" "$(cat "$T/rs/persist-failures.log" 2>/dev/null)"
 echo; echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
