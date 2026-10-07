@@ -232,6 +232,8 @@ jobs:
 
   rust:
     runs-on: ubuntu-latest
+    # Required check: a hung test must fail it, not hold it pending for GitHub's 6 h default.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -254,18 +256,23 @@ jobs:
           BRANA_REQUIRE_MCP_BIN: "1"
         run: bash tests/procedures/test-agy-mcp-stdio-isolation.sh
 
-      # brana-cli's unit + integration suite (t-3472). Before this step no CI job ran it —
-      # validate.sh Check 46 only compiles tests (--no-run). The transcribe frame tests drive
-      # a real ffmpeg (>= 5.1 for -fps_mode); BRANA_REQUIRE_FFMPEG turns their
+      # The workspace test suites — brana-cli, brana-core, brana-mcp (t-3472). Before this step
+      # no CI job ran them: validate.sh Check 46 only compiles tests (--no-run). The transcribe
+      # frame tests drive a real ffmpeg (>= 5.1 for -fps_mode); BRANA_REQUIRE_FFMPEG turns their
       # skip-when-absent into a hard failure here, same pattern as BRANA_REQUIRE_MCP_BIN above.
-      - name: Install ffmpeg (brana-cli frame tests)
+      # Pinned by tests/scripts/test-ci-rust-tests.sh.
+      - name: Install ffmpeg (transcribe frame tests, needs >= 5.1)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ffmpeg
-          ffmpeg -version | head -1
+          ver=$(ffmpeg -version | head -1 | awk '{print $3}')
+          echo "ffmpeg $ver"
+          if ! printf '5.1\n%s\n' "$ver" | sort -V -C; then
+            echo "::error::ffmpeg $ver is older than 5.1 (needed for -fps_mode)"; exit 1
+          fi
 
-      - name: Test brana-cli
+      - name: Test Rust workspace
         working-directory: system/cli/rust
         env:
           BRANA_REQUIRE_FFMPEG: "1"
-        run: cargo test -p brana-cli
+        run: cargo test --workspace

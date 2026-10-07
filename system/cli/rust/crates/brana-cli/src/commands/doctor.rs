@@ -846,6 +846,8 @@ mod tests {
     }
 
     #[test]
+    // Reads HOME twice; #[serial] orders it against the tests that set_var("HOME").
+    #[serial_test::serial]
     fn test_expand_env_known_var() {
         // HOME is always set in test environment
         let home = std::env::var("HOME").unwrap_or_default();

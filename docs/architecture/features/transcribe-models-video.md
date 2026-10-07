@@ -107,5 +107,5 @@ was being passed as a stray input file.
 - **Integration (real ffmpeg; skipped if absent, `BRANA_REQUIRE_FFMPEG=1` makes the skip fail):**
   colour-segment video (frame colour must match its label to within 1 s) and a sparse-VFR video
   (second frame comes from t=12 and must be labelled `00:00:12`). CI's `rust` job runs
-  `cargo test -p brana-cli` with ffmpeg installed and `BRANA_REQUIRE_FFMPEG=1` (t-3472).
+  `cargo test --workspace` with ffmpeg (≥ 5.1, asserted) and `BRANA_REQUIRE_FFMPEG=1` (t-3472).
 - **E2E:** manual smoke with a real mp4 through whisper-cli.
