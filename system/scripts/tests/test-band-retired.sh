@@ -26,6 +26,7 @@ left=$(python3 -c "
 import json
 d=json.load(open('$REPO_ROOT/skills-lock.json'))
 print(','.join(k for k,v in d['skills'].items() if v.get('source')=='mattpocock/skills'))")
+check "skills-lock.json parses (no fail-open on a python error)" "yes" "$(python3 -c "import json;json.load(open('$REPO_ROOT/skills-lock.json'))" 2>/dev/null && echo yes || echo no)"
 check "skills-lock.json has no mattpocock/skills entries" "" "$left"
 
 fix="$REPO_ROOT/system/skills/fix/SKILL.md"
@@ -48,7 +49,7 @@ scan() {
     examined=$((examined+1))
     callers=$(grep -rln "Skill(" "$root/system" --include='*.md' 2>/dev/null \
       | grep -v "/system/skills/$name/" \
-      | xargs grep -lE "Skill\([^)]*[\"'\`](brana:)?$name[\"'\`]" 2>/dev/null || true)
+      | tr '\n' '\0' | xargs -0 grep -lE "Skill\([^)]*[\"'\`](brana:)?$name[\"'\`]" 2>/dev/null || true)
     [ -n "$callers" ] && viol="$viol $name"
   done
   echo "examined=$examined"; echo "violations=$viol"
