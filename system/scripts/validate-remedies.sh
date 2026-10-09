@@ -138,6 +138,7 @@ declare -A REMEDY_REGISTRY=(
   [77a]="NO_REMEDY:judgment-required — a mod calling \$.model/\$.http/fs, hooking tool.call, reading the ledger, or a drifted vendored copy needs an authored change (which call to drop, whether to re-run mods-sync-shared.sh, which version to bump) — never a mechanical edit of plugin code (t-3427)"
   [77b]="NO_REMEDY:judgment-required — a failing claude plugin validate/test or a call outside the allowed set is a code defect in the mod; an absent claude is an environment gap to fix by installing the pinned CLI, not by editing the repo (t-3427)"
   [77c]="NO_REMEDY:judgment-required — an installed mod (plugin cache, any marketplace) that calls \$.model/\$.http or that claude plugin validate refuses must be uninstalled by the operator (claude plugin uninstall <name>); the registry is the engine's, not ours (t-3493)"
+  [78]="NO_REMEDY:judgment-required — a skill carrying disable-model-invocation cannot be called through the Skill tool; either drop the flag (it has callers) or remove the caller (ADR-098, t-3503)"
 )
 
 # REMEDY_UNDO_HINT[check_id] — human-readable command `--fix N` prints after a
