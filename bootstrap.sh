@@ -1227,7 +1227,7 @@ mods_installed_guard() {
     # must never pass the guard silently (challenger F2, t-3493)
     MODS_GUARD_HIT="$(printf '%s\n' "$out" | tail -1)"; [ -n "$MODS_GUARD_HIT" ] || MODS_GUARD_HIT="mods-check --installed exited non-zero with no output"
     echo "Installed mods guard:"
-    printf '%s\n' "$out" | grep -E '^  ' | sed 's/^  /  ! /'
+    printf '%s\n' "$out" | grep -E '^  ' | sed 's/^  /  ! /'   || true   # grep returns 1 on no indented line; under set -e + pipefail that aborted bootstrap before the exit-3 summary
     echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); the mods step is refused until then"
     return 0
 }

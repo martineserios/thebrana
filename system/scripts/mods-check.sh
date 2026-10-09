@@ -160,7 +160,7 @@ except Exception as e:
 if not d.get("success") or rc != 0:
     errs = [f"{e.get('path','?')}: {e.get('message','')}" for sec in [d.get("manifest") or {}] + list(d.get("contents") or []) for e in (sec.get("errors") or [])]
     print("REFUSED rc=%d: %s" % (rc, "; ".join(errs)[:300] or "no error text"))
-# the engine's own calls: listing — structural, catches what a grep cannot (77b's proof)
+# the engine own calls: listing - structural, catches what a grep cannot (the proof from 77b). No apostrophes in this heredoc: stock bash 3.2 mis-scans it.
 for line in [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " calls: " in n]:
     body = line.split(" calls: ", 1)[1].strip()
     if body.startswith("nothing"): continue
@@ -261,7 +261,7 @@ for sec in [d.get("manifest") or {}] + list(d.get("contents") or []):
         errs.append(f"{e.get('path','?')}: {e.get('message','')}")
 if not d.get("success") or rc != 0:
     print("ERR validate failed (rc=%d): %s" % (rc, "; ".join(errs) or "no error text"))
-# Law 4, structural: the engine's own scan of what the module hooks. Catches registrations the
+# Law 4, structural: the engine own scan of what the module hooks. Catches registrations the
 # 77a greps cannot (backtick event names, a renamed `on`) — panel finding.
 DENY_HOOKS = {"tool.call", "tool.check", "plugin.register", "prompt.compose", "*"}
 for line in [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " hooks: " in n]:
