@@ -1,5 +1,7 @@
 # Feature: `tdd` organ — vendored Pocock `tdd`, called from the build loop and `/brana:fix`
 
+> **Superseded 2026-10-09 by ADR-098.** Brana now calls Pocock's installed `tdd` directly; the vendored organ, adapter and resolver below are not built. The seam rule (loop stops at green; 3d1 red commit and 3d2 gate stay in `build-loop.md`) is kept in ADR-098 §5. t-2981 is rescoped.
+
 **Date:** 2026-10-07 (revised same day after the ADR-097 challenge)
 **Status:** specced — ADR-097 accepted; implementation is t-2981 (M, AC approved), gated on P0 and P1
 **Task:** t-2981 · ADR-097 D3 · ADR-085 D4/D6 · ADR-061 §4 · twins t-3010, t-3018

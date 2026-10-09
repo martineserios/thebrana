@@ -1,5 +1,7 @@
 # Feature: PR-body template + `gh pr create` hook — evidence-first PR bodies at the merge valve
 
+> **Narrowed 2026-10-09 by ADR-098 §6.** Content comes from his installed `pr` skill; only the `gh pr create` headings hook, `--body-file` in ship and the runner body remain. The template file and reference copy below are dropped. t-3490.
+
 **Date:** 2026-10-07 (revised same day after the ADR-097 challenge: template + hook, not a vendored organ)
 **Status:** specced — ADR-097 accepted; implementation is P3 (S)
 **Task:** P3 · ADR-097 D3 · research 2026-10-07 §2.2

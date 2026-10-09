@@ -1,5 +1,7 @@
 # Feature: upstream band pin bump — the manual pump, v1.2.3 → v1.3.1
 
+> **Superseded 2026-10-09 by ADR-098.** The band is retired; there is no pin to bump. Kept as the record of the pump procedure.
+
 **Date:** 2026-10-07
 **Status:** specced — ADR-097 accepted; implementation is P1 (S, chore), gated on P0 (adapter call-path fix)
 **Task:** P1 (not yet created) · ADR-097 D1/D2 · ADR-084 §1 (pump), §7 (proxies), §7a (hash script)
