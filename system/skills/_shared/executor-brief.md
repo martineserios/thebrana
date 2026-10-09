@@ -12,7 +12,7 @@ field below cites the live pattern it generalizes:
 | Inputs (labelled, delimited) | `challenger-gate.md` §Input contract |
 | Scope boundary | `challenger-gate.md` §Input contract (read-trust boundary) + `agents/scout.md` frontmatter `tools:` allowlist |
 | Acceptance criteria | `verify-gates.md:95-96` (`AC_LINES`) |
-| Return contract | `challenger-gate.md` ("severity, ac_violated, description, file, spec_says") · `verify-gates.md:102` ("PASS, PASS WITH GAPS, or FAIL") |
+| Return contract | `challenger-gate.md` ("severity, ac_violated, description, file, spec_says") · `verify-gates.md:102` ("PASS, PASS WITH GAPS, FAIL, or INCONCLUSIVE" — the last is gate-only, see §5) |
 | TDD criteria | [`delegation-tdd-checklist.md`](delegation-tdd-checklist.md), included by reference |
 
 ## Why this exists
@@ -87,6 +87,11 @@ Report what you could NOT determine as well as what you could.
 ```
 That last line is from `agents/scout.md` ("Report what you found AND what you didn't find") — an
 agent that omits its gaps produces confident, incomplete work.
+
+INCONCLUSIVE is reserved for the two gates (`verify-gates.md` evaluator, `challenger-gate.md`
+challenger), whose callers block CLOSE on it (t-3494). No delegated-executor caller consumes
+it, so a general executor does not get it in its vocabulary: anything it could not verify
+goes under `Unresolved`, and the gate decides.
 
 ### 6. TDD criteria — for code output only
 Append [`delegation-tdd-checklist.md`](delegation-tdd-checklist.md) verbatim. Skip for

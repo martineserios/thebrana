@@ -23,32 +23,49 @@ use crate::util::find_tasks_file;
 pub struct JudgedCounts {
     pub pass: usize,
     pub fail: usize,
+    /// INCONCLUSIVE (t-3494): the judge could not decide from the evidence.
+    /// Its own bucket — never folded into `pass` (would auto-advance an
+    /// under-evidenced task) and never dropped to `0 judged` (would hide
+    /// that a judge ran and could not decide).
+    pub inconclusive: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Judged {
+    Pass,
+    Fail,
+    Inconclusive,
 }
 
 /// Parses `notes` for the Evaluator:/Challenger: convention (ADR-081 D2).
 /// Most-recent-per-source wins (a repair-loop's later iteration supersedes
 /// an earlier verdict). `PASS WITH GAPS` and `PROCEED WITH CHANGES` both
 /// fold into judged-pass — matches challenger-gate.md's own blocking-rule
-/// treatment (only `FAIL`/`RECONSIDER` blocks). No matching line for a
-/// source → that source contributes nothing (not an error — many tasks skip
-/// these gates by size/strategy).
+/// treatment (`FAIL`/`RECONSIDER` block; `INCONCLUSIVE` blocks too but is
+/// counted separately so the valve can tell "refuted" from "undecided").
+/// No matching line for a source → that source contributes nothing (not an
+/// error — many tasks skip these gates by size/strategy).
 pub fn parse_judged_verdicts(notes: &str) -> JudgedCounts {
-    let mut evaluator: Option<bool> = None; // Some(true) = pass, Some(false) = fail
-    let mut challenger: Option<bool> = None;
+    let mut evaluator: Option<Judged> = None;
+    let mut challenger: Option<Judged> = None;
 
     for line in notes.lines() {
         let line = line.trim();
         if let Some(rest) = line.strip_prefix("Evaluator: ") {
             if rest.starts_with("PASS WITH GAPS") || rest.starts_with("PASS") {
-                evaluator = Some(true);
+                evaluator = Some(Judged::Pass);
             } else if rest.starts_with("FAIL") {
-                evaluator = Some(false);
+                evaluator = Some(Judged::Fail);
+            } else if rest.starts_with("INCONCLUSIVE") {
+                evaluator = Some(Judged::Inconclusive);
             }
         } else if let Some(rest) = line.strip_prefix("Challenger: ") {
             if rest.starts_with("PROCEED WITH CHANGES") || rest.starts_with("PROCEED") {
-                challenger = Some(true);
+                challenger = Some(Judged::Pass);
             } else if rest.starts_with("RECONSIDER") {
-                challenger = Some(false);
+                challenger = Some(Judged::Fail);
+            } else if rest.starts_with("INCONCLUSIVE") {
+                challenger = Some(Judged::Inconclusive);
             }
         }
     }
@@ -56,8 +73,9 @@ pub fn parse_judged_verdicts(notes: &str) -> JudgedCounts {
     let mut counts = JudgedCounts::default();
     for v in [evaluator, challenger] {
         match v {
-            Some(true) => counts.pass += 1,
-            Some(false) => counts.fail += 1,
+            Some(Judged::Pass) => counts.pass += 1,
+            Some(Judged::Fail) => counts.fail += 1,
+            Some(Judged::Inconclusive) => counts.inconclusive += 1,
             None => {}
         }
     }
@@ -121,15 +139,24 @@ pub fn receipt_status_from_json(v: &Value) -> ReceiptStatus {
 
 /// Compose the one-line bundle. Pure — no I/O, directly testable.
 /// `"{X}/{N} AC machine-green · {Y} judged-pass{detail} · {Z} needs-you · receipt: {R}"`
+/// With any INCONCLUSIVE verdict (t-3494) a ` · {I} inconclusive` segment is
+/// inserted after judged-pass; the line is byte-identical to the pre-t-3494
+/// shape when the count is zero.
 pub fn compose_line(grade: &GradeCounts, judged: JudgedCounts, receipt: &ReceiptStatus) -> String {
     let total = grade.pass + grade.fail + grade.unknown;
     let detail = if judged.pass > 0 { " (verdicts attached)" } else { "" };
+    let inconclusive = if judged.inconclusive > 0 {
+        format!(" · {} inconclusive", judged.inconclusive)
+    } else {
+        String::new()
+    };
     format!(
-        "{}/{} AC machine-green · {} judged-pass{} · {} needs-you · receipt: {}",
+        "{}/{} AC machine-green · {} judged-pass{}{} · {} needs-you · receipt: {}",
         grade.pass,
         total,
         judged.pass,
         detail,
+        inconclusive,
         grade.unknown,
         receipt.render()
     )
@@ -147,7 +174,7 @@ pub fn cmd_stacked_verdict(task_id: &str, json: bool, file: Option<PathBuf>) -> 
             serde_json::json!({
                 "task_id": task_id,
                 "grade": {"pass": bundle.grade.pass, "fail": bundle.grade.fail, "unknown": bundle.grade.unknown},
-                "judged": {"pass": bundle.judged.pass, "fail": bundle.judged.fail},
+                "judged": {"pass": bundle.judged.pass, "fail": bundle.judged.fail, "inconclusive": bundle.judged.inconclusive},
                 "receipt": bundle.receipt.render(),
                 "line": bundle.line,
                 "graded": bundle.graded_detail,
@@ -319,43 +346,43 @@ mod tests {
     #[test]
     fn no_notes_zero_judged() {
         let c = parse_judged_verdicts("");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn evaluator_pass_counts() {
         let c = parse_judged_verdicts("Evaluator: PASS (2026-08-14), 4 criteria checked");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn evaluator_pass_with_gaps_folds_into_pass() {
         let c = parse_judged_verdicts("Evaluator: PASS WITH GAPS (2026-08-14), 4 criteria checked");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn evaluator_fail_counts_as_fail() {
         let c = parse_judged_verdicts("Evaluator: FAIL (2026-08-14), 4 criteria checked");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 1 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 1, inconclusive: 0 });
     }
 
     #[test]
     fn challenger_proceed_counts() {
         let c = parse_judged_verdicts("Challenger: PROCEED (2026-08-14), 0 findings");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn challenger_proceed_with_changes_folds_into_pass() {
         let c = parse_judged_verdicts("Challenger: PROCEED WITH CHANGES (2026-08-14), 2 findings, max severity 3");
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
     }
 
     #[test]
     fn challenger_reconsider_counts_as_fail() {
         let c = parse_judged_verdicts("Challenger: RECONSIDER (2026-08-14), 3 findings, max severity 4");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 1 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 1, inconclusive: 0 });
     }
 
     #[test]
@@ -363,7 +390,7 @@ mod tests {
         let c = parse_judged_verdicts(
             "Evaluator: PASS (2026-08-14), 4 criteria checked\nChallenger: PROCEED (2026-08-14), 0 findings",
         );
-        assert_eq!(c, JudgedCounts { pass: 2, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 2, fail: 0, inconclusive: 0 });
     }
 
     #[test]
@@ -373,13 +400,58 @@ mod tests {
         let c = parse_judged_verdicts(
             "Challenger: RECONSIDER (2026-08-14), 3 findings, max severity 4\nChallenger: PROCEED (2026-08-14), 0 findings",
         );
-        assert_eq!(c, JudgedCounts { pass: 1, fail: 0 }, "later line supersedes the earlier one, not both counted");
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 }, "later line supersedes the earlier one, not both counted");
     }
 
     #[test]
     fn unrelated_notes_text_ignored() {
         let c = parse_judged_verdicts("Retrospective: what surprised — a challenger review caught a real bug");
-        assert_eq!(c, JudgedCounts { pass: 0, fail: 0 });
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 0 });
+    }
+
+    // ── INCONCLUSIVE (t-3494) — "the evidence does not decide this" is a
+    // first-class verdict: never judged-pass, never silently 0 judged. ──────
+
+    #[test]
+    fn evaluator_inconclusive_is_its_own_bucket_not_pass() {
+        let c = parse_judged_verdicts(
+            "Evaluator: INCONCLUSIVE (2026-10-07), 4 criteria checked, unverifiable: AC2, AC4",
+        );
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 1 });
+    }
+
+    #[test]
+    fn challenger_inconclusive_is_its_own_bucket_not_pass() {
+        let c = parse_judged_verdicts(
+            "Challenger: INCONCLUSIVE (2026-10-07), 2 finding(s), missing evidence: billing probe not run",
+        );
+        assert_eq!(c, JudgedCounts { pass: 0, fail: 0, inconclusive: 1 });
+    }
+
+    #[test]
+    fn inconclusive_superseded_by_later_verdict_per_source() {
+        // Evidence gathered, challenger re-run: the later PROCEED wins.
+        let c = parse_judged_verdicts(
+            "Challenger: INCONCLUSIVE (2026-10-07), missing evidence: X\nChallenger: PROCEED (2026-10-08), 0 findings",
+        );
+        assert_eq!(c, JudgedCounts { pass: 1, fail: 0, inconclusive: 0 });
+    }
+
+    #[test]
+    fn compose_line_surfaces_inconclusive_and_never_counts_it_as_pass() {
+        let grade = GradeCounts { pass: 1, fail: 0, unknown: 0 };
+        let judged = JudgedCounts { pass: 1, fail: 0, inconclusive: 1 };
+        let line = compose_line(&grade, judged, &ReceiptStatus::NoneMinted);
+        assert!(line.contains("1 judged-pass"), "inconclusive must not inflate judged-pass: {line}");
+        assert!(line.contains("1 inconclusive"), "inconclusive must be visible on the line: {line}");
+    }
+
+    #[test]
+    fn compose_line_unchanged_when_nothing_inconclusive() {
+        let grade = GradeCounts { pass: 1, fail: 0, unknown: 0 };
+        let judged = JudgedCounts { pass: 1, fail: 0, inconclusive: 0 };
+        let line = compose_line(&grade, judged, &ReceiptStatus::NoneMinted);
+        assert_eq!(line, "1/1 AC machine-green · 1 judged-pass (verdicts attached) · 0 needs-you · receipt: none minted");
     }
 
     // ── grade_counts_from_json ───────────────────────────────────────────
@@ -435,7 +507,7 @@ mod tests {
     #[test]
     fn compose_full_evidence() {
         let grade = GradeCounts { pass: 7, fail: 0, unknown: 2 };
-        let judged = JudgedCounts { pass: 2, fail: 0 };
+        let judged = JudgedCounts { pass: 2, fail: 0, inconclusive: 0 };
         let line = compose_line(&grade, judged, &ReceiptStatus::Allow);
         assert_eq!(
             line,

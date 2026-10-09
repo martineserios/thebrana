@@ -59,6 +59,7 @@ Before the Challenger, a separate `build-evaluator` agent grades the implementat
 - **PASS** — all criteria met; proceeds to Challenger Gate
 - **PASS WITH GAPS** — some criteria partial; warns but proceeds
 - **FAIL** — one or more criteria MISSED; blocks CLOSE (max 2 repair iterations, same pattern as Challenger)
+- **INCONCLUSIVE** — one or more criteria could not be verified from the artefacts (needs a live run, a measurement, an external system); blocks CLOSE and asks you to produce the evidence, override with a reason, or abandon. Never counted as a pass
 
 Criteria come from planning (auto-generated) or `AC:` lines written during SPECIFY; `AC:` lines normalize into the `acceptance_criteria` field on first build. See [AC: syntax](../../conventions/ac-criteria.md) for the user-facing forms and [ac-grammar.md](../../architecture/ac-grammar.md) for the canonical heuristic grammar.
 
@@ -89,6 +90,8 @@ A finding scored 4 or higher (WARNING/CRITICAL per [CALIBRATION.md](../../archit
 - **Fix now** — findings are saved to the task context and BUILD re-runs; Challenger reviews again (max 2 passes)
 - **Override** — provide a reason; it's logged and CLOSE proceeds
 - **Abandon** — task marked blocked
+
+When the Challenger's top findings rest on something nobody has verified (a probe not run, a number asserted but not measured), it returns `INCONCLUSIVE` instead of guessing. That also blocks CLOSE, but the recommended option is **Gather evidence**: the missing evidence is named in the task context, you collect it, and the Challenger re-runs.
 
 **Key rules:**
 

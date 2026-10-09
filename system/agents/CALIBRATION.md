@@ -22,6 +22,19 @@ Severity scoring guide with few-shot examples and hard thresholds. Referenced by
 - ANY finding >= 4 --> verdict is **RECONSIDER**
 - All findings <= 2 with clear mitigations --> **PROCEED WITH CHANGES**
 - All findings <= 1 --> **PROCEED**
+- **INCONCLUSIVE** (t-3494): the highest-scored finding(s) depend on an **unverified
+  premise** (a probe not run, a number asserted but not measured, behaviour inferred
+  from docs rather than observed), or the evidence base is below a threshold the plan
+  itself pre-registered. Score the finding as if the premise holds, but issue
+  INCONCLUSIVE instead of RECONSIDER / PROCEED WITH CHANGES and **name the evidence**
+  that would resolve it. INCONCLUSIVE never auto-advances: it routes to the human
+  valve like RECONSIDER, with "gather evidence" as the recommended option.
+  Borrowed from Dream Machine's ACCEPT / REJECT / INCONCLUSIVE discipline — a judge
+  that cannot decide must say so rather than pick a side.
+- **Precedence:** INCONCLUSIVE applies only when verifying the premise would move the top finding across the >= 4 line AND no >= 4 finding stands on verified evidence.
+  One verified >= 4 finding → RECONSIDER, whatever else is unverified.
+  Non-overridable classes (Example 4) never downgrade to INCONCLUSIVE: a removed safety mechanism is RECONSIDER even when its blast radius is unmeasured.
+  The "always score" rows below keep their score; only the *verdict* reroutes.
 - **SPLIT** (rung-2 panels only, ADR-082): the verification stage disagreed on a
   finding. Blocking impact = RECONSIDER for that finding's beat — a SPLIT is
   never auto-resolved, never counted as FALSE_POSITIVE; it routes to the human
@@ -38,7 +51,7 @@ These conditions **always** trigger critical severity regardless of context:
 2. **Data loss risk** -- Migration plan has no backup strategy or rollback mechanism
 3. **Workflow breakage** -- Change affects >50% of user operations without mitigation
 4. **Security/secrets leak** -- Plan introduces unencrypted storage of credentials or auth
-5. **Untested critical path** -- Core assumption (performance, availability) is stated but unvalidated
+5. **Untested critical path** -- Core assumption (performance, availability) is stated but unvalidated (score 5 stands; verdict RECONSIDER unless the INCONCLUSIVE rule applies — see Precedence)
 6. **Dependency conflict** -- Plan assumes a library version that conflicts with documented constraints
 
 ### WARNING (always score 4)
@@ -48,7 +61,7 @@ These conditions **always** trigger warning severity:
 1. **Mitigable but unaddressed** -- Known workaround exists but isn't documented in the plan
 2. **Edge case impact** -- Change affects <50% of workflows or specific user profiles
 3. **Performance risk** -- Algorithm with known worst-case complexity on unbounded input
-4. **Assumption unvalidated** -- Plausible but undocumented behavior from tool/library
+4. **Assumption unvalidated** -- Plausible but undocumented behavior from tool/library (score 4 stands; verdict RECONSIDER unless the INCONCLUSIVE rule applies — see Precedence)
 5. **Partial coverage** -- Logic only applies to some platforms or environments
 
 ### OBSERVATION (score 1-3)
@@ -146,6 +159,57 @@ overrode this exact finding as a documented trade-off; its own procedure then wi
 "override" option. Always ask what *operational paths* (ship, close, runner, scheduler, fresh
 clone, branch switch in the shared checkout) the accepted trade-off was checked against —
 ADR-091's text covered fresh clones and disk loss, never the routine ship checkout.
+
+---
+
+### Example 5: INCONCLUSIVE — the top finding rests on an unverified premise
+
+**Scenario:** An ADR argues "no ruvnet component can execute on the subscription", and a
+plan to adopt one component rests on that claim. Nobody has run the one probe that would
+settle it (whether a Claude Code mod's model call bills the plan or an API key).
+
+**Flavor:** Assumption Buster
+
+```
+### Critical Findings
+1. **"Nothing executes under subscription" is asserted, not measured** -- If a mod's model
+   call bills the plan, the ADR's structural claim becomes contingent and the plan's main
+   safety argument changes. Score 5 if the premise is false; 1 if true. The 30-minute probe
+   (scratch mod calling the model under `claude -p` with no key, read `apiKeySource`) has
+   not been run.
+
+### Verdict
+INCONCLUSIVE — missing evidence: the keyless mod model-call probe (bills plan vs needs key).
+```
+
+**Why INCONCLUSIVE (not RECONSIDER):** The only >= 4 finding stands on an unverified
+premise, and verifying it moves the finding across the >= 4 line in either direction. No
+other >= 4 finding stands on verified evidence. RECONSIDER would block on a risk that may
+not exist; PROCEED WITH CHANGES would advance on a premise nobody checked. Name the probe.
+
+---
+
+### Example 6: NOT INCONCLUSIVE — a verified >= 4 finding stands beside an unverified one
+
+**Scenario:** A ship plan removes the ledger backup step (verified: the step is deleted in
+the diff, no replacement) and also assumes the new sync "is fast enough" (unmeasured).
+
+**Flavor:** Pre-mortem
+
+```
+### Critical Findings
+1. **Backup step removed with no replacement** -- Verified in the diff: backup-knowledge.sh
+   call deleted, nothing writes .git/brana/backups. Example 4 class, non-overridable.
+2. **Sync latency unmeasured** -- Plan asserts "fast enough"; no number. Score 4 if wrong.
+
+### Verdict
+RECONSIDER
+```
+
+**Why NOT INCONCLUSIVE:** Finding 1 is >= 4 on verified evidence, so the precedence rule
+does not fire regardless of finding 2's unverified premise. It is also a non-overridable
+class, which never downgrades. The unmeasured latency is listed as what to measure, but
+the verdict is RECONSIDER.
 
 ## Calibration Maintenance
 

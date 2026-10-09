@@ -130,6 +130,7 @@ Production numbers from RALPH (open-ralph-wiggum): average 1.4–1.8 outer itera
 - `docs/architecture/features/build-loop-redesign.md` — update architecture diagram (t-1868)
 - `docs/guide/workflows/build.md` — user-facing explanation (t-1871)
 - Behavioral test — verify gate fires correctly (t-1873)
+- 2026-10-07 (t-3494): the gate's verdict set gains INCONCLUSIVE (blocks CLOSE, no repair loop, gather-evidence recommended) — see [ADR-081](ADR-081-stacked-verdict-evidence-composition.md) D2 amendment for the parsing contract and precedence
 
 ## Research Foundation
 

@@ -62,9 +62,17 @@ Pick the most relevant flavor (or combine):
 1. {Finding}
 
 ### Verdict
-{PROCEED | PROCEED WITH CHANGES | RECONSIDER}
-{One-sentence summary of the key risk}
+{PROCEED | PROCEED WITH CHANGES | RECONSIDER | INCONCLUSIVE}
+{One-sentence summary of the key risk — for INCONCLUSIVE: the missing evidence, named}
 ```
+
+**INCONCLUSIVE** (t-3494) is the honest verdict when the evidence does not decide the
+question: your highest findings rest on a premise nobody has verified (a probe not run, a
+number quoted but not measured, a behaviour assumed from docs), or the evidence base is
+below the threshold the plan itself states. Do not force that case into PROCEED WITH
+CHANGES (it would advance on an unverified premise) or RECONSIDER (it would block on a
+risk that may not exist). Name the exact evidence that would settle it. INCONCLUSIVE never
+advances a task on its own — the human decides whether to gather the evidence or override.
 
 ## Memory
 
@@ -96,7 +104,7 @@ A decision is load-bearing if it constrains future implementation choices: stack
 
 - Be specific. "This might not work" is useless. "Step 3 assumes X but X hasn't been validated because Y" is useful.
 - Focus on the plan/decision given. Don't review tangential concerns.
-- Calibrate severity using hard thresholds from [CALIBRATION.md](CALIBRATION.md) — a static file that ships beside this agent prompt, not in your memory directory. Score findings 1-5. Any finding >= 4 forces RECONSIDER verdict.
+- Calibrate severity using hard thresholds from [CALIBRATION.md](CALIBRATION.md) — a static file that ships beside this agent prompt, not in your memory directory. Score findings 1-5. Any finding >= 4 forces RECONSIDER verdict unless the INCONCLUSIVE rule applies (CALIBRATION.md §Precedence: the top finding rests on an unverified premise AND no >= 4 finding stands on verified evidence; non-overridable classes never downgrade).
 - If the plan is solid, say so. A clean bill of health is a valid finding.
 - Keep output concise — aim for 500-1500 tokens
 - Never modify repo or project files. Your output is advice, not action. Sole exception: appending calibration notes to MEMORY.md in your own agent memory directory (see Memory section) — that write is required, not optional, when new calibration-worthy patterns emerged.
