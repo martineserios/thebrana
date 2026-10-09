@@ -24,7 +24,7 @@ A live probe on 2026-06-19 (ruflo v3.10.40) clarified what is real under that co
 | **Native Workflow** | ✅ | in-session, deterministic orchestration (pipeline/parallel + schemas) | light |
 | **ruflo CLI `--claude` / autopilot** | ✅ (proven) | autonomous *full* CC sessions + shared memory wiring | **heavy** |
 | **ruflo memory / recall** | ✅ | shared persistent store (embeddings) | light |
-| **ruflo MCP `agent_execute` / `hive-mind_*`** | ❌ | API-key gated; records / non-executing under subscription | — |
+| **ruflo MCP `agent_execute` / `hive-mind_*`** | ❌ | API-key gated; records / non-executing under subscription — but see OQ4: the *mods* surface can bill the plan | — |
 | **agy (Gemini)** | separate (Gemini quota) | cheap bulk text | very light |
 
 **Key evidence:**
@@ -83,6 +83,7 @@ Need multiple agents?
    - **CLI `--claude` spawn** (`ruflo hive-mind spawn --claude`): re-confirmed genuinely real and subscription-native — launches a full headless Claude Code session with our hooks/memory/MCP wired in (verified live again 2026-08-13: two real invocations, one producing a correct multi-step investigation with real tool calls and a real backlog write). Closed anyway: no unique capability over native `claude -p` (same subscription mechanism, plus a ~40k-token Queen/hive-mind roleplay prompt tax on top), and decisively, **workers get no worktree isolation** — `--non-interactive` requires `--dangerously-skip-permissions` (no human to click allow), so the session runs autonomously and unsupervised directly against the live checkout, violating [ADR-060](ADR-060-branch-strategy-autonomous-agents.md)/git-discipline.md's per-worker-worktree requirement. A 2026-08-13 investigation used this path anyway (explicit one-off user override, hand-scoped read-only/no-git in the prompt) and produced a genuinely correct result — that is prompt-obedience, not a structural guarantee, and is not grounds to reopen this for routine use. It would need a worktree-isolation wrapper before being safely sanctioned, which does not exist.
    - **v3.37 Meta LLM Proxy `--passthrough`:** doesn't exist on our pinned v3.34 (would require an upgrade). The real feature routes through a third-party ("Cognitum") including a training-data-sharing toggle — reframes it as a data-egress question, not a cost optimization, independent of the version gap.
    - Net effect: ruflo's sanctioned execution surface stays narrow — memory/recall (real, load-bearing) plus the separately-sanctioned `testgen_tdd_repair` MCP tool. `delegation-routing.md` needs no change (already native-first).
+4. **Can a Claude Code mod run a model on the subscription?** Yes — [ADR-096 OQ1](ADR-096-cockpit-surface-claude-code-mods.md#open-questions) (answered 2026-10-07, t-3493): `$.model.complete` executes keyless on the OAuth login and its spend is invisible to the session's meters, so "nothing executes under subscription" is **contingent, not structural** — ruvnet's own model code is key-gated, but any mod can bill the plan through the engine; rule 2 stands and the mods-side guard is ADR-096 Law 3 plus validate Check 77c / bootstrap 7i.
 
 ---
 

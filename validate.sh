@@ -2993,6 +2993,27 @@ else
 fi
 echo ""
 
+# Check 77c: installed mods — ADR-096 Law 3 over the PLUGIN CACHE (t-3493). The engine loads mods
+# from <claude-dir>/plugins/cache, from any marketplace; 77a never sees them. A mod there that calls
+# $.model runs on the subscription with no trace in the session's usage readouts (probe 2026-10-07),
+# and a mod the engine refuses at load still sits in installed_plugins.json. Static half ALWAYS
+# runs; the refusal half (`claude plugin validate`) runs when `claude` is present and not --fast,
+# and its absence is SAID in the pass line, never silent. Delegates to mods-check.sh --installed;
+# must-fire fixtures tests/fixtures/mods/captures/t-3493-model-billing, suite test-mods-check.sh.
+echo "Checking installed mods (plugin cache, ADR-096 Law 3, Check 77c)..."
+if [ ! -f "$C77_SCRIPT" ]; then
+    fail "Check 77c: $C77_SCRIPT is missing — the mods enforcement harness cannot run (t-3493)"
+else
+    C77C_STATIC=""; { $RUN_FAST || $RUN_ASSUMPTIONS_ONLY || $RUN_SEMANTIC_ONLY || $RUN_SCALE_TRIGGERS; } && C77C_STATIC=1
+    if C77C_OUT=$(MODS_INSTALLED_STATIC_ONLY="$C77C_STATIC" bash "$C77_SCRIPT" --installed "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" 2>&1); then
+        pass "Check 77c: $(printf '%s\n' "$C77C_OUT" | tail -1)"
+    else
+        printf '%s\n' "$C77C_OUT" | sed 's/^/  /'
+        fail "Check 77c: an installed mod matches a Law 3 rule (\$.model/\$.http/bracket/Reflect/destructure/fetch), is refused by the engine at load, or the registry is unreadable — uninstall the mod: claude plugin uninstall <name> (t-3493)"
+    fi
+fi
+echo ""
+
 # Check 77b: mods engine enforcement — `claude plugin validate` must pass with every `calls:` entry in
 # the allowed set, `claude plugin test` must run >= 1 test green, per mods/* plus an isolated
 # vendored copy of tests/fixtures/mods/good-minimal (spec §Check 77b). Needs the real engine:

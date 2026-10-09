@@ -1211,13 +1211,34 @@ mods_ruflo_guard() {
     return 0
 }
 
+# 7i: installed-mods guard (ADR-096 Law 3; t-3493). The engine loads mods from the plugin cache,
+# from any marketplace — validate Check 77a only sees ./mods. A mod there that calls $.model runs
+# on the operator's subscription (probe 2026-10-07: keyless, invisible to the session's own usage
+# and rateLimits readouts), and a mod the engine refuses at load still sits in installed_plugins.json
+# and in a headless init record's plugins[]. Delegates to system/scripts/mods-check.sh --installed.
+# A hit refuses 7h and makes --check exit 3 at the summary. Column-0 function for test extraction.
+# Reads TARGET_DIR, SCRIPT_DIR; sets MODS_GUARD_HIT.
+mods_installed_guard() {
+    MODS_GUARD_HIT=""
+    local chk="$SCRIPT_DIR/system/scripts/mods-check.sh" out
+    [ -f "$chk" ] && [ -f "$TARGET_DIR/plugins/installed_plugins.json" ] || return 0
+    if out="$(bash "$chk" --installed "$TARGET_DIR" 2>&1)"; then return 0; fi
+    # any non-zero exit is a hit — a checker that died (rc 2, python3 missing, unreadable registry)
+    # must never pass the guard silently (challenger F2, t-3493)
+    MODS_GUARD_HIT="$(printf '%s\n' "$out" | tail -1)"; [ -n "$MODS_GUARD_HIT" ] || MODS_GUARD_HIT="mods-check --installed exited non-zero with no output"
+    echo "Installed mods guard:"
+    printf '%s\n' "$out" | grep -E '^  ' | sed 's/^  /  ! /'
+    echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); the mods step is refused until then"
+    return 0
+}
+
 # 7h: Mods — install each ./mods/* marketplace entry at the repo's version (ADR-096 Law 6, t-3427).
 # `claude plugin install` COPIES the mod into the plugin cache keyed by version, so a changed
 # mod reaches a session only through a version bump (validate Check 77a enforces the bump);
 # the comparison is installed version (plugins/installed_plugins.json, <name>@brana) vs the
 # repo's plugin.json — never mere presence. --check runs no `claude plugin` command. A missing
 # `claude` is reported and counted, never fatal (same tolerance as check_cc_version).
-# Reads MODS_MP, SCRIPT_DIR, INSTALLED, CHECK_ONLY, RUFLO_GUARD_HIT; adds to CHANGES.
+# Reads MODS_MP, SCRIPT_DIR, INSTALLED, CHECK_ONLY, RUFLO_GUARD_HIT, MODS_GUARD_HIT; adds to CHANGES.
 mods_install_step() {
     [ -f "$MODS_MP" ] || return 0
     if ! command -v jq &>/dev/null; then
@@ -1232,8 +1253,8 @@ mods_install_step() {
     entries=$(jq -r '.plugins[]? | select((.source | type) == "string" and (.source | startswith("./mods/"))) | "\(.name) \(.source)"' "$MODS_MP" 2>/dev/null || true)
     [ -n "$entries" ] || return 0
     echo "Mods:"
-    if [ -n "$RUFLO_GUARD_HIT" ]; then
-        echo "  ! mods step refused — ruflo mods guard (see above)"
+    if [ -n "$RUFLO_GUARD_HIT" ] || [ -n "${MODS_GUARD_HIT:-}" ]; then
+        echo "  ! mods step refused — ruflo / installed mods guard (see above)"
         return 0
     fi
     if ! command -v claude >/dev/null 2>&1; then
@@ -1283,6 +1304,7 @@ if [ "$(uname -s)" = Darwin ]; then MANAGED_SETTINGS_DEFAULT="/Library/Applicati
 MANAGED_SETTINGS="${BRANA_MANAGED_SETTINGS:-$MANAGED_SETTINGS_DEFAULT}"
 MODS_MP="${BRANA_MARKETPLACE_JSON:-$SCRIPT_DIR/.claude-plugin/marketplace.json}"
 mods_ruflo_guard
+mods_installed_guard
 mods_install_step
 
 # --- Summary ---
@@ -1295,6 +1317,10 @@ if $CHECK_ONLY; then
     fi
     if [ -n "$RUFLO_GUARD_HIT" ]; then
         echo "=== ruflo mods guard FAILED — see 'Mods guard' above (ADR-096 Law 6) ==="
+        exit 3
+    fi
+    if [ -n "${MODS_GUARD_HIT:-}" ]; then
+        echo "=== installed mods guard FAILED — see 'Installed mods guard' above (ADR-096 Law 3, t-3493) ==="
         exit 3
     fi
 else
