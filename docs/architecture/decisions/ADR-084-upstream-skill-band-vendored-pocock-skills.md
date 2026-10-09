@@ -4,7 +4,7 @@ status: accepted
 
 # ADR-084: Upstream Skill Band — Vendored Pocock Cognitive Skills Over Brana Orchestration Shells
 
-**Status:** Accepted — pilot-only (2026-08-17); challenge findings applied 2026-08-23 (see Challenge record)
+**Status:** Accepted — pilot-only (2026-08-17); challenge findings applied 2026-08-23 (see Challenge record); pilot EXPANDED 2026-08-30 (§7a); standing band proposed in ADR-097 (2026-10-07), then **retired by [ADR-098](ADR-098-retire-upstream-band-install-pocock-plugin.md) (2026-10-09): §1 instruments, §2 vendoring, §3 remap and §7a EXPAND withdrawn; plugin installed as-is**
 **Date:** 2026-08-17
 **Deciders:** Martín Rios
 **Tags:** skills, mattpocock-mining, the-brana, adr, upstream-band

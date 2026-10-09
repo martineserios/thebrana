@@ -186,7 +186,7 @@ Adversarial review with two modes. **Standard:** three native challenger subagen
    - [Constraints retrieved by Gemini — available for manual verification]
 
    ### Verdict
-   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER / INCONCLUSIVE
    ```
 
    **Council mode report** (when `--council` was set):
@@ -224,7 +224,7 @@ Adversarial review with two modes. **Standard:** three native challenger subagen
    - [Constraints retrieved by Gemini — available for manual verification]
 
    ### Verdict
-   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER / INCONCLUSIVE
    ```
 
    **Hats mode report** (when `--hats` was set):
@@ -262,7 +262,7 @@ Adversarial review with two modes. **Standard:** three native challenger subagen
    - [Constraints retrieved by Gemini — available for manual verification]
 
    ### Verdict
-   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER / INCONCLUSIVE
    ```
 
 6. **Let the user decide** which concerns to address. Do not auto-apply changes.
@@ -279,6 +279,14 @@ Adversarial review with two modes. **Standard:** three native challenger subagen
    Positional args are `<AGENT> <TYPE> <CONTENT>` (t-3027, 2026-08-24 — corrected drift from an earlier `--agent`/`--entry-type`/`--content` flag form that the CLI never implemented; run `brana decisions log --help` to re-verify if this drifts again).
 
    Log one entry per CRITICAL or WARNING finding. OBSERVATION-level findings are not logged.
+
+   **INCONCLUSIVE verdict** (t-3494): log one additional `concern` entry whose content is
+   `"{target}: INCONCLUSIVE — missing evidence: {what would settle it}"`, so the decisions
+   log records both the verdict and the evidence gap. An INCONCLUSIVE outcome never advances
+   the target on its own: the user chooses between gathering the named evidence (then
+   re-run the challenge) and overriding with a logged reason. When it concerns a task, the
+   gate's notes line is `Challenger: INCONCLUSIVE ({date}), {N} finding(s), missing
+   evidence: {list}` (machine-read, ADR-081 D2 — see `_shared/challenger-gate.md`).
 
 8. **Store challenge outcome** in ReasoningBank after the user decides:
 

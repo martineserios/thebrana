@@ -157,4 +157,38 @@ newhome; printf '{ "enabledPlugins": { "ruflo-swarm@ruflo": true } }\n' > "$H/.c
 assert "deploy with a ruflo entry: refuses the mods step (no claude plugin command)" 0 "$(plugin_calls)"
 assert "...and prints the guard line" yes "$(has 'ruflo-swarm@ruflo' "$(out)")"
 
+echo "--- 7i installed-mods guard (t-3493: a mod in the plugin cache that calls \$.model, or that the engine refuses, blocks the mods step)"
+FN2="$(awk '/^mods_installed_guard\(\) \{/{f=1} f{print} f&&/^\}/{f=0}' "$ROOT/bootstrap.sh")"
+assert "mods_installed_guard extracts from bootstrap.sh" yes "$(has 'mods_installed_guard()' "$FN2")"
+BILL="$ROOT/tests/fixtures/mods/captures/t-3493-model-billing/mod"
+seed_billing() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"x","version":"0.1.0"}],"probe@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}\n' "$BILL" > "$H/.claude/plugins/installed_plugins.json"; }
+newhome; seed_billing; rc="$(boot --check noclaude)"
+assert "--check: an installed mod calling \$.model -> exits non-zero" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
+assert "...naming the mod" yes "$(has 'probe@other' "$(out)")"
+assert "...and the offending file:line" yes "$(has 'register.ts:' "$(out)")"
+# a checker that dies (exit 2, no violations printed) must still be a hit — the guard never fails open
+newhome; printf '[]' > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot --check noclaude)"
+assert "--check: an unreadable registry -> exits non-zero (fails closed)" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
+newhome; seed_installed 0.1.0; rc="$(boot --check noclaude)"
+assert "--check: registry without function-hook mods -> exit 0" 0 "$rc"
+deploy2() { local p="$NOCLAUDE_PATH"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"
+    ( export PATH="$p" CLAUDE_SHIM_LOG="$H/argv.log"
+      TARGET_DIR="$H/.claude"; SCRIPT_DIR="$ROOT"; INSTALLED="$H/.claude/plugins/installed_plugins.json"
+      PROJECT_SETTINGS_DIR="$PROJ"; MANAGED_SETTINGS="$T/none.json"; MODS_MP="$MP"; CHECK_ONLY=false; CHANGES=0
+      eval "$FN"; eval "$FN2"; mods_ruflo_guard; mods_installed_guard; mods_install_step ) >"$H/out" 2>&1; echo $?; }
+newhome; seed_billing; rc="$(deploy2 withclaude)"
+assert "deploy with a billing mod installed: refuses the mods step (no claude plugin install/update; the guard's own plugin validate is allowed)" 0 "$(grep -cE '^plugin (install|update|uninstall) ' "$H/argv.log" 2>/dev/null || true)"
+assert "...and prints the guard line" yes "$(has 'mods step refused' "$(out)")"
+
+# Gate 3 (ship 2026-10-09): bootstrap.sh runs under `set -euo pipefail`; `printf | grep -E '^  ' | sed` returns 1 when
+# the checker dies with a plain, UNINDENTED message (python3 missing, rc 2), which aborted bootstrap with rc 1 before the
+# guard recorded its hit and before the exit-3 summary. The case above has indented output, so it never saw this.
+echo "--- 7i: a checker that dies with no indented output still records the hit (pipefail must not abort bootstrap)"
+FAKE="$T/fakeroot"; mkdir -p "$FAKE/system/scripts"
+printf '#!/usr/bin/env bash\necho "mods-check: python3 required"\nexit 2\n' > "$FAKE/system/scripts/mods-check.sh"
+newhome; printf '{"version":2,"plugins":{}}\n' > "$H/.claude/plugins/installed_plugins.json"
+DIED="$( ( set -euo pipefail; TARGET_DIR="$H/.claude"; SCRIPT_DIR="$FAKE"; eval "$FN2"; mods_installed_guard; echo "AFTER hit=[$MODS_GUARD_HIT]" ) 2>&1 )"
+assert "the guard returns (does not abort) and records the checker's last line as the hit" yes "$(has 'AFTER hit=[mods-check: python3 required]' "$DIED")"
+assert "...and still prints the guard header" yes "$(has 'Installed mods guard:' "$DIED")"
+
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

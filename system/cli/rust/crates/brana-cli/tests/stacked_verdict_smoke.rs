@@ -68,6 +68,11 @@ fn repo_with_ac_grade() -> tempfile::TempDir {
                 "tags": [], "blocked_by": [], "branch": "dev",
                 "acceptance_criteria": ["file seed.md exists"],
                 "notes": "Evaluator: PASS (2026-08-14), 1 criteria checked"
+            }, {
+                "id": "t-2", "subject": "inconclusive fixture", "status": "in_progress", "type": "task",
+                "tags": [], "blocked_by": [], "branch": "dev",
+                "acceptance_criteria": ["file seed.md exists"],
+                "notes": "Challenger: INCONCLUSIVE (2026-10-07), 1 finding(s), missing evidence: probe not run"
             }]
         })
         .to_string(),
@@ -160,4 +165,26 @@ fn stacked_verdict_renders_evidence_and_judged_from_real_subprocesses() {
     assert_eq!(v["judged"]["pass"], 1, "Evaluator: PASS note should count as judged-pass");
     assert!(v["graded"].is_array(), "evidence-links finding: graded[] detail must pass through, not just counts");
     assert_eq!(v["graded"].as_array().unwrap().len(), 1);
+}
+
+/// t-3494: INCONCLUSIVE is a first-class judged verdict. It must surface in the
+/// JSON as its own count and never fold into judged-pass (which would let an
+/// under-evidenced task read as approved at the valve).
+#[test]
+fn stacked_verdict_reports_inconclusive_as_its_own_bucket() {
+    let tmp = repo_with_ac_grade();
+
+    let out = brana(tmp.path())
+        .args(["backlog", "stacked-verdict", "t-2", "--json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let v: serde_json::Value = serde_json::from_slice(&out).expect("valid JSON");
+
+    assert_eq!(v["judged"]["pass"], 0, "INCONCLUSIVE must never count as judged-pass");
+    assert_eq!(v["judged"]["inconclusive"], 1, "INCONCLUSIVE must be reported as its own count");
+    let line = v["line"].as_str().unwrap();
+    assert!(line.contains("1 inconclusive"), "line must show the inconclusive count: {line}");
 }

@@ -38,6 +38,7 @@ echo "=== test-mods-check.sh ==="
 echo "--- modes"
 bash "$CHECK" >/dev/null 2>&1; assert "no mode -> exit 2" 2 "$?"
 bash "$CHECK" --bogus "$T" >/dev/null 2>&1; assert "unknown mode -> exit 2" 2 "$?"
+PATH="$NOCLAUDE_PATH" bash "$CHECK" --refusal-canary "$T" >"$T/out" 2>&1; assert "--refusal-canary without claude -> exit 1 (never a silent pass)" 1 "$?"
 
 echo "--- sync"
 assert "sync vendored the shared files into good-minimal" yes "$(has yes "$( [ -f "$T/mods/good-minimal/hooks/_shared/run.ts" ] && [ -f "$T/mods/good-minimal/hooks/_shared/probe.ts" ] && echo yes)")"
@@ -205,6 +206,96 @@ if command -v claude >/dev/null 2>&1 && [ -z "${CI:-}" ]; then
     bash "$CHECK" --engine "$ROOT" >"$T/real" 2>&1; rc=$?
     assert "real claude: --engine passes on this checkout" 0 "$rc"
     [ "$rc" = 0 ] || tail -20 "$T/real"
+    bash "$CHECK" --refusal-canary "$ROOT" >"$T/canary" 2>&1; rc=$?
+    assert "real claude: --refusal-canary — the engine still refuses all four t-3493 bypass forms" 0 "$rc"
+    [ "$rc" = 0 ] || tail -10 "$T/canary"
 fi
+
+echo "--- --installed (Law 3 over the plugin cache + refused-mod guard, t-3493)"
+# A mod installed from ANY marketplace lands in <claude-dir>/plugins/cache/...; 77a never sees it.
+# --installed reads plugins/installed_plugins.json, scans each function-hook mod (hooks/hooks.json
+# with a modules key) for the Law 3 model/http rules, and — when `claude` is present — runs
+# `plugin validate` on it: a mod the engine refuses at load still sits in the registry (and in a
+# headless init record's plugins[]), so a refusal is a violation, never a pass.
+BILL="$FIX/captures/t-3493-model-billing/mod"
+H2="$T/home2"; mkdir -p "$H2/.claude/plugins"
+reg() { # reg name:path ... -> installed_plugins.json
+    python3 - "$H2/.claude/plugins/installed_plugins.json" "$@" <<'PYR'
+import json, sys
+out = {"version": 2, "plugins": {}}
+for a in sys.argv[2:]:
+    n, p = a.split(":", 1); out["plugins"][n + "@x"] = [{"scope": "user", "installPath": p, "version": "1.0.0"}]
+json.dump(out, open(sys.argv[1], "w"))
+PYR
+}
+inst() { PATH="$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1; echo $?; }
+inst_engine() { : > "$FAKE/argv.log"; FAKE="$FAKE" PATH="$FAKE/bin:$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1; echo $?; }
+rm -f "$H2/.claude/plugins/installed_plugins.json"
+assert "no registry -> exit 0, nothing installed" 0 "$(inst)"
+assert "...says so" yes "$(has 'nothing installed' "$(out)")"
+mkdir -p "$H2/skillsonly/skills/a"; echo "# a" > "$H2/skillsonly/skills/a/SKILL.md"
+mkdir -p "$H2/classic/hooks"; printf '{"hooks":{"PreToolUse":[]}}' > "$H2/classic/hooks/hooks.json"
+reg good:"$T/mods/good-minimal" skillsonly:"$H2/skillsonly" classic:"$H2/classic" gone:"$H2/does-not-exist"
+assert "good mod + skills-only + classic-hook plugin + missing path: exit 0 without claude" 0 "$(inst)"
+assert "...only the function-hook mod is scanned (1 mod)" yes "$(has '1 mod(s) scanned' "$(out)")"
+assert "...claude absent is said, not hidden" yes "$(has 'claude absent' "$(out)")"
+reg good:"$T/mods/good-minimal" billing:"$BILL"
+assert "an installed mod with a literal \$.model call fails" 1 "$(inst)"
+assert "...naming the model rule" yes "$(has 'model — Law 3' "$(out)")"
+assert "...and the mod" yes "$(has 'billing@x' "$(out)")"
+reg good:"$T/mods/good-minimal"
+golden_validate; golden_test
+assert "with claude: a validating mod passes" 0 "$(inst_engine)"
+assert "...plugin validate ran on the mod" yes "$(has 'plugin validate' "$(cat "$FAKE/argv.log")")"
+sed '1d' "$FIX/captures/t-3493-model-billing/v1-bracket/validate.json" > "$FAKE/validate.json" 2>/dev/null || cp "$FIX/captures/t-3493-model-billing/v1-bracket/validate.json" "$FAKE/validate.json"
+echo 1 > "$FAKE/validate.rc"
+assert "with claude: a mod the engine refuses at load fails (listed as installed, would show as loaded)" 1 "$(inst_engine)"
+assert "...naming the refusal" yes "$(has 'refused' "$(out)")"
+for v in v2-destructured v3-indirect v4-dynamic-key; do   # every captured bypass form is replayed (challenger F4)
+    cp "$FIX/captures/t-3493-model-billing/$v/validate.json" "$FAKE/validate.json"; echo 1 > "$FAKE/validate.rc"
+    assert "with claude: the $v refusal capture fails" 1 "$(inst_engine)"
+done
+golden_validate
+# the engine's own calls: listing is the structural proof (77b reuses it): a validating mod whose
+# calls: line names model.* or http.* fails even when success is true (challenger F1)
+python3 - "$FAKE/validate.json" <<'PYC'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); hit = False
+for sec in d.get("contents") or []:
+    notes = sec.get("notes") or []
+    for i, n in enumerate(notes):
+        if " calls: " in n:
+            notes[i] = n.split(" calls: ", 1)[0] + " calls: $.model.complete (via probe), $.ui.log"; hit = True
+    sec["notes"] = notes
+assert hit, "golden capture has no calls: note"
+json.dump(d, open(p, "w"))
+PYC
+assert "with claude: a calls: line naming \$.model fails even though validate succeeded" 1 "$(inst_engine)"
+assert "...naming Law 3" yes "$(has 'Law 3' "$(out)")"
+golden_validate
+echo "--- --installed fails closed and follows the engine's module list (challenger F1/F2/F5)"
+printf '[]' > "$H2/.claude/plugins/installed_plugins.json"
+assert "a registry of the wrong shape fails, never '0 scanned'" 1 "$(inst)"
+assert "...saying it cannot verify" yes "$(has 'cannot verify' "$(out)")"
+printf '{"version":2,"plugins":5}' > "$H2/.claude/plugins/installed_plugins.json"
+assert "a registry with a non-object plugins field fails" 1 "$(inst)"
+OUTSIDE="$H2/outside"; mkdir -p "$OUTSIDE/hooks" "$OUTSIDE/lib"
+printf '{ "modules": ["../lib/entry.ts", "./probe.test.ts"] }' > "$OUTSIDE/hooks/hooks.json"
+printf 'export const register = (on) => { on("session.start", async ($, e, next) => { await $.model.complete({ prompt: "x" }); return next(e) }) }\n' > "$OUTSIDE/lib/entry.ts"
+printf 'export const register = (on) => { on("turn.complete", async ($, e, next) => { await $.http.fetch("https://x"); return next(e) }) }\n' > "$OUTSIDE/hooks/probe.test.ts"
+reg outside:"$OUTSIDE"
+assert "a listed module outside hooks/ is scanned (modules array drives the scan, not a find over hooks/)" 1 "$(inst)"
+assert "...the $.model in ../lib/entry.ts is named" yes "$(has 'lib/entry.ts' "$(out)")"
+assert "...and a listed *.test.ts module is scanned too" yes "$(has 'probe.test.ts' "$(out)")"
+reg good:"$T/mods/good-minimal" again:"$T/mods/good-minimal" third:"$T/mods/good-minimal"
+assert "three registry entries for one installPath scan it once" yes "$(has '1 mod(s) scanned' "$(inst >/dev/null; out)")"
+LINKED="$H2/linked"; ln -sfn "$T/mods/good-minimal" "$LINKED"; mkdir -p "$T/mods/good-minimal/.claude-plugin/types"; : > "$T/mods/good-minimal/.claude-plugin/types/keep.d.ts"
+reg linked:"$LINKED"; golden_validate; golden_test
+assert "a symlinked installPath validates" 0 "$(inst_engine)"
+assert "...and the audit never deletes inside the real mod (types/ survives)" yes "$( [ -f "$T/mods/good-minimal/.claude-plugin/types/keep.d.ts" ] && echo yes || echo no)"
+rm -rf "$T/mods/good-minimal/.claude-plugin/types"
+
+echo "--- portability: no apostrophe in a comment inside a python heredoc (stock macOS bash 3.2 mis-parses \$( ... <<'EOF' ... ) bodies)"
+assert "mods-check.sh python heredoc comments contain no apostrophe" 0 "$(awk "/<<'PYV'/ {f=1; next} /^PYV\$/ {f=0} f && /^[[:space:]]*#.*'/ {n++} END {print n + 0}" "$CHECK")"
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

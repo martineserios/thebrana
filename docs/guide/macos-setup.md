@@ -62,6 +62,8 @@ cargo build --release -p brana-cli
 mkdir -p ~/.local/bin && ln -sf "$PWD/target/release/brana" ~/.local/bin/brana
 ```
 
+> On the owner machine (the company Mac never ships or pushes — ADR-095), `/brana:ship` replaces `~/.local/bin/brana` with an atomically swapped regular file after a ship that changed the CLI (the symlink is not kept); re-run the `ln -sf` for a "rebuild = live" dev setup.
+
 Make sure `~/.local/bin` is on `PATH`, restart Claude Code, then:
 
 ```bash

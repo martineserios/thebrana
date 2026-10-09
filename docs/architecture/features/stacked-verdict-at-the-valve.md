@@ -113,7 +113,10 @@ Scope below.
   blocking table treats it identically to `PROCEED` for gate-passing purposes (only
   `RECONSIDER` blocks CLOSE). Needs confirmation if a future user wants
   `PROCEED WITH CHANGES` to render as its own third bucket instead of folding into
-  judged-pass.
+  judged-pass. **Amended 2026-10-07 (t-3494):** `INCONCLUSIVE` (both sources) is a
+  third bucket, `judged.inconclusive`, rendered as ` · {I} inconclusive` after
+  judged-pass only when non-zero — never folded into judged-pass, never `0 judged`.
+  See ADR-081 D2 amendment.
 - **Most-recent-per-source wins** when a task has multiple Evaluator/Challenger lines
   (e.g. after a repair-loop iteration) — chose latest-timestamp because the repair loop
   explicitly supersedes iteration 1's verdict; older lines are history, not current

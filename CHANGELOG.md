@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-07 — ship dev→main, PR #1094 (v1.87.1; ADR-095 accepted, patterns cap, session summary JSON, workspace CI)
+
+### Fixed
+- Session summaries are stored as valid JSON: a set `SUMMARY_JSON` no longer gains a stray brace, and unparseable text is wrapped as `{raw}` and logged to `persist-failures.log` instead of stored raw (t-3458; 721 of 860 stored rows were malformed and are left as is)
+- The patterns cap is 100 (warn at 80) in the always-loaded rule and the creation template, matching `validate.sh` Check 31a; a consistency test reads the numbers from `validate.sh` (t-3476)
+- `backup-knowledge.sh` stays silent only when there is no brana-knowledge clone; with a clone but a missing or non-executable `backup.sh` it warns and exits 1 (on a company-managed Mac that is intentional: it never exports)
+
+### Added
+- CI runs the whole Rust workspace tests with ffmpeg available (t-3472)
+- ADR-095 accepted in its short form: one owner machine, a company tabz Mac that pulls only, notes in git and the DB off git, ruflo demoted to a rebuildable doc index after the recall spike (t-3468, t-3467)
+
+### Notes
+- Deployed in place: dev fast-forwarded onto main. The installed `brana` was not rebuilt (only a test-only CI change touched the CLI source since its build). The advisory macOS CI job is red (t-3469).
+
 ### 2026-10-06 — ship dev→main, PR #1093 (v1.87.0; `brana transcribe` models + video, t-3470)
 
 ### Added
