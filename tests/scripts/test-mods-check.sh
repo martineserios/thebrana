@@ -295,4 +295,7 @@ assert "a symlinked installPath validates" 0 "$(inst_engine)"
 assert "...and the audit never deletes inside the real mod (types/ survives)" yes "$( [ -f "$T/mods/good-minimal/.claude-plugin/types/keep.d.ts" ] && echo yes || echo no)"
 rm -rf "$T/mods/good-minimal/.claude-plugin/types"
 
+echo "--- portability: no apostrophe in a comment inside a python heredoc (stock macOS bash 3.2 mis-parses \$( ... <<'EOF' ... ) bodies)"
+assert "mods-check.sh python heredoc comments contain no apostrophe" 0 "$(awk "/<<'PYV'/ {f=1; next} /^PYV\$/ {f=0} f && /^[[:space:]]*#.*'/ {n++} END {print n + 0}" "$CHECK")"
+
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

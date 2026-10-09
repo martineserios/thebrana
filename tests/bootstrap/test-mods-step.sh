@@ -180,4 +180,15 @@ newhome; seed_billing; rc="$(deploy2 withclaude)"
 assert "deploy with a billing mod installed: refuses the mods step (no claude plugin install/update; the guard's own plugin validate is allowed)" 0 "$(grep -cE '^plugin (install|update|uninstall) ' "$H/argv.log" 2>/dev/null || true)"
 assert "...and prints the guard line" yes "$(has 'mods step refused' "$(out)")"
 
+# Gate 3 (ship 2026-10-09): bootstrap.sh runs under `set -euo pipefail`; `printf | grep -E '^  ' | sed` returns 1 when
+# the checker dies with a plain, UNINDENTED message (python3 missing, rc 2), which aborted bootstrap with rc 1 before the
+# guard recorded its hit and before the exit-3 summary. The case above has indented output, so it never saw this.
+echo "--- 7i: a checker that dies with no indented output still records the hit (pipefail must not abort bootstrap)"
+FAKE="$T/fakeroot"; mkdir -p "$FAKE/system/scripts"
+printf '#!/usr/bin/env bash\necho "mods-check: python3 required"\nexit 2\n' > "$FAKE/system/scripts/mods-check.sh"
+newhome; printf '{"version":2,"plugins":{}}\n' > "$H/.claude/plugins/installed_plugins.json"
+DIED="$( ( set -euo pipefail; TARGET_DIR="$H/.claude"; SCRIPT_DIR="$FAKE"; eval "$FN2"; mods_installed_guard; echo "AFTER hit=[$MODS_GUARD_HIT]" ) 2>&1 )"
+assert "the guard returns (does not abort) and records the checker's last line as the hit" yes "$(has 'AFTER hit=[mods-check: python3 required]' "$DIED")"
+assert "...and still prints the guard header" yes "$(has 'Installed mods guard:' "$DIED")"
+
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]
