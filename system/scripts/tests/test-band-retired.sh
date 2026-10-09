@@ -33,31 +33,40 @@ check "fix no longer names the retired adapter" "0" "$(grep -c 'diagnose-hard-bu
 check "fix calls the plugin's diagnosing-bugs by plugin name" "yes" "$(grep -q 'mattpocock-skills:diagnosing-bugs' "$fix" && echo yes || echo no)"
 check "fix keeps an inline fallback when the plugin is absent" "yes" "$(grep -qiE 'plugin.*(absent|not installed)|inline' "$fix" && echo yes || echo no)"
 
-# class detector: quarantined skills must not be Skill-tool dependencies
-viol=""
-for sf in "$REPO_ROOT"/system/skills/*/SKILL.md; do
-  name=$(basename "$(dirname "$sf")")
-  sed -n '/^---$/,/^---$/p' "$sf" | grep -qE '^disable-model-invocation:[[:space:]]*true' || continue
-  callers=$(grep -rln "Skill(" "$REPO_ROOT/system" --include='*.md' 2>/dev/null \
-    | grep -v "/system/skills/$name/" \
-    | xargs grep -lE "Skill\([^)]*[\"'\`](brana:)?$name[\"'\`]" 2>/dev/null || true)
-  [ -n "$callers" ] && viol="$viol $name<-$(echo "$callers" | tr '\n' ',')"
-done
-check "no quarantined skill is called through the Skill tool anywhere in system/" "" "$viol"
+# ── class detector (one function, called for the real tree AND the fixture) ──
+# SCOPE (honest): scans system/**/*.md for a literal, quoted `Skill(... "name" ...)` call
+# naming a skill whose frontmatter carries disable-model-invocation: true. It does NOT see
+# dynamically built calls (e.g. backlog/phases/start.md `Skill(skill="brana:{name}")`) or
+# unquoted/shell-side calls; those are tracked as a follow-up. Prints "examined=N" first so
+# a moved flag cannot pass vacuously.
+scan() {
+  local root="$1" examined=0 viol="" sf name callers
+  for sf in "$root"/system/skills/*/SKILL.md; do
+    [ -f "$sf" ] || continue
+    name=$(basename "$(dirname "$sf")")
+    sed -n '/^---$/,/^---$/p' "$sf" | grep -qE '^disable-model-invocation:[[:space:]]*true' || continue
+    examined=$((examined+1))
+    callers=$(grep -rln "Skill(" "$root/system" --include='*.md' 2>/dev/null \
+      | grep -v "/system/skills/$name/" \
+      | xargs grep -lE "Skill\([^)]*[\"'\`](brana:)?$name[\"'\`]" 2>/dev/null || true)
+    [ -n "$callers" ] && viol="$viol $name"
+  done
+  echo "examined=$examined"; echo "violations=$viol"
+}
+real=$(scan "$REPO_ROOT")
+check "real tree: detector examined at least 3 quarantined skills (not vacuous)" "yes" "$([ "$(echo "$real" | sed -n 's/examined=//p')" -ge 3 ] && echo yes || echo no)"
+check "real tree: no quarantined skill is called through the Skill tool in system/" "" "$(echo "$real" | sed -n 's/violations=//p')"
 
-# detector must-fire: a planted quarantined skill with a caller IS caught
 fx=$(mktemp -d); trap 'rm -rf "$fx"' EXIT
-mkdir -p "$fx/system/skills/q" "$fx/system/skills/c"
-printf -- '---\nname: q\ndisable-model-invocation: true\n---\nq\n' > "$fx/system/skills/q/SKILL.md"
-printf -- '---\nname: c\n---\nCall Skill(skill: "brana:q")\n' > "$fx/system/skills/c/SKILL.md"
-fv=""
-for sf in "$fx"/system/skills/*/SKILL.md; do
-  name=$(basename "$(dirname "$sf")")
-  sed -n '/^---$/,/^---$/p' "$sf" | grep -qE '^disable-model-invocation:[[:space:]]*true' || continue
-  callers=$(grep -rln "Skill(" "$fx/system" --include='*.md' | grep -v "/system/skills/$name/" | xargs grep -lE "Skill\([^)]*[\"'\`](brana:)?$name[\"'\`]" 2>/dev/null || true)
-  [ -n "$callers" ] && fv="$fv $name"
-done
-check "detector must-fire: planted quarantined dependency is caught" " q" "$fv"
+mk() { mkdir -p "$fx/$1/system/skills/q" "$fx/$1/system/skills/c" "$fx/$1/system/skills/u"
+  printf -- '---\nname: q\ndisable-model-invocation: true\n---\nq\n' > "$fx/$1/system/skills/q/SKILL.md"
+  printf -- '---\nname: u\n---\nu\n' > "$fx/$1/system/skills/u/SKILL.md"
+  printf -- '---\nname: c\n---\n%s\n' "$2" > "$fx/$1/system/skills/c/SKILL.md"; }
+mk a 'Call Skill(skill: "brana:q")';        check "must-fire: prefixed double-quoted call to a quarantined skill" " q" "$(scan "$fx/a" | sed -n 's/violations=//p')"
+mk b "Call Skill(skill: 'q')";               check "must-fire: bare single-quoted call to a quarantined skill"   " q" "$(scan "$fx/b" | sed -n 's/violations=//p')"
+mk c 'Call Skill(skill: "brana:u")';         check "negative: call to an UNflagged skill is not a violation"      ""  "$(scan "$fx/c" | sed -n 's/violations=//p')"
+mk d 'Run /brana:q by hand, no Skill call';  check "negative: prose mention without Skill( is not a violation"    ""  "$(scan "$fx/d" | sed -n 's/violations=//p')"
+check "fixture: examined counts the one flagged skill" "1" "$(scan "$fx/a" | sed -n 's/examined=//p')"
 
 echo "  summary: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

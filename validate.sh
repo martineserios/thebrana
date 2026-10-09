@@ -3079,7 +3079,7 @@ else
     if [ "$C78_RC" -eq 0 ]; then
         pass "Check 78: band retired; no quarantined skill is a Skill-tool dependency ✓"
     else
-        fail "Check 78: a skill with disable-model-invocation is still called through the Skill tool, or retired band files are back (ADR-098)"
+        fail "Check 78: a skill with disable-model-invocation is still the literal quoted target of a Skill() call in system/**/*.md, or retired band files are back (ADR-098; dynamic Skill() calls are out of this check's scope)"
     fi
 fi
 
