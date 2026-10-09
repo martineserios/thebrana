@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**44 skills** loaded from `system/skills/`.
+**41 skills** loaded from `system/skills/`.
 
 This index is the ingredient list, unordered. For the walkable idea → ship narrative — main flow, on-ramps, standalone skills, vocabulary layer — see [Idea → Ship: The Skill Flow](../architecture/idea-to-ship.md).
 
@@ -37,7 +37,6 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
 | `/brana:design-system` | domain | Token architecture and component specs: three-layer tokens (primitive→semantic→c |
-| `/brana:diagnose-hard-bug` | core | Hard-bug diagnosis: tight loop, ranked hypotheses. |
 | `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
@@ -55,7 +54,6 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list. Us |
 | `/brana:product-brainstorming` | thinking | Brainstorm product ideas, explore problem spaces, and challenge assumptions as a |
-| `/brana:provisioning-wizard` | core | Bash wizard for human-only setup. |
 | `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagatio |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce fi |
 | `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after disc |
@@ -65,7 +63,6 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
 | `/brana:terminal-diagrams` | domain | Reference for drawing any diagram as plain monospace terminal text — box-drawing |
-| `/brana:two-axis-review` | core | Two-axis review: Standards vs Spec, unmerged. |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
 | `/brana:web-design-guidelines` | domain | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
@@ -155,12 +152,6 @@ Capture events — links, calls, meetings, ideas — into an append-only log. Bu
 
 ## core
 
-### `/brana:diagnose-hard-bug`
-
-Hard-bug diagnosis: tight loop, ranked hypotheses.
-
-**Allowed tools:** [Read, Bash, Skill]
-
 ### `/brana:discover`
 
 Runtime catalog — list all installed skills, agents, and active hooks. Use when you want to know what's available.
@@ -175,12 +166,6 @@ Generate and update living documentation — tech docs, user guides, philosophy 
 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skill
 
-### `/brana:provisioning-wizard`
-
-Bash wizard for human-only setup.
-
-**Allowed tools:** [Read, Bash, Skill, Write]
-
 ### `/brana:sitrep`
 
 Situational awareness — where am I, what was I doing, what's next. Context recovery after compression, confusion, or mid-session reorientation.
@@ -188,12 +173,6 @@ Situational awareness — where am I, what was I doing, what's next. Context rec
 **Arguments:** `[--tag <tag>] [--stream <stream>] [--kind <kind>] [--priority <p>]`
 
 **Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__memory_search_unified, mcp__brana__session_history, ToolSearch
-
-### `/brana:two-axis-review`
-
-Two-axis review: Standards vs Spec, unmerged.
-
-**Allowed tools:** [Read, Bash, Skill]
 
 
 ## domain

@@ -59,20 +59,9 @@ with open('$REPO_ROOT/skills-lock.json') as f:
 check "regenerated hash matches skills-lock.json's recorded inversion hash" "$LOCK_INVERSION" "$SINGLE_ACTUAL"
 
 echo ""
-echo "== skills-lock-hash.sh: diagnosing-bugs multi-file dir matches skills-lock.json =="
-DIAG_ACTUAL=$("$HASH_SCRIPT" "$REPO_ROOT/.agents/skills/diagnosing-bugs")
-LOCK_DIAG=$(python3 -c "
-import json
-with open('$REPO_ROOT/skills-lock.json') as f:
-    print(json.load(f)['skills']['diagnosing-bugs']['computedHash'])
-")
-check "regenerated hash matches skills-lock.json's recorded diagnosing-bugs hash" "$LOCK_DIAG" "$DIAG_ACTUAL"
-
-echo ""
 echo "== skills-lock.json: every entry's computedHash matches a live recomputation (t-3239) =="
-# Supersedes the earlier per-skill checks above and the hardcoded
-# code-review/wizard checks (t-2835/t-2836) -- this loop covers every
-# entry generically, code-review and wizard included.
+# Supersedes the earlier per-skill checks (ADR-098: the mattpocock band entries
+# were retired; this loop covers every remaining entry generically).
 # t-3239: t-2834's original test only ever checked 2 hand-picked entries
 # (inversion, diagnosing-bugs). That missed 9 more entries whose
 # computedHash was hand-typed/stale and never re-verified. This loop covers

@@ -3060,6 +3060,28 @@ if $RUN_GOLDEN; then
     echo ""
 fi
 
+# Check 78: ADR-084 vendored band retired, quarantined skills are not Skill-tool dependencies (t-3503, ADR-098).
+# `disable-model-invocation: true` blocks the Skill tool (ADR-076 #3); a skill with that flag
+# and a Skill() caller is unreachable by construction (the band was, for six weeks).
+echo ""
+echo "Check 78: band retired + no quarantined Skill-tool dependency (t-3503)..."
+C78_TEST="$SCRIPT_DIR/system/scripts/tests/test-band-retired.sh"
+if [ ! -f "$C78_TEST" ]; then
+    fail "Check 78: test not found at $C78_TEST — this is the only required-CI path for the band-retirement and quarantined-dependency assertions"
+else
+    if C78_OUT=$(bash "$C78_TEST" 2>&1); then
+        C78_RC=0
+    else
+        C78_RC=$?
+    fi
+    echo "$C78_OUT" | sed 's/^/  /'
+    if [ "$C78_RC" -eq 0 ]; then
+        pass "Check 78: band retired; no quarantined skill is a Skill-tool dependency ✓"
+    else
+        fail "Check 78: a skill with disable-model-invocation is still the literal quoted target of a Skill() call in system/**/*.md, or retired band files are back (ADR-098; dynamic Skill() calls are out of this check's scope)"
+    fi
+fi
+
 # Summary
 echo "=== Validation Summary ==="
 echo "Errors: $ERRORS"
