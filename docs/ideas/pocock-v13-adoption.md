@@ -12,7 +12,7 @@ relates-to:
 ---
 # Adopt Pocock's implementation discipline, v1.3 round
 
-> Shaped 2026-10-07 from the quarterly recheck (t-3263). Status: decided — ADR-097 accepted
+> Shaped 2026-10-07 from the quarterly recheck (t-3263). Status: decided — ADR-097 accepted then **superseded by ADR-098 (2026-10-09): band retired, plugin installed as-is**; originally
 > with changes 2026-10-07 after a 3-worker pre-mortem + deep verification (see its Challenge
 > record). The plan below is the post-challenge cut; the original P1–P10 is kept for the record.
 

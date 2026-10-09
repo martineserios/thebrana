@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded
 extends: docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md
 respects: docs/architecture/decisions/ADR-061-goal-integration-three-primitive.md
 informs: docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md
@@ -7,7 +7,7 @@ informs: docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.m
 
 # ADR-097: The upstream skill band is standing — default pin v1.3.1, admit `tdd`, take `pr` as a template, hold `retro`
 
-**Status:** Accepted with changes (2026-10-07 by Martín Rios, on instruction "run /brana:challenge then accept") — one 3-worker pre-mortem + deep verification (RECONSIDER, narrow: 3 CRITICAL, 9 WARNING held, 1 refuted); every finding applied before acceptance, see Challenge record. Nothing under `system/` moves until the tasks in §Plan start.
+**Status:** **Superseded by [ADR-098](ADR-098-retire-upstream-band-install-pocock-plugin.md) (2026-10-09)**; was: Accepted with changes (2026-10-07 by Martín Rios, on instruction "run /brana:challenge then accept") — one 3-worker pre-mortem + deep verification (RECONSIDER, narrow: 3 CRITICAL, 9 WARNING held, 1 refuted); every finding applied before acceptance, see Challenge record. Nothing under `system/` moves until the tasks in §Plan start.
 **Date:** 2026-10-07
 **Deciders:** Martín Rios
 **Tags:** skills, upstream-band, mattpocock-mining, adr-084, adr-061, tdd, merge-valve
