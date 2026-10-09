@@ -32,7 +32,7 @@ Special branches (no task ID required): `main`, `docs/{topic}` (spec-only, no `s
 through the tier-2 valve (t-3023): `main` is branch-protected — a pull request is required,
 CI (`validate` + `rust` + `tests`) must be green on the PR, and `enforce_admins` is on, so a direct
 push to `main` is rejected for everyone. Procedure: `/brana:ship` (push `dev`, `gh pr create
---base main --head dev`, `gh pr checks --watch`, `gh pr merge --merge`, then `./bootstrap.sh`
+--base main --head dev`, `gh pr checks --required --watch`, `gh pr merge --merge`, then `./bootstrap.sh`
 from `main` and fast-forward `dev` onto `main`). Never commit to `main` or merge a feature
 branch into it. Session state commits on `dev`. Full doc: docs/guide/workflows/branching.md.
 
