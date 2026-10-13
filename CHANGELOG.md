@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-09 — ship dev→main, PR #1096 (v1.88.0; `/brana:ship` hardening, installed-mods guard, INCONCLUSIVE verdict, ADR-097)
+
+### Added
+- `/brana:ship` pre-flight runs CI's `tests` job in a throwaway **clone** (own `.git`, so it cannot touch the live ledger) with the `brana` build first on `PATH`; a red suite blocks unless shown to fail identically on `main`, and an incomplete sweep is reported as incomplete (t-3483)
+- `/brana:ship` waits and retries when a fresh PR has no checks yet, judges only **required** checks, reruns only the jobs GitHub never gave a runner (`gh run rerun --job`), and refuses a PR that is not `dev`'s own head (fork PR named `dev`); helper block executed against a stubbed `gh` by `tests/procedures/test-ship-hardening.sh` (t-3483)
+- `/brana:ship` Step 4 rebuilds and installs `brana-cli` after deploy with a runnable, symlink-aware backup, an atomic swap, `cmp` + `--help` verification and automatic restore (t-3483)
+- Installed-mods Law 3 guard: `mods-check.sh --installed` (+ weekly refusal canary), `bootstrap.sh` step 7i, `validate.sh` Check 77c — a plugin in the cache that calls `$.model`/`$.http`, or that the engine refuses, blocks the mods step (t-3493)
+- `INCONCLUSIVE` is a first-class verdict for the challenger and the runner evaluator; `brana backlog stacked-verdict` reports it as its own bucket (`judged.inconclusive`) instead of dropping it (t-3494)
+- ADR-097 (upstream band standing, v1.3) with three feature specs and the idea doc; ADR-098 retirement of the ADR-084 band is on `dev`, not shipped here
+
+### Fixed
+- `bootstrap.sh` 7i no longer aborts under `set -euo pipefail` when the mods checker dies with unindented output; `mods-check.sh` heredoc comments no longer contain apostrophes (stock bash 3.2 mis-parses them)
+- Weekly review 2026-10-09: PR attribution (#1093 = transcribe, #1094 = ADR-095/workspace CI), PR count and Pocock label corrected
+
+### Notes
+- **Rebuild `brana-cli` on every other machine after pulling `main`** — `bootstrap.sh` does not build it. Until then the INCONCLUSIVE wording reads as "0 judged". Done on this machine (installed binary byte-identical to the fresh build; `judged.inconclusive` present).
+- Shipped with the ship skill itself: this was the first ship run through the new procedure. The full sweep had one red suite, `tests/scripts/test-sync-state-hermetic.sh` (environment-only; fails identically on `main`). The advisory macOS CI job was still red/pending.
+- Not published: local `dev` carries the t-3503 session's ADR-084 band retirement (5 commits), which did not go through this ship's reviews.
+- Follow-ups: t-3499 (bootstrap stale-binary hints), t-3500 (execute the ship procedure's blocks in tests), t-3501 (sweep vs shared ledger), t-3504 (INCONCLUSIVE hardening), t-3505 (installed-mods guard hardening), t-3506 (ADR-097 cleanup), t-3502 (guard is point-in-time).
+
 ### 2026-10-07 — ship dev→main, PR #1094 (v1.87.1; ADR-095 accepted, patterns cap, session summary JSON, workspace CI)
 
 ### Fixed
