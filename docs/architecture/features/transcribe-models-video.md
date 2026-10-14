@@ -1,8 +1,8 @@
 # Feature: `brana transcribe` — any whisper model, video + frames
 
 **Date:** 2026-10-05
-**Status:** implemented — unit + real-ffmpeg tests; e2e verified 2026-10-05 (video+frames via whisper-cli, real `--model tiny` download, no-audio rollback)
-**Task:** t-3470
+**Status:** implemented — unit + real-ffmpeg tests; e2e verified 2026-10-05 (video+frames via whisper-cli, real `--model tiny` download, no-audio rollback); `--scene` verified 2026-10-14 (real-ffmpeg cut fixture + CLI boundary probes; no whisper e2e re-run)
+**Task:** t-3470; `--scene` added by t-3471
 
 ## Problem
 
@@ -42,7 +42,9 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
   (`frame_000001.jpg @ 00:00:00`) so frames and speech align.
 - `--scene <THRESHOLD>` (t-3471): sample on scene changes instead of a fixed interval —
   `select='eq(n\,0)+gt(scene\,X)',showinfo`, i.e. the first frame plus every frame whose ffmpeg
-  scene score exceeds X (0 < X ≤ 1; 0.3–0.4 is a typical cut detector). Requires `--frames`;
+  scene score exceeds X (0 < X < 1; 0.3–0.5 is a typical cut detector — a hard cut scores exactly 1.0
+  and `gt` is strict, so 1 is rejected; very low values keep nearly every frame, and the frame count is
+  printed on stderr). Requires `--frames`;
   mutually exclusive with `--every` (clap `conflicts_with`). Labels still come from `showinfo`
   `pts_time` via `parse_pts_times`, never from an index — the sampling mode only decides *which*
   frames are kept. The frame-index header reads `Frames (DIR scene>X)` instead of `every Ns`.
@@ -62,8 +64,9 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 - scene detect deferred to a follow-up task (t-3471) — confirmed by user 2026-10-05; shipped by t-3471.
 - `--scene` always keeps the first frame (`eq(n,0)`): chose parity with `--every` (which keeps the
   first frame) because a cut-less video would otherwise yield zero frames — needs confirmation.
-- `--scene` threshold domain: chose `0 < X ≤ 1` (ffmpeg's scene score range) and reject the rest
-  as a usage error rather than clamping — needs confirmation.
+- `--scene` threshold domain: `0 < X < 1`, rejecting the rest as a usage error rather than clamping.
+  Measured 2026-10-14 (t-3471 challenger F4): a hard cut scores exactly 1.0 and `gt` is strict, so
+  `gt(scene,1)` selected 0 frames on a lime|blue cut — 1 is excluded, not an assumption.
 - when only `.en` models are installed they are used (with a stderr warning) rather than
   auto-downloading `small` — confirmed by user 2026-10-05.
 
@@ -78,7 +81,7 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 
 - `--frames` on an audio-only file → error ("--frames needs a video input").
 - `--every 0` → error.
-- `--scene` without `--frames`, `--scene` together with `--every`, or `--scene 0` / `--scene 1.5` → usage error.
+- `--scene` without `--frames`, `--scene` together with `--every`, or `--scene 0` / `--scene 1` / `--scene 1.5` → usage error.
 - Model files of 1000 bytes or less, and in-progress `*.part-<pid>` downloads, are ignored by discovery.
   Downloads go to a `.part` file and are renamed on success.
 - Symlinked model files are followed (size and file type are the target's).
@@ -104,6 +107,10 @@ All in `system/cli/rust/crates/brana-cli/src/transcribe.rs`; CLI args in `cli.rs
 `extract_frames` → `FramesGuard` (rollback on error). `tempfile` moved from dev- to runtime dependency.
 `--print-special false` was dropped from the whisper-cli call: `-ps` is a boolean flag, so `false`
 was being passed as a stray input file.
+- `Sampling` enum (`Every(u32)` | `Scene(f64)`, t-3471) is the single seam between the two
+  `--frames` modes: `from_options` picks it, `select_expr` owns the ffmpeg `select` string,
+  `describe` names the mode in the frame-index header. `extract_frames` and the label path are
+  mode-agnostic.
 
 ## Boundaries
 
@@ -120,3 +127,7 @@ was being passed as a stray input file.
   (second frame comes from t=12 and must be labelled `00:00:12`). CI's `rust` job runs
   `cargo test --workspace` with ffmpeg (≥ 5.1, asserted) and `BRANA_REQUIRE_FFMPEG=1` (t-3472).
 - **E2E:** manual smoke with a real mp4 through whisper-cli.
+- **Integration (t-3471):** `scene_cut_yields_frame_at_cut_time` — 3 s lime | 3 s blue, `Scene(0.3)`
+  must yield exactly `@ 00:00:00` (lime) and `@ 00:00:03` (blue); real ffmpeg, `BRANA_REQUIRE_FFMPEG=1`.
+- **Unit (t-3471):** select-expression shape, `(0, 1)` threshold validation incl. NaN and 1.0, clap
+  `conflicts_with`/`requires` parse.

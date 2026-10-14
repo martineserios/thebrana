@@ -186,8 +186,8 @@ pub enum Commands {
         #[arg(long, default_value_t = 10, requires = "frames")]
         every: u32,
         /// Instead of a fixed interval, keep the first frame plus every scene change whose
-        /// ffmpeg scene score exceeds THRESHOLD (0 < x <= 1; 0.3 is a typical cut detector).
-        /// Requires --frames; excludes --every
+        /// ffmpeg scene score exceeds THRESHOLD (0 < x < 1; 0.3-0.5 detects cuts, lower values
+        /// keep nearly every frame of a busy video). Requires --frames; excludes --every
         #[arg(long, value_name = "THRESHOLD", requires = "frames", conflicts_with = "every")]
         scene: Option<f64>,
     },

@@ -28,7 +28,7 @@ pub struct Options {
     pub frames_dir: Option<PathBuf>,
     /// Seconds between extracted frames (ignored when `scene` is set).
     pub every: u32,
-    /// Sample on scene changes above this ffmpeg scene score (0 < x <= 1) instead of every N s.
+    /// Sample on scene changes above this ffmpeg scene score (0 < x < 1) instead of every N s.
     pub scene: Option<f64>,
 }
 
@@ -442,8 +442,10 @@ fn validate_options(opts: &Options, input: &Path) -> Result<()> {
         }
         match opts.scene {
             // NaN fails both comparisons, so it is rejected by the negated range check.
-            Some(t) if !(t > 0.0 && t <= 1.0) => {
-                bail!("--scene must be a scene score in (0, 1], e.g. 0.3 (got {t})")
+            // 1 is excluded: a hard cut scores exactly 1.0 and `gt` is strict, so
+            // gt(scene,1) can never select a frame (measured on a lime|blue cut).
+            Some(t) if !(t > 0.0 && t < 1.0) => {
+                bail!("--scene must be a scene score in (0, 1), e.g. 0.3 (got {t})")
             }
             Some(_) => {}
             None if opts.every == 0 => bail!("--every must be at least 1 second"),
@@ -492,6 +494,9 @@ fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<S
     if times.len() != files.len() {
         bail!("ffmpeg reported {} frame times for {} frames", times.len(), files.len());
     }
+    // Scene mode has no duration/N bound — a very low threshold can keep nearly every frame —
+    // so say how many were written.
+    eprintln!("Extracted {} frames into {}", files.len(), dir.display());
     Ok((frame_index(&files, &times), guard))
 }
 
@@ -822,9 +827,12 @@ mod tests {
     fn options_validate_rejects_bad_scene_thresholds() {
         let mk = |scene| Options { model: None, frames_dir: Some("o".into()), every: 10, scene };
         assert!(validate_options(&mk(Some(0.3)), Path::new("a.mp4")).is_ok());
-        assert!(validate_options(&mk(Some(1.0)), Path::new("a.mp4")).is_ok());
+        assert!(validate_options(&mk(Some(0.999)), Path::new("a.mp4")).is_ok());
         assert!(validate_options(&mk(Some(0.0)), Path::new("a.mp4")).is_err(), "0 selects nearly every frame");
         assert!(validate_options(&mk(Some(-0.1)), Path::new("a.mp4")).is_err());
+        // A hard cut scores exactly 1.0 and `gt` is strict (measured 2026-10-14: gt(scene,1)
+        // selected 0 frames on a lime|blue cut), so 1 can never fire — reject it.
+        assert!(validate_options(&mk(Some(1.0)), Path::new("a.mp4")).is_err(), "1 can never select a cut");
         assert!(validate_options(&mk(Some(1.5)), Path::new("a.mp4")).is_err(), "scene score is 0..1");
         assert!(validate_options(&mk(Some(f64::NAN)), Path::new("a.mp4")).is_err());
         // --scene is a frames sampler: without --frames it is a usage error (clap enforces this
