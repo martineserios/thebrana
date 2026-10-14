@@ -324,7 +324,162 @@ parallel ones).
 5. Later: staleness via supersession metadata; HNSW persisted index only if vectors exceed about
    50k; drop the ruflo memory server after exporting its 739 unique `knowledge:url` rows.
 
+## Challenger review (Phase 5, 2026-10-14)
+
+Three `brana:challenger` workers reviewed the shaped idea, each with a different lens: convergent,
+systems and critical (evaluation design). **All three returned RECONSIDER (narrow).** Their
+calibration notes are in `~/.claude/agent-memory/brana-challenger/`.
+
+**Verification run by the main session after the reviews:**
+
+- `~/.claude/run-state/t-*.jsonl` holds 28 build runs. 25 of them record a `LOAD` checkpoint, so
+  `/brana:build` LOAD, which runs `brana recall`, does happen in practice.
+- `~/.claude/scheduler/beats.jsonl` has **8 lines in total**. The last one is wave-29, 2026-09-07.
+  The headless runner is close to unused.
+
+### HIGH confidence (two or more workers)
+
+**H1. Premise correction: supervised drain workers already get recall; only the headless runner
+does not.**
+- *Raised by:* convergent #1, verified above; systems #3 (three pull paths) points the same way.
+- *Evidence:* each task pulled by a supervised drain runs the full `/brana:build`
+  (`docs/guide/workflows/drain-loop.md:120-121`, `epic-drain.md:174-179`), and build LOAD calls
+  `brana recall` (`system/skills/build/phases/load.md:98`). Only the headless runner prompt has no
+  recall (`system/scripts/autonomous-runner.sh:376-383`).
+- *Correction:* Round 5's "Beat and Epic have no recall step" was too broad. The real gaps are:
+  - LOAD's recall is untyped, not budgeted, and blind to supersession;
+  - nothing records which recalled notes were used;
+  - the headless runner has no recall, but at 8 beats ever it is low volume.
+- *Fix:* the integration point becomes **build LOAD**, where the bundle replaces or extends the
+  recall step, and **build CLOSE**, which writes the used/ignored data. The runner gets its own
+  later decision.
+
+**H2. The used/ignored field has nowhere to live as currently written.**
+- *Raised by:* systems #1, convergent #3, critical #5.
+- *Evidence:*
+  - Beat records are written once per beat, from a single-sourced schema that may not be forked
+    (`loops-library.md:100-157`).
+  - The runner throws away worker stdout except the `NEEDSHUMAN` grep (`autonomous-runner.sh:387-393`).
+  - ADR-057:25 notes that a schema field without a blocking mechanism "does not get adopted".
+  - The field is also LLM self-report, which only means something once the bundle is shown.
+- *Fix:*
+  - Write it from **build CLOSE as one row per task**, through a single `brana` verb (single writer).
+  - CLOSE refuses to finish without it. "Field absent" is recorded separately from "used nothing".
+  - Add an observable second signal: which pointed note files the transcript actually opened.
+
+**H3. Shadow mode can kill the bundle but cannot justify keeping it, and its token gate is zero by
+construction.**
+- *Raised by:* critical #3, convergent #2, systems #6.
+- *Evidence:*
+  - Nothing is injected in shadow mode, so the token change per run is 0.
+  - The real cost is cache reads (87% of ruflo's extra tokens) plus Reads of the notes a pointer
+    leads to (p50 1.6 KB). Neither is counted in a bundle budget.
+- *Fix:*
+  - Shadow gates are **kill-only**. Offline, the bundle must beat two baselines: current
+    `brana recall` on subject+tags, and the pointers already written in the ticket.
+  - Keep decisions come from a **canary or alternating A/B** in the injection phase, comparing tokens
+    per run, retries and AC pass rate.
+  - Pre-register a minimum n. Below it, the verdict is INCONCLUSIVE, not keep.
+
+**H4. Pointers are unreadable in the runner's sandbox, and the bundle has no project-scope rule.**
+- *Raised by:* systems #4, convergent #5.
+- *Evidence:*
+  - The bwrap jail does not mount `~/.claude/memory` or `~/.claude/projects`
+    (`sandbox-claude.sh:57,85-91`; `autonomous-runner.sh:474`).
+  - Recall spans about 100 project dirs, including client projects. Cross-client walls are still an
+    open question (ADR-095).
+- *Fix:*
+  - The ADR fixes the scope as current project plus global, with other clients excluded, enforced by
+    a must-fire test.
+  - The runner either gets inline gists (fenced, length-capped, injected host-side, never copied into
+    the worktree) or waits.
+
+### Single-worker findings (strong evidence, adopted)
+
+**C1 (critical #1). The mined gold mixes several meanings of "cited".**
+- *Evidence:* `scripts/mine_pairs.py:26` matches slug substrings across description, context and
+  notes, with no field split and no time order. Seven hits for one slug turned out to be three
+  different kinds:
+  - plan-time pointers already present in the ticket;
+  - write targets ("findings written back to X");
+  - completion notes.
+- *Fix:*
+  - Hand-label about 30 hits as pointed, wrote or read. Keep only "read" hits whose note predates the
+    task's `started`.
+  - **Commit the frozen gold file.** The miner reads a job-tmp export that is deleted with the job.
+
+**C2 (critical #2). `source_task` records which task *wrote* a note, so as gold it is circular.**
+- *Evidence:* of the 114 notes with `source_task`, about 62 are `close-YYYY-MM-DD` labels and about
+  40 name a task. A note written by task T did not exist when T was pulled.
+- *Fix:* drop it from the hit-rate gold. Use it only as a leakage control, against an index filtered
+  to notes dated before the task's `started`.
+- *Correction:* the Round 7 mitigation "gold adds `source_task`" is withdrawn.
+
+**C3 (critical #4). Precision is capped by the gold, and the doc's caveat was inverted.**
+- *Evidence:*
+  - An incomplete gold set understates *precision*, not recall.
+  - At about 1.22 cited notes per task, maximum precision at K=8 is about 15%.
+  - The gold is also biased toward what interactive recall already surfaced.
+- *Fix:* gate on hit@K and MRR against the baselines, and report precision only relative to a
+  baseline.
+
+**C4 (convergent #4). Deriving supersession from recency misreads ADR-038 and duplicates ADR-057.**
+- *Evidence:*
+  - Dated files exist so that parallel writes are safe (ADR-038:29-31). "Newest per slug" only
+    decides which line MEMORY.md shows, so treating recency as supersession would hide valid parallel
+    notes.
+  - ADR-057 already defines `status: superseded` and `supersedes`, and ADR-078 forbids a second
+    signal for the same state.
+- *Fix:*
+  - Read the ADR-057 fields first.
+  - Down-weight derived supersession hits; never drop them.
+  - Measure the prose regex's precision on the 42 candidate files, then backfill the confirmed pairs
+    into the ADR-057 fields.
+
+**C5 (systems #5). The usage log is canonical, not rebuildable.**
+- *Evidence:* a bundle is ranker output at a moment in time, and it cannot be re-derived later from
+  beat records.
+- *Fix:*
+  - Treat the log as a canonical store: one writer, backed up.
+  - Key rows by (task, claimant, ts). Record per-leg status, because the 500 ms keyword deadline
+    degrades silently.
+  - *Correction:* this overrides "derived, rebuildable" in the Shape's ADR line.
+
+**C6 (systems #2). A hung bundle call can strand leased tasks.**
+- *Evidence:* a bundle call made under the runner's `RUN_LOCK` after leasing would block every task
+  in the lease.
+- *Fix:* call it per task, with a wall-clock timeout (`timeout 10`), and fail open to an empty
+  bundle.
+
+**C7 (critical #6). The ~1.5K-token budget does not bind.**
+- *Evidence:* a pointer is about 40-50 tokens, so 1.5K tokens is about 30 pointers.
+- *Fix:* cap the bundle at 8 pointers or fewer. Take the gist from `description` only. Gate cost on
+  measured tokens per run, not on bundle size.
+
+**C8 (convergent #6). Citation fixes needed before the ADR is drafted.**
+- The procedures live in `docs/guide/workflows/{drain-loop,epic-drain}.md`. The `system/loops/*`
+  files are catalog pointers only.
+- `memory-decay-by-non-use.md:12-13` counts recall *exposure*, not use, so shadow rows must not
+  count.
+- ADR-086 §7 allows pointer appends to `context`, so it cannot justify "not stored". Cite
+  retrieval-routing rule 4 instead.
+
+**Surface the plan missed:**
+- `system/skills/build/phases/load.md` and the build CLOSE phase
+- `loops-library.md` §Beat record schema
+- `autonomous-runner.sh` and `lib/sandbox-claude.sh`
+- the `beats.jsonl` consumers (`pipeline-digest.sh`, `brana-scheduler-digest.sh` and their tests)
+- `docs/architecture/features/autonomous-runner.md`
+- `memory-decay-by-non-use.md`
+- `scripts/mine_pairs.py` and the frozen gold file
+
 ## Open decisions for the owner
+
+> **Resolved 2026-10-14 (Rounds 6 and Phase 5):** order = tracer bullet first (Round 6); archive
+> notes stay **out** of recall scope; **merge t-3510 before day 1** (it blocks the tracer bullet;
+> t-3511 follows); governance tasks (ADR → tests → implementation → spec and docs) are **included**
+> in the backlog plan. Still open: whether the ruflo memory server is removed in this project or
+> separately (default: separately, after exporting its 739 `knowledge:url` rows).
 
 - Order of work (above), after the architecture check.
 - Should notes under `memory/archive-2026-06/` be searchable in recall? Assumed no (parity with
