@@ -40,10 +40,15 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
   Frames are opt-in: a video without `--frames` yields the transcript only.
   Transcript is then printed with segment timestamps, followed by a frame index
   (`frame_000001.jpg @ 00:00:00`) so frames and speech align.
+- `--scene <THRESHOLD>` (t-3471): sample on scene changes instead of a fixed interval —
+  `select='eq(n\,0)+gt(scene\,X)',showinfo`, i.e. the first frame plus every frame whose ffmpeg
+  scene score exceeds X (0 < X ≤ 1; 0.3–0.4 is a typical cut detector). Requires `--frames`;
+  mutually exclusive with `--every` (clap `conflicts_with`). Labels still come from `showinfo`
+  `pts_time` via `parse_pts_times`, never from an index — the sampling mode only decides *which*
+  frames are kept. The frame-index header reads `Frames (DIR scene>X)` instead of `every Ns`.
 
 ## Non-goals (v1)
 
-- Scene-change frame detection (task text mentioned "scene detect") — deferred to t-3471. Real per-frame timestamps (its prerequisite) are already in place.
 - Sweeping `*.part-<pid>` files left by a killed download (they are ignored by discovery but use
   disk) — t-3473 (with the sibling `brana-core` `download_file` atomic-download fix).
 
@@ -54,7 +59,11 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 - frames via ffmpeg: confirmed by user.
 - frames are opt-in (`--frames DIR`), not produced for every video: chose opt-in because frame
   extraction writes many files — confirmed by user 2026-10-05.
-- scene detect deferred to a follow-up task (t-3471) — confirmed by user 2026-10-05.
+- scene detect deferred to a follow-up task (t-3471) — confirmed by user 2026-10-05; shipped by t-3471.
+- `--scene` always keeps the first frame (`eq(n,0)`): chose parity with `--every` (which keeps the
+  first frame) because a cut-less video would otherwise yield zero frames — needs confirmation.
+- `--scene` threshold domain: chose `0 < X ≤ 1` (ffmpeg's scene score range) and reject the rest
+  as a usage error rather than clamping — needs confirmation.
 - when only `.en` models are installed they are used (with a stderr warning) rather than
   auto-downloading `small` — confirmed by user 2026-10-05.
 
@@ -63,11 +72,13 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 - `brana transcribe a.mp3` with base+small installed → uses small (prints which model on stderr).
 - `brana transcribe a.mp3 --model large-v3` → uses/downloads `ggml-large-v3.bin`.
 - `brana transcribe talk.mp4 --frames out/ --every 5` → `out/frame_%06d.jpg` + timestamped transcript.
+- `brana transcribe talk.mp4 --frames out/ --scene 0.3` → one frame at t=0 plus one per detected cut, each labelled with its real time.
 
 ## Edge Cases
 
 - `--frames` on an audio-only file → error ("--frames needs a video input").
 - `--every 0` → error.
+- `--scene` without `--frames`, `--scene` together with `--every`, or `--scene 0` / `--scene 1.5` → usage error.
 - Model files of 1000 bytes or less, and in-progress `*.part-<pid>` downloads, are ignored by discovery.
   Downloads go to a `.part` file and are renamed on success.
 - Symlinked model files are followed (size and file type are the target's).
