@@ -47,9 +47,9 @@ Frozen gold set and pre-registered gates for the recall bundle (ADR-099, epic t-
 - **Note dates are weak.** 85 of 144 hits had only a file modification time, which moves on every
   edit, so dates could not filter pairs. `pointed` needs no date: the ticket citing the note proves
   it existed.
-- **The recall baseline is noisy and partly degraded** (see gates-v1.md): runs differ by about one
-  task in 43, and in Claude Code sessions the vector leg is dropped at its deadline because ruflo is
-  located by sourcing a shell script on every call.
+- **The recall baseline is noisy** (see gates-v1.md): runs differ by about one task in 43, and
+  under machine load the vector leg can miss its 2 s deadline and drop silently. (A first reading
+  blamed ruflo binary resolution; that was disproved the same day, see gates-v1.md §Correction.)
 
 ## Reproducing
 
