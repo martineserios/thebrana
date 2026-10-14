@@ -136,10 +136,12 @@ if [ -z "$BRANA_BIN" ]; then
     PASS=$((PASS + 1)); TOTAL=$((TOTAL + 1))  # non-blocking skip counts as pass
 else
     # Create a scratch task, check its fields, then cancel it
+    # `--json` takes a value; the old `--json` with no argument failed every run and this test
+    # always took its SKIP branch (t-3501). The add now lands in the runner's scratch ledger.
     SCRATCH_ID=$(brana backlog add \
         --subject "readiness-check-test-$$" \
         --description "Test task for readiness check smoke test — can be deleted" \
-        --json 2>/dev/null | jq -r '.id // empty' 2>/dev/null) || SCRATCH_ID=""
+        --effort XS 2>/dev/null | jq -r '.id // empty' 2>/dev/null) || SCRATCH_ID=""
 
     if [ -z "$SCRATCH_ID" ]; then
         echo "  SKIP: could not create scratch task (backlog add may require --effort)"

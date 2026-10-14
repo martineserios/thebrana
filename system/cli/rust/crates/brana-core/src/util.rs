@@ -37,6 +37,7 @@ pub fn scrub_git_env(cmd: &mut Command) -> &mut Command {
 /// 3. CWD fallback — CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) takes priority over process CWD
 pub fn find_tasks_file() -> Option<PathBuf> {
     find_tasks_file_with_hint(
+        std::env::var("BRANA_TASKS_FILE").ok().map(PathBuf::from),
         std::env::var("CLAUDE_PROJECT_DIR").ok().map(PathBuf::from),
         git_common_root(),
         git_toplevel(),
@@ -99,12 +100,28 @@ pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
 }
 
 /// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
+/// `override_file` (`BRANA_TASKS_FILE`) is an explicit ledger and wins over everything:
+/// inside a repo the git common root otherwise decides, so a test suite run from ANY linked
+/// worktree would read and write the live ledger — the runner exports a scratch file here
+/// (t-3501, ADR-094). Auto-inits the file; an empty value is no override.
 fn find_tasks_file_with_hint(
+    override_file: Option<PathBuf>,
     hint: Option<PathBuf>,
     common_root: Option<PathBuf>,
     toplevel: Option<PathBuf>,
     cwd: Option<PathBuf>,
 ) -> Option<PathBuf> {
+    if let Some(f) = override_file.filter(|p| !p.as_os_str().is_empty()) {
+        if f.exists() {
+            return Some(f);
+        }
+        if let Some(dir) = f.parent() {
+            if std::fs::create_dir_all(dir).is_ok() && std::fs::write(&f, b"{\"tasks\":[]}").is_ok() {
+                return Some(f);
+            }
+        }
+        return None;
+    }
     let effective_cwd = hint.filter(|p| p.is_dir()).or(cwd);
     find_tasks_file_from(common_root, toplevel, effective_cwd)
 }
@@ -766,7 +783,7 @@ mod tests {
         let f = dir.path().join(".claude/tasks.json");
         fs::write(&f, b"{\"tasks\":[]}").unwrap();
 
-        let result = find_tasks_file_with_hint(Some(dir.path().to_path_buf()), None, None, None);
+        let result = find_tasks_file_with_hint(None, Some(dir.path().to_path_buf()), None, None, None);
         assert_eq!(result, Some(f));
     }
 
@@ -779,6 +796,7 @@ mod tests {
         fs::write(&f, b"{\"tasks\":[]}").unwrap();
 
         let result = find_tasks_file_with_hint(
+            None,
             Some(hint_dir.path().to_path_buf()),
             Some(git_dir.path().to_path_buf()),
             None,
@@ -956,6 +974,7 @@ mod tests {
         fs::write(&f, b"{\"tasks\":[]}").unwrap();
 
         let result = find_tasks_file_with_hint(
+            None,
             Some(PathBuf::from("/nonexistent-brana-test-dir")),
             None,
             None,

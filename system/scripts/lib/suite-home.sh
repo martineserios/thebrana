@@ -97,7 +97,10 @@ run_suite_isolated() {
         echo "suite-home: cannot create a scratch HOME under $real (unwritable HOME is fatal — nothing runs un-isolated)" >&2
         return 2
     }
-    HOME="$SUITE_HOME_CURRENT" "$@"; rc=$?
+    # The ledger is NOT under HOME: brana resolves it through the git common root, so a suite
+    # run from any linked worktree would read/write the LIVE tasks.json. Hand every suite an
+    # explicit scratch ledger (t-3501, ADR-094); brana auto-inits it empty.
+    HOME="$SUITE_HOME_CURRENT" BRANA_TASKS_FILE="$SUITE_HOME_CURRENT/brana-tasks.json" "$@"; rc=$?
     suite_home_drop "$SUITE_HOME_CURRENT" "$real"; SUITE_HOME_CURRENT=""
     return $rc
 }

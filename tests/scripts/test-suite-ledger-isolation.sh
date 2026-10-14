@@ -22,7 +22,7 @@ echo '{"tasks":[{"id":"t-1","subject":"keep","status":"pending","type":"task"}]}
 count() { python3 -I -c "import json,sys; t=json.load(open(sys.argv[1])); print(len(t['tasks'] if isinstance(t,dict) else t))" "$1"; }
 cat > "$T/repo/tests/x/test-writes-ledger.sh" <<'SUITE'
 #!/usr/bin/env bash
-brana backlog add --subject "scratch-from-suite" --json >/dev/null 2>&1 || true
+brana backlog add --subject "scratch-from-suite" --effort XS >/dev/null 2>&1 || true
 echo "LEDGER_FILE=${BRANA_TASKS_FILE:-unset}"
 echo "TOTAL_SEEN=$(brana backlog stats 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["total"])' 2>/dev/null || echo err)"
 SUITE

@@ -109,9 +109,18 @@ Run all safety checks before touching anything external.
    [ "$(git -C "$SWEEP" rev-parse HEAD)" = "$(git rev-parse dev)" ] || { echo "sweep clone is not at dev — stop (a stale tree would give a false green)"; exit 1; }
    (cd "$SWEEP" && TEST_SUITE_KEEP_HOME=0 PATH="$BIN:$PATH" bash system/scripts/run-test-suites.sh tests/*/*.sh) > "$OUT" 2>&1; echo "sweep rc=$?"
    tail -n 15 "$OUT"                                            # "Failed tests:" lists every red suite
-   [ "$LEDGER_BEFORE" = "$(brana backlog stats 2>/dev/null | cksum)" ] || echo "WARN: ledger stats changed during the sweep — other sessions also write; if the change is not theirs, a suite touched the ledger: restore from the ADR-094 backup and file it"
+   [ "$LEDGER_BEFORE" = "$(brana backlog stats 2>/dev/null | cksum)" ] || echo "WARN: ledger stats changed during the sweep — other sessions also write; if the change is not theirs, a suite touched the ledger: restore from the ADR-094 backup and file it"   # WARN, not fail (t-3501 decision): the clone cannot reach the ledger and run-test-suites.sh hands every suite a scratch BRANA_TASKS_FILE, so a change here is another session's write — failing would block ships on normal concurrent activity
    rm -rf "$SWEEP" "$OUT"                                       # a plain clone this block created — not a registered worktree
    ```
+
+   **Ledger isolation, verified (t-3501).** `brana` resolves `tasks.json` through the git *common*
+   root, so a sweep from a linked worktree would share the live ledger — the clone above has its
+   own `.git`, and since t-3501 `run-test-suites.sh` also exports a scratch `BRANA_TASKS_FILE`
+   into every suite's scratch HOME (pinned by tests/scripts/test-suite-ledger-isolation.sh, which
+   must-fires a suite that does `brana backlog add`). Evidence 2026-10-14: a full sweep from a
+   linked worktree left `brana backlog stats` byte-identical; the only suite that writes the
+   backlog without a fixture (test-build-readiness-check.sh) had a broken `--json` call and never
+   wrote anything — fixed to a real add, now isolated by the runner.
 
    It takes minutes; start it in the background and run steps 3–5 meanwhile. **A red suite blocks
    unless shown to fail identically on `main`**: re-run that one suite in a `main` clone
