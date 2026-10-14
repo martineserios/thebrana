@@ -20,7 +20,14 @@ printf '#!/bin/sh\n' > "$T/home/.local/bin/brana";     chmod +x "$T/home/.local/
 printf '#!/bin/sh\n' > "$T/home/.local/bin/brana-mcp"; chmod +x "$T/home/.local/bin/brana-mcp"
 touch -t 202601010000 "$T/home/.local/bin/brana" "$T/home/.local/bin/brana-mcp"   # POSIX -t: older than any source written now
 echo 'fn main(){}' > "$T/system/cli/rust/crates/x/src/lib.rs"          # newer than both binaries
+assert "7d anchor exists in bootstrap.sh" yes "$(grep -q '^# 7d: Check brana binary freshness' "$B" && echo yes || echo no)"
+assert "7e anchor exists in bootstrap.sh (else the extraction would run to EOF)" yes "$(grep -q '^# 7e: ' "$B" && echo yes || echo no)"
 BLOCK="$(sed -n '/^# 7d: Check brana binary freshness/,/^# 7e: /p' "$B" | sed '$d')"
+# must-fire: the boundary regexes below DO match the removed bare-cp lines
+OLD1='    Run: cd /x && cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana'
+OLD2='    Run: cd /x && cargo build --release -p brana-mcp && cp target/release/brana-mcp ~/.local/bin/brana-mcp'
+assert "must-fire: regex catches the old bare brana cp" yes "$(printf '%s' "$OLD1" | grep -qE 'cp target/release/brana ~/\.local/bin/brana([^.[:alnum:]_-]|$)' && echo yes || echo no)"
+assert "must-fire: regex catches the old bare brana-mcp cp" yes "$(printf '%s' "$OLD2" | grep -qE 'cp target/release/brana-mcp ~/\.local/bin/brana-mcp([^.[:alnum:]_-]|$)' && echo yes || echo no)"
 OUT="$(HOME="$T/home" SYSTEM_DIR="$T/system" bash -c "$BLOCK" 2>&1)"; RC=$?
 assert "7d/7d2 block runs on a stale fixture" 0 "$RC"
 assert "brana-cli hint fires" yes "$(has 'brana-cli binary may be stale' "$OUT")"
@@ -53,7 +60,13 @@ if [ -n "$PROBE" ]; then
   printf '#!/bin/sh\nsleep 30\n' > "$T/hangs"; chmod +x "$T/hangs"
   mcp_alive "$T/silent" >/dev/null 2>&1; assert "must-fire: a server that prints nothing FAILS the probe" 1 "$?"
   mcp_alive "$T/talks"  >/dev/null 2>&1; assert "a server that answers initialize PASSES the probe" 0 "$?"
-  mcp_alive "$T/hangs"  >/dev/null 2>&1; assert "a server that never answers FAILS (bounded wait)" 1 "$?"
+  START=$SECONDS; mcp_alive "$T/hangs" >/dev/null 2>&1; RC=$?; ELAPSED=$((SECONDS-START))
+  assert "a server that never answers FAILS" 1 "$RC"
+  if command -v timeout >/dev/null 2>&1; then
+    assert "and the wait is bounded (~5 s, not the stub's 30)" yes "$([ "$ELAPSED" -lt 12 ] && echo yes || echo no)"
+  else
+    echo "  SKIP: no timeout binary here — the probe's wait is bounded only by the server's EOF exit"
+  fi
 fi
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

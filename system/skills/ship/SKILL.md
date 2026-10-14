@@ -100,7 +100,7 @@ Run all safety checks before touching anything external.
    ```bash
    cd "$(git rev-parse --show-toplevel)"                       # anchor
    B=~/.local/bin/brana
-   { cp -L "$B" "$B.bak.tmp" && "$B.bak.tmp" --version >/dev/null 2>&1 && mv -f "$B.bak.tmp" "$B.bak"; } || echo "WARN: no runnable brana.bak taken"   # FIRST: a symlinked install points at target/release, which the build below rewrites — Step 4 needs this copy
+   { cp -L "$B" "$B.bak.tmp" && "$B.bak.tmp" --version >/dev/null 2>&1 && mv -f "$B.bak.tmp" "$B.bak"; } || echo "WARN: no runnable brana.bak taken"   # FIRST: a symlinked install points at target/release, which the build below rewrites — Step 4 needs this copy. brana only: this step never builds brana-mcp, so Step 4 takes that backup itself before its own build (t-3499)
    LEDGER_BEFORE=$(brana backlog stats 2>/dev/null | cksum)     # belt and braces: the clone should not touch the ledger; hash the FULL output, compare after
    (cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli)   # CI builds brana first; suites call it by PATH
    BIN="$PWD/system/cli/rust/target/release"                    # this checkout's build — target/ is gitignored, a fresh clone has none
@@ -443,7 +443,10 @@ either; on any failure restore both and say which):
 
 `brana-mcp` takes no arguments — `--version` starts the stdio server and hangs — so its liveness
 check is an `initialize` handshake. The probe is extracted by tests/bootstrap/test-stale-binary-hints.sh,
-which must-fires it against a silent stub; keep the markers and the fences inside them.
+which must-fires it against silent, answering and hanging stubs; keep the markers and the fences inside
+them. **Run the probe fence and the install fence in the SAME Bash call** — functions do not survive
+across calls; the install block checks and stops before the build if the probe is missing. Without a
+`timeout` binary (stock macOS) the probe's wait is bounded only by the server's EOF exit.
 <!-- MCP-ALIVE-BLOCK -->
 ```bash
 # mcp_alive <binary>: 0 if the binary answers an MCP initialize request within ~5 s, else 1.
@@ -458,8 +461,12 @@ mcp_alive() {
 <!-- /MCP-ALIVE-BLOCK -->
 
 ```bash
+type mcp_alive >/dev/null 2>&1 || { echo "mcp_alive is not defined — run the probe fence above in this same Bash call"; exit 1; }
 BIN=~/.local/bin/brana; MCP=~/.local/bin/brana-mcp
 NEW=system/cli/rust/target/release/brana; NEWMCP=system/cli/rust/target/release/brana-mcp
+# brana-mcp is optional on a machine (bootstrap treats it as "not found, skip"): without it, this block
+# rebuilds brana-cli alone and never blocks the CLI swap on a binary that was never installed.
+HAVE_MCP=0; [ -e "$MCP" ] && HAVE_MCP=1
 # Backups. brana: only the right backup is a backup — a regular-file install is still the previous version
 # NOW (copy it fresh); a symlinked install points at target/release, which pre-flight 2b's build already
 # rewrote, so the only copy of the previous version is the .bak 2b took BEFORE that build — require it, runnable.
@@ -470,24 +477,38 @@ else
 fi
 # brana-mcp: 2b never rebuilds it, so a fresh copy taken HERE, before the build below, is the previous version
 # even for a symlinked install (cp -L follows the link now, before target/release/brana-mcp is rewritten).
-{ cp -L "$MCP" "$MCP.bak.tmp" && mcp_alive "$MCP.bak.tmp" && mv -f "$MCP.bak.tmp" "$MCP.bak"; } \
-  || { [ -s "$MCP.bak.tmp" ] && mv -f "$MCP.bak.tmp" "$MCP.bak" && echo "WARN: previous brana-mcp did not answer initialize (pre-t-3462 build?) — kept as $MCP.bak unverified"; } \
-  || { echo "cannot take a backup of the installed brana-mcp — stop"; exit 1; }
+# A copy is only a backup if it is complete (cmp), never merely non-empty.
+if [ "$HAVE_MCP" = 1 ]; then
+  rm -f "$MCP.bak.tmp"
+  { cp -L "$MCP" "$MCP.bak.tmp" && cmp -s "$MCP" "$MCP.bak.tmp"; } || { rm -f "$MCP.bak.tmp"; echo "cannot take a complete backup of the installed brana-mcp — stop"; exit 1; }
+  mcp_alive "$MCP.bak.tmp" || echo "WARN: the previous brana-mcp did not answer initialize — kept as backup anyway (restore target only)"
+  mv -f "$MCP.bak.tmp" "$MCP.bak"
+fi
 # Build exactly what main ships: HEAD's system/cli must equal main's, with no local edits. One build, both binaries.
 { [ "$(git rev-parse HEAD:system/cli)" = "$(git rev-parse main:system/cli)" ] && git diff --quiet HEAD -- system/cli; } || { echo "system/cli differs from main — nothing built"; exit 1; }
-(cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli -p brana-mcp) || { echo "build failed — nothing replaced"; exit 1; }
-# Verify BOTH new binaries before swapping EITHER.
+if [ "$HAVE_MCP" = 1 ]; then PKGS="-p brana-cli -p brana-mcp"; else PKGS="-p brana-cli"; fi
+(cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release $PKGS) || { echo "build failed — nothing replaced"; exit 1; }
+# Verify BOTH new binaries before swapping EITHER. If only the brana-mcp half fails, report it and offer
+# a brana-cli-only install through the same gate — never silently.
 "$NEW" --version || { echo "new brana does not run — nothing replaced"; exit 1; }
-mcp_alive "$NEWMCP" || { echo "new brana-mcp does not answer initialize — nothing replaced"; exit 1; }
-# Swap both atomically: each binary is never missing, running processes keep the old inode.
-cp "$NEW" "$BIN.new" && cp "$NEWMCP" "$MCP.new" && mv -f "$BIN.new" "$BIN" && mv -f "$MCP.new" "$MCP" \
-  || { rm -f "$BIN.new" "$MCP.new"; echo "install failed — previous binaries kept"; exit 1; }
+if [ "$HAVE_MCP" = 1 ]; then mcp_alive "$NEWMCP" || { echo "new brana-mcp does not answer initialize — nothing replaced (ask: install brana-cli alone?)"; exit 1; }; fi
+# Swap atomically: each binary is never missing, running processes keep the old inode. A failure after the
+# first swap is routed into the restore so the two never end up mixed-version.
+cp "$NEW" "$BIN.new" || { echo "install failed — previous binaries kept"; exit 1; }
+if [ "$HAVE_MCP" = 1 ]; then cp "$NEWMCP" "$MCP.new" || { rm -f "$BIN.new"; echo "install failed — previous binaries kept"; exit 1; }; fi
+mv -f "$BIN.new" "$BIN" || { rm -f "$BIN.new" "$MCP.new"; echo "install failed — previous binaries kept"; exit 1; }
+if [ "$HAVE_MCP" = 1 ]; then
+  mv -f "$MCP.new" "$MCP" || { rm -f "$MCP.new"; mv -f "$BIN.bak" "$BIN" && echo "brana-mcp install failed — restored brana (both previous)" || echo "brana-mcp install failed AND brana restore failed — $BIN.bak is the previous brana"; exit 1; }
+fi
 # Verify the installed binaries, not the build's exit code; on any failure restore BOTH and say which.
-if cmp -s "$NEW" "$BIN" && "$BIN" --version && "$BIN" --help >/dev/null && cmp -s "$NEWMCP" "$MCP" && mcp_alive "$MCP"; then
-  echo "installed: brana + brana-mcp (restart Claude Code sessions to pick up the new brana-mcp)"
+OK=1
+{ cmp -s "$NEW" "$BIN" && "$BIN" --version && "$BIN" --help >/dev/null; } || OK=0
+if [ "$HAVE_MCP" = 1 ]; then { cmp -s "$NEWMCP" "$MCP" && mcp_alive "$MCP"; } || OK=0; fi
+if [ "$OK" = 1 ]; then
+  if [ "$HAVE_MCP" = 1 ]; then echo "installed: brana + brana-mcp (restart Claude Code sessions to pick up the new brana-mcp)"; else echo "installed: brana (no brana-mcp on this machine — not built)"; fi
 else
   R=""; mv -f "$BIN.bak" "$BIN" && R="brana" || echo "restore of brana FAILED — $BIN.bak is the previous binary"
-  mv -f "$MCP.bak" "$MCP" && R="$R brana-mcp" || echo "restore of brana-mcp FAILED — $MCP.bak is the previous binary"
+  if [ "$HAVE_MCP" = 1 ]; then mv -f "$MCP.bak" "$MCP" && R="$R brana-mcp" || echo "restore of brana-mcp FAILED — $MCP.bak is the previous binary"; fi
   echo "verify failed — restored: ${R:-nothing}"; exit 1
 fi
 "$BIN" backlog stats | head -c 120     # the ledger count must equal the pre-ship one (Step 4 table)

@@ -1063,7 +1063,7 @@ if [ -f "$BRANA_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
     if [ -n "$NEWEST_SRC" ]; then
         echo "  ! brana-cli binary may be stale (source changed since last build)"
         echo "    After a ship: /brana:ship Step 4 does this (one build of brana-cli + brana-mcp, backup, atomic swap, verified)."
-        echo "    Outside a ship, bare minimum (no backup/verify; builds THIS checkout):"
+        echo "    Outside a ship, bare minimum (no backup/verify; builds THIS checkout; a symlinked install becomes a regular file):"
         echo "      cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana.new && mv -f ~/.local/bin/brana.new ~/.local/bin/brana"
     else
         echo "  = brana-cli binary (current)"
