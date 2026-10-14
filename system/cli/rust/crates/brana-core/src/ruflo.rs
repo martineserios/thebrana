@@ -86,6 +86,18 @@ pub fn resolve_ruflo_binary() -> Option<PathBuf> {
     None
 }
 
+/// Shield text from ruflo's flag parser: a `-t` value that starts with `-` is read
+/// as an option, so the CLI crashes with "text.substring is not a function" and
+/// returns no embedding. A leading space is invisible to the tokenizer. Found
+/// t-3510: 791 of 1,106 memory files open with a `---` frontmatter fence.
+pub(crate) fn argv_safe_text(text: &str) -> std::borrow::Cow<'_, str> {
+    if text.starts_with('-') {
+        std::borrow::Cow::Owned(format!(" {text}"))
+    } else {
+        std::borrow::Cow::Borrowed(text)
+    }
+}
+
 /// Similarity threshold for semantic search over ruflo namespaces.
 ///
 /// **Always pass this (or an explicit value) — never `None` for a namespaced
@@ -127,7 +139,8 @@ pub fn ruflo_memory_search_raw(
     let mut cmd = std::process::Command::new(&ruflo);
     cmd.args([
         "memory", "search",
-        "-q", query,
+        // A query starting with `-` would be read as a flag (t-3510 gate, F14).
+        "-q", &argv_safe_text(query),
         "--namespace", namespace,
         "--limit", &limit_str,
     ])
@@ -715,5 +728,40 @@ exit 1
         }
 
         assert_eq!(result, Some(fake_ruflo_bin));
+    }
+
+    // ── t-3510 gate repair: F14 (ruflo's flag parser eats a leading-dash -q value) ──
+
+    #[test]
+    fn argv_safe_text_shields_leading_dash_here_for_every_ruflo_caller() {
+        assert_eq!(argv_safe_text("-x test"), " -x test");
+        assert_eq!(argv_safe_text("---\nname: x"), " ---\nname: x");
+        assert_eq!(argv_safe_text("plain"), "plain");
+    }
+
+    #[test]
+    #[serial]
+    fn memory_search_passes_a_leading_dash_query_shielded() {
+        let dir = TempDir::new().unwrap();
+        let fake = dir.path().join("ruflo");
+        // Echo every argument on its own line, so the test sees exactly what ruflo would.
+        fs::write(&fake, b"#!/bin/sh\nfor a in \"$@\"; do printf '%s\\n' \"$a\"; done\n").unwrap();
+        fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+        let prev = std::env::var("RUFLO_BIN").ok();
+        // SAFETY: serial ensures single-threaded access to env
+        unsafe { std::env::set_var("RUFLO_BIN", fake.to_str().unwrap()) };
+
+        let out = ruflo_memory_search_raw("-x test", "knowledge", 3, None, true);
+
+        unsafe {
+            match prev {
+                Some(v) => std::env::set_var("RUFLO_BIN", v),
+                None => std::env::remove_var("RUFLO_BIN"),
+            }
+        }
+        let out = out.expect("fake ruflo ran");
+        let args: Vec<&str> = out.lines().collect();
+        let q = args.iter().position(|a| *a == "-q").expect("-q present");
+        assert_eq!(args[q + 1], " -x test", "query must reach ruflo as a value, not a flag: {args:?}");
     }
 }

@@ -1,6 +1,6 @@
 use anyhow::Result;
-use brana_core::search::{DocRef, FTS5Provider, HybridProvider, SearchProvider};
-use brana_core::vector::{RufloEmbedder, VectorProvider};
+use brana_core::search::{DocRef, SearchProvider};
+use brana_core::vector::RufloEmbedder;
 use std::sync::Arc;
 
 pub fn cmd_recall(query: &str, top_k: usize, json: bool, db: Option<String>) -> Result<()> {
@@ -8,15 +8,15 @@ pub fn cmd_recall(query: &str, top_k: usize, json: bool, db: Option<String>) -> 
         .map(std::path::PathBuf::from)
         .unwrap_or_else(brana_core::memory::fts_index_path);
 
-    let fts5 = Arc::new(FTS5Provider::new(db_path)) as Arc<dyn brana_core::search::SearchProvider>;
-    // Local vector recall over the brana-owned store (t-2620) — replaces the
-    // broken ruflo retrieval stack; ruflo remains only as query embedder.
-    // Threshold 0.25 keeps sub-topical noise out of the RRF pool.
-    let vectors = Arc::new(
-        VectorProvider::new(brana_core::vector::knowledge_db_path(), Arc::new(RufloEmbedder))
-            .with_threshold(0.25),
-    ) as Arc<dyn brana_core::search::SearchProvider>;
-    let provider = HybridProvider::new(fts5, vectors);
+    // Local vector recall over the brana-owned store (t-2620) — replaces the broken ruflo
+    // retrieval stack; ruflo remains only as query embedder. Curated memory files get
+    // their own semantic list once `brana knowledge embed-memory` has filled it (t-3510);
+    // before that the list is empty and recall is the old FTS + knowledge fusion.
+    let provider = brana_core::vector::recall_provider(
+        db_path,
+        brana_core::vector::knowledge_db_path(),
+        Arc::new(RufloEmbedder),
+    );
 
     let hits = provider.query(query, top_k);
 

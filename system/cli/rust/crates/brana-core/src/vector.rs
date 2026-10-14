@@ -16,6 +16,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result, bail};
 use rusqlite::{Connection, OpenFlags, params};
 
+use crate::ruflo::argv_safe_text;
 use crate::search::{DocRef, SearchHit, SearchProvider};
 
 /// Embedding dimensionality (all-MiniLM-L6-v2).
@@ -132,6 +133,49 @@ impl KnowledgeStore {
             )
             .with_context(|| format!("upserting {key}"))?;
         Ok(())
+    }
+
+    /// Stored `content` for `key`, if the row exists.
+    pub fn content_of(&self, key: &str) -> Result<Option<String>> {
+        use rusqlite::OptionalExtension;
+        self.conn()?
+            .query_row("SELECT content FROM knowledge WHERE key = ?1", params![key], |r| r.get(0))
+            .optional()
+            .with_context(|| format!("reading content of {key}"))
+    }
+
+    /// Stored `content` and `tags` for `key`, if the row exists.
+    pub fn content_and_tags_of(&self, key: &str) -> Result<Option<(String, Option<String>)>> {
+        use rusqlite::OptionalExtension;
+        self.conn()?
+            .query_row(
+                "SELECT content, tags FROM knowledge WHERE key = ?1",
+                params![key],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)),
+            )
+            .optional()
+            .with_context(|| format!("reading content and tags of {key}"))
+    }
+
+    /// Keys of every row whose `source` column equals `source`, key-ordered.
+    pub fn keys_with_source(&self, source: &str) -> Result<Vec<String>> {
+        let conn = self.conn()?;
+        let mut stmt = conn
+            .prepare("SELECT key FROM knowledge WHERE source = ?1 ORDER BY key")
+            .context("preparing keys_with_source")?;
+        let keys = stmt
+            .query_map(params![source], |r| r.get::<_, String>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(keys)
+    }
+
+    /// Delete one row by key. Returns whether a row was removed.
+    pub fn delete(&self, key: &str) -> Result<bool> {
+        let n = self
+            .conn()?
+            .execute("DELETE FROM knowledge WHERE key = ?1", params![key])
+            .with_context(|| format!("deleting {key}"))?;
+        Ok(n > 0)
     }
 
     /// Write the scoring-pass columns for an existing entry (t-3311).
@@ -530,6 +574,53 @@ pub struct VectorProvider {
     embedder: Arc<dyn Embedder>,
     /// Hits below this cosine similarity are dropped.
     threshold: f32,
+    /// Which rows participate relative to embedded memory files (t-3510).
+    memory_scope: MemoryScope,
+}
+
+/// How a [`VectorProvider`] treats embedded memory-file rows (t-3510).
+///
+/// `Exclude` is the default because `brana knowledge search` documents that the
+/// store holds only `knowledge:` entries. Recall uses two providers: knowledge
+/// rows (`Exclude`) and memory files (`Only`), so a memory file is ranked
+/// against other memory files instead of against thousands of knowledge rows —
+/// measured on the live store, the right file ranked 1st among memory files but
+/// 42nd overall and never reached the shared candidate pool.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MemoryScope {
+    #[default]
+    Exclude,
+    Include,
+    Only,
+}
+
+/// Memoizes the most recent embedding so several providers that share one query
+/// (recall's knowledge and memory legs) embed it once instead of starting the
+/// external embedder once each. The lock is held across the inner call, so a
+/// concurrent second caller waits for the first result rather than racing it.
+pub struct CachedEmbedder {
+    inner: Arc<dyn Embedder>,
+    last: std::sync::Mutex<Option<(String, Option<Vec<f32>>)>>,
+}
+
+impl CachedEmbedder {
+    pub fn new(inner: Arc<dyn Embedder>) -> Self {
+        Self { inner, last: std::sync::Mutex::new(None) }
+    }
+}
+
+impl Embedder for CachedEmbedder {
+    fn embed(&self, text: &str) -> Option<Vec<f32>> {
+        let mut guard = self.last.lock().ok()?;
+        if let Some((cached_text, cached_vec)) = guard.as_ref()
+            && cached_text == text
+        {
+            return cached_vec.clone();
+        }
+        let vec = self.inner.embed(text);
+        *guard = Some((text.to_string(), vec.clone()));
+        vec
+    }
 }
 
 impl VectorProvider {
@@ -538,11 +629,19 @@ impl VectorProvider {
             db_path: db_path.into(),
             embedder,
             threshold: 0.0,
+            memory_scope: MemoryScope::Exclude,
         }
     }
 
     pub fn with_threshold(mut self, t: f32) -> Self {
         self.threshold = t;
+        self
+    }
+
+    /// Choose how embedded curated memory files participate; they are returned as
+    /// `DocRef::MemoryFile`. See [`MemoryScope`].
+    pub fn with_memory_scope(mut self, scope: MemoryScope) -> Self {
+        self.memory_scope = scope;
         self
     }
 }
@@ -564,7 +663,8 @@ impl SearchProvider for VectorProvider {
         ) else {
             return Vec::new();
         };
-        let Ok(mut stmt) = conn.prepare("SELECT key, content, vec FROM knowledge") else {
+        let Ok(mut stmt) = conn.prepare("SELECT key, content, vec, tags, source FROM knowledge")
+        else {
             return Vec::new();
         };
         let rows = stmt.query_map([], |r| {
@@ -572,16 +672,33 @@ impl SearchProvider for VectorProvider {
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, Vec<u8>>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, Option<String>>(4)?,
             ))
         });
         let Ok(rows) = rows else { return Vec::new() };
 
-        let mut scored: Vec<(f32, String, String)> = rows
+        let mut scored: Vec<(f32, String, String, Option<String>, Option<String>)> = rows
             .filter_map(|row| {
-                let (key, content, blob) = row.ok()?;
+                let (key, content, blob, tags, source) = row.ok()?;
+                let is_memory = source.as_deref() == Some(crate::memory_vectors::MEMORY_SOURCE);
+                match self.memory_scope {
+                    MemoryScope::Exclude if is_memory => return None,
+                    MemoryScope::Only if !is_memory => return None,
+                    _ => {}
+                }
                 let v = blob_to_vec(&blob)?;
                 let score = cosine(&qvec, &v);
-                (score >= self.threshold).then_some((score, key, content))
+                if score < self.threshold {
+                    return None;
+                }
+                // A memory row whose file is gone (deleted, archived, renamed before
+                // embed-memory reran) never surfaces (t-3510 gate, F2). Checked after
+                // the threshold so only candidates pay the stat.
+                if is_memory && !crate::memory_vectors::memory_row_path(&key).is_some_and(|p| p.exists()) {
+                    return None;
+                }
+                Some((score, key, content, tags, source))
             })
             .collect();
         scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
@@ -589,20 +706,59 @@ impl SearchProvider for VectorProvider {
 
         scored
             .into_iter()
-            .map(|(score, key, content)| SearchHit {
-                doc: DocRef::KnowledgeEntry {
-                    key,
-                    namespace: "knowledge".to_string(),
-                },
-                snippet: truncate_chars(&content, 300),
-                // Cosine similarity at the provider level — single-provider
-                // callers (knowledge search, t-2734) display it directly.
-                // HybridProvider overwrites this during RRF merge, so the
-                // "0.0 until merged" contract only relaxes, never breaks.
-                rrf_score: score as f64,
+            .map(|(score, key, content, tags, source)| {
+                // Embedded memory files surface as `MemoryFile` with the FTS
+                // leg's identity so the RRF merge fuses both signals (t-3510).
+                let memory = crate::memory_vectors::memory_doc_ref(
+                    &key,
+                    tags.as_deref(),
+                    source.as_deref(),
+                );
+                let snippet = if memory.is_some() {
+                    crate::memory_vectors::memory_snippet(&content, 300)
+                } else {
+                    truncate_chars(&content, 300)
+                };
+                SearchHit {
+                    doc: memory.unwrap_or(DocRef::KnowledgeEntry {
+                        key,
+                        namespace: "knowledge".to_string(),
+                    }),
+                    snippet,
+                    // Cosine similarity at the provider level — single-provider
+                    // callers (knowledge search, t-2734) display it directly.
+                    // HybridProvider overwrites this during RRF merge, so the
+                    // "0.0 until merged" contract only relaxes, never breaks.
+                    rrf_score: score as f64,
+                }
             })
             .collect()
     }
+}
+
+/// Cosine floor for recall's semantic legs: keeps sub-topical noise out of the RRF pool.
+pub const RECALL_VECTOR_THRESHOLD: f32 = 0.25;
+
+/// The one place recall's fusion is assembled (CLI and MCP both call it, so the two
+/// cannot drift): keyword search over the memory files, semantic search over knowledge
+/// rows, and a third list of semantically matched memory files ranked on their own so
+/// they never compete with thousands of knowledge rows for the candidate pool (t-3510).
+/// Both semantic legs share one query embedding.
+pub fn recall_provider(
+    fts_db: impl Into<PathBuf>,
+    knowledge_db: impl Into<PathBuf>,
+    embedder: Arc<dyn Embedder>,
+) -> crate::search::HybridProvider {
+    use crate::search::{FTS5Provider, HybridProvider};
+    let knowledge_db = knowledge_db.into();
+    let shared: Arc<dyn Embedder> = Arc::new(CachedEmbedder::new(embedder));
+    let knowledge = VectorProvider::new(knowledge_db.clone(), Arc::clone(&shared))
+        .with_threshold(RECALL_VECTOR_THRESHOLD);
+    let memory = VectorProvider::new(knowledge_db, shared)
+        .with_threshold(RECALL_VECTOR_THRESHOLD)
+        .with_memory_scope(MemoryScope::Only);
+    HybridProvider::new(Arc::new(FTS5Provider::new(fts_db.into())), Arc::new(knowledge))
+        .with_extra(Arc::new(memory))
 }
 
 /// Truncate at a char boundary, appending `…` when shortened.
@@ -808,11 +964,13 @@ pub fn probe_memory_entries(path: &Path) -> bool {
 /// any resolution/spawn/parse failure returns `None`.
 pub struct RufloEmbedder;
 
+
 impl Embedder for RufloEmbedder {
     fn embed(&self, text: &str) -> Option<Vec<f32>> {
         let bin = crate::ruflo::resolve_ruflo_binary()?;
+        let text = argv_safe_text(text);
         let out = std::process::Command::new(bin)
-            .args(["embeddings", "generate", "-t", text, "-o", "json"])
+            .args(["embeddings", "generate", "-t", text.as_ref(), "-o", "json"])
             .output()
             .ok()?;
         let stdout = String::from_utf8_lossy(&out.stdout);
@@ -863,6 +1021,19 @@ mod tests {
     #[test]
     fn cosine_orthogonal_is_zero() {
         assert!(cosine(&unit(0), &unit(1)).abs() < 1e-6);
+    }
+
+    // ── embedder argv safety (t-3510) ──────────────────────────────────────────
+
+    #[test]
+    fn argv_safe_text_shields_leading_dash_from_ruflo_flag_parser() {
+        // ruflo's CLI reads a `-t` value starting with `-` as a flag, then crashes with
+        // "text.substring is not a function". 791 of 1,106 memory files start with `---`.
+        assert_eq!(argv_safe_text("---\nname: x"), " ---\nname: x");
+        assert_eq!(argv_safe_text("-foo"), " -foo");
+        assert_eq!(argv_safe_text("plain text"), "plain text");
+        assert_eq!(argv_safe_text(""), "");
+        assert_eq!(argv_safe_text(" already spaced"), " already spaced");
     }
 
     #[test]
@@ -1186,6 +1357,30 @@ mod tests {
         let rows = store.rows_with_vec(RowFilter::LinkAndFeed).unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].key, "knowledge:url:good");
+    }
+
+    #[test]
+    fn link_and_feed_filter_never_selects_memory_file_rows() {
+        // t-3510 gate F16: memory-file rows share the table; the relevance pass must not score them.
+        let tmp = tempdir().unwrap();
+        let store = KnowledgeStore::open(tmp.path().join("knowledge.db")).unwrap();
+        store
+            .upsert("knowledge:url:good", "ok", Some("github"), Some("memory_entries"), 1, &unit(0))
+            .unwrap();
+        store
+            .upsert(
+                "memory-file:/home/u/.claude/memory/pattern_x.md",
+                "note about github",
+                Some(&format!("memory-file,scope:global,{}", crate::memory_vectors::EMBED_VERSION)),
+                Some(crate::memory_vectors::MEMORY_SOURCE),
+                2,
+                &unit(0),
+            )
+            .unwrap();
+
+        let rows = store.rows_with_vec(RowFilter::LinkAndFeed).unwrap();
+
+        assert_eq!(rows.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(), vec!["knowledge:url:good"]);
     }
 
     // ── provider ──────────────────────────────────────────────────────────────

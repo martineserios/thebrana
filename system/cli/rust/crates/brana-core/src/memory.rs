@@ -454,21 +454,125 @@ pub fn fts_index_path() -> PathBuf {
 /// full cross-project scan so the index mirrors what `index-patterns.sh`
 /// produced.
 pub fn reindex_fts(_project_root: &Path, db_path: &Path) -> Result<usize> {
-    let h = home();
-    let mut dirs: Vec<(String, PathBuf)> = vec![
-        ("global".to_string(), h.join(".claude/memory")),
-    ];
-    // Glob all project memory dirs
-    let projects_base = h.join(".claude/projects");
-    if let Ok(entries) = fs::read_dir(&projects_base) {
-        for entry in entries.flatten() {
-            let mem_dir = entry.path().join("memory");
-            if mem_dir.is_dir() {
-                dirs.push(("project".to_string(), mem_dir));
+    reindex_fts_dirs(&memory_dirs()?, db_path)
+}
+
+/// One curated memory file with the identity both recall legs must agree on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemoryFileRef {
+    pub scope: String,
+    pub path: PathBuf,
+    pub slug: String,
+    pub mtype: String,
+}
+
+/// Derive `(mtype, slug)` from a memory file stem — the single rule shared by the
+/// FTS5 index and the vector index so one file has one identity (t-3510).
+///
+/// `pattern_foo_2026-06-09T10-00-00` → `("pattern", "foo")`; a stem with no
+/// `type_` prefix → `("", stem)`.
+pub fn memory_file_identity(stem: &str) -> (String, String) {
+    match stem.split_once('_') {
+        Some((t, rest)) => (t.to_string(), slug_from_rest(rest).to_string()),
+        None => (String::new(), stem.to_string()),
+    }
+}
+
+/// Every memory scope directory: global + each `~/.claude/projects/*/memory/`.
+///
+/// Errors when `~/.claude/projects` exists but cannot be read: an unreadable root
+/// must not silently become "no projects", or a rebuild would drop every project's
+/// notes (t-3510 gate, F5). A missing root is fine (global only).
+pub fn memory_dirs() -> Result<Vec<(String, PathBuf)>> {
+    memory_dirs_in(&home())
+}
+
+/// [`memory_dirs`] rooted at an explicit home directory (testable).
+pub fn memory_dirs_in(home_dir: &Path) -> Result<Vec<(String, PathBuf)>> {
+    let mut dirs: Vec<(String, PathBuf)> = vec![("global".to_string(), home_dir.join(".claude/memory"))];
+    let projects = home_dir.join(".claude/projects");
+    match fs::read_dir(&projects) {
+        Ok(entries) => {
+            for entry in entries {
+                let entry = entry.with_context(|| format!("reading {}", projects.display()))?;
+                let mem_dir = entry.path().join("memory");
+                // `is_dir()` would turn a stat error into "no memory dir" and drop
+                // the project from a rebuild silently (t-3510 gate, iteration 2).
+                match fs::metadata(&mem_dir) {
+                    Ok(m) if m.is_dir() => dirs.push(("project".to_string(), mem_dir)),
+                    Ok(_) => {}
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e).with_context(|| format!("checking {}", mem_dir.display())),
+                }
             }
         }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e).with_context(|| format!("reading {}", projects.display())),
     }
-    reindex_fts_dirs(&dirs, db_path)
+    Ok(dirs)
+}
+
+/// What a scan of memory dirs found, and which dirs were read completely.
+///
+/// Three outcomes per dir (t-3510 gate, F5):
+/// - *complete*: listed fully; its absent files may be pruned.
+/// - *failed*: exists but could not be read (permissions, entry error mid-read).
+///   Never treated as empty: rebuilds refuse and nothing under it is pruned.
+/// - *missing*: does not exist (fresh machine, moved or unmounted dir). Rebuilds
+///   skip it as they always did; nothing under it is pruned, and recall hides
+///   hits whose file is gone.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct MemoryListing {
+    pub files: Vec<MemoryFileRef>,
+    pub complete_dirs: Vec<PathBuf>,
+    pub failed_dirs: Vec<PathBuf>,
+    pub missing_dirs: Vec<PathBuf>,
+}
+
+/// List the `*.md` files (excluding `MEMORY.md`) of each `(scope, dir)` pair, sorted
+/// per directory, with their recall identity, recording which dirs listed fully.
+pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
+    let mut listing = MemoryListing::default();
+    for (scope, dir) in dirs {
+        let read = match fs::read_dir(dir) {
+            Ok(read) => read,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                listing.missing_dirs.push(dir.clone());
+                continue;
+            }
+            Err(_) => {
+                listing.failed_dirs.push(dir.clone());
+                continue;
+            }
+        };
+        let mut complete = true;
+        let mut paths: Vec<PathBuf> = Vec::new();
+        for entry in read {
+            match entry {
+                Ok(e) => paths.push(e.path()),
+                Err(_) => complete = false,
+            }
+        }
+        paths.retain(|p| p.extension().map(|e| e == "md").unwrap_or(false));
+        paths.retain(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true));
+        paths.sort();
+        for path in paths {
+            let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+            let (mtype, slug) = memory_file_identity(&stem);
+            listing.files.push(MemoryFileRef { scope: scope.clone(), path, slug, mtype });
+        }
+        if complete {
+            listing.complete_dirs.push(dir.clone());
+        } else {
+            listing.failed_dirs.push(dir.clone());
+        }
+    }
+    listing
+}
+
+/// The files of [`list_memory_listing`], for callers that only read (recall, tests).
+pub fn list_memory_files(dirs: &[(String, PathBuf)]) -> Vec<MemoryFileRef> {
+    list_memory_listing(dirs).files
 }
 
 /// Rebuild the FTS5 index from an explicit list of `(scope, dir)` pairs.
@@ -478,61 +582,61 @@ pub fn reindex_fts(_project_root: &Path, db_path: &Path) -> Result<usize> {
 /// document; the slug/type are parsed from the filename, the body is indexed
 /// verbatim. The table is dropped and recreated so the index never drifts from
 /// the filesystem.
+///
+/// Refuses to rebuild when any existing dir fails to list, before touching the
+/// table, so a transient read failure keeps the previous index instead of
+/// committing a partial one (t-3510 gate, F5). Missing dirs are skipped.
 pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<usize> {
+    let listing = list_memory_listing(dirs);
+    if !listing.failed_dirs.is_empty() {
+        anyhow::bail!(
+            "memory reindex: could not list {} dir(s): {} (index left unchanged)",
+            listing.failed_dirs.len(),
+            listing.failed_dirs.iter().map(|d| d.display().to_string()).collect::<Vec<_>>().join(", ")
+        );
+    }
     if let Some(parent) = db_path.parent() {
         fs::create_dir_all(parent)?;
     }
+    // Read every file before touching the index: an unreadable note aborts the
+    // rebuild instead of being indexed as empty text (t-3510 gate, iteration 2).
+    let mut docs = Vec::with_capacity(listing.files.len());
+    for f in listing.files {
+        let content = fs::read_to_string(&f.path)
+            .with_context(|| format!("memory reindex: reading {} (index left unchanged)", f.path.display()))?;
+        docs.push((f, content));
+    }
+
     let mut conn = Connection::open(db_path)
         .with_context(|| format!("opening FTS index db: {}", db_path.display()))?;
 
-    conn.execute_batch(
+    let mut count = 0usize;
+    // DROP, CREATE and every insert commit together, so a failure mid-rebuild
+    // leaves the previous index in place rather than an empty one.
+    let tx = conn.transaction()?;
+    tx.execute_batch(
         "DROP TABLE IF EXISTS memory_fts;
          CREATE VIRTUAL TABLE memory_fts USING fts5(
              slug, mtype, scope, path UNINDEXED, content
          );",
     )
     .context("creating memory_fts table")?;
-
-    let mut count = 0usize;
-    let tx = conn.transaction()?;
     {
         let mut insert = tx.prepare(
             "INSERT INTO memory_fts (slug, mtype, scope, path, content)
              VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
 
-        for (scope, dir) in dirs {
-            if !dir.exists() {
-                continue;
-            }
-            let mut paths: Vec<PathBuf> = fs::read_dir(dir)?
-                .filter_map(|e| e.ok().map(|e| e.path()))
-                .filter(|p| p.extension().map(|e| e == "md").unwrap_or(false))
-                .filter(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true))
-                .collect();
-            paths.sort();
-
-            for path in &paths {
-                let stem = path
-                    .file_stem()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
-                let (mtype, slug) = match stem.split_once('_') {
-                    Some((t, rest)) => (t.to_string(), slug_from_rest(rest).to_string()),
-                    None => (String::new(), stem.clone()),
-                };
-                // Content read verbatim — bound parameter, no escaping needed.
-                let content = fs::read_to_string(path).unwrap_or_default();
-                insert.execute(rusqlite::params![
-                    slug,
-                    mtype,
-                    scope,
-                    path.to_string_lossy(),
-                    content,
-                ])?;
-                count += 1;
-            }
+        for (f, content) in docs {
+            // Content read verbatim — bound parameter, no escaping needed.
+            insert.execute(rusqlite::params![
+                f.slug,
+                f.mtype,
+                f.scope,
+                f.path.to_string_lossy(),
+                content,
+            ])?;
+            count += 1;
         }
     }
     tx.commit()?;
@@ -718,5 +822,249 @@ mod fts_tests {
         assert_eq!(n, 1);
         assert!(search_fts(&db, "alpha", 10).unwrap().is_empty(), "stale doc gone");
         assert_eq!(search_fts(&db, "delta", 10).unwrap().len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn identity_strips_type_prefix_and_timestamp() {
+        assert_eq!(
+            memory_file_identity("pattern_foo-bar_2026-06-09T10-00-00"),
+            ("pattern".to_string(), "foo-bar".to_string())
+        );
+    }
+
+    #[test]
+    fn identity_without_type_prefix_has_empty_mtype() {
+        assert_eq!(
+            memory_file_identity("batrade-broker-role"),
+            (String::new(), "batrade-broker-role".to_string())
+        );
+    }
+
+    #[test]
+    fn list_memory_files_skips_index_and_non_markdown_and_sorts() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        fs::write(mem.join("pattern_b.md"), "b").unwrap();
+        fs::write(mem.join("feedback_a.md"), "a").unwrap();
+        fs::write(mem.join("MEMORY.md"), "index").unwrap();
+        fs::write(mem.join("notes.txt"), "no").unwrap();
+
+        let files = list_memory_files(&[("project".to_string(), mem.clone()), ("global".to_string(), tmp.path().join("missing"))]);
+        let slugs: Vec<_> = files.iter().map(|f| f.slug.as_str()).collect();
+        assert_eq!(slugs, vec!["a", "b"], "sorted by filename, MEMORY.md and .txt excluded, missing dir ignored");
+        assert_eq!(files[0].scope, "project");
+        assert_eq!(files[0].mtype, "feedback");
+        assert_eq!(files[0].path, mem.join("feedback_a.md"));
+    }
+
+    #[test]
+    fn fts_hit_identity_equals_list_identity() {
+        // The two recall legs must agree on a file's identity or RRF cannot fuse them.
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        fs::write(mem.join("pattern_scraping-tips_2026-06-09T10-00-00.md"), "web scraping tips").unwrap();
+        let dirs = vec![("project".to_string(), mem)];
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&dirs, &db).unwrap();
+
+        let hit = search_fts(&db, "scraping", 5).unwrap().remove(0);
+        let f = list_memory_files(&dirs).remove(0);
+        assert_eq!((hit.slug, hit.mtype, hit.scope, hit.path), (f.slug, f.mtype, f.scope, f.path.to_string_lossy().to_string()));
+    }
+
+    // ── t-3510 gate repair: F5 (failed reads are not empty reads) ──
+
+    /// Root ignores mode bits, so permission tests are vacuous as root (same guard
+    /// as brana-cli knowledge.rs).
+    fn running_as_root() -> bool {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() == 0 }
+    }
+
+    fn set_mode(dir: &std::path::Path, mode: u32) {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(dir, fs::Permissions::from_mode(mode)).unwrap();
+    }
+
+    #[test]
+    fn listing_reports_failed_dirs_separately_from_complete_ones() {
+        if running_as_root() {
+            return;
+        }
+        let tmp = tempdir().unwrap();
+        let ok = tmp.path().join("ok");
+        let locked = tmp.path().join("locked");
+        fs::create_dir_all(&ok).unwrap();
+        fs::create_dir_all(&locked).unwrap();
+        fs::write(ok.join("pattern_a.md"), "a").unwrap();
+        fs::write(locked.join("pattern_b.md"), "b").unwrap();
+        let missing = tmp.path().join("missing");
+        set_mode(&locked, 0o000);
+
+        let l = list_memory_listing(&[
+            ("project".to_string(), ok.clone()),
+            ("project".to_string(), locked.clone()),
+            ("global".to_string(), missing.clone()),
+        ]);
+        set_mode(&locked, 0o755);
+
+        assert_eq!(l.files.len(), 1);
+        assert_eq!(l.complete_dirs, vec![ok]);
+        assert_eq!(l.failed_dirs, vec![locked], "an unreadable dir is a failure, not empty");
+        assert_eq!(l.missing_dirs, vec![missing], "a missing dir is neither complete nor failed");
+    }
+
+    #[test]
+    fn reindex_skips_a_missing_dir_like_a_fresh_machine() {
+        // A fresh machine has no ~/.claude/memory yet: reindex must still succeed.
+        let tmp = tempdir().unwrap();
+        let a = tmp.path().join("a");
+        fs::create_dir_all(&a).unwrap();
+        fs::write(a.join("pattern_alpha.md"), "alpha scraping").unwrap();
+        let dirs = vec![("global".to_string(), tmp.path().join("no-such-dir")), ("project".to_string(), a)];
+        let db = tmp.path().join("index.db");
+
+        assert_eq!(reindex_fts_dirs(&dirs, &db).unwrap(), 1);
+    }
+
+    #[test]
+    fn fts_provider_over_fetches_so_ghosts_do_not_crowd_out_live_hits() {
+        // Critic #3: filtering ghosts after a top_k fetch can return nothing.
+        use crate::search::{FTS5Provider, SearchProvider};
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        for i in 0..3 {
+            fs::write(mem.join(format!("pattern_ghost{i}.md")), "scraping scraping scraping scraping").unwrap();
+        }
+        fs::write(mem.join("pattern_live.md"), "scraping once among many other unrelated words here").unwrap();
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("project".to_string(), mem.clone())], &db).unwrap();
+        for i in 0..3 {
+            fs::remove_file(mem.join(format!("pattern_ghost{i}.md"))).unwrap();
+        }
+
+        let hits = FTS5Provider::new(db).query("scraping", 2);
+
+        assert_eq!(hits.len(), 1, "the live hit must survive ghost filtering: {hits:?}");
+    }
+
+    #[test]
+    fn reindex_refuses_a_partial_listing_and_keeps_the_existing_index() {
+        if running_as_root() {
+            return;
+        }
+        let tmp = tempdir().unwrap();
+        let a = tmp.path().join("a");
+        let b = tmp.path().join("b");
+        fs::create_dir_all(&a).unwrap();
+        fs::create_dir_all(&b).unwrap();
+        fs::write(a.join("pattern_alpha.md"), "alpha scraping").unwrap();
+        fs::write(b.join("pattern_beta.md"), "beta pricing").unwrap();
+        let dirs = vec![("project".to_string(), a.clone()), ("project".to_string(), b.clone())];
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&dirs, &db).unwrap();
+
+        set_mode(&b, 0o000);
+        let res = reindex_fts_dirs(&dirs, &db);
+        set_mode(&b, 0o755);
+
+        assert!(res.is_err(), "a dir that fails to list must abort the rebuild");
+        assert_eq!(search_fts(&db, "pricing", 5).unwrap().len(), 1, "old index untouched (no DROP before the check)");
+    }
+
+    #[test]
+    fn memory_dirs_in_errors_when_the_projects_root_is_unreadable() {
+        if running_as_root() {
+            return;
+        }
+        let tmp = tempdir().unwrap();
+        let projects = tmp.path().join(".claude/projects");
+        fs::create_dir_all(projects.join("p1/memory")).unwrap();
+        fs::create_dir_all(tmp.path().join(".claude/memory")).unwrap();
+
+        let ok = memory_dirs_in(tmp.path()).unwrap();
+        assert_eq!(ok.len(), 2, "global + one project");
+
+        set_mode(&projects, 0o000);
+        let res = memory_dirs_in(tmp.path());
+        set_mode(&projects, 0o755);
+        assert!(res.is_err(), "an unreadable projects root must not silently become 'no projects'");
+
+        let empty_home = tempdir().unwrap();
+        assert_eq!(memory_dirs_in(empty_home.path()).unwrap().len(), 1, "no projects root at all is fine: global only");
+    }
+
+    #[test]
+    fn fts_provider_drops_hits_whose_file_was_deleted() {
+        // F2 for the keyword leg: the weekly index must not surface deleted notes.
+        use crate::search::{FTS5Provider, SearchProvider};
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        fs::write(mem.join("pattern_gone.md"), "scraping ghost").unwrap();
+        fs::write(mem.join("pattern_here.md"), "scraping alive").unwrap();
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("project".to_string(), mem.clone())], &db).unwrap();
+        fs::remove_file(mem.join("pattern_gone.md")).unwrap();
+
+        let hits = FTS5Provider::new(db).query("scraping", 5);
+
+        assert_eq!(hits.len(), 1, "ghost hit surfaced: {hits:?}");
+    }
+
+    #[test]
+    fn reindex_refuses_an_unreadable_file_and_keeps_the_existing_index() {
+        // Gate iteration 2: an unreadable note must not be indexed as empty text.
+        if running_as_root() {
+            return;
+        }
+        let tmp = tempdir().unwrap();
+        let a = tmp.path().join("a");
+        fs::create_dir_all(&a).unwrap();
+        fs::write(a.join("pattern_alpha.md"), "alpha scraping").unwrap();
+        fs::write(a.join("pattern_beta.md"), "beta pricing").unwrap();
+        let dirs = vec![("project".to_string(), a.clone())];
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&dirs, &db).unwrap();
+
+        set_mode(&a.join("pattern_beta.md"), 0o000);
+        let res = reindex_fts_dirs(&dirs, &db);
+        set_mode(&a.join("pattern_beta.md"), 0o644);
+
+        assert!(res.is_err(), "an unreadable file must abort the rebuild");
+        assert_eq!(search_fts(&db, "pricing", 5).unwrap().len(), 1, "old index kept");
+        assert_eq!(search_fts(&db, "scraping", 5).unwrap().len(), 1, "old index kept");
+    }
+
+    #[test]
+    fn memory_dirs_in_errors_when_a_project_memory_dir_cannot_be_checked() {
+        // Gate iteration 2: is_dir() swallowed stat errors, so an unreadable project
+        // silently dropped out of the rebuild.
+        if running_as_root() {
+            return;
+        }
+        let tmp = tempdir().unwrap();
+        let projects = tmp.path().join(".claude/projects");
+        fs::create_dir_all(projects.join("p1/memory")).unwrap();
+        fs::create_dir_all(projects.join("p2-no-memory")).unwrap();
+
+        set_mode(&projects.join("p1"), 0o000);
+        let res = memory_dirs_in(tmp.path());
+        set_mode(&projects.join("p1"), 0o755);
+
+        assert!(res.is_err(), "a project whose memory dir cannot be checked must not vanish silently");
+        assert_eq!(memory_dirs_in(tmp.path()).unwrap().len(), 2, "global + p1; p2 has no memory dir");
     }
 }
