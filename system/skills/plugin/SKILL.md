@@ -161,7 +161,7 @@ Install a plugin from a known marketplace.
    read-modify-write races a concurrent `claude plugin install` (last writer wins — re-read
    the file immediately before writing, and never while an install is running).
 
-8b. **Scan before activation** (ADR-096 Law 3 — a mod's `$.model` / `$.http` bills the
+8b. **Scan before the next session activates it** (ADR-096 Law 3 — a mod's `$.model` / `$.http` bills the
    subscription invisibly). Run the installed-mods check now rather than at the next
    validate/bootstrap:
    ```bash

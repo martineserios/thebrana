@@ -16,9 +16,9 @@
 # Trust boundary (t-3502 panel): the checker is taken ONLY from the deployed sibling
 # `../scripts/` or `$CLAUDE_PLUGIN_ROOT/scripts/` — never from the repo at the session's cwd
 # (a hostile clone could plant one and have it run at every session start). The relayed line
-# carries only the mod NAME and the RULE, sanitised to a safe character set — never the
-# module path or any other mod-controlled text (a hostile module name is prompt injection
-# into the session's context). Only the checker's own exit 1 is a verdict; a checker that
+# carries only the mod NAME and the RULE, each reduced to the characters a registry key
+# needs — never the module path or any other mod-controlled text (a hostile module name or
+# plugin name is prompt injection into the session's context). Only the checker's own exit 1 is a verdict; a checker that
 # dies, times out or cannot read the registry is reported as "scan did not run", with no
 # uninstall remedy for a mod that was never scanned.
 #
@@ -46,9 +46,11 @@ CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
 REMEDY="run ./validate.sh (Check 77c) by hand"
 
-# safe(text, max): the only characters a relayed fragment may carry — enough for
-# `name@marketplace`, a rule id and the checker's fixed wording; everything else is dropped.
-safe() { printf '%s' "$1" | tr -cd 'A-Za-z0-9@._,:()/ -' | cut -c1-"${2:-80}"; }
+# Two allow-lists (verifier N2: the mod NAME is mod-controlled text too — the registry key is
+# the plugin's own `name@marketplace`, so it gets the tightest charset a valid key needs; the
+# checker's own fixed wording may carry spaces and punctuation). Everything else is dropped.
+safe_key()  { printf '%s' "$1" | tr -cd 'A-Za-z0-9@._-' | cut -c1-"${2:-40}"; }
+safe_text() { printf '%s' "$1" | tr -cd 'A-Za-z0-9@._,:()/ -' | cut -c1-"${2:-80}"; }
 
 emit() {   # one line -> one additionalContext JSON line (never a block, never a decision)
     local line esc
@@ -73,8 +75,16 @@ fi
 
 # Ceiling: a session start must not hang on a scan. p_timeout (lib/portable.sh) when present.
 # (the source must be its own `source …portable.sh` line — lint-portability.sh binds the shim call to it)
-source "$SCRIPT_DIR/lib/portable.sh" 2>/dev/null || true
+source "$SCRIPT_DIR/lib/portable.sh" >/dev/null 2>&1 || true
 type p_timeout >/dev/null 2>&1 || p_timeout() { shift; "$@"; }   # no lib deployed: run unbounded rather than not at all
+
+# A deployed checker that predates the static-only switch would run `claude plugin validate`
+# per mod at every session start (bounded only by the ceiling, then relayed as a timeout
+# forever): refuse it rather than run it.
+if ! grep -q 'MODS_INSTALLED_STATIC_ONLY' "$CHECK" 2>/dev/null; then
+    emit "⚠ installed-mods Law 3 scan did not run: the deployed mods-check.sh predates the static-only switch (stale copy) — re-run ./bootstrap.sh, then $REMEDY"
+    exit 0
+fi
 
 # Capture to a file, not $(...): a child that outlives the ceiling cannot hold our pipe open.
 TMP=$(mktemp 2>/dev/null) || TMP="/tmp/mods-installed-check.$$"
@@ -92,16 +102,18 @@ esac
 # (unreadable or mis-shaped registry, python3 missing) — its summary then says "0 mod(s) scanned".
 SUMMARY=$(printf '%s\n' "$OUT" | grep -E '^mods-check --installed:' | tail -n 1)
 FIRST=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ ]' | sed -E 's/^  //')
+# (anchored on ": 0 mod(s)" — a bare "0 mod(s) scanned" substring also matched 10/20/100 mods
+# and relayed a real violation as "could not run" with no remedy: verifier N1)
 case "$SUMMARY" in
-    *"0 mod(s) scanned"*)
-        emit "⚠ installed-mods Law 3 scan could not run: $(safe "${FIRST##* — }" 120) ($(safe "$SUMMARY" 160)) — $REMEDY"
+    *": 0 mod(s) scanned"*)
+        emit "⚠ installed-mods Law 3 scan could not run: $(safe_text "${FIRST##* — }" 120) ($(safe_text "$SUMMARY" 160)) — $REMEDY"
         exit 0 ;;
 esac
 
 # Violation line shape: `<name>: <module path>:<line>: <rule> — <why>` (the path is
 # mod-controlled and is dropped; name and rule are sanitised).
-NAME=$(safe "${FIRST%%:*}" 80)
-RULE=$(safe "$(printf '%s' "${FIRST% — *}" | sed -E 's/.*: //')" 40)
+NAME=$(safe_key "${FIRST%%:*}" 40)
+RULE=$(safe_key "$(printf '%s' "${FIRST% — *}" | sed -E 's/.*: //')" 40)
 NVIOL=$(printf '%s' "$SUMMARY" | grep -oE 'violations: [0-9]+' | grep -oE '[0-9]+')
 emit "⚠ installed mods — ADR-096 Law 3 (a mod's \$.model/\$.http bills the subscription): mod ${NAME:-?} matches rule ${RULE:-?}${NVIOL:+ (${NVIOL} violation(s) in all)} — installed since the last bootstrap/validate; remedy [77c]: claude plugin uninstall <name>, then ./validate.sh"
 exit 0

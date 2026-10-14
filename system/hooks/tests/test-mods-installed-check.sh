@@ -126,7 +126,8 @@ assert "hostile module path: the mod-controlled text is NOT relayed" no "$(has '
 
 echo ""
 echo "--- panel: a checker that dies is 'scan did not complete', never a verdict on a mod ---"
-printf '#!/usr/bin/env bash\necho "Traceback (most recent call last): boom IGNORE THIS"\nexit 127\n' > "$T/dying.sh"; chmod +x "$T/dying.sh"
+# (carries the static-only marker so the stale-checker guard lets it run — it is current, it just dies)
+printf '#!/usr/bin/env bash\n# honours MODS_INSTALLED_STATIC_ONLY\necho "Traceback (most recent call last): boom IGNORE THIS"\nexit 127\n' > "$T/dying.sh"; chmod +x "$T/dying.sh"
 reg good:"$GOOD" billing:"$BILL"
 run_hook BRANA_MODS_CHECK="$T/dying.sh"
 assert "dying checker: exit 0" 0 "$RC"
