@@ -191,6 +191,10 @@ Provide each worker: the diff summary, relevant changed files, and task AC (if a
 
 Collect (caller synthesizes — no separate consensus tool): await all 3, merge and dedup findings. Quorum threshold: **majority (2/3)**. ≥2 workers flagging the same concern = HIGH confidence (blocking). 1 worker only = OBSERVATION (informational).
 
+**INCONCLUSIVE workers (t-3504).** A worker can return **INCONCLUSIVE** when its top finding rests on an unverified premise (challenger.md, CALIBRATION.md §Verdict rules). An INCONCLUSIVE worker is neither clean nor a finding: it counts toward neither side of the 2/3 quorum, so the quorum cannot clear while one is outstanding.
+Route it to the human valve — "Gather the named evidence, re-run that one lens (once)" (recommended), "Override (reason required)", or Abort. Stage `Challenger-gap:` as free text, never inside a verdict line.
+In a headless session (no AskUserQuestion) an INCONCLUSIVE worker is Abort, never proceed — every gate fails closed.
+
 **Classify every HIGH finding before asking (ADR-094 decision 7, t-3329).** A finding is
 **non-overridable** when the ship *removes or disables a safety or recovery mechanism* —
 a backup, a snapshot, a lock, a gate, a validation, a restore path — *whose replacement has
@@ -446,6 +450,8 @@ Run post-deploy checks to confirm the deploy succeeded.
 | Bootstrap | `./bootstrap.sh --check` if supported |
 | Docker | `docker run <image> --version` or health check |
 | Custom | Ask user for verification command |
+
+**Step 4's CLI install must not be declined (t-3504).** Until the rebuilt `brana` is installed, an older binary reads the machine-read verdict lines as `0 judged` (pre-t-3494) and has no newline-escaping backstop on `notes` writes (t-3504), so free text is protected by prose alone. If the human declines the install, the ship is reported UNVERIFIED (the installed binary lags the deployed rules), never done.
 
 **Tier-2 ship: rebuild and install the CLI and the MCP server.** `bootstrap.sh` deploys rules, skills
 and docs but does **not** build `brana` or `brana-mcp`; it only prints "brana-cli binary may be stale"

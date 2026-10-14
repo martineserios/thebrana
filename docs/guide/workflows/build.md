@@ -89,7 +89,7 @@ Challenger reads only trusted content: the task spec, the git diff, and the AC l
 A finding scored 4 or higher (WARNING/CRITICAL per [CALIBRATION.md](../../architecture/agents/CALIBRATION.md)) returns verdict `RECONSIDER` and blocks CLOSE. You get three choices:
 - **Fix now** — findings are saved to the task context and BUILD re-runs; Challenger reviews again (max 2 passes)
 - **Override** — provide a reason; it's logged and CLOSE proceeds
-- **Abandon** — task marked blocked
+- **Abandon** — stop; the task stays in_progress with a `Blocked:` note (there is no `blocked` status)
 
 When the Challenger's top findings rest on something nobody has verified (a probe not run, a number asserted but not measured), it returns `INCONCLUSIVE` instead of guessing. That also blocks CLOSE, but the recommended option is **Gather evidence**: the missing evidence is named in the task context, you collect it, and the Challenger re-runs.
 
