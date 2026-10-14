@@ -347,6 +347,25 @@ spec conflict, this section and ADR-099 win.
 - **Encoders:** the copies in `brana time`, `handoff.rs` and `session.rs` are consolidated into
   `brana-core`. The log is written under the current encoding, and `--check` reads both encodings.
 
+## Index freshness (amendment 2026-10-14, ADR-099 §4a)
+
+- **Gap:** `index.db` is rebuilt weekly (scheduler `reindex-patterns`, Sunday) as a full
+  drop-and-rebuild, and memory-file vectors exist only after `embed-memory`. Notes written since
+  are missing from the bundle.
+- **Check:** before querying, compare the newest in-scope `*.md` mtime with the index build time
+  (stored in `index.db` metadata). Upsert only the newer files into FTS (a new incremental path in
+  `brana-core/src/memory.rs`; today's reindex only rebuilds everything). The check counts toward
+  the fail-open budget; on timeout the bundle proceeds on the stale index and says so.
+- **Deletions:** the same check drops index entries whose file no longer exists, so a deleted or
+  renamed note never reaches the bundle. The weekly full rebuild stays as a safety net, not as
+  the freshness mechanism; more frequent rebuilds only shrink the window and would still miss
+  notes written in the current session.
+- **Row fields:** offered rows add `index_age_s`, `stale_notes`, `unembedded`.
+- **Tests (t-3516):** a note written after the index build is found by the bundle (must-fire:
+  fails if the check is removed); `stale_notes` counts it; a forced-slow upsert falls back to the
+  stale index with exit 0.
+- **Surface:** `brana-core/src/memory.rs` (incremental upsert, build-time metadata).
+
 ## Challenger findings
 
 **Shaping review (idea doc, 2026-10-14):** three lenses, H1–H4 and C1–C8, all incorporated before
