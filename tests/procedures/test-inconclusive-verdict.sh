@@ -170,6 +170,38 @@ assert_grep "ADR-081 enumerates the verdict-token consumers (judge ladder)" \
 assert_grep "ADR-081: INCONCLUSIVE in a headless session is Abandon on both gates" \
     'headless.*Abandon \(blocked\).*never proceed' "$ADR81"
 
+echo "Surface 6 — the Evidence capture block EXECUTES (bash and zsh) — a recipe in docs must fire"
+# Live finding (t-3504): the first draft ran `$CMD` unquoted; zsh (this harness's shell) does not
+# word-split it, so every capture recorded `exit: 127`. Extract the block between its marker and
+# run it in a throwaway repo, in each shell, against a stub validate.sh that exits 3.
+EVIDENCE_BLOCK="$(awk '/<!-- EVIDENCE-CAPTURE-BLOCK -->/{f=1;next} f&&/^```bash/{g=1;next} f&&g&&/^```/{exit} f&&g{print}' "$ROOT/$VG" | sed 's/{task_id}/t-9999/g')"
+TOTAL=$((TOTAL + 1))
+if [ -n "$EVIDENCE_BLOCK" ]; then echo "  PASS: verify-gates.md has the marked Evidence capture block"; PASS=$((PASS + 1))
+else echo "  FAIL: verify-gates.md has no <!-- EVIDENCE-CAPTURE-BLOCK --> bash block"; FAIL=$((FAIL + 1)); fi
+for sh in bash zsh; do
+    if ! command -v "$sh" >/dev/null 2>&1; then
+        TOTAL=$((TOTAL + 1))
+        if [ "${BRANA_REQUIRE_ZSH:-0}" = "1" ]; then echo "  FAIL: $sh required (BRANA_REQUIRE_ZSH=1) but not installed"; FAIL=$((FAIL + 1))
+        else echo "  PASS: $sh not installed — skipped (CI sets BRANA_REQUIRE_ZSH=1)"; PASS=$((PASS + 1)); fi
+        continue
+    fi
+    T="$(mktemp -d)"; mkdir -p "$T/home" "$T/repo"
+    ( cd "$T/repo" && git init -q && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m init \
+        && printf '#!/usr/bin/env bash\necho validate-ran\necho line two\nexit 3\n' > validate.sh && chmod +x validate.sh )
+    SHA="$(git -C "$T/repo" rev-parse HEAD)"
+    ( cd "$T/repo" && HOME="$T/home" "$sh" -c "$EVIDENCE_BLOCK" ) >"$T/out" 2>&1
+    EVF="$T/home/.claude/run-state/t-9999.evidence"
+    TOTAL=$((TOTAL + 1)); if [ -f "$EVF" ]; then echo "  PASS: [$sh] the block writes run-state/{task_id}.evidence"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] no evidence file written — $(head -c 200 "$T/out")"; FAIL=$((FAIL + 1)); fi
+    TOTAL=$((TOTAL + 1)); if grep -qx "commit: $SHA" "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the evidence is bound to HEAD"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] first line is not 'commit: $SHA'"; FAIL=$((FAIL + 1)); fi
+    TOTAL=$((TOTAL + 1)); if grep -qx 'exit: 3' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the command's real exit code is recorded (not 127 from a split failure)"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] 'exit: 3' not recorded: $(grep -m3 '^exit' "$EVF" 2>/dev/null | tr '\n' ' ')"; FAIL=$((FAIL + 1)); fi
+    TOTAL=$((TOTAL + 1)); if grep -qx 'validate-ran' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the command's output tail is captured"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] command output missing from the evidence"; FAIL=$((FAIL + 1)); fi
+    rm -rf "$T"
+done
+
 echo ""
 echo "Results: $PASS passed, $FAIL failed, $TOTAL total"
 [ "$FAIL" -eq 0 ]

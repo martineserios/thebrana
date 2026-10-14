@@ -93,17 +93,23 @@ live run (the canonical `AC: all tests green`) is UNVERIFIABLE → INCONCLUSIVE 
 (which has Bash) therefore captures the BUILD-phase verification output once, and the spawn prompt
 carries it as an `Evidence` block. Evidence is the evaluator's **only channel** for live-run results.
 
+<!-- EVIDENCE-CAPTURE-BLOCK -->
 ```bash
 HEAD_SHA=$(git rev-parse HEAD)
+mkdir -p ~/.claude/run-state
 EV=~/.claude/run-state/{task_id}.evidence
 # If the file exists but its first line is not "commit: $HEAD_SHA", it was captured at a different
 # commit: stale — re-capture (stale evidence is not evidence).
 printf 'commit: %s\ncaptured: %s\n' "$HEAD_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$EV"
-# for each verification command BUILD ran at this commit (validate.sh, the suites the task added):
-#   redirect, don't pipe — a piped exit code is the filter's (parallel-bash.md)
-CMD='./validate.sh --fast'; OUT=$(mktemp); $CMD >"$OUT" 2>&1; RC=$?
-printf '$ %s\nexit: %s\n' "$CMD" "$RC" >> "$EV"; tail -n 40 "$OUT" >> "$EV"; rm -f "$OUT"
+capture() {  # one verification command -> one stanza. `bash -c`, because zsh (this harness) does not
+             # word-split an unquoted $CMD — the first draft recorded `exit: 127` for every command.
+    local out rc; out=$(mktemp); bash -c "$1" >"$out" 2>&1; rc=$?   # redirect, never pipe: a piped exit is the filter's
+    printf '$ %s\nexit: %s\n' "$1" "$rc" >> "$EV"; tail -n 40 "$out" >> "$EV"; rm -f "$out"
+}
+capture './validate.sh --fast'   # then one capture line per verification command BUILD ran at this commit
 ```
+
+(Executed under bash and zsh by `tests/procedures/test-inconclusive-verdict.sh` Surface 6.)
 
 Re-run a command only when its output was not already captured at `HEAD_SHA`; reuse BUILD's own
 run otherwise. Append each command as its own `$ cmd` / `exit:` / last-40-lines stanza.
