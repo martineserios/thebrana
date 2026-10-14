@@ -633,6 +633,33 @@ mod tests {
     // ── CWD fallback (non-git projects) ─────────────────────────────────────
 
     #[test]
+    fn explicit_ledger_override_beats_the_repo_ledger() {
+        // t-3501: a suite run from any worktree resolves the LIVE ledger through the git
+        // common root; BRANA_TASKS_FILE (exported by the suite runner into the scratch HOME)
+        // must win over it, auto-init if missing, and leave the repo ledger untouched.
+        let repo = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(repo.path().join(".claude")).unwrap();
+        let live = repo.path().join(".claude/tasks.json");
+        std::fs::write(&live, b"{\"tasks\":[{\"id\":\"t-1\"}]}").unwrap();
+        let scratch = tempfile::tempdir().unwrap();
+        let override_file = scratch.path().join("sub").join("brana-tasks.json");
+        let got = find_tasks_file_with_hint(
+            Some(override_file.clone()),
+            None,
+            Some(repo.path().to_path_buf()),
+            Some(repo.path().to_path_buf()),
+            None,
+        )
+        .unwrap();
+        assert_eq!(got, override_file, "the override is the ledger, not the repo's");
+        assert_eq!(std::fs::read_to_string(&override_file).unwrap(), "{\"tasks\":[]}", "auto-inited empty");
+        assert_eq!(std::fs::read_to_string(&live).unwrap(), "{\"tasks\":[{\"id\":\"t-1\"}]}", "live ledger untouched");
+        // an empty override is no override
+        let got = find_tasks_file_with_hint(Some(PathBuf::new()), None, Some(repo.path().to_path_buf()), None, None).unwrap();
+        assert_eq!(got, live);
+    }
+
+    #[test]
     fn cwd_fallback_returns_existing_tasks_json() {
         let dir = tmp();
         let claude = dir.path().join(".claude");
