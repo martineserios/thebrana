@@ -55,9 +55,9 @@ if [ ! -f "$CHECK" ]; then
 fi
 
 # Ceiling: a session start must not hang on a scan. p_timeout (lib/portable.sh) when present.
-if ! source "$SCRIPT_DIR/lib/portable.sh" 2>/dev/null || ! type p_timeout >/dev/null 2>&1; then
-    p_timeout() { shift; "$@"; }
-fi
+# (the source must be its own `source …portable.sh` line — lint-portability.sh binds the shim call to it)
+source "$SCRIPT_DIR/lib/portable.sh" 2>/dev/null || true
+type p_timeout >/dev/null 2>&1 || p_timeout() { shift; "$@"; }   # no lib deployed: run unbounded rather than not at all
 
 OUT=$(p_timeout 8 env MODS_INSTALLED_STATIC_ONLY=1 bash "$CHECK" --installed "$CLAUDE_DIR" 2>&1 </dev/null); RC=$?
 [ "$RC" -eq 0 ] && exit 0
