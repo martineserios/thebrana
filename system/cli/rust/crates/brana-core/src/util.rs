@@ -650,6 +650,46 @@ mod tests {
     // ── CWD fallback (non-git projects) ─────────────────────────────────────
 
     #[test]
+    fn ledger_override_is_absolute_only_and_never_creates_parents() {
+        // t-3501 panel: a relative value would fragment the ledger per cwd, and auto-creating
+        // parents turns a typo into a silent new ledger — both are refused (no override).
+        let repo = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(repo.path().join(".claude")).unwrap();
+        let live = repo.path().join(".claude/tasks.json");
+        std::fs::write(&live, b"{\"tasks\":[]}").unwrap();
+        let got = find_tasks_file_with_hint(Some(PathBuf::from("rel/ledger.json")), None, Some(repo.path().to_path_buf()), None, None).unwrap();
+        assert_eq!(got, live, "a relative override is ignored");
+        let scratch = tempfile::tempdir().unwrap();
+        let missing_parent = scratch.path().join("nope").join("ledger.json");
+        let got = find_tasks_file_with_hint(Some(missing_parent.clone()), None, Some(repo.path().to_path_buf()), None, None);
+        assert_eq!(got, None, "an override whose parent does not exist is an error, not a new ledger");
+        assert!(!missing_parent.parent().unwrap().exists());
+        let ok = scratch.path().join("ledger.json");
+        let got = find_tasks_file_with_hint(Some(ok.clone()), None, Some(repo.path().to_path_buf()), None, None).unwrap();
+        assert_eq!(got, ok);
+        assert_eq!(std::fs::read_to_string(&ok).unwrap(), "{\"tasks\":[]}");
+    }
+
+    #[test]
+    fn file_override_path_honours_the_ledger_override_too() {
+        // --file <conventional .claude/tasks.json> is remapped to the common-root ledger; with
+        // BRANA_TASKS_FILE set that remap must land on the scratch ledger, not the live one.
+        let repo = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(repo.path().join(".claude")).unwrap();
+        let live = repo.path().join(".claude/tasks.json");
+        std::fs::write(&live, b"{\"tasks\":[{\"id\":\"t-1\"}]}").unwrap();
+        let scratch = tempfile::tempdir().unwrap();
+        let over = scratch.path().join("ledger.json");
+        let got = resolve_tasks_file_override_with(&live, Some(over.clone()));
+        assert_eq!(got, over, "the env override wins over the --file remap");
+        let got = resolve_tasks_file_override_with(&live, None);
+        assert!(got.ends_with(".claude/tasks.json"), "without the override the normal remap applies");
+        let custom = scratch.path().join("custom-name.json");
+        let got = resolve_tasks_file_override_with(&custom, Some(over.clone()));
+        assert_eq!(got, custom, "a non-conventional --file stays literal (fixtures), even with the override set");
+    }
+
+    #[test]
     fn explicit_ledger_override_beats_the_repo_ledger() {
         // t-3501: a suite run from any worktree resolves the LIVE ledger through the git
         // common root; BRANA_TASKS_FILE (exported by the suite runner into the scratch HOME)

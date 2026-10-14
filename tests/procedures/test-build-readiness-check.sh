@@ -137,15 +137,17 @@ if [ -z "$BRANA_BIN" ]; then
 else
     # Create a scratch task, check its fields, then cancel it
     # `--json` takes a value; the old `--json` with no argument failed every run and this test
-    # always took its SKIP branch (t-3501). The add now lands in the runner's scratch ledger.
+    # always took its SKIP branch (t-3501). The add lands in THIS suite's own scratch ledger:
+    # run directly from a linked worktree it would otherwise write the live one (ADR-094).
+    export BRANA_TASKS_FILE="${BRANA_TASKS_FILE:-$(mktemp -d)/readiness-ledger.json}"
     SCRATCH_ID=$(brana backlog add \
         --subject "readiness-check-test-$$" \
         --description "Test task for readiness check smoke test — can be deleted" \
         --effort XS 2>/dev/null | jq -r '.id // empty' 2>/dev/null) || SCRATCH_ID=""
 
     if [ -z "$SCRATCH_ID" ]; then
-        echo "  SKIP: could not create scratch task (backlog add may require --effort)"
-        PASS=$((PASS + 1)); TOTAL=$((TOTAL + 1))
+        echo "  FAIL: could not create the scratch task (brana is present, so this is a real failure — t-3501)"
+        FAIL=$((FAIL + 1)); TOTAL=$((TOTAL + 1))
     else
         TASK_JSON=$(brana backlog get "$SCRATCH_ID" 2>/dev/null) || TASK_JSON="{}"
 
