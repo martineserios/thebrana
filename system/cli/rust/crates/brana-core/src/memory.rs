@@ -798,4 +798,93 @@ mod identity_tests {
         let f = list_memory_files(&dirs).remove(0);
         assert_eq!((hit.slug, hit.mtype, hit.scope, hit.path), (f.slug, f.mtype, f.scope, f.path.to_string_lossy().to_string()));
     }
+
+    // ── t-3510 gate repair: F5 (failed reads are not empty reads) ──
+
+    fn set_mode(dir: &std::path::Path, mode: u32) {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(dir, fs::Permissions::from_mode(mode)).unwrap();
+    }
+
+    #[test]
+    fn listing_reports_failed_dirs_separately_from_complete_ones() {
+        let tmp = tempdir().unwrap();
+        let ok = tmp.path().join("ok");
+        let locked = tmp.path().join("locked");
+        fs::create_dir_all(&ok).unwrap();
+        fs::create_dir_all(&locked).unwrap();
+        fs::write(ok.join("pattern_a.md"), "a").unwrap();
+        fs::write(locked.join("pattern_b.md"), "b").unwrap();
+        let missing = tmp.path().join("missing");
+        set_mode(&locked, 0o000);
+
+        let l = list_memory_listing(&[
+            ("project".to_string(), ok.clone()),
+            ("project".to_string(), locked.clone()),
+            ("global".to_string(), missing.clone()),
+        ]);
+        set_mode(&locked, 0o755);
+
+        assert_eq!(l.files.len(), 1);
+        assert_eq!(l.complete_dirs, vec![ok]);
+        assert_eq!(l.failed_dirs, vec![locked, missing], "unreadable and missing dirs are failures, not empty");
+    }
+
+    #[test]
+    fn reindex_refuses_a_partial_listing_and_keeps_the_existing_index() {
+        let tmp = tempdir().unwrap();
+        let a = tmp.path().join("a");
+        let b = tmp.path().join("b");
+        fs::create_dir_all(&a).unwrap();
+        fs::create_dir_all(&b).unwrap();
+        fs::write(a.join("pattern_alpha.md"), "alpha scraping").unwrap();
+        fs::write(b.join("pattern_beta.md"), "beta pricing").unwrap();
+        let dirs = vec![("project".to_string(), a.clone()), ("project".to_string(), b.clone())];
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&dirs, &db).unwrap();
+
+        set_mode(&b, 0o000);
+        let res = reindex_fts_dirs(&dirs, &db);
+        set_mode(&b, 0o755);
+
+        assert!(res.is_err(), "a dir that fails to list must abort the rebuild");
+        assert_eq!(search_fts(&db, "pricing", 5).unwrap().len(), 1, "old index untouched (no DROP before the check)");
+    }
+
+    #[test]
+    fn memory_dirs_in_errors_when_the_projects_root_is_unreadable() {
+        let tmp = tempdir().unwrap();
+        let projects = tmp.path().join(".claude/projects");
+        fs::create_dir_all(projects.join("p1/memory")).unwrap();
+        fs::create_dir_all(tmp.path().join(".claude/memory")).unwrap();
+
+        let ok = memory_dirs_in(tmp.path()).unwrap();
+        assert_eq!(ok.len(), 2, "global + one project");
+
+        set_mode(&projects, 0o000);
+        let res = memory_dirs_in(tmp.path());
+        set_mode(&projects, 0o755);
+        assert!(res.is_err(), "an unreadable projects root must not silently become 'no projects'");
+
+        let empty_home = tempdir().unwrap();
+        assert_eq!(memory_dirs_in(empty_home.path()).unwrap().len(), 1, "no projects root at all is fine: global only");
+    }
+
+    #[test]
+    fn fts_provider_drops_hits_whose_file_was_deleted() {
+        // F2 for the keyword leg: the weekly index must not surface deleted notes.
+        use crate::search::{FTS5Provider, SearchProvider};
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        fs::write(mem.join("pattern_gone.md"), "scraping ghost").unwrap();
+        fs::write(mem.join("pattern_here.md"), "scraping alive").unwrap();
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("project".to_string(), mem.clone())], &db).unwrap();
+        fs::remove_file(mem.join("pattern_gone.md")).unwrap();
+
+        let hits = FTS5Provider::new(db).query("scraping", 5);
+
+        assert_eq!(hits.len(), 1, "ghost hit surfaced: {hits:?}");
+    }
 }
