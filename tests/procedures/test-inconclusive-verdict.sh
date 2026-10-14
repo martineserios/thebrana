@@ -115,6 +115,61 @@ assert_grep "stacked_verdict.rs parses INCONCLUSIVE on the Evaluator source" \
 assert_grep "stacked_verdict.rs parses INCONCLUSIVE on the Challenger source" \
     'challenger = Some\(Judged::Inconclusive\)' system/cli/rust/crates/brana-cli/src/commands/stacked_verdict.rs
 
+echo "Surface 5 — t-3504 hardening: evidence channel, caps, headless, escaping, consumers"
+VG=system/skills/build/phases/verify-gates.md
+CG=system/skills/_shared/challenger-gate.md
+assert_grep "verify-gates.md: the evaluator spawn prompt carries an orchestrator-captured Evidence: block" \
+    '^Evidence \(orchestrator-captured, commit \{HEAD_SHA\}\):' "$VG"
+assert_grep "verify-gates.md: the Evidence capture step writes the run-state evidence file" \
+    'run-state/\{task_id\}\.evidence' "$VG"
+assert_grep "verify-gates.md: states the evaluator is read-only so Evidence is its only live-run channel" \
+    'read-only.*Evidence.*(only|sole) channel' "$VG"
+assert_grep "verify-gates.md: evidence is bound to the commit it was captured at (stale evidence is not evidence)" \
+    'captured at a different commit.*(stale|re-capture)' "$VG"
+assert_grep "verify-gates.md: the evaluator INCONCLUSIVE run is iteration 1 of a max-2 cap" \
+    'INCONCLUSIVE run (is|counts as) iteration 1' "$VG"
+assert_grep "verify-gates.md: a second evaluator INCONCLUSIVE offers override or abandon only" \
+    'second INCONCLUSIVE.*override or abandon only' "$VG"
+assert_grep "verify-gates.md: headless/no-AskUserQuestion INCONCLUSIVE = Abandon (blocked), never proceed" \
+    '(headless|no AskUserQuestion).*Abandon.*never proceed' "$VG"
+assert_grep "verify-gates.md: free text rides on a separate Evaluator-gap: prefix" \
+    '^`Evaluator-gap: \{AC ids' "$VG"
+assert_no_grep "verify-gates.md: the machine-read Evaluator line no longer carries the AC-id free text" \
+    'Evaluator: INCONCLUSIVE \(\{date\}\), \{N\} criteria checked, unverifiable' "$VG"
+assert_grep "verify-gates.md: notes writes are one line (the CLI escapes embedded newlines)" \
+    'escapes? (embedded )?newlines' "$VG"
+assert_grep "challenger-gate.md: headless/no-AskUserQuestion INCONCLUSIVE = Abandon (blocked), never proceed" \
+    '(headless|no AskUserQuestion).*Abandon.*never proceed' "$CG"
+assert_grep "challenger-gate.md: free text rides on a separate Challenger-gap: prefix" \
+    '^`Challenger-gap: \{list' "$CG"
+assert_no_grep "challenger-gate.md: the machine-read Challenger line no longer carries the gap free text" \
+    'Challenger: INCONCLUSIVE \(\{date\}\), \{N\} finding\(s\), missing evidence' "$CG"
+assert_grep "challenger-gate.md: notes writes are one line (the CLI escapes embedded newlines)" \
+    'escapes? (embedded )?newlines' "$CG"
+assert_grep "ship SKILL Step 1b: an INCONCLUSIVE worker is neither clean nor a finding and blocks the quorum" \
+    'INCONCLUSIVE worker.*neither clean nor a finding' system/skills/ship/SKILL.md
+assert_grep "ship SKILL: Step 4's CLI install must not be declined (verdict wording reads 0 judged until it lands)" \
+    'Step 4.*must not be declined.*0 judged|must not be declined.*0 judged' system/skills/ship/SKILL.md
+assert_grep "build-loop.md: an INCONCLUSIVE in-loop critic finding pauses the loop like RECONSIDER" \
+    'INCONCLUSIVE.*pause the loop' system/skills/build/phases/build-loop.md
+assert_grep "judge-sizing.md records the explicit decision: INCONCLUSIVE does not arm RECONSIDER_SEV4" \
+    'Decision \(t-3504\).*INCONCLUSIVE does not arm RECONSIDER_SEV4' system/skills/_shared/judge-sizing.md
+assert_grep "judge-sizing.md decision carries a revisit trigger with owner and date" \
+    'Revisit:.*owner.*20[0-9]{2}-[0-9]{2}-[0-9]{2}' system/skills/_shared/judge-sizing.md
+ADR81=docs/architecture/decisions/ADR-081-stacked-verdict-evidence-composition.md
+assert_grep "ADR-081 carries the t-3504 amendment" \
+    'Amendment 2026-10-14 \(t-3504\)' "$ADR81"
+assert_grep "ADR-081 enumerates the verdict-token consumers (parser)" \
+    'Verdict-token consumers.*stacked_verdict\.rs|\| `stacked_verdict\.rs`' "$ADR81"
+assert_grep "ADR-081 enumerates the verdict-token consumers (ship Step 1b quorum)" \
+    '\| `system/skills/ship/SKILL\.md` Step 1b' "$ADR81"
+assert_grep "ADR-081 enumerates the verdict-token consumers (in-loop critic)" \
+    '\| `system/skills/build/phases/build-loop\.md`' "$ADR81"
+assert_grep "ADR-081 enumerates the verdict-token consumers (judge ladder)" \
+    '\| `system/skills/_shared/judge-sizing\.md`' "$ADR81"
+assert_grep "ADR-081: INCONCLUSIVE in a headless session is Abandon on both gates" \
+    'headless.*Abandon \(blocked\).*never proceed' "$ADR81"
+
 echo ""
 echo "Results: $PASS passed, $FAIL failed, $TOTAL total"
 [ "$FAIL" -eq 0 ]
