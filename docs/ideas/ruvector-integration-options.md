@@ -286,6 +286,29 @@ benchmark-first order, applying the tie-break rule). Week 1:
 - Week 2: the embedder parity spike (speed), the staleness rule from usage-log data, link repair,
   and the t-3510/t-3511 merge decision.
 
+**Round 6b (owner: "did you already check our memory structure, layers, format and nature?").**
+Structure and layers: yes (Appendix A). Per-note format: no, so a read-only frontmatter census ran on
+2026-10-14 (script: session scratchpad `fm_census.py`; scope: `~/.claude/memory/*.md` plus
+`~/.claude/projects/*/memory/*.md` top level, test-tmp dirs and MEMORY.md excluded):
+
+| Fact | Value | Consequence for the bundle |
+|---|---|---|
+| Notes in scope | 1,107 | matches embed-memory's count |
+| No frontmatter at all | **315 (28%)** | type must fall back to the filename prefix (`pattern_`, `feedback_`...) |
+| `description` present | 789 (71%) | the one-line gist for pointer output exists for most notes; fallback: first body line |
+| `type` (top-level 386 + nested `metadata.type` 562) | feedback 306, project 215, pattern 202, reference 44, user 11, field-note 10 | two schemas coexist (old flat, newer `metadata:` block); the reader must accept both |
+| `modified` / `created` | 241 / 132 | dates mostly come from the filename (dated files) or mtime, not frontmatter |
+| `status` | **1** (quarantine) | ADR-057's `status: superseded` vocabulary is unused in practice |
+| `supersedes` as a field | **0**; 42 files mention "supersed*" in prose | **no structured supersession data exists**: week 1 must derive it (newest dated file per slug, per ADR-038, plus a prose regex for "superseded by [[x]]"); a backfill or a write-path field is a separate decision |
+| `transferable` / `confidence` / `source_task` | 117 / 117 / 114 | `transferable` is a ready filter for "same pattern, other domain"; `source_task` is extra gold data (note → task) for the benchmark |
+| Note size | p50 1.6 KB, p90 7.7 KB, max 2.5 MB (`sessions.md`-type logs) | pointers, not pastes, are the only way to fit a ~1.5K-token budget; outsized logs need excluding from recall |
+| Citation form in tasks | slugs cited bare (`project_ruflo-memory-corruption-recurring` ×9) and as prefixes | the cited-notes extractor must match slugs with and without date suffixes |
+
+Nature: notes are atomic-ish markdown cards written mostly by the model, with two frontmatter
+generations, sparse dates and no lifecycle state. Supersession and staleness therefore have to be
+**derived at recall time**, which is consistent with principle 2 (derive signals, never store
+parallel ones).
+
 ## Proposed plan (unconfirmed, pending the architecture check)
 
 1. Mine the benchmark from history and **pre-register** keep/kill thresholds before running
@@ -318,6 +341,114 @@ benchmark-first order, applying the tie-break rule). Week 1:
 - Scope creep: four cross-concept needs in 1 to 2 weeks.
 - Persisted HNSW adds a second store to keep consistent with `knowledge.db` (the repo has a long
   corruption and drift history with ruflo's stores).
+
+### Pre-mortem (run 2026-10-14, Round 7)
+
+"Six months on, this failed." The two most credible causes, and the owner's choice (**both
+mitigations**):
+
+- **(A) The usage log measured citation habit, not usefulness.** Only 103 of 1,965 completed tasks
+  (5%) ever cited a note by slug. If workers keep not citing, cited ÷ recalled stays near 0 and the
+  gates can never decide anything. **Mitigation:** the beat report gets a required structured field
+  listing the note slugs used and ignored, so the log does not depend on free-text citations; the
+  gold set adds `source_task` (114 notes) as a second note → task signal.
+- **(B) The tracer bullet fed unproven, partly stale bundles to unattended workers.** That means a
+  token and noise tax on every beat (the ruflo +105% story again), unnoticed because nobody watches
+  drains. **Mitigation: shadow mode.** The tracer bullet computes and logs the bundle at pull but does
+  not give it to the worker until it passes the pre-registered gates, one of which is a per-beat token
+  change.
+- **How the two fit:** in shadow mode the worker never sees the bundle, so it cannot report
+  used/ignored. Shadow mode is scored offline (mined benchmark plus `source_task` gold). The
+  used/ignored field starts counting once the bundle is injected, and from then on it grows the gold
+  set every day, which ends the saturated-benchmark problem.
+- Lesser causes considered, not selected: a rich-get-richer staleness loop (see Second-order effects);
+  scope creep across the four needs; a second recall code path drifting from `brana recall`.
+
+## Shape (Phase 4, 2026-10-14)
+
+**Idea: Knowledge-ring ORIENT for unattended workers, measured.**
+
+- **Problem:** Beat and Epic workers start each task with no cross-session memory, and nothing
+  measures whether recall helps anyone.
+- **Solution:** at pull time, compute a small typed bundle of pointers from existing recall and log
+  it; inject it only once it passes pre-registered gates, then learn from a structured used/ignored
+  field in the beat report.
+- **Audience:** unattended Beat and Epic workers first; interactive `/brana:build` LOAD can reuse the
+  same verb later.
+- **Scale:** small project, 1 to 2 weeks (effort M).
+- **Success metric (to be pre-registered on day 3 with numbers):** on the mined gold set, the bundle
+  contains at least one cited note for a stated share of tasks (hit rate), with bundle precision above
+  a stated floor; the token change per beat stays under a stated ceiling; recall latency does not
+  regress; zero failed pulls caused by recall (fail-open).
+
+**Key insights carried from the discussion:**
+
+- Engine choice (RuVector or not) is close to irrelevant to precision at 7.7k vectors; data shape and
+  fusion matter more. RuVector's best candidate stays the in-process embedder, for speed, in week 2.
+- Supersession has no structured data (Round 6b); derive it at recall time.
+- Pocock tie-break: the ticket, `CONTEXT.md` and ADRs remain the worker's instruction; the bundle is
+  pointers only, computed and not stored into `context`; tracer-bullet slicing.
+
+**Architecture of the tracer bullet:**
+
+```
+pull(task) ──> bundle(task_id) ──> recall legs (FTS5, vectors, knowledge) ──> fuse (RRF)
+                    │                                                             │
+                    │      derive: type (frontmatter, else filename prefix),      │
+                    │      supersession (newest dated per slug + prose regex),    │
+                    │      quotas per type, MMR, ~1.5K-token budget, pointers     │
+                    ▼                                                             ▼
+             usage log (append-only, derived from pull + report)        shadow: log only
+             {task, bundle ids, ranks, ts}  +  at report: {used, ignored}   gated: inject into worker prompt
+                    │
+                    └──> offline scorer (mined gold + source_task) ──> keep/kill gates
+```
+
+**Risks and mitigations:** see Pre-mortem above, plus the earlier candidate list.
+
+**Engineering disciplines:**
+
+- **DDD / decision (ADR):** yes. A new ADR: "Knowledge-ring ORIENT at pull: shadow-gated recall
+  bundle with a usage log." It decides the pull-time recall step, pointer-only output, shadow-then-gate
+  rollout, where the usage log lives (derived, append-only, rebuildable from beat receipts), and the
+  derived supersession rule. It also records that ADR-057's `status`/`supersedes` vocabulary is unused
+  in practice.
+- **TDD:** tests before code for: type derivation (both frontmatter schemas plus filename fallback),
+  supersession derivation (dated variants of one slug; prose "superseded by"), quotas and token
+  budget, pointer format, fail-open when a recall leg fails or times out, usage-log write at pull and
+  report, the cited-slug extractor (with and without date suffixes), and the offline scorer on a fixed
+  fixture.
+- **SDD / spec:** a feature spec `docs/architecture/features/worker-recall-bundle.md` before any
+  `system/` write (M-effort gate). Update `drain-loop.md` and `epic-drain.md` (the new ORIENT step),
+  `the-brana.md` and the guide's Knowledge-ring row (from design to partial), and
+  `retrieval-routing.md`.
+- **Docs (`/brana:docs`, feature strategy):** tech doc = the feature spec; user guide = a short
+  section on reading the usage log and gate report; CLI reference for the new verb; spec-graph routing
+  over files whose `impl_files` touch recall (`load.md`, `recall-memory-file-vectors.md`,
+  `local-vector-recall.md`).
+
+**Possible next steps:**
+
+1. ADR plus feature spec (half a day).
+2. Tracer bullet in shadow mode: bundle verb, pull-time call, usage log (days 1–2).
+3. Mine gold (cited slugs plus `source_task`), pre-register gates, offline scorer (day 3).
+4. Ranking improvements, each kept only if it passes the gates: quotas, MMR, supersession, 1-hop
+   behind a flag (days 4–5).
+5. Gate review, then inject plus the used/ignored report field (end of week 1 or week 2).
+6. Week 2: embedder parity spike; staleness from log data; link repair; same-pattern-other-domain
+   via the `transferable` filter.
+
+### Second-order effects
+
+- **Inject the bundle → workers use notes → used/ignored becomes a recall-hit signal → the non-use
+  staleness rule (`memory-decay-by-non-use.md`) finally has data → a demotion loop becomes possible.**
+  Surprise (risk): rich get richer. Notes the ranker never surfaces are never "used", so a non-use rule
+  would demote them for being unranked, not for being useless. Mitigation: staleness must count
+  *exposure* (eligible and shown) separately from use, or reserve one exploration slot per bundle.
+- **Structured used/ignored field → the gold set grows with every beat →** the benchmark stops being
+  saturated and keeps tracking real work. Surprise (opportunity): this is also the Knowledge-ring gauge
+  the guide says is missing ("nothing yet measures whether accumulated knowledge is any good"). One
+  mechanism closes three documented gaps: (a) worker recall, (b) the gauge, (c) the staleness input.
 
 ## Open work (briefs for the two read-only passes, if re-running)
 
