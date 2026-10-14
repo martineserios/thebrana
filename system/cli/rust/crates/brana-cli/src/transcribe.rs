@@ -207,7 +207,6 @@ fn resolve_installed(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
     discover_models_in(dirs).into_iter().find(|m| m.name == name).map(|m| m.path)
 }
 
-/// Resolve the model to run: explicit path/name, else largest installed, else download small.
 /// Refuse a missing, non-file or unreadable input before anything expensive runs: the
 /// model lookup can be a multi-GB download, and a typo'd path used to trigger it first
 /// (t-3485).
@@ -221,16 +220,28 @@ fn check_input(path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Input first, then the model — with the resolver injected so the ordering is testable.
-fn resolve_for_run(
+/// Everything cheap and local, in the order that fails fastest, before anything slow: the
+/// input file, the `--frames` dir preconditions, the whisper-cli lookup, then the model
+/// (possibly a download). The two lookups are injected so the ordering is testable; this
+/// is the only path `transcribe()` uses. Creates nothing.
+fn preflight(
     input: &Path,
+    frames_dir: Option<&Path>,
     spec: Option<&str>,
+    which: impl FnOnce() -> Result<PathBuf>,
     resolve: impl FnOnce(Option<&str>) -> Result<PathBuf>,
-) -> Result<PathBuf> {
+) -> Result<(PathBuf, PathBuf)> {
     check_input(input)?;
-    resolve(spec)
+    if let Some(dir) = frames_dir {
+        check_frames_dir(dir)?;
+        check_existing_frames_dir(dir)?;
+    }
+    let whisper = which()?;
+    let model = resolve(spec)?;
+    Ok((whisper, model))
 }
 
+/// Resolve the model to run: explicit path/name, else largest installed, else download small.
 fn resolve_model(spec: Option<&str>) -> Result<PathBuf> {
     let dirs = model_dirs_for(spec, model_dirs)?;
     resolve_model_with(spec, &dirs, ensure_model)
@@ -691,19 +702,16 @@ fn validate_options(opts: &Options, input: &Path) -> Result<()> {
 /// Create the frames dir private to the user (0o700) when this run creates it: frames of a
 /// private recording should not land world-readable in a shared location (t-3480). An
 /// existing dir keeps its mode.
-fn create_private_dir(dir: &Path) -> Result<()> {
-    // Parents get the default mode — only the leaf holding the frames is private, so
-    // `--frames /srv/share/newproj/frames` does not lock `newproj` to one user.
-    if let Some(parent) = dir.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
+/// Is a pre-existing `--frames` dir acceptable? `Ok(true)` = exists and is a real directory
+/// nobody else can write (otherwise another user could plant a `frame_*` entry while ffmpeg
+/// runs — the check-then-use window lasts the whole run); `Ok(false)` = does not exist yet;
+/// `Err` = symlink, not a directory, group/other-writable, or uninspectable. Creates nothing.
+fn check_existing_frames_dir(dir: &Path) -> Result<bool> {
     match std::fs::symlink_metadata(dir) {
         Ok(m) if m.file_type().is_symlink() => {
             bail!("--frames {} is a symlink — use a real directory", dir.display())
         }
         Ok(m) if m.is_dir() => {
-            // A pre-existing dir is accepted only if nobody else can plant a frame_* entry
-            // in it while ffmpeg runs (the check-then-use window lasts the whole run).
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
@@ -714,21 +722,31 @@ fn create_private_dir(dir: &Path) -> Result<()> {
                     );
                 }
             }
-            Ok(())
+            Ok(true)
         }
         Ok(_) => bail!("--frames {} exists and is not a directory", dir.display()),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            #[cfg(unix)]
-            let created = {
-                use std::os::unix::fs::DirBuilderExt;
-                std::fs::DirBuilder::new().mode(0o700).create(dir)
-            };
-            #[cfg(not(unix))]
-            let created = std::fs::create_dir(dir);
-            created.with_context(|| format!("cannot create frames dir {}", dir.display()))
-        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(e) => Err(e).with_context(|| format!("cannot inspect frames dir {}", dir.display())),
     }
+}
+
+fn create_private_dir(dir: &Path) -> Result<()> {
+    if check_existing_frames_dir(dir)? {
+        return Ok(());
+    }
+    // Parents get the default mode — only the leaf holding the frames is private, so
+    // `--frames /srv/share/newproj/frames` does not lock `newproj` to one user.
+    if let Some(parent) = dir.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    #[cfg(unix)]
+    let created = {
+        use std::os::unix::fs::DirBuilderExt;
+        std::fs::DirBuilder::new().mode(0o700).create(dir)
+    };
+    #[cfg(not(unix))]
+    let created = std::fs::create_dir(dir);
+    created.with_context(|| format!("cannot create frames dir {}", dir.display()))
 }
 
 /// Refuse a frames dir that already holds frames: the index is built from the directory,
@@ -752,18 +770,20 @@ fn check_frames_dir(dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Above this many frames a run is almost certainly sampling too densely (`--every 1` on a
-/// ten-minute video is 600 JPEGs and 600 index lines). Documented in
+/// Above this many frames a run is almost certainly sampling too densely (`--every 1`
+/// crosses it at ~8 minutes of video: 500 JPEGs and 500 index lines). Documented in
 /// docs/architecture/features/transcribe-models-video.md (t-3485).
 const FRAME_WARN_THRESHOLD: usize = 500;
 
-/// The warning printed after extraction when the frame count exceeds the threshold.
-fn frame_count_note(n: usize) -> Option<String> {
+/// The warning printed after extraction when the frame count exceeds the threshold, with
+/// advice for the sampler actually in use (`--every` conflicts with `--scene`).
+fn frame_count_note(n: usize, sampling: Sampling) -> Option<String> {
     (n > FRAME_WARN_THRESHOLD).then(|| {
-        format!(
-            "warning: {n} frames extracted (more than {FRAME_WARN_THRESHOLD}) — a larger --every, \
-             or --scene to sample on cuts, keeps the frame index usable"
-        )
+        let advice = match sampling {
+            Sampling::Every(_) => "a larger --every, or --scene to sample on cuts,",
+            Sampling::Scene(_) => "a higher --scene threshold",
+        };
+        format!("warning: {n} frames extracted (more than {FRAME_WARN_THRESHOLD}) — {advice} keeps the frame index usable")
     })
 }
 
@@ -801,7 +821,7 @@ fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<S
     // Scene mode has no duration/N bound — a very low threshold can keep nearly every frame —
     // so say how many were written, and warn when the index is too dense to be useful.
     eprintln!("Extracted {} frames into {}", files.len(), dir.display());
-    if let Some(note) = frame_count_note(files.len()) {
+    if let Some(note) = frame_count_note(files.len(), sampling) {
         eprintln!("{note}");
     }
     Ok((frame_index(&files, &times), guard))
@@ -823,14 +843,15 @@ fn whisper_failure_message(model: &Path, stderr: &str) -> String {
 pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     validate_options(opts, audio_path)?;
 
-    // 0. The input itself, before anything that could be slow or write anything.
-    check_input(audio_path)?;
-
-    // 1. Check whisper-cli is available
-    let whisper = which_whisper_cli()?;
-
-    // 2. Resolve model (input re-checked through the same seam the tests pin)
-    let model_path = resolve_for_run(audio_path, opts.model.as_deref(), resolve_model)?;
+    // 1-2. Input, --frames dir preconditions, whisper-cli, then the model — fastest failure
+    // first, and nothing slow or written before the cheap checks pass (t-3485).
+    let (whisper, model_path) = preflight(
+        audio_path,
+        opts.frames_dir.as_deref(),
+        opts.model.as_deref(),
+        which_whisper_cli,
+        resolve_model,
+    )?;
     eprintln!("Using model: {}", model_path.display());
 
     // 3. Frames first — cheap, and fails fast (e.g. no video stream) before a long transcription.
