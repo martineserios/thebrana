@@ -473,6 +473,65 @@ construction.**
 - `memory-decay-by-non-use.md`
 - `scripts/mine_pairs.py` and the frozen gold file
 
+## Shape v2 (after the challenger review, owner-approved 2026-10-14)
+
+Owner decisions:
+- **Integration point:** build LOAD + CLOSE. The headless runner is left to a separate, later
+  decision.
+- **Evaluation design:** the revised design is accepted in full.
+
+Where they conflict, this section replaces the earlier Shape. The earlier text stays above for the
+record.
+
+- **Problem:** the recall that `/brana:build` LOAD gives a worker, interactive or supervised drain,
+  has three gaps: it is untyped, it has no budget, and it ignores supersession. Nothing records which
+  recalled notes were used. The headless runner has no recall at all, but it has run only 8 beats.
+- **Solution:** a bundle command, `brana recall bundle <task-id>` (name to be fixed in the ADR):
+  - **Output:** typed pointers, at most 8, gist taken from `description`.
+  - **Scope:** current project plus global; other clients excluded, with a must-fire test.
+  - **Supersession:** ADR-057 `status`/`supersedes` fields first. Derived supersession (dated
+    variants, prose regex) only down-weights, never drops.
+  - **Failure:** fail-open with a wall-clock timeout; any failure yields an empty bundle.
+- **Where it runs:** build LOAD calls the command. Build CLOSE writes one usage row per task through
+  a single writer command. CLOSE refuses to finish without the row, and records "absent" separately
+  from "used nothing".
+- **Usage log:** a canonical, backed-up store (not derived). Rows are keyed by (task, claimant, ts)
+  and hold:
+  - bundle ids and ranks;
+  - per-leg status;
+  - used and ignored slugs;
+  - the pointed note files the transcript actually opened.
+- **Rollout:**
+  1. Shadow: LOAD keeps today's recall and the bundle is only logged.
+  2. Offline gates that can only kill: the bundle must beat (a) `brana recall` on subject+tags and
+     (b) the pointers already in the ticket, on hit@K and MRR, over a hand-labelled, frozen,
+     committed gold set. Below the pre-registered minimum n, the verdict is INCONCLUSIVE.
+  3. A canary or alternating A/B injection decides keep, comparing tokens per run, retries and AC
+     pass rate.
+- **Week 1 order** (tracer bullet within the governance order):
+  1. Before day 1: ship t-3510; t-3511 follows.
+  2. ADR + feature spec (half a day).
+  3. Tests first, then the thin end-to-end slice: bundle command → LOAD shadow call → CLOSE usage
+     row (days 1–2).
+  4. Gold labelling (about 30 hits) + frozen gold file + gate pre-registration + offline scorer
+     (day 3).
+  5. Ranking work, each change kept only if it passes the gates: quotas, MMR, supersession, 1-hop
+     behind a flag (days 4–5).
+- **Week 2:**
+  - canary/A-B injection;
+  - embedder parity spike (speed);
+  - a staleness rule that counts *exposure* separately from use;
+  - link repair;
+  - same-pattern-other-domain via the `transferable` filter;
+  - the runner decision.
+- **Surface to touch** (in addition to the earlier list):
+  - `system/skills/build/phases/load.md` and the CLOSE phase;
+  - `docs/guide/workflows/{drain-loop,epic-drain}.md` (procedure; `system/loops/*` are pointers);
+  - `memory-decay-by-non-use.md`;
+  - `scripts/mine_pairs.py` and the frozen gold file.
+- **Out of scope for week 1:** `autonomous-runner.sh`, `sandbox-claude.sh`, and the beat-record
+  schema (untouched).
+
 ## Open decisions for the owner
 
 > **Resolved 2026-10-14 (Rounds 6 and Phase 5):** order = tracer bullet first (Round 6); archive
