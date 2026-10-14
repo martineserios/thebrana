@@ -30,9 +30,14 @@ in `HybridProvider` fuses FTS and semantic signals for the same document.
   (`memory::memory_file_identity`). Equal `DocRef` values accumulate RRF score, which is the
   "dual-backend confirmation" ADR-058 §6 relies on.
 - **Storage.** One row per file in the existing `knowledge` table: key
-  `memory-file:<absolute path>`, `source = 'memory-file'`, `tags` = JSON
-  `{"slug","mtype","scope"}`, `content` = file text, `vec` = embedding of the first 1500
-  characters. No schema change.
+  `memory-file:<absolute path>`, `source = 'memory-file'`, `tags` = `memory-file,scope:<scope>`,
+  `content` = file text, `vec` = embedding of the first 1500 characters. No schema change. Slug
+  and type are re-derived from the path on read, so they cannot drift from the FTS leg.
+- **Opt-in provider.** `VectorProvider::with_memory_files(true)` includes these rows; the
+  default excludes them. `brana recall` and the MCP `recall` tool opt in. `brana knowledge
+  search` does not, because it documents that the vector store holds only `knowledge:` entries.
+- **Other passes.** `vector-sync` only upserts, and the relevance scoring pass reads only
+  link and feed rows, so neither touches `memory-file` rows.
 - **Incremental.** A file whose stored `content` equals the file on disk is skipped. Rows whose
   file no longer exists are pruned. A file the embedder cannot embed is counted as failed and
   leaves no row (recall falls back to keyword for it).

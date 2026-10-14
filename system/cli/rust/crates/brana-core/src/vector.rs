@@ -871,11 +871,24 @@ pub fn probe_memory_entries(path: &Path) -> bool {
 /// any resolution/spawn/parse failure returns `None`.
 pub struct RufloEmbedder;
 
+/// Shield text from ruflo's flag parser: a `-t` value that starts with `-` is read
+/// as an option, so the CLI crashes with "text.substring is not a function" and
+/// returns no embedding. A leading space is invisible to the tokenizer. Found
+/// t-3510: 791 of 1,106 memory files open with a `---` frontmatter fence.
+pub(crate) fn argv_safe_text(text: &str) -> std::borrow::Cow<'_, str> {
+    if text.starts_with('-') {
+        std::borrow::Cow::Owned(format!(" {text}"))
+    } else {
+        std::borrow::Cow::Borrowed(text)
+    }
+}
+
 impl Embedder for RufloEmbedder {
     fn embed(&self, text: &str) -> Option<Vec<f32>> {
         let bin = crate::ruflo::resolve_ruflo_binary()?;
+        let text = argv_safe_text(text);
         let out = std::process::Command::new(bin)
-            .args(["embeddings", "generate", "-t", text, "-o", "json"])
+            .args(["embeddings", "generate", "-t", text.as_ref(), "-o", "json"])
             .output()
             .ok()?;
         let stdout = String::from_utf8_lossy(&out.stdout);
@@ -926,6 +939,19 @@ mod tests {
     #[test]
     fn cosine_orthogonal_is_zero() {
         assert!(cosine(&unit(0), &unit(1)).abs() < 1e-6);
+    }
+
+    // ── embedder argv safety (t-3510) ──────────────────────────────────────────
+
+    #[test]
+    fn argv_safe_text_shields_leading_dash_from_ruflo_flag_parser() {
+        // ruflo's CLI reads a `-t` value starting with `-` as a flag, then crashes with
+        // "text.substring is not a function". 791 of 1,106 memory files start with `---`.
+        assert_eq!(argv_safe_text("---\nname: x"), " ---\nname: x");
+        assert_eq!(argv_safe_text("-foo"), " -foo");
+        assert_eq!(argv_safe_text("plain text"), "plain text");
+        assert_eq!(argv_safe_text(""), "");
+        assert_eq!(argv_safe_text(" already spaced"), " already spaced");
     }
 
     #[test]
