@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Test: /brana:plugin add writes the engine's v2 registry and scans before activation (t-3502)
 # The skill used to hand-write ~/.claude/plugins/installed_plugins.json with its own schema
-# (`plugins.<name>: {...}`), so a plugin it installed was invisible to the engine's loader
-# AND to mods-check.sh --installed (which follows the engine's `name@marketplace -> [entries]`
-# shape). The contract: the add step documents the engine's shape and points at the scan.
+# (`plugins.<name>: {...}`) — a shape the engine never writes: brana doctor now rejects it as a
+# stub, the loader's behaviour on it is unverified, and mods-check.sh --installed only
+# tolerates it because it reads any `installPath`. The contract: the add step documents the
+# engine's shape and points at the scan.
 
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

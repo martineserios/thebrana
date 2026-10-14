@@ -135,9 +135,10 @@ Install a plugin from a known marketplace.
 
 8. Register in `~/.claude/plugins/installed_plugins.json` — the ENGINE's registry, in the
    engine's v2 shape (t-3502: the skill used to write its own `plugins.<name>: {…}` shape,
-   which neither the engine's loader nor `mods-check.sh --installed` reads — a plugin added
-   this way was invisible to both). Key `<name>@<marketplace>`, value a LIST of entries (one
-   per install scope):
+   which the engine never writes — `brana doctor` now rejects it as a stub; whether the
+   loader honours it is unverified, and `mods-check.sh --installed` tolerates it because it
+   reads any `installPath`). Key `<name>@<marketplace>`, value a LIST of entries (one per
+   install scope):
    ```json
    {
      "version": 2,

@@ -24,8 +24,12 @@
 #
 # Output: nothing when clean or nothing installed; otherwise one JSON line
 #         {"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"⚠ …"}}
+#         additionalContext is MODEL-visible (the only SessionStart field the engine injects —
+#         harness audit 2026-10-07); the session is expected to relay the line to the human.
+#         Nothing here is shown to the human directly.
 # Env:    CLAUDE_CONFIG_DIR (the engine's config dir; default ~/.claude)
 #         BRANA_MODS_CHECK  (path to mods-check.sh — tests; default: resolved below)
+#         BRANA_MODS_INSTALLED_SKIP=1 (silence this gauge for the shell; never the default)
 # Tests:  system/hooks/tests/test-mods-installed-check.sh (must-fire with the t-3493 billing mod)
 #
 # No strict mode — a SessionStart hook must always exit 0 and emit valid JSON or nothing.
@@ -34,7 +38,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
-# Nothing installed: nothing to scan, nothing to say.
+# Nothing installed: nothing to scan, nothing to say. BRANA_MODS_INSTALLED_SKIP=1 silences
+# this gauge for a shell (challenger: a flagged-but-accepted mod would otherwise put the same
+# line in every session until t-3505's acknowledge valve lands); the valve stays [77c].
+[ "${BRANA_MODS_INSTALLED_SKIP:-0}" = "1" ] && exit 0
 [ -f "$CLAUDE_DIR/plugins/installed_plugins.json" ] || exit 0
 
 REMEDY="run ./validate.sh (Check 77c) by hand"

@@ -145,5 +145,14 @@ assert "hostile clone: exit 0" 0 "$RC"
 assert "hostile clone: says the checker was not found" yes "$(has 'not found' "$(ctx)")"
 
 echo ""
+echo "--- challenger: an explicit per-shell opt-out silences the gauge (the valve stays [77c]) ---"
+reg good:"$GOOD" billing:"$BILL"
+run_hook BRANA_MODS_INSTALLED_SKIP=1
+assert "opt-out: exit 0" 0 "$RC"
+assert "opt-out: silent" "" "$(ctx)"
+run_hook BRANA_MODS_INSTALLED_SKIP=0
+assert "opt-out=0 is not an opt-out: still reported" yes "$(has 'billing@x' "$(ctx)")"
+
+echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

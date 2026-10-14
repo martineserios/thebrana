@@ -1142,36 +1142,10 @@ if command -v jq &>/dev/null; then
     fi
 fi
 
-# 7f: Keep ~/.claude/installed_plugins.json in sync (brana doctor check 2)
-# CC reads this file to verify plugin registration. Bootstrap manages the verbose
-# plugins/installed_plugins.json separately; this step ensures the simple file
-# also has a brana entry so fresh installs pass `brana doctor`.
-SIMPLE_INSTALLED="$TARGET_DIR/installed_plugins.json"
-if command -v jq &>/dev/null; then
-    # (a dry run must not write: seed the file only on a real run — jq below tolerates its absence)
-    if ! $CHECK_ONLY; then [ -f "$SIMPLE_INSTALLED" ] || echo '{}' > "$SIMPLE_INSTALLED"; fi
-    CURRENT_VER=$(jq -r '.brana.version // empty' "$SIMPLE_INSTALLED" 2>/dev/null || true)
-    if [ "$CURRENT_VER" != "$PLUGIN_VERSION" ]; then
-        CHANGES=$((CHANGES + 1))
-        if $CHECK_ONLY; then
-            echo "  + $TARGET_DIR/installed_plugins.json (would write brana v$PLUGIN_VERSION)"
-        else
-            jq --arg ver "$PLUGIN_VERSION" '.brana = {"version": $ver}' \
-               "$SIMPLE_INSTALLED" > "$SIMPLE_INSTALLED.tmp" && mv "$SIMPLE_INSTALLED.tmp" "$SIMPLE_INSTALLED"
-            echo "  + $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION)"
-        fi
-    else
-        echo "  = $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION)"
-    fi
-else
-    if [ ! -f "$SIMPLE_INSTALLED" ]; then
-        if ! $CHECK_ONLY; then
-            printf '{"brana":{"version":"%s"}}\n' "$PLUGIN_VERSION" > "$SIMPLE_INSTALLED"
-            echo "  + $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION, no jq)"
-            CHANGES=$((CHANGES + 1))
-        fi
-    fi
-fi
+# 7f (removed, t-3502): this step wrote a hand-rolled ~/.claude/installed_plugins.json "so
+# fresh installs pass brana doctor". Nothing but that check ever read the file — the engine
+# reads plugins/installed_plugins.json, which 7e writes — so its only effect was to let a stub
+# mask an engine registry without brana. brana doctor now reads the engine registry alone.
 
 # 7g: ruflo mods guard (ADR-096 Law 6; cockpit.md §bootstrap, t-3427). ruflo >= 3.50's `ruflo init`
 # enables ruflo-mods@ruflo / ruflo-swarm@ruflo / ruflo-console@ruflo; ruflo-mods hooks
