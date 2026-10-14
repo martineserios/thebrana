@@ -218,7 +218,7 @@ abandon, no further BUILD loop). A second INCONCLUSIVE offers override or abando
 Total Challenger LLM runs never exceed 2.
 
 **Cap, counted from the ledger — not from session memory:** before spawning,
-`N_PRIOR=$(brana backlog get {task_id} | jq -r '.notes // ""' | grep -c '^Challenger: INCONCLUSIVE')`.
+`N_PRIOR=$(brana backlog get {task_id} | jq -r '.notes // ""' | grep -c '^Challenger: INCONCLUSIVE' || true)` (`grep -c` exits 1 on a zero count).
 `N_PRIOR=0` → an INCONCLUSIVE now is iteration 1; `N_PRIOR>=1` → this is the second: override or abandon only. A resumed or compacted build re-reads the ledger and gets the same answer.
 
 In a headless session (no AskUserQuestion — the tool is unavailable, errors, or returns no explicit selection), INCONCLUSIVE is Abandon (blocked), never proceed.

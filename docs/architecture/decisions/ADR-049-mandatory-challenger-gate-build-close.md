@@ -80,7 +80,7 @@ The `spec_says` field is mandatory — it gives the repair BUILD iteration a pre
 User choice presented:
 - **Fix now** — findings appended to task context as `sr_t` (Reflexion verbal self-reflection). Re-enter BUILD with findings visible. BUILD → validate.sh → Challenger iteration 2. If pass → CLOSE. If fail (iteration 2) → unconditional user surface.
 - **Override** — reason required, logged to task context. CLOSE proceeds with annotation.
-- **Abandon** — task marked blocked, session ends.
+- **Abandon** — stop; the task stays in_progress with a `Blocked:` note, session ends (amended t-3504: `blocked` is not a status — `validate_status` accepts pending, in_progress, completed, cancelled).
 
 **Hard cap: max 2 Challenger iterations.** After iteration 2, regardless of verdict, the gate presents an unconditional user surface: `["Override + reason | Abandon"]`. No iteration 3. This prevents P7 Recursive Decomposition.
 

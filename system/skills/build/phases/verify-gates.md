@@ -96,7 +96,7 @@ carries it as an `Evidence` block. Evidence is the evaluator's **only channel** 
 <!-- EVIDENCE-CAPTURE-BLOCK -->
 ```bash
 HEAD_SHA=$(git rev-parse HEAD)
-mkdir -p ~/.claude/run-state; umask 077            # test output can carry secrets: owner-only
+umask 077; mkdir -p ~/.claude/run-state            # test output can carry secrets: owner-only (the dir too)
 EV=~/.claude/run-state/{task_id}.$HEAD_SHA.evidence   # keyed by commit: builds at different commits cannot interleave
 DIRTY=$(git status --porcelain | wc -l | tr -d ' ')
 printf 'commit: %s\nbranch: %s\ntree: %s\ncaptured: %s\n' "$HEAD_SHA" "$(git branch --show-current)" \
@@ -107,7 +107,8 @@ capture() {  # one verification command -> one stanza. `bash -c`, because zsh (t
     ( ulimit -f 20000; bash -c "$1" ) </dev/null >"$out" 2>&1; rc=$?   # redirect, never pipe: a piped exit is the filter's;
                                                                       # </dev/null: a command reading stdin cannot hang the gate
     printf '$ %s\nexit: %s\n' "$1" "$rc" >> "$EV"
-    tail -n 20 "$out" | sed 's/^/| /' >> "$EV"; rm -f "$out"          # '| '-prefixed: output cannot forge a stanza
+    tr '\r' '\n' < "$out" | tail -n 20 | cut -c1-2000 | sed 's/^/| /' >> "$EV"; rm -f "$out"   # '| '-prefixed: output cannot forge a stanza;
+                                                                      # tr: \r progress bars become lines; cut: bytes are bounded too, not just lines
 }
 capture './validate.sh --fast'   # then one capture line per command this gate's AC names (at most 5 stanzas)
 ```
@@ -118,7 +119,7 @@ Capture only on a clean tree: the header says `tree: clean` or `tree: dirty (N p
 before this gate and may leave edits — commit them (a `wip:` commit) first, then capture. The commands are
 whatever this gate's `AC:` lines name plus `./validate.sh --fast`; the orchestrator chooses them, so the evaluator
 checks the stanza structure (below), not the choice. A stanza is `$ {cmd}`, `exit: {N}`, then the command's last
-20 output lines each prefixed with `| ` — a command that prints its own `exit: 0` or `$ x` cannot forge one.
+20 output lines (each cut to 2000 characters, `\r` treated as a line break) each prefixed with `| ` — a command that prints its own `exit: 0` or `$ x` cannot forge one.
 Remove the file once the gates pass: `rm -f "$EV"`.
 
 #### Spawn call
@@ -181,7 +182,7 @@ into `context` (override reasons, findings) must be single-line: `context` is re
 
 **Cap (matches the challenger path), counted from the ledger — not from session memory.** Before spawning:
 ```bash
-N_PRIOR=$(brana backlog get {task_id} | jq -r '.notes // ""' | grep -c '^Evaluator: INCONCLUSIVE')
+N_PRIOR=$(brana backlog get {task_id} | jq -r '.notes // ""' | grep -c '^Evaluator: INCONCLUSIVE' || true)   # grep -c exits 1 on a zero count
 ```
 `N_PRIOR=0` → this INCONCLUSIVE run is iteration 1 of the max-2 rule; the re-run after "Produce the
 evidence" is iteration 2 and is the last Evaluator run on this task. `N_PRIOR>=1` when an INCONCLUSIVE comes
