@@ -258,6 +258,18 @@ for sh in bash zsh; do
     else echo "  FAIL: [$sh] a printed 'exit:'/'\$' line reads as a stanza"; FAIL=$((FAIL + 1)); fi
     TOTAL=$((TOTAL + 1)); if grep -qx 'tree: clean' "$EVF" 2>/dev/null && grep -q '^branch: ' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the header stamps branch and tree state"; PASS=$((PASS + 1))
     else echo "  FAIL: [$sh] header lacks branch:/tree: clean"; FAIL=$((FAIL + 1)); fi
+    # verifier N1 (sev 3): the stanza bound must be bytes too — a 3 MB newline-less line (a progress bar,
+    # minified output) must not become a 3 MB evidence file that is pasted whole into the prompt
+    printf '#!/usr/bin/env bash\nhead -c 3000000 /dev/zero | tr "\\0" x\nexit 0\n' > "$T/repo/validate.sh"
+    ( cd "$T/repo" && git add validate.sh && git -c user.name=t -c user.email=t@t commit -q -m big )
+    SHA2="$(git -C "$T/repo" rev-parse HEAD)"
+    ( cd "$T/repo" && HOME="$T/home" "$sh" -c "$EVIDENCE_BLOCK" ) >"$T/out3" 2>&1
+    EVB="$T/home/.claude/run-state/t-9999.$SHA2.evidence"
+    TOTAL=$((TOTAL + 1)); if [ -f "$EVB" ] && [ "$(wc -c < "$EVB" | tr -d ' ')" -lt 8000 ]; then echo "  PASS: [$sh] a 3 MB single-line output is capped to a few KB in the evidence"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] evidence file is $(wc -c < "$EVB" 2>/dev/null | tr -d ' ') bytes for a 3 MB line"; FAIL=$((FAIL + 1)); fi
+    printf '#!/usr/bin/env bash\necho validate-ran\n' > "$T/repo/validate.sh"
+    ( cd "$T/repo" && git add validate.sh && git -c user.name=t -c user.email=t@t commit -q -m small )
+    SHA="$(git -C "$T/repo" rev-parse HEAD)"; EVF="$T/home/.claude/run-state/t-9999.$SHA.evidence"
     echo dirty >> "$T/repo/validate.sh"
     ( cd "$T/repo" && HOME="$T/home" "$sh" -c "$EVIDENCE_BLOCK" ) >"$T/out2" 2>&1
     TOTAL=$((TOTAL + 1)); if grep -qE '^tree: dirty' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] a dirty tree is stamped dirty"; PASS=$((PASS + 1))
