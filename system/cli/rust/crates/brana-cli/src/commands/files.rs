@@ -47,7 +47,7 @@ fn cmd_status(manifest: &files::Manifest, project_dir: &PathBuf) -> anyhow::Resu
             files::FileState::Ok => "\x1b[32m✓\x1b[0m",
             files::FileState::Missing => "\x1b[31m✗\x1b[0m",
             files::FileState::Modified { .. } => "\x1b[33m~\x1b[0m",
-            files::FileState::Error => "\x1b[31m!\x1b[0m",
+            files::FileState::Error | files::FileState::Refused { .. } => "\x1b[31m!\x1b[0m",
         };
         let detail = match &s.state {
             files::FileState::Ok => "ok".to_string(),
@@ -56,6 +56,7 @@ fn cmd_status(manifest: &files::Manifest, project_dir: &PathBuf) -> anyhow::Resu
                 format!("modified (hash: {}...)", &actual_hash[..8.min(actual_hash.len())])
             }
             files::FileState::Error => "error reading file".to_string(),
+            files::FileState::Refused { reason } => format!("refused: {reason}"),
         };
         println!("{} {:<20} {}", icon, s.name, detail);
     }

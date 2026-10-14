@@ -232,6 +232,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-096](architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md) | The Brana's cockpit surface is Claude Code mods under six laws — tiers 0→2a ship together, 2b gated on a pre-registered 50 % retention rule; gauge law (reads via `brana` + pushed events, no shadow state); no API calls, read+write allowlists; safety stays in shell hooks; valves via ADR-063; `mods/` + marketplace deploy, pinned CC in CI (accepted) |
 | [ADR-097](architecture/decisions/ADR-097-upstream-band-standing-v1-3.md) | Upstream skill band standing, pin v1.3.1 — superseded by ADR-098 (2026-10-09) |
 | [ADR-098](architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md) | Retire the vendored upstream band; install Pocock's plugin as-is (tie-break rule); tdd seam and PR-headings hook stay brana's; accepted 2026-10-09 |
+| [ADR-099](architecture/decisions/ADR-099-recall-bundle-and-usage-log.md) | Recall bundle at build LOAD (≤8 typed pointers, project + global scope, ADR-057 supersession first) and a canonical usage log written at CLOSE; shadow gates can only kill, canary decides keep; proposed 2026-10-14 |
 
 > Coverage is checked by `system/scripts/readme-coverage.sh` (t-3031) — run it before adding a doc; `tests/scripts/test-readme-coverage.sh` fails when a row is missing or dead.
 
@@ -322,6 +323,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [lint-heal-deterministic.md](architecture/features/lint-heal-deterministic.md) | Lint+Heal L2 — deterministic memory consolidation (specced) |
 | [living-docs.md](architecture/features/living-docs.md) | Living documentation system — composable `/brana:docs`, spec-graph routed; shipped |
 | [local-vector-recall.md](architecture/features/local-vector-recall.md) | Local vector recall — own retrieval, drop the index (built) |
+| [recall-bundle.md](architecture/features/recall-bundle.md) | Recall bundle at build LOAD and usage log at CLOSE — contract, row schema, tests, surface (specifying, t-3514) |
 | [loops-library.md](architecture/features/loops-library.md) | Loops library — `system/loops/` catalog of committed loop definitions (shipped; not the drained idea doc of the same name) |
 | [memory-migration-manifest.md](architecture/features/memory-migration-manifest.md) | Memory migration manifest — Phase A file-by-file routing (awaiting human review) |
 | [memory-pattern-redesign.md](architecture/features/memory-pattern-redesign.md) | Memory pattern learning redesign — transferability filter on the pattern write path (specifying) |

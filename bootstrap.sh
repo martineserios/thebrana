@@ -1062,7 +1062,9 @@ if [ -f "$BRANA_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
     NEWEST_SRC=$(find "$RUST_SRC_DIR" -name "*.rs" -newer "$BRANA_BIN" 2>/dev/null | head -1)
     if [ -n "$NEWEST_SRC" ]; then
         echo "  ! brana-cli binary may be stale (source changed since last build)"
-        echo "    Run: cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana"
+        echo "    After a ship: /brana:ship Step 4 does this (one build of brana-cli + brana-mcp, backup, atomic swap, verified)."
+        echo "    Outside a ship, bare minimum (no backup/verify; builds THIS checkout; a symlinked install becomes a regular file):"
+        echo "      cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana.new && mv -f ~/.local/bin/brana.new ~/.local/bin/brana"
     else
         echo "  = brana-cli binary (current)"
     fi
@@ -1077,8 +1079,10 @@ if [ -f "$BRANA_MCP_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
     NEWEST_MCP_SRC=$(find "$RUST_SRC_DIR" -name "*.rs" -newer "$BRANA_MCP_BIN" 2>/dev/null | head -1)
     if [ -n "$NEWEST_MCP_SRC" ]; then
         echo "  ! brana-mcp binary may be stale (source changed since last build)"
-        echo "    Run: cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-mcp && cp target/release/brana-mcp ~/.local/bin/brana-mcp"
-        echo "    Then restart Claude Code sessions to pick up the rebuilt MCP server."
+        echo "    After a ship: /brana:ship Step 4 rebuilds brana-mcp together with brana-cli (t-3499) — atomic swap, verified."
+        echo "    Outside a ship, bare minimum (no backup/verify; builds THIS checkout):"
+        echo "      cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-mcp && cp target/release/brana-mcp ~/.local/bin/brana-mcp.new && mv -f ~/.local/bin/brana-mcp.new ~/.local/bin/brana-mcp"
+        echo "    Then restart Claude Code sessions to pick up the rebuilt MCP server (running ones keep the old inode)."
     else
         echo "  = brana-mcp binary (current)"
     fi

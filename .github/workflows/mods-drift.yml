@@ -18,6 +18,9 @@ permissions:
 
 jobs:
   drift:
+    # Floats on ubuntu-latest on purpose (t-3484): this is the latest-claude canary. Note
+    # that from 2026-10-19 it is the only job running mods-check.sh on Ubuntu 26 while the
+    # required validate job runs it on 24.04 — an OS-caused red here is not a claude break.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

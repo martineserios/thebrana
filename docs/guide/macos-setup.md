@@ -58,11 +58,11 @@ variables do not apply — `native-tls` uses the system Security framework there
 
 ```bash
 cd system/cli/rust
-cargo build --release -p brana-cli
-mkdir -p ~/.local/bin && ln -sf "$PWD/target/release/brana" ~/.local/bin/brana
+cargo build --release -p brana-cli -p brana-mcp
+mkdir -p ~/.local/bin && ln -sf "$PWD/target/release/brana" ~/.local/bin/brana && ln -sf "$PWD/target/release/brana-mcp" ~/.local/bin/brana-mcp
 ```
 
-> On the owner machine (the company Mac never ships or pushes — ADR-095), `/brana:ship` replaces `~/.local/bin/brana` with an atomically swapped regular file after a ship that changed the CLI (the symlink is not kept); re-run the `ln -sf` for a "rebuild = live" dev setup.
+> On the owner machine (the company Mac never ships or pushes — ADR-095), `/brana:ship` replaces `~/.local/bin/brana` and `~/.local/bin/brana-mcp` with atomically swapped regular files after a ship that changed the CLI (the symlinks are not kept; t-3499); re-run the `ln -sf` lines for a "rebuild = live" dev setup.
 
 Make sure `~/.local/bin` is on `PATH`, restart Claude Code, then:
 

@@ -123,7 +123,11 @@ check_argv() {
 for sh in bash zsh; do
     echo "Shell: $sh"
     if ! command -v "$sh" >/dev/null 2>&1; then
-        echo "  SKIP: $sh not installed"
+        if [ "${BRANA_REQUIRE_ZSH:-}" = 1 ]; then
+            assert_fail "$sh required (BRANA_REQUIRE_ZSH=1) but not installed" "the zsh leg is the one that catches no-word-split bugs"
+        else
+            echo "  SKIP: $sh not installed"
+        fi
         echo ""
         continue
     fi

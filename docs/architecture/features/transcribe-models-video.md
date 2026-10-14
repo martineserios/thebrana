@@ -51,8 +51,7 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 
 ## Non-goals (v1)
 
-- Sweeping `*.part-<pid>` files left by a killed download (they are ignored by discovery but use
-  disk) — t-3473 (with the sibling `brana-core` `download_file` atomic-download fix).
+- None remaining: scene-change detection shipped in t-3471, atomic/contained downloads in t-3473.
 
 ## Assumptions
 
@@ -64,6 +63,9 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 - scene detect deferred to a follow-up task (t-3471) — confirmed by user 2026-10-05; shipped by t-3471.
 - `--scene` always keeps the first frame (`eq(n,0)`): chose parity with `--every` (which keeps the
   first frame) because a cut-less video would otherwise yield zero frames — needs confirmation.
+- frame-count warning threshold: chose 500 frames (~8 minutes of video at `--every 1`) as the
+  point where a flat index stops being readable; warn (after extraction — the run completes, so a
+  10 h `--every 1` run is only told afterwards), never cap — needs confirmation (t-3485).
 - `--scene` threshold domain: `0 < X < 1`, rejecting the rest as a usage error rather than clamping.
   Measured 2026-10-14 (t-3471 challenger F4): a hard cut scores exactly 1.0 and `gt` is strict, so
   `gt(scene,1)` selected 0 frames on a lime|blue cut — 1 is excluded, not an assumption.
@@ -79,11 +81,47 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 
 ## Edge Cases
 
+- A missing, non-file or unreadable input fails immediately, then the `--frames` dir preconditions
+  (leftover `frame_*`, symlink, world-writable), then the `whisper-cli` lookup — all before any model
+  is resolved or downloaded (t-3485, one `preflight` seam) — a typo'd path never starts a download.
+- More than **500 frames** in one run (`FRAME_WARN_THRESHOLD`, e.g. `--every 1` on anything over
+  ~8 min) prints a warning after the count summary — a larger `--every` or `--scene` in interval
+  mode, a higher threshold in scene mode; the run still succeeds (t-3485).
 - `--frames` on an audio-only file → error ("--frames needs a video input").
+- Hardening (t-3480): every ffmpeg call runs with `-protocol_whitelist file` and absolute
+  `file:` URLs for both the input and the frames output pattern, so a media file named like
+  `concat:…`/`data:…`/a playlist is opened as a file, never parsed as a protocol, and a
+  `--frames` dir spelled like `udp://…` cannot send frames over the network. Paths reach ffmpeg
+  as raw bytes (non-UTF-8 names work for ffmpeg-converted inputs; bare wav/mp3 still go to
+  whisper-cli, which needs UTF-8). ffmpeg runs with `-nostats` so no `\r`-terminated progress
+  line can grow without bound, and the reader also splits on `\r`. A frames dir the run creates is `0o700` (leaf only;
+  created parents keep the default mode); any pre-existing `frame_*` entry — file or planted
+  symlink — refuses the run before ffmpeg starts; a dir that cannot be inspected, a symlink leaf,
+  or a pre-existing dir writable by group/other (another user could plant `frame_*` mid-run)
+  is refused too (fail closed). An explicit `--model /abs/path.bin` needs no HOME. ffmpeg's stderr is read byte-wise and lossily (a Latin-1 tag never ends the
+  read), reduced to the frame times plus the last line, never buffered whole. `--model` is a
+  path only when it contains `/` or ends with `.bin`; relative `BRANA_WHISPER_MODELS` entries
+  are ignored with a warning; `HOME` must be set and absolute (no cwd fallback for the model
+  cache, the download dir or the `whisper-cli` lookup). Leaked `brana-transcribe-*.wav` temp
+  files older than an hour are swept. The model download is the shared https-pinned brana-core
+  path (t-3473). Known, tracked separately: two concurrent runs sharing one `--frames` dir can
+  mix frames (pre-existing).
 - `--every 0` → error.
 - `--scene` without `--frames`, `--scene` together with `--every`, or `--scene 0` / `--scene 1` / `--scene 1.5` → usage error.
 - Model files of 1000 bytes or less, and in-progress `*.part-<pid>` downloads, are ignored by discovery.
   Downloads go to a `.part` file and are renamed on success.
+- `brana-core` `download_file` (manifest-tracked models, `brana files pull`) is atomic too (t-3473):
+  curl writes `<dest>.part-<pid>-<hex>`, sha256 is verified there, then it is renamed; a failed or
+  mismatched download leaves nothing at the final path; the part is created exclusively with an
+  unguessable name, and curl is pinned to https on redirects with a 5-min stall timeout. Only
+  brana's own `<name>.part-<pid>[-<hex>]` files untouched for an hour are swept (age-based, no
+  `/proc`, macOS portable; user files that merely contain `.part-` are never touched). Manifest
+  entries are validated before any read or write, in every consumer (`status`/`pull`/`push`/
+  `add`/model lookup): relative path, no `..`, never into `.git/`/`.claude/` or the manifest itself,
+  no symlinked component (decision 2026-10-14: a symlinked tracked path is refused, not followed —
+  the discovery-dir symlink rule above is unaffected), resolves under the project root; https URL
+  only on the download path (status/push/add never use the URL); exact model file name. The HuggingFace
+  fallback uses the same download path with a ggml-magic verifier.
 - Symlinked model files are followed (size and file type are the target's).
 - Files without the ggml magic (`lmgg`) are not models: skipped by discovery (with a warning), not
   trusted as an existing download, and a fresh download without it is discarded before the rename.
@@ -127,6 +165,11 @@ was being passed as a stray input file.
   (second frame comes from t=12 and must be labelled `00:00:12`). CI's `rust` job runs
   `cargo test --workspace` with ffmpeg (≥ 5.1, asserted) and `BRANA_REQUIRE_FFMPEG=1` (t-3472).
 - **E2E:** manual smoke with a real mp4 through whisper-cli.
+- **Hardening (t-3480):** real-ffmpeg: a video literally named `concat:evil.mp4` extracts as a
+  file; a run-created frames dir is `0o700`; a planted `frame_000001.jpg` symlink is refused and
+  its target untouched. Unit: whitelist precedes `-i` for both ffmpeg calls, https pins on the
+  curl path, syntactic model-path rule, relative model dirs ignored, wav sweep, 100k-line stderr
+  reduces to times + tail.
 - **Integration (t-3471):** `scene_cut_yields_frame_at_cut_time` — 3 s lime | 3 s blue, `Scene(0.3)`
   must yield exactly `@ 00:00:00` (lime) and `@ 00:00:03` (blue); real ffmpeg, `BRANA_REQUIRE_FFMPEG=1`.
 - **Unit (t-3471):** select-expression shape, `(0, 1)` threshold validation incl. NaN and 1.0, clap

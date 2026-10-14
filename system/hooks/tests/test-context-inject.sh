@@ -68,16 +68,45 @@ assert_json_continue "empty prompt: continue true" "$OUT"
 echo ""
 echo "--- Prompts with task IDs: context injected ---"
 
-# Use a real existing task ID from the backlog
-REAL_TASK=$(brana backlog query --status pending --json 2>/dev/null | jq -r 'first | .id' 2>/dev/null) || REAL_TASK=""
+# The task under test lives in THIS suite's own scratch ledger, never the live one: the
+# suite runner exports BRANA_TASKS_FILE, and a direct run (e.g. from a linked worktree) gets
+# a mktemp ledger (ADR-094, t-3501). The hook resolves brana via lib/resolve-brana.sh, so the
+# test seeds through the SAME binary (exported as $BRANA, which that lib honours first): a
+# stale PATH binary that predates the override reads the live ledger while the hook reads the
+# scratch one, and the two sides disagree about which tasks exist (3 false FAILs, t-3501).
+HOOK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+_saved_script_dir="$SCRIPT_DIR"; SCRIPT_DIR="$HOOK_DIR"
+source "$HOOK_DIR/lib/resolve-brana.sh" 2>/dev/null || true
+SCRIPT_DIR="$_saved_script_dir"
+REAL_TASK=""
+if [ -x "${BRANA:-}" ]; then
+    export BRANA
+    # Probe before any write: a binary that honours BRANA_TASKS_FILE auto-inits a missing
+    # override on a read-only query; one that predates it never touches the path — and would
+    # seed the live ledger below. Refuse rather than pollute.
+    PROBE_DIR=$(mktemp -d)
+    BRANA_TASKS_FILE="$PROBE_DIR/probe.json" "$BRANA" backlog query --json >/dev/null 2>&1 || true
+    if [ -f "$PROBE_DIR/probe.json" ]; then
+        export BRANA_TASKS_FILE="${BRANA_TASKS_FILE:-$(mktemp -d)/context-inject-ledger.json}"
+        REAL_TASK=$("$BRANA" backlog add --subject "context-inject-test-$$" --effort XS 2>/dev/null \
+            | jq -r '.id // empty' 2>/dev/null) || REAL_TASK=""
+        if [ -z "$REAL_TASK" ]; then
+            echo "  FAIL: could not seed the scratch task (brana is present, so this is a real failure)"
+            FAIL=$((FAIL + 1)); TOTAL=$((TOTAL + 1))
+        fi
+    else
+        echo "  SKIP: $BRANA ignores BRANA_TASKS_FILE (stale binary) — not seeding the live ledger"
+    fi
+    rm -rf "$PROBE_DIR"
+else
+    echo "  SKIP: brana binary not found — task-context assertions need it"
+fi
 
 if [ -n "$REAL_TASK" ]; then
     OUT=$(run_hook "{\"prompt\":\"work on $REAL_TASK\",\"session_id\":\"test-2\"}")
     assert_json_continue "real task ID: continue true" "$OUT"
     assert_contains "real task ID: additionalContext injected" "$OUT" "additionalContext"
     assert_contains "real task ID: task ID in context" "$OUT" "$REAL_TASK"
-else
-    echo "  SKIP: no pending tasks to test with (backlog empty)"
 fi
 
 # Task ID mentioned in different positions

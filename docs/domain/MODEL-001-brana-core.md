@@ -164,6 +164,10 @@ Large file tracking with content-addressed storage and remote sync.
 
 **Entities:**
 - `FileEntry` — path, sha256, size, url, r2_key
+  - **Invariant (t-3473):** `path` is relative, has no `..`, crosses no symlink and resolves
+    under the project root; `url`, when present, is `https://`. `validate_entry` enforces it
+    before any read or write, and every consumer (`status`, `pull`, `push`, `add_file`, the
+    transcribe model lookup) goes through it — a checked-in manifest is untrusted input.
 
 **Value objects:**
 - `FileState` — Ok | Missing | Modified { actual_hash } | Error
@@ -177,6 +181,11 @@ Large file tracking with content-addressed storage and remote sync.
 - `Manifest::add(name, entry)`
 - `Manifest::status(project_dir) -> Vec<FileStatus>`
 - `file_sha256(path) -> String`
+- `validate_entry(project_dir, entry) -> PathBuf` — containment gate (above)
+- `download_file(url, dest, sha256?)` / `download_file_verified(url, dest, verify)` — atomic:
+  exclusive `<dest>.part-<pid>-<hex>`, verified on the part, then renamed; nothing else ever
+  lands at `dest`
+- `sweep_stale_parts(dir)` — age-based (1 h, no `/proc`) reclaim of this module's own part files only
 - `pull(manifest, project_dir) -> PullResult`
 - `push(manifest, project_dir, remote) -> PushResult`
 
@@ -465,6 +474,13 @@ The Tier1/2/3 dimension-synthesis pipeline (ADR-042, ADR-087) — relevance filt
 | **Due** | The instant after which a reminder is eligible for dispatch | Reminders |
 | **Propagation gap** | A knowledge artifact (spec status, doc checkbox, promise, memory claim) contradicting the system's actual state after work completes | Close / Knowledge |
 | **Knowledge debt** | Accumulated undetected propagation gaps — docs claiming a state the system is no longer in (ADR-056) | Close / Knowledge |
+| **Recall bundle** | The at-most-8 typed pointers computed for one task at build LOAD (ADR-099). _Avoid_: context pack, recall results | Recall |
+| **Pointer** | A note slug or ADR reference plus its `description` line, never the note body (ADR-099). _Avoid_: snippet, excerpt | Recall |
+| **Offered row** | A usage-log record of the bundle computed for a task, with `shown` true or false (ADR-099). _Avoid_: hit, impression | Recall |
+| **Outcome row** | A usage-log record, written at the build's exit step, of which notes from a shown bundle the work used and ignored; never asked in shadow mode (ADR-099). _Avoid_: feedback, citation | Recall |
+| **Exposure** | A note appearing in a bundle that was shown to the worker (`shown: true`); the staleness input (ADR-099). _Avoid_: recall hit | Recall |
+| **Shadow mode** | Computing and logging a recall bundle without showing it to the worker (ADR-099). _Avoid_: dry run | Recall |
+| **Derived supersession** | A supersession signal inferred from an older dated twin or a prose "superseded by" line; it only down-weights a note, never drops it (ADR-099) | Recall |
 | **Classification** | Computed status: done, active, blocked, parked, pending | Backlog |
 | **PipelineState** | The knowledge pipeline's aggregate root — canonical-URL-keyed map of `UrlEntry` records; `ingest` is its sole ingestion writer (ADR-042 §1) | Knowledge Pipeline |
 | **UrlEntry** | Per-URL pipeline record: tier status ladder, scores, cluster assignment, optional drained `fetched_content` | Knowledge Pipeline |
