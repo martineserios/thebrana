@@ -230,6 +230,14 @@ judge_allowlist_violations() {
 > so the test always exercises the shipped source. Do not remove or rename them,
 > and keep the fences inside the markers.
 
+## Decision (t-3504): INCONCLUSIVE and the ladder
+
+Decision (t-3504): INCONCLUSIVE does not arm RECONSIDER_SEV4 (or any rung signal): chose "no arming" because INCONCLUSIVE already blocks CLOSE and routes to the human valve with "gather the named evidence" recommended, and the evidence gap is closed by measurement, not by more reviewers — needs confirmation.
+Why not arm: `RECONSIDER_SEV4` means a sev >= 4 finding stood on verified evidence; INCONCLUSIVE means the finding is *undecided*. Once the named evidence exists the gate re-runs (iteration 2), and if the premise is refuted the verdict is RECONSIDER and the ordinary `RECONSIDER_SEV4` signal arms rung 2 on the next beat — the escalation is deferred to when it is decidable, not lost.
+The cost of the choice: the unverified-premise class (CALIBRATION rows 4/5) gets no extra panel while it is undecided. That is accepted because a larger panel cannot produce a measurement that was never taken.
+Revisit: owner the human reviewer at `/brana:review monthly`, threshold two tasks closed by INCONCLUSIVE → Override within 30 days, by 2026-11-15; if it trips, arm a rung-2 re-run on the Override path instead of the first run.
+The decision is also recorded in ADR-081 (Amendment 2026-10-14, t-3504).
+
 ## Brief router
 
 Two finder briefs per rung-2 firing, selected by the beat's `nature_class`:

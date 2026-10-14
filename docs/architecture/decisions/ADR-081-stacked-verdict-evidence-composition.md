@@ -131,6 +131,58 @@ three-verdict contract. **Open (owned by ADR-082, which has no open-questions se
 INCONCLUSIVE arms no judge-ladder rung signal by design today; whether it should is a
 sizing decision for ADR-082 §3.
 
+**Amendment 2026-10-14 (t-3504) — INCONCLUSIVE hardening (t-3494 follow-up from the 2026-10-09
+ship's Gate 3 round 2).** Seven changes, one decision:
+
+1. **Evaluator evidence channel.** `brana:build-evaluator` is Read/Glob/Grep only, so a live-run
+   criterion (the canonical `AC: all tests green`) was UNVERIFIABLE by construction and
+   "produce the evidence" could not succeed. The orchestrator now captures the BUILD-phase
+   validate/test output at `HEAD` into `~/.claude/run-state/{task_id}.evidence` and the spawn
+   prompt carries it as an `Evidence (orchestrator-captured, commit {sha}):` block
+   (verify-gates.md §Evidence capture); the agent may grade a criterion the block shows directly
+   and must leave one UNVERIFIABLE when the block's commit is not the diff's HEAD or is absent.
+2. **Evaluator cap.** The INCONCLUSIVE run is Evaluator iteration 1; total runs stay ≤ 2, same as
+   the challenger path. A second INCONCLUSIVE offers override or abandon only.
+3. **Headless.** In a headless session (no AskUserQuestion) INCONCLUSIVE on either gate is Abandon (blocked), never proceed.
+   Every gate fails closed, matching ship's rule.
+4. **One `notes` write is one line.** The machine-read verdict line carries only structured fields;
+   free text rides on separate prefixes the parser never reads (`Evaluator-gap:`,
+   `Challenger-gap:`), and `brana backlog set … notes` escapes line breaks (LF, CR, U+0085,
+   U+2028, U+2029) at the write path (`escape_line_breaks`, brana-core `tasks/validation.rs`), so
+   an embedded newline + `Challenger: PROCEED` cannot win under latest-wins. Root cause, not a
+   patch: the prose-only "no newline, no verdict token" ban could not bind an LLM-composed
+   value; the capability to inject a line is removed. `context` and `description` keep their
+   newlines (not machine-read). Tests: `tasks::tests::test_notes_append_is_exactly_one_line_whatever_the_value_holds`,
+   `stacked_verdict::tests::free_text_cannot_forge_a_verdict_through_notes_append`.
+5. **INCONCLUSIVE branches in the two non-CLOSE consumers.** Ship Step 1b: an INCONCLUSIVE
+   worker is neither clean nor a finding, counts toward neither side of the 2/3 quorum, routes to
+   the human valve. build-loop.md in-loop critic: an INCONCLUSIVE return pauses the loop like
+   RECONSIDER.
+6. **Ladder decision (was open).** INCONCLUSIVE does not arm `RECONSIDER_SEV4` or any rung
+   signal — recorded with rationale, cost and a revisit trigger (owner, threshold, date) in
+   judge-sizing.md §Decision (t-3504). It stays open to the human: `{what}: chose no-arming
+   because the evidence gap closes by measurement, not more reviewers — needs confirmation`.
+7. **Ship Step 4 must not be declined**, and the consumers are enumerated below.
+
+**Verdict-token consumers** (enumerated 2026-10-14 with
+`grep -rnE '(Challenger|Evaluator): |INCONCLUSIVE|RECONSIDER' system docs/reference`, the grep the
+2026-10-09 reviewers could not run — `rg` was missing). Producers write the tokens; consumers
+read or branch on them:
+
+| File | Role | INCONCLUSIVE handled |
+|---|---|---|
+| `stacked_verdict.rs` (`parse_judged_verdicts`) | parses `Evaluator:` / `Challenger:` lines out of `notes` (latest wins); feeds `stacked-verdict`, `ac approve` and the wave approve bundle line | own bucket, never folded into pass |
+| `system/skills/build/phases/verify-gates.md` | producer + gate for the evaluator | blocks CLOSE, cap 2, headless Abandon |
+| `system/skills/_shared/challenger-gate.md` | producer + gate for the challenger | blocks CLOSE, cap 2, headless Abandon |
+| `system/skills/ship/SKILL.md` Step 1b | consumer: the 3-worker quorum | neither clean nor a finding; valve (t-3504) |
+| `system/skills/build/phases/build-loop.md` | consumer: the in-loop critic | pauses the loop (t-3504) |
+| `system/skills/_shared/judge-sizing.md` | consumer: the ladder signals | arms no rung — decided (t-3504) |
+| `system/skills/_shared/executor-brief.md` | scope: delegated executors | gate-only; executors keep three verdicts |
+| `system/skills/challenge/SKILL.md`, `system/agents/{challenger,build-evaluator,CALIBRATION}.md` | producers | defined |
+
+Not consumers (the grep's false positives): `backlog.rs` comments about historical wave-approve
+findings, and the `system/loops/pipeline-digest.md` prose about the graduated-autonomy ladder.
+
 ## Consequences
 
 - `system/scripts/ac-lint.sh` changes from an independent classifier to a caller of

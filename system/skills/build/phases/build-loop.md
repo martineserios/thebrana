@@ -154,7 +154,9 @@ critic at each subtask boundary (after step 3h's commit, before the next subtask
 using the spawn contract in `_shared/judge-sizing.md` §Spawn contracts §In-loop
 critic. Explicitly spawned, never inline self-review (Actor≠Evaluator, ADR-080 §3).
 Findings feed the next subtask like mini-debrief items; RECONSIDER-severity findings
-pause the loop for the user. At rungs 0–1 critique stays at CLOSE — per-beat
+pause the loop for the user. An INCONCLUSIVE critic return (its top finding rests on an unverified premise) must also pause the loop (t-3504):
+it is never read as "no issues found". Name the missing evidence; the user gathers it, overrides with a reason, or abandons the beat.
+Headless (no AskUserQuestion): stop the beat and mark the task blocked, never proceed. At rungs 0–1 critique stays at CLOSE — per-beat
 criticism of small mechanical work is pure overhead. The beat report states
 `in-loop critic: armed` or `did not arm: rung < 2`.
 

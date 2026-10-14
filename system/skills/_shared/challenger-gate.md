@@ -194,12 +194,21 @@ brana backlog set {task_id} notes --append "Challenger: {verdict} ({date}), {N} 
 ```
 `{verdict}` is exactly `PROCEED`, `PROCEED WITH CHANGES`, `RECONSIDER`, or `INCONCLUSIVE` — no
 other wording. Findings themselves (the numbered list) may still be surfaced as additional
-notes text alongside this line; the verdict line's exact wording is the contract. For
-INCONCLUSIVE the line carries the gap instead of a severity:
-`"Challenger: INCONCLUSIVE ({date}), {N} finding(s), missing evidence: {list}"`.
+notes text alongside this line; the verdict line's exact wording is the contract. The
+machine-read line carries **only structured fields** (verdict, date, count, severity).
+LLM-composed free text goes on a **separate prefix** the parser never reads, as its own
+`notes --append` (t-3504). For INCONCLUSIVE, write the line without the gap and the gap on its own:
+```bash
+brana backlog set {task_id} notes --append "Challenger: INCONCLUSIVE ({date}), {N} finding(s)"
+brana backlog set {task_id} notes --append "Challenger-gap: {list}"
+```
+The gap line has the exact shape:
+`Challenger-gap: {list}` (`Challenger-gap:` is not `Challenger: `, so it cannot be parsed as a verdict).
 `{list}` is single-line: no newline and no verdict token (`PROCEED`, `RECONSIDER`,
 `INCONCLUSIVE`, `PASS`, `FAIL`) inside it, or the latest-wins parser reads the wrong line
 (same class as `{structured findings}` below).
+As a backstop `brana backlog set … notes` escapes embedded newlines (CR, LF, U+0085/2028/2029).
+One `notes` write is exactly one line, so an embedded newline + `Challenger: PROCEED` cannot win under latest-wins (t-3504).
 
 **INCONCLUSIVE path** (t-3494) — present once, no repair loop (there is nothing to repair
 until the evidence exists). **Cap:** the INCONCLUSIVE run is iteration 1 of the max-2 rule
@@ -207,6 +216,9 @@ below; the re-run after "Gather evidence" is iteration 2 and is the last Challen
 this task. If that re-run is RECONSIDER it follows the iteration-2 branch (override or
 abandon, no further BUILD loop). A second INCONCLUSIVE offers override or abandon only.
 Total Challenger LLM runs never exceed 2.
+
+In a headless session (no AskUserQuestion — the tool is unavailable or the session is non-interactive), INCONCLUSIVE is Abandon (blocked), never proceed.
+No override can be assumed and every gate fails closed: set the task `blocked` with the `Challenger-gap:` line as the reason (t-3504).
 ```
 AskUserQuestion:
   question: "Challenger: INCONCLUSIVE. Findings rest on unverified evidence: {list}. How to proceed?"
