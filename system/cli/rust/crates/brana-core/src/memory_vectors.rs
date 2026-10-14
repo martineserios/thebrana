@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
-use crate::memory::{MemoryFileRef, memory_file_identity};
+use crate::memory::{MemoryListing, memory_file_identity};
 use crate::search::DocRef;
 use crate::vector::{EMBED_DIM, Embedder, KnowledgeStore, parse_tags, truncate_chars};
 
@@ -23,6 +23,12 @@ pub const MEMORY_SOURCE: &str = "memory-file";
 
 /// Characters of file text passed to the embedder (MiniLM truncates near this anyway).
 pub const EMBED_CHARS: usize = 1500;
+
+/// Version tag stored on every memory-file row: embedder model, dimension and
+/// [`EMBED_CHARS`]. A row without the current tag is re-embedded even if its
+/// content is unchanged, so a model or truncation change never mixes old and new
+/// vectors silently (t-3510 gate, F3). Bump it whenever any of those change.
+pub const EMBED_VERSION: &str = "emb:minilm-l6-384:1500";
 
 /// Outcome of one [`embed_memory_files`] run.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -41,6 +47,11 @@ pub fn memory_row_key(path: &Path) -> String {
     format!("{KEY_PREFIX}{}", path.to_string_lossy())
 }
 
+/// The file path a memory-file row key points at.
+pub fn memory_row_path(key: &str) -> Option<PathBuf> {
+    key.strip_prefix(KEY_PREFIX).map(PathBuf::from)
+}
+
 fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -50,24 +61,26 @@ fn now_ms() -> i64 {
 
 /// Embed new or changed files, skip unchanged ones, prune rows whose file is gone.
 ///
-/// - A file whose stored `content` equals the file on disk is `unchanged`: the
-///   embedder is not called.
+/// - A file whose stored `content` equals the file on disk and whose row carries
+///   the current [`EMBED_VERSION`] is `unchanged`: the embedder is not called.
+///   `force` re-embeds every file regardless.
 /// - A file the embedder cannot embed (or that cannot be read) is `failed`. It
 ///   leaves no new row; an older row for it, if any, is kept rather than pruned,
 ///   so a transient embedder outage never deletes working recall.
-/// - Rows of source [`MEMORY_SOURCE`] whose file is not in `files` are pruned.
-///   An empty `files` list prunes nothing: an empty scan means discovery found
-///   nothing (bad `$HOME`, unmounted dir), not that every memory was deleted.
-///   Rows from other sources are never touched.
+/// - A row of source [`MEMORY_SOURCE`] is pruned only when its file is absent
+///   from a dir that listed *completely*. A dir that failed to list (missing,
+///   unreadable, unmounted) prunes nothing, so a read failure never deletes
+///   recall (t-3510 gate, F5). Rows from other sources are never touched.
 pub fn embed_memory_files(
     store: &KnowledgeStore,
-    files: &[MemoryFileRef],
+    listing: &MemoryListing,
     embedder: &dyn Embedder,
+    force: bool,
 ) -> Result<EmbedStats> {
-    let mut stats = EmbedStats { scanned: files.len(), ..Default::default() };
+    let mut stats = EmbedStats { scanned: listing.files.len(), ..Default::default() };
     let mut live: HashSet<String> = HashSet::new();
 
-    for f in files {
+    for f in &listing.files {
         let key = memory_row_key(&f.path);
         live.insert(key.clone());
 
@@ -75,25 +88,34 @@ pub fn embed_memory_files(
             stats.failed += 1;
             continue;
         };
-        if store.content_of(&key)?.as_deref() == Some(content.as_str()) {
-            stats.unchanged += 1;
-            continue;
+        if !force {
+            if let Some((stored, tags)) = store.content_and_tags_of(&key)? {
+                let current = parse_tags(tags.as_deref().unwrap_or("")).iter().any(|t| t == EMBED_VERSION);
+                if stored == content && current {
+                    stats.unchanged += 1;
+                    continue;
+                }
+            }
         }
         let text: String = content.chars().take(EMBED_CHARS).collect();
         let Some(vec) = embedder.embed(&text).filter(|v| v.len() == EMBED_DIM) else {
             stats.failed += 1;
             continue;
         };
-        let tags = format!("memory-file,scope:{}", f.scope);
+        let tags = format!("memory-file,scope:{},{EMBED_VERSION}", f.scope);
         store.upsert(&key, &content, Some(&tags), Some(MEMORY_SOURCE), now_ms(), &vec)?;
         stats.embedded += 1;
     }
 
-    if !files.is_empty() {
-        for key in store.keys_with_source(MEMORY_SOURCE)? {
-            if !live.contains(&key) && store.delete(&key)? {
-                stats.pruned += 1;
-            }
+    for key in store.keys_with_source(MEMORY_SOURCE)? {
+        if live.contains(&key) {
+            continue;
+        }
+        let in_complete_dir = memory_row_path(&key)
+            .and_then(|p| p.parent().map(Path::to_path_buf))
+            .is_some_and(|dir| listing.complete_dirs.contains(&dir));
+        if in_complete_dir && store.delete(&key)? {
+            stats.pruned += 1;
         }
     }
     Ok(stats)
@@ -107,7 +129,7 @@ pub fn memory_doc_ref(key: &str, tags: Option<&str>, source: Option<&str>) -> Op
     if source != Some(MEMORY_SOURCE) {
         return None;
     }
-    let path = PathBuf::from(key.strip_prefix(KEY_PREFIX)?);
+    let path = memory_row_path(key)?;
     let stem = path.file_stem()?.to_string_lossy().to_string();
     let (mtype, slug) = memory_file_identity(&stem);
     let scope = parse_tags(tags.unwrap_or(""))
@@ -601,6 +623,11 @@ mod tests {
         let second = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
         assert_eq!(second.unchanged, 1, "current-version row is skipped next time");
         assert!(EMBED_VERSION.starts_with("emb:"), "version marker is a tag: {EMBED_VERSION}");
+    }
+
+    #[test]
+    fn embed_version_names_the_current_embed_chars() {
+        assert!(EMBED_VERSION.ends_with(&format!(":{EMBED_CHARS}")), "bump EMBED_VERSION with EMBED_CHARS");
     }
 
     #[test]

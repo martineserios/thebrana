@@ -623,6 +623,9 @@ pub enum KnowledgeCmd {
         /// Destination store (default: ~/.claude/memory/knowledge.db)
         #[arg(long)]
         dest: Option<PathBuf>,
+        /// Re-embed every file, even unchanged ones (after an embedder or model change)
+        #[arg(long)]
+        force: bool,
         /// Output stats as JSON
         #[arg(long)]
         json: bool,

@@ -4494,14 +4494,18 @@ pub fn cmd_vector_sync(
 ///
 /// Like `vector-sync`, this never takes the pipeline lock: it only writes
 /// `memory-file` rows, which no other pass reads or rewrites.
-pub fn cmd_embed_memory(dest: Option<PathBuf>, json: bool) -> Result<()> {
+pub fn cmd_embed_memory(dest: Option<PathBuf>, force: bool, json: bool) -> Result<()> {
     let dest = dest.unwrap_or_else(brana_core::vector::knowledge_db_path);
     let store = brana_core::vector::KnowledgeStore::open(&dest)?;
-    let files = brana_core::memory::list_memory_files(&brana_core::memory::memory_dirs());
+    let listing = brana_core::memory::list_memory_listing(&brana_core::memory::memory_dirs()?);
+    for dir in &listing.failed_dirs {
+        eprintln!("embed-memory: could not list {} — its rows are kept, not pruned", dir.display());
+    }
     let stats = brana_core::memory_vectors::embed_memory_files(
         &store,
-        &files,
+        &listing,
         &brana_core::vector::RufloEmbedder,
+        force,
     )?;
 
     // Nothing embedded and nothing already current while files exist: the embedder

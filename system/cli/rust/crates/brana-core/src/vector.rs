@@ -143,6 +143,19 @@ impl KnowledgeStore {
             .with_context(|| format!("reading content of {key}"))
     }
 
+    /// Stored `content` and `tags` for `key`, if the row exists.
+    pub fn content_and_tags_of(&self, key: &str) -> Result<Option<(String, Option<String>)>> {
+        use rusqlite::OptionalExtension;
+        self.conn()?
+            .query_row(
+                "SELECT content, tags FROM knowledge WHERE key = ?1",
+                params![key],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)),
+            )
+            .optional()
+            .with_context(|| format!("reading content and tags of {key}"))
+    }
+
     /// Keys of every row whose `source` column equals `source`, key-ordered.
     pub fn keys_with_source(&self, source: &str) -> Result<Vec<String>> {
         let conn = self.conn()?;
@@ -672,6 +685,11 @@ impl SearchProvider for VectorProvider {
                     MemoryScope::Exclude if is_memory => return None,
                     MemoryScope::Only if !is_memory => return None,
                     _ => {}
+                }
+                // A memory row whose file is gone (deleted, archived, renamed before
+                // embed-memory reran) never surfaces (t-3510 gate, F2).
+                if is_memory && !crate::memory_vectors::memory_row_path(&key).is_some_and(|p| p.exists()) {
+                    return None;
                 }
                 let v = blob_to_vec(&blob)?;
                 let score = cosine(&qvec, &v);

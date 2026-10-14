@@ -454,7 +454,7 @@ pub fn fts_index_path() -> PathBuf {
 /// full cross-project scan so the index mirrors what `index-patterns.sh`
 /// produced.
 pub fn reindex_fts(_project_root: &Path, db_path: &Path) -> Result<usize> {
-    reindex_fts_dirs(&memory_dirs(), db_path)
+    reindex_fts_dirs(&memory_dirs()?, db_path)
 }
 
 /// One curated memory file with the identity both recall legs must agree on.
@@ -479,39 +479,83 @@ pub fn memory_file_identity(stem: &str) -> (String, String) {
 }
 
 /// Every memory scope directory: global + each `~/.claude/projects/*/memory/`.
-pub fn memory_dirs() -> Vec<(String, PathBuf)> {
-    let h = home();
-    let mut dirs: Vec<(String, PathBuf)> = vec![("global".to_string(), h.join(".claude/memory"))];
-    if let Ok(entries) = fs::read_dir(h.join(".claude/projects")) {
-        for entry in entries.flatten() {
-            let mem_dir = entry.path().join("memory");
-            if mem_dir.is_dir() {
-                dirs.push(("project".to_string(), mem_dir));
+///
+/// Errors when `~/.claude/projects` exists but cannot be read: an unreadable root
+/// must not silently become "no projects", or a rebuild would drop every project's
+/// notes (t-3510 gate, F5). A missing root is fine (global only).
+pub fn memory_dirs() -> Result<Vec<(String, PathBuf)>> {
+    memory_dirs_in(&home())
+}
+
+/// [`memory_dirs`] rooted at an explicit home directory (testable).
+pub fn memory_dirs_in(home_dir: &Path) -> Result<Vec<(String, PathBuf)>> {
+    let mut dirs: Vec<(String, PathBuf)> = vec![("global".to_string(), home_dir.join(".claude/memory"))];
+    let projects = home_dir.join(".claude/projects");
+    match fs::read_dir(&projects) {
+        Ok(entries) => {
+            for entry in entries {
+                let entry = entry.with_context(|| format!("reading {}", projects.display()))?;
+                let mem_dir = entry.path().join("memory");
+                if mem_dir.is_dir() {
+                    dirs.push(("project".to_string(), mem_dir));
+                }
             }
         }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e).with_context(|| format!("reading {}", projects.display())),
     }
-    dirs
+    Ok(dirs)
+}
+
+/// What a scan of memory dirs found, and which dirs were read completely.
+///
+/// A dir that cannot be read (missing, unreadable, an entry error mid-read) is a
+/// *failed* dir, never an empty one: callers that delete or rebuild must leave
+/// its scope alone (t-3510 gate, F5).
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct MemoryListing {
+    pub files: Vec<MemoryFileRef>,
+    pub complete_dirs: Vec<PathBuf>,
+    pub failed_dirs: Vec<PathBuf>,
 }
 
 /// List the `*.md` files (excluding `MEMORY.md`) of each `(scope, dir)` pair, sorted
-/// per directory, with their recall identity.
-pub fn list_memory_files(dirs: &[(String, PathBuf)]) -> Vec<MemoryFileRef> {
-    let mut out = Vec::new();
+/// per directory, with their recall identity, recording which dirs listed fully.
+pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
+    let mut listing = MemoryListing::default();
     for (scope, dir) in dirs {
-        let Ok(read) = fs::read_dir(dir) else { continue };
-        let mut paths: Vec<PathBuf> = read
-            .filter_map(|e| e.ok().map(|e| e.path()))
-            .filter(|p| p.extension().map(|e| e == "md").unwrap_or(false))
-            .filter(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true))
-            .collect();
+        let Ok(read) = fs::read_dir(dir) else {
+            listing.failed_dirs.push(dir.clone());
+            continue;
+        };
+        let mut complete = true;
+        let mut paths: Vec<PathBuf> = Vec::new();
+        for entry in read {
+            match entry {
+                Ok(e) => paths.push(e.path()),
+                Err(_) => complete = false,
+            }
+        }
+        paths.retain(|p| p.extension().map(|e| e == "md").unwrap_or(false));
+        paths.retain(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true));
         paths.sort();
         for path in paths {
             let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
             let (mtype, slug) = memory_file_identity(&stem);
-            out.push(MemoryFileRef { scope: scope.clone(), path, slug, mtype });
+            listing.files.push(MemoryFileRef { scope: scope.clone(), path, slug, mtype });
+        }
+        if complete {
+            listing.complete_dirs.push(dir.clone());
+        } else {
+            listing.failed_dirs.push(dir.clone());
         }
     }
-    out
+    listing
+}
+
+/// The files of [`list_memory_listing`], for callers that only read (recall, tests).
+pub fn list_memory_files(dirs: &[(String, PathBuf)]) -> Vec<MemoryFileRef> {
+    list_memory_listing(dirs).files
 }
 
 /// Rebuild the FTS5 index from an explicit list of `(scope, dir)` pairs.
@@ -521,7 +565,19 @@ pub fn list_memory_files(dirs: &[(String, PathBuf)]) -> Vec<MemoryFileRef> {
 /// document; the slug/type are parsed from the filename, the body is indexed
 /// verbatim. The table is dropped and recreated so the index never drifts from
 /// the filesystem.
+///
+/// Refuses to rebuild when any dir fails to list, before touching the table, so a
+/// transient read failure keeps the previous index instead of committing a
+/// partial one (t-3510 gate, F5).
 pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<usize> {
+    let listing = list_memory_listing(dirs);
+    if !listing.failed_dirs.is_empty() {
+        anyhow::bail!(
+            "memory reindex: could not list {} dir(s): {} (index left unchanged)",
+            listing.failed_dirs.len(),
+            listing.failed_dirs.iter().map(|d| d.display().to_string()).collect::<Vec<_>>().join(", ")
+        );
+    }
     if let Some(parent) = db_path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -544,7 +600,7 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
              VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
 
-        for f in list_memory_files(dirs) {
+        for f in listing.files {
             // Content read verbatim — bound parameter, no escaping needed.
             let content = fs::read_to_string(&f.path).unwrap_or_default();
             insert.execute(rusqlite::params![

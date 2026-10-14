@@ -75,6 +75,9 @@ impl SearchProvider for FTS5Provider {
         let hits = crate::memory::search_fts(&self.db_path, q, top_k)
             .unwrap_or_default();
         hits.into_iter()
+            // The index is rebuilt weekly; a note deleted since then must not
+            // surface with a dangling path (t-3510 gate, F2).
+            .filter(|h| std::path::Path::new(&h.path).exists())
             .map(|h| SearchHit {
                 doc: DocRef::MemoryFile {
                     path: PathBuf::from(&h.path),
