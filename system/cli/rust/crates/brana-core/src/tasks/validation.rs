@@ -349,6 +349,26 @@ pub fn normalize_array_fields(task: &mut Value) {
     }
 }
 
+/// Replaces every character any line reader would treat as a line break with a visible escape:
+/// LF, CR, and the Unicode separators NEL (U+0085), LS (U+2028), PS (U+2029) — Rust's `lines()`
+/// splits only on LF, but the shell, Python and `grep` consumers of the ledger do not agree on
+/// the set, and a parser is only as strict as the loosest reader of the same field (t-3504).
+/// Escapes are literal text (`\n`, `\r`, `\u{85}`, `\u{2028}`, `\u{2029}`): nothing is dropped.
+pub fn escape_line_breaks(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for c in value.chars() {
+        match c {
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\u{85}' => out.push_str("\\u{85}"),
+            '\u{2028}' => out.push_str("\\u{2028}"),
+            '\u{2029}' => out.push_str("\\u{2029}"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
@@ -404,6 +424,18 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             Ok(())
         }
         "context" | "notes" | "description" => {
+            // `notes` is the machine-read channel: `brana backlog stacked-verdict` and `ac approve`
+            // parse `Evaluator:` / `Challenger:` verdict lines out of it, latest wins (ADR-081 D2).
+            // An LLM-composed value carrying a line break would forge such a line, so one `notes`
+            // write is exactly one line — the break is escaped, never honoured (t-3504). The other
+            // two fields are free text and keep their newlines.
+            let escaped;
+            let value = if field == "notes" {
+                escaped = escape_line_breaks(value);
+                escaped.as_str()
+            } else {
+                value
+            };
             if append {
                 let existing = task[field].as_str().unwrap_or("").to_string();
                 let new_val = if existing.is_empty() {
