@@ -43,6 +43,7 @@ User-facing documentation. Start here.
 | [judge-escalation-valve.md](guide/features/judge-escalation-valve.md) | Judge escalation valve (ADR-082) — sizing rungs, hard signals, SIBLINGS/SPLIT verdicts, escaped-defect log, blind test-author |
 | [knowledge-process-url.md](guide/features/knowledge-process-url.md) | `brana knowledge process-url` — fetch a link, extract an insight, store it; LinkedIn setup, batch mode, cron wiring |
 | [knowledge-drain-links.md](guide/features/knowledge-drain-links.md) | `brana knowledge drain-links` — drain pending link tasks; completion gated on the stored artifact, not exit status |
+| [transcribe.md](guide/features/transcribe.md) | `brana transcribe` — any whisper model, video input, `--frames` with `--every N` or `--scene X` sampling, real-time frame labels |
 | [async-close.md](guide/features/async-close.md) | Async close — what changed about ending a session |
 | [close-oriented-modes.md](guide/features/close-oriented-modes.md) | Oriented close modes |
 | [propagate-close-step.md](guide/features/propagate-close-step.md) | PROPAGATE — propagation-debt audit at close |
