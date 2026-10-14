@@ -756,6 +756,31 @@ fn which_whisper_cli() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsString;
+
+    fn lossy_join(args: &[OsString]) -> String {
+        args.iter().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ")
+    }
+
+    fn pos(args: &[OsString], s: &str) -> Option<usize> {
+        args.iter().position(|a| a.to_str() == Some(s))
+    }
+
+    /// chdir for the duration of a test; restores the previous cwd on drop. Only used by
+    /// `#[serial_test::serial]` tests — cwd is process-global.
+    struct Cwd(PathBuf);
+    impl Cwd {
+        fn enter(dir: &Path) -> Self {
+            let prev = std::env::current_dir().unwrap();
+            std::env::set_current_dir(dir).unwrap();
+            Cwd(prev)
+        }
+    }
+    impl Drop for Cwd {
+        fn drop(&mut self) {
+            let _ = std::env::set_current_dir(&self.0);
+        }
+    }
 
     #[test]
     fn test_ld_library_path_standalone() {
@@ -870,11 +895,11 @@ mod tests {
     #[test]
     fn frames_args_sample_every_n_seconds() {
         let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Every(5)).unwrap();
-        let joined = args.join(" ");
+        let joined = lossy_join(&args);
         assert!(joined.contains("-i file:/") && joined.contains("/in.mp4 -vf"), "{joined}");
         assert!(joined.contains("gte(t-prev_selected_t\\,5)',showinfo"));
         assert!(joined.ends_with("out/frame_%06d.jpg"));
-        assert!(!args.contains(&"-vn".to_string()));
+        assert!(pos(&args, "-vn").is_none());
     }
 
     #[test]
@@ -927,7 +952,7 @@ mod tests {
     #[test]
     fn frames_args_scene_select_keeps_first_frame_and_cuts() {
         let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Scene(0.3)).unwrap();
-        let joined = args.join(" ");
+        let joined = lossy_join(&args);
         assert!(joined.contains("select='eq(n\\,0)+gt(scene\\,0.3)',showinfo"), "{joined}");
         assert!(!joined.contains("prev_selected_t"), "scene mode must not use the interval selector");
         assert!(joined.contains("-fps_mode vfr"));
@@ -1239,32 +1264,37 @@ mod tests {
     #[test]
     fn frames_args_whitelist_file_protocol_and_prefix_input() {
         let args = frames_ffmpeg_args(Path::new("concat:a.mp4|b.mp4"), Path::new("out"), Sampling::Every(5)).unwrap();
-        let wl = args.iter().position(|a| a == "-protocol_whitelist").expect("whitelist present");
-        assert_eq!(args[wl + 1], "file");
-        let i = args.iter().position(|a| a == "-i").unwrap();
+        let wl = pos(&args, "-protocol_whitelist").expect("whitelist present");
+        assert_eq!(args[wl + 1].to_str(), Some("file"));
+        let i = pos(&args, "-i").unwrap();
         assert!(wl < i, "whitelist must precede -i");
-        assert!(args[i + 1].starts_with("file:/"), "input is an absolute file: URL, got {}", args[i + 1]);
-        assert!(args[i + 1].ends_with("concat:a.mp4|b.mp4"));
+        let input = args[i + 1].to_string_lossy().into_owned();
+        assert!(input.starts_with("file:/"), "input is an absolute file: URL, got {input}");
+        assert!(input.ends_with("concat:a.mp4|b.mp4"));
     }
 
     #[test]
     fn wav_args_whitelist_file_protocol_and_prefix_input() {
         let args = wav_ffmpeg_args(Path::new("data:text/plain,hi.m4a"), Path::new("/tmp/o.wav")).unwrap();
-        let wl = args.iter().position(|a| a == "-protocol_whitelist").expect("whitelist present");
-        assert_eq!(args[wl + 1], "file");
-        let i = args.iter().position(|a| a == "-i").unwrap();
+        let wl = pos(&args, "-protocol_whitelist").expect("whitelist present");
+        assert_eq!(args[wl + 1].to_str(), Some("file"));
+        let i = pos(&args, "-i").unwrap();
         assert!(wl < i);
-        assert!(args[i + 1].starts_with("file:/") && args[i + 1].ends_with("data:text/plain,hi.m4a"), "{:?}", args[i + 1]);
-        assert!(args.ends_with(&["/tmp/o.wav".to_string()]));
+        let input = args[i + 1].to_string_lossy().into_owned();
+        assert!(input.starts_with("file:/") && input.ends_with("data:text/plain,hi.m4a"), "{input}");
+        assert!(lossy_join(&args).ends_with("/tmp/o.wav"));
     }
 
     #[test]
+    #[serial_test::serial]
     fn odd_input_name_is_a_file_not_a_protocol() {
         if !ffmpeg_available() {
             return;
         }
         // A media file whose NAME looks like a protocol URL must be opened as a file, never
-        // parsed as concat:/data:/playlist — the whitelist + file: prefix make that so.
+        // parsed as concat:/data:/playlist. ffmpeg only sees a scheme in a RELATIVE name
+        // (an absolute path starts with '/', not a scheme char), so this must run from cwd
+        // with the bare name — the whitelist + file: prefix are what make it a file.
         let d = tempfile::tempdir().unwrap();
         let video = d.path().join("concat:evil.mp4");
         let ok = Command::new("ffmpeg")
@@ -1274,10 +1304,88 @@ mod tests {
             .unwrap()
             .success();
         assert!(ok, "fixture video generation failed");
+        let _cwd = Cwd::enter(d.path());
+        let out = d.path().join("frames");
+        let (index, guard) = extract_frames(Path::new("concat:evil.mp4"), &out, Sampling::Every(10)).unwrap();
+        guard.keep();
+        assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn non_utf8_metadata_does_not_lose_frame_times() {
+        if !ffmpeg_available() {
+            return;
+        }
+        // ffmpeg echoes the file's own tags on stderr before the first showinfo line; a
+        // Latin-1 title must not end the stderr reader (challenger F4, sev 4 regression).
+        use std::os::unix::ffi::OsStrExt;
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("tagged.avi");
+        let ok = Command::new("ffmpeg")
+            .args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=2:s=64x48:r=5", "-metadata"])
+            .arg(std::ffi::OsStr::from_bytes(b"title=caf\xe9 latin-1"))
+            .arg(&video)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "fixture video generation failed");
         let out = d.path().join("frames");
         let (index, guard) = extract_frames(&video, &out, Sampling::Every(10)).unwrap();
         guard.keep();
         assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
+    }
+
+    #[test]
+    fn ffmpeg_stderr_reader_tolerates_non_utf8_and_caps_lines() {
+        let mut bytes: Vec<u8> = Vec::new();
+        bytes.extend_from_slice(b"[Parsed_showinfo_1 @ 0x5] n:   0 pts:      0 pts_time:0       duration:1\n");
+        bytes.extend_from_slice(b"    title           : caf\xe9\n");
+        bytes.extend_from_slice(b"[Parsed_showinfo_1 @ 0x5] n:   1 pts:  61440 pts_time:1.5    duration:1\n");
+        bytes.extend(std::iter::repeat_n(b'x', 1 << 20)); // one absurd line, no newline
+        bytes.extend_from_slice(b"\nerr\xff tail");
+        let (times, last) = read_ffmpeg_stderr(std::io::Cursor::new(bytes));
+        assert_eq!(times, vec![0.0, 1.5], "a non-UTF-8 line must not end the read");
+        assert!(last.starts_with("err"), "last line survives lossy decoding: {last:?}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn unlistable_frames_dir_is_refused() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let dir = d.path().join("opaque");
+        std::fs::create_dir(&dir).unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o300)).unwrap();
+        if std::fs::read_dir(&dir).is_ok() {
+            return; // root can list anything; nothing to prove here
+        }
+        let r = check_frames_dir(&dir);
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(r.is_err(), "a dir we cannot inspect must fail closed, not open");
+        assert!(check_frames_dir(&d.path().join("missing")).is_ok(), "only NotFound means nothing to check");
+    }
+
+    #[test]
+    fn frames_args_output_is_a_file_url_with_its_own_whitelist() {
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("udp://h/x"), Sampling::Every(5)).unwrap();
+        let out = args.last().unwrap().to_string_lossy().into_owned();
+        assert!(out.starts_with("file:/") && out.ends_with("udp:/h/x/frame_%06d.jpg"), "output must be a file: URL, got {out}");
+        let i = pos(&args, "-i").unwrap();
+        let wls: Vec<usize> = args.iter().enumerate().filter(|(_, a)| a.to_str() == Some("-protocol_whitelist")).map(|(n, _)| n).collect();
+        assert_eq!(wls.len(), 2, "one whitelist for the input, one for the output: {}", lossy_join(&args));
+        assert!(wls[0] < i && wls[1] > i);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ffmpeg_args_keep_non_utf8_names() {
+        use std::os::unix::ffi::{OsStrExt, OsStringExt};
+        let name = std::ffi::OsStr::from_bytes(b"caf\xe9.m4a");
+        let args = wav_ffmpeg_args(Path::new(name), Path::new("/tmp/o.wav")).unwrap();
+        let i = pos(&args, "-i").unwrap();
+        let bytes = args[i + 1].clone().into_vec();
+        assert!(bytes.ends_with(b"caf\xe9.m4a"), "the raw bytes must reach ffmpeg, not U+FFFD");
     }
 
     #[cfg(unix)]
@@ -1295,6 +1403,11 @@ mod tests {
         guard.keep();
         let mode = std::fs::metadata(&out).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode, 0o700, "a frames dir the run creates is private to the user");
+        let sibling = d.path().join("plain");
+        std::fs::create_dir(&sibling).unwrap();
+        let parent_mode = std::fs::metadata(out.parent().unwrap()).unwrap().permissions().mode() & 0o777;
+        let plain_mode = std::fs::metadata(&sibling).unwrap().permissions().mode() & 0o777;
+        assert_eq!(parent_mode, plain_mode, "only the leaf is private; created parents keep the default mode");
     }
 
     #[cfg(unix)]
@@ -1322,7 +1435,7 @@ mod tests {
         // pin the contract from this crate so a brana-core change cannot silently drop it.
         let args: Vec<String> = files::curl_args("https://h/m.bin", Path::new("/tmp/p"))
             .iter().map(|a| a.to_string_lossy().into_owned()).collect();
-        let joined = args.join(" ");
+        let joined = lossy_join(&args);
         assert!(joined.contains("--proto =https"), "{joined}");
         assert!(joined.contains("--proto-redir =https"), "{joined}");
         assert!(files::validate_url("http://h/m.bin").is_err(), "plain http never reaches curl");
@@ -1330,9 +1443,18 @@ mod tests {
 
     #[test]
     fn relative_model_dirs_are_ignored() {
-        let dirs = model_dirs_from(Some("rel/models:/abs/models::./dot"), "/home/u");
+        let (dirs, ignored) = model_dirs_from(Some("rel/models:/abs/models::./dot"), Path::new("/home/u"));
         assert_eq!(dirs, vec![PathBuf::from("/abs/models"), PathBuf::from("/home/u/.cache/whisper-models")]);
-        assert_eq!(model_dirs_from(None, "/home/u"), vec![PathBuf::from("/home/u/.cache/whisper-models")]);
+        assert_eq!(ignored, vec!["rel/models".to_string(), "./dot".to_string()], "ignored entries are reported, never silently dropped");
+        assert_eq!(model_dirs_from(None, Path::new("/home/u")).0, vec![PathBuf::from("/home/u/.cache/whisper-models")]);
+    }
+
+    #[test]
+    fn home_dir_must_be_absolute() {
+        assert!(home_dir_from(None).is_err(), "no HOME: never fall back to cwd");
+        assert!(home_dir_from(Some("")).is_err());
+        assert!(home_dir_from(Some("rel/home")).is_err(), "a relative HOME resolves against cwd");
+        assert_eq!(home_dir_from(Some("/home/u")).unwrap(), PathBuf::from("/home/u"));
     }
 
     #[test]
