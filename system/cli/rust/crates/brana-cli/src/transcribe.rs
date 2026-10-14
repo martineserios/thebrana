@@ -1725,6 +1725,63 @@ mod tests {
         assert!(create_private_dir(&d.path().join("link")).is_err(), "a symlink leaf is not a private dir");
     }
 
+    // ── t-3485: input first, frame-count warning ─────────────────────────
+
+    #[test]
+    fn missing_input_never_reaches_the_model_resolver() {
+        // A typo'd path must fail before any model lookup — which may be a multi-GB download.
+        let called = std::cell::Cell::new(false);
+        let r = resolve_for_run(Path::new("/nonexistent/talk.mp3"), Some("small"), |_| {
+            called.set(true);
+            Ok(PathBuf::from("/m/ggml-small.bin"))
+        });
+        assert!(r.is_err(), "missing input is an error");
+        assert!(!called.get(), "the resolver must not run for a missing input");
+        let msg = r.unwrap_err().to_string();
+        assert!(msg.contains("/nonexistent/talk.mp3"), "names the path: {msg}");
+
+        let d = tempfile::tempdir().unwrap();
+        let dir_input = d.path().join("adir");
+        std::fs::create_dir(&dir_input).unwrap();
+        assert!(resolve_for_run(&dir_input, Some("small"), |_| Ok(PathBuf::from("x"))).is_err(), "a directory is not an input file");
+
+        let f = d.path().join("talk.mp3");
+        std::fs::write(&f, b"x").unwrap();
+        let spec_seen = std::cell::RefCell::new(None);
+        let r = resolve_for_run(&f, Some("small"), |spec| {
+            *spec_seen.borrow_mut() = spec.map(String::from);
+            Ok(PathBuf::from("/m/ggml-small.bin"))
+        });
+        assert_eq!(r.unwrap(), PathBuf::from("/m/ggml-small.bin"));
+        assert_eq!(spec_seen.borrow().as_deref(), Some("small"), "an existing input goes on to the resolver");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn unreadable_input_is_refused_before_the_resolver() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("locked.mp3");
+        std::fs::write(&f, b"x").unwrap();
+        std::fs::set_permissions(&f, std::fs::Permissions::from_mode(0o000)).unwrap();
+        if std::fs::File::open(&f).is_ok() {
+            return; // root reads anything
+        }
+        let called = std::cell::Cell::new(false);
+        let r = resolve_for_run(&f, None, |_| { called.set(true); Ok(PathBuf::from("x")) });
+        std::fs::set_permissions(&f, std::fs::Permissions::from_mode(0o600)).unwrap();
+        assert!(r.is_err() && !called.get());
+    }
+
+    #[test]
+    fn frame_count_note_warns_above_the_threshold() {
+        assert!(frame_count_note(0).is_none());
+        assert!(frame_count_note(FRAME_WARN_THRESHOLD).is_none(), "at the threshold: no warning");
+        let note = frame_count_note(FRAME_WARN_THRESHOLD + 1).expect("over the threshold warns");
+        assert!(note.contains(&(FRAME_WARN_THRESHOLD + 1).to_string()) && note.contains("--every"), "{note}");
+        assert!(note.contains("--scene"), "suggests the sampler that bounds output by content: {note}");
+    }
+
     // ── t-3473: manifest-tracked model containment ─────────────────────
 
     #[test]
