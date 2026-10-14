@@ -1153,7 +1153,11 @@ fi
 # mask an engine registry without brana. brana doctor now reads the engine registry alone, and
 # a leftover stub (brana's own artefact) is removed here so it cannot mislead anyone later.
 LEGACY_STUB="$TARGET_DIR/installed_plugins.json"
-if [ -f "$LEGACY_STUB" ]; then
+# only a file brana wrote: its keys are exactly {brana} (7f wrote `{"brana":{"version":…}}`);
+# anything else is somebody's file — left alone, reported
+if [ -f "$LEGACY_STUB" ] && ! jq -e 'type=="object" and ((keys - ["brana"]) | length == 0)' "$LEGACY_STUB" >/dev/null 2>&1; then
+    echo "  ! $LEGACY_STUB has keys other than brana — not removed (nothing in brana reads it)"
+elif [ -f "$LEGACY_STUB" ]; then
     CHANGES=$((CHANGES + 1))
     if $CHECK_ONLY; then
         echo "  - $LEGACY_STUB (would remove: legacy stub, nothing reads it — t-3502)"
