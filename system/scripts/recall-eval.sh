@@ -33,9 +33,19 @@ def norm(stem):
     stem = stem.split("_", 1)[-1] if "_" in stem else stem
     return re.sub(r"_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$", "", stem)
 
-hits, lat, misses = 0, [], []
+import glob, os
+
+def in_scope(key):
+    """Recall indexes only the top level of each memory dir; archive subfolders are out."""
+    home = os.path.expanduser("~")
+    pats = [f"{home}/.claude/memory/{key}.md", f"{home}/.claude/projects/*/memory/{key}.md"]
+    return any(glob.glob(p) for p in pats)
+
+hits, lat, misses, reach, reach_hits = 0, [], [], 0, 0
 for q in qs:
     key = q["answer_key"]
+    scoped = in_scope(key)
+    reach += scoped
     t = time.time()
     p = subprocess.run([brana, "recall", q["question"], "--top", top, "--json"],
                        capture_output=True, text=True)
@@ -52,10 +62,13 @@ for q in qs:
             slugs.append(mf["slug"])
     ok = key in stems or norm(key) in slugs
     hits += ok
+    reach_hits += ok and scoped
     if not ok:
-        misses.append((q.get("n"), key, stems[:2]))
+        misses.append((q.get("n"), key, stems[:2], scoped))
 
-print(f"recall-eval: hits@{top} = {hits}/{len(qs)} | median latency {statistics.median(lat):.2f}s | bin={brana}")
-for n, key, got in misses:
-    print(f"  miss #{n}: want {key}  got {got}")
+print(f"recall-eval: hits@{top} = {hits}/{len(qs)} | in-scope {reach_hits}/{reach} "
+      f"| median latency {statistics.median(lat):.2f}s | bin={brana}")
+for n, key, got, scoped in misses:
+    tag = "" if scoped else "  [out of scope: file not at top level of a memory dir]"
+    print(f"  miss #{n}: want {key}  got {got}{tag}")
 PY

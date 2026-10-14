@@ -560,10 +560,53 @@ pub struct VectorProvider {
     embedder: Arc<dyn Embedder>,
     /// Hits below this cosine similarity are dropped.
     threshold: f32,
-    /// Include embedded memory-file rows (t-3510). Off by default: knowledge
-    /// search documents that the store holds only `knowledge:` entries, so only
-    /// recall opts in.
-    memory_files: bool,
+    /// Which rows participate relative to embedded memory files (t-3510).
+    memory_scope: MemoryScope,
+}
+
+/// How a [`VectorProvider`] treats embedded memory-file rows (t-3510).
+///
+/// `Exclude` is the default because `brana knowledge search` documents that the
+/// store holds only `knowledge:` entries. Recall uses two providers: knowledge
+/// rows (`Exclude`) and memory files (`Only`), so a memory file is ranked
+/// against other memory files instead of against thousands of knowledge rows —
+/// measured on the live store, the right file ranked 1st among memory files but
+/// 42nd overall and never reached the shared candidate pool.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MemoryScope {
+    #[default]
+    Exclude,
+    Include,
+    Only,
+}
+
+/// Memoizes the most recent embedding so several providers that share one query
+/// (recall's knowledge and memory legs) embed it once instead of starting the
+/// external embedder once each. The lock is held across the inner call, so a
+/// concurrent second caller waits for the first result rather than racing it.
+pub struct CachedEmbedder {
+    inner: Arc<dyn Embedder>,
+    last: std::sync::Mutex<Option<(String, Option<Vec<f32>>)>>,
+}
+
+impl CachedEmbedder {
+    pub fn new(inner: Arc<dyn Embedder>) -> Self {
+        Self { inner, last: std::sync::Mutex::new(None) }
+    }
+}
+
+impl Embedder for CachedEmbedder {
+    fn embed(&self, text: &str) -> Option<Vec<f32>> {
+        let mut guard = self.last.lock().ok()?;
+        if let Some((cached_text, cached_vec)) = guard.as_ref()
+            && cached_text == text
+        {
+            return cached_vec.clone();
+        }
+        let vec = self.inner.embed(text);
+        *guard = Some((text.to_string(), vec.clone()));
+        vec
+    }
 }
 
 impl VectorProvider {
@@ -572,7 +615,7 @@ impl VectorProvider {
             db_path: db_path.into(),
             embedder,
             threshold: 0.0,
-            memory_files: false,
+            memory_scope: MemoryScope::Exclude,
         }
     }
 
@@ -581,9 +624,10 @@ impl VectorProvider {
         self
     }
 
-    /// Opt in to embedded curated memory files, returned as `DocRef::MemoryFile`.
-    pub fn with_memory_files(mut self, on: bool) -> Self {
-        self.memory_files = on;
+    /// Choose how embedded curated memory files participate; they are returned as
+    /// `DocRef::MemoryFile`. See [`MemoryScope`].
+    pub fn with_memory_scope(mut self, scope: MemoryScope) -> Self {
+        self.memory_scope = scope;
         self
     }
 }
@@ -623,10 +667,11 @@ impl SearchProvider for VectorProvider {
         let mut scored: Vec<(f32, String, String, Option<String>, Option<String>)> = rows
             .filter_map(|row| {
                 let (key, content, blob, tags, source) = row.ok()?;
-                if !self.memory_files
-                    && source.as_deref() == Some(crate::memory_vectors::MEMORY_SOURCE)
-                {
-                    return None;
+                let is_memory = source.as_deref() == Some(crate::memory_vectors::MEMORY_SOURCE);
+                match self.memory_scope {
+                    MemoryScope::Exclude if is_memory => return None,
+                    MemoryScope::Only if !is_memory => return None,
+                    _ => {}
                 }
                 let v = blob_to_vec(&blob)?;
                 let score = cosine(&qvec, &v);
@@ -666,6 +711,31 @@ impl SearchProvider for VectorProvider {
             })
             .collect()
     }
+}
+
+/// Cosine floor for recall's semantic legs: keeps sub-topical noise out of the RRF pool.
+pub const RECALL_VECTOR_THRESHOLD: f32 = 0.25;
+
+/// The one place recall's fusion is assembled (CLI and MCP both call it, so the two
+/// cannot drift): keyword search over the memory files, semantic search over knowledge
+/// rows, and a third list of semantically matched memory files ranked on their own so
+/// they never compete with thousands of knowledge rows for the candidate pool (t-3510).
+/// Both semantic legs share one query embedding.
+pub fn recall_provider(
+    fts_db: impl Into<PathBuf>,
+    knowledge_db: impl Into<PathBuf>,
+    embedder: Arc<dyn Embedder>,
+) -> crate::search::HybridProvider {
+    use crate::search::{FTS5Provider, HybridProvider};
+    let knowledge_db = knowledge_db.into();
+    let shared: Arc<dyn Embedder> = Arc::new(CachedEmbedder::new(embedder));
+    let knowledge = VectorProvider::new(knowledge_db.clone(), Arc::clone(&shared))
+        .with_threshold(RECALL_VECTOR_THRESHOLD);
+    let memory = VectorProvider::new(knowledge_db, shared)
+        .with_threshold(RECALL_VECTOR_THRESHOLD)
+        .with_memory_scope(MemoryScope::Only);
+    HybridProvider::new(Arc::new(FTS5Provider::new(fts_db.into())), Arc::new(knowledge))
+        .with_extra(Arc::new(memory))
 }
 
 /// Truncate at a char boundary, appending `…` when shortened.

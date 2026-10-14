@@ -207,6 +207,9 @@ const MIN_CANDIDATE_POOL: usize = 20;
 pub struct HybridProvider {
     fts5: Arc<dyn SearchProvider>,
     ruflo: Arc<dyn SearchProvider>,
+    /// Further ranked lists fused with the two above (t-3510): they share the
+    /// semantic leg's deadline and degrade the same way.
+    extras: Vec<Arc<dyn SearchProvider>>,
     fts5_deadline: Duration,
     ruflo_deadline: Duration,
 }
@@ -214,7 +217,21 @@ pub struct HybridProvider {
 impl HybridProvider {
     /// Construct with production deadlines (FTS5: 500ms, ruflo: 2s).
     pub fn new(fts5: Arc<dyn SearchProvider>, ruflo: Arc<dyn SearchProvider>) -> Self {
-        Self { fts5, ruflo, fts5_deadline: FTS5_DEADLINE, ruflo_deadline: RUFLO_DEADLINE }
+        Self {
+            fts5,
+            ruflo,
+            extras: Vec::new(),
+            fts5_deadline: FTS5_DEADLINE,
+            ruflo_deadline: RUFLO_DEADLINE,
+        }
+    }
+
+    /// Add another ranked list to the fusion. A document confirmed by several lists
+    /// accumulates RRF score across all of them. Used by recall to rank curated memory
+    /// files apart from the much larger knowledge store.
+    pub fn with_extra(mut self, provider: Arc<dyn SearchProvider>) -> Self {
+        self.extras.push(provider);
+        self
     }
 
     /// Construct with custom deadlines — for testing and configuration.
@@ -224,7 +241,7 @@ impl HybridProvider {
         fts5_deadline: Duration,
         ruflo_deadline: Duration,
     ) -> Self {
-        Self { fts5, ruflo, fts5_deadline, ruflo_deadline }
+        Self { fts5, ruflo, extras: Vec::new(), fts5_deadline, ruflo_deadline }
     }
 }
 
@@ -246,6 +263,19 @@ impl SearchProvider for HybridProvider {
         thread::spawn(move || { let _ = tx_fts5.send(fts5.query(&q_fts5, fetch)); });
         thread::spawn(move || { let _ = tx_ruflo.send(ruflo.query(&q_ruflo, fetch)); });
 
+        // Extra legs are dispatched with the others and share the semantic budget.
+        let extra_rx: Vec<_> = self
+            .extras
+            .iter()
+            .map(|p| {
+                let p = Arc::clone(p);
+                let q = Arc::clone(&q);
+                let (tx, rx) = mpsc::channel();
+                thread::spawn(move || { let _ = tx.send(p.query(&q, fetch)); });
+                rx
+            })
+            .collect();
+
         // Ruflo budget starts from dispatch, not from when FTS5 returns.
         // Worst-case wall-clock = RUFLO_DEADLINE.
         let start         = Instant::now();
@@ -253,7 +283,12 @@ impl SearchProvider for HybridProvider {
         let ruflo_budget  = ruflo_dl.saturating_sub(start.elapsed());
         let ruflo_results = rx_ruflo.recv_timeout(ruflo_budget).unwrap_or_default();
 
-        rrf_merge(vec![fts5_results, ruflo_results], K, top_k)
+        let mut lists = vec![fts5_results, ruflo_results];
+        for rx in extra_rx {
+            let budget = ruflo_dl.saturating_sub(start.elapsed());
+            lists.push(rx.recv_timeout(budget).unwrap_or_default());
+        }
+        rrf_merge(lists, K, top_k)
     }
 }
 
@@ -490,6 +525,38 @@ mod tests {
             other => panic!("expected KnowledgeEntry, got {other:?}"),
         }
         assert!(hits[0].rrf_score > 0.0);
+    }
+
+    #[test]
+    fn hybrid_extra_provider_adds_its_own_ranked_list() {
+        // fts5: [a]   ruflo: [b]   extra: [c, a]
+        // c appears only via the extra leg; a is confirmed by fts5 + extra and must lead.
+        let fts5  = FixedProvider::fixed(vec![h("a")]);
+        let ruflo = FixedProvider::fixed(vec![h("b")]);
+        let extra = FixedProvider::fixed(vec![h("c"), h("a")]);
+        let hits = HybridProvider::new(fts5, ruflo).with_extra(extra).query("q", 10);
+        let keys: Vec<_> = hits
+            .iter()
+            .map(|x| match &x.doc { DocRef::KnowledgeEntry { key, .. } => key.clone(), _ => String::new() })
+            .collect();
+        assert_eq!(keys[0], "a", "two-leg confirmation ranks first: {keys:?}");
+        assert!(keys.contains(&"c".to_string()), "extra-only doc must appear: {keys:?}");
+        assert!(keys.contains(&"b".to_string()));
+    }
+
+    #[test]
+    fn hybrid_extra_timeout_degrades_to_the_other_legs() {
+        let fts5  = FixedProvider::fixed(vec![h("from-fts5")]);
+        let ruflo = FixedProvider::fixed(vec![h("from-ruflo")]);
+        let extra = FixedProvider::delayed(vec![h("from-extra")], Duration::from_millis(400));
+        let hybrid = HybridProvider::with_deadlines(
+            fts5, ruflo,
+            Duration::from_millis(50),
+            Duration::from_millis(100),
+        )
+        .with_extra(extra);
+        let hits = hybrid.query("q", 10);
+        assert_eq!(hits.len(), 2, "slow extra leg must be dropped, not awaited: {hits:?}");
     }
 
     #[test]

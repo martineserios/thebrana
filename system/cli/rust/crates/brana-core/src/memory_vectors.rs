@@ -134,7 +134,7 @@ mod tests {
     use super::*;
     use crate::memory::{list_memory_files, reindex_fts_dirs};
     use crate::search::{FTS5Provider, HybridProvider, SearchProvider};
-    use crate::vector::{VectorProvider, EMBED_DIM};
+    use crate::vector::{CachedEmbedder, MemoryScope, VectorProvider, EMBED_DIM};
     use std::fs;
     use std::sync::{Arc, Mutex};
     use tempfile::{tempdir, TempDir};
@@ -364,7 +364,7 @@ mod tests {
         store.upsert("knowledge:url:p", "pricing page", None, Some("memory_entries"), 1, &unit(1)).unwrap();
         embed_memory_files(&store, &list_memory_files(&dirs(&f)), &Fake::new()).unwrap();
 
-        let provider = VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_files(true);
+        let provider = VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_scope(MemoryScope::Include);
         let scraping = provider.query("scraping question", 5);
         assert!(matches!(scraping[0].doc, DocRef::MemoryFile { .. }), "got {:?}", scraping[0].doc);
         let pricing = provider.query("pricing question", 5);
@@ -389,6 +389,93 @@ mod tests {
         assert_eq!(hits.len(), 1);
     }
 
+    /// Embeds "mixed" text halfway between axis 0 and axis 2 (cosine 0.5 with a
+    /// "scraping" query), everything else as `Fake` does.
+    struct FakeMixed(Fake);
+    impl Embedder for FakeMixed {
+        fn embed(&self, text: &str) -> Option<Vec<f32>> {
+            if text.contains("mixed") {
+                let mut v = vec![0.0_f32; EMBED_DIM];
+                v[0] = 0.5;
+                v[2] = 0.866_025_4;
+                return Some(v);
+            }
+            self.0.embed(text)
+        }
+    }
+
+    #[test]
+    fn memory_files_crowded_out_of_a_shared_pool_surface_through_their_own_leg() {
+        // Measured on the live store: the answer memory file ranked 1st among memory files
+        // but 42nd among all rows, behind ~6,600 knowledge entries, so the shared vector
+        // leg's candidate pool (20) never reached it. A dedicated memory leg ranks them apart.
+        let f = fixture();
+        put(&f, "pattern_notes.md", "mixed notes zzz");
+        let d = dirs(&f);
+        reindex_fts_dirs(&d, &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        for i in 0..30 {
+            store
+                .upsert(&format!("knowledge:url:{i}"), "closer knowledge row", None, Some("memory_entries"), 1, &unit(0))
+                .unwrap();
+        }
+        embed_memory_files(&store, &list_memory_files(&d), &FakeMixed(Fake::new())).unwrap();
+        let q = "scraping q";
+
+        // Shared leg: the file is below 30 closer rows, outside the 20-candidate pool.
+        let fts = Arc::new(FTS5Provider::new(f.fts.clone())) as Arc<dyn SearchProvider>;
+        let shared = Arc::new(
+            VectorProvider::new(&f.db, Arc::new(FakeMixed(Fake::new()))).with_memory_scope(MemoryScope::Include),
+        ) as Arc<dyn SearchProvider>;
+        let crowded = HybridProvider::new(fts.clone(), shared).query(q, 5);
+        assert!(
+            !crowded.iter().any(|h| matches!(h.doc, DocRef::MemoryFile { .. })),
+            "precondition: the shared pool must crowd the memory file out: {crowded:?}"
+        );
+
+        // The production wiring: knowledge-only plus memory-only legs, fused three ways.
+        let fused = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(FakeMixed(Fake::new()))).query(q, 5);
+        assert!(
+            fused.iter().any(|h| matches!(&h.doc, DocRef::MemoryFile { slug, .. } if slug == "notes")),
+            "memory leg must surface the file: {fused:?}"
+        );
+    }
+
+    #[test]
+    fn memory_only_scope_returns_just_memory_files() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        store.upsert("knowledge:url:p", "scraping knowledge row", None, Some("memory_entries"), 1, &unit(0)).unwrap();
+        embed_memory_files(&store, &list_memory_files(&dirs(&f)), &Fake::new()).unwrap();
+
+        let hits = VectorProvider::new(&f.db, Arc::new(Fake::new()))
+            .with_memory_scope(MemoryScope::Only)
+            .query("scraping question", 5);
+
+        assert_eq!(hits.len(), 1);
+        assert!(matches!(hits[0].doc, DocRef::MemoryFile { .. }));
+    }
+
+    #[test]
+    fn cached_embedder_embeds_a_shared_query_once_across_threads() {
+        let inner = Arc::new(Fake::new());
+        let cached = Arc::new(CachedEmbedder::new(inner.clone()));
+        let handles: Vec<_> = (0..4)
+            .map(|_| {
+                let c = cached.clone();
+                std::thread::spawn(move || c.embed("scraping question"))
+            })
+            .collect();
+        for h in handles {
+            assert!(h.join().unwrap().is_some());
+        }
+        assert_eq!(inner.calls(), 1, "four legs, one embedding");
+
+        cached.embed("pricing question");
+        assert_eq!(inner.calls(), 2, "a different text is embedded afresh");
+    }
+
     #[test]
     fn hybrid_fuses_fts_and_vector_signals_for_the_same_memory_file() {
         let f = fixture();
@@ -400,7 +487,7 @@ mod tests {
         embed_memory_files(&store, &list_memory_files(&d), &Fake::new()).unwrap();
 
         let fts = Arc::new(FTS5Provider::new(f.fts.clone())) as Arc<dyn SearchProvider>;
-        let vec = Arc::new(VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_files(true))
+        let vec = Arc::new(VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_scope(MemoryScope::Include))
             as Arc<dyn SearchProvider>;
         let fts_alone = fts.query("scraping", 5);
         let hybrid = HybridProvider::new(fts, vec).query("scraping", 5);
@@ -424,7 +511,7 @@ mod tests {
         embed_memory_files(&store, &list_memory_files(&d), &Fake::new()).unwrap();
 
         let fts = Arc::new(FTS5Provider::new(f.fts.clone())) as Arc<dyn SearchProvider>;
-        let vec = Arc::new(VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_files(true))
+        let vec = Arc::new(VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_scope(MemoryScope::Include))
             as Arc<dyn SearchProvider>;
         assert!(fts.query("harvest extraction", 5).is_empty(), "keyword leg must miss");
         let hybrid = HybridProvider::new(fts, Arc::new(VectorProviderScraping(vec))).query("harvest extraction", 5);
