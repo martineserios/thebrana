@@ -38,13 +38,14 @@ canary.
 
 | Mode | hit@8 per run | hit@8 mean | MRR per run | MRR mean |
 |---|---|---|---|---|
-| As LOAD runs today (no `RUFLO_BIN`; vector leg drops at its deadline) | 0.279, 0.256, 0.256, 0.256, 0.256 | 0.261 | 0.174, 0.196, 0.192, 0.167, 0.190 | 0.184 |
-| Vectors working (`RUFLO_BIN` pinned) | 0.233, 0.256, 0.279, 0.233, 0.256 | 0.251 | 0.157, 0.156, 0.184, 0.132, 0.158 | 0.157 |
+| Run set A (no `RUFLO_BIN`) | 0.279, 0.256, 0.256, 0.256, 0.256 | 0.261 | 0.174, 0.196, 0.192, 0.167, 0.190 | 0.184 |
+| Run set B (`RUFLO_BIN` pinned) | 0.233, 0.256, 0.279, 0.233, 0.256 | 0.251 | 0.157, 0.156, 0.184, 0.132, 0.158 | 0.157 |
 
-- **Reference baseline:** the better mode, hit@8 **0.261**, MRR **0.184**.
+- **Reference baseline:** the better run set, hit@8 **0.261**, MRR **0.184**.
 - **Noise:** runs differ by about one task of 43 (hit@8 range 0.233–0.279), even with identical
   inputs.
-- Vectors do not improve this gold set today; keyword-only is at least as good.
+- See the correction below: the two run sets are the same system, not "vectors dropped" versus
+  "vectors working".
 
 ## Shadow gates (kill-only)
 
@@ -85,4 +86,26 @@ exposures it is unmeasured, never a candidate.
 - The installed binary (0.2.0) predates t-3510's memory-file vector leg. Re-run the baseline with
   the same scorer once t-3510 ships, before scoring the bundle, and record it here as an addendum
   (the thresholds stay fixed).
-- The vector leg is dropped in Claude Code sessions today (fix: t-3527). Re-run the baseline after t-3527 as well; the thresholds stay fixed.
+- The vector leg can drop silently under machine load (see the correction below). Per-leg status
+  (ADR-099 §4, t-3516) makes this visible; until then, a baseline run that sits at the 2 s deadline
+  must be discarded and repeated.
+
+## Correction (2026-10-14, same day, before any bundle was scored)
+
+Two statements in the first version of this file were wrong. The thresholds above do not depend on
+either and are unchanged.
+
+1. **The two run sets were mislabelled.** They were recorded as "vector leg drops" (no
+   `RUFLO_BIN`) and "vectors working" (`RUFLO_BIN` pinned). Re-measured the same day: sourcing
+   `cf-env.sh` takes 5–8 ms, and recall without `RUFLO_BIN` returns vector hits in about 0.77 s. The
+   2.03 s calls and zero-result queries seen earlier were intermittent, most likely machine load
+   pushing the Node embedder past the 2 s vector deadline. Both run sets measure today's recall; the
+   ten runs together give the noise band.
+2. **"Vectors do not improve this gold set" was an artefact.** The installed binary (0.2.0) has no
+   memory-file vectors (that is t-3510). Its vector hits are knowledge-store rows, which can never
+   match a memory-note gold slug; at most they compete for top-8 slots. Whether vectors help is
+   only testable after t-3510 ships, when the baseline is re-run as required above.
+
+The follow-up task t-3527 (filed on the wrong premise that ruflo resolution caused every drop) was
+cancelled. The real defects are covered elsewhere: silent drops by per-leg status (t-3516), and the
+small latency headroom by the in-process embedder spike (t-3522).
