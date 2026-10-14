@@ -1772,32 +1772,60 @@ mod tests {
     // ── t-3485: input first, frame-count warning ─────────────────────────
 
     #[test]
-    fn missing_input_never_reaches_the_model_resolver() {
-        // A typo'd path must fail before any model lookup — which may be a multi-GB download.
-        let called = std::cell::Cell::new(false);
-        let r = resolve_for_run(Path::new("/nonexistent/talk.mp3"), Some("small"), |_| {
-            called.set(true);
-            Ok(PathBuf::from("/m/ggml-small.bin"))
-        });
+    fn missing_input_never_reaches_whisper_lookup_or_the_model_resolver() {
+        // A typo'd path must fail before any lookup — the model one may be a multi-GB download.
+        let which_called = std::cell::Cell::new(false);
+        let resolve_called = std::cell::Cell::new(false);
+        let r = preflight(
+            Path::new("/nonexistent/talk.mp3"),
+            None,
+            Some("small"),
+            || { which_called.set(true); Ok(PathBuf::from("/usr/bin/whisper-cli")) },
+            |_| { resolve_called.set(true); Ok(PathBuf::from("/m/ggml-small.bin")) },
+        );
         assert!(r.is_err(), "missing input is an error");
-        assert!(!called.get(), "the resolver must not run for a missing input");
+        assert!(!which_called.get() && !resolve_called.get(), "nothing runs for a missing input");
         let msg = r.unwrap_err().to_string();
         assert!(msg.contains("/nonexistent/talk.mp3"), "names the path: {msg}");
 
         let d = tempfile::tempdir().unwrap();
         let dir_input = d.path().join("adir");
         std::fs::create_dir(&dir_input).unwrap();
-        assert!(resolve_for_run(&dir_input, Some("small"), |_| Ok(PathBuf::from("x"))).is_err(), "a directory is not an input file");
+        assert!(preflight(&dir_input, None, Some("small"), || Ok(PathBuf::from("w")), |_| Ok(PathBuf::from("x"))).is_err(), "a directory is not an input file");
 
+        // the order is input, whisper-cli, model: a missing whisper-cli never starts a download
         let f = d.path().join("talk.mp3");
         std::fs::write(&f, b"x").unwrap();
+        let resolve_called = std::cell::Cell::new(false);
+        let r = preflight(&f, None, Some("small"), || bail!("whisper-cli not found"), |_| { resolve_called.set(true); Ok(PathBuf::from("x")) });
+        assert!(r.is_err() && !resolve_called.get(), "no model resolution without whisper-cli");
+
         let spec_seen = std::cell::RefCell::new(None);
-        let r = resolve_for_run(&f, Some("small"), |spec| {
+        let (w, m) = preflight(&f, None, Some("small"), || Ok(PathBuf::from("/usr/bin/whisper-cli")), |spec| {
             *spec_seen.borrow_mut() = spec.map(String::from);
             Ok(PathBuf::from("/m/ggml-small.bin"))
-        });
-        assert_eq!(r.unwrap(), PathBuf::from("/m/ggml-small.bin"));
+        })
+        .unwrap();
+        assert_eq!((w, m), (PathBuf::from("/usr/bin/whisper-cli"), PathBuf::from("/m/ggml-small.bin")));
         assert_eq!(spec_seen.borrow().as_deref(), Some("small"), "an existing input goes on to the resolver");
+    }
+
+    #[test]
+    fn bad_frames_dir_is_refused_before_the_model_resolver() {
+        // --frames preconditions are local and cheap: they belong before any download too.
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("talk.mp4");
+        std::fs::write(&f, b"x").unwrap();
+        let out = d.path().join("frames");
+        std::fs::create_dir(&out).unwrap();
+        std::fs::write(out.join("frame_000001.jpg"), b"old").unwrap();
+        let resolve_called = std::cell::Cell::new(false);
+        let r = preflight(&f, Some(&out), None, || Ok(PathBuf::from("w")), |_| { resolve_called.set(true); Ok(PathBuf::from("x")) });
+        assert!(r.is_err() && !resolve_called.get(), "a dir with frame_* leftovers fails before the model");
+        assert!(!out.join("frame_000002.jpg").exists());
+        let fresh = d.path().join("new");
+        assert!(preflight(&f, Some(&fresh), None, || Ok(PathBuf::from("w")), |_| Ok(PathBuf::from("x"))).is_ok(), "a not-yet-existing dir is fine (created later)");
+        assert!(!fresh.exists(), "preflight never creates anything");
     }
 
     #[cfg(unix)]
@@ -1812,18 +1840,20 @@ mod tests {
             return; // root reads anything
         }
         let called = std::cell::Cell::new(false);
-        let r = resolve_for_run(&f, None, |_| { called.set(true); Ok(PathBuf::from("x")) });
+        let r = preflight(&f, None, None, || Ok(PathBuf::from("w")), |_| { called.set(true); Ok(PathBuf::from("x")) });
         std::fs::set_permissions(&f, std::fs::Permissions::from_mode(0o600)).unwrap();
         assert!(r.is_err() && !called.get());
     }
 
     #[test]
-    fn frame_count_note_warns_above_the_threshold() {
-        assert!(frame_count_note(0).is_none());
-        assert!(frame_count_note(FRAME_WARN_THRESHOLD).is_none(), "at the threshold: no warning");
-        let note = frame_count_note(FRAME_WARN_THRESHOLD + 1).expect("over the threshold warns");
+    fn frame_count_note_warns_above_the_threshold_with_mode_aware_advice() {
+        assert!(frame_count_note(0, Sampling::Every(1)).is_none());
+        assert!(frame_count_note(FRAME_WARN_THRESHOLD, Sampling::Every(1)).is_none(), "at the threshold: no warning");
+        let note = frame_count_note(FRAME_WARN_THRESHOLD + 1, Sampling::Every(1)).expect("over the threshold warns");
         assert!(note.contains(&(FRAME_WARN_THRESHOLD + 1).to_string()) && note.contains("--every"), "{note}");
-        assert!(note.contains("--scene"), "suggests the sampler that bounds output by content: {note}");
+        assert!(note.contains("--scene"), "interval mode: suggests the sampler that bounds output by content: {note}");
+        let note = frame_count_note(900, Sampling::Scene(0.05)).unwrap();
+        assert!(note.contains("--scene") && note.contains("higher") && !note.contains("--every"), "scene mode: the user is already on --scene and --every conflicts with it: {note}");
     }
 
     // ── t-3473: manifest-tracked model containment ─────────────────────
