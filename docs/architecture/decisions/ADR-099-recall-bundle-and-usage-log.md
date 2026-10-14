@@ -72,6 +72,19 @@ sessions, and adds it as pointers.
      missing embedder or an open failure is `error`, not `ok` with zero hits. A degraded bundle is
      then visible, and the scorer can keep degraded bundles apart.
    - Any failure yields an empty or partial bundle and exit 0, and the build continues.
+4a. **The bundle checks index freshness before it queries.** (Amendment 2026-10-14.)
+   - The keyword index (`index.db`) is rebuilt weekly and the memory-file vectors only when
+     `embed-memory` runs, so notes written since then are invisible, and those are often the most
+     relevant ones. A write-path trigger cannot close this, because the model writes auto-memory
+     files directly (ADR-038 exempts them from the gateway).
+   - At bundle time, any in-scope `*.md` whose modification time is newer than the index build is
+     upserted into the FTS index first (incremental, bounded to those files, inside the same
+     fail-open budget). Notes without vectors stay keyword-only until `embed-memory` runs (t-3511).
+   - The same check drops index entries whose file is gone. The weekly full rebuild remains a safety
+     net; rebuilding more often would only shrink the blind window, not close it.
+   - Every offered row records `index_age_s`, `stale_notes` (count reindexed) and `unembedded`
+     (in-scope notes without vectors), so the scorer separates "index was stale" misses from
+     ranking misses.
 5. **The usage log is canonical, local and free of free text.**
    - Rows live at `~/.claude/projects/<main-checkout>/brana/recall-usage.jsonl`, one file per
      project. The top level of a project folder belongs to Claude Code's session transcripts, and
@@ -129,6 +142,9 @@ sessions, and adds it as pointers.
      plain `brana recall` hit counter, if one is built, stays a separate input.
 
 ## Considered options
+
+- **Reindex on `brana memory write` only.** Rejected for freshness: it misses every note the model
+  writes directly with the Write tool. The bundle-time check covers all writers.
 
 - **Write the bundle into the task's `context`.** Rejected. ADR-086 §7 allows pointer appends,
   but a bundle is ranker output that goes stale as notes change; frozen in the ticket it becomes
