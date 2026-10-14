@@ -900,19 +900,19 @@ mod tests {
 
     #[test]
     fn test_ld_library_path_standalone() {
-        let result = whisper_ld_library_path_from("/home/user", None);
+        let result = whisper_ld_library_path_from(Some(Path::new("/home/user")), None);
         assert_eq!(result, "/home/user/.local/lib");
     }
 
     #[test]
     fn test_ld_library_path_standalone_empty_existing() {
-        let result = whisper_ld_library_path_from("/home/user", Some(""));
+        let result = whisper_ld_library_path_from(Some(Path::new("/home/user")), Some(""));
         assert_eq!(result, "/home/user/.local/lib");
     }
 
     #[test]
     fn test_ld_library_path_prepends_existing() {
-        let result = whisper_ld_library_path_from("/home/user", Some("/usr/lib:/other/lib"));
+        let result = whisper_ld_library_path_from(Some(Path::new("/home/user")), Some("/usr/lib:/other/lib"));
         assert_eq!(result, "/home/user/.local/lib:/usr/lib:/other/lib");
     }
 
@@ -1611,6 +1611,80 @@ mod tests {
         assert_eq!(times[0], 0.5);
         assert_eq!(times[99], 99.5);
         assert_eq!(last, "Conversion failed!");
+    }
+
+    // ── t-3480 iteration-2 changes ──────────────────────────────────────
+
+    #[test]
+    fn frames_args_disable_progress_stats() {
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Every(5)).unwrap();
+        assert!(pos(&args, "-nostats").is_some(), "\\r-terminated progress is the only unbounded line source: {}", lossy_join(&args));
+    }
+
+    #[test]
+    fn stderr_reader_splits_on_carriage_return() {
+        // Even with -nostats, treat \r as a line break: 100 KiB of \r-joined progress glued in
+        // front of a showinfo line must not push the time past the per-line cap.
+        let mut bytes: Vec<u8> = Vec::new();
+        for n in 0..1200u32 {
+            bytes.extend_from_slice(format!("frame={n} fps=0.0 q=2.0 size=N/A time=00:00:01 bitrate=N/A speed=1x    \r").as_bytes());
+        }
+        bytes.extend_from_slice(b"[Parsed_showinfo_1 @ 0x5] n:   0 pts:      0 pts_time:7.5     duration:1\n");
+        let (times, last) = read_ffmpeg_stderr(std::io::Cursor::new(bytes));
+        assert_eq!(times, vec![7.5]);
+        assert!(last.starts_with("[Parsed_showinfo"), "{last:?}");
+    }
+
+    #[test]
+    fn pts_times_only_from_showinfo_lines_not_echoed_tags() {
+        // ffmpeg echoes the file's tags on stderr; a crafted title must not count as a frame.
+        let stderr = "    title           : Parsed_showinfo pts_time:9 evil\n\
+[Parsed_showinfo_1 @ 0x5] n:   0 pts:      0 pts_time:0       duration:1\n";
+        assert_eq!(parse_pts_times(stderr), vec![0.0]);
+    }
+
+    #[test]
+    fn explicit_model_path_needs_no_home() {
+        // --model /abs/ggml-x.bin on a wav never touches the cache; HOME must not be required.
+        let d = tempfile::tempdir().unwrap();
+        let m = d.path().join("ggml-x.bin");
+        write_model(d.path(), "ggml-x.bin", 2000);
+        let dirs = model_dirs_for(Some(m.to_str().unwrap()), || bail!("HOME is not set")).unwrap();
+        assert!(dirs.is_empty(), "a path spec resolves without any search dir");
+        assert!(model_dirs_for(Some("small"), || bail!("HOME is not set")).is_err(), "a name needs the search dirs");
+        assert!(model_dirs_for(None, || bail!("HOME is not set")).is_err());
+    }
+
+    #[test]
+    fn ld_library_path_ignores_unusable_home() {
+        assert_eq!(whisper_ld_library_path_from(Some(Path::new("/home/u")), None), "/home/u/.local/lib");
+        assert_eq!(whisper_ld_library_path_from(None, Some("/opt/lib")), "/opt/lib", "no cwd-relative entry from a relative or unset HOME");
+        assert_eq!(whisper_ld_library_path_from(None, None), "");
+    }
+
+    #[test]
+    fn wav_args_output_is_a_file_url() {
+        let args = wav_ffmpeg_args(Path::new("a.m4a"), Path::new("/tmp/o.wav")).unwrap();
+        assert_eq!(args.last().unwrap().to_str(), Some("file:/tmp/o.wav"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preexisting_frames_dir_must_be_private_and_real() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let shared = d.path().join("shared");
+        std::fs::create_dir(&shared).unwrap();
+        std::fs::set_permissions(&shared, std::fs::Permissions::from_mode(0o777)).unwrap();
+        assert!(create_private_dir(&shared).is_err(), "a group/other-writable dir lets another user plant frame_* mid-run");
+        let mine = d.path().join("mine");
+        std::fs::create_dir(&mine).unwrap();
+        std::fs::set_permissions(&mine, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(create_private_dir(&mine).is_ok(), "a pre-existing dir only I can write is fine");
+        let target = d.path().join("elsewhere");
+        std::fs::create_dir(&target).unwrap();
+        std::os::unix::fs::symlink(&target, d.path().join("link")).unwrap();
+        assert!(create_private_dir(&d.path().join("link")).is_err(), "a symlink leaf is not a private dir");
     }
 
     // ── t-3473: manifest-tracked model containment ─────────────────────
