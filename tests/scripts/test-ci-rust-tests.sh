@@ -30,6 +30,9 @@ job = jobs["rust"]
 # pinned. Revisit once the suite is green on an ubuntu-26.04 workflow_dispatch run.
 for name in ("rust", "validate", "tests"):
     print(f"runs_on_{name}", str(jobs[name].get("runs-on", "")))
+# the class, not three instances: no ci.yml job may float on ubuntu-latest
+floating = [n for n, j in jobs.items() if str(j.get("runs-on", "")) == "ubuntu-latest"]
+print("floating_jobs", ",".join(floating) if floating else "none")
 steps = job.get("steps", [])
 runs = [(s.get("run") or "") for s in steps]
 test_i = next((i for i, r in enumerate(runs) if "cargo test --workspace" in r), -1)
@@ -52,6 +55,7 @@ assert "rust job has timeout-minutes" "yes" "$(fact timeout)"
 assert "rust job pinned to ubuntu-24.04 (t-3484, not ubuntu-latest)" "ubuntu-24.04" "$(fact runs_on_rust)"
 assert "validate job pinned to ubuntu-24.04 (t-3484)" "ubuntu-24.04" "$(fact runs_on_validate)"
 assert "tests job pinned to ubuntu-24.04 (t-3484)" "ubuntu-24.04" "$(fact runs_on_tests)"
+assert "no ci.yml job floats on ubuntu-latest (t-3484)" "none" "$(fact floating_jobs)"
 
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ]

@@ -20,13 +20,25 @@ env:
   # together (tests/scripts/test-ci-mods-harness.sh asserts they agree). ADR-096 Law 6, t-3427.
   CC_VERSION: "2.1.288"
 
+# Ubuntu runner pin (t-3484). GitHub moves the `ubuntu-latest` label to Ubuntu 26 from
+# 2026-10-19. The three required ubuntu jobs below (validate, tests, rust) pin to
+# ubuntu-24.04 rather than float, for two reasons:
+#   - rust: the real-ffmpeg transcribe frame tests assert exact labels verified only on
+#     ffmpeg 6.1.1 (the 24.04 image); a newer ffmpeg is unverified.
+#   - validate, tests: an unreviewed image jump (python3/PyYAML, node, bash, coreutils)
+#     under hundreds of shell suites, five days before the switch.
+# Asserted by tests/scripts/test-ci-rust-tests.sh (every ci.yml job must not float).
+# Unpin condition: ONE workflow_dispatch run in which validate, tests AND rust are all
+# green on ubuntu-26.04. Recipe: push a throwaway ref with the three runs-on lines set to
+# ubuntu-26.04 and the pin asserts in test-ci-rust-tests.sh relaxed to that label, run
+# `gh workflow run ci.yml --ref <that-ref>`, read all three jobs; then unpin here and in
+# the test in one commit. Tracked as a dated follow-up task in the backlog.
+# Deliberately still floating on ubuntu-latest (none is a required check, none uses
+# ffmpeg): claude.yml, claude-code-review.yml (action-only), release.yml (setup-node +
+# semantic-release), mods-drift.yml (the weekly latest-claude canary — floats on purpose).
 jobs:
   validate:
-    # Pinned (t-3484): GitHub moves the ubuntu-latest label to Ubuntu 26 from 2026-10-19.
-    # The real-ffmpeg transcribe frame tests assert exact labels verified only on ffmpeg
-    # 6.1.1 (ubuntu-24.04), so the ubuntu jobs pin to 24.04 rather than float onto an
-    # unverified ffmpeg. Revisit: workflow_dispatch this workflow on ubuntu-26.04, and
-    # unpin once the rust job is green there. Asserted by tests/scripts/test-ci-rust-tests.sh.
+    # runs-on pinned to ubuntu-24.04 — see the "Ubuntu runner pin" note above jobs: (t-3484).
     runs-on: ubuntu-24.04
     # A hung suite must fail the job with a name, not sit until GitHub's 6h
     # limit: the first tier-2 rehearsal run (t-3023) spent 70+ minutes inside
@@ -111,11 +123,7 @@ jobs:
   # regression of the same suites plus one net-new one; t-3319 (2026-09-07)
   # finally flipped branch protection so a red run here blocks merges to main.
   tests:
-    # Pinned (t-3484): GitHub moves the ubuntu-latest label to Ubuntu 26 from 2026-10-19.
-    # The real-ffmpeg transcribe frame tests assert exact labels verified only on ffmpeg
-    # 6.1.1 (ubuntu-24.04), so the ubuntu jobs pin to 24.04 rather than float onto an
-    # unverified ffmpeg. Revisit: workflow_dispatch this workflow on ubuntu-26.04, and
-    # unpin once the rust job is green there. Asserted by tests/scripts/test-ci-rust-tests.sh.
+    # runs-on pinned to ubuntu-24.04 — see the "Ubuntu runner pin" note above jobs: (t-3484).
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -129,7 +137,7 @@ jobs:
 
       # Remedies 62/63/64 (test-validate-remedies.sh) shell out to
       # `uv run python3 system/scripts/migrate/*.py --write`. GitHub's
-      # ubuntu-latest image doesn't ship uv, so those calls silently exit 127
+      # ubuntu runner images don't ship uv, so those calls silently exit 127
       # (swallowed by the test's >/dev/null 2>&1) and the remedy no-ops (t-3316).
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -241,11 +249,7 @@ jobs:
             tests/*/*.sh system/hooks/tests/*.sh system/scripts/tests/*.sh
 
   rust:
-    # Pinned (t-3484): GitHub moves the ubuntu-latest label to Ubuntu 26 from 2026-10-19.
-    # The real-ffmpeg transcribe frame tests assert exact labels verified only on ffmpeg
-    # 6.1.1 (ubuntu-24.04), so the ubuntu jobs pin to 24.04 rather than float onto an
-    # unverified ffmpeg. Revisit: workflow_dispatch this workflow on ubuntu-26.04, and
-    # unpin once the rust job is green there. Asserted by tests/scripts/test-ci-rust-tests.sh.
+    # runs-on pinned to ubuntu-24.04 — see the "Ubuntu runner pin" note above jobs: (t-3484).
     runs-on: ubuntu-24.04
     # Required check: a hung test must fail it, not hold it pending for GitHub's 6 h default.
     timeout-minutes: 45
