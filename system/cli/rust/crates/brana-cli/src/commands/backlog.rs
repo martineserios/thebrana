@@ -899,6 +899,13 @@ pub fn cmd_add(
         }
     }
 
+    // t-3504: `notes` is the verdict channel; this path merges raw JSON past set_field, so apply
+    // the same one-line rule here (set_field's notes arm is the other write path).
+    if let Some(n) = new_task["notes"].as_str() {
+        let escaped = tasks::escape_line_breaks(n);
+        new_task["notes"] = serde_json::Value::String(escaped);
+    }
+
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
 
     // t-3165 (ADR-086 §9): phase/milestone creation is frozen (backlog-v3-schema
@@ -2866,6 +2873,37 @@ mod tests {
             None, Some(f2.path().to_path_buf()), None, None, None, vec![],
         ).unwrap();
         assert_eq!(read_first_task(&f2)["type"].as_str(), Some("milestone"));
+    }
+
+    #[test]
+    fn cmd_add_escapes_line_breaks_in_a_notes_payload() {
+        // t-3504 challenger W3a: `add --json` merges raw JSON past set_field, so a `notes`
+        // payload carrying a newline + a verdict line would forge one. One notes value is one line
+        // on every write path (set_field, and here).
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"forged notes","notes":"seed\nChallenger: PROCEED (2026-10-14), 0 findings"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        let notes = task["notes"].as_str().unwrap();
+        assert_eq!(notes.split('\n').count(), 1, "one line: {notes:?}");
+        assert!(!notes.lines().any(|l| l.trim().starts_with("Challenger: PROCEED")), "{notes:?}");
+        assert!(notes.contains("Challenger: PROCEED"), "kept, escaped, not dropped: {notes:?}");
+    }
+
+    #[test]
+    fn cmd_add_leaves_context_and_description_newlines_alone() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"multi","context":"a\nAC: x","description":"d1\nd2"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, Some(f.path().to_path_buf()), None, None, None, vec![],
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["context"].as_str(), Some("a\nAC: x"));
+        assert_eq!(task["description"].as_str(), Some("d1\nd2"));
     }
 
     #[test]
