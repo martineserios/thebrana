@@ -145,7 +145,7 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana run <id> [--spawn]` | — | Create worktree + set in_progress, optionally spawn tmux |
 | `brana queue [--max 5] [--auto]` | — | Show next unblocked tasks with model recommendations |
 | `brana agents [kill <id>]` | — | List or kill active agents |
-| `brana transcribe <file> [--model <name\|path>] [--frames DIR [--every N]]` | — | Audio/video to text via whisper.cpp. Default model = largest installed in `~/.cache/whisper-models` (or `$BRANA_WHISPER_MODELS`); none installed → downloads `small`. `--frames` (video, ffmpeg ≥ 5.1) extracts a JPEG every N s (default 10) and prints a timestamped transcript + frame index labelled with each frame's real time. Files without the ggml magic header are ignored as models. Use `--model base` for a fast draft (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
+| `brana transcribe <file> [--model <name\|path>] [--frames DIR [--every N \| --scene X]]` | — | Audio/video to text via whisper.cpp. Default model = largest installed in `~/.cache/whisper-models` (or `$BRANA_WHISPER_MODELS`); none installed → downloads `small`. `--frames` (video, ffmpeg ≥ 5.1) extracts a JPEG every N s (default 10) — or, with `--scene X` (0 < X < 1, e.g. 0.3; excludes `--every`), the first frame plus one per scene change — and prints a timestamped transcript + frame index labelled with each frame's real time. Files without the ggml magic header are ignored as models. Use `--model base` for a fast draft (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
 | `brana version` | `bv` | Show CLI version |
 | `brana deploy` | — | Print deployment workflow (merge to main — no build step) |
 
@@ -262,6 +262,7 @@ system/cli/rust/src/
 ## Changelog
 
 - 2026-05-24: Knowledge tier-1/tier-2 pipeline added; `call_gemini_json()` routes eligible tasks to Gemini Flash (t-1667). `brana backlog focus --top N` propagated to CLI guide.
+- 2026-10-14: `brana transcribe --frames DIR --scene X` samples frames on scene changes (the first frame plus ffmpeg `gt(scene,X)`, 0 < X < 1) instead of the fixed `--every` interval; the two flags are mutually exclusive and labels still come from `showinfo` `pts_time` (t-3471).
 - 2026-10-07: CI's required `rust` job now runs `cargo test --workspace` (brana-cli, brana-core, brana-mcp; ffmpeg ≥ 5.1 installed and asserted, `BRANA_REQUIRE_FFMPEG=1` so the real-ffmpeg frame tests can't skip; 45 min job timeout). Before this, no CI job ran the Rust suites — Check 46 only compiles them. Pinned by `tests/scripts/test-ci-rust-tests.sh` (t-3472).
 - 2026-10-05: **After shipping, rebuild the binary** — `bootstrap.sh` does not build the CLI: `cd system/cli/rust && cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana`, then check `brana transcribe --help` lists `--frames` (t-3470).
 - 2026-10-05: `brana transcribe` accepts any whisper model (`--model <name|path>`), defaults to the largest installed (small auto-downloaded if none), and handles video with `--frames` (t-3470).

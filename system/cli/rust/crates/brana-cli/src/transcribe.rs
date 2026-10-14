@@ -26,8 +26,48 @@ pub struct Options {
     pub model: Option<String>,
     /// Video only: extract frames into this directory.
     pub frames_dir: Option<PathBuf>,
-    /// Seconds between extracted frames.
+    /// Seconds between extracted frames (ignored when `scene` is set).
     pub every: u32,
+    /// Sample on scene changes above this ffmpeg scene score (0 < x < 1) instead of every N s.
+    pub scene: Option<f64>,
+}
+
+/// Which frames `--frames` keeps: one every N seconds, or the first frame plus every
+/// scene change above a threshold. Only the selection differs — labels always come from
+/// `showinfo` `pts_time` (t-3471).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Sampling {
+    Every(u32),
+    Scene(f64),
+}
+
+impl Sampling {
+    fn from_options(opts: &Options) -> Self {
+        match opts.scene {
+            Some(t) => Sampling::Scene(t),
+            None => Sampling::Every(opts.every),
+        }
+    }
+
+    /// ffmpeg `select` expression for this sampling mode.
+    fn select_expr(self) -> String {
+        match self {
+            // Keeps the first frame, then the first frame >= N s after the last kept one.
+            // (`fps=1/N` rounds to the nearest tick and was measured shifting frames by seconds.)
+            Sampling::Every(n) => format!("isnan(prev_selected_t)+gte(t-prev_selected_t\\,{n})"),
+            // The first frame (scene score is undefined there) plus every frame whose scene
+            // score — ffmpeg's 0..1 change-vs-previous-frame measure — exceeds the threshold.
+            Sampling::Scene(t) => format!("eq(n\\,0)+gt(scene\\,{t})"),
+        }
+    }
+
+    /// Short label for the frame-index header.
+    fn describe(self) -> String {
+        match self {
+            Sampling::Every(n) => format!("every {n}s"),
+            Sampling::Scene(t) => format!("scene>{t}"),
+        }
+    }
 }
 
 /// First 4 bytes of every whisper.cpp ggml model file ("ggml" as a little-endian u32).
@@ -328,21 +368,19 @@ fn is_video(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// ffmpeg arguments that sample one JPEG every `every` seconds into `dir`.
+/// ffmpeg arguments that write the frames `sampling` selects as JPEGs into `dir`.
 /// `showinfo` logs each kept frame's real `pts_time` (at info level, hence `-loglevel info`),
 /// which labels the frames — sampling never decides the label.
 /// Requires ffmpeg >= 5.1 (`-fps_mode`).
-fn frames_ffmpeg_args(input: &Path, dir: &Path, every: u32) -> Vec<String> {
+fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Vec<String> {
     vec![
         "-hide_banner".into(),
         "-nostdin".into(),
         "-loglevel".into(), "info".into(),
         "-y".into(),
         "-i".into(), input.display().to_string(),
-        // `select` keeps the first frame, then the first frame >= N s after the last kept one.
-        // (`fps=1/N` rounds to the nearest tick and was measured shifting frames by seconds.)
         "-vf".into(),
-        format!("select='isnan(prev_selected_t)+gte(t-prev_selected_t\\,{every})',showinfo"),
+        format!("select='{}',showinfo", sampling.select_expr()),
         "-fps_mode".into(), "vfr".into(),
         "-q:v".into(), "2".into(),
         // `%` is ffmpeg's image2 pattern char — escape it in the directory part.
@@ -402,9 +440,19 @@ fn validate_options(opts: &Options, input: &Path) -> Result<()> {
         if !is_video(input) {
             bail!("--frames needs a video input ({})", VIDEO_EXTS.join(", "));
         }
-        if opts.every == 0 {
-            bail!("--every must be at least 1 second");
+        match opts.scene {
+            // NaN fails both comparisons, so it is rejected by the negated range check.
+            // 1 is excluded: a hard cut scores exactly 1.0 and `gt` is strict, so
+            // gt(scene,1) can never select a frame (measured on a lime|blue cut).
+            Some(t) if !(t > 0.0 && t < 1.0) => {
+                bail!("--scene must be a scene score in (0, 1), e.g. 0.3 (got {t})")
+            }
+            Some(_) => {}
+            None if opts.every == 0 => bail!("--every must be at least 1 second"),
+            None => {}
         }
+    } else if opts.scene.is_some() {
+        bail!("--scene requires --frames");
     }
     Ok(())
 }
@@ -423,11 +471,11 @@ fn check_frames_dir(dir: &Path) -> Result<()> {
 }
 
 /// Extract frames; returns the index lines and a guard owning the written files.
-fn extract_frames(input: &Path, dir: &Path, every: u32) -> Result<(Vec<String>, FramesGuard)> {
+fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<String>, FramesGuard)> {
     check_frames_dir(dir)?;
     std::fs::create_dir_all(dir)?;
     let output = Command::new("ffmpeg")
-        .args(frames_ffmpeg_args(input, dir, every))
+        .args(frames_ffmpeg_args(input, dir, sampling))
         .output()
         .context("ffmpeg not found — install ffmpeg (>= 5.1) to extract frames")?;
     let mut files: Vec<String> = std::fs::read_dir(dir)?
@@ -446,6 +494,9 @@ fn extract_frames(input: &Path, dir: &Path, every: u32) -> Result<(Vec<String>, 
     if times.len() != files.len() {
         bail!("ffmpeg reported {} frame times for {} frames", times.len(), files.len());
     }
+    // Scene mode has no duration/N bound — a very low threshold can keep nearly every frame —
+    // so say how many were written.
+    eprintln!("Extracted {} frames into {}", files.len(), dir.display());
     Ok((frame_index(&files, &times), guard))
 }
 
@@ -476,7 +527,7 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     let frames = match &opts.frames_dir {
         Some(dir) => {
             eprintln!("Extracting frames...");
-            Some(extract_frames(audio_path, dir, opts.every)?)
+            Some(extract_frames(audio_path, dir, Sampling::from_options(opts))?)
         }
         None => None,
     };
@@ -530,9 +581,9 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
         (Some((index, guard)), Some(dir)) => {
             guard.keep();
             Ok(format!(
-            "{text}\n\nFrames ({} every {}s):\n{}",
+            "{text}\n\nFrames ({} {}):\n{}",
             dir.display(),
-            opts.every,
+            Sampling::from_options(opts).describe(),
             index.join("\n")
             ))
         }
@@ -697,7 +748,7 @@ mod tests {
 
     #[test]
     fn frames_args_sample_every_n_seconds() {
-        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), 5);
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Every(5));
         let joined = args.join(" ");
         assert!(joined.contains("-i in.mp4"));
         assert!(joined.contains("gte(t-prev_selected_t\\,5)',showinfo"));
@@ -741,13 +792,88 @@ mod tests {
 
     #[test]
     fn options_validate_rejects_bad_combinations() {
-        let ok = Options { model: None, frames_dir: None, every: 10 };
+        let ok = Options { model: None, frames_dir: None, every: 10, scene: None };
         assert!(validate_options(&ok, Path::new("a.mp3")).is_ok());
-        let frames_audio = Options { model: None, frames_dir: Some("o".into()), every: 10 };
+        let frames_audio = Options { model: None, frames_dir: Some("o".into()), every: 10, scene: None };
         assert!(validate_options(&frames_audio, Path::new("a.mp3")).is_err());
         assert!(validate_options(&frames_audio, Path::new("a.mp4")).is_ok());
-        let zero = Options { model: None, frames_dir: Some("o".into()), every: 0 };
+        let zero = Options { model: None, frames_dir: Some("o".into()), every: 0, scene: None };
         assert!(validate_options(&zero, Path::new("a.mp4")).is_err());
+    }
+
+    // ── t-3471: scene-change sampling (--scene <threshold>) ─────────────
+
+    #[test]
+    fn frames_args_scene_select_keeps_first_frame_and_cuts() {
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Scene(0.3));
+        let joined = args.join(" ");
+        assert!(joined.contains("select='eq(n\\,0)+gt(scene\\,0.3)',showinfo"), "{joined}");
+        assert!(!joined.contains("prev_selected_t"), "scene mode must not use the interval selector");
+        assert!(joined.contains("-fps_mode vfr"));
+        assert!(joined.ends_with("out/frame_%06d.jpg"));
+    }
+
+    #[test]
+    fn sampling_prefers_scene_over_every_and_names_itself() {
+        let every = Options { model: None, frames_dir: Some("o".into()), every: 5, scene: None };
+        assert_eq!(Sampling::from_options(&every), Sampling::Every(5));
+        let scene = Options { model: None, frames_dir: Some("o".into()), every: 10, scene: Some(0.4) };
+        assert_eq!(Sampling::from_options(&scene), Sampling::Scene(0.4));
+        assert_eq!(Sampling::Every(5).describe(), "every 5s");
+        assert_eq!(Sampling::Scene(0.4).describe(), "scene>0.4");
+    }
+
+    #[test]
+    fn options_validate_rejects_bad_scene_thresholds() {
+        let mk = |scene| Options { model: None, frames_dir: Some("o".into()), every: 10, scene };
+        assert!(validate_options(&mk(Some(0.3)), Path::new("a.mp4")).is_ok());
+        assert!(validate_options(&mk(Some(0.999)), Path::new("a.mp4")).is_ok());
+        assert!(validate_options(&mk(Some(0.0)), Path::new("a.mp4")).is_err(), "0 selects nearly every frame");
+        assert!(validate_options(&mk(Some(-0.1)), Path::new("a.mp4")).is_err());
+        // A hard cut scores exactly 1.0 and `gt` is strict (measured 2026-10-14: gt(scene,1)
+        // selected 0 frames on a lime|blue cut), so 1 can never fire — reject it.
+        assert!(validate_options(&mk(Some(1.0)), Path::new("a.mp4")).is_err(), "1 can never select a cut");
+        assert!(validate_options(&mk(Some(1.5)), Path::new("a.mp4")).is_err(), "scene score is 0..1");
+        assert!(validate_options(&mk(Some(f64::NAN)), Path::new("a.mp4")).is_err());
+        // --scene is a frames sampler: without --frames it is a usage error (clap enforces this
+        // too, but Options is a public API).
+        let no_frames = Options { model: None, frames_dir: None, every: 10, scene: Some(0.3) };
+        assert!(validate_options(&no_frames, Path::new("a.mp4")).is_err());
+        // scene mode ignores --every, so every=0 must not be rejected there
+        let scene_zero_every = Options { model: None, frames_dir: Some("o".into()), every: 0, scene: Some(0.3) };
+        assert!(validate_options(&scene_zero_every, Path::new("a.mp4")).is_ok());
+    }
+
+    #[test]
+    fn scene_cut_yields_frame_at_cut_time() {
+        if !ffmpeg_available() {
+            return;
+        }
+        // 3s lime then 3s blue: one hard cut at t=3. Scene sampling keeps the first frame
+        // (t=0, lime) and the cut frame (t=3, blue) — nothing else — and labels them by
+        // showinfo pts_time, not by index.
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("cut.mp4");
+        let ok = Command::new("ffmpeg")
+            .args([
+                "-v", "error", "-y",
+                "-f", "lavfi", "-i", "color=c=lime:s=64x48:r=5:d=3",
+                "-f", "lavfi", "-i", "color=c=blue:s=64x48:r=5:d=3",
+                "-filter_complex", "[0][1]concat=n=2:v=1[v]", "-map", "[v]",
+            ])
+            .arg(&video)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "fixture video generation failed");
+        let out = d.path().join("frames");
+        let (index, guard) = extract_frames(&video, &out, Sampling::Scene(0.3)).unwrap();
+        guard.keep();
+        assert_eq!(index, vec!["frame_000001.jpg @ 00:00:00", "frame_000002.jpg @ 00:00:03"]);
+        let (r, g, b) = jpg_rgb(&out.join("frame_000001.jpg"));
+        assert!(g > 200 && r < 60 && b < 60, "frame @0s should be lime, got {r},{g},{b}");
+        let (r, g, b) = jpg_rgb(&out.join("frame_000002.jpg"));
+        assert!(b > 200 && r < 60 && g < 60, "frame @3s (the cut) should be blue, got {r},{g},{b}");
     }
 
     // ── t-3470: fallback download + real frame extraction ───────────────
@@ -800,7 +926,7 @@ mod tests {
             .success();
         assert!(ok, "fixture video generation failed");
         let out = d.path().join("frames");
-        let (index, guard) = extract_frames(&video, &out, 10).unwrap();
+        let (index, guard) = extract_frames(&video, &out, Sampling::Every(10)).unwrap();
         guard.keep();
         assert!(index.len() >= 2, "expected >=2 frames, got {index:?}");
         assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
@@ -880,7 +1006,7 @@ mod tests {
 
     #[test]
     fn frames_pattern_escapes_percent() {
-        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), 5);
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), Sampling::Every(5));
         assert!(args.last().unwrap().ends_with("out%%d/frame_%06d.jpg"));
     }
 
@@ -933,7 +1059,7 @@ mod tests {
             .success();
         assert!(ok, "fixture video generation failed");
         let out = d.path().join("frames");
-        let (index, guard) = extract_frames(&video, &out, 10).unwrap();
+        let (index, guard) = extract_frames(&video, &out, Sampling::Every(10)).unwrap();
         guard.keep();
         assert_eq!(index[1], "frame_000002.jpg @ 00:00:10");
         let (r, g, b) = jpg_rgb(&out.join("frame_000001.jpg"));
@@ -967,7 +1093,7 @@ mod tests {
             .success();
         assert!(ok, "fixture video generation failed");
         let out = d.path().join("frames");
-        let (index, guard) = extract_frames(&video, &out, 10).unwrap();
+        let (index, guard) = extract_frames(&video, &out, Sampling::Every(10)).unwrap();
         guard.keep();
         assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
         assert_eq!(index[1], "frame_000002.jpg @ 00:00:12");
