@@ -6,7 +6,7 @@
 use crate::files;
 use anyhow::{bail, Context, Result};
 use std::ffi::OsString;
-use std::io::{BufRead as _, Read as _};
+use std::io::BufRead as _;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -209,7 +209,17 @@ fn resolve_installed(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
 
 /// Resolve the model to run: explicit path/name, else largest installed, else download small.
 fn resolve_model(spec: Option<&str>) -> Result<PathBuf> {
-    resolve_model_with(spec, &model_dirs()?, ensure_model)
+    let dirs = model_dirs_for(spec, model_dirs)?;
+    resolve_model_with(spec, &dirs, ensure_model)
+}
+
+/// The search dirs a spec needs: none for an explicit path (so `--model /abs/x.bin` on a
+/// wav works without HOME), otherwise `dirs()` — evaluated only then.
+fn model_dirs_for(spec: Option<&str>, dirs: impl FnOnce() -> Result<Vec<PathBuf>>) -> Result<Vec<PathBuf>> {
+    match spec {
+        Some(s) if is_model_path(s) => Ok(Vec::new()),
+        _ => dirs(),
+    }
 }
 
 /// `resolve_model` with the search dirs and downloader injected (testable without network).
@@ -424,8 +434,9 @@ fn wav_ffmpeg_args(input: &Path, out: &Path) -> Result<Vec<OsString>> {
         os("-nostdin"), os("-v"), os("error"), os("-y"),
         os("-protocol_whitelist"), os("file"),
         os("-i"), ffmpeg_input(input)?,
+        os("-protocol_whitelist"), os("file"),
         os("-vn"), os("-ar"), os("16000"), os("-ac"), os("1"), os("-c:a"), os("pcm_s16le"),
-        out.as_os_str().to_owned(),
+        file_url(out)?,
     ])
 }
 
@@ -496,6 +507,7 @@ fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Result<Ve
     Ok(vec![
         os("-hide_banner"),
         os("-nostdin"),
+        os("-nostats"), // the \r-terminated progress line is the only unbounded log line
         os("-loglevel"), os("info"),
         os("-y"),
         os("-protocol_whitelist"), os("file"),
@@ -509,50 +521,45 @@ fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Result<Ve
     ])
 }
 
-/// Longest stderr line kept; the rest of an over-long line is skipped, not buffered.
+/// Longest stderr line kept; the rest of an over-long line is dropped, never buffered.
 const STDERR_LINE_CAP: usize = 64 * 1024;
 
-/// Read ffmpeg's stderr to the end, byte-wise: each line is decoded lossily, so a Latin-1
-/// title tag the file carries (ffmpeg echoes metadata before the first showinfo line)
-/// never ends the read — `BufRead::lines()` would stop at the first invalid UTF-8 and
-/// silently lose every later frame time (t-3480 challenger F4).
+/// Read ffmpeg's stderr to the end, byte-wise, splitting on `\n` AND `\r` (progress
+/// reports are `\r`-terminated and would otherwise glue onto the next showinfo line):
+/// each segment is capped and decoded lossily, so a Latin-1 title tag the file carries
+/// (ffmpeg echoes metadata before the first showinfo line) never ends the read —
+/// `BufRead::lines()` would stop at the first invalid UTF-8 and silently lose every
+/// later frame time (t-3480 challenger F4). Memory is bounded by the cap.
 fn read_ffmpeg_stderr(r: impl std::io::Read) -> (Vec<f64>, String) {
     let mut reader = std::io::BufReader::new(r);
     let mut reducer = StderrReducer::default();
     let mut buf: Vec<u8> = Vec::new();
     loop {
-        buf.clear();
-        match reader.by_ref().take(STDERR_LINE_CAP as u64).read_until(b'\n', &mut buf) {
-            Ok(0) => break,
-            Ok(_) => {}
+        let (consumed, terminated) = match reader.fill_buf() {
+            Ok(chunk) if chunk.is_empty() => break,
+            Ok(chunk) => match chunk.iter().position(|&b| b == b'\n' || b == b'\r') {
+                Some(i) => {
+                    append_capped(&mut buf, &chunk[..i]);
+                    (i + 1, true)
+                }
+                None => {
+                    append_capped(&mut buf, chunk);
+                    (chunk.len(), false)
+                }
+            },
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(_) => break,
-        }
-        if !buf.ends_with(b"\n") && buf.len() >= STDERR_LINE_CAP {
-            skip_to_newline(&mut reader);
-        }
-        let line = String::from_utf8_lossy(&buf);
-        reducer.push(line.trim_end_matches(['\n', '\r']));
-    }
-    (reducer.times, reducer.last)
-}
-
-/// Discard bytes up to and including the next newline without accumulating them.
-fn skip_to_newline(reader: &mut impl std::io::BufRead) {
-    loop {
-        let (consumed, done) = match reader.fill_buf() {
-            Ok(chunk) if chunk.is_empty() => return,
-            Ok(chunk) => match chunk.iter().position(|&b| b == b'\n') {
-                Some(i) => (i + 1, true),
-                None => (chunk.len(), false),
-            },
-            Err(_) => return,
         };
         reader.consume(consumed);
-        if done {
-            return;
+        if terminated {
+            reducer.push(&String::from_utf8_lossy(&buf));
+            buf.clear();
         }
     }
+    if !buf.is_empty() {
+        reducer.push(&String::from_utf8_lossy(&buf));
+    }
+    (reducer.times, reducer.last)
 }
 
 /// Streaming reduction of ffmpeg's stderr: keeps the `showinfo` frame times and the last
@@ -582,11 +589,18 @@ fn reduce_ffmpeg_stderr<'a>(lines: impl Iterator<Item = &'a str>) -> (Vec<f64>, 
     (r.times, r.last)
 }
 
+fn append_capped(buf: &mut Vec<u8>, bytes: &[u8]) {
+    let room = STDERR_LINE_CAP.saturating_sub(buf.len());
+    buf.extend_from_slice(&bytes[..bytes.len().min(room)]);
+}
+
 /// `pts_time` of every frame `showinfo` reported, in output order.
 fn parse_pts_times(stderr: &str) -> Vec<f64> {
     stderr
         .lines()
-        .filter(|l| l.contains("Parsed_showinfo"))
+        // Anchored: ffmpeg also echoes the file's tags, and a crafted title containing the
+        // marker must not count as a frame.
+        .filter(|l| l.trim_start().starts_with("[Parsed_showinfo"))
         .filter_map(|l| l.split("pts_time:").nth(1))
         .filter_map(|rest| rest.split_whitespace().next()?.parse().ok())
         .collect()
@@ -660,17 +674,37 @@ fn create_private_dir(dir: &Path) -> Result<()> {
     if let Some(parent) = dir.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    #[cfg(unix)]
-    let created = {
-        use std::os::unix::fs::DirBuilderExt;
-        std::fs::DirBuilder::new().mode(0o700).create(dir)
-    };
-    #[cfg(not(unix))]
-    let created = std::fs::create_dir(dir);
-    match created {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && dir.is_dir() => Ok(()),
-        Err(e) => Err(e).with_context(|| format!("cannot create frames dir {}", dir.display())),
+    match std::fs::symlink_metadata(dir) {
+        Ok(m) if m.file_type().is_symlink() => {
+            bail!("--frames {} is a symlink — use a real directory", dir.display())
+        }
+        Ok(m) if m.is_dir() => {
+            // A pre-existing dir is accepted only if nobody else can plant a frame_* entry
+            // in it while ffmpeg runs (the check-then-use window lasts the whole run).
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if m.permissions().mode() & 0o022 != 0 {
+                    bail!(
+                        "--frames {} is writable by other users — use a private directory",
+                        dir.display()
+                    );
+                }
+            }
+            Ok(())
+        }
+        Ok(_) => bail!("--frames {} exists and is not a directory", dir.display()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            #[cfg(unix)]
+            let created = {
+                use std::os::unix::fs::DirBuilderExt;
+                std::fs::DirBuilder::new().mode(0o700).create(dir)
+            };
+            #[cfg(not(unix))]
+            let created = std::fs::create_dir(dir);
+            created.with_context(|| format!("cannot create frames dir {}", dir.display()))
+        }
+        Err(e) => Err(e).with_context(|| format!("cannot inspect frames dir {}", dir.display())),
     }
 }
 
@@ -826,16 +860,20 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
 /// Build LD_LIBRARY_PATH that includes ~/.local/lib for libwhisper.so.1.
 /// Prepends to any existing LD_LIBRARY_PATH so the caller's env is preserved.
 fn whisper_ld_library_path() -> String {
-    let home = std::env::var("HOME").unwrap_or_default();
+    let home = home_dir().ok();
     let existing = std::env::var("LD_LIBRARY_PATH").ok();
-    whisper_ld_library_path_from(&home, existing.as_deref())
+    whisper_ld_library_path_from(home.as_deref(), existing.as_deref())
 }
 
-fn whisper_ld_library_path_from(home: &str, existing_ld: Option<&str>) -> String {
-    let local_lib = format!("{home}/.local/lib");
-    match existing_ld {
-        Some(e) if !e.is_empty() => format!("{local_lib}:{e}"),
-        _ => local_lib,
+/// `$HOME/.local/lib` (only for a usable, absolute HOME — never a cwd-relative entry)
+/// prepended to the existing LD_LIBRARY_PATH.
+fn whisper_ld_library_path_from(home: Option<&Path>, existing_ld: Option<&str>) -> String {
+    let local_lib = home.map(|h| h.join(".local/lib").display().to_string());
+    match (local_lib, existing_ld.filter(|e| !e.is_empty())) {
+        (Some(l), Some(e)) => format!("{l}:{e}"),
+        (Some(l), None) => l,
+        (None, Some(e)) => e.to_string(),
+        (None, None) => String::new(),
     }
 }
 

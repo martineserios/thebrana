@@ -83,10 +83,13 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
   `file:` URLs for both the input and the frames output pattern, so a media file named like
   `concat:…`/`data:…`/a playlist is opened as a file, never parsed as a protocol, and a
   `--frames` dir spelled like `udp://…` cannot send frames over the network. Paths reach ffmpeg
-  as raw bytes (non-UTF-8 names work). A frames dir the run creates is `0o700` (leaf only;
+  as raw bytes (non-UTF-8 names work for ffmpeg-converted inputs; bare wav/mp3 still go to
+  whisper-cli, which needs UTF-8). ffmpeg runs with `-nostats` so no `\r`-terminated progress
+  line can grow without bound, and the reader also splits on `\r`. A frames dir the run creates is `0o700` (leaf only;
   created parents keep the default mode); any pre-existing `frame_*` entry — file or planted
-  symlink — refuses the run before ffmpeg starts, and a dir that cannot be inspected is refused
-  too (fail closed). ffmpeg's stderr is read byte-wise and lossily (a Latin-1 tag never ends the
+  symlink — refuses the run before ffmpeg starts; a dir that cannot be inspected, a symlink leaf,
+  or a pre-existing dir writable by group/other (another user could plant `frame_*` mid-run)
+  is refused too (fail closed). An explicit `--model /abs/path.bin` needs no HOME. ffmpeg's stderr is read byte-wise and lossily (a Latin-1 tag never ends the
   read), reduced to the frame times plus the last line, never buffered whole. `--model` is a
   path only when it contains `/` or ends with `.bin`; relative `BRANA_WHISPER_MODELS` entries
   are ignored with a warning; `HOME` must be set and absolute (no cwd fallback for the model
