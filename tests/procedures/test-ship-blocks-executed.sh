@@ -66,6 +66,7 @@ STUB
 # cargo: "builds" scripts into target/release; brana-cli always, brana-mcp only when asked.
 cat > "$T/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
+printf '%s\n' "$@" > "$GH_STUB_DIR/cargo_argv"          # one entry per line: a glued token shows as one line
 [ -f "$GH_STUB_DIR/cargo_fail" ] && { echo "error: build failed" >&2; exit 101; }
 mkdir -p target/release
 cat > target/release/brana <<'B'
@@ -92,8 +93,10 @@ cat > "$T/bin/cp" <<'STUB'
 #!/usr/bin/env bash
 last="${@: -1}"
 if [ -f "$GH_STUB_DIR/cp_new_fails" ]; then case "$last" in *.new) echo "cp: disk full" >&2; exit 1;; esac; fi
+if [ -f "$GH_STUB_DIR/cp_mcp_new_fails" ]; then case "$last" in *brana-mcp.new) echo "cp: disk full" >&2; exit 1;; esac; fi
 exec /bin/cp "$@"
 STUB
+printf '#!/bin/sh\nexit 0\n' > "$T/bin/sleep"               # the blocks' sleep 30 / sleep 2 are not behaviour under test
 chmod +x "$T/bin/"*
 # installed binaries under a fake HOME: brana (old) and brana-mcp (old, answers initialize)
 mk_home() {  # $1 = with_mcp (1|0)
@@ -134,7 +137,10 @@ for sh in bash zsh; do
   DEVSHA=$(cd "$T/repo" && /usr/bin/git rev-parse dev); printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"
   run_block "$sh" SHIP-TAIL-BLOCK SHIP-CHECKS-BLOCK
   assert "$sh tail: green CI → prints PR and SHA, rc 0" "0|yes" "$RC|$(has "PR=7 SHA=$DEVSHA" "$OUT")"
-  assert "$sh tail: pushed dev before looking for the PR" yes "$(has 'push origin dev' "$(cat "$T/sc/events")")"
+  assert "$sh tail: pushed dev BEFORE any gh call (first event is the push)" yes "$(has 'push origin dev' "$(head -1 "$T/sc/events")")"
+  reset_sc; printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"
+  OUT="$( cd "$T/repo" && HOME="$T/home" GH_STUB_DIR="$T/sc" GIT_PUSH_RC=1 PATH="$T/bin:$T/home/.local/bin:$PATH" "$sh" -c "source '$T/SHIP-CHECKS-BLOCK.sh'; source '$T/SHIP-TAIL-BLOCK.sh'" 2>&1 )"; RC=$?
+  assert "$sh tail: push failure stops before any PR lookup" "1|yes|no" "$RC|$(has 'push failed' "$OUT")|$(has created "$(cat "$T/sc/events" 2>/dev/null)")"
   reset_sc; printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"; : > "$T/sc/pr_number"   # no open PR → create
   run_block "$sh" SHIP-TAIL-BLOCK SHIP-CHECKS-BLOCK
   assert "$sh tail: no open PR → gh pr create, then re-listed number 8" "0|yes|yes" "$RC|$(has created "$(cat "$T/sc/events")")|$(has 'PR=8' "$OUT")"
@@ -153,6 +159,12 @@ for sh in bash zsh; do
   reset_sc; printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"; echo 1 > "$T/sc/watch_rc"; printf 'https://github.com/o/r/actions/runs/900/job/111\n' > "$T/sc/links"
   run_block "$sh" MUT-TAIL SHIP-CHECKS-BLOCK
   assert "$sh tail mutation: without the gate line, red CI no longer stops (so the test above is live)" "0" "$RC"
+  # mutation 2: drop the SECOND ship_checks_wait → after a rerun rc stays 3 and the gate must stop
+  awk '/ship_checks_wait "\$PR"; rc=\$\?/ { n++; if (n == 2) next } { print }' "$T/SHIP-TAIL-BLOCK.sh" > "$T/MUT-TAIL2.sh"
+  reset_sc; printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"
+  echo 1 > "$T/sc/watch_rc"; printf 'https://github.com/o/r/actions/runs/900/job/111\n' > "$T/sc/links"; echo 111 > "$T/sc/infra_ids"; touch "$T/sc/green_after_rerun"
+  run_block "$sh" MUT-TAIL2 SHIP-CHECKS-BLOCK
+  assert "$sh tail mutation 2: without the second wait the rerun path stops at rc=3 (so the rerun test is live)" "1|yes" "$RC|$(has 'rc=3' "$OUT")"
 
   # ── 2b sweep: clone at dev, suites, ledger guard ────────────────────────────────────
   mk_repo; mk_home 1; reset_sc; echo "tasks: 42" > "$T/sc/stats"
@@ -165,6 +177,13 @@ for sh in bash zsh; do
   printf '#!/usr/bin/env bash\nn=$(cat "$GH_STUB_DIR/n" 2>/dev/null || echo 0); echo $((n+1)) > "$GH_STUB_DIR/n"; case "$1" in --version) echo old;; backlog) echo "tasks: $((42+n))";; esac\n' > "$T/home/.local/bin/brana"; chmod +x "$T/home/.local/bin/brana"
   run_block "$sh" SHIP-SWEEP-BLOCK
   assert "$sh sweep: ledger stats differ after the sweep → WARN" yes "$(has 'ledger stats changed' "$OUT")"
+  # a source checkout whose system/cli differs from dev would sweep dev's suites with a mismatched brana
+  mk_repo; mk_home 1; reset_sc; echo "tasks: 42" > "$T/sc/stats"
+  ( cd "$T/repo" && echo 'fn other(){}' >> system/cli/rust/src/main.rs && /usr/bin/git commit -qam "main-only cli change" )
+  run_block "$sh" SHIP-SWEEP-BLOCK
+  assert "$sh sweep: source tree's system/cli != dev's → stop before building or cloning" "1|yes|no" "$RC|$(has 'differs from dev' "$OUT")|$(has 'sweep rc=' "$OUT")"
+  mk_repo; mk_home 1; reset_sc; echo "tasks: 42" > "$T/sc/stats"
+  printf '#!/usr/bin/env bash\nn=$(cat "$GH_STUB_DIR/n" 2>/dev/null || echo 0); echo $((n+1)) > "$GH_STUB_DIR/n"; case "$1" in --version) echo old;; backlog) echo "tasks: $((42+n))";; esac\n' > "$T/home/.local/bin/brana"; chmod +x "$T/home/.local/bin/brana"
   sed '/LEDGER_BEFORE" = /d' "$T/SHIP-SWEEP-BLOCK.sh" > "$T/MUT-SWEEP.sh"; rm -f "$T/sc/n"
   run_block "$sh" MUT-SWEEP
   assert "$sh sweep mutation: without the compare line the WARN disappears (so the test above is live)" no "$(has 'ledger stats changed' "$OUT")"
@@ -173,6 +192,7 @@ for sh in bash zsh; do
   mk_repo; mk_home 1; reset_sc
   run_block "$sh" SHIP-INSTALL-BLOCK MCP-ALIVE-BLOCK
   assert "$sh install: happy path installs both and says to restart sessions" "0|yes" "$RC|$(has 'installed: brana + brana-mcp' "$OUT")"
+  assert "$sh install: cargo received -p brana-cli -p brana-mcp as FOUR argv entries (zsh does not word-split)" "build|--release|-p|brana-cli|-p|brana-mcp" "$(tail -n +1 "$T/sc/cargo_argv" | tr '\n' '|' | sed 's/|$//')"
   assert "$sh install: installed brana is the new build" yes "$(has '9.9.9-new' "$("$T/home/.local/bin/brana" --version)")"
   assert "$sh install: backups of both previous binaries exist" "yes|yes" "$([ -f "$T/home/.local/bin/brana.bak" ] && echo yes || echo no)|$([ -f "$T/home/.local/bin/brana-mcp.bak" ] && echo yes || echo no)"
   mk_home 1; reset_sc; touch "$T/sc/new_help_broken"
@@ -180,20 +200,26 @@ for sh in bash zsh; do
   assert "$sh install: failed verify → restored BOTH previous binaries, rc 1" "1|yes|yes|yes" "$RC|$(has 'restored: brana brana-mcp' "$OUT")|$(has '1.0.0-old' "$("$T/home/.local/bin/brana" --version)")|$(has '1.0.0-old' "$(printf '' | "$T/home/.local/bin/brana-mcp")")"
   rm -f "$T/sc/new_help_broken"; mk_home 1; reset_sc; touch "$T/sc/new_mcp_silent"
   run_block "$sh" SHIP-INSTALL-BLOCK MCP-ALIVE-BLOCK
-  assert "$sh install: new brana-mcp silent → nothing replaced (verify-before-swap)" "1|yes|yes" "$RC|$(has 'nothing replaced' "$OUT")|$(has '1.0.0-old' "$("$T/home/.local/bin/brana" --version)")"
+  assert "$sh install: new brana-mcp silent → that exact reason, nothing replaced (verify-before-swap)" "1|yes|yes" "$RC|$(has 'new brana-mcp does not answer initialize' "$OUT")|$(has '1.0.0-old' "$("$T/home/.local/bin/brana" --version)")"
+  rm -f "$T/sc/new_mcp_silent"; mk_home 1; reset_sc; touch "$T/sc/cargo_fail"
+  run_block "$sh" SHIP-INSTALL-BLOCK MCP-ALIVE-BLOCK; rm -f "$T/sc/cargo_fail"
+  assert "$sh install: build failure → 'build failed — nothing replaced', old brana kept" "1|yes|yes" "$RC|$(has 'build failed' "$OUT")|$(has '1.0.0-old' "$("$T/home/.local/bin/brana" --version)")"
   rm -f "$T/sc/new_mcp_silent"; mk_home 1; reset_sc; touch "$T/sc/cp_new_fails"
   run_block "$sh" SHIP-INSTALL-BLOCK MCP-ALIVE-BLOCK
   assert "$sh install: cp of the staging copy fails → previous binaries kept, rc 1" "1|yes|yes" "$RC|$(has 'previous binaries kept' "$OUT")|$(has '1.0.0-old' "$("$T/home/.local/bin/brana" --version)")"
-  rm -f "$T/sc/cp_new_fails"; mk_home 0; reset_sc
+  rm -f "$T/sc/cp_new_fails"; mk_home 1; reset_sc; touch "$T/sc/cp_mcp_new_fails"
+  run_block "$sh" SHIP-INSTALL-BLOCK MCP-ALIVE-BLOCK; rm -f "$T/sc/cp_mcp_new_fails"
+  assert "$sh install: only the brana-mcp staging copy fails → brana.new discarded, nothing swapped, rc 1" "1|yes|yes|no" "$RC|$(has 'previous binaries kept' "$OUT")|$(has '1.0.0-old' "$("$T/home/.local/bin/brana" --version)")|$([ -e "$T/home/.local/bin/brana.new" ] && echo yes || echo no)"
+  mk_home 0; reset_sc
   run_block "$sh" SHIP-INSTALL-BLOCK MCP-ALIVE-BLOCK
-  assert "$sh install: no brana-mcp on the machine → brana-cli alone, nothing stops" "0|yes|no" "$RC|$(has 'no brana-mcp on this machine' "$OUT")|$(has 'brana-mcp' "$(grep cargo "$T/sc/events" | tail -1)")"
+  assert "$sh install: no brana-mcp on the machine → brana-cli alone, nothing stops" "0|yes|build|--release|-p|brana-cli" "$RC|$(has 'no brana-mcp on this machine' "$OUT")|$(tr '\n' '|' < "$T/sc/cargo_argv" | sed 's/|$//')"
   mk_home 1; reset_sc
   run_block "$sh" SHIP-INSTALL-BLOCK   # probe fence NOT sourced
   assert "$sh install: without mcp_alive in the same call it stops before building" "1|yes|no" "$RC|$(has 'same Bash call' "$OUT")|$(has cargo "$(cat "$T/sc/events" 2>/dev/null)")"
   sed '/mv -f "\$BIN.bak" "\$BIN" && R="brana"/d' "$T/SHIP-INSTALL-BLOCK.sh" > "$T/MUT-INSTALL.sh"
   mk_home 1; reset_sc; touch "$T/sc/new_help_broken"
   run_block "$sh" MUT-INSTALL MCP-ALIVE-BLOCK; rm -f "$T/sc/new_help_broken"
-  assert "$sh install mutation: without the brana restore line the old brana is NOT back (so the test above is live)" no "$(has '1.0.0-old' "$("$T/home/.local/bin/brana" --version)")"
+  assert "$sh install mutation: without the brana restore line the NEW brana stays installed (so the restore test is live)" yes "$(has '9.9.9-new' "$("$T/home/.local/bin/brana" --version)")"
 done
 
 echo; echo "=== Results: $PASS passed, $FAIL failed ==="; [ "$FAIL" -eq 0 ]
