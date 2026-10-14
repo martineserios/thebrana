@@ -626,8 +626,27 @@ mod tests {
     }
 
     #[test]
-    fn embed_version_names_the_current_embed_chars() {
-        assert!(EMBED_VERSION.ends_with(&format!(":{EMBED_CHARS}")), "bump EMBED_VERSION with EMBED_CHARS");
+    fn embed_version_matches_the_embedding_constants() {
+        assert_eq!(EMBED_VERSION, format!("emb:minilm-l6-{EMBED_DIM}:{EMBED_CHARS}"), "bump EMBED_VERSION with the constants");
+    }
+
+    #[test]
+    fn rows_under_a_missing_dir_are_kept() {
+        // A dir that vanished (unmounted, moved) prunes nothing; F2 hides its rows instead.
+        let f = fixture();
+        let other = f._tmp.path().join("other-memory");
+        fs::create_dir_all(&other).unwrap();
+        fs::write(other.join("pattern_b.md"), "beta pricing").unwrap();
+        let d = vec![("project".to_string(), other.clone())];
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&d), &e, false).unwrap();
+
+        fs::remove_dir_all(&other).unwrap();
+        let stats = embed_memory_files(&store, &list_memory_listing(&d), &e, false).unwrap();
+
+        assert_eq!(stats.pruned, 0);
+        assert_eq!(store.count().unwrap(), 1);
     }
 
     #[test]

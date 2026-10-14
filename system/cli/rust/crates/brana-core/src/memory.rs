@@ -883,7 +883,43 @@ mod identity_tests {
 
         assert_eq!(l.files.len(), 1);
         assert_eq!(l.complete_dirs, vec![ok]);
-        assert_eq!(l.failed_dirs, vec![locked, missing], "unreadable and missing dirs are failures, not empty");
+        assert_eq!(l.failed_dirs, vec![locked], "an unreadable dir is a failure, not empty");
+        assert_eq!(l.missing_dirs, vec![missing], "a missing dir is neither complete nor failed");
+    }
+
+    #[test]
+    fn reindex_skips_a_missing_dir_like_a_fresh_machine() {
+        // A fresh machine has no ~/.claude/memory yet: reindex must still succeed.
+        let tmp = tempdir().unwrap();
+        let a = tmp.path().join("a");
+        fs::create_dir_all(&a).unwrap();
+        fs::write(a.join("pattern_alpha.md"), "alpha scraping").unwrap();
+        let dirs = vec![("global".to_string(), tmp.path().join("no-such-dir")), ("project".to_string(), a)];
+        let db = tmp.path().join("index.db");
+
+        assert_eq!(reindex_fts_dirs(&dirs, &db).unwrap(), 1);
+    }
+
+    #[test]
+    fn fts_provider_over_fetches_so_ghosts_do_not_crowd_out_live_hits() {
+        // Critic #3: filtering ghosts after a top_k fetch can return nothing.
+        use crate::search::{FTS5Provider, SearchProvider};
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        for i in 0..3 {
+            fs::write(mem.join(format!("pattern_ghost{i}.md")), "scraping scraping scraping scraping").unwrap();
+        }
+        fs::write(mem.join("pattern_live.md"), "scraping once among many other unrelated words here").unwrap();
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("project".to_string(), mem.clone())], &db).unwrap();
+        for i in 0..3 {
+            fs::remove_file(mem.join(format!("pattern_ghost{i}.md"))).unwrap();
+        }
+
+        let hits = FTS5Provider::new(db).query("scraping", 2);
+
+        assert_eq!(hits.len(), 1, "the live hit must survive ghost filtering: {hits:?}");
     }
 
     #[test]
