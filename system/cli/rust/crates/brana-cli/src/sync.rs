@@ -729,6 +729,11 @@ fn check_gh_auth() -> Result<(), String> {
 }
 
 fn find_tasks_file() -> Option<PathBuf> {
+    // t-3501: the suite runner's scratch ledger (BRANA_TASKS_FILE) wins here too, so a suite
+    // cannot reach the live ledger through this command from a linked worktree.
+    if let Some(p) = brana_core::util::ledger_override_from_env() {
+        return Some(p);
+    }
     // Prefer git common dir so worktrees share the main repo's tasks.json
     let mut common_cmd = Command::new("git");
     brana_core::util::scrub_git_env(&mut common_cmd);

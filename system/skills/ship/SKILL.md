@@ -101,7 +101,7 @@ Run all safety checks before touching anything external.
    cd "$(git rev-parse --show-toplevel)"                       # anchor
    B=~/.local/bin/brana
    { cp -L "$B" "$B.bak.tmp" && "$B.bak.tmp" --version >/dev/null 2>&1 && mv -f "$B.bak.tmp" "$B.bak"; } || echo "WARN: no runnable brana.bak taken"   # FIRST: a symlinked install points at target/release, which the build below rewrites — Step 4 needs this copy. brana only: this step never builds brana-mcp, so Step 4 takes that backup itself before its own build (t-3499)
-   LEDGER_BEFORE=$(brana backlog stats 2>/dev/null | cksum)     # belt and braces: the clone should not touch the ledger; hash the FULL output, compare after
+   LEDGER_BEFORE_JSON=$(brana backlog stats 2>/dev/null); LEDGER_BEFORE=$(printf '%s' "$LEDGER_BEFORE_JSON" | cksum)     # belt and braces: the clone should not touch the ledger; hash the FULL output, compare after
    (cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli)   # CI builds brana first; suites call it by PATH
    BIN="$PWD/system/cli/rust/target/release"                    # this checkout's build — target/ is gitignored, a fresh clone has none
    SWEEP=$(mktemp -d)/thebrana-sweep; OUT=$(mktemp)
@@ -109,18 +109,24 @@ Run all safety checks before touching anything external.
    [ "$(git -C "$SWEEP" rev-parse HEAD)" = "$(git rev-parse dev)" ] || { echo "sweep clone is not at dev — stop (a stale tree would give a false green)"; exit 1; }
    (cd "$SWEEP" && TEST_SUITE_KEEP_HOME=0 PATH="$BIN:$PATH" bash system/scripts/run-test-suites.sh tests/*/*.sh) > "$OUT" 2>&1; echo "sweep rc=$?"
    tail -n 15 "$OUT"                                            # "Failed tests:" lists every red suite
-   [ "$LEDGER_BEFORE" = "$(brana backlog stats 2>/dev/null | cksum)" ] || echo "WARN: ledger stats changed during the sweep — other sessions also write; if the change is not theirs, a suite touched the ledger: restore from the ADR-094 backup and file it"   # WARN, not fail (t-3501 decision): the clone cannot reach the ledger and run-test-suites.sh hands every suite a scratch BRANA_TASKS_FILE, so a change here is another session's write — failing would block ships on normal concurrent activity
+   LEDGER_AFTER=$(brana backlog stats 2>/dev/null | cksum); TOTAL_BEFORE=$(printf '%s' "$LEDGER_BEFORE_JSON" | jq -r .total 2>/dev/null); TOTAL_AFTER=$(brana backlog stats 2>/dev/null | jq -r .total)
+   if [ -n "$TOTAL_BEFORE" ] && [ -n "$TOTAL_AFTER" ] && [ "$TOTAL_AFTER" -lt "$TOTAL_BEFORE" ]; then echo "STOP: the ledger SHRANK during the sweep ($TOTAL_BEFORE → $TOTAL_AFTER) — that is the ADR-094 wipe signature, never normal concurrent activity: restore from the ADR-094 backup before anything else"; exit 1; fi
+   [ "$LEDGER_BEFORE" = "$LEDGER_AFTER" ] || echo "WARN: ledger stats changed during the sweep ($TOTAL_BEFORE → $TOTAL_AFTER) — other sessions also write; the sweep itself cannot reach the ledger (clone + per-suite BRANA_TASKS_FILE), so if the change is not theirs, file it"   # t-3501 decision: a DECREASE is a hard stop (wipe signature); an increase is a WARN (concurrent sessions legitimately add) — state the result in the gate summary
    rm -rf "$SWEEP" "$OUT"                                       # a plain clone this block created — not a registered worktree
    ```
 
-   **Ledger isolation, verified (t-3501).** `brana` resolves `tasks.json` through the git *common*
-   root, so a sweep from a linked worktree would share the live ledger — the clone above has its
-   own `.git`, and since t-3501 `run-test-suites.sh` also exports a scratch `BRANA_TASKS_FILE`
-   into every suite's scratch HOME (pinned by tests/scripts/test-suite-ledger-isolation.sh, which
-   must-fires a suite that does `brana backlog add`). Evidence 2026-10-14: a full sweep from a
-   linked worktree left `brana backlog stats` byte-identical; the only suite that writes the
-   backlog without a fixture (test-build-readiness-check.sh) had a broken `--json` call and never
-   wrote anything — fixed to a real add, now isolated by the runner.
+   **Ledger isolation (t-3501, ADR-094).** `brana` resolves `tasks.json` through the git *common*
+   root, so a sweep from a linked worktree shares the live ledger. Observed 2026-10-14: a full
+   `tests/*/*.sh` sweep launched from a linked worktree with the old runner wrote one scratch task
+   into the live ledger (`brana backlog stats` total 3404 → 3405, cancelled 266 → 267) the moment
+   the only backlog-writing suite without a fixture (test-build-readiness-check.sh, whose `--json`
+   call had been silently failing) made a real `backlog add`. Closed at two layers: the clone above
+   has its own `.git`, and `run-test-suites.sh` now hands every suite a scratch `BRANA_TASKS_FILE`
+   (honoured first by every ledger resolver, including `--file`, sync and receipts), pinned by
+   tests/scripts/test-suite-ledger-isolation.sh (must-fire: the same suite writes the repo ledger
+   without the runner, never with it, keep-HOME mode included). Not covered by the env var: scripts
+   that compute the ledger path themselves (tasks-json-backup.sh, task-id-lock.sh, hooks using
+   `$GIT_ROOT/.claude/tasks.json`) — none is run by a suite against the live repo today; tracked.
 
    It takes minutes; start it in the background and run steps 3–5 meanwhile. **A red suite blocks
    unless shown to fail identically on `main`**: re-run that one suite in a `main` clone

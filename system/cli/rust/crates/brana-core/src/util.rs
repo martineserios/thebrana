@@ -33,11 +33,13 @@ pub fn scrub_git_env(cmd: &mut Command) -> &mut Command {
 ///
 /// Resolution order:
 /// 1. Git common-dir root (shared across all worktrees) — auto-inits if missing
+/// 0. `BRANA_TASKS_FILE` — an explicit, absolute ledger path (t-3501): the suite runner's
+///    scratch ledger; an unusable value resolves to nothing rather than the live ledger
 /// 2. Git show-toplevel (worktree root) — auto-inits if missing
 /// 3. CWD fallback — CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) takes priority over process CWD
 pub fn find_tasks_file() -> Option<PathBuf> {
     find_tasks_file_with_hint(
-        std::env::var("BRANA_TASKS_FILE").ok().map(PathBuf::from),
+        std::env::var_os("BRANA_TASKS_FILE").map(PathBuf::from),
         std::env::var("CLAUDE_PROJECT_DIR").ok().map(PathBuf::from),
         git_common_root(),
         git_toplevel(),
@@ -67,6 +69,14 @@ pub fn find_tasks_file() -> Option<PathBuf> {
 /// finding, t-3286 iteration 1 — the original version of this function did
 /// exactly that).
 pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
+    resolve_tasks_file_override_with(explicit, std::env::var_os("BRANA_TASKS_FILE").map(PathBuf::from))
+}
+
+/// `resolve_tasks_file_override` with the `BRANA_TASKS_FILE` value injected: a conventional
+/// `.claude/tasks.json` `--file` is remapped to the override when one is active (otherwise
+/// a suite passing `--file` to a worktree copy would still land on the live ledger, t-3501);
+/// a non-conventional `--file` stays literal either way.
+pub fn resolve_tasks_file_override_with(explicit: &Path, override_file: Option<PathBuf>) -> PathBuf {
     let anchor: &Path = match explicit.parent() {
         Some(p) if !p.as_os_str().is_empty() => p,
         _ => Path::new("."),
@@ -90,6 +100,9 @@ pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
                 .unwrap_or_else(|_| explicit.to_path_buf())
         };
         if absolute_explicit.strip_prefix(top) == Ok(Path::new(".claude/tasks.json")) {
+            if let LedgerOverride::File(f) = ledger_override(override_file) {
+                return f;
+            }
             if let Some(canon) = find_tasks_file_from(Some(common.clone()), None, None) {
                 return canon;
             }
@@ -100,10 +113,59 @@ pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
 }
 
 /// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
-/// `override_file` (`BRANA_TASKS_FILE`) is an explicit ledger and wins over everything:
-/// inside a repo the git common root otherwise decides, so a test suite run from ANY linked
-/// worktree would read and write the live ledger — the runner exports a scratch file here
-/// (t-3501, ADR-094). Auto-inits the file; an empty value is no override.
+/// Outcome of validating a `BRANA_TASKS_FILE` value (t-3501, ADR-094).
+enum LedgerOverride {
+    /// Unset, empty or whitespace, or not absolute (a relative value would fragment the
+    /// ledger per cwd): no override — resolve the repo ledger as usual.
+    None,
+    /// A usable ledger path: existing, or freshly initialised as `{"tasks":[]}`.
+    File(PathBuf),
+    /// Set and absolute but unusable (parent directory missing, unwritable): refuse, never
+    /// fall back to the live ledger — a typo must not quietly redirect writes.
+    Invalid,
+}
+
+/// Validate an explicit ledger override. Never creates parent directories (the runner's
+/// scratch HOME already exists; a missing parent is a typo). Initialisation is
+/// `create_new`, so two brana processes racing on a fresh override cannot truncate each
+/// other's ledger: whoever loses the race just uses the file the winner wrote.
+fn ledger_override(raw: Option<PathBuf>) -> LedgerOverride {
+    let Some(f) = raw else { return LedgerOverride::None };
+    let trimmed = f.to_string_lossy().trim().to_string();
+    if trimmed.is_empty() || !f.is_absolute() {
+        return LedgerOverride::None;
+    }
+    if f.exists() {
+        return LedgerOverride::File(f);
+    }
+    let parent_ok = f.parent().map(|d| d.is_dir()).unwrap_or(false);
+    if !parent_ok {
+        return LedgerOverride::Invalid;
+    }
+    use std::io::Write as _;
+    match std::fs::OpenOptions::new().write(true).create_new(true).open(&f) {
+        Ok(mut fh) => {
+            if fh.write_all(b"{\"tasks\":[]}").is_ok() { LedgerOverride::File(f) } else { LedgerOverride::Invalid }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => LedgerOverride::File(f),
+        Err(_) => LedgerOverride::Invalid,
+    }
+}
+
+/// The active `BRANA_TASKS_FILE` override, validated, or None. Every ledger resolver in the
+/// workspace — this module, the `--file` remap, and the private resolvers in brana-cli's
+/// sync / sync_linear / receipt — consults this first (t-3501).
+pub fn ledger_override_from_env() -> Option<PathBuf> {
+    match ledger_override(std::env::var_os("BRANA_TASKS_FILE").map(PathBuf::from)) {
+        LedgerOverride::File(f) => Some(f),
+        _ => None,
+    }
+}
+
+/// `override_file` (`BRANA_TASKS_FILE`) is an explicit ledger and wins over the repo
+/// resolution below: inside a repo the git common root otherwise decides, so a test suite
+/// run from ANY linked worktree would read and write the live ledger — the runner exports a
+/// scratch file per suite (t-3501, ADR-094). An unusable override resolves to nothing.
 fn find_tasks_file_with_hint(
     override_file: Option<PathBuf>,
     hint: Option<PathBuf>,
@@ -111,16 +173,10 @@ fn find_tasks_file_with_hint(
     toplevel: Option<PathBuf>,
     cwd: Option<PathBuf>,
 ) -> Option<PathBuf> {
-    if let Some(f) = override_file.filter(|p| !p.as_os_str().is_empty()) {
-        if f.exists() {
-            return Some(f);
-        }
-        if let Some(dir) = f.parent() {
-            if std::fs::create_dir_all(dir).is_ok() && std::fs::write(&f, b"{\"tasks\":[]}").is_ok() {
-                return Some(f);
-            }
-        }
-        return None;
+    match ledger_override(override_file) {
+        LedgerOverride::File(f) => return Some(f),
+        LedgerOverride::Invalid => return None,
+        LedgerOverride::None => {}
     }
     let effective_cwd = hint.filter(|p| p.is_dir()).or(cwd);
     find_tasks_file_from(common_root, toplevel, effective_cwd)
@@ -573,7 +629,7 @@ pub fn load_status() -> HashMap<String, serde_json::Value> {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_project_root_from, find_project_root_with_hint, find_tasks_file_from, find_tasks_file_with_hint};
+    use super::{find_project_root_from, find_project_root_with_hint, find_tasks_file_from, find_tasks_file_with_hint, resolve_tasks_file_override_with};
     use super::{find_tasks_config_from, find_tasks_config_with_hint, find_project_path_in_portfolio};
     use std::path::PathBuf;
     use std::fs;
