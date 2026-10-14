@@ -164,6 +164,10 @@ Large file tracking with content-addressed storage and remote sync.
 
 **Entities:**
 - `FileEntry` — path, sha256, size, url, r2_key
+  - **Invariant (t-3473):** `path` is relative, has no `..`, crosses no symlink and resolves
+    under the project root; `url`, when present, is `https://`. `validate_entry` enforces it
+    before any read or write, and every consumer (`status`, `pull`, `push`, `add_file`, the
+    transcribe model lookup) goes through it — a checked-in manifest is untrusted input.
 
 **Value objects:**
 - `FileState` — Ok | Missing | Modified { actual_hash } | Error
@@ -177,6 +181,11 @@ Large file tracking with content-addressed storage and remote sync.
 - `Manifest::add(name, entry)`
 - `Manifest::status(project_dir) -> Vec<FileStatus>`
 - `file_sha256(path) -> String`
+- `validate_entry(project_dir, entry) -> PathBuf` — containment gate (above)
+- `download_file(url, dest, sha256?)` / `download_file_verified(url, dest, verify)` — atomic:
+  exclusive `<dest>.part-<pid>-<hex>`, verified on the part, then renamed; nothing else ever
+  lands at `dest`
+- `sweep_stale_parts(dir)` — age-based (1 h, no `/proc`) reclaim of this module's own part files only
 - `pull(manifest, project_dir) -> PullResult`
 - `push(manifest, project_dir, remote) -> PushResult`
 
