@@ -63,6 +63,8 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 - scene detect deferred to a follow-up task (t-3471) — confirmed by user 2026-10-05; shipped by t-3471.
 - `--scene` always keeps the first frame (`eq(n,0)`): chose parity with `--every` (which keeps the
   first frame) because a cut-less video would otherwise yield zero frames — needs confirmation.
+- frame-count warning threshold: chose 500 frames (a ten-minute video at `--every 1`) as the point
+  where a flat index stops being readable; warn, never cap — needs confirmation (t-3485).
 - `--scene` threshold domain: `0 < X < 1`, rejecting the rest as a usage error rather than clamping.
   Measured 2026-10-14 (t-3471 challenger F4): a hard cut scores exactly 1.0 and `gt` is strict, so
   `gt(scene,1)` selected 0 frames on a lime|blue cut — 1 is excluded, not an assumption.
@@ -78,6 +80,11 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 
 ## Edge Cases
 
+- A missing, non-file or unreadable input fails immediately, before `whisper-cli` is looked up and
+  before any model is resolved or downloaded (t-3485) — a typo'd path never starts a download.
+- More than **500 frames** in one run (`FRAME_WARN_THRESHOLD`, e.g. `--every 1` on anything over
+  ~8 min) prints a warning after the count summary suggesting a larger `--every` or `--scene`;
+  the run still succeeds (t-3485).
 - `--frames` on an audio-only file → error ("--frames needs a video input").
 - Hardening (t-3480): every ffmpeg call runs with `-protocol_whitelist file` and absolute
   `file:` URLs for both the input and the frames output pattern, so a media file named like

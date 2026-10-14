@@ -32,7 +32,10 @@ Needs `whisper-cli` (whisper.cpp) and, for video or frames, `ffmpeg` ≥ 5.1. No
     exceeds X. 0.3–0.5 catches hard cuts; lower values keep more frames of a busy video.
     `--scene 1` is refused because a hard cut scores exactly 1.0 and can never exceed it.
   - The two are mutually exclusive, and both need `--frames`. The number of frames written
-    is printed on stderr.
+    is printed on stderr, with a warning above 500 frames (`--every 1` on a long video) that
+    points at a larger `--every` or `--scene`.
+- **Input first:** a missing or unreadable input fails at once, before any model is looked up or
+  downloaded.
 
 ## Examples
 

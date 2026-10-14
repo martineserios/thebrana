@@ -208,6 +208,29 @@ fn resolve_installed(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
 }
 
 /// Resolve the model to run: explicit path/name, else largest installed, else download small.
+/// Refuse a missing, non-file or unreadable input before anything expensive runs: the
+/// model lookup can be a multi-GB download, and a typo'd path used to trigger it first
+/// (t-3485).
+fn check_input(path: &Path) -> Result<()> {
+    let meta = std::fs::metadata(path)
+        .with_context(|| format!("input file not found: {}", path.display()))?;
+    if !meta.is_file() {
+        bail!("input is not a file: {}", path.display());
+    }
+    std::fs::File::open(path).with_context(|| format!("input file is not readable: {}", path.display()))?;
+    Ok(())
+}
+
+/// Input first, then the model — with the resolver injected so the ordering is testable.
+fn resolve_for_run(
+    input: &Path,
+    spec: Option<&str>,
+    resolve: impl FnOnce(Option<&str>) -> Result<PathBuf>,
+) -> Result<PathBuf> {
+    check_input(input)?;
+    resolve(spec)
+}
+
 fn resolve_model(spec: Option<&str>) -> Result<PathBuf> {
     let dirs = model_dirs_for(spec, model_dirs)?;
     resolve_model_with(spec, &dirs, ensure_model)
@@ -729,6 +752,21 @@ fn check_frames_dir(dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Above this many frames a run is almost certainly sampling too densely (`--every 1` on a
+/// ten-minute video is 600 JPEGs and 600 index lines). Documented in
+/// docs/architecture/features/transcribe-models-video.md (t-3485).
+const FRAME_WARN_THRESHOLD: usize = 500;
+
+/// The warning printed after extraction when the frame count exceeds the threshold.
+fn frame_count_note(n: usize) -> Option<String> {
+    (n > FRAME_WARN_THRESHOLD).then(|| {
+        format!(
+            "warning: {n} frames extracted (more than {FRAME_WARN_THRESHOLD}) — a larger --every, \
+             or --scene to sample on cuts, keeps the frame index usable"
+        )
+    })
+}
+
 /// Extract frames; returns the index lines and a guard owning the written files.
 fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<String>, FramesGuard)> {
     check_frames_dir(dir)?;
@@ -761,8 +799,11 @@ fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<S
         bail!("ffmpeg reported {} frame times for {} frames", times.len(), files.len());
     }
     // Scene mode has no duration/N bound — a very low threshold can keep nearly every frame —
-    // so say how many were written.
+    // so say how many were written, and warn when the index is too dense to be useful.
     eprintln!("Extracted {} frames into {}", files.len(), dir.display());
+    if let Some(note) = frame_count_note(files.len()) {
+        eprintln!("{note}");
+    }
     Ok((frame_index(&files, &times), guard))
 }
 
@@ -782,11 +823,14 @@ fn whisper_failure_message(model: &Path, stderr: &str) -> String {
 pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     validate_options(opts, audio_path)?;
 
+    // 0. The input itself, before anything that could be slow or write anything.
+    check_input(audio_path)?;
+
     // 1. Check whisper-cli is available
     let whisper = which_whisper_cli()?;
 
-    // 2. Resolve model
-    let model_path = resolve_model(opts.model.as_deref())?;
+    // 2. Resolve model (input re-checked through the same seam the tests pin)
+    let model_path = resolve_for_run(audio_path, opts.model.as_deref(), resolve_model)?;
     eprintln!("Using model: {}", model_path.display());
 
     // 3. Frames first — cheap, and fails fast (e.g. no video stream) before a long transcription.
