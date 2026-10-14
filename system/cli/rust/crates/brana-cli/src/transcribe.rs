@@ -256,7 +256,9 @@ fn tracked_model_path(root: &Path, entry: &files::FileEntry, model_file: &str) -
     if Path::new(&entry.path).file_name()?.to_str()? != model_file {
         return None;
     }
-    match files::validate_entry(root, entry) {
+    let checked = files::validate_entry(root, entry)
+        .and_then(|p| match &entry.url { Some(u) => files::validate_url(u).map(|()| p), None => Ok(p) });
+    match checked {
         Ok(p) => Some(p),
         Err(e) => {
             // Say why a matching entry is ignored instead of silently falling back to a
@@ -281,11 +283,16 @@ fn try_manifest_model(name: &str) -> Option<PathBuf> {
                 eprintln!("Using manifest-tracked model: {}", entry.path);
                 return Some(full_path);
             }
+            eprintln!(
+                "warning: tracked model {} does not match its manifest hash — run `brana files pull` to repair it; falling back",
+                entry.path
+            );
         } else if let Some(url) = &entry.url {
             eprintln!("Downloading tracked model: {}", entry.path);
             // Atomic: hash is checked on the .part, so a mismatch never lands at full_path.
-            if files::download_file(url, &full_path, Some(&entry.sha256)).is_ok() {
-                return Some(full_path);
+            match files::download_file(url, &full_path, Some(&entry.sha256)) {
+                Ok(()) => return Some(full_path),
+                Err(e) => eprintln!("warning: tracked model download failed ({e:#}); falling back"),
             }
         }
     }

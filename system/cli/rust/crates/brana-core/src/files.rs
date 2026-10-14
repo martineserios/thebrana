@@ -71,7 +71,7 @@ impl Manifest {
                 // An entry that would escape the project is an error, never Ok — even when
                 // the out-of-tree file's hash matches (t-3473 challenger F2).
                 let state = match validate_entry(project_dir, entry) {
-                    Err(_) => FileState::Error,
+                    Err(e) => FileState::Refused { reason: e.to_string() },
                     Ok(full_path) if !full_path.exists() => FileState::Missing,
                     Ok(full_path) => match file_sha256(&full_path) {
                         Ok(hash) if hash == entry.sha256 => FileState::Ok,
@@ -95,6 +95,9 @@ pub enum FileState {
     Missing,
     Modified { actual_hash: String },
     Error,
+    /// The manifest entry itself is refused (escapes the project, symlink, control path) —
+    /// carried with its reason so the user is not told "error reading file" (t-3473).
+    Refused { reason: String },
 }
 
 #[derive(Debug, Clone)]
@@ -303,8 +306,9 @@ fn create_part(dest: &Path) -> Result<PathBuf> {
 
 /// Remove this module's own `<name>.part-<pid>[-<hex>]` files in `dir` untouched for
 /// longer than `STALE_PART_AGE` (left by a killed download). Missing dir is a no-op.
-/// Returns how many were removed. For a dedicated cache dir; a download sweeps only its
-/// own basename (`sweep_parts_for`).
+/// Returns how many were removed. For a dedicated cache dir (the legacy pid-only shape
+/// only ever came from the transcribe cache); a download in a project directory sweeps
+/// only its own basename and only the `-<hex>` shape it writes (`sweep_parts`).
 pub fn sweep_stale_parts(dir: &Path) -> usize {
     sweep_parts(dir, None)
 }
@@ -319,8 +323,13 @@ fn sweep_parts(dir: &Path, only_for: Option<&std::ffi::OsStr>) -> usize {
         if !is_part_name(&name) {
             continue;
         }
-        if prefix.as_deref().is_some_and(|p| !name.starts_with(p)) {
-            continue;
+        if let Some(p) = prefix.as_deref() {
+            // Scoped sweep: this dest's own basename, and only the pid-hex shape this
+            // module writes — `big.bin.part-00` beside a tracked big.bin is a user's split.
+            let rest = match name.strip_prefix(p) { Some(r) => r, None => continue };
+            if !rest.contains('-') {
+                continue;
+            }
         }
         let stale = e
             .metadata()
@@ -345,12 +354,20 @@ pub fn validate_url(url: &str) -> Result<()> {
     Ok(())
 }
 
+/// Directories a manifest entry may never enter and names it may never be: writing into
+/// `.git/` (core.fsmonitor, core.sshCommand) or `.claude/` (hooks, settings) is command
+/// execution, and overwriting the manifest itself rewrites the rules for the next pull.
+/// Compared ASCII-case-insensitively — macOS file systems usually are.
+const REFUSED_COMPONENTS: &[&str] = &[".git", ".claude"];
+
 /// Resolve a manifest entry to a path inside `project_dir`, refusing anything a hostile
 /// manifest could use to read or write elsewhere: absolute paths, `..` (or any non-plain)
-/// components, empty paths, and — because a checkout can commit symlinks — any symlink
-/// along the existing part of the path, or an ancestor that resolves outside the project.
-/// Validates the URL when present. Writes nothing. Every manifest consumer (status, pull,
-/// push, add, the transcribe model lookup) goes through here.
+/// components, empty paths, control paths (`.git/`, `.claude/`, the manifest itself), and
+/// — because a checkout can commit symlinks — any symlink along the existing part of the
+/// path, or an ancestor that resolves outside the project. Path only: the URL is judged by
+/// the download path (`validate_url`), since status/push/add never use it. Writes nothing.
+/// Every manifest consumer (status, pull, push, add, the transcribe model lookup) goes
+/// through here.
 pub fn validate_entry(project_dir: &Path, entry: &FileEntry) -> Result<PathBuf> {
     use std::path::Component;
     if entry.path.is_empty() {
@@ -363,8 +380,14 @@ pub fn validate_entry(project_dir: &Path, entry: &FileEntry) -> Result<PathBuf> 
     if rel.components().any(|c| !matches!(c, Component::Normal(_))) {
         bail!("manifest path must stay inside the project (no '..'): {:?}", entry.path);
     }
-    if let Some(url) = &entry.url {
-        validate_url(url)?;
+    for c in rel.components() {
+        let name = c.as_os_str().to_string_lossy();
+        if REFUSED_COMPONENTS.iter().any(|r| name.eq_ignore_ascii_case(r)) {
+            bail!("manifest path enters a control directory ({name}): {:?}", entry.path);
+        }
+    }
+    if rel.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(MANIFEST_NAME)) {
+        bail!("manifest path must not be the manifest itself: {:?}", entry.path);
     }
     // Physical containment (t-3473 challenger F3): walk the existing prefix of the path.
     // Components that do not exist yet are created as real directories later, so the
@@ -389,7 +412,7 @@ pub fn validate_entry(project_dir: &Path, entry: &FileEntry) -> Result<PathBuf> 
     Ok(project_dir.join(rel))
 }
 
-/// Download `url` to `dest` atomically: curl writes `<dest>.part-<pid>`, the hash is
+/// Download `url` to `dest` atomically: curl writes `<dest>.part-<pid>-<hex>`, the hash is
 /// checked there when `expected_sha256` is given, and only then is it renamed into place.
 /// A failed, interrupted or mismatched download leaves nothing at `dest`. Non-https URLs
 /// are refused before the filesystem is touched.
@@ -424,19 +447,25 @@ pub fn sha256_verifier(expected: &str) -> impl Fn(&Path) -> Result<()> + '_ {
 }
 
 /// curl flags for one transfer. `--proto`/`--proto-redir =https`: a redirect may not
-/// downgrade the scheme `validate_url` enforced. `--speed-limit/--speed-time`: a transfer
-/// that moves under 1 KiB/s for 5 min fails, which is well inside `STALE_PART_AGE`, so a
-/// stalled curl gives up and cleans up before any sweep could reclaim its live part file.
-fn curl_args(url: &str, part: &Path) -> Vec<String> {
-    vec![
-        "-fSL".into(),
-        "--proto".into(), "=https".into(),
-        "--proto-redir".into(), "=https".into(),
-        "--speed-limit".into(), "1024".into(),
-        "--speed-time".into(), "300".into(),
-        "-o".into(), part.display().to_string(),
-        url.into(),
+/// downgrade the scheme `validate_url` enforced. `-g`: no URL globbing, so one manifest
+/// entry is one request. `--speed-limit/--speed-time`: a transfer that moves under
+/// 1 KiB/s for 5 min fails, which is well inside `STALE_PART_AGE`, so a stalled curl
+/// gives up and cleans up before any sweep could reclaim its live part file.
+fn curl_args(url: &str, part: &Path) -> Vec<std::ffi::OsString> {
+    let mut args: Vec<std::ffi::OsString> = [
+        "-fSL", "-g",
+        "--proto", "=https",
+        "--proto-redir", "=https",
+        "--speed-limit", "1024",
+        "--speed-time", "300",
+        "-o",
     ]
+    .iter()
+    .map(Into::into)
+    .collect();
+    args.push(part.as_os_str().to_owned());
+    args.push(url.into());
+    args
 }
 
 fn curl_fetch(url: &str, part: &Path) -> Result<()> {
@@ -858,14 +887,22 @@ mod tests {
         for bad in ["/etc/passwd", "../escape.bin", "models/../../escape.bin", ""] {
             assert!(validate_entry(root, &entry(bad, Some("https://h/x"))).is_err(), "path {bad:?} must be rejected");
         }
-        for bad in ["http://h/x", "file:///etc/passwd", "ftp://h/x", "HTTPS://h/x "] {
-            assert!(validate_entry(root, &entry("models/m.bin", Some(bad))).is_err(), "url {bad:?} must be rejected");
+        for bad in ["http://h/x", "file:///etc/passwd", "ftp://h/x", "HTTPS://h/x", "https://h/x ", "-https://h/x", "https://"] {
+            assert!(validate_url(bad).is_err(), "url {bad:?} must be rejected for download");
         }
+        assert!(validate_url("https://h/x").is_ok());
+        // the URL is only used by the download path, so status/push/add do not judge it
+        assert!(validate_entry(root, &entry("models/m.bin", Some("http://h/x"))).is_ok(), "non-download consumers ignore the url");
         assert_eq!(
             validate_entry(root, &entry("models/m.bin", Some("https://h/x"))).unwrap(),
             root.join("models/m.bin")
         );
         assert!(validate_entry(root, &entry("models/m.bin", None)).is_ok(), "url is optional");
+        // control files inside the root are not download targets (iteration-2 finding 1)
+        for ctl in [".git/config", ".GIT/config", "a/.git/hooks/x", ".brana-files.json", "sub/.brana-files.json", ".claude/settings.json"] {
+            assert!(validate_entry(root, &entry(ctl, None)).is_err(), "{ctl} must be refused");
+        }
+        assert!(validate_entry(root, &entry("gitstuff/x.bin", None)).is_ok(), "only exact .git components are refused");
     }
 
     #[test]
@@ -910,18 +947,23 @@ mod tests {
     #[test]
     fn download_sweeps_only_its_own_basename() {
         let d = tempfile::tempdir().unwrap();
-        let other = d.path().join("other.bin.part-1");
-        let mine = d.path().join("m.bin.part-7");
-        fs::write(&other, b"x").unwrap();
-        fs::write(&mine, b"x").unwrap();
+        let other = d.path().join("other.bin.part-1-0a0a0a0a");
+        let mine = d.path().join("m.bin.part-7-0b0b0b0b");
+        // a pid-only name beside a tracked file is a user's split piece, not ours: only the
+        // transcribe cache (dir-wide sweep) ever wrote that legacy shape
+        let split = d.path().join("m.bin.part-00");
+        for p in [&other, &mine, &split] {
+            fs::write(p, b"x").unwrap();
+        }
         let two_h_ago = std::time::SystemTime::now() - STALE_PART_AGE * 2;
-        for p in [&other, &mine] {
+        for p in [&other, &mine, &split] {
             fs::File::options().write(true).open(p).unwrap().set_modified(two_h_ago).unwrap();
         }
         let dest = d.path().join("m.bin");
         download_file_with("https://x/m.bin", &dest, |_, tmp: &Path| { fs::write(tmp, b"hello")?; Ok(()) }, |_| Ok(())).unwrap();
         assert!(!mine.exists(), "a stale partial of this dest is reclaimed");
         assert!(other.exists(), "a stale partial of a different dest is not this download's business");
+        assert!(split.exists(), "a pid-only name next to a tracked file survives the scoped sweep");
     }
 
     #[test]
@@ -961,11 +1003,12 @@ mod tests {
 
     #[test]
     fn curl_args_pin_https_and_bound_stalls() {
-        let args = curl_args("https://h/x", Path::new("/tmp/p"));
+        let args: Vec<String> = curl_args("https://h/x", Path::new("/tmp/p")).iter().map(|a| a.to_string_lossy().into_owned()).collect();
         let joined = args.join(" ");
         assert!(joined.contains("--proto =https"), "{joined}");
         assert!(joined.contains("--proto-redir =https"), "redirects must not downgrade: {joined}");
         assert!(joined.contains("-fSL"));
+        assert!(args.contains(&"-g".to_string()), "no URL globbing: one entry is one request");
         let i = args.iter().position(|a| a == "--speed-time").expect("stall timeout present");
         let secs: u64 = args[i + 1].parse().unwrap();
         assert!(secs < STALE_PART_AGE.as_secs(), "a stalled curl must give up before the sweep could unlink it");
@@ -1007,7 +1050,10 @@ mod tests {
         let mut m = Manifest::default();
         m.add("out".into(), e);
         let st = m.status(&proj);
-        assert_eq!(st[0].state, FileState::Error, "an out-of-tree entry is never Ok, even when the hash matches");
+        match &st[0].state {
+            FileState::Refused { reason } => assert!(reason.contains("relative"), "the reason is carried: {reason}"),
+            other => panic!("an out-of-tree entry is Refused, never Ok/Error, even when the hash matches: {other:?}"),
+        }
     }
 
     #[test]

@@ -88,10 +88,10 @@ No way to check task status, scheduler health, or system state from a terminal w
 | Command | Args | Description | Read/Write |
 |---------|------|-------------|------------|
 | `list` | — | List all tracked large files from `.brana-files.json` | Read |
-| `status` | — | Show ok/missing/modified state of tracked files | Read |
+| `status` | — | Show ok/missing/modified state of tracked files; refused entries (escape the project, symlink, `.git/`) show the reason | Read |
 | `add` | `<name> <path> [--url U] [--r2-key K]` | Register a file with SHA-256 hash | **Write** |
-| `pull` | — | Download missing/modified files from remote URLs | **Write** |
-| `push` | `[--remote R]` | Upload tracked files to R2 via rclone | **Write** |
+| `pull` | — | Download missing/modified files from their https URLs, atomically (`<dest>.part-<pid>-<hex>`, sha256 verified before rename); hostile manifest entries are refused before any write (t-3473) | **Write** |
+| `push` | `[--remote R]` | Upload tracked files to R2 via rclone — same containment check as pull, so a manifest cannot name a file outside the project | **Write** |
 
 Implementation: [system/cli/rust/src/files.rs](../../../system/cli/rust/src/files.rs) (data model, manifest I/O, SHA-256 verification), [system/cli/rust/src/commands/files.rs](../../../system/cli/rust/src/commands/files.rs) (CLI handlers).
 
@@ -105,7 +105,7 @@ Implementation: [system/cli/rust/src/files.rs](../../../system/cli/rust/src/file
 | `run` | Run a task: create worktree, print claude command, set in_progress |
 | `queue` | Show next unblocked tasks with model recommendations, optionally auto-spawn |
 | `agents` | List or manage active agents |
-| `files` | Large file tracking via `.brana-files.json` manifest (SHA-256, HTTP/R2 remotes) |
+| `files` | Large file tracking via `.brana-files.json` manifest (SHA-256, https/R2 remotes; the manifest is treated as untrusted input) |
 | `version` | Show brana system version, plugin version, ruflo version |
 | `deploy` | Print deployment workflow: merge feat branch to main (no build step, no container) |
 

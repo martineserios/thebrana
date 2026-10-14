@@ -78,9 +78,9 @@ Manage binary assets, models, and datasets via `.brana-files.json` manifest.
 | Command | Description |
 |---------|-------------|
 | `brana files list` | List all tracked files |
-| `brana files status` | Show ok/missing/modified state (SHA-256 verified); an entry whose path escapes the project shows as error |
+| `brana files status` | Show ok/missing/modified state (SHA-256 verified); an entry whose path is refused (escapes the project, symlink, `.git/`) shows as `refused: <reason>` |
 | `brana files add <name> <path> [--url U] [--r2-key K]` | Register file with hash; the file must live inside the project |
-| `brana files pull` | Download missing/modified files from their https URLs — atomically (`<dest>.part-<pid>-<hex>`, sha256 checked before the rename, so a failed download leaves nothing). Entries with absolute, `..` or symlinked paths, or non-https URLs, are refused before any write |
+| `brana files pull` | Download missing/modified files from their https URLs — atomically (`<dest>.part-<pid>-<hex>`, sha256 checked before the rename, so a failed download leaves nothing). Entries with absolute, `..`, symlinked or control (`.git/`, `.claude/`, the manifest) paths, or non-https URLs, are refused before any write |
 | `brana files push [--remote brana-r2]` | Upload tracked files to R2 via rclone — same containment check, so a hostile manifest cannot exfiltrate a file outside the project |
 
 ### `brana feed` — RSS/Atom Feed Polling
