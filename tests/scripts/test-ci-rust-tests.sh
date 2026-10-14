@@ -23,7 +23,13 @@ echo "=== test-ci-rust-tests.sh ==="
 # One line per fact about the rust job, computed from the parsed workflow.
 facts=$(python3 - <<'PY'
 import yaml
-job = yaml.safe_load(open(".github/workflows/ci.yml"))["jobs"]["rust"]
+jobs = yaml.safe_load(open(".github/workflows/ci.yml"))["jobs"]
+job = jobs["rust"]
+# t-3484: ubuntu-latest migrates to Ubuntu 26 from 2026-10-19; the real-ffmpeg frame tests
+# assert exact labels verified only on ffmpeg 6.1.1 (ubuntu-24.04), so the ubuntu jobs are
+# pinned. Revisit once the suite is green on an ubuntu-26.04 workflow_dispatch run.
+for name in ("rust", "validate", "tests"):
+    print(f"runs_on_{name}", str(jobs[name].get("runs-on", "")))
 steps = job.get("steps", [])
 runs = [(s.get("run") or "") for s in steps]
 test_i = next((i for i, r in enumerate(runs) if "cargo test --workspace" in r), -1)
@@ -43,6 +49,9 @@ assert "BRANA_REQUIRE_FFMPEG=1 on the test step" "1" "$(fact require_ffmpeg)"
 assert "ffmpeg installed before the test step" "yes" "$(fact ffmpeg_before_test)"
 assert "install step asserts the ffmpeg >= 5.1 floor" "yes" "$(fact ffmpeg_floor)"
 assert "rust job has timeout-minutes" "yes" "$(fact timeout)"
+assert "rust job pinned to ubuntu-24.04 (t-3484, not ubuntu-latest)" "ubuntu-24.04" "$(fact runs_on_rust)"
+assert "validate job pinned to ubuntu-24.04 (t-3484)" "ubuntu-24.04" "$(fact runs_on_validate)"
+assert "tests job pinned to ubuntu-24.04 (t-3484)" "ubuntu-24.04" "$(fact runs_on_tests)"
 
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ]
