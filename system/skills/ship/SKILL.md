@@ -98,19 +98,23 @@ Run all safety checks before touching anything external.
    suite "fail"):
 
    ```bash
+   # <!-- SHIP-SWEEP-BLOCK -->   (executed by tests/procedures/test-ship-blocks-executed.sh in a throwaway repo with stubbed cargo/brana)
    cd "$(git rev-parse --show-toplevel)"                       # anchor
    B=~/.local/bin/brana
    { cp -L "$B" "$B.bak.tmp" && "$B.bak.tmp" --version >/dev/null 2>&1 && mv -f "$B.bak.tmp" "$B.bak"; } || echo "WARN: no runnable brana.bak taken"   # FIRST: a symlinked install points at target/release, which the build below rewrites — Step 4 needs this copy. brana only: this step never builds brana-mcp, so Step 4 takes that backup itself before its own build (t-3499)
    LEDGER_BEFORE=$(brana backlog stats 2>/dev/null | cksum)     # belt and braces: the clone should not touch the ledger; hash the FULL output, compare after
+   DEVCLI=$(git rev-parse dev:system/cli 2>/dev/null) || { echo "no local dev ref — run the sweep from the shared checkout on dev; stop"; exit 1; }
+   { [ "$(git rev-parse HEAD:system/cli)" = "$DEVCLI" ] && git diff --quiet HEAD -- system/cli; } || { echo "system/cli differs from dev (committed or uncommitted) — the sweep would run dev's suites against a mismatched brana; run it from the shared checkout on dev; stop"; exit 1; }   # this checkout builds the brana the clone's suites call (t-3500)
    (cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli)   # CI builds brana first; suites call it by PATH
    BIN="$PWD/system/cli/rust/target/release"                    # this checkout's build — target/ is gitignored, a fresh clone has none
    SWEEP=$(mktemp -d)/thebrana-sweep; OUT=$(mktemp)
-   git clone -q --local --no-hardlinks . "$SWEEP" && git -C "$SWEEP" checkout -q --detach dev || { echo "sweep clone failed — stop"; exit 1; }
+   git clone -q --local --no-hardlinks . "$SWEEP" && git -C "$SWEEP" checkout -q --detach "$(git rev-parse dev)" || { echo "sweep clone failed — stop"; exit 1; }   # detach at the SHA: a clone taken from a checkout not on dev has no local dev branch, and `--detach dev` then dies on git's branch-DWIM (t-3500)
    [ "$(git -C "$SWEEP" rev-parse HEAD)" = "$(git rev-parse dev)" ] || { echo "sweep clone is not at dev — stop (a stale tree would give a false green)"; exit 1; }
    (cd "$SWEEP" && TEST_SUITE_KEEP_HOME=0 PATH="$BIN:$PATH" bash system/scripts/run-test-suites.sh tests/*/*.sh) > "$OUT" 2>&1; echo "sweep rc=$?"
    tail -n 15 "$OUT"                                            # "Failed tests:" lists every red suite
    [ "$LEDGER_BEFORE" = "$(brana backlog stats 2>/dev/null | cksum)" ] || echo "WARN: ledger stats changed during the sweep — other sessions also write; if the change is not theirs, a suite touched the ledger: restore from the ADR-094 backup and file it"
    rm -rf "$SWEEP" "$OUT"                                       # a plain clone this block created — not a registered worktree
+   # <!-- /SHIP-SWEEP-BLOCK -->
    ```
 
    It takes minutes; start it in the background and run steps 3–5 meanwhile. **A red suite blocks
@@ -301,6 +305,7 @@ EOF_RERUN
 }
 # <!-- /SHIP-CHECKS-BLOCK -->
 
+# <!-- SHIP-TAIL-BLOCK -->   (executed by tests/procedures/test-ship-blocks-executed.sh with stubbed gh/git)
 git push origin dev || { echo "push failed — stop"; exit 1; }
 PR=$(gh pr list --base main --head dev --state open --json number -q '.[0].number // empty')
 if [ -z "$PR" ]; then                # `gh pr create` has no --json: it prints the URL; re-list for the number
@@ -320,6 +325,7 @@ fi
 [ "$rc" -eq 0 ] || { echo "CI is not green (rc=$rc: 1=red 2=no checks 3=runner never acquired 4=gh error) — stop, do NOT merge"; exit 1; }
 SHA=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
 echo "PR=$PR SHA=$SHA"               # carry BOTH into the gate; shell variables do not survive between calls
+# <!-- /SHIP-TAIL-BLOCK -->
 ```
 
 Why the helpers exist — two live failures on PR #1093: (1) `gh pr checks --watch` run right after
@@ -461,6 +467,7 @@ mcp_alive() {
 <!-- /MCP-ALIVE-BLOCK -->
 
 ```bash
+# <!-- SHIP-INSTALL-BLOCK -->   (executed by tests/procedures/test-ship-blocks-executed.sh with stubbed cargo/cp/brana/brana-mcp)
 type mcp_alive >/dev/null 2>&1 || { echo "mcp_alive is not defined — run the probe fence above in this same Bash call"; exit 1; }
 BIN=~/.local/bin/brana; MCP=~/.local/bin/brana-mcp
 NEW=system/cli/rust/target/release/brana; NEWMCP=system/cli/rust/target/release/brana-mcp
@@ -486,8 +493,10 @@ if [ "$HAVE_MCP" = 1 ]; then
 fi
 # Build exactly what main ships: HEAD's system/cli must equal main's, with no local edits. One build, both binaries.
 { [ "$(git rev-parse HEAD:system/cli)" = "$(git rev-parse main:system/cli)" ] && git diff --quiet HEAD -- system/cli; } || { echo "system/cli differs from main — nothing built"; exit 1; }
-if [ "$HAVE_MCP" = 1 ]; then PKGS="-p brana-cli -p brana-mcp"; else PKGS="-p brana-cli"; fi
-(cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release $PKGS) || { echo "build failed — nothing replaced"; exit 1; }
+# Package args as positional parameters, never an unquoted $VAR: zsh (the harness shell) does not
+# word-split expansions, so `cargo build $PKGS` would hand cargo ONE glued token and fail every ship.
+set -- -p brana-cli; [ "$HAVE_MCP" = 1 ] && set -- "$@" -p brana-mcp
+(cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release "$@") || { echo "build failed — nothing replaced"; exit 1; }
 # Verify BOTH new binaries before swapping EITHER. If only the brana-mcp half fails, report it and offer
 # a brana-cli-only install through the same gate — never silently.
 "$NEW" --version || { echo "new brana does not run — nothing replaced"; exit 1; }
@@ -512,6 +521,7 @@ else
   echo "verify failed — restored: ${R:-nothing}"; exit 1
 fi
 "$BIN" backlog stats | head -c 120     # the ledger count must equal the pre-ship one (Step 4 table)
+# <!-- /SHIP-INSTALL-BLOCK -->
 ```
 
 If this ship changed a specific subcommand (`git diff --name-only main^1 main -- system/cli/`), also run

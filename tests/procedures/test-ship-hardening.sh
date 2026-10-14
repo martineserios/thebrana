@@ -30,11 +30,11 @@ assert "ledger guard compares a hash of the FULL stats, not a 60-char prefix" ye
 assert "the targeted minimum includes every test file the diff adds or changes" yes "$(has "$SKILL" 'adds or changes')"
 assert "pre-flight has the targeted rules-headroom minimum" yes "$(has "$SKILL" 'test-context-budget-split.sh')"
 STEP4="$T/step4.txt"; awk '/^### Step 4:/{g=1;next} /^### Step 5:/{g=0} g' "$SKILL" > "$STEP4"
-for needle in 'cargo build --release -p brana-cli' '"$BIN" --help' 'cmp -s' 'mv -f "$BIN.bak"' 'main^1' 'if [ -L "$BIN" ]'; do
+for needle in 'cargo build --release "$@"' '"$BIN" --help' 'cmp -s' 'mv -f "$BIN.bak"' 'main^1' 'if [ -L "$BIN" ]'; do
     assert "Step 4 itself contains: $needle" yes "$(has "$STEP4" "$needle")"
 done
 assert "Step 4 has no unreplaced <changed-subcommand> placeholder in executable text" no "$(has "$STEP4" '<changed-subcommand>')"
-assert "verify step checks the installed binary, not the build's exit code" yes "$(has "$SKILL" 'Verify the installed binary')"
+assert "verify step checks the installed binaries, not the build's exit code" yes "$(has "$SKILL" 'Verify the installed binaries')"
 
 echo "--- SHIP-CHECKS-BLOCK (stubbed gh)"
 awk '/<!-- SHIP-CHECKS-BLOCK -->/{g=1;next} /<!-- \/SHIP-CHECKS-BLOCK -->/{g=0} g' "$SKILL" | sed '/^```/d' > "$T/block.sh"
