@@ -451,7 +451,7 @@ pub fn sha256_verifier(expected: &str) -> impl Fn(&Path) -> Result<()> + '_ {
 /// entry is one request. `--speed-limit/--speed-time`: a transfer that moves under
 /// 1 KiB/s for 5 min fails, which is well inside `STALE_PART_AGE`, so a stalled curl
 /// gives up and cleans up before any sweep could reclaim its live part file.
-fn curl_args(url: &str, part: &Path) -> Vec<std::ffi::OsString> {
+pub fn curl_args(url: &str, part: &Path) -> Vec<std::ffi::OsString> {
     let mut args: Vec<std::ffi::OsString> = [
         "-fSL", "-g",
         "--proto", "=https",

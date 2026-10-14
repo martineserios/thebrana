@@ -79,6 +79,24 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 ## Edge Cases
 
 - `--frames` on an audio-only file → error ("--frames needs a video input").
+- Hardening (t-3480): every ffmpeg call runs with `-protocol_whitelist file` and absolute
+  `file:` URLs for both the input and the frames output pattern, so a media file named like
+  `concat:…`/`data:…`/a playlist is opened as a file, never parsed as a protocol, and a
+  `--frames` dir spelled like `udp://…` cannot send frames over the network. Paths reach ffmpeg
+  as raw bytes (non-UTF-8 names work for ffmpeg-converted inputs; bare wav/mp3 still go to
+  whisper-cli, which needs UTF-8). ffmpeg runs with `-nostats` so no `\r`-terminated progress
+  line can grow without bound, and the reader also splits on `\r`. A frames dir the run creates is `0o700` (leaf only;
+  created parents keep the default mode); any pre-existing `frame_*` entry — file or planted
+  symlink — refuses the run before ffmpeg starts; a dir that cannot be inspected, a symlink leaf,
+  or a pre-existing dir writable by group/other (another user could plant `frame_*` mid-run)
+  is refused too (fail closed). An explicit `--model /abs/path.bin` needs no HOME. ffmpeg's stderr is read byte-wise and lossily (a Latin-1 tag never ends the
+  read), reduced to the frame times plus the last line, never buffered whole. `--model` is a
+  path only when it contains `/` or ends with `.bin`; relative `BRANA_WHISPER_MODELS` entries
+  are ignored with a warning; `HOME` must be set and absolute (no cwd fallback for the model
+  cache, the download dir or the `whisper-cli` lookup). Leaked `brana-transcribe-*.wav` temp
+  files older than an hour are swept. The model download is the shared https-pinned brana-core
+  path (t-3473). Known, tracked separately: two concurrent runs sharing one `--frames` dir can
+  mix frames (pre-existing).
 - `--every 0` → error.
 - `--scene` without `--frames`, `--scene` together with `--every`, or `--scene 0` / `--scene 1` / `--scene 1.5` → usage error.
 - Model files of 1000 bytes or less, and in-progress `*.part-<pid>` downloads, are ignored by discovery.
@@ -138,6 +156,11 @@ was being passed as a stray input file.
   (second frame comes from t=12 and must be labelled `00:00:12`). CI's `rust` job runs
   `cargo test --workspace` with ffmpeg (≥ 5.1, asserted) and `BRANA_REQUIRE_FFMPEG=1` (t-3472).
 - **E2E:** manual smoke with a real mp4 through whisper-cli.
+- **Hardening (t-3480):** real-ffmpeg: a video literally named `concat:evil.mp4` extracts as a
+  file; a run-created frames dir is `0o700`; a planted `frame_000001.jpg` symlink is refused and
+  its target untouched. Unit: whitelist precedes `-i` for both ffmpeg calls, https pins on the
+  curl path, syntactic model-path rule, relative model dirs ignored, wav sweep, 100k-line stderr
+  reduces to times + tail.
 - **Integration (t-3471):** `scene_cut_yields_frame_at_cut_time` — 3 s lime | 3 s blue, `Scene(0.3)`
   must yield exactly `@ 00:00:00` (lime) and `@ 00:00:03` (blue); real ffmpeg, `BRANA_REQUIRE_FFMPEG=1`.
 - **Unit (t-3471):** select-expression shape, `(0, 1)` threshold validation incl. NaN and 1.0, clap
