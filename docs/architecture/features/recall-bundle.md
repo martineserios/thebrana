@@ -15,6 +15,7 @@ relates: ADR-038, ADR-057, ADR-058, ADR-069, ADR-095, docs/architecture/features
 canary t-3521
 **Decision:** [ADR-099](../decisions/ADR-099-recall-bundle-and-usage-log.md). This spec holds the
 contract and the details; the ADR holds the decision and its reasons.
+**Evaluation data:** [docs/research/recall-bundle/](../../research/recall-bundle/README.md): frozen gold set, pre-registered gates v1, measured baseline (t-3515).
 **Shaping:** idea doc `docs/ideas/ruvector-integration-options.md` §Shape v2 (on branch
 `docs/ruvector-integration-options`).
 

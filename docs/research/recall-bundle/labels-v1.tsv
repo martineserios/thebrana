@@ -1,0 +1,138 @@
+# pair	task	slug	label	reason
+# Labels (t-3515, 2026-10-14, labelled by Claude from the quoted window; owner spot-check pending):
+#   pointed       the ticket (description, or context written before/at start) already cites the note as relevant
+#   read          the worker used the note during the work and the ticket did not point to it
+#   wrote         the task created or updated the note (authorship, not recall)
+#   subject       the note is the object the task works on (memory tidy, leak fix, version fix), not knowledge applied
+#   doc-collision the match is a docs/ file with the same slug, not the memory note
+#   unclear       evidence does not separate read from wrote
+1	t-069	system-architecture-current	wrote	findings saved to auto memory
+2	t-1083	preflight-warnings-over-midskill-crash	wrote	new patterns written
+3	t-1101	bulk-index-pattern	pointed	description: Reference: feedback_bulk-index-pattern.md
+4	t-1101	ruflo-cwd-root-cause	pointed	description: Reference: feedback_ruflo-cwd-root-cause.md
+5	t-1240	ruflo-agentdb-status	subject	MEMORY.md trim moved sections into topic files
+6	t-1240	git-workflow-detailed	subject	MEMORY.md trim moved sections into topic files
+7	t-1490	always-document-behavioral-changes	pointed	context at creation: rule already in MEMORY.md, no enforcement
+8	t-1560	ruflo-agentdb-status	subject	the note's stale version claim is the defect
+9	t-1625	brana-v2-compute-model	doc-collision	docs/ideas/brana-v2-compute-model.md
+10	t-1627	brana-v2-compute-model	doc-collision	docs/ideas/brana-v2-compute-model.md
+11	t-1629	brana-v2-compute-model	doc-collision	docs/ideas/brana-v2-compute-model.md
+12	t-1631	brana-v2-compute-model	doc-collision	docs/ideas/brana-v2-compute-model.md
+13	t-1646	brana-v2-compute-model	doc-collision	docs/ideas/brana-v2-compute-model.md
+14	t-1647	brana-v2-compute-model	doc-collision	docs/ideas and docs/architecture/features spec
+15	t-1649	brana-v2-compute-model	doc-collision	brana-v2-compute-model spec
+16	t-1655	brana-v2-compute-model	doc-collision	brana-v2-compute-model.md decision 7
+17	t-1658	brana-v2-compute-model	doc-collision	brana-v2-compute-model.md
+18	t-1790	extract-from-for-testability	pointed	context: per feedback_extract-from-for-testability.md pattern
+19	t-1828	ruflo-agentdb-status	wrote	note updated earlier in session
+20	t-1856	loop-exit-gate-discipline	pointed	description: implements the pattern
+21	t-1859	ruflo-agentdb-status	subject	propagation target already updated
+22	t-1911	rust-cargo-patterns	subject	used as an example filename in the bug report
+23	t-1932	no-duplicate-plugin-loading	pointed	description: per no-duplicate-plugin-loading decision
+24	t-1960	enum-validation-three-write-paths	pointed	description: see feedback_enum-validation-three-write-paths
+25	t-1979	loop-native-redesign	doc-collision	docs/research/2026-06-11-loop-native-redesign.md
+26	t-1981	loop-native-redesign	doc-collision	docs/research/2026-06-11-loop-native-redesign.md
+27	t-1982	enum-validation-three-write-paths	pointed	description: per the enum-validation-three-write-paths learning
+28	t-1991	loop-native-redesign	doc-collision	docs/research/2026-06-11-loop-native-redesign.md
+29	t-1991	factory-crew-rehearsal-n1	wrote	findings stored as the pattern
+30	t-2074	adr-writing-check-dormant-gate-tasks	wrote	stored pattern memory
+31	t-2188	thebrana-deploy-merge-to-main	subject	AC: update the memory to the dev-first model
+32	t-2194	loop-native-redesign	doc-collision	docs/research/2026-06-11-loop-native-redesign.md
+33	t-2261	ruflo-memory-corruption-recurring	pointed	context: follow-up flagged in the memory (also an AC write target)
+34	t-2269	ruflo-memory-corruption-recurring	pointed	context: see project_ruflo-memory-corruption-recurring
+35	t-2274	graphify-doc-edges-union-not-merge-graphs	wrote	pattern stored
+36	t-2275	graphify-doc-edges-union-not-merge-graphs	pointed	context: spike evidence pattern
+37	t-2325	field-retirement-check-external-filters	wrote	pattern captured
+38	t-2490	brana-v2-compute-model	doc-collision	marked brana-v2-compute-model.md superseded
+39	t-2490	backlog-field-usage-vs-feed-mechanism	wrote	saved as memory
+40	t-2490	always-cite-pocock-practice	wrote	saved as memory
+41	t-2490	wave-pull-ignores-blocked-by-ordering	unclear	cited mid-task; pattern dated a week after start, may be written in the same task
+42	t-2493	extracted-block-selector-substring-collision	pointed	context: related memory
+43	t-2500	plugin-cache-drift	pointed	context dated before start: see memory
+44	t-2501	stale-binary-before-pipeline	pointed	context: instance of the pattern
+45	t-2517	close-tier0-corroboration-checks-presence-not-dominance	wrote	stored as memory pattern
+46	t-2541	verify-existence-checks	pointed	context question framing cites the note
+47	t-2557	per-run-cap-backlog-draining	pointed	context plan: reuse the pattern
+48	t-2557	rust-fake-cli-subprocess-testing	pointed	context: CONSTRAINT from the pattern
+49	t-2568	llm-cli-as-transport-for-a-local-protocol-server	wrote	patterns stored
+50	t-2568	sandboxed-run-reproduces-a-phantom-network-bug	wrote	patterns stored
+51	t-2572	stale-binary-before-pipeline	read	notes: repro was a stale binary, matches the feedback note
+52	t-2589	unwrapped-redirect-param-is-a-fetch-primitive	wrote	pattern persisted
+53	t-2591	cache-read-is-the-cost-not-the-work	wrote	pattern stored
+54	t-2593	task-notes-are-not-work-state	pointed	context dated before start: attacks the pattern
+55	t-2615	ruflo-memory-corruption-recurring	pointed	description: see the memory
+56	t-2620	salvage-union-migration-from-rotated-corrupt-files	wrote	pattern from this task
+57	t-2627	ruflo-memory-corruption-recurring	pointed	context: maps onto the memory
+58	t-2627	ruflo-agentdb-status	pointed	context: maps onto the memory
+59	t-2629	gentle-ai-ruflo-comparison-adoption-candidates	pointed	context: found while probing, see memory
+60	t-2630	gentle-ai-ruflo-comparison-adoption-candidates	pointed	context: documented in the memory
+61	t-2631	ac-systemic-wording-scoped-to-named-instances	wrote	pattern captured
+62	t-2633	ruflo-agentdb-status	read	notes: per the memory, AgentDB rebuilds HNSW only on startup
+63	t-2727	worktree-tasks-json-is-a-stale-snapshot	wrote	new memory pattern
+64	t-2734	ruflo-memory-corruption-recurring	pointed	context: RELATED memory
+65	t-2749	enforcement-systems-overbuild-then-revert	read	notes: a resolver layer repeats the pattern
+66	t-2751	ruflo-agentic-layer-subscription-theater	read	notes: theater markers match the field note
+67	t-2759	ruflo-agentic-layer-subscription-theater	pointed	context: probe method per the field note
+68	t-2763	ruflo-agentic-layer-subscription-theater	pointed	context: prior evidence field note
+69	t-2784	count-window-to-time-window-swap-trades-overreach-for-underreach	wrote	pattern stored
+70	t-2802	ruflo-memory-corruption-recurring	subject	recommends updating the memory
+71	t-2812	verb-owned-state-writes-bypass-shared-setter	wrote	pattern persisted
+72	t-2816	enum-validation-three-write-paths	pointed	description: per the pattern
+73	t-2826	sibling-field-validation-gap	wrote	captured as pattern
+74	t-2828	second-variant-audit-every-raw-consumer	wrote	pattern persisted
+75	t-2834	worktree-tasks-json-is-a-stale-snapshot	wrote	retrospective: patterns stored
+76	t-2834	unregenerable-hash-is-not-a-verified-hash	wrote	retrospective: patterns stored
+77	t-2834	dogfood-a-real-bug-check-it-isnt-already-fixed	wrote	retrospective: patterns stored
+78	t-2840	baseline-legacy-suites-before-blaming-change	read	worker's sprint contract applies the pattern
+79	t-2843	shared-primitive-exit-status-contract-audit	wrote	pattern stored
+80	t-2887	ruflo-agentic-layer-subscription-theater	pointed	context cites the field note
+81	t-2889	gate-armed-by-the-party-it-constrains	pointed	context: spec should note the pattern
+82	t-2933	always-document-behavioral-changes	read	notes: deviation logged per the note
+83	t-2947	tdd-red-test-author-stub-with-todo	wrote	pattern captured
+84	t-2955	extract-real-pacing-seam-in-tdd-red-stub	wrote	pattern captured
+85	t-2956	cfg-test-stub-real-sleep-in-backoff-loops	wrote	pattern captured
+86	t-2969	bash-exit-trap-inherited-by-backgrounded-subshells	wrote	pattern stored
+87	t-3027	diff-against-branch-name-races-concurrent-merges	wrote	patterns stored
+88	t-3027	connectivity-tool-key-recognition-must-match-repo-convention	wrote	patterns stored
+89	t-3028	owner-map-row-must-point-at-content-not-section-name	wrote	memory pattern from this task
+90	t-3029	loop-native-redesign	subject	memory tidy updates the note
+91	t-3029	brana-v2-compute-model	subject	memory tidy updates the note
+92	t-3029	system-architecture-current	subject	memory tidy re-verifies the note
+93	t-3029	loop-command-mechanics	subject	memory tidy merges into the note
+94	t-3043	wave-pull-ignores-blocked-by-ordering	pointed	description: confirmed live, memory pattern
+95	t-3150	challenger-turn-exhaustion-resume-not-respawn	wrote	stored as pattern
+96	t-3156	panel-probe-score-validated-not-raw-counts	wrote	pattern stored
+97	t-3164	backlog-field-usage-vs-feed-mechanism	pointed	description: apply the corrected lens
+98	t-3166	centralise-a-rule-by-grepping-the-raw-field-not-the-consumer-list	wrote	pattern stored
+99	t-3186	ontology-kg-creators	pointed	context: prior reference notes
+100	t-3187	linkedin-public-ldjson-carries-comments-and-image	pointed	context: see memory
+101	t-3194	worktree-discipline	subject	memory compaction target
+102	t-3194	rust-cargo-patterns	subject	memory compaction target
+103	t-3194	snapshot-unversioned-memory-before-delete	pointed	context: snapshot before deleting, per the pattern
+104	t-3196	retiring-shared-state-sweep-all-sibling-tests	wrote	patterns written
+105	t-3196	exit-contract-lint-cross-language-false-positive	wrote	patterns written
+106	t-3197	second-variant-audit-every-raw-consumer	pointed	description: cite the pattern
+107	t-3197	sibling-field-validation-gap	pointed	description: cite the pattern
+108	t-3240	worktree-green-can-flip-on-integration-checkout	pointed	context: same class as the pattern
+109	t-3243	second-variant-audit-every-raw-consumer	pointed	context: mandatory per the pattern
+110	t-3263	pocock-live-sources	pointed	context: see memory
+111	t-3263	pocock-comparisons-must-ring-fit-first	pointed	context: apply the ring-fit filter
+112	t-3264	gate-armed-by-the-party-it-constrains	pointed	context: see the pattern
+113	t-3298	second-variant-audit-every-raw-consumer	pointed	context: mandatory per the pattern
+114	t-3298	sibling-field-validation-gap	pointed	context: mandatory per the pattern
+115	t-3307	project-manifests-over-sibling-tags-tech-detection	pointed	context: memory pattern
+116	t-3424	kill-rule-needs-threshold-owner-date	wrote	pattern stored
+117	t-3426	userpromptsubmit-no-context-pct	pointed	context at creation: memory note
+118	t-3427	ci-fix-verify-against-real-runner	pointed	context at creation: pattern
+119	t-3427	split-enforcement-by-what-it-needs	unclear	cited mid-task on the start date; pattern may be written by the task
+120	t-3427	run-a-fixture-through-the-engine-before-the-spec-layout	wrote	retrospective pattern
+121	t-3427	diff-guard-base-must-not-be-the-commit-under-test	wrote	retrospective pattern
+122	t-3435	snapshot-unversioned-memory-before-delete	pointed	context: memory pattern
+123	t-3480	streaming-reader-changes-decode-failure-semantics	wrote	stored as pattern
+124	t-3483	ci-tests-job-vs-validate-fast-and-rules-headroom	pointed	context: memory note
+125	t-3487	mac-company-managed-constraints	subject	the note itself was the leaked file
+126	t-3488	kill-rule-needs-threshold-owner-date	pointed	description: per the pattern
+127	t-3499	shell-recipe-in-docs-must-be-one-call-and-must-fire	wrote	stored as pattern
+128	t-3514	brana-files-never-at-cc-project-folder-top-level	wrote	learning saved
+129	t-3514	measure-use-only-of-what-was-shown	wrote	learning saved
+130	t-3514	attribution-hook-scans-whole-bash-command	wrote	learning saved
