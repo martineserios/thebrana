@@ -186,6 +186,7 @@ User terminal
 | Source | Path | Used by |
 |--------|------|---------|
 | Tasks | `.claude/tasks.json` (project-relative, worktree-aware) | `backlog *` |
+| Tasks override | `BRANA_TASKS_FILE` — absolute path to an alternate ledger (parent must exist; auto-initialised `{"tasks":[]}`). Set by the test-suite runner per suite so no suite can write the live ledger; a relative value is ignored, an unusable one is an error, never a fallback to the live file | `backlog *`, `sync`, `receipt` |
 | Portfolio | `~/.claude/tasks-portfolio.json` | `backlog status --all`, `portfolio` |
 | Theme config | `~/.claude/tasks-config.json` | all rendering |
 | Theme defs | `system/cli/themes.json` | all rendering |
@@ -261,6 +262,7 @@ system/cli/rust/src/
 
 ## Changelog
 
+- 2026-10-14: `BRANA_TASKS_FILE` names an alternate ledger (absolute; parent must exist; auto-initialised exclusively). `system/scripts/lib/suite-home.sh` exports a scratch one per suite, so a sweep launched from a linked worktree can no longer write the live ledger through the git common root (it did: t-3526); a conventional `--file .claude/tasks.json` of the *running* repo follows the override, any other repo's keeps its literal remap; `tests/scripts/test-suite-ledger-isolation.sh` is the must-fire; `/brana:ship` 2b hard-stops on a ledger decrease during the sweep (t-3501).
 - 2026-05-24: Knowledge tier-1/tier-2 pipeline added; `call_gemini_json()` routes eligible tasks to Gemini Flash (t-1667). `brana backlog focus --top N` propagated to CLI guide.
 - 2026-10-14: `/brana:ship` Step 4 now rebuilds and atomically installs **both** `brana` and `brana-mcp` (one `cargo build`, verify both before swapping either, restore both on failure; brana-mcp is checked with an `initialize` handshake since it takes no arguments). `bootstrap.sh`'s stale-binary hints point there, with a bare-minimum `cp X.new && mv -f` one-liner for use outside a ship — the 2026-10-05 bare `cp` recipe below is superseded (t-3499).
 - 2026-10-14: `brana transcribe` checks the input exists and is readable before looking up whisper-cli or resolving/downloading a model, and warns when a run extracts more than 500 frames (t-3485).

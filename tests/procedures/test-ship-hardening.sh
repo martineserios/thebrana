@@ -26,7 +26,10 @@ assert "pre-flight names CI's suite runner" yes "$(has "$SKILL" 'run-test-suites
 assert "pre-flight sweep runs in a throwaway CLONE (own .git, so not the shared ledger)" yes "$(has "$SKILL" 'git clone -q --local --no-hardlinks')"
 assert "the sweep clone is checked out at dev and verified" yes "$(has "$SKILL" 'rev-parse HEAD)" = "$(git rev-parse dev)"')"
 assert "the sweep forces suite isolation on (TEST_SUITE_KEEP_HOME=0)" yes "$(has "$SKILL" 'TEST_SUITE_KEEP_HOME=0')"
-assert "ledger guard compares a hash of the FULL stats, not a 60-char prefix" yes "$(has "$SKILL" 'brana backlog stats 2>/dev/null | cksum')"
+# both sides hash the captured FULL output the same way (a direct `… | cksum` on one side kept the trailing newline $(…) strips on the other — every ship WARNed; t-3500/t-3501 merge)
+assert "ledger guard compares a hash of the FULL stats, not a 60-char prefix" yes "$(has "$SKILL" '"$LEDGER_BEFORE_JSON" | cksum')"
+assert "ledger guard hashes the AFTER stats the same way as BEFORE" yes "$(has "$SKILL" '"$LEDGER_AFTER_JSON" | cksum')"
+assert "ledger guard never pipes a live brana call straight into cksum (asymmetric newline)" no "$(has "$SKILL" 'brana backlog stats 2>/dev/null | cksum')"
 assert "the targeted minimum includes every test file the diff adds or changes" yes "$(has "$SKILL" 'adds or changes')"
 assert "pre-flight has the targeted rules-headroom minimum" yes "$(has "$SKILL" 'test-context-budget-split.sh')"
 STEP4="$T/step4.txt"; awk '/^### Step 4:/{g=1;next} /^### Step 5:/{g=0} g' "$SKILL" > "$STEP4"

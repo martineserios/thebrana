@@ -79,6 +79,11 @@ fn blob_path(root: &Path, task_id: &str, which: &str) -> Result<PathBuf> {
 /// repository. Caught by `t16_leaked_git_dir_does_not_reach_the_executed_command`; the
 /// general defect in `find_tasks_file()` is filed separately (t-2617).
 fn tasks_file(root: &Path) -> Result<PathBuf> {
+    // t-3501: the suite runner's scratch ledger (BRANA_TASKS_FILE) wins here too, so a suite
+    // cannot reach the live ledger through this command from a linked worktree.
+    if let Some(p) = brana_core::util::ledger_override_from_env() {
+        return Ok(p);
+    }
     let common = git_in(root, &["rev-parse", "--git-common-dir"])?;
     let common = if Path::new(&common).is_absolute() {
         PathBuf::from(common)
