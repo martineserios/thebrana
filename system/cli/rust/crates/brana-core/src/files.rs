@@ -666,7 +666,7 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         let dest = d.path().join("models").join("m.bin");
         let seen = std::cell::RefCell::new(None);
-        download_file_with("https://x/m.bin", &dest, None, |url, tmp: &Path| {
+        download_file_with("https://x/m.bin", &dest, |url, tmp: &Path| {
             assert_eq!(url, "https://x/m.bin");
             assert!(!dest.exists(), "dest must not exist while the download is in flight");
             let name = tmp.file_name().unwrap().to_string_lossy().into_owned();
@@ -674,23 +674,24 @@ mod tests {
             *seen.borrow_mut() = Some(tmp.to_path_buf());
             fs::write(tmp, b"hello")?;
             Ok(())
-        })
+        }, |_| Ok(()))
         .unwrap();
         assert_eq!(fs::read(&dest).unwrap(), b"hello");
         assert!(!seen.borrow().as_ref().unwrap().exists(), "part file must be renamed away");
         assert!(part_files(dest.parent().unwrap()).is_empty());
         let pid = std::process::id();
-        assert!(part_path(&dest).to_string_lossy().ends_with(&format!("m.bin.part-{pid}")));
+        let name = part_path(&dest).file_name().unwrap().to_string_lossy().into_owned();
+        assert!(name.starts_with(&format!("m.bin.part-{pid}-")), "got {name}");
     }
 
     #[test]
     fn failed_download_leaves_nothing_at_dest() {
         let d = tempfile::tempdir().unwrap();
         let dest = d.path().join("m.bin");
-        let r = download_file_with("https://x/m.bin", &dest, None, |_, tmp: &Path| {
+        let r = download_file_with("https://x/m.bin", &dest, |_, tmp: &Path| {
             fs::write(tmp, b"half")?; // interrupted mid-stream
             bail!("connection reset")
-        });
+        }, |_| Ok(()));
         assert!(r.is_err());
         assert!(!dest.exists(), "a failed download must leave no file at dest");
         assert!(part_files(d.path()).is_empty(), "and no partial behind");
@@ -703,11 +704,11 @@ mod tests {
         let hello = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
         let other = "0000000000000000000000000000000000000000000000000000000000000000";
         let fetch = |_: &str, tmp: &Path| { fs::write(tmp, b"hello")?; Ok(()) };
-        let r = download_file_with("https://x/m.bin", &dest, Some(other), fetch);
+        let r = download_file_with("https://x/m.bin", &dest, fetch, sha256_verifier(other));
         assert!(r.is_err(), "hash mismatch must fail");
         assert!(!dest.exists(), "mismatched content must never reach dest");
         assert!(part_files(d.path()).is_empty());
-        download_file_with("https://x/m.bin", &dest, Some(hello), fetch).unwrap();
+        download_file_with("https://x/m.bin", &dest, fetch, sha256_verifier(hello)).unwrap();
         assert!(dest.exists());
     }
 
@@ -717,15 +718,21 @@ mod tests {
         let old = d.path().join("old.bin.part-1");
         let fresh = d.path().join("fresh.bin.part-2");
         let keep = d.path().join("keep.bin");
-        for p in [&old, &fresh, &keep] {
+        // user data that merely contains ".part-" is not ours to delete (challenger F1)
+        let user1 = d.path().join("chapter.part-2.md");
+        let user2 = d.path().join("big.tar.gz.part-aa");
+        for p in [&old, &fresh, &keep, &user1, &user2] {
             fs::write(p, b"x").unwrap();
         }
         let two_h_ago = std::time::SystemTime::now() - STALE_PART_AGE * 2;
-        fs::File::options().write(true).open(&old).unwrap().set_modified(two_h_ago).unwrap();
+        for p in [&old, &user1, &user2] {
+            fs::File::options().write(true).open(p).unwrap().set_modified(two_h_ago).unwrap();
+        }
         assert_eq!(sweep_stale_parts(d.path()), 1);
         assert!(!old.exists(), "stale partial swept");
         assert!(fresh.exists(), "in-flight partial kept");
         assert!(keep.exists(), "non-partials untouched");
+        assert!(user1.exists() && user2.exists(), "user files with .part- in the name survive");
         assert_eq!(sweep_stale_parts(&d.path().join("missing")), 0, "missing dir is a no-op");
     }
 
@@ -771,5 +778,157 @@ mod tests {
         assert!(!abs.exists());
         assert!(!proj.join("ok.bin").exists());
         assert!(part_files(d.path()).is_empty() && part_files(&proj).is_empty());
+    }
+
+    // ── t-3473 challenger repair (iteration 1) ───────────────────────────
+
+    #[test]
+    fn stale_part_name_match_is_exact() {
+        for ours in ["m.bin.part-123", "m.bin.part-123-9f3ac0de", "ggml-small.bin.part-7"] {
+            assert!(is_part_name(ours), "{ours} is one of ours");
+        }
+        for theirs in ["chapter.part-2.md", "big.tar.gz.part-aa", "export.part-1.csv", "jobs.part-time", "m.bin.part-", ".part-1"] {
+            assert!(!is_part_name(theirs), "{theirs} is a user file");
+        }
+    }
+
+    #[test]
+    fn download_sweeps_only_its_own_basename() {
+        let d = tempfile::tempdir().unwrap();
+        let other = d.path().join("other.bin.part-1");
+        let mine = d.path().join("m.bin.part-7");
+        fs::write(&other, b"x").unwrap();
+        fs::write(&mine, b"x").unwrap();
+        let two_h_ago = std::time::SystemTime::now() - STALE_PART_AGE * 2;
+        for p in [&other, &mine] {
+            fs::File::options().write(true).open(p).unwrap().set_modified(two_h_ago).unwrap();
+        }
+        let dest = d.path().join("m.bin");
+        download_file_with("https://x/m.bin", &dest, |_, tmp: &Path| { fs::write(tmp, b"hello")?; Ok(()) }, |_| Ok(())).unwrap();
+        assert!(!mine.exists(), "a stale partial of this dest is reclaimed");
+        assert!(other.exists(), "a stale partial of a different dest is not this download's business");
+    }
+
+    #[test]
+    fn part_is_created_exclusively_with_an_unpredictable_name() {
+        let d = tempfile::tempdir().unwrap();
+        let dest = d.path().join("m.bin");
+        let a = create_part(&dest).unwrap();
+        let b = create_part(&dest).unwrap();
+        assert_ne!(a, b, "two in-flight parts for one dest never share a name");
+        assert!(a.exists() && b.exists(), "created before curl opens them (O_EXCL)");
+        let re = regex_lite::Regex::new(r"^m\.bin\.part-\d+-[0-9a-f]{8}$").unwrap();
+        for p in [&a, &b] {
+            let name = p.file_name().unwrap().to_string_lossy().into_owned();
+            assert!(re.is_match(&name), "got {name}");
+            assert!(is_part_name(&name));
+        }
+    }
+
+    #[test]
+    fn part_is_removed_when_the_final_rename_fails() {
+        let d = tempfile::tempdir().unwrap();
+        let dest = d.path().join("m.bin");
+        fs::create_dir(&dest).unwrap(); // rename of a file over a directory fails
+        let r = download_file_with("https://x/m.bin", &dest, |_, tmp: &Path| { fs::write(tmp, b"hello")?; Ok(()) }, |_| Ok(()));
+        assert!(r.is_err());
+        assert!(part_files(d.path()).is_empty(), "the verified part must not be stranded");
+    }
+
+    #[test]
+    fn verifier_failure_discards_the_part() {
+        let d = tempfile::tempdir().unwrap();
+        let dest = d.path().join("m.bin");
+        let r = download_file_with("https://x/m.bin", &dest, |_, tmp: &Path| { fs::write(tmp, b"<html>")?; Ok(()) }, |_| bail!("not a model"));
+        assert!(r.is_err());
+        assert!(!dest.exists() && part_files(d.path()).is_empty());
+    }
+
+    #[test]
+    fn curl_args_pin_https_and_bound_stalls() {
+        let args = curl_args("https://h/x", Path::new("/tmp/p"));
+        let joined = args.join(" ");
+        assert!(joined.contains("--proto =https"), "{joined}");
+        assert!(joined.contains("--proto-redir =https"), "redirects must not downgrade: {joined}");
+        assert!(joined.contains("-fSL"));
+        let i = args.iter().position(|a| a == "--speed-time").expect("stall timeout present");
+        let secs: u64 = args[i + 1].parse().unwrap();
+        assert!(secs < STALE_PART_AGE.as_secs(), "a stalled curl must give up before the sweep could unlink it");
+        assert!(args.contains(&"--speed-limit".to_string()));
+        assert!(joined.ends_with("-o /tmp/p https://h/x"));
+    }
+
+    #[test]
+    fn push_refuses_hostile_entries_before_rclone() {
+        let d = tempfile::tempdir().unwrap();
+        let proj = d.path().join("proj");
+        fs::create_dir_all(&proj).unwrap();
+        let secret = d.path().join("id_rsa");
+        fs::write(&secret, b"private").unwrap();
+        let mut m = Manifest::default();
+        let mut abs = entry(secret.to_str().unwrap(), None);
+        abs.r2_key = Some("loot/id_rsa".into());
+        let mut esc = entry("../id_rsa", None);
+        esc.r2_key = Some("loot/id_rsa".into());
+        m.add("abs".into(), abs);
+        m.add("esc".into(), esc);
+        let r = push(&m, &proj, "nowhere").unwrap();
+        assert_eq!(r.uploaded, 0);
+        assert_eq!(r.failed.len(), 2, "{:?}", r.failed);
+        for f in &r.failed {
+            assert!(f.contains("relative") || f.contains("inside the project"), "must be refused by containment, not by rclone: {f}");
+        }
+    }
+
+    #[test]
+    fn status_reports_hostile_entries_as_error_not_ok() {
+        let d = tempfile::tempdir().unwrap();
+        let proj = d.path().join("proj");
+        fs::create_dir_all(&proj).unwrap();
+        let outside = d.path().join("outside.bin");
+        fs::write(&outside, b"hello").unwrap();
+        let mut e = entry(outside.to_str().unwrap(), None);
+        e.sha256 = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824".into();
+        let mut m = Manifest::default();
+        m.add("out".into(), e);
+        let st = m.status(&proj);
+        assert_eq!(st[0].state, FileState::Error, "an out-of-tree entry is never Ok, even when the hash matches");
+    }
+
+    #[test]
+    fn add_file_refuses_paths_outside_the_project() {
+        let d = tempfile::tempdir().unwrap();
+        let proj = d.path().join("proj");
+        fs::create_dir_all(&proj).unwrap();
+        let outside = d.path().join("outside.bin");
+        fs::write(&outside, b"x").unwrap();
+        let mut m = Manifest::default();
+        let r = add_file(&mut m, "out", &outside, &proj, None, None);
+        assert!(r.is_err(), "pull would refuse this entry forever, so add must refuse it now");
+        assert!(m.files.is_empty());
+        let inside = proj.join("in.bin");
+        fs::write(&inside, b"x").unwrap();
+        add_file(&mut m, "in", &inside, &proj, None, None).unwrap();
+        assert_eq!(m.files["in"].path, "in.bin");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn validate_entry_refuses_symlinked_ancestors() {
+        let d = tempfile::tempdir().unwrap();
+        let proj = d.path().join("proj");
+        let outside = d.path().join("outside");
+        fs::create_dir_all(&proj).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        std::os::unix::fs::symlink(&outside, proj.join("models")).unwrap();
+        // lexically fine, physically /outside/x.bin — a committed symlink must not escape the project
+        assert!(validate_entry(&proj, &entry("models/x.bin", Some("https://h/x"))).is_err());
+        // a symlink as the final component is refused too
+        std::os::unix::fs::symlink(outside.join("t.bin"), proj.join("t.bin")).unwrap();
+        assert!(validate_entry(&proj, &entry("t.bin", Some("https://h/x"))).is_err());
+        // real (or not-yet-existing) directories are fine
+        fs::create_dir_all(proj.join("real")).unwrap();
+        assert!(validate_entry(&proj, &entry("real/x.bin", Some("https://h/x"))).is_ok());
+        assert!(validate_entry(&proj, &entry("new/deeper/x.bin", Some("https://h/x"))).is_ok());
     }
 }
