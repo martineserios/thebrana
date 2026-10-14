@@ -724,6 +724,9 @@ mod tests {
         assert!(is_model_path("./m.bin"));
         assert!(!is_model_path("large-v3"));
         assert!(!is_model_path("medium.en"));
+        // t-3480: purely syntactic — a same-named file in cwd no longer turns a name into a path
+        assert!(is_model_path("ggml-base.bin"), "ends with .bin is a path");
+        assert!(!is_model_path("Cargo.toml"), "exists in cwd but is neither / nor .bin");
     }
 
     #[test]
@@ -1112,6 +1115,147 @@ mod tests {
         std::fs::write(d.path().join("ggml-large-v3.bin"), vec![b'<'; 9000]).unwrap();
         let names: Vec<String> = discover_models_in(&[d.path().to_path_buf()]).into_iter().map(|m| m.name).collect();
         assert_eq!(names, vec!["base"]);
+    }
+
+    // ── t-3480: hardening (protocol whitelist, private frames dir, https curl, ...) ──
+
+    #[test]
+    fn frames_args_whitelist_file_protocol_and_prefix_input() {
+        let args = frames_ffmpeg_args(Path::new("concat:a.mp4|b.mp4"), Path::new("out"), Sampling::Every(5)).unwrap();
+        let wl = args.iter().position(|a| a == "-protocol_whitelist").expect("whitelist present");
+        assert_eq!(args[wl + 1], "file");
+        let i = args.iter().position(|a| a == "-i").unwrap();
+        assert!(wl < i, "whitelist must precede -i");
+        assert!(args[i + 1].starts_with("file:/"), "input is an absolute file: URL, got {}", args[i + 1]);
+        assert!(args[i + 1].ends_with("concat:a.mp4|b.mp4"));
+    }
+
+    #[test]
+    fn wav_args_whitelist_file_protocol_and_prefix_input() {
+        let args = wav_ffmpeg_args(Path::new("data:text/plain,hi.m4a"), Path::new("/tmp/o.wav")).unwrap();
+        let wl = args.iter().position(|a| a == "-protocol_whitelist").expect("whitelist present");
+        assert_eq!(args[wl + 1], "file");
+        let i = args.iter().position(|a| a == "-i").unwrap();
+        assert!(wl < i);
+        assert!(args[i + 1].starts_with("file:/") && args[i + 1].ends_with("data:text/plain,hi.m4a"), "{:?}", args[i + 1]);
+        assert!(args.ends_with(&["/tmp/o.wav".to_string()]));
+    }
+
+    #[test]
+    fn odd_input_name_is_a_file_not_a_protocol() {
+        if !ffmpeg_available() {
+            return;
+        }
+        // A media file whose NAME looks like a protocol URL must be opened as a file, never
+        // parsed as concat:/data:/playlist — the whitelist + file: prefix make that so.
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("concat:evil.mp4");
+        let ok = Command::new("ffmpeg")
+            .args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=3:s=64x48:r=5"])
+            .arg(format!("file:{}", video.display()))
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "fixture video generation failed");
+        let out = d.path().join("frames");
+        let (index, guard) = extract_frames(&video, &out, Sampling::Every(10)).unwrap();
+        guard.keep();
+        assert_eq!(index[0], "frame_000001.jpg @ 00:00:00");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn frames_dir_is_created_private() {
+        if !ffmpeg_available() {
+            return;
+        }
+        use std::os::unix::fs::PermissionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("t.mp4");
+        assert!(Command::new("ffmpeg").args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=2:s=64x48:r=5"]).arg(&video).status().unwrap().success());
+        let out = d.path().join("new").join("frames");
+        let (_, guard) = extract_frames(&video, &out, Sampling::Every(10)).unwrap();
+        guard.keep();
+        let mode = std::fs::metadata(&out).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o700, "a frames dir the run creates is private to the user");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn planted_frame_symlink_is_refused_not_followed() {
+        if !ffmpeg_available() {
+            return;
+        }
+        let d = tempfile::tempdir().unwrap();
+        let video = d.path().join("t.mp4");
+        assert!(Command::new("ffmpeg").args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=2:s=64x48:r=5"]).arg(&video).status().unwrap().success());
+        let out = d.path().join("shared");
+        std::fs::create_dir(&out).unwrap();
+        let target = d.path().join("victim.txt");
+        std::fs::write(&target, b"keep me").unwrap();
+        std::os::unix::fs::symlink(&target, out.join("frame_000001.jpg")).unwrap();
+        let r = extract_frames(&video, &out, Sampling::Every(10));
+        assert!(r.is_err(), "a dir with a planted frame_* entry is refused before ffmpeg runs");
+        assert_eq!(std::fs::read(&target).unwrap(), b"keep me", "the symlink target must be untouched");
+    }
+
+    #[test]
+    fn model_download_curl_is_https_pinned() {
+        // ensure_model → files::download_file_verified → curl_fetch → curl_args (t-3473);
+        // pin the contract from this crate so a brana-core change cannot silently drop it.
+        let args: Vec<String> = files::curl_args("https://h/m.bin", Path::new("/tmp/p"))
+            .iter().map(|a| a.to_string_lossy().into_owned()).collect();
+        let joined = args.join(" ");
+        assert!(joined.contains("--proto =https"), "{joined}");
+        assert!(joined.contains("--proto-redir =https"), "{joined}");
+        assert!(files::validate_url("http://h/m.bin").is_err(), "plain http never reaches curl");
+    }
+
+    #[test]
+    fn relative_model_dirs_are_ignored() {
+        let dirs = model_dirs_from(Some("rel/models:/abs/models::./dot"), "/home/u");
+        assert_eq!(dirs, vec![PathBuf::from("/abs/models"), PathBuf::from("/home/u/.cache/whisper-models")]);
+        assert_eq!(model_dirs_from(None, "/home/u"), vec![PathBuf::from("/home/u/.cache/whisper-models")]);
+    }
+
+    #[test]
+    fn stale_temp_wavs_are_swept() {
+        let d = tempfile::tempdir().unwrap();
+        let old = d.path().join("brana-transcribe-abc123.wav");
+        let fresh = d.path().join("brana-transcribe-def456.wav");
+        let other = d.path().join("other-tool.wav");
+        for p in [&old, &fresh, &other] {
+            std::fs::write(p, b"x").unwrap();
+        }
+        let two_h_ago = std::time::SystemTime::now() - STALE_WAV_AGE * 2;
+        std::fs::File::options().write(true).open(&old).unwrap().set_modified(two_h_ago).unwrap();
+        std::fs::File::options().write(true).open(&other).unwrap().set_modified(two_h_ago).unwrap();
+        assert_eq!(sweep_stale_wavs(d.path()), 1);
+        assert!(!old.exists(), "leaked by a SIGKILLed run — swept");
+        assert!(fresh.exists(), "in-flight wav kept");
+        assert!(other.exists(), "not ours");
+        assert_eq!(sweep_stale_wavs(&d.path().join("missing")), 0);
+    }
+
+    #[test]
+    fn ffmpeg_stderr_reducer_keeps_only_pts_and_tail() {
+        // 100k noisy lines must reduce to the frame times plus the last non-empty line —
+        // the whole stderr is never held in memory.
+        let mut lines: Vec<String> = Vec::new();
+        for n in 0..100_000u32 {
+            lines.push(format!("frame={n} fps=0.0 q=2.0 size=N/A time=00:00:{} bitrate=N/A", n % 60));
+            if n % 1000 == 0 {
+                lines.push(format!("[Parsed_showinfo_1 @ 0x5] n:{} pts:{} pts_time:{}.5    duration:1", n / 1000, n, n / 1000));
+                lines.push("[Parsed_showinfo_1 @ 0x5] color_range:tv".into());
+            }
+        }
+        lines.push("".into());
+        lines.push("Conversion failed!".into());
+        let (times, last) = reduce_ffmpeg_stderr(lines.iter().map(|l| l.as_str()));
+        assert_eq!(times.len(), 100);
+        assert_eq!(times[0], 0.5);
+        assert_eq!(times[99], 99.5);
+        assert_eq!(last, "Conversion failed!");
     }
 
     // ── t-3473: manifest-tracked model containment ─────────────────────
