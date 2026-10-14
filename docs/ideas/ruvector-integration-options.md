@@ -1,8 +1,8 @@
 ---
 title: Which RuVector and ruflo components belong inside brana (and what recall is for)
-status: idea
+status: draft
 created: 2026-10-14
-tasks: [t-3510, t-3511, t-3498]
+tasks: [t-3510, t-3511, t-3498, t-3513, t-3514, t-3515, t-3516, t-3517, t-3518, t-3519, t-3520, t-3521, t-3522, t-3523, t-3524, t-3525]
 ---
 # Which RuVector and ruflo components belong inside brana (and what recall is for)
 
@@ -10,7 +10,15 @@ tasks: [t-3510, t-3511, t-3498]
 > because the session ran out of context.** This document is the full handoff: nothing from the
 > session should need to be re-derived. Read "Resume here" first.
 
-## Resume here (for a fresh session)
+## Status (2026-10-14, brainstorm finished)
+
+The brainstorm finished in the resumed session on 2026-10-14. Phases 3 to 5 are complete: Rounds
+6 to 7, the challenger review, Shape v2 and the backlog plan. **Read "Shape v2" first**; it
+supersedes the earlier Shape. The work is planned as epic **t-3513 `recall-bundle`** (see "Backlog
+plan" at the end). The first unblocked tasks are t-3514 (ADR + spec) and t-3522 (embedder spike).
+t-3510 must ship before t-3516. The "Resume here" section below is kept as a historical record.
+
+## Resume here (for a fresh session; historical, superseded by Status above)
 
 **Where we stopped.** `/brana:brainstorm` Phase 3 (Discuss), after Round 5. The owner was asked to
 confirm an order of work and answered "check my last message", which was: *"check our memory
@@ -909,3 +917,53 @@ The docs' unmet need is **not** better keyword-versus-vector scoring. It is:
 - **(c) supersession, staleness and relatedness handled at recall time.**
 
 The in-flight t-3510 and t-3511 work only fixes the memory-file semantic leg.
+
+## Backlog plan (Phase 5, 2026-10-14)
+
+The epic is **t-3513 `recall-bundle`** (P2). Each task's `context` points back to this doc
+(§Shape v2) and carries `AC:` lines.
+
+| Key | Task | Kind | Effort | Blocked by |
+|---|---|---|---|---|
+| A | t-3514 ADR + feature spec: recall bundle at build LOAD, usage log at CLOSE | design | M | none |
+| B | t-3515 Gold set: hand-label, freeze file, pre-register gates | research | M | t-3514 |
+| C | t-3516 `brana recall bundle <task>` | feature | M | t-3514, t-3510 |
+| D | t-3517 Usage log: LOAD shadow call + CLOSE used/ignored row | feature | M | t-3516 |
+| E | t-3518 Offline scorer + kill-only gate run vs two baselines | feature | S | t-3515, t-3516 |
+| F | t-3519 Ranking iterations, each kept only if gated | feature | M | t-3518 |
+| G | t-3520 Spec and docs sync | docs | S | t-3517, t-3519 |
+| H | t-3521 Canary / alternating A-B: keep or drop (week 2) | feature | M | t-3519, t-3520 |
+| I | t-3522 Embedder parity spike (`ruvector-onnx-embeddings`) | research | S | none |
+| J | t-3523 Supersession backfill (ADR-057 fields) | ops | S | t-3516 |
+| K | t-3524 Staleness rule: exposure separate from use | feature | M | t-3521 |
+| L | t-3525 Headless runner recall decision | design | S | t-3521 |
+
+Existing tasks: t-3510 (memory-file vector leg) blocks t-3516; t-3511 (schedule embed-memory)
+follows t-3510. Kept in this doc only, as later work and not as tasks: link repair (41% of links
+dangle), same pattern in another domain via `transferable`, and removing the ruflo memory server
+after exporting its 739 `knowledge:url` rows.
+
+```
+                    t-3510 ──> t-3511
+                       │
+ t-3514 (ADR+spec) ─┬──┼───────────────┐
+                    │  ▼               │
+                    │ t-3516 (bundle) ─┼──> t-3523 (backfill)
+                    │  │               │
+                    │  ├──> t-3517 (log + CLOSE + shadow) ──┐
+                    ▼  │                                    │
+          t-3515 (gold)┴──> t-3518 (scorer, kill gates)     │
+                              │                             ▼
+                              ▼                       t-3520 (docs)
+                        t-3519 (ranking) ─────────────> │
+                              │                         │
+                              └────────────┬────────────┘
+                                           ▼
+                                 t-3521 (canary A/B)  ── week 2
+                                    │          │
+                                    ▼          ▼
+                             t-3524 (staleness) t-3525 (runner)
+
+ t-3522 (embedder spike) ── independent
+```
+
