@@ -103,7 +103,8 @@ Run all safety checks before touching anything external.
    B=~/.local/bin/brana
    { cp -L "$B" "$B.bak.tmp" && "$B.bak.tmp" --version >/dev/null 2>&1 && mv -f "$B.bak.tmp" "$B.bak"; } || echo "WARN: no runnable brana.bak taken"   # FIRST: a symlinked install points at target/release, which the build below rewrites — Step 4 needs this copy. brana only: this step never builds brana-mcp, so Step 4 takes that backup itself before its own build (t-3499)
    LEDGER_BEFORE=$(brana backlog stats 2>/dev/null | cksum)     # belt and braces: the clone should not touch the ledger; hash the FULL output, compare after
-   { [ "$(git rev-parse HEAD:system/cli)" = "$(git rev-parse dev:system/cli)" ] && git diff --quiet HEAD -- system/cli; } || { echo "system/cli differs from dev — the sweep would run dev's suites against a mismatched brana; stop"; exit 1; }   # this checkout builds the brana the clone's suites call (t-3500)
+   DEVCLI=$(git rev-parse dev:system/cli 2>/dev/null) || { echo "no local dev ref — run the sweep from the shared checkout on dev; stop"; exit 1; }
+   { [ "$(git rev-parse HEAD:system/cli)" = "$DEVCLI" ] && git diff --quiet HEAD -- system/cli; } || { echo "system/cli differs from dev (committed or uncommitted) — the sweep would run dev's suites against a mismatched brana; run it from the shared checkout on dev; stop"; exit 1; }   # this checkout builds the brana the clone's suites call (t-3500)
    (cd system/cli/rust && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli)   # CI builds brana first; suites call it by PATH
    BIN="$PWD/system/cli/rust/target/release"                    # this checkout's build — target/ is gitignored, a fresh clone has none
    SWEEP=$(mktemp -d)/thebrana-sweep; OUT=$(mktemp)

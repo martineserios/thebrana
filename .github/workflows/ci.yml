@@ -151,7 +151,16 @@ jobs:
       # The loop lives in system/scripts/run-test-suites.sh (t-3376) so the macOS job shares it
       # (stock macOS has no timeout(1)); its behaviour is the loop that used to be inline here:
       # per-suite 300s ceiling, stdin from /dev/null, helper libs skipped, all failures listed.
+      # The harness shell is zsh: the shell suites' zsh legs are the ones that catch no-word-split
+      # bugs (t-2478, t-3500 — an unquoted $PKGS glued cargo's args and would have failed every
+      # ship). Install zsh and make the "zsh not installed" skip a failure, same pattern as
+      # BRANA_REQUIRE_FFMPEG / BRANA_REQUIRE_MCP_BIN in the rust job.
+      - name: Install zsh (shell suites run under bash AND zsh)
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends zsh
+
       - name: Run tests
+        env:
+          BRANA_REQUIRE_ZSH: "1"
         run: bash system/scripts/run-test-suites.sh tests/*/*.sh
 
   # macOS (t-3376) — ADVISORY: not a required check on main, and continue-on-error keeps a red run
