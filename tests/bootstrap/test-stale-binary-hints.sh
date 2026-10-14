@@ -42,7 +42,7 @@ assert "hint text is inert (no command substitution ran)" no "$(has 'command not
 
 # ── 2. Step 4 text: one build, both binaries, atomic, verify both, restore both ──────────
 STEP4="$(sed -n '/Tier-2 ship: rebuild and install/,/^Report result/p' "$S")"
-assert "Step 4 builds brana-mcp in the same cargo build as brana-cli" yes "$(has '-p brana-cli -p brana-mcp' "$STEP4")"
+assert "Step 4 builds brana-mcp in the same cargo build as brana-cli (positional args, zsh-safe)" yes "$(has 'set -- "$@" -p brana-mcp' "$STEP4")"
 assert "Step 4 installs brana-mcp via a .new rename" yes "$(printf '%s' "$STEP4" | grep -qE 'MCP\.new|brana-mcp\.new' && echo yes || echo no)"
 assert "Step 4 records why brana-mcp is included (corruption hazard)" yes "$(has 'corrupt' "$STEP4")"
 assert "Step 4 tells the shipper to restart sessions for the MCP server" yes "$(has 'restart' "$STEP4")"
