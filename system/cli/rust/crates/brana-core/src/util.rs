@@ -77,6 +77,13 @@ pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
 /// a suite passing `--file` to a worktree copy would still land on the live ledger, t-3501);
 /// a non-conventional `--file` stays literal either way.
 pub fn resolve_tasks_file_override_with(explicit: &Path, override_file: Option<PathBuf>) -> PathBuf {
+    // The conventional ledger name under an active override IS the override, git or not: a
+    // suite that passes `--file .claude/tasks.json` must land on the scratch ledger.
+    if explicit.ends_with(".claude/tasks.json") {
+        if let LedgerOverride::File(f) = ledger_override(override_file) {
+            return f;
+        }
+    }
     let anchor: &Path = match explicit.parent() {
         Some(p) if !p.as_os_str().is_empty() => p,
         _ => Path::new("."),
@@ -100,9 +107,6 @@ pub fn resolve_tasks_file_override_with(explicit: &Path, override_file: Option<P
                 .unwrap_or_else(|_| explicit.to_path_buf())
         };
         if absolute_explicit.strip_prefix(top) == Ok(Path::new(".claude/tasks.json")) {
-            if let LedgerOverride::File(f) = ledger_override(override_file) {
-                return f;
-            }
             if let Some(canon) = find_tasks_file_from(Some(common.clone()), None, None) {
                 return canon;
             }
@@ -755,6 +759,7 @@ mod tests {
         let live = repo.path().join(".claude/tasks.json");
         std::fs::write(&live, b"{\"tasks\":[{\"id\":\"t-1\"}]}").unwrap();
         let scratch = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(scratch.path().join("sub")).unwrap();   // parents are never auto-created
         let override_file = scratch.path().join("sub").join("brana-tasks.json");
         let got = find_tasks_file_with_hint(
             Some(override_file.clone()),
