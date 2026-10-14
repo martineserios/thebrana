@@ -5,8 +5,9 @@
 
 use crate::files;
 use anyhow::{bail, Context, Result};
+use std::io::BufRead as _;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// An installed whisper ggml model.
 #[derive(Clone, Debug)]
@@ -110,16 +111,31 @@ fn validate_model_name(name: &str) -> Result<()> {
 }
 
 /// A `--model` value is a path when it contains a separator or names an existing file.
+/// Syntactic only (t-3480): a spec is a path when it contains `/` or ends with `.bin`.
+/// It used to consult the filesystem, so a stray file named like a model in cwd turned a
+/// model *name* into a path.
 fn is_model_path(spec: &str) -> bool {
-    spec.contains('/') || Path::new(spec).is_file()
+    spec.contains('/') || spec.ends_with(".bin")
 }
 
 /// Directories searched for installed models, in priority order.
 fn model_dirs() -> Vec<PathBuf> {
-    let mut dirs: Vec<PathBuf> = std::env::var("BRANA_WHISPER_MODELS")
-        .map(|v| v.split(':').filter(|s| !s.is_empty()).map(PathBuf::from).collect())
-        .unwrap_or_default();
+    let env = std::env::var("BRANA_WHISPER_MODELS").ok();
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+    model_dirs_from(env.as_deref(), &home)
+}
+
+/// `model_dirs` with the inputs injected. Relative `BRANA_WHISPER_MODELS` entries are
+/// ignored: they would resolve against whatever cwd the command runs in (t-3480).
+fn model_dirs_from(env: Option<&str>, home: &str) -> Vec<PathBuf> {
+    let mut dirs: Vec<PathBuf> = env
+        .map(|v| {
+            v.split(':')
+                .filter(|s| !s.is_empty() && Path::new(s).is_absolute())
+                .map(PathBuf::from)
+                .collect()
+        })
+        .unwrap_or_default();
     dirs.push(PathBuf::from(home).join(".cache").join("whisper-models"));
     dirs
 }
@@ -315,6 +331,52 @@ impl Wav {
     }
 }
 
+/// How long a `brana-transcribe-*.wav` may sit untouched before it counts as leaked by a
+/// run that died without running `Drop` (SIGKILL/SIGTERM). Age-based, no `/proc`.
+const STALE_WAV_AGE: std::time::Duration = std::time::Duration::from_secs(60 * 60);
+
+/// Remove this command's own leaked temp wavs in `dir` older than `STALE_WAV_AGE`.
+fn sweep_stale_wavs(dir: &Path) -> usize {
+    let Ok(rd) = std::fs::read_dir(dir) else { return 0 };
+    let now = std::time::SystemTime::now();
+    let mut swept = 0;
+    for e in rd.flatten() {
+        let name = e.file_name().to_string_lossy().into_owned();
+        if !(name.starts_with("brana-transcribe-") && name.ends_with(".wav")) {
+            continue;
+        }
+        let stale = e
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| now.duration_since(t).ok())
+            .is_some_and(|age| age > STALE_WAV_AGE);
+        if stale && std::fs::remove_file(e.path()).is_ok() {
+            swept += 1;
+        }
+    }
+    swept
+}
+
+/// The input argument for ffmpeg: an absolute `file:` URL. With `-protocol_whitelist file`
+/// in front, a media file whose name looks like `concat:…`, `data:…` or a playlist is
+/// opened as a file and never parsed as a protocol (t-3480).
+fn ffmpeg_input(path: &Path) -> Result<String> {
+    let abs = std::path::absolute(path).with_context(|| format!("bad input path {}", path.display()))?;
+    Ok(format!("file:{}", abs.display()))
+}
+
+/// ffmpeg arguments that convert `input`'s audio to 16 kHz mono PCM wav at `out`.
+fn wav_ffmpeg_args(input: &Path, out: &Path) -> Result<Vec<String>> {
+    Ok(vec![
+        "-nostdin".into(), "-v".into(), "error".into(), "-y".into(),
+        "-protocol_whitelist".into(), "file".into(),
+        "-i".into(), ffmpeg_input(input)?,
+        "-vn".into(), "-ar".into(), "16000".into(), "-ac".into(), "1".into(), "-c:a".into(), "pcm_s16le".into(),
+        out.display().to_string(),
+    ])
+}
+
 /// Convert audio (or a video's audio track) to WAV 16kHz mono if needed.
 fn ensure_wav(path: &Path) -> Result<Wav> {
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -324,18 +386,17 @@ fn ensure_wav(path: &Path) -> Result<Wav> {
     match ext.to_lowercase().as_str() {
         "wav" | "mp3" => Ok(Wav::Original(path.to_path_buf())),
         _ => {
+            let tmp_dir = std::env::temp_dir();
+            sweep_stale_wavs(&tmp_dir);
             // Unique per run (created exclusively), so concurrent runs never share a file.
             let tmp = tempfile::Builder::new()
                 .prefix("brana-transcribe-")
                 .suffix(".wav")
-                .tempfile()
+                .tempfile_in(&tmp_dir)
                 .context("failed to create temp wav")?
                 .into_temp_path();
             let status = Command::new("ffmpeg")
-                .args(["-nostdin", "-v", "error", "-y", "-i"])
-                .arg(path)
-                .args(["-vn", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le"])
-                .arg(&*tmp)
+                .args(wav_ffmpeg_args(path, &tmp)?)
                 .status()
                 .context("ffmpeg not found — install ffmpeg for this audio format")?;
             if !status.success() {
@@ -373,20 +434,48 @@ fn is_video(path: &Path) -> bool {
 /// `showinfo` logs each kept frame's real `pts_time` (at info level, hence `-loglevel info`),
 /// which labels the frames — sampling never decides the label.
 /// Requires ffmpeg >= 5.1 (`-fps_mode`).
-fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Vec<String> {
-    vec![
+fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Result<Vec<String>> {
+    Ok(vec![
         "-hide_banner".into(),
         "-nostdin".into(),
         "-loglevel".into(), "info".into(),
         "-y".into(),
-        "-i".into(), input.display().to_string(),
+        "-protocol_whitelist".into(), "file".into(),
+        "-i".into(), ffmpeg_input(input)?,
         "-vf".into(),
         format!("select='{}',showinfo", sampling.select_expr()),
         "-fps_mode".into(), "vfr".into(),
         "-q:v".into(), "2".into(),
         // `%` is ffmpeg's image2 pattern char — escape it in the directory part.
         format!("{}/frame_%06d.jpg", dir.display().to_string().replace('%', "%%")),
-    ]
+    ])
+}
+
+/// Streaming reduction of ffmpeg's stderr: keeps the `showinfo` frame times and the last
+/// non-empty line (the error, when there is one) — never the whole log, which grows by one
+/// block per frame (t-3480).
+#[derive(Default)]
+struct StderrReducer {
+    times: Vec<f64>,
+    last: String,
+}
+
+impl StderrReducer {
+    fn push(&mut self, line: &str) {
+        self.times.extend(parse_pts_times(line));
+        if !line.trim().is_empty() {
+            self.last = line.to_string();
+        }
+    }
+}
+
+#[cfg(test)]
+fn reduce_ffmpeg_stderr<'a>(lines: impl Iterator<Item = &'a str>) -> (Vec<f64>, String) {
+    let mut r = StderrReducer::default();
+    for l in lines {
+        r.push(l);
+    }
+    (r.times, r.last)
 }
 
 /// `pts_time` of every frame `showinfo` reported, in output order.
@@ -458,8 +547,26 @@ fn validate_options(opts: &Options, input: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Create the frames dir private to the user (0o700) when this run creates it: frames of a
+/// private recording should not land world-readable in a shared location (t-3480). An
+/// existing dir keeps its mode.
+fn create_private_dir(dir: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        std::fs::DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
+    }
+    #[cfg(not(unix))]
+    {
+        std::fs::create_dir_all(dir)?;
+    }
+    Ok(())
+}
+
 /// Refuse a frames dir that already holds frames: the index is built from the directory,
-/// so leftovers from an earlier run would be listed with timestamps they don't have.
+/// so leftovers from an earlier run would be listed with timestamps they don't have — and
+/// a planted `frame_*` symlink in a shared dir would be followed by ffmpeg's `-y` (t-3480),
+/// so any `frame_*` entry, file or link, refuses the run before ffmpeg starts.
 fn check_frames_dir(dir: &Path) -> Result<()> {
     let Ok(rd) = std::fs::read_dir(dir) else { return Ok(()) };
     let stale = rd
@@ -474,11 +581,23 @@ fn check_frames_dir(dir: &Path) -> Result<()> {
 /// Extract frames; returns the index lines and a guard owning the written files.
 fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<String>, FramesGuard)> {
     check_frames_dir(dir)?;
-    std::fs::create_dir_all(dir)?;
-    let output = Command::new("ffmpeg")
-        .args(frames_ffmpeg_args(input, dir, sampling))
-        .output()
+    create_private_dir(dir)?;
+    let args = frames_ffmpeg_args(input, dir, sampling)?;
+    let mut child = Command::new("ffmpeg")
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
         .context("ffmpeg not found — install ffmpeg (>= 5.1) to extract frames")?;
+    // Stream stderr: one showinfo block per frame would otherwise be buffered whole.
+    let mut reducer = StderrReducer::default();
+    if let Some(stderr) = child.stderr.take() {
+        for line in std::io::BufReader::new(stderr).lines().map_while(Result::ok) {
+            reducer.push(&line);
+        }
+    }
+    let status = child.wait().context("ffmpeg did not exit")?;
     let mut files: Vec<String> = std::fs::read_dir(dir)?
         .flatten()
         .map(|e| e.file_name().to_string_lossy().into_owned())
@@ -486,12 +605,10 @@ fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<S
         .collect();
     files.sort();
     let guard = FramesGuard::new(files.iter().map(|f| dir.join(f)).collect());
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let last = stderr.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("");
-        bail!("ffmpeg frame extraction failed: {last}");
+    if !status.success() {
+        bail!("ffmpeg frame extraction failed: {}", reducer.last);
     }
-    let times = parse_pts_times(&String::from_utf8_lossy(&output.stderr));
+    let times = reducer.times;
     if times.len() != files.len() {
         bail!("ffmpeg reported {} frame times for {} frames", times.len(), files.len());
     }
@@ -752,9 +869,9 @@ mod tests {
 
     #[test]
     fn frames_args_sample_every_n_seconds() {
-        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Every(5));
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Every(5)).unwrap();
         let joined = args.join(" ");
-        assert!(joined.contains("-i in.mp4"));
+        assert!(joined.contains("-i file:/") && joined.contains("/in.mp4 -vf"), "{joined}");
         assert!(joined.contains("gte(t-prev_selected_t\\,5)',showinfo"));
         assert!(joined.ends_with("out/frame_%06d.jpg"));
         assert!(!args.contains(&"-vn".to_string()));
@@ -809,7 +926,7 @@ mod tests {
 
     #[test]
     fn frames_args_scene_select_keeps_first_frame_and_cuts() {
-        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Scene(0.3));
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Scene(0.3)).unwrap();
         let joined = args.join(" ");
         assert!(joined.contains("select='eq(n\\,0)+gt(scene\\,0.3)',showinfo"), "{joined}");
         assert!(!joined.contains("prev_selected_t"), "scene mode must not use the interval selector");
@@ -1010,7 +1127,7 @@ mod tests {
 
     #[test]
     fn frames_pattern_escapes_percent() {
-        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), Sampling::Every(5));
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), Sampling::Every(5)).unwrap();
         assert!(args.last().unwrap().ends_with("out%%d/frame_%06d.jpg"));
     }
 
