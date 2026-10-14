@@ -17,6 +17,8 @@ assert "registry value is a list of entries" grep -qE '"<name>@<marketplace>": \
 assert "entries carry scope/installPath/version/installedAt (engine fields)" grep -q '"scope"' "$SKILL"
 assert "the old hand-rolled shape is gone" bash -c "! grep -q '\"<name>\": {' '$SKILL'"
 assert "add step points at mods-check.sh --installed before activation" grep -q 'mods-check.sh --installed' "$SKILL"
+assert "add step runs the DEPLOYED checker (~/.claude/scripts), not a repo-relative path" grep -q '\$HOME/.claude/scripts/mods-check.sh --installed' "$SKILL"
+assert "add step warns that a hand merge races a concurrent claude plugin install" grep -qi 'concurrent' "$SKILL"
 assert "add step names the session-start re-check" grep -q 'mods-installed-check.sh' "$SKILL"
 assert "add step names ADR-096 Law 3 as the reason" grep -q 'Law 3' "$SKILL"
 assert "remove step deletes the <name>@<marketplace> key" grep -qE 'Remove .*<name>@<marketplace>' "$SKILL"

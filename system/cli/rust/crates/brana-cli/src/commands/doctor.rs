@@ -625,6 +625,33 @@ mod tests {
     }
 
     #[test]
+    fn test_check_plugin_empty_entry_list_is_not_registered() {
+        // panel (t-3502): a `brana@m: []` key means every install scope was removed; "unknown"
+        // must not pass as registered.
+        let tmp = TempDir::new().unwrap();
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana@brana":[]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(!result.passed, "{}", result.detail);
+        assert!(result.detail.contains("no install entries"), "{}", result.detail);
+    }
+
+    #[test]
+    fn test_check_plugin_similar_key_does_not_match() {
+        let tmp = TempDir::new().unwrap();
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana-foo@m":[{"version":"9.9.9"}],"notbrana":{"version":"1"}}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(!result.passed, "brana-foo@m / notbrana must not pass as brana: {}", result.detail);
+    }
+
+    #[test]
     fn test_check_plugin_engine_registry_wins_over_legacy() {
         let tmp = TempDir::new().unwrap();
         create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "0.0.1"}}"#);
