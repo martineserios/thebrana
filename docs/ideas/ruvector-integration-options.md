@@ -239,6 +239,52 @@ becomes both the benchmark source and the staleness signal.
 question; the last message asked to **understand the memory layers and architecture first**. So the
 order is unconfirmed. Still to do in the discussion: confirm the order after the architecture
 read, run the pre-mortem round, then Phase 4 (shape) and Phase 5 (output, backlog plan).
+*(Resolved in Round 6, session 2026-10-14 resume.)*
+
+**Round 6 (resume: restate the purpose, test it against the goals, confirm the order).**
+
+What brana is building and where recall fits, in six lines:
+
+1. Brana turns intent into shipped work through four rings (Micro, Beat, Epic, Knowledge). The
+   rings forget; memory is the only thing that crosses between them.
+2. Each ring should recall on entry and write back on exit. That is the Knowledge ring, which is
+   still mostly design.
+3. The proven ring is Beat: a fresh-context worker pulls a task, does it and reports. It reads only
+   the task `context` field and `CONTEXT.md`. It has no recall step.
+4. Recall today serves only interactive `/brana:build` LOAD and SessionStart. Nothing measures
+   whether recalled notes helped, and nothing resolves supersession at recall time.
+5. Pocock tie-break: the ticket body, `CONTEXT.md` and ADRs stay the worker's main instruction (his
+   "the issue is a complete instruction"). Recall adds only what his single-session scope lacks
+   (cross-session learnings) and delivers them as pointers (a slug plus a one-line gist), never
+   pasted text. The bundle is computed at pull time and is not stored into `context`: derive, do not
+   store a parallel signal (ADR-086 §7, ADR-078).
+6. The product is a small, typed context bundle given to each worker when it pulls a task, plus a
+   usage log comparing the notes recalled with the notes the task cited. That log becomes the
+   benchmark, the staleness signal and the Knowledge-ring gauge.
+
+Test against the owner's goals:
+
+| Goal | Fit | Note |
+|---|---|---|
+| Precision first | strong | measurable as cited ÷ recalled: on the 103 mined pairs now, and live through the usage log later |
+| Speed second | partial | the real lever is the in-process embedder (~700 ms → tens of ms); HNSW makes no visible difference at 7.7k vectors; this is week 2 |
+| Context bundle | week 1 | the core deliverable |
+| Conflict and staleness | partial in week 1 | a supersession filter at recall time is cheap; the non-use staleness rule needs log data, so week 2+ |
+| Multi-hop A → B | 1-hop slice only | 1-hop over links that already resolve, behind a flag, kept only if it lifts the benchmark; full multi-hop needs the 41% dangling links repaired first |
+| Same pattern, other domain | deferred | rare, no gold set; **the honest gap against "all four"** |
+| No API key, no GPU, 3 GB RAM | fits | the ONNX MiniLM model is about 90 MB |
+
+**Decision (owner, 2026-10-14): tracer bullet first** (Pocock's slicing preferred over the Round 4
+benchmark-first order, applying the tie-break rule). Week 1:
+
+- Days 1–2: build a thin end-to-end path. A bundle verb (task id → typed pointers) runs on today's
+  `brana recall`, is wired into Beat and Epic worker pull (`drain-loop.md`, `epic-drain.md`), and
+  writes a usage log (bundle note ids at pull; notes the task cited at close).
+- Days 3–5: mine the benchmark from history and pre-register keep/kill gates, then improve ranking
+  against it: per-type quotas, MMR diversity, a ~1.5K-token budget, a supersession filter, and 1-hop
+  link expansion behind a flag. Each change is kept only if it passes the gates.
+- Week 2: the embedder parity spike (speed), the staleness rule from usage-log data, link repair,
+  and the t-3510/t-3511 merge decision.
 
 ## Proposed plan (unconfirmed, pending the architecture check)
 
