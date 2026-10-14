@@ -86,6 +86,18 @@ pub fn resolve_ruflo_binary() -> Option<PathBuf> {
     None
 }
 
+/// Shield text from ruflo's flag parser: a `-t` value that starts with `-` is read
+/// as an option, so the CLI crashes with "text.substring is not a function" and
+/// returns no embedding. A leading space is invisible to the tokenizer. Found
+/// t-3510: 791 of 1,106 memory files open with a `---` frontmatter fence.
+pub(crate) fn argv_safe_text(text: &str) -> std::borrow::Cow<'_, str> {
+    if text.starts_with('-') {
+        std::borrow::Cow::Owned(format!(" {text}"))
+    } else {
+        std::borrow::Cow::Borrowed(text)
+    }
+}
+
 /// Similarity threshold for semantic search over ruflo namespaces.
 ///
 /// **Always pass this (or an explicit value) — never `None` for a namespaced
@@ -127,7 +139,8 @@ pub fn ruflo_memory_search_raw(
     let mut cmd = std::process::Command::new(&ruflo);
     cmd.args([
         "memory", "search",
-        "-q", query,
+        // A query starting with `-` would be read as a flag (t-3510 gate, F14).
+        "-q", &argv_safe_text(query),
         "--namespace", namespace,
         "--limit", &limit_str,
     ])

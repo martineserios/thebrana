@@ -72,12 +72,14 @@ impl FTS5Provider {
 
 impl SearchProvider for FTS5Provider {
     fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
-        let hits = crate::memory::search_fts(&self.db_path, q, top_k)
+        // Over-fetch so ghost hits filtered below cannot crowd out live ones.
+        let hits = crate::memory::search_fts(&self.db_path, q, top_k * 2 + 5)
             .unwrap_or_default();
         hits.into_iter()
             // The index is rebuilt weekly; a note deleted since then must not
             // surface with a dangling path (t-3510 gate, F2).
             .filter(|h| std::path::Path::new(&h.path).exists())
+            .take(top_k)
             .map(|h| SearchHit {
                 doc: DocRef::MemoryFile {
                     path: PathBuf::from(&h.path),

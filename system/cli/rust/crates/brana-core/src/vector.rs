@@ -16,6 +16,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result, bail};
 use rusqlite::{Connection, OpenFlags, params};
 
+use crate::ruflo::argv_safe_text;
 use crate::search::{DocRef, SearchHit, SearchProvider};
 
 /// Embedding dimensionality (all-MiniLM-L6-v2).
@@ -686,14 +687,18 @@ impl SearchProvider for VectorProvider {
                     MemoryScope::Only if !is_memory => return None,
                     _ => {}
                 }
+                let v = blob_to_vec(&blob)?;
+                let score = cosine(&qvec, &v);
+                if score < self.threshold {
+                    return None;
+                }
                 // A memory row whose file is gone (deleted, archived, renamed before
-                // embed-memory reran) never surfaces (t-3510 gate, F2).
+                // embed-memory reran) never surfaces (t-3510 gate, F2). Checked after
+                // the threshold so only candidates pay the stat.
                 if is_memory && !crate::memory_vectors::memory_row_path(&key).is_some_and(|p| p.exists()) {
                     return None;
                 }
-                let v = blob_to_vec(&blob)?;
-                let score = cosine(&qvec, &v);
-                (score >= self.threshold).then_some((score, key, content, tags, source))
+                Some((score, key, content, tags, source))
             })
             .collect();
         scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
@@ -959,17 +964,6 @@ pub fn probe_memory_entries(path: &Path) -> bool {
 /// any resolution/spawn/parse failure returns `None`.
 pub struct RufloEmbedder;
 
-/// Shield text from ruflo's flag parser: a `-t` value that starts with `-` is read
-/// as an option, so the CLI crashes with "text.substring is not a function" and
-/// returns no embedding. A leading space is invisible to the tokenizer. Found
-/// t-3510: 791 of 1,106 memory files open with a `---` frontmatter fence.
-pub(crate) fn argv_safe_text(text: &str) -> std::borrow::Cow<'_, str> {
-    if text.starts_with('-') {
-        std::borrow::Cow::Owned(format!(" {text}"))
-    } else {
-        std::borrow::Cow::Borrowed(text)
-    }
-}
 
 impl Embedder for RufloEmbedder {
     fn embed(&self, text: &str) -> Option<Vec<f32>> {

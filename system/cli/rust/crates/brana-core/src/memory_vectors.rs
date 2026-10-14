@@ -68,9 +68,10 @@ fn now_ms() -> i64 {
 ///   leaves no new row; an older row for it, if any, is kept rather than pruned,
 ///   so a transient embedder outage never deletes working recall.
 /// - A row of source [`MEMORY_SOURCE`] is pruned only when its file is absent
-///   from a dir that listed *completely*. A dir that failed to list (missing,
-///   unreadable, unmounted) prunes nothing, so a read failure never deletes
-///   recall (t-3510 gate, F5). Rows from other sources are never touched.
+///   from a dir that listed *completely*. A dir that failed to list or is missing
+///   (unreadable, unmounted, moved) prunes nothing, so a read failure never
+///   deletes recall (t-3510 gate, F5); recall hides hits whose file is gone.
+///   Rows from other sources are never touched.
 pub fn embed_memory_files(
     store: &KnowledgeStore,
     listing: &MemoryListing,

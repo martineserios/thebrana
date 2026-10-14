@@ -509,14 +509,19 @@ pub fn memory_dirs_in(home_dir: &Path) -> Result<Vec<(String, PathBuf)>> {
 
 /// What a scan of memory dirs found, and which dirs were read completely.
 ///
-/// A dir that cannot be read (missing, unreadable, an entry error mid-read) is a
-/// *failed* dir, never an empty one: callers that delete or rebuild must leave
-/// its scope alone (t-3510 gate, F5).
+/// Three outcomes per dir (t-3510 gate, F5):
+/// - *complete*: listed fully; its absent files may be pruned.
+/// - *failed*: exists but could not be read (permissions, entry error mid-read).
+///   Never treated as empty: rebuilds refuse and nothing under it is pruned.
+/// - *missing*: does not exist (fresh machine, moved or unmounted dir). Rebuilds
+///   skip it as they always did; nothing under it is pruned, and recall hides
+///   hits whose file is gone.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct MemoryListing {
     pub files: Vec<MemoryFileRef>,
     pub complete_dirs: Vec<PathBuf>,
     pub failed_dirs: Vec<PathBuf>,
+    pub missing_dirs: Vec<PathBuf>,
 }
 
 /// List the `*.md` files (excluding `MEMORY.md`) of each `(scope, dir)` pair, sorted
@@ -524,9 +529,16 @@ pub struct MemoryListing {
 pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
     let mut listing = MemoryListing::default();
     for (scope, dir) in dirs {
-        let Ok(read) = fs::read_dir(dir) else {
-            listing.failed_dirs.push(dir.clone());
-            continue;
+        let read = match fs::read_dir(dir) {
+            Ok(read) => read,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                listing.missing_dirs.push(dir.clone());
+                continue;
+            }
+            Err(_) => {
+                listing.failed_dirs.push(dir.clone());
+                continue;
+            }
         };
         let mut complete = true;
         let mut paths: Vec<PathBuf> = Vec::new();
@@ -566,9 +578,9 @@ pub fn list_memory_files(dirs: &[(String, PathBuf)]) -> Vec<MemoryFileRef> {
 /// verbatim. The table is dropped and recreated so the index never drifts from
 /// the filesystem.
 ///
-/// Refuses to rebuild when any dir fails to list, before touching the table, so a
-/// transient read failure keeps the previous index instead of committing a
-/// partial one (t-3510 gate, F5).
+/// Refuses to rebuild when any existing dir fails to list, before touching the
+/// table, so a transient read failure keeps the previous index instead of
+/// committing a partial one (t-3510 gate, F5). Missing dirs are skipped.
 pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<usize> {
     let listing = list_memory_listing(dirs);
     if !listing.failed_dirs.is_empty() {
