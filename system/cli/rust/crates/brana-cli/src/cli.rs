@@ -182,9 +182,14 @@ pub enum Commands {
         /// timestamped transcript plus frame index. Needs ffmpeg >= 5.1
         #[arg(long, value_name = "DIR")]
         frames: Option<PathBuf>,
-        /// Seconds between extracted frames (requires --frames)
+        /// Seconds between extracted frames (requires --frames; excludes --scene)
         #[arg(long, default_value_t = 10, requires = "frames")]
         every: u32,
+        /// Instead of a fixed interval, keep the first frame plus every scene change whose
+        /// ffmpeg scene score exceeds THRESHOLD (0 < x <= 1; 0.3 is a typical cut detector).
+        /// Requires --frames; excludes --every
+        #[arg(long, value_name = "THRESHOLD", requires = "frames", conflicts_with = "every")]
+        scene: Option<f64>,
     },
     /// Manage tracked large files (models, assets, datasets)
     Files {

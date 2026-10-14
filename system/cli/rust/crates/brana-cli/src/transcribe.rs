@@ -26,8 +26,48 @@ pub struct Options {
     pub model: Option<String>,
     /// Video only: extract frames into this directory.
     pub frames_dir: Option<PathBuf>,
-    /// Seconds between extracted frames.
+    /// Seconds between extracted frames (ignored when `scene` is set).
     pub every: u32,
+    /// Sample on scene changes above this ffmpeg scene score (0 < x <= 1) instead of every N s.
+    pub scene: Option<f64>,
+}
+
+/// Which frames `--frames` keeps: one every N seconds, or the first frame plus every
+/// scene change above a threshold. Only the selection differs — labels always come from
+/// `showinfo` `pts_time` (t-3471).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Sampling {
+    Every(u32),
+    Scene(f64),
+}
+
+impl Sampling {
+    fn from_options(opts: &Options) -> Self {
+        match opts.scene {
+            Some(t) => Sampling::Scene(t),
+            None => Sampling::Every(opts.every),
+        }
+    }
+
+    /// ffmpeg `select` expression for this sampling mode.
+    fn select_expr(self) -> String {
+        match self {
+            // Keeps the first frame, then the first frame >= N s after the last kept one.
+            // (`fps=1/N` rounds to the nearest tick and was measured shifting frames by seconds.)
+            Sampling::Every(n) => format!("isnan(prev_selected_t)+gte(t-prev_selected_t\\,{n})"),
+            // The first frame (scene score is undefined there) plus every frame whose scene
+            // score — ffmpeg's 0..1 change-vs-previous-frame measure — exceeds the threshold.
+            Sampling::Scene(t) => format!("eq(n\\,0)+gt(scene\\,{t})"),
+        }
+    }
+
+    /// Short label for the frame-index header.
+    fn describe(self) -> String {
+        match self {
+            Sampling::Every(n) => format!("every {n}s"),
+            Sampling::Scene(t) => format!("scene>{t}"),
+        }
+    }
 }
 
 /// First 4 bytes of every whisper.cpp ggml model file ("ggml" as a little-endian u32).
@@ -328,21 +368,19 @@ fn is_video(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// ffmpeg arguments that sample one JPEG every `every` seconds into `dir`.
+/// ffmpeg arguments that write the frames `sampling` selects as JPEGs into `dir`.
 /// `showinfo` logs each kept frame's real `pts_time` (at info level, hence `-loglevel info`),
 /// which labels the frames — sampling never decides the label.
 /// Requires ffmpeg >= 5.1 (`-fps_mode`).
-fn frames_ffmpeg_args(input: &Path, dir: &Path, every: u32) -> Vec<String> {
+fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Vec<String> {
     vec![
         "-hide_banner".into(),
         "-nostdin".into(),
         "-loglevel".into(), "info".into(),
         "-y".into(),
         "-i".into(), input.display().to_string(),
-        // `select` keeps the first frame, then the first frame >= N s after the last kept one.
-        // (`fps=1/N` rounds to the nearest tick and was measured shifting frames by seconds.)
         "-vf".into(),
-        format!("select='isnan(prev_selected_t)+gte(t-prev_selected_t\\,{every})',showinfo"),
+        format!("select='{}',showinfo", sampling.select_expr()),
         "-fps_mode".into(), "vfr".into(),
         "-q:v".into(), "2".into(),
         // `%` is ffmpeg's image2 pattern char — escape it in the directory part.
@@ -402,9 +440,17 @@ fn validate_options(opts: &Options, input: &Path) -> Result<()> {
         if !is_video(input) {
             bail!("--frames needs a video input ({})", VIDEO_EXTS.join(", "));
         }
-        if opts.every == 0 {
-            bail!("--every must be at least 1 second");
+        match opts.scene {
+            // NaN fails both comparisons, so it is rejected by the negated range check.
+            Some(t) if !(t > 0.0 && t <= 1.0) => {
+                bail!("--scene must be a scene score in (0, 1], e.g. 0.3 (got {t})")
+            }
+            Some(_) => {}
+            None if opts.every == 0 => bail!("--every must be at least 1 second"),
+            None => {}
         }
+    } else if opts.scene.is_some() {
+        bail!("--scene requires --frames");
     }
     Ok(())
 }
@@ -423,11 +469,11 @@ fn check_frames_dir(dir: &Path) -> Result<()> {
 }
 
 /// Extract frames; returns the index lines and a guard owning the written files.
-fn extract_frames(input: &Path, dir: &Path, every: u32) -> Result<(Vec<String>, FramesGuard)> {
+fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<String>, FramesGuard)> {
     check_frames_dir(dir)?;
     std::fs::create_dir_all(dir)?;
     let output = Command::new("ffmpeg")
-        .args(frames_ffmpeg_args(input, dir, every))
+        .args(frames_ffmpeg_args(input, dir, sampling))
         .output()
         .context("ffmpeg not found — install ffmpeg (>= 5.1) to extract frames")?;
     let mut files: Vec<String> = std::fs::read_dir(dir)?
@@ -476,7 +522,7 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
     let frames = match &opts.frames_dir {
         Some(dir) => {
             eprintln!("Extracting frames...");
-            Some(extract_frames(audio_path, dir, opts.every)?)
+            Some(extract_frames(audio_path, dir, Sampling::from_options(opts))?)
         }
         None => None,
     };
@@ -530,9 +576,9 @@ pub fn transcribe(audio_path: &Path, opts: &Options) -> Result<String> {
         (Some((index, guard)), Some(dir)) => {
             guard.keep();
             Ok(format!(
-            "{text}\n\nFrames ({} every {}s):\n{}",
+            "{text}\n\nFrames ({} {}):\n{}",
             dir.display(),
-            opts.every,
+            Sampling::from_options(opts).describe(),
             index.join("\n")
             ))
         }
@@ -952,7 +998,7 @@ mod tests {
 
     #[test]
     fn frames_pattern_escapes_percent() {
-        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), 5);
+        let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), Sampling::Every(5));
         assert!(args.last().unwrap().ends_with("out%%d/frame_%06d.jpg"));
     }
 
