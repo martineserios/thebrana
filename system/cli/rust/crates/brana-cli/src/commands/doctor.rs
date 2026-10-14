@@ -590,6 +590,68 @@ mod tests {
         assert!(result.detail.contains("not found"));
     }
 
+    // t-3502: the engine's registry is ~/.claude/plugins/installed_plugins.json (v2: a
+    // `plugins` object keyed `<name>@<marketplace>`, each value a LIST of entries). The old
+    // ~/.claude/installed_plugins.json is a legacy hand-written file nothing else reads.
+    #[test]
+    fn test_check_plugin_reads_engine_v2_registry() {
+        let tmp = TempDir::new().unwrap();
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"other@m":[{"scope":"user","version":"0.1.0"}],"brana@brana":[{"scope":"user","installPath":"/x","version":"1.4.2"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("1.4.2"));
+        assert!(result.detail.contains("brana@brana"));
+    }
+
+    #[test]
+    fn test_check_plugin_engine_registry_wins_over_legacy() {
+        let tmp = TempDir::new().unwrap();
+        create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "0.0.1"}}"#);
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana@brana":[{"version":"2.0.0"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("2.0.0"), "engine registry must win: {}", result.detail);
+    }
+
+    #[test]
+    fn test_check_plugin_engine_registry_without_brana_fails_naming_the_engine_path() {
+        let tmp = TempDir::new().unwrap();
+        create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "0.0.1"}}"#);
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"other@m":[{"version":"0.1.0"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(!result.passed, "a stale legacy file must not mask an engine registry without brana");
+        assert!(result.detail.contains("plugins/installed_plugins.json"));
+    }
+
+    #[test]
+    fn test_check_plugin_legacy_only_is_reported_as_legacy() {
+        let tmp = TempDir::new().unwrap();
+        create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "1.0.0"}}"#);
+        let result = check_plugin(tmp.path());
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("legacy"), "must say the engine registry is absent: {}", result.detail);
+    }
+
+    #[test]
+    fn test_check_plugin_neither_file_names_the_engine_path() {
+        let tmp = TempDir::new().unwrap();
+        let result = check_plugin(tmp.path());
+        assert!(!result.passed);
+        assert!(result.detail.contains("plugins/installed_plugins.json"), "{}", result.detail);
+    }
+
     #[test]
     fn test_check_plugin_invalid_json() {
         let tmp = TempDir::new().unwrap();
