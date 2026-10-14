@@ -668,8 +668,11 @@ in their own list and fuses it with the keyword and knowledge lists through RRF.
   changed.
 - **`--force`** re-embeds every file. Use it after an embedder or model change.
 - **Pruning.** Rows whose file is gone are deleted only for folders that listed
-  completely. A folder that is missing or unreadable prunes nothing, and its
-  name is reported on stderr.
+  completely. A folder that is missing or unreadable prunes nothing; each one is
+  named on stderr and listed in `--json` (`failed_dirs`, `missing_dirs`). The
+  command still exits 0, because the other folders were embedded.
+- **First run after upgrading** to the version-tagged format re-embeds every
+  existing row once (rows written before the `emb:` tag existed lack it).
 - **Fail-open.** If ruflo returns nothing for every file the command exits
   non-zero with a clear message; recall keeps working on keywords alone.
 - **When to run.** After memory files change. It is not scheduled yet (t-3511);
@@ -677,9 +680,10 @@ in their own list and fuses it with the keyword and knowledge lists through RRF.
   surfaces a deleted note.
 - **Known limitation.** Text that is purely a number (for example a query of
   `2026`) cannot be embedded through the ruflo CLI; that call fails open to the
-  keyword leg. The in-process embedder spike (t-3522) removes this class.
+  keyword leg. The in-process embedder spike (t-3522) is expected to remove
+  this class if it is adopted.
 
-`--json` prints `{dest, scanned, embedded, unchanged, pruned, failed}`.
+`--json` prints `{dest, scanned, embedded, unchanged, pruned, failed, failed_dirs, missing_dirs}`.
 
 ---
 

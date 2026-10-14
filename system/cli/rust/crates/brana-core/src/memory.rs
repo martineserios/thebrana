@@ -496,8 +496,13 @@ pub fn memory_dirs_in(home_dir: &Path) -> Result<Vec<(String, PathBuf)>> {
             for entry in entries {
                 let entry = entry.with_context(|| format!("reading {}", projects.display()))?;
                 let mem_dir = entry.path().join("memory");
-                if mem_dir.is_dir() {
-                    dirs.push(("project".to_string(), mem_dir));
+                // `is_dir()` would turn a stat error into "no memory dir" and drop
+                // the project from a rebuild silently (t-3510 gate, iteration 2).
+                match fs::metadata(&mem_dir) {
+                    Ok(m) if m.is_dir() => dirs.push(("project".to_string(), mem_dir)),
+                    Ok(_) => {}
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e).with_context(|| format!("checking {}", mem_dir.display())),
                 }
             }
         }
@@ -593,28 +598,37 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
     if let Some(parent) = db_path.parent() {
         fs::create_dir_all(parent)?;
     }
+    // Read every file before touching the index: an unreadable note aborts the
+    // rebuild instead of being indexed as empty text (t-3510 gate, iteration 2).
+    let mut docs = Vec::with_capacity(listing.files.len());
+    for f in listing.files {
+        let content = fs::read_to_string(&f.path)
+            .with_context(|| format!("memory reindex: reading {} (index left unchanged)", f.path.display()))?;
+        docs.push((f, content));
+    }
+
     let mut conn = Connection::open(db_path)
         .with_context(|| format!("opening FTS index db: {}", db_path.display()))?;
 
-    conn.execute_batch(
+    let mut count = 0usize;
+    // DROP, CREATE and every insert commit together, so a failure mid-rebuild
+    // leaves the previous index in place rather than an empty one.
+    let tx = conn.transaction()?;
+    tx.execute_batch(
         "DROP TABLE IF EXISTS memory_fts;
          CREATE VIRTUAL TABLE memory_fts USING fts5(
              slug, mtype, scope, path UNINDEXED, content
          );",
     )
     .context("creating memory_fts table")?;
-
-    let mut count = 0usize;
-    let tx = conn.transaction()?;
     {
         let mut insert = tx.prepare(
             "INSERT INTO memory_fts (slug, mtype, scope, path, content)
              VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
 
-        for f in listing.files {
+        for (f, content) in docs {
             // Content read verbatim — bound parameter, no escaping needed.
-            let content = fs::read_to_string(&f.path).unwrap_or_default();
             insert.execute(rusqlite::params![
                 f.slug,
                 f.mtype,

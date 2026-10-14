@@ -198,9 +198,12 @@ const K: usize = 20;
 /// Minimum candidate pool fetched from each provider before RRF truncation.
 const MIN_CANDIDATE_POOL: usize = 20;
 
-/// Parallel-dispatch recall provider that queries `FTS5Provider` and
-/// `RufloProvider` simultaneously, then merges results with Reciprocal Rank
-/// Fusion (k=20, no dedup — see ADR-058 §5–6).
+/// Parallel-dispatch recall provider: queries a keyword leg (`FTS5Provider`), a
+/// semantic leg (in production a knowledge-entry `VectorProvider`; historically
+/// `RufloProvider`) and any extra legs added with `with_extra` (the memory-file
+/// vector leg, t-3510) simultaneously, then merges results with Reciprocal Rank
+/// Fusion (k=20, no dedup — see ADR-058 §5–6). Semantic and extra legs share one
+/// absolute deadline.
 ///
 /// Degrades gracefully on timeout:
 /// - FTS5 misses its 500ms deadline → ruflo-only results (not empty).

@@ -4501,6 +4501,9 @@ pub fn cmd_embed_memory(dest: Option<PathBuf>, force: bool, json: bool) -> Resul
     for dir in &listing.failed_dirs {
         eprintln!("embed-memory: could not list {} — its rows are kept, not pruned", dir.display());
     }
+    for dir in &listing.missing_dirs {
+        eprintln!("embed-memory: {} does not exist — its rows are kept, not pruned", dir.display());
+    }
     let stats = brana_core::memory_vectors::embed_memory_files(
         &store,
         &listing,
@@ -4527,6 +4530,8 @@ pub fn cmd_embed_memory(dest: Option<PathBuf>, force: bool, json: bool) -> Resul
                 "unchanged": stats.unchanged,
                 "pruned": stats.pruned,
                 "failed": stats.failed,
+                "failed_dirs": listing.failed_dirs,
+                "missing_dirs": listing.missing_dirs,
             })
         );
     } else {

@@ -78,7 +78,7 @@ for q in qs:
 
 at_deadline = sum(1 for x in lat if x >= 2.0)
 mix = (f"| top-{top} mix: memory {statistics.mean(mem_share):.0%} / knowledge {statistics.mean(kn_share):.0%} "
-       if mem_share else "| top-{top} mix: n/a ")
+       if mem_share else f"| top-{top} mix: n/a ")
 print(f"recall-eval: hits@{top} = {hits}/{len(qs)} | in-scope {reach_hits}/{reach} "
       f"{mix}| median latency {statistics.median(lat):.2f}s ({at_deadline} at the 2 s deadline) | bin={brana}")
 for n, key, got, scoped in misses:

@@ -92,9 +92,25 @@ confirmed these defects in the first version; all are fixed with tests:
   `embeddings generate -t` (`ruflo::argv_safe_text`).
 - **Eval counter-metric.** `recall-eval.sh` also reports the top-k mix of memory
   files versus knowledge entries, and how many calls sat at the 2 s deadline.
+  **Not yet measured:** recording the mix for the baseline binary versus this
+  build needs the live store embedded (about an hour, after deploy). Pending step
+  at ship: run `brana knowledge embed-memory`, then `recall-eval.sh` with both
+  binaries, and record both summary lines here. AC3's 16/16 was measured before
+  the gate repairs and is expected unchanged.
+- **Reindex is atomic and strict** (gate iteration 2): DROP, CREATE and inserts
+  commit in one transaction; a note file that cannot be read aborts the rebuild
+  and keeps the previous index; a project memory folder that cannot be checked
+  is an error. `brana memory reindex` and the scheduler job `reindex-patterns`
+  can therefore now exit non-zero where they used to succeed with a partial
+  index; the failure names the folder or file.
+- **Known gaps kept on purpose:** a project folder removed outright is neither
+  listed nor pruned (its rows stay, hidden by the ghost filter); after a mass
+  archive the keyword leg's fixed over-fetch (`top_k*2+5`) can still be starved
+  until the weekly reindex; `EMBED_VERSION` is maintained by hand (`--force`
+  covers a silent model change).
 
 Not fixed here, tracked elsewhere: purely numeric text cannot be embedded through
-the ruflo CLI (t-3522 removes the CLI transport); `memory store --value` text is
+the ruflo CLI (the t-3522 spike may remove the CLI transport); `memory store --value` text is
 not shielded (t-3532); concurrent `embed-memory` runs (t-3511
 scheduling); per-project scoping of recall results (ADR-099, t-3516).
 
