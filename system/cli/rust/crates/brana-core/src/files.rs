@@ -68,19 +68,16 @@ impl Manifest {
         self.files
             .iter()
             .map(|(name, entry)| {
-                let full_path = if Path::new(&entry.path).is_absolute() {
-                    PathBuf::from(&entry.path)
-                } else {
-                    project_dir.join(&entry.path)
-                };
-                let state = if !full_path.exists() {
-                    FileState::Missing
-                } else {
-                    match file_sha256(&full_path) {
+                // An entry that would escape the project is an error, never Ok — even when
+                // the out-of-tree file's hash matches (t-3473 challenger F2).
+                let state = match validate_entry(project_dir, entry) {
+                    Err(_) => FileState::Error,
+                    Ok(full_path) if !full_path.exists() => FileState::Missing,
+                    Ok(full_path) => match file_sha256(&full_path) {
                         Ok(hash) if hash == entry.sha256 => FileState::Ok,
                         Ok(hash) => FileState::Modified { actual_hash: hash },
                         Err(_) => FileState::Error,
-                    }
+                    },
                 };
                 FileStatus {
                     name: name.clone(),
@@ -247,22 +244,82 @@ impl Sha256 {
 /// download keeps writing its part file, an interrupted one never touches it again.
 pub const STALE_PART_AGE: std::time::Duration = std::time::Duration::from_secs(60 * 60);
 
-/// In-progress download path for `dest`: `<dest>.part-<pid>`. Never matches the final
-/// name, so discovery and hash checks never see a half-written file (t-3473).
+/// `<name>.part-<pid>[-<hex>]` — the only shape this module ever writes, so the only
+/// shape the sweep may delete. `chapter.part-2.md` or `big.tar.gz.part-aa` are user files.
+pub fn is_part_name(name: &str) -> bool {
+    let Some((stem, rest)) = name.rsplit_once(".part-") else { return false };
+    if stem.is_empty() {
+        return false;
+    }
+    let (pid, rand) = match rest.split_once('-') {
+        Some((p, r)) => (p, Some(r)),
+        None => (rest, None),
+    };
+    let digits = !pid.is_empty() && pid.bytes().all(|b| b.is_ascii_digit());
+    let hex = rand.is_none_or(|r| !r.is_empty() && r.bytes().all(|b| b.is_ascii_hexdigit()));
+    digits && hex
+}
+
+/// Eight hex chars that differ per call (time, pid, counter, xorshift-mixed). Not
+/// cryptographic — it only has to make the part name unguessable enough that a committed
+/// symlink cannot sit at it, and distinct across pid namespaces sharing a directory.
+fn part_suffix() -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
+    let mut x = nanos
+        ^ ((std::process::id() as u64) << 32)
+        ^ COUNTER.fetch_add(1, Ordering::Relaxed).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+    format!("{:08x}", x as u32)
+}
+
+/// A fresh in-progress download path for `dest`: `<dest>.part-<pid>-<hex>`. Never matches
+/// the final name, so discovery and hash checks never see a half-written file (t-3473).
 pub fn part_path(dest: &Path) -> PathBuf {
     let mut name = dest.file_name().unwrap_or_default().to_os_string();
-    name.push(format!(".part-{}", std::process::id()));
+    name.push(format!(".part-{}-{}", std::process::id(), part_suffix()));
     dest.with_file_name(name)
 }
 
-/// Remove `*.part-*` files in `dir` untouched for longer than `STALE_PART_AGE`
-/// (left by a killed download). Missing dir is a no-op. Returns how many were removed.
+/// Create the part file before curl opens it: `O_CREAT|O_EXCL` refuses an existing file
+/// *or symlink* at that name, so a hostile checkout cannot redirect the write.
+fn create_part(dest: &Path) -> Result<PathBuf> {
+    for _ in 0..8 {
+        let p = part_path(dest);
+        match std::fs::OpenOptions::new().write(true).create_new(true).open(&p) {
+            Ok(_) => return Ok(p),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e).with_context(|| format!("cannot create {}", p.display())),
+        }
+    }
+    bail!("could not create a fresh part file for {}", dest.display())
+}
+
+/// Remove this module's own `<name>.part-<pid>[-<hex>]` files in `dir` untouched for
+/// longer than `STALE_PART_AGE` (left by a killed download). Missing dir is a no-op.
+/// Returns how many were removed. For a dedicated cache dir; a download sweeps only its
+/// own basename (`sweep_parts_for`).
 pub fn sweep_stale_parts(dir: &Path) -> usize {
+    sweep_parts(dir, None)
+}
+
+fn sweep_parts(dir: &Path, only_for: Option<&std::ffi::OsStr>) -> usize {
     let Ok(rd) = std::fs::read_dir(dir) else { return 0 };
     let now = std::time::SystemTime::now();
+    let prefix = only_for.map(|b| format!("{}.part-", b.to_string_lossy()));
     let mut swept = 0;
     for e in rd.flatten() {
-        if !e.file_name().to_string_lossy().contains(".part-") {
+        let name = e.file_name().to_string_lossy().into_owned();
+        if !is_part_name(&name) {
+            continue;
+        }
+        if prefix.as_deref().is_some_and(|p| !name.starts_with(p)) {
             continue;
         }
         let stale = e
@@ -289,8 +346,11 @@ pub fn validate_url(url: &str) -> Result<()> {
 }
 
 /// Resolve a manifest entry to a path inside `project_dir`, refusing anything a hostile
-/// manifest could use to write elsewhere: absolute paths, `..` (or any non-plain)
-/// components, empty paths. Validates the URL when present. Writes nothing.
+/// manifest could use to read or write elsewhere: absolute paths, `..` (or any non-plain)
+/// components, empty paths, and — because a checkout can commit symlinks — any symlink
+/// along the existing part of the path, or an ancestor that resolves outside the project.
+/// Validates the URL when present. Writes nothing. Every manifest consumer (status, pull,
+/// push, add, the transcribe model lookup) goes through here.
 pub fn validate_entry(project_dir: &Path, entry: &FileEntry) -> Result<PathBuf> {
     use std::path::Component;
     if entry.path.is_empty() {
@@ -306,6 +366,26 @@ pub fn validate_entry(project_dir: &Path, entry: &FileEntry) -> Result<PathBuf> 
     if let Some(url) = &entry.url {
         validate_url(url)?;
     }
+    // Physical containment (t-3473 challenger F3): walk the existing prefix of the path.
+    // Components that do not exist yet are created as real directories later, so the
+    // check stops at the first missing one.
+    let root = project_dir.canonicalize().unwrap_or_else(|_| project_dir.to_path_buf());
+    let mut cur = project_dir.to_path_buf();
+    for c in rel.components() {
+        cur.push(c);
+        match std::fs::symlink_metadata(&cur) {
+            Ok(m) if m.file_type().is_symlink() => {
+                bail!("manifest path goes through a symlink ({}): {:?}", cur.display(), entry.path)
+            }
+            Ok(_) => {
+                let canon = cur.canonicalize()?;
+                if !canon.starts_with(&root) {
+                    bail!("manifest path resolves outside the project: {:?}", entry.path);
+                }
+            }
+            Err(_) => break,
+        }
+    }
     Ok(project_dir.join(rel))
 }
 
@@ -315,14 +395,53 @@ pub fn validate_entry(project_dir: &Path, entry: &FileEntry) -> Result<PathBuf> 
 /// are refused before the filesystem is touched.
 pub fn download_file(url: &str, dest: &Path, expected_sha256: Option<&str>) -> Result<()> {
     validate_url(url)?;
-    download_file_with(url, dest, expected_sha256, curl_fetch)
+    match expected_sha256 {
+        Some(expected) => download_file_with(url, dest, curl_fetch, sha256_verifier(expected)),
+        None => download_file_with(url, dest, curl_fetch, |_| Ok(())),
+    }
+}
+
+/// `download_file` with a caller-supplied check on the part file (e.g. a magic-bytes test
+/// for a model whose hash is not pinned anywhere). The part is discarded if it fails.
+pub fn download_file_verified(
+    url: &str,
+    dest: &Path,
+    verify: impl Fn(&Path) -> Result<()>,
+) -> Result<()> {
+    validate_url(url)?;
+    download_file_with(url, dest, curl_fetch, verify)
+}
+
+/// Verifier that requires the part's sha256 to equal `expected`.
+pub fn sha256_verifier(expected: &str) -> impl Fn(&Path) -> Result<()> + '_ {
+    move |part| {
+        let got = file_sha256(part)?;
+        if got != expected {
+            bail!("hash mismatch after download (got {got})");
+        }
+        Ok(())
+    }
+}
+
+/// curl flags for one transfer. `--proto`/`--proto-redir =https`: a redirect may not
+/// downgrade the scheme `validate_url` enforced. `--speed-limit/--speed-time`: a transfer
+/// that moves under 1 KiB/s for 5 min fails, which is well inside `STALE_PART_AGE`, so a
+/// stalled curl gives up and cleans up before any sweep could reclaim its live part file.
+fn curl_args(url: &str, part: &Path) -> Vec<String> {
+    vec![
+        "-fSL".into(),
+        "--proto".into(), "=https".into(),
+        "--proto-redir".into(), "=https".into(),
+        "--speed-limit".into(), "1024".into(),
+        "--speed-time".into(), "300".into(),
+        "-o".into(), part.display().to_string(),
+        url.into(),
+    ]
 }
 
 fn curl_fetch(url: &str, part: &Path) -> Result<()> {
     let status = std::process::Command::new("curl")
-        .args(["-fSL", "-o"])
-        .arg(part)
-        .arg(url)
+        .args(curl_args(url, part))
         .status()
         .context("curl not found")?;
     if !status.success() {
@@ -331,34 +450,27 @@ fn curl_fetch(url: &str, part: &Path) -> Result<()> {
     Ok(())
 }
 
-/// `download_file` with the transfer injected (testable without network).
+/// The atomic download with the transfer and the check injected (testable without
+/// network). Nothing ever lands at `dest` except a verified, fully transferred file.
 fn download_file_with(
     url: &str,
     dest: &Path,
-    expected_sha256: Option<&str>,
     fetch: impl Fn(&str, &Path) -> Result<()>,
+    verify: impl Fn(&Path) -> Result<()>,
 ) -> Result<()> {
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent)?;
-        sweep_stale_parts(parent);
+        sweep_parts(parent, dest.file_name());
     }
-    let part = part_path(dest);
-    let result = fetch(url, &part).and_then(|()| match expected_sha256 {
-        None => Ok(()),
-        Some(expected) => {
-            let got = file_sha256(&part)?;
-            if got != expected {
-                bail!("hash mismatch after download (got {got})");
-            }
-            Ok(())
-        }
+    let part = create_part(dest)?;
+    let result = fetch(url, &part).and_then(|()| verify(&part)).and_then(|()| {
+        std::fs::rename(&part, dest)
+            .with_context(|| format!("failed to move download into place: {}", dest.display()))
     });
-    if let Err(e) = result {
+    if result.is_err() {
         let _ = std::fs::remove_file(&part);
-        return Err(e);
     }
-    std::fs::rename(&part, dest)
-        .with_context(|| format!("failed to move download into place: {}", dest.display()))
+    result
 }
 
 /// Push a file to R2 via rclone
@@ -437,10 +549,14 @@ pub fn push(manifest: &Manifest, project_dir: &Path, remote_name: &str) -> Resul
             }
         };
 
-        let full_path = if Path::new(&entry.path).is_absolute() {
-            PathBuf::from(&entry.path)
-        } else {
-            project_dir.join(&entry.path)
+        // Containment before any read (t-3473 challenger F2): a hostile manifest must not
+        // be able to exfiltrate an arbitrary file to the remote.
+        let full_path = match validate_entry(project_dir, entry) {
+            Ok(p) => p,
+            Err(e) => {
+                failed.push(format!("{name}: {e}"));
+                continue;
+            }
         };
         if !full_path.exists() {
             failed.push(format!("{name}: file not found at {}", entry.path));
@@ -478,22 +594,21 @@ pub fn add_file(
     let metadata = std::fs::metadata(file_path)?;
     let sha256 = file_sha256(file_path)?;
 
-    let rel_path = file_path
-        .strip_prefix(project_dir)
-        .unwrap_or(file_path)
-        .to_string_lossy()
-        .to_string();
-
-    manifest.add(
-        name.to_string(),
-        FileEntry {
-            path: rel_path,
-            sha256,
-            size: metadata.len(),
-            url,
-            r2_key,
-        },
-    );
+    // Only files inside the project can be tracked: `pull`/`push`/`status` refuse every
+    // other entry, so storing one here would create a manifest that fails forever (t-3473).
+    let canon_file = file_path.canonicalize().unwrap_or_else(|_| file_path.to_path_buf());
+    let canon_root = project_dir.canonicalize().unwrap_or_else(|_| project_dir.to_path_buf());
+    let rel_path = match canon_file.strip_prefix(&canon_root) {
+        Ok(rel) => rel.to_string_lossy().to_string(),
+        Err(_) => bail!(
+            "{} is outside the project ({}); tracked files must live inside it",
+            file_path.display(),
+            project_dir.display()
+        ),
+    };
+    let entry = FileEntry { path: rel_path, sha256, size: metadata.len(), url, r2_key };
+    validate_entry(project_dir, &entry)?;
+    manifest.add(name.to_string(), entry);
 
     Ok(())
 }

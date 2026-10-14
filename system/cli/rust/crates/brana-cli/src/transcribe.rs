@@ -233,26 +233,19 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
 
     let url = download_url(name);
     eprintln!("Downloading {} to {}...", ggml_filename(name), dir.display());
-    // Download to a per-process .part file and rename on success: an interrupted or
-    // concurrent download never leaves a truncated `ggml-*.bin` for discovery to pick up.
-    // -f: fail on HTTP errors instead of saving the error page as the model.
-    let part = files::part_path(&model_path);
-    let status = Command::new("curl")
-        .args(["-fL", "-o"])
-        .arg(&part)
-        .arg(&url)
-        .status()
-        .context("curl not found — install curl or manually download model")?;
-    if !status.success() {
-        let _ = std::fs::remove_file(&part);
-        bail!("failed to download model from {url}");
-    }
-    // A 200 OK can still be a non-model body (captive portal, proxy error page).
-    if !has_ggml_magic(&part) {
-        let _ = std::fs::remove_file(&part);
-        bail!("downloaded {url} is not a ggml model file");
-    }
-    std::fs::rename(&part, &model_path).context("failed to move downloaded model into place")?;
+    // One shared atomic download (brana-core, t-3473): the part is created exclusively,
+    // curl is https-pinned with a stall timeout, the part is verified, then renamed — an
+    // interrupted or concurrent download never leaves a truncated `ggml-*.bin` for
+    // discovery. HuggingFace pins no hash, so the check is the ggml magic: a 200 OK can
+    // still be a non-model body (captive portal, proxy error page).
+    files::download_file_verified(&url, &model_path, |part| {
+        if has_ggml_magic(part) {
+            Ok(())
+        } else {
+            bail!("downloaded {url} is not a ggml model file")
+        }
+    })
+    .with_context(|| format!("failed to download model from {url} (install curl if missing, or download the model manually)"))?;
     Ok(model_path)
 }
 
@@ -263,7 +256,15 @@ fn tracked_model_path(root: &Path, entry: &files::FileEntry, model_file: &str) -
     if Path::new(&entry.path).file_name()?.to_str()? != model_file {
         return None;
     }
-    files::validate_entry(root, entry).ok()
+    match files::validate_entry(root, entry) {
+        Ok(p) => Some(p),
+        Err(e) => {
+            // Say why a matching entry is ignored instead of silently falling back to a
+            // HuggingFace download of the same model (t-3473 challenger F5).
+            eprintln!("warning: ignoring manifest entry {} for {model_file}: {e}", entry.path);
+            None
+        }
+    }
 }
 
 fn try_manifest_model(name: &str) -> Option<PathBuf> {

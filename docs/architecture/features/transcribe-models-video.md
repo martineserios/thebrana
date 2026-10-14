@@ -51,6 +51,7 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 
 ## Non-goals (v1)
 
+- None remaining: scene-change detection shipped in t-3471, atomic/contained downloads in t-3473.
 
 ## Assumptions
 
@@ -84,9 +85,14 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
   Downloads go to a `.part` file and are renamed on success.
 - `brana-core` `download_file` (manifest-tracked models, `brana files pull`) is atomic too (t-3473):
   curl writes `<dest>.part-<pid>`, sha256 is verified there, then it is renamed; a failed or
-  mismatched download leaves nothing at the final path. `*.part-*` files untouched for an hour
-  are swept (age-based, no `/proc`, macOS portable). Manifest entries are validated before any
-  write: relative path with no `..`, https URL only, exact model file name (no substring match).
+  mismatched download leaves nothing at the final path; the part is created exclusively with an
+  unguessable name, and curl is pinned to https on redirects with a 5-min stall timeout. Only
+  brana's own `<name>.part-<pid>[-<hex>]` files untouched for an hour are swept (age-based, no
+  `/proc`, macOS portable; user files that merely contain `.part-` are never touched). Manifest
+  entries are validated before any read or write, in every consumer (`status`/`pull`/`push`/
+  `add`/model lookup): relative path, no `..`, no symlinked component, resolves under the
+  project root, https URL only, exact model file name (no substring match). The HuggingFace
+  fallback uses the same download path with a ggml-magic verifier.
 - Symlinked model files are followed (size and file type are the target's).
 - Files without the ggml magic (`lmgg`) are not models: skipped by discovery (with a warning), not
   trusted as an existing download, and a fresh download without it is discarded before the rename.
