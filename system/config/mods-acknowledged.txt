@@ -1,0 +1,17 @@
+# mods-acknowledged.txt — plugins that cannot be uninstalled but are known to match an ADR-096 Law 3 rule.
+#
+# One entry per line:   name@marketplace sha256:<content hash>  # reason, who, date
+#
+# An acknowledged plugin is downgraded from a violation to a loud, logged WARN on every run
+# (`mods-check.sh --installed`, validate Check 77c, bootstrap 7i) — never a silent pass. The entry is
+# bound to the plugin's CONTENT hash (listed modules + hooks.json), so when the marketplace
+# auto-updates the plugin the acknowledgement stops applying and the violation returns.
+#
+# Where this file is read from — ONLY these two, never from the repo of the current session
+# (a hostile clone must not be able to acknowledge itself):
+#   1. this tracked list (next to scripts/ in the repo: system/config/mods-acknowledged.txt)
+#   2. the user-owned list  <config dir>/mods-acknowledged.txt  (default ~/.claude/mods-acknowledged.txt)
+#
+# The hash to put here is printed by the failing run (the `hint:` line). Example (do not uncomment
+# without a real plugin and a real reason):
+#   some-plugin@some-marketplace sha256:0000000000000000000000000000000000000000000000000000000000000000  # managed settings, cannot uninstall — <name>, 2026-10-14

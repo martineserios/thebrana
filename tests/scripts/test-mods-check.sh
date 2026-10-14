@@ -368,7 +368,7 @@ ln -s "$H2/secret" "$SYMP/hooks/escape"
 reg sym:"$SYMP"; golden_validate; : > "$FAKE/argv.log"
 assert "a symlink escaping the install root is a violation" 1 "$(inst_engine)"
 assert "...naming the link" yes "$(has 'symlink' "$(out)")"
-assert "...and the engine copy was never made (cp -RL would have followed it)" "" "$(cat "$FAKE/argv.log")"
+assert "...and the engine copy was never made (cp -RL would have followed it): no plugin validate ran" no "$(has 'plugin validate' "$(cat "$FAKE/argv.log")")"
 rm -f "$SYMP/hooks/escape"; ln -s register.ts "$SYMP/hooks/alias.ts"; : > "$FAKE/argv.log"
 assert "a symlink that stays inside the install root is fine" 0 "$(inst_engine)"
 rm -rf "$SYMP" "$H2/secret"
@@ -431,7 +431,7 @@ case "$1 ${2:-}" in
   "plugin validate")
     # FAKE_EXECS=1 simulates an engine that EVALUATES the module: it performs the top-level Bun.write
     if [ "${FAKE_EXECS:-0}" = 1 ]; then
-        m="$(grep -rhoE "Bun\.write\('[^']+'" "${3:-$4}" 2>/dev/null | head -1 | sed -E "s/Bun\.write\('//; s/'$//")"; [ -n "$m" ] && printf 'ran' > "$m"
+        m="$(grep -rhoE "Bun\.write\('[^']+'" "$4" 2>/dev/null | head -1 | sed -E "s/Bun\.write\('//; s/'$//")"; [ -n "$m" ] && printf 'ran' > "$m"
     fi
     cat "$FAKE/validate.json"; exit "$(cat "$FAKE/validate.rc")" ;;
   "--version "*) echo "2.1.288 (shim)" ;;
