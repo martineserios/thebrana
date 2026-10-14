@@ -49,62 +49,79 @@ pub fn check_binary() -> CheckResult {
     CheckResult::fail("Binary on PATH", "brana not found — run cargo install or check PATH")
 }
 
-/// Check 2: brana is registered in `~/.claude/installed_plugins.json`.
+/// Check 2: brana is registered in the engine's plugin registry,
+/// `~/.claude/plugins/installed_plugins.json` (v2: a `plugins` object keyed `<name>@<marketplace>`,
+/// each value a LIST of entries carrying `version`). The legacy `~/.claude/installed_plugins.json`
+/// is consulted only when the engine file is absent — this check used to read the legacy path
+/// alone, so a hand-written stub passed it while the engine knew nothing of brana (t-3502, found
+/// by the t-3493 challenger).
 pub fn check_plugin(home: &Path) -> CheckResult {
-    let plugins_file = home.join(".claude/installed_plugins.json");
-    if !plugins_file.exists() {
-        return CheckResult::fail("Plugin registered", "~/.claude/installed_plugins.json not found");
-    }
+    const ENGINE: &str = ".claude/plugins/installed_plugins.json";
+    const LEGACY: &str = ".claude/installed_plugins.json";
+    let engine = home.join(ENGINE);
+    let legacy = home.join(LEGACY);
+    let (plugins_file, shown, is_legacy) = if engine.exists() {
+        (engine, ENGINE, false)
+    } else if legacy.exists() {
+        (legacy, LEGACY, true)
+    } else {
+        return CheckResult::fail(
+            "Plugin registered",
+            format!("~/{ENGINE} not found (and no legacy ~/{LEGACY}) — install brana with `claude plugin install`"),
+        );
+    };
     let content = match fs::read_to_string(&plugins_file) {
         Ok(c) => c,
-        Err(e) => return CheckResult::fail("Plugin registered", format!("cannot read file: {e}")),
+        Err(e) => return CheckResult::fail("Plugin registered", format!("cannot read ~/{shown}: {e}")),
     };
     let val: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(e) => return CheckResult::fail("Plugin registered", format!("invalid JSON: {e}")),
+        Err(e) => return CheckResult::fail("Plugin registered", format!("~/{shown}: invalid JSON: {e}")),
     };
 
-    // Look for a "brana" key at any level, or an entry with name == "brana"
-    let found = find_brana_plugin(&val);
-    if let Some(version) = found {
-        CheckResult::pass("Plugin registered", format!("brana@brana {version}"))
-    } else {
-        CheckResult::fail("Plugin registered", "brana not found in installed_plugins.json")
+    match find_brana_plugin(&val) {
+        Some((key, version)) if is_legacy => CheckResult::pass(
+            "Plugin registered",
+            format!("{key} {version} (legacy ~/{LEGACY} — the engine registry ~/{ENGINE} is absent)"),
+        ),
+        Some((key, version)) => CheckResult::pass("Plugin registered", format!("{key} {version}")),
+        None => CheckResult::fail("Plugin registered", format!("brana not found in ~/{shown}")),
     }
 }
 
-/// Recursively look for a brana plugin entry in the JSON value.
-/// Returns the version string if found.
-fn find_brana_plugin(val: &serde_json::Value) -> Option<String> {
+/// Version string of a registry value: an object's `version`/`v`, or the first entry of a
+/// list of objects (the engine's v2 shape keeps every install scope as one list element).
+fn entry_version(entry: &serde_json::Value) -> String {
+    let obj = match entry {
+        serde_json::Value::Array(arr) => arr.first().unwrap_or(entry),
+        other => other,
+    };
+    obj.get("version")
+        .or_else(|| obj.get("v"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string()
+}
+
+/// `(display key, version)` of the brana entry: a key `brana` (legacy) or `brana@<marketplace>`
+/// (engine v2) at any object level, or a list item with `name == "brana"`.
+fn find_brana_plugin(val: &serde_json::Value) -> Option<(String, String)> {
     match val {
         serde_json::Value::Object(map) => {
-            // Direct key "brana" at root
-            if let Some(entry) = map.get("brana") {
-                let ver = entry.get("version")
-                    .or_else(|| entry.get("v"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("unknown")
-                    .to_string();
-                return Some(ver);
+            if let Some((k, entry)) = map
+                .iter()
+                .find(|(k, _)| k.as_str() == "brana" || k.starts_with("brana@"))
+            {
+                let key = if k == "brana" { "brana@brana".to_string() } else { k.clone() };
+                return Some((key, entry_version(entry)));
             }
-            // Search nested
-            for v in map.values() {
-                if let Some(r) = find_brana_plugin(v) {
-                    return Some(r);
-                }
-            }
-            None
+            map.values().find_map(find_brana_plugin)
         }
         serde_json::Value::Array(arr) => {
             for item in arr {
-                // Check if item is an object with name == "brana"
                 if let serde_json::Value::Object(m) = item {
                     if m.get("name").and_then(|v| v.as_str()) == Some("brana") {
-                        let ver = m.get("version")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("unknown")
-                            .to_string();
-                        return Some(ver);
+                        return Some(("brana@brana".to_string(), entry_version(item)));
                     }
                 }
                 if let Some(r) = find_brana_plugin(item) {
