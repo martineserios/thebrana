@@ -38,6 +38,7 @@ case "$1 $2" in
   "pr list") cat "$S/pr_number" 2>/dev/null; exit 0 ;;
   "pr create") echo "https://github.com/o/r/pull/$(cat "$S/pr_number_after_create")"; cp "$S/pr_number_after_create" "$S/pr_number"; echo created >> "$S/events"; exit 0 ;;
   "pr view")
+    if printf '%s ' "$@" | grep -q 'isCrossRepository'; then cat "$S/pr_view"; exit 0; fi   # ship_pr_matches_dev: "<sha> <cross>"
     if printf '%s ' "$@" | grep -q 'headRefOid'; then cat "$S/head_sha"; exit 0; fi
     cat "$S/pr_view"; exit 0 ;;
   "pr checks")
@@ -119,7 +120,8 @@ reset_sc() { rm -rf "$T/sc"; mkdir -p "$T/sc"; echo 7 > "$T/sc/pr_number"; echo 
 run_block() {
   local sh="$1" blk="$2"; shift 2; local pre=""
   for p in "$@"; do pre="$pre source '$T/$p.sh';"; done
-  OUT="$( cd "$T/repo" && HOME="$T/home" GH_STUB_DIR="$T/sc" PATH="$T/bin:$PATH" "$sh" -c "$pre source '$T/$blk.sh'" 2>&1 )"; RC=$?
+  # fixture HOME's bin is on PATH so `brana` resolves to the stub, never the machine's real binary
+  OUT="$( cd "$T/repo" && HOME="$T/home" GH_STUB_DIR="$T/sc" PATH="$T/bin:$T/home/.local/bin:$PATH" "$sh" -c "$pre source '$T/$blk.sh'" 2>&1 )"; RC=$?
 }
 
 for sh in bash zsh; do
