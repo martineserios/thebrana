@@ -1140,36 +1140,30 @@ if command -v jq &>/dev/null; then
             echo "  = installed_plugins.json ($PLUGIN_KEY v$PLUGIN_VERSION registered)"
         fi
     fi
+else
+    # Said here, not only by `brana doctor`: without jq 7e cannot write the engine registry,
+    # and the legacy stub that used to mask this (7f) is gone (t-3502 verifier C2).
+    echo "  ! jq missing — brana NOT registered in the engine registry (7e); install jq and re-run"
+    CHANGES=$((CHANGES + 1))
 fi
 
-# 7f: Keep ~/.claude/installed_plugins.json in sync (brana doctor check 2)
-# CC reads this file to verify plugin registration. Bootstrap manages the verbose
-# plugins/installed_plugins.json separately; this step ensures the simple file
-# also has a brana entry so fresh installs pass `brana doctor`.
-SIMPLE_INSTALLED="$TARGET_DIR/installed_plugins.json"
-if command -v jq &>/dev/null; then
-    # (a dry run must not write: seed the file only on a real run — jq below tolerates its absence)
-    if ! $CHECK_ONLY; then [ -f "$SIMPLE_INSTALLED" ] || echo '{}' > "$SIMPLE_INSTALLED"; fi
-    CURRENT_VER=$(jq -r '.brana.version // empty' "$SIMPLE_INSTALLED" 2>/dev/null || true)
-    if [ "$CURRENT_VER" != "$PLUGIN_VERSION" ]; then
-        CHANGES=$((CHANGES + 1))
-        if $CHECK_ONLY; then
-            echo "  + $TARGET_DIR/installed_plugins.json (would write brana v$PLUGIN_VERSION)"
-        else
-            jq --arg ver "$PLUGIN_VERSION" '.brana = {"version": $ver}' \
-               "$SIMPLE_INSTALLED" > "$SIMPLE_INSTALLED.tmp" && mv "$SIMPLE_INSTALLED.tmp" "$SIMPLE_INSTALLED"
-            echo "  + $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION)"
-        fi
+# 7f (removed, t-3502): this step wrote a hand-rolled ~/.claude/installed_plugins.json "so
+# fresh installs pass brana doctor". Nothing but that check ever read the file — the engine
+# reads plugins/installed_plugins.json, which 7e writes — so its only effect was to let a stub
+# mask an engine registry without brana. brana doctor now reads the engine registry alone, and
+# a leftover stub (brana's own artefact) is removed here so it cannot mislead anyone later.
+LEGACY_STUB="$TARGET_DIR/installed_plugins.json"
+# only a file brana wrote: its keys are exactly {brana} (7f wrote `{"brana":{"version":…}}`);
+# anything else is somebody's file — left alone, reported
+if [ -f "$LEGACY_STUB" ] && ! jq -e 'type=="object" and ((keys - ["brana"]) | length == 0)' "$LEGACY_STUB" >/dev/null 2>&1; then
+    echo "  ! $LEGACY_STUB has keys other than brana — not removed (nothing in brana reads it)"
+elif [ -f "$LEGACY_STUB" ]; then
+    CHANGES=$((CHANGES + 1))
+    if $CHECK_ONLY; then
+        echo "  - $LEGACY_STUB (would remove: legacy stub, nothing reads it — t-3502)"
     else
-        echo "  = $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION)"
-    fi
-else
-    if [ ! -f "$SIMPLE_INSTALLED" ]; then
-        if ! $CHECK_ONLY; then
-            printf '{"brana":{"version":"%s"}}\n' "$PLUGIN_VERSION" > "$SIMPLE_INSTALLED"
-            echo "  + $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION, no jq)"
-            CHANGES=$((CHANGES + 1))
-        fi
+        rm -f "$LEGACY_STUB"
+        echo "  - $LEGACY_STUB (legacy stub removed: nothing reads it — t-3502)"
     fi
 fi
 

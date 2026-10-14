@@ -49,73 +49,102 @@ pub fn check_binary() -> CheckResult {
     CheckResult::fail("Binary on PATH", "brana not found — run cargo install or check PATH")
 }
 
-/// Check 2: brana is registered in `~/.claude/installed_plugins.json`.
+/// Check 2: brana is registered in the engine's plugin registry,
+/// `~/.claude/plugins/installed_plugins.json` (v2: a `plugins` object keyed `<name>@<marketplace>`,
+/// each value a NON-EMPTY list of entries carrying `installPath`). Only that shape counts: a
+/// bare `brana` key, null, an object or an entry without `installPath` is a stub the loader
+/// never wrote (the old /brana:plugin skill hand-rolled exactly that — t-3502 challenger).
+/// The legacy `~/.claude/installed_plugins.json` is no longer a pass: bootstrap 7e writes the
+/// engine entry on every run, so "legacy only" means the machine was never bootstrapped by a
+/// current bootstrap — the check names the fix. (The legacy stub writer, bootstrap 7f, was
+/// removed with this change: a file nothing but this check read, whose only effect was to
+/// mask an engine registry without brana.)
 pub fn check_plugin(home: &Path) -> CheckResult {
-    let plugins_file = home.join(".claude/installed_plugins.json");
-    if !plugins_file.exists() {
-        return CheckResult::fail("Plugin registered", "~/.claude/installed_plugins.json not found");
-    }
-    let content = match fs::read_to_string(&plugins_file) {
+    const ENGINE: &str = ".claude/plugins/installed_plugins.json";
+    const LEGACY: &str = ".claude/installed_plugins.json";
+    let engine = home.join(ENGINE);
+    let content = match fs::read_to_string(&engine) {
         Ok(c) => c,
-        Err(e) => return CheckResult::fail("Plugin registered", format!("cannot read file: {e}")),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            let legacy_note = if home.join(LEGACY).exists() {
+                format!(" (a legacy ~/{LEGACY} exists but nothing reads it — stale)")
+            } else {
+                String::new()
+            };
+            return CheckResult::fail(
+                "Plugin registered",
+                format!("~/{ENGINE} not found{legacy_note} — run ./bootstrap.sh (step 7e registers brana)"),
+            );
+        }
+        Err(e) => return CheckResult::fail("Plugin registered", format!("cannot read ~/{ENGINE}: {e}")),
     };
     let val: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(e) => return CheckResult::fail("Plugin registered", format!("invalid JSON: {e}")),
+        Err(e) => return CheckResult::fail("Plugin registered", format!("~/{ENGINE}: invalid JSON: {e}")),
     };
-
-    // Look for a "brana" key at any level, or an entry with name == "brana"
-    let found = find_brana_plugin(&val);
-    if let Some(version) = found {
-        CheckResult::pass("Plugin registered", format!("brana@brana {version}"))
-    } else {
-        CheckResult::fail("Plugin registered", "brana not found in installed_plugins.json")
+    match find_brana_entry(&val) {
+        Ok((key, version)) => CheckResult::pass("Plugin registered", format!("{key} {version}")),
+        Err(detail) => CheckResult::fail("Plugin registered", format!("{detail} in ~/{ENGINE}")),
     }
 }
 
-/// Recursively look for a brana plugin entry in the JSON value.
-/// Returns the version string if found.
-fn find_brana_plugin(val: &serde_json::Value) -> Option<String> {
-    match val {
-        serde_json::Value::Object(map) => {
-            // Direct key "brana" at root
-            if let Some(entry) = map.get("brana") {
-                let ver = entry.get("version")
-                    .or_else(|| entry.get("v"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("unknown")
-                    .to_string();
-                return Some(ver);
-            }
-            // Search nested
-            for v in map.values() {
-                if let Some(r) = find_brana_plugin(v) {
-                    return Some(r);
-                }
-            }
-            None
-        }
-        serde_json::Value::Array(arr) => {
-            for item in arr {
-                // Check if item is an object with name == "brana"
-                if let serde_json::Value::Object(m) = item {
-                    if m.get("name").and_then(|v| v.as_str()) == Some("brana") {
-                        let ver = m.get("version")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("unknown")
-                            .to_string();
-                        return Some(ver);
-                    }
-                }
-                if let Some(r) = find_brana_plugin(item) {
-                    return Some(r);
-                }
-            }
-            None
-        }
-        _ => None,
+/// The engine's shape, strictly: `plugins["brana@<marketplace>"]` is a non-empty list whose
+/// first entry is an object with a non-empty `installPath`. Ok((key, version)) or Err(reason).
+fn find_brana_entry(val: &serde_json::Value) -> Result<(String, String), String> {
+    let plugins = val
+        .get("plugins")
+        .and_then(|p| p.as_object())
+        .ok_or_else(|| "no `plugins` object (not the engine's v2 registry)".to_string())?;
+    // Every brana@<marketplace> key is a candidate: the first REAL one wins (an emptied
+    // brana@brana list must not hide a registration under another marketplace — verifier);
+    // when none is real, the first key's reason is reported.
+    let mut first_reason: Option<String> = None;
+    for (key, entry) in plugins.iter().filter(|(k, _)| k.starts_with("brana@")) {
+        match real_entry(key, entry) {
+            Ok(()) => return Ok((key.clone(), entry_version(entry))),
+            Err(reason) => first_reason.get_or_insert(reason),
+        };
     }
+    Err(first_reason.unwrap_or_else(|| {
+        if plugins.contains_key("brana") {
+            "a bare `brana` key is a hand-written stub, not an engine registration (expected `brana@<marketplace>`)".to_string()
+        } else {
+            "brana not found".to_string()
+        }
+    }))
 }
+
+/// A registry value is real when it is a non-empty list whose first entry carries a non-empty
+/// `installPath`; otherwise the reason it is a stub.
+fn real_entry(key: &str, entry: &serde_json::Value) -> Result<(), String> {
+    let list = entry
+        .as_array()
+        .ok_or_else(|| format!("{key} is not a list of install entries (stub shape)"))?;
+    let first = list
+        .first()
+        .ok_or_else(|| format!("{key} has no install entries (every scope removed)"))?;
+    let has_path = first
+        .get("installPath")
+        .and_then(|v| v.as_str())
+        .map(|s| !s.is_empty())
+        .unwrap_or(false);
+    if has_path { Ok(()) } else { Err(format!("{key} entry has no installPath (stub shape)")) }
+}
+
+/// Version string of a registry value: an object's `version`/`v`, or the first entry of a
+/// list of objects (the engine's v2 shape keeps every install scope as one list element).
+fn entry_version(entry: &serde_json::Value) -> String {
+    let obj = match entry {
+        serde_json::Value::Array(arr) => arr.first().unwrap_or(entry),
+        other => other,
+    };
+    obj.get("version")
+        .or_else(|| obj.get("v"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string()
+}
+
 
 /// Check 3: All hooks listed in `system/hooks/hooks.json` exist and are executable.
 pub fn check_hooks(plugin_root: &Path) -> CheckResult {
@@ -587,13 +616,14 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let result = check_plugin(tmp.path());
         assert!(!result.passed);
-        assert!(result.detail.contains("not found"));
+        assert!(result.detail.contains("plugins/installed_plugins.json") && result.detail.contains("bootstrap"), "{}", result.detail);
+        assert!(!result.detail.contains("legacy"), "{}", result.detail);
     }
 
     #[test]
     fn test_check_plugin_invalid_json() {
         let tmp = TempDir::new().unwrap();
-        create_file(&tmp, ".claude/installed_plugins.json", "not json {{{");
+        create_file(&tmp, ".claude/plugins/installed_plugins.json", "not json {{{");
         let result = check_plugin(tmp.path());
         assert!(!result.passed);
         assert!(result.detail.contains("invalid JSON"));
@@ -602,34 +632,130 @@ mod tests {
     #[test]
     fn test_check_plugin_not_registered() {
         let tmp = TempDir::new().unwrap();
-        create_file(&tmp, ".claude/installed_plugins.json", r#"{"other": {"version": "1.0"}}"#);
+        create_file(&tmp, ".claude/plugins/installed_plugins.json", r#"{"version":2,"plugins":{"other@m":[{"installPath":"/x","version":"1.0"}]}}"#);
         let result = check_plugin(tmp.path());
         assert!(!result.passed);
         assert!(result.detail.contains("not found"));
     }
 
     #[test]
-    fn test_check_plugin_registered_as_key() {
-        let tmp = TempDir::new().unwrap();
-        create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "1.0.0"}}"#);
-        let result = check_plugin(tmp.path());
-        assert!(result.passed);
-        assert!(result.detail.contains("1.0.0"));
-    }
-
-    #[test]
-    fn test_check_plugin_registered_in_array() {
+    fn test_check_plugin_reads_engine_v2_registry() {
         let tmp = TempDir::new().unwrap();
         create_file(
             &tmp,
-            ".claude/installed_plugins.json",
-            r#"{"plugins": [{"name": "brana", "version": "2.0.0"}]}"#,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"other@m":[{"scope":"user","installPath":"/o","version":"0.1.0"}],"brana@brana":[{"scope":"user","installPath":"/x","version":"1.4.2"}]}}"#,
         );
         let result = check_plugin(tmp.path());
-        assert!(result.passed);
-        assert!(result.detail.contains("2.0.0"));
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("1.4.2"));
+        assert!(result.detail.contains("brana@brana"));
     }
 
+    #[test]
+    fn test_check_plugin_registered_with_two_scopes() {
+        let tmp = TempDir::new().unwrap();
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana@brana":[{"scope":"user","installPath":"/u","version":"2.1.0"},{"scope":"project","installPath":"/p","version":"2.0.0"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("2.1.0"));
+    }
+
+    // t-3502 panel/challenger: inside the engine file only the engine's own shape counts.
+    #[test]
+    fn test_check_plugin_engine_file_rejects_stub_shapes() {
+        for (shape, why) in [
+            (r#"{"version":2,"plugins":{"brana":{"version":"1.0.0"}}}"#, "bare brana key"),
+            (r#"{"version":2,"plugins":{"brana@brana":null}}"#, "null"),
+            (r#"{"version":2,"plugins":{"brana@brana":{"version":"1.0.0"}}}"#, "object, not a list"),
+            (r#"{"version":2,"plugins":{"brana@brana":[{"version":"1.0.0"}]}}"#, "entry without installPath"),
+            (r#"{"version":2,"plugins":{"brana@brana":[]}}"#, "empty entry list"),
+            (r#"{"brana":{"version":"1.0.0"}}"#, "legacy shape written to the engine path"),
+        ] {
+            let tmp = TempDir::new().unwrap();
+            create_file(&tmp, ".claude/plugins/installed_plugins.json", shape);
+            let result = check_plugin(tmp.path());
+            assert!(!result.passed, "{why} must not pass in the engine file: {}", result.detail);
+        }
+    }
+
+    #[test]
+    fn test_check_plugin_prefers_a_real_entry_over_an_emptied_key() {
+        // verifier (t-3502): with two brana@ keys the first in map order used to win, so an
+        // emptied brana@brana hid a real registration under another marketplace.
+        let tmp = TempDir::new().unwrap();
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana@brana":[],"brana@fork":[{"installPath":"/f","version":"3.0.0"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("brana@fork") && result.detail.contains("3.0.0"), "{}", result.detail);
+    }
+
+    #[test]
+    fn test_check_plugin_similar_key_does_not_match() {
+        let tmp = TempDir::new().unwrap();
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana-foo@m":[{"installPath":"/x","version":"9.9.9"}],"notbrana":{"version":"1"}}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(!result.passed, "brana-foo@m / notbrana must not pass as brana: {}", result.detail);
+    }
+
+    #[test]
+    fn test_check_plugin_engine_registry_wins_over_legacy() {
+        let tmp = TempDir::new().unwrap();
+        create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "0.0.1"}}"#);
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana@brana":[{"installPath":"/x","version":"2.0.0"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("2.0.0"), "engine registry must win: {}", result.detail);
+    }
+
+    #[test]
+    fn test_check_plugin_engine_registry_without_brana_fails_despite_legacy_stub() {
+        let tmp = TempDir::new().unwrap();
+        create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "0.0.1"}}"#);
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"other@m":[{"installPath":"/x","version":"0.1.0"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(!result.passed, "a stale legacy file must not mask an engine registry without brana");
+        assert!(result.detail.contains("plugins/installed_plugins.json"));
+    }
+
+    #[test]
+    fn test_check_plugin_legacy_file_alone_is_not_registered() {
+        // The legacy ~/.claude/installed_plugins.json was written by bootstrap 7f for this check
+        // alone (removed, t-3502); a machine with only that file was never bootstrapped by a
+        // current bootstrap, and the detail says so.
+        let tmp = TempDir::new().unwrap();
+        create_file(&tmp, ".claude/installed_plugins.json", r#"{"brana": {"version": "1.0.0"}}"#);
+        let result = check_plugin(tmp.path());
+        assert!(!result.passed, "{}", result.detail);
+        assert!(result.detail.contains("legacy") && result.detail.contains("bootstrap"), "{}", result.detail);
+    }
+
+    // t-3502: the engine's registry is ~/.claude/plugins/installed_plugins.json (v2: a
+    // `plugins` object keyed `<name>@<marketplace>`, each value a LIST of entries). The old
+    // ~/.claude/installed_plugins.json is a legacy hand-written file nothing else reads.
+    // challenger (t-3502): inside the ENGINE file only the engine's own shape counts — a bare
+    // `brana` key (the old hand-rolled skill shape), null, an object or a list without an
+    // installPath is a stub the loader never wrote, not a registration.
     // ── check_hooks ───────────────────────────────────────────────────────────
 
     #[test]

@@ -380,6 +380,16 @@
         "hooks": [
           {
             "type": "command",
+            "timeout": 10000,
+            "command": "bash \"$HOME/.claude/hooks/mods-installed-check.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "async": true,
             "command": "bash $HOME/.claude/scripts/cc-changelog-check.sh"
           }
