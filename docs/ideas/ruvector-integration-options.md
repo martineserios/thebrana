@@ -12,12 +12,13 @@ tasks: [t-3510, t-3511, t-3498]
 
 ## Resume here (for a fresh session)
 
-**Where we stopped.** `/brana:brainstorm` Phase 3 (Discuss), after Round 4. The owner was asked to
+**Where we stopped.** `/brana:brainstorm` Phase 3 (Discuss), after Round 5. The owner was asked to
 confirm an order of work and answered "check my last message", which was: *"check our memory
-layers and architecture to better understand what we are trying to build."* So the next step is
-**not** to pick an engine; it is to ground the choice in the memory architecture. Two read-only
-passes were launched to do that (results are in Appendix A and B below if they finished before
-this commit; otherwise re-run them, briefs are in "Open work").
+layers and architecture to better understand what we are trying to build."* That check is **done**
+(Appendix A: memory-layer inventory; Appendix B: what the architecture is trying to build) and it
+reframed the project (see Round 5): the real gap is recall for **unattended workers**, plus a
+measured feedback loop, plus supersession and relatedness at recall time. The order of work is
+still unconfirmed, and the pre-mortem and shape phases have not run.
 
 **Paste this to start the new session** (from `~/enter_thebrana/thebrana`, then work in a
 worktree for this branch, `git worktree add ../thebrana-docs-ruvector docs/ruvector-integration-options`
@@ -25,12 +26,16 @@ if it does not exist):
 
 ```
 Resume the brainstorm in docs/ideas/ruvector-integration-options.md (branch
-docs/ruvector-integration-options). Read the whole doc first, including the appendices. Continue
-at "Discussion log > Open question". Do not re-derive measurements; they are recorded. First task:
-read the memory-layer inventory and architecture appendix, restate in 6 lines what brana is trying
-to build and where recall fits, and check it against the owner's goals (precision first, speed
-second, related concepts across notes). Then ask me to confirm the order of work, run the
-pre-mortem round, and shape the idea. Constraints: no API key, no GPU, ~3 GB free RAM.
+docs/ruvector-integration-options). Read the whole doc first, including both appendices. Continue
+at "Discussion log > Open question". Do not re-derive measurements or re-run the architecture
+reads; they are recorded. Round 5 reframed the project: the real gap is recall for unattended
+Beat and Epic workers, a measured feedback loop (a usage log of recalled notes versus notes the
+task cited), and supersession and relatedness at recall time, not engine choice. First task:
+restate in 6 lines what brana is trying to build and where recall fits, test that against the
+owner's goals (precision first, speed second, related concepts across notes, all four cross-concept
+needs), and propose the first-week scope. Then ask me to confirm the order of work, run the
+pre-mortem round, shape the idea (Phase 4), and offer the backlog plan (Phase 5). Constraints: no
+API key, no GPU, about 3 GB free RAM.
 ```
 
 ## Seed
@@ -205,6 +210,31 @@ link expansion over links that already resolve, kept only if the benchmark shows
 conflict and staleness (stale notes poison bundles); (3) same-pattern-other-domain last (rare, no
 gold set). Multi-hop full version after link repair.
 
+**Round 5 (owner: check our memory layers and architecture to understand what we are trying to
+build).** Two read-only passes ran (Appendix A: 12 memory layers; Appendix B: purpose, rings,
+principles). Their joint conclusion **reframes the project**:
+
+- Memory is documented as "a fourth dimension" orthogonal to the rings: every ring should recall on
+  entry and write back on exit. Recall today serves only the interactive `/brana:build` LOAD and
+  SessionStart. **The unattended Beat and Epic path has no recall step at all**, which is exactly the
+  owner's goal ("leave workers working"): workers read the task `context` field and `CONTEXT.md` only.
+- The documented unmet needs are not scoring quality: (a) a read-on-entry recall for Beat and Epic
+  workers, (b) a Knowledge-ring gauge that measures whether recall hits change outcomes ("nothing
+  yet measures whether accumulated knowledge is any good"), (c) supersession, staleness and
+  relatedness handled at recall time (no step resolves contradictions at recall; the recall-hit
+  log that staleness rules depend on is written by nothing).
+- Structural problems in the stores (duplicate pattern stores, indexes stale or unscheduled, writers
+  without readers, 41% dangling links, canonical docs and dimension docs unindexed) matter more to
+  precision and relatedness than the engine choice.
+- Design principles that bound any solution: derived indexes rebuildable; pointer not paste with one
+  home of record; single writer; fail-open; evidence over assertion and a context budget (cost per
+  beat is about context size, so a bundle must be small).
+
+Implication for the plan: the "context bundle" should be designed first as **the recall a
+fresh-context worker gets at pull time**, with a size budget, typed sections, supersession-aware
+ranking and a usage log that closes the loop (which recalled notes did the task cite). That log
+becomes both the benchmark source and the staleness signal.
+
 **Open question (where we stopped).** The owner replied "check my last message" to the order
 question; the last message asked to **understand the memory layers and architecture first**. So the
 order is unconfirmed. Still to do in the discussion: confirm the order after the architecture
@@ -292,8 +322,199 @@ read, run the pre-mortem round, then Phase 4 (shape) and Phase 5 (output, backlo
 
 ## Appendix A: memory-layer inventory
 
-*(Filled from the read-only pass if it finished before this commit; see "Open work" otherwise.)*
+Source: read-only pass, 2026-10-14 (the `~/.swarm` databases were not opened; only file names and
+sizes come from them). C = canonical (source of record), D = derived and rebuildable.
+
+| # | Layer | Location, size | Content | Writer | Reader | Indexed by | Sync / backup | Known problems | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Native auto-memory (C) | `~/.claude/projects/*/memory/*.md` + MEMORY.md; about 1,010 .md in about 100 real project dirs (`-enter-thebrana-clients-bemol` alone has 72) | feedback, project facts, per-project patterns, `sessions.md` (1.3M), event-log | the Claude model writes directly (ADR-038 exempts it from the gateway); `memory-index-sync.sh` appends MEMORY.md lines; `brana memory write` for feedback and project | Claude Code auto-loads MEMORY.md; recall (FTS) | layers 3 and 4 | not in git; only `pre-lint-heal-*` snapshots (2.4G + 2.5G inside `~/.claude/memory/`); export stopped for tabz (t-3475) | 809 `*-test-tmp-*` dirs are test pollution (`projects/` is 2.0G); per-worktree dirs split memory (`bemol-rails` vs `-t-125`; `prof-man` vs `prof_man`; 3 praia-* dirs) | ADR-038, 095 |
+| 2 | Global memory files (C) | `~/.claude/memory/`: 213 .md; 184 `pattern_*`, 18 `feedback_*`, MEMORY.md (191 of 200 lines), `patterns.md` (46K, 99 sections, cap 100), `knowledge-staging.md` (cap 30), `portfolio.md` (28.6K), event-log (+265K archive) | patterns, feedback, staging claims, client portfolio | `brana memory write`, `/brana:retrospective`, `/brana:close`, `session-end-pattern-promotion.sh`, scheduler `memory-consolidation` (Mon-Sat 15:30), `lint-heal` (Sun) | `build/phases/load.md`, session-start, `brana recall` | layers 3 and 4 | `brana-knowledge/backup.sh` at close; pattern union on export (ADR-095) | two pattern stores (`patterns.md` and `pattern_*.md`); ADR-039 (per-file, no cap) still "proposed"; `consolidation-log.md` reads "0 debrief flags consumed" on every run; MEMORY.md last modified Sep 15 while newer files exist | ADR-038/039/095 |
+| 3 | FTS5 `index.db` (D) | `~/.claude/memory/index.db`, 17.5M | keyword index over memory files | `brana memory reindex` (scheduler `reindex-patterns`, Sunday 03:00); drop-and-rebuild | `brana recall` (FTS5Provider) | n/a | rebuildable | `patterns.md` modified Oct 14, after the last index build on Oct 13; top level of each dir only, so `archive*/` excluded; only `*.md` indexed | ADR-058, memory.rs |
+| 4 | Vector store `knowledge.db` (D) | `~/.claude/memory/knowledge.db`, 24.3M | 384-d f32 BLOB per row: knowledge, link and feed rows (about 6,600+) plus `memory-file:` rows | `brana knowledge vector-sync` (every 4h, +20m), `embed-memory` (manual) | `brana recall` / MCP recall (VectorProvider) | brute-force cosine, no index | not backed up; rebuild needs ruflo rows | `embed-memory` not scheduled (t-3511); first full run about 1 h; ruflo still needed as the query embedder | local-vector-recall.md, recall-memory-file-vectors.md |
+| 5 | ruflo `~/.swarm/memory.db` (mixed) | 148.5M; 14 `.corrupt-*` copies (about 0.5G); `hnsw.index` last built Aug 13; `memory.rvf`; `agentdb-memory.db` 54M; stray 152K `memory.db` copies in `~/.claude/` and `thebrana/.claude/` | namespaces `knowledge`, `pattern`, `session`, `metrics`, `skills`, `field-notes`, `decisions` | `session-end-persist.sh` (`session`, `metrics`), `close` (`session`, `field-notes`), `post-tool-use-failure.sh` (`pattern` counters), `index-knowledge.sh` (Sun), `feed-ruflo-index`, `process-url` (`knowledge`) | session-start (queries `pattern`), `/brana:research` (`field-notes`, `decisions`), `flywheel-insight.sh` (`metrics`) | HNSW (retired as broken, t-2620) | daily binary backup, weekly JSON export; close pushes JSON to private `brana-knowledge`; raw DB off-site only after t-3342 | silent-success defects; repeated corruption (14 copies); ADR-095 reports 135 of 158 `pattern` rows are error counters; `session` and `metrics` have no recall reader | memory-backup.md, ADR-095, `ruflo-stub-guard.md` |
+| 6 | Knowledge pipeline (C to D) | `~/.swarm/knowledge-pipeline-state.json` (1.3M), `~/.claude/knowledge-pipeline-report.md`, `brana-knowledge/{drafts,inbox,dimensions}` (85 dimension docs; repo is 1.5G) | link/feed to tier1, tier2, tier3 drafts, dimensions | scheduler `knowledge-pipeline-tier1` (03:00), `drain-links` (4h), `feed-*` | `/brana:research`, reindex into ruflo and `knowledge.db` | `index-knowledge.sh` (ruflo), vector-sync | git (`brana-knowledge`) | `brana-knowledge/inbox/` is empty; Mac clone of the repo is a deviation (ADR-095) | ADR-042/087/093 |
+| 7 | docs/ (C) | 97 ADR files, 68 drained ideas, 41 research docs, 1 field-notes file, reflections | decisions, specs | humans and skills | grep, Read, `spec-graph` | `docs/spec-graph.json` (D, 625K, built 2026-10-06, 657 nodes, 2,598 edges, 148 orphans) | git | ADR-038 and 039 still "proposed" although the CLI ships; ADR-057 says ADR-038 is "unimplemented"; neither `brana recall` nor the FTS index covers docs/ or `brana-knowledge` dimensions | ADR-057 |
+| 8 | graphify-out (D) | `thebrana/graphify-out/graph.json` 14.1M, built from commit `cfd7ef79` | code and doc structure | `graphify update .` (manual) | retrieval rule 2 | itself | untracked | stale unless rebuilt; doc-edge overlay is wiped on rebuild | ADR-064 |
+| 9 | Backlog ledger (C) | `thebrana/.claude/tasks.json` 5.7M (global `~/.claude/tasks.json` is a 12-byte stub), `tasks-archive.json`, `~/.claude/tasks-json-backups` (276M, hourly) | tasks with context, notes, AC | `brana backlog` | `brana backlog get`, `/brana:build` | none (scan only) | hourly backup; per project | not covered by recall; rule 0 routes to the CLI | retrieval-routing.md |
+| 10 | Session state (C, short-lived) | `projects/*/memory/session-state.json`, `session-history.jsonl`; `~/.claude/state/*.jsonl`, `close-queue.json`, `run-state/pipeline-digest/` | handoff, goals, digest | `brana session write` (close Step 9), the session-end hook | `/brana:sitrep`, session-start | none | none | hook-written files say "auto-captured" with only metrics | close/phases/session-state.md |
+| 11 | Scheduler and digest outputs | `~/.claude/scheduler/` (25M; `feed-log.jsonl` 18M), `intelligence-feed-digest.md`, `lint-heal-report.md` | logs, reports | cron | humans; `/morning` | `feed-*` goes to ruflo | local | digest and report writers mostly lack a programmatic reader | pipeline-digest.md |
+| 12 | Link-capture queue | `personal/` repo (`inbox/`, `deploy/drain-links.sh`, event-log 92K); link tasks in the backlog | raw URLs | Telegram bot, `brana log`, scheduler `personal-repo-pull` (15 min) | `drain-links` | to rows 4 and 5 | personal git | entries keyed `knowledge:url:` in ruflo, and the ruflo copy is rebuilt from nothing | ADR-093 |
+
+### (a) Write and read paths
+
+```
+WRITE                                              READ
+CC model --Write--> projects/*/memory/*.md ─┐     SessionStart ─┬─ ruflo `pattern` search
+close/retro --brana memory write--> memory/ ─┼─FTS reindex (weekly)─> index.db ──┐
+links/feeds -> ruflo `knowledge` --vector-sync(4h)--> knowledge.db ──────────────┼─> brana recall (RRF)
+embed-memory (manual) ─────────────────────────────────> knowledge.db ───────────┘      (+ SessionStart hybrid-recall, top 5)
+hooks -> ruflo session/metrics/pattern    (no recall reader)
+docs/ & brana-knowledge --index-knowledge.sh (Sun)--> ruflo knowledge ; spec-graph/graphify : separate queries
+tasks.json, session-state, portfolio.md : direct read only
+```
+
+### (b) Five structural problems (with evidence)
+
+1. **Duplicate pattern stores.** `patterns.md` has 99 sections and a cap of 100; there are also 184
+   `pattern_*.md` files and ruflo `pattern` rows. ADR-039 (per-file, no cap) is still "proposed"; the
+   cap is enforced in code (ADR-095 §9).
+2. **Stale or unscheduled indexes.** FTS is rebuilt weekly and was already stale against
+   `patterns.md`; `embed-memory` is manual (t-3511); the HNSW index dates from Aug 13, was retired in
+   t-2620, and ADR-058 is still unrevised; the session-start hook still queries ruflo `pattern`
+   (`session-start.sh:234`) though `retrieval-routing.md` calls that namespace noise.
+3. **Writers with no reader.** `session`, `metrics`, scheduler and feed output, and the
+   memory-consolidation "debrief flags" (0 consumed on every run) have no recall reader. `~/.swarm`
+   holds 14 corrupt DB copies; the pre-lint-heal copies add 4.9G.
+4. **Readers with no writer, or a missing feature.** The UserPromptSubmit auto-recall hook is not
+   built (`local-vector-recall.md:224`; `context-inject.sh` only injects task IDs and files). The
+   rules in `memory-decay-by-non-use.md` rely on a recall-hit log that nothing writes.
+5. **Unindexed canonical text.** docs/ ADRs and the 85 dimension docs reach recall only through ruflo
+   (the Sunday `index-knowledge.sh` run). ADR-095 §8 demotes ruflo to a rebuildable index, yet its DB
+   is still the only copy of the link-research insights and about 13 challenge and spike notes
+   (t-3478). 809 test-tmp project dirs and split per-worktree dirs pollute layer 1.
+
+### (c) Recall coverage
+
+- **Covered:** top-level `*.md` in global and project memory (FTS5, and vectors once embedded), and
+  `knowledge.db` rows (links, feeds, doc chunks from ruflo).
+- **Ignored:** `archive*/` subdirs (4 of 20 eval questions), docs/ ADRs and specs as files,
+  `tasks.json`, session state, ruflo `session`/`metrics`/`pattern`, spec-graph, graphify, and
+  `sessions.md`/event-log (which FTS does index as plain markdown).
 
 ## Appendix B: what the architecture is trying to build
 
-*(Filled from the read-only pass if it finished before this commit; see "Open work" otherwise.)*
+Source: read-only pass over the project docs, 2026-10-14. Paths are relative to the repo root.
+
+### 1. Purpose, in the docs' own terms
+
+- `docs/architecture/the-brana.md` Cover: "The Brana is how brana turns intent into shipped work...
+  Nothing crosses between [branes] except memory, carried by loops that return... Gates sit where
+  that motion turns irreversible. And the human lives inside it, an inhabitant not an operator...
+  sensing the rest only through what memory brings across."
+- `docs/reviews/architecture-review-2026-06-10.md` §1, the founding bet: agent work products "can be
+  captured, persisted, and recalled so that the agent compounds in capability across sessions
+  instead of starting from zero." It calls the aim a "self-improving exocortex."
+- `docs/reflections/ARCHITECTURE.md`: "Single Brain, All Projects": identity, intelligence (memory)
+  and context layers. Principles include "Cross-pollinate" and "Confidence-weighted recall."
+
+### 2. Ring model (the-brana.md §Scale; `docs/ideas/the-brana-guide.md` L3.1)
+
+- **Memory is a "fourth dimension," orthogonal to the rings.** Every ring recalls on entry (ORIENT)
+  and writes back on exit (ASSIMILATE). The rings "cycle and forget; memory accumulates —
+  write-back is what turns each circle into a spiral."
+- **Micro (seconds):** red-green-refactor inside one task. Reads the task context on entry.
+- **Beat (minutes):** pull, work, report. The only fully proven ring. Reads "task context + wave
+  state on entry"; writes "learnings + receipt on exit." Proof: "beat 2 read its build map from the
+  task's `context` field, not from the conversation."
+- **Epic (days):** waves, gates, valves. Reads wave state and the epic plan. The epic-level
+  learnings write is design-only: "no step writes epic-level learnings today."
+- **Knowledge (weeks):** "memory → recall → work → learnings → memory. No command — the harness
+  itself." Entire row is design-only; the guide says its gauge is weak: "nothing yet measures
+  whether accumulated knowledge is any good."
+- **Recall today serves two places:** `/brana:build` LOAD (`system/skills/build/phases/load.md`: `brana
+  recall` plus ruflo knowledge and pattern search, then a 1-hop `docs/spec-graph.json` traversal), and
+  SessionStart and sitrep. **It does not serve the unattended Beat or Epic path.** Workers read the
+  task `context` field and the CONTEXT.md glossary instead.
+- **Should serve:** Knowledge-ring ORIENT for every beat (a fresh-context worker at pull time), and
+  the missing Knowledge-ring MEASURE and JUDGE steps. The "Knowledge band, instrumented (design, not
+  yet built)" pipeline is: capture, then `knowledge-staging` queue, then distiller pump (t-2851),
+  curation valve (t-2852), reservoir, hygiene gauges (t-2853).
+
+### 3. Problems memory is documented to solve, with the strongest evidence
+
+- **Context loss between sessions.** ADR-004: "Most sessions end without any of them."
+  `docs/ideas/drained/session-continuity-multi-session.md`: four close-to-sitrep leaks, e.g.
+  "Follow-ups offered, user skips, items evaporate."
+- **Concurrent sessions.** "`brana session write` always replaces `session-state.json`
+  unconditionally... the second close overwrites the first's `accomplished`, `next`, and
+  `learnings`." ADR-038 and `dated-memory-files.md`: "Two CC sessions closing... Last write wins; the
+  earlier session's learning is lost." ADR-088: shared active-epic state is bad.
+- **Write-only memory.** Architecture review: "The system writes everything and reads almost
+  nothing"; 6,259 rows with `access_count = 0`; "Even the decision log is write-only." ADR-021: a
+  schema "announced without a blocking enforcement mechanism does not get adopted."
+- **Retrieval silently failing.** `docs/architecture/features/local-vector-recall.md`: 4,441 rows,
+  HNSW "Vectors: 2", and "`knowledge:url:` entries ever returned by semantic search: 0." The review:
+  session recall returned `[]` by design because of a hidden 0.55 threshold. t-3510: the right file
+  ranked 1st among memory files but 42nd overall, never reaching the pool of 20.
+- **Convention and quality drift.** ADR-039: garbage patterns such as "`tracy-catalog-id-not-articleid`
+  ... useless outside proyecto_anita." `memory-pattern-learning-redesign.md`: recall similarity of
+  "0.43–0.45, generic patterns."
+- **Cross-client learning.** `ARCHITECTURE.md` "Compound Learning Effect": "Day 30: Start gamma... 30%
+  of problems already solved by alpha." No incident-level evidence it works; it is aspirational.
+  ADR-095 limits it: the company Mac gets "no automatic return path."
+- **Unattended loops.** ADR-079 §Pull: a wave pull ignored `blocked_by` (t-2919 pulled ahead of
+  t-2920, wave-11), recorded as memory `pattern_wave-pull-ignores-blocked-by-ordering`. the-brana.md
+  law 2: dead-letter exists because of t-2587, a "160-day-stale root cause."
+- **Persistence loss.** The 2026-03-31 ruflo corruption wiped all patterns (`resilient-pattern-store.md`).
+
+### 4. Unattended loops: needs and supply
+
+- **Needs:** ADR-086 §1 "Task = one fresh context window"; fresh context per pull is the default
+  (guide L3.6). `epic-drain.md`: "a task is one fresh context window."
+- **Supply today:** the task `context` field (ADR-086 §7: it "makes 'do t-NNN' complete"), the
+  `acceptance_criteria` field, `CONTEXT.md`, wave state re-read each beat ("each beat re-reads it and
+  trusts nothing from prior beats"), and fresh-context judge workers.
+- **Gaps:** `drain-loop.md` and `epic-drain.md` contain **no recall step**; their only memory contact
+  is the "task-context write" at ASSIMILATE. "Nothing reads beat records structurally today"
+  (loops-library.md). The handoff packet's `spec`, `log` and `refs` are 0 or near-0 populated (guide
+  L2.4). The Epic exit-write is missing.
+
+### 5. Explicit statements and explicit gaps
+
+- **Cross-project transfer, stated:** ADR-039 filter "Would this pattern apply... a completely
+  different codebase with a different client?"; `/brana:memory pollinate`; "transferable" patterns
+  and tags; ADR-038 routes cross-project scope to `pattern`.
+- **Cross-project transfer, open:** `ARCHITECTURE.md` open questions (should SessionStart inject
+  cross-client patterns, "walls" for competitive clients, sensitive-pattern filtering; "Cross-project
+  DNA matching... Deferred."); ADR-095: tabz material must not flow out.
+- **Staleness, stated:** `system/rules/memory-decay-by-non-use.md`: "staleness signal is 'never
+  recalled since written,' not 'written N days ago'," driven by recall-hit counts;
+  `system/rules/memory-consolidation-scheduled.md` and ADR-048 (lint-heal, consolidation); ADR-057
+  `review_due`, `status`, and claim/pattern confidence from quarantine to proven; retrieval-routing
+  rule 4: "Recall may return a stale snapshot — re-verify against the live accessor."
+- **Staleness, gap:** ADR-021's temporal metadata was "never implemented." The recall-hit log is the
+  only signal and there is no demotion implementation.
+- **Supersession and conflict, stated:** the `supersedes` relation and `status: superseded`
+  vocabulary (ADR-057); debrief contradiction flags that archive files (ADR-048); `/brana:memory
+  review --audit` for cross-doc contradiction (learn.md); dated feedback files with the newest per
+  slug winning the index (ADR-038).
+- **Supersession and conflict, gap:** ADR-058's own changelog says it "should be revisited or
+  superseded." **Nothing resolves contradictions at recall time.**
+- **Associative or related-concept retrieval, stated:** tag-based `pollinate`; the spec-graph 1-hop
+  `depends_on`/`informs` traversal in LOAD 2b; ADR-057: "graph is irreplaceable for structural
+  queries, vectors for fuzzy discovery," and "atomic notes beat long docs 30–50%."
+- **Associative or related-concept retrieval, gap:** memory files are not graph-scanned (the
+  knowledge-base redesign says only 9% have wiki-links, about 30% of those broken; our own count on
+  2026-10-14 was 36% with links and 41% dangling); ADR-064 forbids graphify plain-language query for
+  open-ended questions; sitrep targeted recall (domain, problem-type, risk queries) is P2 and
+  unbuilt; recall counts, recurrence counts and promotion are P1 and unbuilt.
+- **Recall eval status:** 16/16 in scope, but 4 of 20 questions target archived files no leg indexes.
+
+### 6. Five constraining design principles
+
+1. **Derived indexes must be rebuildable; git or files are the source of truth.** ADR-015; ADR-095
+   decision 8 ("ruflo is demoted to a rebuildable index"); ADR-039. Disaster test: wipe the DB,
+   re-index, recover 100%.
+2. **Pointer, not paste. Single home of record; derive signals, never store parallel ones.** ADR-086
+   §7 (and §3 via ADR-078). `CONTEXT.md` is generated, not hand-edited.
+3. **Single writer and gateway.** ADR-038 (`brana memory write` classifies and routes; MEMORY.md is
+   generated; dated files for parallel safety); ADR-058 §7 (store independence); the-brana.md law 1
+   ("a message may carry a pointer, never state").
+4. **Fail-open with graceful degradation.** ADR-058 §5 (FTS5-only or vector-only fallback, 500 ms and
+   2 s deadlines); ADR-038 ("Recall works even without ruflo"); "convert silent failures to loud
+   ones" (architecture review).
+5. **Evidence over assertion, and a context budget.** ADR-076 (executed evidence beats notes); recall
+   results are frozen assertions, re-verified (retrieval-routing rule 0); law 5 "Cost per beat ≈
+   context size"; ADR-058 caps LOAD calls and snippets (200 chars); `context-budget.md` 55/70/85%
+   thresholds; quality gate before storage (ADR-039); human valve on irreversible promotion.
+
+### 7. Pointer for the brainstorm (the reframing)
+
+The docs' unmet need is **not** better keyword-versus-vector scoring. It is:
+
+- **(a) a read-on-entry hook for Beat and Epic workers.** Unattended loops currently have no recall
+  step, which is the owner's stated goal ("leave workers working").
+- **(b) a Knowledge-ring gauge** that measures whether recall hits change outcomes.
+- **(c) supersession, staleness and relatedness handled at recall time.**
+
+The in-flight t-3510 and t-3511 work only fixes the memory-file semantic leg.
