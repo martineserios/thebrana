@@ -97,7 +97,7 @@ OUT=$(cat "$TMP" 2>/dev/null); rm -f "$TMP"
 case "$RC" in
     124|137) emit "⚠ installed-mods Law 3 scan did not run: timed out after 8 s — $REMEDY"; exit 0 ;;
     1) ;;   # the checker's own verdict (a Law 3 finding) — handled below
-    2) ;;   # the checker could not scan (python3 missing, unreadable registry) — relayed as such below (t-3505)
+    2) ;;   # the checker could not scan (missing interpreter, unreadable registry) — relayed as such below (t-3505)
     *) emit "⚠ installed-mods Law 3 scan did not run: mods-check --installed exit $RC — $REMEDY"; exit 0 ;;
 esac
 
