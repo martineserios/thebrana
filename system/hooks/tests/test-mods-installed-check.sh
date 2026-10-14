@@ -78,7 +78,7 @@ assert "billing mod: names Law 3" yes "$(has 'Law 3' "$(ctx)")"
 assert "billing mod: names the mod" yes "$(has 'billing@x' "$(ctx)")"
 assert "billing mod: points at the remedy (77c)" yes "$(has '77c' "$(ctx)")"
 assert "billing mod: exactly one warning line" 1 "$(ctx | wc -l | tr -d ' ')"
-assert "billing mod: never a block" no "$(has '"continue": false' "$OUT")$(has '"decision"' "$OUT" | sed 's/no//')"
+assert "billing mod: never a block (no decision, no continue:false)" yes "$(printf '%s' "$OUT" | jq -e '(.decision == null) and (.continue != false)' >/dev/null 2>&1 && echo yes || echo no)"
 assert "billing mod: nothing on stderr" "" "$(cat "$T/err")"
 
 echo ""
