@@ -242,14 +242,86 @@ impl Sha256 {
     }
 }
 
-/// Download a file from a URL using curl
-pub fn download_file(url: &str, dest: &Path) -> Result<()> {
-    if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent)?;
+/// How long an in-flight `.part-<pid>` may go untouched before it counts as abandoned.
+/// Age-based rather than pid-liveness so it needs no `/proc` (macOS portable): a live
+/// download keeps writing its part file, an interrupted one never touches it again.
+pub const STALE_PART_AGE: std::time::Duration = std::time::Duration::from_secs(60 * 60);
+
+/// In-progress download path for `dest`: `<dest>.part-<pid>`. Never matches the final
+/// name, so discovery and hash checks never see a half-written file (t-3473).
+pub fn part_path(dest: &Path) -> PathBuf {
+    let mut name = dest.file_name().unwrap_or_default().to_os_string();
+    name.push(format!(".part-{}", std::process::id()));
+    dest.with_file_name(name)
+}
+
+/// Remove `*.part-*` files in `dir` untouched for longer than `STALE_PART_AGE`
+/// (left by a killed download). Missing dir is a no-op. Returns how many were removed.
+pub fn sweep_stale_parts(dir: &Path) -> usize {
+    let Ok(rd) = std::fs::read_dir(dir) else { return 0 };
+    let now = std::time::SystemTime::now();
+    let mut swept = 0;
+    for e in rd.flatten() {
+        if !e.file_name().to_string_lossy().contains(".part-") {
+            continue;
+        }
+        let stale = e
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| now.duration_since(t).ok())
+            .map(|age| age > STALE_PART_AGE)
+            .unwrap_or(false);
+        if stale && std::fs::remove_file(e.path()).is_ok() {
+            swept += 1;
+        }
     }
+    swept
+}
+
+/// Only `https://` downloads. The manifest is checked into the project, so a hostile
+/// checkout must not be able to point curl at `file://` or a plaintext mirror.
+pub fn validate_url(url: &str) -> Result<()> {
+    if !url.starts_with("https://") || url.len() == "https://".len() || url.trim() != url {
+        bail!("refusing non-https download URL: {url:?}");
+    }
+    Ok(())
+}
+
+/// Resolve a manifest entry to a path inside `project_dir`, refusing anything a hostile
+/// manifest could use to write elsewhere: absolute paths, `..` (or any non-plain)
+/// components, empty paths. Validates the URL when present. Writes nothing.
+pub fn validate_entry(project_dir: &Path, entry: &FileEntry) -> Result<PathBuf> {
+    use std::path::Component;
+    if entry.path.is_empty() {
+        bail!("manifest entry has an empty path");
+    }
+    let rel = Path::new(&entry.path);
+    if rel.is_absolute() {
+        bail!("manifest path must be relative to the project: {:?}", entry.path);
+    }
+    if rel.components().any(|c| !matches!(c, Component::Normal(_))) {
+        bail!("manifest path must stay inside the project (no '..'): {:?}", entry.path);
+    }
+    if let Some(url) = &entry.url {
+        validate_url(url)?;
+    }
+    Ok(project_dir.join(rel))
+}
+
+/// Download `url` to `dest` atomically: curl writes `<dest>.part-<pid>`, the hash is
+/// checked there when `expected_sha256` is given, and only then is it renamed into place.
+/// A failed, interrupted or mismatched download leaves nothing at `dest`. Non-https URLs
+/// are refused before the filesystem is touched.
+pub fn download_file(url: &str, dest: &Path, expected_sha256: Option<&str>) -> Result<()> {
+    validate_url(url)?;
+    download_file_with(url, dest, expected_sha256, curl_fetch)
+}
+
+fn curl_fetch(url: &str, part: &Path) -> Result<()> {
     let status = std::process::Command::new("curl")
         .args(["-fSL", "-o"])
-        .arg(dest)
+        .arg(part)
         .arg(url)
         .status()
         .context("curl not found")?;
@@ -257,6 +329,36 @@ pub fn download_file(url: &str, dest: &Path) -> Result<()> {
         bail!("download failed: {url}");
     }
     Ok(())
+}
+
+/// `download_file` with the transfer injected (testable without network).
+fn download_file_with(
+    url: &str,
+    dest: &Path,
+    expected_sha256: Option<&str>,
+    fetch: impl Fn(&str, &Path) -> Result<()>,
+) -> Result<()> {
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent)?;
+        sweep_stale_parts(parent);
+    }
+    let part = part_path(dest);
+    let result = fetch(url, &part).and_then(|()| match expected_sha256 {
+        None => Ok(()),
+        Some(expected) => {
+            let got = file_sha256(&part)?;
+            if got != expected {
+                bail!("hash mismatch after download (got {got})");
+            }
+            Ok(())
+        }
+    });
+    if let Err(e) = result {
+        let _ = std::fs::remove_file(&part);
+        return Err(e);
+    }
+    std::fs::rename(&part, dest)
+        .with_context(|| format!("failed to move download into place: {}", dest.display()))
 }
 
 /// Push a file to R2 via rclone
@@ -281,10 +383,13 @@ pub fn pull(manifest: &Manifest, project_dir: &Path) -> Result<PullResult> {
     let mut failed = Vec::new();
 
     for (name, entry) in &manifest.files {
-        let full_path = if Path::new(&entry.path).is_absolute() {
-            PathBuf::from(&entry.path)
-        } else {
-            project_dir.join(&entry.path)
+        // Containment first (t-3473): a hostile manifest never gets a write anywhere.
+        let full_path = match validate_entry(project_dir, entry) {
+            Ok(p) => p,
+            Err(e) => {
+                failed.push(format!("{name}: {e}"));
+                continue;
+            }
         };
         if full_path.exists() {
             if let Ok(hash) = file_sha256(&full_path) {
@@ -296,17 +401,10 @@ pub fn pull(manifest: &Manifest, project_dir: &Path) -> Result<PullResult> {
         }
 
         if let Some(url) = &entry.url {
-            match download_file(url, &full_path) {
-                Ok(()) => {
-                    match file_sha256(&full_path) {
-                        Ok(hash) if hash == entry.sha256 => downloaded += 1,
-                        Ok(hash) => {
-                            failed.push(format!("{name}: hash mismatch after download (got {hash})"));
-                            let _ = std::fs::remove_file(&full_path);
-                        }
-                        Err(e) => failed.push(format!("{name}: verify failed: {e}")),
-                    }
-                }
+            // sha256 is verified on the .part before the rename, so a mismatch never
+            // reaches full_path.
+            match download_file(url, &full_path, Some(&entry.sha256)) {
+                Ok(()) => downloaded += 1,
                 Err(e) => failed.push(format!("{name}: {e}")),
             }
         } else {

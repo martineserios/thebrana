@@ -3,6 +3,7 @@
 //! Shells out to whisper-cli for fast CPU inference.
 //! Handles format conversion via ffmpeg when needed.
 
+use crate::files;
 use anyhow::{bail, Context, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -222,6 +223,8 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
     let dir = PathBuf::from(home).join(".cache").join("whisper-models");
     std::fs::create_dir_all(&dir)?;
+    // A download killed mid-stream (SIGINT) leaves its .part-<pid> behind; reclaim the disk.
+    files::sweep_stale_parts(&dir);
 
     let model_path = dir.join(ggml_filename(name));
     if std::fs::metadata(&model_path).map(|m| m.len() > 1000).unwrap_or(false) && has_ggml_magic(&model_path) {
@@ -233,7 +236,7 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
     // Download to a per-process .part file and rename on success: an interrupted or
     // concurrent download never leaves a truncated `ggml-*.bin` for discovery to pick up.
     // -f: fail on HTTP errors instead of saving the error page as the model.
-    let part = part_path(&model_path);
+    let part = files::part_path(&model_path);
     let status = Command::new("curl")
         .args(["-fL", "-o"])
         .arg(&part)
@@ -253,45 +256,35 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
     Ok(model_path)
 }
 
-/// In-progress download path for `target` — never matches `ggml-*.bin` discovery.
-fn part_path(target: &Path) -> PathBuf {
-    let mut name = target.file_name().unwrap_or_default().to_os_string();
-    name.push(format!(".part-{}", std::process::id()));
-    target.with_file_name(name)
+/// `entry` as a usable path for `model_file`, or None when it is not that model (exact file
+/// name — `contains` used to match `ggml-base.bin.bak` too) or when it would escape the
+/// project / use a non-https URL (`files::validate_entry`, t-3473). Writes nothing.
+fn tracked_model_path(root: &Path, entry: &files::FileEntry, model_file: &str) -> Option<PathBuf> {
+    if Path::new(&entry.path).file_name()?.to_str()? != model_file {
+        return None;
+    }
+    files::validate_entry(root, entry).ok()
 }
 
 fn try_manifest_model(name: &str) -> Option<PathBuf> {
-    use crate::files;
     use crate::util::find_project_root;
 
     let root = find_project_root()?;
     let manifest = files::Manifest::load(&root).ok()?;
     let model_name = ggml_filename(name);
 
-    for (_name, entry) in &manifest.files {
-        if entry.path.contains(&model_name) {
-            let full_path = if Path::new(&entry.path).is_absolute() {
-                PathBuf::from(&entry.path)
-            } else {
-                root.join(&entry.path)
-            };
-
-            if full_path.exists() {
-                if let Ok(hash) = files::file_sha256(&full_path) {
-                    if hash == entry.sha256 {
-                        eprintln!("Using manifest-tracked model: {}", entry.path);
-                        return Some(full_path);
-                    }
-                }
-            } else if let Some(url) = &entry.url {
-                eprintln!("Downloading tracked model: {}", entry.path);
-                if files::download_file(url, &full_path).is_ok() {
-                    if let Ok(hash) = files::file_sha256(&full_path) {
-                        if hash == entry.sha256 {
-                            return Some(full_path);
-                        }
-                    }
-                }
+    for entry in manifest.files.values() {
+        let Some(full_path) = tracked_model_path(&root, entry, &model_name) else { continue };
+        if full_path.exists() {
+            if files::file_sha256(&full_path).ok().as_deref() == Some(entry.sha256.as_str()) {
+                eprintln!("Using manifest-tracked model: {}", entry.path);
+                return Some(full_path);
+            }
+        } else if let Some(url) = &entry.url {
+            eprintln!("Downloading tracked model: {}", entry.path);
+            // Atomic: hash is checked on the .part, so a mismatch never lands at full_path.
+            if files::download_file(url, &full_path, Some(&entry.sha256)).is_ok() {
+                return Some(full_path);
             }
         }
     }
@@ -970,7 +963,7 @@ mod tests {
     fn partial_downloads_are_not_models() {
         let d = tempfile::tempdir().unwrap();
         let target = d.path().join("ggml-large-v3.bin");
-        let part = part_path(&target);
+        let part = files::part_path(&target);
         assert_ne!(part, target);
         std::fs::write(&part, vec![0u8; 5000]).unwrap();
         assert!(discover_models_in(&[d.path().to_path_buf()]).is_empty());

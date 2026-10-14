@@ -262,6 +262,7 @@ system/cli/rust/src/
 ## Changelog
 
 - 2026-05-24: Knowledge tier-1/tier-2 pipeline added; `call_gemini_json()` routes eligible tasks to Gemini Flash (t-1667). `brana backlog focus --top N` propagated to CLI guide.
+- 2026-10-14: `brana files pull` and manifest-tracked whisper models download atomically (`<dest>.part-<pid>`, sha256 checked before rename, stale partials swept after 1 h, no `/proc`); `.brana-files.json` entries with absolute or `..` paths or non-https URLs are refused before any write (t-3473).
 - 2026-10-14: `brana transcribe --frames DIR --scene X` samples frames on scene changes (the first frame plus ffmpeg `gt(scene,X)`, 0 < X < 1) instead of the fixed `--every` interval; the two flags are mutually exclusive and labels still come from `showinfo` `pts_time` (t-3471).
 - 2026-10-07: CI's required `rust` job now runs `cargo test --workspace` (brana-cli, brana-core, brana-mcp; ffmpeg ≥ 5.1 installed and asserted, `BRANA_REQUIRE_FFMPEG=1` so the real-ffmpeg frame tests can't skip; 45 min job timeout). Before this, no CI job ran the Rust suites — Check 46 only compiles them. Pinned by `tests/scripts/test-ci-rust-tests.sh` (t-3472).
 - 2026-10-05: **After shipping, rebuild the binary** — `bootstrap.sh` does not build the CLI: `cd system/cli/rust && cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana`, then check `brana transcribe --help` lists `--frames` (t-3470).
