@@ -1140,12 +1140,28 @@ if command -v jq &>/dev/null; then
             echo "  = installed_plugins.json ($PLUGIN_KEY v$PLUGIN_VERSION registered)"
         fi
     fi
+else
+    # Said here, not only by `brana doctor`: without jq 7e cannot write the engine registry,
+    # and the legacy stub that used to mask this (7f) is gone (t-3502 verifier C2).
+    echo "  ! jq missing — brana NOT registered in the engine registry (7e); install jq and re-run"
+    CHANGES=$((CHANGES + 1))
 fi
 
 # 7f (removed, t-3502): this step wrote a hand-rolled ~/.claude/installed_plugins.json "so
 # fresh installs pass brana doctor". Nothing but that check ever read the file — the engine
 # reads plugins/installed_plugins.json, which 7e writes — so its only effect was to let a stub
-# mask an engine registry without brana. brana doctor now reads the engine registry alone.
+# mask an engine registry without brana. brana doctor now reads the engine registry alone, and
+# a leftover stub (brana's own artefact) is removed here so it cannot mislead anyone later.
+LEGACY_STUB="$TARGET_DIR/installed_plugins.json"
+if [ -f "$LEGACY_STUB" ]; then
+    CHANGES=$((CHANGES + 1))
+    if $CHECK_ONLY; then
+        echo "  - $LEGACY_STUB (would remove: legacy stub, nothing reads it — t-3502)"
+    else
+        rm -f "$LEGACY_STUB"
+        echo "  - $LEGACY_STUB (legacy stub removed: nothing reads it — t-3502)"
+    fi
+fi
 
 # 7g: ruflo mods guard (ADR-096 Law 6; cockpit.md §bootstrap, t-3427). ruflo >= 3.50's `ruflo init`
 # enables ruflo-mods@ruflo / ruflo-swarm@ruflo / ruflo-console@ruflo; ruflo-mods hooks

@@ -183,6 +183,10 @@ run_hook
 assert "hostile mod name: exit 0" 0 "$RC"
 assert "hostile mod name: the instruction text is NOT relayed" no "$(has 'IGNORE ALL' "$(ctx)")"
 assert "hostile mod name: the rule is still named" yes "$(has 'model' "$(ctx)")"
+# the mechanism, not the phrase: a relayed name is a key-charset token of at most 40 characters
+RELAYED_NAME=$(ctx | sed -nE 's/.*mod ([^ ]+) matches rule.*/\1/p')
+assert "hostile mod name: relayed name is a key-charset token" yes "$(printf '%s' "$RELAYED_NAME" | grep -qE '^[A-Za-z0-9@._-]+$' && echo yes || echo no)"
+assert "hostile mod name: relayed name is at most 40 chars" yes "$([ "${#RELAYED_NAME}" -le 40 ] && echo yes || echo no)"
 
 echo ""
 echo "--- verifier: a stale deployed checker that cannot run static-only is refused, not run ---"

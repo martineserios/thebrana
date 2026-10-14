@@ -95,16 +95,28 @@ fn find_brana_entry(val: &serde_json::Value) -> Result<(String, String), String>
         .get("plugins")
         .and_then(|p| p.as_object())
         .ok_or_else(|| "no `plugins` object (not the engine's v2 registry)".to_string())?;
-    let (key, entry) = plugins
-        .iter()
-        .find(|(k, _)| k.starts_with("brana@"))
-        .ok_or_else(|| {
-            if plugins.contains_key("brana") {
-                "a bare `brana` key is a hand-written stub, not an engine registration (expected `brana@<marketplace>`)".to_string()
-            } else {
-                "brana not found".to_string()
-            }
-        })?;
+    // Every brana@<marketplace> key is a candidate: the first REAL one wins (an emptied
+    // brana@brana list must not hide a registration under another marketplace — verifier);
+    // when none is real, the first key's reason is reported.
+    let mut first_reason: Option<String> = None;
+    for (key, entry) in plugins.iter().filter(|(k, _)| k.starts_with("brana@")) {
+        match real_entry(key, entry) {
+            Ok(()) => return Ok((key.clone(), entry_version(entry))),
+            Err(reason) => first_reason.get_or_insert(reason),
+        };
+    }
+    Err(first_reason.unwrap_or_else(|| {
+        if plugins.contains_key("brana") {
+            "a bare `brana` key is a hand-written stub, not an engine registration (expected `brana@<marketplace>`)".to_string()
+        } else {
+            "brana not found".to_string()
+        }
+    }))
+}
+
+/// A registry value is real when it is a non-empty list whose first entry carries a non-empty
+/// `installPath`; otherwise the reason it is a stub.
+fn real_entry(key: &str, entry: &serde_json::Value) -> Result<(), String> {
     let list = entry
         .as_array()
         .ok_or_else(|| format!("{key} is not a list of install entries (stub shape)"))?;
@@ -116,10 +128,7 @@ fn find_brana_entry(val: &serde_json::Value) -> Result<(String, String), String>
         .and_then(|v| v.as_str())
         .map(|s| !s.is_empty())
         .unwrap_or(false);
-    if !has_path {
-        return Err(format!("{key} entry has no installPath (stub shape)"));
-    }
-    Ok((key.clone(), entry_version(entry)))
+    if has_path { Ok(()) } else { Err(format!("{key} entry has no installPath (stub shape)")) }
 }
 
 /// Version string of a registry value: an object's `version`/`v`, or the first entry of a

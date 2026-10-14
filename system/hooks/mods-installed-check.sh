@@ -29,7 +29,7 @@
 #         Nothing here is shown to the human directly.
 # Env:    CLAUDE_CONFIG_DIR (the engine's config dir; default ~/.claude)
 #         BRANA_MODS_CHECK  (path to mods-check.sh — tests; default: resolved below)
-#         BRANA_MODS_INSTALLED_SKIP=1 (silence this gauge for the shell; never the default)
+#         (opt-out: touch $CLAUDE_CONFIG_DIR/mods-installed-check.skip — a file, never an env var)
 # Tests:  system/hooks/tests/test-mods-installed-check.sh (must-fire with the t-3493 billing mod)
 #
 # No strict mode — a SessionStart hook must always exit 0 and emit valid JSON or nothing.
@@ -38,10 +38,12 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
-# Nothing installed: nothing to scan, nothing to say. BRANA_MODS_INSTALLED_SKIP=1 silences
-# this gauge for a shell (challenger: a flagged-but-accepted mod would otherwise put the same
-# line in every session until t-3505's acknowledge valve lands); the valve stays [77c].
-[ "${BRANA_MODS_INSTALLED_SKIP:-0}" = "1" ] && exit 0
+# Nothing installed: nothing to scan, nothing to say. A USER-owned file
+# `$CLAUDE_DIR/mods-installed-check.skip` silences this gauge (challenger: a flagged-but-accepted
+# mod would otherwise put the same line in every session until t-3505's acknowledge valve lands);
+# the valve stays [77c]. Deliberately a file, not an env var: a project's .claude/settings.json
+# `env` block reaches hook processes, so an env switch could be set by a hostile clone (verifier).
+[ -f "$CLAUDE_DIR/mods-installed-check.skip" ] && exit 0
 [ -f "$CLAUDE_DIR/plugins/installed_plugins.json" ] || exit 0
 
 REMEDY="run ./validate.sh (Check 77c) by hand"
