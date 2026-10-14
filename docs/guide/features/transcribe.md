@@ -16,9 +16,11 @@ Needs `whisper-cli` (whisper.cpp) and, for video or frames, `ffmpeg` ≥ 5.1. No
 
 ## How It Works
 
-- **Model:** the largest model in `~/.cache/whisper-models` (or `$BRANA_WHISPER_MODELS`) is used
-  unless you pass `--model <name|path>`. A named model that is not installed is downloaded.
-  The model in use is printed on stderr.
+- **Model:** the largest model in `~/.cache/whisper-models` (or the absolute directories in
+  `$BRANA_WHISPER_MODELS`; relative entries are ignored with a warning) is used unless you pass
+  `--model <name|path>`. The argument is a path only when it contains `/` or ends with `.bin`;
+  anything else is a model name, and a name that is not installed is downloaded. `HOME` must
+  be set. The model in use is printed on stderr.
 - **Video input** (`mp4 mkv mov webm avi m4v`): audio is extracted with ffmpeg first.
 - **`--frames DIR`** (video only): JPEG frames land in `DIR/frame_000001.jpg …` and the
   transcript gets segment timestamps plus a frame index (`frame_000002.jpg @ 00:00:10`) so

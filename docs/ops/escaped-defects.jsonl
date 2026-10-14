@@ -15,3 +15,4 @@
 {"date":"2026-10-02","area":"test-runner","signal":"effort-M","rung_armed":1,"verified_findings":3,"cost_tokens":41354}
 {"date":"2026-10-03","area":"hooks/pattern-promotion","signal":"critical-path","rung_armed":1,"verified_findings":6,"cost_tokens":0}
 {"date":"2026-10-14","area":"brana-core/files","signal":"CRITICAL_PATH","rung_armed":2,"verified_findings":3,"cost_tokens":0}
+{"date":"2026-10-14","area":"brana-cli/transcribe","signal":"CRITICAL_PATH","rung_armed":2,"verified_findings":1,"cost_tokens":0}

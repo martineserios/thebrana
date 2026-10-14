@@ -5,7 +5,8 @@
 
 use crate::files;
 use anyhow::{bail, Context, Result};
-use std::io::BufRead as _;
+use std::ffi::OsString;
+use std::io::{BufRead as _, Read as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -118,26 +119,46 @@ fn is_model_path(spec: &str) -> bool {
     spec.contains('/') || spec.ends_with(".bin")
 }
 
+/// The user's home as an absolute path, or an error. Never a cwd fallback: with `HOME`
+/// unset (cron, `env -i`) the old `"."` default made the model cache, the download dir
+/// and even the `whisper-cli` lookup resolve against — and execute from — the current
+/// directory (t-3480 challenger F6).
+fn home_dir() -> Result<PathBuf> {
+    home_dir_from(std::env::var("HOME").ok().as_deref())
+}
+
+fn home_dir_from(home: Option<&str>) -> Result<PathBuf> {
+    match home {
+        Some(h) if Path::new(h).is_absolute() => Ok(PathBuf::from(h)),
+        Some(h) if !h.is_empty() => bail!("HOME must be an absolute path (got {h:?})"),
+        _ => bail!("HOME is not set — brana transcribe needs it for the model cache"),
+    }
+}
+
 /// Directories searched for installed models, in priority order.
-fn model_dirs() -> Vec<PathBuf> {
+fn model_dirs() -> Result<Vec<PathBuf>> {
     let env = std::env::var("BRANA_WHISPER_MODELS").ok();
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-    model_dirs_from(env.as_deref(), &home)
+    let (dirs, ignored) = model_dirs_from(env.as_deref(), &home_dir()?);
+    for e in ignored {
+        eprintln!("warning: ignoring relative BRANA_WHISPER_MODELS entry {e:?} (must be absolute)");
+    }
+    Ok(dirs)
 }
 
 /// `model_dirs` with the inputs injected. Relative `BRANA_WHISPER_MODELS` entries are
-/// ignored: they would resolve against whatever cwd the command runs in (t-3480).
-fn model_dirs_from(env: Option<&str>, home: &str) -> Vec<PathBuf> {
-    let mut dirs: Vec<PathBuf> = env
-        .map(|v| {
-            v.split(':')
-                .filter(|s| !s.is_empty() && Path::new(s).is_absolute())
-                .map(PathBuf::from)
-                .collect()
-        })
-        .unwrap_or_default();
-    dirs.push(PathBuf::from(home).join(".cache").join("whisper-models"));
-    dirs
+/// ignored and reported: they would resolve against whatever cwd the command runs in.
+fn model_dirs_from(env: Option<&str>, home: &Path) -> (Vec<PathBuf>, Vec<String>) {
+    let mut dirs = Vec::new();
+    let mut ignored = Vec::new();
+    for e in env.unwrap_or_default().split(':').filter(|s| !s.is_empty()) {
+        if Path::new(e).is_absolute() {
+            dirs.push(PathBuf::from(e));
+        } else {
+            ignored.push(e.to_string());
+        }
+    }
+    dirs.push(home.join(".cache").join("whisper-models"));
+    (dirs, ignored)
 }
 
 /// List every `ggml-<name>.bin` in `dirs` (earlier dir wins for a repeated name).
@@ -188,7 +209,7 @@ fn resolve_installed(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
 
 /// Resolve the model to run: explicit path/name, else largest installed, else download small.
 fn resolve_model(spec: Option<&str>) -> Result<PathBuf> {
-    resolve_model_with(spec, &model_dirs(), ensure_model)
+    resolve_model_with(spec, &model_dirs()?, ensure_model)
 }
 
 /// `resolve_model` with the search dirs and downloader injected (testable without network).
@@ -236,8 +257,7 @@ fn ensure_model(name: &str) -> Result<PathBuf> {
         return Ok(path);
     }
 
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-    let dir = PathBuf::from(home).join(".cache").join("whisper-models");
+    let dir = home_dir()?.join(".cache").join("whisper-models");
     std::fs::create_dir_all(&dir)?;
     // A download killed mid-stream (SIGINT) leaves its .part-<pid> behind; reclaim the disk.
     files::sweep_stale_parts(&dir);
@@ -358,22 +378,54 @@ fn sweep_stale_wavs(dir: &Path) -> usize {
     swept
 }
 
-/// The input argument for ffmpeg: an absolute `file:` URL. With `-protocol_whitelist file`
-/// in front, a media file whose name looks like `concat:…`, `data:…` or a playlist is
+/// `file:` + the absolute path, as raw bytes (a non-UTF-8 file name reaches ffmpeg intact).
+/// Only a RELATIVE name can look like a scheme to ffmpeg (`concat:…`, `data:…`); an
+/// absolute `file:` URL plus `-protocol_whitelist file` means a media file is always
 /// opened as a file and never parsed as a protocol (t-3480).
-fn ffmpeg_input(path: &Path) -> Result<String> {
-    let abs = std::path::absolute(path).with_context(|| format!("bad input path {}", path.display()))?;
-    Ok(format!("file:{}", abs.display()))
+fn file_url(path: &Path) -> Result<OsString> {
+    let abs = std::path::absolute(path).with_context(|| format!("bad path {}", path.display()))?;
+    let mut url = OsString::from("file:");
+    url.push(abs.as_os_str());
+    Ok(url)
+}
+
+fn ffmpeg_input(path: &Path) -> Result<OsString> {
+    file_url(path)
+}
+
+/// `%` is ffmpeg's image2 pattern char — escape it in a directory that becomes part of an
+/// output pattern. Byte-wise on unix so non-UTF-8 names survive.
+fn escape_percent(dir: &Path) -> OsString {
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::{OsStrExt, OsStringExt};
+        let mut out = Vec::with_capacity(dir.as_os_str().len() + 4);
+        for &b in dir.as_os_str().as_bytes() {
+            out.push(b);
+            if b == b'%' {
+                out.push(b'%');
+            }
+        }
+        OsString::from_vec(out)
+    }
+    #[cfg(not(unix))]
+    {
+        OsString::from(dir.to_string_lossy().replace('%', "%%"))
+    }
+}
+
+fn os(s: &str) -> OsString {
+    OsString::from(s)
 }
 
 /// ffmpeg arguments that convert `input`'s audio to 16 kHz mono PCM wav at `out`.
-fn wav_ffmpeg_args(input: &Path, out: &Path) -> Result<Vec<String>> {
+fn wav_ffmpeg_args(input: &Path, out: &Path) -> Result<Vec<OsString>> {
     Ok(vec![
-        "-nostdin".into(), "-v".into(), "error".into(), "-y".into(),
-        "-protocol_whitelist".into(), "file".into(),
-        "-i".into(), ffmpeg_input(input)?,
-        "-vn".into(), "-ar".into(), "16000".into(), "-ac".into(), "1".into(), "-c:a".into(), "pcm_s16le".into(),
-        out.display().to_string(),
+        os("-nostdin"), os("-v"), os("error"), os("-y"),
+        os("-protocol_whitelist"), os("file"),
+        os("-i"), ffmpeg_input(input)?,
+        os("-vn"), os("-ar"), os("16000"), os("-ac"), os("1"), os("-c:a"), os("pcm_s16le"),
+        out.as_os_str().to_owned(),
     ])
 }
 
@@ -434,21 +486,73 @@ fn is_video(path: &Path) -> bool {
 /// `showinfo` logs each kept frame's real `pts_time` (at info level, hence `-loglevel info`),
 /// which labels the frames — sampling never decides the label.
 /// Requires ffmpeg >= 5.1 (`-fps_mode`).
-fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Result<Vec<String>> {
+fn frames_ffmpeg_args(input: &Path, dir: &Path, sampling: Sampling) -> Result<Vec<OsString>> {
+    // The output is a `file:` URL too: `-protocol_whitelist` before `-i` binds to the
+    // input only, so a `--frames` dir spelled like `udp://host/x` would otherwise be
+    // created locally by our checks and then written to over the network by ffmpeg.
+    let mut output = OsString::from("file:");
+    output.push(escape_percent(&std::path::absolute(dir)?));
+    output.push("/frame_%06d.jpg");
     Ok(vec![
-        "-hide_banner".into(),
-        "-nostdin".into(),
-        "-loglevel".into(), "info".into(),
-        "-y".into(),
-        "-protocol_whitelist".into(), "file".into(),
-        "-i".into(), ffmpeg_input(input)?,
-        "-vf".into(),
-        format!("select='{}',showinfo", sampling.select_expr()),
-        "-fps_mode".into(), "vfr".into(),
-        "-q:v".into(), "2".into(),
-        // `%` is ffmpeg's image2 pattern char — escape it in the directory part.
-        format!("{}/frame_%06d.jpg", dir.display().to_string().replace('%', "%%")),
+        os("-hide_banner"),
+        os("-nostdin"),
+        os("-loglevel"), os("info"),
+        os("-y"),
+        os("-protocol_whitelist"), os("file"),
+        os("-i"), ffmpeg_input(input)?,
+        os("-protocol_whitelist"), os("file"),
+        os("-vf"),
+        os(&format!("select='{}',showinfo", sampling.select_expr())),
+        os("-fps_mode"), os("vfr"),
+        os("-q:v"), os("2"),
+        output,
     ])
+}
+
+/// Longest stderr line kept; the rest of an over-long line is skipped, not buffered.
+const STDERR_LINE_CAP: usize = 64 * 1024;
+
+/// Read ffmpeg's stderr to the end, byte-wise: each line is decoded lossily, so a Latin-1
+/// title tag the file carries (ffmpeg echoes metadata before the first showinfo line)
+/// never ends the read — `BufRead::lines()` would stop at the first invalid UTF-8 and
+/// silently lose every later frame time (t-3480 challenger F4).
+fn read_ffmpeg_stderr(r: impl std::io::Read) -> (Vec<f64>, String) {
+    let mut reader = std::io::BufReader::new(r);
+    let mut reducer = StderrReducer::default();
+    let mut buf: Vec<u8> = Vec::new();
+    loop {
+        buf.clear();
+        match reader.by_ref().take(STDERR_LINE_CAP as u64).read_until(b'\n', &mut buf) {
+            Ok(0) => break,
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => break,
+        }
+        if !buf.ends_with(b"\n") && buf.len() >= STDERR_LINE_CAP {
+            skip_to_newline(&mut reader);
+        }
+        let line = String::from_utf8_lossy(&buf);
+        reducer.push(line.trim_end_matches(['\n', '\r']));
+    }
+    (reducer.times, reducer.last)
+}
+
+/// Discard bytes up to and including the next newline without accumulating them.
+fn skip_to_newline(reader: &mut impl std::io::BufRead) {
+    loop {
+        let (consumed, done) = match reader.fill_buf() {
+            Ok(chunk) if chunk.is_empty() => return,
+            Ok(chunk) => match chunk.iter().position(|&b| b == b'\n') {
+                Some(i) => (i + 1, true),
+                None => (chunk.len(), false),
+            },
+            Err(_) => return,
+        };
+        reader.consume(consumed);
+        if done {
+            return;
+        }
+    }
 }
 
 /// Streaming reduction of ffmpeg's stderr: keeps the `showinfo` frame times and the last
@@ -551,16 +655,23 @@ fn validate_options(opts: &Options, input: &Path) -> Result<()> {
 /// private recording should not land world-readable in a shared location (t-3480). An
 /// existing dir keeps its mode.
 fn create_private_dir(dir: &Path) -> Result<()> {
+    // Parents get the default mode — only the leaf holding the frames is private, so
+    // `--frames /srv/share/newproj/frames` does not lock `newproj` to one user.
+    if let Some(parent) = dir.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
     #[cfg(unix)]
-    {
+    let created = {
         use std::os::unix::fs::DirBuilderExt;
-        std::fs::DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
-    }
+        std::fs::DirBuilder::new().mode(0o700).create(dir)
+    };
     #[cfg(not(unix))]
-    {
-        std::fs::create_dir_all(dir)?;
+    let created = std::fs::create_dir(dir);
+    match created {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && dir.is_dir() => Ok(()),
+        Err(e) => Err(e).with_context(|| format!("cannot create frames dir {}", dir.display())),
     }
-    Ok(())
 }
 
 /// Refuse a frames dir that already holds frames: the index is built from the directory,
@@ -568,7 +679,13 @@ fn create_private_dir(dir: &Path) -> Result<()> {
 /// a planted `frame_*` symlink in a shared dir would be followed by ffmpeg's `-y` (t-3480),
 /// so any `frame_*` entry, file or link, refuses the run before ffmpeg starts.
 fn check_frames_dir(dir: &Path) -> Result<()> {
-    let Ok(rd) = std::fs::read_dir(dir) else { return Ok(()) };
+    // Fail closed: only "does not exist yet" means there is nothing to check. A dir we
+    // cannot list (EACCES, ELOOP, ENOTDIR) could hold exactly the planted entry we refuse.
+    let rd = match std::fs::read_dir(dir) {
+        Ok(rd) => rd,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e).with_context(|| format!("cannot inspect frames dir {}", dir.display())),
+    };
     let stale = rd
         .flatten()
         .any(|e| e.file_name().to_string_lossy().starts_with("frame_"));
@@ -591,12 +708,10 @@ fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<S
         .spawn()
         .context("ffmpeg not found — install ffmpeg (>= 5.1) to extract frames")?;
     // Stream stderr: one showinfo block per frame would otherwise be buffered whole.
-    let mut reducer = StderrReducer::default();
-    if let Some(stderr) = child.stderr.take() {
-        for line in std::io::BufReader::new(stderr).lines().map_while(Result::ok) {
-            reducer.push(&line);
-        }
-    }
+    let (times, last) = match child.stderr.take() {
+        Some(stderr) => read_ffmpeg_stderr(stderr),
+        None => (Vec::new(), String::new()),
+    };
     let status = child.wait().context("ffmpeg did not exit")?;
     let mut files: Vec<String> = std::fs::read_dir(dir)?
         .flatten()
@@ -606,9 +721,8 @@ fn extract_frames(input: &Path, dir: &Path, sampling: Sampling) -> Result<(Vec<S
     files.sort();
     let guard = FramesGuard::new(files.iter().map(|f| dir.join(f)).collect());
     if !status.success() {
-        bail!("ffmpeg frame extraction failed: {}", reducer.last);
+        bail!("ffmpeg frame extraction failed: {last}");
     }
-    let times = reducer.times;
     if times.len() != files.len() {
         bail!("ffmpeg reported {} frame times for {} frames", times.len(), files.len());
     }
@@ -736,11 +850,13 @@ fn which_whisper_cli() -> Result<PathBuf> {
         }
     }
 
-    // Check ~/.local/bin explicitly
-    let local_bin = PathBuf::from(std::env::var("HOME").unwrap_or_default())
-        .join(".local/bin/whisper-cli");
-    if local_bin.exists() {
-        return Ok(local_bin);
+    // Check ~/.local/bin explicitly — only under a real, absolute HOME: a relative
+    // `.local/bin/whisper-cli` would be executed from cwd (t-3480).
+    if let Ok(home) = home_dir() {
+        let local_bin = home.join(".local/bin/whisper-cli");
+        if local_bin.exists() {
+            return Ok(local_bin);
+        }
     }
 
     bail!(
@@ -896,7 +1012,7 @@ mod tests {
     fn frames_args_sample_every_n_seconds() {
         let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out"), Sampling::Every(5)).unwrap();
         let joined = lossy_join(&args);
-        assert!(joined.contains("-i file:/") && joined.contains("/in.mp4 -vf"), "{joined}");
+        assert!(joined.contains("-i file:/") && joined.contains("/in.mp4 -protocol_whitelist file -vf"), "{joined}");
         assert!(joined.contains("gte(t-prev_selected_t\\,5)',showinfo"));
         assert!(joined.ends_with("out/frame_%06d.jpg"));
         assert!(pos(&args, "-vn").is_none());
@@ -1153,7 +1269,7 @@ mod tests {
     #[test]
     fn frames_pattern_escapes_percent() {
         let args = frames_ffmpeg_args(Path::new("in.mp4"), Path::new("out%d"), Sampling::Every(5)).unwrap();
-        assert!(args.last().unwrap().ends_with("out%%d/frame_%06d.jpg"));
+        assert!(args.last().unwrap().to_string_lossy().ends_with("out%%d/frame_%06d.jpg"));
     }
 
     /// Real-ffmpeg tests skip when ffmpeg is absent; BRANA_REQUIRE_FFMPEG=1 turns the skip
@@ -1435,7 +1551,7 @@ mod tests {
         // pin the contract from this crate so a brana-core change cannot silently drop it.
         let args: Vec<String> = files::curl_args("https://h/m.bin", Path::new("/tmp/p"))
             .iter().map(|a| a.to_string_lossy().into_owned()).collect();
-        let joined = lossy_join(&args);
+        let joined = args.join(" ");
         assert!(joined.contains("--proto =https"), "{joined}");
         assert!(joined.contains("--proto-redir =https"), "{joined}");
         assert!(files::validate_url("http://h/m.bin").is_err(), "plain http never reaches curl");

@@ -79,15 +79,21 @@ the run uses `-l auto`, and an `.en` model would force-decode other languages as
 ## Edge Cases
 
 - `--frames` on an audio-only file → error ("--frames needs a video input").
-- Hardening (t-3480): every ffmpeg call runs with `-protocol_whitelist file` and an absolute
-  `file:` input URL, so a media file named like `concat:…`/`data:…`/a playlist is opened as a
-  file, never parsed as a protocol. A frames dir the run creates is `0o700`; any pre-existing
-  `frame_*` entry — file or planted symlink — refuses the run before ffmpeg starts. ffmpeg's
-  stderr is streamed and reduced to the frame times plus the last line, never buffered whole.
-  `--model` is a path only when it contains `/` or ends with `.bin` (a same-named file in cwd
-  no longer matters); relative `BRANA_WHISPER_MODELS` entries are ignored. Leaked
-  `brana-transcribe-*.wav` temp files older than an hour are swept. The model download is the
-  shared https-pinned brana-core path (t-3473).
+- Hardening (t-3480): every ffmpeg call runs with `-protocol_whitelist file` and absolute
+  `file:` URLs for both the input and the frames output pattern, so a media file named like
+  `concat:…`/`data:…`/a playlist is opened as a file, never parsed as a protocol, and a
+  `--frames` dir spelled like `udp://…` cannot send frames over the network. Paths reach ffmpeg
+  as raw bytes (non-UTF-8 names work). A frames dir the run creates is `0o700` (leaf only;
+  created parents keep the default mode); any pre-existing `frame_*` entry — file or planted
+  symlink — refuses the run before ffmpeg starts, and a dir that cannot be inspected is refused
+  too (fail closed). ffmpeg's stderr is read byte-wise and lossily (a Latin-1 tag never ends the
+  read), reduced to the frame times plus the last line, never buffered whole. `--model` is a
+  path only when it contains `/` or ends with `.bin`; relative `BRANA_WHISPER_MODELS` entries
+  are ignored with a warning; `HOME` must be set and absolute (no cwd fallback for the model
+  cache, the download dir or the `whisper-cli` lookup). Leaked `brana-transcribe-*.wav` temp
+  files older than an hour are swept. The model download is the shared https-pinned brana-core
+  path (t-3473). Known, tracked separately: two concurrent runs sharing one `--frames` dir can
+  mix frames (pre-existing).
 - `--every 0` → error.
 - `--scene` without `--frames`, `--scene` together with `--every`, or `--scene 0` / `--scene 1` / `--scene 1.5` → usage error.
 - Model files of 1000 bytes or less, and in-progress `*.part-<pid>` downloads, are ignored by discovery.

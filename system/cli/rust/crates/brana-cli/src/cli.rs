@@ -174,8 +174,10 @@ pub enum Commands {
     Transcribe {
         /// Path to audio or video file (.wav, .mp3, .ogg, .m4a, .mp4, .mkv, .mov, .webm, .avi, .m4v)
         file: PathBuf,
-        /// Whisper model: a name (tiny, base, small, medium, large-v3, ...) or a path to a ggml file.
-        /// Default: the largest installed model; if none is installed, downloads small.
+        /// Whisper model: a name (tiny, base, small, medium, large-v3, ...) or a path to a ggml file
+        /// (a path contains `/` or ends with `.bin`). Default: the largest installed model
+        /// (searched in absolute $BRANA_WHISPER_MODELS dirs, then ~/.cache/whisper-models); if
+        /// none is installed, downloads small.
         #[arg(long)]
         model: Option<String>,
         /// Video only: extract frames into DIR (must not already hold frame_* files) and print a
